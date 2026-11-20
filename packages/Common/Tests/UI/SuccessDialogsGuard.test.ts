@@ -168,6 +168,16 @@ const NOTICES: Record<string, NoticeEntry> = {
     { count: 1, why: WHY.error },
   "packages/App/FeatureSet/Dashboard/src/Components/Sso/ProjectOidcProviders.tsx":
     { count: 1, why: WHY.copy },
+  // A dashboard's identity provider values, to copy into the provider (#10250).
+  "packages/App/FeatureSet/Dashboard/src/Components/PrivateAccess/OidcProvidersTable.tsx":
+    { count: 1, why: WHY.copy },
+  "packages/App/FeatureSet/Dashboard/src/Components/PrivateAccess/SamlProvidersTable.tsx":
+    { count: 1, why: WHY.copy },
+  /*
+   * A change's root cause, which the person opened with View Cause: one
+   * dialog for every State and Status Timeline (#9752), a monitor's, an
+   * incident's, an alert's and an episode's.
+   */
   "packages/App/FeatureSet/Dashboard/src/Components/StateTimeline/StateChangeCause.tsx":
     { count: 1, why: WHY.details },
   // Reading the device, then what failed.

@@ -13,9 +13,12 @@ import {
 } from "Common/Types/Cloud/CloudAddedMetrics";
 import {
   CLOUD_PUBLISHED_METRIC_BLOCK_REASONS,
+  CloudPublishedMetricBlock,
   CloudPublishedMetric,
+  CloudPublishedMetricSplit,
   CloudPublishedMetricStatus,
   CloudPublishedMetricsListing,
+  getCloudPublishedMetricUnitText,
 } from "Common/Types/Cloud/CloudPublishedMetrics";
 import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourceCatalog";
 import Button, {
@@ -34,10 +37,30 @@ import Toast from "Common/UI/Utils/Toast";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import CloudAddMetricModal from "./CloudAddMetricModal";
-import {
-  listCloudResourcePublishedMetrics,
-  removeCloudResourceMetric,
-} from "./CloudResourceMetricsApi";
+import CloudRemoveMetricModal from "./CloudRemoveMetricModal";
+import { listCloudResourcePublishedMetrics } from "./CloudResourceMetricsApi";
+import { GCP_SPLIT_LEARNED_FROM_EVERY_VALUE } from "./CloudAddedMetricWords";
+
+/*
+ * Whether an added Google Cloud split is one its connection's reads found
+ * PromQL cannot rank (#10164): its busiest values are found each hour from
+ * every value, which Google bills whole, and its row says so.
+ */
+export function isAddedSplitLearnedFromEveryValue(
+  metric: Pick<CloudPublishedMetric, "addedSplitBy" | "splits">,
+): boolean {
+  return Boolean(
+    metric.addedSplitBy &&
+      (metric.splits || []).some(
+        (split: CloudPublishedMetricSplit): boolean => {
+          return (
+            split.name === metric.addedSplitBy &&
+            split.isLearnedFromEveryValue === true
+          );
+        },
+      ),
+  );
+}
 
 /*
  * THE OTHER METRICS A CLOUD RESOURCE PUBLISHES (#9563), on its Metrics tab.
@@ -49,7 +72,8 @@ import {
  * whether the connection reads it: what someone added first, with Remove;
  * then what can be added, each with Add, which says what it costs before
  * it is added (CloudAddMetricModal); then what cannot, and why; then the
- * key metrics read already. A long list can be searched. Adding and
+ * key metrics read already. Remove says first which monitors, dashboards
+ * and SLOs read the metric and would get no new data (CloudRemoveMetricModal). A long list can be searched. Adding and
  * removing are for whoever may edit connections, as they change what the
  * account is billed; everyone else sees the list, and who can.
  */
@@ -68,6 +92,12 @@ export const CLOUD_MORE_METRICS_SEARCH_FROM: number = 8;
 
 export const CLOUD_MORE_METRICS_ROW_TEST_ID: string = "cloud-more-metrics-row";
 
+// A metric its cloud reads only split, which Add splits by one of its dimensions (#9808).
+const SPLIT_REQUIRED: string =
+  CLOUD_PUBLISHED_METRIC_BLOCK_REASONS[
+    CloudPublishedMetricBlock.NeedsDimension
+  ];
+
 const CloudResourceMoreMetrics: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -79,7 +109,7 @@ const CloudResourceMoreMetrics: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const [search, setSearch] = useState<string>("");
   const [adding, setAdding] = useState<CloudPublishedMetric | null>(null);
-  const [removingKey, setRemovingKey] = useState<string>("");
+  const [removing, setRemoving] = useState<CloudPublishedMetric | null>(null);
   const typeLabel: string = getCloudResourceTypeDisplayName(
     props.provider,
     props.resourceType,
@@ -97,35 +127,6 @@ const CloudResourceMoreMetrics: FunctionComponent<ComponentProps> = (
       setError(API.getFriendlyMessage(err));
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const remove: (metric: CloudPublishedMetric) => Promise<void> = async (
-    metric: CloudPublishedMetric,
-  ): Promise<void> => {
-    if (!metric.addedKey) {
-      return;
-    }
-
-    setRemovingKey(metric.addedKey);
-
-    try {
-      const added: Array<CloudAddedMetric> = await removeCloudResourceMetric({
-        cloudResourceId: props.cloudResourceId,
-        key: metric.addedKey,
-      });
-
-      props.onAddedMetricsChange?.(added);
-      Toast.success(
-        translator.translateTemplate("{{metric}} is no longer read.", {
-          metric: metric.displayName || metric.name,
-        }),
-      );
-      await load();
-    } catch (err) {
-      Toast.error(API.getFriendlyMessage(err));
-    } finally {
-      setRemovingKey("");
     }
   };
 
@@ -164,14 +165,13 @@ const CloudResourceMoreMetrics: FunctionComponent<ComponentProps> = (
             }
             tone={PillTone.Success}
           />
-          {listing?.canEdit ? (
+          {listing?.canEdit && metric.addedKey ? (
             <Button
               title="Remove"
               buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
               buttonSize={ButtonSize.Small}
-              isLoading={removingKey === metric.addedKey}
               onClick={() => {
-                void remove(metric);
+                setRemoving(metric);
               }}
             />
           ) : (
@@ -301,17 +301,49 @@ const CloudResourceMoreMetrics: FunctionComponent<ComponentProps> = (
                           <p className="mt-0.5 text-xs text-gray-500">
                             {translator.translateText(block) || block}
                           </p>
+                        ) : metric.isSplitRequired &&
+                          metric.status ===
+                            CloudPublishedMetricStatus.Available ? (
+                          <p className="mt-0.5 text-xs text-gray-500">
+                            {translator.translateText(SPLIT_REQUIRED)}
+                          </p>
+                        ) : (
+                          <></>
+                        )}
+                        {metric.addedSplitBy ? (
+                          <p
+                            className="mt-0.5 text-xs text-gray-500"
+                            data-testid="cloud-more-metrics-split"
+                          >
+                            {translator.translateTemplate(
+                              "Split by {{dimension}}, a series for each value",
+                              { dimension: metric.addedSplitBy },
+                            )}
+                          </p>
+                        ) : (
+                          <></>
+                        )}
+                        {isAddedSplitLearnedFromEveryValue(metric) ? (
+                          <p
+                            className="mt-0.5 text-xs text-amber-700"
+                            data-testid="cloud-more-metrics-split-every-value"
+                          >
+                            {translator.translateText(
+                              GCP_SPLIT_LEARNED_FROM_EVERY_VALUE,
+                            )}
+                          </p>
                         ) : (
                           <></>
                         )}
                       </div>
                       <div className="flex flex-none items-center gap-2">
-                        {metric.unit ? (
+                        {getCloudPublishedMetricUnitText(metric.unit) ? (
                           <span
                             className="font-mono text-xs text-gray-500"
                             dir="ltr"
+                            data-testid="cloud-more-metrics-unit"
                           >
-                            {metric.unit}
+                            {getCloudPublishedMetricUnitText(metric.unit)}
                           </span>
                         ) : (
                           <></>
@@ -362,6 +394,44 @@ const CloudResourceMoreMetrics: FunctionComponent<ComponentProps> = (
             Toast.success(
               translator.translateTemplate(
                 "{{metric}} is read from the next read.",
+                { metric: name },
+              ),
+            );
+            void load();
+          }}
+        />
+      ) : (
+        <></>
+      )}
+      {removing && listing ? (
+        <CloudRemoveMetricModal
+          cloudResourceId={props.cloudResourceId}
+          metric={removing}
+          typeLabel={typeLabel}
+          resourcesOfType={listing.resourcesOfType}
+          onClose={() => {
+            setRemoving(null);
+          }}
+          onRemoved={(added: Array<CloudAddedMetric>) => {
+            const name: string = removing.displayName || removing.name;
+
+            setRemoving(null);
+            props.onAddedMetricsChange?.(added);
+            Toast.success(
+              translator.translateTemplate("{{metric}} is no longer read.", {
+                metric: name,
+              }),
+            );
+            void load();
+          }}
+          onKept={(added: Array<CloudAddedMetric>) => {
+            const name: string = removing.displayName || removing.name;
+
+            setRemoving(null);
+            props.onAddedMetricsChange?.(added);
+            Toast.success(
+              translator.translateTemplate(
+                "{{metric}} is now read only for the resources its readers read.",
                 { metric: name },
               ),
             );

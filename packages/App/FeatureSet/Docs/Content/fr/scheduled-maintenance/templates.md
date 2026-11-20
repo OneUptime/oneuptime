@@ -47,7 +47,7 @@ Dans **Ressources affectées**, choisissez les **Moniteurs**, le **Changer le st
 
 ### Décider s'il est récurrent
 
-Dans **Récurrent**, laissez **Événement récurrent** désactivé pour un modèle que vous utilisez à la main, ou activez-le et renseignez sa planification. Cliquez sur **Suivant** pour relire la vérification, puis créez le modèle.
+Dans **Récurrent**, laissez **Événement récurrent** désactivé pour un modèle que vous utilisez à la main, ou activez-le, choisissez sa fréquence et son **Fuseau horaire**, et fixez les heures du premier événement dans **Premier événement**. Cliquez sur **Suivant** pour relire la vérification, puis créez le modèle.
 :::
 
 Un modèle demande **Changer le statut du moniteur en** même quand il ne nomme aucun moniteur : le statut s'applique aussi aux moniteurs que vous ajoutez quand vous planifiez un événement à partir de lui. Sous **Autres ressources affectées**, un modèle accepte des hôtes, des clusters Kubernetes, des hôtes Docker, des hôtes Podman et des services.
@@ -83,15 +83,18 @@ Quand le projet n'a encore aucun modèle, **Créer à partir d'un modèle** le d
 
 ## Événements récurrents
 
-Un modèle récurrent crée l'événement selon une planification. Vous fixez quand le premier événement est créé, quand il commence et quand il se termine ; chaque événement suivant garde les mêmes écarts, un intervalle plus tard.
+Un modèle récurrent crée l'événement selon une planification. Vous fixez sa fréquence, le fuseau horaire qu'il garde, et quand le premier événement est créé, quand il commence et quand il se termine ; chaque événement suivant est le premier décalé d'intervalles entiers dans le calendrier de ce fuseau horaire, aux mêmes heures.
 
 | Champ                                    | Ce qu'il signifie                                                                                   |
 | ---------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | **Événement récurrent**                  | Active la planification.                                                                            |
+| **À quelle fréquence souhaitez-vous que cet événement se reproduise ?** | Un nombre et une unité : heures, jours, semaines, mois ou années. |
+| **Fuseau horaire**                       | Le fuseau horaire dans lequel les événements gardent leur heure. Un nouveau modèle commence avec le vôtre. |
 | **Premier événement planifié à**         | Quand OneUptime crée le premier événement, c'est-à-dire quand ses abonnés apprennent qu'il est planifié. |
 | **Le premier événement commence à**      | Quand le premier événement commence.                                                                |
 | **Le premier événement se termine à**    | Quand le premier événement se termine.                                                              |
-| **À quelle fréquence souhaitez-vous que cet événement se reproduise ?** | Un nombre et une unité : heures, jours, semaines, mois ou années. |
+
+Les trois premiers sont à l'étape **Récurrent**. Les heures du premier événement sont à l'étape **Premier événement**, qui apparaît dès que **Événement récurrent** est activé.
 
 Par exemple, une fenêtre hebdomadaire dont le premier événement est créé un lundi pour le samedi suivant :
 
@@ -100,15 +103,25 @@ Par exemple, une fenêtre hebdomadaire dont le premier événement est créé un
 | Le premier   | `2030-06-03 09:00` | `2030-06-08 02:00` | `2030-06-08 04:00` |
 | Le deuxième  | `2030-06-10 09:00` | `2030-06-15 02:00` | `2030-06-15 04:00` |
 
+Chaque événement garde les heures du premier événement dans le fuseau horaire du modèle, y compris quand on change d'heure pour l'heure d'été : une fenêtre de 02:00 à 04:00 à Berlin y reste de 02:00 à 04:00 en été comme en hiver. Quelques jours se règlent ainsi :
+
+- **Un jour que le mois n'a pas.** Un événement mensuel le 29, le 30 ou le 31 tombe le dernier jour d'un mois plus court, comme le 30 avril ou le 28 février, et revient à son propre jour les mois qui l'ont. Un événement annuel le 29 février tombe le 28 février les autres années.
+- **La nuit où l'on avance les horloges.** Une heure qui n'existe pas cette nuit-là, comme 02:30 quand 02:00 saute à 03:00, avance de la durée du saut, à 03:30. Un événement dont le début passe ainsi après sa fin garde la durée du premier événement.
+- **La nuit où l'on recule les horloges.** Une heure qui revient deux fois cette nuit-là, comme 01:30 à New York, est la première des deux.
+- **Toutes les quelques heures.** Les heures sont comptées à mesure qu'elles passent : un modèle qui se répète toutes les quelques heures se décale donc d'une heure sur l'horloge quand on change d'heure.
+- **Un fuseau horaire sans heure d'été.** Un fuseau horaire qui ne change plus d'heure, comme celui de la Colombie-Britannique (America/Vancouver) depuis novembre 2026, garde le même décalage : rien ne bouge.
+
+Un modèle créé avant que les modèles aient un fuseau horaire affiche **UTC**, le fuseau horaire dans lequel ses événements étaient calculés jusque-là. Choisissez le fuseau horaire dans lequel ses heures étaient pensées : à partir de son prochain événement, chaque événement y garde l'heure du premier événement.
+
 Placez **Premier événement planifié à** aussi longtemps avant le début que vous voulez que vos clients soient informés des travaux. Les trois heures doivent être dans le futur quand vous créez le modèle, l'événement doit être créé avant de commencer et de se terminer, et il doit commencer avant de se terminer ; le formulaire indique quelle règle une heure enfreint.
 
-Une tâche vérifie les modèles récurrents chaque minute. Quand arrive la prochaine heure d'un modèle, elle décale cette heure d'un intervalle et crée l'événement. La liste des modèles affiche cette heure dans sa colonne **Événement récurrent**, et **Non** pour un modèle qui ne se répète pas. Un événement créé par la planification est comme les autres : ses règles s'exécutent, ses propriétaires sont ajoutés et ses abonnés apprennent qu'il est planifié.
+Une tâche vérifie les modèles récurrents chaque minute. Quand arrive la prochaine heure d'un modèle, elle crée l'événement et reporte cette heure au prochain événement de la planification. La liste des modèles affiche cette heure dans sa colonne **Événement récurrent**, et **Non** pour un modèle qui ne se répète pas. Un événement créé par la planification est comme les autres : ses règles s'exécutent, ses propriétaires sont ajoutés et ses abonnés apprennent qu'il est planifié.
 
 ## Modifier ou arrêter un modèle
 
 Ouvrez un modèle depuis la liste pour voir sa page :
 
-- **Détails du modèle de maintenance planifiée** montre ce avec quoi démarrent les nouveaux événements. Son **Modifier** parcourt **Informations du modèle**, **Détails de la maintenance**, **Pages de statut** et **Récurrent**.
+- **Détails du modèle de maintenance planifiée** montre ce avec quoi démarrent les nouveaux événements. Son **Modifier** parcourt **Informations du modèle**, **Détails de la maintenance**, **Pages de statut** et **Récurrent**, puis **Premier événement** pour un modèle qui se répète.
 - **Ressources affectées** contient ses **Moniteurs**, leur **Changer le statut du moniteur en** et ses **Autres ressources affectées**, avec son propre **Modifier**.
 - **Propriétaires** liste les personnes et équipes à qui appartient chaque événement planifié à partir de lui.
 
@@ -122,6 +135,10 @@ Les trois premières heures doivent être après l'instant présent quand vous c
 
 :::details Un modèle récurrent n'a créé aucun événement
 Vérifiez que **Événement récurrent** est toujours activé, et regardez l'heure dans la colonne **Événement récurrent** de la liste : l'événement est créé à ce moment-là, pas à son début. La tâche s'exécute chaque minute, laissez donc passer une minute.
+:::
+
+:::details Les événements d'un modèle récurrent ont une heure d'avance ou de retard après le changement d'heure
+Ouvrez le modèle et vérifiez son **Fuseau horaire** : ses événements gardent l'heure du premier événement dans ce fuseau horaire. Un modèle créé avant que les modèles aient un fuseau horaire affiche **UTC** : choisissez le fuseau horaire dans lequel ses heures étaient pensées. Les événements déjà créés gardent leurs heures.
 :::
 
 :::details Il manque à un événement issu d'un modèle une ressource que j'avais choisie

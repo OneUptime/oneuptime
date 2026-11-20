@@ -4,6 +4,10 @@ import { Green, Red, Yellow, Gray500 } from "../../../Types/BrandColors";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { getCloudResourceTypeLabel } from "../../../Types/Cloud/CloudResourceCatalog";
 import {
+  CloudConnectionDefinition,
+  getCloudConnectionDefinition,
+} from "../../../Types/CloudConnection/CloudConnectionCatalog";
+import {
   CloudConnectionCostEstimate,
   estimateCloudConnectionCost,
 } from "../../../Types/CloudConnection/CloudConnectionCost";
@@ -11,7 +15,18 @@ import {
   CloudConnectionFailureKind,
   CloudConnectionTestResult,
 } from "../../../Types/CloudConnection/CloudConnectionTest";
+import {
+  AWS_ROLE_WITHOUT_EXTERNAL_ID_REFUSAL,
+  AWS_ROLE_WITHOUT_EXTERNAL_ID_WORDS,
+} from "../../../Types/CloudConnection/AwsRoleExternalIdRefusal";
+import {
+  getAwsExternalIdConditionText,
+  getAwsExternalIdForProject,
+} from "../../../Types/CloudConnection/CloudConnectionSetupCommands";
+import { getRefusalText } from "../../../Types/Exception/RefusalWithValues";
 import { JSONObject } from "../../../Types/JSON";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import {
   Translator,
   createTranslator,
@@ -27,6 +42,7 @@ import {
   PASTE_HOLDS_NOTHING,
   PASTE_NOTHING_YET,
   PASTE_STILL_MISSING,
+  drawCloudFailureDetails,
   drawCloudTemplate,
   getAccountsNotInName,
   getCloudAccountsWords,
@@ -34,6 +50,7 @@ import {
   getCloudCostWords,
   getCloudFailureWords,
   getCloudReadFailureWords,
+  getCloudReadIntervalRaisedWords,
   getCloudReadIntervalWords,
   getCloudRegionNames,
   getCloudTestWords,
@@ -218,6 +235,106 @@ describe("a read's failure", () => {
       ),
     ).toBeUndefined();
     expect(getCloudReadFailureWords(new CloudConnection())).toBeUndefined();
+  });
+});
+
+/*
+ * An AWS role that lets OneUptime in without the project's external id
+ * (#10405) is OneUptime's own refusal, not the cloud's answer: a test and
+ * a failed read say it with a headline and advice of its own, not "A
+ * setting is not right.", and its message - the details - in the reader's
+ * language, around the exact condition to add (#10425).
+ */
+describe("an AWS role that lets OneUptime in without the project's external id", () => {
+  const PROJECT: string = "11111111-1111-4111-8111-111111111111";
+  const CONDITION: string = getAwsExternalIdConditionText(
+    getAwsExternalIdForProject(PROJECT),
+  );
+  const REFUSAL: string = getRefusalText(AWS_ROLE_WITHOUT_EXTERNAL_ID_REFUSAL, {
+    condition: CONDITION,
+  });
+
+  test("a test that refuses it says so in words of its own, with the refusal as the details", () => {
+    const words: CloudWords = getCloudTestWords(
+      result({
+        status: "fail",
+        failureKind: CloudConnectionFailureKind.Settings,
+        message: REFUSAL,
+      }),
+    );
+
+    expect(words).toEqual({
+      headline: AWS_ROLE_WITHOUT_EXTERNAL_ID_WORDS.headline,
+      advice: AWS_ROLE_WITHOUT_EXTERNAL_ID_WORDS.advice,
+      details: REFUSAL,
+    });
+    expect(words.headline).toBe(
+      "This role lets OneUptime sign in without your project's external ID.",
+    );
+    expect(words.advice).toBe(
+      "Add the condition below to the role's trust policy, or run the setup command again, then test again.",
+    );
+  });
+
+  test("a read it stopped says the same, from the error the read kept", () => {
+    expect(
+      getCloudReadFailureWords({
+        ...summary({
+          status: "failed",
+          failureKind: CloudConnectionFailureKind.Settings,
+        }),
+        lastError: REFUSAL,
+      } as Pick<CloudConnection, "lastPullResult" | "lastError">),
+    ).toEqual(AWS_ROLE_WITHOUT_EXTERNAL_ID_WORDS);
+  });
+
+  test("a read that worked since says nothing of it, and any other setting is still a setting", () => {
+    expect(
+      getCloudReadFailureWords({
+        ...summary({}),
+        lastError: REFUSAL,
+      } as Pick<CloudConnection, "lastPullResult" | "lastError">),
+    ).toBeUndefined();
+    expect(
+      getCloudTestWords(
+        result({
+          status: "fail",
+          failureKind: CloudConnectionFailureKind.Settings,
+          message: "Role ARN must be an IAM role ARN.",
+        }),
+      ).headline,
+    ).toBe("A setting is not right.");
+    // Its words in another message, as a member account's warning holds them: not the refusal.
+    expect(
+      getCloudTestWords(
+        result({
+          status: "fail",
+          failureKind: CloudConnectionFailureKind.Settings,
+          message: `Could not read Production (210987654321): ${REFUSAL}`,
+        }),
+      ).headline,
+    ).toBe("A setting is not right.");
+  });
+
+  test("its details are said in the reader's language, the condition as written", () => {
+    const german: string = withoutIsolateMarks(
+      drawCloudFailureDetails(dashboardTranslator("de"), REFUSAL),
+    );
+
+    expect(german).toContain(CONDITION);
+    expect(german).toContain("Vertrauensrichtlinie");
+    expect(german).not.toContain("trusts OneUptime");
+    expect(drawCloudFailureDetails(ENGLISH, REFUSAL)).toBe(REFUSAL);
+  });
+
+  test("a cloud's own answer is drawn as it came, in every language", () => {
+    const answer: string =
+      "AWS role sign-in failed with HTTP 400: ValidationError: 1 validation error detected";
+
+    expect(drawCloudFailureDetails(dashboardTranslator("de"), answer)).toBe(
+      answer,
+    );
+    expect(drawCloudFailureDetails(ENGLISH, answer)).toBe(answer);
   });
 });
 
@@ -564,5 +681,57 @@ describe("why the Credentials step cannot go on", () => {
     ).toBe(
       "Still missing: Client secret. Paste everything the command printed, or enter the values below.",
     );
+  });
+});
+
+/*
+ * #10028: a monitor made from a resource's Recommendations keeps the window
+ * it was made with when its connection's interval is raised; the form says
+ * so under the interval, and how to size one for the new interval.
+ */
+describe("raising how often a connection is read", () => {
+  const AWS: CloudConnectionDefinition = getCloudConnectionDefinition(
+    CloudProvider.AWS,
+  )!;
+
+  test("raised: the monitors made before keep their windows, and how to size one again", () => {
+    const words: CloudTemplate | undefined = getCloudReadIntervalRaisedWords({
+      definition: AWS,
+      savedValue: "10",
+      chosenValue: "60",
+    });
+
+    expect(words).toBeDefined();
+    expect(drawCloudTemplate(ENGLISH, words!)).toBe(
+      "Monitors already created from Recommendations keep the window they were made with. To size one for reads every 60 minutes, delete it and create it again from Recommendations.",
+    );
+  });
+
+  test("raised from its cloud's default when none was saved", () => {
+    expect(
+      getCloudReadIntervalRaisedWords({
+        definition: AWS,
+        savedValue: undefined,
+        chosenValue: "30",
+      })?.values,
+    ).toBeDefined();
+  });
+
+  test("kept, lowered, or a value it does not offer: nothing to say", () => {
+    for (const [savedValue, chosenValue] of [
+      ["10", "10"],
+      ["60", "15"],
+      [undefined, "10"],
+      ["30", "7"],
+      ["30", ""],
+    ] as Array<[string | undefined, string]>) {
+      expect(
+        getCloudReadIntervalRaisedWords({
+          definition: AWS,
+          savedValue,
+          chosenValue,
+        }),
+      ).toBeUndefined();
+    }
   });
 });

@@ -266,25 +266,37 @@ describe("Calendar: the dates and times in the reader's language", () => {
   /*
    * English keeps react-big-calendar's own wording, but for the day's
    * number: "1", as every wall and phone calendar writes it, where the
-   * library writes "01" - and so wrote Persian "۰۱".
+   * library writes "01" - and so wrote Persian "۰۱" - and for its times,
+   * on the reader's clock (#7651) where the library's "LT" was always a
+   * 12-hour one. One set of formats per clock.
    */
   test("English keeps react-big-calendar's own wording, its day numbers without a leading zero", () => {
-    const english: Formats = getCalendarFormats("en");
+    const english: Formats = getCalendarFormats("en", true);
 
     expect(Object.keys(english)).toEqual([
       "dateFormat",
       "dayFormat",
+      "timeGutterFormat",
+      "agendaTimeFormat",
+      "agendaTimeRangeFormat",
+      "eventTimeRangeFormat",
+      "selectRangeFormat",
       "eventTimeRangeStartFormat",
+      "eventTimeRangeEndFormat",
     ]);
     // Moment's formats: the day of the month, and that day beside its name.
     expect(english.dateFormat).toBe("D");
     expect(english.dayFormat).toBe("D ddd");
-    expect(getCalendarFormats(undefined)).toBe(english);
-    expect(getCalendarFormats("en-GB")).toBe(english);
+    expect(getCalendarFormats(undefined, true)).toBe(english);
+    expect(getCalendarFormats("en-GB", true)).toBe(english);
+    expect(getCalendarFormats("en", false)).not.toBe(english);
+    expect(getCalendarFormats("en", false)).toBe(
+      getCalendarFormats("en-US", false),
+    );
   });
 
   test("German: the month, the day names and the hours as a German reader writes them", () => {
-    const german: Formats = getCalendarFormats("de");
+    const german: Formats = getCalendarFormats("de", false);
 
     expect(format(german, "monthHeaderFormat", THURSDAY)).toBe("Oktober 2026");
     expect(format(german, "weekdayFormat", THURSDAY)).toBe("Do");
@@ -304,7 +316,7 @@ describe("Calendar: the dates and times in the reader's language", () => {
   });
 
   test("a block that ends at the midnight closing its day still says so", () => {
-    const german: Formats = getCalendarFormats("de");
+    const german: Formats = getCalendarFormats("de", false);
 
     expect(
       formatRange(german, "eventTimeRangeStartFormat", {

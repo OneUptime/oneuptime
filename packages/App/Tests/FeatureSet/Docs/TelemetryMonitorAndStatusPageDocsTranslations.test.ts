@@ -214,10 +214,16 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   /*
    * A mobile app's recommendations, as their cards name them: a card draws
    * the template's name as written (RumAlertTemplates), in every language
-   * (#9711, #9713, #9716).
+   * (#9711, #9713, #9716), the daily rates per install too (#9924).
    */
   [TRACES_MONITOR]: ["Device Stopped Reporting", "App Stopped Reporting"],
-  [EXCEPTIONS_MONITOR]: ["App Crashes", "App Crash Rate", "App ANR Rate"],
+  [EXCEPTIONS_MONITOR]: [
+    "App Crashes",
+    "App Crash Rate",
+    "App ANR Rate",
+    "Daily Crash Rate",
+    "Daily ANR Rate",
+  ],
 };
 
 interface FlatLookupLabel {
@@ -436,6 +442,13 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Grouped monitors evaluate every criteria.",
     "order the criteria most severe first",
     "Ungrouped monitors stop at the first matching criteria.",
+    // A step written in PromQL (#7712).
+    "A comparison in the expression",
+    "At most 100 series a check.",
+    "The limits of every PromQL query hold",
+    "The anomaly conditions are not offered",
+    // Its Overview's and its incidents' charts (#10227).
+    "Its charts draw the expression.",
   ],
   [TRACES_MONITOR]: [
     "Every minute.",

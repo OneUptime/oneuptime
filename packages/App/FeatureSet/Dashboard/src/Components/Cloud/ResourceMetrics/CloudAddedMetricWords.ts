@@ -17,7 +17,8 @@ import { CloudTemplate } from "../Connect/CloudConnectionWords";
  * a metric is added, for each choice - this resource, or every resource of
  * its type - from CloudConnectionCost.estimateCloudAddedMetricCost. Each
  * cloud bills its own way, so each says its own unit: AWS's metrics read,
- * Azure's calls, Google Cloud's time series.
+ * Azure's calls, Google Cloud's time series - for a split, at most, since a
+ * resource with fewer values than OneUptime reads returns fewer (#10076).
  */
 
 // A number written the way the sentence's language writes it.
@@ -51,6 +52,16 @@ export const ADDED_METRIC_RIDES_ALONG: string = translationKey(
   "No extra cost: it is read in the call that already reads the key metrics.",
 );
 
+/*
+ * A Google Cloud split its connection's reads found PromQL cannot rank
+ * (#10164): its busiest values are found each hour from a list of every
+ * value, which Google bills whole - said where it is added, and on its row
+ * once added.
+ */
+export const GCP_SPLIT_LEARNED_FROM_EVERY_VALUE: string = translationKey(
+  "Google Cloud cannot rank this metric's values, so finding the busiest each hour reads every value, and Google Cloud bills them all.",
+);
+
 export function getCloudAddedMetricCostWords(data: {
   provider: CloudProvider | string;
   resources: number;
@@ -58,6 +69,14 @@ export function getCloudAddedMetricCostWords(data: {
   azureGrain?: string | undefined;
   azureMetricsInCall?: number | undefined;
   azureHasFiveMinuteCall?: boolean | undefined;
+  // Split by a dimension (#9808): each resource's series, one a value.
+  isSplit?: boolean | undefined;
+  seriesPerResource?: number | undefined;
+  /*
+   * Google Cloud: a split PromQL cannot rank (#10164), whose hourly
+   * learning reads every value - this many a resource, as its reads found.
+   */
+  gcpLearnedValuesPerResource?: number | undefined;
 }): CloudTemplate {
   const provider: CloudProvider = String(
     data.provider,
@@ -69,6 +88,9 @@ export function getCloudAddedMetricCostWords(data: {
     azureGrain: data.azureGrain,
     azureMetricsInCall: data.azureMetricsInCall,
     azureHasFiveMinuteCall: data.azureHasFiveMinuteCall,
+    isSplit: data.isSplit,
+    seriesPerResource: data.seriesPerResource,
+    gcpLearnedValuesPerResource: data.gcpLearnedValuesPerResource,
   });
 
   if (estimate.ridesInExistingCall) {
@@ -93,6 +115,16 @@ export function getCloudAddedMetricCostWords(data: {
     return {
       template: translationKey(
         "{{count}} more Azure Monitor calls a month: free within each subscription's first 1,000,000 a month, then about ${{cost}}.",
+      ),
+      values,
+    };
+  }
+
+  // Split (#10076): each resource's busiest values, so at most this.
+  if (estimate.isAtMost) {
+    return {
+      template: translationKey(
+        "Up to {{count}} more time series read a month: free within the first 1,000,000 a month, then up to ${{cost}}.",
       ),
       values,
     };

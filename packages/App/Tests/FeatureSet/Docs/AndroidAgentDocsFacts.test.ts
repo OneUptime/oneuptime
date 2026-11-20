@@ -3,7 +3,19 @@ import {
   HostAlertTemplate,
   getHostAlertTemplatesFor,
 } from "Common/Types/Monitor/HostAlertTemplates";
-import { HOST_LOG_SESSION_DURATIONS } from "Common/Types/Host/HostLogSession";
+import {
+  HOST_LOG_SESSION_DURATIONS,
+  HOST_LOG_SESSION_NOTE_MAX_LENGTH,
+} from "Common/Types/Host/HostLogSession";
+import {
+  HOST_LOG_SESSION_FILE_MAX_BYTES,
+  HOST_LOG_SESSION_FILE_MAX_LINES,
+} from "Common/Utils/Host/HostLogSessionFile";
+import { ANDROID_SECURITY_PATCH_MAX_AGE_DAYS } from "Common/Types/Host/AndroidSecurityPatch";
+import { ANDROID_AGENT_PERMISSIONS_ATTRIBUTE } from "Common/Types/Host/AndroidAgentPermissions";
+import { getManagedDeviceAlertTemplateById } from "Common/Types/Monitor/ManagedDeviceAlertTemplates";
+import { MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME } from "Common/Types/DeviceManagement/ManagedDeviceCheckIn";
+import { ESPER_DEVICE_ID_ATTRIBUTE } from "Common/Types/DeviceManagement/ManagedDeviceIdentity";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -259,6 +271,119 @@ describe("Android Agent docs: what to run and where to look", () => {
     expect(markdown).toContain("(/docs/rum/android-setup)");
     expect(readPage("en", "rum/android-setup")).toContain(
       "(/docs/telemetry/android-agent)",
+    );
+  });
+});
+
+/*
+ * #9965, #9966 and #9967: what the page says of a session's note and file,
+ * of a device behind on its patches, and of granting the agent's
+ * permissions across a fleet, held to the code that does it.
+ */
+describe("Android Agent docs: notes, files, patches and a fleet's grants", () => {
+  it("gives a note the length a person may write, redacted with the agent's markers", () => {
+    expect(HOST_LOG_SESSION_NOTE_MAX_LENGTH).toBe(200);
+    expect(markdown).toContain("The note is one line of up to 200 characters.");
+    expect(markdown).toContain(
+      "`[card number]`, `[email]`, `[token]` and `[redacted]` before it is kept",
+    );
+  });
+
+  it("describes the file as the code writes it, with its limits", () => {
+    expect(HOST_LOG_SESSION_FILE_MAX_LINES).toBe(100_000);
+    expect(HOST_LOG_SESSION_FILE_MAX_BYTES).toBe(32 * 1024 * 1024);
+    expect(markdown).toContain("`logcat -v threadtime`");
+    expect(markdown).toContain("at most 100,000 lines and 32 MB");
+    expect(markdown).toContain("Times are in UTC.");
+    expect(markdown).toContain("**Download Lines**");
+  });
+
+  it("calls a device behind past the baseline the alert and the filter read", () => {
+    expect(ANDROID_SECURITY_PATCH_MAX_AGE_DAYS).toBe(90);
+    expect(goldenMetricNames().has("android.os.security_patch.age")).toBe(true);
+    expect(markdown).toContain("`android.os.security_patch.age`");
+    expect(markdown).toContain(
+      "when its security patch level is more than 90 days old",
+    );
+    expect(markdown).toContain("**Security Patch Level**");
+  });
+
+  it("stages a fleet with the agent's own grant commands, device by device", () => {
+    const events: string = agentFile(
+      "app/src/main/java/com/oneuptime/androidagent/agent/AgentEvents.kt",
+    );
+
+    for (const name of [
+      "GRANT_COMMAND",
+      "GRANT_DROPBOX_COMMAND",
+      "USAGE_ACCESS_COMMAND",
+    ]) {
+      const command: string = new RegExp(
+        `const val ${name}: String = "([^"]+)"`,
+      ).exec(events)![1]!;
+
+      // The same command, aimed at each device the loop finds.
+      expect(markdown).toContain(
+        command.replace("adb shell", 'adb -s "$serial" shell'),
+      );
+    }
+  });
+
+  it("names the filter the agent's reports fill, and what Esper cannot do", () => {
+    expect(
+      agentFile(
+        "app/src/main/java/com/oneuptime/androidagent/agent/AgentPermissions.kt",
+      ),
+    ).toContain(`"${ANDROID_AGENT_PERMISSIONS_ATTRIBUTE}"`);
+    expect(markdown).toContain("**Agent Permissions**: **Missing**");
+    expect(markdown).toContain("`SET_APP_PERMISSION`");
+    expect(markdown).toContain(
+      "**Run Shell Script** runs on Linux and Windows devices",
+    );
+    // The flag the Esper CLI's secureadb connect takes: it has no -d.
+    expect(markdown).toContain("espercli secureadb connect --device DEVICE_ID");
+    expect(markdown).not.toContain("secureadb connect -d");
+  });
+
+  /*
+   * #10097: the DEVICE_ID that command takes is in Inventory, in the Device
+   * Manager ID column beside Agent Permissions, read from what Esper's
+   * import writes on the device's host.
+   */
+  it("says where each device's DEVICE_ID is, and exports it with the devices still missing grants", () => {
+    const columns: string = fs.readFileSync(
+      path.join(
+        REPO_ROOT,
+        "packages/App/FeatureSet/Dashboard/src/Components/Inventory/DeviceManagerIds.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(ESPER_DEVICE_ID_ATTRIBUTE).toBe("esper.device.id");
+    expect(columns).toContain('translationKey("Device Manager ID")');
+    expect(markdown).toContain(
+      "Inventory's **Device Manager ID** column holds each device's `DEVICE_ID`.",
+    );
+    expect(markdown).toContain(
+      "Turn on the **Device Manager ID** column too, and the export holds each device's Esper ID, the `DEVICE_ID` that `espercli secureadb connect --device` takes.",
+    );
+  });
+
+  /*
+   * #10098: a device a device manager imports and the agent does not run on
+   * is alerted on by its connection's own template, from the patch level
+   * the device manager reports; the agent's devices are left to the host's.
+   */
+  it("says which template alerts on a device without the agent, and that none alerts twice", () => {
+    const esper: { name: string; description: string } | undefined =
+      getManagedDeviceAlertTemplateById("esper-security-patch-out-of-date");
+
+    expect(esper).toBeDefined();
+    expect(MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME).not.toBe(
+      "android.os.security_patch.age",
+    );
+    expect(markdown).toContain(
+      `An Android device a device manager imports, without the agent, is alerted on by its connection's own template, such as **${esper!.name}**, from the patch level the device manager reports; a device that runs the agent is left to this one, so it never alerts twice.`,
     );
   });
 });

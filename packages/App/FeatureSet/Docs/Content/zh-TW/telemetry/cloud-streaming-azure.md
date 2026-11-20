@@ -30,6 +30,7 @@ flowchart TB
 - **一個已連線的 Azure 訂用帳戶。** 先在 **雲端 → 連線** 中連線：請參閱 [連線雲端帳戶](/docs/telemetry/cloud-accounts)。
 - **專案擁有者或專案管理員。** 只有他們可以開啟讀取和停止串流。
 - **Azure Cloud Shell**，以訂用帳戶的 **Owner** 身分登入，或以同時是 **User Access Administrator** 的 **Contributor** 身分登入：指令會建立資源群組和角色指派，並變更診斷設定。
+- **Microsoft Entra ID 的日誌需要租用戶的 Security Administrator**，且此人同時是指令所建立資源群組的 **Owner** 或 **Contributor**：只有這樣的人才能把租用戶的日誌傳送到事件中樞。
 - **在自行託管的 OneUptime 上，能連到 Azure 的出口。** OneUptime 透過連接埠 9093 在 `<namespace>.servicebus.windows.net` 讀取每個命名空間，命名空間接受來自網際網路的連線。
 
 ## 設定串流
@@ -43,6 +44,8 @@ flowchart TB
 
 **指標** 每分鐘串流每個資源的關鍵指標，也就是 OneUptime 為每個資源繪製圖表並據以評估它的指標，但[診斷設定無法傳送的那些](#抵達的內容)除外，連線會繼續讀取它們。**指標和日誌** 再加上每個資源自己的日誌，也就是 Azure 為它保留的每個類別；**日誌** 只串流資源日誌。
 
+在 **用於安全事件** 下，**每個訂用帳戶的活動記錄** 會讓指令把每個訂用帳戶的變更、Defender for Cloud 警示和 Azure Policy 的拒絕傳送到第一個區域的事件中樞；**Microsoft Entra ID 的登入日誌和稽核日誌** 會新增第二個指令，供你租用戶的 Security Administrator 執行。[安全性事件](/docs/telemetry/security-events#在日誌中尋找安全性事件) 會讀取這兩者。
+
 ### 開啟讀取
 
 選擇 **開啟讀取**。OneUptime 每分鐘尋找一次事件中樞，並一直等到指令建立它們。
@@ -50,6 +53,10 @@ flowchart TB
 ### 在 Azure Cloud Shell 中執行指令
 
 複製指令，在 Azure Cloud Shell 中執行並等待完成。它會列出建立了事件中樞的每個區域、傳送到這些事件中樞的資源數量，以及它略過的資源和 Azure 提供的原因。
+
+### 執行 Microsoft Entra ID 的指令（如果你選擇了它）
+
+第一個指令完成後，由租用戶的 Security Administrator 在 Azure Cloud Shell 中執行第二個指令。它會為租用戶新增一個診斷設定，把 Microsoft Entra ID 的登入、稽核和風險日誌傳送到第一個區域的事件中樞；如果 Azure 拒絕，它會說明 Azure 要求什麼。
 
 ### 等待第一批事件
 
@@ -83,7 +90,13 @@ Service Bus 或 Event Hubs 命名空間不會串流任何指標。讀取依每�
 
 日誌依資源的 ARM ID 歸檔在該資源下，以 `cloud.resource_id` 攜帶，並把類別、作業、結果和屬性保留為屬性，例如 `azure.category`。
 
-虛擬機器、擴展集、磁碟、網路介面、虛擬網路、私人端點、NAT 閘道、DNS 區域和 App Service 方案不會傳送自己的資源日誌，因此它們的頁面沒有 **日誌** 索引標籤。儲存體帳戶的日誌是其各項服務的日誌，容器應用程式的日誌是其環境的日誌。
+`Administrative`、`Security` 或 `Policy` 類別的活動記錄項目，以及 Microsoft Entra ID 的登入、稽核或風險記錄，會作為其日誌的本文完整抵達，即使它關於的是資源群組、訂用帳戶或租用戶而不是資源。開啟 [在日誌中尋找安全事件](/docs/telemetry/security-events#在日誌中尋找安全性事件) 後，每筆記錄都會像來自日誌管線的記錄一樣被讀取為安全性事件，並且無論透過多少條途徑抵達 OneUptime，都只會儲存一次。開啟 **每個訂用帳戶的活動記錄** 後，指令會為每個訂用帳戶新增一個診斷設定，把該訂用帳戶的活動記錄傳送到第一個區域的事件中樞，Microsoft Entra ID 的指令則為租用戶新增一個。
+
+Key Vault 的 `AuditEvent`、儲存體帳戶的 `StorageRead`、`StorageWrite` 和 `StorageDelete`，以及 Azure SQL 資料庫的 `SQLSecurityAuditEvents` 也會完整抵達，各自歸檔在其資源下，安全性事件會讀取其中與安全性相關的記錄：請參閱 [Azure 資源本身的稽核日誌](/docs/telemetry/security-events#azure-資源本身的稽核日誌)。Azure SQL 資料庫只有在開啟稽核並以 Azure Monitor 為目的地時，才會傳送其稽核記錄。
+
+虛擬機器、擴展集、磁碟、網路介面、虛擬網路、私人端點、NAT 閘道、DNS 區域和 App Service 方案不會傳送自己的資源日誌，因此它們的頁面沒有 **日誌** 索引標籤。容器應用程式的日誌是其環境的日誌。
+
+儲存體帳戶的日誌是其 Blob、檔案、佇列和資料表服務的日誌：指令會為每項服務新增一個自己的診斷設定，這些日誌會歸檔在該帳戶下，顯示在它的 **日誌** 索引標籤上。它們記錄了該帳戶回應的每個要求，因此繁忙的帳戶會傳送很多日誌。
 
 ## 指令建立的內容
 
@@ -96,6 +109,9 @@ Service Bus 或 Event Hubs 命名空間不會串流任何指標。讀取依每�
 | 每個命名空間中的事件中樞 `oneuptime`，2 個分割區 | 保存事件，直到 OneUptime 讀取它們 |
 | 授予連線應用程式的 **Azure Event Hubs Data Receiver** 角色，僅作用於該資源群組 | 讓應用程式讀取事件中樞，別無其他 |
 | 每個資源上的診斷設定 `OneUptime-<suffix>` | 把資源的指標、日誌或兩者傳送到其所在區域的事件中樞 |
+| 串流日誌時，儲存體帳戶的 Blob、檔案、佇列和資料表服務上各自的診斷設定 `OneUptime-<suffix>` | 把這些服務的日誌傳送到帳戶所在區域的事件中樞 |
+| 開啟 **每個訂用帳戶的活動記錄** 時，每個訂用帳戶上的診斷設定 `OneUptime-<suffix>` | 把訂用帳戶的 `Administrative`、`Security` 和 `Policy` 記錄傳送到第一個區域的事件中樞 |
+| 執行 Microsoft Entra ID 的指令時，租用戶的診斷設定 `OneUptime-<suffix>` | 把租用戶的登入、稽核和風險日誌傳送到第一個區域的事件中樞 |
 
 全域區域的資源（例如 Front Door）會傳送到第一個區域的事件中樞。Azure 只保留指標或只保留日誌的資源，會依其已有的內容設定；已經有 5 個診斷設定（Azure 允許的上限）的資源會被略過。Azure 會按小時對每個命名空間的輸送量單位計費，並對診斷設定傳送的事件計費。
 
@@ -108,20 +124,31 @@ Service Bus 或 Event Hubs 命名空間不會串流任何指標。讀取依每�
 
 ### 刪除指令建立的內容
 
-在刪除之前，事件中樞和診斷設定會一直保留在 Azure 中，並由 Azure 計費。對話方塊會顯示指令：它會刪除每個資源的診斷設定，然後刪除資源群組，無論資源群組位於哪個訂用帳戶。
+在刪除之前，事件中樞和診斷設定會一直保留在 Azure 中，並由 Azure 計費。對話方塊會顯示指令：它會刪除每個資源的診斷設定、其儲存體帳戶各項服務的診斷設定和每個訂用帳戶的診斷設定，然後刪除資源群組，無論資源群組位於哪個訂用帳戶。如果你有權限，它也會刪除 Microsoft Entra ID 的診斷設定，否則會說明誰有權刪除。
 
 ```bash
 oneuptime_stream_stop() {
-  local SUB ID N=0
+  local SUB ID TYPE SERVICE N=0
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
-    while IFS= read -r ID; do
+    while IFS=$'\t' read -r ID TYPE; do
       if [ -z "$ID" ]; then continue; fi
       az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID" --output none 2> /dev/null &
       N=$((N + 1))
       if [ $((N % 4)) -eq 0 ]; then wait; fi
-    done < <(az resource list --subscription "$SUB" --query "[].id" --output tsv)
+      if [ "${TYPE,,}" = microsoft.storage/storageaccounts ]; then
+        for SERVICE in blobServices fileServices queueServices tableServices; do
+          az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID/$SERVICE/default" --output none 2> /dev/null &
+          N=$((N + 1))
+          if [ $((N % 4)) -eq 0 ]; then wait; fi
+        done
+      fi
+    done < <(az resource list --subscription "$SUB" --query "[].[id, type]" --output tsv)
+    az monitor diagnostic-settings subscription delete --subscription "$SUB" --name OneUptime-6f1c3a2e --yes --output none 2> /dev/null
   done
   wait
+  if az rest --method get --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null; then
+    az rest --method delete --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null && echo "Deleted Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e." || echo "Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e is left: a Security Administrator of the tenant deletes it, under Diagnostic settings in the Microsoft Entra admin center."
+  fi
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
     if [ "$(az group exists --subscription "$SUB" --name oneuptime-stream-6f1c3a2e 2> /dev/null)" = true ]; then
       az group delete --subscription "$SUB" --name oneuptime-stream-6f1c3a2e --yes --no-wait && echo "Deleting oneuptime-stream-6f1c3a2e in $SUB."
@@ -160,6 +187,10 @@ oneuptime_stream_stop
 
 :::details 指令略過了一些資源
 它會列出這些資源，每個都附上 Azure 提供的原因。沒有診斷設定的資源類型不會傳送任何內容；已經有 5 個診斷設定的資源需要先刪除其中一個。然後再次執行指令。
+:::
+
+:::details 活動記錄或 Microsoft Entra ID 的日誌被略過了
+指令會說明 Azure 要求什麼。訂用帳戶的診斷設定需要訂用帳戶上的 `Microsoft.Insights/diagnosticSettings/write`，訂用帳戶的 Owner、Contributor 和 Monitoring Contributor 擁有此權限；租用戶的診斷設定則需要租用戶的 Security Administrator。兩者都需要指令所建立資源群組上的 `Microsoft.EventHub/namespaces/authorizationRules/listKeys/action`，該資源群組的 Owner 和 Contributor 擁有此權限。然後再次執行指令。
 :::
 
 ## 後續步驟

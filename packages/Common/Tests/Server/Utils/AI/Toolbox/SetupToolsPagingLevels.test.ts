@@ -26,6 +26,11 @@ import OnCallReadinessService from "../../../../../Server/Services/OnCallReadine
 import TeamMemberService from "../../../../../Server/Services/TeamMemberService";
 import TeamService from "../../../../../Server/Services/TeamService";
 import UserLanguage from "../../../../../Server/Utils/Notification/UserLanguage";
+import PostgresErrorTranslator from "../../../../../Server/Utils/Database/PostgresErrorTranslator";
+import {
+  ESCALATION_RULE_TEAM_INDEX,
+  ESCALATION_RULE_USER_INDEX,
+} from "../../../../../Types/OnCallDutyPolicy/EscalationRuleResponderOnce";
 import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyEscalationRuleTeam from "../../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
@@ -47,6 +52,7 @@ import {
   SET_HOW_TO_REACH_ME_TOOL_NAME,
 } from "../../../../../Types/AI/AISetupActions";
 import Email from "../../../../../Types/Email";
+import ConflictException from "../../../../../Types/Exception/ConflictException";
 import { JSONObject } from "../../../../../Types/JSON";
 import Name from "../../../../../Types/Name";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -865,7 +871,186 @@ describe("add_to_on_call_policy", () => {
     );
   });
 
+  test("a second identical call: the level pages them already, so the check says so and nothing is proposed (#10041)", async () => {
+    project({ firstLevelPages: [ANA_ID] });
+    members();
+
+    const prepared: PreparedMutation =
+      await AddToOnCallPolicyTool.prepareMutation!(
+        { policy: "Payments on-call", alsoPage: ["Ana Lopez"] },
+        ctx,
+      );
+
+    expect(prepared.arguments["userIds"]).toEqual([]);
+    expect(prepared.arguments["alreadyPaged"]).toEqual(["Ana Lopez"]);
+    expect(prepared.arguments["notFound"]).toEqual([]);
+    // Never on the card's line of arguments: the description says them.
+    expect(prepared.describedArguments).toEqual(
+      expect.arrayContaining(["alreadyPaged", "notFound"]),
+    );
+    expect(
+      (
+        await AddToOnCallPolicyTool.checkBeforeApproval!(
+          prepared.arguments,
+          ctx,
+        )
+      )?.toldModel,
+    ).toBe(
+      'Nothing proposed: level 1 of the on-call policy "Payments on-call" pages "Ana Lopez" already, so nobody is added again and no level is made. Say so in one sentence.',
+    );
+  });
+
+  test("someone named who is no member or team: the check names them, with who the level pages already", async () => {
+    project({ firstLevelPages: [ANA_ID] });
+    members();
+
+    const prepared: PreparedMutation =
+      await AddToOnCallPolicyTool.prepareMutation!(
+        { alsoPage: ["Ana Lopez", "Zed Unknown"] },
+        ctx,
+      );
+
+    expect(prepared.arguments["notFound"]).toEqual(["Zed Unknown"]);
+    expect(
+      (
+        await AddToOnCallPolicyTool.checkBeforeApproval!(
+          prepared.arguments,
+          ctx,
+        )
+      )?.toldModel,
+    ).toBe(
+      'Nothing proposed: level 1 of the on-call policy "Payments on-call" pages "Ana Lopez" already, so nobody is added again and no level is made. "Zed Unknown" is no member or team of this project: ask the person who they meant, by the name the project knows them by (query_teams lists members). Say so in one sentence.',
+    );
+
+    // Nobody named is in the project at all.
+    const unknown: PreparedMutation =
+      await AddToOnCallPolicyTool.prepareMutation!(
+        { alsoPage: ["Zed Unknown"] },
+        ctx,
+      );
+
+    expect(
+      (await AddToOnCallPolicyTool.checkBeforeApproval!(unknown.arguments, ctx))
+        ?.toldModel,
+    ).toBe(
+      'Nothing proposed: nobody named is a member or a team of this project who is not paged at that level of "Payments on-call" already. "Zed Unknown" is no member or team of this project: ask the person who they meant, by the name the project knows them by (query_teams lists members).',
+    );
+  });
+
+  test("approved on a level that pages one of them by now, it adds only the other, and says so (#10041)", async () => {
+    // Ana was added to the level since the card was shown.
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleUserService, "findBy")
+      .mockResolvedValue([
+        model(OnCallDutyPolicyEscalationRuleUser, {
+          userId: new ObjectID(ANA_ID),
+        }),
+      ] as never);
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleTeamService, "findBy")
+      .mockResolvedValue([] as never);
+    const users: Spy = jest
+      .spyOn(OnCallDutyPolicyEscalationRuleUserService, "create")
+      .mockResolvedValue({} as never);
+
+    const result: ToolExecutionResult = await AddToOnCallPolicyTool.execute(
+      {
+        policyId: POLICY_ID,
+        policyName: "Payments on-call",
+        level: 1,
+        ruleId: FIRST_LEVEL_ID,
+        ruleName: "Level 1",
+        userIds: [ANA_ID, BO_ID],
+        people: ["Ana Lopez", "Bo Chen"],
+      },
+      ctx,
+    );
+
+    expect(users).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        users.mock.calls[0]![0] as { data: OnCallDutyPolicyEscalationRuleUser }
+      ).data.userId?.toString(),
+    ).toBe(BO_ID);
+    expect(result.dataForLlm).toContain(
+      'Added Bo Chen to the escalation rule "Level 1" (level 1)',
+    );
+    // The model hears who is there already, rather than nothing of them.
+    expect(result.dataForLlm).toContain(
+      '"Ana Lopez" is paged at that level already, so they were not added again.',
+    );
+    expect(describeAIActionCardWords(result.widget!.data.words!).line).toBe(
+      'Added Bo Chen to escalation rule "Level 1"',
+    );
+  });
+
+  test("approved on a level that pages all of them by now, it adds nobody: the level moved on (#10041)", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleUserService, "findBy")
+      .mockResolvedValue([
+        model(OnCallDutyPolicyEscalationRuleUser, {
+          userId: new ObjectID(ANA_ID),
+        }),
+      ] as never);
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleTeamService, "findBy")
+      .mockResolvedValue([] as never);
+    const users: Spy = jest.spyOn(
+      OnCallDutyPolicyEscalationRuleUserService,
+      "create",
+    );
+
+    await expect(
+      AddToOnCallPolicyTool.execute(
+        {
+          policyId: POLICY_ID,
+          policyName: "Payments on-call",
+          level: 1,
+          ruleId: FIRST_LEVEL_ID,
+          userIds: [ANA_ID],
+          people: ["Ana Lopez"],
+        },
+        ctx,
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(users).not.toHaveBeenCalled();
+  });
+
+  test("approved as a new level whose place a level took since, it makes no second escalation rule (#10041)", async () => {
+    project({ levels: 2 });
+    const wait: Spy = jest.spyOn(
+      OnCallDutyPolicyEscalationRuleService,
+      "updateOneById",
+    );
+    const level: Spy = jest.spyOn(
+      OnCallDutyPolicyEscalationRuleService,
+      "create",
+    );
+
+    await expect(
+      AddToOnCallPolicyTool.execute(
+        {
+          policyId: POLICY_ID,
+          policyName: "Payments on-call",
+          level: 2,
+          ruleId: "",
+          previousRuleId: FIRST_LEVEL_ID,
+          afterMinutes: 5,
+          userIds: [ANA_ID],
+          people: ["Ana Lopez"],
+        },
+        ctx,
+      ),
+    ).rejects.toThrow(
+      'The on-call policy "Payments on-call" has a level 2 already, made since this was asked for, so no second one was made and nobody was added. Add them to that level instead, if they belong there.',
+    );
+    expect(level).not.toHaveBeenCalled();
+    expect(wait).not.toHaveBeenCalled();
+  });
+
   test("approved on a level it has, it adds a row for each, as the guided setup's Who else is on call adds them, as the person", async () => {
+    // Who the level pages now: nobody yet.
+    project();
     const users: Spy = jest
       .spyOn(OnCallDutyPolicyEscalationRuleUserService, "create")
       .mockResolvedValue({} as never);
@@ -927,6 +1112,8 @@ describe("add_to_on_call_policy", () => {
   });
 
   test("approved as a new level, the level before waits as asked and a new rule pages them", async () => {
+    // The policy has its one level still.
+    project();
     jest
       .spyOn(OnCallDutyPolicyEscalationRuleService, "findOneById")
       .mockResolvedValue(
@@ -971,6 +1158,7 @@ describe("add_to_on_call_policy", () => {
   });
 
   test("approved when every row is refused, it says so as a failure", async () => {
+    project();
     jest
       .spyOn(OnCallDutyPolicyEscalationRuleUserService, "create")
       .mockRejectedValue(new Error("No permission.") as never);
@@ -989,5 +1177,216 @@ describe("add_to_on_call_policy", () => {
     ).rejects.toThrow(
       'Nobody was added to the on-call policy "Payments on-call", as each addition was refused (No permission).',
     );
+  });
+
+  /*
+   * THE LEVEL REFUSES A SECOND ROW (#10411). The read just before the
+   * write found nobody, and the person was added there in between - by a
+   * teammate, or by the same call made at the same moment: the level takes
+   * each person and team once, and refuses the second row in its own words.
+   * That is what the call asked for, so it is no failure.
+   */
+  describe("a person or team added to the level since its read", () => {
+    // The level's refusal, as the service words it and tags it.
+    function alreadyOnLevel(words: string, index: string): Error {
+      return PostgresErrorTranslator.createUniqueViolationException(
+        words,
+        index,
+      );
+    }
+
+    const ANA_THERE: string =
+      'The escalation rule "Level 1" of the on-call policy "Payments on-call" pages Ana Lopez already, so they were not added again.';
+    const PLATFORM_THERE: string =
+      'The escalation rule "Level 1" of the on-call policy "Payments on-call" pages the team "Platform" already, so it was not added again.';
+
+    const ANA_AND_BO: JSONObject = {
+      policyId: POLICY_ID,
+      policyName: "Payments on-call",
+      level: 1,
+      ruleId: FIRST_LEVEL_ID,
+      ruleName: "Level 1",
+      userIds: [ANA_ID, BO_ID],
+      people: ["Ana Lopez", "Bo Chen"],
+    };
+
+    test("the others are added, and the model is told the person is paged there already", async () => {
+      // The read found nobody on the level.
+      project();
+      const users: Spy = jest
+        .spyOn(OnCallDutyPolicyEscalationRuleUserService, "create")
+        .mockImplementation((async (createBy: {
+          data: OnCallDutyPolicyEscalationRuleUser;
+        }) => {
+          if (createBy.data.userId?.toString() === ANA_ID) {
+            throw alreadyOnLevel(ANA_THERE, ESCALATION_RULE_USER_INDEX);
+          }
+
+          return createBy.data;
+        }) as never);
+
+      const result: ToolExecutionResult = await AddToOnCallPolicyTool.execute(
+        ANA_AND_BO,
+        ctx,
+      );
+
+      // Both were tried: the read before had found neither.
+      expect(users).toHaveBeenCalledTimes(2);
+      expect(result.dataForLlm).toContain(
+        'Added Bo Chen to the escalation rule "Level 1" (level 1)',
+      );
+      expect(result.dataForLlm).toContain(
+        '"Ana Lopez" is paged at that level already, so they were not added again.',
+      );
+      // Not a failure the model is told to explain.
+      expect(result.dataForLlm).not.toContain("Not added:");
+      expect(describeAIActionCardWords(result.widget!.data.words!).line).toBe(
+        'Added Bo Chen to escalation rule "Level 1"',
+      );
+    });
+
+    test("a team the level refuses is said the same way, by its name", async () => {
+      project();
+      jest
+        .spyOn(OnCallDutyPolicyEscalationRuleUserService, "create")
+        .mockResolvedValue({} as never);
+      jest
+        .spyOn(OnCallDutyPolicyEscalationRuleTeamService, "create")
+        .mockRejectedValue(
+          alreadyOnLevel(PLATFORM_THERE, ESCALATION_RULE_TEAM_INDEX) as never,
+        );
+
+      const result: ToolExecutionResult = await AddToOnCallPolicyTool.execute(
+        {
+          ...ANA_AND_BO,
+          userIds: [ANA_ID],
+          people: ["Ana Lopez"],
+          teamIds: [TEAM_ID],
+          teamNames: ["Platform"],
+        },
+        ctx,
+      );
+
+      expect(result.dataForLlm).toContain(
+        'Added Ana Lopez to the escalation rule "Level 1" (level 1)',
+      );
+      expect(result.dataForLlm).toContain(
+        '"Platform" is paged at that level already, so they were not added again.',
+      );
+      expect(describeAIActionCardWords(result.widget!.data.words!).line).toBe(
+        'Added Ana Lopez to escalation rule "Level 1"',
+      );
+    });
+
+    test("everyone named refused as there already: nobody added, said as when the read finds it", async () => {
+      project();
+      jest
+        .spyOn(OnCallDutyPolicyEscalationRuleUserService, "create")
+        .mockImplementation((async (createBy: {
+          data: OnCallDutyPolicyEscalationRuleUser;
+        }) => {
+          throw alreadyOnLevel(
+            createBy.data.userId?.toString() === ANA_ID
+              ? ANA_THERE
+              : ANA_THERE.replace("Ana Lopez", "Bo Chen"),
+            ESCALATION_RULE_USER_INDEX,
+          );
+        }) as never);
+      jest
+        .spyOn(OnCallDutyPolicyEscalationRuleTeamService, "create")
+        .mockRejectedValue(
+          alreadyOnLevel(PLATFORM_THERE, ESCALATION_RULE_TEAM_INDEX) as never,
+        );
+
+      const refused: unknown = await AddToOnCallPolicyTool.execute(
+        { ...ANA_AND_BO, teamIds: [TEAM_ID], teamNames: ["Platform"] },
+        ctx,
+      ).catch((error: unknown) => {
+        return error;
+      });
+
+      expect(refused).toBeInstanceOf(ConflictException);
+      expect((refused as Error).message).toBe(
+        'Level 1 of the on-call policy "Payments on-call" pages everyone named already, so nobody was added again.',
+      );
+    });
+
+    test("with another refusal beside it, the call fails, and still says who is there already", async () => {
+      project();
+      jest
+        .spyOn(OnCallDutyPolicyEscalationRuleUserService, "create")
+        .mockImplementation((async (createBy: {
+          data: OnCallDutyPolicyEscalationRuleUser;
+        }) => {
+          if (createBy.data.userId?.toString() === ANA_ID) {
+            throw alreadyOnLevel(ANA_THERE, ESCALATION_RULE_USER_INDEX);
+          }
+
+          throw new Error("No permission.");
+        }) as never);
+
+      await expect(
+        AddToOnCallPolicyTool.execute(ANA_AND_BO, ctx),
+      ).rejects.toThrow(
+        'Nobody was added to the on-call policy "Payments on-call", as each addition was refused (No permission; "Ana Lopez" is paged at that level already).',
+      );
+    });
+
+    test("a refusal of another unique index is a failure like any other", async () => {
+      project();
+      jest
+        .spyOn(OnCallDutyPolicyEscalationRuleUserService, "create")
+        .mockRejectedValue(
+          alreadyOnLevel(
+            "Something else of that name exists.",
+            "IDX_something_else",
+          ) as never,
+        );
+
+      await expect(
+        AddToOnCallPolicyTool.execute(
+          { ...ANA_AND_BO, userIds: [ANA_ID], people: ["Ana Lopez"] },
+          ctx,
+        ),
+      ).rejects.toThrow(
+        'Nobody was added to the on-call policy "Payments on-call", as each addition was refused (Something else of that name exists).',
+      );
+    });
+
+    test("someone the same plan invited, refused as there already, is named by their address", async () => {
+      project();
+      // The invitation made Ana's membership: she is found by her address.
+      members();
+      jest
+        .spyOn(OnCallDutyPolicyEscalationRuleUserService, "create")
+        .mockImplementation((async (createBy: {
+          data: OnCallDutyPolicyEscalationRuleUser;
+        }) => {
+          if (createBy.data.userId?.toString() === ANA_ID) {
+            throw alreadyOnLevel(ANA_THERE, ESCALATION_RULE_USER_INDEX);
+          }
+
+          return createBy.data;
+        }) as never);
+
+      const result: ToolExecutionResult = await AddToOnCallPolicyTool.execute(
+        {
+          ...ANA_AND_BO,
+          userIds: [BO_ID],
+          people: ["Bo Chen"],
+          invitedEmails: ["ana@acme.example"],
+        },
+        ctx,
+      );
+
+      expect(result.dataForLlm).toContain(
+        '"ana@acme.example" is paged at that level already, so they were not added again.',
+      );
+      // Not named as invited and paged once they join: she was not added.
+      expect(result.dataForLlm).not.toContain("invited: paged once they join");
+      expect(describeAIActionCardWords(result.widget!.data.words!).line).toBe(
+        'Added Bo Chen to escalation rule "Level 1"',
+      );
+    });
   });
 });

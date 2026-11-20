@@ -38,6 +38,9 @@ import {
 import PushNotificationLevel, {
   DEFAULT_PUSH_NOTIFICATION_LEVEL,
 } from "Common/Types/NotificationRule/PushNotificationLevel";
+import ProjectSso from "Common/Models/DatabaseModels/ProjectSso";
+import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
+import Permission from "Common/Types/Permission";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -547,9 +550,25 @@ describe("signing in to the mobile app", () => {
     );
 
     expect(answer).toContain(
-      "No project on this OneUptime offers single sign-on for that email's domain yet: a Project Owner or Project Admin adds the domain to the project's SSO provider, whoever the email belongs to.",
+      "No project on this OneUptime offers single sign-on for that email's domain yet: a Project Owner or Project Admin adds the domain to their project's SSO provider, whoever the email belongs to.",
     );
     expect(answer).not.toMatch(/belongs to has|has no account/);
+  });
+
+  it("names who may add a domain to a project's SSO provider as the provider's Domains column says", () => {
+    const access: ColumnAccessControl | null =
+      new ProjectSso().getColumnAccessControlFor("domains");
+
+    // The roles the answer names, by the column a provider's domains are changed in.
+    expect(access?.update).toEqual(
+      expect.arrayContaining([
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+      ]),
+    );
+    expect(
+      detailsBlock(FAQ, '"No SSO configuration found for the email"'),
+    ).toContain("a Project Owner or Project Admin adds the domain");
   });
 
   it("cannot use a security key, as the two-factor screen says", () => {

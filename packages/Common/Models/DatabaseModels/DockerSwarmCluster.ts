@@ -15,6 +15,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -317,6 +318,7 @@ export default class DockerSwarmCluster extends BaseModel {
     description:
       "Connection status of the OTel Collector agent (connected or disconnected)",
     example: "connected",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -352,6 +354,7 @@ export default class DockerSwarmCluster extends BaseModel {
     description:
       "Version of the OneUptime DockerSwarm agent reporting telemetry, as self-reported via the oneuptime.agent.version resource attribute",
     example: "1.0.0",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -386,6 +389,7 @@ export default class DockerSwarmCluster extends BaseModel {
     description:
       "Docker Engine version reported by the swarm manager this agent talks to.",
     example: "27.3.1",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -418,6 +422,7 @@ export default class DockerSwarmCluster extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Last Seen At",
     description: "When metrics were last received from this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -447,6 +452,7 @@ export default class DockerSwarmCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Node Count",
     description: "Cached count of nodes in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -478,6 +484,7 @@ export default class DockerSwarmCluster extends BaseModel {
     title: "Ready Node Count",
     description:
       "Cached count of nodes whose status is 'ready' in this cluster. Rendered as 'Nodes X/Y ready' next to nodeCount.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -508,6 +515,7 @@ export default class DockerSwarmCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Manager Node Count",
     description: "Cached count of nodes with the manager role in this cluster.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -538,6 +546,7 @@ export default class DockerSwarmCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Service Count",
     description: "Cached count of swarm services in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -569,6 +578,7 @@ export default class DockerSwarmCluster extends BaseModel {
     title: "Task Count",
     description:
       "Cached count of swarm tasks (service instances) in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -600,6 +610,7 @@ export default class DockerSwarmCluster extends BaseModel {
     title: "Running Task Count",
     description:
       "Cached count of tasks in the running state. Rendered as 'Tasks X/Y running' next to taskCount.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -630,6 +641,7 @@ export default class DockerSwarmCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Stack Count",
     description: "Cached count of deployed compose stacks in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -661,6 +673,7 @@ export default class DockerSwarmCluster extends BaseModel {
     title: "Network Count",
     description:
       "Cached count of swarm-scoped (overlay) networks in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -1021,6 +1034,7 @@ export default class DockerSwarmCluster extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -1171,6 +1185,7 @@ export default class DockerSwarmCluster extends BaseModel {
     description:
       "When on, OneUptime AI runs read-only commands (docker service ls, service ps, service logs, node ls) on this Docker Swarm cluster, through its Docker Swarm AI agent, while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. On by default. Anyone who may edit the Docker Swarm cluster can turn it on or off.",
     defaultValue: true,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1215,6 +1230,7 @@ export default class DockerSwarmCluster extends BaseModel {
       "Disabled: AI never proposes or runs a change on this Docker Swarm cluster. RequireApproval: AI composes a command plan and a human approves it with one click before anything runs. Automatic: safe changes (SafeWrite) run without a human; a riskier change is proposed for approval unless the Docker Swarm cluster's allowlist names its exact shape. BypassApproval: every change the policy allows — safe AND riskier — runs on its own, except what always needs a human. In EVERY mode: Denied commands never run, commands the policy marks requiresHuman always ask, and the agent itself refuses every write unless it was started with ONEUPTIME_AI_ALLOW_WRITES=true (and then only on the targets ONEUPTIME_AI_WRITE_TARGETS allows, never its protected targets). Anyone who may edit the Docker Swarm cluster can lower the mode; raising it needs Project Owner, Project Admin or Edit AI Rule.",
     defaultValue: ResourceAiRemediationMode.Disabled,
     example: ResourceAiRemediationMode.RequireApproval,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.ShortText,

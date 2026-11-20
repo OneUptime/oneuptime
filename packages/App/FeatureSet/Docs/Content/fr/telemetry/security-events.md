@@ -51,7 +51,8 @@ Ouvrez **Produits → Événements de sécurité**, sous **Sécurité**. Son men
 | **Playbooks** | Playbooks | Des étapes qui s'exécutent sur les dossiers, d'elles-mêmes ou à la main |
 | **Approbations** | Playbooks | Les étapes de playbook qui attendent que quelqu'un les approuve ou les rejette |
 | **Exécutions** | Playbooks | Ce que chaque playbook a fait, étape par étape |
-| **Entités protégées** | Playbooks | Les utilisateurs et les hôtes qu'aucun playbook ne confine |
+| **Liste de blocage** | Playbooks | Les adresses que votre projet bloque, jusqu'à quand, et où chaque blocage est appliqué |
+| **Entités protégées** | Playbooks | Les utilisateurs, les hôtes et les adresses qu'aucun playbook ne confine et qu'aucun blocage ne touche |
 | **Paramètres** | IA | Si OneUptime AI qualifie chaque nouveau dossier |
 | **Connexions** | Connexions | Vos journaux, les produits de sécurité qu'interroge OneUptime et les SIEM auxquels il envoie |
 | **Guide de configuration** | Connexions | Des extraits pour envoyer des événements, remplis avec votre clé d'ingestion |
@@ -72,8 +73,8 @@ Seuls les rôles Propriétaire du projet et Administrateur du projet, ainsi que 
 | Rôle | Ce qu'il peut faire |
 | --- | --- |
 | Administrateur de la sécurité | Tout : événements, dossiers, playbooks, règles de détection, flux de renseignement et connexions |
-| Membre de la sécurité | Lire les événements et le renseignement, traiter les dossiers, exécuter des playbooks et approuver leurs étapes, et créer, modifier et supprimer des règles de détection et des flux. Il ne peut ni configurer de playbooks ou de connexions, ni supprimer de données de sécurité. |
-| Lecteur de la sécurité | Lire les événements, les dossiers, les playbooks, les règles, les flux, les indicateurs et les connexions |
+| Membre de la sécurité | Lire les événements et le renseignement, traiter les dossiers, exécuter des playbooks et approuver leurs étapes, bloquer des adresses, et créer, modifier et supprimer des règles de détection et des flux. Il ne peut ni configurer de playbooks ou de connexions, ni supprimer de données de sécurité. |
+| Lecteur de la sécurité | Lire les événements, les dossiers, les playbooks, la liste de blocage, les règles, les flux, les indicateurs et les connexions |
 
 ## Envoyer des événements de sécurité
 
@@ -191,8 +192,9 @@ Chaque type parvient à OneUptime sous forme de journaux ordinaires :
 | Connexions SSH, sudo | Le journal système ou le journal d'authentification d'une machine Linux, avec l'[OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | Événements Windows | Le récepteur `windowseventlog` du collecteur sur la machine, ou un transmetteur qui écrit chaque événement en JSON, comme NXLog ou Winlogbeat. Un [hôte](/docs/telemetry/hosts) ajouté à OneUptime lit aussi Sysmon, Microsoft Defender et PowerShell là où il en a |
 | AWS CloudTrail | Un trail livré à CloudWatch Logs, lu par le récepteur `awscloudwatch` du collecteur, ou, pour un compte connecté sous **Cloud**, [Journaux d'audit cloud](#lire-les-journaux-daudit-de-vos-comptes-cloud) |
-| Journaux d'audit Google Cloud | Un récepteur de journaux vers Pub/Sub, lu par le récepteur `googlecloudpubsub` du collecteur avec `encoding: raw_text`, ou, pour un projet connecté sous **Cloud**, [Journaux d'audit cloud](#lire-les-journaux-daudit-de-vos-comptes-cloud) |
-| Journaux d'activité Azure et d'Entra ID | Un paramètre de diagnostic qui diffuse vers un Event Hub, lu par le récepteur `azureeventhub` du collecteur avec `format: raw`, ou, pour le journal d'activité d'un abonnement connecté sous **Cloud**, [Journaux d'audit cloud](#lire-les-journaux-daudit-de-vos-comptes-cloud) |
+| Journaux d'audit Google Cloud | Un récepteur de journaux vers Pub/Sub, lu par le récepteur `googlecloudpubsub` du collecteur avec `encoding: raw_text`, ou, pour un projet connecté sous **Cloud**, son [flux](/docs/telemetry/cloud-streaming-google-cloud) ou [Journaux d'audit cloud](#lire-les-journaux-daudit-de-vos-comptes-cloud) |
+| Journaux d'activité Azure et d'Entra ID | Un paramètre de diagnostic qui diffuse vers un Event Hub, lu par le récepteur `azureeventhub` du collecteur avec `format: raw`, ou vers le hub d'événements du [flux](/docs/telemetry/cloud-streaming-azure) d'un abonnement connecté, ou, pour le journal d'activité d'un abonnement connecté sous **Cloud**, [Journaux d'audit cloud](#lire-les-journaux-daudit-de-vos-comptes-cloud) |
+| Journaux Azure Key Vault, Storage et SQL | Le paramètre de diagnostic d'une ressource, diffusant vers un Event Hub et lu par le récepteur `azureeventhub` du collecteur avec `format: raw`, ou les paramètres de diagnostic du [flux](/docs/telemetry/cloud-streaming-azure) d'un abonnement connecté, quand il diffuse les journaux. Voir [Journaux d'audit propres aux ressources Azure](#journaux-daudit-propres-aux-ressources-azure) |
 | Piste d'audit OpenStack | Les notifications et le filtre d'audit d'un cloud envoyés vers ses journaux avec `driver = log`, lus par le [profil de journaux](/docs/telemetry/openstack#qui-a-fait-quoi) de l'agent |
 | CEF, LEEF | Le syslog du produit, relayé par [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Le syslog propre au pare-feu, relayé par [rsyslog](/docs/telemetry/syslog) |
@@ -203,7 +205,19 @@ Sur **Vos journaux**, chaque type indique quand il a été trouvé pour la derni
 
 Une menace qu'un produit de sécurité écrit dans vos journaux, comme une détection CEF ou LEEF ou une menace Palo Alto Networks, FortiGate ou Cisco ASA, ouvre un [dossier](/docs/telemetry/security-cases) comme le fait l'alerte d'un produit connecté, et accroît le risque de l'utilisateur, de l'hôte ou de l'adresse qu'elle nomme. **Ouvrir des dossiers à partir de**, sur **Vos journaux**, indique à partir de quelle gravité : **Élevé et au-dessus** sauf si vous en choisissez une autre, ou **Jamais**. Les authentifications du produit et les connexions qu'il bloque restent des événements, que vos règles lisent.
 
-Un enregistrement qui parvient à OneUptime par deux voies est stocké une seule fois : une authentification Microsoft Entra ID lue par sa connexion et exportée par Azure dans vos journaux, ou un enregistrement CloudTrail présent dans vos journaux et dans le journal d'audit d'un compte AWS connecté.
+Un enregistrement qui parvient à OneUptime par deux voies est stocké une seule fois : une authentification Microsoft Entra ID lue par sa connexion et exportée par Azure dans vos journaux, un enregistrement CloudTrail présent dans vos journaux et dans le journal d'audit d'un compte AWS connecté, ou un enregistrement d'audit qu'envoie le flux d'un compte cloud et que **Journaux d'audit cloud** lit aussi.
+
+#### Journaux d'audit propres aux ressources Azure
+
+Un Key Vault, un compte de stockage et une base de données Azure SQL tiennent chacun leur propre journal d'audit, qui consigne chaque requête. Seul ce qu'une équipe de sécurité examine devient un événement de sécurité :
+
+| Ressource | Ce qui devient un événement de sécurité |
+| --- | --- |
+| Key Vault (`AuditEvent`) | Une requête que le coffre a refusée ; un secret délivré ; un secret, une clé, un certificat ou le coffre lui-même supprimé, purgé ou sauvegardé ; sa stratégie d'accès modifiée ; et une modification de ce qu'il contient. Pas la réponse 401 que reçoit tout client d'un SDK Azure à son premier appel, fait sans jeton pour connaître le locataire : Key Vault l'enregistre sous son opération `Authentication` |
+| Compte de stockage (`StorageRead`, `StorageWrite`, `StorageDelete`) | Une requête refusée faute de droit ; une requête servie sans aucune information d'identification, hormis les pages d'un site web statique et une requête préliminaire CORS ; la liste d'accès d'un conteneur, d'un partage, d'une file d'attente ou d'une table modifiée, ou l'un d'eux supprimé en entier ; et une écriture ou une suppression signée par une signature d'accès partagé (SAS). Pas une lecture réussie, même par SAS |
+| Azure SQL (`SQLSecurityAuditEvents`) | Une authentification échouée ; une authentification sur une nouvelle connexion, et non la réutilisation d'une connexion d'un pool ; une autorisation accordée, refusée ou révoquée, un membre d'un rôle ou un mot de passe modifié, un emprunt d'identité, et un login, un utilisateur ou un rôle créé, modifié ou supprimé ; et une action dont la vérification d'autorisation a échoué. Pas un lot, qui fait l'essentiel d'un audit |
+
+Les lectures réussies d'un compte de stockage sont l'essentiel de ce qu'il journalise : une SAS est la façon dont la plupart des applications remettent des fichiers aux navigateurs. Elles restent dans les journaux, entières, sur l'onglet **Journaux** du compte : cherchez-y `"type":"SAS"` pour voir ce qu'une signature d'accès partagé a lu. Chaque événement nomme sa ressource par son ID, et celui d'un service de stockage aussi son compte, il apparaît donc sur la page **Événements de sécurité** de cette ressource, et un enregistrement qui arrive deux fois est stocké une seule fois.
 
 ### Lire les journaux d'audit de vos comptes cloud
 
@@ -471,9 +485,9 @@ detection:
 | **Exécuter en temps réel** | Désactivé sur une nouvelle règle. Activé, la règle vérifie chaque événement à son arrivée au lieu de le faire à chaque intervalle ; voir [Règles en temps réel](#règles-en-temps-réel). |
 | **Champ de regroupement** | Facultatif. Les correspondances qui partagent la valeur de ce champ, comme `principalHost`, sont comptées, alertées et dédupliquées ensemble : une alerte par hôte au lieu de centaines. |
 | **Champ de comptage distinct** | Facultatif. Compter les valeurs différentes de ce champ au lieu des événements correspondants. Les valeurs vides ne comptent pas. |
-| **Seuil de nombre de correspondances** | Un groupe ne se déclenche que lorsque son comptage atteint ce nombre en une exécution, ou en une fenêtre en temps réel : de 1 à 1000000, et 1 se déclenche à la moindre correspondance. |
+| **Seuil de nombre de correspondances** | Un groupe ne se déclenche que lorsque son comptage atteint ce nombre en une fenêtre de l'intervalle de la règle : de 1 à 1000000, et 1 se déclenche à la moindre correspondance. |
 
-Le regroupement et le comptage distinct prennent les mêmes noms de champs que la règle. Avec eux, le seuil dit « autant, de la même chose, en une exécution », sans moniteur par-dessus :
+Le regroupement et le comptage distinct prennent les mêmes noms de champs que la règle. Avec eux, le seuil dit « autant, de la même chose, en une fenêtre », sans moniteur par-dessus :
 
 | Objectif | Champ de regroupement | Champ de comptage distinct | Seuil |
 | --- | --- | --- | --- |
@@ -485,11 +499,11 @@ Le regroupement et le comptage distinct prennent les mêmes noms de champs que l
 
 ### Quand une règle s'exécute
 
-OneUptime vérifie chaque minute quelles règles activées ont dépassé leur intervalle depuis leur dernière exécution. Chaque exécution lit les événements dont l'heure d'événement tombe entre l'exécution précédente et il y a deux minutes, puis avance. Ces deux minutes laissent le temps aux événements encore en route, comme une ligne de journal lue une minute après avoir été écrite :
+OneUptime vérifie chaque minute quelles règles activées ont dépassé leur intervalle depuis leur dernière exécution. Chaque exécution lit les événements arrivés dans OneUptime entre l'exécution précédente et il y a deux minutes, quel que soit le moment où ils se sont produits, puis avance. Ces deux minutes laissent le temps aux événements encore en cours d'écriture :
 
-- Les fenêtres se suivent bout à bout, elles ne glissent pas. Avec un intervalle de 10 minutes, des échecs à 09:58 et à 10:01 peuvent tomber dans des exécutions différentes et sont comptés séparément, donc gardez une marge en choisissant un seuil.
+- Une règle qui compte et une corrélation comptent dans des fenêtres aussi longues que l'intervalle, bout à bout sur l'horloge : avec un intervalle de 10 minutes, des échecs à 09:58 et à 10:01 tombent dans des fenêtres différentes et sont comptés séparément, donc gardez une marge en choisissant un seuil.
 - Après une interruption, comme une panne du worker ou une règle réactivée, l'exécution suivante couvre toute l'interruption, jusqu'aux 24 dernières heures.
-- Un événement qui arrive avec plus de deux minutes de retard, une fois qu'une exécution a couvert son heure, est stocké et consultable, mais cette règle ne le lit jamais.
+- Un événement qui arrive en retard est quand même lu, une fois, par l'exécution suivante, et compté dans la fenêtre où il s'est produit : un groupe se déclenche quand sa fenêtre atteint le comptage, et au plus une fois par fenêtre. Un événement qui arrive plus d'un jour après s'être produit est stocké et consultable, mais les exécutions de la règle ne le lisent pas ; **Exécuter sur les événements passés** le fait.
 - Chaque groupe qui atteint le seuil devient un Detection Finding, jusqu'à 10 000 par exécution. Des alertes, des incidents et des dossiers s'ouvrent pour les 100 aux comptages les plus élevés ; les autres partagent un dossier sur la règle, et la **Dernière erreur** de la règle indique combien de groupes ont correspondu.
 
 ### Règles en temps réel

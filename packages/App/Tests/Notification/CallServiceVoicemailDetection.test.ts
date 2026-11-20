@@ -12,7 +12,10 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import MessagingBalance from "Common/Server/Utils/Billing/MessagingBalance";
 import { NotificationProviderConfig } from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
-import CallRequest from "Common/Types/Call/CallRequest";
+import JSONWebToken from "Common/Server/Utils/JsonWebToken";
+import { ON_CALL_KEYPAD_TOKEN_PURPOSE } from "Common/Server/Utils/OnCall/OnCallKeypadToken";
+import OnCallPageLinkToken from "Common/Server/Utils/OnCall/OnCallPageLinkToken";
+import CallRequest, { GatherInput, Say } from "Common/Types/Call/CallRequest";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -368,13 +371,18 @@ describe("an on-call call of a project that detects voicemail", () => {
   });
 
   test("the page plays as it always did: the same TwiML", async () => {
+    // One second for both: the keypad token is signed with the time.
+    jest.spyOn(Date, "now").mockReturnValue(Date.now());
+
     await CallService.makeCall(pageCall(), {
       projectId: PROJECT_ID,
       userOnCallLogTimelineId: NOTIFICATION_ID,
     });
 
     expect(twilioRequest()["twiml"]).toBe(
-      CallService.generateTwimlForCall(pageCall()),
+      CallService.generateTwimlForCall(pageCall(), {
+        userOnCallLogTimelineId: NOTIFICATION_ID,
+      }),
     );
   });
 });
@@ -492,6 +500,152 @@ describe("getVoicemailCallbackUrl", () => {
     setHost("");
 
     expect(CallService.getVoicemailCallbackUrl(log)).toBeNull();
+  });
+});
+
+/*
+ * THE KEYPAD'S ADDRESS IN THE CALL (#10025). The <Gather> action lands in
+ * Twilio's request logs and in the call's TwiML in the Twilio console, so
+ * it carries nothing that works anywhere else: the call's own token, which
+ * says what each key answers and names the notification the call is placed
+ * for (OnCallKeypadToken) - and not the page's link token, which escalates
+ * the page from a browser too. A worker hands the Notification service the
+ * keypad address with the page's token in it for one release (for a
+ * Notification service of the release before, placing calls while an
+ * upgrade rolls out): the call leaves it out.
+ */
+describe("the keypad's address in an on-call call", () => {
+  const PAGE_TOKEN: string = OnCallPageLinkToken.sign({
+    userOnCallLogTimelineId: NOTIFICATION_ID,
+  });
+
+  // The keypad address as the worker hands it over: with the page's token.
+  function pageCallFromAWorker(): CallRequest {
+    const request: CallRequest = pageCall();
+    const gather: GatherInput = request.data[3] as GatherInput;
+
+    gather.responseUrl = URL.fromString(
+      `https://oneuptime.example.com/api/user-notification-log-timeline/call/gather-input/${NOTIFICATION_ID.toString()}`,
+    ).addQueryParam("pageToken", PAGE_TOKEN);
+
+    return request;
+  }
+
+  // The <Gather> action of a call's TwiML.
+  const GATHER_ACTION: RegExp = new RegExp('<Gather [^>]*action="([^"]+)"');
+
+  function actionOf(twiml: string): globalThis.URL {
+    const match: RegExpExecArray | null = GATHER_ACTION.exec(twiml);
+
+    expect(match).not.toBeNull();
+
+    return new globalThis.URL(match![1]!.replace(/&amp;/g, "&"));
+  }
+
+  test("carries the call's own token, which names the notification the call is placed for, and what each key answers", async () => {
+    await CallService.makeCall(pageCallFromAWorker(), {
+      projectId: PROJECT_ID,
+      userOnCallLogTimelineId: NOTIFICATION_ID,
+    });
+
+    const action: globalThis.URL = actionOf(String(twilioRequest()["twiml"]));
+    const claims: JSONObject = JSONWebToken.decodeJsonPayload(
+      action.searchParams.get("token")!,
+    );
+
+    expect(claims["purpose"]).toBe(ON_CALL_KEYPAD_TOKEN_PURPOSE);
+    expect(claims["notification"]).toBe(NOTIFICATION_ID.toString());
+    expect(claims["1"]).toEqual({
+      sayMessage: "You have acknowledged this incident. Good bye",
+    });
+    expect(claims["default"]).toEqual({
+      sayMessage: "Invalid input. Good bye",
+    });
+    // It lasts a day, as a call's token always has.
+    expect(Number(claims["exp"]) - Number(claims["iat"])).toBe(24 * 60 * 60);
+  });
+
+  test("leaves out the page's link token the worker's address carries: it escalates the page from a browser", async () => {
+    await CallService.makeCall(pageCallFromAWorker(), {
+      projectId: PROJECT_ID,
+      userOnCallLogTimelineId: NOTIFICATION_ID,
+    });
+
+    const twiml: string = String(twilioRequest()["twiml"]);
+    const action: globalThis.URL = actionOf(twiml);
+
+    expect(action.pathname).toBe(
+      `/api/user-notification-log-timeline/call/gather-input/${NOTIFICATION_ID.toString()}`,
+    );
+    expect([...action.searchParams.keys()]).toEqual(["token"]);
+    expect(twiml).not.toContain("pageToken");
+    expect(twiml).not.toContain(PAGE_TOKEN);
+  });
+
+  test("the call request's own address is left as it was", async () => {
+    const request: CallRequest = pageCallFromAWorker();
+
+    await CallService.makeCall(request, {
+      projectId: PROJECT_ID,
+      userOnCallLogTimelineId: NOTIFICATION_ID,
+    });
+
+    expect(
+      (request.data[3] as GatherInput).responseUrl.getQueryParam("pageToken"),
+    ).toBe(PAGE_TOKEN);
+    expect(
+      (request.data[3] as GatherInput).responseUrl.getQueryParam("token"),
+    ).toBeNull();
+  });
+
+  test("the notification's id as the Notification service reads it from JSON, as text, names it too", () => {
+    const action: globalThis.URL = actionOf(
+      CallService.generateTwimlForCall(pageCallFromAWorker(), {
+        userOnCallLogTimelineId: NOTIFICATION_ID.toString(),
+      }),
+    );
+
+    expect(
+      JSONWebToken.decodeJsonPayload(action.searchParams.get("token")!)[
+        "notification"
+      ],
+    ).toBe(NOTIFICATION_ID.toString());
+  });
+
+  test("a call cut to fit Twilio's limit keeps the token it was measured with", () => {
+    const request: CallRequest = pageCallFromAWorker();
+    (request.data[2] as Say).sayMessage =
+      "This incident's description is very long. ".repeat(400);
+
+    const twiml: string = CallService.generateTwimlForCall(request, {
+      userOnCallLogTimelineId: NOTIFICATION_ID,
+    });
+    const claims: JSONObject = JSONWebToken.decodeJsonPayload(
+      actionOf(twiml).searchParams.get("token")!,
+    );
+
+    expect(twiml.length).toBeLessThanOrEqual(4000);
+    expect(claims["notification"]).toBe(NOTIFICATION_ID.toString());
+    expect(twiml).not.toContain("pageToken");
+  });
+
+  test("getKeypadAction: the address without the page's token, with the call's - anything else in it kept", () => {
+    const responseUrl: URL = URL.fromString(
+      "https://oneuptime.example.com/api/user-notification-log-timeline/call/gather-input/x",
+    )
+      .addQueryParam("pageToken", PAGE_TOKEN)
+      .addQueryParam("lang", "en");
+
+    const action: globalThis.URL = new globalThis.URL(
+      CallService.getKeypadAction(responseUrl, "the-call-token"),
+    );
+
+    expect(action.searchParams.get("pageToken")).toBeNull();
+    expect(action.searchParams.get("lang")).toBe("en");
+    expect(action.searchParams.get("token")).toBe("the-call-token");
+    // The address it was handed is left as it was.
+    expect(responseUrl.getQueryParam("pageToken")).toBe(PAGE_TOKEN);
+    expect(responseUrl.getQueryParam("token")).toBeNull();
   });
 });
 

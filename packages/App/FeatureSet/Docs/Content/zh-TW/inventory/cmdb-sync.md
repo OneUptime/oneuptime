@@ -171,6 +171,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | 作業系統名稱 | `os.name` | 僅來自會回報它的 SDK：否則由 `os.description` 指明作業系統 |
 | 裝置類型 | `device.type` | 選用：以同樣方式標記（`Hypervisor`、`Workstation`） |
 | 位置 | `device.location` | 選用：以同樣方式標記（`Frankfurt DC, Rack B4`） |
+| 安全性修補程式等級 | `android.os.security_patch` | 在 Android 裝置上：來自 Android 代理程式或其裝置管理服務 |
 
 所有標為「是」的項目都來自收集器的 `resourcedetection` 處理器，並且已經包含在 OneUptime 為你產生的設定中。
 

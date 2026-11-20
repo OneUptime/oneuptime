@@ -30,6 +30,7 @@ import {
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import { writeReaderMoment } from "../../../UI/Utils/ReaderMoments";
 import { getJestSpyOn } from "../../Spy";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
 import { CloudCostPoint } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostReads";
@@ -677,6 +678,73 @@ describe("the accounts left out", () => {
 
     expect(screen.queryByTestId("cloud-costs-gaps")).toBeNull();
   });
+
+  /*
+   * #10295: an Azure subscription its tenant's Cost Management limits put
+   * off is waiting its turn, not failing - grey, with why it waits and when
+   * it is read in the reader's words and time, never "read again shortly".
+   */
+  test("a queued account: grey, with why it waits and when it is read", async () => {
+    const nextReadAt: Date = new Date("2026-11-20T15:05:00.000Z");
+
+    await openView({
+      accounts: [
+        WEB,
+        row({
+          id: EUROPE_ROW,
+          name: "sub-finance",
+          provider: "azure",
+          costSummary: summary({
+            state: CloudCostState.Queued,
+            message:
+              "Azure Cost Management limits how fast the tenant's costs are read: these are read from 2026-11-20T15:02:10.000Z.",
+            nextReadAt: nextReadAt.toISOString(),
+            monthToDate: 0,
+          }),
+        }),
+      ],
+    });
+
+    const gap: HTMLElement = within(
+      screen.getByTestId("cloud-costs-gaps"),
+    ).getByTestId("cloud-cost-gap");
+
+    expect(gap).toHaveAttribute("data-reason", CloudCostState.Queued);
+    expect(gap).toHaveTextContent("sub-finance");
+    expect(gap).toHaveTextContent("Queued");
+    expect(within(gap).getByTestId("cloud-cost-gap-queued")).toHaveTextContent(
+      `Your cloud limits how fast costs can be read, so these are read next, at about ${writeReaderMoment(nextReadAt)}.`,
+    );
+    // The server's English is not drawn: the reader's words are.
+    expect(within(gap).queryByTestId("cloud-cost-gap-message")).toBeNull();
+    // Nothing to set up while it waits.
+    expect(
+      within(gap).queryByRole("link", { name: "Read the guide" }),
+    ).toBeNull();
+    // Queued is no failure: the figures above count the other account.
+    expect(screen.getByTestId("cloud-costs-strip")).toBeInTheDocument();
+  });
+
+  test("a queued account whose time has passed: read with the connection's next read", async () => {
+    await openView({
+      accounts: [
+        WEB,
+        row({
+          id: EUROPE_ROW,
+          name: "sub-finance",
+          provider: "azure",
+          costSummary: summary({
+            state: CloudCostState.Queued,
+            nextReadAt: "2026-11-20T14:55:00.000Z",
+          }),
+        }),
+      ],
+    });
+
+    expect(screen.getByTestId("cloud-cost-gap-queued")).toHaveTextContent(
+      "Your cloud limits how fast costs can be read, so these are read with the connection's next read.",
+    );
+  });
 });
 
 describe("before any cost is read", () => {
@@ -723,6 +791,74 @@ describe("before any cost is read", () => {
     expect(screen.queryByText(COST_GAPS_DESCRIPTION)).toBeNull();
     expect(screen.getByText(COST_GAPS_NONE_READ_TITLE)).toBeInTheDocument();
     expect(screen.queryByText(COST_GAPS_TITLE)).toBeNull();
+  });
+
+  test("every account queued: no step to take, only that they are read in turn", async () => {
+    await openView({
+      accounts: [
+        row({
+          id: WEB_ROW,
+          name: "sub-web",
+          provider: "azure",
+          costSummary: summary({
+            state: CloudCostState.Queued,
+            nextReadAt: "2026-11-20T15:05:00.000Z",
+          }),
+        }),
+        row({
+          id: DATA_ROW,
+          name: "sub-data",
+          provider: "azure",
+          costSummary: summary({
+            state: CloudCostState.Queued,
+            nextReadAt: "2026-11-20T15:10:00.000Z",
+          }),
+        }),
+      ],
+    });
+
+    const notRead: HTMLElement = screen.getByTestId("cloud-costs-not-read");
+
+    expect(within(notRead).queryAllByTestId("cloud-cost-setup-step")).toEqual(
+      [],
+    );
+    expect(
+      within(notRead).getByTestId("cloud-costs-queued-note"),
+    ).toHaveTextContent(
+      "Your accounts' costs are read in turn, as fast as their cloud allows.",
+    );
+    // Each listed, with when.
+    expect(screen.getAllByTestId("cloud-cost-gap-queued")).toHaveLength(2);
+  });
+
+  test("some queued, some to set up: the steps of the clouds that need one", async () => {
+    await openView({
+      accounts: [
+        row({
+          id: WEB_ROW,
+          name: "web-prod",
+          costSummary: summary({ state: CloudCostState.NotSetUp }),
+        }),
+        row({
+          id: DATA_ROW,
+          name: "sub-data",
+          provider: "azure",
+          costSummary: summary({
+            state: CloudCostState.Queued,
+            nextReadAt: "2026-11-20T15:10:00.000Z",
+          }),
+        }),
+      ],
+    });
+
+    expect(
+      within(screen.getByTestId("cloud-costs-not-read"))
+        .getAllByTestId("cloud-cost-setup-step")
+        .map((step: HTMLElement) => {
+          return step.getAttribute("data-provider");
+        }),
+    ).toEqual(["aws"]);
+    expect(screen.queryByTestId("cloud-costs-queued-note")).toBeNull();
   });
 });
 

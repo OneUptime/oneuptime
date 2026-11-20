@@ -1724,6 +1724,11 @@ const GUIDED_SETUP_FRAME_SOURCE: string = dashboard(
   "Components/GuidedSetup/GuidedSetupFrame.tsx",
 );
 
+// The panel beside a guided setup's steps, which the frame draws (#10276).
+const GUIDED_SETUP_PANEL_SOURCE: string = dashboard(
+  "Components/GuidedSetup/GuidedSetupResourcePanel.tsx",
+);
+
 const TASK_STEP: RegExp =
   /^ {4}step: WelcomeStep\.(\w+),\n {4}title: translationKey\("([^"]+)"\),$/gm;
 const TASK_PAGE_MAP: RegExp = /^ {4}pageMap: PageMap\.(\w+),$/m;
@@ -2666,10 +2671,12 @@ describe("Home Page & Shortcuts", () => {
   it("says a guided setup lists what it sets up beside its steps, and how long it takes", () => {
     const section: string = sectionOf(HOME, "### The welcome checklist");
 
-    expect(GUIDED_SETUP_FRAME_SOURCE).toContain(
+    expect(GUIDED_SETUP_FRAME_SOURCE).toContain("<GuidedSetupResourcePanel");
+    expect(GUIDED_SETUP_FRAME_SOURCE).toContain("minutes={props.minutes}");
+    expect(GUIDED_SETUP_PANEL_SOURCE).toContain(
       'translationKey("What this sets up")',
     );
-    expect(GUIDED_SETUP_FRAME_SOURCE).toContain("props.minutes");
+    expect(GUIDED_SETUP_PANEL_SOURCE).toContain("props.minutes");
     expect(section).toContain(
       "Beside its steps, a guided setup lists what it sets up, ticked off as you go, and says about how long it takes.",
     );
@@ -4105,8 +4112,14 @@ describe("Your Account", () => {
     expect(YOUR_ACCOUNT).toContain(
       "**Basic** holds **Overview** and **Profile Picture**. **Security** and **Danger Zone** are folded",
     );
+    /*
+     * Security's pages, in the one table that opens Signing in securely,
+     * above its first subsection (Confirm it's you has a table of its own).
+     */
+    const signingIn: string = sectionOf(YOUR_ACCOUNT, "## Signing in securely");
+
     expect(
-      onlyTableOf(sectionOf(YOUR_ACCOUNT, "## Signing in securely")).map(
+      onlyTableOf(signingIn.slice(0, signingIn.indexOf("\n### "))).map(
         (row: Array<string>): string => {
           return boldSpans(row[0] as string)[0] as string;
         },
@@ -4592,6 +4605,177 @@ describe("Your Account", () => {
     expect(YOUR_ACCOUNT).toContain(
       "Deleting your account is permanent and cannot be undone.",
     );
+  });
+
+  /*
+   * Confirm It's You (#10155, #10216 to #10221): what asks, with what, for
+   * how long, and what wrong attempts do, each read from where the server
+   * and the prompt decide it.
+   */
+  it("says what asks you to confirm it's you, as the server's gates decide it", () => {
+    const userService: string = readSource(
+      COMMON_DIR,
+      "Server/Services/UserService.ts",
+    );
+
+    // Your email or password, two-factor authentication off, your account.
+    expect(userService).toContain(
+      "await this.assertSignInChangeIsConfirmed(updateBy, carryForward);",
+    );
+    expect(userService).toContain(
+      "turnsTwoFactorAuthOff &&\n        (await this.isTwoFactorAuthOn(updateBy.props.userId!))",
+    );
+    expect(userService).toContain(
+      "await this.assertOwnAccountDeleteIsConfirmed(deleteBy, users);",
+    );
+
+    // Passkeys, security keys and authenticator apps, added or removed.
+    for (const [file, calls] of [
+      ["Server/Services/UserWebAuthnService.ts", 2],
+      ["Server/Services/UserTotpAuthService.ts", 2],
+      ["Server/API/UserTotpAuthAPI.ts", 1],
+    ] as Array<[string, number]>) {
+      expect({
+        file: file,
+        calls:
+          readSource(COMMON_DIR, file).split(
+            "await Reauthentication.assertConfirmed(",
+          ).length - 1,
+      }).toEqual({ file: file, calls: calls });
+    }
+
+    // New backup codes only in place of unused ones.
+    expect(
+      readSource(COMMON_DIR, "Server/API/UserTwoFactorBackupCodeAPI.ts"),
+    ).toContain("await Reauthentication.assertConfirmed(");
+
+    expect(YOUR_ACCOUNT).toContain(
+      "- change your email address or your password;\n- add or remove a passkey, a security key or an authenticator app;\n- get new backup codes while you still have unused ones;\n- turn two-factor authentication off;\n- delete your account.",
+    );
+    expect(YOUR_ACCOUNT).toContain(
+      "Before it deletes your account, OneUptime asks you to confirm it's you.",
+    );
+  });
+
+  it("names the prompt, its window and its five tries as the prompt and the server draw them", () => {
+    const types: string = readSource(
+      COMMON_DIR,
+      "Types/Accounts/Reauthentication.ts",
+    );
+    const prompt: string = readSource(
+      COMMON_DIR,
+      "UI/Components/Reauthentication/ReauthenticationPrompt.tsx",
+    );
+
+    expect(types).toContain(
+      "export const REAUTHENTICATION_WINDOW_IN_MINUTES: number = 10;",
+    );
+    expect(types).toContain(
+      "export const REAUTHENTICATION_FAILURES_BEFORE_SIGN_OUT: number = 5;",
+    );
+
+    for (const label of [
+      "Confirm It's You",
+      "Use a Passkey",
+      "Sign In Again",
+      "Sign In Another Way",
+    ]) {
+      expect(prompt).toContain(`translationKey("${label}")`);
+      expect(YOUR_ACCOUNT).toContain(`**${label}**`);
+    }
+
+    expect(YOUR_ACCOUNT).toContain(
+      "you are not asked again for 10 minutes in that browser. Five wrong attempts sign that browser out, but never lock your account",
+    );
+
+    // The two emails: a session signed out, and a backup code spent.
+    expect(
+      readSource(
+        COMMON_DIR,
+        "Server/Utils/Reauthentication/Reauthentication.ts",
+      ),
+    ).toContain("usedFor: BackupCodeUse.ConfirmItsYou,");
+    expect(
+      readSource(COMMON_DIR, "Server/Utils/Reauthentication/SignedOutEmail.ts"),
+    ).toContain("export const SIGNED_OUT_EMAILS_PER_DAY: number = 3;");
+    expect(YOUR_ACCOUNT).toContain(
+      "OneUptime emails you when this happens, and whenever a backup code confirms it's you.",
+    );
+  });
+
+  it("says what a master admin confirms first, and that the master API key cannot (#10216)", () => {
+    const userApi: string = readSource(COMMON_DIR, "Server/API/UserAPI.ts");
+
+    expect(
+      userApi.split("await UserAPI.assertMasterAdminConfirmed(req);").length -
+        1,
+    ).toBe(5);
+    expect(readSource(COMMON_DIR, "Server/API/GlobalConfigAPI.ts")).toContain(
+      "await MasterAdminAuthorization.assertSessionConfirmed(req);",
+    );
+
+    for (const file of [
+      "Server/Services/GlobalSsoService.ts",
+      "Server/Services/GlobalOidcService.ts",
+    ]) {
+      expect(readSource(COMMON_DIR, file)).toContain(
+        "await this.assertChangeIsConfirmed(deleteBy.props);",
+      );
+    }
+
+    expect(
+      readSource(COMMON_DIR, "Server/Services/GlobalConfigService.ts"),
+    ).toContain("await this.assertEmailSettingsChangeIsConfirmed(updateBy);");
+    expect(
+      readSource(COMMON_DIR, "Types/Accounts/Reauthentication.ts"),
+    ).toContain("An API key cannot make it.");
+
+    expect(YOUR_ACCOUNT).toContain(
+      "master admins confirm it's them in the same way before they change how someone else signs in, make someone a master admin, change the server's single sign-on providers or email settings, or create a master API key. The master API key cannot make these changes.",
+    );
+  });
+
+  it("says what Sign In Again asks of each provider, as each sign-in's start asks it (#10217)", () => {
+    expect(readSource(IDENTITY_DIR, "Utils/SSO.ts")).toContain(
+      'ForceAuthn="${data.forceAuthn ? "true" : "false"}"',
+    );
+    expect(readSource(IDENTITY_DIR, "Utils/OIDC.ts")).toContain(
+      '...(data.isSignInAgain ? { prompt: "login", max_age: 0 } : {}),',
+    );
+
+    const microsoft: string = readSource(
+      COMMON_DIR,
+      "Server/Utils/MicrosoftSignIn/MicrosoftSignInClient.ts",
+    );
+    expect(microsoft).toContain('params.set("prompt", "login");');
+    expect(microsoft).toContain('params.set("max_age", "0");');
+
+    const google: string = readSource(
+      COMMON_DIR,
+      "Server/Utils/GoogleSignIn/GoogleSignInClient.ts",
+    );
+    expect(google).toContain("id_token: { auth_time: { essential: true } },");
+    // Google takes no prompt=login: it is asked to choose an account only.
+    expect(google).not.toContain('"login"');
+
+    const prompt: string = readSource(
+      COMMON_DIR,
+      "UI/Components/Reauthentication/ReauthenticationPrompt.tsx",
+    );
+    expect(prompt).toContain("such as Honor Force Authentication in Okta.");
+    expect(prompt).toContain("the auth_time claim in Microsoft Entra ID.");
+    expect(prompt).toContain(
+      "turn on Session age claims for the server's Google sign-in app.",
+    );
+
+    for (const row of [
+      '| SAML | `ForceAuthn="true"`, and when you signed in (`AuthnInstant`) | Have the provider honor the request, such as with Honor Force Authentication in Okta. |',
+      "| OpenID Connect | `prompt=login` and `max_age=0`, and when you signed in (`auth_time`) | Have the provider send `auth_time`. In Microsoft Entra ID, add it to the ID token as an optional claim. |",
+      "| Google | When you signed in (`auth_time`). Google cannot be asked to have you sign in again. | Turn on Session age claims for the server's Google sign-in app, which must be published and verified. |",
+      "| Microsoft | `prompt=login` and `max_age=0`, and when you signed in (`auth_time`) | Add `auth_time` to the ID token of the server's Microsoft sign-in app as an optional claim. |",
+    ]) {
+      expect(YOUR_ACCOUNT).toContain(row);
+    }
   });
 
   it("recovers sign-in with the sign-in page's own links, and a reset verifies the address", () => {

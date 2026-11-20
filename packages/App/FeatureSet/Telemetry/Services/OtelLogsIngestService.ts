@@ -72,6 +72,15 @@ import {
 import LogService from "Common/Server/Services/LogService";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import ExceptionUtil, { TelemetryExceptionPayload } from "../Utils/Exception";
+import AppleSymbolication from "Common/Server/Utils/Telemetry/AppleSymbolication";
+import AppleCrashRegister, {
+  RegisteredAppleCrash,
+} from "Common/Server/Utils/Telemetry/AppleCrashRegister";
+import {
+  APPLE_CRASH_DUPLICATE_OF_ATTRIBUTE,
+  APPLE_CRASH_REPORTER_ATTRIBUTE,
+  AppleCrashSignature,
+} from "Common/Utils/Telemetry/AppleCrashMatch";
 import LogExceptionExtractor, {
   ExtractedLogException,
 } from "Common/Server/Utils/Telemetry/LogExceptionExtractor";
@@ -155,6 +164,15 @@ import OpenStackEventRecorder, {
 } from "Common/Server/Utils/OpenStack/OpenStackEventRecorder";
 import OpenStackLogDefaults from "Common/Server/Utils/OpenStack/OpenStackLogDefaults";
 import { CloudAppTelemetrySignal } from "Common/Types/Cloud/CloudAppTelemetrySignal";
+import {
+  EXCEPTION_SOURCE_ATTRIBUTE,
+  ExceptionSource,
+} from "Common/Types/Telemetry/ExceptionSource";
+import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
+import { countOtlpLogRecords } from "Common/Utils/Telemetry/OtlpRecordCount";
+import SecurityAddressVaultWriter, {
+  SecurityAddressVaultBatch,
+} from "Common/Server/Utils/SecurityEvent/AddressVault/SecurityAddressVaultWriter";
 
 /*
  * What stamping a Kubernetes event changed beside its attributes: the
@@ -377,6 +395,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
        */
       OtelIngestBaseService.normalizeHostNameAttributesInPlace(resourceLogs);
 
+      // Whose telemetry the batch is: null for most projects (#6355, #6386).
+      const attribution: TelemetryIngestAttribution | null =
+        (req as TelemetryRequest).telemetryIngestAttribution || null;
+
       const dbLogs: Array<JSONObject> = [];
       /*
        * Exceptions detected inside logs (explicit OTel exception.* attributes,
@@ -482,6 +504,20 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         logger.error("Error loading pipelines/drop filters/scrub rules:");
         logger.error(loadError);
       }
+
+      /*
+       * The addresses this batch's IP Address Hash rules hide, kept for
+       * Security Events' address vault when Security Events reads the
+       * project's logs (#10395): null - and nothing kept - otherwise.
+       * Written once, after the batch's logs are stored, never awaited: a
+       * log is stored with its token whatever the vault does.
+       */
+      const addressVault: SecurityAddressVaultBatch | null =
+        await SecurityAddressVaultWriter.startBatch({
+          projectId: projectId,
+          signal: "log",
+          scrubRules: loadedScrubRules,
+        });
 
       /*
        * The event loop is handed back by the time the work took, not every
@@ -723,6 +759,23 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           const serviceName: string = serviceMetadata.serviceName;
 
           serviceDictionary[serviceName] = serviceMetadata;
+
+          /*
+           * Whose telemetry this resource is (TelemetryIngestAttribution,
+           * #6355, #6386): its share of the batch's usage, and its team's or
+           * label's budget. A used-up budget drops its records here.
+           */
+          if (
+            attribution &&
+            !(await attribution.admitResource({
+              primaryEntityId: serviceMetadata.primaryEntityId!,
+              primaryEntityType: serviceMetadata.primaryEntityType,
+              name: serviceName,
+              records: countOtlpLogRecords(resourceLog),
+            }))
+          ) {
+            continue;
+          }
 
           /*
            * Loop-invariant row stamps, resolved once per resource instead
@@ -1416,6 +1469,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     logRow = LogScrubRuleService.scrubLog(
                       logRow,
                       loadedScrubRules,
+                      addressVault,
                     );
                   }
 
@@ -1436,7 +1490,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                    */
                   if (TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED) {
                     try {
-                      this.collectExceptionFromLog({
+                      await this.collectExceptionFromLog({
                         logRow,
                         projectId,
                         primaryEntityId,
@@ -1504,6 +1558,9 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         }
       }
 
+      // The batch's attribution, counted in one round trip (#6355, #6386).
+      await attribution?.settle();
+
       await this.submitLogsBuffer(dbLogs, pendingAcks, true);
 
       /*
@@ -1537,6 +1594,9 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             ]
           : []),
       ]);
+
+      // The logs are stored: their hashed addresses go to the vault, on their own.
+      addressVault?.write();
 
       await this.flushProxmoxNotifications({
         projectId: projectId,
@@ -1801,7 +1861,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
    * the log's own traceId/spanId/sessionId preserved when correlated, and the
    * log retention policy (pillar "logs") reused from the caller.
    */
-  private static collectExceptionFromLog(data: {
+  private static async collectExceptionFromLog(data: {
     logRow: JSONObject;
     projectId: ObjectID;
     primaryEntityId: ObjectID;
@@ -1815,7 +1875,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     retentionDateDb: string;
     dbExceptions: Array<JSONObject>;
     pendingExceptionUpserts: Array<TelemetryExceptionPayload>;
-  }): void {
+  }): Promise<void> {
     const finalBody: string = (data.logRow["body"] as string) || "";
     const finalAttributes: JSONObject =
       (data.logRow["attributes"] as JSONObject) || {};
@@ -1831,7 +1891,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
      */
     const sessionId: string = (data.logRow["sessionId"] as string) || "";
 
-    const extracted: ExtractedLogException | null =
+    let extracted: ExtractedLogException | null =
       LogExceptionExtractor.extractFromLogRecord({
         body: finalBody,
         attributes: finalAttributes,
@@ -1841,6 +1901,30 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
     if (!extracted) {
       return;
+    }
+
+    const faultKind: MobileAppFaultKind | null =
+      getMobileAppFaultKind(finalAttributes);
+
+    /*
+     * An iOS app's crash or hang (#9922): each frame whose binary has an
+     * uploaded dSYM named by its function before it is grouped, so it reads
+     * "CartViewController.checkout()" and groups by function across
+     * releases. A stack no dSYM resolves is kept as it was sent.
+     */
+    if (faultKind && extracted.stackTrace) {
+      const symbolicated: string | null =
+        await AppleSymbolication.symbolicateStackTrace({
+          projectId: data.projectId,
+          stackTrace: extracted.stackTrace,
+        });
+
+      if (symbolicated) {
+        extracted = LogExceptionExtractor.withStackTrace(
+          extracted,
+          symbolicated,
+        );
+      }
     }
 
     const fingerprint: string = ExceptionUtil.getFingerprint({
@@ -1868,7 +1952,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
     const ingestionTimestamp: string = getIngestionStamp().db;
     const exceptionAttributes: JSONObject = {
-      "exception.source": "log",
+      /*
+       * Found in a log record: billed with Logs, beside the record it was
+       * found in (ExceptionSource, issue #6590).
+       */
+      [EXCEPTION_SOURCE_ATTRIBUTE]: ExceptionSource.Log,
       "log.severityText": String(data.severityText),
     };
 
@@ -1879,9 +1967,6 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
      * An iOS hang keeps how long it lasted too, which its message, the
      * same for every hang so that they group, leaves out.
      */
-    const faultKind: MobileAppFaultKind | null =
-      getMobileAppFaultKind(finalAttributes);
-
     if (faultKind) {
       exceptionAttributes[LogEventNameAttributeKey] =
         getMobileAppFaultEventName(finalAttributes) || "";
@@ -1898,6 +1983,48 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       }
     }
 
+    const occurrenceId: string = ObjectID.generateTimeOrdered().toString();
+
+    /*
+     * One iOS crash, two reports (#9923): KSCrash's and MetricKit's of the
+     * same crash on the same install (AppleCrashMatch). The second is kept,
+     * under the first one's exception, as evidence of the same crash -
+     * named as a repeat of it - and counted nowhere: the counts read only
+     * occurrences that repeat none, and its exception is not counted again.
+     */
+    let repeats: RegisteredAppleCrash | null = null;
+
+    if (faultKind === MobileAppFaultKind.Crash) {
+      const signature: AppleCrashSignature | null =
+        AppleCrashRegister.buildSignature({
+          attributes: finalAttributes,
+          stackTrace: extracted.stackTrace,
+          exceptionType: extracted.exceptionType,
+          time: data.timeDate,
+        });
+
+      if (signature) {
+        exceptionAttributes[APPLE_CRASH_REPORTER_ATTRIBUTE] =
+          signature.reporter;
+
+        repeats = await AppleCrashRegister.pairOrRecord({
+          projectId: data.projectId,
+          primaryEntityId: data.primaryEntityId,
+          signature,
+          occurrence: {
+            id: occurrenceId,
+            fingerprint,
+            fingerprintV2,
+          },
+        });
+
+        if (repeats) {
+          exceptionAttributes[APPLE_CRASH_DUPLICATE_OF_ATTRIBUTE] =
+            repeats.occurrenceId;
+        }
+      }
+    }
+
     /*
      * And the install it happened on, from the log's resource (#9716): a
      * mobile app's crash-free installs counts the installs of its crashes
@@ -1909,7 +2036,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     });
 
     data.dbExceptions.push({
-      _id: ObjectID.generateTimeOrdered().toString(),
+      _id: occurrenceId,
       createdAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       primaryEntityId: data.primaryEntityId.toString(),
@@ -1933,8 +2060,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
        * attribute bag below deliberately keeps none of the log's.
        */
       userId: readExceptionUserId([finalAttributes]),
-      fingerprint: fingerprint,
-      fingerprintV2: fingerprintV2,
+      // A repeat is filed under the exception its first report is.
+      fingerprint: repeats ? repeats.fingerprint : fingerprint,
+      fingerprintV2: repeats ? repeats.fingerprintV2 : fingerprintV2,
+      duplicateOf: repeats ? repeats.occurrenceId : "",
       spanName: "",
       release: release,
       environment: environment,
@@ -1943,6 +2072,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       attributeKeys: TelemetryUtil.getAttributeKeys(rowAttributes),
       retentionDate: data.retentionDateDb,
     });
+
+    // A repeat is the same crash: its exception is not seen again.
+    if (repeats) {
+      return;
+    }
 
     data.pendingExceptionUpserts.push({
       fingerprint: fingerprint,

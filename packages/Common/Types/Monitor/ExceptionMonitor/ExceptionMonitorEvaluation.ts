@@ -31,6 +31,13 @@ import MonitorStep from "../MonitorStep";
  *     a crash's filters, a mobile app's crash rate (#9716): crashed
  *     sessions over sessions, which Android vitals judges a rate of, where
  *     the count alone grows with the app's audience.
+ *   - Installs With Exceptions (in %): the share of the window's installs a
+ *     matching exception happened on, and Installs, how many there were -
+ *     the distinct install (app.installation.id, else device.id:
+ *     MobileAppTelemetry) of the spans of the monitor's services (#9924).
+ *     Over a day it is the rate Android vitals calls user-perceived and the
+ *     Play Console shows: the share of the day's users a crash reached,
+ *     where one person's crash loop counts once.
  *
  * The count itself can also be judged against what is normal for the hour
  * of the week, learned from the monitor's own history: Exception Count with
@@ -49,6 +56,8 @@ export const EXCEPTION_MEASURES: ReadonlyArray<CheckOn> = [
   CheckOn.ExceptionCountIncreasePercent,
   CheckOn.SessionsWithExceptionsPercent,
   CheckOn.SessionCount,
+  CheckOn.InstallsWithExceptionsPercent,
+  CheckOn.InstallCount,
 ];
 
 // The measures read from the window's sessions.
@@ -57,15 +66,27 @@ export const EXCEPTION_SESSION_MEASURES: ReadonlyArray<CheckOn> = [
   CheckOn.SessionCount,
 ];
 
+// The measures read from the window's installs (#9924).
+export const EXCEPTION_INSTALL_MEASURES: ReadonlyArray<CheckOn> = [
+  CheckOn.InstallsWithExceptionsPercent,
+  CheckOn.InstallCount,
+];
+
+// The shares: typed with their fraction ("1.09"), and judged with it.
+export const EXCEPTION_SHARE_MEASURES: ReadonlyArray<CheckOn> = [
+  CheckOn.SessionsWithExceptionsPercent,
+  CheckOn.InstallsWithExceptionsPercent,
+];
+
 /*
  * What the monitor form's single rule can alert on: every measure but the
- * sessions alone, which say how much the app was used rather than anything
- * about its exceptions - the criteria editor offers them, as the fewest
- * sessions a share is judged on.
+ * sessions and installs alone, which say how much the app was used rather
+ * than anything about its exceptions - the criteria editor offers them, as
+ * the fewest sessions or installs a share is judged on.
  */
 export const EXCEPTION_RULE_MEASURES: ReadonlyArray<CheckOn> =
   EXCEPTION_MEASURES.filter((checkOn: CheckOn): boolean => {
-    return checkOn !== CheckOn.SessionCount;
+    return checkOn !== CheckOn.SessionCount && checkOn !== CheckOn.InstallCount;
   });
 
 // The day before the window: what "the usual" count is read from.
@@ -103,6 +124,8 @@ export interface ExceptionMonitorNeeds {
   baseline: boolean;
   // The window's sessions, and those a matching exception happened in.
   sessions: boolean;
+  // The window's installs, and those a matching exception happened on.
+  installs: boolean;
   /*
    * The baseline windows of the criteria that judge the count against the
    * learned baseline, each once, in days. Empty when none does.
@@ -197,6 +220,7 @@ export function getExceptionMonitorNeeds(
     regressedExceptions: false,
     baseline: false,
     sessions: false,
+    installs: false,
     learnedBaselineWindowDays: [],
   };
 
@@ -221,6 +245,10 @@ export function getExceptionMonitorNeeds(
 
       if (EXCEPTION_SESSION_MEASURES.includes(filter.checkOn)) {
         needs.sessions = true;
+      }
+
+      if (EXCEPTION_INSTALL_MEASURES.includes(filter.checkOn)) {
+        needs.installs = true;
       }
 
       if (isExceptionCountAnomaly(filter)) {
@@ -290,16 +318,41 @@ export function getSessionsWithExceptionsPercent(data: {
   sessionsWithExceptions: number;
   sessions: number;
 }): number | null {
-  const sessions: number = Math.max(0, data.sessions || 0);
+  return getShareWithExceptionsPercent({
+    affected: data.sessionsWithExceptions,
+    total: data.sessions,
+  });
+}
 
-  if (sessions <= 0) {
+/*
+ * The share of the window's installs a matching exception happened on, in
+ * percent to two decimals, or null without an install to take a share of:
+ * an app whose resources name no install, or a window nothing ran in, says
+ * nothing about its crash rate rather than 0% (#9924). Never above 100%: a
+ * crash's install may have sent no span in the window, as an iOS crash
+ * reported on a later day does.
+ */
+export function getInstallsWithExceptionsPercent(data: {
+  installsWithExceptions: number;
+  installs: number;
+}): number | null {
+  return getShareWithExceptionsPercent({
+    affected: data.installsWithExceptions,
+    total: data.installs,
+  });
+}
+
+function getShareWithExceptionsPercent(data: {
+  affected: number;
+  total: number;
+}): number | null {
+  const total: number = Math.max(0, data.total || 0);
+
+  if (total <= 0) {
     return null;
   }
 
-  const affected: number = Math.min(
-    Math.max(0, data.sessionsWithExceptions || 0),
-    sessions,
-  );
+  const affected: number = Math.min(Math.max(0, data.affected || 0), total);
 
-  return Math.round((affected / sessions) * 10000) / 100;
+  return Math.round((affected / total) * 10000) / 100;
 }

@@ -30,6 +30,7 @@ flowchart TB
 - **接続済みの Azure サブスクリプション。** まず **クラウド → 接続** で接続してください。[クラウド アカウントの接続](/docs/telemetry/cloud-accounts) を参照してください。
 - **プロジェクト所有者またはプロジェクト管理者。** 読み取りをオンにし、ストリーミングを停止できるのはこれらのユーザーだけです。
 - **Azure Cloud Shell**。サブスクリプションの **Owner**、または **User Access Administrator** でもある **Contributor** としてサインインしてください。コマンドはリソースグループとロールの割り当てを作成し、診断設定を変更します。
+- **Microsoft Entra ID のログには、テナントの Security Administrator**。コマンドが作成するリソースグループの **Owner** または **Contributor** でもあるユーザーが必要です。テナントのログをイベント ハブに送れるのは、このユーザーだけです。
 - **セルフホストの OneUptime では Azure への経路。** OneUptime は各名前空間を `<namespace>.servicebus.windows.net` のポート 9093 で読み取り、名前空間はインターネットからの接続を受け付けます。
 
 ## ストリーミングを設定する
@@ -43,6 +44,8 @@ flowchart TB
 
 **メトリクス** は、各リソースの主要メトリクスを 1 分ごとにストリーミングします。OneUptime が各リソースをグラフにし、評価する基準のメトリクスですが、[診断設定が送れないもの](#届くもの)は除かれ、接続が引き続き読み取ります。**メトリクスとログ** は各リソース自身のログ (Azure がそのリソースについて保持するすべてのカテゴリ) を加え、**ログ** はリソースログだけをストリーミングします。
 
+**セキュリティイベント向け** の下で **各サブスクリプションのアクティビティ ログ** をオンにすると、コマンドは各サブスクリプションの変更、Defender for Cloud のアラート、Azure Policy による拒否を最初のリージョンのイベント ハブに送ります。**Microsoft Entra ID のサインインログと監査ログ** をオンにすると、テナントの Security Administrator 向けの 2 つ目のコマンドが加わります。[セキュリティイベント](/docs/telemetry/security-events#ログからセキュリティイベントを見つける) はその両方を読み取ります。
+
 ### 読み取りをオンにする
 
 **読み取りをオンにする** を選択します。OneUptime は毎分イベント ハブを探し、コマンドが作成するまで待ちます。
@@ -50,6 +53,10 @@ flowchart TB
 ### Azure Cloud Shell でコマンドを実行する
 
 コマンドをコピーして Azure Cloud Shell で実行し、完了するまで待ちます。イベント ハブを作成した各リージョン、そこに送るリソースの数、除外したリソースとその Azure の理由が表示されます。
+
+### 選んだ場合は Microsoft Entra ID のコマンドを実行する
+
+最初のコマンドが完了したら、テナントの Security Administrator が 2 つ目のコマンドを Azure Cloud Shell で実行します。このコマンドは、Microsoft Entra ID のサインイン、監査、リスクのログを最初のリージョンのイベント ハブに送る診断設定をテナントに追加し、Azure に拒否された場合は Azure が何を求めたかを表示します。
 
 ### 最初のイベントを待つ
 
@@ -83,7 +90,13 @@ Service Bus または Event Hubs の名前空間は、メトリクスを何も�
 
 ログはリソースの ARM ID によってそのリソースの下に置かれ、`cloud.resource_id` として運ばれます。カテゴリ、操作、結果、プロパティは、`azure.category` のように属性として残ります。
 
-仮想マシン、スケール セット、ディスク、ネットワーク インターフェイス、仮想ネットワーク、プライベート エンドポイント、NAT ゲートウェイ、DNS ゾーン、App Service プランは独自のリソースログを送らないため、それらのページには **ログ** タブがありません。ストレージ アカウントのログはそのサービスのログで、コンテナー アプリのログはその環境のログです。
+`Administrative`、`Security`、`Policy` カテゴリのアクティビティ ログのレコードと、Microsoft Entra ID のサインイン、監査、リスクのレコードは、ログの本文として丸ごと届きます。リソースではなく、リソース グループ、サブスクリプション、テナントについてのレコードも同じです。[ログからセキュリティイベントを見つける](/docs/telemetry/security-events#ログからセキュリティイベントを見つける) を有効にすると、それぞれがログ パイプラインから届いたものと同じようにセキュリティイベントとして読み取られ、OneUptime にいくつの経路で届いても一度だけ保存されます。**各サブスクリプションのアクティビティ ログ** をオンにすると、コマンドは各サブスクリプションに、そのアクティビティ ログを最初のリージョンのイベント ハブに送る診断設定を追加し、Microsoft Entra ID のコマンドはテナントに同様の診断設定を追加します。
+
+Key Vault の `AuditEvent`、ストレージ アカウントの `StorageRead`、`StorageWrite`、`StorageDelete`、Azure SQL データベースの `SQLSecurityAuditEvents` も丸ごと届き、それぞれのリソースの下に置かれます。セキュリティイベントは、そのうちセキュリティにとって重要なものを読み取ります。[Azure リソース自身の監査ログ](/docs/telemetry/security-events#azure-リソース自身の監査ログ) を参照してください。Azure SQL データベースが監査を送るのは、監査がオンになっていて、送信先として Azure Monitor を選んでいる場合だけです。
+
+仮想マシン、スケール セット、ディスク、ネットワーク インターフェイス、仮想ネットワーク、プライベート エンドポイント、NAT ゲートウェイ、DNS ゾーン、App Service プランは独自のリソースログを送らないため、それらのページには **ログ** タブがありません。コンテナー アプリのログはその環境のログです。
+
+ストレージ アカウントのログは、その BLOB、ファイル、キュー、テーブルの各サービスのログです。コマンドは各サービスに専用の診断設定を追加し、それらのログはアカウントの下、その **ログ** タブに置かれます。アカウントが応答するすべてのリクエストが記録されるため、利用の多いアカウントは大量のログを送ります。
 
 ## コマンドが作成するもの
 
@@ -96,6 +109,9 @@ Service Bus または Event Hubs の名前空間は、メトリクスを何も�
 | それぞれのイベント ハブ `oneuptime` (パーティション 2) | OneUptime が読み取るまでイベントを保持します |
 | 接続のアプリに付与する **Azure Event Hubs Data Receiver** ロール (リソースグループのみが対象) | アプリにイベント ハブの読み取りだけを許可します |
 | 各リソースの診断設定 `OneUptime-<suffix>` | リソースのメトリクス、ログ、またはその両方を、そのリージョンのイベント ハブに送ります |
+| ログを含める場合、ストレージ アカウントの BLOB、ファイル、キュー、テーブルの各サービスの診断設定 `OneUptime-<suffix>` | 各サービスのログを、アカウントのリージョンのイベント ハブに送ります |
+| **各サブスクリプションのアクティビティ ログ** をオンにした場合、各サブスクリプションの診断設定 `OneUptime-<suffix>` | `Administrative`、`Security`、`Policy` のレコードを最初のリージョンのイベント ハブに送ります |
+| Microsoft Entra ID のコマンドを実行した場合、テナントの診断設定 `OneUptime-<suffix>` | サインイン、監査、リスクのログを最初のリージョンのイベント ハブに送ります |
 
 Front Door のようなグローバル リージョンのリソースは、最初のリージョンのイベント ハブに送ります。Azure がメトリクスだけ、またはログだけを保持するリソースは、持っているもので設定され、Azure が許す上限の 5 個の診断設定をすでに持つリソースは除外されます。Azure は各名前空間のスループット ユニットを時間単位で、診断設定が送るイベントとともに請求します。
 
@@ -108,20 +124,31 @@ Front Door のようなグローバル リージョンのリソースは、最�
 
 ### コマンドが作成したものを削除する
 
-イベント ハブと診断設定は削除されるまで Azure に残り、Azure はその料金を請求します。ダイアログにコマンドが表示されます。各リソースの診断設定を削除してから、リソースグループを、それがどのサブスクリプションにあっても削除します。
+イベント ハブと診断設定は削除されるまで Azure に残り、Azure はその料金を請求します。ダイアログにコマンドが表示されます。各リソース、ストレージ アカウントの各サービス、各サブスクリプションの診断設定を削除してから、リソースグループを、それがどのサブスクリプションにあっても削除します。Microsoft Entra ID の診断設定も、削除する権限があれば削除し、なければ誰が削除できるかを表示します。
 
 ```bash
 oneuptime_stream_stop() {
-  local SUB ID N=0
+  local SUB ID TYPE SERVICE N=0
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
-    while IFS= read -r ID; do
+    while IFS=$'\t' read -r ID TYPE; do
       if [ -z "$ID" ]; then continue; fi
       az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID" --output none 2> /dev/null &
       N=$((N + 1))
       if [ $((N % 4)) -eq 0 ]; then wait; fi
-    done < <(az resource list --subscription "$SUB" --query "[].id" --output tsv)
+      if [ "${TYPE,,}" = microsoft.storage/storageaccounts ]; then
+        for SERVICE in blobServices fileServices queueServices tableServices; do
+          az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID/$SERVICE/default" --output none 2> /dev/null &
+          N=$((N + 1))
+          if [ $((N % 4)) -eq 0 ]; then wait; fi
+        done
+      fi
+    done < <(az resource list --subscription "$SUB" --query "[].[id, type]" --output tsv)
+    az monitor diagnostic-settings subscription delete --subscription "$SUB" --name OneUptime-6f1c3a2e --yes --output none 2> /dev/null
   done
   wait
+  if az rest --method get --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null; then
+    az rest --method delete --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null && echo "Deleted Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e." || echo "Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e is left: a Security Administrator of the tenant deletes it, under Diagnostic settings in the Microsoft Entra admin center."
+  fi
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
     if [ "$(az group exists --subscription "$SUB" --name oneuptime-stream-6f1c3a2e 2> /dev/null)" = true ]; then
       az group delete --subscription "$SUB" --name oneuptime-stream-6f1c3a2e --yes --no-wait && echo "Deleting oneuptime-stream-6f1c3a2e in $SUB."
@@ -160,6 +187,10 @@ Terraform またはポータルで、コマンドが作成するものを次の�
 
 :::details コマンドがリソースを除外した
 除外したリソースが、それぞれ Azure の理由とともに一覧表示されます。診断設定を持たないタイプのリソースは何も送りません。すでに 5 個の診断設定を持つリソースは、先にそのうちの 1 つを削除する必要があります。その後、コマンドをもう一度実行してください。
+:::
+
+:::details アクティビティ ログまたは Microsoft Entra ID のログが除外された
+コマンドは、Azure が何を求めたかを表示します。サブスクリプションの診断設定には、サブスクリプションに対する `Microsoft.Insights/diagnosticSettings/write` が必要で、これはその Owner、Contributor、Monitoring Contributor が持っています。テナントの診断設定には、テナントの Security Administrator が必要です。どちらにも、コマンドが作成するリソースグループに対する `Microsoft.EventHub/namespaces/authorizationRules/listKeys/action` が必要で、これはその Owner と Contributor が持っています。その後、コマンドをもう一度実行してください。
 :::
 
 ## 次のステップ

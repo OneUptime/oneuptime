@@ -285,11 +285,17 @@ describe("Resource AI agent: copies of the resource command policy closure", () 
      * AgentAiSettings: what AI may do, which ResourceAiAccess reads.
      * RetryAfter: how long a refusal asked the agent to wait (issue #8928).
      */
+    /*
+     * ProxmoxGuestPowerTask: who or what stopped a Proxmox guest (#10017) -
+     * the metric the Proxmox agent sends and the rule that picks the task,
+     * read alike by the agent and the metrics ingest.
+     */
     expect(copyList.commonPolicyFiles).toEqual([
       "Types/AI/AgentAiSettings.ts",
       "Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
       "Types/Runbook/RunnerJobOrigin.ts",
       "Utils/RetryAfter.ts",
+      "Utils/Proxmox/ProxmoxGuestPowerTask.ts",
     ]);
     expect(copyList.otherCopies).toEqual([]);
   });

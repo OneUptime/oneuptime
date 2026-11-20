@@ -88,7 +88,11 @@
  *            list adds is refused, as the server refuses a second row for
  *            an owner: "This user is already an owner of this incident."),
  *            role-assign (the commander given from the header's Assign is
- *            refused), page-now (Page now on a page OneUptime AI holds is
+ *            refused), role-reassign (a role handed on - the header's
+ *            commander, the roles card's Reassign - is refused, as the
+ *            server refuses someone whose Edit Incident Member does not
+ *            reach the incident: ROLE_REASSIGN_REFUSAL), page-now (Page
+ *            now on a page OneUptime AI holds is
  *            refused, as the server refuses someone who may not page
  *            on-call policies: "You need permission to page on-call
  *            policies to page now."), dry-run (Dry run on a cloud fix,
@@ -276,6 +280,14 @@
  *            Create Runbook Execution: she reads fixes and may not approve
  *            or dismiss them - the reader the AI card's fix buttons are
  *            hidden from, with a line saying who may act.
+ *            "role-editor" (#10191's customer) may give an incident's and
+ *            an episode's roles and hand them on (Create and Edit Incident
+ *            Member, Create and Edit Incident Episode Role Member) but
+ *            take nobody off one: Remove is locked, Reassign and the
+ *            header's commander are offered. "role-giver" may give roles
+ *            and take them off (Create and Delete) but not hand them on:
+ *            Reassign is locked with why, and the header's commander is
+ *            plain text.
  *   ?ai=     ... also off-switch | off-project | off-rules | off-severity:
  *            OneUptime AI did not investigate Incident #1042 or Alert #311
  *            because something was off for them, as the server records it
@@ -756,6 +768,8 @@ const roleMode = [
   "view-only-owner",
   "editor-owner",
   "runbook-blocked",
+  "role-editor",
+  "role-giver",
 ].includes(params.get("role"))
   ? params.get("role")
   : "owner";
@@ -3859,6 +3873,15 @@ const OWNER_ADD_REFUSALS = {
 
 // What the server says when it refuses a role (?fail=role-assign).
 const ROLE_ASSIGN_REFUSAL = "This user already has this role.";
+
+/*
+ * What the server says when it refuses a role handed on (?fail=
+ * role-reassign): the reader's Edit Incident Member is limited to labels
+ * this incident does not have, which the page's permission snapshot cannot
+ * tell (#10191).
+ */
+const ROLE_REASSIGN_REFUSAL =
+  "You do not have permission to update this Incident Member.";
 
 const ownerTeams = {
   checkout: team,
@@ -7693,6 +7716,32 @@ PermissionUtil.getAllPermissions = () => {
   if (roleMode === "viewer") {
     return [Permission.Viewer];
   }
+  // #10191's customer: gives and hands on roles, takes nobody off one.
+  if (roleMode === "role-editor") {
+    return [
+      Permission.ReadProjectIncident,
+      Permission.ReadIncidentEpisode,
+      Permission.ReadIncidentMember,
+      Permission.CreateIncidentMember,
+      Permission.EditIncidentMember,
+      Permission.ReadIncidentEpisodeRoleMember,
+      Permission.CreateIncidentEpisodeRoleMember,
+      Permission.EditIncidentEpisodeRoleMember,
+    ];
+  }
+  // Gives roles and takes them off, and hands none on.
+  if (roleMode === "role-giver") {
+    return [
+      Permission.ReadProjectIncident,
+      Permission.ReadIncidentEpisode,
+      Permission.ReadIncidentMember,
+      Permission.CreateIncidentMember,
+      Permission.DeleteIncidentMember,
+      Permission.ReadIncidentEpisodeRoleMember,
+      Permission.CreateIncidentEpisodeRoleMember,
+      Permission.DeleteIncidentEpisodeRoleMember,
+    ];
+  }
   if (roleMode === "loading") {
     return [];
   }
@@ -7808,11 +7857,35 @@ ModelAPI.updateById = async (options) => {
   ) {
     throw fail(500, PUBLISH_FAILURE_MESSAGE);
   }
+  /*
+   * A role handed on (#10191, #10195): one update of the role's row, which
+   * names another person. ?fail=role-reassign refuses it, as the server
+   * refuses someone whose Edit Incident Member does not reach the incident.
+   */
+  const isRoleRow = [
+    tableName(IncidentMember),
+    tableName(IncidentEpisodeRoleMember),
+  ].includes(modelName);
+  const handsRoleOn =
+    isRoleRow &&
+    Object.prototype.hasOwnProperty.call(options.data || {}, "userId");
+  if (failures.has("role-reassign") && handsRoleOn) {
+    throw fail(403, ROLE_REASSIGN_REFUSAL);
+  }
   const record = (tables.get(modelName)?.records || []).find((item) => {
     return String(item._id) === id;
   });
   if (record) {
     Object.assign(record, options.data);
+    // The row's next read names the person it gives the role to, as the server's join does.
+    if (handsRoleOn) {
+      const person = Object.values(people).find((candidate) => {
+        return String(candidate.id) === String(record.userId);
+      });
+      if (person) {
+        record.user = person;
+      }
+    }
   }
   return new HTTPResponse(200, {}, {});
 };

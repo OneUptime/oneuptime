@@ -30,6 +30,7 @@ flowchart TB
 - **Una suscripción de Azure conectada.** Conéctala primero en **Nube → Conectar**: consulta [Conectar una cuenta en la nube](/docs/telemetry/cloud-accounts).
 - **Un Propietario del proyecto o un Administrador del proyecto.** Solo ellos pueden activar la lectura y detener la transmisión.
 - **Azure Cloud Shell**, con la sesión iniciada como **Owner** de las suscripciones, o como **Contributor** que también sea **User Access Administrator**: el comando crea un grupo de recursos y una asignación de roles, y cambia configuraciones de diagnóstico.
+- **Para los registros de Microsoft Entra ID, un Security Administrator** del inquilino que también sea **Owner** o **Contributor** del grupo de recursos que crea el comando: solo ellos pueden enviar los registros del inquilino a un centro de eventos.
 - **Una salida hacia Azure, en un OneUptime autoalojado.** OneUptime lee cada espacio de nombres en `<namespace>.servicebus.windows.net` por el puerto 9093, y los espacios de nombres aceptan conexiones desde internet.
 
 ## Configurar la transmisión
@@ -43,6 +44,8 @@ Ve a **Nube → Conectar** y, en la fila de la suscripción de Azure, elige **Tr
 
 **Métricas** transmite las métricas clave de cada recurso, minuto a minuto, las métricas que OneUptime grafica y con las que juzga cada recurso, excepto [las que una configuración de diagnóstico no puede enviar](#qué-llega), que la conexión sigue leyendo. **Métricas y registros** añade los registros propios de cada recurso, cada categoría que Azure guarda para él, y **Registros** transmite solo los registros de recursos.
 
+Bajo **Para Eventos de seguridad**, **Registro de actividad de cada suscripción** hace que el comando envíe los cambios, las alertas de Defender for Cloud y los rechazos de Azure Policy de cada suscripción al centro de eventos de la primera región, y **Registros de inicio de sesión y de auditoría de Microsoft Entra ID** añade un segundo comando, para un Security Administrator de tu inquilino. [Eventos de seguridad](/docs/telemetry/security-events#encontrar-eventos-de-seguridad-en-sus-registros) lee ambos.
+
 ### Activar la lectura
 
 Elige **Activar la lectura**. OneUptime busca los centros de eventos cada minuto, y los espera hasta que el comando los haya creado.
@@ -50,6 +53,10 @@ Elige **Activar la lectura**. OneUptime busca los centros de eventos cada minuto
 ### Ejecutar el comando en Azure Cloud Shell
 
 Copia el comando, ejecútalo en Azure Cloud Shell y espera a que termine. Indica cada región en la que creó un centro de eventos, cuántos recursos envían a ellos y qué recursos dejó fuera, con el motivo de Azure.
+
+### Ejecutar el comando de Microsoft Entra ID, si lo elegiste
+
+Cuando el primer comando haya terminado, un Security Administrator del inquilino ejecuta el segundo en Azure Cloud Shell. Este da al inquilino una configuración de diagnóstico que envía los registros de inicio de sesión, de auditoría y de riesgo de Microsoft Entra ID al centro de eventos de la primera región y, si Azure la rechaza, dice qué pidió.
 
 ### Esperar los primeros eventos
 
@@ -83,7 +90,13 @@ Un espacio de nombres de Service Bus o Event Hubs no transmite métricas. Las le
 
 Un registro se archiva bajo su recurso por el ID de ARM del recurso, que lleva como `cloud.resource_id`, y conserva su categoría, operación, resultado y propiedades como atributos, por ejemplo `azure.category`.
 
-Las máquinas virtuales, los conjuntos de escalado, los discos, las interfaces de red, las redes virtuales, los puntos de conexión privados, las puertas de enlace NAT, las zonas DNS y los planes de App Service no envían registros de recursos propios, así que sus páginas no tienen pestaña **Registros**. Los registros de una cuenta de almacenamiento son los de sus servicios, y los de una aplicación de contenedor, los de su entorno.
+Una entrada del registro de actividad de la categoría `Administrative`, `Security` o `Policy`, y una entrada de inicio de sesión, de auditoría o de riesgo de Microsoft Entra ID, llegan enteras, como cuerpo de su registro, incluso una sobre un grupo de recursos, una suscripción o el inquilino en lugar de un recurso. Con [Encontrar eventos de seguridad en tus registros](/docs/telemetry/security-events#encontrar-eventos-de-seguridad-en-sus-registros) activado, cada una se lee como un evento de seguridad, igual que una de una canalización de registros, y se guarda una sola vez, por muchas vías que llegue a OneUptime. Con **Registro de actividad de cada suscripción** activado, el comando da a cada suscripción una configuración de diagnóstico que envía su registro de actividad al centro de eventos de la primera región, y el comando de Microsoft Entra ID da una al inquilino.
+
+Los registros `AuditEvent` de un Key Vault, `StorageRead`, `StorageWrite` y `StorageDelete` de una cuenta de almacenamiento y `SQLSecurityAuditEvents` de una base de datos de Azure SQL también llegan enteros, cada uno archivado bajo su recurso, y Eventos de seguridad lee los que importan para la seguridad: consulta [Registros de auditoría propios de los recursos de Azure](/docs/telemetry/security-events#registros-de-auditoría-propios-de-los-recursos-de-azure). Una base de datos de Azure SQL solo envía su auditoría cuando la auditoría está activada, con Azure Monitor como destino.
+
+Las máquinas virtuales, los conjuntos de escalado, los discos, las interfaces de red, las redes virtuales, los puntos de conexión privados, las puertas de enlace NAT, las zonas DNS y los planes de App Service no envían registros de recursos propios, así que sus páginas no tienen pestaña **Registros**. Los registros de una aplicación de contenedor son los de su entorno.
+
+Los registros de una cuenta de almacenamiento son los de sus servicios de blobs, archivos, colas y tablas: el comando da a cada servicio una configuración de diagnóstico propia, y sus registros se archivan bajo la cuenta, en su pestaña **Registros**. Recogen cada solicitud que atiende la cuenta, así que una cuenta con mucha actividad envía muchos.
 
 ## Qué crea el comando
 
@@ -96,6 +109,9 @@ El grupo de recursos se llama `oneuptime-stream-` seguido de los 8 primeros cara
 | Un centro de eventos en cada uno, `oneuptime`, con 2 particiones | Guarda los eventos hasta que OneUptime los lee |
 | El rol **Azure Event Hubs Data Receiver** para la aplicación de la conexión, solo sobre el grupo de recursos | Permite a la aplicación leer los centros de eventos, y nada más |
 | Una configuración de diagnóstico en cada recurso, `OneUptime-<suffix>` | Envía las métricas, los registros o ambos del recurso al centro de eventos de su región |
+| Con registros, una configuración de diagnóstico en cada uno de los servicios de blobs, archivos, colas y tablas de una cuenta de almacenamiento, `OneUptime-<suffix>` | Envía los registros de los servicios al centro de eventos de la región de la cuenta |
+| Con **Registro de actividad de cada suscripción**, una configuración de diagnóstico en cada suscripción, `OneUptime-<suffix>` | Envía sus entradas `Administrative`, `Security` y `Policy` al centro de eventos de la primera región |
+| Con el comando de Microsoft Entra ID, la configuración de diagnóstico del inquilino, `OneUptime-<suffix>` | Envía sus registros de inicio de sesión, de auditoría y de riesgo al centro de eventos de la primera región |
 
 Un recurso de una región global, como Front Door, envía al centro de eventos de la primera región. Un recurso del que Azure solo guarda métricas o solo registros se configura con lo que tiene, y uno que ya tiene 5 configuraciones de diagnóstico, el máximo que permite Azure, se deja fuera. Azure cobra la unidad de rendimiento de cada espacio de nombres por horas, y los eventos que envían las configuraciones de diagnóstico.
 
@@ -108,20 +124,31 @@ En la fila de la suscripción en **Nube → Conectar**, elige **Detener la trans
 
 ### Eliminar lo que creó el comando
 
-Los centros de eventos y las configuraciones de diagnóstico se quedan en Azure, y Azure los cobra, hasta que se eliminan. El cuadro muestra el comando: elimina la configuración de diagnóstico de cada recurso y después el grupo de recursos, en la suscripción que lo contenga.
+Los centros de eventos y las configuraciones de diagnóstico se quedan en Azure, y Azure los cobra, hasta que se eliminan. El cuadro muestra el comando: elimina la configuración de diagnóstico de cada recurso, las de los servicios de las cuentas de almacenamiento y la de cada suscripción, y después el grupo de recursos, en la suscripción que lo contenga. También elimina la configuración de Microsoft Entra ID si tienes permiso para ello, y si no, dice quién lo tiene.
 
 ```bash
 oneuptime_stream_stop() {
-  local SUB ID N=0
+  local SUB ID TYPE SERVICE N=0
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
-    while IFS= read -r ID; do
+    while IFS=$'\t' read -r ID TYPE; do
       if [ -z "$ID" ]; then continue; fi
       az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID" --output none 2> /dev/null &
       N=$((N + 1))
       if [ $((N % 4)) -eq 0 ]; then wait; fi
-    done < <(az resource list --subscription "$SUB" --query "[].id" --output tsv)
+      if [ "${TYPE,,}" = microsoft.storage/storageaccounts ]; then
+        for SERVICE in blobServices fileServices queueServices tableServices; do
+          az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID/$SERVICE/default" --output none 2> /dev/null &
+          N=$((N + 1))
+          if [ $((N % 4)) -eq 0 ]; then wait; fi
+        done
+      fi
+    done < <(az resource list --subscription "$SUB" --query "[].[id, type]" --output tsv)
+    az monitor diagnostic-settings subscription delete --subscription "$SUB" --name OneUptime-6f1c3a2e --yes --output none 2> /dev/null
   done
   wait
+  if az rest --method get --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null; then
+    az rest --method delete --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null && echo "Deleted Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e." || echo "Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e is left: a Security Administrator of the tenant deletes it, under Diagnostic settings in the Microsoft Entra admin center."
+  fi
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
     if [ "$(az group exists --subscription "$SUB" --name oneuptime-stream-6f1c3a2e 2> /dev/null)" = true ]; then
       az group delete --subscription "$SUB" --name oneuptime-stream-6f1c3a2e --yes --no-wait && echo "Deleting oneuptime-stream-6f1c3a2e in $SUB."
@@ -160,6 +187,10 @@ El cuadro y la información sobre la fila dicen por qué. Cuando la aplicación 
 
 :::details El comando dejó recursos fuera
 Los lista, cada uno con el motivo de Azure. Un recurso de un tipo sin configuraciones de diagnóstico no envía nada, y en uno que ya tiene 5 configuraciones de diagnóstico hay que eliminar antes una. Después vuelve a ejecutar el comando.
+:::
+
+:::details Se dejaron fuera el registro de actividad o los registros de Microsoft Entra ID
+El comando dice qué pidió Azure. La configuración de diagnóstico de una suscripción requiere `Microsoft.Insights/diagnosticSettings/write` sobre la suscripción, un permiso que tienen su Owner, su Contributor y su Monitoring Contributor, y la del inquilino requiere un Security Administrator del inquilino. Ambas requieren `Microsoft.EventHub/namespaces/authorizationRules/listKeys/action` sobre el grupo de recursos que crea el comando, un permiso que tienen su Owner y su Contributor. Después vuelve a ejecutar el comando.
 :::
 
 ## Próximos pasos

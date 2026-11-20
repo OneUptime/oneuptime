@@ -98,7 +98,7 @@ Una vez abierta una página de estado, su propio menú lateral izquierdo se agru
 | **Suscriptores** | **Suscriptores** (una sola página, con una pestaña para cada canal: Correo electrónico, SMS, Slack, Microsoft Teams y Webhook), **Ajustes de suscriptores**, **Registros de notificación**: lo que se envió a los suscriptores. |
 | **Marca** | **Marca** (logotipo, título, favicon, enlaces, pie de página, colores e idiomas, en una sola página), **Dominios personalizados**, **HTML, CSS y JavaScript**. |
 | **Seguridad** | **Acceso** (quién puede ver la página), **Usuarios privados**, **Inicio de sesión único** (una pestaña para SAML y otra para OIDC), **SCIM**. |
-| **Desarrolladores** | **Terraform**, **API**, **CLI**, **Asistentes de IA**: la página como código. |
+| **Desarrolladores** | **Terraform**, **Crossplane**, **API**, **CLI**, **Asistentes de IA**: la página como código. |
 | **Avanzado** | **MCP**, **Estado incrustado**, **Informes**, **Campos personalizados**, **Ajustes**, **Registros de auditoría**, **Eliminar página de estado**. |
 
 Solo **Vista general** y **Recursos**, lo que muestra la página, empiezan abiertas. Todas las demás secciones empiezan plegadas, como las secciones poco usadas de todos los menús de OneUptime: haz clic en el título de una sección para mostrar sus páginas. Una sección se abre sola cuando estás en una de sus páginas, como **Ajustes** o **Suscriptores**.

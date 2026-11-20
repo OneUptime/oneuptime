@@ -4,10 +4,16 @@ import DeviceManagementConnectionService, {
 } from "../../../Server/Services/DeviceManagementConnectionService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
-import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
+import {
+  OnCreate,
+  OnDelete,
+  OnUpdate,
+} from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import DeviceManagementConnectionAlerts from "../../../Server/Utils/DeviceManagement/DeviceManagementConnectionAlerts";
 import { DeviceManagementSettings } from "../../../Server/Utils/DeviceManagement/DeviceManagementTypes";
 import ManagedDeviceInventory from "../../../Server/Utils/DeviceManagement/ManagedDeviceInventory";
+import logger from "../../../Server/Utils/Logger";
 import DeviceManagementProvider from "../../../Types/DeviceManagement/DeviceManagementProvider";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
@@ -39,6 +45,26 @@ const CONNECTION_ID: ObjectID = new ObjectID(
 );
 const API_KEY: string = "esper-key-0123456789abcdefGHIJKL";
 const NEW_API_KEY: string = "esper-key-ZYXWVUTSRQ9876543210";
+const CLIENT_SECRET: string = "Xq48Q~Zk1Lm9vN0pQrStUvWxYz.AbCdEfGhIjK-L";
+const NEW_CLIENT_SECRET: string = "Yr59R~Al2Mn0wO1qRsTuVwXyZa.BcDeFgHiJkL-M";
+const INTUNE_CLIENT_ID: string = "6731de76-14a6-49ae-97bc-6eba6914391e";
+const INTUNE_TENANT_ID: string = "72f988bf-86f1-41af-91ab-2d7cd011db47";
+
+function newIntuneConnection(
+  overrides: Record<string, unknown> = {},
+): DeviceManagementConnection {
+  return newConnection({
+    provider: DeviceManagementProvider.Intune,
+    config: {
+      tenant: INTUNE_TENANT_ID,
+      clientId: INTUNE_CLIENT_ID,
+      cloud: "public",
+      readIntervalInMinutes: 15,
+    },
+    secrets: JSON.stringify({ clientSecret: CLIENT_SECRET }),
+    ...overrides,
+  });
+}
 
 type HookCaller = {
   onBeforeCreate: (
@@ -127,34 +153,72 @@ afterEach(() => {
 });
 
 describe("what a save reads", () => {
-  test("the service: Esper, or none named", () => {
+  test("the service: Esper, Intune, Workspace ONE or SOTI, Esper when none is named", () => {
     expect(DeviceManagementConnectionServiceType.readProvider(undefined)).toBe(
       DeviceManagementProvider.Esper,
     );
+    expect(DeviceManagementConnectionServiceType.readProvider("intune")).toBe(
+      DeviceManagementProvider.Intune,
+    );
+    expect(
+      DeviceManagementConnectionServiceType.readProvider("workspaceone"),
+    ).toBe(DeviceManagementProvider.WorkspaceOne);
+    expect(DeviceManagementConnectionServiceType.readProvider("soti")).toBe(
+      DeviceManagementProvider.Soti,
+    );
     expect(() => {
-      return DeviceManagementConnectionServiceType.readProvider("intune");
-    }).toThrow(/Service must be 'esper'/);
+      return DeviceManagementConnectionServiceType.readProvider("jamf");
+    }).toThrow(/Service must be 'esper', 'intune', 'workspaceone' or 'soti'/);
   });
 
   test("the credentials: the API key and nothing else", () => {
     expect(
       DeviceManagementConnectionServiceType.readSecrets(
         { apiKey: ` ${API_KEY} ` },
-        { requireApiKey: true },
+        { required: true },
       ),
     ).toEqual({ apiKey: API_KEY });
     expect(() => {
       return DeviceManagementConnectionServiceType.readSecrets(
         { apiKey: API_KEY, token: "x" },
-        { requireApiKey: true },
+        { required: true },
       );
     }).toThrow('Credentials has no "token": an Esper connection takes apiKey.');
     expect(
       DeviceManagementConnectionServiceType.readSecrets(
         { apiKey: "" },
-        { requireApiKey: false },
+        { required: false },
       ),
     ).toEqual({});
+  });
+
+  test("an Intune connection's credentials: its client secret and nothing else", () => {
+    const intune: { required: boolean; provider: DeviceManagementProvider } = {
+      required: true,
+      provider: DeviceManagementProvider.Intune,
+    };
+
+    expect(
+      DeviceManagementConnectionServiceType.readSecrets(
+        { clientSecret: ` ${CLIENT_SECRET} ` },
+        intune,
+      ),
+    ).toEqual({ clientSecret: CLIENT_SECRET });
+    expect(() => {
+      return DeviceManagementConnectionServiceType.readSecrets(
+        { apiKey: API_KEY },
+        intune,
+      );
+    }).toThrow(
+      'Credentials has no "apiKey": an Intune connection takes clientSecret.',
+    );
+    // The secret's ID, copied by mistake from the same page.
+    expect(() => {
+      return DeviceManagementConnectionServiceType.readSecrets(
+        { clientSecret: "3f2b8c1d-4e5f-4a6b-8c7d-9e0f1a2b3c4d" },
+        intune,
+      );
+    }).toThrow(/This is the client secret's ID/);
   });
 
   test("a name for a connection saved without one: the tenant's", () => {
@@ -223,6 +287,146 @@ describe("creating a connection", () => {
         service.onBeforeCreate(createBy(newConnection({ isEnabled: "yes" }))),
       ),
     ).toBe("Enabled must be true or false.");
+  });
+});
+
+describe("an Intune connection (#9837)", () => {
+  test("its tenant, client ID and cloud are stored as checked, its secret as JSON", async () => {
+    const connection: DeviceManagementConnection = newIntuneConnection({
+      config: {
+        tenant: ` {${INTUNE_TENANT_ID.toUpperCase()}} `,
+        clientId: INTUNE_CLIENT_ID.toUpperCase(),
+        readIntervalInMinutes: 30,
+      },
+      secrets: { clientSecret: CLIENT_SECRET },
+    });
+
+    await service.onBeforeCreate(createBy(connection));
+
+    expect(connection.config).toEqual({
+      tenant: INTUNE_TENANT_ID,
+      clientId: INTUNE_CLIENT_ID,
+      cloud: "public",
+      readIntervalInMinutes: 30,
+    });
+    expect(JSON.parse(connection.secrets!)).toEqual({
+      clientSecret: CLIENT_SECRET,
+    });
+    expect(connection.name).toBe(`Intune ${INTUNE_TENANT_ID}`.substring(0, 50));
+  });
+
+  test("a tenant that names none, a client ID that is no GUID, an unknown cloud: each refused", async () => {
+    const refused: (config: JSONObject) => Promise<string> = (
+      config: JSONObject,
+    ): Promise<string> => {
+      return refusal(
+        service.onBeforeCreate(createBy(newIntuneConnection({ config }))),
+      );
+    };
+
+    expect(
+      await refused({ tenant: "common", clientId: INTUNE_CLIENT_ID }),
+    ).toMatch(/Enter your tenant ID/);
+    expect(
+      await refused({ tenant: INTUNE_TENANT_ID, clientId: "my-app" }),
+    ).toMatch(/Application \(client\) ID/);
+    expect(
+      await refused({
+        tenant: INTUNE_TENANT_ID,
+        clientId: INTUNE_CLIENT_ID,
+        cloud: "china",
+      }),
+    ).toBe("Cloud must be one of public, gcc, usgov, dod.");
+    expect(
+      await refused({
+        tenant: INTUNE_TENANT_ID,
+        clientId: INTUNE_CLIENT_ID,
+        apiKey: "x",
+      }),
+    ).toMatch(/an Intune connection takes tenant, clientId, cloud/);
+  });
+
+  test("one tenant per cloud: connected already is refused", async () => {
+    existing = [newIntuneConnection({ name: "Contoso" })];
+
+    expect(
+      await refusal(service.onBeforeCreate(createBy(newIntuneConnection()))),
+    ).toBe(
+      'This Intune tenant is connected already, as "Contoso". Edit that connection instead.',
+    );
+
+    // The same tenant ID in another cloud is another tenant.
+    await service.onBeforeCreate(
+      createBy(
+        newIntuneConnection({
+          config: {
+            tenant: INTUNE_TENANT_ID,
+            clientId: INTUNE_CLIENT_ID,
+            cloud: "usgov",
+          },
+        }),
+      ),
+    );
+  });
+
+  test("an edit keeps the secret left empty, takes a new client ID, and never a new tenant or cloud", async () => {
+    stored = newIntuneConnection({ _id: CONNECTION_ID.toString() });
+
+    const keep: UpdateBy<DeviceManagementConnection> = updateBy({
+      secrets: { clientSecret: "" },
+      config: { clientId: "0d4c3b2a-1f0e-4d9c-8b7a-6f5e4d3c2b1a" },
+    });
+    await service.onBeforeUpdate(keep);
+    expect(
+      JSON.parse((keep.data as unknown as JSONObject)["secrets"] as string),
+    ).toEqual({ clientSecret: CLIENT_SECRET });
+    expect((keep.data as unknown as JSONObject)["config"]).toMatchObject({
+      clientId: "0d4c3b2a-1f0e-4d9c-8b7a-6f5e4d3c2b1a",
+    });
+
+    const replace: UpdateBy<DeviceManagementConnection> = updateBy({
+      secrets: { clientSecret: NEW_CLIENT_SECRET },
+    });
+    await service.onBeforeUpdate(replace);
+    expect(
+      JSON.parse((replace.data as unknown as JSONObject)["secrets"] as string),
+    ).toEqual({ clientSecret: NEW_CLIENT_SECRET });
+
+    for (const config of [
+      { tenant: "fabrikam.onmicrosoft.com" },
+      { cloud: "dod" },
+    ]) {
+      expect(await refusal(service.onBeforeUpdate(updateBy({ config })))).toBe(
+        "A connection reads one Intune tenant, in one cloud. To read another one, connect it as well.",
+      );
+    }
+  });
+
+  test("the settings a read uses: the client secret, decrypted", async () => {
+    stored = newIntuneConnection({ _id: CONNECTION_ID.toString() });
+
+    const settings: DeviceManagementSettings =
+      await DeviceManagementConnectionService.getDeviceManagementSettings(
+        ((): DeviceManagementConnection => {
+          const connection: DeviceManagementConnection =
+            new DeviceManagementConnection();
+          connection.id = CONNECTION_ID;
+          return connection;
+        })(),
+      );
+
+    expect(settings).toEqual({
+      provider: DeviceManagementProvider.Intune,
+      projectId: PROJECT_ID.toString(),
+      config: {
+        tenant: INTUNE_TENANT_ID,
+        clientId: INTUNE_CLIENT_ID,
+        cloud: "public",
+        readIntervalInMinutes: 15,
+      },
+      apiKey: "",
+      clientSecret: CLIENT_SECRET,
+    });
   });
 });
 
@@ -304,7 +508,255 @@ describe("editing a connection", () => {
   });
 });
 
+describe("turning a connection off (#10286)", () => {
+  type UpdateHooks = {
+    onUpdateSuccess: (
+      onUpdate: OnUpdate<DeviceManagementConnection>,
+      updatedItemIds: Array<ObjectID>,
+    ) => Promise<OnUpdate<DeviceManagementConnection>>;
+  };
+
+  const OTHER_CONNECTION_ID: ObjectID = new ObjectID(
+    "33333333-3333-4333-8333-333333333333",
+  );
+  let heldTo: Array<DeviceManagementConnection>;
+  let held: ReturnType<typeof jest.spyOn>;
+
+  beforeEach(() => {
+    heldTo = [
+      newConnection({
+        _id: CONNECTION_ID.toString(),
+        name: "Esper acme",
+        isEnabled: true,
+        config: { tenant: "acme", readIntervalInMinutes: 30 },
+        lastSuccessfulPullAt: new Date("2026-11-20T13:30:00.000Z"),
+        createdAt: new Date("2026-10-01T09:00:00.000Z"),
+      }),
+      // Off already: writing the switch back turns nothing off.
+      newConnection({
+        _id: OTHER_CONNECTION_ID.toString(),
+        name: "Esper globex",
+        isEnabled: false,
+      }),
+    ];
+
+    held = jest
+      .spyOn(
+        DeviceManagementConnectionService as unknown as {
+          findRowsAndHoldUpdateToThem: () => Promise<unknown>;
+        },
+        "findRowsAndHoldUpdateToThem",
+      )
+      .mockImplementation((async () => {
+        return heldTo;
+      }) as never);
+  });
+
+  test("the connections it turns off are carried to after the write, read as the update writes them", async () => {
+    const turnOff: UpdateBy<DeviceManagementConnection> = updateBy(
+      { isEnabled: false },
+      { projectId: PROJECT_ID.toString() },
+    );
+
+    const onUpdate: OnUpdate<DeviceManagementConnection> =
+      await service.onBeforeUpdate(turnOff);
+
+    expect(held).toHaveBeenCalledTimes(1);
+    expect(onUpdate.carryForward).toEqual({
+      turnedOff: [
+        {
+          connectionId: CONNECTION_ID,
+          projectId: PROJECT_ID,
+          name: "Esper acme",
+          provider: DeviceManagementProvider.Esper,
+          readIntervalInMinutes: 30,
+          lastSuccessfulPullAt: new Date("2026-11-20T13:30:00.000Z"),
+          createdAt: new Date("2026-10-01T09:00:00.000Z"),
+        },
+      ],
+    });
+  });
+
+  test("an update that leaves the switch alone, or turns it on, reads nothing for it and carries nothing", async () => {
+    for (const data of [{ name: "Kiosks" }, { isEnabled: true }]) {
+      const onUpdate: OnUpdate<DeviceManagementConnection> =
+        await service.onBeforeUpdate(updateBy(data));
+
+      expect(onUpdate.carryForward).toBeNull();
+    }
+
+    expect(held).not.toHaveBeenCalled();
+  });
+
+  test("turned off with new settings in one update: the settings are still checked by the one row they name", async () => {
+    const both: UpdateBy<DeviceManagementConnection> = updateBy({
+      isEnabled: false,
+      config: { readIntervalInMinutes: 60 },
+    });
+
+    const onUpdate: OnUpdate<DeviceManagementConnection> =
+      await service.onBeforeUpdate(both);
+
+    expect((both.data as unknown as JSONObject)["config"]).toEqual({
+      tenant: "acme",
+      readIntervalInMinutes: 60,
+    });
+    expect(
+      (onUpdate.carryForward as { turnedOff: Array<unknown> }).turnedOff,
+    ).toHaveLength(1);
+  });
+
+  test("once written, the connections it turned off resolve their alerts, saying who turned them off", async () => {
+    const calls: Array<JSONObject> = [];
+
+    jest
+      .spyOn(DeviceManagementConnectionAlerts, "onConnectionsTurnedOff")
+      .mockImplementation((async (data: JSONObject) => {
+        calls.push(data);
+        return [];
+      }) as never);
+
+    const userId: ObjectID = ObjectID.generate();
+    const turnedOff: Array<JSONObject> = [
+      {
+        connectionId: CONNECTION_ID,
+        projectId: PROJECT_ID,
+        name: "Esper acme",
+      },
+      {
+        connectionId: OTHER_CONNECTION_ID,
+        projectId: PROJECT_ID,
+        name: "Esper globex",
+      },
+    ];
+
+    await (service as unknown as UpdateHooks).onUpdateSuccess(
+      {
+        updateBy: {
+          ...updateBy({ isEnabled: false }),
+          props: { userId },
+        },
+        carryForward: { turnedOff },
+      } as unknown as OnUpdate<DeviceManagementConnection>,
+      // The update wrote only the first.
+      [CONNECTION_ID],
+    );
+
+    expect(calls).toEqual([
+      { connections: [turnedOff[0]], turnedOffByUserId: userId },
+    ]);
+  });
+
+  test("an update that turned nothing off asks nothing, and a failure never fails the update", async () => {
+    const turnedOffAlerts: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DeviceManagementConnectionAlerts, "onConnectionsTurnedOff")
+      .mockRejectedValue(new Error("Postgres is gone") as never);
+    jest.spyOn(logger, "error").mockImplementation(() => {
+      return undefined as never;
+    });
+
+    const onUpdate: OnUpdate<DeviceManagementConnection> = {
+      updateBy: updateBy({ name: "Kiosks" }),
+      carryForward: null,
+    } as unknown as OnUpdate<DeviceManagementConnection>;
+
+    await (service as unknown as UpdateHooks).onUpdateSuccess(onUpdate, [
+      CONNECTION_ID,
+    ]);
+    expect(turnedOffAlerts).not.toHaveBeenCalled();
+
+    await expect(
+      (service as unknown as UpdateHooks).onUpdateSuccess(
+        {
+          updateBy: updateBy({ isEnabled: false }),
+          carryForward: {
+            turnedOff: [{ connectionId: CONNECTION_ID, projectId: PROJECT_ID }],
+          },
+        } as unknown as OnUpdate<DeviceManagementConnection>,
+        [CONNECTION_ID],
+      ),
+    ).resolves.toBeDefined();
+    expect(logger.error).toHaveBeenCalled();
+  });
+});
+
 describe("deleting a connection", () => {
+  test("once deleted, the monitors that read only it are turned off, saying who deleted it", async () => {
+    type DeleteHooks = {
+      onDeleteSuccess: (
+        onDelete: OnDelete<DeviceManagementConnection>,
+        deletedItemIds: Array<ObjectID>,
+      ) => Promise<OnDelete<DeviceManagementConnection>>;
+    };
+
+    jest
+      .spyOn(
+        DeviceManagementConnectionService as unknown as {
+          findRowsAndHoldDeleteToThem: () => Promise<unknown>;
+        },
+        "findRowsAndHoldDeleteToThem",
+      )
+      .mockImplementation((async () => {
+        return [
+          newConnection({
+            _id: CONNECTION_ID.toString(),
+            name: "Esper acme",
+          }),
+        ];
+      }) as never);
+    jest
+      .spyOn(ManagedDeviceInventory, "releaseConnection")
+      .mockResolvedValue(0 as never);
+
+    const calls: Array<JSONObject> = [];
+
+    jest
+      .spyOn(DeviceManagementConnectionAlerts, "onConnectionsDeleted")
+      .mockImplementation((async (data: JSONObject) => {
+        calls.push(data);
+        return [];
+      }) as never);
+
+    const userId: ObjectID = ObjectID.generate();
+    const onDelete: OnDelete<DeviceManagementConnection> =
+      (await service.onBeforeDelete({
+        query: { _id: CONNECTION_ID.toString() },
+        props: { isRoot: true, userId },
+      } as unknown as DeleteBy<DeviceManagementConnection>)) as OnDelete<DeviceManagementConnection>;
+
+    expect(onDelete.carryForward).toEqual({
+      connections: [
+        {
+          connectionId: CONNECTION_ID,
+          projectId: PROJECT_ID,
+          name: "Esper acme",
+          provider: DeviceManagementProvider.Esper,
+        },
+      ],
+    });
+
+    // A delete that removed nothing turns nothing off.
+    await (service as unknown as DeleteHooks).onDeleteSuccess(onDelete, []);
+    expect(calls).toEqual([]);
+
+    await (service as unknown as DeleteHooks).onDeleteSuccess(onDelete, [
+      CONNECTION_ID,
+    ]);
+    expect(calls).toEqual([
+      {
+        connections: [
+          {
+            connectionId: CONNECTION_ID,
+            projectId: PROJECT_ID,
+            name: "Esper acme",
+            provider: DeviceManagementProvider.Esper,
+          },
+        ],
+        deletedByUserId: userId,
+      },
+    ]);
+  });
+
   test("its devices' hosts in Inventory are let go first", async () => {
     jest
       .spyOn(

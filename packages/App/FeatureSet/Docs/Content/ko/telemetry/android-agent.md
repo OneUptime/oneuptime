@@ -104,7 +104,7 @@ Android에서 앱이 다른 앱의 로그를 읽으려면 READ_LOGS 권한이 �
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-Esper에서는 이 명령을 **Secure Remote ADB**로 실행합니다. 기기의 ADB 액세스를 켜고, `espercli secureadb connect -d DEVICE_ID`로 연결한 다음, 명령을 실행하세요. 권한이 부여되면 Android가 에이전트를 재시작하고, 에이전트는 곧바로 읽기 시작합니다.
+Esper에서는 이 명령을 **Secure Remote ADB**로 실행합니다. 기기의 ADB 액세스를 켜고, `espercli secureadb connect --device DEVICE_ID`로 연결한 다음, 명령을 실행하세요. 권한이 부여되면 Android가 에이전트를 재시작하고, 에이전트는 곧바로 읽기 시작합니다. 인벤토리의 **디바이스 관리 서비스 ID** 열에 각 기기의 `DEVICE_ID`가 들어 있습니다.
 
 그 뒤 에이전트가 읽는 내용은 Android 버전에 따라 다릅니다.
 
@@ -124,6 +124,35 @@ adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
 
 첫 번째 명령은 Android 15 이상용입니다. 사용 정보 접근은 기기의 **설정 → 사용 정보 접근**에서도 켤 수 있습니다. 기기 정책으로는 이 권한들을 부여할 수 없으며, 아직 실행해야 할 명령은 에이전트 화면에 나열됩니다. 이 권한들이 있으면 **예외**의 각 크래시에는 전체 스택 추적이, 네이티브 크래시에는 시그널과 크래시가 난 라이브러리가, ANR에는 메인 스레드의 스택이, **로그**의 재시작에는 Android가 밝힌 그 이유가 담깁니다. 에이전트가 읽은 내용에 있는 카드 번호, 이메일 주소, 토큰, 비밀번호는 보내기 전에 `[card number]`, `[email]`, `[token]`, `[redacted]`로 바뀝니다.
 
+### 플릿 전체에 부여하기
+
+에이전트는 보고할 때마다 이 권한 중 아직 없는 권한을 알립니다. 권한이 필요한 기기를 나열하려면 **인벤토리**를 연 다음 **모든 항목**을 열고 **에이전트 권한**: **누락**으로 필터링하세요. 각 기기에 무엇이 없는지 보려면 **에이전트 권한** 열을 켜고, 목록은 CSV로 내보내세요. **디바이스 관리 서비스 ID** 열도 켜면 내보낸 목록에 각 기기의 Esper ID가 들어갑니다. 이것이 `DEVICE_ID`로 `espercli secureadb connect --device`에 넘기는 값입니다.
+
+기기 정책으로는 이 권한들을 부여할 수 없습니다. READ_LOGS와 READ_DROPBOX_DATA는 adb, 시스템, 기기 제조사만 부여할 수 있는 권한이고, 사용 정보 접근은 adb나 기기 앞에 있는 사람이 설정합니다. Esper가 제공하는 기능과, 그중 어느 것도 이 권한들을 부여하지 못하는 이유는 다음과 같습니다.
+
+- **앱 권한**은 블루프린트에서 설정하든 `SET_APP_PERMISSION` 명령으로 설정하든 Android의 기기 소유자 API를 거치며, 이 API는 앱이 기기 앞에 있는 사람에게 요청하는 권한만 부여합니다. Android는 이 권한들을 거부합니다.
+- **관리형 구성**은 에이전트 자체의 설정을 지정할 뿐, Android의 권한은 지정하지 않습니다.
+- **Run Shell Script**는 Linux와 Windows 기기에서 실행되며, Android 기기에서는 실행되지 않습니다.
+- **Secure Remote ADB**는 `espercli`를 실행하는 컴퓨터에서 한 번에 기기 한 대에 연결합니다. Esper Foundation 기기에서는 기기 앞에 아무도 없어도 됩니다. 다른 기기에서는 처음 한 번, 기기 앞에 있는 사람이 **Allow USB debugging?** 메시지를 수락합니다.
+
+따라서 다음과 같이 adb로 부여하세요.
+
+- **기기를 출고하기 전**에는 USB 케이블로 준비할 때 부여합니다. 다음 명령은 컴퓨터에 연결된 모든 기기에 세 가지를 모두 부여합니다.
+
+  ```bash
+  for serial in $(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }'); do
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+    adb -s "$serial" shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+  done
+  ```
+
+  Android 14 이하에서는 두 번째 명령이 알 수 없는 권한이라고 표시합니다. 그 기기에는 필요 없는 권한입니다.
+- **현장에서 쓰는 기기**에는 Secure Remote ADB로 **누락** 목록의 기기에 한 대씩 부여합니다.
+- **사용 정보 접근만**은 기기 앞에 있는 사람이 **설정 → 사용 정보 접근**에서, 또는 에이전트 화면의 버튼으로 켤 수 있습니다.
+
+1분 안에 들어오는 기기의 다음 보고에서 그 기기는 **누락** 목록에서 빠집니다.
+
 ### CPU 사용량
 
 Android 8 이상은 기기의 CPU 사용량을 앱에 공개하지 않습니다. 기기 소유자 앱만 이를 읽을 수 있고, 그것도 하드웨어가 CPU 사용량을 보고하는 기기에서만 가능합니다. 에이전트는 기기 소유자일 때 이를 읽으며, 기기 소유자는 계정이 없고 다른 기기 소유자도 없는 기기에서 adb로 설정합니다.
@@ -141,16 +170,20 @@ adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdmi
 :::steps
 ### 요청하기
 
-**호스트**에서 기기를 연 다음 **로그**를 열고, **로그 세션**에서 **로그 세션 요청**을 클릭하세요. 기기가 로그를 보낼 시간을 15분에서 4시간 사이에서 고르고, 보낼 최저 수준을 **정보**, **디버그**, **상세** 중에서 고르세요.
+**호스트**에서 기기를 연 다음 **로그**를 열고, **로그 세션**에서 **로그 세션 요청**을 클릭하세요. 기기가 로그를 보낼 시간을 15분에서 4시간 사이에서 고르고, 보낼 최저 수준을 **정보**, **디버그**, **상세** 중에서 고르세요. “오후 6시 이후 결제 앱이 멈추는 원인을 확인하는 중”처럼 요청하는 이유를 **노트**에 적으세요.
 
 ### 기기에서 허용하기
 
-1분 안에 기기에 누군가 로그를 요청했다는 알림이 그 사람의 이름과 함께 표시됩니다. 기기 앞에 있는 사람이 에이전트를 열고 **허용**을 탭합니다. Android 13 이상에서는 이어서 Android가 모든 기기 로그에 액세스하도록 허용할지 묻고, 이것도 허용합니다.
+1분 안에 기기에 누군가 로그를 요청했다는 알림이 그 사람의 이름 및 노트와 함께 표시됩니다. 기기 앞에 있는 사람이 에이전트를 열면 노트가 아래에 붙은 요청이 표시되고, 그 사람이 **허용**을 탭합니다. Android 13 이상에서는 이어서 Android가 모든 기기 로그에 액세스하도록 허용할지 묻고, 이것도 허용합니다.
 
 ### 로그 줄 읽기
 
-세션은 **수집 중**으로 표시되고, 모든 앱의 로그 줄이 기기의 로그로 들어옵니다. **로그 줄 표시**를 클릭하면 세션의 로그 줄만 따로 볼 수 있습니다. 세션은 시간이 다 되거나, 누군가 기기에서 중지하거나 OneUptime에서 취소하면 끝납니다.
+세션은 **수집 중**으로 표시되고, 모든 앱의 로그 줄이 기기의 로그로 들어옵니다. **로그 줄 표시**를 클릭하면 세션의 로그 줄만 따로 볼 수 있고, **로그 줄 다운로드**를 클릭하면 파일로 저장할 수 있습니다. 세션은 시간이 다 되거나, 누군가 기기에서 중지하거나 OneUptime에서 취소하면 끝납니다.
 :::
+
+노트는 최대 200자인 한 줄입니다. 세션이 대기 중이거나 실행 중인 동안 기기는 알림과 에이전트 화면에 노트를 작성한 그대로 따옴표로 묶어 표시하며, 노트는 번역되지 않습니다. 줄바꿈은 공백으로 바뀌고, 노트에 있는 카드 번호, 이메일 주소, 토큰, 비밀번호는 저장되기 전에 `[card number]`, `[email]`, `[token]`, `[redacted]`로 바뀝니다. 에이전트가 보내는 내용과 마찬가지입니다. 세션 목록에서는 요청한 사람 아래에 노트가 표시되고, 호스트의 **감사 로그**에는 요청과 함께 노트가 남습니다.
+
+**로그 줄 다운로드**는 세션의 로그 줄을 `logcat -v threadtime`이 출력하는 형식의 텍스트 파일로 저장합니다. 공급업체 지원팀이 읽을 수 있는 형식으로, 각 줄에는 밀리초 단위의 시각, 프로세스와 스레드, 수준, 태그, 메시지가 담깁니다. 시각은 UTC입니다. 파일의 첫 몇 줄에는 어떤 세션, 기기, 노트의 파일인지와 누가 요청했는지가 적혀 있습니다. 파일에는 **로그**에 표시되는 줄이 에이전트가 가린 그대로 담기므로, 기기의 로그를 읽을 때와 같은 권한이 필요합니다. 파일 하나에는 최대 100,000줄, 32 MB까지 담기며, 그보다 긴 세션의 파일은 끝에 세션의 전체 줄 수를 적어 둡니다.
 
 세션에는 READ_LOGS와 `logcat_enabled`가 필요하며, 없으면 **사용 불가**로 표시됩니다. 한 기기에서는 한 번에 세션 하나만 실행됩니다. 1시간 안에 아무도 허용하지 않은 요청은 만료되며, 실행 중에 기기가 다시 시작된 세션은 그때 끝납니다. Android의 권한은 에이전트 프로세스와 함께 끝나기 때문입니다. 세션을 요청하려면 호스트 편집 권한이 필요하며, 누가 언제 요청했는지는 호스트의 **감사 로그**에 남습니다.
 
@@ -165,11 +198,15 @@ adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdmi
 | 재시작 | **로그**(`@event.name:device.boot`로 검색): 기기가 켜져 있던 시간, 정상 종료 여부, 꺼져 있던 시간, 재부팅한 이유, 재시작 반복 |
 | 설치된 앱 | **로그**(`@event.name:android.package.inventory`로 검색): 하루 한 번의 전체 목록과, 설치, 업데이트, 제거 하나하나 |
 | 모든 앱의 크래시와 ANR | **예외**(처리되지 않은 예외로, 앱 이름으로, 에이전트가 [DropBox](#크래시-스택-추적-및-재부팅-이유)를 읽으면 스택과 함께) |
-| 제조사, 모델, 일련 번호, OS 버전, 보안 패치 수준, 펌웨어 | **인벤토리**의 기기 항목 |
+| 제조사, 모델, 일련 번호, OS 버전, 보안 패치 수준, 펌웨어 | **인벤토리**의 기기 항목, **보안 패치 수준** 필터와 열 |
+| 보안 패치 수준이 얼마나 오래되었는지 | 메트릭 `android.os.security_patch.age`, 일 단위 |
+| 에이전트에 아직 없는 권한 | **인벤토리**의 기기 항목, **에이전트 권한** 필터와 열 |
 
 **호스트**에서 기기의 OS는 Android 마크와 함께 Android로 표시됩니다.
 
-최근 1시간 동안의 부팅 횟수는 메트릭 `android.boot.recent_count`이며, 재시작을 반복하는 기기는 부팅할 때마다 경고 수준의 로그를 남깁니다. **호스트**에서 Android 기기에는 전용 경고 템플릿이 제공됩니다. Device Unplugged, Low Battery, Device Overheating, Restart Loop, Storage Nearly Full과 함께 Host Stopped Reporting, Host Restarted, High Memory Utilization이 제공되고, CPU 사용량을 보고하면 High CPU Utilization도 제공됩니다. 각 경고의 첫 디버그 명령은 adb 명령입니다. [호스트 모니터](/docs/monitor/host-monitor#android-기기)를 참고하세요.
+보안 패치 수준이 90일보다 오래된 기기는 보안 패치가 뒤처진 것입니다. Google은 매달 Android 보안 게시판을 발행하고, Android Enterprise Recommended는 기기 제조사가 각 게시판의 패치를 90일 안에 배포하도록 요구하므로, 그보다 더 뒤처진 기기에는 제조사가 이미 배포했어야 할 수정 사항이 빠져 있습니다. **인벤토리**에서는 **보안 패치 수준** 필터를 **업데이트 필요**로 설정해 해당 기기를 나열할 수 있으며, **Security Patch Out of Date** 템플릿이 각 기기에 대해 경고합니다. 디바이스 관리 서비스가 가져오고 에이전트가 실행되지 않는 Android 기기는 **Esper Security Patch Out of Date** 같은 해당 연결의 템플릿이 디바이스 관리 서비스가 보고하는 패치 수준으로 경고합니다. 에이전트가 실행되는 기기는 이 템플릿에 맡기므로 경고가 두 번 울리지 않습니다.
+
+최근 1시간 동안의 부팅 횟수는 메트릭 `android.boot.recent_count`이며, 재시작을 반복하는 기기는 부팅할 때마다 경고 수준의 로그를 남깁니다. **호스트**에서 Android 기기에는 전용 경고 템플릿이 제공됩니다. Device Unplugged, Low Battery, Device Overheating, Restart Loop, Storage Nearly Full, Security Patch Out of Date와 함께 Host Stopped Reporting, Host Restarted, High Memory Utilization이 제공되고, CPU 사용량을 보고하면 High CPU Utilization도 제공됩니다. 각 경고의 첫 디버그 명령은 adb 명령입니다. [호스트 모니터](/docs/monitor/host-monitor#android-기기)를 참고하세요.
 
 ## 문제 해결
 

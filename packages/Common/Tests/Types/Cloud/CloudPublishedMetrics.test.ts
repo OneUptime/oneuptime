@@ -7,6 +7,7 @@ import {
   CloudPublishedMetricBlock,
   CloudPublishedMetricStatus,
   CloudPublishedMetricsListing,
+  getCloudPublishedMetricUnitText,
   readCloudPublishedMetricsListing,
   sortCloudPublishedMetrics,
 } from "../../../Types/Cloud/CloudPublishedMetrics";
@@ -16,6 +17,7 @@ import {
   GCP_USD_PER_MILLION_TIME_SERIES,
   estimateCloudAddedMetricCost,
   getAzureFiveMinuteReadsPerMonth,
+  getGcpSplitLearnsPerMonth,
   getReadsPerMonth,
 } from "../../../Types/CloudConnection/CloudConnectionCost";
 
@@ -144,6 +146,53 @@ describe("reading the server's listing", () => {
       addedForResource: 0,
       canEdit: false,
     });
+  });
+
+  test("a split its reads found PromQL cannot rank, with what its list returns of a resource; nothing else is read so (#10164)", () => {
+    const listing: CloudPublishedMetricsListing | null =
+      readCloudPublishedMetricsListing({
+        provider: "gcp",
+        resourceType: "gce_instance",
+        metrics: [
+          {
+            name: "agent.googleapis.com/processes/cpu_time",
+            unit: "us/s",
+            aggregation: "ALIGN_RATE",
+            status: "added",
+            addedSplitBy: "command",
+            splits: [
+              {
+                name: "command",
+                isLearnedFromEveryValue: true,
+                learnedValuesPerResource: 41.2,
+              },
+              { name: "pid", isLearnedFromEveryValue: "yes" },
+              // A count of values without the mark is no learning's.
+              { name: "owner", learnedValuesPerResource: 7 },
+              {
+                name: "user_or_syst",
+                isLearnedFromEveryValue: true,
+                learnedValuesPerResource: -2,
+              },
+            ],
+          },
+        ],
+        resourcesOfType: 12,
+        readIntervalInMinutes: 5,
+        addedForResource: 1,
+        canEdit: true,
+      });
+
+    expect(listing?.metrics[0]?.splits).toEqual([
+      {
+        name: "command",
+        isLearnedFromEveryValue: true,
+        learnedValuesPerResource: 42,
+      },
+      { name: "pid" },
+      { name: "owner" },
+      { name: "user_or_syst", isLearnedFromEveryValue: true },
+    ]);
   });
 });
 
@@ -293,5 +342,233 @@ describe("what one more metric costs a month", () => {
         readIntervalInMinutes: 5,
       }).monthlyUnits,
     ).toBe(0);
+  });
+});
+
+/*
+ * #9808: a metric added split by a dimension is a series per value: each
+ * one more metric read on AWS, more time series on Google Cloud, and on
+ * Azure a call of its own, which never rides in the key metrics' call.
+ */
+describe("what a metric split by a dimension costs a month", () => {
+  const reads: number = getReadsPerMonth(5);
+
+  test("AWS and Google Cloud count each value's series", () => {
+    expect(
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.AWS,
+        resources: 2,
+        readIntervalInMinutes: 5,
+        isSplit: true,
+        seriesPerResource: 3,
+      }).monthlyUnits,
+    ).toBe(2 * 3 * reads);
+    /*
+     * Google Cloud (#10076): each resource's busiest 10 a read, and as many
+     * again for the hour's learning of which they are - at most, since a
+     * resource of fewer values returns fewer.
+     */
+    expect(
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.GCP,
+        resources: 1,
+        readIntervalInMinutes: 5,
+        isSplit: true,
+        seriesPerResource: 10,
+      }),
+    ).toEqual({
+      monthlyUnits: 10 * (reads + getGcpSplitLearnsPerMonth()),
+      monthlyCostUsd:
+        ((10 * (reads + getGcpSplitLearnsPerMonth())) / 1000000) *
+        GCP_USD_PER_MILLION_TIME_SERIES,
+      ridesInExistingCall: false,
+      isAtMost: true,
+    });
+    expect(getGcpSplitLearnsPerMonth()).toBe(30 * 24);
+    // Unsplit, a series a resource, whatever the count says.
+    expect(
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.AWS,
+        resources: 1,
+        readIntervalInMinutes: 5,
+        seriesPerResource: 7,
+      }).monthlyUnits,
+    ).toBe(reads);
+  });
+
+  test("Google Cloud: at most each resource's busiest values a read and the hour's learning of them; never more than the cap, however many values it has", () => {
+    const learns: number = getGcpSplitLearnsPerMonth();
+    const typeWide: ReturnType<typeof estimateCloudAddedMetricCost> =
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.GCP,
+        resources: 186,
+        readIntervalInMinutes: 5,
+        isSplit: true,
+        seriesPerResource: 10,
+      });
+
+    expect(typeWide.monthlyUnits).toBe(186 * 10 * (reads + learns));
+    expect(typeWide.isAtMost).toBe(true);
+    // A label of 300 values costs what one of 10 does: the 10 busiest alone.
+    expect(
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.GCP,
+        resources: 1,
+        readIntervalInMinutes: 5,
+        isSplit: true,
+        seriesPerResource: 300,
+      }).monthlyUnits,
+    ).toBe(10 * (reads + learns));
+    // Read every 15 minutes: fewer reads, the same hourly learning.
+    expect(
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.GCP,
+        resources: 1,
+        readIntervalInMinutes: 15,
+        isSplit: true,
+        seriesPerResource: 10,
+      }).monthlyUnits,
+    ).toBe(10 * (getReadsPerMonth(15) + learns));
+    // Read whole, it is no more than said: one series a read.
+    expect(
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.GCP,
+        resources: 1,
+        readIntervalInMinutes: 5,
+      }).isAtMost,
+    ).toBeUndefined();
+  });
+
+  /*
+   * #10164: a metric PromQL cannot rank is learned from a list of the hour
+   * that returns every value of each resource: its learning costs every
+   * value, not the cap's, while its reads are still for the busiest alone.
+   */
+  test("Google Cloud: a split PromQL cannot rank costs every value of each resource at its hourly learning", () => {
+    const learns: number = getGcpSplitLearnsPerMonth();
+    const ranked: number = estimateCloudAddedMetricCost({
+      provider: CloudProvider.GCP,
+      resources: 3,
+      readIntervalInMinutes: 5,
+      isSplit: true,
+      seriesPerResource: 10,
+    }).monthlyUnits;
+    const unranked: ReturnType<typeof estimateCloudAddedMetricCost> =
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.GCP,
+        resources: 3,
+        readIntervalInMinutes: 5,
+        isSplit: true,
+        seriesPerResource: 10,
+        gcpLearnedValuesPerResource: 42,
+      });
+
+    expect(ranked).toBe(3 * 10 * (reads + learns));
+    expect(unranked.monthlyUnits).toBe(3 * (10 * reads + 42 * learns));
+    expect(unranked.monthlyUnits - ranked).toBe(3 * (42 - 10) * learns);
+    expect(unranked.isAtMost).toBe(true);
+    // Its reads keep the cap, however many values it has.
+    expect(
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.GCP,
+        resources: 1,
+        readIntervalInMinutes: 60,
+        isSplit: true,
+        seriesPerResource: 300,
+        gcpLearnedValuesPerResource: 300,
+      }).monthlyUnits,
+    ).toBe(10 * getReadsPerMonth(60) + 300 * learns);
+    // A fraction of a value is a series: rounded up, one at least.
+    expect(
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.GCP,
+        resources: 1,
+        readIntervalInMinutes: 5,
+        isSplit: true,
+        seriesPerResource: 1,
+        gcpLearnedValuesPerResource: 0.2,
+      }).monthlyUnits,
+    ).toBe(reads + learns);
+    // Not split, nothing is learned.
+    expect(
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.GCP,
+        resources: 1,
+        readIntervalInMinutes: 5,
+        gcpLearnedValuesPerResource: 42,
+      }).monthlyUnits,
+    ).toBe(reads);
+  });
+
+  test("Azure: a call of its own each read, however few metrics the key metrics' call has", () => {
+    const split: ReturnType<typeof estimateCloudAddedMetricCost> =
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.Azure,
+        resources: 1,
+        readIntervalInMinutes: 5,
+        azureGrain: "PT1M",
+        azureMetricsInCall: 3,
+        isSplit: true,
+        seriesPerResource: 10,
+      });
+
+    expect(split.ridesInExistingCall).toBe(false);
+    // Every value in the one call: a call a read, not a call a value.
+    expect(split.monthlyUnits).toBe(reads);
+    expect(split.monthlyCostUsd).toBe(
+      (reads / 1000) * AZURE_USD_PER_THOUSAND_METRIC_READS,
+    );
+  });
+});
+
+describe("what a listed metric can be split by", () => {
+  test("its dimensions, in words where the cloud gives them, with their values; whether it is read only split; an addition's split", () => {
+    const listing: CloudPublishedMetricsListing | null =
+      readCloudPublishedMetricsListing({
+        provider: "aws",
+        resourceType: "AWS::ElasticLoadBalancingV2::LoadBalancer",
+        metrics: [
+          {
+            name: "HTTPCode_Target_2XX_Count",
+            unit: "Count",
+            aggregation: "Sum",
+            status: "available",
+            splits: [
+              { name: "AvailabilityZone", values: 3 },
+              { name: "TargetGroup", displayName: "Target group", values: 2.5 },
+              { name: "" },
+              "not one",
+            ],
+            isSplitRequired: true,
+          },
+          {
+            name: "RequestCountPerTarget",
+            unit: "Count",
+            aggregation: "Sum",
+            status: "added",
+            addedKey: "k",
+            addedSplitBy: "TargetGroup",
+          },
+        ],
+        resourcesOfType: 1,
+        readIntervalInMinutes: 5,
+        addedForResource: 1,
+        canEdit: true,
+      });
+
+    expect(listing!.metrics[0]!.splits).toEqual([
+      { name: "AvailabilityZone", values: 3 },
+      { name: "TargetGroup", displayName: "Target group", values: 2 },
+    ]);
+    expect(listing!.metrics[0]!.isSplitRequired).toBe(true);
+    expect(listing!.metrics[1]!.addedSplitBy).toBe("TargetGroup");
+    expect(listing!.metrics[1]!.isSplitRequired).toBeUndefined();
+  });
+
+  test("a cloud's own word for no unit is no unit the list shows", () => {
+    expect(getCloudPublishedMetricUnitText("None")).toBe("");
+    expect(getCloudPublishedMetricUnitText("Unspecified")).toBe("");
+    expect(getCloudPublishedMetricUnitText(" Bytes ")).toBe("Bytes");
+    expect(getCloudPublishedMetricUnitText("")).toBe("");
   });
 });

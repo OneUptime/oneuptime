@@ -34,8 +34,10 @@ import {
 } from "../SecurityConnections/SecurityConnectionsCopy";
 import { getSecurityEventEntities } from "../SecurityConnections/SecurityConnectionsModel";
 import { SecurityEntity } from "Common/Types/SecurityCase/SecurityEntity";
+import { SecurityLogOwner } from "Common/Types/SecurityCase/SecurityConnection";
 import {
   SecurityLogResource,
+  readSecurityEventLogOwners,
   readSecurityEventLogResources,
 } from "Common/Utils/SecurityCase/SecurityConnectionMatch";
 import {
@@ -49,6 +51,8 @@ import useSecurityEventRequestStory, {
   SecurityEventRequestStory,
 } from "./useSecurityEventRequestStory";
 import { DETAILS_TITLE } from "./SecurityEventRequestCopy";
+import { FILTER_BY_HIDDEN_ADDRESS } from "./HiddenClientAddressCopy";
+import { readFieldValue } from "./HiddenClientAddressText";
 
 export const SECURITY_EVENT_DETAIL_PANEL_TEST_ID: string =
   "security-event-detail-panel";
@@ -271,6 +275,16 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
     return readSecurityEventLogResources(attributes);
   }, [attributes]);
 
+  /*
+   * The cloud resource its stream stamped the line with, and the serverless
+   * function the line or span was of (#10033): an event read from an RDS
+   * database's streamed logs is connected to the database, one from a
+   * Lambda's logs to the function, whatever service the line was filed under.
+   */
+  const logOwners: Array<SecurityLogOwner> = useMemo(() => {
+    return readSecurityEventLogOwners(attributes);
+  }, [attributes]);
+
   const observables: Array<string> = useMemo(() => {
     return (event.observables || []).filter((observable: string): boolean => {
       return Boolean(observable);
@@ -350,14 +364,21 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
             <FieldRow
               key={field.label}
               label={translator.translateText(field.label) || field.label}
-              value={field.value}
-              filterLabel={translator.translateTemplate("Filter by {{field}}", {
-                field: translatableTerm(field.label),
-              })}
+              value={readFieldValue(field, translator)}
+              filterLabel={
+                field.hiddenAddress
+                  ? translator.translateText(FILTER_BY_HIDDEN_ADDRESS)
+                  : translator.translateTemplate("Filter by {{field}}", {
+                      field: translatableTerm(field.label),
+                    })
+              }
               onFilter={
                 props.onFilterBy && field.facetKey
                   ? () => {
-                      props.onFilterBy?.(field.facetKey!, field.value);
+                      props.onFilterBy?.(
+                        field.facetKey!,
+                        field.facetValue ?? field.value,
+                      );
                     }
                   : undefined
               }
@@ -526,6 +547,7 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
                 entities: connectedEntities,
                 ...(time ? { time } : {}),
                 logResources,
+                logOwners,
               }}
               requestKey={`event:${event.eventUid || ""}:${
                 time ? time.toISOString() : ""

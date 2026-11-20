@@ -101,8 +101,33 @@ func ResourceDefaults() ujconfig.ResourceOption {
 	return func(r *ujconfig.Resource) {
 		r.ShortGroup = ShortGroup
 		r.Kind = kinds.Of(r.Name)
+		// The plural of its CRD, when controller-gen would give it another
+		// kind's (internal/kinds); "" keeps controller-gen's.
+		r.Path = kinds.Path(r.Kind)
 		r.Version = Version
 		r.ExternalName = ujconfig.IdentifierFromProvider
+		// The configuration's id once there is a record (lateinit.go).
+		r.ExternalName.SetIdentifierArgumentFn = identifyByExternalName
+		// A record is created in the reconcile that asks for it: OneUptime
+		// answers in a moment. Crossplane then writes its ID to the
+		// external-name annotation itself, whatever the management policy.
+		// Created in the background instead, the ID reached the annotation
+		// only through late initialization, so a policy without
+		// LateInitialize left it empty, and every reference to the resource
+		// unresolved (#9985).
+		r.UseAsync = false
+		// One an older provider made in the background gets the annotation
+		// from its status (externalname.go).
+		r.InitializerFns = append(r.InitializerFns, NewExternalNameFromStatus)
+		// What its manifest last applied of the fields people and OneUptime
+		// both change, for the plan of each reconcile (lastapplied.go).
+		if recorder := NewLastAppliedRecorder(r); recorder != nil {
+			r.InitializerFns = append(r.InitializerFns, recorder)
+		}
+		// What late initialization and spec.initProvider leave to OneUptime
+		// (lateinit.go).
+		lateInitialization(r)
+		r.TerraformConfigurationInjector = initProviderAtCreateOnly(r)
 		// A field's description is the schema's, written for Kubernetes by
 		// cmd/schema. The docs the metadata is scraped from repeat each one
 		// with a Terraform type in front, which Upjet would add to it.
@@ -110,6 +135,17 @@ func ResourceDefaults() ujconfig.ResourceOption {
 			r.MetaResource.ArgumentDocs = nil
 		}
 	}
+}
+
+// CRDs returns the names of each managed resource's CRD, by the resource's
+// Terraform name, as controller-gen names it from the resource's kind and
+// path.
+func CRDs(pc *ujconfig.Provider) map[string]kinds.CRD {
+	crds := make(map[string]kinds.CRD, len(pc.Resources))
+	for terraformName, r := range pc.Resources {
+		crds[terraformName] = kinds.CRDOf(r.Kind, r.Path)
+	}
+	return crds
 }
 
 // References returns, for each resource, the fields that hold the IDs of

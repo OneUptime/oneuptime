@@ -41,7 +41,7 @@ Klik rechtsboven op uw foto en kies **Profiel**. De pagina **Overzicht** opent m
 
 Klik op **Gebruiker bewerken** en wijzig wat u nodig hebt:
 
-- **E-mail**: het adres waarmee u inlogt. Als u het wijzigt, stuurt OneUptime een link naar het nieuwe adres, en uw adres verandert zodra u die opent. Tot die tijd logt u in met het huidige adres, en **Wijziging annuleren** stopt de wijziging. Het eigen adres van een hoofdbeheerder verandert meteen.
+- **E-mail**: het adres waarmee u inlogt. Als u het wijzigt, stuurt OneUptime een link naar het nieuwe adres, en uw adres verandert zodra u die opent. Tot die tijd logt u in met het huidige adres, en **Wijziging annuleren** stopt de wijziging. Het eigen adres van een hoofdbeheerder verandert meteen. Verloopt de link, dan stuurt **Link opnieuw versturen** een nieuwe. Telkens wanneer uw adres verandert, stuurt OneUptime een e-mail naar het adres dat u had.
 - **Volledige naam**: de naam die uw team overal in OneUptime ziet.
 - **Tijdzone**: de tijdzone waarin het dashboard tijden toont en leest, en die van de tijden in meldingen aan u.
 - **Taal**: de taal van het dashboard in elke browser waarin u inlogt, en van uw oproepen voor dienst. Niet ingesteld: uw oproepen zijn in het Engels en het dashboard volgt uw browser.
@@ -146,6 +146,31 @@ Hetzelfde gebeurt als elk project waartoe u behoort single sign-on vereist en **
 - **Hoofdbeheerders** houden altijd hun eigen instellingen onder **Beveiliging**.
 - **Wat u eerder hebt ingesteld**, blijft bewaard. Een serverbeheerder kan het wissen, en ook een eigenaar van alle projecten waartoe u behoort; u krijgt een e-mail als dat gebeurt.
 
+### Bevestigen dat u het bent
+
+Sommige wijzigingen vragen u eerst te bevestigen dat u het bent, ook al bent u aangemeld, zodat niemand ze kan doen vanuit een browser waarin u aangemeld bent gebleven. OneUptime vraagt het voordat u:
+
+- uw e-mailadres of uw wachtwoord wijzigt;
+- een passkey, een beveiligingssleutel of een authenticator-app toevoegt of verwijdert;
+- nieuwe back-upcodes krijgt terwijl u nog ongebruikte hebt;
+- tweefactorauthenticatie uitschakelt;
+- uw account verwijdert.
+
+Het venster **Bevestig dat u het bent** vraagt om uw wachtwoord en, zolang tweefactorauthenticatie is ingeschakeld, om uw tweede stap: een code uit uw authenticator-app, uw beveiligingssleutel of een van uw back-upcodes. Met een passkey klikt u in plaats daarvan op **Passkey gebruiken**. Meldt u zich alleen aan via single sign-on, Google of Microsoft, klik dan op **Opnieuw aanmelden**: OneUptime vraagt uw identiteitsprovider u opnieuw te laten aanmelden en brengt u daarna terug naar de pagina. Dan wordt de wijziging doorgevoerd.
+
+Nadat u hebt bevestigd, wordt het u in die browser 10 minuten lang niet opnieuw gevraagd. Vijf verkeerde pogingen melden die browser af, maar vergrendelen uw account nooit: meld u opnieuw aan en probeer het nog een keer. OneUptime stuurt u een e-mail als dat gebeurt, en telkens wanneer een back-upcode bevestigt dat u het bent.
+
+Op een zelf-gehoste server bevestigen hoofdbeheerders op dezelfde manier dat zij het zijn voordat ze wijzigen hoe iemand anders zich aanmeldt, iemand hoofdbeheerder maken, de single sign-on-providers of e-mailinstellingen van de server wijzigen of een master API-sleutel maken. De master API-sleutel kan deze wijzigingen niet doen.
+
+Opnieuw aanmelden telt alleen als uw identiteitsprovider aangeeft dat u zich hebt aangemeld nadat OneUptime u ernaartoe stuurde. Meldt de provider u aan met een sessie die hij al heeft, zonder om uw wachtwoord te vragen, dan bevestigt dat niets: meld u eerst af bij de provider en klik dan op **Opnieuw aanmelden**. Waar uw server aanmelden met een gemailde link toestaat, doet **Op een andere manier aanmelden** dat in plaats daarvan. Wat OneUptime aan elke provider vraagt, en wat een beheerder kan wijzigen als opnieuw aanmelden niets bevestigt:
+
+| Provider | Wat OneUptime vraagt | Als het niets bevestigt |
+| --- | --- | --- |
+| SAML | `ForceAuthn="true"` en wanneer u zich aanmeldde (`AuthnInstant`) | Laat de provider het verzoek opvolgen, bijvoorbeeld met Honor Force Authentication in Okta. |
+| OpenID Connect | `prompt=login` en `max_age=0`, en wanneer u zich aanmeldde (`auth_time`) | Laat de provider `auth_time` meesturen. Voeg het in Microsoft Entra ID als optionele claim toe aan het ID-token. |
+| Google | Wanneer u zich aanmeldde (`auth_time`). Google kan niet worden gevraagd u opnieuw te laten aanmelden. | Schakel Session age claims in voor de Google-aanmeldapp van de server, die gepubliceerd en geverifieerd moet zijn. |
+| Microsoft | `prompt=login` en `max_age=0`, en wanneer u zich aanmeldde (`auth_time`) | Voeg `auth_time` als optionele claim toe aan het ID-token van de Microsoft-aanmeldapp van de server. |
+
 ## Uw projecten
 
 U kunt bij zoveel projecten horen als u wilt. De projectkiezer linksboven in het dashboard toont ze: kies er een om ernaar te wisselen.
@@ -178,7 +203,7 @@ Uw thema wordt in uw browser opgeslagen, dus stel het opnieuw in op een andere b
 
 ## Uw account verwijderen
 
-Open **Gevarenzone → Account verwijderen**. U kunt uw account pas verwijderen als u in geen enkel project meer zit: de pagina toont de projecten waarin u nog zit. Verlaat die eerst, klik dan op **Account verwijderen** en bevestig. Het verwijderen van uw account is definitief en kan niet ongedaan worden gemaakt.
+Open **Gevarenzone → Account verwijderen**. U kunt uw account pas verwijderen als u in geen enkel project meer zit: de pagina toont de projecten waarin u nog zit. Verlaat die eerst, klik dan op **Account verwijderen** en bevestig. Het verwijderen van uw account is definitief en kan niet ongedaan worden gemaakt. Voordat OneUptime uw account verwijdert, vraagt het u te bevestigen dat u het bent.
 
 ## Problemen oplossen
 
@@ -191,7 +216,11 @@ Dat adres heeft al een OneUptime-account, dus het registreren heeft niets aangem
 :::
 
 :::details Mijn e-mailadres is niet gewijzigd
-Uw adres verandert pas zodra u de link opent die OneUptime naar het nieuwe adres stuurde. De link werkt 24 uur: is hij verlopen, wijzig uw e-mail dan opnieuw om een nieuwe te krijgen. Gebruikt een ander account dat adres al, dan staat dat in de e-mail die daarheen ging, en blijft uw adres zoals het is.
+Uw adres verandert pas zodra u de link opent die OneUptime naar het nieuwe adres stuurde. De link werkt 24 uur: is hij verlopen, dan staat dat in uw profiel, en **Link opnieuw versturen** stuurt een nieuwe. Gebruikt een ander account dat adres al, dan staat dat in de e-mail die daarheen ging, en blijft uw adres zoals het is.
+:::
+
+:::details Ik kreeg een e-mail dat mijn e-mailadres is gewijzigd
+OneUptime stuurt een e-mail naar het adres dat uw account had, telkens wanneer dat adres verandert: wanneer u de link opent die naar een nieuw adres is gestuurd, wanneer een serverbeheerder het wijzigt of wanneer de identiteitsprovider van uw organisatie het wijzigt. Hebt u de wijziging zelf gedaan, dan hoeft u niets te doen. Zo niet, dan heeft iemand die zich bij uw account kon aanmelden het naar een eigen adres verplaatst: neem vanaf uw oude adres contact op met uw serverbeheerder of, bij OneUptime Cloud, met support@oneuptime.com, die het kunnen terugzetten. De e-mail toont het nieuwe adres maar gedeeltelijk en bevat geen link om de wijziging ongedaan te maken: zo'n link zou werken voor iedereen die uw oude mailbox leest.
 :::
 
 :::details Ik ben mijn authenticator-app kwijt

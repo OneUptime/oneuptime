@@ -1,11 +1,42 @@
 import { mockRouter } from "./Helpers";
-import DataSecurityAPI from "../../../Server/API/DataSecurityAPI";
+import DataSecurityAPI, {
+  EXPLAIN_ISSUE_PERMISSIONS,
+} from "../../../Server/API/DataSecurityAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import Queue from "../../../Server/Infrastructure/Queue";
-import AIService from "../../../Server/Services/AIService";
+import AIService, {
+  AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
+  AUTONOMOUS_AI_FEATURES,
+} from "../../../Server/Services/AIService";
 import CloudConnectionService from "../../../Server/Services/CloudConnectionService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
+import DataSecurityCustomDataTypeService from "../../../Server/Services/DataSecurityCustomDataTypeService";
+import DataSecurityCustomDataType from "../../../Models/DatabaseModels/DataSecurityCustomDataType";
+import CodeTaskAccess, {
+  CODE_TASK_ASK_REFUSED_MESSAGE,
+  CODE_TASK_REPOSITORY_NOT_FOUND_MESSAGE,
+} from "../../../Server/Utils/AI/CodeTask/CodeTaskAccess";
+import CodeTaskGate from "../../../Server/Utils/AI/CodeTask/CodeTaskGate";
+import {
+  DATA_SECURITY_FIX_NO_ASKABLE_REPOSITORY_MESSAGE,
+  DataSecurityFixCode,
+  getDataSecurityFixNoRepositoryMessage,
+  getDataSecurityFixPickRepositoryMessage,
+} from "../../../Server/Utils/AI/DataSecurity/DataSecurityCodeTask";
+import {
+  CodeTaskBlocker,
+  CodeTaskBlockerType,
+} from "../../../Types/AI/CodeTask";
+import DataTypeNamer from "../../../Types/DataSecurity/DataTypeNamer";
+import {
+  buildDataSecurityFixRequest,
+  buildExplainIssuePrompt,
+} from "../../../Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt";
+import DataSecurityAiSettings from "../../../Server/Utils/AI/DataSecurity/DataSecurityAiSettings";
+import ServerProductRoutes from "../../../Server/Utils/ServerProducts/ServerProductRoutes";
+import ServerProducts from "../../../Server/Utils/ServerProducts/ServerProducts";
+import ProductKey from "../../../Types/Product/ProductKey";
 import DataSecurityIssueFeedService from "../../../Server/Services/DataSecurityIssueFeedService";
 import DataSecurityIssueService from "../../../Server/Services/DataSecurityIssueService";
 import DataSecuritySettingService from "../../../Server/Services/DataSecuritySettingService";
@@ -229,6 +260,22 @@ const FIX: Array<Permission> = [
   Permission.SecurityMember,
   Permission.EditDataSecurityIssue,
 ];
+// Who may read the issue: its explanation spells out the evidence (#10361).
+const EXPLAIN: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.SecurityAdmin,
+  Permission.SecurityMember,
+  Permission.SecurityViewer,
+  Permission.ReadDataSecurityIssue,
+];
+
+// A custom type the project keeps, and one it deleted (#10363).
+const LOYALTY_ROW: ObjectID = new ObjectID(
+  "10363000-0000-4000-8000-0000000000a1",
+);
+const LOYALTY: string = `custom:${LOYALTY_ROW.toString()}`;
+const DELETED_TYPE: string = "custom:10363000-0000-4000-8000-0000000000a2";
 
 interface RouteCase {
   name: string;
@@ -347,8 +394,14 @@ const ROUTES: Array<RouteCase> = [
   {
     name: "explain",
     path: DATA_SECURITY_API_ROUTES.explainIssue(":id"),
-    allowed: READ,
-    refused: [Permission.ProjectMember, Permission.ReadDataSecurityIssue],
+    allowed: EXPLAIN,
+    // A store's reader alone does not read its issues' evidence.
+    refused: [
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadDataStore,
+      Permission.ReadLlmLog,
+    ],
   },
   {
     name: "fix with AI",
@@ -359,6 +412,16 @@ const ROUTES: Array<RouteCase> = [
       Permission.ReadDataSecurityIssue,
       Permission.EditDataStore,
     ],
+  },
+  {
+    /*
+     * What OneUptime AI sees (#10365): for whoever reads Data Security;
+     * each part of the answer is read with the reader's own permissions.
+     */
+    name: "what OneUptime AI sees",
+    path: DATA_SECURITY_API_ROUTES.aiInput,
+    allowed: READ,
+    refused: [Permission.ProjectMember, Permission.ReadLlmLog],
   },
 ];
 
@@ -428,6 +491,7 @@ let findingUpdateSpy: jest.SpyInstance;
 let connectionsSpy: jest.SpyInstance;
 let feedSpy: jest.SpyInstance;
 let aiSpy: jest.SpyInstance;
+let aiSettingsSpy: jest.SpyInstance;
 let repositoriesSpy: jest.SpyInstance;
 let codeTaskSpy: jest.SpyInstance;
 let scrubSpy: jest.SpyInstance;
@@ -444,6 +508,21 @@ let complianceSettings: Array<DataSecurityComplianceSetting>;
 let databaseServers: Array<DatabaseServer>;
 let databaseServerRow: DatabaseServer | null;
 let clusterRow: KubernetesCluster | null;
+// The project's own data types (#10363).
+let customTypes: Array<DataSecurityCustomDataType>;
+let customTypesSpy: jest.SpyInstance;
+/*
+ * Code's checks, as a task in Code asks them (#10362): the repositories the
+ * caller reads, those they may not ask in, and what the gate answers for
+ * work before a repository is known and for one.
+ */
+let notAskable: Set<string>;
+let blockerBeforeRepository: CodeTaskBlocker | null;
+let blockerInRepository: CodeTaskBlocker | null;
+let readableSpy: jest.SpyInstance;
+let readableOneSpy: jest.SpyInstance;
+let canAskSpy: jest.SpyInstance;
+let gateSpy: jest.SpyInstance;
 
 let storeRow: DataStore | null;
 let issueRow: DataSecurityIssue | null;
@@ -510,6 +589,12 @@ function readsMade(): number {
     databaseServerFindSpy,
     databaseServerFindOneSpy,
     clusterFindOneSpy,
+    customTypesSpy,
+    aiSettingsSpy,
+    readableSpy,
+    readableOneSpy,
+    canAskSpy,
+    gateSpy,
   ].reduce((sum: number, spy: jest.SpyInstance) => {
     return sum + spy.mock.calls.length;
   }, 0);
@@ -538,7 +623,7 @@ function issueOf(): DataSecurityIssue {
   issue.title = "Anyone on the internet can read it";
   issue.severity = SecuritySeverity.Critical;
   issue.evidence = "The bucket policy grants s3:GetObject to *.";
-  issue.dataTypeIds = ["credit-card-number", "custom:loyalty"];
+  issue.dataTypeIds = ["credit-card-number", LOYALTY];
   const store: DataStore = new DataStore();
   store.name = "customer-exports";
   store.kind = DataStoreKind.AwsS3Bucket;
@@ -627,6 +712,14 @@ beforeEach(() => {
   aiSpy = jest
     .spyOn(AIService, "executeWithLogging")
     .mockResolvedValue({ content: "Turn on Block Public Access." } as never);
+  // What OneUptime AI sees: its own suite reads it (DataSecurityAiSettings).
+  aiSettingsSpy = jest.spyOn(DataSecurityAiSettings, "read").mockResolvedValue({
+    isAiEnabled: true,
+    canReadModels: false,
+    projectModel: null,
+    codeAgentModel: null,
+    example: null,
+  });
   repositoriesSpy = jest
     .spyOn(CodeRepositoryService, "findBy")
     .mockImplementation((async () => {
@@ -661,14 +754,74 @@ beforeEach(() => {
       metricsCounted: true,
       monitors: [],
       dashboards: [],
+      slos: [],
+      recordingRules: [],
       monitorsChecked: true,
       dashboardsChecked: true,
+      slosChecked: true,
+      recordingRulesChecked: true,
+      monitorsHidden: 0,
+      dashboardsHidden: 0,
+      slosHidden: 0,
+      recordingRulesHidden: 0,
     });
   ownersSpy = jest
     .spyOn(DataSecurityIntegrations, "getOwnerUsers")
     .mockResolvedValue([]);
   // A project with no AI context, unless a test writes one.
   aiContextSpy = jest.spyOn(AiContextReader, "read").mockResolvedValue(null);
+
+  // The project's own data types: Loyalty card number (#10363).
+  const loyalty: DataSecurityCustomDataType = new DataSecurityCustomDataType(
+    LOYALTY_ROW,
+  );
+  loyalty.name = "Loyalty card number";
+  customTypes = [loyalty];
+  customTypesSpy = jest
+    .spyOn(DataSecurityCustomDataTypeService, "findBy")
+    .mockImplementation((async () => {
+      return customTypes;
+    }) as never);
+
+  /*
+   * Code's checks (#10362): the caller reads the repositories the test
+   * lists, may ask in each but those it marks, and nothing stops AI.
+   */
+  notAskable = new Set();
+  blockerBeforeRepository = null;
+  blockerInRepository = null;
+  readableSpy = jest
+    .spyOn(CodeTaskAccess, "listReadableRepositories")
+    .mockImplementation((async () => {
+      return repositories;
+    }) as never);
+  readableOneSpy = jest
+    .spyOn(CodeTaskAccess, "getReadableRepository")
+    .mockImplementation((async (data: { repositoryId: ObjectID }) => {
+      const found: CodeRepository | undefined = repositories.find(
+        (repository: CodeRepository): boolean => {
+          return repository.id!.toString() === data.repositoryId.toString();
+        },
+      );
+
+      if (!found) {
+        throw new NotFoundException(CODE_TASK_REPOSITORY_NOT_FOUND_MESSAGE);
+      }
+
+      return found;
+    }) as never);
+  canAskSpy = jest
+    .spyOn(CodeTaskAccess, "canAskInRepository")
+    .mockImplementation((async (data: { repositoryId: ObjectID }) => {
+      return !notAskable.has(data.repositoryId.toString());
+    }) as never);
+  gateSpy = jest
+    .spyOn(CodeTaskGate, "getBlocker")
+    .mockImplementation((async (data: {
+      repository: CodeRepository | null;
+    }) => {
+      return data.repository ? blockerInRepository : blockerBeforeRepository;
+    }) as never);
 
   // No resource turned anything off, unless a test turns it off.
   complianceSettings = [];
@@ -748,6 +901,71 @@ describe("routes and who may call them", () => {
     expect(DATA_SECURITY_API_ROUTES.fixIssueWithAi("x")).toBe(
       "/data-security-issue/x/fix-with-ai",
     );
+    expect(DATA_SECURITY_API_ROUTES.aiInput).toBe("/data-security/ai-input");
+  });
+
+  // The explanation spells out the issue's evidence (#10361).
+  test("Explain is for whoever may read the issue, by the issue's own read permissions", () => {
+    expect([...EXPLAIN_ISSUE_PERMISSIONS].sort()).toEqual(
+      [...new DataSecurityIssue().getReadPermissions()].sort(),
+    );
+    expect(EXPLAIN_ISSUE_PERMISSIONS).not.toContain(Permission.ReadDataStore);
+  });
+
+  /*
+   * Which products each route is refused while they are off on the server:
+   * every action of Data Security's, and Fix with AI's Code too - it starts
+   * a task in Code, as every route that asks AI for a code change does.
+   */
+  async function productsRefusedWhileOff(
+    path: string,
+  ): Promise<Array<ProductKey>> {
+    const asked: Array<ProductKey> = [];
+    const spy: jest.SpyInstance = jest
+      .spyOn(ServerProducts, "assertProductIsOn")
+      .mockImplementation((async (product: ProductKey) => {
+        asked.push(product);
+      }) as never);
+
+    for (const middleware of mockRouter.match("POST", path).middlewares) {
+      if (ServerProductRoutes.isRefusal(middleware)) {
+        await (
+          middleware as unknown as (
+            req: ExpressRequest,
+            res: ExpressResponse,
+            next: NextFunction,
+          ) => Promise<void>
+        )(
+          { params: {}, body: {}, headers: {} } as unknown as ExpressRequest,
+          {} as ExpressResponse,
+          (() => {}) as NextFunction,
+        );
+      }
+    }
+
+    spy.mockRestore();
+    return asked;
+  }
+
+  test("Fix with AI is refused while the server has Data Security or Code switched off", async () => {
+    expect(
+      await productsRefusedWhileOff(
+        DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"),
+      ),
+    ).toEqual([ProductKey.DataSecurity, ProductKey.Code]);
+  });
+
+  test("Explain, which writes the issue's timeline, is refused while Data Security is off; a read is not", async () => {
+    expect(
+      await productsRefusedWhileOff(
+        DATA_SECURITY_API_ROUTES.explainIssue(":id"),
+      ),
+    ).toEqual([ProductKey.DataSecurity]);
+    expect(
+      await productsRefusedWhileOff(
+        DATA_SECURITY_API_ROUTES.recordOfProcessing,
+      ),
+    ).toEqual([]);
   });
 
   test.each(ROUTES)(
@@ -2025,13 +2243,18 @@ describe("Explain and Fix With AI", () => {
 
     expect(request.projectId).toBe(PROJECT_ID);
     expect(request.userId).toBe(USER_ID);
-    expect(request.feature).toBe("DataSecurityIssueExplanation");
+    expect(request.feature).toBe(AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE);
     expect(request.maxTokens).toBe(900);
-    expect(request.messages[0]!.role).toBe("system");
-    expect(request.messages[1]).toEqual({
-      role: "user",
-      content: DataSecurityAPI.describeIssue(issueRow!),
-    });
+    // The prompt DataSecurityAiInput builds for the issue (#10365).
+    expect(request.messages).toEqual(
+      buildExplainIssuePrompt({
+        issue: issueRow!,
+        findings: [],
+        dataTypeNamer: new DataTypeNamer(
+          new Map([[LOYALTY, "Loyalty card number"]]),
+        ),
+      }).messages,
+    );
     expect(feedSpy).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       dataSecurityIssueId: issueRow!.id,
@@ -2042,6 +2265,58 @@ describe("Explain and Fix With AI", () => {
       userId: USER_ID,
     });
     expect(result.answer).toEqual({ markdown: "Turn on Block Public Access." });
+  });
+
+  /*
+   * The AI Logs are read by every Project Member and Viewer, an issue by
+   * its owners and the Security roles alone (#10361): which bucket holds
+   * card numbers, and that it is public, stays out of them.
+   */
+  test("Explain keeps neither the issue it sent nor the answer in the AI Logs, nor a provider's error", async () => {
+    await call(DATA_SECURITY_API_ROUTES.explainIssue(":id"), {
+      id: STORE_ID.toString(),
+    });
+
+    expect(aiSpy.mock.calls[0]![0]).toMatchObject({
+      storeContentPreviews: false,
+      storeErrorDetails: false,
+    });
+  });
+
+  test("Explain's label keeps the value it was always written with, and is no autonomous feature's", () => {
+    expect(AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE).toBe(
+      "DataSecurityIssueExplanation",
+    );
+    expect(AUTONOMOUS_AI_FEATURES).not.toContain(
+      AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
+    );
+  });
+
+  // OneUptime AI is told what the data is (#10363).
+  test("Explain names the project's own data types by their names, and a deleted one as deleted", async () => {
+    issueRow!.dataTypeIds = ["credit-card-number", LOYALTY, DELETED_TYPE];
+
+    await call(DATA_SECURITY_API_ROUTES.explainIssue(":id"), {
+      id: STORE_ID.toString(),
+    });
+
+    const content: string = (
+      aiSpy.mock.calls[0]![0] as {
+        messages: Array<{ role: string; content: string }>;
+      }
+    ).messages[1]!.content;
+
+    expect(
+      ((JSON.parse(content) as JSONObject)["issue"] as JSONObject)["dataTypes"],
+    ).toEqual(["Card number", "Loyalty card number", "A deleted data type"]);
+    expect(content).not.toContain("custom:");
+    // Read once, as OneUptime: OneUptime AI needs the names.
+    expect(customTypesSpy).toHaveBeenCalledTimes(1);
+    expect(customTypesSpy.mock.calls[0]![0]).toMatchObject({
+      query: { projectId: PROJECT_ID },
+      select: { _id: true, name: true },
+      props: { isRoot: true },
+    });
   });
 
   test("Explain puts the project's AI context in front of its prompt, so the steps to fix are the team's own", async () => {
@@ -2162,21 +2437,48 @@ describe("Explain and Fix With AI", () => {
     expect(aiSpy).not.toHaveBeenCalled();
   });
 
-  test("Fix With AI starts a code task on the project's repository, as the caller, and notes it", async () => {
+  function repositoryNamed(name: string): CodeRepository {
     const repository: CodeRepository = new CodeRepository(ObjectID.generate());
+    repository.name = name;
+    return repository;
+  }
+
+  async function askForFix(body: JSONObject = {}): Promise<RouteCall> {
+    return await call(
+      DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"),
+      { id: STORE_ID.toString() },
+      body,
+    );
+  }
+
+  // As a task in Code is asked (#10362): the caller's own permissions throughout.
+  test("Fix With AI starts a code task in the one repository the caller may read and ask in, as the caller, and notes it", async () => {
+    const repository: CodeRepository = repositoryNamed("infra");
     repositories = [repository];
 
-    const result: RouteCall = await call(
-      DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"),
-      {
-        id: STORE_ID.toString(),
-      },
-    );
+    const result: RouteCall = await askForFix();
 
-    expect(repositoriesSpy.mock.calls[0]![0]).toMatchObject({
-      query: { projectId: PROJECT_ID },
-      limit: 2,
-      props: { isRoot: true },
+    expect(readableSpy).toHaveBeenCalledTimes(1);
+    expect(readableSpy.mock.calls[0]![0]).toMatchObject({
+      projectId: PROJECT_ID,
+      props: { userId: USER_ID },
+    });
+    expect(canAskSpy.mock.calls[0]![0]).toMatchObject({
+      projectId: PROJECT_ID,
+      repositoryId: repository.id,
+      props: { userId: USER_ID },
+    });
+    // Asked first with no repository, then for the one the task works in.
+    expect(
+      gateSpy.mock.calls.map((gateCall: Array<unknown>): unknown => {
+        return (gateCall[0] as { repository: CodeRepository | null })
+          .repository;
+      }),
+    ).toEqual([null, repository]);
+    expect(gateSpy.mock.calls[0]![0]).toMatchObject({
+      projectId: PROJECT_ID,
+      props: { userId: USER_ID },
+      canAsk: true,
     });
     expect(codeTaskSpy).toHaveBeenCalledTimes(1);
 
@@ -2193,7 +2495,17 @@ describe("Explain and Fix With AI", () => {
     expect(started.repository).toBe(repository);
     expect(started.context).toEqual([]);
     expect(started.message).toContain("Open a pull request.");
-    expect(started.message).toContain(DataSecurityAPI.describeIssue(issueRow!));
+    // The request DataSecurityAiInput builds for the issue (#10365).
+    expect(started.message).toBe(
+      buildDataSecurityFixRequest(
+        issueRow!,
+        [],
+        new DataTypeNamer(new Map([[LOYALTY, "Loyalty card number"]])),
+      ).text,
+    );
+    expect(started.message).toContain(
+      '"dataTypes": [\n      "Card number",\n      "Loyalty card number"\n    ]',
+    );
     expect(feedSpy).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       dataSecurityIssueId: issueRow!.id,
@@ -2210,78 +2522,193 @@ describe("Explain and Fix With AI", () => {
     });
   });
 
-  test("with no repository connected, it says to connect one", async () => {
-    const result: RouteCall = await call(
-      DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"),
-      {
-        id: STORE_ID.toString(),
-      },
-    );
+  test("with no repository the caller may read, it says to connect one or ask for permission to edit it", async () => {
+    const result: RouteCall = await askForFix();
 
     expect(result.answer).toEqual({
-      message:
-        "Connect the repository that holds this store's infrastructure code under Code, then ask again.",
+      message: getDataSecurityFixNoRepositoryMessage(
+        DataSecurityFixCode.Infrastructure,
+      ),
+    });
+    expect(result.answer!["message"]).toBe(
+      "Connect the repository that holds this store's infrastructure code under Code, then ask again. If it is connected already, asking OneUptime AI to change it takes permission to edit it in Code - ask a Project Admin for it.",
+    );
+    expect(codeTaskSpy).not.toHaveBeenCalled();
+    expect(feedSpy).not.toHaveBeenCalled();
+  });
+
+  test("the only repository the caller may read, but not change, is refused in Code's words", async () => {
+    const repository: CodeRepository = repositoryNamed("infra");
+    repositories = [repository];
+    notAskable.add(repository.id!.toString());
+
+    const result: RouteCall = await askForFix();
+
+    expect(result.answer).toEqual({ message: CODE_TASK_ASK_REFUSED_MESSAGE });
+    expect(codeTaskSpy).not.toHaveBeenCalled();
+  });
+
+  test("with several repositories and none chosen, it lists only those the caller may ask in", async () => {
+    const infra: CodeRepository = repositoryNamed("infra");
+    const website: CodeRepository = repositoryNamed("website");
+    const platform: CodeRepository = repositoryNamed("platform");
+    repositories = [infra, website, platform];
+    notAskable.add(website.id!.toString());
+
+    const result: RouteCall = await askForFix();
+
+    expect(result.answer).toEqual({
+      message: getDataSecurityFixPickRepositoryMessage(
+        DataSecurityFixCode.Infrastructure,
+      ),
+      repositories: [
+        { id: infra.id!.toString(), name: "infra" },
+        { id: platform.id!.toString(), name: "platform" },
+      ],
+    });
+    expect(result.answer!["message"]).toBe(
+      "This project has several repositories: choose the one that holds this store's infrastructure code.",
+    );
+    expect(codeTaskSpy).not.toHaveBeenCalled();
+  });
+
+  test("with several repositories the caller may read and none they may change, it says so", async () => {
+    repositories = [repositoryNamed("infra"), repositoryNamed("website")];
+
+    for (const repository of repositories) {
+      notAskable.add(repository.id!.toString());
+    }
+
+    const result: RouteCall = await askForFix();
+
+    expect(result.answer).toEqual({
+      message: DATA_SECURITY_FIX_NO_ASKABLE_REPOSITORY_MESSAGE,
     });
     expect(codeTaskSpy).not.toHaveBeenCalled();
   });
 
-  test("with several repositories and none chosen, it asks which", async () => {
-    repositories = [
-      new CodeRepository(ObjectID.generate()),
-      new CodeRepository(ObjectID.generate()),
-    ];
+  test("the repository the caller chose is the one asked for, read with their permissions", async () => {
+    const chosen: CodeRepository = repositoryNamed("infra");
+    repositories = [repositoryNamed("website"), chosen];
 
-    const result: RouteCall = await call(
-      DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"),
-      {
-        id: STORE_ID.toString(),
-      },
-    );
+    await askForFix({ codeRepositoryId: chosen.id!.toString() });
 
-    expect(result.answer).toEqual({
-      message:
-        "This project has several repositories: choose the one that holds this store's infrastructure code.",
+    expect(readableOneSpy.mock.calls[0]![0]).toMatchObject({
+      projectId: PROJECT_ID,
+      props: { userId: USER_ID },
     });
-    expect(codeTaskSpy).not.toHaveBeenCalled();
+    expect(
+      (
+        readableOneSpy.mock.calls[0]![0] as { repositoryId: ObjectID }
+      ).repositoryId.toString(),
+    ).toBe(chosen.id!.toString());
+    expect(readableSpy).not.toHaveBeenCalled();
+    expect(
+      (codeTaskSpy.mock.calls[0]![0] as { repository: CodeRepository })
+        .repository,
+    ).toBe(chosen);
   });
 
-  test("the repository the caller chose is the one asked for", async () => {
-    const chosen: ObjectID = ObjectID.generate();
-    repositories = [new CodeRepository(chosen)];
+  test("a repository the caller chose that they may not read is not found, as Code answers it", async () => {
+    repositories = [repositoryNamed("website")];
 
-    await call(
-      DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"),
-      { id: STORE_ID.toString() },
-      { codeRepositoryId: chosen.toString() },
+    const result: RouteCall = await askForFix({
+      codeRepositoryId: ObjectID.generate().toString(),
+    });
+
+    expect(result.thrown).toBeInstanceOf(NotFoundException);
+    expect((result.thrown as Exception).message).toBe(
+      CODE_TASK_REPOSITORY_NOT_FOUND_MESSAGE,
     );
+    expect(codeTaskSpy).not.toHaveBeenCalled();
+    expect(feedSpy).not.toHaveBeenCalled();
+  });
 
-    const query: JSONObject = (
-      repositoriesSpy.mock.calls[0]![0] as { query: JSONObject }
-    ).query;
+  test("a repository the caller chose that they may read but not change is refused with Code's own sentence", async () => {
+    const chosen: CodeRepository = repositoryNamed("infra");
+    repositories = [chosen];
+    notAskable.add(chosen.id!.toString());
 
-    expect(query["projectId"]).toBe(PROJECT_ID);
-    expect((query["_id"] as ObjectID).toString()).toBe(chosen.toString());
-    expect(codeTaskSpy).toHaveBeenCalledTimes(1);
+    const result: RouteCall = await askForFix({
+      codeRepositoryId: chosen.id!.toString(),
+    });
+
+    expect(result.thrown).toBeInstanceOf(NotAuthorizedException);
+    expect((result.thrown as Exception).message).toBe(
+      CODE_TASK_ASK_REFUSED_MESSAGE,
+    );
+    expect(codeTaskSpy).not.toHaveBeenCalled();
   });
 
   test("a repository id that is not an id is no choice: with several repositories, it still asks which", async () => {
-    repositories = [
-      new CodeRepository(ObjectID.generate()),
-      new CodeRepository(ObjectID.generate()),
-    ];
+    repositories = [repositoryNamed("infra"), repositoryNamed("website")];
 
-    const result: RouteCall = await call(
-      DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"),
-      { id: STORE_ID.toString() },
-      { codeRepositoryId: "infrastructure-repo" },
-    );
-
-    expect(result.answer).toEqual({
-      message:
-        "This project has several repositories: choose the one that holds this store's infrastructure code.",
+    const result: RouteCall = await askForFix({
+      codeRepositoryId: "infrastructure-repo",
     });
+
+    expect(result.answer!["message"]).toBe(
+      "This project has several repositories: choose the one that holds this store's infrastructure code.",
+    );
+    expect(readableOneSpy).not.toHaveBeenCalled();
     expect(codeTaskSpy).not.toHaveBeenCalled();
   });
+
+  test.each([
+    [
+      "AI switched off for the project",
+      CodeTaskBlockerType.AiDisabled,
+      "AI is disabled for this project. Enable it in Project Settings > AI.",
+    ],
+    [
+      "no AI credits",
+      CodeTaskBlockerType.NoAiCredits,
+      "This project is out of AI credits.",
+    ],
+    [
+      "the daily limits reached",
+      CodeTaskBlockerType.DailyLimitReached,
+      "This project has used its daily AI token limit.",
+    ],
+  ])(
+    "with %s it says what to fix, before any repository is asked about, and starts nothing",
+    async (_what: string, type: CodeTaskBlockerType, message: string) => {
+      repositories = [repositoryNamed("infra"), repositoryNamed("website")];
+      blockerBeforeRepository = { type, message };
+
+      const result: RouteCall = await askForFix();
+
+      expect(result.answer).toEqual({ message });
+      expect(readableSpy).not.toHaveBeenCalled();
+      expect(codeTaskSpy).not.toHaveBeenCalled();
+      expect(feedSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each([
+    [
+      "no Runner online",
+      CodeTaskBlockerType.NoAgent,
+      "No global Runner is online.",
+    ],
+    [
+      "a repository its Git server no longer lets OneUptime reach",
+      CodeTaskBlockerType.RepositoryNotConnected,
+      "AI can only work in a GitHub repository connected through the GitHub App, and this one is not. Connect GitHub again from Code.",
+    ],
+  ])(
+    "with %s in the repository, it says what to fix and starts nothing",
+    async (_what: string, type: CodeTaskBlockerType, message: string) => {
+      repositories = [repositoryNamed("infra")];
+      blockerInRepository = { type, message };
+
+      const result: RouteCall = await askForFix();
+
+      expect(result.answer).toEqual({ message });
+      expect(codeTaskSpy).not.toHaveBeenCalled();
+      expect(feedSpy).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("Explain and Fix With AI on a telemetry issue", () => {
@@ -2356,13 +2783,20 @@ describe("Explain and Fix With AI on a telemetry issue", () => {
     expect(request.messages[0]!.content).toContain(
       "scrub it at ingest, then change the code that writes it",
     );
-    expect(request.messages[1]!.content).toContain(
-      [
-        "Where it was found:",
-        "- Ireland PPS number in attributes.user.pps (Attribute)",
-        "- IP address in attributes.http.client_ip (Attribute)",
-      ].join("\n"),
-    );
+    expect(
+      (JSON.parse(request.messages[1]!.content) as JSONObject)["foundIn"],
+    ).toEqual([
+      {
+        dataType: "Ireland PPS number",
+        location: "attributes.user.pps",
+        locationKind: "Attribute",
+      },
+      {
+        dataType: "IP address",
+        location: "attributes.http.client_ip",
+        locationKind: "Attribute",
+      },
+    ]);
     expect(request.messages[1]!.content).not.toContain("config.token");
     expect(request.messages[1]!.content).not.toContain("user.email");
     expect(request.messages[1]!.content).not.toContain("user.phone");
@@ -2403,9 +2837,13 @@ describe("Explain and Fix With AI on a telemetry issue", () => {
       }
     ).messages[1]!.content;
 
-    expect(content).toContain(
-      "- GitHub token in attributes.config.token (Attribute)",
-    );
+    expect((JSON.parse(content) as JSONObject)["foundIn"]).toEqual([
+      {
+        dataType: "GitHub token",
+        location: "attributes.config.token",
+        locationKind: "Attribute",
+      },
+    ]);
     expect(content).not.toContain("attributes.user.pps");
   });
 
@@ -2441,9 +2879,8 @@ describe("Explain and Fix With AI on a telemetry issue", () => {
       "Fix this data security issue in the code of the service that writes this data to its telemetry",
     );
     expect(message).not.toContain("infrastructure code");
-    expect(message).toContain(
-      "- Ireland PPS number in attributes.user.pps (Attribute)",
-    );
+    expect(message).toContain('"location": "attributes.user.pps"');
+    expect(message).toContain('"dataType": "Ireland PPS number"');
     expect(message).toContain("Open a pull request.");
   });
 
@@ -2455,7 +2892,7 @@ describe("Explain and Fix With AI on a telemetry issue", () => {
 
     expect(none.answer).toEqual({
       message:
-        "Connect the repository that holds this service's code under Code, then ask again.",
+        "Connect the repository that holds this service's code under Code, then ask again. If it is connected already, asking OneUptime AI to change it takes permission to edit it in Code - ask a Project Admin for it.",
     });
 
     repositories = [
@@ -2468,56 +2905,103 @@ describe("Explain and Fix With AI on a telemetry issue", () => {
       { id: STORE_ID.toString() },
     );
 
-    expect(several.answer).toEqual({
-      message:
-        "This project has several repositories: choose the one that holds this service's code.",
-    });
+    expect(several.answer!["message"]).toBe(
+      "This project has several repositories: choose the one that holds this service's code.",
+    );
+    expect(several.answer!["repositories"]).toHaveLength(2);
     expect(codeTaskSpy).not.toHaveBeenCalled();
   });
 });
 
-describe("describeIssue", () => {
-  test("says what the check saw and how to fix it on the store's cloud, with the store's values filled in", () => {
-    const described: string = DataSecurityAPI.describeIssue(issueOf());
-    const check: ReturnType<typeof getDataSecurityCheck> =
-      getDataSecurityCheck("public-read");
+describe("what OneUptime AI sees (#10365)", () => {
+  test("is read with the caller's own permissions, for the issue asked for", async () => {
+    const issueId: ObjectID = ObjectID.generate();
 
-    expect(described.split("\n").slice(0, 8)).toEqual([
-      "Issue: Anyone on the internet can read it",
-      "Severity: Critical",
-      "Store: customer-exports (AWS S3 Bucket, us-east-1)",
-      "Cloud id: arn:aws:s3:::customer-exports",
-      "Sensitivity: Restricted",
-      "Data types found: Card number, custom:loyalty",
-      "Evidence: The bucket policy grants s3:GetObject to *.",
-      `Why it matters: ${check!.whyItMatters}`,
-    ]);
-    expect(described).toContain(
-      "Suggested fix:\nStep 1: Open the bucket in the S3 console and choose Permissions.",
+    await call(
+      DATA_SECURITY_API_ROUTES.aiInput,
+      {},
+      {
+        withExample: true,
+        issueId: issueId.toString(),
+      },
     );
-    expect(described).toContain(
-      "CLI: aws s3api put-public-access-block --bucket customer-exports --public-access-block-configuration",
-    );
-    expect(described).toContain(
-      'Terraform:\nresource "aws_s3_bucket_public_access_block" "customer-exports" {',
-    );
-    expect(described).not.toContain("{name}");
+
+    expect(aiSettingsSpy).toHaveBeenCalledTimes(1);
+    expect(aiSettingsSpy.mock.calls[0]![0]).toMatchObject({
+      projectId: PROJECT_ID,
+      props: { userId: USER_ID },
+      withExample: true,
+      issueId,
+    });
   });
 
-  test("an issue with little recorded still reads plainly, leaving out what it does not know", () => {
+  test("builds no example unless asked to", async () => {
+    await call(DATA_SECURITY_API_ROUTES.aiInput, {}, { withExample: "yes" });
+
+    expect(
+      (aiSettingsSpy.mock.calls[0]![0] as { withExample: boolean }).withExample,
+    ).toBe(false);
+  });
+
+  test("an issue id that is not one asks for none: the riskiest open issue's", async () => {
+    await call(DATA_SECURITY_API_ROUTES.aiInput, {}, { issueId: "nope" });
+
+    expect(
+      (aiSettingsSpy.mock.calls[0]![0] as { issueId?: ObjectID }).issueId,
+    ).toBeUndefined();
+  });
+});
+
+describe("the issue as OneUptime AI is told it (DataSecurityAiInput, #10365)", () => {
+  function dataOf(issue: DataSecurityIssue): JSONObject {
+    return JSON.parse(
+      buildExplainIssuePrompt({ issue }).messages[1]!.content,
+    ) as JSONObject;
+  }
+
+  test("says what the check saw and how to fix it on the store's cloud, with the store's values filled in", () => {
+    const data: JSONObject = dataOf(issueOf());
+    const check: ReturnType<typeof getDataSecurityCheck> =
+      getDataSecurityCheck("public-read");
+    const issue: JSONObject = data["issue"] as JSONObject;
+    const fix: JSONObject = issue["fix"] as JSONObject;
+
+    expect(issue).toMatchObject({
+      title: "Anyone on the internet can read it",
+      check: "public-read",
+      severity: "Critical",
+      // No names handed in: one of the project's own, never by its id (#10363).
+      dataTypes: ["Card number", "Custom data type"],
+      evidence: "The bucket policy grants s3:GetObject to *.",
+      whyItMatters: check!.whyItMatters,
+    });
+    expect(data["store"]).toEqual({
+      name: "customer-exports",
+      kind: "AWS S3 Bucket",
+      region: "us-east-1",
+      cloudId: "arn:aws:s3:::customer-exports",
+      sensitivity: "Restricted",
+    });
+    expect((fix["steps"] as Array<string>)[0]).toBe(
+      "Open the bucket in the S3 console and choose Permissions.",
+    );
+    expect(fix["cli"]).toContain(
+      "aws s3api put-public-access-block --bucket customer-exports --public-access-block-configuration",
+    );
+    expect(fix["terraform"]).toContain(
+      'resource "aws_s3_bucket_public_access_block" "customer-exports" {',
+    );
+    expect(JSON.stringify(data)).not.toContain("{name}");
+  });
+
+  test("an issue with little recorded leaves out what it does not know, never guessing it", () => {
     const issue: DataSecurityIssue = new DataSecurityIssue(STORE_ID);
     issue.checkId = "a-check-from-a-later-release";
     issue.severity = SecuritySeverity.Low;
 
-    expect(DataSecurityAPI.describeIssue(issue)).toBe(
-      [
-        "Issue: a-check-from-a-later-release",
-        "Severity: Low",
-        "Store: unknown",
-        "Sensitivity: unknown",
-        "Evidence: none recorded",
-      ].join("\n"),
-    );
+    expect(dataOf(issue)).toEqual({
+      issue: { check: "a-check-from-a-later-release", severity: "Low" },
+    });
   });
 });
 
@@ -4089,7 +4573,7 @@ describe("the record of processing", () => {
     const crm: DataStore = storeOf({
       name: "crm-exports",
       dataCategories: [DataCategory.ContactAndIdentity, DataCategory.Financial],
-      dataTypeIds: ["email-address", "credit-card-number", "custom:loyalty"],
+      dataTypeIds: ["email-address", "credit-card-number", LOYALTY],
       sensitivity: DataSensitivity.Confidential,
       sensitivityOverride: DataSensitivity.Restricted,
     });
@@ -4137,7 +4621,7 @@ describe("the record of processing", () => {
       environment: DataStoreEnvironment.Production,
       sensitivity: DataSensitivity.Restricted,
       dataCategories: [DataCategory.ContactAndIdentity, DataCategory.Financial],
-      dataTypeNames: ["Email address", "Card number", "custom:loyalty"],
+      dataTypeNames: ["Email address", "Card number", "Loyalty card number"],
       owners: ["Alice Owner", "bob@acme.io"],
       purpose: "Customer support exports",
       retention: "90 days",
@@ -4165,6 +4649,45 @@ describe("the record of processing", () => {
         return (ownerCall[0] as ObjectID).toString();
       }),
     ).toEqual([crm.id!.toString(), nhs.id!.toString()]);
+  });
+
+  // An auditor reads what the data is, never an id (#10363).
+  test("the project's own data types by their names, one it deleted as deleted, read once for the whole record", async () => {
+    storeOf({
+      name: "hr-exports",
+      dataCategories: [DataCategory.ContactAndIdentity],
+      dataTypeIds: [LOYALTY, "email-address", DELETED_TYPE],
+    });
+    storeOf({
+      name: "payroll",
+      dataCategories: [DataCategory.ContactAndIdentity],
+      dataTypeIds: [
+        DELETED_TYPE,
+        "custom:10363000-0000-4000-8000-0000000000a3",
+      ],
+    });
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.recordOfProcessing,
+    );
+    const answer: DataSecurityRecordOfProcessingResponse =
+      result.answer as unknown as DataSecurityRecordOfProcessingResponse;
+
+    expect(
+      answer.rows.map((row: { dataTypeNames: Array<string> }) => {
+        return row.dataTypeNames;
+      }),
+    ).toEqual([
+      ["Loyalty card number", "Email address", "A deleted data type"],
+      ["A deleted data type"],
+    ]);
+    expect(JSON.stringify(answer)).not.toContain("custom:");
+    expect(customTypesSpy).toHaveBeenCalledTimes(1);
+    expect(customTypesSpy.mock.calls[0]![0]).toMatchObject({
+      query: { projectId: PROJECT_ID },
+      select: { _id: true, name: true },
+      props: { isRoot: true },
+    });
   });
 
   test("a project holding no personal data has nothing to record", async () => {

@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#cards-and-the-look-of-a-page
 import "@testing-library/jest-dom";
 import {
   afterEach,
@@ -11,6 +12,10 @@ import { act, cleanup, render } from "@testing-library/react";
 import React from "react";
 import { getLegendExtraRowsHeight } from "../../../../UI/Components/Charts/ChartLibrary/LineChart/LineChart";
 import LineChartElement from "../../../../UI/Components/Charts/Line/LineChart";
+import AreaChartElement from "../../../../UI/Components/Charts/Area/AreaChart";
+import BarChartElement from "../../../../UI/Components/Charts/Bar/BarChart";
+import { getLegendExtraRowsHeight as getSharedLegendExtraRowsHeight } from "../../../../UI/Components/Charts/ChartLibrary/Utils/LegendExtraRows";
+import { isGrownByLegend } from "../../../../UI/Components/Charts/Utils/UseLegendGrowth";
 import ChartCurve from "../../../../UI/Components/Charts/Types/ChartCurve";
 import SeriesPoint from "../../../../UI/Components/Charts/Types/SeriesPoints";
 import {
@@ -31,10 +36,13 @@ import YAxisType from "../../../../UI/Components/Charts/Types/YAxis/YAxisType";
  * Analytics' Active users card (176px) names three long series - Daily,
  * Weekly and Monthly active users - and on a phone, beside the side menu
  * at 1024px, or in German, the legend wraps onto three lines: the plot
- * under it went from 78px to 30px, too short to read. A chart that asks for
- * it (growsWhenLegendWraps, which ChartCard sets) now grows by the lines
- * past the first, so its plot keeps its height; one that has to fit a box
- * of its own (a dashboard widget) keeps the height it is given.
+ * under it went from 78px to 30px, too short to read. A chart drawn at a
+ * fixed height now grows by the lines past the first, so its plot keeps its
+ * height - every line, area and bar chart, not only the ones that asked
+ * (issue #7125: a Host's, a Kubernetes cluster's and a VMware host's Network
+ * chart squeezed its plot the same way). One that has to fit a box of its
+ * own (a dashboard widget) says so, growsWhenLegendWraps={false}, and keeps
+ * the height it is given.
  *
  * jsdom lays nothing out, so each legend line is stood in for: the legend
  * box measures LINE_HEIGHT for each of `legendLines`, and each item one
@@ -154,19 +162,36 @@ function drawChart(props: {
   growsWhenLegendWraps?: boolean | undefined;
   showLegend?: boolean | undefined;
   heightInPx?: number | undefined;
+  kind?: "line" | "area" | "bar" | undefined;
 }): HTMLElement {
+  const common: {
+    data: Array<SeriesPoint>;
+    xAxis: XAxis;
+    yAxis: YAxis;
+    sync: boolean;
+    syncid: string;
+    heightInPx: number;
+    showLegend: boolean;
+    growsWhenLegendWraps: boolean | undefined;
+  } = {
+    data: series(),
+    xAxis: X_AXIS,
+    yAxis: Y_AXIS,
+    sync: false,
+    syncid: "",
+    heightInPx: props.heightInPx ?? 176,
+    showLegend: props.showLegend ?? true,
+    growsWhenLegendWraps: props.growsWhenLegendWraps,
+  };
+
   const { container } = render(
-    <LineChartElement
-      data={series()}
-      xAxis={X_AXIS}
-      yAxis={Y_AXIS}
-      curve={ChartCurve.MONOTONE}
-      sync={false}
-      syncid=""
-      heightInPx={props.heightInPx ?? 176}
-      showLegend={props.showLegend ?? true}
-      growsWhenLegendWraps={props.growsWhenLegendWraps}
-    />,
+    props.kind === "area" ? (
+      <AreaChartElement {...common} curve={ChartCurve.MONOTONE} />
+    ) : props.kind === "bar" ? (
+      <BarChartElement {...common} />
+    ) : (
+      <LineChartElement {...common} curve={ChartCurve.MONOTONE} />
+    ),
   );
 
   return container;
@@ -305,21 +330,96 @@ describe("a chart that grows when its legend wraps", () => {
   });
 });
 
-describe("every other chart keeps the height it was given", () => {
-  test("a legend on three lines comes out of its height, as before (a dashboard widget's box)", () => {
+describe("every chart at a fixed height grows when its legend wraps, unless it must fit its box (issue #7125)", () => {
+  test("left unset, a legend on three lines makes the chart two lines taller", () => {
     legendLines = 3;
 
     const container: HTMLElement = drawChart({});
 
     expect(container.querySelectorAll("li")).toHaveLength(3);
+    expect(chartHeight(container)).toBe(`${176 + 2 * LINE_HEIGHT}px`);
+  });
+
+  test("left unset, a legend on one line: the height it was given", () => {
+    legendLines = 1;
+
+    const container: HTMLElement = drawChart({});
+
     expect(chartHeight(container)).toBe("176px");
   });
 
-  test("growsWhenLegendWraps={false} reads as unset", () => {
+  test("growsWhenLegendWraps={false}: a legend on three lines comes out of its height (a dashboard widget's box)", () => {
     legendLines = 3;
 
     const container: HTMLElement = drawChart({ growsWhenLegendWraps: false });
 
+    expect(container.querySelectorAll("li")).toHaveLength(3);
     expect(chartHeight(container)).toBe("176px");
+  });
+
+  test("growsWhenLegendWraps={false} keeps its height when the window narrows, too", () => {
+    legendLines = 1;
+
+    const container: HTMLElement = drawChart({ growsWhenLegendWraps: false });
+
+    legendLines = 3;
+    resizeWindow();
+    expect(chartHeight(container)).toBe("176px");
+  });
+
+  test.each(["area", "bar"] as Array<"area" | "bar">)(
+    "a %s chart grows by its legend's extra lines too, and back when it fits one",
+    (kind: "area" | "bar") => {
+      legendLines = 3;
+
+      const container: HTMLElement = drawChart({ kind });
+
+      expect(container.querySelectorAll("li")).toHaveLength(3);
+      expect(chartHeight(container)).toBe(`${176 + 2 * LINE_HEIGHT}px`);
+
+      legendLines = 1;
+      resizeWindow();
+      expect(chartHeight(container)).toBe("176px");
+    },
+  );
+
+  test.each(["area", "bar"] as Array<"area" | "bar">)(
+    "a %s chart that must fit its box keeps its height",
+    (kind: "area" | "bar") => {
+      legendLines = 3;
+
+      const container: HTMLElement = drawChart({
+        kind,
+        growsWhenLegendWraps: false,
+      });
+
+      expect(chartHeight(container)).toBe("176px");
+    },
+  );
+
+  test.each(["area", "bar"] as Array<"area" | "bar">)(
+    "a %s chart with no legend drawn has nothing to grow by",
+    (kind: "area" | "bar") => {
+      legendLines = 3;
+
+      const container: HTMLElement = drawChart({ kind, showLegend: false });
+
+      expect(container.querySelectorAll("li")).toHaveLength(0);
+      expect(chartHeight(container)).toBe("176px");
+    },
+  );
+});
+
+describe("isGrownByLegend", () => {
+  test("grows unless the chart says it must fit its box or draws no legend", () => {
+    expect(isGrownByLegend({})).toBe(true);
+    expect(isGrownByLegend({ growsWhenLegendWraps: true })).toBe(true);
+    expect(isGrownByLegend({ showLegend: true })).toBe(true);
+    expect(isGrownByLegend({ growsWhenLegendWraps: false })).toBe(false);
+    expect(isGrownByLegend({ showLegend: false })).toBe(false);
+  });
+
+  test("the line chart's measure is the one the area and bar charts share", () => {
+    expect(getLegendExtraRowsHeight).toBe(getSharedLegendExtraRowsHeight);
   });
 });

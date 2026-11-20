@@ -63,7 +63,7 @@ Klicka på ett värde i sidopanelen **Filter** för att lägga till det som ett 
 Klicka på en rad. Dess detaljer öppnas bredvid listan.
 :::
 
-Din sökning, dina chips och tidsintervallet sparas i sidans adress, så en omladdning, ett bokmärke eller en delad länk öppnar samma loggar. En länk till en enda loggrad, till exempel en säkerhetshändelses **Visa loggrad**, öppnar den raden ovanför listan, läst med dina egna behörigheter. **Kopiera länk** i en rads detaljer kopierar en sådan länk, med listan du kopierade den från under raden, över samma tidsintervall.
+Din sökning, dina chips och tidsintervallet sparas i sidans adress, så en omladdning, ett bokmärke eller en delad länk öppnar samma loggar. En länk till en enda loggrad, till exempel en säkerhetshändelses **Visa loggrad**, öppnar den raden ovanför listan, läst med dina egna behörigheter. **Kopiera länk** i en rads detaljer kopierar en sådan länk, med listan du kopierade den från under raden, över samma tidsintervall. Varje rad i listan har också **Kopiera länk**, bredvid meddelandet, så att du kan kopiera en rads länk utan att öppna den.
 
 ## Läs en logg
 
@@ -112,7 +112,9 @@ Sparade vyer hör till projektet, så alla i det ser samma vyer, och varje vy st
 
 ## Visa dina loggar i diagram
 
-Växla listan till **Analyser** för att räkna loggar i stället för att läsa dem. Välj en tidsserie, en topplista eller en tabell; räkna varje logg, eller de unika värdena i ett fält; och gruppera efter allvarlighetsgrad, tjänst, spår, span eller valfritt attribut, och sedan efter ett andra fält. En topplista eller en tabell visar de översta 5, 10, 25 eller 50 grupperna.
+Växla listan till **Analyser** för att visa loggar i diagram i stället för att läsa dem. Välj en tidsserie, en topplista eller en tabell, och vad den mäter: varje logg räknad, de unika värdena i ett fält, eller summan, genomsnittet, medianen, P90, P95, P99, minimum eller maximum av ett numeriskt attribut, som P95 av `duration_ms`. Gruppera efter allvarlighetsgrad, tjänst, spår, span eller valfritt attribut, och sedan efter ett andra fält. En topplista eller en tabell visar de översta 5, 10, 25 eller 50 grupperna.
+
+Ett numeriskt attribut läses bara där värdet är ett tal: ett heltal eller ett decimaltal, med eller utan tecken, i vetenskaplig notation eller inte, som `42`, `-7`, `3.14` eller `1e3`. En logg utan attributet, eller med något annat i det, som `12ms` eller `n/a`, utelämnas i stället för att läsas som 0. En percentil beräknas utifrån upp till 8 192 värden per punkt, så en punkt med fler loggar har en nära uppskattning i stället för det exakta värdet.
 
 Klicka på **Lista** för att gå tillbaka till själva raderna.
 
@@ -192,6 +194,7 @@ Tryck på `?` i Tittare för att se dem.
 | --- | --- |
 | `j` / `k` | Gå till nästa eller föregående logg. |
 | Enter | Öppna eller stäng den valda loggen. |
+| `l` | Kopiera en länk till den valda loggen. |
 | Esc | Stäng detaljpanelen. |
 | `/` | Hoppa till sökrutan. |
 | ⌘ + Enter eller Ctrl + Enter | Tillämpa sökningen. |

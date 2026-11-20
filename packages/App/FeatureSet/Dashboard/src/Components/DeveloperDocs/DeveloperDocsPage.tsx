@@ -88,7 +88,7 @@ import { useParams } from "react-router-dom";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 
 /*
- * A Developer page: Terraform, API or AI Assistants, for one resource (its
+ * A Developer page: Terraform, Crossplane, API, CLI or AI Assistants, for one resource (its
  * view menu) or for its type (its list menu). One component for every
  * resource; what it says comes from DeveloperDocsGuides, written from the
  * model's metadata, the resource's profile, and the project as it is now:
@@ -141,6 +141,8 @@ function toPageKind(page: DeveloperDocsPageType): DeveloperDocsPageKind {
   switch (page) {
     case DeveloperDocsPageType.Terraform:
       return "terraform";
+    case DeveloperDocsPageType.Crossplane:
+      return "crossplane";
     case DeveloperDocsPageType.Api:
       return "api";
     case DeveloperDocsPageType.Cli:
@@ -161,10 +163,22 @@ function showsApiRecords(page: DeveloperDocsPageType): boolean {
 }
 
 /*
- * What to fetch for the record: its name always; on the Terraform page
- * every attribute the configuration may carry, and on the API page the
- * fields its read example asks for, in both cases only those the viewer may
- * read. Secret fields are never asked for.
+ * The pages that write a record as its configuration, from every attribute
+ * it may carry: Terraform's, and Crossplane's manifest, which sets the same
+ * fields.
+ */
+function writesRecordConfiguration(page: DeveloperDocsPageType): boolean {
+  return (
+    page === DeveloperDocsPageType.Terraform ||
+    page === DeveloperDocsPageType.Crossplane
+  );
+}
+
+/*
+ * What to fetch for the record: its name always; on the Terraform and
+ * Crossplane pages every attribute the configuration may carry, and on the
+ * API page the fields its read example asks for, in both cases only those
+ * the viewer may read. Secret fields are never asked for.
  */
 export function getDeveloperDocsRecordSelect(data: {
   modelType: DatabaseBaseModelType;
@@ -208,7 +222,7 @@ export function getDeveloperDocsRecordSelect(data: {
     return select;
   }
 
-  if (data.page !== DeveloperDocsPageType.Terraform) {
+  if (!writesRecordConfiguration(data.page)) {
     return select;
   }
 
@@ -633,8 +647,9 @@ const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
   const { id } = useParams();
   const modelType: DatabaseBaseModelType = props.resource.modelType;
   const isView: boolean = props.scope === DeveloperDocsScope.View;
+  // The records a list page brings in: Terraform imports, Crossplane observes.
   const needsImports: boolean =
-    !isView && props.page === DeveloperDocsPageType.Terraform;
+    !isView && writesRecordConfiguration(props.page);
   const needsSample: boolean = !isView && showsApiRecords(props.page);
   const usesLiveData: boolean =
     props.page !== DeveloperDocsPageType.AiAssistants;

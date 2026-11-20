@@ -53,7 +53,7 @@ Uma série temporal de uma ou mais consultas de métricas no intervalo de tempo 
 
 Cada consulta desenha seu próprio gráfico, um abaixo do outro no widget. Para desenhar uma consulta no gráfico da consulta anterior em vez disso, como mais linhas nos mesmos eixos, ative **Sobrepor à consulta anterior** nas **Configurações de exibição** dela: por exemplo, `mem_used` e `mem_total` em um só gráfico. Toda consulta depois da primeira tem essa chave, e cada consulta com ela ativada entra no mesmo gráfico, então três ou mais consultas podem compartilhar um. Desative-a para a consulta voltar a ter seu próprio gráfico.
 
-Um gráfico sobreposto pega o título, o tipo de gráfico e o eixo de valores da sua primeira consulta, então cada consulta nele é lida na unidade dessa consulta. Uma consulta em outra unidade do mesmo tipo é desenhada na unidade do gráfico, como megabytes em um gráfico em gigabytes, ou segundos em um gráfico em milissegundos. Uma unidade de outro tipo não pode ser lida nesse eixo, como bytes em um gráfico em porcentagem: a consulta é desenhada ali mesmo assim, e o gráfico e a chave dizem que as unidades são diferentes, então dê a essa consulta seu próprio gráfico.
+Um gráfico sobreposto pega o título, o tipo de gráfico e o eixo de valores da esquerda da sua primeira consulta, então uma consulta nele é lida na unidade dessa consulta quando possível. Uma consulta em outra unidade do mesmo tipo é desenhada na unidade do gráfico, como megabytes em um gráfico em gigabytes, ou segundos em um gráfico em milissegundos. Uma consulta em uma unidade de outro tipo, como bytes em um gráfico em porcentagem, é desenhada em um segundo eixo de valores à direita do gráfico, na sua própria unidade, e a chave diz isso. A legenda abaixo do gráfico nomeia a unidade de cada eixo e o eixo em que cada série é desenhada. Só um terceiro tipo de unidade não se encaixa em nenhum dos eixos: ele é desenhado em uma escala própria, sem eixo, e o gráfico e a chave dizem isso. Leia os valores dele na legenda e na dica, ou dê a essa consulta seu próprio gráfico para lê-la em um eixo.
 
 Use-o quando a forma da linha conta a história: latência, erros, vazão ou tamanho de uma fila.
 
@@ -250,7 +250,7 @@ Pela API e pelo Terraform, a ordem é o `arguments.sort` do widget: uma coluna e
 Um [painel público](/docs/dashboards/sharing) desenha a maioria dos widgets para os visitantes, e cada um mostra só o que foi configurado para mostrar. Alguns não podem ser mostrados sem uma sessão conectada:
 
 - **Gráfico de registros**, **Gráfico de traços**, **Tabela de traços**, **Eventos de segurança**, **Fluxo de eventos de segurança**, **Funil** e **Retenção de usuários** dizem, no lugar deles, que não estão disponíveis em painéis públicos.
-- Os widgets de Fontes de dados externas ficam totalmente fora de um painel público, porque as configurações deles são a própria consulta.
+- Os widgets de Fontes de dados externas mostram os dados quando leem **Métricas deste projeto (PromQL)**, nunca as consultas. Um widget de fonte de dados externa fica totalmente fora de um painel público.
 
 ## Quando um widget não pode ser mostrado
 

@@ -51,10 +51,20 @@ import {
   RunbookStepWait,
   canStepTypeRequireApproval,
 } from "Common/Types/Runbook/RunbookStepApproval";
-import { RunbookStep } from "Common/Types/Runbook/RunbookStep";
+import {
+  HttpRequestStepConfig,
+  RunbookStep,
+} from "Common/Types/Runbook/RunbookStep";
 import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import {
+  HTTP_STEP_UNTRUSTED_CERTIFICATE_MESSAGE,
+  getHttpStepCertificateSettings,
+} from "Common/Types/Runbook/HttpStepCertificates";
+import { getHttpStepCertificateSaveRefusal } from "Common/Server/Utils/Runbook/HttpStepCaCertificate";
+import {
   CONTINUE_ON_FAILURE_TITLE,
+  HTTP_ALLOW_SELF_SIGNED_TITLE,
+  HTTP_CA_CERTIFICATE_TITLE,
   HTTP_HEADERS_TITLE,
   HTTP_METHODS_WITH_BODY,
   MANUAL_INSTRUCTIONS_TITLE,
@@ -241,6 +251,14 @@ const STEPS_PAGE: string = readDashboard("Pages/Runbook/View/Steps.tsx");
 // What a step's editor shows and folds under More fields, and its fields' titles.
 const STEP_EDITOR_MODEL: string = readDashboard(
   "Components/Runbook/Steps/RunbookStepEditorModel.ts",
+);
+/*
+ * The model with each translationKey("...") on one line: prettier wraps a
+ * call whose line runs long ("Allow self-signed certificates", #10277).
+ */
+const STEP_EDITOR_MODEL_KEYS: string = STEP_EDITOR_MODEL.replace(
+  /translationKey\(\s*("[^"\n]*")\s*,?\s*\)/g,
+  "translationKey($1)",
 );
 // The Runner picker every Runner-run step draws (its Runner field).
 const RUNNER_PICKER: string = readDashboard(
@@ -712,8 +730,82 @@ describe("what a step's output and network are held to", () => {
 
   it("guard the HTTP request step's target with the egress guard", () => {
     expect(STEP_EXECUTORS).toContain(
-      "await DataSourceEgressGuard.assertUrlAllowedAndPin(config.url",
+      'await DataSourceEgressGuard.assertUrlAllowedAndPinForNodeHttp(\n        config.url || "",',
     );
+    // The agents go through an outbound proxy, not axios (#10277).
+    expect(STEP_EXECUTORS).toContain("        proxy: false,");
+  });
+
+  /*
+   * An HTTP request step checks the server's certificate as every
+   * request's, against a CA certificate of its own, or not at all (#10277):
+   * the two fields the editor draws under More fields, the error a refused
+   * certificate gives, and the keys the API and Terraform write.
+   */
+  describe("how an HTTP request step checks the server's certificate", () => {
+    it("names the two fields as the editor draws them, the switch off by default", () => {
+      expect(AUTHORING).toContain(
+        `| **${HTTP_ALLOW_SELF_SIGNED_TITLE}** | Under **More fields**. If on, the step takes whatever certificate the server shows, so a self-signed one works, but it checks neither the host name nor the dates, and anyone on the network path could read the request, its secrets included, and change the answer. | Off |`,
+      );
+      expect(AUTHORING).toContain(
+        `| **${HTTP_CA_CERTIFICATE_TITLE}** | Under **More fields**, while **${HTTP_ALLOW_SELF_SIGNED_TITLE}** is off.`,
+      );
+      expect(
+        getHttpStepCertificateSettings({} as HttpRequestStepConfig),
+      ).toEqual({ skipsCertificateChecks: false, caCertificate: undefined });
+      expect(STEPS_PAGE).toContain("title={HTTP_ALLOW_SELF_SIGNED_TITLE}");
+      expect(STEPS_PAGE).toContain(
+        "{translator.translateText(HTTP_CA_CERTIFICATE_TITLE)}",
+      );
+    });
+
+    it("quotes the start of the error a refused certificate gives", () => {
+      const quoted: string =
+        "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent.";
+
+      expect(HTTP_STEP_UNTRUSTED_CERTIFICATE_MESSAGE.startsWith(quoted)).toBe(
+        true,
+      );
+      expect(AUTHORING).toContain(
+        `The step's error says what to change: "${quoted}"`,
+      );
+    });
+
+    it("says the CA certificate is not used while the switch is on, and that neither reaches anything but the step's request", () => {
+      expect(
+        getHttpStepCertificateSettings({
+          allowSelfSignedCertificates: true,
+          caCertificate: "PEM",
+        } as HttpRequestStepConfig),
+      ).toEqual({ skipsCertificateChecks: true, caCertificate: undefined });
+      expect(AUTHORING).toContain(
+        "Either applies to this step's request alone, never to another step, another request of OneUptime or the connection to an outbound proxy.",
+      );
+    });
+
+    it("gives the keys the API and Terraform write, and what a save refuses", () => {
+      expect(
+        getHttpStepCertificateSaveRefusal([
+          {
+            type: RunbookStepType.HttpRequest,
+            title: "Call",
+            config: { allowSelfSignedCertificates: "true" },
+          },
+        ]),
+      ).not.toBeNull();
+      expect(
+        getHttpStepCertificateSaveRefusal([
+          {
+            type: RunbookStepType.HttpRequest,
+            title: "Call",
+            config: { caCertificate: "not a certificate" },
+          },
+        ]),
+      ).not.toBeNull();
+      expect(AUTHORING).toContain(
+        "Through the API and Terraform, the switch is the step config's `allowSelfSignedCertificates`, `true` or `false`, and the CA certificate is its `caCertificate`, the PEM as text. A save is refused when `caCertificate` is not a certificate or holds a private key.",
+      );
+    });
   });
 
   describe("the egress guard an HTTP request step goes through", () => {
@@ -1270,6 +1362,8 @@ describe("a step's options on the authoring page", () => {
     expect(foldedKeys(RunbookStepType.HttpRequest)).toEqual([
       ...switches,
       "headersJson",
+      "allowSelfSignedCertificates",
+      "caCertificate",
       "description",
       "timeouts",
     ]);
@@ -1318,7 +1412,7 @@ describe("a step's options on the authoring page", () => {
     }
 
     expect(AUTHORING).toContain(
-      `In every automated step below, the step's **More fields** holds its **${RUNNER_FIELD_TITLE}** first, for a step that runs on one, then **${REQUIRE_APPROVAL_FOLDED_TITLE}** and **${CONTINUE_ON_FAILURE_TITLE}**, then the step's own extra settings - an HTTP request's headers, an SSH step's port, key passphrase and host key, an AI step's provider and context switches - and last the **Description** and the timeouts. Folded, it names the step's Runner, so you see where a step runs without opening it.`,
+      `In every automated step below, the step's **More fields** holds its **${RUNNER_FIELD_TITLE}** first, for a step that runs on one, then **${REQUIRE_APPROVAL_FOLDED_TITLE}** and **${CONTINUE_ON_FAILURE_TITLE}**, then the step's own extra settings - an HTTP request's headers and certificate settings, an SSH step's port, key passphrase and host key, an AI step's provider and context switches - and last the **Description** and the timeouts. Folded, it names the step's Runner, so you see where a step runs without opening it.`,
     );
     expect(STEPS_PAGE).toContain("getStepMoreFieldsItems(");
     expect(STEPS_PAGE).toContain(
@@ -1723,7 +1817,7 @@ describe("authoring a runbook", () => {
         field,
         drawn:
           STEPS_PAGE.includes(`"${field}"`) ||
-          STEP_EDITOR_MODEL.includes(`translationKey("${field}")`) ||
+          STEP_EDITOR_MODEL_KEYS.includes(`translationKey("${field}")`) ||
           RUNNER_PICKER.includes(`translateText("${field}")`),
       }).toEqual({
         field,
@@ -2761,7 +2855,7 @@ describe("a runbook's own side menu", () => {
       { title: "Settings", items: ["Triggers", "Variables", "Settings"] },
       {
         title: "Developer",
-        items: ["Terraform", "API", "CLI", "AI Assistants"],
+        items: ["Terraform", "Crossplane", "API", "CLI", "AI Assistants"],
       },
       /*
        * Owners joined Advanced when its one-entry section went (#9218), and

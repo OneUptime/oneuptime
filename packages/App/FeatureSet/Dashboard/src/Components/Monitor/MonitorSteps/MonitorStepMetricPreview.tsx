@@ -1,9 +1,11 @@
 import MetricView from "../../Metrics/MetricView";
+import PromQLMonitorChart from "../../Metrics/PromQL/PromQLMonitorChart";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import {
   translatableTerm,
   Translator,
@@ -14,6 +16,13 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
 export interface ComponentProps {
   metricsViewConfig: MetricsViewConfig;
   rollingTime: RollingTime | undefined;
+  /*
+   * The PromQL expression a step written in PromQL evaluates (issue
+   * #10227): it is charted instead of the queries, which name no metric.
+   */
+  promQLQuery?: string | undefined;
+  // The services the step reads, for its PromQL expression.
+  serviceIds?: Array<string> | undefined;
 }
 
 /*
@@ -47,7 +56,9 @@ const MonitorStepMetricPreview: FunctionComponent<ComponentProps> = (
     setStartAndEndDate(RollingTimeUtil.convertToStartAndEndDate(rollingTime));
   }, [rollingTime]);
 
-  if (props.metricsViewConfig.queryConfigs.length === 0) {
+  const promQLQuery: string = (props.promQLQuery || "").trim();
+
+  if (!promQLQuery && props.metricsViewConfig.queryConfigs.length === 0) {
     return <></>;
   }
 
@@ -61,28 +72,44 @@ const MonitorStepMetricPreview: FunctionComponent<ComponentProps> = (
         )}
       />
       <div className="mt-3">
-        <MetricView
-          hideQueryElements={true}
-          hideStartAndEndDate={true}
-          hideCardInCharts={true}
+        {promQLQuery ? (
           /*
-           * The window is the step's rolling window, not the reader's to
-           * change: a drag zooms this preview alone, and a double-click
-           * (or Reset zoom) brings the rolling window back. Each step's
-           * preview keeps its own zoom.
+           * A step written in PromQL: its expression, every series of it,
+           * for the services the step reads (issue #10227).
            */
-          localChartZoom={true}
-          enableSeriesActions={false}
-          chartCssClass="rounded-lg border border-gray-200 shadow-sm"
-          data={{
-            startAndEndDate: startAndEndDate,
-            queryConfigs: props.metricsViewConfig.queryConfigs,
-            formulaConfigs: props.metricsViewConfig.formulaConfigs,
-          }}
-          onChange={() => {
-            // Read-only preview. Nothing here is editable.
-          }}
-        />
+          startAndEndDate ? (
+            <PromQLMonitorChart
+              query={promQLQuery}
+              window={startAndEndDate}
+              serviceIds={props.serviceIds}
+            />
+          ) : (
+            <ChartSkeleton heightInPx={320} />
+          )
+        ) : (
+          <MetricView
+            hideQueryElements={true}
+            hideStartAndEndDate={true}
+            hideCardInCharts={true}
+            /*
+             * The window is the step's rolling window, not the reader's to
+             * change: a drag zooms this preview alone, and a double-click
+             * (or Reset zoom) brings the rolling window back. Each step's
+             * preview keeps its own zoom.
+             */
+            localChartZoom={true}
+            enableSeriesActions={false}
+            chartCssClass="rounded-lg border border-gray-200 shadow-sm"
+            data={{
+              startAndEndDate: startAndEndDate,
+              queryConfigs: props.metricsViewConfig.queryConfigs,
+              formulaConfigs: props.metricsViewConfig.formulaConfigs,
+            }}
+            onChange={() => {
+              // Read-only preview. Nothing here is editable.
+            }}
+          />
+        )}
       </div>
     </div>
   );

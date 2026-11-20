@@ -26,6 +26,9 @@
  *                                     (ExceptionsViewer)
  *   METRICS                           /dashboard/:projectId/metrics
  *                                     Pages/Metrics/{Layout,Index} (MetricsViewer)
+ *   METRIC_VIEW                       /dashboard/:projectId/metrics/view
+ *                                     Pages/Metrics/View/{Layout,Index}
+ *                                     (MetricExplorer: the explorer's charts)
  *
  * Only the data boundary (ModelAPI / AnalyticsModelAPI / API / Realtime) and
  * the signed-in user are replaced. Every record is fabricated for a generic
@@ -160,6 +163,8 @@ import ExceptionsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Except
 import ExceptionsUnresolved from "../../../App/FeatureSet/Dashboard/src/Pages/Exceptions/Unresolved";
 import MetricsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Metrics/Layout";
 import MetricsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Metrics/Index";
+import MetricsViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Metrics/View/Layout";
+import MetricViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/Metrics/View/Index";
 import RouteMap, {
   RouteUtil,
 } from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -168,10 +173,12 @@ import {
   ingestionBudgetStatus,
   isIngestionBudgetRead,
 } from "../../SecurityOperations/Fixture/IngestionBudgetFixture.js";
+import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
 import KubernetesCostAllocation from "Common/Models/AnalyticsModels/KubernetesCostAllocation";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Metric from "Common/Models/AnalyticsModels/Metric";
+import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -1223,6 +1230,19 @@ HOST_MOUNTS.forEach((mount, index) => {
     },
   );
 });
+/*
+ * Two spans of time (#10118), in seconds. The gateway's nightly batch job
+ * runs an hour and a half, give or take two seconds: the issue's axis, which
+ * read "1.5000 hours", "1.5003 hours". The host's uptime counts up from twelve
+ * days and five hours at the window's start, a second a second.
+ */
+series("batch.job.duration", { ...hostAttributes }, (time) => {
+  return wave(time, { base: 5400, amplitude: 1.3, period: 13, phase: 0.4 });
+});
+const HOST_BOOTED_AT = NOW.getTime() - 12 * DAY - 5.5 * HOUR;
+series("system.uptime", { ...hostAttributes }, (time) => {
+  return Math.round((time - HOST_BOOTED_AT) / SECOND);
+});
 [
   ["1", "systemd", 0.001],
   ["812", "envoy", 0.18],
@@ -1342,6 +1362,8 @@ const METRIC_UNITS = {
   "system.filesystem.usage": "By",
   "system.network.io": "By",
   "process.cpu.utilization": "1",
+  "batch.job.duration": "s",
+  "system.uptime": "s",
 };
 Object.entries(METRIC_UNITS)
   .sort(([left], [right]) => {
@@ -2998,6 +3020,11 @@ ModelAPI.updateById = async (options) => {
 table(Metric);
 table(Span);
 /*
+ * The project uses no Security Events: an opened log line's details read
+ * the events naming it (SecurityEventsInSignal), and find none.
+ */
+table(SecurityEvent);
+/*
  * The cost agent's hourly allocations, which the cluster Overview's Cost
  * card reads: the cluster has sent none yet, so the table is empty and the
  * card says how to turn cost monitoring on.
@@ -3008,6 +3035,7 @@ const ANALYTICS_TABLES = [
   tableName(ChangeEvent),
   tableName(Metric),
   tableName(Span),
+  tableName(SecurityEvent),
   tableName(KubernetesCostAllocation),
 ];
 
@@ -3681,6 +3709,11 @@ function FixtureMetricsLayout() {
   return <MetricsLayout {...pageProps(PageMap.METRICS)} />;
 }
 
+function FixtureMetricViewLayout() {
+  useNavigationHooks();
+  return <MetricsViewLayout {...pageProps(PageMap.METRIC_VIEW)} />;
+}
+
 function StubPage(props) {
   useNavigationHooks();
   const location = useLocation();
@@ -3717,6 +3750,11 @@ function FixtureShell() {
       <div className="mx-auto max-w-[1440px] px-4 sm:px-8">
         <Outlet />
       </div>
+      {/*
+       * Where a page's toasts are said, as the Dashboard's src/Index.tsx
+       * draws it: a log row's Copy Link says "Link copied" there (#9944).
+       */}
+      <ToastRegion />
     </>
   );
 }
@@ -3818,6 +3856,15 @@ createRoot(document.getElementById("root")).render(
           <Route
             index
             element={<MetricsPage {...pageProps(PageMap.METRICS)} />}
+          />
+        </Route>
+        <Route
+          path={RouteMap[PageMap.METRIC_VIEW].toString()}
+          element={<FixtureMetricViewLayout />}
+        >
+          <Route
+            index
+            element={<MetricViewPage {...pageProps(PageMap.METRIC_VIEW)} />}
           />
         </Route>
         <Route

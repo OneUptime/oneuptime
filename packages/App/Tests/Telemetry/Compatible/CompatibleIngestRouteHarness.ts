@@ -39,13 +39,15 @@ export function serverPolicy(
 }
 
 export interface QueuedJob {
-  signal: "logs" | "metrics" | "traces";
+  signal: "logs" | "metrics" | "traces" | "profiles";
   body: JSONObject;
   productType: string;
   contentType: string | undefined;
   contentEncoding: string | undefined;
   // "absent" when the job carried no budget charge at all.
   budgetCharge: unknown;
+  // The size a budget counts the job at, when its endpoint handed one in.
+  ingestBytes: number | undefined;
   projectId: string;
 }
 
@@ -67,6 +69,7 @@ export function recordJob(
     )
       ? req.telemetryIngestionBudgetCharge
       : "absent",
+    ingestBytes: req.telemetryIngestBytes,
     projectId: req.projectId?.toString(),
   });
 }

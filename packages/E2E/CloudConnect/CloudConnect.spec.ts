@@ -632,6 +632,255 @@ test.describe("connecting AWS", () => {
   });
 });
 
+/*
+ * Data Security's two settings change the command, so they are asked with
+ * it, folded under it on the first step (#10336): they sat on the
+ * Credentials step, after the command had been run, and the command never
+ * took them. Close exposures and fix settings writes the response's access
+ * into the command on every cloud - AWS's OneUptimeDataSecurityResponse
+ * policy, Azure's and Google Cloud's custom roles - the words around the
+ * command say what it grants, and what is picked is what the test sends
+ * and Connect saves.
+ */
+test.describe("Data Security's settings, under the command", () => {
+  // Opens a picker on the dialog by its label and picks one of its options.
+  async function pickUnderCommand(
+    page: Page,
+    field: RegExp,
+    option: string,
+  ): Promise<void> {
+    await dialog(page).getByRole("combobox", { name: field }).click();
+    await page.getByRole("option", { name: option, exact: true }).click();
+  }
+
+  const DATA_SECURITY: RegExp = /^Data security(?! response)/;
+  const DATA_SECURITY_RESPONSE: RegExp = /^Data security response/;
+
+  test("AWS: Close exposures and fix settings writes OneUptimeDataSecurityResponse into the command, and what is picked is tested and saved", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "cloud=aws");
+
+    const code: Locator = dialog(page).getByTestId("cloud-setup-command-code");
+    await expect(code).toContainText("aws iam create-role");
+    await expect(code).not.toContainText("OneUptimeDataSecurityResponse");
+    await expect(
+      dialog(page).getByTestId("cloud-setup-read-only"),
+    ).toContainText("Never data or secrets.");
+
+    // Folded under the command, on its step: not on the next one.
+    const fold: Locator = dialog(page).getByRole("button", {
+      name: /More fields/,
+    });
+    await expect(fold).toHaveAttribute("aria-expanded", "false");
+    await expect(fold).toContainText("Data security");
+    await fold.click();
+
+    await pickUnderCommand(
+      page,
+      DATA_SECURITY_RESPONSE,
+      "Close exposures and fix settings",
+    );
+    await expect(code).toContainText(
+      "--policy-name OneUptimeDataSecurityResponse",
+    );
+    await expect(code).toContainText("s3:PutBucketPublicAccessBlock");
+    // Above it, what it creates - never "can only read"; under it, what it may do.
+    await expect(dialog(page).getByTestId("cloud-setup-hint")).toHaveText(
+      "Run this in AWS CloudShell. It creates a role with the access below, and prints the role's ARN.",
+    );
+    await expect(
+      dialog(page).getByTestId("cloud-setup-access-data-security-response"),
+    ).toHaveText(
+      "Data Security may also close a data store's exposures and fix its settings. Each change is approved by a person unless a playbook says otherwise.",
+    );
+    await expect(dialog(page).getByTestId("cloud-setup-read-only")).toHaveCount(
+      0,
+    );
+
+    await pickUnderCommand(
+      page,
+      DATA_SECURITY,
+      "Configuration and content samples",
+    );
+    await expect(code).toContainText(
+      "--policy-name OneUptimeDataSecurity --policy-document",
+    );
+    await expect(code).toContainText("s3:GetObject");
+    await expect(
+      dialog(page).getByTestId("cloud-setup-access-content-samples"),
+    ).toBeVisible();
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "aws-data-security-command");
+
+    // The Credentials step's More fields keeps the rest.
+    await next(page).click();
+    await expect(
+      dialog(page).getByRole("button", { name: /More fields/ }),
+    ).not.toContainText("Data security");
+    await pasteBox(page).fill(`${ROLE_ARN}\n`);
+    await next(page).click();
+    await expect(
+      dialog(page).getByTestId("cloud-connection-test-pass"),
+    ).toBeVisible();
+
+    let state: FixtureState = await fixture(page);
+    expect(state.tests[0]!.body["config"]).toMatchObject({
+      authMethod: "aws-role",
+      dataSecurity: "content",
+      dataSecurityResponse: "block",
+    });
+
+    await submit(page).click();
+    await expect(dialog(page)).toHaveCount(0);
+
+    state = await fixture(page);
+    expect(state.creates[0]!.config).toMatchObject({
+      authMethod: "aws-role",
+      dataSecurity: "content",
+      dataSecurityResponse: "block",
+    });
+  });
+
+  /*
+   * A connection saved before these settings: its edit shows the command it
+   * always had, until a setting is picked; Save changes keeps the pick and
+   * everything else the connection had.
+   */
+  test("editing a saved connection: the command it always had, then the one a pick grants, and Save changes keeps the pick", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected");
+
+    await page.getByTestId("row-actions-more-button").first().click();
+    await page.getByRole("menuitem", { name: "Edit" }).click();
+
+    await expect(dialog(page)).toContainText("Edit AWS 123456789012");
+
+    const code: Locator = dialog(page).getByTestId("cloud-setup-command-code");
+    await expect(code).toContainText("aws iam create-role");
+    await expect(code).not.toContainText("OneUptimeDataSecurity");
+    await expect(
+      dialog(page).getByTestId("cloud-setup-read-only"),
+    ).toContainText("Never data or secrets.");
+
+    await dialog(page)
+      .getByRole("button", { name: /More fields/ })
+      .click();
+    await pickUnderCommand(
+      page,
+      DATA_SECURITY_RESPONSE,
+      "Close exposures and fix settings",
+    );
+    await expect(code).toContainText(
+      "--policy-name OneUptimeDataSecurityResponse",
+    );
+    await expect(code).not.toContainText(
+      "--policy-name OneUptimeDataSecurity --policy-document",
+    );
+
+    // Credentials: the role's ARN is kept; Test tests the saved connection.
+    await next(page).click();
+    await next(page).click();
+    await expect(
+      dialog(page).getByTestId("cloud-connection-test-pass"),
+    ).toBeVisible();
+    await submit(page).click();
+    await expect(dialog(page)).toHaveCount(0);
+
+    const state: FixtureState = await fixture(page);
+    const update: { id: string; data: Record<string, unknown> } | undefined =
+      state.updates.find(
+        (candidate: { id: string; data: Record<string, unknown> }): boolean => {
+          return candidate.id === "20000000-0000-4000-8000-000000000001";
+        },
+      );
+
+    expect(update?.data["config"]).toEqual({
+      authMethod: "aws-role",
+      roleArn: "arn:aws:iam::123456789012:role/OneUptimeReadOnly-5f3a9c1e",
+      readScope: "account",
+      readIntervalInMinutes: "10",
+      resourceCosts: "off",
+      dataSecurity: "off",
+      dataSecurityResponse: "block",
+    });
+  });
+
+  test("Azure and Google Cloud: Close exposures and fix settings makes the custom role and assigns it where the command grants the rest", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "cloud=azure");
+
+    const azureCode: Locator = dialog(page).getByTestId(
+      "cloud-setup-command-code",
+    );
+    await expect(azureCode).not.toContainText(
+      "OneUptime Data Security Response",
+    );
+    await dialog(page)
+      .getByRole("button", { name: /More fields/ })
+      .click();
+    await pickUnderCommand(
+      page,
+      DATA_SECURITY_RESPONSE,
+      "Close exposures and fix settings",
+    );
+    await expect(azureCode).toContainText(
+      'az role definition create --role-definition "$RESPONSE_ROLE"',
+    );
+    await expect(azureCode).toContainText(
+      'az role assignment create --assignee "$APP" --role "OneUptime Data Security Response" --scope "$SCOPE"',
+    );
+    await expect(dialog(page).getByTestId("cloud-setup-hint")).toHaveText(
+      "Run this in Azure Cloud Shell. It creates an app with the access below, and prints its details.",
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "azure-data-security-command");
+
+    await open(page, "cloud=gcp");
+
+    const gcpCode: Locator = dialog(page).getByTestId(
+      "cloud-setup-command-code",
+    );
+    await expect(gcpCode).not.toContainText("oneuptimeDataSecurityResponse");
+    await dialog(page)
+      .getByRole("button", { name: /More fields/ })
+      .click();
+    await pickUnderCommand(
+      page,
+      DATA_SECURITY_RESPONSE,
+      "Close exposures and fix settings",
+    );
+    await expect(gcpCode).toContainText(
+      'gcloud iam roles create oneuptimeDataSecurityResponse --project "$PROJECT_ID"',
+    );
+    await expect(gcpCode).toContainText(
+      "--role projects/$PROJECT_ID/roles/oneuptimeDataSecurityResponse",
+    );
+
+    // Every project of the organization: the role is made, and bound, there.
+    await dialog(page)
+      .getByRole("radio", { name: "Every project in the organization" })
+      .check();
+    await expect(gcpCode).toContainText(
+      'gcloud iam roles create oneuptimeDataSecurityResponse --organization "$ORG_ID"',
+    );
+    await expect(gcpCode).toContainText(
+      "--role organizations/$ORG_ID/roles/oneuptimeDataSecurityResponse",
+    );
+    await expect(dialog(page).getByTestId("cloud-setup-hint")).toHaveText(
+      "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.",
+    );
+  });
+});
+
 test.describe("the connected accounts", () => {
   test("how each is doing, what it holds and when it was read", async ({
     page,
@@ -1041,7 +1290,9 @@ async function listRequests(page: Page): Promise<Array<ListRequest>> {
 
 // The side menu beside a page (a phone folds it behind a button).
 function sideMenu(page: Page): Locator {
-  return page.getByRole("navigation", { name: "Main navigation" }).first();
+  return page
+    .getByRole("navigation", { name: "Pages in this section" })
+    .first();
 }
 
 // One row of an account's Resources by type or by Region: its words and its count.

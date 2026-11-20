@@ -7,6 +7,7 @@ import { FindOperator } from "typeorm";
 import { getPhoneLineSql } from "../../../Server/Utils/StatusPage/SubscriberContactSql";
 import SubscriberContactKey from "../../../Types/StatusPage/SubscriberContactKey";
 import { getNameKey, getNameKeySql } from "../../../Types/Database/UniqueName";
+import { matchesLikePattern } from "./QueryConditions";
 
 /*
  * A table in memory behind a DatabaseService, for tests that drive the real
@@ -16,14 +17,18 @@ import { getNameKey, getNameKeySql } from "../../../Types/Database/UniqueName";
  * It answers the repository calls that pipeline makes (find, count, save,
  * update, delete) and understands the where clauses it builds: plain values,
  * TypeORM's In / Equal / Not / IsNull / And operators, and the Raw SQL that
- * QueryHelper and the permission layer write (equality, IN, NOT IN, NOT IN
- * ... OR IS NULL, IS NULL, IS NOT NULL, comparisons, TRUE = TRUE / FALSE),
- * a phone number's line (SubscriberContactSql.onPhoneLine), a name as it
- * reads (QueryHelper.findWithSameName), and a column
- * naming a private incident, alert or episode (PrivateRecordReadFilter),
- * answered from the private records a test says there are
- * (setPrivateRecords). A condition it does not understand fails the test
- * loudly instead of matching quietly.
+ * QueryHelper and the permission layer write (equality, IN and LOWER() IN,
+ * NOT IN, NOT IN ... OR IS NULL, IS NULL, IS NOT NULL, comparisons, LIKE,
+ * TRUE = TRUE / FALSE), a phone number's line
+ * (SubscriberContactSql.onPhoneLine), a name as it reads
+ * (QueryHelper.findWithSameName), and a column
+ * naming a private incident, alert or episode - as a read is held to it
+ * (PrivateRecordReadFilter), and as a write of one of its parts is
+ * (PrivateRecordPermission.getReachableCondition), or found unreached
+ * (getUnreachableCondition) - and a private record's own privacy, as a read
+ * of its table is held to it, all answered from the private records a test
+ * says there are (setPrivateRecords). A condition
+ * it does not understand fails the test loudly instead of matching quietly.
  *
  * Rows are plain objects; every value is compared as text, ids case
  * insensitively.
@@ -137,8 +142,38 @@ function compareNumbers(
   }
 }
 
-// Whether `stored` satisfies one Raw condition's SQL, read for alias "c".
-function matchesRaw(stored: unknown, operator: FindOperator<unknown>): boolean {
+// The ids a private record condition reaches: every person and team it names.
+function idsNamedBy(
+  sql: string,
+  parameters: Record<string, unknown>,
+): Array<string> {
+  const named: Array<string> = [];
+
+  for (const match of sql.matchAll(/:(?:\.\.\.)?(\w+)/g)) {
+    const value: unknown = parameters[match[1]!];
+
+    for (const id of Array.isArray(value) ? value : [value]) {
+      const text: string | null = normalize(id);
+
+      if (text) {
+        named.push(text);
+      }
+    }
+  }
+
+  return named;
+}
+
+/*
+ * Whether `stored` satisfies one Raw condition's SQL, read for alias "c".
+ * `row` is the row the column is read from, for a condition that names the
+ * row's own id beside the column (a private record's own privacy).
+ */
+function matchesRaw(
+  stored: unknown,
+  operator: FindOperator<unknown>,
+  row?: StoredRow | undefined,
+): boolean {
   const sql: string = (operator.getSql ? operator.getSql("c") : "").trim();
   const parameters: Record<string, unknown> =
     (operator.objectLiteralParameters as Record<string, unknown>) || {};
@@ -227,7 +262,24 @@ function matchesRaw(stored: unknown, operator: FindOperator<unknown>): boolean {
     );
   }
 
-  match = sql.match(/^\(c IN \(:\.\.\.(\w+)\)\)$/);
+  /*
+   * A pattern, as SQL's LIKE reads it: % any run, _ any one character, and
+   * a backslash taking the next one as itself (a site's subtree,
+   * NetworkSiteService.pathStartsWith). Case kept, as LIKE keeps it.
+   */
+  match = sql.match(/^\(c LIKE :(\w+)\)$/);
+  if (match) {
+    if (stored === null || stored === undefined) {
+      return false;
+    }
+
+    return matchesLikePattern(String(parameters[match[1]!]), String(stored), {
+      isCaseSensitive: true,
+    });
+  }
+
+  // LOWER(c) too: a text the way QueryHelper.findWithSameTextAnyOf asks.
+  match = sql.match(/^\((?:c|LOWER\(c\)) IN \(:\.\.\.(\w+)\)\)$/);
   if (match) {
     return storedText !== null && listOf(match[1]!).includes(storedText);
   }
@@ -286,16 +338,120 @@ function matchesRaw(stored: unknown, operator: FindOperator<unknown>): boolean {
     return readerId !== null && seenBy.has(readerId);
   }
 
+  /*
+   * The records an update or a delete of a private record's part may
+   * reach (PrivateRecordPermission.getReachableCondition): no record when
+   * the part may name none, one that is not private, or one the writer
+   * owns - in person, or through one of the teams the condition names -
+   * answered from the private records a test says there are
+   * (setPrivateRecords).
+   */
+  match = sql.match(
+    /^\((c IS NULL OR )?c IN \(SELECT r\."_id" FROM "(\w+)" r WHERE r\."deletedAt" IS NULL AND \(r\."isPrivate" IS NULL OR r\."isPrivate" = FALSE([\s\S]*)\)\)\)$/,
+  );
+  if (match) {
+    if (storedText === null) {
+      return Boolean(match[1]);
+    }
+
+    const seenBy: Set<string> | undefined = privateRecords
+      .get(match[2]!)
+      ?.get(storedText);
+
+    if (!seenBy) {
+      return true;
+    }
+
+    // Whom the condition reaches: the writer, and the teams it names.
+    const reached: Array<string> = [];
+
+    for (const named of match[3]!.matchAll(/:(?:\.\.\.)?(\w+)/g)) {
+      const value: unknown = parameters[named[1]!];
+
+      for (const id of Array.isArray(value) ? value : [value]) {
+        const text: string | null = normalize(id);
+
+        if (text) {
+          reached.push(text);
+        }
+      }
+    }
+
+    return reached.some((id: string): boolean => {
+      return seenBy.has(id);
+    });
+  }
+
+  /*
+   * The records of a private kind its writer's permission does NOT reach
+   * (PrivateRecordPermission.getUnreachableCondition, asked of one record by
+   * PrivateRecordWriteCheck): a private one owned by neither the writer nor
+   * a team the condition names - answered from the private records a test
+   * says there are (setPrivateRecords). One that is not private is reached.
+   */
+  match = sql.match(
+    /^\(c IN \(SELECT r\."_id" FROM "(\w+)" r WHERE r\."deletedAt" IS NULL AND r\."isPrivate" = TRUE AND NOT \(([\s\S]*)\)\)\)$/,
+  );
+  if (match) {
+    if (storedText === null) {
+      return false;
+    }
+
+    const seenBy: Set<string> | undefined = privateRecords
+      .get(match[1]!)
+      ?.get(storedText);
+
+    if (!seenBy) {
+      return false;
+    }
+
+    return !idsNamedBy(match[2]!, parameters).some((id: string): boolean => {
+      return seenBy.has(id);
+    });
+  }
+
+  /*
+   * A private record's own privacy, as a read of its table is held to it
+   * (the incident's, alert's or episode's privacy filter): a record that is
+   * not private, or one the reader - the person the condition names - sees,
+   * answered from the private records a test says there are
+   * (setPrivateRecords) by the row's own id. A private row the test says
+   * nothing of is seen by nobody.
+   */
+  match = sql.match(
+    /^\(c IS NULL OR c = FALSE OR "(\w+)"\."_id" IN \(SELECT [\s\S]*\)\)$/,
+  );
+  if (match) {
+    if (storedText === null || stored === false || storedText === "false") {
+      return true;
+    }
+
+    const rowId: string | null = normalize(row?.["_id"]);
+    const seenBy: Set<string> =
+      (rowId ? privateRecords.get(match[1]!)?.get(rowId) : undefined) ||
+      new Set<string>();
+    const reader: RegExpMatchArray | null = sql.match(/:(\w+)/);
+    const readerId: string | null = reader
+      ? normalize(parameters[reader[1]!])
+      : null;
+
+    return readerId !== null && seenBy.has(readerId);
+  }
+
   throw new Error(`InMemoryRepository: unknown SQL condition "${sql}"`);
 }
 
-function matchesCondition(stored: unknown, condition: unknown): boolean {
+function matchesCondition(
+  stored: unknown,
+  condition: unknown,
+  row?: StoredRow | undefined,
+): boolean {
   if (condition instanceof FindOperator) {
     const operator: FindOperator<unknown> = condition as FindOperator<unknown>;
 
     switch (operator.type) {
       case "raw":
-        return matchesRaw(stored, operator);
+        return matchesRaw(stored, operator, row);
       case "in":
         return (operator.value as Array<unknown>)
           .map(normalize)
@@ -305,10 +461,10 @@ function matchesCondition(stored: unknown, condition: unknown): boolean {
       case "isNull":
         return normalize(stored) === null;
       case "not":
-        return !matchesCondition(stored, operator.value);
+        return !matchesCondition(stored, operator.value, row);
       case "and":
         return (operator.value as Array<unknown>).every((child: unknown) => {
-          return matchesCondition(stored, child);
+          return matchesCondition(stored, child, row);
         });
       case "moreThanOrEqual":
         return compareNumbers(stored, ">=", operator.value);
@@ -348,7 +504,7 @@ export function rowMatchesWhere(row: StoredRow, where: unknown): boolean {
       continue;
     }
 
-    if (!matchesCondition(row[column], condition)) {
+    if (!matchesCondition(row[column], condition, row)) {
       return false;
     }
   }
@@ -413,7 +569,12 @@ export interface InMemoryTableOptions {
   answersOnlySelectedColumns?: boolean | undefined;
 }
 
-// The columns of `row` a find's `select` asks for, and the id.
+/*
+ * The columns of `row` a find's `select` asks for, and the id. A related
+ * record the row joins is narrowed to the columns asked of it too, as
+ * Postgres joins only those (#10281): a store's sensitivity the select left
+ * out of `dataStore: { name: true }` is not answered.
+ */
 function selectedColumnsOf(
   row: StoredRow,
   select: Record<string, unknown> | undefined,
@@ -425,12 +586,35 @@ function selectedColumnsOf(
   const selected: StoredRow = { _id: row["_id"] };
 
   for (const [column, isSelected] of Object.entries(select)) {
-    if (isSelected && column in row) {
-      selected[column] = row[column];
+    if (!isSelected || !(column in row)) {
+      continue;
     }
+
+    selected[column] =
+      typeof isSelected === "object" && !Array.isArray(isSelected)
+        ? joinedColumnsOf(row[column], isSelected as Record<string, unknown>)
+        : row[column];
   }
 
   return selected;
+}
+
+// A joined record, or each of a list of them, with the columns asked of it.
+function joinedColumnsOf(
+  joined: unknown,
+  select: Record<string, unknown>,
+): unknown {
+  if (Array.isArray(joined)) {
+    return joined.map((each: unknown): unknown => {
+      return joinedColumnsOf(each, select);
+    });
+  }
+
+  if (!joined || typeof joined !== "object") {
+    return joined;
+  }
+
+  return selectedColumnsOf(joined as StoredRow, select);
 }
 
 /*
@@ -614,4 +798,96 @@ export function useInMemoryHookFreeWrites<TBaseModel extends BaseModel>(
       table.updates.push({ id: String(row["_id"]), set: written });
     },
   );
+}
+
+// What a write of a row's lists entry by entry added and took off (#10135).
+export interface InMemoryListEntryWrite {
+  rowId: string;
+  // By the list's field: the IDs added, and the IDs taken off.
+  writes: Record<string, { add: Array<string>; remove: Array<string> }>;
+}
+
+/*
+ * Answers `service`'s writes of a row's lists entry by entry (#10135) from
+ * `table`, as the junction table holding each list would: an entry added
+ * once whatever is asked, one taken off only when the row has it, every
+ * other entry left as it is. The row's own columns, written in the same
+ * transaction (updateRowWithListEntries), are written as update() writes
+ * them. Each write's entries are recorded in the list returned, in order.
+ */
+export function useInMemoryListEntryWrites<TBaseModel extends BaseModel>(
+  service: DatabaseService<TBaseModel>,
+  table: InMemoryTable,
+): Array<InMemoryListEntryWrite> {
+  const written: Array<InMemoryListEntryWrite> = [];
+
+  const writeEntries: (data: InMemoryListEntryWrite) => void = (
+    data: InMemoryListEntryWrite,
+  ): void => {
+    const row: StoredRow | undefined = table.get(data.rowId);
+
+    const entries: Record<
+      string,
+      { add: Array<string>; remove: Array<string> }
+    > = {};
+
+    for (const [column, write] of Object.entries(data.writes)) {
+      entries[column] = { add: [...write.add], remove: [...write.remove] };
+    }
+
+    written.push({ rowId: data.rowId, writes: entries });
+
+    if (!row) {
+      return;
+    }
+
+    for (const [column, write] of Object.entries(data.writes)) {
+      const removed: Set<string | null> = new Set(write.remove.map(normalize));
+      const entries: Array<unknown> = (
+        Array.isArray(row[column]) ? (row[column] as Array<unknown>) : []
+      ).filter((entry: unknown): boolean => {
+        return !removed.has(normalize(entry));
+      });
+
+      for (const id of write.add) {
+        const isThere: boolean = entries.some((entry: unknown): boolean => {
+          return normalize(entry) === normalize(id);
+        });
+
+        if (!isThere) {
+          entries.push({ _id: id });
+        }
+      }
+
+      row[column] = entries;
+    }
+  };
+
+  getJestSpyOn(service, "updateRowWithListEntries").mockImplementation(
+    async (data: {
+      criteria: Record<string, unknown>;
+      values: Record<string, unknown>;
+      rowId: string;
+      writes: Record<string, { add: Array<string>; remove: Array<string> }>;
+    }): Promise<{ affected: number }> => {
+      const result: { affected: number } = (await table.repository.update(
+        data.criteria,
+        data.values,
+      )) as { affected: number };
+
+      if (result.affected > 0) {
+        writeEntries({ rowId: data.rowId, writes: data.writes });
+      }
+
+      return result;
+    },
+  );
+
+  getJestSpyOn(service, "writeListEntries").mockImplementation(
+    async (data: InMemoryListEntryWrite): Promise<void> => {
+      writeEntries(data);
+    },
+  );
+
+  return written;
 }

@@ -14,6 +14,7 @@ import { JSONObject } from "Common/Types/JSON";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import API from "Common/UI/Utils/API/API";
+import Reauthentication from "Common/UI/Utils/Reauthentication";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 import WebAuthn, {
@@ -163,7 +164,20 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
     setWebAuthnRegistrationNameError(undefined);
     setWebAuthnRegistrationError(null);
     setWebAuthnRegistrationSuccess(null);
-    setShowWebAuthnRegistrationModal(true);
+
+    /*
+     * Adding a key or a passkey waits until the session confirms it's its
+     * person's (#10155). Asked before the dialog opens, so the browser's
+     * prompt for the new key follows the dialog's own press, as a browser
+     * asks it to; cancelled, nothing opens.
+     */
+    void Reauthentication.ensureConfirmed().then((isConfirmed: boolean) => {
+      if (isConfirmed) {
+        setShowWebAuthnRegistrationModal(true);
+      } else {
+        props.onRegistrationClosed?.();
+      }
+    });
   };
 
   const closeRegistration: () => void = (): void => {

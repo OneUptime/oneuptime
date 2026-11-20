@@ -33,6 +33,12 @@ import {
   requestOutcomeFromStatusCode,
 } from "../RequestOutcome";
 import {
+  ScrubbedAddress,
+  ScrubbedAddressPlace,
+  markClientAddressScrubbed,
+  readScrubbedAddress,
+} from "../ScrubbedAddress";
+import {
   buildTelemetrySecurityEvent,
   cutTelemetryText,
 } from "./TelemetrySecurityEvent";
@@ -328,6 +334,11 @@ interface SpanRequest {
   method: string;
   statusCode: number;
   clientIp: string;
+  /*
+   * What a scrub rule left where the client's address was, when one hid it
+   * (#10397): the event says so, and names no address.
+   */
+  scrubbedClientAddress: ScrubbedAddress | null;
   userAgent: string;
   userId: string;
   route: string;
@@ -344,9 +355,19 @@ function readSpanRequest(span: TraceScanSpan): SpanRequest {
   const statusCode: number = readStatusCode(
     readTraceAttribute(span, TRACE_SCAN_ATTRIBUTE_KEYS.statusCode),
   );
-  const clientIp: string = readClientIp(
-    readTraceAttribute(span, TRACE_SCAN_ATTRIBUTE_KEYS.clientAddress),
+  /*
+   * The first of the client address attributes the span holds is the
+   * client's, as it always was: an IP address, else what a scrub rule left
+   * of one - "[REDACTED]", a mask, a Hash rule's token - else nothing.
+   */
+  const clientAddress: string = readTraceAttribute(
+    span,
+    TRACE_SCAN_ATTRIBUTE_KEYS.clientAddress,
   );
+  const clientIp: string = readClientIp(clientAddress);
+  const scrubbedClientAddress: ScrubbedAddress | null = clientIp
+    ? null
+    : readScrubbedAddress(clientAddress);
   const userAgent: string = readTraceAttribute(
     span,
     TRACE_SCAN_ATTRIBUTE_KEYS.userAgent,
@@ -380,6 +401,11 @@ function readSpanRequest(span: TraceScanSpan): SpanRequest {
 
   if (clientIp) {
     attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddress] = clientIp;
+  } else if (scrubbedClientAddress) {
+    markClientAddressScrubbed(attributes, {
+      scrubbed: scrubbedClientAddress,
+      place: ScrubbedAddressPlace.SpanAttributes,
+    });
   }
 
   if (userAgent) {
@@ -409,6 +435,7 @@ function readSpanRequest(span: TraceScanSpan): SpanRequest {
     method,
     statusCode,
     clientIp,
+    scrubbedClientAddress,
     userAgent,
     userId,
     route,

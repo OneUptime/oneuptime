@@ -53,7 +53,7 @@ A time series of one or more metric queries over the dashboard's time range. **C
 
 Each query draws a chart of its own, one under another in the widget. To draw a query on the chart of the query before it instead, as more lines on the same axes, turn on **Overlay with previous query** in its **Display Settings**: `mem_used` and `mem_total` on one chart, for example. Every query after the first has the switch, and each query that has it on joins the same chart, so three or more queries can share one. Turn it off to give the query its own chart again.
 
-An overlaid chart takes its title, its chart type and its value axis from its first query, so every query on it is read in that query's unit. A query in another unit of the same kind is drawn in the chart's unit, such as megabytes on a chart in gigabytes, or seconds on a chart in milliseconds. A unit of another kind cannot be read on that axis, such as bytes on a chart in percent: the query is still drawn there, and the chart and the switch both say that the units differ, so give such a query its own chart.
+An overlaid chart takes its title, its chart type and its left value axis from its first query, so a query on it is read in that query's unit where it can be. A query in another unit of the same kind is drawn in the chart's unit, such as megabytes on a chart in gigabytes, or seconds on a chart in milliseconds. A query in a unit of another kind, such as bytes on a chart in percent, is drawn against a second value axis on the chart's right, in its own unit, and the switch says so. The legend under the chart names each axis's unit and the axis each series is drawn against. Only a third kind of unit fits neither axis: it is drawn to a scale of its own, with no axis, and the chart and the switch both say so. Read its values in the legend and the tooltip, or give such a query its own chart to read it against an axis.
 
 Use it when the shape of the line tells the story: latency, errors, throughput or queue depth.
 
@@ -250,7 +250,7 @@ Through the API and Terraform, the order is the widget's `arguments.sort`: a col
 A [public dashboard](/docs/dashboards/sharing) draws most widgets for its visitors, each showing only what it was set up to show. A few cannot be shown without a signed-in session:
 
 - **Log Chart**, **Trace Chart**, **Trace Table**, **Security Events**, **Security Events Flow**, **Funnel** and **User Retention** say in their place that they are not available on public dashboards.
-- The External Data Sources widgets are left out of a public dashboard altogether, because their settings are the query itself.
+- The External Data Sources widgets show their data when they read **This project's metrics (PromQL)**, never their queries. A widget on an external data source is left out of a public dashboard altogether.
 
 ## When a widget can't be shown
 

@@ -89,7 +89,7 @@ Una lista o un recuento acepta una `query`. Un campo con un valor coincide con e
 | `Includes` | Cualquiera de los valores de `value` |
 | `IsNull`, `NotNull` | Ningún valor, o cualquier valor |
 
-Un campo de un registro que nombra el recurso se filtra bajo su relación: `"user": { "name": { "_type": "Search", "value": "ada" } }` encuentra los miembros del equipo cuyo usuario tiene un nombre que contiene «ada». Filtrar por un campo requiere permiso para leerlo, a través de una relación igual que en el propio recurso: un filtro sobre un campo que no puedes leer se rechaza con un `422` que nombra el campo.
+Un campo de un registro que nombra el recurso se filtra bajo su relación: `"user": { "name": { "_type": "Search", "value": "ada" } }` encuentra los miembros del equipo cuyo usuario tiene un nombre que contiene «ada». Filtrar por un campo requiere permiso para leerlo, a través de una relación igual que en el propio recurso: un filtro sobre un campo que no puedes leer se rechaza con un `422` que nombra el campo. A través de una relación, un campo que solo puede leer la persona a la que pertenece, como la zona horaria de un usuario o sus métodos de notificación y registros de guardia, se rechaza para todos, tanto en un filtro como en un orden, porque la relación puede nombrar el registro de cualquiera.
 
 Un recurso con propietarios - un monitor, un incidente, una política de guardia y cualquier otro con propietarios de usuario y de equipo - también se filtra por quién es su propietario, bajo `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` encuentra los registros de los que son propietarios una o más de esas personas y equipos. `match` es `AnyOf` salvo que lo fijes: `NoneOf` encuentra los registros de los que no es propietario ninguno de ellos, incluidos los registros sin propietarios, y `AnyOwner` y `NoOwner` encuentran los registros con algún propietario o sin ninguno, sin nombrar a nadie. Los miembros de un equipo no son propietarios de lo que es del equipo. Un filtro nombra como máximo 1000 personas y equipos en total, un recurso sin propietarios lo rechaza con un `400`, y filtrar por propietarios sin permiso para leerlos se rechaza con un `422`.
 
@@ -130,6 +130,7 @@ Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUI
 | `400` | La solicitud es incorrecta: la clave de API no es válida, un valor no está permitido, un campo no se puede escribir, un registro que nombra no es tuyo, o cambia varios proyectos a la vez. El mensaje dice qué está mal. | [Los registros que nombra una solicitud](#los-registros-que-nombra-una-solicitud) |
 | `402` | El plan del proyecto no incluye lo que usa la solicitud. El mensaje nombra el plan. | [Funciones que tu plan no incluye](#funciones-que-tu-plan-no-incluye) |
 | `404` | El registro no existe, está en otro proyecto o es uno que no puedes leer: la misma respuesta en cada caso. | [Cambiar o eliminar un registro que no puedes leer](#cambiar-o-eliminar-un-registro-que-no-puedes-leer) |
+| `413` | El cuerpo es más grande de lo que OneUptime acepta en la solicitud: 1 MB con 100.000 valores JSON como máximo en la mayoría de las solicitudes, y 50 MB en una que envía un archivo, un panel o una página de estado. El mensaje dice el límite. En un servidor que gestionas tú, `REQUEST_BODY_MAX_BYTES` y `REQUEST_BODY_MAX_JSON_VALUES` suben el límite de la mayoría de las solicitudes. | [Solicitudes y respuestas](#solicitudes-y-respuestas) |
 | `422` | No puedes hacer esto: la clave de API no tiene ningún permiso para este tipo de registro, puedes leer el registro pero no cambiarlo, o las etiquetas de un permiso lo dejan fuera. El mensaje dice por qué. | [Cambiar o eliminar un registro que no puedes leer](#cambiar-o-eliminar-un-registro-que-no-puedes-leer) |
 | `500` | Algo falló en el servidor. Cuando no se puede escribir el propietario de un registro nuevo, el registro se vuelve a quitar, así que la creación se puede reintentar. | [Los registros que nombra una solicitud](#los-registros-que-nombra-una-solicitud) |
 
@@ -254,7 +255,33 @@ Los equipos, las etiquetas, las políticas de guardia y las programaciones de gu
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Una actualización que vuelve a enviar a un registro su propio nombre, en mayúsculas o minúsculas, no es un cambio de nombre, así que los registros que antes compartían un nombre se pueden seguir modificando, y renombrar para distinguirlos. Para los equipos, las políticas de guardia y las programaciones de guardia, `GET /api/shared-names/team` (o `on-call-policy`, `on-call-schedule`) responde cuáles comparten un nombre: `{"groups": [["<id>", "<id>"]]}`, cada grupo con los ID que tu clave puede leer de los registros cuyos nombres se leen igual.
+Muchos otros tipos también tienen un nombre propio, como las severidades de incidentes, los estados de monitor, las páginas de estado y los workflows, y rechazan un nombre ocupado de la misma manera, tanto al crear como al cambiar el nombre:
+
+```text
+Incident Severity with the same name already exists.
+```
+
+Junto al mensaje, cada uno de estos rechazos incluye un `refusalCode` que dice qué tiene el nombre. Reconoce el rechazo por ese código, no por la frase, que puede cambiar de redacción:
+
+- `"refusalCode": "name_taken"`: lo tiene un registro en servicio. No se escribió nada, así que la misma solicitud se puede volver a enviar en cuanto ese registro deje el nombre: el proveedor de Terraform vuelve a pedirlo durante hasta 30 segundos.
+- `"refusalCode": "name_taken_by_archived"`: solo lo tiene un registro archivado. Desarchiva ese registro o elige otro nombre: volver a enviar la solicitud no sirve, y el proveedor de Terraform no lo hace.
+
+Una actualización que vuelve a enviar a un registro su propio nombre, en mayúsculas o minúsculas, no es un cambio de nombre, así que los registros que antes compartían un nombre se pueden seguir modificando, y renombrar para distinguirlos, pero nunca con el nombre de otro registro. Para los equipos, las etiquetas, las políticas de guardia y las programaciones de guardia, `GET /api/shared-names/team` (o `label`, `on-call-policy`, `on-call-schedule`) responde cuáles comparten un nombre: `{"groups": [["<id>", "<id>"]]}`, cada grupo con los ID que tu clave puede leer de los registros cuyos nombres se leen igual. Las etiquetas y las políticas de guardia archivadas quedan fuera.
+
+#### Valores que ya tiene otro registro
+
+Algunos valores que no son un nombre también pertenecen a un solo registro cada uno: el dominio de una página de estado, de un panel o de un formulario, un dominio del proyecto, el identificador de un host o de un clúster de Kubernetes, la URL de inicio de sesión de un proveedor de SSO y el permiso de una clave de API, entre otros. Una creación, o una actualización que cambia uno de ellos, a un valor que ya tiene otro registro se rechaza con un `400` que lo dice:
+
+```text
+Status Page Domain with the same fullDomain already exists.
+```
+
+Junto al mensaje, el rechazo incluye un `refusalCode` que dice qué tiene el valor, y un `field` que nombra el campo cuyo valor está ocupado, como `"field": "fullDomain"`. Un valor de varios campos juntos llega sin `field`. Reconoce el rechazo por el código, no por la frase, que puede cambiar de redacción:
+
+- `"refusalCode": "value_taken"`: lo tiene un registro en servicio. No se escribió nada, así que la misma solicitud se puede volver a enviar en cuanto ese registro deje el valor: el proveedor de Terraform vuelve a pedirlo durante hasta 30 segundos.
+- `"refusalCode": "value_taken_by_archived"`: solo lo tiene un registro archivado. Desarchiva ese registro o elige otro valor: volver a enviar la solicitud no sirve, y el proveedor de Terraform no lo hace.
+
+Una actualización que vuelve a enviar a un registro su propio valor, en mayúsculas o minúsculas, no es un cambio, así que los registros que antes compartían un valor se pueden seguir modificando, y recibir valores distintos.
 
 ### Interruptores
 
@@ -279,6 +306,40 @@ User is not allowed to create on resellerId column of Project. No permission all
 OneUptime registra quién creó un registro — y quién lo archivó, lo resolvió, lo reconoció o lo activó — a partir de la propia solicitud: la persona que ha iniciado sesión, o nadie cuando la solicitud llega con una clave de API o desde un workflow. Estos campos (`createdByUserId` y los demás campos que terminan en `ByUserId`, con sus relaciones como `createdByUser`) son de solo lectura, igual que el momento en que se archivó o resolvió un registro (`archivedAt`, `markedAsResolvedAt`, `markedAsArchivedAt`): activar `isArchived` o `isResolved` registra quién lo hizo y cuándo, y desactivarlo borra ambos. Enviar un interruptor tal como ya está conserva quién lo cambió, y cuándo.
 
 La referencia de la API marca estos campos como de solo lectura. Un valor que una solicitud envía para uno de ellos junto a otros cambios se ignora, así que el resto del cambio sale adelante; una actualización que no envía nada más se rechaza con un mensaje que nombra los campos. Los registros que OneUptime crea por sí mismo en nombre de alguien — una nota publicada desde Slack o Microsoft Teams, una cuenta creada por una invitación — nombran a esa persona.
+
+### Campos que solo escribe OneUptime
+
+Algunos campos solo los escribe OneUptime: cuándo se ejecutó por última vez un monitor de telemetría y cuándo se ejecutará la próxima vez, lo último que informó un agente, los plazos de un SLA, cuándo deja de funcionar un secreto de cliente SCIM. La referencia de la API los marca como de solo lectura y los deja fuera de los cuerpos de creación y de actualización. Una creación que envía uno de ellos, como hace la copia de un registro que has leído, sale adelante sin él, y el registro nuevo recibe el valor de OneUptime. Una actualización que envía uno se rechaza, y la respuesta nombra cada uno de esos campos que envió:
+
+```text
+User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor. No permission allows it: the column is changed by the server, not by a request.
+```
+
+Deja estos campos fuera de una actualización. Los pocos que cambia una persona tienen una solicitud propia: rotar un secreto de cliente SCIM fija cuándo deja de funcionar, y `POST /api/host/:id/try-collector-config-again` vuelve a enviar a un host la configuración del recolector que falló en él. Un campo que cambias tú y también OneUptime, como las `labels` de un registro, a las que las reglas de etiquetas añaden otras, lo sigues fijando tú como antes.
+
+Una creación que dejó fuera un campo lo nombra en la cabecera `X-OneUptime-Fields-Left-Out` de la respuesta, con los campos separados por comas; una respuesta sin nada dejado fuera no lleva esa cabecera. La CLI muestra los campos en una nota, la respuesta del servidor MCP los enumera en `fieldsLeftOut`, y el proveedor de Terraform los muestra en una advertencia.
+
+### Añadir entradas a una lista y quitarlas
+
+Un cambio puede añadir registros a una lista, o quitar algunos, sin enviar la lista entera: `addToList` y `removeFromList` nombran los ID que hay que añadir y quitar, lista por lista. Toda entrada que el cambio no nombra se queda, incluida una que otra persona o una regla de etiquetas añada en el mismo momento:
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+Enviado a `PUT /api/monitor/<id>`, esto cambia el nombre del monitor, le añade una etiqueta y le quita otra. Deja fuera `data` cuando el cambio solo añade y quita entradas. Una entrada es el ID del registro, o un objeto con su `_id`, como en `data`, y añadir una entrada que la lista ya tiene, o quitar una que no tiene, no cambia nada.
+
+Las listas que un cambio puede nombrar son las que la referencia completa de la API enumera en `addToList` para la solicitud `PUT` del recurso. Un cambio hecho así se comprueba como lo sería la lista entera que deja, según las reglas de arriba: tu permiso para cambiar la lista, que cada registro que añade sea uno de tu proyecto que puedas leer, y las etiquetas que conserva un permiso restringido a etiquetas. Una lista enviada a la vez entera, en `data`, y en `addToList` o `removeFromList` se rechaza con un `400`:
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+Los proveedores de Terraform y de Crossplane cambian así las etiquetas de un registro, de modo que una etiqueta que una regla añade mientras se ejecutan se queda: consulta [Etiquetas y otras listas a las que OneUptime también añade](/docs/terraform/complete-guide#etiquetas-y-otras-listas-a-las-que-oneuptime-también-añade).
 
 ## Estados y episodios
 

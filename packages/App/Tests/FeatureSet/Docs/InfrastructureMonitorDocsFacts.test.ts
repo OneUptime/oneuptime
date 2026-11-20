@@ -154,13 +154,15 @@ const IOT_DEVICE: string = "monitor/iot-device-monitor";
 const VMWARE: string = "monitor/vmware-monitor";
 
 /*
- * How the Kubernetes agent's chart names its cumulative-to-delta processor:
- * as the agent's collector knows it, cumulative_to_delta from collector
- * 0.157.0 and cumulativetodelta before (_helpers.tpl). The chart's own
- * tests pin both names.
+ * How the Kubernetes agent's chart names its renamed collector components
+ * (#9930): by a variable its collector templates declare from
+ * kubernetes-agent.componentType (_helpers.tpl), which is each component's
+ * type as the agent's collector knows it: cumulative_to_delta and
+ * k8s_attributes on the collector the chart pins, cumulativetodelta and
+ * k8sattributes before their renames. The chart's own tests pin both names.
  */
-const CUMULATIVE_TO_DELTA: string =
-  '{{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}';
+const CUMULATIVE_TO_DELTA: string = "{{ $cumulativeToDelta }}";
+const K8S_ATTRIBUTES: string = "{{ $k8sAttributes }}";
 
 const TELEMETRY_PAGES: Array<string> = [
   KUBERNETES,
@@ -1468,12 +1470,12 @@ describe(`${KUBERNETES}: the template table`, () => {
     );
   });
 
-  // Twenty-five since PVC Almost Full (f82d55afccf).
+  // Twenty-six since Node Image Disk Almost Full (#9843).
   it("counts the templates in the card", () => {
     expect(englishPage(KUBERNETES)).toContain(
-      `(#pre-built-alert-templates): Twenty-five ready-made alerts`,
+      `(#pre-built-alert-templates): Twenty-six ready-made alerts`,
     );
-    expect(templates).toHaveLength(25);
+    expect(templates).toHaveLength(26);
   });
 
   it("Cluster Stopped Reporting comes first and fires only when the agent sends nothing", () => {
@@ -1680,7 +1682,7 @@ describe(`${KUBERNETES}: the template table`, () => {
       "            - memory_limiter\n            # The failures since each Job's previous sample, for Job Failures\n",
     );
     expect(chart).toContain(
-      `            - transform/job-failures-increase\n            - ${CUMULATIVE_TO_DELTA}/job-failures-increase\n            - transform/pod-level-mark\n            - k8sattributes\n`,
+      `            - transform/job-failures-increase\n            - ${CUMULATIVE_TO_DELTA}/job-failures-increase\n            - transform/pod-level-mark\n            - ${K8S_ATTRIBUTES}\n`,
     );
     // A Job scope filters on the Job's own name.
     expect(

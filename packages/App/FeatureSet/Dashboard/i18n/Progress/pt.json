@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 58633,
-    "untranslated": 8188
+    "keys": 59636,
+    "untranslated": 8193
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -205,11 +205,13 @@
     "Merge request !{{number}}",
     "Merge request {{label}}",
     "Mesh / VPN",
+    "Microsoft Intune",
     "Mirantis MOSK",
     "MongoDB",
     "Monitor",
     "Mons",
     "MySQL",
+    "NSA/CISA Kubernetes Hardening Guide v1.2",
     "Namespace",
     "Namespaces",
     "Nav",
@@ -380,6 +382,7 @@
     "amphorae",
     "arm",
     "arm64",
+    "arn:aws:iam::123456789012:role/OneUptimeSes",
     "aws_lambda · us-east-1 · nodejs 20",
     "backup",
     "backups",
@@ -394,6 +397,7 @@
     "compute-01 · RegionTwo",
     "compute-07 · RegionOne",
     "customer facing|tier-1",
+    "dSYMs",
     "datastore",
     "db-primary",
     "deadlocks",

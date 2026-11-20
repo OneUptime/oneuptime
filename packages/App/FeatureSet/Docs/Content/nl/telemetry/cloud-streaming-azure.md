@@ -30,6 +30,7 @@ flowchart TB
 - **Een gekoppeld Azure-abonnement.** Koppel het eerst onder **Cloud → Koppelen**: zie [Een cloudaccount koppelen](/docs/telemetry/cloud-accounts).
 - **Een Projecteigenaar of Projectbeheerder.** Alleen zij kunnen het lezen aanzetten en het streamen stoppen.
 - **Azure Cloud Shell**, aangemeld als **Owner** van de abonnementen, of als **Contributor** die ook **User Access Administrator** is: de opdracht maakt een resourcegroep en een roltoewijzing aan, en wijzigt diagnostische instellingen.
+- **Voor de logboeken van Microsoft Entra ID, een Security Administrator** van de tenant die ook **Owner** of **Contributor** is van de resourcegroep die de opdracht aanmaakt: alleen die mag de logboeken van de tenant naar een Event Hub sturen.
 - **Een weg naar Azure, bij een zelf gehoste OneUptime.** OneUptime leest elke namespace op `<namespace>.servicebus.windows.net` via poort 9093, en de namespaces nemen verbindingen vanaf internet aan.
 
 ## Streamen instellen
@@ -43,6 +44,8 @@ Ga naar **Cloud → Koppelen** en kies in de rij van het Azure-abonnement **Metr
 
 **Metrieken** streamt de belangrijke metrieken van elke resource, per minuut, de metrieken waarmee OneUptime elke resource in grafieken toont en beoordeelt, behalve [de metrieken die een diagnostische instelling niet kan sturen](#wat-er-binnenkomt), die de koppeling blijft lezen. **Metrieken en logboeken** voegt de eigen logboeken van elke resource toe, elke categorie die Azure ervoor bijhoudt, en **Logboeken** streamt alleen resourcelogboeken.
 
+Onder **Voor Beveiligingsgebeurtenissen** laat **Activiteitenlogboek van elk abonnement** de opdracht de wijzigingen, de waarschuwingen van Defender for Cloud en de weigeringen door Azure Policy van elk abonnement naar de Event Hub van de eerste regio sturen, en voegt **Aanmeld- en auditlogboeken van Microsoft Entra ID** een tweede opdracht toe, voor een Security Administrator van uw tenant. [Beveiligingsgebeurtenissen](/docs/telemetry/security-events#beveiligingsgebeurtenissen-in-uw-logs-vinden) leest ze allebei.
+
 ### Het lezen aanzetten
 
 Kies **Lezen aanzetten**. OneUptime zoekt elke minuut naar de Event Hubs, en wacht erop tot de opdracht ze heeft aangemaakt.
@@ -50,6 +53,10 @@ Kies **Lezen aanzetten**. OneUptime zoekt elke minuut naar de Event Hubs, en wac
 ### De opdracht uitvoeren in Azure Cloud Shell
 
 Kopieer de opdracht, voer hem uit in Azure Cloud Shell en wacht tot hij klaar is. Hij noemt elke regio waarin hij een Event Hub heeft aangemaakt, hoeveel resources ernaar sturen en welke resources hij heeft overgeslagen, met de reden van Azure.
+
+### De opdracht voor Microsoft Entra ID uitvoeren, als u die hebt gekozen
+
+Zodra de eerste opdracht klaar is, voert een Security Administrator van de tenant de tweede uit in Azure Cloud Shell. Die geeft de tenant een diagnostische instelling die de aanmeldings-, audit- en risicologboeken van Microsoft Entra ID naar de Event Hub van de eerste regio stuurt, en zegt wat Azure vroeg als het weigert.
 
 ### Wachten op de eerste events
 
@@ -83,7 +90,13 @@ Een Service Bus- of Event Hubs-namespace streamt geen metrieken. De leesacties l
 
 Een logboekregel wordt onder zijn resource gearchiveerd via de ARM-ID van de resource, meegegeven als `cloud.resource_id`, en houdt zijn categorie, bewerking, resultaat en eigenschappen als attributen, zoals `azure.category`.
 
-Virtuele machines, schaalsets, schijven, netwerkinterfaces, virtuele netwerken, privé-eindpunten, NAT-gateways, DNS-zones en App Service-plannen sturen geen eigen resourcelogboeken, dus hun pagina's hebben geen tabblad **Logboeken**. De logboeken van een opslagaccount zijn die van zijn services, en die van een container-app die van haar omgeving.
+Een record van het activiteitenlogboek in de categorie `Administrative`, `Security` of `Policy`, en een aanmeldings-, audit- of risicorecord van Microsoft Entra ID, komen in hun geheel aan, als de tekst van hun logboekregel, ook een over een resourcegroep, een abonnement of de tenant in plaats van een resource. Met [Beveiligingsgebeurtenissen in uw logboeken vinden](/docs/telemetry/security-events#beveiligingsgebeurtenissen-in-uw-logs-vinden) aan wordt elk record gelezen als een beveiligingsgebeurtenis, net als een uit een logpijplijn, en één keer opgeslagen, langs hoeveel wegen het OneUptime ook bereikt. Met **Activiteitenlogboek van elk abonnement** aan geeft de opdracht elk abonnement een diagnostische instelling die het activiteitenlogboek naar de Event Hub van de eerste regio stuurt, en de opdracht voor Microsoft Entra ID geeft de tenant er een.
+
+De `AuditEvent` van een Key Vault, de `StorageRead`, `StorageWrite` en `StorageDelete` van een opslagaccount en de `SQLSecurityAuditEvents` van een Azure SQL-database komen ook in hun geheel aan, elk gearchiveerd onder zijn resource, en Beveiligingsgebeurtenissen leest de records die voor de beveiliging tellen: zie [Eigen auditlogs van Azure-resources](/docs/telemetry/security-events#eigen-auditlogs-van-azure-resources). Een Azure SQL-database stuurt zijn audit pas als auditing erop aanstaat, met Azure Monitor als bestemming.
+
+Virtuele machines, schaalsets, schijven, netwerkinterfaces, virtuele netwerken, privé-eindpunten, NAT-gateways, DNS-zones en App Service-plannen sturen geen eigen resourcelogboeken, dus hun pagina's hebben geen tabblad **Logboeken**. De logboeken van een container-app zijn die van haar omgeving.
+
+De logboeken van een opslagaccount zijn die van zijn blob-, bestands-, wachtrij- en tabelservices: de opdracht geeft elke service een eigen diagnostische instelling, en hun logboeken worden onder het account gearchiveerd, op het tabblad **Logboeken** ervan. Het zijn alle verzoeken die het account beantwoordt, dus een druk account stuurt er veel.
 
 ## Wat de opdracht aanmaakt
 
@@ -96,6 +109,9 @@ De resourcegroep heet `oneuptime-stream-` gevolgd door de eerste 8 tekens van de
 | Een Event Hub in elke namespace, `oneuptime`, met 2 partities | Bewaart de events tot OneUptime ze leest |
 | De rol **Azure Event Hubs Data Receiver** voor de app van de koppeling, alleen op de resourcegroep | Laat de app de Event Hubs lezen, en verder niets |
 | Een diagnostische instelling op elke resource, `OneUptime-<suffix>` | Stuurt de metrieken, de logboeken of beide van de resource naar de Event Hub van haar regio |
+| Met logboeken, een diagnostische instelling op elk van de blob-, bestands-, wachtrij- en tabelservices van een opslagaccount, `OneUptime-<suffix>` | Stuurt de logboeken van de services naar de Event Hub van de regio van het account |
+| Met **Activiteitenlogboek van elk abonnement**, een diagnostische instelling op elk abonnement, `OneUptime-<suffix>` | Stuurt de records `Administrative`, `Security` en `Policy` ervan naar de Event Hub van de eerste regio |
+| Met de opdracht voor Microsoft Entra ID, de diagnostische instelling van de tenant, `OneUptime-<suffix>` | Stuurt de aanmeldings-, audit- en risicologboeken ervan naar de Event Hub van de eerste regio |
 
 Een resource van een globale regio, zoals Front Door, stuurt naar de Event Hub van de eerste regio. Een resource waarvan Azure alleen metrieken of alleen logboeken bijhoudt, wordt ingesteld met wat ze heeft, en een die al 5 diagnostische instellingen heeft, het maximum dat Azure toestaat, wordt overgeslagen. Azure brengt de doorvoereenheid van elke namespace per uur in rekening, en de events die de diagnostische instellingen sturen.
 
@@ -108,20 +124,31 @@ Kies in de rij van het abonnement onder **Cloud → Koppelen** **Streamen stoppe
 
 ### Verwijderen wat de opdracht heeft aangemaakt
 
-De Event Hubs en de diagnostische instellingen blijven in Azure, en Azure brengt ze in rekening, totdat ze worden verwijderd. Het venster toont de opdracht: die verwijdert de diagnostische instelling van elke resource en daarna de resourcegroep, in welk abonnement die ook staat.
+De Event Hubs en de diagnostische instellingen blijven in Azure, en Azure brengt ze in rekening, totdat ze worden verwijderd. Het venster toont de opdracht: die verwijdert de diagnostische instelling van elke resource, die van de services van de opslagaccounts en die van elk abonnement, en daarna de resourcegroep, in welk abonnement die ook staat. Hij verwijdert ook de instelling van Microsoft Entra ID als u dat mag, en zegt anders wie het mag.
 
 ```bash
 oneuptime_stream_stop() {
-  local SUB ID N=0
+  local SUB ID TYPE SERVICE N=0
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
-    while IFS= read -r ID; do
+    while IFS=$'\t' read -r ID TYPE; do
       if [ -z "$ID" ]; then continue; fi
       az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID" --output none 2> /dev/null &
       N=$((N + 1))
       if [ $((N % 4)) -eq 0 ]; then wait; fi
-    done < <(az resource list --subscription "$SUB" --query "[].id" --output tsv)
+      if [ "${TYPE,,}" = microsoft.storage/storageaccounts ]; then
+        for SERVICE in blobServices fileServices queueServices tableServices; do
+          az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID/$SERVICE/default" --output none 2> /dev/null &
+          N=$((N + 1))
+          if [ $((N % 4)) -eq 0 ]; then wait; fi
+        done
+      fi
+    done < <(az resource list --subscription "$SUB" --query "[].[id, type]" --output tsv)
+    az monitor diagnostic-settings subscription delete --subscription "$SUB" --name OneUptime-6f1c3a2e --yes --output none 2> /dev/null
   done
   wait
+  if az rest --method get --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null; then
+    az rest --method delete --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null && echo "Deleted Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e." || echo "Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e is left: a Security Administrator of the tenant deletes it, under Diagnostic settings in the Microsoft Entra admin center."
+  fi
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
     if [ "$(az group exists --subscription "$SUB" --name oneuptime-stream-6f1c3a2e 2> /dev/null)" = true ]; then
       az group delete --subscription "$SUB" --name oneuptime-stream-6f1c3a2e --yes --no-wait && echo "Deleting oneuptime-stream-6f1c3a2e in $SUB."
@@ -160,6 +187,10 @@ Het venster en de tooltip van de rij zeggen waarom. Als de app de Event Hubs nie
 
 :::details De opdracht heeft resources overgeslagen
 Hij somt ze op, elk met de reden van Azure. Een resource van een type zonder diagnostische instellingen stuurt niets, en bij een resource die al 5 diagnostische instellingen heeft, moet er eerst een worden verwijderd. Voer de opdracht daarna opnieuw uit.
+:::
+
+:::details Het activiteitenlogboek of de logboeken van Microsoft Entra ID zijn overgeslagen
+De opdracht zegt wat Azure vroeg. De diagnostische instelling van een abonnement vereist `Microsoft.Insights/diagnosticSettings/write` op het abonnement, een recht dat de Owner, Contributor en Monitoring Contributor ervan hebben, en die van de tenant vereist een Security Administrator van de tenant. Beide vereisen `Microsoft.EventHub/namespaces/authorizationRules/listKeys/action` op de resourcegroep die de opdracht aanmaakt, een recht dat de Owner en Contributor ervan hebben. Voer de opdracht daarna opnieuw uit.
 :::
 
 ## Volgende stappen

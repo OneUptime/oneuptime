@@ -216,6 +216,13 @@ export interface PreparedMutation {
         toldModel: string;
         // What the action's record says of it (resultSummary), in English.
         summary: string;
+        /*
+         * The same, as a sentence of Types/AI/AIActionWords, which the
+         * action's Skipped row says under its title in the reader's
+         * language (issue #6982): a code change's. Left out, the row is
+         * its status and title, as it always was.
+         */
+        reason?: AIActionSentence | undefined;
       }
     | undefined;
 }

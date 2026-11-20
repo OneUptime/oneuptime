@@ -65,7 +65,7 @@ Sidemenyen til en tjeneste har seks seksjoner:
 | **Telemetri** | **Logger**, **Sikkerhetshendelser**, **Spor**, **Målinger**, **Profiler**, **Unntak** og **Source maps**, allerede filtrert til denne tjenesten. |
 | **Aktivitet** | **Hendelser**, **Varsler** og hendelser under **Planlagt vedlikehold** som berører den. |
 | **Sikkerhet** | **Datasikkerhet**: de sensitive dataene i tjenestens logger, spor og unntak, og hva som må rettes ([Sensitive data i telemetri](/docs/data-security/telemetry)). **Samsvar**: hvordan de dataene står mot hvert rammeverk, med en bryter som slår av et rammeverk eller et krav for denne tjenesten ([Samsvar i Datasikkerhet](/docs/data-security/compliance#på-siden-til-en-ressurs)). Seksjonen vises når Datasikkerhet har skannet tjenestens telemetri, og er slått sammen fra start. |
-| **Utvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter**: tjenesten styrt fra kode. Seksjonen er slått sammen fra start. |
+| **Utvikler** | **Terraform**, **Crossplane**, **API**, **CLI** og **AI-assistenter**: tjenesten styrt fra kode. Seksjonen er slått sammen fra start. |
 | **Avansert** | **Innstillinger**, **Revisjonslogger** og **Slett tjeneste**. **Avansert** er lukket i starten: åpne den først. |
 
 Ved siden av navnet viser **Oversikt** for en tjeneste om telemetrien kommer: **Mottar data** så lenge noe har kommet de siste 30 minuttene, **Ingen nylige data** når ingenting kommer lenger, og **Venter på data** før den første telemetrien. En tjeneste som bare sender spans mens den behandler forespørsler, viser **Ingen nylige data** når ingen kaller den, så det alene er ikke en feil.

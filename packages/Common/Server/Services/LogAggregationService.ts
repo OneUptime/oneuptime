@@ -3,6 +3,8 @@ import {
   Statement,
   escapeIlikePattern,
 } from "../Utils/AnalyticsDatabase/Statement";
+import TelemetryHistogramBuckets from "../Utils/Telemetry/TelemetryHistogramBuckets";
+import Timezone from "../../Types/Timezone";
 import { appendAttributeFilters } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
 import {
   getQuerySettings,
@@ -28,6 +30,13 @@ import {
   buildLogErrorPatternExpression,
   clampLogErrorPattern,
 } from "../Utils/Telemetry/LogErrorPatternSql";
+import LogNumericAttributeSql from "../Utils/Telemetry/LogNumericAttributeSql";
+import AggregationType from "../../Types/BaseDatabase/AggregationType";
+import {
+  getLogAnalyticsNumericAggregationType,
+  LOG_ANALYTICS_AGGREGATIONS,
+  LogAnalyticsAggregation,
+} from "../../Types/Log/LogAnalyticsAggregation";
 
 export interface HistogramBucket {
   time: string;
@@ -57,6 +66,12 @@ export interface HistogramRequest {
   startTime: Date;
   endTime: Date;
   bucketSizeInMinutes: number;
+  /*
+   * The reader's zone (a name the Timezone list holds): a bar of a day
+   * starts at its midnight, not UTC's (TelemetryHistogramBuckets, #7923).
+   * Every shorter bar, and a day bar without it, is counted from the epoch.
+   */
+  timezone?: Timezone | undefined;
   serviceIds?: Array<ObjectID> | undefined;
   // Resources whose rows are left out whatever else matches.
   excludedServiceIds?: Array<ObjectID> | undefined;
@@ -119,31 +134,45 @@ export interface FacetRequest {
 
 export type AnalyticsChartType = "timeseries" | "toplist" | "table";
 /*
- * What a row counts: its rows, the distinct values of `aggregationField`,
- * or the total of `aggregationField` read as a number - the frames a mobile
- * app's app.jank events report in app.jank.frame_count (#9588), where one
- * event stands for several frames.
+ * What a row measures: its rows, the distinct values of `aggregationField`,
+ * or `aggregationField` read as a number and summed, averaged, its minimum,
+ * its maximum or a percentile of it (Types/Log/LogAnalyticsAggregation) -
+ * the duration_ms of a request, or the frames a mobile app's app.jank events
+ * report in app.jank.frame_count (#9588), where one event stands for several
+ * frames.
  */
-export type AnalyticsAggregation = "count" | "unique" | "sum";
+export type AnalyticsAggregation = LogAnalyticsAggregation;
 
-export const ANALYTICS_AGGREGATIONS: ReadonlyArray<AnalyticsAggregation> = [
-  "count",
-  "unique",
-  "sum",
-];
+export const ANALYTICS_AGGREGATIONS: ReadonlyArray<AnalyticsAggregation> =
+  LOG_ANALYTICS_AGGREGATIONS;
 
 export interface AnalyticsRequest {
   projectId: ObjectID;
   startTime: Date;
   endTime: Date;
   bucketSizeInMinutes: number;
+  /*
+   * The reader's zone (a name the Timezone list holds): a bar of a day
+   * starts at its midnight, not UTC's (TelemetryHistogramBuckets, #7923).
+   * Every shorter bar, and a day bar without it, is counted from the epoch.
+   */
+  timezone?: Timezone | undefined;
   chartType: AnalyticsChartType;
   groupBy?: Array<string> | undefined;
   aggregation: AnalyticsAggregation;
+  /*
+   * The field a unique count counts the values of, or the numeric
+   * attribute every other aggregation but a count reads.
+   */
   aggregationField?: string | undefined;
   serviceIds?: Array<ObjectID> | undefined;
   // Resources whose rows are left out whatever else matches.
   excludedServiceIds?: Array<ObjectID> | undefined;
+  /*
+   * Entity keys a row must carry one of, as the histogram's: a host's, a
+   * pod's or a container's own Logs tab charts only that resource's logs.
+   */
+  entityKeys?: Array<string> | undefined;
   /*
    * Resource-facet selections (host / Kubernetes cluster / Proxmox
    * cluster / ... — any ResourceFacetCatalog type) already resolved to
@@ -169,6 +198,11 @@ export interface AnalyticsRequest {
   limit?: number | undefined;
 }
 
+/*
+ * A row's `count` is what it measures - its logs, the unique values, or the
+ * sum, average, minimum, maximum or percentile of a numeric attribute - as
+ * a sum's total has always come back in it.
+ */
 export interface AnalyticsTimeseriesRow {
   time: string;
   count: number;
@@ -476,8 +510,6 @@ export class LogAggregationService {
   }
 
   private static buildHistogramStatement(request: HistogramRequest): Statement {
-    const intervalSeconds: number = request.bucketSizeInMinutes * 60;
-
     /*
      * Two-stage aggregation mirroring TraceAggregationService.getHistogram.
      * The inner query groups by toStartOfInterval(time, INTERVAL 1 MINUTE) —
@@ -487,7 +519,10 @@ export class LogAggregationService {
      * column the aggregate projection does not store, so ClickHouse rejects
      * the projection and full-scans (verified: 2.1M rows / ~46ms vs 978 rows /
      * ~7ms with this form). The outer query re-buckets the tiny minute-level
-     * result to the requested size. The start edge rounds down to the minute,
+     * result to the requested size - a day bar from the reader's midnight
+     * when the request names their zone, exact because every zone's offset is
+     * a whole number of minutes (TelemetryHistogramBuckets). The start edge
+     * rounds down to the minute,
      * which is consistent with the minute-bucketed output and only widens the
      * first bucket by the partial boundary minute when the range is not
      * minute-aligned.
@@ -505,10 +540,17 @@ export class LogAggregationService {
      */
     const statement: Statement = SQL`
       SELECT
-        toStartOfInterval(minute, INTERVAL ${{
-          type: TableColumnType.Number,
-          value: intervalSeconds,
-        }} SECOND) AS bucket,
+        `;
+
+    statement.append(
+      TelemetryHistogramBuckets.buildBucketStatement({
+        timestampExpression: "minute",
+        bucketSizeInMinutes: request.bucketSizeInMinutes,
+        timezone: request.timezone,
+      }),
+    );
+
+    statement.append(SQL` AS bucket,
         severityText,
         sum(cnt_minute) AS cnt
       FROM (
@@ -529,7 +571,7 @@ export class LogAggregationService {
             type: TableColumnType.DateTime64,
             value: request.endTime,
           }}
-    `;
+    `);
 
     LogAggregationService.appendCommonFilters(statement, request);
 
@@ -846,11 +888,12 @@ export class LogAggregationService {
   }
 
   /*
-   * What a row counts: its rows, or the distinct values of one field. A
-   * top-level column is one of TOP_LEVEL_COLUMNS, named as it is; an
-   * attribute key is bound as a query parameter, as every other attribute
-   * read in this service binds it, so no character of it is ever read as
-   * SQL (validateFacetKey limits the key as well).
+   * What a row measures: its rows, the distinct values of one field, or an
+   * aggregate of one numeric attribute. A top-level column is one of
+   * TOP_LEVEL_COLUMNS, named as it is; an attribute key is bound as a query
+   * parameter, as every other attribute read in this service binds it, so
+   * no character of it is ever read as SQL (validateFacetKey limits the key
+   * as well).
    */
   private static getAggregationExpression(
     request: AnalyticsRequest,
@@ -862,34 +905,95 @@ export class LogAggregationService {
         return new Statement().append(`uniqExact(${request.aggregationField})`);
       }
 
-      return SQL`uniqExact(attributes[${{
+      /*
+       * The values of the logs that carry the attribute. A log without it
+       * reads '' from the map, and was counted as one more value: three
+       * logs, two users and a log with no user.id made three unique users.
+       */
+      return SQL`uniqExactIf(attributes[${{
         type: TableColumnType.Text,
         value: request.aggregationField,
-      }}])`;
+      }}], mapContains(attributes, ${{
+        type: TableColumnType.Text,
+        value: request.aggregationField,
+      }}))`;
     }
 
     /*
-     * A total of a field read as a number. Attribute values are stored as
-     * text, so each is read with toFloat64OrZero: a value that is no number,
-     * or a row that lacks the attribute, adds nothing rather than failing
-     * the read.
+     * The sum, average, minimum, maximum or a percentile of an attribute
+     * read as a number, over the logs whose value is a finite number
+     * (appendAggregationFilter leaves the others out): what counts as a
+     * number is LogNumericAttributeSql's, which a log recording rule reads
+     * too.
      */
-    if (request.aggregation === "sum" && request.aggregationField) {
-      LogAggregationService.validateFacetKey(request.aggregationField);
+    const numeric: { aggregationType: AggregationType; field: string } | null =
+      LogAggregationService.getNumericAggregation(request);
 
-      if (LogAggregationService.isTopLevelColumn(request.aggregationField)) {
-        return new Statement().append(
-          `sum(toFloat64OrZero(toString(${request.aggregationField})))`,
-        );
-      }
-
-      return SQL`sum(toFloat64OrZero(attributes[${{
-        type: TableColumnType.Text,
-        value: request.aggregationField,
-      }}]))`;
+    if (numeric) {
+      return LogNumericAttributeSql.buildAggregateExpression(
+        numeric.aggregationType,
+        numeric.field,
+      );
     }
 
     return new Statement().append("count()");
+  }
+
+  /*
+   * The rows an aggregation reads: an aggregate of a number reads only the
+   * logs whose attribute is a finite number. A log without it, or with
+   * "n/a", "12ms" or "nan" in it, is left out - never read as 0, never
+   * failing the chart. A group or a time bucket with no such log has no
+   * value, rather than a 0 nobody measured.
+   */
+  private static appendAggregationFilter(
+    statement: Statement,
+    request: AnalyticsRequest,
+  ): void {
+    const numeric: { aggregationType: AggregationType; field: string } | null =
+      LogAggregationService.getNumericAggregation(request);
+
+    if (numeric) {
+      LogNumericAttributeSql.appendIsNumberFilter(statement, numeric.field);
+    }
+  }
+
+  /*
+   * The aggregate a request's numeric aggregation computes and the
+   * attribute it reads, or null for a count and a unique count. Refused
+   * without a field, and for one of a log's own fields - its severity,
+   * service, trace and span hold no number.
+   */
+  private static getNumericAggregation(
+    request: AnalyticsRequest,
+  ): { aggregationType: AggregationType; field: string } | null {
+    const aggregationType: AggregationType | null =
+      getLogAnalyticsNumericAggregationType(request.aggregation);
+
+    if (!aggregationType) {
+      return null;
+    }
+
+    const field: unknown = request.aggregationField;
+
+    if (field === undefined || field === null || field === "") {
+      throw new BadDataException(
+        "A sum, an average, a minimum, a maximum or a percentile reads a numeric log attribute. Set aggregationField to its key, such as duration_ms.",
+      );
+    }
+
+    LogAggregationService.validateFacetKey(field);
+
+    if (
+      LogAggregationService.isTopLevelColumn(field) ||
+      LogAggregationService.RESOURCE_FACET_KEYS.has(field)
+    ) {
+      throw new BadDataException(
+        "A sum, an average, a minimum, a maximum or a percentile reads a numeric log attribute, such as duration_ms. A log's severity, service, trace and span hold no number.",
+      );
+    }
+
+    return { aggregationType, field };
   }
 
   private static validateGroupBy(groupBy: Array<string> | undefined): void {
@@ -913,16 +1017,21 @@ export class LogAggregationService {
   ): Statement {
     LogAggregationService.validateGroupBy(request.groupBy);
 
-    const intervalSeconds: number = request.bucketSizeInMinutes * 60;
     const aggExpr: Statement =
       LogAggregationService.getAggregationExpression(request);
 
+    // A day from the reader's midnight, when the request names their zone.
     const statement: Statement = SQL`
       SELECT
-        toStartOfInterval(time, INTERVAL ${{
-          type: TableColumnType.Number,
-          value: intervalSeconds,
-        }} SECOND) AS bucket`;
+        `
+      .append(
+        TelemetryHistogramBuckets.buildBucketStatement({
+          timestampExpression: "time",
+          bucketSizeInMinutes: request.bucketSizeInMinutes,
+          timezone: request.timezone,
+        }),
+      )
+      .append(" AS bucket");
 
     statement.append(", ").append(aggExpr).append(" AS cnt");
 
@@ -950,6 +1059,8 @@ export class LogAggregationService {
     statement.append(LogAggregationService.RETENTION_FILTER);
 
     LogAggregationService.appendCommonFilters(statement, request);
+
+    LogAggregationService.appendAggregationFilter(statement, request);
 
     statement.append(" GROUP BY bucket");
 
@@ -1033,6 +1144,8 @@ export class LogAggregationService {
 
     LogAggregationService.appendCommonFilters(statement, request);
 
+    LogAggregationService.appendAggregationFilter(statement, request);
+
     statement.append(
       SQL` GROUP BY val ORDER BY cnt DESC LIMIT ${{
         type: TableColumnType.Number,
@@ -1090,6 +1203,8 @@ export class LogAggregationService {
     statement.append(LogAggregationService.RETENTION_FILTER);
 
     LogAggregationService.appendCommonFilters(statement, request);
+
+    LogAggregationService.appendAggregationFilter(statement, request);
 
     // Build GROUP BY from aliases
     const aliases: Array<string> = groupByKeys.map((key: string) => {

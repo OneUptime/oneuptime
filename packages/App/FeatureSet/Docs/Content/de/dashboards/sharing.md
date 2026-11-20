@@ -1,10 +1,11 @@
 # Teilen & öffentliche Dashboards
 
-Standardmäßig ist ein Dashboard privat für Ihr Projekt: Nur Personen, die sich in Ihrem Projekt anmelden, können es sehen. Sie können es auch über einen öffentlichen Link teilen, diesen Link mit einem Passwort schützen, ihn auf bestimmte IP-Adressen beschränken und ihn unter Ihrer eigenen Domain bereitstellen. Diese Seite behandelt alle vier.
+Standardmäßig ist ein Dashboard privat für Ihr Projekt: Nur Personen, die sich in Ihrem Projekt anmelden, können es sehen. Sie können es auch über einen öffentlichen Link teilen, diesen Link mit einem Passwort schützen oder seine Besucher zur Anmeldung auffordern, ihn auf bestimmte IP-Adressen beschränken und ihn unter Ihrer eigenen Domain bereitstellen. Diese Seite behandelt all das.
 
 :::cards
-- [Wer ein Dashboard sehen kann](#wer-ein-dashboard-sehen-kann): Eine Wahl aus dreien, mit dem Tarif, den jede braucht.
+- [Wer ein Dashboard sehen kann](#wer-ein-dashboard-sehen-kann): Eine Wahl aus vieren, mit dem Tarif, den jede braucht.
 - [Mit einem Passwort teilen](#mit-einem-passwort-teilen): Teilen Sie den Link und dann das Passwort mit den Personen, die es sehen sollen.
+- [Nur angemeldete Personen](#nur-angemeldete-personen): Laden Sie die Personen ein, die es öffnen dürfen, oder lassen Sie Ihr Single Sign-On sie anmelden.
 - [IP-Zulassungsliste](#ip-zulassungsliste): Den öffentlichen Link nur für Ihr Büro oder VPN öffnen.
 - [Eigene Domains](#eigene-domains): Das Dashboard unter Ihrer eigenen Domain bereitstellen, mit einem kostenlosen Zertifikat.
 :::
@@ -18,10 +19,13 @@ flowchart TB
     visit["Ein Besucher öffnet<br/>den öffentlichen Link"] --> shared("Ist das Dashboard<br/>öffentlich geteilt?")
     shared -->|"Nein"| missing["Eine Seite<br/>„nicht gefunden“"]
     shared -->|"Ja"| allowed("Steht seine Adresse<br/>auf der IP-Liste?")
-    allowed -->|"Ja, oder<br/>keine Liste"| locked("Ist ein Passwort<br/>nötig?")
+    allowed -->|"Ja, oder<br/>keine Liste"| signin("Müssen Besucher<br/>sich anmelden?")
     allowed -->|"Nein"| denied["Eine Seite<br/>Access Denied"]
+    signin -->|"Ja"| signinpage["Die Anmelde-<br/>seite"]
+    signinpage --> board["Das Dashboard"]
+    signin -->|"Nein"| locked("Ist ein Passwort<br/>nötig?")
     locked -->|"Ja"| prompt["Die Passwort-<br/>abfrage"]
-    prompt --> board["Das Dashboard"]
+    prompt --> board
     locked -->|"Nein"| board
 ```
 
@@ -32,14 +36,15 @@ flowchart TB
 - **Nur Personen in diesem Projekt** (Standard): Mitglieder sehen das Dashboard, wenn sie sich bei OneUptime anmelden. Es hat keinen öffentlichen Link: Seine öffentliche Adresse zeigt dieselbe Seite „nicht gefunden“ wie eine Adresse ohne Dashboard und nichts über das Dashboard, nicht einmal seinen Namen.
 - **Alle mit dem Link**: Das Dashboard ist öffentlich. Wer seinen Link hat, kann es sehen, ohne sich anzumelden.
 - **Alle mit dem Link und einem Passwort**: Besucher öffnen den Link und geben dann ein Passwort ein, das Sie mit ihnen teilen. Niemand braucht ein Konto.
+- **Nur angemeldete Personen**: Das Dashboard hat einen öffentlichen Link, und nur die Personen, die Sie wählen, öffnen ihn, sobald sie sich dort angemeldet haben: die privaten Benutzer, die Sie einladen, und die Personen, die Ihr Single Sign-On einlässt. Siehe [Nur angemeldete Personen](#nur-angemeldete-personen).
 
-Die Wahl einer Option bittet um Bestätigung, sagt, was sich für Besucher ändert, und gilt dann sofort. Die Wahl von **Alle mit dem Link und einem Passwort** fragt im selben Dialog nach dem Passwort, wenn das Dashboard keines hat; solange sie gewählt ist, ersetzt **Passwort ändern** es. Solange das Dashboard öffentlich ist, stehen die Adressen, unter denen Besucher es öffnen, unter der Wahl: zuerst seine eigenen Domains, dann sein öffentlicher Link, jede mit **Link kopieren**. Eine eigene Domain, die noch nicht erreichbar ist, ist mit **Noch nicht live** markiert, mit dem Grund.
+Die Wahl einer Option bittet um Bestätigung, sagt, was sich für Besucher ändert, und gilt dann sofort. Die Wahl von **Alle mit dem Link und einem Passwort** fragt im selben Dialog nach dem Passwort, wenn das Dashboard keines hat; solange sie gewählt ist, ersetzt **Passwort ändern** es. Solange das Dashboard öffentlich ist, stehen die Adressen, unter denen Besucher es öffnen, unter der Wahl: zuerst seine eigenen Domains, dann sein öffentlicher Link, jede mit **Link kopieren**. Eine eigene Domain, die noch nicht erreichbar ist, ist mit **Noch nicht live** markiert, mit dem Grund. Solange **Nur angemeldete Personen** gewählt ist, sind **Private Benutzer** und **Single Sign-On** darunter einen Klick entfernt.
 
 Innerhalb des Projekts bestimmen Eigentümer und Beschriftungen, wer was sieht — siehe [Dashboard-Konfiguration & Berechtigungen](/docs/dashboards/configuration). Wer das Dashboard sehen, aber nicht bearbeiten darf, sieht die Wahl und kann den öffentlichen Link kopieren, aber nicht ändern.
 
-In OneUptime Cloud braucht das Teilen eines Dashboards den Tarif **Growth**: In einem niedrigeren Tarif zeigen die beiden öffentlichen Optionen den Tarif, den sie brauchen, und können nicht gewählt werden. Ein Dashboard wieder privat zu machen — **Nur Personen in diesem Projekt** — funktioniert in jedem Tarif, sodass ein Dashboard, das nach dem Ende einer Testphase oder nach einem Wechsel in einen niedrigeren Tarif öffentlich geblieben ist, immer aufhören kann, geteilt zu werden; der Dialog sagt, dass erneutes Teilen **Growth** braucht. Der Wechsel zwischen **Alle mit dem Link** und **Alle mit dem Link und einem Passwort** sowie das Ändern des Passworts funktionieren in jedem Tarif. Ein über die API oder Terraform erstelltes Dashboard unterliegt denselben Tarifen: öffentlich erstellt braucht es **Growth**, mit einer IP-Zulassungsliste erstellt **Scale**.
+In OneUptime Cloud braucht das Teilen eines Dashboards den Tarif **Growth**: In einem niedrigeren Tarif zeigen die öffentlichen Optionen den Tarif, den sie brauchen, und können nicht gewählt werden. Ein Dashboard wieder privat zu machen — **Nur Personen in diesem Projekt** — funktioniert in jedem Tarif, sodass ein Dashboard, das nach dem Ende einer Testphase oder nach einem Wechsel in einen niedrigeren Tarif öffentlich geblieben ist, immer aufhören kann, geteilt zu werden; der Dialog sagt, dass erneutes Teilen **Growth** braucht. Der Wechsel zwischen **Alle mit dem Link** und **Alle mit dem Link und einem Passwort** sowie das Ändern des Passworts funktionieren in jedem Tarif. **Nur angemeldete Personen** braucht ebenfalls **Growth**, wie seine privaten Benutzer, und sein Single Sign-On braucht **Scale**; der Wechsel weg davon funktioniert in jedem Tarif, und der Dialog sagt, dass die erneute Wahl **Growth** braucht. Ein über die API oder Terraform erstelltes Dashboard unterliegt denselben Tarifen: öffentlich erstellt braucht es **Growth**, mit einer IP-Zulassungsliste erstellt **Scale**.
 
-Die Wahl wird in drei Spalten gespeichert, die die API und Terraform wie bisher lesen und schreiben: `isPublicDashboard`, `enableMasterPassword` und `masterPassword`. Nur ein öffentliches Dashboard hat einen öffentlichen Link, und seine Besucher werden nach dem Passwort gefragt, wann immer `enableMasterPassword` an ist. Ein öffentliches Dashboard mit `enableMasterPassword` an, aber ohne gesetztes Passwort lässt niemanden über seinen öffentlichen Link hinein: Die Seite **Freigabe** zeigt es als **Alle mit dem Link und einem Passwort**, sagt, dass noch niemand den Link öffnen kann, und bietet **Passwort festlegen** an. Die Wahl von **Nur Personen in diesem Projekt** schaltet auch `enableMasterPassword` aus und behält das Passwort, sodass erneutes Teilen mit Passwort es wiederverwenden kann.
+Die Wahl wird in vier Spalten gespeichert, die die API und Terraform lesen und schreiben: `isPublicDashboard`, `enableMasterPassword`, `masterPassword` und `requireSignIn`. Nur ein öffentliches Dashboard hat einen öffentlichen Link, und seine Besucher werden nach dem Passwort gefragt, wann immer `enableMasterPassword` an ist. Ein öffentliches Dashboard mit `enableMasterPassword` an, aber ohne gesetztes Passwort lässt niemanden über seinen öffentlichen Link hinein: Die Seite **Freigabe** zeigt es als **Alle mit dem Link und einem Passwort**, sagt, dass noch niemand den Link öffnen kann, und bietet **Passwort festlegen** an. Die Wahl von **Nur Personen in diesem Projekt** schaltet auch `enableMasterPassword` aus und behält das Passwort, sodass erneutes Teilen mit Passwort es wiederverwenden kann. Ein öffentliches Dashboard mit `requireSignIn` an fordert seine Besucher zur Anmeldung auf und nie zum Passwort: Die Wahl von **Nur angemeldete Personen** schaltet `enableMasterPassword` aus und behält das Passwort ebenfalls.
 
 ## Öffentliche Dashboards
 
@@ -53,7 +58,7 @@ Ein öffentliches Dashboard:
 
 Behandeln Sie das Teilen eines Dashboards wie das Veröffentlichen einer Webseite. Jedes Widget darauf wird für alle mit dem Link lesbar. Sehen Sie sich an, was auf der Arbeitsfläche ist, bevor Sie es teilen.
 
-Jedes Widget veröffentlicht nur, was es zeichnet, und nur für die Ressourcen, auf die es gerichtet wurde. Ein SLO-Widget zum Beispiel veröffentlicht die Kennzahlen dieses SLO, aber nie seine Definition — siehe [SLO](/docs/dashboards/widgets#slo). Widgets mit externer **Datenquelle** sind die Ausnahme: Sie werden aus einem öffentlichen Dashboard ganz weggelassen statt gezeichnet, weil ihre Konfiguration die Abfrage selbst ist. Einige weitere Widgets können ohne angemeldete Sitzung nicht angezeigt werden und sagen das an ihrer Stelle: [Auf einem öffentlichen Dashboard](/docs/dashboards/widgets#auf-einem-öffentlichen-dashboard) führt sie auf. Sie veröffentlichen nur ihren Titel, nie die Suchen und Filter, mit denen sie ihre Daten lesen. Auch Variablen veröffentlichen nur, was ihre Auswahlfelder zeigen: Die Abfrage einer älteren Abfrage-Variablen wird nie veröffentlicht.
+Jedes Widget veröffentlicht nur, was es zeichnet, und nur für die Ressourcen, auf die es gerichtet wurde. Ein SLO-Widget zum Beispiel veröffentlicht die Kennzahlen dieses SLO, aber nie seine Definition — siehe [SLO](/docs/dashboards/widgets#slo). Widgets mit **Datenquelle** veröffentlichen ihre Daten, nie ihre Abfragen: Ein Widget mit **Metriken dieses Projekts (PromQL)** zeichnet, was die darin gespeicherten Abfragen liefern, ausgeführt über alle Dienste des Projekts, und ein Widget mit externer Datenquelle wird aus einem öffentlichen Dashboard ganz weggelassen statt gezeichnet. Einige weitere Widgets können ohne angemeldete Sitzung nicht angezeigt werden und sagen das an ihrer Stelle: [Auf einem öffentlichen Dashboard](/docs/dashboards/widgets#auf-einem-öffentlichen-dashboard) führt sie auf. Sie veröffentlichen nur ihren Titel, nie die Suchen und Filter, mit denen sie ihre Daten lesen. Auch Variablen veröffentlichen nur, was ihre Auswahlfelder zeigen: Die Abfrage einer älteren Abfrage-Variablen wird nie veröffentlicht.
 
 ## Mit einem Passwort teilen
 
@@ -64,7 +69,19 @@ Verwenden Sie ein Passwort, wenn:
 - Sie mit einem Partner oder Kunden teilen wollen, die URL aber nicht nützlich sein soll, falls sie durchsickert.
 - Das Dashboard „halböffentlich“ ist — offen genug, dass Sie nicht jeden Betrachter als Teammitglied einladen wollen, aber nicht offen genug für das offene Internet.
 
-Für eine stärkere Absicherung (eigene Konten pro Betrachter, ein Prüfpfad, wer was angesehen hat) belassen Sie das Dashboard bei **Nur Personen in diesem Projekt** und laden Sie Betrachter stattdessen als Teammitglieder mit Leserechten ein.
+Für eine stärkere Absicherung (eigene Konten pro Betrachter, ein Prüfpfad, wer was angesehen hat) belassen Sie das Dashboard bei **Nur Personen in diesem Projekt** und laden Sie Betrachter stattdessen als Teammitglieder mit Leserechten ein, oder wählen Sie **Nur angemeldete Personen**.
+
+## Nur angemeldete Personen
+
+Wählen Sie **Nur angemeldete Personen**, damit nur die Personen, die Sie wählen, den öffentlichen Link öffnen. Jeder Besucher trifft zuerst auf eine Anmeldeseite, am öffentlichen Link und auf jeder eigenen Domain. Sie zeigt den Namen, den Seitentitel und das Favicon des Dashboards, in seinem Design, und sonst nichts: nicht seine Widgets und nicht, wer sich anmelden darf. Nach der Anmeldung zeigt das Dashboard, wer angemeldet ist, mit einer Schaltfläche zum Abmelden.
+
+Öffnen Sie **Öffentlicher Link → Private Benutzer** im Seitenmenü des Dashboards, um die Personen, die sich anmelden dürfen, per E-Mail hinzuzufügen. Jede erhält eine Einladung per E-Mail, deren Link sie ein Passwort wählen lässt. Der Link funktioniert 24 Stunden, und der Link für vergessene Passwörter auf der Anmeldeseite sendet einen neuen. Die Tabelle zeigt, wer **Registriert** ist, wessen Einladung **Einladung gesendet** ist und wann jede Person **Zuletzt angemeldet** war. Wer entfernt wird oder ein neues Passwort bekommt, wird bei der nächsten Anfrage überall abgemeldet.
+
+Öffnen Sie **Öffentlicher Link → Single Sign-On**, damit Ihr Identitätsanbieter Personen anmeldet, mit SAML oder OpenID Connect. Jeder Anbieter zeigt die Werte, die Sie in Ihren Identitätsanbieter einfügen. Wen Ihr Identitätsanbieter einlässt, wird bei der ersten Anmeldung ein privater Benutzer. Wird ein Anbieter ausgeschaltet oder gelöscht, werden alle abgemeldet, die er angemeldet hat. **SSO für die Anmeldung erzwingen** schaltet die Anmeldung mit Passwort aus: Alle melden sich dann mit Single Sign-On an, und wer mit einem Passwort angemeldet ist, wird bei der nächsten Anfrage abgemeldet.
+
+Eine Anmeldung gilt, bis sie 30 Tage lang nicht genutzt wird. Ihre Cookies werden nur an die eigene Adresse des Dashboards gesendet, sodass keine andere Website das Dashboard damit lesen oder jemanden abmelden kann. Anmeldeversuche sind für jede Adresse und jedes Konto begrenzt, und die Anmeldeseite und die Seite für vergessene Passwörter antworten gleich, ob sich eine Adresse anmelden darf oder nicht.
+
+Über die API sind private Benutzer und Single-Sign-On-Anbieter eigene Datensätze: `/dashboard-private-user`, `/dashboard-sso` und `/dashboard-oidc`, jeder mit nach ihm benannten Berechtigungen.
 
 ## IP-Zulassungsliste
 
@@ -199,7 +216,7 @@ Um einem eingebetteten Dashboard das Aussehen Ihrer Website zu geben, hängen Si
 
 ## Einen Link senden
 
-Der öffentliche Link öffnet das Dashboard mit seinen gespeicherten Standardwerten. Um einen Link zu senden, der mit einem bestimmten Wert öffnet, hängen Sie die Variable als `?var-<name>=<value>` an, wie es die Adressleiste tut, wenn ein Besucher einen Wert wählt; mehrere Werte werden durch Kommas getrennt. Um es mit einem eigenen Zeitbereich oder einer eigenen automatischen Aktualisierung zu öffnen, hängen Sie auf dieselbe Weise `range` und `refresh` an: `?range=1d&refresh=1m` öffnet es mit dem letzten Tag und aktualisiert es jede Minute, wie es ein Wandbildschirm braucht. `range` nimmt `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` oder `3mo`, und `refresh` nimmt `off`, `5s`, `10s`, `30s`, `1m`, `5m` oder `15m`. Sie haben Vorrang vor den Standardwerten des Dashboards und der eigenen Auswahl des Besuchers, und Besucher können sie trotzdem ändern. Um das Dashboard in einem Design zu öffnen, hängen Sie `theme=light`, `theme=dark` oder `theme=system` an, wie [Einbetten](#einbetten) beschreibt.
+Der öffentliche Link öffnet das Dashboard mit seinen gespeicherten Standardwerten. Um einen Link zu senden, der mit einem bestimmten Wert öffnet, hängen Sie die Variable als `?var-<name>=<value>` an, wie es die Adressleiste tut, wenn ein Besucher einen Wert wählt; mehrere Werte werden durch Kommas getrennt. Um es mit einem eigenen Zeitbereich oder einer eigenen automatischen Aktualisierung zu öffnen, hängen Sie auf dieselbe Weise `range` und `refresh` an: `?range=1d&refresh=1m` öffnet es mit dem letzten Tag und aktualisiert es jede Minute, wie es ein Wandbildschirm braucht. `range` nimmt `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` oder `3mo`, und `refresh` nimmt `off`, `5s`, `10s`, `30s`, `1m`, `5m` oder `15m`. Sie haben Vorrang vor den Standardwerten des Dashboards und der eigenen Auswahl des Besuchers, und Besucher können sie trotzdem ändern. Um das Dashboard in einem Design zu öffnen, hängen Sie `theme=light`, `theme=dark` oder `theme=system` an, wie [Einbetten](#einbetten) beschreibt. Um es bei einem Widget zu öffnen, hängen Sie `widget=` mit der ID des Widgets an, seiner `componentId` im JSON des Dashboards: Das Dashboard scrollt zu diesem Widget und umrandet es einen Moment lang, über den öffentlichen Link wie in OneUptime. Ein Widget, das das Dashboard nicht mehr hat, öffnet es oben und sagt es. Die Links, die OneUptime zu einem Widget erstellt, etwa in einer Warnung, die nennt, was eine Metrik liest, enthalten es bereits.
 
 ## Nächste Schritte
 

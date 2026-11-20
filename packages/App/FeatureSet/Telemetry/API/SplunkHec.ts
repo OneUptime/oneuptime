@@ -11,6 +11,7 @@ import Express, {
 import CompatibleIngestCredential, {
   CompatibleCredentialScheme,
 } from "../Utils/Compatible/CompatibleIngestCredential";
+import { ingestMetricsMiddleware } from "../Middleware/IngestRequestMetrics";
 import SplunkHecIngestService from "../Services/SplunkHecIngestService";
 
 /*
@@ -34,6 +35,12 @@ const credentials: RequestHandler = CompatibleIngestCredential.middleware([
   CompatibleCredentialScheme.Bearer,
 ]);
 
+// OneUptime's own ingest metrics: a HEC request is counted as logs.
+const ingestMetrics: RequestHandler = ingestMetricsMiddleware(
+  "logs",
+  TelemetryIngestSurface.SplunkHec,
+);
+
 const ingestEvents: RequestHandler = (
   req: ExpressRequest,
   res: ExpressResponse,
@@ -53,6 +60,7 @@ const ingestRaw: RequestHandler = (
 router.post(
   "/services/collector",
   TelemetryIngestionDisabled.middleware,
+  ingestMetrics,
   credentials,
   SplunkHecIngestService.setProductType,
   TelemetryIngest.forSurface(TelemetryIngestSurface.SplunkHec),
@@ -62,6 +70,7 @@ router.post(
 router.post(
   "/services/collector/event",
   TelemetryIngestionDisabled.middleware,
+  ingestMetrics,
   credentials,
   SplunkHecIngestService.setProductType,
   TelemetryIngest.forSurface(TelemetryIngestSurface.SplunkHec),
@@ -71,6 +80,7 @@ router.post(
 router.post(
   "/services/collector/event/1.0",
   TelemetryIngestionDisabled.middleware,
+  ingestMetrics,
   credentials,
   SplunkHecIngestService.setProductType,
   TelemetryIngest.forSurface(TelemetryIngestSurface.SplunkHec),
@@ -80,6 +90,7 @@ router.post(
 router.post(
   "/services/collector/raw",
   TelemetryIngestionDisabled.middleware,
+  ingestMetrics,
   credentials,
   SplunkHecIngestService.setProductType,
   TelemetryIngest.forSurface(TelemetryIngestSurface.SplunkHec),

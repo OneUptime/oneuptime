@@ -9,6 +9,8 @@ import React, {
 } from "react";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
+import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
+import Timezone from "Common/Types/Timezone";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -615,6 +617,13 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
 
       setIsVolumeLoading(true);
 
+      // The reader's days, for a window of days (#7923).
+      const timezone: Timezone | undefined =
+        AggregationIntervalUtil.getReaderTimezone({
+          startDate: startDate,
+          endDate: endDate,
+        });
+
       try {
         const result: AggregatedResult =
           await AnalyticsModelAPI.aggregate<SecurityEvent>({
@@ -623,6 +632,7 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
               query: listQuery,
               startDate: startDate,
               endDate: endDate,
+              timezone: timezone,
             }),
           });
 
@@ -635,6 +645,7 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
             result: result,
             startDate: startDate,
             endDate: endDate,
+            timezone: timezone,
           }),
         );
         setVolumeError(undefined);
@@ -1322,6 +1333,7 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
           void fetchVolume();
         }}
         histogramBucketIntervalMs={volume?.intervalMs}
+        histogramBucketTimezone={volume?.bucketTimezone}
         onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
         /*
          * The histogram renders nothing at all when it has no buckets AND no

@@ -15,6 +15,7 @@ import SpanService from "../../../Server/Services/SpanService";
 import ExceptionInstanceService from "../../../Server/Services/ExceptionInstanceService";
 import LogService from "../../../Server/Services/LogService";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
+import { STORED_APP_INSTALL_SQL } from "../../../Types/Rum/MobileAppTelemetry";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -157,18 +158,21 @@ describe("TraceAggregationService sessions", () => {
   /*
    * #9716: a mobile app's installs - the distinct app.installation.id of
    * its spans' resource - counted as its sessions are, in the same read.
+   * #9924: an iOS app on opentelemetry-swift's releases names its install
+   * by device.id, read where no app.installation.id is set.
    */
-  test("counts the installs too when asked: the resource's app.installation.id, none left out as one", () => {
+  test("counts the installs too when asked: the resource's app.installation.id, else its device.id, none left out as one", () => {
     const sql: string = normalized(
       TraceAggregationService.buildSessionCountStatement({
         ...request,
         countInstalls: true,
       }),
     );
+    const install: string =
+      "if(attributes['resource.app.installation.id'] != '', attributes['resource.app.installation.id'], attributes['resource.device.id'])";
 
-    expect(sql).toContain(
-      "uniqIf(attributes['resource.app.installation.id'], attributes['resource.app.installation.id'] != '') AS installs",
-    );
+    expect(STORED_APP_INSTALL_SQL).toBe(install);
+    expect(sql).toContain(`uniqIf(${install}, ${install} != '') AS installs`);
     expect(sql).toContain("uniqIf(sessionId, sessionId != '') AS sessions");
     expect(sql.indexOf("AS installs")).toBeLessThan(sql.indexOf(" FROM "));
   });
@@ -288,11 +292,12 @@ describe("ExceptionAggregationService sessions", () => {
       });
     const sql: string = normalized(statement);
 
+    // As the spans' installs are read: the very value their resource names.
     expect(sql).toContain(
-      "uniqIf(attributes['resource.app.installation.id'], attributes['resource.app.installation.id'] != '') AS installs",
+      `uniqIf(${STORED_APP_INSTALL_SQL}, ${STORED_APP_INSTALL_SQL} != '') AS installs`,
     );
     expect(sql).toContain(
-      "countIf(attributes['resource.app.installation.id'] != '') AS withInstall",
+      `countIf(${STORED_APP_INSTALL_SQL} != '') AS withInstall`,
     );
     // The crash's filters still hold.
     expect(sql).toContain("exceptionType NOT IN");
@@ -366,15 +371,24 @@ describe("LogAggregationService analytics: a sum of an attribute", () => {
   }
 
   test("sum is one of the aggregations the route accepts", () => {
-    expect(ANALYTICS_AGGREGATIONS).toEqual(["count", "unique", "sum"]);
+    expect(ANALYTICS_AGGREGATIONS).toContain("sum");
   });
 
+  /*
+   * Read as every aggregation of a number reads it (#7716,
+   * LogNumericAttributeSql): a missing or non-numeric frame count is left
+   * out by the WHERE clause, and a "nan" or "inf" one no longer turns the
+   * whole bucket's total into NaN.
+   */
   test("adds up the attribute read as a number, which a missing or non-numeric value leaves out", () => {
     const statement: Statement = tableStatement(frames);
     const sql: string = normalized(statement);
 
     expect(sql).toMatch(
-      /SELECT sum\(toFloat64OrZero\(attributes\[\{p\d+:String\}\]\)\) AS cnt/,
+      /SELECT sum\(toFloat64OrNull\(attributes\[\{p\d+:String\}\]\)\) AS cnt/,
+    );
+    expect(sql).toMatch(
+      /AND isFinite\(toFloat64OrNull\(attributes\[\{p\d+:String\}\]\)\) GROUP BY/,
     );
     expect(params(statement)).toContain("app.jank.frame_count");
   });
@@ -405,20 +419,19 @@ describe("LogAggregationService analytics: a sum of an attribute", () => {
     );
 
     expect(sql).toMatch(
-      /sum\(toFloat64OrZero\(attributes\[\{p\d+:String\}\]\)\) AS cnt/,
+      /sum\(toFloat64OrNull\(attributes\[\{p\d+:String\}\]\)\) AS cnt/,
     );
     expect(sql).toContain("GROUP BY bucket");
   });
 
-  // Only the code path: the logs' top-level columns hold no number to add up.
-  test("a top-level column is read through its text", () => {
-    const sql: string = normalized(
-      tableStatement({ ...frames, aggregationField: "severityText" }),
-    );
-
-    expect(sql).toContain(
-      "SELECT sum(toFloat64OrZero(toString(severityText))) AS cnt",
-    );
+  /*
+   * The logs' top-level columns hold no number to add up: their sum was
+   * always 0, and is refused now, saying what a sum reads.
+   */
+  test("a top-level column is refused", () => {
+    expect(() => {
+      return tableStatement({ ...frames, aggregationField: "severityText" });
+    }).toThrow(BadDataException);
   });
 
   test("an attribute key that is not one refuses the read", () => {

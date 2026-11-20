@@ -5,7 +5,7 @@ Un monitor de Kubernetes alerta sobre las métricas que el agente de Kubernetes 
 :::cards
 - [Instalar el agente](/docs/monitor/kubernetes-agent): Un solo comando de Helm lleva el clúster a OneUptime.
 - [Crear el monitor](#crear-un-monitor-de-kubernetes): Elegir el clúster y luego una plantilla, una métrica o una consulta.
-- [Plantillas de alerta](#plantillas-de-alerta-listas-para-usar): Veinticinco alertas listas para usar, de un clúster silencioso a etcd.
+- [Plantillas de alerta](#plantillas-de-alerta-listas-para-usar): Veintiséis alertas listas para usar, de un clúster silencioso a etcd.
 - [Criterios](#criterios-de-monitoreo): Umbrales estáticos y detección de anomalías.
 :::
 
@@ -88,7 +88,7 @@ La pestaña **Custom Metric** ofrece estas métricas, agrupadas por tipo de recu
 | --- | --- |
 | Pod | Consumo de CPU del pod, Uso de memoria del pod, Fase del pod (código), Uso del sistema de archivos del pod, Capacidad del volumen, Espacio libre del volumen, Utilización del límite de memoria del pod, Utilización del límite de CPU del pod, E/S de red del pod (acumulada, ambas direcciones) |
 | Nodo | Consumo de CPU del nodo, CPU asignable del nodo, Uso de memoria del nodo, Working set de memoria del nodo, Uso del sistema de archivos del nodo, Memoria asignable del nodo, Condición Ready del nodo, Condición MemoryPressure del nodo, Condición DiskPressure del nodo, Condición PIDPressure del nodo, Sistema de archivos disponible del nodo, Capacidad del sistema de archivos del nodo |
-| Contenedor | Reinicios del contenedor, Reinicios del contenedor (aumento), Límite de CPU del contenedor, Solicitud de CPU del contenedor, Límite de memoria del contenedor, Solicitud de memoria del contenedor, Contenedor listo |
+| Contenedor | Reinicios del contenedor, Reinicios del contenedor (aumento), Límite de CPU del contenedor, Solicitud de CPU del contenedor, Límite de memoria del contenedor, Solicitud de memoria del contenedor, Contenedor listo, Sistema de archivos disponible del contenedor, Capacidad del sistema de archivos del contenedor |
 | Carga de trabajo | Réplicas disponibles del Deployment, Réplicas deseadas del Deployment, Nodos deseados del DaemonSet, Nodos mal programados del DaemonSet, Nodos listos del DaemonSet, Réplicas deseadas del StatefulSet, Réplicas listas del StatefulSet, Pods fallidos del Job, Pods fallidos del Job (aumento), Pods correctos del Job |
 | HPA | Réplicas actuales del HPA, Réplicas deseadas del HPA, Réplicas máximas del HPA, Réplicas mínimas del HPA |
 | Plano de control | etcd tiene líder, Solicitudes en curso del servidor de API, Pods pendientes del programador |
@@ -149,7 +149,8 @@ La lista de **Sobre qué alertar** enumera estas plantillas, agrupadas por categ
 | etcd No Leader | Plano de control | etcd no tiene un líder elegido | Crítico |
 | API Server Request Saturation | Plano de control | El servidor de API mantiene 200 o más solicitudes en curso durante toda la ventana | Crítico |
 | Scheduler Backlog | Programación | La cola de pods pendientes del scheduler no está vacía durante 5 minutos | Advertencia |
-| High Node Disk Usage | Almacenamiento | El sistema de archivos de un nodo está lleno en más del 90 % | Advertencia |
+| High Node Disk Usage | Almacenamiento | El sistema de archivos de un nodo está lleno en más del 85 % | Advertencia |
+| Node Image Disk Almost Full | Almacenamiento | El disco donde un nodo guarda sus imágenes de contenedor está lleno en más del 85 % | Advertencia |
 | PVC Almost Full | Almacenamiento | Una reclamación de volumen persistente está llena en más del 90 % | Advertencia |
 | DaemonSet Pods Not Ready | Carga de trabajo | Un DaemonSet tiene nodos sin un pod suyo listo durante 15 minutos | Advertencia |
 | DaemonSet Misscheduled Nodes | Carga de trabajo | Un DaemonSet ejecuta pods en nodos que ya no coinciden con su selector de nodos, su afinidad o sus tolerancias | Advertencia |
@@ -167,6 +168,8 @@ Las plantillas sobre métricas por objeto evalúan cada nodo, pod, deployment, j
 Las plantillas de costos leen las métricas que OneUptime escribe a partir de las filas de costos por hora del agente, un punto por hora, así que suman el último día; sus presupuestos están en la moneda del clúster, USD por defecto.
 
 **High Node CPU Request Commitment** y **High Node Memory Request Commitment** solo cuentan las solicitudes (requests) de los pods que no han terminado, como hace el planificador. El clúster sigue informando las solicitudes de un pod en Succeeded o Failed, como el de un Job terminado, hasta que se elimina el pod: esas no se cuentan.
+
+**Node Image Disk Almost Full** lee el disco en el que, según el kubelet, cada contenedor en ejecución escribe sus propios archivos, porque el agente no informa por sí mismo del disco de imágenes de un nodo. En las distribuciones habituales es el disco de imágenes, pero no en todos los nodos: donde un nodo guarda sus imágenes en su sistema de archivos raíz, como la mayoría, es el sistema de archivos raíz, así que la plantilla se dispara junto con **High Node Disk Usage**; con el sistema de archivos de imágenes dividido del kubelet (`KubeletSeparateDiskGC`) es el disco en el que escriben los contenedores y no el de las imágenes; y un nodo sin contenedores en ejecución no informa de nada. Las recomendaciones de un clúster la ofrecen cuando algún nodo guarda sus imágenes en un disco propio, lo que la lista de nodos muestra entonces en la columna **Disco de imágenes**; la lista de **Sobre qué alertar** la incluye para cualquier clúster. De forma predeterminada, el kubelet elimina las imágenes sin usar cuando un disco que guarda las imágenes está lleno al 85 % y desaloja pods cuando queda libre menos del 15 %, así que esta plantilla y **High Node Disk Usage** se disparan al 85 % y vuelven a poner el monitor en línea al 80 %, el nivel al que la limpieza de imágenes deja el disco. En un nodo cuyas imágenes tienen un disco propio, el kubelet desaloja pods por su sistema de archivos raíz desde el 90 %, así que allí **High Node Disk Usage** se dispara antes de que empiece el desalojo.
 
 **Cluster Stopped Reporting** se dispara cuando no llega nada del agente del clúster durante diez minutos: el agente se desinstaló o se cae una y otra vez, se revocó su clave de API, perdió su conexión con OneUptime, o el servidor de API del clúster dejó de responderle. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
 

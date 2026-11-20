@@ -12,6 +12,7 @@ import RelationValueUtil from "../Utils/Database/RelationValueUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SecurityWatchlists from "../Utils/SecurityEvent/Watchlists/SecurityWatchlists";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NameTakenException from "../../Types/Exception/NameTakenException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -421,8 +422,9 @@ export class Service extends ProjectReferencesService<Model> {
       },
     });
 
+    // With the code a program tells a taken name by (#10065).
     if (clash && clash.id?.toString() !== row.id?.toString()) {
-      throw new BadDataException(
+      throw new NameTakenException(
         `This project already has a watchlist named ${newName}.`,
       );
     }
@@ -439,6 +441,14 @@ export class Service extends ProjectReferencesService<Model> {
         )}. Change the name there first, then rename the list.`,
       );
     }
+  }
+
+  /*
+   * A rename onto another watchlist's name is refused above, in its own
+   * words: the generic check of an update leaves the name out (#10318).
+   */
+  protected override getUniqueColumnsCheckedOnUpdate(): ReadonlyArray<string> {
+    return ["name"];
   }
 
   /*

@@ -128,7 +128,7 @@ describe("a test page's email", () => {
 
   test("renders the vars the delivery hands it", async () => {
     jest
-      .spyOn(OnCallPageLinks, "getEmailAcknowledgePageUrl")
+      .spyOn(OnCallPageLinks, "getAcknowledgePageUrl")
       .mockResolvedValue(URL.fromString(ACKNOWLEDGE_LINK) as never);
 
     const message: { vars: Record<string, string> } =

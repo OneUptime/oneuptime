@@ -10,6 +10,7 @@ import {
   CosmosLatencyEvidence,
   RetiredCloudMetric,
   RetiredCloudMetricFormula,
+  RetiredCloudMetricNotice,
   RetiredCloudMetricOutcome,
   RetiredCloudMetricQuery,
   RetiredCloudMetricRead,
@@ -20,6 +21,7 @@ import {
   getFilterData,
   getRetiredCloudMetric,
   getRetiredCloudMetricFormulas,
+  getRetiredCloudMetricNoticesOfNames,
   moveRetiredCloudMetricReads,
   readRetiredCloudMetricQueryConfig,
   toRetiredCloudMetricQuery,
@@ -334,6 +336,29 @@ function readComponent(
   }
 
   return [];
+}
+
+/*
+ * WHAT ONE WIDGET SAYS OF THE DEPRECATED METRICS IT READS (#10027): a
+ * Value's or a Gauge's query, a Table's metric columns and older queries,
+ * a Chart's queries - read exactly as the moves read them, so a widget
+ * says so of every query the hourly job would try to move, and of no
+ * other. Each deprecated metric once, as its queries name it.
+ */
+export function getRetiredCloudMetricNoticesOfWidget(
+  component: unknown,
+): Array<RetiredCloudMetricNotice> {
+  const record: UnknownRecord | undefined = asRecord(component);
+
+  if (!record) {
+    return [];
+  }
+
+  return getRetiredCloudMetricNoticesOfNames(
+    readComponent(record).map((read: RetiredCloudMetricRead): string => {
+      return read.metricName;
+    }),
+  );
 }
 
 // Every query of a stored dashboard that reads a metric its cloud deprecates, in order.

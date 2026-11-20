@@ -53,7 +53,7 @@ Une série temporelle d'une ou plusieurs requêtes de métriques sur la plage te
 
 Chaque requête dessine son propre graphique, les uns sous les autres dans le widget. Pour dessiner plutôt une requête sur le graphique de la requête qui la précède, comme d'autres courbes sur les mêmes axes, activez **Superposer à la requête précédente** dans ses **Paramètres d'affichage** : par exemple `mem_used` et `mem_total` sur un même graphique. Chaque requête après la première a cet interrupteur, et chaque requête où il est activé rejoint le même graphique, si bien que trois requêtes ou plus peuvent en partager un. Désactivez-le pour redonner à la requête son propre graphique.
 
-Un graphique superposé prend son titre, son type de graphique et son axe des valeurs à sa première requête, si bien que chaque requête y est lue dans l'unité de celle-ci. Une requête dans une autre unité du même genre est dessinée dans l'unité du graphique, comme des mégaoctets sur un graphique en gigaoctets, ou des secondes sur un graphique en millisecondes. Une unité d'un autre genre ne se lit pas sur cet axe, comme des octets sur un graphique en pourcentage : la requête y est quand même dessinée, et le graphique comme l'interrupteur indiquent que les unités diffèrent, alors donnez à une telle requête son propre graphique.
+Un graphique superposé prend son titre, son type de graphique et son axe des valeurs de gauche à sa première requête, si bien qu'une requête y est lue dans l'unité de celle-ci quand c'est possible. Une requête dans une autre unité du même genre est dessinée dans l'unité du graphique, comme des mégaoctets sur un graphique en gigaoctets, ou des secondes sur un graphique en millisecondes. Une requête dans une unité d'un autre genre, comme des octets sur un graphique en pourcentage, est dessinée sur un second axe des valeurs à droite du graphique, dans sa propre unité, et l'interrupteur l'indique. La légende sous le graphique nomme l'unité de chaque axe et l'axe sur lequel chaque série est dessinée. Seul un troisième genre d'unité ne correspond à aucun des deux axes : il est dessiné sur une échelle propre, sans axe, et le graphique comme l'interrupteur l'indiquent. Lisez ses valeurs dans la légende et l'info-bulle, ou donnez à une telle requête son propre graphique pour la lire sur un axe.
 
 Utilisez-le quand la forme de la courbe raconte l'histoire : latence, erreurs, débit ou profondeur de file d'attente.
 
@@ -250,7 +250,7 @@ Par l'API et Terraform, l'ordre est le `arguments.sort` du widget : une colonne 
 Un [tableau de bord public](/docs/dashboards/sharing) dessine la plupart des widgets pour ses visiteurs, chacun ne montrant que ce pour quoi il a été configuré. Quelques-uns ne peuvent pas s'afficher sans session connectée :
 
 - **Graphique de journaux**, **Graphique de traces**, **Tableau des traces**, **Événements de sécurité**, **Flux des événements de sécurité**, **Entonnoir** et **Rétention des utilisateurs** indiquent à leur place qu'ils ne sont pas disponibles sur les tableaux de bord publics.
-- Les widgets du groupe External Data Sources sont entièrement retirés d'un tableau de bord public, car leurs paramètres sont la requête elle-même.
+- Les widgets du groupe External Data Sources montrent leurs données quand ils lisent **Métriques de ce projet (PromQL)**, jamais leurs requêtes. Un widget à source de données externe est entièrement retiré d'un tableau de bord public.
 
 ## Quand un widget ne peut pas être affiché
 

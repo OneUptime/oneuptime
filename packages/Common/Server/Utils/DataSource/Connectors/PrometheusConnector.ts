@@ -24,6 +24,7 @@ import {
   DataSourceQueryWindow,
 } from "../Types";
 import { withoutTrailingSlashes } from "../../../../Utils/TrailingRuns";
+import { applyGrafanaIntervalMacros } from "../../../../Utils/PromQL/PromQLGrafanaMacros";
 
 /*
  * Connector for Prometheus-compatible HTTP APIs (Prometheus, Thanos,
@@ -195,6 +196,52 @@ interface SeriesEntry {
   pairs: Array<unknown>;
 }
 
+// The same labels, whatever order they are in.
+const getAttributesKey: (
+  attributes: Record<string, string> | undefined,
+) => string = (attributes: Record<string, string> | undefined): string => {
+  return JSON.stringify(
+    Object.keys(attributes || {})
+      .sort()
+      .map((name: string): [string, string] => {
+        return [name, attributes![name]!];
+      }),
+  );
+};
+
+/*
+ * Series that only their metric names tell apart keep __name__ among
+ * their labels. Without it, `{__name__=~"a|b", job="x"}`'s two series both
+ * read as {job="x"}, and a chart drew them as one line whose points jump
+ * between the two. A PromQL monitor names the series it judges the same
+ * way (getPromQLMonitorSeriesNames), so its charts draw each of them.
+ */
+function keepNamesThatTellSeriesApart(
+  entries: Array<SeriesEntry & { metricName: string | undefined }>,
+): Array<SeriesEntry> {
+  const countByKey: Map<string, number> = new Map<string, number>();
+
+  for (const entry of entries) {
+    const key: string = getAttributesKey(entry.attributes);
+    countByKey.set(key, (countByKey.get(key) || 0) + 1);
+  }
+
+  return entries.map(
+    (entry: SeriesEntry & { metricName: string | undefined }): SeriesEntry => {
+      const isAmbiguous: boolean =
+        (countByKey.get(getAttributesKey(entry.attributes)) || 0) > 1;
+
+      return {
+        attributes:
+          isAmbiguous && entry.metricName
+            ? { ...(entry.attributes || {}), [NAME_LABEL]: entry.metricName }
+            : entry.attributes,
+        pairs: entry.pairs,
+      };
+    },
+  );
+}
+
 /*
  * Normalize matrix/vector/scalar result payloads into a uniform list of
  * series so cap enforcement lives in one place.
@@ -207,7 +254,7 @@ function collectSeriesEntries(data: UnknownRecord): Array<SeriesEntry> {
     if (!Array.isArray(result)) {
       return [];
     }
-    const entries: Array<SeriesEntry> = [];
+    const entries: Array<SeriesEntry & { metricName: string | undefined }> = [];
     for (const rawEntry of result) {
       const entry: UnknownRecord | null = asRecord(rawEntry);
       if (!entry) {
@@ -219,12 +266,17 @@ function collectSeriesEntries(data: UnknownRecord): Array<SeriesEntry> {
             ? (entry["values"] as Array<unknown>)
             : []
           : [entry["value"]];
+      const metricName: unknown = asRecord(entry["metric"])?.[NAME_LABEL];
       entries.push({
         attributes: metricToAttributes(entry["metric"]),
         pairs: pairs,
+        metricName:
+          typeof metricName === "string" && metricName !== ""
+            ? metricName
+            : undefined,
       });
     }
-    return entries;
+    return keepNamesThatTellSeriesApart(entries);
   }
 
   if (resultType === "scalar") {
@@ -461,7 +513,15 @@ export default class PrometheusConnector implements DataSourceConnector {
           settings,
           "/api/v1/query_range",
           {
-            query: query,
+            /*
+             * Grafana's interval macros, filled as Grafana fills them
+             * before a query reaches Prometheus (PromQLGrafanaMacros).
+             */
+            query: applyGrafanaIntervalMacros(query, {
+              startDate: window.startDate,
+              endDate: window.endDate,
+              stepInSeconds,
+            }),
             start: String(this.toUnixSeconds(window.startDate)),
             end: String(this.toUnixSeconds(window.endDate)),
             step: String(stepInSeconds),
@@ -486,7 +546,11 @@ export default class PrometheusConnector implements DataSourceConnector {
           settings,
           "/api/v1/query",
           {
-            query: query,
+            query: applyGrafanaIntervalMacros(query, {
+              startDate: window.startDate,
+              endDate: window.endDate,
+              stepInSeconds: window.stepInSeconds,
+            }),
             time: String(this.toUnixSeconds(window.endDate)),
           },
           DATA_SOURCE_QUERY_TIMEOUT_IN_MS,

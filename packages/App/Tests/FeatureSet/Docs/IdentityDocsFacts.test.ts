@@ -85,6 +85,16 @@ const SOURCES: Record<string, string> = {
   ssoGate: `${IDENTITY}/Utils/ProjectSsoSignInGate.ts`,
   ssoIdentityBinding: `${IDENTITY}/Utils/ProjectSsoIdentityBinding.ts`,
   ssoConsent: "packages/Common/Server/Services/UserProjectSsoConsentService.ts",
+  // The invitation's link as the mailbox's confirmation, and its page (#9898).
+  signUpInvitation: `${IDENTITY}/Utils/SignUpInvitation.ts`,
+  authenticationApi: `${IDENTITY}/API/Authentication.ts`,
+  invitedSsoSignIn:
+    "packages/App/FeatureSet/Accounts/src/Components/InvitedSsoSignIn/InvitedSsoSignIn.tsx",
+  // The same for someone invited who has signed up: their link, and its page (#10178).
+  teamMemberService: "packages/Common/Server/Services/TeamMemberService.ts",
+  invitationSsoSignIn: `${IDENTITY}/Utils/InvitationSsoSignIn.ts`,
+  loginWithProjectSso:
+    "packages/App/FeatureSet/Accounts/src/Pages/LoginWithProjectSso.tsx",
   projectSsoPage: `${DASHBOARD}/Pages/Settings/SSO.tsx`,
   // On the SSO page, under its SAML providers.
   projectOidcProviders: `${DASHBOARD}/Components/Sso/ProjectOidcProviders.tsx`,
@@ -555,6 +565,48 @@ describe("the SSO guide", () => {
     );
     expect(english(SSO)).toContain(
       "This happens once per project, and again if they leave the project and come back.",
+    );
+  });
+
+  it("says someone invited with no account yet signs in straight away from the page their invitation opens, its link the proof of the mailbox (#9898)", () => {
+    const confirmation: string = readSource("signUpInvitation");
+
+    // On OneUptime Cloud only, for an account the link can still claim.
+    expect(confirmation).toMatch(
+      /confirmSsoSignInOrSayWhyNot[\s\S]*?if \(!ProjectSsoSignInConfirmation\.isRequired\(\)\) \{[\s\S]*?UserRegistrationToken\.isRegistrationTokenLive\([\s\S]*?if \(!user\?\.id \|\| user\.password\) \{/,
+    );
+    // The link spent, the invitation accepted, the consent recorded: the gate's two halves.
+    expect(confirmation).toMatch(
+      /UserRegistrationToken\.consumeRegistrationToken\([\s\S]*?acceptForClaimedAccount\([\s\S]*?isEmailVerified: true[\s\S]*?UserProjectSsoConsentService\.recordConsent\(/,
+    );
+    expect(readSource("authenticationApi")).toMatch(
+      /SIGN_UP_INVITATION_SSO_ROUTE,\s*signUpInvitationRateLimit,[\s\S]*?SignUpInvitationUtil\.confirmSsoSignIn\(/,
+    );
+    // The page the invitation opens says so before it starts the provider's sign-in.
+    expect(readSource("invitedSsoSignIn")).toMatch(
+      /await confirmSignUpInvitationSsoSignIn\([\s\S]*?Navigation\.navigate\(/,
+    );
+
+    expect(english(SSO)).toContain(
+      "Someone you invite whose sign-in is managed by SSO gets no such email, whether or not they already have a OneUptime account: picking one of the project's providers on the page their invitation opens signs them in straight away, because their invitation's link has already proved the mailbox is theirs.",
+    );
+  });
+
+  it("says someone invited who already has an account signs in straight away too, from the project's SSO page their invitation opens (#10178)", () => {
+    // Their invitation carries a link of its own, on OneUptime Cloud, while SSO manages their sign-in.
+    expect(readSource("teamMemberService")).toMatch(
+      /getSignedUpSsoSignInLink[\s\S]*?if \(data\.ssoManagedBy !== SsoManagedBy\.Projects\) \{[\s\S]*?if \(!IsBillingEnabled \|\| data\.isAccepted \|\| !data\.user\.id\) \{[\s\S]*?InvitationSsoSignInLink\.mint\(/,
+    );
+    // The link spent and the consent recorded with #9898's own checks.
+    expect(readSource("invitationSsoSignIn")).toMatch(
+      /if \(!ProjectSsoSignInConfirmation\.isRequired\(\)\) \{[\s\S]*?InvitationSsoSignInLink\.isSignatureValid\([\s\S]*?SignUpInvitationUtil\.confirmProjectSsoForAccount\(/,
+    );
+    expect(readSource("authenticationApi")).toMatch(
+      /INVITATION_SSO_SIGN_IN_ROUTE,\s*signUpInvitationRateLimit,[\s\S]*?InvitationSsoSignIn\.confirm\(/,
+    );
+    // The project's SSO page says so before it starts the provider's sign-in.
+    expect(readSource("loginWithProjectSso")).toMatch(
+      /await confirmInvitationSsoSignIn\([\s\S]*?Navigation\.navigate\(/,
     );
   });
 

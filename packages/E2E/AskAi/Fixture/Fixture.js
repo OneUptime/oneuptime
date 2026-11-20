@@ -36,6 +36,9 @@
  *                    the conversation since (issue #6570), and one read
  *                    whole in two parts, the first left out since (issue
  *                    #6984);
+ *                    code-skipped, one whose commit of a file changed
+ *                    since Ask AI read it Auto-run did not make: its
+ *                    Skipped row says why under its title (issue #6982);
  *                    monitors, "Which monitors are down right now?"
  *                    answered with two monitors read by id - one
  *                    Offline, one whose monitoring is off - and the
@@ -55,6 +58,9 @@
  *                    first on-call policy, the SMS the person asked for
  *                    missing a number (issue #6829) - whose approved
  *                    parts leave their cards and the test page offer;
+ *                    sending "Monitor example.com every minute and
+ *                    text me if it is down." from an empty Ask AI leaves
+ *                    the same plan on its card (#7251's journey);
  *                    setup-busy, the same in a busy project, which pages
  *                    people already and has a status page: a website
  *                    monitor, and that monitor put on the page;
@@ -122,6 +128,8 @@ import AIRun from "Common/Models/DatabaseModels/AIRun";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import AIChatMessageRole from "Common/Types/AI/AIChatMessageRole";
@@ -132,6 +140,7 @@ import {
   AI_ACTION_CARD_KINDS,
   AI_ACTION_CARD_LINES,
   AI_ACTION_CODE_FILE,
+  AI_ACTION_CODE_NOT_MADE,
   AI_ACTION_LINES,
   AI_ACTION_NAME,
   AI_ACTION_NEW_MONITOR,
@@ -207,6 +216,7 @@ const threadKind = [
   "rich",
   "actions",
   "code",
+  "code-skipped",
   "monitors",
   "readcards",
   "setup",
@@ -255,6 +265,8 @@ window.__askAiFixture = {
     // POST /ai-chat/message-test-page, and GET /on-call-test-page/result/:id (#7249).
     testPagesRecorded: [],
     testPageResultReads: [],
+    // POST /on-call-test-page/page-policy: a test page sent from a card.
+    testPagesSent: [],
     unhandled: [],
   },
 };
@@ -630,6 +642,54 @@ function codeChangeAction(status) {
 }
 
 /*
+ * A commit of one file on fix/login that Auto-run did not make, as the
+ * server stores it (ChatAgentRunner, CodeFilesSeen): Skipped, with the
+ * caution its card would have shown and the reason its row says under its
+ * title, in the reader's language (issue #6982). Its English is the
+ * summary exports and AI Logs print.
+ */
+const CODE_NOT_MADE_REASON =
+  AI_ACTION_CODE_NOT_MADE.notCommittedChangedSinceRead;
+
+const CODE_SKIPPED_WORDS = {
+  title: aiActionPluralSentence(AI_ACTION_PLURAL_TITLES.commitFiles, 1, {
+    branch: CODE_BRANCH,
+  }),
+  description: [
+    aiActionPluralSentence(
+      AI_ACTION_PLURAL_LINES.codeFilesChangedSinceRead,
+      1,
+      {
+        branch: CODE_BRANCH,
+        files: codeFiles(["src/billing/refund.ts"]),
+      },
+    ),
+  ],
+  reason: aiActionSentence(CODE_NOT_MADE_REASON),
+};
+
+function codeChangeSkippedAction() {
+  const english = describeAIActionWords(CODE_SKIPPED_WORDS);
+
+  return {
+    id: "call_commit_skipped_1",
+    toolName: "commit_code_to_branch",
+    title: english.title,
+    description: english.description,
+    words: CODE_SKIPPED_WORDS,
+    arguments: {
+      branchName: CODE_BRANCH,
+      commitMessage: "fix: round refunds to the cent",
+      changes: [{ filePath: "src/billing/refund.ts", content: "export {};\n" }],
+    },
+    isMutation: true,
+    requiresApproval: false,
+    status: AIChatToolActionStatus.Skipped,
+    resultSummary: CODE_NOT_MADE_REASON,
+  };
+}
+
+/*
  * "Monitor example.com every minute and text me if it is down" (issue
  * #6829): one plan on one card, as the server stores it (SetupTools) - a
  * website monitor and the project's first on-call policy, each said in
@@ -919,6 +979,39 @@ function setupTestPageResult() {
   };
 }
 
+// Who the new policy's test page reaches: its first level, the person asking.
+function setupTestPagePreview() {
+  return {
+    kind: "Policy",
+    levelCount: 1,
+    people: [
+      {
+        userId: USER_ID,
+        userName: "Ana Lopez",
+        methods: [
+          {
+            channel: "Email",
+            notifyAfterMinutes: 0,
+            isVerified: true,
+            canAcknowledge: true,
+          },
+        ],
+        hasNoRule: false,
+        isOptedOut: false,
+        warnings: [],
+      },
+    ],
+    notPaged: [],
+    cost: {
+      isPaid: false,
+      smsCount: 0,
+      callCount: 0,
+      whatsAppCount: 0,
+      telegramCount: 0,
+    },
+  };
+}
+
 // The cards the run plan left, the policy's test page sent from them.
 function setupTestedCards() {
   return setupCards({ monitor: true, paging: true }).map((card) => {
@@ -1032,6 +1125,8 @@ let richConversation = null;
 let actionsConversation = null;
 // The conversation waiting to commit three files (?thread=code).
 let codeConversation = null;
+// The conversation whose commit Auto-run did not make (?thread=code-skipped).
+let codeSkippedConversation = null;
 // The conversation waiting on a setup plan (?thread=setup).
 let setupConversation = null;
 // The same in a project that pages people already (?thread=setup-busy).
@@ -1695,6 +1790,24 @@ function seedHistory() {
     });
   }
 
+  if (threadKind === "code-skipped") {
+    codeSkippedConversation = conversationOf("Round refunds to the cent", 4);
+    messageOf(codeSkippedConversation.id.toString(), AIChatMessageRole.User, {
+      contentInMarkdown: "Refunds are off by a cent. Fix it on fix/login.",
+      createdAt: minutesAgo(4),
+    });
+    messageOf(
+      codeSkippedConversation.id.toString(),
+      AIChatMessageRole.Assistant,
+      {
+        contentInMarkdown:
+          "I did not commit the fix: src/billing/refund.ts changed on fix/login after I read it. I will read it again and make the change on it as it is now.",
+        toolActions: [codeChangeSkippedAction()],
+        createdAt: minutesAgo(4),
+      },
+    );
+  }
+
   if (threadKind === "setup") {
     setupConversation = conversationOf("Monitor example.com and text me", 2);
     messageOf(setupConversation.id.toString(), AIChatMessageRole.User, {
@@ -1831,6 +1944,7 @@ fixture.conversationIds = {
   rich: richConversation?.id.toString(),
   actions: actionsConversation?.id.toString(),
   code: codeConversation?.id.toString(),
+  "code-skipped": codeSkippedConversation?.id.toString(),
   monitors: monitorsConversation?.id.toString(),
   readcards: readCardsConversation?.id.toString(),
   setup: setupConversation?.id.toString(),
@@ -1890,8 +2004,25 @@ function finishLiveRun() {
     return;
   }
 
-  const { message, kind } = liveRun;
+  const { message, kind, conversationId } = liveRun;
   liveRun = null;
+
+  /*
+   * The setup request: its plan waits on one card, as ?thread=setup's does,
+   * and this conversation is the one whose approval runs it.
+   */
+  if (kind === "setup") {
+    message.status = AIChatMessageStatus.WaitingForApproval;
+    message.toolActions = setupActions(
+      AIChatToolActionStatus.Pending,
+      AIChatToolActionStatus.Pending,
+    );
+    setupConversation =
+      conversations.find((item) => {
+        return item.id.toString() === conversationId;
+      }) || null;
+    return;
+  }
 
   if (kind === "alert") {
     message.status = AIChatMessageStatus.WaitingForApproval;
@@ -2023,6 +2154,27 @@ ModelAPI.getList = async (options) => {
     return { data: states, count: states.length, skip: 0, limit: 100 };
   }
 
+  /*
+   * The severities a test page is sent at (SendTestPageModal, #7251's
+   * journey): the project's one incident severity and one alert severity.
+   */
+  if (table === "IncidentSeverity" || table === "AlertSeverity") {
+    const isIncident = table === "IncidentSeverity";
+    const id = isIncident
+      ? "50000000-0000-4000-8000-0000000000e1"
+      : "50000000-0000-4000-8000-0000000000e2";
+    const severity = Object.assign(
+      isIncident ? new IncidentSeverity() : new AlertSeverity(),
+      {
+        _id: id,
+        id: new ObjectID(id),
+        name: isIncident ? "Critical Incident" : "High",
+        order: 1,
+      },
+    );
+    return { data: [severity], count: 1, skip: 0, limit: 100 };
+  }
+
   state.unhandled.push(`getList ${table}`);
   return { data: [], count: 0, skip: 0, limit: 10 };
 };
@@ -2109,6 +2261,11 @@ function providersResponse() {
 function kindOfQuestion(content) {
   const text = content.toLowerCase();
 
+  // The setup plan's request, asked from an empty Ask AI (#7251's journey).
+  if (text.startsWith("monitor example.com")) {
+    return "setup";
+  }
+
   if (text.includes("alert")) {
     return "alert";
   }
@@ -2162,7 +2319,13 @@ function sendMessage(data) {
     createdAt: new Date(),
   });
 
-  liveRun = { run, message, step: 0, kind: kindOfQuestion(data.content) };
+  liveRun = {
+    run,
+    message,
+    step: 0,
+    kind: kindOfQuestion(data.content),
+    conversationId,
+  };
 
   return { conversationId };
 }
@@ -2309,6 +2472,24 @@ API.post = async (options) => {
   if (path.endsWith("/ai-chat/message-test-page")) {
     state.testPagesRecorded.push(JSON.parse(JSON.stringify(data)));
     return new HTTPResponse(200, {}, {});
+  }
+
+  /*
+   * The policy's test page, sent from its card (#7249): who its first level
+   * pages - the person asking, by their verified email - then the run,
+   * whose result the card reads (setupTestPageResult).
+   */
+  if (path.endsWith("/on-call-test-page/preview")) {
+    return new HTTPResponse(200, setupTestPagePreview(), {});
+  }
+
+  if (path.endsWith("/on-call-test-page/page-policy")) {
+    state.testPagesSent.push(JSON.parse(JSON.stringify(data)));
+    return new HTTPResponse(
+      200,
+      { executionLogId: SETUP_TEST_PAGE_RUN_ID },
+      {},
+    );
   }
 
   state.unhandled.push(`POST ${path}`);

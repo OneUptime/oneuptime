@@ -101,11 +101,25 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
   // A rule exception past its expiry, and a window not started yet (Rule Exceptions).
   "Expired (rule exception)",
   "Upcoming (rule exception)",
+  // A block of the blocklist whose time is up: the Blocklist's Expires and State filter.
+  "Expired (block)",
   // A workflow variable's OAuth token: never fetched, and valid.
   "Not fetched yet (OAuth token)",
   "Valid (OAuth token)",
   // An on-call calendar link no calendar app has read in its first two days.
   "Not fetched yet (calendar feed)",
+  /*
+   * A device manager connection not read yet, read in part, and failing to
+   * read: its Status on Inventory > Managed Devices' Device Managers, for
+   * every service a connection reads (DeviceManagementWords, #10009).
+   * Russian words a state on its own in the neuter, as its Off, Stale and
+   * Healthy are ("Выключено", "Устарело", "Исправно"), where the bare
+   * words are a noun ("Ожидание"), a verb ("Догоняет") and a masculine
+   * noun ("Сбой"), which stay the other pages'.
+   */
+  "Waiting (device manager connection)",
+  "Catching up (device manager connection)",
+  "Failing (device manager connection)",
   /*
    * The Logs, Traces, Metrics and Exceptions explorers' tab that counts and
    * charts what came in (their NavTabs, breadcrumbs and search entries).

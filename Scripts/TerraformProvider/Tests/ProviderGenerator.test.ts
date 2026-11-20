@@ -25,12 +25,24 @@ import { DataSourceGenerator } from "../Core/DataSourceGenerator";
 import { ProviderGenerator } from "../Core/ProviderGenerator";
 import { ResourceGenerator } from "../Core/ResourceGenerator";
 import { GoCodeGenerator } from "../Core/GoCodeGenerator";
+import { providerGoFilePath } from "../Core/ProviderShards";
 import {
   API_KEY_ATTRIBUTE_DESCRIPTION,
   PROVIDER_DESCRIPTION,
   URL_ATTRIBUTE_DESCRIPTION,
 } from "../Core/ProviderWords";
 import { buildFixtureSpec } from "./Fixtures";
+import {
+  NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+  NAME_TAKEN_REFUSAL_CODE,
+  NAME_TAKEN_REFUSAL_CODES,
+  REFUSAL_CODE_FIELD,
+} from "Common/Types/Exception/NameTakenException";
+import {
+  VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+  VALUE_TAKEN_REFUSAL_CODE,
+  VALUE_TAKEN_REFUSAL_CODES,
+} from "Common/Types/Exception/ValueTakenException";
 
 let outputDir: string;
 let clientGo: string;
@@ -103,7 +115,7 @@ beforeAll(async () => {
     "utf-8",
   );
   monitorDataSourceGo = fs.readFileSync(
-    path.join(outputDir, GENERATED_DIR, "data_source_monitor.go"),
+    path.join(outputDir, providerGoFilePath("data_source_monitor.go")),
     "utf-8",
   );
 });
@@ -343,6 +355,261 @@ describe("PostWithSelect", () => {
   });
 });
 
+/*
+ * A create or an update refused because a record in service has the name it
+ * asks for (#9855, and since #10065 for every kind with a name of its own):
+ * asked again for a while, since in one apply the resource that gives the
+ * name up - by a rename or a delete - may not have run yet. A name only an
+ * archived record has is handed back at once: nothing in an apply gives it
+ * up. client_name_taken_test.go runs both against a real HTTP server; these
+ * pin what a Go test cannot see - that the client tells the refusals by the
+ * very codes the server sends, not by copies that could drift, nor by the
+ * server's English.
+ */
+describe("a name another record has", () => {
+  // The Go function whose name is given, up to the next top-level func.
+  function goFunction(name: string): string {
+    const start: number = clientGo.indexOf(name);
+    expect(start).toBeGreaterThanOrEqual(0);
+
+    const end: number = clientGo.indexOf("\nfunc ", start + name.length);
+    return clientGo.slice(start, end === -1 ? undefined : end);
+  }
+
+  test("is told by the server's own codes, emitted from Common's constants", () => {
+    expect(REFUSAL_CODE_FIELD).toBe("refusalCode");
+    expect(NAME_TAKEN_REFUSAL_CODE).toBe("name_taken");
+    expect(NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE).toBe("name_taken_by_archived");
+    // Every code a taken name is refused with has its constant in the client.
+    expect(NAME_TAKEN_REFUSAL_CODES).toEqual([
+      NAME_TAKEN_REFUSAL_CODE,
+      NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+    ]);
+
+    expect(clientGo).toContain(
+      `refusalCodeField               = "${REFUSAL_CODE_FIELD}"`,
+    );
+    expect(clientGo).toContain(
+      `nameTakenRefusalCode           = "${NAME_TAKEN_REFUSAL_CODE}"`,
+    );
+    expect(clientGo).toContain(
+      `nameTakenByArchivedRefusalCode = "${NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE}"`,
+    );
+    expect(goFunction("func refusalCodeOf(")).toContain(
+      "code, _ := parsed[refusalCodeField].(string)",
+    );
+    expect(goFunction("func isNameTakenRefusal(")).toContain(
+      "return refusalCodeOf(body) == nameTakenRefusalCode",
+    );
+  });
+
+  test("never by the server's English, which may be reworded", () => {
+    expect(clientGo).not.toContain("There is already");
+    expect(clientGo).not.toContain("Pick another name");
+    expect(clientGo).not.toContain("with the same name already exists");
+    expect(clientGo).not.toContain("is already called");
+    expect(clientGo).not.toContain("Unarchive it");
+  });
+
+  test("is asked again for creates and updates only, never for reads or deletes", () => {
+    expect(goFunction("func writesARecord(")).toContain(
+      'return method == "POST" || method == "PUT" || method == "PATCH"',
+    );
+
+    const doRequest: string = goFunction("func (c *Client) DoRequest(");
+
+    expect(doRequest).toContain(
+      "resp, err := c.doRequestOnce(ctx, method, path, body)",
+    );
+    expect(doRequest).toContain("!writesARecord(method)");
+    expect(doRequest).toContain(
+      "return c.askAgainWhileTaken(ctx, method, path, body, resp)",
+    );
+  });
+
+  test("only on a 400", () => {
+    expect(goFunction("func readRefusalCode(")).toContain(
+      "resp.StatusCode != http.StatusBadRequest",
+    );
+  });
+
+  test("only while a record in service has the name: a name an archived record has is handed back at once", () => {
+    const askAgain: string = goFunction("func (c *Client) askAgainWhileTaken(");
+
+    expect(askAgain).toContain("code, err := readRefusalCode(resp)");
+
+    // The archived codes end the asking before any wait.
+    const archived: number = askAgain.indexOf(
+      "if isTakenByArchivedRefusalCode(code) {",
+    );
+    expect(archived).toBeGreaterThanOrEqual(0);
+    expect(
+      askAgain.slice(
+        archived,
+        askAgain.indexOf("remaining := time.Until(deadline)", archived),
+      ),
+    ).toContain("return resp, nil");
+    expect(archived).toBeLessThan(askAgain.indexOf("case <-time.After(wait):"));
+
+    // Anything but the code of a name or a value a record in service has is handed back.
+    expect(askAgain).toContain(
+      "if !isTakenRefusalCode(code) || remaining <= 0 {",
+    );
+    expect(goFunction("func isTakenRefusalCode(")).toContain(
+      "return code == nameTakenRefusalCode || code == valueTakenRefusalCode",
+    );
+    expect(goFunction("func isTakenByArchivedRefusalCode(")).toContain(
+      "return code == nameTakenByArchivedRefusalCode || code == valueTakenByArchivedRefusalCode",
+    );
+  });
+
+  test("for about 30 seconds, waiting half a second at first and at most 5", () => {
+    expect(clientGo).toContain("window:    30 * time.Second,");
+    expect(clientGo).toContain("firstWait: 500 * time.Millisecond,");
+    expect(clientGo).toContain("maxWait:   5 * time.Second,");
+    expect(clientGo).toContain("nameTakenRetry: defaultNameTakenRetry,");
+  });
+
+  test("ends with Terraform's cancellation, and asks again through the one-request path", () => {
+    const askAgain: string = goFunction("func (c *Client) askAgainWhileTaken(");
+
+    expect(askAgain).toContain("case <-ctx.Done():");
+    expect(askAgain).toContain("return nil, ctx.Err()");
+    expect(askAgain).toContain(
+      "resp, err = c.doRequestOnce(ctx, method, path, body)",
+    );
+    // A refusal's body is read to tell, then put back for the caller.
+    expect(goFunction("func readRefusalCode(")).toContain(
+      "resp.Body = io.NopCloser(bytes.NewReader(body))",
+    );
+  });
+
+  test("once given up, says what to do for a name held outside the configuration and for a swap", () => {
+    const parseResponse: string = goFunction("func (c *Client) ParseResponse(");
+
+    expect(parseResponse).toContain(
+      "if resp.StatusCode == http.StatusBadRequest && isNameTakenRefusal(body) {",
+    );
+    expect(parseResponse).toContain('message += " " + c.nameTakenAdvice()');
+
+    const advice: string = goFunction("func (c *Client) nameTakenAdvice(");
+
+    expect(advice).toContain(
+      'advice := "If a record outside this configuration has it, such as one OneUptime made with the project, give this resource another name, or import that record. If resources in this configuration swap names, or rename each other in a cycle, none of them can go first: give one of them a temporary name, apply, then apply the names you want."',
+    );
+    // The window as describeWait says it, before the advice; none without one.
+    expect(advice).toContain(
+      'return fmt.Sprintf("The name was still taken after asking again for %s. %s", describeWait(c.nameTakenRetry.window), advice)',
+    );
+    expect(advice).toContain("if c.nameTakenRetry.window <= 0 {");
+  });
+
+  test("adds nothing to a name an archived record has: the server's sentence says to unarchive it", () => {
+    const parseResponse: string = goFunction("func (c *Client) ParseResponse(");
+
+    expect(parseResponse).not.toContain("nameTakenByArchivedRefusalCode");
+    expect(parseResponse).not.toContain("refusalCodeOf(");
+    expect(goFunction("func isNameTakenRefusal(")).not.toContain(
+      "nameTakenByArchivedRefusalCode",
+    );
+  });
+});
+
+/*
+ * A create or an update refused because a record in service holds a value
+ * that is not a name, but that a record holds alone - a status page's
+ * domain, a host's identifier (#10319): asked again the same way, since a
+ * domain moved from one resource to another in one apply is one deleted
+ * and one created, side by side. client_value_taken_test.go runs it against
+ * a real HTTP server; these pin that the client tells it by the server's
+ * own codes, and says what to do in a value's words.
+ */
+describe("a value another record holds alone", () => {
+  function goFunction(name: string): string {
+    const start: number = clientGo.indexOf(name);
+    expect(start).toBeGreaterThanOrEqual(0);
+
+    const end: number = clientGo.indexOf("\nfunc ", start + name.length);
+    return clientGo.slice(start, end === -1 ? undefined : end);
+  }
+
+  test("is told by the server's own codes, emitted from Common's constants", () => {
+    expect(VALUE_TAKEN_REFUSAL_CODE).toBe("value_taken");
+    expect(VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE).toBe(
+      "value_taken_by_archived",
+    );
+    expect(VALUE_TAKEN_REFUSAL_CODES).toEqual([
+      VALUE_TAKEN_REFUSAL_CODE,
+      VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+    ]);
+
+    expect(clientGo).toContain(
+      `valueTakenRefusalCode           = "${VALUE_TAKEN_REFUSAL_CODE}"`,
+    );
+    expect(clientGo).toContain(
+      `valueTakenByArchivedRefusalCode = "${VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE}"`,
+    );
+    expect(goFunction("func isValueTakenRefusal(")).toContain(
+      "return refusalCodeOf(body) == valueTakenRefusalCode",
+    );
+  });
+
+  test("never by the server's English, which may be reworded", () => {
+    expect(clientGo).not.toContain("with the same fullDomain");
+    expect(clientGo).not.toContain("already exists");
+    expect(clientGo).not.toContain("is already in use");
+    expect(clientGo).not.toContain("already has a name");
+  });
+
+  test("is asked again only while a record in service has it, and handed back at once when only an archived one does", () => {
+    const askAgain: string = goFunction("func (c *Client) askAgainWhileTaken(");
+
+    expect(askAgain).toContain("if isTakenByArchivedRefusalCode(code) {");
+    expect(askAgain).toContain(
+      "if !isTakenRefusalCode(code) || remaining <= 0 {",
+    );
+    expect(goFunction("func isTakenRefusalCode(")).toContain(
+      "valueTakenRefusalCode",
+    );
+    expect(goFunction("func isTakenRefusalCode(")).not.toContain(
+      "valueTakenByArchivedRefusalCode",
+    );
+    expect(goFunction("func isTakenByArchivedRefusalCode(")).toContain(
+      "valueTakenByArchivedRefusalCode",
+    );
+  });
+
+  test("once given up, says what to do in a value's words, never a name's", () => {
+    const parseResponse: string = goFunction("func (c *Client) ParseResponse(");
+
+    expect(parseResponse).toContain(
+      "if resp.StatusCode == http.StatusBadRequest && isValueTakenRefusal(body) {",
+    );
+    expect(parseResponse).toContain('message += " " + c.valueTakenAdvice()');
+
+    const advice: string = goFunction("func (c *Client) valueTakenAdvice(");
+
+    expect(advice).toContain(
+      'advice := "If a record outside this configuration has it, give this resource another value, or import that record. If resources in this configuration swap values, none of them can go first: give one of them a temporary value, apply, then apply the values you want."',
+    );
+    expect(advice).toContain(
+      'return fmt.Sprintf("The value was still taken after asking again for %s. %s", describeWait(c.nameTakenRetry.window), advice)',
+    );
+    expect(advice).toContain("if c.nameTakenRetry.window <= 0 {");
+    expect(advice).not.toContain("another name");
+    expect(advice).not.toContain("temporary name");
+  });
+
+  test("adds nothing to a value an archived record has: the server's sentence says to unarchive it", () => {
+    const parseResponse: string = goFunction("func (c *Client) ParseResponse(");
+
+    expect(parseResponse).not.toContain("valueTakenByArchivedRefusalCode");
+    expect(goFunction("func isValueTakenRefusal(")).not.toContain(
+      "valueTakenByArchivedRefusalCode",
+    );
+  });
+});
+
 describe("data source lookups", () => {
   test("the by-id lookup drops rejected select columns", () => {
     expect(monitorDataSourceGo).toContain(
@@ -423,6 +690,93 @@ describe("static Go test wiring", () => {
       "PostBodyWithSelect(",
       "ParseResponse(",
       "NewClient(",
+    ]) {
+      expect(contents).toContain(symbol);
+      expect(clientGo).toContain(symbol);
+    }
+  });
+
+  test("client_name_taken_test.go is copied too, and tests what the client emits", () => {
+    const copied: string = path.join(
+      outputDir,
+      GENERATED_DIR,
+      "client_name_taken_test.go",
+    );
+    expect(fs.existsSync(copied)).toBe(true);
+
+    const contents: string = fs.readFileSync(copied, "utf-8");
+    expect(contents).toContain("package provider");
+
+    /*
+     * The issues' cases: a chain converges, a create waits for a delete, a
+     * swap and a name nothing gives up give up clearly, a name an archived
+     * record has is handed back at once, no other 400 is asked again.
+     */
+    for (const test of [
+      "func TestDoRequest_AsksAgainUntilTheNameIsGivenUp(",
+      "func TestDoRequest_AChainOfRenamesConvergesInOneApply(",
+      "func TestDoRequest_ACreateWaitsForADeleteToGiveTheNameUp(",
+      "func TestDoRequest_ASwapGivesUpWithAClearMessage(",
+      "func TestDoRequest_ANameNothingGivesUpEndsWithWhatToDo(",
+      "func TestDoRequest_NeverAsksAgainForAnyOtherRefusal(",
+      "func TestDoRequest_NeverAsksAgainForANameOnlyAnArchivedRecordHas(",
+      "func TestDoRequest_ANameAnArchivedRecordHasFailsTheApplyAtOnce(",
+    ]) {
+      expect(contents).toContain(test);
+    }
+
+    for (const symbol of [
+      "nameTakenRetry{",
+      "isNameTakenRefusal(",
+      "refusalCodeOf(",
+      "nameTakenAdvice(",
+      "describeWait(",
+      "refusalCodeField",
+      "nameTakenRefusalCode",
+      "nameTakenByArchivedRefusalCode",
+    ]) {
+      expect(contents).toContain(symbol);
+      expect(clientGo).toContain(symbol);
+    }
+  });
+
+  test("client_value_taken_test.go is copied too, and tests what the client emits", () => {
+    const copied: string = path.join(
+      outputDir,
+      GENERATED_DIR,
+      "client_value_taken_test.go",
+    );
+    expect(fs.existsSync(copied)).toBe(true);
+
+    const contents: string = fs.readFileSync(copied, "utf-8");
+    expect(contents).toContain("package provider");
+
+    /*
+     * The issue's cases: a domain moved to another resource converges in
+     * one apply, a swap and a value nothing gives up give up in a value's
+     * words, a value an archived record has is handed back at once, and
+     * nothing else is asked again.
+     */
+    for (const test of [
+      "func TestDoRequest_ADomainMovedToAnotherResourceConvergesInOneApply(",
+      "func TestDoRequest_AnIdentifierSwapGivesUpWithAClearMessage(",
+      "func TestDoRequest_AValueNothingGivesUpEndsWithWhatToDo(",
+      "func TestDoRequest_NeverAsksAgainForAValueOnlyAnArchivedRecordHas(",
+      "func TestDoRequest_AValueAnArchivedRecordHasFailsTheApplyAtOnce(",
+      "func TestDoRequest_NeverAsksAgainForAValueWithoutItsCodeOrOnAnotherStatus(",
+      "func TestParseResponse_SaysWhatToDoInTheWordsOfWhatIsTaken(",
+    ]) {
+      expect(contents).toContain(test);
+    }
+
+    for (const symbol of [
+      "nameTakenRetry{",
+      "isValueTakenRefusal(",
+      "isTakenRefusalCode(",
+      "isTakenByArchivedRefusalCode(",
+      "valueTakenRefusalCode",
+      "valueTakenByArchivedRefusalCode",
+      "refusalCodeField",
     ]) {
       expect(contents).toContain(symbol);
       expect(clientGo).toContain(symbol);

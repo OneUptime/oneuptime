@@ -9,6 +9,7 @@ import SecurityEventStoreOnce, {
   SECURITY_EVENT_PRODUCT_LOCK_NAMESPACE,
   SHARED_RECORD_PRODUCT_NAMES,
   SharedRecordGroup,
+  getStoredUidsOf,
 } from "../../../../Server/Utils/SecurityEvent/SecurityEventStoreOnce";
 import ObjectID from "../../../../Types/ObjectID";
 import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedSecurityEvent";
@@ -168,13 +169,17 @@ function group(events: Array<NormalizedSecurityEvent>): SharedRecordGroup {
 }
 
 describe("SecurityEventStoreOnce - which records more than one way brings in", () => {
-  test("Microsoft Entra ID's and the three clouds' audit records", () => {
+  test("Microsoft Entra ID's and the three clouds' audit records, and an Azure resource's own audit log", () => {
     expect([...SHARED_RECORD_PRODUCT_NAMES].sort()).toEqual(
       [
         "Microsoft Entra ID",
         "AWS CloudTrail",
         "Google Cloud Audit Logs",
         "Azure Activity Log",
+        // A key vault's, a storage account's and Azure SQL's (#10110).
+        "Azure Key Vault",
+        "Azure Storage",
+        "Azure SQL",
       ].sort(),
     );
   });
@@ -260,6 +265,81 @@ describe("SecurityEventStoreOnce - which records more than one way brings in", (
 });
 
 describe("SecurityEventStoreOnce.storeNew", () => {
+  /*
+   * #10032: an Azure Activity Log record is known by an id made of what
+   * both of its shapes say, and Cloud audit logs stored the REST API's by
+   * its eventDataId before. Each is looked up by both, and one found under
+   * either is stored already.
+   */
+  test("a record is looked up by its id and the ids it was stored by before, and one stored under either is not stored again", async () => {
+    installLock();
+
+    const table: Array<NormalizedSecurityEvent> = installTable();
+    const activity: Partial<NormalizedSecurityEvent> = {
+      vendorName: "Microsoft",
+      productName: "Azure Activity Log",
+    };
+    const lookups: Array<Array<string>> = [];
+
+    jest
+      .spyOn(SecurityEventDedupe, "findExistingEventUids")
+      .mockImplementation(async (data: { ids: Array<string> }) => {
+        lookups.push(data.ids);
+
+        return new Set(
+          table
+            .map((stored: NormalizedSecurityEvent): string => {
+              return stored.eventUid;
+            })
+            .filter((uid: string): boolean => {
+              return data.ids.includes(uid);
+            }),
+        );
+      });
+
+    table.push(event({ ...activity, eventUid: "azure-activity:a0b1-old" }));
+
+    const stored: Array<NormalizedSecurityEvent> =
+      await SecurityEventStoreOnce.storeNew({
+        projectId: PROJECT_ID,
+        group: group([
+          // Read again from the REST API: its made id, and its eventDataId stored before.
+          event({
+            ...activity,
+            eventUid: "azure-activity:3f9a",
+            eventUidAliases: ["azure-activity:a0b1-old"],
+          }),
+          event({
+            ...activity,
+            eventUid: "azure-activity:7c1d",
+            eventUidAliases: ["azure-activity:e5f6-never-stored", ""],
+          }),
+        ]),
+        insert: async (events: Array<NormalizedSecurityEvent>) => {
+          table.push(...events);
+        },
+      });
+
+    expect(
+      stored.map((one: NormalizedSecurityEvent): string => {
+        return one.eventUid;
+      }),
+    ).toEqual(["azure-activity:7c1d"]);
+    // One look-up, every id each record may be stored under, each once; never an empty one.
+    expect(lookups).toEqual([
+      [
+        "azure-activity:3f9a",
+        "azure-activity:a0b1-old",
+        "azure-activity:7c1d",
+        "azure-activity:e5f6-never-stored",
+      ],
+    ]);
+    expect(getStoredUidsOf(stored[0]!)).toEqual([
+      "azure-activity:7c1d",
+      "azure-activity:e5f6-never-stored",
+    ]);
+  });
+
   test("looks the group's ids up and inserts only the new ones, under the product's lock", async () => {
     const lock: {
       taken: Array<{ namespace: string; key: string }>;

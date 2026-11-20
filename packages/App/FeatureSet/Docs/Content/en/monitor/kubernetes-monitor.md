@@ -5,7 +5,7 @@ A Kubernetes monitor alerts on the metrics the OneUptime Kubernetes agent sends 
 :::cards
 - [Install the agent](/docs/monitor/kubernetes-agent): One Helm command puts the cluster into OneUptime.
 - [Create the monitor](#create-a-kubernetes-monitor): Pick the cluster, then a template, a metric or a query.
-- [Alert templates](#pre-built-alert-templates): Twenty-five ready-made alerts, from a silent cluster to etcd.
+- [Alert templates](#pre-built-alert-templates): Twenty-six ready-made alerts, from a silent cluster to etcd.
 - [Criteria](#criteria): Static thresholds and anomaly detection.
 :::
 
@@ -88,7 +88,7 @@ The **Custom Metric** tab offers these metrics, grouped by resource type:
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Volume Capacity, Volume Free Space, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available, Node Filesystem Capacity |
-| Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
+| Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready, Container Filesystem Available, Container Filesystem Capacity |
 | Workload | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Control Plane | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
@@ -149,7 +149,8 @@ The **What to alert on** list holds these templates, grouped by category. Each o
 | etcd No Leader | Control Plane | etcd has no elected leader | Critical |
 | API Server Request Saturation | Control Plane | The API server holds 200 or more in-flight requests for the whole window | Critical |
 | Scheduler Backlog | Scheduling | The scheduler's pending-pod queue is non-empty for 5 minutes | Warning |
-| High Node Disk Usage | Storage | A node's filesystem is more than 90% full | Warning |
+| High Node Disk Usage | Storage | A node's filesystem is more than 85% full | Warning |
+| Node Image Disk Almost Full | Storage | The disk a node keeps its container images on is more than 85% full | Warning |
 | PVC Almost Full | Storage | A persistent volume claim is more than 90% full | Warning |
 | DaemonSet Pods Not Ready | Workload | A DaemonSet has nodes without a ready pod of it for 15 minutes | Warning |
 | DaemonSet Misscheduled Nodes | Workload | A DaemonSet runs pods on nodes that no longer match its node selector, affinity or tolerations | Warning |
@@ -167,6 +168,8 @@ Templates on per-object metrics evaluate each node, pod, deployment, job, Daemon
 The cost templates read the metrics OneUptime writes from the agent's hourly cost rows, one point an hour, so they add up the past day; their budgets are in the cluster's currency, USD by default.
 
 **High Node CPU Request Commitment** and **High Node Memory Request Commitment** count only the requests of pods that have not finished, as the scheduler does. The cluster keeps reporting the requests of a pod that has Succeeded or Failed, such as a finished Job's, until the pod is deleted: those are left out.
+
+**Node Image Disk Almost Full** reads the disk the kubelet reports each running container's own files on, because the agent does not report a node's image disk itself. That is the image disk on the usual layouts, but not on every node: where a node keeps its images on its root filesystem, as most do, it is the root filesystem, so the template fires together with **High Node Disk Usage**; with the kubelet's split image filesystem (`KubeletSeparateDiskGC`) it is the disk the containers write to rather than the images' disk; and a node running no container reports nothing. A cluster's recommendations offer it once some node keeps its images on a disk of its own, which the Nodes list then shows in an **Image Disk** column; the **What to alert on** list holds it for any cluster. By default the kubelet deletes unused images once a disk that holds the images is 85% full, and evicts pods when less than 15% of it is free, so this template and **High Node Disk Usage** fire at 85% and go back online at 80%, the level image garbage collection cleans the disk down to. On a node whose images have a disk of their own, the kubelet evicts pods by its root filesystem from 90%, so there **High Node Disk Usage** fires before eviction starts.
 
 **Cluster Stopped Reporting** fires when nothing arrives from the cluster's agent for ten minutes: the agent was uninstalled or keeps crashing, its API key was revoked, it lost its route to OneUptime, or the cluster's API server stopped answering it. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
 

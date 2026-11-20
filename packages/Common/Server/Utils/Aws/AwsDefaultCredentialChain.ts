@@ -1,5 +1,30 @@
 import fs from "fs";
+import os from "os";
 import { isAwsRegion } from "../../../Types/Cloud/AwsRegionCode";
+import {
+  AwsChainProcessResult,
+  AwsChainProcessRunner,
+  AwsCommandLineSplit,
+  CREDENTIAL_PROCESS_TIMEOUT_MS,
+  MAX_CREDENTIAL_PROCESS_OUTPUT_BYTES,
+  defaultAwsChainProcessRunner,
+  isFullProgramPath,
+  splitCommandLine,
+} from "./AwsCredentialProcess";
+import {
+  AWS_CONFIG_FILE_ENV,
+  AWS_PROFILE_ENV,
+  AWS_SHARED_CREDENTIALS_FILE_ENV,
+  AwsIniProfiles,
+  AwsProfileSetting,
+  AwsSharedConfigPaths,
+  AwsSharedFileKind,
+  MAX_AWS_SHARED_FILE_LENGTH,
+  getAwsSharedConfigPaths,
+  isAwsProfileName,
+  mergeAwsProfile,
+  parseAwsSharedFile,
+} from "./AwsSharedConfigFiles";
 
 /*
  * THE SERVER'S OWN AWS CREDENTIALS, FOUND WHERE EVERY AWS SDK FINDS THEM.
@@ -12,23 +37,41 @@ import { isAwsRegion } from "../../../Types/Cloud/AwsRegionCode";
  *
  *   1. Environment: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, with
  *      AWS_SESSION_TOKEN for temporary ones.
- *   2. Web identity: AWS_ROLE_ARN and AWS_WEB_IDENTITY_TOKEN_FILE - IAM
+ *   2. A profile of the AWS shared config files (#7381), when the
+ *      environment names one: AWS_PROFILE, AWS_CONFIG_FILE or
+ *      AWS_SHARED_CREDENTIALS_FILE (the default profile of ~/.aws/config
+ *      and ~/.aws/credentials when only a file is named). Naming one is
+ *      choosing it: a profile with no credentials is said to be one, never
+ *      passed over for another source. The profile's
+ *      aws_access_key_id and aws_secret_access_key (and aws_session_token);
+ *      or its credential_process, a program that prints them - off AWS,
+ *      IAM Roles Anywhere's aws_signing_helper. It runs with no shell, by
+ *      its full path, within a time limit, its output capped and its
+ *      stderr never read (AwsCredentialProcess), and only from a file the
+ *      server itself cannot change: a file anything else in the server
+ *      could write would be a way to run a program as it. With nothing in
+ *      the environment naming them, the files are never read.
+ *   3. Web identity: AWS_ROLE_ARN and AWS_WEB_IDENTITY_TOKEN_FILE - IAM
  *      roles for service accounts (IRSA) on Amazon EKS, or any OIDC
  *      provider the role trusts. The token is traded with STS
  *      AssumeRoleWithWebIdentity, a call that is not signed, at the STS
  *      endpoint of the server's own Region (AWS_REGION). The file is read
  *      again for every exchange: the kubelet rotates the token in it.
- *   3. Container credentials: AWS_CONTAINER_CREDENTIALS_RELATIVE_URI, a path
+ *   4. Container credentials: AWS_CONTAINER_CREDENTIALS_RELATIVE_URI, a path
  *      on Amazon ECS's endpoint (169.254.170.2) that serves the task role;
  *      or AWS_CONTAINER_CREDENTIALS_FULL_URI, such as the EKS Pod Identity
  *      agent (169.254.170.23), with the Authorization token from
  *      AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE (read again every time) or
  *      AWS_CONTAINER_AUTHORIZATION_TOKEN. A full URI is plain http only to a
  *      loopback address or one of those agents, as the SDKs allow.
- *   4. The EC2 instance profile, from the instance metadata service, with an
+ *   5. The EC2 instance profile, from the instance metadata service, with an
  *      IMDSv2 session token on every read - unless AWS_EC2_METADATA_DISABLED
  *      is true. AWS_EC2_METADATA_SERVICE_ENDPOINT or
  *      AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE=IPv6 point it elsewhere.
+ *
+ * A caller that may sign in only some of these ways names them, in its
+ * own order (`sources`): the AWS Marketplace reporter, which AWS lets meter
+ * only as the pod's IRSA role, never as the node's instance profile.
  *
  * Credentials that expire are reused until five minutes before they do,
  * and callers that ask at the same time share one fetch. A failure that
@@ -50,9 +93,14 @@ import { isAwsRegion } from "../../../Types/Cloud/AwsRegionCode";
 
 export type AwsCredentialSource =
   | "environment"
+  | "profile"
   | "web-identity"
   | "container"
   | "instance-profile";
+
+// Every source, in the AWS SDKs' order: where the chain looks by default.
+export const AWS_DEFAULT_CREDENTIAL_SOURCES: ReadonlyArray<AwsCredentialSource> =
+  ["environment", "profile", "web-identity", "container", "instance-profile"];
 
 export interface AwsChainCredentials {
   accessKeyId: string;
@@ -91,6 +139,19 @@ export interface AwsDefaultCredentialChainOptions {
   readFile?: ((path: string) => Promise<string>) | undefined;
   httpClient?: AwsChainHttpClient | undefined;
   now?: (() => Date) | undefined;
+  // Runs a profile's credential_process (tests hand in one of their own).
+  runProcess?: AwsChainProcessRunner | undefined;
+  /*
+   * Whether the server could change a file: a credential_process runs only
+   * from one it cannot.
+   */
+  canWriteFile?: ((path: string) => Promise<boolean>) | undefined;
+  // Where ~/.aws is: HOME, else the user's home directory.
+  homeDirectory?: string | undefined;
+  // The sources looked in, in order: every one, in the SDKs' order, by default.
+  sources?: ReadonlyArray<AwsCredentialSource> | undefined;
+  // How a web identity's sessions are named in CloudTrail: "oneuptime-<time>".
+  roleSessionNamePrefix?: string | undefined;
 }
 
 // What went wrong getting credentials, in words that say what to change.
@@ -383,6 +444,66 @@ const defaultReadFile: (path: string) => Promise<string> = (
   return fs.promises.readFile(path, "utf8");
 };
 
+// The code a Node error names (ENOENT), or "".
+const errorCodeOf: (error: unknown) => string = (error: unknown): string => {
+  const code: unknown = (error as { code?: unknown } | null)?.code;
+
+  return typeof code === "string" ? code : "";
+};
+
+/*
+ * Whether the server could change a file, as a credential_process asks
+ * before it runs from one. It cannot only when:
+ *
+ *   - the file is on a read-only mount (EROFS): nothing in the server can
+ *     write it, root included;
+ *   - or it may not write the file (EACCES, EPERM) and the file is
+ *     another user's. A file the server's own user owns is one it can
+ *     make writable again (chmod), so a mode that denies writing now
+ *     proves nothing: an image that runs as a user of its own (Iron Bank's
+ *     runs as node) would otherwise run whatever that user wrote and then
+ *     made read-only.
+ *
+ * Root may write any file but a read-only mount's. Anything else - the
+ * file gone since it was read, its owner unknown - is taken as a file it
+ * could change, so a credential_process never runs on a doubt.
+ */
+export const defaultCanWriteFile: (path: string) => Promise<boolean> = async (
+  path: string,
+): Promise<boolean> => {
+  try {
+    await fs.promises.access(path, fs.constants.W_OK);
+    return true;
+  } catch (error) {
+    const code: string = errorCodeOf(error);
+
+    if (code === "EROFS") {
+      return false;
+    }
+
+    if (code !== "EACCES" && code !== "EPERM") {
+      return true;
+    }
+  }
+
+  try {
+    const owner: number = (await fs.promises.stat(path)).uid;
+    const self: number | undefined = process.getuid?.();
+
+    return self === undefined || owner === self;
+  } catch {
+    return true;
+  }
+};
+
+// Settings of a profile that sign in a way OneUptime does not read from one.
+const UNREAD_PROFILE_SIGN_INS: ReadonlyArray<string> = [
+  "role_arn",
+  "sso_session",
+  "sso_start_url",
+  "web_identity_token_file",
+];
+
 interface CachedCredentials {
   credentials: AwsChainCredentials;
   // When they are fetched again (ms since the epoch).
@@ -396,6 +517,11 @@ export default class AwsDefaultCredentialChain {
   private readonly readFile: (path: string) => Promise<string>;
   private readonly httpClient: AwsChainHttpClient;
   private readonly now: () => Date;
+  private readonly runProcess: AwsChainProcessRunner;
+  private readonly canWriteFile: (path: string) => Promise<boolean>;
+  private readonly homeDirectory: string | undefined;
+  private readonly sources: ReadonlyArray<AwsCredentialSource>;
+  private readonly roleSessionNamePrefix: string;
   private cached: CachedCredentials | null = null;
   private inFlight: Promise<AwsChainCredentials> | null = null;
   private lastFailure: {
@@ -412,6 +538,21 @@ export default class AwsDefaultCredentialChain {
       ((): Date => {
         return new Date();
       });
+    this.runProcess = options?.runProcess || defaultAwsChainProcessRunner;
+    this.canWriteFile = options?.canWriteFile || defaultCanWriteFile;
+    this.homeDirectory = options?.homeDirectory;
+    this.sources =
+      options?.sources && options.sources.length > 0
+        ? options.sources
+        : AWS_DEFAULT_CREDENTIAL_SOURCES;
+    // A prefix STS would refuse, with the time after it, is OneUptime's own.
+    const prefix: string = (options?.roleSessionNamePrefix || "").trim();
+
+    this.roleSessionNamePrefix =
+      prefix &&
+      ROLE_SESSION_NAME_PATTERN.test(`${prefix}-${this.now().getTime()}`)
+        ? prefix
+        : ROLE_SESSION_NAME_PREFIX;
   }
 
   /*
@@ -435,35 +576,68 @@ export default class AwsDefaultCredentialChain {
    * Where credentials would come from, without fetching them: the first
    * source the environment sets up, the instance profile when nothing else
    * is (it can only be known by asking), or null when the metadata service
-   * is turned off too.
+   * is turned off too - or is not one of the sources looked in.
    */
   public getSource(): AwsCredentialSource | null {
-    if (
-      readEnv(this.env, AWS_ACCESS_KEY_ID_ENV) ||
-      readEnv(this.env, AWS_SECRET_ACCESS_KEY_ENV)
-    ) {
-      return "environment";
+    for (const source of this.sources) {
+      if (this.isSetUp(source)) {
+        return source;
+      }
     }
 
-    if (
-      readEnv(this.env, AWS_ROLE_ARN_ENV) &&
-      readEnv(this.env, AWS_WEB_IDENTITY_TOKEN_FILE_ENV)
-    ) {
-      return "web-identity";
-    }
+    return null;
+  }
 
-    if (
-      readEnv(this.env, AWS_CONTAINER_CREDENTIALS_RELATIVE_URI_ENV) ||
-      readEnv(this.env, AWS_CONTAINER_CREDENTIALS_FULL_URI_ENV)
-    ) {
-      return "container";
+  // Whether the environment sets a source up (the instance profile: unless it is turned off).
+  private isSetUp(source: AwsCredentialSource): boolean {
+    switch (source) {
+      case "environment":
+        return Boolean(
+          readEnv(this.env, AWS_ACCESS_KEY_ID_ENV) ||
+            readEnv(this.env, AWS_SECRET_ACCESS_KEY_ENV),
+        );
+      case "profile":
+        return Boolean(
+          readEnv(this.env, AWS_PROFILE_ENV) ||
+            readEnv(this.env, AWS_CONFIG_FILE_ENV) ||
+            readEnv(this.env, AWS_SHARED_CREDENTIALS_FILE_ENV),
+        );
+      case "web-identity":
+        return Boolean(
+          readEnv(this.env, AWS_ROLE_ARN_ENV) &&
+            readEnv(this.env, AWS_WEB_IDENTITY_TOKEN_FILE_ENV),
+        );
+      case "container":
+        return Boolean(
+          readEnv(this.env, AWS_CONTAINER_CREDENTIALS_RELATIVE_URI_ENV) ||
+            readEnv(this.env, AWS_CONTAINER_CREDENTIALS_FULL_URI_ENV),
+        );
+      case "instance-profile":
+        return !this.isInstanceMetadataDisabled();
     }
+  }
 
-    if (this.isInstanceMetadataDisabled()) {
+  /*
+   * Which agent the container credentials come from, for words: Amazon
+   * ECS's endpoint (a relative path), the EKS Pod Identity agent, or
+   * another endpoint. Null when the container is not the source.
+   */
+  public getContainerAgent(): "ecs" | "eks-pod-identity" | "other" | null {
+    if (this.getSource() !== "container") {
       return null;
     }
 
-    return "instance-profile";
+    if (readEnv(this.env, AWS_CONTAINER_CREDENTIALS_RELATIVE_URI_ENV)) {
+      return "ecs";
+    }
+
+    return EKS_POD_IDENTITY_HOSTS.includes(
+      AwsDefaultCredentialChain.hostOf(
+        readEnv(this.env, AWS_CONTAINER_CREDENTIALS_FULL_URI_ENV),
+      ),
+    )
+      ? "eks-pod-identity"
+      : "other";
   }
 
   /*
@@ -647,6 +821,10 @@ export default class AwsDefaultCredentialChain {
     source: AwsCredentialSource | null,
     regionHint: string | undefined,
   ): Promise<AwsChainCredentials> {
+    if (source === "profile") {
+      return await this.fromProfile();
+    }
+
     if (source === "web-identity") {
       return await this.fromWebIdentity(regionHint);
     }
@@ -708,6 +886,308 @@ export default class AwsDefaultCredentialChain {
   }
 
   /*
+   * The profile the environment names, from the shared config and
+   * credentials files: its keys, or what its credential_process prints.
+   * Every message names the profile and the files, never a value of them.
+   */
+  private async fromProfile(): Promise<AwsChainCredentials> {
+    const paths: AwsSharedConfigPaths = getAwsSharedConfigPaths({
+      env: this.env,
+      homeDirectory:
+        this.homeDirectory || readEnv(this.env, "HOME") || os.homedir(),
+    });
+
+    if (!isAwsProfileName(paths.profile)) {
+      throw new AwsCredentialChainError(
+        `${AWS_PROFILE_ENV} is not the name of a profile. Set it to the name of one in the AWS config file, such as oneuptime.`,
+        { isRetryable: false, source: "profile" },
+      );
+    }
+
+    const configProfiles: AwsIniProfiles = await this.readSharedFile(
+      "config",
+      paths.configFile,
+      paths.isConfigFileNamed ? AWS_CONFIG_FILE_ENV : null,
+    );
+    const credentialsProfiles: AwsIniProfiles = await this.readSharedFile(
+      "credentials",
+      paths.credentialsFile,
+      paths.isCredentialsFileNamed ? AWS_SHARED_CREDENTIALS_FILE_ENV : null,
+    );
+    const settings: Record<string, AwsProfileSetting> | null = mergeAwsProfile({
+      profile: paths.profile,
+      config: { file: paths.configFile, profiles: configProfiles },
+      credentials: {
+        file: paths.credentialsFile,
+        profiles: credentialsProfiles,
+      },
+    });
+    const profile: string = `The AWS profile ${paths.profile}`;
+
+    if (!settings) {
+      throw new AwsCredentialChainError(
+        `${profile} is in neither ${paths.configFile} nor ${paths.credentialsFile}. Add it to one of them, or set ${AWS_PROFILE_ENV} to a profile that is there.`,
+        { isRetryable: false, source: "profile" },
+      );
+    }
+
+    const accessKeyId: string = settings["aws_access_key_id"]?.value || "";
+    const secretAccessKey: string =
+      settings["aws_secret_access_key"]?.value || "";
+    const sessionToken: string = settings["aws_session_token"]?.value || "";
+
+    if (accessKeyId || secretAccessKey) {
+      if (!accessKeyId || !secretAccessKey) {
+        throw new AwsCredentialChainError(
+          `${profile} has ${accessKeyId ? "aws_access_key_id" : "aws_secret_access_key"} but not ${accessKeyId ? "aws_secret_access_key" : "aws_access_key_id"}. Give it both.`,
+          { isRetryable: false, source: "profile" },
+        );
+      }
+
+      if (
+        !isHeaderSafe(accessKeyId) ||
+        !isHeaderSafe(secretAccessKey) ||
+        (sessionToken && !isHeaderSafe(sessionToken))
+      ) {
+        throw new AwsCredentialChainError(
+          `${profile}'s aws_access_key_id, aws_secret_access_key or aws_session_token holds a control character. Write each on one line.`,
+          { isRetryable: false, source: "profile" },
+        );
+      }
+
+      return {
+        accessKeyId: accessKeyId,
+        secretAccessKey: secretAccessKey,
+        sessionToken: sessionToken || null,
+        expiresAt: null,
+        source: "profile",
+      };
+    }
+
+    const credentialProcess: AwsProfileSetting | undefined =
+      settings["credential_process"];
+
+    if (credentialProcess) {
+      return await this.fromCredentialProcess(paths.profile, credentialProcess);
+    }
+
+    const otherSignIn: string | undefined = UNREAD_PROFILE_SIGN_INS.find(
+      (name: string): boolean => {
+        return Boolean(settings[name]);
+      },
+    );
+
+    throw new AwsCredentialChainError(
+      otherSignIn
+        ? `${profile} signs in with ${otherSignIn}, which OneUptime does not read from a profile. Give the profile a credential_process, or aws_access_key_id and aws_secret_access_key.`
+        : `${profile} has no credentials. Give it a credential_process (such as IAM Roles Anywhere's aws_signing_helper), or aws_access_key_id and aws_secret_access_key.`,
+      { isRetryable: false, source: "profile" },
+    );
+  }
+
+  /*
+   * One shared file's profiles. A file the environment names must be
+   * there; one at its default place (~/.aws) may be missing.
+   */
+  private async readSharedFile(
+    kind: AwsSharedFileKind,
+    file: string,
+    namedBy: string | null,
+  ): Promise<AwsIniProfiles> {
+    let text: string;
+
+    try {
+      text = await this.readFile(file);
+    } catch (error) {
+      if (!namedBy && errorCodeOf(error) === "ENOENT") {
+        return {};
+      }
+
+      throw new AwsCredentialChainError(
+        namedBy
+          ? `${namedBy} names ${file}, which could not be read: ${AwsDefaultCredentialChain.reasonOf(error)}. Mount the file there, where OneUptime can read it.`
+          : `The AWS ${kind} file ${file} could not be read: ${AwsDefaultCredentialChain.reasonOf(error)}.`,
+        { isRetryable: false, source: "profile" },
+      );
+    }
+
+    if (text.length > MAX_AWS_SHARED_FILE_LENGTH) {
+      throw new AwsCredentialChainError(
+        `The AWS ${kind} file ${file} is longer than ${MAX_AWS_SHARED_FILE_LENGTH / 1024 / 1024} MB, so it is not read. A profile takes a few lines.`,
+        { isRetryable: false, source: "profile" },
+      );
+    }
+
+    return parseAwsSharedFile(text, kind);
+  }
+
+  /*
+   * What a profile's credential_process prints, run with no shell, by its
+   * full path, in its time, from a file the server cannot change. Only the
+   * program's path reaches a message: an argument may be a secret, and
+   * what it prints always is.
+   */
+  private async fromCredentialProcess(
+    profileName: string,
+    setting: AwsProfileSetting,
+  ): Promise<AwsChainCredentials> {
+    const where: string = `the credential_process of the AWS profile ${profileName} in ${setting.file}`;
+    const fail: (message: string, isRetryable: boolean) => never = (
+      message: string,
+      isRetryable: boolean,
+    ): never => {
+      throw new AwsCredentialChainError(message, {
+        isRetryable: isRetryable,
+        source: "profile",
+      });
+    };
+
+    const split: AwsCommandLineSplit = splitCommandLine(setting.value);
+
+    if ("problem" in split) {
+      return fail(
+        `${AwsDefaultCredentialChain.capitalize(where)} is not one program: ${split.problem}.`,
+        false,
+      );
+    }
+
+    const program: string = split.words[0]!;
+
+    if (!isFullProgramPath(program)) {
+      return fail(
+        `${AwsDefaultCredentialChain.capitalize(where)} names its program without its full path. Write the full path, such as /usr/local/bin/aws_signing_helper.`,
+        false,
+      );
+    }
+
+    // A file anything in the server could write is a way to run a program as it.
+    if (await this.canWriteFile(setting.file)) {
+      return fail(
+        `OneUptime runs a credential_process only from a file it cannot change, and it can change ${setting.file}. Mount the file read-only: end its Docker Compose volume with :ro (a Kubernetes ConfigMap or Secret volume is read-only already).`,
+        false,
+      );
+    }
+
+    const named: string = `The credential_process program ${program.slice(0, 200)} of the AWS profile ${profileName}`;
+    const result: AwsChainProcessResult = await this.runProcess({
+      program: program,
+      args: split.words.slice(1),
+      env: this.getProcessEnvironment(),
+      timeoutMs: CREDENTIAL_PROCESS_TIMEOUT_MS,
+      maxOutputBytes: MAX_CREDENTIAL_PROCESS_OUTPUT_BYTES,
+    });
+
+    switch (result.outcome) {
+      case "not-started":
+        return fail(
+          `${named} could not be started (${result.reason}). Check that it is at that path in the server's container, and that OneUptime may run it.`,
+          false,
+        );
+      case "timed-out":
+        return fail(
+          `${named} did not finish within ${describeTimeLimit(CREDENTIAL_PROCESS_TIMEOUT_MS)}, so it was stopped. It is run again on the next try.`,
+          true,
+        );
+      case "too-much-output":
+        return fail(
+          `${named} printed more than ${MAX_CREDENTIAL_PROCESS_OUTPUT_BYTES / 1024} KB, so it was stopped: credentials are a few hundred bytes.`,
+          false,
+        );
+      case "killed":
+        return fail(
+          `${named} was stopped by ${result.signal.slice(0, 20)} before it finished. It is run again on the next try.`,
+          true,
+        );
+      case "exited":
+        break;
+    }
+
+    if (result.exitCode !== 0) {
+      return fail(
+        `${named} exited with code ${result.exitCode}. Run it in the server's container to see why: OneUptime never reads what it writes to stderr.`,
+        false,
+      );
+    }
+
+    const record: Record<string, unknown> | null =
+      AwsDefaultCredentialChain.parseJsonObject(result.stdout.trim());
+
+    if (!record) {
+      return fail(
+        `${named} did not print its credentials as a JSON object. It must print {"Version": 1, "AccessKeyId": ..., "SecretAccessKey": ..., "SessionToken": ..., "Expiration": ...}.`,
+        false,
+      );
+    }
+
+    const version: unknown = record["Version"];
+
+    if (version !== 1) {
+      return fail(
+        `${named} printed ${typeof version === "number" && Number.isFinite(version) ? `Version ${version}` : "no Version"}, and OneUptime reads Version 1.`,
+        false,
+      );
+    }
+
+    const credentials: AwsChainCredentials | null =
+      AwsDefaultCredentialChain.toCredentials(
+        {
+          accessKeyId: record["AccessKeyId"],
+          secretAccessKey: record["SecretAccessKey"],
+          sessionToken: record["SessionToken"],
+          expiration: record["Expiration"],
+        },
+        "profile",
+      );
+
+    if (!credentials) {
+      return fail(
+        `${named} printed no AccessKeyId and SecretAccessKey OneUptime could use: both must be there, each on one line.`,
+        false,
+      );
+    }
+
+    const expiration: unknown = record["Expiration"];
+
+    if (
+      expiration !== undefined &&
+      expiration !== null &&
+      !credentials.expiresAt
+    ) {
+      return fail(
+        `${named} printed an Expiration that is not a date. Print it in ISO 8601, such as 2026-11-20T12:00:00Z.`,
+        false,
+      );
+    }
+
+    if (
+      credentials.expiresAt &&
+      credentials.expiresAt.getTime() <= this.now().getTime()
+    ) {
+      return fail(
+        `${named} printed credentials that expired at ${credentials.expiresAt.toISOString()}. It is run again on the next try.`,
+        true,
+      );
+    }
+
+    return credentials;
+  }
+
+  // The server's environment, for a credential_process: its own, as every SDK passes it.
+  private getProcessEnvironment(): Record<string, string> {
+    const environment: Record<string, string> = {};
+
+    for (const name of Object.keys(this.env)) {
+      const value: unknown = this.env[name];
+
+      if (typeof value === "string") {
+        environment[name] = value;
+      }
+    }
+
+    return environment;
+  }
+
+  /*
    * IRSA, or any OIDC provider the role trusts: the token in the file,
    * traded at STS for an hour of the role's credentials.
    */
@@ -745,7 +1225,7 @@ export default class AwsDefaultCredentialChain {
       RoleArn: roleArn,
       RoleSessionName: ROLE_SESSION_NAME_PATTERN.test(sessionName)
         ? sessionName
-        : `${ROLE_SESSION_NAME_PREFIX}-${this.now().getTime()}`,
+        : `${this.roleSessionNamePrefix}-${this.now().getTime()}`,
       WebIdentityToken: token,
     }).toString();
 

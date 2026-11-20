@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 58633,
-    "untranslated": 8198
+    "keys": 59636,
+    "untranslated": 8203
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -195,6 +195,7 @@
     "Merge request {{label}}",
     "Mesh / VPN",
     "Metadata",
+    "Microsoft Intune",
     "Min",
     "Minimum",
     "Mirantis MOSK",
@@ -203,6 +204,7 @@
     "Mons",
     "MySQL",
     "N/A",
+    "NSA/CISA Kubernetes Hardening Guide v1.2",
     "Nav",
     "Normal",
     "Null",
@@ -302,6 +304,7 @@
     "Seccomp (Restricted)",
     "Server",
     "Server / VM",
+    "Server: {{server}}",
     "Service Mesh",
     "Session",
     "Session {{id}}",
@@ -376,6 +379,7 @@
     "amphorae",
     "arm",
     "arm64",
+    "arn:aws:iam::123456789012:role/OneUptimeSes",
     "aws_lambda · us-east-1 · nodejs 20",
     "bucket",
     "build=1.4.2, plan=pro",

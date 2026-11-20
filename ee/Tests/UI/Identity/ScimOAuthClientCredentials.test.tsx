@@ -101,7 +101,7 @@ describe("what the identity provider is configured with", () => {
     );
 
     expect(screen.getByText(/^Set\. It works until /)).toBeInTheDocument();
-    expect(screen.queryByRole("hidden-text")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("hidden-text-reveal")).not.toBeInTheDocument();
     expect(screen.getByText("Make New Client Secret")).toBeInTheDocument();
   });
 
@@ -155,9 +155,9 @@ describe("making a secret", () => {
     );
     expect(onChange).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByRole("hidden-text"));
+    fireEvent.click(screen.getByRole("button", { name: "Click to reveal" }));
 
-    expect(screen.getByRole("revealed-text")).toHaveTextContent(SECRET);
+    expect(screen.getByTestId("hidden-text-value")).toHaveTextContent(SECRET);
     expect(
       screen.getByText(/Copy it now: OneUptime keeps only a hash of it/),
     ).toBeInTheDocument();
@@ -213,7 +213,7 @@ describe("making a secret", () => {
     expect(
       screen.getByText("You do not have permission to change this connection."),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("hidden-text")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("hidden-text-reveal")).not.toBeInTheDocument();
     expect(screen.getByText("None yet.")).toBeInTheDocument();
     expect(onChange).not.toHaveBeenCalled();
   });

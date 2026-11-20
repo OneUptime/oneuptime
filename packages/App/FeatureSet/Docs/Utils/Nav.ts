@@ -743,6 +743,11 @@ const DocsNav: NavGroup[] = [
         title: "PromQL",
         url: "/docs/telemetry/promql",
       },
+      // Querying logs with LogQL, and reading them from Grafana (#7700).
+      {
+        title: "LogQL",
+        url: "/docs/telemetry/logql",
+      },
       {
         title: "Deploys and Changes",
         url: "/docs/telemetry/change-events",
@@ -1099,6 +1104,10 @@ const DocsNav: NavGroup[] = [
         title: "Data Security Integrations",
         url: "/docs/data-security/integrations",
       },
+      {
+        title: "OneUptime AI in Data Security",
+        url: "/docs/data-security/ai",
+      },
     ],
   },
   /*
@@ -1218,6 +1227,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "External Data Sources",
         url: "/docs/dashboards/data-sources",
+      },
+      {
+        title: "Import from Grafana and Datadog",
+        url: "/docs/dashboards/import",
       },
       {
         title: "Sharing & Public Dashboards",

@@ -41,7 +41,7 @@ Serveren er tilstandsløs: den udsteder ingen sessions-id'er, og hver anmodning 
 - **Planlagt vedligeholdelse**: opret og administrer vedligeholdelseshændelser.
 - **Telemetri**: forespørg logs, metrikker, spor, undtagelser, monitorlogs, sikkerhedshændelser og mere, kun læsning.
 
-Der er værktøjer til at oprette, hente, liste, opdatere, slette og tælle for 55 slags poster, værktøjer til at liste og tælle for 9 slags telemetri og værktøjer lavet til hændelseshåndtering. En slags post uden et felt, du kan ændre, når den er oprettet, som en hændelses kobling til en advarsel, har intet opdateringsværktøj. Skrivebeskyttede værktøjer har `readOnlyHint`, og alle værktøjer, der ændrer noget, har `destructiveHint`, så en klient selv kan køre skrivebeskyttede kald og spørge dig før enhver ændring. `openWorldHint` markerer de værktøjer, der rækker ud over dit projekt: værktøjerne til offentlige statussider og de ændringer, der vises på en statusside og sendes til dens abonnenter, som en ny hændelse, en ændring af dens tilstand eller en offentlig note. Et mislykket værktøjskald kommer tilbage som et værktøjsresultat (`isError: true`) med en `statusCode`, detaljerne og et forslag, ikke som en MCP-protokolfejl, så agenten kan læse fejlen og rette sig selv.
+Der er værktøjer til at oprette, hente, liste, opdatere, slette og tælle for 55 slags poster, værktøjer til at liste og tælle for 9 slags telemetri og værktøjer lavet til hændelseshåndtering. En slags post uden et felt, du kan ændre, når den er oprettet, som en hændelses kobling til en advarsel, har intet opdateringsværktøj. Skrivebeskyttede værktøjer har `readOnlyHint`, og alle værktøjer, der ændrer noget, har `destructiveHint`, så en klient selv kan køre skrivebeskyttede kald og spørge dig før enhver ændring. `openWorldHint` markerer de værktøjer, der rækker ud over dit projekt: værktøjerne til offentlige statussider; de ændringer, der vises på en statusside og sendes til dens abonnenter, som en ny hændelse, en ændring af dens tilstand eller en offentlig note; invitationer, som sendes på e-mail til personer, der endnu ikke behøver at være med i dit projekt; og de værktøjer, der opretter eller ændrer en monitor, et datalager eller et BI-værktøj, da OneUptime derefter kontakter den adresse, du angiver. Et mislykket værktøjskald kommer tilbage som et værktøjsresultat (`isError: true`) med en `statusCode`, detaljerne og et forslag, ikke som en MCP-protokolfejl, så agenten kan læse fejlen og rette sig selv.
 
 ## Før du begynder
 
@@ -348,12 +348,16 @@ Værktøjet **`oneuptime_move_in_list`** flytter en række i en ordnet liste, fo
 Serveren har også Spørg AI's opsætningshandlinger, ét kald hver: det, du sætter op, i stedet for én post ad gangen. Hver opretter de poster, som Spørg AI og de guidede opsætninger opretter for de samme svar, med de samme tjek:
 
 - **`set_up_website_monitoring`**: en monitor for et website eller en API på en adresse, som åbner en hændelse, når adressen ikke svarer eller svarer med en fejl. Den er din, og en adresse, som en monitor allerede tjekker, får ikke en anden
+- **`set_up_service_monitor`**: en af de monitorer, som den guidede opsætning af telemetri anbefaler for en tjeneste, der sender telemetri: for fejlende forespørgsler, langsomme forespørgsler, uhåndterede undtagelser eller en stigning i fejllogge. Den åbner en advarsel til dit team, og en monitor, som tjenesten allerede har, får ikke en anden
 - **`set_up_paging`**: i et projekt, der endnu ikke tilkalder nogen, dets første vagtpolitik, som tilkalder dig og de personer og teams, du nævner, ved hver ny hændelse og hver ny advarsel
+- **`add_to_on_call_policy`**: medlemmer og teams føjet til en vagtpolitik, som projektet har, på et af dens niveauer eller som et nyt niveau, der tilkalder dem, når ingen kvitterer. Den, et niveau allerede tilkalder, bliver ikke tilføjet to gange
+- **`invite_people`**: personer inviteret til projektet via e-mail. Hver af dem får en invitationsmail i dit navn, og en adresse, der allerede er i projektet, bliver ikke inviteret igen
+- **`set_how_to_reach_me`**: hvordan tilkald når dig, for eksempel en sms med det samme og et opkald efter fem minutter. Den erstatter dine indstillinger i Sådan når man mig og bruger kun de metoder, du har bekræftet
 - **`publish_status_page`**: en offentlig statusside, der viser de monitorer, du nævner
 - **`add_monitors_to_status_page`**: monitorer sat på en statusside, som projektet har
 - **`who_is_told`**: hvem der får besked, når en monitor er nede, og hvad der ville forhindre, at nogen bliver nået. Den ændrer intet
 
-De handler som dig, logget ind med OAuth: en API-nøgle til et projekt kan ikke bruge de fire, der opretter noget. Din klient spørger dig før hver af dem, og dens svar siger, hvad der blev oprettet. Det, der mangler, for eksempel en tilladelse, en adresse eller plads i abonnementet, siges, før noget oprettes.
+De handler som dig, logget ind med OAuth: en API-nøgle til et projekt kan ikke bruge de otte, der opretter noget. Din klient spørger dig før hver af dem, og dens svar siger, hvad der blev oprettet. Det, der mangler, for eksempel en tilladelse, en adresse eller plads i abonnementet, siges, før noget oprettes.
 
 ## Forespørgsel på telemetri
 

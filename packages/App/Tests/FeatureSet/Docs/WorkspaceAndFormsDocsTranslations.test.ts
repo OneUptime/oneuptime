@@ -543,6 +543,11 @@ const ACCOUNTS_LABELS: Record<string, Record<string, string>> = {
     "Submit another response": "form.submitAnother",
     Submit: "common.submit",
   },
+  // The sign-in page of a form only people who sign in can open (#10249).
+  [SHARING]: {
+    "Forgot password?": "formSignIn.forgotPassword",
+    "Sign Out": "formSignIn.signOut",
+  },
 };
 
 /*
@@ -835,7 +840,8 @@ const NUMBERS: Record<string, Array<string>> = {
    * And, for a form's custom domains, how often they are checked, how often
    * a certificate may be reissued, and the port Let's Encrypt checks.
    */
-  [SHARING]: ["429", "503", "15", "24", "80"],
+  // And the days a form's sign-in lasts unused (#10249).
+  [SHARING]: ["429", "503", "15", "24", "80", "30"],
 };
 
 // The products a menu path starts with, by their Products menu key.

@@ -1,0 +1,76 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{> EmailTitle title=(t "Your email address was changed") }}
+
+{{!--
+  Sent to the address an account had, once its address has changed (#9907,
+  Common/Types/Accounts/EmailAddressChangedEmail, sent by
+  Common/Server/Utils/EmailChange/EmailAddressChangedNotice from
+  UserService.onUpdateSuccess): the person's own change, confirmed from the
+  new address, a master admin's, an identity provider's through SCIM, or any
+  other write OneUptime makes. One email per change, in the language on the
+  account.
+
+  It says that the address changed and to which, masked; when, in the
+  reader's time zone; from where, only when the change was the account's own
+  (the rows of Partials/RequestOriginFields.hbs, which show only what is
+  known); and whom to ask if it was not them. A server admin and an identity
+  provider are named by role, never by name, and their address and device
+  are never shown.
+
+  It has no link that does anything: undoing the change from this mailbox
+  would work for whoever reads it, and moving away from a mailbox somebody
+  else reads is exactly what a change of address is for (see
+  EmailAddressChangedEmail.ts). A server admin can move the address back.
+
+  The product's name is the installation's own, and support's address is
+  OneUptime's, so both go into sentences through ttHtml, which escapes the
+  whole sentence. The masked address and the request's rows are values, on
+  plainText. Everything else is OneUptime's own words, looked up in the
+  reader's language (Utils/EmailLanguage.ts).
+--}}
+
+{{#if changedByServerAdmin}}
+{{> InfoBlock info=(ttHtml "A server admin changed the email address of your {{product}} account from this address to a new one." product=productName)}}
+{{else if changedByIdentityProvider}}
+{{> InfoBlock info=(ttHtml "Your organization's identity provider changed the email address of your {{product}} account from this address to a new one." product=productName)}}
+{{else}}
+{{> InfoBlock info=(ttHtml "The email address of your {{product}} account was changed from this address to a new one." product=productName)}}
+{{/if}}
+
+{{> InfoBlock info=(tHtml "Emails about your account, such as password resets and sign-in links, now go to the new address.")}}
+
+{{!-- One card, as in every email: when, to which address, and from where when known. --}}
+{{> DetailBoxStart this }}
+{{> DetailBoxField title=(t "Changed at:") plainText=changedAt }}
+{{> DetailBoxField title=(t "New email address:") plainText=newEmailAddress }}
+{{> RequestOriginFields this }}
+{{> DetailBoxEnd this }}
+
+{{#if changedByAccountOwner}}
+{{> InfoBlock info=(tHtml "If this was you, there is nothing else to do.")}}
+
+{{> InfoBlock info=(tHtml "If this was not you, someone who was signed in to your account moved it to an address of their own.")}}
+
+{{#if @root.isSelfHosted}}
+{{> InfoBlock info=(tHtml "Contact your server's admin right away: they can move your account back to this address.")}}
+{{else if @root.isBrandRenamed}}
+{{> InfoBlock info=(tHtml "Contact your server's admin right away: they can move your account back to this address.")}}
+{{else}}
+{{> InfoBlock info=(ttHtml "Contact support at {{address}} right away, from this address: they can move your account back to it." address="support@oneuptime.com")}}
+{{/if}}
+{{else if changedByIdentityProvider}}
+{{> InfoBlock info=(tHtml "If you did not expect this, contact your organization's admin.")}}
+{{else if @root.isSelfHosted}}
+{{> InfoBlock info=(tHtml "If you did not expect this, contact your server's admin.")}}
+{{else if @root.isBrandRenamed}}
+{{> InfoBlock info=(tHtml "If you did not expect this, contact your server's admin.")}}
+{{else}}
+{{> InfoBlock info=(ttHtml "If you did not expect this, contact support at {{address}}." address="support@oneuptime.com")}}
+{{/if}}
+
+{{> Footer this}}
+
+{{> End this}}

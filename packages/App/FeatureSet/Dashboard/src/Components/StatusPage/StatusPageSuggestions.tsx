@@ -329,6 +329,12 @@ export interface StatusPageSuggestionsFooterOptions {
         modelId: ObjectID;
       }
     | undefined;
+  /*
+   * A note drawn above the suggestions, from the form's values: what the
+   * pages picked will do, on a form that says it nowhere else (a
+   * maintenance event's Edit, #9974). Left out, there is none.
+   */
+  getNote?: ((values: unknown) => ReactElement) | undefined;
 }
 
 /*
@@ -382,25 +388,32 @@ export const getStatusPageSuggestionsFooter: <TEntity>(
       footer.setValue(statusPageIds);
     };
 
-    if (options.monitorsOf) {
-      return (
-        <RecordStatusPageSuggestions
-          modelType={options.monitorsOf.modelType}
-          modelId={options.monitorsOf.modelId}
-          statusPageIds={record["statusPages"]}
-          eventType={options.eventType}
-          onChange={onChange}
-        />
-      );
-    }
-
-    return (
+    const suggestions: ReactElement = options.monitorsOf ? (
+      <RecordStatusPageSuggestions
+        modelType={options.monitorsOf.modelType}
+        modelId={options.monitorsOf.modelId}
+        statusPageIds={record["statusPages"]}
+        eventType={options.eventType}
+        onChange={onChange}
+      />
+    ) : (
       <StatusPageSuggestions
         monitorIds={record["monitors"]}
         statusPageIds={record["statusPages"]}
         eventType={options.eventType}
         onChange={onChange}
       />
+    );
+
+    if (!options.getNote) {
+      return suggestions;
+    }
+
+    return (
+      <>
+        {options.getNote(values)}
+        {suggestions}
+      </>
     );
   };
 

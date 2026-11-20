@@ -6,6 +6,7 @@ import Select from "../../Types/Database/Select";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NameTakenException from "../../../Types/Exception/NameTakenException";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -126,12 +127,20 @@ export default class ArchivableValueGuard {
         },
       });
 
+      /*
+       * The name is taken, and nothing was written: said with its code
+       * beside its words (NameTakenException, #9855). The code says an
+       * archived value has it (#10065): nothing an apply does to the values
+       * in service gives the name up, so the Terraform provider answers at
+       * once, with where to unarchive it, rather than ask again.
+       */
       if (archivedNamesake) {
-        throw new BadDataException(
+        throw new NameTakenException(
           ArchivableValueGuard.getArchivedNamesakeRefusal({
             definition: data.definition,
             name: name,
           }),
+          { isArchived: true },
         );
       }
     }

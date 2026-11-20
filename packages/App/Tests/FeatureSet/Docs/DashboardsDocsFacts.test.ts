@@ -143,10 +143,12 @@ import DataSourceType, {
   DataSourceTypeProps,
   DataSourceTypeUtil,
 } from "Common/Types/DataSource/DataSourceType";
+import { PROJECT_METRICS_DATA_SOURCE_ID } from "Common/Types/DataSource/ProjectMetricsDataSource";
 import HashedString from "Common/Types/HashedString";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
+import { isProductLevelPermission } from "Common/Types/Product/ProductLevels";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import { startsCollapsed } from "Common/UI/Components/SideMenu/SideMenuSectionState";
@@ -172,6 +174,9 @@ import DataSourceQueryText from "Common/Utils/DataSource/DataSourceQueryText";
 import DataSourceValueReducer from "Common/Utils/DataSource/DataSourceValueReducer";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
 import MetricQueryOverlay, {
+  OverlayAxis,
+  OverlayAxisReading,
+  OverlayChartAxes,
   OverlayUnitFit,
 } from "Common/Utils/Metrics/MetricQueryOverlay";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
@@ -618,10 +623,22 @@ function refreshIntervals(): Array<number> {
 }
 
 // The titles of the roles in a permission list, and its other permissions.
-function rolesAndGrants(permissions: ReadonlyArray<Permission>): {
+function rolesAndGrants(everyPermission: ReadonlyArray<Permission>): {
   roles: Array<string>;
   grants: Array<string>;
 } {
+  /*
+   * The tables name the project-wide and area roles and Dashboards' own
+   * permissions. Dashboards' levels (#10289) follow the project-wide roles
+   * on every Dashboards record, and are described once, for every product,
+   * on the permissions page.
+   */
+  const permissions: Array<Permission> = everyPermission.filter(
+    (permission: Permission): boolean => {
+      return !isProductLevelPermission(permission);
+    },
+  );
+
   return {
     roles: permissions
       .filter((permission: Permission): boolean => {
@@ -1607,6 +1624,52 @@ describe("Dashboard Widgets, against the widget catalog and the widgets' setting
       "This query is in {{unit}} and the previous query's chart in {{chartUnit}}",
     );
 
+    /*
+     * Issue #10042: a unit of another kind is drawn against a second axis,
+     * on the right, and its switch says so; the legend names each axis's
+     * unit and each series' axis; only a third kind fits neither axis, and
+     * is drawn to a scale of its own, with no axis (#10080).
+     */
+    const charts: string = readSource(
+      `${DASHBOARD_APP}/Components/Metrics/MetricCharts.tsx`,
+    );
+    const axes: OverlayChartAxes = MetricQueryOverlay.readChartAxes([
+      { unit: "%" },
+      { unit: "By" },
+      { unit: "ms" },
+    ]);
+
+    expect(
+      axes.readings.map((reading: OverlayAxisReading) => {
+        return reading.axis;
+      }),
+    ).toEqual([OverlayAxis.First, OverlayAxis.Second, OverlayAxis.OwnScale]);
+    expect(axes.readings[2]!.fit).toBe(OverlayUnitFit.Same);
+    expect(axes.ownScaleLeadIndexes).toEqual([2]);
+    expect(chart).toContain(
+      "takes its title, its chart type and its left value axis from its first query",
+    );
+    expect(chart).toContain(
+      "A query in a unit of another kind, such as bytes on a chart in percent, is drawn against a second value axis on the chart's right, in its own unit, and the switch says so.",
+    );
+    expect(queryConfig).toContain(
+      "so it is drawn against the chart's right axis.",
+    );
+    expect(charts).toContain('"Left axis: {{unit}}"');
+    expect(charts).toContain('"Right axis: {{unit}}"');
+    expect(charts).toContain('translator.translateText("Right axis")');
+    expect(chart).toContain(
+      "The legend under the chart names each axis's unit and the axis each series is drawn against.",
+    );
+    expect(queryConfig).toContain(
+      "so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.",
+    );
+    expect(charts).toContain('"Own scale: {{unit}}"');
+    expect(charts).toContain('translator.translateText("Own scale")');
+    expect(chart).toContain(
+      "Only a third kind of unit fits neither axis: it is drawn to a scale of its own, with no axis, and the chart and the switch both say so. Read its values in the legend and the tooltip, or give such a query its own chart to read it against an axis.",
+    );
+
     // The setting the page names no longer: no such label is drawn.
     expect(chart).not.toContain(bold("Additional Queries"));
   });
@@ -2137,7 +2200,7 @@ describe("Dashboard Widgets, against the widget catalog and the widgets' setting
     );
   });
 
-  it("names the widgets a public dashboard cannot show, and drops the External Data Sources ones", () => {
+  it("names the widgets a public dashboard cannot show, and serves the External Data Sources ones only on this project's metrics, without their queries", () => {
     const refusing: Array<string> = fs
       .readdirSync(path.join(PACKAGES_DIR, WIDGET_COMPONENTS_DIR))
       .filter((file: string): boolean => {
@@ -2174,28 +2237,59 @@ describe("Dashboard Widgets, against the widget catalog and the widgets' setting
       );
     }
 
-    // The data source widgets never reach the visitor: the config drops them.
+    /*
+     * The data source widgets reach the visitor only on this project's
+     * metrics, and never with their queries' text (issue #10226): one on an
+     * external data source, or set up with no query, is dropped.
+     */
     const config: DashboardViewConfig = {
       _type: "DashboardViewConfig",
       heightInDashboardUnits: 10,
       components: [
-        { componentType: DashboardComponentType.DataSourceChart },
-        { componentType: DashboardComponentType.DataSourceTable },
+        {
+          componentType: DashboardComponentType.DataSourceChart,
+          arguments: {
+            queries: [
+              {
+                dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
+                query: "sum(rate(http_requests_total[5m]))",
+              },
+            ],
+          },
+        },
+        {
+          componentType: DashboardComponentType.DataSourceTable,
+          arguments: {
+            query: {
+              dataSourceId: ObjectID.generate().toString(),
+              query: "SELECT 1",
+            },
+          },
+        },
+        { componentType: DashboardComponentType.DataSourceValue },
         { componentType: DashboardComponentType.Chart },
       ],
     } as unknown as DashboardViewConfig;
-    const served: Array<string> = (
-      PublicDashboardViewConfig.sanitize(config)?.components || []
-    ).map((component: DashboardBaseComponent): string => {
-      return component.componentType;
-    });
+    const servedComponents: Array<DashboardBaseComponent> =
+      PublicDashboardViewConfig.sanitize(config)?.components || [];
+    const served: Array<string> = servedComponents.map(
+      (component: DashboardBaseComponent): string => {
+        return component.componentType;
+      },
+    );
 
-    expect(served).toEqual([DashboardComponentType.Chart]);
+    expect(served).toEqual([
+      DashboardComponentType.DataSourceChart,
+      DashboardComponentType.Chart,
+    ]);
+    expect(JSON.stringify(servedComponents)).not.toContain(
+      "http_requests_total",
+    );
     expect(readSource(DATA_SOURCE_PLACEHOLDER)).toContain(
       `External data sources are ${NOT_ON_PUBLIC_DASHBOARDS}`,
     );
     expect(publicSection).toContain(
-      "The External Data Sources widgets are left out of a public dashboard altogether, because their settings are the query itself.",
+      "The External Data Sources widgets show their data when they read **This project's metrics (PromQL)**, never their queries. A widget on an external data source is left out of a public dashboard altogether.",
     );
   });
 });
@@ -3357,11 +3451,13 @@ describe("Sharing & Public Dashboards, against the public link's checks", () => 
     ipWhitelist?: string;
     password?: boolean;
     isArchived?: boolean;
+    requireSignIn?: boolean;
   }): Dashboard {
     const dashboard: Dashboard = new Dashboard();
 
     dashboard.isPublicDashboard = data.isPublicDashboard ?? true;
     dashboard.isArchived = data.isArchived ?? false;
+    dashboard.requireSignIn = data.requireSignIn ?? false;
 
     if (data.ipWhitelist) {
       dashboard.ipWhitelist = data.ipWhitelist;
@@ -3379,14 +3475,19 @@ describe("Sharing & Public Dashboards, against the public link's checks", () => 
     dashboard: Dashboard,
     clientIp: string,
     hasUnlockCookie: boolean = false,
+    hasSignedInSession: boolean = false,
   ): PublicDashboardAccess {
     return PublicDashboardAccessPolicy.decide({
       dashboard: dashboard,
-      visitor: { clientIp: clientIp, hasUnlockCookie: hasUnlockCookie },
+      visitor: {
+        clientIp: clientIp,
+        hasUnlockCookie: hasUnlockCookie,
+        hasSignedInSession: hasSignedInSession,
+      },
     }).access;
   }
 
-  it("runs the visitor's checks in the diagram's order: shared, then the IP allowlist, then the password", () => {
+  it("runs the visitor's checks in the diagram's order: shared, then the IP allowlist, then sign-in, then the password", () => {
     const office: string = "203.0.113.7";
     const elsewhere: string = "198.51.100.20";
     const diagram: string = fenceCode(
@@ -3431,15 +3532,46 @@ describe("Sharing & Public Dashboards, against the public link's checks", () => 
       PublicDashboardAccess.Granted,
     );
 
+    // On the list, a dashboard that asks its visitors to sign in: sign-in, never the password.
+    expect(
+      accessFor(
+        publicDashboard({ ipWhitelist: office, requireSignIn: true }),
+        elsewhere,
+        false,
+        true,
+      ),
+    ).toBe(PublicDashboardAccess.Forbidden);
+    expect(
+      accessFor(
+        publicDashboard({ requireSignIn: true, password: true }),
+        elsewhere,
+        true,
+      ),
+    ).toBe(PublicDashboardAccess.SignInRequired);
+    expect(
+      accessFor(
+        publicDashboard({ requireSignIn: true, password: true }),
+        elsewhere,
+        false,
+        true,
+      ),
+    ).toBe(PublicDashboardAccess.Granted);
+
     expect(diagram).toContain('shared -->|"No"| missing["A not-found page"]');
     expect(diagram).toContain(
       'shared -->|"Yes"| allowed("Is their address on<br/>the IP allowlist?")',
     );
     expect(diagram).toContain(
-      'allowed -->|"Yes, or<br/>no list"| locked("Is a password<br/>required?")',
+      'allowed -->|"Yes, or<br/>no list"| signin("Must visitors<br/>sign in?")',
     );
     expect(diagram).toContain(
       'allowed -->|"No"| denied["An Access<br/>Denied page"]',
+    );
+    expect(diagram).toContain(
+      'signin -->|"Yes"| signinpage["The sign-in<br/>page"]',
+    );
+    expect(diagram).toContain(
+      'signin -->|"No"| locked("Is a password<br/>required?")',
     );
   });
 
@@ -3658,7 +3790,11 @@ describe("Dashboard Configuration & Permissions, against the models", () => {
     expect(
       PublicDashboardAccessPolicy.decide({
         dashboard: archived,
-        visitor: { clientIp: undefined, hasUnlockCookie: false },
+        visitor: {
+          clientIp: undefined,
+          hasUnlockCookie: false,
+          hasSignedInSession: false,
+        },
       }).access,
     ).toBe(PublicDashboardAccess.NotFound);
     // The setting stays as it was, for unarchiving to put back.

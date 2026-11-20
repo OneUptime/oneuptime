@@ -32,7 +32,7 @@
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` 显示记录在 OneUptime 中的样子，包括它的 `id`。你没有设置、而由 OneUptime 填入的字段（例如默认值），会在记录创建后复制到 `spec.forProvider` 中，这样下一次检查就不会发现需要更改的内容。
+`status.atProvider` 显示记录在 OneUptime 中的样子，包括它的 `id`。你没有设置、而由 OneUptime 填入的字段（例如默认值），会在记录创建后复制到 `spec.forProvider` 中，这样下一次检查就不会发现需要更改的内容。但 OneUptime 自己持续更新的字段，以及 OneUptime 也会更改的字段，永远不会被复制过去，请参阅 [OneUptime 持续更新的字段](#oneuptime-持续更新的字段)。
 
 ## 引用其他资源
 
@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-记录的 ID 就在仪表板中该记录的 **开发者 → Terraform** 页面写出的 `import` 块里；用 [OneUptime CLI](/docs/cli/resource-operations#列出记录) 运行 `oneuptime <resource> list`，可以列出某种记录的 ID。资源就绪后，`status.atProvider` 会显示该记录。要从此管理它，请在 `spec.forProvider` 中写入它的字段，并把 `managementPolicies` 设为 `["*"]`。
+仪表板中该记录的 **开发者 → Crossplane** 页面会为你写出带有记录 ID 的这份清单，以及一份按字段现状接管该记录的清单；用 [OneUptime CLI](/docs/cli/resource-operations#列出记录) 运行 `oneuptime <resource> list`，可以列出某种记录的 ID。资源就绪后，`status.atProvider` 会显示该记录。要从此管理它，请在 `spec.forProvider` 中写入它的字段，并把 `managementPolicies` 设为 `["*"]`。
 
 ## 机密
 
@@ -104,7 +104,7 @@ kubectl -n team-a get secret collector-telemetry-key -o jsonpath='{.data.attribu
 
 ## 在 Kubernetes 之外所做的更改
 
-提供程序每 10 分钟把每个资源与其记录核对一次，并改回别人在 OneUptime 中所做的任何更改。要更频繁地检查，请为提供程序添加一个带有 `--poll` 的运行时配置：
+提供程序每 10 分钟把每个资源与其记录核对一次，并改回别人在 OneUptime 中所做的任何更改，但 OneUptime 也会更改的字段除外（见下文）。要更频繁地检查，请为提供程序添加一个带有 `--poll` 的运行时配置：
 
 ```yaml title="runtime-config.yaml"
 apiVersion: pkg.crossplane.io/v1beta1
@@ -132,7 +132,19 @@ spec:
     name: oneuptime
 ```
 
-要在记录创建后把某个字段交给仪表板管理，请把它写在 `spec.initProvider` 而不是 `spec.forProvider` 中：它只用于创建记录，之后不会被改回。要把整条记录交给仪表板管理，请从它的管理策略中去掉 `Update`：`["Observe", "Create", "Delete", "LateInitialize"]`。
+要在记录创建后把某个字段交给仪表板管理，请把它写在 `spec.initProvider` 而不是 `spec.forProvider` 中：记录会用它创建，提供程序既不会把它复制到 `spec.forProvider`，也从不把它改回。这适用于每个可选字段；记录必需的字段，例如监视器的 `name`，应写在 `spec.forProvider` 中。要把整条记录交给仪表板管理，请从它的管理策略中去掉 `Update`：`["Observe", "Create", "Delete", "LateInitialize"]`。
+
+### OneUptime 持续更新的字段
+
+有些字段由 OneUptime 负责持续更新，或者也会由 OneUptime 更改，提供程序会保留 OneUptime 所做的更改：从不把这些字段复制到 `spec.forProvider`，也从不把它们改回。
+
+- 只有 OneUptime 才会写入的字段，例如遥测监视器上次运行的时间（`telemetryMonitorLastMonitorAt`）或 Kubernetes 集群的节点数（`nodeCount`），只出现在 `status.atProvider` 中。
+- 可以指定记录初始值的字段，例如监视器的 `currentMonitorStatusId` 或事件的 `currentIncidentStateId`，可在创建记录时写在 `spec.initProvider` 或 `spec.forProvider` 中。此后 OneUptime 会改变它，就像监视器的检查会改变监视器的状态那样；`status.atProvider` 显示它当前的值。
+- 你和 OneUptime 都会更改的字段，例如记录的 `labels`（标签规则会往其中添加标签）、异常的 `isResolved` 或网络设备的 `siteId`（网络发现会更改它），由你写在 `spec.forProvider` 中。提供程序在创建记录时发送它，之后每当清单中的值发生变化时再次发送，并保留 OneUptime 在此期间所做的更改。像 `labels` 这样的列表会保留 OneUptime 添加的条目，找回清单中列出但被人移除的条目，并去掉你从清单中删除的条目。
+
+`kubectl explain` 会在每个可以指定初始值的字段以及每个 OneUptime 也会更改的字段的说明中注明这一点。如果早期版本的提供程序曾把这些字段填入某个资源的 `spec.forProvider`，该资源会自动不再与 OneUptime 冲突，你无需修改任何内容。
+
+对于 OneUptime 也会更改的字段，提供程序会把清单上次应用的内容保存在资源的 `crossplane.oneuptime.com/last-applied` 注解中。在早期版本的提供程序填入过的列表（例如 `labels`）中，你移除的条目会作为 OneUptime 的条目留在记录上；你第一次更改该列表之后清单中列出的条目属于你，你移除它时，它也会从记录中删除。
 
 ## 删除资源
 

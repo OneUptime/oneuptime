@@ -166,6 +166,7 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.KUBERNETES_DOCUMENTATION]: `documentation`,
   [PageMap.KUBERNETES_COSTS]: `costs`,
+  [PageMap.KUBERNETES_COMPLIANCE]: `compliance`,
   [PageMap.KUBERNETES_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.KUBERNETES_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.KUBERNETES_SETTINGS_LABEL_RULES]: `settings/label-rules`,
@@ -267,6 +268,7 @@ export const NetworkSiteRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_SITE_VIEW_TRAFFIC]: `view/${RouteParams.ModelID}/traffic`,
   [PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE]: `view/${RouteParams.ModelID}/status-timeline`,
   [PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE]: `view/${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.NETWORK_SITE_VIEW_OWNERS]: `view/${RouteParams.ModelID}/owners`,
   [PageMap.NETWORK_SITE_VIEW_SETTINGS]: `view/${RouteParams.ModelID}/settings`,
   [PageMap.NETWORK_SITE_VIEW_AUDIT_LOGS]: `view/${RouteParams.ModelID}/audit-logs`,
   [PageMap.NETWORK_SITE_VIEW_DELETE]: `view/${RouteParams.ModelID}/delete`,
@@ -954,6 +956,8 @@ export const FormsRoutePath: Dictionary<string> = {
   [PageMap.FORM_VIEW_ON_SUBMIT]: `${RouteParams.ModelID}/on-submit`,
   [PageMap.FORM_VIEW_SHARE]: `${RouteParams.ModelID}/share`,
   [PageMap.FORM_VIEW_CUSTOM_DOMAINS]: `${RouteParams.ModelID}/custom-domains`,
+  [PageMap.FORM_VIEW_PRIVATE_USERS]: `${RouteParams.ModelID}/private-users`,
+  [PageMap.FORM_VIEW_SINGLE_SIGN_ON]: `${RouteParams.ModelID}/single-sign-on`,
   [PageMap.FORM_VIEW_SUBMISSIONS]: `${RouteParams.ModelID}/submissions`,
   [PageMap.FORM_VIEW_DUPLICATE]: `${RouteParams.ModelID}/duplicate`,
   [PageMap.FORM_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
@@ -1052,6 +1056,7 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
    */
   [PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL]: "playbook-runs",
   [PageMap.SECURITY_PLAYBOOK_RUNS]: "playbook-runs/all",
+  [PageMap.SECURITY_BLOCKLIST]: "blocklist",
   [PageMap.SECURITY_PROTECTED_ENTITIES]: "protected-entities",
   // Workspace, at the addresses every product's Workspace pages have.
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK]:
@@ -1115,6 +1120,7 @@ export const DataSecurityRoutePath: Dictionary<string> = {
   [PageMap.DATA_SECURITY_SETTINGS_CHECKS]: "settings/checks",
   [PageMap.DATA_SECURITY_SETTINGS_RESIDENCY]: "settings/residency",
   [PageMap.DATA_SECURITY_SETTINGS_SCANNING]: "settings/scanning",
+  [PageMap.DATA_SECURITY_SETTINGS_AI]: "settings/ai",
   [PageMap.DATA_SECURITY_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.DATA_SECURITY_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.DATA_SECURITY_SETTINGS_LABEL_RULES]: "settings/label-rules",
@@ -1301,6 +1307,8 @@ export const DashboardsRoutePath: Dictionary<string> = {
   [PageMap.DASHBOARD_VIEW_BRANDING]: `${RouteParams.ModelID}/branding`,
   [PageMap.DASHBOARD_VIEW_AUTHENTICATION_SETTINGS]: `${RouteParams.ModelID}/authentication-settings`,
   [PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS]: `${RouteParams.ModelID}/custom-domains`,
+  [PageMap.DASHBOARD_VIEW_PRIVATE_USERS]: `${RouteParams.ModelID}/private-users`,
+  [PageMap.DASHBOARD_VIEW_SINGLE_SIGN_ON]: `${RouteParams.ModelID}/single-sign-on`,
   [PageMap.DASHBOARD_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.DASHBOARD_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.DASHBOARDS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
@@ -3489,6 +3497,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.KUBERNETES_COMPLIANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_COMPLIANCE]
+    }`,
+  ),
+
   [PageMap.KUBERNETES_CLUSTER_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW]
@@ -4181,6 +4195,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-sites/${
       NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_OWNERS]
     }`,
   ),
 
@@ -7630,6 +7650,16 @@ const RouteMap: Dictionary<Route> = {
       DashboardsRoutePath[PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS]
     }`,
   ),
+  [PageMap.DASHBOARD_VIEW_PRIVATE_USERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARD_VIEW_PRIVATE_USERS]
+    }`,
+  ),
+  [PageMap.DASHBOARD_VIEW_SINGLE_SIGN_ON]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARD_VIEW_SINGLE_SIGN_ON]
+    }`,
+  ),
   [PageMap.DASHBOARD_VIEW_OWNERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/dashboards/${
       DashboardsRoutePath[PageMap.DASHBOARD_VIEW_OWNERS]
@@ -8621,6 +8651,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SECURITY_BLOCKLIST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_BLOCKLIST]
+    }`,
+  ),
+
   [PageMap.SECURITY_PROTECTED_ENTITIES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_PROTECTED_ENTITIES]
@@ -8911,6 +8947,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_SECURITY_SETTINGS_SCANNING]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-security/${
       DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_SCANNING]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_SETTINGS_AI]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_AI]
     }`,
   ),
 
@@ -10040,6 +10082,16 @@ const RouteMap: Dictionary<Route> = {
       FormsRoutePath[PageMap.FORM_VIEW_CUSTOM_DOMAINS]
     }`,
   ),
+  [PageMap.FORM_VIEW_PRIVATE_USERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW_PRIVATE_USERS]
+    }`,
+  ),
+  [PageMap.FORM_VIEW_SINGLE_SIGN_ON]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW_SINGLE_SIGN_ON]
+    }`,
+  ),
   [PageMap.FORM_VIEW_SUBMISSIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/forms/${
       FormsRoutePath[PageMap.FORM_VIEW_SUBMISSIONS]
@@ -10575,7 +10627,7 @@ const RouteMap: Dictionary<Route> = {
 };
 
 /*
- * The Developer pages (Terraform, API, CLI, AI Assistants) of every resource:
+ * The Developer pages (Terraform, Crossplane, API, CLI, AI Assistants) of every resource:
  * three under each registered list page and three under each view page,
  * generated from Components/DeveloperDocs/DeveloperDocsPages.ts instead
  * of being written out here a hundred and more times. Their keys are

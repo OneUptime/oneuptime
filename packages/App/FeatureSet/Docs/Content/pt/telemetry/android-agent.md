@@ -104,7 +104,7 @@ O Android só deixa um aplicativo ler os logs de outros aplicativos com a permis
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-Com o Esper, execute esse comando pelo **Secure Remote ADB**: ative o acesso ADB para o dispositivo, conecte-se com `espercli secureadb connect -d DEVICE_ID` e depois execute o comando. O Android reinicia o agente quando a permissão é concedida, e o agente começa a ler na mesma hora.
+Com o Esper, execute esse comando pelo **Secure Remote ADB**: ative o acesso ADB para o dispositivo, conecte-se com `espercli secureadb connect --device DEVICE_ID` e depois execute o comando. O Android reinicia o agente quando a permissão é concedida, e o agente começa a ler na mesma hora. A coluna **ID no gerenciador de dispositivos** do inventário traz o `DEVICE_ID` de cada dispositivo.
 
 O que o agente passa a ler depende da versão do Android:
 
@@ -124,6 +124,35 @@ adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
 
 O primeiro comando é para o Android 15 e posteriores; o acesso ao uso também pode ser ativado no dispositivo, em **Configurações → Acesso ao uso**. Uma política de dispositivo não consegue concedê-los, e a tela do agente lista os comandos que ainda faltam executar. Com eles, cada crash em **Exceções** tem o stack trace completo, um crash nativo o sinal e a biblioteca em que ele ocorreu, um ANR a pilha da thread principal, e uma reinicialização em **Registros** o motivo que o Android dá para ela. Números de cartão, endereços de e-mail, tokens e senhas no que o agente lê são substituídos por `[card number]`, `[email]`, `[token]` e `[redacted]` antes do envio.
 
+### Conceder as permissões em toda a frota
+
+Cada relatório do agente diz quais dessas permissões ainda lhe faltam. Para listar os dispositivos que precisam delas, abra **Inventário**, depois **Todos os itens**, e filtre por **Permissões do agente**: **Ausente**. Ative a coluna **Permissões do agente** para ver o que falta em cada dispositivo e exporte a lista como CSV. Ative também a coluna **ID no gerenciador de dispositivos**, e a exportação traz o ID do Esper de cada dispositivo, o `DEVICE_ID` que o `espercli secureadb connect --device` recebe.
+
+Uma política de dispositivo não consegue concedê-las: READ_LOGS e READ_DROPBOX_DATA são permissões que só o adb, o sistema ou o fabricante do dispositivo podem dar, e o acesso ao uso é definido pelo adb ou pela pessoa diante do dispositivo. O que o Esper oferece, e por que nada disso as concede:
+
+- **Permissões de aplicativo**, em um blueprint ou com o comando `SET_APP_PERMISSION`, passam pela API de proprietário do dispositivo do Android, que só concede as permissões que um aplicativo pede à pessoa diante do dispositivo. O Android recusa essas três.
+- **Configuração gerenciada** define as configurações do próprio agente, nunca as permissões do Android.
+- **Run Shell Script** roda em dispositivos Linux e Windows, não em dispositivos Android.
+- **Secure Remote ADB** alcança um dispositivo por vez, a partir de um computador que roda o `espercli`. Em dispositivos com Esper Foundation, ele não precisa de ninguém diante do dispositivo. Em outros dispositivos, alguém diante do dispositivo aceita **Allow USB debugging?** na primeira vez.
+
+Por isso, conceda-as com o adb:
+
+- **Antes de um dispositivo ser enviado**, quando ele é preparado com um cabo USB. Isto concede as três em todos os dispositivos conectados ao computador:
+
+  ```bash
+  for serial in $(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }'); do
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+    adb -s "$serial" shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+  done
+  ```
+
+  No Android 14 e anteriores, o segundo comando diz que a permissão é desconhecida: esse dispositivo não precisa dela.
+- **Em um dispositivo em campo**, pelo Secure Remote ADB, um dispositivo da lista **Ausente** por vez.
+- **Só o acesso ao uso** pode ser ativado pela pessoa diante do dispositivo, em **Configurações → Acesso ao uso**, ou com o botão na tela do agente.
+
+O próximo relatório do dispositivo, em até um minuto, o tira da lista **Ausente**.
+
 ### Uso de CPU
 
 A partir do Android 8, o sistema esconde dos aplicativos o uso de CPU de um dispositivo. Só um aplicativo proprietário do dispositivo consegue lê-lo, e só em dispositivos cujo hardware o informa. O agente o lê quando é o proprietário do dispositivo, o que você define com o adb em um dispositivo sem contas e sem outro proprietário:
@@ -141,16 +170,20 @@ Uma sessão de registros envia os logs de todos os aplicativos de um dispositivo
 :::steps
 ### Solicitar uma
 
-Abra o dispositivo em **Hosts**, depois **Registros**, e clique em **Solicitar sessão de registros** em **Sessões de registros**. Escolha por quanto tempo o dispositivo envia os logs, de 15 minutos a 4 horas, e o nível mais baixo que ele envia: **Info**, **Depuração** ou **Detalhado**.
+Abra o dispositivo em **Hosts**, depois **Registros**, e clique em **Solicitar sessão de registros** em **Sessões de registros**. Escolha por quanto tempo o dispositivo envia os logs, de 15 minutos a 4 horas, e o nível mais baixo que ele envia: **Info**, **Depuração** ou **Detalhado**. Adicione uma **Nota** para dizer por que você está pedindo, como "Verificando por que o app de pagamento trava depois das 18h".
 
 ### Permitir no dispositivo
 
-Em até um minuto, o dispositivo mostra uma notificação de que alguém pediu os logs dele, com o nome dessa pessoa. A pessoa diante do dispositivo abre o agente e toca em **Permitir**. No Android 13 e posteriores, o Android pede em seguida para permitir o acesso a todos os registros do dispositivo, e a pessoa permite isso também.
+Em até um minuto, o dispositivo mostra uma notificação de que alguém pediu os logs dele, com o nome dessa pessoa e a sua nota. A pessoa diante do dispositivo abre o agente, onde a solicitação aparece com a sua nota embaixo, e toca em **Permitir**. No Android 13 e posteriores, o Android pede em seguida para permitir o acesso a todos os registros do dispositivo, e a pessoa permite isso também.
 
 ### Ler as linhas
 
-A sessão mostra **Coletando**, e as linhas de todos os aplicativos chegam aos logs do dispositivo. Clique em **Mostrar linhas** para ver só as linhas da sessão. A sessão termina quando o tempo dela acaba, ou quando alguém a interrompe no dispositivo ou a cancela no OneUptime.
+A sessão mostra **Coletando**, e as linhas de todos os aplicativos chegam aos logs do dispositivo. Clique em **Mostrar linhas** para ver só as linhas da sessão, ou em **Baixar linhas** para salvá-las em um arquivo. A sessão termina quando o tempo dela acaba, ou quando alguém a interrompe no dispositivo ou a cancela no OneUptime.
 :::
+
+A nota é uma linha de até 200 caracteres. O dispositivo a mostra do jeito que você a escreveu, entre aspas, na notificação e na tela do agente enquanto a sessão aguarda ou roda; ela nunca é traduzida. Quebras de linha viram espaços, e números de cartão, endereços de e-mail, tokens e senhas nela são substituídos por `[card number]`, `[email]`, `[token]` e `[redacted]` antes que ela seja guardada, como acontece com o que o agente envia. A lista de sessões a mostra abaixo de quem pediu, e os **Registros de auditoria** do host a guardam com a solicitação.
+
+**Baixar linhas** salva as linhas da sessão em um arquivo de texto no formato que o `logcat -v threadtime` imprime, que o suporte de um fornecedor consegue ler: cada linha com o horário exato ao milissegundo, o processo e a thread, o nível, a tag e a mensagem. Os horários estão em UTC. As primeiras linhas do arquivo dizem a que sessão, dispositivo e nota ele se refere, e quem pediu. Ele contém as linhas que a página **Registros** mostra, já com os dados ocultados pelo agente, então exige a mesma permissão necessária para ler os logs do dispositivo. Um arquivo contém no máximo 100.000 linhas e 32 MB; o arquivo de uma sessão mais longa termina dizendo quantas linhas a sessão tem.
 
 Uma sessão precisa de READ_LOGS e de `logcat_enabled`; sem eles, ela mostra **Indisponível**. Só uma sessão por vez roda em um dispositivo. Uma solicitação que ninguém permite em até uma hora expira, e uma sessão durante a qual o dispositivo reinicia termina com essa reinicialização, já que a permissão do Android termina com o processo do agente. Pedir uma sessão exige permissão para editar o host, e os **Registros de auditoria** do host guardam quem pediu, e quando.
 
@@ -165,11 +198,15 @@ Uma sessão precisa de READ_LOGS e de `logcat_enabled`; sem eles, ela mostra **I
 | Reinicializações | **Registros**, com `@event.name:device.boot`: quanto tempo o dispositivo ficou ligado, se ele desligou corretamente, quanto tempo ficou desligado, por que reiniciou e loops de reinicialização |
 | Aplicativos instalados | **Registros**, com `@event.name:android.package.inventory` uma vez por dia, e cada instalação, atualização e remoção |
 | Crashes e ANRs de todos os aplicativos | **Exceções**, como não tratados, com o nome do aplicativo, e com as pilhas quando o agente lê a [DropBox](#stack-traces-de-crashes-e-motivos-de-reinicialização) |
-| Marca, modelo, número de série, versão do sistema operacional, nível do patch de segurança e firmware | O item do dispositivo em **Inventário** |
+| Marca, modelo, número de série, versão do sistema operacional, nível do patch de segurança e firmware | O item do dispositivo em **Inventário**, com o filtro e a coluna **Nível do patch de segurança** |
+| A idade do nível do patch de segurança | A métrica `android.os.security_patch.age`, em dias |
+| As permissões que ainda faltam ao agente | O item do dispositivo em **Inventário**, com o filtro e a coluna **Permissões do agente** |
 
 Em **Hosts**, o sistema operacional do dispositivo aparece como Android, com o logotipo do Android.
 
-As inicializações do dispositivo na última hora são a métrica `android.boot.recent_count`, e um dispositivo que não para de reiniciar registra um aviso a cada inicialização. Em **Hosts**, um dispositivo Android recebe modelos de alerta próprios: Device Unplugged, Low Battery, Device Overheating, Restart Loop e Storage Nearly Full, junto com Host Stopped Reporting, Host Restarted e High Memory Utilization, e High CPU Utilization quando ele passa a informar o uso de CPU. Os primeiros comandos de depuração de cada alerta são comandos adb. Veja [Monitor de hosts](/docs/monitor/host-monitor#dispositivos-android).
+Um dispositivo está atrasado nos patches de segurança quando o nível do patch de segurança dele tem mais de 90 dias. O Google publica um boletim de segurança do Android todo mês, e o Android Enterprise Recommended exige que o fabricante de um dispositivo distribua cada um em até 90 dias, então um dispositivo mais atrasado do que isso não tem correções que o fabricante dele já deveria ter distribuído. Em **Inventário**, o filtro **Nível do patch de segurança** lista esses dispositivos em **Atualização necessária**; o modelo **Security Patch Out of Date** abre um alerta para cada um. Um dispositivo Android que um gerenciador de dispositivos importa, e que não executa o agente, recebe o alerta do modelo da própria conexão dele, como **Esper Security Patch Out of Date**, pelo nível do patch que o gerenciador de dispositivos informa; um dispositivo que executa o agente fica a cargo deste modelo, então nunca alerta duas vezes.
+
+As inicializações do dispositivo na última hora são a métrica `android.boot.recent_count`, e um dispositivo que não para de reiniciar registra um aviso a cada inicialização. Em **Hosts**, um dispositivo Android recebe modelos de alerta próprios: Device Unplugged, Low Battery, Device Overheating, Restart Loop, Storage Nearly Full e Security Patch Out of Date, junto com Host Stopped Reporting, Host Restarted e High Memory Utilization, e High CPU Utilization quando ele passa a informar o uso de CPU. Os primeiros comandos de depuração de cada alerta são comandos adb. Veja [Monitor de hosts](/docs/monitor/host-monitor#dispositivos-android).
 
 ## Solução de problemas
 

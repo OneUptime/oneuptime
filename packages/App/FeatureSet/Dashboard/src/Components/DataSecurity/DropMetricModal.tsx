@@ -1,14 +1,18 @@
 import AppLink from "../AppLink/AppLink";
+import MetricReadersList, {
+  MAX_METRIC_READERS_SHOWN,
+  MAX_READER_WIDGETS_SHOWN,
+  MetricReaderListGroup,
+  MetricReaderListKind,
+  MetricReaderListKindWords,
+  isMetricReaderGroupShown,
+} from "../Metrics/Readers/MetricReadersList";
 import DataSecurityApi from "./DataSecurityApi";
 import { getRulesRoute } from "./TelemetryScrubIt";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import Route from "Common/Types/API/Route";
 import {
   DataSecurityDropMetricImpact,
   DataSecurityDropMetricResult,
   DataSecurityDropMetricUnavailableReason,
-  DataSecurityMetricUser,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -46,9 +50,17 @@ import React, {
  *  - that the points are lost for good, first, in the danger colour;
  *  - how many of the service's metrics of the last day it drops - never
  *    their names, which hold the data;
- *  - which monitors and dashboards read those metrics and so get no new
- *    data, each a link - or that none does, or that the reader's role could
- *    not tell;
+ *  - what reads those metrics and so gets no new data (#9946): monitors,
+ *    dashboards with the widgets on them that read them, SLOs and recording
+ *    rules, each kind saying plainly what happens to it and each record a
+ *    link - a recording rule's to its list, filtered to it, and a widget's
+ *    to its dashboard opened at it (#10084). Under a recording rule, what
+ *    reads its output metric, which no longer includes them either, on
+ *    down the chain (#10085). Records the reader may not see are counted
+ *    ("2 more you can't see"), never named. Or that none does, or that a
+ *    kind could not be checked. Listed as More Metrics' Remove lists what
+ *    reads a cloud metric, by the one list of what reads a metric
+ *    (MetricReadersList, #10107);
  *  - that what is stored already is not deleted;
  *  - and how to undo it: delete the rule.
  *
@@ -59,8 +71,8 @@ import React, {
 
 export const DROP_METRIC_MODAL_TEST_ID: string = "data-security-drop-metric";
 
-// How many monitors and dashboards of each kind the dialog names; the rest are counted.
-export const MAX_METRIC_USERS_SHOWN: number = 5;
+// How many records of each kind the dialog names; the rest are counted.
+export const MAX_METRIC_USERS_SHOWN: number = MAX_METRIC_READERS_SHOWN;
 
 const TITLE: string = translationKey("Drop This Metric");
 const DESCRIPTION: string = translationKey(
@@ -86,23 +98,56 @@ const METRICS_UNCOUNTED: string = translationKey(
   "How many metrics have such a name could not be counted.",
 );
 const USERS_GO_QUIET: string = translationKey(
-  "These monitors and dashboards read those metrics, and get no new data from them:",
+  "What reads those metrics gets no new data from them:",
 );
 const NO_USERS: string = translationKey(
-  "No monitor or dashboard reads those metrics.",
+  "No monitor, dashboard, SLO or recording rule reads those metrics.",
 );
-const MONITORS_UNCHECKED: string = translationKey(
-  "Your role cannot read monitors, so whether a monitor reads those metrics is not known.",
-);
-const DASHBOARDS_UNCHECKED: string = translationKey(
-  "Your role cannot read dashboards, so whether a dashboard reads those metrics is not known.",
-);
-const MONITORS: string = translationKey("Monitors");
-const DASHBOARDS: string = translationKey("Dashboards");
-const MORE_USERS: PluralTemplate = {
-  one: "and {{count}} more",
-  other: "and {{count}} more",
+
+// What the drop does to each kind of record that reads those metrics, said plainly.
+export const READER_KIND_WORDS: Readonly<{
+  monitors: MetricReaderListKindWords;
+  dashboards: MetricReaderListKindWords;
+  slos: MetricReaderListKindWords;
+  recordingRules: MetricReaderListKindWords;
+}> = {
+  monitors: {
+    consequence: translationKey(
+      "They get no new data from those metrics, so they can no longer alert on their values.",
+    ),
+    unchecked: translationKey(
+      "Whether a monitor reads those metrics could not be checked.",
+    ),
+  },
+  dashboards: {
+    consequence: translationKey(
+      "The widgets named under each show no new data from those metrics.",
+    ),
+    unchecked: translationKey(
+      "Whether a dashboard reads those metrics could not be checked.",
+    ),
+  },
+  slos: {
+    consequence: translationKey(
+      "They count no new events from those metrics, so their error budgets no longer include them.",
+    ),
+    unchecked: translationKey(
+      "Whether an SLO reads those metrics could not be checked.",
+    ),
+  },
+  recordingRules: {
+    consequence: translationKey(
+      "They get no new points from those metrics, so their output metrics no longer include them.",
+    ),
+    unchecked: translationKey(
+      "Whether a recording rule reads those metrics could not be checked.",
+    ),
+  },
 };
+
+// How many of a dashboard's widgets are named under it; the rest are counted.
+export const MAX_WIDGETS_SHOWN: number = MAX_READER_WIDGETS_SHOWN;
+
 const STORED_STAYS: string = translationKey(
   "What is stored already is not deleted. It stays until its retention ends.",
 );
@@ -161,76 +206,6 @@ const FactLine: FunctionComponent<{
     </li>
   );
 };
-
-// The monitors or dashboards of one kind that read those metrics, each a link.
-const UsersOfKind: FunctionComponent<{
-  title: string;
-  users: Array<DataSecurityMetricUser>;
-  routeOf: (id: ObjectID) => Route;
-  dataTestId: string;
-}> = (props: {
-  title: string;
-  users: Array<DataSecurityMetricUser>;
-  routeOf: (id: ObjectID) => Route;
-  dataTestId: string;
-}): ReactElement => {
-  const translator: Translator = useTranslator();
-
-  if (props.users.length === 0) {
-    return <></>;
-  }
-
-  const shown: Array<DataSecurityMetricUser> = props.users.slice(
-    0,
-    MAX_METRIC_USERS_SHOWN,
-  );
-  const more: number = props.users.length - shown.length;
-
-  return (
-    <div data-testid={props.dataTestId}>
-      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-        {translator.translateText(props.title)}
-      </div>
-      <ul className="mt-1 space-y-0.5">
-        {shown.map((user: DataSecurityMetricUser): ReactElement => {
-          return (
-            <li key={user.id}>
-              <AppLink
-                className="font-medium text-indigo-600 hover:underline [overflow-wrap:anywhere]"
-                to={props.routeOf(new ObjectID(user.id))}
-              >
-                {user.name || user.id}
-              </AppLink>
-            </li>
-          );
-        })}
-        {more > 0 ? (
-          <li className="text-gray-500">
-            {translator.translatePlural(MORE_USERS, more)}
-          </li>
-        ) : (
-          <></>
-        )}
-      </ul>
-    </div>
-  );
-};
-
-function monitorRoute(id: ObjectID): Route {
-  return RouteUtil.populateRouteParams(
-    RouteMap[PageMap.MONITOR_VIEW] as Route,
-    {
-      modelId: id,
-    },
-  );
-}
-
-function dashboardRoute(id: ObjectID): Route {
-  return RouteUtil.populateRouteParams(
-    RouteMap[PageMap.DASHBOARD_VIEW] as Route,
-    { modelId: id },
-  );
-}
 
 /*
  * How many of the service's metrics it drops: a count, at least a count
@@ -365,7 +340,47 @@ const DropMetricModal: FunctionComponent<ComponentProps> = (
       </p>
     );
   } else {
-    const users: number = impact.monitors.length + impact.dashboards.length;
+    const kinds: Array<MetricReaderListGroup> = [
+      {
+        kind: MetricReaderListKind.Monitor,
+        readers: impact.monitors,
+        hidden: impact.monitorsHidden,
+        isChecked: impact.monitorsChecked,
+        words: READER_KIND_WORDS.monitors,
+        dataTestId: "data-security-drop-metric-monitors",
+      },
+      {
+        kind: MetricReaderListKind.Dashboard,
+        readers: impact.dashboards,
+        hidden: impact.dashboardsHidden,
+        isChecked: impact.dashboardsChecked,
+        words: READER_KIND_WORDS.dashboards,
+        dataTestId: "data-security-drop-metric-dashboards",
+      },
+      {
+        kind: MetricReaderListKind.Slo,
+        readers: impact.slos,
+        hidden: impact.slosHidden,
+        isChecked: impact.slosChecked,
+        words: READER_KIND_WORDS.slos,
+        dataTestId: "data-security-drop-metric-slos",
+      },
+      {
+        kind: MetricReaderListKind.RecordingRule,
+        readers: impact.recordingRules,
+        hidden: impact.recordingRulesHidden,
+        isChecked: impact.recordingRulesChecked,
+        words: READER_KIND_WORDS.recordingRules,
+        dataTestId: "data-security-drop-metric-recording-rules",
+        hiddenOutputReaders: impact.recordingRulesHiddenOutputReaders,
+      },
+    ];
+    const isAnyRead: boolean = kinds.some(isMetricReaderGroupShown);
+    const isEveryKindChecked: boolean = kinds.every(
+      (kind: MetricReaderListGroup): boolean => {
+        return kind.isChecked;
+      },
+    );
 
     body = (
       <>
@@ -385,42 +400,18 @@ const DropMetricModal: FunctionComponent<ComponentProps> = (
             icon={IconProp.Alert}
             dataTestId="data-security-drop-metric-users"
           >
-            <div className="space-y-2">
-              {users > 0 ? (
-                <>
-                  <p>{translator.translateText(USERS_GO_QUIET)}</p>
-                  <UsersOfKind
-                    title={MONITORS}
-                    users={impact.monitors}
-                    routeOf={monitorRoute}
-                    dataTestId="data-security-drop-metric-monitors"
-                  />
-                  <UsersOfKind
-                    title={DASHBOARDS}
-                    users={impact.dashboards}
-                    routeOf={dashboardRoute}
-                    dataTestId="data-security-drop-metric-dashboards"
-                  />
-                </>
-              ) : impact.monitorsChecked && impact.dashboardsChecked ? (
+            <div className="space-y-3">
+              {isAnyRead ? (
+                <p>{translator.translateText(USERS_GO_QUIET)}</p>
+              ) : isEveryKindChecked ? (
                 <p>{translator.translateText(NO_USERS)}</p>
               ) : (
                 <></>
               )}
-              {!impact.monitorsChecked ? (
-                <p className="text-gray-600">
-                  {translator.translateText(MONITORS_UNCHECKED)}
-                </p>
-              ) : (
-                <></>
-              )}
-              {!impact.dashboardsChecked ? (
-                <p className="text-gray-600">
-                  {translator.translateText(DASHBOARDS_UNCHECKED)}
-                </p>
-              ) : (
-                <></>
-              )}
+              <MetricReadersList
+                groups={kinds}
+                widgetsDataTestId="data-security-drop-metric-widgets"
+              />
             </div>
           </FactLine>
           <FactLine

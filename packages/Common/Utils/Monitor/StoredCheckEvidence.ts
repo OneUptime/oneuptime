@@ -37,6 +37,24 @@ export interface StoredCheckEvidenceScope {
   seriesInEvaluation: number;
 }
 
+/*
+ * Set on the check a monitor's log keeps (MonitorLog.logBody) of a grouped
+ * evaluation whose series were too many to keep in full (#10108): the log
+ * keeps STORED_CHECK_MAX_SIZE_IN_BYTES of its series - those the evaluation
+ * acted on first - and says here how many there were, so "16,250 series"
+ * still reads 16,250.
+ */
+export const LOGGED_SERIES_FIELD: string = "loggedSeries";
+
+export interface LoggedSeries {
+  // How many series (or groups) the evaluation looked at.
+  seriesInEvaluation: number;
+  // How many of them had a data point.
+  seriesWithDataInEvaluation: number;
+  // How many the log kept.
+  seriesKept: number;
+}
+
 export default class StoredCheckEvidence {
   // Was this stored check cut to fit? A log read back as JSON or as text.
   public static isTrimmed(log: unknown): boolean {

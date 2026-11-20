@@ -267,6 +267,13 @@ describe("which columns record a person doing something", () => {
       "firstApproved",
       "humanVerdict",
       /*
+       * SecurityBlock.liftedByUserId: who lifted a block of the blocklist
+       * (#10338). SecurityBlockService stamps it from the caller once the
+       * lift is permitted, and leaves it empty for OneUptime's own; no
+       * request chooses it.
+       */
+      "lifted",
+      /*
        * MarketplaceSubscription.linkedByUserId: who linked a cloud
        * marketplace purchase to a project, on the purchase page. OneUptime
        * stamps it from the signed-in caller as the link is made; no request
@@ -334,11 +341,11 @@ describe("which columns record a person doing something", () => {
       "triggered",
       /*
        * DataSecurityComplianceSetting.turnedOffByUserId: who last turned a
-       * compliance framework or requirement off for a resource (#9629).
-       * DataSecurityComplianceSettingService stamps it from the caller once
-       * the write has passed every permission check, whenever the setting
-       * goes from on to off, and clears it when it is turned on again; no
-       * request chooses it.
+       * compliance framework or requirement off for a resource, or accepted
+       * a Kubernetes finding (#9629). The setting's service stamps it from
+       * the caller once the write has passed every permission check, as the
+       * setting goes from on to off, and clears it when it is turned on
+       * again; no request chooses it.
        */
       "turnedOff",
       "viewed",
@@ -386,23 +393,16 @@ describe("which columns record a person doing something", () => {
     expect(wrong).toEqual([]);
   });
 
-  test("the analytics models record a person doing something only where no request writes it", () => {
+  test("the analytics models record no person doing something", () => {
     const found: Array<string> = [];
-    const writable: Array<string> = [];
 
     for (const modelType of AnalyticsModels as Array<{ new (): unknown }>) {
       const model: {
         tableName?: string;
-        getTableColumns: () => Array<{
-          key: string;
-          accessControl?: ColumnAccessControl | undefined;
-        }>;
+        getTableColumns: () => Array<{ key: string }>;
       } = new modelType() as {
         tableName?: string;
-        getTableColumns: () => Array<{
-          key: string;
-          accessControl?: ColumnAccessControl | undefined;
-        }>;
+        getTableColumns: () => Array<{ key: string }>;
       };
 
       for (const column of model.getTableColumns()) {
@@ -411,26 +411,15 @@ describe("which columns record a person doing something", () => {
           LOOKS_LIKE_A_PERSON_WHO_ACTED.test(column.key)
         ) {
           found.push(`${model.tableName}.${column.key}`);
-
-          if (
-            (column.accessControl?.create || []).length > 0 ||
-            (column.accessControl?.update || []).length > 0
-          ) {
-            writable.push(`${model.tableName}.${column.key}`);
-          }
         }
       }
     }
 
     /*
      * The rule is applied by the database models' column decorators; an
-     * analytics model that records who did something applies it itself,
-     * closing the column to every write. The audit log keeps whose
-     * permissions a workflow's change ran with (#9766), which only its
-     * recorder writes. Each is listed here, so a new one is weighed.
+     * analytics model that starts recording who did something needs it too.
      */
-    expect(found).toEqual(["AuditLogV2.workflowRunAsGivenByUserId"]);
-    expect(writable).toEqual([]);
+    expect(found).toEqual([]);
   });
 });
 

@@ -131,6 +131,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     builtFrom: "a random slot marker of letters and digits",
   },
   {
+    file: "packages/Common/Types/Host/AndroidAgentPermissions.ts",
+    count: 1,
+    builtFrom:
+      "the adb names of the grants AndroidAgentPermission lists (READ_LOGS, READ_DROPBOX_DATA, GET_USAGE_STATS), letters and underscores only, to read the missing grants the Android agent reports - the same test getStatusSql writes for Postgres",
+  },
+  {
     file: "packages/Common/Types/HtmlMarkup.ts",
     count: 1,
     builtFrom: "the element names NAMED_ELEMENTS lists",
@@ -203,6 +209,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
       "a pattern whose syntax JavaScript checks, for its own error message; it is never run",
   },
   {
+    file: "packages/Common/Utils/LogQL/LogQLPipeline.ts",
+    count: 1,
+    builtFrom:
+      "the escape character (String.fromCharCode(27), which no-control-regex keeps out of a pattern literal) and the parameters and letter of an ANSI escape sequence, for LogQL's decolorize; a query's own line and label patterns run on PromQLRegex",
+  },
+  {
     file: "packages/Common/Utils/Metrics/RetiredCloudMetricMoves.ts",
     count: 1,
     builtFrom:
@@ -213,6 +225,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     count: 1,
     builtFrom:
       "a one-time code a check made from a monitor's TOTP secret, checked to be digits only first, to take it out of what the check reports",
+  },
+  {
+    file: "packages/Common/Utils/Monitor/StatusChangeNotes.ts",
+    count: 1,
+    builtFrom:
+      "the note templates STATUS_CHANGE_NOTES lists, OneUptime's own: their words escaped with escapeRegExp, each value bounded (MAX_VALUE_LENGTH) or of its shape, and a value named twice matched by a back-reference, which the linear-time matcher refuses; run only on a stored note of at most MAX_NOTE_LENGTH",
   },
   {
     file: "packages/Common/Utils/PromQL/RE2UnicodeClass.ts",
@@ -306,6 +324,12 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
     count: 1,
     builtFrom:
       "the built-in detectors' patterns, each a pattern literal of Utils/DataSecurity/Detectors that DetectorCatalog holds to bounded quantifiers",
+  },
+  {
+    file: "packages/Common/Utils/Telemetry/ScrubIpAddress.ts",
+    count: 1,
+    builtFrom:
+      "the IP address type's two built-in detectors' patterns (IP_ADDRESS_DETECTORS), pattern literals of Utils/DataSecurity/Detectors/ContactDetectors that DetectorCatalog holds to bounded quantifiers",
   },
   {
     file: "packages/Common/Utils/Markdown/MarkdownDataUrls.ts",

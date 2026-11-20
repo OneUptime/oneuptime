@@ -66,6 +66,7 @@ import {
   MetricRowAggregation,
   MetricRowGroup,
   MetricRowGroupGap,
+  MetricRowValueLabel,
   MetricRowValueOverride,
   MetricRowValueOverrideMap,
   getMetricPageNamesWithGapSections,
@@ -902,12 +903,13 @@ const MetricsViewer: FunctionComponent<Props> = (
   const [sparklineLastValue, setSparklineLastValue] = useState<
     Record<string, number>
   >({});
-  // Suffix and caption of the rows whose value the host supplied.
+  /*
+   * Suffix and caption of the rows whose value the host supplied or whose
+   * aggregation it named, and - for a row that says so - the time of the
+   * newest point, whose age its caption ends with.
+   */
   const [rowValueLabels, setRowValueLabels] = useState<
-    Record<
-      string,
-      { suffix?: string | undefined; caption?: string | undefined }
-    >
+    Record<string, MetricRowValueLabel>
   >({});
   const [sparklineLoading, setSparklineLoading] = useState<boolean>(false);
 
@@ -1579,8 +1581,12 @@ const MetricsViewer: FunctionComponent<Props> = (
       return [];
     }
 
+    // The range the names were matched over: a seldom metric's need it.
+    const dateRange: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+
     return props
-      .getRowGroupGaps(attributeMatchedNames)
+      .getRowGroupGaps(attributeMatchedNames, dateRange)
       .filter((gap: MetricRowGroupGap): boolean => {
         return gap.keys.length > 0;
       });
@@ -1590,6 +1596,7 @@ const MetricsViewer: FunctionComponent<Props> = (
     attributeMatchedNames,
     submittedSearch,
     activeFilters,
+    timeRange,
   ]);
 
   const gapsByGroup: Map<string, MetricRowGroupGap> = useMemo(() => {
@@ -1814,10 +1821,7 @@ const MetricsViewer: FunctionComponent<Props> = (
 
         const last: Record<string, number> = {};
         const out: Record<string, Array<SparklinePoint>> = {};
-        const labels: Record<
-          string,
-          { suffix?: string | undefined; caption?: string | undefined }
-        > = {};
+        const labels: Record<string, MetricRowValueLabel> = {};
         for (const name of visibleNames) {
           const override: MetricRowValueOverride | undefined =
             overrides.get(name);
@@ -1873,6 +1877,14 @@ const MetricsViewer: FunctionComponent<Props> = (
           if (rowPoints.length > 0) {
             // Most recent point — the rightmost bucket on the chart.
             last[name] = rowPoints[rowPoints.length - 1]!.value;
+
+            // A seldom metric's caption says how old that point is (#10026).
+            if (rowAggregation?.showsNewestPointAge && labels[name]) {
+              labels[name] = {
+                ...labels[name],
+                captionSince: rowPoints[rowPoints.length - 1]!.time,
+              };
+            }
           }
         }
         setSparklineData(out);
@@ -2165,6 +2177,11 @@ const MetricsViewer: FunctionComponent<Props> = (
       if (Object.keys(presetAttributes).length > 0) {
         queryPayload["attributes"] = presetAttributes;
       }
+      if (rowAggregation?.groupByAttributeKeys?.length) {
+        queryPayload["groupByAttributeKeys"] = [
+          ...rowAggregation.groupByAttributeKeys,
+        ];
+      }
       /*
        * Entity-scoped lists can have no attribute filters at all. Carry
        * their identity separately so the chart's event markers cannot
@@ -2454,6 +2471,7 @@ const MetricsViewer: FunctionComponent<Props> = (
                 ? rowValueLabels[name]!.caption
                 : props.defaultRowValueCaption
             }
+            valueCaptionSince={rowValueLabels[name]?.captionSince}
             serviceIds={serviceIdsToDisplay}
             restrictServicesToIds={
               entityScopedServiceIds

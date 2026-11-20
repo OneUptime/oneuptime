@@ -61,6 +61,12 @@ const AUTHENTICATION: string =
   "packages/App/FeatureSet/Identity/API/Authentication.ts";
 const STATUS_PAGE_AUTHENTICATION: string =
   "packages/App/FeatureSet/Identity/API/StatusPageAuthentication.ts";
+const SSO_SIGN_IN_LINKS: string =
+  "packages/App/FeatureSet/Identity/API/SsoSignInLinks.ts";
+const DASHBOARD_PRIVATE_USER_AUTHENTICATION: string =
+  "packages/App/FeatureSet/Identity/API/DashboardPrivateUserAuthentication.ts";
+const FORM_PRIVATE_USER_AUTHENTICATION: string =
+  "packages/App/FeatureSet/Identity/API/FormPrivateUserAuthentication.ts";
 
 const PUBLIC_MESSAGE_ROUTES: Array<PublicMessageRoute> = [
   {
@@ -102,6 +108,19 @@ const PUBLIC_MESSAGE_ROUTES: Array<PublicMessageRoute> = [
         "MailService.sendMail(",
       ],
     ],
+  },
+  {
+    /*
+     * The SSO sign-in links of an address's organizations (#9987). Asked
+     * before anything is looked up - counted whether or not the address has
+     * an account, or one in an organization that uses SSO - and the lookups
+     * and the email happen after the answer, in the background
+     * (SsoSignInLinksRoute.test.ts).
+     */
+    file: SSO_SIGN_IN_LINKS,
+    routePath: "/send-sso-sign-in-links",
+    kind: PublicMessageKind.SsoSignInLinks,
+    branches: [["SsoSignInLinksEmail.sendInBackground("]],
   },
   {
     /*
@@ -186,6 +205,35 @@ const PUBLIC_MESSAGE_ROUTES: Array<PublicMessageRoute> = [
       ],
     ],
   },
+  {
+    /*
+     * A dashboard's and a form's private user's forgotten password (#10250,
+     * #10249). Asked before the address is even looked up - counted whether
+     * or not it may sign in, so that a refusal says nothing about who may.
+     */
+    file: DASHBOARD_PRIVATE_USER_AUTHENTICATION,
+    routePath: "`${DashboardPrivateUserApiRoutes.forgotPassword}/:dashboardId`",
+    kind: PublicMessageKind.PrivateUserPasswordReset,
+    branches: [
+      [
+        "DashboardPrivateUserService.findOneBy(",
+        "DashboardPrivateUserService.updateOneById(",
+        "MailService.sendMail(",
+      ],
+    ],
+  },
+  {
+    file: FORM_PRIVATE_USER_AUTHENTICATION,
+    routePath: "`${FormPrivateUserApiRoutes.forgotPassword}/:formId`",
+    kind: PublicMessageKind.PrivateUserPasswordReset,
+    branches: [
+      [
+        "FormPrivateUserService.findOneBy(",
+        "FormPrivateUserService.updateOneById(",
+        "MailService.sendMail(",
+      ],
+    ],
+  },
 ];
 
 const ASKS: string = "PublicMessageRateLimit.assertMaySend(";
@@ -245,8 +293,11 @@ function findRouteHandler(
       ts.isPropertyAccessExpression(node.expression) &&
       node.expression.expression.getText(sourceFile) === "router" &&
       node.arguments.length > 1 &&
-      ts.isStringLiteral(node.arguments[0]!) &&
-      (node.arguments[0] as ts.StringLiteral).text === routePath
+      ((ts.isStringLiteral(node.arguments[0]!) &&
+        (node.arguments[0] as ts.StringLiteral).text === routePath) ||
+        // A path built from the routes' names, as written: `${...}/:id`.
+        (ts.isTemplateExpression(node.arguments[0]!) &&
+          node.arguments[0]!.getText(sourceFile) === routePath))
     ) {
       found = node.arguments[node.arguments.length - 1];
       return;

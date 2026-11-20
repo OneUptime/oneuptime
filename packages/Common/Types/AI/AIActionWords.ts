@@ -157,6 +157,13 @@ export interface AIActionWords {
   title: AIActionSentence;
   description?: Array<AIActionSentence> | undefined;
   /*
+   * Why the action was not made (issue #6982): a code change Auto-run held
+   * back - AI_ACTION_CODE_NOT_MADE - which its Skipped row says under its
+   * title. Its English is the action's resultSummary. Left out of every
+   * other action, and of one saved before.
+   */
+  reason?: AIActionSentence | undefined;
+  /*
    * The arguments the title names by name - incidentId, once it says
    * "INC-42" - so the card's line of arguments need not repeat their IDs.
    */
@@ -369,6 +376,7 @@ export const AI_ACTION_LINES: {
   monitorOpensIncident: string;
   monitorGoesOffline: string;
   monitorOwnerEmailed: string;
+  monitorBilledOnFreePlan: string;
   monitorNoLocations: string;
   probeAgreementSome: string;
   probeAgreementBoth: string;
@@ -453,6 +461,18 @@ export const AI_ACTION_LINES: {
   ),
   monitorOwnerEmailed: translationKey(
     "You own this monitor, so you are emailed when its status changes.",
+  ),
+  /*
+   * What a monitor the plan sets up adds to the bill (#9995), on each
+   * monitor's line - a website's, a service's recommended one - on
+   * OneUptime Cloud's Free plan, where every monitor that runs checks is
+   * billed as it is used: the price the website guided setup quotes there
+   * ({{price}}: formatPriceInUSD of ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
+   * "$1"), by the same rule (isPayAsYouGoPriceQuoted). Never said on a plan
+   * that includes monitors, or on an install without billing.
+   */
+  monitorBilledOnFreePlan: translationKey(
+    "On the Free plan, this monitor is billed as you use it, at {{price}} a month.",
   ),
   // The project adds no probe to a new monitor: nothing would check it.
   monitorNoLocations: translationKey(
@@ -816,6 +836,90 @@ export const AI_ACTION_CODE_CHANGE_LINES: ReadonlyArray<string> = [
   AI_ACTION_PLURAL_LINES.codeFilesNotChecked.other,
   AI_ACTION_PLURAL_LINES.codeFilesValuesHidden.other,
 ];
+
+/*
+ * Why Auto-run did not make a code change (issue #6982): what the Skipped
+ * row a held-back commit or pull request leaves among the answer's actions
+ * says under its title, in the reader's language - the most important
+ * reason, of what its card's lines would have said. Its English is what
+ * the action's record keeps (CodeFilesSeen's CODE_UNSEEN_SUMMARIES), which
+ * the exports and AI Logs print.
+ */
+export const AI_ACTION_CODE_NOT_MADE: {
+  notCommittedChangedSinceRead: string;
+  notCommittedReadOnAnotherBranch: string;
+  notCommittedNotRead: string;
+  notCommittedReadInEarlierAnswer: string;
+  notCommittedReadEarlierInThisAnswer: string;
+  notCommittedPartNoLongerInHand: string;
+  notCommittedReadInPart: string;
+  notCommittedNotChecked: string;
+  notCommittedValuesHidden: string;
+  notOpenedChangedSinceRead: string;
+  notOpenedReadOnAnotherBranch: string;
+  notOpenedNotRead: string;
+  notOpenedReadInEarlierAnswer: string;
+  notOpenedReadEarlierInThisAnswer: string;
+  notOpenedPartNoLongerInHand: string;
+  notOpenedReadInPart: string;
+  notOpenedNotChecked: string;
+  notOpenedValuesHidden: string;
+} = {
+  notCommittedChangedSinceRead: translationKey(
+    "Not committed: a file changed on the branch after Ask AI read it.",
+  ),
+  notCommittedReadOnAnotherBranch: translationKey(
+    "Not committed: Ask AI read a file on another branch, and it is different on this one.",
+  ),
+  notCommittedNotRead: translationKey(
+    "Not committed: Ask AI had not read a file the commit replaces.",
+  ),
+  notCommittedReadInEarlierAnswer: translationKey(
+    "Not committed: Ask AI had read a file the commit replaces only in an earlier answer, and no longer had its text.",
+  ),
+  notCommittedReadEarlierInThisAnswer: translationKey(
+    "Not committed: Ask AI had read a file the commit replaces earlier in this answer, and no longer had its text.",
+  ),
+  notCommittedPartNoLongerInHand: translationKey(
+    "Not committed: Ask AI had read a file the commit replaces whole, and no longer had part of its text.",
+  ),
+  notCommittedReadInPart: translationKey(
+    "Not committed: Ask AI had read only part of a file the commit replaces whole.",
+  ),
+  notCommittedNotChecked: translationKey(
+    "Not committed: OneUptime could not check a file against what Ask AI read.",
+  ),
+  notCommittedValuesHidden: translationKey(
+    "Not committed: Ask AI's version of a file writes placeholders in place of values hidden from it.",
+  ),
+  notOpenedChangedSinceRead: translationKey(
+    "Not opened: a file changed on the default branch after Ask AI read it.",
+  ),
+  notOpenedReadOnAnotherBranch: translationKey(
+    "Not opened: Ask AI read a file on another branch, and it is different on the default branch.",
+  ),
+  notOpenedNotRead: translationKey(
+    "Not opened: Ask AI had not read a file the pull request replaces.",
+  ),
+  notOpenedReadInEarlierAnswer: translationKey(
+    "Not opened: Ask AI had read a file the pull request replaces only in an earlier answer, and no longer had its text.",
+  ),
+  notOpenedReadEarlierInThisAnswer: translationKey(
+    "Not opened: Ask AI had read a file the pull request replaces earlier in this answer, and no longer had its text.",
+  ),
+  notOpenedPartNoLongerInHand: translationKey(
+    "Not opened: Ask AI had read a file the pull request replaces whole, and no longer had part of its text.",
+  ),
+  notOpenedReadInPart: translationKey(
+    "Not opened: Ask AI had read only part of a file the pull request replaces whole.",
+  ),
+  notOpenedNotChecked: translationKey(
+    "Not opened: OneUptime could not check a file against what Ask AI read.",
+  ),
+  notOpenedValuesHidden: translationKey(
+    "Not opened: Ask AI's version of a file writes placeholders in place of values hidden from it.",
+  ),
+};
 
 /*
  * One file in such a list, by its path as the commit writes it. No words
@@ -1557,6 +1661,8 @@ export const AI_ACTION_SENTENCES: ReadonlyArray<string> = [
   ...Object.values(AI_ACTION_TITLES),
   ...Object.values(AI_ACTION_LINES),
   ...Object.values(AI_ACTION_CARD_LINES),
+  // Why Auto-run held a code change back, on its Skipped row (#6982).
+  ...Object.values(AI_ACTION_CODE_NOT_MADE),
   AI_ACTION_RESOURCE_BY_NAME,
   AI_ACTION_CODE_FILE,
   AI_ACTION_NAME,
@@ -1943,6 +2049,8 @@ export function isKnownAIActionWords(value: unknown): value is AIActionWords {
         description.every((sentence: unknown): boolean => {
           return isKnownAIActionSentence(sentence);
         }))) &&
+    (value["reason"] === undefined ||
+      isKnownAIActionSentence(value["reason"])) &&
     isNameList(value["namedArguments"]) &&
     isNameList(value["describedArguments"])
   );

@@ -43,6 +43,26 @@ enum AIChatPageContextType {
   CloudAccount = "CloudAccount",
   // One workflow's pages, its Builder among them: "this workflow".
   Workflow = "Workflow",
+  /*
+   * One status page's pages - its Custom Domains, Subscribers, Single
+   * Sign-On and the rest - and one on-call policy's: "this status page",
+   * "this policy" (#7062).
+   */
+  StatusPage = "StatusPage",
+  OnCallPolicy = "OnCallPolicy",
+  /*
+   * One on-call schedule's pages, its Layers among them, one team's, one
+   * dashboard's, one runbook's, one SLO's, one incoming call policy's and
+   * one form's (#10104): "how do I add a layer to this schedule?" is about
+   * the one on screen, and ends at its own page.
+   */
+  OnCallSchedule = "OnCallSchedule",
+  Team = "Team",
+  Dashboard = "Dashboard",
+  Runbook = "Runbook",
+  Slo = "Slo",
+  IncomingCallPolicy = "IncomingCallPolicy",
+  Form = "Form",
 
   // Area pages — no id; the user is browsing a list or an explorer.
   IncidentsList = "IncidentsList",
@@ -67,6 +87,21 @@ enum AIChatPageContextType {
   DataSecurity = "DataSecurity",
   // Cloud > Accounts: every account the project's cloud connections read.
   CloudAccountsList = "CloudAccountsList",
+
+  /*
+   * The pages where a project is set up (#7062), so "how do I add someone
+   * here?" is answered for the page on screen: Home, Project Settings,
+   * the person's own User Settings, On-Call (its policies, schedules and
+   * rules), Status Pages (the list, announcements, their settings) and
+   * the forms that create something (Create Monitor, Declare Incident).
+   * Which page of them is `page`.
+   */
+  Home = "Home",
+  ProjectSettings = "ProjectSettings",
+  UserSettings = "UserSettings",
+  OnCall = "OnCall",
+  StatusPagesList = "StatusPagesList",
+  CreateForm = "CreateForm",
 }
 
 export default AIChatPageContextType;
@@ -79,7 +114,29 @@ export interface AIChatPageContext {
   entityTitle?: string | undefined;
   resourceType?: AIResourceType | undefined;
   subresource?: AIResourceSubresource | undefined;
+  /*
+   * The Dashboard page on screen, as its route template in the Dashboard's
+   * route map - "/dashboard/:projectId/settings/api-keys",
+   * "/dashboard/:projectId/status-pages/:id/domains" - never an address
+   * with ids in it (#7062). Which settings page, which create form, which
+   * of a record's pages. The server names it from its own catalogs of the
+   * Dashboard's pages and says nothing of one it does not know, so no
+   * word of it reaches the prompt as the client wrote it.
+   */
+  page?: string | undefined;
 }
+
+/*
+ * A page's route template: "/dashboard", then segments of lower-case
+ * words joined by hyphens, or the project's and a record's placeholders.
+ * No segment of the Dashboard's routes holds a digit, so an id - a UUID,
+ * a trace's hex - never passes, nor a query string or text a person
+ * typed: it can never carry anything but the name of a route.
+ */
+const PAGE_TEMPLATE_REGEX: RegExp =
+  /^\/dashboard(?:\/(?:[a-z]+(?:-[a-z]+)*|:projectId|:id)){1,10}$/;
+
+const MAX_PAGE_LENGTH: number = 256;
 
 /*
  * Ids are OneUptime ObjectIDs (UUIDs) — except traces, whose ids are
@@ -110,6 +167,15 @@ const ENTITY_TYPES: Array<AIChatPageContextType> = [
   AIChatPageContextType.DataTable,
   AIChatPageContextType.CloudAccount,
   AIChatPageContextType.Workflow,
+  AIChatPageContextType.StatusPage,
+  AIChatPageContextType.OnCallPolicy,
+  AIChatPageContextType.OnCallSchedule,
+  AIChatPageContextType.Team,
+  AIChatPageContextType.Dashboard,
+  AIChatPageContextType.Runbook,
+  AIChatPageContextType.Slo,
+  AIChatPageContextType.IncomingCallPolicy,
+  AIChatPageContextType.Form,
 ];
 
 export class AIChatPageContextHelper {
@@ -119,13 +185,45 @@ export class AIChatPageContextHelper {
    */
   public static getIdentity(context: AIChatPageContext): string {
     return JSON.stringify([
+      ...this.getSubjectParts(context),
+      // Another page of the same subject is another page (#7062).
+      context.page || null,
+    ]);
+  }
+
+  /*
+   * What the context is about, whichever of its pages is on screen: a
+   * monitor's Overview and its Criteria are the same monitor, so what was
+   * read of it stays while the person moves between them.
+   */
+  public static getSubjectIdentity(context: AIChatPageContext): string {
+    return JSON.stringify(this.getSubjectParts(context));
+  }
+
+  private static getSubjectParts(
+    context: AIChatPageContext,
+  ): Array<string | null> {
+    return [
       context.type,
       context.entityId || null,
       context.resourceType || null,
       context.subresource?.kind || null,
       context.subresource?.key || null,
       context.subresource?.namespace || null,
-    ]);
+    ];
+  }
+
+  // A page's route template, as `page` may hold it, or undefined.
+  public static sanitizePage(value: unknown): string | undefined {
+    if (
+      typeof value !== "string" ||
+      value.length > MAX_PAGE_LENGTH ||
+      !PAGE_TEMPLATE_REGEX.test(value)
+    ) {
+      return undefined;
+    }
+
+    return value;
   }
 
   public static isValidType(
@@ -161,6 +259,13 @@ export class AIChatPageContextHelper {
     }
 
     const context: AIChatPageContext = { type: type };
+
+    // Which page it is, by its route's name only (#7062); anything else is dropped.
+    const page: string | undefined = this.sanitizePage(json["page"]);
+
+    if (page) {
+      context.page = page;
+    }
 
     if (
       type === AIChatPageContextType.Resource ||

@@ -89,10 +89,10 @@ Se [Arbejdsgangsudløsere](/docs/workflows/triggers) for de felter, hver udløse
 
 ## OneUptime AI
 
-To handlinger på et problem beder OneUptime AI om hjælp. Begge sender OneUptime AI problemets titel og alvorlighed, datalagerets navn, type, region og cloud-id, dets følsomhed og datatyper, beviserne, hvorfor kontrollen betyder noget, og rettelsen til datalagerets cloud - aldrig et funds prøver. Begge kører under projektets kontakter og grænser for OneUptime AI.
+To handlinger på et problem beder OneUptime AI om hjælp. Begge sender OneUptime AI problemets titel og alvorlighed, datalagerets navn, type, region og cloud-id, dets følsomhed og datatyper, hver ved sit navn - dine egne datatyper ved det navn, du gav dem - beviserne, hvorfor kontrollen betyder noget, og rettelsen til datalagerets cloud - aldrig et funds prøver. Begge kører under projektets kontakter og grænser for OneUptime AI. Hvad hver af dem sender, hvad den aldrig sender, og den model, den kører på, står på [OneUptime AI i Datasikkerhed](/docs/data-security/ai).
 
-- **Forklar med AI** skriver til datalagerets ejer, hvad der er galt, hvad der kan ske, og de præcise trin til at rette det i deres cloud. Forklaringen gemmes på problemets **Tidslinje**. Alle, der kan læse Datasikkerhed, kan spørge.
-- **Ret med AI** beder OneUptime AI om at rette problemet i din infrastrukturkode - Terraform, CloudFormation, Bicep eller lignende - med den mindste ændring, der får kontrollen til at bestå, og om at åbne en pull request. Det kræver, at det repository, der indeholder datalagerets infrastrukturkode, er forbundet under **Kode**: vælg det under **Repositorium**, når projektet har flere. Pull requesten vises under **Kode** (se [Kode](/docs/ai/ai-agent)). Sikkerhedsmedlemmer og derover kan spørge.
+- **Forklar med AI** skriver til datalagerets ejer, hvad der er galt, hvad der kan ske, og de præcise trin til at rette det i deres cloud. Forklaringen gemmes på problemets **Tidslinje**. Hverken det problem, der blev sendt, eller svaret gemmes i **Projektindstillinger → AI → AI-logs**, som alle med rollen Projektmedlem eller Seer kan læse: rækken siger kun, at kaldet blev foretaget, og hvad det kostede. Alle, der kan læse problemet, kan spørge.
+- **Ret med AI** beder OneUptime AI om at rette problemet i din infrastrukturkode - Terraform, CloudFormation, Bicep eller lignende - med den mindste ændring, der får kontrollen til at bestå, og om at åbne en pull request. Det kræver, at det repository, der indeholder datalagerets infrastrukturkode, er forbundet under **Kode**: vælg det under **Repositorium**, når du kan spørge i flere. Pull requesten vises under **Kode** (se [Kode](/docs/ai/ai-agent)). Sikkerhedsmedlemmer og derover kan spørge, i et repository de må ændre under **Kode**, som det kræver at spørge AI der: en sikkerhedsrolle læser og ændrer ingen repositories på egen hånd, så giv også deres team **Read Code Repository** og **Edit Code Repository**. Når AI ikke kan arbejde nu - det er slået fra, projektet har ikke flere AI-kreditter, dets daglige grænser er nået, eller ingen Runner er online - siger Ret med AI, hvad der skal rettes, og starter intet.
 
 ### Spørg AI
 
@@ -143,7 +143,7 @@ Nogle få svar beregnes på forespørgsel i stedet for at blive gemt. Hver af de
 | `/data-store/<id>/scan-now` | **Scan nu**: tager prøver af datalagerets indhold nu |
 | `/data-store/<id>/check-now` | **Kontrollér nu**: læser datalagerets konfiguration igen og kører dets kontroller |
 | `/data-store-finding/<id>/scrub` | **Rens** på et telemetrifund |
-| `/data-store-finding/<id>/drop-metric-impact` | Hvad **Kassér denne metrik** ville kassere for et fund i en metriks navn: hvor mange metrikker, og de monitorer og dashboards, der læser dem |
+| `/data-store-finding/<id>/drop-metric-impact` | Hvad **Kassér denne metrik** ville kassere for et fund i en metriks navn: hvor mange metrikker, og de monitorer, dashboards, SLO'er og optagelsesregler, der læser dem |
 | `/data-store-finding/<id>/drop-metric` | **Kassér denne metrik**: en metrik-pipelineregel, der for altid kasserer de nye datapunkter fra tjenestens metrikker med sådan et navn. Den tager `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | **Forklar med AI** på et problem |
 | `/data-security-issue/<id>/fix-with-ai` | **Ret med AI** på et problem |

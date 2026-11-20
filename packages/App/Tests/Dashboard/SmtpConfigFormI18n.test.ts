@@ -23,7 +23,8 @@ import path from "path";
  * The instance's Amazon SES card also asks how the server signs in: with an
  * access key, or with the IAM role AWS gives the server itself (#7000). A
  * project's config always signs in with a key, so those strings are the
- * Admin Dashboard's alone.
+ * Admin Dashboard's alone. So are the card's words for which AWS identity
+ * the server signs in as (#7380).
  */
 
 const APP_ROOT: string = path.join(__dirname, "..", "..");
@@ -110,7 +111,7 @@ const PROVIDER_STRINGS: Array<string> = [
   // The provider cards' titles and lines.
   "Provider",
   "SMTP Server",
-  "Send through Amazon Simple Email Service with an IAM access key.",
+  "Send through Amazon Simple Email Service with an IAM access key or an IAM role in your AWS account.",
   "Send through Mailgun's API with an API key and a sending domain.",
   "Send through Postmark's API with a server API token.",
   "Send through Resend's API with an API key.",
@@ -146,7 +147,34 @@ const PROJECT_PROVIDER_STRINGS: Array<string> = [
   "How OneUptime sends this project's email.",
   "Send through SendGrid's API with an API key.",
   "A SendGrid API key with the Mail Send permission, from SendGrid's Settings > API Keys. It is stored encrypted.",
+  // Amazon SES's IAM role in the project's own AWS account (#7378).
+  "IAM Role in Your AWS Account",
+  "Create a role in your AWS account that may send with Amazon SES and trusts OneUptime. No key is stored.",
+  "Role ARN",
+  "The ARN of the IAM role OneUptime signs in to. Create it with the trust policy below.",
 ];
+
+/*
+ * What the Dashboard draws under an Amazon SES config's Role ARN (#7378):
+ * how to make the role, folded, and why it cannot be shown. Drawn by the
+ * panel the page hands the builder (AmazonSesRoleSetupPanel), not the
+ * builder itself.
+ */
+const ROLE_SETUP_STRINGS: Array<string> = [
+  "Set Up the Role in AWS",
+  "External ID",
+  "Trust Policy",
+  "Create the role with this trust policy, then allow it ses:SendEmail on your sender's identity.",
+  "OneUptime could not read the role's setup from the server. Open the form again to try again.",
+  "Read the guide",
+];
+
+const ROLE_SETUP_FILE: string = path.join(
+  DASHBOARD_SRC,
+  "Components",
+  "CustomSMTP",
+  "AmazonSesRoleSetupPanel.tsx",
+);
 
 /*
  * The strings only the instance's Amazon SES card draws: how it signs in,
@@ -161,10 +189,49 @@ const ADMIN_PROVIDER_STRINGS: Array<string> = [
   "Send through Amazon SES with an access key or this server's IAM role.",
 ];
 
+/*
+ * What the instance's Amazon SES card says of the identity the server
+ * signs in as, in role mode (#7380): its row, where the credentials came
+ * from, and why it cannot sign in. Drawn by the card's own row
+ * (ServerAwsIdentityLine), not the builder: the Admin Dashboard's alone.
+ */
+const ADMIN_IDENTITY_STRINGS: Array<string> = [
+  "Signs In As",
+  "Check again",
+  "Couldn't ask the server which AWS identity it signs in as. {{error}}",
+  "This server cannot sign in to AWS. {{error}}",
+  "A test email shows whether it may send.",
+  "From AWS_ACCESS_KEY_ID in the server's environment.",
+  "From the server's AWS profile.",
+  "From IAM roles for service accounts.",
+  "From EKS Pod Identity.",
+  "From the ECS task role.",
+  "From the container credentials endpoint.",
+  "From the EC2 instance profile.",
+];
+
+const IDENTITY_FILES: ReadonlyArray<string> = [
+  path.join(
+    ADMIN_SRC,
+    "Pages",
+    "Settings",
+    "Email",
+    "ServerAwsIdentityLine.tsx",
+  ),
+  path.join(
+    ADMIN_SRC,
+    "Pages",
+    "Settings",
+    "Email",
+    "EmailProviderSettingsCard.tsx",
+  ),
+];
+
 const DASHBOARD_STRINGS: Array<string> = [
   ...NEW_STRINGS,
   ...PROVIDER_STRINGS,
   ...PROJECT_PROVIDER_STRINGS,
+  ...ROLE_SETUP_STRINGS,
 ];
 
 const ADMIN_STRINGS: Array<string> = [
@@ -194,6 +261,8 @@ const MAY_READ_AS_ENGLISH: Array<string> = [
  * server now, and its translations name a mail server.)
  */
 const RETIRED_STRINGS: Array<string> = [
+  // Amazon SES's card, before a project's config could sign in with a role (#7378).
+  "Send through Amazon Simple Email Service with an IAM access key.",
   "Use SSL / TLS",
   "Enable secure email communication. Recommended for most providers.",
   "If you use port 465, please enable this. Do not enable this if you use port 587.",
@@ -319,6 +388,30 @@ describe("the mail server forms' strings", () => {
     expect(unused).toEqual([]);
   });
 
+  test("the Amazon SES role's setup panel draws each of its strings, written whole", () => {
+    const panel: string = stripComments(
+      fs.readFileSync(ROLE_SETUP_FILE, "utf8"),
+    );
+
+    expect(
+      ROLE_SETUP_STRINGS.filter((text: string): boolean => {
+        return !panel.includes(`"${text}"`);
+      }),
+    ).toEqual([]);
+  });
+
+  test("the Amazon SES card's identity row draws each of its strings, written whole", () => {
+    const drawn: string = IDENTITY_FILES.map((file: string): string => {
+      return fs.readFileSync(file, "utf8");
+    }).join("\n");
+
+    expect(
+      ADMIN_IDENTITY_STRINGS.filter((text: string): boolean => {
+        return !drawn.includes(`"${text}"`);
+      }),
+    ).toEqual([]);
+  });
+
   test("none of the old form's words for what changed is drawn any more", () => {
     const drawn: Array<string> = RETIRED_STRINGS.filter(
       (text: string): boolean => {
@@ -332,7 +425,14 @@ describe("the mail server forms' strings", () => {
   test("English carries every new string as itself, in both apps", () => {
     for (const [directory, strings] of [
       [DASHBOARD_LOCALES, DASHBOARD_STRINGS],
-      [ADMIN_LOCALES, [...ADMIN_STRINGS, ...ADMIN_PROVIDER_STRINGS]],
+      [
+        ADMIN_LOCALES,
+        [
+          ...ADMIN_STRINGS,
+          ...ADMIN_PROVIDER_STRINGS,
+          ...ADMIN_IDENTITY_STRINGS,
+        ],
+      ],
     ] as Array<[string, Array<string>]>) {
       const english: Locale = readLocale(directory, "en.json");
 
@@ -394,6 +494,23 @@ describe("the mail server forms' strings", () => {
 
       expect(
         ADMIN_PROVIDER_STRINGS.flatMap((text: string): Array<string> => {
+          return findProblems(text, admin[text]);
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  test.each(
+    ADMIN_FILES.filter((file: string) => {
+      return file !== "en.json";
+    }),
+  )(
+    "the Admin Dashboard's %s translates which AWS identity the server signs in as",
+    (file: string) => {
+      const admin: Locale = readLocale(ADMIN_LOCALES, file);
+
+      expect(
+        ADMIN_IDENTITY_STRINGS.flatMap((text: string): Array<string> => {
           return findProblems(text, admin[text]);
         }),
       ).toEqual([]);

@@ -104,7 +104,7 @@ Android lader kun en app læse andre apps' logs med tilladelsen READ_LOGS, og ku
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-Med Esper kører du kommandoen over **Secure Remote ADB**: Slå ADB-adgang til for enheden, opret forbindelse med `espercli secureadb connect -d DEVICE_ID`, og kør derefter kommandoen. Android genstarter agenten, når tilladelsen gives, og agenten begynder at læse med det samme.
+Med Esper kører du kommandoen over **Secure Remote ADB**: Slå ADB-adgang til for enheden, opret forbindelse med `espercli secureadb connect --device DEVICE_ID`, og kør derefter kommandoen. Android genstarter agenten, når tilladelsen gives, og agenten begynder at læse med det samme. Kolonnen **MDM-ID** i inventaret rummer hver enheds `DEVICE_ID`.
 
 Hvad agenten derefter læser, afhænger af Android-versionen:
 
@@ -124,6 +124,35 @@ adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
 
 Den første kommando er til Android 15 og nyere; adgang til forbrugsdata kan også slås til under enhedens **Indstillinger → Adgang til forbrugsdata**. En enhedspolitik kan ikke give disse, og agentens skærm viser de kommandoer, der stadig skal køres. Med dem har hvert nedbrud i **Undtagelser** hele sin stack trace, et native nedbrud sit signal og det bibliotek, det gik ned i, en ANR sin hovedtråds stack, og en genstart i **Protokoller** den årsag, Android angiver for den. Kortnumre, e-mailadresser, tokens og adgangskoder i det, agenten læser, erstattes med `[card number]`, `[email]`, `[token]` og `[redacted]`, før det sendes.
 
+### Giv dem på en hel flåde
+
+Hver rapport fra agenten fortæller, hvilke af dem den stadig mangler. For at få vist de enheder, der har brug for dem, skal du åbne **Inventar**, derefter **Alle elementer**, og filtrere efter **Agenttilladelser**: **Mangler**. Slå kolonnen **Agenttilladelser** til for at se, hvad hver enhed mangler, og eksporter listen som CSV. Slå også kolonnen **MDM-ID** til, så rummer eksporten hver enheds Esper-id, det `DEVICE_ID`, som `espercli secureadb connect --device` tager.
+
+En enhedspolitik kan ikke give disse: READ_LOGS og READ_DROPBOX_DATA er tilladelser, som kun adb, systemet eller enhedens producent kan give, og adgang til forbrugsdata slås til af adb eller af personen ved enheden. Hvad Esper tilbyder, og hvorfor intet af det giver dem:
+
+- **Apptilladelser**, i en blueprint eller med kommandoen `SET_APP_PERMISSION`, går gennem Androids enhedsejer-API, som kun giver de tilladelser, en app beder personen ved enheden om. Android afviser disse tre.
+- **Administreret konfiguration** sætter agentens egne indstillinger, aldrig Androids tilladelser.
+- **Run Shell Script** kører på Linux- og Windows-enheder, ikke på Android-enheder.
+- **Secure Remote ADB** når én enhed ad gangen, fra en computer, der kører `espercli`. På enheder med Esper Foundation skal der ikke være nogen ved enheden. På andre enheder accepterer nogen ved enheden **Allow USB debugging?** første gang.
+
+Giv dem derfor med adb:
+
+- **Før en enhed sendes ud**, når den klargøres med et USB-kabel. Dette giver alle tre på hver enhed, der er tilsluttet computeren:
+
+  ```bash
+  for serial in $(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }'); do
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+    adb -s "$serial" shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+  done
+  ```
+
+  På Android 14 og ældre siger den anden kommando, at tilladelsen er ukendt: Den enhed har ikke brug for den.
+- **På en enhed ude i marken**, over Secure Remote ADB, én enhed fra listen **Mangler** ad gangen.
+- **Kun adgang til forbrugsdata** kan slås til af personen ved enheden, under **Indstillinger → Adgang til forbrugsdata**, eller med knappen på agentens skærm.
+
+Inden for et minut fjerner enhedens næste rapport den fra listen **Mangler**.
+
 ### CPU-forbrug
 
 Fra og med Android 8 skjuler Android en enheds CPU-forbrug for apps. Kun en app, der er enhedsejer, kan læse det, og kun på enheder, hvis hardware rapporterer det. Agenten læser det, når den er enhedsejer, hvilket du angiver med adb på en enhed uden konti og uden en anden enhedsejer:
@@ -141,16 +170,20 @@ En logsession sender alle apps' logs fra en enhed i et stykke tid, så du kan fe
 :::steps
 ### Anmod om en logsession
 
-Åbn enheden i **Værter**, derefter **Protokoller**, og klik på **Anmod om logsession** i **Logsessioner**. Vælg, hvor længe enheden sender sine logs, fra 15 minutter til 4 timer, og det laveste niveau, den sender: **Info**, **Fejlfinding** eller **Detaljeret**.
+Åbn enheden i **Værter**, derefter **Protokoller**, og klik på **Anmod om logsession** i **Logsessioner**. Vælg, hvor længe enheden sender sine logs, fra 15 minutter til 4 timer, og det laveste niveau, den sender: **Info**, **Fejlfinding** eller **Detaljeret**. Tilføj en **Note** for at fortælle, hvorfor du beder om dem, f.eks. »Undersøger, hvorfor betalingsappen går ned efter kl. 18«.
 
 ### Tillad den på enheden
 
-Inden for et minut viser enheden en notifikation om, at nogen har bedt om dens logs, med vedkommendes navn. Personen ved enheden åbner agenten og trykker på **Tillad**. På Android 13 og nyere spørger Android derefter, om der skal gives adgang til alle enhedslogs, og det tillader personen også.
+Inden for et minut viser enheden en notifikation om, at nogen har bedt om dens logs, med vedkommendes navn og din note. Personen ved enheden åbner agenten, hvor anmodningen vises med din note nedenunder, og trykker på **Tillad**. På Android 13 og nyere spørger Android derefter, om der skal gives adgang til alle enhedslogs, og det tillader personen også.
 
 ### Læs linjerne
 
-Sessionen står på **Indsamler**, og alle apps' linjer kommer ind i enhedens logs. Klik på **Vis linjer** for at se sessionens linjer for sig. Sessionen slutter, når tiden er gået, eller når nogen stopper den på enheden eller annullerer den i OneUptime.
+Sessionen står på **Indsamler**, og alle apps' linjer kommer ind i enhedens logs. Klik på **Vis linjer** for at se sessionens linjer for sig, eller på **Download linjer** for at gemme dem som en fil. Sessionen slutter, når tiden er gået, eller når nogen stopper den på enheden eller annullerer den i OneUptime.
 :::
+
+Noten er én linje på op til 200 tegn. Enheden viser den, som du skrev den, i anførselstegn, i notifikationen og på agentens skærm, mens sessionen venter eller kører; den oversættes aldrig. Linjeskift bliver til mellemrum, og kortnumre, e-mailadresser, tokens og adgangskoder i den erstattes med `[card number]`, `[email]`, `[token]` og `[redacted]`, før den gemmes, ligesom i det, agenten sender. Listen over sessioner viser den under den, der bad om sessionen, og værtens **Auditlogs** gemmer den sammen med anmodningen.
+
+**Download linjer** gemmer sessionens linjer som en tekstfil i det format, `logcat -v threadtime` udskriver, og som en leverandørs support kan læse: hver linje med sit tidspunkt på millisekundet, sin proces og tråd, sit niveau, sit tag og sin besked. Tidspunkterne er i UTC. Filens første linjer fortæller, hvilken session, enhed og note den hører til, og hvem der bad om sessionen. Den indeholder de linjer, **Protokoller** viser, sådan som agenten har maskeret dem, så den kræver samme tilladelse som at læse enhedens logs. En fil indeholder højst 100.000 linjer og 32 MB; filen for en længere session slutter med at angive, hvor mange linjer sessionen har.
 
 En session kræver READ_LOGS og `logcat_enabled`; uden dem står den på **Ikke tilgængelig**. Der kører én session ad gangen på en enhed. En anmodning, som ingen tillader inden for en time, udløber, og en session, som enheden genstarter under, slutter med den, da Androids tilladelse slutter med agentens proces. Det kræver tilladelse til at redigere værten at bede om en session, og værtens **Auditlogs** gemmer, hvem der bad om den, og hvornår.
 
@@ -165,11 +198,15 @@ En session kræver READ_LOGS og `logcat_enabled`; uden dem står den på **Ikke 
 | Genstarter | **Protokoller**, med `@event.name:device.boot`: hvor længe enheden havde kørt, om den lukkede pænt ned, hvor længe den var slukket, hvorfor den genstartede, og genstartsløkker |
 | Installerede apps | **Protokoller**, med `@event.name:android.package.inventory` én gang om dagen, og hver installation, opdatering og fjernelse |
 | Nedbrud og ANR'er i alle apps | **Undtagelser**, som ikke-håndterede, navngivet efter appen, med deres stacks, når agenten læser [DropBox](#stack-traces-fra-nedbrud-og-årsager-til-genstart) |
-| Mærke, model, serienummer, OS-version, sikkerhedspatchniveau og firmware | Enhedens element i **Inventar** |
+| Mærke, model, serienummer, OS-version, sikkerhedspatchniveau og firmware | Enhedens element i **Inventar**, med filteret og kolonnen **Sikkerhedspatchniveau** |
+| Hvor gammelt dens sikkerhedspatchniveau er | Metrikken `android.os.security_patch.age`, i dage |
+| Det, der stadig skal gives til agenten | Enhedens element i **Inventar**, med filteret og kolonnen **Agenttilladelser** |
 
 I **Værter** står enhedens OS som Android, med Androids logo.
 
-Antallet af opstarter i den seneste time er metrikken `android.boot.recent_count`, og en enhed, der bliver ved med at genstarte, logger en advarsel ved hver opstart. I **Værter** tilbydes en Android-enhed sine egne advarselsskabeloner: Device Unplugged, Low Battery, Device Overheating, Restart Loop og Storage Nearly Full, sammen med Host Stopped Reporting, Host Restarted og High Memory Utilization, og High CPU Utilization, når den rapporterer CPU-forbrug. Hver advarsels første fejlfindingskommandoer er adb-kommandoer. Se [Værts-monitor](/docs/monitor/host-monitor#android-enheder).
+En enhed er bagud med sine sikkerhedspatches, når dens sikkerhedspatchniveau er mere end 90 dage gammelt. Google udgiver en sikkerhedsbulletin for Android hver måned, og Android Enterprise Recommended forpligter en enheds producent til at levere hver af dem inden for 90 dage, så en enhed, der er længere bagud, mangler rettelser, som dens producent burde have leveret. I **Inventar** viser filteret **Sikkerhedspatchniveau** disse enheder under **Ikke opdateret**; skabelonen **Security Patch Out of Date** giver en advarsel for hver af dem. En Android-enhed, som en MDM importerer, og som agenten ikke kører på, får advarslen fra sin forbindelses egen skabelon, fx **Esper Security Patch Out of Date**, ud fra det patchniveau, som MDM'en rapporterer; en enhed, som agenten kører på, overlades til denne skabelon, så den aldrig advarer to gange.
+
+Antallet af opstarter i den seneste time er metrikken `android.boot.recent_count`, og en enhed, der bliver ved med at genstarte, logger en advarsel ved hver opstart. I **Værter** tilbydes en Android-enhed sine egne advarselsskabeloner: Device Unplugged, Low Battery, Device Overheating, Restart Loop, Storage Nearly Full og Security Patch Out of Date, sammen med Host Stopped Reporting, Host Restarted og High Memory Utilization, og High CPU Utilization, når den rapporterer CPU-forbrug. Hver advarsels første fejlfindingskommandoer er adb-kommandoer. Se [Værts-monitor](/docs/monitor/host-monitor#android-enheder).
 
 ## Fejlfinding
 

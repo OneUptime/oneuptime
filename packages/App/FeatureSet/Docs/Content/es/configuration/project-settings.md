@@ -96,6 +96,8 @@ Para retirar una etiqueta, archívela desde el menú **⋯** de su fila en lugar
 
 **Usado por**, en el menú de la fila de una etiqueta, cuenta los registros de cada tipo que llevan la etiqueta y los abre página a página. Los registros que no puedes abrir se cuentan, pero no se nombran.
 
+Una etiqueta que tiene el mismo nombre que otra etiqueta, de cuando los nombres no tenían que ser distintos, se marca con **Mismo nombre que otra etiqueta**, y la lista indica cuántas hay: compare dónde se usa cada una, con **Usado por**, y luego cambie el nombre de una con **Cambiar nombre** en su fila.
+
 ## Notificaciones
 
 **Ajustes del proyecto → Notificaciones** contiene cómo envía notificaciones el proyecto:

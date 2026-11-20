@@ -5,7 +5,7 @@ En Kubernetes-monitor advarer på de metrikker, som OneUptimes Kubernetes-agent 
 :::cards
 - [Installér agenten](/docs/monitor/kubernetes-agent): Én Helm-kommando bringer klyngen ind i OneUptime.
 - [Opret monitoren](#opret-en-kubernetes-monitor): Vælg klyngen, og derefter en skabelon, en metrik eller en forespørgsel.
-- [Advarselsskabeloner](#færdige-advarselsskabeloner): Femogtyve færdige advarsler, fra en tavs klynge til etcd.
+- [Advarselsskabeloner](#færdige-advarselsskabeloner): Seksogtyve færdige advarsler, fra en tavs klynge til etcd.
 - [Kriterier](#overvågningskriterier): Statiske tærskler og anomalidetektion.
 :::
 
@@ -88,7 +88,7 @@ Fanen **Custom Metric** tilbyder disse metrikker, grupperet efter ressourcetype:
 | --- | --- |
 | Pod | Pod'ens CPU-forbrug, Pod-hukommelsesforbrug, Pod'ens fase (kode), Pod'ens filsystemforbrug, Volumenkapacitet, Ledig plads på volumen, Pod'ens udnyttelse af hukommelsesgrænsen, Pod'ens udnyttelse af CPU-grænsen, Pod'ens netværks-I/O (akkumuleret, begge retninger) |
 | Node | Nodens CPU-forbrug, Nodens allokerbare CPU, Node-hukommelsesforbrug, Nodens working set for hukommelse, Node-filsystemforbrug, Nodens allokerbare hukommelse, Nodens Ready-betingelse, Nodens MemoryPressure-betingelse, Nodens DiskPressure-betingelse, Nodens PIDPressure-betingelse, Nodens tilgængelige filsystem, Nodens filsystemkapacitet |
-| Container | Containerens genstarter, Containerens genstarter (stigning), Containerens CPU-grænse, Containerens CPU-anmodning, Containerens hukommelsesgrænse, Containerens hukommelsesanmodning, Container klar |
+| Container | Containerens genstarter, Containerens genstarter (stigning), Containerens CPU-grænse, Containerens CPU-anmodning, Containerens hukommelsesgrænse, Containerens hukommelsesanmodning, Container klar, Containerens tilgængelige filsystem, Containerens filsystemkapacitet |
 | Arbejdsbyrde | Deploymentens tilgængelige replikaer, Deploymentens ønskede replikaer, DaemonSettets ønskede noder, DaemonSettets fejlplanlagte noder, DaemonSettets klare noder, StatefulSettets ønskede replikaer, StatefulSettets klare replikaer, Jobbets mislykkede pods, Jobbets mislykkede pods (stigning), Jobbets vellykkede pods |
 | HPA | HPA'ens aktuelle replikaer, HPA'ens ønskede replikaer, HPA'ens maksimale replikaer, HPA'ens minimale replikaer |
 | Kontrolplan | etcd har en leder, API-serverens igangværende anmodninger, Schedulerens ventende pods |
@@ -149,7 +149,8 @@ Listen under **Hvad der skal advares om** viser disse skabeloner, grupperet efte
 | etcd No Leader | Kontrolplan | etcd har ingen valgt leder | Kritisk |
 | API Server Request Saturation | Kontrolplan | API-serveren holder 200 eller flere igangværende forespørgsler i hele vinduet | Kritisk |
 | Scheduler Backlog | Planlægning | Schedulerens kø af ventende pods er ikke tom i 5 minutter | Advarsel |
-| High Node Disk Usage | Lagerplads | En nodes filsystem er mere end 90 % fuldt | Advarsel |
+| High Node Disk Usage | Lagerplads | En nodes filsystem er mere end 85 % fuldt | Advarsel |
+| Node Image Disk Almost Full | Lagerplads | Den disk, en node opbevarer sine containerimages på, er mere end 85 % fuld | Advarsel |
 | PVC Almost Full | Lagerplads | Et persistent volume claim er mere end 90 % fuldt | Advarsel |
 | DaemonSet Pods Not Ready | Arbejdsbyrde | Et DaemonSet har noder uden en klar pod fra det i 15 minutter | Advarsel |
 | DaemonSet Misscheduled Nodes | Arbejdsbyrde | Et DaemonSet kører pods på noder, der ikke længere matcher dets nodeselector, affinitet eller tolerationer | Advarsel |
@@ -167,6 +168,8 @@ Skabeloner på metrikker pr. objekt evaluerer hver node, pod, deployment, job, D
 Omkostningsskabelonerne læser de metrikker, OneUptime skriver ud fra agentens timevise omkostningsrækker, ét punkt i timen, så de lægger det seneste døgn sammen; deres budgetter er i klyngens valuta, USD som standard.
 
 **High Node CPU Request Commitment** og **High Node Memory Request Commitment** tæller kun requests fra pods, der ikke er færdige, sådan som scheduleren gør. Klyngen bliver ved med at rapportere requests fra en pod, der er Succeeded eller Failed, for eksempel fra et færdigt Job, indtil poden slettes: de tælles ikke med.
+
+**Node Image Disk Almost Full** læser den disk, som kubelet melder, at hver kørende container skriver sine egne filer på, fordi agenten ikke selv melder en nodes image-disk. Det er image-disken i de almindelige opsætninger, men ikke på alle noder: hvor en node opbevarer sine images på sit rodfilsystem, som de fleste gør, er det rodfilsystemet, så skabelonen udløses sammen med **High Node Disk Usage**; med kubelets opdelte image-filsystem (`KubeletSeparateDiskGC`) er det den disk, containerne skriver til, og ikke imagenes disk; og en node uden kørende containere melder intet. En klynges anbefalinger tilbyder den, når en node opbevarer sine images på sin egen disk, hvilket nodelisten så viser i kolonnen **Image-disk**; listen under **Hvad der skal advares om** har den for enhver klynge. Som standard sletter kubelet ubrugte images, når en disk med images er 85 % fuld, og smider pods ud, når under 15 % af den er ledig, så denne skabelon og **High Node Disk Usage** udløses ved 85 % og kommer online igen ved 80 %, det niveau, som kubelets oprydning af images bringer disken ned på. På en node, hvis images har deres egen disk, smider kubelet pods ud efter rodfilsystemet fra 90 %, så dér udløses **High Node Disk Usage**, før udsmidningen begynder.
 
 **Cluster Stopped Reporting** udløses, når der ikke kommer noget fra klyngens agent i ti minutter: agenten er afinstalleret eller går ned igen og igen, dens API-nøgle er tilbagekaldt, den har mistet sin rute til OneUptime, eller klyngens API-server er holdt op med at svare den. Den løser sig selv, når data kommer tilbage. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked.
 

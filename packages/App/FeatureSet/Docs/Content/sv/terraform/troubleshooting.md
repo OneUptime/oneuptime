@@ -23,6 +23,8 @@ Slå upp meddelandet som Terraform skrev ut, eller det du såg hända, i tabelle
 | `references records that are not in this project` | Använd ID:t för en post i ditt eget projekt: se [ID:n från ett annat projekt](#idn-från-ett-annat-projekt) |
 | `Not Found` eller `Ambiguous Match` från en datakälla | Rätta uppslagningens argument: se [Uppslagningar som hittar ingen eller flera](#uppslagningar-som-hittar-ingen-eller-flera) |
 | `There is already a team called` (en etikett, en jourpolicy, ett jourschema) | Ge den ett namn som ingen annan av samma slag har, eller byt först namn på den andra: se [Namn som en annan post redan har](#namn-som-en-annan-post-redan-har) |
+| `with the same name already exists` | Ge den ett namn som ingen annan av samma slag har, eller importera posten som har det: se [Namn som en annan post redan har](#namn-som-en-annan-post-redan-har) |
+| `already exists` för en domän, ett värdnamn eller en inloggnings-URL | Ge den ett värde som ingen annan post har, eller importera posten som har det: se [Domäner och identifierare som en annan post redan har](#domäner-och-identifierare-som-en-annan-post-redan-har) |
 | `Cannot import non-existent remote object` | Kontrollera ID:t och nyckelns behörigheter: se [Importera resurser](/docs/terraform/importing-resources#felsökning) |
 | `Provider produced inconsistent result after apply` | Uppgradera providern: se [Inkonsekvent resultat efter apply](#inkonsekvent-resultat-efter-apply) |
 | En plan skapar en resurs som du inte har lagt till | Nyckeln kan inte längre läsa den, och OneUptime svarade `404`: ge nyckeln dess läsåtkomst tillbaka, och importera sedan resursen med `terraform import`: se [En resurs lämnar state, och nästa apply skapar den igen](#en-resurs-lämnar-state-och-nästa-apply-skapar-den-igen) |
@@ -106,9 +108,21 @@ En datakälla hittar exakt en post, eller så stoppar den planen. `Not Found` s�
 
 ### Namn som en annan post redan har
 
-Team, etiketter, jourpolicyer och jourscheman har var sitt eget namn i ett projekt, oavsett stora och små bokstäver och mellanslag. En begäran som skapar eller byter namn på en post till ett namn som en annan post av samma slag redan har får svaret `400`, till exempel `There is already an on-call policy called Primary in this project. Pick another name.` En arkiverad jourpolicy behåller sitt namn: avarkivera den, eller välj ett annat namn. Poster som redan delade ett namn behåller det, och instrumentpanelens listor över team, jourpolicyer och jourscheman märker dem.
+Team, etiketter, jourpolicyer och jourscheman har var sitt eget namn i ett projekt, oavsett stora och små bokstäver och mellanslag, och det har många andra slag också, till exempel allvarlighetsgrader för incidenter, monitorstatusar och statussidor. En begäran som skapar eller byter namn på en post till ett namn som en annan post av samma slag redan har får svaret `400`, till exempel `There is already an on-call policy called Primary in this project. Pick another name.` eller `Incident Severity with the same name already exists.` Poster som redan delade ett namn behåller det, och instrumentpanelens listor över team, etiketter, jourpolicyer och jourscheman märker dem.
 
-Terraform gör ändringarna i en apply sida vid sida, så ett namnbyte till ett namn som en annan resurs lämnar i samma apply kan nekas medan den andra fortfarande har det: tillämpa igen, eller lägg till ett `depends_on` från resursen som tar namnet till den som lämnar det. Ett byte, A till B och B till A, eller en kedja av namnbyten som slutar där den började, kan inte göras i en apply: byt namn på en av dem till ett namn som ingen har, tillämpa och gör sedan resten av ändringen.
+Terraform gör ändringarna i en apply sida vid sida, så ett skapande eller ett namnbyte till ett namn som en annan resurs lämnar i samma apply, genom ett namnbyte eller en borttagning, kan nekas medan den andra fortfarande har det. Providern frågar då igen i upp till 30 sekunder, så en kedja av namnbyten, till exempel A till B medan B blir C, går igenom i en apply, och det gör också en resurs som tar namnet från en resurs som applyn tar bort. Ett byte, A till B och B till A, eller en kedja av namnbyten som slutar där den började, går aldrig igenom, och inte heller ett namn som en post utanför konfigurationen har, till exempel en allvarlighetsgrad som OneUptime skapade med projektet: efter 30 sekunder misslyckas applyn med `The name was still taken after asking again for 30 seconds.` Ge resursen ett namn som ingen har, eller importera posten som har namnet med `terraform import`. Vid ett byte byter du namn på en av dem till ett namn som ingen har, tillämpar och gör sedan resten av ändringen.
+
+En arkiverad post behåller sitt namn, och inget som en apply gör med posterna i drift frigör det. Ett skapande eller ett namnbyte till det namnet misslyckas direkt, och felet säger var du avarkiverar posten: avarkivera den, eller välj ett annat namn.
+
+Med en äldre provider eller en äldre OneUptime får redan det första avslaget applyn att misslyckas: tillämpa igen, eller lägg till ett `depends_on` från resursen som tar namnet till den som lämnar det.
+
+### Domäner och identifierare som en annan post redan har
+
+Domänen för en statussida, en instrumentpanel eller ett formulär, en projektdomän, identifieraren för en värd eller ett Kubernetes-kluster och inloggnings-URL:en för en SSO-leverantör hör också till en post var, oavsett skiftläge. Ett skapande eller en ändring till ett värde som en annan post redan har besvaras med `400`, till exempel `Status Page Domain with the same fullDomain already exists.`
+
+Providern frågar igen i upp till 30 sekunder även här, så att flytta en domän från en resurs till en annan i en apply, som tar bort den ena och skapar den andra sida vid sida, går igenom i en apply. Ett byte av två värden går aldrig igenom, och inte heller ett värde som en post utanför konfigurationen har: efter 30 sekunder misslyckas applyn med `The value was still taken after asking again for 30 seconds.` Ge resursen ett värde som ingen har, eller importera posten som har värdet med `terraform import`. Vid ett byte ger du en av dem ett tillfälligt värde, tillämpar och gör sedan resten av ändringen.
+
+Ett värde som bara en arkiverad post har, till exempel värdnamnet för en arkiverad värd, misslyckas direkt, och felet säger vad du ska göra: avarkivera den posten, eller välj ett annat värde.
 
 ## Planer som inte stabiliseras
 

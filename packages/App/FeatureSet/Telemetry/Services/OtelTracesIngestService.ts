@@ -108,6 +108,15 @@ import { isEntrySpan } from "Common/Utils/Telemetry/EntrySpan";
 import { readExceptionUserId } from "Common/Utils/Exceptions/ExceptionUserId";
 import { withAppInstallationId } from "Common/Types/Rum/MobileAppTelemetry";
 import { CloudAppTelemetrySignal } from "Common/Types/Cloud/CloudAppTelemetrySignal";
+import {
+  EXCEPTION_SOURCE_ATTRIBUTE,
+  ExceptionSource,
+} from "Common/Types/Telemetry/ExceptionSource";
+import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
+import { countOtlpSpans } from "Common/Utils/Telemetry/OtlpRecordCount";
+import SecurityAddressVaultWriter, {
+  SecurityAddressVaultBatch,
+} from "Common/Server/Utils/SecurityEvent/AddressVault/SecurityAddressVaultWriter";
 
 type CompiledTraceScrubRule = {
   rule: TraceScrubRule;
@@ -390,6 +399,10 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
        */
       OtelIngestBaseService.normalizeHostNameAttributesInPlace(resourceSpans);
 
+      // Whose telemetry the batch is: null for most projects (#6355, #6386).
+      const attribution: TelemetryIngestAttribution | null =
+        (req as TelemetryRequest).telemetryIngestAttribution || null;
+
       /*
        * OBI v0.14 records its own requests to a Node.js app's inspector,
        * made while injecting its agent, as that app's SERVER spans. Found
@@ -470,6 +483,20 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         pipelines = [];
         modelPriceOverrides = [];
       }
+
+      /*
+       * The addresses this batch's IP Address Hash rules hide, kept for
+       * Security Events' address vault when Security Events reads the
+       * project's traces (#10395): null - and nothing kept - otherwise.
+       * Written once, after the batch's spans are stored, never awaited:
+       * a span is stored with its token whatever the vault does.
+       */
+      const addressVault: SecurityAddressVaultBatch | null =
+        await SecurityAddressVaultWriter.startBatch({
+          projectId: projectId,
+          signal: "trace",
+          scrubRules: scrubRules,
+        });
 
       /*
        * The event loop is handed back by the time the work took, not every
@@ -593,6 +620,23 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           const serviceName: string = serviceMetadata.serviceName;
 
           serviceDictionary[serviceName] = serviceMetadata;
+
+          /*
+           * Whose telemetry this resource is (TelemetryIngestAttribution,
+           * #6355, #6386): its share of the batch's usage, and its team's or
+           * label's budget. A used-up budget drops its records here.
+           */
+          if (
+            attribution &&
+            !(await attribution.admitResource({
+              primaryEntityId: serviceMetadata.primaryEntityId!,
+              primaryEntityType: serviceMetadata.primaryEntityType,
+              name: serviceName,
+              records: countOtlpSpans(resourceSpan),
+            }))
+          ) {
+            continue;
+          }
 
           const stampHostName: string | null =
             OtelIngestBaseService.getStringAttribute(
@@ -1033,6 +1077,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     spanRow = TraceScrubRuleService.scrubSpan(
                       spanRow,
                       scrubRules,
+                      addressVault,
                     );
                   }
 
@@ -1197,6 +1242,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         }
       }
 
+      // The batch's attribution, counted in one round trip (#6355, #6386).
+      await attribution?.settle();
+
       await this.submitSpansBuffer(dbSpans, pendingAcks, true);
       await this.submitExceptionsBuffer(dbExceptions, pendingAcks, true);
 
@@ -1230,6 +1278,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           logger.error(err);
         }),
       ]);
+
+      // The spans are stored: their hashed addresses go to the vault, on their own.
+      addressVault?.write();
 
       if (obiNodeInspectorSpansDropped > 0) {
         logger.debug(
@@ -1563,11 +1614,19 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
            * names (#9716): the event's bag never holds a resource
            * attribute, and a mobile app's crash-free installs counts the
            * installs of its crashes as it counts their sessions.
+           *
+           * And where it was found: a span, billed with Traces
+           * (ExceptionSource, issue #6590). Written over whatever the
+           * emitter's event put under the key, so only the logs ingest
+           * can mark an occurrence as found in a log.
            */
-          attributes: withAppInstallationId({
-            attributes: scrubbed.attributes,
-            from: spanContext.spanAttributes,
-          }),
+          attributes: {
+            ...withAppInstallationId({
+              attributes: scrubbed.attributes,
+              from: spanContext.spanAttributes,
+            }),
+            [EXCEPTION_SOURCE_ATTRIBUTE]: ExceptionSource.Span,
+          },
           time: rawException.time,
           fingerprint: fingerprint,
           fingerprintV2: fingerprintV2,

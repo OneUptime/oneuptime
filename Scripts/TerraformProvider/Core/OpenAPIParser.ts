@@ -5,6 +5,8 @@ import {
   TerraformResource,
   TerraformDataSource,
   TerraformAttribute,
+  TerraformServerOwned,
+  TERRAFORM_SERVER_OWNED_KINDS,
 } from "./Types";
 import { StringUtils } from "./StringUtils";
 import {
@@ -187,7 +189,9 @@ export class OpenAPIParser {
         resourceName,
       );
       this.keepWhatOthersDecideReadOnly(resource);
+      this.keepWhatOneUptimeOwns(resource);
       resource.schema = this.generateResourceSchema(resource.operationSchemas);
+      this.describeWhatOneUptimeOwns(resource);
       this.resolveChangesOnlyWith(resource);
       this.resolveRelations(resource.schema);
       for (const operationSchema of Object.values(resource.operationSchemas)) {
@@ -666,6 +670,114 @@ export class OpenAPIParser {
         }
       }
     }
+  }
+
+  /*
+   * WHAT ONEUPTIME OWNS. An attribute OneUptime keeps once the record exists
+   * (the spec's x-oneuptime-server-owned, TableColumnMetadata.serverOwned)
+   * is never the configuration's to change, or Terraform and Crossplane
+   * would fight OneUptime over it (#9985): put a monitor's status back after
+   * its check moved it, or replace a telemetry monitor every time an
+   * evaluation moved its timestamps.
+   *
+   *   - "always": no create or update sends it, so it is read only. The
+   *     spec leaves it out of both request schemas already; this keeps a
+   *     spec that does not from making it writable.
+   *   - "after-create": a create sends it, and no update does - after the
+   *     create it is OneUptime's. It is never replaced for it either
+   *     (generateResourceSchema), and its plan keeps the state's value
+   *     (ResourceGenerator, StaticFiles/serverowned.go). One no create may
+   *     give is OneUptime's from the start: read only.
+   */
+  private keepWhatOneUptimeOwns(resource: TerraformResource): void {
+    const createSchema: Record<string, TerraformAttribute> | undefined =
+      resource.operationSchemas?.create;
+    const updateSchema: Record<string, TerraformAttribute> | undefined =
+      resource.operationSchemas?.update;
+
+    for (const schema of [createSchema, updateSchema]) {
+      for (const [name, attr] of Object.entries(schema || {})) {
+        const isCreated: boolean = Boolean(
+          createSchema &&
+            Object.prototype.hasOwnProperty.call(createSchema, name),
+        );
+
+        if (
+          attr.serverOwned === "always" ||
+          (attr.serverOwned === "after-create" &&
+            (schema === updateSchema || !isCreated))
+        ) {
+          delete schema![name];
+        }
+      }
+    }
+  }
+
+  /*
+   * What the reference says of an attribute a create may give and
+   * OneUptime keeps from then on ("after-create").
+   */
+  public static readonly AFTER_CREATE_DESCRIPTION: string =
+    "OneUptime keeps it up to date once the record exists: the value given here is the one the record starts with, and a later change of it is never sent.";
+
+  /*
+   * What the reference says of an attribute people set and OneUptime
+   * changes too ("shared", #10052): the labels a label rule adds, an
+   * exception OneUptime resolves. In words true of Terraform and of the
+   * Crossplane provider, whose kinds `kubectl explain` describes with them;
+   * what a configured value does in each is in its own guide.
+   */
+  public static readonly SHARED_DESCRIPTION: string =
+    "OneUptime changes it too, on its own: left out, it keeps the value OneUptime gives it.";
+
+  /*
+   * What the reference says of a list of related records people set and
+   * OneUptime adds to too (#10134): a configuration's entries are its own,
+   * under Terraform (StaticFiles/entries.go) and under Crossplane
+   * (shared.go) alike. The provider's exclusive_lists, which holds the list
+   * whole, is the provider's to say.
+   */
+  public static readonly SHARED_LIST_DESCRIPTION: string =
+    "OneUptime adds to it too, on its own: the entries listed here are added and taken off, and every other entry stays. Left out, it keeps the entries OneUptime gives it.";
+
+  private describeWhatOneUptimeOwns(resource: TerraformResource): void {
+    for (const attribute of Object.values(resource.schema)) {
+      const isList: boolean =
+        (attribute.type === "set" || attribute.type === "list") &&
+        attribute.elementKind === "entity";
+      const sentence: string | undefined =
+        attribute.serverOwned === "after-create"
+          ? OpenAPIParser.AFTER_CREATE_DESCRIPTION
+          : attribute.serverOwned === "shared"
+            ? isList
+              ? OpenAPIParser.SHARED_LIST_DESCRIPTION
+              : OpenAPIParser.SHARED_DESCRIPTION
+            : undefined;
+
+      if (!sentence) {
+        continue;
+      }
+
+      // Read only (no create may give it): nothing to say about a configuration.
+      if (attribute.computed && !attribute.optional && !attribute.required) {
+        continue;
+      }
+
+      attribute.description = [attribute.description, sentence]
+        .filter(Boolean)
+        .join(" ");
+    }
+  }
+
+  // The spec's x-oneuptime-server-owned, when it is one this generator knows.
+  public static readServerOwned(
+    value: unknown,
+  ): TerraformServerOwned | undefined {
+    return TERRAFORM_SERVER_OWNED_KINDS.find(
+      (kind: TerraformServerOwned): boolean => {
+        return kind === value;
+      },
+    );
   }
 
   /*
@@ -1234,9 +1346,25 @@ export class OpenAPIParser {
         continue;
       }
 
+      /*
+       * A permission is required by the API, and optional here all the
+       * same, as it has always been: the spec documented it as an object a
+       * create could leave out until OneUptime#10300, and a configuration or
+       * a Crossplane manifest that takes over a row by its ID without saying
+       * its permission keeps the row's. A create without one is refused by
+       * OneUptime, in its own words.
+       */
       const required: boolean = Boolean(
-        inCreate && createSchema[name]?.required,
+        inCreate && createSchema[name]?.required && !source.isPermission,
       );
+
+      /*
+       * A create gives its first value and OneUptime keeps it from then on
+       * (keepWhatOneUptimeOwns): no update writes it, and that is no reason
+       * to replace the record - nothing a configuration says of it is
+       * compared after the create.
+       */
+      const isStartingValue: boolean = source.serverOwned === "after-create";
 
       schema[name] = {
         ...source,
@@ -1249,7 +1377,8 @@ export class OpenAPIParser {
          */
         optional: !required,
         computed: !required && inRead,
-        forceNew: inCreate && hasUpdateOperation && !inUpdate,
+        forceNew:
+          inCreate && hasUpdateOperation && !inUpdate && !isStartingValue,
       };
     }
 
@@ -1400,6 +1529,17 @@ export class OpenAPIParser {
    */
   public static readonly SHOWN_ONCE_DESCRIPTION: string =
     "Kept in state from the answer to the create: OneUptime never reads it back, so a resource imported into Terraform has none. Replace the resource for a new one.";
+
+  /*
+   * What the reference says of a permission a configuration writes
+   * (isPermission): how it is written, and that the way earlier versions of
+   * the provider asked for still works.
+   */
+  public static readonly PERMISSION_DESCRIPTION: string =
+    'A permission\'s key, such as `"IncidentMember"`. Written with `jsonencode()`, as earlier versions of this provider asked, it is the same permission.';
+
+  // The spec's x-oneuptime-type of a permission column (ModelSchema).
+  public static readonly PERMISSION_TYPE: string = "Permission";
 
   /*
    * Whether a data source attribute can be a lookup argument: a single plain
@@ -1638,6 +1778,13 @@ export class OpenAPIParser {
      * name: resolveChangesOnlyWith names it by its Terraform name.
      */
     const changesOnlyWith: unknown = prop["x-oneuptime-changes-only-with"];
+    /*
+     * OneUptime keeps the value once the record exists (ModelSchema's
+     * x-oneuptime-server-owned): keepWhatOneUptimeOwns and
+     * generateResourceSchema leave it to OneUptime (#9985).
+     */
+    const serverOwned: TerraformServerOwned | undefined =
+      OpenAPIParser.readServerOwned(prop["x-oneuptime-server-owned"]);
 
     const base: TerraformAttribute = {
       type: "string",
@@ -1661,6 +1808,7 @@ export class OpenAPIParser {
       ...(typeof changesOnlyWith === "string" && changesOnlyWith
         ? { changesOnlyWith }
         : {}),
+      ...(serverOwned ? { serverOwned } : {}),
     };
 
     /*
@@ -1689,6 +1837,30 @@ export class OpenAPIParser {
     if (this.isPhoneSchema(prop)) {
       return {
         attribute: { ...base, type: "string", isPhone: true },
+        requiredInCreate: required,
+      };
+    }
+
+    /*
+     * A permission's key, such as IncidentMember: a plain string. The spec
+     * documented it as an object until OneUptime#10300, so the provider made
+     * it a JSON attribute, written with jsonencode("IncidentMember"); it
+     * still takes that as the same permission, from a configuration and
+     * from state (StaticFiles/permissionkey.go). The reference says so where
+     * it is written; read, it is the key alone.
+     */
+    if (prop["x-oneuptime-type"] === OpenAPIParser.PERMISSION_TYPE) {
+      return {
+        attribute: {
+          ...base,
+          type: "string",
+          isPermission: true,
+          description: computed
+            ? description
+            : [description, OpenAPIParser.PERMISSION_DESCRIPTION]
+                .filter(Boolean)
+                .join(" "),
+        },
         requiredInCreate: required,
       };
     }

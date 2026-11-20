@@ -63,7 +63,7 @@ Cliquez sur une valeur de la barre latérale **Filtres** pour l'ajouter comme pu
 Cliquez sur une ligne. Ses détails s'ouvrent à côté de la liste.
 :::
 
-Votre recherche, vos puces et la plage de temps sont gardées dans l'adresse de la page : un rafraîchissement, un favori ou un lien partagé ouvre les mêmes journaux. Un lien vers une seule ligne de journal, comme **Voir la ligne de journal** d'un événement de sécurité, ouvre cette ligne au-dessus de la liste, lue avec vos propres permissions. **Copier le lien**, dans le détail d'une ligne, copie un tel lien, avec en dessous la liste d'où vous l'avez copié, sur la même plage de temps.
+Votre recherche, vos puces et la plage de temps sont gardées dans l'adresse de la page : un rafraîchissement, un favori ou un lien partagé ouvre les mêmes journaux. Un lien vers une seule ligne de journal, comme **Voir la ligne de journal** d'un événement de sécurité, ouvre cette ligne au-dessus de la liste, lue avec vos propres permissions. **Copier le lien**, dans le détail d'une ligne, copie un tel lien, avec en dessous la liste d'où vous l'avez copié, sur la même plage de temps. Chaque ligne de la liste a aussi **Copier le lien**, à côté de son message : vous copiez ainsi le lien d'une ligne sans l'ouvrir.
 
 ## Lire un journal
 
@@ -112,7 +112,9 @@ Les vues enregistrées appartiennent au projet, tout le monde y voit donc les m�
 
 ## Représenter vos journaux en graphiques
 
-Passez la liste en **Analytique** pour compter les journaux au lieu de les lire. Choisissez une série temporelle, un classement ou un tableau ; comptez chaque journal, ou les valeurs uniques d'un champ ; et regroupez par gravité, service, trace, span ou n'importe quel attribut, puis par un second champ. Un classement ou un tableau montre les 5, 10, 25 ou 50 premiers groupes.
+Passez la liste en **Analytique** pour représenter les journaux en graphiques au lieu de les lire. Choisissez une série temporelle, un classement ou un tableau, et ce qu'il mesure : chaque journal compté, les valeurs uniques d'un champ, ou la somme, la moyenne, la médiane, le P90, le P95, le P99, le minimum ou le maximum d'un attribut numérique, comme le P95 de `duration_ms`. Regroupez par gravité, service, trace, span ou n'importe quel attribut, puis par un second champ. Un classement ou un tableau montre les 5, 10, 25 ou 50 premiers groupes.
+
+Un attribut numérique n'est lu que là où sa valeur est un nombre : un entier ou un décimal, avec ou sans signe, en notation scientifique ou non, comme `42`, `-7`, `3.14` ou `1e3`. Un journal sans l'attribut, ou contenant autre chose, comme `12ms` ou `n/a`, est laissé de côté au lieu d'être lu comme 0. Un percentile est calculé à partir de 8 192 valeurs au plus par point : pour un point de plus de journaux, c'est une estimation proche plutôt que la valeur exacte.
 
 Cliquez sur **Liste** pour revenir aux lignes elles-mêmes.
 
@@ -192,6 +194,7 @@ Appuyez sur `?` dans le Lecteur pour les voir.
 | --- | --- |
 | `j` / `k` | Passer au journal suivant ou précédent. |
 | Enter | Ouvrir ou fermer le journal sélectionné. |
+| `l` | Copier un lien vers le journal sélectionné. |
 | Esc | Fermer le panneau de détails. |
 | `/` | Aller à la zone de recherche. |
 | ⌘ + Enter ou Ctrl + Enter | Appliquer la recherche. |

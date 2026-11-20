@@ -20,6 +20,7 @@ import IncomingRequestLatestPayloadStore from "../../Utils/IncomingRequestLatest
 import NetworkDevicePollLatestStore from "../../Utils/NetworkDevicePollLatestStore";
 import SnmpTrapPendingStore from "../../Utils/SnmpTrapPendingStore";
 import { INCOMING_REQUEST_INGEST_COALESCE_ENABLED } from "../../Config";
+import TelemetryIngestAttributionSettings from "Common/Server/Utils/Telemetry/TelemetryIngestAttributionSettings";
 import TelemetryIngestionBudget, {
   TelemetryIngestionBudgetAdmission,
   TelemetryIngestionBudgetAdmissionMode,
@@ -354,6 +355,14 @@ export interface TelemetryIngestJobData {
    * (TelemetryIngestionBudget.reconcile). Absent on every other job.
    */
   ingestionBudgetCharge?: TelemetryIngestionBudgetJobCharge;
+  /*
+   * The size an ingestion budget counts the batch at, when it is not the
+   * size of the body the worker reads back: an OTLP/gRPC export's protobuf
+   * size (the worker holds the export as JSON). The worker shares it out
+   * over the batch's resources (TelemetryIngestAttribution). Absent on
+   * every other job, whose decoded body is that size.
+   */
+  ingestBytes?: number;
   ingestionTimestamp: Date;
   // ProbeIngest-specific
   probeIngest?: ProbeIngestJobData;
@@ -489,17 +498,33 @@ export async function admitToTelemetryIngestionBudget(data: {
     return { isAdmitted: true };
   }
 
+  /*
+   * The job carries what was counted when the worker has something to do
+   * with it: settle a size counted at an estimate, or - for a project with
+   * team or label budgets (#6386) - take back what one of them drops, so it
+   * is not counted against the project's budget too. One lookup in an
+   * in-process set, refreshed once a minute.
+   */
   const toDecision: (
     counted: TelemetryIngestionBudgetCharge | null | undefined,
-  ) => TelemetryIngestionBudgetEnqueueDecision = (
+  ) => Promise<TelemetryIngestionBudgetEnqueueDecision> = async (
     counted: TelemetryIngestionBudgetCharge | null | undefined,
-  ): TelemetryIngestionBudgetEnqueueDecision => {
+  ): Promise<TelemetryIngestionBudgetEnqueueDecision> => {
+    if (!counted || counted.isPending) {
+      return { isAdmitted: true };
+    }
+
+    const carries: boolean =
+      !counted.isExact ||
+      (
+        await TelemetryIngestAttributionSettings.getTeamLabelBudgetProjects()
+      ).has(counted.projectId);
+
     return {
       isAdmitted: true,
-      jobCharge:
-        counted && !counted.isExact && !counted.isPending
-          ? TelemetryIngestionBudget.toJobCharge(counted)
-          : undefined,
+      jobCharge: carries
+        ? TelemetryIngestionBudget.toJobCharge(counted)
+        : undefined,
     };
   };
 
@@ -713,6 +738,22 @@ export default class TelemetryQueueService {
         ingestionTimestamp: OneUptimeDate.getCurrentDate(),
       };
 
+      /*
+       * The size a budget counts the batch at, where the worker could not
+       * measure it from the body it reads back (an OTLP/gRPC export's
+       * protobuf size): what the worker shares out over its resources.
+       */
+      const ingestBytes: unknown = (req as TelemetryRequest)
+        .telemetryIngestBytes;
+
+      if (
+        typeof ingestBytes === "number" &&
+        Number.isFinite(ingestBytes) &&
+        ingestBytes >= 0
+      ) {
+        jobData.ingestBytes = Math.floor(ingestBytes);
+      }
+
       const isRawBuffer: boolean =
         Buffer.isBuffer(req.body) || req.body instanceof Uint8Array;
       const isOtelType: boolean = OTEL_TELEMETRY_TYPES.includes(type);
@@ -886,10 +927,18 @@ export default class TelemetryQueueService {
           JSON.stringify(req.body, binaryToBase64Replacer),
         );
 
-        // Counted at the size it is stored with, unless a gate counted it.
+        /*
+         * Counted at the size it is stored with, unless a gate counted it -
+         * or at the size its producer says a budget counts it at
+         * (ingestBytes: a compatible endpoint's body decompressed, which
+         * the OTLP JSON it became can be several times).
+         */
         const isBudgetAdmitted: boolean = await admitToBudget(
           (): TelemetryIngestBodySize => {
-            return { bytes: buffer.length, isExact: true };
+            return {
+              bytes: jobData.ingestBytes ?? buffer.length,
+              isExact: true,
+            };
           },
         );
 

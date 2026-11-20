@@ -22,6 +22,12 @@ import {
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import { getCanonicalCloudResourceType } from "Common/Types/Cloud/CloudResourceCatalog";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
+import {
+  isAzureSecurityRecordCategory,
+  subscriptionOf,
+} from "Common/Utils/SecurityEvent/LogParsers/AzureActivityLogParser";
+import { isAzureResourceLogRecord } from "Common/Utils/SecurityEvent/LogParsers/AzureResourceLogParser";
+import { MAX_JSON_LINE_LENGTH } from "Common/Utils/SecurityEvent/LogParsers/SecurityLogLine";
 import { DeliveredResource } from "../AwsFirehose/FirehoseRecords";
 
 /*
@@ -65,6 +71,23 @@ import { DeliveredResource } from "../AwsFirehose/FirehoseRecords";
  * its time, its severity from its level, a message for its body - what the
  * log says, else its operation and result - and its category, operation,
  * result, correlation and caller, and its properties' plain values.
+ *
+ * A record of a category Security Events reads - the Activity Log's
+ * (Administrative, Security, Policy) when a subscription's diagnostic
+ * setting sends it here, Microsoft Entra ID's - keeps the record itself as
+ * its body (#10032), so "Your logs" reads it as a security event exactly as
+ * it reads a raw pipeline's, and one that names a resource group, a
+ * subscription or the tenant rather than a resource is kept too: the
+ * Activity Log's resource group deleted is one of them. So does a
+ * resource's own audit log (#10110): a key vault's AuditEvent, a storage
+ * service's requests, Azure SQL's audit - every record of them, so Logs
+ * keeps what Security Events leaves out, a storage account's SAS reads
+ * among them, whole.
+ *
+ * A storage account's logs are its blob, file, queue and table services'
+ * (.../storageAccounts/<account>/blobServices/default): they are filed under
+ * the account, which is what the connection's reads hold, so they reach
+ * its Logs tab.
  *
  * No regular expression reads a record; every value kept is bounded.
  */
@@ -252,6 +275,79 @@ export function readAzureLogBody(record: JSONObject): string {
   return "";
 }
 
+/*
+ * What a record Security Events reads is kept as, for its body (#10032):
+ * the record itself, as JSON - the Activity Log's and Microsoft Entra ID's
+ * categories, and a resource's own audit log (#10110), which "Your logs"
+ * reads as security events from the very shape a raw pipeline delivers
+ * (AzureActivityLogParser, AzureResourceLogParser), so a streamed record
+ * and the same record through a pipeline or Cloud audit logs are one
+ * event, stored once. Its category, operation and result stay attributes,
+ * for the Logs page to filter on. A record too long for the reader to
+ * parse keeps the one-line body every other log gets.
+ */
+export function readAzureSecurityRecordBody(record: JSONObject): string {
+  let json: string = "";
+
+  try {
+    json = JSON.stringify(record);
+  } catch {
+    json = "";
+  }
+
+  return json && json.length <= MAX_JSON_LINE_LENGTH
+    ? json
+    : readAzureLogBody(record);
+}
+
+// The services a storage account's logs come from, lowercase.
+const STORAGE_SERVICES: ReadonlyArray<string> = [
+  "blobservices",
+  "fileservices",
+  "queueservices",
+  "tableservices",
+];
+
+const STORAGE_ACCOUNTS_MARKER: string =
+  "/providers/microsoft.storage/storageaccounts/";
+
+/*
+ * The resource a log is filed under: a storage service's
+ * (.../storageAccounts/<account>/blobServices/default) is its account's,
+ * the resource the connection's reads hold - a storage account's logs are
+ * its services'. Any other resource's is its own.
+ */
+export function getAzureLogOwnerResourceId(resourceId: string): string {
+  const lower: string = resourceId.toLowerCase();
+  const at: number = lower.indexOf(STORAGE_ACCOUNTS_MARKER);
+
+  if (at === -1) {
+    return resourceId;
+  }
+
+  const nameEnd: number = lower.indexOf(
+    "/",
+    at + STORAGE_ACCOUNTS_MARKER.length,
+  );
+
+  if (nameEnd === -1) {
+    return resourceId;
+  }
+
+  const rest: Array<string> = lower
+    .slice(nameEnd + 1)
+    .split("/")
+    .filter((segment: string): boolean => {
+      return segment.length > 0;
+    });
+
+  return rest.length === 2 &&
+    STORAGE_SERVICES.includes(rest[0]!) &&
+    rest[1] === "default"
+    ? resourceId.slice(0, nameEnd)
+    : resourceId;
+}
+
 function scalarAttribute(key: string, value: unknown): OtlpAttribute | null {
   if (typeof value === "string" && value.length > 0) {
     return stringAttribute(key, value.slice(0, MAX_VALUE_LENGTH));
@@ -351,24 +447,61 @@ export function decodeAzureDiagnosticEvents(data: {
       const parsed: ParsedAzureResourceId | null = resourceId
         ? parseAzureResourceId(resourceId)
         : null;
+      const metricName: string = record
+        ? readText(field(record, "metricName"))
+        : "";
+      /*
+       * A record Security Events reads (#10032) - the Activity Log's,
+       * Microsoft Entra ID's - is kept whatever it is about: a resource,
+       * and also a resource group, a subscription or the tenant, which name
+       * no resource of their own (a resource group deleted, a sign-in).
+       */
+      const isSecurityRecord: boolean =
+        record !== null &&
+        !metricName &&
+        isAzureSecurityRecordCategory(readText(field(record, "category"), 256));
+      /*
+       * Kept whole as its body, for "Your logs" to read: those, and a
+       * resource's own audit log - a key vault's, a storage service's,
+       * Azure SQL's (#10110), which always names its resource.
+       */
+      const keepsRecordWhole: boolean =
+        isSecurityRecord ||
+        (record !== null && !metricName && isAzureResourceLogRecord(record));
 
-      if (!record || !parsed) {
+      if (!record || (!parsed && !isSecurityRecord)) {
         decoded.unrecognized++;
         continue;
       }
 
-      const known: AzureStreamResource | undefined = data.context.resources.get(
+      const exact: AzureStreamResource | undefined = data.context.resources.get(
         resourceId.toLowerCase(),
       );
+      // A storage service's logs are filed under its account (getAzureLogOwnerResourceId).
+      const known: AzureStreamResource | undefined =
+        exact ||
+        (metricName
+          ? undefined
+          : data.context.resources.get(
+              getAzureLogOwnerResourceId(resourceId).toLowerCase(),
+            ));
       const type: string =
         known?.type ||
-        getCanonicalCloudResourceType(CloudProvider.Azure, parsed.type);
+        (parsed
+          ? getCanonicalCloudResourceType(CloudProvider.Azure, parsed.type)
+          : "");
       const subscriptionId: string = (
-        known?.subscriptionId || parsed.subscriptionId
+        known?.subscriptionId ||
+        parsed?.subscriptionId ||
+        subscriptionOf(resourceId)
       ).toLowerCase();
-      const metricName: string = readText(field(record, "metricName"));
 
       if (metricName) {
+        // A metric is always a resource's: a security record is a log.
+        if (!parsed) {
+          decoded.unrecognized++;
+          continue;
+        }
         const definition: AzureStreamMetricDefinition | undefined =
           data.context.definitions
             .get(type.toLowerCase())
@@ -484,12 +617,20 @@ export function decodeAzureDiagnosticEvents(data: {
               connectionId: data.context.connectionId.toString(),
               cloudProvider: CloudProvider.Azure,
             }),
-            stringAttribute("cloud.account.id", subscriptionId),
+            // The tenant's own records (Entra ID's) are in no subscription.
+            ...(subscriptionId
+              ? [stringAttribute("cloud.account.id", subscriptionId)]
+              : []),
             ...(region ? [stringAttribute("cloud.region", region)] : []),
-            stringAttribute(
-              AZURE_RESOURCE_ID_ATTRIBUTE,
-              known?.resourceId || resourceId,
-            ),
+            // The resource the log is of: a storage service's own, not its account's.
+            ...(exact?.resourceId || resourceId
+              ? [
+                  stringAttribute(
+                    AZURE_RESOURCE_ID_ATTRIBUTE,
+                    exact?.resourceId || resourceId,
+                  ),
+                ]
+              : []),
             ...(known
               ? [
                   stringAttribute(
@@ -547,10 +688,19 @@ export function decodeAzureDiagnosticEvents(data: {
         observedTimeUnixNano: observed,
         severityNumber: severity ? severity.number : 0,
         severityText: severity ? severity.text : "",
-        body: { stringValue: readAzureLogBody(record) },
+        body: {
+          stringValue: keepsRecordWhole
+            ? readAzureSecurityRecordBody(record)
+            : readAzureLogBody(record),
+        },
         attributes: attributes as unknown as JSONArray,
       });
       decoded.logRecords++;
+
+      // A sighting is a subscription's: the tenant's own records are seen in none.
+      if (!subscriptionId) {
+        continue;
+      }
 
       const placeKey: string = `${subscriptionId}|${region}`;
       const place: { place: Place; categories: Set<string> } = logPlaces.get(

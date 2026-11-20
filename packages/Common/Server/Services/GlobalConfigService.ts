@@ -77,6 +77,8 @@ import UserService from "./UserService";
 import User from "../../Models/DatabaseModels/User";
 import OneUptimeDate from "../../Types/Date";
 import crypto from "crypto";
+import Reauthentication from "../Utils/Reauthentication/Reauthentication";
+import { ReauthenticationPurpose } from "../../Types/Accounts/Reauthentication";
 
 // The server's two limits for each kind of resolved record (issue #6941).
 export interface ResolvedRecordRetentionLimitColumns {
@@ -1022,6 +1024,49 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * THE SERVER'S EMAIL SETTINGS WAIT UNTIL THE MASTER ADMIN'S SESSION
+   * CONFIRMS IT'S THEM (#10216, Utils/Reauthentication).
+   *
+   * They decide which mail server carries every email OneUptime sends: a
+   * password reset link, a sign-in link, the link that confirms a new
+   * address. Whoever held a master admin's session, without their
+   * password, could point them at a mail server of their own and reset
+   * anyone's password through it. So a write to them (SERVER_EMAIL_COLUMNS)
+   * - Admin Dashboard > Settings > Emails, or the API - is refused until the
+   * session has confirmed, and goes through once it has. The master API key
+   * has no session, and is refused. OneUptime's own writes (props.isRoot:
+   * the data migrations) are not asked. After the refusal of a write the
+   * environment overrides, so nobody confirms for a change that cannot
+   * happen.
+   */
+  public async assertEmailSettingsChangeIsConfirmed(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    if (updateBy.props.isRoot) {
+      return;
+    }
+
+    const written: boolean = SERVER_EMAIL_COLUMNS.some(
+      (column: keyof Model): boolean => {
+        return (
+          (updateBy.data as Record<string, unknown> | null)?.[
+            column as string
+          ] !== undefined
+        );
+      },
+    );
+
+    if (!written) {
+      return;
+    }
+
+    await Reauthentication.assertConfirmed(
+      updateBy.props,
+      ReauthenticationPurpose.AdminChange,
+    );
+  }
+
+  /*
    * Refuses any write to ROOT_ONLY_LICENSE_COLUMNS that does not come from
    * OneUptime itself. An explicit null counts as a write: clearing the license
    * token is as much a forgery as setting one.
@@ -1897,6 +1942,7 @@ export class Service extends DatabaseService<Model> {
     this.assertMasterApiKeyWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertTwilioAccountNotSetByEnvironment(updateBy.data, updateBy.props);
     this.assertEmailSettingsNotSetByEnvironment(updateBy.data, updateBy.props);
+    await this.assertEmailSettingsChangeIsConfirmed(updateBy);
     this.assertTwilioSmsNumbersAreValid(updateBy.data);
     this.assertTwilioUseIsValid(updateBy.data);
     await this.assertTwilioNumbersKeptForUse(updateBy);

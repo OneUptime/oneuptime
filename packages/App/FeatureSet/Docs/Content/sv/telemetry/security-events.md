@@ -51,7 +51,8 @@ flowchart TB
 | **Playbooks** | Playbooks | Steg som körs på ärenden, av sig själva eller manuellt |
 | **Godkännanden** | Playbooks | Playbook-stegen som väntar på att någon godkänner eller avvisar dem |
 | **Playbook-körningar** | Playbooks | Vad varje playbook gjorde, steg för steg |
-| **Skyddade entiteter** | Playbooks | De användare och värdar som ingen playbook begränsar |
+| **Blocklista** | Playbooks | Adresserna som ditt projekt blockerar, till när, och var varje blockering tillämpas |
+| **Skyddade entiteter** | Playbooks | De användare, värdar och adresser som ingen playbook begränsar och ingen blockering rör |
 | **Inställningar** | AI | Om OneUptime AI bedömer varje nytt ärende |
 | **Anslutningar** | Connections | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och de SIEM som det skickar till |
 | **Installationsguide** | Connections | Kodsnuttar för att skicka händelser, ifyllda med din intagningsnyckel |
@@ -72,8 +73,8 @@ Säkerhetsdata kan bara läsas av rollerna Projektägare och Projektadministrat�
 | Roll | Vad den kan göra |
 | --- | --- |
 | Säkerhetsadministratör | Allt: händelser, ärenden, playbooks, detektionsregler, threat intel-flöden och anslutningar |
-| Säkerhetsmedlem | Läsa händelser och threat intel, arbeta med ärenden, köra playbooks och godkänna deras steg, samt skapa, ändra och ta bort detektionsregler och flöden. Den kan inte konfigurera playbooks eller anslutningar, och inte ta bort säkerhetsdata. |
-| Säkerhetstittare | Läsa händelser, ärenden, playbooks, regler, flöden, indikatorer och anslutningar |
+| Säkerhetsmedlem | Läsa händelser och threat intel, arbeta med ärenden, köra playbooks och godkänna deras steg, blockera adresser, samt skapa, ändra och ta bort detektionsregler och flöden. Den kan inte konfigurera playbooks eller anslutningar, och inte ta bort säkerhetsdata. |
+| Säkerhetstittare | Läsa händelser, ärenden, playbooks, blocklistan, regler, flöden, indikatorer och anslutningar |
 
 ## Skicka säkerhetshändelser
 
@@ -191,8 +192,9 @@ Varje typ når OneUptime som vanliga loggar:
 | SSH-inloggningar, sudo | En Linux-maskins journal eller auth-logg, med [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | Windows-händelser | Collectorns `windowseventlog`-receiver på maskinen, eller en vidarebefordrare som skriver varje händelse som JSON, till exempel NXLog eller Winlogbeat. En [värd](/docs/telemetry/hosts) som har lagts till i OneUptime läser också Sysmon, Microsoft Defender och PowerShell där den har dem |
 | AWS CloudTrail | Ett trail som levereras till CloudWatch Logs, läst av collectorns `awscloudwatch`-receiver, eller, för ett konto som är anslutet under **Moln**, [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
-| Google Cloud-granskningsloggar | En logg-sink till Pub/Sub, läst av collectorns `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, för ett projekt som är anslutet under **Moln**, [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
-| Azure-aktivitetsloggar och Entra ID-loggar | En diagnostikinställning som strömmar till en Event Hub, läst av collectorns `azureeventhub`-receiver med `format: raw`, eller, för aktivitetsloggen i en prenumeration som är ansluten under **Moln**, [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
+| Google Cloud-granskningsloggar | En logg-sink till Pub/Sub, läst av collectorns `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, för ett projekt som är anslutet under **Moln**, dess [ström](/docs/telemetry/cloud-streaming-google-cloud) eller [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
+| Azure-aktivitetsloggar och Entra ID-loggar | En diagnostikinställning som strömmar till en Event Hub, läst av collectorns `azureeventhub`-receiver med `format: raw`, eller till händelsehubben i en ansluten prenumerations [ström](/docs/telemetry/cloud-streaming-azure), eller, för aktivitetsloggen i en prenumeration som är ansluten under **Moln**, [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
+| Azure Key Vault-, Storage- och SQL-loggar | En resurs diagnostikinställning som strömmar till en Event Hub, läst av collectorns `azureeventhub`-receiver med `format: raw`, eller diagnostikinställningarna i en ansluten prenumerations [ström](/docs/telemetry/cloud-streaming-azure), med loggar. Se [Azure-resursers egna granskningsloggar](#azure-resursers-egna-granskningsloggar) |
 | Granskningsspår för OpenStack | Ett moln notifieringar och granskningsfilter skickade till dess loggar med `driver = log`, lästa av agentens [loggprofil](/docs/telemetry/openstack#vem-gjorde-vad) |
 | CEF, LEEF | Produktens syslog, vidarebefordrad av [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Brandväggens egen syslog, vidarebefordrad av [rsyslog](/docs/telemetry/syslog) |
@@ -203,7 +205,19 @@ På **Dina loggar** visar varje typ när den senast hittades, och **Kontrollera 
 
 Ett hot som en säkerhetsprodukt skriver i dina loggar, till exempel ett CEF- eller LEEF-fynd eller ett hot från Palo Alto Networks, FortiGate eller Cisco ASA, öppnar ett [ärende](/docs/telemetry/security-cases) på samma sätt som en ansluten produkts larm, och ökar risken för användaren, värden eller adressen som det nämner. **Öppna ärenden från** på **Dina loggar** anger från vilken allvarlighetsgrad: **Hög och högre** om du inte väljer en annan, eller **Aldrig**. Produktens inloggningar och blockerade anslutningar förblir händelser som dina regler kan läsa.
 
-En post som når OneUptime på två vägar lagras en gång: en Microsoft Entra ID-inloggning som anslutningen läser och som Azure även exporterar till dina loggar, eller en CloudTrail-post i dina loggar och i granskningsloggen för ett anslutet AWS-konto.
+En post som når OneUptime på två vägar lagras en gång: en Microsoft Entra ID-inloggning som anslutningen läser och som Azure även exporterar till dina loggar, en CloudTrail-post i dina loggar och i granskningsloggen för ett anslutet AWS-konto, eller en granskningspost som ett molnkontos ström skickar och som **Molngranskningsloggar** också läser.
+
+#### Azure-resursers egna granskningsloggar
+
+Ett Key Vault, ett lagringskonto och en Azure SQL-databas för var sin egen granskningslogg, som registrerar varje förfrågan. Bara det som ett säkerhetsteam tittar på blir en säkerhetshändelse:
+
+| Resurs | Vad som blir en säkerhetshändelse |
+| --- | --- |
+| Key Vault (`AuditEvent`) | En förfrågan som valvet nekade; en hemlighet som lämnades ut; en hemlighet, en nyckel, ett certifikat eller valvet självt som togs bort, rensades permanent eller säkerhetskopierades; en ändrad åtkomstprincip; och en ändring av det som valvet innehåller. Inte den 401 som varje Azure SDK-klient får vid sitt första anrop, som görs utan token för att ta reda på klientorganisationen: Key Vault loggar den under sin åtgärd `Authentication` |
+| Lagringskonto (`StorageRead`, `StorageWrite`, `StorageDelete`) | En förfrågan som nekades i brist på en behörighet; en som besvarades helt utan autentiseringsuppgifter, utom en statisk webbplats sidor och en CORS-preflight; en ändrad åtkomstlista för en container, en filresurs, en kö eller en tabell, eller en av dem borttagen i sin helhet; och en skrivning eller borttagning som en signatur för delad åtkomst (SAS) signerade. Inte en läsning som lyckades, inte heller en med SAS |
+| Azure SQL (`SQLSecurityAuditEvents`) | En misslyckad inloggning; en inloggning på en ny anslutning, inte en återanvänd anslutning från en anslutningspool; en behörighet som beviljades, nekades eller återkallades, en rollmedlem eller ett lösenord som ändrades, en personifiering, och en inloggning, användare eller roll som skapades, ändrades eller togs bort; och en åtgärd vars behörighetskontroll misslyckades. Inte en batch, huvuddelen av en granskning |
+
+Ett lagringskontos lyckade läsningar är det mesta av det som det loggar: en SAS är hur de flesta appar lämnar ut filer till webbläsare. De stannar i Loggar, hela, på kontots flik **Loggar**: sök där efter `"type":"SAS"` för att se vad en signatur för delad åtkomst läste. Varje händelse nämner sin resurs med dess ID, en lagringstjänsts även dess konto, så den visas på resursens sida **Säkerhetshändelser**, och en post som kommer två gånger lagras en gång.
 
 ### Läs granskningsloggarna för dina molnkonton
 
@@ -471,9 +485,9 @@ detection:
 | **Kör i realtid** | Av för en ny regel. När den är på kontrollerar regeln varje händelse när den kommer in i stället för vid varje intervall; se [Realtidsregler](#realtidsregler). |
 | **Grupperingsfält** | Valfritt. Träffar som delar det här fältets värde, till exempel `principalHost`, räknas, larmas och dedupliceras tillsammans: ett larm per värd i stället för hundratals. |
 | **Fält för unik räkning** | Valfritt. Räkna de olika värdena i det här fältet i stället för de träffande händelserna. Tomma värden räknas inte. |
-| **Tröskel för antal träffar** | En grupp löser bara ut när dess räkning når det här talet inom en körning, eller inom ett fönster i realtid: 1 till 1000000, och 1 löser ut vid varje träff. |
+| **Tröskel för antal träffar** | En grupp löser bara ut när dess räkning når det här talet inom ett fönster av regelns intervall: 1 till 1000000, och 1 löser ut vid varje träff. |
 
-Group By och Distinct Count tar samma fältnamn som regeln. Med dem säger tröskeln ”så här många, från samma sak, i en körning”, utan någon monitor ovanpå:
+Group By och Distinct Count tar samma fältnamn som regeln. Med dem säger tröskeln ”så här många, från samma sak, i ett fönster”, utan någon monitor ovanpå:
 
 | Mål | Group By Field | Distinct Count Field | Tröskel |
 | --- | --- | --- | --- |
@@ -485,11 +499,11 @@ Group By och Distinct Count tar samma fältnamn som regeln. Med dem säger trös
 
 ### När en regel körs
 
-OneUptime kontrollerar varje minut om det finns aktiverade regler vars intervall har gått sedan deras senaste körning. Varje körning läser händelserna vars händelsetid infaller mellan den föregående körningen och för två minuter sedan, och går sedan vidare. De två minuterna ger utrymme åt händelser som fortfarande är på väg, till exempel en loggrad som läses en minut efter att den skrevs:
+OneUptime kontrollerar varje minut om det finns aktiverade regler vars intervall har gått sedan deras senaste körning. Varje körning läser händelserna som kom fram till OneUptime mellan den föregående körningen och för två minuter sedan, oavsett när de hände, och går sedan vidare. De två minuterna ger utrymme åt händelser som fortfarande skrivs:
 
-- Fönstren ligger efter varandra och glider inte. Med ett intervall på 10 minuter kan misslyckanden kl. 09:58 och 10:01 hamna i olika körningar och räknas var för sig, så lämna marginal när du väljer en tröskel.
+- En räknande regel och en korrelation räknar i fönster lika långa som intervallet, efter varandra enligt klockan: med ett intervall på 10 minuter hamnar misslyckanden kl. 09:58 och 10:01 i olika fönster och räknas var för sig, så lämna marginal när du väljer en tröskel.
 - Efter ett uppehåll, till exempel ett worker-avbrott eller en regel som slagits på igen, täcker nästa körning hela uppehållet, upp till de senaste 24 timmarna.
-- En händelse som kommer mer än två minuter för sent, efter att en körning redan har täckt dess tid, lagras och är sökbar, men den regeln läser den aldrig.
+- En händelse som kommer in sent läses ändå en gång av nästa körning och räknas i det fönster den hände i: en grupp löser ut när dess fönster når räkningen, och högst en gång per fönster. En händelse som kommer in mer än ett dygn efter att den hände lagras och är sökbar, men regelns körningar läser den inte; **Kör på tidigare händelser** gör det.
 - Varje grupp som når tröskeln blir ett Detection Finding, upp till 10 000 per körning. Larm, incidenter och ärenden öppnas för de 100 med högst räkning; resten delar ett ärende om regeln, och regelns **Senaste fel** säger hur många grupper som träffade.
 
 ### Realtidsregler

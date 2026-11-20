@@ -3,11 +3,13 @@ import ObjectID from "Common/Types/ObjectID";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import {
   AWS_ADDED_METRIC_STATISTICS,
+  CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
   CloudAddedMetric,
   CloudAddedMetricScope,
 } from "Common/Types/Cloud/CloudAddedMetrics";
 import {
   CloudPublishedMetric,
+  CloudPublishedMetricSplit,
   CloudPublishedMetricsListing,
 } from "Common/Types/Cloud/CloudPublishedMetrics";
 import Modal from "Common/UI/Components/Modal/Modal";
@@ -17,10 +19,13 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import API from "Common/UI/Utils/API/API";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { drawCloudTemplate } from "../Connect/CloudConnectionWords";
-import { getCloudAddedMetricCostWords } from "./CloudAddedMetricWords";
+import {
+  GCP_SPLIT_LEARNED_FROM_EVERY_VALUE,
+  getCloudAddedMetricCostWords,
+} from "./CloudAddedMetricWords";
 import { addCloudResourceMetric } from "./CloudResourceMetricsApi";
 
 /*
@@ -34,6 +39,13 @@ import { addCloudResourceMetric } from "./CloudResourceMetricsApi";
  * statistic of its own, so the dialog offers CloudWatch's, the name's
  * likely one first chosen. Added, the connection reads it from its next
  * read; the page's list shows it under "Added metrics".
+ *
+ * A metric with dimensions can be split by one (#9808): a series per value,
+ * at most CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES a resource, each charted and
+ * judged on its own - and each choice's cost counts every series. A metric
+ * its cloud reads only split offers no "Don't split". On Google Cloud, which
+ * bills every series a call returns, the busiest values alone are asked
+ * for, and the dialog says so, with what that costs at most (#10076).
  */
 export interface ComponentProps {
   cloudResourceId: ObjectID;
@@ -47,6 +59,21 @@ export interface ComponentProps {
 
 export const CLOUD_ADD_METRIC_MODAL_TEST_ID: string = "cloud-add-metric-modal";
 
+const DONT_SPLIT: string = translationKey("Don't split");
+const SPLIT_HELP: string = translationKey(
+  "A series for each value, up to {{max}} for each resource, to chart and alert on.",
+);
+const SPLIT_REQUIRED_HELP: string = translationKey(
+  "Its cloud reads it only split. A series for each value, up to {{max}} for each resource, to chart and alert on.",
+);
+/*
+ * Google Cloud bills every series a call returns: a split is asked for each
+ * resource's busiest values alone, learned again every hour (#10076).
+ */
+const GCP_SPLIT_HELP: string = translationKey(
+  "A series for each of the {{max}} busiest values on each resource, checked every hour, so Google Cloud bills those alone.",
+);
+
 const CloudAddMetricModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -58,11 +85,30 @@ const CloudAddMetricModal: FunctionComponent<ComponentProps> = (
   const [statistic, setStatistic] = useState<string>(
     props.metric.aggregation || "Average",
   );
+  const splitId: string = useId();
+  const splits: Array<CloudPublishedMetricSplit> = props.metric.splits || [];
+  const [splitBy, setSplitBy] = useState<string>(
+    props.metric.isSplitRequired ? splits[0]?.name || "" : "",
+  );
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const isAws: boolean =
     props.listing.provider.toLowerCase() === CloudProvider.AWS;
+  const isGcp: boolean =
+    props.listing.provider.toLowerCase() === CloudProvider.GCP;
   const name: string = props.metric.displayName || props.metric.name;
+
+  const split: CloudPublishedMetricSplit | undefined = splits.find(
+    (candidate: CloudPublishedMetricSplit): boolean => {
+      return candidate.name === splitBy;
+    },
+  );
+  /*
+   * Its connection's reads found PromQL cannot rank its values (#10164):
+   * the hourly learning reads every value, which its cost counts.
+   */
+  const learnsEveryValue: boolean =
+    isGcp && Boolean(split?.isLearnedFromEveryValue);
 
   const costOf: (resources: number) => string = (resources: number): string => {
     return drawCloudTemplate(
@@ -74,9 +120,39 @@ const CloudAddMetricModal: FunctionComponent<ComponentProps> = (
         azureGrain: props.metric.grain,
         azureMetricsInCall: props.listing.azureMetricsInCall,
         azureHasFiveMinuteCall: props.listing.azureHasFiveMinuteCall,
+        ...(split
+          ? {
+              isSplit: true,
+              // Its values now where the listing saw them, else the most read.
+              seriesPerResource: Math.min(
+                CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
+                split.values || CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
+              ),
+              ...(learnsEveryValue && split.learnedValuesPerResource
+                ? {
+                    gcpLearnedValuesPerResource: split.learnedValuesPerResource,
+                  }
+                : {}),
+            }
+          : {}),
       }),
     );
   };
+
+  const splitOptions: Array<DropdownOption> = [
+    ...(props.metric.isSplitRequired ? [] : [{ value: "", label: DONT_SPLIT }]),
+    ...splits.map((candidate: CloudPublishedMetricSplit): DropdownOption => {
+      return {
+        value: candidate.name,
+        // As its cloud names it: a dimension's name is never looked up.
+        label:
+          candidate.displayName && candidate.displayName !== candidate.name
+            ? `${candidate.displayName} (${candidate.name})`
+            : candidate.name,
+        isUserContent: true,
+      };
+    }),
+  ];
 
   const statisticOptions: Array<DropdownOption> =
     AWS_ADDED_METRIC_STATISTICS.map((value: string): DropdownOption => {
@@ -94,6 +170,7 @@ const CloudAddMetricModal: FunctionComponent<ComponentProps> = (
         namespace: props.metric.namespace,
         scope,
         aggregation: isAws ? statistic : undefined,
+        splitBy: splitBy || undefined,
       });
 
       props.onAdded(added);
@@ -150,6 +227,63 @@ const CloudAddMetricModal: FunctionComponent<ComponentProps> = (
             },
           ]}
         />
+        {splits.length > 0 ? (
+          <div className="mt-5">
+            <label
+              htmlFor={splitId}
+              className="block text-sm font-medium text-gray-900"
+            >
+              {translator.translateText("Split by")}
+            </label>
+            <p
+              className="mt-0.5 text-xs text-gray-500"
+              data-testid="cloud-add-metric-split-help"
+            >
+              {translator.translateTemplate(
+                props.metric.isSplitRequired
+                  ? SPLIT_REQUIRED_HELP
+                  : isGcp
+                    ? GCP_SPLIT_HELP
+                    : SPLIT_HELP,
+                {
+                  max: translator.formatNumber(
+                    CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
+                  ),
+                },
+              )}
+            </p>
+            <div className="mt-2 max-w-xs">
+              <Dropdown
+                inputId={splitId}
+                options={splitOptions}
+                value={splitOptions.find((option: DropdownOption) => {
+                  return option.value === splitBy;
+                })}
+                isClearable={false}
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  if (typeof value === "string") {
+                    setSplitBy(value);
+                  }
+                }}
+                dataTestId="cloud-add-metric-split"
+              />
+            </div>
+            {learnsEveryValue ? (
+              <p
+                className="mt-1.5 text-xs text-amber-700"
+                data-testid="cloud-add-metric-split-every-value"
+              >
+                {translator.translateText(GCP_SPLIT_LEARNED_FROM_EVERY_VALUE)}
+              </p>
+            ) : (
+              <></>
+            )}
+          </div>
+        ) : (
+          <></>
+        )}
         {isAws ? (
           <div className="mt-5">
             <label

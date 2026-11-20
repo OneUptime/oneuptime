@@ -111,9 +111,9 @@ const KNOWN_FILES: Record<string, KnownFile> = {
       role: "reader",
       why: "takes the dashboards that name a deprecated cloud metric out of storage, has RetiredCloudMetricChartMoves read and move each, and writes back what moved",
     },
-  "Common/Server/Utils/DataSecurity/Telemetry/MetricNameUsers.ts": {
+  "Common/Server/Utils/Telemetry/MetricReaders.ts": {
     role: "reader",
-    why: "reads a project's dashboards to name the ones that read a metric Data Security would drop (#9757)",
+    why: "reads a project's dashboards to name the ones, and the widgets on them, that read a metric something would take away, such as the metrics Data Security would drop (#9757, #9946)",
   },
   "App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index.tsx": {
     role: "handed-a-read-config",
@@ -248,8 +248,7 @@ const RETIRED_METRIC_READS: string =
   "Common/Server/Utils/CloudConnection/CloudRetiredMetricReads.ts";
 const RETIRED_METRIC_CHART_MIGRATION: string =
   "App/FeatureSet/Workers/DataMigrations/MoveChartsAndSlosOffRetiredCloudMetrics.ts";
-const METRIC_NAME_USERS: string =
-  "Common/Server/Utils/DataSecurity/Telemetry/MetricNameUsers.ts";
+const METRIC_READERS: string = "Common/Server/Utils/Telemetry/MetricReaders.ts";
 const CANVAS: string =
   "App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index.tsx";
 const WIDGET_CARD: string =
@@ -325,8 +324,10 @@ describe("every reader of a dashboard's stored config goes through StoredDashboa
         "findRetiredCloudMetricQueriesOfDashboard(stored)",
         "moveRetiredCloudMetricQueriesOfDashboard({dashboardViewConfigJSON:viewConfig,",
       ],
-      [METRIC_NAME_USERS]: [
-        "StoredDashboardViewConfig.read(dashboard.dashboardViewConfig)",
+      [METRIC_READERS]: [
+        "StoredDashboardViewConfig.unwrap(asStored(dashboardViewConfig)",
+        "StoredDashboardViewConfig.getComponentEntries(config)",
+        "StoredDashboardViewConfig.withArgumentsRead(entry)",
       ],
     };
 

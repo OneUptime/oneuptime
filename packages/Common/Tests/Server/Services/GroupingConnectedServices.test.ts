@@ -25,6 +25,7 @@ import ConnectedServices, {
 } from "../../../Server/Utils/Topology/ConnectedServices";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { EPISODE_REOPENED_BY_NEW_ALERT } from "../../../Utils/Monitor/StatusChangeNotes";
 import {
   afterEach,
   beforeEach,
@@ -290,8 +291,11 @@ describe("an alert on a service", () => {
       isNewEpisode: false,
       wasReopened: true,
     });
+    // Saying why on the episode's State Timeline (#9959).
     expect(AlertEpisodeService.reopenEpisode).toHaveBeenCalledWith(
       EPISODE_CONNECTED,
+      undefined,
+      EPISODE_REOPENED_BY_NEW_ALERT,
     );
     expect(episodeReads[1]!.sort).toEqual({ resolvedAt: "DESC" });
   });

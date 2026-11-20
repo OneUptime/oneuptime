@@ -243,9 +243,126 @@ export interface NetworkControllerDeviceAddFailure {
   reason: string;
 }
 
-// Failures an ask keeps, with their reasons: the rest are counted.
-export const MAX_DEVICE_ADD_FAILURES_KEPT: number = 10;
+/*
+ * WHY DEVICES COULD NOT BE ADDED, ONE ENTRY A REASON: how many devices it
+ * kept out, and the first few of them by the names they would have had, to
+ * find them by. An ask whose every device is refused for the same reason -
+ * a column the person may not write, a probe of another project - says it
+ * once, with the count (#10188: 5,000 devices listed one reason 5,000
+ * times, three of them shown, and nothing said it was all of them).
+ */
+export interface NetworkControllerDeviceAddFailureReason {
+  reason: string;
+  count: number;
+  names: Array<string>;
+}
+
+/*
+ * The reasons an ask keeps, in the order it met them: a device refused for
+ * another is counted in failedCount only. And the devices kept by name
+ * under each reason.
+ */
+export const MAX_DEVICE_ADD_FAILURE_REASONS_KEPT: number = 5;
+export const MAX_DEVICE_ADD_FAILURE_NAMES_KEPT: number = 3;
 export const MAX_DEVICE_ADD_FAILURE_TEXT_LENGTH: number = 300;
+
+/*
+ * Counts one device that could not be added into the reasons kept: under
+ * its reason when it is kept, as a new reason while there is room for one,
+ * and nowhere else - failedCount counts it either way.
+ */
+export function addNetworkControllerDeviceAddFailure(
+  reasons: Array<NetworkControllerDeviceAddFailureReason>,
+  failure: NetworkControllerDeviceAddFailure,
+): void {
+  const reason: string = failure.reason.substring(
+    0,
+    MAX_DEVICE_ADD_FAILURE_TEXT_LENGTH,
+  );
+  const name: string = failure.name.substring(
+    0,
+    MAX_DEVICE_ADD_FAILURE_TEXT_LENGTH,
+  );
+  const kept: NetworkControllerDeviceAddFailureReason | undefined =
+    reasons.find((entry: NetworkControllerDeviceAddFailureReason): boolean => {
+      return entry.reason === reason;
+    });
+
+  if (kept) {
+    kept.count++;
+
+    if (name && kept.names.length < MAX_DEVICE_ADD_FAILURE_NAMES_KEPT) {
+      kept.names.push(name);
+    }
+
+    return;
+  }
+
+  if (reasons.length >= MAX_DEVICE_ADD_FAILURE_REASONS_KEPT) {
+    return;
+  }
+
+  reasons.push({ reason: reason, count: 1, names: name ? [name] : [] });
+}
+
+/*
+ * The reasons, the one that kept out the most devices first (the order met
+ * among equals), and how many failed devices none of them counts.
+ */
+export function getNetworkControllerDeviceAddFailureReasons(
+  state: Pick<
+    NetworkControllerDeviceAddState,
+    "failureReasons" | "failedCount"
+  >,
+): {
+  reasons: Array<NetworkControllerDeviceAddFailureReason>;
+  otherCount: number;
+} {
+  const reasons: Array<NetworkControllerDeviceAddFailureReason> =
+    state.failureReasons
+      .map(
+        (
+          reason: NetworkControllerDeviceAddFailureReason,
+          index: number,
+        ): {
+          reason: NetworkControllerDeviceAddFailureReason;
+          index: number;
+        } => {
+          return { reason, index };
+        },
+      )
+      .sort(
+        (
+          a: { reason: NetworkControllerDeviceAddFailureReason; index: number },
+          b: { reason: NetworkControllerDeviceAddFailureReason; index: number },
+        ): number => {
+          return b.reason.count - a.reason.count || a.index - b.index;
+        },
+      )
+      .map(
+        (entry: {
+          reason: NetworkControllerDeviceAddFailureReason;
+          index: number;
+        }): NetworkControllerDeviceAddFailureReason => {
+          return entry.reason;
+        },
+      );
+
+  const counted: number = reasons.reduce(
+    (
+      total: number,
+      reason: NetworkControllerDeviceAddFailureReason,
+    ): number => {
+      return total + reason.count;
+    },
+    0,
+  );
+
+  return {
+    reasons: reasons,
+    otherCount: Math.max(0, state.failedCount - counted),
+  };
+}
 
 export interface NetworkControllerDeviceAddState {
   status: NetworkControllerDeviceAddStatus;
@@ -264,7 +381,11 @@ export interface NetworkControllerDeviceAddState {
   toAddCount: number;
   addedCount: number;
   failedCount: number;
-  // Sites added for Meraki networks the project had no site for.
+  /*
+   * Sites added for Meraki networks the project had no site for, and that
+   * hold the devices it added: a site is added only as its first device is,
+   * and one whose devices could not be added is taken away again.
+   */
   createdSiteCount: number;
   // Devices of the kinds asked for that it did not try to add, by why.
   withoutAddressCount: number;
@@ -272,7 +393,8 @@ export interface NetworkControllerDeviceAddState {
   archivedCount: number;
   // Past this ask's limit: a further ask adds them.
   remainingCount: number;
-  failures: Array<NetworkControllerDeviceAddFailure>;
+  // Why the devices it tried to add could not be (failedCount), by reason.
+  failureReasons: Array<NetworkControllerDeviceAddFailureReason>;
   // Why the ask as a whole failed.
   message?: string | undefined;
 }
@@ -310,16 +432,83 @@ function readShortText(value: unknown, maxLength: number): string {
   return typeof value === "string" ? value.trim().substring(0, maxLength) : "";
 }
 
-function readFailures(
-  value: unknown,
-): Array<NetworkControllerDeviceAddFailure> {
+function readFailureNames(value: unknown): Array<string> {
   if (!Array.isArray(value)) {
     return [];
   }
 
-  const failures: Array<NetworkControllerDeviceAddFailure> = [];
+  const names: Array<string> = [];
 
   for (const entry of value) {
+    const name: string = readShortText(
+      entry,
+      MAX_DEVICE_ADD_FAILURE_TEXT_LENGTH,
+    );
+
+    if (name) {
+      names.push(name);
+    }
+
+    if (names.length >= MAX_DEVICE_ADD_FAILURE_NAMES_KEPT) {
+      break;
+    }
+  }
+
+  return names;
+}
+
+/*
+ * The reasons as they were stored - or, for an ask an earlier OneUptime
+ * wrote, its list of failures one a device, counted into reasons the same
+ * way (addNetworkControllerDeviceAddFailure).
+ */
+function readFailureReasons(
+  value: unknown,
+  formerFailures: unknown,
+): Array<NetworkControllerDeviceAddFailureReason> {
+  const reasons: Array<NetworkControllerDeviceAddFailureReason> = [];
+
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      if (!isPlainObject(entry)) {
+        continue;
+      }
+
+      const reason: string = readShortText(
+        entry["reason"],
+        MAX_DEVICE_ADD_FAILURE_TEXT_LENGTH,
+      );
+      const count: number = readCount(entry["count"]);
+
+      if (
+        !reason ||
+        count === 0 ||
+        reasons.some((kept: NetworkControllerDeviceAddFailureReason) => {
+          return kept.reason === reason;
+        })
+      ) {
+        continue;
+      }
+
+      reasons.push({
+        reason: reason,
+        count: count,
+        names: readFailureNames(entry["names"]),
+      });
+
+      if (reasons.length >= MAX_DEVICE_ADD_FAILURE_REASONS_KEPT) {
+        break;
+      }
+    }
+
+    return reasons;
+  }
+
+  if (!Array.isArray(formerFailures)) {
+    return reasons;
+  }
+
+  for (const entry of formerFailures) {
     if (!isPlainObject(entry)) {
       continue;
     }
@@ -333,18 +522,14 @@ function readFailures(
       MAX_DEVICE_ADD_FAILURE_TEXT_LENGTH,
     );
 
-    if (!name && !reason) {
+    if (!reason) {
       continue;
     }
 
-    failures.push({ name, reason });
-
-    if (failures.length >= MAX_DEVICE_ADD_FAILURES_KEPT) {
-      break;
-    }
+    addNetworkControllerDeviceAddFailure(reasons, { name, reason });
   }
 
-  return failures;
+  return reasons;
 }
 
 /*
@@ -400,7 +585,10 @@ export function readNetworkControllerDeviceAddState(
     takenCount: readCount(value["takenCount"]),
     archivedCount: readCount(value["archivedCount"]),
     remainingCount: readCount(value["remainingCount"]),
-    failures: readFailures(value["failures"]),
+    failureReasons: readFailureReasons(
+      value["failureReasons"],
+      value["failures"],
+    ),
     ...(message ? { message: message } : {}),
   };
 }
@@ -427,15 +615,20 @@ export function toNetworkControllerDeviceAddStateJson(
     takenCount: state.takenCount,
     archivedCount: state.archivedCount,
     remainingCount: state.remainingCount,
-    failures: state.failures
-      .slice(0, MAX_DEVICE_ADD_FAILURES_KEPT)
-      .map((failure: NetworkControllerDeviceAddFailure): JSONObject => {
+    failureReasons: state.failureReasons
+      .slice(0, MAX_DEVICE_ADD_FAILURE_REASONS_KEPT)
+      .map((reason: NetworkControllerDeviceAddFailureReason): JSONObject => {
         return {
-          name: failure.name.substring(0, MAX_DEVICE_ADD_FAILURE_TEXT_LENGTH),
-          reason: failure.reason.substring(
+          reason: reason.reason.substring(
             0,
             MAX_DEVICE_ADD_FAILURE_TEXT_LENGTH,
           ),
+          count: reason.count,
+          names: reason.names
+            .slice(0, MAX_DEVICE_ADD_FAILURE_NAMES_KEPT)
+            .map((name: string): string => {
+              return name.substring(0, MAX_DEVICE_ADD_FAILURE_TEXT_LENGTH);
+            }),
         };
       }),
   };
@@ -482,7 +675,7 @@ export function buildQueuedNetworkControllerDeviceAddState(data: {
     takenCount: 0,
     archivedCount: 0,
     remainingCount: 0,
-    failures: [],
+    failureReasons: [],
   };
 }
 

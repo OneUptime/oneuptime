@@ -36,6 +36,17 @@ export default class MonitorRecordText {
     monitorType: MonitorType;
     storageMap: JSONObject;
     seriesLabels?: JSONObject | undefined;
+    /*
+     * What else is known about the series, for the words only: a device's
+     * name and model beside its install (#9925). Never its identity.
+     */
+    seriesContext?: JSONObject | undefined;
+    /*
+     * The metrics the step that opens it reads, where known: what narrows
+     * a managed device's first commands to the reading its monitor reads
+     * (SeriesDebugHints, #10209).
+     */
+    metricNames?: ReadonlyArray<string> | undefined;
   }): MonitorRecordTextResult {
     // A title is one bounded line; see buildTitleStorageMap.
     const titleStorageMap: JSONObject =
@@ -51,6 +62,7 @@ export default class MonitorRecordText {
           storageMap: titleStorageMap,
         }),
         seriesLabels: data.seriesLabels,
+        seriesContext: data.seriesContext,
       }),
       description: SeriesContextEnricher.enrichDescription({
         description: MonitorTemplateUtil.processMarkdownTemplateString({
@@ -59,6 +71,8 @@ export default class MonitorRecordText {
         }),
         seriesLabels: data.seriesLabels,
         monitorType: data.monitorType,
+        seriesContext: data.seriesContext,
+        metricNames: data.metricNames,
       }),
     };
   }

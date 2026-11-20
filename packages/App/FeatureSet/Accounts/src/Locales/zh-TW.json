@@ -244,7 +244,13 @@
     "signInWithProvider": "使用 {{name}} 登入",
     "requiredSubtitle": "此伺服器要求使用單一登入（SSO）。",
     "requiredNotSetUp": "此伺服器尚未設定單一登入。請聯絡伺服器管理員進行設定。",
-    "useDifferentEmail": "使用其他電子郵件"
+    "useDifferentEmail": "使用其他電子郵件",
+    "lastUsedTitle": "上次在此裝置上使用",
+    "forgetLastUsed": "忘記此提供者",
+    "emailLinksPrompt": "我們可以將此地址所屬的每個組織的 SSO 登入連結寄到此地址。",
+    "emailLinksButton": "以電子郵件寄送我的登入連結",
+    "emailLinksSent": "如果此地址屬於使用單一登入的組織，我們已將 SSO 登入連結寄到此地址。",
+    "emailLinksCaptchaRequired": "請先完成人機驗證，再要求這些連結。"
   },
   "adminLogin": {
     "title": "主要管理員登入",
@@ -281,6 +287,29 @@
     "templateDescription": "選擇範本來填寫表單。提交前你可以修改任何回答。",
     "templateNone": "無範本",
     "uploadingFiles": "正在上傳你的檔案…"
+  },
+  "formSignIn": {
+    "prompt": "登入後即可開啟此表單。",
+    "ssoOnlyPrompt": "使用您所屬組織的單一登入進行登入，即可開啟此表單。",
+    "noWayIn": "此表單尚未設定任何登入方式。請聯絡與您分享它的人。",
+    "email": "電子郵件",
+    "password": "密碼",
+    "forgotPassword": "忘記密碼？",
+    "signIn": "登入",
+    "or": "或",
+    "signInWithProvider": "使用 {{provider}} 登入",
+    "forgotTitle": "忘記密碼了？",
+    "forgotPrompt": "輸入您的電子郵件地址，我們會寄送一個連結，供您設定新密碼。",
+    "sendLink": "寄送連結",
+    "forgotSent": "如果此地址可以登入此表單，設定新密碼的連結已在寄送途中。該連結在 24 小時內有效。",
+    "backToSignIn": "返回登入",
+    "resetTitle": "設定新密碼",
+    "resetPrompt": "輸入您日後登入此表單時使用的密碼。",
+    "newPassword": "新密碼",
+    "savePassword": "儲存密碼",
+    "resetDone": "您的密碼已儲存。請使用它登入以開啟表單。",
+    "signedInAs": "已以 {{email}} 身分登入",
+    "signOut": "登出"
   },
   "errors": {
     "forbidden": {

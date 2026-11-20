@@ -16,6 +16,7 @@ import {
 } from "../../LlmObservability/LlmProviderHttp";
 import { CloudCostRecord, CloudSavingRecord } from "../CloudConnectorTypes";
 import AzureArm from "./AzureArm";
+import { AzureCostReader } from "./AzureCostManagement";
 
 /*
  * WHAT AN AZURE SUBSCRIPTION COSTS, AND HOW TO SPEND LESS IN IT.
@@ -30,8 +31,8 @@ import AzureArm from "./AzureArm";
  *          resourceId, service, currency]], nextLink } }
  *   A query groups by two dimensions at most: by resource and service. A
  *   resource's Region is the one OneUptime holds for it. Needs Cost
- *   Management Reader on the subscription; Cost Management answers a burst
- *   with 429, which is asked again within the read's budget.
+ *   Management Reader on the subscription. Every page is a query of its
+ *   own, asked at the pace the tenant's quotas allow (AzureCostManagement).
  *
  *   Azure Advisor (GET {management}/subscriptions/{id}/providers/
  *   Microsoft.Advisor/recommendations?api-version=2023-01-01&$filter=
@@ -64,7 +65,7 @@ export function readAzureUsageDate(value: unknown): string {
 }
 
 export async function readAzureCosts(data: {
-  arm: AzureArm;
+  costs: AzureCostReader;
   subscriptionId: string;
   start: Date;
   end: Date;
@@ -90,64 +91,57 @@ export async function readAzureCosts(data: {
     },
   };
 
-  let url: string = `${data.arm.getManagementBaseUrl()}/subscriptions/${encodeURIComponent(
-    data.subscriptionId,
-  )}/providers/Microsoft.CostManagement/query?api-version=${AZURE_COST_MANAGEMENT_API_VERSION}`;
-
-  for (let page: number = 0; page < AZURE_COST_MAX_PAGES; page++) {
-    const answer: JSONObject = await data.arm.post(url, body, "cost query");
-    const properties: JSONObject = readObject(answer["properties"]);
-    const columns: Array<string> = readArray(properties["columns"]).map(
-      (column: unknown): string => {
-        return readText(readObject(column)["name"]).toLowerCase();
-      },
-    );
-    const at: (name: string) => number = (name: string): number => {
-      return columns.indexOf(name.toLowerCase());
-    };
-    const costAt: number = at("Cost") >= 0 ? at("Cost") : at("PreTaxCost");
-    const dayAt: number = at("UsageDate");
-    const resourceAt: number = at("ResourceId");
-    const serviceAt: number = at("ServiceName");
-    const currencyAt: number = at("Currency");
-
-    for (const rawRow of readArray(properties["rows"])) {
-      const row: Array<unknown> = Array.isArray(rawRow)
-        ? (rawRow as Array<unknown>)
-        : [];
-      const amount: number = Number(row[costAt]);
-      const day: string = readAzureUsageDate(row[dayAt]);
-
-      if (!day || !Number.isFinite(amount) || amount === 0) {
-        continue;
-      }
-
-      const resourceId: string = getCloudCostResourceKey(
-        "azure",
-        readText(row[resourceAt]),
+  const read: { complete: boolean } = await data.costs.query({
+    scope: `/subscriptions/${encodeURIComponent(data.subscriptionId)}`,
+    apiVersion: AZURE_COST_MANAGEMENT_API_VERSION,
+    body,
+    step: "cost query",
+    maxPages: AZURE_COST_MAX_PAGES,
+    onPage: (properties: JSONObject): void => {
+      const columns: Array<string> = readArray(properties["columns"]).map(
+        (column: unknown): string => {
+          return readText(readObject(column)["name"]).toLowerCase();
+        },
       );
+      const at: (name: string) => number = (name: string): number => {
+        return columns.indexOf(name.toLowerCase());
+      };
+      const costAt: number = at("Cost") >= 0 ? at("Cost") : at("PreTaxCost");
+      const dayAt: number = at("UsageDate");
+      const resourceAt: number = at("ResourceId");
+      const serviceAt: number = at("ServiceName");
+      const currencyAt: number = at("Currency");
 
-      records.push({
-        accountId: data.subscriptionId,
-        day,
-        service: readText(row[serviceAt]),
-        region: data.regionsByResource.get(resourceId) || "",
-        resourceId,
-        currency: readText(row[currencyAt]) || CLOUD_COST_DEFAULT_CURRENCY,
-        amount,
-      });
-    }
+      for (const rawRow of readArray(properties["rows"])) {
+        const row: Array<unknown> = Array.isArray(rawRow)
+          ? (rawRow as Array<unknown>)
+          : [];
+        const amount: number = Number(row[costAt]);
+        const day: string = readAzureUsageDate(row[dayAt]);
 
-    const next: string = readText(properties["nextLink"]);
+        if (!day || !Number.isFinite(amount) || amount === 0) {
+          continue;
+        }
 
-    if (!next || next === url) {
-      return { records, complete: true };
-    }
+        const resourceId: string = getCloudCostResourceKey(
+          "azure",
+          readText(row[resourceAt]),
+        );
 
-    url = next;
-  }
+        records.push({
+          accountId: data.subscriptionId,
+          day,
+          service: readText(row[serviceAt]),
+          region: data.regionsByResource.get(resourceId) || "",
+          resourceId,
+          currency: readText(row[currencyAt]) || CLOUD_COST_DEFAULT_CURRENCY,
+          amount,
+        });
+      }
+    },
+  });
 
-  return { records, complete: false };
+  return { records, complete: read.complete };
 }
 
 // An amount as text ("123.4", as Advisor's properties write it) or a number.

@@ -5,7 +5,7 @@ Um monitor de Kubernetes alerta com base nas métricas que o agente de Kubernete
 :::cards
 - [Instalar o agente](/docs/monitor/kubernetes-agent): Um único comando do Helm coloca o cluster no OneUptime.
 - [Criar o monitor](#criar-um-monitor-de-kubernetes): Escolher o cluster e depois um modelo, uma métrica ou uma consulta.
-- [Modelos de alerta](#modelos-de-alerta-prontos): Vinte e cinco alertas prontos, de um cluster silencioso a etcd.
+- [Modelos de alerta](#modelos-de-alerta-prontos): Vinte e seis alertas prontos, de um cluster silencioso a etcd.
 - [Critérios](#critérios-de-monitoramento): Limites estáticos e detecção de anomalias.
 :::
 
@@ -88,7 +88,7 @@ A aba **Custom Metric** oferece estas métricas, agrupadas por tipo de recurso:
 | --- | --- |
 | Pod | Consumo de CPU do Pod, Uso de memória do Pod, Fase do Pod (código), Uso do sistema de arquivos do Pod, Capacidade do volume, Espaço livre do volume, Utilização do limite de memória do Pod, Utilização do limite de CPU do Pod, E/S de rede do Pod (acumulada, ambas as direções) |
 | Nó | Consumo de CPU do nó, CPU alocável do nó, Uso de memória do nó, Working set de memória do nó, Uso do sistema de arquivos do nó, Memória alocável do nó, Condição Ready do nó, Condição MemoryPressure do nó, Condição DiskPressure do nó, Condição PIDPressure do nó, Sistema de arquivos disponível do nó, Capacidade do sistema de arquivos do nó |
-| Contêiner | Reinicializações do contêiner, Reinicializações do contêiner (aumento), Limite de CPU do contêiner, Solicitação de CPU do contêiner, Limite de memória do contêiner, Solicitação de memória do contêiner, Contêiner pronto |
+| Contêiner | Reinicializações do contêiner, Reinicializações do contêiner (aumento), Limite de CPU do contêiner, Solicitação de CPU do contêiner, Limite de memória do contêiner, Solicitação de memória do contêiner, Contêiner pronto, Sistema de arquivos disponível do contêiner, Capacidade do sistema de arquivos do contêiner |
 | Carga de trabalho | Réplicas disponíveis do Deployment, Réplicas desejadas do Deployment, Nós desejados do DaemonSet, Nós agendados incorretamente do DaemonSet, Nós prontos do DaemonSet, Réplicas desejadas do StatefulSet, Réplicas prontas do StatefulSet, Pods com falha do Job, Pods com falha do Job (aumento), Pods bem-sucedidos do Job |
 | HPA | Réplicas atuais do HPA, Réplicas desejadas do HPA, Réplicas máximas do HPA, Réplicas mínimas do HPA |
 | Plano de controle | etcd tem um líder, Solicitações em andamento do servidor de API, Pods pendentes do agendador |
@@ -149,7 +149,8 @@ A lista de **Sobre o que alertar** traz estes modelos, agrupados por categoria. 
 | etcd No Leader | Plano de controle | O etcd não tem líder eleito | Crítico |
 | API Server Request Saturation | Plano de controle | O servidor de API mantém 200 ou mais requisições em andamento durante toda a janela | Crítico |
 | Scheduler Backlog | Agendamento | A fila de pods pendentes do scheduler não fica vazia por 5 minutos | Aviso |
-| High Node Disk Usage | Armazenamento | O sistema de arquivos de um nó está mais de 90% cheio | Aviso |
+| High Node Disk Usage | Armazenamento | O sistema de arquivos de um nó está mais de 85% cheio | Aviso |
+| Node Image Disk Almost Full | Armazenamento | O disco em que um nó mantém as imagens de contêiner está mais de 85% cheio | Aviso |
 | PVC Almost Full | Armazenamento | Uma reivindicação de volume persistente está mais de 90% cheia | Aviso |
 | DaemonSet Pods Not Ready | Carga de trabalho | Um DaemonSet tem nós sem um pod seu pronto por 15 minutos | Aviso |
 | DaemonSet Misscheduled Nodes | Carga de trabalho | Um DaemonSet executa pods em nós que não correspondem mais ao seu seletor de nós, afinidade ou tolerâncias | Aviso |
@@ -167,6 +168,8 @@ Os modelos baseados em métricas por objeto avaliam cada nó, pod, deployment, j
 Os modelos de custo leem as métricas que o OneUptime grava a partir das linhas de custo por hora do agente, um ponto por hora, então somam o último dia; os orçamentos deles ficam na moeda do cluster, USD por padrão.
 
 **High Node CPU Request Commitment** e **High Node Memory Request Commitment** contam apenas as requisições (requests) dos pods que não terminaram, como faz o escalonador. O cluster continua informando as requisições de um pod em Succeeded ou Failed, como o de um Job concluído, até que o pod seja excluído: essas não são contadas.
+
+**Node Image Disk Almost Full** lê o disco em que, segundo o kubelet, cada contêiner em execução grava os próprios arquivos, porque o agente não informa por si só o disco de imagens de um nó. Nas configurações habituais é o disco de imagens, mas não em todo nó: onde um nó mantém as imagens no sistema de arquivos raiz, como a maioria, é o sistema de arquivos raiz, então o modelo dispara junto com **High Node Disk Usage**; com o sistema de arquivos de imagens dividido do kubelet (`KubeletSeparateDiskGC`), é o disco em que os contêineres gravam, e não o das imagens; e um nó sem contêiner em execução não informa nada. As recomendações de um cluster o oferecem quando algum nó mantém as imagens em um disco próprio, o que a lista de nós então mostra na coluna **Disco de imagens**; a lista de **Sobre o que alertar** o traz para qualquer cluster. Por padrão, o kubelet apaga as imagens não usadas quando um disco que guarda as imagens chega a 85% de ocupação e despeja pods quando menos de 15% dele está livre, então este modelo e **High Node Disk Usage** disparam em 85% e trazem o monitor de volta para online em 80%, o nível a que a limpeza de imagens leva o disco. Em um nó cujas imagens têm um disco próprio, o kubelet despeja pods pelo sistema de arquivos raiz a partir de 90%, então ali **High Node Disk Usage** dispara antes de o despejo começar.
 
 **Cluster Stopped Reporting** dispara quando nada chega do agente do cluster por dez minutos: o agente foi desinstalado ou falha repetidamente, sua chave de API foi revogada, ele perdeu a rota até o OneUptime ou o servidor de API do cluster parou de responder a ele. Ele se resolve quando os dados voltam. Quando os dados param, os outros modelos não têm nada para comparar e mantêm o último status, então é este que avisa você.
 

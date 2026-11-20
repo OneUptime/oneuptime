@@ -428,6 +428,45 @@ jobs:
           Tests/Server/Utils/Retention/SoftDeletedRowsPurgePostgres.test.ts
           --forceExit
 
+      # The sessions of a dashboard's private users (#10250), on copies of
+      # the migrated tables: a refresh token kept as its hash and rotated in
+      # one conditional write, a session that counts only for its own
+      # dashboard and private user while its sign-in still counts (Require
+      # SSO, a provider turned off or deleted), a single sign-on code
+      # exchanged once, and a new password or a removed private user ending
+      # every session of theirs.
+      - name: Test dashboard private user sessions on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DASHBOARD_PRIVATE_USER_TESTS: "true"
+          DASHBOARD_PRIVATE_USER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DASHBOARD_PRIVATE_USER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DASHBOARD_PRIVATE_USER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/DashboardPrivateUserSessionsPostgres.test.ts
+          --forceExit
+
+      # The sessions of a form's private users (#10249), the same rules on
+      # the form's own tables: a refresh token kept as its hash and rotated
+      # in one conditional write, a session that counts only for its own
+      # form and private user while its sign-in still counts, a single
+      # sign-on code exchanged once, and a new password or a removed private
+      # user ending every session of theirs.
+      - name: Test form private user sessions on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_FORM_PRIVATE_USER_TESTS: "true"
+          FORM_PRIVATE_USER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          FORM_PRIVATE_USER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          FORM_PRIVATE_USER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/FormPrivateUserSessionsPostgres.test.ts
+          --forceExit
+
       # Deleting the rows older than their table keeps them (issue #8894):
       # 1000 a statement, one DELETE a batch, a run out of time taking one
       # batch of each table and the next run the rest, a table with no
@@ -2002,6 +2041,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/WorkspaceHomeChoicePostgres.test.ts --forceExit
 
+      # Clones the migrated GuidedSetupRun table (with its unique index) into
+      # an isolated schema and runs GuidedSetupRunService against it: a
+      # guided setup's run kept on the server (#7253). The first change makes
+      # the run and another device reads it back, devices saving at once all
+      # keep what they saved in one row, a step tried again replaces its
+      # failure, one person's run is never another's, starting afresh deletes
+      # it, and the daily purge takes a run nobody changed for 30 days - and
+      # the migrated table is removed with its project and its person.
+      - name: Test guided setups' runs on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_GUIDED_SETUP_RUN_TESTS: "true"
+          GUIDED_SETUP_RUN_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          GUIDED_SETUP_RUN_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          GUIDED_SETUP_RUN_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/GuidedSetupRunPostgres.test.ts --forceExit
+
       # Clones the migrated TeamComplianceSetting table and its two severity
       # join tables (with their migrated foreign keys) into an isolated schema.
       # Rules scoped by severity and channel must land as join rows whatever
@@ -2473,9 +2532,10 @@ jobs:
           Tests/Server/Types/Database/UUIDColumnFilterPostgres.test.ts
           --forceExit
 
-      # The inventory's overview and status facets, and the host an Esper
-      # device's serial number finds when telemetry names the device
-      # another way (#9586).
+      # The inventory's overview and status facets, its security patch
+      # (#9965) and agent permissions (#9967) facets, and the host an Esper
+      # device's serial number finds when telemetry names the device another
+      # way (#9586).
       - name: Test the inventory overview, status facets and hosts by serial number on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/Common
@@ -2488,6 +2548,8 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/InventoryOverviewPostgres.test.ts
           Tests/Server/Types/Database/InventoryStatusPostgres.test.ts
+          Tests/Server/Types/Database/InventorySecurityPatchPostgres.test.ts
+          Tests/Server/Types/Database/InventoryAgentPermissionsPostgres.test.ts
           Tests/Server/Services/InventoryHostsBySerialNumberPostgres.test.ts
           --forceExit
 
@@ -2515,6 +2577,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/OnCallChildCreateAuthorizationPostgres.test.ts
+          --forceExit
+
+      # #10411: a person, team or schedule is on an escalation rule once. The
+      # real services refuse a second row, as a person and as an API key, two
+      # creates at the same moment leave one row - the unique index refuses
+      # the other, in the same words - and the migration that made the rows
+      # unique keeps the oldest row of each copy and soft-deletes the rest,
+      # writing nothing when run again; all on copies of the migrated tables.
+      - name: Test that a responder is on an escalation rule once, on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ESCALATION_RULE_RESPONDER_TESTS: "true"
+          ESCALATION_RULE_RESPONDER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ESCALATION_RULE_RESPONDER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ESCALATION_RULE_RESPONDER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/EscalationRuleRespondersOncePostgres.test.ts
+          Tests/Server/Infrastructure/Postgres/MakeEscalationRuleRespondersUniquePostgres.test.ts
           --forceExit
 
       - name: Test permission blocks on delete on migrated Postgres
@@ -2701,6 +2783,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/ClearNextEventOfTemplatesThatDoNotRecurPostgres.test.ts
+          --forceExit
+
+      # Clones the migrated ScheduledMaintenanceTemplate table into an
+      # isolated schema, as it was before AddScheduledMaintenanceTemplateTimezone,
+      # and runs the migration on seeded templates (#10037): every one reads
+      # UTC and keeps everything else; read back on UTC, an hourly, daily or
+      # weekly template's schedule works out the next event it holds, and a
+      # monthly one goes back to its first event's day; a template saved
+      # afterwards without a time zone reads UTC; down() drops the column.
+      - name: Test the template time zone migration on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_TEMPLATE_TIMEZONE_TESTS: "true"
+          TEMPLATE_TIMEZONE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TEMPLATE_TIMEZONE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TEMPLATE_TIMEZONE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddScheduledMaintenanceTemplateTimezonePostgres.test.ts
           --forceExit
 
       # Clones the migrated LogSavedView table into an isolated schema, as it
@@ -3078,6 +3180,26 @@ jobs:
           Tests/Server/Infrastructure/Postgres/BackfillSsoProviderDomainsPostgres.test.ts
           --forceExit
 
+      # Copies the migrated Domain table into an isolated schema, fills it
+      # like OneUptime Cloud's (thousands of projects, verified and not,
+      # deleted and not, in every case) and asks Postgres, with EXPLAIN, how
+      # it runs "Sign in with SSO"'s domain lookup - the SQL TypeORM sends:
+      # the whole table without AddDomainVerifiedNameIndex1809186910000, the
+      # index and the one row it returns once the migration builds it, and
+      # never the rows nobody verified (#9988).
+      - name: Test Sign in with SSO's domain lookup index on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DOMAIN_LOOKUP_INDEX_TESTS: "true"
+          DOMAIN_LOOKUP_INDEX_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DOMAIN_LOOKUP_INDEX_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DOMAIN_LOOKUP_INDEX_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddDomainVerifiedNameIndexPostgres.test.ts
+          --forceExit
+
       - name: Test team member reads across tenants on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/Common
@@ -3128,6 +3250,46 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/PagedFindPostgres.test.ts
+          --forceExit
+
+      # A list sorted by a person's name orders someone only invited by what
+      # their row shows - the name typed for them, else their address - and
+      # everybody else by their own (#9895): the Users list, a team's
+      # Members, a monitor's owners and incidents by who declared them, for
+      # a person and an API key, both directions, every page of every
+      # paging plan, and on another TypeORM. Clones the migrated tables
+      # into an isolated schema.
+      - name: Test lists sorted by a person's name on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PENDING_INVITEE_ORDER_TESTS: "true"
+          PENDING_INVITEE_ORDER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PENDING_INVITEE_ORDER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PENDING_INVITEE_ORDER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/TeamMember/PendingInviteeOrderPostgres.test.ts
+          --forceExit
+
+      # Someone only invited is shown, searched, filtered and ordered by the
+      # address they were invited at, never the one their account has moved
+      # to, and a member by their own (#10175): what a read returns, a
+      # search through the relation by every kind of filter, an order both
+      # ways, after they accept, and the backfill of invitations made before
+      # the address was kept. Clones the migrated tables into an isolated
+      # schema.
+      - name: Test someone only invited, by the address invited, on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PENDING_INVITEE_ADDRESS_TESTS: "true"
+          PENDING_INVITEE_ADDRESS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PENDING_INVITEE_ADDRESS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PENDING_INVITEE_ADDRESS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/TeamMember/PendingInviteeAddressPostgres.test.ts
           --forceExit
 
       # A list's count stops at the cap it asks for (CappedCount: the read's
@@ -3274,6 +3436,27 @@ jobs:
           Tests/Server/API/PrivateRecordOwnerTeamsPostgres.test.ts
           --forceExit
 
+      # Clones the migrated incident, role, note, owner, team, label and
+      # permission tables into an isolated schema and asks what the reader
+      # may do on each incident the way its page asks it (#10272): the
+      # Dashboard's own request over HTTP, through the real user middleware,
+      # the record access route and the permission layer, for a Project
+      # Owner and Admin, a permission limited to labels, one limited to owned
+      # incidents, a team's block on a label and a private incident - and
+      # holds each answer to what the same writes then do.
+      - name: Test what the reader may do on an incident, against the real rule on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RECORD_ACCESS_TESTS: "true"
+          RECORD_ACCESS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RECORD_ACCESS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RECORD_ACCESS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/RecordAccessPostgres.test.ts
+          --forceExit
+
       # Clones the migrated incident on-call rule and owning team tables,
       # with the user, project, team, label and permission ones, into an
       # isolated schema and sends reads, changes, deletes and creates of
@@ -3316,6 +3499,29 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/API/KubernetesClusterEditScopePostgres.test.ts
+          --forceExit
+
+      # A Kubernetes cluster's compliance follow-ups (#9874, #9876, #9880),
+      # on clones of the migrated inventory, cluster and compliance setting
+      # tables: a CronJob between runs scored from the pod template its
+      # snapshot carried (the workloads read by kind = ANY, their template
+      # blocks out of the spec's JSONB); a finding accepted for one object
+      # through the settings service, expired, accepted again and revoked,
+      # the update hook reading the rows it writes through
+      # findRowsAndHoldUpdateToThem; and each cluster's compliance summary
+      # written on its row in one hook-free statement, and the refresh job's
+      # run scoring the clusters that are due.
+      - name: Test a Kubernetes cluster's accepted findings, pod templates and compliance summary on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_KUBERNETES_COMPLIANCE_TESTS: "true"
+          KUBERNETES_COMPLIANCE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          KUBERNETES_COMPLIANCE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          KUBERNETES_COMPLIANCE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Kubernetes/KubernetesCompliancePostgres.test.ts
           --forceExit
 
       # Clones the migrated user, project, team, team member, permission and
@@ -4249,6 +4455,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Workers/DataMigrations/RedactLatestIncomingRequestsPostgres.test.ts
+          --forceExit
+
+      # Explain with AI's rows of the AI Logs, written again as a call writes
+      # one now (#10361): each preview of a Data Security issue's explanation
+      # becomes the words a call that keeps none writes, and a failed call's
+      # error the words one that keeps no error details writes, deleted rows
+      # too; no other feature's row, and nothing else of the row, changes;
+      # it walks more rows than a page and changes nothing the second time.
+      # Clones the migrated LlmLog table into an isolated schema.
+      - name: Test taking Data Security issues out of the AI Logs on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_LLM_LOG_REDACTION_TESTS: "true"
+          LLM_LOG_REDACTION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          LLM_LOG_REDACTION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          LLM_LOG_REDACTION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/RedactDataSecurityIssueExplanationLogsPostgres.test.ts
           --forceExit
 
       # The master API key through the upgrade that stores it hashed (#7901):

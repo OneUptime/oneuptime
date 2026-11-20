@@ -129,7 +129,7 @@ Chaque changement de statut est enregistré, avec sa raison, dans la **Chronolog
 
 ## Critères
 
-Les critères d'un moniteur d'exceptions ont six sortes de **Type de filtre** : **Nombre d'exceptions**, le nombre d'exceptions qui ont correspondu dans la fenêtre, ainsi que **Nouvelles exceptions**, **Exceptions en régression**, **Augmentation des exceptions (en %)**, **Sessions avec exceptions (en %)** et **Sessions**, décrits plus bas. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus**, **Exactement**, **Anormalement haut**, **Anormalement bas** ou **Anormalement haut ou bas**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et une **Valeur**.
+Les critères d'un moniteur d'exceptions ont huit sortes de **Type de filtre** : **Nombre d'exceptions**, le nombre d'exceptions qui ont correspondu dans la fenêtre, ainsi que **Nouvelles exceptions**, **Exceptions en régression**, **Augmentation des exceptions (en %)**, **Sessions avec exceptions (en %)**, **Sessions**, **Installations avec exceptions (en %)** et **Installations**, décrits plus bas. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus**, **Exactement**, **Anormalement haut**, **Anormalement bas** ou **Anormalement haut ou bas**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et une **Valeur**.
 
 | Condition de filtre | Correspond quand le nombre d'exceptions est… |
 | --- | --- |
@@ -184,6 +184,19 @@ Une application installée sur des milliers de téléphones a toujours quelques 
 | **Sessions** | Les sessions de la fenêtre : les `session.id` distincts des spans des services du moniteur. Associez-le à la part, pour qu'une part calculée sur quelques sessions seulement n'alerte pas. |
 
 Avec **Uniquement les exceptions non gérées** activé et les types `ANR` et `Hang` exclus, la part est le taux de plantage d'une application mobile. La recommandation **App Crash Rate** d'une application mobile alerte quand plus de 1,09 % des sessions d'une heure plantent, le taux qu'Android vitals considère comme un comportement insatisfaisant, dès que l'heure compte au moins 250 sessions. **App ANR Rate** compte `ANR` et `Hang` seuls, au-delà de 0,47 %. Pour écrire vous-même une telle règle, choisissez **Une part des sessions** sous **Alerter sur** dans **Quand alerter**.
+
+## Une part des installations
+
+Sur une journée, le taux qu'Android vitals évalue et que la Play Console affiche est la part des installations d'une application qui ont planté : une personne dont l'application plante cinq fois compte pour une seule installation qui a planté. Pour une application mobile dont la télémétrie nomme son installation, un moniteur d'exceptions peut alerter sur cette part, à côté de la part des sessions ou à sa place.
+
+| Type de filtre | Ce qu'il lit dans la fenêtre |
+| --- | --- |
+| **Installations avec exceptions (en %)** | La part des installations de la fenêtre sur lesquelles une exception correspondante s'est produite. Sans installation dans la fenêtre, il n'y a pas de part, et aucun critère qui la vérifie ne correspond. |
+| **Installations** | Les installations de la fenêtre : les installations distinctes que nomment les spans des services du moniteur. Associez-le à la part, pour qu'une part calculée sur quelques installations seulement n'alerte pas. |
+
+Une installation est ce que nomme la ressource de l'application : l'`app.installation.id` que définissent OpenTelemetry Android 1.1 et les versions ultérieures, sinon le `device.id` d'une application iOS, son identifiant fournisseur. Une installation Android prend fin quand l'application est désinstallée : une réinstallation est donc une nouvelle installation. Une installation iOS dure tant que l'une des applications du même fournisseur reste sur l'appareil : réinstaller la seule est donc une nouvelle installation, et réinstaller l'une des deux ne l'est pas. Une installation compte dans la fenêtre quand son application y a envoyé un span. Un plantage compte quand même si son installation n'en a envoyé aucun, comme un plantage iOS que MetricKit signale un jour plus tard, et la part ne dépasse jamais 100 %.
+
+**Daily Crash Rate** alerte quand plus de 1,09 % d'au moins 250 installations plantent en une journée, et **Daily ANR Rate** quand plus de 0,47 % d'entre elles ont un ANR ou un blocage. Pour écrire vous-même une telle règle, choisissez **Une part des installations** sous **Alerter sur** dans **Quand alerter**.
 
 ## Les pics par rapport à la normale
 

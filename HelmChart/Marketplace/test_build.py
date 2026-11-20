@@ -914,6 +914,13 @@ class EksAddonConfigurationSchemaTest(unittest.TestCase):
             # Cost is true, false or auto: the chart refuses anything else.
             {"cost": {"enabled": "yes"}},
             {"cost": {"enabled": 1}},
+            # So is nodes/proxy, written as JSON writes it: no "false" or "no".
+            {"kubeletstats": {"nodesProxy": "no"}},
+            {"kubeletstats": {"nodesProxy": "false"}},
+            {"kubeletstats": {"nodesProxy": 0}},
+            # The rest of the kubelet's settings stay the chart's.
+            {"kubeletstats": {"volumeMetrics": {"enabled": False}}},
+            {"kubeletstats": {"utilizationMetrics": {"enabled": False}}},
         ):
             self.assertNotEqual(schema_errors(schema, value), [], value)
 
@@ -926,6 +933,11 @@ class EksAddonConfigurationSchemaTest(unittest.TestCase):
             {"cost": {"enabled": "auto"}},
             {"cost": {"enabled": False}},
             {"preset": "eks-fargate", "cost": {"enabled": True}},
+            # nodes/proxy dropped once every node runs 1.33 or later (#9928).
+            {"kubeletstats": {"nodesProxy": False}},
+            {"kubeletstats": {"nodesProxy": True}},
+            {"kubeletstats": {"nodesProxy": "auto"}},
+            {"kubeletstats": {}},
         ):
             self.assertEqual(schema_errors(schema, value), [], value)
 
@@ -935,6 +947,23 @@ class EksAddonConfigurationSchemaTest(unittest.TestCase):
         # auto: the chart turns cost on with EC2 nodes and off on Fargate.
         self.assertEqual(cost["default"], "auto")
         self.assertIn("eks-fargate", cost["description"])
+
+    def test_lets_a_buyer_drop_nodes_proxy_and_leaves_it_to_the_chart_by_default(self) -> None:
+        # #9928: an EKS 1.34 or 1.35 cluster whose nodes all run 1.33 or later
+        # keeps nodes/proxy, and fails CIS 5.1.10, unless the buyer can set this.
+        kubelet: Dict[str, Any] = self.schema()["properties"]["kubeletstats"]
+        nodes_proxy: Dict[str, Any] = kubelet["properties"]["nodesProxy"]
+
+        self.assertEqual(list(kubelet["properties"]), ["nodesProxy"])
+        self.assertEqual(nodes_proxy["enum"], [True, False, "auto"])
+        # auto: the chart grants it while the cluster runs Kubernetes older than 1.36.
+        self.assertEqual(nodes_proxy["default"], "auto")
+        # The description says when to set it false, and what it costs a node that is older.
+        for words in ("1.33", "1.36", "5.1.10", "EKS 1.34 and 1.35", "false: never", "no node, pod, container or volume metrics"):
+            self.assertIn(words, nodes_proxy["description"], words)
+
+    def test_offers_dropping_nodes_proxy_as_an_example(self) -> None:
+        self.assertIn({"kubeletstats": {"nodesProxy": False}}, self.schema()["examples"])
 
 
 class EksAddonBuildTest(unittest.TestCase):
@@ -1113,6 +1142,8 @@ class EksAddonBuildTest(unittest.TestCase):
         self.assertEqual(values.get_value(["fullnameOverride"]), "kubernetes-agent")
         self.assertEqual(values.get_value(["preset"]), "standard")
         self.assertEqual(values.get_value(["clusterName"]), "set-by-amazon-eks")
+        # The agent's role says it is the add-on, for the Compliance page (#9928).
+        self.assertEqual(values.get_value(["installedAs"]), "aws-eks-addon")
         self.assertEqual(values.get_value(["chartDefaultsVersion"]), "14.0.65")
 
     def test_its_configuration_schema_says_what_values_yaml_does(self) -> None:

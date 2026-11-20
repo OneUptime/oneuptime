@@ -4,6 +4,8 @@ import {
 } from "../../../Utils/ArchivableValues";
 import { splitCapitalRunsBeforeWords } from "../../../Utils/CapitalRuns";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NameTakenException from "../../../Types/Exception/NameTakenException";
+import ValueTakenException from "../../../Types/Exception/ValueTakenException";
 import Exception from "../../../Types/Exception/Exception";
 
 /*
@@ -127,13 +129,20 @@ export default class PostgresErrorTranslator {
    * The exception for a duplicate the application found before the database
    * had to (see @UniqueColumnsTogether). It is tagged exactly like a
    * translated unique violation, so isUniqueViolation() answers the same way
-   * whichever layer caught the duplicate.
+   * whichever layer caught the duplicate. Given the unique index the
+   * duplicate would have broken, isUniqueViolationOf() answers for it the
+   * same way too: the responders of an escalation rule are refused before
+   * the write and by their index alike, and Ask AI tells both from any other
+   * refusal (#10411). It carries the code of a taken value, as the index's
+   * refusal does (ValueTakenException, #10319): nothing was written.
    */
   public static createUniqueViolationException(
     message: string,
+    constraintName?: string | undefined,
   ): BadDataException {
-    return this.tag(new BadDataException(message), {
+    return this.tag(new ValueTakenException(message), {
       code: UNIQUE_VIOLATION,
+      constraint: constraintName,
     });
   }
 
@@ -301,9 +310,10 @@ export default class PostgresErrorTranslator {
       ? `A ${this.humanizeTableName(driverError.table)}`
       : "A record";
 
+    // Taken values all the same, whichever (#10319, below).
     if (columns.length === 0) {
       return this.tag(
-        new BadDataException(
+        new ValueTakenException(
           `${subject} with these values already exists. Please use different values and try again.`,
         ),
         driverError,
@@ -316,12 +326,39 @@ export default class PostgresErrorTranslator {
       })
       .join(", ");
 
+    const refusal: string =
+      columns.length === 1
+        ? `${subject} with this ${fields} already exists. Please use a different value and try again.`
+        : `${subject} with the same ${fields} already exists. Please use different values and try again.`;
+
+    /*
+     * An index that holds a record's name one of its kind (a data
+     * product's, a Ceph cluster's in its project): the name is taken, and
+     * nothing was written. Said with the code a program tells a taken name
+     * by, as the checks before the write say it (NameTakenException,
+     * #10065), so a client may ask again once the other record gives the
+     * name up.
+     */
+    if (columns.includes("name")) {
+      return this.tag(new NameTakenException(refusal), driverError);
+    }
+
+    /*
+     * Any other value the index holds: taken just the same, and nothing was
+     * written, so it carries the code of a taken value (ValueTakenException,
+     * #10319), naming the field when the index holds one beside the
+     * project.
+     */
+    const valueColumns: Array<string> = columns.filter(
+      (column: string): boolean => {
+        return column !== "projectId";
+      },
+    );
+
     return this.tag(
-      new BadDataException(
-        columns.length === 1
-          ? `${subject} with this ${fields} already exists. Please use a different value and try again.`
-          : `${subject} with the same ${fields} already exists. Please use different values and try again.`,
-      ),
+      new ValueTakenException(refusal, {
+        field: valueColumns.length === 1 ? valueColumns[0] : undefined,
+      }),
       driverError,
     );
   }

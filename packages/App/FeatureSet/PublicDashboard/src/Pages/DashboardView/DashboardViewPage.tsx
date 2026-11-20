@@ -38,6 +38,9 @@ import MoreMenuDivider from "Common/UI/Components/MoreMenu/Divider";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import DashboardVariableSelector from "./DashboardVariableSelector";
+import DashboardSignOutButton, {
+  DashboardSignedInVisitor,
+} from "./DashboardSignedIn";
 import { VariableValueChange } from "Common/UI/Components/Dashboard/DashboardVariableControl";
 import MetricUtil from "../../../../Dashboard/src/Components/Metrics/Utils/Metrics";
 import { setPublicDashboardContext } from "../../../../Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
@@ -47,6 +50,12 @@ import ThemeMenu from "../../Components/ThemeMenu";
 import LogoPlate from "../../Components/LogoPlate";
 import DashboardDescription from "../../Components/DashboardDescription";
 import { getDefaultChoiceLabel } from "Common/UI/Utils/DefaultChoiceLabel";
+import { getDashboardLinkWidgetIdFromSearch } from "Common/Utils/Dashboard/DashboardWidgetLink";
+import {
+  DASHBOARD_LINKED_WIDGET_MISSING,
+  DASHBOARD_LINKED_WIDGET_MISSING_TEST_ID,
+} from "Common/UI/Utils/DashboardWidgetLanding";
+import Toast from "Common/UI/Utils/Toast";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -65,6 +74,11 @@ import {
 export interface ComponentProps {
   dashboardId: ObjectID;
   onLoadComplete?: (() => void) | undefined;
+  /*
+   * Who is signed in, on a dashboard that asks its visitors to sign in
+   * (#10250): the toolbar then offers Sign Out.
+   */
+  signedIn?: DashboardSignedInVisitor | null | undefined;
 }
 
 /*
@@ -160,6 +174,24 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
 
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  /*
+   * The widget the link names (?widget=<id>, #10084), as the dashboard
+   * inside OneUptime reads it: the board lands on it once it is drawn, and
+   * a widget it no longer has opens the board at its top, saying so. Read
+   * once, as the page opens - the password prompt hands the link on whole.
+   */
+  const [linkedWidgetId] = useState<string>((): string => {
+    return getDashboardLinkWidgetIdFromSearch(window.location.search);
+  });
+
+  const onLinkedWidgetMissing: () => void = useCallback((): void => {
+    Toast.info(
+      translator.translateText(DASHBOARD_LINKED_WIDGET_MISSING) ||
+        DASHBOARD_LINKED_WIDGET_MISSING,
+      { dataTestId: DASHBOARD_LINKED_WIDGET_MISSING_TEST_ID },
+    );
+  }, [translator]);
 
   const hasComponents: boolean = Boolean(
     dashboardViewConfig &&
@@ -505,6 +537,12 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
                */}
               <ThemeMenu />
 
+              {props.signedIn ? (
+                <DashboardSignOutButton signedIn={props.signedIn} />
+              ) : (
+                <></>
+              )}
+
               <Button
                 icon={IconProp.Expand}
                 buttonStyle={ButtonStyleType.ICON}
@@ -627,6 +665,8 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
             onDashboardTimeRangeSelect={timeRangeZoom.zoomToTimeRange}
             onDashboardTimeRangeReset={timeRangeZoom.resetZoom}
             isDashboardTimeRangeZoomed={timeRangeZoom.isZoomed}
+            landingWidgetId={linkedWidgetId || undefined}
+            onLandingWidgetMissing={onLinkedWidgetMissing}
           />
         </div>
       </div>

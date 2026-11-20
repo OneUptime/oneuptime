@@ -2,7 +2,8 @@ import Service from "Common/Models/DatabaseModels/Service";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import { SparklinePoint } from "./SparklinePoint";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { formatMinutesAgo } from "../../Inventory/InventoryLiveness";
 
 /*
  * What a metric row shows when its host page knows more than the metric
@@ -65,6 +66,52 @@ export interface MetricRowValueOverride {
 
 export type MetricRowValueOverrideMap = Map<string, MetricRowValueOverride>;
 
+/*
+ * What a row says beside its value, as the list worked it out from the
+ * host's override or aggregation: a suffix, a caption, and - for a caption
+ * that ends with how old the row's newest point is
+ * (MetricRowAggregation.showsNewestPointAge) - that point's time, as ISO.
+ */
+export interface MetricRowValueLabel {
+  suffix?: string | undefined;
+  caption?: string | undefined;
+  captionSince?: string | undefined;
+}
+
+/*
+ * A row's caption in the reader's language: a key is looked up, a caption
+ * the host has said already is drawn as given, and one with a time ends
+ * with how long ago that was, the two set apart by " · ", as a cloud
+ * resource's tile says it ("every hour · 2h ago", CloudHeadlineTiles).
+ */
+export function getMetricRowCaption(data: {
+  caption: string | undefined;
+  captionSince?: string | undefined;
+  translator: Translator;
+  now?: Date | undefined;
+}): string | undefined {
+  if (!data.caption) {
+    return undefined;
+  }
+
+  const caption: string =
+    data.translator.translateText(data.caption) || data.caption;
+  const sinceMs: number = data.captionSince
+    ? Date.parse(data.captionSince)
+    : NaN;
+
+  if (!Number.isFinite(sinceMs)) {
+    return caption;
+  }
+
+  const minutes: number = Math.max(
+    0,
+    Math.floor(((data.now || new Date()).getTime() - sinceMs) / 60_000),
+  );
+
+  return `${caption} · ${formatMinutesAgo(minutes, data.translator)}`;
+}
+
 export type FetchMetricRowValueOverrides = (data: {
   metricNames: Array<string>;
   startAndEndDate: InBetween<Date>;
@@ -81,6 +128,19 @@ export interface MetricRowAggregation {
    * long ago. Unset: the ones that have ended.
    */
   settleMs?: number | undefined;
+  /*
+   * The attributes the chart a click opens splits it by, a series each: a
+   * cloud metric added split by one of its dimensions (#9808) opens a line
+   * per value, as its monitors judge each. Unset: one series.
+   */
+  groupByAttributeKeys?: Array<string> | undefined;
+  /*
+   * Its caption ends with how long ago its newest point is ("every hour ·
+   * 2h ago"): a metric whose points come hours apart, whose newest value
+   * would otherwise read as its value now (#10026). Unset: the caption
+   * alone.
+   */
+  showsNewestPointAge?: boolean | undefined;
 }
 
 /*
@@ -247,11 +307,14 @@ export interface MetricRowGroupGap {
 
 /*
  * The gaps of each section, from the names the list found data of in its
- * range. Must be referentially stable: the list works them out again when
- * it changes.
+ * range - and the range, for a host whose metrics come too seldom for a
+ * short one to hold them (#10026: an hourly cloud metric is not missing
+ * from the last hour). Must be referentially stable: the list works them
+ * out again when it changes.
  */
 export type GetMetricRowGroupGaps = (
   reportedNames: ReadonlyArray<string>,
+  startAndEndDate?: InBetween<Date> | undefined,
 ) => Array<MetricRowGroupGap>;
 
 /*

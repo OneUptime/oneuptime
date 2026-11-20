@@ -27,7 +27,7 @@ import DataSourceQueryUtil from "../../../Utils/DataSourceQuery";
 import DataSourceQueryText from "Common/Utils/DataSource/DataSourceQueryText";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
-import { getConfiguredDataSourceQueries } from "../Utils/DataSourceWidget";
+import { getRunnableDataSourceQueries } from "../Utils/DataSourceWidget";
 import DataSourceWidgetPlaceholder from "./DataSourceWidgetPlaceholder";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import DashboardWidgetTimeRangeZoom, {
@@ -59,8 +59,9 @@ export interface ComponentProps extends DashboardBaseComponentProps {
  *    metric-exemplar fetches for external data;
  *  - a legend template ("{{label}}") becomes a getSeries naming hook.
  *
- * Public dashboards render a placeholder instead — the anonymous API has
- * no data-source surface, by design.
+ * On a public dashboard (issue #10226) it is drawn only when it reads this
+ * project's metrics: each query is run by the dashboard's public PromQL
+ * route, named by this widget and its place, and drawn the same way.
  */
 const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -70,8 +71,9 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // The queries it runs, signed in or on a public dashboard.
   const queryConfigs: Array<DataSourceQueryConfig> = useMemo(() => {
-    return getConfiguredDataSourceQueries(props.component.arguments.queries);
+    return getRunnableDataSourceQueries(props.component.arguments.queries);
   }, [props.component.arguments.queries]);
 
   /*
@@ -96,17 +98,20 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
   }, [props.dashboardStartAndEndDate, props.refreshTick]);
 
   const fetchStateRef: React.MutableRefObject<{
+    componentId: string;
     queryConfigs: Array<DataSourceQueryConfig>;
     variables: Array<DashboardVariable> | undefined;
     startDate: Date | undefined;
     endDate: Date | undefined;
   }> = useRef({
+    componentId: props.componentId.toString(),
     queryConfigs: queryConfigs,
     variables: props.variables,
     startDate: startAndEndDate?.startValue,
     endDate: startAndEndDate?.endValue,
   });
   fetchStateRef.current = {
+    componentId: props.componentId.toString(),
     queryConfigs: queryConfigs,
     variables: props.variables,
     startDate: startAndEndDate?.startValue,
@@ -147,17 +152,34 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
 
     try {
       const fetched: Array<AggregatedResult> = await Promise.all(
-        state.queryConfigs.map((config: DataSourceQueryConfig) => {
-          const interpolatedQuery: string = DataSourceQueryText.applyVariables(
-            config.query,
-            state.variables,
-          );
-          return DataSourceQueryUtil.fetchTimeSeries({
-            queryConfig: { ...config, query: interpolatedQuery },
-            startDate: state.startDate!,
-            endDate: state.endDate!,
-          });
-        }),
+        state.queryConfigs.map(
+          (config: DataSourceQueryConfig, index: number) => {
+            // A public dashboard's stored query, by this widget and its place.
+            if (isPublicDashboard()) {
+              return DataSourceQueryUtil.fetchPublicTimeSeries({
+                target: {
+                  componentId: state.componentId,
+                  queryIndex: index,
+                  variables: state.variables,
+                },
+                startDate: state.startDate!,
+                endDate: state.endDate!,
+              });
+            }
+
+            const interpolatedQuery: string =
+              DataSourceQueryText.applyVariablesForSource({
+                dataSourceId: config.dataSourceId,
+                queryText: config.query,
+                variables: state.variables,
+              });
+            return DataSourceQueryUtil.fetchTimeSeries({
+              queryConfig: { ...config, query: interpolatedQuery },
+              startDate: state.startDate!,
+              endDate: state.endDate!,
+            });
+          },
+        ),
       );
       if (fetchId !== fetchSequenceRef.current) {
         return;
@@ -175,10 +197,6 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
   }, []);
 
   useEffect(() => {
-    if (isPublicDashboard()) {
-      setIsLoading(false);
-      return;
-    }
     fetchResults();
   }, [
     startAndEndDate,
@@ -231,7 +249,8 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
                   : translator.translateTemplate("Query {{number}}", {
                       number: index + 1,
                     }),
-            legendUnit: undefined,
+            // The unit the widget names reads the value axis and the tooltip.
+            legendUnit: props.component.arguments.unit?.trim() || undefined,
           },
           metricQueryData: {
             filterData: {},
@@ -239,6 +258,13 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
               attributeKeys.length > 0 ? attributeKeys : undefined,
           },
           chartType: getMetricChartType(),
+          /*
+           * Every query is drawn on the one chart, as the widget's type says
+           * (DashboardDataSourceChartComponent) and as Grafana and every
+           * outside source draw a panel's queries: drawn apart, a panel of
+           * six queries was six charts stacked in the widget (issue #7697).
+           */
+          overlayWithPreviousQuery: index > 0,
         };
 
         if (legendTemplate && legendTemplate.includes("{{")) {
@@ -264,7 +290,13 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
       startAndEndDate: startAndEndDate,
       formulaConfigs: [],
     };
-  }, [queryConfigs, results, startAndEndDate, getMetricChartType]);
+  }, [
+    queryConfigs,
+    results,
+    startAndEndDate,
+    getMetricChartType,
+    props.component.arguments.unit,
+  ]);
 
   /*
    * Drag-to-zoom retimes the whole board, exactly as the metric chart
@@ -275,7 +307,8 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
   const timeRangeZoom: DashboardWidgetTimeRangeZoomHandlers =
     DashboardWidgetTimeRangeZoom.getHandlers(props);
 
-  if (isPublicDashboard()) {
+  // A public dashboard is served no query of it to run: nothing to draw.
+  if (isPublicDashboard() && queryConfigs.length === 0) {
     return <DataSourceWidgetPlaceholder icon={IconProp.ChartBar} />;
   }
 

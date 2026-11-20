@@ -71,8 +71,14 @@ import { AFFECTED_RESOURCES_PLACE_ID } from "../../../Components/AutoRemediation
 import IncidentAffectedResources from "./AffectedResources";
 import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
 import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
-import { assignIncidentRole } from "../../../Utils/EventRoleAssignment";
-import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
+import {
+  EventRoleGates,
+  useIncidentRoleGates,
+} from "../../../Utils/EventRoleGates";
+import {
+  assignIncidentRole,
+  reassignIncidentRole,
+} from "../../../Utils/EventRoleAssignment";
 import { OwnersChange } from "../../../Components/Owners/AddOwners";
 import { PeoplePickerOption } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
@@ -144,10 +150,12 @@ import useEventOwners, {
   EventOwnersState,
 } from "../../../Components/EventView/useEventOwners";
 import {
+  EventRoleMember,
   EventRolesSnapshot,
   PrimaryRoleHolding,
   getPrimaryRoleHolding,
   withRoleGiven,
+  withRoleReassigned,
 } from "../../../Utils/EventPeople";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
@@ -235,6 +243,12 @@ const IncidentView: FunctionComponent<
    */
   const privateRecordOptions: PermissionGateOptions | undefined =
     usePrivateRecordGateOptions(PRIVATE_RECORD_INCIDENT);
+  /*
+   * What the header offers of the commander's role - Assign and the name
+   * that hands it on - as the roles card asks it, with what the server says
+   * the reader may do on this incident (EventRoleGates, #10272).
+   */
+  const roleGates: EventRoleGates = useIncidentRoleGates();
 
   const [incidentStateTimeline, setIncidentStateTimeline] = useState<
     IncidentStateTimeline[]
@@ -1046,20 +1060,23 @@ const IncidentView: FunctionComponent<
    * Who runs the response, beside its state and severity: the commander
    * (the project's primary incident role) and the owners, teams first. Both
    * are filled right there in the header - Assign gives the role to a
-   * person picked under it, Add opens the Add owners list - and offered only
-   * while the incident is open, to a reader who may give a role or add an
-   * owner; a resolved one says who held them, or that nobody did.
+   * person picked under it, the commander's name hands it on to another
+   * (#10195), Add opens the Add owners list - and offered only while the
+   * incident is open, to a reader who may give a role, hand one on or add
+   * an owner; a resolved one says who held them, or that nobody did.
    */
   const isResolved: boolean = Boolean(durationEndDate);
   const headerFacts: Array<EventStatusFact> = [];
 
+  /*
+   * Handing the commander's role on from their name (#10195) is the role
+   * row's update, as the roles card's Reassign is (#10191): to a reader who
+   * may not, the name is plain text.
+   */
+  const mayReassignRoles: boolean = roleGates.mayReassign;
   const primaryRole: PrimaryRoleHolding | null =
     getPrimaryRoleHolding(currentRolesSnapshot);
-  const mayAssignRoles: boolean = PermissionGate.check(
-    new IncidentMember(),
-    ModelAction.Create,
-    privateRecordOptions,
-  ).isAllowed;
+  const mayAssignRoles: boolean = roleGates.mayAssign;
   const commanderFact: EventStatusFact | null = getCommanderFact({
     holding: primaryRole,
     onAssign:
@@ -1098,6 +1115,46 @@ const IncidentView: FunctionComponent<
               return token + 1;
             });
             // A role given is a new feed entry.
+            refreshFeed();
+          },
+    onReassign:
+      isResolved || !primaryRole || !mayReassignRoles
+        ? undefined
+        : async (
+            member: EventRoleMember,
+            person: PeoplePickerOption,
+          ): Promise<void> => {
+            const incidentId: string = modelIdString;
+
+            await reassignIncidentRole({
+              memberId: new ObjectID(member.memberId!),
+              userId: new ObjectID(person.id),
+            });
+
+            // Named at once; the roles card's read says the same a moment later.
+            setRolesSnapshot(
+              (
+                current: SubjectValue<EventRolesSnapshot> | null,
+              ): SubjectValue<EventRolesSnapshot> | null => {
+                if (!current || current.subjectId !== incidentId) {
+                  return current;
+                }
+
+                return {
+                  subjectId: incidentId,
+                  value:
+                    withRoleReassigned({
+                      snapshot: current.value,
+                      member: member,
+                      person: person,
+                    }) || current.value,
+                };
+              },
+            );
+            setRolesRefreshToken((token: number): number => {
+              return token + 1;
+            });
+            // A role handed on is a new feed entry.
             refreshFeed();
           },
   });
@@ -1365,6 +1422,7 @@ const IncidentView: FunctionComponent<
               telemetryQuery={telemetryQuery}
               evaluationWindow={telemetrySnapshotWindow}
               seriesSummary={seriesSummary}
+              seriesLabels={seriesLabels}
               subject={EventMetricSubject.Incident}
               eventId={modelIdString}
               startedAt={responseTimes.startedAt}

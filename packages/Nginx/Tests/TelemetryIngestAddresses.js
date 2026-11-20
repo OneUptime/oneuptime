@@ -467,6 +467,54 @@ const TELEMETRY_INGEST_ADDRESSES = [
       },
     ],
   },
+
+  // The Agent's APM traces and stats, which it posts under its apm_dd_url.
+  ...["/datadog/api/v0.2/traces", "/datadog/api/v0.2/stats"].map((route) => {
+    return {
+      method: "POST",
+      route,
+      addresses: [
+        {
+          address: `/telemetry${route}`,
+          handedOutBy: [
+            {
+              file: COMPATIBLE_INGEST_DOCS,
+              contains: "apm_dd_url: https://oneuptime.com/telemetry/datadog",
+            },
+          ],
+        },
+      ],
+    };
+  }),
+
+  /*
+   * A tracing library's own trace endpoints, for dd-trace-go sending with
+   * no Agent in between: it PUTs or POSTs them under its DD_TRACE_AGENT_URL.
+   */
+  ...["/datadog/v0.3/traces", "/datadog/v0.4/traces", "/datadog/v0.5/traces"]
+    .flatMap((route) => {
+      return ["PUT", "POST"].map((method) => {
+        return { method, route };
+      });
+    })
+    .map(({ method, route }) => {
+      return {
+        method,
+        route,
+        addresses: [
+          {
+            address: `/telemetry${route}`,
+            handedOutBy: [
+              {
+                file: COMPATIBLE_INGEST_DOCS,
+                contains:
+                  "DD_TRACE_AGENT_URL=https://oneuptime:YOUR_TELEMETRY_KEY@oneuptime.com/telemetry/datadog",
+              },
+            ],
+          },
+        ],
+      };
+    }),
   {
     method: "POST",
     route: "/api/v2/logs",
@@ -692,6 +740,28 @@ const TELEMETRY_INGEST_ADDRESSES = [
     ],
   },
 
+  // An iOS app's dSYMs, uploaded from CI by the CLI or curl (#9922).
+  {
+    method: "POST",
+    route: "/dsyms/v1/upload",
+    addresses: [
+      {
+        address: "/dsyms/v1/upload",
+        handedOutBy: [
+          {
+            file: "packages/App/FeatureSet/Docs/Content/en/rum/mobile-setup.md",
+            contains:
+              'curl --fail -X POST "https://oneuptime.com/dsyms/v1/upload"',
+          },
+          {
+            file: "packages/CLI/Commands/DsymCommands.ts",
+            contains: 'DSYM_UPLOAD_PATH: string = "/dsyms/v1/upload"',
+          },
+        ],
+      },
+    ],
+  },
+
   /*
    * The host collector: the supervisor the installers set up asks here for
    * its host's config, every 30 seconds.
@@ -727,8 +797,10 @@ const TELEMETRY_INGEST_ADDRESSES = [
   },
 
   /*
-   * The Android device agent: the log sessions waiting for its device, asked
-   * beside OTLP (#9806).
+   * The OneUptime Android agent asks for the log sessions open for its
+   * device here, every minute (#9806). It posts beside its OTLP, under
+   * /telemetry: the address its OneUptime URL (`<URL>/otlp`) is read into,
+   * which every agent has called since log sessions shipped.
    */
   {
     method: "POST",
@@ -741,6 +813,10 @@ const TELEMETRY_INGEST_ADDRESSES = [
             file: "agents/AndroidAgent/app/src/main/java/com/oneuptime/androidagent/logsession/LogSessionClient.kt",
             contains:
               'const val PATH: String = "/telemetry/android-agent/v1/log-sessions"',
+          },
+          {
+            file: "agents/AndroidAgent/README.md",
+            contains: "POST `/telemetry/android-agent/v1/log-sessions`",
           },
         ],
       },

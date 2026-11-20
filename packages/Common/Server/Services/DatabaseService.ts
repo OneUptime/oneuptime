@@ -70,6 +70,12 @@ import UpdateByID from "../Types/Database/UpdateByID";
 import UpdateByIDAndFetch from "../Types/Database/UpdateByIDAndFetch";
 import UpdateOneBy from "../Types/Database/UpdateOneBy";
 import EncryptedColumnValue from "../Utils/Database/EncryptedColumnValue";
+import ColumnsOnlyOneUptimeWrites from "../Utils/Database/ColumnsOnlyOneUptimeWrites";
+import ListEntries, {
+  ListEntryWrite,
+  ListEntryWrites,
+} from "../Utils/Database/ListEntries";
+import ListChangesUtil, { ListChanges } from "../../Types/Database/ListChanges";
 import PresentedKey from "../Utils/PresentedKey/PresentedKey";
 import PresentedKeysAtRest from "../Utils/PresentedKey/PresentedKeysAtRest";
 import PasswordHash from "../Utils/PasswordHash";
@@ -99,6 +105,7 @@ import { getMaxLengthFromTableColumnType } from "../../Types/Database/ColumnLeng
 import Columns from "../../Types/Database/Columns";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import PartialEntity from "../../Types/Database/PartialEntity";
+import DatabaseProperty from "../../Types/Database/DatabaseProperty";
 import {
   TableColumnMetadata,
   getTableColumns,
@@ -113,6 +120,9 @@ import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
 import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NameTakenException from "../../Types/Exception/NameTakenException";
+import ValueTakenException from "../../Types/Exception/ValueTakenException";
+import { ARCHIVED_COLUMN } from "../../Utils/ArchivableValues";
 import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConnectedException";
 import Exception from "../../Types/Exception/Exception";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -335,6 +345,19 @@ interface SwitchStamp {
 }
 
 /*
+ * A value an update writes to a @UniqueColumnBy column, held to one record
+ * of its scope (see checkUniqueColumnByOnUpdate).
+ */
+interface UniqueColumnWrite {
+  // The column: "name", "signOnURL".
+  column: string;
+  // The columns it is unique within: ["projectId"], ["runbookId", "projectId"].
+  scope: Array<string>;
+  // What the update writes to it: text that is not blank, or a number.
+  value: string | number;
+}
+
+/*
  * One encrypted column of a payload encrypt() encrypted: the value it was
  * given, and the value it stores (see getValueAsGiven).
  */
@@ -476,6 +499,16 @@ interface CreatorOwnerRow {
   resourceId: ObjectID;
   userId: ObjectID;
   projectId: ObjectID;
+}
+
+/*
+ * An update's list changes made into a write of whole lists
+ * (getListWriteOfUpdate): the update's data with each list it changes, and
+ * the entries the row's write adds and takes off.
+ */
+interface ListWriteOfUpdate<TBaseModel extends BaseModel> {
+  data: PartialEntity<TBaseModel>;
+  writes: ListEntryWrites;
 }
 
 // One row's share of an update (see getRowWrite).
@@ -680,6 +713,99 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         return true;
       },
     );
+  }
+
+  /*
+   * ONE ROW'S UPDATE WHOSE LISTS CHANGE ENTRY BY ENTRY (listEntryWrites,
+   * #10135): the row's own columns, as every update's UPDATE writes them -
+   * its version moves on - and the entries each list adds and takes off
+   * (ListEntries.write), in one transaction. Answers what the UPDATE did: a
+   * row it did not reach (deleted since it was read, or moved past the
+   * version the query named) has no entry written either.
+   */
+  protected async updateRowWithListEntries(data: {
+    criteria: Dictionary<unknown>;
+    values: Dictionary<unknown>;
+    returnedColumns: Array<string>;
+    rowId: string;
+    writes: ListEntryWrites;
+  }): Promise<UpdateResult> {
+    return await this.executeTransaction(
+      async (manager: EntityManager): Promise<UpdateResult> => {
+        const repository: Repository<TBaseModel> =
+          manager.getRepository<TBaseModel>(this.modelType.name);
+
+        const result: UpdateResult =
+          data.returnedColumns.length > 0
+            ? await repository.update(
+                data.criteria as any,
+                data.values as any,
+                {
+                  returning: data.returnedColumns,
+                },
+              )
+            : await repository.update(data.criteria as any, data.values as any);
+
+        if (result.affected === 0) {
+          return result;
+        }
+
+        await ListEntries.write({
+          manager: manager,
+          modelType: this.modelType,
+          rowId: data.rowId,
+          writes: data.writes,
+        });
+
+        return result;
+      },
+    );
+  }
+
+  /*
+   * The entries of a row's lists changed entry by entry, after a save() of
+   * its other lists wrote the row (listEntryWrites, #10135), in a
+   * transaction of their own.
+   */
+  protected async writeListEntries(data: {
+    rowId: string;
+    writes: ListEntryWrites;
+  }): Promise<void> {
+    await this.executeTransaction(
+      async (manager: EntityManager): Promise<void> => {
+        await ListEntries.write({
+          manager: manager,
+          modelType: this.modelType,
+          rowId: data.rowId,
+          writes: data.writes,
+        });
+      },
+    );
+  }
+
+  /*
+   * The lists an update changes entry by entry whose whole list the write
+   * still holds as getListWriteOfUpdate worked it out (listEntryWrites): a
+   * hook that took a list out of the write, or wrote another one over it,
+   * has its own way, and that list is not written by its entries.
+   */
+  private getListEntryWritesToMake(
+    writes: ListEntryWrites | undefined,
+    data: PartialEntity<TBaseModel>,
+  ): ListEntryWrites {
+    const made: ListEntryWrites = {};
+
+    for (const [column, write] of Object.entries(writes || {})) {
+      const value: unknown = (data as Dictionary<unknown>)[column];
+
+      if (value === undefined || !ListEntries.isListAsWorkedOut(value, write)) {
+        continue;
+      }
+
+      made[column] = write;
+    }
+
+    return made;
   }
 
   public async executeTransaction<TResult>(
@@ -2814,6 +2940,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   ): Promise<void> {
     // A place holder method used for overriding.
     return Promise.resolve();
+  }
+
+  /*
+   * The @UniqueColumnBy columns this service holds to one record each on an
+   * update itself, in words of its own (its onBeforeUpdate or
+   * onBeforeUpdateUniqueCheck): a resource's column telemetry is matched on
+   * (DiscoveredResourceUpdate), a variable's name. The check every other
+   * column of its kind is held to on an update (checkUniqueColumnByOnUpdate,
+   * #10318) leaves these out, so a clash is refused once, in one set of
+   * words. A column named here must be checked by the service, on every
+   * update that writes it: UniqueColumnRenameRefusals (Common Tests) renames
+   * every kind onto a taken value through its own service. None by default.
+   */
+  protected getUniqueColumnsCheckedOnUpdate(): ReadonlyArray<string> {
+    return [];
   }
 
   /*
@@ -5405,13 +5546,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   private decideUserAttributionOnCreate(
     data: TBaseModel | PartialEntity<TBaseModel>,
     props: DatabaseCommonInteractionProps,
-  ): void {
+  ): Array<string> {
     const record: Record<string, unknown> = data as unknown as Record<
       string,
       unknown
     >;
 
     const isOwnWrite: boolean = this.isWriteOneUptimeMakesItself(props);
+    const cleared: Array<string> = [];
 
     for (const column of this.getUserAttributionColumns()) {
       if (record[column] === undefined) {
@@ -5425,8 +5567,67 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             CREATED_BY_USER_ID_COLUMN)
       ) {
         record[column] = undefined;
+        cleared.push(column);
       }
     }
+
+    // The ones the caller sent: a stamp OneUptime makes for itself is not.
+    return isOwnWrite ? [] : cleared;
+  }
+
+  /*
+   * The fields a create left out of what its caller sent because only
+   * OneUptime writes them, for the caller to be told (CreateBy
+   * .fieldsLeftOut, #10136): added to the list the caller gave, each once,
+   * in the order they were left out.
+   */
+  private static recordFieldsLeftOut<TModel extends BaseModel>(
+    createBy: CreateBy<TModel>,
+    fields: Array<string>,
+  ): void {
+    if (!createBy.fieldsLeftOut) {
+      return;
+    }
+
+    for (const field of fields) {
+      if (!createBy.fieldsLeftOut.includes(field)) {
+        createBy.fieldsLeftOut.push(field);
+      }
+    }
+  }
+
+  /*
+   * The server-set columns a create's caller gave a value that the check
+   * of them (ColumnPermission.checkComputedColumnsSentOnCreate) dropped: a
+   * value it clears is OneUptime's to fill in, and the create goes on
+   * without it.
+   */
+  private checkComputedColumnsRecordingLeftOut(
+    createBy: CreateBy<TBaseModel>,
+  ): Array<string> {
+    const given: Array<string> = ColumnPermissions.getComputedColumnsWithValue(
+      this.model,
+      createBy.data,
+    );
+
+    const sentByCaller: Array<string> =
+      ModelPermission.checkComputedColumnsSentOnCreate(
+        this.modelType,
+        createBy.data,
+        createBy.props,
+      );
+
+    DatabaseService.recordFieldsLeftOut(
+      createBy,
+      given.filter((column: string): boolean => {
+        return (
+          (createBy.data as unknown as Dictionary<unknown>)[column] ===
+          undefined
+        );
+      }),
+    );
+
+    return sentByCaller;
   }
 
   /*
@@ -5452,13 +5653,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   protected takeOutWhatTheServerSetsOnCreate(
     createBy: CreateBy<TBaseModel>,
   ): void {
-    this.decideUserAttributionOnCreate(createBy.data, createBy.props);
-
-    ModelPermission.checkComputedColumnsSentOnCreate(
-      this.modelType,
-      createBy.data,
-      createBy.props,
+    DatabaseService.recordFieldsLeftOut(
+      createBy,
+      this.decideUserAttributionOnCreate(createBy.data, createBy.props),
     );
+
+    DatabaseService.recordFieldsLeftOut(
+      createBy,
+      ColumnsOnlyOneUptimeWrites.takeOut({
+        model: this.model,
+        record: createBy.data,
+        props: createBy.props,
+      }),
+    );
+
+    this.checkComputedColumnsRecordingLeftOut(createBy);
   }
 
   /*
@@ -7126,8 +7335,28 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     this.unwrapHashedStringsForUnhashedColumns(createBy.data);
 
-    // Who did something to the record is OneUptime's to say. See the helper.
-    this.decideUserAttributionOnCreate(createBy.data, createBy.props);
+    /*
+     * Who did something to the record is OneUptime's to say. See the
+     * helper. What a create leaves out is named to its caller (#10136).
+     */
+    DatabaseService.recordFieldsLeftOut(
+      createBy,
+      this.decideUserAttributionOnCreate(createBy.data, createBy.props),
+    );
+
+    /*
+     * And what only OneUptime writes is OneUptime's to write, under both
+     * names of a reference: dropped from a create that does not run as
+     * OneUptime itself (ColumnsOnlyOneUptimeWrites, #10053).
+     */
+    DatabaseService.recordFieldsLeftOut(
+      createBy,
+      ColumnsOnlyOneUptimeWrites.takeOut({
+        model: this.model,
+        record: createBy.data,
+        props: createBy.props,
+      }),
+    );
 
     // One reference, one value, whichever name it is sent under. See the helper.
     this.assertRelationNamesAgree(createBy.data, createBy.props);
@@ -7142,11 +7371,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
      */
     DatabaseService.computedColumnsSentOn.set(
       createBy,
-      ModelPermission.checkComputedColumnsSentOnCreate(
-        this.modelType,
-        createBy.data,
-        createBy.props,
-      ),
+      this.checkComputedColumnsRecordingLeftOut(createBy),
     );
 
     // Under a parent the caller may read, before any hook acts. See the helper.
@@ -8522,16 +8747,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
       }
 
+      const sameValueQuery: Query<TBaseModel> = {
+        [key]: QueryHelper.findWithSameText(
+          (createBy.data as any)[key]
+            ? ((createBy.data as any)[key]! as string)
+            : "",
+        ),
+        ...query,
+      } as Query<TBaseModel>;
+
       existingItemsWithSameNameCount = (
         await this.countBy({
-          query: {
-            [key]: QueryHelper.findWithSameText(
-              (createBy.data as any)[key]
-                ? ((createBy.data as any)[key]! as string)
-                : "",
-            ),
-            ...query,
-          },
+          query: sameValueQuery,
           props: {
             isRoot: true,
           },
@@ -8539,15 +8766,445 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       ).toNumber();
 
       if (existingItemsWithSameNameCount > 0) {
-        throw new BadDataException(
-          `${this.model.singularName} with the same ${key} already exists.`,
-        );
+        if (key === "name") {
+          await this.refuseTakenName({
+            query: sameValueQuery,
+            count: existingItemsWithSameNameCount,
+          });
+        }
+
+        await this.refuseTakenValue({
+          column: key,
+          query: sameValueQuery,
+          count: existingItemsWithSameNameCount,
+        });
       }
 
       existingItemsWithSameNameCount = 0;
     }
 
     return Promise.resolve(createBy);
+  }
+
+  /*
+   * A NEW RECORD NAMED AS ANOTHER OF ITS KIND (@UniqueColumnBy on name),
+   * refused with the code a program tells it by (NameTakenException,
+   * #10065), as teams', labels' and on-call policies' are: nothing was
+   * written, so a client may ask again once the other record gives the name
+   * up. The Terraform provider does, so a create onto the name of a
+   * resource the same apply renames or deletes goes through in one apply.
+   *
+   * When every record with the name is archived, the code says so, and the
+   * sentence too: an archived record is in no list, and nothing an apply
+   * does to the records in service gives its name up.
+   */
+  private async refuseTakenName(data: {
+    query: Query<TBaseModel>;
+    count: number;
+  }): Promise<never> {
+    const refusal: string = `${this.model.singularName} with the same name already exists.`;
+
+    if (!this.model.hasColumn(ARCHIVED_COLUMN)) {
+      throw new NameTakenException(refusal);
+    }
+
+    const archivedCount: number = (
+      await this.countBy({
+        query: {
+          ...data.query,
+          [ARCHIVED_COLUMN]: true,
+        } as Query<TBaseModel>,
+        props: {
+          isRoot: true,
+        },
+      })
+    ).toNumber();
+
+    if (archivedCount < data.count) {
+      throw new NameTakenException(refusal);
+    }
+
+    throw new NameTakenException(
+      `${this.model.singularName} with the same name already exists, and it is archived. Unarchive it, or choose another name.`,
+      { isArchived: true },
+    );
+  }
+
+  /*
+   * A VALUE ANOTHER RECORD OF ITS KIND HAS, IN A @UniqueColumnBy COLUMN
+   * THAT IS NOT THE NAME - a status page's domain, an SSO provider's
+   * sign-on URL, an API key's permission - refused in the words it always
+   * was, with the code a program tells a taken value by (ValueTakenException,
+   * #10319) and the column: nothing was written, so a client may ask again
+   * once the other record gives the value up, as the Terraform provider does
+   * for a domain moved from one resource to another in one apply.
+   *
+   * When every record with the value is archived, the code and the
+   * sentence say so, as for a name.
+   */
+  private async refuseTakenValue(data: {
+    column: string;
+    query: Query<TBaseModel>;
+    count: number;
+  }): Promise<never> {
+    const refusal: string = `${this.model.singularName} with the same ${data.column} already exists.`;
+
+    if (!this.model.hasColumn(ARCHIVED_COLUMN)) {
+      throw new ValueTakenException(refusal, { field: data.column });
+    }
+
+    const archivedCount: number = (
+      await this.countBy({
+        query: {
+          ...data.query,
+          [ARCHIVED_COLUMN]: true,
+        } as Query<TBaseModel>,
+        props: {
+          isRoot: true,
+        },
+      })
+    ).toNumber();
+
+    if (archivedCount < data.count) {
+      throw new ValueTakenException(refusal, { field: data.column });
+    }
+
+    throw new ValueTakenException(
+      `${this.model.singularName} with the same ${data.column} already exists, and it is archived. Unarchive it, or choose another ${data.column}.`,
+      { field: data.column, isArchived: true },
+    );
+  }
+
+  /*
+   * AN UPDATE HELD TO ITS MODEL'S @UniqueColumnBy, AS A CREATE IS (#10318).
+   *
+   * A create is refused a value another record of its scope has
+   * (checkUniqueColumnBy), and an update was not: some seventy kinds hold
+   * their name one of their kind - incident and alert severities and
+   * states, monitor statuses, status pages and their groups, dashboards,
+   * workflows, runbooks, custom fields and the rest - so a second
+   * "Critical" severity could not be made, but another severity could be
+   * renamed "Critical", and every picker drew the two alike. So could an
+   * SSO provider's sign-on URL, a project's domain or an API key's
+   * permission be changed onto another's.
+   *
+   * An update is now held to the rule a create is, once the caller may make
+   * it, in the create's words and with its codes (refuseTakenName and
+   * refuseTakenValue: what a record in service has, or only an archived
+   * one):
+   *
+   *   - A write that gives a record its own value again is no change, and
+   *     is never refused: every save of an edit form sends the name back,
+   *     perhaps in another case or with spaces around it.
+   *   - A change onto a value another record of its scope has, in service
+   *     or archived, compared as a create compares it, is refused.
+   *   - One update that would give several records of one scope one value
+   *     is refused, with no code: they would share it the moment it was
+   *     written, and asking again changes nothing.
+   *
+   * Records that already share a value - from before this rule, when a
+   * rename was let through, or from two creates at one moment - keep it:
+   * nothing renames them. Each can still be edited, written with its own
+   * value again, and renamed apart, never onto another record's value, its
+   * twin's included.
+   *
+   * The rows are the ones the update writes (findRowsAndHoldUpdateToThem),
+   * the update held to them. The other record is counted as OneUptime: one
+   * the caller may not read holds its value all the same, and the refusal
+   * says nothing of it but that the value is taken.
+   *
+   * OneUptime's own writes are trusted, as UniqueNameInProject trusts them:
+   * telemetry naming what it found, a rule naming a device, a data
+   * migration. A column the service holds unique itself, in words of its
+   * own, is left to it (getUniqueColumnsCheckedOnUpdate).
+   */
+  private async checkUniqueColumnByOnUpdate(
+    updateBy: UpdateBy<TBaseModel>,
+  ): Promise<void> {
+    if (updateBy.props.isRoot) {
+      return;
+    }
+
+    const written: Array<UniqueColumnWrite> = this.getUniqueColumnWrites(
+      updateBy.data as Record<string, unknown>,
+    );
+
+    if (written.length === 0) {
+      return;
+    }
+
+    const select: Dictionary<boolean> = { _id: true };
+
+    for (const write of written) {
+      select[write.column] = true;
+
+      for (const scopeColumn of write.scope) {
+        select[scopeColumn] = true;
+      }
+    }
+
+    const rows: Array<TBaseModel> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      select as Select<TBaseModel>,
+    );
+
+    for (const write of written) {
+      await this.refuseUniqueColumnClashOnUpdate({
+        write: write,
+        rows: rows,
+        data: updateBy.data as Record<string, unknown>,
+      });
+    }
+  }
+
+  /*
+   * The @UniqueColumnBy columns an update writes a value to, with the
+   * columns each is unique within and the value as the check compares it:
+   * text that is not blank - a value kept as text, such as a domain, read
+   * as its text - or a number. No value - none sent, null, blank text - is
+   * the column's own checks' to answer, and so is a value of any other
+   * type. A column the service checks itself is left out.
+   */
+  private getUniqueColumnWrites(
+    data: Record<string, unknown>,
+  ): Array<UniqueColumnWrite> {
+    const uniqueColumnsBy: Dictionary<string | Array<string>> =
+      getUniqueColumnsBy(this.model);
+
+    const checkedByService: Set<string> = new Set<string>(
+      this.getUniqueColumnsCheckedOnUpdate(),
+    );
+
+    const writes: Array<UniqueColumnWrite> = [];
+
+    for (const column of Object.keys(uniqueColumnsBy)) {
+      const scope: string | Array<string> | undefined = uniqueColumnsBy[column];
+
+      if (!scope || checkedByService.has(column)) {
+        continue;
+      }
+
+      const value: string | number | null = DatabaseService.toUniqueValue(
+        data?.[column],
+      );
+
+      if (value === null) {
+        continue;
+      }
+
+      writes.push({
+        column: column,
+        scope: Array.isArray(scope) ? scope : [scope],
+        value: value,
+      });
+    }
+
+    return writes;
+  }
+
+  /*
+   * A value of a unique column as the check compares it: text that is not
+   * blank, a value kept as text (a Domain) as its text, a number. Null for
+   * anything else: no value, and an ID, which no column a person may change
+   * is held unique by.
+   */
+  private static toUniqueValue(value: unknown): string | number | null {
+    if (typeof value === Typeof.Number) {
+      return Number.isFinite(value as number) ? (value as number) : null;
+    }
+
+    const text: string | null =
+      typeof value === Typeof.String
+        ? (value as string)
+        : value instanceof DatabaseProperty && !(value instanceof ObjectID)
+          ? value.toString()
+          : null;
+
+    return text !== null && text.trim().length > 0 ? text : null;
+  }
+
+  // One column of an update, held to its value among the rows it writes.
+  private async refuseUniqueColumnClashOnUpdate(data: {
+    write: UniqueColumnWrite;
+    rows: Array<TBaseModel>;
+    data: Record<string, unknown>;
+  }): Promise<void> {
+    const { write } = data;
+
+    // Its own value again, perhaps in another case: no change.
+    const changed: Array<TBaseModel> = data.rows.filter(
+      (row: TBaseModel): boolean => {
+        return !DatabaseService.isSameUniqueValue(
+          (row as unknown as Record<string, unknown>)[write.column],
+          write.value,
+        );
+      },
+    );
+
+    if (changed.length === 0) {
+      return;
+    }
+
+    const scopesSeen: Set<string> = new Set<string>();
+    const checks: Array<{ row: TBaseModel; scopeQuery: Query<TBaseModel> }> =
+      [];
+
+    for (const row of changed) {
+      const scopeValues: Array<unknown> = write.scope.map(
+        (scopeColumn: string): unknown => {
+          return this.getScopeValueOfRow({
+            row: row,
+            column: scopeColumn,
+            data: data.data,
+          });
+        },
+      );
+
+      const scopeKey: string = scopeValues
+        .map((value: unknown): string => {
+          return DatabaseService.uniqueScopeKeyOf(value);
+        })
+        .join("\u0000");
+
+      // Two of them in one scope would share it the moment it was written.
+      if (scopesSeen.has(scopeKey)) {
+        throw new BadDataException(this.getSeveralGivenOneValueRefusal(write));
+      }
+
+      scopesSeen.add(scopeKey);
+
+      const scopeQuery: Dictionary<unknown> = {};
+
+      write.scope.forEach((scopeColumn: string, index: number): void => {
+        const value: unknown = scopeValues[index];
+
+        scopeQuery[scopeColumn] =
+          value === null || value === undefined ? QueryHelper.isNull() : value;
+      });
+
+      checks.push({ row, scopeQuery: scopeQuery as Query<TBaseModel> });
+    }
+
+    for (const check of checks) {
+      const rowId: string | undefined = check.row._id?.toString();
+
+      if (!rowId) {
+        continue;
+      }
+
+      const sameValueQuery: Query<TBaseModel> = {
+        [write.column]: QueryHelper.findWithSameText(write.value),
+        ...check.scopeQuery,
+        _id: QueryHelper.notEquals(rowId),
+      } as Query<TBaseModel>;
+
+      const count: number = (
+        await this.countBy({
+          query: sameValueQuery,
+          props: {
+            isRoot: true,
+          },
+        })
+      ).toNumber();
+
+      if (count === 0) {
+        continue;
+      }
+
+      if (write.column === "name") {
+        await this.refuseTakenName({
+          query: sameValueQuery,
+          count: count,
+        });
+      }
+
+      await this.refuseTakenValue({
+        column: write.column,
+        query: sameValueQuery,
+        count: count,
+      });
+    }
+  }
+
+  /*
+   * A column a record is unique within, as it will be once the update is
+   * written: what the update gives it, or else what the row holds.
+   */
+  private getScopeValueOfRow(data: {
+    row: TBaseModel;
+    column: string;
+    data: Record<string, unknown>;
+  }): unknown {
+    // Under either of its names, as a create's scope is read.
+    const written: unknown = this.getWrittenColumnValue(
+      (data.data || {}) as PartialEntity<TBaseModel>,
+      data.column,
+    );
+
+    if (written === undefined) {
+      return (data.row as unknown as Record<string, unknown>)[data.column];
+    }
+
+    if (
+      this.model.getTableColumnMetadata(data.column)?.type ===
+      TableColumnType.ObjectID
+    ) {
+      const id: string | null = RelationValueUtil.getRelationId(written);
+
+      return id ? new ObjectID(id) : null;
+    }
+
+    return written;
+  }
+
+  /*
+   * The refusal of one update that would give several records of one scope
+   * one value: "Several Incident Severities cannot be given one name.
+   * Rename one at a time." Named after the column as the create's refusal
+   * names it.
+   */
+  private getSeveralGivenOneValueRefusal(write: UniqueColumnWrite): string {
+    const records: string =
+      this.model.pluralName || this.model.singularName || "records";
+
+    if (write.column === "name") {
+      return `Several ${records} cannot be given one name. Rename one at a time.`;
+    }
+
+    return `Several ${records} cannot be given one ${write.column}. Change one at a time.`;
+  }
+
+  // Whether a stored value is the value written, as the unique check compares them.
+  private static isSameUniqueValue(
+    stored: unknown,
+    written: string | number,
+  ): boolean {
+    if (typeof written === Typeof.Number) {
+      return (
+        (typeof stored === Typeof.Number || typeof stored === Typeof.String) &&
+        Number(stored) === written
+      );
+    }
+
+    const storedText: string | number | null =
+      DatabaseService.toUniqueValue(stored);
+
+    return (
+      typeof storedText === Typeof.String &&
+      (storedText as string).trim().toLowerCase() ===
+        (written as string).trim().toLowerCase()
+    );
+  }
+
+  // A scope value, as text two of one scope share: an ID whatever its case.
+  private static uniqueScopeKeyOf(value: unknown): string {
+    if (value === null || value === undefined) {
+      return "";
+    }
+
+    const id: string | null = RelationValueUtil.getRelationId(value);
+
+    return (id || String(value)).toLowerCase();
   }
 
   /*
@@ -10918,7 +11575,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       /*
        * repository.find, with a page of a joined read taken in one query
-       * where one query gives the same page (PagedFind).
+       * where one query gives the same page (PagedFind). An order through a
+       * relation by a person's name, picture or two-factor flag reads each
+       * person as the asker sees them: someone only invited to the asker's
+       * projects by the name typed for them, else their address (#9895,
+       * PendingInviteeProfiles.orderAsTheReaderSees) - the rows below show
+       * them so, and where they fall must say no more than the rows do.
        */
       const items: Array<TBaseModel> = await PagedFind.find(
         this.getRepository(),
@@ -10931,6 +11593,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           select: onBeforeFind.select as any,
           withDeleted: withDeleted || false,
         },
+        PendingInviteeProfiles.getOrderAdjuster(narrowed.asker),
       );
 
       let decryptedItems: Array<TBaseModel> = [];
@@ -11338,6 +12001,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       this.unwrapHashedStringsForUnhashedColumns(updateBy.data);
 
+      /*
+       * What only OneUptime writes is not an update's to change: refused,
+       * naming the columns, before any hook reads the write
+       * (ColumnsOnlyOneUptimeWrites, #10053).
+       */
+      ColumnsOnlyOneUptimeWrites.refuseOnUpdate({
+        model: this.model,
+        record: updateBy.data,
+        props: updateBy.props,
+      });
+
       // Who did something to the record is OneUptime's to say. See the helpers.
       this.assertUpdateChangesSomething(
         this.decideUserAttributionOnUpdate(updateBy.data, updateBy.props),
@@ -11512,6 +12186,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       // A service's own words for a clash, now the caller may make the write.
       if (!updateBy.props.ignoreHooks) {
         await this.onBeforeUpdateUniqueCheck(beforeUpdateBy);
+
+        // Then what a create is held to: @UniqueColumnBy. See the helper.
+        await this.checkUniqueColumnByOnUpdate(beforeUpdateBy);
+
         await this.onUpdatePermitted(beforeUpdateBy);
       }
 
@@ -11725,8 +12403,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             return metadata?.type === TableColumnType.EntityArray;
           }),
       );
+      /*
+       * The lists the update changes entry by entry (listEntryWrites,
+       * #10135), as the hooks left them: each row's write adds and takes
+       * off only their entries (updateRowWithListEntries), never saving the
+       * list whole. A list a hook wrote over is saved whole, as it asked.
+       */
+      const listEntryWrites: ListEntryWrites = this.getListEntryWritesToMake(
+        updateBy.listEntryWrites,
+        data,
+      );
+      const hasListEntryWrites: boolean =
+        Object.keys(listEntryWrites).length > 0;
       const hasRelationUpdates: boolean = dataKeys.some((key: string) => {
-        return relationColumnNames.has(key);
+        return relationColumnNames.has(key) && !listEntryWrites[key];
       });
 
       /*
@@ -11737,7 +12427,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const updateLimit: UpdateLimit | null =
         items.length > 0 ? await this.getUpdateLimit(beforeUpdateBy) : null;
 
-      if (updateLimit && hasRelationUpdates) {
+      if (updateLimit && (hasRelationUpdates || hasListEntryWrites)) {
         throw new ServerException(
           `An update of ${this.model.singularName} held to a rule in its project cannot write a list of related records.`,
         );
@@ -11858,6 +12548,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             delete savedItem[column];
           }
 
+          // A list changed entry by entry is written by its entries, below.
+          for (const column of Object.keys(listEntryWrites)) {
+            delete savedItem[column];
+          }
+
           // The row's write itself, in save()'s own transaction.
           const isSaved: boolean = await progress.write(
             true,
@@ -11882,6 +12577,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
            */
           if (!isSaved) {
             continue;
+          }
+
+          // The entries of the lists changed entry by entry (#10135).
+          if (hasListEntryWrites) {
+            await progress.write(true, async (): Promise<void> => {
+              await this.writeListEntries({
+                rowId: item._id!.toString(),
+                writes: listEntryWrites,
+              });
+            });
           }
 
           if (rowWriteSqlColumns.length > 0) {
@@ -11932,6 +12637,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           }
         } else {
           const { _id, ...updateData } = updatedItem;
+
+          // A list changed entry by entry is written by its entries, below.
+          for (const column of Object.keys(listEntryWrites)) {
+            delete updateData[column];
+          }
           /*
            * The row, at the version the query named, if it named one (see
            * expectedVersion above).
@@ -11960,7 +12670,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           /*
            * The row's write itself: one UPDATE, committed on its own - or,
            * held to a rule (getUpdateLimit), in the transaction that decides
-           * it, which commits it with its COMMIT (updateWithinUpdateLimit).
+           * it, which commits it with its COMMIT (updateWithinUpdateLimit);
+           * or, with lists changed entry by entry, in one transaction with
+           * their entries (updateRowWithListEntries, #10135).
            */
           const updateResult: UpdateResult = updateLimit
             ? await progress.write(true, async (): Promise<UpdateResult> => {
@@ -11972,13 +12684,23 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                   returnedColumns: returnedColumns,
                 });
               })
-            : await progress.write(false, async (): Promise<UpdateResult> => {
-                return returnedColumns.length > 0
-                  ? await this.getRepository().update(criteria, values, {
-                      returning: returnedColumns,
-                    })
-                  : await this.getRepository().update(criteria, values);
-              });
+            : hasListEntryWrites
+              ? await progress.write(true, async (): Promise<UpdateResult> => {
+                  return await this.updateRowWithListEntries({
+                    criteria: criteria,
+                    values: values,
+                    returnedColumns: returnedColumns,
+                    rowId: String(_id),
+                    writes: listEntryWrites,
+                  });
+                })
+              : await progress.write(false, async (): Promise<UpdateResult> => {
+                  return returnedColumns.length > 0
+                    ? await this.getRepository().update(criteria, values, {
+                        returning: returnedColumns,
+                      })
+                    : await this.getRepository().update(criteria, values);
+                });
 
           /*
            * The row was hard-deleted between the find above and this write,
@@ -12582,6 +13304,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       throw new BadDataException("updateById.id is required");
     }
 
+    // Entries to add to its lists and take off them, as whole lists. See the helper.
+    const listWrite: ListWriteOfUpdate<TBaseModel> | null =
+      await this.getListWriteOfUpdate(updateById);
+    const data: PartialEntity<TBaseModel> = listWrite
+      ? listWrite.data
+      : updateById.data;
+
     await ModelPermission.checkUpdatePermissionByModel({
       modelType: this.modelType,
       fetchModelWithAccessControlIds: async () => {
@@ -12596,18 +13325,104 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * Below the table's update plan, a switch-off still passes: judged on
        * the columns the update writes, as _updateBy judges it.
        */
-      updateData: this.sanitizeUpdateData(updateById.data),
+      updateData: this.sanitizeUpdateData(data),
     });
 
     return await this.updateOneBy({
       query: {
         _id: updateById.id.toString() as any,
       },
-      data: updateById.data as any,
+      data: data as any,
       miscDataProps: updateById.miscDataProps,
       auditLogIncludeColumns: updateById.auditLogIncludeColumns,
+      ...(listWrite ? { listEntryWrites: listWrite.writes } : {}),
       props: updateById.props,
     });
+  }
+
+  /*
+   * AN UPDATE THAT ADDS ENTRIES TO A RECORD'S LISTS, OR TAKES THEM OFF
+   * (UpdateByID.listChanges, Types/Database/ListChanges, #10135), MADE INTO
+   * AN UPDATE OF THOSE LISTS: each list it changes goes into the update's
+   * `data` whole - the record's entries, read now, without the ones taken
+   * off, with the ones added - so every check and hook reads it as a write
+   * of the whole list. The row's write then adds and takes off only the
+   * entries that change (listEntryWrites, written by
+   * updateRowWithListEntries), so an entry added at the same moment stays.
+   *
+   * The record is read as OneUptime, within the caller's project only
+   * (getCallerProjectRowQuery): one that is not there, or not the
+   * caller's, gives no list, and the update then finds no row to write and
+   * says so, as for any record it cannot reach. Null for an update that
+   * changes no list this way.
+   */
+  private async getListWriteOfUpdate(
+    updateById: UpdateByID<TBaseModel>,
+  ): Promise<ListWriteOfUpdate<TBaseModel> | null> {
+    const changes: ListChanges | undefined = updateById.listChanges;
+
+    if (!changes || Object.keys(changes).length === 0) {
+      return null;
+    }
+
+    const listColumns: Array<string> = ListEntries.getListColumns(this.model);
+    const data: Record<string, unknown> = {
+      ...(this.sanitizeUpdateData(updateById.data) as Record<string, unknown>),
+    };
+
+    for (const column of Object.keys(changes)) {
+      if (!listColumns.includes(column)) {
+        throw new BadDataException(
+          `${this.model.singularName} has no list of related records called ${column}, so its entries cannot be added or taken off.`,
+        );
+      }
+
+      if (data[column] !== undefined) {
+        throw new BadDataException(
+          ListChangesUtil.getSentWholeAndByEntryMessage(column),
+        );
+      }
+    }
+
+    const writes: ListEntryWrites = {};
+    const query: Query<TBaseModel> | null = this.getCallerProjectRowQuery(
+      updateById.id,
+      updateById.props,
+    );
+
+    const select: Dictionary<unknown> = { _id: true };
+
+    for (const column of Object.keys(changes)) {
+      select[column] = { _id: true };
+    }
+
+    const row: TBaseModel | null = query
+      ? await this.findOneBy({
+          query: query,
+          select: select as Select<TBaseModel>,
+          props: { isRoot: true },
+        })
+      : null;
+
+    if (!row) {
+      return { data: data as PartialEntity<TBaseModel>, writes: writes };
+    }
+
+    for (const [column, change] of Object.entries(changes)) {
+      const write: ListEntryWrite = ListEntries.getWrite({
+        current: ListEntries.getIds(
+          (row as unknown as Dictionary<unknown>)[column],
+        ),
+        change: change,
+      });
+
+      writes[column] = write;
+      data[column] = write.list.map((id: string): JSONObject => {
+        return { _id: id };
+      });
+    }
+
+    return { data: data as PartialEntity<TBaseModel>, writes: writes };
   }
 
   /*
@@ -12781,6 +13596,61 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     return await this.findOneBy({
       query: updatableQuery,
+      select: data.select,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
+   * The row `id`, read as root with `select`, when `props` may delete it -
+   * or null when it does not exist, or is outside what the caller may
+   * delete. findOneUpdatableById's twin, asked the way a delete by id asks
+   * it (deleteOneById): the checks on the row (the team block list against
+   * all of its labels, the table's delete permissions), then the query a
+   * delete is narrowed to (ModelPermission.checkDeleteQueryPermission: the
+   * caller's project, labels and Owned scope, a private record's owners,
+   * the record a table is read through). Throws what the delete would
+   * throw when the caller may not delete this table at all, or this row by
+   * one of its own labels. For what a record's page offers
+   * (RecordAccessBuilder): nothing is deleted.
+   */
+  @CaptureSpan()
+  public async findOneDeletableById(data: {
+    id: ObjectID;
+    select: Select<TBaseModel>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<TBaseModel | null> {
+    try {
+      await ModelPermission.checkDeletePermissionByModel({
+        modelType: this.modelType,
+        fetchModelWithAccessControlIds:
+          async (): Promise<TBaseModel | null> => {
+            return await this.findWithAccessControlIds(data.id, data.props);
+          },
+        props: data.props,
+      });
+    } catch (error) {
+      // A row that is not there, or one the caller may not read: nothing.
+      if (error instanceof NotFoundException) {
+        return null;
+      }
+
+      throw error;
+    }
+
+    const deletableQuery: Query<TBaseModel> =
+      await ModelPermission.checkDeleteQueryPermission(
+        this.modelType,
+        {
+          _id: data.id.toString(),
+        } as Query<TBaseModel>,
+        data.props,
+      );
+
+    return await this.findOneBy({
+      query: deletableQuery,
       select: data.select,
       props: {
         isRoot: true,

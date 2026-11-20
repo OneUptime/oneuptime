@@ -129,6 +129,26 @@ Fakturering har tre egna roller. `BillingViewer` läser projektets fakturering �
 
 Alla {{PERMISSION_ROLE_COUNT}} roller finns i [Behörighetsreferensen](/docs/permissions/reference).
 
+### Produktnivåer
+
+En produktnivå ger ett team en enda produkt, på en enda nivå, och inget annat av projektet: `CloudAdmin`, `NetworkViewer`, `HostMember`. Varje nivå gör med produktens egna poster det som en projektövergripande roll gör med alla poster:
+
+- **Tittare** läser där det som rollen Tittare läser, och ändrar ingenting.
+- **Medlem** skapar, ändrar och tar även bort produktens poster, som en Projektmedlem gör.
+- **Administratör** gör där även det som en Projektadministratör gör: produktens inställningar, dess anslutningar och inloggningsuppgifter och dess etikett- och ägarregler.
+
+En nivå når aldrig en annan produkt, och inte heller projektets inställningar, team, medlemmar, API-nycklar, SSO eller fakturering.
+
+:::steps
+1. Öppna teamets sida **Behörigheter**.
+2. Välj under **Produktåtkomst** en nivå för varje produkt som teamet arbetar med. Töm en produkts nivå för att ta produkten från teamet igen.
+:::
+
+- **Monitorer, Incidenter och de andra områdena med egna roller** ges med **Lägg till roll**, under **Ett område**. Detsamma gäller Telemetry-rollerna, för Loggar, Mätvärden, Spår, Profiler och Undantag, och Security-rollerna.
+- **AI / LLM, Inventarie och Formulär** har bara nivåerna Tittare och Administratör, eftersom en Projektmedlem inte ändrar något i dem.
+- **En nivå är en behörighet som alla andra.** Du kan begränsa den till några etiketter eller till ägda poster i tabellen med behörigheter, blockera den, lägga den i en anpassad roll eller ge den till en API-nyckel. Som med alla behörigheter kan du bara ge en nivå om du själv har den, om du inte är Projektägare.
+- **En nivå läser produktens poster, inte dess telemetri.** Ett team med `HostViewer` ser projektets värdar och behöver även `TelemetryViewer` för deras diagram.
+
 ### Granulära behörigheter
 
 Varje enskild förmåga kan också tilldelas ensam — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` och {{PERMISSION_TOTAL_COUNT}} andra. Använd dem när en roll är för bred och du behöver dela ut exakt en sak.
@@ -202,7 +222,7 @@ Varje tillåten behörighet ges med en omfattning: när du lägger till den ligg
 
 En roll erbjuds alla tre svaren. En enskild behörighet, tillagd med **Lägg till behörighet**, erbjuds en omfattning överallt där en omfattning smalnar av den, med bara de svar som gör det: **Create Workflow** kan begränsas till de arbetsflöden ett team äger, eller till några etiketter, precis som **Edit Workflow** kan, medan en behörighet för något som alla delar, som **Create Label**, inte erbjuder någon omfattning, eftersom ingen skulle smalna av den. En API-nyckels enskilda behörighet tar etiketter överallt där etiketter smalnar av den. En blockering är aldrig begränsad till ägda resurser: den tar bort en behörighet överallt eller, med etiketter, från resurserna som bär dem.
 
-**Ägda** är det enklaste sättet att bygga en modell där "ni sköter era egna tjänster": ge ett team `MonitorAdmin` med omfattningen Ägda och gör sedan teamet till ägare av de monitorer det ansvarar för. Det smalnar av varje resurs som kan ha ägare — monitorer, incidenter, instrumentpaneler, tjänster, monitorgrupper, jourscheman och liknande — och det som hör till dem, som lagren i ett jourschema. Sonder, Runners, AI-agenter, jourscheman och incident- och underhållsmallar är det som andra resurser ställs in med, så en behörighet med omfattningen Ägda läser fortfarande alla, och du kan välja vilken som helst av dem; den ändrar och tar bara bort dem som du eller dina team äger. En Runners nyckel, som låter den som har den uppträda som Runnern, visas bara på de Runners som du eller dina team äger. Projektkonfiguration (incidenttillstånd, etiketter) har ingen ägare, så en roll med omfattningen Ägda beter sig normalt där. Data Observabilitys egna sidor håller sig också till ditt omfång: **Översikt**, **Problem** och talet vid **Översikt** räknar och visar bara de tabeller, kontroller och pipelines du får läsa, och en åtgärd på en tabell eller kontroll, som **Kör nu**, når bara en du får läsa eller ändra.
+**Ägda** är det enklaste sättet att bygga en modell där "ni sköter era egna tjänster": ge ett team `MonitorAdmin` med omfattningen Ägda och gör sedan teamet till ägare av de monitorer det ansvarar för. Det smalnar av varje resurs som kan ha ägare — monitorer, incidenter, instrumentpaneler, tjänster, monitorgrupper, jourscheman och liknande — och det som hör till dem, som lagren i ett jourschema. Sonder, Runners, AI-agenter, jourscheman, nätverksplatser och incident- och underhållsmallar är det som andra resurser ställs in med, så en behörighet med omfattningen Ägda läser fortfarande alla, och du kan välja vilken som helst av dem; den ändrar och tar bara bort dem som du eller dina team äger. En Runners nyckel, som låter den som har den uppträda som Runnern, visas bara på de Runners som du eller dina team äger. Projektkonfiguration (incidenttillstånd, etiketter) har ingen ägare, så en roll med omfattningen Ägda beter sig normalt där. Data Observabilitys egna sidor håller sig också till ditt omfång: **Översikt**, **Problem** och talet vid **Översikt** räknar och visar bara de tabeller, kontroller och pipelines du får läsa, och en åtgärd på en tabell eller kontroll, som **Kör nu**, når bara en du får läsa eller ändra.
 
 Ett teams behörighet med omfattningen Ägda når det som teamet äger, inte det som personens andra team äger. Den som är med i två team, det ena med `IncidentMember` med omfattningen Ägda och det andra med `Viewer` med omfattningen Ägda, ändrar de incidenter som det första teamet äger och de som personen själv äger, och kan bara se de incidenter som det andra teamet äger. En behörighet med omfattningen Ägda lägger också bara till ägare på resurser som personen eller teamet den har getts till äger, så det första teamet kan inte göras till ägare av det andra teamets incidenter för att komma runt detta. En anpassad rolls behörighet med omfattningen Ägda når det som varje team som har fått rollen äger.
 

@@ -4,9 +4,15 @@ import {
   CloudAddedMetric,
   CloudAddedMetricScope,
 } from "../../Types/Cloud/CloudAddedMetrics";
+import { CloudAddedMetricReaders } from "../../Types/Cloud/CloudAddedMetricReaders";
+import {
+  APP_SERVICE_SITE_ACTIVITY_API_PATH,
+  AppServiceSiteActivity,
+} from "../../Types/Cloud/AppServiceSiteActivity";
 import { CloudProvider } from "../../Types/Cloud/CloudPlatform";
 import { CloudPublishedMetricsListing } from "../../Types/Cloud/CloudPublishedMetrics";
 import { CloudUnreportedKeyMetricReport } from "../../Types/Cloud/CloudUnreportedKeyMetrics";
+import { CloudResourceMetricCollection } from "../../Types/Cloud/CloudResourceMetricCollection";
 import CloudResourceMetrics from "../Utils/CloudConnection/CloudResourceMetrics";
 import { CloudConnectionAwsRoleSetup } from "../../Types/CloudConnection/CloudConnectionSetupCommands";
 import { CloudConnectionTestResult } from "../../Types/CloudConnection/CloudConnectionTest";
@@ -18,6 +24,7 @@ import CloudConnectionService, {
   Service as CloudConnectionServiceClass,
 } from "../Services/CloudConnectionService";
 import AwsServerIdentity from "../Utils/CloudConnection/Aws/AwsServerIdentity";
+import AzureAppServiceSiteActivity from "../Utils/CloudConnection/Azure/AzureAppServiceSiteActivity";
 import CloudConnectionScheduler from "../Utils/CloudConnection/CloudConnectionScheduler";
 import CloudConnectorRegistry from "../Utils/CloudConnection/CloudConnectorRegistry";
 import {
@@ -48,7 +55,9 @@ import ProductKey from "../../Types/Product/ProductKey";
  *     { provider, config, secrets }         settings never saved, so the
  *                                           form can test before a save.
  *     -> CloudConnectionTestResult. Signs in and counts a little of what a
- *        read would find; stores nothing.
+ *        read would find, and stores none of it. A saved connection's AWS
+ *        role check is kept for its reads, on every server: once a fixed
+ *        role passes a test, every read uses it at once (#10424).
  *
  *   POST /cloud-connection/:connectionId/read-now
  *     -> queues a read of the connection now.
@@ -79,16 +88,33 @@ import ProductKey from "../../Types/Product/ProductKey";
  *     -> CloudPublishedMetricsListing: what the resource publishes, asked
  *        of its cloud now, and what an addition would cost.
  *   POST /cloud-connection/resource-metrics/:cloudResourceId/add
- *     { name, namespace?, scope: "resource" | "type", aggregation? }
+ *     { name, namespace?, scope: "resource" | "type", aggregation?, splitBy? }
  *     -> { added, addedMetrics }: the connection reads it from its next read.
+ *   POST /cloud-connection/resource-metrics/:cloudResourceId/readers { key }
+ *     -> CloudAddedMetricReaders: the monitors, dashboard widgets, SLOs and
+ *        recording rules that read an added metric and get no new data once
+ *        it is removed.
  *   POST /cloud-connection/resource-metrics/:cloudResourceId/remove { key }
  *     -> { addedMetrics }
+ *   POST /cloud-connection/resource-metrics/:cloudResourceId/keep-for
+ *     { key, cloudResourceIds } -> { addedMetrics }: a metric added for
+ *        every resource of its type kept for those alone, each read by its
+ *        own addition (#10078).
  *   POST /cloud-connection/resource-metrics/:cloudResourceId/unreported
  *     { keys } -> { metrics: CloudUnreportedKeyMetricReport[] }: when each
  *        key metric the resource did not report last did, and why.
+ *   POST /cloud-connection/resource-metrics/:cloudResourceId/collection
+ *     -> { collection: CloudResourceMetricCollection | null }: when its
+ *        connection last read its metrics, and what it could not (#10291).
  *
  *   The resource-metrics routes list and explain for whoever may read the
- *   resource; Add and Remove are for whoever may edit connections.
+ *   resource; Add, Remove and what reads an addition are for whoever may
+ *   edit connections.
+ *
+ *   GET /cloud-connection/app-service-site/:cloudResourceId/activity
+ *     -> AppServiceSiteActivity: an Azure App Service app's instances,
+ *        deployments and image, asked of Azure now (#10294), for whoever
+ *        may read the site.
  *
  * All of them are for whoever may edit connections (project owners and
  * admins): a test signs in to a cloud account with its credential, a read
@@ -134,13 +160,21 @@ export default class CloudConnectionAPI extends BaseAPI<
               : {};
 
           let settings: CloudConnectionSettings;
+          // The saved connection tested, when the body names one.
+          let connectionId: string | undefined;
 
           try {
-            settings = await this.readSettingsToTest({
+            const toTest: {
+              settings: CloudConnectionSettings;
+              connectionId: string | undefined;
+            } = await this.readSettingsToTest({
               body,
               projectId,
               props,
             });
+
+            settings = toTest.settings;
+            connectionId = toTest.connectionId;
           } catch (error) {
             /*
              * Settings the form could still fix (a role ARN of the wrong
@@ -171,6 +205,7 @@ export default class CloudConnectionAPI extends BaseAPI<
             await CloudConnectorRegistry.getConnector(settings.provider)
               .testConnection(settings, {
                 transport: DataSourceHttpFetch.fetch.bind(DataSourceHttpFetch),
+                connectionId,
               })
               .catch((error: unknown): CloudConnectionTestResult => {
                 // testConnection never throws; this is the belt to its braces.
@@ -435,6 +470,8 @@ export default class CloudConnectionAPI extends BaseAPI<
               typeof body["aggregation"] === "string"
                 ? body["aggregation"]
                 : undefined,
+            splitBy:
+              typeof body["splitBy"] === "string" ? body["splitBy"] : undefined,
             userId: props.userId,
           });
 
@@ -487,6 +524,110 @@ export default class CloudConnectionAPI extends BaseAPI<
       },
     );
 
+    /*
+     * A metric added for every resource of its type, kept for some of them
+     * alone (#10078): the ones its readers read it of, which the dialog
+     * named. For whoever may remove it.
+     */
+    this.router.post(
+      `${basePath}/resource-metrics/:cloudResourceId/keep-for`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+          this.assertCanChangeReads(props);
+
+          const body: JSONObject = this.readBody(req);
+          const key: JSONValue | undefined = body["key"];
+          const ids: JSONValue | undefined = body["cloudResourceIds"];
+
+          if (typeof key !== "string" || !key) {
+            throw new BadDataException("Say which added metric to keep.");
+          }
+
+          if (!Array.isArray(ids)) {
+            throw new BadDataException(
+              "Say which resources to keep the metric for.",
+            );
+          }
+
+          const cloudResourceIds: Array<string> = [];
+
+          for (const id of ids) {
+            if (typeof id === "string") {
+              cloudResourceIds.push(id);
+            }
+          }
+
+          const kept: { addedMetrics: Array<CloudAddedMetric> } =
+            await CloudResourceMetrics.keepFor({
+              projectId,
+              cloudResourceId: this.readCloudResourceId(req),
+              props,
+              key,
+              cloudResourceIds,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            kept as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * What reads an added metric, asked before it is removed (#9807): for
+     * whoever may remove it, and named only where they may read it.
+     */
+    this.router.post(
+      `${basePath}/resource-metrics/:cloudResourceId/readers`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+          this.assertCanChangeReads(props);
+
+          const key: JSONValue | undefined = this.readBody(req)["key"];
+
+          if (typeof key !== "string" || !key) {
+            throw new BadDataException(
+              "Say which added metric to look up what reads.",
+            );
+          }
+
+          const readers: CloudAddedMetricReaders =
+            await CloudResourceMetrics.readersOf({
+              projectId,
+              cloudResourceId: this.readCloudResourceId(req),
+              props,
+              key,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            readers as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
     this.router.post(
       `${basePath}/resource-metrics/:cloudResourceId/unreported`,
       UserMiddleware.getUserMiddleware,
@@ -527,6 +668,38 @@ export default class CloudConnectionAPI extends BaseAPI<
       },
     );
 
+    /*
+     * How the resource's metrics were collected (#10291): when its
+     * connection last read them, and what it could not read - for whoever
+     * may read the resource. Null for a resource whose reads keep none.
+     */
+    this.router.post(
+      `${basePath}/resource-metrics/:cloudResourceId/collection`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+          const collection: CloudResourceMetricCollection | null =
+            await CloudResourceMetrics.collectionOf({
+              projectId,
+              cloudResourceId: this.readCloudResourceId(req),
+              props,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            collection: collection as unknown as JSONObject | null,
+          });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
     this.router.get(
       `${basePath}/aws-role-setup`,
       UserMiddleware.getUserMiddleware,
@@ -549,6 +722,41 @@ export default class CloudConnectionAPI extends BaseAPI<
             req,
             res,
             setup as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * An Azure App Service app's instances, deployments and image, asked of
+     * Azure now through the site's connection (#10294): an App Platforms
+     * app's page shows them beside what its telemetry names. Read-only and
+     * for whoever may read the site (AzureAppServiceSiteActivity).
+     */
+    this.router.get(
+      `${APP_SERVICE_SITE_ACTIVITY_API_PATH}/:cloudResourceId/activity`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          const activity: AppServiceSiteActivity =
+            await AzureAppServiceSiteActivity.read({
+              projectId,
+              cloudResourceId: this.readCloudResourceId(req),
+              props,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            activity as unknown as JSONObject,
           );
         } catch (error) {
           next(error);
@@ -647,29 +855,36 @@ export default class CloudConnectionAPI extends BaseAPI<
    * The settings a test reads with: a saved connection's, with the form's
    * unsaved values merged over them by the rule a save applies, or settings
    * that were never saved. Validated either way, so a test never sends a
-   * request a save would refuse.
+   * request a save would refuse. With the saved connection's id, once it
+   * is known to be the caller's project's: none for settings never saved.
    */
   private async readSettingsToTest(data: {
     body: JSONObject;
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
-  }): Promise<CloudConnectionSettings> {
+  }): Promise<{
+    settings: CloudConnectionSettings;
+    connectionId: string | undefined;
+  }> {
     const connectionIdValue: JSONValue | undefined = data.body["connectionId"];
 
     if (connectionIdValue === undefined || connectionIdValue === null) {
-      return CloudConnectionServiceClass.validateSettings({
-        provider: data.body["provider"],
-        projectId: data.projectId,
-        config: CloudConnectionServiceClass.parseJsonObject(
-          data.body["config"],
-          "Settings",
-        ),
-        secrets: CloudConnectionServiceClass.parseJsonObject(
-          data.body["secrets"],
-          "Credentials",
-        ),
-        requireRequiredSecrets: true,
-      });
+      return {
+        settings: CloudConnectionServiceClass.validateSettings({
+          provider: data.body["provider"],
+          projectId: data.projectId,
+          config: CloudConnectionServiceClass.parseJsonObject(
+            data.body["config"],
+            "Settings",
+          ),
+          secrets: CloudConnectionServiceClass.parseJsonObject(
+            data.body["secrets"],
+            "Credentials",
+          ),
+          requireRequiredSecrets: true,
+        }),
+        connectionId: undefined,
+      };
     }
 
     const connectionId: string = String(connectionIdValue);
@@ -697,31 +912,35 @@ export default class CloudConnectionAPI extends BaseAPI<
         })(),
       );
 
-    return CloudConnectionServiceClass.validateSettings({
-      provider: stored.provider,
-      // Always the connection's own project, never one the body names.
-      projectId: stored.projectId,
-      config:
-        data.body["config"] !== undefined
-          ? CloudConnectionServiceClass.parseJsonObject(
-              data.body["config"],
-              "Settings",
-            )
-          : stored.config,
-      secrets: CloudConnectionServiceClass.mergeSecrets({
-        definition: CloudConnectionServiceClass.getDefinitionOrThrow(
-          stored.provider,
-        ),
-        stored: stored.secrets,
-        provided:
-          data.body["secrets"] !== undefined
+    return {
+      settings: CloudConnectionServiceClass.validateSettings({
+        provider: stored.provider,
+        // Always the connection's own project, never one the body names.
+        projectId: stored.projectId,
+        config:
+          data.body["config"] !== undefined
             ? CloudConnectionServiceClass.parseJsonObject(
-                data.body["secrets"],
-                "Credentials",
+                data.body["config"],
+                "Settings",
               )
-            : {},
+            : stored.config,
+        secrets: CloudConnectionServiceClass.mergeSecrets({
+          definition: CloudConnectionServiceClass.getDefinitionOrThrow(
+            stored.provider,
+          ),
+          stored: stored.secrets,
+          provided:
+            data.body["secrets"] !== undefined
+              ? CloudConnectionServiceClass.parseJsonObject(
+                  data.body["secrets"],
+                  "Credentials",
+                )
+              : {},
+        }),
+        requireRequiredSecrets: true,
       }),
-      requireRequiredSecrets: true,
-    });
+      // The connection's own id as stored, the one its reads are keyed by.
+      connectionId: accessible?.id?.toString() || connectionId,
+    };
   }
 }

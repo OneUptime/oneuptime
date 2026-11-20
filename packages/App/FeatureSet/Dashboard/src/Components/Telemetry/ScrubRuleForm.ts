@@ -134,14 +134,28 @@ export const SCRUB_ACTION_CHOICES: Array<RadioButton> = [
       "Keeps a hint of it, such as j***@***.com or a card's last four digits.",
     ),
   },
+  /*
+   * A token keyed with the project's own key (Common/Server/Utils/Telemetry/
+   * ScrubHashToken, #10394): it used to be a short unkeyed hash, which
+   * anyone could work back to an IP address, an SSN or a phone number.
+   */
   {
     title: translationKey("Hash"),
     value: LogScrubAction.Hash,
     description: translationKey(
-      "Replaces it with a short hash, so equal values still look alike.",
+      "Replaces it with a token unique to this project, so equal values still look alike and no one can work back to the value.",
     ),
   },
 ];
+
+/*
+ * What the IP Address pattern hides, under its choice: what Data Security
+ * calls an IP address, and not the addresses of a project's own network
+ * (Common/Utils/Telemetry/ScrubIpAddress, #10393).
+ */
+export const SCRUB_RULE_IP_ADDRESS_HELP: string = translationKey(
+  "Public IPv4 and IPv6 addresses, not private, loopback or link-local ones.",
+);
 
 /*
  * What the folded Advanced section says while everything in it is left at
@@ -416,7 +430,11 @@ const getScrubRuleFormFields: (
           value: LogScrubPatternType.SSN,
         },
         { label: "Phone Number", value: LogScrubPatternType.PhoneNumber },
-        { label: "IP Address", value: LogScrubPatternType.IPAddress },
+        {
+          label: "IP Address",
+          value: LogScrubPatternType.IPAddress,
+          description: SCRUB_RULE_IP_ADDRESS_HELP,
+        },
         {
           label: "Sensitive Attribute Keys",
           value: LogScrubPatternType.SensitiveKeys,

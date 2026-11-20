@@ -181,7 +181,7 @@ Um episódio que você cria não tem regra de agrupamento, então a lista mostra
 | --------------------- | --------------------------------------------------------------------------- |
 | **Visão geral** | **Visão geral**, **Linha do tempo de estado**, **Alertas de membros**, **Proprietários** |
 | **Investigação** | **Descrição**, **Causa raiz**, **Notas de remediação**, **Notas privadas** |
-| **Desenvolvedores** | **Terraform**, **API**, **CLI**, **Assistentes de IA** |
+| **Desenvolvedores** | **Terraform**, **Crossplane**, **API**, **CLI**, **Assistentes de IA** |
 | **Avançado** | **Registros de auditoria**, **Excluir episódio** |
 
 **Desenvolvedores** e **Avançado** começam recolhidas. Na **Visão geral**, o cabeçalho mostra os **Proprietários** do episódio, equipes primeiro, e o primeiro bloco, **Criado**, diz quando o episódio foi criado — **Automaticamente**, quando uma regra de agrupamento o abriu. O cartão **O que aconteceu** abre a página — a descrição do episódio e a sua **Causa raiz** — depois **Alertas neste episódio** e o **Feed do episódio**, ao lado do cartão **Detalhes do episódio**: seu número, estado, gravidade, quantidade de alertas, regra de agrupamento e políticas de plantão. Seu cabeçalho tem **Confirmar** e **Resolver**, e **Mover episódio para** no menu **⋯**.

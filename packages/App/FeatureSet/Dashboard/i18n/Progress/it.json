@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 58633,
-    "untranslated": 8131
+    "keys": 59636,
+    "untranslated": 8136
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -50,6 +50,7 @@
     "Bare Metal",
     "Bearer Token:",
     "Blade",
+    "Blocklist",
     "Branding",
     "Browser",
     "Browser · OpenTelemetry Web SDK",
@@ -225,6 +226,7 @@
     "Merge request !{{number}}",
     "Merge request {{label}}",
     "Mesh / VPN",
+    "Microsoft Intune",
     "Min",
     "Mirantis MOSK",
     "Mobile",
@@ -233,6 +235,7 @@
     "Mons",
     "Mount",
     "MySQL",
+    "NSA/CISA Kubernetes Hardening Guide v1.2",
     "Namespace",
     "Nav",
     "No",
@@ -335,8 +338,10 @@
     "Script",
     "Seccomp",
     "Seccomp (Restricted)",
+    "Self-hosted",
     "Server",
     "Server / VM",
+    "Server: {{server}}",
     "Serverless",
     "Service Mesh",
     "Shell",
@@ -425,6 +430,7 @@
     "amphorae",
     "arm",
     "arm64",
+    "arn:aws:iam::123456789012:role/OneUptimeSes",
     "aws_lambda · us-east-1 · nodejs 20",
     "backup",
     "bucket",

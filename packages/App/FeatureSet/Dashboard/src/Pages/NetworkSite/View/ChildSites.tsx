@@ -13,7 +13,11 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Navigation from "Common/UI/Utils/Navigation";
-import { SITE_MORE_FIELDS } from "../SiteFormSections";
+import {
+  SITE_LABELS_FIELD_DESCRIPTION,
+  SITE_MORE_FIELDS,
+} from "../SiteFormSections";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -153,6 +157,10 @@ const NetworkSiteChildSites: FunctionComponent<
             required: false,
             placeholder: "-89.6501",
           },
+          getLabelsFormField<NetworkSite>({
+            collapsibleSection: SITE_MORE_FIELDS,
+            description: SITE_LABELS_FIELD_DESCRIPTION,
+          }),
         ]}
         columns={[
           {

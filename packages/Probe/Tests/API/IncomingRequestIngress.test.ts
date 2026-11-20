@@ -865,6 +865,66 @@ describe("the listener, over HTTP", () => {
     expect(INGRESS_BODY_LIMIT).toBe("50mb");
   });
 
+  /*
+   * #10183: the listener is reached before anything is checked, and parsed
+   * 50 MB of "[]," into 17 million arrays. A JSON body is counted first, as
+   * OneUptime counts one sent to the monitor directly, and one with more
+   * values than OneUptime reads is refused, never parsed nor forwarded.
+   */
+  test("refuses a JSON body with more values than OneUptime reads, gzip-compressed or not, and forwards nothing", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+    const bomb: string = `[${"[],".repeat(1100000)}[]]`;
+    const jsonParse: ReturnType<typeof jest.spyOn> = jest.spyOn(JSON, "parse");
+
+    const plain: Answer = await send({
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: bomb,
+    });
+    const compressed: Answer = await send({
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Encoding": "gzip",
+      },
+      body: zlib.gzipSync(bomb),
+    });
+
+    expect(plain.statusCode).toBe(413);
+    expect(compressed.statusCode).toBe(413);
+    expect(
+      jsonParse.mock.calls.some((call: Array<unknown>): boolean => {
+        return typeof call[0] === "string" && call[0].length > 1024 * 1024;
+      }),
+    ).toBe(false);
+
+    await new Promise((resolve: (value: unknown) => void) => {
+      setTimeout(resolve, 50);
+    });
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  test("still takes a JSON body of many values within OneUptime's limit", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+    const values: Array<number> = Array.from(
+      { length: 200000 },
+      (_value: unknown, index: number): number => {
+        return index;
+      },
+    );
+
+    const answer: Answer = await send({
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ values: values }),
+    });
+
+    expect(answer.statusCode).toBe(200);
+    expect(
+      ((await forwarded(spy))["data"] as { values: Array<number> }).values,
+    ).toHaveLength(200000);
+  });
+
   test("answers a JSON heartbeat with 200 and an empty JSON object, and forwards the body", async () => {
     const spy: ApiFetchSpy = mockForwardSucceeds();
 

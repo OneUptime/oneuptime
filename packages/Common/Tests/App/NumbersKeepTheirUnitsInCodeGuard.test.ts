@@ -93,6 +93,9 @@ const AS_WRITTEN: Readonly<Record<string, string>> = {
   "packages/Common/Server/Infrastructure/Postgres/CancelOnTimeoutClient.ts":
     SERVER_LOG,
   "packages/Common/Server/Infrastructure/Postgres/OnlineDdl.ts": SERVER_LOG,
+  // TypeORM's slow-query line, written to stdout (#10108).
+  "packages/Common/Server/Infrastructure/Postgres/PostgresQueryLogger.ts":
+    SERVER_LOG,
   "packages/Common/Server/Infrastructure/Postgres/SchemaMigrationRunner.ts":
     SERVER_LOG,
   "packages/Common/Server/Infrastructure/Postgres/SchemaMigrationWait.ts":
@@ -167,6 +170,8 @@ const AS_WRITTEN: Readonly<Record<string, string>> = {
     "an alert template's incident title, criteria name and criteria description, stored on the monitor for an operator to edit (the summary and description the picker draws are held)",
   "packages/Common/UI/Utils/TableColumnsToCsv.ts":
     "a table's CSV export, a cell a spreadsheet reads as written",
+  "packages/Common/Utils/Host/HostLogSessionFile.ts":
+    "a log session's lines downloaded as the text `logcat -v threadtime` prints, OneUptime's own lines in it written as Logcat's dividers: a log file, read as written",
   "packages/Common/Server/Services/AIBillingService.ts":
     "a failed charge's line in the server's log (the owners' recharge email holds its amounts)",
   "packages/Common/Server/Services/NotificationService.ts":
@@ -1397,6 +1402,8 @@ const WORDS_AS_WRITTEN: Readonly<Record<string, string>> = {
     "an interval in a SQL query",
   "packages/Common/Utils/SecurityCase/SecurityCaseMarkdown.ts":
     "a security case's feed item, written by the server and stored as Markdown",
+  "packages/Common/Types/SecurityBlocklist/SecurityBlock.ts":
+    "a block's length, written by the server into its case's timeline and stored as Markdown",
   "packages/Common/Types/CloudConnection/CloudAiAgentSetupCommands.ts":
     "a line a setup shell command echoes, in double quotes",
   "packages/Common/Types/OnCallDutyPolicy/OnCallPolicyRunRetry.ts":

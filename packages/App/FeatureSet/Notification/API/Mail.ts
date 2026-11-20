@@ -41,6 +41,14 @@ router.post(
             ? (body["language"] as string)
             : undefined,
         /*
+         * The subject the project's email log keeps instead of the one sent
+         * (EmailEnvelope.projectLogSubject, #9897); the one sent when none.
+         */
+        projectLogSubject:
+          typeof body["projectLogSubject"] === "string"
+            ? (body["projectLogSubject"] as string)
+            : undefined,
+        /*
          * Who is copied, and where a reply goes (Give Feedback, #8893):
          * only addresses that are one mailbox each (EmailRecipients).
          */

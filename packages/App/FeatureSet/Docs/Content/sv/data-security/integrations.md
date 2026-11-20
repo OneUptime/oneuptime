@@ -89,10 +89,10 @@ Se [Utlösare för arbetsflöden](/docs/workflows/triggers) för de fält som va
 
 ## OneUptime AI
 
-Två åtgärder på ett problem ber OneUptime AI om hjälp. Båda skickar till OneUptime AI problemets titel och allvarlighetsgrad, datalagrets namn, typ, region och moln-ID, dess känslighet och datatyper, bevisen, varför kontrollen spelar roll och åtgärden för datalagrets moln – aldrig ett fynds prov. Båda körs under projektets reglage och gränser för OneUptime AI.
+Två åtgärder på ett problem ber OneUptime AI om hjälp. Båda skickar till OneUptime AI problemets titel och allvarlighetsgrad, datalagrets namn, typ, region och moln-ID, dess känslighet och datatyper, var och en med sitt namn (dina egna datatyper med namnet du gav dem), bevisen, varför kontrollen spelar roll och åtgärden för datalagrets moln – aldrig ett fynds prov. Båda körs under projektets reglage och gränser för OneUptime AI. Vad var och en skickar, vad den aldrig skickar och vilken modell den körs på finns på [OneUptime AI i Datasäkerhet](/docs/data-security/ai).
 
-- **Förklara med AI** skriver, för datalagrets ägare, vad som är fel, vad som kan hända och de exakta stegen för att åtgärda det i deras moln. Förklaringen sparas på problemets **Tidslinje**. Alla som kan läsa Datasäkerhet kan fråga.
-- **Åtgärda med AI** ber OneUptime AI att åtgärda problemet i din infrastrukturkod – Terraform, CloudFormation, Bicep eller liknande – med den minsta ändring som får kontrollen att godkännas, och att öppna en pull request. Den kräver att arkivet som innehåller datalagrets infrastrukturkod är anslutet under **Kod**: välj det under **Arkiv** när projektet har flera. Pull requesten visas under **Kod** (se [Kod](/docs/ai/ai-agent)). Rollen Säkerhetsmedlem och högre kan fråga.
+- **Förklara med AI** skriver, för datalagrets ägare, vad som är fel, vad som kan hända och de exakta stegen för att åtgärda det i deras moln. Förklaringen sparas på problemets **Tidslinje**. Varken problemet som skickades eller svaret sparas i **Projektinställningar → AI → AI-loggar**, som alla med rollen Projektmedlem eller Tittare kan läsa: raden säger bara att anropet gjordes och vad det kostade. Alla som kan läsa problemet kan fråga.
+- **Åtgärda med AI** ber OneUptime AI att åtgärda problemet i din infrastrukturkod – Terraform, CloudFormation, Bicep eller liknande – med den minsta ändring som får kontrollen att godkännas, och att öppna en pull request. Den kräver att arkivet som innehåller datalagrets infrastrukturkod är anslutet under **Kod**: välj det under **Arkiv** när du kan fråga i flera. Pull requesten visas under **Kod** (se [Kod](/docs/ai/ai-agent)). Rollen Säkerhetsmedlem och högre kan fråga, i ett arkiv som de får ändra under **Kod**, som det krävs för att fråga AI där: en säkerhetsroll läser och ändrar inga arkiv på egen hand, så ge också deras team **Read Code Repository** och **Edit Code Repository**. När AI inte kan arbeta nu – den är avstängd, projektet har slut på AI-krediter, de dagliga gränserna är nådda eller ingen Runner är online – säger Åtgärda med AI vad som behöver åtgärdas och startar ingenting.
 
 ### Fråga AI
 
@@ -143,7 +143,7 @@ Några svar räknas ut på begäran i stället för att lagras. Vart och ett är
 | `/data-store/<id>/scan-now` | **Skanna nu**: tar prov på datalagrets innehåll nu |
 | `/data-store/<id>/check-now` | **Kontrollera nu**: läser datalagrets konfiguration igen och kör dess kontroller |
 | `/data-store-finding/<id>/scrub` | **Rensa** på ett telemetrifynd |
-| `/data-store-finding/<id>/drop-metric-impact` | Vad **Kassera det här mätvärdet** skulle kassera för ett fynd i ett mätvärdes namn: hur många mätvärden, och de monitorer och instrumentpaneler som läser dem |
+| `/data-store-finding/<id>/drop-metric-impact` | Vad **Kassera det här mätvärdet** skulle kassera för ett fynd i ett mätvärdes namn: hur många mätvärden, och de monitorer, instrumentpaneler, SLO:er och inspelningsregler som läser dem |
 | `/data-store-finding/<id>/drop-metric` | **Kassera det här mätvärdet**: en pipelineregel för mätvärden som för gott kasserar de nya datapunkterna från tjänstens mätvärden med ett sådant namn. Den tar `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | **Förklara med AI** på ett problem |
 | `/data-security-issue/<id>/fix-with-ai` | **Åtgärda med AI** på ett problem |

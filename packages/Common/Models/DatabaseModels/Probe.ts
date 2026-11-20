@@ -14,6 +14,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -335,6 +336,38 @@ export default class Probe extends BaseModel {
   })
   public reportedVersion?: string = undefined;
 
+  /*
+   * The address the probe's requests reach OneUptime from (#10338): what
+   * the server sees when the probe checks in, kept with its liveness stamp.
+   * A probe's checks leave from it, so the blocklist never blocks it: a
+   * block of the probe's own address would fail every monitor it checks.
+   * Written by OneUptime alone, and read by the probe's readers only: no
+   * page that names a probe - an alert's, a monitor's, a device's - reads
+   * where it checks in from.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: PROBE_READERS,
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    computed: true,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: false,
+    title: "Egress IP Address",
+    description:
+      "The IP address this probe last checked in from, as OneUptime saw it. Set by OneUptime from the probe's own requests; the blocklist never blocks it.",
+    example: "203.0.113.7",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public egressIpAddress?: string = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -353,6 +386,7 @@ export default class Probe extends BaseModel {
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
     description: "When the probe last checked in. Set by OneUptime.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,

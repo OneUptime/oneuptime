@@ -1,4 +1,10 @@
 import { translationKey } from "../Translator";
+import DeviceManagementProvider from "./DeviceManagementProvider";
+import {
+  ManagedDevicePlatform,
+  isAppleManagedDevicePlatform,
+  readManagedDevicePlatform,
+} from "./ManagedDevicePlatform";
 
 /*
  * Whether a managed device is there, in one word, decided the same way
@@ -11,15 +17,82 @@ import { translationKey } from "../Translator";
  * Offline (60) Esper itself calls not accurate enough, and recommends the
  * device's last check-in instead: its heartbeat API's `status` is "1 if last
  * seen within 30 minutes, 0 otherwise", and its docs advise using the
- * timestamp. So a device is online when it checked in within
- * MANAGED_DEVICE_ONLINE_WINDOW_MINUTES, and offline - with how long since -
- * when it did not. The state still says what the check-in cannot: that the
- * device is being set up, was disabled or is being wiped. A device that left
- * the service altogether is Removed, whatever it said before.
+ * timestamp. So a device is online when it checked in within its online
+ * window, and offline - with how long since - when it did not. The state
+ * still says what the check-in cannot: that the device is being set up, was
+ * disabled or is being wiped. A device that left the service altogether is
+ * Removed, whatever it said before.
+ *
+ * HOW LONG A DEVICE MAY BE QUIET (#9837)
+ *
+ * Not every device checks in every few minutes. An Esper Android device's
+ * agent sends a heartbeat all day long, so 30 minutes without one says it
+ * is gone: Esper's own window. An Apple device checks in when Apple's push
+ * service wakes it, hours apart: Esper says its iOS devices report more
+ * than 30 minutes "as expected behavior", and its console's next bucket is
+ * a day. A device a service reads on a sync schedule (Intune's, every eight
+ * hours or so, and Workspace ONE's, #10086) is the same. A SOTI MobiControl
+ * agent (#10087) keeps a live connection to its server instead, as Esper's
+ * does, so a SOTI device is quiet only once that connection is gone - but
+ * an iPhone or a Mac it manages checks in through Apple's push, hours
+ * apart, as an Esper Apple device does. So each device has a check-in
+ * cadence (getManagedDeviceCheckInCadence), and its window is the
+ * cadence's: MANAGED_DEVICE_ONLINE_WINDOW_MINUTES for a heartbeat,
+ * MANAGED_DEVICE_SYNC_ONLINE_WINDOW_MINUTES for a sync.
  */
 
 // The window Esper's own heartbeat status uses: within 30 minutes is online.
 export const MANAGED_DEVICE_ONLINE_WINDOW_MINUTES: number = 30;
+
+/*
+ * The window of a device that checks in hours apart: a day, the Esper
+ * console's own bucket after 30 minutes, and three of Intune's eight-hourly
+ * check-ins.
+ */
+export const MANAGED_DEVICE_SYNC_ONLINE_WINDOW_MINUTES: number = 24 * 60;
+
+export enum ManagedDeviceCheckInCadence {
+  // An agent's heartbeat, every few minutes.
+  Heartbeat = "heartbeat",
+  // A check-in hours apart: Apple's push, a service's sync schedule.
+  Sync = "sync",
+}
+
+/*
+ * How often a device checks in, by its service and its platform. A device
+ * whose service is not known (a row read without its connection) is
+ * Esper's, as every device was before #9837. An agent that keeps a live
+ * connection (Esper's, SOTI's) is a heartbeat, but not on an Apple device,
+ * which checks in through Apple's push service.
+ */
+export function getManagedDeviceCheckInCadence(data: {
+  provider?: DeviceManagementProvider | string | undefined | null;
+  platform?: unknown;
+}): ManagedDeviceCheckInCadence {
+  const provider: string = data.provider || DeviceManagementProvider.Esper;
+
+  if (
+    provider === DeviceManagementProvider.Esper ||
+    provider === DeviceManagementProvider.Soti
+  ) {
+    return isAppleManagedDevicePlatform(data.platform)
+      ? ManagedDeviceCheckInCadence.Sync
+      : ManagedDeviceCheckInCadence.Heartbeat;
+  }
+
+  return ManagedDeviceCheckInCadence.Sync;
+}
+
+// The minutes a device may go without checking in and still be online.
+export function getManagedDeviceOnlineWindowMinutes(data: {
+  provider?: DeviceManagementProvider | string | undefined | null;
+  platform?: unknown;
+}): number {
+  return getManagedDeviceCheckInCadence(data) ===
+    ManagedDeviceCheckInCadence.Heartbeat
+    ? MANAGED_DEVICE_ONLINE_WINDOW_MINUTES
+    : MANAGED_DEVICE_SYNC_ONLINE_WINDOW_MINUTES;
+}
 
 export enum ManagedDeviceStatus {
   Online = "online",
@@ -87,6 +160,9 @@ export interface ManagedDeviceStatusInput {
   providerState?: number | undefined | null;
   lastCheckInAt?: Date | string | undefined | null;
   removedAt?: Date | string | undefined | null;
+  // The device's service and platform: they decide its online window.
+  provider?: DeviceManagementProvider | string | undefined | null;
+  platform?: ManagedDevicePlatform | string | undefined | null;
   now: Date;
 }
 
@@ -133,7 +209,11 @@ export function getManagedDeviceStatus(
     const minutesSince: number =
       (input.now.getTime() - lastCheckIn) / (60 * 1000);
 
-    return minutesSince <= MANAGED_DEVICE_ONLINE_WINDOW_MINUTES
+    return minutesSince <=
+      getManagedDeviceOnlineWindowMinutes({
+        provider: input.provider,
+        platform: readManagedDevicePlatform(input.platform),
+      })
       ? ManagedDeviceStatus.Online
       : ManagedDeviceStatus.Offline;
   }

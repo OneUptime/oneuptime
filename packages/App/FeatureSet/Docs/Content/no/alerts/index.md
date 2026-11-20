@@ -138,7 +138,7 @@ Mens du jobber med det, skriver du ned det du lærer som **Private notater**, fy
 | **Undersøkelse** | **Beskrivelse**, **Rotårsak**, **Utbedring**, **Runbooks**, **Tilknyttede hendelser**, **Private notater** |
 | **Team** | **Vaktutførelser** og **Eiere**: hvem som ble tilkalt for varselet, og hvem som eier det |
 | **Varslinger**           | **Varslingslogger** og **AI-logger**: hver melding som er sendt om varselet, og alt AI har gjort for det      |
-| **Utvikler**         | **Terraform**, **API**, **CLI** og **AI-assistenter**: varselet styrt fra kode                              |
+| **Utvikler**         | **Terraform**, **Crossplane**, **API**, **CLI** og **AI-assistenter**: varselet styrt fra kode                              |
 | **Avansert** | **Egendefinerte felt**, **Innstillinger**, **Revisjonslogger**, **Slett varsel** |
 
 **Oversikt**, **Undersøkelse** og **Team** er åpne; de andre seksjonene er sammenfoldet til du klikker på dem.

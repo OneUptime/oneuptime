@@ -33,6 +33,7 @@ import LlmMonitorCriteria from "./Criteria/LlmMonitorCriteria";
 import MetricMonitorCriteria, {
   IsCriteriaInEffect,
   MetricSeriesEvaluationResult,
+  MetricSeriesEvaluations,
 } from "./Criteria/MetricMonitorCriteria";
 import CriteriaInEffect from "./CriteriaInEffect";
 import GroupedSeriesGone, {
@@ -431,6 +432,13 @@ export default class MonitorCriteriaEvaluator {
     const matchedCriteria: Array<MatchedCriteriaResult> = [];
     const evaluatedCriteriaIds: Array<string> = [];
 
+    /*
+     * What each metric filter judged every series to be on this check: the
+     * criteria's verdict and the series it matched read the same judgement
+     * (MetricSeriesEvaluations, #10108).
+     */
+    const seriesEvaluations: MetricSeriesEvaluations = new Map();
+
     for (const criteriaInstance of criteria.data.monitorCriteriaInstanceArray) {
       /*
        * Ungrouped monitors keep the historical semantics exactly: the
@@ -495,6 +503,7 @@ export default class MonitorCriteriaEvaluator {
           criteriaResult: criteriaResult,
           matchHistory: matchHistory,
           criteriaInEffect: criteriaInEffect,
+          seriesEvaluations: seriesEvaluations,
         });
 
       if (!criteriaResult.message) {
@@ -582,6 +591,7 @@ export default class MonitorCriteriaEvaluator {
                 monitorStep: input.monitorStep,
                 criteriaInstance,
                 criteriaInEffect: criteriaInEffect,
+                seriesEvaluations: seriesEvaluations,
               });
 
       /*
@@ -971,8 +981,12 @@ ${incomingRequestGrouping.rootCauseNote}
       return false;
     }
 
+    /*
+     * Grouped by attributes, or written in PromQL, every series of whose
+     * expression is its own (issue #7712).
+     */
     if (MonitorTypeHelper.isMetricBackedMonitor(monitorType)) {
-      return MonitorStep.getGroupByAttributeKeys(input.monitorStep).length > 0;
+      return MonitorStep.isJudgedPerSeries(input.monitorStep);
     }
 
     // A Logs monitor's Group By, the log-count counterpart of the above.
@@ -1057,6 +1071,8 @@ ${incomingRequestGrouping.rootCauseNote}
     monitorStep: MonitorStep;
     criteriaInstance: MonitorCriteriaInstance;
     criteriaInEffect?: CriteriaInEffect | undefined;
+    // What the criteria's verdict judged every series to be, read again here.
+    seriesEvaluations?: MetricSeriesEvaluations | undefined;
   }): Promise<Array<PerSeriesCriteriaMatch>> {
     /*
      * Incoming Request / webhook monitors are not read here: their
@@ -1259,6 +1275,7 @@ ${incomingRequestGrouping.rootCauseNote}
             criteriaInEffect: input.criteriaInEffect,
             criteriaInstance: input.criteriaInstance,
           }),
+          evaluations: input.seriesEvaluations,
         });
 
       for (const evaluation of evaluations) {
@@ -1351,6 +1368,7 @@ ${incomingRequestGrouping.rootCauseNote}
     criteriaResult: MonitorEvaluationCriteriaResult;
     matchHistory?: MatchHistoryContext | undefined;
     criteriaInEffect?: CriteriaInEffect | undefined;
+    seriesEvaluations?: MetricSeriesEvaluations | undefined;
   }): Promise<string | null> {
     return MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFiltersMet({
       dataToProcess: input.dataToProcess,
@@ -1361,6 +1379,7 @@ ${incomingRequestGrouping.rootCauseNote}
       criteriaResult: input.criteriaResult,
       matchHistory: input.matchHistory,
       criteriaInEffect: input.criteriaInEffect,
+      seriesEvaluations: input.seriesEvaluations,
     });
   }
 
@@ -1403,6 +1422,8 @@ ${incomingRequestGrouping.rootCauseNote}
      */
     matchHistory?: MatchHistoryContext | undefined;
     criteriaInEffect?: CriteriaInEffect | undefined;
+    // Each metric filter's judgement of every series, for the whole check.
+    seriesEvaluations?: MetricSeriesEvaluations | undefined;
   }): Promise<string | null> {
     const filterCondition: FilterCondition =
       input.criteriaInstance.data?.filterCondition || FilterCondition.All;
@@ -1449,6 +1470,7 @@ ${incomingRequestGrouping.rootCauseNote}
             criteriaInstance: input.criteriaInstance,
             criteriaFilter: criteriaFilter,
             criteriaInEffect: input.criteriaInEffect,
+            seriesEvaluations: input.seriesEvaluations,
           });
       }
 
@@ -1566,6 +1588,7 @@ ${incomingRequestGrouping.rootCauseNote}
     criteriaInstance?: MonitorCriteriaInstance | undefined;
     criteriaFilter: CriteriaFilter;
     criteriaInEffect?: CriteriaInEffect | undefined;
+    seriesEvaluations?: MetricSeriesEvaluations | undefined;
   }): Promise<string | null> {
     if (input.criteriaFilter.checkOn === CheckOn.JavaScriptExpression) {
       /*
@@ -1783,6 +1806,7 @@ ${incomingRequestGrouping.rootCauseNote}
             criteriaInEffect: input.criteriaInEffect,
             criteriaInstance: input.criteriaInstance,
           }),
+          evaluations: input.seriesEvaluations,
         });
 
       if (metricMonitorResult) {

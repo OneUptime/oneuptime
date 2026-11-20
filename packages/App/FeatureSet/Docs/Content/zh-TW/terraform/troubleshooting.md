@@ -23,6 +23,8 @@
 | `references records that are not in this project` | 使用你自己專案中記錄的 ID：請參閱[來自其他專案的 ID](#來自其他專案的-id) |
 | 資料來源傳回的 `Not Found` 或 `Ambiguous Match` | 修正查詢的引數：請參閱[找不到或找到多筆結果的查詢](#找不到或找到多筆結果的查詢) |
 | `There is already a team called`（標籤、待命策略、待命排程） | 改用同類其他記錄都沒有的名稱，或先為另一個重新命名：請參閱[其他記錄已在使用的名稱](#其他記錄已在使用的名稱) |
+| `with the same name already exists` | 改用同類其他記錄都沒有的名稱，或匯入占用該名稱的記錄：請參閱[其他記錄已在使用的名稱](#其他記錄已在使用的名稱) |
+| 網域、主機名稱或登入 URL 的 `already exists` | 改用其他記錄都沒有的值，或匯入占用該值的記錄：請參閱[其他記錄已在使用的網域和識別碼](#其他記錄已在使用的網域和識別碼) |
 | `Cannot import non-existent remote object` | 檢查 ID 和金鑰的權限：請參閱[匯入資源](/docs/terraform/importing-resources#疑難排解) |
 | `Provider produced inconsistent result after apply` | 升級提供者：請參閱[apply 之後結果不一致](#apply-之後結果不一致) |
 | 計畫建立了一個你沒有新增的資源 | 金鑰已無法讀取它，OneUptime 回應了 `404`：先恢復金鑰的讀取權限，再用 `terraform import` 匯入該資源：請參閱[資源離開 state，下一次 apply 又建立了它](#資源離開-state下一次-apply-又建立了它) |
@@ -106,9 +108,21 @@ This network device references records that are not in this project: Network Sit
 
 ### 其他記錄已在使用的名稱
 
-團隊、標籤、待命策略和待命排程在專案中各自擁有獨一無二的名稱，不分大小寫和空格。建立或重新命名時使用同類其他記錄已有的名稱，會得到 `400`，例如 `There is already an on-call policy called Primary in this project. Pick another name.` 已封存的待命策略會保留其名稱：請取消封存，或另選一個名稱。先前就同名的記錄會保留名稱，儀表板中團隊、待命策略和待命排程的清單會標示它們。
+團隊、標籤、待命策略和待命排程在專案中各自擁有獨一無二的名稱，不分大小寫和空格，許多其他類型也是如此，例如事件嚴重程度、監測器狀態和狀態頁。建立或重新命名時使用同類其他記錄已有的名稱，會得到 `400`，例如 `There is already an on-call policy called Primary in this project. Pick another name.` 或 `Incident Severity with the same name already exists.` 先前就同名的記錄會保留名稱，儀表板中團隊、標籤、待命策略和待命排程的清單會標示它們。
 
-Terraform 會平行執行同一次 apply 中的變更，因此如果重新命名為另一個資源在同一次 apply 中讓出的名稱，在那個資源仍占用該名稱時可能會被拒絕：請再次套用，或在接收名稱的資源上新增一個指向讓出名稱之資源的 `depends_on`。互換（A 改為 B、B 改為 A），或任何最終回到起點的重新命名鏈，都無法在一次 apply 中完成：先把其中一個重新命名為沒有人使用的名稱，套用，然後再完成其餘變更。
+Terraform 會平行執行同一次 apply 中的變更，因此如果建立或重新命名時使用的名稱正被另一個資源在同一次 apply 中透過重新命名或刪除讓出，在那個資源仍占用該名稱時可能會被拒絕。此時提供者會在最多 30 秒內再次請求，因此重新命名鏈（例如 A 改為 B，同時 B 改為 C）可以在一次 apply 中完成，接手被該 apply 刪除之資源名稱的資源也是如此。互換（A 改為 B、B 改為 A），或任何最終回到起點的重新命名鏈，則永遠無法完成，設定之外的記錄占用的名稱也是如此，例如 OneUptime 隨專案建立的嚴重程度：30 秒後 apply 會失敗，並顯示 `The name was still taken after asking again for 30 seconds.` 請為資源取一個沒有人使用的名稱，或用 `terraform import` 匯入占用該名稱的記錄。如果是互換，請先把其中一個重新命名為沒有人使用的名稱，套用，然後再完成其餘變更。
+
+已封存的記錄會保留其名稱，apply 對正在使用的記錄所做的任何操作都不會讓出該名稱。建立或重新命名為該名稱會立即失敗，並說明在哪裡取消封存該記錄：請取消封存，或另選一個名稱。
+
+如果使用較舊的提供者或較舊的 OneUptime，第一次拒絕就會讓 apply 失敗：請再次套用，或在接收名稱的資源上新增一個指向讓出名稱之資源的 `depends_on`。
+
+### 其他記錄已在使用的網域和識別碼
+
+狀態頁面、儀表板或表單的網域、專案網域、主機或 Kubernetes 叢集的識別碼以及 SSO 提供者的登入 URL 也各自只屬於一筆記錄，不區分大小寫。建立或變更為其他記錄已有的值時會傳回 `400`，例如 `Status Page Domain with the same fullDomain already exists.`
+
+這裡提供者同樣會在最多 30 秒內再次請求，因此在同一次 apply 中把一個網域從一個資源移到另一個資源（刪除一個並同時建立另一個）可以在一次 apply 中完成。兩個值的互換永遠無法完成，設定之外的記錄占用的值也是如此：30 秒後 apply 會失敗，並顯示 `The value was still taken after asking again for 30 seconds.` 請為資源取一個沒有人使用的值，或用 `terraform import` 匯入占用該值的記錄。如果是互換，請先為其中一個設定暫時值，套用，然後再完成其餘變更。
+
+只有已封存的記錄占用的值，例如已封存主機的主機名稱，會立即失敗，並說明該怎麼做：請取消封存這筆記錄，或另選一個值。
 
 ## 無法穩定的計畫
 

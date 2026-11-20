@@ -1,6 +1,7 @@
 import BaseAPI from "Common/Server/API/BaseAPI";
 // The values records pick from: BaseAPI, and what uses one. See the class.
 import ArchivableValueAPI from "Common/Server/API/ArchivableValueAPI";
+import HostLogSessionAPI from "Common/Server/API/HostLogSessionAPI";
 import BaseAnalyticsAPI from "Common/Server/API/BaseAnalyticsAPI";
 import BillingAPI from "Common/Server/API/BillingAPI";
 import BillingInvoiceAPI from "Common/Server/API/BillingInvoiceAPI";
@@ -44,6 +45,7 @@ import AIInsightService, {
 } from "Common/Server/Services/AIInsightService";
 import TelemetryAPI from "Common/Server/API/TelemetryAPI";
 import PrometheusAPI from "Common/Server/API/PrometheusAPI";
+import LokiAPI from "Common/Server/API/LokiAPI";
 import SessionReplayReadService from "Common/Server/Utils/SessionReplay/SessionReplayReadService";
 import { getRecorderVersion } from "../BrowserRecorder/Manifest";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
@@ -176,9 +178,15 @@ import TelemetryIngestionKeyService, {
 import TelemetryIngestionKeyRefusalService, {
   Service as TelemetryIngestionKeyRefusalServiceType,
 } from "Common/Server/Services/TelemetryIngestionKeyRefusalService";
+import TelemetryIngestionTeamLabelBudgetService, {
+  Service as TelemetryIngestionTeamLabelBudgetServiceType,
+} from "Common/Server/Services/TelemetryIngestionTeamLabelBudgetService";
 import TelemetrySourceMapService, {
   Service as TelemetrySourceMapServiceType,
 } from "Common/Server/Services/TelemetrySourceMapService";
+import TelemetryDsymService, {
+  Service as TelemetryDsymServiceType,
+} from "Common/Server/Services/TelemetryDsymService";
 import IoTDeviceCredentialService, {
   Service as IoTDeviceCredentialServiceType,
 } from "Common/Server/Services/IoTDeviceCredentialService";
@@ -709,9 +717,11 @@ import SecurityDetectionService, {
 import SecurityPlaybookService, {
   Service as SecurityPlaybookServiceType,
 } from "Common/Server/Services/SecurityPlaybookService";
-import SecurityProtectedEntityService, {
-  Service as SecurityProtectedEntityServiceType,
-} from "Common/Server/Services/SecurityProtectedEntityService";
+import SecurityProtectedEntityAPI from "Common/Server/API/SecurityProtectedEntityAPI";
+import SecurityBlockAPI from "Common/Server/API/SecurityBlockAPI";
+import SecurityBlockEnforcementService, {
+  Service as SecurityBlockEnforcementServiceType,
+} from "Common/Server/Services/SecurityBlockEnforcementService";
 import SecurityEntityRiskService, {
   Service as SecurityEntityRiskServiceType,
 } from "Common/Server/Services/SecurityEntityRiskService";
@@ -1141,9 +1151,6 @@ import HostOwnerTeamService, {
 import HostOwnerUserService, {
   Service as HostOwnerUserServiceType,
 } from "Common/Server/Services/HostOwnerUserService";
-import HostLogSessionService, {
-  Service as HostLogSessionServiceType,
-} from "Common/Server/Services/HostLogSessionService";
 import HostCollectorConfigService, {
   Service as HostCollectorConfigServiceType,
 } from "Common/Server/Services/HostCollectorConfigService";
@@ -1428,6 +1435,30 @@ import StatusPageSSOService, {
 import StatusPageOIDCService, {
   Service as StatusPageOIDCServiceType,
 } from "Common/Server/Services/StatusPageOidcService";
+import DashboardPrivateUserService, {
+  Service as DashboardPrivateUserServiceType,
+} from "Common/Server/Services/DashboardPrivateUserService";
+import DashboardSSOService, {
+  Service as DashboardSSOServiceType,
+} from "Common/Server/Services/DashboardSsoService";
+import DashboardOIDCService, {
+  Service as DashboardOIDCServiceType,
+} from "Common/Server/Services/DashboardOidcService";
+import FormPrivateUserService, {
+  Service as FormPrivateUserServiceType,
+} from "Common/Server/Services/FormPrivateUserService";
+import FormSSOService, {
+  Service as FormSSOServiceType,
+} from "Common/Server/Services/FormSsoService";
+import FormOIDCService, {
+  Service as FormOIDCServiceType,
+} from "Common/Server/Services/FormOidcService";
+import FormPrivateUser from "Common/Models/DatabaseModels/FormPrivateUser";
+import FormSSO from "Common/Models/DatabaseModels/FormSso";
+import FormOIDC from "Common/Models/DatabaseModels/FormOidc";
+import DashboardPrivateUser from "Common/Models/DatabaseModels/DashboardPrivateUser";
+import DashboardSSO from "Common/Models/DatabaseModels/DashboardSso";
+import DashboardOIDC from "Common/Models/DatabaseModels/DashboardOidc";
 import TeamMemberAPI from "Common/Server/API/TeamMemberAPI";
 import TeamMemberCustomFieldService, {
   Service as TeamMemberCustomFieldServiceType,
@@ -1781,7 +1812,6 @@ import MessageQueueLabelRule from "Common/Models/DatabaseModels/MessageQueueLabe
 import MessageQueueOwnerRule from "Common/Models/DatabaseModels/MessageQueueOwnerRule";
 import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
-import HostLogSession from "Common/Models/DatabaseModels/HostLogSession";
 import HostCollectorConfig from "Common/Models/DatabaseModels/HostCollectorConfig";
 import HostCollectorConfigVersion from "Common/Models/DatabaseModels/HostCollectorConfigVersion";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -1858,7 +1888,9 @@ import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageHeaderLink from "Common/Models/DatabaseModels/StatusPageHeaderLink";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyRefusal from "Common/Models/DatabaseModels/TelemetryIngestionKeyRefusal";
+import TelemetryIngestionTeamLabelBudget from "Common/Models/DatabaseModels/TelemetryIngestionTeamLabelBudget";
 import TelemetrySourceMap from "Common/Models/DatabaseModels/TelemetrySourceMap";
+import TelemetryDsym from "Common/Models/DatabaseModels/TelemetryDsym";
 import IoTDeviceCredential from "Common/Models/DatabaseModels/IoTDeviceCredential";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTeam";
@@ -1938,7 +1970,7 @@ import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
-import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
+import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
 import SecurityEntityRisk from "Common/Models/DatabaseModels/SecurityEntityRisk";
 import DataSecurityAPI from "Common/Server/API/DataSecurityAPI";
 import DataObservabilityAPI from "Common/Server/API/DataObservabilityAPI";
@@ -2124,6 +2156,7 @@ import SetupHealthAPI from "Common/Server/API/SetupHealthAPI";
 import ProjectCanSendAPI from "Common/Server/API/ProjectCanSendAPI";
 import UsedByAPI from "Common/Server/API/UsedByAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
+import GuidedSetupRunAPI from "Common/Server/API/GuidedSetupRunAPI";
 import ProjectProductsAPI from "Common/Server/API/ProjectProductsAPI";
 import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
 import ProductFeedbackAPI from "Common/Server/API/ProductFeedbackAPI";
@@ -2133,7 +2166,9 @@ import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDisc
 import NetworkDeviceNamingAPI from "Common/Server/API/NetworkDeviceNamingAPI";
 import NetworkDiscoveredDeviceAPI from "Common/Server/API/NetworkDiscoveredDeviceAPI";
 import NetworkDeviceRefreshAPI from "Common/Server/API/NetworkDeviceRefreshAPI";
+import NetworkEmptySitesAPI from "Common/Server/API/NetworkEmptySitesAPI";
 import NetworkDeviceWatchingMonitorsAPI from "Common/Server/API/NetworkDeviceWatchingMonitorsAPI";
+import NetworkDeviceUntiedMonitorsAPI from "Common/Server/API/NetworkDeviceUntiedMonitorsAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import ScheduledMaintenanceCalendarAPI from "Common/Server/API/ScheduledMaintenanceCalendarAPI";
 import ScheduledMaintenanceExternalCalendarAPI from "Common/Server/API/ScheduledMaintenanceExternalCalendarAPI";
@@ -2272,6 +2307,16 @@ import NetworkDeviceOwnerTeam from "Common/Models/DatabaseModels/NetworkDeviceOw
 import NetworkDeviceOwnerTeamService, {
   Service as NetworkDeviceOwnerTeamServiceType,
 } from "Common/Server/Services/NetworkDeviceOwnerTeamService";
+
+// NetworkSiteOwnerUser and NetworkSiteOwnerTeam (#10188)
+import NetworkSiteOwnerUser from "Common/Models/DatabaseModels/NetworkSiteOwnerUser";
+import NetworkSiteOwnerUserService, {
+  Service as NetworkSiteOwnerUserServiceType,
+} from "Common/Server/Services/NetworkSiteOwnerUserService";
+import NetworkSiteOwnerTeam from "Common/Models/DatabaseModels/NetworkSiteOwnerTeam";
+import NetworkSiteOwnerTeamService, {
+  Service as NetworkSiteOwnerTeamServiceType,
+} from "Common/Server/Services/NetworkSiteOwnerTeamService";
 
 // NetworkDeviceOwnerRule
 import NetworkDeviceOwnerRule from "Common/Models/DatabaseModels/NetworkDeviceOwnerRule";
@@ -4223,11 +4268,31 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // A team's or a label's ingestion budget inside the project (#6386).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        TelemetryIngestionTeamLabelBudget,
+        TelemetryIngestionTeamLabelBudgetServiceType
+      >(
+        TelemetryIngestionTeamLabelBudget,
+        TelemetryIngestionTeamLabelBudgetService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<TelemetrySourceMap, TelemetrySourceMapServiceType>(
         TelemetrySourceMap,
         TelemetrySourceMapService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TelemetryDsym, TelemetryDsymServiceType>(
+        TelemetryDsym,
+        TelemetryDsymService,
       ).getRouter(),
     );
 
@@ -4764,12 +4829,24 @@ const BaseAPIFeatureSet: FeatureSet = {
       new SecurityPlaybookRunAPI().getRouter(),
     );
 
+    // Protected entities' CRUD, with what OneUptime protects by itself.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<SecurityProtectedEntity, SecurityProtectedEntityServiceType>(
-        SecurityProtectedEntity,
-        SecurityProtectedEntityService,
-      ).getRouter(),
+      new SecurityProtectedEntityAPI().getRouter(),
+    );
+
+    // The blocklist's CRUD, with its check and where it is enforced (#10338).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityBlockAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        SecurityBlockEnforcement,
+        SecurityBlockEnforcementServiceType
+      >(SecurityBlockEnforcement, SecurityBlockEnforcementService).getRouter(),
     );
 
     /*
@@ -6441,15 +6518,13 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     /*
      * Log sessions (#9806): every app's logs from an Android device for a
-     * while, asked for and cancelled here; the device moves them on through
-     * the Android agent's own route (Telemetry, AndroidAgentLogSessions).
+     * while, asked for and cancelled here, and their lines downloaded as a
+     * file (#9966); the device moves them on through the Android agent's
+     * own route (Telemetry, AndroidAgentLogSessions).
      */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<HostLogSession, HostLogSessionServiceType>(
-        HostLogSession,
-        HostLogSessionService,
-      ).getRouter(),
+      new HostLogSessionAPI().getRouter(),
     );
 
     /*
@@ -6770,6 +6845,14 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WelcomeChecklistAPI);
 
     /*
+     * A guided setup's run, kept on the server (#7253): one per project,
+     * person and setup, so another device opens the setup where the person
+     * left it. A bare router as WelcomeChecklistAPI is: each route serves
+     * the caller's own run, and the service reads and writes as root.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, GuidedSetupRunAPI);
+
+    /*
      * Asking people how things went (issue #6832): the question at the end
      * of a guided setup, Give feedback, Was this clear? and the first-week
      * check-in, kept on this server for its master admins (Admin Dashboard
@@ -6858,6 +6941,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       NetworkDeviceWatchingMonitorsAPI,
     );
+
+    /*
+     * The monitors that check a device's address but are tied to no
+     * device, for its Monitors card (NetworkDeviceUntiedMonitorsAPI, issue
+     * #9903): each with what its probes see at the address, so the card
+     * offers a one-click tie or says why not.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, NetworkDeviceUntiedMonitorsAPI);
 
     /*
      * On-call calendar feeds. The custom router carries the public
@@ -7135,6 +7226,62 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new DashboardDomainAPI().getRouter(),
+    );
+
+    /*
+     * Who signs in to a dashboard's public link when it asks its visitors
+     * to (#10250): its private users, and its SAML and OIDC single sign-on.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DashboardPrivateUser, DashboardPrivateUserServiceType>(
+        DashboardPrivateUser,
+        DashboardPrivateUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DashboardSSO, DashboardSSOServiceType>(
+        DashboardSSO,
+        DashboardSSOService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DashboardOIDC, DashboardOIDCServiceType>(
+        DashboardOIDC,
+        DashboardOIDCService,
+      ).getRouter(),
+    );
+
+    /*
+     * Who signs in to a form's public link when it asks its visitors to
+     * (#10249): its private users, and its SAML and OIDC single sign-on.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<FormPrivateUser, FormPrivateUserServiceType>(
+        FormPrivateUser,
+        FormPrivateUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<FormSSO, FormSSOServiceType>(
+        FormSSO,
+        FormSSOService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<FormOIDC, FormOIDCServiceType>(
+        FormOIDC,
+        FormOIDCService,
+      ).getRouter(),
     );
 
     app.use(
@@ -7678,6 +7825,9 @@ const BaseAPIFeatureSet: FeatureSet = {
     // The Prometheus HTTP API over the project's metrics: PromQL (#6796).
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, PrometheusAPI);
 
+    // The Loki HTTP API over the project's logs: LogQL (#7700).
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, LokiAPI);
+
     //attach api's
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserAPI().getRouter());
 
@@ -7714,6 +7864,24 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<NetworkDeviceOwnerTeam, NetworkDeviceOwnerTeamServiceType>(
         NetworkDeviceOwnerTeam,
         NetworkDeviceOwnerTeamService,
+      ).getRouter(),
+    );
+
+    // network site owner user
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkSiteOwnerUser, NetworkSiteOwnerUserServiceType>(
+        NetworkSiteOwnerUser,
+        NetworkSiteOwnerUserService,
+      ).getRouter(),
+    );
+
+    // network site owner team
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkSiteOwnerTeam, NetworkSiteOwnerTeamServiceType>(
+        NetworkSiteOwnerTeam,
+        NetworkSiteOwnerTeamService,
       ).getRouter(),
     );
 
@@ -7947,6 +8115,12 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkSummaryAPI().getRouter(),
     );
+    /*
+     * The Sites page's Delete Empty Sites (NetworkEmptySitesAPI, #10188).
+     * Mounted after the site CRUD router, and safe there: BaseAPI claims no
+     * `/empty-sites` or `/delete-empty-sites` path on it.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, NetworkEmptySitesAPI);
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkTrafficAPI().getRouter(),

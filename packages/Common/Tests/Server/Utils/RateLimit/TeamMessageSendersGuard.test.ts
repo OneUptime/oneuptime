@@ -44,6 +44,17 @@ const TEAM_MEMBER_SERVICE: string =
 const PRIVATE_USER_SERVICE: string =
   "packages/Common/Server/Services/StatusPagePrivateUserService.ts";
 
+/*
+ * A dashboard's private users (#10250), and a form's after them: the shared
+ * base asks for the invitation, and each kind's service sends it.
+ */
+const PRIVATE_USER_BASE: string =
+  "packages/Common/Server/Services/PrivateUserServiceBase.ts";
+const DASHBOARD_PRIVATE_USER_SERVICE: string =
+  "packages/Common/Server/Services/DashboardPrivateUserService.ts";
+const FORM_PRIVATE_USER_SERVICE: string =
+  "packages/Common/Server/Services/FormPrivateUserService.ts";
+
 const TEAM_SENDERS: Array<TeamSender> = [
   {
     // Asked after every check of the create, right before its INSERT.
@@ -54,11 +65,16 @@ const TEAM_SENDERS: Array<TeamSender> = [
     givesBackIn: "onCreateError",
   },
   {
-    // Asked before the invitee's account is made, and before the email.
+    /*
+     * Asked before the invitee's account is made. The email goes once the
+     * membership is made, after the request (sendPlannedInvitation, #10180),
+     * and a create that fails before gives the count back.
+     */
     file: TEAM_MEMBER_SERVICE,
     asksIn: "onBeforeCreate",
     kind: TeamMessageKind.Invitation,
-    after: ["UserService.createByEmail(", "MailService.sendMail("],
+    after: ["UserService.createByEmail("],
+    givesBackIn: "onCreateError",
   },
   {
     /*
@@ -78,6 +94,18 @@ const TEAM_SENDERS: Array<TeamSender> = [
     after: [],
     givesBackIn: "onCreateError",
   },
+  {
+    /*
+     * A dashboard's private user (#10250): asked after every check of the
+     * create, counted in the dashboard's project, and given back by a
+     * create that fails before onCreateSuccess mails the invitation.
+     */
+    file: PRIVATE_USER_BASE,
+    asksIn: "onCreatePermitted",
+    kind: TeamMessageKind.Invitation,
+    after: [],
+    givesBackIn: "onCreateError",
+  },
 ];
 
 /*
@@ -85,11 +113,16 @@ const TEAM_SENDERS: Array<TeamSender> = [
  * each. A subscriber's confirmation and welcome go out from its service
  * alone - to a sign-up and to a subscriber the team adds alike.
  */
-const TEAM_EMAILS: Record<string, string> = {
+const TEAM_EMAILS: Record<string, string | Array<string>> = {
   "EmailTemplateType.InviteMember": TEAM_MEMBER_SERVICE,
   "EmailTemplateType.StatusPageWelcomeEmail": PRIVATE_USER_SERVICE,
   "EmailTemplateType.ConfirmStatusPageSubscription": SUBSCRIBER_SERVICE,
   "EmailTemplateType.SubscribedToStatusPage": SUBSCRIBER_SERVICE,
+  // The invitation PRIVATE_USER_BASE counts, which each kind's service mails (#10250, #10249).
+  "EmailTemplateType.PrivateUserInvitation": [
+    DASHBOARD_PRIVATE_USER_SERVICE,
+    FORM_PRIVATE_USER_SERVICE,
+  ],
 };
 
 /*
@@ -229,8 +262,79 @@ describe("every sender of the team's messages asks first, for its own kind", () 
     },
   );
 
+  /*
+   * A membership's invitation is the team member service's: asked in the
+   * request, sent once the membership is made, after the request (#10180) -
+   * so the request does the same work whatever account the address has.
+   */
+  test("the team member service sends a new invitation only once the membership is made, and marks it as sending first", () => {
+    const beforeCreate: string = methodCode(
+      TEAM_MEMBER_SERVICE,
+      "onBeforeCreate",
+    );
+
+    // Nothing of the email in the request: no build, no token, no send.
+    for (const call of [
+      "MailService.sendMail(",
+      "this.buildInvitationEmail(",
+      "UserRegistrationToken.",
+      "EmailVerificationTokenService.",
+    ]) {
+      expect([call, beforeCreate.includes(call)]).toEqual([call, false]);
+    }
+
+    // The project's window for the person is asked before the count.
+    const window: number = beforeCreate.indexOf("InvitationEmailWindow.claim(");
+    expect(window).toBeGreaterThan(-1);
+    expect(window).toBeLessThan(beforeCreate.indexOf(ASKS));
+
+    // Once the membership is made, as the last thing its create does.
+    const onCreateSuccess: string = methodCode(
+      TEAM_MEMBER_SERVICE,
+      "onCreateSuccess",
+    );
+    const startsAt: number = onCreateSuccess.indexOf(
+      "this.startPlannedInvitation(onCreate, createdItem);",
+    );
+
+    expect(startsAt).toBeGreaterThan(-1);
+    expect(
+      onCreateSuccess
+        .slice(startsAt)
+        .replace("this.startPlannedInvitation(onCreate, createdItem);", "")
+        .replace(/\s+/g, " ")
+        .trim(),
+    ).toBe("return createdItem; }");
+
+    const starts: string = methodCode(
+      TEAM_MEMBER_SERVICE,
+      "startPlannedInvitation",
+    );
+    const marked: number = starts.indexOf("isSending = true");
+    const started: number = starts.indexOf(
+      "this.sendPlannedInvitationInBackground(",
+    );
+
+    expect(marked).toBeGreaterThan(-1);
+    expect(started).toBeGreaterThan(marked);
+
+    // And the email is built and sent there.
+    const sends: string = methodCode(
+      TEAM_MEMBER_SERVICE,
+      "sendPlannedInvitation",
+    );
+
+    expect(sends).toContain("this.buildInvitationEmail(");
+    expect(sends).toContain("MailService.sendMail(");
+    expect(sends).toContain(".giveBack()");
+  });
+
   test("the subscriber service and the private user service mark their creates as sending as onCreateSuccess starts", () => {
-    for (const file of [SUBSCRIBER_SERVICE, PRIVATE_USER_SERVICE]) {
+    for (const file of [
+      SUBSCRIBER_SERVICE,
+      PRIVATE_USER_SERVICE,
+      PRIVATE_USER_BASE,
+    ]) {
       const code: string = methodCode(file, "onCreateSuccess");
       const marked: number = code.indexOf("isSending = true");
 
@@ -262,7 +366,7 @@ describe("the team's emails go out from their services only", () => {
 
   test.each(Object.entries(TEAM_EMAILS))(
     "%s is sent from %s alone",
-    (template: string, sender: string) => {
+    (template: string, sender: string | Array<string>) => {
       const senders: Array<string> = productFiles.filter(
         (relativePath: string): boolean => {
           const text: string = fs.readFileSync(
@@ -290,7 +394,7 @@ describe("the team's emails go out from their services only", () => {
             !Object.prototype.hasOwnProperty.call(readers, relativePath)
           );
         }),
-      ).toEqual([sender]);
+      ).toEqual(Array.isArray(sender) ? [...sender].sort() : [sender]);
     },
   );
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 58633,
-    "untranslated": 2150
+    "keys": 59636,
+    "untranslated": 2157
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -130,6 +130,7 @@
     "Container Apps",
     "Content Security Policy",
     "Control",
+    "Control {{control}}",
     "Controller Manager",
     "Controller manager",
     "Costa Rica",
@@ -294,6 +295,7 @@
     "Merge request {{label}}",
     "Mesh / VPN",
     "Microsoft Entra ID",
+    "Microsoft Intune",
     "Mirantis MOSK",
     "Mistral",
     "MongoDB",
@@ -305,6 +307,7 @@
     "Mozambique",
     "MySQL",
     "Myanmar",
+    "NSA/CISA Kubernetes Hardening Guide v1.2",
     "Namibia",
     "Nauru",
     "Nav",
@@ -505,6 +508,7 @@
     "amphorae",
     "arm",
     "arm64",
+    "arn:aws:iam::123456789012:role/OneUptimeSes",
     "aws_lambda · us-east-1 · nodejs 20",
     "bucket",
     "build=1.4.2, plan=pro",

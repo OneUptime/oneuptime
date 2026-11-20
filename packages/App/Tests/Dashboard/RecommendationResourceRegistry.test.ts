@@ -69,6 +69,13 @@ jest.mock(
  */
 const mockModelApiGetItem: jest.Mock = jest.fn();
 
+/*
+ * A Kubernetes cluster's context is finished by counting its nodes with an
+ * image disk of their own (hasKubernetesClusterSeparateImageDisk), with the
+ * same client. What each answer does to the context is pinned below.
+ */
+const mockModelApiCount: jest.Mock = jest.fn();
+
 jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
@@ -76,16 +83,22 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
       getItem: (data: unknown): Promise<unknown> => {
         return mockModelApiGetItem(data);
       },
+      count: (data: unknown): Promise<unknown> => {
+        return mockModelApiCount(data);
+      },
     },
   };
 });
 
 import RecommendationResourceRegistry, {
   RecommendationResourceDefinition,
+  describeCloudReadIntervalCost,
   getMessageQueueRecommendableMetrics,
   joinCloudRecommendationNotes,
   loadMessageQueueRecommendationContext,
+  readCloudConnectionRecommendationContext,
 } from "../../FeatureSet/Dashboard/src/Components/Recommendations/RecommendationResourceRegistry";
+import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import {
   RdsConnectionEngine,
   RdsConnectionLimitGap,
@@ -94,6 +107,7 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import CloudApp from "Common/Models/DatabaseModels/CloudApp";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
+import DeviceManagementConnection from "Common/Models/DatabaseModels/DeviceManagementConnection";
 import {
   MESSAGE_QUEUE_METRICS,
   getMessageQueueMetricId,
@@ -108,6 +122,8 @@ import ObjectID from "Common/Types/ObjectID";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import KubernetesResource from "Common/Models/DatabaseModels/KubernetesResource";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
 import { OPENSHIFT_KUBERNETES_PROVIDER } from "Common/Types/Kubernetes/KubernetesClusterProvider";
@@ -124,7 +140,9 @@ import {
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import Permission from "Common/Types/Permission";
 import TechStack from "Common/Types/Service/TechStack";
-import MonitorRecommendationCatalog from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
+import MonitorRecommendationCatalog, {
+  KUBERNETES_IMAGE_DISK_TEMPLATE_ID,
+} from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
 import {
   MonitorRecommendation,
   MonitorRecommendationContext,
@@ -1362,6 +1380,146 @@ describe("RecommendationResourceRegistry", () => {
   });
 
   /*
+   * Node Image Disk Almost Full is recommended only where some node of the
+   * cluster keeps its container images on a disk of its own (#10056): the
+   * cluster's row cannot say, so loadContext counts its nodes whose rows
+   * hold an image disk reading, which ingest writes for such a node alone.
+   * The page says why, when it is offered.
+   */
+  describe("Kubernetes cluster image disk context", () => {
+    const CLUSTER_ID: string = "71000000-0000-4000-8000-0000000000aa";
+    const IMAGE_DISK_NOTE: string =
+      "At least one node of this cluster keeps its container images on a disk of its own, so the recommendations below include an alert on that disk.";
+
+    function clusterOf(provider: unknown = null): KubernetesCluster {
+      const model: KubernetesCluster = new KubernetesCluster();
+      const fields: Record<string, unknown> = model as unknown as Record<
+        string,
+        unknown
+      >;
+      fields["_id"] = CLUSTER_ID;
+      fields["provider"] = provider;
+      return model;
+    }
+
+    async function loadedContext(
+      count: number | Error,
+      provider: unknown = null,
+    ): Promise<MonitorRecommendationContext> {
+      mockModelApiCount.mockReset();
+      if (count instanceof Error) {
+        mockModelApiCount.mockRejectedValue(count);
+      } else {
+        mockModelApiCount.mockResolvedValue(count);
+      }
+      return await RecommendationResourceRegistry.loadContext({
+        resourceType: MonitorRecommendationResourceType.Kubernetes,
+        model: clusterOf(provider),
+      });
+    }
+
+    function idsOffered(context: MonitorRecommendationContext): Array<string> {
+      return MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.Kubernetes,
+        context,
+      ).map((recommendation: MonitorRecommendation): string => {
+        return recommendation.templateId;
+      });
+    }
+
+    test("counts the cluster's nodes whose row reads an image disk of their own", async () => {
+      await loadedContext(2);
+
+      expect(mockModelApiCount).toHaveBeenCalledTimes(1);
+      const request: {
+        modelType: unknown;
+        query: Record<string, unknown>;
+      } = mockModelApiCount.mock.calls[0]![0];
+      expect(request.modelType).toBe(KubernetesResource);
+      expect(Object.keys(request.query).sort()).toEqual([
+        "kind",
+        "kubernetesClusterId",
+        "latestImageFsCapacityBytes",
+      ]);
+      expect(String(request.query["kubernetesClusterId"])).toBe(CLUSTER_ID);
+      expect(request.query["kind"]).toBe("Node");
+      expect(request.query["latestImageFsCapacityBytes"]).toBeInstanceOf(
+        NotNull,
+      );
+    });
+
+    test("a cluster with such a node is offered the image disk alert, and told why", async () => {
+      const context: MonitorRecommendationContext = await loadedContext(1);
+
+      expect(context.kubernetesHasSeparateImageDisk).toBe(true);
+      expect(idsOffered(context)).toContain(KUBERNETES_IMAGE_DISK_TEMPLATE_ID);
+      expect(
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.Kubernetes,
+          context: context,
+        }),
+      ).toBe(IMAGE_DISK_NOTE);
+    });
+
+    test("a cluster with none is not, and gets no note", async () => {
+      const context: MonitorRecommendationContext = await loadedContext(0);
+
+      expect(context.kubernetesHasSeparateImageDisk).toBe(false);
+      expect(idsOffered(context)).not.toContain(
+        KUBERNETES_IMAGE_DISK_TEMPLATE_ID,
+      );
+      expect(idsOffered(context)).toContain("k8s-high-disk-usage");
+      expect(
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.Kubernetes,
+          context: context,
+        }),
+      ).toBeUndefined();
+    });
+
+    test("a count that fails leaves it withheld, and the rest of the context standing", async () => {
+      const context: MonitorRecommendationContext = await loadedContext(
+        new Error("connection reset"),
+        OPENSHIFT_KUBERNETES_PROVIDER,
+      );
+
+      expect(context.kubernetesHasSeparateImageDisk).toBeUndefined();
+      expect(context.kubernetesProvider).toBe(OPENSHIFT_KUBERNETES_PROVIDER);
+      expect(idsOffered(context)).not.toContain(
+        KUBERNETES_IMAGE_DISK_TEMPLATE_ID,
+      );
+    });
+
+    test("keeps the provider it read, and an OpenShift cluster with such a node is told both", async () => {
+      const context: MonitorRecommendationContext = await loadedContext(
+        3,
+        OPENSHIFT_KUBERNETES_PROVIDER,
+      );
+
+      expect(context).toEqual({
+        kubernetesProvider: OPENSHIFT_KUBERNETES_PROVIDER,
+        kubernetesHasSeparateImageDisk: true,
+      });
+      expect(
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.Kubernetes,
+          context: context,
+        }),
+      ).toBe(
+        `This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates. ${IMAGE_DISK_NOTE}`,
+      );
+    });
+
+    test("selects nothing more of the cluster's row: the fact is the nodes'", () => {
+      expect(
+        RecommendationResourceRegistry.getSelect(
+          MonitorRecommendationResourceType.Kubernetes,
+        ),
+      ).toEqual({ clusterIdentifier: true, name: true, provider: true });
+    });
+  });
+
+  /*
    * The page fetches the row with every context column selected, and the API
    * refuses a select naming a column the viewer may not read - the whole
    * `ModelAPI.getItem` fails, not just that column, and the Recommendations
@@ -1707,6 +1865,13 @@ describe("RecommendationResourceRegistry", () => {
         // The crash and ANR rates (#9716).
         "rum-app-crash-rate",
         "rum-app-anr-rate",
+        /*
+         * And per install a day, as Android vitals and the Play Console
+         * judge them (#9924): the share of the day's installs a crash or
+         * an ANR happened on, from at least 250 installs.
+         */
+        "rum-app-daily-crash-rate",
+        "rum-app-daily-anr-rate",
         "rum-failed-user-operations",
         "rum-slow-cold-start",
         "rum-frozen-frames",
@@ -2250,6 +2415,9 @@ describe("RecommendationResourceRegistry", () => {
         cloudReadings: true,
         cloudProperties: true,
         cloudConnectionId: true,
+        // What its account's stream is read by (#10028).
+        cloudAccountId: true,
+        cloudRegion: true,
       });
     });
 
@@ -2761,6 +2929,207 @@ describe("RecommendationResourceRegistry", () => {
         ).toBeUndefined();
       }
     });
+
+    /*
+     * #10028: each recommended monitor's window follows how often its
+     * connection reads it, and what its account's stream writes instead -
+     * read off its connection when its tab loads.
+     */
+    describe("what its connection says of how its metrics come", () => {
+      const CONNECTION_ID: string = "1b2c3d4e-0000-4000-8000-00000000c0de";
+
+      function ec2Row(): CloudResource {
+        const model: CloudResource = new CloudResource();
+        const record: Record<string, unknown> = model as unknown as Record<
+          string,
+          unknown
+        >;
+
+        record["_id"] = CLOUD_RESOURCE_ID;
+        record["name"] = "web-1";
+        record["cloudProvider"] = "aws";
+        record["cloudResourceType"] = "AWS::EC2::Instance";
+        record["telemetryAttributes"] = EC2_ATTRIBUTES;
+        record["cloudConnectionId"] = new ObjectID(CONNECTION_ID);
+        record["cloudAccountId"] = "123456789012";
+        record["cloudRegion"] = "eu-west-1";
+
+        return model;
+      }
+
+      function loadEc2(): Promise<MonitorRecommendationContext> {
+        return RecommendationResourceRegistry.loadContext({
+          resourceType: MonitorRecommendationResourceType.CloudResource,
+          model: ec2Row(),
+        });
+      }
+
+      function windowsOf(context: MonitorRecommendationContext): Array<string> {
+        return MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.CloudResource,
+          context,
+        ).map((recommendation: MonitorRecommendation): string => {
+          return String(
+            recommendation.getMonitorStep({
+              resourceIdentifier: CLOUD_RESOURCE_ID,
+              onlineMonitorStatusId: ObjectID.generate(),
+              offlineMonitorStatusId: ObjectID.generate(),
+              defaultIncidentSeverityId: ObjectID.generate(),
+              defaultAlertSeverityId: ObjectID.generate(),
+              monitorName: "web-1",
+            }).data?.metricMonitor?.rollingTime,
+          );
+        });
+      }
+
+      beforeEach(() => {
+        mockModelApiGetItem.mockReset();
+      });
+
+      test("its interval is read off its connection, and its monitors read the windows it gives", async () => {
+        mockModelApiGetItem.mockResolvedValue({
+          provider: "aws",
+          config: { readIntervalInMinutes: "60" },
+        });
+
+        const context: MonitorRecommendationContext = await loadEc2();
+        const read: {
+          modelType: unknown;
+          id: ObjectID;
+          select: Record<string, boolean>;
+        } = mockModelApiGetItem.mock.calls[0]![0] as {
+          modelType: unknown;
+          id: ObjectID;
+          select: Record<string, boolean>;
+        };
+
+        expect(read.modelType).toBe(CloudConnection);
+        expect(read.id.toString()).toBe(CONNECTION_ID);
+        expect(read.select).toEqual({
+          provider: true,
+          config: true,
+          streamSummary: true,
+        });
+        expect(context.cloudReadIntervalInMinutes).toBe(60);
+        expect(context.cloudStreamedMetrics).toEqual([]);
+        expect(windowsOf(context)).toEqual(["Past 2 Hours", "Past 2 Hours"]);
+        expect(describeCloud(context)).toBe(
+          // A page holds a figure to its word (getGlobalTranslator).
+          "Its connection reads metrics every 60\u00A0minutes, so an alert can come that long after a problem, and these monitors read longer windows to miss no reading. To alert sooner, read more often in Cloud > Connect.",
+        );
+      });
+
+      test("read at its cloud's default, or one it does not offer: its templates' windows, and no note", async () => {
+        for (const value of ["10", undefined, "7", "abc"]) {
+          mockModelApiGetItem.mockResolvedValue({
+            provider: "aws",
+            config: value === undefined ? {} : { readIntervalInMinutes: value },
+          });
+
+          const context: MonitorRecommendationContext = await loadEc2();
+
+          expect(context.cloudReadIntervalInMinutes).toBe(10);
+          expect(windowsOf(context)).toEqual([
+            "Past 30 Minutes",
+            "Past 30 Minutes",
+          ]);
+          expect(describeCloud(context)).toBeUndefined();
+        }
+      });
+
+      test("its account's stream writes its metrics: they come within minutes, so its windows stay", async () => {
+        mockModelApiGetItem.mockResolvedValue({
+          provider: "aws",
+          config: { readIntervalInMinutes: "60" },
+          streamSummary: {
+            metricSources: [
+              {
+                accountId: "123456789012",
+                region: "eu-west-1",
+                namespaces: ["AWS/EC2"],
+                lastAt: new Date(Date.now() - 60 * 1000).toISOString(),
+              },
+            ],
+            logSources: [],
+          },
+        });
+
+        const context: MonitorRecommendationContext = await loadEc2();
+
+        expect(context.cloudStreamedMetrics).toEqual([
+          "aws|aws/ec2|cpuutilization",
+          "aws|aws/ec2|statuscheckfailed",
+        ]);
+        expect(windowsOf(context)).toEqual([
+          "Past 30 Minutes",
+          "Past 30 Minutes",
+        ]);
+        expect(describeCloud(context)).toBeUndefined();
+      });
+
+      test("no connection, or one that cannot be read: the row's context, its templates' windows", async () => {
+        const unread: CloudResource = ec2Row();
+
+        (unread as unknown as Record<string, unknown>)["cloudConnectionId"] =
+          undefined;
+
+        const withoutConnection: MonitorRecommendationContext =
+          await RecommendationResourceRegistry.loadContext({
+            resourceType: MonitorRecommendationResourceType.CloudResource,
+            model: unread,
+          });
+
+        expect(mockModelApiGetItem).not.toHaveBeenCalled();
+        expect(withoutConnection.cloudReadIntervalInMinutes).toBeUndefined();
+
+        for (const answer of [
+          (): Promise<unknown> => {
+            return Promise.reject(new Error("403"));
+          },
+          (): Promise<unknown> => {
+            return Promise.resolve(null);
+          },
+        ]) {
+          mockModelApiGetItem.mockReset();
+          mockModelApiGetItem.mockImplementation(answer);
+
+          const context: MonitorRecommendationContext = await loadEc2();
+
+          expect(context.cloudReadIntervalInMinutes).toBeUndefined();
+          expect(windowsOf(context)).toEqual([
+            "Past 30 Minutes",
+            "Past 30 Minutes",
+          ]);
+        }
+      });
+
+      test("readCloudConnectionRecommendationContext: a connection of a cloud it does not know adds nothing", () => {
+        const context: MonitorRecommendationContext = {
+          cloudProvider: "oracle",
+          cloudResourceType: "x",
+        };
+
+        expect(
+          readCloudConnectionRecommendationContext({
+            context,
+            record: {},
+            connection: { provider: "oracle", config: {} },
+            now: new Date(),
+          }),
+        ).toBe(context);
+      });
+
+      test("the account's sentence names it, not the resource", () => {
+        expect(
+          describeCloudReadIntervalCost({
+            readIntervalInMinutes: 30,
+            isAccount: true,
+          }),
+        ).toBe(
+          "This account's connection reads metrics every 30\u00A0minutes, so an alert can come that long after a problem, and these monitors read longer windows to miss no reading. To alert sooner, read more often in Cloud > Connect.",
+        );
+      });
+    });
   });
 
   describe("App Platforms app context", () => {
@@ -3254,6 +3623,131 @@ describe("RecommendationResourceRegistry", () => {
           context: {},
         }),
       ).toContain("broker metrics");
+    });
+  });
+
+  /*
+   * #9837: a device management connection is offered its own service's
+   * templates, so its row's service is its context.
+   */
+  describe("device management connection context", () => {
+    function connectionRow(provider: unknown): BaseModel {
+      const model: DeviceManagementConnection =
+        new DeviceManagementConnection();
+      (model as unknown as Record<string, unknown>)["provider"] = provider;
+      return model;
+    }
+
+    test("selects the connection's service and settings with its name", () => {
+      expect(
+        RecommendationResourceRegistry.getSelect(
+          MonitorRecommendationResourceType.DeviceManagementConnection,
+        ),
+      ).toEqual({ _id: true, name: true, provider: true, config: true });
+    });
+
+    test("reads the service off the row, and none as none", () => {
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType:
+            MonitorRecommendationResourceType.DeviceManagementConnection,
+          model: connectionRow("esper"),
+        }),
+      ).toEqual({
+        deviceManagementProvider: "esper",
+        deviceManagementReadIntervalInMinutes: null,
+      });
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType:
+            MonitorRecommendationResourceType.DeviceManagementConnection,
+          model: connectionRow(undefined),
+        }),
+      ).toEqual({
+        deviceManagementProvider: null,
+        deviceManagementReadIntervalInMinutes: null,
+      });
+    });
+
+    /*
+     * #10006: Connection Stopped Reading waits three of the connection's
+     * read intervals, so how often it is read is its context too.
+     */
+    test("reads how often the connection is read off its settings, an interval it does not take as the default", () => {
+      const row: (config: unknown) => BaseModel = (
+        config: unknown,
+      ): BaseModel => {
+        const model: BaseModel = connectionRow("soti");
+        (model as unknown as Record<string, unknown>)["config"] = config;
+        return model;
+      };
+
+      for (const [config, interval] of [
+        [
+          { tenant: "acme.mobicontrolcloud.com", readIntervalInMinutes: 60 },
+          60,
+        ],
+        [{ tenant: "acme.mobicontrolcloud.com", readIntervalInMinutes: 5 }, 5],
+        [{ tenant: "acme.mobicontrolcloud.com", readIntervalInMinutes: 7 }, 15],
+        [{ tenant: "acme.mobicontrolcloud.com" }, 15],
+      ] as Array<[Record<string, unknown>, number]>) {
+        expect(
+          RecommendationResourceRegistry.readContext({
+            resourceType:
+              MonitorRecommendationResourceType.DeviceManagementConnection,
+            model: row(config),
+          }),
+        ).toEqual({
+          deviceManagementProvider: "soti",
+          deviceManagementReadIntervalInMinutes: interval,
+        });
+      }
+
+      // The page's context reaches the template: an hourly connection waits 190 minutes.
+      const step: MonitorStep = MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.DeviceManagementConnection,
+        RecommendationResourceRegistry.readContext({
+          resourceType:
+            MonitorRecommendationResourceType.DeviceManagementConnection,
+          model: row({
+            tenant: "acme.mobicontrolcloud.com",
+            readIntervalInMinutes: 60,
+          }),
+        }),
+      )[0]!.getMonitorStep({
+        resourceIdentifier: "55555555-5555-4555-8555-555555555555",
+        onlineMonitorStatusId: ObjectID.generate(),
+        offlineMonitorStatusId: ObjectID.generate(),
+        defaultIncidentSeverityId: ObjectID.generate(),
+        defaultAlertSeverityId: ObjectID.generate(),
+        monitorName: "MobiControl stores",
+      });
+
+      expect(
+        Number(
+          step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[0]!
+            .data!.filters[0]!.value,
+        ),
+      ).toBe(190);
+    });
+
+    test("says nothing while its service has templates, and why the list is empty when it has none", () => {
+      expect(
+        RecommendationResourceRegistry.describeContext({
+          resourceType:
+            MonitorRecommendationResourceType.DeviceManagementConnection,
+          context: { deviceManagementProvider: "esper" },
+        }),
+      ).toBeUndefined();
+      expect(
+        RecommendationResourceRegistry.describeContext({
+          resourceType:
+            MonitorRecommendationResourceType.DeviceManagementConnection,
+          context: { deviceManagementProvider: "another-service" },
+        }),
+      ).toBe(
+        "OneUptime has no recommended monitor for this connection's devices yet.",
+      );
     });
   });
 });

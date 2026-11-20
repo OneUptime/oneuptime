@@ -21,10 +21,17 @@ import {
   splitMonitorIds,
 } from "./TelemetrySetup";
 import TelemetryWhoIsTold from "./TelemetryWhoIsTold";
+import {
+  TelemetrySetupRowFacts,
+  getTelemetryAlertRows,
+  getTelemetrySendRows,
+} from "./TelemetrySetupResources";
 import GuidedSetupFrame, { GuidedSetupFrameStep } from "../GuidedSetupFrame";
 import { getDescribeItPrompt } from "../AskAiGuidedSetupLinks";
+import useGuidedSetupRunSync from "../UseGuidedSetupRunSync";
 import GuidedSetupRunStore, {
   GuidedSetupRun,
+  GuidedSetupRunSync,
   getFirstOpenStepKey,
 } from "../GuidedSetupProgress";
 import WebsiteDownApi from "../WebsiteDown/WebsiteDownApi";
@@ -122,6 +129,7 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
       userId: userId,
     });
   }, [userId]);
+  const runSync: GuidedSetupRunSync = useGuidedSetupRunSync(store);
 
   /*
    * Step 2's monitors: for the data the project's first data says arrived
@@ -179,7 +187,8 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
     let isActive: boolean = true;
 
     const load: () => Promise<void> = async (): Promise<void> => {
-      const stored: GuidedSetupRun = store.read();
+      // The server's run (#7253): another device's, or this one's.
+      const stored: GuidedSetupRun = await store.load();
       let nextRun: GuidedSetupRun = stored;
       let loadedService: TelemetrySetupService | null = null;
       let loadedMonitors: Array<TelemetrySetupMonitor> = [];
@@ -516,6 +525,32 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
       setMonitors(loaded);
       setFailures(result.failures);
 
+      /*
+       * Some were refused: what was made is watched now, so it leaves the
+       * pick and the offer, and Create - or the panel's Try again - makes
+       * only what is still missing, never a second copy (#10276). A read
+       * that fails keeps the pick as it was.
+       */
+      if (result.failures.length > 0 && result.createdIds.length > 0) {
+        const nowCovered: Array<string> | null =
+          await TelemetrySetupApi.loadCoveredRecommendationIds({
+            service: service,
+            recommendations: recommendations,
+            translator: translator,
+          }).catch(() => {
+            return null;
+          });
+
+        if (nowCovered) {
+          setCoveredIds(nowCovered);
+          setPicked((current: Array<string>): Array<string> => {
+            return current.filter((recommendationId: string): boolean => {
+              return !nowCovered.includes(recommendationId);
+            });
+          });
+        }
+      }
+
       if (result.failures.length === 0 && loaded.length > 0) {
         setOpenStepKey(null);
       }
@@ -736,6 +771,43 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
       </div>
     );
 
+  /*
+   * What the panel lists (#10276): the service, then the monitors - made,
+   * picked and not made yet, or refused - read from this page's records
+   * and the run's.
+   */
+  const rowFacts: TelemetrySetupRowFacts = {
+    service: service ? { id: service.id, name: service.name } : null,
+    serviceRoute: service
+      ? routeOf(PageMap.SERVICE_VIEW, service.id)
+      : undefined,
+    monitors: monitors.map((monitor: TelemetrySetupMonitor) => {
+      return {
+        id: monitor.id,
+        name: monitor.name,
+        route: routeOf(PageMap.MONITOR_VIEW, monitor.id),
+      };
+    }),
+    picked: offered
+      .filter((recommendation: MonitorRecommendation): boolean => {
+        return picked.includes(recommendation.recommendationId);
+      })
+      .map((recommendation: MonitorRecommendation) => {
+        return {
+          recommendationId: recommendation.recommendationId,
+          name:
+            translator.translateText(recommendation.name) ||
+            recommendation.name,
+        };
+      }),
+    refused: failures,
+    isSaving: isSaving,
+    isSkipped: facts.isAlertSkipped,
+    onRetry: () => {
+      void createPicked();
+    },
+  };
+
   const steps: Array<GuidedSetupFrameStep> = [
     {
       ...progress[0]!,
@@ -747,6 +819,7 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
           })
         : undefined,
       content: sendContent,
+      resources: getTelemetrySendRows(rowFacts),
     },
     {
       ...progress[1]!,
@@ -759,6 +832,7 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
         isSkipped: facts.isAlertSkipped,
       }),
       content: alertContent,
+      resources: getTelemetryAlertRows(rowFacts),
     },
   ];
 
@@ -903,6 +977,10 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
   return (
     <GuidedSetupFrame
       setup={TELEMETRY_SETUP}
+      runSync={runSync}
+      onRetryRunSync={() => {
+        store.retry();
+      }}
       steps={steps}
       openStepKey={openStepKey}
       onOpenStep={(key: string) => {

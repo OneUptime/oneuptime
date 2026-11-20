@@ -2,10 +2,13 @@ import { describe, expect, test } from "@jest/globals";
 import { ComplianceRequirementStatus } from "Common/Types/DataSecurity/ComplianceRequirementCatalog";
 import { DataStoreResourceKind } from "Common/Types/DataSecurity/DataStoreResource";
 import {
+  KubernetesComplianceAcceptanceEntry,
   KubernetesComplianceFrameworkResponse,
+  KubernetesComplianceNodeBenchmark,
   KubernetesComplianceTurnedOff,
 } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceApiTypes";
 import { CIS_NOT_SCORED } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceCatalog";
+import { NSA_CISA_NOT_SCORED } from "Common/Types/Kubernetes/Compliance/NsaCisaHardening";
 import { KubernetesComplianceFinding } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceFinding";
 import { KubernetesComplianceFramework } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceFramework";
 import {
@@ -13,28 +16,41 @@ import {
   KubernetesComplianceRequirementResult,
 } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceScoring";
 import {
+  ACCEPTANCE_EXPIRY_OPTIONS,
   BINDING_COUNT,
+  KubernetesAcceptanceExpiry,
+  MARKED_MANUAL_REASON,
   NAMESPACE_COUNT,
   NOT_EVALUATED_REASONS,
   ROLE_COUNT,
   SERVICE_ACCOUNT_COUNT,
   WORKLOAD_COUNT,
+  findAcceptanceEntry,
   findTurnedOff,
+  getAcceptanceExpiryDate,
+  getAcceptanceExpiryLine,
+  getAcceptedLine,
   getFailingControlCount,
   getFailingCountTemplate,
+  getKubernetesAcceptanceKey,
   getKubernetesSwitchKey,
   getNamespaceRows,
   getObjectName,
+  isAcceptanceRow,
   isSwitchOn,
+  sortAcceptancesForPage,
   sortControlsForPage,
 } from "../../FeatureSet/Dashboard/src/Components/KubernetesCompliance/KubernetesComplianceModel";
 import {
+  describeAcceptance,
   describeDetail,
   describeFinding,
   describeKubernetesTurnedOff,
+  getFixText,
   getKubernetesFrameworkReport,
   getKubernetesFrameworkReportCsv,
 } from "../../FeatureSet/Dashboard/src/Components/KubernetesCompliance/KubernetesComplianceExport";
+import { createTranslator } from "Common/Types/Translator";
 
 /*
  * A CLUSTER'S HARDENING, AS ITS PAGE AND ITS REPORTS SAY IT (#9627): the
@@ -48,6 +64,8 @@ const BASELINE: KubernetesComplianceFramework =
   KubernetesComplianceFramework.PssBaseline;
 const CIS: KubernetesComplianceFramework =
   KubernetesComplianceFramework.CisKubernetes;
+const NSA: KubernetesComplianceFramework =
+  KubernetesComplianceFramework.NsaCisaHardening;
 
 const KUBE_PROXY: KubernetesComplianceFinding = {
   object: { kind: "DaemonSet", namespace: "kube-system", name: "kube-proxy" },
@@ -166,8 +184,17 @@ describe("the page's controls", () => {
     for (const reason of Object.values(
       KubernetesComplianceNotEvaluatedReason,
     )) {
-      expect(NOT_EVALUATED_REASONS[reason]).toMatch(/^[A-Z].*\.$/);
+      // A sentence may open with kube-bench, which writes its name in lowercase.
+      expect(NOT_EVALUATED_REASONS[reason]).toMatch(
+        /^([A-Z]|kube-bench ).*\.$/,
+      );
     }
+    // Without kube-bench, the value that turns it on (#9873).
+    expect(
+      NOT_EVALUATED_REASONS[
+        KubernetesComplianceNotEvaluatedReason.NodeBenchmarkNotRun
+      ],
+    ).toContain("compliance.nodeBenchmark.enabled");
     expect(
       NOT_EVALUATED_REASONS[
         KubernetesComplianceNotEvaluatedReason.PolicyObjectsNotRead
@@ -311,7 +338,7 @@ describe("the CSV report", () => {
     const lines: Array<string> = csv.split("\r\n");
 
     expect(lines[0]).toBe(
-      "Framework,Control,Title,Status,Note,Failing,What Fails,How to Fix,Turned Off",
+      "Framework,Control,Title,Status,Note,Failing,What Fails,How to Fix,Turned Off,Accepted,Accepted Findings",
     );
     expect(lines).toHaveLength(6);
     expect(lines[1]).toContain("PSS Baseline,HostProcess,HostProcess,Passing");
@@ -442,5 +469,422 @@ describe("the JSON report", () => {
       reason: "NodeAccess",
       why: "Needs access to the nodes: file permissions and the kubelet's configuration.",
     });
+  });
+});
+
+/*
+ * #9874 and #9880, as the page and the reports say them: a finding accepted
+ * for one object, by whom, why and until when, in both exports; and a
+ * workload read from its pod template, as it runs no pod.
+ */
+function acceptanceOf(
+  data: Partial<KubernetesComplianceAcceptanceEntry> = {},
+): KubernetesComplianceAcceptanceEntry {
+  return {
+    id: "accept-1",
+    framework: BASELINE,
+    requirement: "Privileged Containers",
+    object: { kind: "DaemonSet", namespace: "kube-system", name: "cilium" },
+    note: "Cilium's agent programs the node's network.",
+    acceptedAt: "2026-11-12T09:00:00.000Z",
+    acceptedBy: "Jane Doe",
+    expiresAt: "2027-02-12T09:00:00.000Z",
+    isExpired: false,
+    isOnCluster: true,
+    ...data,
+  };
+}
+
+describe("accepted findings and templates in the reports", () => {
+  test("a workload read from its pod template says so", () => {
+    expect(
+      describeFinding({
+        object: { kind: "CronJob", namespace: "ops", name: "backup" },
+        details: [{ field: "hostNetwork", value: "true" }],
+        isFromTemplate: true,
+      }),
+    ).toBe(
+      "CronJob ops/backup (from its pod template, no pod running): hostNetwork=true",
+    );
+  });
+
+  test("an acceptance: its object, whether for every control, by whom, when, until when and why", () => {
+    expect(describeAcceptance(acceptanceOf())).toBe(
+      "DaemonSet kube-system/cilium, accepted by Jane Doe on 2026-11-12, until 2027-02-12: Cilium's agent programs the node's network.",
+    );
+    expect(
+      describeAcceptance(
+        acceptanceOf({
+          requirement: null,
+          acceptedBy: null,
+          expiresAt: "2026-11-01T00:00:00.000Z",
+          isExpired: true,
+          isOnCluster: false,
+          note: "",
+        }),
+      ),
+    ).toBe(
+      "DaemonSet kube-system/cilium, every control, accepted on 2026-11-12, expired 2026-11-01, not on the cluster now",
+    );
+  });
+
+  test("the CSV lists a control's accepted findings, and how many, beside what fails it", () => {
+    const csv: string = getKubernetesFrameworkReportCsv(
+      frameworkOf({
+        acceptances: [acceptanceOf()],
+        requirements: [
+          requirement({
+            requirement: "Privileged Containers",
+            status: ComplianceRequirementStatus.Failing,
+            failingCount: 1,
+            findings: [KUBE_PROXY],
+            acceptedCount: 1,
+            accepted: [
+              {
+                object: {
+                  kind: "DaemonSet",
+                  namespace: "kube-system",
+                  name: "cilium",
+                },
+                details: [],
+                podCount: 2,
+                acceptanceId: "accept-1",
+              },
+            ],
+          }),
+        ],
+      }),
+    );
+    const line: string = csv.split("\r\n")[1]!;
+
+    expect(line).toContain(
+      "1,\"DaemonSet kube-system/cilium, accepted by Jane Doe on 2026-11-12, until 2027-02-12: Cilium's agent programs the node's network.\"",
+    );
+  });
+
+  test("the JSON keeps every acceptance - expired and gone ones too - and what the framework read from templates", () => {
+    const report: Record<string, unknown> = getKubernetesFrameworkReport(
+      {
+        clusterId: "c",
+        kubernetesVersion: "1.31",
+        standardVersion: "1.31",
+        provider: null,
+      },
+      frameworkOf({
+        workloadsFromTemplates: 2,
+        acceptedCount: 1,
+        acceptances: [
+          acceptanceOf(),
+          acceptanceOf({ id: "accept-2", isExpired: true }),
+        ],
+      }),
+      new Date("2026-11-19T10:00:00.000Z"),
+    );
+
+    expect(report["workloadsFromTemplates"]).toBe(2);
+    expect(report["acceptedCount"]).toBe(1);
+    expect(
+      (report["acceptances"] as Array<Record<string, unknown>>).map(
+        (entry: Record<string, unknown>) => {
+          return [entry["id"], entry["isExpired"]];
+        },
+      ),
+    ).toEqual([
+      ["accept-1", false],
+      ["accept-2", true],
+    ]);
+  });
+});
+
+describe("an acceptance, as the page says it", () => {
+  const translator: ReturnType<typeof createTranslator> = createTranslator(
+    (key: string): string => {
+      return key;
+    },
+  );
+
+  test("its key names its framework, its control - or none - and its object", () => {
+    expect(
+      getKubernetesAcceptanceKey({
+        framework: BASELINE,
+        requirement: " Privileged Containers ",
+        object: { kind: "DaemonSet", namespace: "kube-system", name: "cilium" },
+      }),
+    ).toBe("PSS Baseline|Privileged Containers|DaemonSet|kube-system|cilium");
+    expect(
+      getKubernetesAcceptanceKey({
+        framework: CIS,
+        requirement: null,
+        object: { kind: "ClusterRoleBinding", namespace: "", name: "admin" },
+      }),
+    ).toBe("CIS Kubernetes||ClusterRoleBinding||admin");
+  });
+
+  test("a setting's row that names an object is an acceptance, never a switch", () => {
+    expect(isAcceptanceRow({ objectName: "cilium" })).toBe(true);
+    expect(isAcceptanceRow({ objectName: "  " })).toBe(false);
+    expect(isAcceptanceRow({})).toBe(false);
+  });
+
+  test("an accepted finding finds the acceptance it is under", () => {
+    const framework: KubernetesComplianceFrameworkResponse = frameworkOf({
+      acceptances: [acceptanceOf()],
+    });
+
+    expect(findAcceptanceEntry(framework, "accept-1")?.note).toBe(
+      "Cilium's agent programs the node's network.",
+    );
+    expect(findAcceptanceEntry(framework, "nope")).toBeUndefined();
+    expect(findAcceptanceEntry(frameworkOf(), "accept-1")).toBeUndefined();
+  });
+
+  test("who accepted it and when, and until when, in the reader's words", () => {
+    expect(getAcceptedLine(acceptanceOf(), translator)).toMatch(
+      /^Accepted by Jane Doe on /,
+    );
+    expect(
+      getAcceptedLine(acceptanceOf({ acceptedBy: null }), translator),
+    ).toMatch(/^Accepted on /);
+    expect(
+      getAcceptedLine(acceptanceOf({ acceptedAt: null }), translator),
+    ).toBe("Accepted");
+    expect(getAcceptanceExpiryLine(acceptanceOf(), translator)).toMatch(
+      /^Fails again on /,
+    );
+    expect(
+      getAcceptanceExpiryLine(acceptanceOf({ isExpired: true }), translator),
+    ).toMatch(/^Expired on .*: it fails again\.$/);
+    expect(
+      getAcceptanceExpiryLine(acceptanceOf({ expiresAt: null }), translator),
+    ).toBeNull();
+  });
+
+  test("the fold lists those in force first, then the expired, then the gone, the latest first", () => {
+    expect(
+      sortAcceptancesForPage([
+        acceptanceOf({ id: "gone", isOnCluster: false }),
+        acceptanceOf({ id: "expired", isExpired: true }),
+        acceptanceOf({ id: "older", acceptedAt: "2026-10-01T00:00:00.000Z" }),
+        acceptanceOf({ id: "newer" }),
+      ]).map((entry: KubernetesComplianceAcceptanceEntry): string => {
+        return entry.id;
+      }),
+    ).toEqual(["newer", "older", "expired", "gone"]);
+  });
+
+  test("the dialog's expiries, from now", () => {
+    const now: Date = new Date("2026-11-19T12:00:00.000Z");
+
+    expect(
+      ACCEPTANCE_EXPIRY_OPTIONS.map(
+        (option: { value: KubernetesAcceptanceExpiry }) => {
+          return option.value;
+        },
+      ),
+    ).toEqual([
+      KubernetesAcceptanceExpiry.Never,
+      KubernetesAcceptanceExpiry.Month,
+      KubernetesAcceptanceExpiry.ThreeMonths,
+      KubernetesAcceptanceExpiry.SixMonths,
+      KubernetesAcceptanceExpiry.Year,
+    ]);
+    expect(
+      getAcceptanceExpiryDate(KubernetesAcceptanceExpiry.Never, now),
+    ).toBeNull();
+    expect(
+      getAcceptanceExpiryDate(
+        KubernetesAcceptanceExpiry.Month,
+        now,
+      )?.toISOString(),
+    ).toBe("2026-12-19T12:00:00.000Z");
+    expect(
+      getAcceptanceExpiryDate(
+        KubernetesAcceptanceExpiry.ThreeMonths,
+        now,
+      )?.toISOString(),
+    ).toBe("2027-02-19T12:00:00.000Z");
+    expect(
+      getAcceptanceExpiryDate(
+        KubernetesAcceptanceExpiry.SixMonths,
+        now,
+      )?.toISOString(),
+    ).toBe("2027-05-19T12:00:00.000Z");
+    expect(
+      getAcceptanceExpiryDate(
+        KubernetesAcceptanceExpiry.Year,
+        now,
+      )?.toISOString(),
+    ).toBe("2027-11-19T12:00:00.000Z");
+    expect(getAcceptanceExpiryDate("someday", now)).toBeNull();
+  });
+});
+
+/*
+ * #9873 and #9875 in the reports: the CIS benchmark's node controls, with
+ * what kube-bench read and what it marks manual, and the NSA/CISA guide's
+ * controls by its sections, with what it asks that OneUptime cannot read.
+ */
+describe("kube-bench's node controls and the NSA/CISA guide in the reports", () => {
+  const KIND_WORKER: KubernetesComplianceFinding = {
+    object: { kind: "Node", namespace: "", name: "kind-worker" },
+    details: [],
+  };
+  const NODE_BENCHMARK: KubernetesComplianceNodeBenchmark = {
+    benchmark: "cis-1.12",
+    family: "cis",
+    nodes: [
+      {
+        node: "kind-worker",
+        benchmark: "cis-1.12",
+        targets: ["node"],
+        finishedAt: "2026-11-19T22:41:05.000Z",
+        isControlPlane: false,
+        error: null,
+      },
+    ],
+    manual: ["4.2.4", "4.2.5"],
+    suggestedBenchmark: null,
+  };
+  const CLUSTER: {
+    clusterId: string;
+    kubernetesVersion: string | null;
+    standardVersion: string;
+    provider: string | null;
+  } = {
+    clusterId: "c",
+    kubernetesVersion: "1.33",
+    standardVersion: "1.33",
+    provider: null,
+  };
+
+  function cisWithNodes(): KubernetesComplianceFrameworkResponse {
+    return frameworkOf({
+      framework: CIS,
+      requirements: [
+        requirement({
+          requirement: "4.1.1",
+          title: "Kubelet service file: permissions 600 or stricter",
+          status: ComplianceRequirementStatus.Failing,
+          failingCount: 1,
+          findings: [KIND_WORKER],
+        }),
+      ],
+    });
+  }
+
+  test("a node control's fix is written whole, the command in it", () => {
+    expect(
+      getFixText({
+        fix: "Run {{setting}} on each node.",
+        fixSlots: { setting: "chmod 600 /var/lib/kubelet/config.yaml" },
+      }),
+    ).toBe("Run chmod 600 /var/lib/kubelet/config.yaml on each node.");
+    // A slot it is not given stays as written, rather than reading as nothing.
+    expect(getFixText({ fix: "Set {{setting}}.", fixSlots: {} })).toBe(
+      "Set {{setting}}.",
+    );
+    expect(getFixText(undefined)).toBe("");
+  });
+
+  test("the CSV says each node that fails a control, the fix, and the checks kube-bench marks manual", () => {
+    const csv: string = getKubernetesFrameworkReportCsv(cisWithNodes(), {
+      nodeBenchmark: NODE_BENCHMARK,
+    });
+
+    expect(csv).toContain(
+      "CIS Kubernetes,4.1.1,Kubelet service file: permissions 600 or stricter,Failing,,1,Node kind-worker,Run chmod 600 /etc/systemd/system/kubelet.service.d/10-kubeadm.conf on each node.",
+    );
+    expect(csv).toContain(
+      `CIS Kubernetes,4.2.4,,Not scored here,${MARKED_MANUAL_REASON}`,
+    );
+    // kube-bench read the kubelet: section 4 leaves the list it does not score.
+    expect(csv).not.toContain("4.1,Worker node configuration files");
+  });
+
+  test("the JSON carries what kube-bench read, and the CIS report alone", () => {
+    const report: Record<string, unknown> = getKubernetesFrameworkReport(
+      { ...CLUSTER, nodeBenchmark: NODE_BENCHMARK },
+      cisWithNodes(),
+      new Date(),
+    );
+    const notScored: Array<Record<string, unknown>> = report[
+      "notScored"
+    ] as Array<Record<string, unknown>>;
+
+    expect(report["nodeBenchmark"]).toEqual(NODE_BENCHMARK);
+    expect(
+      (report["requirements"] as Array<Record<string, unknown>>)[0]!["fix"],
+    ).toBe(
+      "Run chmod 600 /etc/systemd/system/kubelet.service.d/10-kubeadm.conf on each node.",
+    );
+    expect(
+      notScored.filter((row: Record<string, unknown>): boolean => {
+        return row["reason"] === "MarkedManual";
+      }),
+    ).toEqual([
+      {
+        id: "4.2.4",
+        title: "",
+        controlCount: 1,
+        reason: "MarkedManual",
+        why: MARKED_MANUAL_REASON,
+      },
+      {
+        id: "4.2.5",
+        title: "",
+        controlCount: 1,
+        reason: "MarkedManual",
+        why: MARKED_MANUAL_REASON,
+      },
+    ]);
+    expect(
+      getKubernetesFrameworkReport(
+        { ...CLUSTER, nodeBenchmark: NODE_BENCHMARK },
+        frameworkOf(),
+        new Date(),
+      ),
+    ).not.toHaveProperty("nodeBenchmark");
+  });
+
+  test("the NSA/CISA report names each control's section, and lists what the guide asks that is not scored", () => {
+    const guide: KubernetesComplianceFrameworkResponse = frameworkOf({
+      framework: NSA,
+      fullName: "NSA/CISA Kubernetes Hardening Guide v1.2",
+      requirements: [
+        requirement({
+          requirement: "No privileged containers",
+          status: ComplianceRequirementStatus.Failing,
+          failingCount: 1,
+          findings: [KUBE_PROXY],
+        }),
+      ],
+    });
+    const report: Record<string, unknown> = getKubernetesFrameworkReport(
+      CLUSTER,
+      guide,
+      new Date(),
+    );
+    const notScored: Array<Record<string, unknown>> = report[
+      "notScored"
+    ] as Array<Record<string, unknown>>;
+    const csv: string = getKubernetesFrameworkReportCsv(guide);
+
+    expect(
+      (report["requirements"] as Array<Record<string, unknown>>)[0],
+    ).toMatchObject({
+      requirement: "No privileged containers",
+      section: "Kubernetes Pod security",
+    });
+    expect(notScored).toHaveLength(NSA_CISA_NOT_SCORED.length);
+    expect(notScored[0]).toMatchObject({
+      id: "",
+      title: "Container images scanned for vulnerabilities",
+      reason: "OutsideKubernetes",
+      section: "Kubernetes Pod security",
+    });
+    expect(csv).toContain(
+      "NSA/CISA Hardening,,Container images scanned for vulnerabilities,Not scored here,",
+    );
+    expect(csv.split("\r\n")).toHaveLength(2 + NSA_CISA_NOT_SCORED.length);
   });
 });

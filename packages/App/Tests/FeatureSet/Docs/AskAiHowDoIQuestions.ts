@@ -8,10 +8,26 @@
  * I", the Dashboard page where it is done, by the name Search gives it.
  *
  * AskAiHowDoIRetrieval.test.ts holds the docs search and the page finder
- * to them offline. The same list is what to run against a model (the
- * whole conversation, with a provider) to check the answers themselves:
- * a citation of `docsPage`, and a button for `dashboardPage`.
+ * to them offline. `npm run ask-ai-eval -- --suite=how-do-i
+ * --llm-type=<type> --model=<name>` asks a live model each question
+ * through Ask AI's chat turn and grades the answer (#7066): a citation of
+ * `docsPage` (or of a page `alsoAnswers` names), a Go to button for
+ * `dashboardPage`, and "The docs do not cover this." for the questions of
+ * ASK_AI_NOT_COVERED_QUESTIONS. It asks these, the German and Persian ones
+ * below (ASK_AI_HOW_DO_I_QUESTIONS_TRANSLATED), those, and the ones asked
+ * on a page (ASK_AI_PAGE_CONTEXT_QUESTIONS, #7062, #7065). The runner is
+ * App's scripts/ask-ai-eval.ts, documented in Docs/ai/evals.md.
  */
+
+import AIChatPageContextType, {
+  AIChatPageContext,
+} from "Common/Types/AI/AIChatPageContext";
+import {
+  AskAiEvalNamedRecord,
+  AskAiEvalProject,
+  AskAiEvalProjectKind,
+  getAskAiEvalProject,
+} from "Common/Server/Utils/AI/Eval/AskAi/AskAiEvalProject";
 
 export interface AskAiHowDoIQuestion {
   question: string;
@@ -1060,3 +1076,376 @@ export const ASK_AI_QUESTIONS_BY_LANGUAGE: ReadonlyArray<AskAiHowDoIQuestionTran
       };
     },
   );
+
+/*
+ * Questions the docs do not answer, about something OneUptime does not do:
+ * the answer must say "The docs do not cover this." and name the pages it
+ * read, never a menu or a setting from memory (#7066).
+ */
+export const ASK_AI_NOT_COVERED_QUESTIONS: ReadonlyArray<string> = [
+  "How do I pay my OneUptime invoice in Bitcoin?",
+  "How do I get OneUptime to send me a fax when a monitor goes down?",
+  "How do I change the OneUptime app's icon on my phone's home screen?",
+];
+
+/*
+ * QUESTIONS ASKED ON A PAGE (#7062, #7065).
+ *
+ * "How do I put this on my own domain?" means nothing without the page it
+ * is asked on: Ask AI reads "this" from the page context the Dashboard
+ * sends. Each question here is asked on one page - one of the project's
+ * records, a setup page, a create form - with the context that page sends,
+ * in the eval's project that pages people (its records are the ones the
+ * contexts name). Asked on a record, the Go to button must open that
+ * record's own page: this status page's Custom Domains, not the list of
+ * status pages.
+ */
+export interface AskAiPageContextQuestion extends AskAiHowDoIQuestion {
+  // Where it is asked, as a person would say it: "the Acme Status status page".
+  where: string;
+  // The context that page sends (PageContext.ts in the Dashboard).
+  pageContext: AIChatPageContext;
+  /*
+   * The page's place, as the server names it in the prompt. None where the
+   * context names no page (a monitor's says only which monitor), or one
+   * the server's catalogs do not hold (Home).
+   */
+  onPage?: string | undefined;
+  /*
+   * The model searches the docs with the page's subject and the question:
+   * "this" is not a word the docs index.
+   */
+  searchWords: string;
+}
+
+// The project the questions are asked in, and the records they are asked on.
+export const ASK_AI_PAGE_CONTEXT_PROJECT: AskAiEvalProjectKind =
+  AskAiEvalProjectKind.PagesPeople;
+
+const PROJECT: AskAiEvalProject = getAskAiEvalProject(
+  ASK_AI_PAGE_CONTEXT_PROJECT,
+);
+
+const recordOf: (
+  records: ReadonlyArray<AskAiEvalNamedRecord>,
+  name: string,
+) => AskAiEvalNamedRecord = (
+  records: ReadonlyArray<AskAiEvalNamedRecord>,
+  name: string,
+): AskAiEvalNamedRecord => {
+  const record: AskAiEvalNamedRecord | undefined = records.find(
+    (candidate: AskAiEvalNamedRecord): boolean => {
+      return candidate.name === name;
+    },
+  );
+
+  if (!record) {
+    throw new Error(`The eval's project has no record named ${name}.`);
+  }
+
+  return record;
+};
+
+const ACME_STATUS: AskAiEvalNamedRecord = recordOf(
+  PROJECT.statusPages,
+  "Acme Status",
+);
+const WEBSITE_MONITOR: AskAiEvalNamedRecord = recordOf(
+  PROJECT.monitors,
+  "Website",
+);
+const DEFAULT_POLICY: AskAiEvalNamedRecord = recordOf(
+  PROJECT.policies,
+  "Default on-call policy",
+);
+// The records whose own pages a question is asked on since #10104.
+const PRIMARY_ROTATION: AskAiEvalNamedRecord = recordOf(
+  PROJECT.onCallSchedules,
+  "Primary rotation",
+);
+const SUPPORT_LINE: AskAiEvalNamedRecord = recordOf(
+  PROJECT.incomingCallPolicies,
+  "Support line",
+);
+const PLATFORM_TEAM: AskAiEvalNamedRecord = recordOf(PROJECT.teams, "Platform");
+const CHECKOUT_HEALTH: AskAiEvalNamedRecord = recordOf(
+  PROJECT.dashboards,
+  "Checkout health",
+);
+const RESTART_THE_API: AskAiEvalNamedRecord = recordOf(
+  PROJECT.runbooks,
+  "Restart the API",
+);
+const CHECKOUT_AVAILABILITY: AskAiEvalNamedRecord = recordOf(
+  PROJECT.slos,
+  "Checkout availability",
+);
+const REPORT_A_PROBLEM: AskAiEvalNamedRecord = recordOf(
+  PROJECT.forms,
+  "Report a problem",
+);
+
+export const ASK_AI_PAGE_CONTEXT_QUESTIONS: ReadonlyArray<AskAiPageContextQuestion> =
+  [
+    // On a record: the button opens that record's own page (#7065).
+    {
+      where: "the Acme Status status page",
+      question: "How do I put this on my own domain?",
+      pageContext: {
+        type: AIChatPageContextType.StatusPage,
+        entityId: ACME_STATUS.id,
+        entityTitle: ACME_STATUS.name,
+        page: "/dashboard/:projectId/status-pages/:id",
+      },
+      onPage: "Status Page > Overview",
+      searchWords: "status page custom domain",
+      docsPage: "status-pages/branding-and-domains",
+      alsoAnswers: ["guides/status-page"],
+      dashboardPage: "Custom Domains",
+      dashboardPath: "/dashboard/:projectId/status-pages/:id/domains",
+    },
+    {
+      where: "the Acme Status status page's Subscribers",
+      question: "How do I let people subscribe by SMS?",
+      pageContext: {
+        type: AIChatPageContextType.StatusPage,
+        entityId: ACME_STATUS.id,
+        entityTitle: ACME_STATUS.name,
+        page: "/dashboard/:projectId/status-pages/:id/subscribers",
+      },
+      onPage: "Status Page > Subscribers",
+      searchWords: "status page SMS subscribers",
+      docsPage: "status-pages/subscribers",
+      dashboardPage: "Subscriber Settings",
+      dashboardPath:
+        "/dashboard/:projectId/status-pages/:id/subscriber-settings",
+    },
+    {
+      where: "the Website monitor",
+      question: "How do I check this from more places, more often?",
+      // A monitor's pages say which of them is on screen too (#10104).
+      pageContext: {
+        type: AIChatPageContextType.Monitor,
+        entityId: WEBSITE_MONITOR.id,
+        entityTitle: WEBSITE_MONITOR.name,
+        page: "/dashboard/:projectId/monitors/:id",
+      },
+      onPage: "Monitor > Overview",
+      searchWords: "monitor probes and interval",
+      docsPage: "monitor/create-monitor",
+      dashboardPage: "Probes & Interval",
+      dashboardPath: "/dashboard/:projectId/monitors/:id/probes",
+    },
+    {
+      where: "the Default on-call policy",
+      question: "How do I page someone else when nobody answers?",
+      pageContext: {
+        type: AIChatPageContextType.OnCallPolicy,
+        entityId: DEFAULT_POLICY.id,
+        entityTitle: DEFAULT_POLICY.name,
+        page: "/dashboard/:projectId/on-call-duty/policies/:id",
+      },
+      onPage: "On-Call Policy > Basic > Overview",
+      searchWords: "on-call policy escalation rules",
+      docsPage: "on-call/escalation-rules",
+      alsoAnswers: ["on-call/policies", "guides/paging"],
+      dashboardPage: "Escalation Rules",
+      dashboardPath:
+        "/dashboard/:projectId/on-call-duty/policies/:id/escalation",
+    },
+
+    /*
+     * On the records whose pages sent no context before #10104: each ends
+     * at that record's own page, as a status page's does.
+     */
+    {
+      where: "the Primary rotation on-call schedule",
+      question: "How do I add a layer to this schedule?",
+      pageContext: {
+        type: AIChatPageContextType.OnCallSchedule,
+        entityId: PRIMARY_ROTATION.id,
+        entityTitle: PRIMARY_ROTATION.name,
+        page: "/dashboard/:projectId/on-call-duty/schedules/:id",
+      },
+      onPage: "On-Call Schedule > Basic > Overview",
+      searchWords: "on-call schedule layers rotation",
+      docsPage: "on-call/schedules",
+      dashboardPage: "Layers",
+      dashboardPath: "/dashboard/:projectId/on-call-duty/schedules/:id/layers",
+    },
+    {
+      where: "the Support line incoming call policy",
+      question: "How do I make this ring someone else when nobody answers?",
+      pageContext: {
+        type: AIChatPageContextType.IncomingCallPolicy,
+        entityId: SUPPORT_LINE.id,
+        entityTitle: SUPPORT_LINE.name,
+        page: "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id",
+      },
+      onPage: "Incoming Call Policy > Basic > Overview",
+      searchWords: "incoming call policy escalation rules",
+      docsPage: "on-call/incoming-call-policy",
+      dashboardPage: "Escalation Rules",
+      dashboardPath:
+        "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/escalation",
+    },
+    {
+      where: "the Platform team",
+      question: "How do I add someone to this team?",
+      pageContext: {
+        type: AIChatPageContextType.Team,
+        entityId: PLATFORM_TEAM.id,
+        entityTitle: PLATFORM_TEAM.name,
+        page: "/dashboard/:projectId/teams/:id",
+      },
+      onPage: "Team > Overview > Team Details",
+      searchWords: "add a member to a team",
+      docsPage: "permissions/index",
+      alsoAnswers: ["permissions/inviting-people"],
+      dashboardPage: "Members",
+      dashboardPath: "/dashboard/:projectId/teams/:id/members",
+    },
+    {
+      where: "the Checkout health dashboard",
+      question: "How do I share this with people outside my project?",
+      pageContext: {
+        type: AIChatPageContextType.Dashboard,
+        entityId: CHECKOUT_HEALTH.id,
+        entityTitle: CHECKOUT_HEALTH.name,
+        page: "/dashboard/:projectId/dashboards/:id",
+      },
+      onPage: "Dashboard > Basic > Dashboard",
+      searchWords: "share a dashboard public link",
+      docsPage: "dashboards/sharing",
+      dashboardPage: "Sharing",
+      dashboardPath:
+        "/dashboard/:projectId/dashboards/:id/authentication-settings",
+    },
+    {
+      where: "the Restart the API runbook",
+      question: "How do I make this run on its own when an incident starts?",
+      pageContext: {
+        type: AIChatPageContextType.Runbook,
+        entityId: RESTART_THE_API.id,
+        entityTitle: RESTART_THE_API.name,
+        page: "/dashboard/:projectId/runbooks/:id",
+      },
+      onPage: "Runbook > Basic > Overview",
+      searchWords: "runbook triggers run automatically",
+      docsPage: "runbooks/triggers",
+      alsoAnswers: ["runbooks/rules"],
+      dashboardPage: "Triggers",
+      dashboardPath: "/dashboard/:projectId/runbooks/:id/triggers",
+    },
+    {
+      where: "the Checkout availability SLO",
+      question:
+        "How do I get alerted when this burns its error budget too fast?",
+      pageContext: {
+        type: AIChatPageContextType.Slo,
+        entityId: CHECKOUT_AVAILABILITY.id,
+        entityTitle: CHECKOUT_AVAILABILITY.name,
+        page: "/dashboard/:projectId/slos/:id",
+      },
+      onPage: "SLO > Overview",
+      searchWords: "SLO burn rate alerts",
+      docsPage: "slo/burn-rate-alerts",
+      dashboardPage: "Burn Rate Rules",
+      dashboardPath: "/dashboard/:projectId/slos/:id/burn-rate-rules",
+    },
+    {
+      where: "the Report a problem form",
+      question: "How do I add a question to this form?",
+      pageContext: {
+        type: AIChatPageContextType.Form,
+        entityId: REPORT_A_PROBLEM.id,
+        entityTitle: REPORT_A_PROBLEM.name,
+        page: "/dashboard/:projectId/forms/:id/share",
+      },
+      onPage: "Form > Form > Share",
+      searchWords: "build a form questions",
+      docsPage: "forms/building",
+      dashboardPage: "Build",
+      dashboardPath: "/dashboard/:projectId/forms/:id",
+    },
+
+    // On a setup page or a create form (#7062).
+    {
+      where: "Home",
+      question: "Where do I start?",
+      pageContext: {
+        type: AIChatPageContextType.Home,
+        page: "/dashboard/:projectId/home",
+      },
+      searchWords: "quickstart create a project monitor your website",
+      docsPage: "introduction/quickstart",
+      alsoAnswers: ["introduction/getting-started"],
+    },
+    {
+      where: "API Keys",
+      question: "How do I make a new one here?",
+      pageContext: {
+        type: AIChatPageContextType.ProjectSettings,
+        page: "/dashboard/:projectId/settings/api-keys",
+      },
+      onPage: "Project Settings > Advanced > API Keys",
+      searchWords: "create API key",
+      docsPage: "api-reference/api-reference",
+      dashboardPage: "API Keys",
+      dashboardPath: "/dashboard/:projectId/settings/api-keys",
+    },
+    {
+      where: "Notification Methods",
+      question: "How do I add my phone number here?",
+      pageContext: {
+        type: AIChatPageContextType.UserSettings,
+        page: "/dashboard/:projectId/user-settings/notification-methods",
+      },
+      onPage: "User Settings > Alerts & Notifications > Notification Methods",
+      searchWords: "add a phone number notification methods",
+      docsPage: "notifications/notification-methods",
+      dashboardPage: "Notification Methods",
+      dashboardPath: "/dashboard/:projectId/user-settings/notification-methods",
+    },
+    {
+      where: "On-Call Schedules",
+      question: "How do I make people take turns each week?",
+      pageContext: {
+        type: AIChatPageContextType.OnCall,
+        page: "/dashboard/:projectId/on-call-duty/schedules",
+      },
+      onPage: "On-Call > Schedules > On-Call Schedules",
+      searchWords: "on-call schedule rotation",
+      docsPage: "on-call/schedules",
+      dashboardPage: "On-Call Schedules",
+      dashboardPath: "/dashboard/:projectId/on-call-duty/schedules",
+    },
+    {
+      where: "Status Pages",
+      question: "How do I add one here?",
+      pageContext: {
+        type: AIChatPageContextType.StatusPagesList,
+        page: "/dashboard/:projectId/status-pages",
+      },
+      onPage: "Status Pages > All Status Pages",
+      searchWords: "create a status page",
+      docsPage: "status-pages/index",
+      alsoAnswers: ["guides/status-page"],
+      dashboardPage: "Create Status Page",
+      dashboardPath: "/dashboard/:projectId/status-pages?create=1",
+    },
+    {
+      where: "Create Monitor",
+      question: "Which type do I pick to check my website?",
+      pageContext: {
+        type: AIChatPageContextType.CreateForm,
+        page: "/dashboard/:projectId/monitors/create",
+      },
+      onPage: "Monitors > Create Monitor",
+      searchWords: "website monitor type",
+      docsPage: "monitor/website-monitor",
+      alsoAnswers: ["monitor/create-monitor"],
+      dashboardPage: "Create Monitor",
+      dashboardPath: "/dashboard/:projectId/monitors/create",
+    },
+  ];

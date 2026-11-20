@@ -5,7 +5,7 @@ Kubernetes 監測器依據 OneUptime Kubernetes 代理程式從叢集傳送的�
 :::cards
 - [安裝代理程式](/docs/monitor/kubernetes-agent): 一個 Helm 指令就能把叢集接入 OneUptime。
 - [建立監測器](#建立-kubernetes-監測器): 選擇叢集，然後選擇範本、指標或查詢。
-- [警示範本](#現成的警示範本): 二十五個現成的警示，從停止回報的叢集到 etcd。
+- [警示範本](#現成的警示範本): 二十六個現成的警示，從停止回報的叢集到 etcd。
 - [條件](#監控條件): 靜態閾值和異常偵測。
 :::
 
@@ -88,7 +88,7 @@ flowchart TB
 | --- | --- |
 | Pod | Pod CPU 使用量, Pod 記憶體使用量, Pod 階段（代碼）, Pod 檔案系統使用量, 磁碟區容量, 磁碟區可用空間, Pod 記憶體限制使用率, Pod CPU 限制使用率, Pod 網路 I/O（累計，雙向） |
 | 節點 | 節點 CPU 使用量, 節點可分配 CPU, 節點記憶體使用量, 節點記憶體工作集, 節點檔案系統使用量, 節點可分配記憶體, 節點 Ready 狀況, 節點 MemoryPressure 狀況, 節點 DiskPressure 狀況, 節點 PIDPressure 狀況, 節點檔案系統可用空間, 節點檔案系統容量 |
-| 容器 | 容器重新啟動次數, 容器重新啟動次數（增量）, 容器 CPU 限制, 容器 CPU 請求, 容器記憶體限制, 容器記憶體請求, 容器就緒 |
+| 容器 | 容器重新啟動次數, 容器重新啟動次數（增量）, 容器 CPU 限制, 容器 CPU 請求, 容器記憶體限制, 容器記憶體請求, 容器就緒, 容器檔案系統可用空間, 容器檔案系統容量 |
 | 工作負載 | Deployment 可用副本數, Deployment 期望副本數, DaemonSet 期望節點數, DaemonSet 錯誤排程的節點數, DaemonSet 就緒節點數, StatefulSet 期望副本數, StatefulSet 就緒副本數, Job 失敗的 Pod 數, Job 失敗的 Pod 數（增量）, Job 成功的 Pod 數 |
 | HPA | HPA 目前副本數, HPA 期望副本數, HPA 最大副本數, HPA 最小副本數 |
 | 控制平面 | etcd 有領導者, API 伺服器進行中的請求, 排程器待處理的 Pod |
@@ -149,7 +149,8 @@ flowchart TB
 | etcd No Leader | 控制平面 | etcd 沒有選出領導者 | 嚴重 |
 | API Server Request Saturation | 控制平面 | API 伺服器在整個視窗內持有 200 個以上正在處理的請求 | 嚴重 |
 | Scheduler Backlog | 排程中 | 排程器的待處理 Pod 佇列在 5 分鐘內一直不是空的 | 警告 |
-| High Node Disk Usage | 儲存空間 | 節點的檔案系統使用率超過 90% | 警告 |
+| High Node Disk Usage | 儲存空間 | 節點的檔案系統使用率超過 85% | 警告 |
+| Node Image Disk Almost Full | 儲存空間 | 節點存放容器映像的磁碟使用率超過 85% | 警告 |
 | PVC Almost Full | 儲存空間 | 持久卷宣告的使用率超過 90% | 警告 |
 | DaemonSet Pods Not Ready | 工作負載 | DaemonSet 在 15 分鐘內一直有節點上沒有它的就緒 Pod | 警告 |
 | DaemonSet Misscheduled Nodes | 工作負載 | DaemonSet 在不再符合其節點選取器、親和性或容忍度的節點上執行 Pod | 警告 |
@@ -167,6 +168,8 @@ flowchart TB
 成本範本讀取 OneUptime 根據代理程式每小時的成本列寫入的指標，每小時一個資料點，因此它們會把過去一天的資料加總；它們的預算以叢集的貨幣計，預設為 USD。
 
 **High Node CPU Request Commitment** 和 **High Node Memory Request Commitment** 與排程器一樣，只計算尚未結束的 Pod 的請求（request）。處於 Succeeded 或 Failed 的 Pod（例如已完成的 Job 的 Pod）在被刪除之前，叢集仍會回報其請求：這些不計入。
+
+**Node Image Disk Almost Full** 讀取 kubelet 回報的、每個執行中的容器寫入自身檔案的磁碟，因為代理程式本身不回報節點的映像磁碟。在常見配置中這就是映像磁碟，但並非每個節點都如此：如果節點像大多數節點一樣把映像放在根檔案系統上，它就是根檔案系統，因此該範本會與 **High Node Disk Usage** 同時觸發；在 kubelet 的分割映像檔案系統（`KubeletSeparateDiskGC`）下，它是容器寫入的磁碟，而不是映像所在的磁碟；沒有執行中容器的節點則不回報任何內容。只有當某個節點把映像放在自己專用的磁碟上時，叢集的建議才會提供它，此時節點清單會顯示 **映像專用磁碟** 欄；**告警內容** 清單則對任何叢集都列出它。kubelet 預設在存放映像的磁碟使用率達到 85% 時刪除未使用的映像，並在可用空間低於 15% 時逐出 Pod，因此該範本和 **High Node Disk Usage** 會在 85% 時觸發，並在 80% 時讓監測器恢復上線，映像垃圾回收會把磁碟降到這個水準。在映像有專用磁碟的節點上，kubelet 依根檔案系統從 90% 起逐出 Pod，因此在那裡 **High Node Disk Usage** 會在逐出開始之前觸發。
 
 **Cluster Stopped Reporting** 會在叢集的代理程式 10 分鐘內沒有任何資料送達時觸發：代理程式被解除安裝或不斷當機、它的 API 金鑰被撤銷、它失去通往 OneUptime 的路由，或者叢集的 API 伺服器不再回應它。資料恢復後即會解決。資料中斷時，其他範本沒有可比較的資料，會維持最後的狀態，因此要靠這個範本告訴你。
 

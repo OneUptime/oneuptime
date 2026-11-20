@@ -41,7 +41,7 @@ The server is stateless: it issues no session ids, and every request stands on i
 - **Scheduled maintenance**: create and manage maintenance events.
 - **Telemetry**: query logs, metrics, traces, exceptions, monitor logs, security events and more, read-only.
 
-There are create, get, list, update, delete and count tools for 55 kinds of record, list and count tools for 9 kinds of telemetry, and tools made for incident response. A kind of record with no field you can change once it is made, such as an incident's link to an alert, has no update tool. Read-only tools carry `readOnlyHint` and every tool that changes something carries `destructiveHint`, so a client can run read-only calls on its own and ask you before any change. `openWorldHint` marks the tools that reach past your project: the public status page tools, and the changes that are shown on a status page and sent to its subscribers, such as a new incident, a change of its state or a public note. A failed tool call comes back as a tool result (`isError: true`) with a `statusCode`, the details and a suggestion, not as an MCP protocol error, so the agent can read the failure and correct itself.
+There are create, get, list, update, delete and count tools for 55 kinds of record, list and count tools for 9 kinds of telemetry, and tools made for incident response. A kind of record with no field you can change once it is made, such as an incident's link to an alert, has no update tool. Read-only tools carry `readOnlyHint` and every tool that changes something carries `destructiveHint`, so a client can run read-only calls on its own and ask you before any change. `openWorldHint` marks the tools that reach past your project: the public status page tools; the changes that are shown on a status page and sent to its subscribers, such as a new incident, a change of its state or a public note; invitations, which are emailed to people who need not be in your project yet; and the tools that make or change a monitor, a data store or a BI tool, since OneUptime then reaches the address you give it. A failed tool call comes back as a tool result (`isError: true`) with a `statusCode`, the details and a suggestion, not as an MCP protocol error, so the agent can read the failure and correct itself.
 
 ## Before you begin
 
@@ -348,12 +348,16 @@ The **`oneuptime_move_in_list`** tool moves a row of an ordered list, such as an
 The server also has Ask AI's setup actions, one call each: what you set up, rather than one record at a time. Each makes the records Ask AI and the guided setups make for the same answers, with the same checks:
 
 - **`set_up_website_monitoring`**: a website or API monitor for an address, which opens an incident when the address does not answer or answers with an error. You own it, and an address a monitor already checks gets no second one
+- **`set_up_service_monitor`**: one of the monitors the telemetry guided setup recommends for a service that sends telemetry, for failing requests, slow requests, unhandled exceptions or a spike in error logs. It opens an alert for your team, and a monitor the service has already gets no second one
 - **`set_up_paging`**: in a project that pages nobody yet, its first on-call policy, which pages you and the people and teams you name for every new incident and alert
+- **`add_to_on_call_policy`**: members and teams added to an on-call policy the project has, at one of its levels or as a new level that pages them when nobody acknowledges. Someone a level pages already is not added twice
+- **`invite_people`**: people invited to the project by email. Each of them gets an invitation email in your name, and an address in the project already is not invited again
+- **`set_how_to_reach_me`**: how pages reach you, such as a text at once and a call after five minutes. It replaces your How to Reach Me, and uses only the methods you have verified
 - **`publish_status_page`**: a public status page that shows the monitors you name
 - **`add_monitors_to_status_page`**: monitors put on a status page the project has
 - **`who_is_told`**: who is told when a monitor goes down, and what would stop them being reached. It changes nothing
 
-They act as you, signed in with OAuth: a project API key cannot use the four that make something. Your client asks you before each of them, and its answer says what was made. What is missing, such as a permission, an address or room in the plan, is said before anything is made.
+They act as you, signed in with OAuth: a project API key cannot use the eight that make something. Your client asks you before each of them, and its answer says what was made. What is missing, such as a permission, an address or room in the plan, is said before anything is made.
 
 ## Querying Telemetry
 

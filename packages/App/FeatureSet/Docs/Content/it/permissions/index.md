@@ -129,6 +129,26 @@ La fatturazione ha tre ruoli propri. `BillingViewer` legge la fatturazione del p
 
 Tutti i {{PERMISSION_ROLE_COUNT}} ruoli sono elencati nel [Riferimento delle autorizzazioni](/docs/permissions/reference).
 
+### Livelli di prodotto
+
+Un livello di prodotto dà a un team un solo prodotto, a un solo livello, e nient'altro del progetto: `CloudAdmin`, `NetworkViewer`, `HostMember`. Ogni livello fa sui record propri del prodotto ciò che un ruolo dell'intero progetto fa su ogni record:
+
+- **Visualizzatore** legge lì ciò che legge il ruolo Visualizzatore, e non modifica nulla.
+- **Membro** crea, modifica ed elimina anche i record del prodotto, come fa un Membro del progetto.
+- **Amministratore** fa lì anche ciò che fa un Amministratore del progetto: le impostazioni del prodotto, le sue connessioni e credenziali, e le sue regole di etichette e di proprietari.
+
+Un livello non raggiunge mai un altro prodotto, né le impostazioni, i team, i membri, le chiavi API, l'SSO o la fatturazione del progetto.
+
+:::steps
+1. Aprite la pagina **Autorizzazioni** del team.
+2. In **Accesso ai prodotti**, scegliete un livello per ogni prodotto con cui lavora il team. Svuotate il livello di un prodotto per togliere quel prodotto al team.
+:::
+
+- **I Monitor, gli Incidenti e le altre aree con ruoli propri** si assegnano con **Aggiungi ruolo**, sotto **Un'area**. Lo stesso vale per i ruoli Telemetry, per Log, Metriche, Tracce, Profili ed Eccezioni, e per i ruoli Security.
+- **IA / LLM, Inventario e Moduli** hanno solo un livello Visualizzatore e un livello Amministratore, perché un Membro del progetto non vi modifica nulla.
+- **Un livello è un'autorizzazione come le altre.** Potete limitarlo ad alcune etichette o ai record posseduti nella tabella delle autorizzazioni, bloccarlo, inserirlo in un ruolo personalizzato o assegnarlo a una chiave API. Come per ogni autorizzazione, potete assegnare un livello solo se lo detenete voi stessi, a meno che non siate Proprietari del progetto.
+- **Un livello legge i record del prodotto, non la sua telemetria.** Un team con `HostViewer` vede gli host del progetto, e per i loro grafici gli serve anche `TelemetryViewer`.
+
 ### Autorizzazioni granulari
 
 Ogni singola capacità si può assegnare anche da sola — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` e altre {{PERMISSION_TOTAL_COUNT}}. Usatele quando un ruolo è troppo ampio e dovete concedere esattamente una cosa.
@@ -202,7 +222,7 @@ Ogni autorizzazione concessa ha un ambito: quando la aggiungete, **Ambito** si t
 
 A un ruolo vengono offerte tutte e tre le risposte. A una singola autorizzazione, aggiunta con **Aggiungi autorizzazione**, viene offerto un ambito ovunque uno la restringa, con le sole risposte che la restringono: **Create Workflow** può essere limitata ai flussi di lavoro di proprietà di un team, o ad alcune etichette, proprio come **Edit Workflow**, mentre un'autorizzazione su qualcosa che tutti condividono, come **Create Label**, non offre alcun ambito, perché nessuno la restringerebbe. La singola autorizzazione di una chiave API prende etichette ovunque le etichette la restringano. Un blocco non è mai limitato alle risorse possedute: toglie un'autorizzazione ovunque o, con le etichette, alle risorse che le portano.
 
-**Possedute** è il modo più semplice di costruire un modello «ognuno si occupa dei propri servizi»: date a un team `MonitorAdmin` con ambito Possedute, poi rendete quel team proprietario dei monitor di cui è responsabile. Restringe ogni risorsa che può avere proprietari — monitor, incidenti, dashboard, servizi, gruppi di monitor, pianificazioni di reperibilità e simili — e ciò che le appartiene, come i livelli di una pianificazione. Sonde, Runner, agenti IA, pianificazioni di reperibilità e modelli di incidenti e di manutenzione sono ciò con cui si configurano altre risorse, quindi un'autorizzazione con ambito Possedute continua a leggerli tutti e potete sceglierne uno qualsiasi; modifica ed elimina solo quelli di cui voi o i vostri team siete proprietari. La chiave di un Runner, che permette a chiunque la possieda di agire come quel Runner, si vede solo sui Runner di cui voi o i vostri team siete proprietari. La configurazione del progetto (stati degli incidenti, etichette) non ha proprietari, quindi lì un ruolo con ambito Possedute si comporta normalmente. Anche le pagine proprie di Data Observability rispettano il vostro ambito: la **Panoramica**, **Problemi** e il numero accanto a **Panoramica** contano ed elencano solo le tabelle, i controlli e le pipeline che potete leggere, e un'azione su una tabella o un controllo, come **Esegui ora**, raggiunge solo quelli che potete leggere o modificare.
+**Possedute** è il modo più semplice di costruire un modello «ognuno si occupa dei propri servizi»: date a un team `MonitorAdmin` con ambito Possedute, poi rendete quel team proprietario dei monitor di cui è responsabile. Restringe ogni risorsa che può avere proprietari — monitor, incidenti, dashboard, servizi, gruppi di monitor, pianificazioni di reperibilità e simili — e ciò che le appartiene, come i livelli di una pianificazione. Sonde, Runner, agenti IA, pianificazioni di reperibilità, siti di rete e modelli di incidenti e di manutenzione sono ciò con cui si configurano altre risorse, quindi un'autorizzazione con ambito Possedute continua a leggerli tutti e potete sceglierne uno qualsiasi; modifica ed elimina solo quelli di cui voi o i vostri team siete proprietari. La chiave di un Runner, che permette a chiunque la possieda di agire come quel Runner, si vede solo sui Runner di cui voi o i vostri team siete proprietari. La configurazione del progetto (stati degli incidenti, etichette) non ha proprietari, quindi lì un ruolo con ambito Possedute si comporta normalmente. Anche le pagine proprie di Data Observability rispettano il vostro ambito: la **Panoramica**, **Problemi** e il numero accanto a **Panoramica** contano ed elencano solo le tabelle, i controlli e le pipeline che potete leggere, e un'azione su una tabella o un controllo, come **Esegui ora**, raggiunge solo quelli che potete leggere o modificare.
 
 L'autorizzazione con ambito Possedute di un team raggiunge ciò che appartiene a quel team, non ciò che appartiene agli altri team della persona. Chi fa parte di due team, uno con `IncidentMember` con ambito Possedute e l'altro con `Viewer` con ambito Possedute, modifica gli incidenti di proprietà del primo team e i propri, e si limita a vedere quelli di proprietà del secondo. Un'autorizzazione con ambito Possedute aggiunge anche proprietari solo alle risorse di proprietà della persona o del team a cui è assegnata, quindi non si può rendere il primo team proprietario degli incidenti del secondo per aggirare la regola. L'autorizzazione con ambito Possedute di un ruolo personalizzato raggiunge ciò che appartiene a ciascun team a cui il ruolo è assegnato.
 

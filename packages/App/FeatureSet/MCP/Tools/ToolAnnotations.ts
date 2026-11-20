@@ -16,8 +16,12 @@
  *
  * A tool is open-world when it reaches past the caller's project. The public
  * status page tools read any public status page on the instance, without a
- * credential. And a write is open-world when what it changes is published:
- * shown on a public status page and sent to the page's subscribers. Every
+ * credential. A write is open-world when what it changes is published:
+ * shown on a public status page and sent to the page's subscribers. A write
+ * is open-world, too, when it points OneUptime at an address outside it: a
+ * monitor checks the website or host it is given, and a data store or a BI
+ * tool is reached with the connection it is given. And invite_people emails
+ * addresses that need not be anyone in the project yet (#10041). Every
  * other tool works inside the one project its credential belongs to.
  */
 
@@ -46,6 +50,24 @@ export function isPublishedTable(tableName: string): boolean {
   return PUBLISHED_TABLE_NAMES.has(tableName);
 }
 
+/*
+ * The resources that point OneUptime at an address outside it, by table
+ * name. A monitor checks the website, API, host or port it is given, on a
+ * schedule, from OneUptime's probes or the project's own. A data store is
+ * reached with its connection string, and a BI tool at its address with its
+ * credentials. So creating or changing one has OneUptime reach a system it
+ * does not run, and those tools are open-world. Deleting one stops that and
+ * reaches nothing, so its delete tool is not. OpenAI's plugin review flags
+ * create_monitor and update_monitor marked closed-world.
+ */
+export const OUTSIDE_ADDRESS_TABLE_NAMES: ReadonlySet<string> = new Set<string>(
+  ["Monitor", "DataStore", "DataBiConnection"],
+);
+
+export function isOutsideAddressTable(tableName: string): boolean {
+  return OUTSIDE_ADDRESS_TABLE_NAMES.has(tableName);
+}
+
 // A tool that changes nothing.
 export function readOnlyToolAnnotations(options?: {
   // It reads public status pages beyond the caller's project.
@@ -62,7 +84,11 @@ export function readOnlyToolAnnotations(options?: {
 export function writeToolAnnotations(options?: {
   // Calling it again with the same arguments changes nothing more.
   idempotent?: boolean | undefined;
-  // What it changes is published: on a status page, and to its subscribers.
+  /*
+   * What it changes is published - on a status page, and to its
+   * subscribers - it points OneUptime at an address outside it, as a
+   * monitor does, or it emails people outside the project.
+   */
   openWorld?: boolean | undefined;
 }): ToolAnnotations {
   return {

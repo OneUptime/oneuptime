@@ -53,8 +53,12 @@ import User from "Common/Models/DatabaseModels/User";
  *
  * On the hosted service (billing on), the first project-SSO sign-in to an
  * account therefore stops before any session exists and emails the account's
- * own address instead. The link in that email, and only that link, records the
- * owner's consent (UserProjectSsoConsent). After that, sign-ins through the
+ * own address instead. The link in that email, and only a link sent to that
+ * address, records the owner's consent (UserProjectSsoConsent): the other is
+ * an invitation email's, taken as the same confirmation when its person picks
+ * the project's single sign-on on the page it opens, so that first sign-in
+ * goes through with no second email (#9898,
+ * SignUpInvitationUtil.confirmSsoSignIn). After that, sign-ins through the
  * project's SSO go straight through, exactly as before. The same click proves
  * the mailbox, so it also verifies the account's address -- which is what
  * "email verification for SSO signups" means here. An address no account
@@ -761,6 +765,17 @@ export default class ProjectSsoSignInConfirmation {
    * The sign-in a new-account link carries, when it was made by this server
    * for the provider and project its path names; null for anything else.
    * An expired link is read with `isExpired` set, so the page can say so.
+   *
+   * Read as raw claims (JSONWebToken.decodeJsonPayload), not as a person's
+   * token (JSONWebToken.decode): the link is no one's identity. It names no
+   * account and no session, says a purpose of its own that no person's token
+   * says (PROJECT_SSO_NEW_ACCOUNT_PURPOSE, never a JsonWebTokenPurpose), and
+   * confirming it signs nobody in - it hands the person back to the
+   * provider's own sign-in. So no reader of a person's token takes it, and it
+   * takes none of theirs: each claim below is checked against the path, the
+   * purpose first. TokenPurposeGuard lists this file with that reason, and
+   * ProjectSsoNewAccountLinkIsItsOwnKind proves both directions with real
+   * signatures.
    */
   public static readNewAccountToken(data: {
     account: string;

@@ -19,8 +19,9 @@ import path from "path";
  *   shrinker cannot see, so it could ship a build whose critical pages ring
  *   with the default sound.
  * - Every production build keeps its mapping.txt among the build's
- *   artifacts, so the release can upload it to Play Console and crash
- *   reports stay readable (RELEASING.md).
+ *   artifacts, for retracing stack traces locally. Play takes its own copy
+ *   from the bundle, where the Android Gradle plugin embeds it, so crash
+ *   reports stay readable without an upload (RELEASING.md).
  */
 
 /* eslint-disable @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports */

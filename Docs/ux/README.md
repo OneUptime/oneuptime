@@ -65,8 +65,13 @@ learned one can find their way around the next.
   same first click (#8897). Only what cannot wait shows above it: an open incident or anything else
   that needs someone, and an unfinished server, to its admin. Hiding the checklist or finishing it
   brings the rest of Home back, with the line that shows it again; once finished, "More to set up" is
-  one card among Home's others while core steps no goal brought are left (#7986). Enforced by
-  [HomePage](../../packages/Common/Tests/App/Dashboard/HomePage.test.tsx).
+  one card among Home's others while core steps no goal brought are left (#7986). While it is all of
+  Home, the page is centred, its title over it, as wide as the guided setups it leads to: a wide
+  screen drew it in the left half of the page with nothing beside it (#10276). From lg up, the
+  question lists the steps the goals picked bring beside the goals, as they are picked, and the
+  checklist puts how far the person is and the goals beside its steps. Enforced by
+  [HomePage](../../packages/Common/Tests/App/Dashboard/HomePage.test.tsx) and
+  [WelcomeChecklistFlow](../../packages/Common/Tests/App/Dashboard/WelcomeChecklistFlow.test.tsx).
 - **Do not ask for what is already done.** "Send your first logs" never sits above a page of logs, and
   there is one button for one job on a page, not the explanation's and the empty state's for the same
   setup: Home's headline leaves out "Create your first monitor" while the Welcome card offers that
@@ -79,9 +84,19 @@ learned one can find their way around the next.
   records, coming back opens the first step not done, and it ends with a summary read from the
   records and what to do next (`/monitors/setup`, #6804; `/on-call-duty/setup`, #6805). Beside its
   steps it lists what the setup sets up, ticked as each step is done, and about how long it takes,
-  the minutes Home's checklist says beside its step (#8897). Its journey gets a budget of its own, with
-  `"path": "guided"`. Enforced by
-  [GuidedSetupFrame](../../packages/Common/Tests/App/Dashboard/GuidedSetupFrame.test.tsx).
+  the minutes Home's checklist says beside its step (#8897). Under each step's outcome it lists the
+  records that step makes as it makes them - waiting, being made, made or in use with Open, skipped,
+  or failed with why and Try again (`GuidedSetupResourcePanel`) - so the person always knows what
+  exists and what to do next: a monitor and an on-call policy were made with nothing on screen to
+  say so (#10276). Every setup lists what it makes: a status page and what it shows, a service and
+  the monitors watching it too, and Try again makes only what is still missing. A step not reached yet says why it is there, a bar shows how far the person is,
+  and the page is centred, as wide as its steps and its panel need, where a wide screen left two
+  thirds of it empty. The run - what it made and how each record is getting on - is kept on the
+  server, so another device or a reload opens the setup where the person left it, and the panel
+  says whether it is saved (#7253). Its journey gets a budget of its own, with `"path": "guided"`.
+  Enforced by
+  [GuidedSetupFrame](../../packages/Common/Tests/App/Dashboard/GuidedSetupFrame.test.tsx) and
+  [GuidedSetupResourcePanel](../../packages/Common/Tests/App/Dashboard/GuidedSetupResourcePanel.test.tsx).
 
 ### Side menus
 
@@ -190,7 +205,11 @@ next, and how to change it last.
   metal class's "Failed: 3" open which ones and why, and App Platforms' "2 environments
   disconnected" opens its list with its Status filter set (#9751). A failed systemd unit says why
   as systemd said it: its result, its exit code or the signal that killed it, since when and what
-  it printed last, from its journal (#9748). A count opens its parts only while the resource's
+  it printed last, from its journal (#9748), on its page and on its row of the host's Systemd
+  Units list, whose "3 units failed" opens all of them (#9960), and in the host's Needs attention
+  and behind its Degraded (#10129): one bounded read of what systemd said of those units, never on
+  a tick of the auto-refresh, and a row as it was while the journal says nothing of why. A count
+  opens its parts only while the resource's
   agent reports: a disconnected resource's last snapshot is no longer the truth, so its counts of
   what is wrong say what stopped and list no part - an IoT fleet whose collector went away says
   "fleet disconnected" where it counted its devices online, rather than calling every device
@@ -354,16 +373,41 @@ work out, starts from a default for everything else, and folds what most people 
   a page and holds a control of its own - a region's health pill that opens why, an (i) - is
   never one link around it: the row's name is its link, stretched over the row so a press
   anywhere still opens the page, and the control sits beside the name, above the stretch
-  (`ResourcePartRow`'s `hasControls`, as the OpenStack Regions card draws it, #9728). Enforced by
-  [NestedControlsGuard](../../packages/Common/Tests/UI/Components/NestedControlsGuard.test.ts)
-  and
-  [ResourcePartRowControlsGuard](../../packages/App/Tests/Dashboard/ResourcePartRowControlsGuard.test.ts).
+  (`ResourcePartRow`'s `hasControls`, as the OpenStack Regions card draws it, #9728). A
+  component counts as what its own source draws: an (i), an attention pill and a health pill
+  are buttons, `AppLink` is a link around what it is given, and JSX handed to a control in a
+  prop it draws inside itself (a button's title) is inside it. The guard knew a short list of
+  shared components and never saw the Regions card's (i) in its row's link (#10015). Enforced
+  by
+  [NestedControlsGuard](../../packages/Common/Tests/UI/Components/NestedControlsGuard.test.ts).
+- **A menu, a list or a panel opens on the tooltip layer, never in place.** Drawn `absolute`
+  under its control, a popup was cut off wherever the box it sat in clipped. The logs toolbar's
+  Columns lost its foot over a trace's empty logs (#9859), and a search's suggestions ran into an
+  investigation drawer's scroll area (#9909). The shared `LayeredPopover`
+  (`Common/UI/Components/Tooltip/LayeredPopover`) draws it on the page's body, placed against the
+  window: under its control, above it where the window has no room, on the roomier side, cut down
+  and scrolling, where neither side has it all, and slid along inside the window's sides. A busy
+  day's "+N more" list opened past a short window's top until it was drawn there too (#9911). Tab
+  goes through a popup as if it sat after its control, Escape closes it and is spent there, and a
+  press outside closes it. A field's popup, such as a search's suggestions, is drawn there with
+  `isFieldPopup`, which leaves Tab, Escape and a press to the field. The popup's own classes are
+  its look only, never a place: no `absolute`, `top-full` or margin under its control. The popups
+  still drawn in place are listed with why each is not cut off today, and the list only shrinks
+  (#10162). Enforced by
+  [HandRolledPopupsGuard](../../packages/Common/Tests/UI/Components/HandRolledPopupsGuard.test.ts).
 - **Nothing is pressed with a mouse alone.** Anything that does something on a click is a
   `<button type="button">` or a link, which Tab reaches, Enter and Space press, and which shows the
   focus ring. A `div` or `li` with only a click is out of a keyboard's reach and is read as text:
   a keyboard could open the header's notification bell but choose nothing in it, and could not go
   back to a finished step of a form (#9136). Enforced by
   [ClickOnlyControlsGuard](../../packages/Common/Tests/UI/Components/ClickOnlyControlsGuard.test.ts).
+- **A role is one a screen reader knows.** A `role` says what a part is, and only a role WAI-ARIA
+  defines means anything: the browser drops a made-up one, and accessibility checkers flag it on
+  every page that draws it. A secret behind "Click to reveal" carried `role="hidden-text"` and
+  `role="revealed-text"` only so that tests could find its parts (#7964). A test finds a part by
+  what a person sees (a button's words) or by its `data-testid`, never by a role made up for it.
+  Enforced by
+  [AriaRolesGuard](../../packages/Common/Tests/UI/Components/AriaRolesGuard.test.ts).
 - **A finger can hit it.** Under a finger (`[@media(pointer:coarse)]:min-h-11`) a control is at
   least 44px across, or 24px with room around it: the list's page buttons were 28px, 24px in a
   compact list, with nothing larger for touch (#9136). A mouse keeps the compact size. Not enforced:
@@ -770,6 +814,16 @@ what was further down.
 - **A chart's legend names its series in the order the page gives them,** not alphabetically, so it reads
   the same in every language: every recharts `Legend` passes an `itemSorter` (never `itemSorter={null}`). Enforced by
   [ChartLegendOrderGuard](../../packages/Common/Tests/UI/ChartLegendOrderGuard.test.ts).
+- **A chart's legend that wraps grows the chart, never squeezes its plot.** A line, area or bar
+  chart drawn at a fixed height grows by its legend's lines past the first, so its plot keeps its
+  height: Product Analytics' Active users plot went from 78px to 30px on a phone (#6562), and a
+  Host's Network chart, In and Out in German beside the side menu, read a line shorter than the CPU
+  chart beside it (#7125). Cards side by side put their chart at the card's foot (a column,
+  `mt-auto`), so a row grows to its tallest card and the plots and time axes still line up under the
+  hover line they share. Only a chart that must fit a box of its own, a dashboard widget's, says so
+  (`growsWhenLegendWraps={false}`), or draws no legend. Enforced by
+  [ChartsGrowWithTheirLegendGuard](../../packages/App/Tests/Dashboard/ChartsGrowWithTheirLegendGuard.test.ts)
+  and [ChartLegendRows](../../packages/Common/Tests/UI/Components/Charts/ChartLegendRows.test.tsx).
 - **A chart's title is the one thing its row must say.** The zoom hint beside it is the shared
   `TimeRangeZoomHint`, never drawn on a phone's width or on a screen that is only touched, where no
   finger drags or double-clicks, and a title row wraps, so a hint that does not fit beside the title
@@ -949,15 +1003,30 @@ what was further down.
   template literal. Enforced by
   [DatesInEnglishTextGuard](../../packages/App/Tests/Dashboard/DatesInEnglishTextGuard.test.ts).
 - **A time of day writes its hour the way its clock does:** no zero on a 12-hour clock ("5:14 AM",
-  "오전 5:14", "5:14 ص"), the zero on a 24-hour one ("05:14"), in every component and the mobile app.
-  A feed and a status timeline read "5:14" in German beside a table's "05:14" (#7649), and the
-  mobile app "Nov 5, 05:14 AM" (#7650). An Intl options object asks `getHourOption` for its hour
-  (`Common/Types/DateLanguage`, or the mobile app's own in `src/utils/date`), or
-  `getLocaleClockHourOption` for a language's own clock, and names `"numeric"` or `"2-digit"` only
-  beside the clock it is right on. Enforced by
+  "오전 5:14", "5:14 ص"), the zero on a 24-hour one ("05:14"), in every component and the mobile app,
+  English's whole dates too ("Nov 5, 2025, 5:14 AM", not "Nov 05 2025, 05:14 AM", #7652). A feed
+  and a status timeline read "5:14" in German beside a table's "05:14" (#7649), and the mobile app
+  "Nov 5, 05:14 AM" (#7650). The clock is always the reader's (`getUserPrefers12HourFormat`): a
+  calendar's grid, an AI chat's PDF axis and a connection's local time followed their language's
+  own, "17:14" down a German calendar beside a table's "5:14 PM" (#7651). An Intl options object
+  asks `getHourOption` for its hour (`Common/Types/DateLanguage`, or the mobile app's own in
+  `src/utils/date`), and names `"numeric"` or `"2-digit"` only beside the clock it is right on.
+  Enforced by
   [TwelveHourClockLeadingZeroGuard](../../packages/Common/Tests/Types/TwelveHourClockLeadingZeroGuard.test.ts)
   and
   [TwentyFourHourClockLeadingZeroGuard](../../packages/Common/Tests/Types/TwentyFourHourClockLeadingZeroGuard.test.ts).
+- **A date, a time, a day's name and a range are written by one pair of helpers,** `OneUptimeDate`
+  and `Common/Types/DateLanguage`, never by a component's own `Intl.DateTimeFormat`,
+  `toLocaleDateString` or moment pattern. Those took the hour from the browser's tz data instead of
+  OneUptime's: an hour early in Vancouver in an older browser from November 2026, and named "PDT"
+  where every other date said "MST" (#10038). `getDateTimeFormat` works the wall clock out with
+  moment-timezone and has Intl write only the words. A time takes its language's mark between its
+  hours and minutes, as CLDR writes it: "10.05" in Danish, "10:05" elsewhere (#7914). A window
+  within one day names its day and its zone once: "Nov 5, 2025, 5:14 AM – 6:14 AM" on the time range
+  button, "between Nov 13, 2026, 9:00 AM and 5:30 PM GMT+08" on a filter's chip
+  (`getLocalDateTimeRangeEnds`, #7281, #7721). Enforced by
+  [DatesWrittenByOneHelperGuard](../../packages/Common/Tests/Types/DatesWrittenByOneHelperGuard.test.ts),
+  whose list of exceptions only shrinks.
 - **A date and a time are the reader's, never the browser's:** in the zone they picked in User
   Settings, on their 12- or 24-hour clock, written by `OneUptimeDate` or
   `Common/UI/Utils/ReaderMoments` (a moment, a day, a time of day). `toLocaleString`,
@@ -1074,13 +1143,24 @@ what was further down.
   Health check's collection issues read
   the same way (`Common/Utils/Monitor/DatabaseCollectionIssueReading`, #8609): the group by its
   Metric Groups switch's name, OneUptime's own sentence in the reader's words, and a database's own
-  error kept as written after a sentence that says what kind of failure it is. Enforced by
+  error kept as written after a sentence that says what kind of failure it is. View Cause, on a
+  monitor's Status Timeline and an incident's, an alert's or an episode's State Timeline, words a
+  change's cause the same way (`StatusChangeCauseWording`, #9752), and so every note OneUptime
+  writes there itself - "Changed when its episode changed state.", "Resolved because every
+  incident in it is resolved." - each defined once with its older wordings, so last year's rows
+  read worded too (`StatusChangeNotes`, #9959). Enforced by
   [ProbeMessagesInReadersLanguageGuard](../../packages/Common/Tests/UI/Monitor/ProbeMessagesInReadersLanguageGuard.test.ts)
   and
   [DatabaseCollectionIssuesInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DatabaseCollectionIssuesInReadersLanguage.test.tsx).
 - **A chart of one point a day labels its axis by the day** (`xAxisPrecision={XAxisPrecision.EVERY_DAY}`),
   never by an hour or a step guessed from the window's length. Enforced by
   [ProductAnalyticsDayAxisGuard](../../packages/Common/Tests/App/Dashboard/ProductAnalyticsDayAxisGuard.test.ts).
+- **An axis of days labels its first and its last day,** and the days between at a step that keeps
+  them apart: 30 days labelled every 4th day ended on day 29, so the chart's right-hand end, today,
+  had no date under it and the reader counted to know where the window ends (#7126). The shared line,
+  area and bar charts do it for an axis of days, weeks, months or years (`getTimeAxisTickInterval`);
+  an axis of clock times keeps its even spacing from the first slot. Enforced by
+  [ChartDayAxisBothEnds](../../packages/Common/Tests/UI/Components/Charts/ChartDayAxisBothEnds.test.tsx).
 - **A whole sentence is translated, never a word at a time.** Word by word, German read "Nein monitors
   yet", and a sentence joined from translated pieces keeps English's order, punctuation and digits
   whatever each piece says: every table row's ⋯ button read "More actions for" and then the row's
@@ -1332,6 +1412,14 @@ then `npm run i18n:validate` from the root.
   [NounKeysDrawnAsLabelsGuard](../../packages/Common/Tests/App/Dashboard/NounKeysDrawnAsLabelsGuard.test.ts)
   and
   [NounLabelsStartWithACapital](../../packages/Common/Tests/App/Dashboard/NounLabelsStartWithACapital.test.tsx).
+- **A day's name standing alone is cased as its language writes it,** by CLDR's contextTransforms,
+  not by "a label starts with a capital": "Lunes" on a Spanish button and in its menu, "Lundi" on a
+  French button but "lundi" in its menu, "mandag" everywhere in Danish, Norwegian and Swedish, whose
+  CLDR data capitalises a language's name in a menu but never a day's (#7660). A day button, its
+  aria-label and its title, a menu of days, a calendar's or a timeline's header and a heading that
+  starts with the day draw it through `writeStandAloneDayName` (`Common/Types/DateLanguage`), or
+  `OneUptimeDate.getDayOfWeekName`; a day inside a sentence keeps the locale's wording. Enforced by
+  [DayNamesStandingAloneGuard](../../packages/Common/Tests/App/Dashboard/DayNamesStandingAloneGuard.test.ts).
 - **A cloud's product name is written as the cloud writes it.** A kind of cloud resource is named by
   the catalog's label, a product's name ("Virtual Machine", "Cloud Run"), in every language and on
   every page: the rows, the cards, the overview, Topology, a Type filter's menu and its chip. The docs'

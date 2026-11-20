@@ -16,6 +16,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -332,6 +333,7 @@ export default class ProxmoxCluster extends BaseModel {
     description:
       "Whether the cluster is being read: connected while it was read in the last 15 minutes, disconnected once it was not (see Agent Last Seen At for whether the agent is still sending)",
     example: "connected",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -367,6 +369,7 @@ export default class ProxmoxCluster extends BaseModel {
     description:
       "Version of the OneUptime Proxmox agent reporting telemetry, as self-reported via the oneuptime.agent.version resource attribute",
     example: "1.0.0",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -400,6 +403,7 @@ export default class ProxmoxCluster extends BaseModel {
     title: "Proxmox VE Version",
     description: "Proxmox VE version reported by this cluster",
     example: "8.2.4",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -444,6 +448,7 @@ export default class ProxmoxCluster extends BaseModel {
     title: "Last Seen At",
     description:
       "When the cluster was last read: when the agent last read its nodes, guests or storage from the Proxmox VE API, or a node last pushed its own status",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -509,6 +514,7 @@ export default class ProxmoxCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Node Count",
     description: "Cached count of nodes in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -540,6 +546,7 @@ export default class ProxmoxCluster extends BaseModel {
     title: "Online Node Count",
     description:
       "Cached count of nodes currently online (pve_up == 1) in this cluster. Rendered as 'Nodes X/Y online' next to nodeCount.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -570,6 +577,7 @@ export default class ProxmoxCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Guest Count",
     description: "Cached count of guests (VMs and containers) in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -600,6 +608,7 @@ export default class ProxmoxCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Storage Count",
     description: "Cached count of storage pools in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -631,6 +640,7 @@ export default class ProxmoxCluster extends BaseModel {
     title: "Guests Without Backup",
     description:
       "Cached count of guests not covered by ANY backup job (pve_not_backed_up_total). NULL until the exporter's cluster-level backup-info collector reports. Coverage by a job is NOT the same as recent/successful backups — freshness needs the PVE task log or PBS API.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -1101,6 +1111,7 @@ export default class ProxmoxCluster extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -1251,6 +1262,7 @@ export default class ProxmoxCluster extends BaseModel {
     description:
       "When on, OneUptime AI runs read-only commands (pvesh get on cluster, node, VM and container status) on this Proxmox cluster, through its Proxmox AI agent, while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. On by default. Anyone who may edit the Proxmox cluster can turn it on or off.",
     defaultValue: true,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1295,6 +1307,7 @@ export default class ProxmoxCluster extends BaseModel {
       "Disabled: AI never proposes or runs a change on this Proxmox cluster. RequireApproval: AI composes a command plan and a human approves it with one click before anything runs. Automatic: safe changes (SafeWrite) run without a human; a riskier change is proposed for approval unless the Proxmox cluster's allowlist names its exact shape. BypassApproval: every change the policy allows — safe AND riskier — runs on its own, except what always needs a human. In EVERY mode: Denied commands never run, commands the policy marks requiresHuman always ask, and the agent itself refuses every write unless it was started with ONEUPTIME_AI_ALLOW_WRITES=true (and then only on the targets ONEUPTIME_AI_WRITE_TARGETS allows, never its protected targets). Anyone who may edit the Proxmox cluster can lower the mode; raising it needs Project Owner, Project Admin or Edit AI Rule.",
     defaultValue: ResourceAiRemediationMode.Disabled,
     example: ResourceAiRemediationMode.RequireApproval,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.ShortText,

@@ -6,9 +6,14 @@ import { UtmPropertyKeys } from "../../../Types/Marketing/Attribution";
 import { JSONObject } from "../../../Types/JSON";
 import AIChatMessageStatus from "../../../Types/AI/AIChatMessageStatus";
 import {
+  AIChatCitationTargetType,
   AIChatToolAction,
   AIChatToolActionStatus,
 } from "../../../Types/AI/AIChatTypes";
+import {
+  getAnswerRatedEvent,
+  takeNewDocsNotCovered,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiAnswerEvents";
 import {
   getSetupApprovedEvent,
   getSetupProposedEvent,
@@ -163,6 +168,39 @@ const BUILDER_KEYS: Record<string, () => Array<string>> = {
   },
   getSetupTestPageSentEvent: (): Array<string> => {
     return Object.keys(getSetupTestPageSentEvent({ kind: "self" }));
+  },
+  // How an answer was rated, and what kind of answer it was (#7064).
+  getAnswerRatedEvent: (): Array<string> => {
+    return Object.keys(getAnswerRatedEvent({ feedback: "up", message: {} }));
+  },
+  // An answer the docs did not cover, once it is written (#7064).
+  takeNewDocsNotCovered: (): Array<string> => {
+    const writing: Set<string> = new Set<string>(["an-answer"]);
+
+    return Object.keys(
+      takeNewDocsNotCovered({
+        message: {
+          id: "an-answer",
+          status: AIChatMessageStatus.Completed,
+          contentInMarkdown: "The docs do not cover this.",
+          citations: [
+            {
+              id: "C1",
+              toolName: "read_docs",
+              label: "Docs: SMS",
+              queryArguments: {},
+              rowCount: 1,
+              target: {
+                type: AIChatCitationTargetType.DocsPage,
+                params: { page: "notifications/sms", language: "en" },
+              },
+            },
+          ],
+        },
+        writing,
+        counted: new Set<string>(),
+      }) || {},
+    );
   },
   // The guided setups and Ask AI link to each other (#7245).
   getDescribedInsteadEvent: (): Array<string> => {

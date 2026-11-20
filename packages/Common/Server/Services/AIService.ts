@@ -197,6 +197,18 @@ export const AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE: string =
   "AI Data Security Field Suggestion";
 
 /*
+ * The LlmLog feature name for Explain with AI on a Data Security issue
+ * (DataSecurityAPI): one request, started by a person on the issue's page
+ * and answered while they wait. Not autonomous. Written since Explain
+ * shipped, before labels were constants, so its value keeps that spelling:
+ * stored labels are never renamed (#10361). Its AI Logs rows keep no
+ * previews - which store holds what, and how it is exposed, is the issue's
+ * to tell, and AI Logs are every Project Member's and Viewer's to read.
+ */
+export const AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE: string =
+  "DataSecurityIssueExplanation";
+
+/*
  * The LlmLog feature name for drafting a detection rule from a description
  * (DetectionRuleDraft): one request, started by a person on the Detection
  * Rules form and answered while they wait. Not autonomous - the project's
@@ -213,6 +225,16 @@ export const AI_DETECTION_RULE_DRAFT_FEATURE: string =
  * rule's draft.
  */
 export const AI_DATA_CHECK_DRAFT_FEATURE: string = "AI Data Check Draft";
+
+/*
+ * The LlmLog feature name for converting one query of a dashboard or an
+ * alert rule being imported from Grafana, Prometheus or Datadog
+ * (ImportQueryConversion): one request, started by a person on the
+ * import's preview and answered while they wait. Not autonomous, like a
+ * detection rule's draft.
+ */
+export const AI_IMPORT_QUERY_CONVERSION_FEATURE: string =
+  "AI Import Query Conversion";
 
 /*
  * The pre-rename values of the six labels that carried the "Sentinel" codename.
@@ -487,6 +509,19 @@ export const getProjectDailyLimitMessage: (
   )} OneUptime AI starts again at midnight UTC. ${ProjectAiDailyLimits.getWhoCanChangeSentence()}`;
 };
 
+/*
+ * What an AI Logs row holds in place of a preview, for a call that keeps
+ * none (storeContentPreviews: false), and of a provider's error, for one
+ * that keeps no error details (storeErrorDetails: false). A migration that
+ * takes previews out of rows already written writes these same words
+ * (RedactDataSecurityIssueExplanationLogs).
+ */
+export const LLM_LOG_PREVIEW_NOT_KEPT: string =
+  "[Redacted — this content is private to the requesting user]";
+
+export const LLM_LOG_PROVIDER_ERROR_WITHOUT_DETAILS: string =
+  "The LLM provider request failed. Review the provider under Project Settings → AI → LLM Providers, then try again.";
+
 export interface AILogRequest {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
@@ -535,6 +570,15 @@ export interface AILogRequest {
    * chat) — LlmLog is readable by all project members.
    */
   storeContentPreviews?: boolean | undefined;
+  /*
+   * When false, what the call sent and got is never recorded on its span in
+   * OneUptime's own telemetry (LLMCallTelemetry), even where the server's
+   * operator turned recording on: for a feature whose prompts only some of
+   * the project may read, such as Data Security's (#10365), the operator's
+   * telemetry is one more place they would be kept. The span still says
+   * which model was called, its tokens, its cost and why it stopped.
+   */
+  recordContentInTelemetry?: boolean | undefined;
   /*
    * Send the messages exactly as given, embedded files included. Every
    * other call has them left out (PromptText.omitEmbeddedDataFromMessages):
@@ -1274,7 +1318,7 @@ export class Service extends BaseService {
           })
           .join("\n")
           .substring(0, 5000) // Store first 5000 chars
-      : "[Redacted — this content is private to the requesting user]";
+      : LLM_LOG_PREVIEW_NOT_KEPT;
     logEntry.requestStartedAt = startTime;
 
     // Set optional fields only if they have values
@@ -1494,7 +1538,9 @@ export class Service extends BaseService {
        * and - when the operator turned recording on - what was sent. Set
        * before the call, so a call that fails shows too.
        */
-      const recordContent: boolean = LLMCallTelemetry.isContentRecordingOn();
+      const recordContent: boolean =
+        request.recordContentInTelemetry !== false &&
+        LLMCallTelemetry.isContentRecordingOn();
 
       this.setLlmSpanAttributes(() => {
         return LLMCallTelemetry.getRequestAttributes({
@@ -1559,7 +1605,7 @@ export class Service extends BaseService {
       logEntry.cacheCreationTokens = response.usage?.cacheCreationTokens || 0;
       logEntry.responsePreview = storeContentPreviews
         ? response.content.substring(0, 2000) // Store first 2000 chars
-        : "[Redacted — this content is private to the requesting user]";
+        : LLM_LOG_PREVIEW_NOT_KEPT;
       logEntry.requestCompletedAt = endTime;
       logEntry.durationMs = endTime.getTime() - startTime.getTime();
 
@@ -1641,7 +1687,7 @@ export class Service extends BaseService {
         error instanceof Error ? error.message : String(error);
       const errorMessage: string =
         request.storeErrorDetails === false
-          ? "The LLM provider request failed. Review the provider under Project Settings → AI → LLM Providers, then try again."
+          ? LLM_LOG_PROVIDER_ERROR_WITHOUT_DETAILS
           : rawErrorMessage;
 
       /*

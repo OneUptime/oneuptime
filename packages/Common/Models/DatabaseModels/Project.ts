@@ -23,6 +23,7 @@ import MultiTenentQueryAllowed from "../../Types/Database/MultiTenentQueryAllowe
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import Email from "../../Types/Email";
@@ -894,6 +895,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     description:
       "The most monitors the project may have active, from a plan bought from a reseller. Empty means the plan's own limit.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -911,6 +913,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     description:
       "The most members the project may have, from a plan bought from a reseller. Empty or 0 means no limit.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -4881,13 +4884,20 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
+  /*
+   * Nobody reads it through the API, and no relation reads it either: it
+   * was marked readable through a relation, so every member read it through
+   * the project of any record they read - an incident's, a monitor's - which
+   * the column's own read, empty, never let anyone do (#10281). OneUptime
+   * reads it as itself to find the project a reseller's tier change is for
+   * (ResellerPlanAPI).
+   */
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
     title: "License ID",
     hideColumnInDocumentation: true,
     description: "License ID from a OneUptime Reseller",
-    canReadOnRelationQuery: true,
   })
   @Column({
     nullable: true,
@@ -5230,6 +5240,44 @@ export default class Project extends TenantModel {
     default: 15,
   })
   public defaultTelemetryRetentionInDays?: number = undefined;
+
+  /*
+   * Whether the project's telemetry usage is published as metrics of its
+   * own (issue #6355): oneuptime.telemetry.usage.bytes, every 5 minutes,
+   * per signal and per service or resource, counted as the telemetry
+   * arrives (TelemetryIngestAttribution, TelemetryUsageMetrics). Off by
+   * default: with it off, ingest does no extra work and nothing is written.
+   * The metrics are free: they are not counted as usage, nor billed.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    isDefaultValueColumn: true,
+    required: false,
+    title: "Publish Usage as Metrics",
+    description:
+      "Publish the project's telemetry usage as the metric oneuptime.telemetry.usage.bytes every 5 minutes, per signal and per service or resource, so usage can be charted and alerted on. These metrics are not counted as usage or billed.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public publishTelemetryUsageMetrics?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [],

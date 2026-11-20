@@ -3,7 +3,7 @@
 透過電子郵件提供者的 HTTPS API 而非 SMTP 伺服器寄送 OneUptime 的郵件，支援 Amazon SES、SendGrid、Mailgun、Postmark 和 Resend。專案可以為 SMTP 設定選擇一個提供者，自行託管的安裝也可以透過提供者寄送其本身的所有郵件。API 透過 443 連接埠上的 HTTPS 連線，因此即使網路封鎖了 SMTP 連接埠，郵件仍能照常寄出；每個提供者的金鑰都會加密儲存。
 
 :::cards
-- [Amazon SES](#amazon-ses): IAM 存取金鑰或伺服器本身的 IAM 角色，以及寄件者通過驗證的地區。
+- [Amazon SES](#amazon-ses): IAM 存取金鑰、您的 AWS 帳戶中的 IAM 角色或伺服器本身的 IAM 角色，以及寄件者通過驗證的地區。
 - [SendGrid](#sendgrid): 具有 Mail Send 權限的 API 金鑰。
 - [Mailgun](#mailgun): API 金鑰、寄件網域及其地區。
 - [Postmark](#postmark): 伺服器的 API 權杖。
@@ -55,16 +55,16 @@
 }
 ```
 
-在 AWS 上自行託管的安裝也可以不用金鑰，而是附加同一政策，[使用伺服器的 IAM 角色登入](#使用伺服器的-iam-角色登入)。
+在 AWS 上自行託管的安裝也可以不用金鑰，而是附加同一政策，[使用伺服器的 IAM 角色登入](#使用伺服器的-iam-角色登入)。 專案的設定也可以不用金鑰，而是[使用您的 AWS 帳戶中的 IAM 角色登入](#使用您的-aws-帳戶中的-iam-角色登入)。
 
 ### 填寫 Amazon SES 步驟
 
-輸入 **存取金鑰 ID** 和 **私密存取金鑰**，以及您的身分通過驗證的 **地區**，例如 `us-east-1`。
+將 **驗證類型** 保留為 **存取金鑰**，輸入 **存取金鑰 ID** 和 **私密存取金鑰**，以及您的身分通過驗證的 **地區**，例如 `us-east-1`。
 :::
 
 ### 使用伺服器的 IAM 角色登入
 
-在 AWS 上自行託管的安裝可以用 AWS 賦予伺服器的 IAM 角色身分傳送自己的郵件，OneUptime 中不會儲存任何存取金鑰：AWS 發放的憑證會在數小時內到期，OneUptime 會在到期前取得新的憑證。這僅適用於伺服器自己的郵件。專案的 Amazon SES 設定一律使用存取金鑰登入，因為伺服器的角色是伺服器自己的 AWS 身分，而不是某個專案的。
+自行託管的安裝可以用 IAM 角色身分傳送自己的郵件，OneUptime 中不會儲存任何存取金鑰：在 AWS 上是 AWS 賦予伺服器的角色，在其他任何地方則是它透過 IAM Roles Anywhere 登入的角色。憑證會在數小時內到期，OneUptime 會在到期前取得新的憑證。這僅適用於伺服器自己的郵件：伺服器的角色是伺服器自己的 AWS 身分，而不是某個專案的。專案的 Amazon SES 設定使用存取金鑰登入，或使用[您的 AWS 帳戶中的 IAM 角色](#使用您的-aws-帳戶中的-iam-角色登入)登入。
 
 為角色附加上述政策，然後以該角色執行 OneUptime：
 
@@ -88,11 +88,63 @@ serviceAccount:
 ```bash
 aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
 ```
+@tab IAM Roles Anywhere
+在 AWS 之外，在你自己的伺服器上或另一個雲端中，伺服器透過 IAM Roles Anywhere 以角色身分登入，它以 X.509 證書換取角色的憑證。在 IAM Roles Anywhere 中，為你的憑證授權單位建立一個信任錨點（trust anchor），並為該角色建立一個 profile。接著把 AWS 的憑證協助程式 `aws_signing_helper`，與證書、其私密金鑰以及一個 AWS 設定檔放在同一個資料夾中，該設定檔中的 profile 會將協助程式作為其 `credential_process` 執行：
+
+```ini title="aws/config"
+[profile oneuptime]
+credential_process = /etc/oneuptime/aws/aws_signing_helper credential-process --certificate /etc/oneuptime/aws/certificate.pem --private-key /etc/oneuptime/aws/private-key.pem --trust-anchor-arn arn:aws:rolesanywhere:us-east-1:123456789012:trust-anchor/TRUST_ANCHOR_ID --profile-arn arn:aws:rolesanywhere:us-east-1:123456789012:profile/PROFILE_ID --role-arn arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+使用 Docker Compose 時，在 `docker-compose.yml` 旁邊的 `docker-compose.override.yml` 中以唯讀方式掛載該資料夾，並指定檔案與 profile：
+
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      AWS_CONFIG_FILE: /etc/oneuptime/aws/config
+      AWS_PROFILE: oneuptime
+    volumes:
+      - ./aws:/etc/oneuptime/aws:ro
+```
+
+使用 Helm Chart 時，透過 `extraVolumes` 和 `extraVolumeMounts` 從一個 Secret 掛載設定、證書及其金鑰，透過 `extraEnv` 設定 `AWS_CONFIG_FILE` 和 `AWS_PROFILE`，並把協助程式放進以 OneUptime 映像檔為基礎建置的映像檔中：一個 Secret 最多只能容納 1 MB。OneUptime 執行協助程式時不經過 shell，使用其完整路徑，最長 30 秒，而且只從它自己無法變更的設定檔執行：它能寫入的設定檔會被拒絕。
 :::
 
 接著在 Admin Dashboard 中點選 **編輯 Amazon SES**，將 **驗證類型** 選為 **此伺服器的 IAM 角色**，並輸入 **地區**。儲存後，先前儲存的存取金鑰會被移除。
 
-OneUptime 依照 AWS SDK 的方式，依序在下列位置尋找伺服器的憑證：其環境中的 `AWS_ACCESS_KEY_ID` 和 `AWS_SECRET_ACCESS_KEY`、Web 身分權杖（`AWS_ROLE_ARN` 和 `AWS_WEB_IDENTITY_TOKEN_FILE`）、Amazon ECS 和 EKS Pod Identity 的容器憑證端點，最後是 EC2 的執行個體中繼資料服務（IMDSv2）。
+OneUptime 依照 AWS SDK 的方式，依序在下列位置尋找伺服器的憑證：其環境中的 `AWS_ACCESS_KEY_ID` 和 `AWS_SECRET_ACCESS_KEY`、`AWS_PROFILE`、`AWS_CONFIG_FILE` 或 `AWS_SHARED_CREDENTIALS_FILE` 指定的 AWS profile（其金鑰或其 `credential_process`）、Web 身分權杖（`AWS_ROLE_ARN` 和 `AWS_WEB_IDENTITY_TOKEN_FILE`）、Amazon ECS 和 EKS Pod Identity 的容器憑證端點，最後是 EC2 的執行個體中繼資料服務（IMDSv2）。這三者都未設定時，OneUptime 不會讀取任何 AWS 設定檔。
+
+### 使用您的 AWS 帳戶中的 IAM 角色登入
+
+專案的 Amazon SES 設定可以使用您自己的 AWS 帳戶中的 IAM 角色登入，這樣 OneUptime 中不會儲存任何金鑰。OneUptime 使用自己的 AWS 身分和一個只有您的專案的郵件使用的外部 ID 登入該角色，每個工作階段持續一小時。為該角色附加上方的政策，以及一個允許 OneUptime 的 AWS 帳戶憑該外部 ID 進入的信任政策：
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::123456789012:root" },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "oneuptime-0123456789abcdef0123456789abcdef"
+        }
+      }
+    }
+  ]
+}
+```
+
+在設定的 **Amazon SES** 步驟中，選擇 **你的 AWS 帳戶中的 IAM 角色** 作為 **驗證類型**。在 **角色 ARN** 下方，**在 AWS 中設定角色** 會顯示您的專案的 **外部 ID**，以及填好 OneUptime 的帳戶和您的 ID 的這份信任政策，可直接複製。用它建立角色，輸入該角色的 **角色 ARN** 和 **地區**，然後在設定所在列點選 **傳送測試電子郵件**。儲存角色會移除先前儲存的任何存取金鑰。
+
+OneUptime 在透過角色傳送之前會檢查該角色，而且絕不會登入：
+
+- 信任政策不要求您的專案外部 ID 的角色：任何知道其 ARN 的專案都能透過您的帳戶傳送郵件。新增 `sts:ExternalId` 條件並傳送一封測試電子郵件，它會立即再次檢查該角色。檢查大約每天進行一次，並在該角色的 CloudTrail 中顯示為一筆針對 `sts:AssumeRole` 的 `AccessDenied`。
+- OneUptime 自己的 AWS 帳戶中的角色，無論其信任政策寫的是什麼。若要透過伺服器執行所在的帳戶傳送伺服器自己的郵件，請改用[伺服器的 IAM 角色](#使用伺服器的-iam-角色登入)。
+
+外部 ID 是您的專案自己的，並不是機密。Cloud Connect 的 IAM 角色使用另一個外部 ID，因此為其中一方建立的角色絕不會被另一方登入。沒有自己的 AWS 身分的伺服器（既沒有 Cloud Connect 存取金鑰，也沒有 AWS 憑證）無法登入任何角色，該步驟會說明這一點。
 
 ## SendGrid
 
@@ -212,6 +264,10 @@ IAM 使用者的政策不允許對您的身分執行 `ses:SendEmail`。請新增
 
 :::details "This server's IAM role may not send with Amazon SES" 或 "did not let this server assume the role"
 角色的政策不允許對您的身分執行 `ses:SendEmail`：請新增上述政策。或者，在 Amazon EKS 上，角色的信任政策不允許您叢集的 OIDC 提供者和 OneUptime 的服務帳戶執行 `sts:AssumeRoleWithWebIdentity`。
+:::
+
+:::details "This role lets OneUptime sign in without this config's external ID" 或 "This role is in this OneUptime's own AWS account"
+正如[使用您的 AWS 帳戶中的 IAM 角色登入](#使用您的-aws-帳戶中的-iam-角色登入)所述，OneUptime 不會透過該角色傳送。將設定的 **在 AWS 中設定角色** 中顯示的 `sts:ExternalId` 條件新增到該角色的信任政策中，或在您自己的 AWS 帳戶中建立該角色，然後傳送一封測試電子郵件。
 :::
 
 :::details "Mailgun has no domain … in its US region"

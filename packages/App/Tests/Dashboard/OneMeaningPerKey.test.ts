@@ -82,6 +82,8 @@ const OPEN_IS_THE_VERB: Record<string, string> = {
     "the button that opens a cited record",
   "Components/DataSecurity/DataSecurityCatalogTerms.ts":
     "the issue's Open button, listed beside the state's own key, Open (status)",
+  "Components/GuidedSetup/GuidedSetupResourcePanel.tsx":
+    "the link that opens a record a guided setup made, in a new tab",
   "Components/NetworkTraffic/TrafficAddressCard.tsx":
     "the link that opens an address's record",
   "Components/ResourceTopology/ResourceTopologyNodes.tsx":
@@ -732,6 +734,43 @@ describe("one meaning per key", () => {
     expect(filesLookingUp("To")).toContain(
       "Components/NotificationLogs/EmailLogsTable.tsx",
     );
+  });
+
+  /*
+   * #10009: a device manager connection's Status on Inventory > Managed
+   * Devices. Russian's bare Waiting, Catching up and Failing are a noun
+   * ("Ожидание"), a verb ("Догоняет") and a masculine noun ("Сбой"),
+   * where the connection's other states are neuter ("Выключено",
+   * "Устарело", "Исправно"): its words look up keys of their own, and the
+   * bare words stay the on-call logs', the security connections' and the
+   * other pages'.
+   */
+  test("a device manager connection's Waiting, Catching up and Failing are its own keys, and its words never look up the bare ones", () => {
+    const WORDS: string =
+      "Components/DeviceManagement/DeviceManagementWords.ts";
+
+    for (const [key, bare] of [
+      ["Waiting (device manager connection)", "Waiting"],
+      ["Catching up (device manager connection)", "Catching up"],
+      ["Failing (device manager connection)", "Failing"],
+    ] as Array<[string, string]>) {
+      expect({ key, files: filesLookingUp(key) }).toEqual({
+        key,
+        files: [WORDS],
+      });
+      expect(MEANING_KEYS).toContain(key);
+      expect({
+        key,
+        bareLookedUp: filesLookingUp(bare).includes(WORDS),
+      }).toEqual({ key, bareLookedUp: false });
+    }
+
+    expect(filesLookingUp("Waiting")).toContain(
+      "Components/OnCallPolicy/ExecutionLogs/OnCallLogStatusLabels.ts",
+    );
+    expect(filesLookingUp("Catching up")).toEqual([
+      "Components/SecurityEvents/SecurityEventConnectionDiagnosticsUtil.ts",
+    ]);
   });
 
   /*

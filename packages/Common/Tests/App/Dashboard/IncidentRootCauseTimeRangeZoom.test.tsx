@@ -171,6 +171,7 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import { EVENT_METRIC_SCOPE_NOTE_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/EventMetricInvestigationPanel";
 import { RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID } from "../../../UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import Route from "../../../Types/API/Route";
@@ -180,6 +181,7 @@ import MetricViewData from "../../../Types/Metrics/MetricViewData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import Navigation from "../../../UI/Utils/Navigation";
 
 const INCIDENT_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -247,6 +249,7 @@ function metricSnapshot(): Record<string, unknown> {
 
 function metricsMonitor(metricName: string): Record<string, unknown> {
   return {
+    _id: "monitor-1",
     monitorType: MonitorType.Metrics,
     monitorSteps: {
       data: {
@@ -276,6 +279,36 @@ interface IncidentData {
 
 let mockIncident: IncidentData = {};
 
+/*
+ * The incident's monitors as a read of the incident answers them: which
+ * monitor each is and what kind. No relation reads a monitor's steps
+ * (#10309); the card reads them on the monitor (monitorsRead).
+ */
+function monitorsThroughTheIncident(): Array<Record<string, unknown>> {
+  return (mockIncident.monitors || []).map(
+    (monitor: Record<string, unknown>): Record<string, unknown> => {
+      return { _id: monitor["_id"], monitorType: monitor["monitorType"] };
+    },
+  );
+}
+
+// The monitors a read of monitors by their ids answers: their steps, whole.
+function monitorsRead(query: {
+  _id?: unknown;
+}): Array<Record<string, unknown>> {
+  const ids: Array<string> = (
+    query._id instanceof Includes ? query._id.values : []
+  ).map((id: unknown): string => {
+    return String(id);
+  });
+
+  return (mockIncident.monitors || []).filter(
+    (monitor: Record<string, unknown>): boolean => {
+      return ids.includes(String(monitor["_id"]));
+    },
+  );
+}
+
 function serve(): void {
   getItemMock.mockImplementation(async (...args: Array<unknown>) => {
     const request: { modelType: unknown } = args[0] as { modelType: unknown };
@@ -292,13 +325,18 @@ function serve(): void {
           ? metricSnapshot()
           : mockIncident.telemetryQuery,
       seriesLabels: mockIncident.seriesLabels,
-      monitors: mockIncident.monitors || [],
+      monitors: monitorsThroughTheIncident(),
     };
   });
 
   getListMock.mockImplementation(async (...args: Array<unknown>) => {
-    const request: { modelType: unknown } = args[0] as { modelType: unknown };
+    const request: { modelType: unknown; query: { _id?: unknown } } =
+      args[0] as { modelType: unknown; query: { _id?: unknown } };
     let data: Array<Record<string, unknown>> = [];
+
+    if (request.modelType === Monitor) {
+      data = monitorsRead(request.query);
+    }
 
     if (request.modelType === IncidentState) {
       data = [
@@ -724,6 +762,69 @@ describe("Root Cause: an incident that kept no metric snapshot", () => {
         screen.getByTestId("metric-investigation-time-dropdown"),
       ).queryByText("What the monitor saw"),
     ).toBeNull();
+  });
+
+  test("its monitors' steps are read on each monitor, by the reader's own read, never through the incident (#10309)", async () => {
+    mockIncident = {
+      telemetryQuery: null,
+      monitors: [metricsMonitor("system.cpu.utilization")],
+    };
+
+    await renderPage();
+
+    const incidentRead: { select: Record<string, unknown> } =
+      getItemMock.mock.calls.find((call: Array<unknown>): boolean => {
+        const read: { modelType: unknown; select: Record<string, unknown> } =
+          call[0] as { modelType: unknown; select: Record<string, unknown> };
+        return (
+          read.modelType === Incident && Boolean(read.select["declaredAt"])
+        );
+      })![0] as { select: Record<string, unknown> };
+
+    expect(incidentRead.select["monitors"]).toEqual({
+      _id: true,
+      monitorType: true,
+    });
+
+    const monitorReads: Array<{
+      query: { _id: Includes };
+      select: Record<string, unknown>;
+    }> = getListMock.mock.calls
+      .filter((call: Array<unknown>): boolean => {
+        return (call[0] as { modelType: unknown }).modelType === Monitor;
+      })
+      .map((call: Array<unknown>) => {
+        return call[0] as {
+          query: { _id: Includes };
+          select: Record<string, unknown>;
+        };
+      });
+
+    expect(monitorReads).toHaveLength(1);
+    expect(monitorReads[0]!.query._id.values).toEqual(["monitor-1"]);
+    expect(monitorReads[0]!.select).toEqual({
+      _id: true,
+      monitorType: true,
+      monitorSteps: true,
+    });
+  });
+
+  test("an incident that kept a snapshot is charted from it alone: its monitors are never read", async () => {
+    mockIncident = { monitors: [metricsMonitor("system.memory.utilization")] };
+
+    await renderPage();
+
+    expect(
+      String(
+        charts().metricViewData.queryConfigs[0]?.metricQueryData.filterData
+          .metricName,
+      ),
+    ).toBe("system.cpu.utilization");
+    expect(
+      getListMock.mock.calls.filter((call: Array<unknown>): boolean => {
+        return (call[0] as { modelType: unknown }).modelType === Monitor;
+      }),
+    ).toHaveLength(0);
   });
 
   test("a snapshot of logs is no metric snapshot: the incident's metrics monitor is charted", async () => {

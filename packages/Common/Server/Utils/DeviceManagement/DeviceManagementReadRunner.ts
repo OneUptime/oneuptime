@@ -9,11 +9,18 @@ import {
   MAX_DEVICE_MANAGEMENT_READ_WARNINGS,
   readDeviceManagementReadSummary,
 } from "../../../Types/DeviceManagement/DeviceManagementReadSummary";
-import { getDeviceManagementProviderTitle } from "../../../Types/DeviceManagement/DeviceManagementProvider";
+import DeviceManagementProvider, {
+  getDeviceManagementProviderTitle,
+} from "../../../Types/DeviceManagement/DeviceManagementProvider";
+import {
+  ManagedDevicePlatform,
+  readManagedDevicePlatform,
+} from "../../../Types/DeviceManagement/ManagedDevicePlatform";
 import {
   ManagedDeviceStatus,
   getManagedDeviceStatus,
 } from "../../../Types/DeviceManagement/ManagedDeviceStatus";
+import { DeviceManagementConnectionReadOutcome } from "../../../Types/DeviceManagement/DeviceManagementConnectionReading";
 import { JSONObject } from "../../../Types/JSON";
 import { LlmConnectionFailureKind } from "../../../Types/LlmObservability/LlmConnectionTest";
 import ObjectID from "../../../Types/ObjectID";
@@ -35,7 +42,9 @@ import {
   DeviceManagementSettings,
   DeviceManagementTransport,
   ProviderApp,
+  ProviderDevice,
   ProviderGroup,
+  getDeviceManagementSecretValues,
   readDeviceManagementPullState,
 } from "./DeviceManagementTypes";
 import ManagedDeviceInventory, {
@@ -45,6 +54,9 @@ import ManagedDeviceCheckInMetrics, {
   ManagedDeviceCheckInOutcome,
   ManagedDeviceCheckInRecordInput,
 } from "./ManagedDeviceCheckInMetrics";
+import DeviceManagementConnectionReadMetrics, {
+  DeviceManagementConnectionReadRecord,
+} from "./DeviceManagementConnectionReadMetrics";
 import {
   ManagedDeviceAppSyncPlan,
   ManagedDeviceSyncPlan,
@@ -67,14 +79,18 @@ import {
  *   2. reads the fleet through the SSRF-guarded fetch: who the key is, the
  *      devices, their groups, and the check-ins since the last window -
  *      then, one by one and while its budget lasts, the check-in of a
- *      device no window had (once a day at most per device);
+ *      device no window had (once a day at most per device), and the
+ *      battery of a device whose service says one only of a device asked
+ *      about alone, once it has checked in since it was last asked
+ *      (getBatteryLookups, #10287: Intune's iPhones and iPads);
  *   3. writes what changed (ManagedDeviceSync): new devices, changed ones,
  *      devices that left the list (marked removed, never from a list cut
  *      short), devices back on it, and devices gone 30 days (deleted, after
  *      their hosts are let go);
  *   4. reads the installed apps of the devices that are due - every
  *      MANAGED_DEVICE_APPS_READ_INTERVAL_IN_HOURS, oldest first, at most
- *      MAX_APP_DEVICES_PER_READ a read and while the budget lasts - and
+ *      MAX_APP_DEVICES_PER_READ a read (fewer for a service whose API has a
+ *      daily quota: maxAppDevicesPerRead) and while the budget lasts - and
  *      writes what changed on each;
  *   5. gives each device its host in Inventory (ManagedDeviceInventory):
  *      one host per device, shared with its apps' or agent's telemetry. A
@@ -83,7 +99,12 @@ import {
  *      alerts on per device (ManagedDeviceCheckInMetrics, #9835) - only
  *      when it read every check-in up to its end, so no age is too old. A
  *      failure there is a warning too;
- *   7. records the outcome on the connection: when it read, what it found,
+ *   7. writes how long since a read of the connection itself worked - 0
+ *      now, or how long when this one failed, with why - which the
+ *      connection's own monitor alerts on once it stops reading
+ *      (DeviceManagementConnectionReadMetrics, #10006). A failure there is
+ *      a warning as well;
+ *   8. records the outcome on the connection: when it read, what it found,
  *      the error with the key removed, where the check-ins got to and when
  *      it reads next.
  *
@@ -128,6 +149,26 @@ export const APPS_NOT_READ_WARNING: string =
   "Some devices' apps could not be read this time: the next read tries again.";
 export const CHECK_INS_NOT_RECORDED_WARNING: string =
   "How long since each device checked in could not be recorded this time, so its alerts have nothing new to read: the next read tries again.";
+export const CONNECTION_READ_NOT_RECORDED_WARNING: string =
+  "How this read went could not be recorded for the connection's own alert this time: the next read tries again.";
+export const BATTERIES_NOT_READ_WARNING: string =
+  "Some devices' battery levels could not be read this time: the next read tries again.";
+
+/*
+ * The most devices one read asks about one by one for their battery
+ * (#10287): a service whose device list says no battery (Intune) says a
+ * device's only when asked about it alone, one request each.
+ */
+export const MAX_BATTERY_LOOKUPS_PER_READ: number = 200;
+
+/*
+ * Where a device's details keep the check-in its battery was asked at
+ * (#10287), as an ISO time. A device reports a new battery level when it
+ * checks in, so it is asked again once it has checked in since - and one
+ * not asked when it was due, the read's budget spent or its service busy,
+ * is asked at the next read.
+ */
+export const BATTERY_READ_AT_CHECK_IN_DETAIL: string = "batteryReadAtCheckIn";
 
 export interface DeviceManagementReadDependencies {
   transport?: DeviceManagementTransport | undefined;
@@ -141,6 +182,7 @@ export interface DeviceManagementReadDependencies {
     | ((data: {
         projectId: ObjectID;
         connectionId: ObjectID;
+        provider: DeviceManagementProvider;
         now: Date;
       }) => Promise<ManagedDeviceInventoryOutcome>)
     | undefined;
@@ -150,6 +192,27 @@ export interface DeviceManagementReadDependencies {
         data: ManagedDeviceCheckInRecordInput,
       ) => Promise<ManagedDeviceCheckInOutcome>)
     | undefined;
+  // Test seam for the connection's own reading (#10006).
+  recordConnectionReadings?:
+    | ((
+        records: ReadonlyArray<DeviceManagementConnectionReadRecord>,
+      ) => Promise<number>)
+    | undefined;
+}
+
+// What a read's apps came to.
+interface AppsReadOutcome {
+  // Devices whose apps were read and written.
+  read: number;
+  // Devices whose apps are due but were not read this time.
+  waiting: number;
+  // Whether a device's apps could not be read or written.
+  failed: boolean;
+  /*
+   * Whether the devices that wait may be read soon: false when the
+   * service's own cap or a refusal held them, which a minute does not change.
+   */
+  mayCarryOn: boolean;
 }
 
 export interface DeviceManagementReadOutcome {
@@ -222,6 +285,71 @@ export function getCheckInLookups(data: {
       return left.askedAt - right.askedAt;
     })
     .slice(0, MAX_CHECK_IN_LOOKUPS_PER_READ)
+    .map((entry: { id: string }): string => {
+      return entry.id;
+    });
+}
+
+/*
+ * The devices whose battery to ask about one by one (#10287), for a
+ * service that says a battery only of a device asked about alone: listed
+ * now, of a platform it says one for, with a check-in, and asked at an
+ * older check-in or never - never asked first, then the ones asked at the
+ * oldest check-in - at most MAX_BATTERY_LOOKUPS_PER_READ. Pure.
+ */
+export function getBatteryLookups(data: {
+  devices: ReadonlyArray<{
+    providerDeviceId: string;
+    platform: ManagedDevicePlatform;
+  }>;
+  readsBatteryOf: (device: { platform: ManagedDevicePlatform }) => boolean;
+  // When each device's battery was last asked about, at which check-in (ISO).
+  askedAtCheckIns: ReadonlyMap<string, string>;
+  // Each device's newest check-in this read knows.
+  checkIns: ReadonlyMap<string, Date>;
+}): Array<string> {
+  const due: Array<{ id: string; askedAt: number }> = [];
+  const seen: Set<string> = new Set<string>();
+
+  for (const device of data.devices) {
+    if (
+      seen.has(device.providerDeviceId) ||
+      !data.readsBatteryOf({ platform: device.platform })
+    ) {
+      continue;
+    }
+
+    seen.add(device.providerDeviceId);
+
+    const checkIn: Date | undefined = data.checkIns.get(
+      device.providerDeviceId,
+    );
+
+    // A device that never checked in has said nothing to ask about.
+    if (!checkIn) {
+      continue;
+    }
+
+    const askedAtCheckIn: string | undefined = data.askedAtCheckIns.get(
+      device.providerDeviceId,
+    );
+    const askedAt: number = askedAtCheckIn ? Date.parse(askedAtCheckIn) : NaN;
+
+    if (Number.isFinite(askedAt) && askedAt >= checkIn.getTime()) {
+      continue;
+    }
+
+    due.push({
+      id: device.providerDeviceId,
+      askedAt: Number.isFinite(askedAt) ? askedAt : 0,
+    });
+  }
+
+  return due
+    .sort((left: { askedAt: number }, right: { askedAt: number }): number => {
+      return left.askedAt - right.askedAt;
+    })
+    .slice(0, MAX_BATTERY_LOOKUPS_PER_READ)
     .map((entry: { id: string }): string => {
       return entry.id;
     });
@@ -315,6 +443,8 @@ export default class DeviceManagementReadRunner {
           isEnabled: true,
           pullState: true,
           lastPullResult: true,
+          createdAt: true,
+          lastSuccessfulPullAt: true,
         },
         props: { isRoot: true },
       });
@@ -423,19 +553,28 @@ export default class DeviceManagementReadRunner {
 
       let isPartial: boolean = !fleet.isDeviceListComplete;
 
-      for (const id of getCheckInLookups({
-        listedDeviceIds: listedIds,
-        knownCheckIns,
-        lookups,
-        now,
-      })) {
+      /*
+       * Only for a service that answers one device's check-in on its own:
+       * another one's device list said every check-in it knows.
+       */
+      const readCheckIn: ((id: string) => Promise<Date | null>) | undefined =
+        session.readCheckIn ? session.readCheckIn.bind(session) : undefined;
+
+      for (const id of readCheckIn
+        ? getCheckInLookups({
+            listedDeviceIds: listedIds,
+            knownCheckIns,
+            lookups,
+            now,
+          })
+        : []) {
         if (!session.hasBudgetFor(1)) {
           isPartial = true;
           break;
         }
 
         try {
-          const lastCheckIn: Date | null = await session.readCheckIn(id);
+          const lastCheckIn: Date | null = await readCheckIn!(id);
           lookups[id] = now.toISOString();
 
           if (lastCheckIn) {
@@ -449,6 +588,25 @@ export default class DeviceManagementReadRunner {
 
           throw error;
         }
+      }
+
+      /*
+       * The batteries a service says only of a device asked about alone
+       * (#10287: Intune's iPhones and iPads), before the devices are
+       * written: each device's battery as last asked, and anew for those
+       * that checked in since.
+       */
+      if (
+        session.readsBatteryOf &&
+        session.readBatteryLevel &&
+        !(await DeviceManagementReadRunner.readBatteries({
+          session,
+          fleet,
+          storedDevices,
+          checkIns,
+        }))
+      ) {
+        warnings.push(BATTERIES_NOT_READ_WARNING);
       }
 
       const groups: Map<string, ProviderGroup> = new Map<
@@ -479,20 +637,24 @@ export default class DeviceManagementReadRunner {
       });
 
       // The installed apps of the devices that are due.
-      const apps: { read: number; waiting: number; failed: boolean } =
-        await DeviceManagementReadRunner.readApps({
-          projectId,
-          connectionId: connection.id!,
-          session,
-          enterpriseId: fleet.enterpriseId,
-          now,
-        });
+      const apps: AppsReadOutcome = await DeviceManagementReadRunner.readApps({
+        projectId,
+        connectionId: connection.id!,
+        session,
+        enterpriseId: fleet.enterpriseId,
+        now,
+      });
 
       if (apps.failed) {
         warnings.push(APPS_NOT_READ_WARNING);
       }
 
-      if (apps.waiting > 0) {
+      /*
+       * Devices whose apps wait carry the read on soon, unless what held
+       * them will not be different in a minute: the service's own cap (a
+       * daily quota) or a refusal, which the next scheduled read meets.
+       */
+      if (apps.waiting > 0 && apps.mayCarryOn) {
         isPartial = true;
       }
 
@@ -509,11 +671,17 @@ export default class DeviceManagementReadRunner {
           ((data: {
             projectId: ObjectID;
             connectionId: ObjectID;
+            provider: DeviceManagementProvider;
             now: Date;
           }): Promise<ManagedDeviceInventoryOutcome> => {
             return ManagedDeviceInventory.record(data);
           })
-        )({ projectId, connectionId: connection.id!, now });
+        )({
+          projectId,
+          connectionId: connection.id!,
+          provider: settings.provider,
+          now,
+        });
       } catch (error) {
         logger.error(
           `Device management connection ${connection.id!.toString()}: its devices' hosts in Inventory could not be updated: ${
@@ -525,12 +693,14 @@ export default class DeviceManagementReadRunner {
 
       /*
        * How long since each device checked in, as a metric a monitor reads
-       * (#9835): only after a read that read every check-in up to its end,
-       * at that end, when every device's last check-in is known. A read cut
-       * short says nothing rather than an age too old, and the readings
-       * before it are still in the monitor's window.
+       * (#9835): only after a read that read the whole device list and
+       * every check-in up to its end, at that end, when every device's last
+       * check-in is known. A read cut short says nothing rather than an age
+       * too old - a device a list cut short left out keeps the check-in of
+       * an older read - and the readings before it are still in the
+       * monitor's window.
        */
-      if (fleet.checkInWindowEnd) {
+      if (fleet.isDeviceListComplete && fleet.checkInWindowEnd) {
         try {
           await (
             dependencies.recordCheckIns ||
@@ -577,6 +747,8 @@ export default class DeviceManagementReadRunner {
             read && known
               ? new Date(Math.max(read.getTime(), known.getTime()))
               : read || known || null,
+          provider: settings.provider,
+          platform: device.platform,
           now,
         });
 
@@ -590,6 +762,22 @@ export default class DeviceManagementReadRunner {
       const status: DeviceManagementReadStatus = isPartial
         ? "partial"
         : "success";
+
+      // The connection's own reading: it read, so nothing is overdue (#10006).
+      if (
+        !(await DeviceManagementReadRunner.recordConnectionReading({
+          dependencies,
+          connection,
+          interval,
+          outcome:
+            status === "partial"
+              ? DeviceManagementConnectionReadOutcome.Partial
+              : DeviceManagementConnectionReadOutcome.Success,
+          now,
+        }))
+      ) {
+        warnings.push(CONNECTION_READ_NOT_RECORDED_WARNING);
+      }
 
       const summary: DeviceManagementReadSummary = {
         status,
@@ -654,7 +842,7 @@ export default class DeviceManagementReadRunner {
             : error,
         step: "read",
         providerTitle: providerTitle,
-        secretValues: settings ? [settings.apiKey] : [],
+        secretValues: settings ? getDeviceManagementSecretValues(settings) : [],
       });
 
       const summary: DeviceManagementReadSummary = {
@@ -680,6 +868,24 @@ export default class DeviceManagementReadRunner {
         finishedAt: clock().toISOString(),
       };
 
+      /*
+       * The connection's own reading: how long since a read of it worked,
+       * and why this one did not (#10006).
+       */
+      if (
+        !(await DeviceManagementReadRunner.recordConnectionReading({
+          dependencies,
+          connection,
+          interval,
+          outcome: DeviceManagementConnectionReadOutcome.Failed,
+          failureKind: failure.kind,
+          lastError: failure.message,
+          now,
+        }))
+      ) {
+        summary.warnings = [CONNECTION_READ_NOT_RECORDED_WARNING];
+      }
+
       await DeviceManagementReadRunner.record(connection.id!, {
         lastPulledAt: now,
         lastError: failure.message,
@@ -693,6 +899,59 @@ export default class DeviceManagementReadRunner {
       });
 
       return { status: "failed", summary, error: failure.message };
+    }
+  }
+
+  /*
+   * Writes the connection's own reading of this read (#10006): 0 for a read
+   * that worked, and for one that failed the minutes since its last read
+   * that worked - or since it was saved - with what failed. Guarded: false
+   * when it could not be written, which the read keeps as a warning.
+   */
+  private static async recordConnectionReading(data: {
+    dependencies: DeviceManagementReadDependencies;
+    connection: DeviceManagementConnection;
+    interval: number;
+    outcome: DeviceManagementConnectionReadOutcome;
+    failureKind?: LlmConnectionFailureKind | undefined;
+    lastError?: string | undefined;
+    now: Date;
+  }): Promise<boolean> {
+    const record: DeviceManagementConnectionReadRecord = {
+      projectId: data.connection.projectId!,
+      connectionId: data.connection.id!,
+      reading: {
+        connectionName: data.connection.name,
+        provider: data.connection.provider,
+        readIntervalInMinutes: data.interval,
+        outcome: data.outcome,
+        lastSuccessfulReadAt: data.connection.lastSuccessfulPullAt,
+        createdAt: data.connection.createdAt,
+        failureKind: data.failureKind,
+        lastError: data.lastError,
+        asOf: data.now,
+      },
+    };
+
+    try {
+      await (
+        data.dependencies.recordConnectionReadings ||
+        ((
+          records: ReadonlyArray<DeviceManagementConnectionReadRecord>,
+        ): Promise<number> => {
+          return DeviceManagementConnectionReadMetrics.record(records);
+        })
+      )([record]);
+
+      return true;
+    } catch (error) {
+      logger.error(
+        `Device management connection ${data.connection.id!.toString()}: how its read went could not be recorded for its alert: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+
+      return false;
     }
   }
 
@@ -712,6 +971,7 @@ export default class DeviceManagementReadRunner {
           projectId: true,
           connectionId: true,
           providerDeviceId: true,
+          platform: true,
           deviceName: true,
           alias: true,
           serialNumber: true,
@@ -858,8 +1118,10 @@ export default class DeviceManagementReadRunner {
 
   /*
    * The installed apps of the devices that are due, while the budget
-   * lasts. A device whose apps cannot be read is tried again next read; a
-   * refused key or a rate limit ends the apps for this read.
+   * lasts, and at most as many devices as the read reads apps of
+   * (MAX_APP_DEVICES_PER_READ, or the service's own, lower cap). A device
+   * whose apps cannot be read is tried again next read; a refused key, a
+   * permission the key lacks or a rate limit ends the apps for this read.
    */
   private static async readApps(data: {
     projectId: ObjectID;
@@ -867,14 +1129,19 @@ export default class DeviceManagementReadRunner {
     session: DeviceManagementSession;
     enterpriseId: string;
     now: Date;
-  }): Promise<{ read: number; waiting: number; failed: boolean }> {
+  }): Promise<AppsReadOutcome> {
     const devices: Array<ManagedDevice> = await ManagedDeviceService.findBy({
       query: {
         projectId: data.projectId,
         connectionId: data.connectionId,
         removedAt: QueryHelper.isNull(),
       },
-      select: { _id: true, providerDeviceId: true, appsReadAt: true },
+      select: {
+        _id: true,
+        providerDeviceId: true,
+        appsReadAt: true,
+        platform: true,
+      },
       skip: 0,
       limit: 100000,
       props: { isRoot: true },
@@ -886,33 +1153,61 @@ export default class DeviceManagementReadRunner {
       appsReadAt: Date | null;
       isRemoved: boolean;
     }> = getAppsDueDevices(
-      devices.map(
-        (
-          device: ManagedDevice,
-        ): {
-          id: string;
-          providerDeviceId: string;
-          appsReadAt: Date | null;
-          isRemoved: boolean;
-        } => {
-          return {
-            id: device._id!.toString(),
-            providerDeviceId: device.providerDeviceId || "",
-            appsReadAt: device.appsReadAt ? new Date(device.appsReadAt) : null,
-            isRemoved: false,
-          };
-        },
-      ),
+      devices
+        // A device whose apps its service does not list is never due.
+        .filter((device: ManagedDevice): boolean => {
+          const platform: ManagedDevicePlatform = readManagedDevicePlatform(
+            device.platform,
+          );
+
+          return data.session.readsAppsOf({ platform });
+        })
+        .map(
+          (
+            device: ManagedDevice,
+          ): {
+            id: string;
+            providerDeviceId: string;
+            appsReadAt: Date | null;
+            isRemoved: boolean;
+          } => {
+            return {
+              id: device._id!.toString(),
+              providerDeviceId: device.providerDeviceId || "",
+              appsReadAt: device.appsReadAt
+                ? new Date(device.appsReadAt)
+                : null,
+              isRemoved: false,
+            };
+          },
+        ),
       data.now,
     );
 
+    const serviceCap: number | undefined = data.session.maxAppDevicesPerRead;
+    const limit: number = Math.min(
+      MAX_APP_DEVICES_PER_READ,
+      serviceCap !== undefined && serviceCap >= 0
+        ? serviceCap
+        : MAX_APP_DEVICES_PER_READ,
+    );
     let read: number = 0;
+    let attempted: number = 0;
     let failed: boolean = false;
+    let mayCarryOn: boolean = true;
 
     for (const device of due) {
-      if (read >= MAX_APP_DEVICES_PER_READ || !data.session.hasBudgetFor(2)) {
+      if (attempted >= limit) {
+        // The service's own cap waits for the next scheduled read.
+        mayCarryOn = serviceCap === undefined;
         break;
       }
+
+      if (!data.session.hasBudgetFor(2)) {
+        break;
+      }
+
+      attempted++;
 
       let apps: Array<ProviderApp>;
 
@@ -931,8 +1226,11 @@ export default class DeviceManagementReadRunner {
         if (
           error instanceof LlmProviderError &&
           (error.kind === LlmConnectionFailureKind.Authentication ||
+            error.kind === LlmConnectionFailureKind.Permission ||
             error.kind === LlmConnectionFailureKind.RateLimited)
         ) {
+          // A rate limit is carried on after its wait; a refusal is the next scheduled read's.
+          mayCarryOn = error.kind === LlmConnectionFailureKind.RateLimited;
           break;
         }
 
@@ -963,7 +1261,129 @@ export default class DeviceManagementReadRunner {
       }
     }
 
-    return { read, waiting: Math.max(0, due.length - read), failed };
+    return {
+      read,
+      waiting: Math.max(0, due.length - read),
+      failed,
+      mayCarryOn,
+    };
+  }
+
+  /*
+   * The battery of each listed device whose service says one only when
+   * asked about the device alone (#10287), set on the fleet's devices
+   * before they are written:
+   *
+   *   - every such device keeps what it was last asked - its level, and
+   *     the check-in it was asked at (BATTERY_READ_AT_CHECK_IN_DETAIL) -
+   *     as its service's device list says none;
+   *   - the ones that checked in since are asked again
+   *     (getBatteryLookups), one request each, while the read's budget
+   *     lasts.
+   *
+   * A device not asked when it was due keeps its marker, so the next read
+   * asks it. A device its service no longer knows (404) is skipped; any
+   * other refusal - a key refused, a permission missing, Graph asking to
+   * slow down past what its client waits, a request it no longer takes -
+   * ends the batteries for this read. False then, which the read keeps as
+   * a warning, never its failure.
+   */
+  private static async readBatteries(data: {
+    session: DeviceManagementSession;
+    fleet: DeviceManagementFleetRead;
+    storedDevices: Array<StoredManagedDevice>;
+    checkIns: ReadonlyMap<string, Date>;
+  }): Promise<boolean> {
+    const readsBatteryOf: (device: {
+      platform: ManagedDevicePlatform;
+    }) => boolean = data.session.readsBatteryOf!.bind(data.session);
+    const storedById: Map<string, StoredManagedDevice> = new Map<
+      string,
+      StoredManagedDevice
+    >();
+    const askedAtCheckIns: Map<string, string> = new Map<string, string>();
+
+    for (const device of data.storedDevices) {
+      storedById.set(device.providerDeviceId, device);
+
+      const askedAt: unknown =
+        device.fields.details?.[BATTERY_READ_AT_CHECK_IN_DETAIL];
+
+      if (typeof askedAt === "string" && askedAt) {
+        askedAtCheckIns.set(device.providerDeviceId, askedAt);
+      }
+    }
+
+    const listedById: Map<string, ProviderDevice> = new Map<
+      string,
+      ProviderDevice
+    >();
+
+    for (const device of data.fleet.devices) {
+      if (!readsBatteryOf({ platform: device.platform })) {
+        continue;
+      }
+
+      listedById.set(device.providerDeviceId, device);
+
+      // What it was last asked, kept: its service's list says no battery.
+      const stored: StoredManagedDevice | undefined = storedById.get(
+        device.providerDeviceId,
+      );
+      device.batteryLevel = stored?.fields.batteryLevel ?? null;
+
+      const askedAt: string | undefined = askedAtCheckIns.get(
+        device.providerDeviceId,
+      );
+
+      if (askedAt) {
+        device.details = {
+          ...device.details,
+          [BATTERY_READ_AT_CHECK_IN_DETAIL]: askedAt,
+        };
+      }
+    }
+
+    for (const id of getBatteryLookups({
+      devices: data.fleet.devices,
+      readsBatteryOf,
+      askedAtCheckIns,
+      checkIns: data.checkIns,
+    })) {
+      if (!data.session.hasBudgetFor(1)) {
+        return true;
+      }
+
+      const device: ProviderDevice = listedById.get(id)!;
+      const checkIn: Date = data.checkIns.get(id)!;
+
+      try {
+        device.batteryLevel = await data.session.readBatteryLevel!(id);
+        device.details = {
+          ...device.details,
+          [BATTERY_READ_AT_CHECK_IN_DETAIL]: checkIn.toISOString(),
+        };
+      } catch (error) {
+        if (error instanceof DeviceManagementBudgetSpent) {
+          return true;
+        }
+
+        // A device its service no longer knows: the list drops it next.
+        if (error instanceof LlmProviderError && error.statusCode === 404) {
+          continue;
+        }
+
+        logger.debug(
+          `Managed device ${id}: its battery could not be read, and no other is asked this read: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+
+        return false;
+      }
+    }
+
+    return true;
   }
 
   // One device's apps: what changed written, and when they were read.

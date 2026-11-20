@@ -22,6 +22,7 @@ right after a drag" below).
 | Logs explorer               | `LOGS` `/dashboard/:projectId/logs`                                                | `Pages/Logs/{Layout,Index}`: the Dashboard's `LogsViewer` ("Log Volume" histogram, facets, log list, saved views)                             |
 | Exceptions explorer         | `EXCEPTIONS_UNRESOLVED` `/dashboard/:projectId/exceptions/unresolved`              | `Pages/Exceptions/{Layout,Unresolved}`: `ExceptionsViewer` ("Exceptions over time" histogram, facets, the error-class counts, exception list) |
 | Metrics explorer            | `METRICS` `/dashboard/:projectId/metrics`                                          | `Pages/Metrics/{Layout,Index}`: `MetricsViewer` (the metric list, a sparkline per row, the Service facet, saved views)                        |
+| Metric explorer charts      | `METRIC_VIEW` `/dashboard/:projectId/metrics/view`                                 | `Pages/Metrics/View/{Layout,Index}`: `MetricExplorer` (its query editors and its charts, `MetricView`)                                        |
 
 Each page renders inside its production layout: the View layout (`ModelPage`,
 breadcrumbs, side menu with its count badges) for the cluster and host pages, the
@@ -69,6 +70,9 @@ fixes the browser clock to `2026-09-21T12:00:00Z`, so "Past 30 Minutes" is alway
   into: worker-2's batch job and the host's gateway both peak at 11:43.
 - Network counters are cumulative and monotonic (the pages turn them into rates);
   heartbeats are one a minute, so availability reads 100%.
+- Two spans of time on the host, in seconds (#10118): `batch.job.duration`, the
+  gateway's nightly batch job, an hour and a half give or take two seconds, and
+  `system.uptime`, twelve days and five hours at 11:30, counting up a second a second.
 - `MetricType` rows give the native units (CPU in cores, `{cpu}`, so the Insights
   CPU% transform sees cores).
 - **The explorers' services, spans and logs.** Four `Service` rows (`checkout-api`,
@@ -113,7 +117,10 @@ severity, count }` per bucket and series that has rows, in time order; the logs
   above an explorer.
 - Empty on purpose: incidents, alerts, scheduled maintenance, monitors, dismissals,
   change events, exemplars (raw `Metric` rows with a trace id), trace saved views,
-  Docker and Podman hosts.
+  Docker and Podman hosts, and security events (an opened log line's details read
+  the events naming it, and find none).
+- Every page has the Dashboard's toast region (`ToastRegion`, as its `src/Index.tsx`
+  draws it), where a log row's Copy Link says "Link copied".
 
 Any route not listed above renders a "Not modelled" stub (`data-testid="stub-page"`).
 
@@ -609,6 +616,73 @@ scrolling sideways. Its screenshots are `host-security-card-*`, `cluster-securit
 
 The fixture draws its pages in Inter, as production does (`server.js` serves
 `InterVariable.woff2` with index.ejs's universal rule; `Tests/Ops/E2EFixtureFonts`).
+
+## Metric explorer: a chart's height beside other charts
+
+`MetricExplorerChartHeights.spec.ts` (same fixture and command) pins #10043. The metric
+explorer's charts are cards, two to a row from 1024px up and one to a row below it, and
+each card's plot keeps 20rem (`min-h-80`). `MetricView` also gave the box around the
+cards 20rem per chart, counted as if each chart had a row of its own, so two charts side
+by side were drawn 640px tall each instead of 449px, with a 511px plot, and three or
+four charts were stretched too. The spec opens the explorer with one, two, three and
+four queries (`?metricQueries=`, each query on a chart of its own) and measures every
+card at 1280px, 1024px and 390px: as tall as a chart drawn alone, its plot 320px, two to
+a row from 1024px and one to a row on a phone.
+
+## Metric explorer: a second value axis for another kind of unit
+
+`MetricExplorerSecondAxis.spec.ts` (same fixture and command) pins #10042: the nodes'
+memory usage in bytes, overlaid on CPU utilization (a 0-1 fraction drawn in percent), is
+drawn against a second value axis on the chart's right. At 1280px and 390px the chart has
+two value axes, the left one's ticks in percent and the right one's, past the plot's right
+edge, in bytes; the bytes line (found by its legend chip's colour) spreads over its axis;
+the legend says "Left axis: Percent" and "Right axis: Bytes" and tags each series' chip with
+its axis, with no unit warning; and the card holds all of it on a phone. Its screenshots
+are `metric-explorer-second-axis-1280-synthetic.png` and `…-390-synthetic.png`.
+
+The same spec pins #10079 and #10080. Every value axis's neighbouring ticks read apart:
+the host's filesystem usage, about 17.2 GB on average and moving by a few bytes, wrote
+"17.2 GB" on all five of its ticks, and now writes each tick with the figures its step
+needs, every tick inside the card and left of the plot, at 1280px and 390px
+(`metric-explorer-narrow-axis-*-synthetic.png`). And a third kind of unit, the host's
+processes (a count) overlaid on that percent and bytes chart, is drawn to a scale of its
+own: two value axes, never a third, the percent axis kept at or under 100% (the count had
+pulled it up to thousands), the processes' line spread over the plot, its chip saying "Own
+scale" beside an "Own scale: …" badge, and the chart's note saying it has no axis
+(`metric-explorer-own-scale-*-synthetic.png`).
+
+## Metric explorer: every value axis steps evenly, in round steps of its unit
+
+`MetricExplorerAxisSteps.spec.ts` (10 tests, same fixture and command) pins #10117 and
+#10118, at 1280px and 390px. The nodes' memory overlaid on CPU utilization read "7.57 GB",
+"7.65 GB", "7.74 GB" on its right axis: recharts' 85 MB steps, written to three figures.
+Each axis now steps evenly, by a round step (1, 2, 2.5 or 5 times a power of ten) of the
+unit each tick is written in, each tick written with the figures that step needs and no
+more, drawn evenly, inside the card on its side of the plot; the blank space above the
+lines is recorded on the test and kept under half the plot
+(`metric-explorer-round-steps-*-synthetic.png`). The batch job's axis, which read "1.5000
+hours", "1.5003 hours", is a clock a second a tick ("1:29:58" to "1:30:02"), on the right
+of a percent chart too (`metric-explorer-duration-axis-*-synthetic.png`), and the host's
+uptime reads "12 d 05:00" onwards, ten minutes a tick
+(`metric-explorer-uptime-axis-*-synthetic.png`). A short card takes only the ticks its plot
+has room for, one every 20px: the cluster Overview's network card, an 82px plot, read
+"250 KB/s", "750 KB/s", "1.25 MB/s" when recharts hid every other label of six ticks, and
+now draws every tick it steps, from "0 B/s". The fixture does not model that Overview's Cost
+card yet, so this test leaves its `KubernetesCostAllocationV1` reads alone.
+
+## Logs explorer: Copy Link on a log row
+
+`LogRowCopyLink.spec.ts` (5 tests, same fixture and command) pins #9944: a row of the Logs
+explorer's list has Copy Link beside its Copy log message, so a line's link is copied
+without opening it. The page's clipboard is recorded (`navigator.clipboard` is replaced
+before the page loads), so what each press copied is read exactly. At 1440px the row's
+Copy Link shows under the pointer, copies the link the row's details copy (the Logs page
+naming the line, over the list's hour, pinned), says "Link copied" and leaves the row
+closed, and the link opens that very line above the list; Tab reaches it after Copy log
+message and shows it, and Enter presses it; `l` copies the link of the row `j` moved to,
+and the shortcuts panel lists it after Enter. On a 390px phone, with nothing to hover,
+both of a row's actions show, 32px across with room between, and a tap copies the link
+without opening the row, the page never scrolling sideways.
 
 ## Run it
 

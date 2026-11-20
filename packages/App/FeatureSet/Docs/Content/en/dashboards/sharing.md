@@ -1,10 +1,11 @@
 # Sharing & Public Dashboards
 
-By default, a dashboard is private to your project: only people who sign in to your project can see it. You can also share it through a public link, protect that link with a password, limit it to certain IP addresses, and host it on your own domain. This page covers all four.
+By default, a dashboard is private to your project: only people who sign in to your project can see it. You can also share it through a public link, protect that link with a password or ask its visitors to sign in, limit it to certain IP addresses, and host it on your own domain. This page covers them all.
 
 :::cards
-- [Who can view a dashboard](#who-can-view-a-dashboard): One choice of three, with the plan each needs.
+- [Who can view a dashboard](#who-can-view-a-dashboard): One choice of four, with the plan each needs.
 - [Sharing with a password](#sharing-with-a-password): Share the link, then the password, with the people who should see it.
+- [Only people who sign in](#only-people-who-sign-in): Invite the people who may open it, or let your single sign-on sign them in.
 - [IP allowlist](#ip-allowlist): Open the public link to your office or VPN only.
 - [Custom domains](#custom-domains): Serve the dashboard on your own domain, with a free certificate.
 :::
@@ -18,10 +19,13 @@ flowchart TB
     visit["A visitor opens<br/>the public link"] --> shared("Is the dashboard<br/>shared publicly?")
     shared -->|"No"| missing["A not-found page"]
     shared -->|"Yes"| allowed("Is their address on<br/>the IP allowlist?")
-    allowed -->|"Yes, or<br/>no list"| locked("Is a password<br/>required?")
+    allowed -->|"Yes, or<br/>no list"| signin("Must visitors<br/>sign in?")
     allowed -->|"No"| denied["An Access<br/>Denied page"]
+    signin -->|"Yes"| signinpage["The sign-in<br/>page"]
+    signinpage --> board["The dashboard"]
+    signin -->|"No"| locked("Is a password<br/>required?")
     locked -->|"Yes"| prompt["The password<br/>prompt"]
-    prompt --> board["The dashboard"]
+    prompt --> board
     locked -->|"No"| board
 ```
 
@@ -32,14 +36,15 @@ Open the dashboard and pick **⋯ → Share**, or open **Sharing** in the dashbo
 - **Only people in this project** (the default): members see the dashboard when they sign in to OneUptime. It has no public link: its public address shows the same not-found page as an address no dashboard has, and nothing about the dashboard, not even its name.
 - **Anyone with the link**: the dashboard is public. Anyone who has its link can see it, without signing in.
 - **Anyone with the link and a password**: visitors open the link, then enter one password that you share with them. Nobody needs an account.
+- **Only people who sign in**: the dashboard has a public link, and only the people you choose open it, once they sign in there: the private users you invite, and the people your single sign-on lets in. See [Only people who sign in](#only-people-who-sign-in).
 
-Picking a choice asks you to confirm, saying what changes for visitors, then applies at once. Picking **Anyone with the link and a password** asks for the password in the same dialog when the dashboard has none; while it is the choice, **Change Password** replaces it. While the dashboard is public, the addresses visitors open it at sit under the choice: its custom domains first, then its public link, each with **Copy link**. A custom domain that is not live yet is marked **Not live yet**, with why.
+Picking a choice asks you to confirm, saying what changes for visitors, then applies at once. Picking **Anyone with the link and a password** asks for the password in the same dialog when the dashboard has none; while it is the choice, **Change Password** replaces it. While **Only people who sign in** is the choice, **Private Users** and **Single Sign-On** are one click away under it. While the dashboard is public, the addresses visitors open it at sit under the choice: its custom domains first, then its public link, each with **Copy link**. A custom domain that is not live yet is marked **Not live yet**, with why.
 
 Within the project, owners and labels control who sees what — see [Dashboard Configuration & Permissions](/docs/dashboards/configuration). Someone who can see the dashboard but not edit it sees the choice, and can copy the public link, but can't change it.
 
-On OneUptime Cloud, sharing a dashboard needs the **Growth** plan: on a lower plan the two public choices show the plan they need and can't be picked. Making a dashboard private again — **Only people in this project** — works on every plan, so a dashboard left public when a trial ended, or after a move to a lower plan, can always stop being shared; the dialog says that sharing it again needs **Growth**. Moving between **Anyone with the link** and **Anyone with the link and a password**, and changing the password, works on every plan. A dashboard created through the API or Terraform is held to the same plans: created public it needs **Growth**, and created with an IP allowlist **Scale**.
+On OneUptime Cloud, sharing a dashboard needs the **Growth** plan: on a lower plan the public choices show the plan they need and can't be picked. Making a dashboard private again — **Only people in this project** — works on every plan, so a dashboard left public when a trial ended, or after a move to a lower plan, can always stop being shared; the dialog says that sharing it again needs **Growth**. Moving between **Anyone with the link** and **Anyone with the link and a password**, and changing the password, works on every plan. **Only people who sign in** needs **Growth** too, as its private users do, and its single sign-on needs **Scale**; moving off it works on every plan, and the dialog says that picking it again needs **Growth**. A dashboard created through the API or Terraform is held to the same plans: created public it needs **Growth**, and created with an IP allowlist **Scale**.
 
-The choice is stored in three columns, which the API and Terraform read and write as before: `isPublicDashboard`, `enableMasterPassword` and `masterPassword`. Only a public dashboard has a public link, and its visitors are asked for the password whenever `enableMasterPassword` is on. A public dashboard with `enableMasterPassword` on but no password set lets nobody in through its public link: the **Sharing** page shows it as **Anyone with the link and a password**, says that nobody can open the link yet, and offers **Set Password**. Picking **Only people in this project** also turns `enableMasterPassword` off, and keeps the password, so sharing with a password again can reuse it.
+The choice is stored in four columns, which the API and Terraform read and write: `isPublicDashboard`, `enableMasterPassword`, `masterPassword` and `requireSignIn`. Only a public dashboard has a public link, and its visitors are asked for the password whenever `enableMasterPassword` is on. A public dashboard with `enableMasterPassword` on but no password set lets nobody in through its public link: the **Sharing** page shows it as **Anyone with the link and a password**, says that nobody can open the link yet, and offers **Set Password**. Picking **Only people in this project** also turns `enableMasterPassword` off, and keeps the password, so sharing with a password again can reuse it. A public dashboard with `requireSignIn` on asks its visitors to sign in, and never for the password: picking **Only people who sign in** turns `enableMasterPassword` off and keeps the password too.
 
 ## Public dashboards
 
@@ -53,7 +58,7 @@ A public dashboard:
 
 Treat sharing a dashboard like publishing a webpage. Every widget on it becomes readable by anyone with the link. Look at what's on the canvas before you share it.
 
-Each widget publishes only what it draws, and only for the resources it was pointed at. An SLO widget, for instance, publishes that SLO's headline numbers but never its definition — see [SLO](/docs/dashboards/widgets#slo). External **Data Source** widgets are the exception: they are dropped from a public dashboard entirely rather than rendered, because their configuration is the query itself. A few more widgets cannot be shown without a signed-in session, and say so in their place: [On a public dashboard](/docs/dashboards/widgets#on-a-public-dashboard) lists them. They publish only their title, never the searches and filters they read their data with. Variables, too, publish only what their pickers show: a legacy query variable's query is never published.
+Each widget publishes only what it draws, and only for the resources it was pointed at. An SLO widget, for instance, publishes that SLO's headline numbers but never its definition — see [SLO](/docs/dashboards/widgets#slo). **Data Source** widgets publish their data, never their queries: a widget on **This project's metrics (PromQL)** draws what the queries saved in it return, run over every service in the project, and a widget on an external data source is dropped from a public dashboard entirely rather than rendered. A few more widgets cannot be shown without a signed-in session, and say so in their place: [On a public dashboard](/docs/dashboards/widgets#on-a-public-dashboard) lists them. They publish only their title, never the searches and filters they read their data with. Variables, too, publish only what their pickers show: a legacy query variable's query is never published.
 
 ## Sharing with a password
 
@@ -64,7 +69,19 @@ Use a password when:
 - You want to share with a partner or customer but don't want the URL to be useful if it leaks.
 - The dashboard is "semi-public" — open enough that you don't want to invite every viewer as a team member, but not open enough to put on the open internet.
 
-For stronger gating (separate accounts per viewer, an audit trail of who viewed what), keep the dashboard to **Only people in this project** and invite viewers as read-only team members instead.
+For stronger gating (separate accounts per viewer, an audit trail of who viewed what), keep the dashboard to **Only people in this project** and invite viewers as read-only team members instead, or pick **Only people who sign in**.
+
+## Only people who sign in
+
+Pick **Only people who sign in** to let only the people you choose open the public link. Every visitor meets a sign-in page first, on the public link and on every custom domain. It shows the dashboard's name, page title and favicon, in its theme, and nothing else: not its widgets, and not who may sign in. Once signed in, the dashboard says who is signed in, with a button to sign out.
+
+Open **Public Link → Private Users** in the dashboard's side menu to add the people who may sign in, by email. Each is emailed an invitation whose link lets them choose a password. The link works for 24 hours, and the sign-in page's forgotten password link sends a new one. The table shows who has **Signed up**, whose invitation is **Invite Sent**, and when each **Last Signed In**. Removing someone, or a new password, signs them out everywhere at their next request.
+
+Open **Public Link → Single Sign-On** to let your identity provider sign people in, with SAML or OpenID Connect. Each provider shows the values to paste into your identity provider. Anyone your identity provider lets in becomes a private user the first time they sign in. Turning a provider off, or deleting it, signs out everyone it signed in. **Require SSO to Sign In** turns password sign-in off: everyone then signs in with single sign-on, and anyone signed in with a password is signed out at their next request.
+
+A sign-in lasts until it goes unused for 30 days. Its cookies are sent only to the dashboard's own address, so no other site can read the dashboard with them or sign anyone out. Sign-in attempts are limited for each address and each account, and the sign-in and forgotten password pages answer the same whether or not an address may sign in.
+
+Through the API, private users and single sign-on providers are records of their own: `/dashboard-private-user`, `/dashboard-sso` and `/dashboard-oidc`, each with permissions named after it.
 
 ## IP allowlist
 
@@ -199,7 +216,7 @@ To give an embedded dashboard your site's look, add `?theme=light` or `?theme=da
 
 ## Sending a link
 
-The public link opens the dashboard on its saved defaults. To send a link that opens on a particular value, add the variable to it as `?var-<name>=<value>`, as the address bar does when a visitor picks a value; several values are separated by commas. To open it on a time range or an auto-refresh of its own, add `range` and `refresh` the same way: `?range=1d&refresh=1m` opens on the past day, refreshing every minute, as a wall screen might. `range` takes `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` or `3mo`, and `refresh` takes `off`, `5s`, `10s`, `30s`, `1m`, `5m` or `15m`. They win over the dashboard's defaults and the visitor's own picks, and visitors can still change them. To open the dashboard in a theme, add `theme=light`, `theme=dark` or `theme=system`, as [Embedding](#embedding) describes.
+The public link opens the dashboard on its saved defaults. To send a link that opens on a particular value, add the variable to it as `?var-<name>=<value>`, as the address bar does when a visitor picks a value; several values are separated by commas. To open it on a time range or an auto-refresh of its own, add `range` and `refresh` the same way: `?range=1d&refresh=1m` opens on the past day, refreshing every minute, as a wall screen might. `range` takes `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` or `3mo`, and `refresh` takes `off`, `5s`, `10s`, `30s`, `1m`, `5m` or `15m`. They win over the dashboard's defaults and the visitor's own picks, and visitors can still change them. To open the dashboard in a theme, add `theme=light`, `theme=dark` or `theme=system`, as [Embedding](#embedding) describes. To open it at one widget, add `widget=` with the widget's id, its `componentId` in the dashboard's JSON: the dashboard scrolls to that widget and outlines it for a moment, on its public link and inside OneUptime alike. A widget the dashboard no longer has opens it at its top, saying so. The links OneUptime makes to a widget, as in a warning that names what reads a metric, carry it already.
 
 ## Next steps
 

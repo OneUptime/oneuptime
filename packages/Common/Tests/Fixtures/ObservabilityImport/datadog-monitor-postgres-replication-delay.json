@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "created_at": "2021-02-16",
+  "last_updated_at": "2026-04-09",
+  "title": "Replication delay is high",
+  "tags": [
+    "integration:postgres"
+  ],
+  "description": "Replication lag is the delay between the time when data is written to the primary database and the time when it is replicated to the standby databases. This monitor tracks the replication lag of the postgres database.",
+  "definition": {
+    "message": "{{#is_alert}}\n\n## What's happening?\nAnomalies in replication delay on host {{host.name}} for PostgreSQL have been detected above the expected range within the past 15 minutes, over the last hour.\n\n## Related Links\n\n- [Metrics Explorer (postgresql.replication_delay)](/metric/explorer?exp_metric=postgresql.replication_delay&exp_agg=avg&exp_type=line)\n\n{{/is_alert}}",
+    "name": "[Postgres] Replication delay is abnormally high on {{host.name}}",
+    "options": {
+      "escalation_message": "",
+      "include_tags": true,
+      "locked": false,
+      "new_host_delay": 300,
+      "no_data_timeframe": null,
+      "notify_audit": false,
+      "notify_no_data": false,
+      "renotify_interval": "0",
+      "require_full_window": true,
+      "threshold_windows": {
+        "recovery_window": "last_15m",
+        "trigger_window": "last_15m"
+      },
+      "thresholds": {
+        "critical": 1,
+        "critical_recovery": 0
+      },
+      "timeout_h": 0
+    },
+    "priority": null,
+    "query": "avg(last_1h):anomalies(avg:postgresql.replication_delay{*}, 'basic', 2, direction='above', alert_window='last_15m', interval=20, count_default_zero='true') >= 1",
+    "tags": [
+      "integration:postgres"
+    ],
+    "type": "query alert"
+  }
+}

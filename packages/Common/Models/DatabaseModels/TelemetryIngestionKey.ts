@@ -1,3 +1,4 @@
+import ServerOwned from "../../Types/Database/ServerOwned";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -556,6 +557,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     description:
       "Turn this off to immediately stop accepting telemetry written with this key, without deleting it. Turn it back on to resume.",
     defaultValue: true,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -588,6 +590,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     description:
       "Date and time after which this key stops being accepted. Empty means it never expires, which is how every key behaved before this column existed. Setting one on a Browser key bounds how long a scraped copy stays useful.",
     example: "2025-12-31T23:59:59Z",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Date,

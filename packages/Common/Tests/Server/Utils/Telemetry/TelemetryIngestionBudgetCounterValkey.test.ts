@@ -908,8 +908,25 @@ describe("notices, reads and failures", () => {
       scopeId: "p",
       signalSlug: "logs",
     });
+    // A team's or a label's budget (#6386) is one of the scopes too.
     expect(
       TelemetryIngestionBudgetCounter.parseActiveMember("p|team|t|logs"),
+    ).toEqual({
+      projectId: "p",
+      scope: TelemetryIngestionBudgetScope.Team,
+      scopeId: "t",
+      signalSlug: "logs",
+    });
+    expect(
+      TelemetryIngestionBudgetCounter.parseActiveMember("p|label|l|traces"),
+    ).toEqual({
+      projectId: "p",
+      scope: TelemetryIngestionBudgetScope.Label,
+      scopeId: "l",
+      signalSlug: "traces",
+    });
+    expect(
+      TelemetryIngestionBudgetCounter.parseActiveMember("p|squad|t|logs"),
     ).toBe(null);
     expect(
       TelemetryIngestionBudgetCounter.parseActiveMember("p|project|p"),

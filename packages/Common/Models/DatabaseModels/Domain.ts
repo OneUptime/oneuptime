@@ -11,9 +11,11 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import DomainType from "../../Types/Domain";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
@@ -51,6 +53,19 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @CrudApiEndpoint(new Route("/domain"))
 @SlugifyColumn("domain", "slug")
+/*
+ * "Sign in with SSO" finds the verified project domains named like an
+ * address's, whatever case a row was saved in (Server/Utils/
+ * ProjectSsoDiscovery.findVerifiedDomains, #9824): a request anyone can
+ * make. The real definition is (LOWER("domain")) WHERE "isVerified" = true
+ * AND "deletedAt" IS NULL, so the lookup reads only the rows it can return
+ * (#9988). It lives in migration
+ * 1809186910000-AddDomainVerifiedNameIndex: @Index() cannot express LOWER()
+ * or a WHERE, so the index is declared here by name with synchronize: false
+ * (Types/Database/UnsynchronizedIndex), and the schema builder neither drops
+ * it nor tries to create it.
+ */
+@Index("IDX_domain_verified_lower_domain", ["domain"], UNSYNCHRONIZED_INDEX)
 @TableMetadata({
   tableName: "Domain",
   singularName: "Domain",
@@ -371,6 +386,17 @@ export default class Domain extends BaseModel {
     title: "Verified",
     description: "Is this domain verified?",
     defaultValue: false,
+    serverOwned: ServerOwned.AfterCreate,
+    /*
+     * Read through a relation beside the domain's name, which already is: an
+     * SSO provider's Domains column and Settings > SSO's notice say which of
+     * its domains are verified (#9918), and read them through the provider.
+     * Without it the server refused those reads whole (#10238's guard).
+     * Every role that reads a relation to a domain - an SSO provider's, a
+     * status page's, a dashboard's or a form's custom domain - reads its
+     * name already, and whether it is verified says no more than that.
+     */
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -402,6 +428,7 @@ export default class Domain extends BaseModel {
     description:
       "Verification text that you need to add to your domains TXT record to veify the domain.",
     example: "oneuptime-verify=a1b2c3d4e5f67890abcdef1234567890",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ShortText,

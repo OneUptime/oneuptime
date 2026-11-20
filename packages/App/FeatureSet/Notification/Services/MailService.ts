@@ -815,11 +815,25 @@ export default class MailService {
     transportType: MailTransportType,
   ): boolean {
     if (transportType === MailTransportType.AmazonSES) {
-      for (const key of [
-        "SMTP_AWS_ACCESS_KEY_ID",
-        "SMTP_AWS_SECRET_ACCESS_KEY",
-        "SMTP_AWS_REGION",
-      ]) {
+      /*
+       * A project's config signs in with an access key, or with an IAM role
+       * in its own AWS account (#7378): the role's ARN, with the config and
+       * its project - the external id is derived from that project alone.
+       */
+      const signsInWithRole: boolean = Boolean(obj["SMTP_AWS_ROLE_ARN"]);
+
+      for (const key of signsInWithRole
+        ? [
+            "SMTP_AWS_ROLE_ARN",
+            "SMTP_AWS_ROLE_PROJECT_ID",
+            "SMTP_ID",
+            "SMTP_AWS_REGION",
+          ]
+        : [
+            "SMTP_AWS_ACCESS_KEY_ID",
+            "SMTP_AWS_SECRET_ACCESS_KEY",
+            "SMTP_AWS_REGION",
+          ]) {
         if (!obj[key]) {
           logger.error(`${key} not found for Amazon SES`, EXTERNAL_FAULT);
           return false;
@@ -887,6 +901,15 @@ export default class MailService {
           obj["SMTP_AWS_SECRET_ACCESS_KEY"]?.toString() || undefined,
         awsRegion:
           obj["SMTP_AWS_REGION"]?.toString().trim().toLowerCase() || undefined,
+        // A project's Amazon SES role: read for Amazon SES alone.
+        awsRoleArn:
+          transportType === MailTransportType.AmazonSES
+            ? obj["SMTP_AWS_ROLE_ARN"]?.toString().trim() || undefined
+            : undefined,
+        awsRoleProjectId:
+          transportType === MailTransportType.AmazonSES
+            ? obj["SMTP_AWS_ROLE_PROJECT_ID"]?.toString().trim() || undefined
+            : undefined,
         mailgunDomain:
           obj["SMTP_MAILGUN_DOMAIN"]?.toString().trim().toLowerCase() ||
           undefined,
@@ -1675,9 +1698,15 @@ export default class MailService {
        * readable by project members who may not touch subscribers, so it
        * keeps the link with its token redacted (see
        * StatusPageSubscriberUnsubscribe.redactCredentials).
+       *
+       * And the subject the sender gave for the log, when it gave one
+       * (EmailEnvelope.projectLogSubject): an invitation written in the
+       * invitee's own language is logged in the inviter's, so the log does
+       * not say which addresses had an account, nor what they read (#9897).
+       * The server's own email log keeps the subject sent.
        */
       emailLog.subject = StatusPageSubscriberUnsubscribe.redactCredentials(
-        mail.subject,
+        MailService.getProjectLogSubject(mail),
       );
 
       /*
@@ -2083,6 +2112,19 @@ export default class MailService {
 
       throw err;
     }
+  }
+
+  /*
+   * The subject a project's email log keeps of an email (before its
+   * credentials are redacted): the one its sender gave for the log
+   * (EmailEnvelope.projectLogSubject, #9897), else the one sent.
+   */
+  public static getProjectLogSubject(mail: EmailEnvelope): string {
+    const projectLogSubject: string | undefined = mail.projectLogSubject;
+
+    return typeof projectLogSubject === "string" && projectLogSubject.trim()
+      ? projectLogSubject
+      : mail.subject;
   }
 
   // What an email that went says of itself, with or without its images.

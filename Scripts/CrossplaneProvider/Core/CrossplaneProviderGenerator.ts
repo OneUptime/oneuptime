@@ -12,6 +12,12 @@ import {
   TERRAFORM_PREFIX,
 } from "./References";
 import { MODULE_PATH, renderGoMod } from "./GoModule";
+import {
+  collectServerOwned,
+  collectSharedUpdateOnly,
+  renderServerOwnedGo,
+  ServerOwnedMap,
+} from "./ServerOwned";
 
 const execAsync: (
   command: string,
@@ -102,8 +108,10 @@ export function goSteps(options: CrossplaneProviderOptions): Array<GoStep> {
  * on PATH, no C library, and Go's memory limit
  * (TerraformProvider/Core/GoCommand.ts). Reading the schema, generating the
  * resources and building the provider all link the Terraform provider's
- * internal/provider, which this provider runs in process, and without the
- * limit compiling it took the compiler alone to ~15 GB of a 16 GB CI runner.
+ * internal/provider, which this provider runs in process. Compiled as one
+ * package it took the compiler alone to ~15 GB of a 16 GB CI runner without
+ * the limit; split into packages (TerraformProvider/Core/ProviderShards.ts),
+ * a compile holds under 1 GiB, and the limit stays as a guard rail.
  */
 export function goStepsEnvironment(
   options: CrossplaneProviderOptions,
@@ -174,7 +182,8 @@ export class CrossplaneProviderGenerator {
     }
   }
 
-  public async getReferences(): Promise<ReferenceMap> {
+  // The Terraform provider's resources, as its generator reads the spec.
+  public async getResources(): Promise<Array<TerraformResource>> {
     const parser: OpenAPIParser = new OpenAPIParser();
     await parser.parseOpenAPISpec(this.options.openApiSpecPath);
     const resources: Array<TerraformResource> = parser.getResources();
@@ -183,7 +192,15 @@ export class CrossplaneProviderGenerator {
         `The spec at ${this.options.openApiSpecPath} has no resources.`,
       );
     }
-    return collectReferences(resources);
+    return resources;
+  }
+
+  public async getReferences(): Promise<ReferenceMap> {
+    return collectReferences(await this.getResources());
+  }
+
+  public async getServerOwned(): Promise<ServerOwnedMap> {
+    return collectServerOwned(await this.getResources());
   }
 
   /*
@@ -212,9 +229,19 @@ export class CrossplaneProviderGenerator {
       }),
     );
 
+    const resources: Array<TerraformResource> = await this.getResources();
+
     fs.writeFileSync(
       path.join(outputDir, "config", "zz_references.go"),
-      renderReferencesGo(await this.getReferences()),
+      renderReferencesGo(collectReferences(resources)),
+    );
+
+    fs.writeFileSync(
+      path.join(outputDir, "config", "zz_server_owned.go"),
+      renderServerOwnedGo(
+        collectServerOwned(resources),
+        collectSharedUpdateOnly(resources),
+      ),
     );
 
     fs.writeFileSync(

@@ -180,6 +180,113 @@ describe("DnsResolutionCache", () => {
     expect(harness.calledWith()).toEqual(["Router.Example.COM"]);
   });
 
+  /*
+   * lookup() says whether the name was resolved at all (#10338): the
+   * blocklist never blocks an address it cannot tell is the project's own,
+   * so a lookup that failed must not read as a name with no address.
+   */
+  test("lookup() tells a name that has no address from a lookup that failed", async () => {
+    let nowInMs: number = 0;
+    const calls: Array<string> = [];
+
+    const callsFor: (hostname: string) => number = (
+      hostname: string,
+    ): number => {
+      return calls.filter((called: string): boolean => {
+        return called === hostname;
+      }).length;
+    };
+
+    const cache: DnsResolutionCache = new DnsResolutionCache({
+      ttlInMs: TTL_IN_MS,
+      failureTtlInMs: 100,
+      now: () => {
+        return nowInMs;
+      },
+      resolver: async (hostname: string): Promise<Array<string>> => {
+        calls.push(hostname);
+
+        if (hostname.startsWith("gone.")) {
+          throw Object.assign(new Error(`getaddrinfo ENOTFOUND ${hostname}`), {
+            code: "ENOTFOUND",
+          });
+        }
+
+        if (hostname.startsWith("empty.")) {
+          throw Object.assign(new Error(`getaddrinfo ENODATA ${hostname}`), {
+            code: "ENODATA",
+          });
+        }
+
+        if (hostname.startsWith("slow.")) {
+          throw new Error(`DNS lookup for ${hostname} timed out`);
+        }
+
+        if (hostname.startsWith("busy.")) {
+          throw Object.assign(new Error(`getaddrinfo EAI_AGAIN ${hostname}`), {
+            code: "EAI_AGAIN",
+          });
+        }
+
+        return ["10.0.0.1"];
+      },
+    });
+
+    await expect(cache.lookup("router.example.com")).resolves.toEqual({
+      addresses: ["10.0.0.1"],
+      isResolved: true,
+    });
+    await expect(cache.lookup("gone.example.com")).resolves.toEqual({
+      addresses: [],
+      isResolved: true,
+    });
+    await expect(cache.lookup("empty.example.com")).resolves.toEqual({
+      addresses: [],
+      isResolved: true,
+    });
+    await expect(cache.lookup("slow.example.com")).resolves.toEqual({
+      addresses: [],
+      isResolved: false,
+    });
+    await expect(cache.lookup("busy.example.com")).resolves.toEqual({
+      addresses: [],
+      isResolved: false,
+    });
+
+    // A failure is kept for failureTtlInMs, and still reads as one from the cache.
+    nowInMs = 99;
+    await expect(cache.lookup("slow.example.com")).resolves.toEqual({
+      addresses: [],
+      isResolved: false,
+    });
+    expect(callsFor("slow.example.com")).toBe(1);
+
+    nowInMs = 100;
+    await cache.lookup("slow.example.com");
+    expect(callsFor("slow.example.com")).toBe(2);
+
+    // A name with no address is kept for the whole TTL, as an answer is.
+    await cache.lookup("gone.example.com");
+    expect(callsFor("gone.example.com")).toBe(1);
+
+    // resolve() reads the addresses alone, as before.
+    await expect(cache.resolve("router.example.com")).resolves.toEqual([
+      "10.0.0.1",
+    ]);
+  });
+
+  test("a failure is kept for the TTL unless failureTtlInMs says otherwise", async () => {
+    const harness: TestHarness = makeHarness({ rejectAll: true });
+
+    await expect(
+      harness.cache.lookup("does-not-exist.example.com"),
+    ).resolves.toEqual({ addresses: [], isResolved: false });
+
+    harness.advanceClock(TTL_IN_MS - 1);
+    await harness.cache.lookup("does-not-exist.example.com");
+    expect(harness.callCount()).toBe(1);
+  });
+
   test("clear() empties the cache so the next resolve hits the resolver", async () => {
     const harness: TestHarness = makeHarness({
       addressesByHostname: { "router.example.com": ["10.0.0.1"] },

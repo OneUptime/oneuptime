@@ -39,6 +39,10 @@ import {
   getSetupApprovedEvent,
   takeNewSetupProposal,
 } from "./AskAiSetupEvents";
+import {
+  getAnswerRatedEvent,
+  takeNewDocsNotCovered,
+} from "./AskAiAnswerEvents";
 import AIChatUnavailableReason, {
   getAIChatUnavailableReason,
 } from "./AIChatAvailability";
@@ -81,6 +85,12 @@ export interface UseAiChat {
   isConversationView: boolean;
   error: string;
   setError: (error: string) => void;
+  /*
+   * The question the server refused to take - over a limit, its
+   * subscription unpaid, too busy right now - for the docs results drawn
+   * beside why (#7063). "" once a question is taken or the error is gone.
+   */
+  refusedQuestion: string;
   providers: Array<ChatProvider>;
   /*
    * True once the provider list has actually loaded — lets the UI tell "no
@@ -180,6 +190,17 @@ export function useAiChat(options: {
   const [isSending, setIsSending] = useState<boolean>(false);
   const [isAwaitingResponse, setIsAwaitingResponse] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  /*
+   * The question the server refused, with the error it refused it with:
+   * its docs show while that error does, and go with it (#7063).
+   */
+  const [refused, setRefused] = useState<{
+    question: string;
+    error: string;
+  } | null>(null);
+  const refusedQuestion: string =
+    refused && error && refused.error === error ? refused.question : "";
+
   const [providers, setProviders] = useState<Array<ChatProvider>>([]);
   const [providersLoaded, setProvidersLoaded] = useState<boolean>(false);
   /*
@@ -263,6 +284,17 @@ export function useAiChat(options: {
    * the messages as last drawn, which an approval reads its plan from.
    */
   const setupPlansSeenRef: React.MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set<string>());
+  /*
+   * The answers seen being written, and those already decided, for
+   * ask_ai/docs_not_covered (#7064): counted once, and only for an answer
+   * the person watched being written.
+   */
+  const answersBeingWrittenRef: React.MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set<string>());
+  const answersDecidedRef: React.MutableRefObject<Set<string>> = useRef<
     Set<string>
   >(new Set<string>());
   const messagesRef: React.MutableRefObject<Array<AIConversationMessage>> =
@@ -485,6 +517,23 @@ export function useAiChat(options: {
           if (proposed) {
             ProductEvents.send(ProductEventName.AskAiSetupProposed, proposed);
           }
+
+          /*
+           * An answer the docs did not cover (#7064), once: the docs pages
+           * it read, never the question.
+           */
+          const notCovered: JSONObject | null = takeNewDocsNotCovered({
+            message: message,
+            writing: answersBeingWrittenRef.current,
+            counted: answersDecidedRef.current,
+          });
+
+          if (notCovered) {
+            ProductEvents.send(
+              ProductEventName.AskAiDocsNotCovered,
+              notCovered,
+            );
+          }
         }
 
         // A workflow's Builder behind the panel reads what was just done to it.
@@ -630,8 +679,13 @@ export function useAiChat(options: {
      * resolved to the same context, their choice must hold — silently
      * re-attaching would send context they just removed.
      */
+    /*
+     * What the page is about, whichever of its pages is on screen (#7062):
+     * a monitor's Overview and its Criteria are one monitor, Project
+     * Settings' pages one Project Settings.
+     */
     const signature: string = detected
-      ? `${projectIdString}:${AIChatPageContextHelper.getIdentity(detected)}`
+      ? `${projectIdString}:${AIChatPageContextHelper.getSubjectIdentity(detected)}`
       : "";
     const contextChanged: boolean =
       signature !== lastContextSignatureRef.current;
@@ -639,17 +693,18 @@ export function useAiChat(options: {
 
     setPageContext((current: DashboardPageContext | null) => {
       /*
-       * The same record again (Ask AI opened on it once more): what the
-       * last read said about it stays until the read below comes back, so
-       * its chip and its questions do not fall back to the generic ones
-       * and change again each time Ask AI opens.
+       * The same record again (Ask AI opened on it once more, or on
+       * another of its pages): what the last read said about it stays
+       * until the read below comes back, so its chip and its questions do
+       * not fall back to the generic ones and change again each time Ask
+       * AI opens.
        */
       if (
         detected &&
         current &&
         !contextChanged &&
-        AIChatPageContextHelper.getIdentity(current) ===
-          AIChatPageContextHelper.getIdentity(detected)
+        AIChatPageContextHelper.getSubjectIdentity(current) ===
+          AIChatPageContextHelper.getSubjectIdentity(detected)
       ) {
         return {
           ...detected,
@@ -676,11 +731,11 @@ export function useAiChat(options: {
             return;
           }
           setPageContext((current: DashboardPageContext | null) => {
-            // Only decorate the context this fetch was started for.
+            // Only decorate the record this fetch was started for.
             if (
               !current ||
-              AIChatPageContextHelper.getIdentity(current) !==
-                AIChatPageContextHelper.getIdentity(detected)
+              AIChatPageContextHelper.getSubjectIdentity(current) !==
+                AIChatPageContextHelper.getSubjectIdentity(detected)
             ) {
               return current;
             }
@@ -917,6 +972,8 @@ export function useAiChat(options: {
           "conversationId"
         ] as string;
 
+        setRefused(null);
+
         /*
          * A question Ask AI took (issue #6830) - never its words: whether it
          * started a conversation, and the permission mode it runs under.
@@ -944,7 +1001,10 @@ export function useAiChat(options: {
           }
         }, 1500);
       } catch (err) {
-        setError(API.getFriendlyMessage(err));
+        const refusal: string = API.getFriendlyMessage(err);
+        setError(refusal);
+        // Looked up in the docs beside why it was refused (#7063).
+        setRefused({ question: content, error: refusal });
         setMessages((current: Array<AIConversationMessage>) => {
           return current.filter((message: AIConversationMessage) => {
             return message.id?.toString() !== optimisticMessage.id?.toString();
@@ -1142,10 +1202,21 @@ export function useAiChat(options: {
           throw response;
         }
 
-        // How an answer was rated, or that its rating was cleared (issue #6830).
-        ProductEvents.send(ProductEventName.AskAiAnswerRated, {
-          rating: feedback ? String(feedback) : "cleared",
-        });
+        /*
+         * How an answer was rated, or that its rating was cleared (issue
+         * #6830), and what kind of answer it was (#7064).
+         */
+        ProductEvents.send(
+          ProductEventName.AskAiAnswerRated,
+          getAnswerRatedEvent({
+            feedback: feedback,
+            message: messagesRef.current.find(
+              (message: AIConversationMessage): boolean => {
+                return message.id?.toString() === messageId;
+              },
+            ),
+          }),
+        );
       } catch (err) {
         setError(API.getFriendlyMessage(err));
         if (activeConversationIdRef.current) {
@@ -1204,6 +1275,7 @@ export function useAiChat(options: {
     isConversationView,
     error,
     setError,
+    refusedQuestion,
     providers,
     providersLoaded,
     unavailableReason,

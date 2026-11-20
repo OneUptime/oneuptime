@@ -1727,6 +1727,43 @@ describe("the teams that page a responder", () => {
     ).toEqual(["Platform"]);
   });
 
+  /*
+   * Two teams of one name, named alike before names were held to one team
+   * each, are told apart in the readiness table's team filter (#10314): by
+   * when each was made, read with its name - never a description.
+   */
+  test("each team that pages a responder says when it was made, and one whose row does not say carries nothing", async () => {
+    const MARCH: Date = new Date("2024-03-05T09:30:00.000Z");
+    const platform: Team = teamRow(TEAM_ID, "Platform");
+    platform.createdAt = MARCH;
+    teamDirectory = [platform, teamRow(OTHER_TEAM_ID, "Platform")];
+
+    escalationTeamFindBy.mockResolvedValue([
+      escalationTeamRow(TEAM_ID),
+      escalationTeamRow(OTHER_TEAM_ID),
+    ] as never);
+    teamMemberRows = [
+      teamMemberRow(USER_B_ID, TEAM_ID),
+      teamMemberRow(USER_B_ID, OTHER_TEAM_ID),
+    ];
+
+    const readiness: UserReadiness = await onlyUser();
+
+    const byId: Map<string, ReadinessTeam> = new Map<string, ReadinessTeam>(
+      readiness.teams.map((team: ReadinessTeam): [string, ReadinessTeam] => {
+        return [team._id.toString(), team];
+      }),
+    );
+
+    expect(byId.get(TEAM_ID.toString())?.createdAt).toEqual(MARCH);
+    expect(byId.get(OTHER_TEAM_ID.toString())).not.toHaveProperty("createdAt");
+    expect(firstCall(teamFindBy).select).toEqual({
+      _id: true,
+      name: true,
+      createdAt: true,
+    });
+  });
+
   test("the team read is scoped to the project and to the teams that page somebody", async () => {
     escalationTeamFindBy.mockResolvedValue([
       escalationTeamRow(TEAM_ID),
@@ -5075,6 +5112,40 @@ describe("a responder who is no longer a member of the project", () => {
       "grace@corp.example.com",
     );
     expect(JSON.stringify(summary)).not.toContain("Grace Hopper");
+  });
+
+  /*
+   * ...and by the address they were invited at, never the one their account
+   * has moved to since (#10175): both where the name falls back to it and
+   * in the row's own email.
+   */
+  test("somebody invited whose account has moved is shown by the address invited, never the new one", async () => {
+    invitedUserIds = [USER_B_ID];
+
+    jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(
+        new Map<string, WithheldProfile>([
+          [
+            USER_B_ID.toString().toLowerCase(),
+            { inviteeName: null, inviteeEmail: "grace.old@corp.example.com" },
+          ],
+        ]),
+      );
+
+    const summary: ReadinessSummary = await policySummary();
+    const invited: UserReadiness = readinessOf(summary, USER_B_ID);
+
+    expect(invited.userName).toBe("grace.old@corp.example.com");
+    expect(invited.userEmail).toBe("grace.old@corp.example.com");
+    // The account's own address, and name, are nowhere in what the project reads.
+    expect(JSON.stringify(summary)).not.toContain("grace@corp.example.com");
+    expect(JSON.stringify(summary)).not.toContain("Grace Hopper");
+
+    // A member keeps their own.
+    expect(readinessOf(summary, USER_A_ID).userEmail).not.toBe(
+      "grace.old@corp.example.com",
+    );
   });
 
   test("everybody a member: one read, and nobody is asked about invitations", async () => {

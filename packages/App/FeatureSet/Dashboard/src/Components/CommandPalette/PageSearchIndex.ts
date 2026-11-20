@@ -2713,12 +2713,25 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["run history", "soar runs"],
           },
           {
+            page: PageMap.SECURITY_BLOCKLIST,
+            title: "Blocklist",
+            icon: IconProp.NoSymbol,
+            keywords: [
+              "block an ip address",
+              "blocked addresses",
+              "ip blocklist",
+              "deny list",
+              "lift a block",
+            ],
+          },
+          {
             page: PageMap.SECURITY_PROTECTED_ENTITIES,
             title: "Protected Entities",
             icon: IconProp.Lock,
             keywords: [
               "protected users",
               "protected hosts",
+              "protected addresses",
               "containment exclusions",
               "break-glass accounts",
             ],
@@ -2978,6 +2991,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Scan Settings",
             icon: IconProp.Clock,
             keywords: ["scan schedule", "scanning", "sampling"],
+          },
+          {
+            page: PageMap.DATA_SECURITY_SETTINGS_AI,
+            title: "OneUptime AI",
+            icon: IconProp.Sparkles,
+            keywords: [
+              "what ai sees",
+              "what is sent to ai",
+              "ai privacy",
+              "llm",
+              "model",
+            ],
           },
         ],
       },
@@ -3511,6 +3536,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Kubernetes",
         pages: [
           allListPage(PageMap.KUBERNETES_CLUSTERS, "All Clusters"),
+          {
+            page: PageMap.KUBERNETES_COMPLIANCE,
+            title: "Compliance",
+            icon: IconProp.ClipboardDocumentCheck,
+            keywords: [
+              "cluster hardening",
+              "pod security standards",
+              "cis kubernetes benchmark",
+              "kubernetes compliance",
+            ],
+          },
           {
             page: PageMap.KUBERNETES_COSTS,
             title: "Costs",
@@ -4644,13 +4680,18 @@ export const DEVELOPER_PAGE_KEYWORDS: Readonly<
     "infrastructure as code",
     "iac",
   ],
+  [DeveloperDocsPageType.Crossplane]: [
+    "crossplane provider",
+    "gitops",
+    "kubernetes manifest",
+  ],
   [DeveloperDocsPageType.Api]: ["rest api", "api reference", "curl"],
   [DeveloperDocsPageType.Cli]: ["command line", "terminal", "bash", "script"],
   [DeveloperDocsPageType.AiAssistants]: ["mcp", "claude", "cursor"],
 };
 
 /*
- * The Developer pages (Terraform, API, CLI, AI Assistants) of the resources an
+ * The Developer pages (Terraform, Crossplane, API, CLI, AI Assistants) of the resources an
  * area lists, from the same list the menus draw their Developer section
  * from, so a resource that gets them is searchable without a line here.
  */

@@ -59,7 +59,7 @@ Abre **Mantenimiento programado** desde el menú **Productos** de la barra super
 | **Reglas**    | **Reglas del propietario**, **Reglas de runbook**, **Reglas de etiquetas**, **Reglas de recordatorio**.                     |
 | **Ajustes**   | **Estado del mantenimiento**, **Plantillas de mantenimiento**, **Plantillas de notas**, **Aprobación de notas públicas**, **Campos personalizados**, **Mediciones**, **Ajustes del calendario**, **Numeración**. |
 
-**Vista general** está abierta; **Espacio de trabajo**, **Reglas**, **Ajustes** y **Desarrolladores** empiezan plegadas, y una sección se abre sola cuando estás en una de sus páginas. **Desarrolladores** contiene **Terraform**, **API**, **CLI** y **Asistentes de IA**, para gestionar el mantenimiento desde código. Todo lo relativo al mantenimiento está aquí, no en **Ajustes del proyecto**.
+**Vista general** está abierta; **Espacio de trabajo**, **Reglas**, **Ajustes** y **Desarrolladores** empiezan plegadas, y una sección se abre sola cuando estás en una de sus páginas. **Desarrolladores** contiene **Terraform**, **Crossplane**, **API**, **CLI** y **Asistentes de IA**, para gestionar el mantenimiento desde código. Todo lo relativo al mantenimiento está aquí, no en **Ajustes del proyecto**.
 
 La lista muestra **Número del mantenimiento programado**, **Título**, **Estado actual**, **Recursos afectados**, **Mostrado en la página de estado**, **Comienza en**, **Duración**, **Termina en**, **Etiquetas** y **Propietarios**. Selecciona eventos para actuar sobre varios a la vez: **Marcar como {{state}}**, **Cambiar estado**, **Asignarme**, **Añadir propietario**, **Quitar propietario**, **Añadir etiquetas**, **Quitar etiquetas** o **Eliminar**. El menú **⋯** al final de la fila de cada evento hace lo mismo solo para ese evento: los pasos **Marcar como {{state}}** mientras el evento pueda darlos, **Cambiar estado**, **Asignarme** hasta que seas su propietario y **Añadir propietario**.
 
@@ -85,7 +85,7 @@ Abre un evento desde la lista para ver sus páginas. Su menú lateral contiene:
 | **Vista general** | **Vista general**, **Cronología de estados**, **Descripción**, **Runbooks**, **Propietarios** |
 | **Notificaciones**     | **Registros de notificación** y **Registros de IA**: cada mensaje enviado sobre el evento y lo que la IA hizo por él |
 | **Notas**         | **Notas privadas** y **Notas públicas**                                                        |
-| **Desarrolladores** | **Terraform**, **API**, **CLI** y **Asistentes de IA**: el evento gestionado desde código   |
+| **Desarrolladores** | **Terraform**, **Crossplane**, **API**, **CLI** y **Asistentes de IA**: el evento gestionado desde código   |
 | **Avanzado**      | **Campos personalizados**, **Ajustes**, **Registros de auditoría**, **Eliminar evento de mantenimiento**        |
 
 **Vista general** y **Notas** están abiertas; las demás secciones empiezan plegadas hasta que haces clic en ellas.
@@ -106,7 +106,7 @@ Solo los monitores que el evento nombra en **Monitores** dejan de comprobarse, y
 :::
 
 :::details El evento no aparece en mi página de estado
-Comprueba que el evento nombra la página en **Mostrar evento en estas páginas de estado** y que **Visible en la página de estado** está activado en los **Ajustes** del evento. Si su encabezado dice **Aún no está en las páginas de estado**, se muestra desde su **Publicar el**: consulta [Publicarlo más tarde](/docs/scheduled-maintenance/creating-events#publicarlo-más-tarde). Después revisa la propia página de estado: debe mostrar eventos de mantenimiento, y un evento que empezó hace más tiempo que la ventana de historial de la página, 14 días salvo que la hayas cambiado, ya no aparece.
+Comprueba que el evento nombra la página en **Mostrar evento en estas páginas de estado** y que **Visible en la página de estado** está activado en los **Ajustes** del evento. Si su encabezado dice **Aún no está en las páginas de estado**, se muestra desde su **Publicar el**: consulta [Publicarlo más tarde](/docs/scheduled-maintenance/creating-events#publicarlo-más-tarde). Después revisa la propia página de estado: debe mostrar eventos de mantenimiento (la tarjeta **Detalles del mantenimiento** del evento lo dice cuando ninguna de sus páginas de estado lo hace), y un evento que empezó hace más tiempo que la ventana de historial de la página, 14 días salvo que la hayas cambiado, ya no aparece.
 :::
 
 ## Próximos pasos

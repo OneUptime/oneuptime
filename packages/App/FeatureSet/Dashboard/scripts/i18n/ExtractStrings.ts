@@ -156,6 +156,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Types/Team/ComplianceRule.ts", kind: "keys" },
   /*
+   * What each OneUptime AI feature of Data Security sends, never sends and
+   * keeps (#10365): Data Security > Settings > OneUptime AI draws the
+   * catalog, and the server and the guard read the same file. Only the
+   * words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/DataSecurity/DataSecurityAiFeatures.ts",
+    kind: "keys",
+  },
+  /*
    * What the compliance page says is wrong with a rule, and why a member
    * fails one: the server sends what it found, and the page words it here
    * (#8632). Only the words the file marks are read.
@@ -171,6 +181,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/Database/UniqueName.ts",
+    kind: "keys",
+  },
+  /*
+   * What a picker says of records that share a name (#10064): the pill a
+   * twin wears and the day it was made. The rule is the chats' too
+   * (#10314), so it lives outside Common/UI; only the words it marks are
+   * read.
+   */
+  {
+    directory: "packages/Common/Types/Database/SharedNameMarks.ts",
     kind: "keys",
   },
   /*
@@ -325,6 +345,13 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   // A cron schedule in words: the monitor's interval, a workflow's schedule.
   { directory: "packages/Common/Utils/CronScheduleText.ts", kind: "ui" },
   /*
+   * What Import from Grafana or Datadog and Import Alerts say about each
+   * panel, variable and rule of a file, and why a file is refused (#7697):
+   * the converters mark them, and the preview words them in the reader's
+   * language. Only the words the files mark are read.
+   */
+  { directory: "packages/Common/Utils/ObservabilityImport", kind: "keys" },
+  /*
    * What each Setup health finding says (#6812): the server sends its
    * template, and the page says it in the reader's language.
    */
@@ -340,6 +367,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   {
     directory: "packages/Common/Types/ServerSending/ServerSendingWords.ts",
     kind: "ui",
+  },
+  /*
+   * What a project is told of its Amazon SES IAM role (#7378): why it was
+   * not signed in to, or a save was refused. The server sends the English,
+   * and Send Test Email and the form say it in the reader's language. Only
+   * the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Email/AmazonSesRoleWords.ts",
+    kind: "keys",
   },
   // The common schedules a workflow's Schedule trigger offers.
   { directory: "packages/Common/Utils/CronTab.ts", kind: "ui" },
@@ -412,6 +449,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * The blocklist's sentences (#10338): what is wrong with a value to
+   * block, that it is blocked already, and what protects an address - the
+   * Block Address dialog and Protected Entities say them in the reader's
+   * language, and the server answers an API client with the same words in
+   * English. Only the sentences the files mark are read: the rest is the
+   * blocklist's rules.
+   */
+  { directory: "packages/Common/Types/SecurityBlocklist", kind: "keys" },
+  /*
    * What each of the traces explorer's span types is: the (i) beside the
    * Span Type choice lists them, and each choice says its own. Only the
    * sentences the file marks are read: the choices' names are drawn as
@@ -467,6 +513,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/AuditLog/AuditLogSignInFailure.ts",
+    kind: "keys",
+  },
+  /*
+   * What the server answers a confirmation of Confirm It's You with (#10155):
+   * a wrong password or code, a key not accepted, too many attempts. The
+   * prompt says each under its field, in the reader's language. Only the
+   * words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Accounts/Reauthentication.ts",
     kind: "keys",
   },
   {
@@ -612,6 +668,36 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   {
     directory:
       "packages/Common/Types/Kubernetes/Compliance/KubernetesComplianceCatalog.ts",
+    kind: "keys",
+  },
+  /*
+   * The CIS benchmarks' node and control plane controls kube-bench reads on
+   * the nodes (#9873): each one's short title, what its section looks at and
+   * how to fix it. Only the words the file marks are read: flags, paths and
+   * commands are drawn as written.
+   */
+  {
+    directory:
+      "packages/Common/Types/Kubernetes/Compliance/KubernetesNodeBenchmarkCatalog.ts",
+    kind: "keys",
+  },
+  /*
+   * The NSA/CISA Kubernetes Hardening Guide's controls (#9875): each one's
+   * title, what it finds wrong, how to fix it and the guide's section it is
+   * from, and why the guide's other recommendations are not scored.
+   */
+  {
+    directory:
+      "packages/Common/Types/Kubernetes/Compliance/NsaCisaHardening.ts",
+    kind: "keys",
+  },
+  /*
+   * Why the OneUptime agent's own workloads need what the controls fail
+   * (#9929), and the value that removes each. Settings are drawn as written.
+   */
+  {
+    directory:
+      "packages/Common/Types/Kubernetes/Compliance/KubernetesAgentWorkloads.ts",
     kind: "keys",
   },
   /*

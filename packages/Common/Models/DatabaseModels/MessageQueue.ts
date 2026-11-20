@@ -13,6 +13,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -420,6 +421,7 @@ export default class MessageQueue extends BaseModel {
     description:
       "Stable identity of this queue within the project: the messaging system's identity family, the broker scope (the Azure Service Bus / Event Hubs namespace, empty for every other system) and the destination, canonicalized and joined with '|' (e.g. kafka||orders.created, servicebus|orders-prod|orders). An ActiveMQ queue keys as jms, like the JMS clients that use it, so both are one queue. Computed by the server for manually added queues.",
     example: "kafka||orders.created",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: false,
@@ -463,6 +465,7 @@ export default class MessageQueue extends BaseModel {
     description:
       "The broker this queue lives on, as an OpenTelemetry messaging.system value, e.g. kafka, rabbitmq, activemq, jms, aws_sqs, aws.sns, gcp_pubsub, servicebus, eventhubs, pulsar, rocketmq, nats or bullmq. A queue first seen through JMS is refined to its broker (activemq) once that broker's metrics are seen.",
     example: "kafka",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     nullable: false,
@@ -609,6 +612,7 @@ export default class MessageQueue extends BaseModel {
     description:
       "How this queue was first discovered: traces (messaging spans of instrumented applications), broker-metrics (the broker's own metrics) or manual.",
     example: "traces",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -890,6 +894,7 @@ export default class MessageQueue extends BaseModel {
     description:
       "Is this queue archived? Archived queues are hidden from lists but their telemetry is still collected.",
     defaultValue: false,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1085,6 +1090,7 @@ export default class MessageQueue extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {

@@ -925,13 +925,27 @@ describe("formatEventTimeRangeStart", () => {
 
     const range: DateRange = { start: FRIDAY_1926, end: sep(SATURDAY_26, 0) };
 
-    expect(formatEventTimeRangeStart(range, "en-GB", recordingLocalizer)).toBe(
-      "<19:26> – <00:00>",
-    );
+    /*
+     * Asked for the reader's clock, never react-big-calendar's own "LT",
+     * which was a 12-hour clock whatever the reader keeps (#7651).
+     */
+    expect(
+      formatEventTimeRangeStart(range, "en-GB", recordingLocalizer, false),
+    ).toBe("<19:26> – <00:00>");
     expect(calls).toEqual([
-      { value: range.start, format: "LT", culture: "en-GB" },
-      { value: range.end, format: "LT", culture: "en-GB" },
+      { value: range.start, format: "HH:mm", culture: "en-GB" },
+      { value: range.end, format: "HH:mm", culture: "en-GB" },
     ]);
+
+    calls.length = 0;
+
+    formatEventTimeRangeStart(range, "en-US", recordingLocalizer, true);
+
+    expect(calls).toEqual([
+      { value: range.start, format: "h:mm A", culture: "en-US" },
+      { value: range.end, format: "h:mm A", culture: "en-US" },
+    ]);
+    calls.length = 0;
 
     expect(
       formatEventTimeRangeStart(

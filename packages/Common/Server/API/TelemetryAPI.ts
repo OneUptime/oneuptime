@@ -9,6 +9,8 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
+import Timezone from "../../Types/Timezone";
+import TelemetryHistogramBuckets from "../Utils/Telemetry/TelemetryHistogramBuckets";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
@@ -41,6 +43,7 @@ import LogAggregationService, {
   TopErrorPattern,
   TopErrorPatternsRequest,
 } from "../Services/LogAggregationService";
+import { isNumericLogAnalyticsAggregation } from "../../Types/Log/LogAnalyticsAggregation";
 import TraceAggregationService, {
   HistogramBucket as TraceHistogramBucket,
   HistogramRequest as TraceHistogramRequest,
@@ -180,6 +183,8 @@ import ProfileService from "../Services/ProfileService";
 import ProfileSampleService from "../Services/ProfileSampleService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import Permission, { PermissionHelper } from "../../Types/Permission";
+import ProductKey from "../../Types/Product/ProductKey";
+import { withProductLevelsOf } from "../../Types/Product/ProductLevels";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
 import SubscriptionPlan, {
@@ -901,6 +906,8 @@ router.post(
         (body["bucketSizeInMinutes"] as number) ||
         computeDefaultBucketSize(startTime, endTime);
 
+      const timezone: Timezone | undefined = readHistogramTimezone(body);
+
       const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
         ? (body["serviceIds"] as Array<string>).map((id: string) => {
             return new ObjectID(id);
@@ -951,6 +958,7 @@ router.post(
         startTime,
         endTime,
         bucketSizeInMinutes,
+        timezone,
         ...serviceFilter,
         entityKeys,
         resourceScopes,
@@ -977,6 +985,7 @@ router.post(
       return Response.sendJsonObjectResponse(req, res, {
         buckets: buckets as unknown as JSONObject,
         bucketSizeInMinutes: bucketSizeInMinutes,
+        ...dayBarTimezoneField(bucketSizeInMinutes, timezone),
       });
     } catch (err: unknown) {
       next(err);
@@ -1548,6 +1557,8 @@ router.post(
         (body["bucketSizeInMinutes"] as number) ||
         computeDefaultBucketSize(startTime, endTime);
 
+      const timezone: Timezone | undefined = readHistogramTimezone(body);
+
       const traceFilters: TraceFilters = scopeTraceFilters(
         {
           ...parseTraceFilterBody(body),
@@ -1564,6 +1575,7 @@ router.post(
         startTime,
         endTime,
         bucketSizeInMinutes,
+        timezone,
         ...traceFilters,
       };
 
@@ -1572,6 +1584,7 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         buckets: buckets as unknown as JSONObject,
+        ...dayBarTimezoneField(bucketSizeInMinutes, timezone),
       });
     } catch (err: unknown) {
       next(err);
@@ -2097,6 +2110,8 @@ router.post(
           ? Math.trunc(rawBucketSize)
           : computeDefaultBucketSize(startTime, endTime);
 
+      const timezone: Timezone | undefined = readHistogramTimezone(body);
+
       const groupBy: Array<string> | undefined = Array.isArray(body["groupBy"])
         ? (body["groupBy"] as Array<unknown>).filter(
             (v: unknown): v is string => {
@@ -2150,6 +2165,7 @@ router.post(
         startTime,
         endTime,
         bucketSizeInMinutes,
+        timezone,
         chartType,
         metric,
         groupBy,
@@ -2164,6 +2180,7 @@ router.post(
 
         return Response.sendJsonObjectResponse(req, res, {
           data: data as unknown as JSONObject,
+          ...dayBarTimezoneField(bucketSizeInMinutes, timezone),
         });
       }
 
@@ -2905,6 +2922,8 @@ router.post(
         (body["bucketSizeInMinutes"] as number) ||
         computeDefaultBucketSize(startTime, endTime);
 
+      const timezone: Timezone | undefined = readHistogramTimezone(body);
+
       const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
         ? (body["serviceIds"] as Array<string>).map((id: string) => {
             return new ObjectID(id);
@@ -2947,6 +2966,7 @@ router.post(
         startTime,
         endTime,
         bucketSizeInMinutes,
+        timezone,
         ...serviceFilter,
         exceptionTypes,
         environments,
@@ -2966,6 +2986,7 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         buckets: buckets as unknown as JSONObject,
+        ...dayBarTimezoneField(bucketSizeInMinutes, timezone),
       });
     } catch (err: unknown) {
       next(err);
@@ -3465,9 +3486,19 @@ router.post(
         ? OneUptimeDate.fromString(body["endTime"] as string)
         : OneUptimeDate.getCurrentDate();
 
+      /*
+       * Whole minutes, at least one, as the trace analytics read them: a
+       * bucket of "abc" or 0 minutes compiled to an interval ClickHouse
+       * refuses, and a fraction of a minute to more buckets - each holding
+       * a percentile's state - than any chart draws.
+       */
+      const rawBucketSize: number = Number(body["bucketSizeInMinutes"]);
       const bucketSizeInMinutes: number =
-        (body["bucketSizeInMinutes"] as number) ||
-        computeDefaultBucketSize(startTime, endTime);
+        Number.isFinite(rawBucketSize) && rawBucketSize >= 1
+          ? Math.trunc(rawBucketSize)
+          : computeDefaultBucketSize(startTime, endTime);
+
+      const timezone: Timezone | undefined = readHistogramTimezone(body);
 
       const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
         ? (body["serviceIds"] as Array<string>).map((id: string) => {
@@ -3503,20 +3534,34 @@ router.post(
         ? (body["aggregationField"] as string)
         : undefined;
 
-      // A sum needs the field it adds up: there is no total of nothing.
-      if (aggregation === "sum" && !aggregationField) {
+      /*
+       * A sum, an average, a minimum, a maximum or a percentile reads the
+       * attribute it is of: there is no average of nothing.
+       */
+      if (isNumericLogAnalyticsAggregation(aggregation) && !aggregationField) {
         return Response.sendErrorResponse(
           req,
           res,
           new BadDataException(
-            "A sum needs an aggregationField: the attribute to add up.",
+            "A sum, an average, a minimum, a maximum or a percentile reads a numeric log attribute. Set aggregationField to its key, such as duration_ms.",
           ),
         );
       }
 
-      const limit: number | undefined = body["limit"]
-        ? (body["limit"] as number)
-        : undefined;
+      /*
+       * Clamped to a whole number from 1 to 1,000, as the trace analytics
+       * clamp theirs: `limit` flows into LIMIT, so a negative, fractional
+       * or huge one failed the read in ClickHouse. A number written as text
+       * is read as one.
+       */
+      const rawLimit: number = Number(body["limit"]);
+      const limit: number | undefined =
+        body["limit"] !== undefined &&
+        body["limit"] !== null &&
+        body["limit"] !== "" &&
+        Number.isFinite(rawLimit)
+          ? Math.min(Math.max(Math.trunc(rawLimit), 1), 1000)
+          : undefined;
 
       const resourceScopes: Array<ResourceEntityScope> | undefined =
         await resolveResourceScopesFromBody(body, databaseProps.tenantId);
@@ -3534,11 +3579,17 @@ router.post(
         startTime,
         endTime,
         bucketSizeInMinutes,
+        timezone,
         chartType,
         groupBy,
         aggregation,
         aggregationField,
         ...serviceFilter,
+        /*
+         * A host's, a pod's or a container's own Logs tab charts only its
+         * own logs, as its list and its volume histogram show them.
+         */
+        entityKeys: readStringListField(body, "entityKeys"),
         resourceScopes,
         severityTexts,
         excludedSeverityTexts: readStringListField(
@@ -3559,6 +3610,7 @@ router.post(
 
         return Response.sendJsonObjectResponse(req, res, {
           data: data as unknown as JSONObject,
+          ...dayBarTimezoneField(bucketSizeInMinutes, timezone),
         });
       }
 
@@ -4216,6 +4268,34 @@ async function getProfileServiceFilter(
       excludedServiceIds: filter.excludedServiceIds,
     }),
   };
+}
+
+/*
+ * The reader's zone a histogram or an analytics chart names (`timezone`),
+ * read as an aggregate's is: undefined for none, a 400 for a zone the
+ * Timezone list does not hold. A bar of a day then starts at its midnight
+ * (TelemetryHistogramBuckets, #7923).
+ */
+function readHistogramTimezone(body: JSONObject): Timezone | undefined {
+  return TelemetryHistogramBuckets.readTimezone(body["timezone"]);
+}
+
+/*
+ * What an answer says of its bars besides the buckets: the zone its day
+ * bars were cut in, when they were cut in one, so the chart finds where a
+ * day ends - a day the clocks change on is 23 or 25 hours - and labels each
+ * bar by its date. Nothing for any other bar.
+ */
+function dayBarTimezoneField(
+  bucketSizeInMinutes: number,
+  timezone: Timezone | undefined,
+): JSONObject {
+  const zone: Timezone | null = TelemetryHistogramBuckets.getDayBarTimezone({
+    bucketSizeInMinutes: bucketSizeInMinutes,
+    timezone: timezone,
+  });
+
+  return zone ? { bucketTimezone: zone } : {};
 }
 
 function computeDefaultBucketSize(startTime: Date, endTime: Date): number {
@@ -5642,17 +5722,25 @@ router.post(
  * - an incoherent grant rather than a safer one, and exactly what
  * RumSession's own comment says the ACL exists to prevent.
  */
+/*
+ * Each session replay list here takes RUM's levels where the project-wide
+ * roles are on it (Types/Product/ProductLevels), as RumSession's and
+ * RumSessionChunk's own lists do: RUM Admin wherever Project Admin is.
+ */
 const requireSessionReplayListAccess: Array<RequestHandler> = [
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
   UserMiddleware.requirePermission({
-    permissions: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.TelemetryAdmin,
-      Permission.ReadRumSessionReplay,
-      Permission.ReadRumSessionReplayPayload,
-    ],
+    permissions: withProductLevelsOf({
+      products: [ProductKey.Rum],
+      permissions: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.TelemetryAdmin,
+        Permission.ReadRumSessionReplay,
+        Permission.ReadRumSessionReplayPayload,
+      ],
+    }),
   }),
 ];
 
@@ -5666,36 +5754,42 @@ const requireSessionReplayPayloadAccess: Array<RequestHandler> = [
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
   UserMiddleware.requirePermission({
-    permissions: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.TelemetryAdmin,
-      Permission.ReadRumSessionReplayPayload,
-    ],
+    permissions: withProductLevelsOf({
+      products: [ProductKey.Rum],
+      permissions: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.TelemetryAdmin,
+        Permission.ReadRumSessionReplayPayload,
+      ],
+    }),
   }),
 ];
 
 /* The permission list each guard above enforces, reused for label scope. */
-const SESSION_REPLAY_LIST_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.TelemetryAdmin,
-  Permission.ReadRumSessionReplay,
-  /*
-   * Watching implies listing.
-   *
-   * RumSession's own table read ACL contains this permission for a reason it
-   * states outright: a role granted only the watch permission could fetch
-   * payloads (the payload routes authorize on it alone) while being 401'd on
-   * the manifest and the list - an incoherent grant rather than a safer one.
-   * Leaving it out here meant a support-engineer role built from "Watch
-   * Session Replays" + "Read RUM Application" - the natural pairing, and the
-   * one the permission's own description suggests - got a permission error
-   * on the session list and a silently missing "Watch what the user saw"
-   * card on every exception page.
-   */
-  Permission.ReadRumSessionReplayPayload,
-];
+const SESSION_REPLAY_LIST_PERMISSIONS: Array<Permission> = withProductLevelsOf({
+  products: [ProductKey.Rum],
+  permissions: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.TelemetryAdmin,
+    Permission.ReadRumSessionReplay,
+    /*
+     * Watching implies listing.
+     *
+     * RumSession's own table read ACL contains this permission for a reason it
+     * states outright: a role granted only the watch permission could fetch
+     * payloads (the payload routes authorize on it alone) while being 401'd on
+     * the manifest and the list - an incoherent grant rather than a safer one.
+     * Leaving it out here meant a support-engineer role built from "Watch
+     * Session Replays" + "Read RUM Application" - the natural pairing, and the
+     * one the permission's own description suggests - got a permission error
+     * on the session list and a silently missing "Watch what the user saw"
+     * card on every exception page.
+     */
+    Permission.ReadRumSessionReplayPayload,
+  ],
+});
 
 /*
  * The optional audit-table enrichment must admit an audit-only reviewer so a
@@ -5751,23 +5845,31 @@ const requireSessionReplayResolveAccess: Array<RequestHandler> = [
   }),
 ];
 
-const SESSION_REPLAY_PAYLOAD_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.TelemetryAdmin,
-  Permission.ReadRumSessionReplayPayload,
-];
+const SESSION_REPLAY_PAYLOAD_PERMISSIONS: Array<Permission> =
+  withProductLevelsOf({
+    products: [ProductKey.Rum],
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.TelemetryAdmin,
+      Permission.ReadRumSessionReplayPayload,
+    ],
+  });
 
 /*
  * The raw end-user identifier carries its own narrower ACL on the model
  * (no TelemetryAdmin): knowing that *a* user had a bad session is triage,
  * knowing *which named person* is a further disclosure again.
  */
-const SESSION_REPLAY_IDENTITY_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.ReadRumSessionReplayPayload,
-];
+const SESSION_REPLAY_IDENTITY_PERMISSIONS: Array<Permission> =
+  withProductLevelsOf({
+    products: [ProductKey.Rum],
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadRumSessionReplayPayload,
+    ],
+  });
 
 /*
  * The sentence that tells a caller without SESSION_REPLAY_IDENTITY_PERMISSIONS
@@ -9919,12 +10021,15 @@ const requireSessionReplayTargetAccess: Array<RequestHandler> = [
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
   UserMiddleware.requirePermission({
-    permissions: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.TelemetryAdmin,
-      Permission.EditRumApplication,
-    ],
+    permissions: withProductLevelsOf({
+      products: [ProductKey.Rum],
+      permissions: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.TelemetryAdmin,
+        Permission.EditRumApplication,
+      ],
+    }),
   }),
 ];
 
@@ -9986,12 +10091,15 @@ router.post(
         projectId: projectId,
         rumApplicationId: rumApplicationId,
         databaseProps: databaseProps,
-        permissions: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.TelemetryAdmin,
-          Permission.EditRumApplication,
-        ],
+        permissions: withProductLevelsOf({
+          products: [ProductKey.Rum],
+          permissions: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.TelemetryAdmin,
+            Permission.EditRumApplication,
+          ],
+        }),
       });
 
       /*

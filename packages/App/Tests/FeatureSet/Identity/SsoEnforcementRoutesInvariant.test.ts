@@ -81,9 +81,31 @@ jest.mock("../../../FeatureSet/Identity/API/GoogleSignIn", () => {
 jest.mock("../../../FeatureSet/Identity/API/SignInMethods", () => {
   return { __esModule: true, default: { coreRouter: "sign-in-methods" } };
 });
+jest.mock("../../../FeatureSet/Identity/API/SsoSignInLinks", () => {
+  return { __esModule: true, default: { coreRouter: "sso-sign-in-links" } };
+});
+jest.mock("../../../FeatureSet/Identity/API/MobileSsoExchange", () => {
+  return { __esModule: true, default: { coreRouter: "mobile-sso-exchange" } };
+});
 jest.mock("../../../FeatureSet/Identity/API/StatusPageAuthentication", () => {
   return { __esModule: true, default: { coreRouter: "status-page" } };
 });
+// The sign-ins of a dashboard's and a form's private users (#10250, #10249).
+jest.mock(
+  "../../../FeatureSet/Identity/API/DashboardPrivateUserAuthentication",
+  () => {
+    return {
+      __esModule: true,
+      default: { coreRouter: "dashboard-private-user" },
+    };
+  },
+);
+jest.mock(
+  "../../../FeatureSet/Identity/API/FormPrivateUserAuthentication",
+  () => {
+    return { __esModule: true, default: { coreRouter: "form-private-user" } };
+  },
+);
 
 type MountRecord = { paths: unknown; router: unknown };
 
@@ -380,10 +402,14 @@ describe("SSO enforcement and the SSO login routes: on together, in every state"
       { coreRouter: "microsoft-sign-in" },
       { coreRouter: "google-sign-in" },
       { coreRouter: "sign-in-methods" },
+      { coreRouter: "sso-sign-in-links" },
+      { coreRouter: "mobile-sso-exchange" },
       ...SSO_ROUTERS.map((entry: SsoRouterEntry): ExpressRouter => {
         return entry.router;
       }),
       { coreRouter: "status-page" },
+      { coreRouter: "dashboard-private-user" },
+      { coreRouter: "form-private-user" },
     ]);
   });
 
@@ -409,12 +435,16 @@ describe("SSO enforcement and the SSO login routes: on together, in every state"
       { coreRouter: "microsoft-sign-in" },
       { coreRouter: "google-sign-in" },
       { coreRouter: "sign-in-methods" },
+      { coreRouter: "sso-sign-in-links" },
+      { coreRouter: "mobile-sso-exchange" },
       ...SSO_ROUTERS.map((entry: SsoRouterEntry): ExpressRouter => {
         return entry.router;
       }),
       EE_SCIM_ROUTER,
       EE_VERCEL_SIGN_IN_ROUTER,
       { coreRouter: "status-page" },
+      { coreRouter: "dashboard-private-user" },
+      { coreRouter: "form-private-user" },
     ]);
   });
 

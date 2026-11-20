@@ -51,6 +51,13 @@ export interface ComponentProps {
    * link that is a name on a line of its own, cut short at its own end.
    */
   dir?: ReadingDirection | undefined;
+  /*
+   * A row of a menu (role="menu"): the link, or the action drawn as one, is
+   * a menu item, which the menu's arrow keys move the focus to (tabIndex
+   * -1), never a stop of its own for Tab (the header's Help and profile
+   * menus, #7237). Left out, it is a link, or a button when it only acts.
+   */
+  isMenuItem?: boolean | undefined;
 }
 
 export type LinkAriaCurrent = "page" | "true";
@@ -116,6 +123,11 @@ const Link: FunctionComponent<ComponentProps> = (
      */
     linkProps["role"] = "button";
     linkProps["tabIndex"] = 0;
+  }
+
+  if (props.isMenuItem) {
+    linkProps["role"] = "menuitem";
+    linkProps["tabIndex"] = -1;
   }
 
   if (props.openInNewTab) {

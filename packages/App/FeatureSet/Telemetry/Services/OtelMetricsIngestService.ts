@@ -76,6 +76,7 @@ import KubernetesResourceService, {
 } from "Common/Server/Services/KubernetesResourceService";
 import { isSeparateKubernetesImageFs } from "Common/Types/Kubernetes/KubernetesStorageHealth";
 import KubernetesEphemeralVolumeClaims from "Common/Server/Utils/Telemetry/KubernetesEphemeralVolumeClaims";
+import { fileKubernetesPodVolumeUnderReceiverNames } from "Common/Server/Utils/Telemetry/KubernetesPodVolumeNames";
 import KubernetesContainerService, {
   ContainerLatestMetric,
 } from "Common/Server/Services/KubernetesContainerService";
@@ -233,6 +234,11 @@ import TelemetryIngestionBudgetMetricTypeUtil, {
   TELEMETRY_INGESTION_BUDGET_METRIC_NAME_PREFIX,
 } from "Common/Utils/Telemetry/TelemetryIngestionBudgetMetricType";
 import ContainerStatsPercentUnit from "Common/Utils/Metrics/ContainerStatsPercentUnit";
+import TelemetryUsageMetricTypeUtil, {
+  TELEMETRY_USAGE_METRIC_NAME_PREFIX,
+} from "Common/Utils/Telemetry/TelemetryUsageMetricType";
+import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
+import { countOtlpMetricPoints } from "Common/Utils/Telemetry/OtlpRecordCount";
 import { CloudAppTelemetrySignal } from "Common/Types/Cloud/CloudAppTelemetrySignal";
 
 type MetricTimestamp = {
@@ -1066,6 +1072,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
        */
       OtelIngestBaseService.normalizeHostNameAttributesInPlace(resourceMetrics);
 
+      // Whose telemetry the batch is: null for most projects (#6355, #6386).
+      const attribution: TelemetryIngestAttribution | null =
+        (req as TelemetryRequest).telemetryIngestAttribution || null;
+
       /*
        * Proxmox VE's built-in OpenTelemetry push speaks its own dialect
        * (proxmox_* names, no `id` label, `proxmox.cluster` instead of
@@ -1350,6 +1360,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           this.stampServerlessFunctionNameAttribute(resourceAttributes_raw);
 
           /*
+           * A pod's volume named the semantic conventions way
+           * (k8s.pod.volume.*, #10055), under the names every reader of a
+           * volume's identity and usage reads, once: before the claim is
+           * named and the rows are built (KubernetesPodVolumeNames).
+           */
+          fileKubernetesPodVolumeUnderReceiverNames(resourceMetric);
+
+          /*
            * A PVE native push describes one node's node, guest or storage
            * status per request, so the Proxmox cluster counts are
            * recounted from the stored inventory rather than this block.
@@ -1462,8 +1480,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
            * A generic ephemeral volume's usage names its claim, as the
            * receiver names any other claim's volume, before its rows are
            * built (KubernetesEphemeralVolumeClaims): a pod's `ephemeral:`
-           * volume is the claim `<pod>-<volume>` it owns. Only a volume the
-           * receiver left unlabelled is looked at.
+           * volume is the claim `<pod>-<volume>` it owns. A claim the series
+           * names is taken as it came, and a volume typed `ephemeral` needs
+           * no lookup; only a volume the receiver left unlabelled reads the
+           * cluster's claims.
            */
           if (kubernetesClusterId) {
             try {
@@ -1651,6 +1671,23 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           const serviceName: string = serviceMetadata.serviceName;
 
           serviceDictionary[serviceName] = serviceMetadata;
+
+          /*
+           * Whose telemetry this resource is (TelemetryIngestAttribution,
+           * #6355, #6386): its share of the batch's usage, and its team's or
+           * label's budget. A used-up budget drops its records here.
+           */
+          if (
+            attribution &&
+            !(await attribution.admitResource({
+              primaryEntityId: serviceMetadata.primaryEntityId!,
+              primaryEntityType: serviceMetadata.primaryEntityType,
+              name: serviceName,
+              records: countOtlpMetricPoints(resourceMetric),
+            }))
+          ) {
+            continue;
+          }
 
           const stampHostName: string | null =
             OtelIngestBaseService.getStringAttribute(
@@ -1937,6 +1974,22 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   ) {
                     logger.debug(
                       `Dropped metric "${metricName}" for project ${projectId.toString()}: names starting with "${TELEMETRY_INGESTION_BUDGET_METRIC_NAME_PREFIX}" are reserved for OneUptime's telemetry ingestion budget metrics.`,
+                    );
+                    continue;
+                  }
+
+                  /*
+                   * And the usage sweep's readings (#6355): they are left
+                   * out of usage and billing by name, so no sender may
+                   * write one.
+                   */
+                  if (
+                    TelemetryUsageMetricTypeUtil.isReservedMetricName(
+                      metricName,
+                    )
+                  ) {
+                    logger.debug(
+                      `Dropped metric "${metricName}" for project ${projectId.toString()}: names starting with "${TELEMETRY_USAGE_METRIC_NAME_PREFIX}" are reserved for OneUptime's telemetry usage metrics.`,
                     );
                     continue;
                   }
@@ -2424,6 +2477,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           continue;
                         }
 
+                        if (
+                          finalMetricName !== metricName &&
+                          typeof finalMetricName === "string" &&
+                          TelemetryUsageMetricTypeUtil.isReservedMetricName(
+                            finalMetricName,
+                          )
+                        ) {
+                          logger.debug(
+                            `Dropped a "${metricName}" datapoint for project ${projectId.toString()}: a metric pipeline rule renamed it to "${finalMetricName}", and names starting with "${TELEMETRY_USAGE_METRIC_NAME_PREFIX}" are reserved for OneUptime's telemetry usage metrics.`,
+                          );
+                          continue;
+                        }
+
                         /*
                          * IoT device identity lives in datapoint labels
                          * (device.id) and resource/datapoint attributes —
@@ -2551,6 +2617,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           );
         }
       }
+
+      // The batch's attribution, counted in one round trip (#6355, #6386).
+      await attribution?.settle();
 
       await this.submitMetricsBuffer(dbMetrics, pendingAcks, true);
 
@@ -4910,6 +4979,26 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         } catch (err) {
           logger.warn(
             `Proxmox snapshot writeback (start-on-boot) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      /*
+       * What the task log says about the stopped guests, as the Proxmox AI
+       * agent read it (#10017): who or what stopped each one, and when. A
+       * fact about the guests, never their status or the cluster being read,
+       * so it moves no lastSeenAt and no count.
+       */
+      if (snap && snap.guestPowerTasks.size > 0) {
+        try {
+          await ProxmoxResourceService.recordGuestPowerTasks({
+            projectId: data.projectId,
+            proxmoxClusterId: new ObjectID(liveIdStr),
+            readings: Array.from(snap.guestPowerTasks.values()),
+          });
+        } catch (err) {
+          logger.warn(
+            `Proxmox snapshot writeback (guest power tasks) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
       }

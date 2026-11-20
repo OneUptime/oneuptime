@@ -53,7 +53,7 @@ Una serie temporal de una o varias consultas de métricas a lo largo del interva
 
 Cada consulta dibuja su propio gráfico, uno debajo de otro en el widget. Para dibujar en cambio una consulta en el gráfico de la consulta anterior, como más líneas sobre los mismos ejes, activa **Superponer con la consulta anterior** en sus **Ajustes de visualización**: por ejemplo, `mem_used` y `mem_total` en un solo gráfico. Todas las consultas después de la primera tienen el interruptor, y cada consulta que lo tiene activado se une al mismo gráfico, así que tres o más consultas pueden compartir uno. Desactívalo para que la consulta vuelva a tener su propio gráfico.
 
-Un gráfico superpuesto toma su título, su tipo de gráfico y su eje de valores de su primera consulta, así que cada consulta en él se lee en la unidad de esa consulta. Una consulta en otra unidad del mismo tipo se dibuja en la unidad del gráfico, como megabytes en un gráfico en gigabytes, o segundos en un gráfico en milisegundos. Una unidad de otro tipo no se puede leer en ese eje, como bytes en un gráfico en porcentaje: la consulta se dibuja ahí de todos modos, y el gráfico y el interruptor indican que las unidades son distintas, así que dale a esa consulta su propio gráfico.
+Un gráfico superpuesto toma su título, su tipo de gráfico y su eje de valores izquierdo de su primera consulta, así que una consulta en él se lee en la unidad de esa consulta cuando se puede. Una consulta en otra unidad del mismo tipo se dibuja en la unidad del gráfico, como megabytes en un gráfico en gigabytes, o segundos en un gráfico en milisegundos. Una consulta en una unidad de otro tipo, como bytes en un gráfico en porcentaje, se dibuja sobre un segundo eje de valores a la derecha del gráfico, en su propia unidad, y el interruptor lo indica. La leyenda bajo el gráfico nombra la unidad de cada eje y el eje sobre el que se dibuja cada serie. Solo un tercer tipo de unidad no encaja en ningún eje: se dibuja con una escala propia, sin eje, y el gráfico y el interruptor lo indican. Lee sus valores en la leyenda y en la información emergente, o dale a esa consulta su propio gráfico para leerla sobre un eje.
 
 Úsalo cuando la forma de la línea cuenta la historia: latencia, errores, rendimiento o profundidad de una cola.
 
@@ -250,7 +250,7 @@ Mediante la API y Terraform, el orden es el `arguments.sort` del widget: una col
 Un [panel público](/docs/dashboards/sharing) dibuja la mayoría de los widgets para sus visitantes, y cada uno muestra solo lo que se configuró para mostrar. Algunos no pueden mostrarse sin una sesión iniciada:
 
 - **Gráfico de registros**, **Gráfico de trazas**, **Tabla de trazas**, **Eventos de seguridad**, **Flujo de eventos de seguridad**, **Embudo** y **Retención de usuarios** indican en su lugar que no están disponibles en los paneles públicos.
-- Los widgets de Fuentes de datos externas se quedan totalmente fuera de un panel público, porque sus ajustes son la propia consulta.
+- Los widgets de Fuentes de datos externas muestran sus datos cuando leen **Métricas de este proyecto (PromQL)**, nunca sus consultas. Un widget de fuente de datos externa se queda totalmente fuera de un panel público.
 
 ## Cuando un widget no se puede mostrar
 

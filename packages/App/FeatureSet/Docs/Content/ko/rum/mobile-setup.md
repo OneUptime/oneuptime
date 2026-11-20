@@ -5,7 +5,7 @@ Android, iOS, React Native 앱을 OpenTelemetry로 계측해 모바일 RUM 애�
 :::cards
 - [OneUptime에 필요한 것](#oneuptime에-필요한-것): 서버 키로 보내는 두 가지 리소스 속성.
 - [플랫폼 설정](#플랫폼-설정): Android, iOS, React Native 및 그 밖의 플랫폼.
-- [iOS 크래시와 멈춤](#ios-크래시와-멈춤): 예외와 개요에 나타나는 MetricKit 진단.
+- [iOS 크래시와 멈춤](#ios-크래시와-멈춤): 예외에 나타나는 MetricKit과 KSCrash의 보고서, dSYM으로 이름이 붙습니다.
 - [도착 확인](#도착-확인하기): 키를 확인한 뒤 앱을 찾습니다.
 - [모바일 세션 리플레이](#모바일-세션-리플레이): React Native 앱의 녹화.
 :::
@@ -115,6 +115,7 @@ let resource = Resource(attributes: [
     "service.name": .string("storefront-ios"),
     "device.model.identifier": .string(UIDevice.current.model),
     "device.manufacturer": .string("Apple"),
+    "device.id": .string(UIDevice.current.identifierForVendor?.uuidString ?? ""),
     "telemetry.sdk.language": .string("swift"),
 ])
 
@@ -133,7 +134,7 @@ OpenTelemetry.registerTracerProvider(
 )
 ```
 
-`UIDevice.current.model`은 `iPhone` 같은 짧은 이름을 주므로, **클라이언트** 페이지가 기기 종류마다 한 행으로 유지됩니다.
+`UIDevice.current.model`은 `iPhone` 같은 짧은 이름을 주므로, **클라이언트** 페이지가 기기 종류마다 한 행으로 유지됩니다. `identifierForVendor`는 OneUptime이 크래시 없는 설치를 셀 때 기준으로 삼는 설치이며, 자세한 내용은 [세션 기록하기](#세션-기록하기)에 있습니다.
 @tab React Native
 React Native는 OpenTelemetry JavaScript SDK로 실행되므로, [브라우저 설정](/docs/rum/browser-setup)처럼 프로바이더, OTLP 내보내기 도구, 배치 프로세서를 만들되 세 가지를 바꾸세요. **서버** 키로 보내고, `browserDetector`와 `DocumentLoadInstrumentation`을 빼고, 기기 속성을 직접 설정합니다.
 
@@ -178,7 +179,9 @@ opentelemetry-swift 2.3 이상은 MetricKit 계측으로 iOS 앱의 크래시와
 | 크래시 | `metrickit.diagnostic.crash` | 처리되지 않은 예외로, 유형은 앱을 종료시킨 원인으로 정해집니다. iOS 17 이상에서는 Objective-C 예외, 그것이 없으면 Mach 예외(`EXC_BAD_ACCESS`), 그것도 없으면 시그널(`SIGSEGV`)입니다 |
 | 멈춤(hang) | `metrickit.diagnostic.hang` | **Hang** 유형의 처리되지 않은 예외로, iOS에서 ANR에 해당하며 멈춤이 지속된 시간을 담고 있습니다 |
 
-개요의 **크래시** 타일은 크래시를 세고, **ANR** 타일은 Android의 ANR과 함께 멈춤을 셉니다. 각 스택 트레이스는 크래시 보고서의 스레드처럼 그려지며, 크래시가 발생했거나 멈춘 스레드가 맨 앞에 옵니다. 프레임은 심볼화되지 않습니다. 각 프레임은 바이너리와 그 안에서 코드가 있던 위치를 알려 주며, **Binary Images**는 각 바이너리의 UUID를 나열하므로 어느 빌드의 dSYM으로 심볼화할 수 있는지 알 수 있습니다.
+개요의 **크래시** 타일은 크래시를 세고, **ANR** 타일은 Android의 ANR과 함께 멈춤을 셉니다. 각 스택 트레이스는 크래시 보고서의 스레드처럼 그려지며, 크래시가 발생했거나 멈춘 스레드가 맨 앞에 옵니다. 앱 코드의 프레임은 해당 빌드의 dSYM이 업로드되면 `CartViewController.checkout()`처럼 함수 이름으로 표시됩니다. 업로드 방법은 [dSYM 업로드하기](#dsym-업로드하기)를 참고하세요. 그 밖의 프레임은 바이너리와 그 안에서 코드가 있던 위치를 알려 주며, **Binary Images**는 각 바이너리의 UUID를 나열하므로 어느 빌드의 dSYM이 그 이름을 붙이는지 알 수 있습니다.
+
+크래시와 멈춤은 크래시가 발생했거나 멈춘 스레드에 있는 앱의 프레임으로 묶입니다. dSYM이 이름을 붙인 프레임은 함수로 묶이므로 크래시는 릴리스가 바뀌어도 하나의 예외로 남고, 이름이 붙지 않은 프레임은 바이너리 안의 오프셋으로 묶이는데, 오프셋은 빌드마다 바뀝니다. 보고서는 도착할 때 이름이 붙으므로, 빌드를 배포하기 전에 그 빌드의 dSYM을 업로드하세요. dSYM보다 먼저 도착한 크래시는 오프셋 그대로 남습니다.
 
 :::steps
 ### 스팬과 함께 로그도 내보내기
@@ -218,13 +221,48 @@ MXMetricManager.shared.add(metricKitInstrumentation)
 
 ### 세션 기록하기
 
-**세션**과 **크래시 없는 세션** 타일은 스팬의 `session.id`를 셉니다. 이 값은 opentelemetry-swift의 `Sessions` 제품이 설정합니다. 트레이서 프로바이더에 `SessionSpanProcessor`를 추가하고, 로그 프로세서를 `SessionLogRecordProcessor`로 감싸 진단에도 세션이 붙게 하세요. 이 제품의 릴리스는 아직 `app.installation.id`를 설정하지 않으므로, iOS 앱의 **크래시 없는 세션** 타일은 크래시 없는 설치 비율 대신 크래시가 발생한 세션 수를 보여 줍니다.
+**세션**과 **크래시 없는 세션** 타일은 스팬의 `session.id`를 셉니다. 이 값은 opentelemetry-swift의 `Sessions` 제품이 설정합니다. 트레이서 프로바이더에 `SessionSpanProcessor`를 추가하고, 로그 프로세서를 `SessionLogRecordProcessor`로 감싸 진단에도 세션이 붙게 하세요.
+
+**크래시 없는 세션** 아래 줄은 크래시가 발생하지 않은 설치의 비율을 보여 주며, **Daily Crash Rate**와 **Daily ANR Rate**는 크래시가 발생한 설치의 비율로 경고합니다. 설치는 위 리소스의 `device.id`, 즉 앱의 공급업체용 식별자입니다. 한 기기에서 여러분의 모든 앱이 공유하는 하나의 값이며, 그중 하나라도 설치되어 있는 동안 유지됩니다. 따라서 하나뿐인 앱을 다시 설치하면 새 설치가 되지만, 두 앱 중 하나를 다시 설치하면 새 설치가 되지 않습니다. `app.installation.id`를 설정하는 opentelemetry-swift 릴리스에서는 대신 그 값으로 셉니다.
+
+### dSYM 업로드하기
+
+Xcode는 앱을 아카이브할 때 앱의 바이너리마다 dSYM을 만들고, App Store Connect의 **Download dSYMs**에서 이를 다시 받을 수 있습니다. 아카이브할 때마다 CI나 Xcode 빌드 단계에서 [OneUptime CLI](/docs/cli/index)로, 빌드용 서버 키를 사용해 업로드하세요. 앱에 담겨 배포되는 키처럼 **고정된 서비스 이름**이 설정된 키는 거부됩니다. dSYM은 그 바이너리를 배포하는 프로젝트의 모든 앱에서 프레임에 이름을 붙이기 때문입니다.
+
+```bash
+oneuptime dsym upload "$ARCHIVE_PATH/dSYMs" --app storefront-ios --url https://oneuptime.com --ingestion-key YOUR_TELEMETRY_INGESTION_TOKEN
+```
+
+CLI는 `.dSYM` 번들과 이를 담은 폴더와 zip, 그리고 DWARF 파일을 있는 위치 그대로 읽고, 각 바이너리의 UUID, 아키텍처, 함수 이름만 보냅니다. 큰 앱의 dSYM은 수백 메가바이트에 이르지만 이름은 몇 메가바이트에 불과합니다. CLI 없이 보내려면 dSYM의 DWARF 파일이나 `.dSYM` 번들의 zip을 그대로, 파일당 최대 50 MB까지 보내세요.
+
+```bash
+curl --fail -X POST "https://oneuptime.com/dsyms/v1/upload" \
+  -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -F "appName=storefront-ios" \
+  -F "dsym=@MyApp.app.dSYM/Contents/Resources/DWARF/MyApp"
+```
+
+각 바이너리는 UUID별로 400일 동안 보관되므로, 몇 달 뒤에도 사람들의 휴대폰에 남아 있는 릴리스에도 계속 이름이 붙으며, 빌드를 다시 업로드하면 그 빌드에 대해 보관된 내용이 대체됩니다. dSYM은 앱 하나가 아니라 프로젝트에 속하므로, 두 앱에 포함된 프레임워크는 두 앱 모두에서 이름이 붙습니다.
 :::
 
 > [!NOTE]
 > Apple은 MetricKit의 진단을 다음 실행 이후에 앱에 전달합니다. iOS 15 이상에서는 곧바로, 그 이전 버전에서는 하루에 한 번 전달하므로 크래시나 멈춤은 발생하고 몇 분 또는 하루 뒤에 도착할 수 있으며, 도착할 때 셉니다. iOS 앱의 개요에 나온 "지난 1시간 동안 크래시 0건"은 아직 좋은 소식이라고 할 수 없습니다. 진단에 붙는 세션은 그 진단을 보고한 세션이지, 진단된 문제로 끝난 세션이 아닙니다.
 
 opentelemetry-swift는 앱이 시작될 때 스팬을 기록하지 않으므로, 앱이 직접 기록하기 전까지 **앱 시작**과 **콜드 스타트(p95)** 타일은 비어 있습니다. 기록할 스팬은 `AppStart`라는 이름에 `start.type`을 `cold`, `warm`, `hot` 중 하나로 설정한 스팬으로, 프로세스가 시작될 때부터 첫 화면이 준비될 때까지를 나타냅니다.
+
+### KSCrash도 크래시를 보고할 때
+
+opentelemetry-swift는 KSCrash로도 크래시를 보고할 수 있습니다. KSCrash는 앱이 다음에 열릴 때 앱이 크래시한 시각과 함께 보고서를 `device.crash` 로그 레코드로 보냅니다. 둘 다 등록한 앱은 크래시마다 두 번 보고합니다. KSCrash는 다음 실행 때, MetricKit은 다음 실행 때 또는 최대 하루 뒤에 보고합니다. OneUptime은 이런 크래시를 한 번만 셉니다. 먼저 도착한 보고서가 발생이 되고, 두 번째 보고서는 같은 크래시의 증거로 같은 예외 안에서 그 옆에 보관되며, 어떤 타일, 차트, 모니터에서도 세지 않습니다. 예외의 **발생 내역**에서는 그 발생에 **두 번 보고됨**이 표시됩니다.
+
+두 보고서는 다음이 모두 성립할 때만 하나의 크래시로 간주됩니다.
+
+- 두 보고 도구인 KSCrash와 MetricKit에서 각각 왔습니다. 둘 다 크래시 하나를 두 번 보고하지 않으므로, 한 도구에서 온 보고서 두 개는 크래시 두 개입니다.
+- 같은 설치에서 왔습니다. 즉 `app.installation.id`나 `device.id`가 같습니다.
+- 서로 26시간 넘게 떨어져 있지 않습니다. MetricKit은 크래시에 보고 대상인 날의 끝 시각을 찍고, KSCrash는 크래시가 난 순간을 찍습니다.
+- 신호, Mach 예외, Objective-C 예외가 둘 다 밝힌 경우에는 모두 일치합니다.
+- 크래시한 스레드가 스레드가 시작된 곳부터 안쪽으로, 바이너리와 오프셋 기준으로, 어느 한쪽이 밝힌 앱 코드의 모든 프레임에서 프레임 단위로 일치합니다. 크래시가 전부 Apple의 코드 안에서 일어났다면 최소 세 프레임에서, 그리고 그 모든 프레임에서 일치해야 합니다.
+
+각 보고서는 시간상 가장 가까운 보고서와 한 번만 짝지어지므로, 같은 설치에서 같은 버그로 몇 분 간격으로 일어난 크래시 두 번은 각각 두 번째 보고서를 가진 두 개의 발생이 됩니다. OneUptime이 어떤 보고서를 그 설치의 다른 보고서와 비교할 수 없으면 그 보고서를 세므로, 크래시는 최악의 경우 두 번 세어질 뿐 사라지지 않습니다.
 
 ## 도착 확인하기
 

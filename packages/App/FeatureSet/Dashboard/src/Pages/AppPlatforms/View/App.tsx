@@ -1,16 +1,21 @@
 import PageComponentProps from "../../PageComponentProps";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import {
+  AppServiceDeploymentsCard,
+  AppServiceInstancesCard,
+} from "../../../Components/AppPlatforms/AppServiceSiteActivityCards";
+import AppServiceSetupTab from "../../../Components/AppPlatforms/AppServiceSetupTab";
 import CloudAppHeader from "../../../Components/AppPlatforms/CloudAppHeader";
+import { isAppServiceApp } from "../Utils/CloudAppPlatformResource";
+import CloudAppLogsTab from "../../../Components/AppPlatforms/CloudAppLogsTab";
 import CloudAppOverviewTab from "../../../Components/AppPlatforms/CloudAppOverviewTab";
 import CloudAppRevisionsTab from "../../../Components/AppPlatforms/CloudAppRevisionsTab";
+import useCloudAppAzure, {
+  CloudAppAzure,
+} from "../../../Components/AppPlatforms/useCloudAppAzure";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
-import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
-import {
-  buildSavedViewScope,
-  SavedViewScopeKind,
-} from "Common/Utils/Telemetry/SavedViewScope";
 import TracesViewer from "../../../Components/Traces/TracesViewer";
 import { getFailedSpansRoute } from "../../../Components/TelemetryResource/FailedSpansRoute";
 import { TraceSpanType } from "Common/Types/Telemetry/TraceSpanType";
@@ -77,7 +82,12 @@ import React, {
  *   - Instances, Logs and Traces: its own, not its environment's;
  *   - Recommendations: the monitors OneUptime recommends for it - its
  *     requests failing, slowing or stopping, read from its own telemetry
- *     (CloudAppAlertTemplates) - which the header's Set up alerts opens.
+ *     (CloudAppAlertTemplates) - which the header's Set up alerts opens;
+ *   - for an App Service app (#10294), what Azure says beside what its
+ *     telemetry says - its site's Azure Monitor numbers, its instances and
+ *     deployments, its site's streamed logs (useCloudAppAzure) - and a
+ *     Setup tab with the steps that send its traces and logs, which its
+ *     Setup check opens.
  *
  * A tab can be opened from its address (?tab=Revisions), which the
  * environment's feed lines and the Overview's deploys link to.
@@ -99,6 +109,8 @@ export enum CloudAppTabName {
   Logs = "Logs",
   Traces = "Traces",
   Recommendations = "Recommendations",
+  // An App Service app's: the steps that send its traces and logs (#10294).
+  Setup = "Setup",
 }
 
 interface LoadedApp {
@@ -295,6 +307,17 @@ const AppPlatformApp: FunctionComponent<
     onRefresh: refresh,
   });
 
+  /*
+   * An App Service app's site in Azure, read once for every tab (#10294):
+   * its way to Azure Monitor, its instances and deployments, its streamed
+   * logs.
+   */
+  const azure: CloudAppAzure = useCloudAppAzure({
+    app: loaded?.app,
+    environment: loaded?.environment,
+    refreshToken,
+  });
+
   // The window every tab's numbers are over, fixed until the range changes.
   const window: { start: Date; end: Date } = useMemo((): {
     start: Date;
@@ -400,6 +423,17 @@ const AppPlatformApp: FunctionComponent<
                 })
               : undefined
           }
+          azure={azure}
+          onSetUpTelemetry={
+            isAppServiceApp(app)
+              ? (): void => {
+                  setTabRequest({
+                    name: CloudAppTabName.Setup,
+                    count: (tabRequest?.count || 0) + 1,
+                  });
+                }
+              : undefined
+          }
         />
       ),
     },
@@ -407,41 +441,62 @@ const AppPlatformApp: FunctionComponent<
       name: CloudAppTabName.Revisions,
       countBadge: loaded.revisions.length || undefined,
       children: (
-        <CloudAppRevisionsTab
-          app={app}
-          environment={environment}
-          instances={loaded.instances}
-          revisions={loaded.revisions}
-          start={window.start}
-          end={window.end}
-          refreshToken={refreshToken}
-        />
+        <Fragment>
+          <CloudAppRevisionsTab
+            app={app}
+            environment={environment}
+            instances={loaded.instances}
+            revisions={loaded.revisions}
+            start={window.start}
+            end={window.end}
+            refreshToken={refreshToken}
+          />
+          {/*
+           * What Azure says was deployed, under what the telemetry names,
+           * once its answer is in (#10294).
+           */}
+          {azure.site && azure.activity !== undefined ? (
+            <AppServiceDeploymentsCard activity={azure.activity} />
+          ) : (
+            <></>
+          )}
+        </Fragment>
       ),
     },
     {
       name: CloudAppTabName.Instances,
       children: (
-        <CloudInstancesTable
-          environmentId={environmentId}
-          app={{ id: appId, name: app.name }}
-        />
+        <Fragment>
+          <CloudInstancesTable
+            environmentId={environmentId}
+            app={{ id: appId, name: app.name }}
+          />
+          {azure.site && azure.activity !== undefined ? (
+            <AppServiceInstancesCard
+              activity={azure.activity}
+              telemetryInstances={loaded.instances}
+            />
+          ) : (
+            <></>
+          )}
+        </Fragment>
       ),
     },
     {
       name: CloudAppTabName.Logs,
       children: isScoped ? (
-        <DashboardLogsViewer
-          id={`cloud-app-logs-${appId.toString()}`}
-          savedViewScope={buildSavedViewScope(
-            SavedViewScopeKind.CloudApp,
-            appId,
-          )}
+        <CloudAppLogsTab
+          appId={appId}
+          app={app}
           logQuery={logQuery}
           attributeFilterDisplayKeys={filterDisplayKeys}
           attributeFilterDisplayValues={filterDisplayValues}
-          showFilters={true}
-          enableRealtime={true}
-          noLogsMessage="Logs appear here when they carry this app's resource attributes and its environment's."
+          site={azure.site}
+          siteStreams={Boolean(
+            azure.lookup?.status === "read" &&
+              azure.lookup.link.connection?.streamKeyCreatedAt,
+          )}
+          diagnosticLogsLastReceivedAt={azure.diagnosticLogsLastReceivedAt}
         />
       ) : (
         notScoped
@@ -468,6 +523,22 @@ const AppPlatformApp: FunctionComponent<
         />
       ),
     },
+    // An App Service app's own setup steps, for its stack (#10294).
+    ...(isAppServiceApp(app)
+      ? [
+          {
+            name: CloudAppTabName.Setup,
+            children: (
+              <AppServiceSetupTab
+                app={app}
+                link={
+                  azure.lookup?.status === "read" ? azure.lookup.link : null
+                }
+              />
+            ),
+          },
+        ]
+      : []),
   ];
 
   const requestedTab: string | null = Navigation.getQueryStringByName("tab");

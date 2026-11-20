@@ -7,6 +7,7 @@ Um monitor de host acompanha uma máquina – CPU, memória, discos, carga e pro
 - [Modelos](#modelos-de-alerta-prontos): Dez alertas prontos para um host silencioso ou reiniciado, CPU, memória, swap, disco, inodes, carga, processos e unidades systemd com falha.
 - [Métricas](#métricas-coletadas): As métricas de host com que você pode alertar, e suas unidades.
 - [Host ou servidor / VM?](#monitor-de-host-ou-monitor-de-servidor-vm): Qual dos dois monitores de máquinas usar.
+- [Vários discos](#hosts-com-vários-discos): Um monitor para todos os discos, um incidente por disco.
 :::
 
 ## Como funciona
@@ -136,9 +137,10 @@ Um host cujo sistema operacional é o Android, como um quiosque ou um terminal d
 | Device Overheating | Aviso | `android.thermal.status`, Max, últimos 5 minutos | 3 (grave) ou pior | Abaixo de 3 |
 | Restart Loop | Crítico | `android.boot.recent_count`, Max, última hora | Algum valor é 3 ou mais | Todos os valores estão abaixo de 3 |
 | Storage Nearly Full | Crítico | `system.filesystem.utilization`, Max por `mountpoint`, como porcentagem, últimos 5 minutos | Acima de 90% | Em 90% ou menos |
+| Security Patch Out of Date | Aviso | `android.os.security_patch.age`, os dias desde o nível do patch de segurança do dispositivo, Min, última hora | Mais de 90 dias de idade durante toda a janela | Uma leitura de 90 dias ou menos, depois que o dispositivo é atualizado |
 | High CPU Utilization | Aviso | `system.cpu.utilization` para o estado `idle`, ocupado como 1 menos ocioso, como porcentagem, últimos 5 minutos | Acima de 80% | Em 80% ou menos |
 
-High CPU Utilization é oferecido quando o dispositivo passa a informar o uso de CPU, o que, no Android 8 e posteriores, exige que o agente seja o proprietário do dispositivo. Um alerta de um dispositivo Android começa com comandos adb para executar primeiro, como `adb shell dumpsys battery` ou `adb shell getprop sys.boot.reason`, em vez dos comandos de shell de um servidor.
+High CPU Utilization é oferecido quando o dispositivo passa a informar o uso de CPU, o que, no Android 8 e posteriores, exige que o agente seja o proprietário do dispositivo. Um alerta de um dispositivo Android começa com comandos adb para executar primeiro, como `adb shell dumpsys battery`, `adb shell getprop sys.boot.reason` ou `adb shell getprop ro.build.version.security_patch`, em vez dos comandos de shell de um servidor.
 
 ## Métricas coletadas
 
@@ -220,6 +222,26 @@ Um monitor que você não cria a partir de um modelo começa com dois critérios
 > [!IMPORTANT]
 > Um valor de `0` é um dado, então uma métrica que costuma ser zero, como reinícios ou erros, não deixa o monitor offline. Para receber alertas sobre um valor, comece por um modelo ou adicione um critério com um limite. Quando nenhum dado chega e nenhum critério corresponde, o monitor mantém o status e os incidentes abertos continuam abertos: silêncio não é recuperação. O tempo em que o próprio OneUptime não recebia dados nunca conta como falta de dados: uma verificação cuja janela o inclui espera, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 
+## Hosts com vários discos
+
+Um monitor de host cobre todos os discos que o host informa. Os modelos High Filesystem Usage e Running Out of Inodes agrupam a consulta por `mountpoint` e `device`, então o monitor verifica cada disco separadamente e abre um incidente por disco: um segundo disco que está enchendo não fica escondido atrás do incidente aberto do primeiro.
+
+| Onde | O que mostra para cada disco |
+| --- | --- |
+| A página **Métricas** do monitor | Uma linha por disco, com o nome do seu `mountpoint` e `device`. |
+| **Registros de monitoramento** | A coluna **Observado** conta as séries que cada verificação leu: uma por disco. |
+| **Incidentes** e **Alertas** | Um por disco, indicando a montagem e o dispositivo do disco. |
+| A tabela **Sistemas de arquivos** do host | Todos os discos que o coletor informa, independentemente do que seus monitores vigiem. |
+
+Cada critério é verificado para cada disco:
+
+- Enquanto o incidente de um disco está aberto, o critério que o abriu não abre outro para esse disco. Outro disco que o atenda abre o seu próprio.
+- Um disco que atende a dois critérios, como um acima de 98% e outro acima de 90%, recebe um só incidente, do primeiro deles na lista. Coloque o mais rigoroso primeiro.
+- O incidente de um disco se resolve quando esse disco deixa de atender ao critério que o abriu, faça o que fizerem os outros discos.
+- O monitor tem um único status, definido pelo primeiro critério da lista que algum disco atende. Quando nenhum disco atende a um critério que dispara, basta um disco no limite de recuperação ou abaixo dele para o critério de recuperação, então a margem de recuperação de 10% não vale em um host com um disco que nunca chega perto de ficar cheio.
+
+Para vigiar só alguns discos, abra **Avançado** e, na consulta em **Selecionar Métricas**, adicione em **Filtrar por atributos** um filtro em `mountpoint`: **é um de** para os discos a vigiar, ou **não é nenhum de** para os discos a deixar de fora. Mantenha o campo **Agrupar por** e escreva cada disco como a tabela **Sistemas de arquivos** o mostra, como `C:` ou `/var`. Para deixar de coletar um disco de vez, de modo que ele também saia das páginas do host, defina `include_mount_points` ou `exclude_mount_points` no scraper `filesystem` do coletor ([Métricas do host](/docs/telemetry/host-otel-collector#métricas-do-host)).
+
 ## Solução de problemas
 
 :::details O host não aparece na lista Host
@@ -236,6 +258,10 @@ O monitor restringe cada consulta a `resource.host.name` igual ao host que você
 
 :::details High Filesystem Usage dispara para uma montagem que está sempre cheia
 Pseudo sistemas de arquivos somente leitura, como montagens loop snap `squashfs` em `/snap` ou `devfs` do macOS, estão 100% cheios por design e nunca se recuperam. As configurações que o OneUptime executa e fornece os deixam de fora com `exclude_fs_types`; uma configuração sua, ou uma Configuração do coletor criada antes disso, precisa do mesmo: copie-o de [Métricas do host](/docs/telemetry/host-otel-collector#métricas-do-host). Deixe de fora outra montagem sempre cheia, como um `.dmg` montado, com `exclude_mount_points`.
+:::
+
+:::details High Filesystem Usage mostra uma só série em um host com vários discos
+A consulta não tem **Agrupar por**. Cada verificação então lê só o disco mais cheio, e um único incidente responde por todos os discos: a página **Métricas** do monitor desenha uma linha com o nome da consulta, e a coluna **Observado** em **Registros de monitoramento** conta pontos de dados em vez de séries. Na página **Critérios** do monitor, clique em **Editar critérios**, abra **Avançado** em **Mais campos** e defina o **Agrupar por** da consulta em **Selecionar Métricas** como `mountpoint` e `device`. Escolher o modelo de novo em **Sobre o que alertar** também o define, mas substitui seus critérios pelos do modelo. Na próxima verificação, cada disco acima do limite abre o próprio incidente, e o que estava aberto para o monitor inteiro se resolve se o critério dele resolver incidentes automaticamente.
 :::
 
 ## Próximos passos

@@ -21,6 +21,7 @@ import { JSONObject, JSONValue } from "../../../Types/JSON";
 import { writeOwnValue } from "../../LookupTable";
 import {
   MAX_RESOURCE_ID_LENGTH,
+  getAzureResourceIdKey,
   isCloudResourceIdLike,
   readCloudEndpointHosts,
 } from "../../SecurityCase/SecurityConnectionMatch";
@@ -1270,20 +1271,12 @@ export function readCloudTrailResourceIds(record: JSONObject): Array<string> {
  * An Azure resource ID as OneUptime compares it: trimmed, without a
  * trailing slash, in lower case - Azure's resource IDs are
  * case-insensitive, and the Activity Log's export writes them in capitals.
- * Null for anything that is not a resource ID under a subscription.
+ * The one key every event keeps an Azure ID by, whoever wrote it
+ * (getAzureResourceIdKey, #10034). Null for anything that is not a
+ * resource ID under a subscription.
  */
 export function normalizeAzureResourceId(value: string): string | null {
-  let id: string = value.trim();
-
-  while (id.endsWith("/")) {
-    id = id.slice(0, -1);
-  }
-
-  const lower: string = id.toLowerCase();
-
-  return lower.startsWith("/subscriptions/") && isCloudResourceIdLike(lower)
-    ? lower
-    : null;
+  return getAzureResourceIdKey(value);
 }
 
 /*
@@ -1345,6 +1338,30 @@ export function readAzureActivityResourceIds(
       ids.add(id);
       ids.add(getAzureTopLevelResourceId(id));
     }
+  }
+
+  return ids.toArray();
+}
+
+/*
+ * The cloud resources a resource's own audit record is about (#10110): the
+ * resource that wrote it, by its resourceId, and the resource that is a
+ * part of - a storage account for its blob service, a SQL server for its
+ * database. Never an ID the record names elsewhere: a storage request's
+ * delegatedResource, a key vault caller's own app, is who called, not what
+ * was called on.
+ */
+export function readAzureResourceLogResourceIds(
+  record: JSONObject,
+): Array<string> {
+  const ids: ResourceIds = new ResourceIds();
+  const id: string | null = normalizeAzureResourceId(
+    text(record["resourceId"]),
+  );
+
+  if (id) {
+    ids.add(id);
+    ids.add(getAzureTopLevelResourceId(id));
   }
 
   return ids.toArray();

@@ -54,9 +54,9 @@ Rapporten räknar vad som skapades, bjöds in och inte fördes över, och visar 
 | I incident.io | I OneUptime | Hur |
 | --- | --- | --- |
 | Användare | Projektmedlemmar | Matchas på e-postadress. Alla som inte är med i projektet ännu bjuds in till teamet du väljer. Inaktiverade användare förs inte över. |
-| Team | Team | Skapas med sina medlemmar. Ett team vars namn projektet redan har används som det är, och dess medlemmar lämnas orörda. |
-| Scheman | Jourscheman | Varje rotation blir ett lager med samma personer, samma start, samma passlängd och samma arbetstider, i schemats tidszon. Den version av rotationen som gäller nu är den som förs över. |
-| Eskaleringsvägar | Jourpolicyer | Varje nivå blir en eskaleringsregel som larmar samma scheman, användare och team efter samma väntetid. En upprepning blir policyns upprepningar, och från en förgrening förs den första vägen över. |
+| Team | Team | Skapas med sina medlemmar. Ett team vars namn projektet redan har används som det är, och dess medlemmar lämnas orörda. Har två team samma namn, förs det andra objektet över med ett nummer, till exempel `Platform 2`, och rapporten visar namnet det skapades med. |
+| Scheman | Jourscheman | Varje rotation blir ett lager med samma personer, samma start, samma passlängd och samma arbetstider, i schemats tidszon. Den version av rotationen som gäller nu är den som förs över. Har två scheman samma namn, förs det andra objektet över med ett nummer, till exempel `Primary 2`, och rapporten visar namnet det skapades med. |
+| Eskaleringsvägar | Jourpolicyer | Varje nivå blir en eskaleringsregel som larmar samma scheman, användare och team efter samma väntetid. En upprepning blir policyns upprepningar, och från en förgrening förs den första vägen över. Har två eskaleringsvägar samma namn, förs det andra objektet över med ett nummer, till exempel `Primary 2`, och rapporten visar namnet det skapades med. |
 | Katalogtjänster | Tjänster | Posterna i dina katalogtyper i tjänstekategorin, skapade i tjänstekatalogen. Arkiverade poster utelämnas. |
 | Allvarlighetsgrader | Incidentallvarlighetsgrader | Skapas i incident.ios ordning, den allvarligaste först. En allvarlighetsgrad vars namn projektet redan har används som den är. |
 | Statusar | Incidenttillstånd | En triagestatus motsvarar tillståndet som OneUptime startar incidenter i, och en stängd status tillståndet där incidenter är lösta. Aktiva och pausade statusar skapas mellan Bekräftad och Löst. |

@@ -244,7 +244,13 @@
     "signInWithProvider": "Logg inn med {{name}}",
     "requiredSubtitle": "Denne serveren krever enkel pålogging (SSO).",
     "requiredNotSetUp": "Enkel pålogging er ikke satt opp på denne serveren ennå. Be serveradministratoren om å sette det opp.",
-    "useDifferentEmail": "Bruk en annen e-post"
+    "useDifferentEmail": "Bruk en annen e-post",
+    "lastUsedTitle": "Sist brukt på denne enheten",
+    "forgetLastUsed": "Glem denne leverandøren",
+    "emailLinksPrompt": "Vi kan sende denne adressen SSO-påloggingslenkene til alle organisasjonene den hører til.",
+    "emailLinksButton": "Send meg påloggingslenkene mine",
+    "emailLinksSent": "Hvis denne adressen hører til en organisasjon som bruker enkel pålogging, har vi sendt den SSO-påloggingslenkene.",
+    "emailLinksCaptchaRequired": "Fullfør captchaen før du ber om lenkene."
   },
   "adminLogin": {
     "title": "Logg inn som hovedadministrator",
@@ -281,6 +287,29 @@
     "templateDescription": "Velg en mal for å fylle ut skjemaet. Du kan endre hvert svar før du sender inn.",
     "templateNone": "Ingen mal",
     "uploadingFiles": "Filene dine lastes opp…"
+  },
+  "formSignIn": {
+    "prompt": "Logg på for å åpne dette skjemaet.",
+    "ssoOnlyPrompt": "Logg på med organisasjonens single sign-on for å åpne dette skjemaet.",
+    "noWayIn": "Det er ennå ikke satt opp noen måte å logge på dette skjemaet. Spør personen som delte det med deg.",
+    "email": "E-post",
+    "password": "Passord",
+    "forgotPassword": "Glemt passordet?",
+    "signIn": "Logg på",
+    "or": "eller",
+    "signInWithProvider": "Logg på med {{provider}}",
+    "forgotTitle": "Har du glemt passordet?",
+    "forgotPrompt": "Skriv inn e-postadressen din, så sender vi deg en lenke for å velge et nytt passord.",
+    "sendLink": "Send lenke",
+    "forgotSent": "Hvis denne adressen kan logge på dette skjemaet, er en lenke for å velge et nytt passord på vei. Lenken virker i 24 timer.",
+    "backToSignIn": "Tilbake til pålogging",
+    "resetTitle": "Velg et nytt passord",
+    "resetPrompt": "Skriv inn passordet du vil logge på dette skjemaet med.",
+    "newPassword": "Nytt passord",
+    "savePassword": "Lagre passord",
+    "resetDone": "Passordet ditt er lagret. Logg på med det for å åpne skjemaet.",
+    "signedInAs": "Logget på som {{email}}",
+    "signOut": "Logg ut"
   },
   "errors": {
     "forbidden": {

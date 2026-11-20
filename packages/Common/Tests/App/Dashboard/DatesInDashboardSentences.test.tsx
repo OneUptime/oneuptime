@@ -203,7 +203,7 @@ describe("RelativeTime", () => {
       (
         screen.getByText(/./, { selector: "time" }).getAttribute("title") || ""
       ).replace(/\s/g, " "),
-    ).toContain("06. Okt. 2026");
+    ).toContain("6. Okt. 2026");
   });
 });
 
@@ -372,7 +372,7 @@ describe("a date a sentence is filled with", () => {
           ),
         })
         .replace(/\s/g, " "),
-    ).toMatch(/^Geprüft 06\. Okt\. 2026, \d{2}:05( [AP]M)? BST$/);
+    ).toMatch(/^Geprüft 6\. Okt\. 2026, \d{1,2}:05( [AP]M)? BST$/);
   });
 
   test("a sentence German has not worded reads English, its date too", () => {

@@ -10,6 +10,7 @@ import {
   AZURE_FIVE_MINUTE_READ_MINUTES,
   AZURE_HOURLY_GRAIN,
   AZURE_KEY_METRICS,
+  AZURE_SIX_HOURLY_GRAIN,
   AwsKeyMetric,
   GCP_ALIGNMENT_PERIOD_SECONDS,
   GCP_OPS_AGENT_INSTALL_URL,
@@ -2455,6 +2456,15 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
         headline("functionexecutioncount", HEADLINE_INVOCATIONS, "perPeriod", {
           onlySome: true,
         }),
+        /*
+         * What its files take of its plan's storage, every six hours and
+         * kept between them (#10026), with how old it is. A new
+         * connection's first is 12 hours away, and an app whose metric
+         * definitions do not list it never sends one: never "Not reported".
+         */
+        headline("filesystemusage", HEADLINE_STORAGE_USED, "bytes", {
+          onlySome: true,
+        }),
       ],
     },
     {
@@ -2926,9 +2936,10 @@ const HEADLINES_BY_TYPE: ReadonlyMap<
  * An Azure key metric Azure Monitor keeps at five minutes (AzureKeyMetric.
  * grain: an App Service app's health check, a Cosmos DB account's storage)
  * is read in a call of its own every AZURE_FIVE_MINUTE_READ_MINUTES - in one
- * read of three - and one it keeps at an hour (a Storage account's used
- * capacity, #9982) once an hour, so its reading, and a rule or a tile that
- * reads it, would come and go. A read that brings no value of such a
+ * read of three - one it keeps at an hour (a Storage account's used
+ * capacity, #9982) once an hour, and one it keeps at six hours (an App
+ * Service app's file system, #10026) every six hours, so its reading, and a
+ * rule or a tile that reads it, would come and go. A read that brings no value of such a
  * reading keeps the one before while its datapoint is younger than the
  * reading's hold, and drops it after, so a metric that stops still goes
  * stale; the resource's page says how old it is. A reading every read
@@ -2969,6 +2980,22 @@ export const AZURE_HOURLY_READING_PERIOD_SECONDS: number = 60 * 60;
  */
 export const AZURE_HOURLY_READING_HOLD_MS: number = 4 * 60 * 60 * 1000;
 
+// Azure Monitor's six-hour grain, as seconds a point covers.
+export const AZURE_SIX_HOURLY_READING_PERIOD_SECONDS: number = 6 * 60 * 60;
+
+/*
+ * How long a six-hourly reading is kept (#10026: an App Service app's
+ * FileSystemUsage), by its datapoint's age, the way an hourly one is. Six
+ * hours' point is asked for once the six hours after them have passed
+ * (CloudMetricWindows: a window of an hour or more waits a whole period
+ * for Azure Monitor to publish it), so it is 12 hours old when it is read,
+ * and the next one comes six hours later, at the first read after it is
+ * there: up to 18 hours old then, plus the minutes between two reads of
+ * the connection - an hour at most. One that stops coming is dropped
+ * after it, so its tile goes.
+ */
+export const AZURE_SIX_HOURLY_READING_HOLD_MS: number = 19 * 60 * 60 * 1000;
+
 // What a reading read less often than every read is read at, and kept for.
 interface SlowCloudReading {
   holdMs: number;
@@ -2991,6 +3018,13 @@ const SLOW_GRAINS: ReadonlyMap<string, SlowCloudReading> = new Map<
     {
       holdMs: AZURE_HOURLY_READING_HOLD_MS,
       periodSeconds: AZURE_HOURLY_READING_PERIOD_SECONDS,
+    },
+  ],
+  [
+    AZURE_SIX_HOURLY_GRAIN,
+    {
+      holdMs: AZURE_SIX_HOURLY_READING_HOLD_MS,
+      periodSeconds: AZURE_SIX_HOURLY_READING_PERIOD_SECONDS,
     },
   ],
 ]);
@@ -3049,7 +3083,8 @@ function isSlowCloudReading(data: {
  * How long a reading is kept after the last read that brought it, by its
  * datapoint's age: AZURE_FIVE_MINUTE_READING_HOLD_MS for an Azure key metric
  * read at five minutes, AZURE_HOURLY_READING_HOLD_MS for one read once an
- * hour, null for a reading every read brings.
+ * hour, AZURE_SIX_HOURLY_READING_HOLD_MS for one read every six hours, null
+ * for a reading every read brings.
  */
 export function getCloudReadingHoldMs(data: {
   provider: string;

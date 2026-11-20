@@ -44,8 +44,9 @@ import {
  *    and matched here by the rule's own pattern on the linear-time matcher
  *    ingest runs it on, so the count is what the rule would drop. The names
  *    themselves never leave the server: they hold the data;
- *  - which monitors and dashboards read such a metric (MetricNameUsers),
- *    read with the reader's own permissions;
+ *  - which monitors, dashboards (and their widgets), SLOs and recording
+ *    rules read such a metric (MetricNameUsers), named only where the
+ *    reader may read them and counted where they may not;
  *  - the rule that already drops them, if one does.
  */
 
@@ -186,7 +187,7 @@ async function countDroppedMetrics(data: {
 /*
  * What Drop This Metric would do for a finding, for the page to say before
  * it is asked for: why it cannot, the rule that already does it, or how
- * many metrics it drops and which monitors and dashboards that empties.
+ * many metrics it drops and what reads them that it empties.
  */
 export async function getDropMetricImpact(data: {
   projectId: ObjectID;
@@ -194,7 +195,7 @@ export async function getDropMetricImpact(data: {
   dataTypeId: string;
   location: string;
   serviceId?: ObjectID | string | null | undefined;
-  // The reader's: only the monitors and dashboards they may read are named.
+  // The reader's: only what they may read is named; the rest is counted.
   props: DatabaseCommonInteractionProps;
   now?: Date | undefined;
 }): Promise<DataSecurityDropMetricImpact> {
@@ -205,8 +206,16 @@ export async function getDropMetricImpact(data: {
     metricsCounted: false,
     monitors: [],
     dashboards: [],
+    slos: [],
+    recordingRules: [],
     monitorsChecked: false,
     dashboardsChecked: false,
+    slosChecked: false,
+    recordingRulesChecked: false,
+    monitorsHidden: 0,
+    dashboardsHidden: 0,
+    slosHidden: 0,
+    recordingRulesHidden: 0,
   };
   const reason: DataSecurityDropMetricUnavailableReason | null =
     getMetricDropUnavailableReason(data);
@@ -255,10 +264,6 @@ export async function getDropMetricImpact(data: {
   impact.metricsMatched = counted.matched;
   impact.isMetricsMatchedCapped = counted.isCapped;
   impact.metricsCounted = counted.isCounted;
-  impact.monitors = users.monitors;
-  impact.dashboards = users.dashboards;
-  impact.monitorsChecked = users.monitorsChecked;
-  impact.dashboardsChecked = users.dashboardsChecked;
 
-  return impact;
+  return { ...impact, ...users };
 }

@@ -6,8 +6,8 @@
 - [Prometheus remote write](#prometheus-remote-write): 来自 Prometheus、Grafana Alloy 或任何 remote write 发送方的指标。
 - [Loki](#loki): 来自 Promtail、Grafana Alloy、Fluent Bit 或 Vector 的日志。
 - [Splunk HTTP Event Collector](#splunk-http-event-collector): 来自任何 HEC 客户端的日志和指标事件。
-- [Datadog Agent](#datadog-agent): 来自 Datadog Agent 的指标和日志。
-- [Sentry SDK](#sentry-sdk): 来自任何 Sentry SDK 的错误、事务和日志。
+- [Datadog Agent](#datadog-agent): 来自 Datadog Agent 的指标、日志和 APM 追踪。
+- [Sentry SDK](#sentry-sdk): 来自任何 Sentry SDK 的错误、事务、日志、cron check-in、反馈和性能剖析数据。
 :::
 
 ## 工作原理
@@ -24,7 +24,7 @@ flowchart TB
     end
     tools -->|"各自的协议 + 你的摄取密钥"| endpoint["OneUptime 兼容端点"]
     endpoint --> otlp["存储为 OpenTelemetry 数据"]
-    otlp --> signals["日志、指标、追踪和异常"]
+    otlp --> signals["日志、指标、追踪、异常和性能剖析"]
 ```
 
 每个端点都按其工具自己的方式应答：Prometheus 和 Loki 得到 `204`，HEC 得到 `{"text": "Success", "code": 0}`，Datadog 得到 `202`，Sentry 得到事件 ID，因此工具会像以往一样报告成功和失败。随后，这些数据的处理方式与来自 OpenTelemetry SDK 的数据完全相同。
@@ -59,6 +59,7 @@ remote_write:
   - url: https://oneuptime.com/telemetry/prometheus/api/v1/write
     authorization:
       credentials: YOUR_TELEMETRY_KEY
+    send_exemplars: true
 ```
 
 使用 Grafana Alloy 时，添加一个 `prometheus.remote_write` 组件，并把抓取结果转发给它：
@@ -70,17 +71,25 @@ prometheus.remote_write "oneuptime" {
     bearer_token = "YOUR_TELEMETRY_KEY"
   }
 }
+
+prometheus.scrape "app" {
+  targets    = [{"__address__" = "localhost:8080"}]
+  forward_to = [prometheus.remote_write.oneuptime.receiver]
+}
 ```
 
-remote write 1.0 和 2.0 都可以接受，并且与所有发送方的发送方式一样，经过 snappy 压缩。
+remote write 1.0 和 2.0 都可以接受，并且与所有发送方的发送方式一样，经过 snappy 压缩。要发送携带每个序列的类型、单位和描述的 2.0，请设置 `protobuf_message: io.prometheus.write.v2.Request`（Prometheus 3）或 `protobuf_message = "io.prometheus.write.v2.Request"`（Alloy）。Prometheus 在保存 exemplar 后（`--enable-feature=exemplar-storage`），会通过 `send_exemplars: true` 发送它们；Alloy 默认就会发送。
 
 ### 序列会变成什么
 
 - **名称和标签保持不变。** `http_requests_total{job="checkout", code="500"}` 会成为带有属性 `job` 和 `code` 的指标 `http_requests_total`，因此从 Grafana 迁移过来的查询也能找到它。
 - **job 就是服务。** 按照 OpenTelemetry 对 Prometheus 的映射规则，每个 `job` 成为一个服务，每个 `instance` 成为该服务的实例。
 - **类型会保留。** 计数器以及直方图的桶和计数都是累积总和，因此它们的速率能正确绘制成图表。类型来自发送方附带的元数据；没有元数据时，名称以 `_total` 结尾的是计数器，带有 `le` 标签的 `_bucket` 是直方图的桶。
+- **经典直方图可以绘制百分位数。** 经典直方图保留其 `_bucket`、`_count` 和 `_sum` 序列。在[指标浏览器](/docs/telemetry/metrics-explorer)中用 P50 到 P99 绘制其 `_bucket` 指标，每次抓取的桶都会作为一个直方图读取，无论每个桶是通过哪个请求到达的。在 [PromQL](/docs/telemetry/promql) 中，`histogram_quantile(0.95, sum by (le) (rate(<name>_bucket[5m])))` 的结果与 Prometheus 中相同。
 - **原生直方图** 会变成指数直方图，带自定义桶的原生直方图会变成直方图。
-- **不保留：** 陈旧标记（staleness marker）以及其他 NaN 或无穷大样本、计数器的 `_created` 序列，以及 exemplar。
+- **exemplar 链接到追踪。** 带有 `trace_id`（或 `traceID`）标签的 exemplar 会把它的数据点链接到该追踪和 span：在指标的图表上点击它的点，即可查看该追踪或它的日志。它的值和其他标签不会保留，数据点通过另一个请求到达的 exemplar 也不会保留。
+- **不保留：** 陈旧标记（staleness marker）以及其他 NaN 或无穷大的值，以及计数器的 `_created` 序列。它们仍会计为已写入，因此发送方不会报告失败的样本。
+- **拒绝：** 任何版本的 remote write 都不允许的数据，例如没有指标名称的序列，或时间戳为负数的样本。请求的其余部分会被存储，发送方会收到说明哪些内容被拒绝的 `400`。
 
 ## Loki
 
@@ -106,6 +115,8 @@ Fluent Bit 的 `loki` 输出需要分开填写主机和路径：
     Http_Passwd  YOUR_TELEMETRY_KEY
     Labels       job=fluent-bit
 ```
+
+OneUptime 按 Loki 的方式应答：push 存储后返回 `204`，无法读取的 push 返回 `400`，超过下方限制的 push 返回 `413`，缺少密钥或密钥未知时返回 `401`，每日预算用完时返回 `403`，超过速率时返回带 `Retry-After` 的 `429`，暂时无法接收时返回 `503`。Promtail、Alloy 和 Vector 会重试 `429` 或 `503`，对其他被拒绝的批次则记录原因并丢弃；Fluent Bit 会丢弃 `400`，其他情况一律重试，直到达到它的 `Retry_Limit`。
 
 ### 日志流会变成什么
 
@@ -148,7 +159,7 @@ curl https://oneuptime.com/telemetry/services/collector/event \
 
 ## Datadog Agent
 
-把 Agent 的指标和日志指向 OneUptime，并以你的摄取密钥作为它的 API 密钥：
+把 Agent 的指标、日志和 APM 追踪指向 OneUptime，并以你的摄取密钥作为它的 API 密钥：
 
 ```yaml title="datadog.yaml"
 api_key: YOUR_TELEMETRY_KEY_WITHOUT_HYPHENS
@@ -158,13 +169,14 @@ logs_config:
   use_http: true
   logs_dd_url: oneuptime.com:443
 apm_config:
-  enabled: false
+  enabled: true
+  apm_dd_url: https://oneuptime.com/telemetry/datadog
 process_config:
   process_collection:
     enabled: false
 ```
 
-Agent 会在 `dd_url` 后加上自己的路径，并把日志发送到 `logs_dd_url` 所指定主机和端口上的 `/api/v2/logs`。只有对带有 `DD-API-KEY` 请求头的请求，OneUptime 才会在根路径上应答这些路径。修改后重启 Agent；当 OneUptime 接受该 API 密钥时，`datadog-agent status` 会显示它有效。
+Agent 会在 `dd_url` 和 `apm_dd_url` 后加上自己的路径，并把日志发送到 `logs_dd_url` 所指定主机和端口上的 `/api/v2/logs`。只有对带有 `DD-API-KEY` 请求头的请求，OneUptime 才会在根路径上应答这些路径。修改后重启 Agent；当 OneUptime 接受该 API 密钥时，`datadog-agent status` 会显示它有效。
 
 ### Agent 的数据会变成什么
 
@@ -172,10 +184,22 @@ Agent 会在 `dd_url` 后加上自己的路径，并把日志发送到 `logs_dd_
 - **分布**（distribution）会变为带有计数、总和、最小值和最大值的摘要（summary）。
 - **服务检查** 会变成以该检查命名的指标，其值为检查的状态：0 表示 OK，1 表示警告，2 表示严重，3 表示未知。
 - **日志** 保留消息、状态、主机和服务，其余字段作为属性保留。
-- **标签都是属性**，`service`、`env` 和 `version` 标签分别指定服务、其环境和其版本。
-- **尚未读取：** APM 追踪、进程、容器、网络数据和性能剖析数据。请像上面那样在 `datadog.yaml` 中把它们关闭。
+- **APM 追踪** 会出现在“追踪”中。每个 span 以它的资源命名（`GET /users/:id`、一条查询），并属于它的服务；集成为其另起服务名的 span（例如 `checkout-postgres`）属于发起调用的服务。它的操作名称和类型保留为 `datadog.operation_name` 和 `datadog.span_type`。
+- **span 中的错误** 会出现在“异常”中，并带有追踪器记录的堆栈追踪。
+- **标签都是属性**，`service`、`env` 和 `version` 标签分别指定服务、其环境和其版本。span 的 HTTP 标签和数据库标签还会以它们的 OpenTelemetry 名称写入：`http.status_code` 写为 `http.response.status_code`，`db.type` 写为 `db.system.name`。
+- **尚未读取：** 进程、容器、网络数据和性能剖析数据。请像上面那样在 `datadog.yaml` 中把它们关闭。Agent 的 APM 统计会被接受但不保留：OneUptime 会根据 span 自行计算。
 
 Datadog 的 HTTP API 客户端（向 `/api/v2/logs` 发送 POST 的日志库、发送序列的脚本）也可以带上 `DD-API-KEY` 请求头，发送到同一个端点。
+
+### 不经过 Agent
+
+dd-trace-go 可以自己把追踪发送到 OneUptime，只需把你的摄取密钥作为它的 Agent URL 的密码：
+
+```bash
+DD_TRACE_AGENT_URL=https://oneuptime:YOUR_TELEMETRY_KEY@oneuptime.com/telemetry/datadog
+```
+
+Python 和 Node.js 的追踪器会去掉 URL 中的路径和密码，因此请通过 Agent 发送它们的追踪。
 
 ## Sentry SDK
 
@@ -204,13 +228,18 @@ DSN 末尾的 `1` 是 Sentry SDK 所要求的，不会被读取。浏览器应�
 - **错误** 会出现在“异常”中，带有它们的堆栈追踪和导致它们的异常，并像其他异常一样被分组。每个错误都是其追踪上的一个 span，位于当时处于活动状态的 span 之下。
 - **事务** 及其 span 会出现在“追踪”中。
 - **Sentry 日志** 以及用 `capture_message` 捕获的消息会出现在“日志”中。
+- **cron check-in** 会出现在“日志”中，每个 check-in 一条记录，监控的 slug 在 `sentry.monitor.slug` 中，状态在 `sentry.check_in.status` 中。失败、超时或错过的 check-in 以 Error 级别记录。若要在任务失败或没有运行时得知，请针对它的 slug 创建[日志监控](/docs/monitor/logs-monitor)。
+- **用户反馈** 来自 Sentry 的反馈小部件或 `capture_user_feedback`，会出现在“日志”中，位于发送它的追踪里。它的 `sentry.feedback.associated_event_id` 就是它所涉及错误的 `sentry.event_id`。
+- **性能剖析数据** 无论来自事务还是持续性能剖析，都会作为挂钟时间（wall time）剖析出现在“性能剖析”中，并关联到其事务的追踪。Android 的性能剖析数据尚未读取。
 - **服务** 取 `service` 标签，否则取发布版本名称中 `@` 之前的部分：`checkout@1.4.2` 即 `checkout`。发布版本即服务版本，环境也会保留。
-- **不保留：** 会话、回放、附件、性能剖析数据和 check-in。SDK 仍会发送它们；OneUptime 接受后将其丢弃。
+- **不保留：** 会话、回放和附件。SDK 仍会发送它们；OneUptime 接受后将其丢弃。
 
 ## 限制与摄取预算
 
-- **请求大小**：OneUptime 的入口在 `/telemetry` 下接受最大 4 MB 的请求，每个正文解压后最多 64 MB。
-- **摄取预算**：Prometheus remote write 和 Loki 在读取正文之前就会对照指标或日志预算进行检查，预算用完时以 `403` 拒绝。HEC 批次、Datadog 负载或 Sentry 信封可能携带多种信号，因此每种信号会在存储时计入它自己的预算，并在该预算用完时被丢弃。
+- **请求大小**：OneUptime 的入口在 `/telemetry` 下接受最大 4 MB 的请求，每个正文解压后最多 64 MB。Prometheus remote write 请求解压后最多 32 MB，最多包含 500,000 个序列、标签和样本，因此任何单个请求都无法耗尽服务器的内存。Prometheus 和 Alloy 默认每个请求发送 2,000 个样本，远低于这两个上限；超过上限的请求会以 `413` 拒绝，此时请调低 `queue_config` 中的 `max_samples_per_send`。
+- **Loki push**：一次 push 解压后最多 32 MB，最多包含 500,000 个条目、标签和结构化元数据，其中日志流的标签按它的每个条目各计一次。Promtail 和 Alloy 默认发送 1 MB 的批次，远低于这两个上限；超过上限的 push 会以 `413` 拒绝，此时请调低客户端的批次大小。
+- **JSON、MessagePack 与 Datadog 负载**：JSON 或 MessagePack 正文最多包含 1,000,000 个值（对象、数组、字符串和数字），Datadog Agent 的 protobuf 负载最多包含 500,000 个序列、数据点、span、标签和 sketch。它们都会在读取前计数，超过上限的请求会以 `413` 拒绝。
+- **摄取预算**：Prometheus remote write 和 Loki 在读取正文之前就会对照指标或日志预算进行检查，预算用完时以 `403` 拒绝。之后，每个请求都会像 OTLP 请求一样按解压后的大小计入，也会计入团队或标签的预算。HEC 批次、Datadog 负载或 Sentry 信封可能携带多种信号，因此每种信号会在存储时计入它自己的预算，并在该预算用完时被丢弃：HEC 批次中的日志和指标事件分摊它的大小，Sentry 信封中的每个条目计入它自己的信号——性能剖析数据计入性能剖析预算，check-in 和反馈计入日志预算——而不保留的附件、回放和会话不计入任何预算。
 
 ## 故障排除
 
@@ -225,6 +254,10 @@ Sentry SDK 会拒绝密钥中带有连字符的 DSN。请把密钥写成不带�
 ### Datadog 指标能到达，但日志没有
 
 检查 `logs_config.use_http` 是否为 `true`，以及 `logs_config.logs_dd_url` 是否为主机和端口，而不是 URL。未设置 `use_http` 时，Agent 会通过 TCP 发送日志。
+
+### Datadog 日志没有关联到它的追踪
+
+追踪器只把追踪 ID 的低 64 位写入了日志。请在追踪器上设置 `DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED=true`，让它写入完整的 ID。
 
 ### Prometheus 报告 415
 

@@ -19,6 +19,7 @@ import {
 import Workflow from "../../Models/DatabaseModels/Workflow";
 import { toStoredBoolean } from "../../Types/Database/BooleanColumnValue";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NameTakenException from "../../Types/Exception/NameTakenException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
@@ -34,6 +35,9 @@ import {
 } from "../../Types/Workflow/WorkflowVariableOAuth";
 import Model from "../../Models/DatabaseModels/WorkflowVariable";
 
+// The workflow a variable belongs to, under each of its names.
+const WORKFLOW_KEYS: Array<string> = ["workflowId", "workflow"];
+
 /*
  * Whether a value of isSecret marks a variable secret. What comes back from
  * Postgres is a boolean, and a write's value is one too by the time a hook
@@ -46,9 +50,6 @@ import Model from "../../Models/DatabaseModels/WorkflowVariable";
 function isSecretValue(value: unknown): boolean {
   return toStoredBoolean(value) === true;
 }
-
-// The workflow a variable is of, under either of its names.
-const WORKFLOW_KEYS: Array<string> = ["workflowId", "workflow"];
 
 /*
  * The settings of an OAuth 2.0 variable a person can change after creating it.
@@ -294,7 +295,12 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
-  // A raised workflow's variable, created by who may change the workflow.
+  /*
+   * A raised workflow's variable, created by who may change the workflow:
+   * the workflow named under either of its names, two that disagree
+   * refused (ReferenceNamesReadTogether), so a create that names it by the
+   * relation is held to the workflow's holders as well.
+   */
   protected override async onCreatePermitted(
     onCreate: OnCreate<Model>,
   ): Promise<void> {
@@ -822,7 +828,9 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * @UniqueColumnBy(["workflowId", "projectId"]) on `name` is enforced by
-   * DatabaseService.checkUniqueColumnBy, which runs on create only - and there
+   * DatabaseService.checkUniqueColumnBy on a create; on an update this hook
+   * holds it (getUniqueColumnsCheckedOnUpdate, #10318, leaves the name out of
+   * DatabaseService's own update check) - and there
    * is no unique index on WorkflowVariable to catch what it misses. That was
    * harmless while the dashboard offered no way to edit a variable. Now that it
    * does, a rename is the one write that can put two rows with the same name in
@@ -1012,8 +1020,9 @@ export class Service extends ProjectReferencesService<Model> {
         })
       ).toNumber();
 
+      // With the code a program tells a taken name by (#10065).
       if (conflictCount > 0) {
-        throw new BadDataException(
+        throw new NameTakenException(
           item.workflowId
             ? `A workflow variable named "${newName}" already exists on this workflow. Variable names must be unique within a workflow.`
             : `A global variable named "${newName}" already exists in this project. Global variable names must be unique.`,
@@ -1022,6 +1031,15 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { updateBy, carryForward };
+  }
+
+  /*
+   * A rename onto another variable's name, among the project's globals or
+   * the workflow's own, is refused by onBeforeUpdate above, in its own
+   * words: the generic check of an update leaves the name out (#10318).
+   */
+  protected override getUniqueColumnsCheckedOnUpdate(): ReadonlyArray<string> {
+    return ["name"];
   }
 }
 export default new Service();

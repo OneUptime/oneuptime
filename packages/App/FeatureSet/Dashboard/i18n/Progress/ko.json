@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 58633,
-    "untranslated": 7961
+    "keys": 59636,
+    "untranslated": 7962
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -102,10 +102,12 @@
     "MariaDB",
     "Markdown",
     "Memcached",
+    "Microsoft Intune",
     "Mirantis MOSK",
     "MongoDB",
     "MySQL",
     "NAA ID",
+    "NSA/CISA Kubernetes Hardening Guide v1.2",
     "OID Collection Template",
     "OK",
     "OR",
@@ -135,6 +137,7 @@
     "PromQL",
     "Proxmox ID",
     "Purity CLI",
+    "REST API URL",
     "RTT",
     "RX",
     "RabbitMQ",
@@ -199,6 +202,7 @@
     "amphora",
     "arm",
     "arm64",
+    "arn:aws:iam::123456789012:role/OneUptimeSes",
     "aws_lambda · us-east-1 · nodejs 20",
     "build=1.4.2, plan=pro",
     "checkout-.*",

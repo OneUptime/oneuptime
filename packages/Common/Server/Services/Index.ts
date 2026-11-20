@@ -80,6 +80,8 @@ import NetworkDeviceDiagnosticService from "./NetworkDeviceDiagnosticService";
 import PacketCaptureService from "./PacketCaptureService";
 import NetworkInterfaceService from "./NetworkInterfaceService";
 import NetworkSiteService from "./NetworkSiteService";
+import NetworkSiteOwnerTeamService from "./NetworkSiteOwnerTeamService";
+import NetworkSiteOwnerUserService from "./NetworkSiteOwnerUserService";
 import NetworkSiteTypeService from "./NetworkSiteTypeService";
 import NetworkEndpointService from "./NetworkEndpointService";
 import NetworkSiteStatusTimelineService from "./NetworkSiteStatusTimelineService";
@@ -384,6 +386,7 @@ import WorkflowVersionService from "./WorkflowVersionService";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import TelemetryExceptionService from "./TelemetryExceptionService";
 import TelemetrySourceMapService from "./TelemetrySourceMapService";
+import TelemetryDsymService from "./TelemetryDsymService";
 import InventoryItemService from "./InventoryItemService";
 import InventoryItemCustomFieldService from "./InventoryItemCustomFieldService";
 import InventoryItemRelationshipService from "./InventoryItemRelationshipService";
@@ -425,6 +428,7 @@ import SecurityLogSourceService from "./SecurityLogSourceService";
 import SecurityTelemetrySourceService from "./SecurityTelemetrySourceService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
+import SecurityAddressVaultService from "./SecurityAddressVaultService";
 import SecurityCaseService from "./SecurityCaseService";
 import SecurityCaseFeedService from "./SecurityCaseFeedService";
 import SecurityCaseNoteService from "./SecurityCaseNoteService";
@@ -478,6 +482,8 @@ import DataObservabilitySettingService from "./DataObservabilitySettingService";
 import DataAssetLineageService from "./DataAssetLineageService";
 import DataAlertService from "./DataAlertService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
+import SecurityBlockService from "./SecurityBlockService";
+import SecurityBlockEnforcementService from "./SecurityBlockEnforcementService";
 import SecurityEntityRiskService from "./SecurityEntityRiskService";
 import SecurityEntityCriticalityService from "./SecurityEntityCriticalityService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
@@ -559,6 +565,7 @@ import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceLiveMessageService from "./WorkspaceLiveMessageService";
 import WorkspacePublicNoteApprovalMessageService from "./WorkspacePublicNoteApprovalMessageService";
 import WorkspaceHomeChoiceService from "./WorkspaceHomeChoiceService";
+import GuidedSetupRunService from "./GuidedSetupRunService";
 import OwnerNotificationDeliveryService from "./OwnerNotificationDeliveryService";
 import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryService";
 import WorkspaceUserGroupService from "./WorkspaceUserGroupService";
@@ -728,6 +735,8 @@ const services: Array<BaseService> = [
   PacketCaptureService,
   NetworkInterfaceService,
   NetworkSiteService,
+  NetworkSiteOwnerTeamService,
+  NetworkSiteOwnerUserService,
   NetworkSiteTypeService,
   NetworkEndpointService,
   NetworkSiteStatusTimelineService,
@@ -994,6 +1003,7 @@ const services: Array<BaseService> = [
 
   TelemetryExceptionService,
   TelemetrySourceMapService,
+  TelemetryDsymService,
   InventoryItemService,
   InventoryItemCustomFieldService,
   InventoryItemRelationshipService,
@@ -1087,6 +1097,8 @@ const services: Array<BaseService> = [
   DataAssetLineageService,
   DataAlertService,
   SecurityProtectedEntityService,
+  SecurityBlockService,
+  SecurityBlockEnforcementService,
   SecurityEntityRiskService,
   SecurityEntityCriticalityService,
   AlertNoteTemplateService,
@@ -1165,6 +1177,7 @@ const services: Array<BaseService> = [
   WorkspaceLiveMessageService,
   WorkspacePublicNoteApprovalMessageService,
   WorkspaceHomeChoiceService,
+  GuidedSetupRunService,
   OwnerNotificationDeliveryService,
   WorkspaceNotificationSummaryService,
   WorkspaceUserGroupService,
@@ -1288,6 +1301,13 @@ export const AnalyticsServices: Array<
   AuditLogService,
   SecurityEventService,
   ThreatIntelIndicatorService,
+  /*
+   * Security Events' address vault (#10395). Here only so boot creates its
+   * table: the service refuses every generic read, and the model is kept
+   * out of the AnalyticsModels registry, so no API, MCP tool, export or
+   * live update is ever built for it.
+   */
+  SecurityAddressVaultService,
   ChangeEventService,
 ];
 

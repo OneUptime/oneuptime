@@ -51,7 +51,8 @@ Open **Producten → Beveiligingsgebeurtenissen**, onder **Beveiliging**. Het me
 | **Playbooks** | Playbooks | Stappen die op zaken draaien, vanzelf of met de hand |
 | **Goedkeuringen** | Playbooks | De playbookstappen die wachten tot iemand ze goedkeurt of afwijst |
 | **Uitvoeringen** | Playbooks | Wat elk playbook deed, stap voor stap |
-| **Beschermde entiteiten** | Playbooks | De gebruikers en hosts die geen enkel playbook inperkt |
+| **Blokkeerlijst** | Playbooks | De adressen die je project blokkeert, tot wanneer, en waar elke blokkering wordt toegepast |
+| **Beschermde entiteiten** | Playbooks | De gebruikers, hosts en adressen die geen enkel playbook inperkt en geen blokkering raakt |
 | **Instellingen** | AI | Of OneUptime AI elke nieuwe zaak beoordeelt |
 | **Verbindingen** | Connections | Uw logs, de beveiligingsproducten die OneUptime opvraagt en de SIEM's waarnaar het verstuurt |
 | **Installatiegids** | Connections | Snippets om gebeurtenissen te sturen, ingevuld met je ingestiesleutel |
@@ -72,8 +73,8 @@ Beveiligingsgegevens zijn alleen leesbaar voor de rollen Projecteigenaar en Proj
 | Rol | Wat hij kan doen |
 | --- | --- |
 | Beveiligingsbeheerder | Alles: gebeurtenissen, zaken, playbooks, detectieregels, threat-intelfeeds en verbindingen |
-| Beveiligingslid | Gebeurtenissen en threat intel lezen, zaken afhandelen, playbooks uitvoeren en hun stappen goedkeuren, en detectieregels en feeds aanmaken, wijzigen en verwijderen. Hij kan geen playbooks of verbindingen instellen en geen beveiligingsgegevens verwijderen. |
-| Beveiligingskijker | Gebeurtenissen, zaken, playbooks, regels, feeds, indicatoren en verbindingen lezen |
+| Beveiligingslid | Gebeurtenissen en threat intel lezen, zaken afhandelen, playbooks uitvoeren en hun stappen goedkeuren, adressen blokkeren, en detectieregels en feeds aanmaken, wijzigen en verwijderen. Hij kan geen playbooks of verbindingen instellen en geen beveiligingsgegevens verwijderen. |
+| Beveiligingskijker | Gebeurtenissen, zaken, playbooks, de blokkeerlijst, regels, feeds, indicatoren en verbindingen lezen |
 
 ## Beveiligingsgebeurtenissen sturen
 
@@ -191,8 +192,9 @@ Elke soort bereikt OneUptime als gewone logs:
 | SSH-aanmeldingen, sudo | De journal of het authenticatielog van een Linux-machine, met de [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | Windows-gebeurtenissen | De `windowseventlog`-receiver van de collector op de machine, of een forwarder die elke gebeurtenis als JSON schrijft, zoals NXLog of Winlogbeat. Een aan OneUptime toegevoegde [host](/docs/telemetry/hosts) leest ook Sysmon, Microsoft Defender en PowerShell waar hij ze heeft |
 | AWS CloudTrail | Een trail die aan CloudWatch Logs wordt geleverd, gelezen door de `awscloudwatch`-receiver van de collector, of, voor een account dat onder **Cloud** is gekoppeld, [Cloud-auditlogboeken](#de-auditlogs-van-uw-cloudaccounts-lezen) |
-| Google Cloud-auditlogs | Een log-sink naar Pub/Sub, gelezen door de `googlecloudpubsub`-receiver van de collector met `encoding: raw_text`, of, voor een project dat onder **Cloud** is gekoppeld, [Cloud-auditlogboeken](#de-auditlogs-van-uw-cloudaccounts-lezen) |
-| Azure-activiteitslogs en Entra ID-logs | Een diagnostische instelling die naar een Event Hub streamt, gelezen door de `azureeventhub`-receiver van de collector met `format: raw`, of, voor het activiteitenlogboek van een abonnement dat onder **Cloud** is gekoppeld, [Cloud-auditlogboeken](#de-auditlogs-van-uw-cloudaccounts-lezen) |
+| Google Cloud-auditlogs | Een log-sink naar Pub/Sub, gelezen door de `googlecloudpubsub`-receiver van de collector met `encoding: raw_text`, of, voor een project dat onder **Cloud** is gekoppeld, de [stream](/docs/telemetry/cloud-streaming-google-cloud) ervan of [Cloud-auditlogboeken](#de-auditlogs-van-uw-cloudaccounts-lezen) |
+| Azure-activiteitslogs en Entra ID-logs | Een diagnostische instelling die naar een Event Hub streamt, gelezen door de `azureeventhub`-receiver van de collector met `format: raw`, of naar de Event Hub van de [stream](/docs/telemetry/cloud-streaming-azure) van een gekoppeld abonnement, of, voor het activiteitenlogboek van een abonnement dat onder **Cloud** is gekoppeld, [Cloud-auditlogboeken](#de-auditlogs-van-uw-cloudaccounts-lezen) |
+| Azure Key Vault-, Storage- en SQL-logboeken | De diagnostische instelling van een resource die naar een Event Hub streamt, gelezen door de `azureeventhub`-receiver van de collector met `format: raw`, of de diagnostische instellingen van de [stream](/docs/telemetry/cloud-streaming-azure) van een gekoppeld abonnement, met logs. Zie [Eigen auditlogs van Azure-resources](#eigen-auditlogs-van-azure-resources) |
 | OpenStack-audittrail | De notificaties en het auditfilter van een cloud, met `driver = log` naar de logs gestuurd en gelezen door het [logprofiel](/docs/telemetry/openstack#wie-deed-wat) van de agent |
 | CEF, LEEF | De syslog van het product, doorgestuurd door [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | De eigen syslog van de firewall, doorgestuurd door [rsyslog](/docs/telemetry/syslog) |
@@ -203,7 +205,19 @@ Op **Uw logboeken** zegt elke soort wanneer ze voor het laatst is gevonden, en *
 
 Een bedreiging die een beveiligingsproduct in uw logs schrijft, zoals een CEF- of LEEF-bevinding of een bedreiging van Palo Alto Networks, FortiGate of Cisco ASA, opent een [zaak](/docs/telemetry/security-cases) zoals de waarschuwing van een gekoppeld product dat doet, en verhoogt het risico van de gebruiker, de host of het adres dat ze noemt. **Cases openen vanaf**, op **Uw logboeken**, bepaalt vanaf welke ernst: **Hoog en hoger**, tenzij u een andere kiest, of **Nooit**. De aanmeldingen en geblokkeerde verbindingen van het product blijven gebeurtenissen, die uw regels lezen.
 
-Een record dat OneUptime langs twee wegen bereikt, wordt één keer opgeslagen: een aanmelding bij Microsoft Entra ID die de verbinding leest en die Azure ook naar uw logs exporteert, of een CloudTrail-record in uw logs en in het auditlog van een gekoppeld AWS-account.
+Een record dat OneUptime langs twee wegen bereikt, wordt één keer opgeslagen: een aanmelding bij Microsoft Entra ID die de verbinding leest en die Azure ook naar uw logs exporteert, een CloudTrail-record in uw logs en in het auditlog van een gekoppeld AWS-account, of een auditrecord dat de stream van een cloudaccount stuurt en dat **Cloud-auditlogboeken** ook leest.
+
+#### Eigen auditlogs van Azure-resources
+
+Een Key Vault, een opslagaccount en een Azure SQL-database houden elk een eigen auditlog bij, dat elk verzoek vastlegt. Alleen wat een beveiligingsteam bekijkt, wordt een beveiligingsgebeurtenis:
+
+| Resource | Wat een beveiligingsgebeurtenis wordt |
+| --- | --- |
+| Key Vault (`AuditEvent`) | Een verzoek dat de vault weigerde; een geheim dat werd uitgegeven; een geheim, sleutel of certificaat of de vault zelf die werd verwijderd, permanent verwijderd of geback-upt; een gewijzigd toegangsbeleid; en een wijziging in wat de vault bevat. Niet de 401 die elke Azure SDK-client bij zijn eerste aanroep krijgt, gedaan zonder token om de tenant te achterhalen: Key Vault logt die onder zijn bewerking `Authentication` |
+| Opslagaccount (`StorageRead`, `StorageWrite`, `StorageDelete`) | Een verzoek dat werd geweigerd bij gebrek aan een recht; een verzoek dat zonder enige referentie werd bediend, behalve de pagina's van een statische website en een CORS-preflight; een gewijzigde toegangslijst van een container, bestandsshare, wachtrij of tabel, of een ervan die in zijn geheel werd verwijderd; en een schrijf- of verwijderactie die met een Shared Access Signature (SAS) is ondertekend. Niet een geslaagde leesactie, ook niet een met een SAS |
+| Azure SQL (`SQLSecurityAuditEvents`) | Een mislukte aanmelding; een aanmelding op een nieuwe verbinding, niet het hergebruik van een verbinding uit een pool; een toegekende, geweigerde of ingetrokken machtiging, een gewijzigd rollidmaatschap of wachtwoord, een imitatie, en een aangemaakte, gewijzigde of verwijderde login, gebruiker of rol; en een actie waarvan de machtigingscontrole mislukte. Niet een batch, het grootste deel van een audit |
+
+De geslaagde leesacties van een opslagaccount zijn het grootste deel van wat het logt: met een SAS geven de meeste apps bestanden aan browsers. Ze blijven in Logboeken, in hun geheel, op het tabblad **Logboeken** van het account: zoek daar naar `"type":"SAS"` om te zien wat een Shared Access Signature heeft gelezen. Elke gebeurtenis noemt haar resource bij de ID, die van een opslagservice ook het account, zodat ze op de pagina **Beveiligingsgebeurtenissen** van die resource staat, en een record dat twee keer binnenkomt, wordt één keer opgeslagen.
 
 ### De auditlogs van uw cloudaccounts lezen
 
@@ -471,9 +485,9 @@ detection:
 | **In realtime uitvoeren** | Uit bij een nieuwe regel. Staat het aan, dan controleert de regel elke gebeurtenis zodra die binnenkomt in plaats van elk interval; zie [Realtimeregels](#realtimeregels). |
 | **Groeperingsveld** | Optioneel. Matches die de waarde van dit veld delen, zoals `principalHost`, worden samen geteld, gemeld en ontdubbeld: één waarschuwing per host in plaats van honderden. |
 | **Veld voor unieke telling** | Optioneel. Tel de verschillende waarden van dit veld in plaats van de matchende gebeurtenissen. Lege waarden tellen niet mee. |
-| **Drempel voor aantal treffers** | Een groep gaat alleen af als zijn telling dit getal binnen één uitvoering bereikt, of binnen één venster in realtime: 1 tot 1000000, en 1 gaat af bij elke match. |
+| **Drempel voor aantal treffers** | Een groep gaat alleen af als zijn telling dit getal binnen één venster van het interval van de regel bereikt: 1 tot 1000000, en 1 gaat af bij elke match. |
 
-Group By en Distinct Count nemen dezelfde veldnamen als de regel. Daarmee zegt de drempel "zoveel, van hetzelfde ding, in één uitvoering", zonder monitor erbovenop:
+Group By en Distinct Count nemen dezelfde veldnamen als de regel. Daarmee zegt de drempel "zoveel, van hetzelfde ding, in één venster", zonder monitor erbovenop:
 
 | Doel | Group By Field | Distinct Count Field | Drempel |
 | --- | --- | --- | --- |
@@ -485,11 +499,11 @@ Group By en Distinct Count nemen dezelfde veldnamen als de regel. Daarmee zegt d
 
 ### Wanneer een regel draait
 
-OneUptime controleert elke minuut op ingeschakelde regels waarvan het interval sinds hun laatste uitvoering is verstreken. Elke uitvoering leest de gebeurtenissen waarvan de gebeurtenistijd tussen de vorige uitvoering en twee minuten geleden valt, en gaat dan verder. Die twee minuten geven gebeurtenissen die nog onderweg zijn ruimte, zoals een logregel die een minuut na het schrijven wordt gelezen:
+OneUptime controleert elke minuut op ingeschakelde regels waarvan het interval sinds hun laatste uitvoering is verstreken. Elke uitvoering leest de gebeurtenissen die tussen de vorige uitvoering en twee minuten geleden bij OneUptime zijn binnengekomen, ongeacht wanneer ze gebeurden, en gaat dan verder. Die twee minuten geven gebeurtenissen die nog worden geschreven ruimte:
 
-- Vensters sluiten op elkaar aan en glijden niet. Met een interval van 10 minuten kunnen mislukkingen om 09:58 en 10:01 in verschillende uitvoeringen vallen en worden ze apart geteld, dus houd marge aan als je een drempel kiest.
+- Een tellende regel en een correlatie tellen in vensters zo lang als het interval, aaneengesloten op de klok: met een interval van 10 minuten vallen mislukkingen om 09:58 en 10:01 in verschillende vensters en worden ze apart geteld, dus houd marge aan als je een drempel kiest.
 - Na een onderbreking, zoals een storing van een worker of een regel die weer is aangezet, dekt de volgende uitvoering de hele onderbreking, tot hoogstens de laatste 24 uur.
-- Een gebeurtenis die meer dan twee minuten te laat binnenkomt, nadat een uitvoering haar tijd al heeft gedekt, wordt opgeslagen en is doorzoekbaar, maar die regel leest haar nooit.
+- Een gebeurtenis die te laat binnenkomt, leest de volgende uitvoering toch, één keer, en telt die in het venster waarin ze gebeurde: een groep gaat af als zijn venster de telling bereikt, en hoogstens één keer per venster. Een gebeurtenis die meer dan een dag nadat ze gebeurde binnenkomt, wordt opgeslagen en is doorzoekbaar, maar de uitvoeringen van de regel lezen haar niet; **Uitvoeren op eerdere gebeurtenissen** wel.
 - Elke groep die de drempel haalt, wordt een Detection Finding, tot 10.000 per uitvoering. Waarschuwingen, incidenten en zaken openen voor de 100 met de hoogste tellingen; de rest deelt één zaak over de regel, en de **Laatste fout** van de regel zegt hoeveel groepen matchten.
 
 ### Realtimeregels

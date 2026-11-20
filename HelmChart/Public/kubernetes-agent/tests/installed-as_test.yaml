@@ -1,0 +1,96 @@
+# How the agent was installed, on its ClusterRole (#9928).
+#
+# The Amazon EKS add-on is this chart, and its buyer cannot run Helm: an
+# add-on is changed with its configuration values. So the add-on's build
+# sets installedAs to aws-eks-addon (HelmChart/Marketplace/build.py), the
+# ClusterRole carries it as its oneuptime.com/installed-as label, and where
+# the role fails CIS Kubernetes Benchmark 5.1.10 the cluster's Compliance
+# page names the add-on's configuration value that drops nodes/proxy, not
+# the --set a Helm install is told. A Helm install leaves it empty, and the
+# role carries no such label.
+suite: the agent's ClusterRole says how the agent was installed
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/rbac.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: says nothing of it on a Helm install
+    capabilities:
+      majorVersion: 1
+      minorVersion: 35
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notExists:
+          path: metadata.labels["oneuptime.com/installed-as"]
+      # The reason the role grants nodes/proxy is said either way.
+      - equal:
+          path: metadata.labels["oneuptime.com/nodes-proxy"]
+          value: kubelet-pods
+
+  - it: says it is the Amazon EKS add-on, beside why it grants nodes/proxy
+    capabilities:
+      majorVersion: 1
+      minorVersion: 35
+    set:
+      installedAs: aws-eks-addon
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - equal:
+          path: metadata.labels["oneuptime.com/installed-as"]
+          value: aws-eks-addon
+      - equal:
+          path: metadata.labels["oneuptime.com/nodes-proxy"]
+          value: kubelet-pods
+
+  - it: says it on a role that grants no nodes/proxy too
+    capabilities:
+      majorVersion: 1
+      minorVersion: 36
+    set:
+      installedAs: aws-eks-addon
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - equal:
+          path: metadata.labels["oneuptime.com/installed-as"]
+          value: aws-eks-addon
+      - notExists:
+          path: metadata.labels["oneuptime.com/nodes-proxy"]
+
+  # The page reads the role's labels: the binding keeps the chart's own.
+  - it: leaves the binding's labels as they are
+    set:
+      installedAs: aws-eks-addon
+    documentSelector:
+      path: kind
+      value: ClusterRoleBinding
+    asserts:
+      - notExists:
+          path: metadata.labels["oneuptime.com/installed-as"]
+
+  - it: renders for a release upgraded with --reuse-values from 14.0.10, which has no installedAs
+    values:
+      - values/reuse-values-14.0.10.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notExists:
+          path: metadata.labels["oneuptime.com/installed-as"]
+
+  - it: takes no install it does not know
+    set:
+      installedAs: gke-marketplace
+    asserts:
+      - failedTemplate:
+          errorPattern: 'installedAs must be one of the following: "", "aws-eks-addon"'

@@ -1,3 +1,4 @@
+import Dictionary from "../../../../Types/Dictionary";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import {
@@ -12,12 +13,17 @@ import { LlmConnectorTransport } from "../../../../Server/Utils/LlmObservability
  * what was sent (the URL, the headers, the body). A non-2xx answer is
  * thrown exactly as the production transport (DataSourceHttpFetch) throws
  * it - "Data source responded with HTTP <status>: <first 500 characters>" -
- * so the clients' error handling is tested against the real shape.
+ * so the clients' error handling is tested against the real shape; and, as
+ * that transport does, it is answered with its headers instead to a
+ * request that asked for every status (acceptAnyStatus), for a client that
+ * reads a throttle's wait itself.
  */
 
 export interface FakeResponse {
   status?: number | undefined;
   body?: JSONValue | string | undefined;
+  // Response headers, named as the transport hands them on: lower case.
+  headers?: Dictionary<string> | undefined;
 }
 
 export type FakeResponder = (
@@ -101,7 +107,7 @@ export function createFakeProviderApi(
         ? response.body
         : JSON.stringify(response.body ?? {});
 
-    if (status >= 300) {
+    if (status >= 300 && !request.acceptAnyStatus) {
       throw new BadDataException(
         `Data source responded with HTTP ${status}: ${bodyText.substring(0, 500)}`,
       );
@@ -115,7 +121,13 @@ export function createFakeProviderApi(
       bodyJson = undefined;
     }
 
-    return { statusCode: status, bodyText, bodyJson, headers: {} };
+    const headers: Dictionary<string> = {};
+
+    for (const [name, value] of Object.entries(response.headers || {})) {
+      headers[name.toLowerCase()] = String(value);
+    }
+
+    return { statusCode: status, bodyText, bodyJson, headers };
   };
 
   return {

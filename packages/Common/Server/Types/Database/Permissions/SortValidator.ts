@@ -15,6 +15,7 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { isOwnerOnlyColumn } from "../../../../Types/Database/AccessControl/OwnerOnlyColumn";
 import { isAccountDateColumn } from "../../../../Types/Database/AccessControl/AccountDateColumns";
 import { ListOrderSettings } from "../../../../Types/Database/ListOrderColumn";
+import RelationReadersUtil from "../../../../Types/Database/RelationReadersUtil";
 import {
   TableColumnMetadata,
   getTableColumn,
@@ -190,11 +191,13 @@ export default class SortValidator {
    *   - a column only its own user reads (@OwnerOnlyColumn): only when the
    *     read is pinned to the caller's own records, as a select of it is
    *     (OwnerOnlyColumnPermission);
-   *   - through a relation, a column of the related record: one any reader
-   *     of the relation may read (canReadOnRelationQuery), or one the caller
-   *     may read on the related model - never by a workflow's step when the
-   *     related model holds credentials - as a filter through the relation
-   *     is (QueryPermission.checkRelationFilterPermission);
+   *   - through a relation, a column of the related record: a label any
+   *     reader of the relation may read (canReadOnRelationQuery), or one the
+   *     caller may read on the related model - a column a relation reads
+   *     only for its own readers (RelationReaders.ColumnReaders, #10281)
+   *     among them - never by a workflow's step when the related model holds
+   *     credentials - as a filter through the relation is
+   *     (QueryPermission.checkRelationFilterPermission);
    *   - through a relation to a private incident, alert or episode, or to a
    *     part of one, no column but its id a level deeper, unless the caller
    *     sees every private record (#9102): an order cannot leave out the
@@ -302,6 +305,12 @@ export default class SortValidator {
           }),
           query: data.query,
           props: data.props,
+          isReadPinnedToCaller:
+            OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser(
+              data.modelType,
+              data.query,
+              data.props,
+            ),
         });
       }
     }
@@ -321,6 +330,11 @@ export default class SortValidator {
     held: HeldPermissions;
     query: Query<BaseModel>;
     props: DatabaseCommonInteractionProps;
+    /*
+     * The list's own query pinned to the caller's own records: the person's
+     * own records its relations reach are the caller's (#10176).
+     */
+    isReadPinnedToCaller: boolean;
   }): void {
     const relatedModel: BaseModel = new data.relatedModelType();
 
@@ -363,13 +377,29 @@ export default class SortValidator {
         props: data.props,
       });
 
+      /*
+       * A column only a person reads of their own records - their
+       * account's language, whether their address is verified, their
+       * notification methods and on-call logs - orders no list: a relation
+       * never shows the reader to be that person
+       * (QueryPermission.canFilterOrOrderByRelatedColumn, #9895, #10176).
+       */
+      /*
+       * A label every reader of the relation reads orders the list for
+       * them all; any other column - one a relation reads only for those
+       * who may read it itself, a data store's risk score through the data
+       * assets in it among them (RelationReaders.ColumnReaders, #10281) -
+       * only for a caller who may read it on the related record, as a
+       * filter through the relation is held.
+       */
       if (
         !alwaysReadable.includes(relatedField) &&
-        !column.canReadOnRelationQuery &&
-        (!QueryPermission.canReadRelatedColumn({
+        !RelationReadersUtil.isReadByEveryReaderOfTheRelation(column) &&
+        (!QueryPermission.canFilterOrOrderByRelatedColumn({
           relatedModel: relatedModel,
           column: relatedField,
           held: data.held,
+          isReadPinnedToCaller: data.isReadPinnedToCaller,
         }) ||
           RelationListPermission.isReadWithheldFromWorkflow(
             data.relatedModelType,
@@ -381,7 +411,7 @@ export default class SortValidator {
             column: relatedField,
             relatedModelName: SortValidator.getSingularName(relatedModel),
             relationColumn: data.relationPath,
-            permissions: QueryPermission.getRelatedReadPermissions(
+            permissions: QueryPermission.getRelatedFilterPermissions(
               relatedModel,
               relatedField,
             ),
@@ -729,8 +759,10 @@ export default class SortValidator {
         return false;
       }
 
+      // Not a column a relation reads for some of its readers alone (#10281).
       return (
-        alwaysReadable.includes(key) || Boolean(column.canReadOnRelationQuery)
+        alwaysReadable.includes(key) ||
+        RelationReadersUtil.isReadByEveryReaderOfTheRelation(column)
       );
     });
   }

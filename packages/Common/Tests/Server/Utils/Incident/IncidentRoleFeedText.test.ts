@@ -439,3 +439,257 @@ describe("why OneUptime gave the role, carried in a create's miscDataProps", () 
     ).toBeNull();
   });
 });
+
+/*
+ * A ROLE HANDED FROM ONE PERSON TO ANOTHER IN ONE CHANGE (Reassign,
+ * #10191): one entry, never a removal and an addition, since the role was
+ * never without someone. Written, as every role entry is, to follow the
+ * name of whoever did it - and the two people it is about are told apart
+ * from them, so it never reads "Maya reassigned it from Maya".
+ */
+describe("somebody's role handed on to someone else", () => {
+  const MAYA: MarkdownText = mdText`[Maya Chen](https://oneuptime.example/dashboard/p/users/m)`;
+  const JORDAN: MarkdownText = mdText`[Jordan Patel](https://oneuptime.example/dashboard/p/users/j)`;
+  const MAYA_LINK: string =
+    "[Maya Chen](https://oneuptime.example/dashboard/p/users/m)";
+  const JORDAN_LINK: string =
+    "[Jordan Patel](https://oneuptime.example/dashboard/p/users/j)";
+
+  test("by somebody else: from the person who held it to the person who holds it now", () => {
+    expect(
+      IncidentRoleFeedText.getReassignedMarkdown({
+        roleName: "Incident Commander",
+        incident: INCIDENT,
+        from: MAYA,
+        to: JORDAN,
+      }).toString(),
+    ).toBe(
+      `👤 Reassigned **Incident Commander** on [Incident INC-18](${LINK}) from **${MAYA_LINK}** to **${JORDAN_LINK}**.`,
+    );
+  });
+
+  test("by the person it went to: they took it over - never 'Jordan reassigned it to Jordan'", () => {
+    const markdown: string = IncidentRoleFeedText.getReassignedMarkdown({
+      roleName: "Incident Commander",
+      incident: INCIDENT,
+      from: MAYA,
+      to: JORDAN,
+      madeBy: "to",
+    }).toString();
+
+    expect(markdown).toBe(
+      `👤 Took over the **Incident Commander** role on [Incident INC-18](${LINK}) from **${MAYA_LINK}**.`,
+    );
+    expect(markdown).not.toContain("Jordan");
+  });
+
+  test("by the person who held it: they handed it on - never 'Maya reassigned it from Maya'", () => {
+    const markdown: string = IncidentRoleFeedText.getReassignedMarkdown({
+      roleName: "Incident Commander",
+      incident: INCIDENT,
+      from: MAYA,
+      to: JORDAN,
+      madeBy: "from",
+    }).toString();
+
+    expect(markdown).toBe(
+      `👤 Handed the **Incident Commander** role on [Incident INC-18](${LINK}) to **${JORDAN_LINK}**.`,
+    );
+    expect(markdown).not.toContain("Maya");
+  });
+
+  test("by a workflow's step: the workflow is named, by the name it had", () => {
+    expect(
+      IncidentRoleFeedText.getReassignedMarkdown({
+        roleName: "Incident Commander",
+        incident: INCIDENT,
+        from: MAYA,
+        to: JORDAN,
+        workflowName: "  Follow the sun  ",
+        madeBy: "to",
+      }).toString(),
+    ).toBe(
+      `👤 Workflow **Follow the sun** reassigned **Incident Commander** on [Incident INC-18](${LINK}) from **${MAYA_LINK}** to **${JORDAN_LINK}**.`,
+    );
+  });
+
+  test("from a person who is gone: nobody is named for them", () => {
+    const gone: MarkdownText = mdText``;
+
+    expect(
+      IncidentRoleFeedText.getReassignedMarkdown({
+        roleName: "Incident Commander",
+        incident: INCIDENT,
+        from: gone,
+        to: JORDAN,
+      }).toString(),
+    ).toBe(
+      `👤 Reassigned **Incident Commander** on [Incident INC-18](${LINK}) to **${JORDAN_LINK}**.`,
+    );
+    expect(
+      IncidentRoleFeedText.getReassignedMarkdown({
+        roleName: "Incident Commander",
+        incident: INCIDENT,
+        from: gone,
+        to: JORDAN,
+        madeBy: "to",
+      }).toString(),
+    ).toBe(
+      `👤 Took the **Incident Commander** role on [Incident INC-18](${LINK}).`,
+    );
+    expect(
+      IncidentRoleFeedText.getReassignedMarkdown({
+        roleName: "Incident Commander",
+        incident: INCIDENT,
+        from: gone,
+        to: JORDAN,
+        workflowName: "Follow the sun",
+      }).toString(),
+    ).toBe(
+      `👤 Workflow **Follow the sun** reassigned **Incident Commander** on [Incident INC-18](${LINK}) to **${JORDAN_LINK}**.`,
+    );
+  });
+
+  test("a role and a workflow are names: placed as text, never Markdown", () => {
+    const markdown: string = IncidentRoleFeedText.getReassignedMarkdown({
+      roleName: "*Lead* <!here>",
+      incident: INCIDENT,
+      from: MAYA,
+      to: JORDAN,
+      workflowName: "Hand](https://evil.example) over",
+    }).toString();
+
+    expect(markdown).toContain("\\*Lead\\*");
+    expect(markdown).not.toContain("<!here>");
+    expect(markdown).toContain("Hand\\]");
+  });
+
+  test("the Dashboard's feed reads each after its author", () => {
+    const leadOf: (
+      madeBy: "from" | "to" | undefined,
+      actorName: string,
+    ) => string | undefined = (
+      madeBy: "from" | "to" | undefined,
+      actorName: string,
+    ): string | undefined => {
+      return getFeedEntryText({
+        markdown: IncidentRoleFeedText.getReassignedMarkdown({
+          roleName: "Incident Commander",
+          incident: INCIDENT,
+          from: MAYA,
+          to: JORDAN,
+          madeBy: madeBy,
+        }).toString(),
+        actorName: actorName,
+      }).lead;
+    };
+
+    expect(leadOf(undefined, "Valeria Mustafaeva")).toBe(
+      `reassigned **Incident Commander** on [Incident INC-18](${LINK}) from **${MAYA_LINK}** to **${JORDAN_LINK}**.`,
+    );
+    expect(leadOf("to", "Jordan Patel")).toBe(
+      `took over the **Incident Commander** role on [Incident INC-18](${LINK}) from **${MAYA_LINK}**.`,
+    );
+    expect(leadOf("from", "Maya Chen")).toBe(
+      `handed the **Incident Commander** role on [Incident INC-18](${LINK}) to **${JORDAN_LINK}**.`,
+    );
+  });
+});
+
+/*
+ * A PERSON MOVED TO ANOTHER ROLE IN ONE CHANGE (#10274): an update of a
+ * role row's role, through the API, Terraform or a workflow's Update step.
+ * One entry, never a removal and an addition, since they held a role all
+ * along - and, as every role entry is, written to follow the name of
+ * whoever did it, so somebody moving themselves never reads "Sam moved Sam".
+ */
+describe("somebody moved to another role", () => {
+  const SAM: MarkdownText = mdText`[Sam Rivera](https://oneuptime.example/dashboard/p/users/s)`;
+  const SAM_LINK: string =
+    "[Sam Rivera](https://oneuptime.example/dashboard/p/users/s)";
+
+  test("by somebody else: who was moved, from the role they held to the one they hold now", () => {
+    expect(
+      IncidentRoleFeedText.getMovedMarkdown({
+        person: SAM,
+        fromRoleName: "Responder",
+        toRoleName: "Incident Commander",
+        incident: INCIDENT,
+        isSelf: false,
+      }).toString(),
+    ).toBe(
+      `👤 Moved **${SAM_LINK}** from **Responder** to **Incident Commander** on [Incident INC-18](${LINK}).`,
+    );
+  });
+
+  test("by themselves: they moved - never 'Sam moved Sam'", () => {
+    const markdown: string = IncidentRoleFeedText.getMovedMarkdown({
+      person: SAM,
+      fromRoleName: "Responder",
+      toRoleName: "Incident Commander",
+      incident: INCIDENT,
+      isSelf: true,
+    }).toString();
+
+    expect(markdown).toBe(
+      `👤 Moved from **Responder** to **Incident Commander** on [Incident INC-18](${LINK}).`,
+    );
+    expect(markdown).not.toContain("Sam");
+  });
+
+  test("by a workflow's step: the workflow is named, by the name it had, whoever it moved", () => {
+    expect(
+      IncidentRoleFeedText.getMovedMarkdown({
+        person: SAM,
+        fromRoleName: "Responder",
+        toRoleName: "Incident Commander",
+        incident: INCIDENT,
+        isSelf: true,
+        workflowName: "  Follow the sun  ",
+      }).toString(),
+    ).toBe(
+      `👤 Workflow **Follow the sun** moved **${SAM_LINK}** from **Responder** to **Incident Commander** on [Incident INC-18](${LINK}).`,
+    );
+  });
+
+  test("roles and a workflow are names: placed as text, never Markdown", () => {
+    const markdown: string = IncidentRoleFeedText.getMovedMarkdown({
+      person: SAM,
+      fromRoleName: "*Lead* <!here>",
+      toRoleName: "[Scribe](https://evil.example)",
+      incident: INCIDENT,
+      isSelf: false,
+      workflowName: "Move](https://evil.example) on",
+    }).toString();
+
+    expect(markdown).toContain("\\*Lead\\*");
+    expect(markdown).not.toContain("<!here>");
+    expect(markdown).toContain("\\[Scribe\\]");
+    expect(markdown).toContain("Move\\]");
+  });
+
+  test("the Dashboard's feed reads each after its author", () => {
+    const leadOf: (isSelf: boolean, actorName: string) => string | undefined = (
+      isSelf: boolean,
+      actorName: string,
+    ): string | undefined => {
+      return getFeedEntryText({
+        markdown: IncidentRoleFeedText.getMovedMarkdown({
+          person: SAM,
+          fromRoleName: "Responder",
+          toRoleName: "Incident Commander",
+          incident: INCIDENT,
+          isSelf: isSelf,
+        }).toString(),
+        actorName: actorName,
+      }).lead;
+    };
+
+    expect(leadOf(false, "Valeria Mustafaeva")).toBe(
+      `moved **${SAM_LINK}** from **Responder** to **Incident Commander** on [Incident INC-18](${LINK}).`,
+    );
+    expect(leadOf(true, "Sam Rivera")).toBe(
+      `moved from **Responder** to **Incident Commander** on [Incident INC-18](${LINK}).`,
+    );
+  });
+});

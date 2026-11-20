@@ -5,7 +5,7 @@ import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import MonitorEvaluationDetailsUtil from "Common/Utils/Monitor/MonitorEvaluationDetailsUtil";
-import MonitorRootCauseWording from "Common/Utils/Monitor/MonitorRootCauseWording";
+import RecordRootCauseWording from "Common/Utils/Monitor/RecordRootCauseWording";
 import React, { FunctionComponent, ReactElement } from "react";
 import { EVALUATION_TEXT_OPTIONS } from "../../Utils/EvaluationText";
 
@@ -18,9 +18,11 @@ export interface ComponentProps {
 
 /*
  * An incident's or an alert's root cause on its Root Cause page, as a
- * detail card shows Markdown - with what a monitor wrote in it in the
- * reader's language as far as it goes (MonitorRootCauseWording), as the
- * overview's What happened card shows it. Each value it keeps as stored is
+ * detail card shows Markdown - in the reader's language as far as it goes
+ * (RecordRootCauseWording), as the overview's What happened card shows it:
+ * a sentence OneUptime wrote when it opened the record itself (a Sigma
+ * rule matched, an SLO's burn rate, a page from Slack, #10125), and what a
+ * monitor wrote. Each value it keeps as stored is
  * set apart from the label worded before it, so on an Arabic or Persian
  * page "**نام معیار**: Website is down" reads from the right, as its label
  * does, with the English value whole inside it.
@@ -49,7 +51,7 @@ const MonitorRootCauseValue: FunctionComponent<ComponentProps> = (
       data-testid="detail-markdown-value"
     >
       <MarkdownViewer
-        text={MonitorRootCauseWording.wordRootCause({
+        text={RecordRootCauseWording.wordRootCause({
           rootCause: storedRootCause,
           translator: translator,
           findings: evaluationDetails?.filters,

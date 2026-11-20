@@ -59,7 +59,7 @@ Open **Gepland onderhoud** via het menu **Producten** in de bovenste balk. De li
 | **Regels**    | **Eigenaarsregels**, **Runbook-regels**, **Labelregels**, **Herinneringsregels**.                                               |
 | **Instellingen** | **Onderhoudsstatus**, **Onderhoudssjablonen**, **Notitie-sjablonen**, **Goedkeuring van openbare notities**, **Aangepaste velden**, **Metingen**, **Agenda-instellingen**, **Nummering**. |
 
-**Overzicht** is open; **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** zijn eerst ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. **Ontwikkelaars** bevat **Terraform**, **API**, **CLI** en **AI-assistenten**, om onderhoud vanuit code te beheren. Alles over onderhoud staat hier, niet in de **Projectinstellingen**.
+**Overzicht** is open; **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** zijn eerst ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. **Ontwikkelaars** bevat **Terraform**, **Crossplane**, **API**, **CLI** en **AI-assistenten**, om onderhoud vanuit code te beheren. Alles over onderhoud staat hier, niet in de **Projectinstellingen**.
 
 De lijst toont **Nummer van gepland onderhoud**, **Titel**, **Huidige staat**, **Getroffen resources**, **Weergegeven op statuspagina**, **Begint op**, **Duur**, **Eindigt op**, **Labels** en **Eigenaren**. Selecteer gebeurtenissen om er meerdere tegelijk te bewerken: **Markeren als {{state}}**, **Status wijzigen**, **Aan mij toewijzen**, **Eigenaar toevoegen**, **Eigenaar verwijderen**, **Labels toevoegen**, **Labels verwijderen** of **Verwijderen**. Het menu **⋯** aan het eind van de rij van elke gebeurtenis doet hetzelfde voor alleen die gebeurtenis: de stappen **Markeren als {{state}}** zolang de gebeurtenis ze kan zetten, **Status wijzigen**, **Aan mij toewijzen** totdat je de eigenaar bent, en **Eigenaar toevoegen**.
 
@@ -85,7 +85,7 @@ Open een gebeurtenis uit de lijst om haar pagina's te zien. Haar zijmenu bevat:
 | **Overzicht** | **Overzicht**, **Statustijdlijn**, **Beschrijving**, **Runbooks**, **Eigenaren** |
 | **Meldingen**     | **Meldingslogboeken** en **AI-logboeken**: elk bericht dat over de gebeurtenis is verstuurd, en wat AI ervoor deed |
 | **Notities**      | **Privénotities** en **Openbare notities**                                                     |
-| **Ontwikkelaars** | **Terraform**, **API**, **CLI** en **AI-assistenten**: de gebeurtenis beheerd vanuit code     |
+| **Ontwikkelaars** | **Terraform**, **Crossplane**, **API**, **CLI** en **AI-assistenten**: de gebeurtenis beheerd vanuit code     |
 | **Geavanceerd**   | **Aangepaste velden**, **Instellingen**, **Auditlogboeken**, **Onderhoudsgebeurtenis verwijderen**       |
 
 **Overzicht** en **Notities** zijn open; de andere secties blijven ingeklapt tot je erop klikt.
@@ -106,7 +106,7 @@ Alleen de monitoren die de gebeurtenis onder **Monitoren** noemt, worden niet me
 :::
 
 :::details De gebeurtenis staat niet op mijn statuspagina
-Controleer of de gebeurtenis de pagina noemt onder **Gebeurtenis weergeven op deze statuspagina's** en of **Zichtbaar op statuspagina** aanstaat in de **Instellingen** van de gebeurtenis. Toont haar kop **Nog niet op statuspagina's**, dan verschijnt ze vanaf haar **Publiceren op**: zie [Later publiceren](/docs/scheduled-maintenance/creating-events#later-publiceren). Controleer daarna de statuspagina zelf: die moet onderhoudsgebeurtenissen tonen, en een gebeurtenis die langer geleden begon dan het geschiedenisvenster van de pagina, 14 dagen tenzij je dat hebt gewijzigd, wordt niet meer vermeld.
+Controleer of de gebeurtenis de pagina noemt onder **Gebeurtenis weergeven op deze statuspagina's** en of **Zichtbaar op statuspagina** aanstaat in de **Instellingen** van de gebeurtenis. Toont haar kop **Nog niet op statuspagina's**, dan verschijnt ze vanaf haar **Publiceren op**: zie [Later publiceren](/docs/scheduled-maintenance/creating-events#later-publiceren). Controleer daarna de statuspagina zelf: die moet onderhoudsgebeurtenissen tonen (de kaart **Onderhoudsgegevens** van de gebeurtenis zegt het wanneer geen van haar statuspagina's dat doet), en een gebeurtenis die langer geleden begon dan het geschiedenisvenster van de pagina, 14 dagen tenzij je dat hebt gewijzigd, wordt niet meer vermeld.
 :::
 
 ## Volgende stappen

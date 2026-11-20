@@ -8,6 +8,7 @@ import {
   HANDWRITTEN_RESOURCES,
   HandwrittenResource,
 } from "../Core/HandwrittenResources";
+import { providerGoFilePath, providerGoFiles } from "../Core/ProviderShards";
 import { buildFixtureSpec } from "./Fixtures";
 
 /*
@@ -176,15 +177,16 @@ function generatedFiles(): Array<string> {
       return resource.staticFiles;
     }),
   );
-  return fs
-    .readdirSync(path.join(outputDir, "internal/provider"))
-    .filter((name: string) => {
+  // The provider package's files and every shard's (Core/ProviderShards.ts).
+  return Array.from(providerGoFiles(outputDir).keys()).filter(
+    (name: string) => {
       return (
         name.startsWith("resource_") &&
         name.endsWith(".go") &&
         !handwritten.has(name)
       );
-    });
+    },
+  );
 }
 
 function attributeBlock(source: string, attribute: string): string {
@@ -221,7 +223,7 @@ beforeAll(async () => {
 
   const read: (file: string) => string = (file: string): string => {
     return fs.readFileSync(
-      path.join(outputDir, "internal/provider", file),
+      path.join(outputDir, providerGoFilePath(file)),
       "utf-8",
     );
   };
@@ -306,6 +308,7 @@ describe("the plan modifiers that keep what an import read", () => {
       [{ type: "string", isDateTime: true }, "RFC3339KeepSameInstant()"],
       [{ type: "number" }, "NumberKeepSameAPINumber()"],
       [{ type: "string", isPhone: true }, "PhoneKeepSameNumber()"],
+      [{ type: "string", isPermission: true }, "PermissionKeepSameKey()"],
       [{ type: "string", isComplexObject: true }, "JSONSubsetKeepImported()"],
       [{ type: "string", isComplexObject: true, isWrappedScalar: true }, null],
       [{ type: "string" }, null],
@@ -329,21 +332,21 @@ describe("what an import, a create and an update leave in the private state", ()
       "func (r *OnCallScheduleLayerResource) ImportState",
     );
     expect(importState).toContain(
-      'markImportedFromServer(ctx, resp.Private, []string{"restriction_times"})',
+      'MarkImportedFromServer(ctx, resp.Private, []string{"restriction_times"})',
     );
 
     // A monitor's steps are one of them.
     expect(
       method(monitorGo, "func (r *MonitorResource) ImportState"),
     ).toContain(
-      'markImportedFromServer(ctx, resp.Private, []string{"monitor_steps", "server_meta"})',
+      'MarkImportedFromServer(ctx, resp.Private, []string{"monitor_steps", "server_meta"})',
     );
   });
 
   test("a resource with none names nothing", () => {
-    expect(monitorStatusGo).not.toContain("markImportedFromServer");
-    expect(monitorStatusGo).not.toContain("keepImportedFromServer");
-    expect(monitorStatusGo).not.toContain("forgetImportedFromServer");
+    expect(monitorStatusGo).not.toContain("MarkImportedFromServer");
+    expect(monitorStatusGo).not.toContain("KeepImportedFromServer");
+    expect(monitorStatusGo).not.toContain("ForgetImportedFromServer");
   });
 
   test("an update takes off each one it writes from the configuration", () => {
@@ -360,11 +363,11 @@ describe("what an import, a create and an update leave in the private state", ()
     ).toBeLessThan(update.indexOf("r.client.Put("));
     // ...and left in the private state with the state.
     expect(update).toContain(
-      "keepImportedFromServer(ctx, resp.Private, writtenFromConfig)",
+      "KeepImportedFromServer(ctx, resp.Private, writtenFromConfig)",
     );
     expect(
       update.indexOf(
-        "keepImportedFromServer(ctx, resp.Private, writtenFromConfig)",
+        "KeepImportedFromServer(ctx, resp.Private, writtenFromConfig)",
       ),
     ).toBeLessThan(update.lastIndexOf("resp.State.Set(ctx, &data)"));
   });
@@ -372,11 +375,11 @@ describe("what an import, a create and an update leave in the private state", ()
   test("a create forgets what an earlier import named", () => {
     expect(
       method(layerGo, "func (r *OnCallScheduleLayerResource) Create"),
-    ).toContain("forgetImportedFromServer(ctx, resp.Private)");
+    ).toContain("ForgetImportedFromServer(ctx, resp.Private)");
   });
 
   test("a resource that cannot be imported names nothing", () => {
-    expect(fileGo).not.toContain("markImportedFromServer");
+    expect(fileGo).not.toContain("MarkImportedFromServer");
     expect(fileGo).toContain('"Import Not Supported"');
   });
 });
@@ -385,7 +388,7 @@ describe("every resource's ModifyPlan", () => {
   test("keeps the state when nothing a configuration sets changes", () => {
     for (const file of generatedFiles()) {
       const source: string = fs.readFileSync(
-        path.join(outputDir, "internal/provider", file),
+        path.join(outputDir, providerGoFilePath(file)),
         "utf-8",
       );
       expect(source).toContain("var _ resource.ResourceWithModifyPlan =");
@@ -395,7 +398,7 @@ describe("every resource's ModifyPlan", () => {
       );
       expect(modifyPlan).toContain("if req.Plan.Raw.IsNull() {");
       expect(modifyPlan.trimEnd()).toMatch(
-        new RegExp("keepStateWhenNothingChanges\\(ctx, req, resp\\)$"),
+        new RegExp("KeepStateWhenNothingChanges\\(ctx, req, resp\\)$"),
       );
     }
     expect(resourceCount).toBeGreaterThanOrEqual(4);
@@ -410,7 +413,7 @@ describe("the static files", () => {
       "import_plan_test.go",
     ]) {
       expect(
-        fs.existsSync(path.join(outputDir, "internal/provider", file)),
+        fs.existsSync(path.join(outputDir, providerGoFilePath(file))),
       ).toBe(true);
     }
   });

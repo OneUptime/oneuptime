@@ -4,6 +4,8 @@ import {
   TerraformResource,
   TerraformAttribute,
   TerraformRelation,
+  HeldEntryAttribute,
+  SharedAttribute,
 } from "./Types";
 import { FileGenerator } from "./FileGenerator";
 import { StringUtils } from "./StringUtils";
@@ -24,6 +26,15 @@ import {
   HANDWRITTEN_RESOURCES,
   HandwrittenResource,
 } from "./HandwrittenResources";
+import {
+  PROVIDER_PACKAGE_DIR,
+  SHARD_COUNT,
+  providerDotImport,
+  shardNames,
+  shardOf,
+  shardRegistrationFile,
+  writeAllShardsPackage,
+} from "./ProviderShards";
 import path from "path";
 import fs from "fs";
 
@@ -63,9 +74,9 @@ export class ResourceGenerator {
   public static readonly RECORD_ID_VALIDATORS: Readonly<
     Record<string, string>
   > = {
-    string: "recordIDValidators",
-    set: "recordIDSetValidators",
-    list: "recordIDListValidators",
+    string: "RecordIDValidators",
+    set: "RecordIDSetValidators",
+    list: "RecordIDListValidators",
   };
 
   /*
@@ -76,9 +87,9 @@ export class ResourceGenerator {
   public static readonly DATA_SOURCE_RECORD_ID_VALIDATORS: Readonly<
     Record<string, string>
   > = {
-    string: "dataSourceRecordIDValidators",
-    set: "dataSourceRecordIDSetValidators",
-    list: "dataSourceRecordIDListValidators",
+    string: "DataSourceRecordIDValidators",
+    set: "DataSourceRecordIDSetValidators",
+    list: "DataSourceRecordIDListValidators",
   };
 
   // The ID validators of an attribute of `type` that holds `relation`'s IDs.
@@ -213,6 +224,14 @@ export class ResourceGenerator {
       return "PhoneKeepSameNumber()";
     }
 
+    /*
+     * A permission's key, written plainly or with jsonencode() as earlier
+     * versions of the provider asked (StaticFiles/permissionkey.go).
+     */
+    if (attr.type === "string" && attr.isPermission) {
+      return "PermissionKeepSameKey()";
+    }
+
     if (attr.type === "number") {
       return "NumberKeepSameAPINumber()";
     }
@@ -229,11 +248,217 @@ export class ResourceGenerator {
     return null;
   }
 
+  /*
+   * The plan modifier that keeps the state's value once the record exists
+   * (StaticFiles/serverowned.go), for an attribute a create gives and
+   * OneUptime keeps from then on (serverOwned "after-create"): a monitor's
+   * current status. Null for every other attribute, and for one no
+   * configuration writes.
+   */
+  public static getKeepAfterCreateModifier(
+    name: string,
+    attr: TerraformAttribute,
+  ): string | null {
+    if (
+      name === "id" ||
+      attr.serverOwned !== "after-create" ||
+      !(attr.optional || attr.required)
+    ) {
+      return null;
+    }
+
+    const modifierByType: Record<string, string> = {
+      string: "StringKeepAfterCreate()",
+      bool: "BoolKeepAfterCreate()",
+      number: "NumberKeepAfterCreate()",
+      list: "ListKeepAfterCreate()",
+      set: "SetKeepAfterCreate()",
+    };
+
+    return modifierByType[attr.type] || null;
+  }
+
+  /*
+   * The attributes a create gives and OneUptime keeps from then on, by
+   * their Go field names: after a create or an update each keeps its
+   * planned value, whatever the configuration says (keepPlannedValues).
+   */
+  public static getKeptAfterCreateAttributes(
+    resource: TerraformResource,
+  ): Array<string> {
+    return Object.entries(resource.schema)
+      .filter(([name, attr]: [string, TerraformAttribute]): boolean => {
+        return (
+          ResourceGenerator.getKeepAfterCreateModifier(name, attr) !== null
+        );
+      })
+      .map(([name]: [string, TerraformAttribute]): string => {
+        return StringUtils.toPascalCase(
+          StringUtils.toTerraformAttributeName(name),
+        );
+      });
+  }
+
+  /*
+   * The attributes people set and OneUptime changes too (serverOwned
+   * "shared", StaticFiles/shared.go): the labels a label rule adds, an
+   * exception OneUptime resolves. Left out of a configuration, the plan
+   * keeps OneUptime's value, even where the attribute has a default; under
+   * Crossplane, a manifest's value is sent when it changes, and a list
+   * keeps the entries OneUptime added. By Terraform name, with whether each
+   * is a list or a set, held entry by entry.
+   */
+  public static getSharedAttributes(
+    resource: TerraformResource,
+  ): Array<SharedAttribute> {
+    return Object.entries(resource.schema)
+      .filter(([name, attr]: [string, TerraformAttribute]): boolean => {
+        return (
+          name !== "id" &&
+          attr.serverOwned === "shared" &&
+          Boolean(attr.optional || attr.required)
+        );
+      })
+      .map(([name, attr]: [string, TerraformAttribute]): SharedAttribute => {
+        return {
+          name: StringUtils.toTerraformAttributeName(name),
+          entries: attr.type === "set" || attr.type === "list",
+        };
+      })
+      .sort((a: SharedAttribute, b: SharedAttribute): number => {
+        return a.name.localeCompare(b.name);
+      });
+  }
+
+  /*
+   * The lists OneUptime adds to as well that a configuration holds by the
+   * entries it declares (StaticFiles/entries.go, #10134): each list or set
+   * of related records people and OneUptime both change - a record's
+   * labels, an incident's on-call policies, an SLO's monitors - by
+   * Terraform name, with its Go field, its API name and its type.
+   */
+  public static getHeldEntryAttributes(
+    resource: TerraformResource,
+  ): Array<HeldEntryAttribute> {
+    return Object.entries(resource.schema)
+      .filter(([name, attr]: [string, TerraformAttribute]): boolean => {
+        return (
+          name !== "id" &&
+          attr.serverOwned === "shared" &&
+          Boolean(attr.optional || attr.required) &&
+          (attr.type === "set" || attr.type === "list") &&
+          attr.elementKind === "entity"
+        );
+      })
+      .map(([name, attr]: [string, TerraformAttribute]): HeldEntryAttribute => {
+        const terraformName: string =
+          StringUtils.toTerraformAttributeName(name);
+
+        return {
+          name: terraformName,
+          fieldName: StringUtils.toPascalCase(terraformName),
+          apiName: attr.apiFieldName || name,
+          type: attr.type as "set" | "list",
+        };
+      })
+      .sort((a: HeldEntryAttribute, b: HeldEntryAttribute): number => {
+        return a.name.localeCompare(b.name);
+      });
+  }
+
+  /*
+   * A resource's methods that hold its lists OneUptime adds to as well to
+   * the entries a configuration declares (StaticFiles/entries.go): their
+   * state after a read, and after a create or an update. Nothing for a
+   * resource with none.
+   */
+  public static generateHeldEntryMethods(
+    resource: TerraformResource,
+    resourceTypeName: string,
+  ): string {
+    const held: Array<HeldEntryAttribute> =
+      ResourceGenerator.getHeldEntryAttributes(resource);
+
+    if (held.length === 0) {
+      return "";
+    }
+
+    const afterRead: string = held
+      .map((attribute: HeldEntryAttribute): string => {
+        return `    data.${attribute.fieldName} = ${StringUtils.toPascalCase(attribute.type)}EntriesAfterRead(r.client, declared, "${attribute.name}", prior.${attribute.fieldName}, data.${attribute.fieldName})`;
+      })
+      .join("\n");
+
+    const afterWrite: string = held
+      .map((attribute: HeldEntryAttribute): string => {
+        return `    data.${attribute.fieldName}, isDeclared = ${StringUtils.toPascalCase(attribute.type)}EntriesAfterWrite(r.client, isCreate, declared["${attribute.name}"], config.${attribute.fieldName}, plan.${attribute.fieldName}, data.${attribute.fieldName})
+    declared["${attribute.name}"] = isDeclared`;
+      })
+      .join("\n");
+
+    return `
+// heldEntriesAfterRead holds each list OneUptime adds to as well (${held
+      .map((attribute: HeldEntryAttribute): string => {
+        return attribute.name;
+      })
+      .join(", ")}) to
+// the entries the configuration declares that the record still has, after
+// a read (see entries.go).
+func (r *${resourceTypeName}Resource) heldEntriesAfterRead(ctx context.Context, private PrivateState, data *${resourceTypeName}ResourceModel, prior *${resourceTypeName}ResourceModel) {
+    declared := ReadDeclaredEntries(ctx, private)
+${afterRead}
+}
+
+// heldEntriesAfterWrite is the state of each such list after a create or an
+// update, and which of them the configuration declares from then on (see
+// entries.go): the caller keeps them in the private state.
+func (r *${resourceTypeName}Resource) heldEntriesAfterWrite(ctx context.Context, before PrivateState, data *${resourceTypeName}ResourceModel, plan *${resourceTypeName}ResourceModel, config *${resourceTypeName}ResourceModel, isCreate bool) DeclaredEntries {
+    declared := DeclaredEntries{}
+    if !isCreate {
+        declared = ReadDeclaredEntries(ctx, before)
+    }
+    var isDeclared bool
+${afterWrite}
+    return declared
+}
+`;
+  }
+
+  /*
+   * The step of a resource's ModifyPlan for what people and OneUptime both
+   * change (PlanShared, StaticFiles/shared.go), or nothing for a resource
+   * with none.
+   */
+  public static generatePlanSharedCall(resource: TerraformResource): string {
+    const shared: Array<SharedAttribute> =
+      ResourceGenerator.getSharedAttributes(resource);
+
+    if (shared.length === 0) {
+      return "";
+    }
+
+    const attributes: string = shared
+      .map((attribute: SharedAttribute): string => {
+        return `        {Name: "${attribute.name}", Entries: ${attribute.entries}},`;
+      })
+      .join("\n");
+
+    return `
+    // What people and OneUptime both change: OneUptime's change is never one
+    // to undo (see shared.go).
+    PlanShared(ctx, req, resp, r.client, []SharedAttribute{
+${attributes}
+    })
+`;
+  }
+
   private providerName: string;
+  private goModuleName: string;
 
   public constructor(config: TerraformProviderConfig, spec: OpenAPISpec) {
     this.spec = spec;
     this.providerName = config.providerName;
+    this.goModuleName = config.goModuleName;
     this.fileGenerator = new FileGenerator(config.outputDir);
   }
 
@@ -294,7 +519,7 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
         : ""
     }
     return []resource.StateMover{
-        legacyNameStateMover("${this.providerName}_${formerName}", r.schemaDefinition()),
+        LegacyNameStateMover("${this.providerName}_${formerName}", r.schemaDefinition()),
     }
 }
 `;
@@ -330,7 +555,20 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
       phoneCasesFile(),
     );
     /*
-     * numberFromAPI, which every number attribute - of resources and data
+     * A permission's key (OneUptime#10300): the type, its plan modifier and
+     * validator, which take the key written with jsonencode(), as earlier
+     * versions asked, as the same permission; their tests; and a create,
+     * refresh, plan, import and lookup of each permission resource through
+     * the real protocol server, from either form and from state in either.
+     */
+    await this.copyStaticFile("permissionkey.go", "internal/provider");
+    await this.copyStaticFile("permissionkey_test.go", "internal/provider");
+    await this.copyStaticFile(
+      "permission_roundtrip_test.go",
+      "internal/provider",
+    );
+    /*
+     * NumberFromAPI, which every number attribute - of resources and data
      * sources alike - is read through, and its tests: the shapes the API
      * answers numbers in, and a create, read, plan and lookup of the
      * resource issue #4719 was about, through the real protocol server.
@@ -413,6 +651,16 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     await this.copyStaticFile("legacynames_test.go", "internal/provider");
 
     /*
+     * The packages the generated resources and data sources are in (#7591,
+     * Core/ProviderShards.ts): what each hands over and the order the
+     * provider lists them in, its tests, and the external test that links
+     * every shard into this package's tests.
+     */
+    await this.copyStaticFile("shards.go", "internal/provider");
+    await this.copyStaticFile("shards_order_test.go", "internal/provider");
+    await this.copyStaticFile("shards_test.go", "internal/provider");
+
+    /*
      * Imports that settle: the plan modifiers that keep what an import read
      * where the configuration says the same thing another way, and their
      * tests - the modifiers alone, and an import of each kind of attribute
@@ -435,6 +683,45 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
       "changestogether_plan_test.go",
       "internal/provider",
     );
+
+    /*
+     * What OneUptime keeps once a record exists (#9985): the plan modifiers
+     * that keep the state's value of an attribute a create gives - a
+     * monitor's status - and their tests, on their own and through the
+     * real protocol server against a fake API.
+     */
+    await this.copyStaticFile("serverowned.go", "internal/provider");
+    await this.copyStaticFile("serverowned_test.go", "internal/provider");
+    await this.copyStaticFile("serverowned_plan_test.go", "internal/provider");
+
+    /*
+     * What people and OneUptime both change (#10052): the plan that keeps
+     * OneUptime's value when the configuration leaves one out, and, under
+     * Crossplane, sends a manifest's value only when it changes and keeps
+     * the entries OneUptime added to a list - and its tests, on their own
+     * and through the real protocol server against a fake API.
+     */
+    await this.copyStaticFile("shared.go", "internal/provider");
+    await this.copyStaticFile("shared_test.go", "internal/provider");
+    await this.copyStaticFile("shared_plan_test.go", "internal/provider");
+
+    /*
+     * A list OneUptime adds to as well, held to the entries a configuration
+     * declares and updated entry by entry (#10134, #10135), and what a
+     * create left out because only OneUptime writes it (#10136) - and its
+     * tests, on their own and through the real protocol server.
+     */
+    await this.copyStaticFile("entries.go", "internal/provider");
+    await this.copyStaticFile("entries_test.go", "internal/provider");
+    await this.copyStaticFile("entries_plan_test.go", "internal/provider");
+
+    /*
+     * How the Crossplane provider, which runs this provider in process,
+     * reads a field a manifest leaves out: as the record's, even one with a
+     * default - and its tests, through the real protocol server.
+     */
+    await this.copyStaticFile("crossplane.go", "internal/provider");
+    await this.copyStaticFile("crossplane_test.go", "internal/provider");
 
     /*
      * People named by email address beside their user IDs (user_email
@@ -481,6 +768,13 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
      * fails generation instead of silently testing nothing.
      */
     await this.copyStaticFile("client_test.go", "internal/provider");
+    // And its asking again while a name is another resource's (#9855).
+    await this.copyStaticFile("client_name_taken_test.go", "internal/provider");
+    // And while a domain or an identifier is (#10319).
+    await this.copyStaticFile(
+      "client_value_taken_test.go",
+      "internal/provider",
+    );
 
     /*
      * The acceptance tests: the core resources through a real Terraform and
@@ -569,14 +863,19 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     return true;
   }
 
+  // A generated resource's file, in the shard its name picks.
   private async generateResource(resource: TerraformResource): Promise<void> {
     const resourceGoContent: string = this.generateResourceGoFile(resource);
-    const fileName: string = `resource_${resource.name}.go`;
+    const fileName: string = ResourceGenerator.resourceFileName(resource);
     await this.fileGenerator.writeFileInDir(
-      "internal/provider",
+      `${PROVIDER_PACKAGE_DIR}/${shardOf(fileName)}`,
       fileName,
       resourceGoContent,
     );
+  }
+
+  public static resourceFileName(resource: TerraformResource): string {
+    return `resource_${resource.name}.go`;
   }
 
   private generateResourceGoFile(resource: TerraformResource): string {
@@ -887,7 +1186,7 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
       ([name, attr]: [string, any]) => {
         return (
           attr.type === "string" &&
-          (attr.isComplexObject || attr.isPhone) &&
+          (attr.isComplexObject || attr.isPhone || attr.isPermission) &&
           !(attr.computed && !attr.optional) &&
           !isProjectIdName(name)
         );
@@ -940,9 +1239,14 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
       })
       .join("\n");
 
-    return `package provider
+    /*
+     * A shard of its own (Core/ProviderShards.ts), which names the provider
+     * package's helpers as its own through the dot import.
+     */
+    return `package ${shardOf(ResourceGenerator.resourceFileName(resource))}
 
 import (
+    ${providerDotImport(this.goModuleName)}
 ${importStatements}
 )
 
@@ -1035,15 +1339,15 @@ func (r *${resourceTypeName}Resource) ImportState(ctx context.Context, req resou
 ${
   resource.membershipImport
     ? `    // By its own ID, or by what it joins and who or what joins it: <${resource.membershipImport.parentAttribute}>/${resource.membershipImport.personEmailAttribute ? "<email address or user id>" : `<${resource.membershipImport.personAttribute}>`} (see people.go).
-    id, email, ok := importIDOfMembership(ctx, r.client, req.ID, membershipImport{
-        listPath:        "${resource.membershipImport.listPath}",
-        parentField:     "${resource.membershipImport.parentApiField}",
-        parentAttribute: "${resource.membershipImport.parentAttribute}",
-        parentNoun:      "${resource.membershipImport.parentNoun}",
-        personField:     "${resource.membershipImport.personApiField}",
-        personAttribute: "${resource.membershipImport.personAttribute}",
-        byEmail:         ${Boolean(resource.membershipImport.personEmailAttribute)},
-        kind:            "${resource.membershipImport.kind}",
+    id, email, ok := ImportIDOfMembership(ctx, r.client, req.ID, MembershipImport{
+        ListPath:        "${resource.membershipImport.listPath}",
+        ParentField:     "${resource.membershipImport.parentApiField}",
+        ParentAttribute: "${resource.membershipImport.parentAttribute}",
+        ParentNoun:      "${resource.membershipImport.parentNoun}",
+        PersonField:     "${resource.membershipImport.personApiField}",
+        PersonAttribute: "${resource.membershipImport.personAttribute}",
+        ByEmail:         ${Boolean(resource.membershipImport.personEmailAttribute)},
+        Kind:            "${resource.membershipImport.kind}",
     }, &resp.Diagnostics)
     if !ok {
         return
@@ -1059,7 +1363,7 @@ ${
     _ = email`
     }`
     : resource.operations.read
-      ? `    resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)${this.generateMarkImported(resource)}`
+      ? `    resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)${this.generateMarkImported(resource)}${this.generateMarkEntriesAdopted(resource)}`
       : `    // Without a read endpoint, a passthrough import would silently create
     // id-only state that can never be refreshed. Fail loudly instead.
     resp.Diagnostics.AddError(
@@ -1069,7 +1373,7 @@ ${
 }
 }
 
-${this.generateKeepPlannedValuesMethod(resource, resourceTypeName)}
+${this.generateKeepPlannedValuesMethod(resource, resourceTypeName)}${ResourceGenerator.generateHeldEntryMethods(resource, resourceTypeName)}
 // Helper method to convert Terraform map to Go interface{}
 func (r *${resourceTypeName}Resource) convertTerraformMapToInterface(terraformMap types.Map) interface{} {
     if terraformMap.IsNull() || terraformMap.IsUnknown() {
@@ -1193,7 +1497,7 @@ func (r *${resourceTypeName}Resource) bigFloatToFloat64(bf *big.Float) interface
 // Helper method to check if a type string is a valid OneUptime ObjectType.
 // The registry itself lives in objecttypes.go, shared across the package.
 func (r *${resourceTypeName}Resource) isValidOneUptimeObjectType(typeStr string) bool {
-    return validOneUptimeObjectTypes[typeStr]
+    return ValidOneUptimeObjectTypes[typeStr]
 }
 `;
   }
@@ -1205,9 +1509,9 @@ func (r *${resourceTypeName}Resource) isValidOneUptimeObjectType(typeStr string)
   private async generateObjectTypesFile(): Promise<void> {
     const content: string = `package provider
 
-// validOneUptimeObjectTypes lists every {_type: ...} wrapper the OneUptime
+// ValidOneUptimeObjectTypes lists every {_type: ...} wrapper the OneUptime
 // API emits. Generated from Common/Types/JSON.ts ObjectType.
-var validOneUptimeObjectTypes = map[string]bool{
+var ValidOneUptimeObjectTypes = map[string]bool{
 ${this.generateValidObjectTypesMap()}
 }
 `;
@@ -1238,6 +1542,9 @@ ${this.generateValidObjectTypesMap()}
         goType = "RFC3339Value";
       } else if (attr.type === "string" && attr.isPhone) {
         goType = "PhoneValue";
+      } else if (attr.type === "string" && attr.isPermission) {
+        // A permission's key, plain or JSON-encoded (permissionkey.go).
+        goType = "PermissionKeyValue";
       } else if (attr.type === "string" && attr.isComplexObject) {
         goType = "JSONSubsetValue";
       }
@@ -1308,6 +1615,13 @@ ${this.generateValidObjectTypesMap()}
       options.push("CustomType: RFC3339Type{}");
     } else if (attr.type === "string" && attr.isPhone) {
       options.push("CustomType: PhoneType{}");
+    } else if (attr.type === "string" && attr.isPermission) {
+      /*
+       * A permission's key and the same key written with jsonencode() are
+       * one value (PermissionKeyType), so a read keeps the form the state
+       * holds and an apply the form the plan does.
+       */
+      options.push("CustomType: PermissionKeyType{}");
     } else if (attr.type === "string" && attr.isComplexObject) {
       options.push("CustomType: JSONSubsetType{}");
     }
@@ -1481,6 +1795,17 @@ ${this.generateValidObjectTypesMap()}
       modifiers.push(`${modifierPackage}.RequiresReplace()`);
     }
 
+    /*
+     * Last, a value a create gives and OneUptime keeps from then on
+     * (serverowned.go): once the record exists the plan is the state's
+     * value, whatever the configuration says.
+     */
+    const keepAfterCreate: string | null =
+      ResourceGenerator.getKeepAfterCreateModifier(name, attr);
+    if (keepAfterCreate) {
+      modifiers.push(keepAfterCreate);
+    }
+
     let planModifiers: string = "";
     if (modifiers.length > 0 && modifierInterface) {
       planModifiers = `,
@@ -1525,6 +1850,17 @@ ${this.generateValidObjectTypesMap()}
                 }`;
     } else if (
       attr.type === "string" &&
+      attr.isPermission &&
+      !isComputedOnly &&
+      !isProjectIdField
+    ) {
+      // A permission's key, never JSON of another kind (permissionkey.go).
+      validators = `,
+                Validators: []validator.String{
+                    PermissionKeyValidator(),
+                }`;
+    } else if (
+      attr.type === "string" &&
       attr.isComplexObject &&
       !isComputedOnly &&
       !isProjectIdField
@@ -1552,7 +1888,7 @@ ${this.generateValidObjectTypesMap()}
       attr as TerraformAttribute
     ).deleteChoice?.requiredWith;
     if (requiredWith && attr.type === "string") {
-      const withValidator: string = `deleteChoiceRequiredWith("${requiredWith.attribute}", "${GoCodeGenerator.escapeString(requiredWith.value)}")`;
+      const withValidator: string = `DeleteChoiceRequiredWith("${requiredWith.attribute}", "${GoCodeGenerator.escapeString(requiredWith.value)}")`;
       const relationHelper: string | undefined = attr.relation
         ? ResourceGenerator.getRecordIdValidators(attr.relation, attr.type)
         : undefined;
@@ -1600,19 +1936,19 @@ ${this.generateValidObjectTypesMap()}
       // Planned by the resource's ModifyPlan (generateModifyPlan).
       options.push(
         isSet
-          ? `Validators: personIDsValidators("${attr.person.emailAttribute}", ${attr.person.isRequired})`
-          : `Validators: personIDValidators("${attr.person.emailAttribute}", ${attr.person.isRequired})`,
+          ? `Validators: PersonIDsValidators("${attr.person.emailAttribute}", ${attr.person.isRequired})`
+          : `Validators: PersonIDValidators("${attr.person.emailAttribute}", ${attr.person.isRequired})`,
       );
     } else {
       options.push(
         isSet
-          ? `PlanModifiers: personEmailsPlanModifiers("${attr.personEmailOf}")`
-          : `PlanModifiers: personEmailPlanModifiers("${attr.personEmailOf}")`,
+          ? `PlanModifiers: PersonEmailsPlanModifiers("${attr.personEmailOf}")`
+          : `PlanModifiers: PersonEmailPlanModifiers("${attr.personEmailOf}")`,
       );
       options.push(
         isSet
-          ? "Validators: personEmailsValidators()"
-          : "Validators: personEmailValidators()",
+          ? "Validators: PersonEmailsValidators()"
+          : "Validators: PersonEmailValidators()",
       );
     }
 
@@ -1625,7 +1961,7 @@ ${this.generateValidObjectTypesMap()}
    * The resource's ModifyPlan, which runs after every attribute's plan
    * modifiers.
    *
-   * First the people it names (people.go planPersonID): found by email
+   * First the people it names (people.go PlanPersonID): found by email
    * address here, on the configured resource - a plan modifier would have
    * no client to ask with. It also asks for the replacement a different
    * person needs where the API cannot change them, so the ID attribute has
@@ -1637,7 +1973,7 @@ ${this.generateValidObjectTypesMap()}
    * here, before anything is written, instead of in an update the server
    * refuses half-way through an apply (#9814).
    *
-   * Then, for every resource, keepStateWhenNothingChanges
+   * Then, for every resource, KeepStateWhenNothingChanges
    * (importsettle.go): a plan whose every attribute a configuration sets
    * came out the same as the state - a timestamp, number, JSON value or
    * monitor steps written another way, kept by their plan modifiers - makes
@@ -1654,11 +1990,11 @@ ${this.generateValidObjectTypesMap()}
       })
       .map(([name, attr]: [string, TerraformAttribute]) => {
         const person: NonNullable<TerraformAttribute["person"]> = attr.person!;
-        return `    ${person.isList ? "planPeopleIDs" : "planPersonID"}(ctx, r.client, req, resp, personAttribute{
-        id:       "${this.sanitizeAttributeName(name)}",
-        email:    "${person.emailAttribute}",
-        invites:  ${person.invitesByEmail},
-        replaces: ${Boolean(attr.forceNew)},
+        return `    ${person.isList ? "PlanPeopleIDs" : "PlanPersonID"}(ctx, r.client, req, resp, PersonAttribute{
+        ID:       "${this.sanitizeAttributeName(name)}",
+        Email:    "${person.emailAttribute}",
+        Invites:  ${person.invitesByEmail},
+        Replaces: ${Boolean(attr.forceNew)},
     })`;
       });
 
@@ -1691,12 +2027,15 @@ func (r *${resourceTypeName}Resource) ModifyPlan(ctx context.Context, req resour
     if req.Plan.Raw.IsNull() {
         return
     }
-${people.length > 0 ? `\n${people.join("\n")}\n` : ""}${changedTogether
+
+    // Under Crossplane, what a manifest leaves out is the record's (see crossplane.go).
+    KeepLeftOutUnderCrossplane(ctx, req, resp)
+${ResourceGenerator.generatePlanSharedCall(resource)}${people.length > 0 ? `\n${people.join("\n")}\n` : ""}${changedTogether
       .map(([name, companion]: [string, string]): string => {
-        return `\n    requireChangedTogether(ctx, req, resp, "${name}", "${companion}")\n`;
+        return `\n    RequireChangedTogether(ctx, req, resp, "${name}", "${companion}")\n`;
       })
       .join("")}
-    keepStateWhenNothingChanges(ctx, req, resp)
+    KeepStateWhenNothingChanges(ctx, req, resp)
 }
 `;
   }
@@ -1749,6 +2088,31 @@ ${people.length > 0 ? `\n${people.join("\n")}\n` : ""}${changedTogether
       .sort();
   }
 
+  /*
+   * An import adopts the record's entries of each list OneUptime adds to
+   * as well: its first read takes the record's whole list into the state
+   * (StaticFiles/entries.go), as the configuration's.
+   */
+  private generateMarkEntriesAdopted(resource: TerraformResource): string {
+    const held: Array<HeldEntryAttribute> =
+      ResourceGenerator.getHeldEntryAttributes(resource);
+
+    if (held.length === 0) {
+      return "";
+    }
+
+    return `
+
+    // An import adopts the record's entries of each list OneUptime adds to as well (see entries.go).
+    if r.client.HoldsDeclaredEntries() {
+        resp.Diagnostics.Append(DeclaredEntries{${held
+          .map((attribute: HeldEntryAttribute): string => {
+            return `"${attribute.name}": true`;
+          })
+          .join(", ")}}.Write(ctx, resp.Private)...)
+    }`;
+  }
+
   // An import names the attributes that hold what it read.
   private generateMarkImported(resource: TerraformResource): string {
     const attributes: Array<string> =
@@ -1761,7 +2125,7 @@ ${people.length > 0 ? `\n${people.join("\n")}\n` : ""}${changedTogether
     return `
     // These hold the record as OneUptime keeps it, keys it fills in itself
     // included, until an update writes them (see importsettle.go).
-    resp.Diagnostics.Append(markImportedFromServer(ctx, resp.Private, []string{${attributes
+    resp.Diagnostics.Append(MarkImportedFromServer(ctx, resp.Private, []string{${attributes
       .map((attribute: string) => {
         return `"${attribute}"`;
       })
@@ -1816,7 +2180,7 @@ ${attributes
   /*
    * Before a create or an update: the user IDs of the people named by an
    * address the plan could not find yet - someone this apply has just
-   * invited (people.go personIDForWrite). A team member named by address is
+   * invited (people.go PersonIDForWrite). A team member named by address is
    * invited by it instead, so its ID is not needed.
    */
   private generatePersonIDsForWrite(
@@ -1832,10 +2196,10 @@ ${attributes
 
       lines.push(
         person.isSet
-          ? `    if !personIDsForWrite(ctx, r.client, &data.${person.idField}, data.${person.emailField}, "${person.emailAttribute}", &resp.Diagnostics) {
+          ? `    if !PersonIDsForWrite(ctx, r.client, &data.${person.idField}, data.${person.emailField}, "${person.emailAttribute}", &resp.Diagnostics) {
         return
     }`
-          : `    if !personIDForWrite(ctx, r.client, &data.${person.idField}, data.${person.emailField}, "${person.emailAttribute}", &resp.Diagnostics) {
+          : `    if !PersonIDForWrite(ctx, r.client, &data.${person.idField}, data.${person.emailField}, "${person.emailAttribute}", &resp.Diagnostics) {
         return
     }`,
       );
@@ -1904,7 +2268,7 @@ ${lines.join("\n")}
         if wrapper, ok := ${responseVar}["data"].(map[string]interface{}); ok {
             created = wrapper
         }
-        if id := apiStringValue(created["${person.apiFieldName}"]); id != "" {
+        if id := APIStringValue(created["${person.apiFieldName}"]); id != "" {
             data.${person.idField} = types.StringValue(id)
         } else {
             data.${person.idField} = types.StringNull()
@@ -1924,14 +2288,14 @@ ${lines.join("\n")}
 
   /*
    * After a create or an update: the address of a person the configuration
-   * named by ID, read now (people.go personEmailAfterWrite).
+   * named by ID, read now (people.go PersonEmailAfterWrite).
    */
   private generatePersonEmailsAfterWrite(resource: TerraformResource): string {
     const lines: Array<string> = this.getPersonAttributes(resource).map(
       (person: PersonAttributeFields) => {
         return person.isSet
-          ? `    data.${person.emailField} = personEmailsAfterWrite(ctx, r.client, data.${person.idField}, data.${person.emailField})`
-          : `    data.${person.emailField} = personEmailAfterWrite(ctx, r.client, data.${person.idField}, data.${person.emailField})`;
+          ? `    data.${person.emailField} = PersonEmailsAfterWrite(ctx, r.client, data.${person.idField}, data.${person.emailField})`
+          : `    data.${person.emailField} = PersonEmailAfterWrite(ctx, r.client, data.${person.idField}, data.${person.emailField})`;
       },
     );
 
@@ -1966,14 +2330,14 @@ ${lines.join("\n")}
   /*
    * After a refresh: the address stays while the resource names the same
    * person, and is read when there is none (an import) or the person changed
-   * outside Terraform (people.go personEmailAfterRead).
+   * outside Terraform (people.go PersonEmailAfterRead).
    */
   private generatePersonEmailsAfterRead(resource: TerraformResource): string {
     const lines: Array<string> = this.getPersonAttributes(resource).map(
       (person: PersonAttributeFields) => {
         return person.isSet
-          ? `    data.${person.emailField} = personEmailsAfterRead(ctx, r.client, prior${person.idField}, data.${person.idField}, prior${person.emailField})`
-          : `    data.${person.emailField} = personEmailAfterRead(ctx, r.client, prior${person.idField}, data.${person.idField}, prior${person.emailField})`;
+          ? `    data.${person.emailField} = PersonEmailsAfterRead(ctx, r.client, prior${person.idField}, data.${person.idField}, prior${person.emailField})`
+          : `    data.${person.emailField} = PersonEmailAfterRead(ctx, r.client, prior${person.idField}, data.${person.idField}, prior${person.emailField})`;
       },
     );
 
@@ -1995,6 +2359,9 @@ ${lines.join("\n")}`;
       .filter(([name, attr]: [string, TerraformAttribute]) => {
         if (name === "id" || attr.format === "binary") {
           return false;
+        }
+        if (ResourceGenerator.getKeepAfterCreateModifier(name, attr)) {
+          return true;
         }
         const flags: SchemaFlags = ResourceGenerator.getSchemaFlags(
           name,
@@ -2048,13 +2415,30 @@ ${lines.join("\n")}`;
       return "";
     }
 
+    const keptAfterCreate: Array<string> =
+      ResourceGenerator.getKeptAfterCreateAttributes(resource);
+
     const assignments: string = fields
       .map((field: string) => {
+        if (keptAfterCreate.includes(field)) {
+          return `    if !plan.${field}.IsUnknown() {
+        data.${field} = plan.${field}
+    }`;
+        }
         return `    if config.${field}.IsNull() && !plan.${field}.IsUnknown() {
         data.${field} = plan.${field}
     }`;
       })
       .join("\n");
+
+    const afterCreateNote: string =
+      keptAfterCreate.length > 0
+        ? `
+// An attribute a create gives and OneUptime keeps from then on (${keptAfterCreate.join(", ")};
+// see serverowned.go) keeps its planned value whatever the configuration says:
+// the create's value, or the state's after it, which OneUptime may move on
+// before the write is read back.`
+        : "";
 
     return `
 // keepPlannedValues puts back, after a create or an update, the planned value
@@ -2063,7 +2447,7 @@ ${lines.join("\n")}`;
 // status a probe last reported...), so the value read back after the write can
 // already differ from the plan, and Terraform would fail the apply with
 // "Provider produced inconsistent result after apply". The next refresh reads
-// the server's value, which is never a diff for an attribute nobody configured.
+// the server's value, which is never a diff for an attribute nobody configured.${afterCreateNote}
 func (r *${resourceTypeName}Resource) keepPlannedValues(data *${resourceTypeName}ResourceModel, plan *${resourceTypeName}ResourceModel, config *${resourceTypeName}ResourceModel) {
 ${assignments}
 }
@@ -2141,7 +2525,7 @@ ${assignments}
     let readBackCode: string = `
     // No read endpoint for this resource: map the create response directly.
     // Update the model with response data
-${this.generateResponseMapping(resource, resourceVarName + "Response", true, true)}${this.generateKeepPlannedValuesCall(resource)}${this.generatePersonEmailsAfterWrite(resource)}`;
+${this.generateResponseMapping(resource, resourceVarName + "Response", true, true)}${this.generateKeepPlannedValuesCall(resource)}${this.generatePersonEmailsAfterWrite(resource)}${this.generateHeldEntriesAfterWriteCall(resource, true)}`;
 
     if (resource.operations.read) {
       const readPath: string = this.buildPathExpression(
@@ -2203,16 +2587,16 @@ ${this.generateSelectParameter(resource)}
     // Update the model with the authoritative read response
 ${this.generateResponseMapping(resource, "readResponse", true)}
     // The read response is authoritative, but never let it clobber the id we just received.
-    data.Id = types.StringValue(createdId)${this.generateKeepPlannedValuesCall(resource)}${this.generatePersonEmailsAfterWrite(resource)}`;
+    data.Id = types.StringValue(createdId)${this.generateKeepPlannedValuesCall(resource)}${this.generatePersonEmailsAfterWrite(resource)}${this.generateHeldEntriesAfterWriteCall(resource, true)}`;
     }
 
     /*
      * A membership that exists already says how to import it instead
-     * (people.go alreadyInvitedHint).
+     * (people.go AlreadyInvitedHint).
      */
     const createError: string =
       resource.membershipImport?.kind === MembershipKind.Member
-        ? `resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to create ${resource.name}: %s%s", err, alreadyInvitedHint(err, "${this.providerName}_${resource.name}", "${resource.membershipImport.parentAttribute}")))`
+        ? `resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to create ${resource.name}: %s%s", err, AlreadyInvitedHint(err, "${this.providerName}_${resource.name}", "${resource.membershipImport.parentAttribute}")))`
         : `resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to create ${resource.name}: %s", err))`;
 
     return `
@@ -2249,6 +2633,9 @@ ${this.generateGuardedCreateRequestBody(resource, resourceVarName)}${this.genera
         ${createError}
         return
     }
+
+    // What OneUptime left out because only it writes it, if anything (see entries.go).
+    resp.Diagnostics.Append(FieldsLeftOutWarning(httpResp, "${resource.name.replace(/_/g, " ")}")...)
 ${readBackCode}
 
     // Write logs using the tflog package
@@ -2258,7 +2645,7 @@ ${
   this.getImportedFromServerAttributes(resource).length > 0
     ? `
     // Nothing a create made was imported (see importsettle.go).
-    resp.Diagnostics.Append(forgetImportedFromServer(ctx, resp.Private)...)`
+    resp.Diagnostics.Append(ForgetImportedFromServer(ctx, resp.Private)...)`
     : ""
 }
     // Save data into Terraform state
@@ -2335,7 +2722,14 @@ func (r *${resourceTypeName}Resource) Read(ctx context.Context, req resource.Rea
     if resp.Diagnostics.HasError() {
         return
     }
-
+${
+  ResourceGenerator.getHeldEntryAttributes(resource).length > 0
+    ? `
+    // The state before the read: the entries the configuration declared (see entries.go).
+    prior := data
+`
+    : ""
+}
     // Create select parameter to get full object
     selectParam := map[string]interface{}{
 ${this.generateSelectParameter(resource)}
@@ -2361,7 +2755,14 @@ ${this.generatePriorPeople(resource)}
     }
 
     // Update the model with response data
-${this.generateResponseMapping(resource, resourceVarName + "Response", false)}${this.generatePersonEmailsAfterRead(resource)}
+${this.generateResponseMapping(resource, resourceVarName + "Response", false)}${this.generatePersonEmailsAfterRead(resource)}${
+      ResourceGenerator.getHeldEntryAttributes(resource).length > 0
+        ? `
+
+    // A list OneUptime adds to as well holds the entries the configuration declares (see entries.go).
+    r.heldEntriesAfterRead(ctx, req.Private, &data, &prior)`
+        : ""
+    }
 
     // Save updated data into Terraform state
     resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -2414,7 +2815,7 @@ ${this.generateSelectParameter(resource)}
 
     // Update the model with response data from the Read operation
 ${this.generateResponseMapping(resource, "readResponse", false)}
-    data.Id = state.Id${this.generateKeepPlannedValuesCall(resource)}${this.generatePersonEmailsAfterWrite(resource)}`
+    data.Id = state.Id${this.generateKeepPlannedValuesCall(resource)}${this.generatePersonEmailsAfterWrite(resource)}${this.generateListChangesCheck(resource)}${this.generateHeldEntriesAfterWriteCall(resource, false)}`
       : `
     // No read endpoint for this resource: the planned values become state.${this.generatePersonEmailsAfterWrite(resource)}`;
 
@@ -2447,7 +2848,7 @@ ${this.generateConditionalUpdateRequestBodyWithDeclaration(resource, resourceVar
     // Only call the API when there are changed fields to send. An empty
     // update body is rejected by the API; state is still refreshed below so
     // this method never writes unverified plan values into state.
-    if len(${resourceVarName}Request["data"].(map[string]interface{})) > 0 {
+    if len(${resourceVarName}Request["data"].(map[string]interface{})) > 0${this.hasHeldEntriesInUpdate(resource) ? " || listChanges.Any()" : ""} {
         httpResp, err := r.client.${httpMethod}(ctx, ${finalUpdatePath}, ${resourceVarName}Request)
         if err != nil {
             resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update ${resource.name}, got error: %s", err))
@@ -2468,7 +2869,7 @@ ${readBackCode}${
         ? `
 
     // What this update wrote is what the configuration says now (see importsettle.go).
-    resp.Diagnostics.Append(keepImportedFromServer(ctx, resp.Private, writtenFromConfig)...)`
+    resp.Diagnostics.Append(KeepImportedFromServer(ctx, resp.Private, writtenFromConfig)...)`
         : ""
     }
 
@@ -2476,6 +2877,87 @@ ${readBackCode}${
     resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 `;
+  }
+
+  /*
+   * Whether a resource's update sends a list OneUptime adds to as well:
+   * entry by entry, in listChanges (StaticFiles/entries.go).
+   */
+  private hasHeldEntriesInUpdate(resource: TerraformResource): boolean {
+    return this.getHeldEntriesInUpdate(resource).length > 0;
+  }
+
+  // The held-entry attributes the update schema writes.
+  private getHeldEntriesInUpdate(
+    resource: TerraformResource,
+  ): Array<HeldEntryAttribute> {
+    const updateSchema: Record<string, TerraformAttribute> =
+      resource.operationSchemas?.update || {};
+    const written: Set<string> = new Set<string>(
+      Object.entries(updateSchema)
+        .filter(([name, attr]: [string, TerraformAttribute]): boolean => {
+          return name !== "id" && !attr.computed;
+        })
+        .map(([name]: [string, TerraformAttribute]): string => {
+          return this.sanitizeAttributeName(name);
+        }),
+    );
+
+    return ResourceGenerator.getHeldEntryAttributes(resource).filter(
+      (attribute: HeldEntryAttribute): boolean => {
+        return written.has(attribute.name);
+      },
+    );
+  }
+
+  /*
+   * After an update's read-back: what it added to each list OneUptime adds
+   * to as well is there, and what it took off is gone (EntryChanges.Check).
+   */
+  private generateListChangesCheck(resource: TerraformResource): string {
+    const held: Array<HeldEntryAttribute> =
+      this.getHeldEntriesInUpdate(resource);
+
+    if (held.length === 0) {
+      return "";
+    }
+
+    return `
+
+    // What this update added to a list OneUptime adds to as well is there, and what it took off is gone (see entries.go).
+${held
+  .map((attribute: HeldEntryAttribute): string => {
+    return `    resp.Diagnostics.Append(listChanges.Check("${attribute.apiName}", data.${attribute.fieldName})...)`;
+  })
+  .join("\n")}
+    if resp.Diagnostics.HasError() {
+        return
+    }`;
+  }
+
+  /*
+   * After a create's or an update's read-back: the state of each list
+   * OneUptime adds to as well, and which the configuration declares
+   * (StaticFiles/entries.go).
+   */
+  private generateHeldEntriesAfterWriteCall(
+    resource: TerraformResource,
+    isCreate: boolean,
+  ): string {
+    if (ResourceGenerator.getHeldEntryAttributes(resource).length === 0) {
+      return "";
+    }
+
+    if (this.getKeptPlannedAttributes(resource).length === 0) {
+      throw new Error(
+        `${resource.name} has a list OneUptime adds to as well but no planned value to hold it to: getKeptPlannedAttributes must keep it.`,
+      );
+    }
+
+    return `
+
+    // A list OneUptime adds to as well holds the entries the configuration declares (see entries.go).
+    resp.Diagnostics.Append(r.heldEntriesAfterWrite(ctx, ${isCreate ? "nil" : "req.Private"}, &data, &plan, &config, ${isCreate}).Write(ctx, resp.Private)...)`;
   }
 
   private generateDeleteMethod(
@@ -2522,20 +3004,20 @@ ${readBackCode}${
     const deleteChoicesCode: string = hasDeleteChoices
       ? `
     // What the delete says besides the ${resource.name.replace(/_/g, " ")}, from state (see deletechoices.go).
-    deleteChoices := []deleteChoice{
+    deleteChoices := []DeleteChoice{
 ${deleteChoices
   .map((choice: { key: string; attribute: string }) => {
-    return `        {key: "${choice.key}", attribute: "${choice.attribute}", value: data.${StringUtils.toPascalCase(this.sanitizeAttributeName(choice.attribute))}},`;
+    return `        {Key: "${choice.key}", Attribute: "${choice.attribute}", Value: data.${StringUtils.toPascalCase(this.sanitizeAttributeName(choice.attribute))}},`;
   })
   .join("\n")}
     }
 `
       : "";
     const deleteCall: string = hasDeleteChoices
-      ? `r.client.DeleteWithBody(ctx, ${finalPath}, deleteChoicesBody(deleteChoices))`
+      ? `r.client.DeleteWithBody(ctx, ${finalPath}, DeleteChoicesBody(deleteChoices))`
       : `r.client.Delete(ctx, ${finalPath})`;
     const refusal: string = hasDeleteChoices
-      ? `resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to delete ${resource.name}: %s%s", err, deleteChoicesHint(err, deleteChoices, "${GoCodeGenerator.escapeString(this.getDeleteChoicesHint(resource))}")))`
+      ? `resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to delete ${resource.name}: %s%s", err, DeleteChoicesHint(err, deleteChoices, "${GoCodeGenerator.escapeString(this.getDeleteChoicesHint(resource))}")))`
       : `resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to delete ${resource.name}: %s", err))`;
 
     return `
@@ -2792,6 +3274,30 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         resourceVarName +
         'Request["data"].(map[string]interface{})',
     );
+
+    /*
+     * A list OneUptime adds to as well is sent entry by entry, in the
+     * request's addToList and removeFromList (StaticFiles/entries.go,
+     * #10135), but under exclusive_lists.
+     */
+    const heldInUpdate: Map<string, HeldEntryAttribute> = new Map<
+      string,
+      HeldEntryAttribute
+    >(
+      this.getHeldEntriesInUpdate(resource).map(
+        (attribute: HeldEntryAttribute): [string, HeldEntryAttribute] => {
+          return [attribute.name, attribute];
+        },
+      ),
+    );
+
+    if (heldInUpdate.size > 0) {
+      conditionalAssignments.push(
+        "    // The entries this update adds to a list OneUptime adds to as well, and takes off it (see entries.go).",
+      );
+      conditionalAssignments.push("    listChanges := NewEntryChanges()");
+    }
+
     conditionalAssignments.push("");
 
     for (const [name, attr] of Object.entries(updateSchema)) {
@@ -2821,8 +3327,30 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         terraformAttr,
       );
 
+      const held: HeldEntryAttribute | undefined =
+        heldInUpdate.get(sanitizedName);
+
+      if (held) {
+        conditionalAssignments.push(
+          `    ${changeCheckCondition} {
+        if r.client.ChangesEntriesOneByOne() {
+            listChanges.Diff("${held.name}", "${held.apiName}", data.${fieldName}, state.${fieldName})
+        } else {
+            ${valueAssignment}
+        }
+    }`,
+        );
+        continue;
+      }
+
       conditionalAssignments.push(
         `    ${changeCheckCondition} {\n        ${valueAssignment}\n    }`,
+      );
+    }
+
+    if (heldInUpdate.size > 0) {
+      conditionalAssignments.push(
+        `    listChanges.AddTo(${resourceVarName}Request)`,
       );
     }
 
@@ -2874,6 +3402,14 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
             return
         }
         requestDataMap["${apiFieldName}"] = ${StringUtils.toCamelCase(fieldName)}Value`;
+    }
+
+    /*
+     * A permission is sent as its key, the way OneUptime takes it, also
+     * when the configuration writes it with jsonencode() (permissionkey.go).
+     */
+    if (terraformAttr.type === "string" && terraformAttr.isPermission) {
+      return `requestDataMap["${apiFieldName}"] = PermissionKeyOf(data.${fieldName}.ValueString())`;
     }
 
     /*
@@ -3191,6 +3727,19 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     }`;
         }
 
+        /*
+         * A permission arrives as its key. PermissionKeyType's semantic
+         * equality keeps the plan's or the state's form when it is the same
+         * key written with jsonencode() (permissionkey.go).
+         */
+        if (attr.isPermission) {
+          return `if val, ok := ${responseValue}.(string); ok && val != "" {
+        ${fieldName} = NewPermissionKeyValue(val)
+    } else {
+        ${fieldName} = NewPermissionKeyNull()
+    }`;
+        }
+
         if (isComplexObject) {
           /*
            * For complex object strings, check if it's a wrapper object with _type and value fields
@@ -3475,80 +4024,104 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     }
   }
 
+  /*
+   * The resources' places in GetResources, which lists them in this order:
+   * the generated ones, those written by hand, then the deprecated aliases
+   * of the renamed ones under their old names. Each shard hands over its own
+   * (its resources.go), the provider package holds the ones written by hand
+   * (resources.go there), and StaticFiles/shards.go puts them back in order.
+   */
   private async updateProviderWithResources(
     resources: TerraformResource[],
   ): Promise<void> {
-    // Generate the list of resource functions
-    const resourceFunctions: string = [
-      ...resources.map((resource: TerraformResource) => {
-        const resourceTypeName: string = StringUtils.toPascalCase(
-          resource.name,
-        );
-        return `        New${resourceTypeName}Resource,`;
-      }),
-      // The resources written by hand (Core/HandwrittenResources.ts).
-      ...HANDWRITTEN_RESOURCES.map((handwritten: HandwrittenResource) => {
-        return `        ${handwritten.goConstructor},`;
-      }),
-    ].join("\n");
-
     const renamedResources: Array<TerraformResource> = resources.filter(
       (resource: TerraformResource) => {
         return Boolean(resource.legacyName);
       },
     );
+    const firstHandwritten: number = resources.length;
+    const firstAlias: number = firstHandwritten + HANDWRITTEN_RESOURCES.length;
 
-    const legacyAliasFunctions: string = renamedResources
-      .map((resource: TerraformResource) => {
-        return `        New${StringUtils.toPascalCase(resource.name)}LegacyResource,`;
-      })
-      .join("\n");
+    type Held = {
+      entries: Array<{ order: number; constructor: string }>;
+      aliases: Array<{
+        order: number;
+        name: string;
+        legacyName: string;
+        constructor: string;
+        legacyConstructor: string;
+      }>;
+    };
+    const shards: Map<string, Held> = new Map(
+      shardNames().map((shard: string): [string, Held] => {
+        return [shard, { entries: [], aliases: [] }];
+      }),
+    );
+    const shardHolding: (resource: TerraformResource) => Held = (
+      resource: TerraformResource,
+    ): Held => {
+      return shards.get(shardOf(ResourceGenerator.resourceFileName(resource)))!;
+    };
 
-    const legacyAliasEntries: string = renamedResources
-      .map((resource: TerraformResource) => {
-        const resourceTypeName: string = StringUtils.toPascalCase(
-          resource.name,
-        );
-        return `    {Name: "${resource.name}", LegacyName: "${resource.legacyName}", New: New${resourceTypeName}Resource, NewLegacy: New${resourceTypeName}LegacyResource},`;
-      })
-      .join("\n");
+    resources.forEach((resource: TerraformResource, index: number) => {
+      shardHolding(resource).entries.push({
+        order: index,
+        constructor: `New${StringUtils.toPascalCase(resource.name)}Resource`,
+      });
+    });
+    renamedResources.forEach((resource: TerraformResource, index: number) => {
+      const typeName: string = StringUtils.toPascalCase(resource.name);
+      shardHolding(resource).entries.push({
+        order: firstAlias + index,
+        constructor: `New${typeName}LegacyResource`,
+      });
+      shardHolding(resource).aliases.push({
+        order: resources.indexOf(resource),
+        name: resource.name,
+        legacyName: resource.legacyName!,
+        constructor: `New${typeName}Resource`,
+        legacyConstructor: `New${typeName}LegacyResource`,
+      });
+    });
 
-    /*
-     * This would update the provider.go file to include the resources
-     * For now, we'll create a separate file with the resource list
-     */
-    const resourceListContent: string = `package provider
-
-import (
-    "github.com/hashicorp/terraform-plugin-framework/resource"
-)
-
-// GetResources returns all available resources
-func GetResources() []func() resource.Resource {
-    return []func() resource.Resource{
-${resourceFunctions}${
-      legacyAliasFunctions
-        ? `
-        // Deprecated aliases: the names these resources had before resource
-        // type names kept mixed-case words whole.
-${legacyAliasFunctions}`
-        : ""
+    for (const [shard, held] of shards) {
+      await this.fileGenerator.writeFileInDir(
+        `${PROVIDER_PACKAGE_DIR}/${shard}`,
+        "resources.go",
+        shardRegistrationFile({
+          shard,
+          goModuleName: this.goModuleName,
+          kind: "Resources",
+          entries: held.entries,
+          aliases: held.aliases,
+        }),
+      );
     }
-    }
-}
 
-// legacyResourceAliases pairs each renamed resource with the alias that keeps
-// its old name working.
-var legacyResourceAliases = []legacyResourceAlias{
-${legacyAliasEntries}
-}
-`;
+    const handwritten: string = HANDWRITTEN_RESOURCES.map(
+      (resource: HandwrittenResource, index: number) => {
+        return `    {Order: ${firstHandwritten + index}, New: ${resource.goConstructor}},`;
+      },
+    ).join("\n");
 
     await this.fileGenerator.writeFileInDir(
-      "internal/provider",
+      PROVIDER_PACKAGE_DIR,
       "resources.go",
-      resourceListContent,
+      `package provider
+
+// generatedShards is how many packages hold the generated resources and data
+// sources, ${PROVIDER_PACKAGE_DIR}/${shardNames()[0]} to ${shardNames()[SHARD_COUNT - 1]}: each hands what it
+// holds to this package (shards.go).
+const generatedShards = ${SHARD_COUNT}
+
+// The resources written by hand, in their places among the generated ones.
+var handwrittenResources = []OrderedResource{
+${handwritten}
+}
+`,
     );
+
+    await writeAllShardsPackage(this.fileGenerator, this.goModuleName);
   }
 
   private generateOriginalValueStorage(resource: TerraformResource): string {

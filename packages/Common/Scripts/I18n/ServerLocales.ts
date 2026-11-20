@@ -109,6 +109,12 @@ export const DASHBOARD_SHARED_TEXT_SOURCES: ReadonlyArray<string> = [
    */
   "packages/Common/Utils/GuidedSetup/OnCallPolicyRecords.ts",
   "packages/Common/Types/OnCallDutyPolicy/EveryNewEventRules.ts",
+  /*
+   * What a chat's picker says of records that share a name (#10314):
+   * "Created {{date}}", as the Dashboard's pickers word it (#10064), in the
+   * language on the reader's account.
+   */
+  "packages/Common/Types/Database/SharedNameMarks.ts",
 ];
 
 export const DASHBOARD_LOCALES_DIRECTORY: string = path.join(
@@ -146,6 +152,42 @@ export const SERVER_TEXT_SOURCES: ReadonlyArray<string> = [
    * (#9818, #9820), in the language on their account.
    */
   "packages/Common/Types/SSO/SignInSettingsClearedEmail.ts",
+  /*
+   * The email of an account's organizations' SSO sign-in links (#9987), in
+   * the language on the account.
+   */
+  "packages/Common/Types/Accounts/SsoSignInLinks.ts",
+  "packages/App/FeatureSet/Identity/Utils/SsoSignInLinksEmail.ts",
+  /*
+   * The invitation email's subject (#9897), in the invitee's language, else
+   * the inviter's; its body is the InviteMember template's.
+   */
+  "packages/Common/Types/Team/InvitationEmailWords.ts",
+  /*
+   * The email that tells an account's old address the account moved
+   * (#9907), in the language on the account.
+   */
+  "packages/Common/Types/Accounts/EmailAddressChangedEmail.ts",
+  "packages/Common/Server/Utils/EmailChange/EmailAddressChangedNotice.ts",
+  /*
+   * The emails to a new address (#10157): its link, word that it is taken,
+   * and the link to an address written straight away, in the language of
+   * the account that reads it.
+   */
+  "packages/Common/Server/Utils/EmailChange/EmailChangeConfirmation.ts",
+  /*
+   * The email that tells a status page private user's old address it
+   * changed (#10156), in the status page's language.
+   */
+  "packages/Common/Types/StatusPage/PrivateUserEmailAddressChangedEmail.ts",
+  /*
+   * The emails Confirm It's You sends the account's owner: a backup code
+   * spent, to sign in or to confirm it's them (#10219), and a session
+   * signed out for too many wrong attempts (#10218), in the language on
+   * the account.
+   */
+  "packages/Common/Server/Utils/TwoFactorBackupCodeNotification.ts",
+  "packages/Common/Server/Utils/Reauthentication/SignedOutEmail.ts",
   "packages/App/FeatureSet/Workers/Jobs",
   "packages/App/FeatureSet/Notification/Templates",
   // Sentences the Dashboard writes too, worded as it words them (above).

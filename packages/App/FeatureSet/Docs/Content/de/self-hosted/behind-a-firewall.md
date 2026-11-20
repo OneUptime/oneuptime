@@ -44,7 +44,7 @@ Wenn die Telefone der alarmierten Personen Ihr VPN nicht nutzen können, veröff
 | --- | --- | --- |
 | GET | `/l/*` | Die Kurzlinks in SMS, WhatsApp- und Telegram-Nachrichten |
 | GET | `/api/user-notification-log-timeline/acknowledge-page/*` | Die Seite, die zeigt, worum es bei der Alarmierung geht, mit ihrer Schaltfläche **Acknowledge** |
-| GET | `/api/user-notification-log-timeline/acknowledge/*` | Die Schaltfläche **Acknowledge** |
+| POST | `/api/user-notification-log-timeline/acknowledge/*` | Die Schaltfläche **Acknowledge** |
 | GET | `/api/user-notification-log-timeline/pass-on-page/*` | Optional: die Seite, die die Alarmierung an die nächste Person weitergibt |
 | POST | `/api/user-notification-log-timeline/pass-on/*` | Optional: ihre Schaltfläche |
 | GET | `/oneuptime-assets/*` | Schriften, Styles und Logo dieser Seiten |

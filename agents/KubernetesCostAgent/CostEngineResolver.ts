@@ -23,6 +23,7 @@ import { EnginePricing, readEnginePricing } from "./EnginePricing";
 import { KubernetesService, ListServices, listServices } from "./KubernetesApi";
 import Logger from "./Logger";
 import {
+  CorrectionReading,
   CostEngineSource,
   EngineAllocation,
   KubernetesCostEngineInfo,
@@ -131,6 +132,82 @@ export const latestAllocationEnd: (
   }
 
   return latest;
+};
+
+const describeWindow: (start: number, end: number) => string = (
+  start: number,
+  end: number,
+): string => {
+  return `${new Date(start).toISOString()} to ${new Date(end).toISOString()}`;
+};
+
+/*
+ * Whether a later reading of a window holds all of it, it alone, for this
+ * cluster (#9969): null when it does, else why not. A Kubecost asked for an
+ * hour it no longer holds hourly may answer with nothing, or with a set of
+ * a wider window (a day's), whose rows' windows say so; and an aggregator
+ * behind on collecting answers with rows that stop short of the end. Any of
+ * those would correct an hour with figures that are not its own. Pure.
+ */
+export const readingCoversWindow: (data: {
+  allocations: Array<EngineAllocation>;
+  windowStart: Date;
+  windowEnd: Date;
+  // The cluster the engine's rows name, once known.
+  clusterId: string;
+}) => string | null = (data: {
+  allocations: Array<EngineAllocation>;
+  windowStart: Date;
+  windowEnd: Date;
+  clusterId: string;
+}): string | null => {
+  const startMs: number = data.windowStart.getTime();
+  const endMs: number = data.windowEnd.getTime();
+
+  if (data.allocations.length === 0) {
+    return "the engine has nothing for the window: it may no longer hold it by the hour";
+  }
+
+  for (const allocation of data.allocations) {
+    for (const [from, to] of [
+      [allocation.window?.start, allocation.window?.end],
+      [allocation.start, allocation.end],
+    ]) {
+      const fromMs: number = Date.parse(from || "");
+      const toMs: number = Date.parse(to || "");
+
+      if (
+        (Number.isFinite(fromMs) &&
+          fromMs < startMs - COLLECTION_TOLERANCE_MS) ||
+        (Number.isFinite(toMs) && toMs > endMs + COLLECTION_TOLERANCE_MS)
+      ) {
+        return `the engine answered for ${describeWindow(
+          Number.isFinite(fromMs) ? fromMs : startMs,
+          Number.isFinite(toMs) ? toMs : endMs,
+        )}, wider than the window`;
+      }
+    }
+  }
+
+  const collected: number | null = latestAllocationEnd(data.allocations);
+
+  if (collected !== null && collected < endMs - COLLECTION_TOLERANCE_MS) {
+    return `the engine's rows stop at ${new Date(collected).toISOString()}, before the window's end`;
+  }
+
+  const clusters: Set<string> = clustersOfAllocations(data.allocations);
+
+  if (clusters.size > 1) {
+    return `the engine answered for ${clusters.size} clusters`;
+  }
+
+  const cluster: string = clusters.size === 1 ? Array.from(clusters)[0]! : "";
+
+  if (data.clusterId && cluster && cluster !== data.clusterId) {
+    return `the engine answered for cluster ${cluster}, not ${data.clusterId}`;
+  }
+
+  return null;
 };
 
 type Discovery =
@@ -501,6 +578,63 @@ export class CostEngineResolver implements CostEngineSource {
 
       throw err;
     }
+  }
+
+  /*
+   * A later reading of a window an engine that reconciles its prices with a
+   * cloud bill priced (#9969, EngineCorrections). Only from that engine,
+   * while it is the one in use and still reconciles: a reading from another
+   * would put one engine's figures in place of another's. Never counts as a
+   * failure of the engine, which would send the agent looking for another:
+   * a past hour it cannot give says nothing about the hours it prices now.
+   * Never throws.
+   */
+  public async rereadAllocations(data: {
+    windowStart: Date;
+    windowEnd: Date;
+    engineUrl: string;
+  }): Promise<CorrectionReading> {
+    const engine: SelectedEngine | null = this.selected;
+
+    if (!engine || engine.client.baseUrl !== data.engineUrl) {
+      return {
+        status: "elsewhere",
+        reason: "the engine that priced the window is not the one in use",
+      };
+    }
+
+    if (engine.pricing?.source !== "billing-integration") {
+      return {
+        status: "elsewhere",
+        reason:
+          "the engine in use does not reconcile its prices with a cloud bill",
+      };
+    }
+
+    let allocations: Array<EngineAllocation>;
+
+    try {
+      allocations = await engine.client.fetchAllocations({
+        windowStart: data.windowStart,
+        windowEnd: data.windowEnd,
+      });
+    } catch (err: unknown) {
+      return {
+        status: "unavailable",
+        reason: `the engine did not answer: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+
+    const problem: string | null = readingCoversWindow({
+      allocations,
+      windowStart: data.windowStart,
+      windowEnd: data.windowEnd,
+      clusterId: engine.clusterId,
+    });
+
+    return problem
+      ? { status: "nothing", reason: problem }
+      : { status: "read", allocations };
   }
 
   // What the next shipment says priced its rows; undefined before any engine.

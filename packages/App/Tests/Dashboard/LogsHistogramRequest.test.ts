@@ -15,8 +15,11 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
+import OneUptimeDate from "Common/Types/Date";
+import Timezone from "Common/Types/Timezone";
 import {
   applyTypedLogFilterToRequest,
+  buildLogsAggregateScope,
   buildLogsHistogramRequest,
   getLogsChosenFacetKeys,
   parseLogsHistogramResponse,
@@ -29,6 +32,12 @@ import {
 } from "../../FeatureSet/Dashboard/src/Components/Logs/LogsHistogramRequest";
 
 const NOW: Date = new Date("2026-08-05T12:00:00.000Z");
+
+/*
+ * The reader's zone, pinned: every request names it, so a bar of a day
+ * starts at the reader's midnight (#7923).
+ */
+const READER_ZONE: Timezone = Timezone.AmericaNew_York;
 
 const PAST_ONE_HOUR: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -85,10 +94,24 @@ function freezeClock(): void {
 describe("buildLogsHistogramRequest", () => {
   beforeEach(() => {
     freezeClock();
+    OneUptimeDate.setUserTimezone(READER_ZONE);
   });
 
   afterEach(() => {
     jest.useRealTimers();
+    OneUptimeDate.setUserTimezone(null);
+  });
+
+  describe("the reader's zone (#7923)", () => {
+    test("names it, so a bar of a day starts at the reader's midnight", () => {
+      expect(build()["timezone"]).toBe("America/New_York");
+    });
+
+    test("names it in its current name", () => {
+      OneUptimeDate.setUserTimezone("Asia/Calcutta" as Timezone);
+
+      expect(build()["timezone"]).toBe(Timezone.AsiaKolkata);
+    });
   });
 
   describe("time window", () => {
@@ -96,6 +119,7 @@ describe("buildLogsHistogramRequest", () => {
       expect(build()).toEqual({
         startTime: "2026-08-05T11:00:00.000Z",
         endTime: "2026-08-05T12:00:00.000Z",
+        timezone: READER_ZONE,
       });
     });
 
@@ -136,6 +160,7 @@ describe("buildLogsHistogramRequest", () => {
       expect(second).toEqual({
         startTime: "2026-08-01T00:00:00.000Z",
         endTime: "2026-08-01T06:00:00.000Z",
+        timezone: READER_ZONE,
       });
     });
 
@@ -144,19 +169,25 @@ describe("buildLogsHistogramRequest", () => {
         {
           startTime: "2026-08-05T11:55:00.000Z",
           endTime: "2026-08-05T12:00:00.000Z",
+          timezone: READER_ZONE,
         },
       );
 
       expect(build({ timeRange: { range: TimeRange.PAST_ONE_DAY } })).toEqual({
         startTime: "2026-08-04T12:00:00.000Z",
         endTime: "2026-08-05T12:00:00.000Z",
+        timezone: READER_ZONE,
       });
     });
   });
 
   describe("base scope from the host page", () => {
-    test("sends nothing but the window when the viewer is unscoped", () => {
-      expect(Object.keys(build()).sort()).toEqual(["endTime", "startTime"]);
+    test("sends nothing but the window and the reader's zone when the viewer is unscoped", () => {
+      expect(Object.keys(build()).sort()).toEqual([
+        "endTime",
+        "startTime",
+        "timezone",
+      ]);
     });
 
     test("passes service, trace and span scope through", () => {
@@ -546,6 +577,8 @@ describe("typed search on the histogram request", () => {
      * Against a literal, not against another build() of the same params —
      * two identical calls agree even when both are wrong.
      */
+    OneUptimeDate.setUserTimezone(READER_ZONE);
+
     const withoutKey: JSONObject = buildLogsHistogramRequest({
       timeRange: PAST_ONE_HOUR,
       appliedFacetFilters: facets({ severityText: ["Error"] }),
@@ -554,6 +587,7 @@ describe("typed search on the histogram request", () => {
     const expected: JSONObject = {
       startTime: new Date(NOW.getTime() - 60 * 60 * 1000).toISOString(),
       endTime: NOW.toISOString(),
+      timezone: READER_ZONE,
       severityTexts: ["Error"],
     };
 
@@ -576,6 +610,8 @@ describe("typed search on the histogram request", () => {
         typedFilter: { time: new InBetween<Date>(NOW, NOW), unknown: "x" },
       }),
     ).toEqual(expected);
+
+    OneUptimeDate.setUserTimezone(null);
   });
 
   test("typed attributes merge over the base and chip attributes, typed keys winning", () => {
@@ -1182,5 +1218,103 @@ describe("withoutLogsFacetSelection", () => {
     );
 
     expect(request["serviceIds"]).toEqual(["page-service"]);
+  });
+});
+
+/*
+ * The Analytics chart reads the rows the histogram reads (#7716): every
+ * filter but the window, which the chart resolves with its own bucket
+ * size. It used to compile only some chips itself, so a typed search, an
+ * attribute or message chip, and a host's or a pod's own scope narrowed
+ * the list and the histogram while the chart under them read every log.
+ */
+describe("buildLogsAggregateScope", () => {
+  beforeEach(() => {
+    freezeClock();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const EVERY_FILTER: Parameters<typeof buildLogsAggregateScope>[0] = {
+    serviceIds: ["page-service"],
+    traceIds: ["trace-1"],
+    spanIds: ["span-1"],
+    attributes: { "k8s.pod.name": "checkout-7f9" } as never,
+    entityKeys: ["k8s.pod:checkout-7f9"],
+    appliedFacetFilters: facets({
+      severityText: ["Error"],
+      "attributes.http.route": ["/checkout"],
+      body: ["timed out"],
+    }),
+    typedFilter: {
+      attributes: { "deployment.environment": "prod" },
+      body: new Search("payment"),
+    },
+  };
+
+  // A request as it goes out: operators in their wire shape.
+  function onTheWire(request: JSONObject): JSONObject {
+    return JSON.parse(JSON.stringify(request)) as JSONObject;
+  }
+
+  test("is the histogram's request without its window", () => {
+    const scope: JSONObject = buildLogsAggregateScope(EVERY_FILTER);
+    const histogram: JSONObject = buildLogsHistogramRequest({
+      timeRange: PAST_ONE_HOUR,
+      ...EVERY_FILTER,
+    });
+
+    expect(scope).not.toHaveProperty("startTime");
+    expect(scope).not.toHaveProperty("endTime");
+
+    // The window, and the zone its day bars are cut in (#7923).
+    const { startTime, endTime, timezone, ...histogramScope } = histogram;
+
+    expect(startTime).toBe("2026-08-05T11:00:00.000Z");
+    expect(endTime).toBe("2026-08-05T12:00:00.000Z");
+    expect(timezone).toBe(OneUptimeDate.getCurrentTimezone());
+    expect(scope).not.toHaveProperty("timezone");
+    expect(onTheWire(scope)).toEqual(onTheWire(histogramScope));
+  });
+
+  test("carries the page's scope, the chips and what the search bar typed", () => {
+    const scope: JSONObject = onTheWire(buildLogsAggregateScope(EVERY_FILTER));
+
+    expect(scope).toMatchObject({
+      serviceIds: ["page-service"],
+      traceIds: ["trace-1"],
+      spanIds: ["span-1"],
+      entityKeys: ["k8s.pod:checkout-7f9"],
+      severityTexts: ["Error"],
+      // The typed message wins over the chip's, as in the list query.
+      bodySearchText: "payment",
+    });
+    expect(scope["attributes"]).toEqual({
+      "k8s.pod.name": "checkout-7f9",
+      "http.route": "/checkout",
+      "deployment.environment": "prod",
+    });
+  });
+
+  test("carries what the chips leave out", () => {
+    const scope: JSONObject = buildLogsAggregateScope({
+      appliedFacetFilters: facets({
+        "!severityText": ["Debug"],
+        "!primaryEntityId": ["noisy-service"],
+      }),
+    });
+
+    expect(scope).toEqual({
+      excludedSeverityTexts: ["Debug"],
+      excludedServiceIds: ["noisy-service"],
+    });
+  });
+
+  test("an empty viewer narrows nothing", () => {
+    expect(buildLogsAggregateScope({ appliedFacetFilters: new Map() })).toEqual(
+      {},
+    );
   });
 });

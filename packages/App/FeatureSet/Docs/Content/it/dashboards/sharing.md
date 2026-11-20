@@ -1,10 +1,11 @@
 # Condivisione e dashboard pubbliche
 
-Per impostazione predefinita, una dashboard è privata del tuo progetto: solo chi accede al tuo progetto può vederla. Puoi anche condividerla tramite un link pubblico, proteggere quel link con una password, limitarlo a determinati indirizzi IP e ospitarla sul tuo dominio. Questa pagina copre tutte e quattro le cose.
+Per impostazione predefinita, una dashboard è privata del tuo progetto: solo chi accede al tuo progetto può vederla. Puoi anche condividerla tramite un link pubblico, proteggere quel link con una password o chiedere ai visitatori di accedere, limitarlo a determinati indirizzi IP e ospitarla sul tuo dominio. Questa pagina copre tutto questo.
 
 :::cards
-- [Chi può vedere una dashboard](#chi-può-vedere-una-dashboard): Una scelta fra tre, con il piano che richiede ciascuna.
+- [Chi può vedere una dashboard](#chi-può-vedere-una-dashboard): Una scelta fra quattro, con il piano che richiede ciascuna.
 - [Condividere con una password](#condividere-con-una-password): Condividi il link, poi la password, con le persone che devono vederla.
+- [Solo chi accede](#solo-chi-accede): Invita le persone che possono aprirla, oppure lascia che le faccia accedere il tuo single sign-on.
 - [Lista di IP consentiti](#lista-di-ip-consentiti): Apri il link pubblico solo al tuo ufficio o alla tua VPN.
 - [Domini personalizzati](#domini-personalizzati): Servi la dashboard sul tuo dominio, con un certificato gratuito.
 :::
@@ -18,10 +19,13 @@ flowchart TB
     visit["Un visitatore apre<br/>il link pubblico"] --> shared("La dashboard è<br/>condivisa pubblicamente?")
     shared -->|"No"| missing["Una pagina<br/>non trovata"]
     shared -->|"Sì"| allowed("Il suo indirizzo è<br/>nella lista di IP<br/>consentiti?")
-    allowed -->|"Sì, o<br/>nessuna lista"| locked("Serve una<br/>password?")
+    allowed -->|"Sì, o<br/>nessuna lista"| signin("I visitatori<br/>devono accedere?")
     allowed -->|"No"| denied["Una pagina<br/>Access Denied"]
+    signin -->|"Sì"| signinpage["La pagina<br/>di accesso"]
+    signinpage --> board["La dashboard"]
+    signin -->|"No"| locked("Serve una<br/>password?")
     locked -->|"Sì"| prompt["La richiesta<br/>della password"]
-    prompt --> board["La dashboard"]
+    prompt --> board
     locked -->|"No"| board
 ```
 
@@ -32,14 +36,15 @@ Apri la dashboard e scegli **⋯ → Condividi**, oppure apri **Condivisione** n
 - **Solo le persone di questo progetto** (l'impostazione predefinita): i membri vedono la dashboard quando accedono a OneUptime. Non ha un link pubblico: il suo indirizzo pubblico mostra la stessa pagina non trovata di un indirizzo senza dashboard, e nulla della dashboard, nemmeno il suo nome.
 - **Chiunque abbia il link**: la dashboard è pubblica. Chiunque abbia il suo link può vederla, senza accedere.
 - **Chiunque abbia il link e una password**: i visitatori aprono il link, poi inseriscono una password che condividi con loro. Nessuno ha bisogno di un account.
+- **Solo chi accede**: la dashboard ha un link pubblico, e la aprono solo le persone che scegli, dopo aver effettuato l'accesso lì: gli utenti privati che inviti e le persone ammesse dal tuo single sign-on. Vedi [Solo chi accede](#solo-chi-accede).
 
-Scegliere un'opzione chiede conferma, spiegando che cosa cambia per i visitatori, poi si applica subito. Scegliere **Chiunque abbia il link e una password** chiede la password nella stessa finestra quando la dashboard non ne ha una; finché è la scelta attiva, **Cambia password** la sostituisce. Finché la dashboard è pubblica, gli indirizzi a cui i visitatori la aprono si trovano sotto la scelta: prima i suoi domini personalizzati, poi il suo link pubblico, ciascuno con **Copia link**. Un dominio personalizzato non ancora attivo è segnato **Non ancora attivo**, con il motivo.
+Scegliere un'opzione chiede conferma, spiegando che cosa cambia per i visitatori, poi si applica subito. Scegliere **Chiunque abbia il link e una password** chiede la password nella stessa finestra quando la dashboard non ne ha una; finché è la scelta attiva, **Cambia password** la sostituisce. Finché la dashboard è pubblica, gli indirizzi a cui i visitatori la aprono si trovano sotto la scelta: prima i suoi domini personalizzati, poi il suo link pubblico, ciascuno con **Copia link**. Un dominio personalizzato non ancora attivo è segnato **Non ancora attivo**, con il motivo. Finché **Solo chi accede** è la scelta attiva, **Utenti privati** e **Single Sign-On** sono a un clic, proprio sotto.
 
 All'interno del progetto, i proprietari e le etichette controllano chi vede cosa: vedi [Configurazione e permessi della dashboard](/docs/dashboards/configuration). Chi può vedere la dashboard ma non modificarla vede la scelta e può copiare il link pubblico, ma non può cambiarla.
 
-Su OneUptime Cloud, condividere una dashboard richiede il piano **Growth**: con un piano inferiore, le due scelte pubbliche mostrano il piano che richiedono e non possono essere selezionate. Rendere di nuovo privata una dashboard (**Solo le persone di questo progetto**) funziona con ogni piano, quindi una dashboard rimasta pubblica alla fine di una prova, o dopo il passaggio a un piano inferiore, può sempre smettere di essere condivisa; la finestra indica che condividerla di nuovo richiede **Growth**. Passare da **Chiunque abbia il link** a **Chiunque abbia il link e una password**, e cambiare la password, funziona con ogni piano. Una dashboard creata tramite l'API o Terraform è soggetta agli stessi piani: creata pubblica richiede **Growth**, e creata con una lista di IP consentiti **Scale**.
+Su OneUptime Cloud, condividere una dashboard richiede il piano **Growth**: con un piano inferiore, le scelte pubbliche mostrano il piano che richiedono e non possono essere selezionate. Rendere di nuovo privata una dashboard (**Solo le persone di questo progetto**) funziona con ogni piano, quindi una dashboard rimasta pubblica alla fine di una prova, o dopo il passaggio a un piano inferiore, può sempre smettere di essere condivisa; la finestra indica che condividerla di nuovo richiede **Growth**. Passare da **Chiunque abbia il link** a **Chiunque abbia il link e una password**, e cambiare la password, funziona con ogni piano. **Solo chi accede** richiede anch'essa **Growth**, come i suoi utenti privati, e il suo single sign-on richiede **Scale**; lasciarla funziona con ogni piano, e la finestra indica che sceglierla di nuovo richiede **Growth**. Una dashboard creata tramite l'API o Terraform è soggetta agli stessi piani: creata pubblica richiede **Growth**, e creata con una lista di IP consentiti **Scale**.
 
-La scelta è memorizzata in tre colonne, che l'API e Terraform leggono e scrivono come prima: `isPublicDashboard`, `enableMasterPassword` e `masterPassword`. Solo una dashboard pubblica ha un link pubblico, e ai suoi visitatori viene chiesta la password ogni volta che `enableMasterPassword` è attivo. Una dashboard pubblica con `enableMasterPassword` attivo ma senza password impostata non fa entrare nessuno dal suo link pubblico: la pagina **Condivisione** la mostra come **Chiunque abbia il link e una password**, dice che nessuno può ancora aprire il link e offre **Imposta password**. Scegliere **Solo le persone di questo progetto** disattiva anche `enableMasterPassword` e conserva la password, così una nuova condivisione con password può riutilizzarla.
+La scelta è memorizzata in quattro colonne, che l'API e Terraform leggono e scrivono: `isPublicDashboard`, `enableMasterPassword`, `masterPassword` e `requireSignIn`. Solo una dashboard pubblica ha un link pubblico, e ai suoi visitatori viene chiesta la password ogni volta che `enableMasterPassword` è attivo. Una dashboard pubblica con `enableMasterPassword` attivo ma senza password impostata non fa entrare nessuno dal suo link pubblico: la pagina **Condivisione** la mostra come **Chiunque abbia il link e una password**, dice che nessuno può ancora aprire il link e offre **Imposta password**. Scegliere **Solo le persone di questo progetto** disattiva anche `enableMasterPassword` e conserva la password, così una nuova condivisione con password può riutilizzarla. Una dashboard pubblica con `requireSignIn` attivo chiede ai visitatori di accedere, e mai la password: scegliere **Solo chi accede** disattiva `enableMasterPassword` e conserva anche la password.
 
 ## Dashboard pubbliche
 
@@ -53,7 +58,7 @@ Una dashboard pubblica:
 
 Tratta la condivisione di una dashboard come la pubblicazione di una pagina web. Ogni widget che contiene diventa leggibile da chiunque abbia il link. Guarda che cosa c'è sul canvas prima di condividerla.
 
-Ogni widget pubblica solo ciò che disegna, e solo per le risorse a cui è stato puntato. Un widget SLO, per esempio, pubblica i numeri principali di quello SLO ma mai la sua definizione: vedi [SLO](/docs/dashboards/widgets#slo). I widget con un'**Origine dati** esterna sono l'eccezione: vengono esclusi del tutto da una dashboard pubblica invece di essere resi, perché la loro configurazione è la query stessa. Alcuni altri widget non possono essere mostrati senza una sessione con accesso, e lo indicano al loro posto: [Su una dashboard pubblica](/docs/dashboards/widgets#su-una-dashboard-pubblica) li elenca. Pubblicano solo il loro titolo, mai le ricerche e i filtri con cui leggono i loro dati. Anche le variabili pubblicano solo ciò che mostrano i loro selettori: la query di una vecchia variabile di tipo query non viene mai pubblicata.
+Ogni widget pubblica solo ciò che disegna, e solo per le risorse a cui è stato puntato. Un widget SLO, per esempio, pubblica i numeri principali di quello SLO ma mai la sua definizione: vedi [SLO](/docs/dashboards/widgets#slo). I widget con un'**Origine dati** pubblicano i loro dati, mai le loro query: un widget su **Metriche di questo progetto (PromQL)** disegna ciò che restituiscono le query salvate al suo interno, eseguite su tutti i servizi del progetto, e un widget con un'origine dati esterna viene escluso del tutto da una dashboard pubblica invece di essere reso. Alcuni altri widget non possono essere mostrati senza una sessione con accesso, e lo indicano al loro posto: [Su una dashboard pubblica](/docs/dashboards/widgets#su-una-dashboard-pubblica) li elenca. Pubblicano solo il loro titolo, mai le ricerche e i filtri con cui leggono i loro dati. Anche le variabili pubblicano solo ciò che mostrano i loro selettori: la query di una vecchia variabile di tipo query non viene mai pubblicata.
 
 ## Condividere con una password
 
@@ -64,7 +69,19 @@ Usa una password quando:
 - Vuoi condividere con un partner o un cliente, ma non vuoi che l'URL sia utile se trapela.
 - La dashboard è "semi-pubblica": abbastanza aperta da non voler invitare ogni visualizzatore come membro del team, ma non abbastanza da metterla su internet.
 
-Per un controllo più forte (account separati per ogni visualizzatore, una traccia di audit di chi ha visto cosa), lascia la dashboard su **Solo le persone di questo progetto** e invita invece i visualizzatori come membri del team in sola lettura.
+Per un controllo più forte (account separati per ogni visualizzatore, una traccia di audit di chi ha visto cosa), lascia la dashboard su **Solo le persone di questo progetto** e invita invece i visualizzatori come membri del team in sola lettura, oppure scegli **Solo chi accede**.
+
+## Solo chi accede
+
+Scegli **Solo chi accede** perché aprano il link pubblico solo le persone che scegli. Ogni visitatore trova prima una pagina di accesso, sul link pubblico e su ogni dominio personalizzato. Mostra il nome, il titolo della pagina e la favicon della dashboard, nel suo tema, e nient'altro: né i suoi widget né chi può accedere. Dopo l'accesso, la dashboard dice chi ha effettuato l'accesso, con un pulsante per uscire.
+
+Apri **Link pubblico → Utenti privati** nel menu laterale della dashboard per aggiungere via e-mail le persone che possono accedere. Ognuna riceve via e-mail un invito il cui link le permette di scegliere una password. Il link è valido per 24 ore, e il link per la password dimenticata della pagina di accesso ne invia uno nuovo. La tabella mostra chi è **Registrato**, quale invito è **Invito inviato** e l'**Ultimo accesso** di ciascuno. Rimuovere qualcuno, o una nuova password, lo disconnette ovunque alla sua richiesta successiva.
+
+Apri **Link pubblico → Single Sign-On** perché il tuo provider di identità faccia accedere le persone, con SAML o OpenID Connect. Ogni provider mostra i valori da incollare nel tuo provider di identità. Chiunque il tuo provider di identità ammetta diventa un utente privato al primo accesso. Disattivare un provider, o eliminarlo, disconnette tutti quelli a cui ha dato accesso. **Richiedi l'SSO per l'accesso** disattiva l'accesso con password: allora tutti accedono con il single sign-on, e chi ha effettuato l'accesso con una password viene disconnesso alla sua richiesta successiva.
+
+Un accesso dura finché non resta inutilizzato per 30 giorni. I suoi cookie vengono inviati solo all'indirizzo della dashboard, quindi nessun altro sito può leggere la dashboard con essi né disconnettere qualcuno. I tentativi di accesso sono limitati per ogni indirizzo e ogni account, e le pagine di accesso e di password dimenticata rispondono allo stesso modo, che un indirizzo possa accedere o no.
+
+Nell'API, gli utenti privati e i provider di single sign-on sono record a sé: `/dashboard-private-user`, `/dashboard-sso` e `/dashboard-oidc`, ciascuno con permessi che portano il suo nome.
 
 ## Lista di IP consentiti
 
@@ -199,7 +216,7 @@ Per dare a una dashboard incorporata l'aspetto del tuo sito, aggiungi `?theme=li
 
 ## Inviare un link
 
-Il link pubblico apre la dashboard con i suoi valori predefiniti salvati. Per inviare un link che si apra su un certo valore, aggiungici la variabile come `?var-<name>=<value>`, come fa la barra degli indirizzi quando un visitatore sceglie un valore; più valori sono separati da virgole. Per aprirla su un intervallo di tempo o un aggiornamento automatico propri, aggiungi allo stesso modo `range` e `refresh`: `?range=1d&refresh=1m` si apre sull'ultimo giorno, aggiornandosi ogni minuto, come farebbe uno schermo a parete. `range` accetta `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` o `3mo`, e `refresh` accetta `off`, `5s`, `10s`, `30s`, `1m`, `5m` o `15m`. Prevalgono sui valori predefiniti della dashboard e sulle scelte del visitatore, che può comunque cambiarli. Per aprire la dashboard in un tema, aggiungi `theme=light`, `theme=dark` o `theme=system`, come descrive [Incorporare](#incorporare).
+Il link pubblico apre la dashboard con i suoi valori predefiniti salvati. Per inviare un link che si apra su un certo valore, aggiungici la variabile come `?var-<name>=<value>`, come fa la barra degli indirizzi quando un visitatore sceglie un valore; più valori sono separati da virgole. Per aprirla su un intervallo di tempo o un aggiornamento automatico propri, aggiungi allo stesso modo `range` e `refresh`: `?range=1d&refresh=1m` si apre sull'ultimo giorno, aggiornandosi ogni minuto, come farebbe uno schermo a parete. `range` accetta `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` o `3mo`, e `refresh` accetta `off`, `5s`, `10s`, `30s`, `1m`, `5m` o `15m`. Prevalgono sui valori predefiniti della dashboard e sulle scelte del visitatore, che può comunque cambiarli. Per aprire la dashboard in un tema, aggiungi `theme=light`, `theme=dark` o `theme=system`, come descrive [Incorporare](#incorporare). Per aprirla su un widget, aggiungi `widget=` con l'ID del widget, il suo `componentId` nel JSON della dashboard: la dashboard scorre fino a quel widget e lo contorna per un momento, dal link pubblico come dentro OneUptime. Un widget che la dashboard non ha più la apre in cima, e lo dice. I link che OneUptime crea verso un widget, come in un avviso che nomina ciò che legge una metrica, lo contengono già.
 
 ## Passaggi successivi
 

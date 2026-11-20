@@ -1,21 +1,23 @@
 import { SharedNameKind } from "Common/Types/Database/SharedNames";
 import { PluralTemplate } from "Common/Types/Translator";
+import { SHARED_NAME_PILLS } from "Common/UI/Utils/SharedNameOptions";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * WHAT A LIST SAYS OF RECORDS THAT SHARE A NAME (#9746), by kind.
  *
- * Teams (#9674), on-call policies and on-call schedules (#9742) each have a
- * name of their own in a project now, but records named alike before that
- * keep their names, and every picker draws them alike. Their list marks
- * each with a pill beside its name, says above the list how many there are
- * and how to tell them apart - what each one does, which its name cannot
- * say - and gives each its Rename.
+ * Teams (#9674), labels (#9723), on-call policies and on-call schedules
+ * (#9742) each have a name of their own in a project now, but records named
+ * alike before that keep their names, and every picker draws them alike.
+ * Their list marks each with a pill beside its name - the pill its pickers
+ * draw too (Common/UI/Utils/SharedNameOptions, #10064) - says above the list
+ * how many there are and how to tell them apart - what each one does, which
+ * its name cannot say - and gives each its Rename.
  *
  * React-free, so tests read the words without rendering the page.
  */
 export interface SharedNameWords {
-  // The pill beside a record's name.
+  // The pill beside a record's name, in its list and in every picker.
   pill: string;
   // Under the pointer on the pill: why it is there, and what to do.
   pillTooltip: string;
@@ -29,7 +31,7 @@ export interface SharedNameWords {
 
 export const SHARED_NAME_WORDS: Record<SharedNameKind, SharedNameWords> = {
   [SharedNameKind.Team]: {
-    pill: translationKey("Same name as another team"),
+    pill: SHARED_NAME_PILLS[SharedNameKind.Team],
     pillTooltip: translationKey(
       "Another team in this project has this name, so pickers can't tell them apart. Compare their members, then rename one.",
     ),
@@ -46,8 +48,32 @@ export const SHARED_NAME_WORDS: Record<SharedNameKind, SharedNameWords> = {
       "Pickers show a team by its name alone. Give this one a name no other team has.",
     ),
   },
+  /*
+   * A label's picker draws its colour beside its name, so two labels of
+   * one name may differ by colour alone, and nothing says which is which.
+   * What tells them apart is what each one is on: Used by, in its row's
+   * menu (#9856).
+   */
+  [SharedNameKind.Label]: {
+    pill: SHARED_NAME_PILLS[SharedNameKind.Label],
+    pillTooltip: translationKey(
+      "Another label in this project has this name, so pickers can't tell them apart. Compare where each one is used, then rename one.",
+    ),
+    note: {
+      one: translationKey(
+        "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.",
+      ),
+      other: translationKey(
+        "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.",
+      ),
+    },
+    rename: translationKey("Rename Label"),
+    renameDescription: translationKey(
+      "Pickers show a label by its name and color. Give this one a name no other label has.",
+    ),
+  },
   [SharedNameKind.OnCallPolicy]: {
-    pill: translationKey("Same name as another policy"),
+    pill: SHARED_NAME_PILLS[SharedNameKind.OnCallPolicy],
     pillTooltip: translationKey(
       "Another on-call policy in this project has this name, so pickers can't tell them apart. Compare their escalation rules, then rename one.",
     ),
@@ -65,7 +91,7 @@ export const SHARED_NAME_WORDS: Record<SharedNameKind, SharedNameWords> = {
     ),
   },
   [SharedNameKind.OnCallSchedule]: {
-    pill: translationKey("Same name as another schedule"),
+    pill: SHARED_NAME_PILLS[SharedNameKind.OnCallSchedule],
     pillTooltip: translationKey(
       "Another on-call schedule in this project has this name, so pickers can't tell them apart. Compare their layers, then rename one.",
     ),

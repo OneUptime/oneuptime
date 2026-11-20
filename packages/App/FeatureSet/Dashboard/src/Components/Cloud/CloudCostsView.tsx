@@ -1,5 +1,6 @@
 import Route from "Common/Types/API/Route";
 import { addUtcDays, startOfUtcDay } from "Common/Types/Cloud/CloudCost";
+import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
@@ -27,9 +28,9 @@ import CloudCostGapsCard, {
   getCloudCostGapRows,
 } from "./CloudCostGapsCard";
 import CloudCostSetupSteps, {
-  getCloudProvidersOf,
+  getCloudCostSetupProviders,
 } from "./CloudCostSetupSteps";
-import { hasCloudCosts } from "./CloudCostWords";
+import { COSTS_QUEUED_NOTE, hasCloudCosts } from "./CloudCostWords";
 import CloudDailySpendChart from "./CloudDailySpendChart";
 import { getCloudCostTiles } from "./CloudOverviewTiles";
 import CloudStatStrip from "./CloudStatStrip";
@@ -201,14 +202,25 @@ const CloudCostsView: FunctionComponent<ComponentProps> = (
   });
 
   if (!hasCloudCosts(totals.costs)) {
+    // The clouds with a step to take: none when every account is queued.
+    const setupProviders: Array<CloudProvider> = getCloudCostSetupProviders(
+      props.accounts,
+    );
+
     return (
       <Fragment>
         <Card title={NOT_READ_TITLE} description={NOT_READ_DESCRIPTION}>
           <div data-testid="cloud-costs-not-read">
-            <CloudCostSetupSteps
-              kind="costs"
-              providers={getCloudProvidersOf(props.accounts)}
-            />
+            {setupProviders.length > 0 ? (
+              <CloudCostSetupSteps kind="costs" providers={setupProviders} />
+            ) : (
+              <p
+                className="text-sm text-gray-600"
+                data-testid="cloud-costs-queued-note"
+              >
+                {translator.translateText(COSTS_QUEUED_NOTE)}
+              </p>
+            )}
           </div>
         </Card>
         <CloudCostGapsCard

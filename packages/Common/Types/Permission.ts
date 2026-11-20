@@ -4,6 +4,8 @@ import PermissionScope from "./Database/AccessControl/PermissionScope";
 import BadDataException from "./Exception/BadDataException";
 import { JSONObject } from "./JSON";
 import ObjectID from "./ObjectID";
+import ProductKey from "./Product/ProductKey";
+import { PRODUCT_TITLES } from "./Product/ProductCatalog";
 
 export enum PermissionGroup {
   Project = "Project",
@@ -29,6 +31,8 @@ export enum PermissionGroup {
   NotificationLog = "Notification Log",
   AuditLog = "Audit Log",
   Security = "Security",
+  // One product at a level: Cloud Admin, Network Viewer (#10289).
+  ProductAccess = "Product Access",
 }
 
 export interface PermissionProps {
@@ -141,6 +145,130 @@ enum Permission {
   RunbookMember = "RunbookMember",
   RunbookViewer = "RunbookViewer",
 
+  /*
+   * PRODUCT LEVELS (#10289): ONE PRODUCT, AT A LEVEL, AND NOTHING ELSE.
+   *
+   * Cloud Admin, Network Viewer, Host Member. Each does on its product's
+   * own records what a project-wide role does on every record of the
+   * project: a product's Viewer reads what Viewer reads, its Member does
+   * what Project Member does and its Admin what Project Admin does - the
+   * product's settings, connections and rules among them. Nowhere else:
+   * not another product, nor the project's settings, teams, members, API
+   * keys, SSO or billing, which are no product's records.
+   *
+   * No model names them. Types/Product/ProductLevels adds each to the lists
+   * of its product's tables, wherever the role it follows is on them, as
+   * the lists are read (Types/Database/AccessControl, AnalyticsBaseModel),
+   * so every check - the API's, a custom route's, the Dashboard's - weighs
+   * them as it weighs the role, and a product's table added later takes
+   * its levels with it. Products with roles of their own (Monitors,
+   * Incidents, Telemetry and the rest) have none here
+   * (PRODUCTS_WITHOUT_LEVELS). Given to teams, custom roles and API keys
+   * like any permission: labels, owned records and blocks narrow them.
+   *
+   * Stored by these names: never rename one.
+   */
+  SloAdmin = "SloAdmin",
+  SloMember = "SloMember",
+  SloViewer = "SloViewer",
+
+  LlmObservabilityAdmin = "LlmObservabilityAdmin",
+  LlmObservabilityViewer = "LlmObservabilityViewer",
+
+  DataObservabilityAdmin = "DataObservabilityAdmin",
+  DataObservabilityMember = "DataObservabilityMember",
+  DataObservabilityViewer = "DataObservabilityViewer",
+
+  CodeAdmin = "CodeAdmin",
+  CodeMember = "CodeMember",
+  CodeViewer = "CodeViewer",
+
+  InventoryAdmin = "InventoryAdmin",
+  InventoryViewer = "InventoryViewer",
+
+  ServiceAdmin = "ServiceAdmin",
+  ServiceMember = "ServiceMember",
+  ServiceViewer = "ServiceViewer",
+
+  DatabaseAdmin = "DatabaseAdmin",
+  DatabaseMember = "DatabaseMember",
+  DatabaseViewer = "DatabaseViewer",
+
+  QueueAdmin = "QueueAdmin",
+  QueueMember = "QueueMember",
+  QueueViewer = "QueueViewer",
+
+  RumAdmin = "RumAdmin",
+  RumMember = "RumMember",
+  RumViewer = "RumViewer",
+
+  HostAdmin = "HostAdmin",
+  HostMember = "HostMember",
+  HostViewer = "HostViewer",
+
+  KubernetesAdmin = "KubernetesAdmin",
+  KubernetesMember = "KubernetesMember",
+  KubernetesViewer = "KubernetesViewer",
+
+  DockerAdmin = "DockerAdmin",
+  DockerMember = "DockerMember",
+  DockerViewer = "DockerViewer",
+
+  DockerSwarmAdmin = "DockerSwarmAdmin",
+  DockerSwarmMember = "DockerSwarmMember",
+  DockerSwarmViewer = "DockerSwarmViewer",
+
+  PodmanAdmin = "PodmanAdmin",
+  PodmanMember = "PodmanMember",
+  PodmanViewer = "PodmanViewer",
+
+  ProxmoxAdmin = "ProxmoxAdmin",
+  ProxmoxMember = "ProxmoxMember",
+  ProxmoxViewer = "ProxmoxViewer",
+
+  OpenStackAdmin = "OpenStackAdmin",
+  OpenStackMember = "OpenStackMember",
+  OpenStackViewer = "OpenStackViewer",
+
+  VMwareAdmin = "VMwareAdmin",
+  VMwareMember = "VMwareMember",
+  VMwareViewer = "VMwareViewer",
+
+  CephAdmin = "CephAdmin",
+  CephMember = "CephMember",
+  CephViewer = "CephViewer",
+
+  StorageArrayAdmin = "StorageArrayAdmin",
+  StorageArrayMember = "StorageArrayMember",
+  StorageArrayViewer = "StorageArrayViewer",
+
+  NetworkAdmin = "NetworkAdmin",
+  NetworkMember = "NetworkMember",
+  NetworkViewer = "NetworkViewer",
+
+  IoTAdmin = "IoTAdmin",
+  IoTMember = "IoTMember",
+  IoTViewer = "IoTViewer",
+
+  CloudAdmin = "CloudAdmin",
+  CloudMember = "CloudMember",
+  CloudViewer = "CloudViewer",
+
+  AppPlatformAdmin = "AppPlatformAdmin",
+  AppPlatformMember = "AppPlatformMember",
+  AppPlatformViewer = "AppPlatformViewer",
+
+  ServerlessAdmin = "ServerlessAdmin",
+  ServerlessMember = "ServerlessMember",
+  ServerlessViewer = "ServerlessViewer",
+
+  DashboardAdmin = "DashboardAdmin",
+  DashboardMember = "DashboardMember",
+  DashboardViewer = "DashboardViewer",
+
+  FormAdmin = "FormAdmin",
+  FormViewer = "FormViewer",
+
   User = "User", //registered user. Can or cannot belong to a project.
 
   CurrentUser = "CurrentUser", // Current logged in user.
@@ -194,6 +322,25 @@ enum Permission {
   DeleteDashboardDomain = "DeleteDashboardDomain",
   EditDashboardDomain = "EditDashboardDomain",
   ReadDashboardDomain = "ReadDashboardDomain",
+
+  /*
+   * Dashboard Private Users and Single Sign-On: who signs in on the public
+   * link of a dashboard that asks its visitors to sign in (#10250).
+   */
+  CreateDashboardPrivateUser = "CreateDashboardPrivateUser",
+  DeleteDashboardPrivateUser = "DeleteDashboardPrivateUser",
+  EditDashboardPrivateUser = "EditDashboardPrivateUser",
+  ReadDashboardPrivateUser = "ReadDashboardPrivateUser",
+
+  CreateDashboardSSO = "CreateDashboardSSO",
+  DeleteDashboardSSO = "DeleteDashboardSSO",
+  EditDashboardSSO = "EditDashboardSSO",
+  ReadDashboardSSO = "ReadDashboardSSO",
+
+  CreateDashboardOIDC = "CreateDashboardOIDC",
+  DeleteDashboardOIDC = "DeleteDashboardOIDC",
+  EditDashboardOIDC = "EditDashboardOIDC",
+  ReadDashboardOIDC = "ReadDashboardOIDC",
 
   // Dashboard Playlists (dashboards shown one after another on a screen)
   CreateDashboardPlaylist = "CreateDashboardPlaylist",
@@ -290,6 +437,11 @@ enum Permission {
   CreateSecurityPlaybookRun = "CreateSecurityPlaybookRun",
   EditSecurityPlaybookRun = "EditSecurityPlaybookRun",
   ReadSecurityPlaybookRun = "ReadSecurityPlaybookRun",
+
+  // The Blocklist (the addresses the project blocks, and where each is enforced)
+  CreateSecurityBlock = "CreateSecurityBlock",
+  EditSecurityBlock = "EditSecurityBlock",
+  ReadSecurityBlock = "ReadSecurityBlock",
 
   // Data Stores: the buckets, databases, warehouses and telemetry Data Security watches
   CreateDataStore = "CreateDataStore",
@@ -512,6 +664,12 @@ enum Permission {
   DeleteTelemetrySourceMap = "DeleteTelemetrySourceMap",
   EditTelemetrySourceMap = "EditTelemetrySourceMap",
   ReadTelemetrySourceMap = "ReadTelemetrySourceMap",
+
+  // dSYMs (symbolicate an iOS app's crash and hang stacks)
+  CreateTelemetryDsym = "CreateTelemetryDsym",
+  DeleteTelemetryDsym = "DeleteTelemetryDsym",
+  EditTelemetryDsym = "EditTelemetryDsym",
+  ReadTelemetryDsym = "ReadTelemetryDsym",
 
   // Spans
   CreateTelemetryServiceTraces = "CreateTelemetryServiceTraces",
@@ -1766,6 +1924,16 @@ enum Permission {
   EditNetworkSite = "EditNetworkSite",
   ReadNetworkSite = "ReadNetworkSite",
 
+  CreateNetworkSiteOwnerTeam = "CreateNetworkSiteOwnerTeam",
+  DeleteNetworkSiteOwnerTeam = "DeleteNetworkSiteOwnerTeam",
+  EditNetworkSiteOwnerTeam = "EditNetworkSiteOwnerTeam",
+  ReadNetworkSiteOwnerTeam = "ReadNetworkSiteOwnerTeam",
+
+  CreateNetworkSiteOwnerUser = "CreateNetworkSiteOwnerUser",
+  DeleteNetworkSiteOwnerUser = "DeleteNetworkSiteOwnerUser",
+  EditNetworkSiteOwnerUser = "EditNetworkSiteOwnerUser",
+  ReadNetworkSiteOwnerUser = "ReadNetworkSiteOwnerUser",
+
   CreateNetworkSiteType = "CreateNetworkSiteType",
   DeleteNetworkSiteType = "DeleteNetworkSiteType",
   EditNetworkSiteType = "EditNetworkSiteType",
@@ -2336,6 +2504,25 @@ enum Permission {
   EditFormDomain = "EditFormDomain",
   ReadFormDomain = "ReadFormDomain",
 
+  /*
+   * Form Private Users and Single Sign-On: who signs in on the public
+   * link of a form that asks its visitors to sign in (#10249).
+   */
+  CreateFormPrivateUser = "CreateFormPrivateUser",
+  DeleteFormPrivateUser = "DeleteFormPrivateUser",
+  EditFormPrivateUser = "EditFormPrivateUser",
+  ReadFormPrivateUser = "ReadFormPrivateUser",
+
+  CreateFormSSO = "CreateFormSSO",
+  DeleteFormSSO = "DeleteFormSSO",
+  EditFormSSO = "EditFormSSO",
+  ReadFormSSO = "ReadFormSSO",
+
+  CreateFormOIDC = "CreateFormOIDC",
+  DeleteFormOIDC = "DeleteFormOIDC",
+  EditFormOIDC = "EditFormOIDC",
+  ReadFormOIDC = "ReadFormOIDC",
+
   // Incident Episode State Timeline Permissions
   CreateIncidentEpisodeStateTimeline = "CreateIncidentEpisodeStateTimeline",
   DeleteIncidentEpisodeStateTimeline = "DeleteIncidentEpisodeStateTimeline",
@@ -2579,6 +2766,267 @@ enum Permission {
   DeleteAllOperationalResources = "DeleteAllOperationalResources",
   CreateAllOperationalResources = "CreateAllOperationalResources",
 }
+
+/*
+ * EVERY PRODUCT THAT HAS LEVELS OF ITS OWN, AND THE PERMISSION OF EACH
+ * LEVEL (#10289).
+ *
+ * In the products menu's order. A product has a Member level only where
+ * Project Member changes something of it: Project Member reads AI / LLM,
+ * Inventory and Forms and changes nothing there, so their Member would be
+ * their Viewer under another name. Types/Product/ProductLevels reads this
+ * for the rule that adds the levels to the products' tables; the
+ * permissions' names and descriptions below are built from it.
+ *
+ * Here and not in Types/Product, which reads Permission: the catalog of
+ * permissions is built from it as this file loads.
+ */
+export interface ProductLevelPermissions {
+  product: ProductKey;
+  // What the product's roles are called: "Cloud" in Cloud Admin.
+  roleName: string;
+  admin: Permission;
+  member?: Permission | undefined;
+  viewer: Permission;
+}
+
+export const PRODUCT_LEVEL_PERMISSIONS: ReadonlyArray<ProductLevelPermissions> =
+  [
+    {
+      product: ProductKey.Slos,
+      roleName: "SLO",
+      admin: Permission.SloAdmin,
+      member: Permission.SloMember,
+      viewer: Permission.SloViewer,
+    },
+    {
+      product: ProductKey.Llm,
+      roleName: "LLM Observability",
+      admin: Permission.LlmObservabilityAdmin,
+      viewer: Permission.LlmObservabilityViewer,
+    },
+    {
+      product: ProductKey.DataObservability,
+      roleName: "Data Observability",
+      admin: Permission.DataObservabilityAdmin,
+      member: Permission.DataObservabilityMember,
+      viewer: Permission.DataObservabilityViewer,
+    },
+    {
+      product: ProductKey.Code,
+      roleName: "Code",
+      admin: Permission.CodeAdmin,
+      member: Permission.CodeMember,
+      viewer: Permission.CodeViewer,
+    },
+    {
+      product: ProductKey.Inventory,
+      roleName: "Inventory",
+      admin: Permission.InventoryAdmin,
+      viewer: Permission.InventoryViewer,
+    },
+    {
+      product: ProductKey.Services,
+      roleName: "Service",
+      admin: Permission.ServiceAdmin,
+      member: Permission.ServiceMember,
+      viewer: Permission.ServiceViewer,
+    },
+    {
+      product: ProductKey.Databases,
+      roleName: "Database",
+      admin: Permission.DatabaseAdmin,
+      member: Permission.DatabaseMember,
+      viewer: Permission.DatabaseViewer,
+    },
+    {
+      product: ProductKey.Queues,
+      roleName: "Queue",
+      admin: Permission.QueueAdmin,
+      member: Permission.QueueMember,
+      viewer: Permission.QueueViewer,
+    },
+    {
+      product: ProductKey.Rum,
+      roleName: "RUM",
+      admin: Permission.RumAdmin,
+      member: Permission.RumMember,
+      viewer: Permission.RumViewer,
+    },
+    {
+      product: ProductKey.Hosts,
+      roleName: "Host",
+      admin: Permission.HostAdmin,
+      member: Permission.HostMember,
+      viewer: Permission.HostViewer,
+    },
+    {
+      product: ProductKey.Kubernetes,
+      roleName: "Kubernetes",
+      admin: Permission.KubernetesAdmin,
+      member: Permission.KubernetesMember,
+      viewer: Permission.KubernetesViewer,
+    },
+    {
+      product: ProductKey.Docker,
+      roleName: "Docker",
+      admin: Permission.DockerAdmin,
+      member: Permission.DockerMember,
+      viewer: Permission.DockerViewer,
+    },
+    {
+      product: ProductKey.DockerSwarm,
+      roleName: "Docker Swarm",
+      admin: Permission.DockerSwarmAdmin,
+      member: Permission.DockerSwarmMember,
+      viewer: Permission.DockerSwarmViewer,
+    },
+    {
+      product: ProductKey.Podman,
+      roleName: "Podman",
+      admin: Permission.PodmanAdmin,
+      member: Permission.PodmanMember,
+      viewer: Permission.PodmanViewer,
+    },
+    {
+      product: ProductKey.Proxmox,
+      roleName: "Proxmox",
+      admin: Permission.ProxmoxAdmin,
+      member: Permission.ProxmoxMember,
+      viewer: Permission.ProxmoxViewer,
+    },
+    {
+      product: ProductKey.OpenStack,
+      roleName: "OpenStack",
+      admin: Permission.OpenStackAdmin,
+      member: Permission.OpenStackMember,
+      viewer: Permission.OpenStackViewer,
+    },
+    {
+      product: ProductKey.VMware,
+      roleName: "VMware",
+      admin: Permission.VMwareAdmin,
+      member: Permission.VMwareMember,
+      viewer: Permission.VMwareViewer,
+    },
+    {
+      product: ProductKey.Ceph,
+      roleName: "Ceph",
+      admin: Permission.CephAdmin,
+      member: Permission.CephMember,
+      viewer: Permission.CephViewer,
+    },
+    {
+      product: ProductKey.StorageArrays,
+      roleName: "Storage Array",
+      admin: Permission.StorageArrayAdmin,
+      member: Permission.StorageArrayMember,
+      viewer: Permission.StorageArrayViewer,
+    },
+    {
+      product: ProductKey.Network,
+      roleName: "Network",
+      admin: Permission.NetworkAdmin,
+      member: Permission.NetworkMember,
+      viewer: Permission.NetworkViewer,
+    },
+    {
+      product: ProductKey.IoT,
+      roleName: "IoT",
+      admin: Permission.IoTAdmin,
+      member: Permission.IoTMember,
+      viewer: Permission.IoTViewer,
+    },
+    {
+      product: ProductKey.Cloud,
+      roleName: "Cloud",
+      admin: Permission.CloudAdmin,
+      member: Permission.CloudMember,
+      viewer: Permission.CloudViewer,
+    },
+    {
+      product: ProductKey.AppPlatforms,
+      roleName: "App Platform",
+      admin: Permission.AppPlatformAdmin,
+      member: Permission.AppPlatformMember,
+      viewer: Permission.AppPlatformViewer,
+    },
+    {
+      product: ProductKey.Serverless,
+      roleName: "Serverless",
+      admin: Permission.ServerlessAdmin,
+      member: Permission.ServerlessMember,
+      viewer: Permission.ServerlessViewer,
+    },
+    {
+      product: ProductKey.Dashboards,
+      roleName: "Dashboard",
+      admin: Permission.DashboardAdmin,
+      member: Permission.DashboardMember,
+      viewer: Permission.DashboardViewer,
+    },
+    {
+      product: ProductKey.Forms,
+      roleName: "Form",
+      admin: Permission.FormAdmin,
+      viewer: Permission.FormViewer,
+    },
+  ];
+
+// What no product level reaches, as each level's description says it.
+const OUTSIDE_A_PRODUCT: string =
+  "Nothing outside it: no other product, and none of the project's settings, teams, members, API keys, SSO or billing.";
+
+/*
+ * Each product level's title and description, built from the table above
+ * so every product's levels read alike: what the project-wide role it
+ * follows does, on the product's records alone.
+ */
+const PRODUCT_LEVEL_PERMISSION_PROPS: Array<PermissionProps> =
+  PRODUCT_LEVEL_PERMISSIONS.flatMap(
+    (levels: ProductLevelPermissions): Array<PermissionProps> => {
+      const product: string = PRODUCT_TITLES[levels.product];
+      const below: string = levels.member
+        ? `${levels.roleName} Member`
+        : `${levels.roleName} Viewer`;
+
+      const props: Array<PermissionProps> = [
+        {
+          permission: levels.admin,
+          title: `${levels.roleName} Admin`,
+          description: `Does everything ${below} does, and also does what Project Admin does on ${product}'s records, ${product}'s settings, connections and rules among them. ${OUTSIDE_A_PRODUCT}`,
+          isAssignableToTenant: true,
+          isAccessControlPermission: false,
+          isRolePermission: false,
+          group: PermissionGroup.ProductAccess,
+        },
+      ];
+
+      if (levels.member) {
+        props.push({
+          permission: levels.member,
+          title: `${levels.roleName} Member`,
+          description: `Does everything ${levels.roleName} Viewer does, and also creates, changes and deletes ${product}'s records as Project Member does. ${product}'s settings, connections and rules take ${levels.roleName} Admin. ${OUTSIDE_A_PRODUCT}`,
+          isAssignableToTenant: true,
+          isAccessControlPermission: false,
+          isRolePermission: false,
+          group: PermissionGroup.ProductAccess,
+        });
+      }
+
+      props.push({
+        permission: levels.viewer,
+        title: `${levels.roleName} Viewer`,
+        description: `Reads ${product}'s records as Viewer reads them, and changes nothing. ${OUTSIDE_A_PRODUCT}`,
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ProductAccess,
+      });
+
+      return props;
+    },
+  );
 
 export class PermissionHelper {
   public static doesPermissionsIntersect(
@@ -3069,7 +3517,7 @@ export class PermissionHelper {
         permission: Permission.SecurityAdmin,
         title: "Security Admin",
         description:
-          "Full control over security operations: security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, response playbooks and their runs, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
+          "Full control over security operations: security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, response playbooks and their runs, the blocklist and its protected addresses, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -3079,7 +3527,7 @@ export class PermissionHelper {
         permission: Permission.SecurityMember,
         title: "Security Member",
         description:
-          "Reads security events and threat intelligence, sends security events, works security cases (opens, assigns, changes and closes them, fills in their custom fields, writes their notes, works their tasks and adds evidence), runs playbooks and approves their steps, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks, security event connections or the cases' settings, or delete security data.",
+          "Reads security events and threat intelligence, sends security events, works security cases (opens, assigns, changes and closes them, fills in their custom fields, writes their notes, works their tasks and adds evidence), runs playbooks and approves their steps, blocks addresses on the blocklist and lifts their blocks, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks, security event connections or the cases' settings, or delete security data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -3089,7 +3537,7 @@ export class PermissionHelper {
         permission: Permission.SecurityViewer,
         title: "Security Viewer",
         description:
-          "Read-only access to security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, playbooks and their runs, detection rules, threat intelligence feeds and indicators, and security event connections.",
+          "Read-only access to security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, playbooks and their runs, the blocklist, detection rules, threat intelligence feeds and indicators, and security event connections.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -3660,6 +4108,128 @@ export class PermissionHelper {
         title: "Read Dashboard Domain",
         description:
           "This permission can read Dashboard Domains of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+
+      // Dashboard Private User permissions.
+      {
+        permission: Permission.CreateDashboardPrivateUser,
+        title: "Create Dashboard Private User",
+        description:
+          "This permission can invite private users to dashboards of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteDashboardPrivateUser,
+        title: "Delete Dashboard Private User",
+        description:
+          "This permission can remove private users from dashboards of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.EditDashboardPrivateUser,
+        title: "Edit Dashboard Private User",
+        description:
+          "This permission can edit private users of dashboards of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadDashboardPrivateUser,
+        title: "Read Dashboard Private User",
+        description:
+          "This permission can read private users of dashboards of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+
+      // Dashboard SSO (SAML) permissions.
+      {
+        permission: Permission.CreateDashboardSSO,
+        title: "Create Dashboard SSO",
+        description:
+          "This permission can create Dashboard SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteDashboardSSO,
+        title: "Delete Dashboard SSO",
+        description:
+          "This permission can delete Dashboard SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.EditDashboardSSO,
+        title: "Edit Dashboard SSO",
+        description: "This permission can edit Dashboard SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadDashboardSSO,
+        title: "Read Dashboard SSO",
+        description: "This permission can read Dashboard SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+
+      // Dashboard OIDC permissions.
+      {
+        permission: Permission.CreateDashboardOIDC,
+        title: "Create Dashboard OIDC",
+        description:
+          "This permission can create Dashboard OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteDashboardOIDC,
+        title: "Delete Dashboard OIDC",
+        description:
+          "This permission can delete Dashboard OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.EditDashboardOIDC,
+        title: "Edit Dashboard OIDC",
+        description: "This permission can edit Dashboard OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadDashboardOIDC,
+        title: "Read Dashboard OIDC",
+        description: "This permission can read Dashboard OIDC in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -9199,6 +9769,38 @@ export class PermissionHelper {
         group: PermissionGroup.Security,
       },
 
+      // Blocklist Permissions
+      {
+        permission: Permission.CreateSecurityBlock,
+        title: "Create Security Block",
+        description:
+          "This permission can block IP addresses and ranges on the Blocklist of this project, except the project's protected addresses.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityBlock,
+        title: "Edit Security Block",
+        description:
+          "This permission can lift and extend the blocks on the Blocklist of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityBlock,
+        title: "Read Security Block",
+        description:
+          "This permission can read the Blocklist of this project: what is blocked, why, until when and where it is enforced.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
       // Data Store Permissions
       {
         permission: Permission.CreateDataStore,
@@ -10708,6 +11310,47 @@ export class PermissionHelper {
       },
 
       {
+        permission: Permission.CreateTelemetryDsym,
+        title: "Create Telemetry dSYM",
+        description:
+          "This permission can upload the dSYMs of this project's iOS apps.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteTelemetryDsym,
+        title: "Delete Telemetry dSYM",
+        description:
+          "This permission can delete the dSYMs of this project's iOS apps.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditTelemetryDsym,
+        title: "Edit Telemetry dSYM",
+        description:
+          "This permission can edit the dSYMs of this project's iOS apps.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadTelemetryDsym,
+        title: "Read Telemetry dSYM",
+        description:
+          "This permission can read the dSYMs of this project's iOS apps, the function symbols of each build included.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
         permission: Permission.CreateProbeOwnerTeam,
         title: "Create Probe Owner Team",
         description: "This permission can create owners for probes.",
@@ -11123,6 +11766,86 @@ export class PermissionHelper {
         description: "This permission can read Network Site of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkSiteOwnerTeam,
+        title: "Create Network Site Team Owner",
+        description:
+          "This permission can create Network Site Team Owner in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkSiteOwnerTeam,
+        title: "Delete Network Site Team Owner",
+        description:
+          "This permission can delete Network Site Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkSiteOwnerTeam,
+        title: "Edit Network Site Team Owner",
+        description:
+          "This permission can edit Network Site Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkSiteOwnerTeam,
+        title: "Read Network Site Team Owner",
+        description:
+          "This permission can read Network Site Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkSiteOwnerUser,
+        title: "Create Network Site User Owner",
+        description:
+          "This permission can create Network Site User Owner in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkSiteOwnerUser,
+        title: "Delete Network Site User Owner",
+        description:
+          "This permission can delete Network Site User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkSiteOwnerUser,
+        title: "Edit Network Site User Owner",
+        description:
+          "This permission can edit Network Site User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkSiteOwnerUser,
+        title: "Read Network Site User Owner",
+        description:
+          "This permission can read Network Site User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Monitor,
       },
@@ -18684,6 +19407,124 @@ export class PermissionHelper {
         group: PermissionGroup.Form,
       },
 
+      // Form Private User permissions.
+      {
+        permission: Permission.CreateFormPrivateUser,
+        title: "Create Form Private User",
+        description:
+          "This permission can invite private users to forms of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.DeleteFormPrivateUser,
+        title: "Delete Form Private User",
+        description:
+          "This permission can remove private users from forms of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.EditFormPrivateUser,
+        title: "Edit Form Private User",
+        description:
+          "This permission can edit private users of forms of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.ReadFormPrivateUser,
+        title: "Read Form Private User",
+        description:
+          "This permission can read private users of forms of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+
+      // Form SSO (SAML) permissions.
+      {
+        permission: Permission.CreateFormSSO,
+        title: "Create Form SSO",
+        description: "This permission can create Form SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.DeleteFormSSO,
+        title: "Delete Form SSO",
+        description: "This permission can delete Form SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.EditFormSSO,
+        title: "Edit Form SSO",
+        description: "This permission can edit Form SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.ReadFormSSO,
+        title: "Read Form SSO",
+        description: "This permission can read Form SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+
+      // Form OIDC permissions.
+      {
+        permission: Permission.CreateFormOIDC,
+        title: "Create Form OIDC",
+        description: "This permission can create Form OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.DeleteFormOIDC,
+        title: "Delete Form OIDC",
+        description: "This permission can delete Form OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.EditFormOIDC,
+        title: "Edit Form OIDC",
+        description: "This permission can edit Form OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.ReadFormOIDC,
+        title: "Read Form OIDC",
+        description: "This permission can read Form OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+
       // Incident Episode State Timeline Permissions
       {
         permission: Permission.CreateIncidentEpisodeStateTimeline,
@@ -20136,7 +20977,11 @@ export class PermissionHelper {
       },
     ];
 
-    return [...permissions, ...morePermissionProps];
+    return [
+      ...permissions,
+      ...morePermissionProps,
+      ...PRODUCT_LEVEL_PERMISSION_PROPS,
+    ];
   }
 
   public static getPermissionsByGroup(

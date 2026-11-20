@@ -87,6 +87,7 @@ import PrometheusMark from "./Marks/prometheus";
 import WhatsAppMark from "./Marks/whatsapp";
 import DockerMark from "./Marks/docker";
 import TerraformMark from "./Marks/terraform";
+import CrossplaneMark from "./Marks/crossplane";
 import ProxmoxMark from "./Marks/proxmox";
 import CephMark from "./Marks/ceph";
 import GitHubMark from "./Marks/github";
@@ -192,6 +193,7 @@ const ALL_PROVIDER_LOGO_MARKS: Readonly<
   [ProviderLogo.WhatsApp]: WhatsAppMark,
   [ProviderLogo.Docker]: DockerMark,
   [ProviderLogo.Terraform]: TerraformMark,
+  [ProviderLogo.Crossplane]: CrossplaneMark,
   [ProviderLogo.Proxmox]: ProxmoxMark,
   [ProviderLogo.Ceph]: CephMark,
   [ProviderLogo.GitHub]: GitHubMark,

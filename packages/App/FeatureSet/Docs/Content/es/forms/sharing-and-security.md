@@ -5,6 +5,7 @@ Un formulario está abierto a cualquiera que tenga su enlace, y cada envío pued
 :::cards
 - [Compartir el enlace](#compartir-el-enlace): Cópialo, ábrelo y restablécelo cuando llegue demasiado lejos.
 - [Un enlace para cada plantilla](#un-enlace-para-cada-plantilla): Un marcador por caso, un solo formulario detrás de todos.
+- [Solo quienes inician sesión](#solo-quienes-inician-sesión): Invita a las personas que pueden abrir el formulario, o deja que tu inicio de sesión único les inicie la sesión.
 - [Dominios personalizados](#dominios-personalizados): Sirve el formulario en tu propio dominio, con un certificado gratuito.
 - [Qué protege un formulario](#qué-protege-un-formulario): Cada comprobación que pasa una solicitud, en orden.
 - [Solución de problemas](#solución-de-problemas): Qué significa cada mensaje de la página del formulario, y qué hacer.
@@ -16,6 +17,7 @@ Un formulario está abierto a cualquiera que tenga su enlace, y cada envío pued
 | --- | --- |
 | **Estado** | **Acepta envíos** — si el enlace del formulario funciona. |
 | **Enlace para compartir** | Cada dirección en la que responde el formulario, cada una con **Copiar enlace**, y **Restablecer enlace**. |
+| **Quién puede abrir este formulario** | **Solo quienes inician sesión** — si solo las personas que eliges pueden abrir el formulario, una vez que inician sesión. |
 | **Después de enviar** | El **Mensaje de agradecimiento** que ven las personas cuando envían, bajo el número de lo que creó el formulario. |
 | **Más ajustes** | La **Lista de IP permitidas**, plegada hasta que la abras. |
 
@@ -28,6 +30,8 @@ La tarjeta **Enlace para compartir** enumera cada dirección en la que responde 
 - **Restablecer enlace** da al formulario un enlace nuevo, después de que lo confirmes. El enlace anterior deja de funcionar al momento y muestra el mensaje de no disponible, así que todas las personas con las que lo compartiste necesitan el nuevo. Úsalo cuando un enlace ha llegado más lejos de lo que debía. Los dominios personalizados del formulario no llevan clave, y siguen funcionando.
 
 Cualquiera que tenga el enlace puede abrir el formulario y enviarlo, sin una cuenta de OneUptime y sin iniciar sesión. Tener la sesión iniciada no cambia nada: OneUptime solo sabe quién envió por el nombre y el correo escritos en el formulario. Así que trata el enlace como un número de teléfono de tu equipo de guardia. Compártelo donde lo encontrarán las personas que deben usarlo — una página de la intranet, un runbook de soporte, un mensaje fijado en un chat — y no en un sitio web público, salvo que quieras envíos de cualquiera.
+
+Para que solo las personas que eliges abran y envíen el formulario, activa **Solo quienes inician sesión** — consulta [Solo quienes inician sesión](#solo-quienes-inician-sesión).
 
 El enlace lleva una clave aleatoria propia, no el ID del formulario. En una instalación autoalojada se sirve desde tu propio host de OneUptime, y solo funciona en la dirección que configuran `HTTP_PROTOCOL` y `HOST`: si se abre con otro nombre del servidor, o con su dirección IP, las solicitudes del formulario se rechazan como si vinieran de otro sitio web.
 
@@ -48,6 +52,20 @@ Para dejar de aceptar envíos sin eliminar el formulario, desactiva **Acepta env
 Después de un envío, la página dice "Gracias: tu respuesta se ha enviado." y da el número de lo que se creó, y luego tu **Mensaje de agradecimiento**, en Markdown. Úsalo para decir qué pasa a continuación, y adónde acudir cuando algo es urgente. Sin él, la página muestra solo el mensaje estándar.
 
 Una imagen en la descripción o el mensaje de agradecimiento del formulario se muestra a todos los que abren el enlace mientras el formulario está en **Acepta envíos**. Desactiva el formulario, o quita la imagen, y la imagen vuelve a ser privada, salvo que algo más que ve todo el mundo la siga conteniendo.
+
+## Solo quienes inician sesión
+
+Activa **Solo quienes inician sesión**, en **Quién puede abrir este formulario** de la página **Compartir** del formulario, para que solo las personas que eliges abran y envíen el formulario. Al activarlo se te pide que confirmes. Desde entonces, cada visitante encuentra primero una página de inicio de sesión, en el enlace del formulario y en cada dominio personalizado. Muestra el nombre del formulario y nada más: ni sus preguntas, ni sus plantillas, ni su logotipo, ni quién puede iniciar sesión. Una vez iniciada la sesión, el formulario indica quién la inició, con **Cerrar sesión** al lado.
+
+Abre **Usuarios privados** en el menú lateral del formulario para añadir por correo electrónico a las personas que pueden iniciar sesión. Cada una recibe por correo una invitación cuyo enlace le permite elegir una contraseña. El enlace funciona durante 24 horas, y **¿Olvidaste tu contraseña?** en la página de inicio de sesión envía uno nuevo. La tabla muestra quién está **Registrado**, qué invitación está en **Invitación enviada** y el **Último inicio de sesión** de cada uno. Quitar a alguien, o una contraseña nueva, cierra su sesión en todas partes en su siguiente solicitud.
+
+Abre **Inicio de sesión único** para que tu proveedor de identidad inicie la sesión de las personas, con SAML u OpenID Connect. Cada proveedor muestra los valores que debes pegar en tu proveedor de identidad. Quien tu proveedor de identidad deje entrar se convierte en usuario privado la primera vez que inicia sesión. Desactivar un proveedor, o eliminarlo, cierra la sesión de todos los que inició. **Requerir SSO para iniciar sesión** desactiva el inicio de sesión con contraseña: entonces todos inician sesión con inicio de sesión único, y a quien haya iniciado sesión con contraseña se le cierra en su siguiente solicitud.
+
+Una sesión dura hasta que pasa 30 días sin usarse. Sus cookies solo se envían con las solicitudes propias del formulario, así que ningún otro sitio puede abrir o enviar el formulario con ellas ni cerrar la sesión de nadie. Los intentos de inicio de sesión están limitados para cada dirección y cada cuenta, y las páginas de inicio de sesión y de contraseña olvidada responden igual tanto si una dirección puede iniciar sesión como si no.
+
+Un envío nombra solo el nombre y el correo escritos en el formulario, como en cualquier otro formulario, no el usuario privado que lo hizo. Una imagen de la descripción o del mensaje de agradecimiento del formulario sigue siendo pública en su dirección imposible de adivinar mientras el formulario acepta envíos, como en una página de estado que pide a sus visitantes iniciar sesión: así la cargan los navegadores de los usuarios privados.
+
+En OneUptime Cloud, el inicio de sesión único y **Requerir SSO para iniciar sesión** requieren el plan **Scale**. En la API, los usuarios privados y los proveedores de inicio de sesión único son registros propios: `/form-private-user`, `/form-sso` y `/form-oidc`, cada uno con permisos que llevan su nombre.
 
 ## Dominios personalizados
 
@@ -119,13 +137,14 @@ Cada solicitud pasa estas comprobaciones, en este orden:
 2. Debe estar dentro de los límites de frecuencia.
 3. El formulario debe existir, estar en **Acepta envíos** y pertenecer a un proyecto con un plan que incluya formularios.
 4. Debe venir de una dirección de la **Lista de IP permitidas**, cuando el formulario tiene una.
-5. Un envío debe superar el captcha, cuando la instancia tiene el captcha activado.
-6. Cada respuesta debe estar dentro de los límites de tamaño y encajar con su pregunta — consulta [Crear un formulario](/docs/forms/building#límites-de-tamaño).
-7. Lo que forman las respuestas y los ajustes debe poder crearse: un incidente necesita una gravedad, un evento un fin posterior a su inicio.
-8. Un envío debe caber en la cuota por hora del formulario — consulta [Límites de frecuencia](#límites-de-frecuencia).
-9. Sus archivos deben caber en la cuota por hora de archivos del formulario, justo antes de guardarse.
+5. Debe venir de uno de los usuarios privados del formulario, con la sesión iniciada, cuando el formulario está configurado como **Solo quienes inician sesión** — consulta [Solo quienes inician sesión](#solo-quienes-inician-sesión).
+6. Un envío debe superar el captcha, cuando la instancia tiene el captcha activado.
+7. Cada respuesta debe estar dentro de los límites de tamaño y encajar con su pregunta — consulta [Crear un formulario](/docs/forms/building#límites-de-tamaño).
+8. Lo que forman las respuestas y los ajustes debe poder crearse: un incidente necesita una gravedad, un evento un fin posterior a su inicio.
+9. Un envío debe caber en la cuota por hora del formulario — consulta [Límites de frecuencia](#límites-de-frecuencia).
+10. Sus archivos deben caber en la cuota por hora de archivos del formulario, justo antes de guardarse.
 
-El logotipo y el favicon de un formulario forman parte del formulario: se envían dentro de la respuesta que lo abre, en base64, solo una vez superadas las cuatro primeras comprobaciones, y nunca desde una dirección propia. Nadie puede obtenerlos sin el formulario, y ningún archivo puede obtenerse por su id a través de un formulario; los propios archivos siguen siendo privados. Un formulario muestra solo imágenes subidas en su propio proyecto: un archivo de otro proyecto se rechaza al guardar el formulario, y nunca se envía a su página.
+El logotipo y el favicon de un formulario forman parte del formulario: se envían dentro de la respuesta que lo abre, en base64, solo una vez superadas las cinco primeras comprobaciones, y nunca desde una dirección propia. Nadie puede obtenerlos sin el formulario, y ningún archivo puede obtenerse por su id a través de un formulario; los propios archivos siguen siendo privados. Un formulario muestra solo imágenes subidas en su propio proyecto: un archivo de otro proyecto se rechaza al guardar el formulario, y nunca se envía a su página.
 
 ### Lista de IP permitidas
 

@@ -115,6 +115,26 @@ export function getToolActionTitleLabel(
 }
 
 /*
+ * Why the action was not made, in the reader's language (issue #6982): a
+ * code change Auto-run held back, whose Skipped row says it under its
+ * title - "Not committed: a file changed on the branch after Ask AI read
+ * it." Null for every other row, and for an action saved before its
+ * reasons were words: it reads as it always did, its status and title.
+ */
+export function getToolActionReason(
+  action: AIChatToolAction,
+  translator: Translator,
+): DrawnActionSentence | null {
+  const words: AIActionWords | null = getKnownWords(action);
+
+  if (action.status !== AIChatToolActionStatus.Skipped || !words?.reason) {
+    return null;
+  }
+
+  return drawActionSentence(words.reason, translator, "");
+}
+
+/*
  * The line under the title, sentence by sentence, in the reader's language
  * when it can be: none when the action has no line. A code change's
  * sentences are cautions (isCaution), each drawn on a line of its own; an

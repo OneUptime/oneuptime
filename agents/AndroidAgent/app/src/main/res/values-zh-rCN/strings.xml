@@ -88,6 +88,7 @@
     <string name="log_session_title">用于故障排除的日志</string>
     <string name="log_session_request_by">%1$s 在 OneUptime 中请求获取此设备上所有应用的日志（%3$s及以上级别），持续 %2$s。</string>
     <string name="log_session_request">OneUptime 请求获取此设备上所有应用的日志（%2$s及以上级别），持续 %1$s。</string>
+    <string name="log_session_note">“%1$s”</string>
     <string name="log_session_android_prompt">随后 Android 会询问是否允许访问所有设备日志，届时也请选择允许。</string>
     <string name="log_session_allow">允许</string>
     <string name="log_session_decline">拒绝</string>

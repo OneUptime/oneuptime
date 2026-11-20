@@ -6,6 +6,7 @@ Um orçamento de ingestão limita quanta telemetria um projeto envia em um dia, 
 - [Como os orçamentos funcionam](#como-os-orçamentos-funcionam): Três níveis, contados à medida que a telemetria chega.
 - [Definir os orçamentos padrão de todos os projetos](#definir-os-orçamentos-padrão-de-todos-os-projetos): Nas configurações do Admin Dashboard.
 - [Dar a uma chave de ingestão um orçamento próprio](#dar-a-uma-chave-de-ingestão-um-orçamento-próprio): Uma parte do orçamento do projeto.
+- [Dar a uma equipe ou a um rótulo um orçamento próprio](#dar-a-uma-equipe-ou-a-um-rótulo-um-orçamento-próprio): Para os serviços da equipe ou com o rótulo.
 - [Alertar sobre um orçamento](#alertar-sobre-um-orçamento): Antes de ele se esgotar, e quando se esgota.
 :::
 
@@ -35,6 +36,7 @@ flowchart TB
 
 - **Para os orçamentos da instância e de um projeto, o Admin Dashboard.** Em uma instalação de hospedagem própria, só o administrador da instância os define. Os Proprietários do projeto e os Administradores do projeto veem os orçamentos de um projeto, mas não podem alterá-los.
 - **Para o orçamento próprio de uma chave, uma função que edite chaves de ingestão.** Proprietário do projeto ou Administrador do projeto, ou uma função personalizada com a permissão Edit Ingestion Key.
+- **Para o orçamento de uma equipe ou de um rótulo, Proprietário do projeto ou Administrador do projeto.**
 - **Para ver os orçamentos, uma função que veja o uso do projeto.** As funções que veem a página [Uso de telemetria](/docs/telemetry/usage) veem nela os orçamentos do projeto.
 
 ## Definir os orçamentos padrão de todos os projetos
@@ -94,6 +96,30 @@ Clique em **Salvar alterações**. O orçamento de uma chave não pode ser maior
 - **Os dois orçamentos contam.** A telemetria enviada com a chave conta no orçamento da chave e no do projeto, e o que se esgotar primeiro a recusa.
 - **Um orçamento de projeto reduzido também limita a chave.** Quando o orçamento do projeto é reduzido abaixo do de uma chave, a chave fica limitada ao do projeto.
 
+## Dar a uma equipe ou a um rótulo um orçamento próprio
+
+O orçamento de uma equipe ou de um rótulo também é uma parte do orçamento do projeto, para os serviços de que a equipe é proprietária ou que têm o rótulo: o serviço descontrolado de uma equipe para no orçamento da equipe, enquanto o resto do projeto continua enviando, mesmo pelo mesmo coletor e pela mesma chave de ingestão.
+
+:::steps
+### Abrir a página Uso
+
+Acesse **Configurações do projeto → Telemetria e APM → Uso**, e abra **Mais configurações** no fim da página.
+
+### Adicionar o orçamento
+
+No cartão **Orçamentos de equipes e rótulos**, clique em **Criar: Orçamento**. Escolha a equipe ou o rótulo em **Equipe ou rótulo**, e informe um número de GB por dia em **Registros (GB por dia)**. Os outros sinais ficam em **Mais campos**. Deixe um sinal vazio para que ele não tenha orçamento próprio.
+
+### Salvar o orçamento
+
+Clique em **Criar: Orçamento**. O orçamento de uma equipe ou de um rótulo não pode ser maior que o do projeto: o OneUptime o recusa e diz qual é o máximo permitido.
+:::
+
+- **O que ele conta.** Os registros, traços, métricas e perfis que os serviços da equipe, ou os serviços com o rótulo, enviam pelo OpenTelemetry (OTLP). A telemetria de hosts e de outros recursos, os eventos de segurança e os registros do Fluent Bit, do Fluentd ou do syslog contam apenas nos orçamentos do projeto e da chave.
+- **Quando se esgota, a telemetria é descartada.** A telemetria desse sinal vinda dos serviços é descartada até a redefinição, e o remetente não é avisado: ele recebeu a resposta quando a telemetria chegou. O que é descartado deixa de contar no orçamento do projeto ou da chave.
+- **Quem é avisado.** Os Proprietários do projeto recebem um e-mail quando o orçamento passa do limite de aviso, e quando ele se esgota.
+- **Só um orçamento diário.** Uma equipe ou um rótulo não tem limite de taxa.
+- **Todo orçamento conta.** A telemetria de um serviço conta nos orçamentos das equipes e dos rótulos dele, e nos da chave e do projeto, e o primeiro que se esgotar a interrompe. Quando o orçamento do projeto é reduzido abaixo do de uma equipe ou de um rótulo, este fica limitado ao do projeto.
+
 ## O que os remetentes veem
 
 | Quando | Por HTTP | Por OTLP/gRPC | O que o remetente faz |
@@ -109,6 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 - **Outros remetentes HTTP recebem JSON.** Fluent Bit, Fluentd, syslog e os outros endpoints HTTP recebem `error`, `message` e `resetsAt`, e também `retryAfterSeconds` quando é um limite de taxa que recusa.
 - **MQTT e as transmissões de nuvem não podem ser avisados.** A telemetria que chega por MQTT ou pela transmissão de um provedor de nuvem é descartada assim que o orçamento dela se esgota. Nenhum limite de taxa se aplica a ela: ela não poderia ser enviada de novo.
+- **Nem os serviços de uma equipe ou de um rótulo.** Quando o orçamento de uma equipe ou de um rótulo se esgota, a telemetria deles é aceita e depois descartada: veja [Dar a uma equipe ou a um rótulo um orçamento próprio](#dar-a-uma-equipe-ou-a-um-rótulo-um-orçamento-próprio).
 - **As recusas são contadas.** O que um orçamento esgotado recusa ou descarta é contado como descartado, e cada requisição que um limite de taxa recusa, como limitada: veja [Ver o uso e os descartes de hoje](#ver-o-uso-e-os-descartes-de-hoje).
 
 ## O aviso e a redefinição
@@ -120,20 +147,20 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## Ver o uso e os descartes de hoje
 
-Acesse **Configurações do projeto → Telemetria e APM → Uso**. Enquanto um orçamento ou um limite de taxa estiver definido para o projeto, a página abre com o cartão **Orçamentos de ingestão**, e as chaves com orçamentos próprios ficam no cartão **Orçamentos das chaves de ingestão**:
+Acesse **Configurações do projeto → Telemetria e APM → Uso**. Enquanto um orçamento ou um limite de taxa estiver definido para o projeto, a página abre com o cartão **Orçamentos de ingestão**, as chaves com orçamentos próprios ficam no cartão **Orçamentos das chaves de ingestão**, e as equipes e rótulos com orçamentos próprios no cartão **Orçamentos de equipes e rótulos hoje**:
 
 | Coluna | O que mostra |
 | --- | --- |
 | **Sinal** | O sinal a que a linha se refere. |
 | **Usado hoje** | O que foi contado desde o início do dia de orçamento, e a parcela do orçamento que isso representa. |
-| **Orçamento diário** | O orçamento em vigor, e onde ele foi definido: **Padrão da instância**, **Definido para este projeto** ou **Próprio desta chave**. |
+| **Orçamento diário** | O orçamento em vigor, e onde ele foi definido: **Padrão da instância**, **Definido para este projeto**, **Próprio desta chave**, **Próprio desta equipe** ou **Próprio deste rótulo**. |
 | **Limite de taxa** | O limite de taxa em vigor. |
 | **Descartadas** | O que foi recusado ou descartado porque o orçamento se esgotou. |
 | **Limitado** | Quantas requisições o limite de taxa recusou. |
 | **Status** | **Dentro do orçamento**, **Acima do aviso** ou **Esgotado**, **Sem orçamento diário** para um sinal com apenas um limite de taxa, e **Desconhecido** enquanto as contagens não podem ser lidas. |
 
 - **Na página de uma chave**, o cartão **Uso do orçamento de hoje** mostra o que a chave usou dos próprios orçamentos.
-- **Nos exploradores**, um banner acima dos dados de registros, traços, métricas, perfis e eventos de segurança avisa quando o orçamento desse sinal passou do aviso ou se esgotou, com **Ver orçamentos** para abrir a página Uso.
+- **Nos exploradores**, um banner acima dos dados de registros, traços, métricas, perfis e eventos de segurança avisa quando o orçamento desse sinal passou do aviso ou se esgotou, ou quando o de uma chave, de uma equipe ou de um rótulo se esgotou, com **Ver orçamentos** para abrir a página Uso.
 - **No Admin Dashboard**, a página **Orçamentos de ingestão** de um projeto mostra os mesmos números.
 
 ## Alertar sobre um orçamento
@@ -153,9 +180,13 @@ Cada ponto carrega estes atributos:
 | --- | --- |
 | `projectId` | O ID do projeto. |
 | `signal` | `logs`, `traces`, `metrics`, `profiles` ou `security-events`. |
-| `scope` | `project`, ou `ingestion-key` para o orçamento próprio de uma chave. |
+| `scope` | `project`, `ingestion-key` para o orçamento próprio de uma chave, ou `team` ou `label` para o de uma equipe ou de um rótulo. |
 | `ingestionKeyId` | O ID da chave, para o orçamento próprio de uma chave. |
 | `ingestionKeyName` | O nome da chave quando o ponto foi gravado, para o orçamento próprio de uma chave. |
+| `teamId` | O ID da equipe, para o orçamento de uma equipe. |
+| `teamName` | O nome da equipe quando o ponto foi gravado, para o orçamento de uma equipe. |
+| `labelId` | O ID do rótulo, para o orçamento de um rótulo. |
+| `labelName` | O nome do rótulo quando o ponto foi gravado, para o orçamento de um rótulo. |
 
 Para ser avisado em 90% do orçamento de registros do projeto, crie um monitor de métricas em `oneuptime.telemetry.budget.used.percent`, filtrado por `signal` `logs` e `scope` `project`, que alerte quando o máximo passar de 90:
 
@@ -168,6 +199,10 @@ Para ser avisado em 90% do orçamento de registros do projeto, crie um monitor d
 
 :::details Um coletor registra 403 nas suas exportações
 O orçamento diário do projeto ou da chave para esse sinal se esgotou, e o coletor descarta o que não consegue enviar até o orçamento ser redefinido. Veja **Usado hoje** na página Uso. Peça ao administrador da instância para aumentar o orçamento do projeto, ou envie menos: um filtro de descarte não ajuda aqui, pois remove a telemetria depois que ela é contada.
+:::
+
+:::details A telemetria de uma equipe parou de chegar, e nenhum remetente registra um erro
+O orçamento diário da equipe, ou de um rótulo dos serviços dela, se esgotou para esse sinal, e a telemetria deles é descartada até o orçamento ser redefinido. Veja **Usado hoje** no cartão **Orçamentos de equipes e rótulos hoje** da página Uso, e aumente o orçamento em **Mais configurações**.
 :::
 
 :::details Um coletor registra 429 e tenta de novo

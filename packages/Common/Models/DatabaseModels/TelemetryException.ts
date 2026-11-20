@@ -11,6 +11,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -116,6 +117,16 @@ import DatabaseServer from "./DatabaseServer";
 @Index(["projectId", "fingerprint"], {
   where: '"mergedIntoTelemetryExceptionId" IS NOT NULL',
 })
+/*
+ * What an exception group's first occurrence gives it - its type, message
+ * and stack trace, when and in which release and environment it was first
+ * and last seen, how many times - a create gives (ServerOwned.AfterCreate):
+ * ingest, which makes nearly every group and writes them with its own SQL,
+ * or a create through the API that starts a group, as the exception pages'
+ * end-to-end suite does. Ingest moves the counts and times on from there.
+ * Whether a group is resolved or archived is a person's and OneUptime's both
+ * (ServerOwned.Shared, #10052).
+ */
 export default class TelemetryException extends DatabaseBaseModel {
   @ColumnAccessControl({
     create: [
@@ -307,6 +318,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     title: "Exception Message",
     description: "Exception message that was thrown by the telemetry service",
     example: "NullPointerException: Cannot read property 'id' of null",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     nullable: true,
@@ -345,6 +357,7 @@ export default class TelemetryException extends DatabaseBaseModel {
       "Stack trace of the exception that was thrown by the telemetry service",
     example:
       "at getUserData (/app/src/services/user.js:42:15)\nat processRequest (/app/src/controllers/user.js:89:20)",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     nullable: true,
@@ -389,6 +402,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     description:
       "Type of the exception that was thrown by the telemetry service",
     example: "NullPointerException",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     nullable: true,
@@ -692,6 +706,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     title: "First Seen At",
     description: "When the earliest occurrence of this exception happened.",
     example: "2025-12-10T08:15:00.000Z",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     type: ColumnType.Date,
@@ -728,6 +743,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     title: "Last Seen At",
     description: "When the latest occurrence of this exception happened.",
     example: "2025-12-12T16:20:00.000Z",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     type: ColumnType.Date,
@@ -1095,6 +1111,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: TableColumnType.Boolean,
     defaultValue: false,
     example: false,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1134,6 +1151,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: TableColumnType.Boolean,
     defaultValue: false,
     example: false,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1186,6 +1204,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: TableColumnType.Number,
     defaultValue: 1,
     example: 42,
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     type: ColumnType.Number,
@@ -1225,6 +1244,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     description:
       "The service version / release in which this exception was first observed",
     example: "v1.2.3",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     nullable: true,
@@ -1263,6 +1283,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     description:
       "The most recent service version / release in which this exception was observed",
     example: "v1.4.0",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     nullable: true,
@@ -1301,6 +1322,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     description:
       "Deployment environment from deployment.environment resource attribute",
     example: "production",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     nullable: true,
@@ -1594,6 +1616,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     required: false,
     type: TableColumnType.Date,
     example: "2026-01-01T00:00:00.000Z",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -1635,6 +1658,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     example: "v1.4.0",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     nullable: true,

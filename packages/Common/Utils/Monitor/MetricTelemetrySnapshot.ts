@@ -2,6 +2,7 @@ import Dictionary from "../../Types/Dictionary";
 import JSONFunctions from "../../Types/JSONFunctions";
 import MetricQueryConfigData from "../../Types/Metrics/MetricQueryConfigData";
 import MetricMonitorResponse from "../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import { MonitorStepMetricMonitorUtil } from "../../Types/Monitor/MonitorStepMetricMonitor";
 import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import MetricQueryServices from "../Metrics/MetricQueryServices";
@@ -97,6 +98,29 @@ export default class MetricTelemetrySnapshot {
       ...(scopes ? { metricQueryScopes: scopes } : {}),
       ...(serviceIds.length > 0 ? { metricServiceIds: serviceIds } : {}),
     };
+  }
+
+  /*
+   * The PromQL expression a snapshot's check evaluated, when a Metrics
+   * monitor written in PromQL opened the event (issue #10227): its one
+   * query is the expression (MonitorStepMetricMonitorUtil
+   * .getPromQLViewConfig), and names no metric, so the event's card charts
+   * the expression - for the one series that opened it. Null for any
+   * other snapshot.
+   */
+  public static getPromQLQuery(
+    telemetryQuery: TelemetryQuery | null | undefined,
+  ): string | null {
+    if (
+      !telemetryQuery ||
+      telemetryQuery.telemetryType !== TelemetryType.Metric
+    ) {
+      return null;
+    }
+
+    return MonitorStepMetricMonitorUtil.getPromQLQueryOfViewConfig(
+      telemetryQuery.metricViewData,
+    );
   }
 
   /*

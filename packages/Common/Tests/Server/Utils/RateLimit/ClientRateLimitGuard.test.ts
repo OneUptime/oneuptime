@@ -77,6 +77,10 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "wrong two factor codes per account, wherever they come from",
   "packages/Common/Server/Utils/EmailChange/EmailChangeConfirmation.ts":
     "changes of email address per signed-in account, and per new address, an hour (#9821)",
+  "packages/Common/Server/Utils/Reauthentication/Reauthentication.ts":
+    "wrong attempts to confirm it's you per signed-in session (#10155); its attempts per person and client are counted by IdentityRateLimit",
+  "packages/Common/Server/Utils/Reauthentication/SignedOutEmail.ts":
+    "emails about sessions signed out for getting Confirm It's You wrong, per account and day (#10218), so nobody can fill an owner's inbox with them",
   "packages/Common/Server/Utils/Telemetry/ChangeDetection/TelemetryChangeDetector.ts":
     "deploys and rollouts recorded per service or workload and hour",
   "packages/Common/Server/Utils/CloudConnection/LiveRead/CloudLiveReadRateLimit.ts":
@@ -104,6 +108,8 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "records the address of a sign-in and hands it to the captcha check; its attempts are counted by IdentityRateLimit",
   "packages/App/FeatureSet/Identity/API/StatusPageAuthentication.ts":
     "records the address of a status page sign-in; its attempts are counted by IdentityRateLimit",
+  "packages/App/FeatureSet/Identity/API/SsoSignInLinks.ts":
+    "hands the address to the captcha check; its requests are counted by PublicMessageRateLimit, per caller and per address",
   "packages/App/FeatureSet/Identity/API/SSO.ts":
     "records the address of a single sign-on",
   "packages/App/FeatureSet/Identity/API/GlobalSSO.ts":
@@ -118,6 +124,20 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "records the address of a status page single sign-on",
   "packages/App/FeatureSet/Identity/API/StatusPageOIDC.ts":
     "records the address of a status page single sign-on",
+  "packages/App/FeatureSet/Identity/API/DashboardPrivateUserAuthentication.ts":
+    "records the address of a dashboard private user's sign-in (#10250); its attempts are counted by IdentityRateLimit, and its password resets by PublicMessageRateLimit",
+  "packages/App/FeatureSet/Identity/API/DashboardSSO.ts":
+    "records the address of a dashboard single sign-on",
+  "packages/App/FeatureSet/Identity/API/DashboardOIDC.ts":
+    "records the address of a dashboard single sign-on",
+  "packages/App/FeatureSet/Identity/API/FormPrivateUserAuthentication.ts":
+    "records the address of a form private user's sign-in (#10249); its attempts are counted by IdentityRateLimit, and its password resets by PublicMessageRateLimit",
+  "packages/App/FeatureSet/Identity/API/FormSSO.ts":
+    "records the address of a form single sign-on",
+  "packages/App/FeatureSet/Identity/API/FormOIDC.ts":
+    "records the address of a form single sign-on",
+  "packages/App/FeatureSet/Identity/Utils/FormSignIn.ts":
+    "holds a form's sign-in to the form's IP allowlist, as every public form route is held",
   "packages/App/FeatureSet/Notification/API/Telegram.ts":
     "hands the address to VerificationCodeRateLimit.consume, which counts through ClientRateLimitCounter",
   "packages/App/FeatureSet/Runbook/API/RunbookWebhook.ts":
@@ -126,6 +146,8 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "records the address of a sign-in from Vercel Marketplace",
   "packages/Common/Server/API/FormAPI.ts":
     "checks the form's IP allowlist; its requests are counted by FormRateLimit",
+  "packages/Common/Server/API/UserAPI.ts":
+    "hands the address of a session confirming it's its person's to Utils/Reauthentication, whose attempts are counted by IdentityRateLimit (#10155)",
   "packages/App/FeatureSet/Frontend/Index.ts":
     "checks a form's IP allowlist before its own domain's page is titled with the form's name",
   "packages/Common/Server/API/TelemetryAPI.ts":

@@ -182,7 +182,9 @@ SDK-detektorerna stavar plattformen `azure.app_service`, med punkt; OneUptime sk
 
 **Nätverk:** App Service når internet direkt om inte **VNet integration** med **Route All** är påslaget. Då behöver VNet:et en NAT-gateway, eller en väg till en brandvägg som tillåter TCP 443 till OneUptime-värden.
 
-**Vad appens sida visar:** begäranden, felfrekvens och latens kommer från appens spår, så en app som bara skickar loggar eller mätvärden visar **Inga spår mottagna** där, och dess **Konfigurationskontroll** säger vad som ska läggas till. App Service ger inte en app egen CPU eller eget minne, och dess rutor för CPU och minne säger det. Anslut prenumerationen under **Moln → Anslut**, så får appens **Översikt** ett avsnitt **Azure Monitor**: webbplatsens begäranden, serverfel, svarstid, CPU-tid och minne, så som Azure mäter dem, oavsett vad appen skickar.
+**Vad appens sida visar:** begäranden, felfrekvens och latens kommer från appens spår, så en app som bara skickar loggar eller mätvärden visar **Inga spår mottagna** där, och dess **Konfigurationskontroll** säger vad som ska läggas till. App Service ger inte en app egen CPU eller eget minne, och dess rutor för CPU och minne säger det. Anslut prenumerationen under **Moln → Anslut**, så får appens **Översikt** ett avsnitt **Azure Monitor**: webbplatsens begäranden, server- och klientfel, svarstid, CPU-tid och minne, så som Azure mäter dem, oavsett vad appen skickar. Dess flik **Instanser** listar sedan de instanser som Azure kör den på, och dess flik **Revisioner** de distributioner som Azure sparar.
+
+Appens flik **Inställning** ger de här inställningarna som Azure Cloud Shell-kommandon för .NET, Java, Node.js eller Python, med appens eget namn, resursgrupp och prenumeration i varje kommando. För webbplatsens egna konsol-, HTTP- och plattformsloggar väljer du också **Strömma mätvärden och loggar** på prenumerationens rad under **Moln → Anslut**: de visas på appens flik **Loggar**, under **Från Azures diagnostikinställningar**.
 
 ## Azure Container Instances
 
@@ -244,7 +246,11 @@ App Service-detektorerna för Node.js och .NET sätter inte `cloud.account.id`. 
 :::
 
 :::details En App Service-app visar inga begäranden eller instanser
-Begäranden, felfrekvens och latens kommer från spår, så en app som bara skickar loggar eller mätvärden har inga: dess **Konfigurationskontroll** säger vad som ska läggas till. Instanser kommer från `azure.app_service.instance.id` eller `service.instance.id`, som Azure-detektorerna sätter: utan något av dem visar rutan **Instanser** värdet **Ej rapporterat**. För att se webbplatsens begäranden oavsett vad appen skickar ansluter du prenumerationen: appens sida får ett avsnitt **Azure Monitor**.
+Begäranden, felfrekvens och latens kommer från spår, så en app som bara skickar loggar eller mätvärden har inga: dess **Konfigurationskontroll** säger vad som ska läggas till, och dess flik **Inställning** hur. Instanser kommer från `azure.app_service.instance.id` eller `service.instance.id`, som Azure-detektorerna sätter: utan något av dem visar rutan **Instanser** värdet **Ej rapporterat** tills prenumerationen är ansluten, och räknar sedan de instanser som Azure kör. För att se webbplatsens begäranden oavsett vad appen skickar ansluter du prenumerationen: appens sida får ett avsnitt **Azure Monitor**.
+:::
+
+:::details En App Service-app har inga siffror från Azure Monitor
+Raden **Azure Monitor-anslutning** i dess **Konfigurationskontroll** säger varför. OneUptime knyter appen till dess webbplats via `cloud.resource_id`, som App Service-detektorerna sätter, annars via dess `service.name` i den prenumeration som `cloud.account.id` nämner: ge appen samma namn som webbplatsen, eller lägg till `cloud.resource_id`. En Azure-anslutning under **Moln → Anslut** måste läsa den prenumerationen, med rollen Monitoring Reader på den. En distributionsplats är en egen resurs, som OneUptime inte läser ännu.
 :::
 
 :::details En ändrad Container Instances-variabel har ingen effekt

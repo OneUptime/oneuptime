@@ -5,6 +5,7 @@ import {
   CloudLiveReadTarget,
 } from "../../../../Server/Utils/CloudConnection/LiveRead/CloudLiveReadTypes";
 import { DataSourceHttpRequest } from "../../../../Server/Utils/DataSource/HttpFetch";
+import { getAwsExternalIdForProject } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import {
   CloudCatalogProvider,
@@ -294,6 +295,26 @@ export function assumeRoleAnswer(account: string): FakeResponse {
   return {
     status: 200,
     body: `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><AssumedRoleUser><Arn>arn:aws:sts::${account}:assumed-role/OneUptimeReadOnly/x</Arn><AssumedRoleId>AROA:x</AssumedRoleId></AssumedRoleUser><Credentials><AccessKeyId>ASIA${account}ROLE</AccessKeyId><SecretAccessKey>assumed-secret-${account}</SecretAccessKey><SessionToken>session-token-${account}</SessionToken><Expiration>2099-01-01T00:00:00Z</Expiration></Credentials></AssumeRoleResult></AssumeRoleResponse>`,
+  };
+}
+
+/*
+ * STS AssumeRole as a role the setup command made answers it: a session
+ * for the external id of the project it was made for (assumeRoleAnswer),
+ * and AccessDenied for any other - OneUptime's check that the role
+ * requires it (AwsSts.probeRoleExternalId) among them.
+ */
+export function assumeRoleTrusting(projectId: string): AwsLiveHandler {
+  return (call: AwsLiveCall): FakeResponse => {
+    if (call.form.get("ExternalId") !== getAwsExternalIdForProject(projectId)) {
+      return awsXmlError(
+        403,
+        "AccessDenied",
+        "User is not authorized to perform: sts:AssumeRole",
+      );
+    }
+
+    return assumeRoleAnswer(call.form.get("RoleArn")!.split(":")[4]!);
   };
 }
 

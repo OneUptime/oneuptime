@@ -255,3 +255,94 @@ describe("a case's members by email (SecurityConnectedRecords.resolve)", () => {
     expect(withheldIn).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * THE ADDRESS INVITED, NOT THE ONE THEIR ACCOUNT MOVED TO (#10175).
+ * Someone only invited is searched for, and matched, by the address the
+ * project invited: an event that names the address their account has
+ * moved to since connects nobody, so it cannot tell the project whose
+ * address that is.
+ */
+describe("someone only invited whose account moved: by the address invited", () => {
+  const MOVED_ID: string = "99340000-3333-4000-8000-0000000000d4";
+  const INVITED_AT: string = "dana.old@acme.example";
+  const MOVED_TO: string = "dana.new@elsewhere.example";
+
+  function moved(): User {
+    const user: User = new User(new ObjectID(MOVED_ID));
+    user.name = new Name("Dana Account");
+    user.email = new Email(MOVED_TO);
+    return user;
+  }
+
+  beforeEach(() => {
+    withheldIn.mockImplementation((async (): Promise<
+      Map<string, WithheldProfile>
+    > => {
+      return new Map<string, WithheldProfile>([
+        [MOVED_ID, { inviteeName: null, inviteeEmail: INVITED_AT }],
+      ]);
+    }) as never);
+  });
+
+  test("their Security card names them, and searches, by the address invited", async () => {
+    jest
+      .spyOn(TeamMemberService, "findOneBy")
+      .mockResolvedValue({ userId: new ObjectID(MOVED_ID) } as never);
+    jest.spyOn(UserService, "findOneById").mockResolvedValue(moved() as never);
+
+    const identity: ResourceSecurityIdentity | null =
+      await ResourceSecurity.readIdentity({
+        projectId: PROJECT_ID,
+        kind: SecurityConnectionKind.User,
+        id: new ObjectID(MOVED_ID),
+        props: CALLER,
+      });
+
+    expect(identity?.name).toBe(INVITED_AT);
+    expect(identity?.names).toEqual([INVITED_AT]);
+    expect(identity?.entity).toEqual({
+      type: SecurityEntityType.User,
+      value: INVITED_AT,
+    });
+    expect(JSON.stringify(identity)).not.toContain(MOVED_TO);
+    expect(JSON.stringify(identity)).not.toContain("Dana Account");
+  });
+
+  test("an event that names the address their account moved to connects nobody", async () => {
+    for (const service of [
+      HostService,
+      DockerHostService,
+      PodmanHostService,
+      KubernetesClusterService,
+      OpenStackCloudService,
+      NetworkDeviceService,
+      ServiceService,
+      MonitorService,
+      CloudResourceService,
+      ServerlessFunctionService,
+    ]) {
+      jest.spyOn(service, "findBy").mockResolvedValue([] as never);
+    }
+
+    // OneUptime finds the account by the address the event names.
+    jest.spyOn(UserService, "findBy").mockResolvedValue([moved()] as never);
+    jest
+      .spyOn(TeamMemberService, "findBy")
+      .mockResolvedValue([{ userId: new ObjectID(MOVED_ID) }] as never);
+
+    const result: SecurityConnectedRecordsResult =
+      await SecurityConnectedRecords.resolve({
+        projectId: PROJECT_ID,
+        entities: [{ type: SecurityEntityType.User, value: MOVED_TO }],
+        props: CALLER,
+      });
+
+    expect(
+      result.records.filter((record: SecurityConnectedRecord): boolean => {
+        return record.kind === SecurityConnectionKind.User;
+      }),
+    ).toEqual([]);
+    expect(JSON.stringify(result)).not.toContain("Dana Account");
+  });
+});

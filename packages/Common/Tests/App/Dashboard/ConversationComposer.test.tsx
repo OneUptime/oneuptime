@@ -9,6 +9,7 @@ import {
 } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { LAYERED_POPOVER_CLASS_NAME } from "../../../UI/Components/Tooltip/LayeredPopover";
 import ConversationComposer, {
   ComponentProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationConversation/ConversationComposer";
@@ -431,17 +432,22 @@ describe("ConversationComposer — what OneUptime AI may do", () => {
     },
   );
 
-  test("the menu opens from the picker's left edge, inside the card", () => {
+  test("the menu opens from the picker's start edge, over the card", () => {
     render(<Harness />);
 
     fireEvent.click(screen.getByTitle("Choose what the AI is allowed to do"));
 
     /*
-     * The picker is the first thing in the box. Lined up on its right edge,
-     * the 18rem menu opened some 150px past the card's left edge.
+     * The picker is the first thing in the box. Lined up on its end, the
+     * 18rem menu opened some 150px past the card's start. It is drawn on the
+     * tooltip layer now, hung from the picker's start (#9910).
      */
-    expect(screen.getByRole("menu")).toHaveClass("left-2");
-    expect(screen.getByRole("menu")).not.toHaveClass("right-2");
+    expect(
+      screen
+        .getByRole("menu")
+        .closest(`.${LAYERED_POPOVER_CLASS_NAME}`)
+        ?.getAttribute("data-popper-placement"),
+    ).toMatch(/-start$/);
   });
 
   test("on a phone the caption takes the row under the picker and Send", () => {

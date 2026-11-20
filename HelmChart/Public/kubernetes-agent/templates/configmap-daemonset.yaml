@@ -4,6 +4,18 @@
   only parts gated on pod-log collection. Everything else here is metrics.
 */}}
 {{- $wantLogs := eq (include "kubernetes-agent.daemonSetLogsEnabled" .) "true" }}
+{{- /*
+  The types the renamed components go by on the collector this renders for:
+  kubelet_stats, host_metrics, file_log, k8s_attributes, resource_detection
+  and otlp_http, or the old types on a collector from before the rename
+  (kubernetes-agent.componentType).
+*/}}
+{{- $kubeletStats := include "kubernetes-agent.componentType" (dict "root" . "type" "kubelet_stats") }}
+{{- $hostMetrics := include "kubernetes-agent.componentType" (dict "root" . "type" "host_metrics") }}
+{{- $fileLog := include "kubernetes-agent.componentType" (dict "root" . "type" "file_log") }}
+{{- $k8sAttributes := include "kubernetes-agent.componentType" (dict "root" . "type" "k8s_attributes") }}
+{{- $resourceDetection := include "kubernetes-agent.componentType" (dict "root" . "type" "resource_detection") }}
+{{- $otlpHttp := include "kubernetes-agent.componentType" (dict "root" . "type" "otlp_http") }}
 {{- if eq (include "kubernetes-agent.daemonSetEnabled" .) "true" }}
 apiVersion: v1
 kind: ConfigMap
@@ -20,7 +32,7 @@ data:
 
     receivers:
       # Collect node, pod, and container resource metrics from kubelet
-      kubeletstats:
+      {{ $kubeletStats }}:
         collection_interval: {{ .Values.collectionInterval }}
         auth_type: serviceAccount
         endpoint: "https://${env:NODE_IP}:10250"
@@ -143,7 +155,7 @@ data:
       # queue depth, filesystem inode usage, NIC error counters, load
       # average, paging stats. Reads /proc and /sys directly (mounted
       # under /host).
-      hostmetrics:
+      {{ $hostMetrics }}:
         collection_interval: {{ .Values.hostMetrics.collectionInterval }}
         root_path: /host
         scrapers:
@@ -178,7 +190,7 @@ data:
       # Kubernetes API server audit log. Self-managed clusters only;
       # managed K8s (EKS / GKE / AKS / DOKS) routes audit logs to the
       # cloud provider's sink instead of writing them to a file.
-      filelog/audit:
+      {{ $fileLog }}/audit:
         include:
           {{- range .Values.auditLogs.paths }}
           - {{ . | quote }}
@@ -217,7 +229,7 @@ data:
       {{- $podLogExclude := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "exclude" "scope" "podLogs") | fromJsonArray }}
       {{- $openStack := (.Values.logs).openStack | default dict }}
       {{- $openStackCloud := $openStack.cloudName | default "" }}
-      filelog:
+      {{ $fileLog }}:
         include:
           {{- if $podLogInclude }}
           {{- range $podLogInclude }}
@@ -502,33 +514,52 @@ data:
     processors:
       {{- if .Values.kubeletstats.volumeMetrics.enabled }}
       # The volume series nobody reads, dropped before they leave the node
-      # (issue #9644). The volume group reports every volume a pod mounts,
-      # five series each, on every pod: its service account token, and its
-      # configMap, secret and downwardAPI volumes. Those hold a few small
-      # files on a memory-backed filesystem, so their capacity says nothing
-      # about any disk, and they were most of the group's series. Kept: a
-      # claim's volume (k8s.persistentvolumeclaim.name), an emptyDir and a
-      # hostPath, which fill a node's disk, and every volume this cannot
-      # name, among them a generic ephemeral volume's claim: the receiver
-      # labels no `ephemeral:` volume, and OneUptime files it under the claim
-      # its pod made, `<pod>-<volume>`.
+      # (issues #9644, #9842). The volume group reports every volume a pod
+      # mounts, five series each, on every pod: its service account token,
+      # and its configMap, secret and downwardAPI volumes. Those hold a few
+      # small files on a memory-backed filesystem, so their capacity says
+      # nothing about any disk, and they were most of the group's series.
+      # Kept: a claim's volume (k8s.persistentvolumeclaim.name), an emptyDir
+      # and a hostPath, which fill a node's disk, and every volume this
+      # cannot name, among them a generic ephemeral volume's claim, which
+      # OneUptime files under the claim its pod made, `<pod>-<volume>`.
       #
       # The receiver gives a volume k8s.volume.type from its pod's spec
       # (extra_metadata_labels above) for configMap, secret, downwardAPI,
-      # emptyDir, hostPath and persistentVolumeClaim volumes, and for no
-      # projected one. So a projected token is told by its name: the
-      # service account token Kubernetes mounts in every pod
-      # (kube-api-access-<suffix>), and the tokens the EKS (IRSA, Pod
-      # Identity), Azure Workload Identity, Istio and Linkerd webhooks add.
-      # A projected volume of any other name is still sent.
+      # emptyDir, hostPath and persistentVolumeClaim volumes. It gives a
+      # projected or an `ephemeral:` volume none: collector 0.165.0 has no
+      # case for either in its setResourcesFromVolume, and
+      # opentelemetry-collector-contrib#52198 asks for `projected` and
+      # `ephemeral`. So:
+      #   - a volume typed `projected` is dropped by its type, whatever it is
+      #     called, once the collector names it;
+      #   - until then a projected token is told by its name: the service
+      #     account token Kubernetes mounts in every pod
+      #     (kube-api-access-<suffix>), and the tokens the EKS (IRSA, Pod
+      #     Identity), Azure Workload Identity, Istio and Linkerd webhooks
+      #     add. On such a collector a projected volume of any other name is
+      #     still sent;
+      #   - a volume typed `ephemeral` is a claim's, and is kept.
+      #
+      # Twice, once for each name a volume can go by (#10055): the receiver
+      # names it k8s.volume.name and k8s.volume.type, and semantic
+      # conventions now name them k8s.pod.volume.name and k8s.pod.volume.type
+      # (semantic-conventions#4272), which the receiver is to follow,
+      # perhaps sending both names for a while. A volume of either name, or
+      # both, is dropped once, and kept by the same rules; it counts as typed
+      # when either name types it, so a token's name drops only a volume no
+      # name types.
       #
       # The same OTTL runs on collector 0.96.0, which --reuse-values keeps.
-      # tests/volume-series-filter_test.yaml pins it.
+      # tests/volume-series-filter_test.yaml pins it, and
+      # Tests/Ops/agent-volume-series-behaviour.sh runs it, on volumes named
+      # both ways.
       filter/volume-series:
         error_mode: ignore
         metrics:
           metric:
-            - 'resource.attributes["k8s.volume.name"] != nil and resource.attributes["k8s.persistentvolumeclaim.name"] == nil and (resource.attributes["k8s.volume.type"] == "configMap" or resource.attributes["k8s.volume.type"] == "secret" or resource.attributes["k8s.volume.type"] == "downwardAPI" or (resource.attributes["k8s.volume.type"] == nil and IsMatch(resource.attributes["k8s.volume.name"], "^(kube-api-access-[a-z0-9]+|aws-iam-token|eks-pod-identity-token|azure-identity-token|istio-token|linkerd-identity-token)$")))'
+            - 'resource.attributes["k8s.volume.name"] != nil and resource.attributes["k8s.persistentvolumeclaim.name"] == nil and (resource.attributes["k8s.volume.type"] == "configMap" or resource.attributes["k8s.volume.type"] == "secret" or resource.attributes["k8s.volume.type"] == "downwardAPI" or resource.attributes["k8s.volume.type"] == "projected" or (resource.attributes["k8s.volume.type"] == nil and resource.attributes["k8s.pod.volume.type"] == nil and IsMatch(resource.attributes["k8s.volume.name"], "^(kube-api-access-[a-z0-9]+|aws-iam-token|eks-pod-identity-token|azure-identity-token|istio-token|linkerd-identity-token)$")))'
+            - 'resource.attributes["k8s.pod.volume.name"] != nil and resource.attributes["k8s.persistentvolumeclaim.name"] == nil and (resource.attributes["k8s.pod.volume.type"] == "configMap" or resource.attributes["k8s.pod.volume.type"] == "secret" or resource.attributes["k8s.pod.volume.type"] == "downwardAPI" or resource.attributes["k8s.pod.volume.type"] == "projected" or (resource.attributes["k8s.pod.volume.type"] == nil and resource.attributes["k8s.volume.type"] == nil and IsMatch(resource.attributes["k8s.pod.volume.name"], "^(kube-api-access-[a-z0-9]+|aws-iam-token|eks-pod-identity-token|azure-identity-token|istio-token|linkerd-identity-token)$")))'
       {{- end }}
 
       # kubelet CPU under the names OneUptime reads. The kubeletstats
@@ -588,7 +619,7 @@ data:
               - delete_key(attributes, "oneuptime.k8s.pod_level")
 
       # Enrich with K8s metadata
-      k8sattributes:
+      {{ $k8sAttributes }}:
         auth_type: serviceAccount
         extract:
           metadata:
@@ -700,7 +731,7 @@ data:
         {{- include "kubernetes-agent.memoryLimiter" (.Values.logs.resources.limits.memory | default "512Mi") | nindent 8 }}
 
     exporters:
-      otlphttp:
+      {{ $otlpHttp }}:
         endpoint: "{{ .Values.oneuptime.url }}/otlp"
         headers:
           x-oneuptime-token: "${env:ONEUPTIME_API_KEY}"
@@ -733,12 +764,12 @@ data:
       pipelines:
         metrics:
           receivers:
-            - kubeletstats
+            - {{ $kubeletStats }}
             {{- if .Values.cadvisor.enabled }}
             - prometheus/cadvisor
             {{- end }}
             {{- if eq (include "kubernetes-agent.hostMetricsEnabled" .) "true" }}
-            - hostmetrics
+            - {{ $hostMetrics }}
             {{- end }}
           processors:
             - memory_limiter
@@ -751,7 +782,7 @@ data:
             - transform/cpu-utilization
             # Around k8sattributes: pod-level telemetry stays pod-level.
             - transform/pod-level-mark
-            - k8sattributes
+            - {{ $k8sAttributes }}
             - transform/pod-level-unmark
             {{- if eq (include "kubernetes-agent.metricFiltersEnabled" .) "true" }}
             # After k8sattributes so namespace conditions can match; before
@@ -760,22 +791,22 @@ data:
             {{- end }}
             - resource
             {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
-            - resourcedetection/openshift
+            - {{ $resourceDetection }}/openshift
             {{- end }}
             - transform
             - batch
           exporters:
-            - otlphttp
+            - {{ $otlpHttp }}
         {{- if $wantLogs }}
         logs:
           receivers:
-            - filelog
+            - {{ $fileLog }}
             {{- if .Values.auditLogs.enabled }}
-            - filelog/audit
+            - {{ $fileLog }}/audit
             {{- end }}
           processors:
             - memory_limiter
-            - k8sattributes
+            - {{ $k8sAttributes }}
             {{- if eq (include "kubernetes-agent.logFiltersEnabled" .) "true" }}
             # Severity is set by the receiver's operator chain above, so the
             # filter sees a real severity_number by the time it runs here.
@@ -783,11 +814,11 @@ data:
             {{- end }}
             - resource
             {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
-            - resourcedetection/openshift
+            - {{ $resourceDetection }}/openshift
             {{- end }}
             - transform
             - batch
           exporters:
-            - otlphttp
+            - {{ $otlpHttp }}
         {{- end }}
 {{- end }}

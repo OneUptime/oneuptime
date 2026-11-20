@@ -1,3 +1,5 @@
+import { JSONObject } from "../JSON";
+import { MetricOutputReaders } from "../Metrics/MetricOutputReaders";
 import SecuritySeverity from "../SecuritySeverity";
 import ComplianceFramework from "./ComplianceFramework";
 import { DataSecurityResponseAction } from "./DataSecurityResponseAction";
@@ -33,6 +35,7 @@ export const DATA_SECURITY_API_ROUTES: {
   fixIssueWithAi: (issueId: string) => string;
   responseActions: (dataStoreId: string) => string;
   respond: (dataStoreId: string) => string;
+  aiInput: string;
 } = {
   overview: "/data-security/overview",
   compliance: "/data-security/compliance",
@@ -79,6 +82,12 @@ export const DATA_SECURITY_API_ROUTES: {
   respond: (dataStoreId: string): string => {
     return `/data-store/${dataStoreId}/respond`;
   },
+  /*
+   * What OneUptime AI sees (#10365): the model each feature runs on, and -
+   * with { withExample: true } - the exact input one of the project's issues
+   * would send. { withExample?, issueId? }.
+   */
+  aiInput: "/data-security/ai-input",
 };
 
 export interface DataSecurityOverviewIssue {
@@ -255,7 +264,8 @@ export interface DataSecurityScrubResult {
  * the new data points of every metric of the service whose name has the data
  * type's shape - a metric pipeline Drop rule. That loses them for good, so it
  * is an action of its own, asked for deliberately, after the page has said
- * what it drops and which monitors and dashboards that leaves without data.
+ * what it drops and which monitors, dashboards, SLOs and recording rules
+ * that leaves without data (#9946).
  */
 
 // Why the metrics named with a finding's data cannot be dropped by a rule.
@@ -271,10 +281,33 @@ export enum DataSecurityDropMetricUnavailableReason {
   NoService = "NoService",
 }
 
-// A monitor or a dashboard that reads a metric the drop would empty.
+// A dashboard's widget that reads a metric the drop would empty.
+export interface DataSecurityMetricUserWidget {
+  // The id the board draws it under: a link opens the dashboard at it (#10084).
+  id: string;
+  // Its title, or "" when it has none.
+  title: string;
+  // Its componentType ("chart"), which names it when it has no title.
+  type: string;
+}
+
+/*
+ * A monitor, a dashboard, an SLO or a metric recording rule that reads a
+ * metric the drop would empty.
+ */
 export interface DataSecurityMetricUser {
   id: string;
   name: string;
+  // A dashboard's: the widgets on it that read those metrics.
+  widgets?: Array<DataSecurityMetricUserWidget> | undefined;
+  // A recording rule's: the metric it writes, which finds it in its list.
+  outputMetricName?: string | undefined;
+  /*
+   * A recording rule's: what reads the metric it writes, which no longer
+   * includes those metrics either - and on down the chain (#10085). None
+   * when nothing does.
+   */
+  outputReaders?: MetricOutputReaders | undefined;
 }
 
 export interface DataSecurityDropMetricImpact {
@@ -294,14 +327,31 @@ export interface DataSecurityDropMetricImpact {
   isMetricsMatchedCapped: boolean;
   metricsCounted: boolean;
   /*
-   * The monitors and dashboards that read a metric whose name the rule
-   * drops (of that service, or of every service): they get no new data.
-   * Only those the reader may read; Checked false when they may read none.
+   * What reads a metric whose name the rule drops, of that service (or of
+   * every service), and so gets no new data from it (#9946): monitors,
+   * dashboards (with the widgets on them that read it), Metric SLOs of that
+   * service, and metric recording rules. Named only where the reader may
+   * read them; the rest are counted in ...Hidden, never named. Checked is
+   * false when they could not be read just now: nothing is known of them.
    */
   monitors: Array<DataSecurityMetricUser>;
   dashboards: Array<DataSecurityMetricUser>;
+  slos: Array<DataSecurityMetricUser>;
+  recordingRules: Array<DataSecurityMetricUser>;
   monitorsChecked: boolean;
   dashboardsChecked: boolean;
+  slosChecked: boolean;
+  recordingRulesChecked: boolean;
+  monitorsHidden: number;
+  dashboardsHidden: number;
+  slosHidden: number;
+  recordingRulesHidden: number;
+  /*
+   * What reads the output metrics of the recording rules the reader may
+   * not read (#10085): named where they may read it, never which rules
+   * those are. None when nothing does.
+   */
+  recordingRulesHiddenOutputReaders?: MetricOutputReaders | undefined;
 }
 
 export interface DataSecurityDropMetricResult {
@@ -435,10 +485,21 @@ export interface DataSecurityExplainResult {
   markdown: string;
 }
 
+// A repository the person may ask OneUptime AI to work in (#10362).
+export interface DataSecurityFixRepository {
+  id: string;
+  name: string;
+}
+
 export interface DataSecurityFixResult {
   // What happened, for the toast: a run started, or why it could not.
   message: string;
   aiRunId?: string | undefined;
+  /*
+   * When the person must choose the repository: those of the project's
+   * they may ask OneUptime AI to work in, and only those.
+   */
+  repositories?: Array<DataSecurityFixRepository> | undefined;
 }
 
 // Why a store cannot take a response action now.
@@ -470,4 +531,66 @@ export interface DataSecurityResponseResult {
   // Whether anything changed: false when the store was already closed.
   changed: boolean;
   summary: string;
+}
+
+/*
+ * WHAT ONEUPTIME AI SEES, AS DATA SECURITY > SETTINGS > ONEUPTIME AI SHOWS IT
+ * (#10365): the model each feature runs on, and the exact input one real
+ * issue of the project would send. What each feature sends and keeps is
+ * the catalog's (DataSecurityAiFeatures); this is what only the server
+ * knows.
+ */
+
+// A model a feature runs on, as Settings names it: never its key or address.
+export interface DataSecurityAiModelSummary {
+  name: string;
+  llmType: string;
+  modelName: string;
+  // One of the project's own providers, or the server's, which every project shares.
+  isProjectProvider: boolean;
+  // Run where its owner runs it: Ollama, vLLM or any OpenAI-compatible endpoint.
+  isSelfHosted: boolean;
+}
+
+// Why Settings shows no example.
+export enum DataSecurityAiExampleUnavailableReason {
+  // The project has no open issue to show one for.
+  NoIssue = "NoIssue",
+  // The reader may not read the project's issues.
+  NoPermission = "NoPermission",
+}
+
+/*
+ * Explain with AI's input for one issue, exactly as it would be sent - but
+ * the project's AI context, which goes first in its system message, is
+ * said by its length: it is the project's settings to read.
+ */
+export interface DataSecurityAiInputExample {
+  dataSecurityIssueId: string;
+  issueTitle: string;
+  // The system message, without the AI context.
+  system: string;
+  // The user message: one JSON value of data.
+  data: JSONObject;
+  // What Fix with AI would ask the coding agent for the same issue.
+  fixRequest: string;
+  // The AI context's length in characters; 0 when the project has none.
+  aiContextCharacterCount: number;
+}
+
+export interface DataSecurityAiInputResponse {
+  // The project's Enable AI: with it off, nothing is sent at all.
+  isAiEnabled: boolean;
+  /*
+   * Whether the reader may read the project's LLM providers: the models
+   * below are named only to who may (LlmProvider's readers).
+   */
+  canReadModels: boolean;
+  // What Explain and the field suggestions run on when no AI rule picks one.
+  projectModel: DataSecurityAiModelSummary | null;
+  // What Fix with AI's coding agent runs on.
+  codeAgentModel: DataSecurityAiModelSummary | null;
+  // Only when asked for (withExample): null otherwise.
+  example: DataSecurityAiInputExample | null;
+  exampleUnavailableReason?: DataSecurityAiExampleUnavailableReason | undefined;
 }

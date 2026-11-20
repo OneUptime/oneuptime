@@ -12,7 +12,11 @@ import zlib from "zlib";
  *     a batch dropped over a used-up budget stores no body and queues no job;
  *   - the worker (ProcessTelemetry) settles a compressed body counted on
  *     arrival at an estimate, once it has inflated it, on the job's first
- *     attempt only.
+ *     attempt only;
+ *   - and, for a project with team or label budgets or usage metrics
+ *     (#6386, #6355), the job carries what the request path counted, and
+ *     the worker hands the ingest service the batch's attribution, at the
+ *     size the request path counted it.
  *
  * The budget decisions are mocked (TelemetryIngestionBudget is tested on its
  * own, and against a real Valkey); the queue, the body store and the ingest
@@ -119,6 +123,36 @@ jest.mock("Common/Server/Utils/Telemetry/TelemetryIngestionBudget", () => {
       chargePending,
       reconcile,
       toJobCharge: actualDefault["toJobCharge"],
+    },
+  };
+});
+
+const getTeamLabelBudgetProjects: jest.Mock = jest.fn();
+const getProjectConfig: jest.Mock = jest.fn();
+jest.mock(
+  "Common/Server/Utils/Telemetry/TelemetryIngestAttributionSettings",
+  () => {
+    return {
+      __esModule: true,
+      default: { getTeamLabelBudgetProjects, getProjectConfig },
+    };
+  },
+);
+
+const forBatch: jest.Mock = jest.fn();
+jest.mock("Common/Server/Utils/Telemetry/TelemetryIngestAttribution", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "Common/Server/Utils/Telemetry/TelemetryIngestAttribution",
+  ) as Record<string, unknown>;
+
+  return {
+    __esModule: true,
+    ...actual,
+    default: {
+      isNeededFor: async (projectId: string): Promise<boolean> => {
+        return (await getProjectConfig(projectId)) !== null;
+      },
+      forBatch,
     },
   };
 });
@@ -258,6 +292,9 @@ beforeEach(() => {
     },
   );
   reconcile.mockResolvedValue(undefined);
+  getTeamLabelBudgetProjects.mockResolvedValue(new Set<string>());
+  getProjectConfig.mockResolvedValue(null);
+  forBatch.mockResolvedValue({ attribution: true });
 });
 
 describe("which queued telemetry is budgeted", () => {
@@ -375,6 +412,7 @@ describe("the enqueue counts a batch once", () => {
       dayId: "20261109T0000Z",
       signalSlug: "logs",
       countedBytes: 3000,
+      isExact: false,
       scopes: [
         {
           scope: TelemetryIngestionBudgetScope.Project,
@@ -383,6 +421,30 @@ describe("the enqueue counts a batch once", () => {
         },
       ],
     });
+  });
+
+  test("a project with team or label budgets carries even an exact charge, for the worker to take back what one drops", async () => {
+    getTeamLabelBudgetProjects.mockResolvedValue(new Set([PROJECT_ID]));
+
+    await TelemetryQueueService.addLogIngestJob(
+      request({ body: Buffer.from("raw"), charge: charge({ isExact: true }) }),
+    );
+
+    expect(enqueuedJob()?.ingestionBudgetCharge).toEqual(
+      expect.objectContaining({ countedBytes: 120, isExact: true }),
+    );
+  });
+
+  test("an OTLP/gRPC export carries the size it was counted at, for the worker to share out", async () => {
+    const req: TelemetryRequest = request({
+      body: { resourceLogs: [] },
+      charge: charge(),
+    });
+    (req as unknown as Record<string, unknown>)["telemetryIngestBytes"] = 777.6;
+
+    await TelemetryQueueService.addLogIngestJob(req);
+
+    expect(enqueuedJob()?.ingestBytes).toBe(777);
   });
 
   test("a batch only checked at the gate (Pyroscope) is counted now, at the size it is stored with", async () => {
@@ -400,6 +462,40 @@ describe("the enqueue counts a batch once", () => {
     });
     // Counted exactly: nothing for the worker to settle.
     expect(enqueuedJob()?.ingestionBudgetCharge).toBeUndefined();
+  });
+
+  test("a compatible endpoint's batch checked at the door is counted at its body decompressed, not at the OTLP JSON it became", async () => {
+    // What a remote write request of 42 bytes, snappy undone, became.
+    const body: Record<string, unknown> = {
+      resourceMetrics: [{ scopeMetrics: [{ metrics: [{ name: "up" }] }] }],
+    };
+    const req: TelemetryRequest = request({
+      body: body,
+      charge: charge({ isPending: true, signal: ProductType.Metrics }),
+    });
+    (req as unknown as Record<string, unknown>)["telemetryIngestBytes"] = 42;
+
+    await TelemetryQueueService.addMetricIngestJob(req);
+
+    expect(chargePending).toHaveBeenCalledTimes(1);
+    expect(chargePending.mock.calls[0]![0].size).toEqual({
+      bytes: 42,
+      isExact: true,
+    });
+    // The same number the worker shares out over the batch's resources.
+    expect(enqueuedJob()?.ingestBytes).toBe(42);
+  });
+
+  test("a batch no gate saw that carries its counted size is decided at that size", async () => {
+    const req: TelemetryRequest = request({
+      body: { resourceMetrics: [{ scopeMetrics: [] }] },
+    });
+    (req as unknown as Record<string, unknown>)["telemetryIngestBytes"] = 9;
+
+    await TelemetryQueueService.addMetricIngestJob(req);
+
+    expect(admit).toHaveBeenCalledTimes(1);
+    expect(lastMeasure()).toEqual({ bytes: 9, isExact: true });
   });
 
   test("a raw gzip body no gate saw is sized from its trailer and settled by the worker", async () => {
@@ -517,6 +613,86 @@ describe("the worker settles a compressed body's real size", () => {
     await runJob({ attemptsMade: 0, withCharge: true, bodyGone: true });
 
     expect(reconcile).not.toHaveBeenCalled();
+  });
+});
+
+describe("the worker attributes a batch of a project that needs it", () => {
+  const plain: Buffer = Buffer.from(
+    JSON.stringify({
+      resourceLogs: [{ scopeLogs: [{ logRecords: [{ body: "x" }] }] }],
+    }),
+  );
+
+  const runJob: (data: {
+    attemptsMade: number;
+    ingestBytes?: number;
+  }) => Promise<void> = async (data: {
+    attemptsMade: number;
+    ingestBytes?: number;
+  }): Promise<void> => {
+    readBody.mockResolvedValue(plain);
+
+    const jobData: TelemetryIngestJobData = {
+      type: TelemetryType.Logs,
+      projectId: PROJECT_ID,
+      bodyKey: "telemetry:body:k",
+      bodyFormat: OtelPayloadFormat.Json,
+      bodyEncoding: "none",
+      productType: ProductType.Logs,
+      requestHeaders: {},
+      ingestionTimestamp: new Date("2026-11-09T12:00:00Z"),
+      ...(data.ingestBytes !== undefined
+        ? { ingestBytes: data.ingestBytes }
+        : {}),
+    };
+
+    await capturedHandler!({
+      id: "job-2",
+      name: "ProcessTelemetry",
+      data: jobData,
+      attemptsMade: data.attemptsMade,
+    });
+  };
+
+  test("hands the ingest service none for a project that needs none, and never asks", async () => {
+    await runJob({ attemptsMade: 0 });
+
+    expect(forBatch).not.toHaveBeenCalled();
+    expect(
+      (processLogsFromQueue.mock.calls[0]![0] as Record<string, unknown>)[
+        "telemetryIngestAttribution"
+      ],
+    ).toBe(null);
+  });
+
+  test("shares out the body's size, decoded, as the request path settles it", async () => {
+    getProjectConfig.mockResolvedValue({ publishesUsageMetrics: true });
+
+    await runJob({ attemptsMade: 0 });
+
+    expect(forBatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: PROJECT_ID,
+        signal: ProductType.Logs,
+        bytes: plain.length,
+        isRetry: false,
+      }),
+    );
+    expect(
+      (processLogsFromQueue.mock.calls[0]![0] as Record<string, unknown>)[
+        "telemetryIngestAttribution"
+      ],
+    ).toEqual({ attribution: true });
+  });
+
+  test("shares out an OTLP/gRPC export's counted size, and a retry counts nothing again", async () => {
+    getProjectConfig.mockResolvedValue({ publishesUsageMetrics: true });
+
+    await runJob({ attemptsMade: 2, ingestBytes: 4096 });
+
+    expect(forBatch).toHaveBeenCalledWith(
+      expect.objectContaining({ bytes: 4096, isRetry: true }),
+    );
   });
 });
 

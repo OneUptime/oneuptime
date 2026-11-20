@@ -142,21 +142,61 @@ import {
 } from "Common/Types/DeviceManagement/ManagedDeviceIdentity";
 import {
   DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES,
+  INTUNE_CLOUDS,
   MANAGED_DEVICE_APPS_READ_INTERVAL_IN_HOURS,
+  WORKSPACE_ONE_AUTH_METHODS,
+  readSotiServer,
+  readWorkspaceOneServer,
 } from "Common/Types/DeviceManagement/DeviceManagementConnectionSettings";
+import { WORKSPACE_ONE_MAX_APP_DEVICES_PER_READ } from "Common/Server/Utils/DeviceManagement/WorkspaceOne/WorkspaceOneConnector";
+import { WORKSPACE_ONE_READ_PERMISSIONS } from "Common/Server/Utils/DeviceManagement/WorkspaceOne/WorkspaceOneApiClient";
+import { SOTI_READ_PERMISSIONS } from "Common/Server/Utils/DeviceManagement/Soti/SotiApiClient";
+import { PRIVATE_SERVER_HINT } from "Common/Server/Utils/DeviceManagement/TenantServerClient";
 import {
   MANAGED_DEVICE_ONLINE_WINDOW_MINUTES,
   MANAGED_DEVICE_STATUS_LABELS,
+  MANAGED_DEVICE_SYNC_ONLINE_WINDOW_MINUTES,
   ManagedDeviceStatus,
+  getManagedDeviceOnlineWindowMinutes,
 } from "Common/Types/DeviceManagement/ManagedDeviceStatus";
+import DeviceManagementProvider, {
+  DEVICE_MANAGEMENT_PROVIDERS,
+  getDeviceManagementProviderTitle,
+} from "Common/Types/DeviceManagement/DeviceManagementProvider";
+import { INTUNE_READ_PERMISSION } from "Common/Server/Utils/DeviceManagement/Intune/IntuneGraphClient";
+import { ManagedDevicePlatform } from "Common/Types/DeviceManagement/ManagedDevicePlatform";
+import EsperConnector from "Common/Server/Utils/DeviceManagement/Esper/EsperConnector";
+import { ESPER_IMPORTED_PLATFORMS } from "Common/Server/Utils/DeviceManagement/Esper/EsperParsers";
+import { DeviceManagementSession } from "Common/Server/Utils/DeviceManagement/DeviceManagementTypes";
 import { REMOVED_DEVICE_RETENTION_DAYS } from "Common/Server/Utils/DeviceManagement/ManagedDeviceSync";
 import { withMeaningKeyAsItsWord } from "Common/Types/MeaningKeys";
-import { MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME } from "Common/Types/DeviceManagement/ManagedDeviceCheckIn";
+import {
+  MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+  MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
+  MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
+  MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
+} from "Common/Types/DeviceManagement/ManagedDeviceCheckIn";
+import { ANDROID_SECURITY_PATCH_MAX_AGE_DAYS } from "Common/Types/Host/AndroidSecurityPatch";
 import {
   MANAGED_DEVICE_ALERT_MONITORING_INTERVAL,
+  MANAGED_DEVICE_LOW_BATTERY_PERCENT,
   MANAGED_DEVICE_STOPPED_CHECKING_IN_MINUTES,
+  MANAGED_DEVICE_STORAGE_NEARLY_FULL_PERCENT,
+  ManagedDeviceAlertTemplate,
   getManagedDeviceAlertTemplateById,
+  getManagedDeviceAlertTemplatesFor,
+  getManagedDeviceConnectionStoppedReadingMinutes,
 } from "Common/Types/Monitor/ManagedDeviceAlertTemplates";
+import {
+  DeviceManagementConnectionReadOutcome,
+  MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME,
+  getDeviceManagementConnectionReading,
+} from "Common/Types/DeviceManagement/DeviceManagementConnectionReading";
+import {
+  DeviceManagementConnectionStatus,
+  getDeviceManagementStaleAfterMinutes,
+} from "Common/Types/DeviceManagement/DeviceManagementConnectionHealth";
+import { getDeviceManagementHealthWords } from "../../../FeatureSet/Dashboard/src/Components/DeviceManagement/DeviceManagementWords";
 import { getHostAlertTemplateById } from "Common/Types/Monitor/HostAlertTemplates";
 import { TopologyApiLimits } from "Common/Types/Topology/TopologyApi";
 import { startsCollapsed } from "Common/UI/Components/SideMenu/SideMenuSectionState";
@@ -687,7 +727,7 @@ describe("Inventory Overview: where items come from", () => {
       }),
     ).toBe(false);
     expect(overview).toContain(
-      "So does an Android device from Esper: each time it checks in with Esper. Other mirrored items and the ones you added have no heartbeat, so their status stays blank rather than alarming.",
+      "So does a managed device: each time it checks in with its device manager. Other mirrored items and the ones you added have no heartbeat, so their status stays blank rather than alarming.",
     );
     expect(
       statusRows.map((row: Array<string>): string => {
@@ -894,7 +934,7 @@ describe("Inventory Overview: finding your way around", () => {
     expect(goneQuiet).not.toContain("source:");
     expect(goneQuiet).toContain("staleOnly: true");
     expect(section).toContain(
-      "| **Gone Quiet** | The items not heard from for more than a day: discovered items that sent no telemetry, and devices that stopped checking in with Esper. |",
+      "| **Gone Quiet** | The items not heard from for more than a day: discovered items that sent no telemetry, and devices that stopped checking in with their device manager. |",
     );
   });
 
@@ -1926,7 +1966,45 @@ describe("Inventory Overview: devices from Esper (issue #9586)", () => {
 
   it("reads the devices on the default schedule and the apps on theirs", () => {
     expect(esper()).toContain(
-      `OneUptime reads it on a schedule: the devices every ${DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES} minutes, and each device's apps every ${MANAGED_DEVICE_APPS_READ_INTERVAL_IN_HOURS} hours.`,
+      `OneUptime reads it on a schedule: the devices every ${DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES} minutes, and each Android device's apps every ${MANAGED_DEVICE_APPS_READ_INTERVAL_IN_HOURS} hours.`,
+    );
+  });
+
+  /*
+   * #9837: an Esper tenant's Apple devices are imported too - its iPhones,
+   * iPads and Apple TVs (Esper manages no Mac) - and their apps are not
+   * read, since Esper lists an Apple device's by ID alone.
+   */
+  it("imports the tenant's Android and Apple devices, and only an Android device's apps", () => {
+    const connector: EsperConnector = new EsperConnector();
+    const session: DeviceManagementSession = connector.openSession(
+      {
+        provider: DeviceManagementProvider.Esper,
+        projectId: "11111111-1111-4111-8111-111111111111",
+        config: { tenant: "acme", readIntervalInMinutes: 15 },
+        apiKey: "esper-key-0123456789abcdefGHIJKL",
+      },
+      {
+        transport: async (): Promise<never> => {
+          throw new Error("no request is sent");
+        },
+        maxRequests: 1,
+        maxDurationMs: 1000,
+      },
+    );
+
+    expect(ESPER_IMPORTED_PLATFORMS).toEqual(["ANDROID", "APPLE"]);
+    expect(esper()).toContain(
+      "its Android devices, including the ones whose app never started, and its iPhones, iPads and Apple TVs.",
+    );
+    expect(
+      session.readsAppsOf({ platform: ManagedDevicePlatform.Android }),
+    ).toBe(true);
+    expect(
+      session.readsAppsOf({ platform: ManagedDevicePlatform.IPadOS }),
+    ).toBe(false);
+    expect(esper()).toContain(
+      "an Android device's security patch level and installed apps",
     );
   });
 
@@ -1940,9 +2018,22 @@ describe("Inventory Overview: devices from Esper (issue #9586)", () => {
         return section.items.includes("Managed Devices");
       }),
     ).toBe(true);
-    // The table's button: its createVerb and its singularName.
+    // The table's button: its createVerb and its singularName (#9837).
     expect(table).toContain('createVerb="Connect"');
-    expect(table).toContain('singularName="Esper"');
+    expect(table).toContain('singularName="device manager"');
+    // The choice it opens names Esper by its product name.
+    expect(
+      DEVICE_MANAGEMENT_PROVIDERS.map(
+        (provider: DeviceManagementProvider): string => {
+          return getDeviceManagementProviderTitle(provider);
+        },
+      ),
+    ).toEqual([
+      "Esper",
+      "Microsoft Intune",
+      "Workspace ONE UEM",
+      "SOTI MobiControl",
+    ]);
     // The form's two questions, the fold and its button.
     for (const title of ['title: "Tenant"', 'title: "API Key"']) {
       expect(form).toContain(title);
@@ -1950,7 +2041,7 @@ describe("Inventory Overview: devices from Esper (issue #9586)", () => {
     expect(form).toContain("getAdvancedFormSection");
     expect(form).toContain('"Connect"');
     expect(esper()).toContain(
-      "Go to **Products → Resources → Inventory**, then **Managed Devices**, and click **Connect Esper**. Enter the **Tenant**",
+      "Go to **Products → Resources → Inventory**, then **Managed Devices**, click **Connect device manager**, and pick **Esper**. Enter the **Tenant**",
     );
   });
 
@@ -1994,7 +2085,18 @@ describe("Inventory Overview: devices from Esper (issue #9586)", () => {
     );
 
     expect(quiet).toContain(
-      `A device that has not checked in for ${MANAGED_DEVICE_ONLINE_WINDOW_MINUTES} minutes is ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Offline])}`,
+      `An Android device that has not checked in for ${MANAGED_DEVICE_ONLINE_WINDOW_MINUTES} minutes is ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Offline])}`,
+    );
+    // #9837: an Apple device checks in hours apart, and is offline after a day.
+    expect(MANAGED_DEVICE_SYNC_ONLINE_WINDOW_MINUTES).toBe(24 * 60);
+    expect(
+      getManagedDeviceOnlineWindowMinutes({
+        provider: DeviceManagementProvider.Esper,
+        platform: ManagedDevicePlatform.IPadOS,
+      }),
+    ).toBe(MANAGED_DEVICE_SYNC_ONLINE_WINDOW_MINUTES);
+    expect(quiet).toContain(
+      `an iPhone, iPad or Apple TV, which checks in when Apple's push service wakes it, often hours apart, is ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Offline])} after a day.`,
     );
     expect(quiet).toContain(
       `A device removed from Esper is marked ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Removed])}`,
@@ -2016,15 +2118,24 @@ describe("Inventory Overview: devices from Esper (issue #9586)", () => {
     );
     const template: { name: string } | undefined =
       getManagedDeviceAlertTemplateById("esper-device-stopped-checking-in");
+    const appleTemplate:
+      | { name: string; thresholdInMinutes?: number | undefined }
+      | undefined = getManagedDeviceAlertTemplateById(
+      "esper-apple-device-stopped-checking-in",
+    );
     const table: string = readRepoFile(CONNECTIONS_TABLE);
 
     expect(table).toContain('title: "Set up alerts"');
     expect(alerts).toContain(
-      `On **Managed Devices**, click **Set up alerts** on the connection's row, and create ${bold(template!.name)}.`,
+      `On **Managed Devices**, click **Set up alerts** on the connection's row, and create ${bold(template!.name)} and ${bold(appleTemplate!.name)}.`,
     );
     expect(MANAGED_DEVICE_STOPPED_CHECKING_IN_MINUTES).toBe(60);
     expect(alerts).toContain(
-      "has not checked in with Esper for more than an hour",
+      "each Android device that has not checked in with Esper for more than an hour",
+    );
+    expect(appleTemplate!.thresholdInMinutes).toBe(24 * 60);
+    expect(alerts).toContain(
+      "each Apple device that has not for more than a day",
     );
     expect(alerts).toContain(`\`${MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME}\``);
     expect(MANAGED_DEVICE_ALERT_MONITORING_INTERVAL).toBe("*/5 * * * *");
@@ -2033,4 +2144,597 @@ describe("Inventory Overview: devices from Esper (issue #9586)", () => {
       `A device that also runs the Android Agent is left to ${bold(getHostAlertTemplateById("host-stopped-reporting")!.name)}, so it never alerts twice`,
     );
   });
+});
+
+/*
+ * #9837: a Microsoft Intune tenant, read through Microsoft Graph by an app
+ * registration of its own with one application permission. The page says
+ * what the connector asks for, and the words its form and its template use.
+ */
+describe("Inventory Overview: devices from Microsoft Intune (issue #9837)", () => {
+  const INTUNE_SECTION: string = "## Import devices from Microsoft Intune";
+  const INTUNE_FORM: string = `${DASHBOARD_APP}/Components/DeviceManagement/IntuneConnectionFormModal.tsx`;
+
+  function intune(): string {
+    return englishSection(INVENTORY_OVERVIEW, INTUNE_SECTION);
+  }
+
+  it("names the one permission the connector reads with, and where to grant it", () => {
+    expect(INTUNE_READ_PERMISSION).toBe(
+      "DeviceManagementManagedDevices.Read.All",
+    );
+    expect(intune()).toContain(
+      "Under `API permissions`, click `Add a permission`, then `Microsoft Graph`, then `Application permissions`, and add `DeviceManagementManagedDevices.Read.All`. Then click `Grant admin consent`",
+    );
+    expect(intune()).toContain(
+      "the `Application (client) ID` and the `Directory (tenant) ID`",
+    );
+    expect(intune()).toContain("copy its `Value`, not its `Secret ID`");
+  });
+
+  it("connects from the table's button and the Intune form, with the clouds it reads", () => {
+    const form: string = readRepoFile(INTUNE_FORM);
+
+    for (const title of [
+      'title: "Tenant ID"',
+      'title: "Application (Client) ID"',
+      'title: "Client Secret"',
+      'title: "Cloud"',
+    ]) {
+      expect(form).toContain(title);
+    }
+    expect(intune()).toContain(
+      "Go to **Products → Resources → Inventory**, then **Managed Devices**, click **Connect device manager**, and pick **Microsoft Intune**. Enter the **Tenant ID**, the **Application (Client) ID** and the **Client Secret**.",
+    );
+    // Commercial, GCC, GCC High and DoD: no China.
+    expect([...INTUNE_CLOUDS]).toEqual(["public", "gcc", "usgov", "dod"]);
+    expect(intune()).toContain(
+      "If the tenant is in a US government cloud, pick it as the **Cloud** under **More fields**.",
+    );
+  });
+
+  it("reads on the default schedule, every device's apps on theirs, and nothing of a device's user", () => {
+    expect(intune()).toContain(
+      `the devices every ${DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES} minutes, and each device's apps every ${MANAGED_DEVICE_APPS_READ_INTERVAL_IN_HOURS} hours.`,
+    );
+    expect(intune()).toContain("Nothing about a device's user is read.");
+    expect(intune()).toContain(
+      "which Microsoft Graph lists on its beta version only",
+    );
+  });
+
+  it("says a device is offline after a day, as its status and its template read it", () => {
+    const template:
+      | { name: string; thresholdInMinutes?: number | undefined }
+      | undefined = getManagedDeviceAlertTemplateById(
+      "intune-device-stopped-checking-in",
+    );
+
+    expect(
+      getManagedDeviceOnlineWindowMinutes({
+        provider: DeviceManagementProvider.Intune,
+        platform: ManagedDevicePlatform.Windows,
+      }),
+    ).toBe(24 * 60);
+    expect(intune()).toContain(
+      `a device that has not for a day is ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Offline])}.`,
+    );
+    expect(template!.thresholdInMinutes).toBe(24 * 60);
+    expect(intune()).toContain(
+      `click **Set up alerts** on the connection's row and create ${bold(template!.name)}.`,
+    );
+  });
+
+  it("says how two devices that share a name are told apart", () => {
+    expect(intune()).toContain(
+      "each is named by its serial number instead, and takes its name back once no other device has it.",
+    );
+  });
+});
+
+/*
+ * #10086: a Workspace ONE UEM server, read through its REST API by an
+ * OAuth client with a read-only role - or, on premises, an
+ * administrator's account. The page says what the connector asks for, and
+ * the words its form and its template use.
+ */
+describe("Inventory Overview: devices from Workspace ONE UEM (issue #10086)", () => {
+  const SECTION: string = "## Import devices from Workspace ONE UEM";
+  const FORM: string = `${DASHBOARD_APP}/Components/DeviceManagement/WorkspaceOneConnectionFormModal.tsx`;
+
+  function workspaceOne(): string {
+    return englishSection(INVENTORY_OVERVIEW, SECTION);
+  }
+
+  it("names the read-only role the connector reads with, and where the OAuth client is made", () => {
+    expect(WORKSPACE_ONE_READ_PERMISSIONS).toBe(
+      "API > REST: Devices and Apps, Read",
+    );
+    expect(workspaceOne()).toContain(
+      "Under `API`, then `REST`, select `Read` for `Devices` and for `Apps`, and nothing else.",
+    );
+    expect(workspaceOne()).toContain(
+      "Go to `Groups & Settings`, then `Configurations`, then `OAuth Client Management`, and click `Add`.",
+    );
+    expect(workspaceOne()).toContain(
+      "Copy its `Client ID` and its `Client Secret`: Workspace ONE shows the secret once.",
+    );
+  });
+
+  it("connects from the table's button and the Workspace ONE form, with both ways in", () => {
+    const form: string = readRepoFile(FORM);
+
+    for (const title of [
+      'title: "REST API URL"',
+      'title: "Sign in with"',
+      'title: "OAuth client"',
+      'title: "Administrator account"',
+      'title: "Client ID"',
+      'title: "Client Secret"',
+      'title: "Region"',
+      'title: "Username"',
+      'title: "Password"',
+      'title: "REST API Key"',
+    ]) {
+      expect(form).toContain(title);
+    }
+    expect([...WORKSPACE_ONE_AUTH_METHODS]).toEqual(["oauth", "basic"]);
+    expect(workspaceOne()).toContain(
+      "Go to **Products → Resources → Inventory**, then **Managed Devices**, click **Connect device manager**, and pick **Workspace ONE UEM**. Enter the **REST API URL**",
+    );
+    expect(readWorkspaceOneServer("https://as1234.awmdm.com/API")).toBe(
+      "as1234.awmdm.com",
+    );
+    expect(workspaceOne()).toContain(
+      "pick **Administrator account** under **Sign in with**",
+    );
+  });
+
+  it("says where a server may be read from, as the connector's refusal does", () => {
+    expect(PRIVATE_SERVER_HINT).toContain(
+      "OneUptime Cloud reads servers on the public internet only.",
+    );
+    expect(workspaceOne()).toContain(
+      "OneUptime Cloud reads servers on the public internet only, so a server on a private network is read by a self-hosted OneUptime.",
+    );
+  });
+
+  it("reads on the default schedule, at most a few devices' apps a read, and nothing of a device's user", () => {
+    expect(workspaceOne()).toContain(
+      `the devices every ${DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES} minutes, and each device's apps every ${MANAGED_DEVICE_APPS_READ_INTERVAL_IN_HOURS} hours.`,
+    );
+    expect(workspaceOne()).toContain(
+      `a read reads the apps of at most ${WORKSPACE_ONE_MAX_APP_DEVICES_PER_READ} devices`,
+    );
+    expect(workspaceOne()).toContain("nothing about a device's user is read.");
+  });
+
+  it("says a device is offline after a day, as its status and its template read it", () => {
+    const template:
+      | { name: string; thresholdInMinutes?: number | undefined }
+      | undefined = getManagedDeviceAlertTemplateById(
+      "workspace-one-device-stopped-checking-in",
+    );
+
+    expect(
+      getManagedDeviceOnlineWindowMinutes({
+        provider: DeviceManagementProvider.WorkspaceOne,
+        platform: ManagedDevicePlatform.IOS,
+      }),
+    ).toBe(MANAGED_DEVICE_SYNC_ONLINE_WINDOW_MINUTES);
+    expect(workspaceOne()).toContain(
+      `a device that has not for a day is ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Offline])}.`,
+    );
+    expect(template!.thresholdInMinutes).toBe(24 * 60);
+    expect(workspaceOne()).toContain(
+      `click **Set up alerts** on the connection's row and create ${bold(template!.name)}.`,
+    );
+  });
+});
+
+/*
+ * #10087: a SOTI MobiControl server, read through its REST API by an API
+ * client and a read-only MobiControl user. The page says what the
+ * connector asks for, and the words its form and its templates use.
+ */
+describe("Inventory Overview: devices from SOTI MobiControl (issue #10087)", () => {
+  const SECTION: string = "## Import devices from SOTI MobiControl";
+  const FORM: string = `${DASHBOARD_APP}/Components/DeviceManagement/SotiConnectionFormModal.tsx`;
+
+  function soti(): string {
+    return englishSection(INVENTORY_OVERVIEW, SECTION);
+  }
+
+  it("names the permissions the user reads with, and where the API client is made", () => {
+    expect(SOTI_READ_PERMISSIONS).toBe(
+      "Web Console Access and View Installed Applications, and View Groups on the device groups to read",
+    );
+    expect(soti()).toContain(
+      "Allow `Web Console Access` and `View Installed Applications` in its general permissions and nothing else, and give it `View Groups` on the device groups OneUptime reads.",
+    );
+    expect(soti()).toContain(
+      "go to `Global Settings`, then `Services`, then `API Client`, and add one.",
+    );
+    expect(soti()).toContain("`MCAdmin.exe APIClientAdd -n:OneUptime`");
+  });
+
+  it("connects from the table's button and the SOTI form", () => {
+    const form: string = readRepoFile(FORM);
+
+    for (const title of [
+      'title: "Server"',
+      'title: "Client ID"',
+      'title: "Client Secret"',
+      'title: "Username"',
+      'title: "Password"',
+    ]) {
+      expect(form).toContain(title);
+    }
+    expect(soti()).toContain(
+      "Go to **Products → Resources → Inventory**, then **Managed Devices**, click **Connect device manager**, and pick **SOTI MobiControl**. Enter the **Server**",
+    );
+    expect(
+      readSotiServer("https://acme.mobicontrolcloud.com/MobiControl"),
+    ).toBe("acme.mobicontrolcloud.com");
+  });
+
+  it("says when a device is offline: its agent's live connection, an Apple device's day, a disabled one", () => {
+    expect(
+      getManagedDeviceOnlineWindowMinutes({
+        provider: DeviceManagementProvider.Soti,
+        platform: ManagedDevicePlatform.Android,
+      }),
+    ).toBe(MANAGED_DEVICE_ONLINE_WINDOW_MINUTES);
+    expect(soti()).toContain(
+      `one whose agent has not been connected for ${MANAGED_DEVICE_ONLINE_WINDOW_MINUTES} minutes is ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Offline])}.`,
+    );
+    expect(
+      getManagedDeviceOnlineWindowMinutes({
+        provider: DeviceManagementProvider.Soti,
+        platform: ManagedDevicePlatform.IPadOS,
+      }),
+    ).toBe(MANAGED_DEVICE_SYNC_ONLINE_WINDOW_MINUTES);
+    expect(soti()).toContain(
+      `An iPhone, iPad or Mac checks in through Apple's push service, hours apart, and is ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Offline])} after a day.`,
+    );
+    expect(soti()).toContain(
+      `A device an administrator disabled is ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Disabled])}`,
+    );
+  });
+
+  it("says how to get an alert, as its two templates fire", () => {
+    const agents:
+      | { name: string; thresholdInMinutes?: number | undefined }
+      | undefined = getManagedDeviceAlertTemplateById(
+      "soti-device-stopped-checking-in",
+    );
+    const apple:
+      | { name: string; thresholdInMinutes?: number | undefined }
+      | undefined = getManagedDeviceAlertTemplateById(
+      "soti-apple-device-stopped-checking-in",
+    );
+
+    expect(agents!.thresholdInMinutes).toBe(
+      MANAGED_DEVICE_STOPPED_CHECKING_IN_MINUTES,
+    );
+    expect(apple!.thresholdInMinutes).toBe(24 * 60);
+    expect(soti()).toContain(
+      `create ${bold(agents!.name)} and ${bold(apple!.name)}.`,
+    );
+    expect(soti()).toContain(
+      "whose agent has not been connected for more than an hour",
+    );
+    expect(soti()).toContain(
+      "each Apple device that has not checked in for more than a day",
+    );
+    expect(soti()).toContain("Nothing about a device's user is read.");
+  });
+});
+
+/*
+ * #10097, #10098, #10099: an Android device's security patch and the ID its
+ * device manager knows it by, as Inventory shows them and alerts on them.
+ * The page says what the card, the columns and the templates do, in their
+ * words: the Asset Details card reads its patch as the Security Patch Level
+ * column does, the Device Manager ID column sits beside Agent Permissions,
+ * and each device manager's connection is offered Security Patch Out of
+ * Date, which leaves a device the Android agent reports to its host.
+ */
+describe("Inventory Overview: an Android device's patch and its device manager's ID (#10097, #10098, #10099)", () => {
+  const SECURITY_PATCH_STATUS: string = `${DASHBOARD_APP}/Components/Inventory/SecurityPatchStatus.tsx`;
+  const DEVICE_MANAGER_IDS: string = `${DASHBOARD_APP}/Components/Inventory/DeviceManagerIds.tsx`;
+  const INVENTORY_TABLE: string = `${DASHBOARD_APP}/Components/Inventory/InventoryTable.tsx`;
+
+  function patchTemplate(id: string): { name: string } {
+    const template: { name: string } | undefined =
+      getManagedDeviceAlertTemplateById(id);
+
+    expect(template).toBeDefined();
+    return template!;
+  }
+
+  it("says the Asset Details card tells an out-of-date patch, as the column does, and its age", () => {
+    const assets: string = englishSection(
+      INVENTORY_OVERVIEW,
+      "### Asset details",
+    );
+
+    // The pill's words and the column's title, as the Dashboard writes them.
+    expect(readRepoFile(SECURITY_PATCH_STATUS)).toContain(
+      'translationKey("Out of Date")',
+    );
+    expect(readRepoFile(SECURITY_PATCH_STATUS)).toContain(
+      '"{{count}} days old"',
+    );
+    expect(assets).toContain(
+      "It says whether the patch is **Out of Date**, as the **Security Patch Level** column does, and how many days old it is.",
+    );
+  });
+
+  it("says the Device Manager ID column sits beside the Agent Permissions one, with the ID Secure Remote ADB takes", () => {
+    const assets: string = englishSection(
+      INVENTORY_OVERVIEW,
+      "### Asset details",
+    );
+
+    expect(readRepoFile(DEVICE_MANAGER_IDS)).toContain(
+      'translationKey("Device Manager ID")',
+    );
+    expect(readRepoFile(INVENTORY_TABLE).replace(/\s+/g, " ")).toContain(
+      "getInventoryAgentPermissionsColumn(), getInventoryDeviceManagerIdColumn(),",
+    );
+    expect(assets).toContain(
+      "Beside them, the **Device Manager ID** column holds the ID a device's device manager knows it by, such as the Esper ID that `espercli secureadb connect --device` takes.",
+    );
+    expect(englishPage(INVENTORY_OVERVIEW)).toContain(
+      "| Its Esper device ID | The **Device Manager ID** column of **All Items** |",
+    );
+  });
+
+  it("says how to get an alert when an Esper device falls behind, as the template and the metric do", () => {
+    const alerts: string = englishSection(
+      INVENTORY_OVERVIEW,
+      "### Get an alert when a device stops checking in",
+    );
+
+    expect(ANDROID_SECURITY_PATCH_MAX_AGE_DAYS).toBe(90);
+    expect(alerts).toContain(
+      `Create ${bold(patchTemplate("esper-security-patch-out-of-date").name)} too, and each Android device whose security patch level, as Esper reports it, is more than 90 days old opens an alert of its own, resolved once the device is updated.`,
+    );
+    expect(alerts).toContain(
+      `\`${MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME}\``,
+    );
+    expect(alerts).toContain(
+      `A device that runs the Android Agent is left to its host's ${bold(getHostAlertTemplateById("android-security-patch-out-of-date")!.name)}, so it never alerts twice.`,
+    );
+  });
+
+  it.each([
+    [
+      "intune-security-patch-out-of-date",
+      "## Import devices from Microsoft Intune",
+    ],
+    [
+      "workspace-one-security-patch-out-of-date",
+      "## Import devices from Workspace ONE UEM",
+    ],
+    [
+      "soti-security-patch-out-of-date",
+      "## Import devices from SOTI MobiControl",
+    ],
+  ])(
+    "names %s where its service's alerts are set up",
+    (id: string, heading: string) => {
+      expect(englishSection(INVENTORY_OVERVIEW, heading)).toContain(
+        `${bold(patchTemplate(id).name)} alerts on each Android device whose security patch level is more than 90 days old, as Esper's does.`,
+      );
+    },
+  );
+});
+
+/*
+ * #10006, #10007, #10008: a connection's own alert when it stops reading,
+ * each device's battery and storage alerts, and a device's alerts on its
+ * item. The page says what the templates do, in their words: the
+ * connection's waits as long as its row does before it says Stale, the
+ * device's alert at the Android Agent's own levels and leave a device the
+ * agent reports to its host, and each service is offered the ones its
+ * device list can feed.
+ */
+describe("Inventory Overview: a connection that stops reading, a device's battery and storage, and its alerts on its item (#10006, #10007, #10008)", () => {
+  function template(id: string): ManagedDeviceAlertTemplate {
+    const found: ManagedDeviceAlertTemplate | undefined =
+      getManagedDeviceAlertTemplateById(id);
+
+    expect(found).toBeDefined();
+    return found!;
+  }
+
+  it("says the connection's alert waits as long as its row does before it says Stale, with the metric it reads", () => {
+    const section: string = englishSection(
+      INVENTORY_OVERVIEW,
+      "### Get an alert when the connection stops reading",
+    );
+    const staleWord: string = getDeviceManagementHealthWords(
+      DeviceManagementConnectionStatus.Stale,
+    ).label;
+
+    expect(staleWord).toBe("Stale");
+    expect(section).toContain(
+      `Create ${bold(template("esper-connection-stopped-reading").name)}, and the connection opens an alert of its own once no read of it has worked for as long as its row waits before its **Status** says ${bold(staleWord)}: three of its read intervals and ten minutes more, and never less than half an hour, so 55 minutes at the default 15.`,
+    );
+    // The rule the sentence states, read from the code at each interval.
+    expect(DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES).toBe(15);
+    expect(getManagedDeviceConnectionStoppedReadingMinutes()).toBe(55);
+    for (const interval of [5, 10, 15, 30, 60]) {
+      expect(getManagedDeviceConnectionStoppedReadingMinutes(interval)).toBe(
+        Math.max(30, interval * 3 + 10),
+      );
+      expect(getManagedDeviceConnectionStoppedReadingMinutes(interval)).toBe(
+        getDeviceManagementStaleAfterMinutes(interval),
+      );
+    }
+    expect(section).toContain(
+      `\`${MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME}\``,
+    );
+    expect(section).toContain(
+      "Its first debugging step lists the connection's last readings, each with the error its read failed with",
+    );
+    /*
+     * #10286: turning the connection off writes its last reading, 0 - a
+     * connection that is off is never overdue - and resolves its alert;
+     * deleting it turns off the monitors that read it alone.
+     */
+    expect(section).toContain(
+      "Turning the connection off resolves the alert it had open, as nothing is overdue of a connection that is off, and its devices' alerts stay as they are until it reads again. Deleting the connection resolves what the monitors that read it alone had open, and turns their monitoring off.",
+    );
+    expect(
+      getDeviceManagementConnectionReading({
+        connectionId: "8a4e1c2d-3b5f-4a6c-9d7e-0f1a2b3c4d5e",
+        connectionName: "Esper acme",
+        provider: DeviceManagementProvider.Esper,
+        readIntervalInMinutes: 15,
+        outcome: DeviceManagementConnectionReadOutcome.Off,
+        lastSuccessfulReadAt: new Date("2026-11-19T09:00:00Z"),
+        asOf: new Date("2026-11-19T12:00:00Z"),
+      }).ageInMinutes,
+    ).toBe(0);
+  });
+
+  it("says a device's battery and storage alerts fire at the Android Agent's levels, and leave a device it reports to its host", () => {
+    const alerts: string = englishSection(
+      INVENTORY_OVERVIEW,
+      "### Get an alert when a device stops checking in",
+    );
+    const lowBattery: ManagedDeviceAlertTemplate =
+      template("esper-low-battery");
+    const storage: ManagedDeviceAlertTemplate = template(
+      "esper-storage-nearly-full",
+    );
+
+    expect(MANAGED_DEVICE_LOW_BATTERY_PERCENT).toBe(20);
+    expect(MANAGED_DEVICE_STORAGE_NEARLY_FULL_PERCENT).toBe(90);
+    expect(lowBattery.minBatteryPercent).toBe(20);
+    expect(storage.maxStorageUsedPercent).toBe(90);
+    // The Android Agent's own templates alert at the same levels.
+    expect(getHostAlertTemplateById("android-low-battery")!.summary).toContain(
+      "below 20%",
+    );
+    expect(
+      getHostAlertTemplateById("android-storage-nearly-full")!.description,
+    ).toContain("90%");
+
+    expect(alerts).toContain(
+      `Create ${bold(lowBattery.name)} and ${bold(storage.name)} too: each device whose battery, as Esper last read it, is below 20% opens an alert of its own, and so does each device whose storage is more than 90% full`,
+    );
+    expect(alerts).toContain(
+      `\`${MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME}\` and \`${MANAGED_DEVICE_STORAGE_USED_METRIC_NAME}\``,
+    );
+    expect(alerts).toContain(
+      `A device that runs the Android Agent is left to its host's ${bold(getHostAlertTemplateById("android-low-battery")!.name)} and ${bold(getHostAlertTemplateById("android-storage-nearly-full")!.name)}, which alert at the same levels, so it never alerts twice.`,
+    );
+  });
+
+  it("says a device's alerts are on its card and its item's Alerts and Incidents pages, as the side menu names them", () => {
+    const alerts: string = englishSection(
+      INVENTORY_OVERVIEW,
+      "### Get an alert when a device stops checking in",
+    );
+    const menu: string = readRepoFile(ITEM_MENU);
+
+    expect(menu).toContain('title: "Alerts"');
+    expect(menu).toContain('title: "Incidents"');
+    expect(alerts).toContain(
+      "its **Esper** card lists the incidents and alerts open about it, each a link to its page, and the **Alerts** and **Incidents** pages of a device the Android Agent does not report list every one its connection's monitors raised about it.",
+    );
+  });
+
+  /*
+   * #10288: Workspace ONE's and SOTI's device lists say whether a device is
+   * on its charger, and their Low Battery leaves such a device be; Esper's
+   * and Intune's say no such thing, so theirs read the battery alone.
+   */
+  it.each([
+    [
+      "workspace-one-low-battery",
+      "## Import devices from Workspace ONE UEM",
+      "A device Workspace ONE says is on power, on its charger or its dock, is left out of **Workspace ONE Low Battery**, and an alert it had open resolves.",
+    ],
+    [
+      "soti-low-battery",
+      "## Import devices from SOTI MobiControl",
+      "An Android device MobiControl says is charging is left out of **SOTI Low Battery**, and an alert it had open resolves.",
+    ],
+  ])(
+    "says %s leaves a device on its charger be, as its template does",
+    (id: string, heading: string, sentence: string) => {
+      const lowBattery: ManagedDeviceAlertTemplate = template(id);
+
+      expect(englishSection(INVENTORY_OVERVIEW, heading)).toContain(sentence);
+      expect(sentence).toContain(bold(lowBattery.name));
+      expect(lowBattery.description).toContain("is left be");
+      expect(lowBattery.getEarlierMonitorSteps).toBeDefined();
+    },
+  );
+
+  it("says nothing of a charger for Esper's and Intune's Low Battery, which read the battery alone", () => {
+    for (const id of ["esper-low-battery", "intune-low-battery"]) {
+      expect(template(id).description).not.toContain("is left be");
+    }
+
+    expect(
+      englishSection(
+        INVENTORY_OVERVIEW,
+        "## Import devices from Microsoft Intune",
+      ),
+    ).not.toContain("charger");
+  });
+
+  it.each([
+    [
+      DeviceManagementProvider.Intune,
+      "## Import devices from Microsoft Intune",
+      "**Intune Low Battery**, **Intune Storage Nearly Full** and **Intune Connection Stopped Reading** alert as Esper's do. Intune knows the battery of an iPhone or an iPad alone, as of its last check-in, so **Intune Low Battery** alerts on those.",
+    ],
+    [
+      DeviceManagementProvider.WorkspaceOne,
+      "## Import devices from Workspace ONE UEM",
+      "**Workspace ONE Low Battery**, **Workspace ONE Storage Nearly Full** and **Workspace ONE Connection Stopped Reading** alert as Esper's do.",
+    ],
+    [
+      DeviceManagementProvider.Soti,
+      "## Import devices from SOTI MobiControl",
+      "**SOTI Low Battery**, **SOTI Storage Nearly Full** and **SOTI Connection Stopped Reading** alert as Esper's do.",
+    ],
+  ])(
+    "names the %s connection's own, battery and storage alerts as its templates do",
+    (provider: DeviceManagementProvider, heading: string, sentence: string) => {
+      const offered: Array<string> = getManagedDeviceAlertTemplatesFor(
+        provider,
+      ).map((offeredTemplate: ManagedDeviceAlertTemplate): string => {
+        return offeredTemplate.name;
+      });
+      const named: Array<string> = [
+        ...sentence.matchAll(/\*\*([^*]+)\*\*/g),
+      ].map((match: RegExpMatchArray): string => {
+        return match[1] as string;
+      });
+
+      expect(englishSection(INVENTORY_OVERVIEW, heading)).toContain(sentence);
+      // Every template the sentence names is one the connection is offered.
+      for (const name of named) {
+        expect({ provider, name, offered: offered.includes(name) }).toEqual({
+          provider,
+          name,
+          offered: true,
+        });
+      }
+      // And a battery alert is offered where the sentence names one.
+      expect(
+        offered.some((name: string): boolean => {
+          return name.endsWith("Low Battery");
+        }),
+      ).toBe(sentence.includes("Low Battery**"));
+    },
+  );
 });

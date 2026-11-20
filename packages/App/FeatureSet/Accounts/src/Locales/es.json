@@ -244,7 +244,13 @@
     "signInWithProvider": "Iniciar sesión con {{name}}",
     "requiredSubtitle": "Este servidor requiere el inicio de sesión único (SSO).",
     "requiredNotSetUp": "El inicio de sesión único aún no está configurado en este servidor. Pida al administrador del servidor que lo configure.",
-    "useDifferentEmail": "Usar otro correo electrónico"
+    "useDifferentEmail": "Usar otro correo electrónico",
+    "lastUsedTitle": "Usado por última vez en este dispositivo",
+    "forgetLastUsed": "Olvidar este proveedor",
+    "emailLinksPrompt": "Podemos enviar a esta dirección los enlaces de inicio de sesión con SSO de todas las organizaciones a las que pertenece.",
+    "emailLinksButton": "Enviarme mis enlaces de inicio de sesión",
+    "emailLinksSent": "Si esta dirección pertenece a una organización que usa el inicio de sesión único, le hemos enviado los enlaces de inicio de sesión con SSO.",
+    "emailLinksCaptchaRequired": "Complete el captcha antes de solicitar los enlaces."
   },
   "adminLogin": {
     "title": "Inicio de sesión de administrador maestro",
@@ -281,6 +287,29 @@
     "templateDescription": "Elige una plantilla para rellenar el formulario. Puedes cambiar cualquier respuesta antes de enviar.",
     "templateNone": "Sin plantilla",
     "uploadingFiles": "Subiendo tus archivos…"
+  },
+  "formSignIn": {
+    "prompt": "Inicia sesión para abrir este formulario.",
+    "ssoOnlyPrompt": "Inicia sesión con el inicio de sesión único de tu organización para abrir este formulario.",
+    "noWayIn": "Aún no hay ninguna forma de iniciar sesión en este formulario. Pregunta a la persona que lo compartió contigo.",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "signIn": "Iniciar sesión",
+    "or": "o",
+    "signInWithProvider": "Iniciar sesión con {{provider}}",
+    "forgotTitle": "¿Olvidaste tu contraseña?",
+    "forgotPrompt": "Introduce tu dirección de correo electrónico y te enviaremos un enlace para elegir una contraseña nueva.",
+    "sendLink": "Enviar enlace",
+    "forgotSent": "Si esta dirección puede iniciar sesión en este formulario, te estamos enviando un enlace para elegir una contraseña nueva. El enlace funciona durante 24 horas.",
+    "backToSignIn": "Volver a iniciar sesión",
+    "resetTitle": "Elige una contraseña nueva",
+    "resetPrompt": "Introduce la contraseña con la que iniciarás sesión en este formulario.",
+    "newPassword": "Nueva contraseña",
+    "savePassword": "Guardar contraseña",
+    "resetDone": "Tu contraseña se ha guardado. Inicia sesión con ella para abrir el formulario.",
+    "signedInAs": "Sesión iniciada como {{email}}",
+    "signOut": "Cerrar sesión"
   },
   "errors": {
     "forbidden": {

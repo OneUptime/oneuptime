@@ -89,7 +89,7 @@ OneUptime 仪表板中的每个资源在侧边菜单中都有一个 **开发者*
 | `Includes` | `value` 中的任意一个值 |
 | `IsNull`、`NotNull` | 没有值，或有任意值 |
 
-资源所指定记录的字段在其关系下筛选：`"user": { "name": { "_type": "Search", "value": "ada" } }` 会找出其用户名称包含“ada”的团队成员。按某个字段筛选需要读取该字段的权限，经由关系时与在资源本身上一样：对你无权读取的字段进行筛选会被拒绝，返回指明该字段的 `422`。
+资源所指定记录的字段在其关系下筛选：`"user": { "name": { "_type": "Search", "value": "ada" } }` 会找出其用户名称包含“ada”的团队成员。按某个字段筛选需要读取该字段的权限，经由关系时与在资源本身上一样：对你无权读取的字段进行筛选会被拒绝，返回指明该字段的 `422`。经由关系时，只有本人可以读取的字段，例如用户的时区或其通知方式和值班日志，无论用于筛选还是排序，对所有人都会被拒绝，因为关系可以指定任何人的记录。
 
 有所有者的资源——监视器、事件、值班策略以及其他任何有用户和团队所有者的资源——也可以在 `owners` 下按所有者筛选：`"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` 会找出由这些用户和团队中任意一个或多个拥有的记录。`match` 不设置时为 `AnyOf`：`NoneOf` 找出不归其中任何一个所有的记录，包括没有所有者的记录；`AnyOwner` 和 `NoOwner` 不指定任何人，分别找出有所有者和没有所有者的记录。团队的成员不是团队所拥有内容的所有者。一个筛选条件合计最多指定 1,000 个用户和团队；没有所有者的资源会以 `400` 拒绝该筛选，没有读取所有者的权限而按所有者筛选会被拒绝，返回 `422`。
 
@@ -130,6 +130,7 @@ Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUI
 | `400` | 请求有误：API 密钥无效、某个值不被允许、某个字段无法写入、它指定的某条记录不属于你，或者它一次更改多个项目。消息会说明哪里出错。 | [请求所指定的记录](#请求所指定的记录) |
 | `402` | 项目的套餐不包含请求所使用的功能。消息会指明套餐。 | [你的套餐不包含的功能](#你的套餐不包含的功能) |
 | `404` | 记录不存在、位于另一个项目中，或是你无权读取的记录：每种情况的响应都相同。 | [更改或删除你无权读取的记录](#更改或删除你无权读取的记录) |
+| `413` | 请求体超过了 OneUptime 在该请求中接受的上限：大多数请求为 1 MB，最多 100,000 个 JSON 值；发送文件、仪表板或状态页的请求为 50 MB。消息会说明上限。在你自己运行的服务器上，`REQUEST_BODY_MAX_BYTES` 和 `REQUEST_BODY_MAX_JSON_VALUES` 可以提高大多数请求的上限。 | [请求和响应](#请求和响应) |
 | `422` | 你无权这样做：API 密钥没有这类记录的权限，你可以读取该记录但不能更改它，或者某个权限的标签排除了它。消息会说明原因。 | [更改或删除你无权读取的记录](#更改或删除你无权读取的记录) |
 | `500` | 服务器上出现了故障。当新记录的所有者无法写入时，该记录会被再次移除，以便可以重试创建。 | [请求所指定的记录](#请求所指定的记录) |
 
@@ -254,7 +255,33 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-以任意大小写再次发送记录自身名称的更新不算重命名，因此此前同名的记录仍然可以修改，也可以重命名以区分开来。对于团队、值班策略和值班计划，`GET /api/shared-names/team`（或 `on-call-policy`、`on-call-schedule`）会回答哪些记录同名：`{"groups": [["<id>", "<id>"]]}`，每个分组是名称读起来相同的记录中你的密钥可以读取的那些记录的 ID。
+许多其他类型也各自拥有独一无二的名称，例如事件严重程度、监视器状态、状态页面和工作流，无论是创建还是重命名，它们都会以同样的方式拒绝已被占用的名称：
+
+```text
+Incident Severity with the same name already exists.
+```
+
+除消息外，每个这类拒绝还包含一个 `refusalCode`，说明是什么占用了该名称。请凭这个代码识别拒绝，而不是凭措辞可能改变的句子：
+
+- `"refusalCode": "name_taken"`：一条正在使用的记录占用了该名称。由于没有写入任何内容，一旦这条记录让出该名称，就可以再次发送同一请求：Terraform 提供程序会在最多 30 秒内再次请求。
+- `"refusalCode": "name_taken_by_archived"`：只有一条已归档的记录占用了该名称。请取消归档这条记录，或另选一个名称：再次发送请求无济于事，Terraform 提供程序也不会再次发送。
+
+以任意大小写再次发送记录自身名称的更新不算重命名，因此此前同名的记录仍然可以修改，也可以重命名以区分开来，但绝不能改成其他记录的名称。对于团队、标签、值班策略和值班计划，`GET /api/shared-names/team`（或 `label`、`on-call-policy`、`on-call-schedule`）会回答哪些记录同名：`{"groups": [["<id>", "<id>"]]}`，每个分组是名称读起来相同的记录中你的密钥可以读取的那些记录的 ID。已归档的标签和值班策略不计在内。
+
+#### 其他记录已在使用的值
+
+一些不是名称的值也各自只属于一条记录，其中包括状态页面、仪表板或表单的域名、项目域名、主机或 Kubernetes 集群的标识符、SSO 提供商的登录 URL 以及 API 密钥的权限。创建记录，或更改其中某个值的更新，如果使用了其他记录已有的值，就会被拒绝，并返回一个说明这一点的 `400`：
+
+```text
+Status Page Domain with the same fullDomain already exists.
+```
+
+除消息外，这类拒绝还包含一个 `refusalCode`，说明是什么占用了该值，以及一个 `field`，指明值被占用的字段，例如 `"field": "fullDomain"`。由多个字段共同组成的值不带 `field`。请凭这个代码识别拒绝，而不是凭措辞可能改变的句子：
+
+- `"refusalCode": "value_taken"`：一条正在使用的记录占用了该值。由于没有写入任何内容，一旦这条记录让出该值，就可以再次发送同一请求：Terraform 提供程序会在最多 30 秒内再次请求。
+- `"refusalCode": "value_taken_by_archived"`：只有一条已归档的记录占用了该值。请取消归档这条记录，或另选一个值：再次发送请求无济于事，Terraform 提供程序也不会再次发送。
+
+以任意大小写再次发送记录自身值的更新不算更改，因此此前共用一个值的记录仍然可以修改，也可以改成各不相同的值。
 
 ### 开关
 
@@ -279,6 +306,40 @@ User is not allowed to create on resellerId column of Project. No permission all
 OneUptime 根据请求本身记录是谁创建了记录——以及是谁归档、解决、确认或触发了它：已登录的人，或者在请求来自 API 密钥或工作流时为无人。这些字段（`createdByUserId` 以及其他以 `ByUserId` 结尾的字段，连同 `createdByUser` 等关系）是只读的，记录被归档或解决的时间（`archivedAt`、`markedAsResolvedAt`、`markedAsArchivedAt`）也是只读的：打开 `isArchived` 或 `isResolved` 会记录是谁、在何时做的，关闭则会清除两者。按开关现有的状态发送它，会保留是谁、在何时切换的它。
 
 API 参考将这些字段标记为只读。请求在其他更改之外为其中某个字段发送的值会被忽略，因此其余更改可以通过；除此之外什么都不发送的更新会被拒绝，并返回一条指明这些字段的消息。OneUptime 代表某人自行创建的记录——从 Slack 或 Microsoft Teams 发布的备注、通过邀请创建的账户——会指明那个人。
+
+### 只有 OneUptime 才会写入的字段
+
+有些字段只由 OneUptime 写入：遥测监视器上次运行和下次运行的时间、代理上次报告的内容、SLA 的截止时间、SCIM 客户端密钥失效的时间。API 参考将它们标记为只读，并且不把它们放入创建和更新的请求体。发送其中某个字段的创建（例如复制一条你读取的记录时就会这样）会去掉该字段后通过，新记录得到 OneUptime 的值。发送其中某个字段的更新会被拒绝，响应会指明它发送的每一个此类字段：
+
+```text
+User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor. No permission allows it: the column is changed by the server, not by a request.
+```
+
+更新时请不要发送这些字段。少数由人更改的字段各有专门的请求：轮换 SCIM 客户端密钥会设置它失效的时间，`POST /api/host/:id/try-collector-config-again` 会把在主机上失败的收集器配置再次发送给该主机。你和 OneUptime 都会更改的字段，例如记录的 `labels`（标签规则会向其中添加标签），仍由你像以前一样设置。
+
+省略了字段的创建会在响应的 `X-OneUptime-Fields-Left-Out` 标头中指明这些字段，字段之间用逗号分隔；没有省略任何内容的响应没有这个标头。CLI 会在一条提示中输出这些字段，MCP 服务器的响应会在 `fieldsLeftOut` 中列出它们，Terraform 提供程序会在一条警告中显示它们。
+
+### 向列表添加条目和移除条目
+
+更改可以向列表添加记录，或移除其中一些，而无需发送整个列表：`addToList` 和 `removeFromList` 按列表指明要添加和要移除的 ID。更改没有指明的每个条目都会保留，包括其他人或标签规则在同一时刻添加的条目：
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+把它发送到 `PUT /api/monitor/<id>`，会重命名该监视器，为它添加一个标签并移除另一个标签。如果更改只添加和移除条目，请省略 `data`。条目是记录的 ID，或带有其 `_id` 的对象，与 `data` 中相同；添加列表中已有的条目，或移除列表中没有的条目，不会更改任何内容。
+
+更改可以指明的列表，就是完整的 API 参考在该资源的 `PUT` 请求下 `addToList` 中列出的列表。以这种方式进行的更改，会按上面的规则，像它留下的整个列表那样接受检查：你更改该列表的权限、它添加的每条记录都是你项目中你可以读取的记录，以及限于标签的权限所保留的标签。同时在 `data` 中整体发送、又在 `addToList` 或 `removeFromList` 中发送的列表，会以 `400` 被拒绝：
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+Terraform 和 Crossplane 提供程序就是这样更改记录的标签的，因此规则在它们运行期间添加的标签会保留：请参阅[标签和 OneUptime 也会添加的其他列表](/docs/terraform/complete-guide#标签和-oneuptime-也会添加的其他列表)。
 
 ## 状态和片段
 

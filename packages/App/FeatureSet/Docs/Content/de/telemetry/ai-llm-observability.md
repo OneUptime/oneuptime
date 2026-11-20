@@ -28,7 +28,7 @@ flowchart TB
 | Tab | Was er zeigt |
 | --- | --- |
 | **Unterhaltungen** | Jede Unterhaltung, die Ihre KI geführt hat, die mit Handlungsbedarf zuerst. Über der Liste: Unterhaltungen, KI-Antworten, wie viele Aufmerksamkeit brauchen, Kosten und die typische Antwortzeit. |
-| **Aufrufe** | Jeder Modell-, Embedding-, Agenten- und Tool-Aufruf. Filtern Sie nach Dienst, Anbieter, Modell, Operation, Person, Team oder Unterhaltung; ein Klick öffnet den Aufruf im Trace-Viewer. |
+| **Aufrufe** | Jeder Modell-, Embedding-, Agenten- und Tool-Aufruf. Filtern Sie nach Dienst, Anbieter, Modell, Operation, Person, Team, Unterhaltung oder Status; ein fehlgeschlagener Aufruf nennt seinen Fehler unter seinem Status. Ein Klick öffnet den Aufruf im Trace-Viewer. |
 | **Nutzung** | Aufrufe, Tokens und Kosten eines Zeitraums, gereiht nach Mitarbeiter, Team, Modell, Anbieter oder App; unter **Anbieterkonten**, was Ihren verbundenen Konten berechnet wurde. |
 | **Warnungen** | Fertige Warnungen für den Fall, dass die KI schlecht antwortet, und Ihre KI- / LLM-Monitore. |
 | **Budgets** | Tägliche Kostenlimits, als Metriken veröffentlicht, auf die Sie Warnungen setzen können. |
@@ -239,7 +239,7 @@ Eine fertige Warnung löst eine Warnung aus, die sich selbst auflöst, und zeigt
 
 ## Sehen, wer was ausgibt
 
-Der Tab **Nutzung** zeigt die Aufrufe, Tokens und Kosten eines Zeitraums (die letzten 7 Tage, wenn Sie keinen anderen wählen) und eine Tabelle der Top 25 nach einer von fünf Aufschlüsselungen: **Mitarbeiter**, **Team**, **Modell**, **Anbieter** und **Anwendung / Dienst**. Aufrufe, die niemanden nennen, werden unter **Nicht zugeordnet** gezählt, nie verworfen.
+Der Tab **Nutzung** zeigt die Aufrufe, Tokens und Kosten eines Zeitraums (die letzten 7 Tage, wenn Sie keinen anderen wählen) und eine Tabelle der Top 25 nach einer von fünf Aufschlüsselungen: **Mitarbeiter**, **Team**, **Modell**, **Anbieter** und **Anwendung / Dienst**. Aufrufe, die niemanden nennen, werden unter **Nicht zugeordnet** gezählt, nie verworfen. Die Fehlerquote unter **KI-Aufrufe** öffnet **Aufrufe** mit den Aufrufen des Zeitraums, die fehlschlugen, mit **Status** auf **Fehler**.
 
 Das sind **Deine KI-Aufrufe**. Wählen Sie stattdessen **Anbieterkonten**, um zu sehen, was Ihren verbundenen Konten bei OpenAI, Anthropic, Azure, Bedrock, Vertex AI und Cursor berechnet wurde: siehe [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts#die-nutzung-ansehen). Beides wird nie addiert.
 

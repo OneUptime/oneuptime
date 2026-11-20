@@ -328,6 +328,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
   [ProductKey.SecurityEvents]: [
     "DetectionRule",
     "DetectionRuleException",
+    "SecurityBlock",
+    "SecurityBlockEnforcement",
     "SecurityCase",
     "SecurityCaseCustomField",
     "SecurityCaseEvidence",
@@ -433,6 +435,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "RumSessionErasureRequest",
     "RumSessionPin",
     "RumSessionReplayView",
+    "TelemetryDsym",
     AnalyticsTableName.RumSession,
     AnalyticsTableName.RumSessionChunk,
     AnalyticsTableName.RumProductAnalyticsEvent,
@@ -570,6 +573,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "NetworkSite",
     "NetworkSiteAssignmentRule",
     "NetworkSiteLink",
+    "NetworkSiteOwnerTeam",
+    "NetworkSiteOwnerUser",
     "NetworkSiteStatusTimeline",
     "NetworkSiteType",
     "NetworkSnmpCredentialProfile",
@@ -626,10 +631,14 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "Dashboard",
     "DashboardDomain",
     "DashboardLabelRule",
+    "DashboardOIDC",
     "DashboardOwnerRule",
     "DashboardOwnerTeam",
     "DashboardOwnerUser",
     "DashboardPlaylist",
+    "DashboardPrivateUser",
+    "DashboardPrivateUserSession",
+    "DashboardSSO",
     "DataSource",
   ],
   [ProductKey.Workflows]: [
@@ -655,7 +664,15 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "RunnerOwnerTeam",
     "RunnerOwnerUser",
   ],
-  [ProductKey.Forms]: ["Form", "FormDomain", "FormSubmission"],
+  [ProductKey.Forms]: [
+    "Form",
+    "FormDomain",
+    "FormOIDC",
+    "FormPrivateUser",
+    "FormPrivateUserSession",
+    "FormSSO",
+    "FormSubmission",
+  ],
 };
 
 // The tables of no one product, each with why: every product uses them.
@@ -685,6 +702,10 @@ export const TABLES_OF_NO_PRODUCT: Readonly<Record<string, string>> =
       "ProjectUserPreference",
       "ProjectUserProfile",
     ]),
+    ...noProduct(
+      "A person's own progress through a guided setup, which spans products.",
+      ["GuidedSetupRun"],
+    ),
     ...noProduct(
       "How to reach a person, which incidents, alerts and on-call all use.",
       [
@@ -790,6 +811,7 @@ export const TABLES_OF_NO_PRODUCT: Readonly<Record<string, string>> =
       [
         "TelemetryIngestionKey",
         "TelemetryIngestionKeyRefusal",
+        "TelemetryIngestionTeamLabelBudget",
         "TelemetryUsageBilling",
       ],
     ),

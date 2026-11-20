@@ -125,6 +125,14 @@ export default class MonitorTemplateUtil {
      * Only populated when a metric monitor fires per-series.
      */
     seriesLabels?: JSONObject | undefined;
+    /*
+     * What else is known about the series, for the words only: a device's
+     * name and model beside its install (#9925). Said first by the series
+     * renderings ({{seriesResourceSuffix}} and the rest), and reachable
+     * under `seriesContext`; never folded in beside the labels, which are
+     * the series' identity.
+     */
+    seriesContext?: JSONObject | undefined;
   }): JSONObject {
     let storageMap: JSONObject = {};
 
@@ -828,10 +836,16 @@ export default class MonitorTemplateUtil {
       storageMap["seriesLabels"] = data.seriesLabels;
     }
 
+    if (data.seriesContext && Object.keys(data.seriesContext).length > 0) {
+      storageMap["seriesContext"] = data.seriesContext;
+    }
+
     MonitorTemplateUtil.setSeriesRenderings({
       storageMap: storageMap,
       monitorType: data.monitorType,
       seriesLabels: data.seriesLabels,
+      seriesContext: data.seriesContext,
+      metricNames: MonitorTemplateUtil.getMetricNamesReadBy(data.dataToProcess),
     });
 
     if (data.monitor) {
@@ -894,18 +908,41 @@ export default class MonitorTemplateUtil {
     storageMap: JSONObject;
     monitorType: MonitorType | undefined;
     seriesLabels: JSONObject | undefined;
+    seriesContext?: JSONObject | undefined;
+    // The metrics the check's step read: its commands are of those (#10209).
+    metricNames?: ReadonlyArray<string> | undefined;
   }): void {
     data.storageMap["seriesResourceSuffix"] =
-      SeriesLabelDisplay.buildTitleSuffix(data.seriesLabels);
+      SeriesLabelDisplay.buildTitleSuffix(data.seriesLabels, {
+        context: data.seriesContext,
+      });
     data.storageMap["seriesResourceSummary"] =
-      SeriesLabelDisplay.buildInlineSummary(data.seriesLabels);
+      SeriesLabelDisplay.buildInlineSummary(data.seriesLabels, {
+        context: data.seriesContext,
+      });
     data.storageMap["seriesResourceBlock"] =
-      SeriesLabelDisplay.buildMarkdownBlock(data.seriesLabels);
+      SeriesLabelDisplay.buildMarkdownBlock(data.seriesLabels, {
+        context: data.seriesContext,
+      });
     data.storageMap["seriesDebugCommands"] =
       SeriesDebugHints.buildMarkdownBlock({
         monitorType: data.monitorType,
         seriesLabels: data.seriesLabels,
+        metricNames: data.metricNames,
       });
+  }
+
+  /*
+   * The metrics a check's step read, as its answer names them: a Metrics
+   * monitor's (MetricMonitorResponse.metricViewConfig). [] for any other
+   * check, whose answer has no metric query.
+   */
+  public static getMetricNamesReadBy(
+    dataToProcess: DataToProcess | undefined,
+  ): Array<string> {
+    return SeriesDebugHints.getMetricNamesOfView(
+      (dataToProcess as MetricMonitorResponse | undefined)?.metricViewConfig,
+    );
   }
 
   /*

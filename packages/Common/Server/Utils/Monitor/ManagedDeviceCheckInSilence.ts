@@ -1,5 +1,6 @@
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
-import { MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME } from "../../../Types/DeviceManagement/ManagedDeviceCheckIn";
+import { MANAGED_DEVICE_CONNECTION_METRIC_NAMES } from "../../../Types/DeviceManagement/DeviceManagementConnectionReading";
+import { MANAGED_DEVICE_READING_METRIC_NAMES } from "../../../Types/DeviceManagement/ManagedDeviceCheckIn";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MetricSeriesResult from "../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
@@ -20,9 +21,32 @@ import DataToProcess from "./DataToProcess";
  * infrastructure monitor's do when its agent goes quiet
  * (MonitorResource.isSilentInfrastructureWindow); the connection's row on
  * Inventory > Managed Devices says why it stopped.
+ *
+ * The same holds for the other readings the same reads write of their
+ * devices (#10098: a device manager's Security Patch Out of Date; #10008:
+ * its Low Battery and Storage Nearly Full): no reading of any device is a
+ * connection that stopped reading, not every device updated, charged or
+ * cleared.
+ *
+ * And for the connection's own reading (#10006: Connection Stopped
+ * Reading), which its reads and the scheduler write while it is turned on:
+ * a window with none of them says OneUptime's workers stopped - never that
+ * it reads again - and its alert stays open until a read that works says
+ * so. A connection turned off says so itself: it writes one last reading,
+ * 0, which its monitor reads as healthy, and what the monitor had open was
+ * resolved then, saying why; a connection deleted turns off every monitor
+ * that read it alone (DeviceManagementConnectionAlerts, #10286).
  */
+const READINGS_OF_A_CONNECTION: ReadonlyArray<string> = [
+  ...MANAGED_DEVICE_READING_METRIC_NAMES,
+  ...MANAGED_DEVICE_CONNECTION_METRIC_NAMES,
+];
+
 export default class ManagedDeviceCheckInSilence {
-  // Whether every query of the monitor reads the managed devices' check-ins.
+  /*
+   * Whether every query of the monitor reads what a device management
+   * connection writes: its devices' readings, or its own.
+   */
   public static readsCheckIns(
     response: MetricMonitorResponse | undefined,
   ): boolean {
@@ -32,9 +56,12 @@ export default class ManagedDeviceCheckInSilence {
     return (
       queryConfigs.length > 0 &&
       queryConfigs.every((queryConfig: MetricQueryConfigData): boolean => {
+        const metricName: unknown =
+          queryConfig?.metricQueryData?.filterData?.metricName;
+
         return (
-          queryConfig?.metricQueryData?.filterData?.metricName ===
-          MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME
+          typeof metricName === "string" &&
+          READINGS_OF_A_CONNECTION.includes(metricName)
         );
       })
     );

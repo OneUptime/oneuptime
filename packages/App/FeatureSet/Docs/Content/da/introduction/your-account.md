@@ -41,7 +41,7 @@ Klik på dit billede øverst til højre, og vælg **Profil**. Siden **Oversigt**
 
 Klik på **Rediger Bruger**, og ret det, du har brug for:
 
-- **E-mail**: den adresse, du logger ind med. Hvis du ændrer den, sender OneUptime et link til den nye adresse, og din adresse ændres, når du åbner det. Indtil da logger du ind med den nuværende, og **Annuller ændring** stopper ændringen. En hovedadministrators egen adresse ændres med det samme.
+- **E-mail**: den adresse, du logger ind med. Hvis du ændrer den, sender OneUptime et link til den nye adresse, og din adresse ændres, når du åbner det. Indtil da logger du ind med den nuværende, og **Annuller ændring** stopper ændringen. En hovedadministrators egen adresse ændres med det samme. Udløber linket, sender **Send link igen** et nyt. Hver gang din adresse ændres, sender OneUptime en e-mail til den adresse, du havde.
 - **Fulde navn**: det navn, dit team ser overalt i OneUptime.
 - **Tidszone**: den tidszone, dashboardet viser og læser tider i, og den, der bruges til tiderne i notifikationer til dig.
 - **Sprog**: sproget i dashboardet i alle browsere, du logger ind i, og i dine vagttilkald. Ikke valgt: dine tilkald er på engelsk, og dashboardet følger din browser.
@@ -146,6 +146,31 @@ Det samme sker, når alle de projekter, du hører til, kræver single sign-on og
 - **Hovedadministratorer** beholder altid deres egne indstillinger under **Sikkerhed**.
 - **Det, du har opsat før**, forbliver gemt. En serveradministrator kan rydde det, og det kan en ejer af alle de projekter, du hører til, også; du får en e-mail, når det sker.
 
+### Bekræft, at det er dig
+
+Nogle ændringer beder dig først bekræfte, at det er dig, selvom du er logget ind, så ingen kan foretage dem fra en browser, hvor du er forblevet logget ind. OneUptime spørger, før du:
+
+- ændrer din e-mailadresse eller din adgangskode;
+- tilføjer eller fjerner en adgangsnøgle, en sikkerhedsnøgle eller en godkendelsesapp;
+- får nye backupkoder, mens du stadig har ubrugte;
+- slår tofaktorgodkendelse fra;
+- sletter din konto.
+
+Dialogen **Bekræft, at det er dig** beder om din adgangskode og, mens tofaktorgodkendelse er slået til, om dit andet trin: en kode fra din godkendelsesapp, din sikkerhedsnøgle eller en af dine backupkoder. Med en adgangsnøgle klikker du i stedet på **Brug en adgangsnøgle**. Logger du kun ind med single sign-on, Google eller Microsoft, klikker du på **Log ind igen**: OneUptime får din identitetsudbyder til at bede dig logge ind igen og sender dig derefter tilbage til siden. Så gennemføres ændringen.
+
+Når du har bekræftet, bliver du ikke spurgt igen i 10 minutter i den browser. Fem forkerte forsøg logger den browser ud, men låser aldrig din konto: Log ind igen, og prøv en gang til. OneUptime sender dig en e-mail, når det sker, og hver gang en backupkode bekræfter, at det er dig.
+
+På en selvhostet server bekræfter hovedadministratorer på samme måde, at det er dem, før de ændrer, hvordan en anden logger ind, gør nogen til hovedadministrator, ændrer serverens single sign-on-udbydere eller e-mailindstillinger eller opretter en master-API-nøgle. Master-API-nøglen kan ikke foretage disse ændringer.
+
+At logge ind igen tæller kun, når din identitetsudbyder siger, at du loggede ind, efter at OneUptime sendte dig derhen. Logger udbyderen dig ind med en session, den allerede har, uden at bede om din adgangskode, bekræfter det intet: Log først ud hos udbyderen, og klik så på **Log ind igen**. Hvor din server lader dig logge ind med et link sendt på e-mail, gør **Log ind på en anden måde** det i stedet. Hvad OneUptime beder hver udbyder om, og hvad en administrator kan ændre, når et nyt login ikke bekræfter noget:
+
+| Udbyder | Hvad OneUptime beder om | Når det ikke bekræfter noget |
+| --- | --- | --- |
+| SAML | `ForceAuthn="true"` og tidspunktet, hvor du loggede ind (`AuthnInstant`) | Få udbyderen til at efterkomme anmodningen, fx med Honor Force Authentication i Okta. |
+| OpenID Connect | `prompt=login` og `max_age=0` samt tidspunktet, hvor du loggede ind (`auth_time`) | Få udbyderen til at sende `auth_time`. I Microsoft Entra ID føjer du det til ID-tokenet som et valgfrit krav. |
+| Google | Tidspunktet, hvor du loggede ind (`auth_time`). Google kan ikke bedes om at få dig til at logge ind igen. | Slå Session age claims til for serverens Google-login-app, som skal være udgivet og verificeret. |
+| Microsoft | `prompt=login` og `max_age=0` samt tidspunktet, hvor du loggede ind (`auth_time`) | Føj `auth_time` til ID-tokenet i serverens Microsoft-login-app som et valgfrit krav. |
+
 ## Dine projekter
 
 Du kan høre til så mange projekter, du vil. Projektvælgeren øverst til venstre i dashboardet viser dem: vælg et for at skifte.
@@ -178,7 +203,7 @@ Dit tema gemmes i din browser, så indstil det igen i en anden browser eller på
 
 ## Slet din konto
 
-Åbn **Farezone → Slet konto**. Du kan kun slette din konto, når du ikke er med i noget projekt: siden viser de projekter, du stadig er med i. Forlad dem først, klik så på **Slet konto**, og bekræft. Sletning af din konto er permanent og kan ikke fortrydes.
+Åbn **Farezone → Slet konto**. Du kan kun slette din konto, når du ikke er med i noget projekt: siden viser de projekter, du stadig er med i. Forlad dem først, klik så på **Slet konto**, og bekræft. Sletning af din konto er permanent og kan ikke fortrydes. Før OneUptime sletter din konto, beder den dig bekræfte, at det er dig.
 
 ## Fejlfinding
 
@@ -191,7 +216,11 @@ Den adresse har allerede en OneUptime-konto, så tilmeldingen oprettede og ændr
 :::
 
 :::details Min e-mailadresse er ikke ændret
-Din adresse ændres først, når du åbner linket, som OneUptime sendte til den nye adresse. Linket virker i 24 timer: Er det udløbet, så ændr din e-mail igen for at få et nyt. Bruger en anden konto allerede den adresse, står det i e-mailen dertil, og din adresse forbliver, som den er.
+Din adresse ændres først, når du åbner linket, som OneUptime sendte til den nye adresse. Linket virker i 24 timer: Er det udløbet, står det på din profil, og **Send link igen** sender et nyt. Bruger en anden konto allerede den adresse, står det i e-mailen dertil, og din adresse forbliver, som den er.
+:::
+
+:::details Jeg fik en e-mail om, at min e-mailadresse er ændret
+OneUptime sender en e-mail til den adresse, din konto havde, hver gang adressen ændres: når du åbner linket, der er sendt til en ny adresse, når en serveradministrator ændrer den, eller når din organisations identitetsudbyder ændrer den. Har du selv ændret den, skal du ikke gøre noget. Hvis ikke, har en person, der kunne logge ind på din konto, flyttet den til sin egen adresse: Kontakt fra din gamle adresse din serveradministrator eller, på OneUptime Cloud, support@oneuptime.com, som kan flytte den tilbage. E-mailen viser kun en del af den nye adresse og har intet link til at fortryde ændringen: Et sådant link ville virke for alle, der læser din gamle indbakke.
 :::
 
 :::details Jeg har mistet min godkendelsesapp

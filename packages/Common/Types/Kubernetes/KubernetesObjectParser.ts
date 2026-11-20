@@ -1,4 +1,10 @@
 import { JSONObject } from "../JSON";
+import {
+  KubernetesNodeBenchmarkBlock,
+  NODE_BENCHMARK_CONTAINER,
+  isNodeBenchmarkPod,
+  readNodeBenchmarkMessage,
+} from "./KubernetesNodeBenchmark";
 import { PodSecurity, readPodSecurity } from "./KubernetesPodSecurity";
 
 /*
@@ -428,6 +434,11 @@ export interface KubernetesPodObject {
      * (KubernetesPodSecurity). Optional: pods stored before it have none.
      */
     security?: PodSecurity | undefined;
+    /*
+     * What kube-bench found on the pod's node, for one of the chart's
+     * kube-bench pods that finished (#9873; KubernetesNodeBenchmark).
+     */
+    nodeBenchmark?: KubernetesNodeBenchmarkBlock | undefined;
   };
   status: {
     phase: string;
@@ -498,6 +509,12 @@ export interface KubernetesDeploymentObject {
     selector: Record<string, string>;
     // `kubectl rollout pause`. Optional: stored before it was read.
     paused?: boolean | undefined;
+    /*
+     * What its pod template says about its pods' security (#9880): the
+     * block a pod keeps, scored while the workload runs no pod
+     * (readPodTemplateSecurity). Optional: stored before it was read.
+     */
+    security?: PodSecurity | undefined;
   };
   status: {
     replicas: number;
@@ -517,6 +534,12 @@ export interface KubernetesStatefulSetObject {
     serviceName: string;
     podManagementPolicy: string;
     updateStrategy: string;
+    /*
+     * What its pod template says about its pods' security (#9880): the
+     * block a pod keeps, scored while the workload runs no pod
+     * (readPodTemplateSecurity). Optional: stored before it was read.
+     */
+    security?: PodSecurity | undefined;
   };
   status: {
     replicas: number;
@@ -538,6 +561,12 @@ export interface KubernetesDaemonSetObject {
   metadata: KubernetesObjectMetadata;
   spec: {
     updateStrategy: string;
+    /*
+     * What its pod template says about its pods' security (#9880): the
+     * block a pod keeps, scored while the workload runs no pod
+     * (readPodTemplateSecurity). Optional: stored before it was read.
+     */
+    security?: PodSecurity | undefined;
   };
   status: {
     desiredNumberScheduled: number;
@@ -551,12 +580,42 @@ export interface KubernetesDaemonSetObject {
   };
 }
 
+/*
+ * A ReplicaSet (#9880): a Deployment's revisions are its own, and their
+ * pods are the Deployment's, so the inventory reads one for its template
+ * only when nothing owns it.
+ */
+export interface KubernetesReplicaSetObject {
+  metadata: KubernetesObjectMetadata;
+  spec: {
+    replicas: number;
+    selector: Record<string, string>;
+    /*
+     * What its pod template says about its pods' security (#9880): the
+     * block a pod keeps, scored while the workload runs no pod
+     * (readPodTemplateSecurity). Optional: stored before it was read.
+     */
+    security?: PodSecurity | undefined;
+  };
+  status: {
+    replicas: number;
+    readyReplicas: number;
+    availableReplicas: number;
+  };
+}
+
 export interface KubernetesJobObject {
   metadata: KubernetesObjectMetadata;
   spec: {
     completions: number;
     parallelism: number;
     backoffLimit: number;
+    /*
+     * What its pod template says about its pods' security (#9880): the
+     * block a pod keeps, scored while the workload runs no pod
+     * (readPodTemplateSecurity). Optional: stored before it was read.
+     */
+    security?: PodSecurity | undefined;
   };
   status: {
     active: number;
@@ -576,6 +635,13 @@ export interface KubernetesCronJobObject {
     concurrencyPolicy: string;
     successfulJobsHistoryLimit: number;
     failedJobsHistoryLimit: number;
+    /*
+     * What its Jobs' pod template says about their pods' security (#9880),
+     * read from spec.jobTemplate.spec.template: scored between runs, once
+     * its finished Jobs and their pods are cleaned up. Optional: stored
+     * before it was read.
+     */
+    security?: PodSecurity | undefined;
   };
   status: {
     lastScheduleTime: string;
@@ -789,6 +855,73 @@ export function parseMetadata(kvList: JSONObject): KubernetesObjectMetadata {
         : {},
     ownerReferences,
   };
+}
+
+/*
+ * WHAT A WORKLOAD'S POD TEMPLATE SAYS ABOUT ITS PODS' SECURITY (#9880).
+ *
+ * A Deployment or StatefulSet scaled to zero, a CronJob between runs or a
+ * DaemonSet whose node selector matches no node runs no pod, so the
+ * cluster's Compliance page, which scores pods, had nothing of it to score:
+ * a privileged CronJob that runs at night passed by day. The agent sends
+ * each workload whole, pod template included, so its template is read into
+ * the same compact block a pod keeps (KubernetesPodSecurity.readPodSecurity),
+ * from the template's spec and its annotations (AppArmor's, before the
+ * field): at spec.template for a Deployment, StatefulSet, DaemonSet,
+ * ReplicaSet, Job or DeploymentConfig, and at spec.jobTemplate.spec.template
+ * for a CronJob. None when the object holds no template: not evaluated,
+ * rather than a template that sets nothing.
+ */
+export const POD_TEMPLATE_PATH: ReadonlyArray<string> = ["template"];
+
+export const CRON_JOB_POD_TEMPLATE_PATH: ReadonlyArray<string> = [
+  "jobTemplate",
+  "spec",
+  "template",
+];
+
+export function readPodTemplateSecurity(
+  specKv: string | JSONObject | null | undefined,
+  templatePath: ReadonlyArray<string> = POD_TEMPLATE_PATH,
+): PodSecurity | undefined {
+  let templateKv: string | JSONObject | null | undefined = specKv;
+
+  for (const key of templatePath) {
+    if (!templateKv || typeof templateKv === "string") {
+      return undefined;
+    }
+
+    templateKv = getKvValue(templateKv, key);
+  }
+
+  if (!templateKv || typeof templateKv === "string") {
+    return undefined;
+  }
+
+  const podSpecKv: string | JSONObject | null = getKvValue(templateKv, "spec");
+
+  if (!podSpecKv || typeof podSpecKv === "string") {
+    return undefined;
+  }
+
+  const metadataKv: string | JSONObject | null = getKvValue(
+    templateKv,
+    "metadata",
+  );
+
+  return readPodSecurity(
+    kvListToPlainObject(podSpecKv),
+    metadataKv && typeof metadataKv !== "string"
+      ? parseMetadata(metadataKv).annotations
+      : {},
+  );
+}
+
+// The block, on a workload's stored spec only when its template was read.
+function withTemplateSecurity(security: PodSecurity | undefined): {
+  security?: PodSecurity;
+} {
+  return security ? { security } : {};
 }
 
 function parseContainerEnv(
@@ -1034,6 +1167,64 @@ function parseContainerState(
     startedAt: detail ? getKvStringValue(detail, "startedAt") : "",
     finishedAt: detail ? getKvStringValue(detail, "finishedAt") : "",
   };
+}
+
+/*
+ * What kube-bench found on its node (#9873): the chart's kube-bench pods
+ * write it as their kube-bench container's termination message, which this
+ * reads whole - the container's message the pages show is cut to a kilobyte
+ * (shortenKubernetesMessage) - into a block of the pod's spec
+ * (KubernetesNodeBenchmark). Null for a container still running, and for a
+ * message that is not the chart's.
+ */
+function readPodNodeBenchmark(
+  statusKv: JSONObject,
+): KubernetesNodeBenchmarkBlock | null {
+  const statuses: string | JSONObject | null = getKvValue(
+    statusKv,
+    "containerStatuses",
+  );
+
+  if (!statuses || typeof statuses === "string") {
+    return null;
+  }
+
+  for (const kvList of getArrayValues(statuses)) {
+    if (getKvStringValue(kvList, "name") !== NODE_BENCHMARK_CONTAINER) {
+      continue;
+    }
+
+    const stateKv: string | JSONObject | null = getKvValue(kvList, "state");
+    const stateValues: Array<JSONObject> | undefined =
+      stateKv && typeof stateKv !== "string"
+        ? (stateKv["values"] as Array<JSONObject> | undefined)
+        : undefined;
+    const state: JSONObject | undefined = stateValues?.[0];
+
+    if (!state || state["key"] !== "terminated") {
+      return null;
+    }
+
+    const value: JSONObject | undefined = state["value"] as
+      | JSONObject
+      | undefined;
+    const detail: JSONObject | undefined = value
+      ? ((value["kvlistValue"] || value["kvlist_value"]) as
+          | JSONObject
+          | undefined)
+      : undefined;
+
+    if (!detail) {
+      return null;
+    }
+
+    return readNodeBenchmarkMessage(
+      getKvStringValue(detail, "message"),
+      getKvStringValue(detail, "finishedAt") || undefined,
+    );
+  }
+
+  return null;
 }
 
 function parseContainerStatuses(
@@ -1289,6 +1480,14 @@ export function parsePodObject(
       podStatus.startTime = startTime;
     }
 
+    // A kube-bench pod's results (#9873); every other pod keeps its old shape.
+    const nodeBenchmark: KubernetesNodeBenchmarkBlock | null =
+      isNodeBenchmarkPod(metadata.labels) &&
+      statusKv &&
+      typeof statusKv !== "string"
+        ? readPodNodeBenchmark(statusKv)
+        : null;
+
     return {
       metadata,
       spec: {
@@ -1308,6 +1507,7 @@ export function parsePodObject(
           specKv && typeof specKv !== "string"
             ? readPodSecurity(kvListToPlainObject(specKv), metadata.annotations)
             : undefined,
+        ...(nodeBenchmark ? { nodeBenchmark } : {}),
       },
       status: podStatus,
     };
@@ -1516,7 +1716,13 @@ export function parseDeploymentObject(
 
     return {
       metadata: parseMetadata(metadataKv),
-      spec: { replicas, strategy, selector, paused },
+      spec: {
+        replicas,
+        strategy,
+        selector,
+        paused,
+        ...withTemplateSecurity(readPodTemplateSecurity(specKv)),
+      },
       status: {
         replicas: statusReplicas,
         readyReplicas,
@@ -1577,7 +1783,13 @@ export function parseStatefulSetObject(
 
     return {
       metadata: parseMetadata(metadataKv),
-      spec: { replicas, serviceName, podManagementPolicy, updateStrategy },
+      spec: {
+        replicas,
+        serviceName,
+        podManagementPolicy,
+        updateStrategy,
+        ...withTemplateSecurity(readPodTemplateSecurity(specKv)),
+      },
       status: {
         replicas: readStatusNumber("replicas"),
         readyReplicas: readStatusNumber("readyReplicas"),
@@ -1624,7 +1836,10 @@ export function parseDaemonSetObject(
 
     return {
       metadata: parseMetadata(metadataKv),
-      spec: { updateStrategy },
+      spec: {
+        updateStrategy,
+        ...withTemplateSecurity(readPodTemplateSecurity(specKv)),
+      },
       status: {
         desiredNumberScheduled: statusKv
           ? parseInt(
@@ -1676,6 +1891,65 @@ export function parseDaemonSetObject(
   }
 }
 
+export function parseReplicaSetObject(
+  objectKvList: JSONObject,
+): KubernetesReplicaSetObject | null {
+  try {
+    const metadataKv: string | JSONObject | null = getKvValue(
+      objectKvList,
+      "metadata",
+    );
+    if (!metadataKv || typeof metadataKv === "string") {
+      return null;
+    }
+
+    const specKv: string | JSONObject | null = getKvValue(objectKvList, "spec");
+    const statusKv: string | JSONObject | null = getKvValue(
+      objectKvList,
+      "status",
+    );
+    const readNumber: (
+      kv: string | JSONObject | null,
+      key: string,
+    ) => number = (kv: string | JSONObject | null, key: string): number => {
+      return kv && typeof kv !== "string"
+        ? parseInt(getKvStringValue(kv, key)) || 0
+        : 0;
+    };
+
+    let selector: Record<string, string> = {};
+    if (specKv && typeof specKv !== "string") {
+      const selectorKv: string | JSONObject | null = getKvValue(
+        specKv,
+        "selector",
+      );
+      const matchLabelsKv: string | JSONObject | null =
+        selectorKv && typeof selectorKv !== "string"
+          ? getKvValue(selectorKv, "matchLabels")
+          : null;
+      if (matchLabelsKv && typeof matchLabelsKv !== "string") {
+        selector = getKvListAsRecord(matchLabelsKv);
+      }
+    }
+
+    return {
+      metadata: parseMetadata(metadataKv),
+      spec: {
+        replicas: readNumber(specKv, "replicas"),
+        selector,
+        ...withTemplateSecurity(readPodTemplateSecurity(specKv)),
+      },
+      status: {
+        replicas: readNumber(statusKv, "replicas"),
+        readyReplicas: readNumber(statusKv, "readyReplicas"),
+        availableReplicas: readNumber(statusKv, "availableReplicas"),
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function parseJobObject(
   objectKvList: JSONObject,
 ): KubernetesJobObject | null {
@@ -1707,6 +1981,7 @@ export function parseJobObject(
           ? parseInt(getKvStringValue(specKv as JSONObject, "backoffLimit")) ||
             0
           : 0,
+        ...withTemplateSecurity(readPodTemplateSecurity(specKv)),
       },
       status: {
         active: statusKv
@@ -1782,6 +2057,9 @@ export function parseCronJobObject(
               getKvStringValue(specKv as JSONObject, "failedJobsHistoryLimit"),
             ) || 0
           : 0,
+        ...withTemplateSecurity(
+          readPodTemplateSecurity(specKv, CRON_JOB_POD_TEMPLATE_PATH),
+        ),
       },
       status: {
         lastScheduleTime: statusKv

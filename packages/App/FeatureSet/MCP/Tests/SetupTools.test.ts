@@ -1,19 +1,27 @@
 /**
- * Ask AI's setup actions as MCP tools (#7241).
+ * Ask AI's setup actions as MCP tools (#7241, #10041).
  *
- *   - Five tools: set_up_website_monitoring, set_up_paging,
- *     publish_status_page, add_monitors_to_status_page and who_is_told.
- *     The four that make something are writes - not read-only,
- *     destructive, and open-world when they publish a status page - and
- *     the read is read-only. A read-only sign-in may not call the writes,
- *     and MCP_READ_ONLY leaves only the read.
+ *   - Nine tools: set_up_website_monitoring, set_up_service_monitor,
+ *     set_up_paging, add_to_on_call_policy, invite_people,
+ *     set_how_to_reach_me, publish_status_page, add_monitors_to_status_page
+ *     and who_is_told. The eight that make something are writes - not
+ *     read-only, destructive, and open-world when they publish a status
+ *     page or email people outside the project - and the read is
+ *     read-only. A read-only sign-in may not call the writes, and
+ *     MCP_READ_ONLY leaves only the read.
  *   - Each call goes to the API's POST /api/setup-actions/run, as the
  *     credential's person, with the arguments as given: nothing is built
  *     here (Common's SetupActionRunner runs Ask AI's own tool).
  *   - A project API key is refused the writes before any request, in words
- *     that say what to do instead; it may still read who is told.
+ *     that say why for each and what to do instead; it may still read who
+ *     is told.
+ *   - With no card to show first, each description says what the card
+ *     would have: what it makes or replaces, the email an invitation
+ *     sends, what a monitor costs on the Free plan, and what a second
+ *     identical call does.
  *   - Their arguments are Ask AI's: every property is one Ask AI's tool
- *     takes, of its type and among its choices, and both require the same.
+ *     takes, of its type and among its choices - an array's items too, to
+ *     their own properties - and both require the same.
  */
 
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
@@ -37,7 +45,14 @@ import McpCredentialUtil, { McpCredential } from "../Types/McpCredential";
 import { JSONSchema, McpToolInfo } from "../Types/McpTypes";
 import AIToolbox from "Common/Server/Utils/AI/Toolbox/Index";
 import { ObservabilityTool } from "Common/Server/Utils/AI/Toolbox/ToolTypes";
-import { SETUP_ACTIONS_RUN_OUTSIDE_CHAT } from "Common/Types/AI/AISetupActions";
+import {
+  SETUP_ACTIONS_RUN_OUTSIDE_CHAT,
+  getSetupActionApiKeyRefusal,
+} from "Common/Types/AI/AISetupActions";
+import {
+  ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
+  formatPriceInUSD,
+} from "Common/Types/Billing/PayAsYouGoPricing";
 import McpOAuthGrant from "Common/Models/DatabaseModels/McpOAuthGrant";
 import Email from "Common/Types/Email";
 import { JSONObject } from "Common/Types/JSON";
@@ -51,10 +66,19 @@ type ApiCallSpy = jest.SpyInstance;
 
 const WRITES: Array<string> = [
   "set_up_website_monitoring",
+  "set_up_service_monitor",
   "set_up_paging",
+  "add_to_on_call_policy",
+  "invite_people",
+  "set_how_to_reach_me",
   "publish_status_page",
   "add_monitors_to_status_page",
 ];
+
+// What a new monitor costs on OneUptime Cloud's Free plan, as the guided setup quotes it.
+const MONITOR_PRICE: string = formatPriceInUSD(
+  ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
+);
 
 function oauthCredential(scopes: Array<McpOAuthScope>): McpCredential {
   const grant: McpOAuthGrant = new McpOAuthGrant();
@@ -148,18 +172,71 @@ describe("the setup tools are listed", () => {
     expect(
       listed("add_monitors_to_status_page").annotations?.openWorldHint,
     ).toBe(true);
-    expect(listed("set_up_website_monitoring").annotations?.openWorldHint).toBe(
+    expect(listed("set_up_paging").annotations?.openWorldHint).toBe(false);
+  });
+
+  /*
+   * A website monitor checks the address it is given, as one made with
+   * create_monitor does: it points OneUptime at an address outside it, so
+   * open-world (OpenAI's plugin review flags it marked closed-world). A
+   * service's recommended monitors read the project's own telemetry, and
+   * stay inside it.
+   */
+  it("set_up_website_monitoring points OneUptime at the address it is given: open-world", () => {
+    expect(listed("set_up_website_monitoring").annotations).toEqual({
+      readOnlyHint: false,
+      destructiveHint: true,
+      openWorldHint: true,
+    });
+    expect(listed("set_up_service_monitor").annotations?.openWorldHint).toBe(
       false,
     );
-    expect(listed("set_up_paging").annotations?.openWorldHint).toBe(false);
+  });
+
+  /*
+   * An invitation mails an address that need not be anyone in the project
+   * (#10041): the one setup tool that reaches strangers, so open-world,
+   * and its description says it sends mail. The other three it adds stay
+   * inside the project.
+   */
+  it("invite_people emails people outside the project: open-world, and it says it sends mail", () => {
+    const tool: McpToolInfo = listed("invite_people");
+
+    expect(tool.annotations?.openWorldHint).toBe(true);
+    expect(tool.annotations?.destructiveHint).toBe(true);
+    expect(tool.description).toContain("is sent an email");
+    expect(tool.description).toContain("in the name of the person signed in");
+
+    for (const name of [
+      "set_up_service_monitor",
+      "add_to_on_call_policy",
+      "set_how_to_reach_me",
+    ]) {
+      expect([name, listed(name).annotations?.openWorldHint]).toEqual([
+        name,
+        false,
+      ]);
+    }
   });
 
   it("each says what it makes, in its description", () => {
     expect(listed("set_up_website_monitoring").description).toContain(
       "opens an incident when the address does not answer",
     );
+    expect(listed("set_up_service_monitor").description).toContain(
+      "It opens an alert for the team, never an incident on a status page.",
+    );
     expect(listed("set_up_paging").description).toContain(
       '"Default on-call policy"',
+    );
+    expect(listed("add_to_on_call_policy").description).toContain(
+      "which then sets how long the level before it waits",
+    );
+    expect(listed("set_how_to_reach_me").description).toContain(
+      "It replaces how pages reach them now",
+    );
+    expect(listed("set_how_to_reach_me").description).toContain(
+      "It never adds a phone number or the app.",
     );
     expect(listed("publish_status_page").description).toContain(
       "It is public as soon as it is created",
@@ -169,7 +246,59 @@ describe("the setup tools are listed", () => {
     );
   });
 
-  it("MCP_READ_ONLY leaves the read, and takes the four writes away", () => {
+  /*
+   * What a second identical call does, said where an agent reads it
+   * before it retries (#10041): nothing twice.
+   */
+  it("each that could repeat itself says what a second identical call does", () => {
+    expect(listed("set_up_website_monitoring").description).toContain(
+      "An address a monitor checks already gets no second one.",
+    );
+    expect(listed("set_up_service_monitor").description).toContain(
+      "a second identical call makes none.",
+    );
+    expect(listed("add_to_on_call_policy").description).toContain(
+      "a second identical call adds nobody and makes no second level.",
+    );
+    expect(listed("invite_people").description).toContain(
+      "a second identical call sends no email.",
+    );
+    expect(listed("set_how_to_reach_me").description).toContain(
+      "A ladder that reaches them this way already is left as it is.",
+    );
+  });
+
+  // What the card on OneUptime Cloud's Free plan says before it is approved (#9995).
+  it("the two that make a monitor say what it costs on the Free plan, at the guided setup's price", () => {
+    for (const name of [
+      "set_up_website_monitoring",
+      "set_up_service_monitor",
+    ]) {
+      expect([name, listed(name).description]).toEqual([
+        name,
+        expect.stringContaining(
+          `On OneUptime Cloud's Free plan each new monitor is billed as you use it, at ${MONITOR_PRICE} a month`,
+        ),
+      ]);
+    }
+
+    for (const name of [
+      "set_up_paging",
+      "add_to_on_call_policy",
+      "invite_people",
+      "set_how_to_reach_me",
+      "publish_status_page",
+      "add_monitors_to_status_page",
+      "who_is_told",
+    ]) {
+      expect([name, listed(name).description.includes(MONITOR_PRICE)]).toEqual([
+        name,
+        false,
+      ]);
+    }
+  });
+
+  it("MCP_READ_ONLY leaves the read, and takes the eight writes away", () => {
     const kept: Array<string> = applyWritePolicy(generateWorkflowTools(), {
       readOnly: true,
       allowDestructive: true,
@@ -288,8 +417,32 @@ describe("a project API key", () => {
       ).rejects.toThrow(getApiKeyRefusal(name));
       expect(api).not.toHaveBeenCalled();
       expect(getApiKeyRefusal(name)).toContain("signing in to OneUptime");
+      // The words the API says too: one sentence for each tool, in one place.
+      expect(getApiKeyRefusal(name)).toBe(getSetupActionApiKeyRefusal(name));
     },
   );
+
+  /*
+   * Two are a person's by their nature (#10041): How to Reach Me is the
+   * person's own, so for a key there is nobody to set it for; and an
+   * invitation names who sent it. Neither is told the monitor-and-paging
+   * sentence of the others.
+   */
+  it("is told why a person's own How to Reach Me, and an invitation in a person's name, are not a key's", () => {
+    expect(getApiKeyRefusal("set_how_to_reach_me")).toContain(
+      "there is nobody whose How to Reach Me it could set",
+    );
+    expect(getApiKeyRefusal("invite_people")).toContain(
+      "the email says who invited them",
+    );
+
+    for (const name of ["set_how_to_reach_me", "invite_people"]) {
+      expect([name, getApiKeyRefusal(name)]).toEqual([
+        name,
+        expect.not.stringContaining("what it makes is theirs"),
+      ]);
+    }
+  });
 
   it("may still read who is told", async () => {
     const api: ApiCallSpy = spyOnApi({
@@ -321,10 +474,17 @@ describe("their arguments are Ask AI's", () => {
     >;
   }
 
+  /*
+   * A property's type and choices - and an array's items', to their own
+   * properties and what they require (set_how_to_reach_me's steps).
+   */
   function shapeOf(property: JSONObject): JSONObject {
     const items: JSONObject | undefined = property["items"] as
       | JSONObject
       | undefined;
+    const itemProperties: Record<string, JSONObject> = items
+      ? propertiesOf(items)
+      : {};
 
     return {
       type: property["type"] || null,
@@ -333,10 +493,40 @@ describe("their arguments are Ask AI's", () => {
         ? {
             type: items["type"] || null,
             enum: items["enum"] ? [...(items["enum"] as Array<string>)] : null,
+            properties: Object.keys(itemProperties)
+              .sort()
+              .map((key: string): JSONObject => {
+                return { key, ...shapeOf(itemProperties[key]!) };
+              }),
+            required: [
+              ...((items["required"] as Array<string> | undefined) || []),
+            ].sort(),
           }
         : null,
     };
   }
+
+  it("an array's items are held to Ask AI's too: set_how_to_reach_me's steps", () => {
+    const mcp: SetupToolDefinition = SETUP_TOOL_DEFINITIONS.find(
+      (definition: SetupToolDefinition): boolean => {
+        return definition.name === "set_how_to_reach_me";
+      },
+    )!;
+    const steps: JSONObject = propertiesOf(mcp.inputSchema)["steps"]!;
+
+    expect(shapeOf(steps)).toEqual(
+      shapeOf(
+        propertiesOf(
+          AIToolbox.getToolByName("set_how_to_reach_me")!.inputSchema,
+        )["steps"]!,
+      ),
+    );
+    expect(
+      (shapeOf(steps)["items"] as JSONObject)[
+        "properties"
+      ] as Array<JSONObject>,
+    ).toHaveLength(2);
+  });
 
   it.each(
     SETUP_TOOL_DEFINITIONS.map((definition: SetupToolDefinition) => {

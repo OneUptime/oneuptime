@@ -1125,6 +1125,7 @@ describe("Databases (DatabaseServer) models", () => {
       );
     });
 
+    // Databases' levels (#10289) follow the project-wide roles.
     test("table access control: Settings / project roles plus the granular DatabaseServer permissions", () => {
       const writeRoles: Array<Permission> = [
         Permission.ProjectOwner,
@@ -1132,6 +1133,8 @@ describe("Databases (DatabaseServer) models", () => {
         Permission.ProjectMember,
         Permission.SettingsAdmin,
         Permission.SettingsMember,
+        Permission.DatabaseAdmin,
+        Permission.DatabaseMember,
       ];
 
       expect(sorted(model.getCreatePermissions())).toEqual(
@@ -1153,6 +1156,9 @@ describe("Databases (DatabaseServer) models", () => {
           Permission.SettingsMember,
           Permission.SettingsViewer,
           Permission.ReadDatabaseServer,
+          Permission.DatabaseAdmin,
+          Permission.DatabaseMember,
+          Permission.DatabaseViewer,
         ]),
       );
     });
@@ -1933,12 +1939,13 @@ describe("Databases (DatabaseServer) models", () => {
           update: model.getUpdatePermissions(),
         });
 
-        // Rule tables: owners and admins write, members and viewers read.
+        // Rule tables: owners, admins and Database Admin write, members and viewers read.
         expect(sorted(model.getCreatePermissions())).toEqual(
           sorted([
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             `CreateDatabaseServer${kind}` as Permission,
+            Permission.DatabaseAdmin,
           ]),
         );
         expect(model.getReadPermissions()).toContain(

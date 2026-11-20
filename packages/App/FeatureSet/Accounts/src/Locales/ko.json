@@ -244,7 +244,13 @@
     "signInWithProvider": "{{name}} 계정으로 로그인",
     "requiredSubtitle": "이 서버는 SSO(Single Sign-On)가 필수입니다.",
     "requiredNotSetUp": "이 서버에는 아직 SSO(Single Sign-On)가 설정되지 않았습니다. 서버 관리자에게 설정을 요청하세요.",
-    "useDifferentEmail": "다른 이메일 사용"
+    "useDifferentEmail": "다른 이메일 사용",
+    "lastUsedTitle": "이 기기에서 마지막으로 사용함",
+    "forgetLastUsed": "이 공급자 잊기",
+    "emailLinksPrompt": "이 주소가 속한 모든 조직의 SSO 로그인 링크를 이 주소로 보내 드릴 수 있습니다.",
+    "emailLinksButton": "로그인 링크를 이메일로 받기",
+    "emailLinksSent": "이 주소가 싱글 사인온을 사용하는 조직에 속해 있다면 SSO 로그인 링크를 이메일로 보냈습니다.",
+    "emailLinksCaptchaRequired": "링크를 요청하기 전에 캡차를 완료하세요."
   },
   "adminLogin": {
     "title": "마스터 관리자 로그인",
@@ -281,6 +287,29 @@
     "templateDescription": "템플릿을 고르면 양식이 채워집니다. 제출하기 전에 어떤 답변이든 바꿀 수 있습니다.",
     "templateNone": "템플릿 없음",
     "uploadingFiles": "파일을 업로드하는 중…"
+  },
+  "formSignIn": {
+    "prompt": "이 양식을 열려면 로그인하세요.",
+    "ssoOnlyPrompt": "이 양식을 열려면 조직의 싱글 사인온으로 로그인하세요.",
+    "noWayIn": "이 양식에는 아직 로그인 방법이 설정되지 않았습니다. 양식을 공유한 사람에게 문의하세요.",
+    "email": "이메일",
+    "password": "비밀번호",
+    "forgotPassword": "비밀번호를 잊으셨나요?",
+    "signIn": "로그인",
+    "or": "또는",
+    "signInWithProvider": "{{provider}}(으)로 로그인",
+    "forgotTitle": "비밀번호를 잊으셨나요?",
+    "forgotPrompt": "이메일 주소를 입력하면 새 비밀번호를 정할 수 있는 링크를 보내 드립니다.",
+    "sendLink": "링크 보내기",
+    "forgotSent": "이 주소로 이 양식에 로그인할 수 있다면 새 비밀번호를 정할 수 있는 링크를 보내 드렸습니다. 링크는 24시간 동안 유효합니다.",
+    "backToSignIn": "로그인으로 돌아가기",
+    "resetTitle": "새 비밀번호 정하기",
+    "resetPrompt": "이 양식에 로그인할 때 쓸 비밀번호를 입력하세요.",
+    "newPassword": "새 비밀번호",
+    "savePassword": "비밀번호 저장",
+    "resetDone": "비밀번호를 저장했습니다. 이 비밀번호로 로그인해 양식을 여세요.",
+    "signedInAs": "{{email}}(으)로 로그인됨",
+    "signOut": "로그아웃"
   },
   "errors": {
     "forbidden": {

@@ -244,7 +244,13 @@
     "signInWithProvider": "使用 {{name}} 登录",
     "requiredSubtitle": "此服务器要求使用单点登录（SSO）。",
     "requiredNotSetUp": "此服务器尚未设置单点登录。请联系服务器管理员进行设置。",
-    "useDifferentEmail": "使用其他电子邮件"
+    "useDifferentEmail": "使用其他电子邮件",
+    "lastUsedTitle": "上次在此设备上使用",
+    "forgetLastUsed": "忘记此提供商",
+    "emailLinksPrompt": "我们可以将此地址所属的每个组织的 SSO 登录链接发送到此地址。",
+    "emailLinksButton": "通过邮件发送我的登录链接",
+    "emailLinksSent": "如果此地址属于使用单点登录的组织，我们已将 SSO 登录链接发送到此地址。",
+    "emailLinksCaptchaRequired": "请先完成人机验证，再请求这些链接。"
   },
   "adminLogin": {
     "title": "主管理员登录",
@@ -281,6 +287,29 @@
     "templateDescription": "选择一个模板来填写表单。提交前你可以修改任何回答。",
     "templateNone": "无模板",
     "uploadingFiles": "正在上传你的文件…"
+  },
+  "formSignIn": {
+    "prompt": "登录后即可打开此表单。",
+    "ssoOnlyPrompt": "使用您所在组织的单点登录进行登录，即可打开此表单。",
+    "noWayIn": "此表单尚未设置任何登录方式。请联系与您共享它的人。",
+    "email": "电子邮件",
+    "password": "密码",
+    "forgotPassword": "忘记密码？",
+    "signIn": "登录",
+    "or": "或",
+    "signInWithProvider": "使用 {{provider}} 登录",
+    "forgotTitle": "忘记密码了？",
+    "forgotPrompt": "输入您的电子邮件地址，我们会发送一个链接，供您设置新密码。",
+    "sendLink": "发送链接",
+    "forgotSent": "如果此地址可以登录此表单，设置新密码的链接已在发送途中。该链接在 24 小时内有效。",
+    "backToSignIn": "返回登录",
+    "resetTitle": "设置新密码",
+    "resetPrompt": "输入您以后登录此表单时使用的密码。",
+    "newPassword": "新密码",
+    "savePassword": "保存密码",
+    "resetDone": "您的密码已保存。请使用它登录以打开表单。",
+    "signedInAs": "已以 {{email}} 身份登录",
+    "signOut": "退出登录"
   },
   "errors": {
     "forbidden": {

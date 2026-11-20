@@ -395,6 +395,97 @@ describe("IoT fleet overview", () => {
   });
 });
 
+/*
+ * The Overview's choice (#9730), on every page that draws a device's state
+ * (#10014): while the fleet is disconnected, no device is called offline.
+ * One rule says whether the fleet reports (isIoTFleetConnected, in
+ * Utils/IoTFleetConnection), and one component draws a device's state
+ * with it (IoTDeviceStatus): the fleet disconnected, in grey, with what the
+ * device last reported and when. The rendered pages are in
+ * Common/Tests/App/Dashboard/IoTDisconnectedFleetDevices.test.tsx.
+ */
+describe("a disconnected fleet blames no device on any of its pages", () => {
+  const RULE_IMPORT: RegExp =
+    /import \{[^}]*\bisIoTFleetConnected\b[^}]*\} from "\.\.?\/(\.\.\/)?Utils\/IoTFleetConnection";/;
+
+  test.each([
+    PAGES["iotOverview"]!,
+    PAGES["iotDevices"]!,
+    PAGES["iotDeviceDetail"]!,
+    PAGES["iotFleets"]!,
+  ])("%s reads the fleet's connection by the one rule", (page: string) => {
+    const code: string = readCode(page);
+    expect(code).toMatch(RULE_IMPORT);
+    expect(code).not.toContain("export function isIoTFleetConnected");
+    expect(code).not.toContain('otelCollectorStatus === "connected"');
+  });
+
+  test("the Devices list reads the fleet before its rows, says so once, and draws each state with it", () => {
+    const code: string = readCode(PAGES["iotDevices"]!);
+
+    expect(code).toContain(
+      "await ModelAPI.getItem({ modelType: IoTFleet, id: modelId, select: { otelCollectorStatus: true, }, }),",
+    );
+    expect(code).toContain(
+      'if (isFleetLoading) { return <PageSkeleton shape="table" />; }',
+    );
+    expect(code).toContain(
+      "const isFleetConnected: boolean = isIoTFleetConnected( fleet?.otelCollectorStatus as string | undefined, );",
+    );
+    expect(code).toContain(
+      '{!isFleetConnected && ( <Alert className="mb-5" type={AlertType.WARNING} title={IOT_DEVICES_FLEET_DISCONNECTED_NOTICE} textOnRight={IOT_FLEET_DISCONNECTED_ACTION}',
+    );
+    expect(code).toContain(
+      "<IoTDeviceStatus isUp={item.isUp} isFleetConnected={isFleetConnected} lastSeenAt={item.lastSeenAt}",
+    );
+    // No state of its own, red or green, beside the shared one.
+    expect(code).not.toContain("StatusBadge");
+    expect(code).not.toContain('"Offline"');
+  });
+
+  test("a device's page reads its fleet's connection with its name, and says so the same way", () => {
+    const code: string = readCode(PAGES["iotDeviceDetail"]!);
+
+    expect(code).toContain(
+      "select: { name: true, otelCollectorStatus: true, },",
+    );
+    expect(code).toContain(
+      "<IoTDeviceStatus isUp={row.isUp} isFleetConnected={isFleetConnected} lastSeenAt={row.lastSeenAt}",
+    );
+    expect(code).toContain(
+      '{!isFleetConnected && ( <Alert className="mb-5" type={AlertType.WARNING} title={IOT_DEVICE_FLEET_DISCONNECTED_NOTICE}',
+    );
+    expect(code).not.toContain("StatusBadge");
+  });
+
+  test("the Fleets list counts a disconnected fleet's devices, never how many are online", () => {
+    const devices: string = segment(
+      readCode(PAGES["iotFleets"]!),
+      'title: "Devices"',
+      "title:",
+    );
+
+    expect(devices).toContain(
+      "const count: IoTFleetDeviceCount = getIoTFleetDeviceCount({ total: total, online: online, isFleetConnected: isIoTFleetConnected( item.otelCollectorStatus as string | undefined, ), });",
+    );
+    expect(devices).toContain(
+      ': translator.translatePlural( { one: "{{count}} device", other: "{{count}} devices" }, total, )}',
+    );
+  });
+
+  test("the side menu counts the fleet's devices, never the ones offline", () => {
+    const layout: string = readCode("Pages/IoT/View/Layout.tsx");
+
+    expect(layout).toContain(
+      'setResourceCounts({ devices: readNum("deviceCount"), });',
+    );
+    expect(layout).not.toContain("onlineDeviceCount");
+    expect(readCode("Pages/IoT/View/SideMenu.tsx")).toContain(
+      "badge={counts.devices} badgeType={BadgeType.NEUTRAL}",
+    );
+  });
+});
+
 describe("IoT device detail", () => {
   const code: string = readCode(PAGES["iotDeviceDetail"]!);
   const fields: string = summaryFieldsCode(code);
@@ -736,14 +827,18 @@ describe("Ceph cluster overview", () => {
       "const renderPgDistribution: () => ReactElement",
       "const renderGoldenCharts",
     );
-    expect(bar).toContain("if (!canOpenPgPools) { return {}; }");
+    expect(bar).toContain(
+      "if (!canOpenPgPools && !isPgCountClusterWide) { return {}; }",
+    );
     expect(bar).toContain(
       'label: tx("Degraded PGs"), ...pressToOpenPools("degraded"),',
     );
     expect(bar).toContain(
       'label: tx("Undersized PGs"), ...pressToOpenPools("undersized"),',
     );
-    expect(bar).toContain("clickHint: tx(CEPH_POOL_HINT),");
+    expect(bar).toContain(
+      "clickHint: tx(canOpenPgPools ? CEPH_POOL_HINT : CEPH_PG_CLUSTER_HINT),",
+    );
     // The rest of the bar stays words.
     expect(bar).toContain('label: tx("Active + Clean"), },');
 
@@ -760,10 +855,42 @@ describe("Ceph cluster overview", () => {
       "items: getCephPgStatePoolItems({ items: attentionItems, rows: inventoryRows, pgStatesByPool: pgStatesByPool, state: state, reasonsByPool: reasonsByPool, translator: translator, }),",
     );
     expect(code).toContain(
-      "<ResourceAttentionDialog testId={`ceph-pg-${openPgState}-dialog`}",
+      "{openPgState && canOpenPgPools ? ( <ResourceAttentionDialog testId={`ceph-pg-${openPgState}-dialog`}",
     );
     expect(code).toContain(
       "load={(): Promise<ResourceAttentionDialogRead> => { return loadPgStatePools(openPgState); }}",
+    );
+  });
+
+  /*
+   * A Ceph that counts placement groups for the whole cluster only
+   * (Luminous, the first Mimic releases) never says which pools hold them
+   * (#10016). Its segments open the cluster's own row - Ceph's reason, read
+   * from its cluster-wide ceph_pg_<state> series - and its OSDs that are
+   * down, and the dialog says which pools is not known.
+   */
+  test("on a Ceph that counts them for the whole cluster only, the bar's segments open the cluster's reason and its down OSDs", () => {
+    expect(code).toContain(
+      "const isPgCountClusterWide: boolean = isAttentionCurrent && pgStats !== null && !(pgStatesByPool && pgStatesByPool.size > 0);",
+    );
+    const read: string = segment(
+      code,
+      "const loadPgStateCluster:",
+      "const loadPgStatePools:",
+    );
+    expect(read).toContain(
+      "reasonStates = await loadCephClusterPgReasonStates(clusterName);",
+    );
+    // A failed read of Ceph's reason says so, and keeps the OSDs that are down.
+    expect(read).toContain("} catch { isReasonUnread = true; }");
+    expect(read).toContain(
+      "items: getCephClusterPgStateItems({ state: state, cluster: { name: clusterName }, totals: pgStats, items: attentionItems, rows: inventoryRows, reasonStates: reasonStates, isReasonUnread: isReasonUnread, translator: translator, }),",
+    );
+    expect(code).toContain(
+      "{openPgState && !canOpenPgPools && isPgCountClusterWide ? ( <ResourceAttentionDialog testId={`ceph-pg-${openPgState}-dialog`}",
+    );
+    expect(code).toContain(
+      "description={CEPH_PG_STATE_CLUSTER_DESCRIPTIONS[openPgState]} load={(): Promise<ResourceAttentionDialogRead> => { return loadPgStateCluster(openPgState); }} emptyMessage={CEPH_NO_PG_STATE_CLUSTER[openPgState]}",
     );
   });
 

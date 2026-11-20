@@ -24,6 +24,7 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -538,6 +539,7 @@ export default class StatusPage extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -3281,6 +3283,7 @@ export default class StatusPage extends BaseModel {
     title: "Send Next Report By",
     description:
       "When the next report goes out. The server works it out from the schedule.",
+    serverOwned: ServerOwned.Always,
   })
   @Index()
   @Column({

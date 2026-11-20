@@ -18,6 +18,11 @@ import { BILLING_ENABLED, getAllEnvVars } from "../../Config";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../Utils/Project";
 import {
+  SharedNameFacts,
+  getSharedNameFacts,
+  getSharedNameSelect,
+} from "../../Utils/SharedNameOptions";
+import {
   translateTemplate,
   translationKey,
 } from "../../Utils/TranslateTemplate";
@@ -140,6 +145,22 @@ const userToOption: (
   };
 };
 
+/*
+ * What tells a team, a schedule or a policy from another of its name
+ * (SharedNameOptions, #10064), when its read selected it: the search list's
+ * and the lookups' reads do. A row read through a relation holds its id and
+ * name alone, and carries nothing.
+ */
+const readSharedNameFacts: (record: BaseModel) => {
+  sharedName?: SharedNameFacts;
+} = (record: BaseModel): { sharedName?: SharedNameFacts } => {
+  const facts: SharedNameFacts | undefined = getSharedNameFacts(record);
+
+  return facts && (facts.description !== undefined || facts.createdAt)
+    ? { sharedName: facts }
+    : {};
+};
+
 const teamToOption: (
   team: BaseModel | undefined,
 ) => PeoplePickerOption | null = (
@@ -163,6 +184,7 @@ const teamToOption: (
     kind: PeoplePickerKind.Team,
     id: id,
     name: readString(record["name"]) || "Deleted team",
+    ...readSharedNameFacts(team),
   };
 };
 
@@ -312,7 +334,7 @@ const searchTeams: (
     query: query as Query<Team>,
     limit: data.limit,
     skip: 0,
-    select: { _id: true, name: true },
+    select: { _id: true, name: true, ...getSharedNameSelect(Team) },
     sort: { name: SortOrder.Ascending },
   });
 
@@ -342,7 +364,7 @@ const getTeamsByIds: (
     } as unknown as Query<Team>,
     limit: LIMIT_PER_PROJECT,
     skip: 0,
-    select: { _id: true, name: true },
+    select: { _id: true, name: true, ...getSharedNameSelect(Team) },
     sort: { name: SortOrder.Ascending },
   });
 
@@ -408,6 +430,7 @@ const scheduleToOption: (
     kind: kind,
     id: id,
     name: readString(record["name"]) || UNKNOWN_ON_CALL_SCHEDULE_NAME,
+    ...readSharedNameFacts(schedule),
   };
 };
 
@@ -484,7 +507,11 @@ const listSchedules: (data: {
       query: data.query as Query<OnCallDutyPolicySchedule>,
       limit: data.limit,
       skip: 0,
-      select: { _id: true, name: true },
+      select: {
+        _id: true,
+        name: true,
+        ...getSharedNameSelect(OnCallDutyPolicySchedule),
+      },
       sort: { name: SortOrder.Ascending },
     });
   } catch (error) {
@@ -611,6 +638,7 @@ const policyToOption: (
             policyName: name,
           })
         : name,
+    ...readSharedNameFacts(policy),
   };
 };
 
@@ -635,7 +663,12 @@ const listPolicies: (data: {
       query: data.query as Query<OnCallDutyPolicy>,
       limit: data.limit,
       skip: 0,
-      select: { _id: true, name: true, isArchived: true },
+      select: {
+        _id: true,
+        name: true,
+        isArchived: true,
+        ...getSharedNameSelect(OnCallDutyPolicy),
+      },
       sort: { name: SortOrder.Ascending },
     });
   } catch (error) {

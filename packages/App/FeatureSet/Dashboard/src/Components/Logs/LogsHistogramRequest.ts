@@ -26,6 +26,11 @@ import {
 } from "Common/Types/Telemetry/ResourceEntityFacet";
 import { HistogramBucket } from "Common/UI/Components/LogsViewer/types";
 import { LogsHistogramData } from "Common/UI/Components/LogsViewer/useLogsHistogram";
+import Timezone from "Common/Types/Timezone";
+import {
+  getHistogramRequestTimezone,
+  readHistogramBucketTimezone,
+} from "Common/UI/Components/Charts/Utils/HistogramDayBars";
 
 /*
  * Every facet whose values name a resource, in sidebar order. Re-exported
@@ -81,10 +86,40 @@ export function buildLogsHistogramRequest(
   const dateRange: InBetween<Date> =
     RangeStartAndEndDateTimeUtil.getStartAndEndDate(params.timeRange);
 
-  const requestData: JSONObject = {
+  /*
+   * The reader's zone, so a bar of a day starts at their midnight (#7923):
+   * the server picks a day's bar for a window over 30 days.
+   */
+  const timezone: Timezone | undefined = getHistogramRequestTimezone();
+
+  return {
     startTime: dateRange.startValue.toISOString(),
     endTime: dateRange.endValue.toISOString(),
+    ...(timezone ? { timezone: timezone } : {}),
+    ...buildLogsAggregateScope(params),
   };
+}
+
+// What narrows an aggregate read but its window: see buildLogsAggregateScope.
+export type LogsAggregateScopeParams = Omit<
+  LogsHistogramRequestParams,
+  "timeRange"
+>;
+
+/**
+ * Everything the list is narrowed by but its time window, as the aggregate
+ * endpoints read it: the page's own scope (its services, trace, span,
+ * attributes and entity keys), the chips kept and left out, and what the
+ * search bar typed. The volume histogram reads it with its window
+ * (buildLogsHistogramRequest), and so does the Analytics chart (#7716),
+ * which resolves its own window and bucket size: a p95 of duration_ms
+ * filtered by `@http.route:/checkout` charts the checkout's, as the list
+ * and the histogram show them, not every route's.
+ */
+export function buildLogsAggregateScope(
+  params: LogsAggregateScopeParams,
+): JSONObject {
+  const requestData: JSONObject = {};
 
   if (params.serviceIds) {
     requestData["serviceIds"] = params.serviceIds;
@@ -248,6 +283,8 @@ export function parseLogsHistogramResponse(
       Number.isFinite(bucketSizeInMinutes) && bucketSizeInMinutes > 0
         ? bucketSizeInMinutes * MINUTE_MS
         : undefined,
+    // The zone its day bars were cut in, when they were (#7923).
+    bucketTimezone: readHistogramBucketTimezone(data?.["bucketTimezone"]),
   };
 }
 
