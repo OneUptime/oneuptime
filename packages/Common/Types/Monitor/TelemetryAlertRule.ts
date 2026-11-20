@@ -313,10 +313,16 @@ export default class TelemetryAlertRuleUtil {
     monitorType: MonitorType;
     measure?: CheckOn | null | undefined;
     current?: FilterType | undefined;
+    /*
+     * A PromQL step's expression has no hourly baseline of its own, which
+     * the anomaly conditions compare with (issue #7712).
+     */
+    isPromQL?: boolean | undefined;
   }): Array<FilterType> {
     const comparisons: Array<FilterType> = [...STATIC_COMPARISONS];
 
     if (
+      !data.isPromQL &&
       TelemetryAlertRuleUtil.supportsAnomaly(data.monitorType, data.measure)
     ) {
       comparisons.push(...ANOMALY_COMPARISONS);
@@ -408,9 +414,10 @@ export default class TelemetryAlertRuleUtil {
   public static getMetricAliases(monitorStep: MonitorStep): Array<string> {
     const config: MonitorStepMetricMonitor | undefined =
       monitorStep.data?.metricMonitor;
+    // A PromQL step's one expression (issue #7712), else the builder's.
     const viewConfig: ReturnType<
-      typeof MonitorStepMetricMonitorUtil.getMetricViewConfig
-    > = MonitorStepMetricMonitorUtil.getMetricViewConfig(config);
+      typeof MonitorStepMetricMonitorUtil.getEvaluatedViewConfig
+    > = MonitorStepMetricMonitorUtil.getEvaluatedViewConfig(config);
 
     const aliases: Array<string> = [];
 
@@ -952,8 +959,15 @@ export default class TelemetryAlertRuleUtil {
       const alias: string | undefined =
         filter.metricMonitorOptions?.metricAlias;
 
+      /*
+       * A PromQL step has one expression, and every criteria compares it
+       * (issue #7712): an alias kept from its builder queries names it too.
+       */
       if (
         alias &&
+        !MonitorStepMetricMonitorUtil.isPromQL(
+          data.monitorStep.data?.metricMonitor,
+        ) &&
         !TelemetryAlertRuleUtil.getMetricAliases(data.monitorStep).includes(
           alias,
         )

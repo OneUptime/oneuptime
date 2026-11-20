@@ -301,10 +301,13 @@ export const getComparisonChoices: (data: {
   monitorType: MonitorType;
   measure?: CheckOn | null | undefined;
   current?: FilterType | undefined;
+  // A PromQL step: no anomaly conditions (TelemetryAlertRuleUtil).
+  isPromQL?: boolean | undefined;
 }) => Array<TelemetryRuleChoice<FilterType>> = (data: {
   monitorType: MonitorType;
   measure?: CheckOn | null | undefined;
   current?: FilterType | undefined;
+  isPromQL?: boolean | undefined;
 }): Array<TelemetryRuleChoice<FilterType>> => {
   const labels: Record<string, string> =
     data.monitorType === MonitorType.Metrics

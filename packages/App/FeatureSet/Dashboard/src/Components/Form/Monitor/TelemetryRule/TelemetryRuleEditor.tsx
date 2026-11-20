@@ -21,6 +21,7 @@ import {
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
+import { MonitorStepMetricMonitorUtil } from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import { MonitorStepTraceMonitorUtil } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import TelemetryAlertRuleUtil, {
@@ -573,6 +574,9 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
       monitorType,
       measure: rule.measure,
       current: rule.filterType,
+      isPromQL: MonitorStepMetricMonitorUtil.isPromQL(
+        monitorStep.data?.metricMonitor,
+      ),
     }),
   );
 

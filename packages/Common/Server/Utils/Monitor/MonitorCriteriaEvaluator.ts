@@ -971,8 +971,12 @@ ${incomingRequestGrouping.rootCauseNote}
       return false;
     }
 
+    /*
+     * Grouped by attributes, or written in PromQL, every series of whose
+     * expression is its own (issue #7712).
+     */
     if (MonitorTypeHelper.isMetricBackedMonitor(monitorType)) {
-      return MonitorStep.getGroupByAttributeKeys(input.monitorStep).length > 0;
+      return MonitorStep.isJudgedPerSeries(input.monitorStep);
     }
 
     // A Logs monitor's Group By, the log-count counterpart of the above.

@@ -225,6 +225,7 @@ import {
   stepJudgesFreshness,
 } from "./MetricSeriesArrivals";
 import { readResourceStillReporting } from "./ResourceStillReporting";
+import { monitorPromQLMetric } from "./PromQLMetricMonitor";
 
 /*
  * How a VMware or Storage Array step's resource filters become attribute
@@ -2005,6 +2006,16 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
 
   if (!metricMonitorConfig) {
     throw new BadDataException("Metric config is missing");
+  }
+
+  // A step written in PromQL is its expression, series by series (#7712).
+  if (MonitorStepMetricMonitorUtil.isPromQL(metricMonitorConfig)) {
+    return monitorPromQLMetric({
+      metricMonitor: metricMonitorConfig,
+      monitorId: data.monitorId,
+      projectId: data.projectId,
+      evaluateUntil: data.evaluateUntil,
+    });
   }
 
   const startAndEndDate: InBetween<Date> =
