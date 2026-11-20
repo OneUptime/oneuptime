@@ -21,6 +21,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { StateListType } from "Common/Utils/StateOrder";
+import { EPISODE_RESOLVED_ALL_ALERTS_RESOLVED } from "Common/Utils/Monitor/StatusChangeNotes";
 
 /*
  * Open alert episodes resolve themselves once every alert in them is
@@ -154,6 +155,7 @@ export const ALERT_EPISODE_AUTO_RESOLVE: EpisodeAutoResolveKind = {
       episodeId,
       undefined, // No user - auto-resolved by system
       false, // Don't cascade to alerts - they're already resolved
+      EPISODE_RESOLVED_ALL_ALERTS_RESOLVED,
     );
   },
 };

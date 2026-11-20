@@ -216,7 +216,7 @@ describe("accepting a finding", () => {
 
   test("a kind no finding names is refused, listing the kinds", async () => {
     expect(messageOf(await create({ objectKind: "Secret" }))).toBe(
-      "Secret is not a kind of object a finding names. Choose one of Deployment, StatefulSet, DaemonSet, ReplicaSet, Job, CronJob, DeploymentConfig, Pod, Role, ClusterRole, RoleBinding, ClusterRoleBinding, ServiceAccount, Namespace.",
+      "Secret is not a kind of object a finding names. Choose one of Deployment, StatefulSet, DaemonSet, ReplicaSet, Job, CronJob, DeploymentConfig, Pod, Role, ClusterRole, RoleBinding, ClusterRoleBinding, ServiceAccount, Namespace, Node.",
     );
     // A name with no kind names nothing.
     expect(messageOf(await create({ objectKind: "" }))).toContain(
@@ -278,6 +278,61 @@ describe("accepting a finding", () => {
 
     expect(clusterWide.thrown).toBeUndefined();
     expect(clusterWide.data.namespace).toBeNull();
+  });
+
+  test("a node's finding of a control kube-bench checks names the node, in no namespace (#9873)", async () => {
+    const node: { thrown: unknown; data: DataSecurityComplianceSetting } =
+      await create({
+        framework: KubernetesComplianceFramework.CisKubernetes,
+        requirement: "4.1.1",
+        namespace: "",
+        objectKind: "Node",
+        objectName: "ip-10-0-1-5.eu-west-1.compute.internal",
+        note: "The node image sets it; the next image fixes it.",
+      });
+
+    expect(node.thrown).toBeUndefined();
+    expect(node.data.namespace).toBeNull();
+    expect(
+      messageOf(
+        await create({
+          framework: KubernetesComplianceFramework.CisKubernetes,
+          requirement: "4.1.1",
+          namespace: "kube-system",
+          objectKind: "Node",
+          objectName: "kind-worker",
+        }),
+      ),
+    ).toBe("A Node belongs to no namespace. Leave the namespace empty.");
+    // The NSA/CISA guide's node controls, and the whole guide, too (#9875).
+    for (const requirement of ["API server audit logging", ""]) {
+      expect(
+        (
+          await create({
+            framework: KubernetesComplianceFramework.NsaCisaHardening,
+            requirement,
+            namespace: "",
+            objectKind: "Node",
+            objectName: "kind-control-plane",
+          })
+        ).thrown,
+      ).toBeUndefined();
+    }
+  });
+
+  test("the agent's own workload, accepted for the whole framework with the page's reason (#9929)", async () => {
+    const accepted: { thrown: unknown; data: DataSecurityComplianceSetting } =
+      await create({
+        framework: BASELINE,
+        requirement: "",
+        namespace: "oneuptime-agent",
+        objectKind: "DaemonSet",
+        objectName: "kubernetes-agent-ebpf",
+        note: "The OneUptime Kubernetes agent's eBPF instrumentation loads eBPF programs into the node's kernel to trace requests without changing your applications, which needs a privileged container in the node's process namespace.",
+      });
+
+    expect(accepted.thrown).toBeUndefined();
+    expect(accepted.data.requirement).toBeNull();
   });
 
   test("a namespace's finding is the namespace's own", async () => {

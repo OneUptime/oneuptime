@@ -98,6 +98,10 @@ import Select from "../Types/Database/Select";
 import Alert from "../../Models/DatabaseModels/Alert";
 import StateMoveCheck from "../Utils/StateMoveCheck";
 import StateMoveUtil, { StateMoveRecord } from "../../Utils/StateMove";
+import {
+  STATE_CHANGED_BY_EPISODE,
+  STATE_CHANGED_WITH_EPISODE,
+} from "../../Utils/Monitor/StatusChangeNotes";
 
 /*
  * The two names of an episode's state, ID column first. A write may name it
@@ -1307,7 +1311,7 @@ export class Service extends ProjectReferencesService<Model> {
           alertId: member.alertId,
           alertStateId: alertStateId,
           notifyOwners: false, // Don't send notifications for cascaded state changes
-          rootCause: "State changed by episode state cascade.",
+          rootCause: STATE_CHANGED_BY_EPISODE,
           stateChangeLog: undefined,
           props: props,
         });
@@ -1413,11 +1417,17 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  /*
+   * `rootCause`: why OneUptime resolved it itself - every alert in it
+   * resolved, none joined it within its inactivity timeout - for its State
+   * Timeline (StatusChangeNotes). Left out, a person's change names them.
+   */
   @CaptureSpan()
   public async resolveEpisode(
     episodeId: ObjectID,
     resolvedByUserId?: ObjectID,
     cascadeToAlerts: boolean = true,
+    rootCause?: string | undefined,
   ): Promise<void> {
     const episode: Model | null = await this.findOneById({
       id: episodeId,
@@ -1451,7 +1461,7 @@ export class Service extends ProjectReferencesService<Model> {
       episodeId: episodeId,
       alertStateId: alertState.id,
       notifyOwners: true,
-      rootCause: undefined,
+      rootCause: rootCause,
       props: {
         isRoot: true,
         userId: resolvedByUserId,
@@ -1672,10 +1682,16 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  /*
+   * `rootCause`: why OneUptime reopened it itself - a new alert joined it
+   * within its grouping rule's reopen window (StatusChangeNotes). Left out,
+   * a person's change names them.
+   */
   @CaptureSpan()
   public async reopenEpisode(
     episodeId: ObjectID,
     reopenedByUserId?: ObjectID,
+    rootCause?: string | undefined,
   ): Promise<void> {
     const episode: Model | null = await this.findOneById({
       id: episodeId,
@@ -1700,7 +1716,7 @@ export class Service extends ProjectReferencesService<Model> {
       episodeId: episodeId,
       alertStateId: createdAlertStateId,
       notifyOwners: true,
-      rootCause: "Episode reopened due to new alert added.",
+      rootCause: rootCause,
       props: {
         isRoot: true,
         userId: reopenedByUserId,
@@ -1782,7 +1798,7 @@ export class Service extends ProjectReferencesService<Model> {
           episodeId: itemId,
           alertStateId: updatedAlertStateId,
           notifyOwners: true,
-          rootCause: "State was changed when the episode was updated.",
+          rootCause: STATE_CHANGED_WITH_EPISODE,
           props: {
             isRoot: true,
           },

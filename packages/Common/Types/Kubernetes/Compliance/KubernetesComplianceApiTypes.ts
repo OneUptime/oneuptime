@@ -69,6 +69,42 @@ export interface KubernetesComplianceFrameworkResponse
   acceptances?: Array<KubernetesComplianceAcceptanceEntry> | undefined;
 }
 
+/*
+ * One node kube-bench ran on (#9873): its newest run's benchmark, the
+ * targets it checked there, when it finished, and why it could not, when it
+ * could not.
+ */
+export interface KubernetesComplianceNodeBenchmarkNode {
+  node: string;
+  benchmark: string;
+  targets: Array<string>;
+  finishedAt: string | null;
+  // It read the control plane: kube-bench found the API server on the node.
+  isControlPlane: boolean;
+  // Why its newest run could not finish; null for one that did.
+  error: string | null;
+}
+
+/*
+ * What kube-bench read of the cluster's nodes (#9873): the benchmark of the
+ * runs scored, each node's newest run, and the controls the benchmark marks
+ * manual, which are listed, never scored.
+ */
+export interface KubernetesComplianceNodeBenchmark {
+  // "cis-1.12", "eks-1.8.0".
+  benchmark: string;
+  // "cis", "eks", "gke" or "aks".
+  family: string;
+  nodes: Array<KubernetesComplianceNodeBenchmarkNode>;
+  // The requirements of the controls the benchmark marks manual: "1.2.1", "EKS 2.1.1".
+  manual: Array<string>;
+  /*
+   * The benchmark the cluster's platform has one of its own, when kube-bench
+   * ran the generic one there: "eks-1.8.0" on EKS.
+   */
+  suggestedBenchmark: string | null;
+}
+
 // A namespace that runs pods, and the Pod Security Admission levels it says.
 export interface KubernetesComplianceNamespace {
   name: string;
@@ -103,5 +139,10 @@ export interface KubernetesComplianceResponse {
   // More pods than one answer reads: the first ones were scored.
   isTruncated: boolean;
   namespaces: Array<KubernetesComplianceNamespace>;
+  /*
+   * What kube-bench read of the nodes (#9873); null when it does not run, and
+   * absent from an older server's answer.
+   */
+  nodeBenchmark?: KubernetesComplianceNodeBenchmark | null | undefined;
   frameworks: Array<KubernetesComplianceFrameworkResponse>;
 }

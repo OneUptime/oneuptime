@@ -28,7 +28,7 @@ Apri **Prodotti → IA / LLM**, sotto **Osservabilità**. Il prodotto ha sette s
 | Scheda | Cosa mostra |
 | --- | --- |
 | **Conversazioni** | Ogni conversazione avuta dalla tua IA, prima quelle che richiedono attenzione. Sopra l'elenco: conversazioni, risposte dell'IA, quante richiedono attenzione, costo e il tempo di risposta tipico. |
-| **Chiamate** | Ogni chiamata di modello, embedding, agente e strumento. Filtra per servizio, provider, modello, operazione, persona, team o conversazione; fai clic su una chiamata per aprirla nel visualizzatore di tracce. |
+| **Chiamate** | Ogni chiamata di modello, embedding, agente e strumento. Filtra per servizio, provider, modello, operazione, persona, team, conversazione o stato; una chiamata non riuscita indica il suo errore sotto il suo stato. Fai clic su una chiamata per aprirla nel visualizzatore di tracce. |
 | **Utilizzo** | Chiamate, token e costo di un intervallo di tempo, ordinati per dipendente, team, modello, provider o app; in **Account provider**, ciò che è stato addebitato ai tuoi account collegati. |
 | **Avvisi** | Avvisi pronti per quando l'IA risponde male, e i tuoi monitor IA / LLM. |
 | **Budget** | Limiti di costo giornalieri, pubblicati come metriche su cui impostare avvisi. |
@@ -239,7 +239,7 @@ Un avviso pronto genera un avviso che si risolve da solo, e mostra il monitor co
 
 ## Guarda chi spende cosa
 
-La scheda **Utilizzo** mostra le chiamate, i token e il costo di un intervallo di tempo (gli ultimi 7 giorni, se non ne scegli un altro), e una tabella dei primi 25 secondo una di cinque suddivisioni: **Dipendente**, **Team**, **Modello**, **Provider** e **Applicazione / Servizio**. Le chiamate che non nominano nessuno vengono contate in **Non attribuito**, mai scartate.
+La scheda **Utilizzo** mostra le chiamate, i token e il costo di un intervallo di tempo (gli ultimi 7 giorni, se non ne scegli un altro), e una tabella dei primi 25 secondo una di cinque suddivisioni: **Dipendente**, **Team**, **Modello**, **Provider** e **Applicazione / Servizio**. Le chiamate che non nominano nessuno vengono contate in **Non attribuito**, mai scartate. Il tasso di errore sotto **Chiamate IA** apre **Chiamate** sulle chiamate dell'intervallo non riuscite, con **Stato** su **Errore**.
 
 Queste sono **Le tue chiamate IA**. Scegli invece **Account provider** per vedere cosa è stato addebitato ai tuoi account OpenAI, Anthropic, Azure, Bedrock, Vertex AI e Cursor collegati: vedi [Account dei provider di IA](/docs/telemetry/ai-provider-accounts#vedere-lutilizzo). Le due cose non vengono mai sommate.
 
