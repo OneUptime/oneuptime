@@ -193,6 +193,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | AWS CloudTrail | 投递到 CloudWatch Logs 的跟踪，由收集器的 `awscloudwatch` 接收器读取；对于在 **云** 下连接的账户，也可以用 [云审计日志](#读取云账户的审计日志) |
 | Google Cloud 审计日志 | 指向 Pub/Sub 的日志接收器（sink），由收集器的 `googlecloudpubsub` 接收器以 `encoding: raw_text` 读取；对于在 **云** 下连接的项目，也可以用它的 [流](/docs/telemetry/cloud-streaming-google-cloud) 或 [云审计日志](#读取云账户的审计日志) |
 | Azure 活动和 Entra ID 日志 | 流式传输到 Event Hub 的诊断设置，由收集器的 `azureeventhub` 接收器以 `format: raw` 读取，或发送到已连接订阅的 [流](/docs/telemetry/cloud-streaming-azure) 的事件中心；对于在 **云** 下连接的订阅的活动日志，也可以用 [云审计日志](#读取云账户的审计日志) |
+| Azure Key Vault、Storage 和 SQL 日志 | 资源上流式传输到 Event Hub 的诊断设置，由收集器的 `azureeventhub` 接收器以 `format: raw` 读取；或已连接订阅的 [流](/docs/telemetry/cloud-streaming-azure) 的诊断设置，需包含日志。参见 [Azure 资源自身的审计日志](#azure-资源自身的审计日志) |
 | OpenStack 审计轨迹 | 云的通知和审计过滤器以 `driver = log` 发送到其日志，由代理的[日志配置档](/docs/telemetry/openstack#谁做了什么)读取 |
 | CEF、LEEF | 产品的 syslog，由 [rsyslog](/docs/telemetry/syslog) 转发 |
 | Palo Alto Networks、FortiGate、Cisco ASA | 防火墙自身的 syslog，由 [rsyslog](/docs/telemetry/syslog) 转发 |
@@ -204,6 +205,18 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 安全产品写入日志的威胁，例如 CEF 或 LEEF 的发现，或 Palo Alto Networks、FortiGate 或 Cisco ASA 的威胁，会像已连接产品的警报一样打开 [案例](/docs/telemetry/security-cases)，并提高它所指的用户、主机或地址的风险。**你的日志** 上的 **从以下级别开启案例** 决定从哪个严重程度开始：默认为 **高及以上**，你也可以选择其他级别或 **从未**。该产品的登录和被阻止的连接仍然是事件，供你的规则读取。
 
 通过两条途径到达 OneUptime 的记录只存储一次：例如由其连接读取、又由 Azure 导出到您的日志中的 Microsoft Entra ID 登录，同时出现在您的日志和已连接 AWS 账户审计日志中的 CloudTrail 记录，或由云账户的流发送、**云审计日志** 也会读取的审计记录。
+
+#### Azure 资源自身的审计日志
+
+Key Vault、存储账户和 Azure SQL 数据库各自保留一份自己的审计日志，记录每个请求。只有安全团队会查看的内容才会成为安全事件：
+
+| 资源 | 会变成安全事件的内容 |
+| --- | --- |
+| Key Vault（`AuditEvent`） | 保管库拒绝的请求；被读取的机密；机密、密钥、证书或保管库本身被删除、清除或备份；其访问策略被更改；以及其所保存内容的更改。不包括每个 Azure SDK 客户端为获知租户而在不带令牌的首次调用中收到的 401：Key Vault 把它记录在其 `Authentication` 操作下 |
+| 存储账户（`StorageRead`、`StorageWrite`、`StorageDelete`） | 因缺少权限而被拒绝的请求；完全不带凭据而被处理的请求，静态网站的页面和 CORS 预检除外；容器、文件共享、队列或表的访问列表被更改，或其中之一被整个删除；以及由共享访问签名（SAS）签署的写入或删除。不包括成功的读取，通过 SAS 的读取也不例外 |
+| Azure SQL（`SQLSecurityAuditEvents`） | 失败的登录；新连接上的登录，而非池化连接的重用；权限的授予、拒绝或撤销，角色成员或密码的更改，模拟，以及登录名、用户或角色的创建、更改或删除；以及权限检查失败的操作。不包括批处理，它占审计的绝大部分 |
+
+存储账户记录的内容大部分是成功的读取：大多数应用都通过 SAS 把文件交给浏览器。这些读取会完整地保留在日志中，位于该账户的 **日志** 标签页上：在那里搜索 `"type":"SAS"`，即可查看共享访问签名读取了什么。每个事件都通过 ID 指向其资源，存储服务的事件还会指向其账户，因此它会显示在该资源的 **安全事件** 页面上；到达两次的记录只存储一次。
 
 ### 读取云账户的审计日志
 

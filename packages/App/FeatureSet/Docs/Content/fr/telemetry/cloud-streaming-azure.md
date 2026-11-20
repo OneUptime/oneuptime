@@ -30,6 +30,7 @@ flowchart TB
 - **Un abonnement Azure connecté.** Connectez-le d'abord dans **Cloud → Connecter** : voir [Connecter un compte cloud](/docs/telemetry/cloud-accounts).
 - **Un Propriétaire du projet ou un Administrateur du projet.** Eux seuls peuvent activer la lecture et arrêter la diffusion.
 - **Azure Cloud Shell**, connecté en tant que **Owner** des abonnements, ou que **Contributor** qui est aussi **User Access Administrator** : la commande crée un groupe de ressources et une attribution de rôle, et modifie des paramètres de diagnostic.
+- **Pour les journaux de Microsoft Entra ID, un Security Administrator** du locataire qui est aussi **Owner** ou **Contributor** du groupe de ressources que crée la commande : eux seuls peuvent envoyer les journaux du locataire vers un hub d'événements.
 - **Une sortie vers Azure, pour un OneUptime auto-hébergé.** OneUptime lit chaque espace de noms à `<namespace>.servicebus.windows.net` sur le port 9093, et les espaces de noms acceptent les connexions depuis Internet.
 
 ## Configurer la diffusion
@@ -43,6 +44,8 @@ Allez dans **Cloud → Connecter** et, sur la ligne de l'abonnement Azure, chois
 
 **Métriques** diffuse les métriques clés de chaque ressource, minute par minute, les métriques que OneUptime trace pour chaque ressource et sur lesquelles il la juge, sauf [celles qu'un paramètre de diagnostic ne peut pas envoyer](#ce-qui-arrive), que la connexion continue de lire. **Métriques et journaux** ajoute les journaux propres à chaque ressource, chaque catégorie qu'Azure conserve pour elle, et **Journaux** diffuse les journaux de ressources seuls.
 
+Sous **Pour les Événements de sécurité**, **Journal d'activité de chaque abonnement** fait envoyer par la commande les modifications, les alertes de Defender for Cloud et les refus d'Azure Policy de chaque abonnement vers le hub d'événements de la première région, et **Journaux de connexion et d'audit de Microsoft Entra ID** ajoute une seconde commande, destinée à un Security Administrator de votre locataire. [Événements de sécurité](/docs/telemetry/security-events#trouver-des-événements-de-sécurité-dans-vos-journaux) lit les deux.
+
 ### Activer la lecture
 
 Choisissez **Activer la lecture**. OneUptime cherche les hubs d'événements chaque minute, et les attend jusqu'à ce que la commande les ait créés.
@@ -50,6 +53,10 @@ Choisissez **Activer la lecture**. OneUptime cherche les hubs d'événements cha
 ### Exécuter la commande dans Azure Cloud Shell
 
 Copiez la commande, exécutez-la dans Azure Cloud Shell et attendez qu'elle se termine. Elle indique chaque région où elle a créé un hub d'événements, combien de ressources y envoient, et quelles ressources elle a laissées de côté, avec la raison donnée par Azure.
+
+### Exécuter la commande de Microsoft Entra ID, si vous l'avez choisie
+
+Une fois la première commande terminée, un Security Administrator du locataire exécute la seconde dans Azure Cloud Shell. Elle donne au locataire un paramètre de diagnostic qui envoie les journaux de connexion, d'audit et de risque de Microsoft Entra ID vers le hub d'événements de la première région, et indique ce qu'Azure a demandé s'il refuse.
 
 ### Attendre les premiers événements
 
@@ -83,9 +90,13 @@ Un espace de noms Service Bus ou Event Hubs ne diffuse aucune métrique. Les lec
 
 Un journal est classé sous sa ressource par l'ID ARM de la ressource, porté en `cloud.resource_id`, et garde sa catégorie, son opération, son résultat et ses propriétés comme attributs, par exemple `azure.category`.
 
-Un enregistrement du journal d'activité de catégorie `Administrative`, `Security` ou `Policy`, et un enregistrement de connexion, d'audit ou de risque de Microsoft Entra ID, arrivent entiers, comme corps de leur journal, même celui qui porte sur un groupe de ressources, un abonnement ou le locataire plutôt que sur une ressource. Avec [Trouver des événements de sécurité dans vos journaux](/docs/telemetry/security-events#trouver-des-événements-de-sécurité-dans-vos-journaux) activé, chacun est lu comme un événement de sécurité, comme celui d'un pipeline de journaux, et stocké une seule fois, par quelque voie qu'il parvienne à OneUptime. La commande ne configure que les journaux de ressources : le journal d'activité d'un abonnement et les journaux de Microsoft Entra ID atteignent le flux par un paramètre de diagnostic à part qui les envoie vers l'un de ses hubs d'événements.
+Un enregistrement du journal d'activité de catégorie `Administrative`, `Security` ou `Policy`, et un enregistrement de connexion, d'audit ou de risque de Microsoft Entra ID, arrivent entiers, comme corps de leur journal, même celui qui porte sur un groupe de ressources, un abonnement ou le locataire plutôt que sur une ressource. Avec [Trouver des événements de sécurité dans vos journaux](/docs/telemetry/security-events#trouver-des-événements-de-sécurité-dans-vos-journaux) activé, chacun est lu comme un événement de sécurité, comme celui d'un pipeline de journaux, et stocké une seule fois, par quelque voie qu'il parvienne à OneUptime. Avec **Journal d'activité de chaque abonnement** activé, la commande donne à chaque abonnement un paramètre de diagnostic qui envoie son journal d'activité vers le hub d'événements de la première région, et la commande de Microsoft Entra ID en donne un au locataire.
 
-Les machines virtuelles, groupes identiques, disques, interfaces réseau, réseaux virtuels, points de terminaison privés, passerelles NAT, zones DNS et plans App Service n'envoient pas de journaux de ressources propres : leurs pages n'ont donc pas d'onglet **Journaux**. Les journaux d'un compte de stockage sont ceux de ses services, et ceux d'une application conteneur ceux de son environnement.
+Les journaux `AuditEvent` d'un Key Vault, `StorageRead`, `StorageWrite` et `StorageDelete` d'un compte de stockage, et `SQLSecurityAuditEvents` d'une base de données Azure SQL arrivent eux aussi entiers, chacun classé sous sa ressource, et Événements de sécurité lit ceux qui comptent pour la sécurité : voir [Journaux d'audit propres aux ressources Azure](/docs/telemetry/security-events#journaux-daudit-propres-aux-ressources-azure). Une base de données Azure SQL n'envoie ses enregistrements d'audit qu'une fois son audit activé, avec Azure Monitor comme destination.
+
+Les machines virtuelles, groupes identiques, disques, interfaces réseau, réseaux virtuels, points de terminaison privés, passerelles NAT, zones DNS et plans App Service n'envoient pas de journaux de ressources propres : leurs pages n'ont donc pas d'onglet **Journaux**. Les journaux d'une application conteneur sont ceux de son environnement.
+
+Les journaux d'un compte de stockage sont ceux de ses services d'objets blob, de fichiers, de files d'attente et de tables : la commande donne à chaque service un paramètre de diagnostic à part, et leurs journaux sont classés sous le compte, sur son onglet **Journaux**. Ils recensent chaque requête à laquelle le compte répond, si bien qu'un compte très sollicité en envoie beaucoup.
 
 ## Ce que crée la commande
 
@@ -98,6 +109,9 @@ Le groupe de ressources s'appelle `oneuptime-stream-` suivi des 8 premiers carac
 | Un hub d'événements dans chacun, `oneuptime`, avec 2 partitions | Conserve les événements jusqu'à ce que OneUptime les lise |
 | Le rôle **Azure Event Hubs Data Receiver** pour l'application de la connexion, sur le seul groupe de ressources | Permet à l'application de lire les hubs d'événements, et rien d'autre |
 | Un paramètre de diagnostic sur chaque ressource, `OneUptime-<suffix>` | Envoie les métriques, les journaux ou les deux de la ressource vers le hub d'événements de sa région |
+| Avec les journaux, un paramètre de diagnostic sur chacun des services d'objets blob, de fichiers, de files d'attente et de tables d'un compte de stockage, `OneUptime-<suffix>` | Envoie les journaux des services vers le hub d'événements de la région du compte |
+| Avec **Journal d'activité de chaque abonnement**, un paramètre de diagnostic sur chaque abonnement, `OneUptime-<suffix>` | Envoie ses enregistrements `Administrative`, `Security` et `Policy` vers le hub d'événements de la première région |
+| Avec la commande de Microsoft Entra ID, le paramètre de diagnostic du locataire, `OneUptime-<suffix>` | Envoie ses journaux de connexion, d'audit et de risque vers le hub d'événements de la première région |
 
 Une ressource d'une région globale, comme Front Door, envoie vers le hub d'événements de la première région. Une ressource dont Azure ne conserve que des métriques ou que des journaux est configurée avec ce qu'elle a, et une qui a déjà 5 paramètres de diagnostic, le maximum permis par Azure, est laissée de côté. Azure facture l'unité de débit de chaque espace de noms à l'heure, et les événements qu'envoient les paramètres de diagnostic.
 
@@ -110,20 +124,31 @@ Sur la ligne de l'abonnement dans **Cloud → Connecter**, choisissez **Arrêter
 
 ### Supprimer ce que la commande a créé
 
-Les hubs d'événements et les paramètres de diagnostic restent dans Azure, qui les facture, jusqu'à leur suppression. La fenêtre affiche la commande : elle supprime le paramètre de diagnostic de chaque ressource, puis le groupe de ressources, quel que soit l'abonnement qui le contient.
+Les hubs d'événements et les paramètres de diagnostic restent dans Azure, qui les facture, jusqu'à leur suppression. La fenêtre affiche la commande : elle supprime le paramètre de diagnostic de chaque ressource, ceux des services des comptes de stockage et celui de chaque abonnement, puis le groupe de ressources, quel que soit l'abonnement qui le contient. Elle supprime aussi le paramètre de Microsoft Entra ID si vous en avez le droit, et sinon indique qui en a le droit.
 
 ```bash
 oneuptime_stream_stop() {
-  local SUB ID N=0
+  local SUB ID TYPE SERVICE N=0
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
-    while IFS= read -r ID; do
+    while IFS=$'\t' read -r ID TYPE; do
       if [ -z "$ID" ]; then continue; fi
       az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID" --output none 2> /dev/null &
       N=$((N + 1))
       if [ $((N % 4)) -eq 0 ]; then wait; fi
-    done < <(az resource list --subscription "$SUB" --query "[].id" --output tsv)
+      if [ "${TYPE,,}" = microsoft.storage/storageaccounts ]; then
+        for SERVICE in blobServices fileServices queueServices tableServices; do
+          az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID/$SERVICE/default" --output none 2> /dev/null &
+          N=$((N + 1))
+          if [ $((N % 4)) -eq 0 ]; then wait; fi
+        done
+      fi
+    done < <(az resource list --subscription "$SUB" --query "[].[id, type]" --output tsv)
+    az monitor diagnostic-settings subscription delete --subscription "$SUB" --name OneUptime-6f1c3a2e --yes --output none 2> /dev/null
   done
   wait
+  if az rest --method get --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null; then
+    az rest --method delete --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null && echo "Deleted Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e." || echo "Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e is left: a Security Administrator of the tenant deletes it, under Diagnostic settings in the Microsoft Entra admin center."
+  fi
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
     if [ "$(az group exists --subscription "$SUB" --name oneuptime-stream-6f1c3a2e 2> /dev/null)" = true ]; then
       az group delete --subscription "$SUB" --name oneuptime-stream-6f1c3a2e --yes --no-wait && echo "Deleting oneuptime-stream-6f1c3a2e in $SUB."
@@ -162,6 +187,10 @@ La fenêtre et l'info-bulle de la ligne disent pourquoi. Quand l'application n'e
 
 :::details La commande a laissé des ressources de côté
 Elle les liste, chacune avec la raison donnée par Azure. Une ressource d'un type sans paramètres de diagnostic n'envoie rien, et pour une qui a déjà 5 paramètres de diagnostic, il faut d'abord en supprimer un. Exécutez ensuite de nouveau la commande.
+:::
+
+:::details Le journal d'activité ou les journaux de Microsoft Entra ID ont été laissés de côté
+La commande indique ce qu'Azure a demandé. Le paramètre de diagnostic d'un abonnement exige `Microsoft.Insights/diagnosticSettings/write` sur l'abonnement, une autorisation qu'ont ses Owner, Contributor et Monitoring Contributor, et celui du locataire exige un Security Administrator du locataire. Les deux exigent `Microsoft.EventHub/namespaces/authorizationRules/listKeys/action` sur le groupe de ressources que crée la commande, une autorisation qu'ont ses Owner et Contributor. Exécutez ensuite de nouveau la commande.
 :::
 
 ## Étapes suivantes

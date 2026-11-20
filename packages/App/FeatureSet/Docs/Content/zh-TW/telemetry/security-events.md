@@ -193,6 +193,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | AWS CloudTrail | 傳遞到 CloudWatch Logs 的追蹤，由收集器的 `awscloudwatch` 接收器讀取；對於在 **雲端** 下連線的帳戶，也可以用 [雲端稽核日誌](#讀取雲端帳戶的稽核日誌) |
 | Google Cloud 稽核日誌 | 指向 Pub/Sub 的日誌接收器（sink），由收集器的 `googlecloudpubsub` 接收器以 `encoding: raw_text` 讀取；對於在 **雲端** 下連線的專案，也可以用它的 [串流](/docs/telemetry/cloud-streaming-google-cloud) 或 [雲端稽核日誌](#讀取雲端帳戶的稽核日誌) |
 | Azure 活動與 Entra ID 日誌 | 串流到 Event Hub 的診斷設定，由收集器的 `azureeventhub` 接收器以 `format: raw` 讀取，或傳送到已連線訂用帳戶的 [串流](/docs/telemetry/cloud-streaming-azure) 的事件中樞；對於在 **雲端** 下連線的訂用帳戶的活動記錄，也可以用 [雲端稽核日誌](#讀取雲端帳戶的稽核日誌) |
+| Azure Key Vault、Storage 與 SQL 日誌 | 資源上串流到 Event Hub 的診斷設定，由收集器的 `azureeventhub` 接收器以 `format: raw` 讀取；或已連線訂用帳戶的 [串流](/docs/telemetry/cloud-streaming-azure) 的診斷設定，需包含日誌。請參閱 [Azure 資源本身的稽核日誌](#azure-資源本身的稽核日誌) |
 | OpenStack 稽核軌跡 | 雲端的通知與稽核過濾器以 `driver = log` 送到其日誌，由代理程式的 [日誌設定檔](/docs/telemetry/openstack#誰做了什麼) 讀取 |
 | CEF、LEEF | 產品的 syslog，由 [rsyslog](/docs/telemetry/syslog) 轉送 |
 | Palo Alto Networks、FortiGate、Cisco ASA | 防火牆本身的 syslog，由 [rsyslog](/docs/telemetry/syslog) 轉送 |
@@ -204,6 +205,18 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 安全性產品寫入日誌的威脅，例如 CEF 或 LEEF 的發現，或 Palo Alto Networks、FortiGate 或 Cisco ASA 的威脅，會像已連線產品的警示一樣開啟 [案件](/docs/telemetry/security-cases)，並提高它所指的使用者、主機或位址的風險。**你的日誌** 上的 **從以下等級開啟案例** 決定從哪個嚴重程度開始：預設為 **高及以上**，你也可以選擇其他等級或 **從未**。該產品的登入和被封鎖的連線仍然是事件，供你的規則讀取。
 
 透過兩條途徑到達 OneUptime 的記錄只會儲存一次：例如由其連線讀取、又由 Azure 匯出到您的日誌中的 Microsoft Entra ID 登入，同時出現在您的日誌和已連線 AWS 帳戶稽核日誌中的 CloudTrail 記錄，或由雲端帳戶的串流傳送、**雲端稽核日誌** 也會讀取的稽核記錄。
+
+#### Azure 資源本身的稽核日誌
+
+Key Vault、儲存體帳戶和 Azure SQL 資料庫各自保留一份自己的稽核日誌，記錄每個要求。只有安全性團隊會查看的內容才會成為安全性事件：
+
+| 資源 | 會變成安全性事件的內容 |
+| --- | --- |
+| Key Vault（`AuditEvent`） | 保存庫拒絕的要求；被讀取的機密；機密、金鑰、憑證或保存庫本身被刪除、清除或備份；其存取原則被變更；以及其所保存內容的變更。不包括每個 Azure SDK 用戶端為了得知租用戶而在不帶權杖的第一次呼叫中收到的 401：Key Vault 會把它記錄在其 `Authentication` 作業下 |
+| 儲存體帳戶（`StorageRead`、`StorageWrite`、`StorageDelete`） | 因缺少權限而被拒絕的要求；完全不帶任何認證而被處理的要求，靜態網站的頁面和 CORS 預檢除外；容器、檔案共用、佇列或資料表的存取清單被變更，或其中之一被整個刪除；以及由共用存取簽章（SAS）簽署的寫入或刪除。不包括成功的讀取，透過 SAS 的讀取也不例外 |
+| Azure SQL（`SQLSecurityAuditEvents`） | 失敗的登入；新連線上的登入，而非集區連線的重複使用；權限的授予、拒絕或撤銷，角色成員或密碼的變更，模擬，以及登入名稱、使用者或角色的建立、變更或卸除；以及權限檢查失敗的動作。不包括批次，它佔了稽核的絕大部分 |
+
+儲存體帳戶記錄的內容大多是成功的讀取：大多數應用程式都透過 SAS 把檔案交給瀏覽器。這些讀取會完整保留在日誌中，位於該帳戶的 **日誌** 索引標籤上：在那裡搜尋 `"type":"SAS"`，即可查看共用存取簽章讀取了什麼。每個事件都透過 ID 指向其資源，儲存體服務的事件還會指向其帳戶，因此它會顯示在該資源的 **安全事件** 頁面上；抵達兩次的記錄只會儲存一次。
 
 ### 讀取雲端帳戶的稽核日誌
 

@@ -5,9 +5,10 @@ import IncidentMember from "../../Models/DatabaseModels/IncidentMember";
 import IncidentMemberService from "./IncidentMemberService";
 import IncidentEpisodeMember from "../../Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentEpisodeMemberService from "./IncidentEpisodeMemberService";
-import { OnCreate, OnDelete, OnFind } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
+import UpdateBy from "../Types/Database/UpdateBy";
 import BadDataException from "../../Types/Exception/BadDataException";
 import TeamMemberService from "./TeamMemberService";
 import logger from "../Utils/Logger";
@@ -25,7 +26,55 @@ import CountBy from "../Types/Database/CountBy";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { applyIncidentEpisodeRelatedRecordPrivacyFilter } from "../Utils/IncidentEpisode/IncidentEpisodePrivacyFilter";
 
+/*
+ * The names a role row's person and role are written under: the ID column
+ * first (RelationIdUtil).
+ */
+const USER_KEYS: Array<string> = ["userId", "user"];
+const ROLE_KEYS: Array<string> = ["incidentRoleId", "incidentRole"];
+
+// Refusals of a Reassign, in the words of what the person was doing.
+export const EPISODE_ROLE_HOLDER_REQUIRED_MESSAGE: string =
+  "An episode role is always held by someone. To take this person off the role, remove them from it instead.";
+export const REASSIGN_ONE_EPISODE_ROLE_AT_A_TIME_MESSAGE: string =
+  "Reassign one episode role at a time.";
+export const ALREADY_HOLDS_EPISODE_ROLE_MESSAGE: string =
+  "This person already holds this role on this episode. Choose someone else to hand it to.";
+
+/*
+ * A role handed from one person to another in one write (Reassign), read
+ * once the caller may make the write and carried to the episode's
+ * incidents once it is written.
+ */
+interface EpisodeRoleHandOver {
+  memberId: ObjectID;
+  incidentEpisodeId: ObjectID;
+  projectId: ObjectID;
+  incidentRoleId: ObjectID;
+  fromUserId: ObjectID;
+  toUserId: ObjectID;
+}
+
+// Two ids are one id in any case: ObjectID keeps the case it was handed.
+const isSameId: (
+  first: ObjectID | string | null | undefined,
+  second: ObjectID | string | null | undefined,
+) => boolean = (
+  first: ObjectID | string | null | undefined,
+  second: ObjectID | string | null | undefined,
+): boolean => {
+  if (!first || !second) {
+    return false;
+  }
+
+  return first.toString().toLowerCase() === second.toString().toLowerCase();
+};
+
 export class Service extends ProjectReferencesService<Model> {
+  // The hand-overs onUpdatePermitted read, for onUpdateSuccess to carry on.
+  private handOvers: WeakMap<UpdateBy<Model>, EpisodeRoleHandOver> =
+    new WeakMap<UpdateBy<Model>, EpisodeRoleHandOver>();
+
   public constructor() {
     super(Model);
   }
@@ -186,6 +235,278 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return createdItem;
+  }
+
+  /*
+   * REASSIGN: A ROLE HANDED TO SOMEONE ELSE IN ONE WRITE (#10191), as an
+   * incident's is (IncidentMemberService.onUpdatePermitted): an update that
+   * names another person on the row hands the role on, and asks what any
+   * change of the row asks (Edit Incident Episode Role Member) - one row at
+   * a time, to someone who does not hold that role on the episode yet.
+   * Whether they belong to the project is asked of every update that names
+   * a person, before this (ProjectReferencesService).
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await super.onUpdatePermitted(updateBy);
+
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (!RelationIdUtil.isPresent(data, USER_KEYS)) {
+      return;
+    }
+
+    const toUserId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      data,
+      USER_KEYS,
+      "User",
+    );
+
+    if (!toUserId) {
+      throw new BadDataException(EPISODE_ROLE_HOLDER_REQUIRED_MESSAGE);
+    }
+
+    const toRoleId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      data,
+      ROLE_KEYS,
+      "Incident Role",
+    );
+
+    const written: { row: Model | null; writesMore: boolean } =
+      await this.findOneRowAndHoldUpdateToIt(updateBy, {
+        _id: true,
+        projectId: true,
+        incidentEpisodeId: true,
+        userId: true,
+        incidentRoleId: true,
+      });
+
+    if (written.writesMore) {
+      throw new BadDataException(REASSIGN_ONE_EPISODE_ROLE_AT_A_TIME_MESSAGE);
+    }
+
+    const row: Model | null = written.row;
+
+    if (
+      !row ||
+      !row.id ||
+      !row.projectId ||
+      !row.incidentEpisodeId ||
+      !row.userId ||
+      !row.incidentRoleId
+    ) {
+      return;
+    }
+
+    // The same person: nothing is handed on.
+    if (isSameId(toUserId, row.userId)) {
+      return;
+    }
+
+    const incidentRoleId: ObjectID = toRoleId || row.incidentRoleId;
+
+    const holdsItAlready: Model | null = await this.findOneBy({
+      query: {
+        incidentEpisodeId: row.incidentEpisodeId,
+        userId: toUserId,
+        incidentRoleId: incidentRoleId,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (holdsItAlready) {
+      throw new BadDataException(ALREADY_HOLDS_EPISODE_ROLE_MESSAGE);
+    }
+
+    this.handOvers.set(updateBy, {
+      memberId: row.id,
+      incidentEpisodeId: row.incidentEpisodeId,
+      projectId: row.projectId,
+      incidentRoleId: incidentRoleId,
+      fromUserId: row.userId,
+      toUserId: toUserId,
+    });
+  }
+
+  /*
+   * Once the episode's role is handed on: the same in each of its
+   * incidents, as whoever handed it on (FeedFollowOnWriteProps), and the
+   * person it went to brought into the episode's own channels.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const handOver: EpisodeRoleHandOver | undefined = this.handOvers.get(
+      onUpdate.updateBy,
+    );
+
+    if (handOver) {
+      this.handOvers.delete(onUpdate.updateBy);
+
+      const wasWritten: boolean = updatedItemIds.some(
+        (id: ObjectID): boolean => {
+          return isSameId(id, handOver.memberId);
+        },
+      );
+
+      if (wasWritten) {
+        await this.handRoleOnInIncidentsOfEpisode({
+          handOver: handOver,
+          props: FeedFollowOnWriteProps.get({
+            props: onUpdate.updateBy.props,
+          }),
+        });
+
+        this.inviteToEpisodeChannels({
+          incidentEpisodeId: handOver.incidentEpisodeId,
+          userId: handOver.toUserId,
+          projectId: handOver.projectId,
+        }).catch((error: Error) => {
+          logger.error(error);
+        });
+      }
+    }
+
+    return await super.onUpdateSuccess(onUpdate, updatedItemIds);
+  }
+
+  /*
+   * A role handed on on an episode, in each of its incidents: the
+   * incident's row for the person who held it names the person who holds
+   * it now - one write, one "Reassigned" entry in the incident's feed. An
+   * incident where the new person holds the role already only loses the
+   * other row; one where nobody held it from the episode is given it, as
+   * the episode gives its roles (propagateRoleToIncidentsInEpisode).
+   */
+  @CaptureSpan()
+  private async handRoleOnInIncidentsOfEpisode(data: {
+    handOver: EpisodeRoleHandOver;
+    // OneUptime's own write, naming who handed the role on.
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const handOver: EpisodeRoleHandOver = data.handOver;
+
+    let episodeMembers: Array<IncidentEpisodeMember> = [];
+
+    try {
+      episodeMembers = await IncidentEpisodeMemberService.findBy({
+        query: {
+          incidentEpisodeId: handOver.incidentEpisodeId,
+          projectId: handOver.projectId,
+        },
+        select: {
+          incidentId: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `Failed to read the incidents of episode ${handOver.incidentEpisodeId.toString()} to hand on a role: ${error}`,
+      );
+      return;
+    }
+
+    // Each incident on its own: one that fails leaves the others as handed on.
+    for (const episodeMember of episodeMembers) {
+      const incidentId: ObjectID | undefined = episodeMember.incidentId;
+
+      if (!incidentId) {
+        continue;
+      }
+
+      try {
+        await this.handRoleOnInIncident({
+          incidentId: incidentId,
+          handOver: handOver,
+          props: data.props,
+        });
+      } catch (error) {
+        logger.error(
+          `Failed to hand on role ${handOver.incidentRoleId.toString()} in incident ${incidentId.toString()} of episode ${handOver.incidentEpisodeId.toString()}: ${error}`,
+        );
+      }
+    }
+  }
+
+  // The episode's hand-over in one of its incidents (see above).
+  private async handRoleOnInIncident(data: {
+    incidentId: ObjectID;
+    handOver: EpisodeRoleHandOver;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const handOver: EpisodeRoleHandOver = data.handOver;
+
+    const heldBy: (userId: ObjectID) => Promise<IncidentMember | null> = async (
+      userId: ObjectID,
+    ): Promise<IncidentMember | null> => {
+      return await IncidentMemberService.findOneBy({
+        query: {
+          incidentId: data.incidentId,
+          userId: userId,
+          incidentRoleId: handOver.incidentRoleId,
+          projectId: handOver.projectId,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    };
+
+    const fromRow: IncidentMember | null = await heldBy(handOver.fromUserId);
+    const toRow: IncidentMember | null = await heldBy(handOver.toUserId);
+
+    if (fromRow?.id && !toRow) {
+      await IncidentMemberService.updateOneById({
+        id: fromRow.id,
+        data: {
+          userId: handOver.toUserId,
+        },
+        props: data.props,
+      });
+      return;
+    }
+
+    if (fromRow?.id && toRow) {
+      await IncidentMemberService.deleteOneById({
+        id: fromRow.id,
+        props: data.props,
+      });
+      return;
+    }
+
+    if (toRow) {
+      return;
+    }
+
+    const incidentMember: IncidentMember = new IncidentMember();
+    incidentMember.incidentId = data.incidentId;
+    incidentMember.userId = handOver.toUserId;
+    incidentMember.incidentRoleId = handOver.incidentRoleId;
+    incidentMember.projectId = handOver.projectId;
+
+    await IncidentMemberService.create({
+      data: incidentMember,
+      props: data.props,
+    });
   }
 
   /*

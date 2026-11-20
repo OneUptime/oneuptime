@@ -1343,6 +1343,30 @@ export function readAzureActivityResourceIds(
   return ids.toArray();
 }
 
+/*
+ * The cloud resources a resource's own audit record is about (#10110): the
+ * resource that wrote it, by its resourceId, and the resource that is a
+ * part of - a storage account for its blob service, a SQL server for its
+ * database. Never an ID the record names elsewhere: a storage request's
+ * delegatedResource, a key vault caller's own app, is who called, not what
+ * was called on.
+ */
+export function readAzureResourceLogResourceIds(
+  record: JSONObject,
+): Array<string> {
+  const ids: ResourceIds = new ResourceIds();
+  const id: string | null = normalizeAzureResourceId(
+    text(record["resourceId"]),
+  );
+
+  if (id) {
+    ids.add(id);
+    ids.add(getAzureTopLevelResourceId(id));
+  }
+
+  return ids.toArray();
+}
+
 // ---------- Google Cloud: the audit logs ----------
 
 // Whether a value is an API's service name: letters, digits, dots and hyphens, ending in .googleapis.com.

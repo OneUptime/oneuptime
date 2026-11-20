@@ -59915,5 +59915,19 @@
   "Invited people to this project": "افراد به این پروژه دعوت شدند",
   "Inviting people to this project": "دعوت افراد به این پروژه",
   "Setting how pages reach you": "تعیین اینکه فراخوان‌ها چگونه به شما برسند",
-  "Invitee Email": "ایمیل دعوت‌شده"
+  "And it gives each subscription a diagnostic setting, {{setting}}, that sends its Activity Log to the first region's event hub.": "و به هر اشتراک یک تنظیم عیب‌یابی، {{setting}}، می‌دهد که لاگ فعالیت آن را به هاب رویداد نخستین منطقه می‌فرستد.",
+  "Azure Key Vault, Storage and SQL logs": "لاگ‌های Azure Key Vault، Storage و SQL",
+  "Changes made, Defender for Cloud alerts and what Azure Policy refused, which Security Events reads.": "تغییرات انجام‌شده، هشدارهای Defender for Cloud و آنچه Azure Policy رد کرد، که رویدادهای امنیتی آن‌ها را می‌خواند.",
+  "Each subscription's Activity Log": "لاگ فعالیت هر اشتراک",
+  "For Security Events": "برای رویدادهای امنیتی",
+  "Key vault secrets read and changed, storage requests refused, anonymous or changing data with a SAS, and Azure SQL sign-ins, refusals and permission changes.": "رازهای Key Vault که خوانده یا تغییر داده شدند، درخواست‌های ذخیره‌سازی که رد شدند، ناشناس بودند یا با یک SAS داده را تغییر دادند، و ورودها، ردها و تغییرات دسترسی در Azure SQL.",
+  "Microsoft Entra ID's sign-in and audit logs": "لاگ‌های ورود و ممیزی Microsoft Entra ID",
+  "Once the first command has finished, run this in {{shell}} as a Security Administrator of the tenant who may read the event hubs' key: an Owner or Contributor of {{group}}.": "پس از پایان فرمان نخست، این را در {{shell}} به‌عنوان یک Security Administrator مستأجر اجرا کنید که اجازه خواندن کلید هاب‌های رویداد را داشته باشد: یک Owner یا Contributor گروه منابع {{group}}.",
+  "Run this as a Security Administrator of your tenant": "این را به‌عنوان Security Administrator مستأجر خود اجرا کنید",
+  "Sign-ins, directory changes and risks, set up by a second command for a Security Administrator of your tenant.": "ورودها، تغییرات دایرکتوری و ریسک‌ها، که با فرمان دومی برای یک Security Administrator مستأجر شما راه‌اندازی می‌شوند.",
+  "Invitee Email": "ایمیل دعوت‌شده",
+  "Click to reassign": "برای تخصیص دوباره کلیک کنید",
+  "Reassign {{role}}": "تخصیص دوبارهٔ {{role}}",
+  "The person was not removed from the role.": "این فرد از نقش حذف نشد.",
+  "The role was not reassigned.": "نقش دوباره تخصیص داده نشد."
 }
