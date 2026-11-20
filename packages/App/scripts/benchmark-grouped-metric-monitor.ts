@@ -3,12 +3,14 @@
  *
  * Run from packages/App:
  *
- *   node --require ts-node/register/transpile-only \
+ *   node --expose-gc --require ts-node/register/transpile-only \
  *     scripts/benchmark-grouped-metric-monitor.ts [--series 16250] [--runs 3]
  *
- * Add `--cpu-prof --cpu-prof-dir=<dir>` before `--require` for a CPU
- * profile of the runs (Scripts/Perf/profile-summary.js summarises one), and
- * `--json` after the script for one line of JSON a test can read.
+ * After the script, `--profile-dir <dir>` writes a CPU profile of each
+ * measured run there (Scripts/Perf/profile-summary.js summarises one), and
+ * `--json` prints one line of JSON a test can read
+ * (GroupedMetricMonitorEventLoop.test.ts). --expose-gc lets each run start
+ * from a collected heap.
  *
  * One Metrics monitor over a Docker fleet: four queries grouped by host and
  * container, a formula and three criteria that open and resolve alerts

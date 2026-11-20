@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 // Nothing here runs a sandbox; the native isolated-vm addon need not load.
 jest.mock("Common/Server/Utils/VM/VMRunner", () => {
