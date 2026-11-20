@@ -150,7 +150,7 @@ jest.mock(
   () => {
     const actual: Record<string, unknown> = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistApi",
-    );
+    ) as Record<string, unknown>;
 
     return {
       __esModule: true,
@@ -216,6 +216,7 @@ import {
 } from "../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
 import { SecurityProtectedAddressSource } from "../../../Types/SecurityBlocklist/SecurityProtectedAddress";
 import ActionButtonSchema from "../../../UI/Components/ActionButton/ActionButtonSchema";
+import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import { PillTone } from "../../../UI/Components/Pill/PillTone";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
@@ -331,7 +332,7 @@ beforeEach(() => {
     .spyOn(ModelAPI, "updateById")
     .mockResolvedValue({} as never) as unknown as MockedFn;
   toast = jest.spyOn(Toast, "success").mockImplementation(() => {
-    return undefined;
+    return "";
   }) as unknown as MockedFn;
 
   api.checkBlockValue.mockReset();
@@ -838,8 +839,11 @@ describe("Block Address", () => {
     // A count and its unit are written apart by a no-break space.
     expect(
       getBlockDurationOptions(english).map(
-        (option: { label: string; value: string }) => {
-          return [option.value, option.label.replace(/[\u00A0\u202F]/g, " ")];
+        (option: DropdownOption): Array<string> => {
+          return [
+            String(option.value),
+            option.label.replace(/[\u00A0\u202F]/g, " "),
+          ];
         },
       ),
     ).toEqual([
