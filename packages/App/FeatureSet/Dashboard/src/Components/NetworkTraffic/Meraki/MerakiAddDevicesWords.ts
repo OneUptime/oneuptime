@@ -136,9 +136,37 @@ export const ADDED_SITES_NOTE: PluralTemplate = {
 export const NOTHING_ADDED_NOTE: string = translationKey(
   "Nothing was added {{time}}: every device of the kinds picked is a network device here already.",
 );
+/*
+ * Nothing added, and devices of the kinds picked left out: the lines under
+ * it say which, and why.
+ */
+export const NOTHING_ADDED_LEFT_OUT_NOTE: string = translationKey(
+  "No devices were added {{time}}.",
+);
 export const FAILED_DEVICES_NOTE: PluralTemplate = {
   one: "{{count}} device could not be added:",
   other: "{{count}} devices could not be added:",
+};
+/*
+ * Under a reason the server gave: how many devices it kept out, and the
+ * first few by name (formatList). All of them, when they are all named.
+ */
+export const FAILED_REASON_ALL_NAMED: PluralTemplate = {
+  one: "{{count}} device: {{names}}",
+  other: "{{count}} devices: {{names}}",
+};
+export const FAILED_REASON_SOME_NAMED: PluralTemplate = {
+  one: "{{count}} device, including {{names}}",
+  other: "{{count}} devices, including {{names}}",
+};
+export const FAILED_REASON_NONE_NAMED: PluralTemplate = {
+  one: "{{count}} device",
+  other: "{{count}} devices",
+};
+// Failed devices no reason kept counts: an ask keeps a few reasons.
+export const FAILED_FOR_OTHER_REASONS_NOTE: PluralTemplate = {
+  one: "{{count}} more device could not be added for other reasons.",
+  other: "{{count}} more devices could not be added for other reasons.",
 };
 export const REMAINING_DEVICES_NOTE: PluralTemplate = {
   one: "{{count}} more device is left to add.",
@@ -159,9 +187,6 @@ export const ADD_THE_REST_ACTION: string = translationKey("Add the rest");
 
 // How long an ask's outcome stays on the connection's row.
 export const DEVICE_ADD_OUTCOME_SHOWN_FOR_MS: number = 24 * 60 * 60 * 1000;
-
-// The failures listed under the row's note; the rest are counted.
-export const DEVICE_ADD_FAILURES_SHOWN: number = 3;
 
 // Where the last ask stands, as the row draws it.
 export enum DeviceAddStanding {
