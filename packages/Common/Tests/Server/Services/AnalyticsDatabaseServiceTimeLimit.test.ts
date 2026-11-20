@@ -31,10 +31,11 @@ import {
  * answers the way a real server does (captured on 26.7; the real-server
  * proof is App's LogSearchTimeLimitClickhouse suite): an HTTP error before
  * the rows, an empty or cut-off body after a 200, an error block after the
- * rows. Whatever the shape, findBy, aggregateBy and an exact countBy reject
- * with the QueryTimeoutException the API answers 504 with — never a
- * SyntaxError, never an empty list — and the reads carry 'throw' and ask
- * ClickHouse to hold their answer until they are done.
+ * rows. Whatever the shape, findBy, aggregateBy, an exact countBy and
+ * countDistinctNonEmpty reject with the QueryTimeoutException the API
+ * answers 504 with — never a SyntaxError, never an empty list — and the
+ * reads carry 'throw' and ask ClickHouse to hold their answer until they
+ * are done.
  */
 
 class LogLikeModel extends AnalyticsBaseModel {
