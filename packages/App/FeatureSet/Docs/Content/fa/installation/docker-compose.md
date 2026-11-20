@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | یک پراب سراسری که بررسی‌های مانیتورهای شما را اجرا می‌کند. از شبکهٔ میزبان استفاده می‌کند. |
 | `global-runner` | `oneuptime/runner` | Runner سراسری همراه، که گام‌های JavaScript رانبوک‌ها و اصلاح‌های کد OneUptime AI را برای همه پروژه‌ها اجرا می‌کند. |
 | `postgres` | `postgres:15` | پیکربندی و وضعیت: مانیتورها، رخدادها، کاربران. در ولوم `postgres` ذخیره می‌شود. |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | تله‌متری: لاگ‌ها، متریک‌ها، تریس‌ها و استثناها. در ولوم `clickhouse` ذخیره می‌شود. |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7.38.18` | تله‌متری: لاگ‌ها، متریک‌ها، تریس‌ها و استثناها. در ولوم `clickhouse` ذخیره می‌شود. |
 | `valkey` | `valkey/valkey:9.1-alpine` | حافظهٔ نهان و صف‌ها. چیزی روی دیسک نگه نمی‌دارد. |
 
 > [!NOTE]

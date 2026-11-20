@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | Глобальный зонд, который выполняет проверки ваших мониторов. Использует сеть хоста. |
 | `global-runner` | `oneuptime/runner` | Встроенный глобальный Runner, который выполняет шаги JavaScript runbook-ов и исправления кода от OneUptime AI для всех проектов. |
 | `postgres` | `postgres:15` | Конфигурация и состояние: мониторы, инциденты, пользователи. Хранится в томе `postgres`. |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | Телеметрия: логи, метрики, трассировки и исключения. Хранится в томе `clickhouse`. |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7.38.18` | Телеметрия: логи, метрики, трассировки и исключения. Хранится в томе `clickhouse`. |
 | `valkey` | `valkey/valkey:9.1-alpine` | Кэш и очереди. Ничего не хранит на диске. |
 
 > [!NOTE]

@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | Una sonda globale che esegue i controlli dei tuoi monitor. Usa la rete dell'host. |
 | `global-runner` | `oneuptime/runner` | Il Runner globale incluso, che esegue i passaggi JavaScript dei runbook e le correzioni del codice di OneUptime AI per ogni progetto. |
 | `postgres` | `postgres:15` | Configurazione e stato: monitor, incidenti, utenti. Conservati nel volume `postgres`. |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | Telemetria: log, metriche, trace ed eccezioni. Conservata nel volume `clickhouse`. |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7.38.18` | Telemetria: log, metriche, trace ed eccezioni. Conservata nel volume `clickhouse`. |
 | `valkey` | `valkey/valkey:9.1-alpine` | Cache e code. Non conserva nulla su disco. |
 
 > [!NOTE]

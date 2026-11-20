@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | एक ग्लोबल प्रोब जो आपके मॉनिटरों की जाँच चलाता है। यह होस्ट का नेटवर्क इस्तेमाल करता है। |
 | `global-runner` | `oneuptime/runner` | साथ आने वाला ग्लोबल Runner, जो हर प्रोजेक्ट के लिए रनबुक के JavaScript चरण और OneUptime AI के कोड सुधार चलाता है। |
 | `postgres` | `postgres:15` | कॉन्फ़िगरेशन और स्थिति: मॉनिटर, घटनाएं, उपयोगकर्ता। `postgres` वॉल्यूम में रखा जाता है। |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | टेलीमेट्री: लॉग, मेट्रिक्स, ट्रेस और एक्सेप्शन। `clickhouse` वॉल्यूम में रखी जाती है। |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7.38.18` | टेलीमेट्री: लॉग, मेट्रिक्स, ट्रेस और एक्सेप्शन। `clickhouse` वॉल्यूम में रखी जाती है। |
 | `valkey` | `valkey/valkey:9.1-alpine` | कैश और क्यू। यह डिस्क पर कुछ नहीं रखती। |
 
 > [!NOTE]
