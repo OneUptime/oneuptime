@@ -320,6 +320,72 @@ export default class OneUptimeDate {
   }
 
   /*
+   * A ClickHouse DateTime or DateTime64 as it writes one -
+   * "2026-11-17 10:04:00" or "2026-11-17 10:04:00.123456789", always UTC,
+   * the shape isUtcDateTimeString checks - read straight into a Date: the
+   * fraction past milliseconds dropped, as normalizeUtcDateTimeString drops
+   * it. Null for anything moment would read differently from its digits - a
+   * month, day, hour, minute or second out of range (hour 24, a leap
+   * second), a year before 1000 - which fromString then hands to moment as
+   * before.
+   *
+   * Every row an aggregate read returns has its bucket read through here: a
+   * grouped monitor's four reads over 16,000 series are 160,000 of them each
+   * evaluation, and moment's parse of each took 1.1 of its seconds (#10108).
+   */
+  private static fromClickhouseDateTimeString(value: string): Date | null {
+    const digitAt: (index: number) => number = (index: number): number => {
+      return value.charCodeAt(index) - 48;
+    };
+
+    const year: number =
+      digitAt(0) * 1000 + digitAt(1) * 100 + digitAt(2) * 10 + digitAt(3);
+    const month: number = digitAt(5) * 10 + digitAt(6);
+    const day: number = digitAt(8) * 10 + digitAt(9);
+    const hour: number = digitAt(11) * 10 + digitAt(12);
+    const minute: number = digitAt(14) * 10 + digitAt(15);
+    const second: number = digitAt(17) * 10 + digitAt(18);
+
+    if (
+      year < 1000 ||
+      month < 1 ||
+      month > 12 ||
+      day < 1 ||
+      day > OneUptimeDate.getDaysInUtcMonth(year, month) ||
+      hour > 23 ||
+      minute > 59 ||
+      second > 59
+    ) {
+      return null;
+    }
+
+    // Milliseconds: the fraction's first three digits, as many as there are.
+    let milliseconds: number = 0;
+
+    if (value.length > 20) {
+      for (let index: number = 20; index < 23; index++) {
+        milliseconds =
+          milliseconds * 10 + (index < value.length ? digitAt(index) : 0);
+      }
+    }
+
+    return new Date(
+      Date.UTC(year, month - 1, day, hour, minute, second, milliseconds),
+    );
+  }
+
+  // How many days a month (1 to 12) of a year has, by the Gregorian calendar.
+  private static getDaysInUtcMonth(year: number, month: number): number {
+    if (month === 2) {
+      const isLeapYear: boolean =
+        (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+      return isLeapYear ? 29 : 28;
+    }
+
+    return month === 4 || month === 6 || month === 9 || month === 11 ? 30 : 31;
+  }
+
+  /*
    * The month `date` falls in on the reader's calendar, short: "Oct" in
    * English, as moment writes every other English date; "Okt." in German
    * and every other language, as Intl writes it from the wall clock moment
@@ -3883,9 +3949,10 @@ export default class OneUptimeDate {
       const trimmedDate: string = date.trim();
 
       if (this.isUtcDateTimeString(trimmedDate)) {
-        return moment
-          .utc(this.normalizeUtcDateTimeString(trimmedDate))
-          .toDate();
+        return (
+          this.fromClickhouseDateTimeString(trimmedDate) ||
+          moment.utc(this.normalizeUtcDateTimeString(trimmedDate)).toDate()
+        );
       }
 
       /*
