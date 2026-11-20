@@ -94,6 +94,25 @@ export function buildExplainIssuePrompt(data: {
 }
 
 /*
+ * OneUptime AI's own analysis of a new issue (#10364): asked what Explain
+ * with AI is asked, about the same facts.
+ */
+export function buildAnalyzeIssuePrompt(data: {
+  issue: AiIssueRecord;
+  findings?: ReadonlyArray<DataSecurityFindingForAi> | undefined;
+  dataTypeNamer?: DataTypeNamer | undefined;
+  aiContext?: AiContextActivity | null | undefined;
+}): DataSecurityAiPrompt {
+  return DataSecurityAiInput.buildAnalyzeIssuePrompt({
+    instructions: getDataSecurityExplainSystemPrompt(data.issue.checkId),
+    issue: data.issue,
+    findings: data.findings,
+    dataTypeNamer: data.dataTypeNamer,
+    aiContext: data.aiContext,
+  });
+}
+
+/*
  * The most a fix's request holds: what Code takes in a request
  * (CodeTaskRuns.readMessage), which refuses a longer one whole.
  */

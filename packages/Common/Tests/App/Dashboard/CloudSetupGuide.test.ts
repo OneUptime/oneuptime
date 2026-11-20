@@ -87,6 +87,12 @@ interface PlatformExpectation {
   steps: Array<string>;
   // Tab labels, in order, of every step that has tabs; empty for none.
   shapes: Array<string>;
+  /*
+   * The step whose tabs are the app's stacks, not the shapes (App Service,
+   * #10408), and their labels.
+   */
+  stackStep?: string | undefined;
+  stacks?: Array<string> | undefined;
   // The command or setting that stores the token, on the first step.
   secretStore: string;
   // Text only this platform's guide may contain.
@@ -270,9 +276,12 @@ const EXPECTED: Readonly<Record<ManagedCloudPlatform, PlatformExpectation>> = {
     steps: [
       "Store the token in Key Vault",
       "Set the application settings",
+      "Instrument the app",
       VERIFY,
     ],
     shapes: [],
+    stackStep: "Instrument the app",
+    stacks: [".NET", "Java", "Node.js", "Python"],
     secretStore: "Key Vault Secrets User",
     exclusive: [
       "@Microsoft.KeyVault(",
@@ -666,7 +675,9 @@ describe.each(PLATFORMS)("the %s guide", (platform: ManagedCloudPlatform) => {
   test("has the sidecar and SDK-direct tabs exactly where the platform has both shapes", () => {
     const tabbed: Array<SetupGuideStep> = guide.steps.filter(
       (step: SetupGuideStep): boolean => {
-        return (step.variants || []).length > 0;
+        return (
+          (step.variants || []).length > 0 && step.title !== expected.stackStep
+        );
       },
     );
 
@@ -697,6 +708,28 @@ describe.each(PLATFORMS)("the %s guide", (platform: ManagedCloudPlatform) => {
     expect(intro.indexOf(`**${expected.shapes[0]}**`)).toBeLessThan(
       intro.indexOf(`**${expected.shapes[1]}**`),
     );
+  });
+
+  test("has a tab per stack only where the app's stack decides its step", () => {
+    const stacked: Array<SetupGuideStep> = guide.steps.filter(
+      (step: SetupGuideStep): boolean => {
+        return step.title === expected.stackStep;
+      },
+    );
+
+    if (!expected.stackStep) {
+      expect(stacked).toEqual([]);
+      return;
+    }
+
+    expect(stacked).toHaveLength(1);
+    expect(
+      (stacked[0]!.variants || []).map(
+        (variant: SetupGuideStepVariant): string => {
+          return variant.label;
+        },
+      ),
+    ).toEqual(expected.stacks);
   });
 
   test("shows only this platform's instructions", () => {

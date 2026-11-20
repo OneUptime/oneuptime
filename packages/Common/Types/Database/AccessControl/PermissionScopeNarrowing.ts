@@ -949,6 +949,8 @@ const NARROWED_BY_LABELS: ReadonlyArray<Permission> = [
   Permission.ReadDashboardOwnerUser,
   Permission.ReadDatabaseServerOwnerTeam,
   Permission.ReadDatabaseServerOwnerUser,
+  Permission.ReadDataSecurityAiDecision,
+  Permission.ReadDataSecurityAiProposal,
   Permission.ReadDataSecurityCheckSetting,
   Permission.ReadDataSecurityFlow,
   Permission.ReadDataSecurityIssue,

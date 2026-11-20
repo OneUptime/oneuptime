@@ -23,11 +23,12 @@ Data Security reads your data itself, inside its scans, and keeps none of it. Wh
 | Feature | What it sends | Runs on its own |
 | --- | --- | --- |
 | **Explain with AI** | The issue's title, severity and evidence, why its check matters and the fix for the store's cloud; the store's name, kind, region and cloud ID, its sensitivity and the names of its data types; for a telemetry issue, where each kind of data was found: the attribute, log body or prompt it sits in | No: a person asks, on an issue's page |
+| **Analysis of new issues** | The issue's title, severity and evidence, why its check matters and the fix for the store's cloud; the store's name, kind, region and cloud ID, its sensitivity and the names of its data types; for a telemetry issue, where each kind of data was found: the attribute, log body or prompt it sits in | Yes: a new Critical or High issue starts it, while **Work on new issues** is on |
 | **Fix with AI** | What Explain with AI sends, as a request to the coding agent, which then reads the repository's own code to make the change | No: a person asks, in a repository they may change in **Code** |
 | **Suggestions for fields no detector placed** | The kind of store and the data types it may name; each field's name, the names of the fields beside it, and the shapes of its values, every letter as `a` or `A` and every digit as `9`; how many values were read, and how long they are | Yes: a store's content scan starts it |
 | **Ask AI** | The stores, issues and access the person may read in Data Security; what was found where, each data type by its location, with counts and confidence | No: a person asks a question |
 
-**Explain with AI** and **Ask AI** also read your team's [AI context](/docs/ai/ai-context) first, when it has one: the notes your team wrote for OneUptime AI about your systems.
+**Explain with AI** and **Ask AI** also read your team's [AI context](/docs/ai/ai-context) first, when it has one: the notes your team wrote for OneUptime AI about your systems. **Analysis of new issues** reads it too.
 
 ### Text your systems wrote is data
 

@@ -12,11 +12,13 @@ import DataSecurityAiInput, {
 } from "../../DataSecurity/DataSecurityAiInput";
 import {
   buildDataSecurityFixRequest,
+  buildAnalyzeIssuePrompt,
   buildExplainIssuePrompt,
   DATA_SECURITY_EXPLAIN_MAX_TOKENS,
   DATA_SECURITY_EXPLAIN_TEMPERATURE,
 } from "../../DataSecurity/DataSecurityIssuePrompt";
 import { FIELD_SUGGESTION_MAX_COMPLETION_TOKENS } from "../../DataSecurity/FieldSuggestion";
+import { DATA_SECURITY_ANALYSIS_MAX_TOKENS } from "../../DataSecurity/DataSecurityIssueAnalysis";
 import {
   buildFieldSuggestionPrompt,
   FieldSuggestionAnswer,
@@ -34,6 +36,7 @@ import {
 import ToolResultSerializer from "../../Toolbox/Serializer";
 import { PinnedModelCall } from "../PinnedModel";
 import {
+  AnalyzeEvalCase,
   AskAiEvalCase,
   DataSecurityEvalCase,
   DataSecurityEvalWords,
@@ -78,6 +81,7 @@ export const DATA_SECURITY_EVAL_THRESHOLDS: Readonly<
   Record<DataSecurityAiFeature, number>
 > = {
   [DataSecurityAiFeature.ExplainIssue]: 0.5,
+  [DataSecurityAiFeature.AnalyzeIssue]: 0.5,
   [DataSecurityAiFeature.FixIssue]: 0.5,
   [DataSecurityAiFeature.SuggestFieldTypes]: 0.5,
   [DataSecurityAiFeature.AskAi]: 0.5,
@@ -329,6 +333,21 @@ function explainCall(testCase: ExplainEvalCase): DataSecurityEvalCall {
   };
 }
 
+// The analysis asks as the queue job does (DataSecurityIssueAnalysis).
+function analyzeCall(testCase: AnalyzeEvalCase): DataSecurityEvalCall {
+  const prompt: DataSecurityAiPrompt = buildAnalyzeIssuePrompt({
+    issue: testCase.issue,
+    findings: testCase.findings,
+    dataTypeNamer: DataTypeNamer.withoutCustomTypes(),
+  });
+
+  return {
+    messages: prompt.messages,
+    maxTokens: DATA_SECURITY_ANALYSIS_MAX_TOKENS,
+    temperature: DATA_SECURITY_EXPLAIN_TEMPERATURE,
+  };
+}
+
 function fieldSuggestionCall(
   testCase: FieldSuggestionEvalCase,
 ): DataSecurityEvalCall {
@@ -464,6 +483,8 @@ export function buildEvalCall(
   switch (testCase.feature) {
     case DataSecurityAiFeature.ExplainIssue:
       return explainCall(testCase);
+    case DataSecurityAiFeature.AnalyzeIssue:
+      return analyzeCall(testCase);
     case DataSecurityAiFeature.SuggestFieldTypes:
       return fieldSuggestionCall(testCase);
     case DataSecurityAiFeature.FixIssue:
@@ -479,6 +500,8 @@ export function scoreAnswer(
 ): DataSecurityEvalScore {
   switch (testCase.feature) {
     case DataSecurityAiFeature.ExplainIssue:
+      return scoreWords(answer, testCase.expect);
+    case DataSecurityAiFeature.AnalyzeIssue:
       return scoreWords(answer, testCase.expect);
     case DataSecurityAiFeature.SuggestFieldTypes:
       return scoreFieldSuggestions(testCase, answer);

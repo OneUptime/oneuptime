@@ -15,10 +15,16 @@ import {
   SHOW_ALL,
   TIMES_COLUMN,
 } from "./RetrohuntCopy";
+import AppLink from "../../AppLink/AppLink";
+import { OPEN_SCRUB_RULES } from "../HiddenClientAddressCopy";
+import { getHiddenAddressRulesRoute } from "../HiddenClientAddressRoute";
+import Route from "Common/Types/API/Route";
 import {
   RETROHUNT_DEFAULT_PERIOD_IN_HOURS,
   RetrohuntSentence,
+  RetrohuntUncounted,
   getRetrohuntExceptionLines,
+  getRetrohuntUncounted,
   getRetrohuntFacts,
   getRetrohuntGroupLabel,
   getRetrohuntHeadline,
@@ -268,6 +274,11 @@ const RetrohuntAnswer: FunctionComponent<AnswerProps> = (
       return writeRetrohuntSentence(translator, sentence);
     },
   );
+  // What a rule that counts per value could not count (#10415), and why.
+  const uncounted: RetrohuntUncounted | null = getRetrohuntUncounted(result);
+  const scrubRulesRoute: Route | null = uncounted?.scrubRulesSignal
+    ? getHiddenAddressRulesRoute(uncounted.scrubRulesSignal)
+    : null;
   const groups: Array<DetectionRetrohuntGroup> = getRetrohuntVisibleGroups(
     result.groups,
     props.isShowingAll,
@@ -337,6 +348,41 @@ const RetrohuntAnswer: FunctionComponent<AnswerProps> = (
             className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
           />
           <span>{exceptionLines.join(" ")}</span>
+        </div>
+      ) : (
+        <></>
+      )}
+
+      {uncounted ? (
+        <div
+          className="flex items-start gap-1.5 text-sm text-gray-700"
+          data-testid={RETROHUNT_TEST_IDS.uncounted}
+        >
+          <Icon
+            icon={IconProp.Info}
+            className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
+          />
+          <span>
+            {uncounted.lines
+              .map((sentence: RetrohuntSentence): string => {
+                return writeRetrohuntSentence(translator, sentence);
+              })
+              .join(" ")}
+            {scrubRulesRoute ? (
+              <>
+                {" "}
+                <AppLink
+                  className="font-medium text-indigo-600 underline hover:text-indigo-500"
+                  to={scrubRulesRoute}
+                >
+                  {translator.translateText(OPEN_SCRUB_RULES) ||
+                    OPEN_SCRUB_RULES}
+                </AppLink>
+              </>
+            ) : (
+              <></>
+            )}
+          </span>
         </div>
       ) : (
         <></>

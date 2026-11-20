@@ -1,7 +1,12 @@
+import { CLAIMED_IP } from "./ClaimedClientAddressCopy";
 import { HIDDEN_BY_A_SCRUB_RULE } from "./HiddenClientAddressCopy";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import { JSONObject } from "Common/Types/JSON";
 import { SECURITY_REQUEST_ATTRIBUTES } from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
+import {
+  ClaimedClientAddress,
+  readClaimedClientAddress,
+} from "Common/Utils/SecurityEvent/ClientAddressTrust";
 import { SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX } from "Common/Utils/SecurityEvent/SecurityEventSearch";
 import {
   CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
@@ -40,6 +45,42 @@ export interface SecurityEventDetailField {
    * the address's place, with the rule that hid it.
    */
   hiddenAddress?: HiddenClientAddress | undefined;
+  /*
+   * An address the request only claimed (#10416): said as claimed by the
+   * request, not verified, and never the event's address.
+   */
+  claimedAddress?: ClaimedClientAddress | undefined;
+}
+
+/*
+ * Claimed IP, beside Principal IP: an address the event's request claimed
+ * - X-Forwarded-For's, or client.address as instrumentation read it - that
+ * Security Events could not verify, so it blames none of it (#10416). It
+ * filters the list to every event that claimed the same address. Null for
+ * an event whose request claimed nothing beside its address.
+ */
+export function buildClaimedIpField(
+  event: SecurityEventDetailSource,
+): SecurityEventDetailField | null {
+  const claimedAddress: ClaimedClientAddress | null =
+    readClaimedClientAddress(event);
+
+  if (!claimedAddress) {
+    return null;
+  }
+
+  return {
+    label: CLAIMED_IP,
+    value: claimedAddress.address || HIDDEN_BY_A_SCRUB_RULE,
+    isValueTranslated: !claimedAddress.address,
+    claimedAddress,
+    ...(claimedAddress.address
+      ? {
+          facetKey: `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}${SECURITY_REQUEST_ATTRIBUTES.claimedClientAddress}`,
+          facetValue: claimedAddress.address,
+        }
+      : {}),
+  };
 }
 
 /*
@@ -188,6 +229,8 @@ export function buildSecurityEventOverviewFields(
       value: text(event.principalIp),
       facetKey: "principalIp",
     },
+    // An address the request only claimed: said as claimed, never blamed.
+    buildClaimedIpField(event) || { label: CLAIMED_IP, value: "" },
     { label: "Principal Process", value: text(event.principalProcess) },
     /*
      * The process the event is about - the one started, in a process

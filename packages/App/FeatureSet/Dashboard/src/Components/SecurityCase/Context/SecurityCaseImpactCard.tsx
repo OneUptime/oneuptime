@@ -124,6 +124,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import SecurityCaseEdgeSection from "./SecurityCaseEdgeSection";
 
 /*
  * A SECURITY CASE'S IMPACT, on its Overview: what the case puts at risk, as
@@ -600,7 +601,8 @@ const SecurityCaseImpactCard: FunctionComponent<ComponentProps> = (
   } else if (
     impact.records.length === 0 &&
     impact.internet.evidence.length === 0 &&
-    !hasDataAtRisk(impact.dataAtRisk)
+    !hasDataAtRisk(impact.dataAtRisk) &&
+    !impact.edge?.addresses.length
   ) {
     body = (
       <div data-testid={SECURITY_CASE_CONTEXT_TEST_IDS.impactEmpty}>
@@ -723,6 +725,12 @@ const SecurityCaseImpactCard: FunctionComponent<ComponentProps> = (
             <></>
           )}
         </ul>
+
+        {/*
+         * What the edge in front of the app did with the case's addresses,
+         * beside what reached the app: drawn only when an edge acted on one.
+         */}
+        <SecurityCaseEdgeSection edge={impact.edge} />
 
         <section>
           <h3 className={`mb-2 ${SECTION_HEADING_CLASS_NAME}`}>

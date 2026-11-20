@@ -153,6 +153,18 @@ export const ADDRESS_HIDDEN_FROM_CASE: string = translationKey(
 export const ADDRESS_HIDDEN_FROM_CASE_BY_RULE: string = translationKey(
   "The scrub rule {{rule}} hid it from every event of this case.",
 );
+/*
+ * Under the same step when the case's requests only claimed an address
+ * (#10416): the sender wrote it, so it is said as claimed, never blocked.
+ * The Dashboard's ClaimedClientAddressCopy re-exports these for an event's
+ * fields and What happened next.
+ */
+export const CLAIMED_NOT_VERIFIED: string = translationKey(
+  "Claimed by the request, not verified",
+);
+export const CLAIMED_ADDRESS_NOT_VERIFIED: string = translationKey(
+  "Claimed by the request, not verified: {{address}}",
+);
 export const STEP_DECLARE_INCIDENT: string = translationKey(
   "Declare an incident if customers or production are affected.",
 );

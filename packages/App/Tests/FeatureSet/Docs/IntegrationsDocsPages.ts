@@ -48,6 +48,9 @@ export const OKTA: string = "integrations/okta";
 export const ENTRA_ID: string = "integrations/microsoft-entra-id";
 export const GOOGLE_WORKSPACE: string = "integrations/google-workspace";
 
+// What Cloudflare's firewall did at the edge.
+export const CLOUDFLARE: string = "integrations/cloudflare";
+
 // Task 28c: issues opened in GitHub and GitLab, and the chat steps.
 export const GITHUB: string = "integrations/github";
 export const GITLAB: string = "integrations/gitlab";
@@ -91,6 +94,7 @@ export const INTEGRATIONS_PAGES: ReadonlyArray<IntegrationsDocsPageEntry> = [
   { page: OKTA, navTitle: "Okta System Log" },
   { page: ENTRA_ID, navTitle: "Microsoft Entra ID" },
   { page: GOOGLE_WORKSPACE, navTitle: "Google Workspace" },
+  { page: CLOUDFLARE, navTitle: "Cloudflare" },
   { page: GITHUB, navTitle: "GitHub" },
   { page: GITLAB, navTitle: "GitLab" },
   { page: DISCORD, navTitle: "Discord" },
@@ -125,6 +129,7 @@ export const SECURITY_CONNECTION_PAGES: ReadonlyArray<string> = [
   OKTA,
   ENTRA_ID,
   GOOGLE_WORKSPACE,
+  CLOUDFLARE,
 ];
 
 // The pages of a workflow that opens an issue for every incident.
@@ -785,6 +790,15 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Manage domain-wide delegation",
     "Account → Admin roles",
   ],
+  // The Cloudflare dashboard's API token form.
+  [CLOUDFLARE]: [
+    "My Profile → API Tokens",
+    "Create Token",
+    "Create Custom Token",
+    "Permissions",
+    "Zone Resources",
+    "Continue to summary",
+  ],
   // A fine-grained token's permission, as GitHub's settings name it.
   [GITHUB]: ["Issues", "Read and write"],
   // A GitLab project's overview and settings.
@@ -937,6 +951,17 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Poll scheduler",
       "Security event storage",
     ],
+    [CLOUDFLARE]: [
+      "Cloudflare",
+      "Verify the API token",
+      "List the zones",
+      "Read firewall events",
+      "What each zone's plan gives",
+      "Firewall events available to import",
+      "Background workers",
+      "Poll scheduler",
+      "Security event storage",
+    ],
     // The button that inserts a value into a step's setting: a symbol.
     [DISCORD]: ["{ }"],
     [TELEGRAM]: ["{ }"],
@@ -994,6 +1019,7 @@ export const TEMPLATE_LABELS: Readonly<
   [OKTA]: [preview("log events")],
   [ENTRA_ID]: [preview("records")],
   [GOOGLE_WORKSPACE]: [preview("audit events")],
+  [CLOUDFLARE]: [preview("firewall events")],
 };
 
 // The plans the pages name: the Dashboard shows a plan's name as written.
@@ -1284,6 +1310,19 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Grow back.",
     "Move past a single minute.",
   ],
+  [CLOUDFLARE]: [
+    "Events are read by when they happened at the edge.",
+    "The first poll looks back 24 hours",
+    "Every later poll starts 10 minutes before the saved cursor",
+    "A poll reads at most 24 hours past the cursor.",
+    "Zones are read in turn",
+    "Cloudflare's rate limits are kept.",
+    "A zone the token cannot read holds nothing up.",
+    "A failed run changes nothing.",
+    "Narrow.",
+    "Grow back.",
+    "Move past a single minute.",
+  ],
   [GITHUB]: ["GitHub Enterprise Server.", "Assign it.", "Only some incidents."],
   [GITLAB]: [
     "A GitLab of your own.",
@@ -1394,6 +1433,8 @@ export const PRODUCT_NAMES: ReadonlyArray<string> = [
   "AWS Security Hub",
   "Okta System Log",
   "Okta",
+  "Cloudflare WAF",
+  "Cloudflare",
   "incident.io",
   "UptimeRobot",
   "Atlassian Statuspage",

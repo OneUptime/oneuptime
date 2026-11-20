@@ -167,11 +167,16 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 # The Key Vault reference, which resolves to the whole header.
 OTEL_EXPORTER_OTLP_HEADERS=@Microsoft.KeyVault(SecretUri=https://my-vault.vault.azure.net/secrets/oneuptime-otlp-headers/)
 OTEL_RESOURCE_ATTRIBUTES=cloud.account.id=00000000-0000-0000-0000-000000000000
-# Node.js:
-OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure
 ```
 
-The SDK detectors spell the platform `azure.app_service`, with a dot; OneUptime rewrites it to `azure_app_service` when it receives it. In .NET, add `OpenTelemetry.Resources.Azure` and call `.ConfigureResource(r => r.AddAzureAppServiceDetector())`. Other languages add `cloud.provider=azure,cloud.platform=azure_app_service,cloud.region=<region>` to `OTEL_RESOURCE_ATTRIBUTES`, and take `service.instance.id` from `WEBSITE_INSTANCE_ID` in code.
+The SDK detectors spell the platform `azure.app_service`, with a dot; OneUptime rewrites it to `azure_app_service` when it receives it. Each stack has an App Service resource detector of its own, which names each instance and sets `cloud.resource_id` to the site's ID: that ties the app to its site's Azure Monitor numbers. Turn on the one for your stack:
+
+| Stack | Its App Service resource detector |
+| --- | --- |
+| .NET | `OpenTelemetry.Resources.Azure`, with `.ConfigureResource(r => r.AddAzureAppServiceDetector())` |
+| Java | The OpenTelemetry Java agent, with `OTEL_RESOURCE_PROVIDERS_AZURE_ENABLED=true` |
+| Node.js | `@opentelemetry/auto-instrumentations-node`, with `OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure` |
+| Python | `opentelemetry-resource-detector-azure`, with `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=otel,azure_app_service` |
 
 :::steps
 1. Turn on the app's system-assigned managed identity (**Settings → Identity**), and grant it **Key Vault Secrets User** on the vault. Store the whole header, `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`, as the secret `oneuptime-otlp-headers`.
@@ -182,9 +187,9 @@ The SDK detectors spell the platform `azure.app_service`, with a dot; OneUptime 
 
 **Networking:** App Service reaches the internet directly unless **VNet integration** with **Route All** is on. Then the VNet needs a NAT gateway, or a route to a firewall that allows TCP 443 to the OneUptime host.
 
-**What the app's page shows:** requests, error rate and latency come from the app's traces, so an app that sends only logs or metrics reads **No traces received** there, and its **Setup check** says what to add. App Service gives an app no CPU or memory of its own, and its CPU and memory tiles say so. Connect the subscription under **Cloud → Connect**, and the app's **Overview** adds an **Azure Monitor** section: the site's requests, server and client errors, response time, CPU time and memory, as Azure measures them, whatever the app sends. Its **Instances** tab then lists the instances Azure runs it on, and its **Revisions** tab the deployments Azure keeps.
+**What the app's page shows:** requests, error rate and latency come from the app's traces, so an app that sends only logs or metrics reads **No traces received** there, and its **Setup check** says what to add. App Service gives an app no CPU or memory of its own, and its CPU and memory tiles say so. Connect the subscription under **Cloud → Connect**, and the app's **Overview** adds an **Azure Monitor** section: the site's requests, server and client errors, response time, CPU time and memory, as Azure measures them, whatever the app sends. Its **Instances** tab then lists the instances Azure runs it on, and its **Revisions** tab the deployments Azure keeps. In **App Platforms → All Apps** and an environment's **Apps** tab, an app that sends no traces shows its site's numbers from Azure Monitor instead: the requests Azure counted, the share answered with a 5xx status and the average response time.
 
-The app's **Setup** tab gives these settings as Azure Cloud Shell commands for .NET, Java, Node.js or Python, with the app's own name, resource group and subscription in every command. For the site's own console, HTTP and platform logs too, choose **Stream metrics and logs** in the subscription's row under **Cloud → Connect**: they show on the app's **Logs** tab, under **From Azure diagnostic settings**.
+The app's **Setup** tab gives these settings as Azure Cloud Shell commands for .NET, Java, Node.js or Python, with the app's own name, resource group and subscription in every command. For the site's own console, HTTP and platform logs too, choose **Stream metrics and logs** in the subscription's row under **Cloud → Connect**: they show on the app's **Logs** tab, under **From Azure diagnostic settings**. The environment's setup guide gives each stack's steps too, with placeholders for the app's name and resource group.
 
 ## Azure Container Instances
 

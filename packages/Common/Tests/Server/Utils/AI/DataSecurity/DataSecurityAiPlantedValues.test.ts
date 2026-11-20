@@ -40,6 +40,10 @@ import DataSecurityAiInput, {
   DataSecurityAiPrompt,
 } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
 import DataSecurityFieldSuggestion from "../../../../../Server/Utils/AI/DataSecurity/FieldSuggestion";
+import DataSecurityIssueAnalysis from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis";
+import AIInvestigationEngine from "../../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
+import DataSecurityIssue from "../../../../../Models/DatabaseModels/DataSecurityIssue";
+import DataTypeNamer from "../../../../../Types/DataSecurity/DataTypeNamer";
 import {
   QueryDataSecurityIssuesTool,
   QueryDataStoreAccessTool,
@@ -548,6 +552,30 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
 
     return sentToTheModel();
   },
+  // OneUptime AI's own analysis of each new issue (#10364), as its queue job runs it.
+  [DataSecurityAiFeature.AnalyzeIssue]: async (): Promise<string> => {
+    jest
+      .spyOn(AIInvestigationEngine, "getProviderOrBalanceReason")
+      .mockResolvedValue(null);
+    jest
+      .spyOn(AIService, "getReachedProjectDailyLimit")
+      .mockResolvedValue(null);
+
+    for (const issueId of [BUCKET_ISSUE_ID, TELEMETRY_ISSUE_ID]) {
+      const outcome: { analyzed: boolean } =
+        await DataSecurityIssueAnalysis.analyze({
+          projectId: PROJECT_ID,
+          issue: { id: new ObjectID(issueId) } as DataSecurityIssue,
+          dataTypeNamer: DataTypeNamer.withoutCustomTypes(),
+        });
+
+      expect(outcome).toEqual({ analyzed: true });
+    }
+
+    expect(completion).toHaveBeenCalledTimes(2);
+
+    return sentToTheModel();
+  },
   [DataSecurityAiFeature.FixIssue]: async (): Promise<string> => {
     for (const issueId of [BUCKET_ISSUE_ID, TELEMETRY_ISSUE_ID]) {
       const sent: SentRequest = await post(
@@ -608,6 +636,11 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
 // What each feature is for, which its input must still carry.
 const WHAT_EACH_SENDS: Record<DataSecurityAiFeature, Array<string>> = {
   [DataSecurityAiFeature.ExplainIssue]: [
+    "acme-card-exports",
+    "attributes.user.email",
+    "The bucket policy grants s3:GetObject",
+  ],
+  [DataSecurityAiFeature.AnalyzeIssue]: [
     "acme-card-exports",
     "attributes.user.email",
     "The bucket policy grants s3:GetObject",

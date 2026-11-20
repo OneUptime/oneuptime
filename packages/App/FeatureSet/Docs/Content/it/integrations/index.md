@@ -61,6 +61,7 @@ Parti dall'alto della tabella: più un modo è in alto, meno c'è da mantenere.
 | [Okta System Log](/docs/integrations/okta) | In entrata | Porta gli accessi, le modifiche agli account e i rilevamenti di minacce di Okta in Eventi di sicurezza. |
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | In entrata | Porta gli accessi e le modifiche alla directory di Microsoft Entra ID, e il log di audit di Microsoft 365, in Eventi di sicurezza. |
 | [Google Workspace](/docs/integrations/google-workspace) | In entrata | Porta gli accessi, le modifiche degli amministratori e i rilevamenti di Google Workspace in Eventi di sicurezza. |
+| [Cloudflare](/docs/integrations/cloudflare) | In entrata | Porta ciò che il firewall di Cloudflare ha bloccato, sottoposto a challenge e registrato in Eventi di sicurezza, accanto a ciò che ha raggiunto la tua app. |
 
 ### Ticketing e gestione dei servizi IT
 

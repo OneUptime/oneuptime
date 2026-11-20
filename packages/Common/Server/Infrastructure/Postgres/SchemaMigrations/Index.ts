@@ -1135,8 +1135,13 @@ import { MakeEscalationRuleRespondersUnique1809187100000 } from "./1809187100000
 import { AddFormPrivateUsersAndSingleSignOn1809187140120 } from "./1809187140120-AddFormPrivateUsersAndSingleSignOn";
 import { AddProjectAmazonSesIamRole1809187142000 } from "./1809187142000-AddProjectAmazonSesIamRole";
 import { AddSecurityBlocklist1809187150000 } from "./1809187150000-AddSecurityBlocklist";
-import { AddSecurityCaseStepChecks1809187160000 } from "./1809187160000-AddSecurityCaseStepChecks";
-import { AddSecurityCaseNextStepCheckIndex1809187160010 } from "./1809187160010-AddSecurityCaseNextStepCheckIndex";
+import { AddDataSecurityAiRules1809187364000 } from "./1809187364000-AddDataSecurityAiRules";
+import { AddAIRunDataSecurityIssueIndex1809187364100 } from "./1809187364100-AddAIRunDataSecurityIssueIndex";
+import { AddProjectSecurityTrustedProxies1809187364416 } from "./1809187364416-AddProjectSecurityTrustedProxies";
+import { AddCloudAppPlatformCloudResource1809187383700 } from "./1809187383700-AddCloudAppPlatformCloudResource";
+import { AddCloudAppPlatformCloudResourceIndexAndKey1809187383710 } from "./1809187383710-AddCloudAppPlatformCloudResourceIndexAndKey";
+import { AddSecurityCaseStepChecks1809187390000 } from "./1809187390000-AddSecurityCaseStepChecks";
+import { AddSecurityCaseNextStepCheckIndex1809187390010 } from "./1809187390010-AddSecurityCaseNextStepCheckIndex";
 
 export default [
   InitialMigration,
@@ -2276,6 +2281,11 @@ export default [
   AddFormPrivateUsersAndSingleSignOn1809187140120,
   AddProjectAmazonSesIamRole1809187142000,
   AddSecurityBlocklist1809187150000,
-  AddSecurityCaseStepChecks1809187160000,
-  AddSecurityCaseNextStepCheckIndex1809187160010,
+  AddDataSecurityAiRules1809187364000,
+  AddAIRunDataSecurityIssueIndex1809187364100,
+  AddProjectSecurityTrustedProxies1809187364416,
+  AddCloudAppPlatformCloudResource1809187383700,
+  AddCloudAppPlatformCloudResourceIndexAndKey1809187383710,
+  AddSecurityCaseStepChecks1809187390000,
+  AddSecurityCaseNextStepCheckIndex1809187390010,
 ];

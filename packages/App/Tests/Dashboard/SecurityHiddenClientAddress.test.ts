@@ -15,6 +15,7 @@ import SecurityEventRequestOutcome, {
   SECURITY_REQUEST_ATTRIBUTES,
 } from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
+import { resolveClientAddress } from "Common/Utils/SecurityEvent/ClientAddressTrust";
 import { RequestTraceAssessment } from "Common/Utils/SecurityEvent/RequestOutcome";
 import WebAttackLogParser from "Common/Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 import {
@@ -535,6 +536,7 @@ describe("an event's Principal IP", () => {
 });
 
 describe("What happened next", () => {
+  // A trace whose server span names its client by the connection's own address.
   function assessment(clientAddress: string): RequestTraceAssessment {
     return {
       outcome: SecurityEventRequestOutcome.Rejected,
@@ -544,6 +546,7 @@ describe("What happened next", () => {
       url: "/static/../../etc/passwd",
       route: "",
       clientAddress,
+      client: resolveClientAddress({ peer: clientAddress }),
       userAgent: "curl/8.5.0",
       userId: "",
       durationMs: 3,

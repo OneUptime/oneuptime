@@ -167,11 +167,16 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 # The Key Vault reference, which resolves to the whole header.
 OTEL_EXPORTER_OTLP_HEADERS=@Microsoft.KeyVault(SecretUri=https://my-vault.vault.azure.net/secrets/oneuptime-otlp-headers/)
 OTEL_RESOURCE_ATTRIBUTES=cloud.account.id=00000000-0000-0000-0000-000000000000
-# Node.js:
-OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure
 ```
 
-Les détecteurs des SDK écrivent la plateforme `azure.app_service`, avec un point ; OneUptime la réécrit en `azure_app_service` à la réception. En .NET, ajoutez `OpenTelemetry.Resources.Azure` et appelez `.ConfigureResource(r => r.AddAzureAppServiceDetector())`. Les autres langages ajoutent `cloud.provider=azure,cloud.platform=azure_app_service,cloud.region=<region>` à `OTEL_RESOURCE_ATTRIBUTES`, et prennent `service.instance.id` dans `WEBSITE_INSTANCE_ID` dans le code.
+Les détecteurs des SDK écrivent la plateforme `azure.app_service`, avec un point ; OneUptime la réécrit en `azure_app_service` à la réception. Chaque pile a son propre détecteur de ressources App Service, qui nomme chaque instance et définit `cloud.resource_id` sur l'ID du site : c'est ce qui relie l'application aux chiffres Azure Monitor de son site. Activez celui de votre pile :
+
+| Pile | Son détecteur de ressources App Service |
+| --- | --- |
+| .NET | `OpenTelemetry.Resources.Azure`, avec `.ConfigureResource(r => r.AddAzureAppServiceDetector())` |
+| Java | L'agent Java d'OpenTelemetry, avec `OTEL_RESOURCE_PROVIDERS_AZURE_ENABLED=true` |
+| Node.js | `@opentelemetry/auto-instrumentations-node`, avec `OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure` |
+| Python | `opentelemetry-resource-detector-azure`, avec `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=otel,azure_app_service` |
 
 :::steps
 1. Activez l'identité managée attribuée par le système de l'app (**Settings → Identity**), et accordez-lui **Key Vault Secrets User** sur le coffre. Stockez l'en-tête complet, `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`, comme secret `oneuptime-otlp-headers`.
@@ -182,9 +187,9 @@ Les détecteurs des SDK écrivent la plateforme `azure.app_service`, avec un poi
 
 **Réseau :** App Service atteint Internet directement, sauf si **VNet integration** avec **Route All** est activé. Le VNet a alors besoin d'une passerelle NAT, ou d'une route vers un pare-feu qui autorise TCP 443 vers l'hôte OneUptime.
 
-**Ce que montre la page de l'application :** les requêtes, le taux d'erreur et la latence viennent des traces de l'application, donc une application qui n'envoie que des journaux ou des métriques y indique **Aucune trace reçue**, et sa **Vérification de la configuration** dit ce qu'il faut ajouter. App Service ne donne à une application ni CPU ni mémoire propres, et ses tuiles de CPU et de mémoire le disent. Connectez l'abonnement sous **Cloud → Connecter**, et la **Vue d'ensemble** de l'application ajoute une section **Azure Monitor** : les requêtes, les erreurs serveur et client, le temps de réponse, le temps CPU et la mémoire du site, tels qu'Azure les mesure, quoi que l'application envoie. Son onglet **Instances** liste alors les instances sur lesquelles Azure l'exécute, et son onglet **Révisions** les déploiements qu'Azure conserve.
+**Ce que montre la page de l'application :** les requêtes, le taux d'erreur et la latence viennent des traces de l'application, donc une application qui n'envoie que des journaux ou des métriques y indique **Aucune trace reçue**, et sa **Vérification de la configuration** dit ce qu'il faut ajouter. App Service ne donne à une application ni CPU ni mémoire propres, et ses tuiles de CPU et de mémoire le disent. Connectez l'abonnement sous **Cloud → Connecter**, et la **Vue d'ensemble** de l'application ajoute une section **Azure Monitor** : les requêtes, les erreurs serveur et client, le temps de réponse, le temps CPU et la mémoire du site, tels qu'Azure les mesure, quoi que l'application envoie. Son onglet **Instances** liste alors les instances sur lesquelles Azure l'exécute, et son onglet **Révisions** les déploiements qu'Azure conserve. Dans **Plateformes d'applications → Toutes les applications** et l'onglet **Applications** d'un environnement, une application qui n'envoie pas de traces affiche à la place les chiffres de son site selon Azure Monitor : les requêtes qu'Azure a comptées, la part de réponses avec un statut 5xx et le temps de réponse moyen.
 
-L'onglet **Configuration** de l'application donne ces paramètres sous forme de commandes Azure Cloud Shell pour .NET, Java, Node.js ou Python, avec le nom, le groupe de ressources et l'abonnement de l'application dans chaque commande. Pour les journaux de console, HTTP et de plateforme du site lui-même, choisissez aussi **Diffuser les métriques et les journaux** dans la ligne de l'abonnement sous **Cloud → Connecter** : ils apparaissent dans l'onglet **Journaux** de l'application, sous **Depuis les paramètres de diagnostic Azure**.
+L'onglet **Configuration** de l'application donne ces paramètres sous forme de commandes Azure Cloud Shell pour .NET, Java, Node.js ou Python, avec le nom, le groupe de ressources et l'abonnement de l'application dans chaque commande. Pour les journaux de console, HTTP et de plateforme du site lui-même, choisissez aussi **Diffuser les métriques et les journaux** dans la ligne de l'abonnement sous **Cloud → Connecter** : ils apparaissent dans l'onglet **Journaux** de l'application, sous **Depuis les paramètres de diagnostic Azure**. Le guide de configuration de l'environnement donne aussi les étapes de chaque pile, avec des espaces réservés pour le nom et le groupe de ressources de l'application.
 
 ## Azure Container Instances
 

@@ -102,7 +102,7 @@ De ingestie maakt omgevingen voor je aan, dus je hoeft niets in te typen. Open *
 
 ## Apps en implementaties
 
-Elke service die een omgeving draait, is een app ervan, genoemd zoals de console van het platform hem noemt. **App-platforms → Alle apps** toont elke app met de revisie die hij draait en zijn aanvragen, foutpercentage en p95-latentie van het afgelopen uur, en het tabblad **Apps** van een omgeving toont die van haar.
+Elke service die een omgeving draait, is een app ervan, genoemd zoals de console van het platform hem noemt. **App-platforms → Alle apps** toont elke app met de revisie die hij draait en zijn aanvragen, foutpercentage en p95-latentie van het afgelopen uur, en het tabblad **Apps** van een omgeving toont die van haar. Een App Service-app die geen traces stuurt, toont daar in plaats daarvan de cijfers van zijn site uit Azure Monitor: de aanvragen die Azure telde, het aandeel dat met een 5xx-status werd beantwoord, en de gemiddelde responstijd.
 
 | Platform | App | Gescheiden door | Revisie |
 | --- | --- | --- | --- |

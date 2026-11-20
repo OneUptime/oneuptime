@@ -23,11 +23,12 @@ Datasikkerhet leser dataene dine selv, i sine egne skanninger, og beholder ingen
 | Funksjon | Hva den sender | Kjører av seg selv |
 | --- | --- | --- |
 | **Forklar med AI** | Problemets tittel, alvorlighetsgrad og bevis, hvorfor kontrollen er viktig, og rettingen for datalagerets sky; datalagerets navn, type, region og sky-ID, sensitiviteten og navnene på datatypene; for et problem i telemetrien, hvor hver type data ble funnet: attributtet, loggteksten eller prompten den står i | Nei: en person ber om den, på siden til et problem |
+| **Analyse av nye problemer** | Problemets tittel, alvorlighetsgrad og bevis, hvorfor kontrollen er viktig, og rettingen for datalagerets sky; datalagerets navn, type, region og sky-ID, sensitiviteten og navnene på datatypene; for et problem i telemetrien, hvor hver type data ble funnet: attributtet, loggteksten eller prompten den står i | Ja: et nytt kritisk eller høyt problem starter den, mens **Jobb med nye problemer** er slått på |
 | **Fiks med AI** | Det Forklar med AI sender, som en forespørsel til kodeagenten, som deretter leser kodelagerets egen kode for å gjøre endringen | Nei: en person ber om den, i et kodelager vedkommende kan endre under **Kode** |
 | **Forslag for felt som ingen detektor plasserte** | Typen datalager og datatypene AI kan nevne; navnet på hvert felt, navnene på feltene ved siden av og formene på verdiene, hver bokstav som `a` eller `A` og hvert siffer som `9`; hvor mange verdier som ble lest, og hvor lange de er | Ja: innholdsskanningen av et datalager starter dem |
 | **Spør AI** | Datalagrene, problemene og tilgangene personen har lov til å lese i Datasikkerhet; hva som ble funnet hvor, hver datatype etter plassering, med antall og sikkerhet | Nei: en person stiller et spørsmål |
 
-**Forklar med AI** og **Spør AI** leser også først teamets [AI-kontekst](/docs/ai/ai-context), når den finnes: notatene teamet ditt har skrevet for OneUptime AI om systemene deres.
+**Forklar med AI** og **Spør AI** leser også først teamets [AI-kontekst](/docs/ai/ai-context), når den finnes: notatene teamet ditt har skrevet for OneUptime AI om systemene deres. **Analyse av nye problemer** leser den også.
 
 ### Tekst systemene dine skrev, er data
 

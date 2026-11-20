@@ -307,7 +307,7 @@ describe("the security tools keep the observables, and only them", () => {
     expect(kept).not.toContain("AKIAABCDEFGHIJKLMNOP");
     expect(SECURITY_OBSERVABLE_RULE_NAMES).toEqual([
       "email",
-      "ipv4",
+      "ip-address",
       "hex-secret",
     ]);
   });

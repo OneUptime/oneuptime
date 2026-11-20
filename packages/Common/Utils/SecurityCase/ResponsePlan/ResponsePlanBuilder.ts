@@ -5,7 +5,13 @@ import {
   RequestOutcomeSummaryKind,
 } from "../RequestOutcomeSummary";
 import {
+  CaseClaimedClientAddress,
+  getCaseClaimedClientAddress,
+  getCaseClaimedOnlyAddresses,
+} from "../CaseClaimedClientAddress";
+import {
   SecurityAddressScope,
+  canonicalAddress,
   getSecurityAddressScope,
 } from "../SecurityConnectionMatch";
 import { isSecurityCaseTriageDecisionLine } from "../../../Server/Utils/AI/Security/SecurityCaseTriageDecision";
@@ -80,6 +86,8 @@ import {
   ACTION_RUN_PLAYBOOK,
   ADDRESS_HIDDEN_FROM_CASE,
   ADDRESS_HIDDEN_FROM_CASE_BY_RULE,
+  CLAIMED_ADDRESS_NOT_VERIFIED,
+  CLAIMED_NOT_VERIFIED,
   REQUESTS_ALL_TURNED_AWAY,
   REQUESTS_GOT_THROUGH,
   STEP_AI_PLAYBOOK,
@@ -937,9 +945,24 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
     : null;
   const usedPlaybookIds: Set<string> = new Set<string>();
 
+  /*
+   * Never an address the case's requests only claimed (#10416): whoever
+   * sent them wrote it - X-Forwarded-For, client.address - and blocking it
+   * could block a customer, a payment provider or a crawler. The scans
+   * never make one an entity; this holds whatever else names it.
+   */
+  const claimedOnly: Set<string> = getCaseClaimedOnlyAddresses(input.matches);
   const containEntities: Array<SecurityEntity> = getContainEntities({
     opening,
     entities: input.entities,
+  }).filter((entity: SecurityEntity): boolean => {
+    if (entity.type !== SecurityEntityType.IpAddress) {
+      return true;
+    }
+
+    const address: string | null = canonicalAddress(entity.value);
+
+    return !address || !claimedOnly.has(address);
   });
 
   for (const entity of containEntities) {
@@ -1093,6 +1116,37 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
             },
           }
         : undefined,
+    });
+  }
+
+  /*
+   * Where the plan would say to block the address, a case whose requests
+   * only claimed one says so (#10416): the address is the sender's to
+   * write, so the step is to find the real one where the requests came in,
+   * and the line under it names the claim as claimed, not verified. Never
+   * a step to block it, and no check of OneUptime's reads it.
+   */
+  const claimedAddress: CaseClaimedClientAddress | null =
+    hiddenAddress ||
+    containEntities.some((entity: SecurityEntity): boolean => {
+      return entity.type === SecurityEntityType.IpAddress;
+    })
+      ? null
+      : getCaseClaimedClientAddress(input.matches);
+
+  if (claimedAddress) {
+    add({
+      key: getResponseStepKey(RESPONSE_STEP_KINDS.claimedAddress),
+      phase: ResponsePhase.Contain,
+      text: { template: STEP_FIND_HIDDEN_ADDRESS, values: {} },
+      detail: claimedAddress.address
+        ? {
+            template: CLAIMED_ADDRESS_NOT_VERIFIED,
+            values: { address: claimedAddress.address },
+          }
+        : { template: CLAIMED_NOT_VERIFIED, values: {} },
+      isDetailWarning: true,
+      isOutsideOneUptime: true,
     });
   }
 

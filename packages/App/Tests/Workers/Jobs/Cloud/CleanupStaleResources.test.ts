@@ -29,7 +29,10 @@ import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
  *   7. on the first tick of each hour only, App Platforms' apps and their
  *      revisions that sent nothing for the retention window are removed,
  *      anchored to each environment's own lastSeenAt, one environment's
- *      failure never stopping the next or the instance prune.
+ *      failure never stopping the next or the instance prune;
+ *   8. on the same tick, every project's App Service apps are tied again
+ *      to their sites (#10407), one project at a time, a failure never
+ *      stopping the instance prune.
  *
  * The clock is pinned to a tick that is not the first of its hour, so the
  * hourly step stays out of the way of the others' tests; its own tests
@@ -117,6 +120,8 @@ jest.mock("Common/Server/Services/CloudAppService", () => {
       getUnseenThresholdDate: jest.fn(),
       getRetentionDays: jest.fn(),
       deleteUnseenForResource: jest.fn(),
+      findProjectIdsWithAppServiceApps: jest.fn(),
+      linkPlatformResourcesSafely: jest.fn(),
     },
   };
 });
@@ -169,6 +174,8 @@ interface AppServiceMock {
   getUnseenThresholdDate: jest.Mock;
   getRetentionDays: jest.Mock;
   deleteUnseenForResource: jest.Mock;
+  findProjectIdsWithAppServiceApps: jest.Mock;
+  linkPlatformResourcesSafely: jest.Mock;
 }
 
 interface RevisionServiceMock {
@@ -264,6 +271,8 @@ beforeEach(() => {
   });
   appService.getRetentionDays.mockReturnValue(30);
   appService.deleteUnseenForResource.mockResolvedValue(0);
+  appService.findProjectIdsWithAppServiceApps.mockResolvedValue([]);
+  appService.linkPlatformResourcesSafely.mockResolvedValue(0);
   revisionService.deleteUnseenForResource.mockResolvedValue(0);
   // resetAllMocks reset this spy too: re-pin the clock every test.
   jest
@@ -782,5 +791,84 @@ describe("step 5: apps and revisions that sent nothing", () => {
 
     expect(appPruneCalls()).toHaveLength(1);
     expect(mockedLogger.debug).not.toHaveBeenCalled();
+  });
+});
+
+describe("step 6: App Service apps tied to their sites (#10407)", () => {
+  const OTHER_PROJECT_ID: ObjectID = new ObjectID("project-2");
+
+  test("runs on the first tick of an hour only, once per project that holds an App Service app", async () => {
+    appService.findProjectIdsWithAppServiceApps.mockResolvedValue([
+      PROJECT_ID,
+      OTHER_PROJECT_ID,
+    ]);
+
+    await runTick();
+
+    expect(appService.findProjectIdsWithAppServiceApps).not.toHaveBeenCalled();
+    expect(appService.linkPlatformResourcesSafely).not.toHaveBeenCalled();
+
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date(TOP_OF_HOUR_TICK));
+
+    await runTick();
+
+    expect(
+      appService.linkPlatformResourcesSafely.mock.calls.map(
+        (call: Array<unknown>): unknown => {
+          return call[0];
+        },
+      ),
+    ).toEqual([{ projectId: PROJECT_ID }, { projectId: OTHER_PROJECT_ID }]);
+  });
+
+  test("says how many apps changed site, and only when some did", async () => {
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date(TOP_OF_HOUR_TICK));
+    appService.findProjectIdsWithAppServiceApps.mockResolvedValue([
+      PROJECT_ID,
+      OTHER_PROJECT_ID,
+    ]);
+    appService.linkPlatformResourcesSafely
+      .mockResolvedValueOnce(2)
+      .mockResolvedValueOnce(1);
+
+    await runTick();
+
+    expect(mockedLogger.debug).toHaveBeenCalledWith(
+      expect.stringContaining("tied 3 App Service app(s) to another site"),
+    );
+
+    mockedLogger.debug.mockClear();
+    appService.linkPlatformResourcesSafely.mockResolvedValue(0);
+
+    await runTick();
+
+    expect(mockedLogger.debug).not.toHaveBeenCalled();
+  });
+
+  test("a failing read of the projects is logged, and the instance prune still runs", async () => {
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date(TOP_OF_HOUR_TICK));
+    appService.findProjectIdsWithAppServiceApps.mockRejectedValue(
+      new Error("postgres went away"),
+    );
+    resourceService.findBy.mockImplementation(async (args: FindByArgs) => {
+      return args.query["otelCollectorStatus"] === "connected"
+        ? [makeResource({ id: RESOURCE_A_ID, lastSeenAt: NOW })]
+        : [];
+    });
+
+    await expect(runTick()).resolves.toBeUndefined();
+
+    expect(mockedLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "tying App Service apps to their sites failed: postgres went away",
+      ),
+    );
+    expect(deleteCalls()).toHaveLength(1);
   });
 });

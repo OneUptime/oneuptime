@@ -21,6 +21,7 @@ export const RESPONSE_STEP_KINDS: {
   blockDomain: string;
   quarantineFile: string;
   hiddenAddress: string;
+  claimedAddress: string;
   incident: string;
   markContained: string;
   playbook: string;
@@ -37,6 +38,7 @@ export const RESPONSE_STEP_KINDS: {
   blockDomain: "contain:block-domain",
   quarantineFile: "contain:quarantine-file",
   hiddenAddress: "contain:hidden-address",
+  claimedAddress: "contain:claimed-address",
   incident: "contain:incident",
   markContained: "contain:mark-contained",
   playbook: "playbook",

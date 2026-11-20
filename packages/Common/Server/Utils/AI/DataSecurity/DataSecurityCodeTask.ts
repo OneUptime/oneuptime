@@ -178,6 +178,10 @@ export default class DataSecurityCodeTask {
       repository: choice.repository,
       message: request.text,
       context: [],
+      // A task for one issue says so; one for several is about each (#10370).
+      ...(data.issueIds.length === 1
+        ? { triggeredByDataSecurityIssueId: data.issueIds[0]! }
+        : {}),
     });
 
     for (const issueId of data.issueIds) {

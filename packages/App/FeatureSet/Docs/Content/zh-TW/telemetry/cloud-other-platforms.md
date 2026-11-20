@@ -167,11 +167,16 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 # The Key Vault reference, which resolves to the whole header.
 OTEL_EXPORTER_OTLP_HEADERS=@Microsoft.KeyVault(SecretUri=https://my-vault.vault.azure.net/secrets/oneuptime-otlp-headers/)
 OTEL_RESOURCE_ATTRIBUTES=cloud.account.id=00000000-0000-0000-0000-000000000000
-# Node.js:
-OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure
 ```
 
-SDK 偵測器把平台寫成帶點號的 `azure.app_service`；OneUptime 收到時會把它改寫為 `azure_app_service`。在 .NET 中加入 `OpenTelemetry.Resources.Azure` 並呼叫 `.ConfigureResource(r => r.AddAzureAppServiceDetector())`。其他語言需要把 `cloud.provider=azure,cloud.platform=azure_app_service,cloud.region=<region>` 加入 `OTEL_RESOURCE_ATTRIBUTES`，並在程式碼中從 `WEBSITE_INSTANCE_ID` 取得 `service.instance.id`。
+SDK 偵測器把平台寫成帶點號的 `azure.app_service`；OneUptime 收到時會把它改寫為 `azure_app_service`。每種技術堆疊都有自己的 App Service 資源偵測器，它會為每個執行個體命名，並把 `cloud.resource_id` 設為網站的 ID：正是它把應用程式與其網站的 Azure Monitor 資料關聯起來。請開啟你所用技術堆疊的偵測器：
+
+| 技術堆疊 | 它的 App Service 資源偵測器 |
+| --- | --- |
+| .NET | `OpenTelemetry.Resources.Azure`，搭配 `.ConfigureResource(r => r.AddAzureAppServiceDetector())` |
+| Java | OpenTelemetry Java 代理程式，搭配 `OTEL_RESOURCE_PROVIDERS_AZURE_ENABLED=true` |
+| Node.js | `@opentelemetry/auto-instrumentations-node`，搭配 `OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure` |
+| Python | `opentelemetry-resource-detector-azure`，搭配 `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=otel,azure_app_service` |
 
 :::steps
 1. 開啟應用程式的系統指派受控識別（**Settings → Identity**），並授予它對該保存庫的 **Key Vault Secrets User**。將完整的標頭 `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN` 儲存為機密 `oneuptime-otlp-headers`。
@@ -182,9 +187,9 @@ SDK 偵測器把平台寫成帶點號的 `azure.app_service`；OneUptime 收到�
 
 **網路：** 除非開啟了 **VNet integration** 並啟用 **Route All**，否則 App Service 可以直接連上網際網路。開啟後，VNet 需要 NAT 閘道，或一條通往允許 TCP 443 連到 OneUptime 主機的防火牆的路由。
 
-**應用程式頁面顯示的內容：** 請求、錯誤率與延遲來自應用程式的追蹤，因此只傳送日誌或指標的應用程式會在那裡顯示 **未收到追蹤**，它的 **設定檢查** 會說明需要加入什麼。App Service 不會給應用程式自己的 CPU 或記憶體，應用程式的 CPU 與記憶體圖格會說明這一點。在 **雲端 → 連線** 中連線訂用帳戶後，應用程式的 **概覽** 會多出一個 **Azure Monitor** 區段：無論應用程式傳送什麼，都會顯示 Azure 測得的網站請求、伺服器錯誤與用戶端錯誤、回應時間、CPU 時間與記憶體。之後，應用程式的 **執行個體** 分頁會列出 Azure 執行該應用程式的執行個體，**修訂版本** 分頁會列出 Azure 保留的部署。
+**應用程式頁面顯示的內容：** 請求、錯誤率與延遲來自應用程式的追蹤，因此只傳送日誌或指標的應用程式會在那裡顯示 **未收到追蹤**，它的 **設定檢查** 會說明需要加入什麼。App Service 不會給應用程式自己的 CPU 或記憶體，應用程式的 CPU 與記憶體圖格會說明這一點。在 **雲端 → 連線** 中連線訂用帳戶後，應用程式的 **概覽** 會多出一個 **Azure Monitor** 區段：無論應用程式傳送什麼，都會顯示 Azure 測得的網站請求、伺服器錯誤與用戶端錯誤、回應時間、CPU 時間與記憶體。之後，應用程式的 **執行個體** 分頁會列出 Azure 執行該應用程式的執行個體，**修訂版本** 分頁會列出 Azure 保留的部署。在 **應用程式平台 → 所有應用程式** 和環境的 **應用程式** 分頁中，不傳送追蹤的應用程式會改為顯示 Azure Monitor 提供的其網站資料：Azure 統計的請求、以 5xx 狀態回應的比例與平均回應時間。
 
-應用程式的 **設定** 分頁會把這些設定以適用於 .NET、Java、Node.js 或 Python 的 Azure Cloud Shell 命令提供，每個命令中都有應用程式自己的名稱、資源群組與訂用帳戶。若還要查看網站自身的主控台、HTTP 與平台日誌，請在 **雲端 → 連線** 中，在訂用帳戶所在列選擇 **串流指標和日誌**：這些日誌會顯示在應用程式的 **日誌** 分頁中的 **來自 Azure 診斷設定** 下。
+應用程式的 **設定** 分頁會把這些設定以適用於 .NET、Java、Node.js 或 Python 的 Azure Cloud Shell 命令提供，每個命令中都有應用程式自己的名稱、資源群組與訂用帳戶。若還要查看網站自身的主控台、HTTP 與平台日誌，請在 **雲端 → 連線** 中，在訂用帳戶所在列選擇 **串流指標和日誌**：這些日誌會顯示在應用程式的 **日誌** 分頁中的 **來自 Azure 診斷設定** 下。環境的設定指南也提供了每種技術堆疊的步驟，並以預留位置代替應用程式的名稱和資源群組。
 
 ## Azure Container Instances
 
