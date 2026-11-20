@@ -147,16 +147,24 @@ afterEach(() => {
 });
 
 describe("what a save reads", () => {
-  test("the service: Esper or Intune, Esper when none is named", () => {
+  test("the service: Esper, Intune, Workspace ONE or SOTI, Esper when none is named", () => {
     expect(DeviceManagementConnectionServiceType.readProvider(undefined)).toBe(
       DeviceManagementProvider.Esper,
     );
     expect(DeviceManagementConnectionServiceType.readProvider("intune")).toBe(
       DeviceManagementProvider.Intune,
     );
+    expect(
+      DeviceManagementConnectionServiceType.readProvider("workspaceone"),
+    ).toBe(DeviceManagementProvider.WorkspaceOne);
+    expect(DeviceManagementConnectionServiceType.readProvider("soti")).toBe(
+      DeviceManagementProvider.Soti,
+    );
     expect(() => {
-      return DeviceManagementConnectionServiceType.readProvider("soti");
-    }).toThrow(/Service must be 'esper' or 'intune'/);
+      return DeviceManagementConnectionServiceType.readProvider("jamf");
+    }).toThrow(
+      /Service must be 'esper', 'intune', 'workspaceone' or 'soti'/,
+    );
   });
 
   test("the credentials: the API key and nothing else", () => {

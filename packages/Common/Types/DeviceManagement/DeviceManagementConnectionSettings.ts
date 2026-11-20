@@ -541,7 +541,11 @@ export const MAX_SERVER_HOST_LENGTH: number = 253;
 const HTTPS_SCHEME: string = "https://";
 const DEFAULT_HTTPS_PORT: number = 443;
 
-// An IPv4 address written as four numbers: 10.1.2.3.
+/*
+ * An IPv4 address written as four decimal numbers: 10.1.2.3. A number with
+ * a leading zero is not one: a URL reads "010" as octal, so 010.0.0.1
+ * would connect to 8.0.0.1.
+ */
 function isIpv4Address(text: string): boolean {
   const parts: Array<string> = text.split(".");
 
@@ -550,7 +554,7 @@ function isIpv4Address(text: string): boolean {
   }
 
   return parts.every((part: string): boolean => {
-    if (!part || part.length > 3) {
+    if (!part || part.length > 3 || (part.length > 1 && part[0] === "0")) {
       return false;
     }
 
@@ -564,17 +568,49 @@ function isIpv4Address(text: string): boolean {
   });
 }
 
-// A host name: one label or more, or an IPv4 address.
+/*
+ * Whether a label is a number as a URL reads one: decimal digits, or 0x
+ * and hex digits.
+ */
+function isNumericLabel(label: string): boolean {
+  const lower: string = label.toLowerCase();
+  const isHex: boolean = lower.startsWith("0x");
+  const digits: string = isHex ? lower.substring(2) : lower;
+
+  if (!isHex && !digits) {
+    return false;
+  }
+
+  for (const character of digits) {
+    const isDecimal: boolean = character >= "0" && character <= "9";
+    const isHexDigit: boolean = isHex && character >= "a" && character <= "f";
+
+    if (!isDecimal && !isHexDigit) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/*
+ * A host name - one label or more - or an IPv4 address. A URL reads a host
+ * whose last label is a number as an IPv4 address in any of its forms
+ * (0x7f.1 is 127.0.0.1), so such a host is taken only as the plain four
+ * numbers it connects to.
+ */
 function isServerHost(text: string): boolean {
   if (!text || text.length > MAX_SERVER_HOST_LENGTH) {
     return false;
   }
 
-  if (isIpv4Address(text)) {
-    return true;
+  const labels: Array<string> = text.split(".");
+
+  if (isNumericLabel(labels[labels.length - 1] || "")) {
+    return isIpv4Address(text);
   }
 
-  return text.split(".").every(isDnsLabel);
+  return labels.every(isDnsLabel);
 }
 
 /*
