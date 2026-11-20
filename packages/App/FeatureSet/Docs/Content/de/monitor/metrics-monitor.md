@@ -116,7 +116,7 @@ Je länger das Fenster, desto breiter jedes Zeitintervall, sodass ein Datenpunkt
 
 ## Kriterien
 
-Diese Monitore werten immer den **Metrikwert** aus – den aggregierten Wert der konfigurierten Metrikabfrage oder Formel. **Wann alarmieren** richtet ein Kriterium aus **Gemessen als**, **Zeitfenster**, **Bedingung** und **Wert** ein. Hat die Metrik eine Einheit, wählen Sie die Einheit des Werts daneben. Seine **Bedingung** lautet **Über**, **Mindestens**, **Unter**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig**, **Ungewöhnlich hoch oder niedrig**, **Steigt voraussichtlich über** oder **Fällt voraussichtlich unter**. Für mehrere Kriterien, etwa Schweregradstufen, klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Metrik**, eine **Aggregation**, eine **Bedingung** und einen **Schwellenwert**.
+Diese Monitore werten immer den **Metrikwert** aus – den aggregierten Wert der konfigurierten Metrikabfrage oder Formel. **Wann alarmieren** richtet ein Kriterium aus **Gemessen als**, **Zeitfenster**, **Bedingung** und **Wert** ein. Hat die Metrik eine Einheit, wählen Sie die Einheit des Werts daneben. Seine **Bedingung** lautet **Über**, **Mindestens**, **Unter**, **Höchstens**, **Genau**, **Alles außer**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig**, **Ungewöhnlich hoch oder niedrig**, **Steigt voraussichtlich über** oder **Fällt voraussichtlich unter**. Für mehrere Kriterien, etwa Schweregradstufen, klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Metrik**, eine **Aggregation**, eine **Bedingung** und einen **Schwellenwert**.
 
 | Bedingung | Passt, wenn der Wert … |
 | --- | --- |
@@ -125,6 +125,7 @@ Diese Monitore werten immer den **Metrikwert** aus – den aggregierten Wert der
 | **Kleiner als** | unter dem Schwellenwert liegt |
 | **Kleiner als oder gleich** | den Schwellenwert erreicht oder darunter liegt |
 | **Gleich** | genau dem Schwellenwert entspricht |
+| **Ungleich** | nicht dem Schwellenwert entspricht |
 | **Anomal hoch** | über dem Bereich liegt, der für diese Stunde der Woche erwartet wird |
 | **Anomal niedrig** | unter diesem Bereich liegt |
 | **Anomal** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |

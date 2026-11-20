@@ -116,7 +116,7 @@ Quanto maior a janela, mais largo é cada intervalo de agrupamento, então um po
 
 ## Critérios
 
-Estes monitores sempre avaliam o **Valor da métrica**: o valor agregado da consulta de métricas ou da fórmula configurada. **Quando alertar** configura um critério a partir de **Medido como**, **Janela de tempo**, **Condição** e **Valor**. Quando a métrica tem uma unidade, escolha a unidade do valor ao lado dele. A **Condição** dele é **Acima de**, **Igual ou acima de**, **Abaixo de**, **Igual ou abaixo de**, **Exatamente**, **Incomumente alto**, **Incomumente baixo**, **Incomumente alto ou baixo**, **Previsão acima de** ou **Previsão abaixo de**. Para vários critérios, como faixas de severidade, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Métrica**, uma **Agregação**, uma **Condição** e um **Limite**.
+Estes monitores sempre avaliam o **Valor da métrica**: o valor agregado da consulta de métricas ou da fórmula configurada. **Quando alertar** configura um critério a partir de **Medido como**, **Janela de tempo**, **Condição** e **Valor**. Quando a métrica tem uma unidade, escolha a unidade do valor ao lado dele. A **Condição** dele é **Acima de**, **Igual ou acima de**, **Abaixo de**, **Igual ou abaixo de**, **Exatamente**, **Diferente de**, **Incomumente alto**, **Incomumente baixo**, **Incomumente alto ou baixo**, **Previsão acima de** ou **Previsão abaixo de**. Para vários critérios, como faixas de severidade, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Métrica**, uma **Agregação**, uma **Condição** e um **Limite**.
 
 | Condição | Corresponde quando o valor está… |
 | --- | --- |
@@ -125,6 +125,7 @@ Estes monitores sempre avaliam o **Valor da métrica**: o valor agregado da cons
 | **Menor que** | abaixo do limite |
 | **Menor ou igual a** | no limite ou abaixo |
 | **Igual a** | exatamente no limite |
+| **Diferente de** | acima ou abaixo do limite |
 | **Anomalamente alto** | acima da faixa esperada para esta hora da semana |
 | **Anomalamente baixo** | abaixo dessa faixa |
 | **Anômalo** | fora dessa faixa, em qualquer direção |

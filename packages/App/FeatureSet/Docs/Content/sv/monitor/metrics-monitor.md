@@ -116,7 +116,7 @@ Ju längre fönstret är, desto bredare är varje tidsintervall, så en datapunk
 
 ## Kriterier
 
-Dessa monitorer utvärderar alltid **Mätvärde**: det aggregerade värdet av den konfigurerade metrikfrågan eller formeln. **När det ska larmas** ställer in ett kriterium utifrån **Mätt som**, **Tidsfönster**, **Villkor** och **Värde**. När mätvärdet har en enhet väljer du värdets enhet bredvid det. Dess **Villkor** är **Över**, **På eller över**, **Under**, **På eller under**, **Exakt**, **Ovanligt hög**, **Ovanligt låg**, **Ovanligt hög eller låg**, **Väntas stiga över** eller **Väntas sjunka under**. För flera kriterier, till exempel allvarlighetsband, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Mätvärde**, en **Aggregering**, ett **Villkor** och en **Tröskel**.
+Dessa monitorer utvärderar alltid **Mätvärde**: det aggregerade värdet av den konfigurerade metrikfrågan eller formeln. **När det ska larmas** ställer in ett kriterium utifrån **Mätt som**, **Tidsfönster**, **Villkor** och **Värde**. När mätvärdet har en enhet väljer du värdets enhet bredvid det. Dess **Villkor** är **Över**, **På eller över**, **Under**, **På eller under**, **Exakt**, **Allt utom**, **Ovanligt hög**, **Ovanligt låg**, **Ovanligt hög eller låg**, **Väntas stiga över** eller **Väntas sjunka under**. För flera kriterier, till exempel allvarlighetsband, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Mätvärde**, en **Aggregering**, ett **Villkor** och en **Tröskel**.
 
 | Villkor | Matchar när värdet är… |
 | --- | --- |
@@ -125,6 +125,7 @@ Dessa monitorer utvärderar alltid **Mätvärde**: det aggregerade värdet av de
 | **Mindre än** | under tröskelvärdet |
 | **Mindre än eller lika med** | lika med tröskelvärdet eller lägre |
 | **Lika med** | exakt tröskelvärdet |
+| **Inte lika med** | allt utom tröskelvärdet |
 | **Onormalt hög** | över det förväntade intervallet för den här timmen i veckan |
 | **Onormalt låg** | under det intervallet |
 | **Avvikande** | utanför det intervallet, åt vilket håll som helst |

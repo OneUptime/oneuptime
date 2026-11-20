@@ -116,7 +116,7 @@ Plus la fenêtre est longue, plus chaque intervalle de temps est large, si bien 
 
 ## Critères
 
-Ces moniteurs évaluent toujours la **Valeur de la métrique** – la valeur agrégée de la requête de métriques ou de la formule configurée. **Quand alerter** configure un critère à partir de **Mesuré comme**, **Fenêtre de temps**, **Condition** et **Valeur**. Quand la métrique a une unité, choisissez l'unité de la valeur à côté. Sa **Condition** est **Au-dessus de**, **Supérieur ou égal à**, **En dessous de**, **Inférieur ou égal à**, **Exactement**, **Anormalement haut**, **Anormalement bas**, **Anormalement haut ou bas**, **Devrait dépasser** ou **Devrait passer sous**. Pour plusieurs critères, comme des paliers de gravité, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Métrique**, une **Agrégation**, une **Condition** et un **Seuil**.
+Ces moniteurs évaluent toujours la **Valeur de la métrique** – la valeur agrégée de la requête de métriques ou de la formule configurée. **Quand alerter** configure un critère à partir de **Mesuré comme**, **Fenêtre de temps**, **Condition** et **Valeur**. Quand la métrique a une unité, choisissez l'unité de la valeur à côté. Sa **Condition** est **Au-dessus de**, **Supérieur ou égal à**, **En dessous de**, **Inférieur ou égal à**, **Exactement**, **Tout sauf**, **Anormalement haut**, **Anormalement bas**, **Anormalement haut ou bas**, **Devrait dépasser** ou **Devrait passer sous**. Pour plusieurs critères, comme des paliers de gravité, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Métrique**, une **Agrégation**, une **Condition** et un **Seuil**.
 
 | Condition | Correspond quand la valeur est… |
 | --- | --- |
@@ -125,6 +125,7 @@ Ces moniteurs évaluent toujours la **Valeur de la métrique** – la valeur agr
 | **Inférieur à** | en dessous du seuil |
 | **Inférieur ou égal à** | égale ou inférieure au seuil |
 | **Égal à** | exactement le seuil |
+| **Différent de** | tout sauf le seuil |
 | **Anormalement élevé** | au-dessus de la plage attendue pour cette heure de la semaine |
 | **Anormalement bas** | en dessous de cette plage |
 | **Anormal** | hors de cette plage, dans un sens ou dans l'autre |
