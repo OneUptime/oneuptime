@@ -193,21 +193,63 @@ export default class SecurityPlaybookApprovalReader {
       return null;
     }
 
+    const results: Array<SecurityPlaybookStepResult> = readStepResults(
+      data.run.stepResults,
+      steps,
+    );
     const stepIndex: number =
       data.stepIndex !== undefined
         ? data.stepIndex
-        : Math.max(0, data.run.currentStepIndex || 0);
+        : SecurityPlaybookApprovalReader.getAskedStepIndex({
+            run: data.run,
+            steps,
+            results,
+          });
     const step: SecurityPlaybookStep | undefined = steps[stepIndex];
-    const result: SecurityPlaybookStepResult | undefined = readStepResults(
-      data.run.stepResults,
-      steps,
-    )[stepIndex];
+    const result: SecurityPlaybookStepResult | undefined = results[stepIndex];
 
     if (!step || !result) {
       return null;
     }
 
     return { step, result, stepIndex };
+  }
+
+  /*
+   * The step a run's approval is about, when nobody names one: the step it
+   * waits on - or, once the run moved on, the last one it asked a person
+   * about: decided, still marked waiting, or the step the run stopped at
+   * while it waited (cancelled). A run that asked nobody: the step it is on.
+   */
+  public static getAskedStepIndex(data: {
+    run: SecurityPlaybookRun;
+    steps: Array<SecurityPlaybookStep>;
+    results: Array<SecurityPlaybookStepResult>;
+  }): number {
+    const current: number = Math.max(0, data.run.currentStepIndex || 0);
+
+    if (data.run.status === SecurityPlaybookRunStatus.WaitingForApproval) {
+      return current;
+    }
+
+    for (
+      let index: number = Math.min(current, data.steps.length - 1);
+      index >= 0;
+      index--
+    ) {
+      const result: SecurityPlaybookStepResult | undefined =
+        data.results[index];
+
+      if (
+        result?.approval ||
+        result?.status === SecurityPlaybookStepStatus.WaitingForApproval ||
+        (index === current && data.steps[index]?.requiresApproval)
+      ) {
+        return index;
+      }
+    }
+
+    return current;
   }
 
   /*

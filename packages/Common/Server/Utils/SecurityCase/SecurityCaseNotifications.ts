@@ -100,9 +100,8 @@ import { securityCaseSummaryMarkdown } from "../../../Utils/SecurityCase/Securit
 import { buildNotificationSms } from "../../../Utils/Sms/NotificationSms";
 import {
   SecurityPlaybookApprovalAsk as SecurityPlaybookApprovalAskWords,
-  SecurityPlaybookApprovalLine,
-  SecurityPlaybookApprovalWording,
-  wordSecurityPlaybookApproval,
+  SecurityPlaybookApprovalText,
+  getSecurityPlaybookApprovalText,
 } from "../../../Utils/SecurityPlaybook/SecurityPlaybookApprovalWords";
 import { DEFAULT_READER_LANGUAGE } from "../../../Types/ReaderLanguage";
 import { WorkspaceMessageBlock } from "../../../Types/Workspace/WorkspaceMessagePayload";
@@ -464,43 +463,19 @@ export interface SecurityPlaybookApprovalEmailEvidence {
 export function getApprovalEmailEvidence(
   ask: SecurityPlaybookApprovalAskWords,
 ): SecurityPlaybookApprovalEmailEvidence {
-  const wording: SecurityPlaybookApprovalWording =
-    wordSecurityPlaybookApproval({
-      ask,
-      context: WorkspaceSecurityPlaybookApproval.getContext(
-        DEFAULT_READER_LANGUAGE,
-      ),
-    });
-
-  const linesOf: (state: "proposed" | "protected") => Array<string> = (
-    state: "proposed" | "protected",
-  ): Array<string> => {
-    return ask.targets
-      .map((target: SecurityPlaybookApprovalAskWords["targets"][number], index: number): string => {
-        const isProtected: boolean =
-          target.state === SecurityPlaybookTargetState.Protected;
-
-        if ((state === "protected") !== isProtected) {
-          return "";
-        }
-
-        return (wording.targets[index] as SecurityPlaybookApprovalLine | undefined)?.text || "";
-      })
-      .filter((line: string): boolean => {
-        return Boolean(line);
-      });
-  };
+  const text: SecurityPlaybookApprovalText = getSecurityPlaybookApprovalText({
+    ask,
+    context: WorkspaceSecurityPlaybookApproval.getContext(
+      DEFAULT_READER_LANGUAGE,
+    ),
+  });
 
   return {
-    action: wording.action.text,
-    targets: linesOf("proposed"),
-    leftAlone: linesOf("protected"),
-    evidence: wording.evidence.map(
-      (line: SecurityPlaybookApprovalLine): string => {
-        return line.text;
-      },
-    ),
-    undo: wording.undo.text,
+    action: text.action,
+    targets: text.targets,
+    leftAlone: text.leftAlone,
+    evidence: text.evidence,
+    undo: text.undo,
   };
 }
 

@@ -1,14 +1,27 @@
+import SecurityCase from "../../Models/DatabaseModels/SecurityCase";
 import SecurityPlaybookRun from "../../Models/DatabaseModels/SecurityPlaybookRun";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import { DEFAULT_READER_LANGUAGE } from "../../Types/ReaderLanguage";
 import { SecurityPlaybookApprovalDecision, SecurityPlaybookTarget } from "../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
 import ProductKey from "../../Types/Product/ProductKey";
+import {
+  SecurityPlaybookApprovalStandingKind,
+  SecurityPlaybookApprovalText,
+  getSecurityPlaybookApprovalText,
+} from "../../Utils/SecurityPlaybook/SecurityPlaybookApprovalWords";
 import UserMiddleware from "../Middleware/UserAuthorization";
+import SecurityCaseService from "../Services/SecurityCaseService";
 import SecurityPlaybookRunService, {
   Service as SecurityPlaybookRunServiceType,
 } from "../Services/SecurityPlaybookRunService";
+import SecurityPlaybookApprovalReader, {
+  SecurityPlaybookApprovalRead,
+} from "../Utils/SecurityPlaybook/SecurityPlaybookApprovalReader";
+import WorkspaceSecurityPlaybookApproval from "../Utils/Workspace/WorkspaceSecurityPlaybookApproval";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -28,6 +41,16 @@ import CommonAPI from "./CommonAPI";
 
 // The longest comment an approval keeps.
 export const APPROVAL_COMMENT_MAX_LENGTH: number = 2000;
+
+// An approval, as POST /security-playbook-run/:runId/approval answers.
+export interface SecurityPlaybookApprovalReadout
+  extends SecurityPlaybookApprovalText {
+  runId: string;
+  stepIndex: number;
+  stepId: string;
+  // Waiting, Approved, Rejected or No Longer Waiting.
+  standing: SecurityPlaybookApprovalStandingKind;
+}
 
 /*
  * What a decision or an undo is refused with, and the decision a chat's
@@ -54,6 +77,8 @@ function readBody(req: ExpressRequest): JSONObject {
  *   POST /security-playbook-run/:runId/approve   { comment?, targets? }
  *   POST /security-playbook-run/:runId/reject    { comment? }
  *   POST /security-playbook-run/:runId/undo      { stepId, value }
+ *   POST /security-playbook-run/:runId/approval  - the approval, as its
+ *        chat messages say it (readApproval), for whoever can read it
  *
  * A step marked "needs approval" - every containment step, unless a
  * Security Admin let it run without - holds its run in Waiting for Approval
@@ -136,6 +161,40 @@ export default class SecurityPlaybookRunAPI extends BaseAPI<
     }
 
     this.router.post(
+      `${basePath}/:runId/approval`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions: new SecurityPlaybookRun().getReadPermissions(),
+            errorMessage:
+              "Reading a playbook step's approval takes a role that can read security cases.",
+          });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            (await SecurityPlaybookRunAPI.readApproval({
+              projectId,
+              runId: SecurityPlaybookRunAPI.readRunId(req),
+              props,
+            })) as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    this.router.post(
       `${basePath}/:runId/undo`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
@@ -191,13 +250,80 @@ export default class SecurityPlaybookRunAPI extends BaseAPI<
       errorMessage: options.errorMessage,
     });
 
+    return {
+      props,
+      projectId,
+      runId: SecurityPlaybookRunAPI.readRunId(req),
+    };
+  }
+
+  private static readRunId(req: ExpressRequest): ObjectID {
     const runId: string | undefined = req.params["runId"];
 
     if (!runId || !ObjectID.isValidUUID(runId)) {
       throw new BadDataException("A valid run ID is required.");
     }
 
-    return { props, projectId, runId: new ObjectID(runId) };
+    return new ObjectID(runId);
+  }
+
+  /*
+   * The approval of the step a run waits on - or, once it moved on, of the
+   * step it last asked about - as every chat copy of it says it, for the
+   * mobile app's approval card and for a push that opens an approval
+   * somebody decided since: who decided and when, what the step does and
+   * through what, each target with why, what it leaves alone, who asked,
+   * the evidence and the undo. In English, as the app is written.
+   *
+   * Only for a person who can read the run and its case with their own
+   * permissions: a run or case they cannot see is not found.
+   */
+  public static async readApproval(data: {
+    projectId: ObjectID;
+    runId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<SecurityPlaybookApprovalReadout> {
+    const run: SecurityPlaybookRun | null =
+      await SecurityPlaybookRunService.findOneBy({
+        query: { _id: data.runId.toString(), projectId: data.projectId },
+        select: { _id: true, securityCaseId: true },
+        props: data.props,
+      });
+
+    const securityCase: SecurityCase | null = run?.securityCaseId
+      ? await SecurityCaseService.findOneBy({
+          query: {
+            _id: run.securityCaseId.toString(),
+            projectId: data.projectId,
+          },
+          select: { _id: true },
+          props: data.props,
+        })
+      : null;
+
+    const read: SecurityPlaybookApprovalRead | null = securityCase
+      ? await SecurityPlaybookApprovalReader.read({
+          projectId: data.projectId,
+          runId: data.runId,
+        })
+      : null;
+
+    if (!read) {
+      throw new NotFoundException(RUN_NOT_FOUND_MESSAGE);
+    }
+
+    return {
+      runId: read.round.runId.toString(),
+      stepIndex: read.round.stepIndex,
+      stepId: read.round.stepId,
+      standing: read.ask.standing.kind,
+      ...getSecurityPlaybookApprovalText({
+        ask: read.ask,
+        context: WorkspaceSecurityPlaybookApproval.getContext(
+          DEFAULT_READER_LANGUAGE,
+        ),
+      }),
+    };
   }
 
   // The targets an approval keeps: undefined when the request names none.

@@ -1057,3 +1057,61 @@ export function wordSecurityPlaybookApprovalAnswer(data: {
       return say(context, words.answerCouldNotCheck, product(context));
   }
 }
+
+/*
+ * The approval as plain lines, for what is not a chat message: an email's
+ * rows, the mobile app's approval card. The same words as every chat copy:
+ * who decided, what the step does and through what, each target with why,
+ * what it leaves alone, who asked, the evidence and the undo.
+ */
+export interface SecurityPlaybookApprovalText {
+  headline: string;
+  // An approved step: how it is going.
+  progress?: string | undefined;
+  action: string;
+  // The ones it acts on - or acted on - each with why, or how it went.
+  targets: Array<string>;
+  // The protected ones, which the step never acts on.
+  leftAlone: Array<string>;
+  source: string;
+  evidence: Array<string>;
+  undo: string;
+}
+
+export function getSecurityPlaybookApprovalText(data: {
+  ask: SecurityPlaybookApprovalAsk;
+  context: SecurityPlaybookApprovalWordingContext;
+}): SecurityPlaybookApprovalText {
+  const wording: SecurityPlaybookApprovalWording =
+    wordSecurityPlaybookApproval(data);
+
+  const linesOf: (isProtected: boolean) => Array<string> = (
+    isProtected: boolean,
+  ): Array<string> => {
+    return data.ask.targets
+      .map((target: SecurityPlaybookApprovalTarget, index: number): string => {
+        return (target.state === SecurityPlaybookTargetState.Protected) ===
+          isProtected
+          ? wording.targets[index]?.text || ""
+          : "";
+      })
+      .filter((line: string): boolean => {
+        return Boolean(line);
+      });
+  };
+
+  return {
+    headline: wording.headline.text,
+    ...(wording.progress ? { progress: wording.progress.text } : {}),
+    action: wording.action.text,
+    targets: linesOf(false),
+    leftAlone: linesOf(true),
+    source: wording.source.text,
+    evidence: wording.evidence.map(
+      (line: SecurityPlaybookApprovalLine): string => {
+        return line.text;
+      },
+    ),
+    undo: wording.undo.text,
+  };
+}

@@ -642,6 +642,89 @@ describe("what a step's approval round is held to", () => {
     ).toBe("Stopped Before Run");
   });
 
+  test("the step an approval is about when nobody names one: the one waited on, else the last one asked about", () => {
+    const steps: Array<SecurityPlaybookStep> = [
+      { ...STEPS[0]!, id: "contain" },
+      { ...STEPS[0]!, id: "note", requiresApproval: false },
+      { ...STEPS[0]!, id: "contain-again" },
+    ];
+    const result: (
+      stepId: string,
+      status: SecurityPlaybookStepStatus,
+      approved?: boolean,
+    ) => SecurityPlaybookStepResult = (
+      stepId: string,
+      status: SecurityPlaybookStepStatus,
+      approved: boolean = false,
+    ): SecurityPlaybookStepResult => {
+      return {
+        stepId,
+        action: SecurityPlaybookActionType.SuspendOktaUser,
+        status,
+        ...(approved
+          ? {
+              approval: {
+                decision: SecurityPlaybookApprovalDecision.Approved,
+                decidedByUserId: JANE.toString(),
+                decidedAt: "2026-11-20T10:43:00.000Z",
+              },
+            }
+          : {}),
+      };
+    };
+    const askedIn: (
+      status: SecurityPlaybookRunStatus,
+      currentStepIndex: number,
+      results: Array<SecurityPlaybookStepResult>,
+    ) => number = (
+      status: SecurityPlaybookRunStatus,
+      currentStepIndex: number,
+      results: Array<SecurityPlaybookStepResult>,
+    ): number => {
+      const run: SecurityPlaybookRun = new SecurityPlaybookRun();
+      run.status = status;
+      run.currentStepIndex = currentStepIndex;
+      return SecurityPlaybookApprovalReader.getAskedStepIndex({
+        run,
+        steps,
+        results,
+      });
+    };
+
+    // Waiting: the step it waits on.
+    expect(
+      askedIn(SecurityPlaybookRunStatus.WaitingForApproval, 2, [
+        result("contain", SecurityPlaybookStepStatus.Succeeded, true),
+        result("note", SecurityPlaybookStepStatus.Succeeded),
+        result("contain-again", SecurityPlaybookStepStatus.WaitingForApproval),
+      ]),
+    ).toBe(2);
+    // Finished past its last step: the last step it asked about.
+    expect(
+      askedIn(SecurityPlaybookRunStatus.Succeeded, 3, [
+        result("contain", SecurityPlaybookStepStatus.Succeeded, true),
+        result("note", SecurityPlaybookStepStatus.Succeeded),
+        result("contain-again", SecurityPlaybookStepStatus.Skipped),
+      ]),
+    ).toBe(0);
+    // Cancelled while it waited: the step it stopped at.
+    expect(
+      askedIn(SecurityPlaybookRunStatus.Cancelled, 2, [
+        result("contain", SecurityPlaybookStepStatus.Succeeded, true),
+        result("note", SecurityPlaybookStepStatus.Succeeded),
+        result("contain-again", SecurityPlaybookStepStatus.Pending),
+      ]),
+    ).toBe(2);
+    // A run that asked nobody: the step it is on.
+    expect(
+      askedIn(SecurityPlaybookRunStatus.Failed, 1, [
+        result("contain", SecurityPlaybookStepStatus.Skipped),
+        result("note", SecurityPlaybookStepStatus.Failed),
+        result("contain-again", SecurityPlaybookStepStatus.Pending),
+      ]),
+    ).toBe(1);
+  });
+
   test("who asked: the person who ran the playbook by hand, else the playbook and what started it", async () => {
     expect(
       await SecurityPlaybookApprovalReader.getSource({
