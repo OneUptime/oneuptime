@@ -1686,7 +1686,7 @@ export class Service extends DatabaseService<Model> {
     return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
       date: usageDate,
       timezone: "UTC",
-      format: "MMM DD, YYYY",
+      format: "MMM D, YYYY",
     });
   }
 

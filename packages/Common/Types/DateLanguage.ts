@@ -852,46 +852,14 @@ export const getHourOption: (
   return use12HourFormat ? "numeric" : "2-digit";
 };
 
-const LOCALE_CLOCK_HOUR_OPTIONS: Map<string, "numeric" | "2-digit"> = new Map<
-  string,
-  "numeric" | "2-digit"
->();
-
 /*
- * The hour of a time that follows its language's own clock, not the
- * reader's 12- or 24-hour setting: a calendar's grid, a chart's axis, a
- * diagnostics line. Korean, Traditional Chinese, Hindi, Arabic and US
- * English read a 12-hour clock ("오전 5:14", "5:14 ص", "5:14 AM"), the
- * others a 24-hour one ("05:14"). A two-digit hour asked of the language's own clock
- * wrote "오전 05:14" (issue #7279). `pinnedLocale` is a locale already made
- * for the language (getNumberLocale, getDateLocale, getReaderDateLocale).
+ * Every time of day follows the reader's clock (getHourOption with
+ * OneUptimeDate.getUserPrefers12HourFormat). A calendar's grid, an AI
+ * chat's PDF axis and a security connection's local time followed their
+ * language's own clock until #7651 (getLocaleClockHourOption): a German
+ * reader on a 12-hour clock read "17:14" down a calendar beside every
+ * table's "5:14 PM".
  */
-export const getLocaleClockHourOption: (
-  pinnedLocale: string,
-) => "numeric" | "2-digit" = (pinnedLocale: string): "numeric" | "2-digit" => {
-  const remembered: "numeric" | "2-digit" | undefined =
-    LOCALE_CLOCK_HOUR_OPTIONS.get(pinnedLocale);
-
-  if (remembered) {
-    return remembered;
-  }
-
-  let hour: "numeric" | "2-digit" = "2-digit";
-
-  try {
-    hour = getHourOption(
-      new Intl.DateTimeFormat(pinnedLocale, {
-        hour: "numeric",
-      }).resolvedOptions().hour12,
-    );
-  } catch {
-    // A locale Intl refuses: the 24-hour hour, as before.
-  }
-
-  LOCALE_CLOCK_HOUR_OPTIONS.set(pinnedLocale, hour);
-
-  return hour;
-};
 
 // The Intl options a shape of OneUptimeDate's dates asks for.
 export const getDateTimeOptions: (

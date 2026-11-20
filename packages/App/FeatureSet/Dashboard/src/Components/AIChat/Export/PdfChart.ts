@@ -13,7 +13,9 @@ import OneUptimeDate from "Common/Types/Date";
 import Timezone from "Common/Types/Timezone";
 import PdfDocument, { PDF_COLORS } from "./PdfDocument";
 import {
-  getLocaleClockHourOption,
+  ReaderDateTimeFormat,
+  getDateTimeFormat,
+  getHourOption,
   getReaderDateLocale,
 } from "Common/Types/DateLanguage";
 
@@ -118,54 +120,38 @@ export function formatTimeLabel(
   const TWO_YEARS: number = 2 * 365 * 24 * 60 * 60 * 1000;
 
   /*
-   * On the language's own clock: "05:14" in German, "5:14 AM" and "오전
-   * 5:14" on a 12-hour one, never "오전 05:14" (issue #7279).
+   * On the reader's clock, as the page's tables write it (#7651): "05:14"
+   * on a 24-hour one, "5:14 AM" and "오전 5:14" on a 12-hour one, never
+   * "오전 05:14" (issue #7279). It followed the language's own clock, so a
+   * German reader on a 12-hour clock read "17:14" down the axis.
    */
-  const hour: "numeric" | "2-digit" = getLocaleClockHourOption(
-    getReaderDateLocale(),
-  );
-
-  const write: (zone: string | undefined) => string = (
-    zone: string | undefined,
-  ): string => {
-    const inZone: { timeZone?: string } = zone ? { timeZone: zone } : {};
-
-    if (spanMs <= TWO_HOURS) {
-      return date.toLocaleTimeString(getReaderDateLocale(), {
-        hour,
-        minute: "2-digit",
-        ...inZone,
-      });
-    }
-    if (spanMs <= TWO_DAYS) {
-      return date.toLocaleString(getReaderDateLocale(), {
-        month: "short",
-        day: "numeric",
-        hour,
-        minute: "2-digit",
-        ...inZone,
-      });
-    }
-    if (spanMs <= TWO_YEARS) {
-      return date.toLocaleDateString(getReaderDateLocale(), {
-        month: "short",
-        day: "numeric",
-        ...inZone,
-      });
-    }
-    return date.toLocaleDateString(getReaderDateLocale(), {
-      month: "short",
-      year: "numeric",
-      ...inZone,
-    });
+  const use12HourFormat: boolean = OneUptimeDate.getUserPrefers12HourFormat();
+  const time: Intl.DateTimeFormatOptions = {
+    hour: getHourOption(use12HourFormat),
+    minute: "2-digit",
+    hour12: use12HourFormat,
   };
 
-  try {
-    return write(timeZone);
-  } catch {
-    // A zone this browser's Intl does not know: its own, rather than none.
-    return write(undefined);
+  let options: Intl.DateTimeFormatOptions = { month: "short", year: "numeric" };
+
+  if (spanMs <= TWO_HOURS) {
+    options = time;
+  } else if (spanMs <= TWO_DAYS) {
+    options = { month: "short", day: "numeric", ...time };
+  } else if (spanMs <= TWO_YEARS) {
+    options = { month: "short", day: "numeric" };
   }
+
+  // The wall clock from OneUptime's own zone data, as every date (#10038).
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+    locale: getReaderDateLocale(),
+    timezones: [timeZone],
+    options: options,
+  });
+
+  return format
+    ? format.format(date)
+    : OneUptimeDate.getDateAsLocalShortDateTimeString(date);
 }
 
 export default class PdfChart {
