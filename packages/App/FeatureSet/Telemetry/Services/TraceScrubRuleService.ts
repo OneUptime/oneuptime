@@ -8,7 +8,6 @@ import { JSONObject } from "Common/Types/JSON";
 import TraceScrubAction from "Common/Types/Trace/TraceScrubAction";
 import TraceScrubPatternType from "Common/Types/Trace/TraceScrubPatternType";
 import TraceScrubField from "Common/Types/Trace/TraceScrubField";
-import crypto from "crypto";
 import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
 import {
   compileScrubRuleCustomRegex,
@@ -24,7 +23,8 @@ import ScrubJsonTextUtil, {
 import ScrubJsonKeysUtil, {
   ScrubJsonKeysRule,
 } from "Common/Utils/Telemetry/ScrubJsonKeys";
-import { maskKeepingEnds } from "Common/Utils/Telemetry/ScrubMask";
+import ScrubIpAddress from "Common/Utils/Telemetry/ScrubIpAddress";
+import ScrubAction from "Common/Server/Utils/Telemetry/ScrubAction";
 import { correlationIdAttributeKeys } from "Common/Utils/Telemetry/CorrelationIdAttributes";
 import { copyOwnValues, readOwnValue } from "Common/Utils/LookupTable";
 
@@ -62,7 +62,13 @@ const BUILT_IN_PATTERNS: Record<string, RegExp> = {
   [TraceScrubPatternType.SSN]: /\b\d{3}-\d{2}-\d{4}\b/g,
   [TraceScrubPatternType.PhoneNumber]:
     /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
-  [TraceScrubPatternType.IPAddress]: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g,
+  /*
+   * IP Address is not here: its matches are what Data Security's own
+   * detectors call an IP address - public IPv4 and IPv6 addresses, and
+   * documentation ones - and not private, loopback or link-local ones, so
+   * 169.254.169.254 in a request's URL stays for Security Events to find
+   * (Common/Utils/Telemetry/ScrubIpAddress, #10393).
+   */
 };
 
 /*
@@ -151,6 +157,8 @@ export class TraceScrubRuleService {
       },
       select: {
         _id: true,
+        // A Hash rule hashes with its project's own key (ScrubHashToken).
+        projectId: true,
         name: true,
         patternType: true,
         customRegex: true,
@@ -205,6 +213,11 @@ export class TraceScrubRuleService {
       return scrubRegExpFromBuiltIn(SENSITIVE_KEY_REGEX);
     }
 
+    // What Data Security calls an IP address, found by its own detectors.
+    if (patternType === TraceScrubPatternType.IPAddress) {
+      return ScrubIpAddress.toScrubRegExp();
+    }
+
     // The saved rule's own word: a pattern type no table lists matches nothing.
     const builtIn: RegExp | undefined = readOwnValue(
       BUILT_IN_PATTERNS,
@@ -217,71 +230,23 @@ export class TraceScrubRuleService {
     return null;
   }
 
+  /*
+   * What a rule leaves of a match: one answer for the log, trace and session
+   * replay scrubbers (Common/Server/Utils/Telemetry/ScrubAction). A Hash rule
+   * makes its project's token (ScrubHashToken, #10394).
+   */
   private static applyScrubAction(
     match: string,
     action: string,
     patternType: string,
+    projectId?: ObjectID | string | null | undefined,
   ): string {
-    switch (action) {
-      case TraceScrubAction.Redact:
-        return "[REDACTED]";
-
-      case TraceScrubAction.Hash: {
-        const hash: string = crypto
-          .createHash("sha256")
-          .update(match)
-          .digest("hex")
-          .substring(0, 8);
-        return `[HASHED:${hash}]`;
-      }
-
-      case TraceScrubAction.Mask:
-        return this.maskValue(match, patternType);
-
-      default:
-        return "[REDACTED]";
-    }
-  }
-
-  private static maskValue(value: string, patternType: string): string {
-    switch (patternType) {
-      case TraceScrubPatternType.Email: {
-        const atIndex: number = value.indexOf("@");
-        if (atIndex > 0) {
-          const dotIndex: number = value.lastIndexOf(".");
-          if (dotIndex > atIndex) {
-            return value[0] + "***@***" + value.substring(dotIndex);
-          }
-        }
-        return "***@***.***";
-      }
-
-      case TraceScrubPatternType.CreditCard: {
-        const digits: string = value.replace(/[-\s]/g, "");
-        if (digits.length >= 4) {
-          return "****-****-****-" + digits.substring(digits.length - 4);
-        }
-        return "****-****-****-****";
-      }
-
-      case TraceScrubPatternType.SSN:
-        return "***-**-" + value.substring(value.length - 4);
-
-      case TraceScrubPatternType.PhoneNumber: {
-        const phoneDigits: string = value.replace(/[^0-9]/g, "");
-        if (phoneDigits.length >= 4) {
-          return "***-***-" + phoneDigits.substring(phoneDigits.length - 4);
-        }
-        return "***-***-****";
-      }
-
-      case TraceScrubPatternType.IPAddress:
-        return "***.***.***.***";
-
-      default:
-        // First and last characters kept, whole (Common/Utils/Telemetry/ScrubMask).
-        return maskKeepingEnds(value);
-    }
+    return ScrubAction.apply({
+      match: match,
+      action: action,
+      patternType: patternType,
+      projectId: projectId,
+    });
   }
 
   /*
@@ -317,7 +282,12 @@ export class TraceScrubRuleService {
           return regex.matchRanges(text);
         },
         replaceMatch: (match: string): string => {
-          return this.applyScrubAction(match, action, patternType);
+          return this.applyScrubAction(
+            match,
+            action,
+            patternType,
+            rule.projectId,
+          );
         },
         // A person may have written a custom pattern against stored escapes.
         readsAsWritten: patternType === TraceScrubPatternType.Custom,
@@ -351,6 +321,7 @@ export class TraceScrubRuleService {
           text,
           action,
           TraceScrubPatternType.SensitiveKeys,
+          compiled.rule.projectId,
         );
       },
       allowance: allowance,

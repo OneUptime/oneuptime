@@ -88,6 +88,8 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 
 OneUptime은 각 리전의 EC2 인스턴스와 볼륨, VPC, 서브넷과 보안 그룹, NAT 게이트웨이, Auto Scaling 그룹, 로드 밸런서(Application, Network, Gateway, Classic), EKS 클러스터, ECS 클러스터와 서비스, Lambda 함수, RDS 데이터베이스, ElastiCache, SQS 대기열, SNS 주제, DynamoDB 테이블, Kinesis 스트림, Step Functions 상태 머신, API Gateway API, EFS 파일 시스템, OpenSearch 도메인, App Runner 서비스, Elastic Beanstalk 환경, WAF 웹 ACL, Network Firewall 방화벽, Cognito 사용자 풀, AppSync GraphQL API, SageMaker 엔드포인트를 태그와 함께 나열하고, CloudFront 배포와 그 웹 ACL은 us-east-1에서, Global Accelerator 액셀러레이터는 us-west-2에서 한 번 나열합니다. 이들이 어떻게 연결되는지도 기록합니다. 각 리소스가 실행되는 서브넷과 VPC 및 이를 보호하는 보안 그룹, 각 로드 밸런서가 트래픽을 보내는 곳, 각 EKS 클러스터의 네트워크와 노드 인스턴스입니다. OneUptime이 어떤 유형을 나열하기 전에 만든 역할도 그 유형 없이 경고 없이 계속 읽힙니다. 서브넷, 보안 그룹, EKS 클러스터, 또는 그 뒤에 추가된 웹 ACL, 방화벽, 액셀러레이터, 사용자 풀, GraphQL API, 엔드포인트처럼 그 유형도 나열하려면 명령을 다시 실행하세요. 그러면 이들은 메트릭을 보고하기 전부터 나열됩니다.
 
+OneUptime은 역할의 신뢰 정책이 명령이 작성하는 `sts:ExternalId` 조건으로 프로젝트의 외부 ID를 요구할 때만 그 역할에 로그인합니다. 역할을 통해 무엇이든 읽기 전에, 그리고 그 뒤로 매일, OneUptime은 어떤 프로젝트에도 없는 외부 ID로 한 번 로그인합니다. AWS가 이 로그인을 거부하면 통과이므로, 역할의 CloudTrail에는 역할을 읽는 OneUptime 서버가 몇 대이든 하루에 한 번 정도 OneUptime의 `AccessDenied` 가 기록됩니다. 이 로그인을 통과시키는 역할은 ARN을 아는 모든 프로젝트가 OneUptime을 통해 계정을 읽게 하므로, OneUptime은 그 역할을 거부하고, 그 역할을 통해 아무것도 읽지 않으며, 추가할 조건을 알려 줍니다.
+
 > [!NOTE]
 > 자체 호스팅 OneUptime에서 **IAM 역할** 방식을 쓰려면 `sts:AssumeRole`을 호출할 수 있는 OneUptime 자체의 AWS ID가 필요합니다. 서버가 실행되는 IAM 역할(Amazon EKS에서는 Helm 차트의 `serviceAccount.annotations`로 지정하는 파드의 역할, Amazon ECS에서는 작업 역할, Amazon EC2에서는 인스턴스 프로파일)이나 `CLOUD_CONNECT_AWS_ACCESS_KEY_ID`와 `CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY`에 설정한 IAM 사용자의 키이며, 키가 설정되어 있으면 항상 키를 사용합니다. 둘 다 없으면 양식은 **액세스 키**를 제공합니다.
 
@@ -292,6 +294,8 @@ OneUptime의 호출은 클라우드 요금으로 클라우드 계정에 청구�
 
 Service Bus 또는 Event Hubs 네임스페이스의 주요 메트릭은 `EntityName` 차원으로 나뉘어 큐, 토픽, 이벤트 허브마다 읽히며, 읽을 때마다 네임스페이스당 같은 한 번의 호출로 읽힙니다: 5분마다 읽으면 큐가 50개인 네임스페이스도 큐가 하나인 네임스페이스처럼 시간당 12번 호출합니다. 한 번의 읽기는 네임스페이스당 최대 1,000개를 읽고, 그보다 많으면 그렇다고 알려 줍니다. 각각의 메트릭은 Collector의 `azure_monitor` 리시버와 같은 방식으로 나뉘어 [큐](/docs/telemetry/queues#azure-service-bus) 아래 해당 페이지에 표시되며, 그 리시버도 큐의 메트릭을 읽으면 리시버의 값을 유지하고 연결의 값은 제외하므로, 어떤 것도 두 번 세지 않습니다.
 
+Azure Monitor의 메트릭은 많은 리소스를 읽을 때 Microsoft가 권장하는 방식으로 읽힙니다. 같은 메트릭으로 읽히는 한 구독, 리전, 유형의 리소스는 최대 50개씩 `metrics:getBatch` 호출을 함께 사용하고, 각 호출은 그 안의 모든 메트릭이 제공되는 집계만 요청하며, 한 구독의 리전마다 동시에 최대 4개의 호출이 실행되고, Azure가 바쁘다고 응답하는 동안에는 더 적게 실행됩니다. Azure가 제한한 호출은 잠시 기다린 뒤, 또는 Azure가 요청하는 만큼 기다린 뒤 다시 보내지며, Azure가 너무 바빠 응답하지 못한 메트릭은 같은 읽기와 다음 읽기에서 다시 요청됩니다. Azure가 어떤 리소스에 대해 제공하지 않는다고 응답한 메트릭은 하루 동안 다시 요청되지 않습니다. 일괄 읽기에는 구독 자체에 대한 **Monitoring Reader** 역할이 필요하며, 설정 명령이 이를 부여합니다. 앱이 일부 리소스에만 이 역할을 가진 경우 해당 리소스는 하나씩 읽히고, 읽기가 그 사실을 알립니다. 리소스 페이지의 메트릭 위에는 마지막으로 읽은 시각이 표시되고, **이유 보기**는 읽지 못한 메트릭을 Azure의 응답과 함께 나열합니다.
+
 Azure Monitor가 가장 세밀해도 5분 단위로만 보관하는 일부 주요 메트릭(App Service 앱의 상태 확인, Azure Cosmos DB 계정의 스토리지 등)은 15분마다 별도의 호출로 읽으며, 호출당 3개의 포인트를 가져옵니다: 5분마다 읽으면 그런 리소스는 한 시간에 호출이 4번 더 들고, 그런 메트릭이 없는 리소스는 더 들지 않습니다. 리소스 페이지의 각 행에는 5분마다 들어온다고 표시됩니다. 이런 메트릭의 모니터에는 30분 이상의 기간을 지정하세요. 호출 사이에도 리소스는 그 마지막 값을 40분이 지날 때까지 유지하므로, 값이 리소스 페이지와 상태에서 나타났다 사라졌다 하지 않으며, 각 타일에는 그 값이 얼마나 오래되었는지 표시됩니다. 상태 확인이 설정된 App Service 앱은 그 상태 확인으로 판단됩니다: 인스턴스 하나라도 실패하면 **저하됨**, 통과하는 인스턴스가 절반 미만이면 **비정상**입니다. Azure Cosmos DB 계정의 페이지는 데이터 크기, 인덱스 크기, 문서 수로 시작합니다. Azure Monitor가 한 시간 단위로 보관하는 주요 메트릭도 몇 가지 있습니다(예: Azure Storage 계정의 사용 용량). 이런 메트릭은 한 시간에 한 번, 2시간 지난 값으로 읽히며, 4시간이 지날 때까지 유지됩니다. App Service 앱의 파일 시스템 사용량은 Azure Monitor가 6시간 단위로 보관하므로, 6시간마다, 측정하는 기간이 지나고 12~18시간 뒤에 들어오며, 19시간이 지날 때까지 유지됩니다.
 
 Compute Engine VM의 메모리와 디스크 사용률은 Google Cloud 자체 메트릭이 아닙니다: VM 내부에서 [Ops Agent](https://docs.cloud.google.com/stackdriver/docs/solutions/agents/ops-agent/installation)가 보고합니다. OneUptime은 에이전트가 실행되는 각 VM에서 이를 읽고 메모리와 가장 많이 찬 디스크가 얼마나 찼는지 판단합니다. 에이전트가 없는 VM의 페이지에는 에이전트가 필요하다고 표시되고 Google의 설치 안내로 연결됩니다. 에이전트를 실행하는 VM이 없는 프로젝트는 읽을 때마다가 아니라 한 시간에 한 번 확인합니다. 이를 보고하는 VM에는 권장 모니터 세 가지가 더 제안되며, 모두 15분 동안 판단합니다: 메모리가 95% 이상인 경우, 그리고 디스크 중 하나가 90% 이상인 경우와 95% 이상인 경우입니다. 각 모니터의 인시던트에는 VM을 무엇이 채우는지 보여 주는 `gcloud compute ssh` 명령이 담기며, Google Cloud Shell에서 실행할 수 있습니다. 에이전트가 없는 VM에는 세 가지 중 어느 것도 제안되지 않습니다.
@@ -338,6 +342,10 @@ AWS Organization을 읽는 연결이 찾은 AWS 계정에서는 대화 상자가
 
 :::details 테스트에서 로그인은 되지만 읽을 수 없음
 명령을 다시 실행하세요. OneUptime에 필요한 역할이 부여됩니다. AWS에서는 양식이 이 프로젝트에 대해 보여 주는 명령을 실행하세요. 다른 프로젝트용으로 만든 역할은 그 프로젝트의 외부 ID를 신뢰하며, 이 프로젝트의 외부 ID는 신뢰하지 않습니다.
+:::
+
+:::details 역할이 프로젝트의 외부 ID 없이 OneUptime의 로그인을 허용함
+역할의 신뢰 정책이 `sts:ExternalId` 조건으로 프로젝트의 외부 ID를 요구하지 않으므로, 역할의 ARN을 아는 모든 프로젝트가 OneUptime을 통해 계정을 읽을 수 있고, OneUptime은 이 역할을 사용하지 않습니다. 메시지에 표시된 조건을 OneUptime을 신뢰하는 정책 문에 추가하거나, 명령을 다시 실행하고 출력되는 역할을 연결하세요. 테스트는 역할을 바로 다시 확인하며, 통과하면 읽기도 곧바로 역할을 사용합니다. 테스트하지 않으면 읽기가 한 시간 안에 역할을 다시 확인합니다.
 :::
 
 :::details Google Cloud에서 명령이 키를 만들 수 없음

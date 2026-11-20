@@ -61,6 +61,8 @@ Ouvrez un tableau de bord : son propre menu latéral contient ces pages. Chaque 
 | **Partage** | Qui peut le voir, son lien public, et une liste d'autorisation IP sous Plus de paramètres. |
 | **Image de marque** | Titre de page, description, logo, thème et favicon du tableau de bord public. |
 | **Domaines personnalisés** | Héberger le tableau de bord public sur votre propre domaine. |
+| **Utilisateurs privés** | Les personnes qui peuvent se connecter au lien public, quand seules les personnes qui se connectent peuvent le voir. |
+| **Authentification unique** | Les fournisseurs SAML et OpenID Connect avec lesquels elles se connectent, et **Exiger le SSO pour la connexion**. |
 | **Paramètres** | Dupliquer, exporter ou archiver le tableau de bord. |
 | **Propriétaires** | Les utilisateurs et équipes à qui il appartient. |
 | **Journaux d'audit** | Chaque modification apportée au tableau de bord, et qui l'a faite. |

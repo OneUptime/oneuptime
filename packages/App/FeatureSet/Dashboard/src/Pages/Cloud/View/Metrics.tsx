@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import React, {
   Fragment,
   FunctionComponent,
@@ -32,6 +33,7 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import CloudResourceMoreMetrics from "../../../Components/Cloud/ResourceMetrics/CloudResourceMoreMetrics";
 import CloudUnreportedKeyMetricsList from "../../../Components/Cloud/ResourceMetrics/CloudUnreportedKeyMetricsList";
+import CloudResourceMetricCollectionLine from "../../../Components/Cloud/ResourceMetrics/CloudResourceMetricCollectionLine";
 import {
   CloudMonitoredResourceRowAggregation,
   getCloudMonitoredResourceAttributeDisplayKeys,
@@ -56,7 +58,9 @@ import {
  *
  * Its key metrics read in sections, each saying - folded away - which of
  * its key metrics the resource did not report in the range, and why
- * (#9569). Under the list, More Metrics lists what else its cloud
+ * (#9569). Above them, when its connection last read them, and what it
+ * could not read, with its cloud's own words (#10291). Under the list,
+ * More Metrics lists what else its cloud
  * publishes, on demand, and adds one to what its connection reads (#9563):
  * an added metric reads in a section of its own, and charts and alerts as
  * a key metric does.
@@ -76,31 +80,40 @@ const CloudResourceMetrics: FunctionComponent<
     setIsLoading(true);
     setError("");
     try {
+      /*
+       * Its connection's additions and settings are read through the
+       * resource for who may read the connection itself (#10310): every
+       * reader of the project's cloud resources, but a team kept from its
+       * connections, which reads the key metrics without them.
+       */
       const item: CloudResource | null = await ModelAPI.getItem({
         modelType: CloudResource,
         id: modelId,
-        select: {
-          _id: true,
-          resourceIdentifier: true,
-          name: true,
-          // The scope reads the attributes of a resource only.
-          cloudResourceKind: true,
-          telemetryAttributes: true,
-          // What its rows add up: a namespace's metrics, one per queue.
-          cloudProvider: true,
-          cloudResourceType: true,
-          /*
-           * What its connection reads for it besides its key metrics, and
-           * how often: a metric that comes once an hour is missing only
-           * past its delay (#10026).
-           */
-          cloudConnectionId: true,
-          cloudConnection: {
-            addedMetrics: true,
-            provider: true,
-            config: true,
+        select: PermissionGate.getSelectReadableThroughRelations(
+          CloudResource,
+          {
+            _id: true,
+            resourceIdentifier: true,
+            name: true,
+            // The scope reads the attributes of a resource only.
+            cloudResourceKind: true,
+            telemetryAttributes: true,
+            // What its rows add up: a namespace's metrics, one per queue.
+            cloudProvider: true,
+            cloudResourceType: true,
+            /*
+             * What its connection reads for it besides its key metrics, and
+             * how often: a metric that comes once an hour is missing only
+             * past its delay (#10026).
+             */
+            cloudConnectionId: true,
+            cloudConnection: {
+              addedMetrics: true,
+              provider: true,
+              config: true,
+            },
           },
-        },
+        ),
       });
 
       if (!item?.resourceIdentifier) {
@@ -275,6 +288,15 @@ const CloudResourceMetrics: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * When its connection last read its metrics, and what it could not
+       * (#10291): above them, where a person looks when one is missing.
+       */}
+      {cloudResource.cloudConnectionId ? (
+        <CloudResourceMetricCollectionLine cloudResourceId={modelId} />
+      ) : (
+        <></>
+      )}
       <MetricsViewer
         attributeFilters={attributeFilters}
         attributeFilterDisplayKeys={attributeFilterDisplayKeys}

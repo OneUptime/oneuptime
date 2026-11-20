@@ -32,6 +32,10 @@ import {
   CloudKeyMetricCondition,
 } from "./CloudKeyMetricCondition";
 import { CLOUD_CONNECTION_READ_INTERVALS } from "../CloudConnection/CloudConnectionCatalog";
+import {
+  CloudMetricNotRead,
+  CloudMetricNotReadKind,
+} from "./CloudResourceMetricCollection";
 
 /*
  * THE KEY METRICS A CLOUD RESOURCE DID NOT REPORT, AND WHY.
@@ -551,6 +555,14 @@ export enum CloudUnreportedReason {
   Streamed = "streamed",
   // It comes less often than the list's range may hold.
   Cadence = "cadence",
+  /*
+   * Its cloud answered, when it was last asked, that it does not serve it
+   * for this resource ("Sampling type is not found"): it is not asked for
+   * again until `until` (CloudResourceMetricCollection).
+   */
+  NotServed = "not-served",
+  // Its cloud was too busy to answer for it at the last read ("ServerBusy").
+  CloudBusy = "cloud-busy",
 }
 
 // Where a reason's fix is: Cloud > Connect, or the Ops Agent's install guide.
@@ -566,6 +578,16 @@ export interface CloudUnreportedReasonEntry {
   // CloudUnreportedReason.Cadence's: how often it comes, which its sentence says.
   cadence?: CloudKeyMetricCadence | undefined;
   fix?: CloudUnreportedFix | undefined;
+  /*
+   * What its cloud answered, in its own words, where a read kept it (a read
+   * that failed, NotServed, CloudBusy) - shown after the reason, never in
+   * its place.
+   */
+  error?: string | undefined;
+  // Since when it has not been read (ISO), where a read kept it.
+  since?: string | undefined;
+  // NotServed's: when it is asked for again (ISO).
+  until?: string | undefined;
 }
 
 /*
@@ -604,6 +626,12 @@ export const CLOUD_UNREPORTED_REASON_SENTENCES: Readonly<
   ),
   [CloudUnreportedReason.Streamed]: translationKey(
     "Its cloud connection's stream sends it, and none has arrived for this resource yet.",
+  ),
+  [CloudUnreportedReason.NotServed]: translationKey(
+    "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.",
+  ),
+  [CloudUnreportedReason.CloudBusy]: translationKey(
+    "Its cloud was too busy to answer for it at the last read. The next read asks again.",
   ),
 };
 
@@ -713,6 +741,10 @@ export function isCloudReadWarningAbout(data: {
  * collector sends its metrics). `isPublished`: Azure, whether its own
  * metric definitions list the metric - null when OneUptime does not know.
  * `isPublishedByType`: whether the definitions its type was read with do.
+ * `resourceFailure` and `notRead`: what the connection's reads kept of
+ * this resource (CloudResourceMetricCollection) - that none of its metrics
+ * could be read, or what its cloud answered for this one - said with the
+ * cloud's own words.
  */
 export function explainCloudUnreportedKeyMetric(data: {
   metric: CloudResourceKeyMetric;
@@ -722,9 +754,12 @@ export function explainCloudUnreportedKeyMetric(data: {
   isPublished?: boolean | null | undefined;
   isPublishedByType?: boolean | null | undefined;
   isLeftToStream?: boolean | undefined;
+  resourceFailure?: { error: string; since: string } | null | undefined;
+  notRead?: CloudMetricNotRead | null | undefined;
 }): Array<CloudUnreportedReasonEntry> {
   const reasons: Array<CloudUnreportedReasonEntry> = [];
   const metric: CloudResourceKeyMetric = data.metric;
+  const notRead: CloudMetricNotRead | null | undefined = data.notRead;
 
   if (!data.connection) {
     reasons.push({
@@ -744,6 +779,47 @@ export function explainCloudUnreportedKeyMetric(data: {
     reasons.push({
       reason: CloudUnreportedReason.NoPermission,
       fix: "cloud-connect",
+    });
+  } else if (
+    data.connection.lastReadStatus !== "failed" &&
+    data.resourceFailure
+  ) {
+    reasons.push({
+      reason: CloudUnreportedReason.ReadFailed,
+      fix: "cloud-connect",
+      ...(data.resourceFailure.error
+        ? { error: data.resourceFailure.error }
+        : {}),
+      since: data.resourceFailure.since,
+    });
+  } else if (
+    data.connection.lastReadStatus !== "failed" &&
+    notRead?.kind === CloudMetricNotReadKind.Unsupported
+  ) {
+    reasons.push({
+      reason: CloudUnreportedReason.NotServed,
+      ...(notRead.error ? { error: notRead.error } : {}),
+      since: notRead.since,
+      ...(notRead.until ? { until: notRead.until } : {}),
+    });
+  } else if (
+    data.connection.lastReadStatus !== "failed" &&
+    notRead?.kind === CloudMetricNotReadKind.Throttled
+  ) {
+    reasons.push({
+      reason: CloudUnreportedReason.CloudBusy,
+      ...(notRead.error ? { error: notRead.error } : {}),
+      since: notRead.since,
+    });
+  } else if (
+    data.connection.lastReadStatus !== "failed" &&
+    notRead?.kind === CloudMetricNotReadKind.Failed
+  ) {
+    reasons.push({
+      reason: CloudUnreportedReason.ReadFailed,
+      fix: "cloud-connect",
+      ...(notRead.error ? { error: notRead.error } : {}),
+      since: notRead.since,
     });
   } else if (
     data.connection.lastReadStatus === "failed" ||
@@ -875,6 +951,21 @@ function readReasonEntry(value: unknown): CloudUnreportedReasonEntry | null {
 
   if (fix === "cloud-connect" || fix === "ops-agent") {
     entry.fix = fix;
+  }
+
+  const error: unknown = raw["error"];
+
+  if (typeof error === "string" && error.trim()) {
+    entry.error = error;
+  }
+
+  for (const field of ["since", "until"] as const) {
+    const value: unknown = raw[field];
+    const time: number = typeof value === "string" ? Date.parse(value) : NaN;
+
+    if (Number.isFinite(time)) {
+      entry[field] = new Date(time).toISOString();
+    }
   }
 
   return entry;

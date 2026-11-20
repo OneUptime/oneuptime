@@ -61,6 +61,8 @@ Listens sidemenu har de sider, der passer på alle dine dashboards:
 | **Deling** | Hvem der kan se det, dets offentlige link og en IP-tilladelsesliste under Yderligere indstillinger. |
 | **Branding** | Sidetitel, beskrivelse, logo, tema og favicon for det offentlige dashboard. |
 | **Brugerdefinerede domæner** | Host det offentlige dashboard på dit eget domæne. |
+| **Private brugere** | De personer, der må logge ind på det offentlige link, når kun personer, der logger ind, kan se det. |
+| **Single sign-on** | De SAML- og OpenID Connect-udbydere, de logger ind med, og **Kræv SSO for at logge ind**. |
 | **Indstillinger** | Duplikér, eksportér eller arkiver dashboardet. |
 | **Ejere** | De brugere og teams, der ejer det. |
 | **Auditlogs** | Hver ændring, der er foretaget på dashboardet, og hvem der foretog den. |

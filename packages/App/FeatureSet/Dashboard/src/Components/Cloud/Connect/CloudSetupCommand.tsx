@@ -1,12 +1,16 @@
 import {
   CloudConnectionAuthMethod,
   CloudConnectionAuthMethodDefinition,
+  CloudConnectionDataSecurityLevel,
+  CloudConnectionDataSecurityResponse,
   CloudConnectionDefinition,
   getCloudConnectionAuthMethodDefinition,
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import {
+  CloudConnectionAccessExtra,
   CloudConnectionAwsRoleSetup,
   CloudConnectionSetupScope,
+  getCloudConnectionAccessExtras,
   getCloudConnectionSetupCommand,
 } from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
@@ -19,11 +23,20 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { cloudConnectionDocsUrl } from "./CloudConnectApi";
 
 /*
- * Step one of connecting a cloud: the one command that creates read-only
- * access, with the cloud's own browser terminal a click away. What the
- * command creates is said above it, and what OneUptime may do with the
- * access under it; the step-by-step guide is there for anyone who would
- * rather click through the cloud's console.
+ * Step one of connecting a cloud: the one command that creates the access,
+ * with the cloud's own browser terminal a click away. What the command
+ * creates is said above it, and what OneUptime may do with the access
+ * under it; the step-by-step guide is there for anyone who would rather
+ * click through the cloud's console.
+ *
+ * The command is written from the settings the form holds - what to read,
+ * and Data Security's two settings folded under it - so it grants what
+ * the connection is saved to use (#10336). Most commands only read, and
+ * never data: the method's hint and the cloud's explanation say so. One
+ * that also reads content samples or may close an exposure says what it
+ * creates without "can only read", and a line for each of those under it
+ * (getCloudConnectionAccessExtras), so nothing beside the command says it
+ * grants less than it does.
  */
 
 /*
@@ -46,11 +59,80 @@ export const ORGANIZATION_SETUP_HINTS: Readonly<Record<CloudProvider, string>> =
     ),
   };
 
+/*
+ * The same hints for a command that grants more than reading how things
+ * are set up: where it is run and what it prints, as above, and that what
+ * it creates has the access the lines under the command list - never "can
+ * only read". One for each method of one account, one for each cloud's
+ * organization.
+ */
+export const SETUP_HINTS_FOR_ACCESS_BELOW: Readonly<
+  Record<CloudConnectionAuthMethod, string>
+> = {
+  [CloudConnectionAuthMethod.AwsRole]: translationKey(
+    "Run this in AWS CloudShell. It creates a role with the access below, and prints the role's ARN.",
+  ),
+  [CloudConnectionAuthMethod.AwsAccessKey]: translationKey(
+    "Run this in AWS CloudShell. It creates a user with the access below, and prints its access key.",
+  ),
+  [CloudConnectionAuthMethod.AzureClientSecret]: translationKey(
+    "Run this in Azure Cloud Shell. It creates an app with the access below, and prints its details.",
+  ),
+  [CloudConnectionAuthMethod.GcpServiceAccountKey]: translationKey(
+    "Run this in Cloud Shell, in the project to monitor. It creates a service account with the access below, and prints its key.",
+  ),
+};
+
+export const ORGANIZATION_SETUP_HINTS_FOR_ACCESS_BELOW: Readonly<
+  Record<CloudProvider, string>
+> = {
+  [CloudProvider.AWS]: translationKey(
+    "Run this in AWS CloudShell in your organization's management account. It puts a role with the access below in every account, and prints the management account's role ARN.",
+  ),
+  [CloudProvider.Azure]: translationKey(
+    "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app with the access below on every subscription, and prints its details.",
+  ),
+  [CloudProvider.GCP]: translationKey(
+    "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.",
+  ),
+};
+
+/*
+ * What the access may do, under such a command: what every connection
+ * reads - as each cloud's explanation says, without "only" and "never
+ * data" - then a line for each thing it grants beyond that.
+ */
+export const ACCESS_READS_LINE: string = translationKey(
+  "OneUptime reads metrics, resources and how they are set up, changes and health events.",
+);
+
+export const ACCESS_EXTRA_LINES: Readonly<
+  Record<CloudConnectionAccessExtra, string>
+> = {
+  [CloudConnectionAccessExtra.ContentSamples]: translationKey(
+    "Data Security also reads samples of what your data stores hold, to find sensitive data.",
+  ),
+  [CloudConnectionAccessExtra.DataSecurityResponse]: translationKey(
+    "Data Security may also close a data store's exposures and fix its settings. Each change is approved by a person unless a playbook says otherwise.",
+  ),
+};
+
+const ACCESS_EXTRA_ICONS: Readonly<
+  Record<CloudConnectionAccessExtra, IconProp>
+> = {
+  [CloudConnectionAccessExtra.ContentSamples]: IconProp.DocumentMagnifyingGlass,
+  [CloudConnectionAccessExtra.DataSecurityResponse]: IconProp.Wrench,
+};
+
 export interface ComponentProps {
   definition: CloudConnectionDefinition;
   method: CloudConnectionAuthMethod;
   // The account the command is run in, or its whole organization.
   scope?: CloudConnectionSetupScope | undefined;
+  // What Data Security may read of the account. Off when absent.
+  dataSecurity?: CloudConnectionDataSecurityLevel | undefined;
+  // Whether Data Security may close a data store's exposure. Off when absent.
+  dataSecurityResponse?: CloudConnectionDataSecurityResponse | undefined;
   /*
    * AWS role only: what the role trusts. Undefined while it loads; the
    * command is shown once it is known.
@@ -71,13 +153,27 @@ const CloudSetupCommand: FunctionComponent<ComponentProps> = (
       trustedPrincipalArn: props.roleSetup?.trustedPrincipalArn,
       externalId: props.roleSetup?.externalId,
       scope: props.scope,
+      dataSecurity: props.dataSecurity,
+      dataSecurityResponse: props.dataSecurityResponse,
     },
   );
+  // What the command grants beyond reading how things are set up, if anything.
+  const extras: Array<CloudConnectionAccessExtra> =
+    getCloudConnectionAccessExtras({
+      dataSecurity: props.dataSecurity,
+      dataSecurityResponse: props.dataSecurityResponse,
+    });
+  const isOrganization: boolean =
+    props.scope === CloudConnectionSetupScope.Organization;
 
   const hint: string | undefined =
-    props.scope === CloudConnectionSetupScope.Organization
-      ? ORGANIZATION_SETUP_HINTS[props.definition.provider]
-      : method?.hint;
+    extras.length === 0
+      ? isOrganization
+        ? ORGANIZATION_SETUP_HINTS[props.definition.provider]
+        : method?.hint
+      : isOrganization
+        ? ORGANIZATION_SETUP_HINTS_FOR_ACCESS_BELOW[props.definition.provider]
+        : SETUP_HINTS_FOR_ACCESS_BELOW[props.method];
 
   return (
     <div className="space-y-3" data-testid="cloud-setup-command">
@@ -147,16 +243,55 @@ const CloudSetupCommand: FunctionComponent<ComponentProps> = (
         </a>
       </div>
 
-      <div
-        className="flex items-start gap-1.5 border-t border-gray-200 pt-3 text-xs text-gray-500"
-        data-testid="cloud-setup-read-only"
-      >
-        <Icon
-          icon={IconProp.ShieldCheck}
-          className="mt-px h-3.5 w-3.5 flex-shrink-0"
-        />
-        <span>{translator.translateText(props.definition.explanation)}</span>
-      </div>
+      {extras.length === 0 ? (
+        <div
+          className="flex items-start gap-1.5 border-t border-gray-200 pt-3 text-xs text-gray-500"
+          data-testid="cloud-setup-read-only"
+        >
+          <Icon
+            icon={IconProp.ShieldCheck}
+            className="mt-px h-3.5 w-3.5 flex-shrink-0"
+          />
+          <span>{translator.translateText(props.definition.explanation)}</span>
+        </div>
+      ) : (
+        /*
+         * The access below, as the hint above names it: what every
+         * connection reads, then each thing this command grants besides.
+         */
+        <ul
+          className="space-y-1.5 border-t border-gray-200 pt-3 text-xs text-gray-500"
+          data-testid="cloud-setup-access"
+        >
+          <li
+            className="flex items-start gap-1.5"
+            data-testid="cloud-setup-access-reads"
+          >
+            <Icon
+              icon={IconProp.Eye}
+              className="mt-px h-3.5 w-3.5 flex-shrink-0"
+            />
+            <span>{translator.translateText(ACCESS_READS_LINE)}</span>
+          </li>
+          {extras.map((extra: CloudConnectionAccessExtra): ReactElement => {
+            return (
+              <li
+                key={extra}
+                className="flex items-start gap-1.5"
+                data-testid={`cloud-setup-access-${extra}`}
+              >
+                <Icon
+                  icon={ACCESS_EXTRA_ICONS[extra]}
+                  className="mt-px h-3.5 w-3.5 flex-shrink-0"
+                />
+                <span>
+                  {translator.translateText(ACCESS_EXTRA_LINES[extra])}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 };

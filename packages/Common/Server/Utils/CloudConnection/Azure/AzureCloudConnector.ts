@@ -96,15 +96,34 @@ import {
   getCloudCostResourceKey,
 } from "../../../../Types/Cloud/CloudCost";
 import { CloudCommitmentSummary } from "../../../../Types/Cloud/CloudCommitments";
+import { CloudResourceMetricStatus } from "../../../../Types/Cloud/CloudResourceMetricCollection";
 import AzureArm, {
   AzureMetricDefinition,
   AzureMetricDimensionValue,
-  AzureMetricFailure,
-  AzureMetricSeries,
-  AzureMetricsAnswer,
   AzureResource,
   AzureSubscription,
 } from "./AzureArm";
+import {
+  AzureMetricCallGroup,
+  AzureMetricNotRead,
+  AzureMetricPlace,
+  AzureMetricReadResult,
+  AzureMetricReader,
+  AzureMetricRequest,
+  AzureMetricResourceRead,
+  isAzureUnsupportedMetricsRefusal,
+} from "./AzureMetricReads";
+import {
+  describeAzureMetricNotRead,
+  describeAzureMetricReadFailure,
+  getNextAzureMetricStatus,
+  isAzureMetricBatchOff,
+  isAzureMetricUnsupportedNow,
+  pruneAzureMetricStatuses,
+  readAzureMetricBatchesOff,
+  readAzureMetricStatuses,
+  rememberAzureMetricBatchRefusals,
+} from "./AzureMetricMemory";
 import {
   AZURE_INVENTORY_ONLY_QUERY_TYPES,
   AZURE_SUBNET_TYPE,
@@ -130,24 +149,29 @@ import {
  *      alert rules. A subscription listed to its last page is complete: a
  *      resource it no longer lists is gone, and is archived.
  *   2. Every read, reads the key metrics (CloudKeyMetrics) of each
- *      resource that has them since the last read: one Azure Monitor call
- *      per resource, up to 20 metrics in it, each metric with the
+ *      resource that has them since the last read, each metric with the
  *      aggregation its definition calls primary, at the finest grain it
  *      offers from a minute up - and, for the few metrics kept at five
  *      minutes at their finest that are marked as earning it (an App
- *      Service app's health check), a five-minute call of its own every 15
- *      minutes (AzureReadGroup). A deprecated metric the type still reads
- *      for the monitors built on it rides in the same calls (retired). A
- *      metric the resource does not publish is
- *      left out, from its type's metric definitions - read once a day from
- *      up to three of its resources, of different kinds where the listing
- *      says, their key metrics together. Azure refuses a whole call that
- *      names a metric the resource does not publish, so a resource that
- *      publishes fewer than its type's (a vCore database, a Basic load
- *      balancer) is read again with its own definitions, kept a day. A
- *      Service Bus or Event Hubs
- *      namespace's metrics are split by EntityName in that same one call:
- *      a series per queue, topic and event hub (up to
+ *      Service app's health check), in a five-minute call every 15 minutes
+ *      (AzureReadGroup). A deprecated metric the type still reads for the
+ *      monitors built on it rides in the same calls (retired). How the
+ *      calls are made is AzureMetricReads': up to 20 metrics a call, of
+ *      aggregations every one of them is served with, the resources of a
+ *      subscription, Region and type in batches of 50 (metrics:getBatch),
+ *      a few calls at once per subscription and Region, and what Azure is
+ *      too busy for asked again after a wait. A metric the resource does
+ *      not publish is left out, from its type's metric definitions - read
+ *      once a day from up to three of its resources, of different kinds
+ *      where the listing says, their key metrics together. Azure refuses a
+ *      whole call that names a metric the resource does not publish, so a
+ *      resource that publishes fewer than its type's (a vCore database, a
+ *      Basic load balancer) is read again with its own definitions, kept a
+ *      day. A metric Azure says it does not serve for a resource is not
+ *      asked for again for a day; what a read could not read of a resource
+ *      is kept for its pages to say (azureMetricStatus). A Service Bus or
+ *      Event Hubs namespace's metrics are split by EntityName in that same
+ *      one call: a series per queue, topic and event hub (up to
  *      AZURE_MAX_SPLIT_SERIES_PER_METRIC of each metric), never a call per
  *      queue - 50 queues cost what one does.
  *   3. Builds the export the azure_monitor receiver sends: the subscription
@@ -157,12 +181,10 @@ import {
  *      is ingested), metrics named azure_<metric>_<aggregation>.
  */
 
-// What a read of one resource's metrics brought back.
+// What a read of one resource's metrics brought back, and what it was read with.
 interface AzureResourceMetricsRead {
-  series: Array<AzureMetricSeries & { grain: string }>;
-  failures: Array<AzureMetricFailure>;
-  capped: Array<string>;
-  // What it was read with: its type's selection, or its own.
+  read: AzureMetricResourceRead<SelectedMetric>;
+  // Its type's selection, or its own.
   selected: Array<SelectedMetric>;
 }
 
@@ -212,6 +234,13 @@ export interface SelectedMetric {
   aggregation: string;
   grain: string;
   unit: string;
+  /*
+   * Every aggregation its definition says Azure Monitor serves it with
+   * (supportedAggregationTypes): a call asks for its metrics' aggregations
+   * together, so only metrics served with each other's share one
+   * (partitionAzureMetricCalls). Unknown: asked with its own alone.
+   */
+  supportedAggregations?: Array<string> | undefined;
   /*
    * A metric a person added to the reads (CloudAddedMetrics), after the
    * key metrics: read in their calls while a call has room, and one kept at
@@ -276,30 +305,16 @@ export const AZURE_DEFINITION_SAMPLES: number = 3;
  */
 export const AZURE_MAX_RESOURCE_DEFINITIONS: number = 500;
 
+// A resource read with its type's selection that Azure refused (AzureMetricReads).
+export { isAzureUnsupportedMetricsRefusal };
+
 /*
- * Azure Monitor refuses a whole metrics call that names a metric the
- * resource does not publish - 400, "Failed to find metric configuration
- * for provider: Microsoft.Sql, resource Type: servers/databases, metric:
- * dtu_consumption_percent, Valid metrics: ..." - rather than answering the
- * others. A type's selection is read from a few of its resources, and
- * another of the type can publish fewer: a vCore database has no DTUs, a
- * Basic load balancer no metrics at all, a Language account none of an
- * Azure OpenAI account's. Such a resource is read with its own definitions
- * instead (readSubscriptions).
+ * What a selection keeps of each metric, by release: from the second, the
+ * aggregations it is served with (#10291). A selection kept by an older
+ * release is read again, rather than its metrics asked a call per
+ * aggregation for a day.
  */
-export function isAzureUnsupportedMetricsRefusal(error: unknown): boolean {
-  if (!(error instanceof LlmProviderError) || error.statusCode !== 400) {
-    return false;
-  }
-
-  const text: string =
-    `${error.responseBody || ""} ${error.message}`.toLowerCase();
-
-  return (
-    text.includes("failed to find metric configuration") ||
-    text.includes("valid metrics:")
-  );
-}
+const AZURE_SELECTION_VERSION: string = "2";
 
 /*
  * A short fingerprint of a type's key metrics, and of the metrics added to
@@ -313,6 +328,7 @@ export function getAzureKeyMetricsFingerprint(
 ): string {
   let hash: number = 5381;
   const text: string = [
+    `v${AZURE_SELECTION_VERSION}`,
     ...getAzureReadMetricNames(keyMetrics),
     ...added.map((metric: Pick<CloudAddedMetric, "name">): string => {
       return `+${metric.name}`;
@@ -476,23 +492,20 @@ export function getAzureTypeAdditions(data: {
   });
 }
 
-/*
- * A call's metrics in calls of at most AZURE_MAX_METRICS_PER_RESOURCE: one
- * for a type's key metrics alone, a second only where additions overflow
- * it.
- */
-export function chunkAzureMetricCalls<T>(metrics: Array<T>): Array<Array<T>> {
-  const calls: Array<Array<T>> = [];
-
-  for (
-    let offset: number = 0;
-    offset < metrics.length;
-    offset += AZURE_MAX_METRICS_PER_RESOURCE
-  ) {
-    calls.push(metrics.slice(offset, offset + AZURE_MAX_METRICS_PER_RESOURCE));
-  }
-
-  return calls;
+// The metrics added to a resource: its type's, then its own (CloudAddedMetrics).
+export function getAzureAdditionsOfResource(data: {
+  added: ReadonlyArray<CloudAddedMetric>;
+  armId: string;
+  type: string;
+}): Array<CloudAddedMetric> {
+  return [
+    ...getAzureTypeAdditions({ added: data.added, type: data.type }),
+    ...getAzureResourceAdditions({
+      added: data.added,
+      armId: data.armId,
+      type: data.type,
+    }),
+  ];
 }
 
 /*
@@ -631,6 +644,100 @@ export function getAzureReadGroupKey(
 }
 
 /*
+ * What a resource asks Azure Monitor for this read (AzureMetricReads): its
+ * metrics by read group - each group whose window is due now - and by the
+ * split an addition is read with (#9808), which its filter splits alone.
+ * A Service Bus or Event Hubs namespace's are split by its entities. A
+ * metric Azure said lately it does not serve for the resource is left out
+ * until it is asked again (azureMetricStatus).
+ */
+export function buildAzureMetricRequest(data: {
+  entry: {
+    armId: string;
+    subscriptionId: string;
+    location: string;
+    type: string;
+  };
+  selected: Array<SelectedMetric>;
+  readGroups: Map<string, AzureReadGroup>;
+  status?: CloudResourceMetricStatus | undefined;
+  now: Date;
+}): AzureMetricRequest<SelectedMetric> {
+  // Its type's split: a Service Bus or Event Hubs namespace's, by its entities.
+  const splitBy: string | undefined = getAzureKeyMetrics(
+    data.entry.type,
+  )?.splitByDimension;
+  const groups: Map<string, AzureMetricCallGroup<SelectedMetric>> = new Map();
+
+  for (const metric of data.selected) {
+    if (
+      isAzureMetricUnsupportedNow({
+        status: data.status,
+        metricName: metric.name,
+        now: data.now,
+      })
+    ) {
+      continue;
+    }
+
+    const key: string = getAzureReadGroupKey(data.entry.type, metric);
+    const readGroup: AzureReadGroup | undefined = data.readGroups.get(key);
+
+    // Nothing new of its grain yet, or not due: the next read reads it.
+    if (!readGroup || !readGroup.window) {
+      continue;
+    }
+
+    const orderBy: string | undefined = metric.splitBy
+      ? getAzureSplitOrder(metric.aggregation)
+      : undefined;
+    const callKey: string = [key, metric.splitBy || "", orderBy || ""].join(
+      "\n",
+    );
+    let group: AzureMetricCallGroup<SelectedMetric> | undefined =
+      groups.get(callKey);
+
+    if (!group) {
+      group = {
+        groupKey: key,
+        grain: readGroup.grain,
+        window: readGroup.window,
+        metrics: [],
+        // An added metric's split stops at its cap by design; a namespace's says so.
+        reportsCapped: !metric.splitBy,
+        /*
+         * The split rides on the resource's own call, never a call per
+         * queue: an addition's by its own dimension, a namespace's by its
+         * entities.
+         */
+        ...(metric.splitBy
+          ? {
+              splitBy: metric.splitBy,
+              top: CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
+              orderBy,
+            }
+          : splitBy
+            ? { splitBy, top: AZURE_MAX_SPLIT_SERIES_PER_METRIC }
+            : {}),
+      };
+      groups.set(callKey, group);
+    }
+
+    group.metrics.push(metric);
+  }
+
+  return {
+    place: {
+      armId: data.entry.armId,
+      subscriptionId: data.entry.subscriptionId,
+      region: data.entry.location,
+      type: data.entry.type,
+    },
+    groups: Array.from(groups.values()),
+  };
+}
+
+/*
  * The key metrics a resource type is read with, as its definitions allow:
  * in the catalog's order, then the deprecated ones it still reads for the
  * monitors built on them (retired), at most AZURE_MAX_METRICS_PER_RESOURCE;
@@ -668,6 +775,7 @@ export function selectAzureMetrics(
       aggregation: definition.primaryAggregationType,
       grain,
       unit: definition.unit,
+      ...getSupportedAggregations(definition),
     });
 
     if (selected.length >= AZURE_MAX_METRICS_PER_RESOURCE) {
@@ -704,11 +812,22 @@ export function selectAzureMetrics(
           : definition.primaryAggregationType,
       grain,
       unit: definition.unit,
+      ...getSupportedAggregations(definition),
       isAdded: true,
     });
   }
 
   return selected;
+}
+
+// The aggregations a definition says its metric is served with, when it says.
+function getSupportedAggregations(
+  definition: AzureMetricDefinition,
+): Pick<SelectedMetric, "supportedAggregations"> {
+  return definition.supportedAggregationTypes &&
+    definition.supportedAggregationTypes.length > 0
+    ? { supportedAggregations: [...definition.supportedAggregationTypes] }
+    : {};
 }
 
 function isOlderThan(
@@ -1211,11 +1330,26 @@ export default class AzureCloudConnector implements CloudConnector {
 
     return ((entry["metrics"] as Array<JSONObject> | undefined) || []).map(
       (metric: JSONObject): SelectedMetric => {
+        const aggregations: Array<string> = Array.isArray(
+          metric["aggregations"],
+        )
+          ? (metric["aggregations"] as Array<unknown>)
+              .map((aggregation: unknown): string => {
+                return typeof aggregation === "string" ? aggregation : "";
+              })
+              .filter((aggregation: string): boolean => {
+                return Boolean(aggregation);
+              })
+          : [];
+
         return {
           name: String(metric["name"] || ""),
           unit: String(metric["unit"] || ""),
           aggregation: String(metric["aggregation"] || ""),
           grain: String(metric["grain"] || ""),
+          ...(aggregations.length > 0
+            ? { supportedAggregations: aggregations }
+            : {}),
           ...(metric["added"] === true ? { isAdded: true } : {}),
         };
       },
@@ -1237,6 +1371,10 @@ export default class AzureCloudConnector implements CloudConnector {
           unit: metric.unit,
           aggregation: metric.aggregation,
           grain: metric.grain,
+          ...(metric.supportedAggregations &&
+          metric.supportedAggregations.length > 0
+            ? { aggregations: [...metric.supportedAggregations] }
+            : {}),
           ...(metric.isAdded ? { added: true } : {}),
         };
       }),
@@ -2305,311 +2443,355 @@ export default class AzureCloudConnector implements CloudConnector {
       cursors,
       now,
     });
+    // What earlier reads could not read of each resource, and the batches Azure refused.
+    const statuses: Record<string, CloudResourceMetricStatus> =
+      readAzureMetricStatuses(state.azureMetricStatus);
+    const batchesOff: Record<string, string> = readAzureMetricBatchesOff({
+      kept: state.azureMetricBatchesOff,
+      now,
+    });
 
-    const groups: Map<string, CloudMetricGroup> = new Map();
-    const readGroupsRead: Set<string> = new Set<string>();
-    let failedResources: number = 0;
-    // "metric|code" -> how many resources Azure Monitor could not read it of.
-    const metricFailures: Map<
-      string,
-      { failure: AzureMetricFailure; resources: number }
-    > = new Map();
-    // Resources with more queues and topics than a read reads.
-    const cappedResources: Array<string> = [];
+    /*
+     * Each resource's selection: its own when an earlier read found it
+     * publishes fewer metrics than its type's, else the type's - with its
+     * own additions, which its definitions listed when they were added.
+     */
+    const selections: Array<{
+      selected: Array<SelectedMetric>;
+      isOwn: boolean;
+    }> = reading.map(
+      (
+        entry: AzureResourceToRead,
+      ): { selected: Array<SelectedMetric>; isOwn: boolean } => {
+        const added: Array<CloudAddedMetric> = getAzureAdditionsOfResource({
+          added: options.addedMetrics || [],
+          armId: entry.armId,
+          type: entry.type,
+        });
+        const own: Array<SelectedMetric> | null = this.readCachedSelection({
+          cached: resourceDefinitionsCache[entry.armId.toLowerCase()],
+          fingerprint: getAzureKeyMetricsFingerprint(
+            getAzureKeyMetrics(entry.type)!,
+            added,
+          ),
+          now,
+        });
 
-    // One resource's metrics with a selection, read afresh: nothing kept of an earlier try.
-    const readResource: (
-      entry: AzureResourceToRead,
-      selected: Array<SelectedMetric>,
-    ) => Promise<AzureResourceMetricsRead> = async (
-      entry: AzureResourceToRead,
-      selected: Array<SelectedMetric>,
-    ): Promise<AzureResourceMetricsRead> => {
-      const typeSplitBy: string | undefined = getAzureKeyMetrics(
-        entry.type,
-      )?.splitByDimension;
-      /*
-       * A call per read group - and per split an addition is read with,
-       * which its filter splits alone (#9808).
-       */
-      const byGroup: Map<
-        string,
-        {
-          key: string;
-          splitBy?: string | undefined;
-          orderBy?: string | undefined;
-          metrics: Array<SelectedMetric>;
-        }
-      > = new Map();
-
-      for (const metric of selected) {
-        const key: string = getAzureReadGroupKey(entry.type, metric);
-        const orderBy: string | undefined = metric.splitBy
-          ? getAzureSplitOrder(metric.aggregation)
-          : undefined;
-        const callKey: string = [key, metric.splitBy || "", orderBy || ""].join(
-          "\n",
-        );
-        const group: {
-          key: string;
-          splitBy?: string | undefined;
-          orderBy?: string | undefined;
-          metrics: Array<SelectedMetric>;
-        } = byGroup.get(callKey) || {
-          key,
-          ...(metric.splitBy ? { splitBy: metric.splitBy, orderBy } : {}),
-          metrics: [],
+        return {
+          selected: applyAzureSplits(
+            own ||
+              withAzureResourceAdditions(
+                selectedByType.get(entry.type.toLowerCase()) || [],
+                getAzureResourceAdditions({
+                  added: options.addedMetrics || [],
+                  armId: entry.armId,
+                  type: entry.type,
+                }),
+              ),
+            added,
+          ),
+          isOwn: Boolean(own),
         };
-
-        group.metrics.push(metric);
-        byGroup.set(callKey, group);
-      }
-
-      const read: AzureResourceMetricsRead = {
-        series: [],
-        failures: [],
-        capped: [],
+      },
+    );
+    const requestOf: (
+      entry: AzureResourceToRead,
+      selected: Array<SelectedMetric>,
+    ) => AzureMetricRequest<SelectedMetric> = (
+      entry: AzureResourceToRead,
+      selected: Array<SelectedMetric>,
+    ): AzureMetricRequest<SelectedMetric> => {
+      return buildAzureMetricRequest({
+        entry,
         selected,
-      };
-
-      for (const call of byGroup.values()) {
-        const key: string = call.key;
-        const metrics: Array<SelectedMetric> = call.metrics;
-        const splitBy: string | undefined = call.splitBy || typeSplitBy;
-        const group: AzureReadGroup | undefined = readGroups.get(key);
-
-        // Nothing new of its grain yet, or not due: the next read reads it.
-        if (!group || !group.window) {
-          continue;
-        }
-
-        /*
-         * A call takes 20 metrics: a type's key metrics always fit in one,
-         * and added metrics past 20 take a second (chunkAzureMetricCalls).
-         */
-        for (const callMetrics of chunkAzureMetricCalls(metrics)) {
-          const answer: AzureMetricsAnswer = await arm.getMetrics({
-            resourceId: entry.armId,
-            metrics: callMetrics,
-            interval: group.grain,
-            start: group.window.start,
-            end: group.window.end,
-            ...(call.splitBy
-              ? {
-                  splitBy: call.splitBy,
-                  top: CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
-                  orderBy: call.orderBy,
-                }
-              : splitBy
-                ? { splitBy, top: AZURE_MAX_SPLIT_SERIES_PER_METRIC }
-                : {}),
-          });
-
-          readGroupsRead.add(key);
-          read.failures.push(...answer.failures);
-
-          // An added metric's split stops at its cap by design: no queue is left unread.
-          if (!call.splitBy) {
-            read.capped.push(...answer.capped);
-          }
-
-          for (const item of answer.series) {
-            const unit: string =
-              callMetrics.find((metric: SelectedMetric): boolean => {
-                return (
-                  metric.name.toLowerCase() === item.metricName.toLowerCase()
-                );
-              })?.unit || item.unit;
-
-            read.series.push({ ...item, unit, grain: group.grain });
-          }
-        }
-      }
-
-      return read;
+        readGroups,
+        status: statuses[entry.armId.toLowerCase()],
+        now,
+      });
     };
-
-    const outcomes: Array<Settled<AzureResourceMetricsRead>> =
-      await mapWithConcurrency(
-        reading,
-        CONCURRENCY,
-        async (
+    const reader: AzureMetricReader = new AzureMetricReader({
+      arm,
+      budget,
+      sleep: options.sleep,
+      random: options.random,
+      canBatch: (place: AzureMetricPlace): boolean => {
+        return !isAzureMetricBatchOff({ batchesOff, place });
+      },
+    });
+    const firstRead: AzureMetricReadResult<SelectedMetric> = await reader.read(
+      reading.map(
+        (
           entry: AzureResourceToRead,
-        ): Promise<AzureResourceMetricsRead> => {
-          const keyMetrics: AzureTypeKeyMetrics = getAzureKeyMetrics(
-            entry.type,
-          )!;
-          // The metrics added to it: its type's, then its own (CloudAddedMetrics).
-          const ownAdded: Array<CloudAddedMetric> = getAzureResourceAdditions({
+          index: number,
+        ): AzureMetricRequest<SelectedMetric> => {
+          return requestOf(entry, selections[index]!.selected);
+        },
+      ),
+    );
+    const reads: Array<AzureResourceMetricsRead> = reading.map(
+      (
+        _entry: AzureResourceToRead,
+        index: number,
+      ): AzureResourceMetricsRead => {
+        return {
+          read: firstRead.reads[index]!,
+          selected: selections[index]!.selected,
+        };
+      },
+    );
+    const groupsRead: Set<string> = new Set<string>(firstRead.groupsRead);
+
+    /*
+     * A resource Azure refused its type's selection for publishes fewer
+     * metrics: it is read again, a resource at a time, with its own
+     * definitions - kept a day (getResourceSelection). What the first read
+     * brought of it is dropped: the second reads all of it.
+     */
+    const refused: Array<number> = [];
+
+    reads.forEach((item: AzureResourceMetricsRead, index: number) => {
+      if (item.read.refusal !== undefined && !selections[index]!.isOwn) {
+        refused.push(index);
+      }
+    });
+
+    const reselected: Array<Settled<Array<SelectedMetric>>> =
+      await mapWithConcurrency(
+        refused,
+        CONCURRENCY,
+        async (index: number): Promise<Array<SelectedMetric>> => {
+          const entry: AzureResourceToRead = reading[index]!;
+          const added: Array<CloudAddedMetric> = getAzureAdditionsOfResource({
             added: options.addedMetrics || [],
             armId: entry.armId,
             type: entry.type,
           });
-          const added: Array<CloudAddedMetric> = [
-            ...getAzureTypeAdditions({
-              added: options.addedMetrics || [],
-              type: entry.type,
+
+          return applyAzureSplits(
+            await this.getResourceSelection({
+              arm,
+              entry,
+              keyMetrics: getAzureKeyMetrics(entry.type)!,
+              cache: resourceDefinitionsCache,
+              now,
+              added,
             }),
-            ...ownAdded,
-          ];
-          /*
-           * The resource's own selection when an earlier read found it
-           * publishes fewer metrics than its type's, else the type's - with
-           * its own additions, which its definitions listed when they were
-           * added.
-           */
-          const own: Array<SelectedMetric> | null = this.readCachedSelection({
-            cached: resourceDefinitionsCache[entry.armId.toLowerCase()],
-            fingerprint: getAzureKeyMetricsFingerprint(keyMetrics, added),
-            now,
-          });
-
-          try {
-            return await readResource(
-              entry,
-              applyAzureSplits(
-                own ||
-                  withAzureResourceAdditions(
-                    selectedByType.get(entry.type.toLowerCase()) || [],
-                    ownAdded,
-                  ),
-                added,
-              ),
-            );
-          } catch (error) {
-            if (own || !isAzureUnsupportedMetricsRefusal(error)) {
-              throw error;
-            }
-
-            // It publishes fewer than its type's selection: read it with its own.
-            return await readResource(
-              entry,
-              applyAzureSplits(
-                await this.getResourceSelection({
-                  arm,
-                  entry,
-                  keyMetrics,
-                  cache: resourceDefinitionsCache,
-                  now,
-                  added,
-                }),
-                added,
-              ),
-            );
-          }
+            added,
+          );
         },
       );
+    const again: Array<{ index: number; selected: Array<SelectedMetric> }> = [];
 
-    state.azureResourceMetricDefinitions = resourceDefinitionsCache;
+    reselected.forEach(
+      (outcome: Settled<Array<SelectedMetric>>, position: number) => {
+        const index: number = refused[position]!;
 
-    outcomes.forEach(
-      (outcome: Settled<AzureResourceMetricsRead>, index: number) => {
-        const entry: AzureResourceToRead = reading[index]!;
-
-        if (!outcome.ok) {
-          if (
-            outcome.error instanceof LlmProviderError &&
-            outcome.error.kind === CloudConnectionFailureKind.Authentication
-          ) {
-            throw outcome.error;
-          }
-
-          if (!(outcome.error instanceof CloudReadBudgetSpent)) {
-            failedResources++;
-          }
-
+        if (outcome.ok) {
+          again.push({ index, selected: outcome.value });
           return;
         }
 
-        for (const failure of outcome.value.failures) {
-          const key: string = `${failure.metricName.toLowerCase()}|${failure.code}`;
-          const known:
-            | { failure: AzureMetricFailure; resources: number }
-            | undefined = metricFailures.get(key);
-
-          metricFailures.set(key, {
-            failure: known?.failure || failure,
-            resources: (known?.resources || 0) + 1,
-          });
+        if (
+          outcome.error instanceof LlmProviderError &&
+          outcome.error.kind === CloudConnectionFailureKind.Authentication
+        ) {
+          throw outcome.error;
         }
 
-        if (outcome.value.capped.length > 0) {
-          cappedResources.push(entry.name);
-        }
+        // Its own definitions could not be read: it is not read this time.
+        const isCutShort: boolean =
+          outcome.error instanceof CloudReadBudgetSpent;
 
-        for (const series of outcome.value.series) {
-          const selected: SelectedMetric | undefined =
-            outcome.value.selected.find((metric: SelectedMetric): boolean => {
-              return (
-                metric.name.toLowerCase() === series.metricName.toLowerCase()
-              );
-            });
-
-          if (!selected) {
-            continue;
-          }
-
-          const groupKey: string = entry.subscriptionId.toLowerCase();
-          let group: CloudMetricGroup | undefined = groups.get(groupKey);
-
-          if (!group) {
-            group = {
-              resourceAttributes: this.resourceAttributes({
-                serviceName: options.serviceName,
-                connectionId: options.connectionId,
-                subscriptionId: entry.subscriptionId,
-                tenantId,
-              }),
-              metrics: [],
-            };
-            groups.set(groupKey, group);
-          }
-
-          const name: string = getAzureStoredMetricName(
-            selected.name,
-            selected.aggregation,
-          );
-          let metric: CloudMetricGroup["metrics"][number] | undefined =
-            group.metrics.find((candidate: { name: string }): boolean => {
-              return candidate.name === name;
-            });
-
-          if (!metric) {
-            metric = { name, unit: series.unit, datapointSets: [] };
-            group.metrics.push(metric);
-          }
-
-          metric.datapointSets.push({
-            attributes: this.datapointAttributes({
-              armId: entry.armId,
-              name: entry.name,
-              type: entry.type,
-              resourceGroup: entry.resourceGroup,
-              location: entry.location,
-              grain: series.grain,
-              dimensions: series.dimensions,
-            }),
-            points: series.points,
-          });
-        }
+        reads[index] = {
+          selected: reads[index]!.selected,
+          read: {
+            place: reads[index]!.read.place,
+            series: [],
+            read: [],
+            notRead: [],
+            capped: [],
+            answeredCalls: 0,
+            isCutShort,
+            ...(isCutShort ? {} : { failure: outcome.error }),
+          },
+        };
       },
     );
+
+    if (again.length > 0) {
+      const secondRead: AzureMetricReadResult<SelectedMetric> =
+        await reader.read(
+          again.map(
+            (item: {
+              index: number;
+              selected: Array<SelectedMetric>;
+            }): AzureMetricRequest<SelectedMetric> => {
+              return requestOf(reading[item.index]!, item.selected);
+            },
+          ),
+          { batch: false },
+        );
+
+      again.forEach(
+        (
+          item: { index: number; selected: Array<SelectedMetric> },
+          position: number,
+        ) => {
+          reads[item.index] = {
+            read: secondRead.reads[position]!,
+            selected: item.selected,
+          };
+        },
+      );
+
+      for (const key of secondRead.groupsRead) {
+        groupsRead.add(key);
+      }
+    }
+
+    state.azureResourceMetricDefinitions = resourceDefinitionsCache;
+
+    const groups: Map<string, CloudMetricGroup> = new Map();
+    let failedResources: number = 0;
+    let firstResourceFailure: unknown = undefined;
+    // "metric|kind|code" -> what Azure Monitor answered, and of how many resources.
+    const metricFailures: Map<
+      string,
+      { notRead: AzureMetricNotRead<SelectedMetric>; resources: number }
+    > = new Map();
+    // Resources with more queues and topics than a read reads.
+    const cappedResources: Array<string> = [];
+
+    reads.forEach((item: AzureResourceMetricsRead, index: number) => {
+      const entry: AzureResourceToRead = reading[index]!;
+      const read: AzureMetricResourceRead<SelectedMetric> = item.read;
+      const failure: unknown = read.failure ?? read.refusal;
+      const statusKey: string = entry.armId.toLowerCase();
+      const status: CloudResourceMetricStatus | null = getNextAzureMetricStatus(
+        {
+          previous: statuses[statusKey],
+          read,
+          now,
+        },
+      );
+
+      if (status) {
+        statuses[statusKey] = status;
+      } else {
+        delete statuses[statusKey];
+      }
+
+      if (read.answeredCalls === 0 && failure !== undefined) {
+        failedResources++;
+        firstResourceFailure = firstResourceFailure ?? failure;
+        return;
+      }
+
+      for (const notRead of read.notRead) {
+        const key: string = [
+          notRead.metric.name.toLowerCase(),
+          notRead.kind,
+          notRead.code,
+        ].join("|");
+        const known:
+          | { notRead: AzureMetricNotRead<SelectedMetric>; resources: number }
+          | undefined = metricFailures.get(key);
+
+        metricFailures.set(key, {
+          notRead: known?.notRead || notRead,
+          resources: (known?.resources || 0) + 1,
+        });
+      }
+
+      if (read.capped.length > 0) {
+        cappedResources.push(entry.name);
+      }
+
+      for (const series of read.series) {
+        const selected: SelectedMetric | undefined = item.selected.find(
+          (metric: SelectedMetric): boolean => {
+            return (
+              metric.name.toLowerCase() === series.metricName.toLowerCase()
+            );
+          },
+        );
+
+        if (!selected) {
+          continue;
+        }
+
+        const groupKey: string = entry.subscriptionId.toLowerCase();
+        let group: CloudMetricGroup | undefined = groups.get(groupKey);
+
+        if (!group) {
+          group = {
+            resourceAttributes: this.resourceAttributes({
+              serviceName: options.serviceName,
+              connectionId: options.connectionId,
+              subscriptionId: entry.subscriptionId,
+              tenantId,
+            }),
+            metrics: [],
+          };
+          groups.set(groupKey, group);
+        }
+
+        const name: string = getAzureStoredMetricName(
+          selected.name,
+          selected.aggregation,
+        );
+        let metric: CloudMetricGroup["metrics"][number] | undefined =
+          group.metrics.find((candidate: { name: string }): boolean => {
+            return candidate.name === name;
+          });
+
+        if (!metric) {
+          metric = {
+            name,
+            unit: selected.unit || series.unit,
+            datapointSets: [],
+          };
+          group.metrics.push(metric);
+        }
+
+        metric.datapointSets.push({
+          attributes: this.datapointAttributes({
+            armId: entry.armId,
+            name: entry.name,
+            type: entry.type,
+            resourceGroup: entry.resourceGroup,
+            location: entry.location,
+            grain: series.grain,
+            dimensions: series.dimensions,
+          }),
+          points: series.points,
+        });
+      }
+    });
+
+    state.azureMetricStatus = pruneAzureMetricStatuses({ statuses, now });
 
     if (failedResources > 0) {
       warnings.push(
         `Could not read the metrics of ${failedResources} ${
           failedResources === 1 ? "resource" : "resources"
-        } this time.`,
+        } this time: ${describeAzureMetricReadFailure(firstResourceFailure)}`,
       );
     }
 
-    for (const { failure, resources } of metricFailures.values()) {
-      warnings.push(
-        `Azure Monitor could not read ${failure.metricName} of ${resources} ${
-          resources === 1 ? "resource" : "resources"
-        }: ${failure.message || failure.code}`,
-      );
+    for (const { notRead, resources } of metricFailures.values()) {
+      warnings.push(describeAzureMetricNotRead({ notRead, resources, now }));
     }
+
+    warnings.push(
+      ...rememberAzureMetricBatchRefusals({
+        batchesOff,
+        refusals: firstRead.batchRefusals,
+        signInFailure: firstRead.batchSignInFailure,
+        now,
+      }),
+    );
+    state.azureMetricBatchesOff = batchesOff;
 
     /*
      * Shown under the connection's status on Cloud > Connect, as the
@@ -2637,10 +2819,11 @@ export default class AzureCloudConnector implements CloudConnector {
     }
 
     /*
-     * A grain's window moves on once it was read: a resource that failed
-     * misses that stretch rather than every other one being written twice.
+     * A grain's window moves on once a call of it was answered: a resource
+     * that failed misses that stretch rather than every other one being
+     * written twice.
      */
-    for (const key of readGroupsRead) {
+    for (const key of groupsRead) {
       const group: AzureReadGroup | undefined = readGroups.get(key);
 
       if (group?.window) {

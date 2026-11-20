@@ -2220,7 +2220,25 @@ export default class Monitor extends BaseModel {
     title: "Monitor Steps",
     description:
       "What the monitor checks, and the criteria that judge each result. The Dashboard shows a step's criteria on the monitor's Criteria page.",
-    canReadOnRelationQuery: true,
+    /*
+     * Never readable through a relation (#10309). A monitor's steps are the
+     * whole of what it checks: its URLs, request headers and bodies, the
+     * queries it runs and the criteria that judge them. As a label, every
+     * reader of a record that names a monitor read them through it - an
+     * incident's, an alert's, a maintenance event's, a log's, a rule's,
+     * a status page resource's: the Incident, Alert, Scheduled Maintenance,
+     * On-Call, Status Page and Telemetry tiers and every custom role that
+     * reads one of those, through 44 relations, while the monitor keeps its
+     * own read to its readers. Held to its own read through a relation, it
+     * would still be read whole by a team limited to some monitors' labels
+     * (a relation does not weigh the labels of the records it joins), so it
+     * is read on the monitor itself, by the monitor's own read: the Root
+     * Cause card and an Affected Resource's commands read the steps of the
+     * monitor they chart from there, only when they use them
+     * (Dashboard: Components/Monitor/ReadMonitorSteps.ts). OneUptime's own
+     * reads (the probe's, an investigation's) are root and read it as
+     * before.
+     */
   })
   @Column({
     type: ColumnType.JSON,

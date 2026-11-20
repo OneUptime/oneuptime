@@ -16,6 +16,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
+import { ESCALATION_RULE_USER_INDEX } from "../../Types/OnCallDutyPolicy/EscalationRuleResponderOnce";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -74,6 +75,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.Call,
   tableDescription: "Add users to your escalation rules.",
 })
+/*
+ * ONE ROW PER PERSON ON A RULE (#10411). A second row of the same person
+ * paged them no second time, but told them again that they were added and
+ * said so again in the policy's feed and channels, and taking either row out
+ * told them they were removed while the other still paged them
+ * (Types/OnCallDutyPolicy/EscalationRuleResponderOnce). The service refuses
+ * a second row in words that name the person and the rule; this index holds
+ * it for two adds at the same moment. Of the rows not deleted only, as every
+ * read reads them. Built online, after the copies rows had already were
+ * soft-deleted (1809187100000-MakeEscalationRuleRespondersUnique).
+ */
+@Index(
+  ESCALATION_RULE_USER_INDEX,
+  ["onCallDutyPolicyEscalationRuleId", "userId"],
+  {
+    unique: true,
+    where: '"deletedAt" IS NULL',
+  },
+)
 export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
   @ColumnAccessControl({
     create: [

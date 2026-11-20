@@ -16,16 +16,19 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import type { SpyInstance } from "jest-mock";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 
 /*
  * "Who can view this dashboard", the card on a dashboard's Sharing page:
- * only people in this project, anyone with the link, or anyone with the
- * link and a password - one choice, where there were two switches behind
- * two Edit buttons, a "Set Master Password" button and a separate card for
- * the public link.
+ * only people in this project, anyone with the link, anyone with the link
+ * and a password, or only people who sign in (#10250) - one choice, where
+ * there were two switches behind two Edit buttons, a "Set Master Password"
+ * button and a separate card for the public link. Under Only people who
+ * sign in, while it is the choice: the ways to the dashboard's Private
+ * Users and Single Sign-On.
  *
  * - The checked choice is what the server enforces now: a public dashboard
  *   with the password switch on is the password choice, set or not - and
@@ -98,6 +101,7 @@ import DashboardSharingCopy, {
   DASHBOARD_SHARING_LOCKED_TEST_ID,
   DASHBOARD_SHARING_PLAN_LEFTOVER_TEST_ID,
   DASHBOARD_SHARING_SET_PASSWORD_TEST_ID,
+  DASHBOARD_SHARING_SIGN_IN_TEST_ID,
   getDashboardAccessChoiceTestId,
   REMOVE_PASSWORD_CONFIRMATION_COPY,
   SHARE_WITH_PASSWORD_CONFIRMATION_COPY,
@@ -120,6 +124,7 @@ import HashedString from "../../../Types/HashedString";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { PUBLIC_DASHBOARD_URL } from "../../../UI/Config";
+import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
@@ -132,7 +137,16 @@ interface StoredDashboard {
   isPublicDashboard: boolean;
   enableMasterPassword: boolean;
   hasMasterPassword: boolean;
+  requireSignIn?: boolean;
 }
+
+// Only people who sign in (#10250).
+const SIGN_IN_DASHBOARD: StoredDashboard = {
+  isPublicDashboard: true,
+  enableMasterPassword: false,
+  hasMasterPassword: false,
+  requireSignIn: true,
+};
 
 const PRIVATE_DASHBOARD: StoredDashboard = {
   isPublicDashboard: false,
@@ -193,6 +207,7 @@ beforeEach(() => {
     dashboard._id = DASHBOARD_ID;
     dashboard.isPublicDashboard = stored.isPublicDashboard;
     dashboard.enableMasterPassword = stored.enableMasterPassword;
+    dashboard.requireSignIn = stored.requireSignIn === true;
 
     if (stored.hasMasterPassword) {
       dashboard.masterPassword = new HashedString("stored-hash", true);
@@ -372,10 +387,11 @@ describe("what the card shows", () => {
       isPublicDashboard: true,
       enableMasterPassword: true,
       masterPassword: true,
+      requireSignIn: true,
     });
   });
 
-  test("the card's title and its three choices, in order, each described", async () => {
+  test("the card's title and its four choices, in order, each described", async () => {
     await renderCard();
 
     expect(
@@ -399,6 +415,7 @@ describe("what the card shows", () => {
       DashboardAccess.ProjectOnly,
       DashboardAccess.AnyoneWithLink,
       DashboardAccess.AnyoneWithPassword,
+      DashboardAccess.SignIn,
     ]);
 
     for (const access of DASHBOARD_ACCESS_CHOICES) {
@@ -438,6 +455,21 @@ describe("what the card shows", () => {
       "a locked dashboard (the switch on, no password)",
       LOCKED_DASHBOARD,
       DashboardAccess.AnyoneWithPassword,
+    ],
+    [
+      "a dashboard only people who sign in can view",
+      SIGN_IN_DASHBOARD,
+      DashboardAccess.SignIn,
+    ],
+    [
+      "one that asks its visitors to sign in, its password switch left on (sign-in wins)",
+      { ...PASSWORD_DASHBOARD, requireSignIn: true },
+      DashboardAccess.SignIn,
+    ],
+    [
+      "a private dashboard whose sign-in switch was left on (it never asked)",
+      { ...SIGN_IN_DASHBOARD, isPublicDashboard: false },
+      DashboardAccess.ProjectOnly,
     ],
   ])(
     "%s reads as the choice the server enforces",
@@ -544,6 +576,11 @@ describe("where visitors open it", () => {
       "a locked dashboard, whose link asks for a password it does not have",
       LOCKED_DASHBOARD,
       DashboardAccess.AnyoneWithPassword,
+    ],
+    [
+      "only people who sign in, who sign in on the link",
+      SIGN_IN_DASHBOARD,
+      DashboardAccess.SignIn,
     ],
   ])(
     "sit under the choice in force, %s: the public link, opening in a new tab",
@@ -1006,6 +1043,142 @@ describe("moving to another choice", () => {
   });
 });
 
+describe("only people who sign in (#10250)", () => {
+  test("to it, from anyone with the link: asks, then writes the sign-in switch alone", async () => {
+    stored = { ...PUBLIC_DASHBOARD };
+
+    await renderCard();
+    await pick(DashboardAccess.SignIn);
+
+    const copy: {
+      title: string;
+      description: string;
+      submitButtonText: string;
+    } = DASHBOARD_ACCESS_CONFIRMATION_COPY[DashboardAccess.SignIn];
+
+    expect(dialogTitle()).toBe(copy.title);
+    expect(screen.getByTestId("modal")).toHaveTextContent(copy.description);
+    expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+      copy.submitButtonText,
+    );
+    // No password is asked for: signing in is no password.
+    expect(
+      within(screen.getByTestId("modal")).queryByPlaceholderText(
+        DashboardSharingCopy.passwordPlaceholder,
+      ),
+    ).not.toBeInTheDocument();
+    expect(updateByIdMock).not.toHaveBeenCalled();
+
+    await submitDialog();
+
+    expect(sent()).toEqual([{ requireSignIn: true }]);
+    expect(checkedChoices()).toEqual([DashboardAccess.SignIn]);
+  });
+
+  test("to it, from a private dashboard: shares it, asking its visitors to sign in", async () => {
+    await renderCard();
+    await pick(DashboardAccess.SignIn);
+    await submitDialog();
+
+    expect(sent()).toEqual([{ isPublicDashboard: true, requireSignIn: true }]);
+  });
+
+  test("to it, from the password: turns the password switch off with it, and keeps the password", async () => {
+    stored = { ...PASSWORD_DASHBOARD };
+
+    await renderCard();
+    await pick(DashboardAccess.SignIn);
+    await submitDialog();
+
+    expect(sent()).toEqual([
+      { enableMasterPassword: false, requireSignIn: true },
+    ]);
+    // The password itself is never written by the move.
+    expect(sent()[0]).not.toHaveProperty("masterPassword");
+  });
+
+  test.each([
+    [DashboardAccess.AnyoneWithLink, { requireSignIn: false }],
+    [
+      DashboardAccess.ProjectOnly,
+      { isPublicDashboard: false, requireSignIn: false },
+    ],
+  ])(
+    "from it, to %s: turns sign-in off",
+    async (to: DashboardAccess, written: JSONObject) => {
+      stored = { ...SIGN_IN_DASHBOARD };
+
+      await renderCard();
+      await pick(to);
+      await submitDialog();
+
+      expect(sent()).toEqual([written]);
+      expect(checkedChoices()).toEqual([to]);
+    },
+  );
+
+  test("while it is the choice, its Private Users and Single Sign-On are one click away", async () => {
+    stored = { ...SIGN_IN_DASHBOARD };
+
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {
+        return undefined;
+      });
+
+    await renderCard();
+
+    const details: HTMLElement = within(
+      row(DashboardAccess.SignIn),
+    ).getByTestId(DASHBOARD_SHARING_SIGN_IN_TEST_ID);
+
+    expect(details).toHaveTextContent(DashboardSharingCopy.signInManage);
+
+    await press(`${DASHBOARD_SHARING_SIGN_IN_TEST_ID}-private-users`);
+
+    expect(String(navigate.mock.calls[0]![0])).toContain(
+      `/dashboards/${DASHBOARD_ID}/private-users`,
+    );
+
+    await press(`${DASHBOARD_SHARING_SIGN_IN_TEST_ID}-single-sign-on`);
+
+    expect(String(navigate.mock.calls[1]![0])).toContain(
+      `/dashboards/${DASHBOARD_ID}/single-sign-on`,
+    );
+  });
+
+  test("the ways to who signs in are not offered under any other choice", async () => {
+    for (const dashboard of [
+      PRIVATE_DASHBOARD,
+      PUBLIC_DASHBOARD,
+      PASSWORD_DASHBOARD,
+    ]) {
+      stored = { ...dashboard };
+
+      await renderCard();
+
+      expect(
+        screen.queryByTestId(DASHBOARD_SHARING_SIGN_IN_TEST_ID),
+      ).not.toBeInTheDocument();
+
+      cleanup();
+    }
+  });
+
+  test("Change Password is not offered while visitors sign in instead, a kept password or not", async () => {
+    stored = { ...SIGN_IN_DASHBOARD, hasMasterPassword: true };
+
+    await renderCard();
+
+    expect(
+      screen.queryByTestId(DASHBOARD_SHARING_CHANGE_PASSWORD_TEST_ID),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(DASHBOARD_SHARING_SET_PASSWORD_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("a dashboard that asks for a password it does not have", () => {
   test("says nobody can open the link yet, and offers Set Password instead of Change Password", async () => {
     stored = { ...LOCKED_DASHBOARD };
@@ -1182,6 +1355,7 @@ describe("plans (OneUptime Cloud)", () => {
     for (const access of [
       DashboardAccess.AnyoneWithLink,
       DashboardAccess.AnyoneWithPassword,
+      DashboardAccess.SignIn,
     ]) {
       expect(within(row(access)).getByText("Growth Plan")).toBeInTheDocument();
       expect(choice(access)).toBeDisabled();
@@ -1298,6 +1472,48 @@ describe("plans (OneUptime Cloud)", () => {
 
     // No public switch in the write, so Free may make it.
     expect(sent()).toEqual([{ enableMasterPassword: true }]);
+  });
+
+  test("on Free, asking a public dashboard's visitors to sign in needs Growth, as private users do, and cannot be picked", async () => {
+    plan = PlanType.Free;
+    stored = { ...PUBLIC_DASHBOARD };
+
+    await renderCard();
+
+    expect(
+      within(row(DashboardAccess.SignIn)).getByText("Growth Plan"),
+    ).toBeInTheDocument();
+    expect(choice(DashboardAccess.SignIn)).toBeDisabled();
+
+    await pick(DashboardAccess.SignIn);
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+    expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  test("on Free, a dashboard a trial left asking for sign-in can always stop, and the dialog says asking again needs Growth", async () => {
+    plan = PlanType.Free;
+    stored = { ...SIGN_IN_DASHBOARD };
+
+    await renderCard();
+
+    expect(choice(DashboardAccess.AnyoneWithLink)).toBeEnabled();
+
+    await pick(DashboardAccess.AnyoneWithLink);
+
+    expect(
+      screen.getByTestId(DASHBOARD_SHARING_PLAN_LEFTOVER_TEST_ID),
+    ).toHaveTextContent(
+      "Your plan does not include “Only people who sign in”, so picking it again later needs the Growth plan.",
+    );
+
+    await submitDialog();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(sent()).toEqual([{ requireSignIn: false }]);
   });
 
   test.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
@@ -1424,7 +1640,12 @@ describe("permissions", () => {
     });
 
     expect(new Set(columns)).toEqual(
-      new Set(["isPublicDashboard", "enableMasterPassword", "masterPassword"]),
+      new Set([
+        "isPublicDashboard",
+        "enableMasterPassword",
+        "masterPassword",
+        "requireSignIn",
+      ]),
     );
   });
 });

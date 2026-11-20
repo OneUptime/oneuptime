@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import React, {
   Fragment,
   FunctionComponent,
@@ -152,18 +153,27 @@ const CloudResourceLogs: FunctionComponent<
     setIsLoading(true);
     setError("");
     try {
+      /*
+       * Its connection's columns are read through the resource for who may
+       * read the connection itself (#10310): every reader of the project's
+       * cloud resources, but a team kept from its connections, which reads
+       * the logs without them.
+       */
       const item: CloudResource | null = await ModelAPI.getItem({
         modelType: CloudResource,
         id: modelId,
-        select: {
-          name: true,
-          providerResourceId: true,
-          // Its cloud, and whether its account's connection streams: what the empty list says.
-          cloudProvider: true,
-          cloudConnection: {
-            streamKeyCreatedAt: true,
+        select: PermissionGate.getSelectReadableThroughRelations(
+          CloudResource,
+          {
+            name: true,
+            providerResourceId: true,
+            // Its cloud, and whether its account's connection streams: what the empty list says.
+            cloudProvider: true,
+            cloudConnection: {
+              streamKeyCreatedAt: true,
+            },
           },
-        },
+        ),
       });
 
       if (!item?.providerResourceId) {

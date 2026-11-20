@@ -118,8 +118,8 @@ func sameEmail(a string, b string) bool {
 	return normalizePersonEmail(a) == normalizePersonEmail(b)
 }
 
-// apiStringValue reads a string the API may wrap: "x", {"_type": ..., "value": "x"} or {"_id": "x"}.
-func apiStringValue(value interface{}) string {
+// APIStringValue reads a string the API may wrap: "x", {"_type": ..., "value": "x"} or {"_id": "x"}.
+func APIStringValue(value interface{}) string {
 	switch v := value.(type) {
 	case string:
 		return v
@@ -178,9 +178,9 @@ func (c *Client) listPeople(ctx context.Context, query map[string]interface{}) (
 			}
 
 			user, _ := item["user"].(map[string]interface{})
-			id := apiStringValue(item["userId"])
+			id := APIStringValue(item["userId"])
 			if id == "" && user != nil {
-				id = apiStringValue(user["_id"])
+				id = APIStringValue(user["_id"])
 			}
 			if id == "" {
 				continue
@@ -195,17 +195,17 @@ func (c *Client) listPeople(ctx context.Context, query map[string]interface{}) (
 			}
 
 			if user != nil {
-				if email := apiStringValue(user["email"]); email != "" {
+				if email := APIStringValue(user["email"]); email != "" {
 					person.Email = email
 				}
-				if name := apiStringValue(user["name"]); name != "" {
+				if name := APIStringValue(user["name"]); name != "" {
 					person.Name = name
 				}
 			}
 			if accepted, ok := item["hasAcceptedInvitation"].(bool); ok && accepted {
 				person.HasAcceptedInvitation = true
 			}
-			if teamID := apiStringValue(item["teamId"]); teamID != "" {
+			if teamID := APIStringValue(item["teamId"]); teamID != "" {
 				person.TeamIDs = append(person.TeamIDs, teamID)
 			}
 		}
@@ -379,35 +379,35 @@ func personNotFoundDetail(email string) string {
 // builds a schema once, from a resource it never configures, so a plan
 // modifier has no client to ask with. ModifyPlan runs on the configured one.
 
-// personAttribute is one person a resource names: its ID attribute, the
+// PersonAttribute is one person a resource names: its ID attribute, the
 // attribute that names them by address instead, and what the resource does
 // with them.
-type personAttribute struct {
-	id    string
-	email string
+type PersonAttribute struct {
+	ID    string
+	Email string
 	// Someone nobody in the project has the address of is invited by it (a
 	// team member), so not finding them is no warning.
-	invites bool
+	Invites bool
 	// The API cannot change the person: a different one replaces the resource.
-	replaces bool
+	Replaces bool
 }
 
-// planPersonID plans a person's user ID. Named by ID, that is it. Named by
+// PlanPersonID plans a person's user ID. Named by ID, that is it. Named by
 // address: the ID the resource had for the same address, else the ID the
 // project has for it - unknown, to find at apply, when nobody has it yet
 // (another resource of this apply may invite them) or when the address is
 // itself known only then. Named by neither: what the server has stays, as
 // with any optional value.
-func planPersonID(ctx context.Context, client *Client, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse, a personAttribute) {
+func PlanPersonID(ctx context.Context, client *Client, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse, a PersonAttribute) {
 	var configID, planID, stateID, email, stateEmail types.String
 
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root(a.id), &configID)...)
-	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root(a.id), &planID)...)
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root(a.email), &email)...)
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root(a.ID), &configID)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root(a.ID), &planID)...)
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root(a.Email), &email)...)
 	hasState := !req.State.Raw.IsNull()
 	if hasState {
-		resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root(a.id), &stateID)...)
-		resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root(a.email), &stateEmail)...)
+		resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root(a.ID), &stateID)...)
+		resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root(a.Email), &stateEmail)...)
 	}
 	if resp.Diagnostics.HasError() {
 		return
@@ -433,7 +433,7 @@ func planPersonID(ctx context.Context, client *Client, req resource.ModifyPlanRe
 			person, err := client.findPersonByEmail(ctx, email.ValueString())
 			if err != nil {
 				resp.Diagnostics.AddAttributeError(
-					path.Root(a.email),
+					path.Root(a.Email),
 					"Could not look up "+email.ValueString(),
 					personLookupFailedDetail(email.ValueString(), err),
 				)
@@ -442,9 +442,9 @@ func planPersonID(ctx context.Context, client *Client, req resource.ModifyPlanRe
 
 			if person != nil {
 				planned = types.StringValue(person.ID)
-			} else if !a.invites {
+			} else if !a.Invites {
 				resp.Diagnostics.AddAttributeWarning(
-					path.Root(a.email),
+					path.Root(a.Email),
 					email.ValueString()+" is not in this project yet",
 					"The apply fails unless they are by then. "+personNotFoundDetail(email.ValueString()),
 				)
@@ -453,26 +453,26 @@ func planPersonID(ctx context.Context, client *Client, req resource.ModifyPlanRe
 	}
 
 	if !planned.Equal(planID) {
-		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root(a.id), planned)...)
+		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root(a.ID), planned)...)
 	}
 
-	if a.replaces && hasState && !stateID.IsNull() && !planned.Equal(stateID) {
-		resp.RequiresReplace = append(resp.RequiresReplace, path.Root(a.id))
+	if a.Replaces && hasState && !stateID.IsNull() && !planned.Equal(stateID) {
+		resp.RequiresReplace = append(resp.RequiresReplace, path.Root(a.ID))
 	}
 }
 
-// planPeopleIDs is planPersonID for a set of people (owner_users beside
+// PlanPeopleIDs is PlanPersonID for a set of people (owner_users beside
 // owner_user_emails).
-func planPeopleIDs(ctx context.Context, client *Client, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse, a personAttribute) {
+func PlanPeopleIDs(ctx context.Context, client *Client, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse, a PersonAttribute) {
 	var configIDs, planIDs, stateIDs, emails, stateEmails types.Set
 
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root(a.id), &configIDs)...)
-	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root(a.id), &planIDs)...)
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root(a.email), &emails)...)
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root(a.ID), &configIDs)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root(a.ID), &planIDs)...)
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root(a.Email), &emails)...)
 	hasState := !req.State.Raw.IsNull()
 	if hasState {
-		resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root(a.id), &stateIDs)...)
-		resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root(a.email), &stateEmails)...)
+		resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root(a.ID), &stateIDs)...)
+		resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root(a.Email), &stateEmails)...)
 	}
 	if resp.Diagnostics.HasError() {
 		return
@@ -507,7 +507,7 @@ func planPeopleIDs(ctx context.Context, client *Client, req resource.ModifyPlanR
 			person, err := client.findPersonByEmail(ctx, address)
 			if err != nil {
 				resp.Diagnostics.AddAttributeError(
-					path.Root(a.email),
+					path.Root(a.Email),
 					"Could not look up "+address,
 					personLookupFailedDetail(address, err),
 				)
@@ -515,7 +515,7 @@ func planPeopleIDs(ctx context.Context, client *Client, req resource.ModifyPlanR
 			}
 			if person == nil {
 				resp.Diagnostics.AddAttributeWarning(
-					path.Root(a.email),
+					path.Root(a.Email),
 					address+" is not in this project yet",
 					"The apply fails unless they are by then. "+personNotFoundDetail(address),
 				)
@@ -536,11 +536,11 @@ func planPeopleIDs(ctx context.Context, client *Client, req resource.ModifyPlanR
 	}
 
 	if !planned.Equal(planIDs) {
-		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root(a.id), planned)...)
+		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root(a.ID), planned)...)
 	}
 
-	if a.replaces && hasState && !stateIDs.IsNull() && !planned.Equal(stateIDs) {
-		resp.RequiresReplace = append(resp.RequiresReplace, path.Root(a.id))
+	if a.Replaces && hasState && !stateIDs.IsNull() && !planned.Equal(stateIDs) {
+		resp.RequiresReplace = append(resp.RequiresReplace, path.Root(a.ID))
 	}
 }
 
@@ -622,19 +622,19 @@ func (m personEmailsFromIDs) PlanModifySet(ctx context.Context, req planmodifier
 // ---------------------------------------------------------------------------
 // Schema helpers the generated resources call.
 
-func personEmailPlanModifiers(idAttribute string) []planmodifier.String {
+func PersonEmailPlanModifiers(idAttribute string) []planmodifier.String {
 	return []planmodifier.String{personEmailFromID{idAttribute: idAttribute}}
 }
 
-func personEmailsPlanModifiers(idsAttribute string) []planmodifier.Set {
+func PersonEmailsPlanModifiers(idsAttribute string) []planmodifier.Set {
 	return []planmodifier.Set{personEmailsFromIDs{idsAttribute: idsAttribute}}
 }
 
-// personIDValidators: a configuration names the person by ID or by address,
+// PersonIDValidators: a configuration names the person by ID or by address,
 // not both - and exactly one of the two when the resource needs a person.
 // An ID is a user ID (ids.go): an address or a name there is refused at
 // plan time, pointing at the address attribute.
-func personIDValidators(emailAttribute string, required bool) []validator.String {
+func PersonIDValidators(emailAttribute string, required bool) []validator.String {
 	userID := recordIDValidator{resourceType: personResourceType, emailAttribute: emailAttribute}
 	if required {
 		return []validator.String{userID, stringvalidator.ExactlyOneOf(path.MatchRoot(emailAttribute))}
@@ -642,7 +642,7 @@ func personIDValidators(emailAttribute string, required bool) []validator.String
 	return []validator.String{userID, stringvalidator.ConflictsWith(path.MatchRoot(emailAttribute))}
 }
 
-func personIDsValidators(emailsAttribute string, required bool) []validator.Set {
+func PersonIDsValidators(emailsAttribute string, required bool) []validator.Set {
 	userIDs := setvalidator.ValueStringsAre(recordIDValidator{resourceType: personResourceType, emailAttribute: emailsAttribute})
 	if required {
 		return []validator.Set{userIDs, setvalidator.ExactlyOneOf(path.MatchRoot(emailsAttribute))}
@@ -650,11 +650,11 @@ func personIDsValidators(emailsAttribute string, required bool) []validator.Set 
 	return []validator.Set{userIDs, setvalidator.ConflictsWith(path.MatchRoot(emailsAttribute))}
 }
 
-func personEmailValidators() []validator.String {
+func PersonEmailValidators() []validator.String {
 	return []validator.String{emailAddressValidator{}}
 }
 
-func personEmailsValidators() []validator.Set {
+func PersonEmailsValidators() []validator.Set {
 	return []validator.Set{setvalidator.ValueStringsAre(emailAddressValidator{})}
 }
 
@@ -705,10 +705,10 @@ func looksLikeEmailAddress(value string) bool {
 // ---------------------------------------------------------------------------
 // Apply: what the generated Create, Read and Update do.
 
-// personIDForWrite fills in, at apply, the ID of a person named by an
+// PersonIDForWrite fills in, at apply, the ID of a person named by an
 // address the plan could not find: someone another resource of this apply
 // has just invited. False: the person cannot be found, and the write stops.
-func personIDForWrite(ctx context.Context, client *Client, id *types.String, email types.String, emailAttribute string, diags *diag.Diagnostics) bool {
+func PersonIDForWrite(ctx context.Context, client *Client, id *types.String, email types.String, emailAttribute string, diags *diag.Diagnostics) bool {
 	if !id.IsUnknown() || email.IsNull() || email.IsUnknown() {
 		return true
 	}
@@ -727,8 +727,8 @@ func personIDForWrite(ctx context.Context, client *Client, id *types.String, ema
 	return true
 }
 
-// personIDsForWrite is personIDForWrite for a set of people.
-func personIDsForWrite(ctx context.Context, client *Client, ids *types.Set, emails types.Set, emailsAttribute string, diags *diag.Diagnostics) bool {
+// PersonIDsForWrite is PersonIDForWrite for a set of people.
+func PersonIDsForWrite(ctx context.Context, client *Client, ids *types.Set, emails types.Set, emailsAttribute string, diags *diag.Diagnostics) bool {
 	if !ids.IsUnknown() || emails.IsNull() || emails.IsUnknown() {
 		return true
 	}
@@ -765,11 +765,11 @@ func personIDsForWrite(ctx context.Context, client *Client, ids *types.Set, emai
 // ---------------------------------------------------------------------------
 // Lookup: what the generated data sources do with an address.
 
-// personIDForLookup is the ID of the person a data source is asked to find
+// PersonIDForLookup is the ID of the person a data source is asked to find
 // a record by (user_email), which the list endpoint then matches. False:
 // nobody in the project has the address, or the project's people cannot be
 // read, and the lookup stops with an error that says which.
-func personIDForLookup(ctx context.Context, client *Client, email string, emailAttribute string, diags *diag.Diagnostics) (string, bool) {
+func PersonIDForLookup(ctx context.Context, client *Client, email string, emailAttribute string, diags *diag.Diagnostics) (string, bool) {
 	person, err := client.findPersonByEmail(ctx, email)
 	if err != nil {
 		diags.AddAttributeError(path.Root(emailAttribute), "Could not look up "+email, personLookupFailedDetail(email, err))
@@ -787,10 +787,10 @@ func personIDForLookup(ctx context.Context, client *Client, email string, emailA
 	return person.ID, true
 }
 
-// personEmailAfterLookup is the address a data source's read leaves: the
+// PersonEmailAfterLookup is the address a data source's read leaves: the
 // one it was looked up by, or - found another way - the person's own, as far
 // as the project can say.
-func personEmailAfterLookup(ctx context.Context, client *Client, id types.String, email types.String) types.String {
+func PersonEmailAfterLookup(ctx context.Context, client *Client, id types.String, email types.String) types.String {
 	if !email.IsNull() && !email.IsUnknown() {
 		return email
 	}
@@ -803,9 +803,9 @@ func personEmailAfterLookup(ctx context.Context, client *Client, id types.String
 	return types.StringNull()
 }
 
-// personEmailAfterWrite is the address a create or update leaves in state:
+// PersonEmailAfterWrite is the address a create or update leaves in state:
 // the one configured, or - for a person named by ID - theirs, read now.
-func personEmailAfterWrite(ctx context.Context, client *Client, id types.String, email types.String) types.String {
+func PersonEmailAfterWrite(ctx context.Context, client *Client, id types.String, email types.String) types.String {
 	if !email.IsUnknown() {
 		return email
 	}
@@ -818,19 +818,19 @@ func personEmailAfterWrite(ctx context.Context, client *Client, id types.String,
 	return types.StringNull()
 }
 
-func personEmailsAfterWrite(ctx context.Context, client *Client, ids types.Set, emails types.Set) types.Set {
+func PersonEmailsAfterWrite(ctx context.Context, client *Client, ids types.Set, emails types.Set) types.Set {
 	if !emails.IsUnknown() {
 		return emails
 	}
 	return emailsOfPeople(ctx, client, ids)
 }
 
-// personEmailAfterRead is the address a refresh leaves in state. The one in
+// PersonEmailAfterRead is the address a refresh leaves in state. The one in
 // state stays while the resource names the same person - a person who
 // changes their address in OneUptime is no change to the resource - and an
 // address is read only when there is none yet (an import) or the person is
 // someone else now (changed outside Terraform).
-func personEmailAfterRead(ctx context.Context, client *Client, priorID types.String, id types.String, priorEmail types.String) types.String {
+func PersonEmailAfterRead(ctx context.Context, client *Client, priorID types.String, id types.String, priorEmail types.String) types.String {
 	if id.IsNull() || id.IsUnknown() {
 		return types.StringNull()
 	}
@@ -856,7 +856,7 @@ func personEmailAfterRead(ctx context.Context, client *Client, priorID types.Str
 	return types.StringNull()
 }
 
-func personEmailsAfterRead(ctx context.Context, client *Client, priorIDs types.Set, ids types.Set, priorEmails types.Set) types.Set {
+func PersonEmailsAfterRead(ctx context.Context, client *Client, priorIDs types.Set, ids types.Set, priorEmails types.Set) types.Set {
 	if ids.IsNull() || ids.IsUnknown() {
 		return types.SetNull(types.StringType)
 	}
@@ -968,38 +968,38 @@ const (
 	membershipKindOnCall = "on-call"
 )
 
-// membershipImport names the list a row is found in, and the API fields of
+// MembershipImport names the list a row is found in, and the API fields of
 // its parent (a team, a monitor, an escalation rule) and of who or what
 // joins it (a person, a team, a schedule).
-type membershipImport struct {
-	listPath        string
-	parentField     string
-	parentAttribute string
+type MembershipImport struct {
+	ListPath        string
+	ParentField     string
+	ParentAttribute string
 	// What the parent is, in words: "team", "monitor".
-	parentNoun      string
-	personField     string
-	personAttribute string
+	ParentNoun      string
+	PersonField     string
+	PersonAttribute string
 	// The member is a person, so an email address names them too.
-	byEmail bool
-	kind    string
+	ByEmail bool
+	Kind    string
 }
 
 // importForm is how the import ID of a row of spec is written.
-func (spec membershipImport) importForm() string {
-	if spec.byEmail {
-		return fmt.Sprintf("<%s>/<email address or user id>", spec.parentAttribute)
+func (spec MembershipImport) importForm() string {
+	if spec.ByEmail {
+		return fmt.Sprintf("<%s>/<email address or user id>", spec.ParentAttribute)
 	}
-	return fmt.Sprintf("<%s>/<%s>", spec.parentAttribute, spec.personAttribute)
+	return fmt.Sprintf("<%s>/<%s>", spec.ParentAttribute, spec.PersonAttribute)
 }
 
 // notFound says that nothing joins what the import ID names, the way the
 // kind of row would say it.
-func (spec membershipImport) notFound(member string, parentID string) string {
-	parent := spec.parentNoun
+func (spec MembershipImport) notFound(member string, parentID string) string {
+	parent := spec.ParentNoun
 	if parent == "" {
-		parent = strings.ReplaceAll(strings.TrimSuffix(spec.parentAttribute, "_id"), "_", " ")
+		parent = strings.ReplaceAll(strings.TrimSuffix(spec.ParentAttribute, "_id"), "_", " ")
 	}
-	switch spec.kind {
+	switch spec.Kind {
 	case membershipKindOwner:
 		return fmt.Sprintf("%s is not an owner of the %s %q.", member, parent, parentID)
 	case membershipKindOnCall:
@@ -1009,11 +1009,11 @@ func (spec membershipImport) notFound(member string, parentID string) string {
 	}
 }
 
-// importIDOfMembership turns "<team id>/<email address or user id>" - or
+// ImportIDOfMembership turns "<team id>/<email address or user id>" - or
 // "<monitor id>/<team id>" for a row whose member is no person - into the
 // row's own ID, and the address it was given (to keep in state, in its own
 // case). An ID without a "/" is the row's own, as it always was.
-func importIDOfMembership(ctx context.Context, client *Client, importID string, spec membershipImport, diags *diag.Diagnostics) (string, string, bool) {
+func ImportIDOfMembership(ctx context.Context, client *Client, importID string, spec MembershipImport, diags *diag.Diagnostics) (string, string, bool) {
 	if !strings.Contains(importID, "/") {
 		return importID, "", true
 	}
@@ -1035,8 +1035,8 @@ func importIDOfMembership(ctx context.Context, client *Client, importID string, 
 	userID := person
 	email := ""
 	if strings.Contains(person, "@") {
-		if !spec.byEmail {
-			diags.AddError("Invalid Import ID", fmt.Sprintf("%q is an email address, and %s takes no person: import it as %s.", person, spec.personAttribute, spec.importForm()))
+		if !spec.ByEmail {
+			diags.AddError("Invalid Import ID", fmt.Sprintf("%q is an email address, and %s takes no person: import it as %s.", person, spec.PersonAttribute, spec.importForm()))
 			return "", "", false
 		}
 		found, err := client.findPersonByEmail(ctx, person)
@@ -1052,10 +1052,10 @@ func importIDOfMembership(ctx context.Context, client *Client, importID string, 
 		email = person
 	}
 
-	httpResp, err := client.Post(ctx, spec.listPath, map[string]interface{}{
+	httpResp, err := client.Post(ctx, spec.ListPath, map[string]interface{}{
 		"query": map[string]interface{}{
-			spec.parentField: parentID,
-			spec.personField: userID,
+			spec.ParentField: parentID,
+			spec.PersonField: userID,
 		},
 		"select": map[string]interface{}{"_id": true},
 		"limit":  2,
@@ -1078,7 +1078,7 @@ func importIDOfMembership(ctx context.Context, client *Client, importID string, 
 	}
 
 	first, _ := items[0].(map[string]interface{})
-	id := apiStringValue(first["_id"])
+	id := APIStringValue(first["_id"])
 	if id == "" {
 		diags.AddError("OneUptime API Error", "The membership found has no id.")
 		return "", "", false
@@ -1087,11 +1087,11 @@ func importIDOfMembership(ctx context.Context, client *Client, importID string, 
 	return id, email, true
 }
 
-// alreadyInvitedHint is what a create that finds the person already in the
+// AlreadyInvitedHint is what a create that finds the person already in the
 // team adds: how to take that membership over instead. A paragraph of its
 // own, whatever the server's message ends with (it ends with no full stop),
 // and the command on a line of its own, to copy.
-func alreadyInvitedHint(err error, resourceType string, parentAttribute string) string {
+func AlreadyInvitedHint(err error, resourceType string, parentAttribute string) string {
 	if err == nil || !strings.Contains(strings.ToLower(err.Error()), "already been invited") {
 		return ""
 	}

@@ -7,7 +7,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * what created a record - a person, an API key, a workflow, an MCP client, a
  * server admin or OneUptime itself, and which key, workflow or client - and
  * when a person, a key, a workflow or an MCP client last modified it, and who.
- * Six nullable columns on each of the 629 tables, exactly as
+ * Six nullable columns on each of the 633 tables, exactly as
  * `npm run generate-postgres-migration` wrote them, and nothing else: no
  * default, no index, no foreign key (the base model says why).
  *
@@ -628,6 +628,10 @@ export const RECORD_ACTOR_TABLES: ReadonlyArray<string> = [
   "DashboardPlaylist",
   "DashboardOwnerTeam",
   "DashboardOwnerUser",
+  "DashboardPrivateUser",
+  "DashboardPrivateUserSession",
+  "DashboardSSO",
+  "DashboardOIDC",
   "MonitorTest",
   "ScheduledMaintenanceFeed",
   "WorkspaceUserAuthToken",

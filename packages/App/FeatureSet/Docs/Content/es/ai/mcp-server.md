@@ -348,12 +348,16 @@ La herramienta **`oneuptime_move_in_list`** mueve una fila de una lista ordenada
 El servidor también tiene las acciones de configuración de Preguntar a la IA, una llamada cada una: lo que configuras, en lugar de un registro cada vez. Cada una crea los registros que Preguntar a la IA y las configuraciones guiadas crean para las mismas respuestas, con las mismas comprobaciones:
 
 - **`set_up_website_monitoring`**: un monitor de sitio web o de API para una dirección, que abre un incidente cuando la dirección no responde o responde con un error. Es tuyo, y una dirección que un monitor ya comprueba no recibe un segundo
+- **`set_up_service_monitor`**: uno de los monitores que la configuración guiada de telemetría recomienda para un servicio que envía telemetría: para solicitudes fallidas, solicitudes lentas, excepciones no controladas o un aumento de los registros de error. Abre una alerta para tu equipo, y un monitor que el servicio ya tiene no recibe un segundo
 - **`set_up_paging`**: en un proyecto que aún no avisa a nadie, su primera política de guardia, que te avisa a ti y a las personas y equipos que nombres ante cada nuevo incidente y cada nueva alerta
+- **`add_to_on_call_policy`**: miembros y equipos añadidos a una política de guardia que el proyecto ya tiene, en uno de sus niveles o como un nivel nuevo que los avisa cuando nadie reconoce. A quien un nivel ya avisa no se le añade dos veces
+- **`invite_people`**: personas invitadas al proyecto por correo electrónico. Cada una recibe un correo de invitación en tu nombre, y una dirección que ya está en el proyecto no se vuelve a invitar
+- **`set_how_to_reach_me`**: cómo te llegan los avisos, por ejemplo un SMS al instante y una llamada a los cinco minutos. Sustituye tus ajustes de Cómo contactarme y solo usa los métodos que has verificado
 - **`publish_status_page`**: una página de estado pública que muestra los monitores que nombres
 - **`add_monitors_to_status_page`**: monitores añadidos a una página de estado que el proyecto ya tiene
 - **`who_is_told`**: a quién se avisa cuando un monitor cae, y qué impediría que se le contactara. No cambia nada
 
-Actúan como tú, con la sesión iniciada mediante OAuth: una clave de API de proyecto no puede usar las cuatro que crean algo. Tu cliente te pregunta antes de cada una, y su respuesta dice qué se creó. Lo que falta, como un permiso, una dirección o espacio en el plan, se dice antes de crear nada.
+Actúan como tú, con la sesión iniciada mediante OAuth: una clave de API de proyecto no puede usar las ocho que crean algo. Tu cliente te pregunta antes de cada una, y su respuesta dice qué se creó. Lo que falta, como un permiso, una dirección o espacio en el plan, se dice antes de crear nada.
 
 ## Consultar la telemetría
 

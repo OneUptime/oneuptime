@@ -418,11 +418,44 @@ function nextOfClass(character: string, step: number): string {
 /*
  * Near misses a type's checks are about, tried before the general ones:
  * an email on an image asset's "domain", a coordinate too imprecise to
- * find a building, a webhook missing its secret.
+ * find a building, a webhook missing its secret, an IP address that points
+ * at no one.
  */
 const NEAR_MISSES_OF: Readonly<
   Record<string, (value: string) => Array<string>>
 > = {
+  /*
+   * A private IPv4 address; a link-local IPv6 one, any IPv4 address it ends
+   * in private too. A character off is mostly another public address:
+   * "b45:2::3fe" is as much an address as "b45:2::3fd".
+   */
+  "ip-address": (value: string): Array<string> => {
+    if (!value.includes(":")) {
+      return [value.replace(/^[0-9]{1,3}/, "10")];
+    }
+
+    return [
+      value
+        .replace(/^[0-9A-Fa-f]{0,4}(?=:)/, "fe80")
+        .replace(/(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/, "10.0.0.1"),
+    ];
+  },
+  // The URL without its password: a user name alone is no secret.
+  "password-in-url": (value: string): Array<string> => {
+    const scheme: number = value.indexOf("://");
+    const colon: number = scheme < 0 ? -1 : value.indexOf(":", scheme + 3);
+    const at: number = colon < 0 ? -1 : value.indexOf("@", colon);
+
+    return at < 0 ? [] : [value.slice(0, colon) + value.slice(at)];
+  },
+  // A birth month no century's PESEL has: 13 is no month, 33 or 93 either.
+  "pl-pesel": (value: string): Array<string> => {
+    return [value.slice(0, 2) + "13" + value.slice(4)];
+  },
+  // A birth month no calendar has.
+  "ro-cnp": (value: string): Array<string> => {
+    return [value.slice(0, 3) + "13" + value.slice(5)];
+  },
   "email-address": (value: string): Array<string> => {
     return [
       value.replace(/\.[A-Za-z]{2,24}$/, ".png"),
@@ -936,6 +969,12 @@ const KNOWN_CONFUSIONS: ReadonlyArray<{
     label: "uk-nhs-number",
     reason:
       "An NHS number written 3-3-4 with dashes has a North American phone number's shape, so one whose check digit fails is still that shape.",
+  },
+  {
+    found: "passport-number",
+    label: "uk-passport",
+    reason:
+      'A passport number of no country is letters and digits beside the word passport, which "uk passport" holds, so a UK passport number a digit short is still one.',
   },
 ];
 

@@ -44,7 +44,7 @@ import {
  */
 beforeEach(() => {
   jest
-    .spyOn(DataSourceEgressGuard, "assertUrlAllowedAndPin")
+    .spyOn(DataSourceEgressGuard, "assertUrlAllowedAndPinForNodeHttp")
     .mockImplementation((urlString: string) => {
       const url: globalThis.URL = new globalThis.URL(urlString);
       const addresses: Array<ResolvedAddress> = [
@@ -55,7 +55,10 @@ beforeEach(() => {
       return Promise.resolve({
         url: url,
         addresses: addresses,
-        ...DataSourceEgressGuard.createPinnedAgents({ url, addresses }),
+        ...DataSourceEgressGuard.createPinnedAgentsForNodeHttp({
+          url,
+          addresses,
+        }),
       });
     });
 });

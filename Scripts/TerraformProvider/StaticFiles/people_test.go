@@ -349,25 +349,25 @@ func TestPeopleAddressAfterRead(t *testing.T) {
 	ctx := context.Background()
 
 	// The same person: the address in state stays, whatever OneUptime has now.
-	kept := personEmailAfterRead(ctx, client, types.StringValue("u9"), types.StringValue("u9"), types.StringValue("Frank@Example.com"))
+	kept := PersonEmailAfterRead(ctx, client, types.StringValue("u9"), types.StringValue("u9"), types.StringValue("Frank@Example.com"))
 	if kept.ValueString() != "Frank@Example.com" {
 		t.Errorf("the same person's address became %s", kept)
 	}
 
 	// Someone else now (changed outside Terraform): their address.
-	other := personEmailAfterRead(ctx, client, types.StringValue("u8"), types.StringValue("u9"), types.StringValue("old@example.com"))
+	other := PersonEmailAfterRead(ctx, client, types.StringValue("u8"), types.StringValue("u9"), types.StringValue("old@example.com"))
 	if other.ValueString() != "frank.new@example.com" {
 		t.Errorf("another person's address is %s", other)
 	}
 
 	// An import by address: as it was written, when it is theirs.
-	imported := personEmailAfterRead(ctx, client, types.StringNull(), types.StringValue("u9"), types.StringValue("Frank.New@Example.com"))
+	imported := PersonEmailAfterRead(ctx, client, types.StringNull(), types.StringValue("u9"), types.StringValue("Frank.New@Example.com"))
 	if imported.ValueString() != "Frank.New@Example.com" {
 		t.Errorf("an import's address became %s", imported)
 	}
 
 	// Nobody named: no address.
-	if none := personEmailAfterRead(ctx, client, types.StringNull(), types.StringNull(), types.StringNull()); !none.IsNull() {
+	if none := PersonEmailAfterRead(ctx, client, types.StringNull(), types.StringNull(), types.StringNull()); !none.IsNull() {
 		t.Errorf("nobody has the address %s", none)
 	}
 }
@@ -385,18 +385,18 @@ func TestPeopleIDForWrite(t *testing.T) {
 
 	id := types.StringUnknown()
 	var diags diag.Diagnostics
-	if !personIDForWrite(ctx, client, &id, types.StringValue("Gina@Example.com"), "user_email", &diags) || id.ValueString() != "u10" {
+	if !PersonIDForWrite(ctx, client, &id, types.StringValue("Gina@Example.com"), "user_email", &diags) || id.ValueString() != "u10" {
 		t.Fatalf("Gina was not found at apply: %s %v", id, diags)
 	}
 
 	known := types.StringValue("u-known")
-	if !personIDForWrite(ctx, client, &known, types.StringValue("gina@example.com"), "user_email", &diags) || known.ValueString() != "u-known" {
+	if !PersonIDForWrite(ctx, client, &known, types.StringValue("gina@example.com"), "user_email", &diags) || known.ValueString() != "u-known" {
 		t.Fatalf("a planned ID was looked up again")
 	}
 
 	missing := types.StringUnknown()
 	diags = diag.Diagnostics{}
-	if personIDForWrite(ctx, client, &missing, types.StringValue("nobody@example.com"), "user_email", &diags) {
+	if PersonIDForWrite(ctx, client, &missing, types.StringValue("nobody@example.com"), "user_email", &diags) {
 		t.Fatalf("someone outside the project was written")
 	}
 	if !diags.HasError() || !strings.Contains(diags.Errors()[0].Summary(), "nobody@example.com is not in this project") {
@@ -405,7 +405,7 @@ func TestPeopleIDForWrite(t *testing.T) {
 }
 
 func TestPeopleAlreadyInvitedHint(t *testing.T) {
-	hint := alreadyInvitedHint(errorString("the OneUptime API returned status 400: This user has already been invited to this team"), "oneuptime_team_member", "team_id")
+	hint := AlreadyInvitedHint(errorString("the OneUptime API returned status 400: This user has already been invited to this team"), "oneuptime_team_member", "team_id")
 	if !strings.Contains(hint, "terraform import oneuptime_team_member.<name> <team_id>/<email address>") {
 		t.Fatalf("hint: %q", hint)
 	}
@@ -414,10 +414,10 @@ func TestPeopleAlreadyInvitedHint(t *testing.T) {
 	if !strings.HasPrefix(hint, "\n\nThey are in this team already. ") || !strings.Contains(hint, "\n\n  terraform import ") {
 		t.Fatalf("the hint runs on into the server's message: %q", hint)
 	}
-	if alreadyInvitedHint(errorString("something else"), "oneuptime_team_member", "team_id") != "" {
+	if AlreadyInvitedHint(errorString("something else"), "oneuptime_team_member", "team_id") != "" {
 		t.Fatalf("another error got the hint")
 	}
-	if alreadyInvitedHint(nil, "oneuptime_team_member", "team_id") != "" {
+	if AlreadyInvitedHint(nil, "oneuptime_team_member", "team_id") != "" {
 		t.Fatalf("no error got the hint")
 	}
 }
@@ -430,15 +430,15 @@ func (e errorString) Error() string { return string(e) }
 // team or schedule - is imported by both IDs, and an address in its place
 // says how to write it instead.
 func TestMembershipImportOfARowWithoutAPerson(t *testing.T) {
-	ownerTeam := membershipImport{
-		listPath:        "/monitor-owner-team/get-list",
-		parentField:     "monitorId",
-		parentAttribute: "monitor_id",
-		parentNoun:      "monitor",
-		personField:     "teamId",
-		personAttribute: "team_id",
-		byEmail:         false,
-		kind:            membershipKindOwner,
+	ownerTeam := MembershipImport{
+		ListPath:        "/monitor-owner-team/get-list",
+		ParentField:     "monitorId",
+		ParentAttribute: "monitor_id",
+		ParentNoun:      "monitor",
+		PersonField:     "teamId",
+		PersonAttribute: "team_id",
+		ByEmail:         false,
+		Kind:            membershipKindOwner,
 	}
 
 	if got := ownerTeam.importForm(); got != "<monitor_id>/<team_id>" {
@@ -449,7 +449,7 @@ func TestMembershipImportOfARowWithoutAPerson(t *testing.T) {
 	}
 
 	var diags diag.Diagnostics
-	if _, _, ok := importIDOfMembership(context.Background(), &Client{}, "a-monitor/sre@example.com", ownerTeam, &diags); ok {
+	if _, _, ok := ImportIDOfMembership(context.Background(), &Client{}, "a-monitor/sre@example.com", ownerTeam, &diags); ok {
 		t.Fatalf("an email address in place of a team imported")
 	}
 	if !diags.HasError() || !strings.Contains(diags[0].Detail(), "import it as <monitor_id>/<team_id>") {
@@ -457,17 +457,17 @@ func TestMembershipImportOfARowWithoutAPerson(t *testing.T) {
 	}
 
 	onCall := ownerTeam
-	onCall.kind = membershipKindOnCall
-	onCall.parentNoun = "escalation rule"
+	onCall.Kind = membershipKindOnCall
+	onCall.ParentNoun = "escalation rule"
 	if got := onCall.notFound("a-team", "a-rule"); got != `a-team is not on the escalation rule "a-rule".` {
 		t.Fatalf("notFound = %q", got)
 	}
 
 	member := ownerTeam
-	member.kind = membershipKindMember
-	member.parentNoun = ""
-	member.parentAttribute = "team_id"
-	member.byEmail = true
+	member.Kind = membershipKindMember
+	member.ParentNoun = ""
+	member.ParentAttribute = "team_id"
+	member.ByEmail = true
 	if got := member.importForm(); got != "<team_id>/<email address or user id>" {
 		t.Fatalf("importForm = %q", got)
 	}
@@ -477,7 +477,7 @@ func TestMembershipImportOfARowWithoutAPerson(t *testing.T) {
 	}
 
 	// An ID with no "/" is the row's own.
-	id, email, ok := importIDOfMembership(context.Background(), nil, "5a0e0000-0000-4000-8000-000000000001", ownerTeam, &diags)
+	id, email, ok := ImportIDOfMembership(context.Background(), nil, "5a0e0000-0000-4000-8000-000000000001", ownerTeam, &diags)
 	if !ok || id != "5a0e0000-0000-4000-8000-000000000001" || email != "" {
 		t.Fatalf("an ID of its own imported as %q, %q, %t", id, email, ok)
 	}
