@@ -1,4 +1,5 @@
 import Dictionary from "../../../../Types/Dictionary";
+import escapeRegExp from "../../../../Utils/RegExpEscape";
 import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import { JSONObject } from "../../../../Types/JSON";
 import GoogleMonitoringClient, {
@@ -38,16 +39,35 @@ import {
  *
  * One call returns a metric for every resource of the project. Cloud
  * Monitoring charges reads by the time series they return, past a million a
- * month per billing account. A call can be narrowed to some resources of a
- * type by one of their labels: resource.labels.instance_id=one_of("1","2"),
- * at most GCP_MAX_ONE_OF_VALUES values (Google's limit for one_of), so the
- * resources of a project an added metric is read for cost one call, not one
- * each (#9810).
+ * month per billing account, and a call that returns none as one. A call
+ * can be narrowed to some resources of a type by one of their labels:
+ * resource.labels.instance_id=one_of("1","2"), at most GCP_MAX_ONE_OF_VALUES
+ * values (Google's limit for one_of), so the resources of a project an added
+ * metric is read for cost one call, not one each (#9810); and to some
+ * values of a metric label the same way, metric.labels.<label>=one_of(...),
+ * so a split addition is read for the values it keeps alone (#10076).
+ *
+ * The one other call, the Prometheus API's instant query (queryPromQl):
+ *
+ *   POST https://monitoring.googleapis.com/v1/projects/{project}/location/
+ *        global/prometheus/api/v1/query   (form: query=..., time=...)
+ *   -> { status: "success", data: { resultType: "vector", result: [{
+ *        metric: { <label>: "<value>" }, value: [<time>, "<number>"] }] } }
+ *
+ * PromQL reads Cloud Monitoring's own metrics too, with the same Monitoring
+ * Viewer role and scope, and is billed as timeSeries.list is: by the series
+ * a query returns. So topk() returns, and bills, a split's busiest values
+ * of each resource alone - what learns which values a split reads
+ * (buildTopSplitValuesQuery).
  */
 
 const PROVIDER_TITLE: string = "Google Cloud Monitoring";
 const PAGE_SIZE: number = 10000;
 const MAX_PAGES: number = 20;
+
+// Cloud Monitoring's Prometheus API: PromQL over its own metrics.
+export const GOOGLE_MONITORING_PROMETHEUS_BASE_URL: string =
+  "https://monitoring.googleapis.com/v1";
 
 /*
  * Values one one_of() takes at most: "x = one_of(...)" takes up to 100
@@ -109,6 +129,34 @@ export interface GcpSplitRead {
   label: string;
   reducer: string;
   resourceLabelKeys: ReadonlyArray<string>;
+}
+
+/*
+ * One value of a split's label on one resource, as a PromQL query of its
+ * busiest values answers it (#10076): the resource's labels, the value, and
+ * how busy it was, which ranks it.
+ */
+export interface GcpSplitValue {
+  resourceLabels: Dictionary<string>;
+  value: string;
+  score: number;
+}
+
+// A PromQL string literal: quoted as Go quotes one, its backslashes and quotes escaped.
+function promQlString(value: string): string {
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+/*
+ * The label a PromQL query names a metric label by: its key, or "metric_"
+ * and its key where the monitored resource has a label of the same key -
+ * PromQL for Cloud Monitoring names the resource's label by the plain key.
+ */
+export function getGcpPromQlMetricLabel(
+  label: string,
+  resourceLabelKeys: ReadonlyArray<string>,
+): string {
+  return resourceLabelKeys.includes(label) ? `metric_${label}` : label;
 }
 
 export interface GcpMonitoringOptions {
@@ -175,11 +223,32 @@ export default class GcpMonitoring {
      * equal (resourceLabels). Each label in name order with those.
      */
     resourceLabelIn?: GcpLabelValues | undefined;
+    /*
+     * A split addition's values (#10076): only the series of these values
+     * of one of the metric's labels, after its other labels. A label is a
+     * string to the filter whatever its type: a number's value too
+     * (metric.labels.response_code_class="200").
+     */
+    metricLabelIn?: GcpLabelValues | undefined;
   }): string {
     const parts: Array<string> = [`metric.type="${data.metricType}"`];
 
     for (const name of Object.keys(data.metricLabels || {}).sort()) {
       parts.push(`metric.labels.${name}="${data.metricLabels![name]}"`);
+    }
+
+    if (data.metricLabelIn && data.metricLabelIn.values.length > 0) {
+      const values: ReadonlyArray<string> = data.metricLabelIn.values;
+
+      parts.push(
+        values.length === 1
+          ? `metric.labels.${data.metricLabelIn.label}="${values[0]}"`
+          : `metric.labels.${data.metricLabelIn.label}=one_of(${values
+              .map((value: string): string => {
+                return `"${value}"`;
+              })
+              .join(",")})`,
+      );
     }
 
     if (data.resourceType) {
@@ -243,6 +312,7 @@ export default class GcpMonitoring {
     resourceType?: string | undefined;
     resourceLabels?: Readonly<Record<string, string>> | undefined;
     resourceLabelIn?: GcpLabelValues | undefined;
+    metricLabelIn?: GcpLabelValues | undefined;
     split?: GcpSplitRead | undefined;
   }): Promise<Array<GcpTimeSeries>> {
     GoogleMonitoringClient.validateProjectId(data.projectId);
@@ -265,6 +335,7 @@ export default class GcpMonitoring {
             resourceType: data.resourceType,
             resourceLabels: data.resourceLabels,
             resourceLabelIn: data.resourceLabelIn,
+            metricLabelIn: data.metricLabelIn,
           }),
         ],
         ["interval.startTime", data.start.toISOString()],
@@ -341,6 +412,216 @@ export default class GcpMonitoring {
           return ["aggregation.groupByFields", `resource.label.${key}`];
         }),
     ];
+  }
+
+  /*
+   * THE PROMQL QUERY OF A SPLIT'S BUSIEST VALUES OF EACH RESOURCE (#10076).
+   *
+   *   topk by (<resource labels>) (<top>,
+   *     sum by (<resource labels>, <label>) (
+   *       rate({__name__="<metric type>", monitored_resource="<type>",
+   *             project_id="<project>", <the resources' labels>}[3600s])))
+   *
+   * A rate's values are added up by their sum, a level's (avg_over_time) by
+   * their mean, as the split read adds its other labels up; each value is
+   * ranked by that over `lookBackSeconds`; and topk keeps the busiest `top`
+   * of each resource, so Google returns - and bills - those alone. The
+   * resources are the ones the read names: equal labels with "=", a
+   * batch's one varying label as an anchored pattern of its values. The
+   * project's own series alone, as a timeSeries.list of it reads them.
+   */
+  public static buildTopSplitValuesQuery(data: {
+    projectId: string;
+    metricType: string;
+    aligner: string;
+    resourceType: string;
+    resourceLabels?: Readonly<Record<string, string>> | undefined;
+    resourceLabelIn?: GcpLabelValues | undefined;
+    split: GcpSplitRead;
+    top: number;
+    lookBackSeconds: number;
+  }): string {
+    const matchers: Array<string> = [
+      `__name__=${promQlString(data.metricType)}`,
+      `monitored_resource=${promQlString(data.resourceType)}`,
+      `project_id=${promQlString(data.projectId)}`,
+    ];
+
+    for (const name of Object.keys(data.resourceLabels || {}).sort()) {
+      if (name !== "project_id") {
+        matchers.push(`${name}=${promQlString(data.resourceLabels![name]!)}`);
+      }
+    }
+
+    if (data.resourceLabelIn && data.resourceLabelIn.values.length > 0) {
+      // Each value as an RE2 pattern that matches it alone, PromQL's patterns anchored whole.
+      matchers.push(
+        `${data.resourceLabelIn.label}=~${promQlString(
+          data.resourceLabelIn.values
+            .map((value: string): string => {
+              return escapeRegExp(value);
+            })
+            .join("|"),
+        )}`,
+      );
+    }
+
+    const resourceKeys: Array<string> = [
+      ...data.split.resourceLabelKeys,
+    ].sort();
+    const label: string = getGcpPromQlMetricLabel(
+      data.split.label,
+      resourceKeys,
+    );
+    const perSeries: string =
+      data.aligner === "ALIGN_RATE" ? "rate" : "avg_over_time";
+    const across: string = data.split.reducer === "REDUCE_SUM" ? "sum" : "avg";
+
+    return `topk by (${resourceKeys.join(", ")}) (${Math.max(
+      1,
+      Math.floor(data.top),
+    )}, ${across} by (${[...resourceKeys, label].join(
+      ", ",
+    )}) (${perSeries}({${matchers.join(", ")}}[${Math.max(
+      60,
+      Math.floor(data.lookBackSeconds),
+    )}s])))`;
+  }
+
+  /*
+   * A split's busiest values of each resource (buildTopSplitValuesQuery),
+   * asked as one PromQL instant query at `at`: each value with the labels of
+   * the resource it is of, and how busy it was. Throws when the query
+   * cannot be answered - a metric PromQL cannot read, say - so the caller
+   * can learn the values another way.
+   */
+  public async listTopSplitValues(data: {
+    projectId: string;
+    metricType: string;
+    aligner: string;
+    resourceType: string;
+    resourceLabels?: Readonly<Record<string, string>> | undefined;
+    resourceLabelIn?: GcpLabelValues | undefined;
+    split: GcpSplitRead;
+    top: number;
+    lookBackSeconds: number;
+    at: Date;
+  }): Promise<Array<GcpSplitValue>> {
+    const label: string = getGcpPromQlMetricLabel(
+      data.split.label,
+      data.split.resourceLabelKeys,
+    );
+    const result: Array<{ labels: Dictionary<string>; value: number }> =
+      await this.queryPromQl({
+        projectId: data.projectId,
+        query: GcpMonitoring.buildTopSplitValuesQuery(data),
+        at: data.at,
+        step: `${data.metricType} values request`,
+      });
+    const values: Array<GcpSplitValue> = [];
+
+    for (const entry of result) {
+      const value: string | undefined = entry.labels[label];
+
+      if (value === undefined) {
+        continue;
+      }
+
+      const resourceLabels: Dictionary<string> = {};
+
+      for (const key of data.split.resourceLabelKeys) {
+        if (entry.labels[key] !== undefined) {
+          resourceLabels[key] = entry.labels[key]!;
+        }
+      }
+
+      values.push({
+        resourceLabels,
+        value,
+        score: Number.isFinite(entry.value) ? Math.abs(entry.value) : 0,
+      });
+    }
+
+    return values;
+  }
+
+  /*
+   * One PromQL instant query of the project, at `at`, through Cloud
+   * Monitoring's Prometheus API: each series of the answer's vector, its
+   * labels and its value. A query Prometheus refuses ("status": "error")
+   * throws, as a failed call does.
+   */
+  public async queryPromQl(data: {
+    projectId: string;
+    query: string;
+    at: Date;
+    step: string;
+  }): Promise<Array<{ labels: Dictionary<string>; value: number }>> {
+    GoogleMonitoringClient.validateProjectId(data.projectId);
+
+    if (this.options.budget && !this.options.budget.take()) {
+      throw new CloudReadBudgetSpent();
+    }
+
+    const accessToken: string = await this.token.getAccessToken();
+    let response: JSONObject;
+
+    try {
+      response = await LlmProviderHttp.requestJson({
+        transport: this.options.transport,
+        method: "POST",
+        url: `${GOOGLE_MONITORING_PROMETHEUS_BASE_URL}/projects/${encodeURIComponent(
+          data.projectId.trim(),
+        )}/location/global/prometheus/api/v1/query`,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+        },
+        body: {
+          query: data.query,
+          time: String(data.at.getTime() / 1000),
+        },
+        formUrlEncoded: true,
+        timeoutInMs: this.options.requestTimeoutInMs,
+        step: data.step,
+        providerTitle: PROVIDER_TITLE,
+        secretValues: [accessToken],
+      });
+    } catch (error) {
+      throw GcpMonitoring.classify(error);
+    }
+
+    return GcpMonitoring.readPromQlVector(response, data.step);
+  }
+
+  // A PromQL instant query's answer: its vector, each series' labels and value.
+  public static readPromQlVector(
+    response: JSONObject,
+    step: string = "query",
+  ): Array<{ labels: Dictionary<string>; value: number }> {
+    if (readText(response["status"]) !== "success") {
+      throw new LlmProviderError({
+        message: `${PROVIDER_TITLE} ${step} was refused: ${
+          readText(response["error"]) || "no reason given"
+        }`,
+        kind: CloudConnectionFailureKind.Other,
+      });
+    }
+
+    const data: JSONObject = readObject(response["data"]);
+    const series: Array<{ labels: Dictionary<string>; value: number }> = [];
+
+    for (const raw of readArray(data["result"])) {
+      const entry: JSONObject = readObject(raw);
+      const sample: Array<unknown> = readArray(entry["value"]);
+
+      series.push({
+        labels: readLabels(entry["metric"]),
+        value: Number(sample[1]),
+      });
+    }
+
+    return series;
   }
 
   /*

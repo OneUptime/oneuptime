@@ -92,7 +92,7 @@ Abre **Guardia** desde el menú **Productos** de la barra superior. Se abre en *
 | **Informes** | **Tiempo de guardia del usuario**: cuánto tiempo estuvo de guardia cada persona |
 | **Espacio de trabajo** | **Slack**, **Microsoft Teams** y **Mattermost**: reglas que publican los eventos de guardia en un canal |
 | **Ajustes** | **Campos personalizados**, **Reglas de etiquetas** y **Reglas del propietario** |
-| **Desarrolladores** | **Terraform**, **API**, **CLI** y **Asistentes de IA**: las guardias configuradas desde código |
+| **Desarrolladores** | **Terraform**, **Crossplane**, **API**, **CLI** y **Asistentes de IA**: las guardias configuradas desde código |
 
 **Políticas** y **Programaciones** están abiertas; las demás secciones empiezan plegadas, y una sección se abre sola cuando estás en una de sus páginas. **Espacio de trabajo** muestra las herramientas de chat que el proyecto ha conectado, o **Conectar un espacio de trabajo** si no tiene ninguna.
 

@@ -41,7 +41,7 @@ Klicken Sie oben rechts auf Ihr Bild und wählen Sie **Profil**. Die Seite **Üb
 
 Klicken Sie auf **Benutzer bearbeiten** und ändern Sie, was Sie brauchen:
 
-- **E-Mail**: die Adresse, mit der Sie sich anmelden. Wenn Sie sie ändern, sendet OneUptime einen Link an die neue Adresse, und Ihre Adresse ändert sich, sobald Sie ihn öffnen. Bis dahin melden Sie sich mit der bisherigen an, und **Änderung abbrechen** beendet die Änderung. Die eigene Adresse eines Master-Admins ändert sich sofort.
+- **E-Mail**: die Adresse, mit der Sie sich anmelden. Wenn Sie sie ändern, sendet OneUptime einen Link an die neue Adresse, und Ihre Adresse ändert sich, sobald Sie ihn öffnen. Bis dahin melden Sie sich mit der bisherigen an, und **Änderung abbrechen** beendet die Änderung. Die eigene Adresse eines Master-Admins ändert sich sofort. Läuft der Link ab, sendet **Link erneut senden** einen neuen. Sobald sich Ihre Adresse ändert, sendet OneUptime eine E-Mail an die bisherige Adresse.
 - **Vollständiger Name**: der Name, den Ihr Team überall in OneUptime sieht.
 - **Zeitzone**: die Zeitzone, in der das Dashboard Zeiten anzeigt und liest, und die für die Zeiten in Benachrichtigungen an Sie verwendet wird.
 - **Sprache**: die Sprache des Dashboards in jedem Browser, in dem Sie sich anmelden, und Ihrer Bereitschaftsalarme. Ohne Auswahl sind Ihre Alarme auf Englisch, und das Dashboard folgt Ihrem Browser.
@@ -191,7 +191,11 @@ Diese Adresse hat bereits ein OneUptime-Konto, daher hat die Registrierung nicht
 :::
 
 :::details Meine E-Mail-Adresse hat sich nicht geändert
-Ihre Adresse ändert sich erst, wenn Sie den Link öffnen, den OneUptime an die neue Adresse gesendet hat. Der Link funktioniert 24 Stunden lang: Ist er abgelaufen, ändern Sie Ihre E-Mail erneut, um einen neuen zu erhalten. Nutzt bereits ein anderes Konto diese Adresse, steht das in der E-Mail dorthin, und Ihre Adresse bleibt, wie sie ist.
+Ihre Adresse ändert sich erst, wenn Sie den Link öffnen, den OneUptime an die neue Adresse gesendet hat. Der Link funktioniert 24 Stunden lang: Ist er abgelaufen, zeigt Ihr Profil das an, und **Link erneut senden** sendet einen neuen. Nutzt bereits ein anderes Konto diese Adresse, steht das in der E-Mail dorthin, und Ihre Adresse bleibt, wie sie ist.
+:::
+
+:::details Ich habe eine E-Mail erhalten, dass meine E-Mail-Adresse geändert wurde
+OneUptime sendet eine E-Mail an die bisherige Adresse Ihres Kontos, sobald sich die Adresse ändert: wenn Sie den Link an eine neue Adresse öffnen, wenn ein Server-Administrator sie ändert oder wenn der Identitätsanbieter Ihrer Organisation sie ändert. Haben Sie die Änderung vorgenommen, ist nichts weiter zu tun. Wenn nicht, hat jemand, der sich in Ihrem Konto anmelden konnte, es auf eine eigene Adresse umgestellt: Wenden Sie sich von Ihrer bisherigen Adresse aus an Ihren Server-Administrator oder, bei OneUptime Cloud, an support@oneuptime.com, die es zurückstellen können. Die E-Mail zeigt die neue Adresse nur teilweise und enthält keinen Link zum Rückgängigmachen: Ein solcher Link würde für jeden funktionieren, der Ihr altes Postfach liest.
 :::
 
 :::details Ich habe meine Authenticator-App verloren

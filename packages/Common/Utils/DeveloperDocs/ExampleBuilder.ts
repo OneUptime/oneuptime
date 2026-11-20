@@ -45,6 +45,7 @@ import {
   canLookUpByName,
   getNameColumn,
   getTerraformAttributes,
+  getTerraformProviderAttributeName,
   getTerraformTypeName,
   TerraformAttributeDescriptor,
   TerraformValueKind,
@@ -714,7 +715,10 @@ function toTerraformAttribute(data: {
   describeId: (id: string) => string | undefined;
 }): HclBodyItem | null {
   const { descriptor, resolved } = data;
-  const name: string = descriptor.attributeName;
+  // A name Terraform reserves by the provider's own: provider_value.
+  const name: string = getTerraformProviderAttributeName(
+    descriptor.attributeName,
+  );
 
   if (resolved.reference) {
     return Hcl.attribute(
@@ -944,12 +948,6 @@ export function getDeveloperDocsTerraformBlock(data: {
       );
     }
 
-    if (descriptor.isReservedName) {
-      throw new DeveloperDocsExampleError(
-        `${typeName}.${descriptor.attributeName} is named like a Terraform meta-argument and cannot be set in a configuration.`,
-      );
-    }
-
     let item: HclBodyItem | null;
     const viewerEmail: string | undefined = data.context.live.currentUserEmail;
 
@@ -987,7 +985,7 @@ export function getDeveloperDocsTerraformBlock(data: {
 
     if (descriptor.secretKind) {
       item = Hcl.attribute(
-        descriptor.attributeName,
+        getTerraformProviderAttributeName(descriptor.attributeName),
         data.variables.add(
           `${localName}_${descriptor.attributeName}`,
           `The ${descriptor.title} of ${label}.`,
@@ -1032,7 +1030,7 @@ export function getDeveloperDocsTerraformBlock(data: {
 
     body.push(item);
     rows.push({
-      name: descriptor.attributeName,
+      name: getTerraformProviderAttributeName(descriptor.attributeName),
       about: getDeveloperDocsFieldAbout({ modelType: data.modelType, field }),
       required: descriptor.isRequired,
     });
@@ -1119,11 +1117,14 @@ export function getTerraformCreateExample(data: {
 
 /*
  * A profile's fields, with the name and description first when the profile
- * leaves them out (every resource is better for both).
+ * leaves them out (every resource is better for both). The description
+ * names what manages the resource: Terraform, unless the Crossplane page
+ * asks for its own.
  */
 export function withNameAndDescription(
   modelType: DatabaseBaseModelType,
   profile: DeveloperDocsProfile,
+  managedWith: string = "Terraform",
 ): Array<DeveloperDocsField> {
   const fields: Array<DeveloperDocsField> =
     getDeveloperDocsProfileFields(profile);
@@ -1151,7 +1152,7 @@ export function withNameAndDescription(
         column,
         value:
           column === "description"
-            ? { kind: "literal", value: "Managed with Terraform." }
+            ? { kind: "literal", value: `Managed with ${managedWith}.` }
             : {
                 kind: "literal",
                 value: `My ${toSentenceCaseName(new modelType().singularName || "")}`,

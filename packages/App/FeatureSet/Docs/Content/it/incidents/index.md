@@ -179,7 +179,7 @@ Aprite un incidente e il suo menu laterale ne raggruppa le pagine così:
 | **Team**                  | **Ruoli**, **Esecuzioni di reperibilità**, **Proprietari**                                |
 | **Notifiche**             | **Log di notifica**, **Log IA** — ripiegata finché non fate clic su **Notifiche** |
 | **Note**                  | **Note private**, **Note pubbliche**                                                      |
-| **Sviluppatori**          | **Terraform**, **API**, **CLI**, **Assistenti IA** — ripiegata finché non fate clic su **Sviluppatori** |
+| **Sviluppatori**          | **Terraform**, **Crossplane**, **API**, **CLI**, **Assistenti IA** — ripiegata finché non fate clic su **Sviluppatori** |
 | **Avanzato**              | **Campi personalizzati**, **Impostazioni**, **Log di audit**, **Elimina incidente** — ripiegata finché non fate clic su **Avanzato** |
 
 Che cosa contiene ciascuna:

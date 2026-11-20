@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-ID записи есть в блоке `import`, который пишет её страница **Для разработчиков → Terraform** в панели управления, а `oneuptime <resource> list` выводит ID записей одного вида с помощью [CLI OneUptime](/docs/cli/resource-operations#вывод-записей). Когда ресурс готов, `status.atProvider` показывает запись. Чтобы дальше управлять ею, впишите её поля в `spec.forProvider` и задайте для `managementPolicies` значение `["*"]`.
+Страница **Для разработчиков → Crossplane** записи в панели управления пишет этот манифест за вас, с ID записи, а также манифест, который берёт запись под управление с её полями как есть. `oneuptime <resource> list` выводит ID записей одного вида с помощью [CLI OneUptime](/docs/cli/resource-operations#вывод-записей). Когда ресурс готов, `status.atProvider` показывает запись. Чтобы дальше управлять ею, впишите её поля в `spec.forProvider` и задайте для `managementPolicies` значение `["*"]`.
 
 ## Секреты
 

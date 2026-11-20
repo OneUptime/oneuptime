@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-The record's ID is in the `import` block its **Developer → Terraform** page writes in the dashboard, and `oneuptime <resource> list` lists the IDs of a kind of record with the [OneUptime CLI](/docs/cli/resource-operations#list-records). Once the resource is ready, `status.atProvider` shows the record. To manage it from then on, write its fields in `spec.forProvider` and set `managementPolicies` to `["*"]`.
+The record's **Developer → Crossplane** page in the dashboard writes this manifest for you, with its ID, and one that takes the record over with its fields as they are. `oneuptime <resource> list` lists the IDs of a kind of record with the [OneUptime CLI](/docs/cli/resource-operations#list-records). Once the resource is ready, `status.atProvider` shows the record. To manage it from then on, write its fields in `spec.forProvider` and set `managementPolicies` to `["*"]`.
 
 ## Secrets
 

@@ -28,7 +28,7 @@ not arrive. Switch to the openshift preset:
 The agent is now collecting:
 {{- /* The node collector DaemonSet reads these; EKS Fargate runs no DaemonSet. */}}
 {{- if eq (include "kubernetes-agent.daemonSetMetricsEnabled" .) "true" }}
-  - Node, pod, and container resource metrics (kubeletstats)
+  - Node, pod, and container resource metrics ({{ include "kubernetes-agent.componentType" (dict "root" . "type" "kubelet_stats") }})
 {{- if .Values.kubeletstats.utilizationMetrics.enabled }}
   - Container & pod CPU/memory saturation (% of request/limit)
 {{- end }}
@@ -40,9 +40,9 @@ The agent is now collecting:
 {{- end }}
 {{- end }}
   - Cluster-level metrics: deployments, replicas, pod phases (k8s_cluster)
-  - Kubernetes events (k8sobjects)
+  - Kubernetes events ({{ include "kubernetes-agent.componentType" (dict "root" . "type" "k8s_objects") }})
 {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
-  - OpenShift's cluster operators and version, Routes, DeploymentConfigs and Services (k8sobjects/openshift)
+  - OpenShift's cluster operators and version, Routes, DeploymentConfigs and Services ({{ include "kubernetes-agent.componentType" (dict "root" . "type" "k8s_objects") }}/openshift)
 {{- end }}
 {{- if .Values.kubeStateMetrics.enabled }}
 {{- if eq .Values.kubeStateMetrics.mode "bundled" }}
@@ -84,7 +84,7 @@ The agent is now collecting:
 {{- if eq $logMode "api" }}
   - Pod logs via the Kubernetes API (log-tailer Deployment — works on GKE Autopilot, EKS Fargate, and any cluster that blocks hostPath)
 {{- else if eq $logMode "daemonset" }}
-  - Pod logs from /var/log/pods (filelog DaemonSet)
+  - Pod logs from /var/log/pods ({{ include "kubernetes-agent.componentType" (dict "root" . "type" "file_log") }} DaemonSet)
 {{- if eq (include "kubernetes-agent.windowsPodLogsEnabled" .) "true" }}
   - Pod logs from Windows nodes via the Kubernetes API (log-tailer Deployment, scoped to pods the Linux-only DaemonSet cannot reach)
 {{- end }}

@@ -148,7 +148,7 @@ UDP에서 메시지는 최대 **최대 메시지 크기** 바이트입니다. **
 | `mcpOAuthGrantId`, `mcpClientName` | 변경을 거친 MCP 클라이언트입니다(있는 경우). |
 | `workflowId`, `workflowName` | 변경한 워크플로입니다(있는 경우). |
 | `workflowRunAs`, `workflowRunAsCustomRoleName` | 버전 3에서, 워크플로 단계가 무엇으로 실행되었는지(`Default`, `ProjectOwner` 또는 `CustomRole`)와 그때의 역할 이름입니다. |
-| `workflowRunAsGivenByUserId`, `workflowRunAsGivenByApiKeyId`, `workflowRunAsGivenByName` | 버전 3에서, 누구의 권한으로 실행되었는지입니다. 사람 또는 프로젝트 API 키의 id와 그때의 이름입니다. 변경을 워크플로가 하지 않았으면 이 다섯 키는 모두 `null`입니다. |
+| `workflowRunAsGiverUserId`, `workflowRunAsGiverApiKeyId`, `workflowRunAsGiverName` | 버전 3에서, 누구의 권한으로 실행되었는지입니다. 사람 또는 프로젝트 API 키의 id와 그때의 이름입니다. 변경을 워크플로가 하지 않았으면 이 다섯 키는 모두 `null`입니다. |
 | `changes` | 변경된 각 필드입니다. `field`와 `oldValue`, `newValue`가 들어 있고, 버전 2에서는 `summary`도 들어 있습니다. |
 
 파일은 줄마다 항목 하나를 담아 gzip으로 압축하며, 첫 항목의 시각을 기준으로 시간별로 정리됩니다: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.

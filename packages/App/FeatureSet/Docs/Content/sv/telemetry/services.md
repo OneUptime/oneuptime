@@ -65,7 +65,7 @@ En tjänsts sidomeny har sex avsnitt:
 | **Telemetri** | Dess **Loggar**, **Säkerhetshändelser**, **Spår**, **Mätvärden**, **Profiler**, **Undantag** och **Source maps**, redan filtrerade på den här tjänsten. |
 | **Aktivitet** | De **Incidenter**, **Larm** och händelser under **Schemalagt underhåll** som berör den. |
 | **Säkerhet** | **Datasäkerhet**: de känsliga data som tjänstens loggar, spår och undantag innehåller, och vad som ska åtgärdas ([Känsliga data i telemetri](/docs/data-security/telemetry)). **Efterlevnad**: hur de data står sig mot varje ramverk, med ett reglage som stänger av ett ramverk eller ett krav för den här tjänsten ([Efterlevnad i Datasäkerhet](/docs/data-security/compliance#på-en-resurs-sida)). Avsnittet visas när Datasäkerhet har skannat tjänstens telemetri, och är hopfällt från början. |
-| **Utvecklare** | **Terraform**, **API**, **CLI** och **AI-assistenter**: tjänsten styrd från kod. Avsnittet är hopfällt från början. |
+| **Utvecklare** | **Terraform**, **Crossplane**, **API**, **CLI** och **AI-assistenter**: tjänsten styrd från kod. Avsnittet är hopfällt från början. |
 | **Avancerad** | **Inställningar**, **Granskningsloggar** och **Ta bort tjänst**. **Avancerad** är hopfälld från början: fäll ut den först. |
 
 Bredvid namnet visar en tjänsts **Översikt** om dess telemetri kommer: **Tar emot data** så länge något har kommit under de senaste 30 minuterna, **Inga data nyligen** när inget längre kommer, och **Väntar på data** före dess första telemetri. En tjänst som bara skickar spans medan den hanterar förfrågningar visar **Inga data nyligen** när ingen anropar den, så det i sig är inget fel.

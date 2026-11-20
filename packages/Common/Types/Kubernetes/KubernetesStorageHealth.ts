@@ -21,14 +21,24 @@ import {
  * these rules, so the claims list's amber bar, a claim listed under Needs
  * attention and the PVC Almost Full template agree, at the same lines.
  *
- *   - The lines are StorageUsage's (KUBERNETES_STORAGE_USAGE_THRESHOLDS):
- *     nearly full from 80% used, almost out of space from 90% - where the
- *     kubelet's default nodefs eviction (nodefs.available<10%) starts on a
- *     node. Its imagefs eviction (imagefs.available<15%) starts at 85%, on
- *     the image disk, and on the root filesystem of a node that keeps its
- *     images there, as most do. Nearly full needs a look (warning); almost
- *     out of space is about to break: writes fail, pods are evicted
- *     (critical).
+ *   - A claim's lines are StorageUsage's (KUBERNETES_STORAGE_USAGE_THRESHOLDS):
+ *     nearly full from 80% used, almost out of space from 90%. Nearly full
+ *     needs a look (warning); almost out of space is about to break: writes
+ *     fail (critical).
+ *   - A disk that holds the node's container images is almost full from 85%
+ *     (KUBERNETES_IMAGE_DISK_USAGE_THRESHOLDS, #10057): the kubelet's
+ *     defaults start on it there, deleting unused images
+ *     (imageGCHighThresholdPercent) and evicting pods once less than 15% is
+ *     free (imagefs.available<15%, DiskPressure). That is the image disk of
+ *     a node that has one, and the root filesystem of a node that keeps its
+ *     images there, as most nodes do ("nodefs, imagefs, and containerfs all
+ *     refer to the same underlying filesystem", Kubernetes' node-pressure
+ *     eviction page). A node's root filesystem that holds no images is
+ *     almost full at 90%, where its nodefs eviction starts
+ *     (nodefs.available<10%). At 90% the alerts and the red bar came 5
+ *     points after the kubelet had started evicting pods from most nodes,
+ *     and a disk the kubelet holds at 85% by evicting them may never reach
+ *     90% at all.
  *   - Only a fresh reading counts. The kubelet measures a claim only while
  *     a pod mounts it, so the last reading of a claim nothing mounts any
  *     more stays on its row, and the lists still show it with its age; but
@@ -54,13 +64,29 @@ const translationKey: (text: string) => string = (text: string): string => {
 };
 
 /*
- * The lines a Kubernetes disk is nearly full and almost out of space at: the
- * claims list's and the Nodes list's bars, the cluster's Needs attention, and
- * the PVC Almost Full, High Node Disk Usage and Node Image Disk Almost Full
- * templates, which fire at the critical line.
+ * The lines a claim is nearly full and almost out of space at: the claims
+ * list's bars, the cluster's Needs attention, and the PVC Almost Full
+ * template, which fires at the critical line. A node's root filesystem that
+ * holds no images (its images have a disk of their own) is judged at them
+ * too: 90% is where its nodefs eviction starts.
  */
 export const KUBERNETES_STORAGE_USAGE_THRESHOLDS: StorageUsageThresholds =
   DEFAULT_STORAGE_USAGE_THRESHOLDS;
+
+/*
+ * The lines a disk that holds a node's container images is nearly full and
+ * almost full at (#10057): the Nodes list's Disk and Image Disk bars, the
+ * node's Disk Used charts, the cluster's Needs attention, and the High Node
+ * Disk Usage and Node Image Disk Almost Full templates, which fire at the
+ * critical line. 85% is where the kubelet's defaults start on such a disk:
+ * image garbage collection (imageGCHighThresholdPercent 85, down to 80) and
+ * the imagefs eviction (imagefs.available<15%). Nearly full stays at 80%,
+ * where image garbage collection brings a disk back down to.
+ */
+export const KUBERNETES_IMAGE_DISK_USAGE_THRESHOLDS: StorageUsageThresholds = {
+  warningPercent: DEFAULT_STORAGE_USAGE_THRESHOLDS.warningPercent,
+  criticalPercent: 85,
+};
 
 /*
  * How long a disk reading still says how full the disk is now, measured
@@ -227,7 +253,7 @@ export function isKubernetesStorageReadingFresh(
   );
 }
 
-// A claim's filesystem, or a node's root filesystem: used, free, capacity.
+// A claim's filesystem: used, free, capacity.
 export function getKubernetesVolumeUsage(
   row: KubernetesStorageRow,
 ): StorageUsage | null {
@@ -237,6 +263,47 @@ export function getKubernetesVolumeUsage(
       available: row.latestVolumeAvailableBytes,
     },
     KUBERNETES_STORAGE_USAGE_THRESHOLDS,
+  );
+}
+
+/*
+ * Whether a node's row holds a reading of an image disk of its own: ingest
+ * writes one only when a scrape shows the images' filesystem is not the root
+ * one (isSeparateKubernetesImageFs), and clears it when it is.
+ */
+export function hasKubernetesSeparateImageFs(
+  row: KubernetesStorageRow,
+): boolean {
+  const capacity: number | null = readStorageNumber(
+    row.latestImageFsCapacityBytes,
+  );
+  return capacity !== null && capacity > 0;
+}
+
+/*
+ * The lines a node's root filesystem is judged at: the image disk's, 85%,
+ * unless its images have a disk of their own. A node whose row says nothing
+ * of one keeps its images on its root filesystem, as most nodes do, so that
+ * is the line its kubelet starts evicting pods at.
+ */
+export function getKubernetesNodeRootDiskThresholds(
+  row: KubernetesStorageRow,
+): StorageUsageThresholds {
+  return hasKubernetesSeparateImageFs(row)
+    ? KUBERNETES_STORAGE_USAGE_THRESHOLDS
+    : KUBERNETES_IMAGE_DISK_USAGE_THRESHOLDS;
+}
+
+// A node's root filesystem: used, free, capacity, at its own lines.
+export function getKubernetesNodeRootDiskUsage(
+  row: KubernetesStorageRow,
+): StorageUsage | null {
+  return getStorageUsage(
+    {
+      capacity: row.latestVolumeCapacityBytes,
+      available: row.latestVolumeAvailableBytes,
+    },
+    getKubernetesNodeRootDiskThresholds(row),
   );
 }
 
@@ -261,7 +328,7 @@ export function getKubernetesImageFsUsage(
       capacity: row.latestImageFsCapacityBytes,
       available: row.latestImageFsAvailableBytes,
     },
-    KUBERNETES_STORAGE_USAGE_THRESHOLDS,
+    KUBERNETES_IMAGE_DISK_USAGE_THRESHOLDS,
   );
 }
 
@@ -481,10 +548,11 @@ export function assessKubernetesVolumeClaimStorage(
 
 /*
  * A node's disks, from a fresh reading: its root filesystem, and its image
- * filesystem when that is a disk of its own, each at the same lines. By
- * default the kubelet evicts pods at 10% free on the root filesystem and
- * 15% free on the one that holds the images, and fails image pulls when
- * that one fills. Null when both have room, or no fresh reading.
+ * filesystem when that is a disk of its own, each at its kubelet's lines. By
+ * default the kubelet evicts pods at 15% free on the disk that holds the
+ * images (the root filesystem on most nodes) and 10% free on a root
+ * filesystem that holds none, and fails image pulls when the images' disk
+ * fills. Null when both have room, or no fresh reading.
  */
 export function assessKubernetesNodeStorage(
   row: KubernetesStorageRow,
@@ -495,7 +563,7 @@ export function assessKubernetesNodeStorage(
   }
 
   const disks: Array<{ usage: StorageUsage; template: string }> = [];
-  const root: StorageUsage | null = getKubernetesVolumeUsage(row);
+  const root: StorageUsage | null = getKubernetesNodeRootDiskUsage(row);
   if (root && root.level !== StorageUsageLevel.Normal) {
     disks.push({ usage: root, template: REASON_DISK_USED_AND_FREE });
   }

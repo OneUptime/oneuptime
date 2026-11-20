@@ -96,9 +96,9 @@ describe("the export record schema", () => {
       ...KEYS_BEFORE_VERSION_3.slice(0, -1),
       "workflowRunAs",
       "workflowRunAsCustomRoleName",
-      "workflowRunAsGivenByUserId",
-      "workflowRunAsGivenByApiKeyId",
-      "workflowRunAsGivenByName",
+      "workflowRunAsGiverUserId",
+      "workflowRunAsGiverApiKeyId",
+      "workflowRunAsGiverName",
       "changes",
     ]);
   });
@@ -1014,9 +1014,9 @@ describe("version 3: what a workflow's step ran as", () => {
       workflowName: "Give new teams their role",
       workflowRunAs: "CustomRole",
       workflowRunAsCustomRoleName: "Team Provisioner",
-      workflowRunAsGivenByUserId: null,
-      workflowRunAsGivenByApiKeyId: KEY_ID,
-      workflowRunAsGivenByName: "Terraform",
+      workflowRunAsGiverUserId: null,
+      workflowRunAsGiverApiKeyId: KEY_ID,
+      workflowRunAsGiverName: "Terraform",
     };
   };
 
@@ -1030,15 +1030,15 @@ describe("version 3: what a workflow's step ran as", () => {
     expect({
       workflowRunAs: record.workflowRunAs,
       workflowRunAsCustomRoleName: record.workflowRunAsCustomRoleName,
-      workflowRunAsGivenByUserId: record.workflowRunAsGivenByUserId,
-      workflowRunAsGivenByApiKeyId: record.workflowRunAsGivenByApiKeyId,
-      workflowRunAsGivenByName: record.workflowRunAsGivenByName,
+      workflowRunAsGiverUserId: record.workflowRunAsGiverUserId,
+      workflowRunAsGiverApiKeyId: record.workflowRunAsGiverApiKeyId,
+      workflowRunAsGiverName: record.workflowRunAsGiverName,
     }).toEqual({
       workflowRunAs: "CustomRole",
       workflowRunAsCustomRoleName: "Team Provisioner",
-      workflowRunAsGivenByUserId: null,
-      workflowRunAsGivenByApiKeyId: KEY_ID,
-      workflowRunAsGivenByName: "Terraform",
+      workflowRunAsGiverUserId: null,
+      workflowRunAsGiverApiKeyId: KEY_ID,
+      workflowRunAsGiverName: "Terraform",
     });
 
     const person: AuditLogExportRecord = toAuditLogExportRecord(
@@ -1046,16 +1046,16 @@ describe("version 3: what a workflow's step ran as", () => {
         ...workflowRow(),
         workflowRunAs: "ProjectOwner",
         workflowRunAsCustomRoleName: null,
-        workflowRunAsGivenByUserId: GIVER_ID,
-        workflowRunAsGivenByApiKeyId: null,
-        workflowRunAsGivenByName: "Jane Doe",
+        workflowRunAsGiverUserId: GIVER_ID,
+        workflowRunAsGiverApiKeyId: null,
+        workflowRunAsGiverName: "Jane Doe",
       },
       3,
     )!;
 
     expect(person.workflowRunAs).toBe("ProjectOwner");
-    expect(person.workflowRunAsGivenByUserId).toBe(GIVER_ID);
-    expect(person.workflowRunAsGivenByName).toBe("Jane Doe");
+    expect(person.workflowRunAsGiverUserId).toBe(GIVER_ID);
+    expect(person.workflowRunAsGiverName).toBe("Jane Doe");
   });
 
   test("Default is said too, with nobody's permissions", () => {
@@ -1064,14 +1064,14 @@ describe("version 3: what a workflow's step ran as", () => {
         ...workflowRow(),
         workflowRunAs: "Default",
         workflowRunAsCustomRoleName: null,
-        workflowRunAsGivenByApiKeyId: null,
-        workflowRunAsGivenByName: null,
+        workflowRunAsGiverApiKeyId: null,
+        workflowRunAsGiverName: null,
       },
       3,
     )!;
 
     expect(record.workflowRunAs).toBe("Default");
-    expect(record.workflowRunAsGivenByName).toBeNull();
+    expect(record.workflowRunAsGiverName).toBeNull();
   });
 
   test("every key of version 3 is present, null on an entry no workflow made", () => {

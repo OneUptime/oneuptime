@@ -14,6 +14,15 @@
 # has the details.
 chartDefaultsVersion: "0.7.3"
 
+# How this agent was installed, for OneUptime's pages to say how to change one
+# of its settings. Do not set it: the Amazon EKS add-on, which is this chart,
+# sets it to aws-eks-addon (HelmChart/Marketplace/build.py), and it is empty
+# for a Helm install. The agent's ClusterRole carries it as its
+# oneuptime.com/installed-as label, so the cluster's Compliance page names the
+# add-on's configuration value that drops nodes/proxy, not a --set an add-on
+# buyer cannot run.
+installedAs: ""
+
 # Preset for the kind of cluster you're installing into. Sets compatible
 # defaults for log collection and security context — so you don't have to
 # think about hostPath, Pod Security Standards, or which log collection mode
@@ -856,6 +865,23 @@ cost:
     # prices. false always reads the bundled one. A rate card in
     # cost.opencost.customPricing keeps the agent on the bundled engine
     # too: someone chose those rates.
+    #
+    # The agent never stops the bundled engine itself: it reads the cluster
+    # and writes nothing to it, a GitOps tool would scale it back, and the
+    # bundled engine is the fallback, warm only while it runs. Once the
+    # cluster's overview says the bundled OpenCost is not needed, stop it:
+    #
+    #   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    #     --namespace oneuptime-agent --reset-then-reuse-values \
+    #     --set cost.engine.url=auto
+    #
+    # With Kubecost 3, which reads no Prometheus, memory right-sizing reads
+    # its peaks from the bundled Prometheus (the agent's /healthz says
+    # "bundled" under costPrometheus): add
+    # --set cost.engine.prometheusUrl=<a Prometheus that scrapes cAdvisor>,
+    # or keep the bundled engine. With auto, an engine that stops answering
+    # is waited for rather than replaced. To bundle it again, upgrade with
+    # --set cost.engine.url="".
     preferExisting: true
     # Allocation API path. Empty auto-detects by probing, in order:
     # /model/allocation (Kubecost), /allocation/compute (OpenCost),

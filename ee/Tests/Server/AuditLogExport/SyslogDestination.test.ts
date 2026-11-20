@@ -1476,9 +1476,9 @@ describe("an entry fitted to a datagram", () => {
       workflowName: "Give new teams their role",
       workflowRunAs: "CustomRole",
       workflowRunAsCustomRoleName: "R".repeat(500),
-      workflowRunAsGivenByUserId: null,
-      workflowRunAsGivenByApiKeyId: keyId,
-      workflowRunAsGivenByName: "K".repeat(500),
+      workflowRunAsGiverUserId: null,
+      workflowRunAsGiverApiKeyId: keyId,
+      workflowRunAsGiverName: "K".repeat(500),
       changes: [
         { field: "description", oldValue: "x".repeat(6000), newValue: "y" },
       ],
@@ -1497,12 +1497,12 @@ describe("an entry fitted to a datagram", () => {
     expect(bytesOf(fitted.message)).toBeLessThanOrEqual(2048);
     expect(Object.keys(json)).toEqual(getAuditLogExportRecordKeys(3));
     expect(json["workflowRunAs"]).toBe("CustomRole");
-    expect(json["workflowRunAsGivenByApiKeyId"]).toBe(keyId);
-    expect(json["workflowRunAsGivenByUserId"]).toBeNull();
+    expect(json["workflowRunAsGiverApiKeyId"]).toBe(keyId);
+    expect(json["workflowRunAsGiverUserId"]).toBeNull();
     expect(json["workflowRunAsCustomRoleName"]).toBe(
       limitText("R".repeat(500), 128),
     );
-    expect(json["workflowRunAsGivenByName"]).toBe(
+    expect(json["workflowRunAsGiverName"]).toBe(
       limitText("K".repeat(500), 128),
     );
   });

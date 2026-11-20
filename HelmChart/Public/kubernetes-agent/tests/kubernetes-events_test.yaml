@@ -34,7 +34,7 @@ tests:
       # would narrow what is watched.
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  k8sobjects:\\n    objects:\\n      - name: events\\n        mode: watch\\n        group: events.k8s.io\\n      # Pull full resource specs"
+          pattern: "\\n  k8s_objects:\\n    objects:\\n      - name: events\\n        mode: watch\\n        group: events.k8s.io\\n      # Pull full resource specs"
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "(field_selector|label_selector|exclude_watch_type|exclude_namespaces|include_initial_state):"
@@ -60,7 +60,7 @@ tests:
       # The logs pipeline runs no filter, whatever the rules say.
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n    logs:\\n      receivers:\\n        - k8sobjects\\n        - k8sobjects/compliance\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n        - transform/severity\\n(?:        #[^\\n]*\\n)*        - batch\\n      exporters:\\n        - otlphttp\\n"
+          pattern: "\\n    logs:\\n      receivers:\\n        - k8s_objects\\n        - k8s_objects/compliance\\n      processors:\\n        - memory_limiter\\n        - k8s_attributes\\n        - resource\\n        - transform/severity\\n(?:        #[^\\n]*\\n)*        - batch\\n      exporters:\\n        - otlp_http\\n"
 
   - it: sends every Event whatever the pod log severity threshold is
     template: templates/configmap-deployment.yaml
@@ -70,7 +70,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n    logs:\\n      receivers:\\n        - k8sobjects\\n        - k8sobjects/compliance\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n        - transform/severity\\n(?:        #[^\\n]*\\n)*        - batch\\n      exporters:\\n        - otlphttp\\n"
+          pattern: "\\n    logs:\\n      receivers:\\n        - k8s_objects\\n        - k8s_objects/compliance\\n      processors:\\n        - memory_limiter\\n        - k8s_attributes\\n        - resource\\n        - transform/severity\\n(?:        #[^\\n]*\\n)*        - batch\\n      exporters:\\n        - otlp_http\\n"
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "\\n  filter/telemetry:\\n(?:    [^\\n]*\\n)*?    logs:"
@@ -82,7 +82,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  k8sobjects:\\n    objects:\\n      - name: events\\n        mode: watch\\n        group: events.k8s.io\\n"
+          pattern: "\\n  k8s_objects:\\n    objects:\\n      - name: events\\n        mode: watch\\n        group: events.k8s.io\\n"
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "- name: pods\\n        mode: pull"

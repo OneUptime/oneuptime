@@ -47,6 +47,13 @@ import {
  *     reporting more than 30 minutes is expected - and is offline after a
  *     day, Esper's own next bucket. The two Esper templates read their
  *     devices apart, by platform, so neither alerts for the other's.
+ *   - A DAY for every device of a Workspace ONE UEM connection (#10086),
+ *     which reports on its own sample schedule, hours apart on an iPhone,
+ *     as Intune's devices do; AN HOUR for a SOTI MobiControl device (#10087)
+ *     whose agent keeps a live connection to its server - Android, Windows,
+ *     Linux - and A DAY for a SOTI Apple device, which checks in through
+ *     Apple's push service. The two SOTI templates read their devices
+ *     apart, by platform, as Esper's do.
  *   - ITS LATEST READING. A reading is written once per read, every 15
  *     minutes by default and as seldom as every hour, so the window is two
  *     hours - a read at the longest interval, a late one and one that
@@ -107,6 +114,18 @@ export const MANAGED_DEVICE_APPLE_PLATFORMS: ReadonlyArray<ManagedDevicePlatform
     ManagedDevicePlatform.IPadOS,
     ManagedDevicePlatform.TvOS,
     ManagedDevicePlatform.MacOS,
+  ];
+
+/*
+ * Every platform but Apple's: the devices a SOTI agent keeps a live
+ * connection from, read apart from its Apple devices.
+ */
+export const MANAGED_DEVICE_NON_APPLE_PLATFORMS: ReadonlyArray<ManagedDevicePlatform> =
+  [
+    ManagedDevicePlatform.Android,
+    ManagedDevicePlatform.Windows,
+    ManagedDevicePlatform.Linux,
+    ManagedDevicePlatform.Other,
   ];
 
 const METRIC_ALIAS: string = "minutes_since_check_in";
@@ -361,10 +380,83 @@ const intuneDeviceStoppedCheckingInTemplate: ManagedDeviceAlertTemplate =
       "Triggers when a device's latest reading says it has not checked in with Intune for more than a day, once for each such device.",
   });
 
+/*
+ * A Workspace ONE UEM connection's devices, every platform (#10086): each
+ * reports on its own sample schedule - an iPhone hours apart, when Apple's
+ * push service wakes it - so a day without a report is what says it is
+ * gone, as Inventory's Offline does.
+ */
+const workspaceOneDeviceStoppedCheckingInTemplate: ManagedDeviceAlertTemplate =
+  buildCheckInTemplate({
+    id: "workspace-one-device-stopped-checking-in",
+    provider: DeviceManagementProvider.WorkspaceOne,
+    name: "Workspace ONE Device Stopped Checking In",
+    summary: "A device has not reported to Workspace ONE for more than a day.",
+    description:
+      "Alert when a device Workspace ONE UEM manages has not reported for more than a day, one alert per device, resolved once it reports again. A device reports on its own schedule, an iPhone hours apart, so a day without a report is what says it is gone. A laptop left off over a weekend reads the same: raise the threshold for those. A device that is a host in Hosts, because a OneUptime agent reports it, is left to Host Stopped Reporting.",
+    thresholdInMinutes: MANAGED_DEVICE_STOPPED_SYNCING_MINUTES,
+    incidentTitle: "[Workspace ONE] Device stopped checking in",
+    incidentDescription:
+      "A device Workspace ONE UEM manages has not reported to Workspace ONE for more than a day, so it is off, has lost its network, or its Intelligent Hub stopped. Check its power and its network first; its Device Details page in the Workspace ONE UEM console shows when it was last seen. This resolves on its own once it reports again.",
+    criteriaDescription:
+      "Triggers when a device's latest reading says it has not reported to Workspace ONE for more than a day, once for each such device.",
+  });
+
+/*
+ * A SOTI MobiControl connection's devices whose agent keeps a live
+ * connection to the server (#10087): Android, Windows, Linux. MobiControl
+ * shows such a device offline the moment its agent disconnects, and an
+ * hour without it is what says it is gone - a reboot or a dropped Wi-Fi
+ * reconnects well within it.
+ */
+const sotiDeviceStoppedCheckingInTemplate: ManagedDeviceAlertTemplate =
+  buildCheckInTemplate({
+    id: "soti-device-stopped-checking-in",
+    provider: DeviceManagementProvider.Soti,
+    name: "SOTI Device Stopped Checking In",
+    summary:
+      "An Android, Windows or Linux device's MobiControl agent has been disconnected for more than an hour.",
+    description:
+      "Alert when the MobiControl agent of an Android, Windows or Linux device has not been connected to its server for more than an hour, one alert per device, resolved once it connects again. A MobiControl agent keeps a live connection, so an hour without one is what says the device is gone. A fleet switched off at night alerts every night: raise the threshold above the night. A device that is a host in Hosts, because a OneUptime agent reports it, is left to Host Stopped Reporting.",
+    thresholdInMinutes: MANAGED_DEVICE_STOPPED_CHECKING_IN_MINUTES,
+    platforms: MANAGED_DEVICE_NON_APPLE_PLATFORMS,
+    incidentTitle: "[SOTI] Device stopped checking in",
+    incidentDescription:
+      "The MobiControl agent of a device SOTI MobiControl manages has not been connected to its server for more than an hour, so the device is off, has lost its network, or its agent stopped. Check its power and its network first; the MobiControl web console shows when its agent last connected. This resolves on its own once it connects again.",
+    criteriaDescription:
+      "Triggers when a device's latest reading says its MobiControl agent has not been connected for more than an hour, once for each such device.",
+  });
+
+/*
+ * A SOTI MobiControl connection's Apple devices (#10087): an iPhone, iPad
+ * or Mac checks in through Apple's push service, hours apart, so a day
+ * without a check-in is what says it is gone.
+ */
+const sotiAppleDeviceStoppedCheckingInTemplate: ManagedDeviceAlertTemplate =
+  buildCheckInTemplate({
+    id: "soti-apple-device-stopped-checking-in",
+    provider: DeviceManagementProvider.Soti,
+    name: "SOTI Apple Device Stopped Checking In",
+    summary:
+      "An iPhone, iPad or Mac has not checked in with MobiControl for more than a day.",
+    description:
+      "Alert when an Apple device SOTI MobiControl manages has not checked in for more than a day, one alert per device, resolved once it checks in again. An Apple device checks in when Apple's push service wakes it, often hours apart, so a day without one is what says it is gone.",
+    thresholdInMinutes: MANAGED_DEVICE_STOPPED_SYNCING_MINUTES,
+    platforms: MANAGED_DEVICE_APPLE_PLATFORMS,
+    incidentTitle: "[SOTI] Apple device stopped checking in",
+    incidentDescription:
+      "An iPhone, iPad or Mac SOTI MobiControl manages has not checked in with MobiControl for more than a day, so it is off, cannot reach Apple's push service, or was taken out of management on the device. Check its power and its network first; the MobiControl web console shows when it last checked in. This resolves on its own once it checks in again.",
+    criteriaDescription:
+      "Triggers when a device's latest reading says it has not checked in with MobiControl for more than a day, once for each such device.",
+  });
+
 const ALL_TEMPLATES: ReadonlyArray<ManagedDeviceAlertTemplate> = [
   esperAndroidDeviceStoppedCheckingInTemplate,
   esperAppleDeviceStoppedCheckingInTemplate,
   intuneDeviceStoppedCheckingInTemplate,
+  workspaceOneDeviceStoppedCheckingInTemplate,
+  sotiDeviceStoppedCheckingInTemplate,
+  sotiAppleDeviceStoppedCheckingInTemplate,
 ];
 
 // Every template, of every service.

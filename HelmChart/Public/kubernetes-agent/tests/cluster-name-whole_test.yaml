@@ -364,7 +364,7 @@ tests:
       # missing k8s.cluster.name.
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "traces:\\s*\\n\\s*receivers:\\s*\\n\\s*- otlp\\s*\\n\\s*processors:\\s*\\n\\s*- memory_limiter\\s*\\n\\s*- transform/pod-level-mark\\s*\\n\\s*- k8sattributes\\s*\\n\\s*- transform/pod-level-unmark\\s*\\n\\s*- resource"
+          pattern: "traces:\\s*\\n\\s*receivers:\\s*\\n\\s*- otlp\\s*\\n\\s*processors:\\s*\\n\\s*- memory_limiter\\s*\\n\\s*- transform/pod-level-mark\\s*\\n\\s*- k8s_attributes\\s*\\n\\s*- transform/pod-level-unmark\\s*\\n\\s*- resource"
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "\\n\\s*metrics:\\n\\s*receivers:\\n(?:\\s*(?:#[^\\n]*|- \\w[^\\n]*)\\n)*\\s*- otlp\\n(?:\\s*(?:#[^\\n]*|- \\w[^\\n]*|\\{\\{[^\\n]*)\\n)*\\s*processors:\\n(?:\\s*(?:#[^\\n]*|- [^\\n]*)\\n)*?\\s*- resource\\n"

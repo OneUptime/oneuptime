@@ -63,7 +63,7 @@ Les premiers coûts apparaissent après la clôture de la première heure compl�
 
 Les métriques de coûts (`node_total_hourly_cost`, `pv_hourly_cost` et les autres) sont des métriques ordinaires : elles se trouvent dans l'explorateur de métriques, sur les tableaux de bord personnalisés et dans les moniteurs de métriques. Pour un tableau de bord prêt à l'emploi, allez dans **Produits → Tableaux de bord**, sélectionnez **Créer un tableau de bord** et choisissez **Kubernetes Cost Dashboard** : l'évolution du coût horaire des nœuds, les coûts unitaires du CPU et de la mémoire, et les dépenses de volumes et de load balancers.
 
-Sous les chiffres, la vue d'ensemble et la page **Coûts** indiquent d'où viennent leurs prix : les prix catalogue d'un cloud, votre grille tarifaire ou les tarifs par défaut d'OpenCost, quel que soit le moteur qui calcule le prix du cluster, Kubecost 3 compris. Un Kubecost qui lit votre facture cloud rapproche ses prix de cette facture environ un jour et demi après chaque heure : la ligne indique alors que les chiffres sont ses prix catalogue d'avant ce rapprochement. L'efficacité est un seul et même chiffre partout, métrique d'efficacité comprise : la part du CPU et de la mémoire demandés qui a été utilisée, chaque heure de conteneur étant pondérée par ce que coûtent son CPU et sa mémoire, si bien qu'un job peu coûteux qui n'utilise rien ne peut pas tirer vers le bas un cluster bien utilisé, et la capacité inutilisée n'est pas comptée.
+Sous les chiffres, la vue d'ensemble et la page **Coûts** indiquent d'où viennent leurs prix : les prix catalogue d'un cloud, votre grille tarifaire ou les tarifs par défaut d'OpenCost, quel que soit le moteur qui calcule le prix du cluster, Kubecost 3 compris. Un Kubecost qui lit votre facture cloud rapproche ses prix de cette facture environ deux jours après chaque heure, et OneUptime reprend chaque heure rapprochée : la ligne indique jusqu'où les chiffres sont rapprochés de votre facture. L'efficacité est un seul et même chiffre partout, métrique d'efficacité comprise : la part du CPU et de la mémoire demandés qui a été utilisée, chaque heure de conteneur étant pondérée par ce que coûtent son CPU et sa mémoire, si bien qu'un job peu coûteux qui n'utilise rien ne peut pas tirer vers le bas un cluster bien utilisé, et la capacité inutilisée n'est pas comptée.
 
 ## Vous utilisez déjà Kubecost ou OpenCost ?
 
@@ -191,7 +191,7 @@ Lisez ses journaux : `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-op
 :::
 
 :::details La vue d'ensemble indique que l'OpenCost embarqué n'est pas nécessaire
-Le cluster exécute son propre Kubecost ou OpenCost, et l'agent de coûts lit celui-ci : l'OpenCost embarqué par le chart ne calcule donc aucun prix. Mettez à jour avec `--set cost.engine.url=auto` pour l'arrêter, ainsi que son Prometheus, ou définissez `cost.engine.preferExisting=false` pour lire plutôt le moteur embarqué. Avec Kubecost 3, qui ne lit aucun Prometheus, les recommandations de mémoire viennent du Prometheus embarqué : désignez-en un autre avec `cost.engine.prometheusUrl` lors de la même mise à jour.
+Le cluster exécute son propre Kubecost ou OpenCost, et l'agent de coûts lit celui-ci : l'OpenCost embarqué par le chart ne calcule donc aucun prix. Mettez à jour avec `--set cost.engine.url=auto` pour l'arrêter, ainsi que son Prometheus, ou définissez `cost.engine.preferExisting=false` pour lire plutôt le moteur embarqué. Quand les recommandations de mémoire viennent du Prometheus embarqué, comme avec Kubecost 3, qui n'en lit aucun, la note le dit : désignez-en un autre avec `cost.engine.prometheusUrl` lors de la même mise à jour, ou gardez le moteur embarqué. L'agent de coûts ne l'arrête jamais lui-même : il n'écrit rien dans votre cluster, et le moteur embarqué est son repli tant que le vôtre ne répond pas.
 :::
 
 :::details L'agent de coûts ne lit pas votre moteur
@@ -215,7 +215,7 @@ Aucun pic de mémoire n'est parvenu à OneUptime : la mémoire n'a donc pas ét�
 :::
 
 :::details Les chiffres diffèrent de l'interface du moteur
-OneUptime envoie des heures entières et clôturées, telles que le moteur en a calculé le prix à leur clôture, ajustements de rapprochement compris : les dépenses de l'heure en cours apparaissent après sa clôture. Un Kubecost qui lit votre facture cloud rapproche chaque heure de celle-ci environ un jour et demi plus tard, et OneUptime conserve l'heure telle que son prix a d'abord été calculé.
+OneUptime envoie des heures entières et clôturées, telles que le moteur en a calculé le prix à leur clôture, ajustements de rapprochement compris : les dépenses de l'heure en cours apparaissent après sa clôture. Un Kubecost qui lit votre facture cloud rapproche chaque heure de celle-ci environ deux jours plus tard : OneUptime relit l'heure 36 heures, 47 heures et 4 jours après, et reprend ce qui a changé. Kubecost garde les chiffres horaires 49 heures par défaut, donc une heure qu'il rapproche après ce délai garde le chiffre que OneUptime a lu en dernier : pour reprendre chaque rapprochement, gardez-les 4 jours (`kubecostAggregator.etlHourlyStoreDurationHours: 96` avec Kubecost 2, `aggregator.retention1h: 96` avec Kubecost 3).
 :::
 
 :::details Le Prometheus intégré a redémarré

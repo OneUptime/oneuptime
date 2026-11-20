@@ -50,7 +50,7 @@ En policy som flere regler legger til, kjører én gang. En alvorlighetsgrad kj�
 | --- | --- |
 | **Grunnleggende** | **Oversikt**, **Eskaleringsregler** og **Eiere** |
 | **Logger** | **Utførelseslogger** og **Varslingslogger** |
-| **Utvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter** |
+| **Utvikler** | **Terraform**, **Crossplane**, **API**, **CLI** og **AI-assistenter** |
 | **Avansert** | **Brukeroverstyringer**, **Egendefinerte felt**, **Innstillinger**, **Revisjonslogger** og **Slett policy** |
 
 **Grunnleggende** er åpen; de andre seksjonene starter sammenslått til du klikker på dem.

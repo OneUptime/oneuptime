@@ -118,6 +118,43 @@ const isDelta: (row: PromQLMetricRow) => boolean = (
 };
 
 /*
+ * The `le` and `quantile` a gauge's or sum's own attributes carry. A
+ * histogram's and a summary's points have these labels made for them, so
+ * attributesToPromQLLabels never takes them from an attribute; but a
+ * classic histogram or summary sent as its series (Prometheus remote
+ * write, an exporter's _bucket and quantile series) is stored as sums and
+ * gauges that carry them as attributes, and without them every bucket of a
+ * series would be one series, and histogram_quantile would read none.
+ */
+const OWN_SERIES_LABELS: ReadonlyArray<string> = ["le", "quantile"];
+
+const ownSeriesLabels: (row: PromQLMetricRow) => PromQLLabels = (
+  row: PromQLMetricRow,
+): PromQLLabels => {
+  const labels: PromQLLabels = {};
+
+  for (const label of OWN_SERIES_LABELS) {
+    if (!Object.prototype.hasOwnProperty.call(row.attributes, label)) {
+      continue;
+    }
+
+    const value: unknown = row.attributes[label];
+
+    if (value === null || value === undefined) {
+      continue;
+    }
+
+    const text: string = typeof value === "string" ? value : String(value);
+
+    if (text.length > 0) {
+      labels[label] = text;
+    }
+  }
+
+  return labels;
+};
+
+/*
  * The series a set of rows holds for the requests, keeping only the series
  * whose labels satisfy every matcher, and only samples after `startTimeMs`
  * and up to `endTimeMs`.
@@ -243,7 +280,7 @@ export const promQLSeriesFromRows: (data: {
               push(
                 request.seriesName,
                 baseLabels,
-                {},
+                ownSeriesLabels(row),
                 row.timestampMs,
                 row.value,
                 pointType === "Sum" && delta,

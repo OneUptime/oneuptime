@@ -119,6 +119,11 @@ const EXPECTED_SECTIONS: Array<ExpectedSection> = [
         icon: IconProp.Cube,
       },
       {
+        title: "Crossplane",
+        pageMapKey: "TEAMS_DEVELOPER_CROSSPLANE",
+        icon: IconProp.Cube,
+      },
+      {
         title: "API",
         pageMapKey: "TEAMS_DEVELOPER_API",
         icon: IconProp.Code,
@@ -426,6 +431,7 @@ describe("Teams side menu: Roles in Settings", () => {
 
     test.each([
       ["Terraform", "TEAMS_DEVELOPER_TERRAFORM"],
+      ["Crossplane", "TEAMS_DEVELOPER_CROSSPLANE"],
       ["API", "TEAMS_DEVELOPER_API"],
       ["AI Assistants", "TEAMS_DEVELOPER_AI_ASSISTANTS"],
     ])(

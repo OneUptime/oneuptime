@@ -114,6 +114,19 @@ export interface KubernetesCostIngestPayload {
   shipmentId?: string | undefined;
   shipmentChunk?: number | undefined;
 
+  /*
+   * True when the rows are a later reading of windows the agent shipped
+   * before (#9969): a Kubecost that reads the cloud's bill reconciles its
+   * prices with it about two days after each hour, and the agent reads the
+   * hour again then. The server does not skip a window it holds for such a
+   * shipment, as it does a restart's re-ship: it brings each workload's,
+   * pod's and container's stored costs in line with the new reading, by
+   * writing the difference as a row of its own (isCostAdjustment), and the
+   * cost metrics' too. Absent on agents older than #9969; a server older
+   * than it skips the shipment as another delivery of a window it has.
+   */
+  correction?: boolean | undefined;
+
   allocations: Array<KubernetesCostAllocationIngestRow>;
 }
 

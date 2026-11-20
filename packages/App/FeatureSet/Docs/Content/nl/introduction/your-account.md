@@ -41,7 +41,7 @@ Klik rechtsboven op uw foto en kies **Profiel**. De pagina **Overzicht** opent m
 
 Klik op **Gebruiker bewerken** en wijzig wat u nodig hebt:
 
-- **E-mail**: het adres waarmee u inlogt. Als u het wijzigt, stuurt OneUptime een link naar het nieuwe adres, en uw adres verandert zodra u die opent. Tot die tijd logt u in met het huidige adres, en **Wijziging annuleren** stopt de wijziging. Het eigen adres van een hoofdbeheerder verandert meteen.
+- **E-mail**: het adres waarmee u inlogt. Als u het wijzigt, stuurt OneUptime een link naar het nieuwe adres, en uw adres verandert zodra u die opent. Tot die tijd logt u in met het huidige adres, en **Wijziging annuleren** stopt de wijziging. Het eigen adres van een hoofdbeheerder verandert meteen. Verloopt de link, dan stuurt **Link opnieuw versturen** een nieuwe. Telkens wanneer uw adres verandert, stuurt OneUptime een e-mail naar het adres dat u had.
 - **Volledige naam**: de naam die uw team overal in OneUptime ziet.
 - **Tijdzone**: de tijdzone waarin het dashboard tijden toont en leest, en die van de tijden in meldingen aan u.
 - **Taal**: de taal van het dashboard in elke browser waarin u inlogt, en van uw oproepen voor dienst. Niet ingesteld: uw oproepen zijn in het Engels en het dashboard volgt uw browser.
@@ -191,7 +191,11 @@ Dat adres heeft al een OneUptime-account, dus het registreren heeft niets aangem
 :::
 
 :::details Mijn e-mailadres is niet gewijzigd
-Uw adres verandert pas zodra u de link opent die OneUptime naar het nieuwe adres stuurde. De link werkt 24 uur: is hij verlopen, wijzig uw e-mail dan opnieuw om een nieuwe te krijgen. Gebruikt een ander account dat adres al, dan staat dat in de e-mail die daarheen ging, en blijft uw adres zoals het is.
+Uw adres verandert pas zodra u de link opent die OneUptime naar het nieuwe adres stuurde. De link werkt 24 uur: is hij verlopen, dan staat dat in uw profiel, en **Link opnieuw versturen** stuurt een nieuwe. Gebruikt een ander account dat adres al, dan staat dat in de e-mail die daarheen ging, en blijft uw adres zoals het is.
+:::
+
+:::details Ik kreeg een e-mail dat mijn e-mailadres is gewijzigd
+OneUptime stuurt een e-mail naar het adres dat uw account had, telkens wanneer dat adres verandert: wanneer u de link opent die naar een nieuw adres is gestuurd, wanneer een serverbeheerder het wijzigt of wanneer de identiteitsprovider van uw organisatie het wijzigt. Hebt u de wijziging zelf gedaan, dan hoeft u niets te doen. Zo niet, dan heeft iemand die zich bij uw account kon aanmelden het naar een eigen adres verplaatst: neem vanaf uw oude adres contact op met uw serverbeheerder of, bij OneUptime Cloud, met support@oneuptime.com, die het kunnen terugzetten. De e-mail toont het nieuwe adres maar gedeeltelijk en bevat geen link om de wijziging ongedaan te maken: zo'n link zou werken voor iedereen die uw oude mailbox leest.
 :::
 
 :::details Ik ben mijn authenticator-app kwijt

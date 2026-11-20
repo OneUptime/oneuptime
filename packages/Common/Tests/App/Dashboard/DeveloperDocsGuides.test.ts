@@ -21,9 +21,11 @@ import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
+import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import Models from "../../../Models/DatabaseModels/Index";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
+import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
@@ -426,7 +428,7 @@ describe("Terraform pages that need more care", () => {
     });
   });
 
-  test("a Kubernetes cluster's provider is left out of its configuration, and the page says why", () => {
+  test("a Kubernetes cluster's provider is left out of its configuration: OneUptime keeps it", () => {
     const cluster: KubernetesCluster = new KubernetesCluster();
     cluster._id = "7a8b9c0d-1234-4b2c-9d8e-0123456789ab";
     cluster.name = "production-us-east";
@@ -445,10 +447,30 @@ describe("Terraform pages that need more care", () => {
       }),
     );
 
-    expect(guide.steps[1]?.markdown).not.toMatch(/^\s*provider\s*=/m);
-    expect(guide.steps[1]?.markdown).toContain(
-      "Left out because Terraform reserves the name for its own use: `provider`.",
+    expect(guide.steps[1]?.markdown).not.toMatch(/^\s*provider(_value)?\s*=/m);
+    expect(guide.steps[1]?.markdown).not.toContain("reserves the name");
+  });
+
+  test("a cloud account's configuration sets its provider as provider_value, which Terraform takes", () => {
+    const guide: DeveloperDocsGuide = getDeveloperDocsGuide(
+      DeveloperDocsPageType.Terraform,
+      context({
+        resource: getDeveloperDocsResource(CloudAccount),
+        record: {
+          id: "2a2b3c4d-1234-4b2c-9d8e-0123456789ab",
+          displayName: "Production",
+          json: {
+            _id: "2a2b3c4d-1234-4b2c-9d8e-0123456789ab",
+            name: "Production",
+            provider: "aws",
+            accountId: "123456789012",
+          },
+        },
+      }),
     );
+
+    expect(guide.steps[1]?.markdown).toMatch(/^\s*provider_value\s*= "aws"$/m);
+    expect(guide.steps[1]?.markdown).not.toContain("reserves the name");
   });
 
   test("an inventory item's list page says why Terraform does not create them, and still imports them", () => {
@@ -664,6 +686,56 @@ describe("an incident's own API page", () => {
 
     expect(text).toContain("ApiKey: $ONEUPTIME_API_KEY");
     expect(text).not.toMatch(/ApiKey: [0-9a-f]{8}-/);
+  });
+
+  test("deletes it with a plain delete: an incident's delete says nothing besides the incident", () => {
+    const deleteStep: DeveloperDocsStep | undefined = guide.steps[3];
+
+    expect(deleteStep?.description).toBe("This deletes the incident for good.");
+    expect(deleteStep?.variants).toBeUndefined();
+    expect(deleteStep?.markdown).toContain(
+      `curl -X DELETE ${ORIGIN}/api/incident/${INCIDENT_ID}`,
+    );
+    expect(deleteStep?.markdown).not.toContain("-d ");
+  });
+});
+
+/*
+ * A custom role's delete says what the workflows that run as it run as
+ * instead (#10031): DeveloperDocsDeleteChoices.test.ts holds the step to
+ * the API, the CLI and every language.
+ */
+describe("a custom role's own API page", () => {
+  const ROLE_ID: string = "5a0e0000-0000-4000-8000-0000000000aa";
+  const guide: DeveloperDocsGuide = getDeveloperDocsGuide(
+    DeveloperDocsPageType.Api,
+    context({
+      resource: getDeveloperDocsResource(CustomRole),
+      record: {
+        id: ROLE_ID,
+        displayName: "Incident Automation",
+        json: { _id: ROLE_ID, name: "Incident Automation" },
+      },
+    }),
+  );
+
+  test("ends with a Delete it step that has a tab for each way, each with its request body", () => {
+    const deleteStep: DeveloperDocsStep | undefined =
+      guide.steps[guide.steps.length - 1];
+
+    expect(deleteStep?.title).toBe("Delete it");
+    expect(variantLabels(deleteStep?.variants)).toEqual([
+      "No workflow runs as it",
+      "Default permissions",
+      "Another custom role",
+    ]);
+    expect(deleteStep?.variants?.[0]?.markdown).not.toContain("miscDataProps");
+    expect(deleteStep?.variants?.[1]?.markdown).toContain(
+      '"workflowsRunAs": "Default"',
+    );
+    expect(deleteStep?.variants?.[2]?.markdown).toContain(
+      '"workflowsRunAsCustomRoleId": "<custom-role-id>"',
+    );
   });
 });
 
