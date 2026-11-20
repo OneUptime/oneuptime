@@ -9,6 +9,16 @@ OneUptime AI arbejder med det, Datasikkerhed har fundet, uden at se dine data. D
 - [Sådan måles det](#sådan-måles-det): Hver funktion på faste tilfælde, før hver udgivelse.
 :::
 
+## Af sig selv
+
+Med **Arbejd med nye problemer** slået til under **Datasikkerhed → AI**, som det er for nye projekter, arbejder OneUptime AI af sig selv med hvert nyt kritisk eller højt problem. Den skriver problemets analyse, som **Forklar med AI** gør og ud fra det, den sender, og sætter den på problemets **Tidslinje**. For et telemetriproblem foreslår den de rensningsregler, der skjuler dets data i ny telemetri. Et forslag venter på den side under **Venter på dig**, de mest risikable først, med hvad der ændres, hvorfor, hvordan det bevises, og hvordan det fortrydes. **Godkend** foretager ændringen med dine egne tilladelser: en rensningsregel kræver tilladelse til at oprette logrensningsregler, trace-rensningsregler eller metrik-pipelineregler. **Afvis forslaget** siger nej, med en begrundelse, der kommer på problemets tidslinje. Problemets egen kontrol afgør, om en ændring virkede: datalageret kontrolleres igen, og problemet løses, når ingen af dets data er tilbage.
+
+Som standard spørger OneUptime AI før hver ændring, undtagen en, der kun skjuler data, kan fortrydes og er bevist sikker, og den sletter aldrig data eller tilkalder nogen uden at spørge. En ændring, den har foretaget uden at spørge, står under **Udført af AI**, med **Fortryd**. **Hvorfor AI ikke handlede** viser de problemer, den har set på og ladet være, og hvorfor. Hvert forslag, hver godkendelse, afvisning og fortrydelse står på problemets og datalagerets **Tidslinje**. Med kontakten slået fra, eller AI slået fra for projektet, fungerer datasikkerhed som altid, og **Forklar med AI** og **Ret med AI** virker stadig, når du trykker på dem.
+
+### AI-regler
+
+Under **AI-regler** på **Datasikkerhed → AI** siger en regel, hvilke problemer OneUptime AI arbejder med - efter deres kontrol eller kontrolgruppe, alvorlighed og datalagerets følsomhed, type, udbyder, miljø, etiketter, datakategorier og tjeneste - og for hver slags arbejde, **Analysér**, **Inddæm**, **Rettelse** og **Vurdér**, om den er **Fra**, **Foreslå** (den foreslår og venter på dig) eller **Uden at spørge**. Når flere regler passer til et problem, kører en slags arbejde, hvis en af dem slår det til, og **Foreslå** går forud for **Uden at spørge**. Hvert forslag siger, hvilken regel der afgjorde det. Uden regel gælder projektets standarder: analysér kritiske og høje problemer, og foreslå alt andet.
+
 ## Hvad OneUptime AI ser
 
 Ingen funktion sender nogensinde en model:

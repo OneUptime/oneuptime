@@ -9,6 +9,16 @@ OneUptime AI arbetar med det som Datasäkerhet har hittat, utan att se dina data
 - [Hur det mäts](#hur-det-mäts): Varje funktion på fasta fall, före varje release.
 :::
 
+## På egen hand
+
+Med **Arbeta med nya problem** påslaget under **Datasäkerhet → AI**, som det är för nya projekt, arbetar OneUptime AI på egen hand med varje nytt kritiskt eller högt problem. Den skriver problemets analys, som **Förklara med AI** gör och utifrån det den skickar, och lägger den på problemets **Tidslinje**. För ett telemetriproblem föreslår den de rensningsregler som döljer dess data i ny telemetri. Ett förslag väntar på den sidan under **Väntar på dig**, de mest riskfyllda först, med vad som ändras, varför, hur det bevisas och hur det ångras. **Godkänn** gör ändringen med dina egna behörigheter: en rensningsregel kräver behörighet att skapa loggrensningsregler, spårrensningsregler eller pipelineregler för mätvärden. **Avfärda förslaget** säger nej, med en motivering som läggs på problemets tidslinje. Problemets egen kontroll avgör om en ändring fungerade: datalagret kontrolleras igen, och problemet löses när inga av dess data finns kvar.
+
+Som standard frågar OneUptime AI före varje ändring, utom en som bara döljer data, kan ångras och är bevisat säker, och den tar aldrig bort data eller larmar någon utan att fråga. En ändring som den gjorde utan att fråga visas under **Gjort av AI**, med **Ångra**. **Varför AI inte agerade** listar de problem som den tittade på och lät vara, och varför. Varje förslag, godkännande, avfärdande och ångrande finns på problemets och datalagrets **Tidslinje**. Med reglaget av, eller AI avstängd för projektet, fungerar datasäkerhet som vanligt, och **Förklara med AI** och **Åtgärda med AI** fungerar fortfarande när du trycker på dem.
+
+### AI-regler
+
+Under **AI-regler** på **Datasäkerhet → AI** säger en regel vilka problem OneUptime AI arbetar med - efter kontroll eller kontrollgrupp, allvarlighetsgrad, och datalagrets känslighet, typ, leverantör, miljö, etiketter, datakategorier och tjänst - och för varje typ av arbete, **Analysera**, **Begränsa**, **Åtgärd** och **Bedöm**, om den är **Av**, **Föreslå** (den föreslår och väntar på dig) eller **Utan att fråga**. När flera regler matchar ett problem körs en typ av arbete om någon av dem slår på den, och **Föreslå** går före **Utan att fråga**. Varje förslag säger vilken regel som avgjorde det. Utan regel gäller projektets standarder: analysera kritiska och höga problem, och föreslå allt annat.
+
 ## Vad OneUptime AI ser
 
 Ingen funktion skickar någonsin till en modell:

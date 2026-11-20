@@ -9,6 +9,16 @@ OneUptime AI lavora su ciò che Sicurezza dei dati ha trovato senza vedere i tuo
 - [Come viene misurata](#come-viene-misurata): Ogni funzionalità su casi fissi, prima di ogni release.
 :::
 
+## Da sola
+
+Con **Lavora sui nuovi problemi** attivo in **Sicurezza dei dati → IA**, come per i nuovi progetti, OneUptime AI lavora da sola su ogni nuovo problema critico o alto. Scrive l'analisi del problema, come fa **Spiega con l'IA** e a partire da ciò che invia, e la aggiunge alla **Cronologia** del problema. Per un problema di telemetria propone le regole di pulizia che nascondono i suoi dati nella nuova telemetria. Una proposta aspetta in quella pagina sotto **In attesa di te**, prima le più rischiose, con cosa cambierà, perché, come verrà dimostrato e come annullarlo. **Approva** fa la modifica con le tue autorizzazioni: una regola di pulizia richiede l'autorizzazione a creare regole di pulizia dei log, regole di pulizia delle tracce o regole della pipeline delle metriche. **Ignora la proposta** dice di no, con un motivo che viene aggiunto alla cronologia del problema. È il controllo del problema a decidere se una modifica ha funzionato: l'archivio viene controllato di nuovo, e il problema si risolve quando non resta nessuno dei suoi dati.
+
+Per impostazione predefinita, OneUptime AI chiede prima di ogni modifica, tranne una che nasconde solo dati, si può annullare ed è dimostrata sicura, e non elimina mai dati né avvisa nessuno senza chiedere. Una modifica fatta senza chiedere compare sotto **Fatto dall'IA**, con **Annulla**. **Perché l'IA non ha agito** elenca i problemi che ha esaminato e lasciato com'erano, e perché. Ogni proposta, approvazione, rifiuto e annullamento è nella **Cronologia** del problema e dell'archivio. Con l'interruttore disattivato, o l'IA disattivata per il progetto, la sicurezza dei dati funziona come sempre, e **Spiega con l'IA** e **Correggi con l'IA** funzionano ancora quando li premi.
+
+### Regole IA
+
+In **Regole IA** di **Sicurezza dei dati → IA**, una regola dice su quali problemi lavora OneUptime AI - per controllo o gruppo di controlli, gravità, e sensibilità, tipo, provider, ambiente, etichette, categorie di dati e servizio dell'archivio - e, per ogni tipo di lavoro, **Analizza**, **Contenimento**, **Correzione** e **Giudica**, se è **Disattivato**, **Suggerisci** (propone e ti aspetta) o **Senza chiedere**. Quando più regole corrispondono a un problema, un tipo di lavoro viene eseguito se una di esse lo attiva, e **Suggerisci** prevale su **Senza chiedere**. Ogni proposta dice quale regola l'ha decisa. Senza regole valgono le impostazioni predefinite del progetto: analizzare i problemi critici e alti, e suggerire tutto il resto.
+
 ## Cosa vede OneUptime AI
 
 Nessuna funzionalità invia mai a un modello:

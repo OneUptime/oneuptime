@@ -2623,7 +2623,11 @@ describe("Data Security Integrations", () => {
   });
 
   it("says what OneUptime AI does on its own as Data Security → AI names it", () => {
-    const onItsOwn: string = section(page, "### On its own");
+    // On OneUptime AI's own page; Integrations points there.
+    const onItsOwn: string = section(english(AI), "## On its own");
+    expect(section(page, "## OneUptime AI")).toContain(
+      "](/docs/data-security/ai)",
+    );
     const menu: string = source(
       "App/FeatureSet/Dashboard/src/Utils/DataSecurityNavigation.ts",
     );
@@ -2680,6 +2684,29 @@ describe("Data Security Integrations", () => {
     );
     expect(onItsOwn).toContain(
       "it never deletes data or pages anyone without asking",
+    );
+
+    // The AI rules, by the names their table and form draw.
+    const rules: string = section(english(AI), "### AI rules");
+
+    for (const name of [
+      "AI Rules",
+      "Analyze",
+      "Contain",
+      "Fix",
+      "Judge",
+      "Off",
+      "Suggest",
+      "Without asking",
+    ]) {
+      expect(copy).toContain(`translationKey("${name}")`);
+      expect(rules).toContain(`**${name}**`);
+    }
+
+    // Suggest wins over Without asking, as the engine decides it.
+    expect(rules).toContain("**Suggest** wins over **Without asking**");
+    expect(source("Common/Types/DataSecurity/DataSecurityAi.ts")).toContain(
+      "otherwise the careful answer wins - Suggest when any rule that",
     );
   });
 

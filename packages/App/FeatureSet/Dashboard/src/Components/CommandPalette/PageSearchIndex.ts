@@ -2923,6 +2923,8 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "done by ai",
               "approve ai changes",
               "oneuptime ai data security",
+              "data security ai rules",
+              "what ai may do without asking",
             ],
             settings: ["Work on new issues"],
           },

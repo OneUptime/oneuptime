@@ -9,6 +9,16 @@ OneUptime AI works on what Data Security found without seeing your data. It is s
 - [How it is measured](#how-it-is-measured): Every feature on fixed cases, before every release.
 :::
 
+## On its own
+
+With **Work on new issues** turned on under **Data Security → AI**, as it is for new projects, OneUptime AI works on each new Critical or High issue by itself. It writes the issue's analysis, as **Explain with AI** does and from what that sends, and puts it on the issue's **Timeline**. For a telemetry issue it proposes the scrub rules that hide its data in new telemetry. A proposal waits on that page under **Waiting for you**, riskiest first, with what will change, why, how it is proven and how to undo it. **Approve** makes the change with your own permissions: a scrub rule takes permission to create log scrub rules, trace scrub rules or metric pipeline rules. **Dismiss proposal** says no, with a reason that goes on the issue's timeline. The issue's own check decides whether a change worked: the store is checked again, and the issue resolves when none of its data is left.
+
+Out of the box, OneUptime AI asks before every change except one that only hides data, can be undone and is proven safe, and it never deletes data or pages anyone without asking. A change it made without asking is listed under **Done by AI**, with **Undo**. **Why AI did not act** lists the issues it looked at and left alone, and why. Every proposal, approval, dismissal and undo is on the issue's and the store's **Timeline**. With the switch off, or AI off for the project, Data Security works as it always does, and **Explain with AI** and **Fix with AI** still work when you press them.
+
+### AI rules
+
+Under **AI Rules** on **Data Security → AI**, a rule says which issues OneUptime AI works on - by their check or check group, severity, and the store's sensitivity, kind, provider, environment, labels, data categories and service - and, for each kind of work, **Analyze**, **Contain**, **Fix** and **Judge**, whether it is **Off**, **Suggest** (it proposes, and waits for you) or **Without asking**. When several rules match an issue, a kind of work runs if any of them turns it on, and **Suggest** wins over **Without asking**. Each proposal says which rule decided it. With no rule, the project's defaults apply: analyze Critical and High issues, and suggest everything else.
+
 ## What OneUptime AI sees
 
 No feature ever sends a model:

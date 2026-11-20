@@ -9,6 +9,16 @@ OneUptime AI travaille sur ce que Sécurité des données a trouvé sans voir vo
 - [Comment c'est mesuré](#comment-cest-mesuré): Chaque fonctionnalité sur des cas fixes, avant chaque version.
 :::
 
+## De lui-même
+
+Avec **Travailler sur les nouveaux problèmes** activé sous **Sécurité des données → IA**, comme pour les nouveaux projets, OneUptime AI travaille de lui-même sur chaque nouveau problème critique ou élevé. Il rédige l'analyse du problème, comme le fait **Expliquer avec l'IA** et à partir de ce qu'elle envoie, et l'ajoute à la **Chronologie** du problème. Pour un problème de télémétrie, il propose les règles de nettoyage qui masquent ses données dans la nouvelle télémétrie. Une proposition attend sur cette page sous **En attente de votre part**, les plus risquées d'abord, avec ce qui va changer, pourquoi, comment ce sera prouvé et comment l'annuler. **Approuver** fait la modification avec vos propres autorisations : une règle de nettoyage demande l'autorisation de créer des règles de nettoyage de journaux, des règles de nettoyage de traces ou des règles de pipeline de métriques. **Ignorer la proposition** dit non, avec une raison ajoutée à la chronologie du problème. Le contrôle propre au problème décide si une modification a fonctionné : le magasin de données est contrôlé à nouveau, et le problème est résolu quand il ne reste plus aucune de ses données.
+
+Par défaut, OneUptime AI demande avant chaque modification, sauf celle qui ne fait que masquer des données, peut être annulée et est prouvée sûre, et il ne supprime jamais de données ni n'alerte personne sans demander. Une modification faite sans demander apparaît sous **Fait par l'IA**, avec **Annuler**. **Pourquoi l'IA n'a pas agi** liste les problèmes qu'il a examinés et laissés tels quels, et pourquoi. Chaque proposition, approbation, refus et annulation figure dans la **Chronologie** du problème et du magasin de données. Avec l'interrupteur désactivé, ou l'IA désactivée pour le projet, la sécurité des données fonctionne comme toujours, et **Expliquer avec l'IA** et **Corriger avec l'IA** fonctionnent toujours quand vous les utilisez.
+
+### Règles IA
+
+Sous **Règles IA** dans **Sécurité des données → IA**, une règle dit sur quels problèmes OneUptime AI travaille - selon leur contrôle ou groupe de contrôles, leur gravité, et la sensibilité, le type, le fournisseur, l'environnement, les étiquettes, les catégories de données et le service du magasin de données - et, pour chaque type de travail, **Analyser**, **Confinement**, **Correction** et **Juger**, s'il est **Désactivé**, **Suggérer** (il propose et vous attend) ou **Sans demander**. Quand plusieurs règles correspondent à un problème, un type de travail s'exécute si l'une d'elles l'active, et **Suggérer** l'emporte sur **Sans demander**. Chaque proposition indique la règle qui l'a décidée. Sans règle, les valeurs par défaut du projet s'appliquent : analyser les problèmes critiques et élevés, et suggérer tout le reste.
+
 ## Ce que voit OneUptime AI
 
 Aucune fonctionnalité n'envoie jamais à un modèle :

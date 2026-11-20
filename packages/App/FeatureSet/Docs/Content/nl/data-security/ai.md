@@ -9,6 +9,16 @@ OneUptime AI werkt met wat Gegevensbeveiliging heeft gevonden, zonder je gegeven
 - [Hoe het wordt gemeten](#hoe-het-wordt-gemeten): Elke functie op vaste gevallen, voor elke release.
 :::
 
+## Uit zichzelf
+
+Met **Aan nieuwe problemen werken** ingeschakeld onder **Gegevensbeveiliging → AI**, zoals bij nieuwe projecten, werkt OneUptime AI uit zichzelf aan elk nieuw kritiek of hoog probleem. Het schrijft de analyse van het probleem, zoals **Uitleggen met AI** dat doet en op basis van wat dat verstuurt, en zet die op de **Tijdlijn** van het probleem. Voor een telemetrieprobleem stelt het de opschoonregels voor die de gegevens ervan in nieuwe telemetrie verbergen. Een voorstel wacht op die pagina onder **Wacht op u**, de riskantste eerst, met wat er verandert, waarom, hoe het wordt bewezen en hoe je het ongedaan maakt. **Goedkeuren** voert de wijziging uit met je eigen machtigingen: een opschoonregel vereist de machtiging om opschoonregels voor logs, opschoonregels voor traces of pipelineregels voor metrieken te maken. **Voorstel negeren** zegt nee, met een reden die op de tijdlijn van het probleem komt. De eigen controle van het probleem beslist of een wijziging heeft gewerkt: de opslag wordt opnieuw gecontroleerd, en het probleem wordt opgelost zodra er geen gegevens ervan over zijn.
+
+Standaard vraagt OneUptime AI vóór elke wijziging, behalve een die alleen gegevens verbergt, ongedaan kan worden gemaakt en bewezen veilig is, en het verwijdert nooit gegevens en roept nooit iemand op zonder te vragen. Een wijziging die het zonder te vragen heeft gedaan, staat onder **Gedaan door AI**, met **Ongedaan maken**. **Waarom AI niet heeft gehandeld** toont de problemen die het heeft bekeken en met rust heeft gelaten, en waarom. Elk voorstel, elke goedkeuring, elke keer negeren en elke keer ongedaan maken staat op de **Tijdlijn** van het probleem en van de opslag. Met de schakelaar uit, of AI uit voor het project, werkt gegevensbeveiliging zoals altijd, en **Uitleggen met AI** en **Oplossen met AI** werken nog steeds als je erop drukt.
+
+### AI-regels
+
+Onder **AI-regels** op **Gegevensbeveiliging → AI** zegt een regel aan welke problemen OneUptime AI werkt - op hun controle of controlegroep, ernst, en de gevoeligheid, soort, provider, omgeving, labels, gegevenscategorieën en service van de opslag - en, voor elk soort werk, **Analyseren**, **Indammen**, **Herstel** en **Beoordelen**, of het **Uit** staat, op **Voorstellen** (het stelt voor en wacht op u) of op **Zonder te vragen**. Als meerdere regels bij een probleem passen, draait een soort werk als een van hen het aanzet, en **Voorstellen** gaat voor **Zonder te vragen**. Elk voorstel zegt welke regel erover besliste. Zonder regel gelden de standaarden van het project: kritieke en hoge problemen analyseren, en al het andere voorstellen.
+
 ## Wat OneUptime AI ziet
 
 Geen enkele functie stuurt een model ooit:

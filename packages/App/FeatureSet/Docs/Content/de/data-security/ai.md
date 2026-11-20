@@ -9,6 +9,16 @@ OneUptime AI arbeitet mit dem, was Datensicherheit gefunden hat, ohne Ihre Daten
 - [Wie es gemessen wird](#wie-es-gemessen-wird): Jede Funktion an festen Fällen, vor jedem Release.
 :::
 
+## Von sich aus
+
+Ist **An neuen Problemen arbeiten** unter **Datensicherheit → KI** eingeschaltet, wie bei neuen Projekten, arbeitet OneUptime AI von sich aus an jedem neuen kritischen oder hohen Problem. Sie schreibt die Analyse des Problems, wie **Mit KI erklären** es tut und aus dem, was das sendet, und legt sie in der **Zeitachse** des Problems ab. Für ein Telemetrieproblem schlägt sie die Bereinigungsregeln vor, die seine Daten in neuer Telemetrie verbergen. Ein Vorschlag wartet auf dieser Seite unter **Wartet auf Sie**, das Riskanteste zuerst, mit dem, was sich ändert, warum, wie es nachgewiesen wird und wie man es rückgängig macht. **Genehmigen** nimmt die Änderung mit Ihren eigenen Berechtigungen vor: Eine Bereinigungsregel erfordert die Berechtigung, Bereinigungsregeln für Logs, Bereinigungsregeln für Traces oder Metrik-Pipeline-Regeln zu erstellen. **Vorschlag verwerfen** sagt Nein, mit einer Begründung, die in die Zeitachse des Problems kommt. Ob eine Änderung gewirkt hat, entscheidet die eigene Prüfung des Problems: Der Datenspeicher wird erneut geprüft, und das Problem wird behoben, sobald keine seiner Daten mehr übrig sind.
+
+Standardmäßig fragt OneUptime AI vor jeder Änderung, außer vor einer, die nur Daten verbirgt, rückgängig gemacht werden kann und nachweislich sicher ist, und sie löscht nie Daten und alarmiert nie jemanden ohne Rückfrage. Eine Änderung, die sie ohne Rückfrage vorgenommen hat, steht unter **Von der KI erledigt**, mit **Rückgängig**. **Warum die KI nicht gehandelt hat** listet die Probleme, die sie angesehen und unberührt gelassen hat, und warum. Jeder Vorschlag, jede Genehmigung, jedes Verwerfen und jedes Rückgängigmachen steht in der **Zeitachse** des Problems und des Datenspeichers. Ist der Schalter aus oder die KI für das Projekt ausgeschaltet, funktioniert die Datensicherheit wie immer, und **Mit KI erklären** und **Mit KI beheben** funktionieren weiterhin, wenn Sie sie drücken.
+
+### KI-Regeln
+
+Unter **KI-Regeln** auf **Datensicherheit → KI** legt eine Regel fest, an welchen Problemen OneUptime AI arbeitet - nach ihrer Prüfung oder Prüfungsgruppe, ihrem Schweregrad und der Sensibilität, Art, dem Anbieter, der Umgebung, den Beschriftungen, Datenkategorien und dem Dienst des Datenspeichers - und für jede Art von Arbeit, **Analysieren**, **Eindämmen**, **Behebung** und **Beurteilen**, ob sie **Aus** ist, **Vorschlagen** (sie schlägt vor und wartet auf Sie) oder **Ohne Rückfrage**. Passen mehrere Regeln zu einem Problem, läuft eine Art von Arbeit, wenn eine von ihnen sie einschaltet, und **Vorschlagen** hat Vorrang vor **Ohne Rückfrage**. Jeder Vorschlag sagt, welche Regel ihn entschieden hat. Ohne Regel gelten die Standards des Projekts: kritische und hohe Probleme analysieren und alles andere vorschlagen.
+
 ## Was OneUptime AI sieht
 
 Keine Funktion sendet einem Modell jemals:

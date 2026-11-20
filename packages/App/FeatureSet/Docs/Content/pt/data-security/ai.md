@@ -9,6 +9,16 @@ O OneUptime AI trabalha com o que a Segurança de dados encontrou sem ver os seu
 - [Como é medido](#como-é-medido): Cada recurso em casos fixos, antes de cada versão.
 :::
 
+## Por conta própria
+
+Com **Trabalhar em problemas novos** ligado em **Segurança de dados → IA**, como nos projetos novos, o OneUptime AI trabalha por conta própria em cada novo problema crítico ou alto. Ele escreve a análise do problema, como **Explicar com IA** faz e a partir do que essa ação envia, e a coloca na **Linha do tempo** do problema. Para um problema de telemetria, ele propõe as regras de limpeza que ocultam os dados dele na telemetria nova. Uma proposta aguarda nessa página em **Aguardando você**, as mais arriscadas primeiro, com o que vai mudar, por quê, como será comprovado e como desfazer. **Aprovar** faz a mudança com as suas próprias permissões: uma regra de limpeza exige permissão para criar regras de limpeza de logs, regras de limpeza de traces ou regras de pipeline de métricas. **Dispensar proposta** diz não, com um motivo que vai para a linha do tempo do problema. A própria verificação do problema decide se uma mudança funcionou: o repositório é verificado de novo, e o problema é resolvido quando não resta nenhum dos dados dele.
+
+Por padrão, o OneUptime AI pergunta antes de cada mudança, exceto uma que só oculta dados, pode ser desfeita e está comprovadamente segura, e nunca apaga dados nem aciona ninguém sem perguntar. Uma mudança que ele fez sem perguntar aparece em **Feito pela IA**, com **Desfazer**. **Por que a IA não agiu** lista os problemas que ele analisou e deixou como estavam, e por quê. Cada proposta, aprovação, dispensa e reversão está na **Linha do tempo** do problema e do repositório. Com a chave desligada, ou a IA desligada no projeto, a segurança de dados funciona como sempre, e **Explicar com IA** e **Corrigir com IA** continuam funcionando quando você os aciona.
+
+### Regras de IA
+
+Em **Regras de IA** de **Segurança de dados → IA**, uma regra diz em quais problemas o OneUptime AI trabalha - pela verificação ou grupo de verificações, gravidade, e sensibilidade, tipo, provedor, ambiente, rótulos, categorias de dados e serviço do repositório - e, para cada tipo de trabalho, **Analisar**, **Conter**, **Correção** e **Julgar**, se está em **Desativado**, **Sugerir** (ele propõe e aguarda você) ou **Sem perguntar**. Quando várias regras correspondem a um problema, um tipo de trabalho é executado se alguma delas o liga, e **Sugerir** prevalece sobre **Sem perguntar**. Cada proposta diz qual regra a decidiu. Sem regra, valem os padrões do projeto: analisar problemas críticos e altos, e sugerir todo o resto.
+
 ## O que o OneUptime AI vê
 
 Nenhum recurso jamais envia a um modelo:
