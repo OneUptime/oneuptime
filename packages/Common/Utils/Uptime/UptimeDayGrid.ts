@@ -179,7 +179,7 @@ export default class UptimeDayGrid {
 
     if (!zoneName) {
       throw new BadDataException(
-        "timezone must be an IANA time zone name, for example Europe/London.",
+        "That time zone is not one OneUptime knows. Use an IANA time zone name, for example Europe/London.",
       );
     }
 
