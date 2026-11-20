@@ -149,6 +149,8 @@ const SUBSCRIPTION: string = "d6252cc9-f01c-428b-924d-9896199f9a13";
 
 const CHECKOUT_SITE: string = "7d000000-0000-4000-8000-000000000101";
 const QUIET_SITE: string = "7d000000-0000-4000-8000-000000000102";
+// A site Azure Monitor reported nothing of in the hour.
+const IDLE_SITE: string = "7d000000-0000-4000-8000-000000000104";
 // A site the reader's labels do not give them.
 const HIDDEN_SITE: string = "7d000000-0000-4000-8000-000000000103";
 
@@ -196,6 +198,8 @@ const SEARCH: AppFixture = {
 };
 // Its site answered nothing in the hour: a measured "No requests".
 const QUIET: AppFixture = { index: 5, name: "quiet-api", site: QUIET_SITE };
+// Its site reported nothing in the hour: unknown, so "No traces", never 0.
+const IDLE: AppFixture = { index: 6, name: "idle-api", site: IDLE_SITE };
 
 function appId(index: number): string {
   return `7d000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
@@ -229,6 +233,7 @@ function siteRow(id: string, name: string): CloudResource {
 const READABLE_SITES: Array<CloudResource> = [
   siteRow(CHECKOUT_SITE, "checkout-api"),
   siteRow(QUIET_SITE, "quiet-api"),
+  siteRow(IDLE_SITE, "idle-api"),
 ];
 
 const REQUESTS: string = getAppServiceStoredMetricName({
@@ -274,7 +279,7 @@ function listOf<T extends BaseModel>(data: Array<T>): ListResult<BaseModel> {
 }
 
 beforeEach(() => {
-  apps = [CHECKOUT, ORDERS, BILLING, SEARCH, QUIET];
+  apps = [CHECKOUT, ORDERS, BILLING, SEARCH, QUIET, IDLE];
   aggregates = [];
   metricReads = "answer";
   mockTable.rows = [];
@@ -536,7 +541,7 @@ describe.each([
       ).toBeNull();
       expect(sitesAskedFor().has(armId("orders-api"))).toBe(false);
       expect(sitesAskedFor()).toEqual(
-        new Set([armId("checkout-api"), armId("quiet-api")]),
+        new Set([armId("checkout-api"), armId("quiet-api"), armId("idle-api")]),
       );
     });
 
@@ -618,6 +623,25 @@ describe.each([
       expect(
         within(cellOf("billing-api")).getByTestId("cloud-app-no-traces"),
       ).toBeInTheDocument();
+    });
+
+    test("a site Azure Monitor reported nothing of in the hour says No traces, never No requests or a 0", async () => {
+      await draw();
+
+      await waitFor(() => {
+        expect(
+          within(cellOf("checkout-api")).getByTestId(
+            "cloud-app-platform-signals",
+          ),
+        ).toBeInTheDocument();
+      });
+
+      const cell: HTMLElement = cellOf("idle-api");
+
+      expect(within(cell).getByTestId("cloud-app-no-traces")).toBeInTheDocument();
+      expect(
+        within(cell).queryByTestId("cloud-app-platform-signals"),
+      ).toBeNull();
     });
 
     test("a read that fails shows No traces, never a 0", async () => {
