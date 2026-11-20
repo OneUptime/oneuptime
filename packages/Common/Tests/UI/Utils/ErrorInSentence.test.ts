@@ -578,6 +578,7 @@ describe("getErrorReader: the page's reader", () => {
 
     expect(importsOf("UI/Utils/ErrorInSentence.ts")).toEqual(
       [
+        "../../Types/CloudConnection/AwsRoleExternalIdRefusal",
         "../../Types/DataObservability/DataCheckRefusals",
         "../../Types/Database/UniqueName",
         "../../Types/Exception/RefusalWithValues",
@@ -612,6 +613,13 @@ describe("getErrorReader: the page's reader", () => {
       "../Exception/RefusalWithValues",
       "../Translator",
     ]);
+    /*
+     * An AWS role without the project's external id (#10425): the setup
+     * commands it is written from stay out of the first load.
+     */
+    expect(
+      importsOf("Types/CloudConnection/AwsRoleExternalIdRefusal.ts"),
+    ).toEqual(["../Exception/RefusalWithValues", "../Translator"]);
   });
 });
 

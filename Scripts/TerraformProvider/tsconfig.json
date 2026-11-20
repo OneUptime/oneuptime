@@ -19,9 +19,11 @@
    * and the "Common/*" alias, which Common's file resolves to
    * packages/Common), and the generator's own files - Core/, Tests/ and
    * GenerateProvider.ts - are held to the same strict rules, as they already
-   * are wherever else they are compiled: Common's test type-check imports
-   * Core/ (packages/Common/Tests), and `npm run generate-terraform-provider`
-   * runs them through ts-node with the repository root's strict tsconfig.
+   * are where Common's test type-check imports Core/ (packages/Common/Tests).
+   * This is the only type check of the whole generator: `npm run
+   * generate-terraform-provider` runs it through ts-node transpile-only,
+   * checking no types, to keep ts-node's type checker out of the runner's
+   * memory while Go compiles the provider.
    *
    * Only what has to differ is set here:
    *   - module: jest and ts-node run these files as CommonJS. Common's own

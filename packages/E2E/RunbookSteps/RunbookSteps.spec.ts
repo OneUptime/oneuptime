@@ -448,6 +448,96 @@ test.describe("a runbook's steps, at a laptop's width", () => {
     await screenshot(page, "steps-http-post");
   });
 
+  /*
+   * How an HTTP request checks the server's certificate (#10277), after its
+   * headers under More fields: the switch, named and worded as a monitor's,
+   * off; while it is off, the CA certificate it trusts instead. On, the CA
+   * certificate goes, the folded line says so, and Save sends it on that
+   * step alone.
+   */
+  test("an HTTP request folds how it checks the server's certificate: the switch, then the CA certificate while it is off", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSteps(page);
+
+    await openStep(page, "Page the database team");
+    const fold: Locator = await openMoreFields(page, 2);
+    const toggle: Locator = fold.getByRole("switch", {
+      name: "Allow self-signed certificates",
+    });
+
+    await expect(toggle).toHaveAttribute("aria-checked", "false");
+    await expect(
+      fold.getByText(
+        "Skips certificate checks for this step's request, so self-signed certificates work, but anyone on the network path could read or change the request.",
+      ),
+    ).toBeVisible();
+
+    const ca: Locator = fold.getByLabel("CA certificate", { exact: true });
+    await expect(ca).toBeVisible();
+
+    // Text that is not a certificate says so under its box.
+    await ca.fill("my internal CA");
+    await expect(
+      fold.getByText(
+        "Paste a certificate in PEM, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----.",
+      ),
+    ).toBeVisible();
+    await screenshot(page, "steps-http-certificates");
+    await ca.fill("");
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-checked", "true");
+    await expect(
+      fold.getByLabel("CA certificate", { exact: true }),
+    ).toHaveCount(0);
+    await screenshot(page, "steps-http-allow-self-signed-on");
+
+    await moreFieldsButton(page, 2).click();
+    await expect(foldedLine(fold)).resolves.toContain(
+      "Allow self-signed certificates: On",
+    );
+
+    const steps: Array<SavedStep> = await saveSteps(page);
+
+    for (const step of steps) {
+      expect({
+        title: step.title,
+        allows: step.config["allowSelfSignedCertificates"] === true,
+        hasCa: "caCertificate" in step.config,
+      }).toEqual({
+        title: step.title,
+        allows: step.title === "Page the database team",
+        hasCa: false,
+      });
+    }
+  });
+
+  test("in German, in the dark, on a phone, the certificate fields keep to the card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openSteps(page, "lang=de&theme=dark");
+
+    await openStep(page, "Page the database team");
+    const fold: Locator = await openMoreFields(page, 2);
+
+    await expect(
+      fold.getByRole("switch", {
+        name: GERMAN["Allow self-signed certificates"]!,
+      }),
+    ).toBeVisible();
+    await expect(
+      fold.getByLabel(GERMAN["CA certificate"]!, { exact: true }),
+    ).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "steps-http-certificates-phone-de-dark");
+  });
+
   test("a runbook a client still saves the old way reads as it runs, and Save writes it the new way", async ({
     page,
   }: {

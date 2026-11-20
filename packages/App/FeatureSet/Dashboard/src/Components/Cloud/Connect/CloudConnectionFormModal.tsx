@@ -12,7 +12,10 @@ import {
   READ_INTERVAL_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
-import { CloudConnectionAwsRoleSetup } from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
+import {
+  CloudConnectionAwsRoleSetup,
+  CloudConnectionCommandSettings,
+} from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
 import { CloudConnectionTestResult } from "Common/Types/CloudConnection/CloudConnectionTest";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
@@ -55,13 +58,15 @@ import {
   applyCloudConnectionPaste,
   cloudConnectionTestBody,
   configFieldName,
+  getCommandSettingFields,
+  getCredentialsMoreFields,
   getMissingCloudConnectionFields,
   getPastedFieldTitles,
   getReadScopeField,
   isCredentialValueField,
   readCloudConnectionForm,
   readFormAuthMethod,
-  readFormScope,
+  readFormCommandSettings,
   readFormText,
   secretFieldName,
 } from "./CloudConnectionForm";
@@ -80,10 +85,16 @@ import CloudSetupCommand from "./CloudSetupCommand";
  * Connect a cloud account, or edit a connection. The cloud is picked from
  * its tile, so the form is that cloud's own, one question a step:
  *
- *   Access       the one command that creates read-only access, run in the
+ *   Access       the one command that creates the access, run in the
  *                cloud's own browser terminal (AWS CloudShell, Azure Cloud
  *                Shell, Google Cloud Shell) - and for AWS, a role (nothing
- *                secret stored) or an access key;
+ *                secret stored) or an access key. Every setting the command
+ *                is written from is asked here, with it: what to read
+ *                above it, and Data Security's two settings folded under
+ *                it under More fields. The command follows them as they
+ *                change, so what a person picks is what the command they
+ *                run grants (#10336) - edit included, where it starts from
+ *                the connection's own;
  *   Credentials  what the command printed, pasted once, for every cloud and
  *                every way in: the values are read out of it - a role's
  *                ARN, a key and its secret, a Google Cloud key out of
@@ -97,6 +108,12 @@ import CloudSetupCommand from "./CloudSetupCommand";
  * Secrets are write-only: on edit a secret left blank keeps the stored
  * one; the server merges what is sent over what it stores.
  */
+
+/*
+ * The id of the first step's More fields: its own, so it opens and closes
+ * apart from the Credentials step's.
+ */
+export const COMMAND_SETTINGS_SECTION_ID: string = "cloud-connection-command";
 
 export interface ComponentProps {
   provider: CloudProvider;
@@ -155,6 +172,10 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
   const latestValues: MutableRefObject<JSONObject> = useRef<JSONObject>({});
   const moreFields: FormFieldCollapsibleSection<JSONObject> = useRef(
     getAdvancedFormSection<JSONObject>(),
+  ).current;
+  // The first step's own More fields, under its command: what it is written from.
+  const commandMoreFields: FormFieldCollapsibleSection<JSONObject> = useRef(
+    getAdvancedFormSection<JSONObject>({ id: COMMAND_SETTINGS_SECTION_ID }),
   ).current;
   /*
    * The values the paste filled in, folded under it: folded they say what
@@ -281,6 +302,82 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
     });
   }
 
+  /*
+   * A setting most people leave alone, as a field folded under More fields
+   * on its step - a dropdown with its options and default.
+   */
+  const foldedSettingField: (
+    field: CloudConnectionField,
+    stepId: string,
+    section: FormFieldCollapsibleSection<JSONObject>,
+  ) => Field<JSONObject> = (
+    field: CloudConnectionField,
+    stepId: string,
+    section: FormFieldCollapsibleSection<JSONObject>,
+  ): Field<JSONObject> => {
+    return {
+      field: { [configFieldName(field.key)]: true },
+      title: field.title,
+      description: field.description,
+      stepId,
+      fieldType: fieldTypeFor(field),
+      required: false,
+      disableSpellCheck: true,
+      ...(field.placeholder ? { placeholder: field.placeholder } : {}),
+      ...(field.type === "dropdown"
+        ? {
+            dropdownOptions: (field.options || []).map(
+              (option: { label: string; value: string }): DropdownOption => {
+                return { label: option.label, value: option.value };
+              },
+            ),
+          }
+        : {}),
+      ...(field.defaultValue !== undefined
+        ? { defaultValue: field.defaultValue }
+        : {}),
+      /*
+       * Raised, it says what becomes of the monitors made from its
+       * resources' Recommendations: each keeps its window (#10028).
+       */
+      ...(isEditing && field.key === READ_INTERVAL_FIELD_KEY
+        ? {
+            getFooterElement: (
+              values: FormValues<JSONObject>,
+            ): ReactElement | undefined => {
+              const words: CloudTemplate | undefined =
+                getCloudReadIntervalRaisedWords({
+                  definition,
+                  savedValue: (props.connection?.config || {})[
+                    READ_INTERVAL_FIELD_KEY
+                  ],
+                  chosenValue: readFormText(
+                    (values as JSONObject)[
+                      configFieldName(READ_INTERVAL_FIELD_KEY)
+                    ] as JSONValue | undefined,
+                  ),
+                });
+
+              return words ? (
+                <div
+                  className="mt-2 text-sm text-amber-700"
+                  data-testid="cloud-connection-read-interval-raised"
+                >
+                  {drawCloudTemplate(translator, words)}
+                </div>
+              ) : undefined;
+            },
+          }
+        : {}),
+      collapsibleSection: section,
+    };
+  };
+
+  /*
+   * The command, written from the settings the form would save - what to
+   * read above it, Data Security's two settings folded under it - so it
+   * grants what is picked, and is drawn again as they change.
+   */
   fields.push({
     field: { setupCommand: true },
     title: "",
@@ -289,16 +386,29 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
     required: false,
     hideOptionalLabel: true,
     getCustomElement: (values: FormValues<JSONObject>): ReactElement => {
+      const settings: CloudConnectionCommandSettings = readFormCommandSettings(
+        definition,
+        values as JSONObject,
+        defaultMethod,
+      );
+
       return (
         <CloudSetupCommand
           definition={definition}
           method={methodOf(values as JSONObject)}
-          scope={readFormScope(definition, values as JSONObject, defaultMethod)}
+          scope={settings.scope}
+          dataSecurity={settings.dataSecurity}
+          dataSecurityResponse={settings.dataSecurityResponse}
           roleSetup={props.awsRoleSetup}
         />
       );
     },
   });
+
+  // Under it, the settings it is written from that most people leave alone.
+  for (const field of getCommandSettingFields(definition)) {
+    fields.push(foldedSettingField(field, ACCESS_STEP_ID, commandMoreFields));
+  }
 
   /*
    * Step 2: what the command printed. Every cloud and every way in asks
@@ -533,67 +643,9 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
     collapsibleSection: moreFields,
   });
 
-  for (const field of definition.configFields) {
-    if (!field.isAdvanced) {
-      continue;
-    }
-
-    fields.push({
-      field: { [configFieldName(field.key)]: true },
-      title: field.title,
-      description: field.description,
-      stepId: CREDENTIALS_STEP_ID,
-      fieldType: fieldTypeFor(field),
-      required: false,
-      disableSpellCheck: true,
-      ...(field.placeholder ? { placeholder: field.placeholder } : {}),
-      ...(field.type === "dropdown"
-        ? {
-            dropdownOptions: (field.options || []).map(
-              (option: { label: string; value: string }): DropdownOption => {
-                return { label: option.label, value: option.value };
-              },
-            ),
-          }
-        : {}),
-      ...(field.defaultValue !== undefined
-        ? { defaultValue: field.defaultValue }
-        : {}),
-      /*
-       * Raised, it says what becomes of the monitors made from its
-       * resources' Recommendations: each keeps its window (#10028).
-       */
-      ...(isEditing && field.key === READ_INTERVAL_FIELD_KEY
-        ? {
-            getFooterElement: (
-              values: FormValues<JSONObject>,
-            ): ReactElement | undefined => {
-              const words: CloudTemplate | undefined =
-                getCloudReadIntervalRaisedWords({
-                  definition,
-                  savedValue: (props.connection?.config || {})[
-                    READ_INTERVAL_FIELD_KEY
-                  ],
-                  chosenValue: readFormText(
-                    (values as JSONObject)[
-                      configFieldName(READ_INTERVAL_FIELD_KEY)
-                    ] as JSONValue | undefined,
-                  ),
-                });
-
-              return words ? (
-                <div
-                  className="mt-2 text-sm text-amber-700"
-                  data-testid="cloud-connection-read-interval-raised"
-                >
-                  {drawCloudTemplate(translator, words)}
-                </div>
-              ) : undefined;
-            },
-          }
-        : {}),
-      collapsibleSection: moreFields,
-    });
+  // The rest of the settings most people leave alone (not the command's).
+  for (const field of getCredentialsMoreFields(definition)) {
+    fields.push(foldedSettingField(field, CREDENTIALS_STEP_ID, moreFields));
   }
 
   // Step 3: a sign-in and a count of what there is to monitor.

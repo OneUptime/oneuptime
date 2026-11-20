@@ -484,9 +484,9 @@ detection:
 | **Esegui in tempo reale** | Disattivo su una nuova regola. Se attivo, la regola controlla ogni evento appena arriva invece che a ogni intervallo; vedi [Regole in tempo reale](#regole-in-tempo-reale). |
 | **Campo di raggruppamento** | Facoltativo. Le corrispondenze che condividono il valore di questo campo, come `principalHost`, vengono contate, avvisate e deduplicate insieme: un avviso per host invece di centinaia. |
 | **Campo di conteggio distinto** | Facoltativo. Conta i valori diversi di questo campo invece degli eventi corrispondenti. I valori vuoti non contano. |
-| **Soglia di corrispondenze** | Un gruppo scatta solo quando il suo conteggio raggiunge questo numero in un'esecuzione, o in una finestra in tempo reale: da 1 a 1000000, e 1 scatta a qualsiasi corrispondenza. |
+| **Soglia di corrispondenze** | Un gruppo scatta solo quando il suo conteggio raggiunge questo numero in una finestra dell'intervallo della regola: da 1 a 1000000, e 1 scatta a qualsiasi corrispondenza. |
 
-Il raggruppamento e il conteggio distinto accettano gli stessi nomi di campo della regola. Con essi, la soglia dice «tanti, dalla stessa cosa, in un'esecuzione», senza un monitor sopra:
+Il raggruppamento e il conteggio distinto accettano gli stessi nomi di campo della regola. Con essi, la soglia dice «tanti, dalla stessa cosa, in una finestra», senza un monitor sopra:
 
 | Obiettivo | Group By Field | Distinct Count Field | Soglia |
 | --- | --- | --- | --- |
@@ -498,11 +498,11 @@ Il raggruppamento e il conteggio distinto accettano gli stessi nomi di campo del
 
 ### Quando gira una regola
 
-OneUptime controlla ogni minuto quali regole abilitate hanno superato il loro intervallo dall'ultima esecuzione. Ogni esecuzione legge gli eventi il cui orario dell'evento cade tra l'esecuzione precedente e due minuti fa, poi va avanti. I due minuti lasciano tempo agli eventi ancora in arrivo, come una riga di log letta un minuto dopo essere stata scritta:
+OneUptime controlla ogni minuto quali regole abilitate hanno superato il loro intervallo dall'ultima esecuzione. Ogni esecuzione legge gli eventi arrivati a OneUptime tra l'esecuzione precedente e due minuti fa, in qualunque momento siano avvenuti, poi va avanti. I due minuti lasciano tempo agli eventi ancora in scrittura:
 
-- Le finestre sono una dopo l'altra, non scorrono. Con un intervallo di 10 minuti, errori alle 09:58 e alle 10:01 possono cadere in esecuzioni diverse e vengono contati separatamente, quindi lascia margine quando scegli una soglia.
+- Una regola che conta e una correlazione contano in finestre lunghe quanto l'intervallo, una dopo l'altra secondo l'orologio: con un intervallo di 10 minuti, errori alle 09:58 e alle 10:01 cadono in finestre diverse e vengono contati separatamente, quindi lascia margine quando scegli una soglia.
 - Dopo un'interruzione, come un worker fermo o una regola riattivata, l'esecuzione successiva copre l'intera interruzione, fino alle ultime 24 ore.
-- Un evento che arriva con più di due minuti di ritardo, quando un'esecuzione ha già coperto il suo orario, viene salvato ed è ricercabile, ma quella regola non lo legge mai.
+- Un evento che arriva in ritardo viene letto comunque, una volta, dall'esecuzione successiva, e contato nella finestra in cui è avvenuto: un gruppo scatta quando la sua finestra raggiunge il conteggio, e al massimo una volta per finestra. Uno che arriva più di un giorno dopo essere avvenuto viene salvato ed è ricercabile, ma le esecuzioni della regola non lo leggono; **Esegui su eventi passati** sì.
 - Ogni gruppo che raggiunge la soglia diventa un Detection Finding, fino a 10.000 per esecuzione. Avvisi, incidenti e casi si aprono per i 100 con i conteggi più alti; gli altri condividono un caso sulla regola, e l'**Ultimo errore** della regola dice quanti gruppi hanno corrisposto.
 
 ### Regole in tempo reale

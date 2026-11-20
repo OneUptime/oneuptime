@@ -128,13 +128,19 @@ export default class PostgresErrorTranslator {
    * The exception for a duplicate the application found before the database
    * had to (see @UniqueColumnsTogether). It is tagged exactly like a
    * translated unique violation, so isUniqueViolation() answers the same way
-   * whichever layer caught the duplicate.
+   * whichever layer caught the duplicate. Given the unique index the
+   * duplicate would have broken, isUniqueViolationOf() answers for it the
+   * same way too: the responders of an escalation rule are refused before
+   * the write and by their index alike, and Ask AI tells both from any other
+   * refusal (#10411).
    */
   public static createUniqueViolationException(
     message: string,
+    constraintName?: string | undefined,
   ): BadDataException {
     return this.tag(new BadDataException(message), {
       code: UNIQUE_VIOLATION,
+      constraint: constraintName,
     });
   }
 

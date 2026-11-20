@@ -17,6 +17,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
+import { ESCALATION_RULE_TEAM_INDEX } from "../../Types/OnCallDutyPolicy/EscalationRuleResponderOnce";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -75,6 +76,22 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.Call,
   tableDescription: "Add teams to your escalation rules.",
 })
+/*
+ * ONE ROW PER TEAM ON A RULE (#10411): a second row of the same team told
+ * each of its people again that they were added
+ * (Types/OnCallDutyPolicy/EscalationRuleResponderOnce). The service refuses
+ * it in words that name the team and the rule; this index holds it for two
+ * adds at the same moment. Of the rows not deleted only. Built online
+ * (1809187100000-MakeEscalationRuleRespondersUnique).
+ */
+@Index(
+  ESCALATION_RULE_TEAM_INDEX,
+  ["onCallDutyPolicyEscalationRuleId", "teamId"],
+  {
+    unique: true,
+    where: '"deletedAt" IS NULL',
+  },
+)
 export default class OnCallDutyPolicyEscalationRuleTeam extends BaseModel {
   @ColumnAccessControl({
     create: [

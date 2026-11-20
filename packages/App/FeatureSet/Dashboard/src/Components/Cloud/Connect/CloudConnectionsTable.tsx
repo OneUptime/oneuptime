@@ -88,6 +88,7 @@ import {
   NOT_READ_YET,
   READING_NOW,
   doesNameSayCloud,
+  drawCloudFailureDetails,
   drawCloudTemplate,
   getAccountsNotInName,
   getChangesRecordedWords,
@@ -376,7 +377,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
             className="mt-1 max-h-72 overflow-y-auto whitespace-pre-wrap break-words rounded-md bg-gray-50 p-4 text-sm text-gray-800"
             data-testid="cloud-connection-error"
           >
-            {item.lastError}
+            {drawCloudFailureDetails(translator, item.lastError || "")}
           </pre>
         </div>
 
@@ -987,7 +988,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                       text={health.label}
                       tooltip={
                         health.tooltipIsError
-                          ? health.tooltip
+                          ? drawCloudFailureDetails(translator, health.tooltip)
                           : translator.translateText(health.tooltip)
                       }
                       isTooltipUserContent={true}

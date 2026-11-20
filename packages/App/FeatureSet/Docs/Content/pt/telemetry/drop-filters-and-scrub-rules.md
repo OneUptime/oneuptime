@@ -98,7 +98,7 @@ Em **Avançado**, escolha a **Ação de limpeza** e os **Campos a depurar**, ou 
 | **Número do cartão de crédito** | Dezesseis dígitos em grupos de quatro, como `4111 1111 1111 1111` |
 | **SSN (Número de Seguro Social)** | Números do Seguro Social dos EUA, como `123-45-6789` |
 | **Número de telefone** | Números de telefone norte-americanos, como `555-123-4567` |
-| **Endereço IP** | Endereços IPv4, como `192.168.1.1` |
+| **Endereço IP** | Endereços IPv4 e IPv6 públicos, como `203.0.113.7` ou `2001:db8::1`, mas não os privados, de loopback ou link-local |
 | **Chaves de atributos sensíveis** | O valor inteiro de qualquer atributo cuja chave pareça secreta, como `password`, `token`, `api_key`, `authorization` ou `cookie` |
 | **Regex personalizado** | A sua própria expressão regular, escrita sem barras nem flags, e comparada diferenciando maiúsculas e minúsculas |
 
@@ -106,7 +106,7 @@ Em **Avançado**, escolha a **Ação de limpeza** e os **Campos a depurar**, ou 
 | --- | --- |
 | **Ocultar** | `[REDACTED]`, o padrão |
 | **Máscara** | Quase toda oculta: um e-mail mantém a primeira letra e o fim do domínio, um número de cartão, de telefone ou do Seguro Social os últimos quatro dígitos, e uma correspondência personalizada ou um valor secreto o primeiro e o último caractere. Um endereço IP é ocultado por completo. |
-| **Hash** | Um hash curto do valor, sempre o mesmo para o mesmo valor, para que as repetições ainda possam ser contadas |
+| **Hash** | Um token exclusivo do seu projeto, sempre o mesmo para o mesmo valor, para que as repetições ainda possam ser contadas, sem que ninguém consiga chegar ao valor |
 
 Por exemplo, uma regra de **Endereço de e-mail** armazena este corpo de registro:
 
@@ -119,11 +119,13 @@ de uma destas formas, conforme a sua **Ação de limpeza**:
 ```text
 Redact: Payment failed for [REDACTED]
 Mask:   Payment failed for j***@***.com
-Hash:   Payment failed for [HASHED:8c87b489]
+Hash:   Payment failed for [HASHED:5e29db14e508e09a]
 ```
 
 **Campos a depurar** é **Ambos (Corpo e atributos)** para uma regra de registros, a menos que você escolha **Apenas o corpo** ou **Apenas atributos**, e **Todos (Nome, Atributos e Eventos)** para uma regra de spans, a menos que você escolha **Somente nome do span**, **Apenas atributos** ou **Apenas atributos do evento**. Os atributos dos links de um span são mascarados junto com os atributos do próprio span, e **Todos (Nome, Atributos e Eventos)** também mascara a mensagem de status de um span e os nomes dos seus eventos. Uma regra de **Chaves de atributos sensíveis** lê chaves, então sempre mascara os valores sob elas: nos atributos e no corpo JSON de um registro.
 
+- **Uma regra de endereço IP oculta os endereços que são dados pessoais.** São os endereços IPv4 e IPv6 públicos, como quer que sejam escritos: abreviados, como `2001:db8::1`, entre colchetes com uma porta, como `[2001:db8::1]:443`, que mantém os colchetes e a porta, com uma zona, como `2001:db8::2%eth0`, que mantém a zona, ou um endereço IPv4 escrito como IPv6, como `::ffff:203.0.113.7`, ocultado inteiro. Mantém os endereços privados, de loopback e link-local, como `10.0.0.12`, `127.0.0.1` e `fe80::1`, e o endereço de metadados da nuvem `169.254.169.254` na URL de uma requisição, onde [Eventos de segurança](/docs/telemetry/security-events) procura falsificação de requisição do lado do servidor. Para ocultar também os endereços internos, adicione para eles uma regra de **Regex personalizado**, como `\b(?:\d{1,3}\.){3}\d{1,3}\b` para todo endereço IPv4.
+- **Um token de hash é do seu projeto.** Ele é criado com uma chave do seu projeto, derivada do `ENCRYPTION_SECRET` da instalação, então o mesmo valor tem outro token em outro projeto, e ninguém que leia um token consegue chegar ao valor nem calcular o hash de um palpite para comparar. Um endereço IP tem um só token, como quer que seja escrito: `::ffff:203.0.113.7` e `203.0.113.7` compartilham um. Os registros guardados antes de os tokens terem chave contêm tokens de 8 caracteres, como `[HASHED:8c87b489]`, diferentes dos atuais, de 16 caracteres: até que esses registros cheguem ao fim da retenção, procure os dois. Mudar o `ENCRYPTION_SECRET` muda todos os tokens, e numa instalação auto-hospedada os tokens são só tão secretos quanto ele.
 - **Listas e valores aninhados também são lidos.** Uma regra lê cada texto dentro de uma lista, de uma lista de listas ou de uma lista de chave-valor, como os valores de um cabeçalho HTTP, e mantém a forma do valor: números e valores verdadeiro ou falso ficam como estão. Uma regra de **Chaves de atributos sensíveis** também lê as chaves dentro de um valor, então o `password` dentro de uma lista de chave-valor também é ocultado. O corpo de um registro enviado como mapa ou como lista é armazenado como seu texto JSON, e uma regra de **Chaves de atributos sensíveis** lê as chaves dentro dele, como faz num corpo escrito em JSON. Uma regra de padrão mantém esse corpo em JSON, e também um atributo escrito em JSON, como as mensagens de uma chamada de IA: ela lê o texto como sua aplicação o escreveu, com uma sequência de escape como `\n` lida como a quebra de linha que representa, e substitui o que encontra apenas dentro de seus textos e números.
 - **O JSON dentro de um texto também é lido.** Um texto que é JSON por si só, como um atributo `http.request.body` que contém `{"password":"hunter2"}`, ou a linha `log` de um registro do Fluentd dentro do corpo de um registro, é lido como JSON, até 4 níveis de JSON um dentro do outro, e além disso como texto. Uma regra de **Chaves de atributos sensíveis** oculta os valores sob as chaves que parecem secretas dentro dele, e nada mais: seus números, espaços e outros textos ficam como sua aplicação os escreveu. Um texto que só parece JSON, como `{token}`, fica como está.
 - **Um valor grande demais para ser lido item por item é lido como texto.** Um valor aninhado a mais de 32 níveis de profundidade, ou que levaria uma entrada a passar de 10.000 valores dentro de suas listas e mapas, é lido e armazenado como seu texto JSON. Uma regra de padrão mascara o que encontra nesse texto, e uma regra de **Chaves de atributos sensíveis** oculta o valor inteiro quando uma palavra como `password` ou `token` aparece nele. No corpo de um registro, e no JSON dentro de um texto, só a parte além desses limites é lida como texto: o resto continua sendo lido chave por chave.

@@ -564,10 +564,15 @@ function functionName(node: ts.Node, source: ts.SourceFile): string {
  * The payload expressions each function sees: the roots every function
  * sees, its own hook parameters (and those of the functions it is written
  * in), and the names it gives a payload (`const data = createBy.data as
- * ...`, and aliases of those).
+ * ...`, and aliases of those). A name is the payload only in the function
+ * that gives it, and in the callbacks written inside that function: the
+ * same name in another function is another variable (a new record a helper
+ * builds). The module is a scope too, for names given outside any function;
+ * every function sees them.
  */
 function payloadRootsByFunction(
   source: ts.SourceFile,
+  everywhere: Array<string> = PAYLOAD_ROOTS,
 ): Map<ts.Node, Set<string>> {
   const rootsByFunction: Map<ts.Node, Set<string>> = new Map();
 
@@ -577,10 +582,10 @@ function payloadRootsByFunction(
   ): void => {
     let roots: Set<string> = inherited;
 
-    if (isFunctionLike(node)) {
+    if (isFunctionLike(node) || ts.isSourceFile(node)) {
       roots = new Set(inherited);
 
-      for (const parameter of node.parameters) {
+      for (const parameter of isFunctionLike(node) ? node.parameters : []) {
         const payload: string | null = payloadOfParameter(parameter, source);
 
         if (payload) {
@@ -588,7 +593,11 @@ function payloadRootsByFunction(
         }
       }
 
-      // Aliases declared in this function, until no new one turns up.
+      // Aliases declared in this function (or module), until no new one turns up.
+      const body: ts.Node | undefined = ts.isSourceFile(node)
+        ? node
+        : node.body;
+
       for (let added: boolean = true; added; ) {
         added = false;
 
@@ -611,8 +620,8 @@ function payloadRootsByFunction(
           ts.forEachChild(child, collect);
         };
 
-        if (node.body) {
-          ts.forEachChild(node.body, collect);
+        if (body) {
+          ts.forEachChild(body, collect);
         }
       }
 
@@ -624,7 +633,7 @@ function payloadRootsByFunction(
     });
   };
 
-  visit(source, new Set(PAYLOAD_ROOTS));
+  visit(source, new Set(everywhere));
 
   return rootsByFunction;
 }
@@ -1035,6 +1044,11 @@ const WRITE_PAYLOAD_ROOTS: Array<string> = [
  * (`createBy.data.monitorId = id`) or a setColumnValue. A relation sent
  * beside the ID column would be stored in place of what the hook wrote;
  * RelationIdUtil.stamp writes the ID column and removes every other name.
+ *
+ * `const data = createBy.data as ...` is the payload too, and so on down, in
+ * the function that says so and the callbacks inside it - not in another
+ * function that builds a new record under the same name
+ * (payloadRootsByFunction).
  */
 export function findReferenceWrites(
   fileName: string,
@@ -1042,44 +1056,18 @@ export function findReferenceWrites(
   idColumns: Set<string>,
 ): Array<ScanFinding> {
   const source: ts.SourceFile = parse(fileName, text);
-  const roots: Set<string> = new Set(WRITE_PAYLOAD_ROOTS);
-
-  // `const data = createBy.data as ...` is the payload too, and so on down.
-  const aliasesOf: (node: ts.Node) => Array<string> = (
-    node: ts.Node,
-  ): Array<string> => {
-    const aliases: Array<string> = [];
-
-    if (
-      ts.isVariableDeclaration(node) &&
-      ts.isIdentifier(node.name) &&
-      node.initializer &&
-      !roots.has(node.name.text) &&
-      roots.has(compactText(unwrap(node.initializer), source))
-    ) {
-      aliases.push(node.name.text);
-    }
-
-    ts.forEachChild(node, (child: ts.Node): void => {
-      aliases.push(...aliasesOf(child));
-    });
-
-    return aliases;
-  };
-
-  for (
-    let aliases: Array<string> = aliasesOf(source);
-    aliases.length > 0;
-    aliases = aliasesOf(source)
-  ) {
-    for (const alias of aliases) {
-      roots.add(alias);
-    }
-  }
+  const rootsByFunction: Map<ts.Node, Set<string>> = payloadRootsByFunction(
+    source,
+    WRITE_PAYLOAD_ROOTS,
+  );
 
   const isPayload: (node: ts.Expression) => boolean = (
     node: ts.Expression,
   ): boolean => {
+    const roots: Set<string> =
+      rootsByFunction.get(enclosingFunction(node) || source) ||
+      new Set(WRITE_PAYLOAD_ROOTS);
+
     return roots.has(compactText(unwrap(node), source));
   };
 

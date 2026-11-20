@@ -267,6 +267,7 @@ flowchart TB
 - `escalateAfterInMinutes` 在儀表板之外沒有預設值。不帶它建立的規則不會等待：此級別執行後會立即呼叫下一級。請明確設定它——儀表板建議的值是 30。
 - 在 `miscDataProps` 中帶 `onCallSchedules` 、 `teams` 或 `users` （ID 清單）建立的規則會取得這些回應者，儀表板的 **通知** 選擇器就是這樣傳送它們的。不帶它們建立的規則，在你透過上述資源新增回應者之前不會呼叫任何人。
 - 在 `miscDataProps` 中帶 `nextInRotationSchedules` （待命排程 ID 清單）建立的規則，會呼叫其中每個待命排程輪換中的下一個人。在 `-schedule` 資源上， `pageNextInRotation` 設為 `true` 的列作用相同；此值在建立該列時設定。
+- 規則對每個人員、團隊和待命排程只呼叫一次，對待命排程則按每種呼叫方式各呼叫一次。透過上述資源或 Terraform 新增規則已在呼叫的回應者會被拒絕，錯誤會指出該回應者和規則，且不會有任何變更。 `miscDataProps` 的清單中出現兩次的 ID 只新增一次。
 - 以級別命名的規則只會在你於儀表板中移動或刪除規則時重新命名。透過 API 或 Terraform 變更 `order` 只會改變順序。
 - 在 `/api/on-call-duty-policy` 建立待命策略時，在 `miscDataProps` 中帶上 `onCallSchedules` 、 `teams` 或 `users` （ID 清單），會像儀表板一樣為它建立第一條上報規則：呼叫這些對象的 **Level 1** ， `escalateAfterInMinutes` 為 30。每個 ID 都必須屬於該專案，呼叫端必須有權建立上報規則，否則不會建立策略。不帶它們建立的策略和以前一樣沒有規則；Terraform 的策略資源不會傳送它們。
 

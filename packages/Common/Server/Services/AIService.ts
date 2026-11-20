@@ -197,6 +197,18 @@ export const AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE: string =
   "AI Data Security Field Suggestion";
 
 /*
+ * The LlmLog feature name for Explain with AI on a Data Security issue
+ * (DataSecurityAPI): one request, started by a person on the issue's page
+ * and answered while they wait. Not autonomous. Written since Explain
+ * shipped, before labels were constants, so its value keeps that spelling:
+ * stored labels are never renamed (#10361). Its AI Logs rows keep no
+ * previews - which store holds what, and how it is exposed, is the issue's
+ * to tell, and AI Logs are every Project Member's and Viewer's to read.
+ */
+export const AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE: string =
+  "DataSecurityIssueExplanation";
+
+/*
  * The LlmLog feature name for drafting a detection rule from a description
  * (DetectionRuleDraft): one request, started by a person on the Detection
  * Rules form and answered while they wait. Not autonomous - the project's
@@ -496,6 +508,19 @@ export const getProjectDailyLimitMessage: (
     status,
   )} OneUptime AI starts again at midnight UTC. ${ProjectAiDailyLimits.getWhoCanChangeSentence()}`;
 };
+
+/*
+ * What an AI Logs row holds in place of a preview, for a call that keeps
+ * none (storeContentPreviews: false), and of a provider's error, for one
+ * that keeps no error details (storeErrorDetails: false). A migration that
+ * takes previews out of rows already written writes these same words
+ * (RedactDataSecurityIssueExplanationLogs).
+ */
+export const LLM_LOG_PREVIEW_NOT_KEPT: string =
+  "[Redacted — this content is private to the requesting user]";
+
+export const LLM_LOG_PROVIDER_ERROR_WITHOUT_DETAILS: string =
+  "The LLM provider request failed. Review the provider under Project Settings → AI → LLM Providers, then try again.";
 
 export interface AILogRequest {
   projectId: ObjectID;
@@ -1284,7 +1309,7 @@ export class Service extends BaseService {
           })
           .join("\n")
           .substring(0, 5000) // Store first 5000 chars
-      : "[Redacted — this content is private to the requesting user]";
+      : LLM_LOG_PREVIEW_NOT_KEPT;
     logEntry.requestStartedAt = startTime;
 
     // Set optional fields only if they have values
@@ -1569,7 +1594,7 @@ export class Service extends BaseService {
       logEntry.cacheCreationTokens = response.usage?.cacheCreationTokens || 0;
       logEntry.responsePreview = storeContentPreviews
         ? response.content.substring(0, 2000) // Store first 2000 chars
-        : "[Redacted — this content is private to the requesting user]";
+        : LLM_LOG_PREVIEW_NOT_KEPT;
       logEntry.requestCompletedAt = endTime;
       logEntry.durationMs = endTime.getTime() - startTime.getTime();
 
@@ -1651,7 +1676,7 @@ export class Service extends BaseService {
         error instanceof Error ? error.message : String(error);
       const errorMessage: string =
         request.storeErrorDetails === false
-          ? "The LLM provider request failed. Review the provider under Project Settings → AI → LLM Providers, then try again."
+          ? LLM_LOG_PROVIDER_ERROR_WITHOUT_DETAILS
           : rawErrorMessage;
 
       /*
