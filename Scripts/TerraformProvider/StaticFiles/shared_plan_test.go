@@ -156,8 +156,8 @@ func TestAMonitorsLabelsArePeoplesAndOneUptimesBoth(t *testing.T) {
 	if !labels.Optional || !labels.Computed || labels.Required {
 		t.Fatalf("labels: optional %v, computed %v, required %v; want optional and computed", labels.Optional, labels.Computed, labels.Required)
 	}
-	if !strings.Contains(labels.Description, "OneUptime changes it too") {
-		t.Errorf("labels does not say OneUptime changes them too: %q", labels.Description)
+	if !strings.Contains(labels.Description, "OneUptime adds to it too") || !strings.Contains(labels.Description, "every other entry stays") {
+		t.Errorf("labels does not say OneUptime adds to them too, and that its other entries stay: %q", labels.Description)
 	}
 }
 
