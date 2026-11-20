@@ -39,9 +39,9 @@ import { MemoryRouter, Route as RouterRoute, Routes } from "react-router-dom";
  *     sensitivity it did not read;
  *   - an identity's reach (What It Can Reach), for each reader of accesses:
  *     the stores, and their sensitivity for who may read stores;
- *   - a data alert's lineage, for each of Data Observability's readers: the
- *     read it sends names its store by its name alone, which every one of
- *     them reads.
+ *   - a data alert's lineage, on an alert's page, for each of its readers:
+ *     the read it sends names its store by its name alone, which every one
+ *     of them reads.
  *
  * Everything on the Dashboard's side is real but the socket: its API client
  * sends each request over HTTP to the server's own routes, the permission
@@ -464,16 +464,19 @@ describe("an identity's reach, for each reader of accesses", () => {
   );
 });
 
-describe("a data alert's lineage, for each of Data Observability's readers", () => {
+/*
+ * The lineage is drawn on an alert's page (Pages/Alerts/View), so its
+ * readers are those who read both alerts and data alerts: Project Owner,
+ * Admin, Member and Viewer. The Telemetry tiers and Read Data Asset read
+ * data alerts and not alerts, and open no alert's page; their read of the
+ * lineage is refused for the alert it names, not for its store.
+ */
+describe("a data alert's lineage, for each reader of the alert page it is drawn on", () => {
   test.each([
     ["a project owner", [Permission.ProjectOwner]],
     ["a project admin", [Permission.ProjectAdmin]],
     ["a project member", [Permission.ProjectMember]],
     ["a viewer", [Permission.Viewer]],
-    ["a telemetry admin", [Permission.TelemetryAdmin]],
-    ["a telemetry member", [Permission.TelemetryMember]],
-    ["a telemetry viewer", [Permission.TelemetryViewer]],
-    ["a custom role that reads data assets", [Permission.ReadDataAsset]],
   ] as Array<[string, Array<Permission>]>)(
     "%s: its read names the store by its name alone, and the server takes it",
     async (_who: string, permissions: Array<Permission>) => {
@@ -518,6 +521,48 @@ describe("a data alert's lineage, for each of Data Observability's readers", () 
         String((sent[0]!.answer as JSONObject)?.["error"] || ""),
       ).not.toContain("You do not have permissions");
       expect(alerts.repository.find).toHaveBeenCalled();
+    },
+    FLOW_TIMEOUT_IN_MS,
+  );
+
+  test.each([
+    ["a telemetry viewer", [Permission.TelemetryViewer]],
+    ["a custom role that reads data assets", [Permission.ReadDataAsset]],
+  ] as Array<[string, Array<Permission>]>)(
+    "%s, who reads data alerts and not alerts, is refused the lineage's read for the alert, never for the store",
+    async (_who: string, permissions: Array<Permission>) => {
+      setCaller(permissions);
+
+      const alerts: InMemoryTable = useInMemoryTable(DataAlertService, []);
+
+      // ModelAPI rejects with the server's answer, not an Error.
+      let isRefused: boolean = false;
+
+      try {
+        await ModelAPI.getList<DataAlert>({
+          modelType: DataAlert,
+          query: { alertId: new ObjectID(ALERT_ID) },
+          select: DATA_ALERT_SELECT as never,
+          limit: 1,
+          skip: 0,
+          sort: {},
+        });
+      } catch {
+        isRefused = true;
+      }
+
+      expect(isRefused).toBe(true);
+
+      const refusal: string = String(
+        (
+          server.sentTo("POST", "/api/data-alert/get-list")[0]!
+            .answer as JSONObject
+        )?.["error"] || "",
+      );
+
+      expect(refusal).toContain("to read Alert on Data Alert");
+      expect(refusal).not.toContain("Data Store");
+      expect(alerts.repository.find).not.toHaveBeenCalled();
     },
     FLOW_TIMEOUT_IN_MS,
   );

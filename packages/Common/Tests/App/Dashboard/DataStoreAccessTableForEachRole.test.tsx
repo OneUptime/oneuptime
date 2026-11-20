@@ -235,7 +235,7 @@ describe("who can reach a store, for each reader of accesses", () => {
         propsOf([Permission.ReadDataStoreAccess]),
       );
     }).toThrow(
-      "You do not have permissions to read sensitivity of Data Store through dataStore on Data Store Access. You need one of these permissions: Project Owner, Project Admin, Security Admin, Security Member, Security Viewer, Read Data Store.",
+      "You do not have permissions to read sensitivity of Data Store through dataStore on Data Store Access Entry. You need one of these permissions: Project Owner, Project Admin, Security Admin, Security Member, Security Viewer, Read Data Store.",
     );
   });
 });
