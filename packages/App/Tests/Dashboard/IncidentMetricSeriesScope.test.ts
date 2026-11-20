@@ -331,6 +331,85 @@ describe("alert Root Cause metric chart is scoped to the alert's series", () => 
 });
 
 /*
+ * No relation reads a monitor's steps (#10309): each Root Cause card reads
+ * which monitors its event is on and what kind through it, and the steps of
+ * those it charts from on each monitor, by the reader's own read, only when
+ * the event kept no metric snapshot.
+ */
+describe("a Root Cause card reads a monitor's steps on the monitor, never through its event (#10309)", () => {
+  const ROOT_CAUSE_MONITOR_STEPS: string = readSource(
+    "Components",
+    "Telemetry",
+    "RootCauseMonitorSteps.ts",
+  );
+  const READ_MONITOR_STEPS: string = readSource(
+    "Components",
+    "Monitor",
+    "ReadMonitorSteps.ts",
+  );
+
+  test.each([
+    [
+      "an incident's",
+      (): string => {
+        return INCIDENT_ROOT_CAUSE_READER;
+      },
+    ],
+    [
+      "an alert's",
+      (): string => {
+        return ALERT_ROOT_CAUSE_READER;
+      },
+    ],
+    [
+      "an incident episode's",
+      (): string => {
+        return INCIDENT_EPISODE_ROOT_CAUSE_READER;
+      },
+    ],
+    [
+      "an alert episode's",
+      (): string => {
+        return ALERT_EPISODE_ROOT_CAUSE_READER;
+      },
+    ],
+  ])(
+    "%s card names which monitor by the shared select, and reads its steps through readRootCauseMonitorSteps",
+    (_name: string, reader: () => string) => {
+      expect(reader()).not.toContain("monitorSteps");
+      expect(reader()).toContain("MONITOR_THROUGH_RELATION_SELECT");
+      expect(reader()).toContain("await readRootCauseMonitorSteps(");
+    },
+  );
+
+  test("the steps are read only for the monitors a card would chart from, on the monitors, by the reader's own read", () => {
+    expect(ROOT_CAUSE_MONITOR_STEPS).toContain(
+      "const monitorIds: Array<string> = getRootCauseMonitorIdsToRead(event);",
+    );
+    expect(ROOT_CAUSE_MONITOR_STEPS).toContain(
+      "return withRootCauseMonitorSteps(event, read);",
+    );
+    // An event that kept a metric snapshot names none to read.
+    expect(ROOT_CAUSE_METRICS).toContain(
+      "if (isMetricSnapshot(event.telemetryQuery)) { return []; }",
+    );
+    expect(ROOT_CAUSE_METRICS).toContain(
+      "hasMonitorMetrics(monitor.monitorType) &&",
+    );
+    // On the monitor itself, and only for who may read its steps.
+    expect(READ_MONITOR_STEPS).toContain(
+      "await ModelAPI.getList<Monitor>({ modelType: Monitor, query: { _id: new Includes(ids), }, select: { _id: true, monitorType: true, monitorSteps: true, },",
+    );
+    expect(READ_MONITOR_STEPS).toContain(
+      'PermissionGate.canReadColumn(new Monitor(), "monitorSteps")',
+    );
+    expect(READ_MONITOR_STEPS).toContain(
+      "export const MONITOR_THROUGH_RELATION_SELECT: { _id: true; monitorType: true; } = { _id: true, monitorType: true, };",
+    );
+  });
+});
+
+/*
  * An episode's Root Cause page shows the same card (issue #6320), reading
  * its first member: a grouped metric monitor's incidents and alerts are each
  * about one series, and the episode's card is narrowed to its first
