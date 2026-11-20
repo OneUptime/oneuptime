@@ -489,7 +489,7 @@ app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
    *
    * So do the routes that take millions of values, a probe's collection
    * and a forwarding pod's ClickHouse rows (#10222): each checks its
-   * caller's key before it reads the body (RequestBodyLimit,
+   * caller's key before it parses the body (RequestBodyLimit,
    * readsBodyAfterAuthentication), which a parser here, running before
    * routing, could not wait for.
    */

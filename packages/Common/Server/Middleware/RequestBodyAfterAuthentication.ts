@@ -18,14 +18,17 @@ import GzipRequestBodyMiddleware from "./GzipRequestBody";
  * StartServer reads every request's body before routing, so before any key
  * is checked: whatever a route takes, it takes from anyone. A route that
  * takes millions of JSON values - a probe's collection, a forwarding pod's
- * ClickHouse rows - is listed as reading its body after it has checked its
- * caller's key (RequestBodyLimit, readsBodyAfterAuthentication). StartServer
- * leaves its body unread, and the route reads it here, after that check:
+ * ClickHouse rows - is listed as checking its caller's key before it parses
+ * the body (RequestBodyLimit, readsBodyAfterAuthentication). StartServer
+ * leaves its body unread, and the route reads it here, once a key in its
+ * headers is checked:
  *
- *   - readBytes leaves the body's bytes in req.body: a gzip body inflated
- *     by GzipRequestBody (bounded, and its values counted as it inflates
- *     when it is JSON), any other as it was sent. Both are held to the
- *     limit's bytes.
+ *   - readBytes leaves the body's bytes in req.body, unparsed: a gzip body
+ *     inflated by GzipRequestBody (bounded, and its values counted as it
+ *     inflates when it is JSON), any other as it was sent. Both are held to
+ *     the limit's bytes. A probe's collection reads them this way, and a
+ *     probe that sent no headers has its key read from them before they
+ *     are parsed (ProbeReportOpening).
  *   - readJson reads them and parses them, counted first (RequestBodyJson),
  *     for a route whose caller's key is in its headers, checked before
  *     this runs.

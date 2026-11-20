@@ -190,11 +190,12 @@ describe("the large routes", () => {
  *
  * Eight million JSON values cost JSON.parse 1.4 s and 490 MiB of heap, and
  * StartServer reads a body before routing, before any key is checked. So
- * the routes that take that many check their caller's key first and read the
- * body themselves after: StartServer leaves it unread. Matched as the limit
- * is, so a path the router answers can never be parsed by StartServer.
+ * the routes that take that many read the body themselves and check their
+ * caller's key before they parse it: StartServer leaves it unread. Matched as
+ * the limit is, so a path the router answers can never be parsed by
+ * StartServer.
  */
-describe("the routes that read their body after their caller's key is checked", () => {
+describe("the routes that parse their body only after their caller's key is checked", () => {
   const collections: Array<string> = PROBE_INGEST_ROUTE_PREFIXES.flatMap(
     (prefix: string): Array<string> => {
       return [

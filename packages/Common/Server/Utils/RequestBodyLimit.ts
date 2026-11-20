@@ -106,9 +106,9 @@ export interface LargeRequestBodyRoute {
   paths: ReadonlyArray<string>;
   limit: RequestBodyLimit;
   /*
-   * Set for a route that checks its caller's key before it reads the body
-   * (#10222): StartServer leaves the body unread, and the route reads it,
-   * held to `limit`, once it knows who sent it
+   * Set for a route that checks its caller's key before it parses the body
+   * (#10222): StartServer leaves the body unread, and the route reads and
+   * parses it itself, held to `limit` once it knows who sent it
    * (Middleware/RequestBodyAfterAuthentication).
    */
   readsBodyAfterAuthentication?: boolean;
@@ -433,11 +433,11 @@ export const getRequestBodyLimit: (path: string) => RequestBodyLimit = (
 };
 
 /*
- * Whether a request's route reads the body itself, once it has checked who
- * sent it (LargeRequestBodyRoute.readsBodyAfterAuthentication), so
- * StartServer leaves the body unread. Matched as getRequestBodyLimit
- * matches: in any case, with or without a trailing slash, under every
- * prefix the route's router is mounted on.
+ * Whether a request's route reads its body itself, to check who sent it
+ * before the body is parsed, so StartServer leaves the body unread
+ * (LargeRequestBodyRoute's readsBodyAfterAuthentication). Matched as
+ * getRequestBodyLimit matches: in any case, with or without a trailing
+ * slash, under every prefix the route's router is mounted on.
  */
 export const readsBodyAfterAuthentication: (path: string) => boolean = (
   path: string,
