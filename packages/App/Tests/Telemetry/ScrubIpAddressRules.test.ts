@@ -58,6 +58,12 @@ type GetRegexForPattern = (
   customRegex?: string,
 ) => ScrubRegExp | null;
 
+// What a test reads of a spy: its calls, and clearing them.
+type SpyLike = {
+  mock: { calls: Array<Array<unknown>> };
+  mockClear: () => void;
+};
+
 const PROJECT_ID: ObjectID = new ObjectID(
   "0193b0a1-0000-7000-8000-000000d10393",
 );
@@ -580,10 +586,18 @@ describe("Data Security's coverage of an IPv6 finding is true (#10393)", () => {
 
 describe("one function makes every engine's Hash token (#10394)", () => {
   test("the log, trace and session replay engines hash through ScrubHashToken, with their rule's project", async () => {
-    const ofValue: jest.SpiedFunction<typeof ScrubHashToken.ofValue> =
-      jest.spyOn(ScrubHashToken, "ofValue");
-    const ofIpAddress: jest.SpiedFunction<typeof ScrubHashToken.ofIpAddress> =
-      jest.spyOn(ScrubHashToken, "ofIpAddress");
+    /*
+     * Spies that call through, seen by the surface used here: the
+     * @jest/globals and @types/jest typings of a spy disagree in this repo.
+     */
+    const ofValue: SpyLike = jest.spyOn(
+      ScrubHashToken,
+      "ofValue",
+    ) as unknown as SpyLike;
+    const ofIpAddress: SpyLike = jest.spyOn(
+      ScrubHashToken,
+      "ofIpAddress",
+    ) as unknown as SpyLike;
 
     const log: JSONObject = LogScrubRuleService.scrubLog(
       { body: "from 2001:db8::1 as ada@example.com", attributes: {} },
