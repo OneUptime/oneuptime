@@ -60452,5 +60452,8 @@
   "{{unitName}} is active on {{hostName}}": "{{unitName}} على {{hostName}} نشطة",
   "{{unitName}} is not active on {{hostName}}": "{{unitName}} على {{hostName}} ليست نشطة",
   "{{unitName}} stopped reporting on {{hostName}}": "{{unitName}} على {{hostName}} توقفت عن الإبلاغ",
-  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "اختر المستودع الذي يحتوي على التعليمات البرمجية لهذه الخدمة. يفتح OneUptime AI طلب سحب هناك."
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "اختر المستودع الذي يحتوي على التعليمات البرمجية لهذه الخدمة. يفتح OneUptime AI طلب سحب هناك.",
+  "Add the condition below to the role's trust policy, or run the setup command again, then test again.": "أضف الشرط أدناه إلى سياسة الثقة الخاصة بالدور، أو شغّل أمر الإعداد مرة أخرى، ثم اختبر مرة أخرى.",
+  "This role lets OneUptime sign in without your project's external ID, so any project that knows its ARN could read your AWS account through OneUptime. OneUptime does not use it until its trust policy requires the external ID: add {{condition}} to the statement that trusts OneUptime, or run the setup command again and connect the role it prints.": "يسمح هذا الدور لـ OneUptime بتسجيل الدخول دون المعرّف الخارجي لمشروعك، لذا يمكن لأي مشروع يعرف ARN الخاص به قراءة حساب AWS الخاص بك عبر OneUptime. لا يستخدمه OneUptime حتى تشترط سياسة الثقة الخاصة به المعرّف الخارجي: أضف {{condition}} إلى العبارة التي تثق بـ OneUptime، أو شغّل أمر الإعداد مرة أخرى واربط الدور الذي يطبعه.",
+  "This role lets OneUptime sign in without your project's external ID.": "يسمح هذا الدور لـ OneUptime بتسجيل الدخول دون المعرّف الخارجي لمشروعك."
 }

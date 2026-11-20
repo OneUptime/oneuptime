@@ -55,7 +55,9 @@ import ProductKey from "../../Types/Product/ProductKey";
  *     { provider, config, secrets }         settings never saved, so the
  *                                           form can test before a save.
  *     -> CloudConnectionTestResult. Signs in and counts a little of what a
- *        read would find; stores nothing.
+ *        read would find, and stores none of it. A saved connection's AWS
+ *        role check is kept for its reads, on every server: once a fixed
+ *        role passes a test, every read uses it at once (#10424).
  *
  *   POST /cloud-connection/:connectionId/read-now
  *     -> queues a read of the connection now.
@@ -158,13 +160,21 @@ export default class CloudConnectionAPI extends BaseAPI<
               : {};
 
           let settings: CloudConnectionSettings;
+          // The saved connection tested, when the body names one.
+          let connectionId: string | undefined;
 
           try {
-            settings = await this.readSettingsToTest({
+            const toTest: {
+              settings: CloudConnectionSettings;
+              connectionId: string | undefined;
+            } = await this.readSettingsToTest({
               body,
               projectId,
               props,
             });
+
+            settings = toTest.settings;
+            connectionId = toTest.connectionId;
           } catch (error) {
             /*
              * Settings the form could still fix (a role ARN of the wrong
@@ -195,6 +205,7 @@ export default class CloudConnectionAPI extends BaseAPI<
             await CloudConnectorRegistry.getConnector(settings.provider)
               .testConnection(settings, {
                 transport: DataSourceHttpFetch.fetch.bind(DataSourceHttpFetch),
+                connectionId,
               })
               .catch((error: unknown): CloudConnectionTestResult => {
                 // testConnection never throws; this is the belt to its braces.
@@ -844,29 +855,36 @@ export default class CloudConnectionAPI extends BaseAPI<
    * The settings a test reads with: a saved connection's, with the form's
    * unsaved values merged over them by the rule a save applies, or settings
    * that were never saved. Validated either way, so a test never sends a
-   * request a save would refuse.
+   * request a save would refuse. With the saved connection's id, once it
+   * is known to be the caller's project's: none for settings never saved.
    */
   private async readSettingsToTest(data: {
     body: JSONObject;
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
-  }): Promise<CloudConnectionSettings> {
+  }): Promise<{
+    settings: CloudConnectionSettings;
+    connectionId: string | undefined;
+  }> {
     const connectionIdValue: JSONValue | undefined = data.body["connectionId"];
 
     if (connectionIdValue === undefined || connectionIdValue === null) {
-      return CloudConnectionServiceClass.validateSettings({
-        provider: data.body["provider"],
-        projectId: data.projectId,
-        config: CloudConnectionServiceClass.parseJsonObject(
-          data.body["config"],
-          "Settings",
-        ),
-        secrets: CloudConnectionServiceClass.parseJsonObject(
-          data.body["secrets"],
-          "Credentials",
-        ),
-        requireRequiredSecrets: true,
-      });
+      return {
+        settings: CloudConnectionServiceClass.validateSettings({
+          provider: data.body["provider"],
+          projectId: data.projectId,
+          config: CloudConnectionServiceClass.parseJsonObject(
+            data.body["config"],
+            "Settings",
+          ),
+          secrets: CloudConnectionServiceClass.parseJsonObject(
+            data.body["secrets"],
+            "Credentials",
+          ),
+          requireRequiredSecrets: true,
+        }),
+        connectionId: undefined,
+      };
     }
 
     const connectionId: string = String(connectionIdValue);
@@ -894,31 +912,35 @@ export default class CloudConnectionAPI extends BaseAPI<
         })(),
       );
 
-    return CloudConnectionServiceClass.validateSettings({
-      provider: stored.provider,
-      // Always the connection's own project, never one the body names.
-      projectId: stored.projectId,
-      config:
-        data.body["config"] !== undefined
-          ? CloudConnectionServiceClass.parseJsonObject(
-              data.body["config"],
-              "Settings",
-            )
-          : stored.config,
-      secrets: CloudConnectionServiceClass.mergeSecrets({
-        definition: CloudConnectionServiceClass.getDefinitionOrThrow(
-          stored.provider,
-        ),
-        stored: stored.secrets,
-        provided:
-          data.body["secrets"] !== undefined
+    return {
+      settings: CloudConnectionServiceClass.validateSettings({
+        provider: stored.provider,
+        // Always the connection's own project, never one the body names.
+        projectId: stored.projectId,
+        config:
+          data.body["config"] !== undefined
             ? CloudConnectionServiceClass.parseJsonObject(
-                data.body["secrets"],
-                "Credentials",
+                data.body["config"],
+                "Settings",
               )
-            : {},
+            : stored.config,
+        secrets: CloudConnectionServiceClass.mergeSecrets({
+          definition: CloudConnectionServiceClass.getDefinitionOrThrow(
+            stored.provider,
+          ),
+          stored: stored.secrets,
+          provided:
+            data.body["secrets"] !== undefined
+              ? CloudConnectionServiceClass.parseJsonObject(
+                  data.body["secrets"],
+                  "Credentials",
+                )
+              : {},
+        }),
+        requireRequiredSecrets: true,
       }),
-      requireRequiredSecrets: true,
-    });
+      // The connection's own id as stored, the one its reads are keyed by.
+      connectionId: accessible?.id?.toString() || connectionId,
+    };
   }
 }

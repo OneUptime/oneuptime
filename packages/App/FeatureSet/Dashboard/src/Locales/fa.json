@@ -60452,5 +60452,8 @@
   "{{unitName}} is active on {{hostName}}": "{{unitName}} روی {{hostName}} فعال است",
   "{{unitName}} is not active on {{hostName}}": "{{unitName}} روی {{hostName}} فعال نیست",
   "{{unitName}} stopped reporting on {{hostName}}": "{{unitName}} روی {{hostName}} دیگر گزارش نمی‌دهد",
-  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "مخزن کدی را که کد این سرویس را نگه می‌دارد انتخاب کنید. OneUptime AI در آنجا یک pull request باز می‌کند."
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "مخزن کدی را که کد این سرویس را نگه می‌دارد انتخاب کنید. OneUptime AI در آنجا یک pull request باز می‌کند.",
+  "Add the condition below to the role's trust policy, or run the setup command again, then test again.": "شرط زیر را به سیاست اعتماد نقش بیفزایید، یا فرمان راه‌اندازی را دوباره اجرا کنید، سپس دوباره آزمایش کنید.",
+  "This role lets OneUptime sign in without your project's external ID, so any project that knows its ARN could read your AWS account through OneUptime. OneUptime does not use it until its trust policy requires the external ID: add {{condition}} to the statement that trusts OneUptime, or run the setup command again and connect the role it prints.": "این نقش اجازه می‌دهد OneUptime بدون شناسه خارجی پروژه شما وارد شود، پس هر پروژه‌ای که ARN آن را بداند می‌تواند حساب AWS شما را از راه OneUptime بخواند. OneUptime تا وقتی سیاست اعتماد این نقش شناسه خارجی را نخواهد از آن استفاده نمی‌کند: {{condition}} را به بخشی از سیاست اعتماد بیفزایید که به OneUptime اعتماد می‌کند، یا فرمان راه‌اندازی را دوباره اجرا کنید و نقشی را که چاپ می‌کند وصل کنید.",
+  "This role lets OneUptime sign in without your project's external ID.": "این نقش اجازه می‌دهد OneUptime بدون شناسه خارجی پروژه شما وارد شود."
 }

@@ -60452,5 +60452,8 @@
   "{{unitName}} is active on {{hostName}}": "{{unitName}} är aktiv på {{hostName}}",
   "{{unitName}} is not active on {{hostName}}": "{{unitName}} är inte aktiv på {{hostName}}",
   "{{unitName}} stopped reporting on {{hostName}}": "{{unitName}} på {{hostName}} rapporterar inte längre",
-  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "Välj den lagringsplats som innehåller denna tjänsts kod. OneUptime AI öppnar en pull-begäran där."
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "Välj den lagringsplats som innehåller denna tjänsts kod. OneUptime AI öppnar en pull-begäran där.",
+  "Add the condition below to the role's trust policy, or run the setup command again, then test again.": "Lägg till villkoret nedan i rollens förtroendepolicy, eller kör konfigurationskommandot igen, och testa sedan igen.",
+  "This role lets OneUptime sign in without your project's external ID, so any project that knows its ARN could read your AWS account through OneUptime. OneUptime does not use it until its trust policy requires the external ID: add {{condition}} to the statement that trusts OneUptime, or run the setup command again and connect the role it prints.": "Den här rollen låter OneUptime logga in utan ditt projekts externa ID, så varje projekt som känner till rollens ARN skulle kunna läsa ditt AWS-konto genom OneUptime. OneUptime använder den inte förrän dess förtroendepolicy kräver det externa ID:t: lägg till {{condition}} i den del av förtroendepolicyn som litar på OneUptime, eller kör konfigurationskommandot igen och anslut rollen det skriver ut.",
+  "This role lets OneUptime sign in without your project's external ID.": "Den här rollen låter OneUptime logga in utan ditt projekts externa ID."
 }

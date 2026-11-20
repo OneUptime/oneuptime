@@ -60452,5 +60452,8 @@
   "{{unitName}} is active on {{hostName}}": "{{unitName}} está activa en {{hostName}}",
   "{{unitName}} is not active on {{hostName}}": "{{unitName}} no está activa en {{hostName}}",
   "{{unitName}} stopped reporting on {{hostName}}": "{{unitName}} dejó de informar en {{hostName}}",
-  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "Elige el repositorio que contiene el código de este servicio. OneUptime AI abrirá allí una solicitud de incorporación de cambios."
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "Elige el repositorio que contiene el código de este servicio. OneUptime AI abrirá allí una solicitud de incorporación de cambios.",
+  "Add the condition below to the role's trust policy, or run the setup command again, then test again.": "Añade la condición de abajo a la política de confianza del rol, o vuelve a ejecutar el comando de configuración, y vuelve a probar.",
+  "This role lets OneUptime sign in without your project's external ID, so any project that knows its ARN could read your AWS account through OneUptime. OneUptime does not use it until its trust policy requires the external ID: add {{condition}} to the statement that trusts OneUptime, or run the setup command again and connect the role it prints.": "Este rol permite que OneUptime inicie sesión sin el ID externo de tu proyecto, así que cualquier proyecto que conozca su ARN podría leer tu cuenta de AWS a través de OneUptime. OneUptime no lo usa hasta que su política de confianza exija el ID externo: añade {{condition}} a la instrucción que confía en OneUptime, o vuelve a ejecutar el comando de configuración y conecta el rol que imprime.",
+  "This role lets OneUptime sign in without your project's external ID.": "Este rol permite que OneUptime inicie sesión sin el ID externo de tu proyecto."
 }

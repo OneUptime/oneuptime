@@ -60452,5 +60452,8 @@
   "{{unitName}} is active on {{hostName}}": "{{hostName}} 上の {{unitName}} はアクティブです",
   "{{unitName}} is not active on {{hostName}}": "{{hostName}} 上の {{unitName}} がアクティブではありません",
   "{{unitName}} stopped reporting on {{hostName}}": "{{hostName}} 上の {{unitName}} が報告を停止しました",
-  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "このサービスのコードを保持しているリポジトリを選択してください。OneUptime AI がそこにプルリクエストを作成します。"
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "このサービスのコードを保持しているリポジトリを選択してください。OneUptime AI がそこにプルリクエストを作成します。",
+  "Add the condition below to the role's trust policy, or run the setup command again, then test again.": "下の条件をロールの信頼ポリシーに追加するか、セットアップ コマンドをもう一度実行してから、もう一度テストしてください。",
+  "This role lets OneUptime sign in without your project's external ID, so any project that knows its ARN could read your AWS account through OneUptime. OneUptime does not use it until its trust policy requires the external ID: add {{condition}} to the statement that trusts OneUptime, or run the setup command again and connect the role it prints.": "このロールでは、OneUptime がプロジェクトの外部 ID なしでサインインできるため、ARN を知っているどのプロジェクトでも OneUptime 経由で AWS アカウントを読み取れてしまいます。OneUptime は、信頼ポリシーが外部 ID を要求するまでこのロールを使用しません。OneUptime を信頼するステートメントに {{condition}} を追加するか、セットアップ コマンドをもう一度実行して、出力されたロールを接続してください。",
+  "This role lets OneUptime sign in without your project's external ID.": "このロールでは、OneUptime がプロジェクトの外部 ID なしでサインインできます。"
 }
