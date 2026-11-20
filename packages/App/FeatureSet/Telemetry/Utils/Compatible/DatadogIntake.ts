@@ -229,6 +229,15 @@ for (const [typeName, fieldNames] of UNREAD_FIELDS) {
   for (const fieldName of fieldNames) {
     type.remove(type.fields[fieldName]!);
   }
+
+  /*
+   * The decoder is made again for the fields left; the constructor every
+   * message is made with was made as the file loaded, and would still give
+   * each one an empty array of every repeated field removed.
+   */
+  type.ctor = protobuf.Type.generateConstructor(type)() as protobuf.Constructor<
+    Record<string, unknown>
+  >;
 }
 
 export const DatadogMetricPayloadAsRead: protobuf.Type =
