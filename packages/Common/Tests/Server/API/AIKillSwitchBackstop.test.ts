@@ -547,6 +547,16 @@ const KNOWN_CALL_SITES: Array<CallSite> = [
     delivery: "skip",
   },
   /*
+   * OneUptime AI's own analysis of a new Data Security issue (#10364) runs
+   * in the issue's queue job: the engine reads both switches first and
+   * does nothing when AI is off, and a refusal while it asks is the
+   * reason Why AI did not act says - the issue opens either way.
+   */
+  {
+    file: "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts",
+    delivery: "skip",
+  },
+  /*
    * Write a Check from a Sentence on a table's Checks: the person waits on
    * the request (POST /data-observability/checks/suggest), and a refusal is
    * the message the card shows under the sentence.

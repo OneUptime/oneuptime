@@ -69,6 +69,9 @@ import DataSecurityCodeTask, {
   DataSecurityFixCode,
 } from "../Utils/AI/DataSecurity/DataSecurityCodeTask";
 import ProjectDataTypeNames from "../Utils/DataSecurity/ProjectDataTypeNames";
+import { readCountedTelemetryFindings } from "../Utils/DataSecurity/DataSecurityIssueFindings";
+import DataSecurityAiProposal from "../../Models/DatabaseModels/DataSecurityAiProposal";
+import DataSecurityAiProposals from "../Utils/AI/DataSecurity/DataSecurityAiProposals";
 import {
   DataSecurityFindingForAi,
   MAX_ISSUE_FINDINGS_FOR_AI,
@@ -76,14 +79,7 @@ import {
   describeDataSecurityIssueForAi,
   getDataSecurityExplainSystemPrompt,
 } from "../Utils/AI/DataSecurity/DataSecurityIssuePrompt";
-import QueryHelper from "../Types/Database/QueryHelper";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import {
-  FINDING_FRESHNESS_IN_DAYS,
-  getTelemetryCheckIdOfDataType,
-  isTelemetryFindingCheck,
-  isUnscrubbedTelemetryFinding,
-} from "../../Types/DataSecurity/DataSecurityCheckCatalog";
+import { isTelemetryFindingCheck } from "../../Types/DataSecurity/DataSecurityCheckCatalog";
 import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
 import DataSecurityIntegrations from "../Utils/DataSecurity/DataSecurityIntegrations";
 import DataSecurityResponse from "../Utils/DataSecurity/DataSecurityResponse";
@@ -173,7 +169,10 @@ import ProductKey from "../../Types/Product/ProductKey";
  *  - Block public access and Revoke sharing on a cloud store, for anyone
  *    who may edit it, through the store's cloud connection and only when
  *    its "Data security response" setting is on (DataSecurityResponse) -
- *    and which of them a store can take now, for anyone who may read it.
+ *    and which of them a store can take now, for anyone who may read it;
+ *  - Approve, Dismiss and Undo on what OneUptime AI proposed for an issue
+ *    (#10364), for anyone who may read the proposal, each held to the
+ *    permission the change itself takes (DataSecurityAiProposals).
  *
  * Every route reads only the caller's project and answers 404-like errors
  * for another project's records.
@@ -257,6 +256,17 @@ export const EXPLAIN_ISSUE_PERMISSIONS: Array<Permission> = [
   Permission.SecurityMember,
   Permission.SecurityViewer,
   Permission.ReadDataSecurityIssue,
+];
+
+/*
+ * Who may press on a proposal of OneUptime AI's (#10364): who may read it,
+ * the issue's readers. Each press then takes the change's own permission
+ * (DataSecurityAiProposals), so a reader who may make no change is refused
+ * with what it takes. Its own list, not READ_PERMISSIONS: a press acts, so
+ * it is refused while the server has Data Security switched off.
+ */
+export const AI_PROPOSAL_PERMISSIONS: Array<Permission> = [
+  ...new DataSecurityAiProposal().readRecordPermissions,
 ];
 
 const TREND_DAYS: number = 30;
@@ -728,6 +738,69 @@ export default class DataSecurityAPI extends BaseAPI<
       },
       { startsCodeWork: true },
     );
+
+    /*
+     * A proposal of OneUptime AI's (#10364): approved, dismissed or undone
+     * by a person who may read it, each held to the change's own
+     * permission - approving a scrub rule takes what creating one takes,
+     * undoing it what deleting one takes, dismissing what changing the
+     * issue takes - and made with their own props
+     * (DataSecurityAiProposals).
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.approveAiProposal(":id"),
+      AI_PROPOSAL_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        return await DataSecurityAiProposals.approve({
+          props,
+          projectId,
+          proposalId: req.params["id"],
+          expectedPlanFingerprint: body["expectedPlanFingerprint"],
+          expectedApprovalStep: body["expectedApprovalStep"],
+        });
+      },
+    );
+
+    this.post(
+      DATA_SECURITY_API_ROUTES.dismissAiProposal(":id"),
+      AI_PROPOSAL_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        return await DataSecurityAiProposals.dismiss({
+          props,
+          projectId,
+          proposalId: req.params["id"],
+          reason: body["reason"],
+        });
+      },
+    );
+
+    this.post(
+      DATA_SECURITY_API_ROUTES.undoAiProposal(":id"),
+      AI_PROPOSAL_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return await DataSecurityAiProposals.undo({
+          props,
+          projectId,
+          proposalId: req.params["id"],
+        });
+      },
+    );
   }
 
   private post(
@@ -1148,50 +1221,13 @@ export default class DataSecurityAPI extends BaseAPI<
     projectId: ObjectID,
     issue: DataSecurityIssue,
   ): Promise<Array<DataSecurityFindingForAi>> {
-    if (!isTelemetryFindingCheck(issue.checkId) || !issue.dataStoreId) {
-      return [];
-    }
-
-    const findings: Array<DataStoreFinding> =
-      await DataStoreFindingService.findBy({
-        query: {
-          projectId,
-          dataStoreId: issue.dataStoreId,
-          isSuppressed: false,
-          isScrubbed: false,
-          lastSeenAt: QueryHelper.greaterThanEqualTo(
-            // A length of time, the same on every server (issue #8236).
-            OneUptimeDate.addRemoveDurationInDays(
-              OneUptimeDate.getCurrentDate(),
-              -FINDING_FRESHNESS_IN_DAYS,
-            ),
-          ),
-        },
-        select: {
-          dataTypeId: true,
-          dataTypeName: true,
-          location: true,
-          locationKind: true,
-          confidence: true,
-          matchCount: true,
-          isConfirmed: true,
-          isAiSuggested: true,
-          isScrubbed: true,
-        },
-        sort: { matchCount: SortOrder.Descending },
-        skip: 0,
-        limit: 100,
-        props: { isRoot: true },
-      });
-
-    return findings
-      .filter((finding: DataStoreFinding): boolean => {
-        return (
-          isUnscrubbedTelemetryFinding(finding) &&
-          getTelemetryCheckIdOfDataType(finding.dataTypeId || "") ===
-            issue.checkId
-        );
+    return (
+      await readCountedTelemetryFindings({
+        projectId,
+        dataStoreId: issue.dataStoreId,
+        checkId: issue.checkId,
       })
+    )
       .slice(0, MAX_ISSUE_FINDINGS_FOR_AI)
       .map((finding: DataStoreFinding): DataSecurityFindingForAi => {
         return {

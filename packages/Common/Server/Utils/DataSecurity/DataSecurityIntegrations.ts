@@ -10,6 +10,9 @@ import DataStoreService from "../../Services/DataStoreService";
 import DataSecurityIssueFeedService from "../../Services/DataSecurityIssueFeedService";
 import DataSecurityIssueService from "../../Services/DataSecurityIssueService";
 import MailService from "../../Services/MailService";
+import ProjectService from "../../Services/ProjectService";
+import Project from "../../../Models/DatabaseModels/Project";
+import { queueDataSecurityAiEvaluation } from "./DataSecurityJobs";
 import TeamMemberService from "../../Services/TeamMemberService";
 import UserService from "../../Services/UserService";
 import SecurityDetectionService from "../../Services/SecurityDetectionService";
@@ -70,6 +73,9 @@ import Markdown, { MarkdownContentType } from "../../Types/Markdown";
  *    the project's incident process should run. Whoever runs it closes it.
  *  - Every new issue is emailed to its store's owners (on by default),
  *    with the issue and the data types - never a sample.
+ *  - OneUptime AI works on every new and reopened issue, as the project's
+ *    Data Security AI rules say, while its AI switches are on
+ *    (DataSecurityAiEngine, #10364): one queued job per issue.
  *
  * The issue keeps a link to the case, the alert and the incident it
  * started (securityCaseId, alertId, incidentId), which its page shows.
@@ -236,6 +242,48 @@ export default class DataSecurityIntegrations {
 
     if (data.setting.notifyOwners !== false) {
       await this.notifyOwners(data.projectId, data.issues);
+    }
+
+    await this.queueAiWork(data.projectId, data.issues);
+  }
+
+  /*
+   * OneUptime AI works on every issue that opened, or opened again, as the
+   * project's Data Security AI rules say (DataSecurityAiEngine, #10364) -
+   * while Enable AI and "Work on new Data Security issues" are on. Each
+   * issue is its own job; with either switch off nothing is queued, and
+   * Data Security runs as it always did.
+   */
+  private static async queueAiWork(
+    projectId: ObjectID,
+    issues: Array<OpenedIssueForIntegrations>,
+  ): Promise<void> {
+    try {
+      const project: Project | null = await ProjectService.findOneById({
+        id: projectId,
+        select: { _id: true, enableAi: true, enableAutomaticDataSecurityAi: true },
+        props: { isRoot: true },
+      });
+
+      if (
+        !project ||
+        project.enableAi === false ||
+        project.enableAutomaticDataSecurityAi !== true
+      ) {
+        return;
+      }
+
+      for (const issue of issues) {
+        await queueDataSecurityAiEvaluation({
+          projectId,
+          dataSecurityIssueId: issue.issueId,
+        });
+      }
+    } catch (error) {
+      logger.error(
+        `DataSecurity: could not queue OneUptime AI's work on the new issues of project ${projectId.toString()}:`,
+      );
+      logger.error(error);
     }
   }
 

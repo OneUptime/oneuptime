@@ -110,6 +110,12 @@ export default class CodeTaskRuns {
      */
     triggeredByAiInsightId?: ObjectID | undefined;
     /*
+     * The Data Security issue the person asked from, when the task fixes
+     * one (Fix with AI, DataSecurityCodeTask): its run says what it is
+     * about (#10364).
+     */
+    triggeredByDataSecurityIssueId?: ObjectID | undefined;
+    /*
      * The fix of OneUptime AI's the person asked from, when they asked for
      * the code that declares a cloud resource to make the fix's change
      * (Utils/AiRemediation/DeclaredCodeChange): the fix, and its step.
@@ -151,6 +157,10 @@ export default class CodeTaskRuns {
 
     if (data.triggeredByAiInsightId) {
       run.triggeredByAiInsightId = data.triggeredByAiInsightId;
+    }
+
+    if (data.triggeredByDataSecurityIssueId) {
+      run.triggeredByDataSecurityIssueId = data.triggeredByDataSecurityIssueId;
     }
 
     if (data.declaredCodeChange) {

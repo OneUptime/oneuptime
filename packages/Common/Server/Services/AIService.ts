@@ -209,6 +209,18 @@ export const AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE: string =
   "DataSecurityIssueExplanation";
 
 /*
+ * The LlmLog feature name for OneUptime AI's own analysis of a new or
+ * reopened Data Security issue (DataSecurityIssueAnalysis, #10364): the
+ * explanation Explain with AI writes, written with no one pressing it, as
+ * the project's Data Security AI rules say - out of the box, for every
+ * Critical and High issue. A scan can open many issues at once, so the
+ * daily budget covers it. Its AI Logs rows keep no previews, as Explain's
+ * do not.
+ */
+export const AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE: string =
+  "AI Data Security Issue Analysis";
+
+/*
  * The LlmLog feature name for drafting a detection rule from a description
  * (DetectionRuleDraft): one request, started by a person on the Detection
  * Rules form and answered while they wait. Not autonomous - the project's
@@ -360,6 +372,12 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * most one constrained call per store scan, started by the scan.
    */
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
+  /*
+   * OneUptime AI's analysis of a new Data Security issue
+   * (DataSecurityIssueAnalysis): one constrained call per issue that opens,
+   * and one scan can open many.
+   */
+  AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   /*
    * Pre-rename labels. Keeps the budget honest for rows already persisted
    * under the old names — read the LEGACY_AUTONOMOUS_AI_FEATURES comment
