@@ -738,9 +738,11 @@ describe("applyTemplateVariableValuesToGraph", () => {
     };
 
     test.each(
-      dynamicsTemplates.map((template: WorkflowTemplate) => {
-        return [template.id, template];
-      }),
+      dynamicsTemplates.map(
+        (template: WorkflowTemplate): [string, WorkflowTemplate] => {
+          return [template.id, template];
+        },
+      ),
     )(
       "%s: left blank, the Configuration Item Column is empty text, and gets no variable",
       (_id: string, template: WorkflowTemplate) => {
@@ -770,9 +772,11 @@ describe("applyTemplateVariableValuesToGraph", () => {
     );
 
     test.each(
-      dynamicsTemplates.map((template: WorkflowTemplate) => {
-        return [template.id, template];
-      }),
+      dynamicsTemplates.map(
+        (template: WorkflowTemplate): [string, WorkflowTemplate] => {
+          return [template.id, template];
+        },
+      ),
     )(
       "%s: filled in, it keeps its reference, and gets its variable",
       (_id: string, template: WorkflowTemplate) => {
