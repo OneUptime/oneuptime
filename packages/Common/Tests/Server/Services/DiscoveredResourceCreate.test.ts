@@ -4,6 +4,11 @@ import NameTakenException, {
   NAME_TAKEN_REFUSAL_CODE,
 } from "../../../Types/Exception/NameTakenException";
 import { getErrorDetails } from "../../../Types/Exception/BadDataExceptionWithDetails";
+import ValueTakenException, {
+  VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+  VALUE_TAKEN_REFUSAL_CODE,
+} from "../../../Types/Exception/ValueTakenException";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -579,10 +584,11 @@ describe("DiscoveredResourceCreate.refuseClash", () => {
 
   /*
    * A name, refused with the code a program tells a taken name by
-   * (#10065): the Terraform provider asks again while a resource in
+   * (#10065), and an identifier with the code of any other taken value
+   * (#10319): the Terraform provider asks either again while a resource in
    * service has it, and answers at once when only an archived one does.
    */
-  test("a clash of names carries name_taken; an identifier's carries no code", async () => {
+  test("a clash of names carries name_taken; an identifier's value_taken, with its field", async () => {
     existing.name = new Host();
 
     const named: unknown = await refuse(
@@ -604,9 +610,36 @@ describe("DiscoveredResourceCreate.refuseClash", () => {
       return error;
     });
 
+    expect(identified).toBeInstanceOf(ValueTakenException);
     expect(identified).toBeInstanceOf(BadDataException);
     expect(identified).not.toBeInstanceOf(NameTakenException);
-    expect(getErrorDetails(identified)).toEqual({});
+    expect(getErrorDetails(identified)).toEqual({
+      refusalCode: VALUE_TAKEN_REFUSAL_CODE,
+      field: "hostIdentifier",
+    });
+  });
+
+  test("an identifier only an archived resource has carries value_taken_by_archived, and one in service is named first", async () => {
+    const archived: Host = new Host();
+    archived.isArchived = true;
+    existing.identity = archived;
+
+    const identified: unknown = await refuse(
+      hostCreate({ hostIdentifier: "web-01", name: "web-01" }),
+    ).catch((error: unknown): unknown => {
+      return error;
+    });
+
+    expect(identified).toBeInstanceOf(ValueTakenException);
+    expect(getErrorDetails(identified)).toEqual({
+      refusalCode: VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+      field: "hostIdentifier",
+    });
+
+    // Asked for one in service before an archived one, as a name is.
+    expect(
+      (lookups[0] as unknown as { sort?: Record<string, unknown> }).sort,
+    ).toEqual({ isArchived: SortOrder.Ascending });
   });
 
   test("a name only an archived resource has says so, with name_taken_by_archived", async () => {

@@ -287,6 +287,31 @@ Nettleseren går til leverandørens egen utlogging så snart OneUptime har logge
 En leverandør der den ikke er registrert, viser sin egen feilside etter at noen har logget ut av OneUptime, i stedet for å sende dem tilbake; de er logget ut av OneUptime likevel.
 :::
 
+## Logge på igjen for å bekrefte at det er deg
+
+Før noen endrer hvordan de logger på, eller sletter kontoen sin, ber OneUptime dem om å [bekrefte at det er dem](/docs/introduction/your-account#bekreft-at-det-er-deg). Den som bare logger på via identitetsleverandøren din, uten passord eller passnøkkel i OneUptime, bekrefter med **Logg på igjen**: OneUptime sender personen til leverandøren og ber den få personen til å logge på igjen. Det teller bare når leverandøren sier at personen logget på i det øyeblikket eller senere, med ett minutts slingringsmonn for de to klokkene. En leverandør som logger personen rett på igjen med en økt den allerede har, eller ikke sier når personen logget på, bekrefter ingenting, og personen får beskjed om å be deg endre det.
+
+:::tabs
+@tab SAML
+OneUptime sender `ForceAuthn="true"` og leser når personen logget på fra assertionens `AuthnInstant`.
+
+| Identitetsleverandør | Hva du skal stille inn |
+| --- | --- |
+| Okta | Rediger **SAML Settings** på fanen **General**, klikk på **Show Advanced Settings**, og sett **Honor Force Authentication** til **Yes**. Står den på **No**, ignorerer Okta forespørselen. |
+| Microsoft Entra ID | Ingenting: Entra ID følger forespørselen, og dens `AuthnInstant` er når personen logget på. |
+| Keycloak | Ingenting: Keycloak følger forespørselen. Dens `AuthnInstant` er likevel når den svarer, ikke når personen logget på, så OneUptime kan ikke kontrollere at Keycloak ba dem logge på igjen. Koble til Keycloak via OpenID Connect for en kontroll OneUptime gjør selv. |
+| Google Workspace | Ingenting å stille inn. Google sier ikke om den følger forespørselen. Dens `AuthnInstant` er når personen sist logget på Google, så den som fortsatt er logget på Google, logger først av Google. |
+@tab OpenID Connect
+OneUptime sender `prompt=login` og `max_age=0`, og leser når personen logget på fra ID-tokenets `auth_time`.
+
+| Identitetsleverandør | Hva du skal stille inn |
+| --- | --- |
+| Okta | Ingenting: Okta følger begge og sender alltid `auth_time`. |
+| Microsoft Entra ID | Klikk på **Add optional claim** i appregistreringens **Token configuration**, velg **ID**, og legg til `auth_time`: Entra ID sender den bare som en valgfri claim. Den følger `prompt=login`. |
+| Keycloak | Behold klientomfanget `basic` på klienten: det inneholder `auth_time`. Keycloak 25 og nyere gir alle klienter dette omfanget. |
+| Google Workspace | Slå på **Session age claims** for OAuth-klienten under **Google Auth Platform** > **Settings** > **Advanced Settings**; appen må være publisert og verifisert. Google godtar ingen av forespørslene, så OneUptime ber den i stedet om `auth_time`, og den som fortsatt er logget på Google, logger først av Google. |
+:::
+
 ## Roller og team for SSO-brukere
 
 OneUptime overtar ikke roller eller grupper fra identitetsleverandøren din. Hva en person kan gjøre, følger av teamene vedkommende er med i: en leverandør legger nye personer til i sine **Team**, og du administrerer team og tillatelsene deres i OneUptime, slik [Brukere, team og tillatelser](/docs/permissions/index) beskriver. Bruk [SCIM](/docs/identity/scim) for å holde teammedlemskap i takt med identitetsleverandøren din. Hvert team noen blir med i når de logger på, registreres på teamets side **Revisjonslogger** som en endring gjort av personen som logget på.

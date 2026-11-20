@@ -447,6 +447,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "At most 100 series a check.",
     "The limits of every PromQL query hold",
     "The anomaly conditions are not offered",
+    // Its Overview's and its incidents' charts (#10227).
+    "Its charts draw the expression.",
   ],
   [TRACES_MONITOR]: [
     "Every minute.",

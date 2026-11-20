@@ -24,6 +24,7 @@ Cherchez dans le tableau ci-dessous le message que Terraform a affiché, ou ce q
 | `Not Found` ou `Ambiguous Match` venant d'une source de données | Corrigez les arguments de la recherche : voir [Des recherches qui ne trouvent rien ou en trouvent plusieurs](#des-recherches-qui-ne-trouvent-rien-ou-en-trouvent-plusieurs) |
 | `There is already a team called` (une étiquette, une politique d'astreinte, un planning d'astreinte) | Donnez-lui un nom qu'aucun autre de son type ne porte, ou renommez d'abord l'autre : voir [Des noms qu'un autre enregistrement porte déjà](#des-noms-quun-autre-enregistrement-porte-déjà) |
 | `with the same name already exists` | Donnez-lui un nom qu'aucun autre de son type ne porte, ou importez l'enregistrement qui le porte : voir [Des noms qu'un autre enregistrement porte déjà](#des-noms-quun-autre-enregistrement-porte-déjà) |
+| `already exists` pour un domaine, un nom d'hôte ou une URL de connexion | Donnez-lui une valeur qu'aucun autre enregistrement ne porte, ou importez l'enregistrement qui la porte : voir [Des domaines et des identifiants qu'un autre enregistrement porte déjà](#des-domaines-et-des-identifiants-quun-autre-enregistrement-porte-déjà) |
 | `Cannot import non-existent remote object` | Vérifiez l'ID et les permissions de la clé : voir [Importer des ressources](/docs/terraform/importing-resources#dépannage) |
 | `Provider produced inconsistent result after apply` | Mettez à jour le fournisseur : voir [Résultat incohérent après l'apply](#résultat-incohérent-après-lapply) |
 | Un plan crée une ressource que vous n'avez pas ajoutée | La clé ne peut plus la lire, et OneUptime a répondu `404` : rendez à la clé son accès en lecture, puis importez la ressource avec `terraform import` : voir [Une ressource quitte l'état, et l'apply suivant la recrée](#une-ressource-quitte-létat-et-lapply-suivant-la-recrée) |
@@ -114,6 +115,14 @@ Terraform effectue en parallèle les changements d'un même apply, si bien qu'un
 Un enregistrement archivé garde son nom, et rien de ce qu'un apply fait aux enregistrements en service ne le libère. Une création ou un renommage vers ce nom échoue aussitôt, et le message dit où le désarchiver : désarchivez-le, ou choisissez un autre nom.
 
 Avec un fournisseur plus ancien ou un OneUptime plus ancien, le premier refus fait échouer l'apply : appliquez de nouveau, ou ajoutez un `depends_on` de la ressource qui prend le nom vers celle qui l'abandonne.
+
+### Des domaines et des identifiants qu'un autre enregistrement porte déjà
+
+Le domaine d'une page de statut, d'un tableau de bord ou d'un formulaire, un domaine de projet, l'identifiant d'un hôte ou d'un cluster Kubernetes et l'URL de connexion d'un fournisseur SSO appartiennent aussi à un seul enregistrement chacun, quelle que soit leur casse. Une création, ou un changement, vers l'un d'eux que porte déjà un autre enregistrement reçoit la réponse `400`, comme `Status Page Domain with the same fullDomain already exists.`
+
+Le fournisseur redemande ici aussi pendant 30 secondes au plus, si bien que déplacer un domaine d'une ressource vers une autre dans un même apply, qui supprime l'une et crée l'autre en parallèle, aboutit en un seul apply. Un échange de deux valeurs n'aboutit jamais, pas plus qu'une valeur que porte un enregistrement hors de la configuration : au bout de 30 secondes, l'apply échoue avec `The value was still taken after asking again for 30 seconds.` Donnez à la ressource une valeur que personne ne porte, ou importez avec `terraform import` l'enregistrement qui porte la valeur. Pour un échange, donnez à l'une d'elles une valeur temporaire, appliquez, puis faites le reste du changement.
+
+Une valeur que seul un enregistrement archivé porte, comme le nom d'hôte d'un hôte archivé, échoue aussitôt, et le message dit quoi faire : désarchivez cet enregistrement, ou choisissez une autre valeur.
 
 ## Des plans qui ne se stabilisent pas
 

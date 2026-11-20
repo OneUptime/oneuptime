@@ -1,18 +1,23 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   SECURITY_PLAYBOOK_ACTION_TITLES,
+  SECURITY_PLAYBOOK_UNDO_ACTIONS,
   SELF_APPROVAL_SENTENCE,
   WAITING_FOR_APPROVAL,
   describePlaybookTarget,
+  describePlaybookUndo,
   didStartPlaybookRun,
   getKeptTargetValues,
   getPlaybookActionTitle,
+  readContainedPlaybookTargets,
   readPlaybookTargets,
   readWaitingPlaybookStep,
+  type ContainedPlaybookTarget,
   type PlaybookRunRecord,
   type PlaybookTarget,
   type WaitingPlaybookStep,
 } from "./playbookApproval";
+import { makeContainedPlaybookRun } from "../__tests__/testSupport";
 
 /*
  * A playbook run waiting for somebody to approve its next step, as the case's
@@ -355,5 +360,165 @@ describe("action titles", () => {
     expect(getPlaybookActionTitle("")).toBe("");
     expect(getPlaybookActionTitle(undefined)).toBe("");
     expect(getPlaybookActionTitle(42)).toBe("");
+  });
+});
+
+/*
+ * What a case's playbooks contained, to release from the phone: each target
+ * a containment step acted on, with the step's undo - once its run is not
+ * running, as the server holds an undo to.
+ */
+describe("what the case's playbooks contained", () => {
+  const CONTAINED_RUN: string = "7a6b0000-0002-4000-8000-000000000002";
+
+  test("each target a containment step acted on, with the step's undo", () => {
+    expect(readContainedPlaybookTargets([makeContainedPlaybookRun()])).toEqual([
+      {
+        runId: CONTAINED_RUN,
+        stepId: "suspend",
+        stepNumber: 2,
+        playbookName: "Contain a compromised account",
+        stepTitle: "Suspend the user in Okta",
+        undoTitle: "Unsuspend the user in Okta",
+        target: {
+          type: "User",
+          value: "alice@acme.test",
+          reason: "Grouped On",
+          state: "Done",
+        },
+      },
+    ]);
+  });
+
+  test.each(["Queued", "Running"])(
+    "a run that is %s has nothing to undo yet: the server refuses until it stops",
+    (status: string) => {
+      expect(
+        readContainedPlaybookTargets([makeContainedPlaybookRun({ status })]),
+      ).toEqual([]);
+    },
+  );
+
+  test.each(["Failed", "Cancelled", WAITING_FOR_APPROVAL])(
+    "a run that stopped - %s - keeps what it contained undoable",
+    (status: string) => {
+      expect(
+        readContainedPlaybookTargets([makeContainedPlaybookRun({ status })]),
+      ).toHaveLength(1);
+    },
+  );
+
+  test("a target already released, left out, failed or not found has nothing to undo", () => {
+    const run: PlaybookRunRecord = makeContainedPlaybookRun({
+      stepResults: [
+        {
+          stepId: "suspend",
+          action: "Suspend Okta User",
+          status: "Failed",
+          targets: [
+            "Undone",
+            "Left Out",
+            "Failed",
+            "Not Found",
+            "Already Done",
+          ].map((state: string, index: number) => {
+            return { type: "User", value: `user-${index}@acme.test`, state };
+          }),
+        },
+      ],
+    });
+
+    expect(readContainedPlaybookTargets([run])).toEqual([]);
+  });
+
+  test("a step nothing undoes - ending sessions, a note - offers no undo", () => {
+    const run: PlaybookRunRecord = makeContainedPlaybookRun({
+      steps: [{ id: "end", action: "End Okta Sessions" }],
+      stepResults: [
+        {
+          stepId: "end",
+          action: "End Okta Sessions",
+          status: "Succeeded",
+          targets: [{ type: "User", value: "alice@acme.test", state: "Done" }],
+        },
+      ],
+    });
+
+    expect(readContainedPlaybookTargets([run])).toEqual([]);
+  });
+
+  test("results are matched to their step by id, as the server reads them", () => {
+    const run: PlaybookRunRecord = makeContainedPlaybookRun({
+      steps: [
+        { id: "isolate", action: "Isolate Defender Device" },
+        { id: "contain", action: "Contain CrowdStrike Host" },
+      ],
+      stepResults: [
+        {
+          stepId: "contain",
+          action: "Contain CrowdStrike Host",
+          status: "Succeeded",
+          targets: [{ type: "Host", value: "web-01", state: "Done" }],
+        },
+      ],
+    });
+
+    expect(
+      readContainedPlaybookTargets([run]).map(
+        (item: ContainedPlaybookTarget) => {
+          return [
+            item.stepId,
+            item.stepNumber,
+            item.undoTitle,
+            item.target.value,
+          ];
+        },
+      ),
+    ).toEqual([["contain", 2, "Lift containment in CrowdStrike", "web-01"]]);
+  });
+
+  test("a run that does not read - no id, steps not a list - offers nothing, and fails nothing", () => {
+    expect(
+      readContainedPlaybookTargets([
+        makeContainedPlaybookRun({ _id: "" as never }),
+        makeContainedPlaybookRun({ steps: "garbage" as never }),
+        makeContainedPlaybookRun({ stepResults: null as never }),
+      ]),
+    ).toEqual([]);
+  });
+
+  test("every containment action is undone by its pair, by the dashboard's titles", () => {
+    expect(
+      Object.entries(SECURITY_PLAYBOOK_UNDO_ACTIONS).map(
+        ([action, undo]: [string, string]) => {
+          return [getPlaybookActionTitle(action), getPlaybookActionTitle(undo)];
+        },
+      ),
+    ).toEqual([
+      ["Suspend the user in Okta", "Unsuspend the user in Okta"],
+      ["Contain the host in CrowdStrike", "Lift containment in CrowdStrike"],
+      [
+        "Isolate the device in Microsoft Defender",
+        "Release the device in Microsoft Defender",
+      ],
+      [
+        "Disable the user in Microsoft Entra ID",
+        "Enable the user in Microsoft Entra ID",
+      ],
+      [
+        "Suspend the user in Google Workspace",
+        "Unsuspend the user in Google Workspace",
+      ],
+    ]);
+  });
+
+  test("an undo asks as the dashboard asks: who gets their access back, and that it is kept", () => {
+    expect(
+      describePlaybookUndo(
+        readContainedPlaybookTargets([makeContainedPlaybookRun()])[0]!,
+      ),
+    ).toBe(
+      "alice@acme.test gets its access back, undoing step 2. Do it once the threat is gone. It is kept on the case's timeline and in the audit log.",
+    );
   });
 });

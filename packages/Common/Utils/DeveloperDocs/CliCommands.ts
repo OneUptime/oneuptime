@@ -616,6 +616,8 @@ const VALUE_NAMES_BY_TYPE: Partial<Record<TableColumnType, string>> = {
   [TableColumnType.LongURL]: "<url>",
   [TableColumnType.Phone]: "<phone>",
   [TableColumnType.Domain]: "<domain>",
+  // A permission's key, such as IncidentMember (#10300).
+  [TableColumnType.Permission]: "<permission>",
 };
 
 /*
@@ -1045,7 +1047,33 @@ export function parseCliFieldValue(
         return raw.trim();
       }
 
+      if (flag.columnType === TableColumnType.Permission) {
+        return parseCliPermission(raw);
+      }
+
       return raw;
+  }
+}
+
+/*
+ * A permission flag (--permission) takes the permission's key, such as
+ * IncidentMember. It took JSON until #10300 - the API spec documented a
+ * permission as an object - so scripts and the Developer pages wrote
+ * --permission '"IncidentMember"': the key as a JSON string, quotes and
+ * all, which is still read as the key. Any other text is sent as it is,
+ * for the API to take or refuse ("OneUptime has no permission called ...").
+ */
+export function parseCliPermission(raw: string): string {
+  if (!raw.trim().startsWith('"')) {
+    return raw;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(raw);
+
+    return typeof parsed === "string" ? parsed : raw;
+  } catch {
+    return raw;
   }
 }
 

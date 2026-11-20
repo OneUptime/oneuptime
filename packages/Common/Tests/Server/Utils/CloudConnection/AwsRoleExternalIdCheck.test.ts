@@ -14,6 +14,7 @@ import {
   AssumedRoleCache,
   AwsRoleCheckCache,
   AwsRoleCheckVerdict,
+  AwsRolePurpose,
   ROLE_CHECK_PASS_MS,
   ROLE_CHECK_REFUSAL_MS,
   ROLE_CHECK_SESSION_POLICY,
@@ -967,6 +968,7 @@ describe("signing in to a role (assumeRole)", () => {
     const fake: FakeAws = fakeAws();
 
     await assumeRole({
+      purpose: AwsRolePurpose.CloudConnect,
       transport: fake.transport,
       credentials: SERVER_KEY,
       roleArn: ROLE_ARN,

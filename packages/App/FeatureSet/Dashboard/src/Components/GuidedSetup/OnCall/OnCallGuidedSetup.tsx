@@ -1,5 +1,6 @@
 import OnCallSetupApi, {
   MyReach,
+  PolicyChoice,
   PolicyChoiceFacts,
   ProjectPhoneFacts,
   maySecondEscalationLevel,
@@ -1372,7 +1373,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   /*
    * STEP 2: WHO IS PAGED FIRST?
    */
-  const policies: Array<{ id: string; name: string }> = choices?.policies || [];
+  const policies: Array<PolicyChoice> = choices?.policies || [];
   const isExistingMode: boolean = !policy && policies.length > 0;
   const mayCreatePolicy: boolean = Boolean(choices?.mayCreatePolicy);
   const mayAddRules: boolean = Boolean(choices?.mayAddRules);
@@ -1933,9 +1934,18 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     </div>
   );
 
+  /*
+   * Two policies of one name are told apart in the picker, by what sets each
+   * apart (SharedNameOptions, #10314).
+   */
   const policyChoiceOptions: Array<DropdownOption> = policies.map(
-    (entry: { id: string; name: string }): DropdownOption => {
-      return { value: entry.id, label: entry.name, isUserContent: true };
+    (entry: PolicyChoice): DropdownOption => {
+      return {
+        value: entry.id,
+        label: entry.name,
+        isUserContent: true,
+        ...(entry.sharedName ? { sharedName: entry.sharedName } : {}),
+      };
     },
   );
 

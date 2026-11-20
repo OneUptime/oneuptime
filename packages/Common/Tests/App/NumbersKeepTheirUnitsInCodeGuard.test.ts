@@ -1402,6 +1402,8 @@ const WORDS_AS_WRITTEN: Readonly<Record<string, string>> = {
     "an interval in a SQL query",
   "packages/Common/Utils/SecurityCase/SecurityCaseMarkdown.ts":
     "a security case's feed item, written by the server and stored as Markdown",
+  "packages/Common/Types/SecurityBlocklist/SecurityBlock.ts":
+    "a block's length, written by the server into its case's timeline and stored as Markdown",
   "packages/Common/Types/CloudConnection/CloudAiAgentSetupCommands.ts":
     "a line a setup shell command echoes, in double quotes",
   "packages/Common/Types/OnCallDutyPolicy/OnCallPolicyRunRetry.ts":

@@ -74,6 +74,13 @@ import NameTakenException, {
   NAME_TAKEN_REFUSAL_CODES,
   REFUSAL_CODE_FIELD,
 } from "Common/Types/Exception/NameTakenException";
+import ValueTakenException, {
+  TAKEN_FIELD_DETAIL,
+  VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+  VALUE_TAKEN_REFUSAL_CODE,
+  VALUE_TAKEN_REFUSAL_CODES,
+} from "Common/Types/Exception/ValueTakenException";
+import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
 import {
   SharedNameKind,
   getSharedNamesRoute,
@@ -960,6 +967,98 @@ describe("OneUptime API Reference: a request and its answer", () => {
 
       expect({ kind, named }).toEqual({ kind, named: true });
     }
+  });
+
+  /*
+   * #10318: the other kinds with a name of their own refuse a rename onto a
+   * taken name as they refuse a create, through the update's own check, and
+   * records that shared a name before keep it but are never renamed onto
+   * another's.
+   */
+  it("says the other kinds refuse a rename onto a taken name as they refuse a create", () => {
+    const section: string = englishSection(
+      API_REFERENCE,
+      "#### Names another record has",
+    );
+
+    expect(section).toContain(
+      "refuse a taken name in the same way, on a create and on a rename alike",
+    );
+    expect(section).toContain(
+      "can still be changed, and renamed apart, but never onto another record's name",
+    );
+    expect(readRepoFile(DATABASE_SERVICE)).toContain(
+      "await this.checkUniqueColumnByOnUpdate(beforeUpdateBy);",
+    );
+  });
+
+  /*
+   * #10319: a value that is not a name, but that a record holds alone - a
+   * domain, an identifier, a sign-on URL - is refused with codes of its own
+   * beside its sentence, and the field whose value is taken, which a client
+   * reads in place of the sentence.
+   */
+  it("names the codes a taken value is refused with, what each means, and the field beside them", () => {
+    const section: string = englishSection(
+      API_REFERENCE,
+      "#### Values another record has",
+    );
+
+    expect(new ValueTakenException("x", { field: "fullDomain" }).code).toBe(
+      400,
+    );
+    expect(
+      new ValueTakenException("x", { field: "fullDomain" }).details,
+    ).toEqual({
+      [REFUSAL_CODE_FIELD]: VALUE_TAKEN_REFUSAL_CODE,
+      [TAKEN_FIELD_DETAIL]: "fullDomain",
+    });
+    expect(new ValueTakenException("x", { isArchived: true }).details).toEqual({
+      [REFUSAL_CODE_FIELD]: VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+    });
+    expect(section).toContain(
+      `carries a \`${REFUSAL_CODE_FIELD}\` that says what has the value, and a \`${TAKEN_FIELD_DETAIL}\` that names the field whose value is taken, such as \`"${TAKEN_FIELD_DETAIL}": "fullDomain"\``,
+    );
+    expect(section).toContain(
+      `A value of several fields together comes without a \`${TAKEN_FIELD_DETAIL}\`.`,
+    );
+
+    // Every code the server sends, a line each, in Common's order.
+    const codeLines: Array<string> = section
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith("- ");
+      });
+
+    expect(
+      codeLines.map((line: string): string | null => {
+        return REFUSAL_CODE_LINE.exec(line)?.[1] || null;
+      }),
+    ).toEqual(
+      VALUE_TAKEN_REFUSAL_CODES.map((code: string): string => {
+        return `"${REFUSAL_CODE_FIELD}": "${code}"`;
+      }),
+    );
+    expect(codeLines[0]).toContain("a record in service has it");
+    expect(codeLines[0]).toContain(
+      "the Terraform provider asks again for up to 30 seconds",
+    );
+    expect(codeLines[1]).toContain("only an archived record has it");
+    expect(codeLines[1]).toContain(
+      "sending the request again does not help, and the Terraform provider does not",
+    );
+
+    // The refusal it quotes, word for word (DatabaseService.refuseTakenValue).
+    expect(
+      codeBlocks(section, "text").map((block: string): string => {
+        return block.trim();
+      }),
+    ).toEqual([
+      `${new StatusPageDomain().singularName} with the same fullDomain already exists.`,
+    ]);
+    expect(readRepoFile(DATABASE_SERVICE)).toContain(
+      "`${this.model.singularName} with the same ${data.column} already exists.`",
+    );
   });
 });
 

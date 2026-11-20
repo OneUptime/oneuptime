@@ -1,6 +1,4 @@
-import DashboardComponentType, {
-  DataSourceComponentTypes,
-} from "Common/Types/Dashboard/DashboardComponentType";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import { isPublicDashboardUndrawnWidgetType } from "Common/Types/Dashboard/PublicDashboardServedSettings";
 import ObjectID from "Common/Types/ObjectID";
 import URL from "Common/Types/API/URL";
@@ -74,25 +72,24 @@ export function isPublicDashboard(): boolean {
 /*
  * Whether a widget of this type is drawn on the dashboard being shown.
  *
- * A public dashboard cannot draw two kinds of widget, and each says so in
- * its place: those whose data its API does not read - logs, traces,
- * security events and product analytics ("Log charts are not available on
- * public dashboards.", PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES, the list the
- * server serves their title only by, issue #6338) - and the external Data
- * Source widgets (DataSourceWidgetPlaceholder), which the server leaves
- * out altogether. The board lays them out as the words they are: on a
- * phone each takes two rows at most, and a chart among them no chart's
- * floor (Canvas, DashboardBoardLayout isPlaceholder).
+ * A public dashboard cannot draw the widgets whose data its API does not
+ * read - logs, traces, security events and product analytics ("Log charts
+ * are not available on public dashboards.",
+ * PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES, the list the server serves their
+ * title only by, issue #6338), and each says so in its place. The board
+ * lays them out as the words they are: on a phone each takes two rows at
+ * most, and a chart among them no chart's floor (Canvas,
+ * DashboardBoardLayout isPlaceholder).
+ *
+ * The Data Source widgets are drawn (issue #10226): the server serves a
+ * public dashboard only those that read this project's metrics, whose
+ * data its PromQL route reads, and leaves out every other one.
  */
 export function isWidgetDrawnHere(
   componentType: DashboardComponentType | string | undefined,
 ): boolean {
   return !(
-    isPublicDashboard() &&
-    (isPublicDashboardUndrawnWidgetType(componentType) ||
-      DataSourceComponentTypes.some((dataSource: DashboardComponentType) => {
-        return dataSource === componentType;
-      }))
+    isPublicDashboard() && isPublicDashboardUndrawnWidgetType(componentType)
   );
 }
 

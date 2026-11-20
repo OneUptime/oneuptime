@@ -13,13 +13,16 @@ import {
   PROTECTED_ENTITY_VALUE_MAX_LENGTH,
   ProtectedEntityRule,
   isProtectedEntityType,
+  normalizeProtectedAddressValue,
   normalizeProtectedEntityValue,
 } from "../../Types/SecurityPlaybook/SecurityProtectedEntity";
 
 /*
- * The project's protected users and hosts. A row is a user or a host and a
- * value (or `*` pattern) for it, held to those, trimmed, and listed once:
- * the same value twice for the same kind is refused, whatever its case.
+ * The project's protected users, hosts and addresses. A row is a user or a
+ * host and a value (or `*` pattern) for it, or an address or a range of
+ * addresses, held to those, trimmed - an address written the one way blocks
+ * are - and listed once: the same value twice for the same kind is refused,
+ * whatever its case.
  */
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -29,15 +32,30 @@ export class Service extends ProjectReferencesService<Model> {
   private static readType(value: unknown): SecurityEntityType {
     if (!isProtectedEntityType(value)) {
       throw new BadDataException(
-        "Choose what to protect: a User or a Host. Containment acts on nothing else.",
+        "Choose what to protect: a User, a Host or an IP Address. Containment acts on nothing else.",
       );
     }
 
     return value;
   }
 
-  private static readValue(value: unknown): string {
+  private static readValue(
+    value: unknown,
+    entityType: SecurityEntityType,
+  ): string {
     const text: string = normalizeProtectedEntityValue(value);
+
+    if (entityType === SecurityEntityType.IpAddress) {
+      const address: string | null = normalizeProtectedAddressValue(text);
+
+      if (!address) {
+        throw new BadDataException(
+          "Enter an IPv4 or IPv6 address to protect, such as 203.0.113.7, or a range written as an address and a length, such as 203.0.113.0/24.",
+        );
+      }
+
+      return address;
+    }
 
     if (!text) {
       throw new BadDataException(
@@ -103,7 +121,10 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     createBy.data.entityType = Service.readType(createBy.data.entityType);
-    createBy.data.value = Service.readValue(createBy.data.value);
+    createBy.data.value = Service.readValue(
+      createBy.data.value,
+      createBy.data.entityType,
+    );
 
     await this.assertNotListed({
       projectId: createBy.data.projectId,
@@ -130,17 +151,9 @@ export class Service extends ProjectReferencesService<Model> {
       data["entityType"] === undefined
         ? undefined
         : Service.readType(data["entityType"]);
-    const value: string | undefined =
-      data["value"] === undefined
-        ? undefined
-        : Service.readValue(data["value"]);
 
     if (entityType) {
       data["entityType"] = entityType;
-    }
-
-    if (value) {
-      data["value"] = value;
     }
 
     const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
@@ -153,16 +166,91 @@ export class Service extends ProjectReferencesService<Model> {
       },
     );
 
-    for (const row of rows) {
-      if (!row.projectId) {
-        continue;
+    /*
+     * The value is read as the kind each row ends up: an address entry's
+     * value is an address or a range, written the one way, and a row turned
+     * into one keeps a value only if it reads as one. One write gives every
+     * row it changes the same value, so it must read the same as each row's
+     * kind - and no two rows of one kind may get it, as a value is listed
+     * once. A write that changes the kind and not the value writes a row's
+     * value again where the new kind spells it another way, one row at a
+     * time.
+     */
+    const written: Array<{
+      row: Model;
+      entityType: SecurityEntityType;
+      value: string;
+    }> = rows
+      .filter((row: Model): boolean => {
+        return Boolean(row.projectId);
+      })
+      .map((row: Model) => {
+        const rowType: SecurityEntityType =
+          entityType || Service.readType(row.entityType);
+
+        return {
+          row,
+          entityType: rowType,
+          value: Service.readValue(
+            data["value"] === undefined ? row.value : data["value"],
+            rowType,
+          ),
+        };
+      });
+
+    if (data["value"] !== undefined && written.length > 0) {
+      const values: Set<string> = new Set(
+        written.map((entry: { value: string }): string => {
+          return entry.value;
+        }),
+      );
+
+      if (values.size > 1) {
+        throw new BadDataException(
+          "Change the value of one protected entity at a time: it reads differently as a user, a host and an IP address.",
+        );
       }
 
+      const kinds: Set<SecurityEntityType> = new Set(
+        written.map((entry: { entityType: SecurityEntityType }) => {
+          return entry.entityType;
+        }),
+      );
+
+      if (kinds.size < written.length) {
+        throw new BadDataException(
+          `${written[0]!.entityType} "${written[0]!.value}" can be protected only once. Change one protected entity's value at a time.`,
+        );
+      }
+
+      data["value"] = written[0]!.value;
+    }
+
+    if (data["value"] === undefined) {
+      const respelled: Array<{ row: Model; value: string }> = written.filter(
+        (entry: { row: Model; value: string }): boolean => {
+          return entry.value !== entry.row.value;
+        },
+      );
+
+      // The value written goes to every row of the write: only one row's may be spelled again.
+      if (respelled.length > 0 && written.length > 1) {
+        throw new BadDataException(
+          "Change the kind of one protected entity at a time.",
+        );
+      }
+
+      if (respelled.length === 1) {
+        data["value"] = respelled[0]!.value;
+      }
+    }
+
+    for (const entry of written) {
       await this.assertNotListed({
-        projectId: row.projectId,
-        entityType: entityType || Service.readType(row.entityType),
-        value: value || Service.readValue(row.value),
-        exceptId: row.id || undefined,
+        projectId: entry.row.projectId!,
+        entityType: entry.entityType,
+        value: entry.value,
+        exceptId: entry.row.id || undefined,
       });
     }
 

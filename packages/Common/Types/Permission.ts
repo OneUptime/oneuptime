@@ -438,6 +438,11 @@ enum Permission {
   EditSecurityPlaybookRun = "EditSecurityPlaybookRun",
   ReadSecurityPlaybookRun = "ReadSecurityPlaybookRun",
 
+  // The Blocklist (the addresses the project blocks, and where each is enforced)
+  CreateSecurityBlock = "CreateSecurityBlock",
+  EditSecurityBlock = "EditSecurityBlock",
+  ReadSecurityBlock = "ReadSecurityBlock",
+
   // Data Stores: the buckets, databases, warehouses and telemetry Data Security watches
   CreateDataStore = "CreateDataStore",
   DeleteDataStore = "DeleteDataStore",
@@ -2499,6 +2504,25 @@ enum Permission {
   EditFormDomain = "EditFormDomain",
   ReadFormDomain = "ReadFormDomain",
 
+  /*
+   * Form Private Users and Single Sign-On: who signs in on the public
+   * link of a form that asks its visitors to sign in (#10249).
+   */
+  CreateFormPrivateUser = "CreateFormPrivateUser",
+  DeleteFormPrivateUser = "DeleteFormPrivateUser",
+  EditFormPrivateUser = "EditFormPrivateUser",
+  ReadFormPrivateUser = "ReadFormPrivateUser",
+
+  CreateFormSSO = "CreateFormSSO",
+  DeleteFormSSO = "DeleteFormSSO",
+  EditFormSSO = "EditFormSSO",
+  ReadFormSSO = "ReadFormSSO",
+
+  CreateFormOIDC = "CreateFormOIDC",
+  DeleteFormOIDC = "DeleteFormOIDC",
+  EditFormOIDC = "EditFormOIDC",
+  ReadFormOIDC = "ReadFormOIDC",
+
   // Incident Episode State Timeline Permissions
   CreateIncidentEpisodeStateTimeline = "CreateIncidentEpisodeStateTimeline",
   DeleteIncidentEpisodeStateTimeline = "DeleteIncidentEpisodeStateTimeline",
@@ -3493,7 +3517,7 @@ export class PermissionHelper {
         permission: Permission.SecurityAdmin,
         title: "Security Admin",
         description:
-          "Full control over security operations: security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, response playbooks and their runs, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
+          "Full control over security operations: security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, response playbooks and their runs, the blocklist and its protected addresses, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -3503,7 +3527,7 @@ export class PermissionHelper {
         permission: Permission.SecurityMember,
         title: "Security Member",
         description:
-          "Reads security events and threat intelligence, sends security events, works security cases (opens, assigns, changes and closes them, fills in their custom fields, writes their notes, works their tasks and adds evidence), runs playbooks and approves their steps, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks, security event connections or the cases' settings, or delete security data.",
+          "Reads security events and threat intelligence, sends security events, works security cases (opens, assigns, changes and closes them, fills in their custom fields, writes their notes, works their tasks and adds evidence), runs playbooks and approves their steps, blocks addresses on the blocklist and lifts their blocks, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks, security event connections or the cases' settings, or delete security data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -3513,7 +3537,7 @@ export class PermissionHelper {
         permission: Permission.SecurityViewer,
         title: "Security Viewer",
         description:
-          "Read-only access to security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, playbooks and their runs, detection rules, threat intelligence feeds and indicators, and security event connections.",
+          "Read-only access to security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, playbooks and their runs, the blocklist, detection rules, threat intelligence feeds and indicators, and security event connections.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -9739,6 +9763,38 @@ export class PermissionHelper {
         title: "Read Security Playbook Run",
         description:
           "This permission can read Security Playbook runs of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Blocklist Permissions
+      {
+        permission: Permission.CreateSecurityBlock,
+        title: "Create Security Block",
+        description:
+          "This permission can block IP addresses and ranges on the Blocklist of this project, except the project's protected addresses.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityBlock,
+        title: "Edit Security Block",
+        description:
+          "This permission can lift and extend the blocks on the Blocklist of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityBlock,
+        title: "Read Security Block",
+        description:
+          "This permission can read the Blocklist of this project: what is blocked, why, until when and where it is enforced.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -19345,6 +19401,124 @@ export class PermissionHelper {
         title: "Read Form Domain",
         description:
           "This permission can read the domains of forms in this project, their DNS records and where each one is on its way to HTTPS.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+
+      // Form Private User permissions.
+      {
+        permission: Permission.CreateFormPrivateUser,
+        title: "Create Form Private User",
+        description:
+          "This permission can invite private users to forms of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.DeleteFormPrivateUser,
+        title: "Delete Form Private User",
+        description:
+          "This permission can remove private users from forms of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.EditFormPrivateUser,
+        title: "Edit Form Private User",
+        description:
+          "This permission can edit private users of forms of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.ReadFormPrivateUser,
+        title: "Read Form Private User",
+        description:
+          "This permission can read private users of forms of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+
+      // Form SSO (SAML) permissions.
+      {
+        permission: Permission.CreateFormSSO,
+        title: "Create Form SSO",
+        description: "This permission can create Form SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.DeleteFormSSO,
+        title: "Delete Form SSO",
+        description: "This permission can delete Form SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.EditFormSSO,
+        title: "Edit Form SSO",
+        description: "This permission can edit Form SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.ReadFormSSO,
+        title: "Read Form SSO",
+        description: "This permission can read Form SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+
+      // Form OIDC permissions.
+      {
+        permission: Permission.CreateFormOIDC,
+        title: "Create Form OIDC",
+        description: "This permission can create Form OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.DeleteFormOIDC,
+        title: "Delete Form OIDC",
+        description: "This permission can delete Form OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.EditFormOIDC,
+        title: "Edit Form OIDC",
+        description: "This permission can edit Form OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.ReadFormOIDC,
+        title: "Read Form OIDC",
+        description: "This permission can read Form OIDC in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

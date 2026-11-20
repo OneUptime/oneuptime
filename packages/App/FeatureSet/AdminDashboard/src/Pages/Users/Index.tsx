@@ -368,10 +368,20 @@ const Users: FunctionComponent = (): ReactElement => {
         buttonStyleType: ButtonStyleType.DANGER,
         confirmButtonStyleType: ButtonStyleType.DANGER,
         confirmTitle: (items: Array<User>): string => {
-          return `Delete ${items.length} User(s)`;
+          return t("pages.users.bulkDeleteTitle", {
+            userCount: items.length,
+          });
         },
+        /*
+         * What a delete does, as the server does it: a user still in a
+         * project is not deleted (UserService.onBeforeDelete) - it said the
+         * users would be removed from every project - and the master admin
+         * confirms it's them first (#10330).
+         */
         confirmMessage: (items: Array<User>): string => {
-          return `Are you sure you want to permanently delete ${items.length} user(s)? This will remove the user(s) from every project and cannot be undone.`;
+          return t("pages.users.bulkDeleteDescription", {
+            userCount: items.length,
+          });
         },
         /*
          * Which users, by email - what this dashboard knows a user by, and

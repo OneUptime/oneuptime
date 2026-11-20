@@ -138,6 +138,14 @@ import ImportQueryConversion, {
   ImportQueryConversionResult,
   readImportQueryConversionRequest,
 } from "../Utils/AI/ObservabilityImport/ImportQueryConversion";
+import PublicDashboardPromQLPolicy, {
+  PublicDashboardPromQLPlan,
+} from "../Utils/Dashboard/PublicDashboardPromQLPolicy";
+import {
+  ProjectMetricsQueryAnswer,
+  runPromQLOverProjectMetrics,
+} from "../Utils/PromQL/PromQLDataSourceQuery";
+import { PUBLIC_DASHBOARD_PROMQL_QUERY_PATH } from "../../Types/Dashboard/PublicDashboardPromQL";
 
 /*
  * Where Import from Grafana or Datadog asks OneUptime AI to convert one
@@ -565,6 +573,18 @@ export default class DashboardAPI extends BaseAPI<
       next: NextFunction,
     ) => Promise<void> = PublicDashboardRateLimit.getMiddleware(
       PublicDashboardRateLimitBucket.Read,
+    );
+
+    /*
+     * /promql-query evaluates a PromQL query per request: a budget of its
+     * own, per dashboard and visitor (issue #10226).
+     */
+    const publicDashboardPromQLRateLimit: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void> = PublicDashboardRateLimit.getMiddleware(
+      PublicDashboardRateLimitBucket.PromQL,
     );
 
     /*
@@ -1833,6 +1853,114 @@ export default class DashboardAPI extends BaseAPI<
 
           return Response.sendJsonObjectResponse(req, res, {
             ...(aggregateResult as unknown as JSONObject),
+          });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Public PromQL for the dashboard's Data Source widgets that read only
+     * this project's metrics (issue #10226): a Chart, a Value, a Gauge or a
+     * Table, drawn for a visitor nobody signed in.
+     *
+     * Nothing the caller sends is a query. The query is one stored in this
+     * dashboard's widgets, named by the widget's id and its place among the
+     * widget's queries; its variables are the dashboard's own, each pick
+     * held to what its definition allows; the step and the result kind come
+     * from the window and the widget; and the answer holds only what the
+     * widget draws (PublicDashboardPromQLPolicy). It reads this dashboard's
+     * project only, through the PromQL engine held to the authenticated
+     * route's limits, and keeps a rate of its own per dashboard and visitor.
+     * Access is the link's, decided before anything is read
+     * (DashboardService.hasReadAccess, which asks decidePublicAccess).
+     */
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}${PUBLIC_DASHBOARD_PROMQL_QUERY_PATH}/:dashboardId`,
+      publicDashboardPromQLRateLimit,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const dashboardId: ObjectID = getPublicDashboardIdOrThrow(
+            req.params["dashboardId"],
+          );
+
+          const accessResult: {
+            hasReadAccess: boolean;
+            error?: NotAuthenticatedException | ForbiddenException;
+          } = await DashboardService.hasReadAccess({
+            dashboardId,
+            req,
+          });
+
+          if (!accessResult.hasReadAccess) {
+            throw (
+              accessResult.error ||
+              new BadDataException("Access denied to this dashboard.")
+            );
+          }
+
+          const dashboard: Dashboard | null =
+            await DashboardService.findOneById({
+              id: dashboardId,
+              select: {
+                _id: true,
+                projectId: true,
+                dashboardViewConfig: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!dashboard || !dashboard.projectId) {
+            throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
+          }
+
+          /*
+           * The widgets and the variables as the public page draws them:
+           * the widget's stored queries, in the order the page names them,
+           * and the toolbar's variables.
+           */
+          const plan: PublicDashboardPromQLPlan =
+            PublicDashboardPromQLPolicy.plan({
+              widgets: PublicDashboardViewConfig.getDrawnDataSourceWidgets(
+                dashboard.dashboardViewConfig,
+              ),
+              variables: DashboardAPI.getDrawnViewConfig(dashboard).variables,
+              body: req.body,
+            });
+
+          /*
+           * This dashboard's project, every service its query matches - as
+           * a metric chart saved without services reads them - by the
+           * engine and the limits of the authenticated route.
+           */
+          const answer: ProjectMetricsQueryAnswer =
+            await runPromQLOverProjectMetrics({
+              projectId: dashboard.projectId,
+              serviceFilter: {},
+              query: plan.queryText,
+              resultKind: plan.resultKind,
+              startDate: plan.startDate,
+              endDate: plan.endDate,
+            });
+
+          const shaped: ProjectMetricsQueryAnswer =
+            PublicDashboardPromQLPolicy.shapeAnswer({
+              plan,
+              answer,
+              requestedSort: req.body
+                ? req.body[DASHBOARD_WIDGET_SORT_REQUEST_FIELD]
+                : undefined,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            resultKind: shaped.resultKind,
+            result: shaped.result as unknown as JSONObject,
           });
         } catch (err) {
           next(err);

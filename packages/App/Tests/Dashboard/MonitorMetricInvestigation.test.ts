@@ -4,6 +4,7 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { JSONObject } from "Common/Types/JSON";
 import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import { MetricMonitorQueryLanguage } from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType, {
   MonitorTypeHelper,
@@ -139,6 +140,73 @@ describe("the steps there are to chart", () => {
         monitorSteps: stepsOf(stepOf("hostMonitor", {}, "cpu")),
       }),
     ).toEqual([]);
+  });
+});
+
+/*
+ * Issue #10227: a Metrics step written in PromQL names no metric - its one
+ * query is its expression - and is charted all the same, as its expression.
+ */
+describe("a step written in PromQL", () => {
+  const promQLStepOf: (query: string, metricName?: string) => MonitorStep = (
+    query: string,
+    metricName?: string,
+  ): MonitorStep => {
+    return stepOf(
+      "metricMonitor",
+      { queryLanguage: MetricMonitorQueryLanguage.PromQL, promQLQuery: query },
+      metricName,
+    );
+  };
+
+  test("is charted by its expression, never the builder's query it keeps", () => {
+    const steps: Array<MonitorMetricStep> = getMonitorMetricSteps({
+      monitorType: MonitorType.Metrics,
+      monitorSteps: stepsOf(
+        promQLStepOf("sum by (job) (rate(errors[5m]))", "kept.builder.metric"),
+        promQLStepOf("up == 0"),
+      ),
+    });
+
+    expect(
+      steps.map((step: MonitorMetricStep) => {
+        return [step.index, step.reads.promQLQuery];
+      }),
+    ).toEqual([
+      [0, "sum by (job) (rate(errors[5m]))"],
+      [1, "up == 0"],
+    ]);
+    expect(JSON.stringify(steps[0]!.reads)).not.toContain(
+      "kept.builder.metric",
+    );
+  });
+
+  test("is skipped while it has no expression, as a step with no metric is", () => {
+    expect(
+      getMonitorMetricSteps({
+        monitorType: MonitorType.Metrics,
+        monitorSteps: stepsOf(promQLStepOf("  ", "kept.builder.metric")),
+      }),
+    ).toEqual([]);
+  });
+
+  test("a builder step that kept an expression charts its metric", () => {
+    const steps: Array<MonitorMetricStep> = getMonitorMetricSteps({
+      monitorType: MonitorType.Metrics,
+      monitorSteps: stepsOf(
+        stepOf(
+          "metricMonitor",
+          {
+            queryLanguage: MetricMonitorQueryLanguage.Builder,
+            promQLQuery: "up == 0",
+          },
+          "http.server.errors",
+        ),
+      ),
+    });
+
+    expect(steps).toHaveLength(1);
+    expect(steps[0]!.reads.promQLQuery).toBeUndefined();
   });
 });
 

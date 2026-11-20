@@ -872,15 +872,17 @@ describe("a custom role's own pages", () => {
         "Add a permission",
       );
 
+      // A permission's key, as it is: jsonencode() was for a JSON value (#10300).
       expect(permission).toContain(
         [
           'resource "oneuptime_custom_role_permission" "incident_member" {',
           "  custom_role_id = oneuptime_custom_role.incident_responder.id",
-          '  permission     = jsonencode("IncidentMember")',
+          '  permission     = "IncidentMember"',
           '  scope          = "All"',
           "}",
         ].join("\n"),
       );
+      expect(permission).not.toContain("jsonencode");
       // Who may: only what one could give a team, and never Project Owner.
       expect(permission).toContain(
         "You can put in only a permission you could give a team yourself, and never Project Owner.",
@@ -1098,6 +1100,13 @@ describe("a custom role's own pages", () => {
       );
       expect(variantOf(tasks?.variants, "Add a permission")).toContain(
         `--custom-role-id ${ROLE_ID}`,
+      );
+      // The key as it is, not the JSON string the flag once took (#10300).
+      expect(variantOf(tasks?.variants, "Add a permission")).toContain(
+        "--permission IncidentMember",
+      );
+      expect(variantOf(tasks?.variants, "Add a permission")).not.toContain(
+        `--permission '"IncidentMember"'`,
       );
       expect(variantOf(tasks?.variants, "Workflows that run as it")).toContain(
         "oneuptime workflow list",
