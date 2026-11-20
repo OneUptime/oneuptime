@@ -60222,5 +60222,10 @@
   "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "A sua nuvem limita a rapidez com que os custos podem ser lidos, por isso estes são lidos na próxima leitura da conexão.",
   "Monitors shown": "Monitores exibidos",
   "Pick what you want to do first, and its steps show here.": "Escolha o que você quer fazer primeiro, e as etapas aparecem aqui.",
-  "Your first steps": "Seus primeiros passos"
+  "Your first steps": "Seus primeiros passos",
+  "Paste a certificate in PEM, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----.": "Cole um certificado em formato PEM, de -----BEGIN CERTIFICATE----- até -----END CERTIFICATE-----.",
+  "Skips certificate checks for this step's request, so self-signed certificates work, but anyone on the network path could read or change the request.": "Ignora a verificação de certificados na solicitação desta etapa, para que certificados autoassinados funcionem, mas qualquer pessoa no caminho da rede poderia ler ou alterar a solicitação.",
+  "The step trusts only this certificate (PEM): that of the CA that signed the server's certificate, or the server's own when it is self-signed.": "A etapa confia apenas neste certificado (PEM): o da CA que assinou o certificado do servidor, ou o do próprio servidor quando ele é autoassinado.",
+  "This holds a private key. Paste only the certificate: everyone who may read this runbook can read its steps.": "Isto contém uma chave privada. Cole apenas o certificado: qualquer pessoa que possa ler este runbook pode ler suas etapas.",
+  "This is longer than a CA certificate can be. Paste only the certificate of the CA that signed the server's certificate.": "Isto é mais longo do que um certificado da CA pode ser. Cole apenas o certificado da CA que assinou o certificado do servidor."
 }

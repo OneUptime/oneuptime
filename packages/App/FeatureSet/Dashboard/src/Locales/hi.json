@@ -60222,5 +60222,10 @@
   "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "आपका क्लाउड सीमित करता है कि लागत कितनी तेज़ी से पढ़ी जा सकती है, इसलिए ये कनेक्शन की अगली रीडिंग में पढ़ी जाएँगी।",
   "Monitors shown": "दिखाए गए मॉनिटर",
   "Pick what you want to do first, and its steps show here.": "चुनें कि आप पहले क्या करना चाहते हैं, और उसके चरण यहाँ दिखेंगे।",
-  "Your first steps": "आपके पहले कदम"
+  "Your first steps": "आपके पहले कदम",
+  "Paste a certificate in PEM, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----.": "PEM प्रारूप में प्रमाणपत्र पेस्ट करें, -----BEGIN CERTIFICATE----- से -----END CERTIFICATE----- तक।",
+  "Skips certificate checks for this step's request, so self-signed certificates work, but anyone on the network path could read or change the request.": "इस चरण के अनुरोध के लिए प्रमाणपत्र जाँच छोड़ देता है, ताकि स्व-हस्ताक्षरित प्रमाणपत्र काम करें, लेकिन नेटवर्क पथ पर कोई भी अनुरोध को पढ़ या बदल सकता है।",
+  "The step trusts only this certificate (PEM): that of the CA that signed the server's certificate, or the server's own when it is self-signed.": "यह चरण केवल इसी प्रमाणपत्र (PEM) पर भरोसा करता है: उस CA का, जिसने सर्वर का प्रमाणपत्र साइन किया, या सर्वर का अपना, जब वह स्व-हस्ताक्षरित हो।",
+  "This holds a private key. Paste only the certificate: everyone who may read this runbook can read its steps.": "इसमें एक निजी कुंजी है। केवल प्रमाणपत्र पेस्ट करें: जो कोई भी इस रनबुक को पढ़ सकता है, वह इसके चरण पढ़ सकता है।",
+  "This is longer than a CA certificate can be. Paste only the certificate of the CA that signed the server's certificate.": "यह किसी CA प्रमाणपत्र की अधिकतम लंबाई से लंबा है। केवल उस CA का प्रमाणपत्र पेस्ट करें, जिसने सर्वर का प्रमाणपत्र साइन किया।"
 }

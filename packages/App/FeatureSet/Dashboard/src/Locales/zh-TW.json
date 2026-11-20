@@ -60222,5 +60222,10 @@
   "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "您的雲端限制了讀取成本的速度，因此這些成本將在連線的下一次讀取時讀取。",
   "Monitors shown": "顯示的監測器",
   "Pick what you want to do first, and its steps show here.": "選擇您想先做的事，相應的步驟會顯示在這裡。",
-  "Your first steps": "您的第一步"
+  "Your first steps": "您的第一步",
+  "Paste a certificate in PEM, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----.": "貼上 PEM 格式的憑證，從 -----BEGIN CERTIFICATE----- 到 -----END CERTIFICATE-----。",
+  "Skips certificate checks for this step's request, so self-signed certificates work, but anyone on the network path could read or change the request.": "略過此步驟請求的憑證檢查，讓自簽憑證可以使用，但網路路徑上的任何人都可能讀取或竄改該請求。",
+  "The step trusts only this certificate (PEM): that of the CA that signed the server's certificate, or the server's own when it is self-signed.": "此步驟只信任此憑證（PEM）：簽發伺服器憑證的 CA 的憑證，或在伺服器憑證為自簽時伺服器本身的憑證。",
+  "This holds a private key. Paste only the certificate: everyone who may read this runbook can read its steps.": "這裡包含私密金鑰。只貼上憑證：任何可以讀取此 runbook 的人都能讀取其步驟。",
+  "This is longer than a CA certificate can be. Paste only the certificate of the CA that signed the server's certificate.": "這超過了 CA 憑證可有的長度。只貼上簽發伺服器憑證的 CA 的憑證。"
 }

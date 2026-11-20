@@ -60222,5 +60222,10 @@
   "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "클라우드가 비용을 읽는 속도를 제한하므로 이 비용은 연결의 다음 읽기 때 읽습니다.",
   "Monitors shown": "표시되는 모니터",
   "Pick what you want to do first, and its steps show here.": "먼저 하고 싶은 일을 고르면 그 단계가 여기에 표시됩니다.",
-  "Your first steps": "첫 단계"
+  "Your first steps": "첫 단계",
+  "Paste a certificate in PEM, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----.": "PEM 형식의 인증서를 -----BEGIN CERTIFICATE-----부터 -----END CERTIFICATE-----까지 붙여넣으세요.",
+  "Skips certificate checks for this step's request, so self-signed certificates work, but anyone on the network path could read or change the request.": "이 단계의 요청에서 인증서 검사를 건너뛰어 자체 서명 인증서가 동작하게 하지만, 네트워크 경로상의 누구나 요청을 읽거나 바꿀 수 있습니다.",
+  "The step trusts only this certificate (PEM): that of the CA that signed the server's certificate, or the server's own when it is self-signed.": "이 단계는 이 인증서(PEM)만 신뢰합니다. 서버 인증서에 서명한 CA의 인증서, 또는 자체 서명된 경우 서버 자신의 인증서입니다.",
+  "This holds a private key. Paste only the certificate: everyone who may read this runbook can read its steps.": "여기에는 개인 키가 들어 있습니다. 인증서만 붙여넣으세요. 이 런북을 읽을 수 있는 사람은 누구나 그 단계를 읽을 수 있습니다.",
+  "This is longer than a CA certificate can be. Paste only the certificate of the CA that signed the server's certificate.": "CA 인증서가 될 수 있는 길이보다 깁니다. 서버 인증서에 서명한 CA의 인증서만 붙여넣으세요."
 }
