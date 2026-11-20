@@ -158,15 +158,16 @@ router.get(
       });
 
       if (!globalSso) {
-        if (SignInAgain.isRequested(req)) {
-          return await SignInAgain.sendToSignInPage(req, res);
+        if (!SignInAgain.isRequested(req)) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadRequestException("Global SSO Config not found"),
+          );
         }
 
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadRequestException("Global SSO Config not found"),
-        );
+        // A Sign In Again through a provider since gone: the sign-in page.
+        return await SignInAgain.sendToSignInPage(req, res);
       }
 
       if (!globalSso.signOnURL) {

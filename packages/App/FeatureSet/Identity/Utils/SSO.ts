@@ -441,10 +441,6 @@ export default class SSOUtil {
       SSOUtil.getSessionIndexFromAssertion(assertion);
     const authnInstant: Date | null =
       SSOUtil.getAuthnInstantFromAssertion(assertion);
-    const inResponseTo: string | null = SSOUtil.getInResponseToFromAssertion(
-      assertion,
-      serviceProvider,
-    );
 
     const assertionId: string = SSOUtil.getIdAttribute(assertion).trim();
 
@@ -458,6 +454,12 @@ export default class SSOUtil {
       serviceProvider,
       now,
     });
+
+    // Once the assertion is held to this provider: what it answers.
+    const inResponseTo: string | null = SSOUtil.getInResponseToFromAssertion(
+      assertion,
+      serviceProvider,
+    );
 
     return {
       issuerUrl,

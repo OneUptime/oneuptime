@@ -183,15 +183,16 @@ router.get(
       });
 
       if (!projectSSO) {
-        if (SignInAgain.isRequested(req)) {
-          return await SignInAgain.sendToSignInPage(req, res);
+        if (!SignInAgain.isRequested(req)) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadRequestException("SSO Config not found"),
+          );
         }
 
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadRequestException("SSO Config not found"),
-        );
+        // A Sign In Again through a provider since gone: the sign-in page.
+        return await SignInAgain.sendToSignInPage(req, res);
       }
 
       // redirect to Identity Provider.
