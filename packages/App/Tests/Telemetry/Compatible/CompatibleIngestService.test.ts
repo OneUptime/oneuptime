@@ -197,6 +197,63 @@ describe("CompatibleIngestService.enqueue", () => {
     ).rejects.toBeInstanceOf(CompatibleQueueUnavailableError);
   });
 
+  test("the job of the door's signal is counted at the body's decompressed size it is handed", async () => {
+    await CompatibleIngestService.enqueue({
+      req: request({ isPending: true, isExact: false }),
+      surface: TelemetryIngestSurface.PrometheusRemoteWrite,
+      batch: { metrics: METRICS },
+      ingestBytes: 1234,
+    });
+
+    expect(jobs[0]!.ingestBytes).toBe(1234);
+  });
+
+  test("a job of another signal never carries the door's size: it is counted at its own", async () => {
+    await CompatibleIngestService.enqueue({
+      req: request({ isPending: true, isExact: false }),
+      surface: TelemetryIngestSurface.Loki,
+      batch: { metrics: METRICS, logs: LOGS },
+      ingestBytes: 1234,
+    });
+
+    expect(
+      jobs.find((job: QueuedJob) => {
+        return job.signal === "logs";
+      })!.ingestBytes,
+    ).toBe(1234);
+    expect(
+      jobs.find((job: QueuedJob) => {
+        return job.signal === "metrics";
+      })!.ingestBytes,
+    ).toBeUndefined();
+  });
+
+  test("a multi-signal surface's jobs never carry a size: each is counted at the queue", async () => {
+    await CompatibleIngestService.enqueue({
+      req: request(),
+      surface: TelemetryIngestSurface.SplunkHec,
+      batch: { logs: LOGS, metrics: METRICS },
+      ingestBytes: 1234,
+    });
+
+    for (const job of jobs) {
+      expect(job.ingestBytes).toBeUndefined();
+    }
+  });
+
+  test("without a size, a job is counted at the OTLP JSON it is queued as", async () => {
+    const req: TelemetryRequest = request({ isPending: true, isExact: false });
+
+    await CompatibleIngestService.enqueue({
+      req: req,
+      surface: TelemetryIngestSurface.PrometheusRemoteWrite,
+      batch: { metrics: METRICS },
+    });
+
+    expect(jobs[0]!.ingestBytes).toBeUndefined();
+    expect(req.telemetryIngestBytes).toBeUndefined();
+  });
+
   test("the request's raw body is let go once it is queued", async () => {
     const req: TelemetryRequest = request();
 

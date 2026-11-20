@@ -42,6 +42,7 @@ import {
 import {
   getNameColumn,
   getTerraformAttributes,
+  getTerraformProviderAttributeName,
   getTerraformTypeName,
   TerraformAttributeDescriptor,
 } from "../../../Utils/DeveloperDocs/TerraformSchema";
@@ -383,11 +384,13 @@ describe.each(PROFILE_TABLES)("%s", (tableName: string) => {
       `resource "${getTerraformTypeName(modelType)}"`,
     );
 
-    // Every required attribute is written.
+    // Every required attribute is written, by the provider's name for it.
     for (const descriptor of attributes) {
       if (descriptor.isRequired) {
         expect(example!.hcl).toMatch(
-          new RegExp(`\\n\\s+${descriptor.attributeName}\\s+=`),
+          new RegExp(
+            `\\n\\s+${getTerraformProviderAttributeName(descriptor.attributeName)}\\s+=`,
+          ),
         );
       }
     }

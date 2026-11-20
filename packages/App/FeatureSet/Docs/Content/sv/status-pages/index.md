@@ -98,7 +98,7 @@ När du har öppnat en statussida är dess egen vänstermeny indelad i åtta sek
 | **Prenumeranter** | **Prenumeranter** (en enda sida, med en flik för varje kanal: E-post, SMS, Slack, Microsoft Teams och Webhook), **Prenumerantinställningar**, **Aviseringsloggar**: vad som har skickats till prenumeranterna. |
 | **Varumärke** | **Varumärke** (logotyp, titel, favicon, länkar, sidfot, färger och språk, på en sida), **Anpassade domäner**, **HTML, CSS och JavaScript**. |
 | **Säkerhet** | **Åtkomst** (vem som får se sidan), **Privata användare**, **Enkel inloggning** (en flik vardera för SAML och OIDC), **SCIM**. |
-| **Utvecklare** | **Terraform**, **API**, **CLI**, **AI-assistenter**: sidan som kod. |
+| **Utvecklare** | **Terraform**, **Crossplane**, **API**, **CLI**, **AI-assistenter**: sidan som kod. |
 | **Avancerad** | **MCP**, **Inbäddad status**, **Rapporter**, **Anpassade fält**, **Inställningar**, **Granskningsloggar**, **Ta bort statussida**. |
 
 Bara **Översikt** och **Resurser**, det sidan visar, börjar öppna. Alla andra sektioner börjar ihopfällda, som de sällan använda sektionerna i alla OneUptimes menyer: klicka på en sektions rubrik för att visa dess sidor. En sektion öppnas av sig själv när du är på en av dess sidor, till exempel **Inställningar** eller **Prenumeranter**.

@@ -927,10 +927,18 @@ export default class TelemetryQueueService {
           JSON.stringify(req.body, binaryToBase64Replacer),
         );
 
-        // Counted at the size it is stored with, unless a gate counted it.
+        /*
+         * Counted at the size it is stored with, unless a gate counted it -
+         * or at the size its producer says a budget counts it at
+         * (ingestBytes: a compatible endpoint's body decompressed, which
+         * the OTLP JSON it became can be several times).
+         */
         const isBudgetAdmitted: boolean = await admitToBudget(
           (): TelemetryIngestBodySize => {
-            return { bytes: buffer.length, isExact: true };
+            return {
+              bytes: jobData.ingestBytes ?? buffer.length,
+              isExact: true,
+            };
           },
         );
 

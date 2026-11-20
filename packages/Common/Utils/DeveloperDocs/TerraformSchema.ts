@@ -141,8 +141,9 @@ export interface TerraformAttributeDescriptor {
   readPermissions: Array<Permission>;
   /*
    * Named like one of Terraform's own meta-arguments (`provider`, `count`),
-   * which a resource block reads as the meta-argument: the attribute exists
-   * in the provider but cannot be set from a configuration.
+   * which a resource block reads as the meta-argument: the provider exposes
+   * the attribute with `_value` added instead (provider_value), and
+   * configuration sets it by that name (getTerraformProviderAttributeName).
    */
   isReservedName: boolean;
   /*
@@ -190,6 +191,20 @@ export const TERRAFORM_RESOURCE_META_ARGUMENTS: ReadonlyArray<string> = [
   "provisioner",
   "connection",
 ];
+
+/*
+ * The name an attribute has in the provider: one named like a meta-argument
+ * is exposed with `_value` added (the generator's
+ * StringUtils.toTerraformAttributeName), so a cloud account's `provider` is
+ * set as `provider_value = "aws"`. Every other attribute keeps its name.
+ */
+export function getTerraformProviderAttributeName(
+  attributeName: string,
+): string {
+  return TERRAFORM_RESOURCE_META_ARGUMENTS.includes(attributeName)
+    ? `${attributeName}_value`
+    : attributeName;
+}
 
 // Never part of a create or update schema (ModelSchema.getCreateModelSchema).
 const AUTO_GENERATED_COLUMNS: ReadonlyArray<string> = [

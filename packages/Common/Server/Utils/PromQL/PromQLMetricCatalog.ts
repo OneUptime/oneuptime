@@ -250,10 +250,12 @@ export const listPromQLLabelValues: (data: {
     });
   }
 
-  if (data.label === "le" || data.label === "quantile") {
-    return [];
-  }
-
+  /*
+   * `le` and `quantile` are read like any label: a histogram's and a
+   * summary's are made from their points and are no attribute, but a
+   * classic histogram or summary sent as its series (Prometheus remote
+   * write) carries them as attributes, which are its values here.
+   */
   const keys: Array<string> = await TelemetryAttributeService.fetchAttributes({
     projectId: data.projectId,
     telemetryType: TelemetryType.Metric,

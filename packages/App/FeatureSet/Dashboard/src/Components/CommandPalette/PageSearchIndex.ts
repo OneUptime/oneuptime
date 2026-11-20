@@ -4655,13 +4655,18 @@ export const DEVELOPER_PAGE_KEYWORDS: Readonly<
     "infrastructure as code",
     "iac",
   ],
+  [DeveloperDocsPageType.Crossplane]: [
+    "crossplane provider",
+    "gitops",
+    "kubernetes manifest",
+  ],
   [DeveloperDocsPageType.Api]: ["rest api", "api reference", "curl"],
   [DeveloperDocsPageType.Cli]: ["command line", "terminal", "bash", "script"],
   [DeveloperDocsPageType.AiAssistants]: ["mcp", "claude", "cursor"],
 };
 
 /*
- * The Developer pages (Terraform, API, CLI, AI Assistants) of the resources an
+ * The Developer pages (Terraform, Crossplane, API, CLI, AI Assistants) of the resources an
  * area lists, from the same list the menus draw their Developer section
  * from, so a resource that gets them is searchable without a line here.
  */

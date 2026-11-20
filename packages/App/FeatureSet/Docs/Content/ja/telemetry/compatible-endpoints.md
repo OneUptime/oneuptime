@@ -59,6 +59,7 @@ remote_write:
   - url: https://oneuptime.com/telemetry/prometheus/api/v1/write
     authorization:
       credentials: YOUR_TELEMETRY_KEY
+    send_exemplars: true
 ```
 
 Grafana Alloy では、`prometheus.remote_write` コンポーネントを追加し、スクレイプした結果をそこに転送します。
@@ -70,17 +71,25 @@ prometheus.remote_write "oneuptime" {
     bearer_token = "YOUR_TELEMETRY_KEY"
   }
 }
+
+prometheus.scrape "app" {
+  targets    = [{"__address__" = "localhost:8080"}]
+  forward_to = [prometheus.remote_write.oneuptime.receiver]
+}
 ```
 
-remote write 1.0 と 2.0 のどちらも受け付けます。どの送信元も送っているとおり、snappy で圧縮された形式です。
+remote write 1.0 と 2.0 のどちらも受け付けます。どの送信元も送っているとおり、snappy で圧縮された形式です。各系列の型、単位、説明も送る 2.0 を使うには、`protobuf_message: io.prometheus.write.v2.Request`（Prometheus 3）または `protobuf_message = "io.prometheus.write.v2.Request"`（Alloy）を設定します。Prometheus は、エグザンプラーを保存するようにすると（`--enable-feature=exemplar-storage`）、`send_exemplars: true` でそれを送ります。Alloy は既定で送ります。
 
 ### 系列がどうなるか
 
 - **名前とラベルはそのまま残ります。** `http_requests_total{job="checkout", code="500"}` は、属性 `job` と `code` を持つメトリクス `http_requests_total` になるため、Grafana から移したクエリでも見つかります。
 - **ジョブがサービスになります。** OpenTelemetry が定める Prometheus の対応付けルールのとおり、各 `job` はサービスに、各 `instance` はそのサービスインスタンスになります。
 - **型は保持されます。** カウンター、およびヒストグラムのバケットとカウントは累積和になるため、レートが正しくグラフに描かれます。型は送信元が含めるメタデータから決まります。メタデータがない場合、名前が `_total` で終わるものはカウンター、`le` ラベルを持つ `_bucket` はヒストグラムのバケットになります。
+- **クラシックヒストグラムはパーセンタイルをグラフにできます。** クラシックヒストグラムは `_bucket`、`_count`、`_sum` の系列のまま保持されます。[メトリクスエクスプローラー](/docs/telemetry/metrics-explorer) でその `_bucket` メトリクスを P50 から P99 でグラフにすると、各バケットがどのリクエストで届いたかにかかわらず、スクレイプごとのバケットが 1 つのヒストグラムとして読み取られます。[PromQL](/docs/telemetry/promql) では、`histogram_quantile(0.95, sum by (le) (rate(<name>_bucket[5m])))` が Prometheus と同じ値を返します。
 - **ネイティブヒストグラム** は指数ヒストグラムになり、カスタムバケットを持つネイティブヒストグラムはヒストグラムになります。
-- **保持されないもの:** staleness マーカーとそのほかの NaN または無限大のサンプル、カウンターの `_created` 系列、エグザンプラー。
+- **エグザンプラーはトレースにリンクします。** `trace_id`（または `traceID`）ラベルを持つエグザンプラーは、そのデータポイントをそのトレースとスパンに結び付けます。メトリクスのグラフでその点をクリックすると、トレースやそのログを表示できます。エグザンプラーの値とそのほかのラベルは保持されず、データポイントが別のリクエストで届いたエグザンプラーも保持されません。
+- **保持されないもの:** staleness マーカーとそのほかの NaN または無限大の値、カウンターの `_created` 系列。それでも書き込み済みとして数えられるため、送信元は失敗したサンプルを報告しません。
+- **拒否されるもの:** どのバージョンの remote write でも許されないデータです。たとえば、メトリクス名のない系列や、タイムスタンプが負のサンプルです。リクエストの残りは保存され、送信元には拒否された内容を示す `400` が返ります。
 
 ## Loki
 
@@ -209,8 +218,8 @@ DSN の末尾の `1` は Sentry の SDK が必要とするもので、読み取�
 
 ## 制限と取り込み予算
 
-- **リクエストサイズ**: OneUptime のイングレスは `/telemetry` 配下で最大 4 MB のリクエストを受け付け、展開後の本文は 1 つあたり最大 64 MB です。
-- **取り込み予算**: Prometheus remote write と Loki は、本文を読み取る前にメトリクスまたはログの予算と照合され、予算を使い切っていると `403` で拒否されます。HEC のバッチ、Datadog のペイロード、Sentry のエンベロープには複数のシグナルが含まれることがあるため、各シグナルは保存時にそれぞれの予算に計上され、その予算を使い切っていれば破棄されます。
+- **リクエストサイズ**: OneUptime のイングレスは `/telemetry` 配下で最大 4 MB のリクエストを受け付け、展開後の本文は 1 つあたり最大 64 MB です。Prometheus remote write のリクエストは、展開後に最大 32 MB、含められる系列、ラベル、サンプルは合わせて最大 500,000 個です。これにより、1 つのリクエストでサーバーのメモリを使い切ることはできません。Prometheus と Alloy は既定で 1 リクエストあたり 2,000 サンプルを送るため、どちらの上限にも遠く及びません。上限を超えたリクエストは `413` で拒否されるので、その場合は `queue_config` の `max_samples_per_send` を下げてください。
+- **取り込み予算**: Prometheus remote write と Loki は、本文を読み取る前にメトリクスまたはログの予算と照合され、予算を使い切っていると `403` で拒否されます。その後、remote write のリクエストは OTLP のリクエストと同じく展開後のサイズで計上され、チームやラベルの予算にも計上されます。HEC のバッチ、Datadog のペイロード、Sentry のエンベロープには複数のシグナルが含まれることがあるため、各シグナルは保存時にそれぞれの予算に計上され、その予算を使い切っていれば破棄されます。
 
 ## トラブルシューティング
 

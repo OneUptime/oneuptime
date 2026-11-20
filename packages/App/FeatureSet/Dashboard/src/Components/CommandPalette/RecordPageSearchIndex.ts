@@ -4006,7 +4006,7 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
 ];
 
 /*
- * The Developer pages (Terraform, API, CLI, AI Assistants) of a kind, from
+ * The Developer pages (Terraform, Crossplane, API, CLI, AI Assistants) of a kind, from
  * the list its menu draws its Developer section from.
  */
 const getDeveloperPages: (

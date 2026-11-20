@@ -209,7 +209,7 @@ Den svarar `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.` 
 
 ### En anpassad roll som arbetsflöden körs som
 
-OneUptime tar bara bort en anpassad roll som arbetsflöden körs som när borttagningen säger vad de ska köras som i stället, och nekar en borttagning som inte gör det, med namnen på arbetsflödena. Säg det med `--workflows-run-as`: `Default`, standardbehörigheterna, eller `CustomRole`, en annan anpassad roll du kunde ge ett team, med dess ID i `--workflows-run-as-custom-role-id`. Aldrig Project Owner: att ta bort en roll ger aldrig ett arbetsflöde fler behörigheter.
+OneUptime tar bara bort en anpassad roll som arbetsflöden körs som när borttagningen säger vad de ska köras som i stället, och nekar en borttagning som inte gör det, med namnen på arbetsflödena. Säg det med `--workflows-run-as`: `Default`, standardbehörigheterna, eller `CustomRole`, en annan anpassad roll du kunde ge ett team, med dess ID i `--workflows-run-as-custom-role-id`. Aldrig Projektägare: att ta bort en roll ger aldrig ett arbetsflöde fler behörigheter.
 
 ```bash
 # They run with the default permissions

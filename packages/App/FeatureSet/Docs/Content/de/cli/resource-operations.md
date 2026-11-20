@@ -209,7 +209,7 @@ Sie antwortet `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully
 
 ### Eine benutzerdefinierte Rolle, mit der Workflows laufen
 
-OneUptime löscht eine benutzerdefinierte Rolle, mit der Workflows laufen, nur, wenn das Löschen sagt, womit sie stattdessen laufen, und lehnt ein Löschen, das es nicht sagt, mit den Namen der Workflows ab. Sagen Sie es mit `--workflows-run-as`: `Default`, die Standardberechtigungen, oder `CustomRole`, eine andere benutzerdefinierte Rolle, die Sie einem Team geben könnten, mit ihrer ID in `--workflows-run-as-custom-role-id`. Nie Project Owner: Das Löschen einer Rolle erweitert nie, was ein Workflow darf.
+OneUptime löscht eine benutzerdefinierte Rolle, mit der Workflows laufen, nur, wenn das Löschen sagt, womit sie stattdessen laufen, und lehnt ein Löschen, das es nicht sagt, mit den Namen der Workflows ab. Sagen Sie es mit `--workflows-run-as`: `Default`, die Standardberechtigungen, oder `CustomRole`, eine andere benutzerdefinierte Rolle, die Sie einem Team geben könnten, mit ihrer ID in `--workflows-run-as-custom-role-id`. Nie Projektinhaber: Das Löschen einer Rolle erweitert nie, was ein Workflow darf.
 
 ```bash
 # They run with the default permissions
