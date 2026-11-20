@@ -3,6 +3,7 @@ import {
   getBlockDurationOptions,
 } from "./BlockAddressModal";
 import {
+  ENDED_BLOCK_REASON,
   EXTENDED_TOAST,
   EXTEND_ACTION,
   EXTEND_DESCRIPTION,
@@ -45,6 +46,8 @@ import {
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import {
   BULK_ACTION_CONCURRENCY,
+  BulkItemOutcome,
+  bulkItemUnchanged,
   runBulkAction,
 } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
@@ -283,10 +286,14 @@ export default function useBlocklistActions(data: {
             await runBulkAction<SecurityBlock>({
               actionProps,
               concurrency: BULK_ACTION_CONCURRENCY,
-              step: async (block: SecurityBlock): Promise<void> => {
-                // An ended block has nothing to lift.
+              step: async (
+                block: SecurityBlock,
+              ): Promise<BulkItemOutcome | void> => {
+                // An ended block has nothing to lift: left as it is, saying why.
                 if (!isActive(block)) {
-                  return;
+                  return bulkItemUnchanged(
+                    translator.translateText(ENDED_BLOCK_REASON),
+                  );
                 }
 
                 await update(block, liftData);

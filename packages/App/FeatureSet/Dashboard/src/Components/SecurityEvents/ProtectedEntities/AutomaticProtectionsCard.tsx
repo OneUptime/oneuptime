@@ -3,12 +3,19 @@ import {
   readAutomaticProtections,
 } from "../Blocklist/BlocklistApi";
 import { writeSecurityProtection } from "../Blocklist/BlocklistWords";
+import {
+  AUTOMATIC_PROTECTIONS_DESCRIPTION,
+  AUTOMATIC_PROTECTIONS_MORE,
+  AUTOMATIC_PROTECTIONS_TEST_ID,
+  AUTOMATIC_PROTECTIONS_TITLE,
+  AUTOMATIC_PROTECTIONS_UNREAD,
+} from "./AutomaticProtectionsCopy";
 import { SecurityAddressProtection } from "Common/Types/SecurityBlocklist/SecurityProtectedAddress";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import API from "Common/UI/Utils/API/API";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -31,22 +38,6 @@ import React, {
  * is not listed, and the card says so - its addresses are protected all the
  * same. A source with more than the card lists says so too.
  */
-
-export const AUTOMATIC_PROTECTIONS_TITLE: string = translationKey(
-  "Protected Automatically",
-);
-export const AUTOMATIC_PROTECTIONS_DESCRIPTION: string = translationKey(
-  "Addresses OneUptime never blocks because they are your project's own, worked out from what it knows. They change only when what they come from does.",
-);
-export const AUTOMATIC_PROTECTIONS_MORE: string = translationKey(
-  "Not every one is listed here. OneUptime protects them all the same.",
-);
-export const AUTOMATIC_PROTECTIONS_UNREAD: string = translationKey(
-  "Some could not be listed, because you cannot read them or they could not be read. They are protected all the same.",
-);
-
-export const AUTOMATIC_PROTECTIONS_TEST_ID: string =
-  "protected-entities-automatic";
 
 const AutomaticProtectionsCard: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();

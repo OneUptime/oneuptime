@@ -271,7 +271,6 @@ const BlockAddressModal: FunctionComponent<ComponentProps> = (
           </div>
         }
         submitButtonText={BLOCK_ANYWAY}
-        submitButtonType={undefined}
         isLoading={isSubmitting}
         error={refusal || undefined}
         onClose={() => {
@@ -304,7 +303,7 @@ const BlockAddressModal: FunctionComponent<ComponentProps> = (
       onSubmit={submit}
       beforeFormElement={
         refusal ? (
-          <div data-testid={BLOCKLIST_TEST_IDS.blockModal}>
+          <div data-testid={BLOCKLIST_TEST_IDS.refusal}>
             <Alert
               type={AlertType.DANGER}
               title={<span>{refusal}</span>}

@@ -33,7 +33,7 @@ export const BLOCKLIST_EMPTY_TITLE: string = translationKey(
 );
 
 export const BLOCKLIST_EMPTY_DESCRIPTION: string = translationKey(
-  "Block an address that attacks your app, here or from its case. Every block expires unless someone keeps it, and your own addresses are never blocked.",
+  "Block an address that attacks your app. Every block expires unless someone keeps it, and your own addresses are never blocked.",
 );
 
 // A row is one address or range: "Block Address", "Showing 1-3 of 3 addresses".
@@ -92,7 +92,7 @@ export const ENFORCEMENT_TOOLTIPS: Record<
     "{{destination}} holds this block. Last confirmed {{time}}.",
   ),
   [SecurityBlockEnforcementView.Unconfirmed]: translationKey(
-    "{{destination}} held this block, but has not been read back since {{time}}, so it is not known to hold.",
+    "{{destination}} last held this block {{time}}, and has not been read back since.",
   ),
   [SecurityBlockEnforcementView.Pending]: translationKey(
     "Waiting for {{destination}} to hold this block.",
@@ -159,7 +159,7 @@ export const ACTION_CHALLENGE_OPTION: string = translationKey("Challenge");
 export const UNTIL_LIFTED_FIELD_TITLE: string =
   translationKey("Keep Until Lifted");
 export const UNTIL_LIFTED_FIELD_DESCRIPTION: string = translationKey(
-  "The block never expires. Only a Security Admin can keep one.",
+  "The block does not expire. It stays until someone lifts it.",
 );
 export const UNTIL_LIFTED_REFUSED: string = translationKey(
   "Only a Security Admin, a Project Admin or a Project Owner can keep a block until someone lifts it.",
@@ -208,7 +208,7 @@ export const LIFT_DESCRIPTION: string = translationKey(
   "Requests from {{value}} reach your app again once each destination drops the block.",
 );
 export const LIFT_REASON_FIELD_DESCRIPTION: string = translationKey(
-  "Why it is lifted, for whoever reads the case later.",
+  "Why it is lifted, for whoever reads the list later.",
 );
 
 export const LIFT_SELECTED_TITLE: string = translationKey("Lift Blocks");
@@ -253,12 +253,12 @@ export const BLOCKLIST_TEST_IDS: {
   enforcedAtCell: string;
   notEnforced: string;
   expiresCell: string;
-  blockModal: string;
+  refusal: string;
 } = {
   notice: "blocklist-not-enforced-notice",
   addressCell: "blocklist-address",
   enforcedAtCell: "blocklist-enforced-at",
   notEnforced: "blocklist-not-enforced",
   expiresCell: "blocklist-expires",
-  blockModal: "blocklist-block-address",
+  refusal: "blocklist-block-refusal",
 };

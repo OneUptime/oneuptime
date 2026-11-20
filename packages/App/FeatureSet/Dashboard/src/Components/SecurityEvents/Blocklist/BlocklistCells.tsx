@@ -74,7 +74,14 @@ export function writeEnforcementTooltip(
     now,
   );
 
-  return translator.translateTemplate(ENFORCEMENT_TOOLTIPS[view], {
+  // A row applied and never read back is waiting for its read, as a new one is.
+  const shown: SecurityBlockEnforcementView =
+    view === SecurityBlockEnforcementView.Unconfirmed &&
+    !enforcement.lastConfirmedAt
+      ? SecurityBlockEnforcementView.Pending
+      : view;
+
+  return translator.translateTemplate(ENFORCEMENT_TOOLTIPS[shown], {
     destination: enforcement.destinationName || "",
     time: enforcement.lastConfirmedAt
       ? OneUptimeDate.fromNow(new Date(enforcement.lastConfirmedAt))
@@ -107,7 +114,10 @@ export const BlockAddressCell: FunctionComponent<AddressCellProps> = (
   );
 };
 
-// Blocked or Challenged.
+/*
+ * Blocked or Challenged: what someone chose to do to the address, a plain
+ * fact, so never red (Docs/ux: red is for what broke).
+ */
 export const BlockActionCell: FunctionComponent<AddressCellProps> = (
   props: AddressCellProps,
 ): ReactElement => {
@@ -117,7 +127,7 @@ export const BlockActionCell: FunctionComponent<AddressCellProps> = (
   return (
     <Pill
       text={isChallenge ? CHALLENGED_LABEL : BLOCKED_LABEL}
-      tone={isChallenge ? PillTone.Warning : PillTone.Danger}
+      tone={PillTone.Neutral}
       isDotHidden={true}
     />
   );
