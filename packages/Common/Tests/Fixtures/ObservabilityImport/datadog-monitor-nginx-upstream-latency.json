@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "created_at": "2026-03-11",
+  "last_updated_at": "2026-03-13",
+  "title": "Upstream response latency is high",
+  "description": "Detects abnormally high upstream peer response latency on NGINX Plus, catching slow backends before they escalate into timeout errors and connection exhaustion.",
+  "definition": {
+    "name": "[NGINX] Upstream response latency is high",
+    "type": "query alert",
+    "query": "avg(last_1h):anomalies(avg:nginx.upstream.peers.response_time{*} by {upstream}, 'basic', 2, direction='above', alert_window='last_15m', interval=60, count_default_zero='true') >= 1",
+    "message": "{{#is_alert}}\n## 🚨 What's happening?\n\nUpstream **{{upstream.name}}** is responding abnormally slowly. Anomaly score: {{value}} (threshold: {{threshold}}).\n{{/is_alert}}\n\n{{#is_recovery}}\n## ✅ Recovered\n\n`nginx.upstream.peers.response_time` on {{upstream.name}} has resolved. Anomaly score: {{value}}.\n{{/is_recovery}}\n\n{{^is_recovery}}\n\n---\n\n## 📈 Impact\n\nSlow upstream response times degrade end-user experience and increase the number of in-flight connections in NGINX's `writing` state, which can cascade into connection exhaustion and 5xx errors.\n\n---\n\n## Why?\n\nPossible causes:\n* **Backend resource saturation** — The upstream application server is CPU-bound, memory-bound, or hitting database query bottlenecks causing it to respond slowly.\n* **Database or downstream dependency slowdown** — A slow database query or external API call is the actual bottleneck, holding backend threads open and inflating `response_time`.\n* **Garbage collection pauses** — Long GC pauses in JVM or similar runtimes cause intermittent latency spikes visible in `nginx.upstream.peers.response_time`.\n* **Network congestion between NGINX and upstream** — Increased RTT or packet loss on the internal network path inflates response times.\n\n---\n\n## How to troubleshoot and resolve the issue?\n\n1. **Identify the scope** — Check which upstream group `{{upstream.name}}` is affected and compare per-peer latency using `nginx.upstream.peers.response_time` grouped by peer.\n2. **Review recent metrics** — Inspect `nginx.upstream.peers.response_time` in [Metrics Explorer](/metric/explorer?exp_metric=nginx.upstream.peers.response_time&exp_scope=upstream:{{upstream.name}},env:{{env.name}}&exp_agg=avg&exp_type=line).\n3. **Correlate with error signals** — Check `nginx.upstream.peers.responses.5xx` and `nginx.upstream.peers.fails` for the same upstream to determine if slow responses are escalating to failures.\n4. **Inspect backend application metrics** — Review CPU, memory, and thread pool saturation on the hosts serving `{{upstream.name}}`.\n\n### Cause and Resolution\n\n| Cause | Resolution |\n| ----- | ---------- |\n| Backend CPU or memory saturation | Scale upstream capacity or optimize application code |\n| Database bottleneck | Tune slow queries, add indexes, or scale the database |\n| GC pauses | Tune JVM heap and GC settings or switch to a lower-latency runtime |\n| Network congestion | Investigate network path and reduce cross-AZ calls where possible |\n\n---\n\n## Related links\n\n* [Documentation](https://docs.datadoghq.com/integrations/nginx/)\n* [Metrics Explorer](/metric/explorer?exp_metric=nginx.upstream.peers.response_time&exp_scope=upstream:{{upstream.name}},env:{{env.name}}&exp_agg=avg&exp_type=line)\n* [Infrastructure](/infrastructure?filters=env:{{env.name}})\n* [Logs](/logs?query=upstream:{{upstream.name}}+env:{{env.name}})\n{{/is_recovery}}",
+    "tags": [
+      "integration:nginx"
+    ],
+    "options": {
+      "thresholds": {
+        "critical": 1,
+        "critical_recovery": 0
+      },
+      "threshold_windows": {
+        "trigger_window": "last_15m",
+        "recovery_window": "last_15m"
+      },
+      "notify_audit": false,
+      "require_full_window": false,
+      "notify_no_data": false,
+      "renotify_interval": 0,
+      "include_tags": true,
+      "new_group_delay": 60,
+      "on_missing_data": "default",
+      "avalanche_window": 10,
+      "silenced": {}
+    }
+  },
+  "tags": [
+    "integration:nginx"
+  ]
+}

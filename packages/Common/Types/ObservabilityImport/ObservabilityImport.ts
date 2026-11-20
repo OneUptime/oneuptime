@@ -79,7 +79,27 @@ export interface ImportAiCandidate {
   query: string;
   // The dashboard's variable names, so a query keeps naming them.
   variableNames: Array<string>;
+  /*
+   * Which query of which item it is (`<item key>:<query id>`): the answer,
+   * once the person uses it, is handed back to the conversion under this
+   * key (ImportQueryOverrides), which converts the item again with it.
+   */
+  targetKey?: string | undefined;
+  // Whether the query is a monitor's, which must return an instant vector.
+  isForMonitor?: boolean | undefined;
 }
+
+/*
+ * Queries the person had OneUptime AI convert and chose to use, by their
+ * candidate's targetKey: the conversion reads each in place of the query
+ * the file holds.
+ */
+export type ImportQueryOverrides = ReadonlyMap<string, string>;
+
+export const NO_QUERY_OVERRIDES: ImportQueryOverrides = new Map<
+  string,
+  string
+>();
 
 /*
  * What a query became: the PromQL OneUptime runs, and how it was reached.
