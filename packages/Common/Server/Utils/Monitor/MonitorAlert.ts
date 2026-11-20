@@ -807,6 +807,9 @@ export default class MonitorAlert {
             storageMap,
             seriesLabels,
             seriesContext,
+            metricNames: MonitorTemplateUtil.getMetricNamesReadBy(
+              input.dataToProcess,
+            ),
           });
 
           alert.title = text.title;

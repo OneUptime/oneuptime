@@ -253,6 +253,12 @@ export default class SeriesContextEnricher {
     monitorType: MonitorType | undefined;
     // As enrichTitle reads it: said first, never the identity.
     seriesContext?: JSONObject | undefined;
+    /*
+     * The metrics the monitor's step reads, where known: a managed device's
+     * commands are then only those of the reading its monitor reads
+     * (SeriesDebugHints, #10209).
+     */
+    metricNames?: ReadonlyArray<string> | undefined;
   }): string {
     const description: string = input.description || "";
 
@@ -297,6 +303,7 @@ export default class SeriesContextEnricher {
     const commandsBlock: string = SeriesDebugHints.buildMarkdownBlock({
       monitorType: input.monitorType,
       seriesLabels: input.seriesLabels,
+      metricNames: input.metricNames,
     });
 
     /*
