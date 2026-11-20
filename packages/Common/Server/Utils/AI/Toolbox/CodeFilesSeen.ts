@@ -3,6 +3,7 @@ import TokenSigningKey from "../../TokenSigningKey";
 import logger from "../../Logger";
 import ArrayUtil from "../../../../Utils/Array";
 import { REDACTION_PLACEHOLDERS } from "./Serializer";
+import { restoreCodeFileValuesHidden } from "./CodeFileValuesRestored";
 import {
   AIChatLineRange,
   AIChatLinesShown,
@@ -484,9 +485,13 @@ type FindValuesHiddenFunction = (data: {
 /*
  * The files a change writes placeholders into in place of values hidden
  * from Ask AI, in its order: each placeholder its version holds more often
- * than the file on the branch - nothing there, none - does. A file whose
- * text could not be read is held to none: what it writes is said, never
- * taken for the file's own.
+ * than the file on the branch - nothing there, none - does, once every line
+ * it kept as shown is written back as the file has it (issue #6388,
+ * CodeFileValuesRestored): a version whose placeholders are all on such
+ * lines writes over nothing hidden, and the card says nothing of it. Only
+ * counts and lines come back: the values never leave the file's text. A
+ * file whose text could not be read is held to none: what it writes is
+ * said, never taken for the file's own.
  */
 export const findCodeFilesValuesHidden: FindValuesHiddenFunction = (data: {
   changes: ReadonlyArray<CodeHostFileWrite>;
@@ -501,11 +506,16 @@ export const findCodeFilesValuesHidden: FindValuesHiddenFunction = (data: {
 
     const text: CodeFileTextNow | undefined = data.texts.get(change.filePath);
     const written: Array<CodeFilePlaceholderWritten> =
-      findCodePlaceholdersWritten({
-        content: change.content,
-        branchContent: text && text.state === "text" ? text.text : "",
-        placeholders: REDACTION_PLACEHOLDERS,
-      });
+      text && text.state === "text"
+        ? restoreCodeFileValuesHidden({
+            content: change.content,
+            fileContent: text.text,
+          }).placeholdersWritten
+        : findCodePlaceholdersWritten({
+            content: change.content,
+            branchContent: "",
+            placeholders: REDACTION_PLACEHOLDERS,
+          });
 
     if (written.length > 0) {
       findings.push({
@@ -1106,7 +1116,8 @@ type ValuesHiddenOnReadFunction = (
 /*
  * What read_code_file tells the model of the values it hid in what it
  * showed (issue #6364), before the model writes anything from it: where,
- * as what, and that it cannot write them back. Null when it hid none.
+ * as what, and that OneUptime writes each back only on a line kept
+ * exactly as shown (issue #6388). Null when it hid none.
  */
 export const describeValuesHiddenOnRead: ValuesHiddenOnReadFunction = (
   hidden: CodeFileLinesWithValuesHidden,
@@ -1115,7 +1126,7 @@ export const describeValuesHiddenOnRead: ValuesHiddenOnReadFunction = (
     return null;
   }
 
-  return `… [values that look like secrets or personal data are hidden from you on ${describeLineRanges(hidden.lines)}, as ${englishList(hidden.placeholders)}. You cannot write them back: a commit or pull request writes this file whole, so a version that keeps a placeholder puts it where the real value is. Leave a change to this file to a person, or change only files without hidden values.]`;
+  return `… [values that look like secrets or personal data are hidden from you on ${describeLineRanges(hidden.lines)}, as ${englishList(hidden.placeholders)}. A commit or pull request writes this file whole: keep each of those lines exactly as you see it here, and OneUptime writes its value back as the file has it. Do not change those lines, and never write a placeholder anywhere else: OneUptime cannot write a value back there, so the change would put the placeholder where a real value belongs. If one of those lines needs to change, leave that change to a person.]`;
 };
 
 type LineCountFunction = (lineCount: number) => string;
@@ -1458,7 +1469,7 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
     const files: string = englishList(hidden);
 
     lines.push(
-      `You cannot write a value hidden from you back: it reads as a placeholder however often you read the file again, so writing ${files} whole puts the placeholders where the real values are. Leave the change to ${files} to a person - tell the user what to change, and where - or change only files without hidden values. Never write a placeholder, or a value you guess, in place of a hidden one. If the user asked you to write that placeholder text itself, tell them they can approve it with Ask to act.`,
+      `OneUptime writes a hidden value back only on a line you keep exactly as read_code_file showed it, when no other line of the file reads the same with a different value - not on these lines. You cannot write those values yourself: they read as placeholders however often you read the file again. Keep each line with a placeholder exactly as you were shown it, and change only other lines; if such a line needs to change, or reads the same as another, leave the change to ${files} to a person - tell the user what to change, and where. Never write a placeholder, or a value you guess, in place of a hidden one. If the user asked you to write that placeholder text itself, tell them they can approve it with Ask to act.`,
     );
   }
 
@@ -1599,4 +1610,31 @@ export const describeChangedSinceProposed: ChangedSinceProposedFunction =
     return data.change === CodeChangeKind.Commit
       ? `Nothing was committed: ${files} changed on ${data.branchName} after this commit was shown for approval, or could not be read there again, so committing it now could undo a change nobody saw. Read each of them again with read_code_file and branchName "${data.branchName}", and propose the commit again on the files as they are now.`
       : `No pull request was opened: ${files} changed on ${data.branchName} after this pull request was shown for approval, or could not be read there again, so it could undo a change nobody saw. Read each of them again with read_code_file and branchName "${data.branchName}", and propose the pull request again on the files as they are now.`;
+  };
+
+type ValuesNotWrittenBackFunction = (data: {
+  change: CodeChangeKind;
+  branchName: string;
+  filePaths: ReadonlyArray<string>;
+}) => string;
+
+/*
+ * Why a change was not made though its card said nothing of hidden values
+ * (issue #6388): OneUptime could not write back every value Ask AI was
+ * shown as a placeholder in these files - their text could not be read
+ * again in the version the change is held to, or no longer reads as the
+ * card worked out - and committing them as written would put placeholders
+ * where the values are, which nobody was asked about.
+ */
+export const describeValuesNotWrittenBack: ValuesNotWrittenBackFunction =
+  (data: {
+    change: CodeChangeKind;
+    branchName: string;
+    filePaths: ReadonlyArray<string>;
+  }): string => {
+    const files: string = data.filePaths.join(", ");
+
+    return data.change === CodeChangeKind.Commit
+      ? `Nothing was committed: OneUptime could not write back the values hidden from you in ${files} as the file on ${data.branchName} has them, so committing it would put placeholders where those values are. Read each of them again with read_code_file and branchName "${data.branchName}", keep each line with a placeholder exactly as you are shown it, and propose the commit again.`
+      : `No pull request was opened: OneUptime could not write back the values hidden from you in ${files} as the file on ${data.branchName} has them, so the pull request would put placeholders where those values are. Read each of them again with read_code_file and branchName "${data.branchName}", keep each line with a placeholder exactly as you are shown it, and propose the pull request again.`;
   };

@@ -51,18 +51,20 @@ import {
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
- * ISSUE #6364, THROUGH THE WHOLE CHAT TURN.
+ * ISSUES #6364 AND #6388, THROUGH THE WHOLE CHAT TURN.
  *
  * The model reads config/servers.ts - two IP addresses and an email,
  * shown as "[redacted-ip]" and "[redacted-email]" - and asks for
  * commit_code_to_branch with the whole file, one line changed. So:
  *
- *   - the read tells the model which lines had values hidden;
- *   - in Ask to act, the card says values were hidden from Ask AI and its
- *     version writes placeholders in their place;
- *   - in Auto-run the commit is not made: the model is told it cannot
- *     write those values back, and a change that leaves the file alone,
- *     or takes the values out, is made;
+ *   - the read tells the model which lines had values hidden, and that a
+ *     line it keeps exactly as shown has its value written back;
+ *   - kept as shown, the values are written back as the file has them: the
+ *     card says nothing, Auto-run makes the commit, and the values are in
+ *     the commit only - never in the action, the conversation, the model's
+ *     messages or the run's events (#6388);
+ *   - a line it changed keeps its placeholder: the card says so, and in
+ *     Auto-run the commit is not made (#6364);
  *   - it holds in a later turn too: it is of what the change writes.
  */
 
@@ -335,8 +337,34 @@ const actionOf: (spies: Spies, id?: string) => AIChatToolAction = (
   })!;
 };
 
+// A line the model changed: its placeholder kept, so its value cannot be written back.
+const PRIMARY_EDITED: string = RETRIES_FIVE.replace(
+  'PRIMARY_HOST = "[redacted-ip]";',
+  'PRIMARY_HOST = "[redacted-ip]"; // the main one',
+);
+
+// The file as the commit writes it: the one line changed, every value as the file has it.
+const RETRIES_FIVE_ON_BRANCH: string = ON_BRANCH.replace(
+  "RETRIES = 3;",
+  "RETRIES = 5;",
+);
+
+const HIDDEN_VALUES: Array<string> = ["10.0.0.12", "10.0.0.13", "ops@acme.com"];
+
+// Everything the turn kept or sent anywhere but the code host: none of it may hold a value.
+const everythingButTheCommit: (spies: Spies) => string = (
+  spies: Spies,
+): string => {
+  return JSON.stringify([
+    spies.messageUpdateOneBy.mock.calls,
+    spies.runUpdateOneBy.mock.calls,
+    spies.executeWithLogging.mock.calls,
+    (AIRunEventService.create as unknown as SpyInstance).mock.calls,
+  ]);
+};
+
 describe("the read tells the model which lines had values hidden, before it writes anything", () => {
-  test("its result names the lines, and holds none of the values", async () => {
+  test("its result names the lines, says a line kept as shown is written back, and holds none of the values", async () => {
     startRepository();
     const spies: Spies = installSpies({
       turns: [{ answer: response({ toolCalls: [READ_CALL] }) }],
@@ -348,46 +376,18 @@ describe("the read tells the model which lines had values hidden, before it writ
     expect(told).toContain(
       "values that look like secrets or personal data are hidden from you on lines 1-3, as [redacted-ip] and [redacted-email].",
     );
+    expect(told).toContain(
+      "keep each of those lines exactly as you see it here, and OneUptime writes its value back as the file has it.",
+    );
     expect(told).toContain('PRIMARY_HOST = "[redacted-ip]"');
-    for (const value of ["10.0.0.12", "10.0.0.13", "ops@acme.com"]) {
+    for (const value of HIDDEN_VALUES) {
       expect(told).not.toContain(value);
     }
   });
 });
 
-describe("Ask to act: the card says the version writes placeholders where values were hidden", () => {
-  test("read whole, committed with one line changed: the card says so, and nothing is committed", async () => {
-    startRepository();
-    const spies: Spies = installSpies({
-      turns: [
-        { answer: response({ toolCalls: [READ_CALL] }) },
-        {
-          answer: response({
-            toolCalls: [
-              COMMIT_CALL([{ filePath: SERVERS, content: RETRIES_FIVE }]),
-            ],
-          }),
-        },
-      ],
-    });
-
-    await ChatAgentRunner.runTurn(buildRequest());
-
-    expect(repository.commits).toEqual([]);
-
-    const action: AIChatToolAction = actionOf(spies);
-    expect(action.status).toBe(AIChatToolActionStatus.Pending);
-    expect(action.requiresApproval).toBe(true);
-    expect(action.title).toBe("Commit 1 file to fix/login");
-    expect(action.description).toBe(HIDDEN);
-    expect(
-      action.words!.description!.map((sentence: AIActionSentence) => {
-        return sentence.template;
-      }),
-    ).toEqual([AI_ACTION_PLURAL_LINES.codeFilesValuesHidden.other]);
-  });
-
-  test("approved anyway, it is committed as the card said: the person chose", async () => {
+describe("Ask to act: each line kept as shown has its value written back (#6388)", () => {
+  test("read whole, committed with one line changed: nothing on the card, and the commit holds the real values", async () => {
     startRepository();
     const first: Spies = installSpies({
       turns: [
@@ -401,7 +401,19 @@ describe("Ask to act: the card says the version writes placeholders where values
         },
       ],
     });
+
     await ChatAgentRunner.runTurn(buildRequest());
+
+    // Asked first, as every change is, with nothing to warn of.
+    expect(repository.commits).toEqual([]);
+    const pending: AIChatToolAction = actionOf(first);
+    expect(pending.status).toBe(AIChatToolActionStatus.Pending);
+    expect(pending.title).toBe("Commit 1 file to fix/login");
+    expect(pending.description).toBeUndefined();
+    expect(pending.words!.description).toBeUndefined();
+    // Read before the resume, which restores every spy.
+    const firstTurn: string = everythingButTheCommit(first);
+    expect(firstTurn).toContain("[redacted-ip]");
 
     const spies: Spies = await resumeWith({
       paused: pausedStateOf(first),
@@ -411,9 +423,55 @@ describe("Ask to act: the card says the version writes placeholders where values
 
     expect(repository.commits).toHaveLength(1);
     expect(repository.branches.get("fix/login")!.get(SERVERS)).toBe(
-      RETRIES_FIVE,
+      RETRIES_FIVE_ON_BRANCH,
     );
     expect(actionOf(spies).status).toBe(AIChatToolActionStatus.Executed);
+    // The action keeps the model's version: placeholders, never the values.
+    expect(JSON.stringify(actionOf(spies))).toContain("[redacted-ip]");
+    for (const value of HIDDEN_VALUES) {
+      expect(firstTurn).not.toContain(value);
+      expect(everythingButTheCommit(spies)).not.toContain(value);
+    }
+  });
+
+  test("a line the model changed keeps its placeholder: the card says so, and approved anyway the rest are written back", async () => {
+    startRepository();
+    const first: Spies = installSpies({
+      turns: [
+        { answer: response({ toolCalls: [READ_CALL] }) },
+        {
+          answer: response({
+            toolCalls: [
+              COMMIT_CALL([{ filePath: SERVERS, content: PRIMARY_EDITED }]),
+            ],
+          }),
+        },
+      ],
+    });
+
+    await ChatAgentRunner.runTurn(buildRequest());
+
+    const pending: AIChatToolAction = actionOf(first);
+    expect(pending.description).toBe(HIDDEN);
+    expect(
+      pending.words!.description!.map((sentence: AIActionSentence) => {
+        return sentence.template;
+      }),
+    ).toEqual([AI_ACTION_PLURAL_LINES.codeFilesValuesHidden.other]);
+
+    await resumeWith({
+      paused: pausedStateOf(first),
+      approved: ["call-commit"],
+      turns: [{ answer: response({ content: "Committed." }) }],
+    });
+
+    // As the card said: the changed line's placeholder; every other value as the file has it.
+    expect(repository.branches.get("fix/login")!.get(SERVERS)).toBe(
+      RETRIES_FIVE_ON_BRANCH.replace(
+        'PRIMARY_HOST = "10.0.0.12";',
+        'PRIMARY_HOST = "[redacted-ip]"; // the main one',
+      ),
+    );
   });
 
   test("the file's own placeholder text, kept: the card as it always was", async () => {
@@ -457,8 +515,42 @@ describe("Ask to act: the card says the version writes placeholders where values
   });
 });
 
-describe("Auto-run: a commit that writes placeholders over hidden values is not made unasked", () => {
-  test("not made: the model is told it cannot write them back, and changes only a file without hidden values", async () => {
+describe("Auto-run: written back, the commit is made; a placeholder that cannot be is not written unasked", () => {
+  test("kept as shown: made at once, with the real values, and the model told it was committed", async () => {
+    startRepository();
+    const spies: Spies = installSpies({
+      turns: [
+        { answer: response({ toolCalls: [READ_CALL] }) },
+        {
+          answer: response({
+            toolCalls: [
+              COMMIT_CALL([{ filePath: SERVERS, content: RETRIES_FIVE }]),
+            ],
+          }),
+        },
+        { answer: response({ content: "Committed RETRIES = 5." }) },
+      ],
+    });
+
+    await ChatAgentRunner.runTurn(
+      buildRequest({ permissionMode: AIChatPermissionMode.AutoRun }),
+    );
+
+    expect(repository.commits).toHaveLength(1);
+    expect(repository.branches.get("fix/login")!.get(SERVERS)).toBe(
+      RETRIES_FIVE_ON_BRANCH,
+    );
+    expect(actionOf(spies).status).toBe(AIChatToolActionStatus.Executed);
+    expect(actionOf(spies).description).toBeUndefined();
+    expect(toldModel(spies, "call-commit")).toContain(
+      "Committed 1 file(s) to branch fix/login",
+    );
+    for (const value of HIDDEN_VALUES) {
+      expect(everythingButTheCommit(spies)).not.toContain(value);
+    }
+  });
+
+  test("a line changed: not made, the model told why, and a file without hidden values changed instead", async () => {
     startRepository();
     const spies: Spies = installSpies({
       turns: [
@@ -467,7 +559,7 @@ describe("Auto-run: a commit that writes placeholders over hidden values is not 
           answer: response({
             toolCalls: [
               COMMIT_CALL(
-                [{ filePath: SERVERS, content: RETRIES_FIVE }],
+                [{ filePath: SERVERS, content: PRIMARY_EDITED }],
                 "call-hidden",
               ),
             ],
@@ -518,9 +610,11 @@ describe("Auto-run: a commit that writes placeholders over hidden values is not 
       /^Not done: nothing was committed to fix\/login, because your version of these files writes placeholders where values were hidden from you:/,
     );
     expect(told).toContain(
-      `- ${SERVERS}: your version writes [redacted-ip] on lines 1-2; [redacted-email] on line 3.`,
+      `- ${SERVERS}: your version writes [redacted-ip] on line 1.`,
     );
-    expect(told).toContain("You cannot write a value hidden from you back");
+    expect(told).toContain(
+      "OneUptime writes a hidden value back only on a line you keep exactly as read_code_file showed it",
+    );
     expect(told).not.toContain("Read each of these files");
 
     // config/servers.ts as it was, every value kept; the README committed.
@@ -574,11 +668,14 @@ describe("Auto-run: a commit that writes placeholders over hidden values is not 
     );
 
     expect(repository.commits).toHaveLength(1);
+    expect(repository.branches.get("fix/login")!.get(SERVERS)).toBe(
+      withoutValues,
+    );
     expect(actionOf(spies).status).toBe(AIChatToolActionStatus.Executed);
     expect(actionOf(spies).description).toBeUndefined();
   });
 
-  test("turned back however often the model asks again from what it was shown", async () => {
+  test("a changed line is turned back however often the model asks again", async () => {
     startRepository();
     const spies: Spies = installSpies({
       turns: [
@@ -588,7 +685,7 @@ describe("Auto-run: a commit that writes placeholders over hidden values is not 
             answer: response({
               toolCalls: [
                 COMMIT_CALL(
-                  [{ filePath: SERVERS, content: RETRIES_FIVE }],
+                  [{ filePath: SERVERS, content: PRIMARY_EDITED }],
                   `call-${attempt}`,
                 ),
               ],
@@ -616,43 +713,72 @@ describe("Auto-run: a commit that writes placeholders over hidden values is not 
 });
 
 describe("in a later turn: of what the change writes, wherever the read was", () => {
-  test("read in the turn before, committed now from what the model was shown: the card says so, beside that Ask AI no longer has the file (issue #6365)", async () => {
+  const readInTheTurnBefore: () => Array<AIConversationMessage> =
+    (): Array<AIConversationMessage> => {
+      const question: AIConversationMessage = new AIConversationMessage();
+      question.role = AIChatMessageRole.User;
+      question.contentInMarkdown = "Which hosts does checkout use?";
+
+      const answer: AIConversationMessage = new AIConversationMessage();
+      answer.role = AIChatMessageRole.Assistant;
+      answer.status = AIChatMessageStatus.Completed;
+      answer.contentInMarkdown = "Two hosts, in config/servers.ts.";
+      answer.citations = [
+        {
+          id: "C1",
+          toolName: "read_code_file",
+          label: `${SERVERS} (acme/checkout)`,
+          queryArguments: { filePath: SERVERS, branchName: "fix/login" },
+          rowCount: 4,
+          recordSeen: seeCodeFile({
+            repositoryId: repository.repositoryId.toString(),
+            branchName: "fix/login",
+            filePath: SERVERS,
+            fingerprint: fingerprintCodeFileVersion(blobOf(ON_BRANCH)),
+          })!,
+        } as AIChatCitation,
+      ];
+
+      const now: AIConversationMessage = new AIConversationMessage();
+      now.role = AIChatMessageRole.User;
+      now.contentInMarkdown = "Retry five times, on fix/login.";
+
+      return [now, answer, question];
+    };
+
+  test("read in the turn before, its lines kept as shown: the card says only that Ask AI no longer has the file (issue #6365)", async () => {
     startRepository();
-    const question: AIConversationMessage = new AIConversationMessage();
-    question.role = AIChatMessageRole.User;
-    question.contentInMarkdown = "Which hosts does checkout use?";
-
-    const answer: AIConversationMessage = new AIConversationMessage();
-    answer.role = AIChatMessageRole.Assistant;
-    answer.status = AIChatMessageStatus.Completed;
-    answer.contentInMarkdown = "Two hosts, in config/servers.ts.";
-    answer.citations = [
-      {
-        id: "C1",
-        toolName: "read_code_file",
-        label: `${SERVERS} (acme/checkout)`,
-        queryArguments: { filePath: SERVERS, branchName: "fix/login" },
-        rowCount: 4,
-        recordSeen: seeCodeFile({
-          repositoryId: repository.repositoryId.toString(),
-          branchName: "fix/login",
-          filePath: SERVERS,
-          fingerprint: fingerprintCodeFileVersion(blobOf(ON_BRANCH)),
-        })!,
-      } as AIChatCitation,
-    ];
-
-    const now: AIConversationMessage = new AIConversationMessage();
-    now.role = AIChatMessageRole.User;
-    now.contentInMarkdown = "Retry five times, on fix/login.";
-
     const spies: Spies = installSpies({
-      history: [now, answer, question],
+      history: readInTheTurnBefore(),
       turns: [
         {
           answer: response({
             toolCalls: [
               COMMIT_CALL([{ filePath: SERVERS, content: RETRIES_FIVE }]),
+            ],
+          }),
+        },
+      ],
+    });
+
+    await ChatAgentRunner.runTurn(buildRequest());
+
+    expect(
+      actionOf(spies).words!.description!.map((sentence: AIActionSentence) => {
+        return sentence.template;
+      }),
+    ).toEqual([AI_ACTION_PLURAL_LINES.codeFilesReadInEarlierAnswer.other]);
+  });
+
+  test("read in the turn before, a line changed: both lines, the placeholders first", async () => {
+    startRepository();
+    const spies: Spies = installSpies({
+      history: readInTheTurnBefore(),
+      turns: [
+        {
+          answer: response({
+            toolCalls: [
+              COMMIT_CALL([{ filePath: SERVERS, content: PRIMARY_EDITED }]),
             ],
           }),
         },

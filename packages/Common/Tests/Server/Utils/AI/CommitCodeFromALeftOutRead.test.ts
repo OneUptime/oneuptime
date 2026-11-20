@@ -723,8 +723,9 @@ describe("what a left-out read still counts for, and what it does not", () => {
       commit("fix/login", [
         {
           filePath: "config/servers.ts",
+          // The host's line changed: its value cannot be written back (#6388).
           content:
-            'export const HOST = "[redacted-ip]";\nexport const RETRIES = 5;\n',
+            'export const HOST = "[redacted-ip]"; // the main one\nexport const RETRIES = 5;\n',
         },
       ]),
     );
@@ -742,7 +743,9 @@ describe("what a left-out read still counts for, and what it does not", () => {
       "- config/servers.ts: you read it earlier in this answer, and its text has been left out of this conversation since, to keep it within your context window.",
     );
     expect(told).toContain("Read each file whose text was left out again now");
-    expect(told).toContain("You cannot write a value hidden from you back");
+    expect(told).toContain(
+      "OneUptime writes a hidden value back only on a line you keep exactly as read_code_file showed it",
+    );
     // Mixed kinds: the general opening.
     expect(told).toMatch(
       /^Not done: nothing was committed to fix\/login, because writing these files whole/,
