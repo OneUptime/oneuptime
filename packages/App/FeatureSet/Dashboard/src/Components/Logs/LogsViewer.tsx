@@ -726,6 +726,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   });
 
   const [logs, setLogs] = useState<Array<Log>>([]);
+  /*
+   * The window the rows on screen were read in: the filters' own, or -
+   * while live - the window up to now the latest read took. A line's link
+   * pins it (getLogLink), so the list under the line is the one it was
+   * copied from.
+   */
+  const [rowsWindow, setRowsWindow] = useState<InBetween<Date> | null>(null);
   // Under the Logs page's explanation: data drawn means it gives way.
   useReportTelemetryDataShown(logs.length > 0);
   const [error, setError] = useState<string>("");
@@ -1423,6 +1430,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         }
 
         setLogs(listResult.data);
+        setRowsWindow(
+          (query as any).time instanceof InBetween
+            ? ((query as any).time as InBetween<Date>)
+            : null,
+        );
         setTotalCount(listResult.count);
         setListError(undefined);
 
@@ -2602,9 +2614,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
    * Copy Link on a line's details (#9794) and on its row (#9944): the Logs
    * page's address that opens this very line, with the list it was copied
    * from under it - this list's chips over the window its rows were read
-   * in, pinned (LogLineLink). A new one whenever the list's window moves
-   * (a live list, a preset that re-anchors), so a row's link and its
-   * details' are always the same, the window the rows show.
+   * in, pinned (LogLineLink). A new one whenever that window moves: new
+   * filters, or a live list's read up to now (whose rows the filters'
+   * window, resolved once, no longer held) - so a row's link and its
+   * details' are always the same, over the rows on screen.
    */
   const getLogLink: (log: Log) => string | null = useCallback(
     (log: Log): string | null => {
@@ -2612,7 +2625,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         return null;
       }
 
-      const listTime: unknown = (filterOptions as any)?.time;
+      const listTime: unknown = rowsWindow || (filterOptions as any)?.time;
       const listWindow: InBetween<Date> =
         listTime instanceof InBetween
           ? (listTime as InBetween<Date>)
@@ -2638,7 +2651,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         },
       });
     },
-    [appliedFacetFilters, filterOptions, timeRange, props.syncUrlState],
+    [
+      appliedFacetFilters,
+      rowsWindow,
+      filterOptions,
+      timeRange,
+      props.syncUrlState,
+    ],
   );
 
   /*
