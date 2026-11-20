@@ -89,7 +89,7 @@ OneUptime 仪表板中的每个资源在侧边菜单中都有一个 **开发者*
 | `Includes` | `value` 中的任意一个值 |
 | `IsNull`、`NotNull` | 没有值，或有任意值 |
 
-资源所指定记录的字段在其关系下筛选：`"user": { "name": { "_type": "Search", "value": "ada" } }` 会找出其用户名称包含“ada”的团队成员。按某个字段筛选需要读取该字段的权限，经由关系时与在资源本身上一样：对你无权读取的字段进行筛选会被拒绝，返回指明该字段的 `422`。
+资源所指定记录的字段在其关系下筛选：`"user": { "name": { "_type": "Search", "value": "ada" } }` 会找出其用户名称包含“ada”的团队成员。按某个字段筛选需要读取该字段的权限，经由关系时与在资源本身上一样：对你无权读取的字段进行筛选会被拒绝，返回指明该字段的 `422`。经由关系时，只有本人可以读取的字段，例如用户的时区或其通知方式和值班日志，无论用于筛选还是排序，对所有人都会被拒绝，因为关系可以指定任何人的记录。
 
 有所有者的资源——监视器、事件、值班策略以及其他任何有用户和团队所有者的资源——也可以在 `owners` 下按所有者筛选：`"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` 会找出由这些用户和团队中任意一个或多个拥有的记录。`match` 不设置时为 `AnyOf`：`NoneOf` 找出不归其中任何一个所有的记录，包括没有所有者的记录；`AnyOwner` 和 `NoOwner` 不指定任何人，分别找出有所有者和没有所有者的记录。团队的成员不是团队所拥有内容的所有者。一个筛选条件合计最多指定 1,000 个用户和团队；没有所有者的资源会以 `400` 拒绝该筛选，没有读取所有者的权限而按所有者筛选会被拒绝，返回 `422`。
 
@@ -292,6 +292,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 ```
 
 更新时请不要发送这些字段。少数由人更改的字段各有专门的请求：轮换 SCIM 客户端密钥会设置它失效的时间，`POST /api/host/:id/try-collector-config-again` 会把在主机上失败的收集器配置再次发送给该主机。你和 OneUptime 都会更改的字段，例如记录的 `labels`（标签规则会向其中添加标签），仍由你像以前一样设置。
+
+省略了字段的创建会在响应的 `X-OneUptime-Fields-Left-Out` 标头中指明这些字段，字段之间用逗号分隔；没有省略任何内容的响应没有这个标头。CLI 会在一条提示中输出这些字段，MCP 服务器的响应会在 `fieldsLeftOut` 中列出它们，Terraform 提供程序会在一条警告中显示它们。
+
+### 向列表添加条目和移除条目
+
+更改可以向列表添加记录，或移除其中一些，而无需发送整个列表：`addToList` 和 `removeFromList` 按列表指明要添加和要移除的 ID。更改没有指明的每个条目都会保留，包括其他人或标签规则在同一时刻添加的条目：
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+把它发送到 `PUT /api/monitor/<id>`，会重命名该监视器，为它添加一个标签并移除另一个标签。如果更改只添加和移除条目，请省略 `data`。条目是记录的 ID，或带有其 `_id` 的对象，与 `data` 中相同；添加列表中已有的条目，或移除列表中没有的条目，不会更改任何内容。
+
+更改可以指明的列表，就是完整的 API 参考在该资源的 `PUT` 请求下 `addToList` 中列出的列表。以这种方式进行的更改，会按上面的规则，像它留下的整个列表那样接受检查：你更改该列表的权限、它添加的每条记录都是你项目中你可以读取的记录，以及限于标签的权限所保留的标签。同时在 `data` 中整体发送、又在 `addToList` 或 `removeFromList` 中发送的列表，会以 `400` 被拒绝：
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+Terraform 和 Crossplane 提供程序就是这样更改记录的标签的，因此规则在它们运行期间添加的标签会保留：请参阅[标签和 OneUptime 也会添加的其他列表](/docs/terraform/complete-guide#标签和-oneuptime-也会添加的其他列表)。
 
 ## 状态和片段
 

@@ -239,6 +239,62 @@ describe("an SLA a person adds to an incident", () => {
     expect(sla.responseDeadline).toBeUndefined();
   });
 
+  /*
+   * A reference has two names - its ID column and the relation - and a
+   * write may send either (ReferenceNamesReadTogether): the SLA is worked
+   * out from the incident and the rule whichever names it is sent under.
+   */
+  test("names its incident and its rule by their relations: worked out all the same", async () => {
+    stubIncident([timelineRow(CREATED_STATE, DECLARED_AT, true)]);
+
+    const incident: Incident = new Incident();
+    incident._id = INCIDENT_ID.toString();
+    const rule: IncidentSlaRule = new IncidentSlaRule();
+    rule._id = RULE_ID.toString();
+
+    const sla: IncidentSla = new IncidentSla();
+    sla.projectId = PROJECT_ID;
+    sla.incident = incident;
+    sla.incidentSlaRule = rule;
+
+    await beforeCreate(sla);
+
+    expect(sla.slaStartedAt?.toISOString()).toBe(DECLARED_AT.toISOString());
+    expect(new Date(sla.responseDeadline!).toISOString()).toBe(
+      "2026-11-19T08:30:00.000Z",
+    );
+    expect(
+      (
+        (IncidentService.findOneBy as jest.Mock).mock.calls[0]![0] as {
+          query: { _id: ObjectID };
+        }
+      ).query._id.toString(),
+    ).toBe(INCIDENT_ID.toString());
+    expect(
+      (
+        (IncidentSlaRuleService.findOneBy as jest.Mock).mock.calls[0]![0] as {
+          query: { _id: ObjectID };
+        }
+      ).query._id.toString(),
+    ).toBe(RULE_ID.toString());
+  });
+
+  test("names its incident two ways that disagree: refused, and nothing is worked out", async () => {
+    stubIncident([timelineRow(CREATED_STATE, DECLARED_AT, true)]);
+
+    const other: Incident = new Incident();
+    other._id = "10053000-0000-4000-8000-0000000000d9";
+
+    const sla: IncidentSla = addedSla();
+    sla.incident = other;
+
+    await expect(beforeCreate(sla)).rejects.toThrow(
+      /incidentId and incident are names for the same field/,
+    );
+    expect(IncidentService.findOneBy).not.toHaveBeenCalled();
+    expect(sla.slaStartedAt).toBeUndefined();
+  });
+
   test("names an incident or a rule the project does not have: left for the create's checks to refuse", async () => {
     jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(null as never);
     jest

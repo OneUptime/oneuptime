@@ -6,12 +6,14 @@ import JsonElementCounter, {
 } from "Common/Utils/JsonElementCount";
 import OtlpJson, {
   OTLP_SEVERITY_ERROR,
+  OTLP_SEVERITY_INFO,
   OtlpKeyValue,
   OtlpSeverity,
 } from "./OtlpJson";
 
 /*
- * SENTRY'S ENVELOPES AND STORE EVENTS, AS OPENTELEMETRY TRACES AND LOGS.
+ * SENTRY'S ENVELOPES AND STORE EVENTS, AS OPENTELEMETRY TRACES, LOGS AND
+ * PROFILES.
  *
  * Every Sentry SDK - sentry-python, @sentry/node and @sentry/browser,
  * sentry-java, sentry-dotnet, sentry-go, sentry-ruby, sentry-php - posts
@@ -19,8 +21,9 @@ import OtlpJson, {
  * events to /api/<project>/store/. An envelope
  * (https://develop.sentry.dev/sdk/data-model/envelopes/) is a header line
  * of JSON, then items: an item header line, then its payload. What is kept
- * of it becomes an OTLP ExportTraceServiceRequest and an
- * ExportLogsServiceRequest, queued like any OTLP export.
+ * of it becomes an OTLP ExportTraceServiceRequest, an
+ * ExportLogsServiceRequest and an ExportProfilesServiceRequest, queued like
+ * any OTLP export.
  *
  * WHAT EACH ITEM BECOMES
  *
@@ -35,11 +38,28 @@ import OtlpJson, {
  *     log record.
  *   - A transaction is its root span and one span per child span.
  *   - A log item's records are log records; a span item's spans are spans.
+ *   - A cron check-in (Sentry Crons) is a log record: its monitor's slug,
+ *     status, duration and schedule as sentry.monitor.* and
+ *     sentry.check_in.* attributes, at ERROR when the job failed (or timed
+ *     out, or was missed) and INFO otherwise - so a Logs monitor on its slug
+ *     tells when a job fails, or does not run.
+ *   - User feedback (a feedback event from Sentry's widget, or an older
+ *     user_report) is a log record of what the person wrote, in the trace
+ *     it was sent from, the error it is about named by
+ *     sentry.feedback.associated_event_id - the sentry.event_id of that
+ *     error's span.
+ *   - A profile (the sample format a transaction is profiled in) and a
+ *     profile chunk (continuous profiling) are a profile: Sentry's samples
+ *     of each thread's stack, one sample per thread and stack weighed by how
+ *     often it was seen and for how long (it samples wall-clock time). A
+ *     transaction's profile links to its trace, and to its root span when
+ *     the envelope carries the transaction too. An Android profile (a trace
+ *     file, not samples) is not read.
  *
- * Sessions, client reports, attachments, profiles, replays, check-ins,
- * metrics and user feedback are skipped (ignoredItemTypes says which), and
- * so are breadcrumbs, debug images and the module list of an event: none is
- * telemetry OneUptime stores this way.
+ * Sessions, client reports, attachments, replays and metrics are skipped
+ * (ignoredItemTypes says which), and so are breadcrumbs, debug images and
+ * the module list of an event: none is telemetry OneUptime stores this
+ * way.
  *
  * WHERE IT CAME FROM
  *
@@ -61,10 +81,11 @@ import OtlpJson, {
  * are counted before each is parsed (JsonElementCount), against one limit
  * for the whole envelope (COMPATIBLE_JSON_MAX_VALUES): over it is a
  * SentryEnvelopeError with status 413. Items of the types skipped - an
- * attachment, a replay, a profile - are never parsed, nor counted. What a
+ * attachment, a replay, a session - are never parsed, nor counted. What a
  * translation became is sized by the bytes of the items it came from
- * (ingestBytes), so an envelope's attachments are not counted against a
- * budget of what OneUptime keeps.
+ * (ingestBytes): an envelope's profiles count against the profiles budget,
+ * its check-ins and feedback against the logs one, and its attachments and
+ * replays, which are not kept, against none.
  */
 
 export class SentryEnvelopeError extends Error {
@@ -96,6 +117,7 @@ export interface ParsedSentryEnvelope {
 export interface SentryIngestBytes {
   traces: number;
   logs: number;
+  profiles: number;
 }
 
 export interface SentryTranslateOptions {
@@ -123,6 +145,12 @@ export interface SentryAcceptedCounts {
   spans: number;
   // The records log items became.
   logs: number;
+  // Cron check-ins, each a log record.
+  checkIns: number;
+  // Feedback and user reports, each a log record.
+  feedback: number;
+  // Profiles and profile chunks, each a profile.
+  profiles: number;
 }
 
 export interface SentryTranslation {
@@ -130,6 +158,8 @@ export interface SentryTranslation {
   traces: JSONObject | null;
   // An ExportLogsServiceRequest in OTLP JSON, or null when there are no records.
   logs: JSONObject | null;
+  // An ExportProfilesServiceRequest in OTLP JSON, or null when there are no profiles.
+  profiles: JSONObject | null;
   /*
    * What Sentry answers with ({"id": ...}): the envelope header's event_id,
    * else the first event's or transaction's (one an event came without is
@@ -142,9 +172,9 @@ export interface SentryTranslation {
   // Items of a kept type whose payload was not a JSON object.
   malformedItemCount: number;
   /*
-   * The payload bytes of the items that became spans, and of those that
-   * became log records: an envelope's items of the types skipped, and
-   * items that became nothing, are in neither.
+   * The payload bytes of the items that became spans, of those that became
+   * log records, and of those that became profiles: an envelope's items of
+   * the types skipped, and items that became nothing, are in none.
    */
   ingestBytes: SentryIngestBytes;
 }
@@ -155,6 +185,14 @@ export const MAX_EXCEPTIONS_PER_CHAIN: number = 10;
 export const MAX_STACK_TRACE_BYTES: number = 64 * 1024;
 export const MAX_SPANS_PER_TRANSACTION: number = 1000;
 export const MAX_LOG_RECORDS_PER_ENVELOPE: number = 1000;
+
+/*
+ * How far apart a profile's samples are when they do not say: Sentry's SDKs
+ * sample every thread about 100 times a second (sentry-python at 101 Hz,
+ * the JavaScript profilers every 10 ms). A profile's own interval is read
+ * from its samples' times, when it has at least two of one thread's.
+ */
+export const DEFAULT_PROFILE_SAMPLE_INTERVAL_NS: number = 10_000_000;
 
 const SCOPE_NAME: string = "sentry";
 
@@ -315,7 +353,47 @@ const TRANSLATED_ITEM_TYPES: ReadonlySet<string> = new Set<string>([
   "transaction",
   "log",
   "span",
+  "check_in",
+  "feedback",
+  "user_report",
+  "profile",
+  "profile_chunk",
 ]);
+
+// A check-in of a job that did not finish well: logged at ERROR.
+const FAILED_CHECK_IN_STATUSES: ReadonlySet<string> = new Set<string>([
+  "error",
+  "timeout",
+  "missed",
+]);
+
+/*
+ * Sentry's platform as OpenTelemetry's profile.frame.type, which OneUptime
+ * reads a profile's frames by. A platform not listed says nothing.
+ */
+const FRAME_TYPE_BY_PLATFORM: ReadonlyMap<string, string> = new Map<
+  string,
+  string
+>([
+  ["python", "cpython"],
+  ["node", "v8js"],
+  ["javascript", "v8js"],
+  ["java", "jvm"],
+  ["android", "jvm"],
+  ["kotlin", "jvm"],
+  ["cocoa", "native"],
+  ["native", "native"],
+  ["objc", "native"],
+  ["rust", "native"],
+  ["ruby", "ruby"],
+  ["php", "php"],
+  ["go", "go"],
+  ["csharp", "dotnet"],
+  ["dotnet", "dotnet"],
+  ["elixir", "beam"],
+]);
+
+const OTLP_PROFILE_SCOPE_NAME: string = "sentry";
 
 // What an item says about where it came from.
 interface ResourceInfo {
@@ -341,6 +419,20 @@ interface ResourceBucket {
   attributes: Array<OtlpKeyValue>;
   spans: Array<JSONObject>;
   logRecords: Array<JSONObject>;
+  profiles: Array<JSONObject>;
+}
+
+// A transaction's root span, by the transaction's event ID: what its profile links to.
+interface TransactionSpan {
+  traceId: string;
+  spanId: string;
+}
+
+// A profile item, read when the envelope's other items have been.
+interface DeferredProfile {
+  payload: JSONObject;
+  bytes: number;
+  isChunk: boolean;
 }
 
 interface TranslationState {
@@ -356,6 +448,10 @@ interface TranslationState {
   // The envelope's JSON values, counted before each item is parsed.
   jsonValues: JsonValueBudget;
   ingestBytes: SentryIngestBytes;
+  // The transactions translated so far, for the profiles of them.
+  transactionSpans: Map<string, TransactionSpan>;
+  // The profile items, translated after every other item.
+  deferredProfiles: Array<DeferredProfile>;
 }
 
 // One frame, as a stack trace is written from it.
@@ -526,6 +622,13 @@ export default class SentryEnvelope {
       SentryEnvelope.translateItem(state, item, defaults);
     }
 
+    // After the transactions, so a profile finds the one it profiled.
+    for (const deferred of state.deferredProfiles) {
+      if (SentryEnvelope.translateProfile(state, deferred, defaults)) {
+        state.ingestBytes.profiles += deferred.bytes;
+      }
+    }
+
     return SentryEnvelope.finish(state);
   }
 
@@ -556,14 +659,25 @@ export default class SentryEnvelope {
       nowUnixNano: OtlpJson.nowUnixNano(options.nowInMs),
       serviceName: SentryEnvelope.readString(options.serviceName),
       resources: new Map<string, ResourceBucket>(),
-      accepted: { errors: 0, messages: 0, transactions: 0, spans: 0, logs: 0 },
+      accepted: {
+        errors: 0,
+        messages: 0,
+        transactions: 0,
+        spans: 0,
+        logs: 0,
+        checkIns: 0,
+        feedback: 0,
+        profiles: 0,
+      },
       ignoredItemTypes: [],
       malformedItemCount: 0,
       eventId: null,
       logItemRecordCount: 0,
       jsonValues:
         options.jsonValues ?? new JsonValueBudget(COMPATIBLE_JSON_MAX_VALUES),
-      ingestBytes: { traces: 0, logs: 0 },
+      ingestBytes: { traces: 0, logs: 0, profiles: 0 },
+      transactionSpans: new Map<string, TransactionSpan>(),
+      deferredProfiles: [],
     };
   }
 
@@ -581,6 +695,7 @@ export default class SentryEnvelope {
   private static finish(state: TranslationState): SentryTranslation {
     const resourceSpans: Array<JSONObject> = [];
     const resourceLogs: Array<JSONObject> = [];
+    const resourceProfiles: Array<JSONObject> = [];
 
     for (const bucket of state.resources.values()) {
       const resource: JSONObject = {
@@ -602,12 +717,28 @@ export default class SentryEnvelope {
           ],
         } as unknown as JSONObject);
       }
+
+      if (bucket.profiles.length > 0) {
+        resourceProfiles.push({
+          resource: resource,
+          scopeProfiles: [
+            {
+              scope: { name: OTLP_PROFILE_SCOPE_NAME },
+              profiles: bucket.profiles,
+            },
+          ],
+        } as unknown as JSONObject);
+      }
     }
 
     return {
       traces:
         resourceSpans.length > 0 ? { resourceSpans: resourceSpans } : null,
       logs: resourceLogs.length > 0 ? { resourceLogs: resourceLogs } : null,
+      profiles:
+        resourceProfiles.length > 0
+          ? { resourceProfiles: resourceProfiles }
+          : null,
       eventId: state.eventId,
       accepted: state.accepted,
       ignoredItemTypes: state.ignoredItemTypes,
@@ -644,14 +775,29 @@ export default class SentryEnvelope {
       return;
     }
 
+    if (type === "profile" || type === "profile_chunk") {
+      state.deferredProfiles.push({
+        payload: payload,
+        bytes: item.payload.length,
+        isChunk: type === "profile_chunk",
+      });
+      return;
+    }
+
     // What the item became, to count its bytes against that signal.
     const spansBefore: number = state.accepted.errors + state.accepted.spans;
-    const logsBefore: number = state.accepted.messages + state.accepted.logs;
+    const logsBefore: number = SentryEnvelope.logRecordCount(state);
 
     if (type === "log") {
       SentryEnvelope.translateLogItem(state, payload, defaults);
     } else if (type === "span") {
       SentryEnvelope.translateSpanItem(state, payload, defaults);
+    } else if (type === "check_in") {
+      SentryEnvelope.translateCheckIn(state, payload, defaults);
+    } else if (type === "feedback") {
+      SentryEnvelope.translateFeedback(state, payload, defaults);
+    } else if (type === "user_report") {
+      SentryEnvelope.translateUserReport(state, payload, defaults);
     } else {
       SentryEnvelope.translateEvent(
         state,
@@ -664,9 +810,19 @@ export default class SentryEnvelope {
 
     if (state.accepted.errors + state.accepted.spans > spansBefore) {
       state.ingestBytes.traces += item.payload.length;
-    } else if (state.accepted.messages + state.accepted.logs > logsBefore) {
+    } else if (SentryEnvelope.logRecordCount(state) > logsBefore) {
       state.ingestBytes.logs += item.payload.length;
     }
+  }
+
+  // The log records translated so far, of every kind of item.
+  private static logRecordCount(state: TranslationState): number {
+    return (
+      state.accepted.messages +
+      state.accepted.logs +
+      state.accepted.checkIns +
+      state.accepted.feedback
+    );
   }
 
   private static translateEvent(
@@ -918,6 +1074,7 @@ export default class SentryEnvelope {
 
     state.accepted.transactions++;
     state.accepted.spans++;
+    state.transactionSpans.set(eventId, { traceId: traceId, spanId: spanId });
 
     const children: Array<unknown> = Array.isArray(event["spans"])
       ? (event["spans"] as Array<unknown>).slice(0, MAX_SPANS_PER_TRANSACTION)
@@ -1179,6 +1336,681 @@ export default class SentryEnvelope {
     return texts[Math.floor((severityNumber - 1) / 4)] || "";
   }
 
+  /*
+   * A cron check-in (sentry_sdk.monitor, Sentry.withMonitor, captureCheckIn):
+   * one log record, so a Logs monitor on its monitor's slug tells when a job
+   * fails or does not run. A failed, timed-out or missed check-in is ERROR,
+   * in_progress and ok INFO; its monitor's schedule and margins are
+   * attributes. A check-in naming no monitor is malformed.
+   */
+  private static translateCheckIn(
+    state: TranslationState,
+    payload: JSONObject,
+    defaults: EnvelopeDefaults,
+  ): void {
+    const slug: string = SentryEnvelope.readString(payload["monitor_slug"]);
+
+    if (!slug) {
+      state.malformedItemCount++;
+      return;
+    }
+
+    const status: string =
+      SentryEnvelope.readString(payload["status"]).toLowerCase() || "unknown";
+    const config: JSONObject = SentryEnvelope.objectOf(
+      payload["monitor_config"],
+    );
+    const schedule: JSONObject = SentryEnvelope.objectOf(config["schedule"]);
+    const trace: JSONObject = SentryEnvelope.objectOf(
+      SentryEnvelope.objectOf(payload["contexts"])["trace"],
+    );
+    const traceId: string = OtlpJson.hexId(trace["trace_id"], 32);
+    const duration: unknown = payload["duration"];
+    const severity: OtlpSeverity = FAILED_CHECK_IN_STATUSES.has(status)
+      ? OTLP_SEVERITY_ERROR
+      : OTLP_SEVERITY_INFO;
+
+    const attributes: Array<OtlpKeyValue> = [];
+
+    OtlpJson.pushAll(
+      attributes,
+      OtlpJson.stringAttribute("sentry.monitor.slug", slug),
+      OtlpJson.stringAttribute("sentry.check_in.status", status),
+      OtlpJson.stringAttribute(
+        "sentry.check_in.id",
+        OtlpJson.hexId(payload["check_in_id"], 32),
+      ),
+      typeof duration === "number" && Number.isFinite(duration) && duration >= 0
+        ? { key: "sentry.check_in.duration", value: { doubleValue: duration } }
+        : null,
+      OtlpJson.stringAttribute(
+        "sentry.monitor.schedule",
+        SentryEnvelope.scheduleOf(schedule),
+      ),
+      OtlpJson.stringAttribute(
+        "sentry.monitor.schedule.type",
+        SentryEnvelope.readString(schedule["type"]).toLowerCase(),
+      ),
+      OtlpJson.attribute(
+        "sentry.monitor.checkin_margin",
+        SentryEnvelope.nonNegativeInteger(config["checkin_margin"]),
+      ),
+      OtlpJson.attribute(
+        "sentry.monitor.max_runtime",
+        SentryEnvelope.nonNegativeInteger(config["max_runtime"]),
+      ),
+      OtlpJson.stringAttribute(
+        "sentry.monitor.timezone",
+        SentryEnvelope.readString(config["timezone"]),
+      ),
+    );
+
+    SentryEnvelope.addLogRecord(
+      state,
+      SentryEnvelope.eventResource(payload, defaults),
+      {
+        timeUnixNano: state.nowUnixNano,
+        observedTimeUnixNano: state.nowUnixNano,
+        severityNumber: severity.number,
+        severityText: severity.text,
+        body: { stringValue: `Check-in ${slug}: ${status}` },
+        attributes: SentryEnvelope.uniqueByKey(attributes),
+        ...(traceId ? { traceId: traceId } : {}),
+      } as unknown as JSONObject,
+    );
+
+    state.accepted.checkIns++;
+  }
+
+  // A monitor's schedule as Sentry shows it: its crontab, or "<n> <unit>".
+  private static scheduleOf(schedule: JSONObject): string {
+    const type: string = SentryEnvelope.readString(schedule["type"]);
+
+    if (type === "interval") {
+      const value: number | null = SentryEnvelope.positiveInteger(
+        schedule["value"],
+      );
+      const unit: string = SentryEnvelope.readString(schedule["unit"]);
+
+      return value !== null && unit ? `${value} ${unit}` : "";
+    }
+
+    return SentryEnvelope.readScalar(schedule["value"]);
+  }
+
+  /*
+   * Feedback from Sentry's feedback widget or captureFeedback: an event of
+   * type "feedback", what the person wrote in its contexts.feedback. One log
+   * record, in the trace it was sent from, the error it is about named as
+   * sentry.feedback.associated_event_id. Feedback with no message is
+   * malformed.
+   */
+  private static translateFeedback(
+    state: TranslationState,
+    event: JSONObject,
+    defaults: EnvelopeDefaults,
+  ): void {
+    const contexts: JSONObject = SentryEnvelope.objectOf(event["contexts"]);
+    const feedback: JSONObject = SentryEnvelope.objectOf(contexts["feedback"]);
+    const message: string = SentryEnvelope.readText(feedback["message"]);
+
+    if (!message.trim()) {
+      state.malformedItemCount++;
+      return;
+    }
+
+    const eventId: string =
+      OtlpJson.hexId(event["event_id"], 32) ||
+      defaults.eventId ||
+      SentryEnvelope.newEventId();
+
+    if (state.eventId === null) {
+      state.eventId = eventId;
+    }
+
+    const trace: JSONObject = SentryEnvelope.objectOf(contexts["trace"]);
+    const traceId: string = OtlpJson.hexId(trace["trace_id"], 32);
+    const spanId: string = OtlpJson.hexId(trace["span_id"], 16);
+    const attributes: Array<OtlpKeyValue> = [];
+
+    OtlpJson.pushAll(
+      attributes,
+      ...SentryEnvelope.feedbackAttributes({
+        name: feedback["name"],
+        email: feedback["contact_email"],
+        associatedEventId: feedback["associated_event_id"],
+      }),
+      OtlpJson.stringAttribute(
+        "sentry.feedback.url",
+        SentryEnvelope.readString(feedback["url"]),
+      ),
+      OtlpJson.stringAttribute(
+        "sentry.feedback.source",
+        SentryEnvelope.readString(feedback["source"]),
+      ),
+      OtlpJson.stringAttribute(
+        "sentry.feedback.replay_id",
+        OtlpJson.hexId(feedback["replay_id"], 32),
+      ),
+    );
+    attributes.push(...SentryEnvelope.eventAttributes(event, eventId));
+
+    SentryEnvelope.addLogRecord(
+      state,
+      SentryEnvelope.eventResource(event, defaults),
+      {
+        timeUnixNano:
+          SentryEnvelope.timeOf(event["timestamp"]) ?? state.nowUnixNano,
+        observedTimeUnixNano: state.nowUnixNano,
+        severityNumber: OTLP_SEVERITY_INFO.number,
+        severityText: OTLP_SEVERITY_INFO.text,
+        body: { stringValue: message },
+        attributes: SentryEnvelope.uniqueByKey(attributes),
+        ...(traceId ? { traceId: traceId } : {}),
+        ...(traceId && spanId ? { spanId: spanId } : {}),
+      } as unknown as JSONObject,
+    );
+
+    state.accepted.feedback++;
+  }
+
+  /*
+   * A user report (captureUserFeedback, the SDKs' older feedback): the
+   * error event it is about, and what the person wrote about it. One log
+   * record, as feedback is; one with no comments is malformed.
+   */
+  private static translateUserReport(
+    state: TranslationState,
+    report: JSONObject,
+    defaults: EnvelopeDefaults,
+  ): void {
+    const comments: string = SentryEnvelope.readText(report["comments"]);
+
+    if (!comments.trim()) {
+      state.malformedItemCount++;
+      return;
+    }
+
+    const attributes: Array<OtlpKeyValue> = [];
+
+    OtlpJson.pushAll(
+      attributes,
+      ...SentryEnvelope.feedbackAttributes({
+        name: report["name"],
+        email: report["email"],
+        associatedEventId: report["event_id"],
+      }),
+    );
+
+    SentryEnvelope.addLogRecord(
+      state,
+      SentryEnvelope.eventResource({}, defaults),
+      {
+        timeUnixNano: state.nowUnixNano,
+        observedTimeUnixNano: state.nowUnixNano,
+        severityNumber: OTLP_SEVERITY_INFO.number,
+        severityText: OTLP_SEVERITY_INFO.text,
+        body: { stringValue: comments },
+        attributes: SentryEnvelope.uniqueByKey(attributes),
+      } as unknown as JSONObject,
+    );
+
+    state.accepted.feedback++;
+  }
+
+  private static feedbackAttributes(feedback: {
+    name: unknown;
+    email: unknown;
+    associatedEventId: unknown;
+  }): Array<OtlpKeyValue | null> {
+    return [
+      OtlpJson.stringAttribute(
+        "sentry.feedback.name",
+        SentryEnvelope.readString(feedback.name),
+      ),
+      OtlpJson.stringAttribute(
+        "sentry.feedback.contact_email",
+        SentryEnvelope.readString(feedback.email),
+      ),
+      OtlpJson.stringAttribute(
+        "sentry.feedback.associated_event_id",
+        OtlpJson.hexId(feedback.associatedEventId, 32),
+      ),
+    ];
+  }
+
+  /*
+   * A profile item (v1, a transaction's) or a profile chunk (v2,
+   * continuous): an OTLP profile in the shape OneUptime's profiles worker
+   * reads (OtelProfilesIngestService, as PyroscopeIngestService writes it).
+   * Each sample is a thread's stack at a moment - its stack, in
+   * profile.stacks, a list of profile.frames from the leaf, as OTLP orders
+   * a stack's locations - and samples of one thread and stack are one OTLP
+   * sample: how many were seen ("samples") and for how long ("wall",
+   * nanoseconds: that count times the profile's interval), with the thread
+   * as thread.id and thread.name. False for an item that holds no samples to
+   * read (an Android profile's trace file).
+   */
+  private static translateProfile(
+    state: TranslationState,
+    deferred: DeferredProfile,
+    defaults: EnvelopeDefaults,
+  ): boolean {
+    const payload: JSONObject = deferred.payload;
+    const profile: JSONObject = SentryEnvelope.objectOf(payload["profile"]);
+    const samples: Array<unknown> = SentryEnvelope.arrayOf(profile["samples"]);
+    const stacks: Array<unknown> = SentryEnvelope.arrayOf(profile["stacks"]);
+    const frames: Array<unknown> = SentryEnvelope.arrayOf(profile["frames"]);
+    const threads: JSONObject = SentryEnvelope.objectOf(
+      profile["thread_metadata"],
+    );
+    const platform: string = SentryEnvelope.readString(
+      payload["platform"],
+    ).toLowerCase();
+
+    // When a v1 profile started; a v2 sample says its own time.
+    const base: bigint = BigInt(
+      SentryEnvelope.timeOf(payload["timestamp"]) ?? state.nowUnixNano,
+    );
+
+    interface ProfileSample {
+      thread: string;
+      stack: number;
+      time: bigint;
+    }
+
+    const read: Array<ProfileSample> = [];
+
+    for (const sample of samples) {
+      if (!SentryEnvelope.isObject(sample)) {
+        continue;
+      }
+
+      const stack: number | null = SentryEnvelope.nonNegativeInteger(
+        sample["stack_id"],
+      );
+      const time: bigint | null = deferred.isChunk
+        ? SentryEnvelope.bigTimeOf(sample["timestamp"])
+        : SentryEnvelope.elapsedOf(base, sample["elapsed_since_start_ns"]);
+
+      if (stack === null || stack >= stacks.length || time === null) {
+        continue;
+      }
+
+      read.push({
+        thread: SentryEnvelope.readScalar(sample["thread_id"]),
+        stack: stack,
+        time: time,
+      });
+    }
+
+    if (read.length === 0) {
+      const name: string = deferred.isChunk ? "profile_chunk" : "profile";
+
+      if (!state.ignoredItemTypes.includes(name)) {
+        state.ignoredItemTypes.push(name);
+      }
+
+      return false;
+    }
+
+    const interval: bigint = SentryEnvelope.sampleInterval(read);
+
+    // The tables every sample's stack is written with, index 0 OTLP's "none".
+    const strings: Array<string> = [""];
+    const stringIndexes: Map<string, number> = new Map<string, number>([
+      ["", 0],
+    ]);
+    const stringIndex: (text: string) => number = (text: string): number => {
+      let index: number | undefined = stringIndexes.get(text);
+
+      if (index === undefined) {
+        index = strings.length;
+        strings.push(text);
+        stringIndexes.set(text, index);
+      }
+
+      return index;
+    };
+
+    const attributeTable: Array<JSONObject> = [{ key: "", value: {} }];
+    const attributeIndexes: Map<string, number> = new Map<string, number>();
+    const attributeIndex: (key: string, value: string) => number = (
+      key: string,
+      value: string,
+    ): number => {
+      const id: string = `${key}\u0000${value}`;
+      let index: number | undefined = attributeIndexes.get(id);
+
+      if (index === undefined) {
+        index = attributeTable.length;
+        attributeTable.push({ key: key, value: { stringValue: value } });
+        attributeIndexes.set(id, index);
+      }
+
+      return index;
+    };
+
+    const functionTable: Array<JSONObject> = [];
+    const functionIndexes: Map<string, number> = new Map<string, number>();
+    const locationTable: Array<JSONObject> = [];
+    const locationOfFrame: Map<number, number> = new Map<number, number>();
+    const stackTable: Array<JSONObject> = [];
+    const stackIndexes: Map<number, number> = new Map<number, number>();
+
+    const locationOf: (frameIndex: number) => number = (
+      frameIndex: number,
+    ): number => {
+      const known: number | undefined = locationOfFrame.get(frameIndex);
+
+      if (known !== undefined) {
+        return known;
+      }
+
+      const frame: JSONObject = SentryEnvelope.objectOf(frames[frameIndex]);
+      const name: string =
+        SentryEnvelope.readString(frame["function"]) ||
+        SentryEnvelope.readString(frame["instruction_addr"]) ||
+        "<unknown>";
+      const file: string =
+        SentryEnvelope.readString(frame["filename"]) ||
+        SentryEnvelope.readString(frame["abs_path"]) ||
+        SentryEnvelope.readString(frame["module"]);
+      const functionKey: string = `${name}\u0000${file}`;
+      let functionIndex: number | undefined = functionIndexes.get(functionKey);
+
+      if (functionIndex === undefined) {
+        functionIndex = functionTable.length;
+        functionTable.push({
+          name: stringIndex(name),
+          filename: stringIndex(file),
+        });
+        functionIndexes.set(functionKey, functionIndex);
+      }
+
+      const frameType: string =
+        FRAME_TYPE_BY_PLATFORM.get(
+          SentryEnvelope.readString(frame["platform"]).toLowerCase() ||
+            platform,
+        ) || "";
+      const location: JSONObject = {
+        line: [
+          {
+            functionIndex: functionIndex,
+            line: SentryEnvelope.nonNegativeInteger(frame["lineno"]) ?? 0,
+          },
+        ],
+      };
+
+      if (frameType) {
+        location["attributeIndices"] = [
+          attributeIndex("profile.frame.type", frameType),
+        ];
+      }
+
+      const index: number = locationTable.length;
+      locationTable.push(location);
+      locationOfFrame.set(frameIndex, index);
+
+      return index;
+    };
+
+    const stackOf: (stack: number) => number = (stack: number): number => {
+      const known: number | undefined = stackIndexes.get(stack);
+
+      if (known !== undefined) {
+        return known;
+      }
+
+      const locationIndices: Array<number> = [];
+
+      for (const frameIndex of SentryEnvelope.arrayOf(stacks[stack])) {
+        const index: number | null =
+          SentryEnvelope.nonNegativeInteger(frameIndex);
+
+        if (index !== null && index < frames.length) {
+          locationIndices.push(locationOf(index));
+        }
+      }
+
+      const tableIndex: number = stackTable.length;
+      stackTable.push({ locationIndices: locationIndices });
+      stackIndexes.set(stack, tableIndex);
+
+      return tableIndex;
+    };
+
+    // A transaction's profile links its thread's samples to that transaction.
+    const transaction: JSONObject = SentryEnvelope.isObject(
+      payload["transaction"],
+    )
+      ? (payload["transaction"] as JSONObject)
+      : SentryEnvelope.objectOf(
+          SentryEnvelope.arrayOf(payload["transactions"])[0],
+        );
+    const transactionId: string = OtlpJson.hexId(transaction["id"], 32);
+    const traceId: string = OtlpJson.hexId(transaction["trace_id"], 32);
+    const root: TransactionSpan | undefined =
+      state.transactionSpans.get(transactionId);
+    const linkTraceId: string = traceId || root?.traceId || "";
+    const linkSpanId: string =
+      root && (!traceId || root.traceId === traceId) ? root.spanId : "";
+    const activeThread: string = SentryEnvelope.readScalar(
+      transaction["active_thread_id"],
+    );
+    const linkTable: Array<JSONObject> = [{ traceId: "", spanId: "" }];
+
+    if (linkTraceId) {
+      linkTable.push({ traceId: linkTraceId, spanId: linkSpanId });
+    }
+
+    // One OTLP sample a thread and stack, weighed by how often it was seen.
+    interface SampleGroup {
+      thread: string;
+      stack: number;
+      count: bigint;
+      first: bigint;
+    }
+
+    const groups: Map<string, SampleGroup> = new Map<string, SampleGroup>();
+    let start: bigint = read[0]!.time;
+    let end: bigint = read[0]!.time;
+
+    for (const sample of read) {
+      const key: string = `${sample.thread}\u0000${sample.stack}`;
+      const group: SampleGroup | undefined = groups.get(key);
+
+      if (group) {
+        group.count += BigInt(1);
+        group.first = sample.time < group.first ? sample.time : group.first;
+      } else {
+        groups.set(key, {
+          thread: sample.thread,
+          stack: sample.stack,
+          count: BigInt(1),
+          first: sample.time,
+        });
+      }
+
+      start = sample.time < start ? sample.time : start;
+      end = sample.time > end ? sample.time : end;
+    }
+
+    const otlpSamples: Array<JSONObject> = [];
+
+    for (const group of groups.values()) {
+      const threadName: string = SentryEnvelope.readString(
+        SentryEnvelope.objectOf(threads[group.thread])["name"],
+      );
+      const attributeIndices: Array<number> = [];
+
+      if (group.thread) {
+        attributeIndices.push(attributeIndex("thread.id", group.thread));
+      }
+
+      if (threadName) {
+        attributeIndices.push(attributeIndex("thread.name", threadName));
+      }
+
+      const sample: JSONObject = {
+        stackIndex: stackOf(group.stack),
+        value: [group.count.toString(), (group.count * interval).toString()],
+        timestampsUnixNano: [group.first.toString()],
+      };
+
+      if (attributeIndices.length > 0) {
+        sample["attributeIndices"] = attributeIndices;
+      }
+
+      if (
+        linkTable.length > 1 &&
+        (!activeThread || activeThread === group.thread)
+      ) {
+        sample["linkIndex"] = 1;
+      }
+
+      otlpSamples.push(sample);
+    }
+
+    const containerAttributes: Array<OtlpKeyValue> = [];
+
+    OtlpJson.pushAll(
+      containerAttributes,
+      OtlpJson.stringAttribute(
+        "sentry.transaction.name",
+        SentryEnvelope.readString(transaction["name"]),
+      ),
+      OtlpJson.stringAttribute("sentry.transaction.id", transactionId),
+      OtlpJson.stringAttribute(
+        "sentry.profiler_id",
+        OtlpJson.hexId(payload["profiler_id"], 32),
+      ),
+      OtlpJson.stringAttribute("sentry.platform", platform),
+    );
+
+    const sdk: JSONObject = SentryEnvelope.objectOf(payload["client_sdk"]);
+
+    SentryEnvelope.bucketOf(
+      state,
+      SentryEnvelope.eventResource(
+        {
+          release: payload["release"] ?? null,
+          environment: payload["environment"] ?? null,
+          platform: platform,
+          sdk: sdk,
+        } as JSONObject,
+        defaults,
+      ),
+    ).profiles.push({
+      profileId:
+        OtlpJson.hexId(
+          deferred.isChunk ? payload["chunk_id"] : payload["event_id"],
+          32,
+        ) || SentryEnvelope.newEventId(),
+      startTimeUnixNano: start.toString(),
+      endTimeUnixNano: (end + interval).toString(),
+      attributes: containerAttributes,
+      originalPayloadFormat: deferred.isChunk
+        ? "sentry.profile_chunk"
+        : "sentry.profile",
+      profile: {
+        stringTable: [
+          ...strings,
+          // sampleType and periodType, after every frame's strings.
+          "samples",
+          "count",
+          "wall",
+          "nanoseconds",
+        ],
+        sampleType: [
+          { type: strings.length, unit: strings.length + 1 },
+          { type: strings.length + 2, unit: strings.length + 3 },
+        ],
+        periodType: { type: strings.length + 2, unit: strings.length + 3 },
+        period: interval.toString(),
+        sample: otlpSamples,
+        locationTable: locationTable,
+        functionTable: functionTable,
+        stackTable: stackTable,
+        linkTable: linkTable,
+        attributeTable: attributeTable,
+      },
+    } as unknown as JSONObject);
+
+    state.accepted.profiles++;
+    return true;
+  }
+
+  /*
+   * How far apart a profile's samples are: the median gap between one
+   * thread's samples, over every thread. A profile with no two samples of a
+   * thread, or with gaps of under 100 microseconds or over a second (nothing
+   * Sentry's SDKs sample at), is DEFAULT_PROFILE_SAMPLE_INTERVAL_NS apart.
+   */
+  private static sampleInterval(
+    samples: Array<{ thread: string; time: bigint }>,
+  ): bigint {
+    const byThread: Map<string, Array<bigint>> = new Map<
+      string,
+      Array<bigint>
+    >();
+
+    for (const sample of samples) {
+      const times: Array<bigint> = byThread.get(sample.thread) || [];
+      times.push(sample.time);
+      byThread.set(sample.thread, times);
+    }
+
+    const gaps: Array<number> = [];
+
+    for (const times of byThread.values()) {
+      times.sort((a: bigint, b: bigint): number => {
+        return a < b ? -1 : a > b ? 1 : 0;
+      });
+
+      for (let index: number = 1; index < times.length; index++) {
+        const gap: bigint = times[index]! - times[index - 1]!;
+
+        if (gap > BigInt(0)) {
+          gaps.push(Number(gap));
+        }
+      }
+    }
+
+    if (gaps.length === 0) {
+      return BigInt(DEFAULT_PROFILE_SAMPLE_INTERVAL_NS);
+    }
+
+    gaps.sort((a: number, b: number): number => {
+      return a - b;
+    });
+
+    const median: number = gaps[Math.floor(gaps.length / 2)]!;
+
+    return median >= 100_000 && median <= 1_000_000_000
+      ? BigInt(Math.round(median))
+      : BigInt(DEFAULT_PROFILE_SAMPLE_INTERVAL_NS);
+  }
+
+  // A time as a bigint of nanoseconds, or null.
+  private static bigTimeOf(value: unknown): bigint | null {
+    const nanoseconds: string | null = SentryEnvelope.timeOf(value);
+
+    return nanoseconds === null ? null : BigInt(nanoseconds);
+  }
+
+  // A v1 sample's time: its profile's start and its nanoseconds since then.
+  private static elapsedOf(base: bigint, elapsed: unknown): bigint | null {
+    const nanoseconds: number | null =
+      SentryEnvelope.nonNegativeInteger(elapsed);
+
+    return nanoseconds === null ? null : base + BigInt(nanoseconds);
+  }
+
+  private static arrayOf(value: unknown): Array<unknown> {
+    return Array.isArray(value) ? (value as Array<unknown>) : [];
+  }
+
   private static addSpan(
     state: TranslationState,
     info: ResourceInfo,
@@ -1221,7 +2053,12 @@ export default class SentryEnvelope {
     let bucket: ResourceBucket | undefined = state.resources.get(key);
 
     if (!bucket) {
-      bucket = { attributes: attributes, spans: [], logRecords: [] };
+      bucket = {
+        attributes: attributes,
+        spans: [],
+        logRecords: [],
+        profiles: [],
+      };
       state.resources.set(key, bucket);
     }
 

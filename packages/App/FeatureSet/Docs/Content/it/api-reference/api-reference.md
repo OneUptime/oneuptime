@@ -89,7 +89,7 @@ Un elenco o un conteggio accetta una `query`. Un campo con un valore corrisponde
 | `Includes` | Uno qualsiasi dei valori in `value` |
 | `IsNull`, `NotNull` | Nessun valore, o un valore qualsiasi |
 
-Un campo di un record che la risorsa nomina si filtra sotto la sua relazione: `"user": { "name": { "_type": "Search", "value": "ada" } }` trova i membri del team il cui utente ha un nome che contiene «ada». Filtrare per un campo richiede il permesso di leggerlo, attraverso una relazione come sulla risorsa stessa: un filtro su un campo che non puoi leggere viene rifiutato con un `422` che nomina il campo.
+Un campo di un record che la risorsa nomina si filtra sotto la sua relazione: `"user": { "name": { "_type": "Search", "value": "ada" } }` trova i membri del team il cui utente ha un nome che contiene «ada». Filtrare per un campo richiede il permesso di leggerlo, attraverso una relazione come sulla risorsa stessa: un filtro su un campo che non puoi leggere viene rifiutato con un `422` che nomina il campo. Attraverso una relazione, un campo che solo la persona stessa può leggere, come il fuso orario di un utente o i suoi metodi di notifica e i suoi log di reperibilità, viene rifiutato a tutti, in un filtro come in un ordinamento, perché la relazione può nominare il record di chiunque.
 
 Una risorsa con proprietari - un monitor, un incidente, una policy di reperibilità e ogni altra con proprietari utente e team - si filtra anche in base a chi la possiede, sotto `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` trova i record di cui sono proprietari una o più di quelle persone e di quei team. `match` è `AnyOf` se non lo imposti: `NoneOf` trova i record di cui nessuno di loro è proprietario, compresi i record senza proprietari, e `AnyOwner` e `NoOwner` trovano i record con almeno un proprietario o senza nessuno, senza nominare nessuno. I membri di un team non sono proprietari di ciò che il team possiede. Un filtro nomina al massimo 1.000 persone e team in tutto, una risorsa senza proprietari lo rifiuta con un `400`, e filtrare per proprietari senza il permesso di leggerli viene rifiutato con un `422`.
 
@@ -292,6 +292,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 ```
 
 Lascia questi campi fuori da un aggiornamento. I pochi che una persona modifica hanno una richiesta tutta loro: ruotare un segreto client SCIM stabilisce quando smette di funzionare, e `POST /api/host/:id/try-collector-config-again` invia di nuovo a un host la configurazione del collector che non è riuscita su di esso. Un campo che modificate sia tu sia OneUptime, come le `labels` di un record, a cui le regole sulle etichette aggiungono altre etichette, lo imposti tu come prima.
+
+Una creazione che ha lasciato fuori un campo lo nomina nell'intestazione `X-OneUptime-Fields-Left-Out` della risposta, con i campi separati da virgole; una risposta che non ha lasciato fuori nulla non ha questa intestazione. La CLI stampa i campi in una nota, la risposta del server MCP li elenca in `fieldsLeftOut`, e il provider Terraform li mostra in un avvertimento.
+
+### Aggiungere voci a un elenco e toglierle
+
+Una modifica può aggiungere record a un elenco, o toglierne alcuni, senza inviare l'elenco intero: `addToList` e `removeFromList` nominano gli ID da aggiungere e da togliere, elenco per elenco. Ogni voce che la modifica non nomina resta, compresa una che qualcun altro o una regola per etichette aggiunge nello stesso momento:
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+Inviato a `PUT /api/monitor/<id>`, questo corpo rinomina il monitor, gli aggiunge un'etichetta e ne toglie un'altra. Lascia fuori `data` quando la modifica si limita ad aggiungere e togliere voci. Una voce è l'ID del record, o un oggetto con il suo `_id`, come in `data`, e aggiungere una voce che l'elenco contiene già, o toglierne una che non contiene, non cambia nulla.
+
+Gli elenchi che una modifica può nominare sono quelli che il riferimento API completo elenca sotto `addToList` per la richiesta `PUT` della risorsa. Una modifica fatta così viene verificata come lo sarebbe l'elenco intero che lascia, secondo le regole sopra: la tua autorizzazione a modificare l'elenco, il fatto che ogni record che aggiunge sia uno del tuo progetto che puoi leggere, e le etichette che un'autorizzazione limitata a etichette mantiene. Un elenco inviato sia intero, in `data`, sia in `addToList` o `removeFromList` viene rifiutato con un `400`:
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+I provider Terraform e Crossplane modificano così le etichette di un record, quindi un'etichetta che una regola aggiunge mentre sono in esecuzione resta: vedi [Le etichette e le altre liste a cui aggiunge anche OneUptime](/docs/terraform/complete-guide#le-etichette-e-le-altre-liste-a-cui-aggiunge-anche-oneuptime).
 
 ## Stati ed episodi
 

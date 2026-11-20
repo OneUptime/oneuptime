@@ -351,6 +351,22 @@ export interface SharedAttribute {
   entries: boolean;
 }
 
+/*
+ * A list of related records people and OneUptime both add to (a shared
+ * attribute held entry by entry: a record's labels), as a resource's
+ * generated code holds it to the entries a configuration declares and
+ * updates it entry by entry (StaticFiles/entries.go, #10134, #10135).
+ */
+export interface HeldEntryAttribute {
+  // Its Terraform name: labels.
+  name: string;
+  // Its field of the resource's model: Labels.
+  fieldName: string;
+  // The API's name of it, in an update's addToList and removeFromList.
+  apiName: string;
+  type: "set" | "list";
+}
+
 // The spec's x-oneuptime-server-owned: who keeps the value once the record exists.
 export type TerraformServerOwned = "always" | "after-create" | "shared";
 

@@ -105,6 +105,8 @@ jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
     __esModule: true,
     default: {
       isAuthorizedServiceMiddleware: jest.fn(),
+      isAuthorizedFromHeadersMiddleware: jest.fn(),
+      isAuthorizedFromReportOpeningMiddleware: jest.fn(),
     },
   };
 });
@@ -125,9 +127,12 @@ jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
  */
 import VMwareCollectionRouter, {
   getCollectionClaimLimit,
-  parseInflatedJsonBody,
   readRunningVMwareVCenterIds,
 } from "../../FeatureSet/Telemetry/API/ProbeIngest/VMwareCollection";
+import {
+  parseCollectionBody,
+  readCollectionBody,
+} from "../../FeatureSet/Telemetry/Middleware/ProbeCollectionRequest";
 
 const vcenters: {
   claimForCollection: jest.Mock;
@@ -317,9 +322,18 @@ describe("wiring", () => {
     },
   );
 
-  test("a compressed collection report is read as JSON before the probe is authenticated from it", () => {
+  /*
+   * #10222: the key is checked before the report is parsed - from the
+   * headers before a byte is read, then from the start of an older probe's
+   * report - and only a report whose probe is still not known is parsed
+   * under a large route's limit and authenticated from its body.
+   */
+  test("a collection's key is checked before its report is parsed", () => {
     expect(mockRouter.match("post", COLLECTION_URI).middlewares).toEqual([
-      parseInflatedJsonBody,
+      ProbeAuthorization.isAuthorizedFromHeadersMiddleware,
+      readCollectionBody,
+      ProbeAuthorization.isAuthorizedFromReportOpeningMiddleware,
+      parseCollectionBody,
       ProbeAuthorization.isAuthorizedServiceMiddleware,
     ]);
   });
@@ -592,7 +606,7 @@ describe("the route helpers", () => {
       body: Buffer.from(JSON.stringify(collectionReport())),
     });
 
-    parseInflatedJsonBody(
+    parseCollectionBody(
       inflated,
       mockResponse,
       next as unknown as NextFunction,
@@ -608,7 +622,7 @@ describe("the route helpers", () => {
     });
     const brokenNext: NextSpy = jest.fn();
 
-    parseInflatedJsonBody(
+    parseCollectionBody(
       broken,
       mockResponse,
       brokenNext as unknown as NextFunction,
@@ -621,7 +635,7 @@ describe("the route helpers", () => {
     const parsed: ExpressRequest = makeRequest({ body: { status: "Failed" } });
     const parsedNext: NextSpy = jest.fn();
 
-    parseInflatedJsonBody(
+    parseCollectionBody(
       parsed,
       mockResponse,
       parsedNext as unknown as NextFunction,

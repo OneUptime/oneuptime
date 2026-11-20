@@ -10,6 +10,7 @@ import UserTotpAuth from "../../../Models/DatabaseModels/UserTotpAuth";
 import User from "../../../Models/DatabaseModels/User";
 import * as OTPAuth from "otpauth";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
 
 /*
  * Whether a person's sign-in is managed by single sign-on (#9688) has a
@@ -79,6 +80,9 @@ const runOnBeforeCreate: RunOnBeforeCreateFunction = async (
 
 describe("UserTotpAuthService enrolment", () => {
   beforeEach(() => {
+    // Every session here has confirmed it's its person's (#10155).
+    confirmEverySession();
+
     const user: User = new User();
     user.id = USER_ID;
     user.email = USER_EMAIL;

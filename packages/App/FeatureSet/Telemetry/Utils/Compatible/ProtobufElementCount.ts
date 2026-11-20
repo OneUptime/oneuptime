@@ -18,6 +18,11 @@ import protobuf from "protobufjs";
  * repeated string field. Unknown fields, and scalars and strings of a
  * message's own, are stepped over: a decoder skips or keeps them inside
  * the object already counted.
+ *
+ * A schema may name itself (a value that holds values, as a Datadog v1
+ * trace attribute does), so a body could nest as deep as it is long; a
+ * caller that reads such a schema bounds the nesting (maxDepth), and a body
+ * nested deeper is malformed - a decoder would recurse that deep too.
  */
 
 export interface ProtobufCountSchema {
@@ -58,12 +63,22 @@ export default class ProtobufElementCounter {
     body: Uint8Array,
     schema: ProtobufCountSchema,
     limit: number,
+    // The deepest an embedded message may be nested, the body's own at 0.
+    maxDepth: number = Number.POSITIVE_INFINITY,
   ): ProtobufElementCount {
     const counter: { elements: number } = { elements: 0 };
 
     try {
       const reader: protobuf.Reader = protobuf.Reader.create(body);
-      ProtobufElementCounter.walk(reader, body.length, schema, counter, limit);
+      ProtobufElementCounter.walk(
+        reader,
+        body.length,
+        schema,
+        counter,
+        limit,
+        0,
+        maxDepth,
+      );
     } catch (error) {
       if (error instanceof OverLimit) {
         return {
@@ -104,6 +119,8 @@ export default class ProtobufElementCounter {
     schema: ProtobufCountSchema,
     counter: { elements: number },
     limit: number,
+    depth: number,
+    maxDepth: number,
   ): void {
     while (reader.pos < end) {
       const tag: number = reader.uint32();
@@ -124,7 +141,7 @@ export default class ProtobufElementCounter {
         const length: number = reader.uint32();
         const messageEnd: number = reader.pos + length;
 
-        if (messageEnd > end) {
+        if (messageEnd > end || depth + 1 > maxDepth) {
           throw new Malformed();
         }
 
@@ -135,6 +152,8 @@ export default class ProtobufElementCounter {
           message,
           counter,
           limit,
+          depth + 1,
+          maxDepth,
         );
 
         if (reader.pos !== messageEnd) {

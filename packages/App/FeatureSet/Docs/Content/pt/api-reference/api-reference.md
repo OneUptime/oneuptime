@@ -89,7 +89,7 @@ Uma lista ou uma contagem recebe uma `query`. Um campo com um valor corresponde 
 | `Includes` | Qualquer um dos valores em `value` |
 | `IsNull`, `NotNull` | Nenhum valor, ou qualquer valor |
 
-Um campo de um registro que o recurso cita é filtrado sob a sua relação: `"user": { "name": { "_type": "Search", "value": "ada" } }` encontra os membros da equipe cujo usuário tem um nome que contém “ada”. Filtrar por um campo exige permissão para lê-lo, por uma relação como no próprio recurso: um filtro em um campo que você não pode ler é recusado com um `422` que cita o campo.
+Um campo de um registro que o recurso cita é filtrado sob a sua relação: `"user": { "name": { "_type": "Search", "value": "ada" } }` encontra os membros da equipe cujo usuário tem um nome que contém “ada”. Filtrar por um campo exige permissão para lê-lo, por uma relação como no próprio recurso: um filtro em um campo que você não pode ler é recusado com um `422` que cita o campo. Por uma relação, um campo que só a própria pessoa pode ler, como o fuso horário de um usuário ou os métodos de notificação e os registros de plantão dele, é recusado para todos, tanto em um filtro quanto em uma ordenação, porque a relação pode citar o registro de qualquer pessoa.
 
 Um recurso com proprietários - um monitor, um incidente, uma política de plantão e qualquer outro com proprietários usuários e equipes - também é filtrado por quem o possui, sob `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` encontra os registros dos quais uma ou mais dessas pessoas e equipes são proprietárias. `match` é `AnyOf`, a menos que você o defina: `NoneOf` encontra os registros dos quais nenhuma delas é proprietária, incluindo os registros sem proprietários, e `AnyOwner` e `NoOwner` encontram os registros com algum proprietário ou sem nenhum, sem citar ninguém. Os membros de uma equipe não são proprietários do que a equipe possui. Um filtro cita no máximo 1.000 pessoas e equipes no total, um recurso sem proprietários o recusa com um `400`, e filtrar por proprietários sem permissão para lê-los é recusado com um `422`.
 
@@ -292,6 +292,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 ```
 
 Deixe esses campos fora de uma atualização. Os poucos que uma pessoa altera têm uma requisição própria: trocar um segredo do cliente SCIM define quando ele deixa de funcionar, e `POST /api/host/:id/try-collector-config-again` envia de novo a um host a configuração do coletor que falhou nele. Um campo que você e o OneUptime alteram, como as `labels` de um registro, às quais as regras de rótulos acrescentam outros rótulos, você continua definindo como antes.
+
+Uma criação que deixou um campo de fora o nomeia no cabeçalho `X-OneUptime-Fields-Left-Out` da resposta, com os campos separados por vírgulas; uma resposta sem nada deixado de fora não tem esse cabeçalho. A CLI mostra os campos em uma nota, a resposta do servidor MCP os lista em `fieldsLeftOut`, e o provider do Terraform os mostra em um aviso.
+
+### Adicionar entradas a uma lista e retirá-las
+
+Uma alteração pode adicionar registros a uma lista, ou retirar alguns, sem enviar a lista inteira: `addToList` e `removeFromList` citam os IDs a adicionar e a retirar, lista por lista. Toda entrada que a alteração não cita permanece, inclusive uma que outra pessoa ou uma regra de rótulos adicione no mesmo momento:
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+Enviado para `PUT /api/monitor/<id>`, isto renomeia o monitor, adiciona um rótulo a ele e retira outro. Deixe `data` de fora quando a alteração só adiciona e retira entradas. Uma entrada é o ID do registro, ou um objeto com o seu `_id`, como em `data`, e adicionar uma entrada que a lista já tem, ou retirar uma que ela não tem, não altera nada.
+
+As listas que uma alteração pode citar são as que a referência completa da API lista em `addToList` para a requisição `PUT` do recurso. Uma alteração feita assim é verificada como seria a lista inteira que ela deixa, pelas regras acima: a sua permissão de alterar a lista, cada registro que ela adiciona ser um do seu projeto que você pode ler, e os rótulos que uma permissão restrita a rótulos mantém. Uma lista enviada inteira, em `data`, e também em `addToList` ou `removeFromList` é recusada com um `400`:
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+Os providers do Terraform e do Crossplane alteram assim os rótulos de um registro, de modo que um rótulo que uma regra adiciona enquanto eles rodam permanece: veja [Rótulos e outras listas às quais o OneUptime também adiciona](/docs/terraform/complete-guide#rótulos-e-outras-listas-às-quais-o-oneuptime-também-adiciona).
 
 ## Estados e episódios
 

@@ -89,7 +89,7 @@ A list or a count takes a `query`. A field with a value matches that value; an o
 | `Includes` | Any of the values in `value` |
 | `IsNull`, `NotNull` | No value, or any value |
 
-A field of a record the resource names is filtered under its relation: `"user": { "name": { "_type": "Search", "value": "ada" } }` finds the team members whose user's name contains "ada". Filtering by a field needs permission to read it, through a relation as on the resource itself: a filter on a field you may not read is refused with a `422` that names it.
+A field of a record the resource names is filtered under its relation: `"user": { "name": { "_type": "Search", "value": "ada" } }` finds the team members whose user's name contains "ada". Filtering by a field needs permission to read it, through a relation as on the resource itself: a filter on a field you may not read is refused with a `422` that names it. Through a relation, a field only its own person may read, such as a user's time zone or their notification methods and on-call logs, is refused to everyone, in a filter and a sort alike, because the relation can name anyone's record.
 
 A resource with owners - a monitor, an incident, an on-call policy and every other one with user and team owners - is also filtered by who owns it, under `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` finds the records owned by one or more of those people and teams. `match` is `AnyOf` unless you set it: `NoneOf` finds the records none of them own, records without owners included, and `AnyOwner` and `NoOwner` find the records with any owner or with none, naming no one. A team's members are not owners of what the team owns. One filter names at most 1,000 people and teams together, a resource without owners refuses it with a `400`, and filtering by owners without permission to read them is refused with a `422`.
 
@@ -292,6 +292,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 ```
 
 Leave these fields out of an update. The few a person changes have a request of their own: rotating a SCIM client secret sets when it stops working, and `POST /api/host/:id/try-collector-config-again` sends a host the collector config that failed on it again. A field you and OneUptime both change, such as a record's `labels`, which label rules add to, is yours to set as before.
+
+A create that left a field out names it in the answer's `X-OneUptime-Fields-Left-Out` header, the fields separated by commas; an answer with nothing left out has no such header. The CLI prints the fields in a note, the MCP server's answer lists them in `fieldsLeftOut`, and the Terraform provider shows them in a warning.
+
+### Adding entries to a list and taking them off
+
+A change can add records to a list, or take some off, without sending the whole list: `addToList` and `removeFromList` name the IDs to add and to take off, list by list. Every entry the change does not name stays, one that someone else or a label rule adds at the same moment included:
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+Sent to `PUT /api/monitor/<id>`, this renames the monitor, adds one label to it and takes another off. Leave `data` out when the change only adds and takes off entries. An entry is the record's ID, or an object with its `_id`, as in `data`, and adding an entry the list holds already, or taking off one it does not hold, changes nothing.
+
+The lists a change can name are the ones the full API reference lists under `addToList` for the resource's `PUT` request. A change made this way is checked as the whole list it leaves would be, by the rules above: your permission to change the list, every record it adds being one of your project's that you may read, and the labels a permission restricted to labels keeps. A list sent both whole, in `data`, and in `addToList` or `removeFromList` is refused with a `400`:
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+The Terraform and Crossplane providers change a record's labels this way, so a label a rule adds while they run stays: see [Labels and other lists OneUptime adds to](/docs/terraform/complete-guide#labels-and-other-lists-oneuptime-adds-to).
 
 ## States and episodes
 

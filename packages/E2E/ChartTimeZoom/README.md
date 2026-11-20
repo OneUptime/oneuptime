@@ -68,6 +68,9 @@ fixes the browser clock to `2026-09-21T12:00:00Z`, so "Past 30 Minutes" is alway
   into: worker-2's batch job and the host's gateway both peak at 11:43.
 - Network counters are cumulative and monotonic (the pages turn them into rates);
   heartbeats are one a minute, so availability reads 100%.
+- Two spans of time on the host, in seconds (#10118): `batch.job.duration`, the
+  gateway's nightly batch job, an hour and a half give or take two seconds, and
+  `system.uptime`, twelve days and five hours at 11:30, counting up a second a second.
 - `MetricType` rows give the native units (CPU in cores, `{cpu}`, so the Insights
   CPU% transform sees cores).
 - **The explorers' services, spans and logs.** Four `Service` rows (`checkout-api`,
@@ -644,6 +647,25 @@ own: two value axes, never a third, the percent axis kept at or under 100% (the 
 pulled it up to thousands), the processes' line spread over the plot, its chip saying "Own
 scale" beside an "Own scale: …" badge, and the chart's note saying it has no axis
 (`metric-explorer-own-scale-*-synthetic.png`).
+
+## Metric explorer: every value axis steps evenly, in round steps of its unit
+
+`MetricExplorerAxisSteps.spec.ts` (10 tests, same fixture and command) pins #10117 and
+#10118, at 1280px and 390px. The nodes' memory overlaid on CPU utilization read "7.57 GB",
+"7.65 GB", "7.74 GB" on its right axis: recharts' 85 MB steps, written to three figures.
+Each axis now steps evenly, by a round step (1, 2, 2.5 or 5 times a power of ten) of the
+unit each tick is written in, each tick written with the figures that step needs and no
+more, drawn evenly, inside the card on its side of the plot; the blank space above the
+lines is recorded on the test and kept under half the plot
+(`metric-explorer-round-steps-*-synthetic.png`). The batch job's axis, which read "1.5000
+hours", "1.5003 hours", is a clock a second a tick ("1:29:58" to "1:30:02"), on the right
+of a percent chart too (`metric-explorer-duration-axis-*-synthetic.png`), and the host's
+uptime reads "12 d 05:00" onwards, ten minutes a tick
+(`metric-explorer-uptime-axis-*-synthetic.png`). A short card takes only the ticks its plot
+has room for, one every 20px: the cluster Overview's network card, an 82px plot, read
+"250 KB/s", "750 KB/s", "1.25 MB/s" when recharts hid every other label of six ticks, and
+now draws every tick it steps, from "0 B/s". The fixture does not model that Overview's Cost
+card yet, so this test leaves its `KubernetesCostAllocationV1` reads alone.
 
 ## Logs explorer: Copy Link on a log row
 

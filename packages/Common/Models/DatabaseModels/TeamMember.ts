@@ -10,6 +10,7 @@ import AllowUserQueryWithoutTenant from "../../Types/Database/AllowUserQueryWith
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import Email from "../../Types/Email";
 import CurrentUserCanAccessRecordBy from "../../Types/Database/CurrentUserCanAccessRecordBy";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
@@ -531,4 +532,49 @@ export default class TeamMember extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public inviteeName?: string = undefined;
+
+  /*
+   * THE ADDRESS THE PROJECT INVITED (#10175). Until the person accepts, the
+   * project sees what it invited: the address it typed, never the one their
+   * account has since moved to. A membership read through its person reads
+   * the account's address, which an invitee can change before accepting -
+   * so every project that had invited them would have shown, on its Users
+   * list, its team pages, pickers and audit logs, the new address of someone
+   * who never joined it (PendingInviteeProfiles reads this in its place).
+   * Written by OneUptime as the invitation is made, from the address it was
+   * sent to (TeamMemberService.onBeforeCreate) - never by the caller, and
+   * never changed: once they accept, the project sees their own.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ProjectUser,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectTeam,
+      Permission.CurrentUser,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    computed: true,
+    type: TableColumnType.Email,
+    title: "Invitee Email",
+    description:
+      "The address the person was invited at, shown in place of their account's own until they accept.",
+    example: "ada@example.com",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Email,
+    length: ColumnLength.Email,
+    transformer: Email.getDatabaseTransformer(),
+  })
+  public inviteeEmail?: Email = undefined;
 }

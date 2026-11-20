@@ -20,6 +20,10 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
+import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
+import UserSMS from "Common/Models/DatabaseModels/UserSMS";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import PendingInviteeProfiles from "Common/Server/Utils/TeamMember/PendingInviteeProfiles";
 import BaseAPI from "Common/Server/API/BaseAPI";
 import { ExpressRequest } from "Common/Server/Utils/Express";
 import getRequestBodyLimit, {
@@ -27,6 +31,15 @@ import getRequestBodyLimit, {
 } from "Common/Server/Utils/RequestBodyLimit";
 import ColumnRefusalMessage from "Common/Server/Types/Database/Permissions/ColumnRefusalMessage";
 import ServerOwned from "Common/Types/Database/ServerOwned";
+import ListChangesUtil, {
+  ADD_TO_LIST_KEY,
+  ListChanges,
+  REMOVE_FROM_LIST_KEY,
+} from "Common/Types/Database/ListChanges";
+import FieldsLeftOut, {
+  FIELDS_LEFT_OUT_HEADER,
+} from "Common/Types/API/FieldsLeftOut";
+import { ModelSchema } from "Common/Utils/Schema/ModelSchema";
 import { TRY_COLLECTOR_CONFIG_AGAIN_ROUTE } from "Common/Types/HostCollector/HostCollectorRoutes";
 import UUIDColumnFilter, {
   EXAMPLE_UUID,
@@ -342,6 +355,39 @@ describe("OneUptime API Reference: a request and its answer", () => {
     expect(sentence).toContain(
       "a filter on a field you may not read is refused with a `422` that names it.",
     );
+  });
+
+  it("through a relation, a field only its own person may read is refused to everyone (#9895, #10176)", () => {
+    const sentence: string = lineStartingWith(
+      englishSection(API_REFERENCE, "### Filter, sort and page"),
+      "A field of a record the resource names is filtered under its relation:",
+    );
+
+    expect(sentence).toContain(
+      "Through a relation, a field only its own person may read, such as a user's time zone or their notification methods and on-call logs, is refused to everyone, in a filter and a sort alike, because the relation can name anyone's record.",
+    );
+
+    // A user's time zone, an SMS method's verification, an on-call log's status: only their person reads them.
+    for (const [model, column] of [
+      [new User(), "timezone"],
+      [new UserSMS(), "isVerified"],
+      [new UserOnCallLogTimeline(), "status"],
+    ] as Array<[BaseModel, string]>) {
+      expect(model.getColumnAccessControlFor(column)?.read).toEqual([
+        Permission.CurrentUser,
+      ]);
+      expect(
+        PendingInviteeProfiles.getPermissionsNotCountedThroughRelation(model),
+      ).toEqual([Permission.CurrentUser]);
+    }
+
+    // The rule a filter and a sort through a relation are both held to.
+    expect(readRepoFile(QUERY_PERMISSION)).toContain(
+      "PendingInviteeProfiles.getPermissionsNotCountedThroughRelation(",
+    );
+    expect(
+      readRepoFile("Common/Server/Types/Database/Permissions/SortValidator.ts"),
+    ).toContain("QueryPermission.canFilterOrOrderByRelatedColumn({");
   });
 
   it("filters by who owns a record under owners, as the API reads OwnedBy", () => {
@@ -897,6 +943,106 @@ describe("OneUptime API Reference: fields only OneUptime writes", () => {
     );
     expect(readRepoFile("Common/Server/API/HostAPI.ts")).toContain(
       "/:id/${TRY_COLLECTOR_CONFIG_AGAIN_ROUTE}",
+    );
+  });
+});
+
+/*
+ * A create's fields left out (#10136) and an update's single entries of a
+ * list (#10135): the header, the keys and the refusal the page names are
+ * the server's, word for word, and its example is a body the server takes.
+ */
+describe("OneUptime API Reference: the fields a create left out, and a list's single entries", () => {
+  const fieldsSection: string = englishSection(
+    API_REFERENCE,
+    "### Fields only OneUptime writes",
+  );
+  const listsSection: string = englishSection(
+    API_REFERENCE,
+    "### Adding entries to a list and taking them off",
+  );
+
+  it("names the header a create's answer lists the fields it left out in, and the clients that read it", () => {
+    expect(fieldsSection).toContain(`\`${FIELDS_LEFT_OUT_HEADER}\` header`);
+    expect(fieldsSection).toContain("the fields separated by commas");
+    expect(FieldsLeftOut.toHeaderValue(["depth", "lastRollupAt"])).toBe(
+      "depth, lastRollupAt",
+    );
+    expect(FieldsLeftOut.fromHeaderValue("depth, lastRollupAt")).toEqual([
+      "depth",
+      "lastRollupAt",
+    ]);
+
+    // Only an answer that left something out carries it.
+    expect(fieldsSection).toContain(
+      "an answer with nothing left out has no such header",
+    );
+    expect(readRepoFile(BASE_API)).toContain(
+      "if (createBy.fieldsLeftOut && createBy.fieldsLeftOut.length > 0) {",
+    );
+
+    // The CLI's note, the MCP server's field and the provider's warning.
+    expect(fieldsSection).toContain(
+      "The CLI prints the fields in a note, the MCP server's answer lists them in `fieldsLeftOut`, and the Terraform provider shows them in a warning.",
+    );
+    expect(readRepoFile("CLI/Commands/ResourceCommands.ts")).toContain(
+      "FieldsLeftOut.getNote(",
+    );
+    expect(
+      readRepoFile("App/FeatureSet/MCP/Handlers/ToolHandler.ts"),
+    ).toContain("fieldsLeftOut");
+    expect(
+      readRepoFile("../Scripts/TerraformProvider/StaticFiles/entries.go"),
+    ).toContain("diags.AddWarning(");
+  });
+
+  it("names the keys a change adds and takes off entries with, and its example is a body the server takes", () => {
+    const label: string = "6f1b5f4e-0a43-4f0e-9a6b-5f3b2f0c8d11";
+    const otherLabel: string = "9c2e7a10-3b5d-4c8e-8f61-2d4a6b7c9e02";
+
+    expect(listsSection).toContain(`\`${ADD_TO_LIST_KEY}\``);
+    expect(listsSection).toContain(`\`${REMOVE_FROM_LIST_KEY}\``);
+    expect(listsSection).toContain("Sent to `PUT /api/monitor/<id>`");
+
+    const example: string = (codeBlocks(listsSection, "json")[0] || "")
+      .split("<label-id>")
+      .join(label)
+      .split("<other-label-id>")
+      .join(otherLabel);
+    const body: Record<string, unknown> = JSON.parse(example);
+
+    // The lists the full API reference names under addToList: a monitor's labels among them.
+    const listColumns: Array<string> =
+      ModelSchema.getListsChangedEntryByEntry(Monitor);
+    expect(listColumns).toContain("labels");
+
+    const changes: ListChanges | null = ListChangesUtil.fromRequestBody({
+      body: body as never,
+      listColumns: listColumns,
+      modelName: new Monitor().singularName || "Monitor",
+    });
+
+    expect(changes).toEqual({
+      labels: { add: [label], remove: [otherLabel] },
+    });
+    expect(body["data"]).toEqual({ name: "Checkout API" });
+  });
+
+  it("quotes the refusal of a list sent both whole, in data, and entry by entry", () => {
+    expect((codeBlocks(listsSection, "text")[0] || "").trim()).toBe(
+      ListChangesUtil.getSentWholeAndByEntryMessage("labels"),
+    );
+    expect(readRepoFile("Common/Server/Services/DatabaseService.ts")).toContain(
+      "ListChangesUtil.getSentWholeAndByEntryMessage(column)",
+    );
+  });
+
+  it("links the Terraform guide's section on the lists OneUptime adds to", () => {
+    expect(listsSection).toContain(
+      "(/docs/terraform/complete-guide#labels-and-other-lists-oneuptime-adds-to)",
+    );
+    expect(englishPage("terraform/complete-guide").split("\n")).toContain(
+      "## Labels and other lists OneUptime adds to",
     );
   });
 });

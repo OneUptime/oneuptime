@@ -75,6 +75,7 @@ För att ändra en datakälla senare öppnar du den från listan. **Redigera** p
 
 Redigera en instrumentpanel, klicka på **Lägg till widget** och välj en widget i gruppen Externa datakällor: ett **Diagram**, ett **Värde**, en **Mätare** eller en **Tabell**. I dess inställningar:
 
+- **Det här projektets mätvärden (PromQL)** är den första **Datakälla**, och den som en ny widget börjar med: PromQL över de mätvärden ditt projekt skickar till OneUptime, lästa för de tjänster du får läsa, som på sidan [PromQL](/docs/telemetry/promql). Den behöver ingen egen datakälla och fungerar därför med alla planer.
 - Välj **Datakälla** och skriv **Fråga**. Redigeraren namnger frågespråket och visar ett exempel för typen.
 - På ett diagram lägger **Lägg till fråga** fler frågor på samma axlar, och **Legend (optional)** namnger varje serie utifrån dess etiketter: `{{instance}} — errors` skriver seriens etikett `instance` först.
 - På ett värde eller en mätare gör **Slå ihop** om punkterna till ett enda tal: det senaste värdet (standard), det första, medelvärdet, summan, minimum eller maximum. **Enhet** lägger till ett suffix och skalar de kända enheterna: `Bytes` läses som 1.5 MB, `ms` som 2.4 s.

@@ -22,6 +22,7 @@ import { formatPromQLLabels } from "../../../../Utils/PromQL/PromQLLabels";
 import {
   PromQLMetricRequest,
   PromQLSeriesKind,
+  PromQLStoredMetricEntry,
 } from "../../../../Utils/PromQL/PromQLMetricNames";
 import { parsePromQL } from "../../../../Utils/PromQL/PromQLParser";
 import * as PatternCache from "../../../../Utils/LinearRegExp/PatternCache";
@@ -213,14 +214,14 @@ describe("the SQL a selector's read runs", () => {
 // A source that answers from rows held here and records what it ran.
 const sourceWith: (data: {
   rows: Array<JSONObject>;
-  storedNames: Array<string>;
+  storedNames: Array<PromQLStoredMetricEntry>;
   maxRows?: number;
 }) => {
   source: PromQLMetricSeriesSource;
   statements: Array<Statement>;
 } = (data: {
   rows: Array<JSONObject>;
-  storedNames: Array<string>;
+  storedNames: Array<PromQLStoredMetricEntry>;
   maxRows?: number;
 }): { source: PromQLMetricSeriesSource; statements: Array<Statement> } => {
   const statements: Array<Statement> = [];
@@ -228,7 +229,7 @@ const sourceWith: (data: {
     projectId: PROJECT_ID,
     serviceFilter: {},
     maxRows: data.maxRows,
-    listStoredNames: async (): Promise<Array<string>> => {
+    listStoredNames: async (): Promise<Array<PromQLStoredMetricEntry>> => {
       return data.storedNames;
     },
     readRows: async (statement: Statement): Promise<Array<JSONObject>> => {
@@ -391,5 +392,112 @@ describe("reading through the engine", () => {
         endTimeMs: 600000,
       }),
     ).rejects.toThrow(PromQLError);
+  });
+});
+
+describe("an OpenTelemetry histogram by its name with the unit (issue #7715)", () => {
+  /*
+   * Every minute, 10 more requests: 5 under 0.1s, 4 more under 0.5s, 1 more
+   * under 1s. rate()'s extrapolation scales every bucket alike, so the
+   * buckets' rates stand as 25 : 45 : 50 : 50 (le 0.1, 0.5, 1, +Inf). The
+   * 0.95 quantile's rank is 0.95 x 50 = 47.5, in the bucket (0.5, 1], which
+   * holds 50 - 45 = 5 of them, 2.5 above its start: 0.5 + 0.5 x 2.5 / 5 =
+   * 0.75, as Prometheus' bucketQuantile interpolates.
+   */
+  const rows: Array<JSONObject> = [];
+
+  for (let minute: number = 1; minute <= 10; minute++) {
+    rows.push(
+      histogramRow(
+        minute * 60000,
+        [5 * minute, 4 * minute, minute, 0],
+        "/checkout",
+      ),
+    );
+  }
+
+  const quantileOf: (query: string) => Promise<Array<number>> = async (
+    query: string,
+  ): Promise<Array<number>> => {
+    const { source } = sourceWith({
+      rows,
+      storedNames: [{ name: "http.server.request.duration", unit: "s" }],
+    });
+    const result: PromQLQueryResult = await new PromQLEngine(
+      source,
+    ).instantQuery(query, 600000);
+
+    return result.resultType === PromQLResultType.Vector
+      ? result.samples.map((sample: PromQLVectorResultSample): number => {
+          return sample.value;
+        })
+      : [];
+  };
+
+  test("histogram_quantile over the _seconds_bucket series answers", async () => {
+    const values: Array<number> = await quantileOf(
+      "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m])))",
+    );
+
+    expect(values).toHaveLength(1);
+    expect(values[0]).toBeCloseTo(0.75, 10);
+  });
+
+  test("the name without the unit answers the same", async () => {
+    const values: Array<number> = await quantileOf(
+      "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))",
+    );
+
+    expect(values).toHaveLength(1);
+    expect(values[0]).toBeCloseTo(0.75, 10);
+  });
+
+  test("a pattern reads each bucket once, under the name with the unit", async () => {
+    const { source } = sourceWith({
+      rows,
+      storedNames: [{ name: "http.server.request.duration", unit: "s" }],
+    });
+    const series: Array<PromQLSeries> = await source.select({
+      metricName: undefined,
+      matchers: matchersOf(
+        '{__name__=~"http_server_request_duration.*_bucket"}',
+      ),
+      startTimeMs: 0,
+      endTimeMs: 600000,
+    });
+
+    // One series per bucket bound, never twice under two names.
+    expect(series).toHaveLength(4);
+    expect(
+      new Set(
+        series.map((item: PromQLSeries): string | undefined => {
+          return item.labels["__name__"];
+        }),
+      ),
+    ).toEqual(new Set(["http_server_request_duration_seconds_bucket"]));
+  });
+
+  test("a milliseconds histogram is not found by seconds", async () => {
+    const { source } = sourceWith({
+      rows: rows.map((row: JSONObject): JSONObject => {
+        return { ...row, name: "rpc.server.duration" };
+      }),
+      storedNames: [{ name: "rpc.server.duration", unit: "ms" }],
+    });
+    const seconds: Array<PromQLSeries> = await source.select({
+      metricName: "rpc_server_duration_seconds_bucket",
+      matchers: matchersOf("rpc_server_duration_seconds_bucket"),
+      startTimeMs: 0,
+      endTimeMs: 600000,
+    });
+    const milliseconds: Array<PromQLSeries> = await source.select({
+      metricName: "rpc_server_duration_milliseconds_bucket",
+      matchers: matchersOf("rpc_server_duration_milliseconds_bucket"),
+      startTimeMs: 0,
+      endTimeMs: 600000,
+    });
+
+    expect(seconds).toHaveLength(0);
+    expect(milliseconds).toHaveLength(4);
   });
 });

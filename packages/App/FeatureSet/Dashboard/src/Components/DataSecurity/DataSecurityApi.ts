@@ -27,6 +27,10 @@ import {
   DataStoreResourceKind,
   isDataStoreResourceKind,
 } from "Common/Types/DataSecurity/DataStoreResource";
+import {
+  MetricOutputReaders,
+  readMetricOutputReaders,
+} from "Common/Types/Metrics/MetricOutputReaders";
 import { DataSecurityResponseAction } from "Common/Types/DataSecurity/DataSecurityResponseAction";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -268,6 +272,14 @@ export default class DataSecurityApi {
           read.outputMetricName = entry["outputMetricName"];
         }
 
+        // A recording rule's: what reads its output metric, down the chain (#10085).
+        const outputReaders: MetricOutputReaders | undefined =
+          readMetricOutputReaders(entry["outputReaders"]);
+
+        if (outputReaders) {
+          read.outputReaders = outputReaders;
+        }
+
         users.push(read);
       }
 
@@ -281,7 +293,9 @@ export default class DataSecurityApi {
         : 0;
     };
 
-    return {
+    const recordingRulesHiddenOutputReaders: MetricOutputReaders | undefined =
+      readMetricOutputReaders(answer["recordingRulesHiddenOutputReaders"]);
+    const impact: DataSecurityDropMetricImpact = {
       ...(answer as unknown as DataSecurityDropMetricImpact),
       isAvailable: answer["isAvailable"] === true,
       metricsMatched:
@@ -303,6 +317,16 @@ export default class DataSecurityApi {
       slosHidden: countOf(answer["slosHidden"]),
       recordingRulesHidden: countOf(answer["recordingRulesHidden"]),
     };
+
+    // Read as the rest: never passed on as it came.
+    delete impact.recordingRulesHiddenOutputReaders;
+
+    if (recordingRulesHiddenOutputReaders) {
+      impact.recordingRulesHiddenOutputReaders =
+        recordingRulesHiddenOutputReaders;
+    }
+
+    return impact;
   }
 
   /*

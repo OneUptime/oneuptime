@@ -75,6 +75,7 @@ Om een gegevensbron later te wijzigen, open je haar vanuit de lijst. **Bewerken*
 
 Bewerk een dashboard, klik op **Widget toevoegen** en kies een widget uit de groep Externe gegevensbronnen: een **Grafiek**, een **Waarde**, een **Meter** of een **Tabel**. In de instellingen ervan:
 
+- **Metrieken van dit project (PromQL)** is de eerste **Gegevensbron**, en waarmee een nieuwe widget begint: PromQL over de metrieken die uw project naar OneUptime stuurt, gelezen voor de services die u mag lezen, zoals op de pagina [PromQL](/docs/telemetry/promql). Ze heeft geen eigen gegevensbron nodig en werkt dus in elk abonnement.
 - Kies de **Gegevensbron** en schrijf de **Query**. De editor noemt de querytaal en toont een voorbeeld voor het type.
 - Op een grafiek legt **Query toevoegen** meer query's op dezelfde assen, en geeft **Legend (optional)** elke reeks een naam op basis van haar labels: `{{instance}} — errors` zet het label `instance` van de reeks vooraan.
 - Op een waarde of een meter maakt **Samenvatten** van de punten één getal: de laatste waarde (de standaard), de eerste, het gemiddelde, de som, het minimum of het maximum. **Eenheid** voegt een achtervoegsel toe, en schaalt de bekende eenheden: `Bytes` leest als 1.5 MB, `ms` als 2.4 s.

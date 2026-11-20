@@ -46,6 +46,7 @@ import {
   passwordProject,
   standInMemberProjects,
 } from "../TestingUtils/SsoManagedProjects";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -142,6 +143,9 @@ describe("User two-factor self-service API integration", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     jest.clearAllMocks();
+
+    // Every session here has confirmed it's its person's (#10155).
+    confirmEverySession();
     mockRouter.routes.length = 0;
     api = new UserAPI();
     response = {} as ExpressResponse;

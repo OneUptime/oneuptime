@@ -473,7 +473,14 @@ describe("Terraform pages that need more care", () => {
     expect(guide.steps[1]?.markdown).not.toContain("reserves the name");
   });
 
-  test("an inventory item's list page says why Terraform does not create them, and still imports them", () => {
+  /*
+   * Since #10020 an inventory item's key and source are OneUptime's alone
+   * (ServerOwned.Always): read only in the provider, so a create sends its
+   * type and name, and OneUptime works out the key from the name. Before,
+   * the key was required and OneUptime replaced it, so the page told people
+   * to create items elsewhere.
+   */
+  test("an inventory item's list page creates one by its type and name, says OneUptime works out its key, and still imports them", () => {
     const guide: DeveloperDocsGuide = getDeveloperDocsGuide(
       DeveloperDocsPageType.Terraform,
       context({
@@ -483,12 +490,23 @@ describe("Terraform pages that need more care", () => {
         totalCount: 1,
       }),
     );
+    const create: string = guide.steps[1]?.markdown || "";
 
     expect(guide.notice).toBeUndefined();
     expect(guide.steps[1]?.title).toBe("Create an inventory item");
-    expect(guide.steps[1]?.markdown).toContain(
-      "OneUptime works out an inventory item's key from its name",
+    expect(create).toContain("OneUptime works out its key from its name.");
+    expect(create).toContain(
+      [
+        'resource "oneuptime_inventory_item" "stripe_payments_api" {',
+        '  display_name = "Stripe payments API"',
+        '  entity_type  = "external.service"',
+        '  description  = "Vendor-managed payments API. Sends no telemetry."',
+        "}",
+      ].join("\n"),
     );
+    // What only OneUptime writes is never written: the provider reads it.
+    expect(create).not.toMatch(/^\s*(entity_key|source)\s*=/m);
+    expect(create).not.toContain("add new ones in the dashboard");
     expect(guide.steps[2]?.markdown).toContain(
       "to = oneuptime_inventory_item.stripe_payments_api",
     );

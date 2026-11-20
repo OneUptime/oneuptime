@@ -89,7 +89,7 @@ En liste eller en telling tar en `query`. Et felt med en verdi matcher den verdi
 | `Includes` | En av verdiene i `value` |
 | `IsNull`, `NotNull` | Ingen verdi, eller en hvilken som helst verdi |
 
-Et felt i en post som ressursen nevner, filtreres under relasjonen: `"user": { "name": { "_type": "Search", "value": "ada" } }` finner teammedlemmene der brukerens navn inneholder «ada». Å filtrere på et felt krever tillatelse til å lese det, gjennom en relasjon som på selve ressursen: et filter på et felt du ikke har lov til å lese, avvises med en `422` som nevner feltet.
+Et felt i en post som ressursen nevner, filtreres under relasjonen: `"user": { "name": { "_type": "Search", "value": "ada" } }` finner teammedlemmene der brukerens navn inneholder «ada». Å filtrere på et felt krever tillatelse til å lese det, gjennom en relasjon som på selve ressursen: et filter på et felt du ikke har lov til å lese, avvises med en `422` som nevner feltet. Gjennom en relasjon avvises et felt som bare personen selv har lov til å lese, for eksempel en brukers tidssone eller vedkommendes varslingsmetoder og vaktlogger, for alle, både i et filter og i en sortering, fordi relasjonen kan nevne posten til hvem som helst.
 
 En ressurs med eiere - en monitor, en hendelse, en vaktpolicy og enhver annen med bruker- og teameiere - filtreres også etter hvem som eier den, under `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` finner postene som én eller flere av de personene og teamene eier. `match` er `AnyOf` med mindre du setter den: `NoneOf` finner postene som ingen av dem eier, også poster uten eiere, og `AnyOwner` og `NoOwner` finner postene med en eier eller uten, uten å nevne noen. Medlemmene i et team er ikke eiere av det teamet eier. Ett filter nevner høyst 1 000 personer og team til sammen, en ressurs uten eiere avviser det med en `400`, og å filtrere etter eiere uten tillatelse til å lese dem avvises med en `422`.
 
@@ -292,6 +292,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 ```
 
 Utelat disse feltene fra en oppdatering. De få som en person endrer, har en egen forespørsel: å bytte ut en SCIM-klienthemmelighet setter når den slutter å virke, og `POST /api/host/:id/try-collector-config-again` sender innsamlerkonfigurasjonen som mislyktes på en vert, til verten på nytt. Et felt som både du og OneUptime endrer, for eksempel `labels` for en post, der etikettregler legger til etiketter, setter du som før.
+
+En opprettelse som utelot et felt, nevner det i svarets header `X-OneUptime-Fields-Left-Out`, med feltene skilt med komma; et svar der ingenting er utelatt, har ingen slik header. CLI-en skriver feltene i en merknad, svaret fra MCP-serveren lister dem i `fieldsLeftOut`, og Terraform-provideren viser dem i en advarsel.
+
+### Legge til elementer i en liste og fjerne dem
+
+En endring kan legge til poster i en liste, eller fjerne noen, uten å sende hele listen: `addToList` og `removeFromList` nevner ID-ene som skal legges til og fjernes, liste for liste. Hvert element endringen ikke nevner, blir værende, også et som noen andre eller en etikettregel legger til i samme øyeblikk:
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+Sendt til `PUT /api/monitor/<id>` gir dette monitoren nytt navn, legger til én etikett og fjerner en annen. Utelat `data` når endringen bare legger til og fjerner elementer. Et element er postens ID, eller et objekt med dens `_id`, som i `data`, og å legge til et element listen allerede har, eller fjerne et den ikke har, endrer ingenting.
+
+Listene en endring kan nevne, er de som den fullstendige API-referansen lister under `addToList` for ressursens `PUT`-forespørsel. En endring gjort på denne måten kontrolleres slik hele listen den etterlater, ville blitt det, etter reglene ovenfor: tillatelsen din til å endre listen, at hver post den legger til, er en av prosjektets poster som du kan lese, og etikettene en tillatelse begrenset til etiketter holder på. En liste som sendes både hel, i `data`, og i `addToList` eller `removeFromList`, avvises med en `400`:
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+Terraform- og Crossplane-providerne endrer etikettene til en post på denne måten, så en etikett en regel legger til mens de kjører, blir værende: se [Etiketter og andre lister som OneUptime også legger til i](/docs/terraform/complete-guide#etiketter-og-andre-lister-som-oneuptime-også-legger-til-i).
 
 ## Tilstander og episoder
 

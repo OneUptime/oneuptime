@@ -90,7 +90,7 @@ Når tjenestene dine allerede teller forespørslene sine som målinger, eller ik
 | **God på eller under** | For et histogram: verdien en god observasjon ligger på eller under, i målingens egen enhet, for eksempel `0.3` for 300 ms i et histogram i sekunder. Bruk en av bucketgrensene dets. |
 | **Målingsfilter** | Valgfritt: seriene som teller, for eksempel `-@http.route:/health`. |
 
-Hendelsene til en teller er det den vokste med i hvert steg på 5 minutter, slik Prometheus' `increase()` leser en teller: en teller som starter på nytt, teller fra null igjen, og både kumulative tellere og deltatellere teller. Hendelsene til et histogram er observasjonene dets, og de gode er dem i bucketene på eller under verdien. Bare målingens egne punkter teller, og bare fra tjenestene til SLO-et: en gauge med samme navn teller ikke i det hele tatt.
+Hendelsene til en teller er det den vokste med i hvert steg på 5 minutter, slik Prometheus' `increase()` leser en teller: en teller som starter på nytt, teller fra null igjen, og både kumulative tellere og deltatellere teller. Hendelsene til et histogram er observasjonene dets, og de gode er dem i bucketene på eller under verdien. Bare målingens egne punkter teller, og bare fra tjenestene til SLO-et: en gauge med samme navn teller ikke i det hele tatt. En SLO på en gauge, slik hver skymåling er, sier det på siden sin, og det gjør målingsvelgeren også: mål en skymåling med en målingsmonitor og en SLO av oppetiden til den monitoren.
 
 Derfra fungerer et målings-SLO som et forespørsels-SLO, men med feilbudsjettet, forbruksratereglene og utgivelseskontrollene i hendelser. Endrer du målingen, telles hendelsene dens på nytt fra starten.
 

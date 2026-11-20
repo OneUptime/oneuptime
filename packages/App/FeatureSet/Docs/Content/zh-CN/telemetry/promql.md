@@ -50,7 +50,7 @@ flowchart TB
 sum by (job) (rate(http_requests_total[5m]))
 
 # The 95th percentile of a latency histogram
-histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
+histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m])))
 
 # The five hosts using the most memory
 topk(5, system_memory_usage)
@@ -64,15 +64,17 @@ OneUptime 以 OpenTelemetry 的方式存储指标。PromQL 按照 Prometheus 自
 
 | 在 OneUptime 中 | 在 PromQL 中 |
 | --- | --- |
-| 仪表 `system.cpu.utilization` | `system_cpu_utilization` |
-| 计数器 `http.requests` | `http_requests` 或 `http_requests_total` |
-| 直方图 `http.server.request.duration` | `http_server_request_duration_bucket`（带 `le`）、`_count` 和 `_sum` |
+| 单位为 `1` 的仪表 `system.cpu.utilization` | `system_cpu_utilization_ratio`，或 `system_cpu_utilization` |
+| 单位为 `By` 的仪表 `system.memory.usage` | `system_memory_usage_bytes`，或 `system_memory_usage` |
+| 计数器 `http.requests` | `http_requests_total`，或 `http_requests` |
+| 单位为 `s` 的直方图 `http.server.request.duration` | `http_server_request_duration_seconds_bucket`（带 `le`）、`_count` 和 `_sum`，或去掉 `_seconds` 的同名序列 |
 | 摘要 `rpc.latency` | `rpc_latency`（带 `quantile`）、`_count` 和 `_sum` |
 | 属性 `http.route` | 标签 `http_route` |
 | 资源属性 `service.name` | 标签 `resource_service_name`，以及 `job` |
 | 资源属性 `service.instance.id` | 标签 `resource_service_instance_id`，以及 `instance` |
 
 - **指标名称和标签名称中的点和连字符会变成下划线。** 要按存储时的原样指定指标或标签，请像 Prometheus 3 那样给名称加上引号：`{"http.server.request.duration", "http.route"="/checkout"}`。
+- **单位是名称的一部分**，与 Prometheus 3 和 OpenTelemetry Collector 的写法相同：`s` 加上 `_seconds`，`By` 加上 `_bytes`，`By/s` 加上 `_bytes_per_second`，`%` 加上 `_percent`；单位为 `1` 的仪表以 `_ratio` 结尾，计数器以 `_total` 结尾，而像 `{request}` 这样写在花括号里的单位什么也不加。不带单位的名称同样能找到指标，**添加指标名称** 会列出带单位的每个指标。
 - **Delta 计数器会从查询时间范围的起点开始累加**，因此 `rate()` 和 `increase()` 会像读取其他任何计数器一样读取它们。
 - **指数直方图** 有 `_count` 和 `_sum`，但没有桶。
 
@@ -144,6 +146,7 @@ Prometheus 的原生直方图函数（例如 `histogram_count()`）不可用：O
 | 求值的最长时间 | 30 秒 |
 | 选择器回溯查找序列最新样本的时长 | 5 分钟 |
 | 子查询未指定步长时的默认步长 | 1 分钟 |
+| 一个项目每分钟可以发送的查询 | 1,200 |
 
 ## 故障排除
 
@@ -159,10 +162,15 @@ Prometheus 的原生直方图函数（例如 `histogram_count()`）不可用：O
 查询请求的数据超过了一次读取所能容纳的量。请添加标签匹配器、缩短时间范围，或使用更大的步长。
 :::
 
+:::details "This project sent more queries this minute than OneUptime answers."
+该项目的仪表板、Grafana 和脚本在这一分钟内总共向 API 发送了超过 1,200 个查询。面板会在下一分钟重新加载；请降低仪表板的刷新频率，以免超出上限。
+:::
+
 ## 后续步骤
 
 :::cards
 - [指标浏览器](/docs/telemetry/metrics-explorer): 无需编写查询即可为指标绘制图表。
-- [指标监控](/docs/monitor/metrics-monitor): 当指标越过阈值时发出警报。
-- [外部数据源](/docs/dashboards/data-sources): 在仪表板上为外部 Prometheus 绘制图表。
+- [指标监控](/docs/monitor/metrics-monitor): 针对指标或 PromQL 表达式发出警报，每个序列一个事件。
+- [外部数据源](/docs/dashboards/data-sources): 在仪表板上为 PromQL 绘制图表，可以针对此项目的指标或外部 Prometheus。
+- [LogQL](/docs/telemetry/logql): 用 LogQL 查询日志，也可以通过 Grafana 的 Loki 数据源查询。
 :::
