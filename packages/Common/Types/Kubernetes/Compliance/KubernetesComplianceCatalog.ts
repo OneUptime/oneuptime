@@ -1,6 +1,15 @@
 import { CIS_SCORED_CONTROLS } from "./CisKubernetesBenchmark";
 import { KubernetesComplianceFramework } from "./KubernetesComplianceFramework";
 import {
+  NodeBenchmarkControlInfo,
+  findNodeBenchmarkControlInfo,
+} from "./KubernetesNodeBenchmarkCatalog";
+import {
+  NSA_CISA_CONTROLS,
+  NSA_CISA_SECTION_WORDS,
+  NsaCisaControl,
+} from "./NsaCisaHardening";
+import {
   BASELINE_CONTROLS,
   PodSecurityControl,
   RESTRICTED_ONLY_CONTROLS,
@@ -71,7 +80,22 @@ export const KUBERNETES_COMPLIANCE_FRAMEWORK_INFO: Readonly<
       "The policy controls the Kubernetes API shows. Node and control plane controls are listed, not scored.",
     ),
   },
+  [KubernetesComplianceFramework.NsaCisaHardening]: {
+    framework: KubernetesComplianceFramework.NsaCisaHardening,
+    fullName: translationKey("NSA/CISA Kubernetes Hardening Guide v1.2"),
+    scope: translationKey(
+      "The guide's recommendations the pods, RBAC and NetworkPolicies answer, and the nodes' once kube-bench reads them. The rest is listed, not scored.",
+    ),
+  },
 };
+
+/*
+ * The CIS benchmark's scope once kube-bench reads the nodes (#9873): its
+ * node and control plane controls are scored with the API's.
+ */
+export const CIS_SCOPE_WITH_NODE_BENCHMARK: string = translationKey(
+  "The policy controls the Kubernetes API shows, and the node and control plane controls kube-bench reads on the nodes.",
+);
 
 /*
  * ---------------------------------------------------------------------------
@@ -90,6 +114,18 @@ export interface KubernetesComplianceControlInfo {
   description: string;
   // How to fix it, in a sentence.
   fix: string;
+  /*
+   * What the fix's sentence says to set or run, drawn as code in every
+   * language: a node control's `--profiling=false` (#9873).
+   */
+  fixSlots?: Record<string, string> | undefined;
+  /*
+   * The section of its document it is from, as a short label: the NSA/CISA
+   * guide's, whose controls have no numbers (#9875).
+   */
+  section?: string | undefined;
+  // A CIS node or control plane control, read on the nodes by kube-bench (#9873).
+  isNodeControl?: boolean | undefined;
 }
 
 interface ControlWords {
@@ -550,8 +586,27 @@ export const KUBERNETES_COMPLIANCE_CONTROLS: ReadonlyArray<KubernetesComplianceC
         );
       },
     ),
+    ...NSA_CISA_CONTROLS.map(
+      (control: NsaCisaControl): KubernetesComplianceControlInfo => {
+        return {
+          ...controlInfo(
+            KubernetesComplianceFramework.NsaCisaHardening,
+            control.requirement,
+            control,
+            false,
+          ),
+          section: NSA_CISA_SECTION_WORDS[control.section],
+        };
+      },
+    ),
   ];
 
+/*
+ * The controls a framework is always scored on, in the standard's, the
+ * benchmark's or the guide's order. The CIS benchmark's node and control
+ * plane controls are not among them: which are scored is the benchmark
+ * kube-bench ran on the cluster's (getNodeBenchmarkControl).
+ */
 export function getKubernetesComplianceControls(
   framework: KubernetesComplianceFramework,
 ): Array<KubernetesComplianceControlInfo> {
@@ -562,20 +617,52 @@ export function getKubernetesComplianceControls(
   );
 }
 
+// A CIS node or control plane control as every other control reads (#9873).
+export function toNodeControlInfo(
+  info: NodeBenchmarkControlInfo,
+): KubernetesComplianceControlInfo {
+  return {
+    framework: KubernetesComplianceFramework.CisKubernetes,
+    requirement: info.requirement,
+    isNumbered: true,
+    title: info.title,
+    description: info.description,
+    fix: info.fix.template,
+    fixSlots: info.fix.slots,
+    isNodeControl: true,
+  };
+}
+
+/*
+ * A control's words: the catalog's, or for a CIS requirement a benchmark
+ * kube-bench runs numbers - "4.2.1", "EKS 3.2.1" - the node control's.
+ */
 export function findKubernetesComplianceControl(
   framework: KubernetesComplianceFramework,
   requirement: string,
 ): KubernetesComplianceControlInfo | undefined {
-  return KUBERNETES_COMPLIANCE_CONTROLS.find(
-    (control: KubernetesComplianceControlInfo): boolean => {
-      return (
-        control.framework === framework && control.requirement === requirement
-      );
-    },
-  );
+  const control: KubernetesComplianceControlInfo | undefined =
+    KUBERNETES_COMPLIANCE_CONTROLS.find(
+      (each: KubernetesComplianceControlInfo): boolean => {
+        return each.framework === framework && each.requirement === requirement;
+      },
+    );
+
+  if (control || framework !== KubernetesComplianceFramework.CisKubernetes) {
+    return control;
+  }
+
+  const node: NodeBenchmarkControlInfo | null =
+    findNodeBenchmarkControlInfo(requirement);
+
+  return node ? toNodeControlInfo(node) : undefined;
 }
 
-// Whether a requirement is a control the framework is scored on: what a setting may name.
+/*
+ * Whether a requirement is a control the framework is scored on: what a
+ * setting may name. A CIS node control may be named whether or not
+ * kube-bench has scored it yet, so it can be turned off before it runs.
+ */
 export function isKubernetesComplianceRequirement(
   framework: KubernetesComplianceFramework,
   requirement: string,

@@ -1,4 +1,5 @@
 import { getProjectSignInMethodsApiUrl } from "../Utils/ApiPaths";
+import { rememberSsoProvider } from "../Utils/RememberedSsoProvider";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -51,6 +52,10 @@ import { Params, useParams } from "react-router-dom";
  * A visitor already signed in sees it too, never sent on to the Dashboard:
  * an admin opens the link to try a provider before requiring SSO, and
  * someone whose project requires SSO signs in through it again.
+ *
+ * A project provider picked here is remembered on this device (#9986,
+ * Utils/RememberedSsoProvider), so "Sign in with SSO" offers it first next
+ * time: nobody has to keep the link.
  */
 
 // The test ids of the page's own parts, for its tests and the browser suite.
@@ -149,6 +154,13 @@ const LoginWithProjectSsoPage: FunctionComponent = (): ReactElement => {
           if (!route) {
             return;
           }
+
+          /*
+           * Remembered on this device, so "Sign in with SSO" offers it first
+           * next time and the link need not be kept (#9986): a project's own
+           * provider only, by its kind and ids.
+           */
+          rememberSsoProvider({ provider: provider, projectId: projectId });
 
           setIsLeaving(true);
           Navigation.navigate(

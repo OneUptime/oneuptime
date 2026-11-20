@@ -47,11 +47,12 @@ Varje användare, värd och adress som ett ärende eller en händelse nämner sl
 | En kort eller fullständig form av en posts namn, som `web-1` och `web-1.acme.internal` | Den posten | Möjlig |
 | En offentlig IP-adress som bara en värd eller nätverksenhet har, eller som bara en molnresurs svarar på | Den posten | Exakt |
 | En privat IP-adress, eller en som flera poster har | Varje post som har den | Möjlig |
-| En molnresurs eget ID: ett AWS-ARN, ett Azure-resurs-ID eller ett Google Cloud-resursnamn | Den molnresursen | Exakt |
+| En molnresurs eget ID: ett AWS-ARN eller ett Google Cloud-resursnamn som det skrivs, eller ett Azure-resurs-ID med stora eller små bokstäver | Den molnresursen | Exakt |
 | En värd, en offentlig IP-adress eller värden för en URL som en monitor kontrollerar | Den monitorn | Exakt |
 | En privat IP-adress som en monitor kontrollerar | Den monitorn | Möjlig |
 | En medlems e-postadress | Den medlemmen | Exakt |
 | Posten som en loggrad skickades under, för händelserna som läses från dina loggar | Den värden, det klustret, det OpenStack-molnet, den molnresursen, den serverlösa funktionen eller den tjänsten | Exakt |
+| Molnresursen eller den serverlösa funktionen som en loggrad kom från, efter dess `cloud.resource_id` eller dess `faas.name`, för händelserna som läses från dina loggar | Den molnresursen eller den serverlösa funktionen | Exakt |
 | Ett rent användarnamn, en filhash eller en process | Ingenting: ingen post är nycklad efter dem | - |
 
 - En möjlig matchning visar **Möjlig matchning** bredvid namnet och säger varför. Den räknas aldrig på postens sida, och en incident som ärendet deklarerar kopplas aldrig till den.

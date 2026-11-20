@@ -13,11 +13,17 @@ import {
   SECURITY_CONNECTION_MAX_ADDRESSES,
   SECURITY_CONNECTION_MAX_ENTITIES,
   SECURITY_CONNECTION_MAX_WINDOW_IN_HOURS,
+  SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+  SECURITY_LOG_FUNCTION_ATTRIBUTE,
+  SECURITY_LOG_FUNCTION_NAME_MAX_LENGTH,
+  SECURITY_LOG_OWNERS_MAX,
+  SECURITY_LOG_OWNER_KINDS,
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
   SecurityConnectionCertainty,
   SecurityConnectionKind,
   SecurityConnectionReason,
+  SecurityLogOwner,
 } from "../../Types/SecurityCase/SecurityConnection";
 import {
   SecurityEntity,
@@ -702,20 +708,109 @@ export function isCloudResourceIdLike(
   return false;
 }
 
+const AZURE_RESOURCE_ID_PREFIX: string = "/subscriptions/";
+
 /*
- * Whether a value a case names is a cloud resource's own ID: compared
- * folded, it is that resource and nothing else, however the value was
- * typed - an ID is never anything's short form.
+ * Whether a cloud resource's ID is compared without regard to case
+ * (#10034), as its own cloud documents it:
+ *
+ *   - an Azure resource ID is: "Resource and resource group names are
+ *     case-insensitive", and Azure's APIs may return a name in another case
+ *     than it was written in - "Always perform a case-insensitive
+ *     comparison of names" (Naming rules and restrictions for Azure
+ *     resources). Its writers do: the Activity Log's export writes an ID in
+ *     capitals, the portal and Resource Manager in mixed case, Microsoft
+ *     Defender XDR as it received it;
+ *   - an AWS ARN is not: IAM matches the resource in an ARN as written ("In
+ *     the Resource element, the IAM user name is case sensitive"), and two
+ *     resources may differ by case alone, a DynamoDB table "Orders" beside
+ *     "orders";
+ *   - nor is a Google Cloud full resource name: its collection names are
+ *     camelCase (AIP-122), and some resources differ by case alone, a
+ *     BigQuery dataset "mydataset" beside "MyDataset".
+ */
+export function isCaseInsensitiveResourceId(
+  value: string | undefined | null,
+): boolean {
+  return getAzureResourceIdKey(value) !== null;
+}
+
+/*
+ * An Azure resource ID as OneUptime keeps and compares it: trimmed, without
+ * a trailing slash (Resource Manager's own IDs have none) and in lower case,
+ * so every writer's spelling of one resource is one value. Null for
+ * anything that is no resource ID under a subscription.
+ */
+export function getAzureResourceIdKey(
+  value: string | undefined | null,
+): string | null {
+  const text: string = (value || "").trim();
+
+  if (
+    text.slice(0, AZURE_RESOURCE_ID_PREFIX.length).toLowerCase() !==
+    AZURE_RESOURCE_ID_PREFIX
+  ) {
+    return null;
+  }
+
+  let end: number = text.length;
+
+  // Each trailing slash, read in a loop: an ID is outside text of any length.
+  while (
+    end > AZURE_RESOURCE_ID_PREFIX.length &&
+    text.charCodeAt(end - 1) === 47
+  ) {
+    end--;
+  }
+
+  const key: string = text.slice(0, end).toLowerCase();
+
+  return isCloudResourceIdLike(key) ? key : null;
+}
+
+/*
+ * A cloud resource's ID as OneUptime keeps and compares it: an Azure
+ * resource ID by its key (getAzureResourceIdKey); an ARN or a Google Cloud
+ * full resource name trimmed, as written. Anything else trimmed: it is not
+ * an ID, and is compared as what it is.
+ */
+export function getResourceIdMatchKey(
+  value: string | undefined | null,
+): string {
+  return getAzureResourceIdKey(value) ?? (value || "").trim();
+}
+
+/*
+ * The one key two values are the same by, for a lookup's de-duplication and
+ * its matches: a cloud resource's ID by its own rule (getResourceIdMatchKey,
+ * so two ARNs that differ by case alone stay two), anything else folded.
+ */
+export function getConnectionValueKey(
+  value: string | undefined | null,
+): string {
+  const text: string = (value || "").trim();
+
+  return isCloudResourceIdLike(text)
+    ? getResourceIdMatchKey(text)
+    : foldConnectionValue(text);
+}
+
+/*
+ * Whether a value a case names is a cloud resource's own ID: compared by
+ * its cloud's rule (#10034) - an Azure resource ID whatever its case, an
+ * ARN or a Google Cloud resource name exactly as written - it is that
+ * resource and nothing else. An ID is never anything's short form, so an
+ * ID in another account, a longer one or a part of one is no match.
  */
 export function matchResourceId(data: {
   entityValue: string;
   providerResourceId: string | undefined | null;
 }): SecurityConnectionVerdict | null {
-  const entity: string = foldConnectionValue(data.entityValue);
+  const entity: string = getResourceIdMatchKey(data.entityValue);
 
   if (
     !isCloudResourceIdLike(entity) ||
-    entity !== foldConnectionValue(data.providerResourceId)
+    entity !== getResourceIdMatchKey(data.providerResourceId)
   ) {
     return null;
   }
@@ -724,6 +819,44 @@ export function matchResourceId(data: {
     certainty: SecurityConnectionCertainty.Exact,
     reason: SecurityConnectionReason.ResourceId,
   };
+}
+
+/*
+ * The cloud resource IDs among an event's observables as they are kept
+ * (#10034): an Azure resource ID by its key (getResourceIdMatchKey), each
+ * once - whichever source wrote it, in whatever case - so a record's search
+ * for its key finds it through the column's bloom index. Every other value
+ * as it is, in its place.
+ */
+export function foldResourceIdObservables(
+  observables: ReadonlyArray<string> | undefined | null,
+): Array<string> {
+  if (!Array.isArray(observables)) {
+    return [];
+  }
+
+  const kept: Array<string> = [];
+  const keys: Set<string> = new Set();
+
+  for (const observable of observables) {
+    if (typeof observable !== "string") {
+      continue;
+    }
+
+    const key: string | null = getAzureResourceIdKey(observable);
+
+    if (key === null) {
+      kept.push(observable);
+      continue;
+    }
+
+    if (!keys.has(key)) {
+      keys.add(key);
+      kept.push(key);
+    }
+  }
+
+  return kept;
 }
 
 /*
@@ -969,7 +1102,12 @@ export interface SecurityConnectionLookups {
   urlHosts: Array<string>;
   // ...and the URL each came from, by its host.
   urlHostEntities: Map<string, SecurityEntity>;
-  // Cloud resource IDs - ARNs, Azure resource IDs, Google Cloud resource names - folded.
+  /*
+   * Cloud resource IDs - ARNs, Azure resource IDs, Google Cloud resource
+   * names - by their keys (getResourceIdMatchKey): an Azure ID folded, an
+   * ARN or a Google Cloud name as written, so two that differ by case alone
+   * are both looked up.
+   */
   resourceIds: Array<string>;
   // The entities looked up at all: what "OneUptime does not know it" is said of.
   lookedUp: Array<SecurityEntity>;
@@ -1019,15 +1157,23 @@ export function getSecurityConnectionLookups(
 
     const value: string = entity.value.trim();
     const folded: string = value.toLowerCase();
+    /*
+     * What makes two values one: folded, but a cloud resource's ID by its
+     * own rule (#10034) - "table/Orders" and "table/orders" are two
+     * DynamoDB tables, and both are looked up.
+     */
+    const seenKey: string = isCloudResourceIdLike(value)
+      ? `id:${getResourceIdMatchKey(value)}`
+      : folded;
 
-    if (!value || seen.has(folded)) {
+    if (!value || seen.has(seenKey)) {
       continue;
     }
 
     const address: string | null = canonicalAddress(value);
 
     if (address) {
-      seen.add(folded);
+      seen.add(seenKey);
 
       if (
         getSecurityAddressScope(address) !== SecurityAddressScope.Local &&
@@ -1041,7 +1187,7 @@ export function getSecurityConnectionLookups(
     }
 
     if (isUrlValue({ type: entity.type, value })) {
-      seen.add(folded);
+      seen.add(seenKey);
 
       const host: string | null = getUrlHost(value);
       const hostAddress: string | null = host ? canonicalAddress(host) : null;
@@ -1068,7 +1214,7 @@ export function getSecurityConnectionLookups(
     }
 
     if (entity.type === SecurityEntityType.User || isEmailLike(value)) {
-      seen.add(folded);
+      seen.add(seenKey);
 
       if (isEmailLike(value)) {
         emails.add(folded);
@@ -1079,10 +1225,10 @@ export function getSecurityConnectionLookups(
     }
 
     if (isCloudResourceIdLike(value)) {
-      seen.add(folded);
+      seen.add(seenKey);
 
       if (resourceIds.size < SECURITY_CONNECTION_MAX_ADDRESSES) {
-        resourceIds.add(folded);
+        resourceIds.add(getResourceIdMatchKey(value));
         lookedUp.push({ type: entity.type, value });
       }
 
@@ -1090,7 +1236,7 @@ export function getSecurityConnectionLookups(
     }
 
     if (HOST_NAME_ENTITY_TYPES.includes(entity.type) && isHostNameLike(value)) {
-      seen.add(folded);
+      seen.add(seenKey);
       hostNames.add(folded);
       hostNameEntities.set(folded, { type: entity.type, value });
       queryValues.add(folded);
@@ -1512,6 +1658,135 @@ export function readSecurityEventLogResources(
   return resources;
 }
 
+// An own text value of an object, trimmed: "" when it is none, or longer than `limit` - never cut.
+function readOwnText(
+  object: JSONObject | undefined | null,
+  key: string,
+  limit: number,
+): string {
+  if (!object || typeof object !== "object") {
+    return "";
+  }
+
+  const value: unknown = Object.prototype.hasOwnProperty.call(object, key)
+    ? object[key]
+    : undefined;
+  const text: string = typeof value === "string" ? value.trim() : "";
+
+  return text.length <= limit ? text : "";
+}
+
+/*
+ * The records whose own log line or span an event was read from, by what
+ * the event carries of them (#10033, Types/SecurityCase/SecurityConnection
+ * SecurityLogOwner): the cloud resource its stream stamped the line with,
+ * and the serverless function the line or span was of. Kept whole: a value
+ * cut to fit would name another record, so one longer than any is left out.
+ */
+export function readSecurityEventLogOwners(
+  attributes: JSONObject | undefined | null,
+): Array<SecurityLogOwner> {
+  const owners: Array<SecurityLogOwner> = [];
+  const cloudResourceId: string = readOwnText(
+    attributes,
+    SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+    MAX_RESOURCE_ID_LENGTH,
+  );
+  const functionName: string = readOwnText(
+    attributes,
+    SECURITY_LOG_FUNCTION_ATTRIBUTE,
+    SECURITY_LOG_FUNCTION_NAME_MAX_LENGTH,
+  );
+
+  if (cloudResourceId) {
+    owners.push({
+      kind: SecurityConnectionKind.CloudResource,
+      value: cloudResourceId,
+    });
+  }
+
+  if (functionName) {
+    owners.push({
+      kind: SecurityConnectionKind.ServerlessFunction,
+      value: functionName,
+    });
+  }
+
+  return owners;
+}
+
+/*
+ * The owners a request names, read from untrusted JSON: each of a kind an
+ * event names that way, a value of the length one can be, each once (a
+ * cloud resource's ID by its cloud's rule), at most SECURITY_LOG_OWNERS_MAX.
+ */
+export function readSecurityLogOwners(value: unknown): Array<SecurityLogOwner> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const owners: Array<SecurityLogOwner> = [];
+  const seen: Set<string> = new Set();
+
+  for (const item of value) {
+    if (owners.length >= SECURITY_LOG_OWNERS_MAX) {
+      break;
+    }
+
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+
+    const kind: unknown = (item as JSONObject)["kind"];
+    const raw: unknown = (item as JSONObject)["value"];
+    const text: string = typeof raw === "string" ? raw.trim() : "";
+    const limit: number =
+      kind === SecurityConnectionKind.CloudResource
+        ? MAX_RESOURCE_ID_LENGTH
+        : SECURITY_LOG_FUNCTION_NAME_MAX_LENGTH;
+
+    if (
+      typeof kind !== "string" ||
+      !SECURITY_LOG_OWNER_KINDS.includes(kind as SecurityConnectionKind) ||
+      !text ||
+      text.length > limit
+    ) {
+      continue;
+    }
+
+    const key: string = `${kind}|${
+      kind === SecurityConnectionKind.CloudResource
+        ? getResourceIdMatchKey(text)
+        : text
+    }`;
+
+    if (!seen.has(key)) {
+      seen.add(key);
+      owners.push({ kind: kind as SecurityConnectionKind, value: text });
+    }
+  }
+
+  return owners;
+}
+
+/*
+ * Whether the ID a log line was stamped with is this cloud resource's
+ * (#10033): by its cloud's rule - an Azure resource ID whatever its case,
+ * an ARN, a Google Cloud name or a readable stand-in exactly as the row
+ * keeps it, which is what its stream stamps (#10034).
+ */
+export function isLogOfCloudResource(data: {
+  stampedId: string;
+  providerResourceId: string | undefined | null;
+}): boolean {
+  const stamped: string = getResourceIdMatchKey(data.stampedId);
+
+  return (
+    stamped.length > 0 &&
+    stamped === getResourceIdMatchKey(data.providerResourceId)
+  );
+}
+
 // ---------- The way back: what a record is searched for by ----------
 
 /*
@@ -1526,8 +1801,9 @@ export function readSecurityEventLogResources(
  * (#9779): an ARN or a Google Cloud resource name is written in the case
  * its resource was named in - a Lambda function "Checkout" - and an event
  * names it so, so only the ID as written finds it. getObservableSearchValues
- * adds its lower and upper case, which is how an Azure resource ID, case
- * insensitive, is named (CloudAuditResources writes it in lower case).
+ * searches an Azure resource ID, case-insensitive, by its key - the lower
+ * case every event keeps it in (#10034, foldResourceIdObservables) - and
+ * the casings older events kept it in.
  */
 export function getRecordSecurityValues(data: {
   names: ReadonlyArray<string | undefined | null>;
@@ -1575,8 +1851,11 @@ export function getRecordSecurityValues(data: {
  * An ARN and a Google Cloud resource name are searched for as written only
  * (#9779): each cloud writes them in the case the resource was named in,
  * and two resources may differ by case alone - a DynamoDB table "Orders"
- * beside "orders" - so another casing names another resource. An Azure
- * resource ID is case-insensitive, and keeps its casings.
+ * beside "orders" - so another casing names another resource
+ * (isCaseInsensitiveResourceId). An Azure resource ID is case-insensitive:
+ * it is searched for by its key first - the lower case every event keeps
+ * it in (#10034), whoever wrote it - then as written and in capitals, the
+ * spellings events stored before kept it in.
  */
 export function getObservableSearchValues(
   values: ReadonlyArray<string>,
@@ -1592,13 +1871,15 @@ export function getObservableSearchValues(
       continue;
     }
 
-    const isCaseSensitiveId: boolean =
-      isCloudResourceIdLike(trimmed) &&
-      !trimmed.toLowerCase().startsWith("/subscriptions/");
+    const isResourceId: boolean = isCloudResourceIdLike(trimmed);
+    const isCaseInsensitiveId: boolean =
+      isResourceId && isCaseInsensitiveResourceId(trimmed);
 
-    for (const spelling of isCaseSensitiveId
-      ? [trimmed]
-      : [trimmed, trimmed.toLowerCase(), trimmed.toUpperCase()]) {
+    for (const spelling of isCaseInsensitiveId
+      ? [getResourceIdMatchKey(trimmed), trimmed, trimmed.toUpperCase()]
+      : isResourceId
+        ? [trimmed]
+        : [trimmed, trimmed.toLowerCase(), trimmed.toUpperCase()]) {
       if (!seen.has(spelling) && spellings.length < limit) {
         seen.add(spelling);
         spellings.push(spelling);
@@ -1607,4 +1888,22 @@ export function getObservableSearchValues(
   }
 
   return spellings;
+}
+
+/*
+ * The values the attribute on a record's own events is searched for
+ * (ResourceSecurityIdentity.logAttribute): its value as the record keeps it
+ * - a device's id, a container host's name, a function's faas.name, matched
+ * exactly as its own pages read them. A cloud resource's Azure resource ID
+ * (SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE) in the spellings its events keep
+ * it in (#10034): its key first, then as written and in capitals.
+ */
+export function getLogAttributeSearchValues(attribute: {
+  key: string;
+  value: string;
+}): Array<string> {
+  return attribute.key === SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE &&
+    isCaseInsensitiveResourceId(attribute.value)
+    ? getObservableSearchValues([attribute.value])
+    : [attribute.value];
 }

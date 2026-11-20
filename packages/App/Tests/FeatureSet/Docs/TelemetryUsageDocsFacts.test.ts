@@ -12,8 +12,24 @@ import { navTitle, toLatinDigits } from "./DocsTranslationChecks";
 import DocsNav from "../../../FeatureSet/Docs/Utils/Nav";
 import {
   TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES,
+  TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES,
   TELEMETRY_USAGE_STAGING_LOOKBACK_IN_DAYS,
 } from "Common/Server/Services/TelemetryUsageBillingService";
+import Project from "Common/Models/DatabaseModels/Project";
+import TelemetryUsageMetricType from "Common/Types/Telemetry/TelemetryUsageMetricType";
+import TelemetryUsageMetricTypeUtil, {
+  TELEMETRY_USAGE_METRIC_INTERVAL_MINUTES,
+  TELEMETRY_USAGE_METRIC_NAME_PREFIX,
+  TELEMETRY_USAGE_METRIC_PROJECT_ID_ATTRIBUTE,
+  TELEMETRY_USAGE_METRIC_RESOURCE_ID_ATTRIBUTE,
+  TELEMETRY_USAGE_METRIC_RESOURCE_NAME_ATTRIBUTE,
+  TELEMETRY_USAGE_METRIC_RESOURCE_TYPE_ATTRIBUTE,
+  TELEMETRY_USAGE_METRIC_SIGNAL_ATTRIBUTE,
+} from "Common/Utils/Telemetry/TelemetryUsageMetricType";
+import {
+  LogDataIngestMeteredPlan,
+  TracesDataIngestMetredPlan,
+} from "Common/Server/Types/Billing/MeteredPlan/AllMeteredPlans";
 import {
   TELEMETRY_USAGE_DEFAULT_RANGE_IN_DAYS,
   TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS,
@@ -26,7 +42,11 @@ import {
   TELEMETRY_USAGE_RANGE_OPTIONS_IN_DAYS,
   TELEMETRY_USAGE_SIGNALS,
 } from "Common/Types/Telemetry/TelemetryUsage";
-import { TELEMETRY_INGESTION_BUDGET_SIGNALS } from "Common/Types/Telemetry/TelemetryIngestionBudget";
+import {
+  getTelemetryIngestionBudgetSignalSlug,
+  TELEMETRY_INGESTION_BUDGET_SIGNALS,
+  TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS,
+} from "Common/Types/Telemetry/TelemetryIngestionBudget";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import { EVERY_DAY } from "Common/Utils/CronTime";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
@@ -60,6 +80,13 @@ const OVERVIEW: string = readCommonSource(
 );
 const USAGE_PAGE: string = readDashboardSource(
   "Pages/Settings/UsageHistory.tsx",
+);
+// Usage as metrics (#6355): the switch, and the sweep that writes them.
+const USAGE_METRICS_SWITCH: string = readDashboardSource(
+  "Components/TelemetryUsage/TelemetryUsageMetricsSwitch.tsx",
+);
+const USAGE_METRICS_SWEEP: string = readCommonSource(
+  "Server/Utils/Telemetry/TelemetryUsageMetrics.ts",
 );
 
 interface NavLink {
@@ -374,7 +401,7 @@ describe("exceptions, apart from traces", () => {
       "sends: logs, metrics, traces, exceptions, profiles, session replays and security events.",
     );
     expect(ENGLISH).toContain(
-      "- **Exceptions are shown on their own.** The exceptions recorded from spans and logs have a total, a column and a part of the chart of their own, and **Traces** counts spans.",
+      "- **Exceptions are shown on their own.** The exceptions recorded from spans and logs have a total, a column and a part of the chart of their own, **Traces** counts spans and **Logs** counts log records.",
     );
     // The overview draws a tile, a column and a part of the chart per signal.
     expect(OVERVIEW).toContain("TELEMETRY_USAGE_SIGNALS.filter(");
@@ -414,17 +441,33 @@ describe("exceptions, apart from traces", () => {
     );
   });
 
-  test("have no row of their own: the traces row says how much of it was exceptions", () => {
+  test("have no row of their own: the traces or logs row says how much of it was exceptions", () => {
     expect(ENGLISH).toContain(
-      "They have no row of their own: each traces row says how much of it was exceptions.",
+      "They have no row of their own: each traces or logs row says how much of it was exceptions.",
     );
     expect(BILLING_SERVICE).toContain("exceptionDataIngestedInGB:");
     expect(READS).toContain('AS "exceptionDataIngestedInGB"');
   });
 
-  test("are billed inside Traces, at the traces price, from all the row holds", () => {
+  test("are billed with what they were found in, at the same price, from all the row holds (issue #6590)", () => {
     expect(ENGLISH).toContain(
-      "- **Exceptions are billed as part of Traces.** On OneUptime Cloud, traces are billed for their spans and their exceptions together, at the traces price, as they always were. Showing exceptions apart changes nothing you are billed, and they are never charged twice.",
+      "- **Exceptions are billed with what they were found in.** On OneUptime Cloud, an exception found in a span is billed with **Traces**, and one found in a log record with **Logs**. Logs and traces cost the same per GB, so each exception is billed once, at the same price, and a project that sends only logs is never billed for traces. A day counted before exceptions found in logs moved to **Logs** keeps them in **Traces**.",
+    );
+
+    // The same price per GB, and the same fewest days billed, is what keeps it true.
+    expect(LogDataIngestMeteredPlan.unitCostInUSD).toBe(
+      TracesDataIngestMetredPlan.unitCostInUSD,
+    );
+    expect(LogDataIngestMeteredPlan.minimumBillableRetentionInDays).toBe(
+      TracesDataIngestMetredPlan.minimumBillableRetentionInDays,
+    );
+
+    // Each product reads the exception table by the source it bills.
+    expect(BILLING_SERVICE).toContain(
+      "attributeFilter: getBilledExceptionsFilter(ProductType.Logs),",
+    );
+    expect(BILLING_SERVICE).toContain(
+      "attributeFilter: getBilledExceptionsFilter(ProductType.Traces),",
     );
 
     // The cost is the price of everything the row holds; the part is never priced.
@@ -433,7 +476,7 @@ describe("exceptions, apart from traces", () => {
     );
     expect(METERED_PLAN).not.toContain("exceptionDataIngestedInGB");
     expect(WORDS).toContain(
-      '"Exceptions recorded from spans and logs. They are billed as part of Traces."',
+      '"Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs."',
     );
   });
 
@@ -461,19 +504,32 @@ describe("exceptions, apart from traces", () => {
     );
   });
 
-  test("a Traces row of the history says how much of it was exceptions, under Data Ingested (in GB)", () => {
+  test("a Traces or Logs row of the history says how much of it was exceptions, under Data Ingested (in GB)", () => {
     expect(USAGE_PAGE).toContain('title: "Data Ingested (in GB)"');
     expect(USAGE_PAGE).toContain("exceptionDataIngestedInGB: true,");
     expect(USAGE_PAGE).toContain("formatTelemetryUsageExceptionsPart(");
+    expect(USAGE_PAGE).toContain(
+      'isExceptionBillingProductType(item["productType"])',
+    );
     expect(ENGLISH).toContain(
-      "A **Traces** row holds its spans and exceptions together, as traces are billed, and says under **Data Ingested (in GB)** how much of it was exceptions.",
+      "A **Traces** row holds its spans and the exceptions found in them, and a **Logs** row its log records and the exceptions found in them, as they are billed. Each says under **Data Ingested (in GB)** how much of it was exceptions.",
     );
   });
 
-  test("the API answers them under Exceptions, apart from Traces", () => {
+  test("say why Logs cost more and Traces less from the day the exceptions found in logs moved (issue #6590)", () => {
     expect(ENGLISH).toContain(
-      "Exceptions are under `Exceptions`, apart from `Traces`, and a day counted before exceptions were shown apart has them inside `Traces`.",
+      ":::details Logs cost more and Traces less from one day on",
     );
+    expect(ENGLISH).toContain(
+      "Exceptions found in log records used to be billed with **Traces**. From the first day counted after the change, they are billed with **Logs**, the product that found them. Logs and traces cost the same per GB, so together the two cost what they did.",
+    );
+  });
+
+  test("the API answers them under Exceptions, apart from Traces and Logs", () => {
+    expect(ENGLISH).toContain(
+      "Exceptions are under `Exceptions`, apart from `Traces` and `Logs`, and a day counted before exceptions were shown apart has them inside `Traces`.",
+    );
+    expect(`\`${ProductType.Logs}\``).toBe("`Logs`");
     expect(`\`${TELEMETRY_USAGE_EXCEPTIONS_SIGNAL}\``).toBe("`Exceptions`");
     expect(`\`${ProductType.Traces}\``).toBe("`Traces`");
   });
@@ -485,6 +541,7 @@ describe("exceptions, apart from traces", () => {
 
       for (const label of [
         "Traces",
+        "Logs",
         "Exceptions",
         "Data Ingested (in GB)",
         "Telemetry Usage History",
@@ -513,6 +570,140 @@ describe("exceptions, apart from traces", () => {
           return line.startsWith(":::details ");
         }).length,
       );
+    },
+  );
+});
+
+/*
+ * Issue #6355: a project can publish its usage as a metric, written every
+ * 5 minutes from the counts ingest already makes. Each thing the page says
+ * about it is held to the code that makes it so.
+ */
+describe("usage as a metric", () => {
+  test("is a switch under the Usage page's More settings, off until a Project Owner or Project Admin switches it on", () => {
+    const fold: number = USAGE_PAGE.indexOf("<AdvancedPageSection");
+
+    expect(fold).toBeGreaterThan(0);
+    expect(USAGE_PAGE.indexOf("<TelemetryUsageMetricsSwitch")).toBeGreaterThan(
+      fold,
+    );
+    expect(USAGE_METRICS_SWITCH).toContain(
+      'column="publishTelemetryUsageMetrics"',
+    );
+
+    for (const words of ["Usage as Metrics", "Publish usage as metrics"]) {
+      expect(USAGE_METRICS_SWITCH).toContain(`"${words}"`);
+    }
+
+    const project: Project = new Project();
+
+    expect(
+      project.getTableColumnMetadata("publishTelemetryUsageMetrics")
+        .defaultValue,
+    ).toBe(false);
+    expect(
+      project.getColumnAccessControlFor("publishTelemetryUsageMetrics")?.update,
+    ).toEqual([Permission.ProjectOwner, Permission.ProjectAdmin]);
+
+    expect(ENGLISH).toContain(
+      "a Project Owner or Project Admin can publish the project's usage as a metric:",
+    );
+    expect(ENGLISH).toContain(
+      "open **More settings** at the end of the page, and switch on **Publish usage as metrics** on the **Usage as Metrics** card.",
+    );
+    expect(ENGLISH).toContain("**Off by default.**");
+  });
+
+  test("writes one metric every 5 minutes, in bytes, with the attributes the page lists", () => {
+    expect(TelemetryUsageMetricTypeUtil.getAll()).toEqual([
+      TelemetryUsageMetricType.UsageBytes,
+    ]);
+    expect(TELEMETRY_USAGE_METRIC_INTERVAL_MINUTES).toBe(5);
+    expect(
+      TelemetryUsageMetricTypeUtil.getUnit(TelemetryUsageMetricType.UsageBytes),
+    ).toBe("By");
+    expect(ENGLISH).toContain(
+      "Every 5 minutes, OneUptime writes what each service and resource sent of each signal in those 5 minutes as the metric `oneuptime.telemetry.usage.bytes`, in bytes (`By`).",
+    );
+
+    for (const attribute of [
+      TELEMETRY_USAGE_METRIC_PROJECT_ID_ATTRIBUTE,
+      TELEMETRY_USAGE_METRIC_SIGNAL_ATTRIBUTE,
+      TELEMETRY_USAGE_METRIC_RESOURCE_TYPE_ATTRIBUTE,
+      TELEMETRY_USAGE_METRIC_RESOURCE_ID_ATTRIBUTE,
+      TELEMETRY_USAGE_METRIC_RESOURCE_NAME_ATTRIBUTE,
+    ]) {
+      expect(ENGLISH).toContain(`| \`${attribute}\` |`);
+    }
+
+    // The signals ingest counts by resource: the budgets' slugs.
+    const slugs: string = TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS.map(
+      (
+        signal: (typeof TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS)[number],
+      ): string => {
+        return `\`${getTelemetryIngestionBudgetSignalSlug(signal)}\``;
+      },
+    ).join(", ");
+    expect(ENGLISH).toContain(
+      `| \`signal\` | ${slugs.replace(/, ([^,]*)$/, " or $1")}. |`,
+    );
+    expect(ENGLISH).toContain(
+      `\`${ServiceType.OpenTelemetry}\` for a service, \`${ServiceType.Host}\` for a host`,
+    );
+  });
+
+  test("costs nothing, is kept as long as monitor metrics, and has its names to itself", () => {
+    expect(TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES).toContain(
+      TelemetryUsageMetricType.UsageBytes,
+    );
+    expect(USAGE_METRICS_SWEEP).toContain(
+      "const DEFAULT_RETENTION_DAYS: number = 30;",
+    );
+    expect(USAGE_METRICS_SWEEP).toContain("monitorMetricRetentionInDays: true");
+    expect(
+      TelemetryUsageMetricTypeUtil.isReservedMetricName(
+        "OneUptime.Telemetry.Usage.anything",
+      ),
+    ).toBe(true);
+    expect(ENGLISH).toContain(
+      "30 days unless the instance admin changes it. Metric names that start with `" +
+        TELEMETRY_USAGE_METRIC_NAME_PREFIX +
+        "` are reserved for them",
+    );
+  });
+
+  test.each(TRANSLATED_LANGUAGES)(
+    "%s names the switch and its card as its Dashboard draws them",
+    (language: string) => {
+      const page: string = readPage(language, PAGE);
+
+      for (const label of [
+        "More settings",
+        "Publish usage as metrics",
+        "Usage as Metrics",
+      ]) {
+        const drawn: string = drawnDashboardLabel(language, label);
+
+        expect({
+          language,
+          label,
+          named: page.includes(`**${drawn}**`),
+        }).toEqual({ language, label, named: true });
+      }
+
+      // The metric's name, its unit and its attributes are code.
+      for (const code of [
+        "`oneuptime.telemetry.usage.bytes`",
+        "`By`",
+        "`resourceName`",
+        "`oneuptime.telemetry.usage.`",
+      ]) {
+        expect({ language, code, kept: page.includes(code) }).toEqual({
+          language,
+          code,
+          kept: true,
+        });
+      }
     },
   );
 });

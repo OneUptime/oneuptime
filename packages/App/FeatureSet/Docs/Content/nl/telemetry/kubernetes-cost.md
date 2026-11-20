@@ -63,7 +63,7 @@ De eerste kosten verschijnen nadat het eerste volledige uur is afgesloten, en Op
 
 De kostenmetrics (`node_total_hourly_cost`, `pv_hourly_cost` en de rest) zijn gewone metrics: ze staan in de metricverkenner, op aangepaste dashboards en in metricmonitors. Voor een kant-en-klaar dashboard ga je naar **Producten → Dashboards**, selecteer je **Dashboard aanmaken** en kies je **Kubernetes Cost Dashboard**: het verloop van de uurkosten van nodes, eenheidskosten voor CPU en geheugen, en uitgaven aan volumes en load balancers.
 
-Onder de cijfers vermelden het overzicht en de pagina **Kosten** waar hun prijzen vandaan komen: de catalogusprijzen van een cloud, je tarievenkaart of de standaardtarieven van OpenCost, welke engine het cluster ook prijst, Kubecost 3 inbegrepen. Een Kubecost die je cloudfactuur uitleest, stemt zijn prijzen ongeveer anderhalve dag na elk uur af op die factuur, dus vermeldt de regel dan dat het om zijn catalogusprijzen van vóór die afstemming gaat. Efficiëntie is overal hetzelfde cijfer, ook in de efficiëntiemetric: hoeveel van de aangevraagde CPU en het aangevraagde geheugen is gebruikt, waarbij elk uur van een container weegt naar wat zijn CPU en geheugen kosten, zodat een goedkope job die niets gebruikt een goed benut cluster niet omlaag kan trekken, en inactieve capaciteit telt niet mee.
+Onder de cijfers vermelden het overzicht en de pagina **Kosten** waar hun prijzen vandaan komen: de catalogusprijzen van een cloud, je tarievenkaart of de standaardtarieven van OpenCost, welke engine het cluster ook prijst, Kubecost 3 inbegrepen. Een Kubecost die je cloudfactuur uitleest, stemt zijn prijzen ongeveer twee dagen na elk uur af op die factuur, en OneUptime neemt elk afgestemd uur over, dus vermeldt de regel tot wanneer de cijfers op je factuur zijn afgestemd. Efficiëntie is overal hetzelfde cijfer, ook in de efficiëntiemetric: hoeveel van de aangevraagde CPU en het aangevraagde geheugen is gebruikt, waarbij elk uur van een container weegt naar wat zijn CPU en geheugen kosten, zodat een goedkope job die niets gebruikt een goed benut cluster niet omlaag kan trekken, en inactieve capaciteit telt niet mee.
 
 ## Draai je al Kubecost of OpenCost?
 
@@ -191,7 +191,7 @@ Lees zijn logs: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-opencos
 :::
 
 :::details Het overzicht meldt dat de meegeleverde OpenCost niet nodig is
-Het cluster draait een eigen Kubecost of OpenCost, en de kostenagent leest die uit, dus de OpenCost die de chart heeft meegeleverd, prijst niets. Upgrade met `--set cost.engine.url=auto` om hem en zijn Prometheus niet langer te laten draaien, of stel `cost.engine.preferExisting=false` in om in plaats daarvan de meegeleverde engine uit te lezen. Met Kubecost 3, die geen Prometheus uitleest, komen de geheugenaanbevelingen uit de meegeleverde: wijs er in dezelfde upgrade met `cost.engine.prometheusUrl` een andere aan.
+Het cluster draait een eigen Kubecost of OpenCost, en de kostenagent leest die uit, dus de OpenCost die de chart heeft meegeleverd, prijst niets. Upgrade met `--set cost.engine.url=auto` om hem en zijn Prometheus niet langer te laten draaien, of stel `cost.engine.preferExisting=false` in om in plaats daarvan de meegeleverde engine uit te lezen. Komen de geheugenaanbevelingen uit de meegeleverde Prometheus, zoals bij Kubecost 3, die er geen uitleest, dan zegt de melding dat: wijs er in dezelfde upgrade met `cost.engine.prometheusUrl` een andere aan, of houd de meegeleverde engine. De kostenagent stopt hem nooit zelf: hij schrijft niets naar je cluster, en de meegeleverde engine is zijn terugval zolang de jouwe niet antwoordt.
 :::
 
 :::details De kostenagent leest je engine niet uit
@@ -215,7 +215,7 @@ Er heeft geen geheugenpiek OneUptime bereikt, dus het geheugen is niet gedimensi
 :::
 
 :::details De cijfers wijken af van de eigen interface van de engine
-OneUptime stuurt hele, afgesloten uren, zoals de engine ze na het afsluiten heeft geprijsd, met de afstemmingscorrecties erbij: de uitgaven van het huidige uur verschijnen nadat het is afgesloten. Een Kubecost die je cloudfactuur uitleest, stemt elk uur ongeveer anderhalve dag later daarop af, en OneUptime houdt het uur zoals het eerst werd geprijsd.
+OneUptime stuurt hele, afgesloten uren, zoals de engine ze na het afsluiten heeft geprijsd, met de afstemmingscorrecties erbij: de uitgaven van het huidige uur verschijnen nadat het is afgesloten. Een Kubecost die je cloudfactuur uitleest, stemt elk uur ongeveer twee dagen later daarop af: OneUptime leest het uur 36 uur, 47 uur en 4 dagen erna opnieuw uit, en neemt over wat er veranderde. Kubecost bewaart cijfers per uur standaard 49 uur, dus een uur dat het daarna afstemt, houdt het cijfer dat OneUptime als laatste las: bewaar ze 4 dagen om elke afstemming over te nemen (`kubecostAggregator.etlHourlyStoreDurationHours: 96` bij Kubecost 2, `aggregator.retention1h: 96` bij Kubecost 3).
 :::
 
 :::details De meegeleverde Prometheus is opnieuw gestart

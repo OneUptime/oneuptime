@@ -2100,7 +2100,17 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
               metric.namespace === body["Namespace"] &&
               (!body["MetricName"] ||
                 metric.metricName === body["MetricName"]) &&
-              (!metric.quiet || !body["RecentlyActive"])
+              (!metric.quiet || !body["RecentlyActive"]) &&
+              // As CloudWatch does: every series that carries each dimension asked for.
+              (
+                (body["Dimensions"] as Array<JSONObject> | undefined) || []
+              ).every((wanted: JSONObject): boolean => {
+                return metric.dimensions.some(
+                  ([name, value]: [string, string]): boolean => {
+                    return name === wanted["Name"] && value === wanted["Value"];
+                  },
+                );
+              })
             );
           },
         );

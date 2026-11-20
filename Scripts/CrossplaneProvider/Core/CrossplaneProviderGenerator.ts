@@ -14,6 +14,7 @@ import {
 import { MODULE_PATH, renderGoMod } from "./GoModule";
 import {
   collectServerOwned,
+  collectSharedUpdateOnly,
   renderServerOwnedGo,
   ServerOwnedMap,
 } from "./ServerOwned";
@@ -235,7 +236,10 @@ export class CrossplaneProviderGenerator {
 
     fs.writeFileSync(
       path.join(outputDir, "config", "zz_server_owned.go"),
-      renderServerOwnedGo(collectServerOwned(resources)),
+      renderServerOwnedGo(
+        collectServerOwned(resources),
+        collectSharedUpdateOnly(resources),
+      ),
     );
 
     fs.writeFileSync(

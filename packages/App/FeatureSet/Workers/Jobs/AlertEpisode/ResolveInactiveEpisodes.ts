@@ -9,6 +9,7 @@ import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
 import ObjectID from "Common/Types/ObjectID";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import { EPISODE_RESOLVED_NO_NEW_ALERT } from "Common/Utils/Monitor/StatusChangeNotes";
 
 RunCron(
   "AlertEpisode:ResolveInactiveEpisodes",
@@ -185,6 +186,7 @@ const checkAndResolveInactiveEpisode: CheckAndResolveInactiveEpisodeFunction =
         episode.id,
         undefined, // No user - auto-resolved due to inactivity
         true, // Cascade to alerts - resolve all member alerts as well
+        EPISODE_RESOLVED_NO_NEW_ALERT,
       );
     } catch (error) {
       logger.error(

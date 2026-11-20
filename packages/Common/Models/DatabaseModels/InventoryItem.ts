@@ -24,6 +24,12 @@ import {
   InventoryLiveness,
   getInventoryLivenessSql,
 } from "../../Types/Telemetry/InventoryLiveness";
+import AndroidSecurityPatch, {
+  AndroidSecurityPatchStatus,
+} from "../../Types/Host/AndroidSecurityPatch";
+import AndroidAgentPermissions, {
+  AndroidAgentPermissionsStatus,
+} from "../../Types/Host/AndroidAgentPermissions";
 import {
   Column,
   Entity,
@@ -446,6 +452,55 @@ export default class InventoryItem extends DatabaseBaseModel {
   public inventoryStatus?: InventoryLiveness = undefined;
 
   /*
+   * Whether an Android device is behind on its security patches (#9965):
+   * its patch level (android.os.security_patch, in descriptiveAttributes)
+   * more than 90 days old, against the database's clock. Computed at read
+   * time as inventoryStatus is, so the Security Patch Level filter, a count
+   * and a page agree, and nothing goes stale overnight. Empty for an item
+   * with no patch level. The rule is Types/Host/AndroidSecurityPatch's.
+   */
+  @ColumnAccessControl({ create: [], read: READ_PERMS, update: [] })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(AndroidSecurityPatchStatus),
+    required: false,
+    title: "Security Patch Status",
+    description:
+      "An Android device's security patch: up to date when its patch level is 90 days old or newer, out of date when older.",
+  })
+  @VirtualColumn({
+    type: ColumnType.ShortText,
+    query: (alias: string): string => {
+      return AndroidSecurityPatch.getStatusSql(alias);
+    },
+  })
+  public securityPatchStatus?: AndroidSecurityPatchStatus = undefined;
+
+  /*
+   * Whether the OneUptime Android agent still lacks a grant on the device
+   * (#9967): READ_LOGS, READ_DROPBOX_DATA or usage access, as its reports
+   * say (oneuptime.agent.permissions.missing, in descriptiveAttributes).
+   * Computed at read time, as the status above; empty for anything the
+   * agent does not run on. The rule is Types/Host/AndroidAgentPermissions'.
+   */
+  @ColumnAccessControl({ create: [], read: READ_PERMS, update: [] })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(AndroidAgentPermissionsStatus),
+    required: false,
+    title: "Agent Permissions Status",
+    description:
+      "Whether the OneUptime Android agent still lacks a grant on the device - READ_LOGS, READ_DROPBOX_DATA or usage access - or has them all.",
+  })
+  @VirtualColumn({
+    type: ColumnType.ShortText,
+    query: (alias: string): string => {
+      return AndroidAgentPermissions.getStatusSql(alias);
+    },
+  })
+  public agentPermissionsStatus?: AndroidAgentPermissionsStatus = undefined;
+
+  /*
    * Archiving is the disposal route that actually works for this table.
    *
    * Deleting a discovered or mirrored row does not stick — ingest re-creates
@@ -472,6 +527,7 @@ export default class InventoryItem extends DatabaseBaseModel {
     description:
       "Is this item archived? Archived items are hidden from the default list but keep their identity and keep collecting telemetry.",
     defaultValue: false,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,

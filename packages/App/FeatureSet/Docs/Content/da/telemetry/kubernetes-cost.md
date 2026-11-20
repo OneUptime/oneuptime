@@ -63,7 +63,7 @@ De første omkostninger vises, når den første hele time er afsluttet, og OpenC
 
 Omkostningsmetrikkerne (`node_total_hourly_cost`, `pv_hourly_cost` og resten) er almindelige metrikker: de findes i metrik-explorer, på brugerdefinerede dashboards og i metrikmonitorer. For et færdigt dashboard skal du gå til **Produkter → Dashboards**, vælge **Opret dashboard** og vælge **Kubernetes Cost Dashboard**: udvikling i nodernes timeomkostninger, enhedsomkostninger for CPU og hukommelse samt forbrug på volumener og load balancere.
 
-Under tallene viser oversigten og siden **Omkostninger**, hvor deres priser kommer fra: en cloududbyders listepriser, din pristabel eller OpenCosts standardsatser, uanset hvilken motor der prissætter klyngen, også Kubecost 3. En Kubecost, der læser din cloudregning, afstemmer sine priser med regningen omkring halvanden dag efter hver time, så linjen oplyser da, at tallene er dens listepriser fra før afstemningen. Effektivitet er ét og samme tal overalt, også i effektivitetsmetrikken: hvor meget af den anmodede CPU og hukommelse der blev brugt, hvor hver containers time vægtes efter, hvad dens CPU og hukommelse koster, så et billigt job, der intet bruger, ikke kan trække en veludnyttet klynge ned, og tomgangskapacitet tælles ikke med.
+Under tallene viser oversigten og siden **Omkostninger**, hvor deres priser kommer fra: en cloududbyders listepriser, din pristabel eller OpenCosts standardsatser, uanset hvilken motor der prissætter klyngen, også Kubecost 3. En Kubecost, der læser din cloudregning, afstemmer sine priser med regningen omkring to dage efter hver time, og OneUptime henter hver afstemt time ind, så linjen oplyser, hvor langt tallene er afstemt med din regning. Effektivitet er ét og samme tal overalt, også i effektivitetsmetrikken: hvor meget af den anmodede CPU og hukommelse der blev brugt, hvor hver containers time vægtes efter, hvad dens CPU og hukommelse koster, så et billigt job, der intet bruger, ikke kan trække en veludnyttet klynge ned, og tomgangskapacitet tælles ikke med.
 
 ## Kører du allerede Kubecost eller OpenCost?
 
@@ -191,7 +191,7 @@ Læs dens logs: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-opencos
 :::
 
 :::details Oversigten siger, at den medfølgende OpenCost ikke er nødvendig
-Klyngen kører sin egen Kubecost eller OpenCost, og omkostningsagenten læser den, så den OpenCost, som chartet medbragte, prissætter intet. Opgrader med `--set cost.engine.url=auto` for at stoppe den og dens Prometheus, eller sæt `cost.engine.preferExisting=false` for i stedet at læse den medfølgende motor. Med Kubecost 3, som ikke læser nogen Prometheus, kommer hukommelsesanbefalingerne fra den medfølgende: angiv en anden med `cost.engine.prometheusUrl` i samme opgradering.
+Klyngen kører sin egen Kubecost eller OpenCost, og omkostningsagenten læser den, så den OpenCost, som chartet medbragte, prissætter intet. Opgrader med `--set cost.engine.url=auto` for at stoppe den og dens Prometheus, eller sæt `cost.engine.preferExisting=false` for i stedet at læse den medfølgende motor. Når hukommelsesanbefalingerne kommer fra den medfølgende Prometheus, som med Kubecost 3, der ikke læser nogen, siger meddelelsen det: angiv en anden med `cost.engine.prometheusUrl` i samme opgradering, eller behold den medfølgende motor. Omkostningsagenten stopper den aldrig selv: den skriver intet til din klynge, og den medfølgende motor er dens reserve, så længe din ikke svarer.
 :::
 
 :::details Omkostningsagenten læser ikke din motor
@@ -215,7 +215,7 @@ Ingen hukommelsesspids nåede OneUptime, så hukommelsen blev ikke dimensioneret
 :::
 
 :::details Tallene afviger fra motorens egen brugerflade
-OneUptime sender hele, afsluttede timer, sådan som motoren prissatte dem, da de var afsluttet, med dens afstemningsjusteringer medregnet: den aktuelle times forbrug vises, når den er afsluttet. En Kubecost, der læser din cloudregning, afstemmer hver time med den omkring halvanden dag senere, og OneUptime beholder timen, som den først blev prissat.
+OneUptime sender hele, afsluttede timer, sådan som motoren prissatte dem, da de var afsluttet, med dens afstemningsjusteringer medregnet: den aktuelle times forbrug vises, når den er afsluttet. En Kubecost, der læser din cloudregning, afstemmer hver time med den omkring to dage senere: OneUptime læser timen igen 36 timer, 47 timer og 4 dage efter og henter det ind, der ændrede sig. Kubecost beholder tallene for hver time i 49 timer som standard, så en time, den afstemmer derefter, beholder det tal, OneUptime læste sidst: behold dem i 4 dage for at hente hver afstemning ind (`kubecostAggregator.etlHourlyStoreDurationHours: 96` med Kubecost 2, `aggregator.retention1h: 96` med Kubecost 3).
 :::
 
 :::details Den medfølgende Prometheus blev genstartet

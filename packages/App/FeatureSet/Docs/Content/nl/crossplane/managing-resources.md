@@ -32,7 +32,7 @@ De velden van een resourcetype zijn de argumenten van de Terraform-resource, in 
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` toont het record zoals OneUptime het heeft, met zijn `id`. Een veld dat je weglaat en dat OneUptime invult, bijvoorbeeld met een standaardwaarde, wordt na het aanmaken van het record naar `spec.forProvider` gekopieerd, zodat de volgende controle niets te wijzigen vindt. Een veld dat OneUptime zelf actueel houdt, wordt nooit gekopieerd: zie [Velden die OneUptime actueel houdt](#velden-die-oneuptime-actueel-houdt).
+`status.atProvider` toont het record zoals OneUptime het heeft, met zijn `id`. Een veld dat je weglaat en dat OneUptime invult, bijvoorbeeld met een standaardwaarde, wordt na het aanmaken van het record naar `spec.forProvider` gekopieerd, zodat de volgende controle niets te wijzigen vindt. Een veld dat OneUptime zelf actueel houdt of ook wijzigt, wordt nooit gekopieerd: zie [Velden die OneUptime actueel houdt](#velden-die-oneuptime-actueel-houdt).
 
 ## Naar andere resources verwijzen
 
@@ -104,7 +104,7 @@ Een veld dat een geheim bevat, zoals de wachtwoordzin van de TLS-clientsleutel v
 
 ## Wijzigingen buiten Kubernetes
 
-De provider vergelijkt elke 10 minuten elke resource met zijn record en maakt ongedaan wat iemand in OneUptime heeft gewijzigd. Om vaker te controleren, geef je de provider een runtimeconfiguratie met `--poll`:
+De provider vergelijkt elke 10 minuten elke resource met zijn record en maakt ongedaan wat iemand in OneUptime heeft gewijzigd, behalve in een veld dat OneUptime ook wijzigt (zie hieronder). Om vaker te controleren, geef je de provider een runtimeconfiguratie met `--poll`:
 
 ```yaml title="runtime-config.yaml"
 apiVersion: pkg.crossplane.io/v1beta1
@@ -136,12 +136,15 @@ Om het dashboard een veld te laten beheren nadat het record is aangemaakt, schri
 
 ### Velden die OneUptime actueel houdt
 
-Sommige velden houdt OneUptime zelf actueel, en de provider laat ze aan OneUptime over: hij kopieert ze nooit naar `spec.forProvider` en zet ze nooit terug.
+Sommige velden houdt OneUptime zelf actueel, andere wijzigt OneUptime ook, en de provider laat de wijzigingen van OneUptime ongemoeid: hij kopieert deze velden nooit naar `spec.forProvider` en zet ze nooit terug.
 
 - Een veld dat alleen OneUptime schrijft, zoals wanneer een telemetriemonitor voor het laatst draaide (`telemetryMonitorLastMonitorAt`) of hoeveel nodes een Kubernetes-cluster heeft (`nodeCount`), staat alleen in `status.atProvider`.
 - Een veld waarmee een record begint, zoals `currentMonitorStatusId` van een monitor of `currentIncidentStateId` van een incident, kan worden opgegeven om het record aan te maken, in `spec.initProvider` of `spec.forProvider`. Daarna verandert OneUptime het, zoals de controles van een monitor zijn status veranderen, en `status.atProvider` toont waar het nu staat.
+- Een veld dat jij en OneUptime allebei wijzigen, zoals `labels` van een record, waaraan labelregels labels toevoegen, `isResolved` van een uitzondering of `siteId` van een netwerkapparaat, dat de netwerkdetectie verplaatst, schrijf je zelf in `spec.forProvider`. De provider stuurt het mee bij het aanmaken van het record, en opnieuw telkens wanneer de waarde in het manifest verandert, en laat een wijziging die OneUptime in de tussentijd maakt ongemoeid. Een lijst zoals `labels` behoudt de vermeldingen die OneUptime heeft toegevoegd, krijgt een vermelding terug die in het manifest staat en die iemand heeft verwijderd, en verliest een vermelding die je uit het manifest haalt.
 
-`kubectl explain` vermeldt dat in de beschrijving van elk veld waarmee een record begint. Een resource waarvan een eerdere versie van de provider de `spec.forProvider` met deze velden vulde, stopt vanzelf met vechten tegen OneUptime, zonder dat je iets hoeft te bewerken.
+`kubectl explain` vermeldt dat in de beschrijving van elk veld waarmee een record begint of dat OneUptime ook wijzigt. Een resource waarvan een eerdere versie van de provider de `spec.forProvider` met deze velden vulde, stopt vanzelf met vechten tegen OneUptime, zonder dat je iets hoeft te bewerken.
+
+De provider bewaart in de annotatie `crossplane.oneuptime.com/last-applied` van de resource wat een manifest het laatst heeft toegepast van de velden die OneUptime ook wijzigt. In een lijst die een eerdere versie van de provider heeft gevuld, zoals `labels`, blijft een vermelding die je eruit haalt als vermelding van OneUptime in het record staan; een vermelding die het manifest noemt nadat je de lijst voor het eerst hebt gewijzigd, is van jou en wordt uit het record verwijderd wanneer je die eruit haalt.
 
 ## Een resource verwijderen
 

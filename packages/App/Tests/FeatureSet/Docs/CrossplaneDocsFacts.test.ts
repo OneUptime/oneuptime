@@ -21,6 +21,8 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import Incident from "Common/Models/DatabaseModels/Incident";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import ServerOwned from "Common/Types/Database/ServerOwned";
 
 /*
@@ -50,6 +52,7 @@ import ServerOwned from "Common/Types/Database/ServerOwned";
 const CROSSPLANE_STATIC: string = "Scripts/CrossplaneProvider/StaticFiles";
 const PROVIDER_CONFIG_GO: string = `${CROSSPLANE_STATIC}/config/provider.go`;
 const LATE_INIT_GO: string = `${CROSSPLANE_STATIC}/config/lateinit.go`;
+const LAST_APPLIED_GO: string = `${CROSSPLANE_STATIC}/config/lastapplied.go`;
 const V1BETA1_REGISTER_GO: string = `${CROSSPLANE_STATIC}/apis/v1beta1/register.go`;
 const PROVIDER_CONFIG_TYPES_GO: string = `${CROSSPLANE_STATIC}/apis/v1beta1/types.go`;
 const KINDS_TEST_GO: string = `${CROSSPLANE_STATIC}/internal/kinds/kinds_test.go`;
@@ -873,6 +876,49 @@ describe("what the pages say the provider does", () => {
     expect(page).toContain(
       "write it in `spec.initProvider` instead of `spec.forProvider`: the record is created with it, and the provider never copies it into `spec.forProvider` or puts it back",
     );
+  });
+
+  /*
+   * The fields the page says you and OneUptime both change (#10052) are
+   * ones the models declare so, and the annotation the page names is the
+   * one the provider keeps what a manifest last applied in
+   * (config/lastapplied.go), which late initialization never copies them
+   * past (config/lateinit.go).
+   */
+  it("names fields you and OneUptime both change, as the models declare them, and the annotation the provider keeps", () => {
+    const page: string = englishPage(MANAGING_RESOURCES);
+    const lateInit: string = readRepoFile(LATE_INIT_GO);
+    const lastApplied: string = readRepoFile(LAST_APPLIED_GO);
+
+    const shared: string | undefined = page
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("- A field you and OneUptime both change");
+      });
+
+    for (const field of ["`labels`", "`isResolved`", "`siteId`"]) {
+      expect([field, shared?.includes(field)]).toEqual([field, true]);
+    }
+    expect(shared).toContain(
+      "The provider sends it to create the record, and again whenever the manifest's value changes",
+    );
+
+    for (const [modelType, column] of [
+      [Monitor, "labels"],
+      [TelemetryException, "isResolved"],
+      [NetworkDevice, "siteId"],
+    ] as Array<[new () => BaseModel, string]>) {
+      expect([
+        column,
+        new modelType().getTableColumnMetadata(column)?.serverOwned,
+      ]).toEqual([column, ServerOwned.Shared]);
+    }
+
+    expect(page).toContain("`crossplane.oneuptime.com/last-applied`");
+    expect(lastApplied).toContain(
+      'const LastAppliedAnnotation = "crossplane.oneuptime.com/last-applied"',
+    );
+    expect(lateInit).toContain("kind == ServerOwnedShared");
   });
 
   it("names the statuses the overview observes as a new project has them", () => {

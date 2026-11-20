@@ -1,3 +1,4 @@
+import ServerOwned from "../../Types/Database/ServerOwned";
 import File from "./File";
 import Project from "./Project";
 import User from "./User";
@@ -588,6 +589,7 @@ export default class Dashboard extends BaseModel {
     title: "Labels",
     description: "Labels to group and filter by.",
     example: [{ id: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e" }],
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {

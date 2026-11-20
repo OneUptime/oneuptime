@@ -1,4 +1,5 @@
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+import TelemetryIngestionTeamLabelBudget from "Common/Models/DatabaseModels/TelemetryIngestionTeamLabelBudget";
 import {
   readTelemetryIngestionBudgetStoredSettings,
   TELEMETRY_INGESTION_BUDGET_SIGNALS,
@@ -20,11 +21,12 @@ import React, { FunctionComponent, ReactElement } from "react";
 /*
  * An ingestion key's own budgets, or its rates, as one line each on its
  * page: "Logs: 10 GB", or that it has none of its own and the project's
- * apply - which is what an empty set of fields means.
+ * apply - which is what an empty set of fields means. A team's or a label's
+ * budgets (#6386) read the same: the same columns, daily budgets only.
  */
 
 export interface ComponentProps {
-  item: TelemetryIngestionKey;
+  item: TelemetryIngestionKey | TelemetryIngestionTeamLabelBudget;
   kind: TelemetryIngestionBudgetValueKind;
 }
 

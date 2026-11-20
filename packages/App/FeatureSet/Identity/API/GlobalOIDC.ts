@@ -2,11 +2,12 @@ import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import IdentityProviderSignOut from "../Utils/IdentityProviderSignOut";
 import OIDCUtil, { OidcCallbackResult } from "../Utils/OIDC";
 import {
-  buildMobileSsoSuccessUrl,
   clearMobileSsoIntentCookie,
   isMobileSsoRequest,
+  readMobileSsoFlowId,
   respondToMobileSsoFailure,
-  setMobileSsoIntentCookie,
+  respondToMobileSsoSuccess,
+  startMobileSsoHandOff,
 } from "../Utils/MobileSso";
 import SsoTeamMembership, {
   SsoTeamMembershipOutcome,
@@ -186,8 +187,27 @@ router.get(
        * read. A separate intent cookie survives independently and keeps the
        * failure routable back to the app.
        */
+      let mobileFlowId: string | null = null;
+
       if (isMobileRequest) {
-        setMobileSsoIntentCookie(res, globalOidc.id!);
+        /*
+         * The app's state and PKCE challenge, kept for the round trip
+         * (#9989): its flow rides in the signed state cookie below, and in
+         * the intent cookie.
+         */
+        const handOff: { flowId: string | null } | null =
+          await startMobileSsoHandOff({
+            req,
+            res,
+            providerId: globalOidc.id!,
+            rememberInCookie: true,
+          });
+
+        if (!handOff) {
+          return;
+        }
+
+        mobileFlowId = handOff.flowId;
       }
 
       const redirectUri: URL = URL.fromString(
@@ -214,6 +234,8 @@ router.get(
           nonce,
           codeVerifier,
           isMobile: isMobileRequest,
+          // The mobile app's hand-off (#9989): null for any other sign-in.
+          mobileFlowId: mobileFlowId,
         },
         OIDC_STATE_COOKIE_TTL_SECONDS,
       );
@@ -333,6 +355,8 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
     let storedState: string;
     let storedNonce: string;
     let storedCodeVerifier: string;
+    // The mobile app's hand-off (#9989): the signed cookie's, or the intent's.
+    let mobileFlowId: string | null = null;
 
     try {
       const decoded: Record<string, unknown> = JSONWebToken.decodeJsonPayload(
@@ -343,6 +367,13 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
       storedNonce = decoded["nonce"] as string;
       storedCodeVerifier = decoded["codeVerifier"] as string;
       isMobileRequest = isMobileRequest || Boolean(decoded["isMobile"]);
+      mobileFlowId = isMobileRequest
+        ? readMobileSsoFlowId({
+            req,
+            providerId: globalOidcId,
+            carried: decoded["mobileFlowId"],
+          })
+        : null;
     } catch {
       if (
         respondToMobileSsoFailure({
@@ -850,29 +881,33 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
         expiresInSeconds: sessionMetadata.accessTokenExpiresInSeconds,
       });
 
-      /*
-       * Built through the shared helper so the SAML and OIDC routers cannot
-       * drift apart on the param names the mobile app parses. The single
-       * global SSO token is sent back as `globalSsoToken`; the app replays it
-       * on every request as the `x-global-sso-token` header.
-       */
-      const deepLinkUrl: string = buildMobileSsoSuccessUrl({
-        accessToken,
-        refreshToken: sessionMetadata.refreshToken,
-        refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
-        userId: alreadySavedUser.id!.toString(),
-        email: alreadySavedUser.email!.toString(),
-        name: alreadySavedUser.name?.toString() || "",
-        isMasterAdmin: Boolean(alreadySavedUser.isMasterAdmin),
-        globalSsoToken,
-      });
-
       logger.info(
         "User logged in with Global OIDC (mobile): " + result.email.toString(),
         getLogAttributesFromRequest(req as RequestLike),
       );
 
-      return res.redirect(deepLinkUrl);
+      /*
+       * Handed back through the shared helper so the SAML and OIDC routers
+       * cannot drift apart on what the mobile app reads: a one-time code it
+       * redeems with its PKCE verifier, or - for an app from before #9989 -
+       * the deep link that carries the session. The single global SSO token
+       * is handed back as `globalSsoToken`; the app replays it on every
+       * request as the `x-global-sso-token` header.
+       */
+      return respondToMobileSsoSuccess({
+        res,
+        flowId: mobileFlowId,
+        signIn: {
+          accessToken,
+          refreshToken: sessionMetadata.refreshToken,
+          refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
+          userId: alreadySavedUser.id!.toString(),
+          email: alreadySavedUser.email!.toString(),
+          name: alreadySavedUser.name?.toString() || "",
+          isMasterAdmin: Boolean(alreadySavedUser.isMasterAdmin),
+          globalSsoToken,
+        },
+      });
     }
 
     // Web: mint the standard user cookie + the single global SSO cookie.

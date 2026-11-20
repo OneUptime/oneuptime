@@ -191,8 +191,8 @@ Hver slags når OneUptime som almindelige logs:
 | SSH-logins, sudo | En Linux-maskines journal eller auth-log, med [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | Windows-hændelser | Collectorens `windowseventlog`-receiver på maskinen, eller en videresender, der skriver hver hændelse som JSON, som NXLog eller Winlogbeat. En [vært](/docs/telemetry/hosts), der er tilføjet i OneUptime, læser også Sysmon, Microsoft Defender og PowerShell, hvor den har dem |
 | AWS CloudTrail | Et trail leveret til CloudWatch Logs, læst af collectorens `awscloudwatch`-receiver, eller, for en konto, der er forbundet under **Cloud**, [Cloud-auditlogs](#læs-auditlogs-fra-dine-cloudkonti) |
-| Google Cloud-auditlogs | En log-sink til Pub/Sub, læst af collectorens `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, for et projekt, der er forbundet under **Cloud**, [Cloud-auditlogs](#læs-auditlogs-fra-dine-cloudkonti) |
-| Azure-aktivitetslogs og Entra ID-logs | En diagnosticeringsindstilling, der streamer til en Event Hub, læst af collectorens `azureeventhub`-receiver med `format: raw`, eller, for aktivitetsloggen fra et abonnement, der er forbundet under **Cloud**, [Cloud-auditlogs](#læs-auditlogs-fra-dine-cloudkonti) |
+| Google Cloud-auditlogs | En log-sink til Pub/Sub, læst af collectorens `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, for et projekt, der er forbundet under **Cloud**, dets [stream](/docs/telemetry/cloud-streaming-google-cloud) eller [Cloud-auditlogs](#læs-auditlogs-fra-dine-cloudkonti) |
+| Azure-aktivitetslogs og Entra ID-logs | En diagnosticeringsindstilling, der streamer til en Event Hub, læst af collectorens `azureeventhub`-receiver med `format: raw`, eller til hændelseshubben i et forbundet abonnements [stream](/docs/telemetry/cloud-streaming-azure), eller, for aktivitetsloggen fra et abonnement, der er forbundet under **Cloud**, [Cloud-auditlogs](#læs-auditlogs-fra-dine-cloudkonti) |
 | OpenStack-auditspor | En clouds notifikationer og auditfilter sendt til dens logs med `driver = log`, læst af agentens [logprofil](/docs/telemetry/openstack#hvem-gjorde-hvad) |
 | CEF, LEEF | Produktets syslog, videresendt af [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Firewallens egen syslog, videresendt af [rsyslog](/docs/telemetry/syslog) |
@@ -203,7 +203,7 @@ På **Dine logs** viser hver slags, hvornår den sidst blev fundet, og **Tjek en
 
 En trussel, som et sikkerhedsprodukt skriver i dine logs, for eksempel et CEF- eller LEEF-fund eller en trussel fra Palo Alto Networks, FortiGate eller Cisco ASA, åbner en [sag](/docs/telemetry/security-cases), som et forbundet produkts advarsel gør, og øger risikoen for den bruger, vært eller adresse, den nævner. **Åbn sager fra** på **Dine logs** angiver, fra hvilken alvorlighed: **Høj og højere**, medmindre du vælger en anden, eller **Aldrig**. Produktets logins og blokerede forbindelser forbliver hændelser, som dine regler kan læse.
 
-En post, der når OneUptime ad to veje, gemmes én gang: et Microsoft Entra ID-login, som dets forbindelse læser, og som Azure også eksporterer til dine logs, eller en CloudTrail-post i dine logs og i auditloggen for en forbundet AWS-konto.
+En post, der når OneUptime ad to veje, gemmes én gang: et Microsoft Entra ID-login, som dets forbindelse læser, og som Azure også eksporterer til dine logs, en CloudTrail-post i dine logs og i auditloggen for en forbundet AWS-konto, eller en auditpost, som en cloudkontos stream sender, og som **Cloud-auditlogs** også læser.
 
 ### Læs auditlogs fra dine cloudkonti
 

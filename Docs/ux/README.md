@@ -190,7 +190,8 @@ next, and how to change it last.
   metal class's "Failed: 3" open which ones and why, and App Platforms' "2 environments
   disconnected" opens its list with its Status filter set (#9751). A failed systemd unit says why
   as systemd said it: its result, its exit code or the signal that killed it, since when and what
-  it printed last, from its journal (#9748). A count opens its parts only while the resource's
+  it printed last, from its journal (#9748), on its page and on its row of the host's Systemd
+  Units list, whose "3 units failed" opens all of them (#9960). A count opens its parts only while the resource's
   agent reports: a disconnected resource's last snapshot is no longer the truth, so its counts of
   what is wrong say what stopped and list no part - an IoT fleet whose collector went away says
   "fleet disconnected" where it counted its devices online, rather than calling every device
@@ -1074,7 +1075,12 @@ what was further down.
   Health check's collection issues read
   the same way (`Common/Utils/Monitor/DatabaseCollectionIssueReading`, #8609): the group by its
   Metric Groups switch's name, OneUptime's own sentence in the reader's words, and a database's own
-  error kept as written after a sentence that says what kind of failure it is. Enforced by
+  error kept as written after a sentence that says what kind of failure it is. View Cause, on a
+  monitor's Status Timeline and an incident's, an alert's or an episode's State Timeline, words a
+  change's cause the same way (`StatusChangeCauseWording`, #9752), and so every note OneUptime
+  writes there itself - "Changed when its episode changed state.", "Resolved because every
+  incident in it is resolved." - each defined once with its older wordings, so last year's rows
+  read worded too (`StatusChangeNotes`, #9959). Enforced by
   [ProbeMessagesInReadersLanguageGuard](../../packages/Common/Tests/UI/Monitor/ProbeMessagesInReadersLanguageGuard.test.ts)
   and
   [DatabaseCollectionIssuesInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DatabaseCollectionIssuesInReadersLanguage.test.tsx).

@@ -27,6 +27,7 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
 });
 
 import LogService from "../../../Server/Services/LogService";
+import ExceptionInstanceService from "../../../Server/Services/ExceptionInstanceService";
 import PayAsYouGoBillingService from "../../../Server/Services/PayAsYouGoBillingService";
 import RumApplicationService from "../../../Server/Services/RumApplicationService";
 import RumSessionService from "../../../Server/Services/RumSessionService";
@@ -325,6 +326,10 @@ describe("staging bills telemetry kept under 7 days as 7 days", () => {
         oneGibFrom(DEFAULT_SERVICE_ID),
         oneGibFrom(SEVEN_DAY_SERVICE_ID),
       ] as never);
+    // No exceptions found in these logs (they would be billed with them, #6590).
+    jest
+      .spyOn(ExceptionInstanceService, "groupTelemetryUsageByService")
+      .mockResolvedValue([] as never);
 
     await TelemetryUsageBillingService.stageTelemetryUsageForProject({
       projectId: PROJECT_ID,

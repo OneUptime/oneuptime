@@ -88,6 +88,7 @@
     <string name="log_session_title">Logger for feilsøking</string>
     <string name="log_session_request_by">%1$s ber i OneUptime om logger fra alle apper på denne enheten i %2$s, på nivå %3$s og over.</string>
     <string name="log_session_request">OneUptime ber om logger fra alle apper på denne enheten i %1$s, på nivå %2$s og over.</string>
+    <string name="log_session_note">«%1$s»</string>
     <string name="log_session_android_prompt">Android spør deg deretter om du vil gi tilgang til alle enhetslogger. Velg Tillat der også.</string>
     <string name="log_session_allow">Tillat</string>
     <string name="log_session_decline">Avslå</string>

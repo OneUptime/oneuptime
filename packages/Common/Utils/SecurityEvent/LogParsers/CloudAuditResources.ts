@@ -20,6 +20,7 @@ import {
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import {
   MAX_RESOURCE_ID_LENGTH,
+  getAzureResourceIdKey,
   isCloudResourceIdLike,
   readCloudEndpointHosts,
 } from "../../SecurityCase/SecurityConnectionMatch";
@@ -1269,20 +1270,12 @@ export function readCloudTrailResourceIds(record: JSONObject): Array<string> {
  * An Azure resource ID as OneUptime compares it: trimmed, without a
  * trailing slash, in lower case - Azure's resource IDs are
  * case-insensitive, and the Activity Log's export writes them in capitals.
- * Null for anything that is not a resource ID under a subscription.
+ * The one key every event keeps an Azure ID by, whoever wrote it
+ * (getAzureResourceIdKey, #10034). Null for anything that is not a
+ * resource ID under a subscription.
  */
 export function normalizeAzureResourceId(value: string): string | null {
-  let id: string = value.trim();
-
-  while (id.endsWith("/")) {
-    id = id.slice(0, -1);
-  }
-
-  const lower: string = id.toLowerCase();
-
-  return lower.startsWith("/subscriptions/") && isCloudResourceIdLike(lower)
-    ? lower
-    : null;
+  return getAzureResourceIdKey(value);
 }
 
 /*

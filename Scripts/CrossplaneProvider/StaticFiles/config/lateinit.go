@@ -23,6 +23,14 @@ package config
 //     and once the record exists it is left out of the configuration the
 //     provider plans with (initProviderAtCreateOnly), so the provider never
 //     puts it back.
+//
+// And a fourth (#10052): a field people set and OneUptime changes too - the
+// labels a label rule adds, an exception OneUptime resolves ("shared") - is
+// never copied either. Copied, an exception's isResolved went into
+// spec.forProvider as false, and the provider reopened the exception each
+// time OneUptime resolved it. Written in the manifest, such a field is sent
+// when the manifest's value changes, not each time OneUptime moves the
+// record's (lastapplied.go, and the Terraform provider's shared.go).
 
 import (
 	"sort"
@@ -38,10 +46,13 @@ const (
 	// ServerOwnedAfterCreate is a field a manifest may give to create the
 	// record, which OneUptime keeps from then on.
 	ServerOwnedAfterCreate = "after-create"
+	// ServerOwnedShared is a field people set and OneUptime changes too.
+	ServerOwnedShared = "shared"
 )
 
-// ServerOwned returns the fields of a resource OneUptime keeps once its
-// record exists, and how: ServerOwnedAlways or ServerOwnedAfterCreate.
+// ServerOwned returns the fields of a resource OneUptime keeps, or changes
+// too, once its record exists, and how: ServerOwnedAlways,
+// ServerOwnedAfterCreate or ServerOwnedShared.
 func ServerOwned(terraformName string) map[string]string {
 	fields := map[string]string{}
 	for field, kind := range generatedServerOwned[terraformName] {
@@ -67,17 +78,17 @@ func settableFields(r *ujconfig.Resource) []string {
 }
 
 // lateInitialization configures what late initialization leaves alone: a
-// field OneUptime keeps after the create, always, and every other field
-// while spec.initProvider gives it.
+// field OneUptime keeps after the create or changes too, always, and every
+// other field while spec.initProvider gives it.
 func lateInitialization(r *ujconfig.Resource) {
-	afterCreate := map[string]bool{}
+	neverCopied := map[string]bool{}
 	for field, kind := range ServerOwned(r.Name) {
-		if kind == ServerOwnedAfterCreate {
-			afterCreate[field] = true
+		if kind == ServerOwnedAfterCreate || kind == ServerOwnedShared {
+			neverCopied[field] = true
 		}
 	}
 	for _, field := range settableFields(r) {
-		if afterCreate[field] {
+		if neverCopied[field] {
 			r.LateInitializer.IgnoredFields = append(r.LateInitializer.IgnoredFields, field)
 			continue
 		}

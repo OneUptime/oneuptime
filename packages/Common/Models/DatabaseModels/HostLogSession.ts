@@ -248,6 +248,26 @@ export default class HostLogSession extends BaseModel {
   })
   public minimumLevel?: HostLogSessionLevel = undefined;
 
+  /*
+   * Why the session is asked for, in the requester's words (#9966): shown
+   * to the person at the device under the request, kept as one line of
+   * plain text with card numbers, email addresses, tokens and passwords
+   * taken out (Utils/Host/HostLogSessionNote).
+   */
+  @ColumnAccessControl(askedColumnAccess)
+  @TableColumn({
+    type: TableColumnType.LongText,
+    title: "Note",
+    description:
+      "Why the session is asked for, shown to the person at the device with the request.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public note?: string = undefined;
+
   @ColumnAccessControl(deviceColumnAccess)
   @TableColumn({
     type: TableColumnType.Date,

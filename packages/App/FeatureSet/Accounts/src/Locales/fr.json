@@ -244,7 +244,13 @@
     "signInWithProvider": "Se connecter avec {{name}}",
     "requiredSubtitle": "Ce serveur exige l’authentification unique (SSO).",
     "requiredNotSetUp": "L’authentification unique n’est pas encore configurée sur ce serveur. Demandez à l’administrateur de votre serveur de la configurer.",
-    "useDifferentEmail": "Utiliser un autre e-mail"
+    "useDifferentEmail": "Utiliser un autre e-mail",
+    "lastUsedTitle": "Utilisé en dernier sur cet appareil",
+    "forgetLastUsed": "Oublier ce fournisseur",
+    "emailLinksPrompt": "Nous pouvons envoyer à cette adresse les liens de connexion SSO de toutes les organisations dont elle fait partie.",
+    "emailLinksButton": "M'envoyer mes liens de connexion",
+    "emailLinksSent": "Si cette adresse appartient à une organisation qui utilise l'authentification unique, nous lui avons envoyé les liens de connexion SSO.",
+    "emailLinksCaptchaRequired": "Veuillez résoudre le captcha avant de demander les liens."
   },
   "adminLogin": {
     "title": "Connexion administrateur principal",
