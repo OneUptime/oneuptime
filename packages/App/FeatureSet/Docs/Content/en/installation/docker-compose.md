@@ -253,7 +253,9 @@ TRUSTED_PROXY_HOPS=2
 npm start
 ```
 
-`npm start` checks OneUptime on its new port, `localhost:8080`, and ends with **OneUptime is up!**
+`npm start` checks OneUptime where the ingress now listens, `127.0.0.1:8080`, and ends with **OneUptime is up!**
+
+Only this server reaches the ingress now. The ingress routes requests by host name: only `HOST` and `localhost` reach the whole application, and any other name, the address `127.0.0.1` included, is treated as a status page domain. So your proxy passes on `HOST`, the name the browser asked for, the probe calls `http://localhost:8080`, and the check that ends `npm start`, like `npm run doctor`, connects to `127.0.0.1:8080` with the host name `localhost:8080`.
 
 #### Configure the proxy
 
@@ -583,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-Once every container is running, run the check again with `npm run status-check`. It checks the ingress on the port `ONEUPTIME_HTTP_PORT` sets.
+Once every container is running, run the check again with `npm run status-check`. It checks the ingress where `ONEUPTIME_HTTP_PORT` publishes it, address and port, such as `127.0.0.1:8080`, with the host name `localhost`, as a browser on the server would.
 :::
 
 :::details The browser says "OneUptime is not set up for this address"

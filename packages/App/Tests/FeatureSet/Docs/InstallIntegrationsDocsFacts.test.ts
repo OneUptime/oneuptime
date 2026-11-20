@@ -243,6 +243,10 @@ const followIngressScript: {
     url: string | null;
   };
   describeMoved: (moved: Array<string>, url: string) => string;
+  ingressUrlOf: (value: string) => { url: string; port: number } | null;
+  ingressRequestOf: (
+    value: string,
+  ) => { url: string; host: string; port: number } | null;
 } = require(path.join(REPO_DIR, "Scripts", "Install", "FollowIngressPort.js"));
 /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
@@ -1632,7 +1636,13 @@ describe("Docker Compose, against the compose files and scripts", () => {
     const check: string = readSource("statusCheck");
 
     expect(check).toContain('HOST_TO_CHECK="${1-}"');
-    expect(check).toContain("HOST_TO_CHECK=$(ingress_address)");
+    // Under localhost, at the address the ingress is published on (#10024).
+    expect(check).toContain(
+      'HOST_TO_CHECK=$(with_port localhost "$INGRESS_PORT")',
+    );
+    expect(check).toContain(
+      'RESOLVE="localhost:${INGRESS_PORT}:${resolved_address}"',
+    );
     expect(check).toContain("setting=$(read_setting ONEUPTIME_HTTP_PORT)");
     expect(check).toContain('echo "🚀 OneUptime is up! 🚀"');
     expect(readSource("endpointStatus")).toContain("Maximum retries reached");
@@ -1642,13 +1652,52 @@ describe("Docker Compose, against the compose files and scripts", () => {
       ':::details npm start ends with "Maximum retries reached"',
     );
     expect(page).toContain(
-      "It checks the ingress on the port `ONEUPTIME_HTTP_PORT` sets.",
+      "It checks the ingress where `ONEUPTIME_HTTP_PORT` publishes it, address and port, such as `127.0.0.1:8080`, with the host name `localhost`, as a browser on the server would.",
     );
     expect(page).toContain(
-      "`npm start` checks OneUptime on its new port, `localhost:8080`, and ends with **OneUptime is up!**",
+      "`npm start` checks OneUptime where the ingress now listens, `127.0.0.1:8080`, and ends with **OneUptime is up!**",
     );
     // The proxy steps restart with npm start; nobody runs the check by hand.
     expect(page).not.toContain("bash Tests/Scripts/status-check.sh");
+  });
+
+  /*
+   * Behind a proxy of one's own, the ingress listens on 127.0.0.1 alone, and
+   * routes by host name (#10024): the page says what each caller sends it,
+   * and each sends that.
+   */
+  it("with the ingress on 127.0.0.1, each caller sends the host name the page says, one the ingress serves OneUptime under", () => {
+    const restartStep: string = page.slice(
+      page.indexOf("#### Restart OneUptime on the new ports"),
+      page.indexOf("#### Configure the proxy"),
+    );
+    const check: string = readSource("statusCheck");
+
+    expect(restartStep).toContain(
+      "The ingress routes requests by host name: only `HOST` and `localhost` reach the whole application, and any other name, the address `127.0.0.1` included, is treated as a status page domain.",
+    );
+    expect(restartStep).toContain(
+      "So your proxy passes on `HOST`, the name the browser asked for, the probe calls `http://localhost:8080`, and the check that ends `npm start`, like `npm run doctor`, connects to `127.0.0.1:8080` with the host name `localhost:8080`.",
+    );
+
+    // The ingress's primary server: localhost, ingress and HOST, nothing else.
+    expect(readSource("ingressConfig")).toContain(
+      "server_name localhost ingress ${HOST_SERVER_NAME};",
+    );
+
+    // The probe's URL, the doctor's request, and the check's.
+    expect(followIngressScript.ingressUrlOf("127.0.0.1:8080")?.url).toBe(
+      "http://localhost:8080",
+    );
+    expect(followIngressScript.ingressRequestOf("127.0.0.1:8080")).toEqual({
+      url: "http://127.0.0.1:8080",
+      host: "localhost:8080",
+      port: 8080,
+    });
+    expect(check).toContain('CURL_TARGET=(--resolve "$RESOLVE")');
+    expect(check).toContain(
+      '"${CURL_TARGET[@]}" "$HOST_TO_CHECK/status/ready"',
+    );
   });
 
   it("HTTPS settings ship as plain HTTP behind the ingress alone, and the proxy adds one hop", () => {
