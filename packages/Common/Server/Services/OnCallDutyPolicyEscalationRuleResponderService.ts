@@ -28,6 +28,12 @@ export interface EscalationRuleResponder {
 }
 
 /*
+ * The refusals the check before the write made: thrown out of create() as
+ * they are, rather than worded again.
+ */
+const refusedBeforeTheWrite: WeakSet<Error> = new WeakSet<Error>();
+
+/*
  * ONE ROW PER RESPONDER OF AN ESCALATION RULE (#10411): the services of the
  * rows an escalation rule pages through - OnCallDutyPolicyEscalationRuleUser,
  * ...Team and ...Schedule. The why is in EscalationRuleResponderOnce.
@@ -49,12 +55,6 @@ export interface EscalationRuleResponder {
  * reads the responder a write names (readResponder) and words the refusal,
  * naming the responder as the project knows it (getAlreadyOnRuleRefusal).
  */
-/*
- * The refusals the check before the write made: thrown out of create() as
- * they are, rather than worded again.
- */
-const refusedBeforeTheWrite: WeakSet<Error> = new WeakSet<Error>();
-
 export default abstract class OnCallDutyPolicyEscalationRuleResponderService<
   TBaseModel extends BaseModel,
 > extends OnCallDutyPolicyChildService<TBaseModel> {
