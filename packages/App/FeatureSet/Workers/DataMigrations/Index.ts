@@ -154,6 +154,8 @@ import BackfillFirstPagedAt from "./BackfillFirstPagedAt";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
 import AddAuditLogWorkflowRunAsColumns from "./AddAuditLogWorkflowRunAsColumns";
 import CopyAuditLogWorkflowRunAsGiverColumns from "./CopyAuditLogWorkflowRunAsGiverColumns";
+import RedactDataSecurityIssueExplanationLogs from "./RedactDataSecurityIssueExplanationLogs";
+import MaterializeSecurityEventCreatedAtIndex from "./MaterializeSecurityEventCreatedAtIndex";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -1549,6 +1551,27 @@ const DataMigrations: Array<DataMigrationBase> = [
    * before the last one AddAuditLogMcpClientColumns keeps.
    */
   new CopyAuditLogWorkflowRunAsGiverColumns(),
+  /*
+   * Takes Data Security issues out of the AI Logs (#10361): Explain with AI
+   * kept its prompt - the issue's store, data types and evidence - and its
+   * answer as previews every Project Member and Viewer reads. Every row of
+   * that feature gets the words a call that keeps no preview writes now,
+   * and a failed one's error the words a call that keeps no error details
+   * writes. Postgres only, idempotent; before the two slots kept last.
+   */
+  new RedactDataSecurityIssueExplanationLogs(),
+  /*
+   * Builds idx_created_at, the set index of when each security event
+   * arrived (SecurityEvent.createdAt), for the parts already on disk:
+   * scheduled detection rules judge what arrived since their last run
+   * (#10337), and without it a run after the upgrade reads every row of the
+   * last day for the few that arrived. Adds the definition if boot did not,
+   * then queues the build in the background; idempotent. No ordering
+   * requirement of its own; before BackfillIncidentCallTranscriptSignInAccount,
+   * which keeps the slot just before the last one AddAuditLogMcpClientColumns
+   * keeps.
+   */
+  new MaterializeSecurityEventCreatedAtIndex(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

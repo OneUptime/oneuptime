@@ -8,8 +8,9 @@ import {
   getDataSecurityCheck,
   isTelemetryFindingCheck,
 } from "../../../../Types/DataSecurity/DataSecurityCheckCatalog";
-import { getBuiltInDataType } from "../../../../Types/DataSecurity/DataTypeCatalog";
+import DataTypeNamer from "../../../../Types/DataSecurity/DataTypeNamer";
 import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
+import { CODE_TASK_LIMITS } from "../../../../Types/AI/CodeTask";
 import PromptText from "../../../../Utils/AI/PromptText";
 
 /*
@@ -33,6 +34,11 @@ import PromptText from "../../../../Utils/AI/PromptText";
  * - a cloud, a person or a service's code named them, and evidence quotes
  * what a cloud answered - so each goes in as a field, held to a length with
  * embedded data left out.
+ *
+ * Each data type goes in by its name (DataTypeNamer, #10363): the catalog's
+ * for a built-in type, the project's own for a custom one - a person wrote
+ * it, so it is a field too - and "A deleted data type" for one that is
+ * gone. Never a "custom:" id, which says nothing of what the data is.
  */
 
 // The most one of the store's own values takes in the prompt.
@@ -107,11 +113,15 @@ function lineValue(
 /*
  * The issue in words for OneUptime AI, one fact a line: no samples, only
  * what a check saw. A fact nobody recorded is left out, never guessed.
+ * `dataTypes` names the data types: the project's own, read for the request
+ * (ProjectDataTypeNames); when none are handed in, a custom type is named
+ * as one, never by its id.
  */
 export function describeDataSecurityIssueForAi(
   issue: DataSecurityIssue,
   omissions?: AIPromptOmissions | undefined,
   findings: ReadonlyArray<DataSecurityFindingForAi> = [],
+  dataTypeNamer: DataTypeNamer = DataTypeNamer.withoutCustomTypes(),
 ): string {
   const check: DataSecurityCheckInfo | undefined = getDataSecurityCheck(
     issue.checkId || "",
@@ -140,11 +150,14 @@ export function describeDataSecurityIssueForAi(
     name: name || "<store>",
     region: region || undefined,
   };
-  const dataTypes: Array<string> = (issue.dataTypeIds || []).map(
-    (id: string): string => {
-      return getBuiltInDataType(id)?.name || id;
-    },
-  );
+  const dataTypes: Array<string> = dataTypeNamer
+    .namesOf(issue.dataTypeIds)
+    .map((name: string): string => {
+      return lineValue(name, MAX_ISSUE_VALUE_LENGTH, omissions);
+    })
+    .filter((name: string): boolean => {
+      return name.length > 0;
+    });
   const where: Array<string> = [kind || "", region].filter(
     (part: string): boolean => {
       return part.length > 0;
@@ -172,10 +185,12 @@ export function describeDataSecurityIssueForAi(
         MAX_FINDING_LOCATION_LENGTH,
         omissions,
       );
-      const name: string =
-        getBuiltInDataType(finding.dataTypeId || "")?.name ||
-        lineValue(finding.dataTypeName, MAX_ISSUE_VALUE_LENGTH, omissions) ||
-        lineValue(finding.dataTypeId, MAX_ISSUE_VALUE_LENGTH, omissions);
+      // The name its finding kept stands in only when nothing else knows it.
+      const name: string = lineValue(
+        dataTypeNamer.nameOf(finding.dataTypeId || "", finding.dataTypeName),
+        MAX_ISSUE_VALUE_LENGTH,
+        omissions,
+      );
       const kind: string = lineValue(finding.locationKind, 40, omissions);
 
       return location && name
@@ -219,17 +234,47 @@ export function describeDataSecurityIssueForAi(
 }
 
 /*
+ * The most a fix's request holds: what Code takes in a request
+ * (CodeTaskRuns.readMessage), which refuses a longer one whole.
+ */
+export const MAX_FIX_REQUEST_LENGTH: number = CODE_TASK_LIMITS.maxMessageLength;
+
+/*
  * What Fix with AI asks the coding agent to do: the instruction - in the
  * service's code for a telemetry issue, in infrastructure code for any
  * other - then the issue, with the places a telemetry issue's data sits.
+ * Held to MAX_FIX_REQUEST_LENGTH: the places matched least are left out
+ * first, and only then is the end of the issue cut, so the instruction and
+ * what the check saw always go.
  */
 export function buildDataSecurityFixRequest(
   issue: DataSecurityIssue,
   findings: ReadonlyArray<DataSecurityFindingForAi> = [],
+  dataTypeNamer: DataTypeNamer = DataTypeNamer.withoutCustomTypes(),
 ): string {
   const instruction: string = isTelemetryFindingCheck(issue.checkId)
     ? DATA_SECURITY_TELEMETRY_FIX_INSTRUCTION
     : DATA_SECURITY_FIX_INSTRUCTION;
+  const request: (placeCount: number) => string = (
+    placeCount: number,
+  ): string => {
+    return `${instruction}\n\n${describeDataSecurityIssueForAi(
+      issue,
+      undefined,
+      findings.slice(0, placeCount),
+      dataTypeNamer,
+    )}`;
+  };
 
-  return `${instruction}\n\n${describeDataSecurityIssueForAi(issue, undefined, findings)}`;
+  let placeCount: number = Math.min(findings.length, MAX_ISSUE_FINDINGS_FOR_AI);
+  let text: string = request(placeCount);
+
+  while (text.length > MAX_FIX_REQUEST_LENGTH && placeCount > 0) {
+    placeCount--;
+    text = request(placeCount);
+  }
+
+  return text.length > MAX_FIX_REQUEST_LENGTH
+    ? `${text.slice(0, MAX_FIX_REQUEST_LENGTH - 1)}…`
+    : text;
 }

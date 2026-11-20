@@ -379,8 +379,13 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.DataObservability],
     leftAlone: {},
   },
+  /*
+   * And Code, for Fix with AI on an issue: it starts a task in Code, refused
+   * while Code is off as every route that asks OneUptime AI for a code
+   * change is (#10362).
+   */
   "packages/Common/Server/API/DataSecurityAPI.ts": {
-    products: [ProductKey.DataSecurity],
+    products: [ProductKey.DataSecurity, ProductKey.Code],
     leftAlone: {},
   },
   "packages/Common/Server/API/CloudConnectionAPI.ts": {
@@ -846,6 +851,9 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         PUBLIC_PAGE,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/slo-history-aggregate/:dashboardId`":
         PUBLIC_PAGE,
+      // A public dashboard's PromQL widgets: their stored queries only (#10226).
+      "`${new this.entityType() .getCrudApiPath() ?.toString()}${PUBLIC_DASHBOARD_PROMQL_QUERY_PATH}/:dashboardId`":
+        PUBLIC_PAGE,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/master-password/:dashboardId`":
         PUBLIC_PAGE,
     },
@@ -912,6 +920,25 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.Dashboards],
     leftAlone: {
       '"/dashboard-idp-login/:dashboardId/:dashboardSsoId"': PUBLIC_PAGE,
+    },
+  },
+  // A form's sign-in on its public link (#10249), as a dashboard's.
+  "packages/App/FeatureSet/Identity/API/FormPrivateUserAuthentication.ts": {
+    products: [ProductKey.Forms],
+    leftAlone: {
+      "`${FormPrivateUserApiRoutes.login}/:formId`": PUBLIC_PAGE,
+      "`${FormPrivateUserApiRoutes.logout}/:formId`": PUBLIC_PAGE,
+      "`${FormPrivateUserApiRoutes.refreshToken}/:formId`": PUBLIC_PAGE,
+      "`${FormPrivateUserApiRoutes.forgotPassword}/:formId`": PUBLIC_PAGE,
+      "`${FormPrivateUserApiRoutes.resetPassword}/:formId`": PUBLIC_PAGE,
+      "`${FormPrivateUserApiRoutes.exchangeLoginCode}/:formId`": PUBLIC_PAGE,
+      "`${FormPrivateUserApiRoutes.signInMethods}/:formId`": READ,
+    },
+  },
+  "packages/App/FeatureSet/Identity/API/FormSSO.ts": {
+    products: [ProductKey.Forms],
+    leftAlone: {
+      '"/form-idp-login/:formId/:formSsoId"': PUBLIC_PAGE,
     },
   },
   "packages/Common/Server/API/WorkflowVariableAPI.ts": {
@@ -1226,6 +1253,14 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/Notification/API/WhatsApp.ts": 3,
         "packages/App/FeatureSet/Notification/API/Telegram.ts": 3,
         "packages/App/FeatureSet/Notification/API/PushRelay.ts": 2,
+        /*
+         * #7378: SMTPConfig.ts also registers GET /aws-role-setup - what a
+         * project's Amazon SES config makes its IAM role with (the
+         * principal to trust, the project's email external id, a trust
+         * policy) - so it reads, and is no decision here. Its POST /test
+         * checks a role config's role afresh before it sends, as every
+         * test send of how OneUptime reaches people does.
+         */
         "packages/App/FeatureSet/Notification/API/SMTPConfig.ts": 1,
       },
     ),

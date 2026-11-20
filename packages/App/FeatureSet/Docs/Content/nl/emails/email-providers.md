@@ -3,7 +3,7 @@
 Verstuur de e-mail van OneUptime via de HTTPS-API van een e-mailprovider in plaats van via een SMTP-server: Amazon SES, SendGrid, Mailgun, Postmark of Resend. Een project kiest er één voor een SMTP-configuratie, en een zelf gehoste installatie kan al haar eigen e-mail via één ervan versturen. De API wordt via HTTPS op poort 443 bereikt, zodat e-mail ook vertrekt vanuit netwerken die de SMTP-poorten blokkeren, en de sleutel van elke provider wordt versleuteld opgeslagen.
 
 :::cards
-- [Amazon SES](#amazon-ses): Een IAM-toegangssleutel, of de eigen IAM-rol van de server, en de regio waarin uw afzender is geverifieerd.
+- [Amazon SES](#amazon-ses): Een IAM-toegangssleutel, een IAM-rol in uw AWS-account of de eigen IAM-rol van de server, en de regio waarin uw afzender is geverifieerd.
 - [SendGrid](#sendgrid): Een API-sleutel met toegang tot Mail Send.
 - [Mailgun](#mailgun): Een API-sleutel, het verzenddomein en de regio ervan.
 - [Postmark](#postmark): Het API-token van de server.
@@ -55,16 +55,16 @@ Maak een IAM-gebruiker voor OneUptime aan met een beleid dat `ses:SendEmail` op 
 }
 ```
 
-Een zelf gehoste installatie op AWS kan de sleutel overslaan en zich in plaats daarvan [aanmelden met de IAM-rol van de server](#aanmelden-met-de-iam-rol-van-de-server), met hetzelfde beleid.
+Een zelf gehoste installatie op AWS kan de sleutel overslaan en zich in plaats daarvan [aanmelden met de IAM-rol van de server](#aanmelden-met-de-iam-rol-van-de-server), met hetzelfde beleid. Ook de configuratie van een project kan de sleutel overslaan en [zich aanmelden met een IAM-rol in uw AWS-account](#aanmelden-met-een-iam-rol-in-uw-aws-account).
 
 ### De stap Amazon SES invullen
 
-Vul de **Toegangssleutel-ID** en de **Geheime toegangssleutel** in, en zet de **Regio** op de regio waarin uw identiteit is geverifieerd, zoals `us-east-1`.
+Laat **Toegangssleutel** staan als **Authenticatietype**, vul de **Toegangssleutel-ID** en de **Geheime toegangssleutel** in, en zet de **Regio** op de regio waarin uw identiteit is geverifieerd, zoals `us-east-1`.
 :::
 
 ### Aanmelden met de IAM-rol van de server
 
-Een zelf gehoste installatie kan haar eigen e-mail verzenden als een IAM-rol, zonder dat er een toegangssleutel in OneUptime wordt opgeslagen: op AWS de rol die AWS de server geeft, overal elders een rol waarbij ze zich aanmeldt met IAM Roles Anywhere. De inloggegevens verlopen binnen enkele uren, en OneUptime haalt nieuwe op voordat dat gebeurt. Dit geldt alleen voor de eigen e-mail van de server. De Amazon SES-configuratie van een project meldt zich altijd aan met een toegangssleutel, omdat de rol van de server de eigen AWS-identiteit van de server is, niet die van een project.
+Een zelf gehoste installatie kan haar eigen e-mail verzenden als een IAM-rol, zonder dat er een toegangssleutel in OneUptime wordt opgeslagen: op AWS de rol die AWS de server geeft, overal elders een rol waarbij ze zich aanmeldt met IAM Roles Anywhere. De inloggegevens verlopen binnen enkele uren, en OneUptime haalt nieuwe op voordat dat gebeurt. Dit geldt alleen voor de eigen e-mail van de server: de rol van de server is de eigen AWS-identiteit van de server, niet die van een project. De Amazon SES-configuratie van een project meldt zich aan met een toegangssleutel, of met [een IAM-rol in uw AWS-account](#aanmelden-met-een-iam-rol-in-uw-aws-account).
 
 Geef de rol het beleid hierboven en voer OneUptime daarna uit als die rol:
 
@@ -114,6 +114,37 @@ Met de Helm-chart koppelt u de configuratie, het certificaat en de sleutel ervan
 Klik daarna in het Admin Dashboard op **Amazon SES bewerken**, kies **IAM-rol van deze server** als **Authenticatietype** en vul de **Regio** in. Bij het opslaan wordt een eerder opgeslagen toegangssleutel verwijderd.
 
 OneUptime zoekt de inloggegevens van de server waar de AWS SDK's ze zoeken, in deze volgorde: `AWS_ACCESS_KEY_ID` en `AWS_SECRET_ACCESS_KEY` in zijn omgeving, het AWS-profiel dat `AWS_PROFILE`, `AWS_CONFIG_FILE` of `AWS_SHARED_CREDENTIALS_FILE` noemt (de sleutels ervan, of de `credential_process` ervan), een webidentiteitstoken (`AWS_ROLE_ARN` en `AWS_WEB_IDENTITY_TOKEN_FILE`), het endpoint voor containerinloggegevens van Amazon ECS en EKS Pod Identity, en daarna de instancemetadataservice van EC2 (IMDSv2). Is geen van de drie ingesteld, dan leest OneUptime geen enkel AWS-configuratiebestand.
+
+### Aanmelden met een IAM-rol in uw AWS-account
+
+De Amazon SES-configuratie van een project kan zich aanmelden met een IAM-rol in uw eigen AWS-account, zodat er geen sleutel in OneUptime wordt opgeslagen. OneUptime meldt zich bij de rol aan met zijn eigen AWS-identiteit en een externe ID die alleen de e-mail van uw project gebruikt, en elke sessie duurt een uur. Geef de rol het beleid hierboven, en een vertrouwensbeleid dat het AWS-account van OneUptime binnenlaat met die externe ID:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::123456789012:root" },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "oneuptime-0123456789abcdef0123456789abcdef"
+        }
+      }
+    }
+  ]
+}
+```
+
+Kies in de stap **Amazon SES** van de configuratie **IAM-rol in uw AWS-account** als **Authenticatietype**. Onder de **Rol-ARN** toont **De rol in AWS instellen** de **Externe ID** van uw project en dit vertrouwensbeleid met het account van OneUptime en uw ID erin, klaar om te kopiëren. Maak de rol daarmee, vul de **Rol-ARN** ervan en de **Regio** in, en klik daarna in de rij van de configuratie op **Test-e-mail verzenden**. Bij het opslaan van de rol wordt een eerder opgeslagen toegangssleutel verwijderd.
+
+OneUptime controleert de rol voordat het via de rol verzendt, en meldt zich nooit aan bij:
+
+- Een rol waarvan het vertrouwensbeleid de externe ID van uw project niet vereist: elk project dat de ARN ervan kent, zou via uw account e-mail kunnen verzenden. Voeg de voorwaarde `sts:ExternalId` toe en verzend een test-e-mail, die de rol meteen opnieuw controleert. De controle loopt ongeveer één keer per dag, en verschijnt in de CloudTrail van de rol als een `AccessDenied` voor `sts:AssumeRole`.
+- Een rol in het eigen AWS-account van OneUptime, wat het vertrouwensbeleid ervan ook zegt. Gebruik in plaats daarvan [de IAM-rol van de server](#aanmelden-met-de-iam-rol-van-de-server) om de eigen e-mail van de server te verzenden via het account waarin hij draait.
+
+De externe ID is van uw project, en is geen geheim. De IAM-rollen van Cloud Connect gebruiken een andere, dus een rol die voor het ene is gemaakt, wordt nooit door het andere gebruikt. Een server zonder eigen AWS-identiteit, dus zonder toegangssleutel voor Cloud Connect en zonder AWS-inloggegevens, kan zich bij geen enkele rol aanmelden, en de stap zegt dat.
 
 ## SendGrid
 
@@ -233,6 +264,10 @@ De server meldt zich aan met zijn IAM-rol, maar AWS geeft hem geen inloggegevens
 
 :::details "This server's IAM role may not send with Amazon SES" of "did not let this server assume the role"
 Het beleid van de rol staat `ses:SendEmail` op uw identiteit niet toe: voeg het beleid hierboven toe. Of, op Amazon EKS, het vertrouwensbeleid van de rol staat `sts:AssumeRoleWithWebIdentity` niet toe voor de OIDC-provider van uw cluster en het serviceaccount van OneUptime.
+:::
+
+:::details "This role lets OneUptime sign in without this config's external ID" of "This role is in this OneUptime's own AWS account"
+OneUptime verzendt niet via de rol, zoals [Aanmelden met een IAM-rol in uw AWS-account](#aanmelden-met-een-iam-rol-in-uw-aws-account) beschrijft. Voeg de voorwaarde `sts:ExternalId` die **De rol in AWS instellen** in de configuratie toont toe aan het vertrouwensbeleid van de rol, of maak de rol in uw eigen AWS-account, en verzend daarna een test-e-mail.
 :::
 
 :::details "Mailgun has no domain … in its US region"

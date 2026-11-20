@@ -1,8 +1,13 @@
 // UX rule: Docs/ux/README.md#a-products-first-page
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { createInstance, i18n } from "i18next";
 import * as React from "react";
+import { I18nextProvider } from "react-i18next";
+import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import GuidedSetupResourcePanel, {
   GUIDED_SETUP_PANEL_COPY,
@@ -243,6 +248,73 @@ describe("each record, by how it is getting on", () => {
     expect(live).toHaveAttribute("aria-atomic", "true");
     expect(live).toHaveTextContent("MonitorCreated");
   });
+});
+
+/*
+ * A record's Open is the Open button's verb, "open it": the one meaning the
+ * Dashboard's "Open" has in every language (App/Tests/Dashboard/
+ * OneMeaningPerKey). So it reads as each language's button does, beside the
+ * record it opens, never as a state ("still open").
+ */
+describe("a record's Open, in the reader's language", () => {
+  /*
+   * Handed to the panel by I18nextProvider alone, never made react-i18next's
+   * global instance (initReactI18next), so the suite's other tests still
+   * draw the panel in English whatever language this one is left in.
+   */
+  const translation: i18n = createInstance();
+
+  beforeAll(async () => {
+    await translation.init({
+      lng: "en",
+      fallbackLng: "en",
+      resources: {
+        en: { translation: englishLocale },
+        de: { translation: germanLocale },
+        fa: { translation: persianLocale },
+      },
+      interpolation: { escapeValue: false },
+    });
+  });
+
+  test("its key is the Open button's own, not a state's", () => {
+    expect(GUIDED_SETUP_PANEL_COPY.open).toBe("Open");
+  });
+
+  test.each([
+    ["en", "Open"],
+    ["de", "Öffnen"],
+    ["fa", "باز کردن"],
+  ])(
+    "in %s it reads %s and opens the record in a new tab",
+    async (language: string, word: string) => {
+      await translation.changeLanguage(language);
+
+      render(
+        <I18nextProvider i18n={translation}>
+          <GuidedSetupResourcePanel
+            groups={[
+              group([
+                row(GuidedSetupResourceStatus.Created, {
+                  name: "acme.example",
+                  route: new Route("/dashboard/p/monitors/m-1"),
+                }),
+              ]),
+            ]}
+          />
+        </I18nextProvider>,
+      );
+
+      const open: HTMLElement = screen.getByTestId(
+        "guided-setup-resource-monitor-open",
+      );
+
+      expect(open.textContent).toBe(word);
+      expect(open.tagName).toBe("A");
+      expect(open).toHaveAttribute("href", "/dashboard/p/monitors/m-1");
+      expect(open).toHaveAttribute("target", "_blank");
+    },
+  );
 });
 
 describe("the panel's heading and its foot", () => {

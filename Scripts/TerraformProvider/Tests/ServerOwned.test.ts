@@ -9,6 +9,7 @@ import {
   TerraformAttribute,
   TerraformResource,
 } from "../Core/Types";
+import { providerGoFilePath } from "../Core/ProviderShards";
 
 /*
  * WHAT ONEUPTIME KEEPS ONCE A RECORD EXISTS (#9985).
@@ -29,7 +30,7 @@ import {
  *     Terraform used to set a monitor's status back every time a check
  *     moved it.
  *
- * Every resource's ModifyPlan also starts with keepLeftOutUnderCrossplane
+ * Every resource's ModifyPlan also starts with KeepLeftOutUnderCrossplane
  * (StaticFiles/crossplane.go): under Crossplane a field a manifest leaves
  * out of a record that exists keeps the record's value. The plans
  * themselves are tested in Go (serverowned_test.go, serverowned_plan_test.go,
@@ -237,7 +238,7 @@ async function generate(options: SpecOptions, dir: string): Promise<string> {
   await new ResourceGenerator(config, buildSpec(options)).generateResources();
 
   return fs.readFileSync(
-    path.join(dir, "internal/provider/resource_monitor.go"),
+    path.join(dir, providerGoFilePath("resource_monitor.go")),
     "utf-8",
   );
 }
@@ -459,11 +460,11 @@ describe("the generated resource", () => {
     for (const source of [resourceGo, plainResourceGo]) {
       const modifyPlan: string = method(source, "ModifyPlan");
       const kept: number = modifyPlan.indexOf(
-        "keepLeftOutUnderCrossplane(ctx, req, resp)",
+        "KeepLeftOutUnderCrossplane(ctx, req, resp)",
       );
       expect(kept).toBeGreaterThan(modifyPlan.indexOf("req.Plan.Raw.IsNull()"));
       expect(kept).toBeLessThan(
-        modifyPlan.indexOf("keepStateWhenNothingChanges(ctx, req, resp)"),
+        modifyPlan.indexOf("KeepStateWhenNothingChanges(ctx, req, resp)"),
       );
     }
   });

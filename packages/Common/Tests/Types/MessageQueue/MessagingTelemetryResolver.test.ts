@@ -1653,6 +1653,8 @@ describe("temporary, anonymous and placeholder destinations", () => {
     ["kafka", "[REDACTED]", true],
     ["aws_sqs", "[redacted]", true],
     ["rabbitmq", "[HASHED:ab12cd34]", true],
+    // A Hash rule's token keyed per project: 16 hex characters (#10394).
+    ["rabbitmq", "[HASHED:5e29db14e508e09a]", true],
     ["servicebus", "[hashed:0F1E2D3C]", true],
     ["kafka", "***", true],
     ["jms", "*", true],
@@ -1751,7 +1753,12 @@ describe("temporary, anonymous and placeholder destinations", () => {
       "activemq",
       "ibmmq",
     ]) {
-      for (const scrubbed of ["[REDACTED]", "[HASHED:5e3e9847]", "***"]) {
+      for (const scrubbed of [
+        "[REDACTED]",
+        "[HASHED:5e3e9847]",
+        "[HASHED:5e29db14e508e09a]",
+        "***",
+      ]) {
         expect({
           system,
           scrubbed,

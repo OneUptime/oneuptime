@@ -485,9 +485,9 @@ detection:
 | **Kör i realtid** | Av för en ny regel. När den är på kontrollerar regeln varje händelse när den kommer in i stället för vid varje intervall; se [Realtidsregler](#realtidsregler). |
 | **Grupperingsfält** | Valfritt. Träffar som delar det här fältets värde, till exempel `principalHost`, räknas, larmas och dedupliceras tillsammans: ett larm per värd i stället för hundratals. |
 | **Fält för unik räkning** | Valfritt. Räkna de olika värdena i det här fältet i stället för de träffande händelserna. Tomma värden räknas inte. |
-| **Tröskel för antal träffar** | En grupp löser bara ut när dess räkning når det här talet inom en körning, eller inom ett fönster i realtid: 1 till 1000000, och 1 löser ut vid varje träff. |
+| **Tröskel för antal träffar** | En grupp löser bara ut när dess räkning når det här talet inom ett fönster av regelns intervall: 1 till 1000000, och 1 löser ut vid varje träff. |
 
-Group By och Distinct Count tar samma fältnamn som regeln. Med dem säger tröskeln ”så här många, från samma sak, i en körning”, utan någon monitor ovanpå:
+Group By och Distinct Count tar samma fältnamn som regeln. Med dem säger tröskeln ”så här många, från samma sak, i ett fönster”, utan någon monitor ovanpå:
 
 | Mål | Group By Field | Distinct Count Field | Tröskel |
 | --- | --- | --- | --- |
@@ -499,11 +499,11 @@ Group By och Distinct Count tar samma fältnamn som regeln. Med dem säger trös
 
 ### När en regel körs
 
-OneUptime kontrollerar varje minut om det finns aktiverade regler vars intervall har gått sedan deras senaste körning. Varje körning läser händelserna vars händelsetid infaller mellan den föregående körningen och för två minuter sedan, och går sedan vidare. De två minuterna ger utrymme åt händelser som fortfarande är på väg, till exempel en loggrad som läses en minut efter att den skrevs:
+OneUptime kontrollerar varje minut om det finns aktiverade regler vars intervall har gått sedan deras senaste körning. Varje körning läser händelserna som kom fram till OneUptime mellan den föregående körningen och för två minuter sedan, oavsett när de hände, och går sedan vidare. De två minuterna ger utrymme åt händelser som fortfarande skrivs:
 
-- Fönstren ligger efter varandra och glider inte. Med ett intervall på 10 minuter kan misslyckanden kl. 09:58 och 10:01 hamna i olika körningar och räknas var för sig, så lämna marginal när du väljer en tröskel.
+- En räknande regel och en korrelation räknar i fönster lika långa som intervallet, efter varandra enligt klockan: med ett intervall på 10 minuter hamnar misslyckanden kl. 09:58 och 10:01 i olika fönster och räknas var för sig, så lämna marginal när du väljer en tröskel.
 - Efter ett uppehåll, till exempel ett worker-avbrott eller en regel som slagits på igen, täcker nästa körning hela uppehållet, upp till de senaste 24 timmarna.
-- En händelse som kommer mer än två minuter för sent, efter att en körning redan har täckt dess tid, lagras och är sökbar, men den regeln läser den aldrig.
+- En händelse som kommer in sent läses ändå en gång av nästa körning och räknas i det fönster den hände i: en grupp löser ut när dess fönster når räkningen, och högst en gång per fönster. En händelse som kommer in mer än ett dygn efter att den hände lagras och är sökbar, men regelns körningar läser den inte; **Kör på tidigare händelser** gör det.
 - Varje grupp som når tröskeln blir ett Detection Finding, upp till 10 000 per körning. Larm, incidenter och ärenden öppnas för de 100 med högst räkning; resten delar ett ärende om regeln, och regelns **Senaste fel** säger hur många grupper som träffade.
 
 ### Realtidsregler

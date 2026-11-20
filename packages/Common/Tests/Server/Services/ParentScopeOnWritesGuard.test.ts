@@ -405,10 +405,30 @@ describe("a create limited to owned records makes a record its creator owns", ()
       path.join(SERVER_DIRECTORY, "Services/DatabaseService.ts"),
       "utf8",
     );
-    const start: number = source.indexOf(
+
+    // A create runs in _create, which create hands it to.
+    const entryStart: number = source.indexOf(
       "public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {",
     );
-    const create: string = source.slice(start, start + 20000);
+    const entry: string = source.slice(
+      entryStart,
+      source.indexOf("\n  }\n", entryStart),
+    );
+
+    expect(entryStart).toBeGreaterThan(-1);
+    expect(entry).toContain("return await this._create(createBy, handedBack);");
+
+    /*
+     * The whole of _create, to its closing brace: its steps are read
+     * wherever they fall in it, however long it grows.
+     */
+    const start: number = source.indexOf(
+      "private async _create(\n    createBy: CreateBy<TBaseModel>,",
+    );
+    const create: string = source.slice(
+      start,
+      source.indexOf("\n  }\n", start),
+    );
 
     const decided: number = create.indexOf(
       "this.createReliesOnOwnership(createBy.props) &&\n      OwnedScopePermission.hasOwnerTables(this.modelType);",

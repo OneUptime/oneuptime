@@ -45,6 +45,7 @@ describe("HostLogSession", () => {
     expect(model.singularName).toBe("Log Session");
   });
 
+  // Hosts' levels (#10289) follow the roles: Host Member asks, Host Viewer reads.
   test("asking takes the right to change the host; reading, the right to read it", () => {
     expect(sorted(model.createRecordPermissions)).toEqual(
       sorted([
@@ -52,6 +53,8 @@ describe("HostLogSession", () => {
         Permission.ProjectAdmin,
         Permission.ProjectMember,
         Permission.EditHost,
+        Permission.HostAdmin,
+        Permission.HostMember,
       ]),
     );
     expect(sorted(model.readRecordPermissions)).toEqual(
@@ -61,6 +64,9 @@ describe("HostLogSession", () => {
         Permission.ProjectMember,
         Permission.Viewer,
         Permission.ReadHost,
+        Permission.HostAdmin,
+        Permission.HostMember,
+        Permission.HostViewer,
       ]),
     );
     expect(sorted(model.updateRecordPermissions)).toEqual(

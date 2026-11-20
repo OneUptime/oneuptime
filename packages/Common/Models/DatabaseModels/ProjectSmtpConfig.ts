@@ -21,6 +21,7 @@ import Email from "../../Types/Email";
 import MailgunRegion from "../../Types/Email/MailgunRegion";
 import MailTransportType from "../../Types/Email/MailTransportType";
 import OAuthProviderType from "../../Types/Email/OAuthProviderType";
+import ProjectAmazonSesAuthenticationType from "../../Types/Email/ProjectAmazonSesAuthenticationType";
 import SMTPAuthenticationType from "../../Types/Email/SMTPAuthenticationType";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
@@ -1046,6 +1047,94 @@ export default class ProjectSmtpConfig extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public amazonSesRegion?: string = undefined;
+
+  /*
+   * HOW AMAZON SES IS SIGNED IN TO (#7378): the access key above, as every
+   * config has, or an IAM role in the project's own AWS account, which
+   * OneUptime signs in to with sts:AssumeRole and this project's email
+   * external id - no key stored (AmazonSesProjectRole). A project's own
+   * values (ProjectAmazonSesAuthenticationType), never the server's: a
+   * config that asks for the server's own IAM role is refused. Neither
+   * column is a secret, so both are read as the access key ID is.
+   */
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSMTPConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectSMTPConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSMTPConfig,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(ProjectAmazonSesAuthenticationType),
+    title: "Amazon SES Authentication Type",
+    description:
+      "How OneUptime signs in to Amazon SES: 'Access Key' with the access key ID and secret access key, or 'IAM Role' with an IAM role in your own AWS account (Amazon SES Role ARN), which OneUptime signs in to with this project's external ID. Read only when Transport is Amazon SES.",
+    defaultValue: ProjectAmazonSesAuthenticationType.AccessKey,
+    isDefaultValueColumn: true,
+    example: "Access Key",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    default: ProjectAmazonSesAuthenticationType.AccessKey,
+  })
+  public amazonSesAuthenticationType?: ProjectAmazonSesAuthenticationType =
+    undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSMTPConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectSMTPConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSMTPConfig,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "Amazon SES Role ARN",
+    description:
+      "The ARN of the IAM role in your AWS account that OneUptime signs in to, when Amazon SES Authentication Type is 'IAM Role'. Its trust policy must let OneUptime's AWS account in with this project's external ID, and the role must be allowed ses:SendEmail.",
+    example: "arn:aws:iam::123456789012:role/OneUptimeSes",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public amazonSesRoleArn?: string = undefined;
 
   @ColumnAccessControl({
     create: [

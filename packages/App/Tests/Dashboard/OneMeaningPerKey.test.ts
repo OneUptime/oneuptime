@@ -82,6 +82,8 @@ const OPEN_IS_THE_VERB: Record<string, string> = {
     "the button that opens a cited record",
   "Components/DataSecurity/DataSecurityCatalogTerms.ts":
     "the issue's Open button, listed beside the state's own key, Open (status)",
+  "Components/GuidedSetup/GuidedSetupResourcePanel.tsx":
+    "the link that opens a record a guided setup made, in a new tab",
   "Components/NetworkTraffic/TrafficAddressCard.tsx":
     "the link that opens an address's record",
   "Components/ResourceTopology/ResourceTopologyNodes.tsx":

@@ -6,6 +6,11 @@ import { CheckOn, FilterType } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import {
+  MetricMonitorQueryLanguage,
+  MonitorStepMetricMonitorUtil,
+  PROMQL_METRIC_ALIAS,
+} from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import { getProxmoxAlertTemplateById } from "Common/Types/Monitor/ProxmoxAlertTemplates";
@@ -355,6 +360,97 @@ describe("a monitor edited since the event", () => {
             }),
           ),
         ],
+        snapshotQueries: SNAPSHOT,
+      }),
+    ).toEqual([]);
+  });
+});
+
+/*
+ * Issue #10227: an incident a step written in PromQL opened keeps its
+ * expression as its one query, named by no metric; the line is drawn while
+ * the step still evaluates that expression.
+ */
+describe("a monitor written in PromQL", () => {
+  const promQLStepOf: (data: {
+    rules: Array<MonitorCriteriaInstance>;
+    query: string;
+    queryLanguage?: MetricMonitorQueryLanguage;
+  }) => MonitorStep = (data: {
+    rules: Array<MonitorCriteriaInstance>;
+    query: string;
+    queryLanguage?: MetricMonitorQueryLanguage;
+  }): MonitorStep => {
+    const step: MonitorStep = stepOf({ rules: data.rules });
+    step.data!.metricMonitor = {
+      ...step.data!.metricMonitor!,
+      queryLanguage: data.queryLanguage || MetricMonitorQueryLanguage.PromQL,
+      promQLQuery: data.query,
+    };
+    return step;
+  };
+
+  const snapshotOf: (query: string) => MetricInvestigationQueries = (
+    query: string,
+  ): MetricInvestigationQueries => {
+    return {
+      queryConfigs:
+        MonitorStepMetricMonitorUtil.getPromQLViewConfig(query).queryConfigs,
+      formulaConfigs: [],
+    };
+  };
+
+  const rule: MonitorCriteriaInstance = ruleOf({
+    id: "rule-1",
+    alias: PROMQL_METRIC_ALIAS,
+    value: 5,
+  });
+
+  test("its rule's value is a line on the expression the event charts", () => {
+    expect(
+      valuesOf(
+        getEventMetricThresholds({
+          createdCriteriaId: "rule-1",
+          monitors: [
+            monitorOf(promQLStepOf({ rules: [rule], query: " up == 0 " })),
+          ],
+          snapshotQueries: snapshotOf("up == 0"),
+        }),
+      ),
+    ).toEqual([[PROMQL_METRIC_ALIAS, 5]]);
+  });
+
+  test.each<[string, MonitorStep]>([
+    [
+      "another expression since",
+      promQLStepOf({ rules: [rule], query: "up == 1" }),
+    ],
+    [
+      "switched back to the builder since",
+      promQLStepOf({
+        rules: [rule],
+        query: "up == 0",
+        queryLanguage: MetricMonitorQueryLanguage.Builder,
+      }),
+    ],
+  ])(
+    "a step that evaluates %s draws nothing: the line was the old expression's",
+    (_name: string, step: MonitorStep) => {
+      expect(
+        getEventMetricThresholds({
+          createdCriteriaId: "rule-1",
+          monitors: [monitorOf(step)],
+          snapshotQueries: snapshotOf("up == 0"),
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  test("a builder event's chart gets no line from a step switched to PromQL since", () => {
+    expect(
+      getEventMetricThresholds({
+        createdCriteriaId: "rule-1",
+        monitors: [monitorOf(promQLStepOf({ rules: [rule], query: "up" }))],
         snapshotQueries: SNAPSHOT,
       }),
     ).toEqual([]);

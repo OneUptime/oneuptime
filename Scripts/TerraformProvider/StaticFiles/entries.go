@@ -47,7 +47,7 @@ package provider
 // versions did: the configuration's list is the record's whole list, the
 // state is the record's, and an update sends the whole list. Under
 // Crossplane the state is the record's too, and an update sends the
-// entries planShared works out from what the manifest last applied.
+// entries PlanShared works out from what the manifest last applied.
 
 import (
 	"context"
@@ -75,25 +75,25 @@ const (
 // What a create's answer names the fields it left out with (#10136).
 const fieldsLeftOutHeader = "X-OneUptime-Fields-Left-Out"
 
-// holdsDeclaredEntries says whether a list's state holds only the entries
+// HoldsDeclaredEntries says whether a list's state holds only the entries
 // the configuration declares: under Terraform, unless exclusive_lists.
-func (c *Client) holdsDeclaredEntries() bool {
+func (c *Client) HoldsDeclaredEntries() bool {
 	return c != nil && !c.exclusiveLists && !underCrossplane.Load()
 }
 
-// changesEntriesOneByOne says whether an update sends a list's changes
+// ChangesEntriesOneByOne says whether an update sends a list's changes
 // entry by entry rather than the whole list: always, but under Terraform
 // with exclusive_lists.
-func (c *Client) changesEntriesOneByOne() bool {
+func (c *Client) ChangesEntriesOneByOne() bool {
 	return underCrossplane.Load() || c == nil || !c.exclusiveLists
 }
 
-// declaredEntries is which attributes hold a configuration's entries.
-type declaredEntries map[string]bool
+// DeclaredEntries is which attributes hold a configuration's entries.
+type DeclaredEntries map[string]bool
 
-// readDeclaredEntries is what the private state says, or nothing.
-func readDeclaredEntries(ctx context.Context, private privateState) declaredEntries {
-	declared := declaredEntries{}
+// ReadDeclaredEntries is what the private state says, or nothing.
+func ReadDeclaredEntries(ctx context.Context, private PrivateState) DeclaredEntries {
+	declared := DeclaredEntries{}
 	if noPrivateState(private) {
 		return declared
 	}
@@ -111,8 +111,8 @@ func readDeclaredEntries(ctx context.Context, private privateState) declaredEntr
 	return declared
 }
 
-// write keeps them in the private state; none clears the key.
-func (d declaredEntries) write(ctx context.Context, private privateState) diag.Diagnostics {
+// Write keeps them in the private state; none clears the key.
+func (d DeclaredEntries) Write(ctx context.Context, private PrivateState) diag.Diagnostics {
 	if noPrivateState(private) {
 		return nil
 	}
@@ -206,8 +206,8 @@ func stringListOf(entries []string) types.List {
 // the record still has, the record's whole list on the read after an import
 // (which adopts them), or none (null) for a list no configuration declared.
 // adopted says the list was taken whole: its state holds declared entries.
-func heldEntriesAfterRead(client *Client, declared declaredEntries, name string, prior, record attr.Value) (entries []string, isNull bool, adopted bool) {
-	if !client.holdsDeclaredEntries() {
+func heldEntriesAfterRead(client *Client, declared DeclaredEntries, name string, prior, record attr.Value) (entries []string, isNull bool, adopted bool) {
+	if !client.HoldsDeclaredEntries() {
 		return entriesIn(record), record.IsNull(), false
 	}
 	if !declared[name] {
@@ -219,25 +219,25 @@ func heldEntriesAfterRead(client *Client, declared declaredEntries, name string,
 	return keptEntries(entriesIn(prior), entriesIn(record)), false, false
 }
 
-// setEntriesAfterRead is heldEntriesAfterRead for a set attribute.
-func setEntriesAfterRead(client *Client, declared declaredEntries, name string, prior, record types.Set) types.Set {
+// SetEntriesAfterRead is heldEntriesAfterRead for a set attribute.
+func SetEntriesAfterRead(client *Client, declared DeclaredEntries, name string, prior, record types.Set) types.Set {
 	entries, isNull, _ := heldEntriesAfterRead(client, declared, name, prior, record)
 	if isNull {
 		return types.SetNull(types.StringType)
 	}
-	if !client.holdsDeclaredEntries() {
+	if !client.HoldsDeclaredEntries() {
 		return record
 	}
 	return stringSetOf(entries)
 }
 
-// listEntriesAfterRead is heldEntriesAfterRead for a list attribute.
-func listEntriesAfterRead(client *Client, declared declaredEntries, name string, prior, record types.List) types.List {
+// ListEntriesAfterRead is heldEntriesAfterRead for a list attribute.
+func ListEntriesAfterRead(client *Client, declared DeclaredEntries, name string, prior, record types.List) types.List {
 	entries, isNull, _ := heldEntriesAfterRead(client, declared, name, prior, record)
 	if isNull {
 		return types.ListNull(types.StringType)
 	}
-	if !client.holdsDeclaredEntries() {
+	if !client.HoldsDeclaredEntries() {
 		return record
 	}
 	return stringListOf(entries)
@@ -265,24 +265,24 @@ func heldEntriesAfterWrite(client *Client, isCreate, wasDeclared bool, config, p
 	}
 	if config == nil || config.IsNull() {
 		if isCreate {
-			if !client.holdsDeclaredEntries() {
+			if !client.HoldsDeclaredEntries() {
 				return record, false
 			}
 			return nil, false
 		}
 		if plan == nil || plan.IsUnknown() {
-			return record, wasDeclared && client.holdsDeclaredEntries()
+			return record, wasDeclared && client.HoldsDeclaredEntries()
 		}
-		return plan, wasDeclared && client.holdsDeclaredEntries()
+		return plan, wasDeclared && client.HoldsDeclaredEntries()
 	}
 	if plan == nil || plan.IsUnknown() {
-		return record, client.holdsDeclaredEntries()
+		return record, client.HoldsDeclaredEntries()
 	}
-	return plan, client.holdsDeclaredEntries()
+	return plan, client.HoldsDeclaredEntries()
 }
 
-// setEntriesAfterWrite is heldEntriesAfterWrite for a set attribute.
-func setEntriesAfterWrite(client *Client, isCreate, wasDeclared bool, config, plan, record types.Set) (types.Set, bool) {
+// SetEntriesAfterWrite is heldEntriesAfterWrite for a set attribute.
+func SetEntriesAfterWrite(client *Client, isCreate, wasDeclared bool, config, plan, record types.Set) (types.Set, bool) {
 	value, declared := heldEntriesAfterWrite(client, isCreate, wasDeclared, config, plan, record)
 	if value == nil {
 		return types.SetNull(types.StringType), declared
@@ -290,8 +290,8 @@ func setEntriesAfterWrite(client *Client, isCreate, wasDeclared bool, config, pl
 	return value.(types.Set), declared
 }
 
-// listEntriesAfterWrite is heldEntriesAfterWrite for a list attribute.
-func listEntriesAfterWrite(client *Client, isCreate, wasDeclared bool, config, plan, record types.List) (types.List, bool) {
+// ListEntriesAfterWrite is heldEntriesAfterWrite for a list attribute.
+func ListEntriesAfterWrite(client *Client, isCreate, wasDeclared bool, config, plan, record types.List) (types.List, bool) {
 	value, declared := heldEntriesAfterWrite(client, isCreate, wasDeclared, config, plan, record)
 	if value == nil {
 		return types.ListNull(types.StringType), declared
@@ -299,23 +299,23 @@ func listEntriesAfterWrite(client *Client, isCreate, wasDeclared bool, config, p
 	return value.(types.List), declared
 }
 
-// entryChanges is what an update adds to each list and takes off it, by
+// EntryChanges is what an update adds to each list and takes off it, by
 // the API's name of the list (#10135).
-type entryChanges struct {
+type EntryChanges struct {
 	add    map[string][]string
 	remove map[string][]string
 	// The Terraform names of the lists, by their API names: for refusals.
 	names map[string]string
 }
 
-func newEntryChanges() *entryChanges {
-	return &entryChanges{add: map[string][]string{}, remove: map[string][]string{}, names: map[string]string{}}
+func NewEntryChanges() *EntryChanges {
+	return &EntryChanges{add: map[string][]string{}, remove: map[string][]string{}, names: map[string]string{}}
 }
 
-// diff records what makes `prior` into `planned`: each entry planned that
+// Diff records what makes `prior` into `planned`: each entry planned that
 // prior does not have is added, each one prior has that planned does not
 // is taken off. Entries compare as IDs do, whatever their case.
-func (e *entryChanges) diff(name, apiName string, planned, prior attr.Value) {
+func (e *EntryChanges) Diff(name, apiName string, planned, prior attr.Value) {
 	plannedEntries := entriesIn(planned)
 	priorEntries := entriesIn(prior)
 	e.names[apiName] = name
@@ -331,8 +331,8 @@ func (e *entryChanges) diff(name, apiName string, planned, prior attr.Value) {
 	}
 }
 
-// any says whether there is an entry to add or take off.
-func (e *entryChanges) any() bool {
+// Any says whether there is an entry to add or take off.
+func (e *EntryChanges) Any() bool {
 	for _, entries := range e.add {
 		if len(entries) > 0 {
 			return true
@@ -346,8 +346,8 @@ func (e *entryChanges) any() bool {
 	return false
 }
 
-// addTo puts the entries in an update's request body, beside its data.
-func (e *entryChanges) addTo(request map[string]interface{}) {
+// AddTo puts the entries in an update's request body, beside its data.
+func (e *EntryChanges) AddTo(request map[string]interface{}) {
 	for key, byList := range map[string]map[string][]string{addToListKey: e.add, removeFromListKey: e.remove} {
 		lists := map[string]interface{}{}
 		for apiName, entries := range byList {
@@ -366,10 +366,10 @@ func (e *entryChanges) addTo(request map[string]interface{}) {
 	}
 }
 
-// check says whether the record, read back after the update, holds what it
+// Check says whether the record, read back after the update, holds what it
 // added to a list and none of what it took off: a OneUptime older than
 // this provider reads only an update's data, and changes no entry.
-func (e *entryChanges) check(apiName string, record attr.Value) diag.Diagnostics {
+func (e *EntryChanges) Check(apiName string, record attr.Value) diag.Diagnostics {
 	var diags diag.Diagnostics
 	entries := entriesIn(record)
 	missing := []string{}
@@ -405,10 +405,10 @@ func (e *entryChanges) check(apiName string, record attr.Value) diag.Diagnostics
 	return diags
 }
 
-// fieldsLeftOutWarning is what a create's answer says it left out because
+// FieldsLeftOutWarning is what a create's answer says it left out because
 // only OneUptime writes it (#10136), as a warning, or none: a provider
 // older than OneUptime may still send such a field.
-func fieldsLeftOutWarning(resp *http.Response, resourceName string) diag.Diagnostics {
+func FieldsLeftOutWarning(resp *http.Response, resourceName string) diag.Diagnostics {
 	var diags diag.Diagnostics
 	if resp == nil {
 		return diags

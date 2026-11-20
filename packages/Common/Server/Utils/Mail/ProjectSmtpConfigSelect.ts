@@ -7,8 +7,10 @@ import ProjectSmtpConfig from "../../../Models/DatabaseModels/ProjectSmtpConfig"
  * Everything ProjectSmtpConfigService.toEmailServer reads, for every
  * transport: the mail server and its sign-in, Microsoft Graph's OAuth app,
  * and the key of each provider with an HTTP API of its own - Amazon SES's
- * access key and Region, SendGrid's, Mailgun's key, domain and region,
- * Postmark's server token and Resend's key - with the sender.
+ * access key and Region, or its IAM role and the config's own project
+ * (#7378: the role's external id is derived from that project alone),
+ * SendGrid's, Mailgun's key, domain and region, Postmark's server token
+ * and Resend's key - with the sender.
  *
  * A reader that listed the columns by hand would leave out whatever came
  * after it was written: a status page whose config sends through Amazon SES
@@ -20,6 +22,8 @@ import ProjectSmtpConfig from "../../../Models/DatabaseModels/ProjectSmtpConfig"
  */
 export const PROJECT_SMTP_CONFIG_SEND_SELECT: Select<ProjectSmtpConfig> = {
   _id: true,
+  // Whose config it is: an Amazon SES role is signed in to with this project's external id.
+  projectId: true,
   transportType: true,
   hostname: true,
   port: true,
@@ -37,6 +41,8 @@ export const PROJECT_SMTP_CONFIG_SEND_SELECT: Select<ProjectSmtpConfig> = {
   amazonSesAccessKeyId: true,
   amazonSesSecretAccessKey: true,
   amazonSesRegion: true,
+  amazonSesAuthenticationType: true,
+  amazonSesRoleArn: true,
   sendgridApiKey: true,
   mailgunApiKey: true,
   mailgunDomain: true,

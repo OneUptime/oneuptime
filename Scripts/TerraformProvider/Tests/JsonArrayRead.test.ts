@@ -17,6 +17,7 @@ import path from "path";
 import { DataSourceGenerator } from "../Core/DataSourceGenerator";
 import { ProviderGenerator } from "../Core/ProviderGenerator";
 import { ResourceGenerator } from "../Core/ResourceGenerator";
+import { providerGoFilePath } from "../Core/ProviderShards";
 import { buildFixtureSpec } from "./Fixtures";
 
 const GENERATED_DIR: string = "internal/provider";
@@ -45,11 +46,11 @@ beforeAll(async () => {
   await new DataSourceGenerator(config, spec).generateDataSources();
 
   monitorResourceGo = fs.readFileSync(
-    path.join(outputDir, GENERATED_DIR, "resource_monitor.go"),
+    path.join(outputDir, providerGoFilePath("resource_monitor.go")),
     "utf-8",
   );
   monitorDataSourceGo = fs.readFileSync(
-    path.join(outputDir, GENERATED_DIR, "data_source_monitor.go"),
+    path.join(outputDir, providerGoFilePath("data_source_monitor.go")),
     "utf-8",
   );
 });
@@ -121,6 +122,10 @@ describe("the round-trip test", () => {
 
     expect(fs.readFileSync(copied, "utf-8")).toContain(
       "func TestRunbookSteps_CreateRefreshAndUpdateKeepTheArray(",
+    );
+    // An HTTP request step's certificate settings (OneUptime#10277).
+    expect(fs.readFileSync(copied, "utf-8")).toContain(
+      "func TestRunbookSteps_HttpStepCertificateSettingsKeepTheirValues(",
     );
   });
 });

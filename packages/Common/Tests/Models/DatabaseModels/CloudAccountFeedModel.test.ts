@@ -10,6 +10,8 @@ import Permission, {
   PermissionHelper,
   PermissionProps,
 } from "../../../Types/Permission";
+import ProductKey from "../../../Types/Product/ProductKey";
+import { getProductLevelOfPermission } from "../../../Types/Product/ProductLevels";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -110,7 +112,22 @@ describe("CloudAccountFeed", () => {
   test("is read with the Cloud Resource feed's permissions, as its account is with the Cloud Resource ones", () => {
     const reads: Array<Permission> = model.getReadPermissions();
 
-    expect(reads).toEqual(new CloudResourceFeed().getReadPermissions());
+    /*
+     * But App Platforms' levels (#10289): a cloud resource's feed is Cloud's
+     * and App Platforms' both, a cloud account's is Cloud's alone.
+     */
+    expect(reads).toEqual(
+      new CloudResourceFeed()
+        .getReadPermissions()
+        .filter((permission: Permission): boolean => {
+          return (
+            getProductLevelOfPermission(permission)?.product !==
+            ProductKey.AppPlatforms
+          );
+        }),
+    );
+    expect(reads).toContain(Permission.CloudViewer);
+    expect(reads).not.toContain(Permission.AppPlatformViewer);
     expect(reads).toContain(Permission.ReadCloudResourceFeed);
 
     for (const permission of reads) {

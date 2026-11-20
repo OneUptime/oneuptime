@@ -12,8 +12,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * And Probe.egressIpAddress, the address a probe checks in from, which the
  * blocklist never blocks: a nullable column, added without a rewrite.
  */
-export class AddSecurityBlocklist1809187100000 implements MigrationInterface {
-  public name: string = "AddSecurityBlocklist1809187100000";
+export class AddSecurityBlocklist1809187150000 implements MigrationInterface {
+  public name: string = "AddSecurityBlocklist1809187150000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

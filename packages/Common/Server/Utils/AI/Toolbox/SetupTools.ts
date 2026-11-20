@@ -85,6 +85,10 @@ import {
 } from "../../../../Utils/GuidedSetup/OnCallPolicyRecords";
 import { createWithFreeName } from "../../../../Types/Database/UniqueName";
 import {
+  ESCALATION_RULE_TEAM_INDEX,
+  ESCALATION_RULE_USER_INDEX,
+} from "../../../../Types/OnCallDutyPolicy/EscalationRuleResponderOnce";
+import {
   STATUS_PAGE_NAME_MIN_LENGTH,
   buildGuidedStatusPage,
   buildGuidedStatusPageMonitor,
@@ -101,6 +105,7 @@ import {
   pickWebsiteMonitorSeeds,
 } from "../../../../Utils/GuidedSetup/WebsiteMonitorRecords";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import PostgresErrorTranslator from "../../Database/PostgresErrorTranslator";
 import AlertOnCallRuleService from "../../../Services/AlertOnCallRuleService";
 import AlertSeverityService from "../../../Services/AlertSeverityService";
 import IncidentOnCallRuleService from "../../../Services/IncidentOnCallRuleService";
@@ -1559,6 +1564,12 @@ async function readPagingResponders(
   });
 }
 
+// Someone invited to the project, by the user the invitation made.
+interface InvitedPerson {
+  userId: string;
+  email: string;
+}
+
 /*
  * The user ids of addresses invited to the project (#7242), read once the
  * invitation exists - so after the plan's invite_people ran - as the
@@ -1569,6 +1580,18 @@ async function readInvitedUserIds(
   ctx: ToolContext,
   emails: ReadonlyArray<string>,
 ): Promise<Array<string>> {
+  return (await readInvitedPeople(ctx, emails)).map(
+    (person: InvitedPerson): string => {
+      return person.userId;
+    },
+  );
+}
+
+// The same, each with the address they were invited at.
+async function readInvitedPeople(
+  ctx: ToolContext,
+  emails: ReadonlyArray<string>,
+): Promise<Array<InvitedPerson>> {
   if (emails.length === 0) {
     return [];
   }
@@ -1583,7 +1606,7 @@ async function readInvitedUserIds(
 
   await addMemberUsers(ctx, memberships);
 
-  const userIds: Array<string> = [];
+  const people: Array<InvitedPerson> = [];
 
   for (const email of emails) {
     const membership: TeamMember | undefined = memberships.find(
@@ -1596,12 +1619,17 @@ async function readInvitedUserIds(
     );
     const userId: string = membership?.userId?.toString() || "";
 
-    if (userId && !userIds.includes(userId)) {
-      userIds.push(userId);
+    if (
+      userId &&
+      !people.some((person: InvitedPerson): boolean => {
+        return person.userId === userId;
+      })
+    ) {
+      people.push({ userId: userId, email: email });
     }
   }
 
-  return userIds;
+  return people;
 }
 
 // Who a policy pages, as one of the three sentences (with or without "you").
@@ -2866,6 +2894,28 @@ const NOBODY_NEW_AT_LEVEL: (data: {
   return `Nothing proposed: nobody named is a member or a team of this project who is not paged at that level of "${data.policy.name}" already.${notFoundSentence || " Ask the person who to add, by the name the project knows them by (query_teams lists members), and propose it again."}`;
 };
 
+// A level that pages everyone a call named already (#10041, #10411).
+const everyoneNamedPagedAlready: (
+  level: number,
+  policyName: string,
+) => string = (level: number, policyName: string): string => {
+  return `Level ${level} of the on-call policy "${policyName}" pages everyone named already, so nobody was added again.`;
+};
+
+/*
+ * Who of those a call named the level pages already, said after what was
+ * added (#10411): nothing when there is nobody.
+ */
+const pagedThereAlready: (names: ReadonlyArray<string>) => string = (
+  names: ReadonlyArray<string>,
+): string => {
+  if (names.length === 0) {
+    return "";
+  }
+
+  return ` ${quotedNames(names)} ${names.length === 1 ? "is" : "are"} paged at that level already, so they were not added again.`;
+};
+
 // What a prepared add_to_on_call_policy call runs with.
 export interface PreparedPolicyAddition {
   policyId: string;
@@ -3311,15 +3361,15 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
     }
 
     const policyId: ObjectID = new ObjectID(addition.policyId);
-    const invitedUserIds: Array<string> = await readInvitedUserIds(
+    const invited: Array<InvitedPerson> = await readInvitedPeople(
       ctx,
       addition.invitedEmails,
     );
     const userIds: Array<string> = [...addition.userIds];
 
-    for (const userId of invitedUserIds) {
-      if (!userIds.includes(userId)) {
-        userIds.push(userId);
+    for (const person of invited) {
+      if (!userIds.includes(person.userId)) {
+        userIds.push(person.userId);
       }
     }
 
@@ -3334,13 +3384,23 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
     // Who is added, by name: those the level pages already by now left out.
     let people: Array<string> = addition.people;
     let teams: Array<string> = addition.teams;
+    let invitedEmails: Array<string> = addition.invitedEmails;
+    /*
+     * Who the level pages already, by name: found there when the call ran
+     * (#10041), or added there since that read and refused a second row
+     * (#10411).
+     */
+    const alreadyThere: Array<string> = [];
 
     if (addition.ruleId) {
       /*
        * Who the level pages now (#10041): someone added there since the
        * card was shown - by a teammate, or by the same call made twice -
-       * gets no second row, which would page them twice. A read that
-       * fails adds the rows the card promised.
+       * is not added again, and the words say they are there already. The
+       * level would refuse their second row anyway (#10411); this read
+       * says so before any write. A read that fails adds the rows the card
+       * promised, and a refusal of one as there already is said the same
+       * way.
        */
       let pagedNow: { userIds: Array<string>; teamIds: Array<string> } = {
         userIds: [],
@@ -3366,16 +3426,45 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
 
       if (newUserIds.length + newTeamIds.length === 0) {
         throw new ConflictException(
-          `Level ${addition.level} of the on-call policy "${addition.policyName}" pages everyone named already, so nobody was added again.`,
+          everyoneNamedPagedAlready(addition.level, addition.policyName),
         );
       }
 
-      people = addition.people.filter((_name: string, index: number) => {
-        return newUserIds.includes(addition.userIds[index] || "");
-      });
-      teams = addition.teams.filter((_name: string, index: number) => {
-        return newTeamIds.includes(addition.teamIds[index] || "");
-      });
+      // Someone named by the name the card gave them; one invited, by their address.
+      const nameOfPerson: (userId: string) => string = (
+        userId: string,
+      ): string => {
+        const index: number = addition.userIds.indexOf(userId);
+
+        return (
+          (index >= 0 ? addition.people[index] : undefined) ||
+          invited.find((person: InvitedPerson): boolean => {
+            return person.userId === userId;
+          })?.email ||
+          userId
+        );
+      };
+      const nameOfTeam: (teamId: string) => string = (
+        teamId: string,
+      ): string => {
+        return addition.teams[addition.teamIds.indexOf(teamId)] || teamId;
+      };
+
+      for (const userId of userIds) {
+        if (!newUserIds.includes(userId)) {
+          alreadyThere.push(nameOfPerson(userId));
+        }
+      }
+
+      for (const teamId of addition.teamIds) {
+        if (!newTeamIds.includes(teamId)) {
+          alreadyThere.push(nameOfTeam(teamId));
+        }
+      }
+
+      // Those a row was written for: the words say who was added.
+      const addedUserIds: Array<string> = [];
+      const addedTeamIds: Array<string> = [];
 
       /*
        * A level the policy has: the guided setup's rows, one per person and
@@ -3390,27 +3479,88 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
       });
 
       for (const row of members.users) {
+        const userId: string = row.userId?.toString() || "";
+
         try {
           await OnCallDutyPolicyEscalationRuleUserService.create({
             data: row,
             props: ctx.props,
           });
           added = true;
+          addedUserIds.push(userId);
         } catch (error) {
+          /*
+           * Added to the level since the read above - by a teammate, or by
+           * the same call made at the same moment - and the level takes
+           * each person once (#10411): where they were asked to be, so no
+           * failure.
+           */
+          if (
+            PostgresErrorTranslator.isUniqueViolationOf(
+              error,
+              ESCALATION_RULE_USER_INDEX,
+            )
+          ) {
+            alreadyThere.push(nameOfPerson(userId));
+            continue;
+          }
+
           failures.push(error instanceof Error ? error.message : String(error));
         }
       }
 
       for (const row of members.teams) {
+        const teamId: string = row.teamId?.toString() || "";
+
         try {
           await OnCallDutyPolicyEscalationRuleTeamService.create({
             data: row,
             props: ctx.props,
           });
           added = true;
+          addedTeamIds.push(teamId);
         } catch (error) {
+          // As for a person: the level takes each team once (#10411).
+          if (
+            PostgresErrorTranslator.isUniqueViolationOf(
+              error,
+              ESCALATION_RULE_TEAM_INDEX,
+            )
+          ) {
+            alreadyThere.push(nameOfTeam(teamId));
+            continue;
+          }
+
           failures.push(error instanceof Error ? error.message : String(error));
         }
+      }
+
+      people = addition.people.filter((_name: string, index: number) => {
+        return addedUserIds.includes(addition.userIds[index] || "");
+      });
+      teams = addition.teams.filter((_name: string, index: number) => {
+        return addedTeamIds.includes(addition.teamIds[index] || "");
+      });
+      // An address is named once its user was added, or when it made no user yet.
+      invitedEmails = addition.invitedEmails.filter((email: string) => {
+        const person: InvitedPerson | undefined = invited.find(
+          (each: InvitedPerson): boolean => {
+            return each.email === email;
+          },
+        );
+
+        return !person || addedUserIds.includes(person.userId);
+      });
+
+      /*
+       * Everyone named is on the level by now: what the call asked for,
+       * done by someone else in between - said as when the read above
+       * finds it.
+       */
+      if (!added && failures.length === 0) {
+        throw new ConflictException(
+          everyoneNamedPagedAlready(addition.level, addition.policyName),
+        );
       }
     } else {
       /*
@@ -3475,25 +3625,31 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
     }
 
     if (!added) {
+      // Who is there already is said beside the refusals (#10411).
+      const notAdded: Array<string> = [
+        ...failures.map((failure: string): string => {
+          return failure.replace(/\.$/, "");
+        }),
+        ...alreadyThere.map((name: string): string => {
+          return `"${name}" is paged at that level already`;
+        }),
+      ];
+
       throw new BadDataException(
-        `Nobody was added to the on-call policy "${addition.policyName}", as each addition was refused (${failures
-          .map((failure: string): string => {
-            return failure.replace(/\.$/, "");
-          })
-          .join("; ")}).`,
+        `Nobody was added to the on-call policy "${addition.policyName}", as each addition was refused (${notAdded.join("; ")}).`,
       );
     }
 
     const who: string = describeLevelInEnglish({
       people: people,
       teams: teams,
-      invitedEmails: addition.invitedEmails,
+      invitedEmails: invitedEmails,
     });
     const responders: ReturnType<typeof aiActionList> = describeLevelResponders(
       {
         people: people,
         teams: teams,
-        invitedEmails: addition.invitedEmails,
+        invitedEmails: invitedEmails,
       },
     );
     const ruleName: string =
@@ -3504,7 +3660,7 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
         addition.ruleId
           ? `Added ${who} to the escalation rule "${ruleName}" (level ${addition.level}) of the on-call policy "${addition.policyName}": they are paged with the people it paged there already.`
           : `Added a new level to the on-call policy "${addition.policyName}": if nobody acknowledges within ${addition.afterMinutes} minute${addition.afterMinutes === 1 ? "" : "s"} of the level before it, it pages ${who}.`
-      }${
+      }${pagedThereAlready(alreadyThere)}${
         failures.length > 0
           ? ` Not added: ${failures.join("; ")}. Say exactly what was not added, and why.`
           : ""

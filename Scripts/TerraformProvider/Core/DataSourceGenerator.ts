@@ -9,6 +9,14 @@ import { ResourceGenerator } from "./ResourceGenerator";
 import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
 import { GoCodeGenerator } from "./GoCodeGenerator";
+import {
+  PROVIDER_PACKAGE_DIR,
+  providerDotImport,
+  shardNames,
+  shardOf,
+  shardRegistrationFile,
+  writeAllShardsPackage,
+} from "./ProviderShards";
 import path from "path";
 
 export class DataSourceGenerator {
@@ -16,10 +24,12 @@ export class DataSourceGenerator {
   private fileGenerator: FileGenerator;
 
   private providerName: string;
+  private goModuleName: string;
 
   public constructor(config: TerraformProviderConfig, spec: OpenAPISpec) {
     this.spec = spec;
     this.providerName = config.providerName;
+    this.goModuleName = config.goModuleName;
     this.fileGenerator = new FileGenerator(config.outputDir);
   }
 
@@ -36,7 +46,7 @@ export class DataSourceGenerator {
 
     /*
      * Lookup helpers shared by every data source, and their tests. The
-     * number reader data sources share with resources, numberFromAPI, comes
+     * number reader data sources share with resources, NumberFromAPI, comes
      * with the resources' helpers (apinumber.go, ResourceGenerator).
      */
     for (const fileName of ["lookup.go", "lookup_test.go"]) {
@@ -60,15 +70,17 @@ export class DataSourceGenerator {
     /*
      * A data source written by hand (OpenAPIParser.HANDWRITTEN_DATA_SOURCES)
      * is copied in under the name the generated one would have had, so it
-     * replaces it rather than standing beside it.
+     * replaces it rather than standing beside it. It stays in the provider
+     * package, with the helpers it uses; a generated one goes into the shard
+     * its name picks (Core/ProviderShards.ts).
      */
     if (dataSource.staticFile) {
       const content: string = this.fileGenerator.readTemplateFile(
         path.join(__dirname, "..", "StaticFiles", dataSource.staticFile),
       );
       await this.fileGenerator.writeFileInDir(
-        "internal/provider",
-        `data_source_${dataSource.name}.go`,
+        PROVIDER_PACKAGE_DIR,
+        DataSourceGenerator.dataSourceFileName(dataSource),
         content,
       );
       return;
@@ -76,12 +88,16 @@ export class DataSourceGenerator {
 
     const dataSourceGoContent: string =
       this.generateDataSourceGoFile(dataSource);
-    const fileName: string = `data_source_${dataSource.name}.go`;
+    const fileName: string = DataSourceGenerator.dataSourceFileName(dataSource);
     await this.fileGenerator.writeFileInDir(
-      "internal/provider",
+      `${PROVIDER_PACKAGE_DIR}/${shardOf(fileName)}`,
       fileName,
       dataSourceGoContent,
     );
+  }
+
+  public static dataSourceFileName(dataSource: TerraformDataSource): string {
+    return `data_source_${dataSource.name}.go`;
   }
 
   private generateDataSourceGoFile(dataSource: TerraformDataSource): string {
@@ -103,7 +119,7 @@ export class DataSourceGenerator {
       },
     );
     /*
-     * No "math/big": numbers are read by numberFromAPI (apinumber.go), and
+     * No "math/big": numbers are read by NumberFromAPI (apinumber.go), and
      * Go refuses to build a file that imports a package it does not use.
      */
     const conditionalImports: string = [
@@ -117,9 +133,11 @@ export class DataSourceGenerator {
 
     const legacyName: string | undefined = dataSource.legacyName;
 
-    return `package provider
+    // A shard of its own, as a generated resource's (ResourceGenerator).
+    return `package ${shardOf(DataSourceGenerator.dataSourceFileName(dataSource))}
 
 import (
+    ${providerDotImport(this.goModuleName)}
     "context"
     "encoding/json"
     "fmt"${conditionalImports}
@@ -319,7 +337,7 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
     // A person by ID or by address, not both (people.go).
     if (attr.person && attr.type === "string") {
       options.push(
-        `Validators: personIDValidators("${attr.person.emailAttribute}", false)`,
+        `Validators: PersonIDValidators("${attr.person.emailAttribute}", false)`,
       );
     } else if (attr.isLookupFilter && attr.relation && attr.type === "string") {
       // Looked up by the ID of another record, a UUID (ids.go).
@@ -328,7 +346,7 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
       );
     }
     if (attr.personEmailOf) {
-      options.push("Validators: personEmailValidators()");
+      options.push("Validators: PersonEmailValidators()");
     }
 
     // For collection attributes, add ElementType
@@ -417,7 +435,7 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
         let value: string;
         let shown: string;
         if (attr.type === "number") {
-          value = `lookupNumber(data.${fieldName})`;
+          value = `LookupNumber(data.${fieldName})`;
           shown = `data.${fieldName}.ValueBigFloat().String()`;
         } else if (attr.type === "bool") {
           value = `data.${fieldName}.ValueBool()`;
@@ -444,7 +462,7 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
             );
 
             return `    if !data.${emailField}.IsNull() && !data.${emailField}.IsUnknown() {
-        personID, ok := personIDForLookup(ctx, d.client, data.${emailField}.ValueString(), "${filter.emailAttribute}", &resp.Diagnostics)
+        personID, ok := PersonIDForLookup(ctx, d.client, data.${emailField}.ValueString(), "${filter.emailAttribute}", &resp.Diagnostics)
         if !ok {
             return
         }
@@ -507,11 +525,11 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
         }
         items, _ := listResponse["data"].([]interface{})
         if len(items) == 0 {
-            resp.Diagnostics.AddError("Not Found", fmt.Sprintf("No ${label} matches %s.", describeLookup(filterNames)))
+            resp.Diagnostics.AddError("Not Found", fmt.Sprintf("No ${label} matches %s.", DescribeLookup(filterNames)))
             return
         }
         if len(items) > 1 {
-            resp.Diagnostics.AddError("Ambiguous Match", fmt.Sprintf("More than one ${label} matches %s. Set more arguments to narrow the lookup down to one, or look it up by id.", describeLookup(filterNames)))
+            resp.Diagnostics.AddError("Ambiguous Match", fmt.Sprintf("More than one ${label} matches %s. Set more arguments to narrow the lookup down to one, or look it up by id.", DescribeLookup(filterNames)))
             return
         }
         first, ok := items[0].(map[string]interface{})
@@ -623,7 +641,7 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName)}`;
       );
       const idField: string = StringUtils.toPascalCase(filter.idAttribute);
       mappings.push(
-        `    data.${emailField} = personEmailAfterLookup(ctx, d.client, data.${idField}, data.${emailField})`,
+        `    data.${emailField} = PersonEmailAfterLookup(ctx, d.client, data.${idField}, data.${emailField})`,
       );
     }
 
@@ -790,69 +808,104 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName)}`;
     }
   }
 
+  /*
+   * The data sources' places in GetDataSources, which lists them in this
+   * order: the spec's, a data source written by hand in its place, then the
+   * deprecated aliases of the renamed ones under their old names. Each shard
+   * hands over its own (its data_sources.go), the provider package holds the
+   * ones written by hand (data_sources.go there), and StaticFiles/shards.go
+   * puts them back in order, as ResourceGenerator does for resources.
+   */
   private async updateProviderWithDataSources(
     dataSources: TerraformDataSource[],
   ): Promise<void> {
-    // Generate the list of data source functions
-    const dataSourceFunctions: string = dataSources
-      .map((dataSource: TerraformDataSource) => {
-        const dataSourceTypeName: string = StringUtils.toPascalCase(
-          dataSource.name,
-        );
-        return `        New${dataSourceTypeName}DataSource,`;
-      })
-      .join("\n");
-
     const renamed: Array<TerraformDataSource> = dataSources.filter(
       (dataSource: TerraformDataSource) => {
         return Boolean(dataSource.legacyName);
       },
     );
+    const firstAlias: number = dataSources.length;
 
-    const legacyFunctions: string = renamed
-      .map((dataSource: TerraformDataSource) => {
-        return `        New${StringUtils.toPascalCase(dataSource.name)}LegacyDataSource,`;
-      })
-      .join("\n");
+    type Held = {
+      entries: Array<{ order: number; constructor: string }>;
+      aliases: Array<{
+        order: number;
+        name: string;
+        legacyName: string;
+        constructor: string;
+        legacyConstructor: string;
+      }>;
+    };
+    const shards: Map<string, Held> = new Map(
+      shardNames().map((shard: string): [string, Held] => {
+        return [shard, { entries: [], aliases: [] }];
+      }),
+    );
+    const handwritten: Array<string> = [];
 
-    const legacyEntries: string = renamed
-      .map((dataSource: TerraformDataSource) => {
-        const typeName: string = StringUtils.toPascalCase(dataSource.name);
-        return `    {Name: "${dataSource.name}", LegacyName: "${dataSource.legacyName}", New: New${typeName}DataSource, NewLegacy: New${typeName}LegacyDataSource},`;
-      })
-      .join("\n");
+    dataSources.forEach((dataSource: TerraformDataSource, index: number) => {
+      const constructor: string = `New${StringUtils.toPascalCase(dataSource.name)}DataSource`;
+      if (dataSource.staticFile) {
+        handwritten.push(`    {Order: ${index}, New: ${constructor}},`);
+        return;
+      }
+      shards
+        .get(shardOf(DataSourceGenerator.dataSourceFileName(dataSource)))!
+        .entries.push({ order: index, constructor });
+    });
+    renamed.forEach((dataSource: TerraformDataSource, index: number) => {
+      /*
+       * A data source written by hand would hand over its alias from the
+       * provider package, which hands over nothing yet.
+       */
+      if (dataSource.staticFile) {
+        throw new Error(
+          `The data source ${dataSource.name}, written by hand in StaticFiles/${dataSource.staticFile}, has an old name (${dataSource.legacyName}): register its alias in the provider package first.`,
+        );
+      }
+      const typeName: string = StringUtils.toPascalCase(dataSource.name);
+      const held: Held = shards.get(
+        shardOf(DataSourceGenerator.dataSourceFileName(dataSource)),
+      )!;
+      held.entries.push({
+        order: firstAlias + index,
+        constructor: `New${typeName}LegacyDataSource`,
+      });
+      held.aliases.push({
+        order: dataSources.indexOf(dataSource),
+        name: dataSource.name,
+        legacyName: dataSource.legacyName!,
+        constructor: `New${typeName}DataSource`,
+        legacyConstructor: `New${typeName}LegacyDataSource`,
+      });
+    });
 
-    const dataSourceListContent: string = `package provider
-
-import (
-    "github.com/hashicorp/terraform-plugin-framework/datasource"
-)
-
-// GetDataSources returns all available data sources
-func GetDataSources() []func() datasource.DataSource {
-    return []func() datasource.DataSource{
-${dataSourceFunctions}${
-      legacyFunctions
-        ? `
-        // Deprecated aliases: the names these data sources had before type
-        // names kept mixed-case words whole.
-${legacyFunctions}`
-        : ""
+    for (const [shard, held] of shards) {
+      await this.fileGenerator.writeFileInDir(
+        `${PROVIDER_PACKAGE_DIR}/${shard}`,
+        "data_sources.go",
+        shardRegistrationFile({
+          shard,
+          goModuleName: this.goModuleName,
+          kind: "DataSources",
+          entries: held.entries,
+          aliases: held.aliases,
+        }),
+      );
     }
-    }
-}
-
-// legacyDataSourceAliases pairs each renamed data source with the alias that
-// keeps its old name working.
-var legacyDataSourceAliases = []legacyDataSourceAlias{
-${legacyEntries}
-}
-`;
 
     await this.fileGenerator.writeFileInDir(
-      "internal/provider",
+      PROVIDER_PACKAGE_DIR,
       "data_sources.go",
-      dataSourceListContent,
+      `package provider
+
+// The data sources written by hand, in their places among the generated ones.
+var handwrittenDataSources = []OrderedDataSource{
+${handwritten.join("\n")}
+}
+`,
     );
+
+    await writeAllShardsPackage(this.fileGenerator, this.goModuleName);
   }
 }

@@ -1,4 +1,4 @@
-import { AddSecurityBlocklist1809187100000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187100000-AddSecurityBlocklist";
+import { AddSecurityBlocklist1809187150000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187150000-AddSecurityBlocklist";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import Probe from "../../../../Models/DatabaseModels/Probe";
 import SecurityBlock from "../../../../Models/DatabaseModels/SecurityBlock";
@@ -39,8 +39,8 @@ import type { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs"
  *     migration before it.
  */
 
-const CLASS_NAME: string = "AddSecurityBlocklist1809187100000";
-const TIMESTAMP: number = 1809187100000;
+const CLASS_NAME: string = "AddSecurityBlocklist1809187150000";
+const TIMESTAMP: number = 1809187150000;
 
 // A migration class's stamp, at the end of its name.
 const STAMP: RegExp = /(\d{13})$/;
@@ -59,7 +59,7 @@ async function recordQueries(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new AddSecurityBlocklist1809187100000()[direction](queryRunner);
+  await new AddSecurityBlocklist1809187150000()[direction](queryRunner);
 
   return statements;
 }
@@ -177,8 +177,8 @@ function foreignKeyOf(
 
 describe("AddSecurityBlocklist migration - identity and registration", () => {
   test("its class, name and stamp agree", () => {
-    expect(new AddSecurityBlocklist1809187100000().name).toBe(CLASS_NAME);
-    expect(AddSecurityBlocklist1809187100000.name).toBe(CLASS_NAME);
+    expect(new AddSecurityBlocklist1809187150000().name).toBe(CLASS_NAME);
+    expect(AddSecurityBlocklist1809187150000.name).toBe(CLASS_NAME);
   });
 
   test("is registered once, after every migration before it", () => {

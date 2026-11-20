@@ -664,7 +664,15 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "RunnerOwnerTeam",
     "RunnerOwnerUser",
   ],
-  [ProductKey.Forms]: ["Form", "FormDomain", "FormSubmission"],
+  [ProductKey.Forms]: [
+    "Form",
+    "FormDomain",
+    "FormOIDC",
+    "FormPrivateUser",
+    "FormPrivateUserSession",
+    "FormSSO",
+    "FormSubmission",
+  ],
 };
 
 // The tables of no one product, each with why: every product uses them.
