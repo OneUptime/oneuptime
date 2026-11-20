@@ -8,7 +8,12 @@ import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType"
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import {
+  MetricMonitorQueryLanguage,
+  MonitorStepMetricMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import MetricTelemetrySnapshot from "Common/Utils/Monitor/MetricTelemetrySnapshot";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import MonitorStepMetricQueries from "Common/Utils/Monitor/MonitorStepMetricQueries";
@@ -491,6 +496,96 @@ describe("an incident that kept no metric snapshot: its monitor's metrics as it 
         names: ["second-step"],
       });
     }
+  });
+});
+
+/*
+ * Issue #10227: an incident or alert a Metrics monitor written in PromQL
+ * opened kept its expression as its one query, named by no metric. Its
+ * card charts that expression - for the one series it opened for - not
+ * nothing, and not the builder's queries the step keeps.
+ */
+describe("an incident a PromQL monitor opened", () => {
+  const PROMQL_SERIES: JSONObject = { job: "api", instance: "a:9090" };
+
+  const expressionQueries: (query: string) => Array<MetricQueryConfigData> = (
+    query: string,
+  ): Array<MetricQueryConfigData> => {
+    return MonitorStepMetricMonitorUtil.getPromQLViewConfig(query).queryConfigs;
+  };
+
+  test("charts the expression it kept, for the series it opened for", () => {
+    const metrics: RootCauseMetrics | null = getRootCauseMetrics({
+      telemetryQuery: {
+        telemetryType: TelemetryType.Metric,
+        telemetryQuery: null,
+        metricViewData: {
+          startAndEndDate: EVALUATED,
+          queryConfigs: expressionQueries("up == 0"),
+          formulaConfigs: [],
+        },
+      },
+      seriesLabels: PROMQL_SERIES,
+      monitors: [],
+    });
+
+    expect(
+      MetricTelemetrySnapshot.getPromQLQuery(metrics!.telemetryQuery),
+    ).toBe("up == 0");
+    expect(metrics!.seriesLabels).toEqual(PROMQL_SERIES);
+    expect(metrics!.evaluationWindow?.startValue.toISOString()).toBe(
+      "2026-11-05T05:39:00.000Z",
+    );
+    expect(metrics!.chartedFromMonitorNow).toBeUndefined();
+  });
+
+  test("with no snapshot kept, the expression its monitor's step evaluates now", () => {
+    const metrics: RootCauseMetrics | null = getRootCauseMetrics({
+      telemetryQuery: null,
+      seriesLabels: PROMQL_SERIES,
+      createdCriteriaId: RULE_ID,
+      monitors: [
+        monitorOf(MonitorType.Metrics, [
+          { queryConfigs: [queryOf({ metricName: "other.step.metric" })] },
+          {
+            settings: {
+              queryLanguage: MetricMonitorQueryLanguage.PromQL,
+              promQLQuery: "sum by (job) (rate(errors[5m]))",
+            },
+            // The builder's query it keeps from before it was switched.
+            queryConfigs: [queryOf({ metricName: "kept.builder.metric" })],
+            criteriaIds: [RULE_ID],
+          },
+        ]),
+      ],
+    });
+
+    expect(
+      MetricTelemetrySnapshot.getPromQLQuery(metrics!.telemetryQuery),
+    ).toBe("sum by (job) (rate(errors[5m]))");
+    expect(metricNamesOf(metrics)).not.toContain("kept.builder.metric");
+    expect(metrics!.seriesLabels).toEqual(PROMQL_SERIES);
+    expect(metrics!.chartedFromMonitorNow).toBeDefined();
+  });
+
+  test("a PromQL step with no expression yet is passed over, as a step with no metric is", () => {
+    expect(
+      getRootCauseMetrics({
+        telemetryQuery: null,
+        seriesLabels: null,
+        monitors: [
+          monitorOf(MonitorType.Metrics, [
+            {
+              settings: {
+                queryLanguage: MetricMonitorQueryLanguage.PromQL,
+                promQLQuery: " ",
+              },
+              queryConfigs: [queryOf({ metricName: "kept.builder.metric" })],
+            },
+          ]),
+        ],
+      }),
+    ).toBeNull();
   });
 });
 

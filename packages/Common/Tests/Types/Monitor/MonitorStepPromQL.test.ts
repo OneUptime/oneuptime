@@ -16,6 +16,18 @@ import TelemetryAlertRuleUtil, {
 } from "../../../Types/Monitor/TelemetryAlertRule";
 import ObjectID from "../../../Types/ObjectID";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
+import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
+import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
+import TelemetryType from "../../../Types/Telemetry/TelemetryType";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
+import MetricTelemetrySnapshot from "../../../Utils/Monitor/MetricTelemetrySnapshot";
+import MonitorStepMetricQueries, {
+  MonitorStepMetricReads,
+} from "../../../Utils/Monitor/MonitorStepMetricQueries";
+import MonitorStepMetricThresholds, {
+  MonitorMetricThreshold,
+  MonitorMetricThresholdSide,
+} from "../../../Utils/Monitor/MonitorStepMetricThresholds";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -313,4 +325,245 @@ describe("When to alert, on a PromQL step", () => {
       }),
     ).toContain(FilterType.AnomalouslyHigh);
   });
+});
+
+/*
+ * Issue #10227: what a PromQL step charts - on the monitor's Overview, on
+ * the Criteria page and on the incidents and alerts it opens - is its
+ * expression, for the services it reads, with the values its criteria
+ * alert at drawn across it. Never the builder's queries the step keeps
+ * from before it was switched.
+ */
+describe("what a PromQL step charts", () => {
+  const SERVICE: ObjectID = new ObjectID(
+    "0a000000-0000-4000-8000-0000000000aa",
+  );
+
+  const alertingStep: (data: {
+    metricMonitor: MonitorStepMetricMonitor;
+    alias?: string;
+  }) => MonitorStep = (data: {
+    metricMonitor: MonitorStepMetricMonitor;
+    alias?: string;
+  }): MonitorStep => {
+    const step: MonitorStep = buildMonitorStep(data.metricMonitor);
+    const criteria: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+
+    criteria.data = {
+      id: "errors-above-5",
+      name: "Errors above 5",
+      description: "",
+      filterCondition: "Any" as never,
+      filters: [
+        {
+          checkOn: CheckOn.MetricValue,
+          filterType: FilterType.GreaterThan,
+          value: 5,
+          metricMonitorOptions: {
+            metricAlias: data.alias || PROMQL_METRIC_ALIAS,
+          },
+        },
+      ],
+      incidents: [{ id: "i", title: "t", description: "d" } as never],
+      alerts: [],
+      createIncidents: true,
+      createAlerts: false,
+      changeMonitorStatus: true,
+      monitorStatusId: OFFLINE,
+    };
+
+    step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray = [criteria];
+
+    return step;
+  };
+
+  const readsOf: (step: MonitorStep) => MonitorStepMetricReads | null = (
+    step: MonitorStep,
+  ): MonitorStepMetricReads | null => {
+    return MonitorStepMetricQueries.getReads({
+      monitorType: MonitorType.Metrics,
+      monitorStep: step,
+    });
+  };
+
+  test("reads the expression, trimmed, never the builder's queries it keeps", () => {
+    const reads: MonitorStepMetricReads | null = readsOf(
+      buildMonitorStep(promQLStep("  sum by (job) (rate(errors[5m])) \n")),
+    );
+
+    expect(reads?.promQLQuery).toBe("sum by (job) (rate(errors[5m]))");
+    expect(reads?.queryConfigs).toEqual(
+      MonitorStepMetricMonitorUtil.getPromQLViewConfig(
+        "sum by (job) (rate(errors[5m]))",
+      ).queryConfigs,
+    );
+    expect(reads?.formulaConfigs).toEqual([]);
+    // Evaluated at each step of its window, as the worker evaluates it.
+    expect(reads?.aggregatesWholeWindow).toBe(false);
+    expect(reads?.rollingTime).toBe(RollingTime.Past5Minutes);
+    expect(JSON.stringify(reads)).not.toContain("http.server.request.duration");
+  });
+
+  test("for the services the step reads, as the worker narrows it", () => {
+    expect(
+      readsOf(
+        buildMonitorStep({
+          ...promQLStep("up == 0"),
+          telemetryServiceIds: [SERVICE],
+        }),
+      )?.telemetryServiceIds,
+    ).toEqual([SERVICE.toString()]);
+    expect(
+      readsOf(buildMonitorStep(promQLStep("up == 0")))?.telemetryServiceIds,
+    ).toEqual([]);
+  });
+
+  test("a builder step has no expression to chart, whatever it holds", () => {
+    const reads: MonitorStepMetricReads | null = readsOf(
+      buildMonitorStep({
+        ...promQLStep("up == 0"),
+        queryLanguage: MetricMonitorQueryLanguage.Builder,
+      }),
+    );
+
+    expect(reads?.promQLQuery).toBeUndefined();
+    expect(reads?.queryConfigs[0]?.metricQueryData.filterData.metricName).toBe(
+      "http.server.request.duration",
+    );
+  });
+
+  test("a PromQL step with no expression yet charts nothing", () => {
+    expect(readsOf(buildMonitorStep(promQLStep("   ")))?.promQLQuery).toBe("");
+  });
+
+  test("the value its criteria alert at is a line on the expression", () => {
+    const thresholds: Array<MonitorMetricThreshold> =
+      MonitorStepMetricThresholds.getThresholds({
+        monitorType: MonitorType.Metrics,
+        monitorStep: alertingStep({ metricMonitor: promQLStep("up == 0") }),
+        defaultMonitorStatusId: OPERATIONAL,
+      });
+
+    expect(thresholds).toHaveLength(1);
+    expect(thresholds[0]).toMatchObject({
+      criteriaId: "errors-above-5",
+      metricVariable: PROMQL_METRIC_ALIAS,
+      value: 5,
+      breachSide: MonitorMetricThresholdSide.Above,
+      onlyAtInterval: null,
+    });
+  });
+
+  test("a criteria written while the step read the builder's query still draws on the expression", () => {
+    expect(
+      MonitorStepMetricThresholds.getThresholds({
+        monitorType: MonitorType.Metrics,
+        monitorStep: alertingStep({
+          metricMonitor: promQLStep("up == 0"),
+          alias: "a",
+        }),
+        defaultMonitorStatusId: OPERATIONAL,
+      }).map((threshold: MonitorMetricThreshold): string => {
+        return threshold.metricVariable;
+      }),
+    ).toEqual([PROMQL_METRIC_ALIAS]);
+  });
+});
+
+describe("what an incident a PromQL step opened keeps to chart", () => {
+  const WINDOW: InBetween<Date> = new InBetween<Date>(
+    new Date("2026-11-05T05:39:00.000Z"),
+    new Date("2026-11-05T05:44:00.000Z"),
+  );
+
+  const snapshotOf: (data: {
+    queryConfigs: Array<MetricQueryConfigData>;
+    telemetryType?: TelemetryType;
+  }) => TelemetryQuery = (data: {
+    queryConfigs: Array<MetricQueryConfigData>;
+    telemetryType?: TelemetryType;
+  }): TelemetryQuery => {
+    return {
+      telemetryType: data.telemetryType || TelemetryType.Metric,
+      telemetryQuery: null,
+      metricViewData: {
+        startAndEndDate: WINDOW,
+        queryConfigs: data.queryConfigs,
+        formulaConfigs: [],
+      },
+    };
+  };
+
+  const expressionQuery: (query: string) => MetricQueryConfigData = (
+    query: string,
+  ): MetricQueryConfigData => {
+    return MonitorStepMetricMonitorUtil.getPromQLViewConfig(query)
+      .queryConfigs[0]!;
+  };
+
+  test("its snapshot's one query is the expression it evaluated", () => {
+    expect(
+      MetricTelemetrySnapshot.getPromQLQuery(
+        snapshotOf({ queryConfigs: [expressionQuery(" up == 0 ")] }),
+      ),
+    ).toBe("up == 0");
+    // As stored: the snapshot is JSON in the incident's row.
+    expect(
+      MetricTelemetrySnapshot.getPromQLQuery(
+        JSON.parse(
+          JSON.stringify(
+            snapshotOf({ queryConfigs: [expressionQuery("up == 0")] }),
+          ),
+        ) as TelemetryQuery,
+      ),
+    ).toBe("up == 0");
+  });
+
+  test.each<[string, TelemetryQuery | null | undefined]>([
+    ["no snapshot", null],
+    ["a builder query", snapshotOf({ queryConfigs: [builderQuery] })],
+    [
+      "a query named like the expression that reads a metric",
+      snapshotOf({
+        queryConfigs: [
+          {
+            ...expressionQuery("up"),
+            metricQueryData: {
+              filterData: { metricName: "up" },
+            },
+          } as MetricQueryConfigData,
+        ],
+      }),
+    ],
+    [
+      "two queries",
+      snapshotOf({
+        queryConfigs: [expressionQuery("up"), expressionQuery("up")],
+      }),
+    ],
+    [
+      "an expression with no text",
+      snapshotOf({ queryConfigs: [expressionQuery("  ")] }),
+    ],
+    [
+      "another query under the PromQL alias",
+      snapshotOf({
+        queryConfigs: [
+          { ...expressionQuery("up"), id: "a" } as MetricQueryConfigData,
+        ],
+      }),
+    ],
+    [
+      "a log snapshot",
+      snapshotOf({
+        queryConfigs: [expressionQuery("up")],
+        telemetryType: TelemetryType.Log,
+      }),
+    ],
+  ])(
+    "%s is charted as before, not as an expression",
+    (_name: string, snapshot: TelemetryQuery | null | undefined) => {
+      expect(MetricTelemetrySnapshot.getPromQLQuery(snapshot)).toBeNull();
+    },
+  );
 });

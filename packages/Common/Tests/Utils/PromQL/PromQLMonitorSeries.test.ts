@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   getPromQLMonitorSeriesNames,
+  getPromQLSeriesSummary,
   isSeriesNamed,
   withoutPromQLMetricName,
 } from "../../../Utils/PromQL/PromQLMonitorSeries";
@@ -102,5 +103,25 @@ describe("whether a series is the one an incident keeps the labels of", () => {
         seriesLabels: { constructor: "a" },
       }),
     ).toBe(true);
+  });
+});
+
+describe("what an incident's card says its chart is narrowed to", () => {
+  test("the series' labels in label order, as a grouped series is said", () => {
+    expect(getPromQLSeriesSummary({ job: "api", instance: "a:9090" })).toBe(
+      "instance = a:9090, job = api",
+    );
+  });
+
+  test("its name too, where the monitor named the series by it", () => {
+    expect(getPromQLSeriesSummary({ __name__: "up", job: "api" })).toBe(
+      "__name__ = up, job = api",
+    );
+  });
+
+  test("nothing for a series of no labels, or none kept", () => {
+    expect(getPromQLSeriesSummary({})).toBe("");
+    expect(getPromQLSeriesSummary(null)).toBe("");
+    expect(getPromQLSeriesSummary(undefined)).toBe("");
   });
 });
