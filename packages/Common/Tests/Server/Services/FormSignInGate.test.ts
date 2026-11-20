@@ -108,7 +108,10 @@ const buildForm: () => Form = (): Form => {
   form.isEnabled = stored.isEnabled;
   form.requireSignIn = stored.requireSignIn;
   form.requireSsoForLogin = stored.requireSsoForLogin;
-  form.ipWhitelist = stored.ipWhitelist;
+  if (stored.ipWhitelist !== undefined) {
+    form.ipWhitelist = stored.ipWhitelist;
+  }
+
   return form;
 };
 
@@ -125,7 +128,7 @@ const session: () => FormPrivateUserSession = (): FormPrivateUserSession => {
 let findSession: SpyInstance<
   typeof FormPrivateUserSessionService.findSignedInSessionOnRequest
 >;
-let buildPublicForm: SpyInstance<(form: Form) => Promise<unknown>>;
+let buildPublicForm: SpyInstance<(...args: never) => never>;
 
 beforeEach(() => {
   stored = {

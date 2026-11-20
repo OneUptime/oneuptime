@@ -58,6 +58,15 @@ const STORED_DATA_USES: Record<string, string> = {
     "keys the stored digest of a password reset token",
   "packages/App/FeatureSet/Identity/API/StatusPageAuthentication.ts":
     "keys the stored digest of a status page password reset token",
+  // A dashboard's and a form's private users (#10250, #10249).
+  "packages/Common/Server/Services/PrivateUserServiceBase.ts":
+    "keys the stored digest of a dashboard's or a form's private user's invitation and password reset token",
+  "packages/Common/Server/Services/PrivateUserSessionServiceBase.ts":
+    "keys the stored digests of a dashboard's or a form's private users' refresh tokens and single sign-on codes",
+  "packages/App/FeatureSet/Identity/API/DashboardPrivateUserAuthentication.ts":
+    "keys the stored digest of a dashboard private user's password reset token",
+  "packages/App/FeatureSet/Identity/API/FormPrivateUserAuthentication.ts":
+    "keys the stored digest of a form private user's password reset token",
   "packages/Common/Server/Utils/Rules/EpisodeGroupingKey.ts":
     "keys the stored episode grouping keys, which existing episodes match on",
   "packages/Common/Server/Utils/SessionReplay/SessionReplayIdentity.ts":
