@@ -359,6 +359,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "ui",
   },
   /*
+   * A case's Response Plan (#9557), shared with the server, OneUptime AI and
+   * the mobile app (#10340): every step's words and its buttons', and what
+   * OneUptime's own checks of the steps say. The card looks each up as it
+   * draws it; the server keeps a step's key and its evidence's keys, never
+   * the words.
+   */
+  {
+    directory: "packages/Common/Utils/SecurityCase/ResponsePlan",
+    kind: "ui",
+  },
+  /*
    * What is wrong with a detection rule exception, field by field: the
    * Add Exception form shows each problem under its field, in the
    * reader's language, and the API answers a save with the same words.
