@@ -637,6 +637,33 @@ export default class DetectionRule extends BaseModel {
   })
   public lastEvaluatedAt?: Date = undefined;
 
+  /*
+   * Where a scheduled run that found matches had judged up to, written
+   * before it does what they ask and cleared once it records where it got
+   * to (#10489). A worker that stops in between leaves it set: the next run
+   * judges exactly that stretch again - from lastEvaluatedAt to here - and
+   * whatever the first run had done for each firing (its Detection Finding,
+   * its case detection, its risk) is done once.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    title: "Evaluating Until",
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    description:
+      "While the detection engine records what a run found: the end of the events that run judged. Null when no run is recording.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public evaluatingUntil?: Date = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: readPermissions,

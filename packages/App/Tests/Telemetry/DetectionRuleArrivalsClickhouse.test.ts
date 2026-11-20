@@ -33,6 +33,13 @@ import DetectionRuleEvaluator, {
   getArrivalEventTimeBounds,
 } from "Common/Server/Utils/SecurityEvent/DetectionRuleEvaluator";
 import SecurityEntityRiskRecorder from "Common/Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskRecorder";
+import { SecurityRiskFinding } from "Common/Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskFindings";
+import {
+  hasTakenFiring,
+  takeFiring,
+} from "Common/Types/SecurityCase/SecurityFiringKeys";
+import { SecurityEntityRiskContribution } from "Common/Types/SecurityCase/SecurityEntityRisk";
+import { addRiskObservation } from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
 import SigmaClickhouseCompiler from "Common/Server/Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import OneUptimeDate from "Common/Types/Date";
@@ -278,6 +285,12 @@ class World {
   public readonly pending: Array<ArrivingEvent> = [];
   // Where each run said the rule got to, in order.
   public readonly cursorWrites: Array<Date> = [];
+  // Each stretch marked before it did what it found (#10489): where it starts, how far it judged.
+  public readonly marks: Array<{ from: Date; until: Date }> = [];
+  // The firings each open case's detection took, by fingerprint, as the case side keeps them.
+  public readonly takenFirings: Map<string, Array<string>> = new Map();
+  // What each run handed to entity risk.
+  public readonly riskFindings: Array<SecurityRiskFinding> = [];
   public turns: number = 0;
   // A worker that stops: the next findings write, or the next record of where a run got to, fails.
   public failNextFindingWrite: boolean = false;
@@ -407,6 +420,8 @@ function addRule(options: {
   lastEvaluatedAt?: Date | undefined;
   shouldCreateAlert?: boolean | undefined;
   isRealTime?: boolean | undefined;
+  // The rule's Risk Points: none unless a test says (0 adds no risk).
+  riskScore?: number | undefined;
 }): DetectionRule {
   const rule: DetectionRule = new DetectionRule();
   rule._id = ObjectID.generate().toString();
@@ -422,7 +437,7 @@ function addRule(options: {
   rule.shouldCreateIncident = false;
   rule.shouldWriteDetectionFinding = true;
   rule.shouldCreateCase = true;
-  rule.riskScore = 0;
+  rule.riskScore = options.riskScore ?? 0;
 
   if (options.distinctCountField) {
     rule.distinctCountField = options.distinctCountField;
@@ -459,6 +474,7 @@ function copyOf(rule: DetectionRule): DetectionRule {
     "shouldCreateCase",
     "riskScore",
     "lastEvaluatedAt",
+    "evaluatingUntil",
     "lastMatchAt",
     "lastError",
   ]) {
@@ -548,6 +564,67 @@ function judgedAtMinute(rule: DetectionRule, uid: string): number {
   return (recorded.at.getTime() - BASE.getTime()) / MINUTE;
 }
 
+// The minute of the test's clock a moment is.
+function minuteOf(date: Date): number {
+  return (new Date(date).getTime() - BASE.getTime()) / MINUTE;
+}
+
+// The Detection Findings a rule wrote, as the table holds them: their eventUids.
+async function findingsOf(rule: DetectionRule): Promise<Array<string>> {
+  const result: { json: () => Promise<unknown> } = await client.query({
+    query: `SELECT eventUid FROM ${database}.${TABLE_NAME} WHERE projectId = {projectId:String} AND classUid = {classUid:Int32} AND ruleId = {ruleId:String} ORDER BY eventUid`,
+    query_params: {
+      projectId: world.projectId.toString(),
+      classUid: 2004,
+      ruleId: String(rule._id),
+    },
+    format: "JSONEachRow",
+  });
+
+  return ((await result.json()) as Array<{ eventUid: string }>).map(
+    (row: { eventUid: string }): string => {
+      return row.eventUid;
+    },
+  );
+}
+
+/*
+ * How many times the rule's findings counted toward an entity's risk, as
+ * the risk side counts them (addRiskObservation): a firing handed again
+ * counts once.
+ */
+function riskHitsOf(value: string): number {
+  let contributions: Array<SecurityEntityRiskContribution> = [];
+
+  for (const finding of world.riskFindings) {
+    if (
+      !finding.entities.some((entity: { value: string }): boolean => {
+        return entity.value === value;
+      })
+    ) {
+      continue;
+    }
+
+    contributions = addRiskObservation(
+      contributions,
+      {
+        sourceKey: finding.sourceKey,
+        source: finding.source,
+        sourceName: finding.sourceName,
+        severity: finding.severity,
+        points: finding.points,
+        seenAt: finding.seenAt,
+        mitreTactics: finding.mitreTactics,
+        mitreTechniques: finding.mitreTechniques,
+        ...(finding.firingKey ? { firingKey: finding.firingKey } : {}),
+      },
+      new Date(world.clock),
+    );
+  }
+
+  return contributions[0]?.hits || 0;
+}
+
 const SERVICE_METADATA: TelemetryServiceMetadata = {
   serviceName: "OneUptime Detections",
   primaryEntityId: ObjectID.generate(),
@@ -606,7 +683,13 @@ function installWorld(): void {
   jest
     .spyOn(DetectionRuleService, "updateOneById")
     .mockImplementation((async (args: { id: ObjectID; data: JSONObject }) => {
-      if (args.data["lastEvaluatedAt"] !== undefined) {
+      if (args.data["evaluatingUntil"]) {
+        // A stretch marked before it does what it found (#10489).
+        world.marks.push({
+          from: args.data["lastEvaluatedAt"] as Date,
+          until: args.data["evaluatingUntil"] as Date,
+        });
+      } else if (args.data["lastEvaluatedAt"] !== undefined) {
         if (world.failNextCursorWrite) {
           world.failNextCursorWrite = false;
           throw new Error("The worker stopped before it recorded the run.");
@@ -670,7 +753,11 @@ function installWorld(): void {
     .spyOn(SecurityConnections, "readEntityLinks")
     .mockResolvedValue([] as never);
 
-  // A case per fingerprint while it is open: a detection already in one repeats.
+  /*
+   * A case per fingerprint while it is open: a detection already in one
+   * repeats - unless its detection took that firing already (#10489), which
+   * the case side reads by the same helpers SecurityCaseIngest does.
+   */
   jest.spyOn(SecurityCaseIngest, "recordDetections").mockImplementation((async (
     signals: Array<SecurityDetectionSignal>,
   ) => {
@@ -682,7 +769,19 @@ function installWorld(): void {
 
     for (const signal of signals) {
       const repeat: boolean = world.openCases.has(signal.fingerprint);
+      const taken: Array<string> =
+        world.takenFirings.get(signal.fingerprint) || [];
 
+      if (repeat && hasTakenFiring(taken, signal.firingKey)) {
+        result.detectionsAlreadyTaken =
+          (result.detectionsAlreadyTaken || 0) + 1;
+        continue;
+      }
+
+      world.takenFirings.set(
+        signal.fingerprint,
+        takeFiring(taken, signal.firingKey),
+      );
       world.recorded.push({ signal, at: new Date(world.clock), repeat });
 
       if (repeat) {
@@ -698,10 +797,16 @@ function installWorld(): void {
     return result;
   }) as never);
 
-  jest.spyOn(SecurityEntityRiskRecorder, "record").mockResolvedValue({
-    entitiesUpdated: 0,
-    riskCasesRaised: 0,
-  } as never);
+  jest.spyOn(SecurityEntityRiskRecorder, "record").mockImplementation((async (
+    findings: Array<SecurityRiskFinding>,
+  ) => {
+    world.riskFindings.push(...findings);
+
+    return {
+      entitiesUpdated: 0,
+      riskCasesRaised: 0,
+    };
+  }) as never);
 
   jest
     .spyOn(DetectionRuleExceptionService, "findAllBy")
@@ -1391,7 +1496,7 @@ integration("a scheduled rule judges every event once (#10337)", () => {
       expect(storedRule(rule._id).lastError).toBeNull();
     });
 
-    test("a worker that stops before it records where a run got to: the next run judges the same events, and opens no alert or case again", async () => {
+    test("a worker that stops before it records where a run got to: the next run judges the same events, and each firing is done once (#10489)", async () => {
       const rule: DetectionRule = addRule({
         name: "Any failed sign-in",
         intervalInMinutes: 1,
@@ -1411,26 +1516,199 @@ integration("a scheduled rule judges every event once (#10337)", () => {
       world.failNextCursorWrite = true;
       await runMinutes(6, 6);
 
-      // It fired, and did not get to record that it had.
+      // It fired, and did not get to record that it had: the stretch stays marked.
       expect(world.alerts).toHaveLength(1);
       expect(world.casesOpened).toBe(1);
       expect(storedRule(rule._id).lastEvaluatedAt!.getTime()).toBe(
         at(3).getTime(),
       );
+      expect(storedRule(rule._id).evaluatingUntil!.getTime()).toBe(
+        at(4).getTime(),
+      );
 
       await runMinutes(7, 10);
 
-      // At least once: judged again, but the open alert and case take it in.
+      // Exactly once: judged again, and nothing it did is done twice.
       expect(world.alerts).toHaveLength(1);
       expect(world.casesOpened).toBe(1);
       expect(
         recordedFor(rule).map((recorded: RecordedSignal): boolean => {
           return recorded.repeat;
         }),
-      ).toEqual([false, true]);
+      ).toEqual([false]);
+      expect(await findingsOf(rule)).toHaveLength(1);
       expect(storedRule(rule._id).lastEvaluatedAt!.getTime()).toBe(
         at(8).getTime(),
       );
+      expect(storedRule(rule._id).evaluatingUntil).toBeNull();
+    });
+  });
+
+  /*
+   * EXACTLY ONCE (#10489). A worker that stops between doing what a run
+   * found and recording where it got to: the next run - with the clock
+   * moved on and more events in - judges exactly the stretch the stopped
+   * run judged, then goes on. Each firing leaves one Detection Finding (in
+   * ClickHouse), one case detection with its own count, and its risk added
+   * once, and an event that arrived in between is judged by the stretch
+   * after, as it would have been.
+   */
+  describe("a worker that stops between a run's effects and its record", () => {
+    test("a rule that fires on each match: one finding, one case detection with the right count, the risk once, and the event that arrived meanwhile judged next", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in",
+        intervalInMinutes: 1,
+        lastEvaluatedAt: at(0),
+        shouldCreateAlert: true,
+        riskScore: 40,
+      });
+
+      arrive(
+        {
+          uid: "first",
+          time: at(3, 10),
+          arrivesAt: at(3, 15),
+          principalIp: "203.0.113.7",
+        },
+        {
+          uid: "second",
+          time: at(3, 20),
+          arrivesAt: at(3, 25),
+          principalIp: "203.0.113.7",
+        },
+        {
+          // Arrives while the stopped worker's turn is down: after its stretch.
+          uid: "meanwhile",
+          time: at(5, 40),
+          arrivesAt: at(6, 10),
+          principalIp: "203.0.113.7",
+        },
+      );
+
+      await runMinutes(1, 5);
+
+      // The run at 6:00 judges (3:00, 4:00], fires, and stops before recording it.
+      world.failNextCursorWrite = true;
+      await runMinutes(6, 6);
+
+      expect(world.marks).toEqual([{ from: at(3), until: at(4) }]);
+      expect(await findingsOf(rule)).toHaveLength(1);
+
+      // The workers come back three minutes later.
+      await runMinutes(9, 12);
+
+      // The stretch judged again exactly, then the rest: (3:00, 4:00], then (4:00, 7:00].
+      expect(world.cursorWrites.map(minuteOf)).toEqual([
+        1, 2, 3, 4, 7, 8, 9, 10,
+      ]);
+      // The stretch after it found the event that arrived meanwhile: marked once.
+      expect(world.marks).toEqual([
+        { from: at(3), until: at(4) },
+        { from: at(4), until: at(7) },
+      ]);
+
+      // One firing per stretch: the first with both events, then the one that came meanwhile.
+      const firings: Array<RecordedSignal> = recordedFor(rule);
+
+      expect(
+        firings.map((recorded: RecordedSignal): [boolean, number] => {
+          return [recorded.repeat, recorded.signal.eventCount];
+        }),
+      ).toEqual([
+        [false, 2],
+        [true, 1],
+      ]);
+      expect(judgedUids(rule)).toEqual(["first", "meanwhile", "second"]);
+
+      // One Detection Finding a firing, each under its firing's name.
+      const findings: Array<string> = await findingsOf(rule);
+
+      expect(findings).toHaveLength(2);
+      expect(new Set(findings).size).toBe(2);
+      expect(world.alerts).toHaveLength(1);
+      expect(world.casesOpened).toBe(1);
+
+      // Its risk: handed again on the judged-again pass, counted once.
+      expect(riskHitsOf("203.0.113.7")).toBe(2);
+    });
+
+    test("a rule that counts: the window that fired fires once, and what came meanwhile counts in its own window", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Three failed sign-ins in five minutes",
+        intervalInMinutes: 5,
+        lastEvaluatedAt: at(0),
+        matchCountThreshold: 3,
+        shouldCreateAlert: true,
+        riskScore: 40,
+      });
+
+      arrive(
+        ...[1, 2, 3].map((second: number): ArrivingEvent => {
+          return {
+            uid: `burst-${second}`,
+            time: at(1, second),
+            arrivesAt: at(1, second + 5),
+            principalIp: "198.51.100.4",
+          };
+        }),
+        {
+          // Late, in the window that already fired: never fires it again.
+          uid: "late-in-the-window",
+          time: at(2),
+          arrivesAt: at(8),
+          principalIp: "198.51.100.4",
+        },
+      );
+
+      // The run at 7:00 judges (0:00, 5:00], fires the window, and stops.
+      world.failNextCursorWrite = true;
+      await runMinutes(7, 7);
+
+      expect(world.marks).toEqual([{ from: at(0), until: at(5) }]);
+
+      await runMinutes(8, 14);
+
+      expect(
+        firingsFor(rule, "198.51.100.4").map(
+          (signal: SecurityDetectionSignal): number => {
+            return signal.eventCount;
+          },
+        ),
+      ).toEqual([3]);
+      expect(await findingsOf(rule)).toHaveLength(1);
+      expect(world.alerts).toHaveLength(1);
+      expect(riskHitsOf("198.51.100.4")).toBe(1);
+      expect(storedRule(rule._id).evaluatingUntil).toBeNull();
+    });
+
+    test("a worker that stops twice in a row still leaves each firing done once", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in",
+        intervalInMinutes: 1,
+        lastEvaluatedAt: at(0),
+        riskScore: 40,
+      });
+
+      arrive({
+        uid: "once",
+        time: at(3, 10),
+        arrivesAt: at(3, 15),
+        principalIp: "192.0.2.10",
+      });
+
+      await runMinutes(1, 5);
+
+      world.failNextCursorWrite = true;
+      await runMinutes(6, 6);
+      world.failNextCursorWrite = true;
+      await runMinutes(7, 7);
+
+      await runMinutes(8, 10);
+
+      expect(recordedFor(rule)).toHaveLength(1);
+      expect(await findingsOf(rule)).toHaveLength(1);
+      expect(riskHitsOf("192.0.2.10")).toBe(1);
+      expect(world.marks).toEqual([{ from: at(3), until: at(4) }]);
     });
   });
 

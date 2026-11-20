@@ -27,7 +27,10 @@ import DetectionRuleEvaluator, {
   DetectionRuleArrivalRange,
   DetectionRuleEvaluationResult,
   getArrivalEventTimeBounds,
+  getDetectionFiringKey,
+  getDetectionOverflowFiringKey,
   getScheduledArrivalRange,
+  getStretchToJudgeAgain,
   pickArrivalWindows,
 } from "../../../../Server/Utils/SecurityEvent/DetectionRuleEvaluator";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
@@ -37,6 +40,7 @@ import SecurityProjectWork, {
   SecurityProjectWorkLease,
 } from "../../../../Server/Utils/SecurityEvent/SecurityProjectWork";
 import DetectionRule from "../../../../Models/DatabaseModels/DetectionRule";
+import SecurityEvent from "../../../../Models/AnalyticsModels/SecurityEvent";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import AlertService from "../../../../Server/Services/AlertService";
@@ -1747,15 +1751,30 @@ describe("DetectionRuleEvaluator", () => {
 
       await DetectionRuleEvaluator.evaluateRule(rule);
 
-      expect(spies.updateOneById).toHaveBeenCalledTimes(1);
+      // The stretch is marked before its matches do anything, then recorded (#10489).
+      expect(spies.updateOneById).toHaveBeenCalledTimes(2);
 
+      const mark: { id: ObjectID; data: JSONObject } = spies.updateOneById.mock
+        .calls[0]?.[0] as { id: ObjectID; data: JSONObject };
       const updateArg: { id: ObjectID; data: JSONObject } = spies.updateOneById
-        .mock.calls[0]?.[0] as { id: ObjectID; data: JSONObject };
+        .mock.calls[1]?.[0] as { id: ObjectID; data: JSONObject };
+
+      expect(mark.id.toString()).toBe(RULE_ID.toString());
+      expect(Object.keys(mark.data).sort()).toEqual([
+        "evaluatingUntil",
+        "lastEvaluatedAt",
+      ]);
+      expect(mark.data["evaluatingUntil"]).toBeInstanceOf(Date);
 
       expect(updateArg.id.toString()).toBe(RULE_ID.toString());
       expect(updateArg.data["lastEvaluatedAt"]).toBeInstanceOf(Date);
       expect(updateArg.data["lastMatchAt"]).toBeInstanceOf(Date);
       expect(updateArg.data["lastError"]).toBeNull();
+      // Recorded where the mark said the stretch judged up to, and the mark is gone.
+      expect(updateArg.data["lastEvaluatedAt"]).toEqual(
+        mark.data["evaluatingUntil"],
+      );
+      expect(updateArg.data["evaluatingUntil"]).toBeNull();
     });
 
     test("does not stamp lastMatchAt when nothing matched", async () => {
@@ -3493,9 +3512,17 @@ describe("DetectionRuleEvaluator", () => {
       return record.mock.calls[0]?.[0] as Array<SecurityDetectionSignal>;
     }
 
+    // What the run recorded once it was done: the write that takes the stretch's mark off.
     function storedLastError(spies: EvaluationSpies): unknown {
-      return (spies.updateOneById.mock.calls[0]?.[0] as { data: JSONObject })
-        .data["lastError"];
+      const recorded: Array<JSONObject> = spies.updateOneById.mock.calls
+        .map((call: Array<unknown>): JSONObject => {
+          return (call[0] as { data: JSONObject }).data;
+        })
+        .filter((data: JSONObject): boolean => {
+          return data["evaluatingUntil"] === null;
+        });
+
+      return recorded[recorded.length - 1]?.["lastError"];
     }
 
     test("every group is a finding; the top ones open alerts and cases, the rest share one case", async () => {
@@ -4224,6 +4251,465 @@ describe("DetectionRuleEvaluator", () => {
       );
       expect(Object.values(whereFragment.query_params)).not.toContain("alice");
       expect(result.exceptionsApplied).toBe(0);
+    });
+  });
+
+  /*
+   * EXACTLY ONCE (#10489). A run records where it got to only once it has
+   * done what its matches ask, so a worker that stops in between leaves the
+   * rule where it was. A stretch that found matches is marked on the rule
+   * first (evaluatingUntil), so the next run judges exactly that stretch
+   * again, and every firing is named by its stretch, its window and its
+   * group: its Detection Finding is written under its name, once, and its
+   * case detection and its risk are handed the name, which their own sides
+   * take once (SecurityCaseIngest, SecurityEntityRiskScore).
+   */
+  describe("a run judged again after its worker stopped", () => {
+    const NOW: Date = new Date("2026-09-18T12:00:30.500Z");
+    const LAST_RUN: Date = new Date("2026-09-18T11:50:00.000Z");
+    const MARKED_UNTIL: Date = new Date("2026-09-18T11:55:00.000Z");
+    // Two minutes behind the clock, on the second.
+    const READ_UNTIL: Date = new Date("2026-09-18T11:58:30.000Z");
+
+    function freezeNow(): void {
+      getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(
+        NOW as never,
+      );
+    }
+
+    // The arrivals each read of a rule that fires on each match judged, in order.
+    function judgedStretches(
+      spies: EvaluationSpies,
+    ): Array<{ after: unknown; until: unknown }> {
+      return spies.findDetectionMatches.mock.calls.map(
+        (call: Array<unknown>): { after: unknown; until: unknown } => {
+          const args: FindDetectionMatchesData =
+            call[0] as FindDetectionMatchesData;
+          const query: string = args.whereFragment.query;
+          const after: RegExpMatchArray | null = query.match(
+            /createdAt > \{(p\d+):DateTime\}/,
+          );
+          const until: RegExpMatchArray | null = query.match(
+            /createdAt <= \{(p\d+):DateTime\}/,
+          );
+
+          return {
+            after: after ? args.whereFragment.query_params[after[1]!] : null,
+            until: until ? args.whereFragment.query_params[until[1]!] : null,
+          };
+        },
+      );
+    }
+
+    function ruleWrites(spies: EvaluationSpies): Array<JSONObject> {
+      return spies.updateOneById.mock.calls.map(
+        (call: Array<unknown>): JSONObject => {
+          return (call[0] as { data: JSONObject }).data;
+        },
+      );
+    }
+
+    function writtenFindingUids(spies: EvaluationSpies): Array<string> {
+      return spies.insertJsonRows.mock.calls
+        .flatMap((call: Array<unknown>): Array<JSONObject> => {
+          return call[0] as Array<JSONObject>;
+        })
+        .map((row: JSONObject): string => {
+          return String(row["eventUid"]);
+        });
+    }
+
+    function handedSignals(): Array<SecurityDetectionSignal> {
+      return (
+        SecurityCaseIngest.recordDetections as unknown as Spy
+      ).mock.calls.flatMap((call: Array<unknown>) => {
+        return call[0] as Array<SecurityDetectionSignal>;
+      });
+    }
+
+    function handedRisk(): Array<SecurityRiskFinding> {
+      return (
+        SecurityEntityRiskRecorder.record as unknown as Spy
+      ).mock.calls.flatMap((call: Array<unknown>) => {
+        return call[0] as Array<SecurityRiskFinding>;
+      });
+    }
+
+    test("a firing is named by its stretch, its window and its group, the same every time", () => {
+      const stretchStart: Date = LAST_RUN;
+      const windowStart: Date = new Date("2026-09-18T11:45:00.000Z");
+      const alice: string = getDetectionFiringKey({
+        stretchStart,
+        groupValue: "alice",
+      });
+
+      expect(alice).toBe(
+        getDetectionFiringKey({ stretchStart, groupValue: "alice" }),
+      );
+      expect(alice).toBe(
+        `run:${stretchStart.getTime()}:each:${MetricSeriesFingerprint.computeFingerprint({ groupValue: "alice" })}`,
+      );
+      // Another group, another stretch, a window: another firing.
+      expect(
+        new Set([
+          alice,
+          getDetectionFiringKey({ stretchStart, groupValue: "bob" }),
+          getDetectionFiringKey({
+            stretchStart: MARKED_UNTIL,
+            groupValue: "alice",
+          }),
+          getDetectionFiringKey({
+            stretchStart,
+            windowStart,
+            groupValue: "alice",
+          }),
+          getDetectionOverflowFiringKey({ stretchStart }),
+          getDetectionOverflowFiringKey({ stretchStart, windowStart }),
+        ]).size,
+      ).toBe(6);
+      // Short enough to keep a few dozen of on a detection.
+      expect(alice.length).toBeLessThan(60);
+    });
+
+    test("getStretchToJudgeAgain: the marked stretch, on whole seconds, or none", () => {
+      expect(
+        getStretchToJudgeAgain({
+          lastEvaluatedAt: LAST_RUN,
+          evaluatingUntil: new Date(MARKED_UNTIL.getTime() + 400),
+        }),
+      ).toEqual({ arrivedAfter: LAST_RUN, arrivedUntil: MARKED_UNTIL });
+      expect(getStretchToJudgeAgain({ lastEvaluatedAt: LAST_RUN })).toBeNull();
+      expect(
+        getStretchToJudgeAgain({ evaluatingUntil: MARKED_UNTIL }),
+      ).toBeNull();
+      // A mark at or before where the rule got to is one a run recorded past.
+      expect(
+        getStretchToJudgeAgain({
+          lastEvaluatedAt: MARKED_UNTIL,
+          evaluatingUntil: MARKED_UNTIL,
+        }),
+      ).toBeNull();
+      expect(
+        getStretchToJudgeAgain({
+          lastEvaluatedAt: MARKED_UNTIL,
+          evaluatingUntil: LAST_RUN,
+        }),
+      ).toBeNull();
+    });
+
+    test("a stretch that found matches is marked - where it starts, how far it judged - before any of them does anything", async () => {
+      freezeNow();
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 2)],
+        severities: [buildSeverity("0001", "High")],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(
+        buildRule({ lastEvaluatedAt: LAST_RUN }),
+      );
+
+      const writes: Array<JSONObject> = ruleWrites(spies);
+
+      expect(writes).toHaveLength(2);
+      expect(writes[0]).toEqual({
+        lastEvaluatedAt: LAST_RUN,
+        evaluatingUntil: READ_UNTIL,
+      });
+      expect(writes[1]!["lastEvaluatedAt"]).toEqual(READ_UNTIL);
+      expect(writes[1]!["evaluatingUntil"]).toBeNull();
+
+      // The mark first; its alert, finding, case and risk after it; the record last.
+      const markedAt: number = spies.updateOneById.mock.invocationCallOrder[0]!;
+      const recordedAt: number =
+        spies.updateOneById.mock.invocationCallOrder[1]!;
+
+      for (const effect of [
+        spies.alertCreate,
+        spies.insertJsonRows,
+        SecurityCaseIngest.recordDetections as unknown as Spy,
+        SecurityEntityRiskRecorder.record as unknown as Spy,
+      ]) {
+        expect(effect.mock.invocationCallOrder[0]!).toBeGreaterThan(markedAt);
+        expect(effect.mock.invocationCallOrder[0]!).toBeLessThan(recordedAt);
+      }
+    });
+
+    test("a stretch that found nothing is never marked: it does nothing a second pass could repeat", async () => {
+      freezeNow();
+      const spies: EvaluationSpies = installSpies({ groups: [] });
+
+      await DetectionRuleEvaluator.evaluateRule(
+        buildRule({ lastEvaluatedAt: LAST_RUN }),
+      );
+
+      const writes: Array<JSONObject> = ruleWrites(spies);
+
+      expect(writes).toHaveLength(1);
+      expect(writes[0]!["lastEvaluatedAt"]).toEqual(READ_UNTIL);
+      expect(writes[0]!["evaluatingUntil"]).toBeNull();
+    });
+
+    test("each firing's finding, case detection and risk carry its name", async () => {
+      freezeNow();
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 2), buildGroup("bob", 1)],
+        severities: [buildSeverity("0001", "High")],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(
+        buildRule({ lastEvaluatedAt: LAST_RUN }),
+      );
+
+      const aliceKey: string = getDetectionFiringKey({
+        stretchStart: LAST_RUN,
+        groupValue: "alice",
+      });
+      const bobKey: string = getDetectionFiringKey({
+        stretchStart: LAST_RUN,
+        groupValue: "bob",
+      });
+
+      expect(writtenFindingUids(spies).sort()).toEqual(
+        [
+          `detection:${RULE_ID.toString()}:${expectedFingerprint("alice")}:${aliceKey}`,
+          `detection:${RULE_ID.toString()}:${expectedFingerprint("bob")}:${bobKey}`,
+        ].sort(),
+      );
+
+      const signals: Array<SecurityDetectionSignal> = handedSignals();
+
+      expect(
+        signals.map((signal: SecurityDetectionSignal): unknown => {
+          return [signal.groupValue, signal.firingKey];
+        }),
+      ).toEqual([
+        ["alice", aliceKey],
+        ["bob", bobKey],
+      ]);
+      // Each case detection points at its own finding, under the same name.
+      expect(signals[0]!.eventUid).toContain(aliceKey);
+
+      expect(
+        handedRisk()
+          .map((finding: SecurityRiskFinding): unknown => {
+            return finding.firingKey;
+          })
+          .sort(),
+      ).toEqual([aliceKey, bobKey].sort());
+    });
+
+    test("a rule left marked is judged again on exactly the marked stretch first, then goes on, and the mark goes", async () => {
+      freezeNow();
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 2)],
+        severities: [buildSeverity("0001", "High")],
+      });
+      getJestSpyOn(SecurityEventService, "findBy").mockResolvedValue(
+        [] as never,
+      );
+
+      const rule: DetectionRule = buildRule({ lastEvaluatedAt: LAST_RUN });
+      rule.evaluatingUntil = MARKED_UNTIL;
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      // The marked stretch exactly, though the clock moved on; then the rest.
+      expect(judgedStretches(spies)).toEqual([
+        {
+          after: OneUptimeDate.toClickhouseDateTime(LAST_RUN),
+          until: OneUptimeDate.toClickhouseDateTime(MARKED_UNTIL),
+        },
+        {
+          after: OneUptimeDate.toClickhouseDateTime(MARKED_UNTIL),
+          until: OneUptimeDate.toClickhouseDateTime(READ_UNTIL),
+        },
+      ]);
+
+      const writes: Array<JSONObject> = ruleWrites(spies);
+
+      // The marked stretch is not marked again; it is recorded, and the mark goes.
+      expect(writes[0]).toMatchObject({
+        lastEvaluatedAt: MARKED_UNTIL,
+        evaluatingUntil: null,
+      });
+      // The stretch after it is a new one: marked, then recorded.
+      expect(writes[1]).toEqual({
+        lastEvaluatedAt: MARKED_UNTIL,
+        evaluatingUntil: READ_UNTIL,
+      });
+      expect(writes[2]).toMatchObject({
+        lastEvaluatedAt: READ_UNTIL,
+        evaluatingUntil: null,
+      });
+
+      // The marked stretch's firing has the name its first pass gave it.
+      expect(handedSignals()[0]!.firingKey).toBe(
+        getDetectionFiringKey({ stretchStart: LAST_RUN, groupValue: "alice" }),
+      );
+      expect(handedSignals()[1]!.firingKey).toBe(
+        getDetectionFiringKey({
+          stretchStart: MARKED_UNTIL,
+          groupValue: "alice",
+        }),
+      );
+    });
+
+    test("judged again, a stretch looks for the findings its first pass wrote and writes only the ones it does not find", async () => {
+      freezeNow();
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 2), buildGroup("bob", 1)],
+        severities: [buildSeverity("0001", "High")],
+      });
+      const aliceUid: string = `detection:${RULE_ID.toString()}:${expectedFingerprint("alice")}:${getDetectionFiringKey({ stretchStart: LAST_RUN, groupValue: "alice" })}`;
+      const lookedFor: Spy = getJestSpyOn(
+        SecurityEventService,
+        "findBy",
+      ).mockImplementation((async () => {
+        const written: SecurityEvent = new SecurityEvent();
+        written.eventUid = aliceUid;
+        return [written];
+      }) as never);
+
+      const rule: DetectionRule = buildRule({
+        lastEvaluatedAt: LAST_RUN,
+        evaluationIntervalInMinutes: 5,
+      });
+      rule.evaluatingUntil = MARKED_UNTIL;
+      // Nothing more arrives after the marked stretch.
+      getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(
+        new Date(MARKED_UNTIL.getTime() + 2 * 60 * 1000) as never,
+      );
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      // One read for the stretch's findings, by their names, from where it started.
+      expect(lookedFor).toHaveBeenCalledTimes(1);
+      const query: JSONObject = (
+        lookedFor.mock.calls[0]![0] as { query: JSONObject }
+      ).query;
+      expect((query["eventUid"] as Includes).values).toContain(aliceUid);
+      expect(query["projectId"]).toEqual(PROJECT_ID);
+
+      // Alice's finding was written by the first pass: only Bob's is.
+      expect(writtenFindingUids(spies)).toEqual([
+        `detection:${RULE_ID.toString()}:${expectedFingerprint("bob")}:${getDetectionFiringKey({ stretchStart: LAST_RUN, groupValue: "bob" })}`,
+      ]);
+      // Alice's case detection still points at it.
+      expect(
+        handedSignals().find((signal: SecurityDetectionSignal): boolean => {
+          return signal.groupValue === "alice";
+        })!.eventUid,
+      ).toBe(aliceUid);
+    });
+
+    test("a first pass never looks for findings: its firings are new", async () => {
+      freezeNow();
+      installSpies({
+        groups: [buildGroup("alice", 2)],
+        severities: [buildSeverity("0001", "High")],
+      });
+      const lookedFor: Spy = getJestSpyOn(SecurityEventService, "findBy");
+
+      await DetectionRuleEvaluator.evaluateRule(
+        buildRule({ lastEvaluatedAt: LAST_RUN }),
+      );
+
+      expect(lookedFor).not.toHaveBeenCalled();
+    });
+
+    test("a rule that counts names each firing by its window too, and its marked stretch reads its windows again over exactly that stretch", async () => {
+      freezeNow();
+      const windowStart: Date = new Date("2026-09-18T11:50:00.000Z");
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 5)],
+        severities: [buildSeverity("0001", "High")],
+        windows: [
+          arrivalWindow(windowStart, new Date(LAST_RUN.getTime() + 60000)),
+        ],
+      });
+      getJestSpyOn(SecurityEventService, "findBy").mockResolvedValue(
+        [] as never,
+      );
+
+      const rule: DetectionRule = buildRule({
+        lastEvaluatedAt: LAST_RUN,
+        matchCountThreshold: 5,
+      });
+      rule.evaluatingUntil = MARKED_UNTIL;
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      const windowReads: Array<{ arrivedAfter: Date; arrivedUntil: Date }> =
+        spies.findDetectionArrivalWindows.mock.calls.map(
+          (call: Array<unknown>) => {
+            return call[0] as { arrivedAfter: Date; arrivedUntil: Date };
+          },
+        );
+
+      expect(windowReads[0]!.arrivedAfter).toEqual(LAST_RUN);
+      expect(windowReads[0]!.arrivedUntil).toEqual(MARKED_UNTIL);
+      expect(handedSignals()[0]!.firingKey).toBe(
+        getDetectionFiringKey({
+          stretchStart: LAST_RUN,
+          windowStart,
+          groupValue: "alice",
+        }),
+      );
+    });
+
+    test("a setup test names no firing and marks nothing", async () => {
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 2)],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(buildRule(), {
+        setupTest: {
+          restrictTo: SQL`1`,
+          startTime: new Date("2026-09-18T11:00:00.000Z"),
+          endTime: new Date("2026-09-18T12:00:00.000Z"),
+        },
+      });
+
+      expect(ruleWrites(spies)).toHaveLength(0);
+      expect(
+        handedSignals().every((signal: SecurityDetectionSignal): boolean => {
+          return signal.firingKey === undefined;
+        }),
+      ).toBe(true);
+    });
+
+    test("a real-time run names no firing: a write's events are judged once as they arrive", async () => {
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 2)],
+        severities: [buildSeverity("0001", "High")],
+      });
+
+      await DetectionRuleEvaluator.evaluateRealTime(buildRule(), {
+        restrictTo: SQL`1`,
+        startTime: new Date("2026-09-18T11:00:00.000Z"),
+        endTime: new Date("2026-09-18T12:00:00.000Z"),
+        candidates: [
+          {
+            id: "0192f1a0-0000-7000-8000-000000000001",
+            time: "2026-09-18T11:30:00.000Z",
+          } as never,
+        ],
+      });
+
+      expect(
+        ruleWrites(spies).some((data: JSONObject): boolean => {
+          return data["evaluatingUntil"] !== undefined;
+        }),
+      ).toBe(false);
+      expect(handedSignals()[0]!.firingKey).toBeUndefined();
+      expect(
+        writtenFindingUids(spies)[0]!.endsWith(
+          getDetectionFiringKey({
+            stretchStart: new Date("2026-09-18T11:00:00.000Z"),
+            groupValue: "alice",
+          }),
+        ),
+      ).toBe(false);
     });
   });
 });

@@ -1132,6 +1132,7 @@ import { AddNetworkSiteOwnersAndLabels1809187000000 } from "./1809187000000-AddN
 import { AddGuidedSetupRun1809187025300 } from "./1809187025300-AddGuidedSetupRun";
 import { AddDashboardPrivateUsersAndSingleSignOn1809187030250 } from "./1809187030250-AddDashboardPrivateUsersAndSingleSignOn";
 import { MakeEscalationRuleRespondersUnique1809187100000 } from "./1809187100000-MakeEscalationRuleRespondersUnique";
+import { AddDetectionRunMarksAndFiringKeys1809187210000 } from "./1809187210000-AddDetectionRunMarksAndFiringKeys";
 
 export default [
   InitialMigration,
@@ -2268,4 +2269,5 @@ export default [
   AddGuidedSetupRun1809187025300,
   AddDashboardPrivateUsersAndSingleSignOn1809187030250,
   MakeEscalationRuleRespondersUnique1809187100000,
+  AddDetectionRunMarksAndFiringKeys1809187210000,
 ];
