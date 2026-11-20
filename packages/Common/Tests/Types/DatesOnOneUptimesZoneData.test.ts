@@ -197,6 +197,15 @@ describe("the wall clock is moment's in every language", () => {
     const local: Date = new Date(2026, 10, 20, 9, 41);
 
     expect(format!.format(local)).toBe("09:41");
+
+    // An empty zone's name is no zone either, as it was.
+    expect(
+      getDateTimeFormat({
+        locale: getDateLocale("de"),
+        timezones: [""],
+        options: { hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
+      })!.format(local),
+    ).toBe("09:41");
   });
 
   test("formatToParts and formatRange read the same wall clock", () => {

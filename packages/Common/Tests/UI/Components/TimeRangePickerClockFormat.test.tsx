@@ -142,9 +142,7 @@ describe.each(SURFACES)(
         pin(true);
         surface.render(CUSTOM_AFTERNOON);
 
-        expect(buttonText(surface.prefix)).toBe(
-          "Mar 1, 2:30 PM – 6:45 PM",
-        );
+        expect(buttonText(surface.prefix)).toBe("Mar 1, 2:30 PM – 6:45 PM");
       });
 
       test("never leaves a bare 24-hour reading on the button", () => {
@@ -168,9 +166,7 @@ describe.each(SURFACES)(
           ),
         });
 
-        expect(buttonText(surface.prefix)).toBe(
-          "Mar 1, 8:00 AM – 8:00 PM",
-        );
+        expect(buttonText(surface.prefix)).toBe("Mar 1, 8:00 AM – 8:00 PM");
       });
 
       test("writes a whole day from 12 AM to 11:59 PM", () => {
@@ -183,9 +179,7 @@ describe.each(SURFACES)(
           ),
         });
 
-        expect(buttonText(surface.prefix)).toBe(
-          "Mar 1, 12:00 AM – 11:59 PM",
-        );
+        expect(buttonText(surface.prefix)).toBe("Mar 1, 12:00 AM – 11:59 PM");
       });
     });
 

@@ -284,7 +284,7 @@ describe("where the code was spent from", () => {
 
 describe("what it says", () => {
   const vars: Record<string, string> = {
-    signedInAt: "Oct 18 2026, 12:07 UTC",
+    signedInAt: "Oct 18, 2026, 12:07 UTC",
     remainingCodeCount: "7",
     remainingCodeMessage:
       "You can see how many codes you have left, and generate a new set, from your user profile.",
@@ -304,7 +304,7 @@ describe("what it says", () => {
     );
 
     expect(text).toContain(
-      "Signed in at: Oct 18 2026, 12:07 UTC Backup codes remaining: 7 IP address: 203.0.113.7 Approximate location: Lyon, France Device: Firefox 132 on Windows",
+      "Signed in at: Oct 18, 2026, 12:07 UTC Backup codes remaining: 7 IP address: 203.0.113.7 Approximate location: Lyon, France Device: Firefox 132 on Windows",
     );
   });
 

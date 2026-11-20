@@ -169,23 +169,23 @@ describe("a calendar's hours on the reader's clock", () => {
       .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
       .mockReturnValue(false);
 
-    expect(
-      format(getCalendarFormats("ko"), "timeGutterFormat", MORNING),
-    ).toBe("08:00");
-    expect(
-      format(getCalendarFormats("en"), "timeGutterFormat", MORNING),
-    ).toBe("08:00");
+    expect(format(getCalendarFormats("ko"), "timeGutterFormat", MORNING)).toBe(
+      "08:00",
+    );
+    expect(format(getCalendarFormats("en"), "timeGutterFormat", MORNING)).toBe(
+      "08:00",
+    );
 
     jest
       .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
       .mockReturnValue(true);
 
-    expect(
-      format(getCalendarFormats("de"), "timeGutterFormat", MORNING),
-    ).toBe("8:00 AM");
-    expect(
-      format(getCalendarFormats("en"), "timeGutterFormat", MORNING),
-    ).toBe("8:00 AM");
+    expect(format(getCalendarFormats("de"), "timeGutterFormat", MORNING)).toBe(
+      "8:00 AM",
+    );
+    expect(format(getCalendarFormats("en"), "timeGutterFormat", MORNING)).toBe(
+      "8:00 AM",
+    );
   });
 
   test("an hour of two digits is written whole, on either clock", () => {

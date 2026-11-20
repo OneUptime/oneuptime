@@ -109,9 +109,7 @@ describe("the mark a language writes between a time's parts", () => {
   });
 
   test("an unknown language reads English's colon", () => {
-    expect(getTimeSeparator(getDateLocale("xx-not-a-language-tag-"))).toBe(
-      ":",
-    );
+    expect(getTimeSeparator(getDateLocale("xx-not-a-language-tag-"))).toBe(":");
   });
 
   test.each(
@@ -155,14 +153,9 @@ describe("a clock OneUptime writes itself", () => {
     ["fa", "11:55:59.120", "۱۱:۵۵:۵۹.۱۲۰"],
     ["ar", "09:30", "09:30"],
     ["en", "9:30", "9:30"],
-  ])(
-    "%s: %s reads %s",
-    (language: string, clock: string, written: string) => {
-      expect(writeClockInLocale(clock, getDateLocale(language))).toBe(
-        written,
-      );
-    },
-  );
+  ])("%s: %s reads %s", (language: string, clock: string, written: string) => {
+    expect(writeClockInLocale(clock, getDateLocale(language))).toBe(written);
+  });
 
   test("text that is no clock only takes the digits", () => {
     expect(writeClockInLocale("05", getDateLocale("fa"))).toBe("۰۵");

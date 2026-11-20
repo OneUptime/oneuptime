@@ -28,7 +28,14 @@ import path from "path";
  * OneUptimeDate.getDayOfWeekName draws its names through the helper too.
  */
 
-const REPOSITORY: string = path.resolve(__dirname, "..", "..", "..", "..", "..");
+const REPOSITORY: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+);
 
 const SCANNED_FOLDERS: ReadonlyArray<string> = [
   "packages/App/FeatureSet/Dashboard/src",
@@ -180,10 +187,7 @@ export const findDayNamesOffTheHelper: (
   }
 
   for (const match of text.matchAll(DAY_OF_WEEK_MENU)) {
-    const after: string = text.slice(
-      match.index!,
-      match.index! + MENU_REACH,
-    );
+    const after: string = text.slice(match.index!, match.index! + MENU_REACH);
 
     if (!after.includes(HELPER_CALL)) {
       found.push(`${lineOf(text, match.index!)} ${match[0]}`);
@@ -229,7 +233,10 @@ describe("a day's name standing alone is cased as its language writes it", () =>
         },
       );
 
-      expect({ file, drawsThroughTheHelper: source?.text.includes(HELPER_CALL) }).toEqual({
+      expect({
+        file,
+        drawsThroughTheHelper: source?.text.includes(HELPER_CALL),
+      }).toEqual({
         file,
         drawsThroughTheHelper: true,
       });
@@ -274,11 +281,15 @@ describe("a day's name standing alone is cased as its language writes it", () =>
       "{translator.translateText(WORKING_HOURS_DAY_SHORT_NAMES[day]!)}",
       1,
     ],
-    ["Example.tsx", "aria-label={translator.translateText(DAY_NAMES[day]!)}", 1],
+    [
+      "Example.tsx",
+      "aria-label={translator.translateText(DAY_NAMES[day]!)}",
+      1,
+    ],
     // Through the helper.
     [
       "Example.tsx",
-      "const dayName: string = writeStandAloneDayName({\n  name: translator.translateText(DAY_NAMES[day]!)!,\n  language: translator.language,\n  context: \"standAlone\",\n});",
+      'const dayName: string = writeStandAloneDayName({\n  name: translator.translateText(DAY_NAMES[day]!)!,\n  language: translator.language,\n  context: "standAlone",\n});',
       0,
     ],
     // A statement after the helper's is not inside it.
@@ -290,10 +301,14 @@ describe("a day's name standing alone is cased as its language writes it", () =>
     // A menu of days handed to the helper, and one that is not.
     [
       "Example.tsx",
-      "DropdownUtil.getDropdownOptionsFromEnum(DayOfWeek).map((option) => {\n  return { ...option, label: writeStandAloneDayName({ name: option.label, language, context: \"menu\" }) };\n});",
+      'DropdownUtil.getDropdownOptionsFromEnum(DayOfWeek).map((option) => {\n  return { ...option, label: writeStandAloneDayName({ name: option.label, language, context: "menu" }) };\n});',
       0,
     ],
-    ["Example.tsx", "options={DropdownUtil.getDropdownOptionsFromEnum(DayOfWeek)}", 1],
+    [
+      "Example.tsx",
+      "options={DropdownUtil.getDropdownOptionsFromEnum(DayOfWeek)}",
+      1,
+    ],
     // Intl's weekday in a file that never asks the helper.
     ["Example.ts", 'const options = { weekday: "short", day: "numeric" };', 1],
     [
@@ -303,9 +318,12 @@ describe("a day's name standing alone is cased as its language writes it", () =>
     ],
     // A narrow name takes no capital in any language: not read.
     ["Example.ts", 'const options = { weekday: "narrow" };', 0],
-  ])("%s: %p is %p time(s) off the helper", (file: string, text: string, count: number) => {
-    expect(findDayNamesOffTheHelper(file, text)).toHaveLength(count);
-  });
+  ])(
+    "%s: %p is %p time(s) off the helper",
+    (file: string, text: string, count: number) => {
+      expect(findDayNamesOffTheHelper(file, text)).toHaveLength(count);
+    },
+  );
 
   test("a sentence's file may read its day table as the sentence words it", () => {
     expect(

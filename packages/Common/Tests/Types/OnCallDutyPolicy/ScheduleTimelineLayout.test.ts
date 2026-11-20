@@ -120,9 +120,7 @@ describe("getRange: week", () => {
    * language, from the day's start in the view's zone (#7660): the week
    * starts on a Monday whatever the language says.
    */
-  const dayNames: (
-    range: TimelineRange,
-  ) => Array<[string, string, boolean]> = (
+  const dayNames: (range: TimelineRange) => Array<[string, string, boolean]> = (
     range: TimelineRange,
   ): Array<[string, string, boolean]> => {
     return range.days.map((day: TimelineDay): [string, string, boolean] => {

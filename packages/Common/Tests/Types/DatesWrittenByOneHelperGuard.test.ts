@@ -424,9 +424,7 @@ describe("every date a page shows is written by OneUptimeDate or DateLanguage", 
       expect(source).toBeDefined();
       expect(
         findDateWrites(source!.text).some((write: FoundDateWrite): boolean => {
-          return (
-            write.kind === allowed.kind && write.detail === allowed.detail
-          );
+          return write.kind === allowed.kind && write.detail === allowed.detail;
         }),
       ).toBe(true);
       expect(allowed.reason.length).toBeGreaterThan(40);
@@ -436,14 +434,17 @@ describe("every date a page shows is written by OneUptimeDate or DateLanguage", 
   test.each<[string, number]>([
     // Intl, writing: the forms #10038 found.
     [
-      'new Intl.DateTimeFormat(getNumberLocale(locale), { ...options, timeZone: clock.timezone }).format(date)',
+      "new Intl.DateTimeFormat(getNumberLocale(locale), { ...options, timeZone: clock.timezone }).format(date)",
       1,
     ],
     [
       'const format = new Intl.DateTimeFormat("en-US", { year: "numeric", timeZone: zone });',
       1,
     ],
-    ["new Intl.DateTimeFormat(getFeedLocale(language), options).format(date)", 1],
+    [
+      "new Intl.DateTimeFormat(getFeedLocale(language), options).format(date)",
+      1,
+    ],
     // Read only for its clock or its zone: it writes nothing.
     [
       'new Intl.DateTimeFormat(undefined, { hour: "numeric" }).resolvedOptions().hour12',
@@ -481,10 +482,10 @@ describe("every date a page shows is written by OneUptimeDate or DateLanguage", 
     ['translator.format("{{count}} items")', 0],
     // Written by the helpers.
     [
-      "OneUptimeDate.getDateAsCustomFormattedStringInTimezone({ date, format: \"MMM D\" })",
+      'OneUptimeDate.getDateAsCustomFormattedStringInTimezone({ date, format: "MMM D" })',
       0,
     ],
-    ["OneUptimeDate.getDayOfWeekName(day.start, { width: \"short\" })", 0],
+    ['OneUptimeDate.getDayOfWeekName(day.start, { width: "short" })', 0],
   ])("finds %p %p time(s)", (source: string, count: number) => {
     expect(findDateWrites(source)).toHaveLength(count);
   });

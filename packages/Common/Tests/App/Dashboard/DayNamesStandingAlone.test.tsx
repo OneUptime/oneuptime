@@ -1,12 +1,7 @@
 /** @timezone UTC */
 
 import "@testing-library/jest-dom";
-import {
-  act,
-  cleanup,
-  render,
-  screen,
-} from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import {
   afterEach,
   beforeAll,
@@ -131,13 +126,14 @@ describe("the table is CLDR's", () => {
     const expected: Record<string, Array<DayNameContext>> = {};
 
     for (const language of Object.keys(CLDR_48_DAY_TRANSFORMS)) {
-      expected[language] = (["standAlone", "menu"] as Array<DayNameContext>)
-        .filter((context: DayNameContext): boolean => {
-          return (
-            CLDR_48_DAY_TRANSFORMS[language]![CLDR_CONTEXT[context]] ===
-            "titlecase-firstword"
-          );
-        });
+      expected[language] = (
+        ["standAlone", "menu"] as Array<DayNameContext>
+      ).filter((context: DayNameContext): boolean => {
+        return (
+          CLDR_48_DAY_TRANSFORMS[language]![CLDR_CONTEXT[context]] ===
+          "titlecase-firstword"
+        );
+      });
     }
 
     expect(DAY_NAME_TITLECASE_CONTEXTS).toEqual(expected);
@@ -355,7 +351,9 @@ describe("every place a day's name stands alone", () => {
   });
 
   test("the upcoming shifts card's day beside its date tile", () => {
-    const clock: (language: string) => Parameters<typeof getShiftDayLabel>[1] = (
+    const clock: (
+      language: string,
+    ) => Parameters<typeof getShiftDayLabel>[1] = (
       language: string,
     ): Parameters<typeof getShiftDayLabel>[1] => {
       return {

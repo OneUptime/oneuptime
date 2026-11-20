@@ -295,10 +295,25 @@ describe("a custom range within one day", () => {
     ["en", true, "Nov 5, 5:14 AM – 6:14 AM", "Nov 5, 2025, 5:14 AM – 6:14 AM"],
     ["en", false, "Nov 5, 05:14 – 06:14", "Nov 5, 2025, 05:14 – 06:14"],
     ["de", false, "5. Nov., 05:14 – 06:14", "5. Nov. 2025, 05:14 – 06:14"],
-    ["de", true, "5. Nov., 5:14 AM – 6:14 AM", "5. Nov. 2025, 5:14 AM – 6:14 AM"],
+    [
+      "de",
+      true,
+      "5. Nov., 5:14 AM – 6:14 AM",
+      "5. Nov. 2025, 5:14 AM – 6:14 AM",
+    ],
     ["ja", false, "11月5日 05:14 – 06:14", "2025年11月5日 05:14 – 06:14"],
-    ["ja", true, "11月5日 午前5:14 – 午前6:14", "2025年11月5日 午前5:14 – 午前6:14"],
-    ["ko", true, "11월 5일 오전 5:14 – 오전 6:14", "2025년 11월 5일 오전 5:14 – 오전 6:14"],
+    [
+      "ja",
+      true,
+      "11月5日 午前5:14 – 午前6:14",
+      "2025年11月5日 午前5:14 – 午前6:14",
+    ],
+    [
+      "ko",
+      true,
+      "11월 5일 오전 5:14 – 오전 6:14",
+      "2025년 11월 5일 오전 5:14 – 오전 6:14",
+    ],
     ["ko", false, "11월 5일 05:14 – 06:14", "2025년 11월 5일 05:14 – 06:14"],
     ["fa", false, "۵ نوامبر، ۰۵:۱۴ – ۰۶:۱۴", "۵ نوامبر ۲۰۲۵، ۰۵:۱۴ – ۰۶:۱۴"],
     ["da", false, "5. nov., 05.14 – 06.14", "5. nov. 2025, 05.14 – 06.14"],
@@ -704,14 +719,10 @@ describe("a 12-hour time in the reader's language has no leading zero", () => {
 
     pin(true);
     setDateDisplayLanguage("ko");
-    expect(label(LATE_MORNING)).toBe(
-      "2025년 11월 5일 오전 10:05 – 오전 11:30",
-    );
+    expect(label(LATE_MORNING)).toBe("2025년 11월 5일 오전 10:05 – 오전 11:30");
 
     pin(false);
-    expect(label(LATE_MORNING)).toBe(
-      "2025년 11월 5일 10:05 – 11:30",
-    );
+    expect(label(LATE_MORNING)).toBe("2025년 11월 5일 10:05 – 11:30");
   });
 
   test("the reader's own helper says so: numeric on a 12-hour clock, two digits on a 24-hour one", () => {

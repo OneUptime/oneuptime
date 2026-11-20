@@ -96,9 +96,7 @@ describe("the month is the zone's, on OneUptime's own clock", () => {
     expect(OneUptimeDate.getDateAsLocalMonthYearString(october)).toBe(
       "Okt. 2026",
     );
-    expect(OneUptimeDate.getDateAsLocalDayMonthString(october)).toBe(
-      "1. Okt.",
-    );
+    expect(OneUptimeDate.getDateAsLocalDayMonthString(october)).toBe("1. Okt.");
   });
 
   test("Intl is never handed the zone: only UTC", () => {

@@ -118,7 +118,7 @@ describe("DashboardDateTime", () => {
       OneUptimeDate.setUserTimezone(LA);
 
       expect(getDashboardDateTime(INSTANT).title).toBe(
-        "Jul 16 2026, 14:32:05 PDT",
+        "Jul 16, 2026, 14:32:05 PDT",
       );
     });
 
@@ -210,7 +210,7 @@ describe("DashboardDateTime", () => {
 
       // Sydney is already in 2027 while UTC is still in 2026.
       expect(getDashboardDateTime(newYearsEve).label).toBe(
-        "Jan 01, 2027 10:30",
+        "Jan 1, 2027 10:30",
       );
     });
 
@@ -261,7 +261,7 @@ describe("DashboardDateTime", () => {
       const springForward: Date = new Date("2026-03-08T07:00:00.000Z");
 
       expect(getDashboardDateTime(springForward).label).toBe(
-        "Mar 08, 2026 03:00",
+        "Mar 8, 2026 03:00",
       );
     });
 
@@ -272,8 +272,8 @@ describe("DashboardDateTime", () => {
       const firstPass: Date = new Date("2026-11-01T05:30:00.000Z");
       const secondPass: Date = new Date("2026-11-01T06:30:00.000Z");
 
-      expect(getDashboardDateTime(firstPass).label).toBe("Nov 01, 2026 01:30");
-      expect(getDashboardDateTime(secondPass).label).toBe("Nov 01, 2026 01:30");
+      expect(getDashboardDateTime(firstPass).label).toBe("Nov 1, 2026 01:30");
+      expect(getDashboardDateTime(secondPass).label).toBe("Nov 1, 2026 01:30");
       // The wall clocks collide; the titles must not.
       expect(getDashboardDateTime(firstPass).title).toContain("EDT");
       expect(getDashboardDateTime(secondPass).title).toContain("EST");
@@ -320,7 +320,7 @@ describe("DashboardDateTime", () => {
         getDashboardDateTime(new Date("2026-07-06T04:05:06.000Z"), {
           showSeconds: true,
         }).label,
-      ).toBe("Jul 06, 2026 04:05:06");
+      ).toBe("Jul 6, 2026 04:05:06");
     });
 
     it("does not round a timestamp up to the next minute", () => {

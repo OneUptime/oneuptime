@@ -785,12 +785,18 @@ export const getDateTimeFormat: (data: {
   options: Intl.DateTimeFormatOptions;
 }): ReaderDateTimeFormat | null => {
   const options: Intl.DateTimeFormatOptions = withoutZone(data.options);
-  const zoneName: string | null = findMomentZone(data.timezones);
+  // An empty name is no zone: the runtime's own clock, as before.
+  const timezones: Array<string> = data.timezones.filter(
+    (name: string): boolean => {
+      return Boolean(name);
+    },
+  );
+  const zoneName: string | null = findMomentZone(timezones);
 
-  if (data.timezones.length > 0 && !zoneName) {
+  if (timezones.length > 0 && !zoneName) {
     return getIntlZoneFormat({
       locale: data.locale,
-      timezones: data.timezones,
+      timezones: timezones,
       options: options,
     });
   }
