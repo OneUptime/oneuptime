@@ -5,6 +5,15 @@ import {
   readAzureCommitments,
   summarizeAzureCommitmentRows,
 } from "../../../../Server/Utils/CloudConnection/Azure/AzureCommitments";
+import {
+  AzureCostPacer,
+  AzureCostReader,
+  AzureCostThrottled,
+} from "../../../../Server/Utils/CloudConnection/Azure/AzureCostManagement";
+import {
+  CloudReadBudget,
+  CloudReadBudgetSpent,
+} from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
 import { DataSourceHttpRequest } from "../../../../Server/Utils/DataSource/HttpFetch";
 import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProviderError";
 import { CloudCostState } from "../../../../Types/Cloud/CloudCost";
@@ -48,7 +57,7 @@ function tokenRoute(): FakeRoute {
   };
 }
 
-function armOf(api: FakeProviderApi): AzureArm {
+function armOf(api: FakeProviderApi, budget?: CloudReadBudget): AzureArm {
   return new AzureArm({
     tenantId: TENANT,
     clientId: "22222222-3333-4444-8555-666666666666",
@@ -56,6 +65,26 @@ function armOf(api: FakeProviderApi): AzureArm {
     cloud: "public",
     transport: api.transport,
     sleep: async (): Promise<void> => {},
+    budget,
+  });
+}
+
+/*
+ * The read's paced queries, with a tenant of its own that has asked
+ * nothing: its requests and its time from one budget, as a read's are.
+ */
+function readerOf(
+  api: FakeProviderApi,
+  options: { budget?: CloudReadBudget | undefined } = {},
+): AzureCostReader {
+  return new AzureCostReader({
+    arm: armOf(api, options.budget),
+    sleep: async (): Promise<void> => {},
+    pacer: new AzureCostPacer(),
+    random: (): number => {
+      return 0;
+    },
+    budget: options.budget,
   });
 }
 
@@ -150,7 +179,7 @@ describe("the two queries", () => {
     const api: FakeProviderApi = costManagement({ usage: [], charges: [] });
 
     await readAzureCommitments({
-      arm: armOf(api),
+      costs: readerOf(api),
       subscriptionId: SUBSCRIPTION,
       now: NOW,
     });
@@ -232,7 +261,7 @@ describe("the two queries", () => {
     ]);
 
     const rows: Array<Record<string, unknown>> = await queryAzureCostRows({
-      arm: armOf(api),
+      costs: readerOf(api),
       subscriptionId: SUBSCRIPTION,
       body: {},
       step: "test query",
@@ -350,7 +379,7 @@ describe("what the rows say", () => {
 describe("a subscription, read", () => {
   test("read: its kinds, in its currency, over 30 days", async () => {
     const summary: CloudCommitmentSummary = await readAzureCommitments({
-      arm: armOf(
+      costs: readerOf(
         costManagement({
           usage: [
             [600, "Reservation", "Virtual Machines", "EUR"],
@@ -381,7 +410,7 @@ describe("a subscription, read", () => {
 
   test("an app that may not read its costs: give it Cost Management Reader", async () => {
     const summary: CloudCommitmentSummary = await readAzureCommitments({
-      arm: armOf(
+      costs: readerOf(
         costManagement({
           usage: [],
           charges: [],
@@ -417,10 +446,67 @@ describe("a subscription, read", () => {
 
     await expect(
       readAzureCommitments({
-        arm: armOf(api),
+        costs: readerOf(api),
         subscriptionId: SUBSCRIPTION,
         now: NOW,
       }),
     ).rejects.toBeInstanceOf(LlmProviderError);
+  });
+
+  /*
+   * Put off, it is no failure: the caller stops there, the subscription
+   * keeps the figures it had, and it is read first next time.
+   */
+  test("Cost Management's limits put it off: thrown, not a failed summary", async () => {
+    const api: FakeProviderApi = createFakeProviderApi([
+      tokenRoute(),
+      {
+        host: "management.azure.com",
+        path: QUERY_PATH,
+        method: "POST",
+        respond: (): FakeResponse => {
+          return {
+            status: 429,
+            body: '{"error":{"code":"429","message":"Too many requests. Please retry."}}',
+            headers: {
+              "x-ms-ratelimit-microsoft.costmanagement-qpu-retry-after": "3600",
+            },
+          };
+        },
+      },
+    ]);
+
+    await expect(
+      readAzureCommitments({
+        costs: readerOf(api, {
+          budget: new CloudReadBudget({
+            maxRequests: 10,
+            maxDurationMs: 60_000,
+          }),
+        }),
+        subscriptionId: SUBSCRIPTION,
+        now: NOW,
+      }),
+    ).rejects.toBeInstanceOf(AzureCostThrottled);
+    // Asked once: an hour's wait is past the read's minute, so it is not waited.
+    expect(api.requestsTo(QUERY_PATH)).toHaveLength(1);
+  });
+
+  test("the read's own limit spent: thrown, not a failed summary", async () => {
+    await expect(
+      readAzureCommitments({
+        costs: readerOf(
+          costManagement({ usage: [], charges: [] }),
+          {
+            budget: new CloudReadBudget({
+              maxRequests: 0,
+              maxDurationMs: 60_000,
+            }),
+          },
+        ),
+        subscriptionId: SUBSCRIPTION,
+        now: NOW,
+      }),
+    ).rejects.toBeInstanceOf(CloudReadBudgetSpent);
   });
 });
