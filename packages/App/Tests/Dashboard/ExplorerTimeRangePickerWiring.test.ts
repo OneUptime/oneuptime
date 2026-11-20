@@ -152,7 +152,7 @@ describe("the shared picker itself", () => {
   );
 
   test("formats a custom window through the timezone- and clock-aware helper", () => {
-    expect(PICKER).toContain("OneUptimeDate.getDateAsLocalShortDateTimeString");
+    expect(PICKER).toContain("OneUptimeDate.getLocalDateTimeRangeEnds");
   });
 
   test("reads no wall-clock field off the Date and pins no locale", () => {

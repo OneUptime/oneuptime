@@ -12,7 +12,7 @@ import Timezone from "../../Types/Timezone";
 import { DASHBOARD_LANGUAGES } from "../Helpers/TranslatedLanguages";
 
 /*
- * "Oct 06 2026, 10:05 BST", "5 hours ago", "2 days, 3 hours" were written
+ * "Oct 6, 2026, 10:05 BST", "5 hours ago", "2 days, 3 hours" were written
  * in English under every page. Once a frontend sets the reader's language,
  * OneUptimeDate writes them in it - the words of the date, its order and
  * its figures - and remembers each with its English, which a sentence
@@ -76,7 +76,7 @@ const READINGS: Array<Reading> = [
     },
   },
   {
-    name: "date in the runtime's zone",
+    name: "date in the reader's zone, named as it was then",
     read: (): string => {
       return OneUptimeDate.getDateAsFormattedString(INSTANT);
     },
@@ -191,17 +191,17 @@ const READINGS: Array<Reading> = [
 ];
 
 const ENGLISH: Record<string, string> = {
-  "local date and time": "Oct 06 2026, 10:05 BST",
-  "local date": "Oct 06, 2026",
-  "local 12-hour time with seconds": "Oct 06 2026, 10:05:07 AM BST",
-  "date in the runtime's zone": "Oct 06 2026, 09:05 GMT",
+  "local date and time": "Oct 6, 2026, 10:05 BST",
+  "local date": "Oct 6, 2026",
+  "local 12-hour time with seconds": "Oct 6, 2026, 10:05:07 AM BST",
+  "date in the reader's zone, named as it was then": "Oct 6, 2026, 10:05 BST",
   "short date and time": "Oct 6, 10:05",
   "day and month": "06 Oct",
   "a list's date": "Oct 6, 10:05",
   "a list's date of another year": "Oct 6, 2026",
   "month and year": "Oct 2026",
   "a weekday in another zone": "Tue, Oct 6, 2026, 05:05 EDT",
-  "several zones": "Oct 06 2026, 09:05 UTC | Oct 06 2026, 14:35 IST",
+  "several zones": "Oct 6, 2026, 09:05 UTC | Oct 6, 2026, 14:35 IST",
   "a status page report's month": "October 2026",
   "hours and minutes": "2\u00A0hours 5\u00A0minutes",
   "days, hours, minutes and seconds":
@@ -214,17 +214,17 @@ const ENGLISH: Record<string, string> = {
 };
 
 const GERMAN: Record<string, string> = {
-  "local date and time": "06. Okt. 2026, 10:05 BST",
-  "local date": "06. Okt. 2026",
-  "local 12-hour time with seconds": "06. Okt. 2026, 10:05:07 AM BST",
-  "date in the runtime's zone": "06. Okt. 2026, 09:05 GMT",
+  "local date and time": "6. Okt. 2026, 10:05 BST",
+  "local date": "6. Okt. 2026",
+  "local 12-hour time with seconds": "6. Okt. 2026, 10:05:07 AM BST",
+  "date in the reader's zone, named as it was then": "6. Okt. 2026, 10:05 BST",
   "short date and time": "6. Okt., 10:05",
   "day and month": "6. Okt.",
   "a list's date": "6. Okt., 10:05",
   "a list's date of another year": "6. Okt. 2026",
   "month and year": "Okt. 2026",
   "a weekday in another zone": "Di., 6. Okt. 2026, 05:05 EDT",
-  "several zones": "06. Okt. 2026, 09:05 UTC | 06. Okt. 2026, 14:35 IST",
+  "several zones": "6. Okt. 2026, 09:05 UTC | 6. Okt. 2026, 14:35 IST",
   "a status page report's month": "Oktober 2026",
   "hours and minutes": "2 Stunden, 5 Minuten",
   "days, hours, minutes and seconds":
@@ -235,22 +235,29 @@ const GERMAN: Record<string, string> = {
 };
 
 const JAPANESE: Record<string, string> = {
-  "local date and time": "2026年10月06日 10:05 BST",
-  "local date": "2026年10月06日",
-  "local 12-hour time with seconds": "2026年10月06日 午前10:05:07 BST",
-  "date in the runtime's zone": "2026年10月06日 09:05 GMT",
+  "local date and time": "2026年10月6日 10:05 BST",
+  "local date": "2026年10月6日",
+  "local 12-hour time with seconds": "2026年10月6日 午前10:05:07 BST",
+  "date in the reader's zone, named as it was then": "2026年10月6日 10:05 BST",
   "short date and time": "10月6日 10:05",
   "day and month": "10月6日",
   "a list's date": "10月6日 10:05",
   "a list's date of another year": "2026年10月6日",
   "month and year": "2026年10月",
   "a weekday in another zone": "2026年10月6日(火) 05:05 EDT",
-  "several zones": "2026年10月06日 09:05 UTC | 2026年10月06日 14:35 IST",
+  "several zones": "2026年10月6日 09:05 UTC | 2026年10月6日 14:35 IST",
   "a status page report's month": "2026年10月",
   "a span's duration": "1.72 s",
 };
 
-describe("English, as it always read", () => {
+/*
+ * English reads as it always has, but for a moment in full, which reads as
+ * the short form does with its year and zone (#7652): "Oct 6, 2026, 10:05
+ * BST", not "Oct 06 2026, 10:05 BST". getDateAsFormattedString reads the
+ * reader's zone and names it as it was then: it wrote the runtime's 09:05
+ * beside London's November name, "Oct 06 2026, 09:05 GMT".
+ */
+describe("English", () => {
   test.each(
     READINGS.map((reading: Reading): [string, Reading] => {
       return [reading.name, reading];
@@ -300,8 +307,8 @@ describe("German", () => {
       });
 
     expect(zones.map(getEnglishOf)).toEqual([
-      "Oct 06 2026, 09:05 UTC",
-      "Oct 06 2026, 14:35 IST",
+      "Oct 6, 2026, 09:05 UTC",
+      "Oct 6, 2026, 14:35 IST",
     ]);
   });
 
@@ -357,12 +364,12 @@ describe("Japanese, Persian and the other languages", () => {
   });
 
   test.each([
-    ["fr", "06 oct. 2026, 10:05 BST"],
-    ["es", "06 oct 2026, 10:05 BST"],
-    ["ru", "06 окт. 2026 г., 10:05 BST"],
-    ["zh-CN", "2026年10月06日 10:05 BST"],
-    ["ko", "2026년 10월 06일 10:05 BST"],
-    ["hi", "06 अक्टू॰ 2026, 10:05 BST"],
+    ["fr", "6 oct. 2026, 10:05 BST"],
+    ["es", "6 oct 2026, 10:05 BST"],
+    ["ru", "6 окт. 2026 г., 10:05 BST"],
+    ["zh-CN", "2026年10月6日 10:05 BST"],
+    ["ko", "2026년 10월 6일 10:05 BST"],
+    ["hi", "6 अक्टू॰ 2026, 10:05 BST"],
   ])("%s: %s", (language: string, text: string) => {
     setDateDisplayLanguage(language);
 
@@ -505,9 +512,12 @@ describe("times in the reader's digits", () => {
  * exception's breadcrumbs, was moment's in every language: "10:05:07.120"
  * in Latin digits on a Persian page, beside "۱۰:۰۵" (#7856). It is now
  * written in the digits "HH:mm" is written in - Persian's own, Latin ones
- * in Arabic - and only its digits change: its marks are ":" and "." in
- * every language, where Intl writes "10:05:07,120" in German and
- * "10.05.07,120" in Danish.
+ * in Arabic - and with the mark its language puts between a time's parts
+ * (#7914): ":" in every language but Danish, whose times read "10.05", as
+ * CLDR and Danish write them. The milliseconds keep moment's "." where the
+ * parts take ":" - Intl would write "10:05:07,120" in German - and take
+ * Danish's decimal comma there, "10.05.07,120", where a point is the
+ * time's own mark.
  */
 describe("a time of day to the millisecond", () => {
   // 10:05:07.120 in London.
@@ -560,7 +570,7 @@ describe("a time of day to the millisecond", () => {
   });
 
   test.each([...DASHBOARD_LANGUAGES])(
-    "%s: in the digits its hour and minute are written in, with English's marks",
+    "%s: in the digits and with the mark its hour and minute are written in",
     (language: string) => {
       setDateDisplayLanguage(language);
 
@@ -569,13 +579,28 @@ describe("a time of day to the millisecond", () => {
         NOT_A_DIGIT,
         "",
       );
+      // The mark "HH:mm" puts between the hour and the minute.
+      const mark: string = hourAndMinute().replace(DIGIT, "").charAt(0);
 
-      expect(time.replace(DIGIT, "0")).toBe("00:00:00.000");
+      expect(time.replace(DIGIT, "0")).toBe(
+        language === "da" ? "00.00.00,000" : "00:00:00.000",
+      );
+      expect(time.replace(DIGIT, "0").slice(2, 3)).toBe(mark);
       expect(
         time.replace(NOT_A_DIGIT, "").slice(0, hourAndMinuteDigits.length),
       ).toBe(hourAndMinuteDigits);
     },
   );
+
+  test("Danish: the parts take Danish's point, the milliseconds its decimal comma, remembered with the English", () => {
+    setDateDisplayLanguage("da");
+
+    const time: string = clockTime();
+
+    expect(hourAndMinute()).toBe("10.05");
+    expect(time).toBe("10.05.07,120");
+    expect(getEnglishOf(time)).toBe("10:05:07.120");
+  });
 });
 
 /*

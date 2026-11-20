@@ -765,7 +765,7 @@ describe("as sent: the HTML, and the same email as text beside it", () => {
         "Here are the details:",
         "",
         "Incident Title: Checkout API is down",
-        "Resolution Deadline: Oct 26 2026, 11:59 AM GMT",
+        "Resolution Deadline: Oct 26, 2026, 11:59 AM GMT",
         "SLA Rule: P1 customer SLA",
         "Current State: Investigating",
         "Open For: 2\u00A0hours, 30\u00A0minutes",

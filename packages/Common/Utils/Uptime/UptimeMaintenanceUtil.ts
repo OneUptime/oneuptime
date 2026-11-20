@@ -4,6 +4,7 @@ import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMain
 import Color from "../../Types/Color";
 import OneUptimeDate from "../../Types/Date";
 import {
+  ReaderDateTimeFormat,
   getDateTimeFormat,
   getHourOption,
   writeInDateDisplayLanguage,
@@ -471,7 +472,7 @@ export default class UptimeMaintenanceUtil {
       (_language: string, locale: string): string | null => {
         const timezone: Timezone = OneUptimeDate.getCurrentTimezone();
 
-        const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+        const format: ReaderDateTimeFormat | null = getDateTimeFormat({
           locale: locale,
           timezones: [
             timezone.toString(),
