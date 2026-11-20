@@ -114,6 +114,42 @@ export const EXCEPTIONS_SKIPPED_NOTHING: PluralTemplate = {
   other: "Its {{count}} exceptions skipped nothing in this period.",
 };
 
+/*
+ * What a rule that counts per value could not count (#10415): the matching
+ * events with no value for its Group By Field, which it leaves out rather
+ * than count as one value - worded by what the field names.
+ */
+export const UNCOUNTED_NO_IP_ADDRESS: PluralTemplate = {
+  one: "{{count}} matching event had no IP address, so this rule couldn't count it.",
+  other:
+    "{{count}} matching events had no IP address, so this rule couldn't count them.",
+};
+
+export const UNCOUNTED_NO_USER: PluralTemplate = {
+  one: "{{count}} matching event had no user, so this rule couldn't count it.",
+  other:
+    "{{count}} matching events had no user, so this rule couldn't count them.",
+};
+
+export const UNCOUNTED_NO_HOST: PluralTemplate = {
+  one: "{{count}} matching event had no host, so this rule couldn't count it.",
+  other:
+    "{{count}} matching events had no host, so this rule couldn't count them.",
+};
+
+// Any other field, named as the rule names it ({{field}}).
+export const UNCOUNTED_NO_VALUE: PluralTemplate = {
+  one: "{{count}} matching event had no {{field}}, so this rule couldn't count it.",
+  other:
+    "{{count}} matching events had no {{field}}, so this rule couldn't count them.",
+};
+
+// Why, when a scrub rule hid their addresses (#10397).
+export const UNCOUNTED_HIDDEN_BY_SCRUB_RULE: PluralTemplate = {
+  one: "A scrub rule hid the address of {{count}} of them.",
+  other: "A scrub rule hid the address of {{count}} of them.",
+};
+
 // ---------- What it fired for ----------
 
 export const FIRED_FOR_COLUMN: string = translationKey("Fired for");
@@ -148,6 +184,7 @@ export const RETROHUNT_TEST_IDS: Readonly<{
   facts: string;
   noisy: string;
   exceptions: string;
+  uncounted: string;
   notice: string;
   changed: string;
   groups: string;
@@ -166,6 +203,7 @@ export const RETROHUNT_TEST_IDS: Readonly<{
   facts: "detection-rule-retrohunt-facts",
   noisy: "detection-rule-retrohunt-noisy",
   exceptions: "detection-rule-retrohunt-exceptions",
+  uncounted: "detection-rule-retrohunt-uncounted",
   notice: "detection-rule-retrohunt-notice",
   changed: "detection-rule-retrohunt-changed",
   groups: "detection-rule-retrohunt-groups",

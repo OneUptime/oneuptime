@@ -16,6 +16,7 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -51,7 +52,10 @@ import {
   RetrohuntRuleInput,
   buildRetrohuntRequest,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retrohunt/RetrohuntModel";
+import { getHiddenAddressRulesRoute } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HiddenClientAddressRoute";
 import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import ProjectUtil from "../../../UI/Utils/Project";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import {
   DetectionRetrohuntGroup,
@@ -93,6 +97,7 @@ function answer(
     groups: [group("alice", 30), group("bob", 10), group("carol", 2)],
     hasMoreGroups: false,
     candidateLimit: null,
+    uncounted: null,
     ...overrides,
   };
 }
@@ -289,6 +294,80 @@ describe("Run on Past Events", () => {
           });
         }),
       ).toEqual([]);
+    });
+
+    test("says what a rule that counts per address could not count, and opens the Scrub Rules that hid them (#10415)", async () => {
+      jest
+        .spyOn(ProjectUtil, "getCurrentProjectId")
+        .mockReturnValue(new ObjectID("11111111-1111-4111-8111-111111111111"));
+      runMock.mockResolvedValue(
+        answer({
+          uncounted: {
+            field: "principalIp",
+            eventCount: 1204,
+            hiddenInLogsCount: 1180,
+            hiddenInTracesCount: 0,
+          },
+        }) as never,
+      );
+
+      render(
+        <MemoryRouter>
+          <DetectionRuleRetrohuntPanel
+            getRequest={(periodInHours: number): JSONObject => {
+              return buildRetrohuntRequest(
+                { detectionRuleId: RULE_ID },
+                periodInHours,
+              );
+            }}
+          />
+        </MemoryRouter>,
+      );
+      await settle();
+
+      const line: HTMLElement = screen.getByTestId(
+        RETROHUNT_TEST_IDS.uncounted,
+      );
+
+      expect(line).toHaveTextContent(
+        "1,204 matching events had no IP address, so this rule couldn't count them. A scrub rule hid the address of 1,180 of them. Open Scrub Rules",
+      );
+      expect(
+        within(line).getByRole("link", { name: "Open Scrub Rules" }),
+      ).toHaveAttribute(
+        "href",
+        getHiddenAddressRulesRoute("log")!.toString(),
+      );
+    });
+
+    test("a rule that left out events no scrub rule hid says so with no link; one that left out nothing, nothing", async () => {
+      runMock.mockResolvedValue(
+        answer({
+          uncounted: {
+            field: "principalUser",
+            eventCount: 1,
+            hiddenInLogsCount: 0,
+            hiddenInTracesCount: 0,
+          },
+        }) as never,
+      );
+
+      await drawPanel();
+
+      expect(screen.getByTestId(RETROHUNT_TEST_IDS.uncounted)).toHaveTextContent(
+        "1 matching event had no user, so this rule couldn't count it.",
+      );
+      expect(
+        within(screen.getByTestId(RETROHUNT_TEST_IDS.uncounted)).queryByRole(
+          "link",
+        ),
+      ).toBeNull();
+
+      cleanup();
+      runMock.mockResolvedValue(answer() as never);
+      await drawPanel();
+
+      expect(screen.queryByTestId(RETROHUNT_TEST_IDS.uncounted)).toBeNull();
     });
 
     test("would not have fired: how close it came", async () => {
