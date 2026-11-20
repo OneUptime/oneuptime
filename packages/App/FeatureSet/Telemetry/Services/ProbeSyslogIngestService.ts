@@ -6,6 +6,9 @@ import LogDropFilterService, {
   LoadedLogDropFilter,
 } from "./LogDropFilterService";
 import LogScrubRuleService from "./LogScrubRuleService";
+import SecurityAddressVaultWriter, {
+  SecurityAddressVaultBatch,
+} from "Common/Server/Utils/SecurityEvent/AddressVault/SecurityAddressVaultWriter";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -103,6 +106,13 @@ interface LogProcessingContext {
   pipelines: Array<LoadedPipeline>;
   dropFilters: Array<LoadedLogDropFilter>;
   scrubRules: Awaited<ReturnType<typeof LogScrubRuleService.loadScrubRules>>;
+  /*
+   * The addresses this project's IP Address Hash rules hide in the batch,
+   * kept for Security Events' address vault when Security Events reads the
+   * project's logs (#10395), and written after the batch's logs: null when
+   * nothing is kept.
+   */
+  addressVault: SecurityAddressVaultBatch | null;
   /*
    * The work allowance of this project's patterns for the batch
    * (Common/Utils/LinearRegExp/PatternWork.ts): a probe's batch carries
@@ -336,6 +346,11 @@ export default class ProbeSyslogIngestService {
        * syslog is in the Logs explorer like any app's.
        */
       TelemetryMilestones.markInserted(AnalyticsTableName.Log, dbLogs);
+    }
+
+    // The logs are stored: each project's hashed addresses go to the vault, on their own.
+    for (const context of Object.values(processingContextCache)) {
+      context.addressVault?.write();
     }
 
     result.written = dbLogs.length;
@@ -679,6 +694,7 @@ export default class ProbeSyslogIngestService {
               return LogScrubRuleService.scrubLog(
                 row,
                 processingContext.scrubRules,
+                processingContext.addressVault,
               );
             },
           });
@@ -852,6 +868,7 @@ export default class ProbeSyslogIngestService {
       pipelines: [],
       dropFilters: [],
       scrubRules: [],
+      addressVault: null,
       patternWork: patternWork,
     };
 
@@ -859,10 +876,19 @@ export default class ProbeSyslogIngestService {
       context = await PatternWorkScope.run(
         patternWork,
         async (): Promise<LogProcessingContext> => {
+          const scrubRules: Awaited<
+            ReturnType<typeof LogScrubRuleService.loadScrubRules>
+          > = await LogScrubRuleService.loadScrubRules(projectId);
+
           return {
             pipelines: await LogPipelineService.loadPipelines(projectId),
             dropFilters: await LogDropFilterService.loadDropFilters(projectId),
-            scrubRules: await LogScrubRuleService.loadScrubRules(projectId),
+            scrubRules: scrubRules,
+            addressVault: await SecurityAddressVaultWriter.startBatch({
+              projectId: projectId,
+              signal: "log",
+              scrubRules: scrubRules,
+            }),
             patternWork: patternWork,
           };
         },
