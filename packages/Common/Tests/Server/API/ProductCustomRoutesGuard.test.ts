@@ -1267,6 +1267,13 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
+      "The Prometheus- and Loki-compatible query APIs (#6796, #7700) Grafana reads OneUptime through, each query also as a POST for a long one, as Prometheus and Loki serve them: they only read a project's metrics and logs.",
+      {
+        "packages/Common/Server/API/LokiAPI.ts": 4,
+        "packages/Common/Server/API/PrometheusAPI.ts": 5,
+      },
+    ),
+    ...decided(
       "Every table's CRUD API, and the move of an ordered list's row (issues #9573, #9609): a write or a move refuses a record of a product that is off before any hook runs (assertProductIsOn, see below), and a write again where every write is (ProductWriteRefusal). Its other routes read.",
       {
         "packages/Common/Server/API/BaseAPI.ts": 9,
@@ -1483,6 +1490,36 @@ const listServerFiles: () => Array<string> = (): Array<string> => {
   return files.sort();
 };
 
+/*
+ * A route registered through a computed method - router[method](...) - is
+ * one the walk cannot read the verb of, so a POST could hide in it, as the
+ * Prometheus API's did before #7700. Each such call of a file: none may be.
+ */
+const MAY_REGISTER_COMPUTED: RegExp = /(?:router|\bapp)\s*\??\.?\s*\[/i;
+
+const readComputedRegistrations: (file: string) => Array<string> = (
+  file: string,
+): Array<string> => {
+  const source: ts.SourceFile = parse(file);
+  const calls: Array<string> = [];
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isElementAccessExpression(node.expression) &&
+      ROUTER.test(node.expression.expression.getText(source))
+    ) {
+      calls.push(squash(node.expression.getText(source)));
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return calls;
+};
+
 const FILES_WITH_ROUTES: Array<string> = listServerFiles().filter(
   (file: string): boolean => {
     return (
@@ -1579,6 +1616,26 @@ describe("every route file of the server is held to a decision", () => {
     expect(FILES_WITH_ROUTES).not.toContain(
       "packages/Common/Server/Utils/ServerProducts/ServerProductRoutes.ts",
     );
+  });
+
+  test("no route is registered through a computed method, which the walk cannot read", () => {
+    const computed: Array<string> = listServerFiles()
+      .filter((file: string): boolean => {
+        return (
+          // Core's files: ee/ decides its own (ProductRouteDecisions.ts).
+          !file.startsWith("ee/") &&
+          MAY_REGISTER_COMPUTED.test(
+            fs.readFileSync(path.join(REPOSITORY, file), "utf8"),
+          )
+        );
+      })
+      .flatMap((file: string): Array<string> => {
+        return readComputedRegistrations(file).map((call: string): string => {
+          return `${file}: ${call}(...)`;
+        });
+      });
+
+    expect(computed).toEqual([]);
   });
 
   test("every file that registers a route is decided, once", () => {

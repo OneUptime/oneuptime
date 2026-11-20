@@ -46,6 +46,15 @@ const API_SOURCE: string = fs.readFileSync(
   "utf8",
 );
 
+// How a Prometheus or Loki client's key is read (#7700).
+const AUTH_SOURCE: string = fs.readFileSync(
+  path.resolve(
+    __dirname,
+    "../../../../Common/Server/Middleware/CompatibleQueryAuthorization.ts",
+  ),
+  "utf8",
+);
+
 const formatCount: (value: number) => string = (value: number): string => {
   return value.toLocaleString("en-US");
 };
@@ -156,8 +165,9 @@ describe("PromQL docs: the API is the one the server serves", () => {
   });
 
   test("a key is taken as a bearer token or a basic-auth password, as the page says", () => {
-    expect(API_SOURCE).toContain('scheme.toLowerCase() === "bearer"');
-    expect(API_SOURCE).toContain('scheme.toLowerCase() === "basic"');
+    expect(API_SOURCE).toContain("apiKeyFromAuthorizationHeader,");
+    expect(AUTH_SOURCE).toContain('scheme.toLowerCase() === "bearer"');
+    expect(AUTH_SOURCE).toContain('scheme.toLowerCase() === "basic"');
     expect(ENGLISH).toContain(
       "any user name, with the API key as the password",
     );
