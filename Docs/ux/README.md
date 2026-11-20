@@ -79,9 +79,18 @@ learned one can find their way around the next.
   records, coming back opens the first step not done, and it ends with a summary read from the
   records and what to do next (`/monitors/setup`, #6804; `/on-call-duty/setup`, #6805). Beside its
   steps it lists what the setup sets up, ticked as each step is done, and about how long it takes,
-  the minutes Home's checklist says beside its step (#8897). Its journey gets a budget of its own, with
-  `"path": "guided"`. Enforced by
-  [GuidedSetupFrame](../../packages/Common/Tests/App/Dashboard/GuidedSetupFrame.test.tsx).
+  the minutes Home's checklist says beside its step (#8897). Under each step's outcome it lists the
+  records that step makes as it makes them - waiting, being made, made or in use with Open, skipped,
+  or failed with why and Try again (`GuidedSetupResourcePanel`) - so the person always knows what
+  exists and what to do next: a monitor and an on-call policy were made with nothing on screen to
+  say so (#10276). A step not reached yet says why it is there, a bar shows how far the person is,
+  and the page is centred, as wide as its steps and its panel need, where a wide screen left two
+  thirds of it empty. The run - what it made and how each record is getting on - is kept on the
+  server, so another device or a reload opens the setup where the person left it, and the panel
+  says whether it is saved (#7253). Its journey gets a budget of its own, with `"path": "guided"`.
+  Enforced by
+  [GuidedSetupFrame](../../packages/Common/Tests/App/Dashboard/GuidedSetupFrame.test.tsx) and
+  [GuidedSetupResourcePanel](../../packages/Common/Tests/App/Dashboard/GuidedSetupResourcePanel.test.tsx).
 
 ### Side menus
 

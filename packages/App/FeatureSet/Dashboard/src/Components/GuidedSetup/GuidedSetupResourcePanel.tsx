@@ -465,6 +465,7 @@ const GuidedSetupResourcePanel: FunctionComponent<ComponentProps> = (
                         ? "text-gray-500"
                         : "font-medium text-gray-900"
                     }`}
+                    data-testid={`guided-setup-outcome-${group.stepKey}-text`}
                   >
                     {translator.translateText(group.outcome)}
                   </span>
