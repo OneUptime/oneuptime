@@ -1021,7 +1021,18 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): void {
-    const sending: Promise<void> = this.sendPlannedInvitation(data)
+    /*
+     * On the next turn of the event loop, so not even its first read is
+     * asked for before the request has answered.
+     */
+    const sending: Promise<void> = new Promise<void>(
+      (resolve: () => void): void => {
+        setTimeout(resolve, 0);
+      },
+    )
+      .then((): Promise<void> => {
+        return this.sendPlannedInvitation(data);
+      })
       .catch((err: Error): void => {
         logger.error(err, {
           projectId: data.projectId.toString(),
