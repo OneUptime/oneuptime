@@ -255,7 +255,16 @@ Teams, labels, on-call policies and on-call schedules each have a name of their 
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Beside the message, the answer carries `"refusalCode": "name_taken"`. Tell this refusal apart by that code, not by the sentence, which may be reworded. Nothing was written, so the same request can be sent again once the other record gives the name up: the Terraform provider asks again for up to 30 seconds.
+Many other kinds have a name of their own too, such as incident severities, monitor statuses, status pages and workflows, and refuse a taken name in the same way:
+
+```text
+Incident Severity with the same name already exists.
+```
+
+Beside the message, every such refusal carries a `refusalCode` that says what has the name. Tell the refusal apart by that code, not by the sentence, which may be reworded:
+
+- `"refusalCode": "name_taken"`: a record in service has it. Nothing was written, so the same request can be sent again once that record gives the name up: the Terraform provider asks again for up to 30 seconds.
+- `"refusalCode": "name_taken_by_archived"`: only an archived record has it. Unarchive that record, or pick another name: sending the request again does not help, and the Terraform provider does not.
 
 An update that sends a record's own name again, in any case, is no rename, so records that shared a name before can still be changed, and renamed apart. For teams, labels, on-call policies and on-call schedules, `GET /api/shared-names/team` (or `label`, `on-call-policy`, `on-call-schedule`) answers which share a name: `{"groups": [["<id>", "<id>"]]}`, each group the IDs your key may read of the records whose names read alike. Archived labels and on-call policies are left out.
 
