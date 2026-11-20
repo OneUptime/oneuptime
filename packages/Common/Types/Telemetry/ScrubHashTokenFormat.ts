@@ -4,7 +4,8 @@
  * A Hash rule leaves "[HASHED:", 16 lowercase hex characters and "]" in
  * place of a value: 25 characters, such as "[HASHED:3f9a1c0e7b2d4a68]"
  * (Server/Utils/Telemetry/ScrubHashToken.ts makes them, keyed per project,
- * #10394). Records stored before then hold the old form, 8 hex characters
+ * #10394). The 16 are never all digits, a card number's shape. Records
+ * stored before then hold the old form, 8 hex characters
  * ("[HASHED:8c87b489]"), until they reach their retention.
  *
  * Here, apart from the server code that makes a token, so the code that

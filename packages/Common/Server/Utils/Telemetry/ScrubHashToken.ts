@@ -108,21 +108,55 @@ function projectKeyOf(projectId: ObjectID | string): Buffer {
   return key;
 }
 
+// Sixteen digits and no letter: a card number's shape.
+const ALL_DIGITS: RegExp = /^[0-9]+$/;
+
+/*
+ * The 16 hex characters a token keeps of the HMAC: the first run of 16
+ * with a letter among them. One token in about 1,850 would otherwise be
+ * sixteen digits - a card number's shape - which a Credit Card rule after
+ * the Hash rule would mask again, and Data Security's scan could take for a
+ * card in the stored record. Eight characters never could. Only that one
+ * case in 1,850 reads further along the HMAC, so a token is still a keyed
+ * function of the value alone; four runs of digits in a row (about one in
+ * 10^13) take the first run with its first character made a letter.
+ */
+function tokenHexOf(digestHex: string): string {
+  for (
+    let offset: number = 0;
+    offset + SCRUB_HASH_TOKEN_HEX_LENGTH <= digestHex.length;
+    offset += SCRUB_HASH_TOKEN_HEX_LENGTH
+  ) {
+    const hex: string = digestHex.slice(
+      offset,
+      offset + SCRUB_HASH_TOKEN_HEX_LENGTH,
+    );
+
+    if (!ALL_DIGITS.test(hex)) {
+      return hex;
+    }
+  }
+
+  return "f" + digestHex.slice(1, SCRUB_HASH_TOKEN_HEX_LENGTH);
+}
+
 export default class ScrubHashToken {
   /*
    * The token a Hash rule of `projectId` leaves in place of `value`:
-   * "[HASHED:" and 16 hex characters. The same within the project every
-   * time, another in every other project and install.
+   * "[HASHED:" and 16 lowercase hex characters, never all digits. The same
+   * within the project every time, another in every other project and
+   * install.
    */
   public static ofValue(data: {
     projectId: ObjectID | string;
     value: string;
   }): string {
-    const hex: string = crypto
-      .createHmac("sha256", projectKeyOf(data.projectId))
-      .update(data.value, "utf8")
-      .digest("hex")
-      .slice(0, SCRUB_HASH_TOKEN_HEX_LENGTH);
+    const hex: string = tokenHexOf(
+      crypto
+        .createHmac("sha256", projectKeyOf(data.projectId))
+        .update(data.value, "utf8")
+        .digest("hex"),
+    );
 
     return `${SCRUB_HASH_TOKEN_PREFIX}${hex}${SCRUB_HASH_TOKEN_SUFFIX}`;
   }
