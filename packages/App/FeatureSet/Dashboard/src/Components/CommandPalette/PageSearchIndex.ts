@@ -1601,6 +1601,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Bell,
             keywords: ["reminders"],
           },
+          {
+            page: PageMap.ALERTS_SETTINGS_RULES_AUDIT_LOGS,
+            title: "Audit Logs",
+            icon: IconProp.List,
+            keywords: ["history", "who changed", "rule changes"],
+          },
         ],
       },
       {

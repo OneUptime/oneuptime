@@ -1171,6 +1171,18 @@ describe("a switch re-sent as it stands keeps who turned it, and when", () => {
     audited: Array<Record<string, unknown>>;
   }
 
+  /*
+   * A row the person changes also says they last modified it, and when
+   * (DatabaseServiceRecordActors.test.ts holds that to every kind of
+   * caller); a row the update leaves as it was says nothing new.
+   */
+  const MODIFIED_BY_THE_PERSON: Record<string, unknown> = {
+    lastModifiedAt: expect.any(Date),
+    lastModifiedByActorType: "User",
+    lastModifiedByActorId: null,
+    lastModifiedByUserId: USER_ID,
+  };
+
   const ROW_IDS: Array<string> = [
     "0193c0de-aaaa-4aaa-8bbb-000000000101",
     "0193c0de-aaaa-4aaa-8bbb-000000000102",
@@ -1288,6 +1300,7 @@ describe("a switch re-sent as it stands keeps who turned it, and when", () => {
       isResolved: false,
       markedAsResolvedByUserId: null,
       markedAsResolvedAt: null,
+      ...MODIFIED_BY_THE_PERSON,
     });
   });
 
@@ -1299,8 +1312,14 @@ describe("a switch re-sent as it stands keeps who turned it, and when", () => {
       personProps(),
     );
 
-    expect(writes[0]).toEqual({ isArchived: true, name: "Checkout API v2" });
+    expect(writes[0]).toEqual({
+      isArchived: true,
+      name: "Checkout API v2",
+      ...MODIFIED_BY_THE_PERSON,
+    });
     expect(audited).toHaveLength(1);
+    // Nor who last modified it: that is no change for the audit log either.
+    expect(audited[0]).not.toHaveProperty("lastModifiedByUserId");
     expect(audited[0]).not.toHaveProperty("archivedAt");
     expect(audited[0]).not.toHaveProperty("archivedByUserId");
   });

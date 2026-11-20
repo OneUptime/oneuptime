@@ -1,3 +1,4 @@
+import { withoutLastModifiedStamp } from "../TestingUtils/LastModifiedStamp";
 import BaseAPI from "../../../Server/API/BaseAPI";
 import AuditLogService from "../../../Server/Services/AuditLogService";
 import DashboardService, {
@@ -204,7 +205,7 @@ const stubRepository: (
       _where: unknown,
       set: Record<string, unknown>,
     ): Promise<{ affected: number }> => {
-      const written: Record<string, unknown> = { ...set };
+      const written: Record<string, unknown> = withoutLastModifiedStamp(set);
       delete written["version"];
       writes.push(written);
       return { affected: 1 };
