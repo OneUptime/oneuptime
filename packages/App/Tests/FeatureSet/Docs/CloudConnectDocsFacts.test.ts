@@ -1141,8 +1141,9 @@ describe("Connect a Cloud Account", () => {
   /*
    * A role is used only when it requires the project's external id: checked
    * by signing in once with an id no project has, the pass kept a day and a
-   * refusal an hour (AwsSts, #10405). The page says so, and what the refusal
-   * means, in the words the check and its message use.
+   * refusal an hour (AwsSts, #10405), for every server at once, and a test
+   * of a saved connection kept the same way (#10424). The page says so, and
+   * what the refusal means, in the words the check and its message use.
    */
   it("says a role must require the project's external ID, how and how often OneUptime checks it, and what the refusal means", () => {
     const projectId: string = "11111111-1111-4111-8111-111111111111";
@@ -1164,13 +1165,17 @@ describe("Connect a Cloud Account", () => {
       getAwsExternalIdConditionText(externalId),
     );
 
-    // A pass holds a day, a refusal an hour.
+    // A pass holds a day, for every server that reads the role.
     expect(ROLE_CHECK_PASS_MS).toBe(24 * 60 * 60 * 1000);
     expect(PAGE).toContain(
-      "Before it reads anything through a role, and again each day, it signs in once with an external ID no project has: AWS refusing that sign-in is the pass, so the role's CloudTrail shows an `AccessDenied` from OneUptime about once a day for each OneUptime server that reads it.",
+      "Before it reads anything through a role, and again each day, it signs in once with an external ID no project has: AWS refusing that sign-in is the pass, so the role's CloudTrail shows an `AccessDenied` from OneUptime about once a day, however many OneUptime servers read it.",
     );
+    expect(PAGE).not.toContain("for each OneUptime server that reads it");
+    // A refusal holds an hour, unless a test that passes replaces it.
     expect(ROLE_CHECK_REFUSAL_MS).toBe(60 * 60 * 1000);
-    expect(PAGE).toContain("reads use it within the hour.");
+    expect(PAGE).toContain(
+      "A test checks the role again right away, and once it passes, reads use the role straight away; without a test, they check it again within the hour.",
+    );
 
     // The troubleshooting entry is named after what the refusal says.
     expect(PAGE).toContain(heading);

@@ -170,6 +170,14 @@ function testedWith(): CloudConnectionSettings {
   return testConnection.mock.calls[0]![0] as CloudConnectionSettings;
 }
 
+// The saved connection a test was run for: none for settings never saved.
+function testedConnectionId(): string | undefined {
+  expect(testConnection).toHaveBeenCalledTimes(1);
+  return (
+    testConnection.mock.calls[0]![1] as { connectionId?: string | undefined }
+  ).connectionId;
+}
+
 beforeAll(() => {
   new CloudConnectionAPI();
   testHandler = route("post", "/cloud-connection/test").handlers.slice(-1)[0]!;
@@ -370,6 +378,55 @@ describe("POST /cloud-connection/test", () => {
     expect(testedWith().secrets).toEqual({ secretAccessKey: STORED_SECRET });
     expect(testedWith().projectId).toBe(PROJECT.toString());
     expect(JSON.stringify(sent())).not.toContain(STORED_SECRET);
+  });
+
+  /*
+   * An AWS role's check is kept for the connection a test names, on every
+   * server, so a role fixed and tested is read at once (#10424): the test
+   * is run under the connection's own id, as its reads are, once it is
+   * known to be the caller's project's.
+   */
+  test("a saved connection is tested under its own id as stored, the one its reads are kept by", async () => {
+    await testHandler(
+      request({ connectionId: CONNECTION.toString().toUpperCase() }),
+      res,
+      next,
+    );
+
+    expect(next).not.toHaveBeenCalled();
+    expect(testedConnectionId()).toBe(CONNECTION.toString());
+  });
+
+  test("the form's unsaved values are tested under the saved connection too", async () => {
+    await testHandler(
+      request({
+        connectionId: CONNECTION.toString(),
+        config: {
+          authMethod: CloudConnectionAuthMethod.AwsAccessKey,
+          accessKeyId: ACCESS_KEY_ID,
+          regions: "eu-west-1",
+        },
+      }),
+      res,
+      next,
+    );
+
+    expect(testedWith().config["regions"]).toBe("eu-west-1");
+    expect(testedConnectionId()).toBe(CONNECTION.toString());
+  });
+
+  test("settings never saved are tested under no connection, so nothing of their test is kept", async () => {
+    await testHandler(
+      request({
+        provider: CloudProvider.AWS,
+        config: { accessKeyId: ACCESS_KEY_ID },
+        secrets: { secretAccessKey: NEW_SECRET },
+      }),
+      res,
+      next,
+    );
+
+    expect(testedConnectionId()).toBeUndefined();
   });
 
   test("the form's unsaved secret is tested over the stored one; an empty one keeps it", async () => {

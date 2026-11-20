@@ -3,6 +3,10 @@ import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import DashboardOIDC from "Common/Models/DatabaseModels/DashboardOidc";
 import DashboardPrivateUser from "Common/Models/DatabaseModels/DashboardPrivateUser";
 import DashboardSSO from "Common/Models/DatabaseModels/DashboardSso";
+import Form from "Common/Models/DatabaseModels/Form";
+import FormOIDC from "Common/Models/DatabaseModels/FormOidc";
+import FormPrivateUser from "Common/Models/DatabaseModels/FormPrivateUser";
+import FormSSO from "Common/Models/DatabaseModels/FormSso";
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
 import { HOST, HTTP_PROTOCOL, IDENTITY_URL } from "Common/UI/Config";
@@ -49,7 +53,7 @@ export interface PrivateAccessTableNames {
 
 export interface PrivateAccessKind {
   // The column of a private user, and of a provider, that names its resource.
-  parentColumn: "dashboardId";
+  parentColumn: "dashboardId" | "formId";
   resourceModel: { new (): SignInResourceModel };
   privateUserModel: { new (): PrivateUserModel };
   samlModel: { new (): SamlProviderModel };
@@ -132,4 +136,70 @@ export const DASHBOARD_PRIVATE_ACCESS: PrivateAccessKind = {
     )}`;
   },
   docsPath: "/docs/dashboards/sharing#only-people-who-sign-in",
+};
+
+/*
+ * A form's (#10249): the same pages over the form's own tables. Its models
+ * have the dashboard's columns, so the pages read them through the same
+ * types; the values its identity providers are given are the form's own
+ * (Identity/Utils/SamlServiceProvider forFormSso, API/FormOIDC).
+ */
+export const FORM_PRIVATE_ACCESS: PrivateAccessKind = {
+  parentColumn: "formId",
+  resourceModel: Form as unknown as { new (): SignInResourceModel },
+  privateUserModel: FormPrivateUser as unknown as {
+    new (): PrivateUserModel;
+  },
+  samlModel: FormSSO as unknown as { new (): SamlProviderModel },
+  oidcModel: FormOIDC as unknown as { new (): OidcProviderModel },
+  privateUsersTable: {
+    tableId: "form-private-users-table",
+    tableName: "Form > Private Users",
+    userPreferencesKey: "form-private-users-table",
+    saveFilterTableId: "form-private-users-table",
+  },
+  samlTable: {
+    tableId: "form-sso-table",
+    tableName: "Form > Single Sign-On > SAML",
+    userPreferencesKey: "form-sso-table",
+    saveFilterTableId: "form-sso-table",
+  },
+  oidcTable: {
+    tableId: "form-oidc-table",
+    tableName: "Form > Single Sign-On > OIDC",
+    userPreferencesKey: "form-oidc-table",
+    saveFilterTableId: "form-oidc-table",
+  },
+  accessPage: PageMap.FORM_VIEW_SHARE,
+  copy: {
+    privateUsersDescription: translationKey(
+      "People who can sign in to open and submit this form on its link. Each one is emailed an invitation when you add them.",
+    ),
+    requireSsoNote: translationKey(
+      "It applies while only people who sign in can open this form.",
+    ),
+    requireSsoConfirmDescription: translationKey(
+      "Private users can no longer sign in with a password; only people your SSO provider lets in will open this form. Test SSO first.",
+    ),
+    samlDescription: translationKey(
+      "Visitors sign in with your SAML identity provider, such as Okta or Microsoft Entra ID.",
+    ),
+    oidcDescription: translationKey(
+      "Visitors sign in with your OpenID Connect provider, such as Google or Okta.",
+    ),
+  },
+  getSamlEntityId: (resourceId: ObjectID, providerId: string): string => {
+    return `${HTTP_PROTOCOL}${HOST}/form-sso/${resourceId.toString()}/${providerId}`;
+  },
+  getSamlReplyUrl: (resourceId: ObjectID, providerId: string): string => {
+    return `${URL.fromString(IDENTITY_URL.toString()).addRoute(
+      `/form-idp-login/${resourceId.toString()}/${providerId}`,
+    )}`;
+  },
+  getOidcRedirectUri: (resourceId: ObjectID, providerId: string): string => {
+    return `${URL.fromString(IDENTITY_URL.toString()).addRoute(
+      `/form-oidc-callback/${resourceId.toString()}/${providerId}`,
+    )}`;
+  },
+  docsPath: "/docs/forms/sharing-and-security#only-people-who-sign-in",
 };

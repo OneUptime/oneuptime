@@ -9,6 +9,7 @@ import TeamCustomRolesSettings from "../../../Components/Team/TeamCustomRolesSet
 import TeamPermissionTable, {
   PermissionType,
 } from "../../../Components/Team/TeamPermissionTable";
+import TeamProductAccess from "../../../Components/Team/TeamProductAccess";
 import ObjectID from "Common/Types/ObjectID";
 import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
 import {
@@ -19,13 +20,16 @@ import Navigation from "Common/UI/Utils/Navigation";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
+  useRef,
   useState,
 } from "react";
 
 /*
- * A team's Permissions page: what its members can do, then - folded under
- * More settings - the custom roles it is given and what they can never do.
+ * A team's Permissions page: what its members can do, its level of each
+ * product (Product Access, #10289), then - folded under More settings - the
+ * custom roles it is given and what they can never do.
  *
  * Block permissions had a page of their own, next to Permissions in the
  * team's menu and as prominent as what the team can do, though few teams
@@ -61,6 +65,15 @@ const TeamViewPermissions: FunctionComponent<PageComponentProps> = (
   const customRolesItem: FoldedSectionItem | null =
     getCustomRolesFoldedItem(customRoles);
 
+  /*
+   * The permissions table and the Product Access card show the same rows:
+   * each reads again when the other changes one. The table's first load
+   * is the page's, which the card reads for itself.
+   */
+  const [tableRefresh, setTableRefresh] = useState<string>("");
+  const [productAccessRefresh, setProductAccessRefresh] = useState<string>("");
+  const hasTableLoaded: MutableRefObject<boolean> = useRef<boolean>(false);
+
   return (
     <Fragment>
       {/* What the team's members can do: a role, or single permissions. */}
@@ -69,6 +82,25 @@ const TeamViewPermissions: FunctionComponent<PageComponentProps> = (
         permissionType={PermissionType.AllowPermissions}
         currentProject={props.currentProject}
         customRoleCount={getCustomRoleCount(customRoles)}
+        refreshToggle={tableRefresh}
+        // Told after every load of the table, so after each row it changed.
+        onPermissionCountChange={() => {
+          if (!hasTableLoaded.current) {
+            hasTableLoaded.current = true;
+            return;
+          }
+
+          setProductAccessRefresh(Date.now().toString());
+        }}
+      />
+
+      {/* One level per product, for the whole project (#10289). */}
+      <TeamProductAccess
+        teamId={modelId}
+        refreshToggle={productAccessRefresh}
+        onLevelChange={() => {
+          setTableRefresh(Date.now().toString());
+        }}
       />
 
       {/*

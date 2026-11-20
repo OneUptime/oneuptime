@@ -151,7 +151,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "SQL stays read-only.",
     "Credentials are write-only.",
     "Addresses are checked.",
-    "Public dashboards never run them.",
+    "Public dashboards run only what you saved.",
   ],
   [SHARING]: [
     "Add the domain",

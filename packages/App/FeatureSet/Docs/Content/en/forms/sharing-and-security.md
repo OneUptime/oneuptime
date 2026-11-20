@@ -5,6 +5,7 @@ A form is open to anyone who has its link, and each submission can page your on-
 :::cards
 - [Sharing the link](#sharing-the-link): Copy it, open it, and reset it when it spreads too far.
 - [A link for each template](#a-link-for-each-template): One bookmark per case, one form behind them all.
+- [Only people who sign in](#only-people-who-sign-in): Invite the people who may open the form, or let your single sign-on sign them in.
 - [Custom domains](#custom-domains): Serve the form on your own domain, with a free certificate.
 - [What protects a form](#what-protects-a-form): Every check a request passes, in order.
 - [Troubleshooting](#troubleshooting): What each message on the form's page means, and what to do.
@@ -16,6 +17,7 @@ A form is open to anyone who has its link, and each submission can page your on-
 | --- | --- |
 | **Status** | **Accepting Submissions** — whether the form's link works. |
 | **Share Link** | Every address the form answers at, each with **Copy link**, and **Reset Link**. |
+| **Who Can Open This Form** | **Only people who sign in** — whether only the people you choose can open the form, once they sign in. |
 | **After Submitting** | The **Thank-You Message** people see once they submit, under the number of what the form created. |
 | **More settings** | The **IP Allowlist**, folded until you open it. |
 
@@ -28,6 +30,8 @@ The **Share Link** card lists every address the form answers at: its [custom dom
 - **Reset Link** gives the form a new link, after you confirm. The old link stops working at once and shows the not-available message, so everybody you shared it with needs the new one. Use it when a link has spread further than it should. The form's custom domains name no key, and keep working.
 
 Anyone with the link can open the form and submit it, without a OneUptime account and without signing in. Being signed in changes nothing: OneUptime knows who submitted only from the name and email typed into the form. So treat the link like a phone number for your on-call team. Share it where the people who should use it will find it — an intranet page, a support runbook, a pinned chat message — and not on a public website, unless you want submissions from anyone.
+
+To let only the people you choose open and submit the form, turn on **Only people who sign in** — see [Only people who sign in](#only-people-who-sign-in).
 
 The link carries a random key of its own, not the form's ID. On a self-hosted installation it is served from your own OneUptime host, and works only at the address `HTTP_PROTOCOL` and `HOST` configure: opened at another name for the server, or at its IP address, the form's requests are refused as coming from another website.
 
@@ -48,6 +52,20 @@ To stop taking submissions without deleting the form, turn **Accepting Submissio
 After a submission, the page says "Thank you — your response was submitted." and gives the number of what was created, then your **Thank-You Message**, in Markdown. Use it to say what happens next, and where to go when something is urgent. Without one, the page shows only the standard message.
 
 An image in the form's description or thank-you message is shown to everyone who opens the link while the form is **Accepting Submissions**. Turn the form off, or take the image out, and the image is private again, unless something else everyone sees still has it in it.
+
+## Only people who sign in
+
+Turn on **Only people who sign in**, under **Who Can Open This Form** on the form's **Share** page, to let only the people you choose open and submit the form. Turning it on asks you to confirm. From then on, every visitor meets a sign-in page first, on the form's link and on every custom domain. It shows the form's name and nothing else: not its questions, its templates or its logo, and not who may sign in. Once signed in, the form says who is signed in, with **Sign Out** beside it.
+
+Open **Private Users** in the form's side menu to add the people who may sign in, by email. Each is emailed an invitation whose link lets them choose a password. The link works for 24 hours, and **Forgot password?** on the sign-in page sends a new one. The table shows who has **Signed up**, whose invitation is **Invite Sent**, and when each **Last Signed In**. Removing someone, or a new password, signs them out everywhere at their next request.
+
+Open **Single Sign-On** to let your identity provider sign people in, with SAML or OpenID Connect. Each provider shows the values to paste into your identity provider. Anyone your identity provider lets in becomes a private user the first time they sign in. Turning a provider off, or deleting it, signs out everyone it signed in. **Require SSO to Sign In** turns password sign-in off: everyone then signs in with single sign-on, and anyone signed in with a password is signed out at their next request.
+
+A sign-in lasts until it goes unused for 30 days. Its cookies are sent only with the form's own requests, so no other site can open or submit the form with them, or sign anyone out. Sign-in attempts are limited for each address and each account, and the sign-in and forgotten password pages answer the same whether or not an address may sign in.
+
+A submission names only the name and email typed into the form, as on any other form, not the private user who sent it. An image in the form's description or thank-you message is still public by its unguessable address while the form accepts submissions, as on a status page that asks its visitors to sign in: that is how the private users' browsers load it.
+
+On OneUptime Cloud, single sign-on and **Require SSO to Sign In** need the **Scale** plan. Through the API, private users and single sign-on providers are records of their own: `/form-private-user`, `/form-sso` and `/form-oidc`, each with permissions named after it.
 
 ## Custom domains
 
@@ -119,13 +137,14 @@ Every request passes these checks, in this order:
 2. It must be within the rate limits.
 3. The form must exist, be **Accepting Submissions**, and belong to a project on a plan that includes forms.
 4. It must come from an address on the **IP Allowlist**, when the form has one.
-5. A submission must pass the captcha, when the instance has captcha turned on.
-6. Every answer must be within the size limits and fit its question — see [Building a Form](/docs/forms/building#size-limits).
-7. What the answers and the settings make must be creatable: an incident needs a severity, an event an end after its start.
-8. A submission must fit within the form's hourly allowance — see [Rate limits](#rate-limits).
-9. Its files must fit within the form's hourly allowance of files, right before they are stored.
+5. It must come from one of the form's private users, signed in, when the form is set to **Only people who sign in** — see [Only people who sign in](#only-people-who-sign-in).
+6. A submission must pass the captcha, when the instance has captcha turned on.
+7. Every answer must be within the size limits and fit its question — see [Building a Form](/docs/forms/building#size-limits).
+8. What the answers and the settings make must be creatable: an incident needs a severity, an event an end after its start.
+9. A submission must fit within the form's hourly allowance — see [Rate limits](#rate-limits).
+10. Its files must fit within the form's hourly allowance of files, right before they are stored.
 
-A form's logo and favicon are part of the form: they are sent inside the answer that opens it, base64, only once it has passed the first four checks, and never from an address of their own. Nobody can fetch them without the form, and no file can be fetched by its id through a form; the files themselves stay private. A form shows only images uploaded in its own project: a file of another project is refused when the form is saved, and never sent to its page.
+A form's logo and favicon are part of the form: they are sent inside the answer that opens it, base64, only once it has passed the first five checks, and never from an address of their own. Nobody can fetch them without the form, and no file can be fetched by its id through a form; the files themselves stay private. A form shows only images uploaded in its own project: a file of another project is refused when the form is saved, and never sent to its page.
 
 ### IP allowlist
 

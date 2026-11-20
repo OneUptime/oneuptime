@@ -4,6 +4,8 @@ import PermissionScope from "./Database/AccessControl/PermissionScope";
 import BadDataException from "./Exception/BadDataException";
 import { JSONObject } from "./JSON";
 import ObjectID from "./ObjectID";
+import ProductKey from "./Product/ProductKey";
+import { PRODUCT_TITLES } from "./Product/ProductCatalog";
 
 export enum PermissionGroup {
   Project = "Project",
@@ -29,6 +31,8 @@ export enum PermissionGroup {
   NotificationLog = "Notification Log",
   AuditLog = "Audit Log",
   Security = "Security",
+  // One product at a level: Cloud Admin, Network Viewer (#10289).
+  ProductAccess = "Product Access",
 }
 
 export interface PermissionProps {
@@ -140,6 +144,130 @@ enum Permission {
   RunbookAdmin = "RunbookAdmin",
   RunbookMember = "RunbookMember",
   RunbookViewer = "RunbookViewer",
+
+  /*
+   * PRODUCT LEVELS (#10289): ONE PRODUCT, AT A LEVEL, AND NOTHING ELSE.
+   *
+   * Cloud Admin, Network Viewer, Host Member. Each does on its product's
+   * own records what a project-wide role does on every record of the
+   * project: a product's Viewer reads what Viewer reads, its Member does
+   * what Project Member does and its Admin what Project Admin does - the
+   * product's settings, connections and rules among them. Nowhere else:
+   * not another product, nor the project's settings, teams, members, API
+   * keys, SSO or billing, which are no product's records.
+   *
+   * No model names them. Types/Product/ProductLevels adds each to the lists
+   * of its product's tables, wherever the role it follows is on them, as
+   * the lists are read (Types/Database/AccessControl, AnalyticsBaseModel),
+   * so every check - the API's, a custom route's, the Dashboard's - weighs
+   * them as it weighs the role, and a product's table added later takes
+   * its levels with it. Products with roles of their own (Monitors,
+   * Incidents, Telemetry and the rest) have none here
+   * (PRODUCTS_WITHOUT_LEVELS). Given to teams, custom roles and API keys
+   * like any permission: labels, owned records and blocks narrow them.
+   *
+   * Stored by these names: never rename one.
+   */
+  SloAdmin = "SloAdmin",
+  SloMember = "SloMember",
+  SloViewer = "SloViewer",
+
+  LlmObservabilityAdmin = "LlmObservabilityAdmin",
+  LlmObservabilityViewer = "LlmObservabilityViewer",
+
+  DataObservabilityAdmin = "DataObservabilityAdmin",
+  DataObservabilityMember = "DataObservabilityMember",
+  DataObservabilityViewer = "DataObservabilityViewer",
+
+  CodeAdmin = "CodeAdmin",
+  CodeMember = "CodeMember",
+  CodeViewer = "CodeViewer",
+
+  InventoryAdmin = "InventoryAdmin",
+  InventoryViewer = "InventoryViewer",
+
+  ServiceAdmin = "ServiceAdmin",
+  ServiceMember = "ServiceMember",
+  ServiceViewer = "ServiceViewer",
+
+  DatabaseAdmin = "DatabaseAdmin",
+  DatabaseMember = "DatabaseMember",
+  DatabaseViewer = "DatabaseViewer",
+
+  QueueAdmin = "QueueAdmin",
+  QueueMember = "QueueMember",
+  QueueViewer = "QueueViewer",
+
+  RumAdmin = "RumAdmin",
+  RumMember = "RumMember",
+  RumViewer = "RumViewer",
+
+  HostAdmin = "HostAdmin",
+  HostMember = "HostMember",
+  HostViewer = "HostViewer",
+
+  KubernetesAdmin = "KubernetesAdmin",
+  KubernetesMember = "KubernetesMember",
+  KubernetesViewer = "KubernetesViewer",
+
+  DockerAdmin = "DockerAdmin",
+  DockerMember = "DockerMember",
+  DockerViewer = "DockerViewer",
+
+  DockerSwarmAdmin = "DockerSwarmAdmin",
+  DockerSwarmMember = "DockerSwarmMember",
+  DockerSwarmViewer = "DockerSwarmViewer",
+
+  PodmanAdmin = "PodmanAdmin",
+  PodmanMember = "PodmanMember",
+  PodmanViewer = "PodmanViewer",
+
+  ProxmoxAdmin = "ProxmoxAdmin",
+  ProxmoxMember = "ProxmoxMember",
+  ProxmoxViewer = "ProxmoxViewer",
+
+  OpenStackAdmin = "OpenStackAdmin",
+  OpenStackMember = "OpenStackMember",
+  OpenStackViewer = "OpenStackViewer",
+
+  VMwareAdmin = "VMwareAdmin",
+  VMwareMember = "VMwareMember",
+  VMwareViewer = "VMwareViewer",
+
+  CephAdmin = "CephAdmin",
+  CephMember = "CephMember",
+  CephViewer = "CephViewer",
+
+  StorageArrayAdmin = "StorageArrayAdmin",
+  StorageArrayMember = "StorageArrayMember",
+  StorageArrayViewer = "StorageArrayViewer",
+
+  NetworkAdmin = "NetworkAdmin",
+  NetworkMember = "NetworkMember",
+  NetworkViewer = "NetworkViewer",
+
+  IoTAdmin = "IoTAdmin",
+  IoTMember = "IoTMember",
+  IoTViewer = "IoTViewer",
+
+  CloudAdmin = "CloudAdmin",
+  CloudMember = "CloudMember",
+  CloudViewer = "CloudViewer",
+
+  AppPlatformAdmin = "AppPlatformAdmin",
+  AppPlatformMember = "AppPlatformMember",
+  AppPlatformViewer = "AppPlatformViewer",
+
+  ServerlessAdmin = "ServerlessAdmin",
+  ServerlessMember = "ServerlessMember",
+  ServerlessViewer = "ServerlessViewer",
+
+  DashboardAdmin = "DashboardAdmin",
+  DashboardMember = "DashboardMember",
+  DashboardViewer = "DashboardViewer",
+
+  FormAdmin = "FormAdmin",
+  FormViewer = "FormViewer",
 
   User = "User", //registered user. Can or cannot belong to a project.
 
@@ -2374,6 +2502,25 @@ enum Permission {
   EditFormDomain = "EditFormDomain",
   ReadFormDomain = "ReadFormDomain",
 
+  /*
+   * Form Private Users and Single Sign-On: who signs in on the public
+   * link of a form that asks its visitors to sign in (#10249).
+   */
+  CreateFormPrivateUser = "CreateFormPrivateUser",
+  DeleteFormPrivateUser = "DeleteFormPrivateUser",
+  EditFormPrivateUser = "EditFormPrivateUser",
+  ReadFormPrivateUser = "ReadFormPrivateUser",
+
+  CreateFormSSO = "CreateFormSSO",
+  DeleteFormSSO = "DeleteFormSSO",
+  EditFormSSO = "EditFormSSO",
+  ReadFormSSO = "ReadFormSSO",
+
+  CreateFormOIDC = "CreateFormOIDC",
+  DeleteFormOIDC = "DeleteFormOIDC",
+  EditFormOIDC = "EditFormOIDC",
+  ReadFormOIDC = "ReadFormOIDC",
+
   // Incident Episode State Timeline Permissions
   CreateIncidentEpisodeStateTimeline = "CreateIncidentEpisodeStateTimeline",
   DeleteIncidentEpisodeStateTimeline = "DeleteIncidentEpisodeStateTimeline",
@@ -2617,6 +2764,267 @@ enum Permission {
   DeleteAllOperationalResources = "DeleteAllOperationalResources",
   CreateAllOperationalResources = "CreateAllOperationalResources",
 }
+
+/*
+ * EVERY PRODUCT THAT HAS LEVELS OF ITS OWN, AND THE PERMISSION OF EACH
+ * LEVEL (#10289).
+ *
+ * In the products menu's order. A product has a Member level only where
+ * Project Member changes something of it: Project Member reads AI / LLM,
+ * Inventory and Forms and changes nothing there, so their Member would be
+ * their Viewer under another name. Types/Product/ProductLevels reads this
+ * for the rule that adds the levels to the products' tables; the
+ * permissions' names and descriptions below are built from it.
+ *
+ * Here and not in Types/Product, which reads Permission: the catalog of
+ * permissions is built from it as this file loads.
+ */
+export interface ProductLevelPermissions {
+  product: ProductKey;
+  // What the product's roles are called: "Cloud" in Cloud Admin.
+  roleName: string;
+  admin: Permission;
+  member?: Permission | undefined;
+  viewer: Permission;
+}
+
+export const PRODUCT_LEVEL_PERMISSIONS: ReadonlyArray<ProductLevelPermissions> =
+  [
+    {
+      product: ProductKey.Slos,
+      roleName: "SLO",
+      admin: Permission.SloAdmin,
+      member: Permission.SloMember,
+      viewer: Permission.SloViewer,
+    },
+    {
+      product: ProductKey.Llm,
+      roleName: "LLM Observability",
+      admin: Permission.LlmObservabilityAdmin,
+      viewer: Permission.LlmObservabilityViewer,
+    },
+    {
+      product: ProductKey.DataObservability,
+      roleName: "Data Observability",
+      admin: Permission.DataObservabilityAdmin,
+      member: Permission.DataObservabilityMember,
+      viewer: Permission.DataObservabilityViewer,
+    },
+    {
+      product: ProductKey.Code,
+      roleName: "Code",
+      admin: Permission.CodeAdmin,
+      member: Permission.CodeMember,
+      viewer: Permission.CodeViewer,
+    },
+    {
+      product: ProductKey.Inventory,
+      roleName: "Inventory",
+      admin: Permission.InventoryAdmin,
+      viewer: Permission.InventoryViewer,
+    },
+    {
+      product: ProductKey.Services,
+      roleName: "Service",
+      admin: Permission.ServiceAdmin,
+      member: Permission.ServiceMember,
+      viewer: Permission.ServiceViewer,
+    },
+    {
+      product: ProductKey.Databases,
+      roleName: "Database",
+      admin: Permission.DatabaseAdmin,
+      member: Permission.DatabaseMember,
+      viewer: Permission.DatabaseViewer,
+    },
+    {
+      product: ProductKey.Queues,
+      roleName: "Queue",
+      admin: Permission.QueueAdmin,
+      member: Permission.QueueMember,
+      viewer: Permission.QueueViewer,
+    },
+    {
+      product: ProductKey.Rum,
+      roleName: "RUM",
+      admin: Permission.RumAdmin,
+      member: Permission.RumMember,
+      viewer: Permission.RumViewer,
+    },
+    {
+      product: ProductKey.Hosts,
+      roleName: "Host",
+      admin: Permission.HostAdmin,
+      member: Permission.HostMember,
+      viewer: Permission.HostViewer,
+    },
+    {
+      product: ProductKey.Kubernetes,
+      roleName: "Kubernetes",
+      admin: Permission.KubernetesAdmin,
+      member: Permission.KubernetesMember,
+      viewer: Permission.KubernetesViewer,
+    },
+    {
+      product: ProductKey.Docker,
+      roleName: "Docker",
+      admin: Permission.DockerAdmin,
+      member: Permission.DockerMember,
+      viewer: Permission.DockerViewer,
+    },
+    {
+      product: ProductKey.DockerSwarm,
+      roleName: "Docker Swarm",
+      admin: Permission.DockerSwarmAdmin,
+      member: Permission.DockerSwarmMember,
+      viewer: Permission.DockerSwarmViewer,
+    },
+    {
+      product: ProductKey.Podman,
+      roleName: "Podman",
+      admin: Permission.PodmanAdmin,
+      member: Permission.PodmanMember,
+      viewer: Permission.PodmanViewer,
+    },
+    {
+      product: ProductKey.Proxmox,
+      roleName: "Proxmox",
+      admin: Permission.ProxmoxAdmin,
+      member: Permission.ProxmoxMember,
+      viewer: Permission.ProxmoxViewer,
+    },
+    {
+      product: ProductKey.OpenStack,
+      roleName: "OpenStack",
+      admin: Permission.OpenStackAdmin,
+      member: Permission.OpenStackMember,
+      viewer: Permission.OpenStackViewer,
+    },
+    {
+      product: ProductKey.VMware,
+      roleName: "VMware",
+      admin: Permission.VMwareAdmin,
+      member: Permission.VMwareMember,
+      viewer: Permission.VMwareViewer,
+    },
+    {
+      product: ProductKey.Ceph,
+      roleName: "Ceph",
+      admin: Permission.CephAdmin,
+      member: Permission.CephMember,
+      viewer: Permission.CephViewer,
+    },
+    {
+      product: ProductKey.StorageArrays,
+      roleName: "Storage Array",
+      admin: Permission.StorageArrayAdmin,
+      member: Permission.StorageArrayMember,
+      viewer: Permission.StorageArrayViewer,
+    },
+    {
+      product: ProductKey.Network,
+      roleName: "Network",
+      admin: Permission.NetworkAdmin,
+      member: Permission.NetworkMember,
+      viewer: Permission.NetworkViewer,
+    },
+    {
+      product: ProductKey.IoT,
+      roleName: "IoT",
+      admin: Permission.IoTAdmin,
+      member: Permission.IoTMember,
+      viewer: Permission.IoTViewer,
+    },
+    {
+      product: ProductKey.Cloud,
+      roleName: "Cloud",
+      admin: Permission.CloudAdmin,
+      member: Permission.CloudMember,
+      viewer: Permission.CloudViewer,
+    },
+    {
+      product: ProductKey.AppPlatforms,
+      roleName: "App Platform",
+      admin: Permission.AppPlatformAdmin,
+      member: Permission.AppPlatformMember,
+      viewer: Permission.AppPlatformViewer,
+    },
+    {
+      product: ProductKey.Serverless,
+      roleName: "Serverless",
+      admin: Permission.ServerlessAdmin,
+      member: Permission.ServerlessMember,
+      viewer: Permission.ServerlessViewer,
+    },
+    {
+      product: ProductKey.Dashboards,
+      roleName: "Dashboard",
+      admin: Permission.DashboardAdmin,
+      member: Permission.DashboardMember,
+      viewer: Permission.DashboardViewer,
+    },
+    {
+      product: ProductKey.Forms,
+      roleName: "Form",
+      admin: Permission.FormAdmin,
+      viewer: Permission.FormViewer,
+    },
+  ];
+
+// What no product level reaches, as each level's description says it.
+const OUTSIDE_A_PRODUCT: string =
+  "Nothing outside it: no other product, and none of the project's settings, teams, members, API keys, SSO or billing.";
+
+/*
+ * Each product level's title and description, built from the table above
+ * so every product's levels read alike: what the project-wide role it
+ * follows does, on the product's records alone.
+ */
+const PRODUCT_LEVEL_PERMISSION_PROPS: Array<PermissionProps> =
+  PRODUCT_LEVEL_PERMISSIONS.flatMap(
+    (levels: ProductLevelPermissions): Array<PermissionProps> => {
+      const product: string = PRODUCT_TITLES[levels.product];
+      const below: string = levels.member
+        ? `${levels.roleName} Member`
+        : `${levels.roleName} Viewer`;
+
+      const props: Array<PermissionProps> = [
+        {
+          permission: levels.admin,
+          title: `${levels.roleName} Admin`,
+          description: `Does everything ${below} does, and also does what Project Admin does on ${product}'s records, ${product}'s settings, connections and rules among them. ${OUTSIDE_A_PRODUCT}`,
+          isAssignableToTenant: true,
+          isAccessControlPermission: false,
+          isRolePermission: false,
+          group: PermissionGroup.ProductAccess,
+        },
+      ];
+
+      if (levels.member) {
+        props.push({
+          permission: levels.member,
+          title: `${levels.roleName} Member`,
+          description: `Does everything ${levels.roleName} Viewer does, and also creates, changes and deletes ${product}'s records as Project Member does. ${product}'s settings, connections and rules take ${levels.roleName} Admin. ${OUTSIDE_A_PRODUCT}`,
+          isAssignableToTenant: true,
+          isAccessControlPermission: false,
+          isRolePermission: false,
+          group: PermissionGroup.ProductAccess,
+        });
+      }
+
+      props.push({
+        permission: levels.viewer,
+        title: `${levels.roleName} Viewer`,
+        description: `Reads ${product}'s records as Viewer reads them, and changes nothing. ${OUTSIDE_A_PRODUCT}`,
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ProductAccess,
+      });
+
+      return props;
+    },
+  );
 
 export class PermissionHelper {
   public static doesPermissionsIntersect(
@@ -18977,6 +19385,124 @@ export class PermissionHelper {
         group: PermissionGroup.Form,
       },
 
+      // Form Private User permissions.
+      {
+        permission: Permission.CreateFormPrivateUser,
+        title: "Create Form Private User",
+        description:
+          "This permission can invite private users to forms of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.DeleteFormPrivateUser,
+        title: "Delete Form Private User",
+        description:
+          "This permission can remove private users from forms of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.EditFormPrivateUser,
+        title: "Edit Form Private User",
+        description:
+          "This permission can edit private users of forms of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.ReadFormPrivateUser,
+        title: "Read Form Private User",
+        description:
+          "This permission can read private users of forms of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+
+      // Form SSO (SAML) permissions.
+      {
+        permission: Permission.CreateFormSSO,
+        title: "Create Form SSO",
+        description: "This permission can create Form SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.DeleteFormSSO,
+        title: "Delete Form SSO",
+        description: "This permission can delete Form SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.EditFormSSO,
+        title: "Edit Form SSO",
+        description: "This permission can edit Form SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.ReadFormSSO,
+        title: "Read Form SSO",
+        description: "This permission can read Form SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+
+      // Form OIDC permissions.
+      {
+        permission: Permission.CreateFormOIDC,
+        title: "Create Form OIDC",
+        description: "This permission can create Form OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.DeleteFormOIDC,
+        title: "Delete Form OIDC",
+        description: "This permission can delete Form OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.EditFormOIDC,
+        title: "Edit Form OIDC",
+        description: "This permission can edit Form OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.ReadFormOIDC,
+        title: "Read Form OIDC",
+        description: "This permission can read Form OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+
       // Incident Episode State Timeline Permissions
       {
         permission: Permission.CreateIncidentEpisodeStateTimeline,
@@ -20429,7 +20955,11 @@ export class PermissionHelper {
       },
     ];
 
-    return [...permissions, ...morePermissionProps];
+    return [
+      ...permissions,
+      ...morePermissionProps,
+      ...PRODUCT_LEVEL_PERMISSION_PROPS,
+    ];
   }
 
   public static getPermissionsByGroup(

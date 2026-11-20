@@ -175,6 +175,10 @@ import IncidentStateTimeline from "./IncidentStateTimeline";
 import Form from "./Form";
 import FormSubmission from "./FormSubmission";
 import FormDomain from "./FormDomain";
+import FormPrivateUser from "./FormPrivateUser";
+import FormPrivateUserSession from "./FormPrivateUserSession";
+import FormSSO from "./FormSso";
+import FormOIDC from "./FormOidc";
 import IncidentTemplate from "./IncidentTemplate";
 import IncidentTemplateOwnerTeam from "./IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "./IncidentTemplateOwnerUser";
@@ -846,6 +850,10 @@ const AllModelTypes: Array<{
   Form,
   FormSubmission,
   FormDomain,
+  FormPrivateUser,
+  FormPrivateUserSession,
+  FormSSO,
+  FormOIDC,
 
   AlertState,
   Alert,

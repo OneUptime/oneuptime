@@ -348,6 +348,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/ServerSending/ServerSendingWords.ts",
     kind: "ui",
   },
+  /*
+   * What a project is told of its Amazon SES IAM role (#7378): why it was
+   * not signed in to, or a save was refused. The server sends the English,
+   * and Send Test Email and the form say it in the reader's language. Only
+   * the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Email/AmazonSesRoleWords.ts",
+    kind: "keys",
+  },
   // The common schedules a workflow's Schedule trigger offers.
   { directory: "packages/Common/Utils/CronTab.ts", kind: "ui" },
   /*

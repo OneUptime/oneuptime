@@ -19,6 +19,7 @@ import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import RelationReaders from "../../Types/Database/RelationReaders";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -56,6 +57,15 @@ import {
  * project-wide Viewer must not be handed by default. Working a case
  * (assigning, changing status and priority, closing) is the Member tier's
  * job; deleting one destroys that trail, so it is the Admin tier's.
+ */
+/*
+ * Through a relation too (#10310). A data security issue names the case it
+ * is worked in, and a custom role that reads issues reads the issue: of the
+ * case, which one it is, by its number, and nothing of the investigation.
+ * Its title, verdict, status and priority, who it is assigned to, where it
+ * came from, its detections, its incident and its due and missed dates are
+ * held to the case's own read (RelationReaders.ColumnReaders), as the rest
+ * of a case is.
  */
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
@@ -229,6 +239,7 @@ export default class SecurityCase extends BaseModel {
     required: true,
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Title",
     description: "What the case is about, in a line.",
   })
@@ -300,6 +311,7 @@ export default class SecurityCase extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Status ID",
     description:
       "ID of the case's status. Optional on create: a new case starts in the project's new status.",
@@ -355,6 +367,7 @@ export default class SecurityCase extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Priority ID",
     description:
       "ID of the case's priority. Optional on create: a case opened by hand starts at the project's medium priority.",
@@ -377,6 +390,7 @@ export default class SecurityCase extends BaseModel {
     type: TableColumnType.ShortText,
     allowedValues: Object.values(SecurityCaseVerdict),
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Verdict",
     description:
       "What the case turned out to be, set when it is closed: True Positive, Benign Positive, False Positive or Undetermined.",
@@ -441,6 +455,7 @@ export default class SecurityCase extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Assigned To User ID",
     description: "ID of the person working the case.",
   })
@@ -487,6 +502,7 @@ export default class SecurityCase extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Assigned To Team ID",
     description: "ID of the team whose queue the case is in.",
   })
@@ -504,6 +520,7 @@ export default class SecurityCase extends BaseModel {
     allowedValues: Object.values(SecurityDetectionSource),
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Source",
     description:
       "What opened the case: a Detection Rule, Threat Intel, a Connected Product, Entity Risk, or a person (Manual).",
@@ -600,6 +617,7 @@ export default class SecurityCase extends BaseModel {
     type: TableColumnType.Number,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Detection Count",
     description: "How many distinct detections the case holds.",
     defaultValue: 0,
@@ -617,6 +635,7 @@ export default class SecurityCase extends BaseModel {
     type: TableColumnType.Date,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "First Detected At",
     description: "When the case's earliest detection fired.",
   })
@@ -632,6 +651,7 @@ export default class SecurityCase extends BaseModel {
     type: TableColumnType.Date,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Last Detected At",
     description: "When a detection of the case last fired.",
   })
@@ -646,6 +666,7 @@ export default class SecurityCase extends BaseModel {
     type: TableColumnType.Date,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Acknowledged At",
     description:
       "When somebody first took the case on: assigned it to a person, or moved it out of New. The time to acknowledge is measured to here.",
@@ -661,6 +682,7 @@ export default class SecurityCase extends BaseModel {
     type: TableColumnType.Date,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Contained At",
     description:
       "When the case first reached Contained. The time to contain is measured to here.",
@@ -677,6 +699,7 @@ export default class SecurityCase extends BaseModel {
     type: TableColumnType.Date,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Closed At",
     description:
       "When the case was closed. Cleared if it is reopened. The time to close is measured to here.",
@@ -702,6 +725,7 @@ export default class SecurityCase extends BaseModel {
     type: TableColumnType.Date,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Acknowledge By",
     description:
       "When the case must be acknowledged by, from its priority's Acknowledge Within target. Empty when its priority has no target, or when it was acknowledged as it opened.",
@@ -717,6 +741,7 @@ export default class SecurityCase extends BaseModel {
     type: TableColumnType.Date,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Contain By",
     description:
       "When the case must be contained or closed by, from its priority's Contain Within target. Empty when its priority has no target.",
@@ -746,6 +771,7 @@ export default class SecurityCase extends BaseModel {
     type: TableColumnType.Date,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Acknowledge Target Missed At",
     description:
       "When the case passed its acknowledge due time without being acknowledged. Empty while it has not.",
@@ -775,6 +801,7 @@ export default class SecurityCase extends BaseModel {
     type: TableColumnType.Date,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Contain Target Missed At",
     description:
       "When the case passed its contain due time without being contained or closed. Empty while it has not.",
@@ -794,6 +821,7 @@ export default class SecurityCase extends BaseModel {
     type: TableColumnType.Date,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Next Due At",
     description:
       "The earliest due time of a response target the case has not met yet, a missed one included. Empty when every target is met or the case has none.",
@@ -961,6 +989,7 @@ export default class SecurityCase extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Incident ID",
     description: "ID of the OneUptime incident declared for this case.",
   })

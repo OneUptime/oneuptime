@@ -3,7 +3,7 @@ import ComplianceFramework from "./ComplianceFramework";
 import DataCategory from "./DataCategory";
 import DataConfidence from "./DataConfidence";
 import DataSensitivity from "./DataSensitivity";
-import { getBuiltInDataType } from "./DataTypeCatalog";
+import DataTypeNamer from "./DataTypeNamer";
 import {
   DataStoreFamily,
   DataStoreKind,
@@ -419,20 +419,15 @@ export function isTelemetryFindingCheck(checkId: string | undefined): boolean {
 }
 
 /*
- * What a data type is called: the catalog's name for a built-in one, the
- * project's own name for a custom one, else its id.
+ * What a data type is called (DataTypeNamer): the catalog's name for a
+ * built-in one, the project's own name for a custom one - and never a custom
+ * one's id: one the project deleted reads "A deleted data type" (#10363).
  */
 export function getDataTypeName(
   dataTypeId: string,
   names?: Readonly<Record<string, string>> | undefined,
 ): string {
-  const own: string | undefined = names?.[dataTypeId];
-
-  return (
-    getBuiltInDataType(dataTypeId)?.name ||
-    (typeof own === "string" && own.trim() ? own.trim() : "") ||
-    dataTypeId
-  );
+  return new DataTypeNamer(names).nameOf(dataTypeId);
 }
 
 // The most data types an issue names before it counts the rest.

@@ -428,6 +428,7 @@ import SecurityLogSourceService from "./SecurityLogSourceService";
 import SecurityTelemetrySourceService from "./SecurityTelemetrySourceService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
+import SecurityAddressVaultService from "./SecurityAddressVaultService";
 import SecurityCaseService from "./SecurityCaseService";
 import SecurityCaseFeedService from "./SecurityCaseFeedService";
 import SecurityCaseNoteService from "./SecurityCaseNoteService";
@@ -1298,6 +1299,13 @@ export const AnalyticsServices: Array<
   AuditLogService,
   SecurityEventService,
   ThreatIntelIndicatorService,
+  /*
+   * Security Events' address vault (#10395). Here only so boot creates its
+   * table: the service refuses every generic read, and the model is kept
+   * out of the AnalyticsModels registry, so no API, MCP tool, export or
+   * live update is ever built for it.
+   */
+  SecurityAddressVaultService,
   ChangeEventService,
 ];
 

@@ -137,6 +137,22 @@ export const STEP_BLOCK_DOMAIN: string = translationKey(
 export const STEP_QUARANTINE_FILE: string = translationKey(
   "Find the file {{value}} on your machines and quarantine it.",
 );
+/*
+ * Where the plan would say to block the address, but a scrub rule hid it
+ * from every event of the case (#10397): find it where the requests came
+ * in, and the line under it says which rule hid it. The Dashboard's
+ * HiddenClientAddressCopy re-exports these, with ACTION_OPEN_SCRUB_RULES,
+ * for its other pages about a hidden address.
+ */
+export const STEP_FIND_HIDDEN_ADDRESS: string = translationKey(
+  "Find the address these requests came from in your load balancer's or firewall's logs, and block it there.",
+);
+export const ADDRESS_HIDDEN_FROM_CASE: string = translationKey(
+  "A scrub rule hid it from every event of this case.",
+);
+export const ADDRESS_HIDDEN_FROM_CASE_BY_RULE: string = translationKey(
+  "The scrub rule {{rule}} hid it from every event of this case.",
+);
 export const STEP_DECLARE_INCIDENT: string = translationKey(
   "Declare an incident if customers or production are affected.",
 );
@@ -202,6 +218,8 @@ export const STEP_CLOSE: string = translationKey(
 export const ACTION_ASSIGN_TO_ME: string = translationKey("Assign to Me");
 export const ACTION_OPEN_TRACES: string = translationKey("Open Their Traces");
 export const ACTION_OPEN_EVENTS: string = translationKey("Open Events");
+export const ACTION_OPEN_SCRUB_RULES: string =
+  translationKey("Open Scrub Rules");
 export const ACTION_ADD_EXCEPTION: string = translationKey("Add Exception");
 export const ACTION_RUN_PLAYBOOK: string = translationKey("Run Playbook");
 export const ACTION_DECLARE_INCIDENT: string =

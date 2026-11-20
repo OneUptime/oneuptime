@@ -11,6 +11,7 @@ import {
 import { isSecurityCaseTriageDecisionLine } from "../../../Server/Utils/AI/Security/SecurityCaseTriageDecision";
 import {
   ResponseEventsLink,
+  ResponseLinkKind,
   ResponseTracesLink,
 } from "../../../Types/SecurityCase/SecurityCaseResponseLink";
 import {
@@ -41,6 +42,10 @@ import { SECURITY_REQUEST_ATTRIBUTES } from "../../../Types/SecurityEvent/Securi
 import { SecurityPlaybookActionType } from "../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import SecurityPlaybookRunStatus from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
+  HiddenClientAddress,
+  getCaseHiddenClientAddress,
+} from "../../SecurityEvent/ScrubbedAddress";
+import {
   RESPONSE_STEP_KINDS,
   getResponseStepKey,
   hashText,
@@ -70,8 +75,11 @@ import {
   ACTION_DECLARE_INCIDENT,
   ACTION_MARK_CONTAINED,
   ACTION_OPEN_EVENTS,
+  ACTION_OPEN_SCRUB_RULES,
   ACTION_OPEN_TRACES,
   ACTION_RUN_PLAYBOOK,
+  ADDRESS_HIDDEN_FROM_CASE,
+  ADDRESS_HIDDEN_FROM_CASE_BY_RULE,
   REQUESTS_ALL_TURNED_AWAY,
   REQUESTS_GOT_THROUGH,
   STEP_AI_PLAYBOOK,
@@ -85,6 +93,7 @@ import {
   STEP_DECLARE_INCIDENT,
   STEP_FALSE_POSITIVE,
   STEP_FALSE_POSITIVE_VALUE,
+  STEP_FIND_HIDDEN_ADDRESS,
   STEP_FIX_ACCOUNT_CHANGES,
   STEP_FIX_BRUTE_FORCE,
   STEP_FIX_C2,
@@ -928,10 +937,12 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
     : null;
   const usedPlaybookIds: Set<string> = new Set<string>();
 
-  for (const entity of getContainEntities({
+  const containEntities: Array<SecurityEntity> = getContainEntities({
     opening,
     entities: input.entities,
-  })) {
+  });
+
+  for (const entity of containEntities) {
     switch (entity.type) {
       case SecurityEntityType.IpAddress: {
         const isPublic: boolean =
@@ -1040,6 +1051,49 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
       default:
         break;
     }
+  }
+
+  /*
+   * Where the plan would say to block the address, a case whose every
+   * event had its address hidden by a scrub rule says so (#10397): there is
+   * no address to block here, so the step is to find it where the request
+   * came in, and the line under it says which rule hid it. Once the address
+   * vault names the address behind a Hash rule's token (#10395), its events
+   * name it, and the plan says to block it as it does any other. No check
+   * of OneUptime's reads it: a person finds the address.
+   */
+  const hiddenAddress: HiddenClientAddress | null = containEntities.some(
+    (entity: SecurityEntity): boolean => {
+      return entity.type === SecurityEntityType.IpAddress;
+    },
+  )
+    ? null
+    : getCaseHiddenClientAddress(input.matches);
+
+  if (hiddenAddress) {
+    add({
+      key: getResponseStepKey(RESPONSE_STEP_KINDS.hiddenAddress),
+      phase: ResponsePhase.Contain,
+      text: { template: STEP_FIND_HIDDEN_ADDRESS, values: {} },
+      detail: hiddenAddress.ruleName
+        ? {
+            template: ADDRESS_HIDDEN_FROM_CASE_BY_RULE,
+            values: { rule: hiddenAddress.ruleName },
+          }
+        : { template: ADDRESS_HIDDEN_FROM_CASE, values: {} },
+      isDetailWarning: true,
+      isOutsideOneUptime: true,
+      action: hiddenAddress.signal
+        ? {
+            kind: ResponseActionKind.OpenRoute,
+            title: ACTION_OPEN_SCRUB_RULES,
+            link: {
+              kind: ResponseLinkKind.OpenScrubRules,
+              signal: hiddenAddress.signal,
+            },
+          }
+        : undefined,
+    });
   }
 
   /*

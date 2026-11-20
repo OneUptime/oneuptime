@@ -51,7 +51,13 @@ import TelemetryIngestionTeamLabelBudgetService, {
   TEAM_LABEL_BUDGET_TEAM_NOT_IN_PROJECT,
 } from "../../../Server/Services/TelemetryIngestionTeamLabelBudgetService";
 import LabelService from "../../../Server/Services/LabelService";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "../../../Server/Services/ProjectReferencesService";
 import TeamService from "../../../Server/Services/TeamService";
+import ProjectScopedReferenceValidator, {
+  ProjectScopedReferenceException,
+} from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import TelemetryIngestAttributionSettings from "../../../Server/Utils/Telemetry/TelemetryIngestAttributionSettings";
 import TelemetryIngestionBudgetSettings from "../../../Server/Utils/Telemetry/TelemetryIngestionBudgetSettings";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
@@ -270,6 +276,131 @@ describe("updating a team's or a label's budget", () => {
         profilesDailyIngestionBudgetInGB: null,
       }),
     ).rejects.toThrow(TEAM_LABEL_BUDGET_NEEDS_A_BUDGET);
+  });
+});
+
+/*
+ * A budget is held to the project check every service whose records name
+ * the project's records is (ProjectReferencesService,
+ * ProjectScopedReferencesEverywhere), run first, before anything of the
+ * budget's own reads a thing. Its team and its label are its own to check,
+ * in its own words, so any other reference it comes to name is the
+ * project check's.
+ */
+describe("a team's or a label's budget and the project check", () => {
+  const TEAMMATE: DatabaseCommonInteractionProps = {
+    tenantId: PROJECT_ID,
+    userId: new ObjectID("d4d4d4d4-0000-4000-8000-000000000004"),
+  };
+
+  type BaseCreateHook = {
+    onBeforeCreate: (createBy: CreateBy<Model>) => Promise<OnCreate<Model>>;
+  };
+
+  type BaseUpdateHook = {
+    onBeforeUpdate: (updateBy: UpdateBy<Model>) => Promise<OnUpdate<Model>>;
+  };
+
+  const refusal: () => ProjectScopedReferenceException =
+    (): ProjectScopedReferenceException => {
+      return new ProjectScopedReferenceException(
+        "This team or label budget references records that are not in this project.",
+      );
+    };
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("leaves the team and the label to its own check, on a create and an update alike", () => {
+    expect(TelemetryIngestionTeamLabelBudgetService).toBeInstanceOf(
+      ProjectReferencesService,
+    );
+
+    const ownChecks: (write: ProjectReferenceWrite) => Array<string> = (
+      write: ProjectReferenceWrite,
+    ): Array<string> => {
+      return (
+        TelemetryIngestionTeamLabelBudgetService as unknown as {
+          getRelationsCheckedByService: (
+            write: ProjectReferenceWrite,
+          ) => Array<string>;
+        }
+      ).getRelationsCheckedByService(write);
+    };
+
+    for (const kind of ["create", "update"] as const) {
+      expect(ownChecks({ kind: kind, props: TEAMMATE }).sort()).toEqual([
+        "label",
+        "team",
+      ]);
+    }
+  });
+
+  test("answers a teammate's create naming another project's team in its own words, and the project check reads nothing for it", async () => {
+    (TeamService.findOneBy as unknown as MockFn).mockResolvedValue(
+      null as never,
+    );
+    const lookups: jest.SpyInstance = jest.spyOn(
+      ProjectScopedReferenceValidator,
+      "validateReferencesBelongToProject",
+    ) as unknown as jest.SpyInstance;
+
+    await expect(
+      hooks.onBeforeCreate({
+        data: {
+          teamId: new ObjectID(TEAM_ID),
+          logsDailyIngestionBudgetInGB: 1,
+        } as unknown as Model,
+        props: TEAMMATE,
+      } as CreateBy<Model>),
+    ).rejects.toThrow(TEAM_LABEL_BUDGET_TEAM_NOT_IN_PROJECT);
+
+    expect(lookups).not.toHaveBeenCalled();
+  });
+
+  test("is refused by the project check before a create reads its team, its label or the project's budgets", async () => {
+    jest
+      .spyOn(
+        ProjectReferencesService.prototype as unknown as BaseCreateHook,
+        "onBeforeCreate",
+      )
+      .mockRejectedValue(refusal() as never);
+
+    await expect(
+      create({
+        teamId: new ObjectID(TEAM_ID),
+        logsDailyIngestionBudgetInGB: 1,
+      }),
+    ).rejects.toBeInstanceOf(ProjectScopedReferenceException);
+
+    expect(TeamService.findOneBy).not.toHaveBeenCalled();
+    expect(LabelService.findOneBy).not.toHaveBeenCalled();
+    expect(
+      TelemetryIngestionBudgetSettings.getInstanceSettings,
+    ).not.toHaveBeenCalled();
+  });
+
+  test("is refused by the project check before an update reads the budgets it writes", async () => {
+    jest
+      .spyOn(
+        ProjectReferencesService.prototype as unknown as BaseUpdateHook,
+        "onBeforeUpdate",
+      )
+      .mockRejectedValue(refusal() as never);
+    const findBy: jest.SpyInstance = jest.spyOn(
+      TelemetryIngestionTeamLabelBudgetService,
+      "findBy",
+    ) as unknown as jest.SpyInstance;
+
+    await expect(
+      update({ logsDailyIngestionBudgetInGB: 1 }),
+    ).rejects.toBeInstanceOf(ProjectScopedReferenceException);
+
+    expect(findBy).not.toHaveBeenCalled();
+    expect(
+      TelemetryIngestionBudgetSettings.getInstanceSettings,
+    ).not.toHaveBeenCalled();
   });
 });
 

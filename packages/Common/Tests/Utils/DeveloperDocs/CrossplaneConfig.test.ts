@@ -7,6 +7,8 @@ import BaseModel, {
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
+import CustomRolePermission from "../../../Models/DatabaseModels/CustomRolePermission";
+import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import MessageQueue from "../../../Models/DatabaseModels/MessageQueue";
@@ -443,6 +445,32 @@ describe("a record's manifest", () => {
     });
     expect(forProvider(manifest.yaml)["messagingSystem"]).toBeUndefined();
   });
+
+  /*
+   * A permission is its key (#10300): written as it is, never as the JSON
+   * text of it the spec's object made it, nor left out as a JSON value the
+   * manifest could not write back.
+   */
+  test.each([
+    ["a team's", TeamPermission, "teamId"],
+    ["a custom role's", CustomRolePermission, "customRoleId"],
+  ])(
+    "%s permission is its key",
+    (_label: string, modelType: DatabaseBaseModelType, parent: string) => {
+      const fields: YamlObject = forProvider(
+        getCrossplaneRecordManifest({
+          modelType,
+          json: {
+            _id: "4a2b3c4d-1234-4b2c-9d8e-0123456789ab",
+            [parent]: "5a2b3c4d-1234-4b2c-9d8e-0123456789ab",
+            permission: "IncidentMember",
+          },
+        })!.yaml,
+      );
+
+      expect(fields["permission"]).toBe("IncidentMember");
+    },
+  );
 
   test("a cloud account's provider, a name Terraform reserves, is providerValue", () => {
     const account: CloudAccount = new CloudAccount();

@@ -1,6 +1,8 @@
 import "@testing-library/jest-dom";
 import {
+  afterAll,
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -16,7 +18,9 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import i18next from "i18next";
 import * as React from "react";
+import { initReactI18next } from "react-i18next";
 
 /*
  * How a cloud resource's metrics were collected (#10291), above them on its
@@ -63,6 +67,7 @@ import {
   isWordedInDashboardLocale,
   placeholdersOf,
   readDashboardLocale,
+  readDashboardLocaleAsDrawn,
 } from "../../Helpers/DashboardLocales";
 import {
   CloudMetricCollectionState,
@@ -367,6 +372,9 @@ describe("in the reader's language", () => {
     "Couldn't load how this resource's metrics were collected.",
     CLOUD_UNREPORTED_REASON_SENTENCES[CloudUnreportedReason.NotServed],
     CLOUD_UNREPORTED_REASON_SENTENCES[CloudUnreportedReason.CloudBusy],
+    // The toggle's words, which it reads from these files alone.
+    "Show why",
+    "Hide",
   ];
 
   test("every sentence is worded in every Dashboard language, with its placeholders", () => {
@@ -418,4 +426,107 @@ describe("in the reader's language", () => {
       }
     }
   });
+});
+
+/*
+ * The toggle's two words come from the Dashboard's translations alone, with
+ * no English written beside them (DashboardComponentsAToLHardcodedGuard).
+ * Drawn through react-i18next with each Dashboard language's own locale
+ * file, as the Dashboard draws it, the toggle reads "Show why" and "Hide" as
+ * that language words them: never empty, and never English where the
+ * language has its own words. The suites above draw it in English, before
+ * i18next is set up here.
+ */
+describe("its Show why toggle, drawn in the reader's language", () => {
+  const LANGUAGES: Array<string> = ["en", ...DASHBOARD_LANGUAGES];
+
+  beforeAll(async () => {
+    const resources: Record<string, { translation: Record<string, string> }> =
+      {};
+
+    for (const language of LANGUAGES) {
+      resources[language] = {
+        translation: readDashboardLocaleAsDrawn(language),
+      };
+    }
+
+    await i18next.use(initReactI18next).init({
+      lng: "en",
+      fallbackLng: "en",
+      resources: resources,
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+  });
+
+  afterAll(async () => {
+    await i18next.changeLanguage("en");
+  });
+
+  for (const language of LANGUAGES) {
+    test(`in ${language}: opens what was not read, and closes it, in the language's words`, async () => {
+      const words: Translator = dashboardTranslator(language);
+      const showWhy: string = words.translateText("Show why") || "";
+      const hide: string = words.translateText("Hide") || "";
+
+      expect({
+        language,
+        showWhy: showWhy.trim().length > 0,
+        hide: hide.trim().length > 0,
+      }).toEqual({ language, showWhy: true, hide: true });
+
+      if (language !== "en") {
+        expect({
+          language,
+          showWhyIsEnglish: showWhy === "Show why",
+          hideIsEnglish: hide === "Hide",
+        }).toEqual({
+          language,
+          showWhyIsEnglish: false,
+          hideIsEnglish: false,
+        });
+      }
+
+      await act(async (): Promise<void> => {
+        await i18next.changeLanguage(language);
+      });
+      await renderLine({
+        state: CloudMetricCollectionState.Partial,
+        lastReadAt: READ_AT,
+        metrics: [CPU_PERCENTAGE],
+      });
+
+      const line: HTMLElement = await screen.findByTestId(
+        CLOUD_METRIC_COLLECTION_TEST_ID,
+      );
+      const toggle: HTMLElement = within(line).getByRole("button", {
+        name: showWhy,
+      });
+
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(
+        screen.queryAllByTestId(CLOUD_METRIC_NOT_READ_TEST_ID),
+      ).toHaveLength(0);
+
+      fireEvent.click(toggle);
+
+      expect(within(line).getByRole("button", { name: hide })).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+      expect(screen.getAllByTestId(CLOUD_METRIC_NOT_READ_TEST_ID)).toHaveLength(
+        1,
+      );
+
+      fireEvent.click(within(line).getByRole("button", { name: hide }));
+
+      expect(
+        within(line).getByRole("button", { name: showWhy }),
+      ).toHaveAttribute("aria-expanded", "false");
+      expect(
+        screen.queryAllByTestId(CLOUD_METRIC_NOT_READ_TEST_ID),
+      ).toHaveLength(0);
+    });
+  }
 });

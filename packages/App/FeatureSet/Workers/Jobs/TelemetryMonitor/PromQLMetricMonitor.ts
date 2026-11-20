@@ -14,7 +14,6 @@ import MonitorStepMetricMonitor, {
 import BadDataException from "Common/Types/Exception/BadDataException";
 import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
 import MetricSeriesFingerprint from "Common/Utils/Metrics/MetricSeriesFingerprint";
-import { PROMQL_METRIC_NAME_LABEL } from "Common/Utils/PromQL/PromQLAst";
 import PromQLEngine from "Common/Utils/PromQL/PromQLEngine";
 import {
   PromQLMatrixResultSeries,
@@ -22,10 +21,8 @@ import {
   PromQLResultType,
   PromQLSeriesSource,
 } from "Common/Utils/PromQL/PromQLEngineTypes";
-import {
-  PromQLLabels,
-  promQLLabelsKey,
-} from "Common/Utils/PromQL/PromQLLabels";
+import { PromQLLabels } from "Common/Utils/PromQL/PromQLLabels";
+import { getPromQLMonitorSeriesNames } from "Common/Utils/PromQL/PromQLMonitorSeries";
 import { getPromQLMonitorExpressionProblem } from "Common/Utils/PromQL/PromQLMonitorExpression";
 import PromQLMetricSeriesSource from "Common/Server/Utils/PromQL/PromQLMetricSeriesSource";
 import { TelemetryServiceFilter } from "Common/Server/Utils/Telemetry/TelemetryReadScope";
@@ -112,19 +109,12 @@ const toLabelsObject: (labels: PromQLLabels) => JSONObject = (
   return copyOwnValues(labels) as JSONObject;
 };
 
-const withoutMetricName: (labels: PromQLLabels) => PromQLLabels = (
-  labels: PromQLLabels,
-): PromQLLabels => {
-  const copy: PromQLLabels = copyOwnValues(labels);
-  delete copy[PROMQL_METRIC_NAME_LABEL];
-  return copy;
-};
-
 /*
  * The series of a check, from the expression's answer. A series is named
  * by its labels without `__name__`, as Prometheus names an alert: `up == 0`
  * keeps the name `up`, which says nothing about which target is down. Two
- * series that only their names tell apart keep them, so neither is lost.
+ * series that only their names tell apart keep them, so neither is lost
+ * (PromQLMonitorSeries, which an incident's chart finds its series by).
  * NaN, which a comparison never keeps, is no value to judge; an infinite
  * one is (a ratio over nothing).
  */
@@ -133,21 +123,16 @@ export const toPromQLSeriesBreakdown: (
 ) => Array<MetricSeriesResult> = (
   series: Array<PromQLMatrixResultSeries>,
 ): Array<MetricSeriesResult> => {
-  const namesNeeded: Map<string, number> = new Map();
-
-  for (const item of series) {
-    const key: string = promQLLabelsKey(withoutMetricName(item.labels));
-    namesNeeded.set(key, (namesNeeded.get(key) || 0) + 1);
-  }
+  const names: Array<PromQLLabels> = getPromQLMonitorSeriesNames(
+    series.map((item: PromQLMatrixResultSeries): PromQLLabels => {
+      return item.labels;
+    }),
+  );
 
   const breakdown: Array<MetricSeriesResult> = [];
 
-  for (const item of series) {
-    const unnamed: PromQLLabels = withoutMetricName(item.labels);
-    const labels: PromQLLabels =
-      (namesNeeded.get(promQLLabelsKey(unnamed)) || 0) > 1
-        ? item.labels
-        : unnamed;
+  series.forEach((item: PromQLMatrixResultSeries, index: number): void => {
+    const labels: PromQLLabels = names[index] || {};
     const jsonLabels: JSONObject = toLabelsObject(labels);
     const data: Array<AggregatedModel> = [];
 
@@ -167,7 +152,7 @@ export const toPromQLSeriesBreakdown: (
       labels: jsonLabels,
       aggregatedResults: [{ data }],
     });
-  }
+  });
 
   return breakdown;
 };

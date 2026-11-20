@@ -15,7 +15,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *     next reads the case. Empty on every existing case until the data
  *     migration BackfillSecurityCaseNextStepCheckAt sets it on the open
  *     ones. Its index is built online, in
- *     AddSecurityCaseNextStepCheckIndex1809187103410.
+ *     AddSecurityCaseNextStepCheckIndex1809187150010.
  *   - "Project" gains "markSecurityCaseContainedWhenVerified", on for every
  *     project: a case moves to Contained once OneUptime has verified every
  *     step that contains it. A constant default: adding it does not rewrite
@@ -23,10 +23,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *
  * The new table is empty, so its indexes and foreign keys are built here.
  */
-export class AddSecurityCaseStepChecks1809187103400
+export class AddSecurityCaseStepChecks1809187150000
   implements MigrationInterface
 {
-  public name: string = "AddSecurityCaseStepChecks1809187103400";
+  public name: string = "AddSecurityCaseStepChecks1809187150000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

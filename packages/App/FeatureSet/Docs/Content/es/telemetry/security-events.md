@@ -484,9 +484,9 @@ detection:
 | **Ejecutar en tiempo real** | Desactivado en una regla nueva. Activado, la regla comprueba cada evento en cuanto llega en lugar de en cada intervalo; consulta [Reglas en tiempo real](#reglas-en-tiempo-real). |
 | **Campo de agrupación** | Opcional. Las coincidencias que comparten el valor de este campo, como `principalHost`, se cuentan, alertan y deduplican juntas: una alerta por host en lugar de cientos. |
 | **Campo de recuento distinto** | Opcional. Cuenta los valores distintos de este campo en lugar de los eventos coincidentes. Los valores vacíos no cuentan. |
-| **Umbral de número de coincidencias** | Un grupo se dispara solo cuando su recuento llega a este número dentro de una ejecución, o de una ventana en tiempo real: de 1 a 1000000, y 1 se dispara con cualquier coincidencia. |
+| **Umbral de número de coincidencias** | Un grupo se dispara solo cuando su recuento llega a este número dentro de una ventana del intervalo de la regla: de 1 a 1000000, y 1 se dispara con cualquier coincidencia. |
 
-La agrupación y el recuento distinto aceptan los mismos nombres de campo que la regla. Con ellos, el umbral dice «tantos, de lo mismo, en una ejecución», sin un monitor encima:
+La agrupación y el recuento distinto aceptan los mismos nombres de campo que la regla. Con ellos, el umbral dice «tantos, de lo mismo, en una ventana», sin un monitor encima:
 
 | Objetivo | Campo de agrupación | Campo de recuento distinto | Umbral |
 | --- | --- | --- | --- |
@@ -498,11 +498,11 @@ La agrupación y el recuento distinto aceptan los mismos nombres de campo que la
 
 ### Cuándo se ejecuta una regla
 
-OneUptime comprueba cada minuto qué reglas habilitadas han cumplido su intervalo desde su última ejecución. Cada ejecución lee los eventos cuya hora de evento cae entre la ejecución anterior y hace dos minutos, y después avanza. Esos dos minutos dan margen a los eventos que aún están en camino, como una línea de registro leída un minuto después de escribirse:
+OneUptime comprueba cada minuto qué reglas habilitadas han cumplido su intervalo desde su última ejecución. Cada ejecución lee los eventos que llegaron a OneUptime entre la ejecución anterior y hace dos minutos, ocurrieran cuando ocurrieran, y después avanza. Esos dos minutos dan margen a los eventos que aún se están escribiendo:
 
-- Las ventanas van una tras otra, no se deslizan. Con un intervalo de 10 minutos, unos fallos a las 09:58 y a las 10:01 pueden caer en ejecuciones distintas y se cuentan por separado, así que deja margen al elegir un umbral.
+- Una regla que cuenta y una correlación cuentan en ventanas tan largas como el intervalo, seguidas según el reloj: con un intervalo de 10 minutos, unos fallos a las 09:58 y a las 10:01 caen en ventanas distintas y se cuentan por separado, así que deja margen al elegir un umbral.
 - Tras un hueco, como una caída del worker o una regla que se vuelve a activar, la siguiente ejecución cubre el hueco entero, hasta las últimas 24 horas.
-- Un evento que llega con más de dos minutos de retraso, cuando una ejecución ya ha cubierto su hora, se guarda y se puede buscar, pero esa regla nunca lo lee.
+- Un evento que llega tarde lo lee igualmente, una vez, la siguiente ejecución, y cuenta en la ventana en la que ocurrió: un grupo se dispara cuando su ventana alcanza el recuento, y como mucho una vez por ventana. Uno que llega más de un día después de ocurrir se guarda y se puede buscar, pero las ejecuciones de la regla no lo leen; **Ejecutar sobre eventos pasados** sí.
 - Cada grupo que alcanza el umbral se convierte en un Detection Finding, hasta 10.000 por ejecución. Se abren alertas, incidentes y casos para los 100 con los recuentos más altos; el resto comparte un caso sobre la regla, y el **Último error** de la regla dice cuántos grupos coincidieron.
 
 ### Reglas en tiempo real

@@ -1,6 +1,7 @@
 import { DOCS_LANGUAGES, readPage } from "./DocsContentSupport";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { boldSpans, inlineCode } from "./DocsTranslationChecks";
+import FormSignInCopy from "../../../FeatureSet/Dashboard/src/Components/FormBuilder/FormSignInCopy";
 import FormsCopy from "../../../FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import { PublicAddressCopy } from "../../../FeatureSet/Dashboard/src/Components/CustomDomain/PublicAddressCopy";
 import { RECORD_CHANNEL_TEXT } from "../../../FeatureSet/Dashboard/src/Components/Workspace/RecordChannelMembers";
@@ -157,6 +158,7 @@ const SOURCES: Record<string, string> = {
   formSharePage: `${DASHBOARD}/Pages/Forms/View/Share.tsx`,
   formStatusCard: `${DASHBOARD}/Components/FormBuilder/FormStatusCard.tsx`,
   formShareLinkCard: `${DASHBOARD}/Components/FormBuilder/FormShareLinkCard.tsx`,
+  formSignInCard: `${DASHBOARD}/Components/FormBuilder/FormSignInCard.tsx`,
   accountsLocale: "App/FeatureSet/Accounts/src/Locales/en.json",
   oauthState: `${WORKSPACE_UTILS}/WorkspaceOAuthState.ts`,
   slackManifest: `${WORKSPACE_UTILS}/Slack/app-manifest.json`,
@@ -2808,6 +2810,7 @@ describe("Forms, against the builder, the Share page and the public page", () =>
     const order: Array<number> = [
       share.indexOf("<FormStatusCard"),
       share.indexOf("<FormShareLinkCard"),
+      share.indexOf("<FormSignInCard"),
       share.indexOf("title: FormsCopy.afterSubmittingTitle"),
       share.indexOf("<AdvancedPageSection"),
       share.indexOf("<IpAllowlistSettings"),
@@ -2821,6 +2824,9 @@ describe("Forms, against the builder, the Share page and the public page", () =>
     ).toBe(true);
     expect(readSource("formStatusCard")).toContain(
       "title={FormsCopy.statusCardTitle}",
+    );
+    expect(readSource("formSignInCard")).toContain(
+      "cardTitle={FormSignInCopy.cardTitle}",
     );
 
     const linkCard: string = readSource("formShareLinkCard");
@@ -2855,6 +2861,8 @@ describe("Forms, against the builder, the Share page and the public page", () =>
       [
         FormsCopy.statusCardTitle,
         FormsCopy.shareLinkTitle,
+        // Only people who sign in (#10249), right after the link it guards.
+        FormSignInCopy.cardTitle,
         FormsCopy.afterSubmittingTitle,
         MORE_SETTINGS_SECTION_TITLE,
       ].map((title: string): string => {
@@ -2884,8 +2892,10 @@ describe("Forms, against the builder, the Share page and the public page", () =>
       });
     }
     expect(rows[0]?.[1]).toContain(`**${FormsCopy.acceptingSubmissions}**`);
-    expect(rows[2]?.[1]).toContain(`**${FormsCopy.successMessageTitle}**`);
-    expect(rows[3]?.[1]).toContain(`**${FormsCopy.ipAllowlistTitle}**`);
+    // The card's one switch, as the card draws it (#10249).
+    expect(rows[2]?.[1]).toContain(`**${FormSignInCopy.switchTitle}**`);
+    expect(rows[3]?.[1]).toContain(`**${FormsCopy.successMessageTitle}**`);
+    expect(rows[4]?.[1]).toContain(`**${FormsCopy.ipAllowlistTitle}**`);
   });
 
   it("quotes the public page's words as the Accounts locale has them", () => {

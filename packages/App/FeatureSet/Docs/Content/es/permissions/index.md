@@ -129,6 +129,26 @@ La facturación tiene tres roles propios. `BillingViewer` lee la facturación de
 
 Los {{PERMISSION_ROLE_COUNT}} roles aparecen en la [Referencia de permisos](/docs/permissions/reference).
 
+### Niveles de producto
+
+Un nivel de producto da a un equipo un solo producto, en un solo nivel, y nada más del proyecto: `CloudAdmin`, `NetworkViewer`, `HostMember`. Cada nivel hace sobre los registros propios del producto lo que un rol de todo el proyecto hace sobre todos los registros:
+
+- **Visor** lee allí lo que lee el rol Visor y no cambia nada.
+- **Miembro** además crea, cambia y elimina los registros del producto, como hace un Miembro del proyecto.
+- **Administrador** además hace allí lo que hace un Administrador del proyecto: los ajustes del producto, sus conexiones y credenciales, y sus reglas de etiquetas y de propietarios.
+
+Un nivel nunca alcanza otro producto, ni los ajustes, los equipos, los miembros, las claves de API, el SSO o la facturación del proyecto.
+
+:::steps
+1. Abra la página **Permisos** del equipo.
+2. En **Acceso a productos**, elija un nivel para cada producto con el que trabaja el equipo. Vacíe el nivel de un producto para quitarle ese producto al equipo.
+:::
+
+- **Los Monitores, los Incidentes y las demás áreas con roles propios** se dan con **Añadir rol**, en **Un área**. Lo mismo ocurre con los roles de Telemetry, para Registros, Métricas, Trazas, Perfiles y Excepciones, y con los roles Security.
+- **IA / LLM, Inventario y Formularios** solo tienen un nivel Visor y un nivel Administrador, porque un Miembro del proyecto no cambia nada en ellos.
+- **Un nivel es un permiso como cualquier otro.** Puede limitarlo a algunas etiquetas o a los registros propios en la tabla de permisos, bloquearlo, ponerlo en un rol personalizado o darlo a una clave de API. Como con todo permiso, solo puede dar un nivel si usted mismo lo tiene, a menos que sea Propietario del proyecto.
+- **Un nivel lee los registros del producto, no su telemetría.** Un equipo con `HostViewer` ve los hosts del proyecto, y para sus gráficos necesita también `TelemetryViewer`.
+
 ### Permisos granulares
 
 Cada capacidad individual también se puede asignar por separado: `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` y {{PERMISSION_TOTAL_COUNT}} más. Úselos cuando un rol sea demasiado amplio y necesite conceder exactamente una cosa.

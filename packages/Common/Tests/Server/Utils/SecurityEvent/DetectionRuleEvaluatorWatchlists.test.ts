@@ -11,6 +11,7 @@ import CorrelationRuleMatcher, {
   CorrelationMatchResult,
 } from "../../../../Server/Utils/SecurityEvent/Correlation/CorrelationRuleMatcher";
 import SecurityWatchlists from "../../../../Server/Utils/SecurityEvent/Watchlists/SecurityWatchlists";
+import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import DetectionRule from "../../../../Models/DatabaseModels/DetectionRule";
 import AlertSeverityService from "../../../../Server/Services/AlertSeverityService";
 import DetectionRuleService from "../../../../Server/Services/DetectionRuleService";
@@ -143,6 +144,40 @@ beforeEach(() => {
   loadLists = getJestSpyOn(SecurityWatchlists, "load").mockResolvedValue(
     new Map([["vip_users", VIP_LIST]]) as never,
   );
+  /*
+   * A turn runs each rule under its own lock and reads it again under it
+   * (DetectionRuleEvaluator's own suite pins both): the lock is free, and
+   * the rule is the one the turn read.
+   */
+  getJestSpyOn(Semaphore, "lock").mockResolvedValue({} as never);
+  getJestSpyOn(Semaphore, "release").mockResolvedValue(undefined as never);
+  getJestSpyOn(DetectionRuleService, "findOneById").mockImplementation(
+    (async (args: { id: ObjectID }) => {
+      const rules: Array<DetectionRule> =
+        ((await DetectionRuleService.findAllBy({} as never)) as unknown as
+          | Array<DetectionRule>
+          | undefined) || [];
+
+      return (
+        rules.find((rule: DetectionRule): boolean => {
+          return rule.id?.toString() === args.id.toString();
+        }) || null
+      );
+    }) as never,
+  );
+  // A correlation reads the window its run's events fall in (#10337).
+  getJestSpyOn(
+    SecurityEventService,
+    "findDetectionArrivalWindows",
+  ).mockResolvedValue([
+    {
+      windowStart: new Date(
+        Math.floor(Date.now() / (5 * 60 * 1000)) * (5 * 60 * 1000) -
+          5 * 60 * 1000,
+      ),
+      firstArrivedAt: new Date(Date.now() - 3 * 60 * 1000),
+    },
+  ] as never);
 });
 
 afterEach(() => {

@@ -1,13 +1,15 @@
 import { JSONObject, JSONValue } from "../JSON";
+import { ScrubbedAddressSignal } from "../../Utils/SecurityEvent/ScrubbedAddress";
 
 /*
  * WHERE A STEP OF A CASE'S RESPONSE PLAN POINTS, AS A DESCRIPTOR (#10340):
  * the traces of its requests, the security events about an address, a user
- * or a host in the product that holds it. The plan and its checks' evidence
- * say what to open; each reader turns it into its own address - the
- * Dashboard into a route of its own (SecurityCaseResponsePlan.ts there), the
- * mobile app and OneUptime AI into theirs - so one plan is built the same on
- * the server and in the browser, with no app's routes in it.
+ * or a host in the product that holds it, the scrub rules that hid an
+ * address. The plan and its checks' evidence say what to open; each reader
+ * turns it into its own address - the Dashboard into a route of its own
+ * (SecurityCaseResponseLinks.ts there), the mobile app and OneUptime AI into
+ * theirs - so one plan is built the same on the server and in the browser,
+ * with no app's routes in it.
  *
  * Kept in a check's evidence (SecurityCaseStepCheck.evidence), so read back
  * with readResponseLink: a stored link is data, and only what fits a kind is
@@ -21,6 +23,8 @@ export enum ResponseLinkKind {
   OpenEvents = "OpenEvents",
   // A page of the product that holds the evidence: a user in Okta, a host in CrowdStrike.
   OpenProvider = "OpenProvider",
+  // The Scrub Rules of the logs or the traces: where a rule hid a case's address (#10397).
+  OpenScrubRules = "OpenScrubRules",
 }
 
 // The most traces a link carries.
@@ -56,10 +60,17 @@ export interface ResponseProviderLink {
   url: string;
 }
 
+export interface ResponseScrubRulesLink {
+  kind: ResponseLinkKind.OpenScrubRules;
+  // The kind of record the rule hid the address in.
+  signal: ScrubbedAddressSignal;
+}
+
 export type ResponseLink =
   | ResponseTracesLink
   | ResponseEventsLink
-  | ResponseProviderLink;
+  | ResponseProviderLink
+  | ResponseScrubRulesLink;
 
 function readText(value: JSONValue | undefined): string {
   return typeof value === "string"
@@ -128,6 +139,14 @@ export function readResponseLink(value: unknown): ResponseLink | null {
 
       return provider && HTTPS_ADDRESS.test(url)
         ? { kind: ResponseLinkKind.OpenProvider, provider, url }
+        : null;
+    }
+
+    case ResponseLinkKind.OpenScrubRules: {
+      const signal: JSONValue | undefined = link["signal"];
+
+      return signal === "log" || signal === "trace"
+        ? { kind: ResponseLinkKind.OpenScrubRules, signal }
         : null;
     }
 

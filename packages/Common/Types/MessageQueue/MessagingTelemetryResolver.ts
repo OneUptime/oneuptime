@@ -808,8 +808,10 @@ const SNS_PHONE_NUMBER_PLACEHOLDER_PREFIX: string = "phone_number:";
 
 /*
  * What OneUptime's own scrubbers leave when they replace a WHOLE value: the
- * trace scrubber's "[REDACTED]" and "[HASHED:<first 8 hex of the SHA-256>]",
- * its mask of a short value ("***"), and a metric pipeline's default
+ * trace scrubber's "[REDACTED]" and a Hash rule's "[HASHED:<hex>]" - 16 hex
+ * characters keyed per project, 8 in records stored before tokens had a key
+ * (Types/Telemetry/ScrubHashTokenFormat.ts) - its mask of a short value
+ * ("***"), and a metric pipeline's default
  * "[REDACTED]". Nothing of the name is left, so there is no queue to find
  * (and every scrubbed destination must not merge into one queue). A value
  * scrubbed only in part ("orders-[REDACTED]") keeps its queue: the rest
