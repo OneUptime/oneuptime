@@ -226,9 +226,9 @@ describe("a host's Filesystems, on a wide screen", () => {
       expect(within(rows()[0]!).getByTestId(testId).tagName).toBe("BDI");
     }
     expect(
-      within(cells[5]!).getByTestId("host-filesystem-size").querySelector(
-        "bdi",
-      ),
+      within(cells[5]!)
+        .getByTestId("host-filesystem-size")
+        .querySelector("bdi"),
     ).toHaveTextContent("512 GiB");
   });
 
@@ -248,9 +248,8 @@ describe("a host's Filesystems, on a wide screen", () => {
   test("the bar is as long as the mount is full, calm, amber past 85% and red past 95%, as Needs attention lists it", () => {
     draw(1280);
 
-    const fills: Array<HTMLElement> = screen.getAllByTestId(
-      "storage-usage-fill",
-    );
+    const fills: Array<HTMLElement> =
+      screen.getAllByTestId("storage-usage-fill");
 
     expect(Number.parseFloat(fills[0]!.style.width)).toBeCloseTo(95.3, 1);
     expect(fills[0]).toHaveAttribute("data-level", StorageUsageLevel.Critical);

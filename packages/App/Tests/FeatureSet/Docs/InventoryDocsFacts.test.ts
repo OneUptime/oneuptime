@@ -171,15 +171,28 @@ import { DeviceManagementSession } from "Common/Server/Utils/DeviceManagement/De
 import { REMOVED_DEVICE_RETENTION_DAYS } from "Common/Server/Utils/DeviceManagement/ManagedDeviceSync";
 import { withMeaningKeyAsItsWord } from "Common/Types/MeaningKeys";
 import {
+  MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
   MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
   MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
+  MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
 } from "Common/Types/DeviceManagement/ManagedDeviceCheckIn";
 import { ANDROID_SECURITY_PATCH_MAX_AGE_DAYS } from "Common/Types/Host/AndroidSecurityPatch";
 import {
   MANAGED_DEVICE_ALERT_MONITORING_INTERVAL,
+  MANAGED_DEVICE_LOW_BATTERY_PERCENT,
   MANAGED_DEVICE_STOPPED_CHECKING_IN_MINUTES,
+  MANAGED_DEVICE_STORAGE_NEARLY_FULL_PERCENT,
+  ManagedDeviceAlertTemplate,
   getManagedDeviceAlertTemplateById,
+  getManagedDeviceAlertTemplatesFor,
+  getManagedDeviceConnectionStoppedReadingMinutes,
 } from "Common/Types/Monitor/ManagedDeviceAlertTemplates";
+import { MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME } from "Common/Types/DeviceManagement/DeviceManagementConnectionReading";
+import {
+  DeviceManagementConnectionStatus,
+  getDeviceManagementStaleAfterMinutes,
+} from "Common/Types/DeviceManagement/DeviceManagementConnectionHealth";
+import { getDeviceManagementHealthWords } from "../../../FeatureSet/Dashboard/src/Components/DeviceManagement/DeviceManagementWords";
 import { getHostAlertTemplateById } from "Common/Types/Monitor/HostAlertTemplates";
 import { TopologyApiLimits } from "Common/Types/Topology/TopologyApi";
 import { startsCollapsed } from "Common/UI/Components/SideMenu/SideMenuSectionState";
@@ -2511,6 +2524,156 @@ describe("Inventory Overview: an Android device's patch and its device manager's
       expect(englishSection(INVENTORY_OVERVIEW, heading)).toContain(
         `${bold(patchTemplate(id).name)} alerts on each Android device whose security patch level is more than 90 days old, as Esper's does.`,
       );
+    },
+  );
+});
+
+/*
+ * #10006, #10007, #10008: a connection's own alert when it stops reading,
+ * each device's battery and storage alerts, and a device's alerts on its
+ * item. The page says what the templates do, in their words: the
+ * connection's waits as long as its row does before it says Stale, the
+ * device's alert at the Android Agent's own levels and leave a device the
+ * agent reports to its host, and each service is offered the ones its
+ * device list can feed.
+ */
+describe("Inventory Overview: a connection that stops reading, a device's battery and storage, and its alerts on its item (#10006, #10007, #10008)", () => {
+  function template(id: string): ManagedDeviceAlertTemplate {
+    const found: ManagedDeviceAlertTemplate | undefined =
+      getManagedDeviceAlertTemplateById(id);
+
+    expect(found).toBeDefined();
+    return found!;
+  }
+
+  it("says the connection's alert waits as long as its row does before it says Stale, with the metric it reads", () => {
+    const section: string = englishSection(
+      INVENTORY_OVERVIEW,
+      "### Get an alert when the connection stops reading",
+    );
+    const staleWord: string = getDeviceManagementHealthWords(
+      DeviceManagementConnectionStatus.Stale,
+    ).label;
+
+    expect(staleWord).toBe("Stale");
+    expect(section).toContain(
+      `Create ${bold(template("esper-connection-stopped-reading").name)}, and the connection opens an alert of its own once no read of it has worked for as long as its row waits before its **Status** says ${bold(staleWord)}: three of its read intervals and ten minutes more, and never less than half an hour, so 55 minutes at the default 15.`,
+    );
+    // The rule the sentence states, read from the code at each interval.
+    expect(DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES).toBe(15);
+    expect(getManagedDeviceConnectionStoppedReadingMinutes()).toBe(55);
+    for (const interval of [5, 10, 15, 30, 60]) {
+      expect(getManagedDeviceConnectionStoppedReadingMinutes(interval)).toBe(
+        Math.max(30, interval * 3 + 10),
+      );
+      expect(getManagedDeviceConnectionStoppedReadingMinutes(interval)).toBe(
+        getDeviceManagementStaleAfterMinutes(interval),
+      );
+    }
+    expect(section).toContain(
+      `\`${MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME}\``,
+    );
+    expect(section).toContain(
+      "Its first debugging step lists the connection's last readings, each with the error its read failed with",
+    );
+    expect(section).toContain(
+      "a connection turned off records nothing, so an alert it had open stays open until you resolve it.",
+    );
+  });
+
+  it("says a device's battery and storage alerts fire at the Android Agent's levels, and leave a device it reports to its host", () => {
+    const alerts: string = englishSection(
+      INVENTORY_OVERVIEW,
+      "### Get an alert when a device stops checking in",
+    );
+    const lowBattery: ManagedDeviceAlertTemplate =
+      template("esper-low-battery");
+    const storage: ManagedDeviceAlertTemplate = template(
+      "esper-storage-nearly-full",
+    );
+
+    expect(MANAGED_DEVICE_LOW_BATTERY_PERCENT).toBe(20);
+    expect(MANAGED_DEVICE_STORAGE_NEARLY_FULL_PERCENT).toBe(90);
+    expect(lowBattery.minBatteryPercent).toBe(20);
+    expect(storage.maxStorageUsedPercent).toBe(90);
+    // The Android Agent's own templates alert at the same levels.
+    expect(getHostAlertTemplateById("android-low-battery")!.summary).toContain(
+      "below 20%",
+    );
+    expect(
+      getHostAlertTemplateById("android-storage-nearly-full")!.description,
+    ).toContain("90%");
+
+    expect(alerts).toContain(
+      `Create ${bold(lowBattery.name)} and ${bold(storage.name)} too: each device whose battery, as Esper last read it, is below 20% opens an alert of its own, and so does each device whose storage is more than 90% full`,
+    );
+    expect(alerts).toContain(
+      `\`${MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME}\` and \`${MANAGED_DEVICE_STORAGE_USED_METRIC_NAME}\``,
+    );
+    expect(alerts).toContain(
+      `A device that runs the Android Agent is left to its host's ${bold(getHostAlertTemplateById("android-low-battery")!.name)} and ${bold(getHostAlertTemplateById("android-storage-nearly-full")!.name)}, which alert at the same levels, so it never alerts twice.`,
+    );
+  });
+
+  it("says a device's alerts are on its card and its item's Alerts and Incidents pages, as the side menu names them", () => {
+    const alerts: string = englishSection(
+      INVENTORY_OVERVIEW,
+      "### Get an alert when a device stops checking in",
+    );
+    const menu: string = readRepoFile(ITEM_MENU);
+
+    expect(menu).toContain('title: "Alerts"');
+    expect(menu).toContain('title: "Incidents"');
+    expect(alerts).toContain(
+      "its **Esper** card lists the incidents and alerts open about it, each a link to its page, and the **Alerts** and **Incidents** pages of a device the Android Agent does not report list every one its connection's monitors raised about it.",
+    );
+  });
+
+  it.each([
+    [
+      DeviceManagementProvider.Intune,
+      "## Import devices from Microsoft Intune",
+      "**Intune Storage Nearly Full** and **Intune Connection Stopped Reading** alert as Esper's do. No battery alert is offered, as Intune's list of devices has no battery level.",
+    ],
+    [
+      DeviceManagementProvider.WorkspaceOne,
+      "## Import devices from Workspace ONE UEM",
+      "**Workspace ONE Low Battery**, **Workspace ONE Storage Nearly Full** and **Workspace ONE Connection Stopped Reading** alert as Esper's do.",
+    ],
+    [
+      DeviceManagementProvider.Soti,
+      "## Import devices from SOTI MobiControl",
+      "**SOTI Low Battery**, **SOTI Storage Nearly Full** and **SOTI Connection Stopped Reading** alert as Esper's do.",
+    ],
+  ])(
+    "names the %s connection's own, battery and storage alerts as its templates do",
+    (provider: DeviceManagementProvider, heading: string, sentence: string) => {
+      const offered: Array<string> = getManagedDeviceAlertTemplatesFor(
+        provider,
+      ).map((offeredTemplate: ManagedDeviceAlertTemplate): string => {
+        return offeredTemplate.name;
+      });
+      const named: Array<string> = [
+        ...sentence.matchAll(/\*\*([^*]+)\*\*/g),
+      ].map((match: RegExpMatchArray): string => {
+        return match[1] as string;
+      });
+
+      expect(englishSection(INVENTORY_OVERVIEW, heading)).toContain(sentence);
+      // Every template the sentence names is one the connection is offered.
+      for (const name of named) {
+        expect({ provider, name, offered: offered.includes(name) }).toEqual({
+          provider,
+          name,
+          offered: true,
+        });
+      }
+      // And a battery alert is offered where the sentence names one.
+      expect(
+        offered.some((name: string): boolean => {
+          return name.endsWith("Low Battery");
+        }),
+      ).toBe(sentence.includes("Low Battery**"));
     },
   );
 });

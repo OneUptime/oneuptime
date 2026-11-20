@@ -15,6 +15,7 @@ import CloudResourceService from "../../../../Server/Services/CloudResourceServi
 import MetricService from "../../../../Server/Services/MetricService";
 import { AssumedRoleCache } from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
 import {
+  CloudConnectionPullState,
   CloudConnectionSettings,
   GcpSplitUnranked,
 } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
@@ -1442,11 +1443,14 @@ describe("a Google Cloud resource's metrics", () => {
       valuesPerResource: 42,
     };
 
+    // The reads' own state, kept on the row as CloudConnectionPullRunner keeps it.
+    const pullState: CloudConnectionPullState = {
+      gcpSplitUnranked: { [getGcpSplitRankKey(unranked)]: unranked },
+    };
+
     connection = connectionRow({
       provider: CloudProvider.GCP,
-      pullState: {
-        gcpSplitUnranked: { [getGcpSplitRankKey(unranked)]: unranked },
-      } as JSONObject,
+      pullState: pullState as unknown as JSONObject,
     });
 
     const fake: FakeGcpLive = createFakeGcpLive({

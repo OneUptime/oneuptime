@@ -111,6 +111,8 @@ const SET_PASSWORD_LINK_ROUTE: string = "/user/:userId/set-password-link";
 const SET_TWO_FACTOR_REQUIRED_ROUTE: string =
   "/user/:userId/set-two-factor-auth-required";
 const RESET_TWO_FACTOR_ROUTE: string = "/user/:userId/reset-two-factor-auth";
+// Clears one person's password, passkeys and second factors (#9762).
+const CLEAR_LOCAL_SIGN_IN_ROUTE: string = "/user/:userId/clear-local-sign-in";
 
 const USER_ID: string = "00000000-0000-4000-8000-000000000001";
 const PROJECT_ONE_ID: string = "00000000-0000-4000-8000-0000000000a1";
@@ -1369,6 +1371,7 @@ describe("UserAPI master-admin route surface", () => {
     ).toEqual(
       [
         `GET ${AUTH_STATUS_ROUTE}`,
+        `POST ${CLEAR_LOCAL_SIGN_IN_ROUTE}`,
         `POST ${REMOVE_ROUTE}`,
         `POST ${RESET_LINK_ROUTE}`,
         `POST ${RESET_TWO_FACTOR_ROUTE}`,
@@ -1385,7 +1388,8 @@ describe("UserAPI master-admin route surface", () => {
    * account takeover: removing somebody's access, setting their password,
    * mailing a reset link to their inbox -- or, on the two two-factor routes,
    * lifting the requirement for a second factor across every account on the
-   * instance and then wiping whatever anybody had set up.
+   * instance and then wiping whatever anybody had set up -- or clearing a
+   * person's whole local sign-in.
    */
   test.each([
     ["POST", REMOVE_ROUTE],
@@ -1394,6 +1398,7 @@ describe("UserAPI master-admin route surface", () => {
     ["POST", SET_PASSWORD_LINK_ROUTE],
     ["POST", SET_TWO_FACTOR_REQUIRED_ROUTE],
     ["POST", RESET_TWO_FACTOR_ROUTE],
+    ["POST", CLEAR_LOCAL_SIGN_IN_ROUTE],
     ["GET", AUTH_STATUS_ROUTE],
   ])(
     "%s %s does not accept the master API key",

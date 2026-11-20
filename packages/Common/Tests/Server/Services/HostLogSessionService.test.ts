@@ -66,9 +66,11 @@ type Hooks = {
   onBeforeCreate: (
     createBy: CreateBy<HostLogSession>,
   ) => Promise<OnCreate<HostLogSession>>;
+  onCreatePermitted: (onCreate: OnCreate<HostLogSession>) => Promise<void>;
   onBeforeUpdate: (
     updateBy: UpdateBy<HostLogSession>,
   ) => Promise<OnUpdate<HostLogSession>>;
+  onUpdatePermitted: (updateBy: UpdateBy<HostLogSession>) => Promise<void>;
   onCreateSuccess: (
     onCreate: OnCreate<HostLogSession>,
     createdItem: HostLogSession,
@@ -76,6 +78,29 @@ type Hooks = {
 };
 
 const hooks: Hooks = HostLogSessionService as unknown as Hooks;
+
+/*
+ * A create's hooks as DatabaseService runs them: onBeforeCreate, then -
+ * once the request has passed every permission check - onCreatePermitted.
+ */
+async function ask(
+  request: CreateBy<HostLogSession>,
+): Promise<OnCreate<HostLogSession>> {
+  const onCreate: OnCreate<HostLogSession> =
+    await hooks.onBeforeCreate(request);
+  await hooks.onCreatePermitted(onCreate);
+  return onCreate;
+}
+
+// An update's hooks the same way: onBeforeUpdate, then onUpdatePermitted.
+async function change(
+  request: UpdateBy<HostLogSession>,
+): Promise<OnUpdate<HostLogSession>> {
+  const onUpdate: OnUpdate<HostLogSession> =
+    await hooks.onBeforeUpdate(request);
+  await hooks.onUpdatePermitted(onUpdate.updateBy);
+  return onUpdate;
+}
 
 let host: Host | null = null;
 let sessions: Array<HostLogSession> = [];
@@ -209,7 +234,7 @@ function createBy(data: Partial<HostLogSession>): CreateBy<HostLogSession> {
 describe("asking for a log session", () => {
   test("is Requested, for the time asked, and the person at the device has an hour to allow it", async () => {
     const before: number = Date.now();
-    const result: OnCreate<HostLogSession> = await hooks.onBeforeCreate(
+    const result: OnCreate<HostLogSession> = await ask(
       createBy({
         durationMinutes: 60,
         minimumLevel: HostLogSessionLevel.Debug,
@@ -357,8 +382,7 @@ describe("asking for a log session", () => {
       }),
     ];
 
-    const data: HostLogSession = (await hooks.onBeforeCreate(createBy({})))
-      .createBy.data;
+    const data: HostLogSession = (await ask(createBy({}))).createBy.data;
 
     expect(data.status).toBe(HostLogSessionStatus.Requested);
   });
@@ -372,8 +396,7 @@ describe("asking for a log session", () => {
       }),
     ];
 
-    const data: HostLogSession = (await hooks.onBeforeCreate(createBy({})))
-      .createBy.data;
+    const data: HostLogSession = (await ask(createBy({}))).createBy.data;
 
     expect(data.status).toBe(HostLogSessionStatus.Requested);
   });
@@ -410,6 +433,19 @@ describe("asking for a log session", () => {
 
     expect(updates).toEqual([]);
     expect(stale.status).toBe(HostLogSessionStatus.AwaitingApproval);
+  });
+
+  /*
+   * HookWritesCallersMayMake: the status and the expiry are nobody's to
+   * write, so the hook before the permission checks writes neither - the
+   * checks would hold them against the person and refuse every request.
+   */
+  test("sets nothing of OneUptime's before the permission checks", async () => {
+    const data: HostLogSession = (await hooks.onBeforeCreate(createBy({})))
+      .createBy.data;
+
+    expect(data.status).toBeUndefined();
+    expect(data.expiresAt).toBeUndefined();
   });
 
   test("once it is saved, the sessions the clock ended are ended in their rows", async () => {
@@ -497,7 +533,7 @@ describe("changing a log session", () => {
     });
     sessions = [open];
 
-    const result: OnUpdate<HostLogSession> = await hooks.onBeforeUpdate(
+    const result: OnUpdate<HostLogSession> = await change(
       updateBy(
         { status: HostLogSessionStatus.Cancelled },
         open._id!.toString(),
@@ -509,6 +545,26 @@ describe("changing a log session", () => {
     expect(data.status).toBe(HostLogSessionStatus.Cancelled);
     expect(data.statusMessage).toBe(CANCELLED_MESSAGE);
     expect(data.endedAt).toBeInstanceOf(Date);
+  });
+
+  // HookWritesCallersMayMake: nobody may write when it ended, or why.
+  test("when it ended, and why, are written only once the cancel may be made", async () => {
+    const open: HostLogSession = session({
+      status: HostLogSessionStatus.Collecting,
+    });
+    sessions = [open];
+
+    const result: OnUpdate<HostLogSession> = await hooks.onBeforeUpdate(
+      updateBy(
+        { status: HostLogSessionStatus.Cancelled },
+        open._id!.toString(),
+      ),
+    );
+    const data: HostLogSession = result.updateBy
+      .data as unknown as HostLogSession;
+
+    expect(data.endedAt).toBeUndefined();
+    expect(data.statusMessage).toBeUndefined();
   });
 
   test("the sessions it checks are the ones it cancels: read held, never by its query", async () => {
@@ -550,7 +606,7 @@ describe("changing a log session", () => {
   });
 
   test("OneUptime's own writes are not judged: the device's reports go through as they are", async () => {
-    const result: OnUpdate<HostLogSession> = await hooks.onBeforeUpdate({
+    const result: OnUpdate<HostLogSession> = await change({
       query: { _id: ObjectID.generate().toString() },
       data: { status: HostLogSessionStatus.Collecting },
       props: { isRoot: true },
@@ -562,6 +618,10 @@ describe("changing a log session", () => {
     expect((result.updateBy.data as unknown as HostLogSession).status).toBe(
       HostLogSessionStatus.Collecting,
     );
+    // Nothing of a person's cancel is added to them.
+    expect(result.updateBy.data).toEqual({
+      status: HostLogSessionStatus.Collecting,
+    });
   });
 
   test("cancelling is the only change a person makes", async () => {

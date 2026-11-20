@@ -63,6 +63,7 @@ import DeploymentConfigs from "../../../App/FeatureSet/Dashboard/src/Pages/Kuber
 import DeploymentConfigDetail from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/DeploymentConfigDetail";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import KubernetesCostAllocation from "Common/Models/AnalyticsModels/KubernetesCostAllocation";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Project from "Common/Models/DatabaseModels/Project";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -1114,6 +1115,11 @@ AnalyticsModelAPI.getList = async (options) => {
     return { data: [], count: 0, skip: 0, limit: 0 };
   }
 
+  // The Cost card's newest hour, for how it was priced: none (isCostRead).
+  if (isCostRead(modelName)) {
+    return { data: [], count: 0, skip: 0, limit: options.limit || 10 };
+  }
+
   fixture.unhandled.push({ kind: "analytics.getList", modelName });
   return { data: [], count: 0, skip: 0, limit: 0 };
 };
@@ -1171,6 +1177,16 @@ function generateMetricRows(aggregateBy) {
   return rows;
 }
 
+/*
+ * The Overview's Cost card reads the cost agent's hourly allocations
+ * (KubernetesCostAllocation): this cluster has sent none yet, so each sum
+ * comes back empty, as the server answers it, and the card says how to turn
+ * cost monitoring on.
+ */
+function isCostRead(modelName) {
+  return modelName === tableName(KubernetesCostAllocation);
+}
+
 AnalyticsModelAPI.aggregate = async (options) => {
   const modelName = tableName(options.modelType);
   const aggregateBy = options.aggregateBy;
@@ -1179,6 +1195,10 @@ AnalyticsModelAPI.aggregate = async (options) => {
     name: aggregateBy?.query?.name,
     attributes: serialize(aggregateBy?.query?.attributes),
   });
+
+  if (isCostRead(modelName)) {
+    return { data: [] };
+  }
 
   if (!modelName.startsWith("Metric")) {
     fixture.unhandled.push({

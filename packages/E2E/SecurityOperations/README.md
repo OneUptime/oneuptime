@@ -457,8 +457,8 @@ answers as for one workspace, not a whole Enterprise organization, so the rules 
 `Hunts.spec.ts` covers: the list under Events, its entry lit, each hunt with its search, schedule,
 who it tells and what its last run found; at phone width, each hunt's schedule and last find under
 its name, in red when its run failed; the empty list and its way to Events; the Events toolbar's
-Hunts list, which opens a hunt, opens on the screen beside the side menu at 768 (left to right and
-right to left, each schedule under its name), and its save locked with why while nothing is
+Hunts list, which opens a hunt, opens whole on the page's body beside the side menu at 768 (left to
+right and right to left, each schedule under its name), and its save locked with why while nothing is
 searched; Save as Hunt saving a scheduled hunt that tells its saver, and its page opening; a hunt's
 page on its search with Show them; a changed search saved from the notice over it, which names the
 search the hunt keeps and starts the hunt's schedule again, and Discard Changes opening the hunt's

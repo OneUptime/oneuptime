@@ -36,6 +36,19 @@ import {
  *     (AllMetrics), its resource logs (every category, allLogs) or both to
  *     its region's event hub. A resource that has no diagnostic settings,
  *     or no logs, or already the five Azure allows, is said and left out.
+ *     A storage account's logs are its services': with logs, each of its
+ *     blob, file, queue and table services - the ones its kind has - gets
+ *     a setting of its own that sends them, and the account its metrics;
+ *   - with the Activity Log (#10111), a subscription diagnostic setting of
+ *     the same name on each subscription, sending the categories Security
+ *     Events reads (Administrative, Security, Policy) to the first region's
+ *     event hub: the Activity Log is global, so any region's will do.
+ *     Azure refusing it is said with what it takes, and the rest goes on.
+ *
+ * Microsoft Entra ID's logs are the tenant's, and only a Security
+ * Administrator of the tenant may send them anywhere: their diagnostic
+ * setting is a command of its own (getAzureCloudStreamEntraCommand), for
+ * whoever is one, run once the event hubs are there.
  *
  * OneUptime then reads each event hub a minute at a time
  * (AzureEventHubsStream), from where it last read, and Event Hubs keeps
@@ -60,6 +73,68 @@ export const AZURE_DIAGNOSTIC_LOGS: string =
   '[{"categoryGroup":"allLogs","enabled":true}]';
 export const AZURE_DIAGNOSTIC_METRICS: string =
   '[{"category":"AllMetrics","enabled":true}]';
+
+/*
+ * The Activity Log's categories a subscription's setting sends: the ones
+ * Security Events reads (AzureActivityLogParser) - changes, Defender for
+ * Cloud's alerts and what Azure Policy refused - not service health,
+ * autoscale or Advisor's recommendations.
+ */
+export const AZURE_ACTIVITY_LOG_CATEGORIES: ReadonlyArray<string> = [
+  "Administrative",
+  "Security",
+  "Policy",
+];
+
+export const AZURE_DIAGNOSTIC_ACTIVITY_LOG: string = JSON.stringify(
+  AZURE_ACTIVITY_LOG_CATEGORIES.map((category: string) => {
+    return { category, enabled: true };
+  }),
+);
+
+/*
+ * Microsoft Entra ID's categories its setting sends: the ones Security
+ * Events reads (AzureActivityLogParser) - sign-ins, directory changes and
+ * Identity Protection's risks. Background and app sign-ins are read only
+ * when they fail, and can be 5 to 10 times as many as a person's.
+ */
+export const AZURE_ENTRA_ID_LOG_CATEGORIES: ReadonlyArray<string> = [
+  "SignInLogs",
+  "NonInteractiveUserSignInLogs",
+  "ServicePrincipalSignInLogs",
+  "AuditLogs",
+  "RiskyUsers",
+  "UserRiskEvents",
+];
+
+export const AZURE_DIAGNOSTIC_ENTRA_ID_LOGS: string = JSON.stringify(
+  AZURE_ENTRA_ID_LOG_CATEGORIES.map((category: string) => {
+    return { category, enabled: true };
+  }),
+);
+
+// The tenant's diagnostic settings, relative to Resource Manager's endpoint in each Azure cloud.
+export const AZURE_ENTRA_ID_DIAGNOSTIC_SETTINGS_PATH: string =
+  "/providers/microsoft.aadiam/diagnosticSettings";
+export const AZURE_ENTRA_ID_DIAGNOSTIC_SETTINGS_API_VERSION: string =
+  "2017-04-01";
+
+// What a subscription's and the tenant's settings take, as the commands say it.
+export const AZURE_DIAGNOSTIC_SETTINGS_WRITE: string =
+  "Microsoft.Insights/diagnosticSettings/write";
+export const AZURE_EVENT_HUBS_LIST_KEYS: string =
+  "Microsoft.EventHub/namespaces/authorizationRules/listKeys/action";
+export const AZURE_ENTRA_ID_SETTINGS_ROLE: string = "Security Administrator";
+
+// A storage account's services that log, and the ones each kind of account has.
+export const AZURE_STORAGE_ACCOUNT_TYPE: string =
+  "microsoft.storage/storageaccounts";
+export const AZURE_STORAGE_SERVICES: ReadonlyArray<string> = [
+  "blobServices",
+  "fileServices",
+  "queueServices",
+  "tableServices",
+];
 // How many resources the command sets up at once.
 export const AZURE_CLOUD_STREAM_PARALLEL: number = 4;
 // The most subscriptions one command sets up.
@@ -366,9 +441,48 @@ export function readAzureCloudStreamSubscriptions(text: string): Array<string> {
 }
 
 /*
+ * What a command prints when Azure refuses a subscription's or the tenant's
+ * diagnostic setting: what it takes, in Azure's own words for it. The key
+ * comes first - its refusal (LinkedAuthorizationFailed) says
+ * AuthorizationFailed too.
+ */
+function refusedLines(data: {
+  // What the setting takes when Azure says the person may not make it.
+  takes: string;
+}): Array<string> {
+  return [
+    '    case "$2" in',
+    "      *LinkedAuthorizationFailed*) echo \"$1: Azure says you may not use the event hubs' key. It takes " +
+      AZURE_EVENT_HUBS_LIST_KEYS +
+      ' on the resource group $GROUP, which its Owner and Contributor have." ;;',
+    '      *AuthorizationFailed*|*Forbidden*) echo "$1: Azure says you may not make its diagnostic setting. ' +
+      data.takes +
+      '" ;;',
+    "      *) echo \"$1: $(printf '%s' \"$2\" | grep -v '^$' | head -1)\" ;;",
+    "    esac",
+  ];
+}
+
+function readSubscriptions(subscriptionIds: Array<string>): Array<string> {
+  return subscriptionIds
+    .map((subscriptionId: string): string => {
+      return subscriptionId.trim().toLowerCase();
+    })
+    .filter(
+      (subscriptionId: string, index: number, all: Array<string>): boolean => {
+        return (
+          ObjectID.isValidUUID(subscriptionId) &&
+          all.indexOf(subscriptionId) === index
+        );
+      },
+    )
+    .slice(0, AZURE_CLOUD_STREAM_MAX_SUBSCRIPTIONS);
+}
+
+/*
  * The one command, for Azure Cloud Shell. The first subscription holds the
  * event hubs; each listed subscription's resources are set up to send to
- * them.
+ * them, and - with the Activity Log - the subscription itself.
  */
 export function getAzureCloudStreamCommand(data: {
   connectionId: string;
@@ -377,18 +491,16 @@ export function getAzureCloudStreamCommand(data: {
   subscriptionIds: Array<string>;
   metrics: boolean;
   logs: boolean;
+  // Each subscription's Activity Log too (#10111).
+  activityLog?: boolean | undefined;
 }): string {
   const names: AzureCloudStreamNames = getAzureCloudStreamNames(
     data.connectionId,
   );
-  const subscriptions: Array<string> = data.subscriptionIds
-    .map((subscriptionId: string): string => {
-      return subscriptionId.trim().toLowerCase();
-    })
-    .filter((subscriptionId: string): boolean => {
-      return ObjectID.isValidUUID(subscriptionId);
-    })
-    .slice(0, AZURE_CLOUD_STREAM_MAX_SUBSCRIPTIONS);
+  const subscriptions: Array<string> = readSubscriptions(data.subscriptionIds);
+  const quotedSubscriptions: string = subscriptions
+    .map(quoteForShell)
+    .join(" ");
   const host: string = subscriptions[0] || "";
   const both: boolean = data.metrics && data.logs;
 
@@ -398,9 +510,64 @@ export function getAzureCloudStreamCommand(data: {
     ...(data.metrics ? ['--metrics "$METRICS"'] : []),
     ...(data.logs ? ['--logs "$LOGS"'] : []),
   ];
-  const tryLines: Array<string> = attempts.map((categories: string): string => {
-    return `    ERROR=$(az monitor diagnostic-settings create --name "$SETTING" --resource "$1" --event-hub "$HUB" --event-hub-rule "$RULE" ${categories} --output none 2>&1) && { echo "ok"; return 0; }`;
-  });
+  const settingLine: (categories: string) => string = (
+    categories: string,
+  ): string => {
+    return `ERROR=$(az monitor diagnostic-settings create --name "$SETTING" --resource "$1" --event-hub "$HUB" --event-hub-rule "$RULE" ${categories} --output none 2>&1) && { echo "ok"; return 0; }`;
+  };
+  // A storage service has logs alone: its account takes the metrics.
+  const tryLines: Array<string> = data.logs
+    ? [
+        '    if [ "$3" = service ]; then',
+        `      ${settingLine('--logs "$LOGS"')}`,
+        "    else",
+        ...attempts.map((categories: string): string => {
+          return `      ${settingLine(categories)}`;
+        }),
+        "    fi",
+      ]
+    : attempts.map((categories: string): string => {
+        return `    ${settingLine(categories)}`;
+      });
+
+  /*
+   * A storage account's logs are its services': with logs, each one its
+   * kind has, and the account itself only for its metrics.
+   */
+  const storageLines: Array<string> = [
+    `    if [ "\${TYPE,,}" = ${AZURE_STORAGE_ACCOUNT_TYPE} ]; then`,
+    ...(data.metrics
+      ? ['      printf \'%s\\t%s\\t%s\\n\' "$ID" "${LOCATION,,}" resource']
+      : []),
+    ...(data.logs
+      ? [
+          '      case "${KIND,,}" in',
+          "        blobstorage|blockblobstorage) SERVICES=blobServices ;;",
+          "        filestorage) SERVICES=fileServices ;;",
+          `        *) SERVICES="${AZURE_STORAGE_SERVICES.join(" ")}" ;;`,
+          "      esac",
+          '      for SERVICE in $SERVICES; do printf \'%s\\t%s\\t%s\\n\' "$ID/$SERVICE/default" "${LOCATION,,}" service; done',
+        ]
+      : []),
+    "      continue",
+    "    fi",
+  ];
+
+  // Each subscription's Activity Log, to the first region's event hub: it is global.
+  const activityLogLines: Array<string> = data.activityLog
+    ? [
+        "  oneuptime_stream_refused() {",
+        ...refusedLines({
+          takes: `It takes ${AZURE_DIAGNOSTIC_SETTINGS_WRITE} on the subscription, which its Owner, Contributor and Monitoring Contributor have.`,
+        }),
+        "  }",
+        `  for SUB in ${quotedSubscriptions}; do`,
+        '    ERROR=$(az monitor diagnostic-settings subscription create --subscription "$SUB" --name "$SETTING" --location "$FIRST" --event-hub-name "$HUB" --event-hub-auth-rule "/subscriptions/$HOST/resourceGroups/$GROUP/providers/Microsoft.EventHub/namespaces/$PREFIX$FIRST/authorizationRules/' +
+          AZURE_EVENT_HUBS_SEND_RULE +
+          '" --logs "$ACTIVITY" --output none 2>&1) && echo "$SUB: its Activity Log sends to the $FIRST event hub." || oneuptime_stream_refused "$SUB: its Activity Log is left out" "$ERROR"',
+        "  done",
+      ]
+    : [];
 
   const tag: string = `${AZURE_CLOUD_STREAM_TAG}=${data.connectionId.toLowerCase()}`;
   const cleanUp: string = 'rm -f "$LIST" "$KNOWN" "$RESULTS"';
@@ -416,20 +583,25 @@ export function getAzureCloudStreamCommand(data: {
     "  local SETTING=" + names.diagnosticSetting,
     "  local LOGS=" + quoteForShell(AZURE_DIAGNOSTIC_LOGS),
     "  local METRICS=" + quoteForShell(AZURE_DIAGNOSTIC_METRICS),
+    ...(data.activityLog
+      ? ["  local ACTIVITY=" + quoteForShell(AZURE_DIAGNOSTIC_ACTIVITY_LOG)]
+      : []),
     "  local TYPES=" +
       quoteForShell(` ${AZURE_CLOUD_STREAM_RESOURCE_TYPES.join(" ")} `),
-    "  local LIST KNOWN RESULTS FIRST REGION REGIONS SUB N=0 ID LOCATION TYPE DONE SKIPPED",
+    "  local LIST KNOWN RESULTS FIRST REGION REGIONS SUB N=0 ID LOCATION TYPE KIND SCOPE SERVICE SERVICES ERROR DONE SKIPPED",
     "  LIST=$(mktemp) KNOWN=$(mktemp) RESULTS=$(mktemp)",
-    // Every resource of the subscriptions, with its region and type.
-    "  for SUB in " + subscriptions.map(quoteForShell).join(" ") + "; do",
-    '    az resource list --subscription "$SUB" --query "[?location!=null].[id, location, type]" --output tsv >> "$LIST" || { echo "$SUB: its resources could not be listed."; ' +
+    // Every resource of the subscriptions, with its region, type and kind.
+    "  for SUB in " + quotedSubscriptions + "; do",
+    '    az resource list --subscription "$SUB" --query "[?location!=null].[id, location, type, kind]" --output tsv >> "$LIST" || { echo "$SUB: its resources could not be listed."; ' +
       cleanUp +
       "; return 1; }",
     "  done",
     // Only the types OneUptime reads, and never the group's own event hubs.
-    "  while IFS=$'\\t' read -r ID LOCATION TYPE; do",
+    "  while IFS=$'\\t' read -r ID LOCATION TYPE KIND; do",
     '    case "${ID,,}" in */resourcegroups/"$GROUP"/*|"") continue ;; esac',
-    '    case "$TYPES" in *" ${TYPE,,} "*) printf \'%s\\t%s\\n\' "$ID" "${LOCATION,,}" ;; esac',
+    '    case "$TYPES" in *" ${TYPE,,} "*) ;; *) continue ;; esac',
+    ...storageLines,
+    '    printf \'%s\\t%s\\t%s\\n\' "$ID" "${LOCATION,,}" resource',
     '  done < "$LIST" > "$KNOWN"',
     "  REGIONS=$(cut -f2 \"$KNOWN\" | grep -v '^global$' | sort -u)",
     "  FIRST=$(printf '%s\\n' $REGIONS | head -1)",
@@ -469,9 +641,9 @@ export function getAzureCloudStreamCommand(data: {
     ...tryLines,
     "    printf 'skipped\\t%s\\t%s\\n' \"$1\" \"$(printf '%s' \"$ERROR\" | grep -v '^$' | head -1)\"",
     "  }",
-    "  while IFS=$'\\t' read -r ID REGION; do",
+    "  while IFS=$'\\t' read -r ID REGION SCOPE; do",
     '    if [ "$REGION" = global ]; then REGION=$FIRST; fi',
-    '    oneuptime_stream_resource "$ID" "$REGION" >> "$RESULTS" &',
+    '    oneuptime_stream_resource "$ID" "$REGION" "$SCOPE" >> "$RESULTS" &',
     "    N=$((N + 1))",
     "    if [ $((N % " +
       AZURE_CLOUD_STREAM_PARALLEL +
@@ -487,6 +659,7 @@ export function getAzureCloudStreamCommand(data: {
       AZURE_CLOUD_STREAM_SKIPPED_SHOWN +
       " | cut -f2-",
     "  fi",
+    ...activityLogLines,
     "  " + cleanUp,
     "  echo " + quoteForShell(AZURE_CLOUD_STREAM_COMMAND_DONE),
     "}",
@@ -495,11 +668,70 @@ export function getAzureCloudStreamCommand(data: {
   ].join("\n");
 }
 
+// The tenant's diagnostic setting of this name, relative to Resource Manager's endpoint.
+function getEntraIdSettingPath(diagnosticSetting: string): string {
+  return `${AZURE_ENTRA_ID_DIAGNOSTIC_SETTINGS_PATH}/${diagnosticSetting}?api-version=${AZURE_ENTRA_ID_DIAGNOSTIC_SETTINGS_API_VERSION}`;
+}
+
 /*
- * Stopping for good: each resource's diagnostic setting deleted, then the
- * resource group - every event hub in it, and the app's role on it - in
- * whichever of the subscriptions holds it: the one the event hubs were
- * made in need not be the first listed now. What was streamed stays in
+ * Microsoft Entra ID's logs into the stream (#10111): the tenant's own
+ * diagnostic setting (microsoft.aadiam/diagnosticSettings), sending the
+ * categories Security Events reads to the first region's event hub - the
+ * first of the group's namespaces by name, the one the stream's command
+ * sends the Activity Log to. Only a Security Administrator of the tenant
+ * may make it, and they need the event hubs' key too, so it is a command
+ * of its own, for whoever is one, run once the event hubs are there. `az
+ * rest` takes the path relative to the shell's own Azure cloud.
+ */
+export function getAzureCloudStreamEntraCommand(data: {
+  connectionId: string;
+  // The subscription the event hubs are in.
+  hostSubscriptionId: string;
+}): string {
+  const names: AzureCloudStreamNames = getAzureCloudStreamNames(
+    data.connectionId,
+  );
+  const host: string = readSubscriptions([data.hostSubscriptionId])[0] || "";
+
+  return [
+    "oneuptime_stream_entra() {",
+    "  local HOST=" + quoteForShell(host),
+    "  local GROUP=" + names.resourceGroup,
+    "  local PREFIX=" + names.namespacePrefix,
+    "  local HUB=" + names.eventHub,
+    "  local SETTING=" + names.diagnosticSetting,
+    "  local LOGS=" + quoteForShell(AZURE_DIAGNOSTIC_ENTRA_ID_LOGS),
+    "  local NAMESPACE BODY ERROR",
+    "  oneuptime_stream_refused() {",
+    ...refusedLines({
+      takes: `Only a ${AZURE_ENTRA_ID_SETTINGS_ROLE} of the tenant may: run this as one.`,
+    }),
+    "  }",
+    // The first region's namespace, as the stream's command names it.
+    '  NAMESPACE=$(az eventhubs namespace list --subscription "$HOST" --resource-group "$GROUP" --query "sort_by([?starts_with(name, \'$PREFIX\')], &name)[0].name" --output tsv 2> /dev/null)',
+    '  if [ -z "$NAMESPACE" ]; then echo "The stream\'s event hubs are not in $GROUP yet: run the stream\'s command first."; return 1; fi',
+    '  BODY="{\\"properties\\":{\\"eventHubAuthorizationRuleId\\":\\"/subscriptions/$HOST/resourceGroups/$GROUP/providers/Microsoft.EventHub/namespaces/$NAMESPACE/authorizationRules/' +
+      AZURE_EVENT_HUBS_SEND_RULE +
+      '\\",\\"eventHubName\\":\\"$HUB\\",\\"logs\\":$LOGS}}"',
+    '  ERROR=$(az rest --method put --url "' +
+      getEntraIdSettingPath("$SETTING") +
+      '" --body "$BODY" --output none 2>&1) && { echo "Microsoft Entra ID\'s logs send to the $NAMESPACE event hub."; return 0; }',
+    '  oneuptime_stream_refused "Microsoft Entra ID\'s logs are left out" "$ERROR"',
+    "  return 1",
+    "}",
+    "oneuptime_stream_entra || echo " +
+      quoteForShell(AZURE_CLOUD_STREAM_COMMAND_STOPPED),
+  ].join("\n");
+}
+
+/*
+ * Stopping for good: each resource's diagnostic setting deleted - a
+ * storage account's services' too - and each subscription's Activity Log
+ * setting, then the resource group - every event hub in it, and the app's
+ * role on it - in whichever of the subscriptions holds it: the one the
+ * event hubs were made in need not be the first listed now. Microsoft
+ * Entra ID's setting, when the tenant has one of this name, is deleted
+ * too - or, for whoever may not, said who may. What was streamed stays in
  * OneUptime.
  */
 export function getAzureCloudStreamDeleteCommand(data: {
@@ -509,33 +741,42 @@ export function getAzureCloudStreamDeleteCommand(data: {
   const names: AzureCloudStreamNames = getAzureCloudStreamNames(
     data.connectionId,
   );
-  const subscriptions: Array<string> = data.subscriptionIds
-    .map((subscriptionId: string): string => {
-      return subscriptionId.trim().toLowerCase();
-    })
-    .filter(
-      (subscriptionId: string, index: number, all: Array<string>): boolean => {
-        return (
-          ObjectID.isValidUUID(subscriptionId) &&
-          all.indexOf(subscriptionId) === index
-        );
-      },
-    )
-    .slice(0, AZURE_CLOUD_STREAM_MAX_SUBSCRIPTIONS);
+  const subscriptions: string = readSubscriptions(data.subscriptionIds)
+    .map(quoteForShell)
+    .join(" ");
+  const entraSetting: string = getEntraIdSettingPath(names.diagnosticSetting);
+  const deleteSetting: (target: string) => Array<string> = (
+    target: string,
+  ): Array<string> => {
+    return [
+      `      az monitor diagnostic-settings delete --name ${names.diagnosticSetting} --resource "${target}" --output none 2> /dev/null &`,
+      "      N=$((N + 1))",
+      `      if [ $((N % ${AZURE_CLOUD_STREAM_PARALLEL})) -eq 0 ]; then wait; fi`,
+    ];
+  };
 
   return [
     "oneuptime_stream_stop() {",
-    "  local SUB ID N=0",
-    `  for SUB in ${subscriptions.map(quoteForShell).join(" ")}; do`,
-    "    while IFS= read -r ID; do",
+    "  local SUB ID TYPE SERVICE N=0",
+    `  for SUB in ${subscriptions}; do`,
+    "    while IFS=$'\\t' read -r ID TYPE; do",
     '      if [ -z "$ID" ]; then continue; fi',
-    `      az monitor diagnostic-settings delete --name ${names.diagnosticSetting} --resource "$ID" --output none 2> /dev/null &`,
-    "      N=$((N + 1))",
-    `      if [ $((N % ${AZURE_CLOUD_STREAM_PARALLEL})) -eq 0 ]; then wait; fi`,
-    '    done < <(az resource list --subscription "$SUB" --query "[].id" --output tsv)',
+    ...deleteSetting("$ID"),
+    `      if [ "\${TYPE,,}" = ${AZURE_STORAGE_ACCOUNT_TYPE} ]; then`,
+    `        for SERVICE in ${AZURE_STORAGE_SERVICES.join(" ")}; do`,
+    ...deleteSetting("$ID/$SERVICE/default").map((line: string): string => {
+      return `    ${line}`;
+    }),
+    "        done",
+    "      fi",
+    '    done < <(az resource list --subscription "$SUB" --query "[].[id, type]" --output tsv)',
+    `    az monitor diagnostic-settings subscription delete --subscription "$SUB" --name ${names.diagnosticSetting} --yes --output none 2> /dev/null`,
     "  done",
     "  wait",
-    `  for SUB in ${subscriptions.map(quoteForShell).join(" ")}; do`,
+    `  if az rest --method get --url "${entraSetting}" --output none 2> /dev/null; then`,
+    `    az rest --method delete --url "${entraSetting}" --output none 2> /dev/null && echo "Deleted Microsoft Entra ID's diagnostic setting ${names.diagnosticSetting}." || echo "Microsoft Entra ID's diagnostic setting ${names.diagnosticSetting} is left: a ${AZURE_ENTRA_ID_SETTINGS_ROLE} of the tenant deletes it, under Diagnostic settings in the Microsoft Entra admin center."`,
+    "  fi",
+    `  for SUB in ${subscriptions}; do`,
     `    if [ "$(az group exists --subscription "$SUB" --name ${names.resourceGroup} 2> /dev/null)" = true ]; then`,
     `      az group delete --subscription "$SUB" --name ${names.resourceGroup} --yes --no-wait && echo "Deleting ${names.resourceGroup} in $SUB."`,
     "    fi",

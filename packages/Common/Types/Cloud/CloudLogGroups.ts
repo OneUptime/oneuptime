@@ -427,10 +427,11 @@ export const AWS_LOG_GROUP_RESOURCE_TYPES: ReadonlySet<string> =
  * Azure: the types of the catalog with no resource logs of their own, so
  * their pages have no Logs tab. A virtual machine's logs need an agent in
  * it; disks, network interfaces, private endpoints, NAT gateways, DNS zones
- * and App Service plans send metrics only; a storage account's logs are its
- * blob, queue, table and file services', a container app's its
+ * and App Service plans send metrics only; a container app's are its
  * environment's. Every other type of the catalog the stream's diagnostic
- * settings send the logs of, filed under its ARM id.
+ * settings send the logs of, filed under its ARM id - a storage account's
+ * from its blob, file, queue and table services, filed under the account
+ * (#10110).
  */
 export const AZURE_TYPES_WITHOUT_RESOURCE_LOGS: ReadonlySet<string> =
   new Set<string>([
@@ -443,7 +444,6 @@ export const AZURE_TYPES_WITHOUT_RESOURCE_LOGS: ReadonlySet<string> =
     "microsoft.network/natgateways",
     "microsoft.network/dnszones",
     "microsoft.web/serverfarms",
-    "microsoft.storage/storageaccounts",
     "microsoft.app/containerapps",
   ]);
 

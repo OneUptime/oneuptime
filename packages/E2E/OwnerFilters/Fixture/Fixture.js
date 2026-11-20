@@ -91,6 +91,11 @@ import Page from "Common/UI/Components/Page/Page";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 import { getUsedByRelations } from "Common/Types/UsedBy/UsedBy";
+import {
+  SharedNameKind,
+  getSharedNamesRoute,
+} from "Common/Types/Database/SharedNames";
+import { getNameKey } from "Common/Types/Database/UniqueName";
 
 const PROJECT_ID = "10000000-0000-4000-8000-0000000000f1";
 
@@ -380,6 +385,28 @@ function usedBy(url) {
   };
 }
 
+/*
+ * Which schedules share a name (#9746): GET /shared-names/on-call-schedule,
+ * which the list asks with every read of its rows, to mark them. Answered
+ * as the server finds them (UniqueNameInProject.findRecordsSharingName): the
+ * project's schedules grouped by their names as they read, in lower case,
+ * each group of two or more. None here: every schedule has its own name.
+ */
+function sharedScheduleNames() {
+  const byName = new Map();
+
+  for (const item of TABLES.OnCallDutyPolicySchedule) {
+    const key = getNameKey(item.name);
+    byName.set(key, [...(byName.get(key) || []), idOf(item._id)]);
+  }
+
+  return {
+    groups: [...byName.values()].filter((ids) => {
+      return ids.length > 1;
+    }),
+  };
+}
+
 function tableName(modelType) {
   try {
     return String(new modelType().tableName);
@@ -621,6 +648,11 @@ API.get = async (options) => {
   // The project's products, as the server answers a project with all on.
   if (url.includes("/project-products")) {
     return new HTTPResponse(200, {}, {});
+  }
+
+  // Which schedules share a name: the list marks them.
+  if (url.endsWith(getSharedNamesRoute(SharedNameKind.OnCallSchedule))) {
+    return new HTTPResponse(200, sharedScheduleNames(), {});
   }
 
   window.__fixture.unhandled.push({ kind: "api", url: url });

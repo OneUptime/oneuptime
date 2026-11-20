@@ -193,6 +193,7 @@ Elke soort bereikt OneUptime als gewone logs:
 | AWS CloudTrail | Een trail die aan CloudWatch Logs wordt geleverd, gelezen door de `awscloudwatch`-receiver van de collector, of, voor een account dat onder **Cloud** is gekoppeld, [Cloud-auditlogboeken](#de-auditlogs-van-uw-cloudaccounts-lezen) |
 | Google Cloud-auditlogs | Een log-sink naar Pub/Sub, gelezen door de `googlecloudpubsub`-receiver van de collector met `encoding: raw_text`, of, voor een project dat onder **Cloud** is gekoppeld, de [stream](/docs/telemetry/cloud-streaming-google-cloud) ervan of [Cloud-auditlogboeken](#de-auditlogs-van-uw-cloudaccounts-lezen) |
 | Azure-activiteitslogs en Entra ID-logs | Een diagnostische instelling die naar een Event Hub streamt, gelezen door de `azureeventhub`-receiver van de collector met `format: raw`, of naar de Event Hub van de [stream](/docs/telemetry/cloud-streaming-azure) van een gekoppeld abonnement, of, voor het activiteitenlogboek van een abonnement dat onder **Cloud** is gekoppeld, [Cloud-auditlogboeken](#de-auditlogs-van-uw-cloudaccounts-lezen) |
+| Azure Key Vault-, Storage- en SQL-logboeken | De diagnostische instelling van een resource die naar een Event Hub streamt, gelezen door de `azureeventhub`-receiver van de collector met `format: raw`, of de diagnostische instellingen van de [stream](/docs/telemetry/cloud-streaming-azure) van een gekoppeld abonnement, met logs. Zie [Eigen auditlogs van Azure-resources](#eigen-auditlogs-van-azure-resources) |
 | OpenStack-audittrail | De notificaties en het auditfilter van een cloud, met `driver = log` naar de logs gestuurd en gelezen door het [logprofiel](/docs/telemetry/openstack#wie-deed-wat) van de agent |
 | CEF, LEEF | De syslog van het product, doorgestuurd door [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | De eigen syslog van de firewall, doorgestuurd door [rsyslog](/docs/telemetry/syslog) |
@@ -204,6 +205,18 @@ Op **Uw logboeken** zegt elke soort wanneer ze voor het laatst is gevonden, en *
 Een bedreiging die een beveiligingsproduct in uw logs schrijft, zoals een CEF- of LEEF-bevinding of een bedreiging van Palo Alto Networks, FortiGate of Cisco ASA, opent een [zaak](/docs/telemetry/security-cases) zoals de waarschuwing van een gekoppeld product dat doet, en verhoogt het risico van de gebruiker, de host of het adres dat ze noemt. **Cases openen vanaf**, op **Uw logboeken**, bepaalt vanaf welke ernst: **Hoog en hoger**, tenzij u een andere kiest, of **Nooit**. De aanmeldingen en geblokkeerde verbindingen van het product blijven gebeurtenissen, die uw regels lezen.
 
 Een record dat OneUptime langs twee wegen bereikt, wordt één keer opgeslagen: een aanmelding bij Microsoft Entra ID die de verbinding leest en die Azure ook naar uw logs exporteert, een CloudTrail-record in uw logs en in het auditlog van een gekoppeld AWS-account, of een auditrecord dat de stream van een cloudaccount stuurt en dat **Cloud-auditlogboeken** ook leest.
+
+#### Eigen auditlogs van Azure-resources
+
+Een Key Vault, een opslagaccount en een Azure SQL-database houden elk een eigen auditlog bij, dat elk verzoek vastlegt. Alleen wat een beveiligingsteam bekijkt, wordt een beveiligingsgebeurtenis:
+
+| Resource | Wat een beveiligingsgebeurtenis wordt |
+| --- | --- |
+| Key Vault (`AuditEvent`) | Een verzoek dat de vault weigerde; een geheim dat werd uitgegeven; een geheim, sleutel of certificaat of de vault zelf die werd verwijderd, permanent verwijderd of geback-upt; een gewijzigd toegangsbeleid; en een wijziging in wat de vault bevat. Niet de 401 die elke Azure SDK-client bij zijn eerste aanroep krijgt, gedaan zonder token om de tenant te achterhalen: Key Vault logt die onder zijn bewerking `Authentication` |
+| Opslagaccount (`StorageRead`, `StorageWrite`, `StorageDelete`) | Een verzoek dat werd geweigerd bij gebrek aan een recht; een verzoek dat zonder enige referentie werd bediend, behalve de pagina's van een statische website en een CORS-preflight; een gewijzigde toegangslijst van een container, bestandsshare, wachtrij of tabel, of een ervan die in zijn geheel werd verwijderd; en een schrijf- of verwijderactie die met een Shared Access Signature (SAS) is ondertekend. Niet een geslaagde leesactie, ook niet een met een SAS |
+| Azure SQL (`SQLSecurityAuditEvents`) | Een mislukte aanmelding; een aanmelding op een nieuwe verbinding, niet het hergebruik van een verbinding uit een pool; een toegekende, geweigerde of ingetrokken machtiging, een gewijzigd rollidmaatschap of wachtwoord, een imitatie, en een aangemaakte, gewijzigde of verwijderde login, gebruiker of rol; en een actie waarvan de machtigingscontrole mislukte. Niet een batch, het grootste deel van een audit |
+
+De geslaagde leesacties van een opslagaccount zijn het grootste deel van wat het logt: met een SAS geven de meeste apps bestanden aan browsers. Ze blijven in Logboeken, in hun geheel, op het tabblad **Logboeken** van het account: zoek daar naar `"type":"SAS"` om te zien wat een Shared Access Signature heeft gelezen. Elke gebeurtenis noemt haar resource bij de ID, die van een opslagservice ook het account, zodat ze op de pagina **Beveiligingsgebeurtenissen** van die resource staat, en een record dat twee keer binnenkomt, wordt één keer opgeslagen.
 
 ### De auditlogs van uw cloudaccounts lezen
 

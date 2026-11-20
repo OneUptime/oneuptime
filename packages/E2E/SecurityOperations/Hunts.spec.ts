@@ -9,6 +9,7 @@ import fs from "fs/promises";
 import path from "path";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { expectDrawnWhole } from "../SuiteHelpers/Popups";
 
 /*
  * Hunts on the Security Operations fixture's synthetic month
@@ -261,15 +262,20 @@ function huntsMenu(page: Page): Locator {
   return page.getByTestId("security-events-hunts-menu");
 }
 
-// The panel names itself in the page's language: "Hunts", "شکارها".
+/*
+ * The panel names itself in the page's language: "Hunts", "شکارها". It is
+ * drawn on the page's body, the tooltip layer, not inside the toolbar the
+ * list's button is in (#9859).
+ */
 async function openHuntsMenu(
   page: Page,
   panelName: string = "Hunts",
 ): Promise<Locator> {
-  await huntsMenu(page).getByRole("button").first().click();
-  const panel: Locator = huntsMenu(page).getByRole("dialog", {
-    name: panelName,
-  });
+  const trigger: Locator = huntsMenu(page).getByRole("button").first();
+
+  await trigger.click();
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+  const panel: Locator = page.getByRole("dialog", { name: panelName });
   await expect(panel).toBeVisible();
   return panel;
 }
@@ -443,29 +449,9 @@ test.describe("the Events toolbar's Hunts list", () => {
         page,
         lang === "fa" ? "شکارها" : "Hunts",
       );
-      const fits: { left: number; right: number; width: number } =
-        await panel.evaluate(
-          (
-            element: Element,
-          ): { left: number; right: number; width: number } => {
-            const box: DOMRect = element.getBoundingClientRect();
 
-            return {
-              left: box.left,
-              right: box.right,
-              width: document.documentElement.clientWidth,
-            };
-          },
-        );
-
-      expect(
-        fits.left,
-        `the panel's start (${lang || "en"})`,
-      ).toBeGreaterThanOrEqual(0);
-      expect(
-        fits.right,
-        `the panel's end (${lang || "en"})`,
-      ).toBeLessThanOrEqual(fits.width);
+      // Whole, on the page's body, its start and end inside the window.
+      await expectDrawnWhole(panel, `the Hunts list (${lang || "en"})`);
 
       // The schedule under the name, not beside it.
       const row: Locator = panel.getByRole("button", {

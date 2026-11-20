@@ -40,6 +40,9 @@ loads; the spec pins the browser clock.
   moves to In progress and then Success on the next reads of the feed; an edit that asks for
   an update notification queues one; a retry queues the notification again.
 - **Draft with AI** answers `POST /<event>/generate-note-from-ai/:id` with a fixed draft.
+- **Where a public note shows** (`POST /<event>/public-note-reach`): #1042, #58 and #12 are each
+  on a status page that notifies its subscribers, so the composer says the note is visible on
+  the status page and that subscribers will be notified.
 
 ## Scenarios
 

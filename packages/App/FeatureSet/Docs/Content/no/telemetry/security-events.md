@@ -193,6 +193,7 @@ Hver type når OneUptime som vanlige logger:
 | AWS CloudTrail | Et trail levert til CloudWatch Logs, lest av collectorens `awscloudwatch`-receiver, eller, for en konto som er koblet til under **Sky**, [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
 | Google Cloud-revisjonslogger | En logg-sink til Pub/Sub, lest av collectorens `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, for et prosjekt som er koblet til under **Sky**, prosjektets [strøm](/docs/telemetry/cloud-streaming-google-cloud) eller [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
 | Azure-aktivitetslogger og Entra ID-logger | En diagnostikkinnstilling som strømmer til en Event Hub, lest av collectorens `azureeventhub`-receiver med `format: raw`, eller til hendelseshuben i [strømmen](/docs/telemetry/cloud-streaming-azure) til et tilkoblet abonnement, eller, for aktivitetsloggen til et abonnement som er koblet til under **Sky**, [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
+| Azure Key Vault-, Storage- og SQL-logger | Diagnoseinnstillingen til en ressurs, som strømmer til en Event Hub, lest av collectorens `azureeventhub`-receiver med `format: raw`, eller diagnoseinnstillingene i [strømmen](/docs/telemetry/cloud-streaming-azure) til et tilkoblet abonnement, med logger. Se [Azure-ressursenes egne revisjonslogger](#azure-ressursenes-egne-revisjonslogger) |
 | OpenStack-revisjonsspor | Notifikasjonene og revisjonsfilteret til en sky, sendt til loggene med `driver = log` og lest av agentens [loggprofil](/docs/telemetry/openstack#hvem-gjorde-hva) |
 | CEF, LEEF | Produktets syslog, videresendt av [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Brannmurens egen syslog, videresendt av [rsyslog](/docs/telemetry/syslog) |
@@ -204,6 +205,18 @@ På **Loggene dine** viser hver type når den sist ble funnet, og **Sjekk en log
 En trussel som et sikkerhetsprodukt skriver i loggene dine, for eksempel et CEF- eller LEEF-funn eller en trussel fra Palo Alto Networks, FortiGate eller Cisco ASA, åpner en [sak](/docs/telemetry/security-cases) slik et tilkoblet produkts varsel gjør, og øker risikoen for brukeren, verten eller adressen den nevner. **Åpne saker fra** på **Loggene dine** angir fra hvilken alvorlighetsgrad: **Høy og høyere** med mindre du velger en annen, eller **Aldri**. Produktets pålogginger og blokkerte tilkoblinger forblir hendelser som reglene dine kan lese.
 
 En oppføring som når OneUptime på to måter, lagres én gang: en Microsoft Entra ID-pålogging som tilkoblingen leser, og som Azure også eksporterer til loggene dine, en CloudTrail-oppføring i loggene dine og i revisjonsloggen til en tilkoblet AWS-konto, eller en revisjonsoppføring som strømmen til en skykonto sender, og som **Skyrevisjonslogger** også leser.
+
+#### Azure-ressursenes egne revisjonslogger
+
+Et Key Vault, en lagringskonto og en Azure SQL-database fører hver sin egen revisjonslogg, som registrerer hver forespørsel. Bare det et sikkerhetsteam ser på, blir en sikkerhetshendelse:
+
+| Ressurs | Hva som blir en sikkerhetshendelse |
+| --- | --- |
+| Key Vault (`AuditEvent`) | En forespørsel hvelvet avviste; en hemmelighet som ble utlevert; en hemmelighet, en nøkkel, et sertifikat eller selve hvelvet som ble slettet, permanent fjernet eller sikkerhetskopiert; en endret tilgangspolicy; og en endring i det hvelvet inneholder. Ikke 401-svaret som hver Azure SDK-klient får ved sitt første kall, gjort uten token for å finne leieren: Key Vault logger det under operasjonen `Authentication` |
+| Lagringskonto (`StorageRead`, `StorageWrite`, `StorageDelete`) | En forespørsel som ble avvist fordi en rettighet manglet; en som ble besvart helt uten legitimasjon, unntatt sidene til et statisk nettsted og en CORS-preflight; en endret tilgangsliste for en container, en filressurs, en kø eller en tabell, eller en av dem slettet i sin helhet; og en skriving eller sletting som en signatur for delt tilgang (SAS) signerte. Ikke en lesing som lyktes, heller ikke en med SAS |
+| Azure SQL (`SQLSecurityAuditEvents`) | En mislykket pålogging; en pålogging på en ny tilkobling, ikke gjenbruk av en tilkobling fra en tilkoblingspool; en tillatelse som ble gitt, nektet eller tilbakekalt, et rollemedlem eller et passord som ble endret, en etterligning, og en påloggingskonto, en bruker eller en rolle som ble opprettet, endret eller fjernet; og en handling der tillatelseskontrollen mislyktes. Ikke en batch, hoveddelen av en revisjon |
+
+En lagringskontos vellykkede lesinger er det meste av det den logger: en SAS er måten de fleste apper gir filer til nettlesere på. De blir værende i Logger, hele, på kontoens fane **Logger**: søk der etter `"type":"SAS"` for å se hva en signatur for delt tilgang leste. Hver hendelse nevner ressursen sin ved ID-en, og hendelsen til en lagringstjeneste nevner også kontoen, så den vises på siden **Sikkerhetshendelser** til den ressursen, og en oppføring som kommer to ganger, lagres én gang.
 
 ### Les revisjonsloggene til skykontoene dine
 

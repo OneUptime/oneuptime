@@ -863,7 +863,7 @@ describe("a sign-out message on the HTTP-Redirect binding", () => {
       xml: logoutResponseXml(),
       relayState: "a/b",
       privateKey: idpKeys.privateKey,
-    }).replace("%2F", "%2f");
+    }).replace(/%2F/g, "%2f");
 
     const message: ReceivedSamlLogoutMessage = SamlSingleLogout.readMessage(
       getRequest(query),

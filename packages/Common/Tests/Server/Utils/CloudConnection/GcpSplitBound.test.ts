@@ -52,6 +52,7 @@ import {
   getReadsPerMonth,
 } from "../../../../Types/CloudConnection/CloudConnectionCost";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import {
   FakeProviderApi,
   FakeResponse,
@@ -1209,11 +1210,8 @@ describe("the calls a split is read in", () => {
   });
 
   test("however the values fall, no call asks for more than the cap's values, and every resource is read in one call", () => {
-    let seed: number = 7;
-    const random: () => number = (): number => {
-      seed = (seed * 48271) % 2147483647;
-      return seed / 2147483647;
-    };
+    // Seeded, so a failure can be replayed.
+    const random: SeededRandom = seededRandom(7);
 
     for (let round: number = 0; round < 200; round++) {
       const capped: Array<{
@@ -1221,7 +1219,7 @@ describe("the calls a split is read in", () => {
         values: Array<string>;
       }> = [];
       const others: Array<Record<string, string>> = [];
-      const resources: number = 1 + Math.floor(random() * 30);
+      const resources: number = 1 + random(30);
 
       for (let index: number = 0; index < resources; index++) {
         const labels: Record<string, string> = vmLabels(String(1000 + index));
@@ -1230,7 +1228,7 @@ describe("the calls a split is read in", () => {
           const values: Set<string> = new Set<string>();
 
           while (values.size < CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES) {
-            values.add(`cmd-${Math.floor(random() * 25)}`);
+            values.add(`cmd-${random(25)}`);
           }
 
           capped.push({ resource: labels, values: Array.from(values) });

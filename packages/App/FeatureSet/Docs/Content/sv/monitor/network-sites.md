@@ -42,6 +42,8 @@ Platser bildar ett träd. Varje plats har en **Platstyp** och eventuellt en öve
 
 En plats typ, namn, beskrivning, förälder och läge redigeras på ett ställe: kortet **Site Settings** på platsens sida **Inställningar**. Platsens översikt visar dem med en länk **Redigera i Inställningar**, och listan **Platser** lägger till platser men redigerar dem inte.
 
+Platser som inte innehåller något försvinner i ett steg: **Ta bort tomma platser** i menyn överst i listan **Platser** visar varje plats utan enheter (även arkiverade), utan platser under sig och utan slutpunkt, länk, regel eller underhållshändelse som använder den. Den nämner de tio första och tar bort, när du bekräftar, exakt de visade platserna: En plats som under tiden får en enhet behålls. Den är för alla som får ta bort platser.
+
 Varje enhet kopplas till en plats. En plats underträd är platsen själv plus varje plats under den, och underträdets enheter är det som dess hälsa sammanfattas från, så en region utan egna enheter har ändå en status, eftersom enheterna under den har det.
 
 > [!NOTE]

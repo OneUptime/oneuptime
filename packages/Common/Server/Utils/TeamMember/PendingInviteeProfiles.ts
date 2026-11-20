@@ -7,6 +7,10 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import User from "../../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
+import {
+  ACCOUNT_DATE_COLUMNS,
+  USER_TABLE_NAME,
+} from "../../../Types/Database/AccessControl/AccountDateColumns";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import QueryOperator from "../../../Types/BaseDatabase/QueryOperator";
@@ -19,6 +23,7 @@ import Text from "../../../Types/Text";
 import UserType from "../../../Types/UserType";
 import {
   DataSource,
+  EntityManager,
   FindOperator,
   ObjectLiteral,
   OrderByCondition,
@@ -105,8 +110,12 @@ import { Alias } from "typeorm/query-builder/Alias";
  * ---------------------------------------------------------------------------
  */
 
-// The table every person's account is in.
-export const USER_TABLE_NAME: string = "User";
+/*
+ * The table every person's account is in, and their account dates, which
+ * the API's spec leaves out of a sort through a relation too
+ * (Types/Database/AccessControl/AccountDateColumns).
+ */
+export { ACCOUNT_DATE_COLUMNS, USER_TABLE_NAME };
 
 /*
  * What a project sees of a person only once they have joined it: their
@@ -129,17 +138,6 @@ export const ADDRESS_COLUMN: string = "email";
 export const COLUMNS_ORDERED_AS_SHOWN: ReadonlyArray<string> = [
   ...PROFILE_COLUMNS_SHOWN_ONCE_JOINED,
   ADDRESS_COLUMN,
-];
-
-/*
- * A person's account dates: when it was made, last changed (which moves
- * with their activity), deleted, and how often it was written. Their own.
- */
-export const ACCOUNT_DATE_COLUMNS: ReadonlyArray<string> = [
-  "createdAt",
-  "updatedAt",
-  "deletedAt",
-  "version",
 ];
 
 // What a refused filter or order through a relation by account dates says.
@@ -326,11 +324,13 @@ export default class PendingInviteeProfiles {
   /*
    * The same, for one project as the reader: who of `userIds` is only
    * invited to it, with the name typed for them - what an entry of its
-   * audit log names such a person by.
+   * audit log names such a person by. Read with `manager` - the
+   * transaction the caller is in - or, with none, on its own.
    */
   public static async readWithheldProfilesInProject(data: {
     userIds: Array<string>;
     projectId: ObjectID;
+    manager?: EntityManager | undefined;
   }): Promise<Map<string, WithheldProfile>> {
     const projectId: string = data.projectId.toString().toLowerCase();
 
@@ -342,6 +342,7 @@ export default class PendingInviteeProfiles {
       userIds: data.userIds,
       reader: { projectId: projectId },
       preferredProjectId: projectId,
+      manager: data.manager,
     });
   }
 
@@ -490,6 +491,7 @@ export default class PendingInviteeProfiles {
     userIds: Array<string>;
     reader: ProfileReader;
     preferredProjectId: string | null;
+    manager?: EntityManager | undefined;
   }): Promise<Map<string, WithheldProfile>> {
     const withheld: Map<string, WithheldProfile> = new Map<
       string,
@@ -519,6 +521,7 @@ export default class PendingInviteeProfiles {
       await PendingInviteeProfiles.readPendingMemberships({
         userIds: userIds,
         reader: data.reader,
+        manager: data.manager,
       });
 
     const tenantId: string | null = data.preferredProjectId;
@@ -582,14 +585,24 @@ export default class PendingInviteeProfiles {
    * One query. The read this follows went to the same database, so a
    * database that cannot be asked means no read happened - outside a test,
    * which reads without one, and is answered with nobody.
+   *
+   * With `manager`, the query is the caller's transaction's, on its
+   * connection. A caller holding a lock in a transaction must pass it: a
+   * read of its own waits for another of the pool's connections, and when
+   * every one is held by a write queued behind that lock - twelve overrides
+   * added at once in one project - none is ever free
+   * (UserOverrideOverlapPostgres).
    */
   public static async readPendingMemberships(data: {
     userIds: Array<string>;
     reader: ProfileReader;
+    manager?: EntityManager | undefined;
   }): Promise<Array<PendingMembershipRow>> {
-    const dataSource: DataSource | null = PostgresAppInstance.isConnected()
-      ? PostgresAppInstance.getDataSource()
-      : null;
+    let dataSource: DataSource | EntityManager | null = data.manager || null;
+
+    if (!dataSource && PostgresAppInstance.isConnected()) {
+      dataSource = PostgresAppInstance.getDataSource();
+    }
 
     if (!dataSource) {
       return [];

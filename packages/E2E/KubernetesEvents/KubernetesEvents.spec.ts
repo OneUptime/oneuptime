@@ -1700,10 +1700,15 @@ test.describe("being told when Kubernetes warns", () => {
       line.getByTestId("kubernetes-warning-alerts-turn-on"),
     ).toHaveCount(0);
 
-    // The Recommendations count it as created: 1 of 22, under Already created.
+    /*
+     * The Recommendations count it as created, under Already created: 1 of
+     * the 26 a cluster is offered - its 25 metric templates (PVC Almost
+     * Full, #9649, and the three cost alerts, #9641, among them) and the
+     * Warning Events one.
+     */
     await page.goto(`${RECOMMENDATIONS_PAGE}?alerting=on`);
     await expect(
-      page.getByText("1 of 22 recommended monitors created"),
+      page.getByText("1 of 26 recommended monitors created"),
     ).toBeVisible();
     await page
       .getByRole("button", {

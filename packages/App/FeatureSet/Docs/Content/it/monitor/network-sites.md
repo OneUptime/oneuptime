@@ -42,6 +42,8 @@ I siti formano un albero. Ogni sito ha un **Tipo di sito** e, facoltativamente, 
 
 Il tipo, il nome, la descrizione, il padre e la posizione di un sito si modificano in un unico punto: la scheda **Site Settings** nella pagina **Impostazioni** del sito. La panoramica del sito li mostra con un link **Modifica nelle impostazioni**, e l'elenco **Siti** aggiunge siti ma non li modifica.
 
+I siti che non contengono nulla se ne vanno in un passo: **Elimina siti vuoti**, nel menu in cima all'elenco **Siti**, elenca ogni sito senza dispositivi (anche archiviati), senza siti al suo interno e senza endpoint, collegamento, regola o evento di manutenzione che lo usi. Nomina i primi dieci e, quando confermi, elimina esattamente i siti elencati: un sito che nel frattempo riceve un dispositivo viene mantenuto. È per chi può eliminare i siti.
+
 Ogni dispositivo è collegato a un sito. Il sottoalbero di un sito è il sito stesso più ogni sito sotto di esso, e i dispositivi del sottoalbero sono ciò da cui si riepiloga la sua salute, quindi una regione senza dispositivi propri ha comunque uno stato, perché ce l'hanno le unità sotto di essa.
 
 > [!NOTE]

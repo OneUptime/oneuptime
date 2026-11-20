@@ -755,21 +755,23 @@ describe("Docker Swarm overview page", () => {
    * The agent's files changed on the same collector (0.161.3: every
    * snapshot read again, the swarm's state as metrics), and an agent on the
    * older files reports their version, behind the files this release ships.
+   * Then the files moved to collector 0.165.0 (#9828) and their version
+   * started again at it, so the last files of the 0.161 line are behind too.
    */
-  test("an agent on the same collector with older files gets the sign", async () => {
-    expect(DOCKER_SWARM_AGENT_COLLECTOR_VERSION).toBe("0.161.0");
+  test("an agent on older files gets the sign", async () => {
+    expect(DOCKER_SWARM_AGENT_COLLECTOR_VERSION).toBe("0.165.0");
     getItemMock.mockImplementation(async () => {
       const model: DockerSwarmCluster = cluster();
-      model.agentVersion = "0.161.2";
+      model.agentVersion = "0.161.4";
       return model;
     });
     await renderOverview();
 
     expect(
       screen.getByRole("button", {
-        name: `Agent 0.161.2 is outdated. A newer agent is available: ${DOCKER_SWARM_AGENT_VERSION}. Show how to upgrade.`,
+        name: `Agent 0.161.4 is outdated. A newer agent is available: ${DOCKER_SWARM_AGENT_VERSION}. Show how to upgrade.`,
       }),
-    ).toHaveTextContent("Agent 0.161.2");
+    ).toHaveTextContent("Agent 0.161.4");
     expect(screen.queryByTestId("agent-version-chip")).not.toBeInTheDocument();
   });
 

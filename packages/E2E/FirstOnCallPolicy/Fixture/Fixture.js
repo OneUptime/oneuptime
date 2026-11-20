@@ -12,7 +12,8 @@
  * and no on-call rule - a project made a minute ago.
  *
  * Steered by the query string:
- *   - policies=one    the project has a policy already ("Platform on-call")
+ *   - policies=one    the project has a policy already ("Platform on-call"),
+ *                     which pages the Platform team first, then Grace Hopper
  *   - rules=incident  no policy yet, but an incident on-call rule
  *   - counts=fail     the project's counts fail, as an API outage would
  *   - counts=hold     the counts wait for window.__fixture.releaseCounts()
@@ -50,6 +51,10 @@ import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule"
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyCustomField from "Common/Models/DatabaseModels/OnCallDutyPolicyCustomField";
+import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
+import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
+import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import OnCallDutyPolicyOwnerTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerTeam";
 import OnCallDutyPolicyOwnerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerUser";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
@@ -60,6 +65,7 @@ import User from "Common/Models/DatabaseModels/User";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
@@ -173,19 +179,71 @@ function person(id, name, email) {
 const ada = person(ADA_ID, "Ada Lovelace", "ada@acme.example");
 const grace = person(GRACE_ID, "Grace Hopper", "grace@acme.example");
 
-const policies =
-  params.get("policies") === "one"
-    ? [
-        record(OnCallDutyPolicy, {
-          _id: "20000000-0000-4000-8000-0000000000f1",
-          projectId: new ObjectID(PROJECT_ID),
-          name: "Platform on-call",
-          description: "Pages the platform team, then its lead.",
-          isArchived: false,
-          labels: [],
+const hasPolicy = params.get("policies") === "one";
+const PLATFORM_POLICY_ID = "20000000-0000-4000-8000-0000000000f1";
+const PLATFORM_TEAM_RULE_ID = "60000000-0000-4000-8000-0000000000f1";
+const PLATFORM_LEAD_RULE_ID = "60000000-0000-4000-8000-0000000000f2";
+
+const policies = hasPolicy
+  ? [
+      record(OnCallDutyPolicy, {
+        _id: PLATFORM_POLICY_ID,
+        projectId: new ObjectID(PROJECT_ID),
+        name: "Platform on-call",
+        description: "Pages the platform team, then its lead.",
+        isArchived: false,
+        labels: [],
+      }),
+    ]
+  : [];
+
+/*
+ * Platform on-call's escalation rules, which the list's Paged First column
+ * reads (#9701): the Platform team first, then its lead, Grace Hopper.
+ */
+const escalationRules = hasPolicy
+  ? [
+      record(OnCallDutyPolicyEscalationRule, {
+        _id: PLATFORM_TEAM_RULE_ID,
+        projectId: new ObjectID(PROJECT_ID),
+        onCallDutyPolicyId: new ObjectID(PLATFORM_POLICY_ID),
+        name: "Platform team",
+        order: 1,
+      }),
+      record(OnCallDutyPolicyEscalationRule, {
+        _id: PLATFORM_LEAD_RULE_ID,
+        projectId: new ObjectID(PROJECT_ID),
+        onCallDutyPolicyId: new ObjectID(PLATFORM_POLICY_ID),
+        name: "Platform lead",
+        order: 2,
+      }),
+    ]
+  : [];
+
+const escalationRuleTeams = hasPolicy
+  ? [
+      record(OnCallDutyPolicyEscalationRuleTeam, {
+        _id: "61000000-0000-4000-8000-0000000000f1",
+        projectId: new ObjectID(PROJECT_ID),
+        onCallDutyPolicyEscalationRuleId: new ObjectID(PLATFORM_TEAM_RULE_ID),
+        team: record(Team, {
+          _id: "70000000-0000-4000-8000-0000000000f1",
+          name: "Platform",
         }),
-      ]
-    : [];
+      }),
+    ]
+  : [];
+
+const escalationRuleUsers = hasPolicy
+  ? [
+      record(OnCallDutyPolicyEscalationRuleUser, {
+        _id: "62000000-0000-4000-8000-0000000000f1",
+        projectId: new ObjectID(PROJECT_ID),
+        onCallDutyPolicyEscalationRuleId: new ObjectID(PLATFORM_LEAD_RULE_ID),
+        user: grace,
+      }),
+    ]
+  : [];
 
 const incidentRules =
   params.get("rules") === "incident"
@@ -208,6 +266,10 @@ const TABLES = {
   [tableName(IncidentOnCallRule)]: incidentRules,
   [tableName(AlertOnCallRule)]: [],
   [tableName(OnCallDutyPolicyCustomField)]: [],
+  [tableName(OnCallDutyPolicyEscalationRule)]: escalationRules,
+  [tableName(OnCallDutyPolicyEscalationRuleTeam)]: escalationRuleTeams,
+  [tableName(OnCallDutyPolicyEscalationRuleUser)]: escalationRuleUsers,
+  [tableName(OnCallDutyPolicyEscalationRuleSchedule)]: [],
   [tableName(OnCallDutyPolicyOwnerUser)]: [],
   [tableName(OnCallDutyPolicyOwnerTeam)]: [],
   [tableName(OnCallDutyPolicySchedule)]: [],
@@ -256,11 +318,33 @@ function copyOf(item, modelType) {
   return BaseModel.fromJSONObject(BaseModel.toJSON(item, modelType), modelType);
 }
 
+/*
+ * Whether a row is one a read asked for by ids (Includes): the escalation
+ * rules of the list's policies, the people and teams of their first rules.
+ */
+function isAskedFor(item, query) {
+  return Object.entries(query || {}).every(([column, value]) => {
+    if (!(value instanceof Includes)) {
+      return true;
+    }
+
+    const ids = value.values.map((id) => {
+      return String(id).toLowerCase();
+    });
+
+    return ids.includes(String(item[column]).toLowerCase());
+  });
+}
+
 ModelAPI.getList = async (options) => {
   const modelType = options.modelType;
-  const items = rowsOf(modelType, "getList").map((item) => {
-    return copyOf(item, modelType);
-  });
+  const items = rowsOf(modelType, "getList")
+    .filter((item) => {
+      return isAskedFor(item, options.query);
+    })
+    .map((item) => {
+      return copyOf(item, modelType);
+    });
   const skip = Number(options.skip || 0);
   const limit = Number(options.limit || 10);
 

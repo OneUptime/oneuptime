@@ -42,6 +42,8 @@ Standorte bilden einen Baum. Jeder Standort hat einen **Standorttyp** und option
 
 Typ, Name, Beschreibung, übergeordneter Standort und Lage eines Standorts werden an einer Stelle bearbeitet: in der Karte **Standorteinstellungen** auf der **Einstellungen**-Seite des Standorts. Die Übersicht des Standorts zeigt sie mit einem Link **In den Einstellungen bearbeiten**, und die Liste **Standorte** fügt Standorte hinzu, bearbeitet sie aber nicht.
 
+Standorte, die nichts enthalten, gehen in einem Schritt: **Leere Standorte löschen** im Menü über der Liste **Standorte** listet jeden Standort ohne Geräte (auch archivierte), ohne Standorte darunter und ohne Endpunkt, Link, Regel oder Wartungsereignis, das ihn nutzt. Es nennt die ersten zehn und löscht nach Ihrer Bestätigung genau die aufgelisteten Standorte: Ein Standort, der inzwischen ein Gerät bekommt, bleibt erhalten. Es steht allen zu, die Standorte löschen dürfen.
+
 Jedes Gerät gehört zu einem Standort. Der Teilbaum eines Standorts ist der Standort selbst plus jeder Standort darunter, und aus den Geräten des Teilbaums ergibt sich seine Integrität, eine Region ohne eigene Geräte hat also trotzdem einen Status, weil die Einheiten unter ihr einen haben.
 
 > [!NOTE]
