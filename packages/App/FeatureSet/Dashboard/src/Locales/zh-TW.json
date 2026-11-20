@@ -60743,5 +60743,13 @@
   "{{value}} is wider than a {{widest}}, the widest range OneUptime blocks. Block a narrower range.": "{{value}} 比 OneUptime 能封鎖的最寬範圍 {{widest}} 還寬。請封鎖更窄的範圍。",
   "Security Address Vault Entries": "Security Address Vault Entries",
   "Security Address Vault Entry": "Security Address Vault Entry",
-  "The IP address behind each token an IP Address Hash scrub rule left in the logs and traces Security Events reads, kept 30 days after it was last seen. Read only by Security Events' scans.": "The IP address behind each token an IP Address Hash scrub rule left in the logs and traces Security Events reads, kept 30 days after it was last seen. Read only by Security Events' scans."
+  "The IP address behind each token an IP Address Hash scrub rule left in the logs and traces Security Events reads, kept 30 days after it was last seen. Read only by Security Events' scans.": "The IP address behind each token an IP Address Hash scrub rule left in the logs and traces Security Events reads, kept 30 days after it was last seen. Read only by Security Events' scans.",
+  "The escalation rule \"{{rule}}\" of the on-call policy \"{{policy}}\" pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "待命策略「{{policy}}」的升級規則「{{rule}}」已在呼叫待命排程「{{schedule}}」輪換中的下一個人，因此沒有再次新增該排程。",
+  "The escalation rule \"{{rule}}\" of the on-call policy \"{{policy}}\" pages the team \"{{team}}\" already, so it was not added again.": "待命策略「{{policy}}」的升級規則「{{rule}}」已在呼叫團隊「{{team}}」，因此沒有再次新增該團隊。",
+  "The escalation rule \"{{rule}}\" of the on-call policy \"{{policy}}\" pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "待命策略「{{policy}}」的升級規則「{{rule}}」已在呼叫待命排程「{{schedule}}」的目前待命者，因此沒有再次新增該排程。",
+  "The escalation rule \"{{rule}}\" of the on-call policy \"{{policy}}\" pages {{person}} already, so they were not added again.": "待命策略「{{policy}}」的升級規則「{{rule}}」已在呼叫 {{person}}，因此沒有再次新增此人。",
+  "This escalation rule pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "此升級規則已在呼叫待命排程「{{schedule}}」輪換中的下一個人，因此沒有再次新增該排程。",
+  "This escalation rule pages the team \"{{team}}\" already, so it was not added again.": "此升級規則已在呼叫團隊「{{team}}」，因此沒有再次新增該團隊。",
+  "This escalation rule pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "此升級規則已在呼叫待命排程「{{schedule}}」的目前待命者，因此沒有再次新增該排程。",
+  "This escalation rule pages {{person}} already, so they were not added again.": "此升級規則已在呼叫 {{person}}，因此沒有再次新增此人。"
 }

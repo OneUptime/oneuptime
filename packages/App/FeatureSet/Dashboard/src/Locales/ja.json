@@ -60743,5 +60743,13 @@
   "{{value}} is wider than a {{widest}}, the widest range OneUptime blocks. Block a narrower range.": "{{value}} は、OneUptime がブロックする最も広い範囲である {{widest}} より広いです。より狭い範囲をブロックしてください。",
   "Security Address Vault Entries": "Security Address Vault Entries",
   "Security Address Vault Entry": "Security Address Vault Entry",
-  "The IP address behind each token an IP Address Hash scrub rule left in the logs and traces Security Events reads, kept 30 days after it was last seen. Read only by Security Events' scans.": "The IP address behind each token an IP Address Hash scrub rule left in the logs and traces Security Events reads, kept 30 days after it was last seen. Read only by Security Events' scans."
+  "The IP address behind each token an IP Address Hash scrub rule left in the logs and traces Security Events reads, kept 30 days after it was last seen. Read only by Security Events' scans.": "The IP address behind each token an IP Address Hash scrub rule left in the logs and traces Security Events reads, kept 30 days after it was last seen. Read only by Security Events' scans.",
+  "The escalation rule \"{{rule}}\" of the on-call policy \"{{policy}}\" pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "オンコールポリシー「{{policy}}」のエスカレーションルール「{{rule}}」はすでにオンコールスケジュール「{{schedule}}」のローテーションの次の人を呼び出しているため、スケジュールを再度追加しませんでした。",
+  "The escalation rule \"{{rule}}\" of the on-call policy \"{{policy}}\" pages the team \"{{team}}\" already, so it was not added again.": "オンコールポリシー「{{policy}}」のエスカレーションルール「{{rule}}」はすでにチーム「{{team}}」を呼び出しているため、再度追加しませんでした。",
+  "The escalation rule \"{{rule}}\" of the on-call policy \"{{policy}}\" pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "オンコールポリシー「{{policy}}」のエスカレーションルール「{{rule}}」はすでにオンコールスケジュール「{{schedule}}」のオンコール担当者を呼び出しているため、スケジュールを再度追加しませんでした。",
+  "The escalation rule \"{{rule}}\" of the on-call policy \"{{policy}}\" pages {{person}} already, so they were not added again.": "オンコールポリシー「{{policy}}」のエスカレーションルール「{{rule}}」はすでに {{person}} を呼び出しているため、再度追加しませんでした。",
+  "This escalation rule pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "このエスカレーションルールはすでにオンコールスケジュール「{{schedule}}」のローテーションの次の人を呼び出しているため、スケジュールを再度追加しませんでした。",
+  "This escalation rule pages the team \"{{team}}\" already, so it was not added again.": "このエスカレーションルールはすでにチーム「{{team}}」を呼び出しているため、再度追加しませんでした。",
+  "This escalation rule pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "このエスカレーションルールはすでにオンコールスケジュール「{{schedule}}」のオンコール担当者を呼び出しているため、スケジュールを再度追加しませんでした。",
+  "This escalation rule pages {{person}} already, so they were not added again.": "このエスカレーションルールはすでに {{person}} を呼び出しているため、再度追加しませんでした。"
 }
