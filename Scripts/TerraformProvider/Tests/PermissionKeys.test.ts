@@ -276,7 +276,8 @@ describe("a permission in the spec", () => {
   });
 
   test("its reference says how it is written, and that jsonencode() still works", () => {
-    const description: string = resource.schema["permission"]?.description || "";
+    const description: string =
+      resource.schema["permission"]?.description || "";
 
     expect(description).toContain(ROLE_PERMISSION_DESCRIPTION);
     expect(description).toContain(OpenAPIParser.PERMISSION_DESCRIPTION);
@@ -373,9 +374,10 @@ describe("the resource's permission", () => {
     ]) {
       const body: string = method(resourceGo, signature);
 
-      expect([signature, body.includes("NewPermissionKeyValue(val)")]).toEqual(
-        [signature, true],
-      );
+      expect([signature, body.includes("NewPermissionKeyValue(val)")]).toEqual([
+        signature,
+        true,
+      ]);
       expect(body).toContain("data.Permission = NewPermissionKeyNull()");
       expect(body).not.toContain("data.Permission = NewJSONSubsetValue");
     }
@@ -398,7 +400,9 @@ describe("the resource's permission", () => {
 
 describe("the data source's permission", () => {
   test("is a plain string it looks a row up by", () => {
-    expect(dataSourceGo).toContain('Permission types.String `tfsdk:"permission"`');
+    expect(dataSourceGo).toContain(
+      'Permission types.String `tfsdk:"permission"`',
+    );
     expect(dataSourceGo).toContain('filters["permission"]');
     expect(dataSourceGo).not.toContain("PermissionKeyValue");
   });

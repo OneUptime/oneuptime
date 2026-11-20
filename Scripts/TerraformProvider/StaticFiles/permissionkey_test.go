@@ -13,12 +13,16 @@ import (
 )
 
 func TestPermissionKeyOf_TheKeyEitherFormNames(t *testing.T) {
+	// JSON may write a letter as an escape: "IncidentMember" is IncidentMember.
+	backslash := string(rune(92))
+	escaped := `"Incident` + backslash + `u004dember"`
+
 	cases := map[string]string{
 		"IncidentMember":        "IncidentMember",
 		`"IncidentMember"`:      "IncidentMember",
 		"ReadProjectIncident":   "ReadProjectIncident",
 		`"ReadProjectIncident"`: "ReadProjectIncident",
-		`"IncidentMember"`:      "IncidentMember",
+		escaped:                 "IncidentMember",
 		"ProjectOwner":          "ProjectOwner",
 		`"ProjectOwner"`:        "ProjectOwner",
 		// What names no key is sent as written, for OneUptime to refuse.
