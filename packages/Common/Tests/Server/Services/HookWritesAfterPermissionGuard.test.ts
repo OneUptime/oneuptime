@@ -116,6 +116,9 @@ const ALLOWED_HOOK_WRITES: Record<string, string> = {
     "Heals the stored materialized path of the new parent site (checked to be in the same project first): it writes only the value the parent chain already implies.",
   "StatusPagePrivateUserService.ts#onBeforeUpdate":
     "Clears the password reset token of a user whose email changes - it only ever takes access away, and only from users the caller may read and update.",
+  // A dashboard's private users (#10250), and a form's after them.
+  "PrivateUserServiceBase.ts#onBeforeUpdate":
+    "Clears the password reset token of a private user whose email changes - it only ever takes access away, and only from the users the update holds itself to (findRowsAndHoldUpdateToThem), which the caller may read and update.",
   "UserService.ts#onBeforeUpdate":
     "Clears the password reset token of an account whose email changes - it only ever takes access away, and only from accounts the caller may update.",
   "TeamMemberService.ts#onBeforeCreate":

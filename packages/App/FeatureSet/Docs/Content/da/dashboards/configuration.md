@@ -60,6 +60,7 @@ Hvem der kan se et dashboard uden for projektet, er ét valg på dets side **Del
 1. **Kun personer i dette projekt** (standard): dashboardet har intet offentligt link; dets offentlige adresse viser en side med "ikke fundet".
 2. **Alle med linket**: alle, der har det offentlige link, kan se det uden at logge ind.
 3. **Alle med linket og en adgangskode**: besøgende indtaster en adgangskode, før dashboardet vises.
+4. **Kun personer, der logger ind**: kun de private brugere, du inviterer, og de personer, jeres single sign-on lukker ind, ser det, når de har logget ind.
 
 Under **Yderligere indstillinger** på samme side afviser **IP-tilladelsesliste** (abonnementet Scale) anmodninger til det offentlige link fra enhver IP-adresse, der ikke står på den. Den mest aflåste offentlige opsætning er **Alle med linket og en adgangskode** med en IP-tilladelsesliste: nyttigt til partnerportaler, hvor du vil have begge lag.
 

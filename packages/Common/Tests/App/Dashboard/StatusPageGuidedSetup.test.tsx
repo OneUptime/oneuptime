@@ -623,15 +623,161 @@ describe("1. Name it, and pick what it shows", () => {
     expect(stepState("review")).toBe("open");
   });
 
+  /*
+   * #10276: the panel lists the page and what it shows as they are made,
+   * each opening its page, and keeps how they got on with the run (#7253).
+   */
+  test("the panel shows the page being made, then made, and the monitors added, each with Open", async () => {
+    let finishCreate: (id: string) => void = () => {};
+    api["createStatusPage"]!.mockImplementation((() => {
+      return new Promise<string>((resolve: (id: string) => void) => {
+        finishCreate = resolve;
+      });
+    }) as unknown as (...args: Array<unknown>) => unknown);
+    await renderSetup();
+
+    const pageRow: () => HTMLElement = (): HTMLElement => {
+      return screen.getByTestId("guided-setup-resource-status_page");
+    };
+    const shownRow: () => HTMLElement = (): HTMLElement => {
+      return screen.getByTestId("guided-setup-resource-shown_monitors");
+    };
+
+    expect(pageRow()).toHaveAttribute("data-status", "waiting");
+    expect(
+      screen.getByTestId("guided-setup-resource-status_page-name"),
+    ).toHaveTextContent("Acme Status");
+    expect(shownRow()).toHaveAttribute("data-status", "waiting");
+
+    await press("guided-setup-monitor-m-api");
+    // What is picked names the row before it is added.
+    expect(
+      screen.getByTestId("guided-setup-resource-shown_monitors-name"),
+    ).toHaveTextContent("API");
+
+    await press("guided-setup-create-status-page");
+    expect(pageRow()).toHaveAttribute("data-status", "creating");
+
+    await act(async () => {
+      finishCreate(PAGE_ID);
+    });
+
+    expect(pageRow()).toHaveAttribute("data-status", "created");
+    expect(
+      screen.getByTestId("guided-setup-resource-status_page-open"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/status-pages/${PAGE_ID}`,
+    );
+    expect(shownRow()).toHaveAttribute("data-status", "created");
+    expect(
+      screen.getByTestId("guided-setup-resource-shown_monitors-status"),
+    ).toHaveTextContent("Added");
+    expect(
+      screen.getByTestId("guided-setup-resource-shown_monitors-name"),
+    ).toHaveTextContent("API, Database");
+    expect(
+      screen.getByTestId("guided-setup-resource-shown_monitors-open"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/status-pages/${PAGE_ID}/resources`,
+    );
+
+    // Kept with the run, so another device draws the same panel.
+    await waitFor(() => {
+      expect(
+        guidedSetupRunServer.resourcesOf("status_page")?.["status_page"]
+          ?.status,
+      ).toBe("created");
+    });
+    expect(
+      guidedSetupRunServer.resourcesOf("status_page")?.["shown_monitors"]
+        ?.status,
+    ).toBe("created");
+  });
+
+  test("a page the server refused says why, and Try again makes one page", async () => {
+    api["createStatusPage"]!.mockRejectedValueOnce(
+      new Error("OneUptime is busy and could not save this."),
+    );
+    await renderSetup();
+    await press("guided-setup-monitor-m-api");
+    await press("guided-setup-create-status-page");
+
+    expect(
+      screen.getByTestId("guided-setup-resource-status_page"),
+    ).toHaveAttribute("data-status", "failed");
+    expect(
+      screen.getByTestId("guided-setup-resource-status_page-error"),
+    ).toHaveTextContent("OneUptime is busy and could not save this.");
+    expect(stepState("pick")).toBe("open");
+
+    await press("guided-setup-resource-status_page-retry");
+
+    expect(api["createStatusPage"]).toHaveBeenCalledTimes(2);
+    expect(
+      screen.getByTestId("guided-setup-resource-status_page"),
+    ).toHaveAttribute("data-status", "created");
+    expect(storedRun()).toEqual({ statusPageId: PAGE_ID });
+    expect(stepState("review")).toBe("open");
+  });
+
+  test("a page of the project's is in use, never made, and the panel says so", async () => {
+    api["loadEditableStatusPages"]!.mockResolvedValue([
+      { id: PAGE_ID, name: "Acme Partner Status" },
+    ]);
+    api["loadShownMonitors"]!.mockResolvedValue({
+      count: 0,
+      names: [],
+      monitorIds: [],
+      monitorGroupIds: [],
+    });
+    await renderSetup();
+
+    // Picked for step 1: in use before anything is pressed.
+    expect(
+      screen.getByTestId("guided-setup-resource-status_page"),
+    ).toHaveAttribute("data-status", "existing");
+    expect(
+      screen.getByTestId("guided-setup-resource-status_page-name"),
+    ).toHaveTextContent("Acme Partner Status");
+
+    api["loadShownMonitors"]!.mockResolvedValue({ count: 1, names: ["API"] });
+    await press("guided-setup-monitor-m-api");
+    await press("guided-setup-create-status-page");
+
+    expect(api["createStatusPage"]).not.toHaveBeenCalled();
+    expect(
+      screen.getByTestId("guided-setup-resource-status_page"),
+    ).toHaveAttribute("data-status", "existing");
+    expect(
+      screen.getByTestId("guided-setup-resource-shown_monitors"),
+    ).toHaveAttribute("data-status", "created");
+  });
+
   test("monitors that could not be added keep step 1 open with the reason, and the page is kept", async () => {
     api["addMonitors"]!.mockRejectedValue(new Error("Plan limit reached"));
     await renderSetup();
     await press("guided-setup-monitor-m-api");
     await press("guided-setup-create-status-page");
 
-    expect(screen.getByText("Plan limit reached")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("guided-setup-step-pick")).getByText(
+        "Plan limit reached",
+      ),
+    ).toBeInTheDocument();
     expect(stepState("pick")).toBe("open");
     expect(storedRun()).toEqual({ statusPageId: PAGE_ID });
+    // The panel (#10276): the page made, its monitors not added, and why.
+    expect(
+      screen.getByTestId("guided-setup-resource-status_page"),
+    ).toHaveAttribute("data-status", "created");
+    expect(
+      screen.getByTestId("guided-setup-resource-shown_monitors"),
+    ).toHaveAttribute("data-status", "failed");
+    expect(
+      screen.getByTestId("guided-setup-resource-shown_monitors-error"),
+    ).toHaveTextContent("Plan limit reached");
   });
 
   test("a page the server says shows nothing does not move on", async () => {
@@ -1311,7 +1457,15 @@ describe("a run the browser lost, or another tab (#7252)", () => {
     api["addMonitors"]!.mockRejectedValueOnce(new Error("Plan limit reached"));
     await createWith({ name: "Acme Status", monitorIds: ["m-api"] });
 
-    expect(screen.getByText("Plan limit reached")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("guided-setup-step-pick")).getByText(
+        "Plan limit reached",
+      ),
+    ).toBeInTheDocument();
+    // The panel says which record failed, and why (#10276).
+    expect(
+      screen.getByTestId("guided-setup-resource-shown_monitors-error"),
+    ).toHaveTextContent("Plan limit reached");
     expect(api["createStatusPage"]).not.toHaveBeenCalled();
     // Nothing claims the page shows nothing, or that it was found.
     expect(storedRun()).toEqual({});

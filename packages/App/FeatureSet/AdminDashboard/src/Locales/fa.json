@@ -4413,5 +4413,18 @@
   "Same name as another label": "هم‌نام با برچسبی دیگر",
   "Same name as another policy": "هم‌نام با سیاستی دیگر",
   "Same name as another schedule": "هم‌نام با زمان‌بندی دیگری",
-  "Created {{date}}": "ساخته‌شده در {{date}}"
+  "Created {{date}}": "ساخته‌شده در {{date}}",
+  "Signs In As": "وارد می‌شود با",
+  "Check again": "دوباره بررسی کنید",
+  "Couldn't ask the server which AWS identity it signs in as. {{error}}": "نشد از سرور پرسید که با کدام هویت AWS وارد می‌شود. {{error}}",
+  "This server cannot sign in to AWS. {{error}}": "این سرور نمی‌تواند به AWS وارد شود. {{error}}",
+  "A test email shows whether it may send.": "یک ایمیل آزمایشی نشان می‌دهد که آیا اجازهٔ فرستادن دارد.",
+  "From AWS_ACCESS_KEY_ID in the server's environment.": "از AWS_ACCESS_KEY_ID در محیط سرور.",
+  "From the server's AWS profile.": "از پروفایل AWS سرور.",
+  "From IAM roles for service accounts.": "از نقش‌های IAM برای حساب‌های سرویس.",
+  "From EKS Pod Identity.": "از EKS Pod Identity.",
+  "From the ECS task role.": "از نقش وظیفهٔ ECS.",
+  "From the container credentials endpoint.": "از نقطهٔ پایانی اعتبارنامه‌های کانتینر.",
+  "From the EC2 instance profile.": "از پروفایل اینستنس EC2.",
+  "The server did not say which AWS identity it signs in as.": "سرور نگفت با کدام هویت AWS وارد می‌شود."
 }

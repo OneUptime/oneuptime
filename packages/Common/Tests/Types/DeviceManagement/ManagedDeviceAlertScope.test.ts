@@ -2,6 +2,7 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import {
   getManagedDeviceSeriesNames,
   getManagedDeviceSeriesQuery,
+  getMonitorConnectionReads,
   getMonitorManagedDeviceConnectionIds,
   mayMonitorAlertOnManagedDevice,
 } from "../../../Types/DeviceManagement/ManagedDeviceAlertScope";
@@ -21,6 +22,7 @@ import { ManagedDevicePlatform } from "../../../Types/DeviceManagement/ManagedDe
 import { JSONObject } from "../../../Types/JSON";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
 
@@ -201,6 +203,215 @@ describe("which monitors may alert on a device", () => {
         connectionId: CONNECTION,
       }),
     ).toBe(false);
+  });
+});
+
+/*
+ * What a monitor reads of one connection (#10286): a connection turned off
+ * resolves what its own reading's monitors opened, and one deleted turns
+ * off every monitor that read it alone. A monitor that reads anything else
+ * besides is never one of them.
+ */
+describe("what a monitor reads of a connection", () => {
+  function templateStep(templateId: string, connectionId: string): MonitorStep {
+    const index: number = getManagedDeviceAlertTemplatesFor(
+      DeviceManagementProvider.Esper,
+    ).findIndex((template: ManagedDeviceAlertTemplate): boolean => {
+      return template.id === templateId;
+    });
+
+    expect(index).toBeGreaterThanOrEqual(0);
+
+    return templateSteps(DeviceManagementProvider.Esper, connectionId)[index]!;
+  }
+
+  test.each(DEVICE_MANAGEMENT_PROVIDERS)(
+    "each %s template reads its connection alone: Connection Stopped Reading its own reading, the others its devices'",
+    (provider: DeviceManagementProvider) => {
+      const templates: Array<ManagedDeviceAlertTemplate> =
+        getManagedDeviceAlertTemplatesFor(provider);
+
+      templateSteps(provider, CONNECTION).forEach(
+        (step: MonitorStep, index: number) => {
+          const isConnectionTemplate: boolean = templates[index]!.id.endsWith(
+            "-connection-stopped-reading",
+          );
+
+          expect({
+            id: templates[index]!.id,
+            reads: getMonitorConnectionReads({
+              monitorSteps: stepsOf([step]),
+              connectionId: CONNECTION,
+            }),
+          }).toEqual({
+            id: templates[index]!.id,
+            reads: {
+              readsThisConnectionAlone: true,
+              readsConnectionReading: isConnectionTemplate,
+              readsDeviceReadings: !isConnectionTemplate,
+            },
+          });
+
+          // Of another connection, it reads nothing.
+          expect(
+            getMonitorConnectionReads({
+              monitorSteps: stepsOf([step]),
+              connectionId: OTHER_CONNECTION,
+            }),
+          ).toEqual({
+            readsThisConnectionAlone: false,
+            readsConnectionReading: false,
+            readsDeviceReadings: false,
+          });
+        },
+      );
+    },
+  );
+
+  test("a monitor of every template reads both, and the connection alone", () => {
+    expect(
+      getMonitorConnectionReads({
+        monitorSteps: stepsOf(
+          templateSteps(DeviceManagementProvider.Esper, CONNECTION),
+        ),
+        connectionId: CONNECTION,
+      }),
+    ).toEqual({
+      readsThisConnectionAlone: true,
+      readsConnectionReading: true,
+      readsDeviceReadings: true,
+    });
+  });
+
+  test("a step of another connection beside it: it reads more than this one", () => {
+    expect(
+      getMonitorConnectionReads({
+        monitorSteps: stepsOf([
+          templateStep("esper-connection-stopped-reading", CONNECTION),
+          templateStep("esper-connection-stopped-reading", OTHER_CONNECTION),
+        ]),
+        connectionId: CONNECTION,
+      }),
+    ).toEqual({
+      readsThisConnectionAlone: false,
+      readsConnectionReading: true,
+      readsDeviceReadings: false,
+    });
+  });
+
+  test("a query of a list of connections, however it was stored, reads more than this one", () => {
+    for (const value of [
+      new Includes([CONNECTION, OTHER_CONNECTION]),
+      { _type: "Includes", value: [CONNECTION, OTHER_CONNECTION] },
+    ]) {
+      const step: MonitorStep = templateStep("esper-low-battery", CONNECTION);
+      (
+        step.data!.metricMonitor!.metricViewConfig.queryConfigs[0]!
+          .metricQueryData.filterData.attributes as Record<string, unknown>
+      )["oneuptime.managed_device.connection.id"] = value;
+
+      expect(
+        getMonitorConnectionReads({
+          monitorSteps: stepsOf([step]),
+          connectionId: CONNECTION,
+        }),
+      ).toEqual({
+        readsThisConnectionAlone: false,
+        readsConnectionReading: false,
+        readsDeviceReadings: true,
+      });
+    }
+
+    // A list of this connection alone is this connection alone.
+    const alone: MonitorStep = templateStep("esper-low-battery", CONNECTION);
+    (
+      alone.data!.metricMonitor!.metricViewConfig.queryConfigs[0]!
+        .metricQueryData.filterData.attributes as Record<string, unknown>
+    )["oneuptime.managed_device.connection.id"] = new Includes([CONNECTION]);
+
+    expect(
+      getMonitorConnectionReads({
+        monitorSteps: stepsOf([alone]),
+        connectionId: CONNECTION,
+      }).readsThisConnectionAlone,
+    ).toBe(true);
+  });
+
+  test("a query of another metric, of no connection, or a step with no query, reads more than this connection", () => {
+    const otherMetric: MonitorStep = templateStep(
+      "esper-low-battery",
+      CONNECTION,
+    );
+    const ownQuery: {
+      metricQueryData: { filterData: { metricName: string } };
+    } = otherMetric.data!.metricMonitor!.metricViewConfig.queryConfigs[0]! as {
+      metricQueryData: { filterData: { metricName: string } };
+    };
+    otherMetric.data!.metricMonitor!.metricViewConfig.queryConfigs.push({
+      ...JSON.parse(JSON.stringify(ownQuery)),
+      metricQueryData: {
+        filterData: {
+          metricName: "system.cpu.utilization",
+          attributes: { "oneuptime.managed_device.connection.id": CONNECTION },
+        },
+      },
+    });
+
+    const noConnection: MonitorStep = templateStep(
+      "esper-low-battery",
+      CONNECTION,
+    );
+    delete (
+      noConnection.data!.metricMonitor!.metricViewConfig.queryConfigs[0]!
+        .metricQueryData.filterData.attributes as Record<string, unknown>
+    )["oneuptime.managed_device.connection.id"];
+
+    const noQuery: MonitorStep = MonitorStep.getDefaultMonitorStep({
+      monitorName: "Ping",
+      monitorType: MonitorType.Ping,
+      onlineMonitorStatusId: ObjectID.generate(),
+      offlineMonitorStatusId: ObjectID.generate(),
+      defaultIncidentSeverityId: ObjectID.generate(),
+      defaultAlertSeverityId: ObjectID.generate(),
+    });
+
+    expect(
+      getMonitorConnectionReads({
+        monitorSteps: stepsOf([otherMetric]),
+        connectionId: CONNECTION,
+      }).readsThisConnectionAlone,
+    ).toBe(false);
+    expect(
+      getMonitorConnectionReads({
+        monitorSteps: stepsOf([noConnection]),
+        connectionId: CONNECTION,
+      }),
+    ).toEqual({
+      readsThisConnectionAlone: false,
+      readsConnectionReading: false,
+      readsDeviceReadings: false,
+    });
+    expect(
+      getMonitorConnectionReads({
+        monitorSteps: stepsOf([
+          templateStep("esper-low-battery", CONNECTION),
+          noQuery,
+        ]),
+        connectionId: CONNECTION,
+      }).readsThisConnectionAlone,
+    ).toBe(false);
+  });
+
+  test("no steps read nothing", () => {
+    for (const monitorSteps of [undefined, null, stepsOf([])]) {
+      expect(
+        getMonitorConnectionReads({ monitorSteps, connectionId: CONNECTION }),
+      ).toEqual({
+        readsThisConnectionAlone: false,
+        readsConnectionReading: false,
+        readsDeviceReadings: false,
+      });
+    }
   });
 });
 

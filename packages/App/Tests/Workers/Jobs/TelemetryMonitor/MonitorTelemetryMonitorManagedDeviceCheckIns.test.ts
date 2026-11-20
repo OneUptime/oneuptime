@@ -146,6 +146,8 @@ describe("what a check of the check-ins reads", () => {
     expect(call.query.attributes).toEqual({
       "oneuptime.managed_device.connection.id": CONNECTION_ID,
       "oneuptime.managed_device.is_host": "false",
+      // Its service too, which every reading of the connection names.
+      "oneuptime.managed_device.provider": "esper",
       // The Android devices: an Esper connection's Apple devices are a template of their own (#9837).
       "oneuptime.managed_device.platform": "android",
     });

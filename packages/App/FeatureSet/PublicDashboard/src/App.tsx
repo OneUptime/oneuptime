@@ -1,9 +1,16 @@
 import PageMap from "./Utils/PageMap";
+import PublicDashboardSignIn from "./Utils/SignIn";
+import { DashboardSignedInVisitor } from "./Pages/DashboardView/DashboardSignedIn";
+import { DASHBOARD_LOGIN_CODE_PARAMETER } from "Common/Types/Dashboard/DashboardPrivateUserSignIn";
+import Route from "Common/Types/API/Route";
 import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import RouteMap from "./Utils/RouteMap";
 import RouteParams from "./Utils/RouteParams";
-import PublicDashboardUtil from "./Utils/PublicDashboard";
+import PublicDashboardUtil, {
+  PUBLIC_DASHBOARD_FORGOT_PASSWORD_PATH,
+  PUBLIC_DASHBOARD_SIGN_IN_PATH,
+} from "./Utils/PublicDashboard";
 import DashboardThemeUtil from "./Utils/DashboardTheme";
 import { PUBLIC_DASHBOARD_API_URL } from "./Utils/Config";
 import API from "./Utils/API";
@@ -64,6 +71,69 @@ const ForbiddenPage: React.LazyExoticComponent<
   });
 });
 
+const SignInPage: React.LazyExoticComponent<AllPagesModule["SignInPage"]> =
+  lazy(() => {
+    return import("./Pages/AllPages").then((m: AllPagesModule) => {
+      return { default: m.SignInPage };
+    });
+  });
+
+const ForgotPasswordPage: React.LazyExoticComponent<
+  AllPagesModule["ForgotPasswordPage"]
+> = lazy(() => {
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return { default: m.ForgotPasswordPage };
+  });
+});
+
+const ResetPasswordPage: React.LazyExoticComponent<
+  AllPagesModule["ResetPasswordPage"]
+> = lazy(() => {
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return { default: m.ResetPasswordPage };
+  });
+});
+
+/*
+ * The code single sign-on hands a dashboard's page back in its address
+ * (#10250), exchanged for the session on this host, then taken out of the
+ * address - with history.replaceState, so neither Back nor a bookmark keeps
+ * it. Answers what went wrong, or null once it is exchanged or there is
+ * none.
+ */
+const exchangeLoginCodeInAddress: (
+  dashboardId: ObjectID,
+) => Promise<string | null> = async (
+  dashboardId: ObjectID,
+): Promise<string | null> => {
+  const loginCode: string | null = Navigation.getQueryStringByName(
+    DASHBOARD_LOGIN_CODE_PARAMETER,
+  );
+
+  if (!loginCode) {
+    return null;
+  }
+
+  try {
+    const address: globalThis.URL = new globalThis.URL(window.location.href);
+    address.searchParams.delete(DASHBOARD_LOGIN_CODE_PARAMETER);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${address.pathname}${address.search}${address.hash}`,
+    );
+  } catch {
+    // The code is spent once either way: the address is only tidied.
+  }
+
+  try {
+    await PublicDashboardSignIn.exchangeLoginCode({ dashboardId, loginCode });
+    return null;
+  } catch (err) {
+    return API.getFriendlyMessage(err);
+  }
+};
+
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(useLocation());
@@ -75,6 +145,15 @@ const App: () => JSX.Element = () => {
   const [dashboardName, setDashboardName] = useState<string>("Dashboard");
   const [isPublicDashboard, setIsPublicDashboard] = useState<boolean>(false);
   const [isForbidden, setIsForbidden] = useState<boolean>(false);
+  /*
+   * A dashboard that asks its visitors to sign in (#10250): whether it
+   * does, who is signed in - the metadata's answer, from the session's
+   * HttpOnly cookie - and what went wrong exchanging a single sign-on
+   * code, for the sign-in page to say.
+   */
+  const [isSignInRequired, setIsSignInRequired] = useState<boolean>(false);
+  const [signedInAs, setSignedInAs] = useState<string | null>(null);
+  const [signInError, setSignInError] = useState<string | null>(null);
   // The dashboard this address shows, or null when it shows none.
   type GetIdFunction = () => Promise<ObjectID | null>;
 
@@ -135,6 +214,9 @@ const App: () => JSX.Element = () => {
 
       setDashboardId(id);
       PublicDashboardUtil.setDashboardId(id);
+
+      // Back from single sign-on: the session first, so the metadata knows it.
+      setSignInError(await exchangeLoginCodeInAddress(id));
 
       // Fetch dashboard metadata
       const response: HTTPResponse<JSONObject> = await API.post<JSONObject>({
@@ -225,6 +307,22 @@ const App: () => JSX.Element = () => {
         setIsPublicDashboard(isPublic);
 
         /*
+         * Whether visitors sign in first, by the rule the server enforces
+         * (DashboardAccess), and who has - asked of the server every load,
+         * never kept in the browser.
+         */
+        const requireSignIn: boolean = Boolean(response.data["requireSignIn"]);
+        const signedInEmail: unknown = response.data["signedInAs"];
+
+        PublicDashboardUtil.setRequiresSignIn(requireSignIn);
+        setIsSignInRequired(requireSignIn);
+        setSignedInAs(
+          requireSignIn && typeof signedInEmail === "string" && signedInEmail
+            ? signedInEmail
+            : null,
+        );
+
+        /*
          * Whether visitors enter the password first, by the rule the server
          * enforces and the Sharing page writes (DashboardAccess).
          */
@@ -288,6 +386,69 @@ const App: () => JSX.Element = () => {
     return <AuthPageSkeleton fields={1} />;
   }
 
+  /*
+   * A dashboard that asks its visitors to sign in (#10250): until one of its
+   * private users has, every page but the sign-in pages sends them to Sign
+   * In - the server answers nothing of the dashboard before - and once they
+   * have, Sign In and Forgot password send them on to the dashboard. A
+   * reset link's page stays: somebody signed in may still choose a password.
+   */
+  const currentPath: string = Navigation.getCurrentPath().toString();
+
+  if (
+    dashboardId &&
+    isSignInRequired &&
+    !signedInAs &&
+    !PublicDashboardUtil.isAuthPath(currentPath)
+  ) {
+    PublicDashboardUtil.navigateToSignInPage();
+    return <AuthPageSkeleton fields={2} />;
+  }
+
+  if (
+    dashboardId &&
+    isSignInRequired &&
+    signedInAs &&
+    (currentPath.endsWith(PUBLIC_DASHBOARD_SIGN_IN_PATH) ||
+      currentPath.endsWith(PUBLIC_DASHBOARD_FORGOT_PASSWORD_PATH))
+  ) {
+    PublicDashboardUtil.navigateAfterSignIn();
+    return <PageSkeleton />;
+  }
+
+  // Who is signed in, for the dashboard's Sign Out.
+  const signedIn: DashboardSignedInVisitor | null =
+    dashboardId && isSignInRequired && signedInAs
+      ? {
+          email: signedInAs,
+          onSignOut: async (): Promise<void> => {
+            await PublicDashboardSignIn.signOut(dashboardId);
+            Navigation.navigate(
+              new Route(
+                PublicDashboardUtil.withLinkTheme(
+                  PublicDashboardUtil.getPagePath(
+                    PUBLIC_DASHBOARD_SIGN_IN_PATH,
+                  ),
+                ),
+              ),
+              { forceNavigate: true },
+            );
+          },
+        }
+      : null;
+
+  const signInPage: JSX.Element = (
+    <SignInPage dashboardName={dashboardName} initialError={signInError} />
+  );
+
+  const forgotPasswordPage: JSX.Element = (
+    <ForgotPasswordPage dashboardName={dashboardName} />
+  );
+
+  const resetPasswordPage: JSX.Element = (
+    <ResetPasswordPage dashboardName={dashboardName} />
+  );
+
   return (
     <Suspense fallback={<PageSkeleton />}>
       <Routes>
@@ -296,11 +457,29 @@ const App: () => JSX.Element = () => {
           path={RouteMap[PageMap.OVERVIEW]?.toString() || ""}
           element={
             dashboardId ? (
-              <DashboardViewPage dashboardId={dashboardId} />
+              <DashboardViewPage
+                dashboardId={dashboardId}
+                signedIn={signedIn}
+              />
             ) : (
               <NotFoundPage />
             )
           }
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.SIGN_IN]?.toString() || ""}
+          element={signInPage}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.FORGOT_PASSWORD]?.toString() || ""}
+          element={forgotPasswordPage}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.RESET_PASSWORD]?.toString() || ""}
+          element={resetPasswordPage}
         />
 
         <PageRoute
@@ -318,11 +497,29 @@ const App: () => JSX.Element = () => {
           path={RouteMap[PageMap.PREVIEW_OVERVIEW]?.toString() || ""}
           element={
             dashboardId ? (
-              <DashboardViewPage dashboardId={dashboardId} />
+              <DashboardViewPage
+                dashboardId={dashboardId}
+                signedIn={signedIn}
+              />
             ) : (
               <NotFoundPage />
             )
           }
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.PREVIEW_SIGN_IN]?.toString() || ""}
+          element={signInPage}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.PREVIEW_FORGOT_PASSWORD]?.toString() || ""}
+          element={forgotPasswordPage}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.PREVIEW_RESET_PASSWORD]?.toString() || ""}
+          element={resetPasswordPage}
         />
 
         <PageRoute

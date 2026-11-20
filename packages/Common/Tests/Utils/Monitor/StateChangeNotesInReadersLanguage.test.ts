@@ -41,6 +41,7 @@ import { formatSloPolicyTierThreshold } from "../../../Utils/Slo/SloErrorBudgetP
 import CloudBudgetEvaluator from "../../../Server/Utils/CloudConnection/CloudBudgetEvaluator";
 import PerSeriesResolutionRootCause from "../../../Server/Utils/Monitor/PerSeriesResolutionRootCause";
 import MonitorTurnedOff from "../../../Server/Utils/Monitor/MonitorTurnedOff";
+import DeviceManagementConnectionAlerts from "../../../Server/Utils/DeviceManagement/DeviceManagementConnectionAlerts";
 import { LOG_GROUP_RESOLVED_ROOT_CAUSE } from "../../../Server/Utils/Monitor/LogGroupCriteriaFanOut";
 import { getRestoredStatusEventRootCause } from "../../../Server/Utils/Monitor/MonitorStatusTimelineReconciler";
 import { getNothingReportsRootCause } from "../../../Server/Services/NetworkSiteService";
@@ -350,6 +351,39 @@ const WRITTEN: ReadonlyArray<Written> = [
       ];
     },
   ),
+  // A device management connection turned off or deleted (#10286).
+  {
+    writer: "DeviceManagementConnectionAlerts (turned off, nobody named)",
+    stored: DeviceManagementConnectionAlerts.getTurnedOffRootCause({
+      connectionName: "Esper acme",
+      turnedOffBy: FeedMarkdown.empty(),
+    }),
+    keeps: ["Esper acme"],
+  },
+  {
+    writer: "DeviceManagementConnectionAlerts (turned off, by a person)",
+    stored: DeviceManagementConnectionAlerts.getTurnedOffRootCause({
+      connectionName: "Esper acme",
+      turnedOffBy: FeedMarkdown.asMarkdown(USER_LINK),
+    }),
+    keeps: ["Esper acme", "Jane Doe"],
+  },
+  {
+    writer: "DeviceManagementConnectionAlerts (deleted, nobody named)",
+    stored: DeviceManagementConnectionAlerts.getDeletedRootCause({
+      connectionName: "Stores West",
+      deletedBy: FeedMarkdown.empty(),
+    }),
+    keeps: ["Stores West"],
+  },
+  {
+    writer: "DeviceManagementConnectionAlerts (deleted, by a person)",
+    stored: DeviceManagementConnectionAlerts.getDeletedRootCause({
+      connectionName: "Stores West",
+      deletedBy: FeedMarkdown.asMarkdown(USER_LINK),
+    }),
+    keeps: ["Stores West", "Jane Doe"],
+  },
   // A network site's alert.
   {
     writer: "NetworkSiteService (nothing reports)",

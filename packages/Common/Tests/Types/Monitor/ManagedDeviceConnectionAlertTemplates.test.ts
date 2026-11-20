@@ -454,7 +454,7 @@ describe("the recommendation", () => {
     ).toBe(0);
   });
 
-  test("its other steps are its waits at the other intervals, each once, and no other template has any", () => {
+  test("its other steps are its waits at the other intervals, each once, and no other template's follow the interval", () => {
     const template: ManagedDeviceAlertTemplate = templateOf(
       DeviceManagementProvider.Esper,
     );
@@ -475,6 +475,11 @@ describe("the recommendation", () => {
       ),
     ).toEqual([30, 40, 100, 190]);
 
+    /*
+     * Another template's other steps are those of its earlier versions
+     * alone (a check-in's or a patch's query before it read its service):
+     * at whatever interval, never a wait of its own.
+     */
     for (const other of getAllManagedDeviceAlertTemplates().filter(
       (candidate: ManagedDeviceAlertTemplate): boolean => {
         return (
@@ -483,11 +488,20 @@ describe("the recommendation", () => {
         );
       },
     )) {
-      expect({
-        id: other.id,
-        steps: getManagedDeviceAlertTemplateEquivalentSteps(other, args())
-          .length,
-      }).toEqual({ id: other.id, steps: 0 });
+      const earlier: number = (other.getEarlierMonitorSteps?.(args()) || [])
+        .length;
+
+      expect(other.followsReadInterval).toBeUndefined();
+
+      for (const readIntervalInMinutes of [5, 15, 60]) {
+        expect({
+          id: other.id,
+          steps: getManagedDeviceAlertTemplateEquivalentSteps(
+            other,
+            args({ readIntervalInMinutes }),
+          ).length,
+        }).toEqual({ id: other.id, steps: earlier });
+      }
     }
   });
 
@@ -500,7 +514,12 @@ describe("the recommendation", () => {
   test("each service's connection, battery and storage templates fingerprint apart", () => {
     const families: Array<Array<string>> = [
       Object.values(CONNECTION_TEMPLATE_IDS),
-      ["esper-low-battery", "workspace-one-low-battery", "soti-low-battery"],
+      [
+        "esper-low-battery",
+        "intune-low-battery",
+        "workspace-one-low-battery",
+        "soti-low-battery",
+      ],
       [
         "esper-storage-nearly-full",
         "intune-storage-nearly-full",

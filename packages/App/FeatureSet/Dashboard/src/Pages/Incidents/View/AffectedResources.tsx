@@ -61,6 +61,14 @@ const IncidentAffectedResources: FunctionComponent<ComponentProps> = (
   const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
     undefined,
   );
+  /*
+   * The metrics the monitor's steps read: a managed device's commands are
+   * those of the reading its monitor opened this for (#10209). Read with
+   * the type.
+   */
+  const [metricNames, setMetricNames] = useState<Array<string> | undefined>(
+    undefined,
+  );
 
   const seriesLabels: JSONObject | undefined = hasSeriesLabelsFromPage
     ? normalizeSeriesLabels(props.seriesLabels)
@@ -105,6 +113,7 @@ const IncidentAffectedResources: FunctionComponent<ComponentProps> = (
         select: {
           monitors: {
             monitorType: true,
+            monitorSteps: true,
           },
         },
       });
@@ -115,8 +124,14 @@ const IncidentAffectedResources: FunctionComponent<ComponentProps> = (
        * one monitor, so the first is the one that raised it.
        */
       setMonitorType(incident?.monitors?.[0]?.monitorType);
+      setMetricNames(
+        SeriesDebugHints.getMetricNamesOfMonitorSteps(
+          incident?.monitors?.[0]?.monitorSteps,
+        ),
+      );
     } catch {
       setMonitorType(undefined);
+      setMetricNames(undefined);
     }
   };
 
@@ -140,6 +155,7 @@ const IncidentAffectedResources: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     if (!hasSeriesLabels) {
       setMonitorType(undefined);
+      setMetricNames(undefined);
       return;
     }
 
@@ -159,6 +175,7 @@ const IncidentAffectedResources: FunctionComponent<ComponentProps> = (
     SeriesDebugHints.getDebugCommands({
       monitorType: monitorType,
       seriesLabels: seriesLabels,
+      metricNames: metricNames,
     }).length > 0;
 
   return (
@@ -183,6 +200,7 @@ const IncidentAffectedResources: FunctionComponent<ComponentProps> = (
           <SeriesDebugCommandsViewer
             monitorType={monitorType}
             seriesLabels={seriesLabels}
+            metricNames={metricNames}
           />
         </Card>
       ) : (

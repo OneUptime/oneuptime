@@ -4413,5 +4413,18 @@
   "Same name as another label": "他のラベルと同じ名前",
   "Same name as another policy": "他のポリシーと同じ名前",
   "Same name as another schedule": "他のスケジュールと同じ名前",
-  "Created {{date}}": "{{date}} に作成"
+  "Created {{date}}": "{{date}} に作成",
+  "Signs In As": "サインインする ID",
+  "Check again": "再確認",
+  "Couldn't ask the server which AWS identity it signs in as. {{error}}": "サーバーがどの AWS ID でサインインするかを確認できませんでした。{{error}}",
+  "This server cannot sign in to AWS. {{error}}": "このサーバーは AWS にサインインできません。{{error}}",
+  "A test email shows whether it may send.": "送信できるかどうかはテストメールでわかります。",
+  "From AWS_ACCESS_KEY_ID in the server's environment.": "サーバーの環境の AWS_ACCESS_KEY_ID から。",
+  "From the server's AWS profile.": "サーバーの AWS プロファイルから。",
+  "From IAM roles for service accounts.": "サービスアカウントの IAM ロールから。",
+  "From EKS Pod Identity.": "EKS Pod Identity から。",
+  "From the ECS task role.": "ECS タスクロールから。",
+  "From the container credentials endpoint.": "コンテナ認証情報エンドポイントから。",
+  "From the EC2 instance profile.": "EC2 インスタンスプロファイルから。",
+  "The server did not say which AWS identity it signs in as.": "サーバーは、どの AWS ID でサインインするかを返しませんでした。"
 }

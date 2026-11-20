@@ -1,7 +1,11 @@
 import {
+  MANAGED_DEVICE_BATTERY_CHARGING_DESCRIPTION,
+  MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+  MANAGED_DEVICE_BATTERY_CHARGING_UNIT,
   MANAGED_DEVICE_BATTERY_LEVEL_DESCRIPTION,
   MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
   MANAGED_DEVICE_BATTERY_LEVEL_UNIT,
+  MANAGED_DEVICE_IS_CHARGING_DETAIL,
   MANAGED_DEVICE_READING_METRIC_NAMES,
   MANAGED_DEVICE_STORAGE_FREE_BYTES_DETAIL,
   MANAGED_DEVICE_STORAGE_TOTAL_BYTES_DETAIL,
@@ -12,6 +16,8 @@ import {
   ManagedDeviceCheckInDevice,
   ManagedDeviceCheckInReading,
   getManagedDeviceBatteryReading,
+  getManagedDeviceChargingDetails,
+  getManagedDeviceChargingReading,
   getManagedDeviceCheckInAttributes,
   getManagedDeviceCheckInReadings,
   getManagedDeviceStorageAttributes,
@@ -296,6 +302,72 @@ describe("a storage reading's attributes", () => {
         ...data,
         reading: { ...reading, storage: undefined },
       }),
+    ).toBeUndefined();
+  });
+});
+
+/*
+ * #10288: whether a device is on its charger, where its service says so:
+ * its own metric, 1 or 0, beside the battery, read from what the import
+ * keeps in the device's details - of a device with a battery alone.
+ */
+describe("whether a device is on its charger", () => {
+  test("is a metric of OneUptime's own, beside the battery, never the agent's", () => {
+    expect(MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME).toBe(
+      "oneuptime.managed_device.battery.charging",
+    );
+    expect(MANAGED_DEVICE_BATTERY_CHARGING_UNIT).toBe("");
+    expect(MANAGED_DEVICE_BATTERY_CHARGING_DESCRIPTION).toContain(
+      "1 on power, 0 on its battery",
+    );
+    expect(MANAGED_DEVICE_READING_METRIC_NAMES).toContain(
+      MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+    );
+    // The Android agent's own, which its host's Device Unplugged reads.
+    expect(MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME).not.toBe(
+      "android.battery.plugged",
+    );
+  });
+
+  test("a parser keeps true or false under one key, and nothing for anything else", () => {
+    expect(getManagedDeviceChargingDetails(true)).toEqual({
+      [MANAGED_DEVICE_IS_CHARGING_DETAIL]: true,
+    });
+    expect(getManagedDeviceChargingDetails(false)).toEqual({
+      [MANAGED_DEVICE_IS_CHARGING_DETAIL]: false,
+    });
+    expect(getManagedDeviceChargingDetails(null)).toEqual({});
+    expect(getManagedDeviceChargingDetails(undefined)).toEqual({});
+  });
+
+  test("a reading reads it back: true or false, and nothing for anything else", () => {
+    expect(getManagedDeviceChargingReading({ isCharging: true })).toBe(true);
+    expect(getManagedDeviceChargingReading({ isCharging: false })).toBe(false);
+
+    for (const details of [
+      { isCharging: "true" },
+      { isCharging: 1 },
+      {},
+      null,
+      undefined,
+    ]) {
+      expect(getManagedDeviceChargingReading(details)).toBeUndefined();
+    }
+  });
+
+  test("a device with a battery carries it on its reading; one with none, or that says neither, does not", () => {
+    expect(
+      readingOf({ batteryLevel: 12, details: { isCharging: true } })!
+        .isCharging,
+    ).toBe(true);
+    expect(
+      readingOf({ batteryLevel: 12, details: { isCharging: false } })!
+        .isCharging,
+    ).toBe(false);
+    expect(readingOf({ batteryLevel: 12 })!.isCharging).toBeUndefined();
+    // A desktop on AC with no battery: nothing to leave be.
+    expect(
+      readingOf({ batteryLevel: 0, details: { isCharging: true } })!.isCharging,
     ).toBeUndefined();
   });
 });

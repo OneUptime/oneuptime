@@ -89,7 +89,7 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 OneUptime 会列出每个区域中的 EC2 实例和卷、VPC、子网和安全组、NAT 网关、Auto Scaling 组、负载均衡器（Application、Network、Gateway 和 Classic）、EKS 集群、ECS 集群和服务、Lambda 函数、RDS 数据库、ElastiCache、SQS 队列、SNS 主题、DynamoDB 表、Kinesis 数据流、Step Functions 状态机、API Gateway API、EFS 文件系统、OpenSearch 域、App Runner 服务、Elastic Beanstalk 环境、WAF Web ACL、Network Firewall 防火墙、Cognito 用户池、AppSync GraphQL API 和 SageMaker 端点，并附上它们的标签；CloudFront 分配及其 Web ACL 只在 us-east-1 中列出一次，Global Accelerator 加速器只在 us-west-2 中列出一次。它还会记录它们之间的连接：每个资源所在的子网和 VPC 以及保护它的安全组、每个负载均衡器把流量发往何处，以及每个 EKS 集群的网络和节点实例。在 OneUptime 列出某种类型之前创建的角色仍会被读取，只是不含该类型，也不会显示警告：再次运行命令即可同时列出该类型，例如子网、安全组和 EKS 集群，或之后新增的 Web ACL、防火墙、加速器、用户池、GraphQL API 和端点，它们随后会在报告指标之前就被列出。
 
 > [!NOTE]
-> 在自托管的 OneUptime 上，**IAM 角色** 方式需要 OneUptime 自己的 AWS 身份：将 `CLOUD_CONNECT_AWS_ACCESS_KEY_ID` 和 `CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY` 设置为一个可以调用 `sts:AssumeRole` 的 IAM 用户的密钥。未设置时，表单会提供 **访问密钥**。
+> 在自托管的 OneUptime 上，**IAM 角色** 方式需要 OneUptime 自己的、可以调用 `sts:AssumeRole` 的 AWS 身份：服务器运行时使用的 IAM 角色（在 Amazon EKS 上是其 Pod 的角色，在 Helm Chart 的 `serviceAccount.annotations` 中设置；在 Amazon ECS 上是其任务角色；在 Amazon EC2 上是其实例配置文件），或者 `CLOUD_CONNECT_AWS_ACCESS_KEY_ID` 和 `CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY` 中某个 IAM 用户的密钥，设置了密钥时总是使用密钥。两者都没有时，表单会提供 **访问密钥**。
 
 ## Microsoft Azure
 

@@ -85,6 +85,13 @@ const PUBLISHING_WORKFLOW_TOOLS: Array<string> = [
   "add_monitors_to_status_page",
 ];
 
+/*
+ * The tools written by hand that email people outside the project: an
+ * invitation goes to an address that need not be anyone in it yet
+ * (#10041), so it reaches past the project as a published write does.
+ */
+const MAILING_WORKFLOW_TOOLS: Array<string> = ["invite_people"];
+
 // The longest tool name the Claude Connectors Directory accepts.
 const MAX_TOOL_NAME_LENGTH: number = 64;
 
@@ -251,7 +258,7 @@ describe("every tool carries the title and the hints MCP directories ask for", (
     }
   });
 
-  test("a tool is open-world exactly when it reads public status pages or publishes what it writes", () => {
+  test("a tool is open-world exactly when it reads public status pages, publishes what it writes, or emails outside the project", () => {
     const openWorld: Array<string> = listed()
       .filter((tool: Tool): boolean => {
         return tool.annotations?.openWorldHint === true;
@@ -263,6 +270,7 @@ describe("every tool carries the title and the hints MCP directories ask for", (
         return (
           isPublicStatusPageTool(tool.name) ||
           PUBLISHING_WORKFLOW_TOOLS.includes(tool.name) ||
+          MAILING_WORKFLOW_TOOLS.includes(tool.name) ||
           (tool.annotations?.readOnlyHint === false &&
             isPublishedTable(tool.tableName))
         );
@@ -291,6 +299,8 @@ describe("every tool carries the title and the hints MCP directories ask for", (
       "resolve_incident",
       "publish_status_page",
       "add_monitors_to_status_page",
+      // It emails addresses outside the project.
+      "invite_people",
     ]) {
       expect([name, openWorld.includes(name)]).toEqual([name, true]);
     }
@@ -306,7 +316,10 @@ describe("every tool carries the title and the hints MCP directories ask for", (
       "list_incidents",
       "oneuptime_whoami",
       "set_up_website_monitoring",
+      "set_up_service_monitor",
       "set_up_paging",
+      "add_to_on_call_policy",
+      "set_how_to_reach_me",
       "who_is_told",
     ]) {
       expect([name, openWorld.includes(name)]).toEqual([name, false]);

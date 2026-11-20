@@ -89,7 +89,7 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 OneUptime は各リージョンの EC2 インスタンスとボリューム、VPC、サブネットとセキュリティグループ、NAT ゲートウェイ、Auto Scaling グループ、ロードバランサ (Application、Network、Gateway、Classic)、EKS クラスタ、ECS クラスタとサービス、Lambda 関数、RDS データベース、ElastiCache、SQS キュー、SNS トピック、DynamoDB テーブル、Kinesis ストリーム、Step Functions のステートマシン、API Gateway の API、EFS ファイルシステム、OpenSearch ドメイン、App Runner サービス、Elastic Beanstalk 環境、WAF ウェブ ACL、Network Firewall のファイアウォール、Cognito ユーザープール、AppSync の GraphQL API、SageMaker エンドポイントをタグとともに一覧にし、CloudFront ディストリビューションとそのウェブ ACL は us-east-1 で、Global Accelerator のアクセラレーターは us-west-2 で一度だけ一覧にします。それらのつながりも記録します。各リソースが動くサブネットと VPC と、それを守るセキュリティグループ、各ロードバランサがトラフィックを送る先、各 EKS クラスタのネットワークとノード インスタンスです。OneUptime がある種類を一覧にする前に作ったロールも、その種類なしで警告なく読まれます。サブネット、セキュリティグループ、EKS クラスタ、またはその後に加わったウェブ ACL、ファイアウォール、アクセラレーター、ユーザープール、GraphQL API、エンドポイントなど、その種類も一覧にするにはコマンドをもう一度実行してください。これらはメトリクスを報告する前から一覧に載るようになります。
 
 > [!NOTE]
-> セルフホストの OneUptime では、**IAM ロール** の方式に OneUptime 自身の AWS ID が必要です。`CLOUD_CONNECT_AWS_ACCESS_KEY_ID` と `CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY` に、`sts:AssumeRole` を呼び出せる IAM ユーザーのキーを設定してください。設定がない場合、フォームは **アクセス キー** を提示します。
+> セルフホストの OneUptime では、**IAM ロール** の方式に、`sts:AssumeRole` を呼び出せる OneUptime 自身の AWS ID が必要です。サーバーが実行されている IAM ロール（Amazon EKS では Helm チャートの `serviceAccount.annotations` で設定するポッドのロール、Amazon ECS ではタスクロール、Amazon EC2 ではインスタンスプロファイル）、または `CLOUD_CONNECT_AWS_ACCESS_KEY_ID` と `CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY` に設定した IAM ユーザーのキーで、キーは設定されていれば常に使われます。どちらもない場合、フォームは **アクセス キー** を提示します。
 
 ## Microsoft Azure
 

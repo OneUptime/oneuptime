@@ -5,6 +5,10 @@ import {
   CloudAddedMetricScope,
 } from "../../Types/Cloud/CloudAddedMetrics";
 import { CloudAddedMetricReaders } from "../../Types/Cloud/CloudAddedMetricReaders";
+import {
+  APP_SERVICE_SITE_ACTIVITY_API_PATH,
+  AppServiceSiteActivity,
+} from "../../Types/Cloud/AppServiceSiteActivity";
 import { CloudProvider } from "../../Types/Cloud/CloudPlatform";
 import { CloudPublishedMetricsListing } from "../../Types/Cloud/CloudPublishedMetrics";
 import { CloudUnreportedKeyMetricReport } from "../../Types/Cloud/CloudUnreportedKeyMetrics";
@@ -20,6 +24,7 @@ import CloudConnectionService, {
   Service as CloudConnectionServiceClass,
 } from "../Services/CloudConnectionService";
 import AwsServerIdentity from "../Utils/CloudConnection/Aws/AwsServerIdentity";
+import AzureAppServiceSiteActivity from "../Utils/CloudConnection/Azure/AzureAppServiceSiteActivity";
 import CloudConnectionScheduler from "../Utils/CloudConnection/CloudConnectionScheduler";
 import CloudConnectorRegistry from "../Utils/CloudConnection/CloudConnectorRegistry";
 import {
@@ -103,6 +108,11 @@ import ProductKey from "../../Types/Product/ProductKey";
  *   The resource-metrics routes list and explain for whoever may read the
  *   resource; Add, Remove and what reads an addition are for whoever may
  *   edit connections.
+ *
+ *   GET /cloud-connection/app-service-site/:cloudResourceId/activity
+ *     -> AppServiceSiteActivity: an Azure App Service app's instances,
+ *        deployments and image, asked of Azure now (#10294), for whoever
+ *        may read the site.
  *
  * All of them are for whoever may edit connections (project owners and
  * admins): a test signs in to a cloud account with its credential, a read
@@ -701,6 +711,41 @@ export default class CloudConnectionAPI extends BaseAPI<
             req,
             res,
             setup as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * An Azure App Service app's instances, deployments and image, asked of
+     * Azure now through the site's connection (#10294): an App Platforms
+     * app's page shows them beside what its telemetry names. Read-only and
+     * for whoever may read the site (AzureAppServiceSiteActivity).
+     */
+    this.router.get(
+      `${APP_SERVICE_SITE_ACTIVITY_API_PATH}/:cloudResourceId/activity`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          const activity: AppServiceSiteActivity =
+            await AzureAppServiceSiteActivity.read({
+              projectId,
+              cloudResourceId: this.readCloudResourceId(req),
+              props,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            activity as unknown as JSONObject,
           );
         } catch (error) {
           next(error);

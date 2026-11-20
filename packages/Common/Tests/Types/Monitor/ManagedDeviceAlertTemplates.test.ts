@@ -131,7 +131,8 @@ describe("the catalog of a connection's alerts", () => {
       "esper-security-patch-out-of-date",
       "intune-connection-stopped-reading",
       "intune-device-stopped-checking-in",
-      // Intune's device list says no battery: its storage alone.
+      // #10287: an iPhone's or iPad's battery, each asked alone.
+      "intune-low-battery",
       "intune-storage-nearly-full",
       "intune-security-patch-out-of-date",
       "workspace-one-connection-stopped-reading",
@@ -251,6 +252,8 @@ describe("the catalog of a connection's alerts", () => {
     ).toEqual([
       "DeviceManagementConnection:intune-connection-stopped-reading",
       "DeviceManagementConnection:intune-device-stopped-checking-in",
+      // #10287: its iPhones' and iPads' batteries, each asked alone.
+      "DeviceManagementConnection:intune-low-battery",
       "DeviceManagementConnection:intune-storage-nearly-full",
       "DeviceManagementConnection:intune-security-patch-out-of-date",
     ]);
@@ -271,12 +274,16 @@ describe("the catalog of a connection's alerts", () => {
         unknown
       >) || {};
 
-    // Every device of the connection: no platform is named.
+    // Every device of the connection, and its service: no platform is named.
     expect(Object.keys(attributes).sort()).toEqual(
       [
         ManagedDeviceCheckInAttribute.ConnectionId,
         ManagedDeviceCheckInAttribute.IsHost,
+        ManagedDeviceCheckInAttribute.Provider,
       ].sort(),
+    );
+    expect(attributes[ManagedDeviceCheckInAttribute.Provider]).toBe(
+      DeviceManagementProvider.Intune,
     );
   });
 });
@@ -291,6 +298,11 @@ describe("what the monitor reads", () => {
     expect(query.metricQueryData.filterData.attributes).toEqual({
       [ManagedDeviceCheckInAttribute.ConnectionId]: CONNECTION_ID,
       [ManagedDeviceCheckInAttribute.IsHost]: "false",
+      /*
+       * Its service as well: the connection's readings all name it, and it
+       * keeps each service's check-in template apart from the others'.
+       */
+      [ManagedDeviceCheckInAttribute.Provider]: DeviceManagementProvider.Esper,
       // An Apple device checks in hours apart: it has a template of its own.
       [ManagedDeviceCheckInAttribute.Platform]: ManagedDevicePlatform.Android,
     });
@@ -432,10 +444,26 @@ describe("what the monitor reads", () => {
       buildManagedDeviceCheckInMetricMonitor({
         deviceManagementConnectionId: CONNECTION_ID,
         platforms: [ManagedDevicePlatform.Android],
+        provider: DeviceManagementProvider.Esper,
       }),
     ).toEqual(metricMonitorOf(stepOf()));
 
     // With no platforms, it reads every device of the connection.
+    expect(
+      Object.keys(
+        buildManagedDeviceCheckInMetricMonitor({
+          deviceManagementConnectionId: CONNECTION_ID,
+          provider: DeviceManagementProvider.Esper,
+        }).metricViewConfig.queryConfigs[0]!.metricQueryData.filterData
+          .attributes || {},
+      ),
+    ).toEqual([
+      ManagedDeviceCheckInAttribute.ConnectionId,
+      ManagedDeviceCheckInAttribute.IsHost,
+      ManagedDeviceCheckInAttribute.Provider,
+    ]);
+
+    // With no service, the connection alone: a monitor made before it read one.
     expect(
       Object.keys(
         buildManagedDeviceCheckInMetricMonitor({
@@ -568,6 +596,12 @@ describe("the alert a device opens", () => {
         purpose:
           "The device's battery at each read, in percent, as its device manager last heard it",
         command: `oneuptime metric list --query '{"name":"oneuptime.managed_device.battery.level","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
+      },
+      // #10288: whether it was on its charger, where its service says so.
+      {
+        purpose:
+          "Whether the device was on its charger at each read: 1 on power, 0 on its battery",
+        command: `oneuptime metric list --query '{"name":"oneuptime.managed_device.battery.charging","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
       },
       {
         purpose:

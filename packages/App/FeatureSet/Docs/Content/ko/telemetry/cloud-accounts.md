@@ -89,7 +89,7 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 OneUptime은 각 리전의 EC2 인스턴스와 볼륨, VPC, 서브넷과 보안 그룹, NAT 게이트웨이, Auto Scaling 그룹, 로드 밸런서(Application, Network, Gateway, Classic), EKS 클러스터, ECS 클러스터와 서비스, Lambda 함수, RDS 데이터베이스, ElastiCache, SQS 대기열, SNS 주제, DynamoDB 테이블, Kinesis 스트림, Step Functions 상태 머신, API Gateway API, EFS 파일 시스템, OpenSearch 도메인, App Runner 서비스, Elastic Beanstalk 환경, WAF 웹 ACL, Network Firewall 방화벽, Cognito 사용자 풀, AppSync GraphQL API, SageMaker 엔드포인트를 태그와 함께 나열하고, CloudFront 배포와 그 웹 ACL은 us-east-1에서, Global Accelerator 액셀러레이터는 us-west-2에서 한 번 나열합니다. 이들이 어떻게 연결되는지도 기록합니다. 각 리소스가 실행되는 서브넷과 VPC 및 이를 보호하는 보안 그룹, 각 로드 밸런서가 트래픽을 보내는 곳, 각 EKS 클러스터의 네트워크와 노드 인스턴스입니다. OneUptime이 어떤 유형을 나열하기 전에 만든 역할도 그 유형 없이 경고 없이 계속 읽힙니다. 서브넷, 보안 그룹, EKS 클러스터, 또는 그 뒤에 추가된 웹 ACL, 방화벽, 액셀러레이터, 사용자 풀, GraphQL API, 엔드포인트처럼 그 유형도 나열하려면 명령을 다시 실행하세요. 그러면 이들은 메트릭을 보고하기 전부터 나열됩니다.
 
 > [!NOTE]
-> 자체 호스팅 OneUptime에서 **IAM 역할** 방식을 쓰려면 OneUptime 자체의 AWS ID가 필요합니다. `CLOUD_CONNECT_AWS_ACCESS_KEY_ID`와 `CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY`에 `sts:AssumeRole`을 호출할 수 있는 IAM 사용자의 키를 설정하세요. 설정하지 않으면 양식은 **액세스 키**를 제공합니다.
+> 자체 호스팅 OneUptime에서 **IAM 역할** 방식을 쓰려면 `sts:AssumeRole`을 호출할 수 있는 OneUptime 자체의 AWS ID가 필요합니다. 서버가 실행되는 IAM 역할(Amazon EKS에서는 Helm 차트의 `serviceAccount.annotations`로 지정하는 파드의 역할, Amazon ECS에서는 작업 역할, Amazon EC2에서는 인스턴스 프로파일)이나 `CLOUD_CONNECT_AWS_ACCESS_KEY_ID`와 `CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY`에 설정한 IAM 사용자의 키이며, 키가 설정되어 있으면 항상 키를 사용합니다. 둘 다 없으면 양식은 **액세스 키**를 제공합니다.
 
 ## Microsoft Azure
 

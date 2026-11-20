@@ -33,6 +33,13 @@ import { JSONObject } from "../../Types/JSON";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { resolveClientIp } from "../Utils/ClientIp";
 import { DASHBOARD_MASTER_PASSWORD_COOKIE_IDENTIFIER } from "../../Types/Dashboard/MasterPassword";
+import { isDashboardSignInRequired } from "../../Types/Dashboard/DashboardAccess";
+import DashboardDomainService from "./DashboardDomainService";
+import DashboardPrivateUserSessionService from "./DashboardPrivateUserSessionService";
+import DashboardDomain from "../../Models/DatabaseModels/DashboardDomain";
+import DashboardPrivateUserSession from "../../Models/DatabaseModels/DashboardPrivateUserSession";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import UsableCustomDomain from "../Utils/CustomDomain/UsableCustomDomain";
 import PublicDashboardAccessPolicy, {
   PUBLIC_DASHBOARD_ACCESS_SELECT,
   PublicDashboardAccess,
@@ -358,6 +365,12 @@ export class Service extends ProjectReferencesService<Model> {
   public getPublicDashboardVisitor(data: {
     dashboardId: ObjectID;
     req: ExpressRequest;
+    /*
+     * Whether the request holds a live session of one of the dashboard's
+     * private users there: read by decidePublicAccess, before the decision
+     * and only for a dashboard that asks for it, as it takes the database.
+     */
+    hasSignedInSession?: boolean | undefined;
   }): PublicDashboardVisitor {
     const resolveAddress: () => string | undefined = (): string | undefined => {
       /*
@@ -376,6 +389,8 @@ export class Service extends ProjectReferencesService<Model> {
       });
     };
 
+    const hasSignedInSession: boolean = Boolean(data.hasSignedInSession);
+
     return {
       get clientIp(): string | undefined {
         return resolveAddress();
@@ -383,6 +398,7 @@ export class Service extends ProjectReferencesService<Model> {
       get hasUnlockCookie(): boolean {
         return holdsUnlockCookie();
       },
+      hasSignedInSession: hasSignedInSession,
     };
   }
 
@@ -390,20 +406,34 @@ export class Service extends ProjectReferencesService<Model> {
    * The decision (Utils/Dashboard/PublicDashboardAccess) for a dashboard
    * already loaded with at least PUBLIC_DASHBOARD_ACCESS_SELECT, for the
    * visitor making this request. A refusal by the IP allowlist is logged.
+   *
+   * For a dashboard that asks its visitors to sign in (#10250), the
+   * request's session is read first - live, never cached, so a sign-out, a
+   * new password or a removed private user ends it at the next request -
+   * and only for such a dashboard: an open one's widgets read nothing more.
    */
   public async decidePublicAccess(data: {
     dashboard: Model | null;
     dashboardId: ObjectID;
     req: ExpressRequest;
   }): Promise<PublicDashboardAccessResult> {
+    const dashboard: Model | null = await this.withoutBlockedProject(
+      data.dashboard,
+    );
+
     const visitor: PublicDashboardVisitor = this.getPublicDashboardVisitor({
       dashboardId: data.dashboardId,
       req: data.req,
+      hasSignedInSession: await this.hasSignedInSession({
+        dashboard,
+        dashboardId: data.dashboardId,
+        req: data.req,
+      }),
     });
 
     const result: PublicDashboardAccessResult =
       PublicDashboardAccessPolicy.decide({
-        dashboard: await this.withoutBlockedProject(data.dashboard),
+        dashboard,
         visitor,
       });
 
@@ -554,6 +584,124 @@ export class Service extends ProjectReferencesService<Model> {
       props: {
         isRoot: true,
       },
+    });
+  }
+
+  /*
+   * Whether this request holds a live session of one of the dashboard's
+   * private users, on this dashboard - asked only of a dashboard that asks
+   * its visitors to sign in (the rest answer false without a read). A
+   * lookup that fails answers false: the visitor is asked to sign in, and
+   * nothing is read.
+   */
+  private async hasSignedInSession(data: {
+    dashboard: Model | null;
+    dashboardId: ObjectID;
+    req: ExpressRequest;
+  }): Promise<boolean> {
+    if (
+      !data.dashboard ||
+      data.dashboard.isArchived ||
+      !isDashboardSignInRequired({
+        isPublicDashboard: data.dashboard.isPublicDashboard,
+        requireSignIn: data.dashboard.requireSignIn,
+      })
+    ) {
+      return false;
+    }
+
+    try {
+      return Boolean(
+        await DashboardPrivateUserSessionService.findSignedInSessionOnRequest({
+          req: data.req,
+          dashboardId: data.dashboardId,
+          requireSsoForLogin: data.dashboard.requireSsoForLogin,
+        }),
+      );
+    } catch (err) {
+      logger.error(err, {
+        dashboardId: data.dashboardId?.toString(),
+      } as LogAttributes);
+
+      return false;
+    }
+  }
+
+  /*
+   * The address of the private user signed in on this request, for the
+   * public link's "Signed in as" - read from the private user's own row,
+   * never from the token - or null when no one is.
+   */
+  @CaptureSpan()
+  public async getSignedInPrivateUserEmail(data: {
+    dashboardId: ObjectID;
+    req: ExpressRequest;
+  }): Promise<string | null> {
+    try {
+      const dashboard: Model | null = await this.findPublicAccessColumns(
+        data.dashboardId,
+      );
+
+      if (!dashboard) {
+        return null;
+      }
+
+      const session: DashboardPrivateUserSession | null =
+        await DashboardPrivateUserSessionService.findSignedInSessionOnRequest(
+          {
+            req: data.req,
+            dashboardId: data.dashboardId,
+            requireSsoForLogin: dashboard.requireSsoForLogin,
+            withEmail: true,
+          },
+        );
+
+      const email: string = (
+        session?.dashboardPrivateUser?.email?.toString() || ""
+      ).trim();
+
+      return email || null;
+    } catch (err) {
+      logger.error(err, {
+        dashboardId: data.dashboardId?.toString(),
+      } as LogAttributes);
+
+      return null;
+    }
+  }
+
+  /*
+   * The dashboard's public link: its custom domain's address when it has a
+   * usable one (Utils/CustomDomain/UsableCustomDomain - the rule a status
+   * page's links follow), else /public-dashboard/<id> on OneUptime's own.
+   * Where a private user's emails send them, and where single sign-on sends
+   * them back.
+   */
+  @CaptureSpan()
+  public async getPublicDashboardUrl(dashboardId: ObjectID): Promise<string> {
+    const domains: Array<DashboardDomain> = await DashboardDomainService.findBy(
+      {
+        query: {
+          dashboardId: dashboardId,
+        },
+        select: {
+          fullDomain: true,
+          isSslProvisioned: true,
+          isCustomCertificate: true,
+          isCnameVerified: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      },
+    );
+
+    return await UsableCustomDomain.getAddress({
+      domains: domains,
+      fallbackPath: `/public-dashboard/${dashboardId.toString()}`,
     });
   }
 

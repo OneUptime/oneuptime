@@ -80,6 +80,7 @@ const TILES_GRID_CLASS_NAME: string =
 const EMPTY_SERIES: AppServiceSeries = {
   requests: [],
   serverErrors: [],
+  clientErrors: [],
   responseTimeSeconds: [],
   cpuTimeSeconds: [],
   memoryBytes: [],
@@ -147,11 +148,18 @@ const CloudAppAzureMonitorCard: FunctionComponent<ComponentProps> = (
       read(AppServiceMetric.ResponseTime, AggregationType.Avg),
       read(AppServiceMetric.CpuTime, AggregationType.Sum),
       read(AppServiceMetric.MemoryWorkingSet, AggregationType.Avg),
+      // The 4xx answers (#10294): a client error is no server error, but an HTTP error all the same.
+      read(AppServiceMetric.ClientErrors, AggregationType.Sum),
     ])
       .then(
-        ([requests, serverErrors, responseTime, cpuTime, memory]: Array<
-          Array<TimePoint>
-        >): void => {
+        ([
+          requests,
+          serverErrors,
+          responseTime,
+          cpuTime,
+          memory,
+          clientErrors,
+        ]: Array<Array<TimePoint>>): void => {
           if (ignore) {
             return;
           }
@@ -159,6 +167,7 @@ const CloudAppAzureMonitorCard: FunctionComponent<ComponentProps> = (
           setSeries({
             requests: requests || [],
             serverErrors: serverErrors || [],
+            clientErrors: clientErrors || [],
             responseTimeSeconds: responseTime || [],
             cpuTimeSeconds: cpuTime || [],
             memoryBytes: memory || [],
@@ -327,6 +336,10 @@ const CloudAppAzureMonitorCard: FunctionComponent<ComponentProps> = (
               {
                 seriesName: "Server errors",
                 data: series?.serverErrors ?? [],
+              },
+              {
+                seriesName: "Client errors",
+                data: series?.clientErrors ?? [],
               },
             ] as Array<SeriesPoint>
           }
