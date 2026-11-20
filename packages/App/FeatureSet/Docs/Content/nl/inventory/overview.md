@@ -74,13 +74,13 @@ Open een item, en het eigen zijmenu heeft zijn **Overzicht** (type, bron en stat
 
 ### Assetgegevens
 
-Een host of een netwerkapparaat heeft een kaart **Assetgegevens** die beide op dezelfde manier beschrijft: hostnaam, IP-adres, MAC-adres, serienummer, fabrikant, model, firmwareversie, besturingssysteem, OS-versie, apparaattype en locatie. De kaart van een Android-apparaat heeft ook zijn beveiligingspatchniveau, van de Android-agent of zijn MDM. Een gegeven dat niets heeft gemeld, staat er als **Onbekend**, en de kaart legt uit waarom dat zo is en hoe de onbekende worden ingevuld: een apparaat dat ze niet via SNMP meldt, een apparaat dat nog niet is gelezen, of een Meraki-apparaat waarvan het dashboard ze heeft.
+Een host of een netwerkapparaat heeft een kaart **Assetgegevens** die beide op dezelfde manier beschrijft: hostnaam, IP-adres, MAC-adres, serienummer, fabrikant, model, firmwareversie, besturingssysteem, OS-versie, apparaattype en locatie. De kaart van een Android-apparaat heeft ook zijn beveiligingspatchniveau, van de Android-agent of zijn MDM. Ze zegt ook of de patch **Niet actueel** is, zoals de kolom **Beveiligingspatchniveau**, en hoeveel dagen oud hij is. Een gegeven dat niets heeft gemeld, staat er als **Onbekend**, en de kaart legt uit waarom dat zo is en hoe de onbekende worden ingevuld: een apparaat dat ze niet via SNMP meldt, een apparaat dat nog niet is gelezen, of een Meraki-apparaat waarvan het dashboard ze heeft.
 
 - De gegevens van een host komen uit de resourceattributen van zijn telemetrie: zijn IP- en MAC-adressen, architectuur en besturingssysteem meteen, en zijn serienummer, merk, model en firmware zodra je ze erop stempelt.
 - De gegevens van een netwerkapparaat komen uit zijn SNMP-poll, zijn rol en zijn site. Wat zijn poll niet heeft gelezen, komt uit discovery: de laatste scan van zijn adres, de ARP-tabel van een router of de DNS-lookup van zijn sonde. Een apparaat zonder ENTITY-MIB, zoals een Meraki MX, krijgt zijn merk, model en besturingssysteem toch uit zijn systeembeschrijving, en zijn MAC-adres van zijn eigen poorten. Zijn IP-adres wordt nooit als zijn hostnaam getoond.
 - Een Meraki-apparaat neemt ook wat zijn poll leeg laat over uit het Meraki-dashboard, waaronder zijn serienummer, model en firmware, wanneer een [Meraki-koppeling](/docs/monitor/network-traffic#cisco-meraki-zonder-netflow) zijn organisatie leest.
 
-**Alle items** vindt de Android-apparaten waar je iets mee moet doen. Het filter **Beveiligingspatchniveau** toont de apparaten die **Niet actueel** zijn, waarvan het beveiligingspatchniveau ouder is dan 90 dagen, dezelfde regel die de waarschuwing Security Patch Out of Date van de [Host-monitor](/docs/monitor/host-monitor) hanteert. Het filter **Agentmachtigingen** toont de apparaten waarop de [Android-agent](/docs/telemetry/android-agent) nog READ_LOGS, READ_DROPBOX_DATA of gebruikstoegang mist. Elk filter heeft een kolom met dezelfde naam, verborgen tot je die aanzet, en de CSV-export neemt die mee.
+**Alle items** vindt de Android-apparaten waar je iets mee moet doen. Het filter **Beveiligingspatchniveau** toont de apparaten die **Niet actueel** zijn, waarvan het beveiligingspatchniveau ouder is dan 90 dagen, dezelfde regel die de waarschuwing Security Patch Out of Date van de [Host-monitor](/docs/monitor/host-monitor) hanteert. Het filter **Agentmachtigingen** toont de apparaten waarop de [Android-agent](/docs/telemetry/android-agent) nog READ_LOGS, READ_DROPBOX_DATA of gebruikstoegang mist. Elk filter heeft een kolom met dezelfde naam, verborgen tot je die aanzet, en de CSV-export neemt die mee. Daarnaast bevat de kolom **MDM-ID** de ID waaronder de MDM een apparaat kent, zoals de Esper-ID die `espercli secureadb connect --device` verwacht.
 
 De kaart toont waar elk gegeven vandaan kwam en wanneer. De bron die de meeste gegevens delen, zoals de collector van een host, de eigen SNMP-poll van een netwerkapparaat of de discovery-scan die het las, wordt één keer genoemd, onder de gegevens. Elke andere bron, zoals de ARP-tabel van een router of een waarde die op het apparaat is opgeslagen, wordt onder het eigen gegeven genoemd. Een waarde die op een netwerkapparaat is opgeslagen, wordt nooit vervangen door wat discovery leest, en als de twee verschillen, toont de kaart ze allebei.
 
@@ -115,6 +115,7 @@ Ga naar **Producten → Bronnen → Inventaris**, dan naar **Beheerde apparaten*
 | Model, fabrikant, serienummer, besturingssysteem en zijn versie, build, en IP- en MAC-adressen | De kaart **Assetgegevens** van het apparaat, en de kolommen van **Alle items** |
 | Status, laatste check-in, groep, beveiligingspatchniveau, IMEI, batterij, opslag en Esper-agent | De kaart **Esper** van het apparaat, en de lijst **Apparaten** van **Beheerde apparaten** |
 | Apps en hun versies | De lijst **Geïnstalleerde apps** van het apparaat |
+| Zijn Esper-apparaat-ID | De kolom **MDM-ID** van **Alle items** |
 
 ### Eén apparaat, niet twee
 
@@ -138,6 +139,8 @@ Een apparaat dat uit Esper is verwijderd, krijgt de status **Verwijderd**, en zi
 Klik bij **Beheerde apparaten** op **Waarschuwingen instellen** in de rij van de koppeling en maak **Esper Android Device Stopped Checking In** en **Esper Apple Device Stopped Checking In** aan. De eerste opent een waarschuwing voor elk Android-apparaat dat al meer dan een uur niet bij Esper heeft ingecheckt, de tweede voor elk Apple-apparaat na meer dan een dag, elk genoemd naar het apparaat en opgelost zodra het weer incheckt.
 
 Elke lezing van de koppeling legt als de metriek `oneuptime.managed_device.check_in.age` vast hoeveel minuten geleden elk apparaat voor het laatst incheckte, en de monitor controleert elke 5 minuten de nieuwste waarde van elk apparaat. Een apparaat waarop ook de Android Agent draait, wordt aan **Host Stopped Reporting** overgelaten, zodat het nooit twee keer waarschuwt, en een apparaat dat uit Esper is verwijderd, lost zijn waarschuwing op. Een lezing die mislukt, legt niets vast, dus tot de volgende wordt er geen waarschuwing geopend of opgelost. Verhoog voor een vloot die 's nachts uit staat de drempel van de monitor.
+
+Maak ook **Esper Security Patch Out of Date** aan, dan opent elk Android-apparaat waarvan het beveiligingspatchniveau volgens Esper meer dan 90 dagen oud is een eigen waarschuwing, die wordt opgelost zodra het apparaat is bijgewerkt. Elke lezing legt als de metriek `oneuptime.managed_device.security_patch.age` vast hoeveel dagen oud het patchniveau van elk Android-apparaat is. Een apparaat waarop de Android Agent draait, wordt aan **Security Patch Out of Date** van zijn host overgelaten, zodat het nooit twee keer waarschuwt.
 
 ## Apparaten uit Microsoft Intune importeren
 
@@ -165,7 +168,7 @@ Een apparaat checkt ongeveer elke acht uur in bij Intune, en zijn laatste check-
 
 Intune geeft een apparaat de naam die zijn eigenaar het gaf, dus twee apparaten kunnen dezelfde naam hebben: elke iPhone die niemand hernoemde, heet `iPhone`. Een naam die twee apparaten van een koppeling delen, is in de inventaris van geen van beide: elk wordt in plaats daarvan naar zijn serienummer genoemd, en krijgt zijn naam terug zodra geen ander apparaat hem heeft.
 
-Om een waarschuwing te krijgen wanneer een apparaat niet meer incheckt, klik je op **Waarschuwingen instellen** in de rij van de koppeling en maak je **Intune Device Stopped Checking In** aan. Die opent een waarschuwing voor elk apparaat dat al meer dan een dag niet bij Intune heeft ingecheckt, genoemd naar het apparaat. Een laptop die een weekend uit staat, ziet er net zo uit, dus verhoog de drempel van de monitor als een dag te kort is voor de jouwe.
+Om een waarschuwing te krijgen wanneer een apparaat niet meer incheckt, klik je op **Waarschuwingen instellen** in de rij van de koppeling en maak je **Intune Device Stopped Checking In** aan. Die opent een waarschuwing voor elk apparaat dat al meer dan een dag niet bij Intune heeft ingecheckt, genoemd naar het apparaat. Een laptop die een weekend uit staat, ziet er net zo uit, dus verhoog de drempel van de monitor als een dag te kort is voor de jouwe. **Intune Security Patch Out of Date** waarschuwt voor elk Android-apparaat waarvan het beveiligingspatchniveau meer dan 90 dagen oud is, zoals het sjabloon van Esper.
 
 ## Apparaten uit Workspace ONE UEM importeren
 
@@ -191,7 +194,7 @@ Een apparaat meldt zich bij Workspace ONE volgens zijn eigen schema, een iPhone 
 
 Een app of de Android Agent die telemetrie van een apparaat stuurt, wordt via het serienummer van het apparaat samen met dat apparaat één item: stel de instelling `device_serial` van de Android Agent in op de opzoekwaarde `{DeviceSerialNumber}` in zijn beheerde configuratie.
 
-Om een waarschuwing te krijgen wanneer een apparaat niet meer incheckt, klik je op **Waarschuwingen instellen** in de rij van de koppeling en maak je **Workspace ONE Device Stopped Checking In** aan. Die opent een waarschuwing voor elk apparaat dat zich al meer dan een dag niet bij Workspace ONE heeft gemeld, genoemd naar het apparaat.
+Om een waarschuwing te krijgen wanneer een apparaat niet meer incheckt, klik je op **Waarschuwingen instellen** in de rij van de koppeling en maak je **Workspace ONE Device Stopped Checking In** aan. Die opent een waarschuwing voor elk apparaat dat zich al meer dan een dag niet bij Workspace ONE heeft gemeld, genoemd naar het apparaat. **Workspace ONE Security Patch Out of Date** waarschuwt voor elk Android-apparaat waarvan het beveiligingspatchniveau meer dan 90 dagen oud is, zoals het sjabloon van Esper.
 
 ## Apparaten uit SOTI MobiControl importeren
 
@@ -215,7 +218,7 @@ Een MobiControl-agent houdt een actieve verbinding met zijn server, dus een appa
 
 Een app of de Android Agent die telemetrie van een apparaat stuurt, wordt via het serienummer van het apparaat samen met dat apparaat één item: stel de instelling `device_serial` van de Android Agent in op de macro `%SERIALNUM%` in zijn beheerde configuratie.
 
-Om een waarschuwing te krijgen wanneer een apparaat niet meer incheckt, klik je op **Waarschuwingen instellen** in de rij van de koppeling en maak je **SOTI Device Stopped Checking In** en **SOTI Apple Device Stopped Checking In** aan. De eerste opent een waarschuwing voor elk Android-, Windows- of Linux-apparaat waarvan de agent al meer dan een uur niet verbonden is, de tweede voor elk Apple-apparaat dat al meer dan een dag niet heeft ingecheckt, elk genoemd naar het apparaat.
+Om een waarschuwing te krijgen wanneer een apparaat niet meer incheckt, klik je op **Waarschuwingen instellen** in de rij van de koppeling en maak je **SOTI Device Stopped Checking In** en **SOTI Apple Device Stopped Checking In** aan. De eerste opent een waarschuwing voor elk Android-, Windows- of Linux-apparaat waarvan de agent al meer dan een uur niet verbonden is, de tweede voor elk Apple-apparaat dat al meer dan een dag niet heeft ingecheckt, elk genoemd naar het apparaat. **SOTI Security Patch Out of Date** waarschuwt voor elk Android-apparaat waarvan het beveiligingspatchniveau meer dan 90 dagen oud is, zoals het sjabloon van Esper.
 
 ## Iets handmatig toevoegen
 

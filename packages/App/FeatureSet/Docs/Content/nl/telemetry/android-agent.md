@@ -104,7 +104,7 @@ Android laat een app de logs van andere apps alleen lezen met de toestemming REA
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-Voer die opdracht met Esper uit via **Secure Remote ADB**: zet ADB-toegang aan voor het apparaat, maak verbinding met `espercli secureadb connect --device DEVICE_ID` en voer dan de opdracht uit. Android herstart de agent wanneer de toestemming wordt verleend, en de agent begint meteen te lezen.
+Voer die opdracht met Esper uit via **Secure Remote ADB**: zet ADB-toegang aan voor het apparaat, maak verbinding met `espercli secureadb connect --device DEVICE_ID` en voer dan de opdracht uit. Android herstart de agent wanneer de toestemming wordt verleend, en de agent begint meteen te lezen. De kolom **MDM-ID** in de inventaris bevat de `DEVICE_ID` van elk apparaat.
 
 Wat de agent daarna leest, hangt af van de Android-versie:
 
@@ -126,7 +126,7 @@ De eerste opdracht is voor Android 15 en later; gebruikstoegang kun je ook aanze
 
 ### Ze op een hele vloot verlenen
 
-Elk rapport van de agent vermeldt welke hiervan hij nog mist. Voor een lijst van de apparaten die ze nodig hebben, open je **Inventaris**, dan **Alle items**, en filter je op **Agentmachtigingen**: **Ontbreekt**. Zet de kolom **Agentmachtigingen** aan om te zien wat elk apparaat mist, en exporteer de lijst als CSV.
+Elk rapport van de agent vermeldt welke hiervan hij nog mist. Voor een lijst van de apparaten die ze nodig hebben, open je **Inventaris**, dan **Alle items**, en filter je op **Agentmachtigingen**: **Ontbreekt**. Zet de kolom **Agentmachtigingen** aan om te zien wat elk apparaat mist, en exporteer de lijst als CSV. Zet ook de kolom **MDM-ID** aan, dan bevat de export de Esper-ID van elk apparaat, de `DEVICE_ID` die `espercli secureadb connect --device` verwacht.
 
 Geen apparaatbeleid kan ze verlenen: READ_LOGS en READ_DROPBOX_DATA zijn toestemmingen die alleen adb, het systeem of de fabrikant van het apparaat kan geven, en gebruikstoegang wordt ingesteld door adb of door de persoon bij het apparaat. Wat Esper biedt, en waarom niets daarvan ze verleent:
 
@@ -204,7 +204,7 @@ Een sessie heeft READ_LOGS en `logcat_enabled` nodig; zonder die staat ze op **N
 
 In **Hosts** staat als OS van het apparaat Android, met het logo van Android.
 
-Een apparaat loopt achter met zijn beveiligingspatches als zijn beveiligingspatchniveau ouder is dan 90 dagen. Google publiceert elke maand een Android-beveiligingsbulletin, en Android Enterprise Recommended verplicht de fabrikant van een apparaat om elk daarvan binnen 90 dagen uit te brengen, dus een apparaat dat verder achterloopt, mist fixes die zijn fabrikant al had moeten uitbrengen. In **Inventaris** toont het filter **Beveiligingspatchniveau** de apparaten die **Niet actueel** zijn; het sjabloon **Security Patch Out of Date** geeft voor elk ervan een waarschuwing.
+Een apparaat loopt achter met zijn beveiligingspatches als zijn beveiligingspatchniveau ouder is dan 90 dagen. Google publiceert elke maand een Android-beveiligingsbulletin, en Android Enterprise Recommended verplicht de fabrikant van een apparaat om elk daarvan binnen 90 dagen uit te brengen, dus een apparaat dat verder achterloopt, mist fixes die zijn fabrikant al had moeten uitbrengen. In **Inventaris** toont het filter **Beveiligingspatchniveau** de apparaten die **Niet actueel** zijn; het sjabloon **Security Patch Out of Date** geeft voor elk ervan een waarschuwing. Voor een Android-apparaat dat een MDM importeert en waarop de agent niet draait, waarschuwt het eigen sjabloon van zijn koppeling, zoals **Esper Security Patch Out of Date**, op basis van het patchniveau dat de MDM meldt; een apparaat waarop de agent draait, wordt aan dit sjabloon overgelaten, zodat het nooit twee keer waarschuwt.
 
 Het aantal starts van het apparaat in het afgelopen uur is de metriek `android.boot.recent_count`, en een apparaat dat blijft herstarten, logt bij elke start een waarschuwing. In **Hosts** krijgt een Android-apparaat eigen waarschuwingssjablonen aangeboden: Device Unplugged, Low Battery, Device Overheating, Restart Loop, Storage Nearly Full en Security Patch Out of Date, met Host Stopped Reporting, Host Restarted en High Memory Utilization, en High CPU Utilization zodra het CPU-gebruik meldt. De eerste debugopdrachten van elke waarschuwing zijn adb-opdrachten. Zie [Host-monitor](/docs/monitor/host-monitor#android-apparaten).
 

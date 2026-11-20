@@ -104,7 +104,7 @@ Android lässt eine App die Logs anderer Apps nur mit der Berechtigung READ_LOGS
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-Führen Sie diesen Befehl bei Esper über **Secure Remote ADB** aus: Schalten Sie den ADB-Zugriff für das Gerät ein, verbinden Sie sich mit `espercli secureadb connect --device DEVICE_ID` und führen Sie dann den Befehl aus. Android startet den Agenten neu, sobald die Berechtigung erteilt ist, und der Agent beginnt sofort zu lesen.
+Führen Sie diesen Befehl bei Esper über **Secure Remote ADB** aus: Schalten Sie den ADB-Zugriff für das Gerät ein, verbinden Sie sich mit `espercli secureadb connect --device DEVICE_ID` und führen Sie dann den Befehl aus. Android startet den Agenten neu, sobald die Berechtigung erteilt ist, und der Agent beginnt sofort zu lesen. Die Spalte **Geräteverwaltungs-ID** im Inventar enthält die `DEVICE_ID` jedes Geräts.
 
 Was der Agent dann liest, hängt von der Android-Version ab:
 
@@ -126,7 +126,7 @@ Der erste Befehl gilt für Android 15 und neuer; den Zugriff auf Nutzungsdaten k
 
 ### Berechtigungen auf der ganzen Flotte erteilen
 
-Jede Meldung des Agenten gibt an, welche dieser Berechtigungen ihm noch fehlen. Um die Geräte aufzulisten, die sie brauchen, öffnen Sie das **Inventar**, dann **Alle Elemente**, und filtern Sie nach **Agent-Berechtigungen**: **Fehlt**. Schalten Sie die Spalte **Agent-Berechtigungen** ein, um zu sehen, was jedem Gerät fehlt, und exportieren Sie die Liste als CSV.
+Jede Meldung des Agenten gibt an, welche dieser Berechtigungen ihm noch fehlen. Um die Geräte aufzulisten, die sie brauchen, öffnen Sie das **Inventar**, dann **Alle Elemente**, und filtern Sie nach **Agent-Berechtigungen**: **Fehlt**. Schalten Sie die Spalte **Agent-Berechtigungen** ein, um zu sehen, was jedem Gerät fehlt, und exportieren Sie die Liste als CSV. Schalten Sie auch die Spalte **Geräteverwaltungs-ID** ein, dann enthält der Export die Esper-ID jedes Geräts, die `DEVICE_ID`, die `espercli secureadb connect --device` erwartet.
 
 Eine Geräterichtlinie kann diese Berechtigungen nicht erteilen: READ_LOGS und READ_DROPBOX_DATA sind Berechtigungen, die nur adb, das System oder der Hersteller des Geräts vergeben kann, und der Zugriff auf Nutzungsdaten wird mit adb oder von der Person am Gerät eingeschaltet. Was Esper anbietet und warum nichts davon sie erteilt:
 
@@ -204,7 +204,7 @@ Eine Sitzung braucht READ_LOGS und `logcat_enabled`; ohne sie zeigt sie **Nicht 
 
 Unter **Hosts** lautet das Betriebssystem des Geräts Android, mit dem Android-Logo.
 
-Ein Gerät ist mit seinen Sicherheitspatches im Rückstand, wenn seine Sicherheitspatch-Ebene älter als 90 Tage ist. Google veröffentlicht jeden Monat ein Android-Sicherheitsbulletin, und Android Enterprise Recommended verpflichtet den Hersteller eines Geräts, jedes innerhalb von 90 Tagen auszuliefern, sodass einem Gerät, das weiter zurückliegt, Korrekturen fehlen, die sein Hersteller hätte ausliefern sollen. Im **Inventar** listet der Filter **Sicherheitspatch-Ebene** diese Geräte unter **Nicht aktuell** auf; die Vorlage **Security Patch Out of Date** löst für jedes davon eine Warnung aus.
+Ein Gerät ist mit seinen Sicherheitspatches im Rückstand, wenn seine Sicherheitspatch-Ebene älter als 90 Tage ist. Google veröffentlicht jeden Monat ein Android-Sicherheitsbulletin, und Android Enterprise Recommended verpflichtet den Hersteller eines Geräts, jedes innerhalb von 90 Tagen auszuliefern, sodass einem Gerät, das weiter zurückliegt, Korrekturen fehlen, die sein Hersteller hätte ausliefern sollen. Im **Inventar** listet der Filter **Sicherheitspatch-Ebene** diese Geräte unter **Nicht aktuell** auf; die Vorlage **Security Patch Out of Date** löst für jedes davon eine Warnung aus. Für ein Android-Gerät, das eine Geräteverwaltung importiert und auf dem der Agent nicht läuft, warnt die eigene Vorlage seiner Verbindung, etwa **Esper Security Patch Out of Date**, nach der Patch-Ebene, die die Geräteverwaltung meldet; ein Gerät, auf dem der Agent läuft, bleibt dieser Vorlage überlassen, sodass es nie doppelt warnt.
 
 Die Starts des Geräts in der letzten Stunde sind die Metrik `android.boot.recent_count`, und ein Gerät, das immer wieder neu startet, schreibt bei jedem Hochfahren ein Log mit dem Schweregrad Warnung. Unter **Hosts** werden einem Android-Gerät eigene Warnungsvorlagen angeboten: Device Unplugged, Low Battery, Device Overheating, Restart Loop, Storage Nearly Full und Security Patch Out of Date, dazu Host Stopped Reporting, Host Restarted und High Memory Utilization sowie High CPU Utilization, sobald es seine CPU-Auslastung meldet. Die ersten Debug-Befehle jeder Warnung sind adb-Befehle. Siehe [Host-Überwachung](/docs/monitor/host-monitor#android-geräte).
 

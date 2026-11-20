@@ -104,7 +104,7 @@ Android에서 앱이 다른 앱의 로그를 읽으려면 READ_LOGS 권한이 �
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-Esper에서는 이 명령을 **Secure Remote ADB**로 실행합니다. 기기의 ADB 액세스를 켜고, `espercli secureadb connect --device DEVICE_ID`로 연결한 다음, 명령을 실행하세요. 권한이 부여되면 Android가 에이전트를 재시작하고, 에이전트는 곧바로 읽기 시작합니다.
+Esper에서는 이 명령을 **Secure Remote ADB**로 실행합니다. 기기의 ADB 액세스를 켜고, `espercli secureadb connect --device DEVICE_ID`로 연결한 다음, 명령을 실행하세요. 권한이 부여되면 Android가 에이전트를 재시작하고, 에이전트는 곧바로 읽기 시작합니다. 인벤토리의 **디바이스 관리 서비스 ID** 열에 각 기기의 `DEVICE_ID`가 들어 있습니다.
 
 그 뒤 에이전트가 읽는 내용은 Android 버전에 따라 다릅니다.
 
@@ -126,7 +126,7 @@ adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
 
 ### 플릿 전체에 부여하기
 
-에이전트는 보고할 때마다 이 권한 중 아직 없는 권한을 알립니다. 권한이 필요한 기기를 나열하려면 **인벤토리**를 연 다음 **모든 항목**을 열고 **에이전트 권한**: **누락**으로 필터링하세요. 각 기기에 무엇이 없는지 보려면 **에이전트 권한** 열을 켜고, 목록은 CSV로 내보내세요.
+에이전트는 보고할 때마다 이 권한 중 아직 없는 권한을 알립니다. 권한이 필요한 기기를 나열하려면 **인벤토리**를 연 다음 **모든 항목**을 열고 **에이전트 권한**: **누락**으로 필터링하세요. 각 기기에 무엇이 없는지 보려면 **에이전트 권한** 열을 켜고, 목록은 CSV로 내보내세요. **디바이스 관리 서비스 ID** 열도 켜면 내보낸 목록에 각 기기의 Esper ID가 들어갑니다. 이것이 `DEVICE_ID`로 `espercli secureadb connect --device`에 넘기는 값입니다.
 
 기기 정책으로는 이 권한들을 부여할 수 없습니다. READ_LOGS와 READ_DROPBOX_DATA는 adb, 시스템, 기기 제조사만 부여할 수 있는 권한이고, 사용 정보 접근은 adb나 기기 앞에 있는 사람이 설정합니다. Esper가 제공하는 기능과, 그중 어느 것도 이 권한들을 부여하지 못하는 이유는 다음과 같습니다.
 
@@ -204,7 +204,7 @@ adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdmi
 
 **호스트**에서 기기의 OS는 Android 마크와 함께 Android로 표시됩니다.
 
-보안 패치 수준이 90일보다 오래된 기기는 보안 패치가 뒤처진 것입니다. Google은 매달 Android 보안 게시판을 발행하고, Android Enterprise Recommended는 기기 제조사가 각 게시판의 패치를 90일 안에 배포하도록 요구하므로, 그보다 더 뒤처진 기기에는 제조사가 이미 배포했어야 할 수정 사항이 빠져 있습니다. **인벤토리**에서는 **보안 패치 수준** 필터를 **업데이트 필요**로 설정해 해당 기기를 나열할 수 있으며, **Security Patch Out of Date** 템플릿이 각 기기에 대해 경고합니다.
+보안 패치 수준이 90일보다 오래된 기기는 보안 패치가 뒤처진 것입니다. Google은 매달 Android 보안 게시판을 발행하고, Android Enterprise Recommended는 기기 제조사가 각 게시판의 패치를 90일 안에 배포하도록 요구하므로, 그보다 더 뒤처진 기기에는 제조사가 이미 배포했어야 할 수정 사항이 빠져 있습니다. **인벤토리**에서는 **보안 패치 수준** 필터를 **업데이트 필요**로 설정해 해당 기기를 나열할 수 있으며, **Security Patch Out of Date** 템플릿이 각 기기에 대해 경고합니다. 디바이스 관리 서비스가 가져오고 에이전트가 실행되지 않는 Android 기기는 **Esper Security Patch Out of Date** 같은 해당 연결의 템플릿이 디바이스 관리 서비스가 보고하는 패치 수준으로 경고합니다. 에이전트가 실행되는 기기는 이 템플릿에 맡기므로 경고가 두 번 울리지 않습니다.
 
 최근 1시간 동안의 부팅 횟수는 메트릭 `android.boot.recent_count`이며, 재시작을 반복하는 기기는 부팅할 때마다 경고 수준의 로그를 남깁니다. **호스트**에서 Android 기기에는 전용 경고 템플릿이 제공됩니다. Device Unplugged, Low Battery, Device Overheating, Restart Loop, Storage Nearly Full, Security Patch Out of Date와 함께 Host Stopped Reporting, Host Restarted, High Memory Utilization이 제공되고, CPU 사용량을 보고하면 High CPU Utilization도 제공됩니다. 각 경고의 첫 디버그 명령은 adb 명령입니다. [호스트 모니터](/docs/monitor/host-monitor#android-기기)를 참고하세요.
 
