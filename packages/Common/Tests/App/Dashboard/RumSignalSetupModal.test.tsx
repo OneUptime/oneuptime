@@ -171,11 +171,11 @@ function mockApplication(
     tracesLastReceivedAt: null,
   },
 ): Mock<GetItem> {
-  return jest.spyOn(ModelAPI, "getItem").mockImplementation(((): Promise<
-    unknown
-  > => {
-    return row instanceof Error ? Promise.reject(row) : Promise.resolve(row);
-  }) as never) as unknown as Mock<GetItem>;
+  return jest
+    .spyOn(ModelAPI, "getItem")
+    .mockImplementation(((): Promise<unknown> => {
+      return row instanceof Error ? Promise.reject(row) : Promise.resolve(row);
+    }) as never) as unknown as Mock<GetItem>;
 }
 
 function ago(ms: number): Date {
@@ -261,15 +261,15 @@ describe("Set up logs", () => {
       expect(dialog.textContent).toContain("secret-browser");
     });
     const titles: Array<string> = stepTitles(dialog);
-    expect(titles.slice(-5)).toEqual([
+    // The live step is the only check: no static one repeats it before it.
+    expect(titles.slice(-4)).toEqual([
       "Install the log packages",
       "Add a log pipeline to src/telemetry.ts",
       "Write log records",
-      "Check that they arrive",
       "Wait for the first log",
     ]);
     // The key comes first.
-    expect(titles).toHaveLength(6);
+    expect(titles).toHaveLength(5);
     expect(dialog.textContent).toContain("npm install @opentelemetry/api-logs");
     expect(dialog.textContent).toContain("@opentelemetry/sdk-logs");
     expect(dialog.textContent).toContain(
