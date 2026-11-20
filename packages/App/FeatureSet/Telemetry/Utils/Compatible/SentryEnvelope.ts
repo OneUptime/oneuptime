@@ -1,7 +1,9 @@
 import crypto from "crypto";
 import { JSONObject } from "Common/Types/JSON";
 import { COMPATIBLE_JSON_MAX_VALUES } from "Common/Types/Telemetry/CompatibleIngest";
-import JsonElementCounter, { JsonValueBudget } from "./JsonElementCount";
+import JsonElementCounter, {
+  JsonValueBudget,
+} from "Common/Utils/JsonElementCount";
 import OtlpJson, {
   OTLP_SEVERITY_ERROR,
   OtlpKeyValue,

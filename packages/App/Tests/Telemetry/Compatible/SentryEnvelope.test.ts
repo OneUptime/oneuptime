@@ -8,7 +8,7 @@ import {
   ExceptionGroupingKey,
   getExceptionGroupingKey,
 } from "Common/Server/Utils/Telemetry/ExceptionGrouping";
-import { JsonValueBudget } from "../../../FeatureSet/Telemetry/Utils/Compatible/JsonElementCount";
+import { JsonValueBudget } from "Common/Utils/JsonElementCount";
 import SentryEnvelope, {
   MAX_ENVELOPE_ITEMS,
   MAX_EXCEPTIONS_PER_CHAIN,

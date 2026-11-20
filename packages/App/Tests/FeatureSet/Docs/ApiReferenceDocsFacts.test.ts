@@ -22,6 +22,9 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import BaseAPI from "Common/Server/API/BaseAPI";
 import { ExpressRequest } from "Common/Server/Utils/Express";
+import getRequestBodyLimit, {
+  ORDINARY_REQUEST_BODY_LIMIT,
+} from "Common/Server/Utils/RequestBodyLimit";
 import ColumnRefusalMessage from "Common/Server/Types/Database/Permissions/ColumnRefusalMessage";
 import ServerOwned from "Common/Types/Database/ServerOwned";
 import { TRY_COLLECTOR_CONFIG_AGAIN_ROUTE } from "Common/Types/HostCollector/HostCollectorRoutes";
@@ -710,7 +713,7 @@ describe("OneUptime API Reference: a request and its answer", () => {
       rows.map((row: Array<string>): string => {
         return codeIn(row[0] as string)[0] as string;
       }),
-    ).toEqual(["200", "400", "402", "404", "422", "500"]);
+    ).toEqual(["200", "400", "402", "404", "413", "422", "500"]);
     expect(ExceptionCode.BadDataException).toBe(400);
     expect(ExceptionCode.PaymentRequiredException).toBe(402);
     expect(ExceptionCode.NotFoundException).toBe(404);
@@ -741,6 +744,55 @@ describe("OneUptime API Reference: a request and its answer", () => {
     expect(rowStartingWith(rows, "`422`")[1]).toContain(
       "the API key has no permission for this kind of record",
     );
+  });
+
+  /*
+   * #10183: StartServer holds a body to its route's limit before anything
+   * else is read: 1 MB and 100,000 JSON values on most routes, 50 MB on the
+   * ones that take a file, a dashboard or a status page.
+   */
+  it("says the body limits the server holds a request to, and the settings that raise them", () => {
+    const row: string = rowStartingWith(
+      tableWithHeader(
+        englishSection(API_REFERENCE, "### Status codes"),
+        "Code",
+      ),
+      "`413`",
+    )[1] as string;
+
+    expect(ORDINARY_REQUEST_BODY_LIMIT).toEqual({
+      bytes: 1024 * 1024,
+      values: 100000,
+      objectsArraysAndStrings: 100000,
+    });
+    expect(row).toContain("1 MB holding at most 100,000 JSON values");
+
+    for (const route of [
+      "/api/file",
+      "/api/dashboard/id",
+      "/api/status-page/id",
+    ]) {
+      expect({
+        route,
+        bytes: getRequestBodyLimit(route).bytes,
+      }).toEqual({ route, bytes: 50 * 1024 * 1024 });
+    }
+    expect(row).toContain(
+      "50 MB in one that sends a file, a dashboard or a status page",
+    );
+
+    // The settings that raise the ordinary limit, as EnvironmentConfig reads them.
+    const environment: string = readRepoFile(
+      "Common/Server/EnvironmentConfig.ts",
+    );
+
+    for (const setting of [
+      "REQUEST_BODY_MAX_BYTES",
+      "REQUEST_BODY_MAX_JSON_VALUES",
+    ]) {
+      expect(environment).toContain(`"${setting}"`);
+      expect(row).toContain(`\`${setting}\``);
+    }
   });
 
   it("draws the checks in the order the server makes them, each with its status", () => {
