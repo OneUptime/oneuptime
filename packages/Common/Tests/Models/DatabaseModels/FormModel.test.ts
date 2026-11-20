@@ -18,6 +18,7 @@ import { ON_HIGHEST_PLAN } from "../../Server/TestingUtils/RequestPlan";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import ColumnType from "../../../Types/Database/ColumnType";
+import { RECORD_ACTOR_COLUMNS } from "../../../Types/Database/RecordActor";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { getUniqueColumnBy } from "../../../Types/Database/UniqueColumnBy";
@@ -166,6 +167,11 @@ const BASE_COLUMNS: Array<string> = [
   "updatedAt",
   "deletedAt",
   "version",
+  /*
+   * What created each record and who last modified it, which every model
+   * has (#10290, AddRecordCreatedByAndLastModifiedColumns).
+   */
+  ...RECORD_ACTOR_COLUMNS,
 ];
 
 const FORM_COLUMNS: Array<string> = [
