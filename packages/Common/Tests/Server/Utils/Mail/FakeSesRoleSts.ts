@@ -164,10 +164,7 @@ export function createFakeSts(options: {
       },
     );
 
-    if (
-      !role ||
-      (role.trusts !== "any" && !role.trusts.includes(externalId))
-    ) {
+    if (!role || (role.trusts !== "any" && !role.trusts.includes(externalId))) {
       return respond(
         stsErrorAnswer(
           403,

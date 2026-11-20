@@ -250,7 +250,9 @@ describe("sending through a project's IAM role, to stand-ins for STS and SES", (
 
     await provider.send(mail(), ROLE_CONFIG, {});
 
-    expect(String(ses.requests.at(-1)!.headers.authorization)).toContain(
+    expect(
+      String(ses.requests[ses.requests.length - 1]!.headers.authorization),
+    ).toContain(
       `Credential=${SECOND_SESSION.accessKeyId}/`,
     );
   });

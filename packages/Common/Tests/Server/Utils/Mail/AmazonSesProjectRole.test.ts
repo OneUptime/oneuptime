@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import AwsDefaultCredentialChain, {
   AwsChainHttpRequest,
   AwsChainHttpResponse,
@@ -254,11 +261,7 @@ describe("what OneUptime asks AWS", () => {
         `arn:aws-us-gov:iam::${CUSTOMER_ACCOUNT}:role/OneUptimeSes`,
         "https://sts.us-gov-west-1.amazonaws.com/",
       ],
-      [
-        "ap-southeast-2",
-        ROLE_ARN,
-        "https://sts.us-east-1.amazonaws.com/",
-      ],
+      ["ap-southeast-2", ROLE_ARN, "https://sts.us-east-1.amazonaws.com/"],
     ] as Array<[string, string, string]>) {
       AssumedRoleCache.clear();
       const sts: FakeSts = fakeSts([
@@ -599,18 +602,14 @@ describe("what is kept, and for how long", () => {
     await AwsRoleCheckCache.set(cloudKey, "requires-external-id", clockMs);
     await refusalOf(session());
     expect(sts.assumeRoles).toHaveLength(1);
-    expect(await AwsRoleCheckCache.get(emailKey)).toBe(
-      "takes-any-external-id",
-    );
+    expect(await AwsRoleCheckCache.get(emailKey)).toBe("takes-any-external-id");
     expect(await AwsRoleCheckCache.get(cloudKey)).toBe("requires-external-id");
 
     // Email's refusal does not stand for Cloud Connect's sign-in either.
     AssumedRoleCache.clear();
     await AwsRoleCheckCache.set(emailKey, "takes-any-external-id", clockMs);
     const cloud: FakeSts = createFakeSts({
-      roles: [
-        { arn: ROLE_ARN, trusts: [getAwsExternalIdForProject(PROJECT)] },
-      ],
+      roles: [{ arn: ROLE_ARN, trusts: [getAwsExternalIdForProject(PROJECT)] }],
     });
 
     await assumeRole({
@@ -747,7 +746,9 @@ describe("what the project is told", () => {
     // The next email signs with credentials fetched afresh.
     await session();
     expect(asked.length).toBe(fetchedBefore + 1);
-    expect(sts.assumeRoles.at(-1)!.authorization).toContain(
+    expect(
+      sts.assumeRoles[sts.assumeRoles.length - 1]!.authorization,
+    ).toContain(
       `Credential=ASIAPODROLE${asked.length}0000000/`,
     );
   });
@@ -834,7 +835,10 @@ describe("what the form is told to set a role up with", () => {
     }
 
     expect(
-      readAmazonSesRoleSetup({ isAvailable: false, externalId: SES_EXTERNAL_ID }),
+      readAmazonSesRoleSetup({
+        isAvailable: false,
+        externalId: SES_EXTERNAL_ID,
+      }),
     ).toEqual({ isAvailable: false, externalId: SES_EXTERNAL_ID });
   });
 });

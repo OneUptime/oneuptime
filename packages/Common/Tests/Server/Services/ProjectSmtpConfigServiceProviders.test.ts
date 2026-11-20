@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import ProjectSmtpConfig from "../../../Models/DatabaseModels/ProjectSmtpConfig";
 import ProjectSmtpConfigService, {
   Service as ProjectSmtpConfigServiceClass,
@@ -650,15 +651,13 @@ describe("Amazon SES with an IAM role in the project's own account", () => {
     });
 
     test("an update is weighed against the config it changes, and clears its key when it moves to a role", async () => {
-      jest
-        .spyOn(ProjectSmtpConfigService, "findBy")
-        .mockResolvedValue([
-          config({
-            transportType: MailTransportType.AmazonSES,
-            amazonSesRoleArn: ROLE,
-            amazonSesRegion: "eu-west-1",
-          }),
-        ]);
+      jest.spyOn(ProjectSmtpConfigService, "findBy").mockResolvedValue([
+        config({
+          transportType: MailTransportType.AmazonSES,
+          amazonSesRoleArn: ROLE,
+          amazonSesRegion: "eu-west-1",
+        }),
+      ]);
 
       const data: Record<string, unknown> = {
         amazonSesAuthenticationType: ProjectAmazonSesAuthenticationType.IamRole,
@@ -678,14 +677,12 @@ describe("Amazon SES with an IAM role in the project's own account", () => {
     });
 
     test("an update that leaves a config with a role it cannot sign in to is refused", async () => {
-      jest
-        .spyOn(ProjectSmtpConfigService, "findBy")
-        .mockResolvedValue([
-          config({
-            transportType: MailTransportType.AmazonSES,
-            amazonSesRoleArn: undefined,
-          }),
-        ]);
+      jest.spyOn(ProjectSmtpConfigService, "findBy").mockResolvedValue([
+        config({
+          transportType: MailTransportType.AmazonSES,
+          amazonSesRoleArn: undefined,
+        }),
+      ]);
 
       await expect(
         hooks.onBeforeUpdate({
@@ -700,17 +697,15 @@ describe("Amazon SES with an IAM role in the project's own account", () => {
     });
 
     test("one write is never half done across configs that sign in in different ways", async () => {
-      jest
-        .spyOn(ProjectSmtpConfigService, "findBy")
-        .mockResolvedValue([
-          config({
-            transportType: MailTransportType.AmazonSES,
-            amazonSesAuthenticationType:
-              ProjectAmazonSesAuthenticationType.IamRole,
-            amazonSesRoleArn: ROLE,
-          }),
-          config({ transportType: MailTransportType.AmazonSES }),
-        ]);
+      jest.spyOn(ProjectSmtpConfigService, "findBy").mockResolvedValue([
+        config({
+          transportType: MailTransportType.AmazonSES,
+          amazonSesAuthenticationType:
+            ProjectAmazonSesAuthenticationType.IamRole,
+          amazonSesRoleArn: ROLE,
+        }),
+        config({ transportType: MailTransportType.AmazonSES }),
+      ]);
 
       await expect(
         hooks.onBeforeUpdate({
@@ -724,7 +719,7 @@ describe("Amazon SES with an IAM role in the project's own account", () => {
     });
 
     test("an update that names none of the sign-in's columns reads nothing", async () => {
-      const findBy: jest.SpiedFunction<typeof ProjectSmtpConfigService.findBy> =
+      const findBy: SpyInstance<typeof ProjectSmtpConfigService.findBy> =
         jest.spyOn(ProjectSmtpConfigService, "findBy");
 
       await hooks.onBeforeUpdate({

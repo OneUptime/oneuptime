@@ -378,8 +378,11 @@ describe("POST /smtp-config/test, for a config that signs in with an IAM role", 
     config.amazonSesAuthenticationType =
       ProjectAmazonSesAuthenticationType.AccessKey;
     config.amazonSesAccessKeyId = "AKIAIOSFODNN7EXAMPLE";
-    config.amazonSesSecretAccessKey = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
-    jest.spyOn(ProjectSMTPConfigService, "findOneById").mockResolvedValue(config);
+    config.amazonSesSecretAccessKey =
+      "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
+    jest
+      .spyOn(ProjectSMTPConfigService, "findOneById")
+      .mockResolvedValue(config);
 
     const result: RouteCall = await call("POST", "/test", {
       body: {

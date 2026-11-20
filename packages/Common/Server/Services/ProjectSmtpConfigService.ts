@@ -128,7 +128,10 @@ export class Service extends DatabaseService<Model> {
 
     for (const column of AMAZON_SES_SIGN_IN_COLUMNS) {
       if (data[column] !== createBy.data.getColumnValue(column)) {
-        createBy.data.setColumnValue(column, (data[column] ?? null) as JSONValue);
+        createBy.data.setColumnValue(
+          column,
+          (data[column] ?? null) as JSONValue,
+        );
       }
     }
 
@@ -180,35 +183,38 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    let written: Record<string, unknown> | null = null;
+    // The write, as each config would come out of it.
+    const writes: Array<Record<string, unknown>> = configs.map(
+      (config: Model): Record<string, unknown> => {
+        const stored: Record<string, unknown> = {};
 
-    for (const config of configs) {
-      const stored: Record<string, unknown> = {};
+        for (const column of AMAZON_SES_SIGN_IN_COLUMNS) {
+          stored[column] = config.getColumnValue(column);
+        }
 
-      for (const column of AMAZON_SES_SIGN_IN_COLUMNS) {
-        stored[column] = config.getColumnValue(column);
-      }
+        const forThisConfig: Record<string, unknown> = { ...data };
 
-      const forThisConfig: Record<string, unknown> = { ...data };
+        Service.applyAmazonSesAuthenticationRules(forThisConfig, stored);
 
-      Service.applyAmazonSesAuthenticationRules(forThisConfig, stored);
+        return forThisConfig;
+      },
+    );
+    const written: Record<string, unknown> = writes[0]!;
 
-      if (
-        written &&
-        AMAZON_SES_SIGN_IN_COLUMNS.some((column: string): boolean => {
-          return written![column] !== forThisConfig[column];
-        })
-      ) {
-        throw new BadDataException(
-          "Change how one SMTP config signs in to Amazon SES at a time: these configs sign in in different ways.",
-        );
-      }
-
-      written = forThisConfig;
+    if (
+      writes.some((forThisConfig: Record<string, unknown>): boolean => {
+        return AMAZON_SES_SIGN_IN_COLUMNS.some((column: string): boolean => {
+          return forThisConfig[column] !== written[column];
+        });
+      })
+    ) {
+      throw new BadDataException(
+        "Change how one SMTP config signs in to Amazon SES at a time: these configs sign in in different ways.",
+      );
     }
 
     for (const column of AMAZON_SES_SIGN_IN_COLUMNS) {
-      if (written && written[column] !== data[column]) {
+      if (written[column] !== data[column]) {
         data[column] = written[column];
       }
     }
