@@ -135,6 +135,7 @@ import Permission, {
   PermissionGroup,
   PermissionHelper,
 } from "Common/Types/Permission";
+import { isProductLevelPermission } from "Common/Types/Product/ProductLevels";
 import {
   neutralizeChatControlSequences,
   neutralizeUntrustedMarkdown,
@@ -1368,7 +1369,18 @@ describe("Forms docs", () => {
         ),
       );
 
-      for (const [index, [permission, holders]] of domainRows.entries()) {
+      for (const [index, [permission, everyHolder]] of domainRows.entries()) {
+        /*
+         * The table names who holds each permission among the project-wide
+         * roles and Forms' own permissions. Forms' levels (#10289) follow
+         * those roles on every Forms record, and are described once, for
+         * every product, on the permissions page.
+         */
+        const holders: Array<Permission> = everyHolder.filter(
+          (holder: Permission): boolean => {
+            return !isProductLevelPermission(holder);
+          },
+        );
         const who: string = (
           rows[expected.length + index] as Array<string>
         )[2] as string;
@@ -1376,7 +1388,14 @@ describe("Forms docs", () => {
         if (permission === Permission.ReadFormDomain) {
           // Everyone who can read a form, and the permission itself.
           expect([...holders].sort()).toEqual(
-            [...new Form().getReadPermissions(), permission].sort(),
+            [
+              ...new Form()
+                .getReadPermissions()
+                .filter((holder: Permission): boolean => {
+                  return !isProductLevelPermission(holder);
+                }),
+              permission,
+            ].sort(),
           );
           expect(who).toBe(
             `Everyone with **${PermissionHelper.getTitle(Permission.ReadForm)}**`,
@@ -1420,14 +1439,19 @@ describe("Forms docs", () => {
           continue;
         }
 
-        // Nobody else has it by default.
+        /*
+         * Nobody else has it by default - but Form Admin (#10289), which
+         * does on Forms' records what Project Admin does, and is described
+         * on the permissions page.
+         */
         expect([permission, who]).toEqual([permission, ownersAndAdmins]);
         expect(
           holders.filter((holder: Permission): boolean => {
             return (
               holder !== permission &&
               holder !== Permission.ProjectOwner &&
-              holder !== Permission.ProjectAdmin
+              holder !== Permission.ProjectAdmin &&
+              holder !== Permission.FormAdmin
             );
           }),
         ).toEqual([]);

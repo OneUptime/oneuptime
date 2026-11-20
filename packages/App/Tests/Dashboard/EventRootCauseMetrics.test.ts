@@ -45,7 +45,9 @@ import {
   getIncidentEpisodeRootCauseTimes,
   getIncidentRootCauseEvent,
   getRootCauseMetrics,
+  getRootCauseMonitorIdsToRead,
   getRootCauseTimes,
+  withRootCauseMonitorSteps,
 } from "../../FeatureSet/Dashboard/src/Utils/EventRootCauseMetrics";
 import { EventStateTimelineDate } from "../../FeatureSet/Dashboard/src/Utils/EventDuration";
 import {
@@ -2182,5 +2184,317 @@ describe("seeded: an episode's card, against its Overview and its first member's
     expect(cards).toBeGreaterThan(100);
     expect(fromMonitorNow).toBeGreaterThan(30);
     expect(cards - fromMonitorNow).toBeGreaterThan(30);
+  });
+});
+
+/*
+ * ISSUE #10309: THE STEPS OF THE MONITORS A CARD CHARTS FROM ARE READ ON
+ * EACH MONITOR, BY THE READER'S OWN READ.
+ *
+ * No relation reads a monitor's steps - its URLs, request headers and
+ * bodies, its queries and criteria - so an incident or an alert names its
+ * monitors by which they are and what kind, and the card reads the steps of
+ * those it would chart from on each monitor: only for an event that kept no
+ * metric snapshot, and only of a kind that reads metrics. A reader of every
+ * monitor is charted exactly what reading the steps through the event
+ * charted; a reader of none, the event's own snapshot or no card.
+ */
+
+// A monitor as the event's read answers it now: which one, and what kind.
+function throughTheEvent(monitor: RootCauseMonitor): RootCauseMonitor {
+  return { _id: monitor._id, monitorType: monitor.monitorType };
+}
+
+function withId(id: string, monitor: RootCauseMonitor): RootCauseMonitor {
+  return { ...monitor, _id: id };
+}
+
+function eventOf(
+  monitors: Array<RootCauseMonitor>,
+  telemetryQuery: TelemetryQuery | null = null,
+): RootCauseEvent {
+  return {
+    startedAt: CREATED_AT,
+    impactStartedAt: undefined,
+    telemetryQuery: telemetryQuery,
+    seriesLabels: null,
+    createdCriteriaId: null,
+    monitors: monitors,
+  };
+}
+
+const METRICS_MONITOR: RootCauseMonitor = withId(
+  "monitor-metrics",
+  monitorOf(MonitorType.Metrics, [
+    { queryConfigs: [queryOf({ metricName: "cpu" })] },
+  ]),
+);
+
+const HOST_MONITOR: RootCauseMonitor = withId(
+  "monitor-host",
+  monitorOf(MonitorType.Host, [
+    {
+      settings: { hostIdentifier: "web-01" },
+      queryConfigs: [queryOf({ metricName: "system.memory.utilization" })],
+    },
+  ]),
+);
+
+// An API check: its URL, headers and body are no card's to read.
+const API_MONITOR: RootCauseMonitor = withId(
+  "monitor-api",
+  monitorOf(MonitorType.API, [
+    { queryConfigs: [queryOf({ metricName: "response.time" })] },
+  ]),
+);
+
+describe("the monitors whose steps a Root Cause card reads, on each monitor (#10309)", () => {
+  test("an event that kept a metric snapshot reads none: it is charted from the event alone", () => {
+    const event: RootCauseEvent = eventOf(
+      [METRICS_MONITOR, HOST_MONITOR].map(throughTheEvent),
+      metricSnapshot([queryOf({ metricName: "cpu" })]),
+    );
+
+    expect(getRootCauseMonitorIdsToRead(event)).toEqual([]);
+    // Charted all the same, for every reader of the event.
+    expect(
+      metricNamesOf(getRootCauseMetrics(withRootCauseMonitorSteps(event, []))),
+    ).toEqual(["cpu"]);
+  });
+
+  test("one that kept none reads the monitors of a kind that reads metrics, each once, in its order", () => {
+    expect(
+      getRootCauseMonitorIdsToRead(
+        eventOf(
+          [HOST_MONITOR, METRICS_MONITOR, HOST_MONITOR].map(throughTheEvent),
+        ),
+      ),
+    ).toEqual(["monitor-host", "monitor-metrics"]);
+  });
+
+  test("a snapshot of logs is no metric snapshot: its metric monitors are read", () => {
+    expect(
+      getRootCauseMonitorIdsToRead(
+        eventOf([METRICS_MONITOR].map(throughTheEvent), {
+          telemetryType: TelemetryType.Log,
+          telemetryQuery: {} as never,
+          metricViewData: null as never,
+        }),
+      ),
+    ).toEqual(["monitor-metrics"]);
+  });
+
+  test("a monitor of a kind that reads no metrics - an API check, a website - is never read", () => {
+    expect(
+      getRootCauseMonitorIdsToRead(
+        eventOf(
+          [
+            API_MONITOR,
+            withId("monitor-website", { monitorType: MonitorType.Website }),
+          ].map(throughTheEvent),
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  test("a monitor named without an id, or no monitor at all, is passed over; an ObjectID reads as its string", () => {
+    const id: ObjectID = new ObjectID("10309000-0000-4000-8000-0000000000a1");
+
+    expect(
+      getRootCauseMonitorIdsToRead(
+        eventOf([
+          { monitorType: MonitorType.Metrics },
+          null as unknown as RootCauseMonitor,
+          { _id: id, monitorType: MonitorType.Metrics },
+          { _id: "  ", monitorType: MonitorType.Metrics },
+        ]),
+      ),
+    ).toEqual([id.toString()]);
+  });
+
+  test("the steps are the monitors' own reads', in the event's order; a monitor not answered has none, whatever the event's read held", () => {
+    const event: RootCauseEvent = eventOf([
+      throughTheEvent(METRICS_MONITOR),
+      // As if a relation still answered the steps: they are not the card's.
+      HOST_MONITOR,
+      throughTheEvent(API_MONITOR),
+    ]);
+
+    const charted: RootCauseEvent = withRootCauseMonitorSteps(event, [
+      METRICS_MONITOR,
+    ]);
+
+    expect(
+      charted.monitors.map((monitor: RootCauseMonitor): unknown => {
+        return [
+          monitor._id,
+          monitor.monitorType,
+          Boolean(monitor.monitorSteps),
+        ];
+      }),
+    ).toEqual([
+      ["monitor-metrics", MonitorType.Metrics, true],
+      ["monitor-host", MonitorType.Host, false],
+      ["monitor-api", MonitorType.API, false],
+    ]);
+    expect(charted.monitors[0]!.monitorSteps).toBe(
+      METRICS_MONITOR.monitorSteps,
+    );
+    // The rest of the event as it was read.
+    expect({ ...charted, monitors: [] }).toEqual({ ...event, monitors: [] });
+  });
+
+  test("a reader who may not read the monitor gets no card from it: nothing to chart without its steps", () => {
+    const event: RootCauseEvent = eventOf([throughTheEvent(METRICS_MONITOR)]);
+
+    expect(getRootCauseMetrics(withRootCauseMonitorSteps(event, []))).toBe(
+      null,
+    );
+    expect(
+      metricNamesOf(
+        getRootCauseMetrics(
+          withRootCauseMonitorSteps(event, [METRICS_MONITOR]),
+        ),
+      ),
+    ).toEqual(["cpu"]);
+  });
+
+  test("an alert's one monitor and an episode's first member are read the same way", () => {
+    const alert: RootCauseEvent = getAlertRootCauseEvent({
+      createdAt: CREATED_AT,
+      telemetryQuery: null,
+      monitor: throughTheEvent(HOST_MONITOR),
+    } as AlertRootCauseRow);
+    const member: RootCauseEvent = getIncidentEpisodeRootCauseEvent({
+      id: "incident-1",
+      telemetryQuery: null,
+      monitors: [throughTheEvent(HOST_MONITOR)],
+    } as IncidentRootCauseRow & EpisodeMemberRootCauseRow);
+
+    for (const event of [alert, member]) {
+      expect(getRootCauseMonitorIdsToRead(event)).toEqual(["monitor-host"]);
+
+      const metrics: RootCauseMetrics | null = getRootCauseMetrics(
+        withRootCauseMonitorSteps(event, [HOST_MONITOR]),
+      );
+
+      expect(metricNamesOf(metrics)).toEqual(["system.memory.utilization"]);
+      expect(metrics?.chartedFromMonitorNow).toEqual({
+        resourceName: "web-01",
+      });
+    }
+
+    // The member's own rule is kept: the episode draws it.
+    expect(withRootCauseMonitorSteps(member, [HOST_MONITOR]).ruleEventId).toBe(
+      "incident-1",
+    );
+  });
+
+  test("seeded: a reader of every monitor is charted what reading the steps through the event charted; a reader of none, the snapshot or no card", () => {
+    const random: SeededRandom = seededRandom(10309);
+    const types: Array<MonitorType> = [
+      MonitorType.Metrics,
+      MonitorType.Host,
+      MonitorType.Kubernetes,
+      MonitorType.API,
+      MonitorType.Website,
+      MonitorType.Logs,
+    ];
+    let fromMonitors: number = 0;
+    let fromSnapshots: number = 0;
+
+    for (let draw: number = 0; draw < 400; draw++) {
+      const monitors: Array<RootCauseMonitor> = [];
+      const monitorCount: number = random(4);
+
+      for (let index: number = 0; index < monitorCount; index++) {
+        const steps: Array<StepData> = [];
+        const stepCount: number = random(3);
+
+        for (let step: number = 0; step < stepCount; step++) {
+          steps.push({
+            settings: { hostIdentifier: random(2) ? "host-a" : "" },
+            queryConfigs: random(3)
+              ? [
+                  queryOf({
+                    metricName: random(4) ? `m-${draw}-${index}` : "",
+                  }),
+                ]
+              : [],
+            criteriaIds: random(3) ? [] : [RULE_ID],
+          });
+        }
+
+        monitors.push(
+          withId(
+            `monitor-${draw}-${index}`,
+            monitorOf(types[random(types.length)]!, steps),
+          ),
+        );
+      }
+
+      const telemetryQuery: TelemetryQuery | null =
+        random(3) === 0 ? metricSnapshot(random(2) ? [queryOf({})] : []) : null;
+      const createdCriteriaId: string | null = random(2) ? RULE_ID : null;
+      const seriesLabels: JSONObject | null = random(2) ? SERIES : null;
+
+      // As 17.1.0 read it: the monitors' steps through the event.
+      const before: RootCauseMetrics | null = getRootCauseMetrics({
+        telemetryQuery: telemetryQuery,
+        seriesLabels: seriesLabels,
+        createdCriteriaId: createdCriteriaId,
+        monitors: monitors,
+      });
+
+      // Now: which monitors, through the event; their steps, on each.
+      const event: RootCauseEvent = {
+        ...eventOf(monitors.map(throughTheEvent), telemetryQuery),
+        seriesLabels: seriesLabels,
+        createdCriteriaId: createdCriteriaId,
+      };
+      const ids: Array<string> = getRootCauseMonitorIdsToRead(event);
+
+      for (const id of ids) {
+        const monitor: RootCauseMonitor = monitors.find(
+          (each: RootCauseMonitor): boolean => {
+            return each._id === id;
+          },
+        )!;
+        // Only a kind that reads metrics is ever read.
+        expect([
+          MonitorType.API,
+          MonitorType.Website,
+          MonitorType.Logs,
+        ]).not.toContain(monitor.monitorType);
+      }
+
+      const readByAll: Array<RootCauseMonitor> = monitors.filter(
+        (monitor: RootCauseMonitor): boolean => {
+          return ids.includes(String(monitor._id));
+        },
+      );
+
+      expect(
+        getRootCauseMetrics(withRootCauseMonitorSteps(event, readByAll)),
+      ).toEqual(before);
+
+      const readByNone: RootCauseMetrics | null = getRootCauseMetrics(
+        withRootCauseMonitorSteps(event, []),
+      );
+
+      if (before && !before.chartedFromMonitorNow) {
+        fromSnapshots++;
+        expect(readByNone).toEqual(before);
+      } else {
+        if (before) {
+          fromMonitors++;
+        }
+        expect(readByNone).toBe(null);
+      }
+    }
+
+    // The draws chart both ways.
+    expect(fromMonitors).toBeGreaterThan(30);
+    expect(fromSnapshots).toBeGreaterThan(30);
   });
 });

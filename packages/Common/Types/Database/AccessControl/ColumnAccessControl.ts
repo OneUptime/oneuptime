@@ -4,6 +4,7 @@ import getCanonicalModelInstance from "../CanonicalModelInstance";
 import Dictionary from "../../Dictionary";
 import GenericObject from "../../GenericObject";
 import { ReflectionMetadataType } from "../../Reflection";
+import { withProductLevelsOnLists } from "../../Product/ProductLevels";
 import UserAttribution from "../UserAttribution";
 import "reflect-metadata";
 
@@ -26,6 +27,63 @@ export default (accessControl: ColumnAccessControl): ReflectionMetadataType => {
   }) as ReflectionMetadataType;
 };
 
+/*
+ * A column's lists as they are read: what it declares, with the levels of
+ * the product whose records the table holds (Types/Product/ProductLevels),
+ * as the table's own lists are read (TableAccessControl) - where the role
+ * a level follows is on the column's list and on the table's for the same
+ * operation. The declared object itself for a column nothing is added to;
+ * otherwise one copy per column and table, made once.
+ */
+const withLevelsCache: WeakMap<
+  ColumnAccessControl,
+  Map<string, ColumnAccessControl>
+> = new WeakMap();
+
+const withLevels: (
+  model: BaseModel | null | undefined,
+  accessControl: ColumnAccessControl | undefined,
+) => ColumnAccessControl | undefined = (
+  model: BaseModel | null | undefined,
+  accessControl: ColumnAccessControl | undefined,
+): ColumnAccessControl | undefined => {
+  const tableName: string | null | undefined = model?.tableName;
+
+  if (!accessControl || !tableName || !model) {
+    return accessControl;
+  }
+
+  const known: ColumnAccessControl | undefined = withLevelsCache
+    .get(accessControl)
+    ?.get(tableName);
+
+  if (known) {
+    return known;
+  }
+
+  const answer: ColumnAccessControl = withProductLevelsOnLists(
+    tableName,
+    accessControl,
+    {
+      create: model.createRecordPermissions,
+      read: model.readRecordPermissions,
+      update: model.updateRecordPermissions,
+    },
+  );
+
+  let byTable: Map<string, ColumnAccessControl> | undefined =
+    withLevelsCache.get(accessControl);
+
+  if (!byTable) {
+    byTable = new Map<string, ColumnAccessControl>();
+    withLevelsCache.set(accessControl, byTable);
+  }
+
+  byTable.set(tableName, answer);
+
+  return answer;
+};
+
 type GetColumnAccessControlFunction = (
   target: BaseModel,
   propertyKey: string,
@@ -35,10 +93,11 @@ export const getColumnAccessControl: GetColumnAccessControlFunction = (
   target: BaseModel,
   propertyKey: string,
 ): ColumnAccessControl => {
-  return Reflect.getMetadata(
-    accessControlSymbol,
+  return withLevels(
     target,
-    propertyKey,
+    Reflect.getMetadata(accessControlSymbol, target, propertyKey) as
+      | ColumnAccessControl
+      | undefined,
   ) as ColumnAccessControl;
 };
 
@@ -74,10 +133,12 @@ export const getColumnAccessControlForAllColumns: GetColumnAccessControlForAllCo
       const keys: Array<string> = Object.keys(metadataSource);
 
       for (const key of keys) {
-        const accessControl: ColumnAccessControl | undefined =
+        const accessControl: ColumnAccessControl | undefined = withLevels(
+          metadataSource,
           Reflect.getMetadata(accessControlSymbol, metadataSource, key) as
             | ColumnAccessControl
-            | undefined;
+            | undefined,
+        );
         if (accessControl) {
           dictonary[key] = accessControl;
         }

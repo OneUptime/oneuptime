@@ -87,6 +87,8 @@ function rule(
 ): CompiledRule {
   const scrubRule: LogScrubRule = new LogScrubRule();
   scrubRule.name = patternType;
+  // A Hash rule hashes with its project's key, as the rules ingest loads do.
+  scrubRule.projectId = PROJECT_ID;
   scrubRule.patternType = patternType;
   scrubRule.scrubAction = options.action || LogScrubAction.Redact;
   scrubRule.fieldsToScrub = options.fields || LogScrubField.Both;
@@ -289,7 +291,8 @@ const PATTERN_SECRETS: Array<[LogScrubPatternType, string, string?]> = [
   [LogScrubPatternType.CreditCard, "4111 1111 1111 1111"],
   [LogScrubPatternType.SSN, "123-45-6789"],
   [LogScrubPatternType.PhoneNumber, "555-123-4567"],
-  [LogScrubPatternType.IPAddress, "192.168.1.1"],
+  // A public address: a private one is no one's, and is kept (#10393).
+  [LogScrubPatternType.IPAddress, "203.0.113.7"],
   [LogScrubPatternType.Custom, "ACME-SECRET-42", "ACME-SECRET-\\d+"],
 ];
 
@@ -551,8 +554,9 @@ describe("what each rule's Fields to Scrub reaches", () => {
 });
 
 describe("RFC 3164 lines, posted over HTTP", () => {
+  // Documentation addresses, which an IP Address rule hides as public ones.
   const LINE: string =
-    "<34>Oct 11 22:14:15 10.1.2.3 sshd[4321]: Accepted password for ada@example.com from 10.9.8.7";
+    "<34>Oct 11 22:14:15 203.0.113.3 sshd[4321]: Accepted password for ada@example.com from 198.51.100.7";
 
   test("a host name an IP rule hides is hidden where the line writes it", async () => {
     rules = [
@@ -564,7 +568,7 @@ describe("RFC 3164 lines, posted over HTTP", () => {
 
     expect(attributes[SyslogAttribute.Hostname]).toBe("[REDACTED]");
     expect(row!["body"]).toBe(
-      "Accepted password for ada@example.com from 10.9.8.7",
+      "Accepted password for ada@example.com from 198.51.100.7",
     );
     expect(attributes[SyslogAttribute.Raw]).toBe(
       "<34>Oct 11 22:14:15 [REDACTED] sshd[4321]: Accepted password for ada@example.com from [REDACTED]",
@@ -583,8 +587,22 @@ describe("RFC 3164 lines, posted over HTTP", () => {
       "Accepted password for [REDACTED] from [REDACTED]",
     );
     expect(attributesOf(row!)[SyslogAttribute.Raw]).toBe(
-      "<34>Oct 11 22:14:15 10.1.2.3 sshd[4321]: Accepted password for [REDACTED] from [REDACTED]",
+      "<34>Oct 11 22:14:15 203.0.113.3 sshd[4321]: Accepted password for [REDACTED] from [REDACTED]",
     );
+  });
+
+  test("a private host and peer, which an IP Address rule keeps, are kept in the raw copy too (#10393)", async () => {
+    const privateLine: string =
+      "<34>Oct 11 22:14:15 10.1.2.3 sshd[4321]: Accepted password for ada from 10.9.8.7";
+
+    rules = [rule(LogScrubPatternType.IPAddress)];
+
+    const [row] = await postedOverHttp([privateLine]);
+    const attributes: JSONObject = attributesOf(row!);
+
+    expect(attributes[SyslogAttribute.Hostname]).toBe("10.1.2.3");
+    expect(row!["body"]).toBe("Accepted password for ada from 10.9.8.7");
+    expect(attributes[SyslogAttribute.Raw]).toBe(privateLine);
   });
 
   test("a JSON message after a tag: the keys rule's hidden token is hidden in syslog.raw", async () => {

@@ -252,14 +252,18 @@ describe("resolveDatabaseCallTarget", () => {
     ).toBeNull();
   });
 
-  test.each(["[REDACTED]", "[HASHED:ab12cd34]", "***.***.***.***"])(
-    "scrubbed address %s → null",
-    (address: string) => {
-      expect(
-        callTarget({ "db.system.name": "redis", "server.address": address }),
-      ).toBeNull();
-    },
-  );
+  test.each([
+    "[REDACTED]",
+    "[HASHED:ab12cd34]",
+    // A Hash rule's token keyed per project, and an IPv6 address masked (#10393, #10394).
+    "[HASHED:5e29db14e508e09a]",
+    "***.***.***.***",
+    "****:****:****:****:****:****:****:****",
+  ])("scrubbed address %s → null", (address: string) => {
+    expect(
+      callTarget({ "db.system.name": "redis", "server.address": address }),
+    ).toBeNull();
+  });
 
   test("a Kubernetes caller's short name expands and is cluster-qualified", () => {
     expect(

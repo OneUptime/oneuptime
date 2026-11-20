@@ -98,7 +98,7 @@ Under **Avanceret** skal du vælge **Maskeringshandling** og **Felter, der skal 
 | **Kreditkortnummer** | Seksten cifre i grupper af fire, såsom `4111 1111 1111 1111` |
 | **SSN (CPR-nummer)** | Amerikanske personnumre (Social Security), såsom `123-45-6789` |
 | **Telefonnummer** | Nordamerikanske telefonnumre, såsom `555-123-4567` |
-| **IP-adresse** | IPv4-adresser, såsom `192.168.1.1` |
+| **IP-adresse** | Offentlige IPv4- og IPv6-adresser, såsom `203.0.113.7` eller `2001:db8::1`, men ikke private, loopback- eller link-local-adresser |
 | **Følsomme attributnøgler** | Hele værdien af enhver attribut, hvis nøgle ser hemmelig ud, såsom `password`, `token`, `api_key`, `authorization` eller `cookie` |
 | **Brugerdefineret regex** | Dit eget regulære udtryk, skrevet uden skråstreger eller flag og matchet med forskel på store og små bogstaver |
 
@@ -106,7 +106,7 @@ Under **Avanceret** skal du vælge **Maskeringshandling** og **Felter, der skal 
 | --- | --- |
 | **Rediger (skjul)** | `[REDACTED]`, standardvalget |
 | **Maske** | For det meste skjult: en e-mailadresse beholder sit første bogstav og slutningen af sit domæne, et kort-, telefon- eller personnummer sine sidste fire cifre, og et brugerdefineret match eller en hemmelig værdi sit første og sidste tegn. En IP-adresse skjules helt. |
-| **Hash** | En kort hash af værdien, den samme for den samme værdi hver gang, så gentagelser stadig kan tælles |
+| **Hash** | Et token, der er unikt for dit projekt, det samme for den samme værdi hver gang, så gentagelser stadig kan tælles, men ingen kan regne sig tilbage til værdien |
 
 For eksempel gemmer en **E-mailadresse**-regel dette logindhold:
 
@@ -119,11 +119,13 @@ som en af disse, afhængigt af dens **Maskeringshandling**:
 ```text
 Redact: Payment failed for [REDACTED]
 Mask:   Payment failed for j***@***.com
-Hash:   Payment failed for [HASHED:8c87b489]
+Hash:   Payment failed for [HASHED:5e29db14e508e09a]
 ```
 
 **Felter, der skal renses** er **Begge (brødtekst og attributter)** for en protokolregel, medmindre du vælger **Kun brødtekst** eller **Kun attributter**, og **Alle (navn, attributter og hændelser)** for en span-regel, medmindre du vælger **Kun span-navn**, **Kun attributter** eller **Kun hændelsesattributter**. Attributterne på et spans links renses sammen med spannets egne attributter, og **Alle (navn, attributter og hændelser)** renser også et spans statusbesked og navnene på dets hændelser. En **Følsomme attributnøgler**-regel læser nøgler og renser derfor altid værdierne under dem: i attributter og i en logposts JSON-brødtekst.
 
+- **En IP-adresseregel skjuler de adresser, der er personoplysninger.** Det er offentlige IPv4- og IPv6-adresser, uanset hvordan de er skrevet: forkortet, som `2001:db8::1`, i firkantede parenteser med en port, som `[2001:db8::1]:443`, der beholder sine parenteser og sin port, med en zone, som `2001:db8::2%eth0`, der beholder sin zone, eller en IPv4-adresse skrevet som IPv6, som `::ffff:203.0.113.7`, der skjules helt. Den beholder private, loopback- og link-local-adresser, såsom `10.0.0.12`, `127.0.0.1` og `fe80::1`, og cloudens metadataadresse `169.254.169.254` i en anmodnings URL, hvor [Sikkerhedsbegivenheder](/docs/telemetry/security-events) leder efter forfalskede anmodninger fra serveren. For også at skjule interne adresser skal du tilføje en regel med **Brugerdefineret regex** for dem, såsom `\b(?:\d{1,3}\.){3}\d{1,3}\b` for alle IPv4-adresser.
+- **Et hash-token er dit projekts eget.** Det laves med en nøgle, der tilhører dit projekt, afledt af installationens `ENCRYPTION_SECRET`, så den samme værdi har et andet token i et andet projekt, og ingen, der læser et token, kan regne sig tilbage til værdien eller hashe et gæt for at sammenligne. En IP-adresse har ét token, uanset hvordan den er skrevet: `::ffff:203.0.113.7` og `203.0.113.7` deler ét. Poster, der blev gemt, før tokens havde en nøgle, indeholder tokens på 8 tegn, såsom `[HASHED:8c87b489]`, der adskiller sig fra nutidens på 16 tegn: Søg efter begge, indtil de poster når slutningen af deres opbevaring. Hvis du ændrer `ENCRYPTION_SECRET`, ændres alle tokens, og på en selvhostet installation er tokens kun så hemmelige som den.
 - **Lister og indlejrede værdier læses også.** En regel læser hver tekst i en liste, en liste af lister eller en nøgle-værdi-liste, såsom værdierne af en HTTP-header, og bevarer værdiens form: tal og sand eller falsk forbliver, som de er. En **Følsomme attributnøgler**-regel læser også nøglerne inde i en værdi, så `password` inde i en nøgle-værdi-liste skjules også. Brødteksten i en logpost, der sendes som et map eller en liste, gemmes som sin JSON-tekst, og en **Følsomme attributnøgler**-regel læser nøglerne i den, som i en brødtekst skrevet som JSON. En mønsterregel bevarer en sådan brødtekst som JSON, og også en attribut skrevet som JSON, såsom et AI-kalds beskeder: Den læser teksten, som dit program skrev den, med en escape-sekvens som `\n` læst som det linjeskift, den står for, og erstatter kun det, den finder, inde i dens tekster og tal.
 - **JSON i en streng læses også.** En tekst, der selv er JSON, såsom en attribut `http.request.body`, der indeholder `{"password":"hunter2"}`, eller en Fluentd-posts `log`-linje inde i en logposts brødtekst, læses som JSON, op til 4 niveauer af JSON inden i hinanden, og dybere som tekst. En **Følsomme attributnøgler**-regel skjuler værdierne under de nøgler i den, der ser hemmelige ud, og intet andet: Dens tal, mellemrum og andre tekster forbliver, som dit program skrev dem. En tekst, der kun ligner JSON, såsom `{token}`, efterlades, som den er.
 - **En værdi, der er for stor til at blive læst element for element, læses som tekst.** En værdi, der er indlejret mere end 32 niveauer dybt, eller som ville bringe en post over 10.000 værdier inde i dens lister og maps, læses og gemmes som sin JSON-tekst. En mønsterregel renser det, den finder i den tekst, og en **Følsomme attributnøgler**-regel skjuler hele værdien, når et ord som `password` eller `token` optræder i den. I en logposts brødtekst og i JSON i en streng læses kun den del, der ligger ud over disse grænser, som tekst: Resten læses stadig nøgle for nøgle.

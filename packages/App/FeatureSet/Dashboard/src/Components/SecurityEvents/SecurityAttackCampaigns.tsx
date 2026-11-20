@@ -47,11 +47,11 @@ import {
   NO_CAMPAIGNS_DESCRIPTION,
   NO_CAMPAIGNS_TITLE,
   REQUESTS_COUNT,
-  UNKNOWN_ADDRESS,
   VIEW_REQUESTS,
   buildCampaignCorrelateRoute,
   buildCampaignEventsRoute,
   describeCampaignResult,
+  getCampaignAddressText,
   getCampaignAttackKindLabel,
   getCampaignOutcomeSegments,
   getCampaignWindowRange,
@@ -209,11 +209,7 @@ const CampaignRow: FunctionComponent<{
             "db8::7334:2001".
           */}
           <IsolatedText
-            text={
-              campaign.sourceIp ||
-              translator.translateText(UNKNOWN_ADDRESS) ||
-              UNKNOWN_ADDRESS
-            }
+            text={getCampaignAddressText(campaign, translator)}
             dataTestId="security-attack-campaign-address"
             className="min-w-0 max-w-full font-mono text-sm font-semibold text-gray-900 [overflow-wrap:anywhere]"
           />

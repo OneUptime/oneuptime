@@ -148,6 +148,7 @@ import HashedString from "Common/Types/HashedString";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
+import { isProductLevelPermission } from "Common/Types/Product/ProductLevels";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import { startsCollapsed } from "Common/UI/Components/SideMenu/SideMenuSectionState";
@@ -622,10 +623,22 @@ function refreshIntervals(): Array<number> {
 }
 
 // The titles of the roles in a permission list, and its other permissions.
-function rolesAndGrants(permissions: ReadonlyArray<Permission>): {
+function rolesAndGrants(everyPermission: ReadonlyArray<Permission>): {
   roles: Array<string>;
   grants: Array<string>;
 } {
+  /*
+   * The tables name the project-wide and area roles and Dashboards' own
+   * permissions. Dashboards' levels (#10289) follow the project-wide roles
+   * on every Dashboards record, and are described once, for every product,
+   * on the permissions page.
+   */
+  const permissions: Array<Permission> = everyPermission.filter(
+    (permission: Permission): boolean => {
+      return !isProductLevelPermission(permission);
+    },
+  );
+
   return {
     roles: permissions
       .filter((permission: Permission): boolean => {
