@@ -14,6 +14,7 @@ import GcpCloudConnector, {
   GcpAddedMetricAsk,
   getGcpAddedMetricsToAsk,
   getGcpSplitLearnKey,
+  getGcpSplitResourcesChecked,
   getGcpSplitResourcesUnseen,
   isGcpSplitLearnDue,
   learnGcpSplitFromRead,
@@ -1373,6 +1374,82 @@ describe("what a read of every value learns", () => {
       }),
     ).toBe(0);
   });
+
+  test("a type's resource the read it was learned in found without the metric - no Ops Agent - is no new one; one found since is", () => {
+    const learned: GcpSplitLearned = {
+      at: NOW.toISOString(),
+      via: "promql",
+      capped: [{ resource: vmLabels("1001"), values: ["nginx"] }],
+      others: [vmLabels("1002")],
+    };
+    const checked: Array<Record<string, string>> = getGcpSplitResourcesChecked({
+      learned,
+      split,
+      found: [
+        vmLabels("1003"),
+        vmLabels("1001"),
+        { ...vmLabels("1003"), extra: "kept aside" },
+        vmLabels("1002"),
+        // Not every one of the split's resource labels: no resource of it.
+        { zone: "us-central1-a" },
+      ],
+    });
+
+    // The ones it learned are not kept twice.
+    expect(checked).toEqual([vmLabels("1003")]);
+    expect(
+      getGcpSplitResourcesUnseen({
+        learned: { ...learned, checked },
+        split,
+        found: [vmLabels("1001"), vmLabels("1002"), vmLabels("1003")],
+      }),
+    ).toBe(0);
+    expect(
+      getGcpSplitResourcesUnseen({
+        learned: { ...learned, checked },
+        split,
+        found: [vmLabels("1003"), vmLabels("1004"), vmLabels("1004")],
+      }),
+    ).toBe(1);
+  });
+
+  test("while a learning holds the most it keeps, no resource found makes it due: the hour's learning ranks them all", () => {
+    const vms: Array<Record<string, string>> = Array.from(
+      { length: GCP_SPLIT_MAX_LEARNED_RESOURCES + 10 },
+      (_value: unknown, index: number): Record<string, string> => {
+        return vmLabels(String(10000 + index));
+      },
+    );
+    const learned: GcpSplitLearned = {
+      at: NOW.toISOString(),
+      via: "promql",
+      capped: [{ resource: vms[0]!, values: ["nginx"] }],
+      others: vms.slice(1, 1500),
+    };
+    const checked: Array<Record<string, string>> = getGcpSplitResourcesChecked({
+      learned,
+      split,
+      found: vms,
+    });
+
+    // As many as the room the learning leaves: 2,000 less its 1,500.
+    expect(checked).toHaveLength(GCP_SPLIT_MAX_LEARNED_RESOURCES - 1500);
+    expect(
+      getGcpSplitResourcesUnseen({
+        learned: { ...learned, checked },
+        split,
+        found: [...vms, vmLabels("99999")],
+      }),
+    ).toBe(0);
+    // Short of the most it keeps, each resource it does not know is new.
+    expect(
+      getGcpSplitResourcesUnseen({
+        learned: { ...learned, checked: checked.slice(1) },
+        split,
+        found: vms,
+      }),
+    ).toBe(11);
+  });
 });
 
 // ---- A read, end to end, against Google ------------------------------------
@@ -1720,6 +1797,68 @@ describe("a split read against Google, as it answers and bills", () => {
 
     expect(fake.queries).toHaveLength(2);
     expect(writtenValues(third)).toContain("1003:cmd-03");
+  });
+
+  test("a VM of the type that never reports the metric - no Ops Agent - is no new VM: an hour of reads learns once, and a VM made since at the next read", async () => {
+    const fake: FakeGoogle = createFakeGoogle({
+      series: {
+        [CPU]: [cpuSeries("1001"), cpuSeries("1003")],
+        [PROCESS_CPU]: processesOf("1001", 30),
+      },
+    });
+    let state: CloudConnectionPullState = withVms();
+
+    // A read every five minutes: 1003's CPU is found by each, its processes never.
+    for (let read: number = 0; read < 6; read++) {
+      const result: CloudReadResult = await readAt(
+        fake,
+        [addition()],
+        state,
+        new Date(NOW.getTime() + read * 5 * MINUTE_MS),
+      );
+
+      expect(writtenValues(result)).toHaveLength(10);
+      state = { ...result.nextState, ...withVms() };
+    }
+
+    expect(fake.queries).toHaveLength(1);
+    expect(billedForSplit(fake)).toBe(10 + 6 * 10);
+    expect(Object.values(state.gcpSplitValues || {})[0]!.checked).toEqual([
+      vmLabels("1003"),
+    ]);
+
+    fake.setSeries({
+      [CPU]: [cpuSeries("1001"), cpuSeries("1003"), cpuSeries("1004")],
+      [PROCESS_CPU]: [...processesOf("1001", 30), ...processesOf("1004", 4)],
+    });
+
+    // 1004 is found, and learned at the read after; 1003 is still no new VM.
+    let last: CloudReadResult | undefined;
+
+    for (let read: number = 6; read < 9; read++) {
+      last = await readAt(
+        fake,
+        [addition()],
+        state,
+        new Date(NOW.getTime() + read * 5 * MINUTE_MS),
+      );
+      state = { ...last.nextState, ...withVms() };
+    }
+
+    expect(fake.queries).toHaveLength(2);
+    expect(writtenValues(last!)).toEqual(
+      [
+        ...commands(20, 29).map((command: string): string => {
+          return `1001:${command}`;
+        }),
+        ...commands(0, 3).map((command: string): string => {
+          return `1004:${command}`;
+        }),
+      ].sort(),
+    );
+    expect(Object.values(state.gcpSplitValues || {})[0]!.checked).toEqual([
+      vmLabels("1003"),
+    ]);
   });
 
   test("VMs' own additions are learned together, narrowed to their own VMs, and read each for its values", async () => {

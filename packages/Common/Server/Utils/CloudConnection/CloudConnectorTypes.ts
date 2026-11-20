@@ -64,10 +64,6 @@ export interface CloudConnectorCallOptions {
 }
 
 /*
- * Where the last read got to, kept on the connection between reads
- * (CloudConnection.pullState). Server only; holds no secret.
- */
-/*
  * GOOGLE CLOUD: WHICH VALUES A SPLIT ADDITION'S RESOURCES ARE READ FOR
  * (#10076), as the last learning found them (GcpCloudConnector).
  */
@@ -87,6 +83,13 @@ export interface GcpSplitLearned {
   capped: Array<{ resource: Record<string, string>; values: Array<string> }>;
   // The others it saw, with fewer values: read for every value.
   others: Array<Record<string, string>>;
+  /*
+   * A type's: the resources of the type that the read it was learned in
+   * found by their key metrics, but it did not see - a VM without the Ops
+   * Agent never reports the metric. Found again, they make no learning due;
+   * a resource found since does.
+   */
+  checked?: Array<Record<string, string>> | undefined;
 }
 
 /*
@@ -104,6 +107,10 @@ export interface AwsAddedMetricUnitState {
   isChanged?: boolean | undefined;
 }
 
+/*
+ * Where the last read got to, kept on the connection between reads
+ * (CloudConnection.pullState). Server only; holds no secret.
+ */
 export interface CloudConnectionPullState {
   /*
    * Per datapoint period, in seconds: where the last metric window ended
