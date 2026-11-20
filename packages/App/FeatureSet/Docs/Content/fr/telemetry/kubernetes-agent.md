@@ -9,7 +9,7 @@ L'agent Kubernetes de OneUptime est un chart Helm qui collecte les métriques, l
 - [Installer l'agent](#installer-lagent): Quatre étapes avec Helm.
 - [Installer en tant que module complémentaire Amazon EKS](#installer-en-tant-que-module-complémentaire-amazon-eks): Depuis la console EKS, sans Helm.
 - [OpenShift](#openshift): Le preset, les contraintes de contexte de sécurité qu'il crée et les alertes propres à OpenShift.
-- [Durcissement du cluster](#durcissement-du-cluster): Les scores des Normes de sécurité des pods et du CIS Benchmark, et les autorisations de l'agent lui-même.
+- [Durcissement du cluster](#durcissement-du-cluster): Les scores des Normes de sécurité des pods, du CIS Benchmark et du NSA/CISA Hardening Guide, les vérifications des nœuds par kube-bench, et les autorisations de l'agent lui-même.
 - [Options de configuration](#options-de-configuration): Filtres, échantillonnage, plan de contrôle, maillage de services, coûts et étiquettes.
 - [Agent IA Kubernetes](#agent-ia-kubernetes): `kubectl` en lecture seule pour OneUptime AI, et des corrections si vous les autorisez.
 - [Envoyer moins](#réduire-le-volume-de-données-collectées): Les leviers, par ordre d'impact.
@@ -316,19 +316,53 @@ Recherchez-les dans **Journaux**, ou supprimez ceux dont vous ne voulez pas avec
 
 ## Durcissement du cluster
 
-La page **Conformité** d'un cluster, sous **Sécurité**, évalue le cluster lui-même dans sa section **Durcissement du cluster**, au regard de trois référentiels. Elle lit ce que l'agent envoie déjà : les pods du cluster, ses espaces de noms et, pour le CIS Benchmark, son RBAC, ses comptes de service et ses NetworkPolicies. Le menu du cluster affiche la page dès que l'agent remonte les pods du cluster, que celui-ci exécute ou non une base de données.
+La page **Conformité** d'un cluster, sous **Sécurité**, évalue le cluster lui-même dans sa section **Durcissement du cluster**, au regard de quatre référentiels. Elle lit ce que l'agent envoie déjà : les pods du cluster, ses espaces de noms et, pour le CIS Benchmark et le guide NSA/CISA, son RBAC, ses comptes de service et ses NetworkPolicies. Avec kube-bench activé, elle évalue aussi ce à quoi seuls les nœuds peuvent répondre : voir [Contrôles des nœuds et du plan de contrôle](#contrôles-des-nœuds-et-du-plan-de-contrôle). Le menu du cluster affiche la page dès que l'agent remonte les pods du cluster, que celui-ci exécute ou non une base de données.
 
 | Référentiel | Ce qu'il évalue |
 | --- | --- |
 | **Normes de sécurité des pods : Baseline** | Chaque charge de travail exécutée sur le cluster, au regard de la politique Baseline de la version de Kubernetes du cluster : les conteneurs privilégiés, les espaces de noms, ports et chemins de l'hôte, les capacités ajoutées et tous les autres champs que nomme la politique, lus dans la spécification de chaque pod |
 | **Normes de sécurité des pods : Restricted** | Les mêmes charges de travail, au regard de la politique Restricted : les contrôles de Baseline, ainsi que des types de volumes limités à ceux qu'elle autorise, l'exécution sous un utilisateur autre que root, aucune élévation de privilèges, un profil seccomp et toutes les capacités retirées |
-| **CIS Kubernetes Benchmark v2.0** | Les 27 contrôles de la section 5 auxquels l'API Kubernetes peut répondre : les liaisons qui accordent cluster-admin, l'accès aux Secrets, `nodes/proxy` et les autres droits que nomment ses contrôles, les rôles avec des caractères génériques, les comptes de service par défaut, Pod Security Admission ou un moteur de politiques dans chaque espace de noms, les NetworkPolicies, et ce qu'exécute chaque pod |
+| **CIS Kubernetes Benchmark v2.0** | Les 27 contrôles de la section 5 auxquels l'API Kubernetes peut répondre : les liaisons qui accordent cluster-admin, l'accès aux Secrets, `nodes/proxy` et les autres droits que nomment ses contrôles, les rôles avec des caractères génériques, les comptes de service par défaut, Pod Security Admission ou un moteur de politiques dans chaque espace de noms, les NetworkPolicies, et ce qu'exécute chaque pod. Avec kube-bench activé, également les contrôles des nœuds et du plan de contrôle qu'il vérifie sur les nœuds |
+| **NSA/CISA Kubernetes Hardening Guide v1.2** | Les recommandations du guide que OneUptime peut lire : des conteneurs qui ne s'exécutent pas en root, des systèmes de fichiers immuables, aucun conteneur privilégié ni espace de noms de l'hôte, et des limites de ressources sur chaque conteneur, lus dans la spécification de chaque pod ; une NetworkPolicy de refus par défaut, dans les deux sens, dans chaque espace de noms qui exécute des pods ; le moindre privilège dans le RBAC ; et, avec kube-bench activé, les paramètres TLS, d'authentification, d'autorisation et d'audit du plan de contrôle et des kubelets |
 
 La tuile de chaque référentiel affiche son score, ainsi que le nombre de charges de travail évaluées et combien sont en échec. Ses contrôles listent d'abord ceux en échec : chacun indique ce qui ne va pas et comment le corriger, et liste les charges de travail, rôles, liaisons, comptes de service ou espaces de noms qui le mettent en échec, chacun avec un lien vers sa page, jusqu'au conteneur ou au volume et au champ en cause, comme `securityContext.privileged`. Là où Sécurité des données évalue les bases de données qui s'exécutent sur le cluster, elles restent en dessous, sous **Bases de données de ce cluster**.
 
 Les Normes de sécurité des pods sont évaluées pour la version de Kubernetes du cluster lui-même : celle de son kubelet le plus récent, dans la limite de la version la plus récente que connaît OneUptime. Un contrôle ajouté par une version ultérieure ne compte qu'à partir de cette version, et la page indique selon quelle version elle a évalué le cluster.
 
-Les 104 autres contrôles du benchmark vérifient les fichiers et les kubelets des nœuds ou les options du plan de contrôle, ou demandent l'examen d'une personne. Aucune API n'y répond : ils sont donc listés sous **Non évalués ici**, regroupés par motif, et ne sont jamais ni satisfaits ni en échec. Sur un plan de contrôle managé, comme EKS, GKE ou AKS, la page indique qu'ils relèvent du benchmark du fournisseur.
+Sans kube-bench, les 104 autres contrôles du benchmark vérifient les fichiers et les kubelets des nœuds ou les options du plan de contrôle, ou demandent l'examen d'une personne. Aucune API n'y répond : ils sont donc listés sous **Non évalués ici**, regroupés par motif, et ne sont jamais ni satisfaits ni en échec. Sur un plan de contrôle managé, comme EKS, GKE ou AKS, la page indique qu'ils relèvent du benchmark du fournisseur.
+
+Les recommandations du guide NSA/CISA auxquelles rien de ce que lit OneUptime ne peut répondre, comme l'analyse des images à la recherche de vulnérabilités ou le chiffrement des Secrets au repos, sont listées de la même façon dans la liste **Non évalués ici** propre au guide, chacune avec sa section du guide. Un contrôle dont le cluster n'a pas envoyé la source, comme un paramètre du kubelet avant que kube-bench ne s'exécute, est *non évalué* et ne compte ni comme satisfait ni comme en échec.
+
+### Contrôles des nœuds et du plan de contrôle
+
+Les contrôles des nœuds et du plan de contrôle du benchmark, les options de l'API server, du controller manager, du scheduler, d'etcd et du kubelet et les permissions de leurs fichiers, ne peuvent être lus que sur les nœuds. Avec `compliance.nodeBenchmark.enabled`, l'agent y exécute [kube-bench](https://github.com/aquasecurity/kube-bench) toutes les six heures, et la page évalue chaque vérification de kube-bench comme un contrôle du CIS Benchmark, en échec sur chaque nœud qui ne le satisfait pas, avec les interrupteurs et le bouton **Accepter** de tout contrôle. kube-bench est désactivé par défaut, en raison de ce qu'il exige :
+
+- À chaque exécution, son pod fonctionne en tant que root dans l'espace de noms de processus du nœud (`hostPID`), ce dont kube-bench a besoin pour lire les lignes de commande des composants. Il n'est pas privilégié : il retire toutes les capacités Linux sauf `DAC_OVERRIDE`, interdit l'élévation de privilèges et s'exécute sur un système de fichiers racine en lecture seule.
+- Il monte en lecture seule les répertoires Kubernetes du nœud : `/etc/kubernetes`, qui contient sur un nœud du plan de contrôle la clé de la CA du cluster et `admin.conf`, et `/var/lib/kubelet`, qui contient les volumes de chaque pod de ce nœud, Secrets compris.
+- Son image est celle d'Aqua Security, pas celle de OneUptime. Épinglez-la par son digest avec `compliance.nodeBenchmark.image.digest`, et répliquez-la dans votre miroir avec `compliance.nodeBenchmark.image.repository`.
+- Son compte de service ne monte aucun jeton et n'est lié à aucun rôle, et une NetworkPolicy tient ses pods à l'écart du réseau. Il écrit le numéro et le résultat de chaque vérification dans le message de terminaison de son conteneur, que l'agent envoie déjà dans ses instantanés des ressources.
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
+  --set compliance.nodeBenchmark.enabled=true
+```
+
+Pour l'exécuter maintenant, plutôt qu'à la prochaine heure planifiée :
+
+```bash
+kubectl create job --from=cronjob/kubernetes-agent-kube-bench-workers kube-bench-now -n oneuptime-agent
+```
+
+kube-bench exécute le benchmark de la plateforme du cluster, choisi d'après sa version de Kubernetes : le CIS Amazon EKS Benchmark sur EKS, le CIS GKE Benchmark sur GKE et le benchmark générique ailleurs. Sur AKS, ajoutez `--set compliance.nodeBenchmark.benchmark=aks-1.8` ; là où un cluster managé a exécuté le benchmark générique, la page indique lequel définir. Sur un plan de contrôle managé, kube-bench évalue les nœuds worker, et les contrôles du plan de contrôle restent du ressort du fournisseur, car aucun pod ne peut les lire. kube-bench est omis sur GKE Autopilot, EKS Fargate et OpenShift. Le README du chart liste chaque valeur, et ce que le benchmark de chaque plateforme laisse sans réponse.
+
+**Nœuds lus par kube-bench** liste les nœuds sur lesquels kube-bench s'est exécuté en dernier lieu, avec le benchmark exécuté, la date, et la raison pour laquelle une exécution n'a pas pu aboutir. Les vérifications que son benchmark marque comme manuelles sont listées par numéro sous **Non évalués ici**, pour l'examen d'une personne.
+
+### Accepter un constat
+
+**Accepter**, sur un constat en échec, demande un motif, puis considère que cet objet satisfait le contrôle, ou tous les contrôles du référentiel, jusqu'à ce que l'acceptation expire ou que vous sélectionniez **Révoquer**. Chaque contrôle liste à part ses constats acceptés, et **Constats acceptés** les liste tous, avec qui a accepté chacun, quand et pourquoi.
+
+Là où une charge de travail en échec appartient à l'agent lui-même, son collecteur de nœud, son instrumentation eBPF, son profileur ou kube-bench, le constat l'indique, avec la raison pour laquelle l'agent a besoin de ce que le contrôle refuse et la valeur qui le retire. **Accepter avec ce motif** ouvre la boîte de dialogue avec ce motif déjà rempli, pour tous les contrôles du référentiel.
 
 ### Désactiver un référentiel, un contrôle ou un espace de noms
 
@@ -340,7 +374,7 @@ Désactivez ce qui ne concerne pas un cluster. Chaque interrupteur est propre au
 
 ### Exporter un référentiel
 
-**Exporter en CSV** et **Exporter en JSON** téléchargent le rapport d'un référentiel : chaque contrôle, s'il est satisfait, ce qui le met en échec et comment le corriger, ainsi que la version de Kubernetes selon laquelle il a été évalué.
+**Exporter en CSV** et **Exporter en JSON** téléchargent le rapport d'un référentiel : chaque contrôle, s'il est satisfait, ce qui le met en échec et comment le corriger, ce qui n'est pas évalué et pourquoi, ainsi que la version de Kubernetes selon laquelle il a été évalué. Le JSON du CIS Benchmark contient aussi les nœuds lus par kube-bench.
 
 ### Ce que l'agent lit pour l'évaluation
 
