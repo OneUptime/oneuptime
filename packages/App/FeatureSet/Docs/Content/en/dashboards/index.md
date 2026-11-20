@@ -61,6 +61,8 @@ Open a dashboard and its own side menu has these pages. Every section but **Basi
 | **Sharing** | Who can view it, its public link, and an IP allowlist under More settings. |
 | **Branding** | Page title, description, logo, theme and favicon of the public dashboard. |
 | **Custom Domains** | Host the public dashboard on your own domain. |
+| **Private Users** | The people who may sign in to the public link, when only people who sign in can view it. |
+| **Single Sign-On** | The SAML and OpenID Connect providers they sign in with, and **Require SSO to Sign In**. |
 | **Settings** | Duplicate, export, or archive the dashboard. |
 | **Owners** | The users and teams who own it. |
 | **Audit Logs** | Every change made to the dashboard, and who made it. |

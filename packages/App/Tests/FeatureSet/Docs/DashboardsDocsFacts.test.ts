@@ -3406,11 +3406,13 @@ describe("Sharing & Public Dashboards, against the public link's checks", () => 
     ipWhitelist?: string;
     password?: boolean;
     isArchived?: boolean;
+    requireSignIn?: boolean;
   }): Dashboard {
     const dashboard: Dashboard = new Dashboard();
 
     dashboard.isPublicDashboard = data.isPublicDashboard ?? true;
     dashboard.isArchived = data.isArchived ?? false;
+    dashboard.requireSignIn = data.requireSignIn ?? false;
 
     if (data.ipWhitelist) {
       dashboard.ipWhitelist = data.ipWhitelist;
@@ -3428,14 +3430,19 @@ describe("Sharing & Public Dashboards, against the public link's checks", () => 
     dashboard: Dashboard,
     clientIp: string,
     hasUnlockCookie: boolean = false,
+    hasSignedInSession: boolean = false,
   ): PublicDashboardAccess {
     return PublicDashboardAccessPolicy.decide({
       dashboard: dashboard,
-      visitor: { clientIp: clientIp, hasUnlockCookie: hasUnlockCookie },
+      visitor: {
+        clientIp: clientIp,
+        hasUnlockCookie: hasUnlockCookie,
+        hasSignedInSession: hasSignedInSession,
+      },
     }).access;
   }
 
-  it("runs the visitor's checks in the diagram's order: shared, then the IP allowlist, then the password", () => {
+  it("runs the visitor's checks in the diagram's order: shared, then the IP allowlist, then sign-in, then the password", () => {
     const office: string = "203.0.113.7";
     const elsewhere: string = "198.51.100.20";
     const diagram: string = fenceCode(
@@ -3480,15 +3487,46 @@ describe("Sharing & Public Dashboards, against the public link's checks", () => 
       PublicDashboardAccess.Granted,
     );
 
+    // On the list, a dashboard that asks its visitors to sign in: sign-in, never the password.
+    expect(
+      accessFor(
+        publicDashboard({ ipWhitelist: office, requireSignIn: true }),
+        elsewhere,
+        false,
+        true,
+      ),
+    ).toBe(PublicDashboardAccess.Forbidden);
+    expect(
+      accessFor(
+        publicDashboard({ requireSignIn: true, password: true }),
+        elsewhere,
+        true,
+      ),
+    ).toBe(PublicDashboardAccess.SignInRequired);
+    expect(
+      accessFor(
+        publicDashboard({ requireSignIn: true, password: true }),
+        elsewhere,
+        false,
+        true,
+      ),
+    ).toBe(PublicDashboardAccess.Granted);
+
     expect(diagram).toContain('shared -->|"No"| missing["A not-found page"]');
     expect(diagram).toContain(
       'shared -->|"Yes"| allowed("Is their address on<br/>the IP allowlist?")',
     );
     expect(diagram).toContain(
-      'allowed -->|"Yes, or<br/>no list"| locked("Is a password<br/>required?")',
+      'allowed -->|"Yes, or<br/>no list"| signin("Must visitors<br/>sign in?")',
     );
     expect(diagram).toContain(
       'allowed -->|"No"| denied["An Access<br/>Denied page"]',
+    );
+    expect(diagram).toContain(
+      'signin -->|"Yes"| signinpage["The sign-in<br/>page"]',
+    );
+    expect(diagram).toContain(
+      'signin -->|"No"| locked("Is a password<br/>required?")',
     );
   });
 
@@ -3707,7 +3745,11 @@ describe("Dashboard Configuration & Permissions, against the models", () => {
     expect(
       PublicDashboardAccessPolicy.decide({
         dashboard: archived,
-        visitor: { clientIp: undefined, hasUnlockCookie: false },
+        visitor: {
+          clientIp: undefined,
+          hasUnlockCookie: false,
+          hasSignedInSession: false,
+        },
       }).access,
     ).toBe(PublicDashboardAccess.NotFound);
     // The setting stays as it was, for unarchiving to put back.

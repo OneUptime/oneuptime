@@ -242,7 +242,7 @@ describe("the dashboard's side menu", () => {
     await renderMenu(<DashboardSideMenu modelId={DASHBOARD_ID} />);
   }
 
-  test("groups Branding and Custom Domains under Public Link, folded", async () => {
+  test("groups Branding, Custom Domains, and who signs in to the link under Public Link, folded", async () => {
     await renderMenuAt(PageMap.DASHBOARD_VIEW);
 
     expect(sectionTitlesInOrder()).not.toContain("Branding");
@@ -253,6 +253,15 @@ describe("the dashboard's side menu", () => {
         title: "Custom Domains",
         href: viewRoute(PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS),
       },
+      // Who signs in when only people who sign in can view it (#10250).
+      {
+        title: "Private Users",
+        href: viewRoute(PageMap.DASHBOARD_VIEW_PRIVATE_USERS),
+      },
+      {
+        title: "Single Sign-On",
+        href: viewRoute(PageMap.DASHBOARD_VIEW_SINGLE_SIGN_ON),
+      },
     ] as Array<MenuLink>);
     expect(isExpanded("Public Link")).toBe(false);
   });
@@ -260,6 +269,8 @@ describe("the dashboard's side menu", () => {
   test.each([
     [PageMap.DASHBOARD_VIEW_BRANDING, "Branding"],
     [PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS, "Custom Domains"],
+    [PageMap.DASHBOARD_VIEW_PRIVATE_USERS, "Private Users"],
+    [PageMap.DASHBOARD_VIEW_SINGLE_SIGN_ON, "Single Sign-On"],
   ])(
     "the %s page opens Public Link and marks %s",
     async (page: string, entry: string) => {

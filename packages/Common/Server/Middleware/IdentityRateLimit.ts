@@ -165,6 +165,15 @@ export enum IdentityRateLimitBucket {
   StatusPageLogin = "status-page-login",
 
   /*
+   * POST /public-dashboard-api/private-user/login/:dashboardId -- a
+   * dashboard private user's password (#10250). The same guessing again,
+   * against yet another set of accounts, so a counter of its own: attempts
+   * on a dashboard's link must not refuse sign-ins to OneUptime or to a
+   * status page from the same address, or the other way round.
+   */
+  DashboardPrivateUserLogin = "dashboard-private-user-login",
+
+  /*
    * POST /verify-totp-auth, POST /verify-webauthn-auth,
    * POST /verify-totp-enrolment, the security key's sign-in options
    * (POST /security-key-sign-in-options, #9822) and its enrolment -- the
@@ -349,6 +358,25 @@ const STATUS_PAGE_LOGIN_BUCKET: BucketConfig = {
   ),
   perIpLimit: parsePositiveIntFromEnv(
     "IDENTITY_STATUS_PAGE_LOGIN_RATE_LIMIT_PER_IP_PER_WINDOW",
+    150,
+  ),
+};
+
+/*
+ * Dashboard private user password budget (#10250). The same numbers as the
+ * status page's for the same reasons, with its own settings.
+ */
+const DASHBOARD_PRIVATE_USER_LOGIN_BUCKET: BucketConfig = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "IDENTITY_DASHBOARD_PRIVATE_USER_LOGIN_RATE_LIMIT_WINDOW_SECONDS",
+    15 * 60,
+  ),
+  perAccountLimit: parsePositiveIntFromEnv(
+    "IDENTITY_DASHBOARD_PRIVATE_USER_LOGIN_RATE_LIMIT_PER_ACCOUNT_PER_WINDOW",
+    10,
+  ),
+  perIpLimit: parsePositiveIntFromEnv(
+    "IDENTITY_DASHBOARD_PRIVATE_USER_LOGIN_RATE_LIMIT_PER_IP_PER_WINDOW",
     150,
   ),
 };
@@ -808,6 +836,10 @@ export default class IdentityRateLimit {
 
     if (bucket === IdentityRateLimitBucket.StatusPageLogin) {
       return STATUS_PAGE_LOGIN_BUCKET;
+    }
+
+    if (bucket === IdentityRateLimitBucket.DashboardPrivateUserLogin) {
+      return DASHBOARD_PRIVATE_USER_LOGIN_BUCKET;
     }
 
     if (bucket === IdentityRateLimitBucket.VerificationEmailResend) {

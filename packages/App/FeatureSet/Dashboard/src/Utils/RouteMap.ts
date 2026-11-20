@@ -1303,6 +1303,8 @@ export const DashboardsRoutePath: Dictionary<string> = {
   [PageMap.DASHBOARD_VIEW_BRANDING]: `${RouteParams.ModelID}/branding`,
   [PageMap.DASHBOARD_VIEW_AUTHENTICATION_SETTINGS]: `${RouteParams.ModelID}/authentication-settings`,
   [PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS]: `${RouteParams.ModelID}/custom-domains`,
+  [PageMap.DASHBOARD_VIEW_PRIVATE_USERS]: `${RouteParams.ModelID}/private-users`,
+  [PageMap.DASHBOARD_VIEW_SINGLE_SIGN_ON]: `${RouteParams.ModelID}/single-sign-on`,
   [PageMap.DASHBOARD_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.DASHBOARD_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.DASHBOARDS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
@@ -7642,6 +7644,16 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/dashboards/${
       DashboardsRoutePath[PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS]
+    }`,
+  ),
+  [PageMap.DASHBOARD_VIEW_PRIVATE_USERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARD_VIEW_PRIVATE_USERS]
+    }`,
+  ),
+  [PageMap.DASHBOARD_VIEW_SINGLE_SIGN_ON]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARD_VIEW_SINGLE_SIGN_ON]
     }`,
   ),
   [PageMap.DASHBOARD_VIEW_OWNERS]: new Route(
