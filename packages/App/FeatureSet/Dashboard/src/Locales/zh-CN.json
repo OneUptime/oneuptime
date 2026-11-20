@@ -60449,5 +60449,6 @@
   "{{serviceName}} stopped reporting on {{hostName}}": "{{hostName}} 上的 {{serviceName}} 已停止报告",
   "{{unitName}} is active on {{hostName}}": "{{hostName}} 上的 {{unitName}} 处于活动状态",
   "{{unitName}} is not active on {{hostName}}": "{{hostName}} 上的 {{unitName}} 不处于活动状态",
-  "{{unitName}} stopped reporting on {{hostName}}": "{{hostName}} 上的 {{unitName}} 已停止报告"
+  "{{unitName}} stopped reporting on {{hostName}}": "{{hostName}} 上的 {{unitName}} 已停止报告",
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "选择包含此服务代码的存储库。OneUptime AI 会在那里创建拉取请求。"
 }

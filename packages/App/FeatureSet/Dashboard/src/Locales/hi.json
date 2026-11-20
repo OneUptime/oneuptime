@@ -60449,5 +60449,6 @@
   "{{serviceName}} stopped reporting on {{hostName}}": "{{hostName}} पर {{serviceName}} ने रिपोर्ट करना बंद कर दिया",
   "{{unitName}} is active on {{hostName}}": "{{hostName}} पर {{unitName}} सक्रिय है",
   "{{unitName}} is not active on {{hostName}}": "{{hostName}} पर {{unitName}} सक्रिय नहीं है",
-  "{{unitName}} stopped reporting on {{hostName}}": "{{hostName}} पर {{unitName}} ने रिपोर्ट करना बंद कर दिया"
+  "{{unitName}} stopped reporting on {{hostName}}": "{{hostName}} पर {{unitName}} ने रिपोर्ट करना बंद कर दिया",
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "वह रिपॉज़िटरी चुनें जिसमें इस सेवा का कोड है। OneUptime AI वहां एक पुल रिक्वेस्ट खोलता है।"
 }

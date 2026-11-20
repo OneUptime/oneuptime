@@ -60449,5 +60449,6 @@
   "{{serviceName}} stopped reporting on {{hostName}}": "{{serviceName}} ha smesso di segnalare su {{hostName}}",
   "{{unitName}} is active on {{hostName}}": "{{unitName}} è attiva su {{hostName}}",
   "{{unitName}} is not active on {{hostName}}": "{{unitName}} non è attiva su {{hostName}}",
-  "{{unitName}} stopped reporting on {{hostName}}": "{{unitName}} ha smesso di segnalare su {{hostName}}"
+  "{{unitName}} stopped reporting on {{hostName}}": "{{unitName}} ha smesso di segnalare su {{hostName}}",
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "Scegli il repository che contiene il codice di questo servizio. OneUptime AI vi aprirà una pull request."
 }

@@ -60449,5 +60449,6 @@
   "{{serviceName}} stopped reporting on {{hostName}}": "{{serviceName}} на {{hostName}}: статус больше не поступает",
   "{{unitName}} is active on {{hostName}}": "{{unitName}} активен на {{hostName}}",
   "{{unitName}} is not active on {{hostName}}": "{{unitName}} не активен на {{hostName}}",
-  "{{unitName}} stopped reporting on {{hostName}}": "{{unitName}} на {{hostName}}: состояние больше не поступает"
+  "{{unitName}} stopped reporting on {{hostName}}": "{{unitName}} на {{hostName}}: состояние больше не поступает",
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "Выберите репозиторий с кодом этого сервиса. OneUptime AI откроет в нём pull request."
 }

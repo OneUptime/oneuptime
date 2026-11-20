@@ -60449,5 +60449,6 @@
   "{{serviceName}} stopped reporting on {{hostName}}": "{{hostName}} 上の {{serviceName}} が報告を停止しました",
   "{{unitName}} is active on {{hostName}}": "{{hostName}} 上の {{unitName}} はアクティブです",
   "{{unitName}} is not active on {{hostName}}": "{{hostName}} 上の {{unitName}} がアクティブではありません",
-  "{{unitName}} stopped reporting on {{hostName}}": "{{hostName}} 上の {{unitName}} が報告を停止しました"
+  "{{unitName}} stopped reporting on {{hostName}}": "{{hostName}} 上の {{unitName}} が報告を停止しました",
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "このサービスのコードを保持しているリポジトリを選択してください。OneUptime AI がそこにプルリクエストを作成します。"
 }

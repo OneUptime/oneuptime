@@ -60449,5 +60449,6 @@
   "{{serviceName}} stopped reporting on {{hostName}}": "{{serviceName}} på {{hostName}} rapporterer ikke længere",
   "{{unitName}} is active on {{hostName}}": "{{unitName}} er aktiv på {{hostName}}",
   "{{unitName}} is not active on {{hostName}}": "{{unitName}} er ikke aktiv på {{hostName}}",
-  "{{unitName}} stopped reporting on {{hostName}}": "{{unitName}} på {{hostName}} rapporterer ikke længere"
+  "{{unitName}} stopped reporting on {{hostName}}": "{{unitName}} på {{hostName}} rapporterer ikke længere",
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "Vælg det kodelager, der indeholder denne tjenestes kode. OneUptime AI opretter en pull-anmodning der."
 }
