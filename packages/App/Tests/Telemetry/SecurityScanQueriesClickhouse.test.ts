@@ -90,7 +90,6 @@ jest.mock("Common/Server/Utils/Logger", () => {
 });
 
 import LogService from "Common/Server/Services/LogService";
-import ProjectService from "Common/Server/Services/ProjectService";
 import SecurityEventService from "Common/Server/Services/SecurityEventService";
 import SecurityLogSourceService from "Common/Server/Services/SecurityLogSourceService";
 import SecurityLogCases from "Common/Server/Utils/SecurityCase/SecurityLogCases";
@@ -103,6 +102,8 @@ import RealTimeDetections from "Common/Server/Utils/SecurityEvent/RealTime/RealT
 import SecurityRequestTrace from "Common/Server/Utils/SecurityEvent/RequestTrace/SecurityRequestTrace";
 import ScrubbedClientAddresses from "Common/Server/Utils/SecurityEvent/ScrubbedClientAddresses";
 import SecurityEventStoreOnce from "Common/Server/Utils/SecurityEvent/SecurityEventStoreOnce";
+import SecurityTrustedProxies from "Common/Server/Utils/SecurityEvent/SecurityTrustedProxies";
+import { NO_TRUSTED_PROXIES } from "Common/Utils/SecurityEvent/ClientAddressTrust";
 import SigmaClickhouseCompiler from "Common/Server/Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
 import ThreatIntelEnricher from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelEnricher";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
@@ -835,8 +836,8 @@ integration("The security scans' queries against ClickHouse", () => {
    * (SecurityLogScanner.scanSource) - its read on this server, each line's
    * parse, the events stored in the SecurityEvent table - read back here.
    * Only what lives in Postgres and Redis is stood in for: the source's own
-   * row, the "OneUptime Logs" service, cases, a project's settings, the
-   * enrichments that read them, and the product lock.
+   * row, the "OneUptime Logs" service, cases, the project's trusted proxies,
+   * the enrichments that read them, and the product lock.
    */
   describe("Your logs, end to end", () => {
     const scanProjectId: ObjectID = new ObjectID(
@@ -921,8 +922,8 @@ integration("The security scans' queries against ClickHouse", () => {
           return await data.work();
         }) as never);
       jest
-        .spyOn(ProjectService, "findOneById")
-        .mockResolvedValue(null as never);
+        .spyOn(SecurityTrustedProxies, "getForProject")
+        .mockResolvedValue(NO_TRUSTED_PROXIES as never);
 
       const source: SecurityLogSource = new SecurityLogSource();
       source.id = new ObjectID("64190000-0000-4000-8000-00000000000e");
