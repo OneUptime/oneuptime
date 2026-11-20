@@ -397,7 +397,19 @@ export default class SecurityBlock extends BaseModel {
   })
   public createdByUserId?: ObjectID = undefined;
 
-  @ColumnAccessControl(serverColumnAccess)
+  // The run itself is read by its own readers: a block's reader is told only which run it was.
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadSecurityPlaybookRun,
+    ],
+    update: [],
+  })
   @TableColumn({
     manyToOneRelationColumn: "securityPlaybookRunId",
     computed: true,

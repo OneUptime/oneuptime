@@ -948,6 +948,7 @@ const NARROWED_BY_LABELS: ReadonlyArray<Permission> = [
   Permission.ReadScheduledMaintenanceTemplate,
   Permission.ReadScheduledMaintenanceTemplateOwnerTeam,
   Permission.ReadScheduledMaintenanceTemplateOwnerUser,
+  Permission.ReadSecurityBlock,
   Permission.ReadSecurityCase,
   Permission.ReadServerlessFunctionOwnerTeam,
   Permission.ReadServerlessFunctionOwnerUser,

@@ -10,6 +10,7 @@ import SecurityBlockDestinations, {
   SecurityBlockDestinationsFound,
 } from "../Utils/SecurityBlocklist/SecurityBlockDestinations";
 import SecurityBlocklistJobs from "../Utils/SecurityBlocklist/SecurityBlocklistJobs";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import SecurityBlockTimeline, {
   blockAddedMarkdown,
   blockExtendedMarkdown,
@@ -754,8 +755,18 @@ export class Service extends ProjectReferencesService<Model> {
       return createdItem;
     }
 
-    const securityCaseId: ObjectID | undefined =
-      createdItem.securityCaseId || onCreate.createBy.data.securityCaseId;
+    // The case, whichever name the create gave it by (one column).
+    const securityCaseId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        createdItem as unknown as Record<string, unknown>,
+        ["securityCaseId", "securityCase"],
+        "Case",
+      ) ||
+      RelationIdUtil.readConsistent(
+        onCreate.createBy.data as unknown as Record<string, unknown>,
+        ["securityCaseId", "securityCase"],
+        "Case",
+      );
 
     if (securityCaseId) {
       const found: SecurityBlockDestinationsFound =

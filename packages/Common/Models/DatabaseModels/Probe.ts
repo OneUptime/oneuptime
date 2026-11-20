@@ -341,7 +341,9 @@ export default class Probe extends BaseModel {
    * the server sees when the probe checks in, kept with its liveness stamp.
    * A probe's checks leave from it, so the blocklist never blocks it: a
    * block of the probe's own address would fail every monitor it checks.
-   * Written by OneUptime alone, and read by the probe's readers.
+   * Written by OneUptime alone, and read by the probe's readers only: no
+   * page that names a probe - an alert's, a monitor's, a device's - reads
+   * where it checks in from.
    */
   @ColumnAccessControl({
     create: [],
@@ -353,7 +355,7 @@ export default class Probe extends BaseModel {
     required: false,
     computed: true,
     type: TableColumnType.ShortText,
-    canReadOnRelationQuery: true,
+    canReadOnRelationQuery: false,
     title: "Egress IP Address",
     description:
       "The IP address this probe last checked in from, as OneUptime saw it. Set by OneUptime from the probe's own requests; the blocklist never blocks it.",
