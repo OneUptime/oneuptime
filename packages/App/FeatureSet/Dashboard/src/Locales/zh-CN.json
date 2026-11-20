@@ -59878,5 +59878,8 @@
   "More read their output metrics further down the chain.": "链条更下游还有更多读取它们的输出指标的对象。",
   "The widget this link points to is no longer on this dashboard.": "此链接指向的小部件已不在此仪表板上。",
   "These read its output metric, {{metric}}:": "以下读取其输出指标 {{metric}}：",
-  "These read the output metrics of the ones you can't see:": "以下读取您无法查看的记录规则的输出指标："
+  "These read the output metrics of the ones you can't see:": "以下读取您无法查看的记录规则的输出指标：",
+  "Delete view {{name}}": "删除视图 {{name}}",
+  "Main menu": "主菜单",
+  "Rename view {{name}}": "重命名视图 {{name}}"
 }

@@ -59878,5 +59878,8 @@
   "More read their output metrics further down the chain.": "وتقرأ عناصر أخرى مقاييس مخرجاتها في مراحل لاحقة من السلسلة.",
   "The widget this link points to is no longer on this dashboard.": "لم يعد عنصر الواجهة الذي يشير إليه هذا الرابط موجودًا في لوحة المعلومات هذه.",
   "These read its output metric, {{metric}}:": "تقرأ هذه مقياس مخرجاتها، {{metric}}:",
-  "These read the output metrics of the ones you can't see:": "تقرأ هذه مقاييس مخرجات قواعد التسجيل التي لا يمكنك رؤيتها:"
+  "These read the output metrics of the ones you can't see:": "تقرأ هذه مقاييس مخرجات قواعد التسجيل التي لا يمكنك رؤيتها:",
+  "Delete view {{name}}": "حذف طريقة العرض {{name}}",
+  "Main menu": "القائمة الرئيسية",
+  "Rename view {{name}}": "إعادة تسمية طريقة العرض {{name}}"
 }

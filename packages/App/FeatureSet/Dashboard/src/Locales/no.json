@@ -59878,5 +59878,8 @@
   "More read their output metrics further down the chain.": "Lenger ned i kjeden leser flere utdata-målingene deres.",
   "The widget this link points to is no longer on this dashboard.": "Widgeten denne lenken peker til, er ikke lenger på dette dashbordet.",
   "These read its output metric, {{metric}}:": "Disse leser utdata-målingen dens, {{metric}}:",
-  "These read the output metrics of the ones you can't see:": "Disse leser utdata-målingene til reglene du ikke kan se:"
+  "These read the output metrics of the ones you can't see:": "Disse leser utdata-målingene til reglene du ikke kan se:",
+  "Delete view {{name}}": "Slett visningen {{name}}",
+  "Main menu": "Hovedmeny",
+  "Rename view {{name}}": "Gi visningen {{name}} nytt navn"
 }

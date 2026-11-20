@@ -212,7 +212,7 @@ test.describe("First run: a brand-new project", () => {
     await expect(tiles).not.toContainText("Budgets healthy");
 
     // Home is one page with no side menu (#6857).
-    await expect(page.locator('[aria-label="Main navigation"]')).toHaveCount(0);
+    await expect(page.locator('[aria-label="Pages in this section"]')).toHaveCount(0);
 
     /*
      * The address of Home's old copy of the list forwards to the Monitors
@@ -222,14 +222,14 @@ test.describe("First run: a brand-new project", () => {
       page,
       projectId,
       url: projectUrl(projectId, "/home/monitors-inoperational"),
-      ready: page.locator('[aria-label="Main navigation"]').first(),
+      ready: page.locator('[aria-label="Pages in this section"]').first(),
     });
     await expect(page).toHaveURL(
       exactPath(projectId, "/monitors/inoperational"),
     );
 
     const menu: Locator = page
-      .locator('[aria-label="Main navigation"]')
+      .locator('[aria-label="Pages in this section"]')
       .first();
     await expect(menu).toContainText("Not Operational");
     await expect(menu).not.toContainText("Inoperational");
@@ -308,7 +308,7 @@ test.describe("First run: a brand-new project", () => {
     await expect(create).toHaveText("Create Monitor");
 
     const menu: Locator = page
-      .locator('[aria-label="Main navigation"]')
+      .locator('[aria-label="Pages in this section"]')
       .first();
     await expect(menu).toContainText("Not Operational");
     await expect(menu).not.toContainText("Inoperational");

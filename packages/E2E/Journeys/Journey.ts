@@ -276,7 +276,7 @@ export default class Journey {
       await this.settle();
       const menu: Locator = this.page
         .locator("main")
-        .getByRole("navigation", { name: "Main navigation" })
+        .getByRole("navigation", { name: "Pages in this section" })
         .first();
       const entry: Locator = menu
         .getByRole("link", { name, exact: true })

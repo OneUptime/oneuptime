@@ -818,7 +818,7 @@ test.describe("the Overview", () => {
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
     const panel: Locator = page.getByRole("navigation", {
-      name: "Main navigation",
+      name: "Pages in this section",
     });
     await expect(panel.getByRole("link", { name: "Costs" })).toBeVisible();
     await expect(panel.getByRole("link", { name: "Savings" })).toBeVisible();

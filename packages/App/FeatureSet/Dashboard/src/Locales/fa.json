@@ -59878,5 +59878,8 @@
   "More read their output metrics further down the chain.": "در ادامهٔ زنجیره، موارد دیگری هم متریک‌های خروجی آن‌ها را می‌خوانند.",
   "The widget this link points to is no longer on this dashboard.": "ویجتی که این پیوند به آن اشاره می‌کند دیگر در این داشبورد نیست.",
   "These read its output metric, {{metric}}:": "این‌ها متریک خروجی آن، {{metric}}، را می‌خوانند:",
-  "These read the output metrics of the ones you can't see:": "این‌ها متریک‌های خروجی قواعد ضبطی را می‌خوانند که نمی‌توانید ببینید:"
+  "These read the output metrics of the ones you can't see:": "این‌ها متریک‌های خروجی قواعد ضبطی را می‌خوانند که نمی‌توانید ببینید:",
+  "Delete view {{name}}": "حذف نمای {{name}}",
+  "Main menu": "منوی اصلی",
+  "Rename view {{name}}": "تغییر نام نمای {{name}}"
 }

@@ -59878,5 +59878,8 @@
   "More read their output metrics further down the chain.": "D'autres lisent leurs métriques de sortie plus loin dans la chaîne.",
   "The widget this link points to is no longer on this dashboard.": "Le widget vers lequel pointe ce lien n'est plus sur ce tableau de bord.",
   "These read its output metric, {{metric}}:": "Ceux-ci lisent sa métrique de sortie, {{metric}} :",
-  "These read the output metrics of the ones you can't see:": "Ceux-ci lisent les métriques de sortie des règles que vous ne pouvez pas voir :"
+  "These read the output metrics of the ones you can't see:": "Ceux-ci lisent les métriques de sortie des règles que vous ne pouvez pas voir :",
+  "Delete view {{name}}": "Supprimer la vue {{name}}",
+  "Main menu": "Menu principal",
+  "Rename view {{name}}": "Renommer la vue {{name}}"
 }

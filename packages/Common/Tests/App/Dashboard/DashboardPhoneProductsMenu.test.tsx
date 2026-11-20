@@ -89,11 +89,13 @@ function navbar(): React.ReactElement {
 
 function openPhoneMenu(): HTMLElement {
   fireEvent.click(screen.getByTestId("mobile-nav-toggle"));
-  const menu: HTMLElement | null = screen
-    .getByRole("link", { name: "Home" })
-    .closest("nav");
-  expect(menu).not.toBeNull();
-  return menu!;
+  /*
+   * The open menu, which sits inside the bar's one landmark beside the bar
+   * and its toggle (#7963): the panel itself, not the landmark around both.
+   */
+  const menu: HTMLElement = screen.getByTestId("mobile-nav-menu");
+  expect(menu).toContainElement(screen.getByRole("link", { name: "Home" }));
+  return menu;
 }
 
 function linkTitles(menu: HTMLElement): Array<string> {

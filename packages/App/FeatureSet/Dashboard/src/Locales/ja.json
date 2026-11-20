@@ -59878,5 +59878,8 @@
   "More read their output metrics further down the chain.": "それらの出力メトリクスは、連鎖のさらに先でも読み取られています。",
   "The widget this link points to is no longer on this dashboard.": "このリンクが指すウィジェットは、このダッシュボードにはもうありません。",
   "These read its output metric, {{metric}}:": "出力メトリクス {{metric}} は、次が読み取ります：",
-  "These read the output metrics of the ones you can't see:": "表示できない記録ルールの出力メトリクスは、次が読み取ります："
+  "These read the output metrics of the ones you can't see:": "表示できない記録ルールの出力メトリクスは、次が読み取ります：",
+  "Delete view {{name}}": "ビュー {{name}} を削除",
+  "Main menu": "メインメニュー",
+  "Rename view {{name}}": "ビュー {{name}} の名前を変更"
 }

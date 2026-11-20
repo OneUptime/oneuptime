@@ -554,7 +554,7 @@ describe("the keys inside an open menu", () => {
 
   /*
    * A browser goes on back from the button, where the menu put the focus
-   * (the browser suite, KeyboardAndLandmarks, checks it there); user-event
+   * (NavigationSearch/HeaderMenusKeyboard.spec.ts checks it there); user-event
    * goes back from the row the key was pressed on, which is the button.
    * Either way the menu is closed, and the focus is out of it.
    */

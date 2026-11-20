@@ -59878,5 +59878,8 @@
   "More read their output metrics further down the chain.": "Längre ner i kedjan läser fler deras utdatamätvärden.",
   "The widget this link points to is no longer on this dashboard.": "Widgeten som den här länken pekar på finns inte längre på den här instrumentpanelen.",
   "These read its output metric, {{metric}}:": "Dessa läser dess utdatamätvärde, {{metric}}:",
-  "These read the output metrics of the ones you can't see:": "Dessa läser utdatamätvärdena för de regler som du inte kan se:"
+  "These read the output metrics of the ones you can't see:": "Dessa läser utdatamätvärdena för de regler som du inte kan se:",
+  "Delete view {{name}}": "Ta bort vyn {{name}}",
+  "Main menu": "Huvudmeny",
+  "Rename view {{name}}": "Byt namn på vyn {{name}}"
 }

@@ -59878,5 +59878,8 @@
   "More read their output metrics further down the chain.": "Verderop in de keten lezen nog meer hun uitvoermetrieken.",
   "The widget this link points to is no longer on this dashboard.": "De widget waar deze link naar verwijst, staat niet meer op dit dashboard.",
   "These read its output metric, {{metric}}:": "Deze lezen de uitvoermetriek ervan, {{metric}}:",
-  "These read the output metrics of the ones you can't see:": "Deze lezen de uitvoermetrieken van de regels die u niet kunt zien:"
+  "These read the output metrics of the ones you can't see:": "Deze lezen de uitvoermetrieken van de regels die u niet kunt zien:",
+  "Delete view {{name}}": "Weergave {{name}} verwijderen",
+  "Main menu": "Hoofdmenu",
+  "Rename view {{name}}": "Weergave {{name}} hernoemen"
 }

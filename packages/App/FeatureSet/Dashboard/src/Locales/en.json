@@ -59878,5 +59878,8 @@
   "More read their output metrics further down the chain.": "More read their output metrics further down the chain.",
   "The widget this link points to is no longer on this dashboard.": "The widget this link points to is no longer on this dashboard.",
   "These read its output metric, {{metric}}:": "These read its output metric, {{metric}}:",
-  "These read the output metrics of the ones you can't see:": "These read the output metrics of the ones you can't see:"
+  "These read the output metrics of the ones you can't see:": "These read the output metrics of the ones you can't see:",
+  "Delete view {{name}}": "Delete view {{name}}",
+  "Main menu": "Main menu",
+  "Rename view {{name}}": "Rename view {{name}}"
 }

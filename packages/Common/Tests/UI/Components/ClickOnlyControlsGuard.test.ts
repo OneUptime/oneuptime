@@ -66,7 +66,7 @@ const DELIBERATE: Record<string, { elements: Array<string>; reason: string }> =
           "The floating panel's transparent backdrop: a click outside closes it, as Escape and its Close button do from the keyboard.",
       },
     "packages/Common/UI/Components/SideMenu/SideMenu.tsx": {
-      elements: ["div", "nav"],
+      elements: ["div", "nav[role=none]"],
       reason:
         "The phone menu's backdrop (the menu button, which opened it, closes it again from the keyboard), and the menu's list, which hears its links' clicks to close itself after one is followed; the links are what a keyboard presses.",
     },

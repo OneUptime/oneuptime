@@ -21,10 +21,14 @@ import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
 import { Location } from "react-router-dom";
 import Route from "../../../Types/API/Route";
+import IconProp from "../../../Types/Icon/IconProp";
 import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 import Breadcrumbs from "../../../UI/Components/Breadcrumbs/Breadcrumbs";
 import HiddenText from "../../../UI/Components/HiddenText/HiddenText";
 import MasterPage from "../../../UI/Components/MasterPage/MasterPage";
+import Navbar, {
+  HOME_NAV_BAR_ITEM_ID,
+} from "../../../UI/Components/Navbar/NavBar";
 import ObjectIDView from "../../../UI/Components/ObjectID/ObjectIDView";
 import SideMenu from "../../../UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "../../../UI/Components/SideMenu/SideMenuItem";
@@ -42,10 +46,12 @@ import {
  *
  * The words the shared page chrome draws were English on pages otherwise
  * in the reader's language: a secret's "Click to reveal" (HiddenText), the
- * ID pill's "Click to copy" (ObjectIDView), the side menu's name, "Main
- * navigation", and the breadcrumbs', "Breadcrumb" - names a screen reader
- * says aloud before anything else on the page - and the skip link's "Skip
- * to main content" (MasterPage). Drawn here from each app's own locale
+ * ID pill's "Click to copy" (ObjectIDView), the top bar's name, "Main
+ * menu" (NavBar), the side menu's, "Pages in this section", and the
+ * breadcrumbs', "Breadcrumb" - names a screen reader says aloud as it lists
+ * the page's landmarks, three of them, told apart by name (#7963: the side
+ * menu was "Main navigation" and the bar had none) - and the skip link's
+ * "Skip to main content" (MasterPage). Drawn here from each app's own locale
  * files, as it ships them, in every language it offers: what is drawn is
  * the locale's word, and never the English. So are the words the reveal
  * button and the ID pill say once clicked: a revealed secret's "Copy" and
@@ -58,7 +64,8 @@ type Words = Record<string, unknown>;
 
 type Part =
   | "Breadcrumb"
-  | "Main navigation"
+  | "Main menu"
+  | "Pages in this section"
   | "Navigate to"
   | "Click to reveal"
   | "Click to copy"
@@ -78,7 +85,8 @@ const AFTER_A_CLICK: ReadonlyArray<Part> = [
 
 const EVERY_PART: ReadonlyArray<Part> = [
   "Breadcrumb",
-  "Main navigation",
+  "Main menu",
+  "Pages in this section",
   "Navigate to",
   "Click to reveal",
   "Click to copy",
@@ -228,6 +236,28 @@ const menu: () => ReactElement = (): ReactElement => {
   );
 };
 
+// The top bar as the Dashboard draws it: Home, and a product beside it.
+const topBar: () => ReactElement = (): ReactElement => {
+  return (
+    <Navbar
+      items={[
+        {
+          id: HOME_NAV_BAR_ITEM_ID,
+          title: "Home",
+          icon: IconProp.Home,
+          route: new Route("/home"),
+        },
+        {
+          id: "monitors",
+          title: "Monitors",
+          icon: IconProp.AltGlobe,
+          route: new Route("/s/1"),
+        },
+      ]}
+    />
+  );
+};
+
 const RECORD_ID: string = "6c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f";
 
 // A clipboard that takes the text, or one that refuses it.
@@ -282,7 +312,37 @@ const drawPart: (instance: i18n, part: Part) => Promise<string> = async (
 
       return screen.getByRole("navigation").getAttribute("aria-label") || "";
     }
-    case "Main navigation": {
+    case "Main menu": {
+      setViewportWidth(1280);
+      goTo("/s/1");
+      await act(async () => {
+        inLocale(instance, topBar());
+      });
+
+      const desktop: string =
+        document.querySelector("nav")?.getAttribute("aria-label") || "";
+
+      // On a phone, the bar and the menu it opens are one landmark, named so.
+      cleanup();
+      setViewportWidth(375);
+      await act(async () => {
+        inLocale(instance, topBar());
+      });
+      fireEvent.click(screen.getByTestId("mobile-nav-toggle"));
+
+      const phones: Array<string> = screen
+        .getAllByRole("navigation")
+        .map((landmark: HTMLElement): string => {
+          return landmark.getAttribute("aria-label") || "";
+        });
+
+      setViewportWidth(1280);
+
+      return phones.length === 1 && phones[0] === desktop
+        ? desktop
+        : `${desktop} | ${phones.join(" | ")}`;
+    }
+    case "Pages in this section": {
       setViewportWidth(1280);
       goTo("/s/1");
       await act(async () => {
@@ -515,9 +575,9 @@ describe("the page's own words in the reader's language", () => {
   }
 
   test.each([
-    ["de", "Navigationspfad", "Hauptnavigation"],
-    ["fa", "مسیر صفحه", "ناوبری اصلی"],
-    ["ar", "مسار التنقل", "التنقل الرئيسي"],
+    ["de", "Navigationspfad", "Seiten in diesem Bereich"],
+    ["fa", "مسیر صفحه", "صفحه‌های این بخش"],
+    ["ar", "مسار التنقل", "الصفحات في هذا القسم"],
   ])(
     "the Dashboard in %s names its breadcrumbs %s and its side menu %s",
     async (language: string, breadcrumb: string, navigation: string) => {
@@ -525,7 +585,7 @@ describe("the page's own words in the reader's language", () => {
       const words: Words = readLocale(app.folder, language);
 
       expect(words["Breadcrumb"]).toBe(breadcrumb);
-      expect(words["Main navigation"]).toBe(navigation);
+      expect(words["Pages in this section"]).toBe(navigation);
 
       const instance: i18n = await instanceFor(
         language,
@@ -551,6 +611,100 @@ describe("the page's own words in the reader's language", () => {
       ).toBeInTheDocument();
     },
   );
+
+  /*
+   * A page with all three - the top bar, the trail and a side menu - lists
+   * three navigation landmarks, each with a name of its own, in every
+   * language of every app that draws them (#7963). The side menu was
+   * "Main navigation" and the bar had no name, so a person asking for the
+   * main navigation landed in a project's Settings menu. And no name holds
+   * the landmark's own word ("navigation", which a screen reader says
+   * after it, WAI-ARIA's landmark naming).
+   */
+  const landmarksOfAPage: (instance: i18n) => Promise<Array<string>> = async (
+    instance: i18n,
+  ): Promise<Array<string>> => {
+    cleanup();
+    setViewportWidth(1280);
+    goTo("/s/1");
+    await act(async () => {
+      inLocale(
+        instance,
+        <div>
+          {topBar()}
+          <Breadcrumbs
+            links={[
+              { title: "Home", to: new Route("/home") },
+              { title: "Settings", to: new Route("/s/1") },
+            ]}
+          />
+          {menu()}
+        </div>,
+      );
+    });
+
+    return screen
+      .getAllByRole("navigation")
+      .map((landmark: HTMLElement): string => {
+        return landmark.getAttribute("aria-label") || "";
+      });
+  };
+
+  test("an English page's three landmarks: Main menu, Breadcrumb and Pages in this section", async () => {
+    const english: Words = readLocale(APPS[0]!.folder, "en");
+    const instance: i18n = await instanceFor("en", english, english);
+
+    expect(await landmarksOfAPage(instance)).toEqual([
+      "Main menu",
+      "Breadcrumb",
+      "Pages in this section",
+    ]);
+  });
+
+  for (const app of APPS.filter((one: App): boolean => {
+    return one.parts.includes("Main menu");
+  })) {
+    test.each(["en", ...app.languages])(
+      `${app.name} in %s names the top bar, the trail and the side menu apart`,
+      async (language: string) => {
+        const words: Words = readLocale(app.folder, language);
+        const instance: i18n = await instanceFor(
+          language,
+          words,
+          readLocale(app.folder, "en"),
+        );
+        const names: Array<string> = await landmarksOfAPage(instance);
+
+        expect(names).toHaveLength(3);
+        expect(new Set(names).size).toBe(3);
+
+        for (const name of names) {
+          expect(name.trim().length).toBeGreaterThan(0);
+        }
+      },
+    );
+  }
+
+  test("two landmarks with one name, or one with none, are caught (negative control)", () => {
+    const apart: (names: Array<string>) => boolean = (
+      names: Array<string>,
+    ): boolean => {
+      return (
+        new Set(names).size === names.length &&
+        names.every((name: string): boolean => {
+          return name.trim().length > 0;
+        })
+      );
+    };
+
+    expect(apart(["Main menu", "Breadcrumb", "Pages in this section"])).toBe(
+      true,
+    );
+    expect(apart(["Main navigation", "Breadcrumb", "Main navigation"])).toBe(
+      false,
+    );
+    expect(apart(["", "Breadcrumb", "Main navigation"])).toBe(false);
+  });
 
   test("a locale without the words draws them in English, and the check sees each (negative control)", async () => {
     const app: App = APPS[2]!;

@@ -176,7 +176,7 @@ function dialog(page: Page): Locator {
 
 // The Teams side menu: "Roles" is also a link in the breadcrumb trail.
 function sideMenu(page: Page): Locator {
-  return page.getByRole("navigation", { name: "Main navigation" });
+  return page.getByRole("navigation", { name: "Pages in this section" });
 }
 
 /*

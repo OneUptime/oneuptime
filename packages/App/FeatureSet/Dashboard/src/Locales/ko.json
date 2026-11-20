@@ -59878,5 +59878,8 @@
   "More read their output metrics further down the chain.": "체인의 더 아래에서도 이들의 출력 메트릭을 읽는 항목이 더 있습니다.",
   "The widget this link points to is no longer on this dashboard.": "이 링크가 가리키는 위젯은 더 이상 이 대시보드에 없습니다.",
   "These read its output metric, {{metric}}:": "출력 메트릭 {{metric}}을(를) 읽는 항목:",
-  "These read the output metrics of the ones you can't see:": "볼 수 없는 기록 규칙의 출력 메트릭을 읽는 항목:"
+  "These read the output metrics of the ones you can't see:": "볼 수 없는 기록 규칙의 출력 메트릭을 읽는 항목:",
+  "Delete view {{name}}": "{{name}} 보기 삭제",
+  "Main menu": "주 메뉴",
+  "Rename view {{name}}": "{{name}} 보기 이름 바꾸기"
 }

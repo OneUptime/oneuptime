@@ -5093,7 +5093,7 @@ test.describe("a case", () => {
 
     await toggle.click();
     const menu: Locator = page.getByRole("navigation", {
-      name: "Main navigation",
+      name: "Pages in this section",
     });
     for (const title of ["Overview", "Timeline", "Entities", "Private Notes"]) {
       await expect(
@@ -7532,7 +7532,7 @@ test.describe("detections", () => {
 
     await toggle.click();
     const menu: Locator = page.getByRole("navigation", {
-      name: "Main navigation",
+      name: "Pages in this section",
     });
     await expect(menu.getByRole("link", { name: "Open Cases" })).toBeVisible();
     await screenshot(page, "side-menu-mobile", { fullPage: false });
