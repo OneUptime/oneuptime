@@ -3,7 +3,7 @@
 Instrumentez une application Android, iOS ou React Native avec OpenTelemetry afin qu'elle se signale à OneUptime comme application RUM mobile. Toute autre plateforme dotée d'un SDK OpenTelemetry fonctionne de la même façon.
 
 :::cards
-- [Ce dont OneUptime a besoin](#ce-dont-oneuptime-a-besoin): Deux attributs de ressource, envoyés avec une clé Serveur.
+- [Ce dont OneUptime a besoin](#ce-dont-oneuptime-a-besoin): Deux attributs de ressource, envoyés avec une clé Mobile.
 - [Configurer votre plateforme](#configurer-votre-plateforme): Android, iOS, React Native et les autres.
 - [Plantages et blocages iOS](#plantages-et-blocages-ios): Les rapports de MetricKit et de KSCrash dans Exceptions, nommés grâce à vos dSYM.
 - [Vérifier que tout arrive](#vérifier-que-tout-arrive): Tester la clé, puis trouver l'application.
@@ -12,12 +12,12 @@ Instrumentez une application Android, iOS ou React Native avec OpenTelemetry afi
 
 ## Fonctionnement
 
-Votre application exporte l'OTLP directement vers OneUptime avec une clé d'ingestion **Serveur**. Ce sont les attributs `device.*` de sa ressource qui la classent comme RUM mobile plutôt que comme service backend.
+Votre application exporte l'OTLP directement vers OneUptime avec une clé d'ingestion **Mobile**, épinglée à l'application : tout ce qu'elle envoie est donc classé comme cette application RUM mobile. Avec toute autre clé, ce sont les attributs `device.*` de sa ressource qui la classent comme RUM mobile plutôt que comme service backend.
 
 ```mermaid title="Ce qu'envoie une application mobile, et avec quelle clé"
 flowchart TB
     app["Votre application mobile"] --> sdk["SDK OpenTelemetry<br/>avec attributs device.*"]
-    sdk -->|"OTLP avec<br/>une clé Serveur"| oneuptime["OneUptime"]
+    sdk -->|"OTLP avec<br/>une clé Mobile"| oneuptime["OneUptime"]
     oneuptime --> rum["Application RUM mobile"]
     replay["SDK de relecture<br/>React Native"] -->|"enregistrements avec<br/>une clé Navigateur"| oneuptime
 ```
@@ -31,7 +31,7 @@ Deux attributs de ressource, sur chaque lot que votre application exporte :
 | `service.name` | L'identité de l'application, par exemple `storefront-android`. |
 | `device.id` ou `device.model.identifier` | Marque la télémétrie comme RUM mobile. `device.model.identifier` remplit aussi la page **Clients**. |
 
-Sans attribut d'appareil, la télémétrie arrive quand même et vous pouvez l'interroger, mais elle est classée comme service backend au lieu d'une application RUM.
+Envoyée avec toute autre clé, la télémétrie sans attribut d'appareil arrive quand même et vous pouvez l'interroger, mais elle est classée comme service backend au lieu d'une application RUM.
 
 `device.manufacturer` marque aussi un lot comme mobile, mais seulement sur une ressource sans identité d'hôte, car l'inventaire d'un hôte s'en sert pour indiquer le fabricant d'une machine. Définissez aussi `device.id` ou `device.model.identifier`, comme le fait chaque recette ci-dessous, et cela ne compte jamais.
 
@@ -40,7 +40,7 @@ Faites de `device.id` un identifiant propre à l'installation, jamais un identif
 ## Avant de commencer
 
 - Une application avec un SDK OpenTelemetry : le SDK OpenTelemetry Java ou OpenTelemetry Android, opentelemetry-swift, ou le SDK OpenTelemetry JavaScript pour React Native.
-- Une clé d'ingestion **Serveur**, créée sous **Paramètres du projet → Télémétrie & APM → Clés d'ingestion** avec **Créer une clé d'ingestion**. Une clé **Navigateur** est refusée depuis une application mobile : elle est vérifiée par rapport à l'en-tête `Origin`, que les SDK mobiles n'envoient pas.
+- Une clé d'ingestion **Mobile**, créée sous **Paramètres du projet → Télémétrie & APM → Clés d'ingestion** avec **Créer une clé d'ingestion**, avec le `service.name` de votre application comme **Nom du service épinglé**. Une clé **Navigateur** est refusée depuis une application mobile : elle est vérifiée par rapport à l'en-tête `Origin`, que les SDK mobiles n'envoient pas. Ne livrez jamais une clé **Serveur** dans une application.
 - Ces paramètres OTLP. Si vous hébergez OneUptime vous-même, remplacez `https://oneuptime.com` par votre propre hôte.
 
 | Paramètre | Valeur |
@@ -52,7 +52,7 @@ Faites de `device.id` un identifiant propre à l'installation, jamais un identif
 | Journaux | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> La clé est livrée dans votre application, et une application peut être décompressée : partez donc du principe que quelqu'un la copiera. Sur la page de la clé, définissez un **Nom du service épinglé** pour qu'une copie ne puisse pas écrire sous les noms de vos services backend, ajoutez une **Requests Per Minute Limit** et une date **Expire le**, et renouvelez la clé à chaque version.
+> La clé est livrée dans votre application, et une application peut être décompressée : partez donc du principe que quelqu'un la copiera. Une copie d'une clé Mobile ne peut envoyer que les traces, les journaux et les métriques de cette application, classés sous son **Nom du service épinglé**, et jamais depuis une page web. Elle peut toutefois envoyer des données inventées pour cette application, jusqu'à la **Limite de requêtes par minute** de la clé : ajoutez donc une date **Expire le** et renouvelez la clé à chaque version.
 
 ## Configurer votre plateforme
 
@@ -136,7 +136,7 @@ OpenTelemetry.registerTracerProvider(
 
 `UIDevice.current.model` donne un nom court comme `iPhone`, ce qui limite la page **Clients** à une ligne par type d'appareil. `identifierForVendor` est l'installation d'après laquelle OneUptime compte les installations sans plantage, comme l'indique [Enregistrer les sessions](#enregistrer-les-sessions).
 @tab React Native
-React Native exécute le SDK OpenTelemetry JavaScript : construisez donc le provider, l'exportateur OTLP et le processeur de lots comme dans [Configuration navigateur](/docs/rum/browser-setup), avec trois changements : envoyez avec une clé **Serveur**, retirez `browserDetector` et `DocumentLoadInstrumentation`, et définissez vous-même les attributs d'appareil.
+React Native exécute le SDK OpenTelemetry JavaScript : construisez donc le provider, l'exportateur OTLP et le processeur de lots comme dans [Configuration navigateur](/docs/rum/browser-setup), avec trois changements : envoyez avec une clé **Mobile**, retirez `browserDetector` et `DocumentLoadInstrumentation`, et définissez vous-même les attributs d'appareil.
 
 ```ts
 import { Platform } from "react-native";
@@ -276,7 +276,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` avec `"valid": true` signifie que la clé est acceptée. Une clé Navigateur répond aussi `200`, mais son message indique qu'elle ne fonctionne que depuis un navigateur : une application mobile a besoin d'une clé Serveur. `401` signifie que la clé est inconnue, révoquée, désactivée ou expirée, et aucun paramètre du SDK n'y changera rien.
+`200` avec `"valid": true` signifie que la clé est acceptée. Une clé Navigateur répond aussi `200`, mais son message indique qu'elle ne fonctionne que depuis un navigateur : une application mobile a besoin d'une clé Mobile. `401` signifie que la clé est inconnue, révoquée, désactivée ou expirée, et aucun paramètre du SDK n'y changera rien.
 
 ### Lancer l'application
 
@@ -289,20 +289,20 @@ Ouvrez la page **Clients** de l'application : chaque modèle d'appareil issu de 
 
 ## Relecture de session sur mobile
 
-Les applications React Native peuvent enregistrer des sessions avec `@oneuptime/react-native-replay`. Il enregistre l'arbre de vues natif sous forme de maquette filaire, jamais de captures d'écran ni le texte affiché, et ses enregistrements s'ouvrent dans le même lecteur que ceux du web. Il envoie avec une clé **Navigateur** dont les **Origines autorisées** listent votre application sous la forme `app://` suivi de son ID d'application Android ou de son ID de bundle iOS : une clé distincte de la clé Serveur qu'utilise votre SDK OpenTelemetry. [Installer dans React Native](/docs/telemetry/session-replay#installation-dans-react-native) explique la marche à suivre.
+Les applications React Native peuvent enregistrer des sessions avec `@oneuptime/react-native-replay`. Il enregistre l'arbre de vues natif sous forme de maquette filaire, jamais de captures d'écran ni le texte affiché, et ses enregistrements s'ouvrent dans le même lecteur que ceux du web. Il envoie avec une clé **Navigateur** dont les **Origines autorisées** listent votre application sous la forme `app://` suivi de son ID d'application Android ou de son ID de bundle iOS : une clé distincte de la clé Mobile qu'utilise votre SDK OpenTelemetry. [Installer dans React Native](/docs/telemetry/session-replay#installation-dans-react-native) explique la marche à suivre.
 
 Les applications Android et iOS natives, ainsi que les autres plateformes, n'ont pas d'enregistreur de session : leur page **Relecture de session** reste vide, tandis que les traces, journaux, métriques, exceptions et la page **Clients** fonctionnent normalement.
 
 ## Dépannage
 
 :::details La vérification de la clé renvoie 401, ou la clé est refusée
-Un `401` signifie que la clé est inconnue, révoquée, désactivée ou expirée : créez une clé Serveur et recompilez l'application avec elle.
+Un `401` signifie que la clé est inconnue, révoquée, désactivée ou expirée : créez une clé Mobile et recompilez l'application avec elle.
 
-Une clé Navigateur passe la vérification, mais chaque export depuis une application mobile est refusé avec un `422` qui indique `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a server ingestion key for requests that are not sent by a browser.` Utilisez une clé **Serveur**.
+Une clé Navigateur passe la vérification, mais chaque export depuis une application mobile est refusé avec un `422` qui indique `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Utilisez une clé **Mobile**. Une clé Mobile est elle aussi refusée avec un `422` via gRPC et depuis une page web : exportez via OTLP/HTTP.
 :::
 
 :::details L'application apparaît sous Services au lieu de Surveillance des utilisateurs réels
-La ressource n'a ni `device.id` ni `device.model.identifier` : la télémétrie a donc été classée comme service backend. Définissez-les comme dans [Configurer votre plateforme](#configurer-votre-plateforme).
+La télémétrie a été envoyée avec une autre clé qu'une clé Mobile, et sa ressource n'a ni `device.id` ni `device.model.identifier` : elle a donc été classée comme service backend. Envoyez avec une clé Mobile, ou définissez-les comme dans [Configurer votre plateforme](#configurer-votre-plateforme).
 
 Le service déjà créé ne devient pas une application RUM : supprimez-le sous **Produits → Services** dès que la télémétrie RUM arrive.
 :::

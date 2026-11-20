@@ -12,11 +12,11 @@ Instrument a native Android app with OpenTelemetry Android so it reports to OneU
 
 ## How it works
 
-OpenTelemetry Android runs inside your app. It sends traces, logs and metrics to OneUptime over OTLP with a **Server** ingestion key, and adds a W3C `traceparent` header to the requests your app makes, so your backend's spans join the app's traces.
+OpenTelemetry Android runs inside your app. It sends traces, logs and metrics to OneUptime over OTLP with a **Mobile** ingestion key, pinned to your app, and adds a W3C `traceparent` header to the requests your app makes, so your backend's spans join the app's traces.
 
 ```mermaid title="From the app to OneUptime, and through your backend"
 flowchart TB
-    app["Your Android app<br/>with OpenTelemetry Android"] -->|"OTLP with<br/>a Server key"| oneuptime["OneUptime"]
+    app["Your Android app<br/>with OpenTelemetry Android"] -->|"OTLP with<br/>a Mobile key"| oneuptime["OneUptime"]
     app -->|"requests with<br/>a traceparent header"| api["Your APIs: orders,<br/>POS, kitchen display"]
     api -->|"OTLP"| oneuptime
     oneuptime --> rum["Mobile RUM application"]
@@ -26,7 +26,7 @@ flowchart TB
 ## Before you begin
 
 - An Android app whose `minSdk` is 23 or higher, built with `compileSdk` 34 or higher. With a `minSdk` below 26, turn on [core library desugaring](https://developer.android.com/studio/write/java8-support#library-desugaring), with Android Gradle Plugin 8.3.0 or later and `android.useFullClasspathForDexingTransform=true` in `gradle.properties`.
-- A **Server** ingestion key, created under **Project Settings → Telemetry & APM → Ingestion Keys** with **Create Ingestion Key**. A **Browser** key is refused from an app: it is checked against the `Origin` header, which an app does not send.
+- A **Mobile** ingestion key, created under **Project Settings → Telemetry & APM → Ingestion Keys** with **Create Ingestion Key**, its **Pinned Service Name** set to your app's `service.name`. A **Browser** key is refused from an app: it is checked against the `Origin` header, which an app does not send.
 - These OTLP settings. If you host OneUptime yourself, replace `https://oneuptime.com` with your own host.
 
 | Setting | Value |
@@ -303,7 +303,7 @@ OpenTelemetry Android sets `device.model.identifier` itself, so the app was set 
 :::
 
 :::details Nothing arrives, or the key is refused
-Run the key check in [Add OpenTelemetry Android](#add-opentelemetry-android). A `401` means the key is unknown, revoked, switched off or expired. A **Browser** key is refused from an app: use a **Server** key. Check that `baseUrl` ends in `/otlp`, without `/v1/traces`: the agent adds the path itself.
+Run the key check in [Add OpenTelemetry Android](#add-opentelemetry-android). A `401` means the key is unknown, revoked, switched off or expired. A **Browser** key is refused from an app: use a **Mobile** key. Check that `baseUrl` ends in `/otlp`, without `/v1/traces`: the agent adds the path itself.
 :::
 
 :::details A crash or an ANR is not in Exceptions

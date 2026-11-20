@@ -162,6 +162,12 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     reason:
       "A list's Edit asks for what the list is, and only that: its name, then the feed it follows or the address it is read from with how often - alternatives, by where its values come from, never both - with its description folded under More fields. A list kept by hand edits two rows, one that follows a feed three, one read from an address four: its address and how often it is read are one decision, which a step between them would split.",
   },
+  {
+    file: `${DASHBOARD}/Components/SecurityEvents/Blocklist/BlockAddressModal.tsx`,
+    form: "BasicFormModal: Security Events > Blocklist > Block Address",
+    reason:
+      "Blocking an address, often one attacking right now: what to block, for how long (24 hours unless someone picks another length) and why (optional), then one folded More fields header with what most blocks never change - Challenge instead of Block, and a Security Admin's block kept until lifted, which takes the length away. Three questions in view, one of them answered and one optional; a step would put a Next between the address and Block. SecurityBlocklistPage pins the shape.",
+  },
   /*
    * The maintainer, on the Create Custom Field form: "The only thing I
    * should see by default is: field name, field description, type. That's

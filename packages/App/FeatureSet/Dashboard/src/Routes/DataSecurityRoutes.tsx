@@ -21,12 +21,14 @@ import DataSecurityDataFlowsPage from "../Pages/DataSecurity/DataFlows";
 import DataSecurityAccessPage from "../Pages/DataSecurity/Access";
 import DataSecurityIdentityViewPage from "../Pages/DataSecurity/IdentityView";
 import DataSecurityCompliancePage from "../Pages/DataSecurity/Compliance";
+import DataSecurityAiPage from "../Pages/DataSecurity/AI";
 import DataSecurityScansPage from "../Pages/DataSecurity/Scans";
 import DataSecurityDocumentationPage from "../Pages/DataSecurity/Documentation";
 import DataSecurityDataTypesPage from "../Pages/DataSecurity/Settings/DataTypes";
 import DataSecurityChecksPage from "../Pages/DataSecurity/Settings/Checks";
 import DataSecurityResidencyPage from "../Pages/DataSecurity/Settings/Residency";
 import DataSecurityScanningPage from "../Pages/DataSecurity/Settings/Scanning";
+import DataSecurityAiSettingsPage from "../Pages/DataSecurity/Settings/AI";
 import DataSecurityOwnerRulesPage from "../Pages/DataSecurity/Settings/OwnerRules";
 import DataSecurityLabelRulesPage from "../Pages/DataSecurity/Settings/LabelRules";
 import DataStoreOverviewPage from "../Pages/DataSecurity/StoreView/Overview";
@@ -160,6 +162,15 @@ const DataSecurityRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={DataSecurityRoutePath[PageMap.DATA_SECURITY_AI] || ""}
+          element={
+            <DataSecurityAiPage
+              {...props}
+              pageRoute={RouteMap[PageMap.DATA_SECURITY_AI] as Route}
+            />
+          }
+        />
+        <PageRoute
           path={DataSecurityRoutePath[PageMap.DATA_SECURITY_SCANS] || ""}
           element={
             <DataSecurityScansPage
@@ -219,6 +230,15 @@ const DataSecurityRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.DATA_SECURITY_SETTINGS_SCANNING] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_AI] || ""}
+          element={
+            <DataSecurityAiSettingsPage
+              {...props}
+              pageRoute={RouteMap[PageMap.DATA_SECURITY_SETTINGS_AI] as Route}
             />
           }
         />

@@ -19,6 +19,10 @@ import CodeTaskAccess, {
 } from "../CodeTask/CodeTaskAccess";
 import CodeTaskGate from "../CodeTask/CodeTaskGate";
 import CodeTaskRuns from "../CodeTask/CodeTaskRuns";
+import {
+  DataSecurityAiCodeRequest,
+  isDataSecurityAiCodeRequest,
+} from "./DataSecurityAiInput";
 
 /*
  * A CODE CHANGE FOR DATA SECURITY ISSUES, ASKED OF ONEUPTIME AI AS THE
@@ -109,8 +113,12 @@ export default class DataSecurityCodeTask {
     code: DataSecurityFixCode;
     // The repository the person chose, as sent: an id that is not one chooses none.
     requestedRepositoryId?: unknown;
-    // The request for the coding agent, built once the task will start.
-    buildMessage: () => Promise<string>;
+    /*
+     * The request for the coding agent, built once the task will start:
+     * only one DataSecurityAiInput made (#10365), which holds no sample
+     * and no record.
+     */
+    buildMessage: () => Promise<DataSecurityAiCodeRequest>;
   }): Promise<DataSecurityFixResult> {
     const userId: ObjectID | undefined = data.props.userId || undefined;
 
@@ -156,12 +164,24 @@ export default class DataSecurityCodeTask {
       return { message: blocker.message };
     }
 
+    const request: DataSecurityAiCodeRequest = await data.buildMessage();
+
+    if (!isDataSecurityAiCodeRequest(request)) {
+      throw new BadDataException(
+        "A Data Security fix takes a request built by DataSecurityAiInput.",
+      );
+    }
+
     const run: AIRun = await CodeTaskRuns.start({
       projectId: data.projectId,
       userId,
       repository: choice.repository,
-      message: await data.buildMessage(),
+      message: request.text,
       context: [],
+      // A task for one issue says so; one for several is about each (#10370).
+      ...(data.issueIds.length === 1
+        ? { triggeredByDataSecurityIssueId: data.issueIds[0]! }
+        : {}),
     });
 
     for (const issueId of data.issueIds) {

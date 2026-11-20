@@ -33,6 +33,15 @@ export enum WorkspaceLiveMessageKind {
    * read as if nothing happened (RemediationChatMessage).
    */
   RemediationFix = "RemediationFix",
+  /*
+   * A playbook step that waits for a person's approval: its message in the
+   * channels and chats a Security Case rule names, and in each approver's
+   * direct messages, edited once somebody decides - here, in another copy,
+   * in the Dashboard or the mobile app - and as the step goes, so every copy
+   * says who decided and what came of it
+   * (WorkspaceSecurityPlaybookApprovalMessages).
+   */
+  SecurityPlaybookApproval = "SecurityPlaybookApproval",
 }
 
 // How an on-call policy run's message told the run's ending, the first time.
@@ -67,6 +76,22 @@ export interface WorkspaceLiveMessageData {
    * posted, which an edit keeps while it rewrites what follows them.
    */
   leadBlocks?: Array<WorkspaceMessageBlock> | undefined;
+  /*
+   * The language the message is written in, to write it in again when it
+   * is edited: an approver's own direct message in theirs (a playbook
+   * step's approval).
+   */
+  language?: string | undefined;
+  /*
+   * A direct message to one person (a playbook step's approval): who, the
+   * workspace it was sent through (WorkspaceProjectAuthToken
+   * .workspaceProjectId) - an edit goes only through the project's
+   * connection to that same workspace - and, for a Microsoft Teams personal
+   * chat the bot opened itself, the Bot Framework service it is at.
+   */
+  directMessageUserId?: string | undefined;
+  workspaceProjectId?: string | undefined;
+  serviceUrl?: string | undefined;
 }
 
 // Where in a workspace a live message sits.
@@ -106,5 +131,16 @@ export default class WorkspaceLiveMessageKey {
   // The messages of a fix that waits for approval, by its suggestion's id.
   public static forRemediationFix(suggestionId: ObjectID): string {
     return `${WorkspaceLiveMessageKind.RemediationFix}:${suggestionId.toString().toLowerCase()}`;
+  }
+
+  /*
+   * The messages of a playbook step's approval: the run, and the step's
+   * place in it - a step is asked about once in a run.
+   */
+  public static forSecurityPlaybookApproval(
+    runId: ObjectID,
+    stepIndex: number,
+  ): string {
+    return `${WorkspaceLiveMessageKind.SecurityPlaybookApproval}:${runId.toString().toLowerCase()}:${stepIndex}`;
   }
 }

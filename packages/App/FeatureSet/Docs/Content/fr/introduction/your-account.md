@@ -156,11 +156,11 @@ Certaines modifications vous demandent d'abord de confirmer que c'est bien vous,
 - désactiviez l'authentification à deux facteurs ;
 - supprimiez votre compte.
 
-La fenêtre **Confirmez que c'est bien vous** demande votre mot de passe et, tant que l'authentification à deux facteurs est activée, votre deuxième étape : un code de votre application d'authentification, votre clé de sécurité ou l'un de vos codes de secours. Avec une clé d'accès, cliquez plutôt sur **Utiliser une clé d'accès**. Si vous vous connectez uniquement par authentification unique, Google ou Microsoft, cliquez sur **Se reconnecter** : OneUptime fait en sorte que votre fournisseur d'identité vous demande de vous reconnecter, puis vous ramène à la page. La modification est alors effectuée.
+La fenêtre **Confirmez que c'est bien vous** demande votre mot de passe et, tant que l'authentification à deux facteurs est activée, votre deuxième étape : un code de votre application d'authentification, votre clé de sécurité ou l'un de vos codes de secours. Avec une clé d'accès, cliquez plutôt sur **Utiliser une clé d'accès**. Si vous vous connectez uniquement par authentification unique, Google ou Microsoft, cliquez sur **Se reconnecter** : OneUptime fait en sorte que votre fournisseur d'identité vous demande de vous reconnecter, puis vous ramène à la page. La modification est alors effectuée. Si vous vous connectez uniquement avec Vercel, qui ne peut pas confirmer que c'est bien vous, choisissez plutôt **Se connecter autrement** et connectez-vous avec un lien envoyé par e-mail.
 
 Une fois que vous avez confirmé, la question ne vous est plus posée pendant 10 minutes dans ce navigateur. Cinq tentatives erronées déconnectent ce navigateur, mais ne verrouillent jamais votre compte : reconnectez-vous et réessayez. OneUptime vous envoie un e-mail quand cela arrive, et chaque fois qu'un code de secours confirme que c'est bien vous.
 
-Sur un serveur auto-hébergé, les administrateurs principaux confirment de la même façon que c'est bien eux avant de modifier la façon dont quelqu'un d'autre se connecte, de faire de quelqu'un un administrateur principal, de modifier les fournisseurs d'authentification unique ou les réglages e-mail du serveur, ou de créer une clé API principale. La clé API principale ne peut pas faire ces modifications.
+Sur un serveur auto-hébergé, les administrateurs principaux confirment de la même façon que c'est bien eux avant de modifier la façon dont quelqu'un d'autre se connecte, de supprimer le compte de quelqu'un d'autre, de faire de quelqu'un un administrateur principal, de modifier les fournisseurs d'authentification unique ou les réglages e-mail du serveur, ou de créer une clé API principale ou de la réactiver. La clé API principale ne peut pas faire ces modifications.
 
 Se reconnecter ne compte que si votre fournisseur d'identité indique que vous vous êtes connecté après que OneUptime vous a envoyé vers lui. Si le fournisseur vous connecte avec une session qu'il a déjà, sans demander votre mot de passe, cela ne confirme rien : déconnectez-vous d'abord du fournisseur, puis cliquez sur **Se reconnecter**. Là où votre serveur permet de se connecter avec un lien envoyé par e-mail, **Se connecter autrement** le fait à la place. Ce que OneUptime demande à chaque fournisseur, et ce qu'un administrateur peut changer quand la reconnexion ne confirme rien :
 
@@ -170,6 +170,9 @@ Se reconnecter ne compte que si votre fournisseur d'identité indique que vous v
 | OpenID Connect | `prompt=login` et `max_age=0`, et le moment où vous vous êtes connecté (`auth_time`) | Faites envoyer `auth_time` par le fournisseur. Dans Microsoft Entra ID, ajoutez-la au jeton d'ID comme revendication facultative. |
 | Google | Le moment où vous vous êtes connecté (`auth_time`). On ne peut pas demander à Google de vous faire reconnecter. | Activez Session age claims pour l'application de connexion Google du serveur, qui doit être publiée et validée. |
 | Microsoft | `prompt=login` et `max_age=0`, et le moment où vous vous êtes connecté (`auth_time`) | Ajoutez `auth_time` au jeton d'ID de l'application de connexion Microsoft du serveur comme revendication facultative. |
+| Vercel | Rien : on ne peut pas demander à Vercel de vous faire vous reconnecter, et il n'indique pas quand vous vous êtes connecté. | Il ne confirme jamais. Choisissez **Se connecter autrement** et connectez-vous avec un lien envoyé par e-mail, ou définissez un mot de passe avec **Mot de passe oublié ?** et confirmez avec lui. |
+
+Les réglages à faire dans Okta, Microsoft Entra ID, Keycloak et Google Workspace sont indiqués sur la page [SSO](/docs/identity/sso#se-reconnecter-pour-confirmer-que-cest-bien-vous).
 
 ## Vos projets
 

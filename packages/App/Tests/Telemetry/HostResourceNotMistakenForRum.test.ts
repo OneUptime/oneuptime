@@ -254,3 +254,62 @@ describe("getRumClientType — a machine host is not a phone (issue #3866)", () 
     });
   });
 });
+
+/*
+ * What a Mobile ingestion key writes is stamped as a mobile client
+ * (issue #6457, PinMobileRumResource), and the stamp is read before any
+ * other signal: a copied key's browser.* or host attributes never file it
+ * as a browser app, a Service or a Host.
+ */
+describe("getRumClientType — a Mobile key's stamp comes first (issue #6457)", () => {
+  test("the stamp alone is a mobile app", () => {
+    expect(classify({ "oneuptime.rum.client.kind": "mobile" })).toBe("mobile");
+  });
+
+  test("the stamp wins over browser.* attributes", () => {
+    expect(
+      classify({
+        "oneuptime.rum.client.kind": "mobile",
+        "browser.platform": "Windows",
+        "browser.language": "en-US",
+      }),
+    ).toBe("mobile");
+  });
+
+  test("the stamp wins over a host identity, which would otherwise rule mobile out", () => {
+    expect(
+      classify({
+        "oneuptime.rum.client.kind": "mobile",
+        "device.manufacturer": "Google",
+        "host.name": "box-1",
+      }),
+    ).toBe("mobile");
+  });
+
+  test("a stamp of anything else is no signal: the usual rules decide", () => {
+    expect(
+      classify({
+        "oneuptime.rum.client.kind": "browser",
+        "service.name": "payments-api",
+      }),
+    ).toBeNull();
+    expect(
+      classify({
+        "oneuptime.rum.client.kind": "browser",
+        "browser.language": "en-US",
+      }),
+    ).toBe("browser");
+  });
+
+  test("a stamped batch yields no Service name", async () => {
+    await expect(
+      baseService["getServiceNameFromAttributes"](
+        requestWithoutServiceNameHeader(),
+        attributes({
+          "service.name": "storefront-mobile",
+          "oneuptime.rum.client.kind": "mobile",
+        }),
+      ),
+    ).resolves.toBeNull();
+  });
+});

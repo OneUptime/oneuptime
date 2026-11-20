@@ -71,6 +71,12 @@ export interface SetupToolDefinition {
    * does: it reaches past the caller's project, so it is open-world too.
    */
   mailsOutsideProject?: boolean;
+  /*
+   * What it makes points OneUptime at an address outside it, as a monitor
+   * created with create_monitor does: a website monitor checks the address
+   * it is given. Open-world too (ToolAnnotations' OUTSIDE_ADDRESS_TABLE_NAMES).
+   */
+  pointsOutside?: boolean;
 }
 
 // The reach methods set_up_paging takes, as Ask AI's tool takes them.
@@ -136,6 +142,7 @@ export const SETUP_TOOL_DEFINITIONS: ReadonlyArray<SetupToolDefinition> = [
     },
     readOnly: false,
     published: false,
+    pointsOutside: true,
   },
   {
     name: SET_UP_SERVICE_MONITOR_TOOL_NAME,

@@ -156,11 +156,11 @@ Algunos cambios te piden primero confirmar que eres tú, aunque hayas iniciado s
 - desactives la autenticación de dos factores;
 - elimines tu cuenta.
 
-El cuadro **Confirma que eres tú** te pide tu contraseña y, mientras la autenticación de dos factores esté activada, tu segundo paso: un código de tu aplicación de autenticación, tu llave de seguridad o uno de tus códigos de respaldo. Con una llave de acceso, haz clic en **Usar una llave de acceso** en su lugar. Si solo inicias sesión con el inicio de sesión único, Google o Microsoft, haz clic en **Volver a iniciar sesión**: OneUptime hace que tu proveedor de identidad te pida iniciar sesión de nuevo y luego te devuelve a la página. Después, el cambio se aplica.
+El cuadro **Confirma que eres tú** te pide tu contraseña y, mientras la autenticación de dos factores esté activada, tu segundo paso: un código de tu aplicación de autenticación, tu llave de seguridad o uno de tus códigos de respaldo. Con una llave de acceso, haz clic en **Usar una llave de acceso** en su lugar. Si solo inicias sesión con el inicio de sesión único, Google o Microsoft, haz clic en **Volver a iniciar sesión**: OneUptime hace que tu proveedor de identidad te pida iniciar sesión de nuevo y luego te devuelve a la página. Después, el cambio se aplica. Si solo inicias sesión con Vercel, que no puede confirmar que eres tú, elige en su lugar **Iniciar sesión de otra forma** e inicia sesión con un enlace que te enviamos por correo electrónico.
 
 Una vez que lo confirmas, no se te vuelve a preguntar durante 10 minutos en ese navegador. Cinco intentos fallidos cierran la sesión de ese navegador, pero nunca bloquean tu cuenta: vuelve a iniciar sesión e inténtalo otra vez. OneUptime te envía un correo cuando esto ocurre, y cada vez que un código de respaldo confirma que eres tú.
 
-En un servidor autoalojado, los administradores principales confirman del mismo modo que son ellos antes de cambiar cómo inicia sesión otra persona, hacer a alguien administrador principal, cambiar los proveedores de inicio de sesión único o los ajustes de correo del servidor, o crear una clave API maestra. La clave API maestra no puede hacer estos cambios.
+En un servidor autoalojado, los administradores principales confirman del mismo modo que son ellos antes de cambiar cómo inicia sesión otra persona, eliminar la cuenta de otra persona, hacer a alguien administrador principal, cambiar los proveedores de inicio de sesión único o los ajustes de correo del servidor, o crear una clave API maestra o volver a activarla. La clave API maestra no puede hacer estos cambios.
 
 Volver a iniciar sesión solo cuenta cuando tu proveedor de identidad indica que iniciaste sesión después de que OneUptime te enviara a él. Si el proveedor te inicia sesión con una sesión que ya tenía, sin pedirte la contraseña, eso no confirma nada: cierra primero la sesión en el proveedor y luego haz clic en **Volver a iniciar sesión**. Donde tu servidor permita iniciar sesión con un enlace enviado por correo, **Iniciar sesión de otra forma** hace eso en su lugar. Lo que OneUptime pide a cada proveedor, y lo que un administrador puede cambiar cuando volver a iniciar sesión no confirma nada:
 
@@ -170,6 +170,9 @@ Volver a iniciar sesión solo cuenta cuando tu proveedor de identidad indica que
 | OpenID Connect | `prompt=login` y `max_age=0`, y el momento en que iniciaste sesión (`auth_time`) | Haz que el proveedor envíe `auth_time`. En Microsoft Entra ID, añádelo al token de ID como notificación opcional. |
 | Google | El momento en que iniciaste sesión (`auth_time`). A Google no se le puede pedir que te haga iniciar sesión de nuevo. | Activa Session age claims para la aplicación de inicio de sesión de Google del servidor, que debe estar publicada y verificada. |
 | Microsoft | `prompt=login` y `max_age=0`, y el momento en que iniciaste sesión (`auth_time`) | Añade `auth_time` al token de ID de la aplicación de inicio de sesión de Microsoft del servidor como notificación opcional. |
+| Vercel | Nada: no se le puede pedir a Vercel que te haga iniciar sesión de nuevo, y no indica cuándo iniciaste sesión. | Nunca confirma. Elige **Iniciar sesión de otra forma** e inicia sesión con un enlace que te enviamos por correo electrónico, o crea una contraseña con **¿Olvidó su contraseña?** y confirma con ella. |
+
+Qué configurar en Okta, Microsoft Entra ID, Keycloak y Google Workspace se explica en la página [SSO](/docs/identity/sso#volver-a-iniciar-sesión-para-confirmar-que-eres-tú).
 
 ## Tus proyectos
 

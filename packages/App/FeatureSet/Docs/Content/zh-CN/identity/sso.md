@@ -287,6 +287,31 @@ OneUptime 让浏览器退出登录后，浏览器会转到提供商自己的退�
 未注册该地址的提供商会在有人退出 OneUptime 后显示自己的错误页面，而不是把人送回；但用户仍已退出 OneUptime。
 :::
 
+## 重新登录以确认是您本人
+
+在有人更改登录方式或删除账户之前，OneUptime 会要求其[确认是本人](/docs/introduction/your-account#确认是你本人)。只通过您的身份提供商登录、在 OneUptime 中没有密码或通行密钥的人，用 **重新登录** 确认：OneUptime 把此人送到提供商，并要求提供商让此人重新登录。只有当提供商告知此人在那一刻或之后登录时才算数，两边时钟允许前后一分钟的误差。若提供商用已有的会话直接让此人重新登录，或不告知此人何时登录，就什么也确认不了，此人会被告知请您更改设置。
+
+:::tabs
+@tab SAML
+OneUptime 发送 `ForceAuthn="true"`，并从断言的 `AuthnInstant` 读取此人的登录时间。
+
+| 身份提供商 | 要设置什么 |
+| --- | --- |
+| Okta | 在 **General** 标签页编辑 **SAML Settings**，点击 **Show Advanced Settings**，将 **Honor Force Authentication** 设为 **Yes**。设为 **No** 时，Okta 会忽略该请求。 |
+| Microsoft Entra ID | 无：Entra ID 会遵从该请求，它的 `AuthnInstant` 就是此人的登录时间。 |
+| Keycloak | 无：Keycloak 会遵从该请求。但它的 `AuthnInstant` 是它应答的时间，而不是此人登录的时间，因此 OneUptime 无法核实 Keycloak 是否再次询问了此人。如需由 OneUptime 自己核实，请通过 OpenID Connect 连接 Keycloak。 |
+| Google Workspace | 无需设置。Google 没有说明是否遵从该请求。它的 `AuthnInstant` 是此人上次登录 Google 的时间，因此仍登录着 Google 的人要先退出 Google。 |
+@tab OpenID Connect
+OneUptime 发送 `prompt=login` 和 `max_age=0`，并从 ID 令牌的 `auth_time` 读取此人的登录时间。
+
+| 身份提供商 | 要设置什么 |
+| --- | --- |
+| Okta | 无：Okta 两者都遵从，并始终发送 `auth_time`。 |
+| Microsoft Entra ID | 在应用注册的 **Token configuration** 中点击 **Add optional claim**，选择 **ID** 并添加 `auth_time`：Entra ID 只把它作为可选声明发送。它遵从 `prompt=login`。 |
+| Keycloak | 在客户端上保留 `basic` 客户端作用域：它带有 `auth_time`。Keycloak 25 及更高版本会给每个客户端加上这个作用域。 |
+| Google Workspace | 在 **Google Auth Platform** > **Settings** > **Advanced Settings** 中为 OAuth 客户端开启 **Session age claims**；应用必须已发布并已验证。Google 不接受这两个请求，因此 OneUptime 改为向它请求 `auth_time`，仍登录着 Google 的人要先退出 Google。 |
+:::
+
 ## SSO 用户的角色和团队
 
 OneUptime 不会映射身份提供商中的角色或组。一个人能做什么取决于其所在的团队：提供商会把新来的人加入它的 **团队**，而团队及其权限在 OneUptime 中管理，如 [用户、团队与权限](/docs/permissions/index) 所述。要让团队成员与身份提供商保持同步，请使用 [SCIM](/docs/identity/scim)。某人登录时加入的每个团队，都会作为登录者本人的更改记录在该团队的 **审计日志** 页面上。

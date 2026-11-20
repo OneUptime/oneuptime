@@ -81,6 +81,12 @@ const SOURCES: Record<string, string> = {
   globalSsoApi: `${IDENTITY}/API/GlobalSSO.ts`,
   statusPageSsoApi: `${IDENTITY}/API/StatusPageSSO.ts`,
   oidcUtil: `${IDENTITY}/Utils/OIDC.ts`,
+  // Sign In Again's half of the sign-ins, and the rule it holds them to (#10217, #10332).
+  signInAgainUtil: `${IDENTITY}/Utils/SignInAgain.ts`,
+  reauthenticationTypes: "packages/Common/Types/Accounts/Reauthentication.ts",
+  globalOidcApi: `${IDENTITY}/API/GlobalOIDC.ts`,
+  globalSsoService: "packages/Common/Server/Services/GlobalSsoService.ts",
+  globalOidcService: "packages/Common/Server/Services/GlobalOidcService.ts",
   ssoConfirmation: `${IDENTITY}/Utils/ProjectSsoSignInConfirmation.ts`,
   ssoGate: `${IDENTITY}/Utils/ProjectSsoSignInGate.ts`,
   ssoIdentityBinding: `${IDENTITY}/Utils/ProjectSsoIdentityBinding.ts`,
@@ -1193,6 +1199,76 @@ describe("the SSO guide", () => {
     );
     expect(english(SCIM)).toContain("Navigate to **Security** > **SCIM**");
   });
+
+  /*
+   * SIGNING IN AGAIN TO CONFIRM IT'S YOU (#10217, #10332): what Sign In
+   * Again asks a SAML and an OpenID Connect provider for, and how its
+   * answer is held, as the sign-ins ask it and the rule judges it. The
+   * per-provider settings were checked against each provider's own docs;
+   * what OneUptime sends and reads is held here to the code.
+   */
+  it("says what Sign In Again asks of a SAML and an OpenID Connect provider, as the sign-ins ask it", () => {
+    const page: string = english(SSO);
+    const sso: string = readSource("ssoUtil");
+
+    expect(sso).toContain('ForceAuthn="${data.forceAuthn ? "true" : "false"}"');
+    expect(sso).toContain('IsPassive="false"');
+    expect(sso).toContain('"AuthnInstant",');
+    expect(readSource("oidcUtil")).toContain(
+      '...(data.isSignInAgain ? { prompt: "login", max_age: 0 } : {}),',
+    );
+    expect(readSource("signInAgainUtil")).toContain(
+      'const value: unknown = claims?.["auth_time"];',
+    );
+
+    expect(page).toContain(
+      'OneUptime sends `ForceAuthn="true"`, and reads when the person signed in from the assertion\'s `AuthnInstant`.',
+    );
+    expect(page).toContain(
+      "OneUptime sends `prompt=login` and `max_age=0`, and reads when the person signed in from the ID token's `auth_time`.",
+    );
+  });
+
+  it("says a sign-in counts only at or after Sign In Again sent the person, give or take a minute, as the rule judges it", () => {
+    const types: string = readSource("reauthenticationTypes");
+
+    expect(types).toContain(
+      "export const SIGN_IN_AGAIN_CLOCK_SKEW_IN_SECONDS: number = 60;",
+    );
+    expect(types).toContain(
+      "authenticatedAt < data.requestedAt.getTime() - skewInMs",
+    );
+    expect(readSource("signInAgainUtil")).toContain(
+      "return judgeSignInAgain({",
+    );
+
+    expect(english(SSO)).toContain(
+      "It counts only when the provider says they signed in at or after that moment, give or take a minute for the two clocks.",
+    );
+  });
+
+  it("says Google takes neither request, so OneUptime asks it for auth_time, as its OpenID Connect sign-in does (#10332)", () => {
+    const oidc: string = readSource("oidcUtil");
+
+    expect(oidc).toContain(
+      'const GOOGLE_ISSUER_HOSTNAME: string = "accounts.google.com";',
+    );
+    expect(oidc).toContain("id_token: { auth_time: { essential: true } },");
+    expect(oidc).toContain("? { claims: GOOGLE_AUTH_TIME_CLAIMS_REQUEST }");
+
+    expect(english(SSO)).toContain(
+      "Google takes neither request, so OneUptime asks it for `auth_time` instead",
+    );
+  });
+
+  it("links Sign In Again to Your Account's Confirm it's you, and Your Account back to this section", () => {
+    expect(english(SSO)).toContain(
+      "[confirm it's them](/docs/introduction/your-account#confirm-its-you)",
+    );
+    expect(readPage("en", "introduction/your-account")).toContain(
+      "(/docs/identity/sso#signing-in-again-to-confirm-its-you)",
+    );
+  });
 });
 
 describe("the Global SSO guide", () => {
@@ -1751,6 +1827,45 @@ describe("the Global SSO guide", () => {
     expect(page).toContain(`**${reach}** is set to **${reachAnswers[1]}**`);
     expect(page).not.toMatch(
       /Disable Sign Up with SSO|Restrict to Attached Projects/,
+    );
+  });
+
+  it("says a global provider's Sign In Again asks what a project's does, and points to the SSO page for each provider (#10332)", () => {
+    const page: string = english(GLOBAL_SSO);
+
+    // The server's own SAML and OpenID Connect sign-ins ask as a project's do.
+    expect(readSource("globalSsoApi")).toContain("forceAuthn: true,");
+    expect(readSource("globalOidcApi")).toContain(
+      "isSignInAgain: isSignInAgain,",
+    );
+
+    expect(page).toContain(
+      'OneUptime sends them back to the provider with `ForceAuthn="true"` for SAML, or `prompt=login` and `max_age=0` for OpenID Connect, and counts it only when the provider says, in `AuthnInstant` or `auth_time`, that they signed in at or after that moment.',
+    );
+    expect(page).toContain(
+      "What to set in Okta, Microsoft Entra ID, Keycloak and Google Workspace is on the [SSO](/docs/identity/sso#signing-in-again-to-confirm-its-you) page.",
+    );
+  });
+
+  it("says adding, changing or deleting a global provider asks the master admin to confirm it's them, as the services do (#10216)", () => {
+    for (const service of ["globalSsoService", "globalOidcService"]) {
+      const source: string = readSource(service);
+
+      for (const call of [
+        "await this.assertChangeIsConfirmed(onCreate.createBy.props);",
+        "await this.assertChangeIsConfirmed(updateBy.props);",
+        "await this.assertChangeIsConfirmed(deleteBy.props);",
+      ]) {
+        expect({ service, call, found: source.includes(call) }).toEqual({
+          service,
+          call,
+          found: true,
+        });
+      }
+    }
+
+    expect(english(GLOBAL_SSO)).toContain(
+      "Adding, changing or deleting a global provider asks you to [confirm it's you](/docs/introduction/your-account#confirm-its-you) first.",
     );
   });
 });

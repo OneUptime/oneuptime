@@ -4,6 +4,7 @@ import {
   FeedEntryKind,
   FeedTone,
 } from "Common/UI/Components/Feed/FeedEntryKind";
+import { getAiFeedKind } from "./AiFeedKind";
 
 export type GetDataStoreFeedKindFunction = (
   eventType: string,
@@ -25,6 +26,14 @@ export const getDataStoreFeedKind: GetDataStoreFeedKindFunction = (
   switch (eventType) {
     case DataStoreFeedEventType.ResponseActionTaken:
       return { icon: IconProp.ShieldCheck, tone: FeedTone.Record };
+    // What OneUptime AI proposed for one of the store's issues (#10364).
+    case DataStoreFeedEventType.AiProposed:
+    case DataStoreFeedEventType.AiProposalApproved:
+    case DataStoreFeedEventType.AiChangeMade:
+    case DataStoreFeedEventType.AiProposalDismissed:
+    case DataStoreFeedEventType.AiChangeUndone:
+    case DataStoreFeedEventType.AiChangeFailed:
+      return getAiFeedKind(eventType);
     default:
       return undefined;
   }

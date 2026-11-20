@@ -89,10 +89,16 @@ Siehe [Workflow-Auslöser](/docs/workflows/triggers) für die Felder, die jeder 
 
 ## OneUptime AI
 
-Zwei Aktionen an einem Problem bitten OneUptime AI um Hilfe. Beide senden OneUptime AI Titel und Schweregrad des Problems, Name, Art, Region und Cloud-ID des Datenspeichers, seine Sensibilität und Datentypen, jeden mit seinem Namen - Ihre eigenen Datentypen mit dem Namen, den Sie ihnen gegeben haben -, den Beleg, warum die Prüfung wichtig ist, und die Behebung für die Cloud des Datenspeichers - nie die Stichproben eines Funds. Beide laufen unter den Schaltern und Grenzen des Projekts für OneUptime AI.
+Zwei Aktionen an einem Problem bitten OneUptime AI um Hilfe. Beide senden OneUptime AI Titel und Schweregrad des Problems, Name, Art, Region und Cloud-ID des Datenspeichers, seine Sensibilität und Datentypen, jeden mit seinem Namen - Ihre eigenen Datentypen mit dem Namen, den Sie ihnen gegeben haben -, den Beleg, warum die Prüfung wichtig ist, und die Behebung für die Cloud des Datenspeichers - nie die Stichproben eines Funds. Beide laufen unter den Schaltern und Grenzen des Projekts für OneUptime AI. Was jede sendet, was sie nie sendet und auf welchem Modell sie läuft, steht unter [OneUptime AI in der Datensicherheit](/docs/data-security/ai).
 
 - **Mit KI erklären** schreibt für den Eigentümer des Datenspeichers, was nicht stimmt, was passieren könnte und die genauen Schritte, um es in seiner Cloud zu beheben. Die Erklärung wird in der **Zeitachse** des Problems aufbewahrt. Weder das gesendete Problem noch die Antwort werden in **Projekteinstellungen → KI → KI-Protokolle** aufbewahrt, die jedes Projektmitglied und jeder Betrachter lesen kann: Der Eintrag sagt nur, dass der Aufruf stattfand und was er kostete. Jeder, der das Problem lesen darf, kann sie anfordern.
 - **Mit KI beheben** bittet OneUptime AI, das Problem in Ihrem Infrastrukturcode zu beheben - Terraform, CloudFormation, Bicep oder Ähnlichem - mit der kleinsten Änderung, die die Prüfung bestehen lässt, und einen Pull Request zu öffnen. Dafür muss das Repository mit dem Infrastrukturcode des Datenspeichers unter **Code** verbunden sein: Wählen Sie es unter **Repository**, wenn Sie in mehreren anfragen dürfen. Der Pull Request erscheint unter **Code** (siehe [Code](/docs/ai/ai-agent)). Sicherheits-Mitglieder und höher können es anfordern, in einem Repository, das sie unter **Code** ändern dürfen, wie es eine Anfrage an die KI dort verlangt: Eine Sicherheitsrolle liest und ändert von sich aus kein Repository, geben Sie ihrem Team also auch **Read Code Repository** und **Edit Code Repository**. Kann die KI gerade nicht arbeiten - sie ist ausgeschaltet, das Projekt hat kein KI-Guthaben mehr, seine Tageslimits sind erreicht oder kein Runner ist online -, sagt Mit KI beheben, was zu beheben ist, und startet nichts.
+
+### Von sich aus
+
+Ist **An neuen Problemen arbeiten** unter **Datensicherheit → KI** eingeschaltet, wie bei neuen Projekten, arbeitet OneUptime AI von sich aus an jedem neuen kritischen oder hohen Problem. Sie schreibt die Analyse des Problems, wie **Mit KI erklären** es tut und aus dem, was das sendet, und legt sie in der **Zeitachse** des Problems ab. Für ein Telemetrieproblem schlägt sie die Bereinigungsregeln vor, die seine Daten in neuer Telemetrie verbergen. Ein Vorschlag wartet auf dieser Seite unter **Wartet auf Sie**, das Riskanteste zuerst, mit dem, was sich ändert, warum, wie es nachgewiesen wird und wie man es rückgängig macht. **Genehmigen** nimmt die Änderung mit Ihren eigenen Berechtigungen vor: Eine Bereinigungsregel erfordert die Berechtigung, Bereinigungsregeln für Logs, Bereinigungsregeln für Traces oder Metrik-Pipeline-Regeln zu erstellen. **Vorschlag verwerfen** sagt Nein, mit einer Begründung, die in die Zeitachse des Problems kommt. Ob eine Änderung gewirkt hat, entscheidet die eigene Prüfung des Problems: Der Datenspeicher wird erneut geprüft, und das Problem wird behoben, sobald keine seiner Daten mehr übrig sind.
+
+Standardmäßig fragt OneUptime AI vor jeder Änderung, außer vor einer, die nur Daten verbirgt, rückgängig gemacht werden kann und nachweislich sicher ist, und sie löscht nie Daten und alarmiert nie jemanden ohne Rückfrage. Eine Änderung, die sie ohne Rückfrage vorgenommen hat, steht unter **Von der KI erledigt**, mit **Rückgängig**. **Warum die KI nicht gehandelt hat** listet die Probleme, die sie angesehen und unberührt gelassen hat, und warum. Jeder Vorschlag, jede Genehmigung, jedes Verwerfen und jedes Rückgängigmachen steht in der **Zeitachse** des Problems und des Datenspeichers. Ist der Schalter aus oder die KI für das Projekt ausgeschaltet, funktioniert die Datensicherheit wie immer, und **Mit KI erklären** und **Mit KI beheben** funktionieren weiterhin, wenn Sie sie drücken.
 
 ### KI fragen
 
@@ -130,6 +136,7 @@ Alles, was Datensicherheit aufbewahrt, ist ein Datensatz der OneUptime-API, gele
 | Benutzerdefinierte Datentypen, Prüfungseinstellungen, Compliance-Einstellungen und Residenzregeln | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Die Einstellungen des Projekts | `/data-security-setting` |
 | Eigentümer, Eigentümerregeln und Beschriftungsregeln | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
+| Was OneUptime AI für ein Problem vorschlägt, und warum sie bei einem gehandelt hat oder nicht | `/data-security-ai-proposal`, `/data-security-ai-decision` |
 
 Einige Antworten werden auf Anfrage berechnet, statt gespeichert zu werden. Jede ist ein `POST`:
 
@@ -149,6 +156,9 @@ Einige Antworten werden auf Anfrage berechnet, statt gespeichert zu werden. Jede
 | `/data-security-issue/<id>/fix-with-ai` | **Mit KI beheben** an einem Problem |
 | `/data-store/<id>/response-actions` | Welche Reaktionsaktionen am Datenspeicher jetzt möglich sind, und warum nicht |
 | `/data-store/<id>/respond` | Eine Reaktionsaktion am Datenspeicher, etwa **Öffentlichen Zugriff sperren** oder **Versionierung einschalten**, mit dem Problem, aus dem sie ausgeführt wurde |
+| `/data-security-ai-proposal/<id>/approve` | **Genehmigen** für eine Änderung, die OneUptime AI vorschlägt, und die damit mit Ihren eigenen Berechtigungen vorgenommen wird. Es nimmt den `expectedPlanFingerprint` des Vorschlags, der Ihnen gezeigt wurde, und lehnt einen ab, der sich seitdem geändert hat |
+| `/data-security-ai-proposal/<id>/dismiss` | **Vorschlag verwerfen**, mit `{"reason": "..."}`, das in die Zeitachse des Problems kommt |
+| `/data-security-ai-proposal/<id>/undo` | **Rückgängig** für eine Änderung, die OneUptime AI vorgenommen hat: Sie wird zurückgenommen, und der Datenspeicher wird erneut geprüft |
 
 Der [Terraform-Provider](/docs/terraform/index) hat eine Ressource für jede Art von Datensatz, die Sie erstellen - Datenspeicher, die Sie selbst hinzufügen, benutzerdefinierte Datentypen, Prüfungseinstellungen, Compliance-Einstellungen, Residenzregeln, Eigentümer- und Beschriftungsregeln -, benannt nach dem Datensatz, etwa `oneuptime_residency_rule`.
 

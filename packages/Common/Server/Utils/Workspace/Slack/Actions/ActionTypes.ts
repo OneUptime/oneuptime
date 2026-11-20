@@ -179,6 +179,21 @@ enum SlackActionType {
   ApprovePublicNote = "ApprovePublicNote",
   ViewRejectPublicNote = "ViewRejectPublicNote",
   SubmitRejectPublicNote = "SubmitRejectPublicNote",
+
+  /*
+   * A playbook step that waits for approval, on its message in the
+   * channels a Security Case rule names and in its approvers' direct
+   * messages (WorkspaceSecurityPlaybookApproval): Approve decides at once;
+   * Approve Some opens a form of the step's targets to untick, whose
+   * submission approves the rest; Reject ends the run. Each carries the
+   * run, the step and what it proposed, signed, so a step that changed
+   * since is never decided from it. Microsoft Teams' card of the same
+   * message presses them by the same ids.
+   */
+  ApproveSecurityPlaybookStep = "ApproveSecurityPlaybookStep",
+  ViewApproveSomeSecurityPlaybookStep = "ViewApproveSomeSecurityPlaybookStep",
+  SubmitApproveSomeSecurityPlaybookStep = "SubmitApproveSomeSecurityPlaybookStep",
+  RejectSecurityPlaybookStep = "RejectSecurityPlaybookStep",
 }
 
 // Emoji names that trigger saving a message as a Private Note (Internal Note)

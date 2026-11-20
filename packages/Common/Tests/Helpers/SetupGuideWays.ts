@@ -69,6 +69,10 @@ import {
   MESSAGE_QUEUE_SETUP_GUIDE_OPTIONS,
   getMessageQueueSetupGuide,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown";
+import {
+  RUM_CLIENTS,
+  getRumSetupGuide,
+} from "../../../App/FeatureSet/Dashboard/src/Components/Rum/RumSetupGuide";
 
 /*
  * EVERY WAY THROUGH A PRODUCT'S SETUP GUIDE (#8341).
@@ -156,6 +160,31 @@ export function getSetupGuideWays<TKey extends string>(data: {
   }
 
   return ways;
+}
+
+/*
+ * The RUM guide (#6434): a browser or a mobile app, for a new application
+ * and on an application's own Documentation tab - one whose name a mobile
+ * app's OTEL_RESOURCE_ATTRIBUTES writes as it is, and one it percent-encodes
+ * (a space), which adds a sentence to the step's note.
+ */
+export function getRumSetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: RUM_CLIENTS,
+    names: ["storefront-web", "Storefront Mobile"],
+    build: (
+      reader: SetupGuideReader,
+      option: (typeof RUM_CLIENTS)[number]["key"],
+      name: string | undefined,
+    ): SetupGuideContent => {
+      return getRumSetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        client: option,
+        appName: name,
+      });
+    },
+  });
 }
 
 export function getDockerSetupGuideWays(): Array<SetupGuideWay> {

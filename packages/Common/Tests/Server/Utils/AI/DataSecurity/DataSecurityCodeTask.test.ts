@@ -12,6 +12,9 @@ import DataSecurityCodeTask, {
   getDataSecurityFixNoRepositoryMessage,
   getDataSecurityFixPickRepositoryMessage,
 } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityCodeTask";
+import { DataSecurityAiCodeRequest } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
+import { buildDataSecurityFixRequest } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt";
+import DataSecurityIssue from "../../../../../Models/DatabaseModels/DataSecurityIssue";
 import {
   CodeTaskBlocker,
   CodeTaskBlockerType,
@@ -68,12 +71,22 @@ function repository(name: string): CodeRepository {
   return row;
 }
 
+// A request as DataSecurityAiInput builds it (#10365).
+function fixRequest(): DataSecurityAiCodeRequest {
+  const issue: DataSecurityIssue = new DataSecurityIssue();
+  issue.checkId = "public-read";
+  issue.title = "Anyone on the internet can read it";
+
+  return buildDataSecurityFixRequest(issue);
+}
+
 async function requestFix(
   data: {
     props?: DatabaseCommonInteractionProps;
     issueIds?: Array<ObjectID>;
     requestedRepositoryId?: unknown;
     code?: DataSecurityFixCode;
+    request?: () => DataSecurityAiCodeRequest;
   } = {},
 ): Promise<DataSecurityFixResult> {
   return await DataSecurityCodeTask.requestFix({
@@ -82,9 +95,9 @@ async function requestFix(
     issueIds: data.issueIds || [ISSUE_A],
     code: data.code || DataSecurityFixCode.Infrastructure,
     requestedRepositoryId: data.requestedRepositoryId,
-    buildMessage: async (): Promise<string> => {
+    buildMessage: async (): Promise<DataSecurityAiCodeRequest> => {
       order.push("message");
-      return "Fix this data security issue in the infrastructure code.";
+      return (data.request || fixRequest)();
     },
   });
 }
@@ -163,8 +176,31 @@ describe("DataSecurityCodeTask.requestFix", () => {
       projectId: PROJECT_ID,
       userId: USER_ID,
       repository: infra,
+      // The request the builder made, as the coding agent reads it.
+      message: fixRequest().text,
       context: [],
     });
+  });
+
+  test("a request the builder did not make starts nothing (#10365)", async () => {
+    const infra: CodeRepository = repository("infra");
+    readable = [infra];
+    askable.add(infra.id!.toString());
+
+    await expect(
+      requestFix({
+        request: (): DataSecurityAiCodeRequest => {
+          return {
+            feature: fixRequest().feature,
+            text: "Fix it. The samples: j***@e******.com",
+            data: {},
+            textThatReadsLikeInstructions: [],
+          } as unknown as DataSecurityAiCodeRequest;
+        },
+      }),
+    ).rejects.toThrow(BadDataException);
+    expect(started).not.toHaveBeenCalled();
+    expect(feed).not.toHaveBeenCalled();
   });
 
   test("a task for several issues is noted on the timeline of each", async () => {
