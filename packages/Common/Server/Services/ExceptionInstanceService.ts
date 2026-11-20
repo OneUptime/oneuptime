@@ -71,24 +71,24 @@ export class ExceptionInstanceService extends AnalyticsDatabaseService<Exception
     };
   }
 
-  /*
-   * That hook narrows no one's read of an occurrence: a read of one by its
-   * _id is left as it was, so whoever may read an occurrence - repeat or
-   * not - still reads it, and hears that it was written (an occurrence's
-   * live update is decided by the read check and the read scope, as it was
-   * before #9923).
-   */
-  public override getFindHookThatNarrowsNoRead(): (
-    findBy: FindBy<ExceptionInstance>,
-  ) => Promise<OnFind<ExceptionInstance>> {
-    return ExceptionInstanceService.prototype.onBeforeFind;
-  }
-
   // And so does its count, so the two describe the same rows.
   protected override async onBeforeCount(
     countBy: CountBy<ExceptionInstance>,
   ): Promise<CountBy<ExceptionInstance>> {
     return { ...countBy, query: readsOriginalOccurrences(countBy.query) };
+  }
+
+  /*
+   * The list's hook (onBeforeFind) narrows no one's read of an occurrence:
+   * a read of one by its _id is left as it was, so whoever may read an
+   * occurrence - repeat or not - still reads it, and hears that it was
+   * written (its live update is decided by the read check and the read
+   * scope, as it was before #9923).
+   */
+  public override getFindHookThatNarrowsNoRead(): (
+    findBy: FindBy<ExceptionInstance>,
+  ) => Promise<OnFind<ExceptionInstance>> {
+    return ExceptionInstanceService.prototype.onBeforeFind;
   }
 
   /*
