@@ -1,6 +1,7 @@
 import LogScrubAction from "../../../Types/Log/LogScrubAction";
 import LogScrubPatternType from "../../../Types/Log/LogScrubPatternType";
 import ObjectID from "../../../Types/ObjectID";
+import { SCRUB_HASH_TOKEN_PATTERN } from "../../../Types/Telemetry/ScrubHashTokenFormat";
 import ScrubIpAddress from "../../../Utils/Telemetry/ScrubIpAddress";
 import { maskKeepingEnds } from "../../../Utils/Telemetry/ScrubMask";
 import ScrubHashToken from "./ScrubHashToken";
@@ -22,7 +23,10 @@ import ScrubHashToken from "./ScrubHashToken";
  *    address's shape and none of its digits (an IPv6 address has its own,
  *    #10393), anything else its first and last characters;
  *  - Hash: the project's token for it ("[HASHED:" and 16 hex characters),
- *    an IP address in one spelling for every way it is written.
+ *    an IP address in one spelling for every way it is written. An IP
+ *    Address rule's token and address are also told to the recorder a
+ *    batch of logs or traces Security Events reads passes in
+ *    (applyAndRecord), for Security Events' address vault (#10395).
  *
  * A trace rule's action and pattern type are the log rule's words
  * (TraceScrubAction, TraceScrubPatternType), so one comparison serves both.
@@ -30,7 +34,58 @@ import ScrubHashToken from "./ScrubHashToken";
 
 export const SCRUB_REDACTED_TEXT: string = "[REDACTED]";
 
+/*
+ * Told each IP address an IP Address Hash rule hides, and the token it
+ * leaves there: what ingest keeps for Security Events' address vault
+ * (#10395), for a batch of logs or traces Security Events reads
+ * (Server/Utils/SecurityEvent/AddressVault/SecurityAddressVaultWriter.ts).
+ * Nothing else is told - no other pattern's match, nothing Redact or Mask
+ * leaves - so only an address a Hash rule hid can be named again, and only
+ * by Security Events.
+ */
+export interface ScrubHashedAddressRecorder {
+  recordHashedAddress(data: {
+    token: string;
+    // In the one spelling its token is made of (ScrubIpAddress.canonicalize).
+    address: string;
+  }): void;
+}
+
 export default class ScrubAction {
+  /*
+   * A match as a rule of `projectId` leaves it (apply) - and, when the rule
+   * is an IP Address rule that hashes, the token and the address told to
+   * `recorder`. The record keeps the token whatever the recorder does: one
+   * that throws is ignored, so keeping an address can never cost a record.
+   */
+  public static applyAndRecord(data: {
+    match: string;
+    action: string;
+    patternType: string;
+    projectId: ObjectID | string | null | undefined;
+    recorder?: ScrubHashedAddressRecorder | null | undefined;
+  }): string {
+    const replaced: string = ScrubAction.apply(data);
+
+    if (
+      data.recorder &&
+      data.action === LogScrubAction.Hash &&
+      data.patternType === LogScrubPatternType.IPAddress &&
+      SCRUB_HASH_TOKEN_PATTERN.test(replaced)
+    ) {
+      try {
+        data.recorder.recordHashedAddress({
+          token: replaced,
+          address: ScrubIpAddress.canonicalize(data.match),
+        });
+      } catch {
+        // The vault is worth having, never worth a record.
+      }
+    }
+
+    return replaced;
+  }
+
   /*
    * A match as a rule of `projectId` leaves it. A Hash rule whose project is
    * not known cannot make the project's token, and redacts instead: the
