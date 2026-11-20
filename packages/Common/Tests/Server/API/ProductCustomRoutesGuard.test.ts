@@ -1152,6 +1152,11 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/OpenSourceDeploymentAPI.ts": 2,
         "packages/App/API/AdminHealth.ts": 3,
         "packages/App/FeatureSet/Notification/API/BroadcastEmail.ts": 2,
+        /*
+         * #7380: Notification/API/ServerAwsIdentity.ts, beside it, registers
+         * one GET - which AWS identity the server's own Amazon SES signs in
+         * as, for a master admin - so it reads, and is no decision here.
+         */
         "packages/App/FeatureSet/Notification/API/ServerTestSend.ts": 4,
         "packages/App/FeatureSet/Notification/API/CallAndSmsGateway.ts": 1,
       },

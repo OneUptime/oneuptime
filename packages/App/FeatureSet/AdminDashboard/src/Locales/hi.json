@@ -4345,5 +4345,18 @@
   "Label": "लेबल",
   "Team or Label": "टीम या लेबल",
   "This team's own": "इस टीम का अपना",
-  "This label's own": "इस लेबल का अपना"
+  "This label's own": "इस लेबल का अपना",
+  "Signs In As": "इस रूप में साइन इन करता है",
+  "Check again": "फिर से जाँचें",
+  "Couldn't ask the server which AWS identity it signs in as. {{error}}": "सर्वर से नहीं पूछा जा सका कि वह किस AWS पहचान से साइन इन करता है। {{error}}",
+  "This server cannot sign in to AWS. {{error}}": "यह सर्वर AWS में साइन इन नहीं कर सकता। {{error}}",
+  "A test email shows whether it may send.": "एक टेस्ट ईमेल दिखाता है कि वह भेज सकता है या नहीं।",
+  "From AWS_ACCESS_KEY_ID in the server's environment.": "सर्वर के परिवेश में AWS_ACCESS_KEY_ID से।",
+  "From the server's AWS profile.": "सर्वर की AWS प्रोफ़ाइल से।",
+  "From IAM roles for service accounts.": "सर्विस अकाउंट के लिए IAM भूमिकाओं से।",
+  "From EKS Pod Identity.": "EKS Pod Identity से।",
+  "From the ECS task role.": "ECS टास्क भूमिका से।",
+  "From the container credentials endpoint.": "कंटेनर क्रेडेंशियल एंडपॉइंट से।",
+  "From the EC2 instance profile.": "EC2 इंस्टेंस प्रोफ़ाइल से।",
+  "The server did not say which AWS identity it signs in as.": "सर्वर ने नहीं बताया कि वह किस AWS पहचान से साइन इन करता है।"
 }

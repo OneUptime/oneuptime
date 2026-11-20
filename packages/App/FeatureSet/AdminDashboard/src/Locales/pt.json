@@ -4345,5 +4345,18 @@
   "Label": "Rótulo",
   "Team or Label": "Equipe ou rótulo",
   "This team's own": "Próprio desta equipe",
-  "This label's own": "Próprio deste rótulo"
+  "This label's own": "Próprio deste rótulo",
+  "Signs In As": "Entra como",
+  "Check again": "Verificar novamente",
+  "Couldn't ask the server which AWS identity it signs in as. {{error}}": "Não foi possível perguntar ao servidor com qual identidade da AWS ele entra. {{error}}",
+  "This server cannot sign in to AWS. {{error}}": "Este servidor não consegue entrar na AWS. {{error}}",
+  "A test email shows whether it may send.": "Um e-mail de teste mostra se ele pode enviar.",
+  "From AWS_ACCESS_KEY_ID in the server's environment.": "De AWS_ACCESS_KEY_ID no ambiente do servidor.",
+  "From the server's AWS profile.": "Do perfil da AWS do servidor.",
+  "From IAM roles for service accounts.": "Das funções do IAM para contas de serviço.",
+  "From EKS Pod Identity.": "Do EKS Pod Identity.",
+  "From the ECS task role.": "Da função de tarefa do ECS.",
+  "From the container credentials endpoint.": "Do endpoint de credenciais de contêiner.",
+  "From the EC2 instance profile.": "Do perfil de instância do EC2.",
+  "The server did not say which AWS identity it signs in as.": "O servidor não disse com qual identidade da AWS ele entra."
 }

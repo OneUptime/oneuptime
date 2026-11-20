@@ -4345,5 +4345,18 @@
   "Label": "Метка",
   "Team or Label": "Команда или метка",
   "This team's own": "Собственный бюджет команды",
-  "This label's own": "Собственный бюджет метки"
+  "This label's own": "Собственный бюджет метки",
+  "Signs In As": "Входит как",
+  "Check again": "Проверить снова",
+  "Couldn't ask the server which AWS identity it signs in as. {{error}}": "Не удалось спросить сервер, под какой идентичностью AWS он входит. {{error}}",
+  "This server cannot sign in to AWS. {{error}}": "Этот сервер не может войти в AWS. {{error}}",
+  "A test email shows whether it may send.": "Тестовое письмо покажет, может ли он отправлять.",
+  "From AWS_ACCESS_KEY_ID in the server's environment.": "Из AWS_ACCESS_KEY_ID в окружении сервера.",
+  "From the server's AWS profile.": "Из профиля AWS сервера.",
+  "From IAM roles for service accounts.": "Из ролей IAM для сервисных аккаунтов.",
+  "From EKS Pod Identity.": "Из EKS Pod Identity.",
+  "From the ECS task role.": "Из роли задачи ECS.",
+  "From the container credentials endpoint.": "Из конечной точки учётных данных контейнера.",
+  "From the EC2 instance profile.": "Из профиля экземпляра EC2.",
+  "The server did not say which AWS identity it signs in as.": "Сервер не сообщил, под какой идентичностью AWS он входит."
 }

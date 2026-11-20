@@ -4345,5 +4345,18 @@
   "Label": "Label",
   "Team or Label": "Team of label",
   "This team's own": "Eigen budget van dit team",
-  "This label's own": "Eigen budget van dit label"
+  "This label's own": "Eigen budget van dit label",
+  "Signs In As": "Meldt zich aan als",
+  "Check again": "Opnieuw controleren",
+  "Couldn't ask the server which AWS identity it signs in as. {{error}}": "Kon de server niet vragen als welke AWS-identiteit hij zich aanmeldt. {{error}}",
+  "This server cannot sign in to AWS. {{error}}": "Deze server kan zich niet aanmelden bij AWS. {{error}}",
+  "A test email shows whether it may send.": "Een test-e-mail laat zien of hij mag verzenden.",
+  "From AWS_ACCESS_KEY_ID in the server's environment.": "Uit AWS_ACCESS_KEY_ID in de omgeving van de server.",
+  "From the server's AWS profile.": "Uit het AWS-profiel van de server.",
+  "From IAM roles for service accounts.": "Uit IAM-rollen voor serviceaccounts.",
+  "From EKS Pod Identity.": "Uit EKS Pod Identity.",
+  "From the ECS task role.": "Uit de ECS-taakrol.",
+  "From the container credentials endpoint.": "Uit het endpoint voor containerinloggegevens.",
+  "From the EC2 instance profile.": "Uit het EC2-instanceprofiel.",
+  "The server did not say which AWS identity it signs in as.": "De server zei niet als welke AWS-identiteit hij zich aanmeldt."
 }

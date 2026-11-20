@@ -4345,5 +4345,18 @@
   "Label": "Etikett",
   "Team or Label": "Team eller etikett",
   "This team's own": "Teamets egen",
-  "This label's own": "Etikettens egen"
+  "This label's own": "Etikettens egen",
+  "Signs In As": "Loggar in som",
+  "Check again": "Kontrollera igen",
+  "Couldn't ask the server which AWS identity it signs in as. {{error}}": "Kunde inte fråga servern vilken AWS-identitet den loggar in som. {{error}}",
+  "This server cannot sign in to AWS. {{error}}": "Den här servern kan inte logga in på AWS. {{error}}",
+  "A test email shows whether it may send.": "Ett testmejl visar om den får skicka.",
+  "From AWS_ACCESS_KEY_ID in the server's environment.": "Från AWS_ACCESS_KEY_ID i serverns miljö.",
+  "From the server's AWS profile.": "Från serverns AWS-profil.",
+  "From IAM roles for service accounts.": "Från IAM-roller för tjänstkonton.",
+  "From EKS Pod Identity.": "Från EKS Pod Identity.",
+  "From the ECS task role.": "Från ECS-uppgiftsrollen.",
+  "From the container credentials endpoint.": "Från slutpunkten för containerautentiseringsuppgifter.",
+  "From the EC2 instance profile.": "Från EC2-instansprofilen.",
+  "The server did not say which AWS identity it signs in as.": "Servern sa inte vilken AWS-identitet den loggar in som."
 }

@@ -4345,5 +4345,18 @@
   "Label": "ラベル",
   "Team or Label": "チームまたはラベル",
   "This team's own": "このチーム独自の予算",
-  "This label's own": "このラベル独自の予算"
+  "This label's own": "このラベル独自の予算",
+  "Signs In As": "サインインする ID",
+  "Check again": "再確認",
+  "Couldn't ask the server which AWS identity it signs in as. {{error}}": "サーバーがどの AWS ID でサインインするかを確認できませんでした。{{error}}",
+  "This server cannot sign in to AWS. {{error}}": "このサーバーは AWS にサインインできません。{{error}}",
+  "A test email shows whether it may send.": "送信できるかどうかはテストメールでわかります。",
+  "From AWS_ACCESS_KEY_ID in the server's environment.": "サーバーの環境の AWS_ACCESS_KEY_ID から。",
+  "From the server's AWS profile.": "サーバーの AWS プロファイルから。",
+  "From IAM roles for service accounts.": "サービスアカウントの IAM ロールから。",
+  "From EKS Pod Identity.": "EKS Pod Identity から。",
+  "From the ECS task role.": "ECS タスクロールから。",
+  "From the container credentials endpoint.": "コンテナ認証情報エンドポイントから。",
+  "From the EC2 instance profile.": "EC2 インスタンスプロファイルから。",
+  "The server did not say which AWS identity it signs in as.": "サーバーは、どの AWS ID でサインインするかを返しませんでした。"
 }

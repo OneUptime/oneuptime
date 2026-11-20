@@ -594,6 +594,29 @@ export default class AwsDefaultCredentialChain {
   }
 
   /*
+   * Which agent the container credentials come from, for words: Amazon
+   * ECS's endpoint (a relative path), the EKS Pod Identity agent, or
+   * another endpoint. Null when the container is not the source.
+   */
+  public getContainerAgent(): "ecs" | "eks-pod-identity" | "other" | null {
+    if (this.getSource() !== "container") {
+      return null;
+    }
+
+    if (readEnv(this.env, AWS_CONTAINER_CREDENTIALS_RELATIVE_URI_ENV)) {
+      return "ecs";
+    }
+
+    return EKS_POD_IDENTITY_HOSTS.includes(
+      AwsDefaultCredentialChain.hostOf(
+        readEnv(this.env, AWS_CONTAINER_CREDENTIALS_FULL_URI_ENV),
+      ),
+    )
+      ? "eks-pod-identity"
+      : "other";
+  }
+
+  /*
    * The server's Region, as the platform tells it (EKS, ECS and Lambda set
    * AWS_REGION), or null.
    */
