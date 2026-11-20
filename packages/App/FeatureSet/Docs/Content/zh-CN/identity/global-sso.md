@@ -104,6 +104,12 @@ flowchart TB
 
 Okta、Microsoft Entra ID、Auth0 和 Keycloak 中这些设置的位置，请见 [SSO](/docs/identity/sso) 页面。
 
+## 重新登录以确认是您本人
+
+只通过全局提供商登录的人，在更改登录方式或删除账户之前，用 **重新登录** 确认是本人：OneUptime 会把此人送回提供商，SAML 带上 `ForceAuthn="true"`，OpenID Connect 带上 `prompt=login` 和 `max_age=0`，并且只有当提供商在 `AuthnInstant` 或 `auth_time` 中告知此人在那一刻或之后登录时才算数。添加、更改或删除全局提供商时，会先要求您[确认是本人](/docs/introduction/your-account#确认是你本人)。
+
+在 Okta、Microsoft Entra ID、Keycloak 和 Google Workspace 中要设置什么，请见 [SSO](/docs/identity/sso#重新登录以确认是您本人) 页面。
+
 ## 强制使用 SSO
 
 配置全局提供商并不会强制任何人使用它；密码登录仍然有效。要要求使用 SSO，请为项目或整个实例开启该要求：
