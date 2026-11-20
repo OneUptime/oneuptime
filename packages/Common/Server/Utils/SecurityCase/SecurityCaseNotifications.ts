@@ -107,6 +107,23 @@ import {
 import SecurityCaseStepCheckState from "../../../Types/SecurityCase/SecurityCaseStepCheckState";
 import { createTranslator } from "../../../Types/Translator";
 import { wordStepCheckSentence } from "../../../Utils/SecurityCase/ResponsePlan/StepCheckSentences";
+import {
+  SecurityPlaybookApprovalAsk as SecurityPlaybookApprovalAskWords,
+  SecurityPlaybookApprovalText,
+  getSecurityPlaybookApprovalText,
+} from "../../../Utils/SecurityPlaybook/SecurityPlaybookApprovalWords";
+import { DEFAULT_READER_LANGUAGE } from "../../../Types/ReaderLanguage";
+import { WorkspaceMessageBlock } from "../../../Types/Workspace/WorkspaceMessagePayload";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import { WorkspaceSentDirectMessage } from "../../Services/WorkspaceUserNotificationService";
+import UserLanguage from "../Notification/UserLanguage";
+import SecurityPlaybookApprovalReader, {
+  SecurityPlaybookApprovalRead,
+} from "../SecurityPlaybook/SecurityPlaybookApprovalReader";
+import WorkspaceSecurityPlaybookApproval, {
+  SecurityPlaybookApprovalMessage,
+} from "../Workspace/WorkspaceSecurityPlaybookApproval";
+import WorkspaceSecurityPlaybookApprovalMessages from "../Workspace/WorkspaceSecurityPlaybookApprovalMessages";
 
 /*
  * TELLING PEOPLE ABOUT SECURITY CASES.
@@ -239,6 +256,20 @@ export interface SecurityCaseMessage {
   pushType: string;
   requireInteraction: boolean;
   forceImmediate: boolean;
+}
+
+/*
+ * A notice's own Slack and Microsoft Teams message to one person
+ * (UserNotificationSettingService.sendUserNotification's workspaceMessage):
+ * an approval, with its buttons, as each chat draws it.
+ */
+export interface SecurityCaseWorkspaceMessage {
+  messageBlocks: Array<WorkspaceMessageBlock>;
+  messageBlocksByWorkspaceType?:
+    | Partial<Record<WorkspaceType, Array<WorkspaceMessageBlock>>>
+    | undefined;
+  notificationText: string;
+  onSent?: ((sent: WorkspaceSentDirectMessage) => Promise<void>) | undefined;
 }
 
 // A job's own words, read back from the queue.
@@ -429,9 +460,46 @@ export function buildAssignedMessage(data: {
 }
 
 /*
+ * What the approval email says of the step, so nobody approves blind: what
+ * it does, to what and why each target is one, what it leaves alone, the
+ * evidence, and whether it can be undone - in English, as the email is
+ * written (SecurityPlaybookApprovalWords).
+ */
+export interface SecurityPlaybookApprovalEmailEvidence {
+  action: string;
+  // The proposed targets, each with why it is one.
+  targets: Array<string>;
+  // The protected ones, which the step never acts on.
+  leftAlone: Array<string>;
+  evidence: Array<string>;
+  undo: string;
+}
+
+// An approval's evidence, as its email says it.
+export function getApprovalEmailEvidence(
+  ask: SecurityPlaybookApprovalAskWords,
+): SecurityPlaybookApprovalEmailEvidence {
+  const text: SecurityPlaybookApprovalText = getSecurityPlaybookApprovalText({
+    ask,
+    context: WorkspaceSecurityPlaybookApproval.getContext(
+      DEFAULT_READER_LANGUAGE,
+    ),
+  });
+
+  return {
+    action: text.action,
+    targets: text.targets,
+    leftAlone: text.leftAlone,
+    evidence: text.evidence,
+    undo: text.undo,
+  };
+}
+
+/*
  * What a person is told when a playbook step on a case waits for approval:
  * the run does nothing until somebody approves or rejects it, so it is never
- * held back in an email rollup.
+ * held back in an email rollup. The email's button opens the approval on the
+ * case, never approves it: a mail scanner follows links.
  */
 export function buildApprovalRequestedMessage(data: {
   facts: SecurityCaseMessageFacts;
@@ -441,9 +509,15 @@ export function buildApprovalRequestedMessage(data: {
   isOnCase: boolean;
   // What a Contain step proposes to act on, for the approver to check.
   targets?: Array<string> | undefined;
+  // What the step does, to what, why, and what can be undone.
+  evidence?: SecurityPlaybookApprovalEmailEvidence | undefined;
+  // The approval on the case: where the email's button and the push open.
+  approvalUrl?: string | undefined;
 }): SecurityCaseMessage {
   const { facts } = data;
   const targets: string = (data.targets || []).join(", ");
+  const evidence: SecurityPlaybookApprovalEmailEvidence | undefined =
+    data.evidence;
 
   return {
     eventType:
@@ -459,8 +533,16 @@ export function buildApprovalRequestedMessage(data: {
         : "You can approve playbook steps, and nobody the case is assigned to can. Change these emails in User Settings > Notification Settings.",
       playbookName: data.playbookName,
       stepDescription: data.stepDescription,
-      stepTargets: targets,
+      stepTargets:
+        evidence && evidence.targets.length > 0
+          ? evidence.targets.join("; ")
+          : targets,
       startedBy: data.startedBy,
+      approvalAction: evidence?.action || "",
+      approvalLeftAlone: (evidence?.leftAlone || []).join("; "),
+      approvalEvidence: (evidence?.evidence || []).join(" "),
+      approvalUndo: evidence?.undo || "",
+      caseViewLink: data.approvalUrl || facts.url,
     },
     smsText: buildNotificationSms(
       `Approval needed on security case ${facts.number}: playbook ${data.playbookName}, ${data.stepDescription}${targets ? ` on ${targets}` : ""}.`,
@@ -1359,16 +1441,7 @@ export default class SecurityCaseNotifications {
           _id: data.runId,
           projectId: data.projectId,
         },
-        select: {
-          _id: true,
-          status: true,
-          playbookName: true,
-          steps: true,
-          currentStepIndex: true,
-          stepResults: true,
-          triggeredByUserId: true,
-          trigger: true,
-        },
+        select: SecurityPlaybookApprovalReader.RUN_SELECT,
         props: {
           isRoot: true,
         },
@@ -1463,9 +1536,35 @@ export default class SecurityCaseNotifications {
       });
     }
 
+    /*
+     * The approval as its messages say it: what the step does, to what,
+     * why, who asked, the evidence and what can be undone. When it cannot
+     * be read, the notices go out as they always did, without buttons.
+     */
+    const approval: SecurityPlaybookApprovalRead | null =
+      await this.readApproval({ projectId: data.projectId, run });
+    const approvalUrl: string = approval?.ask.caseUrl || facts.url;
+    const evidence: SecurityPlaybookApprovalEmailEvidence | undefined = approval
+      ? getApprovalEmailEvidence(approval.ask)
+      : undefined;
+
+    // Each approver's own chat message is in the language on their account.
+    const languages: Map<string, string> = new Map<string, string>();
+
+    if (approval) {
+      for (const recipient of recipients) {
+        languages.set(
+          recipient.userId.toString(),
+          await UserLanguage.getLanguage(recipient.userId),
+        );
+      }
+    }
+
     const notified: Array<SecurityCaseRecipient> = await this.sendToPeople({
       facts,
       recipients,
+      url: approvalUrl,
+      runId: data.runId,
       message: (): SecurityCaseMessage => {
         return buildApprovalRequestedMessage({
           facts,
@@ -1474,8 +1573,21 @@ export default class SecurityCaseNotifications {
           startedBy,
           isOnCase,
           targets,
+          evidence,
+          approvalUrl,
         });
       },
+      workspaceMessage: approval
+        ? (recipient: SecurityCaseRecipient): SecurityCaseWorkspaceMessage => {
+            return SecurityCaseNotifications.getApprovalDirectMessage({
+              approval,
+              recipient,
+              language:
+                languages.get(recipient.userId.toString()) ||
+                DEFAULT_READER_LANGUAGE,
+            });
+          }
+        : undefined,
     });
 
     await this.recordInFeed({
@@ -1484,6 +1596,26 @@ export default class SecurityCaseNotifications {
       feedInfo: mdText`🔔 Asked ${people(notified.length)} to approve ${stepDescription} of playbook **${playbookName}**.`,
       displayColor: Yellow500,
     });
+
+    /*
+     * The channels and chats the case's Security Case rules name for
+     * approvals get the approval with its buttons, kept so every copy says
+     * who decided (WorkspaceSecurityPlaybookApprovalMessages).
+     */
+    if (approval) {
+      try {
+        await WorkspaceSecurityPlaybookApprovalMessages.postToChannels({
+          read: approval,
+        });
+      } catch (error) {
+        logger.error(
+          `SecurityCaseNotifications: could not post the approval of run ${data.runId.toString()} to Slack or Microsoft Teams:`,
+        );
+        logger.error(error);
+      }
+
+      return notified;
+    }
 
     await this.postToChannels({
       facts,
@@ -1496,6 +1628,77 @@ export default class SecurityCaseNotifications {
     });
 
     return notified;
+  }
+
+  /*
+   * The step's approval, read as its messages say it - null when it cannot
+   * be read, logged: the people are still told.
+   */
+  private static async readApproval(data: {
+    projectId: ObjectID;
+    run: SecurityPlaybookRun;
+  }): Promise<SecurityPlaybookApprovalRead | null> {
+    try {
+      return await SecurityPlaybookApprovalReader.read({
+        projectId: data.projectId,
+        runId: data.run.id!,
+        run: data.run,
+      });
+    } catch (error) {
+      logger.error(
+        `SecurityCaseNotifications: could not read the approval of run ${data.run.id?.toString()}:`,
+      );
+      logger.error(error);
+      return null;
+    }
+  }
+
+  /*
+   * The approval in one approver's Slack and Microsoft Teams direct
+   * messages, in their language, with its buttons, each copy kept as it
+   * lands to say later who decided (WorkspaceSecurityPlaybookApprovalMessages).
+   * Mattermost, which has no buttons for it, gets the notice as text.
+   */
+  public static getApprovalDirectMessage(data: {
+    approval: SecurityPlaybookApprovalRead;
+    recipient: SecurityCaseRecipient;
+    language: string;
+  }): SecurityCaseWorkspaceMessage {
+    const slack: SecurityPlaybookApprovalMessage =
+      WorkspaceSecurityPlaybookApproval.getMessage({
+        ask: data.approval.ask,
+        round: data.approval.round,
+        workspaceType: WorkspaceType.Slack,
+        language: data.language,
+      });
+    const teams: SecurityPlaybookApprovalMessage =
+      WorkspaceSecurityPlaybookApproval.getMessage({
+        ask: data.approval.ask,
+        round: data.approval.round,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        language: data.language,
+      });
+
+    return {
+      messageBlocks: [],
+      messageBlocksByWorkspaceType: {
+        [WorkspaceType.Slack]: slack.messageBlocks,
+        [WorkspaceType.MicrosoftTeams]: teams.messageBlocks,
+      },
+      notificationText: slack.notificationText,
+      onSent: async (sent: WorkspaceSentDirectMessage): Promise<void> => {
+        await WorkspaceSecurityPlaybookApprovalMessages.keepDirectMessage({
+          read: data.approval,
+          userId: data.recipient.userId,
+          language: data.language,
+          messageBlocks:
+            sent.workspaceType === WorkspaceType.MicrosoftTeams
+              ? teams.messageBlocks
+              : slack.messageBlocks,
+          sent,
+        });
+      },
+    };
   }
 
   // ---------- A response target about to be missed, or missed ----------
@@ -2434,6 +2637,15 @@ export default class SecurityCaseNotifications {
     message: (recipient: SecurityCaseRecipient) => SecurityCaseMessage;
     // Where the push opens, when not the case's Overview: its Tasks page.
     url?: string | undefined;
+    // The run a push is about, for the app to open its approval.
+    runId?: ObjectID | undefined;
+    /*
+     * The person's own Slack and Microsoft Teams message, when the notice
+     * has one of its own: an approval, with its buttons.
+     */
+    workspaceMessage?:
+      | ((recipient: SecurityCaseRecipient) => SecurityCaseWorkspaceMessage)
+      | undefined;
   }): Promise<Array<SecurityCaseRecipient>> {
     const notified: Array<SecurityCaseRecipient> = [];
 
@@ -2475,6 +2687,7 @@ export default class SecurityCaseNotifications {
             securityCaseId: data.facts.caseId.toString(),
             projectId: data.facts.projectId.toString(),
             requireInteraction: message.requireInteraction,
+            ...(data.runId ? { runId: data.runId.toString() } : {}),
           });
 
         await UserNotificationSettingService.sendUserNotification({
@@ -2485,6 +2698,9 @@ export default class SecurityCaseNotifications {
           smsMessage: sms,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
+          ...(data.workspaceMessage
+            ? { workspaceMessage: data.workspaceMessage(recipient) }
+            : {}),
           securityCaseId: data.facts.caseId,
           forceImmediate: message.forceImmediate,
         });

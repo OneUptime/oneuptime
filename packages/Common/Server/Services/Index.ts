@@ -483,6 +483,8 @@ import DataObservabilitySettingService from "./DataObservabilitySettingService";
 import DataAssetLineageService from "./DataAssetLineageService";
 import DataAlertService from "./DataAlertService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
+import SecurityBlockService from "./SecurityBlockService";
+import SecurityBlockEnforcementService from "./SecurityBlockEnforcementService";
 import SecurityEntityRiskService from "./SecurityEntityRiskService";
 import SecurityEntityCriticalityService from "./SecurityEntityCriticalityService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
@@ -1097,6 +1099,8 @@ const services: Array<BaseService> = [
   DataAssetLineageService,
   DataAlertService,
   SecurityProtectedEntityService,
+  SecurityBlockService,
+  SecurityBlockEnforcementService,
   SecurityEntityRiskService,
   SecurityEntityCriticalityService,
   AlertNoteTemplateService,

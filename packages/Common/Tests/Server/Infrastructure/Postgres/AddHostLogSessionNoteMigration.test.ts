@@ -218,12 +218,18 @@ describe("the model's column", () => {
       session.getColumnAccessControlFor("note");
 
     expect(control).not.toBeNull();
+    /*
+     * A team given the Hosts product at Admin or Member may ask, and at any
+     * level read (#10289), as HostLogSessionModel.test.ts holds the table to.
+     */
     expect([...(control?.create || [])].sort()).toEqual(
       [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
         Permission.EditHost,
+        Permission.HostAdmin,
+        Permission.HostMember,
       ].sort(),
     );
     expect(control?.update).toEqual([]);
@@ -234,6 +240,9 @@ describe("the model's column", () => {
         Permission.ProjectMember,
         Permission.Viewer,
         Permission.ReadHost,
+        Permission.HostAdmin,
+        Permission.HostMember,
+        Permission.HostViewer,
       ].sort(),
     );
   });

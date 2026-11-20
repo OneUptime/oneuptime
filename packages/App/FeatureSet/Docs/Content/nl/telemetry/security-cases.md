@@ -268,7 +268,9 @@ Ieder kiest dat voor zichzelf, onder **Gebruikersinstellingen → Meldingsinstel
 
 De keuzes volgen de zaakprioriteiten van het project, onder hun eigen namen: dit zijn die van een nieuw project.
 
-Voor beveiligingszaken worden geen WhatsApp-berichten verstuurd. Een pushmelding opent de zaak in de app OneUptime On-Call (1.7.0 of nieuwer), waar u een wachtende playbookstap kunt goedkeuren of afwijzen, de zaak kunt oppakken en sluiten. De link erin opent de zaak in de browser.
+Voor beveiligingszaken worden geen WhatsApp-berichten verstuurd. Een pushmelding opent de zaak in de app OneUptime On-Call (1.7.0 of nieuwer), waar u een wachtende playbookstap kunt goedkeuren of afwijzen, de zaak kunt oppakken en sluiten. De link erin opent de zaak in de browser. Een pushmelding over een stap die op uw goedkeuring wacht, opent die goedkeuring zelf, met het bewijs; heeft iemand er intussen over beslist, dan zegt de zaak wie, wanneer en hoe de stap verliep.
+
+Een stap die op uw goedkeuring wacht, bereikt u in Slack of Microsoft Teams als een bericht waaruit u hem kunt goedkeuren, en de e-mail ervan zegt wat de stap gaat doen en waarom: zie [Goedkeuren vanuit Slack en Microsoft Teams](#goedkeuren-vanuit-slack-en-microsoft-teams).
 
 ### Plaatsen in kanalen van Slack, Microsoft Teams en Mattermost
 
@@ -405,15 +407,34 @@ De twee stappen voor gegevensopslagen werken op de gegevensopslagen waar de zaak
 
 #### Beschermde entiteiten
 
-**Beschermde entiteiten**, onder **Playbooks** in het menu, toont de gebruikers en hosts die geen enkel playbook inperkt, zoals noodaccounts, domeincontrollers en VPN-gateways. Een waarde matcht ongeacht hoofdletters, en `*` staat voor elke reeks tekens: `svc-*` beschermt elk serviceaccount. Een stap meldt een beschermde gebruiker of host als beschermd en laat hem ongemoeid. Beveiligingsbeheerders houden de lijst bij.
+**Beschermde entiteiten**, onder **Playbooks** in het menu, toont de gebruikers, hosts en IP-adressen die geen enkel playbook inperkt en de blokkeerlijst nooit blokkeert, zoals noodaccounts, domeincontrollers, VPN-gateways en kantooradressen. Een waarde matcht ongeacht hoofdletters, en `*` staat voor elke reeks tekens: `svc-*` beschermt elk serviceaccount. Een adresvermelding is een adres of een bereik, zoals `203.0.113.0/24`, dat elk adres erin beschermt. Een stap meldt een beschermde gebruiker of host als beschermd en laat hem ongemoeid. Beveiligingsbeheerders houden de lijst bij.
 
 #### Goedkeuring
 
 De acht stappen die iemand de toegang ontnemen, wachten op goedkeuring. Alleen een Beveiligingsbeheerder kan **Goedkeuring nodig** voor een ervan uitzetten, en OneUptime legt vast wie dat deed. De goedkeuring toont onder **Toepassen op** de gebruikers of hosts waarop de stap zou werken, allemaal aangevinkt: vink uit wat hij ongemoeid moet laten. Beschermde gebruikers en hosts staan er niet tussen. Wie een uitvoering heeft gestart, kan haar stappen niet goedkeuren: dat doet iemand anders, maar afwijzen kan die persoon nog wel.
 
+#### Goedkeuren vanuit Slack en Microsoft Teams
+
+Een stap die op goedkeuring wacht, is een bericht met **Goedkeuren**, **Afwijzen** en **Zaak openen**; als hij op meer dan één gebruiker of host werkt, kunt u ook maar een deel ervan goedkeuren. Het gaat naar de kanalen en chats van elke regel voor beveiligingszaken waarvan de **Updates** **Benodigde goedkeuringen** posten, en naar elke goedkeurder die Slack of Microsoft Teams heeft gekozen voor **Playbookstap wacht op mijn goedkeuring**, in de taal van zijn account. Het zegt wat de stap gaat doen en via welke verbinding, op welke gebruikers of hosts hij werkt en waarom, welke beschermde hij met rust laat, wie of wat erom vroeg, het bewijs achter de zaak (hoe ver de verzoeken erachter kwamen, wat threat intelligence weet, dat niets waarop hij werkt beschermd is) en of hij ongedaan kan worden gemaakt. De e-mail die om de goedkeuring vraagt, zegt hetzelfde; de knop erin opent de goedkeuring op de zaak en beslist nooit iets, omdat mailscanners links volgen.
+
+- Wie maar een deel goedkeurt, ziet de gebruikers of hosts waarop de stap zou werken, allemaal aangevinkt: vink uit wat hij met rust moet laten. Er blijft er minstens één over, anders wijst u de stap af.
+- Op een knop drukken beslist als u, via het Slack- of Microsoft Teams-account dat u aan OneUptime hebt gekoppeld. Nog niet gekoppeld? Dan wordt u gevraagd te koppelen en daarna opnieuw te drukken. U hebt een rol nodig die playbooks mag uitvoeren, en u moet de zaak kunnen zien; wie de uitvoering startte, kan die niet goedkeuren, maar wel afwijzen. Een weigering zegt waarom: in Slack ziet alleen u die.
+- OneUptime controleert dat elke druk uit Slack of Microsoft Teams kwam, en beslist één keer: een druk die wordt herhaald, opnieuw wordt verzonden of op een bericht over een andere stap staat, beslist niets, en een druk nadat iemand heeft beslist, zegt wie en wanneer.
+- Zodra iemand beslist, in Slack, in Microsoft Teams, op de zaak of in de app, zegt elke kopie van het bericht wie het goedkeurde of afwees en wanneer, daarna hoe de stap verliep en wat er met elke gebruiker of host gebeurde, zonder andere knoppen dan **Zaak openen**. De beslissing wordt bewaard op de tijdlijn van de zaak, met de vermelding dat ze uit Slack of Microsoft Teams kwam, en in het auditlogboek van het project.
+
+Mattermost krijgt de goedkeuring als tekst, zonder knoppen.
+
 #### Ongedaan maken
 
-De herstelstappen werken op de gebruikers of hosts waar de zaak over gaat, net als de stappen die ze terugdraaien. Zodra de uitvoering is gestopt, heeft een ingeperkte gebruiker of host ook een eigen knop op zijn stap: **Opschorting opheffen**, **Indamming opheffen**, **Vrijgeven** of **Inschakelen**. Een afmelding kan niet ongedaan worden gemaakt. Elke herstelactie wordt bewaard op de tijdlijn van de zaak en in het auditlogboek van het project.
+De herstelstappen werken op de gebruikers of hosts waar de zaak over gaat, net als de stappen die ze terugdraaien. Zodra de uitvoering is gestopt, heeft een ingeperkte gebruiker of host ook een eigen knop op zijn stap: **Opschorting opheffen**, **Indamming opheffen**, **Vrijgeven** of **Inschakelen**. Een afmelding kan niet ongedaan worden gemaakt. Elke herstelactie wordt bewaard op de tijdlijn van de zaak en in het auditlogboek van het project. In de app OneUptime On-Call toont de zaak wat de playbooks ervan hebben ingeperkt, en elk daarvan kan daar ongedaan worden gemaakt.
+
+### Blokkeerlijst
+
+**Blokkeerlijst**, onder **Playbooks** in het menu, toont de IP-adressen en bereiken die je project blokkeert: waarom, tot wanneer, hun zaak en wie of wat ze heeft toegevoegd. **Adres blokkeren** blokkeert een adres of een bereik voor 24 uur, tenzij je 1 uur, 7 dagen of 30 dagen kiest. Alleen een Beveiligingsbeheerder, een Projectbeheerder of een Projecteigenaar kan een blokkering behouden tot iemand ze opheft, of een bereik blokkeren dat breder is dan een /24 (een /48 bij IPv6), en niemand blokkeert een bereik dat breder is dan een /8 (een /16 bij IPv6). **Opheffen** beëindigt een blokkering, op één rij of op meerdere tegelijk, en **Verlengen** verschuift het einde ervan.
+
+De eigen adressen van je project worden nooit geblokkeerd: de vermeldingen in **Beschermde entiteiten**, je hosts, Kubernetes-nodes, cloud-resources, netwerkapparaten en -eindpunten, je adresnamen en sondes, de sondes van OneUptime Cloud, de bereiken die niet op internet liggen, en het edge-netwerk vóór je app. Een blokkering die er een zou raken, wordt geweigerd met de melding wat het adres is, en **Beschermde entiteiten** toont ze onder **Automatisch beschermd**. Als OneUptime niet kan bepalen of een adres van jou is, blokkeert het dat niet.
+
+**Toegepast bij** toont elke plek waar een blokkering wordt toegepast, en of die daar standhoudt. Zolang niets de blokkeerlijst toepast, meldt de pagina dat, en wordt een blokkering vastgelegd maar blokkeert ze niets. Elke blokkering, opheffing en verloop wordt bewaard in het auditlogboek van het project, en op de tijdlijn van de zaak als er een zaak is.
 
 ### Berichten
 
@@ -469,7 +490,7 @@ Daarboven toont een strook hoe beveiliging is ingericht: de bronnen, detecties, 
 ## Automatiseren
 
 - **Workflows**: een zaak of een notitie kan een workflow starten wanneer ze wordt aangemaakt, bijgewerkt of verwijderd. Een stap **Een workflow uitvoeren** start een workflow waarvan de trigger een webhook is.
-- **API**: zaken, notities, taken, bewijs, detecties, playbooks, uitvoeringen, beschermde entiteiten en zaakprioriteiten en zaakstatussen hebben dezelfde REST API als de rest van OneUptime, onder `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` en `/security-case-status`. Zie [API-referentie](/docs/api-reference/api-reference).
+- **API**: zaken, notities, taken, bewijs, detecties, playbooks, uitvoeringen, beschermde entiteiten, blokkeringen en zaakprioriteiten en zaakstatussen hebben dezelfde REST API als de rest van OneUptime, onder `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-block`, `/security-case-priority` en `/security-case-status`. Zie [API-referentie](/docs/api-reference/api-reference).
 - AI-agents: de MCP-server heeft tools voor zaken, notities, taken, bewijs, detecties, playbooks en zaakprioriteiten en zaakstatussen. Zie [MCP-server](/docs/ai/mcp-server).
 - Terraform: de resources `oneuptime_security_case_priority` en `oneuptime_security_case_status` leggen de prioriteiten en statussen van een project vast als code.
 

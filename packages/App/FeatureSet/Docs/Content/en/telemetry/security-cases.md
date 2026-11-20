@@ -268,7 +268,9 @@ Each person chooses for themselves, under **User Settings → Notification Setti
 
 The choices follow the project's case priorities, under their own names: these are a new project's.
 
-WhatsApp messages are not sent for security cases. A push notification opens the case in the OneUptime On-Call app (1.7.0 or later), where you can approve or reject a waiting playbook step, take the case on and close it. Its link opens the case in the browser.
+WhatsApp messages are not sent for security cases. A push notification opens the case in the OneUptime On-Call app (1.7.0 or later), where you can approve or reject a waiting playbook step, take the case on and close it. Its link opens the case in the browser. A push about a step waiting for your approval opens on that approval, with its evidence; when somebody decided it since, the case says who, when and how the step went.
+
+A step waiting for your approval reaches you in Slack or Microsoft Teams as a message you can approve from, and its email says what the step will do and why: see [Approve from Slack and Microsoft Teams](#approve-from-slack-and-microsoft-teams).
 
 ### Post to Slack, Microsoft Teams and Mattermost channels
 
@@ -405,15 +407,34 @@ The two data store steps act on the data stores the case is about, at most 10: t
 
 #### Protected entities
 
-**Protected Entities**, under **Playbooks** in the menu, lists the users and hosts no playbook contains, such as break-glass accounts, domain controllers and VPN gateways. A value matches whatever its case, and `*` stands for any run of characters: `svc-*` protects every service account. A step reports a protected user or host as protected and leaves it alone. Security Admins keep the list.
+**Protected Entities**, under **Playbooks** in the menu, lists the users, hosts and IP addresses no playbook contains and the blocklist never blocks, such as break-glass accounts, domain controllers, VPN gateways and office addresses. A value matches whatever its case, and `*` stands for any run of characters: `svc-*` protects every service account. An address entry is an address or a range, such as `203.0.113.0/24`, which protects every address in it. A step reports a protected user or host as protected and leaves it alone. Security Admins keep the list.
 
 #### Approval
 
 The eight steps that cut someone off wait for approval. Only a Security Admin can turn **Needs Approval** off for one, and OneUptime records who did. The approval lists the users or hosts the step would act on under **Act On**, every one ticked: untick any it should leave alone. Protected ones are not offered. Whoever started a run cannot approve its steps: someone else does, though they can still reject it.
 
+#### Approve from Slack and Microsoft Teams
+
+A step waiting for approval is a message with **Approve**, **Reject** and **Open Case**; when it acts on more than one user or host, it also lets you approve only some of them. It goes to the channels and chats of every Security Case rule whose **Updates** post **Approvals needed**, and to each approver who chose Slack or Microsoft Teams for **Playbook step waiting for my approval**, in the language on their account. It says what the step will do and through which connection, each user or host it acts on and why, the protected ones it leaves alone, who or what asked, the evidence behind the case (how far the requests behind it got, what threat intel knows, that nothing it acts on is protected) and whether it can be undone. The email asking for the approval says the same; its button opens the approval on the case and never decides anything, since mail scanners follow links.
+
+- Approving only some lists the users or hosts the step would act on, every one ticked: untick any it should leave alone. At least one stays, or reject the step instead.
+- Pressing a button decides as you, through the Slack or Microsoft Teams account you connected to OneUptime. Not connected yet, you are asked to connect, then press again. You need a role that can run playbooks, and to be able to see the case; whoever started the run cannot approve it, though they can reject it. A refusal says why: in Slack only you see it.
+- OneUptime checks every press came from Slack or Microsoft Teams, and decides once: a press repeated, sent again or on a message about another step decides nothing, and a press after somebody decided says who and when.
+- Once somebody decides, in Slack, in Microsoft Teams, on the case or in the app, every copy of the message says who approved or rejected it and when, then how the step went and what became of each user or host, with no buttons but **Open Case**. The decision is kept on the case's timeline, saying it came from Slack or Microsoft Teams, and in the project's audit log.
+
+Mattermost gets the approval as text, without buttons.
+
 #### Undo
 
-The undo steps act on the users or hosts the case is about, like the steps they undo. Once the run has stopped, a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment**, **Release** or **Enable**. A sign-out cannot be undone. Every undo is kept on the case's timeline and in the project's audit log.
+The undo steps act on the users or hosts the case is about, like the steps they undo. Once the run has stopped, a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment**, **Release** or **Enable**. A sign-out cannot be undone. Every undo is kept on the case's timeline and in the project's audit log. In the OneUptime On-Call app, the case lists what its playbooks contained, each of which can be undone from there.
+
+### Blocklist
+
+**Blocklist**, under **Playbooks** in the menu, lists the IP addresses and ranges your project blocks: why, until when, its case and who or what added it. **Block Address** blocks an address or a range for 24 hours unless you choose 1 hour, 7 days or 30 days. Only a Security Admin, a Project Admin or a Project Owner can keep a block until someone lifts it, or block a range wider than a /24 (a /48 for IPv6), and no one blocks a range wider than a /8 (a /16 for IPv6). **Lift** ends a block, on one row or several at once, and **Extend** moves its end.
+
+Your project's own addresses are never blocked: the entries of **Protected Entities**, your hosts, Kubernetes nodes, cloud resources, network devices and endpoints, your address names and probes, OneUptime Cloud's probes, the ranges that are not on the internet, and the edge in front of your app. A block that would meet one is refused, saying what the address is, and **Protected Entities** lists them under **Protected Automatically**. When OneUptime cannot tell whether an address is yours, it does not block it.
+
+**Enforced At** shows each place a block is enforced, and whether it holds there. While nothing enforces the blocklist, the page says so, and a block is recorded but blocks nothing. Each block, lift and expiry is kept in the project's audit log, and on its case's timeline when it has a case.
 
 ### Messages
 
@@ -469,7 +490,7 @@ Above them, a strip shows how Security is set up: its sources, detections, cases
 ## Automate
 
 - **Workflows**: a case or a note can start a workflow when it is created, updated or deleted. A **Run a workflow** step starts a workflow whose trigger is a webhook.
-- **API**: cases, notes, tasks, evidence, detections, playbooks, runs, protected entities, and case priorities and statuses have the same REST API as the rest of OneUptime, under `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` and `/security-case-status`. See [API Reference](/docs/api-reference/api-reference).
+- **API**: cases, notes, tasks, evidence, detections, playbooks, runs, protected entities, blocks, and case priorities and statuses have the same REST API as the rest of OneUptime, under `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-block`, `/security-case-priority` and `/security-case-status`. See [API Reference](/docs/api-reference/api-reference).
 - AI agents: the MCP server has tools for cases, notes, tasks, evidence, detections, playbooks, and case priorities and statuses. See [MCP Server](/docs/ai/mcp-server).
 - Terraform: the `oneuptime_security_case_priority` and `oneuptime_security_case_status` resources keep a project's priorities and statuses as code.
 

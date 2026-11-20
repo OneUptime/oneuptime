@@ -375,7 +375,7 @@ OneUptime sert OTLP/gRPC sur le même hôte que l'application web, sur le port 4
 
 Sur une installation auto-hébergée, gRPC n'atteint OneUptime qu'en HTTPS : une connexion HTTP en clair (h2c) est refusée. Si votre instance est servie en HTTP simple, utilisez OTLP/HTTP.
 
-Deux réglages d'une clé ne s'appliquent qu'à OTLP/HTTP : sa **Requests Per Minute Limit** et son **Nom du service épinglé**. Les données envoyées en gRPC gardent le `service.name` avec lequel elles ont été envoyées et ne sont pas comptées dans la limite.
+Deux réglages d'une clé ne s'appliquent qu'à OTLP/HTTP : sa **Limite de requêtes par minute** et son **Nom du service épinglé**. Les données envoyées en gRPC gardent le `service.name` avec lequel elles ont été envoyées et ne sont pas comptées dans la limite.
 
 ### Réponses
 
@@ -389,7 +389,7 @@ OneUptime répond à un export dès que les données sont en file d'attente, et 
 | `413` | — | La requête dépasse la limite de taille. | Envoyez des lots plus petits. |
 | `415` | — | `Content-Encoding` non pris en charge. | Utilisez `gzip`, `deflate` ou `zstd`, ou aucune compression. |
 | `422` | `PERMISSION_DENIED` | La clé est désactivée, ou c'est une clé Navigateur utilisée hors de ses origines autorisées. | Réactivez la clé, ou envoyez avec une clé Serveur. |
-| `429` | — | La **Requests Per Minute Limit** de la clé est atteinte. | Rien au début : les exportateurs réessaient après le délai `Retry-After`. Augmentez la limite si cela se répète. |
+| `429` | — | La **Limite de requêtes par minute** de la clé est atteinte. | Rien au début : les exportateurs réessaient après le délai `Retry-After`. Augmentez la limite si cela se répète. |
 | `503` | `UNAVAILABLE` | OneUptime démarre, ou la file d'ingestion est indisponible. | Rien : les exportateurs OTLP réessaient d'eux-mêmes après un `503`. |
 
 `401`, `402`, `413`, `415` et `422` sont des erreurs définitives pour les exportateurs OTLP : l'exportateur abandonne le lot et journalise l'erreur au lieu de réessayer.
@@ -409,7 +409,7 @@ La page de chaque clé, sous **Paramètres du projet → Télémétrie & APM →
 | **Nom du service épinglé** | Lorsqu'il est défini, remplace `service.name` sur tout ce qui est envoyé avec cette clé en OTLP/HTTP. |
 | **Activé** | Désactivez-le pour cesser immédiatement d'accepter les données envoyées avec la clé, sans la supprimer. |
 | **Expire le** | Après cette date, la clé est refusée. Vide signifie qu'elle n'expire jamais. |
-| **Requests Per Minute Limit** | Le nombre maximal de requêtes OTLP/HTTP par minute acceptées avec la clé, pour l'ensemble des clients qui l'utilisent. Vide signifie aucune limite sur une clé Serveur, et 6 000 sur une clé Navigateur. |
+| **Limite de requêtes par minute** | Le nombre maximal de requêtes OTLP/HTTP par minute acceptées avec la clé, pour l'ensemble des clients qui l'utilisent. Vide signifie aucune limite sur une clé Serveur, et 6 000 sur une clé Navigateur. |
 | **Dernière utilisation le** | Quand des données ont été acceptées pour la dernière fois avec la clé. Utilisez-le pour repérer les clés que vous pouvez renouveler ou supprimer sans risque. |
 
 **Réinitialiser la clé secrète** sur la page de la clé remplace le secret. Toute application et tout collector qui envoie avec l'ancien est refusé jusqu'à ce que vous le mettiez à jour. Pour les clés de navigateur, la rotation sûre d'une clé et ce que signifie chaque refus, voir [Clés d'ingestion](/docs/telemetry/ingestion-keys).

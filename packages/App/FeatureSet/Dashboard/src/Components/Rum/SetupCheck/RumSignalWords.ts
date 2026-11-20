@@ -43,6 +43,12 @@ export type { RumClientKind };
 // The two charts (and the Logs page) that explain why they are empty.
 export type RumPanelSignal = "exceptions" | "logs";
 
+/*
+ * Everything on the Overview that explains why it is empty: the two charts,
+ * and the Core Web Vitals card (issue #6379).
+ */
+export type RumEmptySignal = RumPanelSignal | "webVitals";
+
 // The setup check's rows, in the order it draws them.
 export type RumSetupCheckSignal =
   | "traces"
@@ -153,6 +159,52 @@ export const EXCEPTIONS_SESSIONS_WITH_ERRORS: PluralTemplate = {
     "Session Replay recorded {{count}} sessions with errors in this time range, so errors do happen.",
   ),
 };
+/*
+ * The count is of the sessions with an error, read with Session Replay's
+ * own errors filter (issue #6379), a page at a time: past a page, it says
+ * "or more" rather than a number it did not count.
+ */
+export const EXCEPTIONS_SESSIONS_WITH_ERRORS_OR_MORE: PluralTemplate = {
+  one: translationKey(
+    "Session Replay recorded {{count}} or more sessions with errors in this time range, so errors do happen.",
+  ),
+  other: translationKey(
+    "Session Replay recorded {{count}} or more sessions with errors in this time range, so errors do happen.",
+  ),
+};
+
+/*
+ * The Core Web Vitals card, when it has nothing to draw (issue #6379): the
+ * same answers as the empty Exceptions and Logs charts, from the same
+ * diagnosis (RumSignalDiagnosis, Web Vitals' "names" cause included).
+ */
+export const WEB_VITALS_QUIET_TITLE: string = translationKey(
+  "No Web Vitals in this time range",
+);
+export const WEB_VITALS_QUIET_DETAIL: string = translationKey(
+  "The last Web Vital arrived {{time}}.",
+);
+export const WEB_VITALS_NOT_SET_UP_TITLE: string = translationKey(
+  "Web Vitals aren't set up",
+);
+export const WEB_VITALS_NOT_SET_UP_DETAIL: string = translationKey(
+  "No Web Vital has arrived from this app in the past 30 days. Web Vitals are metrics your app reports with the web-vitals library, which a few lines send.",
+);
+export const WEB_VITALS_OTHER_NAMES_DETAIL: string = translationKey(
+  "Metrics arrive from this app, but none in the past 30 days under a name this card reads.",
+);
+export const WEB_VITALS_NOTHING_ARRIVED_DETAIL: string = translationKey(
+  "Once its OpenTelemetry SDK reports, page loads and requests come first. Web Vitals need a metric pipeline and the web-vitals library as well.",
+);
+export const WEB_VITALS_REFUSED_TITLE: string = translationKey(
+  "Web Vitals are being refused",
+);
+export const WEB_VITALS_UNKNOWN_TITLE: string = translationKey(
+  "Couldn't check why there are no Web Vitals",
+);
+export const WEB_VITALS_LOAD_FAILED_TITLE: string = translationKey(
+  "Couldn't load Web Vitals",
+);
 
 export const LOGS_NOT_SET_UP_TITLE: string =
   translationKey("Logs aren't set up");
@@ -445,6 +497,8 @@ export function getRumSignalEmptyCopy(data: {
   client: RumClientKind;
   // Recorded sessions with an error in the range, when they were counted.
   sessionsWithErrors?: number | null | undefined;
+  // There are more than sessionsWithErrors: the count stopped at a page.
+  sessionsWithErrorsHasMore?: boolean | undefined;
   /*
    * Whether what carries the signal is refused at ingest (traces carry
    * exceptions): a refusal nothing has arrived since says so instead of
@@ -562,7 +616,9 @@ export function getRumSignalEmptyCopy(data: {
           evidence:
             sessions > 0
               ? translator.translatePlural(
-                  EXCEPTIONS_SESSIONS_WITH_ERRORS,
+                  data.sessionsWithErrorsHasMore
+                    ? EXCEPTIONS_SESSIONS_WITH_ERRORS_OR_MORE
+                    : EXCEPTIONS_SESSIONS_WITH_ERRORS,
                   sessions,
                 )
               : undefined,
@@ -630,6 +686,138 @@ export function getRumSignalEmptyCopy(data: {
           isExceptions ? EXCEPTIONS_UNKNOWN_TITLE : LOGS_UNKNOWN_TITLE,
         ),
         detail: translate(translator, UNKNOWN_DETAIL),
+        action: { kind: "retry", label: translate(translator, TRY_AGAIN) },
+      };
+  }
+}
+
+/*
+ * What the Core Web Vitals card says when it has nothing to draw (issue
+ * #6379); null while it loads and when vitals arrived in the range (the
+ * card draws them). A browser app's only: a mobile app has no card.
+ */
+export function getRumWebVitalsEmptyCopy(data: {
+  diagnosis: RumSignalDiagnosis;
+  // Whether metrics, which carry the vitals, are refused at ingest.
+  refusal?: RumKindRefusal | null | undefined;
+  translator: Translator;
+  now: Date;
+}): RumSignalEmptyCopy | null {
+  const { diagnosis, translator, now } = data;
+
+  if (
+    data.refusal?.state === "refused" &&
+    diagnosis.state !== "loading" &&
+    diagnosis.state !== "receiving" &&
+    diagnosis.state !== "unknown"
+  ) {
+    return {
+      title: translate(translator, WEB_VITALS_REFUSED_TITLE),
+      detail: getIngestRefusalReasonText(data.refusal.refusal, translator),
+      evidence: translator.translateTemplate(REFUSED_LATEST, {
+        time: fromNow(data.refusal.refusal.lastRefusedAt, now),
+      }),
+      action: getRefusalAction(data.refusal, translator),
+      helpLink: helpLink(translator),
+    };
+  }
+
+  const setUpWebVitals: RumSignalAction = {
+    kind: "docs",
+    label: translate(translator, SET_UP_WEB_VITALS),
+    url: RUM_WEB_VITALS_DOCS_URL,
+  };
+
+  switch (diagnosis.state) {
+    case "loading":
+    case "receiving":
+      return null;
+
+    case "quiet": {
+      if (!diagnosis.lastArrivalAt && diagnosis.since) {
+        return {
+          title: translate(translator, WEB_VITALS_QUIET_TITLE),
+          detail: translator.translateTemplate(APP_SILENT_DETAIL, {
+            date: formatSinceDate(diagnosis.since, now),
+          }),
+          action: {
+            kind: "documentation",
+            label: translate(translator, SEE_SETUP_STEPS),
+          },
+          helpLink: helpLink(translator),
+        };
+      }
+
+      const range: RangeStartAndEndDateTime | null = diagnosis.widerRange;
+      const rangeLabel: string | undefined = range
+        ? SHOW_RANGE_ACTIONS[range.range]
+        : undefined;
+
+      return {
+        title: translate(translator, WEB_VITALS_QUIET_TITLE),
+        detail: diagnosis.lastArrivalAt
+          ? translator.translateTemplate(WEB_VITALS_QUIET_DETAIL, {
+              time: fromNow(diagnosis.lastArrivalAt, now),
+            })
+          : "",
+        action:
+          range && rangeLabel
+            ? {
+                kind: "set-range",
+                label: translate(translator, rangeLabel),
+                range,
+              }
+            : undefined,
+      };
+    }
+
+    case "not-set-up":
+      if (diagnosis.cause === "sdk") {
+        return {
+          title: translate(translator, SDK_MISSING_TITLE),
+          detail: translate(translator, WEB_VITALS_NOTHING_ARRIVED_DETAIL),
+          action: {
+            kind: "documentation",
+            label: translate(translator, SEE_SETUP_STEPS),
+          },
+        };
+      }
+
+      return {
+        title: translate(translator, WEB_VITALS_NOT_SET_UP_TITLE),
+        detail: translate(
+          translator,
+          diagnosis.cause === "names"
+            ? WEB_VITALS_OTHER_NAMES_DETAIL
+            : WEB_VITALS_NOT_SET_UP_DETAIL,
+        ),
+        action: setUpWebVitals,
+      };
+
+    case "not-arriving":
+      return {
+        title: translate(translator, NOTHING_ARRIVED_TITLE),
+        detail: translate(translator, WEB_VITALS_NOTHING_ARRIVED_DETAIL),
+        action: {
+          kind: "documentation",
+          label: translate(translator, SEE_SETUP_STEPS),
+        },
+        helpLink: helpLink(translator),
+      };
+
+    case "unknown":
+    default:
+      return {
+        title: translate(
+          translator,
+          diagnosis.rangeFailed
+            ? WEB_VITALS_LOAD_FAILED_TITLE
+            : WEB_VITALS_UNKNOWN_TITLE,
+        ),
+        detail: translate(
+          translator,
+          diagnosis.rangeFailed ? LOAD_FAILED_DETAIL : UNKNOWN_DETAIL,
+        ),
         action: { kind: "retry", label: translate(translator, TRY_AGAIN) },
       };
   }

@@ -268,7 +268,9 @@ Chaque personne choisit pour elle-même, dans **Paramètres utilisateur → Para
 
 Les choix suivent les priorités de dossier du projet, sous leurs propres noms : voici ceux d'un nouveau projet.
 
-Aucun message WhatsApp n'est envoyé pour les dossiers de sécurité. Une notification push ouvre le dossier dans l'application OneUptime On-Call (1.7.0 ou ultérieure), où vous pouvez approuver ou rejeter une étape de playbook en attente, prendre le dossier en charge et le fermer. Son lien ouvre le dossier dans le navigateur.
+Aucun message WhatsApp n'est envoyé pour les dossiers de sécurité. Une notification push ouvre le dossier dans l'application OneUptime On-Call (1.7.0 ou ultérieure), où vous pouvez approuver ou rejeter une étape de playbook en attente, prendre le dossier en charge et le fermer. Son lien ouvre le dossier dans le navigateur. Une notification push sur une étape en attente de votre approbation ouvre cette approbation même, avec ses preuves ; si quelqu'un l'a décidée entre-temps, le dossier indique qui, quand et comment l'étape s'est déroulée.
+
+Une étape en attente de votre approbation vous arrive dans Slack ou Microsoft Teams sous forme d'un message depuis lequel vous pouvez l'approuver, et son e-mail dit ce que l'étape va faire et pourquoi : voir [Approuver depuis Slack et Microsoft Teams](#approuver-depuis-slack-et-microsoft-teams).
 
 ### Publier dans des canaux Slack, Microsoft Teams et Mattermost
 
@@ -405,15 +407,34 @@ Les deux étapes de magasin de données agissent sur les magasins de données su
 
 #### Entités protégées
 
-**Entités protégées**, sous **Playbooks** dans le menu, liste les utilisateurs et les hôtes qu'aucun playbook ne confine, comme les comptes d'accès d'urgence, les contrôleurs de domaine et les passerelles VPN. Une valeur correspond quelle que soit sa casse, et `*` remplace n'importe quelle suite de caractères : `svc-*` protège tous les comptes de service. Une étape signale un utilisateur ou un hôte protégé comme protégé et n'y touche pas. Ce sont les Administrateurs de la sécurité qui gèrent la liste.
+**Entités protégées**, sous **Playbooks** dans le menu, liste les utilisateurs, les hôtes et les adresses IP qu'aucun playbook ne confine et que la liste de blocage ne bloque jamais, comme les comptes d'accès d'urgence, les contrôleurs de domaine, les passerelles VPN et les adresses des bureaux. Une valeur correspond quelle que soit sa casse, et `*` remplace n'importe quelle suite de caractères : `svc-*` protège tous les comptes de service. Une entrée d'adresse est une adresse ou une plage, comme `203.0.113.0/24`, qui protège chaque adresse qu'elle contient. Une étape signale un utilisateur ou un hôte protégé comme protégé et n'y touche pas. Ce sont les Administrateurs de la sécurité qui gèrent la liste.
 
 #### Approbation
 
 Les huit étapes qui coupent l'accès à quelqu'un attendent une approbation. Seul un Administrateur de la sécurité peut désactiver **Approbation requise** pour l'une d'elles, et OneUptime enregistre qui l'a fait. L'approbation liste sous **Agir sur** les utilisateurs ou hôtes sur lesquels l'étape agirait, tous cochés : décochez ceux qu'elle doit épargner. Ceux qui sont protégés ne sont pas proposés. La personne qui a lancé une exécution ne peut pas en approuver les étapes : quelqu'un d'autre le fait, mais elle peut toujours les rejeter.
 
+#### Approuver depuis Slack et Microsoft Teams
+
+Une étape en attente d'approbation est un message avec **Approuver**, **Rejeter** et **Ouvrir le dossier** ; lorsqu'elle agit sur plus d'un utilisateur ou hôte, il permet aussi de n'en approuver qu'une partie. Il est envoyé aux canaux et aux chats de chaque règle de dossiers de sécurité dont les **Mises à jour** publient les **Approbations demandées**, et à chaque approbateur qui a choisi Slack ou Microsoft Teams pour **Étape de playbook en attente de mon approbation**, dans la langue de son compte. Il dit ce que l'étape va faire et par quelle connexion, chaque utilisateur ou hôte sur lequel elle agit et pourquoi, les protégés qu'elle épargne, qui ou quoi l'a demandée, les preuves derrière le dossier (jusqu'où sont allées les requêtes derrière lui, ce que sait la threat intel, que rien de ce sur quoi elle agit n'est protégé) et si elle peut être annulée. L'e-mail qui demande l'approbation dit la même chose ; son bouton ouvre l'approbation sur le dossier et ne décide jamais rien, car les scanners de messagerie suivent les liens.
+
+- Pour n'en approuver qu'une partie, la liste des utilisateurs ou hôtes sur lesquels l'étape agirait s'affiche, tous cochés : décochez ceux qu'elle doit épargner. Au moins un reste, sinon rejetez plutôt l'étape.
+- Appuyer sur un bouton décide en votre nom, par le compte Slack ou Microsoft Teams que vous avez connecté à OneUptime. Si vous ne l'avez pas encore connecté, il vous est demandé de le connecter, puis d'appuyer à nouveau. Il vous faut un rôle qui peut exécuter des playbooks et pouvoir voir le dossier ; la personne qui a lancé l'exécution ne peut pas l'approuver, mais peut la rejeter. Un refus dit pourquoi : dans Slack, vous seul le voyez.
+- OneUptime vérifie que chaque appui vient de Slack ou de Microsoft Teams, et décide une seule fois : un appui répété, renvoyé ou fait sur un message à propos d'une autre étape ne décide rien, et un appui après la décision de quelqu'un indique qui et quand.
+- Dès que quelqu'un décide, dans Slack, dans Microsoft Teams, sur le dossier ou dans l'application, chaque copie du message indique qui l'a approuvée ou rejetée et quand, puis comment l'étape s'est déroulée et ce qu'il est advenu de chaque utilisateur ou hôte, sans autre bouton que **Ouvrir le dossier**. La décision est conservée dans la chronologie du dossier, en précisant qu'elle vient de Slack ou de Microsoft Teams, et dans le journal d'audit du projet.
+
+Mattermost reçoit l'approbation sous forme de texte, sans boutons.
+
 #### Annulation
 
-Les étapes d'annulation agissent sur les utilisateurs ou hôtes sur lesquels porte le dossier, comme les étapes qu'elles annulent. Une fois l'exécution arrêtée, un utilisateur ou un hôte confiné a aussi son propre bouton sur son étape : **Réactiver**, **Lever le confinement**, **Libérer** ou **Activer**. Une déconnexion ne peut pas être annulée. Chaque annulation est conservée dans la chronologie du dossier et dans le journal d'audit du projet.
+Les étapes d'annulation agissent sur les utilisateurs ou hôtes sur lesquels porte le dossier, comme les étapes qu'elles annulent. Une fois l'exécution arrêtée, un utilisateur ou un hôte confiné a aussi son propre bouton sur son étape : **Réactiver**, **Lever le confinement**, **Libérer** ou **Activer**. Une déconnexion ne peut pas être annulée. Chaque annulation est conservée dans la chronologie du dossier et dans le journal d'audit du projet. Dans l'application OneUptime On-Call, le dossier liste ce que ses playbooks ont confiné, et chacun peut y être annulé.
+
+### Liste de blocage
+
+**Liste de blocage**, sous **Playbooks** dans le menu, liste les adresses IP et les plages que votre projet bloque : pourquoi, jusqu'à quand, leur dossier et qui ou quoi les a ajoutées. **Bloquer une adresse** bloque une adresse ou une plage pendant 24 heures, sauf si vous choisissez 1 heure, 7 jours ou 30 jours. Seul un Administrateur de la sécurité, un Administrateur du projet ou un Propriétaire du projet peut conserver un blocage jusqu'à ce que quelqu'un le lève, ou bloquer une plage plus large qu'un /24 (un /48 en IPv6), et personne ne bloque une plage plus large qu'un /8 (un /16 en IPv6). **Lever** met fin à un blocage, sur une ligne ou sur plusieurs à la fois, et **Prolonger** repousse sa fin.
+
+Les propres adresses de votre projet ne sont jamais bloquées : les entrées d'**Entités protégées**, vos hôtes, nœuds Kubernetes, ressources cloud, équipements réseau et points de terminaison, vos noms d'adresse et vos sondes, les sondes de OneUptime Cloud, les plages qui ne sont pas sur Internet, et le réseau en périphérie placé devant votre application. Un blocage qui en toucherait une est refusé, avec ce qu'est l'adresse, et **Entités protégées** les liste sous **Protection automatique**. Quand OneUptime ne peut pas déterminer si une adresse est la vôtre, il ne la bloque pas.
+
+**Appliqué sur** indique chaque endroit où un blocage est appliqué, et s'il y tient. Tant que rien n'applique la liste de blocage, la page l'indique, et un blocage est enregistré mais ne bloque rien. Chaque blocage, levée et expiration est conservé dans le journal d'audit du projet, et dans la chronologie de son dossier quand il en a un.
 
 ### Messages
 
@@ -469,7 +490,7 @@ Au-dessus, un bandeau montre comment la sécurité est mise en place : ses sourc
 ## Automatiser
 
 - **Flux de travail** : un dossier ou une note peut lancer un flux de travail quand il est créé, mis à jour ou supprimé. Une étape **Exécuter un flux de travail** lance un flux de travail dont le déclencheur est un webhook.
-- **API** : les dossiers, les notes, les tâches, les preuves, les détections, les playbooks, les exécutions, les entités protégées ainsi que les priorités et statuts de dossier ont la même API REST que le reste de OneUptime, sous `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` et `/security-case-status`. Voir [Référence de l'API](/docs/api-reference/api-reference).
+- **API** : les dossiers, les notes, les tâches, les preuves, les détections, les playbooks, les exécutions, les entités protégées, les blocages ainsi que les priorités et statuts de dossier ont la même API REST que le reste de OneUptime, sous `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-block`, `/security-case-priority` et `/security-case-status`. Voir [Référence de l'API](/docs/api-reference/api-reference).
 - Agents IA : le serveur MCP dispose d'outils pour les dossiers, les notes, les tâches, les preuves, les détections, les playbooks ainsi que les priorités et statuts de dossier. Voir [Serveur MCP](/docs/ai/mcp-server).
 - Terraform : les ressources `oneuptime_security_case_priority` et `oneuptime_security_case_status` gèrent sous forme de code les priorités et statuts d'un projet.
 

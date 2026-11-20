@@ -255,7 +255,7 @@ Teams, labels, on-call policies and on-call schedules each have a name of their 
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Many other kinds have a name of their own too, such as incident severities, monitor statuses, status pages and workflows, and refuse a taken name in the same way:
+Many other kinds have a name of their own too, such as incident severities, monitor statuses, status pages and workflows, and refuse a taken name in the same way, on a create and on a rename alike:
 
 ```text
 Incident Severity with the same name already exists.
@@ -266,7 +266,22 @@ Beside the message, every such refusal carries a `refusalCode` that says what ha
 - `"refusalCode": "name_taken"`: a record in service has it. Nothing was written, so the same request can be sent again once that record gives the name up: the Terraform provider asks again for up to 30 seconds.
 - `"refusalCode": "name_taken_by_archived"`: only an archived record has it. Unarchive that record, or pick another name: sending the request again does not help, and the Terraform provider does not.
 
-An update that sends a record's own name again, in any case, is no rename, so records that shared a name before can still be changed, and renamed apart. For teams, labels, on-call policies and on-call schedules, `GET /api/shared-names/team` (or `label`, `on-call-policy`, `on-call-schedule`) answers which share a name: `{"groups": [["<id>", "<id>"]]}`, each group the IDs your key may read of the records whose names read alike. Archived labels and on-call policies are left out.
+An update that sends a record's own name again, in any case, is no rename, so records that shared a name before can still be changed, and renamed apart, but never onto another record's name. For teams, labels, on-call policies and on-call schedules, `GET /api/shared-names/team` (or `label`, `on-call-policy`, `on-call-schedule`) answers which share a name: `{"groups": [["<id>", "<id>"]]}`, each group the IDs your key may read of the records whose names read alike. Archived labels and on-call policies are left out.
+
+#### Values another record has
+
+Some values that are not a name belong to one record each too: a status page's, a dashboard's or a form's domain, a project domain, a host's or a Kubernetes cluster's identifier, an SSO provider's sign-on URL and an API key's permission among them. A create, or an update that changes one, onto a value another record has is refused with a `400` that says so:
+
+```text
+Status Page Domain with the same fullDomain already exists.
+```
+
+Beside the message, the refusal carries a `refusalCode` that says what has the value, and a `field` that names the field whose value is taken, such as `"field": "fullDomain"`. A value of several fields together comes without a `field`. Tell the refusal apart by the code, not by the sentence, which may be reworded:
+
+- `"refusalCode": "value_taken"`: a record in service has it. Nothing was written, so the same request can be sent again once that record gives the value up: the Terraform provider asks again for up to 30 seconds.
+- `"refusalCode": "value_taken_by_archived"`: only an archived record has it. Unarchive that record, or choose another value: sending the request again does not help, and the Terraform provider does not.
+
+An update that sends a record's own value again, in any case, is no change, so records that held a value together before can still be changed, and given values apart.
 
 ### Switches
 

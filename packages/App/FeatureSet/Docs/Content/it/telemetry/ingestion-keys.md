@@ -4,7 +4,7 @@ Una chiave di acquisizione collega la vostra telemetria al vostro progetto. Appl
 
 :::cards
 - [Creare una chiave di acquisizione](#creare-una-chiave-di-acquisizione): Un nome, un tipo e un segreto da copiare.
-- [Server o Browser](#server-o-browser): Il tipo di chiave che serve a un mittente.
+- [Server, Browser o Mobile](#server-browser-o-mobile): Il tipo di chiave che serve a un mittente.
 - [Proteggere una chiave Browser](#proteggere-una-chiave-browser): Origini, un solo nome di servizio e un limite.
 - [Ruotare, disattivare o eliminare una chiave](#ruotare-disattivare-o-eliminare-una-chiave): Cosa fare quando una chiave trapela.
 :::
@@ -27,21 +27,21 @@ flowchart TB
 - **La chiave decide il progetto.** Non inviate mai un ID di progetto: i dati inviati con una chiave finiscono nel progetto a cui la chiave appartiene.
 - **Le modifiche raggiungono ogni server in pochi secondi.** Disattivare una chiave, reimpostarne il segreto o cambiarne le origini, la scadenza o il limite ha effetto su ogni server in pochi secondi.
 - **Una chiave può avere budget propri.** Un budget giornaliero e un limite di frequenza al secondo per ogni segnale, entro quelli del suo progetto: vedete [Budget di acquisizione](/docs/telemetry/ingestion-budgets).
-- **Una chiave Server è una password.** Chiunque la possieda può inviare telemetria nel vostro progetto. Conservatela tra i segreti dei vostri server, mai nel controllo di versione né in una pagina web.
+- **Una chiave Server è una password.** Chiunque la possieda può inviare telemetria nel vostro progetto. Conservatela tra i segreti dei vostri server, mai nel controllo di versione, in una pagina web o in un'app mobile.
 
-## Server o Browser
+## Server, Browser o Mobile
 
 Scegliete il tipo in base a dove vivrà la chiave. Il tipo non si può cambiare dopo la creazione della chiave.
 
-| | **Server** | **Browser** |
-| --- | --- | --- |
-| Per | Applicazioni, collector e agenti su macchine che gestite | Pagine web, e React Native Session Replay |
-| Invia | Ogni tipo di telemetria, a ogni endpoint | Tracce, log, metriche, Session Replay ed [eventi di Sentry](/docs/telemetry/compatible-endpoints#sdk-di-sentry) |
-| È un segreto | Sì: tenetela sui vostri server | No: chiunque visualizzi la pagina può leggerla |
-| Origini | Non verificate | Sono accettate solo le origini elencate |
-| Richieste al minuto | Nessun limite, a meno che non ne impostiate uno | 6.000, a meno che non impostiate un altro limite |
+| | **Server** | **Browser** | **Mobile** |
+| --- | --- | --- | --- |
+| Per | Applicazioni, collector e agenti su macchine che gestite | Pagine web, e React Native Session Replay | Un'app iOS, Android o React Native |
+| Invia | Ogni tipo di telemetria, a ogni endpoint | Tracce, log, metriche, Session Replay ed [eventi di Sentry](/docs/telemetry/compatible-endpoints#sdk-di-sentry) | Le tracce, i log e le metriche di quell'app, tramite OTLP/HTTP |
+| È un segreto | Sì: tenetela sui vostri server | No: chiunque visualizzi la pagina può leggerla | No: chiunque abbia l'app può copiarla |
+| Origini | Non verificate | Sono accettate solo le origini elencate | Una richiesta da una pagina web viene rifiutata |
+| Richieste al minuto | Nessun limite, a meno che non ne impostiate uno | 6.000, a meno che non impostiate un altro limite | 6.000, a meno che non impostiate un altro limite |
 
-Ovunque altrove OneUptime rifiuta una chiave Browser, ad esempio su gRPC e MQTT, per i profili, Syslog, Fluent Bit e Fluentd, e per il caricamento delle source map. Per passare un mittente all'altro tipo, create una chiave di quel tipo, spostate il mittente su di essa, poi eliminate la vecchia chiave.
+Ovunque altrove OneUptime rifiuta una chiave Browser, ad esempio su gRPC e MQTT, per i profili, Syslog, Fluent Bit e Fluentd, e per il caricamento delle source map, e una chiave Mobile ovunque tranne per tracce, log e metriche OTLP su HTTP. Per passare un mittente a un altro tipo, create una chiave di quel tipo, spostate il mittente su di essa, poi eliminate la vecchia chiave.
 
 ## Prima di iniziare
 
@@ -59,9 +59,9 @@ Andate in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisi
 
 Fate clic su **Crea chiave di acquisizione**. La finestra parte con il nome **Chiave server** e il tipo **Server**. Scegliete il **Tipo di chiave** e rinominate la chiave in base a chi la userà, ad esempio `checkout-collector`. Una **Descrizione** si trova in **Avanzato**.
 
-### Aggiungere le origini di una chiave Browser
+### Aggiungere le origini di una chiave Browser o l'app di una chiave Mobile
 
-Una chiave **Browser** chiede le sue **Origini consentite** al passaggio successivo, **Impostazioni del browser**, con il suo **Nome del servizio fissato** in **Avanzato**. Vedete [Proteggere una chiave Browser](#proteggere-una-chiave-browser).
+Una chiave **Browser** chiede le sue **Origini consentite** al passaggio successivo, **Impostazioni del browser**, con il suo **Nome del servizio fissato** in **Avanzato**. Vedete [Proteggere una chiave Browser](#proteggere-una-chiave-browser). Una chiave **Mobile** chiede invece il suo **Nome del servizio fissato** nella prima pagina: il `service.name` dell'app in cui viaggia.
 
 ### Creare la chiave e copiarne il segreto
 
@@ -91,7 +91,7 @@ Una chiave Browser sta nella vostra pagina, dove chiunque può copiarla. Queste 
 | --- | --- |
 | **Origini consentite** | Le sole origini da cui la chiave è accettata. Una richiesta da qualsiasi altra origine, o senza alcuna intestazione `Origin`, viene rifiutata. Una chiave Browser deve conservarne almeno una. |
 | **Nome del servizio fissato** | Archivia tutto ciò che la chiave invia su OTLP/HTTP sotto quest'unico servizio, qualunque `service.name` abbia impostato il mittente. Una copia della chiave può allora scrivere solo in quel servizio. |
-| **Requests Per Minute Limit** | Il numero massimo di richieste per cui la chiave è accettata ogni minuto, condiviso da tutti i visitatori. Una chiave Browser ne riceve 6.000 se lasciate il campo vuoto. |
+| **Limite di richieste al minuto** | Il numero massimo di richieste per cui la chiave è accettata ogni minuto, condiviso da tutti i visitatori. Una chiave Browser ne riceve 6.000 se lasciate il campo vuoto. |
 | **Scade il** | La data dopo la quale la chiave viene rifiutata, così una copia pubblicata smette di funzionare. |
 
 Un'origine è uno schema, un host e una porta facoltativa: `https://app.example.com` non copre `https://app.example.com:8443`. Un `*.` iniziale copre ogni sottodominio, ma non il dominio stesso. React Native Session Replay invia un'identità `app://` esatta, che non accetta caratteri jolly:
@@ -105,6 +105,17 @@ Un'origine è uno schema, un host e una porta facoltativa: `https://app.example.
 ```
 
 [Servizi](/docs/telemetry/services#come-un-servizio-entra-nel-catalogo) mostra come un nome fissato decide il servizio. Il Runner e l'agente IA dell'agent Kubernetes, e gli agenti IA dell'infrastruttura, non si registrano con una chiave fissata: date loro una chiave Server senza nome fissato.
+
+## Cosa limita una chiave Mobile
+
+Una chiave Mobile viaggia dentro la vostra app, e chiunque abbia l'app può copiarla. Questi limiti tengono ogni copia legata all'app per cui è stata creata:
+
+- **Scrive solo come un'app.** Tutto ciò che invia è archiviato sotto il suo **Nome del servizio fissato** come applicazione RUM mobile, qualunque servizio o host indichi il mittente. Una copia non può scrivere nei vostri servizi backend, host o cluster.
+- **Invia solo la telemetria di quell'app.** Tracce, log e metriche OTLP su HTTP. Viene rifiutata su gRPC e MQTT, per le Session Replay, i profili e le source map, su ogni altro endpoint e da qualsiasi pagina web.
+- **Ha un limite di frequenza.** 6.000 richieste al minuto per tutte le copie insieme, a meno che non impostiate il suo **Limite di richieste al minuto**.
+- **Potete fermarla.** Disattivate **Abilitato**, o impostate **Scade il**, e ogni copia viene rifiutata in pochi secondi.
+
+Cosa non può impedire: chi ha la vostra app può comunque inviare tracce, log e metriche inventati per quell'unica app, fino al limite della chiave, finché non la disattivate o non scade. Ruotate la chiave a ogni rilascio, così una vecchia copia smette di funzionare con la sua versione.
 
 ## Ruotare, disattivare o eliminare una chiave
 
@@ -132,10 +143,12 @@ Anche la pagina della chiave tiene il conto: **Telemetria rifiutata** elenca ci�
 | `402` con `Add a payment method` | Su OneUptime Cloud, il progetto è sul piano Free e non ha ancora un metodo di pagamento. |
 | `422` con `This telemetry ingestion key has been disabled.` | Qualcuno ha disattivato **Abilitato**. |
 | `422` con `A browser ingestion key cannot be used for` | Una chiave Browser ha raggiunto un endpoint che accetta solo chiavi Server. |
-| `422` con `did not send an Origin header` | Una chiave Browser è stata inviata da fuori un browser. Lì usate una chiave Server. |
+| `422` con `did not send an Origin header` | Una chiave Browser è stata inviata da fuori un browser. Usate una chiave Mobile in un'app mobile, e una chiave Server ovunque altrove. |
+| `422` con `A mobile ingestion key cannot be used for` | Una chiave Mobile ha raggiunto un endpoint diverso da tracce, log e metriche OTLP su HTTP, come gRPC o Session Replay. |
+| `422` con `A mobile ingestion key cannot be used from a web page` | Una chiave Mobile è stata inviata da un browser. In una pagina web usate una chiave Browser. |
 | `422` con `is not allowed for this browser ingestion key` | L'origine della pagina non è in **Origini consentite**. |
 | `422` con `is pinned to a single service` | Una chiave con un **Nome del servizio fissato** è stata usata per registrare un agente. Usate una chiave Server senza nome fissato. |
-| `429` con `Too many telemetry requests for this ingestion key` | La chiave ha raggiunto il suo **Requests Per Minute Limit**. Gli esportatori riprovano dopo il tempo indicato da `Retry-After`. |
+| `429` con `Too many telemetry requests for this ingestion key` | La chiave ha raggiunto il suo **Limite di richieste al minuto**. Gli esportatori riprovano dopo il tempo indicato da `Retry-After`. |
 
 Per le altre risposte che un esportatore OTLP può ricevere, vedete [Risposte](/docs/telemetry/open-telemetry#risposte).
 

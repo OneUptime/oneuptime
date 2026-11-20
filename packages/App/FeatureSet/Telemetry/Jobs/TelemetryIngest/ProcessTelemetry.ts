@@ -50,6 +50,7 @@ import SessionReplayIngestService from "../../Services/SessionReplayIngestServic
 import ProductAnalyticsEventIngestService from "../../Services/ProductAnalyticsEventIngestService";
 import { JSONObject } from "Common/Types/JSON";
 import PinServiceName from "Common/Server/Utils/Telemetry/PinServiceName";
+import PinMobileRumResource from "Common/Server/Utils/Telemetry/PinMobileRumResource";
 import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
 import { TelemetryIngestionBudgetSignal } from "Common/Types/Telemetry/TelemetryIngestionBudget";
 
@@ -86,28 +87,45 @@ function applyPinnedServiceName(
   body: JSONObject,
   jobData: TelemetryIngestJobData,
 ): void {
-  if (!jobData.pinnedServiceName) {
-    return;
+  if (jobData.pinnedServiceName) {
+    /*
+     * PinServiceName is specified never to throw — every malformed shape it
+     * meets is repaired or skipped — and it is wrapped anyway, because the
+     * two blast radii here are wildly lopsided. It runs on attacker-controlled
+     * JSON, and an unhandled error out of it would fail the whole job: with
+     * BullMQ retries re-hitting the same payload, that is permanent loss of
+     * everything else in the batch. A pin that failed to apply, by contrast,
+     * is a labelling failure on ONE key, whose abuse is still bounded by the
+     * origin allowlist, the per-key rate limit and the kill switch. So: log
+     * loudly, never fail the job.
+     */
+    try {
+      PinServiceName.pinInPlace(body, jobData.pinnedServiceName);
+    } catch (error) {
+      logger.error(
+        `ProcessTelemetry: failed to pin service.name for project ${jobData.projectId}:`,
+      );
+      logger.error(error);
+    }
   }
 
   /*
-   * PinServiceName is specified never to throw — every malformed shape it
-   * meets is repaired or skipped — and it is wrapped anyway, because the two
-   * blast radii here are wildly lopsided. It runs on attacker-controlled JSON,
-   * and an unhandled error out of it would fail the whole job: with BullMQ
-   * retries re-hitting the same payload, that is permanent loss of everything
-   * else in the batch. A pin that failed to apply, by contrast, is a labelling
-   * failure on ONE key, whose abuse is still bounded by the origin allowlist,
-   * the per-key rate limit and the kill switch. So: log loudly, never fail the
-   * job.
+   * A Mobile key's batch (issue #6457) is its app's mobile RUM and nothing
+   * else: only a mobile app's own resource attributes are kept, the pinned
+   * service.name among them, and every resource is stamped as a mobile
+   * client (PinMobileRumResource). After the pin, for the same reason, and
+   * wrapped for the same reason: it never throws, and must not fail the job
+   * if it ever does.
    */
-  try {
-    PinServiceName.pinInPlace(body, jobData.pinnedServiceName);
-  } catch (error) {
-    logger.error(
-      `ProcessTelemetry: failed to pin service.name for project ${jobData.projectId}:`,
-    );
-    logger.error(error);
+  if (jobData.isMobileKey) {
+    try {
+      PinMobileRumResource.pinInPlace(body);
+    } catch (error) {
+      logger.error(
+        `ProcessTelemetry: failed to file a Mobile key's batch as mobile RUM for project ${jobData.projectId}:`,
+      );
+      logger.error(error);
+    }
   }
 }
 

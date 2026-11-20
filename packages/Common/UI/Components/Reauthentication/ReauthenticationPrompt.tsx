@@ -67,7 +67,10 @@ import React, {
  *     When the last one did not confirm it's them - the provider used a
  *     session it had, or did not say when they signed in - it says so, with
  *     what their administrator can change, and offers Sign In Another Way
- *     where an emailed sign-in link can stand in.
+ *     where an emailed sign-in link can stand in. A session that signed in
+ *     with Vercel, which can never confirm it's them (#10331), is told so
+ *     at once, with what does: Sign In Another Way and an emailed link, or
+ *     a password set with Forgot password?.
  *
  * A wrong answer says what was wrong under its field, in the reader's
  * words; too many in one session sign it out (the server decides, and the
@@ -113,6 +116,9 @@ export const REAUTHENTICATION_PROMPT_COPY: {
   signInAgainHintMicrosoft: string;
   signInAgainHintGoogle: string;
   signInAgainWithLink: string;
+  signInAgainVercel: string;
+  signInAgainVercelWithLink: string;
+  signInAgainVercelWithoutLink: string;
 } = {
   title: translationKey("Confirm It's You"),
   signInAgainTitle: translationKey("Sign In Again"),
@@ -171,6 +177,21 @@ export const REAUTHENTICATION_PROMPT_COPY: {
   ),
   signInAgainWithLink: translationKey(
     "You can also choose Sign In Another Way, and sign in with a link emailed to you.",
+  ),
+  /*
+   * Sign in with Vercel, which can never confirm it's you (#10331,
+   * SignInAgainProvider.Vercel): why, then what does instead - an emailed
+   * sign-in link where the server allows one, else a password of their
+   * own, which Forgot password? sets.
+   */
+  signInAgainVercel: translationKey(
+    "You signed in with Vercel, which cannot confirm it's you: Vercel cannot be asked to have you sign in again, and does not say when you signed in.",
+  ),
+  signInAgainVercelWithLink: translationKey(
+    "Choose Sign In Another Way, and sign in with a link emailed to you instead.",
+  ),
+  signInAgainVercelWithoutLink: translationKey(
+    "Set a password with Forgot password? on the sign-in page, then confirm it's you with it instead.",
   ),
 };
 
@@ -349,12 +370,28 @@ export interface SignInAgainNotice {
  * change: their identity provider's setting for a single sign-on; for
  * Microsoft and Google, the server's own app's. Google cannot be asked to
  * ask again at all, so it has no hint for a reused session.
+ *
+ * A session that signed in with Vercel is told before it tries (#10331):
+ * Vercel cannot confirm it's anyone, so the notice says so, and what does
+ * instead - an emailed sign-in link where the server allows one, else a
+ * password set with Forgot password?.
  */
 export const getSignInAgainNotice: (
   signInAgain: ReauthenticationSignInAgain | null,
 ) => SignInAgainNotice | null = (
   signInAgain: ReauthenticationSignInAgain | null,
 ): SignInAgainNotice | null => {
+  if (signInAgain?.provider === SignInAgainProvider.Vercel) {
+    return {
+      reason: REAUTHENTICATION_PROMPT_COPY.signInAgainVercel,
+      hint: signInAgain.canUseSignInLink
+        ? REAUTHENTICATION_PROMPT_COPY.signInAgainVercelWithLink
+        : REAUTHENTICATION_PROMPT_COPY.signInAgainVercelWithoutLink,
+      // The hint is the way: nothing to add "also".
+      offersSignInLink: false,
+    };
+  }
+
   if (!signInAgain?.refusal || !signInAgain.providerName) {
     return null;
   }
@@ -756,9 +793,20 @@ const ReauthenticationPrompt: FunctionComponent = (): ReactElement => {
     : null;
   const providerName: string = prompt.signInAgain?.providerName || "";
 
+  /*
+   * Signed in with Vercel, which cannot confirm it's anyone (#10331): its
+   * one way is the sign-in page, where an emailed link confirms - named
+   * Sign In Another Way where the server allows one, and offered once.
+   */
+  const isSignedInWithVercel: boolean =
+    isSignInAgain &&
+    prompt.signInAgain?.provider === SignInAgainProvider.Vercel;
+  const isSignInAnotherWayTheWay: boolean =
+    isSignedInWithVercel && Boolean(prompt.signInAgain?.canUseSignInLink);
+
   const submit: () => void = (): void => {
     if (isSignInAgain) {
-      void signInAgain({ isAnotherWay: false });
+      void signInAgain({ isAnotherWay: isSignInAnotherWayTheWay });
       return;
     }
 
@@ -787,7 +835,9 @@ const ReauthenticationPrompt: FunctionComponent = (): ReactElement => {
           disabled: isBusy,
           dataTestId: "reauthentication-use-passkey",
         }
-      : isSignInAgain && prompt.signInAgain?.canUseSignInLink
+      : isSignInAgain &&
+          prompt.signInAgain?.canUseSignInLink &&
+          !isSignedInWithVercel
         ? {
             title: REAUTHENTICATION_PROMPT_COPY.signInAnotherWay,
             onClick: () => {
@@ -808,11 +858,13 @@ const ReauthenticationPrompt: FunctionComponent = (): ReactElement => {
       description={getPromptDescription(methods, way, prompt.purpose)}
       modalWidth={ModalWidth.Normal}
       submitButtonText={
-        isSignInAgain
-          ? REAUTHENTICATION_PROMPT_COPY.signInAgainTitle
-          : isPasskeyOnly
-            ? REAUTHENTICATION_PROMPT_COPY.usePasskey
-            : REAUTHENTICATION_PROMPT_COPY.confirm
+        isSignInAnotherWayTheWay
+          ? REAUTHENTICATION_PROMPT_COPY.signInAnotherWay
+          : isSignInAgain
+            ? REAUTHENTICATION_PROMPT_COPY.signInAgainTitle
+            : isPasskeyOnly
+              ? REAUTHENTICATION_PROMPT_COPY.usePasskey
+              : REAUTHENTICATION_PROMPT_COPY.confirm
       }
       onSubmit={submit}
       onClose={

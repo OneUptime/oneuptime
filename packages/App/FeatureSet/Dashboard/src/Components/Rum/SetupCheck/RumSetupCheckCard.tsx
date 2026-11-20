@@ -648,6 +648,7 @@ const RumSetupCheckCard: FunctionComponent<ComponentProps> = (
       {setUpSignal ? (
         <RumSignalSetupModal
           signal={setUpSignal}
+          rumApplicationId={props.rumApplicationId}
           appName={props.appName}
           onClose={(): void => {
             setSetUpSignal(null);
@@ -660,6 +661,7 @@ const RumSetupCheckCard: FunctionComponent<ComponentProps> = (
       {isPickingKey ? (
         <RumKeySetupModal
           clientType={client}
+          appName={props.appName || undefined}
           onClose={(): void => {
             setIsPickingKey(false);
           }}

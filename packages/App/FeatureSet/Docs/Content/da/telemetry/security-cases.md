@@ -268,7 +268,9 @@ Hver person vælger selv under **Brugerindstillinger → Notifikationsindstillin
 
 Valgene følger projektets sagsprioriteter under deres egne navne: dette er et nyt projekts valg.
 
-Der sendes ingen WhatsApp-beskeder for sikkerhedssager. En push-notifikation åbner sagen i OneUptime On-Call-appen (1.7.0 eller nyere), hvor du kan godkende eller afvise et playbook-trin, der venter, tage sagen og lukke den. Dens link åbner sagen i browseren.
+Der sendes ingen WhatsApp-beskeder for sikkerhedssager. En push-notifikation åbner sagen i OneUptime On-Call-appen (1.7.0 eller nyere), hvor du kan godkende eller afvise et playbook-trin, der venter, tage sagen og lukke den. Dens link åbner sagen i browseren. En push-notifikation om et trin, der venter på din godkendelse, åbner selve godkendelsen med dens beviser; har nogen besluttet den siden, viser sagen hvem, hvornår og hvordan trinnet gik.
+
+Et trin, der venter på din godkendelse, når dig i Slack eller Microsoft Teams som en besked, du kan godkende fra, og dens e-mail siger, hvad trinnet vil gøre og hvorfor: se [Godkend fra Slack og Microsoft Teams](#godkend-fra-slack-og-microsoft-teams).
 
 ### Slå op i Slack-, Microsoft Teams- og Mattermost-kanaler
 
@@ -405,15 +407,34 @@ De to datalagertrin handler på de datalagre, sagen handler om, højst 10: dem f
 
 #### Beskyttede entiteter
 
-**Beskyttede entiteter**, under **Playbooks** i menuen, viser de brugere og værter, som ingen playbook inddæmmer, f.eks. nødadgangskonti, domænecontrollere og VPN-gateways. En værdi matcher uden forskel på store og små bogstaver, og `*` står for en vilkårlig række tegn: `svc-*` beskytter alle tjenestekonti. Et trin melder en beskyttet bruger eller vært som beskyttet og lader den være i fred. Sikkerhedsadministratorer vedligeholder listen.
+**Beskyttede entiteter**, under **Playbooks** i menuen, viser de brugere, værter og IP-adresser, som ingen playbook inddæmmer, og som blokeringslisten aldrig blokerer, f.eks. nødadgangskonti, domænecontrollere, VPN-gateways og kontoradresser. En værdi matcher uden forskel på store og små bogstaver, og `*` står for en vilkårlig række tegn: `svc-*` beskytter alle tjenestekonti. En adressepost er en adresse eller et interval, f.eks. `203.0.113.0/24`, som beskytter alle adresser i det. Et trin melder en beskyttet bruger eller vært som beskyttet og lader den være i fred. Sikkerhedsadministratorer vedligeholder listen.
 
 #### Godkendelse
 
 De otte trin, der lukker nogen ude, venter på godkendelse. Kun en Sikkerhedsadministrator kan slå **Kræver godkendelse** fra for et af dem, og OneUptime registrerer, hvem der gjorde det. Godkendelsen viser under **Handl på** de brugere eller værter, trinnet ville handle på, alle markeret: fjern markeringen ved dem, det skal lade være i fred. Beskyttede brugere og værter tilbydes ikke. Den, der startede en kørsel, kan ikke godkende dens trin: det gør en anden, men vedkommende kan stadig afvise det.
 
+#### Godkend fra Slack og Microsoft Teams
+
+Et trin, der venter på godkendelse, er en besked med **Godkend**, **Afvis** og **Åbn sag**; når det handler på mere end én bruger eller vært, kan du også godkende kun nogle af dem. Den sendes til kanalerne og chattene for hver regel for sikkerhedssager, hvis **Opdateringer** poster **Ventende godkendelser**, og til hver godkender, der har valgt Slack eller Microsoft Teams for **Playbook-trin venter på min godkendelse**, på sproget på vedkommendes konto. Den siger, hvad trinnet vil gøre og gennem hvilken forbindelse, hver bruger eller vært, det handler på, og hvorfor, de beskyttede, det lader være, hvem eller hvad der spurgte, beviserne bag sagen (hvor langt anmodningerne bag den nåede, hvad threat intel ved, at intet, det handler på, er beskyttet) og om det kan fortrydes. E-mailen, der beder om godkendelsen, siger det samme; dens knap åbner godkendelsen på sagen og beslutter aldrig noget, da mailscannere følger links.
+
+- Godkender du kun nogle, vises de brugere eller værter, trinnet ville handle på, alle markeret: fjern markeringen ved dem, det skal lade være. Mindst én bliver, ellers afviser du trinnet i stedet.
+- Et tryk på en knap beslutter som dig, gennem den Slack- eller Microsoft Teams-konto, du har forbundet med OneUptime. Er du ikke forbundet endnu, bliver du bedt om at forbinde og så trykke igen. Du skal have en rolle, der kan køre playbooks, og kunne se sagen; den, der startede kørslen, kan ikke godkende den, men kan afvise den. Et afslag siger hvorfor: i Slack er det kun dig, der ser det.
+- OneUptime tjekker, at hvert tryk kom fra Slack eller Microsoft Teams, og beslutter én gang: et tryk, der gentages, sendes igen eller er på en besked om et andet trin, beslutter intet, og et tryk, efter at nogen har besluttet, siger hvem og hvornår.
+- Når nogen beslutter, i Slack, i Microsoft Teams, på sagen eller i appen, siger hver kopi af beskeden, hvem der godkendte eller afviste den og hvornår, derefter hvordan trinnet gik, og hvad der skete med hver bruger eller vært, uden andre knapper end **Åbn sag**. Beslutningen gemmes på sagens tidslinje, med at den kom fra Slack eller Microsoft Teams, og i projektets auditlog.
+
+Mattermost får godkendelsen som tekst, uden knapper.
+
 #### Fortryd
 
-Fortryd-trinnene handler på de brugere eller værter, sagen handler om, ligesom de trin, de fortryder. Når kørslen er stoppet, har en inddæmmet bruger eller vært også sin egen knap på sit trin: **Ophæv suspendering**, **Ophæv inddæmning**, **Frigiv** eller **Aktivér**. Et logout kan ikke fortrydes. Alt, hvad der fortrydes, gemmes på sagens tidslinje og i projektets auditlog.
+Fortryd-trinnene handler på de brugere eller værter, sagen handler om, ligesom de trin, de fortryder. Når kørslen er stoppet, har en inddæmmet bruger eller vært også sin egen knap på sit trin: **Ophæv suspendering**, **Ophæv inddæmning**, **Frigiv** eller **Aktivér**. Et logout kan ikke fortrydes. Alt, hvad der fortrydes, gemmes på sagens tidslinje og i projektets auditlog. I OneUptime On-Call-appen viser sagen, hvad dens playbooks har inddæmmet, og hver af dem kan fortrydes derfra.
+
+### Blokeringsliste
+
+**Blokeringsliste**, under **Playbooks** i menuen, viser de IP-adresser og intervaller, dit projekt blokerer: hvorfor, indtil hvornår, deres sag, og hvem eller hvad der tilføjede dem. **Blokér adresse** blokerer en adresse eller et interval i 24 timer, medmindre du vælger 1 time, 7 dage eller 30 dage. Kun en Sikkerhedsadministrator, en Projektadministrator eller en Projektejer kan beholde en blokering, indtil nogen ophæver den, eller blokere et interval, der er bredere end et /24 (et /48 for IPv6), og ingen blokerer et interval, der er bredere end et /8 (et /16 for IPv6). **Ophæv** afslutter en blokering, på én række eller flere på én gang, og **Forlæng** flytter dens slutning.
+
+Dit projekts egne adresser blokeres aldrig: posterne i **Beskyttede entiteter**, dine værter, Kubernetes-noder, cloud-ressourcer, netværksenheder og -slutpunkter, dine adressenavne og sonder, OneUptime Clouds sonder, de intervaller, der ikke er på internettet, og edge-netværket foran din app. En blokering, der ville ramme en af dem, afvises med besked om, hvad adressen er, og **Beskyttede entiteter** viser dem under **Automatisk beskyttet**. Når OneUptime ikke kan afgøre, om en adresse er din, blokerer den den ikke.
+
+**Håndhævet hos** viser hvert sted, en blokering håndhæves, og om den holder der. Så længe intet håndhæver blokeringslisten, siger siden det, og en blokering registreres, men blokerer intet. Hver blokering, ophævelse og udløb gemmes i projektets auditlog og på sagens tidslinje, når der er en sag.
 
 ### Beskeder
 
@@ -469,7 +490,7 @@ Over dem viser et bånd, hvordan sikkerhed er sat op: dens kilder, detektioner, 
 ## Automatisér
 
 - **Arbejdsgange**: en sag eller en note kan starte en arbejdsgang, når den oprettes, opdateres eller slettes. Et trin **Kør en arbejdsgang** starter en arbejdsgang, hvis trigger er en webhook.
-- **API**: sager, noter, opgaver, beviser, detektioner, playbooks, kørsler, beskyttede entiteter samt sagsprioriteter og sagsstatusser har det samme REST API som resten af OneUptime, under `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` og `/security-case-status`. Se [API-reference](/docs/api-reference/api-reference).
+- **API**: sager, noter, opgaver, beviser, detektioner, playbooks, kørsler, beskyttede entiteter, blokeringer samt sagsprioriteter og sagsstatusser har det samme REST API som resten af OneUptime, under `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-block`, `/security-case-priority` og `/security-case-status`. Se [API-reference](/docs/api-reference/api-reference).
 - AI-agenter: MCP-serveren har værktøjer til sager, noter, opgaver, beviser, detektioner, playbooks samt sagsprioriteter og sagsstatusser. Se [MCP-server](/docs/ai/mcp-server).
 - Terraform: ressourcerne `oneuptime_security_case_priority` og `oneuptime_security_case_status` holder et projekts prioriteter og statusser som kode.
 

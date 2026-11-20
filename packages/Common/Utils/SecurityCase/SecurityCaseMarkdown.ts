@@ -450,9 +450,15 @@ export function approvalDecidedMarkdown(data: {
   // For a step that acts on users or hosts: what the approver kept, and left out.
   targets?: Array<string> | undefined;
   leftOut?: Array<string> | undefined;
+  // Where it was decided, when not in OneUptime: "Slack", "Microsoft Teams".
+  from?: string | undefined;
 }): MarkdownText {
+  const from: MarkdownText = data.from
+    ? mdText`, from ${data.from}`
+    : FeedMarkdown.empty();
+
   if (!data.isApproved) {
-    return mdText`👎 Rejected step ${String(data.stepNumber)} (${data.stepTitle}) of playbook **${data.playbookName}**, which ends the run.`;
+    return mdText`👎 Rejected step ${String(data.stepNumber)} (${data.stepTitle}) of playbook **${data.playbookName}**${from}, which ends the run.`;
   }
 
   const forTargets: MarkdownText =
@@ -464,7 +470,7 @@ export function approvalDecidedMarkdown(data: {
       ? mdText`, leaving out ${valueList(data.leftOut)}`
       : FeedMarkdown.empty();
 
-  return mdText`👍 Approved step ${String(data.stepNumber)} (${data.stepTitle}) of playbook **${data.playbookName}**${forTargets}${leftOut}.`;
+  return mdText`👍 Approved step ${String(data.stepNumber)} (${data.stepTitle}) of playbook **${data.playbookName}**${forTargets}${leftOut}${from}.`;
 }
 
 export function targetUndoneMarkdown(data: {

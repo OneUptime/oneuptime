@@ -975,14 +975,17 @@ describe("exceptions, apart from the traces they are billed with", () => {
   });
 
   describe("a group of rows' signals", () => {
-    test("are its product's alone, for any product but Traces", () => {
+    test("are its product's alone, for any product but Traces and Logs (issue #6590)", () => {
       expect(
         getSignalAmounts(
           {
-            productType: ProductType.Logs,
+            productType: ProductType.Metrics,
             dataIngestedInGB: "2",
             totalCostInUSD: "0.2",
-            // Never set on another product's row; ignored if it were.
+            /*
+             * Never set on a product no exception is found in; ignored if
+             * it were.
+             */
             exceptionDataIngestedInGB: "1",
             exceptionCostInUSD: "0.1",
           },
@@ -990,7 +993,7 @@ describe("exceptions, apart from the traces they are billed with", () => {
         ),
       ).toEqual([
         {
-          signal: ProductType.Logs,
+          signal: ProductType.Metrics,
           amount: { dataIngestedInGB: 2, totalCostInUSD: 0.2 },
         },
       ]);

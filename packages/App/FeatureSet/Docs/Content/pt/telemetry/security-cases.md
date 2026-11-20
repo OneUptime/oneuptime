@@ -268,7 +268,9 @@ Cada pessoa escolhe por si mesma, em **Configurações do usuário → Configura
 
 As escolhas seguem as prioridades de caso do projeto, com os próprios nomes: estas são as de um projeto novo.
 
-Mensagens de WhatsApp não são enviadas para casos de segurança. Uma notificação push abre o caso no app OneUptime On-Call (1.7.0 ou posterior), onde você pode aprovar ou rejeitar uma etapa de playbook em espera, assumir o caso e fechá-lo. O link dela abre o caso no navegador.
+Mensagens de WhatsApp não são enviadas para casos de segurança. Uma notificação push abre o caso no app OneUptime On-Call (1.7.0 ou posterior), onde você pode aprovar ou rejeitar uma etapa de playbook em espera, assumir o caso e fechá-lo. O link dela abre o caso no navegador. Uma notificação push sobre uma etapa que aguarda a sua aprovação abre essa mesma aprovação, com as provas; se alguém a decidiu nesse meio-tempo, o caso diz quem, quando e como a etapa correu.
+
+Uma etapa que aguarda a sua aprovação chega até você no Slack ou no Microsoft Teams como uma mensagem a partir da qual você pode aprová-la, e o e-mail dela diz o que a etapa vai fazer e por quê: veja [Aprovar pelo Slack e pelo Microsoft Teams](#aprovar-pelo-slack-e-pelo-microsoft-teams).
 
 ### Publique em canais do Slack, do Microsoft Teams e do Mattermost
 
@@ -405,15 +407,34 @@ As duas etapas de repositório de dados agem nos repositórios de dados de que o
 
 #### Entidades protegidas
 
-**Entidades protegidas**, em **Playbooks** no menu, lista os usuários e hosts aos quais nenhum playbook aplica contenção, como contas de acesso de emergência, controladores de domínio e gateways de VPN. Um valor corresponde sem diferenciar maiúsculas de minúsculas, e `*` representa qualquer sequência de caracteres: `svc-*` protege todas as contas de serviço. Uma etapa informa um usuário ou host protegido como protegido e o deixa intacto. Os Administradores de segurança mantêm a lista.
+**Entidades protegidas**, em **Playbooks** no menu, lista os usuários, hosts e endereços IP aos quais nenhum playbook aplica contenção e que a lista de bloqueio nunca bloqueia, como contas de acesso de emergência, controladores de domínio, gateways de VPN e endereços de escritório. Um valor corresponde sem diferenciar maiúsculas de minúsculas, e `*` representa qualquer sequência de caracteres: `svc-*` protege todas as contas de serviço. Uma entrada de endereço é um endereço ou um intervalo, como `203.0.113.0/24`, que protege todos os endereços dentro dele. Uma etapa informa um usuário ou host protegido como protegido e o deixa intacto. Os Administradores de segurança mantêm a lista.
 
 #### Aprovação
 
 As oito etapas que cortam o acesso de alguém aguardam aprovação. Só um Administrador de segurança pode desativar **Requer aprovação** em uma delas, e o OneUptime registra quem fez isso. A aprovação lista em **Agir sobre** os usuários ou hosts em que a etapa agiria, todos marcados: desmarque os que ela deve deixar intactos. Os protegidos não são oferecidos. Quem iniciou uma execução não pode aprovar as etapas dela: outra pessoa faz isso, mas quem a iniciou ainda pode rejeitá-las.
 
+#### Aprovar pelo Slack e pelo Microsoft Teams
+
+Uma etapa que aguarda aprovação é uma mensagem com **Aprovar**, **Rejeitar** e **Abrir caso**; quando ela age sobre mais de um usuário ou host, também permite aprovar só alguns deles. Ela vai para os canais e chats de cada regra de casos de segurança cujas **Atualizações** publicam **Aprovações pendentes**, e para cada aprovador que escolheu Slack ou Microsoft Teams para **Etapa de playbook aguardando minha aprovação**, no idioma da conta dele. Ela diz o que a etapa vai fazer e por qual conexão, cada usuário ou host sobre o qual age e por quê, os protegidos que deixa de lado, quem ou o que pediu, as provas por trás do caso (até onde chegaram as requisições por trás dele, o que a threat intel sabe, que nada sobre o que ela age está protegido) e se ela pode ser desfeita. O e-mail que pede a aprovação diz o mesmo; o botão dele abre a aprovação no caso e nunca decide nada, já que os scanners de e-mail seguem links.
+
+- Ao aprovar só alguns, aparecem os usuários ou hosts sobre os quais a etapa agiria, todos marcados: desmarque os que ela deve deixar de lado. Pelo menos um fica, ou rejeite a etapa em vez disso.
+- Apertar um botão decide como você, pela conta do Slack ou do Microsoft Teams que você conectou ao OneUptime. Se ainda não conectou, você é solicitado a conectar e depois apertar de novo. Você precisa de uma função que possa executar playbooks e de poder ver o caso; quem iniciou a execução não pode aprová-la, mas pode rejeitá-la. Uma recusa diz o motivo: no Slack, só você a vê.
+- O OneUptime verifica que cada toque veio do Slack ou do Microsoft Teams e decide uma única vez: um toque repetido, reenviado ou feito numa mensagem sobre outra etapa não decide nada, e um toque depois que alguém decidiu diz quem e quando.
+- Assim que alguém decide, no Slack, no Microsoft Teams, no caso ou no app, cada cópia da mensagem diz quem a aprovou ou rejeitou e quando, depois como a etapa correu e o que aconteceu com cada usuário ou host, sem outros botões além de **Abrir caso**. A decisão fica guardada na linha do tempo do caso, dizendo que veio do Slack ou do Microsoft Teams, e no registro de auditoria do projeto.
+
+O Mattermost recebe a aprovação como texto, sem botões.
+
 #### Desfazer
 
-As etapas de reversão agem nos usuários ou hosts de que o caso trata, como as etapas que elas revertem. Depois que a execução parar, um usuário ou host contido também tem um botão próprio na etapa dele: **Reativar**, **Suspender a contenção**, **Liberar** ou **Ativar**. Uma desconexão não pode ser desfeita. Cada reversão fica guardada na linha do tempo do caso e no registro de auditoria do projeto.
+As etapas de reversão agem nos usuários ou hosts de que o caso trata, como as etapas que elas revertem. Depois que a execução parar, um usuário ou host contido também tem um botão próprio na etapa dele: **Reativar**, **Suspender a contenção**, **Liberar** ou **Ativar**. Uma desconexão não pode ser desfeita. Cada reversão fica guardada na linha do tempo do caso e no registro de auditoria do projeto. No app OneUptime On-Call, o caso lista o que os playbooks dele contiveram, e cada um pode ser desfeito por lá.
+
+### Lista de bloqueio
+
+**Lista de bloqueio**, em **Playbooks** no menu, lista os endereços IP e intervalos que seu projeto bloqueia: por quê, até quando, o caso de cada um e quem ou o que o adicionou. **Bloquear endereço** bloqueia um endereço ou um intervalo por 24 horas, a menos que você escolha 1 hora, 7 dias ou 30 dias. Somente um Administrador de segurança, um Administrador do projeto ou um Proprietário do projeto pode manter um bloqueio até que alguém o revogue, ou bloquear um intervalo mais amplo que um /24 (um /48 no IPv6), e ninguém bloqueia um intervalo mais amplo que um /8 (um /16 no IPv6). **Revogar** encerra um bloqueio, em uma linha ou em várias de uma vez, e **Prorrogar** muda o fim dele.
+
+Os endereços do seu próprio projeto nunca são bloqueados: as entradas de **Entidades protegidas**, seus hosts, nós do Kubernetes, recursos de nuvem, dispositivos de rede e endpoints, seus nomes de endereço e sondas, as sondas do OneUptime Cloud, os intervalos que não estão na internet e a rede de borda na frente do seu app. Um bloqueio que atingiria um deles é recusado, dizendo o que é o endereço, e **Entidades protegidas** os lista em **Proteção automática**. Quando o OneUptime não consegue dizer se um endereço é seu, ele não o bloqueia.
+
+**Aplicado por** mostra cada lugar onde um bloqueio é aplicado e se ele se mantém ali. Enquanto nada aplica a lista de bloqueio, a página avisa, e um bloqueio é registrado, mas não bloqueia nada. Cada bloqueio, revogação e expiração fica guardado no registro de auditoria do projeto e, quando há um caso, na linha do tempo do caso.
 
 ### Mensagens
 
@@ -469,7 +490,7 @@ Acima, uma faixa mostra como a segurança está configurada: suas origens, detec
 ## Automatizar
 
 - **Fluxos de trabalho**: criar, atualizar ou excluir um caso ou uma nota pode iniciar um fluxo de trabalho. Uma etapa **Executar um fluxo de trabalho** inicia um fluxo de trabalho cujo gatilho é um webhook.
-- **API**: casos, notas, tarefas, evidências, detecções, playbooks, execuções, entidades protegidas e as prioridades e status de caso têm a mesma API REST que o resto do OneUptime, em `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` e `/security-case-status`. Veja [Referência da API](/docs/api-reference/api-reference).
+- **API**: casos, notas, tarefas, evidências, detecções, playbooks, execuções, entidades protegidas, bloqueios e as prioridades e status de caso têm a mesma API REST que o resto do OneUptime, em `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-block`, `/security-case-priority` e `/security-case-status`. Veja [Referência da API](/docs/api-reference/api-reference).
 - Agentes de IA: o servidor MCP tem ferramentas para casos, notas, tarefas, evidências, detecções, playbooks e as prioridades e status de caso. Veja [Servidor MCP](/docs/ai/mcp-server).
 - Terraform: os recursos `oneuptime_security_case_priority` e `oneuptime_security_case_status` mantêm como código as prioridades e os status de um projeto.
 

@@ -268,7 +268,9 @@ Var och en väljer själv, under **Användarinställningar → Aviseringsinstäl
 
 Valen följer projektets ärendeprioriteter, under deras egna namn: det här är ett nytt projekts val.
 
-WhatsApp-meddelanden skickas inte för säkerhetsärenden. En push-avisering öppnar ärendet i appen OneUptime On-Call (1.7.0 eller senare), där du kan godkänna eller avvisa ett väntande playbook-steg, ta ärendet och stänga det. Dess länk öppnar ärendet i webbläsaren.
+WhatsApp-meddelanden skickas inte för säkerhetsärenden. En push-avisering öppnar ärendet i appen OneUptime On-Call (1.7.0 eller senare), där du kan godkänna eller avvisa ett väntande playbook-steg, ta ärendet och stänga det. Dess länk öppnar ärendet i webbläsaren. En push-avisering om ett steg som väntar på ditt godkännande öppnar själva godkännandet, med bevisen; har någon beslutat om det sedan dess säger ärendet vem, när och hur steget gick.
+
+Ett steg som väntar på ditt godkännande når dig i Slack eller Microsoft Teams som ett meddelande du kan godkänna från, och dess mejl säger vad steget kommer att göra och varför: se [Godkänn från Slack och Microsoft Teams](#godkänn-från-slack-och-microsoft-teams).
 
 ### Posta i kanaler i Slack, Microsoft Teams och Mattermost
 
@@ -405,15 +407,34 @@ De två datalagerstegen agerar på de datalager som ärendet handlar om, högst 
 
 #### Skyddade entiteter
 
-**Skyddade entiteter**, under **Playbooks** i menyn, listar de användare och värdar som ingen playbook begränsar, till exempel konton för nödåtkomst, domänkontrollanter och VPN-gatewayer. Ett värde matchar oavsett skiftläge, och `*` står för en valfri följd av tecken: `svc-*` skyddar alla tjänstkonton. Ett steg rapporterar en skyddad användare eller värd som skyddad och lämnar den i fred. Listan sköts av användare med rollen Säkerhetsadministratör.
+**Skyddade entiteter**, under **Playbooks** i menyn, listar de användare, värdar och IP-adresser som ingen playbook begränsar och blocklistan aldrig blockerar, till exempel konton för nödåtkomst, domänkontrollanter, VPN-gatewayer och kontorsadresser. Ett värde matchar oavsett skiftläge, och `*` står för en valfri följd av tecken: `svc-*` skyddar alla tjänstkonton. En adresspost är en adress eller ett intervall, till exempel `203.0.113.0/24`, som skyddar varje adress i det. Ett steg rapporterar en skyddad användare eller värd som skyddad och lämnar den i fred. Listan sköts av användare med rollen Säkerhetsadministratör.
 
 #### Godkännande
 
 De åtta stegen som stänger ute någon väntar på godkännande. Bara en Säkerhetsadministratör kan slå av **Kräver godkännande** för ett av dem, och OneUptime registrerar vem som gjorde det. Godkännandet listar användarna eller värdarna som steget skulle agera på under **Agera på**, alla förbockade: avmarkera dem som steget ska lämna i fred. Skyddade finns inte med bland alternativen. Den som startade en körning kan inte godkänna dess steg: det gör någon annan, men den som startade körningen kan fortfarande avvisa steget.
 
+#### Godkänn från Slack och Microsoft Teams
+
+Ett steg som väntar på godkännande är ett meddelande med **Godkänn**, **Avvisa** och **Öppna ärende**; när det agerar på mer än en användare eller värd kan du också godkänna bara några av dem. Det går till kanalerna och chattarna för varje regel för säkerhetsärenden vars **Uppdateringar** postar **Väntande godkännanden**, och till varje godkännare som har valt Slack eller Microsoft Teams för **Playbook-steg väntar på mitt godkännande**, på språket på deras konto. Det säger vad steget kommer att göra och genom vilken anslutning, varje användare eller värd det agerar på och varför, de skyddade det lämnar ifred, vem eller vad som frågade, bevisen bakom ärendet (hur långt förfrågningarna bakom det kom, vad threat intel vet, att inget det agerar på är skyddat) och om det kan ångras. Mejlet som ber om godkännandet säger samma sak; dess knapp öppnar godkännandet på ärendet och beslutar aldrig något, eftersom e-postskannrar följer länkar.
+
+- Godkänner du bara några listas de användare eller värdar som steget skulle agera på, alla markerade: avmarkera dem det ska lämna ifred. Minst en blir kvar, annars avvisar du steget i stället.
+- Ett tryck på en knapp beslutar som du, genom det Slack- eller Microsoft Teams-konto du har kopplat till OneUptime. Har du inte kopplat det ännu blir du ombedd att koppla det och sedan trycka igen. Du behöver en roll som kan köra playbooks och kunna se ärendet; den som startade körningen kan inte godkänna den, men kan avvisa den. Ett avslag säger varför: i Slack är det bara du som ser det.
+- OneUptime kontrollerar att varje tryck kom från Slack eller Microsoft Teams och beslutar en gång: ett tryck som upprepas, skickas igen eller görs på ett meddelande om ett annat steg beslutar ingenting, och ett tryck efter att någon har beslutat säger vem och när.
+- När någon beslutar, i Slack, i Microsoft Teams, på ärendet eller i appen, säger varje kopia av meddelandet vem som godkände eller avvisade det och när, sedan hur steget gick och vad som hände med varje användare eller värd, utan andra knappar än **Öppna ärende**. Beslutet sparas på ärendets tidslinje, med att det kom från Slack eller Microsoft Teams, och i projektets granskningslogg.
+
+Mattermost får godkännandet som text, utan knappar.
+
 #### Ångra
 
-Ångringsstegen agerar på de användare eller värdar som ärendet handlar om, precis som stegen de ångrar. När körningen har stannat har en begränsad användare eller värd också en egen knapp på sitt steg: **Häv avstängning**, **Häv begränsning**, **Frigör** eller **Aktivera**. En utloggning kan inte ångras. Varje ångring sparas på ärendets tidslinje och i projektets granskningslogg.
+Ångringsstegen agerar på de användare eller värdar som ärendet handlar om, precis som stegen de ångrar. När körningen har stannat har en begränsad användare eller värd också en egen knapp på sitt steg: **Häv avstängning**, **Häv begränsning**, **Frigör** eller **Aktivera**. En utloggning kan inte ångras. Varje ångring sparas på ärendets tidslinje och i projektets granskningslogg. I appen OneUptime On-Call listar ärendet vad dess playbooks har begränsat, och vart och ett kan ångras därifrån.
+
+### Blocklista
+
+**Blocklista**, under **Playbooks** i menyn, listar de IP-adresser och intervall som ditt projekt blockerar: varför, till när, deras ärende och vem eller vad som lade till dem. **Blockera adress** blockerar en adress eller ett intervall i 24 timmar om du inte väljer 1 timme, 7 dagar eller 30 dagar. Bara en Säkerhetsadministratör, en Projektadministratör eller en Projektägare kan behålla en blockering tills någon häver den, eller blockera ett intervall som är bredare än ett /24 (ett /48 för IPv6), och ingen blockerar ett intervall som är bredare än ett /8 (ett /16 för IPv6). **Häv** avslutar en blockering, på en rad eller flera på en gång, och **Förläng** flyttar dess slut.
+
+Ditt projekts egna adresser blockeras aldrig: posterna i **Skyddade entiteter**, dina värdar, Kubernetes-noder, molnresurser, nätverksenheter och slutpunkter, dina adressnamn och sonder, OneUptime Clouds sonder, de intervall som inte finns på internet och edge-nätverket framför din app. En blockering som skulle träffa en av dem avvisas med besked om vad adressen är, och **Skyddade entiteter** listar dem under **Automatiskt skyddade**. När OneUptime inte kan avgöra om en adress är din blockerar den den inte.
+
+**Tillämpad hos** visar varje ställe där en blockering tillämpas och om den håller där. Så länge inget tillämpar blocklistan säger sidan det, och en blockering registreras men blockerar ingenting. Varje blockering, hävning och utgång sparas i projektets granskningslogg, och på ärendets tidslinje när den har ett ärende.
 
 ### Meddelanden
 
@@ -469,7 +490,7 @@ Ovanför visar en remsa hur säkerhet är uppsatt: dess källor, detektioner, ä
 ## Automatisera
 
 - **Arbetsflöden**: ett ärende eller en anteckning kan starta ett arbetsflöde när det skapas, uppdateras eller tas bort. Ett steg **Kör ett arbetsflöde** startar ett arbetsflöde vars utlösare är en webhook.
-- **API**: ärenden, anteckningar, uppgifter, bevis, detektioner, playbooks, körningar, skyddade entiteter och ärendeprioriteter och ärendestatusar har samma REST API som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` och `/security-case-status`. Se [API-referens](/docs/api-reference/api-reference).
+- **API**: ärenden, anteckningar, uppgifter, bevis, detektioner, playbooks, körningar, skyddade entiteter, blockeringar och ärendeprioriteter och ärendestatusar har samma REST API som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-block`, `/security-case-priority` och `/security-case-status`. Se [API-referens](/docs/api-reference/api-reference).
 - AI-agenter: MCP-servern har verktyg för ärenden, anteckningar, uppgifter, bevis, detektioner, playbooks och ärendeprioriteter och ärendestatusar. Se [MCP-server](/docs/ai/mcp-server).
 - Terraform: resurserna `oneuptime_security_case_priority` och `oneuptime_security_case_status` håller ett projekts prioriteter och statusar som kod.
 

@@ -94,7 +94,7 @@ En applikation visar **Tar emot data** så länge telemetri kommer in och **Inge
 :::steps
 ### Skapa en intagningsnyckel
 
-Öppna **Projektinställningar → Telemetri och APM → Intagningsnycklar** och klicka på **Skapa intagningsnyckel**. En webbapp behöver en **Webbläsare**-nyckel, som bara fungerar från de ursprung du anger. En mobilapp behöver en **Server**-nyckel, eftersom ett mobil-SDK inte skickar någon `Origin`-header.
+Öppna **Projektinställningar → Telemetri och APM → Intagningsnycklar** och klicka på **Skapa intagningsnyckel**. En webbapp behöver en **Webbläsare**-nyckel, som bara fungerar från de ursprung du anger. En mobilapp behöver en **Mobil**-nyckel, fäst vid appens `service.name`: Den följer med i appen och kan därför bara skicka den appens spår, loggar och mätvärden.
 
 ### Instrumentera din app
 
