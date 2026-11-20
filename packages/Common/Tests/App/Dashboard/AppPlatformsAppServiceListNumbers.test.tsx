@@ -69,7 +69,9 @@ const mockTable: {
 } = { rows: [], props: null };
 
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
-  const ReactInModule: typeof React = jest.requireActual("react");
+  const ReactInModule: typeof React = jest.requireActual(
+    "react",
+  ) as typeof React;
 
   return {
     __esModule: true,
