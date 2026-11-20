@@ -277,7 +277,7 @@ describe("the header's band while an event waits for its publish time", () => {
     // 09:00 UTC is half past two in the afternoon in India.
     expect(
       screen.getByTestId("scheduled-maintenance-publish-at"),
-    ).toHaveTextContent("02:30 PM");
+    ).toHaveTextContent("2:30 PM");
   });
 
   test("Publish Now asks first, saying what it does, and publishes the event right away", async () => {

@@ -270,6 +270,7 @@
     "Dashboard Widgets": "Виджеты панели",
     "Dashboard Variables & Filters": "Переменные и фильтры панели",
     "External Data Sources": "Внешние источники данных",
+    "Import from Grafana and Datadog": "Импорт из Grafana и Datadog",
     "Sharing & Public Dashboards": "Совместный доступ и публичные панели",
     "Dashboard Playlists": "Плейлисты панелей",
     "Dashboard Configuration & Permissions": "Конфигурация и разрешения панели",

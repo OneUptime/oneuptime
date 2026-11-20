@@ -11,6 +11,7 @@ import Sort from "../../../Types/BaseDatabase/Sort";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Dictionary from "../../../Types/Dictionary";
 import { ListOrderSettings } from "../../../Types/Database/ListOrderColumn";
+import RelationReadersUtil from "../../../Types/Database/RelationReadersUtil";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { JSONObject } from "../../../Types/JSON";
@@ -118,8 +119,10 @@ const flipSortOrder: (order: SortOrder) => SortOrder = (
 /*
  * Whether a read of a list may order it through a relation by this field
  * of the related record, and select it there: the server takes only the
- * fields a relation read may (canReadOnRelationQuery), and a hashed or
- * encrypted value is stored as nothing a person could read.
+ * fields a relation read may (canReadOnRelationQuery) - for every reader of
+ * the list only a label every reader of the relation reads, never one it
+ * reads for some of them alone (RelationReaders.ColumnReaders, #10281) - and
+ * a hashed or encrypted value is stored as nothing a person could read.
  */
 const isOrderableThroughRelation: (
   relatedModel: BaseModel,
@@ -134,7 +137,7 @@ const isOrderableThroughRelation: (
 
   return Boolean(
     metadata &&
-      metadata.canReadOnRelationQuery &&
+      RelationReadersUtil.isReadByEveryReaderOfTheRelation(metadata) &&
       !metadata.hashed &&
       !metadata.encrypted,
   );

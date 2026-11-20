@@ -47,14 +47,14 @@ describe("a date with its zone", () => {
     expect(written).toContain("GMT+۰۳۳۰");
     expect(written).not.toMatch(LATIN_DIGIT);
     // Its English is remembered as it always was.
-    expect(getEnglishOf(written)).toBe("Oct 06 2026, 12:35 GMT+0330");
+    expect(getEnglishOf(written)).toBe("Oct 6, 2026, 12:35 GMT+0330");
   });
 
   test("in English and German the offset reads as before", () => {
     OneUptimeDate.setUserTimezone(Timezone.AsiaTehran);
 
     expect(OneUptimeDate.getDateAsLocalFormattedString(INSTANT)).toBe(
-      "Oct 06 2026, 12:35 GMT+0330",
+      "Oct 6, 2026, 12:35 GMT+0330",
     );
 
     setDateDisplayLanguage("de");

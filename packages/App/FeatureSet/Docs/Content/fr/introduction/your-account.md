@@ -146,6 +146,31 @@ Il en va de même quand chaque projet auquel vous appartenez exige l'authentific
 - **Les administrateurs principaux** gardent toujours leurs propres réglages de **Sécurité**.
 - **Ce que vous aviez configuré avant** reste enregistré. Un administrateur du serveur peut l'effacer, tout comme un propriétaire de tous les projets auxquels vous appartenez ; vous recevez alors un e-mail.
 
+### Confirmer que c'est bien vous
+
+Certaines modifications vous demandent d'abord de confirmer que c'est bien vous, même si vous êtes connecté, afin que personne ne puisse les faire depuis un navigateur où vous êtes resté connecté. OneUptime vous le demande avant que vous :
+
+- changiez votre adresse e-mail ou votre mot de passe ;
+- ajoutiez ou supprimiez une clé d'accès, une clé de sécurité ou une application d'authentification ;
+- obteniez de nouveaux codes de secours alors qu'il vous en reste d'inutilisés ;
+- désactiviez l'authentification à deux facteurs ;
+- supprimiez votre compte.
+
+La fenêtre **Confirmez que c'est bien vous** demande votre mot de passe et, tant que l'authentification à deux facteurs est activée, votre deuxième étape : un code de votre application d'authentification, votre clé de sécurité ou l'un de vos codes de secours. Avec une clé d'accès, cliquez plutôt sur **Utiliser une clé d'accès**. Si vous vous connectez uniquement par authentification unique, Google ou Microsoft, cliquez sur **Se reconnecter** : OneUptime fait en sorte que votre fournisseur d'identité vous demande de vous reconnecter, puis vous ramène à la page. La modification est alors effectuée.
+
+Une fois que vous avez confirmé, la question ne vous est plus posée pendant 10 minutes dans ce navigateur. Cinq tentatives erronées déconnectent ce navigateur, mais ne verrouillent jamais votre compte : reconnectez-vous et réessayez. OneUptime vous envoie un e-mail quand cela arrive, et chaque fois qu'un code de secours confirme que c'est bien vous.
+
+Sur un serveur auto-hébergé, les administrateurs principaux confirment de la même façon que c'est bien eux avant de modifier la façon dont quelqu'un d'autre se connecte, de faire de quelqu'un un administrateur principal, de modifier les fournisseurs d'authentification unique ou les réglages e-mail du serveur, ou de créer une clé API principale. La clé API principale ne peut pas faire ces modifications.
+
+Se reconnecter ne compte que si votre fournisseur d'identité indique que vous vous êtes connecté après que OneUptime vous a envoyé vers lui. Si le fournisseur vous connecte avec une session qu'il a déjà, sans demander votre mot de passe, cela ne confirme rien : déconnectez-vous d'abord du fournisseur, puis cliquez sur **Se reconnecter**. Là où votre serveur permet de se connecter avec un lien envoyé par e-mail, **Se connecter autrement** le fait à la place. Ce que OneUptime demande à chaque fournisseur, et ce qu'un administrateur peut changer quand la reconnexion ne confirme rien :
+
+| Fournisseur | Ce que OneUptime demande | Quand elle ne confirme rien |
+| --- | --- | --- |
+| SAML | `ForceAuthn="true"`, et le moment où vous vous êtes connecté (`AuthnInstant`) | Faites respecter la demande par le fournisseur, par exemple avec Honor Force Authentication dans Okta. |
+| OpenID Connect | `prompt=login` et `max_age=0`, et le moment où vous vous êtes connecté (`auth_time`) | Faites envoyer `auth_time` par le fournisseur. Dans Microsoft Entra ID, ajoutez-la au jeton d'ID comme revendication facultative. |
+| Google | Le moment où vous vous êtes connecté (`auth_time`). On ne peut pas demander à Google de vous faire reconnecter. | Activez Session age claims pour l'application de connexion Google du serveur, qui doit être publiée et validée. |
+| Microsoft | `prompt=login` et `max_age=0`, et le moment où vous vous êtes connecté (`auth_time`) | Ajoutez `auth_time` au jeton d'ID de l'application de connexion Microsoft du serveur comme revendication facultative. |
+
 ## Vos projets
 
 Vous pouvez appartenir à autant de projets que vous voulez. Le sélecteur de projet en haut à gauche du tableau de bord les liste : choisissez-en un pour y passer.
@@ -178,7 +203,7 @@ Votre thème est enregistré dans votre navigateur : réglez-le à nouveau dans 
 
 ## Supprimer votre compte
 
-Ouvrez **Zone de danger → Supprimer le compte**. Vous ne pouvez supprimer votre compte qu'une fois que vous n'êtes plus dans aucun projet : la page liste les projets où vous êtes encore. Quittez-les d'abord, puis cliquez sur **Supprimer le compte** et confirmez. La suppression de votre compte est définitive et irréversible.
+Ouvrez **Zone de danger → Supprimer le compte**. Vous ne pouvez supprimer votre compte qu'une fois que vous n'êtes plus dans aucun projet : la page liste les projets où vous êtes encore. Quittez-les d'abord, puis cliquez sur **Supprimer le compte** et confirmez. La suppression de votre compte est définitive et irréversible. Avant de supprimer votre compte, OneUptime vous demande de confirmer que c'est bien vous.
 
 ## Dépannage
 

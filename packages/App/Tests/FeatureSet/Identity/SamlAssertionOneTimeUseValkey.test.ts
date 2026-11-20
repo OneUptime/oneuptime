@@ -98,6 +98,8 @@ function assertion(
       spNameQualifier: null,
     },
     sessionIndex: null,
+    authnInstant: null,
+    inResponseTo: null,
   };
 }
 

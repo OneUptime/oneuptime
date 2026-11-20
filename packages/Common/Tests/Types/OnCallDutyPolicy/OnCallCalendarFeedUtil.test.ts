@@ -155,7 +155,7 @@ describe("OnCallCalendarFeedUtil: byte-exact personal feed", () => {
       "DTSTART:20260901T070000Z",
       "DTEND:20260901T150000Z",
       "SUMMARY:On-call · Payments · Payments Policy",
-      "DESCRIPTION:Who: Alice Andersson\\nSchedule: Payments (Europe/Stockholm)\\nShift: Sep 01 2026\\, 09:00 CEST → Sep 01 2026\\, 17:00 CEST (Europe/Stockholm — schedule zone)\\nShift in UTC: Sep 01 2026\\, 07:00 UTC → Sep 01 2026\\, 15:00 UTC\\nShift in America/New_York (your zone): Sep 01 2026\\, 03:00 EDT → Sep 01 2026\\, 11:00 EDT\\nPages you via: Payments Policy › Primary (step 1)\\nNeed cover? https://oneuptime.example.com/dashboard/proj-1/on-call-duty/user-overrides\\nChanges appear after your calendar app next refreshes (Google Calendar: up to 24 h).",
+      "DESCRIPTION:Who: Alice Andersson\\nSchedule: Payments (Europe/Stockholm)\\nShift: Sep 1\\, 2026\\, 09:00 CEST → Sep 1\\, 2026\\, 17:00 CEST (Europe/Stockholm — schedule zone)\\nShift in UTC: Sep 1\\, 2026\\, 07:00 UTC → Sep 1\\, 2026\\, 15:00 UTC\\nShift in America/New_York (your zone): Sep 1\\, 2026\\, 03:00 EDT → Sep 1\\, 2026\\, 11:00 EDT\\nPages you via: Payments Policy › Primary (step 1)\\nNeed cover? https://oneuptime.example.com/dashboard/proj-1/on-call-duty/user-overrides\\nChanges appear after your calendar app next refreshes (Google Calendar: up to 24 h).",
       "URL:https://oneuptime.example.com/dashboard/proj-1/on-call-duty/schedules/sched-1",
       "STATUS:CONFIRMED",
       "TRANSP:TRANSPARENT",
@@ -272,7 +272,7 @@ describe("OnCallCalendarFeedUtil: UID identity", () => {
       "Who: Bob Berg\\, covering for Alice Andersson",
     );
     expect(blockProperty(after[0]!, "DESCRIPTION")).toContain(
-      "Override: Alice Andersson → Bob Berg from Sep 01 2026\\, 02:00 CEST to Sep 02 2026\\, 02:00 CEST (global override)",
+      "Override: Alice Andersson → Bob Berg from Sep 1\\, 2026\\, 02:00 CEST to Sep 2\\, 2026\\, 02:00 CEST (global override)",
     );
   });
 
@@ -860,10 +860,10 @@ describe("OnCallCalendarFeedUtil: legacy schedules without a timezone", () => {
       `Schedule: Payments (${OnCallCalendarFeedUtil.LEGACY_TIMEZONE_NOTE})`,
     );
     expect(description).toContain(
-      `Shift: Sep 01 2026, 07:00 UTC → Sep 01 2026, 15:00 UTC (UTC — ${OnCallCalendarFeedUtil.LEGACY_TIMEZONE_NOTE})`,
+      `Shift: Sep 1, 2026, 07:00 UTC → Sep 1, 2026, 15:00 UTC (UTC — ${OnCallCalendarFeedUtil.LEGACY_TIMEZONE_NOTE})`,
     );
     expect(description).toContain(
-      "Shift in America/New_York (your zone): Sep 01 2026, 03:00 EDT → Sep 01 2026, 11:00 EDT",
+      "Shift in America/New_York (your zone): Sep 1, 2026, 03:00 EDT → Sep 1, 2026, 11:00 EDT",
     );
   });
 
@@ -976,10 +976,11 @@ describe("OnCallCalendarFeedUtil: DST", () => {
           "Nov",
           "Dec",
         ][Number(dstCase.day.slice(5, 7)) - 1]!,
-        dstCase.day.slice(8, 10),
+        // The day without a zero, as every long English date writes it (#7652).
+        String(Number(dstCase.day.slice(8, 10))),
       ];
       expect(description).toContain(
-        `Shift: ${month} ${dayOfMonth} 2026\\, 09:00 ${dstCase.abbreviation} → ${month} ${dayOfMonth} 2026\\, 17:00 ${dstCase.abbreviation} (${dstCase.zone} — schedule zone)`,
+        `Shift: ${month} ${dayOfMonth}\\, 2026\\, 09:00 ${dstCase.abbreviation} → ${month} ${dayOfMonth}\\, 2026\\, 17:00 ${dstCase.abbreviation} (${dstCase.zone} — schedule zone)`,
       );
     },
   );
@@ -1000,7 +1001,7 @@ describe("OnCallCalendarFeedUtil: DST", () => {
     expect(blockProperty(block, "DTSTART")).toBe("20260307T140000Z");
     expect(blockProperty(block, "DTEND")).toBe("20260308T130000Z");
     expect(blockProperty(block, "DESCRIPTION")).toContain(
-      "Shift: Mar 07 2026\\, 09:00 EST → Mar 08 2026\\, 09:00 EDT (America/New_York — schedule zone)",
+      "Shift: Mar 7\\, 2026\\, 09:00 EST → Mar 8\\, 2026\\, 09:00 EDT (America/New_York — schedule zone)",
     );
   });
 
@@ -1094,7 +1095,7 @@ describe("OnCallCalendarFeedUtil: policy variants", () => {
       "For Payments Policy\\, Bob Berg is paged instead of Alice Andersson because of a policy-specific override.",
     );
     expect(blockProperty(globalBlock, "DESCRIPTION")).toContain(
-      "For Payments Policy\\, Bob Berg is paged instead from Sep 01 2026\\, 09:00 CEST to Sep 01 2026\\, 17:00 CEST.",
+      "For Payments Policy\\, Bob Berg is paged instead from Sep 1\\, 2026\\, 09:00 CEST to Sep 1\\, 2026\\, 17:00 CEST.",
     );
   });
 
@@ -1177,14 +1178,14 @@ describe("OnCallCalendarFeedUtil: policy variants", () => {
     expect(
       OnCallCalendarFeedUtil.buildDescription(bob, context, all),
     ).toContain(
-      "For Payments Policy, Carol Chen is paged instead from Sep 01 2026, 12:00 CEST to Sep 01 2026, 13:00 CEST.",
+      "For Payments Policy, Carol Chen is paged instead from Sep 1, 2026, 12:00 CEST to Sep 1, 2026, 13:00 CEST.",
     );
 
     // Alice: only her first hour, and she is told exactly that.
     expect(
       OnCallCalendarFeedUtil.buildDescription(alice, context, all),
     ).toContain(
-      "For Payments Policy, Carol Chen is paged instead from Sep 01 2026, 13:00 CEST to Sep 01 2026, 14:00 CEST.",
+      "For Payments Policy, Carol Chen is paged instead from Sep 1, 2026, 13:00 CEST to Sep 1, 2026, 14:00 CEST.",
     );
   });
 
@@ -1237,7 +1238,7 @@ describe("OnCallCalendarFeedUtil: policy variants", () => {
     // ...but it says who is really paged for pol-1 during it.
     const description: string = blockProperty(blocks[0]!, "DESCRIPTION")!;
     expect(description).toContain(
-      "For Payments Policy\\, Bob Berg is paged instead from Sep 01 2026\\, 09:00 CEST to Sep 01 2026\\, 17:00 CEST.",
+      "For Payments Policy\\, Bob Berg is paged instead from Sep 1\\, 2026\\, 09:00 CEST to Sep 1\\, 2026\\, 17:00 CEST.",
     );
     expect(description).toContain(
       "Pages you via: Checkout Policy › Primary (step 1)\\; Payments Policy › Primary (step 1)",

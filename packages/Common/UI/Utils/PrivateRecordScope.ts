@@ -3,6 +3,11 @@ import PrivateRecordParts, {
   PrivateRecordPartModel,
 } from "../../Types/PrivateRecord/PrivateRecordParts";
 import { PermissionGateOptions } from "./PermissionGate";
+import {
+  getRecordAccessGateOptions,
+  RecordAccessScope,
+  useRecordAccessScope,
+} from "./RecordAccessScope";
 import React from "react";
 
 /*
@@ -21,6 +26,11 @@ import React from "react";
  * where their own snapshot would allow it (PermissionGate.check). A gate
  * about anything else on the page - a monitor, an on-call policy - is asked
  * as before.
+ *
+ * The same hooks hand each gate what the server says the reader may do on
+ * the record the page is open on, private or not (RecordAccessScope,
+ * #10272): its labels, its owners and its privacy weighed by the server's
+ * own rule, so a gate locks what the server would refuse there, with why.
  */
 export interface PrivateRecordScope {
   // The private record's kind, by its table: "Incident".
@@ -42,28 +52,43 @@ export const PrivateRecordScopeContext: React.Context<PrivateRecordScope | null>
  * record: what the reader holds on the record, and its reason, for the
  * record's own model and its parts; none for any other model, or a page
  * open on no private record.
+ *
+ * And, on a page open on a record whose answer the server gave
+ * (RecordAccessScope, #10272), for the record's own model and its parts,
+ * that answer: what the reader may do on that record by its labels, its
+ * owners and its privacy. A gate reads it for the model it asks about, so
+ * the options a page built for its record serve its parts' gates too.
  */
 export function getPrivateRecordGateOptions(
   scope: PrivateRecordScope | null,
   model: PrivateRecordPartModel | null | undefined,
+  recordAccessScope?: RecordAccessScope | null | undefined,
 ): PermissionGateOptions | undefined {
-  if (
-    !scope ||
-    !model ||
-    !PrivateRecordParts.isPartOf(model, scope.tableName)
-  ) {
+  const isAnswered: boolean = Boolean(
+    getRecordAccessGateOptions(recordAccessScope || null, model),
+  );
+
+  const isPart: boolean = Boolean(
+    scope && model && PrivateRecordParts.isPartOf(model, scope.tableName),
+  );
+
+  if (!isPart && !isAnswered) {
     return undefined;
   }
 
   return {
-    held: scope.held,
-    privateRecordReason: scope.reason,
+    ...(isPart && scope
+      ? { held: scope.held, privateRecordReason: scope.reason }
+      : {}),
+    ...(isAnswered && recordAccessScope
+      ? { recordAccess: recordAccessScope }
+      : {}),
   };
 }
 
 /*
  * getPrivateRecordGateOptions, for the page the calling component is on -
- * the same object while the page's scope stays the same, so a component
+ * the same object while the page's scopes stay the same, so a component
  * that keeps what it worked out (useMemo) keeps it.
  */
 export function usePrivateRecordGateOptions(
@@ -72,15 +97,30 @@ export function usePrivateRecordGateOptions(
   const scope: PrivateRecordScope | null = React.useContext(
     PrivateRecordScopeContext,
   );
+  const recordAccessScope: RecordAccessScope | null = useRecordAccessScope();
   const isPart: boolean = Boolean(
     scope && model && PrivateRecordParts.isPartOf(model, scope.tableName),
   );
+  const tableName: string = model?.tableName || "";
 
   return React.useMemo((): PermissionGateOptions | undefined => {
-    return isPart && scope
-      ? { held: scope.held, privateRecordReason: scope.reason }
-      : undefined;
-  }, [scope, isPart]);
+    const isAnswered: boolean = Boolean(
+      getRecordAccessGateOptions(recordAccessScope, { tableName: tableName }),
+    );
+
+    if (!isPart && !isAnswered) {
+      return undefined;
+    }
+
+    return {
+      ...(isPart && scope
+        ? { held: scope.held, privateRecordReason: scope.reason }
+        : {}),
+      ...(isAnswered && recordAccessScope
+        ? { recordAccess: recordAccessScope }
+        : {}),
+    };
+  }, [scope, isPart, recordAccessScope, tableName]);
 }
 
 /*
@@ -95,14 +135,15 @@ export function usePrivateRecordGate(): (
   const scope: PrivateRecordScope | null = React.useContext(
     PrivateRecordScopeContext,
   );
+  const recordAccessScope: RecordAccessScope | null = useRecordAccessScope();
 
   return React.useCallback(
     (
       model: PrivateRecordPartModel | null | undefined,
     ): PermissionGateOptions | undefined => {
-      return getPrivateRecordGateOptions(scope, model);
+      return getPrivateRecordGateOptions(scope, model, recordAccessScope);
     },
-    [scope],
+    [scope, recordAccessScope],
   );
 }
 

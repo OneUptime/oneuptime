@@ -24,6 +24,7 @@ import {
 import Exception from "../../../Types/Exception/Exception";
 import ProjectBlockedException from "../../../Types/Exception/ProjectBlockedException";
 import SessionEndedException from "../../../Types/Exception/SessionEndedException";
+import ReauthenticationRequiredException from "../../../Types/Exception/ReauthenticationRequiredException";
 import {
   ERROR_REFERENCE_FIELD,
   getUnexplainedServerErrorMessage,
@@ -402,13 +403,16 @@ class BaseAPI extends API {
    * dashboard's clients never ask.
    */
   protected static override async tryReauthenticate(
-    _context: AuthRetryContext,
+    context: AuthRetryContext,
   ): Promise<boolean> {
     if (!this.isUserSession()) {
       return false;
     }
 
-    return await Reauthentication.ask();
+    // What the refusal is for, so the prompt says what the person is about to do.
+    return await Reauthentication.ask(
+      ReauthenticationRequiredException.getPurpose(context.error.data),
+    );
   }
 
   /*

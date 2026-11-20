@@ -1,4 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import NameTakenException, {
+  NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+  NAME_TAKEN_REFUSAL_CODE,
+} from "../../../Types/Exception/NameTakenException";
+import { getErrorDetails } from "../../../Types/Exception/BadDataExceptionWithDetails";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -435,6 +440,27 @@ describe("the refusals", () => {
       'Another Kubernetes cluster is already named "prod". Give this one a different display name.',
     );
   });
+
+  test("say so when the resource that has the name is archived: no list shows it", () => {
+    expect(
+      HOST_NAMING.getNameTakenMessage("web-01", { isArchived: true }),
+    ).toBe(
+      'An archived host is already named "web-01". Unarchive it, or give this one a different display name.',
+    );
+    expect(
+      HOST_NAMING.getNameTakenMessage("web-01", { isArchived: false }),
+    ).toBe(
+      'Another host is already named "web-01". Give this one a different display name.',
+    );
+    expect(
+      namedAfterCloudEnvironment<CloudResource>().getNameTakenMessage(
+        "AWS ECS · us-east-1",
+        { isArchived: true },
+      ),
+    ).toBe(
+      'An archived cloud environment is already named "AWS ECS · us-east-1". Unarchive it, or give this one a different display name.',
+    );
+  });
 });
 
 describe("DiscoveredResourceCreate.refuseClash", () => {
@@ -500,6 +526,8 @@ describe("DiscoveredResourceCreate.refuseClash", () => {
       "projectId",
     ]);
     expect(sameTextValue(lookups[1]!.query["name"])).toBe("web server");
+    // Whether the other is archived is read with it, one in service first.
+    expect(lookups[1]!.select).toEqual({ _id: true, isArchived: true });
 
     for (const lookup of lookups) {
       expect(lookup.query["projectId"]).toBe(PROJECT_ID);
@@ -547,6 +575,58 @@ describe("DiscoveredResourceCreate.refuseClash", () => {
         'Another host is already named "web-01". Give this one a different display name.',
       ),
     );
+  });
+
+  /*
+   * A name, refused with the code a program tells a taken name by
+   * (#10065): the Terraform provider asks again while a resource in
+   * service has it, and answers at once when only an archived one does.
+   */
+  test("a clash of names carries name_taken; an identifier's carries no code", async () => {
+    existing.name = new Host();
+
+    const named: unknown = await refuse(
+      hostCreate({ hostIdentifier: "web-02", name: "web-01" }),
+    ).catch((error: unknown): unknown => {
+      return error;
+    });
+
+    expect(named).toBeInstanceOf(NameTakenException);
+    expect(getErrorDetails(named)).toEqual({
+      refusalCode: NAME_TAKEN_REFUSAL_CODE,
+    });
+
+    existing.identity = new Host();
+
+    const identified: unknown = await refuse(
+      hostCreate({ hostIdentifier: "web-01", name: "web-01" }),
+    ).catch((error: unknown): unknown => {
+      return error;
+    });
+
+    expect(identified).toBeInstanceOf(BadDataException);
+    expect(identified).not.toBeInstanceOf(NameTakenException);
+    expect(getErrorDetails(identified)).toEqual({});
+  });
+
+  test("a name only an archived resource has says so, with name_taken_by_archived", async () => {
+    const archived: Host = new Host();
+    archived.isArchived = true;
+    existing.name = archived;
+
+    const error: unknown = await refuse(
+      hostCreate({ hostIdentifier: "web-02", name: "web-01" }),
+    ).catch((caught: unknown): unknown => {
+      return caught;
+    });
+
+    expect(error).toBeInstanceOf(NameTakenException);
+    expect((error as Error).message).toBe(
+      'An archived host is already named "web-01". Unarchive it, or give this one a different display name.',
+    );
+    expect(getErrorDetails(error)).toEqual({
+      refusalCode: NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+    });
   });
 
   test("leaves ingest's (root) creates to settle their own races, without a lookup", async () => {

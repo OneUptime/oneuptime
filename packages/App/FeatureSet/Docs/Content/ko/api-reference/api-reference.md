@@ -255,7 +255,16 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-응답에는 메시지와 함께 `"refusalCode": "name_taken"`이 들어 있습니다. 이 거부는 문구가 바뀔 수 있는 문장이 아니라 이 코드로 알아보세요. 아무것도 기록되지 않았으므로, 다른 레코드가 이름을 내려놓으면 같은 요청을 다시 보낼 수 있습니다. Terraform 프로바이더는 최대 30초 동안 다시 요청합니다.
+인시던트 심각도, 모니터 상태, 상태 페이지, 워크플로 같은 다른 많은 종류도 고유한 이름을 가지며, 이미 쓰이는 이름을 같은 방식으로 거부합니다.
+
+```text
+Incident Severity with the same name already exists.
+```
+
+이런 거부에는 모두 메시지와 함께 무엇이 그 이름을 가지고 있는지 알려 주는 `refusalCode`가 들어 있습니다. 문구가 바뀔 수 있는 문장이 아니라 이 코드로 거부를 알아보세요.
+
+- `"refusalCode": "name_taken"`: 운영 중인 레코드가 그 이름을 가지고 있습니다. 아무것도 기록되지 않았으므로, 그 레코드가 이름을 내려놓으면 같은 요청을 다시 보낼 수 있습니다. Terraform 프로바이더는 최대 30초 동안 다시 요청합니다.
+- `"refusalCode": "name_taken_by_archived"`: 보관된 레코드만 그 이름을 가지고 있습니다. 그 레코드의 보관을 취소하거나 다른 이름을 고르세요. 요청을 다시 보내도 소용이 없으므로 Terraform 프로바이더는 다시 보내지 않습니다.
 
 레코드 자신의 이름을 대소문자와 관계없이 다시 보내는 업데이트는 이름 바꾸기가 아니므로, 전부터 이름을 공유하던 레코드도 계속 변경할 수 있고 서로 다른 이름으로 바꿀 수 있습니다. 팀, 레이블, 온콜 정책, 온콜 일정의 경우 `GET /api/shared-names/team`(또는 `label`, `on-call-policy`, `on-call-schedule`)이 이름을 공유하는 레코드를 알려 줍니다. 응답은 `{"groups": [["<id>", "<id>"]]}` 형식이며, 각 그룹은 이름이 같게 읽히는 레코드 중 키가 읽을 수 있는 레코드의 ID입니다. 보관된 레이블과 온콜 정책은 빠집니다.
 

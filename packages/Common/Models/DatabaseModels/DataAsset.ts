@@ -241,7 +241,7 @@ export default class DataAsset extends BaseModel {
     modelType: DataStore,
     title: "Data Store",
     description:
-      "The data store this asset is in. Reading it takes Data Security's permissions; the store's name and kind are copied onto the asset for everyone else.",
+      "The data store this asset is in. Through it, everyone who reads the asset reads which store it is: its name, kind and environment. The store's security facts, such as its sensitivity, exposure and risk score, take Data Security's permissions.",
   })
   @ManyToOne(
     () => {

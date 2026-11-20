@@ -255,7 +255,16 @@ Les équipes, les étiquettes, les politiques d'astreinte et les plannings d'ast
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-À côté du message, la réponse contient `"refusalCode": "name_taken"`. Reconnaissez ce refus à ce code, pas à la phrase, qui peut être reformulée. Rien n'a été écrit, si bien que la même requête peut être renvoyée dès que l'autre enregistrement abandonne le nom : le fournisseur Terraform redemande pendant 30 secondes au plus.
+Beaucoup d'autres types ont aussi un nom bien à eux, comme les gravités d'incidents, les statuts de moniteur, les pages d'état et les flux de travail, et refusent de la même façon un nom déjà pris :
+
+```text
+Incident Severity with the same name already exists.
+```
+
+À côté du message, chacun de ces refus contient un `refusalCode` qui dit ce qui porte le nom. Reconnaissez le refus à ce code, pas à la phrase, qui peut être reformulée :
+
+- `"refusalCode": "name_taken"` : un enregistrement en service le porte. Rien n'a été écrit, si bien que la même requête peut être renvoyée dès que cet enregistrement abandonne le nom : le fournisseur Terraform redemande pendant 30 secondes au plus.
+- `"refusalCode": "name_taken_by_archived"` : seul un enregistrement archivé le porte. Désarchivez cet enregistrement, ou choisissez un autre nom : renvoyer la requête n'y change rien, et le fournisseur Terraform ne la renvoie pas.
 
 Une mise à jour qui renvoie à un enregistrement son propre nom, quelle que soit la casse, n'est pas un renommage : les enregistrements qui partageaient un nom auparavant peuvent donc toujours être modifiés, et renommés pour se distinguer. Pour les équipes, les étiquettes, les politiques d'astreinte et les plannings d'astreinte, `GET /api/shared-names/team` (ou `label`, `on-call-policy`, `on-call-schedule`) indique lesquels partagent un nom : `{"groups": [["<id>", "<id>"]]}`, chaque groupe réunissant les ID, que votre clé peut lire, des enregistrements dont les noms se lisent de la même façon. Les étiquettes et les politiques d'astreinte archivées sont laissées de côté.
 

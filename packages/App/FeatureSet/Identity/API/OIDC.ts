@@ -1,4 +1,5 @@
 import IdentityProviderSignOut from "../Utils/IdentityProviderSignOut";
+import SignInAgain from "../Utils/SignInAgain";
 import OIDCUtil, { OidcCallbackResult } from "../Utils/OIDC";
 import {
   respondToMobileSsoFailure,
@@ -58,7 +59,12 @@ import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
 import User from "Common/Models/DatabaseModels/User";
 import { Client } from "openid-client";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
-import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
+import {
+  SessionSignInAgain,
+  SignInMethod,
+} from "Common/Types/UserSession/SessionSignIn";
+import OneUptimeDate from "Common/Types/Date";
+import { JSONObject } from "Common/Types/JSON";
 import { SignInFailureReason } from "Common/Types/AuditLog/AuditLogSignInFailure";
 import FailedSignInAuditLog from "Common/Server/Utils/AuditLog/FailedSignInAuditLog";
 
@@ -170,11 +176,16 @@ router.get(
         });
 
       if (!projectOidc) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadRequestException("OIDC Config not found"),
-        );
+        if (!SignInAgain.isRequested(req)) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadRequestException("OIDC Config not found"),
+          );
+        }
+
+        // A Sign In Again through a provider since gone: the sign-in page.
+        return await SignInAgain.sendToSignInPage(req, res);
       }
 
       if (!projectOidc.discoveryURL) {
@@ -236,6 +247,15 @@ router.get(
       const codeChallenge: string =
         OIDCUtil.generateCodeChallenge(codeVerifier);
 
+      /*
+       * Sign In Again (#10217): the provider is asked to authenticate the
+       * person again, and the signed state keeps when they were sent, for
+       * the callback to hold the ID token's auth_time to (Utils/SignInAgain).
+       * Never for the mobile app, which has no prompt.
+       */
+      const isSignInAgain: boolean =
+        SignInAgain.isRequested(req) && !isMobileRequest;
+
       const stateCookieToken: string = JSONWebToken.signJsonPayload(
         {
           state,
@@ -244,6 +264,10 @@ router.get(
           isMobile: isMobileRequest,
           // The mobile app's hand-off (#9989): null for any other sign-in.
           mobileFlowId: mobileFlowId,
+          // When Sign In Again sent the person (SIGN_IN_AGAIN_STATE_FIELD), or null.
+          signInAgainRequestedAt: isSignInAgain
+            ? OneUptimeDate.getCurrentDate().getTime()
+            : null,
         },
         OIDC_STATE_COOKIE_TTL_SECONDS,
       );
@@ -264,6 +288,7 @@ router.get(
         state,
         nonce,
         codeChallenge,
+        isSignInAgain: isSignInAgain,
       });
 
       return Response.redirect(req, res, authorizationUrl);
@@ -344,11 +369,18 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
     let isMobileRequest: boolean;
     // The mobile app's hand-off (#9989), from the signed cookie alone.
     let mobileFlowId: string | null = null;
+    // When Sign In Again sent the person to the provider (#10217), or null.
+    let signInAgainRequestedAt: Date | null = null;
 
     try {
       const decoded: Record<string, unknown> = JSONWebToken.decodeJsonPayload(
         stateCookieValue,
       ) as unknown as Record<string, unknown>;
+
+      signInAgainRequestedAt = SignInAgain.readStateRequestedAt(
+        decoded as JSONObject,
+        OneUptimeDate.getCurrentDate(),
+      );
 
       storedState = decoded["state"] as string;
       storedNonce = decoded["nonce"] as string;
@@ -583,6 +615,23 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
 
     await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
 
+    /*
+     * A sign-in Sign In Again started (#10217): it confirms the session only
+     * when the ID token says the person authenticated at or after the moment
+     * they were sent to the provider (Utils/SignInAgain).
+     */
+    const signInAgain: SessionSignInAgain | undefined = SignInAgain.judge({
+      requestedAt: signInAgainRequestedAt,
+      authenticatedAt: SignInAgain.readAuthTime(result.rawClaims),
+      now: OneUptimeDate.getCurrentDate(),
+    });
+
+    SignInAgain.logOutcome({
+      outcome: signInAgain,
+      providerKind: "project OpenID Connect provider",
+      providerId: projectOidcId,
+    });
+
     const sessionMetadata: SessionMetadata =
       await UserSessionService.createSession({
         userId: alreadySavedUser.id!,
@@ -596,6 +645,8 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
           method: SignInMethod.OpenIdConnect,
           ssoProviderName: projectOidc.name,
           ssoProjectId: projectId,
+          ssoProviderId: projectOidcId,
+          signInAgain: signInAgain,
         },
         /*
          * With "Sign out of the identity provider too" on, a browser's

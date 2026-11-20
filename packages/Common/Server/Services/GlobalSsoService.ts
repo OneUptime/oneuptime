@@ -22,10 +22,36 @@ import GlobalSsoProviderChanges from "../Utils/GlobalSsoProviderChanges";
 import IdentityProviderSignOutCheck from "../Utils/IdentityProviderSignOutCheck";
 import SsoSignInsEnded from "../Utils/SsoSignInsEnded";
 import SsoProviderType from "../../Types/SSO/SsoProviderType";
+import Reauthentication from "../Utils/Reauthentication/Reauthentication";
+import { ReauthenticationPurpose } from "../../Types/Accounts/Reauthentication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * THE SERVER'S OWN SAML PROVIDERS WAIT UNTIL THE MASTER ADMIN'S
+   * SESSION CONFIRMS IT'S THEM (#10216, Utils/Reauthentication).
+   *
+   * One of the server's own providers signs anyone in by the address it
+   * names: whoever held a master admin's session, without their password,
+   * could add one of their own - or point one at their own identity
+   * provider - and sign in as any account on the server. So creating,
+   * changing and deleting one is refused until the master admin's session
+   * has confirmed it's theirs, and goes through once it has: Admin
+   * Dashboard > Settings asks, and sends it again. The master API key has no
+   * session, and is refused. OneUptime's own writes (root) are not asked.
+   * Asked first, before any lock is taken or anything is read.
+   */
+  private async assertChangeIsConfirmed(
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    await Reauthentication.assertConfirmed(
+      props,
+      ReauthenticationPurpose.AdminChange,
+    );
   }
 
   /**
@@ -114,6 +140,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onUpdatePermitted(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
+    await this.assertChangeIsConfirmed(updateBy.props);
+
     /*
      * First, before any lock is taken: turning "Sign out of the identity
      * provider too" on, or clearing the Sign Out URL while it is on, is
@@ -204,6 +232,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
+    await this.assertChangeIsConfirmed(deleteBy.props);
+
     clearGlobalSsoAuthorizationCaches();
 
     await GlobalSsoProviderChanges.beforeProviderDelete<Model>({
@@ -306,6 +336,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onCreatePermitted(
     onCreate: OnCreate<Model>,
   ): Promise<void> {
+    await this.assertChangeIsConfirmed(onCreate.createBy.props);
+
     IdentityProviderSignOutCheck.beforeSamlProviderCreate(
       onCreate.createBy.data,
     );

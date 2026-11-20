@@ -159,6 +159,13 @@ On test.oneuptime.com first, then on oneuptime.com, in a private window:
      `someone@outlook.com` - which is neither Gmail nor Workspace.
 6. Cancel on Google's account chooser: the page says the sign-in was
    cancelled.
+7. Sign In Again (#10217): with an account that signs in only with Google,
+   change something that asks to confirm it's you - turn off two-factor
+   authentication, say - and press **Sign In Again**. With Session age claims
+   on, sign out of Google first: the change goes through. Without signing out
+   of Google, the prompt says Google signed you in with a session it already
+   had, and confirms nothing. With Session age claims off, it says Google did
+   not say when you signed in.
 
 ## What the code needs from the client, and what breaks without it
 
@@ -169,6 +176,7 @@ On test.oneuptime.com first, then on oneuptime.com, in a private window:
 | Publishing status **In production**  | Everyone but the listed test users sees "Access blocked".                                              |
 | User type **External**               | Only accounts of the project's own organization can sign in.                                           |
 | The secret that matches the client   | Every callback fails with "We could not sign you in with Google." (`invalid_client` in the app's log). |
+| **Session age claims** on            | Sign In Again never confirms it's someone: Google sends no `auth_time`, so the prompt says Google did not say when they signed in. |
 
 What OneUptime does with the account, and why, is in the code:
 [GoogleSignInClient.ts](GoogleSignInClient.ts) runs the OpenID Connect
@@ -212,8 +220,32 @@ Add a second secret to the client in Google Auth Platform > Clients, put it in
 the server's configuration, restart, check a sign-in, then delete the old
 secret. Sign-ins in flight when the server restarts are asked to start again.
 
+## Session age claims, for Sign In Again
+
+An account that signs in only with Google confirms it's its person's before a
+change to how it signs in by signing in again (Confirm It's You, #10155). So
+that a browser Google still remembers cannot do that without the person,
+OneUptime counts the sign-in only when Google says the person signed in after
+OneUptime sent them there (`auth_time`, #10217). Google takes no
+`prompt=login` and documents no `max_age`, so it cannot be asked to have the
+person sign in again; it is asked to say when they did, with
+`claims={"id_token":{"auth_time":{"essential":true}}}`
+([GoogleSignInClient.ts](GoogleSignInClient.ts)). Google sends `auth_time`
+only when **Session age claims** is on: **Google Auth Platform > Settings >
+Advanced settings**, in each project whose client a server uses. Google
+allows it only for an app whose **Audience** is **In production** and whose
+**Verification Center** shows it verified
+([Google's guide](https://developers.google.com/identity/siwg/security-bundle#setup)).
+Without it, Sign In Again through Google confirms nothing, and the prompt asks
+the person's admin to turn it on; they can still confirm with a password or a
+passkey of their own.
+
 ## Known gaps
 
+- **Google cannot be asked to have the person sign in again** (no
+  `prompt=login`). A person whose Google session is older than the moment
+  OneUptime sent them to Google confirms nothing until they sign out of
+  Google first, as the prompt says.
 - **Not yet run against Google.** The flow is tested against Google's
   documented endpoints and token format with signed test tokens, not against a
   live client: the clients exist, but no server has their settings yet. Step 5
