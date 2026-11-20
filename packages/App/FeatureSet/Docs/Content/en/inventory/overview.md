@@ -206,7 +206,7 @@ In the MobiControl web console, add a user of MobiControl's own, not a SOTI Iden
 
 In the web console, go to `Global Settings`, then `Services`, then `API Client`, and add one. Copy its `Client ID` and its `Client Secret`: MobiControl shows the secret once. A server older than MobiControl 2024.0 makes one on the server with `MCAdmin.exe APIClientAdd -n:OneUptime`.
 
-### Connect the server
+### Connect the MobiControl server
 
 Go to **Products → Resources → Inventory**, then **Managed Devices**, click **Connect device manager**, and pick **SOTI MobiControl**. Enter the **Server**, the address of your web console without `/MobiControl`, like `https://acme.mobicontrolcloud.com`, and the API client's **Client ID** and **Client Secret**, then the user's **Username** and **Password**. **Connect** tests the sign-in before it saves anything: it says how many devices a read will import, or what is wrong and how to fix it.
 :::
