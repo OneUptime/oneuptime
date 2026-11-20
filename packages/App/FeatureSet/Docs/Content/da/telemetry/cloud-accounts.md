@@ -88,6 +88,8 @@ Rollen og brugeren kan gøre dette og intet andet:
 
 I hver region viser OneUptime EC2-instanser og -diskenheder, VPC'er, undernet og sikkerhedsgrupper, NAT-gateways, Auto Scaling-grupper, load balancere (Application, Network, Gateway og Classic), EKS-klynger, ECS-klynger og -tjenester, Lambda-funktioner, RDS-databaser, ElastiCache, SQS-køer, SNS-emner, DynamoDB-tabeller, Kinesis-streams, Step Functions-tilstandsmaskiner, API Gateway-API'er, EFS-filsystemer, OpenSearch-domæner, App Runner-tjenester, Elastic Beanstalk-miljøer, WAF-web-ACL'er, Network Firewall-firewalls, Cognito-brugerpuljer, AppSync GraphQL-API'er og SageMaker-endepunkter med deres tags, CloudFront-distributioner og deres web-ACL'er én gang, i us-east-1, og Global Accelerator-acceleratorer én gang, i us-west-2. Den registrerer også, hvordan de hænger sammen: det undernet og den VPC, hver ressource kører i, og de sikkerhedsgrupper, der beskytter den, hvor hver load balancer sender trafik hen, og netværket og node-instanserne i hver EKS-klynge. En rolle, der blev oprettet, før OneUptime viste en type, læses stadig uden den og uden en advarsel: kør kommandoen igen for også at vise den type, fx undernet, sikkerhedsgrupper og EKS-klynger, eller web-ACL'erne, firewallene, acceleratorerne, brugerpuljerne, GraphQL-API'erne og endepunkterne, som så vises, allerede før de rapporterer en metrik.
 
+OneUptime logger kun ind i en rolle, når dens tillidspolitik kræver dit projekts eksterne id, med betingelsen `sts:ExternalId`, som kommandoen skriver. Før OneUptime læser noget gennem en rolle, og igen hver dag, logger OneUptime ind én gang med et eksternt id, som intet projekt har: Afviser AWS det login, er kontrollen bestået, så rollens CloudTrail viser et `AccessDenied` fra OneUptime cirka én gang om dagen for hver OneUptime-server, der læser den. En rolle, der lukker det login igennem, ville lade ethvert projekt, der kender dens ARN, læse din konto gennem OneUptime, så OneUptime afviser den, læser intet gennem den og siger, hvilken betingelse der skal tilføjes.
+
 > [!NOTE]
 > På en selvhostet OneUptime kræver vejen med en **IAM-rolle** en AWS-identitet, der tilhører OneUptime selv og må kalde `sts:AssumeRole`: den IAM-rolle, serveren kører som (dens pods' rolle på Amazon EKS, angivet i Helm-chartets `serviceAccount.annotations`, dens opgaverolle på Amazon ECS eller dens instansprofil på Amazon EC2), eller nøglen for en IAM-bruger i `CLOUD_CONNECT_AWS_ACCESS_KEY_ID` og `CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY`, som bruges, når den er sat. Uden nogen af dem tilbyder formularen en **Adgangsnøgle**.
 
@@ -338,6 +340,10 @@ Kopiér alt, hvad kommandoen udskrev, og indsæt det igen. En nøgle, der blev o
 
 :::details Testen logger ind, men kan ikke læse
 Kør kommandoen igen: Den tildeler de roller, OneUptime har brug for. På AWS skal du køre den kommando, formularen viser for dette projekt: En rolle, der er lavet til et andet projekt, stoler på det projekts eksterne id, ikke på dette projekts.
+:::
+
+:::details Rollen lader OneUptime logge ind uden dit projekts eksterne id
+Dens tillidspolitik kræver ikke dit projekts eksterne id med betingelsen `sts:ExternalId`, så ethvert projekt, der kender rollens ARN, kunne læse din konto gennem OneUptime, og OneUptime bruger ikke rollen. Føj den betingelse, som meddelelsen viser, til den del af tillidspolitikken, der stoler på OneUptime, eller kør kommandoen igen, og forbind den rolle, den udskriver. En test kontrollerer rollen igen med det samme, og læsninger bruger den inden for en time.
 :::
 
 :::details Google Cloud lader ikke kommandoen oprette en nøgle
