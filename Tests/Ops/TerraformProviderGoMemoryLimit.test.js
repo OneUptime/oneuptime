@@ -24,26 +24,22 @@
 
 const fs = require("fs");
 const path = require("path");
-const yaml = require("js-yaml");
 
 const { stepCommandFromRoot } = require("./Utils/WorkflowStep");
+const {
+  jobsThatGenerateTheProvider,
+} = require("./Utils/TerraformProviderJobs");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
-const WORKFLOWS = path.join(REPO_ROOT, ".github", "workflows");
 const GO_COMMAND = "Scripts/TerraformProvider/Core/GoCommand.ts";
 const PUBLISH_SCRIPT =
   "Scripts/TerraformProvider/publish-terraform-provider.sh";
 
 /*
- * A job that runs one of these generates the provider, and compiles it. It
- * is gitignored, so a job cannot compile it without generating it first.
+ * A job that generates the provider compiles it (Utils/TerraformProviderJobs
+ * says how one is found). The jobs that did on 2026-11-13, so a reading that
+ * finds none fails.
  */
-const GENERATES_THE_PROVIDER = [
-  "npm run generate-terraform-provider",
-  "npm run publish-terraform-provider",
-];
-
-// The jobs that did on 2026-11-13, so a reading that finds none fails.
 const KNOWN_JOBS = [
   "crossplane-provider.yml crossplane-e2e",
   "release.yml publish-crossplane-provider",
@@ -68,37 +64,8 @@ function generatorLimit() {
   return match[1];
 }
 
-/**
- * Every job of every workflow that generates the provider.
- * @returns {Array<{name: string, job: object}>}
- */
-function jobsThatCompileTheProvider() {
-  return fs
-    .readdirSync(WORKFLOWS)
-    .filter((file) => {
-      return /\.ya?ml$/.test(file);
-    })
-    .sort()
-    .flatMap((file) => {
-      const workflow =
-        yaml.load(fs.readFileSync(path.join(WORKFLOWS, file), "utf8")) || {};
-      return Object.entries(workflow.jobs || {})
-        .filter(([, job]) => {
-          return (job.steps || []).some((step) => {
-            const command = stepCommandFromRoot(step);
-            return GENERATES_THE_PROVIDER.some((generate) => {
-              return command.includes(generate);
-            });
-          });
-        })
-        .map(([id, job]) => {
-          return { name: `${file} ${id}`, job };
-        });
-    });
-}
-
 const limit = generatorLimit();
-const jobs = jobsThatCompileTheProvider();
+const jobs = jobsThatGenerateTheProvider();
 
 describe("the generators' limit", () => {
   test("is a size Go reads: a whole number of bytes, KiB, MiB, GiB or TiB", () => {

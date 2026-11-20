@@ -68,8 +68,11 @@ jobs:
       # alias, Common's sources, with Common's own compiler options (its
       # tsconfig.json extends packages/Common's). Nothing else checks that
       # whole program: ts-jest checks the files a test loads, and generation
-      # below compiles only what it runs, under the root's tsconfig. It needs
-      # the three installs above: Common's for Common's imports, Scripts' for
+      # below checks no types, here or in any job that generates the
+      # provider. It runs the generator transpile-only, which keeps ~1 GiB of
+      # Node.js out of the runner's memory while Go compiles the provider
+      # (Tests/Ops/TerraformProviderGeneratorTypeCheck.test.js). It needs the
+      # three installs above: Common's for Common's imports, Scripts' for
       # GenerateSpec's @readme/openapi-parser, the generator's for TypeScript.
       - name: Type-check the generator
         run: cd Scripts/TerraformProvider && npm run compile

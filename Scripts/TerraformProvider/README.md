@@ -72,8 +72,12 @@ npm run generate-terraform-provider
 Generation compiles the provider twice: `go build`, then the test binary
 the docs step runs. Go runs both with a soft memory limit, `GOMEMLIMIT`, set
 in `Core/GoCommand.ts`, unless you set your own (`GOMEMLIMIT=off` turns it
-off): the provider's `internal/provider` is one Go package of ~985 files, and
-without the limit the compiler alone takes ~15 GB.
+off): the provider's `internal/provider` is one Go package of ~1,000 files,
+and without the limit the compiler alone takes ~15 GB.
+
+Generation runs the generator without type-checking it (ts-node's
+transpile-only mode), which keeps about 1 GiB of Node.js out of memory while
+Go compiles. Type-check it with `npm run compile` (below).
 
 ### Build and Install Locally
 
@@ -235,7 +239,8 @@ To modify the generator:
 ### Checking the generator
 
 The generator has its own unit tests and type check. The Terraform Provider
-Generation workflow runs both on every pull request:
+Generation workflow runs both on every pull request, and its type check is
+the only one: `npm run generate-terraform-provider` checks no types.
 
 ```bash
 cd Scripts/TerraformProvider
