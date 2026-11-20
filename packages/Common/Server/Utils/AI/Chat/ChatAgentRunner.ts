@@ -2033,12 +2033,21 @@ export default class ChatAgentRunner {
           : undefined;
     const descriptionSentences: Array<AIActionSentence> =
       words?.description || [];
+    /*
+     * Why Auto-run did not make it, said on its Skipped row in the reader's
+     * language (issue #6982): only of an action skipped for it.
+     */
+    const reason: AIActionSentence | undefined =
+      status === AIChatToolActionStatus.Skipped
+        ? words?.notRunWithoutApproval?.reason
+        : undefined;
     const actionWords: AIActionWords | undefined = titleSentence
       ? {
           title: titleSentence,
           ...(descriptionSentences.length > 0
             ? { description: descriptionSentences }
             : {}),
+          ...(reason ? { reason } : {}),
           ...(words?.title && words.namedArguments
             ? { namedArguments: words.namedArguments }
             : {}),

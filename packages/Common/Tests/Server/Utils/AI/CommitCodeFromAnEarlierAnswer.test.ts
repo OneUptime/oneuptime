@@ -350,6 +350,12 @@ describe("the issue's case: read whole in one turn, committed without a read in 
         CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][
           CodeFileUnseen.ReadInEarlierAnswer
         ],
+      reason: {
+        template:
+          CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][
+            CodeFileUnseen.ReadInEarlierAnswer
+          ],
+      },
     });
   });
 

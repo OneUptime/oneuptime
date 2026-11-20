@@ -12,6 +12,7 @@ import {
 } from "../../../../Types/AI/AIChatRecordSeen";
 import {
   AI_ACTION_CODE_FILE,
+  AI_ACTION_CODE_NOT_MADE,
   AI_ACTION_PLURAL_LINES,
   AI_ACTION_TERMS,
   AIActionList,
@@ -1004,7 +1005,9 @@ export enum CodeChangeKind {
 
 /*
  * What the record of a change that was not made says of it (resultSummary),
- * by what mattered most.
+ * by what mattered most: the English of the sentences its Skipped row says
+ * in the reader's language (AI_ACTION_CODE_NOT_MADE, issue #6982), which the
+ * exports and AI Logs print as they always did.
  */
 export const CODE_UNSEEN_SUMMARIES: Record<
   CodeChangeKind,
@@ -1012,43 +1015,37 @@ export const CODE_UNSEEN_SUMMARIES: Record<
 > = {
   [CodeChangeKind.Commit]: {
     [CodeFileUnseen.ChangedSinceRead]:
-      "Not committed: a file changed on the branch after Ask AI read it.",
+      AI_ACTION_CODE_NOT_MADE.notCommittedChangedSinceRead,
     [CodeFileUnseen.ReadOnAnotherBranch]:
-      "Not committed: Ask AI read a file on another branch, and it is different on this one.",
-    [CodeFileUnseen.NotRead]:
-      "Not committed: Ask AI had not read a file the commit replaces.",
+      AI_ACTION_CODE_NOT_MADE.notCommittedReadOnAnotherBranch,
+    [CodeFileUnseen.NotRead]: AI_ACTION_CODE_NOT_MADE.notCommittedNotRead,
     [CodeFileUnseen.ReadInEarlierAnswer]:
-      "Not committed: Ask AI had read a file the commit replaces only in an earlier answer, and no longer had its text.",
+      AI_ACTION_CODE_NOT_MADE.notCommittedReadInEarlierAnswer,
     [CodeFileUnseen.ReadEarlierInThisAnswer]:
-      "Not committed: Ask AI had read a file the commit replaces earlier in this answer, and no longer had its text.",
+      AI_ACTION_CODE_NOT_MADE.notCommittedReadEarlierInThisAnswer,
     [CodeFileUnseen.PartNoLongerInHand]:
-      "Not committed: Ask AI had read a file the commit replaces whole, and no longer had part of its text.",
-    [CodeFileUnseen.ReadInPart]:
-      "Not committed: Ask AI had read only part of a file the commit replaces whole.",
-    [CodeFileUnseen.NotChecked]:
-      "Not committed: OneUptime could not check a file against what Ask AI read.",
+      AI_ACTION_CODE_NOT_MADE.notCommittedPartNoLongerInHand,
+    [CodeFileUnseen.ReadInPart]: AI_ACTION_CODE_NOT_MADE.notCommittedReadInPart,
+    [CodeFileUnseen.NotChecked]: AI_ACTION_CODE_NOT_MADE.notCommittedNotChecked,
     [CodeFileUnseen.ValuesHidden]:
-      "Not committed: Ask AI's version of a file writes placeholders in place of values hidden from it.",
+      AI_ACTION_CODE_NOT_MADE.notCommittedValuesHidden,
   },
   [CodeChangeKind.PullRequest]: {
     [CodeFileUnseen.ChangedSinceRead]:
-      "Not opened: a file changed on the default branch after Ask AI read it.",
+      AI_ACTION_CODE_NOT_MADE.notOpenedChangedSinceRead,
     [CodeFileUnseen.ReadOnAnotherBranch]:
-      "Not opened: Ask AI read a file on another branch, and it is different on the default branch.",
-    [CodeFileUnseen.NotRead]:
-      "Not opened: Ask AI had not read a file the pull request replaces.",
+      AI_ACTION_CODE_NOT_MADE.notOpenedReadOnAnotherBranch,
+    [CodeFileUnseen.NotRead]: AI_ACTION_CODE_NOT_MADE.notOpenedNotRead,
     [CodeFileUnseen.ReadInEarlierAnswer]:
-      "Not opened: Ask AI had read a file the pull request replaces only in an earlier answer, and no longer had its text.",
+      AI_ACTION_CODE_NOT_MADE.notOpenedReadInEarlierAnswer,
     [CodeFileUnseen.ReadEarlierInThisAnswer]:
-      "Not opened: Ask AI had read a file the pull request replaces earlier in this answer, and no longer had its text.",
+      AI_ACTION_CODE_NOT_MADE.notOpenedReadEarlierInThisAnswer,
     [CodeFileUnseen.PartNoLongerInHand]:
-      "Not opened: Ask AI had read a file the pull request replaces whole, and no longer had part of its text.",
-    [CodeFileUnseen.ReadInPart]:
-      "Not opened: Ask AI had read only part of a file the pull request replaces whole.",
-    [CodeFileUnseen.NotChecked]:
-      "Not opened: OneUptime could not check a file against what Ask AI read.",
+      AI_ACTION_CODE_NOT_MADE.notOpenedPartNoLongerInHand,
+    [CodeFileUnseen.ReadInPart]: AI_ACTION_CODE_NOT_MADE.notOpenedReadInPart,
+    [CodeFileUnseen.NotChecked]: AI_ACTION_CODE_NOT_MADE.notOpenedNotChecked,
     [CodeFileUnseen.ValuesHidden]:
-      "Not opened: Ask AI's version of a file writes placeholders in place of values hidden from it.",
+      AI_ACTION_CODE_NOT_MADE.notOpenedValuesHidden,
   },
 };
 
@@ -1500,7 +1497,12 @@ export const summarizeCodeFilesUnseen: SummaryFunction = (data: {
 export interface UnseenCodeChange {
   findings: Array<CodeFileUnseenFinding>;
   lines: Array<AIActionSentence>;
-  notRunWithoutApproval: { toldModel: string; summary: string };
+  notRunWithoutApproval: {
+    toldModel: string;
+    summary: string;
+    // The summary as a sentence, for the Skipped row (issue #6982).
+    reason: AIActionSentence;
+  };
 }
 
 type FindUnseenCodeChangeFunction = (data: {
@@ -1567,6 +1569,11 @@ export const findUnseenCodeChange: FindUnseenCodeChangeFunction = (data: {
     }
   }
 
+  const summary: string = summarizeCodeFilesUnseen({
+    change: data.change,
+    findings: findings,
+  });
+
   return {
     findings: findings,
     lines: describeCodeFilesUnseenForPerson({
@@ -1580,10 +1587,9 @@ export const findUnseenCodeChange: FindUnseenCodeChangeFunction = (data: {
         findings: findings,
         reasons: reasons,
       }),
-      summary: summarizeCodeFilesUnseen({
-        change: data.change,
-        findings: findings,
-      }),
+      summary: summary,
+      // A sentence of no values: its template is the summary itself.
+      reason: aiActionSentence(summary),
     },
   };
 };

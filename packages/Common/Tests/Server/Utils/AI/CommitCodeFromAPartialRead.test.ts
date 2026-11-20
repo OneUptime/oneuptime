@@ -528,6 +528,12 @@ describe("the issue's case: lines 340 to 460 of a 2,000-line file, committed who
       ].join("\n"),
       summary:
         CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][CodeFileUnseen.ReadInPart],
+      reason: {
+        template:
+          CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][
+            CodeFileUnseen.ReadInPart
+          ],
+      },
     });
   });
 

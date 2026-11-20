@@ -24,6 +24,7 @@ import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import {
   AI_ACTION_PLURAL_LINES,
   AIActionSentence,
+  isKnownAIActionWords,
 } from "../../../../Types/AI/AIActionWords";
 import {
   AIChatCitation,
@@ -639,6 +640,16 @@ describe("Auto-run: written back, the commit is made; a placeholder that cannot 
       CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][CodeFileUnseen.ValuesHidden],
     );
     expect(actions[0]!.description).toBe(HIDDEN);
+    // Its Skipped row says why, in the reader's language (issue #6982): the summary, as words.
+    expect(actions[0]!.words!.reason).toEqual({
+      template:
+        CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][
+          CodeFileUnseen.ValuesHidden
+        ],
+    });
+    expect(isKnownAIActionWords(actions[0]!.words)).toBe(true);
+    // A change that was made has no reason.
+    expect(actions[1]!.words!.reason).toBeUndefined();
   });
 
   test("a version that takes the hard-coded values out writes over nothing hidden: made at once", async () => {

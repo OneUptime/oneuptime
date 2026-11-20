@@ -351,6 +351,12 @@ describe("the issue's case: read whole early in a long answer, left out, committ
         CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][
           CodeFileUnseen.ReadEarlierInThisAnswer
         ],
+      reason: {
+        template:
+          CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][
+            CodeFileUnseen.ReadEarlierInThisAnswer
+          ],
+      },
     });
   });
 
@@ -480,6 +486,10 @@ describe("what a left-out read still counts for, and what it does not", () => {
       ].join("\n"),
       summary:
         "Not committed: Ask AI had read a file the commit replaces whole, and no longer had part of its text.",
+      reason: {
+        template:
+          "Not committed: Ask AI had read a file the commit replaces whole, and no longer had part of its text.",
+      },
     });
     expect(prepared.notRunWithoutApproval!.toldModel).not.toContain(
       "have not read",
@@ -551,6 +561,10 @@ describe("what a left-out read still counts for, and what it does not", () => {
       ].join("\n"),
       summary:
         "Not committed: Ask AI had read only part of a file the commit replaces whole.",
+      reason: {
+        template:
+          "Not committed: Ask AI had read only part of a file the commit replaces whole.",
+      },
     });
   });
 
@@ -921,6 +935,10 @@ describe("open_code_pull_request, from a left-out read of the default branch", (
       ].join("\n"),
       summary:
         "Not opened: Ask AI had read a file the pull request replaces whole, and no longer had part of its text.",
+      reason: {
+        template:
+          "Not opened: Ask AI had read a file the pull request replaces whole, and no longer had part of its text.",
+      },
     });
     expect(repository.pullRequests).toEqual([]);
 
