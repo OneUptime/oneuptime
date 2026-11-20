@@ -312,11 +312,16 @@ function addId(
 /*
  * The records a resource's own ids point at, by model: its severity, its
  * monitors, its labels, and the statuses and severities in its monitor
- * steps. Looked up to name them in its configuration.
+ * steps. Looked up to name them in its configuration. A list OneUptime adds
+ * to as well - its labels - is written by the Terraform configuration
+ * (TerraformConfig's writesListsHeldEntryByEntry, #10134), not by the
+ * Crossplane manifest, which leaves it to OneUptime.
  */
 export function getDeveloperDocsRecordLookups(data: {
   modelType: DatabaseBaseModelType;
   json: Dictionary<unknown>;
+  // The page the configuration is written for: Terraform's when left out.
+  page?: DeveloperDocsPageKind | undefined;
 }): Array<DeveloperDocsLookup> {
   const ids: Map<
     string,
@@ -336,11 +341,11 @@ export function getDeveloperDocsRecordLookups(data: {
     }
 
     // Only ids the configuration writes: never the project, the creator, a current state.
-    if (
-      !descriptor.relatedModelType ||
-      descriptor.secretKind ||
-      descriptor.isServerManaged
-    ) {
+    const isWritten: boolean =
+      !descriptor.isServerManaged ||
+      (descriptor.isHeldEntryByEntry && data.page !== "crossplane");
+
+    if (!descriptor.relatedModelType || descriptor.secretKind || !isWritten) {
       continue;
     }
 
@@ -388,6 +393,7 @@ export function getDeveloperDocsPageLookups(data: {
       ...getDeveloperDocsRecordLookups({
         modelType: data.modelType,
         json: data.json,
+        page: data.page,
       }),
     );
   }
