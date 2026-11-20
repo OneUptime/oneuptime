@@ -100,8 +100,14 @@ const OWN_CARD_EMAILS: Array<[string, Record<string, string>, Array<string>]> =
     ],
     [
       "TwoFactorBackupCodeUsed",
-      { signedInAt: "Oct 18 2026, 12:07 UTC", remainingCodeCount: "7" },
-      ["Signed in at: Oct 18 2026, 12:07 UTC", "Backup codes remaining: 7"],
+      { usedAt: "Oct 18 2026, 12:07 UTC", remainingCodeCount: "7" },
+      ["Used at: Oct 18 2026, 12:07 UTC", "Backup codes remaining: 7"],
+    ],
+    // A session signed out for getting Confirm It's You wrong (#10218).
+    [
+      "ReauthenticationSignedOut",
+      { signedOutAt: "Oct 18 2026, 12:07 UTC" },
+      ["Signed out at: Oct 18 2026, 12:07 UTC"],
     ],
     [
       "TwoFactorBackupCodesCreated",

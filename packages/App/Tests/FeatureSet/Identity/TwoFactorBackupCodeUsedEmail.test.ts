@@ -3,13 +3,12 @@ import fs from "fs";
 import Path from "path";
 import "../../../FeatureSet/Notification/Utils/Handlebars";
 import AuthenticationEmail from "../../../FeatureSet/Identity/Utils/AuthenticationEmail";
-import MailService from "Common/Server/Services/MailService";
-import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
+import TwoFactorBackupCodeNotification, {
+  BackupCodeUse,
+} from "Common/Server/Utils/TwoFactorBackupCodeNotification";
 import User from "Common/Models/DatabaseModels/User";
 import Email from "Common/Types/Email";
-import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
-import Timezone from "Common/Types/Timezone";
 import { markupAsSpacesWithOutlookContent } from "Common/Tests/Helpers/HtmlText";
 import {
   afterEach,
@@ -21,39 +20,21 @@ import {
 } from "@jest/globals";
 
 /*
- * The email that tells an account's owner one of their two factor backup
- * codes was just spent to sign in (AuthenticationEmail.sendTwoFactorBackupCodeUsedEmail,
- * Templates/TwoFactorBackupCodeUsed.hbs): who it goes to, what it is called,
- * the count that is left and the advice that goes with it, and - so an owner
- * who did not sign in can tell where somebody did - the address, the place
- * and the device the code was spent from.
+ * The email that tells an account's owner one of their two-factor backup
+ * codes was spent to sign in: the sign-in route's way to it
+ * (AuthenticationEmail.sendTwoFactorBackupCodeUsedEmail), and the template
+ * it renders (Templates/TwoFactorBackupCodeUsed.hbs).
+ *
+ * Since #10219 the email itself is Common's
+ * (Utils/TwoFactorBackupCodeNotification.sendCodeUsedEmail), which Confirm
+ * It's You sends too when a backup code confirms it's the owner: its
+ * address, its words in the owner's language, its subject and its count are
+ * pinned by Common/Tests/Server/Utils/Reauthentication/
+ * ReauthenticationEmails.test.ts, and the template in every language by
+ * Tests/Notification/ConfirmItsYouEmailsInLanguages.test.ts. Here: that the
+ * sign-in's way sends it, once, for a sign-in, with the count and where the
+ * code was spent from; and the card the template draws.
  */
-
-jest.mock("Common/Server/DatabaseConfig", () => {
-  const HostnameType: typeof import("Common/Types/API/Hostname").default =
-    jest.requireActual("Common/Types/API/Hostname").default;
-  const ProtocolType: typeof import("Common/Types/API/Protocol").default =
-    jest.requireActual("Common/Types/API/Protocol").default;
-
-  return {
-    __esModule: true,
-    default: {
-      getHost: (): Promise<unknown> => {
-        return Promise.resolve(new HostnameType("oneuptime.example.com"));
-      },
-      getHttpProtocol: (): Promise<unknown> => {
-        return Promise.resolve(ProtocolType.HTTPS);
-      },
-    },
-  };
-});
-
-jest.mock("Common/Server/Services/MailService", () => {
-  return {
-    __esModule: true,
-    default: { sendMail: jest.fn() },
-  };
-});
 
 const TEMPLATES_DIR: string = Path.resolve(
   __dirname,
@@ -66,35 +47,15 @@ function textOf(html: string): string {
   return markupAsSpacesWithOutlookContent(html).replace(WHITESPACE_RUN, " ");
 }
 
-function account(email?: string, timezone?: Timezone): User {
+function account(id: ObjectID | null = ObjectID.generate()): User {
   const user: User = new User();
-  user.id = ObjectID.generate();
 
-  if (email) {
-    user.email = new Email(email);
+  if (id) {
+    user.id = id;
   }
 
-  if (timezone) {
-    user.timezone = timezone;
-  }
-
+  user.email = new Email("owner@example.com");
   return user;
-}
-
-type SentMail = {
-  toEmail: Email;
-  subject: string;
-  isSubjectLiteral: boolean;
-  templateType: EmailTemplateType;
-  vars: Record<string, string>;
-};
-
-function sentMails(): Array<SentMail> {
-  return jest
-    .mocked(MailService.sendMail)
-    .mock.calls.map((call: Array<unknown>): SentMail => {
-      return call[0] as SentMail;
-    });
 }
 
 function render(vars: Record<string, string>): string {
@@ -105,6 +66,10 @@ function render(vars: Record<string, string>): string {
     ),
   )({ brandProductName: "OneUptime", ...vars });
 }
+
+let sendCodeUsedEmail: jest.SpiedFunction<
+  typeof TwoFactorBackupCodeNotification.sendCodeUsedEmail
+>;
 
 beforeAll(async () => {
   const partialNames: Array<string> = fs
@@ -134,115 +99,21 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  jest.mocked(MailService.sendMail).mockReset();
-  jest.mocked(MailService.sendMail).mockResolvedValue(undefined as never);
+  sendCodeUsedEmail = jest
+    .spyOn(TwoFactorBackupCodeNotification, "sendCodeUsedEmail")
+    .mockResolvedValue(true);
 });
 
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("who it goes to and what it is called", () => {
-  it("one mail, to the address on the account, with a subject sent as it is", async () => {
-    await AuthenticationEmail.sendTwoFactorBackupCodeUsedEmail({
-      user: account("owner@example.com"),
-      remainingCodeCount: 7,
-    });
-
-    expect(sentMails()).toHaveLength(1);
-
-    const mail: SentMail = sentMails()[0]!;
-
-    expect(mail.toEmail.toString()).toBe("owner@example.com");
-    expect(mail.subject).toBe(
-      "A backup code was used to sign in to your OneUptime account",
-    );
-    expect(mail.isSubjectLiteral).toBe(true);
-    expect(mail.templateType).toBe(EmailTemplateType.TwoFactorBackupCodeUsed);
-  });
-
-  it("the subject names the product the way the installation goes by", async () => {
-    jest
-      .spyOn(ProductBrandingText, "getProductName")
-      .mockReturnValue("Acme Status");
+describe("the sign-in's way to the email", () => {
+  it("sends Common's email once, for a sign-in, with the count and where the code was spent from", async () => {
+    const user: User = account();
 
     await AuthenticationEmail.sendTwoFactorBackupCodeUsedEmail({
-      user: account("owner@example.com"),
-      remainingCodeCount: 7,
-    });
-
-    expect(sentMails()[0]!.subject).toBe(
-      "A backup code was used to sign in to your Acme Status account",
-    );
-  });
-
-  it("an account without an address is sent nothing", async () => {
-    await AuthenticationEmail.sendTwoFactorBackupCodeUsedEmail({
-      user: account(),
-      remainingCodeCount: 7,
-    });
-
-    expect(sentMails()).toHaveLength(0);
-  });
-
-  it("links to the installation's own two factor page", async () => {
-    await AuthenticationEmail.sendTwoFactorBackupCodeUsedEmail({
-      user: account("owner@example.com"),
-      remainingCodeCount: 7,
-    });
-
-    const twoFactor: URL = new URL(sentMails()[0]!.vars["twoFactorAuthUrl"]!);
-
-    expect(twoFactor.origin).toBe("https://oneuptime.example.com");
-    expect(twoFactor.pathname).toBe("/dashboard/user-profile/two-factor-auth");
-  });
-});
-
-describe("the count that is left, and what to do about it", () => {
-  it("plenty left: where to see them and make more", async () => {
-    await AuthenticationEmail.sendTwoFactorBackupCodeUsedEmail({
-      user: account("owner@example.com"),
-      remainingCodeCount: 7,
-    });
-
-    const vars: Record<string, string> = sentMails()[0]!.vars;
-
-    expect(vars["remainingCodeCount"]).toBe("7");
-    expect(vars["remainingCodeMessage"]).toContain(
-      "You can see how many codes you have left",
-    );
-  });
-
-  it("three or fewer left: running low", async () => {
-    await AuthenticationEmail.sendTwoFactorBackupCodeUsedEmail({
-      user: account("owner@example.com"),
-      remainingCodeCount: 3,
-    });
-
-    expect(sentMails()[0]!.vars["remainingCodeMessage"]).toContain(
-      "You are running low on backup codes.",
-    );
-  });
-
-  it("none left: that was the last one", async () => {
-    await AuthenticationEmail.sendTwoFactorBackupCodeUsedEmail({
-      user: account("owner@example.com"),
-      remainingCodeCount: 0,
-    });
-
-    const vars: Record<string, string> = sentMails()[0]!.vars;
-
-    expect(vars["remainingCodeCount"]).toBe("0");
-    expect(vars["remainingCodeMessage"]).toContain(
-      "That was your last backup code.",
-    );
-  });
-});
-
-describe("where the code was spent from", () => {
-  it("carries the address, the place and the device of the sign-in", async () => {
-    await AuthenticationEmail.sendTwoFactorBackupCodeUsedEmail({
-      user: account("owner@example.com"),
+      user: user,
       remainingCodeCount: 7,
       origin: {
         ipAddress: "203.0.113.7",
@@ -251,43 +122,46 @@ describe("where the code was spent from", () => {
       },
     });
 
-    const vars: Record<string, string> = sentMails()[0]!.vars;
-
-    expect(vars["requestIpAddress"]).toBe("203.0.113.7");
-    expect(vars["requestLocation"]).toBe("Lyon, France");
-    expect(vars["requestDevice"]).toBe("Firefox 132 on Windows");
+    expect(sendCodeUsedEmail).toHaveBeenCalledTimes(1);
+    expect(sendCodeUsedEmail).toHaveBeenCalledWith({
+      userId: user.id,
+      remainingCodeCount: 7,
+      usedFor: BackupCodeUse.SignIn,
+      origin: {
+        ipAddress: "203.0.113.7",
+        location: "Lyon, France",
+        device: "Firefox 132 on Windows",
+      },
+    });
   });
 
-  it("the moment is in the owner's own time zone", async () => {
+  it("names the account by its id: the address is read off the account, never taken from the caller", async () => {
+    const user: User = account();
+
     await AuthenticationEmail.sendTwoFactorBackupCodeUsedEmail({
-      user: account("owner@example.com", Timezone.AsiaKolkata),
-      remainingCodeCount: 7,
-      origin: { ipAddress: "203.0.113.7" },
+      user: user,
+      remainingCodeCount: 0,
     });
 
-    expect(sentMails()[0]!.vars["requestedAt"]).toContain("IST");
+    expect(JSON.stringify(sendCodeUsedEmail.mock.calls[0]![0])).not.toContain(
+      "owner@example.com",
+    );
   });
 
-  it("without a request to describe, carries none of them", async () => {
+  it("an account with no id sends nothing", async () => {
     await AuthenticationEmail.sendTwoFactorBackupCodeUsedEmail({
-      user: account("owner@example.com"),
+      user: account(null),
       remainingCodeCount: 7,
     });
 
-    const vars: Record<string, string> = sentMails()[0]!.vars;
-
-    expect(vars["requestIpAddress"]).toBe("");
-    expect(vars["requestLocation"]).toBe("");
-    expect(vars["requestDevice"]).toBe("");
+    expect(sendCodeUsedEmail).not.toHaveBeenCalled();
   });
 });
 
 describe("what it says", () => {
   const vars: Record<string, string> = {
-    signedInAt: "Oct 18 2026, 12:07 UTC",
+    usedAt: "Oct 18 2026, 12:07 UTC",
     remainingCodeCount: "7",
-    remainingCodeMessage:
-      "You can see how many codes you have left, and generate a new set, from your user profile.",
     twoFactorAuthUrl:
       "https://oneuptime.example.com/dashboard/user-profile/two-factor-auth",
     homeUrl: "https://oneuptime.example.com/",
@@ -304,7 +178,7 @@ describe("what it says", () => {
     );
 
     expect(text).toContain(
-      "Signed in at: Oct 18 2026, 12:07 UTC Backup codes remaining: 7 IP address: 203.0.113.7 Approximate location: Lyon, France Device: Firefox 132 on Windows",
+      "Used at: Oct 18 2026, 12:07 UTC Backup codes remaining: 7 IP address: 203.0.113.7 Approximate location: Lyon, France Device: Firefox 132 on Windows",
     );
   });
 
