@@ -164,6 +164,11 @@ export const SERVER_TEXT_SOURCES: ReadonlyArray<string> = [
    * the account that reads it.
    */
   "packages/Common/Server/Utils/EmailChange/EmailChangeConfirmation.ts",
+  /*
+   * The email that tells a status page private user's old address it
+   * changed (#10156), in the status page's language.
+   */
+  "packages/Common/Types/StatusPage/PrivateUserEmailAddressChangedEmail.ts",
   "packages/App/FeatureSet/Workers/Jobs",
   "packages/App/FeatureSet/Notification/Templates",
   // Sentences the Dashboard writes too, worded as it words them (above).
