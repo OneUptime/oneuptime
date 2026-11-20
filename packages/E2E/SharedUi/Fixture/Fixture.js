@@ -12,8 +12,8 @@
  * DeviceDiagnostics.
  *
  * One page, /dashboard/<project>/shared-ui, steered by the query string:
- *   - section=buttons|dialogs|sections|pills|avatars|choices|rules|charts|states|skeletons|keyboard|popups|layered-popups
- *     which part to draw (all but charts, states, skeletons, keyboard, popups and layered-popups when left out)
+ *   - section=buttons|dialogs|sections|pills|avatars|choices|rules|charts|states|skeletons|keyboard|popups|layered-popups|a11y
+ *     which part to draw (all but charts, states, skeletons, keyboard, popups, layered-popups and a11y when left out)
  *   - read=<ms>      how long the edit dialog's record read takes (600)
  *   - lang=de|ja|fa|zh-CN|ru|fr   the Dashboard's words in that language
  *   - zoomed=1       (charts) the page is zoomed, so the hints name the way back
@@ -70,6 +70,14 @@ import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import LabelPill from "Common/UI/Components/Label/Label";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import AppLink from "Common/UI/Components/Link/Link";
+import HiddenText from "Common/UI/Components/HiddenText/HiddenText";
+import Navbar, {
+  HOME_NAV_BAR_ITEM_ID,
+} from "Common/UI/Components/Navbar/NavBar";
+import TableViewElement from "Common/UI/Components/ModelTable/TableView";
+import TableView from "Common/Models/DatabaseModels/TableView";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import PeopleAvatar from "Common/UI/Components/PeoplePicker/PeopleAvatar";
@@ -203,9 +211,33 @@ function makeDevice() {
   return device;
 }
 
+/*
+ * A list's saved views (?section=a11y), as the server holds them: renamed
+ * and deleted in place, so the menu reads them back as they are.
+ */
+const SAVED_VIEWS = [
+  { id: "44000000-0000-4000-8000-000000000001", name: "Errors" },
+  { id: "44000000-0000-4000-8000-000000000002", name: "Offline monitors" },
+];
+
+function makeTableView(row) {
+  const view = new TableView();
+  view._id = row.id;
+  view.projectId = new ObjectID(PROJECT_ID);
+  view.name = row.name;
+  view.tableId = "a11y-monitors-table";
+  view.query = {};
+  view.sort = {};
+  view.itemsOnPage = 10;
+  return view;
+}
+
 const RECORDS = {
   Workflow: () => {
     return [makeWorkflow()];
+  },
+  TableView: () => {
+    return SAVED_VIEWS.map(makeTableView);
   },
   Probe: () => {
     return [makeProbe()];
@@ -272,6 +304,10 @@ ModelAPI.getList = async (options) => {
   if (tableName === "Workflow") {
     return { data: [makeWorkflow()], count: 1, skip: 0, limit: 10 };
   }
+  if (tableName === "TableView") {
+    const views = RECORDS.TableView();
+    return { data: views, count: views.length, skip: 0, limit: 10 };
+  }
   window.__fixture.unmodelled.push(`getList ${tableName}`);
   return { data: [], count: 0, skip: 0, limit: 10 };
 };
@@ -286,6 +322,15 @@ ModelAPI.createOrUpdate = async (options) => {
     tableName: options.model.tableName,
     id: idOf(options.model._id),
   });
+  // A saved view renamed keeps its new name, as the server would.
+  if (options.model.tableName === "TableView") {
+    const row = SAVED_VIEWS.find((view) => {
+      return idOf(view.id) === idOf(options.model._id);
+    });
+    if (row && options.model.name) {
+      row.name = options.model.name;
+    }
+  }
   return { data: options.model };
 };
 
@@ -298,11 +343,20 @@ ModelAPI.updateById = async (options) => {
 };
 
 ModelAPI.deleteItem = async (options) => {
+  const tableName = new options.modelType().tableName;
   window.__fixture.updates.push({
-    tableName: new options.modelType().tableName,
+    tableName: tableName,
     id: idOf(options.id),
     deleted: true,
   });
+  if (tableName === "TableView") {
+    const at = SAVED_VIEWS.findIndex((view) => {
+      return idOf(view.id) === idOf(options.id);
+    });
+    if (at >= 0) {
+      SAVED_VIEWS.splice(at, 1);
+    }
+  }
   return {};
 };
 
@@ -2062,6 +2116,169 @@ function LayeredPopups() {
   );
 }
 
+/*
+ * ?section=a11y: the page's chrome and the parts a keyboard and a screen
+ * reader go through on every page (#7963, #7360, #6922, #7964). The top
+ * bar, the trail and a side menu, as a Settings page draws them, each a
+ * navigation landmark with a name of its own; a confirmation whose body
+ * holds links, and a delete whose body holds one, each opened by a button;
+ * a list's Saved Views with two views, renamed and deleted from its menu;
+ * and a secret behind "Click to reveal".
+ */
+function Accessibility() {
+  const [confirmation, setConfirmation] = useState("");
+  const [turnedOn, setTurnedOn] = useState(0);
+  const [deleted, setDeleted] = useState(0);
+  const [viewInUse, setViewInUse] = useState(null);
+
+  return (
+    <div data-testid="section-a11y">
+      <Navbar
+        items={[
+          {
+            id: HOME_NAV_BAR_ITEM_ID,
+            title: "Home",
+            icon: IconProp.Home,
+            route: new Route(`/dashboard/${PROJECT_ID}/home`),
+          },
+          {
+            id: "monitors",
+            title: "Monitors",
+            icon: IconProp.AltGlobe,
+            route: new Route(PAGE),
+          },
+        ]}
+      />
+      <SharedPage
+        title="Project Settings"
+        breadcrumbLinks={[
+          {
+            title: "Project",
+            to: new Route(`/dashboard/${PROJECT_ID}/home`),
+          },
+          { title: "Settings", to: new Route(PAGE) },
+        ]}
+        sideMenu={
+          <SideMenu>
+            <SideMenuSection title="Basic">
+              <SideMenuItem
+                link={{ title: "Overview", to: new Route(PAGE) }}
+                icon={IconProp.Info}
+              />
+              <SideMenuItem
+                link={{ title: "Labels", to: new Route(`${PAGE}/labels`) }}
+                icon={IconProp.Label}
+              />
+            </SideMenuSection>
+          </SideMenu>
+        }
+      >
+        <Card
+          title="Saved views and confirmations"
+          description="What a keyboard reaches on every list and in every dialog."
+          rightElement={
+            <TableViewElement
+              tableId="a11y-monitors-table"
+              onViewChange={(view) => {
+                setViewInUse(view);
+              }}
+              // A filter applied, so Save as New View is offered too.
+              currentQuery={{ isDisabled: true }}
+              currentSortOrder={null}
+              currentSortBy={null}
+              currentItemsOnPage={10}
+              tableView={viewInUse}
+            />
+          }
+        >
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              title="Turn on automatic investigation"
+              dataTestId="a11y-open-confirmation"
+              onClick={() => {
+                setConfirmation("turn-on");
+              }}
+            />
+            <Button
+              title="Delete Nightly Backup"
+              buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+              dataTestId="a11y-open-delete"
+              onClick={() => {
+                setConfirmation("delete");
+              }}
+            />
+            <HiddenText
+              text="olk_live_7f3a9c2e5b1d48e0a6f2c9b7d3e1a5f8"
+              isCopyable={true}
+            />
+          </div>
+          <p className="mt-3 text-sm text-gray-600">
+            <span data-testid="a11y-turned-on">{turnedOn}</span> turned on,{" "}
+            <span data-testid="a11y-deleted">{deleted}</span> deleted
+          </p>
+        </Card>
+      </SharedPage>
+
+      {confirmation === "turn-on" ? (
+        <ConfirmModal
+          title="Turn on automatic investigation?"
+          description="This applies to every new incident and alert in Acme, not just this cluster."
+          submitButtonText="Turn on"
+          onClose={() => {
+            setConfirmation("");
+          }}
+          onSubmit={() => {
+            setTurnedOn((count) => {
+              return count + 1;
+            });
+            setConfirmation("");
+          }}
+        >
+          <div className="flex flex-wrap gap-x-5 gap-y-1">
+            <AppLink
+              to={new Route(`/dashboard/${PROJECT_ID}/incidents/ai/settings`)}
+              className="text-sm font-medium text-indigo-600"
+            >
+              Incident AI settings
+            </AppLink>
+            <AppLink
+              to={new Route(`/dashboard/${PROJECT_ID}/alerts/ai/settings`)}
+              className="text-sm font-medium text-indigo-600"
+            >
+              Alert AI settings
+            </AppLink>
+          </div>
+        </ConfirmModal>
+      ) : null}
+
+      {confirmation === "delete" ? (
+        <ConfirmModal
+          title="Delete Backup"
+          description="Are you sure you want to delete Nightly Backup?"
+          submitButtonText="Delete"
+          submitButtonType={ButtonStyleType.DANGER}
+          onClose={() => {
+            setConfirmation("");
+          }}
+          onSubmit={() => {
+            setDeleted((count) => {
+              return count + 1;
+            });
+            setConfirmation("");
+          }}
+        >
+          <AppLink
+            to={new Route(`/dashboard/${PROJECT_ID}/backups`)}
+            className="text-sm font-medium text-indigo-600"
+          >
+            What a backup keeps
+          </AppLink>
+        </ConfirmModal>
+      ) : null}
+    </div>
+  );
+}
+
 const SECTIONS = {
   buttons: Buttons,
   dialogs: Dialogs,
@@ -2077,6 +2294,7 @@ const SECTIONS = {
   skeletons: Skeletons,
   popups: Popups,
   "layered-popups": LayeredPopups,
+  a11y: Accessibility,
 };
 
 const ONLY_WHEN_ASKED_FOR = [
@@ -2086,6 +2304,7 @@ const ONLY_WHEN_ASKED_FOR = [
   "keyboard",
   "popups",
   "layered-popups",
+  "a11y",
 ];
 
 function Gallery() {

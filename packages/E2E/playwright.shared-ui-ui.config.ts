@@ -22,7 +22,13 @@ export default defineConfig({
    * help, the AI and Code pickers and the player's sessions menu moved onto
    * the tooltip layer with them (#9909, #9910).
    */
-  testMatch: ["SharedUi.spec.ts", "Popups.spec.ts", "LayeredPopups.spec.ts"],
+  testMatch: [
+    "SharedUi.spec.ts",
+    "Popups.spec.ts",
+    "LayeredPopups.spec.ts",
+    // The page's landmarks, a dialog's first focus and saved views by keyboard.
+    "KeyboardAndLandmarks.spec.ts",
+  ],
   fullyParallel: false,
   workers: 1,
   timeout: 90000,
