@@ -3,6 +3,7 @@ import {
   DATA_SECURITY_AI_WORK_LABELS,
   DataSecurityAiRulesCopy,
 } from "./DataSecurityAiCopy";
+import { RULE_ENABLED_DESCRIPTION } from "../../Utils/Form/ResourceRuleForm";
 import {
   STORE_ENVIRONMENT_OPTIONS,
   STORE_KIND_OPTIONS,
@@ -41,6 +42,10 @@ import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { LABEL_WITH_COLON } from "Common/UI/Utils/LabelWithColon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -119,12 +124,35 @@ const NEW_RULE_VALUES: FormValues<AutoRemediationRule> = {
   dataSecurityJudge: DataSecurityAiAutonomy.Suggest,
 } as FormValues<AutoRemediationRule>;
 
-const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement => {
+/*
+ * AI rules are the project's, read and written with the AI rule permissions
+ * (Project Owner and Admin, or Read, Create and Edit AI Rule): the Security
+ * roles read what OneUptime AI proposed and did, not what the project lets
+ * it do. Refused, the card is not drawn - the page's lists still are. While
+ * the permission snapshot is still on its way nobody is refused, and the
+ * list asks the server as it always does.
+ */
+function isRefusedReadingRules(): boolean {
+  const gate: PermissionGateResult = PermissionGate.check(
+    new AutoRemediationRule(),
+    ModelAction.Read,
+  );
+
+  return !gate.isAllowed && Boolean(gate.disabledReason);
+}
+
+const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement | null => {
   const translator: Translator = useTranslator();
+
+  if (isRefusedReadingRules()) {
+    return null;
+  }
 
   return (
     <ModelTable<AutoRemediationRule>
       modelType={AutoRemediationRule}
+      // Enable or Disable in each row's ⋯ menu, as the other AI rules have it.
+      rowSwitch={{ column: "isEnabled" }}
       id={DATA_SECURITY_AI_RULES_TABLE_ID}
       userPreferencesKey={DATA_SECURITY_AI_RULES_TABLE_ID}
       name="Data Security AI Rules"
@@ -158,7 +186,14 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement => {
         dataSecurityFix: true,
         dataSecurityJudge: true,
       }}
-      filters={[]}
+      filters={[
+        { field: { name: true }, title: "Name", type: FieldType.Text },
+        {
+          field: { isEnabled: true },
+          title: "Enabled",
+          type: FieldType.Boolean,
+        },
+      ]}
       columns={[
         { field: { name: true }, title: "Name", type: FieldType.Text },
         {
@@ -166,7 +201,6 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement => {
           title: DataSecurityAiRulesCopy.whatItDoes,
           type: FieldType.Element,
           disableSort: true,
-          hideOnMobile: true,
           getElement: (rule: AutoRemediationRule): ReactElement => {
             return (
               <ul className="space-y-0.5 text-sm text-gray-700">
@@ -219,7 +253,10 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement => {
         {
           field: { isEnabled: true },
           title: "Enabled",
+          description: RULE_ENABLED_DESCRIPTION,
           fieldType: FormFieldSchemaType.Toggle,
+          // A rule starts on: the switch is on its edit form only.
+          doNotShowWhenCreating: true,
           required: false,
         },
         ...DATA_SECURITY_AI_WORKS.map((work: DataSecurityAiWork) => {
@@ -238,6 +275,7 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement => {
         }),
         {
           field: { dataSecuritySeverities: true },
+          hideColumnDescription: true,
           title: "Severity",
           sectionTitle: DataSecurityAiRulesCopy.matchSection,
           sectionDescription: DataSecurityAiRulesCopy.matchDescription,
@@ -247,6 +285,7 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement => {
         },
         {
           field: { dataSecurityChecks: true },
+          hideColumnDescription: true,
           title: "Checks",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownOptions: CHECK_OPTIONS,
@@ -254,6 +293,7 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement => {
         },
         {
           field: { dataSecurityCheckGroups: true },
+          hideColumnDescription: true,
           title: DataSecurityAiRulesCopy.checkGroups,
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownOptions: CHECK_GROUP_OPTIONS,
@@ -261,6 +301,7 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement => {
         },
         {
           field: { dataStoreSensitivities: true },
+          hideColumnDescription: true,
           title: "Sensitivity",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownOptions: STORE_SENSITIVITY_OPTIONS,
@@ -268,6 +309,7 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement => {
         },
         {
           field: { dataStoreKinds: true },
+          hideColumnDescription: true,
           title: "Kind",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownOptions: STORE_KIND_OPTIONS,
@@ -275,6 +317,7 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement => {
         },
         {
           field: { dataStoreProviders: true },
+          hideColumnDescription: true,
           title: "Provider",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownOptions: STORE_PROVIDER_OPTIONS,
@@ -282,6 +325,7 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement => {
         },
         {
           field: { dataStoreEnvironments: true },
+          hideColumnDescription: true,
           title: "Environment",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownOptions: STORE_ENVIRONMENT_OPTIONS,
@@ -289,6 +333,7 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement => {
         },
         {
           field: { dataStoreLabels: true },
+          hideColumnDescription: true,
           title: DataSecurityAiRulesCopy.storeLabels,
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
@@ -300,6 +345,7 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement => {
         },
         {
           field: { dataCategories: true },
+          hideColumnDescription: true,
           title: DataSecurityAiRulesCopy.dataCategories,
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownOptions: DATA_CATEGORY_OPTIONS,

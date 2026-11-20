@@ -591,6 +591,103 @@ describe("Data Security → AI", () => {
     ).toBe(true);
   });
 
+  test("Create AI Rule starts from the project's defaults, and saves a Data Security rule that starts on", async () => {
+    const saved: Array<AutoRemediationRule> = [];
+
+    jest
+      .spyOn(ModelAPI, "createOrUpdate")
+      .mockImplementation(async (data: unknown): Promise<never> => {
+        const model: AutoRemediationRule = (
+          data as { model: AutoRemediationRule }
+        ).model;
+
+        saved.push(model);
+
+        return {
+          data: Object.assign(new AutoRemediationRule(), {
+            _id: "3c3c3c3c-0000-4000-8000-000000000002",
+            name: model.name,
+          }),
+        } as never;
+      });
+
+    await openPage();
+
+    const card: HTMLElement = await list(
+      DataSecurityAiRulesCopy.title,
+      "Production stores",
+    );
+
+    fireEvent.click(
+      within(card)
+        .getAllByTestId("card-button")
+        .find((button: HTMLElement): boolean => {
+          return (button.textContent || "").includes("Create AI Rule");
+        })!,
+    );
+
+    const modal: HTMLElement = await screen.findByTestId("modal");
+    const name: HTMLElement = await within(modal).findByPlaceholderText(
+      DataSecurityAiRulesCopy.namePlaceholder,
+    );
+
+    // A rule starts on: its Enabled switch is on the edit form only.
+    expect(modal).not.toHaveTextContent("Enable or disable this rule.");
+    expect(modal).toHaveTextContent(DataSecurityAiRulesCopy.worksSection);
+    expect(modal).toHaveTextContent(DataSecurityAiRulesCopy.matchSection);
+
+    fireEvent.change(name, { target: { value: "Telemetry" } });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(modal).getByRole("button", { name: "Create AI Rule" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(saved).toHaveLength(1);
+    });
+
+    expect(saved[0]!.name).toBe("Telemetry");
+    expect(saved[0]!.triggerEntityType).toBe(
+      AutoRemediationTriggerEntity.DataSecurityIssue,
+    );
+    expect(saved[0]!.dataSecurityAnalyze).toBe(
+      DataSecurityAiAutonomy.WithoutAsking,
+    );
+    expect(saved[0]!.dataSecurityContain).toBe(DataSecurityAiAutonomy.Suggest);
+    expect(saved[0]!.dataSecurityFix).toBe(DataSecurityAiAutonomy.Suggest);
+    expect(saved[0]!.dataSecurityJudge).toBe(DataSecurityAiAutonomy.Suggest);
+    expect(saved[0]!.isEnabled).not.toBe(false);
+  });
+
+  test("a Security Viewer reads what waits, but not the project's AI rules, which take the AI rule permissions", async () => {
+    grant([
+      Permission.Public,
+      Permission.User,
+      Permission.CurrentUser,
+      Permission.ProjectUser,
+      Permission.SecurityViewer,
+    ]);
+    PermissionGate.clearPermissionPropsCache();
+
+    await openPage();
+
+    await list(DataSecurityAiPageCopy.waitingTitle, WAITING.title!);
+    expect(
+      screen
+        .getAllByTestId("card-details-heading")
+        .map((heading: HTMLElement): string => {
+          return (heading.textContent || "").trim();
+        }),
+    ).not.toContain(DataSecurityAiRulesCopy.title);
+    expect(
+      listCalls.some((call: ListCall): boolean => {
+        return call.model === "AutoRemediationRule";
+      }),
+    ).toBe(false);
+  });
+
   test("Approve shows what will change, why, how it is proven, how to undo it and why it asks - then approves that plan", async () => {
     await openPage();
 

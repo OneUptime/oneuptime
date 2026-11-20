@@ -3,6 +3,7 @@
 OneUptime AI trabaja con lo que encontró Seguridad de datos sin ver tus datos. Recibe nombres, formas, recuentos y configuración, nunca un valor de tus datos, una muestra enmascarada, una entrada ni una cadena de conexión. Cada función se ejecuta en el modelo propio de tu proyecto, incluido uno autoalojado, y cada página, comprobación, escaneo e integración de Seguridad de datos funciona con la IA desactivada.
 
 :::cards
+- [Por su cuenta](#por-su-cuenta): Qué hace con cada problema nuevo, qué te espera y las reglas de IA.
 - [Lo que ve OneUptime AI](#lo-que-ve-oneuptime-ai): Lo que envía cada función, y lo que nunca envía.
 - [Compruébalo tú mismo](#compruébalo-tú-mismo): La entrada exacta que enviaría uno de tus problemas.
 - [Tu propio modelo](#tu-propio-modelo): Cada función en el proveedor de tu proyecto, Ollama, vLLM o cualquier endpoint compatible con OpenAI.
@@ -15,9 +16,13 @@ Con **Trabajar en los problemas nuevos** activado en **Seguridad de datos → IA
 
 De forma predeterminada, la IA de OneUptime pregunta antes de cada cambio, salvo uno que solo oculta datos, se puede deshacer y está demostrado que es seguro, y nunca borra datos ni avisa a nadie sin preguntar. Un cambio que hizo sin preguntar aparece en **Hecho por la IA**, con **Deshacer**. **Por qué la IA no actuó** lista los problemas que revisó y dejó como estaban, y por qué. Cada propuesta, aprobación, descarte y reversión está en la **Cronología** del problema y del almacén. Con el interruptor desactivado, o la IA desactivada en el proyecto, la seguridad de datos funciona como siempre, y **Explicar con IA** y **Corregir con IA** siguen funcionando cuando los pulsas.
 
+En la página de un problema, la tarjeta **OneUptime AI** sobre **Cómo corregirlo** muestra el análisis y lo que se propuso para ese problema, con los mismos botones. La **Vista general** de seguridad de datos dice cuántas fugas contuvo la IA de OneUptime esta semana y cuántas propuestas te esperan.
+
 ### Reglas de IA
 
 En **Reglas de IA** de **Seguridad de datos → IA**, una regla dice en qué problemas trabaja la IA de OneUptime - por su comprobación o grupo de comprobaciones, su gravedad, y la sensibilidad, el tipo, el proveedor, el entorno, las etiquetas, las categorías de datos y el servicio del almacén - y, para cada tipo de trabajo, **Analizar**, **Contener**, **Corrección** y **Juzgar**, si está en **Desactivado**, **Sugerir** (propone y te espera) o **Sin preguntar**. Cuando varias reglas coinciden con un problema, un tipo de trabajo se ejecuta si alguna lo activa, y **Sugerir** gana a **Sin preguntar**. Cada propuesta dice qué regla la decidió. Sin ninguna regla, se aplican los valores predeterminados del proyecto: analizar los problemas críticos y altos, y sugerir todo lo demás.
+
+Las reglas de IA pertenecen a todo el proyecto, como las de incidentes y alertas: los propietarios y administradores del proyecto las cambian, igual que cualquiera con los permisos de reglas de IA. Los roles de seguridad ven lo que la IA de OneUptime propuso e hizo, pero no las reglas.
 
 ## Lo que ve OneUptime AI
 

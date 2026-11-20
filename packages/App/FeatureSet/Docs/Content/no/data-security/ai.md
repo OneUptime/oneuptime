@@ -3,6 +3,7 @@
 OneUptime AI arbeider med det Datasikkerhet har funnet, uten å se dataene dine. Den får navn, former, antall og konfigurasjon, aldri en verdi fra dataene dine, en maskert prøve, en post eller en tilkoblingsstreng. Hver funksjon kjører på prosjektets egen modell, også en selvhostet, og hver side, kontroll, skanning og integrasjon i Datasikkerhet virker med AI slått av.
 
 :::cards
+- [På egen hånd](#på-egen-hånd): Hva den gjør med hvert nytt problem, hva som venter på deg, og AI-reglene.
 - [Hva OneUptime AI ser](#hva-oneuptime-ai-ser): Hva hver funksjon sender, og hva den aldri sender.
 - [Se det selv](#se-det-selv): De nøyaktige inndataene et av problemene dine ville sendt.
 - [Din egen modell](#din-egen-modell): Hver funksjon på prosjektets leverandør, Ollama, vLLM eller et hvilket som helst OpenAI-kompatibelt endepunkt.
@@ -15,9 +16,13 @@ Med **Jobb med nye problemer** slått på under **Datasikkerhet → KI**, slik d
 
 Som standard spør OneUptime AI før hver endring, unntatt en som bare skjuler data, kan angres og er bevist trygg, og den sletter aldri data eller varsler noen uten å spørre. En endring den gjorde uten å spørre, står under **Gjort av AI**, med **Angre**. **Hvorfor AI ikke handlet** viser problemene den så på og lot være, og hvorfor. Hvert forslag, hver godkjenning, avvisning og angring står på problemets og datalagerets **Tidslinje**. Med bryteren av, eller KI av for prosjektet, fungerer datasikkerhet som alltid, og **Forklar med AI** og **Fiks med AI** virker fortsatt når du trykker på dem.
 
+På siden til et problem viser kortet **OneUptime AI** over **Slik fikser du det** analysen og det som ble foreslått for problemet, med de samme knappene. **Oversikt** i datasikkerhet sier hvor mange lekkasjer OneUptime AI begrenset denne uken, og hvor mange forslag som venter på deg.
+
 ### AI-regler
 
 Under **AI-regler** på **Datasikkerhet → KI** sier en regel hvilke problemer OneUptime AI jobber med - etter kontroll eller kontrollgruppe, alvorlighetsgrad, og datalagerets sensitivitet, type, leverandør, miljø, etiketter, datakategorier og tjeneste - og for hver type arbeid, **Analyser**, **Begrens**, **Rettelse** og **Vurder**, om den er **Av**, **Foreslå** (den foreslår og venter på deg) eller **Uten å spørre**. Når flere regler passer til et problem, kjører en type arbeid hvis én av dem slår den på, og **Foreslå** går foran **Uten å spørre**. Hvert forslag sier hvilken regel som avgjorde det. Uten regel gjelder prosjektets standarder: analyser kritiske og høye problemer, og foreslå alt annet.
+
+AI-regler hører til hele prosjektet, som AI-reglene for hendelser og varsler: prosjekteiere og prosjektadministratorer endrer dem, og det gjør alle som har fått tillatelsene for AI-regler. Sikkerhetsrollene ser hva OneUptime AI foreslo og gjorde, men ikke reglene.
 
 ## Hva OneUptime AI ser
 

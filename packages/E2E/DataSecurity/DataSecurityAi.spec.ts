@@ -356,6 +356,37 @@ test.describe("Data Security → AI", () => {
     await screenshot(page, "ai-issue-card-1280");
   });
 
+  test("on a phone, the issue's AI card gives each proposal's title its own row, with its buttons under it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, {
+      width: PHONE,
+      pathname: `/dashboard/${PROJECT_ID}/data-security/issues/${EMAIL_IN_LOGS_ISSUE}`,
+    });
+
+    const aiCard: Locator = page.getByTestId("data-security-issue-ai-card");
+    const title: Locator = aiCard.getByText(WAITING_TITLE, { exact: true });
+    const approve: Locator = aiCard.getByRole("button", {
+      name: "Approve",
+      exact: true,
+    });
+    await expect(approve).toBeVisible();
+    await settle(page);
+
+    const titleBox: { y: number; height: number; width: number } =
+      (await title.boundingBox())!;
+    const approveTop: number = (await approve.boundingBox())!.y;
+    const cardWidth: number = (await aiCard.boundingBox())!.width;
+
+    expect(titleBox.y + titleBox.height).toBeLessThanOrEqual(approveTop + 1);
+    // The title is not squeezed beside its buttons: it reads in a line or two.
+    expect(titleBox.width).toBeGreaterThan(cardWidth * 0.6);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "ai-issue-card-390");
+  });
+
   test("the Overview says what OneUptime AI contained this week and what waits", async ({
     page,
   }: {

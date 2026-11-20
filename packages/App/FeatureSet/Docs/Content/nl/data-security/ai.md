@@ -3,6 +3,7 @@
 OneUptime AI werkt met wat Gegevensbeveiliging heeft gevonden, zonder je gegevens te zien. Het krijgt namen, vormen, aantallen en configuratie, nooit een waarde van je gegevens, een gemaskeerd voorbeeld, een record of een verbindingsreeks. Elke functie draait op het eigen model van je project, ook een zelf gehost model, en elke pagina, controle, scan en integratie van Gegevensbeveiliging werkt met AI uitgeschakeld.
 
 :::cards
+- [Uit zichzelf](#uit-zichzelf): Wat het met elk nieuw probleem doet, wat op je wacht, en de AI-regels.
 - [Wat OneUptime AI ziet](#wat-oneuptime-ai-ziet): Wat elke functie verstuurt, en wat die nooit verstuurt.
 - [Zie het zelf](#zie-het-zelf): De exacte invoer die een van je problemen zou versturen.
 - [Je eigen model](#je-eigen-model): Elke functie op de provider van je project, Ollama, vLLM of een OpenAI-compatibel endpoint.
@@ -15,9 +16,13 @@ Met **Aan nieuwe problemen werken** ingeschakeld onder **Gegevensbeveiliging →
 
 Standaard vraagt OneUptime AI vóór elke wijziging, behalve een die alleen gegevens verbergt, ongedaan kan worden gemaakt en bewezen veilig is, en het verwijdert nooit gegevens en roept nooit iemand op zonder te vragen. Een wijziging die het zonder te vragen heeft gedaan, staat onder **Gedaan door AI**, met **Ongedaan maken**. **Waarom AI niet heeft gehandeld** toont de problemen die het heeft bekeken en met rust heeft gelaten, en waarom. Elk voorstel, elke goedkeuring, elke keer negeren en elke keer ongedaan maken staat op de **Tijdlijn** van het probleem en van de opslag. Met de schakelaar uit, of AI uit voor het project, werkt gegevensbeveiliging zoals altijd, en **Uitleggen met AI** en **Oplossen met AI** werken nog steeds als je erop drukt.
 
+Op de pagina van een probleem toont de kaart **OneUptime AI** boven **Zo lost u het op** de analyse en wat er voor dat probleem is voorgesteld, met dezelfde knoppen. Het **Overzicht** van gegevensbeveiliging zegt hoeveel lekken OneUptime AI deze week heeft ingedamd en hoeveel voorstellen op je wachten.
+
 ### AI-regels
 
-Onder **AI-regels** op **Gegevensbeveiliging → AI** zegt een regel aan welke problemen OneUptime AI werkt - op hun controle of controlegroep, ernst, en de gevoeligheid, soort, provider, omgeving, labels, gegevenscategorieën en service van de opslag - en, voor elk soort werk, **Analyseren**, **Indammen**, **Herstel** en **Beoordelen**, of het **Uit** staat, op **Voorstellen** (het stelt voor en wacht op u) of op **Zonder te vragen**. Als meerdere regels bij een probleem passen, draait een soort werk als een van hen het aanzet, en **Voorstellen** gaat voor **Zonder te vragen**. Elk voorstel zegt welke regel erover besliste. Zonder regel gelden de standaarden van het project: kritieke en hoge problemen analyseren, en al het andere voorstellen.
+Onder **AI-regels** op **Gegevensbeveiliging → AI** zegt een regel aan welke problemen OneUptime AI werkt - op hun controle of controlegroep, ernst, en de gevoeligheid, soort, provider, omgeving, labels, gegevenscategorieën en service van de opslag - en, voor elk soort werk, **Analyseren**, **Indammen**, **Herstel** en **Beoordelen**, of het **Uit** staat, op **Voorstellen** (het stelt voor en wacht op jou) of op **Zonder te vragen**. Als meerdere regels bij een probleem passen, draait een soort werk als een van hen het aanzet, en **Voorstellen** gaat voor **Zonder te vragen**. Elk voorstel zegt welke regel erover besliste. Zonder regel gelden de standaarden van het project: kritieke en hoge problemen analyseren, en al het andere voorstellen.
+
+AI-regels horen bij het hele project, net als die voor incidenten en waarschuwingen: projecteigenaren en projectbeheerders wijzigen ze, net als iedereen die de rechten voor AI-regels heeft gekregen. De beveiligingsrollen zien wat OneUptime AI heeft voorgesteld en gedaan, maar niet de regels.
 
 ## Wat OneUptime AI ziet
 

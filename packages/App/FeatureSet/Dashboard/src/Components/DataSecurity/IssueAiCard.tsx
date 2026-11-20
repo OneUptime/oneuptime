@@ -220,49 +220,57 @@ const IssueAiCard: FunctionComponent<ComponentProps> = (
                       proposal.status;
 
                     return (
+                      /*
+                       * On a phone the title has the row to itself, and
+                       * where it stands and its buttons go under it.
+                       */
                       <li
                         key={proposal._id?.toString()}
-                        className="flex flex-wrap items-center gap-3 py-2"
+                        className="flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:gap-3"
                       >
-                        <span className="min-w-0 flex-1 text-sm text-gray-900">
+                        <span className="min-w-0 text-sm text-gray-900 sm:flex-1">
                           <IsolatedText text={proposal.title || ""} />
                         </span>
-                        <Pill
-                          text={
-                            status
-                              ? DATA_SECURITY_AI_PROPOSAL_STATUS_LABELS[status]
-                              : ""
-                          }
-                          color={statusColor(status)}
-                        />
-                        {status === DataSecurityAiProposalStatus.Proposed ? (
-                          <span className="flex gap-2">
-                            <Button
-                              title={DataSecurityAiPageCopy.approve}
-                              buttonStyle={ButtonStyleType.NORMAL}
-                              onClick={() => {
-                                actions.approve(proposal);
-                              }}
-                            />
-                            <Button
-                              title={DataSecurityAiPageCopy.dismiss}
-                              buttonStyle={ButtonStyleType.NORMAL}
-                              onClick={() => {
-                                actions.dismiss(proposal);
-                              }}
-                            />
-                          </span>
-                        ) : isDataSecurityAiProposalUndoable(status) ? (
-                          <Button
-                            title={DataSecurityAiPageCopy.undo}
-                            buttonStyle={ButtonStyleType.NORMAL}
-                            onClick={() => {
-                              actions.undo(proposal);
-                            }}
+                        <span className="flex flex-wrap items-center gap-2">
+                          <Pill
+                            text={
+                              status
+                                ? DATA_SECURITY_AI_PROPOSAL_STATUS_LABELS[
+                                    status
+                                  ]
+                                : ""
+                            }
+                            color={statusColor(status)}
                           />
-                        ) : (
-                          <></>
-                        )}
+                          {status === DataSecurityAiProposalStatus.Proposed ? (
+                            <>
+                              <Button
+                                title={DataSecurityAiPageCopy.approve}
+                                buttonStyle={ButtonStyleType.NORMAL}
+                                onClick={() => {
+                                  actions.approve(proposal);
+                                }}
+                              />
+                              <Button
+                                title={DataSecurityAiPageCopy.dismiss}
+                                buttonStyle={ButtonStyleType.NORMAL}
+                                onClick={() => {
+                                  actions.dismiss(proposal);
+                                }}
+                              />
+                            </>
+                          ) : isDataSecurityAiProposalUndoable(status) ? (
+                            <Button
+                              title={DataSecurityAiPageCopy.undo}
+                              buttonStyle={ButtonStyleType.NORMAL}
+                              onClick={() => {
+                                actions.undo(proposal);
+                              }}
+                            />
+                          ) : (
+                            <></>
+                          )}
+                        </span>
                       </li>
                     );
                   },
