@@ -18,17 +18,18 @@ import {
 
 /*
  * THE VALUE AXES' TICKS AND TICK FORMATTERS STAY THE SAME OBJECTS WHILE WHAT
- * THEY ARE WORKED OUT FROM STAYS (issue #10079).
+ * THEY ARE WORKED OUT FROM STAYS (issues #10079, #10117, #10118).
  *
  * recharts reads a value axis again whenever its ticks or its tick formatter
  * are new objects. Before the axes were stepped, a chart handed recharts its
  * host's own formatter, the same function at every drawing. A chart now hands
- * it the ticks and the tick formatter useValueAxesTicks works out: they too
- * stay the same objects while the ticks are the same numbers and the axis's
- * formatter and step stay: when the chart is drawn again because its legend
- * was hovered, and when its host draws it again with new arrays holding the
- * same values. A new formatter, or values or an end of an axis that give new
- * ticks, give new ones.
+ * it the ticks and the tick formatter useValueAxesTicks works out for every
+ * axis, in round steps: they too stay the same objects while the ticks are
+ * the same numbers and the axis's formatter, step and largest tick stay:
+ * when the chart is drawn again because its legend was hovered, and when its
+ * host draws it again with new arrays holding the same values. A new
+ * formatter, a new unit of time, or values or an end of an axis that give
+ * new ticks, give new ones.
  */
 
 // Every axis recharts is handed, as it is handed it, in order.
@@ -91,6 +92,7 @@ function unitFormatter(unit: string): ValueAxisFormatter {
   return (value: number, precision?: ValueAxisPrecision): string => {
     return ValueFormatter.formatValue(value, unit, {
       step: precision?.step,
+      largestTick: precision?.largestTick,
     });
   };
 }
@@ -106,8 +108,10 @@ const FILESYSTEM: Array<number> = [
 const STILL_CPU_PERCENT: Array<number> = [
   91.251, 91.2525, 91.254, 91.2515, 91.253, 91.252,
 ];
-// A load from 12% to 64%: an axis that reads apart already.
+// A load from 12% to 64%: an axis whose own figures read apart already.
 const WIDE_PERCENT: Array<number> = [12, 30, 64, 41, 22, 50];
+// A batch job's run, from 15 minutes to two hours, in seconds.
+const JOB_SECONDS: Array<number> = [900, 2400, 4000, 7000, 5200, 3100];
 
 function rowsOf(
   series: Record<string, Array<number>>,
@@ -249,7 +253,7 @@ describe("the plan, drawn again over the same values", () => {
     expect(plan().first.tickFormatter).toBe(before.first.tickFormatter);
   });
 
-  test("an axis that reads apart already keeps the one tick formatter", () => {
+  test("an axis whose own figures read apart is stepped roundly too, and keeps its ticks and its one tick formatter", () => {
     const rows: Array<Record<string, number | string>> = rowsOf({
       load: WIDE_PERCENT,
     });
@@ -264,8 +268,12 @@ describe("the plan, drawn again over the same values", () => {
     );
     const before: ChartValueAxesPlan = plan();
 
-    expect(before.first.ticks.precision).toBeUndefined();
-    expect(before.first.ticks.ticks).toBeUndefined();
+    // In quarters, written with the fewest figures (#10117).
+    expect(before.first.ticks.ticks).toEqual([0, 25, 50, 75]);
+    expect(before.first.ticks.labels).toEqual(["0%", "25%", "50%", "75%"]);
+    expect(before.first.ticks.precision).toEqual({ step: 25, largestTick: 75 });
+    // The tooltip keeps the formatter's own figures: "64.00%".
+    expect(before.first.ticks.tooltipPrecision).toBeUndefined();
     expect(before.second).toBeUndefined();
 
     drawAgain(
@@ -279,7 +287,32 @@ describe("the plan, drawn again over the same values", () => {
     );
 
     expect(plan().first.tickFormatter).toBe(before.first.tickFormatter);
-    expect(plan().first.ticks.ticks).toBeUndefined();
+    expect(plan().first.ticks.ticks).toBe(before.first.ticks.ticks);
+  });
+
+  test("a narrow axis hands its tooltip its ticks' precision; a wide one, none", () => {
+    const narrow: ChartValueAxesPlan = drawPlan(inputAt()).plan();
+
+    // "17.2 GB" on every tick in its own figures: the tooltip takes the step's.
+    expect(narrow.first.ticks.tooltipPrecision).toEqual(
+      narrow.first.ticks.precision,
+    );
+    expect(narrow.second?.ticks.tooltipPrecision).toEqual(
+      narrow.second?.ticks.precision,
+    );
+
+    const wide: ChartValueAxesPlan = drawPlan(
+      inputAt({
+        data: rowsOf({ load: WIDE_PERCENT }),
+        categories: ["load"],
+        secondYAxis: undefined,
+        valueFormatter: PERCENT,
+        firstDomain: [0, "auto"],
+      }),
+    ).plan();
+
+    expect(wide.first.ticks.precision).toBeDefined();
+    expect(wide.first.ticks.tooltipPrecision).toBeUndefined();
   });
 
   test("the tick formatter hands the host's formatter the step, never recharts' tick index", () => {
@@ -311,9 +344,10 @@ describe("the plan, drawn again over the same values", () => {
       }),
     ).plan();
 
+    // Every axis is stepped now: its step and largest tick, never the index.
     calls.length = 0;
     (apart.first.tickFormatter as unknown as RechartsTickFormatter)(30, 2);
-    expect(calls).toEqual([[30]]);
+    expect(calls).toEqual([[30, { step: 25, largestTick: 75 }]]);
   });
 });
 
@@ -358,11 +392,15 @@ describe("the plan, worked out again when what it is worked out from changes", (
     const { plan, drawAgain } = drawPlan(inputAt());
     const before: ChartValueAxesPlan = plan();
 
-    // From zero, the filesystem's axis reads 0 to 20 GB: apart already.
+    // From zero, the filesystem's axis reads 0 to 20 GB, five gigabytes a tick.
     drawAgain(inputAt({ firstDomain: [0, "auto"] }));
 
-    expect(plan().first.ticks.ticks).toBeUndefined();
-    expect(plan().first.ticks.precision).toBeUndefined();
+    expect(plan().first.ticks.ticks).toEqual([0, 5e9, 10e9, 15e9, 20e9]);
+    expect(plan().first.ticks.precision).toEqual({
+      step: 5e9,
+      largestTick: 20e9,
+    });
+    expect(plan().first.ticks.tooltipPrecision).toBeUndefined();
     expect(plan().first.tickFormatter).not.toBe(before.first.tickFormatter);
   });
 
@@ -372,8 +410,16 @@ describe("the plan, worked out again when what it is worked out from changes", (
 
     drawAgain(inputAt({ secondDomain: [0, "auto"] }));
 
-    expect(plan().second?.ticks.ticks).toBeUndefined();
-    expect(plan().second?.ticks.precision).toBeUndefined();
+    // From zero, the still CPU's axis reads 0% to 100% in quarters.
+    expect(plan().second?.ticks.ticks).toEqual([0, 25, 50, 75, 100]);
+    expect(plan().second?.ticks.labels).toEqual([
+      "0%",
+      "25%",
+      "50%",
+      "75%",
+      "100%",
+    ]);
+    expect(plan().second?.ticks.tooltipPrecision).toBeUndefined();
     expect(plan().second?.tickFormatter).not.toBe(before.second?.tickFormatter);
     // The first axis, whose ends and formatter stay, is handed as before.
     expect(plan().first.ticks.ticks).toBe(before.first.ticks.ticks);
@@ -392,6 +438,115 @@ describe("the plan, worked out again when what it is worked out from changes", (
     expect(plan().second?.ticks.precision).toEqual(
       before.second?.ticks.precision,
     );
+  });
+});
+
+// A label as it is drawn: every space a no-break one.
+function drawn(text: string): string {
+  return text.replace(/ /g, String.fromCharCode(0xa0));
+}
+
+describe("an axis of spans of time (issue #10118)", () => {
+  const SECONDS: ValueAxisFormatter = unitFormatter("s");
+
+  test("told the seconds a value stands for, the first axis steps in natural units of time", () => {
+    const rows: Array<Record<string, number | string>> = rowsOf({
+      job: JOB_SECONDS,
+    });
+    const decimal: ChartValueAxesPlan = drawPlan(
+      inputAt({
+        data: rows,
+        categories: ["job"],
+        secondYAxis: undefined,
+        valueFormatter: SECONDS,
+        firstDomain: [0, "auto"],
+      }),
+    ).plan();
+    const natural: ChartValueAxesPlan = drawPlan(
+      inputAt({
+        data: rows,
+        categories: ["job"],
+        secondYAxis: undefined,
+        valueFormatter: SECONDS,
+        firstDomain: [0, "auto"],
+        durationUnitInSeconds: 1,
+      }),
+    ).plan();
+
+    // Round decimal seconds, 2,000 at a time, read "33 min 20 sec".
+    expect(decimal.first.ticks.precision?.step).toBe(2000);
+    // Natural units: half an hour at a time.
+    expect(natural.first.ticks.ticks).toEqual([0, 1800, 3600, 5400, 7200]);
+    expect(natural.first.ticks.labels).toEqual(
+      ["0 min", "30 min", "1 h", "1 h 30 min", "2 h"].map(drawn),
+    );
+  });
+
+  test("the second axis steps in its own unit of time", () => {
+    const plan: ChartValueAxesPlan = drawPlan(
+      inputAt({
+        data: rowsOf({ used: FILESYSTEM, job: JOB_SECONDS }),
+        categories: ["used", "job"],
+        secondYAxis: {
+          categories: ["job"],
+          valueFormatter: SECONDS,
+          width: 56,
+          autoMinValue: false,
+          durationUnitInSeconds: 1,
+        },
+        secondDomain: [0, "auto"],
+      }),
+    ).plan();
+
+    expect(plan.second?.ticks.ticks).toEqual([0, 1800, 3600, 5400, 7200]);
+    // The first axis, in bytes, keeps its round decimal steps.
+    expect(plan.first.ticks.precision?.step).toBe(1e6);
+  });
+
+  test("a new unit of time: the axis is worked out again, with a new tick formatter", () => {
+    const input: AxesInput = inputAt({
+      data: rowsOf({ job: JOB_SECONDS }),
+      categories: ["job"],
+      secondYAxis: undefined,
+      valueFormatter: SECONDS,
+      firstDomain: [0, "auto"],
+    });
+    const { plan, drawAgain } = drawPlan(input);
+    const before: ChartValueAxesPlan = plan();
+
+    drawAgain({ ...input, durationUnitInSeconds: 1 });
+
+    expect(plan().first.ticks.ticks).not.toEqual(before.first.ticks.ticks);
+    expect(plan().first.tickFormatter).not.toBe(before.first.tickFormatter);
+
+    // Drawn again with the same unit: the same objects.
+    const natural: ChartValueAxesPlan = plan();
+    drawAgain({ ...input, durationUnitInSeconds: 1 });
+    expect(plan().first.ticks.ticks).toBe(natural.first.ticks.ticks);
+    expect(plan().first.tickFormatter).toBe(natural.first.tickFormatter);
+  });
+
+  test("the tick formatter hands a duration's formatter the axis's largest tick, so every tick takes its units", () => {
+    const calls: Array<Array<unknown>> = [];
+    const recording: ValueAxisFormatter = (
+      ...args: [number, ValueAxisPrecision?]
+    ): string => {
+      calls.push(args);
+      return SECONDS(...args);
+    };
+    const plan: ChartValueAxesPlan = drawPlan(
+      inputAt({
+        data: rowsOf({ job: [3598, 3600, 3602] }),
+        categories: ["job"],
+        secondYAxis: undefined,
+        valueFormatter: recording,
+        durationUnitInSeconds: 1,
+      }),
+    ).plan();
+
+    calls.length = 0;
+    expect(plan.first.tickFormatter(3599)).toBe("0:59:59");
+    expect(calls).toEqual([[3599, { step: 1, largestTick: 3602 }]]);
   });
 });
 
