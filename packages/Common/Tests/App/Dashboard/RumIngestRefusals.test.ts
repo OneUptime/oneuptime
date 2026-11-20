@@ -561,7 +561,7 @@ describe("what a refusal says", () => {
       "One request refused 10\u00A0minutes ago.",
     );
     expect(getIngestRefusalCountText(many, ENGLISH, NOW)).toBe(
-      "1,234 requests refused since Nov 09 2026, 08:00 AM UTC, the latest 10\u00A0minutes ago.",
+      "1,234 requests refused since Nov 9, 2026, 8:00 AM UTC, the latest 10\u00A0minutes ago.",
     );
 
     // Two days or more back, the date alone.

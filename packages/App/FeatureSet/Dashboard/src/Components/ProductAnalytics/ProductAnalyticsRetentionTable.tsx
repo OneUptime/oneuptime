@@ -7,7 +7,12 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { getDateLocale } from "Common/Types/DateLanguage";
+import {
+  ReaderDateTimeFormat,
+  getDateLocale,
+  getDateTimeFormat,
+} from "Common/Types/DateLanguage";
+import { Moment } from "Common/Types/Date";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -76,9 +81,11 @@ export function describeProductAnalyticsCohort(data: {
     return data.start;
   }
 
-  try {
-    return new Intl.DateTimeFormat(getDateLocale(data.language), {
-      timeZone: "UTC",
+  // A day of the calendar, not an instant: read at UTC, where it starts.
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+    locale: getDateLocale(data.language),
+    timezones: ["UTC"],
+    options: {
       ...(data.withYear === false ? {} : { year: "numeric" }),
       month:
         data.period === ProductAnalyticsRetentionPeriod.Month
@@ -87,22 +94,24 @@ export function describeProductAnalyticsCohort(data: {
       ...(data.period === ProductAnalyticsRetentionPeriod.Month
         ? {}
         : { day: "numeric" }),
-    }).format(new Date(Date.UTC(year, month - 1, day)));
-  } catch {
-    return data.start;
-  }
+    },
+  });
+
+  return format
+    ? format.format(new Date(Date.UTC(year, month - 1, day)))
+    : data.start;
 }
 
-/* The year it is at `now` in a time zone ("2026"); the UTC year when the zone is not one. */
+/*
+ * The year it is at `now` in a time zone ("2026"), from OneUptime's own
+ * zone data (#10038); the UTC year when the zone is not one.
+ */
 function getYearInTimeZone(now: Date, timeZone: string): string {
-  try {
-    return new Intl.DateTimeFormat("en-US", {
-      timeZone: timeZone,
-      year: "numeric",
-    }).format(now);
-  } catch {
+  if (!Moment.tz.zone(timeZone)) {
     return String(now.getUTCFullYear());
   }
+
+  return String(Moment(now).tz(timeZone).year());
 }
 
 /*

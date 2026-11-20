@@ -165,7 +165,7 @@ describe("a layer's summary sentences", () => {
   test("Starts ... names the minute a layer saved with seconds starts in", () => {
     const sentence: string = summarizeStartsAt(SAVED_WITH_SECONDS);
 
-    expect(sentence).toBe("Starts Nov 11 2026, 08:00 EST");
+    expect(sentence).toBe("Starts Nov 11, 2026, 08:00 EST");
   });
 
   test("Hands off at ... names the minute too", () => {

@@ -107,7 +107,7 @@ test.describe("Runners live under Runbooks", () => {
       await expect(aiAccessLink).toHaveCount(0);
       await expect(
         page
-          .locator("aside[role='navigation'][aria-label='Main navigation']")
+          .locator("aside[role='navigation'][aria-label='Pages in this section']")
           .locator("xpath=.//h6[normalize-space(.)='Runners']"),
       ).toHaveCount(0);
 

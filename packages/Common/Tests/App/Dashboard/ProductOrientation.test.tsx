@@ -936,11 +936,8 @@ describe("Help menu", () => {
   function openHelp(): Array<HTMLAnchorElement | HTMLElement> {
     render(<Help />);
     fireEvent.click(screen.getByRole("button"));
-    return screen.getAllByRole("link").concat(
-      screen.queryAllByRole("button").filter((element: HTMLElement) => {
-        return element.tagName !== "BUTTON";
-      }),
-    );
+    // Its rows are the menu's items, links and actions alike (#7237).
+    return screen.getAllByRole("menuitem");
   }
 
   test("links to the documentation of this OneUptime instance", () => {

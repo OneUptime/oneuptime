@@ -24,6 +24,7 @@ import {
   DataSourceQueryWindow,
 } from "../Types";
 import { withoutTrailingSlashes } from "../../../../Utils/TrailingRuns";
+import { applyGrafanaIntervalMacros } from "../../../../Utils/PromQL/PromQLGrafanaMacros";
 
 /*
  * Connector for Prometheus-compatible HTTP APIs (Prometheus, Thanos,
@@ -461,7 +462,15 @@ export default class PrometheusConnector implements DataSourceConnector {
           settings,
           "/api/v1/query_range",
           {
-            query: query,
+            /*
+             * Grafana's interval macros, filled as Grafana fills them
+             * before a query reaches Prometheus (PromQLGrafanaMacros).
+             */
+            query: applyGrafanaIntervalMacros(query, {
+              startDate: window.startDate,
+              endDate: window.endDate,
+              stepInSeconds,
+            }),
             start: String(this.toUnixSeconds(window.startDate)),
             end: String(this.toUnixSeconds(window.endDate)),
             step: String(stepInSeconds),
@@ -486,7 +495,11 @@ export default class PrometheusConnector implements DataSourceConnector {
           settings,
           "/api/v1/query",
           {
-            query: query,
+            query: applyGrafanaIntervalMacros(query, {
+              startDate: window.startDate,
+              endDate: window.endDate,
+              stepInSeconds: window.stepInSeconds,
+            }),
             time: String(this.toUnixSeconds(window.endDate)),
           },
           DATA_SOURCE_QUERY_TIMEOUT_IN_MS,

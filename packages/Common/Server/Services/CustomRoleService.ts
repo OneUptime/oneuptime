@@ -12,6 +12,7 @@ import ApiKeyPermissionService from "./ApiKeyPermissionService";
 import DatabaseService from "./DatabaseService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NameTakenException from "../../Types/Exception/NameTakenException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
 import {
@@ -132,8 +133,9 @@ export class Service extends DatabaseService<Model> {
       );
     });
 
+    // With the code a program tells a taken name by (#10065).
     if (clash) {
-      throw new BadDataException(getCustomRoleNameTakenMessage(data.name!));
+      throw new NameTakenException(getCustomRoleNameTakenMessage(data.name!));
     }
   }
 

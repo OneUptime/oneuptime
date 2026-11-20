@@ -78,6 +78,11 @@ const PROJECT_SCOPED_ROUTES: Array<string> = [
    */
   "/scheduled-maintenance/reach",
   "/scheduled-maintenance-template/reach",
+  /*
+   * What the reader may do on an incident, an alert, an episode or a
+   * maintenance event, which its pages ask once as they open (#10272).
+   */
+  "/record-access",
 ];
 
 /*
@@ -195,6 +200,15 @@ const GUARDED_PAGES: Array<GuardedPage> = [
       "useScheduledMaintenanceReach.ts",
     ],
     routePrefix: "/scheduled-maintenance",
+  },
+  /*
+   * Each record's view layout asks what the reader may do on it - an
+   * incident's, an alert's, an episode's and a maintenance event's each
+   * through its own API - through this one module.
+   */
+  {
+    page: ["Components", "RecordAccess", "RecordAccessApi.ts"],
+    routePrefix: "/record-access",
   },
 ];
 

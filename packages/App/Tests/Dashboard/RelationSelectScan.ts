@@ -1,4 +1,5 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import RelationReadersUtil from "Common/Types/Database/RelationReadersUtil";
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
 import fs from "fs";
@@ -40,6 +41,15 @@ import ts from "typescript";
  * its identifier, or by the model file it is imported from under another
  * name. #10238's select was a constant, named whole (`select:
  * DATA_SECURITY_ISSUE_VIEW_SELECT`), which this read only from 17.0.0 on.
+ *
+ * A column a relation reads only for those who may read it on the related
+ * record (RelationReaders.ColumnReaders: a data store's sensitivity, #10281)
+ * refuses every other reader of the relation the whole read. So a select
+ * that names one is sent for each reader without what they may not read -
+ * handed to getSelectReadableThroughRelations, PermissionGate's or, on the
+ * server, QueryPermission's, which this reads through (`select:
+ * PermissionGate.getSelectReadableThroughRelations(X, A_SELECT)` reads
+ * A_SELECT) - or the column is shown only to who may read it.
  *
  * WHAT IT DOES NOT COVER. A select assembled at run time (a function's
  * result, a conditional spread), a `columns` or `fields` built by a
@@ -130,6 +140,13 @@ export interface RelationSelectSite {
   column: string;
   // The column is selected as a relation of its own: `{ relation: { column: { ... } } }`.
   isDeep: boolean;
+  /*
+   * The select is handed to getSelectReadableThroughRelations
+   * (PermissionGate's, or QueryPermission's on the server) before it is
+   * sent: each reader's read leaves out what a relation reads only for
+   * those who may read it on the related record (#10281).
+   */
+  isReadPerReader: boolean;
 }
 
 export interface RelationSelectScan {
@@ -526,6 +543,34 @@ interface ReadSite {
   modelName: string;
   shape: SelectShape;
   sourceFile: ts.SourceFile;
+  // Handed to getSelectReadableThroughRelations (RelationSelectSite).
+  isReadPerReader: boolean;
+}
+
+/*
+ * The function a select is handed to so that each reader sends only what a
+ * relation reads for them: PermissionGate.getSelectReadableThroughRelations
+ * (Model, select) in the dashboard, and QueryPermission's, given
+ * `{ modelType, select, props }`, on the server.
+ */
+export const PER_READER_SELECT_FUNCTION: string =
+  "getSelectReadableThroughRelations";
+
+// Whether `expression` calls PER_READER_SELECT_FUNCTION.
+function isPerReaderSelectCall(
+  expression: ts.Node | undefined,
+): expression is ts.CallExpression {
+  if (!expression || !ts.isCallExpression(expression)) {
+    return false;
+  }
+
+  const callee: ts.Expression = expression.expression;
+
+  return (
+    (ts.isPropertyAccessExpression(callee) &&
+      callee.name.text === PER_READER_SELECT_FUNCTION) ||
+    (ts.isIdentifier(callee) && callee.text === PER_READER_SELECT_FUNCTION)
+  );
 }
 
 /*
@@ -563,6 +608,7 @@ function collectFromSelect(
         relation: relation,
         column: column,
         isDeep: resolveObject(inner.value) !== null,
+        isReadPerReader: site.isReadPerReader,
       });
     }
   }
@@ -620,12 +666,17 @@ function collectFromFieldList(
   }
 }
 
-// What each shape beside a `modelType` reads.
+/*
+ * What each shape beside a `modelType` reads. `isReadPerReader`: the props
+ * are themselves what getSelectReadableThroughRelations is handed (the
+ * server's `{ modelType, select, props }`).
+ */
 function collectFromProps(
   props: Map<string, ts.Expression>,
   sourceFile: ts.SourceFile,
   modelNames: Set<string>,
   out: Array<RelationSelectSite>,
+  isReadPerReader: boolean = false,
 ): void {
   const modelType: ts.Expression | undefined = props.get("modelType");
 
@@ -644,16 +695,37 @@ function collectFromProps(
   }
 
   for (const shape of SHAPES) {
-    const expression: ts.Expression | undefined = props.get(shape);
+    let expression: ts.Expression | undefined = props.get(shape);
 
     if (!expression) {
       continue;
+    }
+
+    /*
+     * `select: PermissionGate.getSelectReadableThroughRelations(Model,
+     * A_SELECT)`: the select is the one it is handed, sent for each reader
+     * without what a relation reads for some readers alone.
+     */
+    let isHandedToPerReaderSelect: boolean = isReadPerReader;
+    const unwrappedExpression: ts.Expression = unwrapExpression(expression);
+
+    if (isPerReaderSelectCall(unwrappedExpression)) {
+      const handed: ts.Expression | undefined =
+        unwrappedExpression.arguments[1];
+
+      if (!handed) {
+        continue;
+      }
+
+      expression = handed;
+      isHandedToPerReaderSelect = true;
     }
 
     const site: ReadSite = {
       modelName: modelName,
       shape: shape,
       sourceFile: sourceFile,
+      isReadPerReader: isHandedToPerReaderSelect,
     };
 
     // Named whole (`select: A_SELECT`): read at the name.
@@ -690,7 +762,14 @@ function collectFromFile(
 ): void {
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
     if (ts.isObjectLiteralExpression(node)) {
-      collectFromProps(readObjectProperties(node), sourceFile, modelNames, out);
+      collectFromProps(
+        readObjectProperties(node),
+        sourceFile,
+        modelNames,
+        out,
+        // The server's getSelectReadableThroughRelations({ modelType, select, props }).
+        isPerReaderSelectCall(node.parent) && node.parent.arguments[0] === node,
+      );
     }
 
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
@@ -843,6 +922,31 @@ export async function scanRelationSelects(
           `Read it from the ${relatedModel.singularName} itself, or add ` +
           `canReadOnRelationQuery to the column if everyone who reads ` +
           `${site.modelName} may read it.`,
+      );
+      continue;
+    }
+
+    /*
+     * A column a relation reads only for those who may read it on the
+     * related record (RelationReaders.ColumnReaders, #10281): every other
+     * reader of the relation is refused the whole read, so a page sends it
+     * only for the readers who may.
+     */
+    if (
+      RelationReadersUtil.isHeldToItsOwnRead(columnMetadata) &&
+      !site.isReadPerReader
+    ) {
+      violations.push(
+        `${where(site)} - ${site.modelName}.${site.relation} selects ` +
+          `${relatedModel.singularName}.${site.column}, which a relation reads ` +
+          `only for those who may read it on the ${relatedModel.singularName} ` +
+          `itself (RelationReaders.ColumnReaders). Every other reader of ` +
+          `${site.modelName} is refused the whole read, "You do not have ` +
+          `permissions to read ${site.column} of ${relatedModel.singularName} ` +
+          `through ${site.relation} on ${outerModel.singularName}." Hand the ` +
+          `select to PermissionGate.${PER_READER_SELECT_FUNCTION} (Query` +
+          `Permission's on the server), or show the column only to those who ` +
+          `may read it (PermissionGate.canReadThroughRelation).`,
       );
     }
   }

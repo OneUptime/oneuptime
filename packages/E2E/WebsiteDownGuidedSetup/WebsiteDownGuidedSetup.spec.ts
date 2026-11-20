@@ -1,6 +1,15 @@
-import { expect, Locator, Page, Route, test } from "@playwright/test";
+import {
+  Browser,
+  BrowserContext,
+  expect,
+  Locator,
+  Page,
+  Route,
+  test,
+} from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -223,6 +232,44 @@ async function walkToTheTest(page: Page): Promise<void> {
   await expect(step(page, "test")).toHaveAttribute("data-state", "open");
 }
 
+/*
+ * THE PANEL OF WHAT THE SETUP MAKES (#10276): each record's status, by its
+ * key, as the panel beside the steps draws it (data-status: waiting,
+ * creating, created, existing, failed, skipped) - in any language.
+ */
+async function expectRecords(
+  page: Page,
+  statuses: Record<string, string>,
+): Promise<void> {
+  for (const [key, status] of Object.entries(statuses)) {
+    await expect(
+      page.getByTestId(`guided-setup-resource-${key}`),
+      `the panel's ${key}`,
+    ).toHaveAttribute("data-status", status);
+  }
+}
+
+/*
+ * On a phone the panel follows the steps, so the open step lists what it
+ * just made where the person is; from lg up the panel beside the steps
+ * says it, and the step does not.
+ */
+async function expectStepRecordsOnAPhoneOnly(
+  page: Page,
+  look: Look,
+  stepKey: string,
+): Promise<void> {
+  const records: Locator = page.getByTestId(
+    `guided-setup-step-${stepKey}-records`,
+  );
+
+  if (look.width < 1024) {
+    await expect(records).toBeVisible();
+  } else {
+    await expect(records).toBeHidden();
+  }
+}
+
 const LOOKS: Array<Look> = [];
 
 for (const lang of ["de", "fa"] as Array<Language>) {
@@ -246,8 +293,22 @@ for (const each of LOOKS) {
     // 1. What should we check? From how many locations, before anything is made (#7461).
     await expect(step(page, "check")).toHaveAttribute("data-state", "open");
     await expect(page.getByTestId("guided-setup-check-help")).toBeVisible();
+    // What it sets up, each record waiting for its step (#10276).
+    await expectRecords(page, {
+      monitor: "waiting",
+      on_call_policy: "waiting",
+      escalation_rule: "waiting",
+      on_call_rules: "waiting",
+      test_page: "waiting",
+    });
     await look(page, each, "1-check");
     await checkTheAddress(page);
+    // The monitor, made: in the panel, and in the step on a phone.
+    await expectRecords(page, { monitor: "created" });
+    await expect(
+      page.getByTestId("guided-setup-resource-monitor-open"),
+    ).toHaveAttribute("target", "_blank");
+    await expectStepRecordsOnAPhoneOnly(page, each, "check");
     await look(page, each, "1-check-answered");
     await page.getByTestId("guided-setup-check-continue").click();
 
@@ -264,6 +325,13 @@ for (const each of LOOKS) {
 
     // 3. Send a test: the dialog says what Severity changes (#7756).
     await expect(step(page, "test")).toHaveAttribute("data-state", "open");
+    // The policy, its first escalation rule and its rules: made together.
+    await expectRecords(page, {
+      on_call_policy: "created",
+      escalation_rule: "created",
+      on_call_rules: "created",
+      test_page: "waiting",
+    });
     await look(page, each, "3-test");
     await step(page, "test").getByTestId("send-test-page").click();
 
@@ -274,6 +342,7 @@ for (const each of LOOKS) {
     await button(dialog, each.lang, "Send test page").click();
     // Acknowledged from the email at once: the dialog gives way to the result.
     await expect(page.getByTestId("guided-setup-test-continue")).toBeVisible();
+    await expectRecords(page, { test_page: "created" });
     await look(page, each, "3-test-acknowledged");
     await page.getByTestId("guided-setup-test-continue").click();
 
@@ -297,6 +366,12 @@ for (const each of LOOKS) {
       page.getByTestId("guided-setup-next-open-status-page"),
     ).toHaveAttribute("target", "_blank");
     await expect(page.getByTestId("guided-setup-next-phone")).toBeVisible();
+    // Everything it made, and the run saved to the person's account (#7253).
+    await expectRecords(page, { status_page: "created" });
+    await expect(page.getByTestId("guided-setup-sync")).toHaveAttribute(
+      "data-sync",
+      "saved",
+    );
     await look(page, each, "5-summary");
 
     // What the fixture's server kept: the monitor, on the page picked.
@@ -460,3 +535,185 @@ for (const width of [1280, 390]) {
     }
   });
 }
+
+/*
+ * ANOTHER DEVICE PICKS THE RUN UP (#7253): the run is kept on the server, so
+ * a second browser - a phone, a private window - opens the setup at the
+ * step the first one left, with the same panel of what it made, and makes
+ * nothing twice. The two browser contexts share one world of the fixture's
+ * server (?world=, Journeys/Fixture/server.js): its records and its runs.
+ */
+for (const [laptop, phone] of [
+  [
+    { lang: "de", theme: "light", width: 1280 },
+    { lang: "de", theme: "dark", width: 390 },
+  ],
+  [
+    { lang: "fa", theme: "dark", width: 1280 },
+    { lang: "fa", theme: "light", width: 390 },
+  ],
+] as Array<[Look, Look]>) {
+  test(`another device picks the run up: ${nameOf(laptop)} then ${nameOf(phone)}`, async ({
+    page,
+    browser,
+  }: {
+    page: Page;
+    browser: Browser;
+  }) => {
+    test.setTimeout(240000);
+    const world: string = `wd-${laptop.lang}-${Date.now()}`;
+
+    await open(page, laptop, { world: world });
+    await walkToTheTest(page);
+    await expect(page.getByTestId("guided-setup-sync")).toHaveAttribute(
+      "data-sync",
+      "saved",
+    );
+
+    // A second device: a browser of its own, nothing kept in it.
+    const context: BrowserContext = await browser.newContext();
+    const second: Page = await context.newPage();
+
+    second.on("pageerror", (error: Error) => {
+      pageErrors.push(error.message);
+    });
+    await second.route(
+      (url: URL) => {
+        return url.origin !== ORIGIN;
+      },
+      async (route: Route) => {
+        leftTheMachine.push(route.request().url());
+        await route.abort();
+      },
+    );
+    await second.clock.setFixedTime(NOW);
+
+    try {
+      await open(second, phone, { world: world });
+
+      await expect(step(second, "check")).toHaveAttribute("data-state", "done");
+      await expect(step(second, "who_is_told")).toHaveAttribute(
+        "data-state",
+        "done",
+      );
+      await expect(step(second, "test")).toHaveAttribute("data-state", "open");
+      await expectRecords(second, {
+        monitor: "created",
+        on_call_policy: "created",
+        escalation_rule: "created",
+        on_call_rules: "created",
+        test_page: "waiting",
+      });
+      await look(second, phone, "another-device-picks-it-up");
+
+      // Nothing was made twice: one monitor, one policy, in the world.
+      const creates: (table: string) => Promise<number> = async (
+        table: string,
+      ): Promise<number> => {
+        return (await writesTo(second, table)).filter((write: FixtureWrite) => {
+          return write.kind === "create";
+        }).length;
+      };
+
+      expect(await creates("Monitor")).toBe(1);
+      expect(await creates("OnCallDutyPolicy")).toBe(1);
+    } finally {
+      await context.close();
+    }
+  });
+}
+
+/*
+ * A STEP THAT FAILS SAYS WHY, AND TRY AGAIN MAKES IT ONCE (#10276): the
+ * fixture refuses the policy's first create (?refuse=), as a server that
+ * could not save it. The panel says which record failed and why, with Try
+ * again; tried again, one policy is made, and the setup goes on.
+ */
+for (const each of [
+  { lang: "de", theme: "light", width: 1280 },
+  { lang: "fa", theme: "dark", width: 390 },
+] as Array<Look>) {
+  test(`a policy that could not be made, ${nameOf(each)}: why, then Try again makes one`, async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(240000);
+    await open(page, each, { refuse: "OnCallDutyPolicy" });
+    await checkTheAddress(page);
+    await page.getByTestId("guided-setup-check-continue").click();
+    await page.getByTestId("guided-setup-who-continue").click();
+
+    await expectRecords(page, {
+      monitor: "created",
+      on_call_policy: "failed",
+      escalation_rule: "waiting",
+      on_call_rules: "waiting",
+    });
+    await expect(
+      page.getByTestId("guided-setup-resource-on_call_policy-error"),
+    ).not.toBeEmpty();
+    await expect(step(page, "who_is_told")).toHaveAttribute(
+      "data-state",
+      "open",
+    );
+    await look(page, each, "policy-failed");
+
+    await page
+      .getByTestId("guided-setup-resource-on_call_policy-retry")
+      .click();
+
+    await expect(step(page, "test")).toHaveAttribute("data-state", "open");
+    await expectRecords(page, {
+      on_call_policy: "created",
+      escalation_rule: "created",
+      on_call_rules: "created",
+    });
+    await look(page, each, "policy-tried-again");
+
+    expect(
+      (await writesTo(page, "OnCallDutyPolicy")).filter(
+        (write: FixtureWrite) => {
+          return write.kind === "create";
+        },
+      ),
+    ).toHaveLength(1);
+  });
+}
+
+/*
+ * A WIDE SCREEN FRAMES THE SETUP (#10276): on a 2,560-pixel screen the
+ * steps sat in the left third and nothing was beside them. The page is
+ * centred now, the panel beside the steps, the breadcrumbs and title over
+ * them.
+ */
+test("a wide screen frames the setup: centred, with the panel beside the steps", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  const each: Look = { lang: "de", theme: "light", width: 2560 };
+
+  await open(page, each);
+
+  // Read in one frame, so the comparisons hold even while the page settles.
+  const [frame, steps, panel, title]: Array<FrameBox> = await boxesInOneFrame([
+    page.getByTestId("guided-setup"),
+    step(page, "check"),
+    page.getByTestId("guided-setup-aside"),
+    page.getByRole("heading", { level: 1 }),
+  ]);
+
+  const left: number = frame!.x;
+  const right: number = each.width - (frame!.x + frame!.width);
+
+  // Centred: as much room on either side, within the scrollbar's width.
+  expect(Math.abs(left - right)).toBeLessThan(24);
+  // The panel beside the steps, at their height.
+  expect(panel!.x).toBeGreaterThan(steps!.x);
+  expect(Math.abs(panel!.y - steps!.y)).toBeLessThan(120);
+  // The title over the steps, not at the screen's edge.
+  expect(Math.abs(title!.x - frame!.x)).toBeLessThan(2);
+
+  await look(page, each, "wide-screen");
+});
