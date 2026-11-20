@@ -12,8 +12,8 @@
  * DeviceDiagnostics.
  *
  * One page, /dashboard/<project>/shared-ui, steered by the query string:
- *   - section=buttons|dialogs|sections|pills|avatars|choices|rules|charts|states|skeletons|keyboard|popups
- *     which part to draw (all but charts, states, skeletons, keyboard and popups when left out)
+ *   - section=buttons|dialogs|sections|pills|avatars|choices|rules|charts|states|skeletons|keyboard|popups|layered-popups
+ *     which part to draw (all but charts, states, skeletons, keyboard, popups and layered-popups when left out)
  *   - read=<ms>      how long the edit dialog's record read takes (600)
  *   - lang=de|ja|fa|zh-CN|ru|fr   the Dashboard's words in that language
  *   - zoomed=1       (charts) the page is zoomed, so the hints name the way back
@@ -124,6 +124,13 @@ import FilterViewer from "Common/UI/Components/Filters/FilterViewer";
 import LogsViewerToolbar from "Common/UI/Components/LogsViewer/components/LogsViewerToolbar";
 import CopyAttributesAsJSONButton from "Common/UI/Components/AttributesJSON/CopyAttributesAsJSONButton";
 import FacetSectionHeader from "Common/UI/Components/TelemetryViewer/components/FacetSectionHeader";
+import TelemetrySearchBar from "Common/UI/Components/TelemetryViewer/components/TelemetrySearchBar";
+import LogSearchBar from "Common/UI/Components/LogsViewer/components/LogSearchBar";
+import AIChatPermissionMode from "Common/Types/AI/AIChatPermissionMode";
+import PermissionModePicker from "../../../App/FeatureSet/Dashboard/src/Components/AIChat/PermissionModePicker";
+import ProviderPicker from "../../../App/FeatureSet/Dashboard/src/Components/AIChat/ProviderPicker";
+import CodePicker from "../../../App/FeatureSet/Dashboard/src/Components/Code/CodePicker";
+import ReplayUserSessionsMenu from "../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayUserSessionsMenu";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import TimeRange from "Common/Types/Time/TimeRange";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
@@ -1844,6 +1851,217 @@ function Popups() {
   );
 }
 
+/*
+ * Popups moved onto the tooltip layer for #9909 and #9910, in boxes that
+ * clip as the Dashboard draws them:
+ *
+ *   - an investigation drawer's body, short and scrolling, with an
+ *     explorer's search and the logs search at its top: their suggestions
+ *     and syntax help ran into its scroll area (#9909);
+ *   - Ask AI's composer row in a card that rounds its corners, with its
+ *     LLM provider and "what the AI may do" pickers;
+ *   - Code's request box, which clips, with its repository picker;
+ *   - a session replay player that rounds its corners, with its "N
+ *     sessions" menu.
+ *
+ * Each popup must open whole, over the page, and keep its keys.
+ */
+const SEARCH_FIELDS = [
+  "service",
+  "severity",
+  "span",
+  "spanId",
+  "status",
+  "statusCode",
+  "source",
+  "session",
+  "scope",
+  "sdk",
+];
+
+const SEARCH_HELP_ROWS = [
+  {
+    syntax: "service:<name>",
+    description: "Filter by service",
+    example: "service:api",
+  },
+  {
+    syntax: "status:<code>",
+    description: "Filter by status",
+    example: "status:error",
+  },
+  {
+    syntax: "@<attr>:<value>",
+    description: "Filter by attribute",
+    example: "@http.status_code:500",
+  },
+  {
+    syntax: "-<filter>",
+    description: "Exclude what a filter matches",
+    example: "-service:api",
+  },
+];
+
+const CHAT_PROVIDERS = [
+  {
+    id: "provider-0",
+    name: "OneUptime AI",
+    description: null,
+    llmType: null,
+    modelName: null,
+    isDefault: true,
+    isGlobal: true,
+  },
+  {
+    id: "provider-1",
+    name: "Team model",
+    description: "chat-large in West Europe",
+    llmType: "AzureOpenAI",
+    modelName: "chat-large",
+    isDefault: false,
+    isGlobal: false,
+  },
+];
+
+const REPOSITORIES = [
+  {
+    value: "checkout-api",
+    label: "checkout-api",
+    description: "acme/checkout-api",
+  },
+  { value: "payments", label: "payments", description: "acme/payments" },
+  { value: "storefront", label: "storefront", badge: "Default" },
+  { value: "search", label: "search", description: "acme/search" },
+  {
+    value: "notifications",
+    label: "notifications",
+    description: "acme/notifications",
+  },
+];
+
+const REPLAY_NOW = Date.parse("2026-10-15T10:00:00.000Z");
+const REPLAY_CURRENT = "a1b2c3d4e5f60718293a4b5c6d7e8f90";
+
+function replaySession(sessionId, hoursAgo, overrides) {
+  return {
+    sessionId: sessionId,
+    startTimeUnixMs: REPLAY_NOW - hoursAgo * 60 * 60 * 1000,
+    durationMs: 252000,
+    entryUrl: "https://shop.acme-commerce.example/checkout",
+    browserName: "Chrome",
+    deviceType: "desktop",
+    hasError: false,
+    errorCount: 0,
+    isFinalized: true,
+    identifiedUserKey: "key",
+    visitorId: "visitor",
+    identifiedUserLabel: "jane@acme-commerce.example",
+    ...overrides,
+  };
+}
+
+const REPLAY_SESSIONS = [
+  replaySession("newest", 1, {
+    entryUrl: "https://shop.acme-commerce.example/",
+  }),
+  replaySession(REPLAY_CURRENT, 3),
+  replaySession("older", 26, { errorCount: 2, hasError: true }),
+  replaySession("oldest", 50, { deviceType: "mobile", browserName: "Safari" }),
+];
+
+function LayeredPopups() {
+  const [explorerSearch, setExplorerSearch] = useState("");
+  const [logsSearch, setLogsSearch] = useState("");
+  const [provider, setProvider] = useState("provider-0");
+  const [mode, setMode] = useState(AIChatPermissionMode.AskForApproval);
+  const [repository, setRepository] = useState("checkout-api");
+
+  return (
+    <div className="space-y-6" data-testid="section-layered-popups">
+      {/* An investigation drawer's body: short, and scrolling. */}
+      <div
+        className="h-40 overflow-y-auto rounded-lg border border-gray-200 bg-white p-4"
+        data-testid="layered-drawer"
+      >
+        <div data-testid="layered-explorer-search">
+          <TelemetrySearchBar
+            value={explorerSearch}
+            onChange={setExplorerSearch}
+            onSubmit={() => {}}
+            suggestions={SEARCH_FIELDS}
+            helpRows={SEARCH_HELP_ROWS}
+            helpCombinedExample="service:api status:error"
+            placeholder="Search spans..."
+          />
+        </div>
+        <div className="mt-3" data-testid="layered-logs-search">
+          <LogSearchBar
+            value={logsSearch}
+            onChange={setLogsSearch}
+            onSubmit={() => {}}
+            suggestions={SEARCH_FIELDS}
+          />
+        </div>
+        <p className="mt-3 text-sm text-gray-500">No spans yet.</p>
+      </div>
+
+      {/* Ask AI's composer row, in a card that rounds its corners. */}
+      <div
+        className="overflow-hidden rounded-lg border border-gray-200 bg-white"
+        data-testid="layered-composer"
+      >
+        <p className="px-4 pt-3 text-sm text-gray-500">
+          Ask about this incident
+        </p>
+        <div className="flex items-center gap-2 px-2 pb-2 pt-1">
+          <ProviderPicker
+            providers={CHAT_PROVIDERS}
+            selectedProviderId={provider}
+            onSelect={setProvider}
+          />
+          <PermissionModePicker
+            value={mode}
+            onChange={setMode}
+            menuAlign="start"
+          />
+        </div>
+      </div>
+
+      {/* Code's request box, which clips. */}
+      <div
+        className="overflow-hidden rounded-lg border border-gray-200 bg-white px-2 py-2"
+        data-testid="layered-request"
+      >
+        <CodePicker
+          dataTestId="layered-repository"
+          label="Repository"
+          valueText={repository}
+          icon={<span className="h-3.5 w-3.5 rounded-sm bg-gray-300" />}
+          options={REPOSITORIES}
+          value={repository}
+          onChange={setRepository}
+          searchPlaceholder="Find a repository"
+          noMatchText="No repository matches."
+        />
+      </div>
+
+      {/* A session replay player, which rounds its corners. */}
+      <div
+        className="overflow-hidden rounded-xl border border-gray-200 bg-white px-3 py-2"
+        data-testid="layered-player"
+      >
+        <ReplayUserSessionsMenu
+          kind="identified"
+          sessions={REPLAY_SESSIONS}
+          currentSessionId={REPLAY_CURRENT}
+          onOpenUserSession={() => {}}
+          nowUnixMs={REPLAY_NOW}
+        />
+      </div>
+    </div>
+  );
+}
+
 const SECTIONS = {
   buttons: Buttons,
   dialogs: Dialogs,
@@ -1858,6 +2076,7 @@ const SECTIONS = {
   states: States,
   skeletons: Skeletons,
   popups: Popups,
+  "layered-popups": LayeredPopups,
 };
 
 const ONLY_WHEN_ASKED_FOR = [
@@ -1866,6 +2085,7 @@ const ONLY_WHEN_ASKED_FOR = [
   "skeletons",
   "keyboard",
   "popups",
+  "layered-popups",
 ];
 
 function Gallery() {

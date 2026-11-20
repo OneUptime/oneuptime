@@ -22,8 +22,20 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import BaseAPI from "Common/Server/API/BaseAPI";
 import { ExpressRequest } from "Common/Server/Utils/Express";
+import getRequestBodyLimit, {
+  ORDINARY_REQUEST_BODY_LIMIT,
+} from "Common/Server/Utils/RequestBodyLimit";
 import ColumnRefusalMessage from "Common/Server/Types/Database/Permissions/ColumnRefusalMessage";
 import ServerOwned from "Common/Types/Database/ServerOwned";
+import ListChangesUtil, {
+  ADD_TO_LIST_KEY,
+  ListChanges,
+  REMOVE_FROM_LIST_KEY,
+} from "Common/Types/Database/ListChanges";
+import FieldsLeftOut, {
+  FIELDS_LEFT_OUT_HEADER,
+} from "Common/Types/API/FieldsLeftOut";
+import { ModelSchema } from "Common/Utils/Schema/ModelSchema";
 import { TRY_COLLECTOR_CONFIG_AGAIN_ROUTE } from "Common/Types/HostCollector/HostCollectorRoutes";
 import UUIDColumnFilter, {
   EXAMPLE_UUID,
@@ -710,7 +722,7 @@ describe("OneUptime API Reference: a request and its answer", () => {
       rows.map((row: Array<string>): string => {
         return codeIn(row[0] as string)[0] as string;
       }),
-    ).toEqual(["200", "400", "402", "404", "422", "500"]);
+    ).toEqual(["200", "400", "402", "404", "413", "422", "500"]);
     expect(ExceptionCode.BadDataException).toBe(400);
     expect(ExceptionCode.PaymentRequiredException).toBe(402);
     expect(ExceptionCode.NotFoundException).toBe(404);
@@ -741,6 +753,55 @@ describe("OneUptime API Reference: a request and its answer", () => {
     expect(rowStartingWith(rows, "`422`")[1]).toContain(
       "the API key has no permission for this kind of record",
     );
+  });
+
+  /*
+   * #10183: StartServer holds a body to its route's limit before anything
+   * else is read: 1 MB and 100,000 JSON values on most routes, 50 MB on the
+   * ones that take a file, a dashboard or a status page.
+   */
+  it("says the body limits the server holds a request to, and the settings that raise them", () => {
+    const row: string = rowStartingWith(
+      tableWithHeader(
+        englishSection(API_REFERENCE, "### Status codes"),
+        "Code",
+      ),
+      "`413`",
+    )[1] as string;
+
+    expect(ORDINARY_REQUEST_BODY_LIMIT).toEqual({
+      bytes: 1024 * 1024,
+      values: 100000,
+      objectsArraysAndStrings: 100000,
+    });
+    expect(row).toContain("1 MB holding at most 100,000 JSON values");
+
+    for (const route of [
+      "/api/file",
+      "/api/dashboard/id",
+      "/api/status-page/id",
+    ]) {
+      expect({
+        route,
+        bytes: getRequestBodyLimit(route).bytes,
+      }).toEqual({ route, bytes: 50 * 1024 * 1024 });
+    }
+    expect(row).toContain(
+      "50 MB in one that sends a file, a dashboard or a status page",
+    );
+
+    // The settings that raise the ordinary limit, as EnvironmentConfig reads them.
+    const environment: string = readRepoFile(
+      "Common/Server/EnvironmentConfig.ts",
+    );
+
+    for (const setting of [
+      "REQUEST_BODY_MAX_BYTES",
+      "REQUEST_BODY_MAX_JSON_VALUES",
+    ]) {
+      expect(environment).toContain(`"${setting}"`);
+      expect(row).toContain(`\`${setting}\``);
+    }
   });
 
   it("draws the checks in the order the server makes them, each with its status", () => {
@@ -845,6 +906,106 @@ describe("OneUptime API Reference: fields only OneUptime writes", () => {
     );
     expect(readRepoFile("Common/Server/API/HostAPI.ts")).toContain(
       "/:id/${TRY_COLLECTOR_CONFIG_AGAIN_ROUTE}",
+    );
+  });
+});
+
+/*
+ * A create's fields left out (#10136) and an update's single entries of a
+ * list (#10135): the header, the keys and the refusal the page names are
+ * the server's, word for word, and its example is a body the server takes.
+ */
+describe("OneUptime API Reference: the fields a create left out, and a list's single entries", () => {
+  const fieldsSection: string = englishSection(
+    API_REFERENCE,
+    "### Fields only OneUptime writes",
+  );
+  const listsSection: string = englishSection(
+    API_REFERENCE,
+    "### Adding entries to a list and taking them off",
+  );
+
+  it("names the header a create's answer lists the fields it left out in, and the clients that read it", () => {
+    expect(fieldsSection).toContain(`\`${FIELDS_LEFT_OUT_HEADER}\` header`);
+    expect(fieldsSection).toContain("the fields separated by commas");
+    expect(FieldsLeftOut.toHeaderValue(["depth", "lastRollupAt"])).toBe(
+      "depth, lastRollupAt",
+    );
+    expect(FieldsLeftOut.fromHeaderValue("depth, lastRollupAt")).toEqual([
+      "depth",
+      "lastRollupAt",
+    ]);
+
+    // Only an answer that left something out carries it.
+    expect(fieldsSection).toContain(
+      "an answer with nothing left out has no such header",
+    );
+    expect(readRepoFile(BASE_API)).toContain(
+      "if (createBy.fieldsLeftOut && createBy.fieldsLeftOut.length > 0) {",
+    );
+
+    // The CLI's note, the MCP server's field and the provider's warning.
+    expect(fieldsSection).toContain(
+      "The CLI prints the fields in a note, the MCP server's answer lists them in `fieldsLeftOut`, and the Terraform provider shows them in a warning.",
+    );
+    expect(readRepoFile("CLI/Commands/ResourceCommands.ts")).toContain(
+      "FieldsLeftOut.getNote(",
+    );
+    expect(
+      readRepoFile("App/FeatureSet/MCP/Handlers/ToolHandler.ts"),
+    ).toContain("fieldsLeftOut");
+    expect(
+      readRepoFile("../Scripts/TerraformProvider/StaticFiles/entries.go"),
+    ).toContain("diags.AddWarning(");
+  });
+
+  it("names the keys a change adds and takes off entries with, and its example is a body the server takes", () => {
+    const label: string = "6f1b5f4e-0a43-4f0e-9a6b-5f3b2f0c8d11";
+    const otherLabel: string = "9c2e7a10-3b5d-4c8e-8f61-2d4a6b7c9e02";
+
+    expect(listsSection).toContain(`\`${ADD_TO_LIST_KEY}\``);
+    expect(listsSection).toContain(`\`${REMOVE_FROM_LIST_KEY}\``);
+    expect(listsSection).toContain("Sent to `PUT /api/monitor/<id>`");
+
+    const example: string = (codeBlocks(listsSection, "json")[0] || "")
+      .split("<label-id>")
+      .join(label)
+      .split("<other-label-id>")
+      .join(otherLabel);
+    const body: Record<string, unknown> = JSON.parse(example);
+
+    // The lists the full API reference names under addToList: a monitor's labels among them.
+    const listColumns: Array<string> =
+      ModelSchema.getListsChangedEntryByEntry(Monitor);
+    expect(listColumns).toContain("labels");
+
+    const changes: ListChanges | null = ListChangesUtil.fromRequestBody({
+      body: body as never,
+      listColumns: listColumns,
+      modelName: new Monitor().singularName || "Monitor",
+    });
+
+    expect(changes).toEqual({
+      labels: { add: [label], remove: [otherLabel] },
+    });
+    expect(body["data"]).toEqual({ name: "Checkout API" });
+  });
+
+  it("quotes the refusal of a list sent both whole, in data, and entry by entry", () => {
+    expect((codeBlocks(listsSection, "text")[0] || "").trim()).toBe(
+      ListChangesUtil.getSentWholeAndByEntryMessage("labels"),
+    );
+    expect(readRepoFile("Common/Server/Services/DatabaseService.ts")).toContain(
+      "ListChangesUtil.getSentWholeAndByEntryMessage(column)",
+    );
+  });
+
+  it("links the Terraform guide's section on the lists OneUptime adds to", () => {
+    expect(listsSection).toContain(
+      "(/docs/terraform/complete-guide#labels-and-other-lists-oneuptime-adds-to)",
+    );
+    expect(englishPage("terraform/complete-guide").split("\n")).toContain(
+      "## Labels and other lists OneUptime adds to",
     );
   });
 });

@@ -126,6 +126,10 @@ const TRICKY = [
   "MISMATCHED=\"half'",
   'INNER=" spaced inside "',
   "SEMICOLON=a; touch pwned",
+  // An export before the name, which a config.env sourced by hand may have.
+  "export EXPORTED=as exported",
+  "export\tTABBED_EXPORT=after a tab",
+  "  export   SPACED_EXPORT  =  spaced  ",
   "NO_NEWLINE_AT_THE_END=last",
 ].join("\n");
 

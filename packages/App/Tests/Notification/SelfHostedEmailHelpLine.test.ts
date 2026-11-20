@@ -10,7 +10,10 @@ import {
 import fs from "fs";
 import Path from "path";
 import Handlebars from "handlebars";
-import { markupAsSpacesWithOutlookContent } from "Common/Tests/Helpers/HtmlText";
+import {
+  decodeHtmlEntities,
+  markupAsSpacesWithOutlookContent,
+} from "Common/Tests/Helpers/HtmlText";
 import { ProductBranding } from "Common/Types/Branding/ProductBranding";
 import Email from "Common/Types/Email";
 import EmailMessage from "Common/Types/Email/EmailMessage";
@@ -152,7 +155,15 @@ const SUPPORT_BLOCK_CALL: RegExp = /\{\{>\s*SupportBlock\b/;
 const TEMPLATES_WITH_A_HELP_LINE: ReadonlyArray<string> = [
   "AccountAlreadyExists",
   "CompleteRegistration",
+  /*
+   * The two emails to a new address a person asked to make their account's
+   * (#9821): its link, or word that another account has it. Their reader
+   * may have no account here at all, and on a self-hosted server only its
+   * admin can say whose request it was.
+   */
+  "ConfirmEmailChange",
   "ConfirmProjectSsoSignIn",
+  "EmailChangeAddressTaken",
   "EmailChanged",
   "EmailVerified",
   "ForgotPassword",
@@ -186,8 +197,17 @@ const readTemplate: (name: string) => string = (name: string): string => {
   return fs.readFileSync(Path.join(TEMPLATES_DIR, `${name}.hbs`), "utf8");
 };
 
+/*
+ * The email's words as its reader reads them: markup a space each, and
+ * character references decoded - the help line is written in the email's
+ * language (EmailLanguage's t and tt, #9897), whose output is escaped, so
+ * "server's" is "server&#x27;s" in the HTML.
+ */
 const textOf: (html: string) => string = (html: string): string => {
-  return markupAsSpacesWithOutlookContent(html).replace(WHITESPACE_RUN, " ");
+  return decodeHtmlEntities(markupAsSpacesWithOutlookContent(html)).replace(
+    WHITESPACE_RUN,
+    " ",
+  );
 };
 
 // The invitation's variables that name who made it (InvitationInviter).

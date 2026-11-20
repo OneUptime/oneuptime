@@ -6,9 +6,12 @@ package config
 // device to; a telemetry ingestion key OneUptime switches off; a cluster's
 // AI setting, which its agent reports and only an update writes. And the
 // upgrade, from manifests an earlier version filled by late
-// initialization.
+// initialization. An update of a monitor's labels adds and takes off single
+// labels (#10135), never the whole list, so one a rule adds while a
+// reconcile runs stays.
 
 import (
+	"context"
 	"errors"
 	"sort"
 	"strings"
@@ -21,6 +24,9 @@ import (
 )
 
 var errFake = errors.New("the API refused the update")
+
+// A label a rule adds while a reconcile runs.
+const laterRuleLabel = "1abe1000-0000-4000-8000-0000000000a9"
 
 const (
 	frankfurtSite = "517e0000-0000-4000-8000-000000000001"
@@ -134,11 +140,62 @@ func TestALabelTheManifestAddsJoinsTheRules(t *testing.T) {
 	if len(updates) != 1 {
 		t.Fatalf("%d updates, want the one that adds the label: %+v", len(updates), updates)
 	}
-	if got := labelsOf(updates[0].Data); got != ids(productionLabel, teamALabel, ruleLabel) {
-		t.Fatalf("the update sent labels %s, want the manifest's beside the rule's", got)
+	// The label the manifest adds, alone: never the whole list (#10135).
+	if _, sent := updates[0].Data["labels"]; sent {
+		t.Fatalf("the update sent the labels whole: %+v", updates[0].Data)
+	}
+	if got := entriesOf(updates[0].AddToList, "labels"); got != teamALabel {
+		t.Fatalf("the update added labels %s, want %s alone", got, teamALabel)
+	}
+	if got := entriesOf(updates[0].RemoveFromList, "labels"); got != "" {
+		t.Fatalf("the update took off labels %s", got)
+	}
+	if got := labelsOf(api.record("monitor", id)); got != ids(productionLabel, teamALabel, ruleLabel) {
+		t.Fatalf("the monitor has labels %s, want the manifest's beside the rule's", got)
 	}
 	if record, _ := recordOf(t, mg); labelsOfRecord(record) != ids(productionLabel, teamALabel) {
 		t.Fatalf("recorded %+v", record)
+	}
+}
+
+// entriesOf is what an update added to a list or took off it, sorted and joined.
+func entriesOf(lists map[string]any, list string) string {
+	entries, _ := lists[list].([]any)
+	values := []string{}
+	for _, entry := range entries {
+		if id, ok := entry.(string); ok {
+			values = append(values, id)
+		}
+	}
+	sort.Strings(values)
+	return strings.Join(values, ",")
+}
+
+// A label a rule adds after a reconcile observed the monitor, before it
+// updates it, stays: the update names only the label the manifest adds.
+func TestALabelARuleAddsWhileAReconcileRunsStays(t *testing.T) {
+	api, r, mg, id := labelledMonitor(t, productionLabel)
+	cycles(t, r, "oneuptime_monitor", mg, 1)
+
+	edit(mg, func() {
+		mg.Spec.ForProvider.Labels = append(mg.Spec.ForProvider.Labels, ptrTo(teamALabel))
+	})
+	r.initialize("oneuptime_monitor", mg)
+	ext := r.connect("oneuptime_monitor", mg)
+	obs, err := ext.Observe(context.Background(), mg)
+	if err != nil {
+		t.Fatalf("observe: %v", err)
+	}
+	if obs.ResourceUpToDate {
+		t.Fatal("the edit left the monitor up to date")
+	}
+	addedByRule(api, "monitor", id, laterRuleLabel)
+	if _, err := ext.Update(context.Background(), mg); err != nil {
+		t.Fatalf("update: %v", err)
+	}
+
+	if got := labelsOf(api.record("monitor", id)); got != ids(productionLabel, teamALabel, ruleLabel, laterRuleLabel) {
+		t.Fatalf("the monitor has labels %s, want the label the rule added meanwhile kept", got)
 	}
 }
 

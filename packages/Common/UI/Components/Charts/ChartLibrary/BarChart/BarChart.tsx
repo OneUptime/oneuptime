@@ -71,6 +71,7 @@ import {
   prepareTooltipEntries,
 } from "../Utils/TooltipEntries";
 import { useOnWindowResize } from "../Utils/UseWindowOnResize";
+import { getLegendExtraRowsHeight } from "../Utils/LegendExtraRows";
 
 //#region Shape
 
@@ -524,6 +525,7 @@ const ChartLegend: (
   enableLegendSlider?: boolean,
   legendPosition?: "left" | "center" | "right",
   yAxisWidth?: number,
+  onExtraRowsHeightChange?: (extraRowsHeightInPx: number) => void,
 ) => React.ReactElement = (
   { payload }: any,
   categoryColors: Map<string, ChartColorValue>,
@@ -533,6 +535,7 @@ const ChartLegend: (
   enableLegendSlider?: boolean,
   legendPosition?: "left" | "center" | "right",
   yAxisWidth?: number,
+  onExtraRowsHeightChange?: (extraRowsHeightInPx: number) => void,
 ) => {
   const legendRef: React.RefObject<HTMLDivElement> =
     React.useRef<HTMLDivElement>(null);
@@ -544,6 +547,7 @@ const ChartLegend: (
       return height ? Number(height) + 15 : 60;
     };
     setLegendHeight(calculateHeight(legendRef.current?.clientHeight));
+    onExtraRowsHeightChange?.(getLegendExtraRowsHeight(legendRef.current));
   });
 
   const filteredPayload: any[] = payload.filter((item: any) => {
@@ -802,6 +806,15 @@ interface BarChartProps extends React.HTMLAttributes<HTMLDivElement> {
   categoryValueFormatters?:
     | Record<string, (value: number) => string>
     | undefined;
+  /*
+   * Told how much taller than one row the legend is (0 while its items fit
+   * on one line), each time the legend is measured: a host that keeps its
+   * plot's height when the legend wraps grows by that much (the wrapper's
+   * growsWhenLegendWraps, issue #7125).
+   */
+  onLegendExtraRowsHeightChange?:
+    | ((extraRowsHeightInPx: number) => void)
+    | undefined;
 }
 
 const BarChart: React.ForwardRefExoticComponent<
@@ -851,6 +864,7 @@ const BarChart: React.ForwardRefExoticComponent<
       categoryValueFormatters,
       secondYAxis: requestedSecondYAxis,
       ownScales: requestedOwnScales,
+      onLegendExtraRowsHeightChange,
       ...other
     } = props;
     /*
@@ -1425,6 +1439,7 @@ const BarChart: React.ForwardRefExoticComponent<
                       enableLegendSlider,
                       legendPosition,
                       valueAxes.first.width,
+                      onLegendExtraRowsHeightChange,
                     );
                   }}
                 />

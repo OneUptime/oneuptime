@@ -1035,9 +1035,11 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
          * key's answer. #9822: a security key's sign-in options, asked for
          * with the password again rather than by an address alone. #9817:
          * the phone's browser reads a mobile app's passkey options once,
-         * by the one-time hand-off the app was given at sign-in.
+         * by the one-time hand-off the app was given at sign-in. #9898: the
+         * sign-up page an invitation opens says its link is the person's,
+         * as they pick the project's single sign-on.
          */
-        "packages/App/FeatureSet/Identity/API/Authentication.ts": 22,
+        "packages/App/FeatureSet/Identity/API/Authentication.ts": 23,
         "packages/App/FeatureSet/Identity/API/FirstAccount.ts": 1,
         // #9603: a SAML provider's Single Logout URL takes a posted sign-out.
         "packages/App/FeatureSet/Identity/API/GlobalSSO.ts": 2,
@@ -1100,8 +1102,12 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
          * is-user-registered is gone (#9745).
          */
         "packages/Common/Server/API/TeamMemberAPI.ts": 11,
-        // #9762: a master admin clearing one person's sign-in settings.
-        "packages/Common/Server/API/UserAPI.ts": 8,
+        /*
+         * #9762: a master admin clearing one person's sign-in settings.
+         * #10155: a person confirming it's them before they change how
+         * they sign in, and the security key or passkey options for it.
+         */
+        "packages/Common/Server/API/UserAPI.ts": 10,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
       },
     ),
@@ -1239,6 +1245,8 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/Telemetry/API/ChangeEventsIngest.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/Datadog.ts": 8,
         "packages/App/FeatureSet/Telemetry/API/DbtArtifactsIngest.ts": 1,
+        // #9922: an iOS app's dSYMs, uploaded as its source maps are.
+        "packages/App/FeatureSet/Telemetry/API/DsymIngest.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/Fluent.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/GcpPubSub.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/HostCollectorOpAmp.ts": 1,
@@ -1264,6 +1272,13 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       "Telemetry's queries, as POSTs for their bodies - attributes, histograms, facets, analytics, session counts, an export, a flame graph, a replay's manifest and chunks: they only read. A replay's heartbeat is the audit of a person watching it, which a read keeps, as the server.",
       {
         "packages/Common/Server/API/TelemetryAPI.ts": 72,
+      },
+    ),
+    ...decided(
+      "The Prometheus- and Loki-compatible query APIs (#6796, #7700) Grafana reads OneUptime through, each query also as a POST for a long one, as Prometheus and Loki serve them: they only read a project's metrics and logs.",
+      {
+        "packages/Common/Server/API/LokiAPI.ts": 4,
+        "packages/Common/Server/API/PrometheusAPI.ts": 5,
       },
     ),
     ...decided(
@@ -1483,6 +1498,36 @@ const listServerFiles: () => Array<string> = (): Array<string> => {
   return files.sort();
 };
 
+/*
+ * A route registered through a computed method - router[method](...) - is
+ * one the walk cannot read the verb of, so a POST could hide in it, as the
+ * Prometheus API's did before #7700. Each such call of a file: none may be.
+ */
+const MAY_REGISTER_COMPUTED: RegExp = /(?:router|\bapp)\s*\??\.?\s*\[/i;
+
+const readComputedRegistrations: (file: string) => Array<string> = (
+  file: string,
+): Array<string> => {
+  const source: ts.SourceFile = parse(file);
+  const calls: Array<string> = [];
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isElementAccessExpression(node.expression) &&
+      ROUTER.test(node.expression.expression.getText(source))
+    ) {
+      calls.push(squash(node.expression.getText(source)));
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return calls;
+};
+
 const FILES_WITH_ROUTES: Array<string> = listServerFiles().filter(
   (file: string): boolean => {
     return (
@@ -1579,6 +1624,26 @@ describe("every route file of the server is held to a decision", () => {
     expect(FILES_WITH_ROUTES).not.toContain(
       "packages/Common/Server/Utils/ServerProducts/ServerProductRoutes.ts",
     );
+  });
+
+  test("no route is registered through a computed method, which the walk cannot read", () => {
+    const computed: Array<string> = listServerFiles()
+      .filter((file: string): boolean => {
+        return (
+          // Core's files: ee/ decides its own (ProductRouteDecisions.ts).
+          !file.startsWith("ee/") &&
+          MAY_REGISTER_COMPUTED.test(
+            fs.readFileSync(path.join(REPOSITORY, file), "utf8"),
+          )
+        );
+      })
+      .flatMap((file: string): Array<string> => {
+        return readComputedRegistrations(file).map((call: string): string => {
+          return `${file}: ${call}(...)`;
+        });
+      });
+
+    expect(computed).toEqual([]);
   });
 
   test("every file that registers a route is decided, once", () => {

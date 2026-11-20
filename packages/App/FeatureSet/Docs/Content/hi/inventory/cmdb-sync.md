@@ -171,6 +171,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | ऑपरेटिंग सिस्टम का नाम | `os.name` | केवल उन SDK से जो इसे बताते हैं: नहीं तो `os.description` OS का नाम बताता है |
 | डिवाइस प्रकार | `device.type` | वैकल्पिक: इसे भी उसी तरह जोड़ें (`Hypervisor`, `Workstation`) |
 | स्थान | `device.location` | वैकल्पिक: इसे भी उसी तरह जोड़ें (`Frankfurt DC, Rack B4`) |
+| सुरक्षा पैच स्तर | `android.os.security_patch` | Android डिवाइस पर: Android एजेंट या उसके डिवाइस मैनेजर से |
 
 "हाँ" वाली हर चीज़ कलेक्टर के `resourcedetection` प्रोसेसर से आती है, और वह OneUptime के आपके लिए बनाए कॉन्फ़िगरेशन में पहले से है।
 

@@ -171,6 +171,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | オペレーティングシステムの名前 | `os.name` | 報告する SDK からのみ。それ以外では `os.description` が OS を示します |
 | デバイスの種類 | `device.type` | 任意。同じ方法で付与します (`Hypervisor`、`Workstation`) |
 | 場所 | `device.location` | 任意。同じ方法で付与します (`Frankfurt DC, Rack B4`) |
+| セキュリティパッチレベル | `android.os.security_patch` | Android デバイスで。Android エージェントまたはそのデバイス管理サービスから |
 
 「はい」の項目はすべてコレクターの `resourcedetection` プロセッサーから得られ、OneUptime が生成する設定にすでに含まれています。
 

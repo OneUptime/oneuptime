@@ -10,6 +10,7 @@ import User from "../../Models/DatabaseModels/User";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import SsoManagedSignIn from "../Utils/SsoManagedSignIn";
+import Reauthentication from "../Utils/Reauthentication/Reauthentication";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -33,6 +34,17 @@ export class Service extends DatabaseService<Model> {
      */
     if (!createBy.props.isRoot) {
       await SsoManagedSignIn.assertMayChangeLocalSignIn(createBy.props.userId);
+
+      /*
+       * An authenticator app is a second step of every sign-in, and of the
+       * confirmation the changes to how its person signs in ask for: one of
+       * somebody else's, turned on, would keep the owner out. So the
+       * session adding one has confirmed it's its person's (#10155) - asked
+       * here, when the app is begun, so the person confirms before they
+       * scan its code, and again when its first code finishes it
+       * (UserTotpAuthAPI's /validate).
+       */
+      await Reauthentication.assertConfirmed(createBy.props);
     }
 
     // The session user's own, and no other name of it to be stored instead.
@@ -114,6 +126,20 @@ export class Service extends DatabaseService<Model> {
       );
 
       await UserService.assertTwoFactorAuthKeepsASecondStep(rows);
+
+      /*
+       * Removing an authenticator app changes how its person signs in: the
+       * session has confirmed it's theirs (#10155). After the refusal of the
+       * last second step, and only for an app that was set up: one whose
+       * setup was never finished signs nobody in, and goes as it always did.
+       */
+      if (
+        rows.some((row: Model): boolean => {
+          return row.isVerified === true;
+        })
+      ) {
+        await Reauthentication.assertConfirmed(deleteBy.props);
+      }
     }
 
     return { deleteBy, carryForward: null };

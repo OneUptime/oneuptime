@@ -565,9 +565,18 @@ describe("a person named by address is emailed as before, once", () => {
     );
 
     expect(sentMail().toEmail.toString()).toBe(otherAddress.toString());
-    // The by-id path is not asked: the address decides.
+    /*
+     * The by-id path is not asked: the address decides. That path reads the
+     * person for their address and password (getInviteeToEmailById); the
+     * email's own reads of the account by id - whether SSO manages them
+     * (#9819), the language it picked (#9897) - are no part of it.
+     */
     expect(hasMembershipSpy).not.toHaveBeenCalled();
-    expect(findPersonSpy).not.toHaveBeenCalled();
+    expect(findPersonSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ password: true }),
+      }),
+    );
   });
 
   /*

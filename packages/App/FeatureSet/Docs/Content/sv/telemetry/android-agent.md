@@ -104,7 +104,7 @@ Android låter en app läsa andra appars loggar bara med behörigheten READ_LOGS
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-Med Esper kör du kommandot över **Secure Remote ADB**: Slå på ADB-åtkomst för enheten, anslut med `espercli secureadb connect --device DEVICE_ID` och kör sedan kommandot. Android startar om agenten när behörigheten beviljas, och agenten börjar läsa direkt.
+Med Esper kör du kommandot över **Secure Remote ADB**: Slå på ADB-åtkomst för enheten, anslut med `espercli secureadb connect --device DEVICE_ID` och kör sedan kommandot. Android startar om agenten när behörigheten beviljas, och agenten börjar läsa direkt. Kolumnen **MDM-ID** i inventariet har varje enhets `DEVICE_ID`.
 
 Vad agenten sedan läser beror på Android-versionen:
 
@@ -126,7 +126,7 @@ Det första kommandot gäller Android 15 och senare; åtkomst till användningsd
 
 ### Bevilja dem på hela flottan
 
-Varje rapport från agenten anger vilka av de här behörigheterna den fortfarande saknar. Om du vill lista de enheter som behöver dem öppnar du **Inventarie**, sedan **Alla objekt**, och filtrerar på **Agentbehörigheter**: **Saknas**. Slå på kolumnen **Agentbehörigheter** för att se vad varje enhet saknar, och exportera listan som CSV.
+Varje rapport från agenten anger vilka av de här behörigheterna den fortfarande saknar. Om du vill lista de enheter som behöver dem öppnar du **Inventarie**, sedan **Alla objekt**, och filtrerar på **Agentbehörigheter**: **Saknas**. Slå på kolumnen **Agentbehörigheter** för att se vad varje enhet saknar, och exportera listan som CSV. Slå på kolumnen **MDM-ID** också, så har exporten varje enhets Esper-id, det `DEVICE_ID` som `espercli secureadb connect --device` tar.
 
 En enhetspolicy kan inte bevilja dessa: READ_LOGS och READ_DROPBOX_DATA är behörigheter som bara adb, systemet eller enhetens tillverkare kan ge, och åtkomst till användningsdata ställs in med adb eller av personen vid enheten. Vad Esper erbjuder, och varför inget av det beviljar dem:
 
@@ -204,7 +204,7 @@ En session behöver READ_LOGS och `logcat_enabled`; utan dem står den på **Oti
 
 I **Värdar** står enhetens OS som Android, med Androids logotyp.
 
-En enhet ligger efter med sina säkerhetspatchar när dess säkerhetspatchnivå är äldre än 90 dagar. Google publicerar en säkerhetsbulletin för Android varje månad, och Android Enterprise Recommended kräver att en enhets tillverkare levererar uppdateringen för var och en inom 90 dagar, så en enhet som ligger längre efter saknar korrigeringar som dess tillverkare borde ha levererat. I **Inventarie** listar filtret **Säkerhetspatchnivå** de enheter som står som **Föråldrad**; mallen **Security Patch Out of Date** larmar för var och en av dem.
+En enhet ligger efter med sina säkerhetspatchar när dess säkerhetspatchnivå är äldre än 90 dagar. Google publicerar en säkerhetsbulletin för Android varje månad, och Android Enterprise Recommended kräver att en enhets tillverkare levererar uppdateringen för var och en inom 90 dagar, så en enhet som ligger längre efter saknar korrigeringar som dess tillverkare borde ha levererat. I **Inventarie** listar filtret **Säkerhetspatchnivå** de enheter som står som **Föråldrad**; mallen **Security Patch Out of Date** larmar för var och en av dem. En Android-enhet som en MDM importerar och som agenten inte kör på larmas av anslutningens egen mall, till exempel **Esper Security Patch Out of Date**, utifrån den patchnivå som MDM:en rapporterar; en enhet som agenten kör på lämnas åt den här mallen, så den larmar aldrig två gånger.
 
 Antalet uppstarter under den senaste timmen är mätvärdet `android.boot.recent_count`, och en enhet som fortsätter att starta om loggar en varning vid varje uppstart. I **Värdar** erbjuds en Android-enhet egna larmmallar: Device Unplugged, Low Battery, Device Overheating, Restart Loop, Storage Nearly Full och Security Patch Out of Date, tillsammans med Host Stopped Reporting, Host Restarted och High Memory Utilization, och High CPU Utilization när den rapporterar CPU-användning. Varje larms första felsökningskommandon är adb-kommandon. Se [Värdövervakning](/docs/monitor/host-monitor#android-enheter).
 

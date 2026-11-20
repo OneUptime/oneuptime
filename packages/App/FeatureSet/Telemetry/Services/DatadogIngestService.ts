@@ -34,13 +34,14 @@ import CompatibleIngestService, {
  * Answered as Datadog's intake answers: 202 with {} for logs, sketches and
  * the Agent's metadata, {"status": "ok"} for v1 series and check runs,
  * {"errors": []} for v2 series, {"valid": true} for a key it validates; a
- * body it cannot read is a 400 with {"errors": ["<why>"]} (the Agent drops
- * the payload and logs why), and a queue that cannot take it a 503 (the
- * Agent retries).
+ * body it cannot read is a 400 with {"errors": ["<why>"]}, and one over the
+ * limits (DatadogIntake) a 413 - the Agent drops either payload and logs
+ * why - and a queue that cannot take it a 503 (the Agent retries).
  *
  * Logs and metrics are counted against their own signals' ingestion
  * budgets as they are queued (CompatibleIngestService), never refused at
- * the door: the Agent reports a 403 as an invalid API key.
+ * the door: the Agent reports a 403 as an invalid API key. Each is counted
+ * at the size of its body decompressed, as an OTLP export is.
  */
 export default class DatadogIngestService {
   public static setProductType(
@@ -105,7 +106,9 @@ export default class DatadogIngestService {
         },
       );
 
-      await DatadogIngestService.enqueue(req, { logs: translation.logs });
+      await DatadogIngestService.enqueue(req, body, {
+        logs: translation.logs,
+      });
 
       res.status(202).json({});
     } catch (error) {
@@ -126,7 +129,7 @@ export default class DatadogIngestService {
           serviceName: DatadogIngestService.serviceNameOf(req),
         });
 
-      await DatadogIngestService.enqueue(req, {
+      await DatadogIngestService.enqueue(req, body, {
         metrics: translation.metrics,
       });
 
@@ -157,7 +160,7 @@ export default class DatadogIngestService {
               serviceName: serviceName,
             });
 
-      await DatadogIngestService.enqueue(req, {
+      await DatadogIngestService.enqueue(req, body, {
         metrics: translation.metrics,
       });
 
@@ -180,7 +183,7 @@ export default class DatadogIngestService {
           serviceName: DatadogIngestService.serviceNameOf(req),
         });
 
-      await DatadogIngestService.enqueue(req, {
+      await DatadogIngestService.enqueue(req, body, {
         metrics: translation.metrics,
       });
 
@@ -203,7 +206,7 @@ export default class DatadogIngestService {
           serviceName: DatadogIngestService.serviceNameOf(req),
         });
 
-      await DatadogIngestService.enqueue(req, {
+      await DatadogIngestService.enqueue(req, body, {
         metrics: translation.metrics,
       });
 
@@ -213,14 +216,20 @@ export default class DatadogIngestService {
     }
   }
 
+  /*
+   * Counted at the body decompressed, as an OTLP export is: each route
+   * carries one signal, so its job is counted at all of it.
+   */
   private static async enqueue(
     req: ExpressRequest,
+    body: Buffer,
     batch: CompatibleOtlpBatch,
   ): Promise<void> {
     await CompatibleIngestService.enqueue({
       req: req as TelemetryRequest,
       surface: TelemetryIngestSurface.Datadog,
       batch: batch,
+      ingestBytes: body.length,
     });
   }
 

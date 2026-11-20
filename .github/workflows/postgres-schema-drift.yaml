@@ -3173,6 +3173,26 @@ jobs:
           Tests/Server/Infrastructure/Postgres/PagedFindPostgres.test.ts
           --forceExit
 
+      # A list sorted by a person's name orders someone only invited by what
+      # their row shows - the name typed for them, else their address - and
+      # everybody else by their own (#9895): the Users list, a team's
+      # Members, a monitor's owners and incidents by who declared them, for
+      # a person and an API key, both directions, every page of every
+      # paging plan, and on another TypeORM. Clones the migrated tables
+      # into an isolated schema.
+      - name: Test lists sorted by a person's name on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PENDING_INVITEE_ORDER_TESTS: "true"
+          PENDING_INVITEE_ORDER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PENDING_INVITEE_ORDER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PENDING_INVITEE_ORDER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/TeamMember/PendingInviteeOrderPostgres.test.ts
+          --forceExit
+
       # A list's count stops at the cap it asks for (CappedCount: the read's
       # own query with LIMIT upTo + 1, counted). Holds its answers to
       # repository.count's, or upTo + 1, for reads by project, through

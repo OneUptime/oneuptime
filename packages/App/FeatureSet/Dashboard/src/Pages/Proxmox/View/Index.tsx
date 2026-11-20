@@ -2180,18 +2180,25 @@ const ProxmoxClusterOverview: FunctionComponent<
     };
 
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         {header}
-        <LineChartElement
-          data={withTranslatedSeriesNames(params.data, translator)}
-          xAxis={xAxis}
-          yAxis={yAxis}
-          curve={ChartCurve.MONOTONE}
-          sync={true}
-          syncid={`proxmox-overview-${modelId.toString()}`}
-          heightInPx={180}
-          showLegend={params.showLegend ?? false}
-        />
+        {/*
+         * At the foot of its card: a row of cards grows to its tallest - a
+         * legend on two lines, in German or on a phone - and the plots and
+         * time axes still line up under the hover line they share (#7125).
+         */}
+        <div className="mt-auto">
+          <LineChartElement
+            data={withTranslatedSeriesNames(params.data, translator)}
+            xAxis={xAxis}
+            yAxis={yAxis}
+            curve={ChartCurve.MONOTONE}
+            sync={true}
+            syncid={`proxmox-overview-${modelId.toString()}`}
+            heightInPx={180}
+            showLegend={params.showLegend ?? false}
+          />
+        </div>
       </div>
     );
   };

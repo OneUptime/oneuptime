@@ -126,6 +126,10 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Times are compared as instants.",
     "Defaults the server adds",
     "What the server keeps up to date",
+    "What the configuration lists is added",
+    "What you take out of the configuration is taken off.",
+    "What OneUptime or a person adds stays",
+    "Left out of the configuration",
   ],
   [MONITOR_STEPS]: [
     "Leave out what you do not use.",

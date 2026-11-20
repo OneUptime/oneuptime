@@ -7,6 +7,8 @@
 - [熟悉各個頁面](#熟悉各個頁面): 資產清單的頁面，以及每個項目自己的頁面。
 - [從 Esper 匯入裝置](#從-esper-匯入裝置): 你的 Esper 租用戶註冊的每台 Android 裝置和 Apple 裝置，並保持最新。
 - [從 Microsoft Intune 匯入裝置](#從-microsoft-intune-匯入裝置): Intune 管理的每台 Windows 電腦、Mac、iPhone、iPad 和 Android 裝置，並保持最新。
+- [從 Workspace ONE UEM 匯入裝置](#從-workspace-one-uem-匯入裝置): Workspace ONE 管理的每台手機、平板電腦和電腦，並保持最新。
+- [從 SOTI MobiControl 匯入裝置](#從-soti-mobicontrol-匯入裝置): MobiControl 管理的每台強固型裝置、手機、平板電腦和電腦，並保持最新。
 - [手動新增](#手動新增): 第三方 API、外部資料庫或設備。
 - [封存而不是刪除](#封存而不是刪除): 整理清單並讓它保持整齊的方法。
 :::
@@ -27,14 +29,14 @@ flowchart TB
 | 來源 | API 中的值 | 來自哪裡 | 保留多久 |
 | --- | --- | --- | --- |
 | **已發現** | `discovered` | 遙測抵達時讀取的 OpenTelemetry 資源屬性：傳送遙測的服務、主機、Kubernetes 物件或虛擬機器。 | 每批遙測都會重新登記。靜默時間超過其類別的時間範圍後會被移除（見下文）。 |
-| **已鏡像** | `inventory` | OneUptime 輪詢器維護的記錄：網路裝置、雲端資源、IoT 裝置、無伺服器函式、RUM 應用程式、Docker 主機、Podman 主機，以及 Esper 或 Microsoft Intune 連線匯入的裝置。每 15 分鐘複製一次；Esper 裝置則在其連線每次被讀取時複製。 | 與其記錄同在。刪除記錄，項目也會隨之消失。 |
+| **已鏡像** | `inventory` | OneUptime 輪詢器維護的記錄：網路裝置、雲端資源、IoT 裝置、無伺服器函式、RUM 應用程式、Docker 主機、Podman 主機，以及裝置管理服務連線匯入的裝置。每 15 分鐘複製一次；受管理的裝置則在其連線每次被讀取時複製。 | 與其記錄同在。刪除記錄，項目也會隨之消失。 |
 | **由您新增** | `manual` | 由你為 OneUptime 看不到的東西新增：第三方 API、由廠商代管的資料庫、機架裡的設備。 | 直到你刪除它。不會自動到期。 |
 
 探索或鏡像的項目無法重新命名，也無法改為其他類型：來源會在下一輪處理時覆寫這些變更。項目的 **設定** 頁面會告訴你應在哪裡做持久的變更。無論來源為何，你隨時都能為任何項目加上的是自訂欄位值：請參閱 [資產清單自訂欄位](/docs/inventory/custom-fields)。
 
 ### 靜默的項目保留多久
 
-探索的項目有心跳。每當它的遙測抵達，最後出現時間就會往前推進，清單的 **狀態** 欄會顯示這個時間有多近。來自 Esper 或 Intune 的裝置也是如此：它每次向其裝置管理服務簽入時都會更新。其他鏡像的項目和你新增的項目沒有心跳，因此它們的狀態維持空白，而不是顯示警示。
+探索的項目有心跳。每當它的遙測抵達，最後出現時間就會往前推進，清單的 **狀態** 欄會顯示這個時間有多近。受管理的裝置也是如此：它每次向其裝置管理服務簽入時都會更新。其他鏡像的項目和你新增的項目沒有心跳，因此它們的狀態維持空白，而不是顯示警示。
 
 | 狀態 | 意義 |
 | --- | --- |
@@ -60,9 +62,9 @@ OneUptime 探索到的關係如果 30 天內沒有再次出現，就會被移除
 | --- | --- |
 | **概覽** | 你有多少項目、它們是什麼、有多少已經靜默，以及最近新增了什麼。 |
 | **所有項目** | 所有項目。依名稱、描述或身分鍵搜尋，依類型、來源、狀態或自訂欄位縮小清單，並手動新增項目。 |
-| **受管理的裝置** | 你的 Esper 和 Microsoft Intune 連線，以及它們匯入的每台裝置，附帶其狀態、群組、型號和作業系統。 |
+| **受管理的裝置** | 你的裝置管理服務連線（Esper、Microsoft Intune、Workspace ONE UEM 和 SOTI MobiControl），以及它們匯入的每台裝置，附帶其狀態、群組、型號和作業系統。 |
 | **拓撲地圖** | 項目之間如何連接：服務、它們呼叫的對象，以及它們執行所在的主機、Pod 和裝置。 |
-| **已沉寂** | 超過一天沒有動靜的項目：沒有傳送遙測的探索項目，以及不再向 Esper 簽入的裝置。 |
+| **已沉寂** | 超過一天沒有動靜的項目：沒有傳送遙測的探索項目，以及不再向其裝置管理服務簽入的裝置。 |
 | **依來源** | 某一個來源的項目：**已發現**、**已鏡像** 或 **由您新增**。 |
 | **設定 → 自訂欄位** | 你的專案在每個項目上記錄的欄位。 |
 | **說明 → 文件** | 資產清單的簡短指南，以及它能辨識的項目類別。 |
@@ -72,13 +74,13 @@ OneUptime 探索到的關係如果 30 天內沒有再次出現，就會被移除
 
 ### 資產詳細資料
 
-主機或網路裝置有一張 **資產詳細資料** 卡片，以相同的方式描述兩者：主機名稱、IP 位址、MAC 位址、序號、製造商、型號、韌體版本、作業系統、作業系統版本、裝置類型和位置。Android 裝置的卡片還有其安全性修補程式等級，來自 Android 代理程式或 Esper。沒有任何來源回報過的資訊會顯示為 **未知**，卡片會說明原因以及如何補齊這些未知的資訊：裝置未透過 SNMP 回報這些資訊、裝置尚未被讀取，或 Meraki 裝置的這些資訊保存在其儀表板中。
+主機或網路裝置有一張 **資產詳細資料** 卡片，以相同的方式描述兩者：主機名稱、IP 位址、MAC 位址、序號、製造商、型號、韌體版本、作業系統、作業系統版本、裝置類型和位置。Android 裝置的卡片還有其安全性修補程式等級，來自 Android 代理程式或其裝置管理服務。它也會標出修補程式是否 **需要更新**（與 **安全性修補程式等級** 欄一致），並顯示已過多少天。沒有任何來源回報過的資訊會顯示為 **未知**，卡片會說明原因以及如何補齊這些未知的資訊：裝置未透過 SNMP 回報這些資訊、裝置尚未被讀取，或 Meraki 裝置的這些資訊保存在其儀表板中。
 
 - 主機的資訊來自其遙測中的資源屬性：IP 和 MAC 位址、架構和作業系統一開始就有，序號、製造商、型號和韌體則在你標記後才有。
 - 網路裝置的資訊來自其 SNMP 輪詢、角色和站點。其輪詢尚未讀取的資訊來自探索：對其位址的最近一次掃描、路由器的 ARP 表，或其探測器的 DNS 查詢。沒有 ENTITY-MIB 的裝置（例如 Meraki MX）仍會從系統描述取得製造商、型號和作業系統，並從自身的連接埠取得 MAC 位址。它的 IP 位址永遠不會顯示為主機名稱。
 - 當 [Meraki 連線](/docs/monitor/network-traffic#不用-netflow-的-cisco-meraki) 讀取其組織時，Meraki 裝置還會從 Meraki 儀表板取得其輪詢留空的資訊，其中包括序號、型號和韌體。
 
-**所有項目** 可以找出需要處理的 Android 裝置。它的 **安全性修補程式等級** 篩選條件會列出 **需要更新** 的裝置，也就是安全性修補程式等級距今超過 90 天的裝置，這與 [主機監控](/docs/monitor/host-monitor) 的 Security Patch Out of Date 警示所依據的規則相同。它的 **代理程式權限** 篩選條件會列出 [Android 代理程式](/docs/telemetry/android-agent) 仍缺少 READ_LOGS、READ_DROPBOX_DATA 或使用狀況存取權的裝置。每個篩選條件都有一個同名的欄，在你開啟之前是隱藏的，CSV 匯出也會包含它。
+**所有項目** 可以找出需要處理的 Android 裝置。它的 **安全性修補程式等級** 篩選條件會列出 **需要更新** 的裝置，也就是安全性修補程式等級距今超過 90 天的裝置，這與 [主機監控](/docs/monitor/host-monitor) 的 Security Patch Out of Date 警示所依據的規則相同。它的 **代理程式權限** 篩選條件會列出 [Android 代理程式](/docs/telemetry/android-agent) 仍缺少 READ_LOGS、READ_DROPBOX_DATA 或使用狀況存取權的裝置。每個篩選條件都有一個同名的欄，在你開啟之前是隱藏的，CSV 匯出也會包含它。旁邊的 **裝置管理服務 ID** 欄顯示裝置管理服務識別該裝置所用的 ID，例如 `espercli secureadb connect --device` 所需的 Esper ID。
 
 卡片會說明每項資訊的來源和時間。大多數資訊共有的來源，例如主機的收集器、網路裝置自身的 SNMP 輪詢或讀取它的探索掃描，只在資訊下方提及一次。其他來源，例如路由器的 ARP 表或儲存在裝置上的值，會在對應資訊下方說明。儲存在網路裝置上的值絕不會被探索讀取的內容取代，兩者不同時，卡片會同時顯示兩者。
 
@@ -113,6 +115,7 @@ OneUptime 探索到的關係如果 30 天內沒有再次出現，就會被移除
 | 型號、製造商、序號、作業系統及其版本、組建編號，以及 IP 和 MAC 位址 | 裝置的 **資產詳細資料** 卡片，以及 **所有項目** 的欄 |
 | 狀態、上次簽入、群組、安全性修補程式等級、IMEI、電池、儲存空間和 Esper 代理程式 | 裝置的 **Esper** 卡片，以及 **受管理的裝置** 的 **裝置** 清單 |
 | 應用程式及其版本 | 裝置的 **已安裝的應用程式** 清單 |
+| 其 Esper 裝置 ID | **所有項目** 中的 **裝置管理服務 ID** 欄 |
 
 ### 一台裝置，而不是兩台
 
@@ -136,6 +139,8 @@ OneUptime 先依裝置在 Esper 中的名稱尋找其項目，再依其序號尋
 在 **受管理的裝置** 中，點選連線所在列的 **設定警示**，然後建立 **Esper Android Device Stopped Checking In** 和 **Esper Apple Device Stopped Checking In**。前者會為每台超過 1 小時未向 Esper 簽入的 Android 裝置各開啟一則以該裝置命名的警示，後者則為每台超過一天未簽入的 Apple 裝置開啟，裝置再次簽入後警示即被解決。
 
 每次讀取該連線時，都會以指標 `oneuptime.managed_device.check_in.age` 記錄每台裝置上次簽入距今多少分鐘，監測器每 5 分鐘檢查一次每台裝置的最新值。同時執行 Android Agent 的裝置交由 **Host Stopped Reporting** 監測，因此不會重複發出警示；從 Esper 移除的裝置，其警示會被解決。讀取失敗時不會記錄任何內容，因此在下一次讀取之前，警示既不會開啟也不會解決。對於夜間關機的裝置群，請調高監測器的閾值。
+
+再建立 **Esper Security Patch Out of Date**，Esper 回報的安全性修補程式等級超過 90 天的每台 Android 裝置都會開啟一則自己的警示，裝置更新後即被解決。每次讀取都會以指標 `oneuptime.managed_device.security_patch.age` 記錄每台 Android 裝置的修補程式等級已過多少天。執行 Android Agent 的裝置交由其主機的 **Security Patch Out of Date** 監測，因此不會重複發出警示。
 
 ## 從 Microsoft Intune 匯入裝置
 
@@ -163,7 +168,57 @@ OneUptime 先依裝置在 Esper 中的名稱尋找其項目，再依其序號尋
 
 Intune 以裝置擁有者取的名稱來命名裝置，因此兩台裝置可能同名：所有沒人改過名稱的 iPhone 都叫 `iPhone`。一個連線中兩台裝置共用的名稱，在資產清單中不屬於其中任何一台：每台裝置改用其序號命名，一旦沒有其他裝置使用這個名稱，就會取回自己的名稱。
 
-若要在裝置停止簽入時收到警示，請點選連線所在列的 **設定警示**，然後建立 **Intune Device Stopped Checking In**。它會為每台超過一天未向 Intune 簽入的裝置各開啟一則以該裝置命名的警示。週末關機的筆記型電腦看起來也一樣，所以如果一天對你的裝置來說太短，請調高監測器的閾值。
+若要在裝置停止簽入時收到警示，請點選連線所在列的 **設定警示**，然後建立 **Intune Device Stopped Checking In**。它會為每台超過一天未向 Intune 簽入的裝置各開啟一則以該裝置命名的警示。週末關機的筆記型電腦看起來也一樣，所以如果一天對你的裝置來說太短，請調高監測器的閾值。與 Esper 的範本一樣， **Intune Security Patch Out of Date** 會為安全性修補程式等級超過 90 天的每台 Android 裝置發出警示。
+
+## 從 Workspace ONE UEM 匯入裝置
+
+連線一台 Workspace ONE UEM 伺服器後，它管理的每台裝置都會出現在資產清單中：它的 iPhone、iPad、Mac、Windows 電腦、Android 裝置和 Linux 電腦。每台裝置是一台主機，帶有 Workspace ONE 掌握的資訊：它的組織群組，它的作業系統及其版本，它的型號、序號和 IMEI，它的合規性、註冊方式和擁有權，它的電池、儲存空間和記憶體，以及它的應用程式。Workspace ONE 不會主動傳送任何內容，因此 OneUptime 依排程讀取：每 15 分鐘讀取一次裝置，每 6 小時讀取一次每台裝置的應用程式。
+
+:::steps
+### 建立唯讀角色
+
+在 Workspace ONE UEM 主控台中，依序前往 `Accounts`、`Administrators`、`Roles`，然後點選 `Add Role`。在 `API` 下的 `REST` 中，為 `Devices` 和 `Apps` 選擇 `Read`，其他都不選。OneUptime 只需要這個角色：它能列出裝置及其應用程式，而且什麼也改不了。
+
+### 建立 OAuth 用戶端
+
+依序前往 `Groups & Settings`、`Configurations`、`OAuth Client Management`，然後點選 `Add`。選擇 OneUptime 要讀取其裝置的組織群組，並為用戶端指派你建立的角色。複製它的 `Client ID` 和 `Client Secret`：Workspace ONE 只會顯示一次密鑰。
+
+### 連線伺服器
+
+前往 **產品 → 資源 → 資產清單**，然後開啟 **受管理的裝置**，點選 **連線裝置管理服務**，然後選擇 **Workspace ONE UEM**。輸入 **REST API URL**，它顯示在 `Groups & Settings`、`All Settings`、`System`、`Advanced`、`API`、`REST API` 中，例如 `https://as1234.awmdm.com`。在 **登入方式** 下保留 **OAuth 用戶端**，輸入 **用戶端 ID** 和 **用戶端密鑰**，然後選擇你的資料中心的權杖服務所在的 **地區**。**連線** 會在儲存任何內容之前測試用戶端：它會告訴你一次讀取將匯入多少台裝置，或者哪裡出了問題以及如何修正。
+:::
+
+內部部署的 Workspace ONE 伺服器沒有權杖服務：在 **登入方式** 下選擇 **管理員帳戶**，然後輸入具有唯讀角色的管理員的 **使用者名稱** 和 **密碼**，以及同一 REST API 設定中的 **REST API 金鑰**，該設定必須允許基本驗證。OneUptime Cloud 只讀取公共網際網路上的伺服器，因此私人網路中的伺服器要由自行託管的 OneUptime 讀取。
+
+裝置依自己的排程向 Workspace ONE 回報，iPhone 的回報間隔長達數小時，因此一天沒有回報的裝置會顯示為 **離線**。不再註冊的裝置會被排除。裝置以它回報的名稱命名，而不是以 Workspace ONE 依其使用者名稱產生的易記名稱命名，而且不會讀取任何關於裝置使用者的資訊。每個請求都計入租用戶的每日 API 配額，因此一次讀取最多讀取 25 台裝置的應用程式，下一次讀取再讀取接下來的裝置。
+
+從裝置傳送遙測的應用程式或 Android Agent 會依裝置的序號與該裝置合併為一個項目：在其受管理設定中，將 Android Agent 的 `device_serial` 設定設為查閱值 `{DeviceSerialNumber}`。
+
+若要在裝置停止簽入時收到警示，請點選連線所在列的 **設定警示**，然後建立 **Workspace ONE Device Stopped Checking In**。它會為每台超過一天未向 Workspace ONE 回報的裝置各開啟一則以該裝置命名的警示。與 Esper 的範本一樣， **Workspace ONE Security Patch Out of Date** 會為安全性修補程式等級超過 90 天的每台 Android 裝置發出警示。
+
+## 從 SOTI MobiControl 匯入裝置
+
+連線一台 SOTI MobiControl 伺服器（無論位於 SOTI 的雲端還是內部部署）後，它管理的每台裝置都會出現在資產清單中：它的強固型 Android 裝置、手機、平板電腦和掃描器，它的 iPhone、iPad 和 Mac，以及它的 Windows 和 Linux 電腦。每台裝置是一台主機，帶有 MobiControl 掌握的資訊：它的裝置群組，它的作業系統及其版本，它的型號、序號和 IMEI，它的合規性，它的代理程式，它的電池、儲存空間和記憶體，以及它已安裝的應用程式。MobiControl 不會主動傳送任何內容，因此 OneUptime 依排程讀取：每 15 分鐘讀取一次裝置，每 6 小時讀取一次每台裝置的應用程式。
+
+:::steps
+### 建立唯讀的 MobiControl 使用者
+
+在 MobiControl Web 主控台中，新增一個 MobiControl 自己的使用者，而不是 SOTI Identity 使用者。在其一般權限中只允許 `Web Console Access` 和 `View Installed Applications`，其他都不允許，並在 OneUptime 讀取的裝置群組上授與它 `View Groups`。OneUptime 只需要這個使用者：它能看到裝置及其應用程式，而且什麼也改不了。
+
+### 建立 API 用戶端
+
+在 Web 主控台中，依序前往 `Global Settings`、`Services`、`API Client`，然後新增一個。複製它的 `Client ID` 和 `Client Secret`：MobiControl 只會顯示一次密鑰。早於 MobiControl 2024.0 的伺服器則在伺服器上以 `MCAdmin.exe APIClientAdd -n:OneUptime` 建立一個。
+
+### 連線 MobiControl 伺服器
+
+前往 **產品 → 資源 → 資產清單**，然後開啟 **受管理的裝置**，點選 **連線裝置管理服務**，然後選擇 **SOTI MobiControl**。輸入 **伺服器**，也就是不含 `/MobiControl` 的 Web 主控台位址，例如 `https://acme.mobicontrolcloud.com`，以及 API 用戶端的 **用戶端 ID** 和 **用戶端密鑰**，然後輸入使用者的 **使用者名稱** 和 **密碼**。**連線** 會在儲存任何內容之前測試登入：它會告訴你一次讀取將匯入多少台裝置，或者哪裡出了問題以及如何修正。
+:::
+
+MobiControl 代理程式與其伺服器保持即時連線，因此代理程式已連線的裝置處於線上狀態，代理程式 30 分鐘未連線的裝置會顯示為 **離線**。iPhone、iPad 或 Mac 透過 Apple 推播服務簽入，間隔長達數小時，超過一天未簽入才顯示為 **離線**。被管理員停用的裝置會顯示為 **已停用**，正在取消註冊的裝置會被排除。OneUptime Cloud 只讀取公共網際網路上的伺服器，因此私人網路中的伺服器要由自行託管的 OneUptime 讀取。不會讀取任何關於裝置使用者的資訊。
+
+從裝置傳送遙測的應用程式或 Android Agent 會依裝置的序號與該裝置合併為一個項目：在其受管理設定中，將 Android Agent 的 `device_serial` 設定設為巨集 `%SERIALNUM%`。
+
+若要在裝置停止簽入時收到警示，請點選連線所在列的 **設定警示**，然後建立 **SOTI Device Stopped Checking In** 和 **SOTI Apple Device Stopped Checking In**。前者為每台代理程式超過 1 小時未連線的 Android、Windows 或 Linux 裝置開啟一則警示，後者為每台超過一天未簽入的 Apple 裝置開啟一則警示，每則都以該裝置命名。與 Esper 的範本一樣， **SOTI Security Patch Out of Date** 會為安全性修補程式等級超過 90 天的每台 Android 裝置發出警示。
 
 ## 手動新增
 

@@ -24,6 +24,20 @@ import Card from "../components/Card";
 import IconBadge from "../components/IconBadge";
 import { getFriendlyErrorMessage } from "../utils/error";
 import { describeEndNow, type EndNowQuestion } from "../oncall/overrideEndNow";
+import { useSelectedProjectId } from "../hooks/useProject";
+import {
+  useOverrideTeamLimits,
+  type OverrideTeamLimitOf,
+} from "../hooks/useOverrideTeamLimits";
+import {
+  useOverrideTeamPeople,
+  type OverrideTeamPeopleState,
+} from "../hooks/useOverrideTeamPeople";
+import {
+  getMemberIdsOfTeams,
+  getOverrideTeamLock,
+  type OverrideTeamLimit,
+} from "../oncall/overrideTeamAccess";
 import type { OnCallStackParamList } from "../navigation/types";
 import type { OnCallOverrideItem } from "../api/types";
 
@@ -43,6 +57,9 @@ type OverridesNavProp = NativeStackNavigationProp<
  * as far as they may still change, held to the dashboard's rules. One under
  * way has End now - coming back early - asked first like Cancel; Cancel
  * calls off one that has not started.
+ *
+ * For someone who manages the user overrides of their own teams' people
+ * only, one that names anybody else says why in place of those (#9883).
  */
 export default function OnCallOverridesScreen(): React.JSX.Element {
   const { theme } = useTheme();
@@ -58,6 +75,90 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
 
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [endingId, setEndingId] = useState<string | null>(null);
+
+  /*
+   * For someone who manages the user overrides of their own teams' people
+   * only (Manage On-Call Policy User Overrides for Own Team, issue #9883):
+   * the server refuses any change to an override that names anybody outside
+   * those teams, so its card says why in place of Edit, End now and Cancel
+   * (oncall/overrideTeamAccess). An edit and a delete, of a global override
+   * and of a policy's, may each be reached by different grants. Until the
+   * teams' members are known nothing is locked: the server decides.
+   */
+  const projectId: string | null = useSelectedProjectId();
+  const teamLimitOf: OverrideTeamLimitOf = useOverrideTeamLimits(projectId);
+  const teamLimits: Record<
+    "update" | "delete",
+    { global: OverrideTeamLimit | null; policy: OverrideTeamLimit | null }
+  > = {
+    update: {
+      global: teamLimitOf("update", true),
+      policy: teamLimitOf("update", false),
+    },
+    delete: {
+      global: teamLimitOf("delete", true),
+      policy: teamLimitOf("delete", false),
+    },
+  };
+  const limitedTeamIds: Array<string> = Array.from(
+    new Set<string>(
+      [
+        teamLimits.update.global,
+        teamLimits.update.policy,
+        teamLimits.delete.global,
+        teamLimits.delete.policy,
+      ].flatMap((limit: OverrideTeamLimit | null): Array<string> => {
+        return limit ? limit.teamIds : [];
+      }),
+    ),
+  ).sort();
+  const isTeamLimited: boolean = [
+    teamLimits.update.global,
+    teamLimits.update.policy,
+    teamLimits.delete.global,
+    teamLimits.delete.policy,
+  ].some((limit: OverrideTeamLimit | null): boolean => {
+    return Boolean(limit);
+  });
+  const hasChangeableOverrides: boolean =
+    overrides.active.length > 0 || overrides.upcoming.length > 0;
+  const teamPeople: OverrideTeamPeopleState = useOverrideTeamPeople({
+    projectId,
+    teamIds: isTeamLimited && hasChangeableOverrides ? limitedTeamIds : null,
+  });
+
+  // Why an edit (Edit, End now) or the delete (Cancel) of `override` is locked, or null.
+  const getTeamLock: (
+    override: OnCallOverrideItem,
+    action: "update" | "delete",
+  ) => string | null = (
+    override: OnCallOverrideItem,
+    action: "update" | "delete",
+  ): string | null => {
+    if (
+      !projectId ||
+      override.projectId.toLowerCase() !== projectId.toLowerCase()
+    ) {
+      return null;
+    }
+
+    const limit: OverrideTeamLimit | null =
+      override.onCallDutyPolicyId || override.onCallDutyPolicy?._id
+        ? teamLimits[action].policy
+        : teamLimits[action].global;
+
+    return getOverrideTeamLock({
+      action: action,
+      limit: limit,
+      memberIds: limit
+        ? getMemberIdsOfTeams(teamPeople.membersByTeam, limit.teamIds)
+        : null,
+      people: {
+        awayUserId: override.overrideUser?._id,
+        coverUserId: override.routeAlertsToUser?._id,
+      },
+    });
+  };
 
   const { refreshing, onRefresh } = useRefresh(async (): Promise<void> => {
     lightImpact();
@@ -252,6 +353,12 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
                 onEdit={state === "past" ? undefined : openEdit}
                 onEndNow={state === "active" ? confirmEndNow : undefined}
                 isEnding={endingId === override._id}
+                editLockedReason={
+                  state === "past" ? null : getTeamLock(override, "update")
+                }
+                cancelLockedReason={
+                  state === "upcoming" ? getTeamLock(override, "delete") : null
+                }
               />
             );
           })}

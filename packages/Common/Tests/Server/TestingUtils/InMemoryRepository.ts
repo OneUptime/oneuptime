@@ -615,3 +615,95 @@ export function useInMemoryHookFreeWrites<TBaseModel extends BaseModel>(
     },
   );
 }
+
+// What a write of a row's lists entry by entry added and took off (#10135).
+export interface InMemoryListEntryWrite {
+  rowId: string;
+  // By the list's field: the IDs added, and the IDs taken off.
+  writes: Record<string, { add: Array<string>; remove: Array<string> }>;
+}
+
+/*
+ * Answers `service`'s writes of a row's lists entry by entry (#10135) from
+ * `table`, as the junction table holding each list would: an entry added
+ * once whatever is asked, one taken off only when the row has it, every
+ * other entry left as it is. The row's own columns, written in the same
+ * transaction (updateRowWithListEntries), are written as update() writes
+ * them. Each write's entries are recorded in the list returned, in order.
+ */
+export function useInMemoryListEntryWrites<TBaseModel extends BaseModel>(
+  service: DatabaseService<TBaseModel>,
+  table: InMemoryTable,
+): Array<InMemoryListEntryWrite> {
+  const written: Array<InMemoryListEntryWrite> = [];
+
+  const writeEntries: (data: InMemoryListEntryWrite) => void = (
+    data: InMemoryListEntryWrite,
+  ): void => {
+    const row: StoredRow | undefined = table.get(data.rowId);
+
+    const entries: Record<
+      string,
+      { add: Array<string>; remove: Array<string> }
+    > = {};
+
+    for (const [column, write] of Object.entries(data.writes)) {
+      entries[column] = { add: [...write.add], remove: [...write.remove] };
+    }
+
+    written.push({ rowId: data.rowId, writes: entries });
+
+    if (!row) {
+      return;
+    }
+
+    for (const [column, write] of Object.entries(data.writes)) {
+      const removed: Set<string | null> = new Set(write.remove.map(normalize));
+      const entries: Array<unknown> = (
+        Array.isArray(row[column]) ? (row[column] as Array<unknown>) : []
+      ).filter((entry: unknown): boolean => {
+        return !removed.has(normalize(entry));
+      });
+
+      for (const id of write.add) {
+        const isThere: boolean = entries.some((entry: unknown): boolean => {
+          return normalize(entry) === normalize(id);
+        });
+
+        if (!isThere) {
+          entries.push({ _id: id });
+        }
+      }
+
+      row[column] = entries;
+    }
+  };
+
+  getJestSpyOn(service, "updateRowWithListEntries").mockImplementation(
+    async (data: {
+      criteria: Record<string, unknown>;
+      values: Record<string, unknown>;
+      rowId: string;
+      writes: Record<string, { add: Array<string>; remove: Array<string> }>;
+    }): Promise<{ affected: number }> => {
+      const result: { affected: number } = (await table.repository.update(
+        data.criteria,
+        data.values,
+      )) as { affected: number };
+
+      if (result.affected > 0) {
+        writeEntries({ rowId: data.rowId, writes: data.writes });
+      }
+
+      return result;
+    },
+  );
+
+  getJestSpyOn(service, "writeListEntries").mockImplementation(
+    async (data: InMemoryListEntryWrite): Promise<void> => {
+      writeEntries(data);
+    },
+  );
+
+  return written;
+}

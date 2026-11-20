@@ -153,11 +153,27 @@ export const SERVER_TEXT_SOURCES: ReadonlyArray<string> = [
   "packages/Common/Types/Accounts/SsoSignInLinks.ts",
   "packages/App/FeatureSet/Identity/Utils/SsoSignInLinksEmail.ts",
   /*
+   * The invitation email's subject (#9897), in the invitee's language, else
+   * the inviter's; its body is the InviteMember template's.
+   */
+  "packages/Common/Types/Team/InvitationEmailWords.ts",
+  /*
    * The email that tells an account's old address the account moved
    * (#9907), in the language on the account.
    */
   "packages/Common/Types/Accounts/EmailAddressChangedEmail.ts",
   "packages/Common/Server/Utils/EmailChange/EmailAddressChangedNotice.ts",
+  /*
+   * The emails to a new address (#10157): its link, word that it is taken,
+   * and the link to an address written straight away, in the language of
+   * the account that reads it.
+   */
+  "packages/Common/Server/Utils/EmailChange/EmailChangeConfirmation.ts",
+  /*
+   * The email that tells a status page private user's old address it
+   * changed (#10156), in the status page's language.
+   */
+  "packages/Common/Types/StatusPage/PrivateUserEmailAddressChangedEmail.ts",
   "packages/App/FeatureSet/Workers/Jobs",
   "packages/App/FeatureSet/Notification/Templates",
   // Sentences the Dashboard writes too, worded as it words them (above).

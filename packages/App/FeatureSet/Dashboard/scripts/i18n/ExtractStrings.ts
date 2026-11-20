@@ -469,6 +469,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/AuditLog/AuditLogSignInFailure.ts",
     kind: "keys",
   },
+  /*
+   * What the server answers a confirmation of Confirm It's You with (#10155):
+   * a wrong password or code, a key not accepted, too many attempts. The
+   * prompt says each under its field, in the reader's language. Only the
+   * words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Accounts/Reauthentication.ts",
+    kind: "keys",
+  },
   {
     directory: "packages/Common/Types/Workflow/WorkflowStatus.ts",
     kind: "keys",

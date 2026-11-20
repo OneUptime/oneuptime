@@ -322,18 +322,34 @@ describe("a monitor's attributes", () => {
 
     /*
      * Its labels are a person's and a label rule's both (#10052): an
-     * attribute, left out of the configuration a page writes.
+     * attribute OneUptime changes too, and a list held entry by entry
+     * (#10134), which the Terraform page writes and the Crossplane page
+     * leaves out.
      */
     expect({
       managed: attribute(Monitor, "labels").isServerManaged,
       changedByOneUptimeToo: attribute(Monitor, "labels")
         .isChangedByOneUptimeToo,
+      heldEntryByEntry: attribute(Monitor, "labels").isHeldEntryByEntry,
       startsAtCreate: attribute(Monitor, "labels").startsAtCreate,
     }).toEqual({
       managed: true,
       changedByOneUptimeToo: true,
+      heldEntryByEntry: true,
       startsAtCreate: false,
     });
+
+    // A value OneUptime changes too is no list: never held entry by entry.
+    for (const [modelType, name] of [
+      [KubernetesCluster, "is_ai_investigation_enabled"],
+      [Monitor, "name"],
+      [Monitor, "monitor_steps"],
+    ] as Array<[DatabaseBaseModelType, string]>) {
+      expect({
+        name,
+        heldEntryByEntry: attribute(modelType, name).isHeldEntryByEntry,
+      }).toEqual({ name, heldEntryByEntry: false });
+    }
   });
 
   /*

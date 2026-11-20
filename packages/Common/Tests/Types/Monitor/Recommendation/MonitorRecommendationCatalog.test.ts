@@ -61,7 +61,10 @@ import { getAllCloudAlertTemplates } from "../../../../Types/Monitor/CloudAlertT
 import { getAllCloudAppAlertTemplates } from "../../../../Types/Monitor/CloudAppAlertTemplates";
 import { getAllServerlessAlertTemplates } from "../../../../Types/Monitor/ServerlessAlertTemplates";
 import { getAllMessageQueueAlertTemplates } from "../../../../Types/Monitor/MessageQueueAlertTemplates";
-import { getAllManagedDeviceAlertTemplates } from "../../../../Types/Monitor/ManagedDeviceAlertTemplates";
+import {
+  getAllManagedDeviceAlertTemplates,
+  getManagedDeviceAlertTemplatesFor,
+} from "../../../../Types/Monitor/ManagedDeviceAlertTemplates";
 
 /*
  * Resource types whose recommendation set is EMPTY without context, on
@@ -374,8 +377,13 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
     // Every template reads the check-ins the connection's reads write (#9835).
     monitorTypes: [MonitorType.Metrics],
     templateCount: getAllManagedDeviceAlertTemplates().length,
-    // A constant set: every connection is an Esper tenant.
-    contextFreeTemplateCount: getAllManagedDeviceAlertTemplates().length,
+    /*
+     * A connection whose service is not known is Esper's, as every one was
+     * before #9837: it is offered Esper's templates, and each other service's
+     * connection its own (Intune's, Workspace ONE's, SOTI's).
+     */
+    contextFreeTemplateCount:
+      getManagedDeviceAlertTemplatesFor(undefined).length,
     identifierFieldName: "deviceManagementConnectionId",
   },
 ];
@@ -1448,11 +1456,18 @@ describe("MonitorRecommendationCatalog", () => {
       expect(mobile).toEqual(
         idsOf(getRumAlertTemplates({ clientKind: "mobile" })),
       );
-      expect(mobile).toHaveLength(9);
+      expect(mobile).toHaveLength(11);
       expect(mobile).toContain(
         buildRecommendationId(
           MonitorRecommendationResourceType.RumApplication,
           "rum-app-crashes",
+        ),
+      );
+      // The per-install daily rates (#9924), beside the hourly ones.
+      expect(mobile).toContain(
+        buildRecommendationId(
+          MonitorRecommendationResourceType.RumApplication,
+          "rum-app-daily-crash-rate",
         ),
       );
       expect(mobile).not.toContain(
@@ -1466,7 +1481,7 @@ describe("MonitorRecommendationCatalog", () => {
           ...FULL_REPLAY_CONTEXT,
           rumClientKind: "mobile",
         }),
-      ).toHaveLength(13);
+      ).toHaveLength(15);
       expect(rumRecommendationIds({ rumClientKind: null })).toEqual(
         rumRecommendationIds(),
       );
@@ -1528,8 +1543,8 @@ describe("MonitorRecommendationCatalog", () => {
           MonitorRecommendationResourceType.RumApplication,
         );
 
-      // 5 web vitals, 2 shared, 8 mobile, 4 budgets.
-      expect(all).toHaveLength(19);
+      // 5 web vitals, 2 shared, 10 mobile, 4 budgets.
+      expect(all).toHaveLength(21);
       expect(all.length).toBe(getAllRumAlertTemplates().length);
 
       for (const templateId of BUDGET_TEMPLATE_IDS) {

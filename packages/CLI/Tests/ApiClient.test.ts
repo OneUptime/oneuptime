@@ -107,6 +107,42 @@ describe("ApiClient", () => {
       expect(result).toEqual({ _id: "123" });
     });
 
+    // A create names what it left out in a header (#10136): handed over as sent.
+    it("hands the answer's headers to onAnswerHeaders", async () => {
+      (mockPost as jest.Mock).mockResolvedValue({
+        ...createSuccessResponse({ _id: "123" }),
+        headers: { "x-oneuptime-fields-left-out": "lastRollupAt" },
+      });
+      const onAnswerHeaders: jest.Mock = jest.fn();
+
+      const result: JSONValue = await executeApiRequest({
+        ...baseOptions,
+        operation: "create",
+        data: { name: "Copied", lastRollupAt: "2026-11-19T10:00:00.000Z" },
+        onAnswerHeaders: onAnswerHeaders,
+      });
+
+      expect(result).toEqual({ _id: "123" });
+      expect(onAnswerHeaders).toHaveBeenCalledWith({
+        "x-oneuptime-fields-left-out": "lastRollupAt",
+      });
+    });
+
+    it("an answer without headers hands an empty set of them", async () => {
+      (mockPost as jest.Mock).mockResolvedValue(
+        createSuccessResponse({ _id: "123" }),
+      );
+      const onAnswerHeaders: jest.Mock = jest.fn();
+
+      await executeApiRequest({
+        ...baseOptions,
+        operation: "create",
+        onAnswerHeaders: onAnswerHeaders,
+      });
+
+      expect(onAnswerHeaders).toHaveBeenCalledWith({});
+    });
+
     it("should use empty object when no data provided for create", async () => {
       (mockPost as jest.Mock).mockResolvedValue(
         createSuccessResponse({ _id: "123" }),

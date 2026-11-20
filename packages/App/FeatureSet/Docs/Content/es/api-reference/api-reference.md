@@ -130,6 +130,7 @@ Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUI
 | `400` | La solicitud es incorrecta: la clave de API no es válida, un valor no está permitido, un campo no se puede escribir, un registro que nombra no es tuyo, o cambia varios proyectos a la vez. El mensaje dice qué está mal. | [Los registros que nombra una solicitud](#los-registros-que-nombra-una-solicitud) |
 | `402` | El plan del proyecto no incluye lo que usa la solicitud. El mensaje nombra el plan. | [Funciones que tu plan no incluye](#funciones-que-tu-plan-no-incluye) |
 | `404` | El registro no existe, está en otro proyecto o es uno que no puedes leer: la misma respuesta en cada caso. | [Cambiar o eliminar un registro que no puedes leer](#cambiar-o-eliminar-un-registro-que-no-puedes-leer) |
+| `413` | El cuerpo es más grande de lo que OneUptime acepta en la solicitud: 1 MB con 100.000 valores JSON como máximo en la mayoría de las solicitudes, y 50 MB en una que envía un archivo, un panel o una página de estado. El mensaje dice el límite. En un servidor que gestionas tú, `REQUEST_BODY_MAX_BYTES` y `REQUEST_BODY_MAX_JSON_VALUES` suben el límite de la mayoría de las solicitudes. | [Solicitudes y respuestas](#solicitudes-y-respuestas) |
 | `422` | No puedes hacer esto: la clave de API no tiene ningún permiso para este tipo de registro, puedes leer el registro pero no cambiarlo, o las etiquetas de un permiso lo dejan fuera. El mensaje dice por qué. | [Cambiar o eliminar un registro que no puedes leer](#cambiar-o-eliminar-un-registro-que-no-puedes-leer) |
 | `500` | Algo falló en el servidor. Cuando no se puede escribir el propietario de un registro nuevo, el registro se vuelve a quitar, así que la creación se puede reintentar. | [Los registros que nombra una solicitud](#los-registros-que-nombra-una-solicitud) |
 
@@ -291,6 +292,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 ```
 
 Deja estos campos fuera de una actualización. Los pocos que cambia una persona tienen una solicitud propia: rotar un secreto de cliente SCIM fija cuándo deja de funcionar, y `POST /api/host/:id/try-collector-config-again` vuelve a enviar a un host la configuración del recolector que falló en él. Un campo que cambias tú y también OneUptime, como las `labels` de un registro, a las que las reglas de etiquetas añaden otras, lo sigues fijando tú como antes.
+
+Una creación que dejó fuera un campo lo nombra en la cabecera `X-OneUptime-Fields-Left-Out` de la respuesta, con los campos separados por comas; una respuesta sin nada dejado fuera no lleva esa cabecera. La CLI muestra los campos en una nota, la respuesta del servidor MCP los enumera en `fieldsLeftOut`, y el proveedor de Terraform los muestra en una advertencia.
+
+### Añadir entradas a una lista y quitarlas
+
+Un cambio puede añadir registros a una lista, o quitar algunos, sin enviar la lista entera: `addToList` y `removeFromList` nombran los ID que hay que añadir y quitar, lista por lista. Toda entrada que el cambio no nombra se queda, incluida una que otra persona o una regla de etiquetas añada en el mismo momento:
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+Enviado a `PUT /api/monitor/<id>`, esto cambia el nombre del monitor, le añade una etiqueta y le quita otra. Deja fuera `data` cuando el cambio solo añade y quita entradas. Una entrada es el ID del registro, o un objeto con su `_id`, como en `data`, y añadir una entrada que la lista ya tiene, o quitar una que no tiene, no cambia nada.
+
+Las listas que un cambio puede nombrar son las que la referencia completa de la API enumera en `addToList` para la solicitud `PUT` del recurso. Un cambio hecho así se comprueba como lo sería la lista entera que deja, según las reglas de arriba: tu permiso para cambiar la lista, que cada registro que añade sea uno de tu proyecto que puedas leer, y las etiquetas que conserva un permiso restringido a etiquetas. Una lista enviada a la vez entera, en `data`, y en `addToList` o `removeFromList` se rechaza con un `400`:
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+Los proveedores de Terraform y de Crossplane cambian así las etiquetas de un registro, de modo que una etiqueta que una regla añade mientras se ejecutan se queda: consulta [Etiquetas y otras listas a las que OneUptime también añade](/docs/terraform/complete-guide#etiquetas-y-otras-listas-a-las-que-oneuptime-también-añade).
 
 ## Estados y episodios
 

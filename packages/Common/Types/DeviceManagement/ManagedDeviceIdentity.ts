@@ -1,3 +1,7 @@
+import DeviceManagementProvider, {
+  DEVICE_MANAGEMENT_PROVIDERS,
+} from "./DeviceManagementProvider";
+
 /*
  * ONE DEVICE, ONE INVENTORY ROW: THE IDENTITY CONTRACT (issue #9586).
  *
@@ -46,8 +50,10 @@
  * host another device already holds is never taken.
  *
  * Every service keeps the same contract (#9837): a Microsoft Intune
- * device's host.name is its device name in Intune, and its serial number is
- * Intune's. A name two devices of a connection share is no one host's: see
+ * device's host.name is its device name in Intune, a Workspace ONE device's
+ * the name it reports (#10086) and a SOTI MobiControl device's its name in
+ * MobiControl (#10087), and its serial number is the service's. A name two
+ * devices of a connection share is no one host's: see
  * getManagedDeviceUniqueHostName.
  */
 
@@ -95,6 +101,8 @@ export interface ManagedDeviceServiceAttributeKeys {
 const SERVICE_ATTRIBUTE_NAMESPACES: Readonly<Record<string, string>> = {
   esper: "esper",
   intune: "intune",
+  workspaceone: "workspaceone",
+  soti: "soti",
 };
 
 export const MANAGED_DEVICE_SERVICE_ATTRIBUTE_NAMESPACES: ReadonlyArray<string> =
@@ -124,6 +132,46 @@ export function getAllManagedDeviceServiceAttributeKeys(): Array<string> {
       ];
     },
   );
+}
+
+// The ID a device manager knows a device by, as the device's host carries it.
+export interface ManagedDeviceServiceId {
+  provider: DeviceManagementProvider;
+  deviceId: string;
+}
+
+/*
+ * THE ID EACH DEVICE MANAGER KNOWS A DEVICE BY (#10097), read from what its
+ * import wrote on the device's host (esper.device.id, intune.device.id,
+ * workspaceone.device.id, soti.device.id): what a person types into that
+ * service's console or CLI to reach the device - Esper's is the one
+ * `espercli secureadb connect --device` takes, to grant the Android agent
+ * what Esper cannot. In the services' order, one per service the host has
+ * an ID from: a device two services enroll (moved from one to the other)
+ * has both. Read without trusting the bag: only a text that is not blank.
+ * Pure.
+ */
+export function getManagedDeviceServiceIds(
+  attributes: unknown,
+): Array<ManagedDeviceServiceId> {
+  if (!attributes || typeof attributes !== "object") {
+    return [];
+  }
+
+  const bag: Record<string, unknown> = attributes as Record<string, unknown>;
+  const ids: Array<ManagedDeviceServiceId> = [];
+
+  for (const provider of DEVICE_MANAGEMENT_PROVIDERS) {
+    const value: unknown =
+      bag[getManagedDeviceServiceAttributeKeys(provider).deviceId];
+    const deviceId: string = typeof value === "string" ? value.trim() : "";
+
+    if (deviceId) {
+      ids.push({ provider, deviceId });
+    }
+  }
+
+  return ids;
 }
 /*
  * Android's security patch level (Build.VERSION.SECURITY_PATCH), under the

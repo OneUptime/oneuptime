@@ -70,13 +70,13 @@ sequenceDiagram
     participant IdP as Identitetsleverandør
     participant O as OneUptime
     IdP->>O: Opprett brukeren, når<br/>du tildeler vedkommende
-    Note over O: Lagt til i standardteamene.<br/>På OneUptime Cloud<br/>blir en eksisterende<br/>konto invitert i stedet
+    Note over O: Lagt til i standardteamene.<br/>På OneUptime Cloud<br/>blir alle som ennå ikke<br/>er i prosjektet, invitert i stedet
     IdP->>O: Oppdater brukeren,<br/>når profilen endres
     IdP->>O: Slett eller deaktiver,<br/>når du fjerner tildelingen
     Note over O: Fjernet fra standardteamene
 ```
 
-En person som allerede hadde en OneUptime-konto, blir med når vedkommende godtar invitasjonen på OneUptime Cloud (se [vanlige spørsmål](#vanlige-spørsmål)). Tilgang gitt gjennom andre team enn tilkoblingens standardteam berøres ikke.
+En person som ennå ikke er i prosjektet ditt, blir med når vedkommende godtar invitasjonen på OneUptime Cloud, enten SCIM har opprettet OneUptime-kontoen eller vedkommende allerede hadde en (se [vanlige spørsmål](#vanlige-spørsmål)). Tilgang gitt gjennom andre team enn tilkoblingens standardteam berøres ikke.
 
 ### OAuth 2.0-klientlegitimasjon
 
@@ -445,9 +445,9 @@ Ingen steder: OneUptime lagrer bare en hash av det, så verken dashbordet eller 
 Når SCIM prøver å opprette en bruker som allerede finnes (matchet på e-post), oppretter ikke OneUptime en duplikatbruker. Hva som skjer videre, avhenger av hvor OneUptime kjører:
 
 - **Selvhostet**: Den eksisterende brukeren legges straks til i de konfigurerte standardteamene (eller, med push-grupper, i gruppens team).
-- **OneUptime Cloud**: En OneUptime-konto tilhører personen, ikke et bestemt prosjekt, så SCIM kan ikke på egen hånd gjøre noen til medlem av prosjektet ditt. Den eksisterende brukeren blir i stedet **invitert** til teamene og mottar den vanlige invitasjons-e-posten. Vedkommende blir med når invitasjonene godtas under **Prosjektinvitasjoner** i OneUptime, eller når prosjektets single sign-on (SSO) bekreftes fra e-posten OneUptime sender ved første SSO-pålogging. Inntil da vises brukeren som ventende. Det samme gjelder når en gruppe legger til en eksisterende bruker som ennå ikke er medlem av prosjektet ditt.
+- **OneUptime Cloud**: En OneUptime-konto tilhører personen, ikke et bestemt prosjekt, så SCIM kan ikke på egen hånd gjøre noen til medlem av prosjektet ditt. Den eksisterende brukeren blir i stedet **invitert** til teamene og mottar den vanlige invitasjons-e-posten, slik en bruker som SCIM oppretter, også gjør. Vedkommende blir med når invitasjonene godtas under **Prosjektinvitasjoner** i OneUptime, eller når prosjektets single sign-on (SSO) bekreftes fra e-posten OneUptime sender ved første SSO-pålogging. Inntil da vises brukeren som ventende, med navnet identitetsleverandøren din sendte, slik at prosjektets brukerliste ser lik ut enten personen allerede hadde en OneUptime-konto eller ikke. Det samme gjelder når en gruppe legger til noen som ennå ikke er medlem av prosjektet ditt.
 
-Brukere som SCIM oppretter selv, og brukere som er medlemmer av prosjektet ditt, legges straks til i begge tilfeller. Å bekrefte prosjektets SSO gjør en person til medlem, så vedkommende legges også straks til; den som siden har forlatt prosjektet ditt, blir invitert på nytt.
+Brukere som er medlemmer av prosjektet ditt, legges straks til i begge tilfeller, og på en selvhostet installasjon gjelder det også brukerne SCIM oppretter selv. Å bekrefte prosjektets SSO gjør en person til medlem, så vedkommende legges også straks til; den som siden har forlatt prosjektet ditt, blir invitert på nytt.
 :::
 
 :::details Kan SCIM endre e-postadressen eller navnet til en bruker?

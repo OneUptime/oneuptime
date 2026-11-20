@@ -210,6 +210,91 @@ ${NGINX_IPV6_LISTEN_DEFAULT_DIRECTIVE}
         }
     }
 
+    # A probe that calls the ingress by an address the primary ingress does
+    # not name: the bundled probes, which use the server's own network, when
+    # ONEUPTIME_HTTP_PORT publishes the ingress on one address other than
+    # 127.0.0.1 ([::1]:8080, 10.0.0.5:8080: FollowIngressPort points them
+    # there, #10024), or any probe whose ONEUPTIME_URL is the server's IP
+    # address. A probe sends no Host header of its own, and the App serves
+    # its probe API whatever the Host, so `location /` forwarded what it sent
+    # on nginx's 1M default: a synthetic monitor's screenshots or a packet
+    # capture got a bare 413. These three take the 50M the primary ingress
+    # gives the same paths; everything else mirrors `location /` above,
+    # billing redirect included. /ingestor is the path probes deployed before
+    # /probe-ingest call, and a probe forwards the heartbeats its incoming
+    # request ingress takes to /incoming-request-ingest
+    # (Probe/API/IncomingRequestIngress.ts).
+    location /probe-ingest {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        client_max_body_size 50M;
+
+        if ($billing_enabled = true) {
+            return 301 https://$host$request_uri;
+        }
+
+        if ($billing_enabled != true) {
+            proxy_pass ${BACKEND_APP_TARGET};
+        }
+    }
+
+    location /ingestor {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        client_max_body_size 50M;
+
+        if ($billing_enabled = true) {
+            return 301 https://$host$request_uri;
+        }
+
+        if ($billing_enabled != true) {
+            proxy_pass ${BACKEND_APP_TARGET};
+        }
+    }
+
+    location /incoming-request-ingest {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
+
+        # Reuse pooled upstream connections, as the primary ingress does here.
+        proxy_http_version 1.1;
+        proxy_set_header Connection $connection_upgrade;
+
+        client_max_body_size 50M;
+
+        if ($billing_enabled = true) {
+            return 301 https://$host$request_uri;
+        }
+
+        if ($billing_enabled != true) {
+            proxy_pass ${BACKEND_APP_TARGET};
+        }
+    }
+
     # Calendar feeds. The URL IS the credential: a subscribed calendar
     # client (Google, Outlook, Apple) polls
     #   /api/on-call-calendar/{user,schedule,project}/<43-char token>/...
@@ -553,6 +638,63 @@ ${NGINX_IPV6_LISTEN_SSL_DEFAULT_DIRECTIVE}
         access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;
 
         client_max_body_size 4M;
+
+        proxy_pass ${BACKEND_APP_TARGET};
+    }
+
+    # A probe's reports over TLS under a Host the primary ingress does not
+    # name: the same three paths and 50M as in the plaintext default server
+    # above, which says why (#10024). Like `location /` here, they proxy
+    # unconditionally.
+    location /probe-ingest {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        client_max_body_size 50M;
+
+        proxy_pass ${BACKEND_APP_TARGET};
+    }
+
+    location /ingestor {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        client_max_body_size 50M;
+
+        proxy_pass ${BACKEND_APP_TARGET};
+    }
+
+    location /incoming-request-ingest {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
+
+        # Reuse pooled upstream connections, as the primary ingress does here.
+        proxy_http_version 1.1;
+        proxy_set_header Connection $connection_upgrade;
+
+        client_max_body_size 50M;
 
         proxy_pass ${BACKEND_APP_TARGET};
     }
@@ -1268,6 +1410,32 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # WHOLE request body; the App's multipart middleware separately caps
         # each file at 50 MiB. A single map near that cap therefore needs a
         # request to itself — the docs tell CI to upload one file per request.
+        client_max_body_size 50M;
+
+        # Reuse pooled upstream connections for this large-body ingest path.
+        proxy_http_version 1.1;
+        proxy_set_header Connection $connection_upgrade;
+
+        # Operator-controllable ingest logging, enabled by default. Parameters
+        # must match nginx.conf's access_log exactly; see /telemetry above.
+        access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;
+
+        proxy_pass ${BACKEND_APP_TARGET};
+    }
+
+    location /dsyms {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
+
+        # An iOS app's dSYMs (#9922): the CLI sends their symbol tables as
+        # JSON, a few MB for a large app; curl sends a dSYM as it is, whose
+        # DWARF can be tens of MB. Bounded as /source-maps is: the App's
+        # multipart middleware caps each file at 50 MiB, and the docs send a
+        # dSYM larger than that through the CLI.
         client_max_body_size 50M;
 
         # Reuse pooled upstream connections for this large-body ingest path.

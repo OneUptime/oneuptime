@@ -12,15 +12,29 @@
  * and the Docker Compose guide's troubleshooting - and `npm start
  * --services=...` handed it the list of services as the address (#2029).
  *
+ * Then it asked the ingress by the address it is published on, and the
+ * ingress serves OneUptime only under localhost, ingress and HOST: with
+ * ONEUPTIME_HTTP_PORT=127.0.0.1:8080, the Docker Compose guide's setting
+ * behind a reverse proxy, every page but /status answered 404 and npm start
+ * ended with "Maximum retries reached" (#10024). It now connects where the
+ * ingress is published and asks for localhost, with curl's --resolve.
+ *
  * These tests run the script itself in a throwaway directory, with a `curl`
- * on PATH that records every address it is asked for and answers with a
- * status code the test picks, and a `sleep` that returns at once.
+ * on PATH that records every request it is asked for - each argument - and
+ * answers with a status code the test picks, and a `sleep` that returns at
+ * once. StatusCheckIngress.test.js runs it with the real curl against the
+ * real ingress.
  */
 
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
+const { ingressRequestOf } = require("../../Scripts/Install/FollowIngressPort");
+const {
+  readSettings,
+} = require("../../Scripts/Install/ReplacePlaceholderSecrets");
+const { renderCompose, hasDockerCompose } = require("./Utils/ComposePorts");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const STATUS_CHECK = path.join(
@@ -45,12 +59,19 @@ const ENDPOINTS = [
   "/status-page/",
 ];
 
+// What the fake curl writes between two arguments of one request.
+const ARGUMENT_SEPARATOR = "\u001f";
+
 /*
  * Runs status-check.sh in a throwaway directory holding `config` as
  * config.env (none when null), with `args`, the environment `env` adds and a
- * curl answering `code` (or each address's code from `codeFor`).
+ * curl answering `code` (or each address's code from `codeFor`, matched on
+ * the end of the address). Like curl, it exits 0, or with `exitFor`'s code
+ * for an address it matches: 7 when nothing answered, 35 when the TLS
+ * handshake failed. `calls` are the addresses curl was asked for,
+ * `requests` every argument of each.
  */
-function statusCheck({ config, args, env, code, codeFor }) {
+function statusCheck({ config, args, env, code, codeFor, exitFor }) {
   const directory = fs.mkdtempSync(
     path.join(os.tmpdir(), "oneuptime-status-check-"),
   );
@@ -70,13 +91,21 @@ function statusCheck({ config, args, env, code, codeFor }) {
       [
         "#!/bin/sh",
         'for last in "$@"; do :; done',
-        `echo "$last" >> "${calls}"`,
+        `printf '%s\\037' "$@" >> "${calls}"`,
+        `printf '\\n' >> "${calls}"`,
+        "status=0",
+        'case "$last" in',
+        ...Object.entries(exitFor || {}).map(([suffix, answer]) => {
+          return `  *${suffix}) status=${Number(answer)} ;;`;
+        }),
+        "esac",
         'case "$last" in',
         ...Object.entries(codeFor || {}).map(([suffix, answer]) => {
-          return `  *${suffix}) printf '%s' "${answer}"; exit 0 ;;`;
+          return `  *${suffix}) printf '%s' "${answer}"; exit "$status" ;;`;
         }),
         "esac",
         `printf '%s' "${code || "200"}"`,
+        'exit "$status"',
         "",
       ].join("\n"),
       { mode: 0o755 },
@@ -95,12 +124,23 @@ function statusCheck({ config, args, env, code, codeFor }) {
       timeout: 60 * 1000,
     });
 
+    const requests = fs.existsSync(calls)
+      ? fs
+          .readFileSync(calls, "utf8")
+          .split("\n")
+          .filter(Boolean)
+          .map((line) => {
+            return line.split(ARGUMENT_SEPARATOR).slice(0, -1);
+          })
+      : [];
+
     return {
       status: result.status,
       output: `${result.stdout || ""}${result.stderr || ""}`,
-      calls: fs.existsSync(calls)
-        ? fs.readFileSync(calls, "utf8").trim().split("\n")
-        : [],
+      calls: requests.map((argv) => {
+        return argv[argv.length - 1];
+      }),
+      requests: requests,
     };
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
@@ -111,40 +151,187 @@ function configWith(lines) {
   return `${lines.join("\n")}\n`;
 }
 
+// The value curl was given for `option`, or null.
+function optionOf(argv, option) {
+  const index = argv.indexOf(option);
+
+  return index === -1 ? null : argv[index + 1];
+}
+
+/*
+ * The request curl makes for one call, as curl documents its options: the
+ * Host header names the address's host and port (none for 80), and
+ * --resolve HOST:PORT:ADDRESS has a request for HOST:PORT connect to
+ * ADDRESS, on that port. StatusCheckIngress.test.js checks the same against
+ * the real curl and nginx. A --connect-to would not be read here: curl
+ * before 7.49 has none, so the check never sends one.
+ */
+function requestOf(argv) {
+  const address = argv[argv.length - 1];
+  const url = new URL(
+    /^[a-z]+:\/\//i.test(address) ? address : `http://${address}`,
+  );
+  const port = url.port || (url.protocol === "https:" ? "443" : "80");
+  const resolve = optionOf(argv, "--resolve");
+  let connectsTo = `${url.hostname}:${port}`;
+
+  expect(argv).not.toContain("--connect-to");
+
+  if (resolve) {
+    // An IPv6 address without brackets, as every curl since 7.21 reads it.
+    const match = /^([^:]+):(\d+):([^[\],]+)$/.exec(resolve);
+
+    expect({ resolve, parses: Boolean(match) }).toEqual({
+      resolve,
+      parses: true,
+    });
+
+    if (match[1] === url.hostname && match[2] === port) {
+      connectsTo = match[3].includes(":")
+        ? `[${match[3]}]:${port}`
+        : `${match[3]}:${port}`;
+    }
+  }
+
+  return { host: url.host, path: url.pathname, connectsTo: connectsTo };
+}
+
+/*
+ * Every form of ONEUPTIME_HTTP_PORT that Compose publishes, as `docker
+ * compose config` reads it (StatusCheckIngress.test.js holds the two to
+ * each other): where the check connects, the Host it sends, and the address
+ * it says it waits at. A port alone, which Docker publishes on every
+ * address, IPv4 and IPv6, and 0.0.0.0, every IPv4 address, are reached at
+ * localhost; ::, which Docker publishes on IPv6 alone, at [::1], as localhost
+ * may name 127.0.0.1 alone. On one address of the server, the check connects
+ * to that address. Each time it asks for localhost, the name the ingress
+ * serves OneUptime under. IPv6 in brackets, as Compose takes it with or
+ * without them.
+ */
+const INGRESS_FORMS = [
+  ["80", "localhost:80", "localhost", "localhost"],
+  ["", "localhost:80", "localhost", "localhost"],
+  ["8080", "localhost:8080", "localhost:8080", "localhost:8080"],
+  [":8080", "localhost:8080", "localhost:8080", "localhost:8080"],
+  ["0.0.0.0:8080", "localhost:8080", "localhost:8080", "localhost:8080"],
+  ["[::]:8080", "[::1]:8080", "localhost:8080", "[::1]:8080"],
+  [":::8080", "[::1]:8080", "localhost:8080", "[::1]:8080"],
+  ["127.0.0.1:8080", "127.0.0.1:8080", "localhost:8080", "127.0.0.1:8080"],
+  ["127.0.0.1:80", "127.0.0.1:80", "localhost", "127.0.0.1"],
+  ["[::1]:8080", "[::1]:8080", "localhost:8080", "[::1]:8080"],
+  ["::1:8080", "[::1]:8080", "localhost:8080", "[::1]:8080"],
+  ["[::1]:80", "[::1]:80", "localhost", "[::1]"],
+  ["10.0.0.5:8443", "10.0.0.5:8443", "localhost:8443", "10.0.0.5:8443"],
+  ["10.0.0.5:80", "10.0.0.5:80", "localhost", "10.0.0.5"],
+  [
+    "[2001:db8::5]:8080",
+    "[2001:db8::5]:8080",
+    "localhost:8080",
+    "[2001:db8::5]:8080",
+  ],
+  [
+    "2001:db8::5:8080",
+    "[2001:db8::5]:8080",
+    "localhost:8080",
+    "[2001:db8::5]:8080",
+  ],
+  // As config.env may write it: quoted, or with spaces around it.
+  ['"8080"', "localhost:8080", "localhost:8080", "localhost:8080"],
+  ["'8080'", "localhost:8080", "localhost:8080", "localhost:8080"],
+  [" 8080 ", "localhost:8080", "localhost:8080", "localhost:8080"],
+  ['"127.0.0.1:8080"', "127.0.0.1:8080", "localhost:8080", "127.0.0.1:8080"],
+  [" [::1]:8080 ", "[::1]:8080", "localhost:8080", "[::1]:8080"],
+];
+
 describe("the address it checks", () => {
-  test.each([
-    ["80", "localhost"],
-    ["", "localhost"],
-    ["8080", "localhost:8080"],
-    ["127.0.0.1:8080", "127.0.0.1:8080"],
-    ["127.0.0.1:80", "127.0.0.1"],
-    ["0.0.0.0:8080", "localhost:8080"],
-    ["[::1]:8080", "[::1]:8080"],
-    ["10.0.0.5:8443", "10.0.0.5:8443"],
-    ['"8080"', "localhost:8080"],
-    ["'8080'", "localhost:8080"],
-    [" 8080 ", "localhost:8080"],
-  ])(
-    "ONEUPTIME_HTTP_PORT=%s in config.env: the ingress at %s",
-    (setting, address) => {
+  test.each(INGRESS_FORMS)(
+    "ONEUPTIME_HTTP_PORT=%s in config.env: it connects to %s and sends Host: %s",
+    (setting, connectsTo, host, waitingAt) => {
       const result = statusCheck({
         config: configWith([
-          "HOST=localhost",
+          "HOST=oneuptime.example.com",
           `ONEUPTIME_HTTP_PORT=${setting}`,
         ]),
       });
+      const isOneAddress = !connectsTo.startsWith("localhost:");
 
       expect(result.status).toBe(0);
-      expect(result.calls.slice(0, ENDPOINTS.length)).toEqual(
+      expect(result.requests.slice(0, ENDPOINTS.length).map(requestOf)).toEqual(
         ENDPOINTS.map((endpoint) => {
-          return `${address}${endpoint}`;
+          return { host, path: endpoint || "/", connectsTo };
         }),
       );
+      // The readiness loop that follows asks the same socket, by the same name.
+      expect(result.requests.length).toBeGreaterThan(ENDPOINTS.length);
+      for (const argv of result.requests) {
+        expect(requestOf(argv)).toEqual(
+          expect.objectContaining({ host, connectsTo }),
+        );
+      }
+      // Never the address itself as the name: the ingress serves it as a status page's domain.
+      for (const address of result.calls) {
+        expect(address.startsWith(`${host}`)).toBe(true);
+      }
       expect(result.output).toContain(
-        `Waiting for OneUptime to answer at ${address}.`,
+        isOneAddress
+          ? `Waiting for OneUptime to answer at ${waitingAt}, where ONEUPTIME_HTTP_PORT publishes the ingress.`
+          : `Waiting for OneUptime to answer at ${waitingAt}.`,
+      );
+      expect(result.output).toContain(
+        isOneAddress
+          ? `✅ Dashboard endpoint is up (${host}/dashboard at ${waitingAt})`
+          : `✅ Dashboard endpoint is up (${host}/dashboard)`,
       );
     },
   );
+
+  test("on one address of the server, every request goes there with --resolve, and none is sent without it", () => {
+    const result = statusCheck({
+      config: configWith(["ONEUPTIME_HTTP_PORT=127.0.0.1:8080"]),
+    });
+
+    expect(result.status).toBe(0);
+    for (const argv of result.requests) {
+      expect(optionOf(argv, "--resolve")).toBe("localhost:8080:127.0.0.1");
+      expect(argv[argv.length - 1].startsWith("localhost:8080")).toBe(true);
+    }
+    expect(result.output).toContain(
+      "✅ App endpoint is up (localhost:8080 at 127.0.0.1:8080)",
+    );
+    expect(result.output).toContain("OneUptime is up!");
+  });
+
+  /*
+   * Docker publishes [::]:8080 on IPv6 alone: 127.0.0.1:8080 is refused
+   * there, and localhost is 127.0.0.1 alone where /etc/hosts gives ::1
+   * another name (Ubuntu's), and for any curl that asks the system for it.
+   */
+  test.each(["[::]:8080", ":::8080"])(
+    "on %s, every IPv6 address, it connects to [::1], whatever localhost names here",
+    (setting) => {
+      const result = statusCheck({
+        config: configWith([`ONEUPTIME_HTTP_PORT=${setting}`]),
+      });
+
+      expect(result.status).toBe(0);
+      for (const argv of result.requests) {
+        expect(optionOf(argv, "--resolve")).toBe("localhost:8080:::1");
+      }
+    },
+  );
+
+  test("on every address of the server, curl is told nothing new: the request for localhost goes to localhost", () => {
+    for (const setting of ["8080", ":8080", "0.0.0.0:8080"]) {
+      const result = statusCheck({
+        config: configWith([`ONEUPTIME_HTTP_PORT=${setting}`]),
+      });
+
+      expect(result.status).toBe(0);
+      for (const argv of result.requests) {
+        expect(argv).not.toContain("--resolve");
+      }
+    }
+  });
 
   test("the last assignment in config.env wins, a comment does not count, and Windows line endings are read", () => {
     const result = statusCheck({
@@ -157,6 +344,52 @@ describe("the address it checks", () => {
     });
 
     expect(result.calls[0]).toBe("localhost:8080");
+  });
+
+  // As Scripts/Install/WithConfig.sh hands such a line to Compose.
+  test.each([
+    "export ONEUPTIME_HTTP_PORT=8080",
+    "export\tONEUPTIME_HTTP_PORT=8080",
+    "  export   ONEUPTIME_HTTP_PORT = 8080",
+  ])("%j is read as ONEUPTIME_HTTP_PORT, as Compose gets it", (line) => {
+    const result = statusCheck({
+      config: configWith(["ONEUPTIME_HTTP_PORT=80", line]),
+    });
+
+    expect(result.calls[0]).toBe("localhost:8080");
+  });
+
+  test("an export before HOST and PROVISION_SSL is read too: HOST is asked for over HTTPS", () => {
+    const result = statusCheck({
+      config: configWith([
+        "export HOST=oneuptime.example.com",
+        "export PROVISION_SSL=true",
+        "export STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443",
+      ]),
+    });
+    const https = result.requests.filter((argv) => {
+      return argv[argv.length - 1].startsWith("https://");
+    });
+
+    expect(https).toHaveLength(1);
+    expect(requestOf(https[0])).toEqual({
+      host: "oneuptime.example.com:8443",
+      path: "/status/ready",
+      connectsTo: "127.0.0.1:8443",
+    });
+  });
+
+  test("a name that only starts with export, or a commented-out export, is no setting", () => {
+    for (const line of [
+      "exportONEUPTIME_HTTP_PORT=8080",
+      "# export ONEUPTIME_HTTP_PORT=8080",
+    ]) {
+      const result = statusCheck({
+        config: configWith(["ONEUPTIME_HTTP_PORT=9090", line]),
+      });
+
+      expect(result.calls[0]).toBe("localhost:9090");
+    }
   });
 
   test("config.env wins over the environment, which npm start exports from it anyway", () => {
@@ -193,6 +426,44 @@ describe("the address it checks", () => {
     expect(result.calls).not.toContain("localhost:8080");
   });
 
+  test.each([
+    ["http://localhost", "localhost:80"],
+    // The Helm chart's test pod checks the address people open, over HTTPS.
+    ["https://oneuptime.example.com", "oneuptime.example.com:443"],
+    ["127.0.0.1:8080", "127.0.0.1:8080"],
+  ])(
+    "an address given on the command line, %s, is asked as it is, whatever config.env publishes",
+    (address, connectsTo) => {
+      const result = statusCheck({
+        config: configWith([
+          "HOST=oneuptime.example.com",
+          "PROVISION_SSL=true",
+          "ONEUPTIME_HTTP_PORT=127.0.0.1:8080",
+          "STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443",
+        ]),
+        args: [address],
+      });
+
+      expect(result.status).toBe(0);
+      expect(result.calls[0]).toBe(address);
+      for (const argv of result.requests) {
+        expect(argv).not.toContain("--resolve");
+        // Its certificate is checked as curl checks one (the Helm chart's test pod's).
+        expect(argv).not.toContain("-k");
+        expect(requestOf(argv).connectsTo).toBe(connectsTo);
+      }
+      // And nothing else: not HOST over HTTPS on the ingress config.env publishes.
+      expect(
+        result.calls.filter((call) => {
+          return !call.startsWith(address);
+        }),
+      ).toEqual([]);
+      expect(result.output).toContain(
+        `Waiting for OneUptime to answer at ${address}.`,
+      );
+    },
+  );
+
   test("an empty argument is no address: the ingress is checked", () => {
     const result = statusCheck({
       config: configWith(["ONEUPTIME_HTTP_PORT=8080"]),
@@ -200,6 +471,566 @@ describe("the address it checks", () => {
     });
 
     expect(result.calls[0]).toBe("localhost:8080");
+  });
+});
+
+/*
+ * npm start ends with this check, then the doctor, which asks the ingress
+ * itself (Scripts/Install/Doctor.js, by FollowIngressPort's
+ * ingressRequestOf), as backup.sh's report does: both must ask the same
+ * socket under the same name, or one passes where the other cannot.
+ */
+describe("the doctor and the backup report ask where the check asks", () => {
+  test.each(INGRESS_FORMS)(
+    "ONEUPTIME_HTTP_PORT=%s",
+    (setting, connectsTo, host) => {
+      const value = readSettings(`ONEUPTIME_HTTP_PORT=${setting}\n`).get(
+        "ONEUPTIME_HTTP_PORT",
+      );
+      const request = ingressRequestOf(value);
+      const url = new URL(request.url);
+      const checked = statusCheck({
+        config: configWith([`ONEUPTIME_HTTP_PORT=${setting}`]),
+      });
+
+      expect({
+        host: request.host,
+        connectsTo: `${url.hostname}:${url.port || "80"}`,
+      }).toEqual({
+        host,
+        connectsTo,
+      });
+      expect(requestOf(checked.requests[0])).toEqual(
+        expect.objectContaining({ host, connectsTo }),
+      );
+    },
+  );
+});
+
+/*
+ * What Compose itself makes of each form: the published address and port
+ * of the ingress's 7849, from `docker compose config`, are where the check
+ * connects. Needs the Docker CLI's compose plugin, and no daemon. The empty
+ * setting too: Compose published it on a port Docker picked as it started
+ * the ingress, where nothing looked (the check asked port 80), and publishes
+ * it on 80 now, as config.example.env ships it (#10170). And a config.env
+ * without the setting, from before it.
+ */
+const describeWithCompose = hasDockerCompose() ? describe : describe.skip;
+
+// Where this server reaches what Compose publishes on `hostIp`: :: is IPv6 alone, so at [::1].
+function reachedAt(hostIp, everyAddress) {
+  return ["", "0.0.0.0"].includes(hostIp)
+    ? everyAddress
+    : hostIp === "::"
+      ? "[::1]"
+      : hostIp.includes(":")
+        ? `[${hostIp}]`
+        : hostIp;
+}
+
+describeWithCompose(
+  "as Compose publishes each form of ONEUPTIME_HTTP_PORT",
+  () => {
+    test.each(INGRESS_FORMS)(
+      "ONEUPTIME_HTTP_PORT=%s is published where the check connects, %s",
+      (setting, connectsTo) => {
+        const value = readSettings(`ONEUPTIME_HTTP_PORT=${setting}\n`).get(
+          "ONEUPTIME_HTTP_PORT",
+        );
+        const rendered = renderCompose(["docker-compose.yml"], {
+          ONEUPTIME_HTTP_PORT: value,
+        });
+        const published = rendered.services.ingress.ports.find((port) => {
+          return Number(port.target) === 7849;
+        });
+
+        expect(
+          `${reachedAt(published.host_ip || "", "localhost")}:${published.published}`,
+        ).toBe(connectsTo);
+      },
+    );
+
+    test("a config.env without ONEUPTIME_HTTP_PORT is published on port 80, where the check asks", () => {
+      const rendered = renderCompose(["docker-compose.yml"], {
+        ONEUPTIME_HTTP_PORT: undefined,
+      });
+      const published = rendered.services.ingress.ports.find((port) => {
+        return Number(port.target) === 7849;
+      });
+      const checked = statusCheck({ config: configWith(["HOST=localhost"]) });
+
+      expect(`${published.host_ip || ""}:${published.published}`).toBe(":80");
+      expect(requestOf(checked.requests[0]).connectsTo).toBe("localhost:80");
+    });
+  },
+);
+
+/*
+ * #10169: with PROVISION_SSL=true the ingress's primary server serves HOST
+ * over HTTPS on 7850, which STATUS_PAGE_HTTPS_PORT publishes, and the
+ * checks over plain HTTP never looked there. The check now also asks for
+ * HOST's /status/ready over HTTPS, once the HTTP checks pass: it names HOST
+ * (without its port), the name nginx picks the primary's certificate by,
+ * and connects where STATUS_PAGE_HTTPS_PORT publishes the ingress, with
+ * --resolve and any certificate (-k). A port published on every address is
+ * reached at 127.0.0.1, as --resolve takes an address alone.
+ *
+ * [STATUS_PAGE_HTTPS_PORT, where curl connects, the Host it sends, where
+ * the check says it connected].
+ */
+const HTTPS_FORMS = [
+  ["443", "127.0.0.1:443", "oneuptime.example.com", "127.0.0.1:443"],
+  ["", "127.0.0.1:443", "oneuptime.example.com", "127.0.0.1:443"],
+  ["8443", "127.0.0.1:8443", "oneuptime.example.com:8443", "127.0.0.1:8443"],
+  [":8443", "127.0.0.1:8443", "oneuptime.example.com:8443", "127.0.0.1:8443"],
+  [
+    "0.0.0.0:8443",
+    "127.0.0.1:8443",
+    "oneuptime.example.com:8443",
+    "127.0.0.1:8443",
+  ],
+  ["[::]:8443", "[::1]:8443", "oneuptime.example.com:8443", "[::1]:8443"],
+  [":::8443", "[::1]:8443", "oneuptime.example.com:8443", "[::1]:8443"],
+  [
+    "127.0.0.1:8443",
+    "127.0.0.1:8443",
+    "oneuptime.example.com:8443",
+    "127.0.0.1:8443",
+  ],
+  ["127.0.0.1:443", "127.0.0.1:443", "oneuptime.example.com", "127.0.0.1:443"],
+  ["[::1]:8443", "[::1]:8443", "oneuptime.example.com:8443", "[::1]:8443"],
+  ["::1:8443", "[::1]:8443", "oneuptime.example.com:8443", "[::1]:8443"],
+  ["[::1]:443", "[::1]:443", "oneuptime.example.com", "[::1]:443"],
+  [
+    "10.0.0.5:8443",
+    "10.0.0.5:8443",
+    "oneuptime.example.com:8443",
+    "10.0.0.5:8443",
+  ],
+  ["10.0.0.5:443", "10.0.0.5:443", "oneuptime.example.com", "10.0.0.5:443"],
+  [
+    "[2001:db8::5]:8443",
+    "[2001:db8::5]:8443",
+    "oneuptime.example.com:8443",
+    "[2001:db8::5]:8443",
+  ],
+  [
+    "2001:db8::5:8443",
+    "[2001:db8::5]:8443",
+    "oneuptime.example.com:8443",
+    "[2001:db8::5]:8443",
+  ],
+  // As config.env may write it: quoted, or with spaces around it.
+  ['"8443"', "127.0.0.1:8443", "oneuptime.example.com:8443", "127.0.0.1:8443"],
+  [
+    " 127.0.0.1:8443 ",
+    "127.0.0.1:8443",
+    "oneuptime.example.com:8443",
+    "127.0.0.1:8443",
+  ],
+  ["'[::1]:8443'", "[::1]:8443", "oneuptime.example.com:8443", "[::1]:8443"],
+];
+
+// A config.env that has the ingress serve HOST over HTTPS, with `lines` after it.
+function httpsConfig(lines) {
+  return configWith(
+    [
+      "HOST=oneuptime.example.com",
+      "HTTP_PROTOCOL=https",
+      "PROVISION_SSL=true",
+    ].concat(lines || []),
+  );
+}
+
+// The requests of a run that asked over HTTPS.
+function httpsRequestsOf(result) {
+  return result.requests.filter((argv) => {
+    return argv[argv.length - 1].startsWith("https://");
+  });
+}
+
+describe("HOST over HTTPS, when the ingress serves it itself (#10169)", () => {
+  test.each(HTTPS_FORMS)(
+    "STATUS_PAGE_HTTPS_PORT=%s: it connects to %s and asks for Host: %s",
+    (setting, connectsTo, host, checkedAt) => {
+      const result = statusCheck({
+        config: httpsConfig([`STATUS_PAGE_HTTPS_PORT=${setting}`]),
+      });
+      const https = httpsRequestsOf(result);
+
+      expect(result.status).toBe(0);
+      // Once, right after the eight checks over plain HTTP.
+      expect(https).toHaveLength(1);
+      expect(result.requests.indexOf(https[0])).toBe(ENDPOINTS.length);
+      expect(requestOf(https[0])).toEqual({
+        host,
+        path: "/status/ready",
+        connectsTo,
+      });
+      expect(https[0]).toContain("-k");
+      expect(optionOf(https[0], "--resolve")).toBe(
+        `oneuptime.example.com:${connectsTo.slice(connectsTo.lastIndexOf(":") + 1)}:${connectsTo
+          .slice(0, connectsTo.lastIndexOf(":"))
+          .replace(/^\[(.*)\]$/, "$1")}`,
+      );
+      expect(result.output).toContain(
+        `✅ App (HTTPS) endpoint is up (https://${host}/status/ready at ${checkedAt})`,
+      );
+    },
+  );
+
+  test("it comes after the checks over plain HTTP and before the backend must hold ready, and none of those takes any certificate", () => {
+    const result = statusCheck({
+      config: httpsConfig(["ONEUPTIME_HTTP_PORT=127.0.0.1:8080"]),
+    });
+    const lines = result.output.split("\n");
+    const httpsLine = lines.findIndex((line) => {
+      return line.startsWith("✅ App (HTTPS) endpoint is up");
+    });
+
+    expect(result.status).toBe(0);
+    expect(httpsLine).toBeGreaterThan(
+      lines.findIndex((line) => {
+        return line.startsWith("✅ Status Page endpoint is up");
+      }),
+    );
+    expect(httpsLine).toBeLessThan(
+      lines.findIndex((line) => {
+        return line.startsWith("⏳ Confirming the backend stays ready");
+      }),
+    );
+    expect(result.output.indexOf("OneUptime is up!")).toBeGreaterThan(
+      result.output.indexOf("✅ App (HTTPS) endpoint is up"),
+    );
+    // The readiness loop asks over plain HTTP, as before.
+    expect(result.requests.length).toBe(ENDPOINTS.length + 1 + 5);
+    for (const argv of result.requests) {
+      if (!argv[argv.length - 1].startsWith("https://")) {
+        expect(argv).not.toContain("-k");
+        expect(requestOf(argv).host).toBe("localhost:8080");
+      }
+    }
+  });
+
+  test.each([
+    ["oneuptime.example.com:8443", "oneuptime.example.com"],
+    // nginx and the certificate's name are in lower case (run.sh's PRIMARY_DOMAIN).
+    ["OneUptime.Example.COM", "oneuptime.example.com"],
+    ["localhost", "localhost"],
+    ["status-01.internal", "status-01.internal"],
+  ])("HOST=%s is asked for as %s, without its port", (hostSetting, name) => {
+    const result = statusCheck({
+      config: configWith([`HOST=${hostSetting}`, "PROVISION_SSL=true"]),
+    });
+    const https = httpsRequestsOf(result);
+
+    expect(https).toHaveLength(1);
+    expect(requestOf(https[0]).host).toBe(name);
+    expect(optionOf(https[0], "--resolve")).toBe(`${name}:443:127.0.0.1`);
+  });
+
+  /*
+   * A client sends no name for an IP address, so the ingress answers it
+   * with the status pages' default server, which has no certificate for it;
+   * and Let's Encrypt certifies names alone, which Preflight says.
+   */
+  test.each([
+    "203.0.113.5",
+    "203.0.113.5:8443",
+    "[2001:db8::1]",
+    "[2001:db8::1]:8443",
+    "",
+  ])("HOST=%j, no name to ask for over TLS: not asked", (hostSetting) => {
+    const result = statusCheck({
+      config: configWith([`HOST=${hostSetting}`, "PROVISION_SSL=true"]),
+    });
+
+    expect(result.status).toBe(0);
+    expect(httpsRequestsOf(result)).toEqual([]);
+    expect(result.output).not.toContain("App (HTTPS)");
+  });
+
+  test("without HOST at all: not asked", () => {
+    const result = statusCheck({ config: configWith(["PROVISION_SSL=true"]) });
+
+    expect(httpsRequestsOf(result)).toEqual([]);
+  });
+
+  /*
+   * PROVISION_SSL as the app and the ingress's run.sh read it: "true" alone.
+   * Otherwise 7850 serves only status pages' and dashboards' certificates
+   * for their own domains, and nothing of OneUptime's is asked there.
+   */
+  test.each(["false", "", "TRUE", "True", "yes", "1", "on"])(
+    "PROVISION_SSL=%j: not asked",
+    (value) => {
+      const result = statusCheck({
+        config: configWith([
+          "HOST=oneuptime.example.com",
+          `PROVISION_SSL=${value}`,
+        ]),
+      });
+
+      expect(result.status).toBe(0);
+      expect(httpsRequestsOf(result)).toEqual([]);
+      for (const argv of result.requests) {
+        expect(argv).not.toContain("-k");
+      }
+    },
+  );
+
+  test.each(['"true"', "'true'", " true "])(
+    "PROVISION_SSL=%s, as config.env may write true: asked",
+    (value) => {
+      const result = statusCheck({
+        config: configWith([
+          "HOST=oneuptime.example.com",
+          `PROVISION_SSL=${value}`,
+        ]),
+      });
+
+      expect(httpsRequestsOf(result)).toHaveLength(1);
+    },
+  );
+
+  test("without config.env, the environment's settings are read, as for the ingress", () => {
+    const result = statusCheck({
+      config: null,
+      env: {
+        HOST: "oneuptime.example.com",
+        PROVISION_SSL: "true",
+        STATUS_PAGE_HTTPS_PORT: "127.0.0.1:8443",
+      },
+    });
+    const https = httpsRequestsOf(result);
+
+    expect(https).toHaveLength(1);
+    expect(requestOf(https[0]).connectsTo).toBe("127.0.0.1:8443");
+  });
+
+  describe("when HTTPS does not answer", () => {
+    const HTTPS_READY = "https://oneuptime.example.com:8443/status/ready";
+
+    test("nothing listening: four tries, then where it connected and the setting that publishes it there", () => {
+      const result = statusCheck({
+        config: httpsConfig(["STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443"]),
+        codeFor: { [HTTPS_READY]: "000" },
+        exitFor: { [HTTPS_READY]: 7 },
+      });
+
+      expect(result.status).toBe(1);
+      // A minute: the ingress answered over plain HTTP already, and its HTTPS starts with it.
+      expect(httpsRequestsOf(result)).toHaveLength(4);
+      expect(result.output).toContain(
+        `App (HTTPS) ${HTTPS_READY} at 127.0.0.1:8443 returned HTTP 000, retrying in 15 seconds.`,
+      );
+      expect(result.output).toContain(
+        "❌ Error: Maximum retries reached, App (HTTPS) still not returning HTTP 200.",
+      );
+      expect(result.output).toContain(
+        "   Nothing answered at 127.0.0.1:8443, where STATUS_PAGE_HTTPS_PORT in config.env publishes OneUptime's ingress.",
+      );
+      expect(result.output).not.toContain("ONEUPTIME_HTTP_PORT in config.env");
+      expect(result.output).not.toContain("OneUptime is up!");
+      // The backend's readiness is not asked after it: the check stopped.
+      expect(result.requests[result.requests.length - 1]).toEqual(
+        httpsRequestsOf(result)[3],
+      );
+    });
+
+    test("no TLS handshake for HOST: something answers there, but serves no HTTPS for it", () => {
+      const result = statusCheck({
+        config: httpsConfig(["STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443"]),
+        codeFor: { [HTTPS_READY]: "000" },
+        exitFor: { [HTTPS_READY]: 35 },
+      });
+
+      expect(result.status).toBe(1);
+      expect(result.output).toContain(
+        "   Something answers at 127.0.0.1:8443, where STATUS_PAGE_HTTPS_PORT in config.env publishes OneUptime's ingress, but it completed no TLS handshake for oneuptime.example.com. The ingress's log says why: npm run logs --services=ingress",
+      );
+      expect(result.output).not.toContain("Nothing answered at");
+      expect(result.output).not.toContain("OneUptime is up!");
+    });
+
+    test("an HTTP error over HTTPS is said as one, with where it asked", () => {
+      const result = statusCheck({
+        config: httpsConfig(["STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443"]),
+        codeFor: { [HTTPS_READY]: "502" },
+      });
+
+      expect(result.status).toBe(1);
+      expect(httpsRequestsOf(result)).toHaveLength(4);
+      expect(result.output).toContain(
+        `App (HTTPS) ${HTTPS_READY} at 127.0.0.1:8443 returned HTTP 502, retrying in 15 seconds.`,
+      );
+      expect(result.output).not.toContain("Nothing answered at");
+      expect(result.output).not.toContain("TLS handshake");
+    });
+
+    test("the checks over plain HTTP keep their five minutes", () => {
+      const result = statusCheck({
+        config: httpsConfig(["ONEUPTIME_HTTP_PORT=127.0.0.1:8080"]),
+        code: "000",
+      });
+
+      expect(result.status).toBe(1);
+      expect(result.requests).toHaveLength(20);
+      expect(httpsRequestsOf(result)).toEqual([]);
+      expect(result.output).toContain(
+        "Nothing answered at 127.0.0.1:8080, where ONEUPTIME_HTTP_PORT in config.env publishes OneUptime's ingress.",
+      );
+    });
+  });
+});
+
+describeWithCompose(
+  "as Compose publishes each form of STATUS_PAGE_HTTPS_PORT",
+  () => {
+    test.each(HTTPS_FORMS)(
+      "STATUS_PAGE_HTTPS_PORT=%s is published where the HTTPS check connects, %s",
+      (setting, connectsTo) => {
+        const value = readSettings(`STATUS_PAGE_HTTPS_PORT=${setting}\n`).get(
+          "STATUS_PAGE_HTTPS_PORT",
+        );
+        const published = renderCompose(["docker-compose.yml"], {
+          STATUS_PAGE_HTTPS_PORT: value,
+        }).services.ingress.ports.find((port) => {
+          return Number(port.target) === 7850;
+        });
+
+        expect(
+          `${reachedAt(published.host_ip || "", "127.0.0.1")}:${published.published}`,
+        ).toBe(connectsTo);
+      },
+    );
+  },
+);
+
+/*
+ * endpoint-status.sh on its own: how many times it asks, and when it takes
+ * any certificate.
+ */
+describe("endpoint-status.sh", () => {
+  const ENDPOINT_STATUS = path.join(
+    REPO_ROOT,
+    "Tests",
+    "Scripts",
+    "endpoint-status.sh",
+  );
+
+  // Runs it with `args`, the environment `env` adds and a curl answering `code`.
+  function endpointStatus(args, env, code) {
+    const directory = fs.mkdtempSync(
+      path.join(os.tmpdir(), "oneuptime-endpoint-status-"),
+    );
+    const calls = path.join(directory, "curl-calls.log");
+    const bin = path.join(directory, "bin");
+
+    try {
+      fs.mkdirSync(bin);
+      fs.writeFileSync(
+        path.join(bin, "curl"),
+        `#!/bin/sh\nprintf '%s\\037' "$@" >> "${calls}"\nprintf '\\n' >> "${calls}"\nprintf '%s' "${code}"\n`,
+        { mode: 0o755 },
+      );
+      fs.writeFileSync(path.join(bin, "sleep"), "#!/bin/sh\nexit 0\n", {
+        mode: 0o755,
+      });
+
+      const result = spawnSync("bash", [ENDPOINT_STATUS].concat(args), {
+        cwd: directory,
+        env: Object.assign(
+          { PATH: `${bin}${path.delimiter}${process.env.PATH}` },
+          env || {},
+        ),
+        encoding: "utf8",
+      });
+
+      return {
+        status: result.status,
+        output: `${result.stdout || ""}${result.stderr || ""}`,
+        requests: fs.existsSync(calls)
+          ? fs
+              .readFileSync(calls, "utf8")
+              .split("\n")
+              .filter(Boolean)
+              .map((line) => {
+                return line.split(ARGUMENT_SEPARATOR).slice(0, -1);
+              })
+          : [],
+      };
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  }
+
+  test.each([
+    [undefined, 20],
+    ["4", 4],
+    ["1", 1],
+    ["", 20],
+    ["four", 20],
+    ["-1", 20],
+  ])("ENDPOINT_STATUS_RETRIES=%j asks %i times", (retries, times) => {
+    const env =
+      retries === undefined ? {} : { ENDPOINT_STATUS_RETRIES: retries };
+    const result = endpointStatus(["App", "localhost/status"], env, "503");
+
+    expect(result.status).toBe(1);
+    expect(result.requests).toHaveLength(times);
+  });
+
+  test("an https address asked at an address of its own takes any certificate; asked as it is, it does not", () => {
+    const resolved = endpointStatus(
+      [
+        "App (HTTPS)",
+        "https://oneuptime.example.com/status/ready",
+        "oneuptime.example.com:443:127.0.0.1",
+        "127.0.0.1:443",
+        "STATUS_PAGE_HTTPS_PORT",
+      ],
+      {},
+      "200",
+    );
+    const asIs = endpointStatus(
+      ["App", "https://oneuptime.example.com/status/ready"],
+      {},
+      "200",
+    );
+    const http = endpointStatus(
+      [
+        "App",
+        "localhost:8080/status",
+        "localhost:8080:127.0.0.1",
+        "127.0.0.1:8080",
+      ],
+      {},
+      "200",
+    );
+
+    expect(resolved.requests[0]).toContain("-k");
+    expect(optionOf(resolved.requests[0], "--resolve")).toBe(
+      "oneuptime.example.com:443:127.0.0.1",
+    );
+    expect(asIs.requests[0]).not.toContain("-k");
+    expect(http.requests[0]).not.toContain("-k");
+    expect(resolved.output).toContain(
+      "✅ App (HTTPS) endpoint is up (https://oneuptime.example.com/status/ready at 127.0.0.1:443)",
+    );
+  });
+
+  test("without a setting named, the address is the one ONEUPTIME_HTTP_PORT publishes, as before", () => {
+    const result = endpointStatus(
+      ["App", "localhost:8080", "localhost:8080:127.0.0.1", "127.0.0.1:8080"],
+      { ENDPOINT_STATUS_RETRIES: "1" },
+      "000",
+    );
+
+    expect(result.output).toContain(
+      "Nothing answered at 127.0.0.1:8080, where ONEUPTIME_HTTP_PORT in config.env publishes OneUptime's ingress.",
+    );
   });
 });
 
@@ -447,6 +1278,43 @@ describe("when OneUptime does not answer", () => {
       "See what is running with npm run ps, and why something stopped with npm run logs.",
     );
     expect(result.output).not.toContain("OneUptime is up!");
+  });
+
+  test.each([
+    ["127.0.0.1:8080", "127.0.0.1:8080"],
+    ["[::1]:8443", "[::1]:8443"],
+    ["10.0.0.5:80", "10.0.0.5"],
+  ])(
+    "nothing listening at ONEUPTIME_HTTP_PORT=%s: it names the address it connected to, not localhost",
+    (setting, address) => {
+      const result = statusCheck({
+        config: configWith([`ONEUPTIME_HTTP_PORT=${setting}`]),
+        code: "000",
+      });
+
+      expect(result.status).toBe(1);
+      expect(result.requests).toHaveLength(20);
+      expect(result.output).toContain(
+        `Nothing answered at ${address}, where ONEUPTIME_HTTP_PORT in config.env publishes OneUptime's ingress.`,
+      );
+      expect(result.output).toContain(
+        `App ${result.calls[0]} at ${address} returned HTTP 000, retrying in 15 seconds.`,
+      );
+      expect(result.output).not.toContain("check that one");
+    },
+  );
+
+  test("an address on one address of the server that answers with an error says where it asked", () => {
+    const result = statusCheck({
+      config: configWith(["ONEUPTIME_HTTP_PORT=127.0.0.1:8080"]),
+      codeFor: { "/accounts": "404" },
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.output).toContain(
+      "Accounts localhost:8080/accounts at 127.0.0.1:8080 returned HTTP 404, retrying in 15 seconds.",
+    );
+    expect(result.output).not.toContain("Nothing answered at");
   });
 
   test("an endpoint that answers with an error is retried, and no hint about ports is given", () => {

@@ -167,6 +167,8 @@ const AS_WRITTEN: Readonly<Record<string, string>> = {
     "an alert template's incident title, criteria name and criteria description, stored on the monitor for an operator to edit (the summary and description the picker draws are held)",
   "packages/Common/UI/Utils/TableColumnsToCsv.ts":
     "a table's CSV export, a cell a spreadsheet reads as written",
+  "packages/Common/Utils/Host/HostLogSessionFile.ts":
+    "a log session's lines downloaded as the text `logcat -v threadtime` prints, OneUptime's own lines in it written as Logcat's dividers: a log file, read as written",
   "packages/Common/Server/Services/AIBillingService.ts":
     "a failed charge's line in the server's log (the owners' recharge email holds its amounts)",
   "packages/Common/Server/Services/NotificationService.ts":

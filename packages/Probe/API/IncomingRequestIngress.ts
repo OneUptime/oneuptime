@@ -18,6 +18,8 @@ import Express, {
   createExpressApp,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
+import RequestBodyJson from "Common/Server/Utils/RequestBodyJson";
+import { LARGE_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 import WebhookRequestBody from "Common/Server/Middleware/WebhookRequestBody";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
@@ -173,6 +175,32 @@ const keepSignedBodyBytes: (
   }
 };
 
+/*
+ * A JSON body, before it is parsed: counted against what OneUptime reads on
+ * an incoming request monitor's route (LARGE_REQUEST_BODY_LIMIT), as
+ * OneUptime counts it (#10183). The listener is reached before anything is
+ * checked, and JSON.parse made 17 million empty arrays of 50 MB of "[],";
+ * a body OneUptime would refuse is refused here, with 413, before it is.
+ */
+const countJsonAndKeepSignedBodyBytes: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  buf: Buffer,
+  encoding?: string,
+) => void = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  buf: Buffer,
+  encoding?: string,
+): void => {
+  if (!RequestBodyJson.isUtf8(encoding)) {
+    throw RequestBodyJson.createCharsetUnsupportedError(encoding || "");
+  }
+
+  RequestBodyJson.assertWithinLimit(buf, LARGE_REQUEST_BODY_LIMIT);
+  keepSignedBodyBytes(req, res, buf);
+};
+
 const isSignedRequest: (req: ExpressRequest) => boolean = (
   req: ExpressRequest,
 ): boolean => {
@@ -320,7 +348,10 @@ router.get("/heartbeat/:secretkey", forwardToOneUptime);
 export function createIngressApp(): ExpressApplication {
   const app: ExpressApplication = createExpressApp();
   app.use(
-    ExpressJson({ limit: INGRESS_BODY_LIMIT, verify: keepSignedBodyBytes }),
+    ExpressJson({
+      limit: INGRESS_BODY_LIMIT,
+      verify: countJsonAndKeepSignedBodyBytes,
+    }),
   );
   app.use(
     ExpressUrlEncoded({

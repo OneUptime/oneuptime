@@ -7,6 +7,8 @@ L'inventaire est une liste unique de tout ce que OneUptime sait de votre parc : 
 - [S'y retrouver](#sy-retrouver): Les pages de l'inventaire et les pages propres à chaque élément.
 - [Importer des appareils depuis Esper](#importer-des-appareils-depuis-esper): Chaque appareil Android et Apple qu'enrôle votre tenant Esper, tenu à jour.
 - [Importer des appareils depuis Microsoft Intune](#importer-des-appareils-depuis-microsoft-intune): Chaque PC Windows, Mac, iPhone, iPad et appareil Android géré par Intune, tenu à jour.
+- [Importer des appareils depuis Workspace ONE UEM](#importer-des-appareils-depuis-workspace-one-uem): Chaque téléphone, tablette et ordinateur géré par Workspace ONE, tenu à jour.
+- [Importer des appareils depuis SOTI MobiControl](#importer-des-appareils-depuis-soti-mobicontrol): Chaque appareil durci, téléphone, tablette et ordinateur géré par MobiControl, tenu à jour.
 - [Ajouter quelque chose à la main](#ajouter-quelque-chose-à-la-main): Une API tierce, une base de données externe ou une appliance.
 - [Archiver plutôt que supprimer](#archiver-plutôt-que-supprimer): La façon de ranger la liste qui tient dans le temps.
 :::
@@ -27,14 +29,14 @@ flowchart TB
 | Source | Dans l'API | D'où elle vient | Combien de temps elle reste |
 | --- | --- | --- | --- |
 | **Découvert** | `discovered` | Les attributs de ressource OpenTelemetry, lus à l'arrivée de la télémétrie : un service, un hôte, un objet Kubernetes ou une machine virtuelle qui envoie de la télémétrie. | Réenregistré à chaque lot. Retiré une fois resté silencieux plus longtemps que la fenêtre de son type (voir plus bas). |
-| **Répliqué** | `inventory` | Un enregistrement qu'une sonde de OneUptime tient à jour : équipements réseau, ressources cloud, appareils IoT, fonctions serverless, applications RUM, hôtes Docker, hôtes Podman et les appareils qu'importe une connexion Esper ou Microsoft Intune. Copié toutes les 15 minutes, et un appareil Esper chaque fois que sa connexion est lue. | Aussi longtemps que son enregistrement. Supprimez l'enregistrement, et l'élément part avec lui. |
+| **Répliqué** | `inventory` | Un enregistrement qu'une sonde de OneUptime tient à jour : équipements réseau, ressources cloud, appareils IoT, fonctions serverless, applications RUM, hôtes Docker, hôtes Podman et les appareils qu'importe une connexion à un gestionnaire d'appareils. Copié toutes les 15 minutes, et un appareil géré chaque fois que sa connexion est lue. | Aussi longtemps que son enregistrement. Supprimez l'enregistrement, et l'élément part avec lui. |
 | **Ajouté par vous** | `manual` | Ajouté par vous, pour quelque chose que OneUptime ne peut pas voir : une API tierce, une base de données gérée par un fournisseur, une appliance dans une baie. | Jusqu'à ce que vous le supprimiez. Rien ne le fait expirer. |
 
 Un élément découvert ou répliqué ne peut pas être renommé ni changer de type : sa source écraserait la modification à son prochain passage. La page **Paramètres** de l'élément indique où faire plutôt une modification durable. Ce que vous pouvez toujours ajouter à n'importe quel élément, quelle que soit sa source, ce sont des valeurs de champs personnalisés : voir [Champs personnalisés de l'inventaire](/docs/inventory/custom-fields).
 
 ### Combien de temps reste un élément silencieux
 
-Un élément découvert a un battement de cœur. Chaque fois que de la télémétrie arrive pour lui, son heure de dernière observation avance, et la colonne **Statut** de la liste indique à quel point elle est récente. Il en va de même d'un appareil venu d'Esper ou d'Intune : chaque fois qu'il contacte son gestionnaire d'appareils. Les autres éléments répliqués et ceux que vous avez ajoutés n'ont pas de battement de cœur, donc leur statut reste vide plutôt que d'alarmer.
+Un élément découvert a un battement de cœur. Chaque fois que de la télémétrie arrive pour lui, son heure de dernière observation avance, et la colonne **Statut** de la liste indique à quel point elle est récente. Il en va de même d'un appareil géré : chaque fois qu'il contacte son gestionnaire d'appareils. Les autres éléments répliqués et ceux que vous avez ajoutés n'ont pas de battement de cœur, donc leur statut reste vide plutôt que d'alarmer.
 
 | Statut | Ce que cela signifie |
 | --- | --- |
@@ -60,9 +62,9 @@ Ouvrez **Produits → Ressources → Inventaire**. Son menu latéral contient ce
 | --- | --- |
 | **Vue d'ensemble** | Combien d'éléments vous avez, ce qu'ils sont, combien sont devenus silencieux, et ce qui a été ajouté le plus récemment. |
 | **Tous les éléments** | Chaque élément. Cherchez par nom, description ou clé d'identité, filtrez la liste par type, source, statut ou champ personnalisé, et ajoutez un élément à la main. |
-| **Appareils gérés** | Vos connexions Esper et Microsoft Intune, et chaque appareil qu'elles importent, avec son statut, son groupe, son modèle et son système d'exploitation. |
+| **Appareils gérés** | Vos connexions à des gestionnaires d'appareils (Esper, Microsoft Intune, Workspace ONE UEM et SOTI MobiControl), et chaque appareil qu'elles importent, avec son statut, son groupe, son modèle et son système d'exploitation. |
 | **Carte de topologie** | Comment les éléments sont reliés : les services, ce qu'ils appellent, et les hôtes, pods et équipements sur lesquels ils tournent. |
-| **Devenu silencieux** | Les éléments dont on n'a pas eu de nouvelles depuis plus d'une journée : les éléments découverts qui n'ont pas envoyé de télémétrie, et les appareils qui ont cessé de contacter Esper. |
+| **Devenu silencieux** | Les éléments dont on n'a pas eu de nouvelles depuis plus d'une journée : les éléments découverts qui n'ont pas envoyé de télémétrie, et les appareils qui ont cessé de contacter leur gestionnaire d'appareils. |
 | **Par source** | Les éléments d'une source : **Découvert**, **Répliqué** ou **Ajouté par vous**. |
 | **Paramètres → Champs personnalisés** | Les champs que votre projet tient sur chaque élément. |
 | **Aide → Documentation** | Un court guide de l'inventaire, avec les types d'éléments qu'il reconnaît. |
@@ -72,13 +74,13 @@ Ouvrez un élément : son propre menu latéral contient sa **Vue d'ensemble** (s
 
 ### Détails de l'actif
 
-Un hôte ou un équipement réseau a une carte **Détails de l’actif** qui décrit les deux de la même façon : nom d'hôte, adresse IP, adresse MAC, numéro de série, fabricant, modèle, version du firmware, système d'exploitation, version du système d'exploitation, type d'appareil et emplacement. La carte d'un appareil Android indique aussi son niveau de correctif de sécurité, fourni par l'Agent Android ou par Esper. Un fait que rien n'a signalé indique **Inconnu**, et la carte explique pourquoi c'est le cas et comment les inconnus se remplissent : un équipement qui ne les signale pas par SNMP, un équipement pas encore lu, ou un équipement Meraki dont le tableau de bord les détient.
+Un hôte ou un équipement réseau a une carte **Détails de l’actif** qui décrit les deux de la même façon : nom d'hôte, adresse IP, adresse MAC, numéro de série, fabricant, modèle, version du firmware, système d'exploitation, version du système d'exploitation, type d'appareil et emplacement. La carte d'un appareil Android indique aussi son niveau de correctif de sécurité, fourni par l'Agent Android ou par son gestionnaire d'appareils. Elle indique aussi si le correctif est **Pas à jour**, comme la colonne **Niveau du correctif de sécurité**, et depuis combien de jours il date. Un fait que rien n'a signalé indique **Inconnu**, et la carte explique pourquoi c'est le cas et comment les inconnus se remplissent : un équipement qui ne les signale pas par SNMP, un équipement pas encore lu, ou un équipement Meraki dont le tableau de bord les détient.
 
 - Les faits d'un hôte viennent des attributs de ressource de sa télémétrie : ses adresses IP et MAC, son architecture et son système d'exploitation d'emblée, et son numéro de série, sa marque, son modèle et son firmware une fois que vous les y apposez.
 - Les faits d'un équipement réseau viennent de son interrogation SNMP, de son rôle et de son site. Ce que son interrogation n'a pas lu vient de la découverte : la dernière analyse de son adresse, la table ARP d'un routeur ou la résolution DNS de sa sonde. Un équipement sans ENTITY-MIB, comme un Meraki MX, obtient tout de même sa marque, son modèle et son système d'exploitation à partir de sa description système, et son adresse MAC à partir de ses propres ports. Son adresse IP n'est jamais affichée comme son nom d'hôte.
 - Un équipement Meraki prend aussi dans le tableau de bord Meraki ce que son interrogation laisse vide, dont son numéro de série, son modèle et son firmware, quand une [connexion Meraki](/docs/monitor/network-traffic#cisco-meraki-sans-netflow) lit son organisation.
 
-**Tous les éléments** permet de trouver les appareils Android sur lesquels agir. Son filtre **Niveau du correctif de sécurité** liste les appareils **Pas à jour**, dont le niveau de correctif de sécurité date de plus de 90 jours, selon la règle qu'applique l'alerte Security Patch Out of Date du [moniteur d'hôte](/docs/monitor/host-monitor). Son filtre **Autorisations de l'agent** liste les appareils sur lesquels il manque encore à l'[Agent Android](/docs/telemetry/android-agent) READ_LOGS, READ_DROPBOX_DATA ou l'accès aux données d'utilisation. Chacun a une colonne du même nom, masquée jusqu'à ce que vous l'activiez, et l'export CSV la reprend.
+**Tous les éléments** permet de trouver les appareils Android sur lesquels agir. Son filtre **Niveau du correctif de sécurité** liste les appareils **Pas à jour**, dont le niveau de correctif de sécurité date de plus de 90 jours, selon la règle qu'applique l'alerte Security Patch Out of Date du [moniteur d'hôte](/docs/monitor/host-monitor). Son filtre **Autorisations de l'agent** liste les appareils sur lesquels il manque encore à l'[Agent Android](/docs/telemetry/android-agent) READ_LOGS, READ_DROPBOX_DATA ou l'accès aux données d'utilisation. Chacun a une colonne du même nom, masquée jusqu'à ce que vous l'activiez, et l'export CSV la reprend. À côté, la colonne **ID dans le gestionnaire d'appareils** contient l'ID sous lequel le gestionnaire d'appareils connaît un appareil, comme l'ID Esper qu'attend `espercli secureadb connect --device`.
 
 La carte indique d'où vient chaque fait et quand. La source que partagent la plupart des faits, comme le collecteur d'un hôte, la propre interrogation SNMP d'un équipement réseau ou l'analyse de découverte qui l'a lu, est nommée une seule fois, sous les faits. Toute autre source, comme la table ARP d'un routeur ou une valeur enregistrée sur l'équipement, est nommée sous son fait. Une valeur enregistrée sur un équipement réseau n'est jamais remplacée par ce que lit la découverte, et quand les deux diffèrent, la carte montre les deux.
 
@@ -113,6 +115,7 @@ Allez dans **Produits → Ressources → Inventaire**, puis **Appareils gérés*
 | Modèle, fabricant, numéro de série, système d'exploitation et sa version, build, et adresses IP et MAC | La carte **Détails de l’actif** de l'appareil, et les colonnes de **Tous les éléments** |
 | Statut, dernier contact, groupe, niveau de correctif de sécurité, IMEI, batterie, stockage et agent Esper | La carte **Esper** de l'appareil, et la liste **Appareils** de la page **Appareils gérés** |
 | Les applications et leurs versions | La liste **Applications installées** de l'appareil |
+| Son ID d'appareil Esper | La colonne **ID dans le gestionnaire d'appareils** de **Tous les éléments** |
 
 ### Un appareil, pas deux
 
@@ -136,6 +139,8 @@ Un appareil retiré d'Esper est marqué **Retiré**, et son élément est archiv
 Dans **Appareils gérés**, cliquez sur **Configurer des alertes** sur la ligne de la connexion, et créez **Esper Android Device Stopped Checking In** et **Esper Apple Device Stopped Checking In**. Le premier ouvre une alerte pour chaque appareil Android qui n'a pas contacté Esper depuis plus d'une heure, le second pour chaque appareil Apple après plus d'une journée, chacune au nom de l'appareil et résolue dès qu'il se manifeste à nouveau.
 
 Chaque lecture de la connexion enregistre il y a combien de minutes chaque appareil a contacté Esper pour la dernière fois, sous la forme de la métrique `oneuptime.managed_device.check_in.age`, et le moniteur vérifie la dernière valeur de chaque appareil toutes les 5 minutes. Un appareil qui exécute aussi l'Agent Android est laissé à **Host Stopped Reporting**, si bien qu'il n'alerte jamais deux fois, et un appareil retiré d'Esper résout son alerte. Une lecture qui échoue n'enregistre rien, si bien qu'aucune alerte ne s'ouvre ni ne se résout avant la suivante. Pour une flotte éteinte la nuit, relevez le seuil du moniteur.
+
+Créez aussi **Esper Security Patch Out of Date** : chaque appareil Android dont le niveau de correctif de sécurité, selon Esper, date de plus de 90 jours ouvre sa propre alerte, résolue une fois l'appareil mis à jour. Chaque lecture enregistre depuis combien de jours date le niveau de correctif de chaque appareil Android, sous la forme de la métrique `oneuptime.managed_device.security_patch.age`. Un appareil qui exécute l'Agent Android est laissé au **Security Patch Out of Date** de son hôte, si bien qu'il n'alerte jamais deux fois.
 
 ## Importer des appareils depuis Microsoft Intune
 
@@ -163,7 +168,57 @@ Un appareil contacte Intune environ toutes les huit heures, et son dernier conta
 
 Intune nomme un appareil comme son propriétaire l'a appelé, donc deux appareils peuvent porter le même nom : chaque iPhone que personne n'a renommé s'appelle `iPhone`. Un nom que portent deux appareils d'une connexion n'appartient à aucun des deux dans l'inventaire : chacun est nommé par son numéro de série à la place, et reprend son nom dès qu'aucun autre appareil ne le porte.
 
-Pour recevoir une alerte quand un appareil cesse de contacter Intune, cliquez sur **Configurer des alertes** sur la ligne de la connexion et créez **Intune Device Stopped Checking In**. Il ouvre une alerte pour chaque appareil qui n'a pas contacté Intune depuis plus d'une journée, au nom de l'appareil. Un ordinateur portable éteint pendant un week-end se lit de la même façon : relevez le seuil du moniteur si une journée est trop courte pour les vôtres.
+Pour recevoir une alerte quand un appareil cesse de contacter Intune, cliquez sur **Configurer des alertes** sur la ligne de la connexion et créez **Intune Device Stopped Checking In**. Il ouvre une alerte pour chaque appareil qui n'a pas contacté Intune depuis plus d'une journée, au nom de l'appareil. Un ordinateur portable éteint pendant un week-end se lit de la même façon : relevez le seuil du moniteur si une journée est trop courte pour les vôtres. **Intune Security Patch Out of Date** alerte pour chaque appareil Android dont le niveau de correctif de sécurité date de plus de 90 jours, comme le modèle d'Esper.
+
+## Importer des appareils depuis Workspace ONE UEM
+
+Connectez un serveur Workspace ONE UEM, et chaque appareil qu'il gère figure dans l'inventaire : ses iPhone, iPad, Mac, PC Windows, appareils Android et machines Linux. Chaque appareil est un hôte, avec ce que Workspace ONE sait de lui : son groupe organisationnel, son système d'exploitation et sa version, son modèle, son numéro de série et son IMEI, sa conformité, son inscription et son type de propriété, sa batterie, son stockage et sa mémoire, et ses applications. Workspace ONE n'envoie rien de lui-même, donc OneUptime le lit selon une planification : les appareils toutes les 15 minutes, et les applications de chaque appareil toutes les 6 heures.
+
+:::steps
+### Créer un rôle en lecture seule
+
+Dans la console Workspace ONE UEM, allez dans `Accounts`, puis `Administrators`, puis `Roles`, et cliquez sur `Add Role`. Sous `API`, puis `REST`, sélectionnez `Read` pour `Devices` et pour `Apps`, et rien d'autre. Ce rôle suffit à OneUptime : il liste les appareils et leurs applications, et ne peut rien modifier.
+
+### Créer un client OAuth
+
+Allez dans `Groups & Settings`, puis `Configurations`, puis `OAuth Client Management`, et cliquez sur `Add`. Choisissez le groupe organisationnel dont OneUptime lit les appareils, et donnez au client le rôle que vous avez créé. Copiez son `Client ID` et son `Client Secret` : Workspace ONE n'affiche le secret qu'une fois.
+
+### Connecter le serveur
+
+Allez dans **Produits → Ressources → Inventaire**, puis **Appareils gérés**, cliquez sur **Connecter un gestionnaire d'appareils**, et choisissez **Workspace ONE UEM**. Saisissez l'**URL de l'API REST**, qu'affiche `Groups & Settings`, `All Settings`, `System`, `Advanced`, `API`, `REST API`, par exemple `https://as1234.awmdm.com`. Gardez **Client OAuth** sous **Se connecter avec**, saisissez l'**ID client** et le **Secret client**, et choisissez la **Région** du service de jetons de votre centre de données. **Connecter** teste le client avant d'enregistrer quoi que ce soit : il indique combien d'appareils une lecture importera, ou ce qui ne va pas et comment le corriger.
+:::
+
+Un serveur Workspace ONE sur site n'a pas de service de jetons : choisissez **Compte administrateur** sous **Se connecter avec**, et saisissez le **Nom d'utilisateur** et le **Mot de passe** d'un administrateur doté du rôle en lecture seule, ainsi que la **Clé API REST** issue des mêmes paramètres REST API, où l'authentification de base doit être autorisée. OneUptime Cloud ne lit que les serveurs sur l'internet public : un serveur sur un réseau privé est donc lu par un OneUptime auto-hébergé.
+
+Un appareil contacte Workspace ONE à son propre rythme, un iPhone à plusieurs heures d'intervalle, donc un appareil qui ne l'a pas fait depuis une journée est **Hors ligne**. Un appareil qui n'est plus inscrit est laissé de côté. Un appareil est nommé par le nom qu'il déclare, pas par son nom convivial, que Workspace ONE compose à partir du nom de son utilisateur, et rien n'est lu sur l'utilisateur d'un appareil. Chaque requête compte dans le quota d'API quotidien du tenant, donc une lecture lit les applications d'au plus 25 appareils, et la lecture suivante celles des suivants.
+
+Une application ou l'Agent Android qui envoie de la télémétrie depuis un appareil ne forme qu'un seul élément avec lui, grâce au numéro de série de l'appareil : définissez le paramètre `device_serial` de l'Agent Android sur la valeur de recherche `{DeviceSerialNumber}` dans sa configuration gérée.
+
+Pour recevoir une alerte quand un appareil cesse de contacter Workspace ONE, cliquez sur **Configurer des alertes** sur la ligne de la connexion et créez **Workspace ONE Device Stopped Checking In**. Il ouvre une alerte pour chaque appareil qui n'a pas contacté Workspace ONE depuis plus d'une journée, au nom de l'appareil. **Workspace ONE Security Patch Out of Date** alerte pour chaque appareil Android dont le niveau de correctif de sécurité date de plus de 90 jours, comme le modèle d'Esper.
+
+## Importer des appareils depuis SOTI MobiControl
+
+Connectez un serveur SOTI MobiControl, dans le cloud de SOTI ou sur site, et chaque appareil qu'il gère figure dans l'inventaire : ses appareils Android durcis, téléphones, tablettes et scanners, ses iPhone, iPad et Mac, et ses ordinateurs Windows et Linux. Chaque appareil est un hôte, avec ce que MobiControl sait de lui : son groupe d'appareils, son système d'exploitation et sa version, son modèle, son numéro de série et son IMEI, sa conformité, son agent, sa batterie, son stockage et sa mémoire, et ses applications installées. MobiControl n'envoie rien de lui-même, donc OneUptime le lit selon une planification : les appareils toutes les 15 minutes, et les applications de chaque appareil toutes les 6 heures.
+
+:::steps
+### Créer un utilisateur MobiControl en lecture seule
+
+Dans la console web MobiControl, ajoutez un utilisateur propre à MobiControl, pas un utilisateur SOTI Identity. Autorisez `Web Console Access` et `View Installed Applications` dans ses autorisations générales et rien d'autre, et donnez-lui `View Groups` sur les groupes d'appareils que lit OneUptime. Cet utilisateur suffit à OneUptime : il peut voir les appareils et leurs applications, et ne peut rien modifier.
+
+### Créer un client API
+
+Dans la console web, allez dans `Global Settings`, puis `Services`, puis `API Client`, et ajoutez-en un. Copiez son `Client ID` et son `Client Secret` : MobiControl n'affiche le secret qu'une fois. Sur un serveur antérieur à MobiControl 2024.0, créez-le sur le serveur lui-même avec `MCAdmin.exe APIClientAdd -n:OneUptime`.
+
+### Connecter le serveur MobiControl
+
+Allez dans **Produits → Ressources → Inventaire**, puis **Appareils gérés**, cliquez sur **Connecter un gestionnaire d'appareils**, et choisissez **SOTI MobiControl**. Saisissez le **Serveur**, l'adresse de votre console web sans `/MobiControl`, par exemple `https://acme.mobicontrolcloud.com`, puis l'**ID client** et le **Secret client** du client API, puis le **Nom d'utilisateur** et le **Mot de passe** de l'utilisateur. **Connecter** teste la connexion avant d'enregistrer quoi que ce soit : il indique combien d'appareils une lecture importera, ou ce qui ne va pas et comment le corriger.
+:::
+
+Un agent MobiControl garde une connexion permanente avec son serveur, donc un appareil dont l'agent est connecté est en ligne, et un appareil dont l'agent n'est plus connecté depuis 30 minutes est **Hors ligne**. Un iPhone, un iPad ou un Mac se manifeste via le service push d'Apple, à plusieurs heures d'intervalle, et est **Hors ligne** après une journée. Un appareil qu'un administrateur a désactivé est **Désactivé**, et un appareil en cours de désinscription est laissé de côté. OneUptime Cloud ne lit que les serveurs sur l'internet public : un serveur sur un réseau privé est donc lu par un OneUptime auto-hébergé. Rien n'est lu sur l'utilisateur d'un appareil.
+
+Une application ou l'Agent Android qui envoie de la télémétrie depuis un appareil ne forme qu'un seul élément avec lui, grâce au numéro de série de l'appareil : définissez le paramètre `device_serial` de l'Agent Android sur la macro `%SERIALNUM%` dans sa configuration gérée.
+
+Pour recevoir une alerte quand un appareil cesse de se manifester, cliquez sur **Configurer des alertes** sur la ligne de la connexion et créez **SOTI Device Stopped Checking In** et **SOTI Apple Device Stopped Checking In**. Le premier ouvre une alerte pour chaque appareil Android, Windows ou Linux dont l'agent n'est plus connecté depuis plus d'une heure, le second pour chaque appareil Apple qui ne s'est pas manifesté depuis plus d'une journée, chacune au nom de l'appareil. **SOTI Security Patch Out of Date** alerte pour chaque appareil Android dont le niveau de correctif de sécurité date de plus de 90 jours, comme le modèle d'Esper.
 
 ## Ajouter quelque chose à la main
 
