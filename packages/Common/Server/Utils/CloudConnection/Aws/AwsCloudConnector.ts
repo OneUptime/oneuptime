@@ -132,6 +132,7 @@ import {
 import {
   AWS_UNIT_PROBES_PER_READ,
   AwsUnitProbe,
+  AwsUnitProbeAddition,
   buildAwsUnitProbeQueries,
   isAwsUnitProbeResult,
   planAwsUnitProbes,
@@ -276,8 +277,8 @@ export function toAwsAddedKeyMetric(
 function getAwsUnitProbeAdditions(data: {
   series: ReadonlyArray<AwsSeries>;
   added: ReadonlyArray<CloudAddedMetric>;
-}): Parameters<typeof planAwsUnitProbes>[0]["additions"] {
-  const additions: Parameters<typeof planAwsUnitProbes>[0]["additions"] = [];
+}): Array<AwsUnitProbeAddition> {
+  const additions: Array<AwsUnitProbeAddition> = [];
 
   data.series.forEach((item: AwsSeries, index: number) => {
     if (!item.isAdded || !item.addedKey) {

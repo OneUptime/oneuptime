@@ -93,22 +93,26 @@ export function getAwsLearnedUnit(data: {
   );
 }
 
+// An addition one call reads, as a probe of its unit asks it: a series of it.
+export interface AwsUnitProbeAddition {
+  key: string;
+  // The call's query of the series.
+  queryId: string;
+  // The unit it is believed to have without a probe: kept or documented, "" for none.
+  believedUnit: string;
+  namespace: string;
+  metricName: string;
+  dimensions: Array<AwsMetricDimension>;
+}
+
 /*
  * Which additions read in one call have their unit asked this read, and
  * how: in the order they are read, each once, within `probesLeft` and the
  * queries the call has `room` for.
  */
 export function planAwsUnitProbes(data: {
-  // Each addition read in the call, its first series: its key and query.
-  additions: ReadonlyArray<{
-    key: string;
-    queryId: string;
-    // The unit it is believed to have without a probe: kept or documented, "" for none.
-    believedUnit: string;
-    namespace: string;
-    metricName: string;
-    dimensions: Array<AwsMetricDimension>;
-  }>;
+  // Each addition read in the call, its first series first.
+  additions: ReadonlyArray<AwsUnitProbeAddition>;
   units: Readonly<Record<string, AwsAddedMetricUnitState>>;
   now: Date;
   room: number;
