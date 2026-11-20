@@ -20,7 +20,10 @@ import {
   getNameTakenRefusalText,
   normalizeName,
 } from "../../../Types/Database/UniqueName";
-import { ARCHIVED_COLUMN, isArchivedValue } from "../../../Utils/ArchivableValues";
+import {
+  ARCHIVED_COLUMN,
+  isArchivedValue,
+} from "../../../Utils/ArchivableValues";
 
 /*
  * A NAME ONE OF ITS KIND IN ITS PROJECT, ON A CREATE AND ON A RENAME
@@ -302,8 +305,9 @@ export default class UniqueNameInProject {
      * Whether the other record is archived is read of every kind that can
      * be, for the refusal's code (below).
      */
-    const isArchivable: boolean =
-      data.rules.service.getModel().hasColumn(ARCHIVED_COLUMN);
+    const isArchivable: boolean = data.rules.service
+      .getModel()
+      .hasColumn(ARCHIVED_COLUMN);
 
     const clash: TBaseModel | null = await data.rules.service.findOneBy({
       query: query as unknown as Query<TBaseModel>,
