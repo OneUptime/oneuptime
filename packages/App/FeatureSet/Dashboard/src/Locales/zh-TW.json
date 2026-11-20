@@ -58388,7 +58388,6 @@
   "No disk reading for this node yet. The Kubernetes agent's collector on each node reports it with the node's CPU and memory.": "此節點還沒有磁碟讀數。Kubernetes 代理程式在每個節點上的收集器會與節點的 CPU 和記憶體一併回報。",
   "No free inodes": "無可用 inode",
   "Node Filesystem Capacity": "節點檔案系統容量",
-  "On a node whose container images have a disk of their own, how much of that disk is used. When it fills, new images stop pulling: the kubelet removes unused images from 85% full and evicts pods when less than 15% is free.": "在容器映像有專用磁碟的節點上，該磁碟已用多少。磁碟寫滿後將無法再拉取新映像：占用 85% 起，kubelet 會刪除未使用的映像；可用空間低於 15% 時，會逐出 Pod。",
   "Pods' logs, emptyDir volumes and the kubelet's own files. The kubelet evicts pods when it runs low.": "Pod 的日誌、emptyDir 磁碟區和 kubelet 自身的檔案。空間不足時，kubelet 會逐出 Pod。",
   "Root filesystem": "根檔案系統",
   "The size of node {{nodeName}}'s root filesystem, and how much of it is still free to write.": "節點 {{nodeName}} 的根檔案系統大小，以及其中仍可寫入的空間。",
@@ -59008,7 +59007,6 @@
   "The OSD that holds their first copy has stopped reporting them.": "The OSD that holds their first copy has stopped reporting them.",
   "The size of the filesystem a container writes its own files to, in bytes, as the kubelet measures it: on most nodes, the disk the node keeps its container images on. Used is this minus Container Filesystem Available.": "kubelet 量測的、容器寫入自身檔案的檔案系統大小（位元組）：在大多數節點上，就是節點存放容器映像的磁碟。已用量為此值減去「容器檔案系統可用空間」。",
   "The size of the node's root filesystem, in bytes, as the kubelet measures it. Used is this minus Node Filesystem Available; by default the kubelet starts evicting pods when less than 10% of it is free, or 15% when it also holds the node's container images.": "kubelet 量測的節點根檔案系統大小（位元組）。已用量為此值減去「節點檔案系統可用空間」；預設情況下，可用空間低於 10% 時 kubelet 開始逐出 Pod，若它還存放節點的容器映像，則低於 15% 時開始。",
-  "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full and red from 90%; by default the kubelet starts evicting pods at 90%, or at 85% when this disk also holds the container images.": "依 kubelet 最近一次的量測，此節點根檔案系統已用多少：包括其 Pod 的日誌、emptyDir 磁碟區，以及容器映像（除非映像有專用磁碟）。占用 80% 起顯示為琥珀色，90% 起顯示為紅色；kubelet 預設在 90% 時開始逐出 Pod，若此磁碟還存放容器映像，則在 85% 時開始。",
   "View container": "View container",
   "Why region {{name}} is Degraded": "Why region {{name}} is Degraded",
   "Why region {{name}} is Unhealthy": "Why region {{name}} is Unhealthy",
@@ -59151,5 +59149,10 @@
   "It can show on its status pages at once.": "可能會立即顯示在其狀態頁面上。",
   "It can show on its status pages from {{time}}.": "可能從 {{time}} 起顯示在其狀態頁面上。",
   "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "只有這些狀態頁面可以顯示以此範本建立的維護事件或通知其訂閱者。未選擇任何頁面時，不會顯示在任何狀態頁面上。",
-  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "只有這些狀態頁面可以顯示此維護事件或通知其訂閱者。與事件不同，未選擇任何頁面的維護事件不會顯示在任何狀態頁面上。"
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "只有這些狀態頁面可以顯示此維護事件或通知其訂閱者。與事件不同，未選擇任何頁面的維護事件不會顯示在任何狀態頁面上。",
+  "A kubelet older than Kubernetes 1.33 lets the agent read its node's pods only through nodes/proxy. Once every node runs 1.33 or later, add {{setting}} to the configuration values of the agent's Amazon EKS add-on.": "早於 Kubernetes 1.33 的 kubelet 只允許代理程式透過 nodes/proxy 讀取其節點上的 Pod。待所有節點都執行 1.33 或更新版本後，請將 {{setting}} 新增至代理程式的 Amazon EKS 附加元件的設定值中。",
+  "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full, red from 85%, where the kubelet starts evicting pods by default, or from 90% when the images have a disk of their own.": "依 kubelet 最近一次的量測，此節點根檔案系統已用多少：包括其 Pod 的日誌、emptyDir 磁碟區，以及容器映像（除非映像有專用磁碟）。占用 80% 起顯示為琥珀色，85% 起顯示為紅色，kubelet 預設從這裡開始逐出 Pod；若映像有專用磁碟，則 90% 起顯示為紅色。",
+  "On a node whose container images have a disk of their own, how much of that disk is used. Amber from 80% full and red from 85%, where the kubelet by default removes unused images and evicts pods; once it fills, new images stop pulling.": "在容器映像有專用磁碟的節點上，該磁碟已用多少。占用 80% 起顯示為琥珀色，85% 起顯示為紅色，kubelet 預設從這裡開始刪除未使用的映像並逐出 Pod；磁碟寫滿後將無法再拉取新映像。",
+  "The agent's cost Prometheus reads each node's cAdvisor through the API server, as EKS Fargate needs. Only turning cost off drops nodes/proxy here: add {{setting}} to the configuration values of the agent's Amazon EKS add-on.": "代理程式用於成本的 Prometheus 依 EKS Fargate 的需要，透過 API 伺服器讀取每個節點的 cAdvisor。在這裡只有關閉成本功能才能移除 nodes/proxy：請將 {{setting}} 新增至代理程式的 Amazon EKS 附加元件的設定值中。",
+  "At least one node of this cluster keeps its container images on a disk of its own, so the recommendations below include an alert on that disk.": "此叢集至少有一個節點將容器映像存放在專用磁碟上，因此下方的建議包含一則針對該磁碟的警示。"
 }

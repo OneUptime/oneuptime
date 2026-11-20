@@ -58388,7 +58388,6 @@
   "No disk reading for this node yet. The Kubernetes agent's collector on each node reports it with the node's CPU and memory.": "このノードのディスクの測定値はまだありません。各ノード上の Kubernetes エージェントのコレクターが、ノードの CPU、メモリとあわせて報告します。",
   "No free inodes": "空き inode なし",
   "Node Filesystem Capacity": "ノードファイルシステム容量",
-  "On a node whose container images have a disk of their own, how much of that disk is used. When it fills, new images stop pulling: the kubelet removes unused images from 85% full and evicts pods when less than 15% is free.": "コンテナイメージ専用のディスクがあるノードで、そのディスクの使用量です。いっぱいになると新しいイメージを取得できなくなります。kubelet は 85% 以上で未使用のイメージを削除し、空きが 15% を下回ると Pod を退避させます。",
   "Pods' logs, emptyDir volumes and the kubelet's own files. The kubelet evicts pods when it runs low.": "Pod のログ、emptyDir ボリューム、kubelet 自身のファイル。空きが少なくなると、kubelet は Pod を退避させます。",
   "Root filesystem": "ルートファイルシステム",
   "The size of node {{nodeName}}'s root filesystem, and how much of it is still free to write.": "ノード {{nodeName}} のルートファイルシステムのサイズと、そのうちまだ書き込める空き容量。",
@@ -59008,7 +59007,6 @@
   "The OSD that holds their first copy has stopped reporting them.": "The OSD that holds their first copy has stopped reporting them.",
   "The size of the filesystem a container writes its own files to, in bytes, as the kubelet measures it: on most nodes, the disk the node keeps its container images on. Used is this minus Container Filesystem Available.": "kubelet が測定する、コンテナが自身のファイルを書き込むファイルシステムのサイズ (バイト単位) です。ほとんどのノードでは、ノードがコンテナイメージを置いているディスクです。使用量はこの値から「コンテナファイルシステム空き容量」を引いたものです。",
   "The size of the node's root filesystem, in bytes, as the kubelet measures it. Used is this minus Node Filesystem Available; by default the kubelet starts evicting pods when less than 10% of it is free, or 15% when it also holds the node's container images.": "kubelet が測定する、ノードのルートファイルシステムのサイズ (バイト単位) です。使用量はこの値から「ノードファイルシステム空き容量」を引いたもので、kubelet はデフォルトで、空きが 10% を下回ると Pod の退避を始めます。ノードのコンテナイメージも置かれている場合は 15% です。",
-  "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full and red from 90%; by default the kubelet starts evicting pods at 90%, or at 85% when this disk also holds the container images.": "kubelet が最後に測定した、このノードのルートファイルシステムの使用量です。Pod のログ、emptyDir ボリューム、そしてコンテナイメージ専用のディスクがない場合はコンテナイメージも含まれます。80% 以上で黄、90% 以上で赤になり、kubelet はデフォルトで 90% から Pod の退避を始め、このディスクにコンテナイメージも置かれている場合は 85% からです。",
   "View container": "View container",
   "Why region {{name}} is Degraded": "Why region {{name}} is Degraded",
   "Why region {{name}} is Unhealthy": "Why region {{name}} is Unhealthy",
@@ -59151,5 +59149,10 @@
   "It can show on its status pages at once.": "すぐにステータスページに表示される場合があります。",
   "It can show on its status pages from {{time}}.": "{{time}} からステータスページに表示される場合があります。",
   "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "このテンプレートから作成したイベントを表示したり購読者に通知したりできるのは、ここで選んだステータスページだけです。何も選択しない場合、どのステータスページにも表示されません。",
-  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "このイベントを表示したり購読者に通知したりできるのは、ここで選んだステータスページだけです。インシデントと異なり、何も選択しないイベントはどのステータスページにも表示されません。"
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "このイベントを表示したり購読者に通知したりできるのは、ここで選んだステータスページだけです。インシデントと異なり、何も選択しないイベントはどのステータスページにも表示されません。",
+  "A kubelet older than Kubernetes 1.33 lets the agent read its node's pods only through nodes/proxy. Once every node runs 1.33 or later, add {{setting}} to the configuration values of the agent's Amazon EKS add-on.": "Kubernetes 1.33 より古い kubelet は、エージェントにそのノードの Pod を nodes/proxy 経由でしか読み取らせません。すべてのノードが 1.33 以降になったら、エージェントの Amazon EKS アドオンの設定値に {{setting}} を追加してください。",
+  "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full, red from 85%, where the kubelet starts evicting pods by default, or from 90% when the images have a disk of their own.": "kubelet が最後に測定した、このノードのルートファイルシステムの使用量で、Pod のログ、emptyDir ボリューム、そしてコンテナイメージ専用のディスクがない場合はコンテナイメージも含まれます。80% 以上で黄、kubelet がデフォルトで Pod の退避を始める 85% 以上で赤になり、イメージ専用のディスクがある場合は 90% 以上で赤になります。",
+  "On a node whose container images have a disk of their own, how much of that disk is used. Amber from 80% full and red from 85%, where the kubelet by default removes unused images and evicts pods; once it fills, new images stop pulling.": "コンテナイメージ専用のディスクがあるノードで、そのディスクの使用量です。80% 以上で黄、kubelet がデフォルトで未使用のイメージを削除し Pod を退避させる 85% 以上で赤になり、いっぱいになると新しいイメージを取得できなくなります。",
+  "The agent's cost Prometheus reads each node's cAdvisor through the API server, as EKS Fargate needs. Only turning cost off drops nodes/proxy here: add {{setting}} to the configuration values of the agent's Amazon EKS add-on.": "エージェントのコスト用 Prometheus は、EKS Fargate で必要なとおり、各ノードの cAdvisor を API サーバー経由で読み取ります。ここで nodes/proxy をなくせるのはコストをオフにすることだけです。エージェントの Amazon EKS アドオンの設定値に {{setting}} を追加してください。",
+  "At least one node of this cluster keeps its container images on a disk of its own, so the recommendations below include an alert on that disk.": "このクラスターには、コンテナイメージを専用のディスクに置いているノードが 1 つ以上あるため、以下の推奨にはそのディスクに関するアラートが含まれます。"
 }

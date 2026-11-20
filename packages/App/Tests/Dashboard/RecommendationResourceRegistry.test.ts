@@ -1385,7 +1385,7 @@ describe("RecommendationResourceRegistry", () => {
   describe("Kubernetes cluster image disk context", () => {
     const CLUSTER_ID: string = "71000000-0000-4000-8000-0000000000aa";
     const IMAGE_DISK_NOTE: string =
-      "Some nodes of this cluster keep their container images on a disk of their own, so the recommendations below include an alert on that disk.";
+      "At least one node of this cluster keeps its container images on a disk of its own, so the recommendations below include an alert on that disk.";
 
     function clusterOf(provider: unknown = null): KubernetesCluster {
       const model: KubernetesCluster = new KubernetesCluster();

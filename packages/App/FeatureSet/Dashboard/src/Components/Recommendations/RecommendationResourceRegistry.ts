@@ -882,7 +882,7 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       if (context.kubernetesHasSeparateImageDisk === true) {
         notes.push(
           translateTemplate(
-            "Some nodes of this cluster keep their container images on a disk of their own, so the recommendations below include an alert on that disk.",
+            "At least one node of this cluster keeps its container images on a disk of its own, so the recommendations below include an alert on that disk.",
           ),
         );
       }
