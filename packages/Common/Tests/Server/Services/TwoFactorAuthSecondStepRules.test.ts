@@ -35,6 +35,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
 
 /*
  * TWO-FACTOR AUTHENTICATION AND THE SECOND STEPS BEHIND IT (issue #9666).
@@ -95,6 +96,9 @@ const countFor: (
 };
 
 beforeEach(() => {
+  // Every session here has confirmed it's its person's (#10155).
+  confirmEverySession();
+
   accounts = new Map<string, Account>([
     [OWNER_ID.toString(), { enableTwoFactorAuth: true }],
     [OTHER_ID.toString(), { enableTwoFactorAuth: true }],

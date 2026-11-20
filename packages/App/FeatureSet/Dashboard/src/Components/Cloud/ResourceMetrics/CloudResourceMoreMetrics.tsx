@@ -15,6 +15,7 @@ import {
   CLOUD_PUBLISHED_METRIC_BLOCK_REASONS,
   CloudPublishedMetricBlock,
   CloudPublishedMetric,
+  CloudPublishedMetricSplit,
   CloudPublishedMetricStatus,
   CloudPublishedMetricsListing,
   getCloudPublishedMetricUnitText,
@@ -38,6 +39,28 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import CloudAddMetricModal from "./CloudAddMetricModal";
 import CloudRemoveMetricModal from "./CloudRemoveMetricModal";
 import { listCloudResourcePublishedMetrics } from "./CloudResourceMetricsApi";
+import { GCP_SPLIT_LEARNED_FROM_EVERY_VALUE } from "./CloudAddedMetricWords";
+
+/*
+ * Whether an added Google Cloud split is one its connection's reads found
+ * PromQL cannot rank (#10164): its busiest values are found each hour from
+ * every value, which Google bills whole, and its row says so.
+ */
+export function isAddedSplitLearnedFromEveryValue(
+  metric: Pick<CloudPublishedMetric, "addedSplitBy" | "splits">,
+): boolean {
+  return Boolean(
+    metric.addedSplitBy &&
+      (metric.splits || []).some(
+        (split: CloudPublishedMetricSplit): boolean => {
+          return (
+            split.name === metric.addedSplitBy &&
+            split.isLearnedFromEveryValue === true
+          );
+        },
+      ),
+  );
+}
 
 /*
  * THE OTHER METRICS A CLOUD RESOURCE PUBLISHES (#9563), on its Metrics tab.
@@ -295,6 +318,18 @@ const CloudResourceMoreMetrics: FunctionComponent<ComponentProps> = (
                             {translator.translateTemplate(
                               "Split by {{dimension}}, a series for each value",
                               { dimension: metric.addedSplitBy },
+                            )}
+                          </p>
+                        ) : (
+                          <></>
+                        )}
+                        {isAddedSplitLearnedFromEveryValue(metric) ? (
+                          <p
+                            className="mt-0.5 text-xs text-amber-700"
+                            data-testid="cloud-more-metrics-split-every-value"
+                          >
+                            {translator.translateText(
+                              GCP_SPLIT_LEARNED_FROM_EVERY_VALUE,
                             )}
                           </p>
                         ) : (

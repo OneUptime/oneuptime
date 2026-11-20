@@ -76,6 +76,7 @@ import {
   CloudSavingsResult,
   CLOUD_MAX_ORGANIZATION_ACCOUNTS,
   GcpSplitLearned,
+  GcpSplitUnranked,
   getCloudSecretValues,
   getOrganizationLimitWarning,
   keepsAuditRecords,
@@ -623,6 +624,125 @@ export const GCP_SPLIT_LEARN_EMPTY_EVERY_MS: number = 15 * 60 * 1000;
 export const GCP_SPLIT_LEARN_LOOK_BACK_SECONDS: number = 60 * 60;
 // The resources one learning keeps at most, the busiest first: bounds the read state.
 export const GCP_SPLIT_MAX_LEARNED_RESOURCES: number = 2000;
+
+/*
+ * A SPLIT METRIC PROMQL CANNOT RANK, REMEMBERED (#10164).
+ *
+ * Where PromQL refuses to rank a metric's values (a 400: the query does not
+ * apply to it), its learning lists the hour instead. Asked every hour,
+ * PromQL refused again first: a call for nothing, and a wait, each hour.
+ * The read remembers the refusal for the metric - its project, type,
+ * aligner and label, whatever resources a call is narrowed to - and goes
+ * straight to the list, asking PromQL again a day after, in case Cloud
+ * Monitoring has learned to rank it since. PromQL that is down, throttled
+ * or times out is no refusal: the next learning asks it again. What the list
+ * returned of each resource is kept with it, so More Metrics says what the
+ * learning costs (getGcpSplitUnranked).
+ */
+export const GCP_SPLIT_RANK_RETRY_MS: number = 24 * 60 * 60 * 1000;
+
+// What tells one split metric's refusal from another's.
+export function getGcpSplitRankKey(data: {
+  projectId: string;
+  metricType: string;
+  aligner: string;
+  label: string;
+}): string {
+  return createHash("sha256")
+    .update(
+      JSON.stringify([
+        data.projectId,
+        data.metricType.toLowerCase(),
+        data.aligner,
+        data.label,
+      ]),
+    )
+    .digest("hex")
+    .slice(0, 32);
+}
+
+// Whether a split metric's learning goes straight to the list now.
+export function isGcpSplitRankSkipped(
+  unranked: GcpSplitUnranked | undefined,
+  now: Date,
+): boolean {
+  if (!unranked) {
+    return false;
+  }
+
+  const age: number = now.getTime() - Date.parse(unranked.at);
+
+  return Number.isFinite(age) && age >= 0 && age < GCP_SPLIT_RANK_RETRY_MS;
+}
+
+/*
+ * Whether PromQL's failure says it cannot rank the metric - a query it
+ * refuses (400, 422, or an answer whose status is "error") - rather than
+ * that it was down, busy or unreachable, which says nothing of the metric.
+ */
+export function isGcpPromQlRankRefusal(error: unknown): boolean {
+  if (!(error instanceof LlmProviderError)) {
+    return false;
+  }
+
+  if (error.statusCode === undefined) {
+    // readPromQlVector: Prometheus answered, and said "error".
+    return error.message.includes(" was refused: ");
+  }
+
+  return error.statusCode === 400 || error.statusCode === 422;
+}
+
+/*
+ * What the hour's list of a split returned of each resource that reported
+ * it, on average, rounded up: the series a learning from it bills each
+ * resource.
+ */
+export function getGcpSplitValuesPerResource(
+  values: ReadonlyArray<GcpSplitValue>,
+): number | undefined {
+  const perResource: Map<string, Set<string>> = new Map();
+
+  for (const value of values) {
+    const key: string = labelSetKey(value.resourceLabels);
+    const seen: Set<string> = perResource.get(key) || new Set<string>();
+
+    seen.add(value.value);
+    perResource.set(key, seen);
+  }
+
+  if (perResource.size === 0) {
+    return undefined;
+  }
+
+  let total: number = 0;
+
+  for (const seen of Array.from(perResource.values())) {
+    total += seen.size;
+  }
+
+  return Math.ceil(total / perResource.size);
+}
+
+/*
+ * What a connection's reads remember of a split metric PromQL could not
+ * rank, for its project (#10164): what More Metrics says it costs. Absent
+ * for one PromQL ranks, or one no read has learned yet.
+ */
+export function getGcpSplitUnranked(data: {
+  pullState: CloudConnectionPullState;
+  projectId: string;
+  metricType: string;
+  aligner: string;
+  label: string;
+}): GcpSplitUnranked | undefined {
+  const entry: unknown =
+    data.pullState.gcpSplitUnranked?.[getGcpSplitRankKey(data)];
+
+  return entry && typeof entry === "object" && !Array.isArray(entry)
+    ? (entry as GcpSplitUnranked)
+    : undefined;
+}
 
 // A resource's labels, the ones a split keeps (its resourceLabelKeys) alone.
 function splitResourceOf(
@@ -1178,6 +1298,39 @@ export function getGcpSplitResourcesUnseen(data: {
     .map((key: string): Record<string, string> => {
       return found.get(key)!;
     });
+}
+
+/*
+ * The resources of a type's split a read learns alone while its whole is
+ * not due: the ones a read found since it was learned (pending, #10076),
+ * then the ones its read found without the metric (checked) - a VM without
+ * the Ops Agent reports the metric once the agent is installed on it, and
+ * is read from that read on, not at the next hour's learning (#10165). A
+ * PromQL topk narrowed to them returns, and Google bills, only the ones
+ * that report, ten values each at most - an empty answer while none does,
+ * a call a read for every hundred of them - never every VM's again, and
+ * never every value of one before it is learned. Each once.
+ */
+export function getGcpSplitResourcesToLearn(
+  learned: GcpSplitLearned | undefined,
+): Array<Record<string, string>> {
+  const resources: Map<string, Record<string, string>> = new Map<
+    string,
+    Record<string, string>
+  >();
+
+  for (const resource of [
+    ...(learned?.pending || []),
+    ...(learned?.checked || []),
+  ]) {
+    const key: string = labelSetKey(resource);
+
+    if (!resources.has(key)) {
+      resources.set(key, resource);
+    }
+  }
+
+  return Array.from(resources.values());
 }
 
 /*
@@ -2622,8 +2775,26 @@ export default class GcpCloudConnector implements CloudConnector {
     ask: GcpAddedMetricAsk;
     end: Date;
     now: Date;
+    /*
+     * The split metrics PromQL could not rank (#10164), by
+     * getGcpSplitRankKey: read to go straight to the list, and written
+     * with what this learning finds.
+     */
+    unranked: Record<string, GcpSplitUnranked>;
   }): Promise<GcpSplitLearned> {
     const split: GcpSplitRead = data.ask.split!;
+    const rank: {
+      projectId: string;
+      metricType: string;
+      aligner: string;
+      label: string;
+    } = {
+      projectId: data.projectId,
+      metricType: data.ask.metric.metricType,
+      aligner: data.ask.metric.aligner,
+      label: split.label,
+    };
+    const rankKey: string = getGcpSplitRankKey(rank);
     const ofAsk: (values: Array<GcpSplitValue>) => Array<GcpSplitValue> = (
       values: Array<GcpSplitValue>,
     ): Array<GcpSplitValue> => {
@@ -2640,35 +2811,48 @@ export default class GcpCloudConnector implements CloudConnector {
         : values;
     };
 
-    try {
-      return toGcpSplitLearned({
-        values: ofAsk(
-          await data.monitoring.listTopSplitValues({
-            projectId: data.projectId,
-            metricType: data.ask.metric.metricType,
-            aligner: data.ask.metric.aligner,
-            resourceType: data.ask.resourceType,
-            resourceLabels: data.ask.resourceLabels,
-            resourceLabelIn: data.ask.resourceLabelIn,
-            split,
-            top: CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
-            lookBackSeconds: GCP_SPLIT_LEARN_LOOK_BACK_SECONDS,
-            at: data.end,
-          }),
-        ),
-        label: split.label,
-        at: data.now,
-        via: "promql",
-      });
-    } catch (error) {
-      if (error instanceof CloudReadBudgetSpent) {
-        throw error;
-      }
+    // PromQL refused to rank it within the day: straight to the list.
+    if (!isGcpSplitRankSkipped(data.unranked[rankKey], data.now)) {
+      try {
+        const learned: GcpSplitLearned = toGcpSplitLearned({
+          values: ofAsk(
+            await data.monitoring.listTopSplitValues({
+              projectId: data.projectId,
+              metricType: data.ask.metric.metricType,
+              aligner: data.ask.metric.aligner,
+              resourceType: data.ask.resourceType,
+              resourceLabels: data.ask.resourceLabels,
+              resourceLabelIn: data.ask.resourceLabelIn,
+              split,
+              top: CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
+              lookBackSeconds: GCP_SPLIT_LEARN_LOOK_BACK_SECONDS,
+              at: data.end,
+            }),
+          ),
+          label: split.label,
+          at: data.now,
+          via: "promql",
+        });
 
-      logger.debug(
-        `GcpCloudConnector: PromQL could not rank ${data.ask.metric.metricType} by ${split.label}; learning from timeSeries.list:`,
-      );
-      logger.debug(error);
+        // Ranked: whatever was remembered of it no longer holds.
+        delete data.unranked[rankKey];
+
+        return learned;
+      } catch (error) {
+        if (error instanceof CloudReadBudgetSpent) {
+          throw error;
+        }
+
+        // Refused: remembered afresh, its lists counted again from here.
+        if (isGcpPromQlRankRefusal(error)) {
+          data.unranked[rankKey] = { ...rank, at: data.now.toISOString() };
+        }
+
+        logger.debug(
+          `GcpCloudConnector: PromQL could not rank ${data.ask.metric.metricType} by ${split.label}; learning from timeSeries.list:`,
+        );
+        logger.debug(error);
+      }
     }
 
     const series: Array<GcpTimeSeries> = await data.monitoring.listTimeSeries({
@@ -2686,8 +2870,28 @@ export default class GcpCloudConnector implements CloudConnector {
       split,
     });
 
+    const values: Array<GcpSplitValue> = ofAsk(
+      getGcpSplitValuesOfSeries(series, split),
+    );
+    const valuesPerResource: number | undefined =
+      getGcpSplitValuesPerResource(values);
+
+    /*
+     * What a list bills each resource, for More Metrics to say (#10164): the
+     * most of the day's lists, whichever resources each was narrowed to.
+     */
+    if (data.unranked[rankKey] && valuesPerResource !== undefined) {
+      data.unranked[rankKey] = {
+        ...data.unranked[rankKey]!,
+        valuesPerResource: Math.max(
+          data.unranked[rankKey]!.valuesPerResource || 0,
+          valuesPerResource,
+        ),
+      };
+    }
+
     return toGcpSplitLearned({
-      values: ofAsk(getGcpSplitValuesOfSeries(series, split)),
+      values,
       label: split.label,
       at: data.now,
       via: "list",
@@ -2977,9 +3181,14 @@ export default class GcpCloudConnector implements CloudConnector {
       }
 
       /*
-       * What is learned: each split due whole, and a type's resources a read
-       * found since it was learned, alone - narrowed to them in as few calls
-       * as their labels allow - while the whole is not due.
+       * What is learned: each split due whole, and - while the whole is not
+       * due - a type's resources it does not know, alone, narrowed to them
+       * in as few calls as their labels allow (getGcpSplitResourcesToLearn):
+       * the ones a read found since it was learned, and the ones its read
+       * found without the metric, so one that starts reporting it - a VM
+       * the Ops Agent was installed on - is read from this read, not at the
+       * next hour's learning (#10165). PromQL's topk returns, and Google
+       * bills, only what reports: an empty answer while they do not.
        */
       const splitLearnings: Array<{
         projectId: string;
@@ -2997,7 +3206,7 @@ export default class GcpCloudConnector implements CloudConnector {
         for (const batch of planGcpResourceBatches({
           metricType: entry.ask.metric.metricType,
           resourceType: entry.ask.resourceType,
-          resources: splitValues[entry.key]?.pending || [],
+          resources: getGcpSplitResourcesToLearn(splitValues[entry.key]),
         })) {
           splitLearnings.push({
             projectId: entry.projectId,
@@ -3017,6 +3226,10 @@ export default class GcpCloudConnector implements CloudConnector {
       const learnedNow: Set<string> = new Set<string>();
       // Each split's warning once, however many calls it was learned in.
       const warnedSplits: Set<string> = new Set<string>();
+      // The split metrics PromQL could not rank, as remembered (#10164).
+      const unranked: Record<string, GcpSplitUnranked> = {
+        ...(state.gcpSplitUnranked || {}),
+      };
       const learnings: Array<Settled<GcpSplitLearned>> =
         await mapWithConcurrency(
           splitLearnings,
@@ -3031,6 +3244,7 @@ export default class GcpCloudConnector implements CloudConnector {
               ask: entry.ask,
               end: window.end,
               now,
+              unranked,
             });
           },
         );
@@ -3055,7 +3269,11 @@ export default class GcpCloudConnector implements CloudConnector {
             });
           }
 
-          if (outcome.value.via === "list") {
+          /*
+           * Said of the hour's learning, not of the resources a read learns
+           * alone in between: those it would say at every read.
+           */
+          if (outcome.value.via === "list" && !entry.newResources) {
             warning = `Cloud Monitoring could not rank the values of ${entry.ask.metric.metricType} by ${entry.ask.split!.label} with PromQL, so its busiest values were learned from all of them this hour.`;
           }
         } else if (!(outcome.error instanceof CloudReadBudgetSpent)) {
@@ -3357,14 +3575,32 @@ export default class GcpCloudConnector implements CloudConnector {
 
       // Only the learnings of what is added now are kept.
       const keptSplitValues: Record<string, GcpSplitLearned> = {};
+      const keptUnranked: Record<string, GcpSplitUnranked> = {};
 
       for (const entry of splitAsks) {
         if (splitValues[entry.key]) {
           keptSplitValues[entry.key] = splitValues[entry.key]!;
         }
+
+        const rankKey: string = getGcpSplitRankKey({
+          projectId: entry.projectId,
+          metricType: entry.ask.metric.metricType,
+          aligner: entry.ask.metric.aligner,
+          label: entry.ask.split!.label,
+        });
+
+        if (unranked[rankKey]) {
+          keptUnranked[rankKey] = unranked[rankKey]!;
+        }
       }
 
       state.gcpSplitValues = keptSplitValues;
+
+      if (Object.keys(keptUnranked).length > 0) {
+        state.gcpSplitUnranked = keptUnranked;
+      } else {
+        delete state.gcpSplitUnranked;
+      }
 
       if (succeeded === 0 && firstError) {
         throw firstError;

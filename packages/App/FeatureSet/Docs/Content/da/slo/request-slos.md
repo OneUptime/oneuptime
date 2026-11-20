@@ -90,7 +90,7 @@ Når dine tjenester allerede tæller deres anmodninger som metrikker, eller ikke
 | **God på eller under** | For et histogram: den værdi, en god observation ligger på eller under, i metrikkens egen enhed, såsom `0.3` for 300 ms i et histogram i sekunder. Brug en af dets bucketgrænser. |
 | **Metrikfilter** | Valgfrit: de serier, der tæller, såsom `-@http.route:/health`. |
 
-En tællers begivenheder er det, den voksede med i hvert trin på 5 minutter, sådan som Prometheus' `increase()` læser en tæller: En tæller, der genstarter, tæller fra nul igen, og både kumulative tællere og deltatællere tæller med. Et histograms begivenheder er dets observationer, og de gode er dem i de buckets, der ligger på eller under værdien. Kun metrikkens egne punkter tæller, og kun fra SLO'ets tjenester: En gauge med samme navn tæller slet ikke.
+En tællers begivenheder er det, den voksede med i hvert trin på 5 minutter, sådan som Prometheus' `increase()` læser en tæller: En tæller, der genstarter, tæller fra nul igen, og både kumulative tællere og deltatællere tæller med. Et histograms begivenheder er dets observationer, og de gode er dem i de buckets, der ligger på eller under værdien. Kun metrikkens egne punkter tæller, og kun fra SLO'ets tjenester: En gauge med samme navn tæller slet ikke. En SLO på en gauge, som enhver cloudmetrik er, siger det på sin side, og det gør metrikvælgeren også: Mål en cloudmetrik med en metrikmonitor og en SLO af den monitors oppetid.
 
 Derfra fungerer et metrik-SLO som et anmodnings-SLO, blot med fejlbudget, forbrugsrateregler og udgivelsestjek i begivenheder. Ændrer du metrikken, tælles dens begivenheder forfra.
 

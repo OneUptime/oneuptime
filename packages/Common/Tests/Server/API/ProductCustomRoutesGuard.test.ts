@@ -1102,8 +1102,12 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
          * is-user-registered is gone (#9745).
          */
         "packages/Common/Server/API/TeamMemberAPI.ts": 11,
-        // #9762: a master admin clearing one person's sign-in settings.
-        "packages/Common/Server/API/UserAPI.ts": 8,
+        /*
+         * #9762: a master admin clearing one person's sign-in settings.
+         * #10155: a person confirming it's them before they change how
+         * they sign in, and the security key or passkey options for it.
+         */
+        "packages/Common/Server/API/UserAPI.ts": 10,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
       },
     ),
@@ -1239,7 +1243,7 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/Telemetry/API/AndroidAgentLogSessions.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/AwsFirehose.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ChangeEventsIngest.ts": 1,
-        "packages/App/FeatureSet/Telemetry/API/Datadog.ts": 8,
+        "packages/App/FeatureSet/Telemetry/API/Datadog.ts": 16,
         "packages/App/FeatureSet/Telemetry/API/DbtArtifactsIngest.ts": 1,
         // #9922: an iOS app's dSYMs, uploaded as its source maps are.
         "packages/App/FeatureSet/Telemetry/API/DsymIngest.ts": 1,

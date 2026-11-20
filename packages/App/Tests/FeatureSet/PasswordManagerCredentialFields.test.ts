@@ -396,16 +396,25 @@ describe("password fields across the frontends", () => {
     ).toEqual([]);
   });
 
-  test("no hand-built password Input (workflow secrets, SNMP credentials) claims to be someone's own", () => {
+  /*
+   * One hand-built password Input is the person's own: Confirm It's You
+   * (#10155), the prompt that asks for the password they sign in with
+   * before a change to how they sign in. It is open only while it asks, so
+   * a password manager offers the person's own login there and nowhere
+   * else on the Dashboard; any other is a secret the product stores.
+   */
+  test("no hand-built password Input (workflow secrets, SNMP credentials) claims to be someone's own, but Confirm It's You", () => {
     expect(
       SCAN.rawInputs
         .filter((input: RawPasswordInput): boolean => {
           return input.setsIsOwnCredential;
         })
         .map((input: RawPasswordInput): string => {
-          return `${input.file}:${input.line}`;
+          return input.file;
         }),
-    ).toEqual([]);
+    ).toEqual([
+      "App/FeatureSet/Dashboard/src/Components/Reauthentication/ReauthenticationPrompt.tsx",
+    ]);
   });
 });
 

@@ -87,6 +87,7 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import { RECOMMENDATIONS_CHANGED_EVENT } from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationsChanged";
 import { readCloudResourceRecommendationContext } from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationResourceRegistry";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
+import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -1005,6 +1006,89 @@ describe("a member who may not create monitors", () => {
 
     expect(
       screen.queryByTestId("cloud-account-recommendations-locked"),
+    ).toBeNull();
+  });
+});
+
+/*
+ * #10028: a connection read less often than its cloud's default reads its
+ * resources' monitors longer windows, and the page says what that costs.
+ */
+describe("an account whose connection is read every hour", () => {
+  function connectionRead(readIntervalInMinutes: string): void {
+    const connection: CloudConnection = new CloudConnection();
+    const record: Record<string, unknown> = connection as unknown as Record<
+      string,
+      unknown
+    >;
+
+    record["_id"] = "20000000-0000-4000-8000-000000000001";
+    record["provider"] = "aws";
+    record["config"] = { readIntervalInMinutes };
+
+    const resourcesAnswer: (args: unknown) => Promise<unknown> =
+      getListMock.getMockImplementation() as (
+        args: unknown,
+      ) => Promise<unknown>;
+
+    getListMock.mockImplementation((args: unknown) => {
+      if ((args as { modelType: unknown }).modelType === CloudConnection) {
+        return Promise.resolve({ data: [connection], count: 1 });
+      }
+
+      return resourcesAnswer(args);
+    });
+  }
+
+  test("says so once, above the list, and each monitor it adds reads the window the hour gives", async () => {
+    connectionRead("60");
+
+    await renderPage();
+
+    const note: HTMLElement = await screen.findByTestId(
+      "cloud-account-recommendations-read-interval",
+    );
+
+    expect(note).toHaveTextContent(
+      "This account's connection reads metrics every 60 minutes, so an alert can come that long after a problem, and these monitors read longer windows to miss no reading. To alert sooner, read more often in Cloud > Connect.",
+    );
+    // The connections are read by the account's cloud, with what decides their windows.
+    expect(listCallsOf(CloudConnection)[0]).toMatchObject({
+      query: { provider: "aws" },
+      select: {
+        _id: true,
+        provider: true,
+        config: true,
+        streamSummary: true,
+      },
+    });
+
+    fireEvent.click(
+      screen.getByTestId(
+        "cloud-account-recommendation-add-CloudResource:cloud-aws-ec2-high-cpu",
+      ),
+    );
+    await createFromPanel();
+
+    await waitFor(() => {
+      expect(createdMonitors()).toHaveLength(2);
+    });
+
+    for (const monitor of createdMonitors()) {
+      expect(
+        monitor.monitorSteps!.data!.monitorStepsInstanceArray[0]!.data!
+          .metricMonitor!.rollingTime,
+      ).toBe("Past 2 Hours");
+    }
+  });
+
+  test("read at AWS's default: no such line, and the windows its templates read", async () => {
+    connectionRead("10");
+
+    await renderPage();
+
+    expect(
+      screen.queryByTestId("cloud-account-recommendations-read-interval"),
     ).toBeNull();
   });
 });

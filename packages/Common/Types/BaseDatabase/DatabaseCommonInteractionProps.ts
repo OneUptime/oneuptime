@@ -97,6 +97,15 @@ export default interface DatabaseCommonInteractionProps {
    */
   requestOrigin?: RequestOrigin | undefined;
   /*
+   * The signed-in session the request was made with (its access token's
+   * session, which UserAuthorization.readRequestSession found live and the
+   * token's person's), and only that: none for an API key, an MCP client
+   * or a workflow. Read by one check: a change to how its person signs in
+   * waits until this session has confirmed it's theirs
+   * (Server/Utils/Reauthentication, #10155).
+   */
+  sessionId?: ObjectID | undefined;
+  /*
    * A run of OneUptime's own whose writing everyone who may see its subject
    * reads - an AI investigation's report, in its incident's or alert's feed
    * and channels (#9576). Read with isRoot only: the run reads as root, but
