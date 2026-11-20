@@ -65,8 +65,15 @@ function label(data: {
   const record: Label = new Label();
   record._id = data.id;
   record.name = data.name;
-  record.description = data.description;
-  record.createdAt = data.createdAt;
+
+  if (data.description !== undefined) {
+    record.description = data.description;
+  }
+
+  if (data.createdAt) {
+    record.createdAt = data.createdAt;
+  }
+
   return record;
 }
 

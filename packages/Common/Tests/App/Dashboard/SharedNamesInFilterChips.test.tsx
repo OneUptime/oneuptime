@@ -61,8 +61,14 @@ function label(data: {
   const model: Label = new Label();
   model._id = data.id;
   model.name = data.name;
-  model.description = data.description;
-  model.createdAt = data.createdAt;
+
+  if (data.description !== undefined) {
+    model.description = data.description;
+  }
+
+  if (data.createdAt) {
+    model.createdAt = data.createdAt;
+  }
 
   return {
     value: data.id,
@@ -80,7 +86,10 @@ function team(data: {
   const model: Team = new Team();
   model._id = data.id;
   model.name = data.name;
-  model.description = data.description;
+
+  if (data.description !== undefined) {
+    model.description = data.description;
+  }
 
   // As the Owner chip lists a team the owners picker found.
   return getOwnerChipOption({
