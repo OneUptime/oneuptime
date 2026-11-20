@@ -9,7 +9,7 @@ OneUptime Kubernetes 代理是一个 Helm chart，它采集集群的指标、事
 - [安装代理](#安装代理): 使用 Helm 的四个步骤。
 - [作为 Amazon EKS 附加组件安装](#作为-amazon-eks-附加组件安装): 从 EKS 控制台安装，无需 Helm。
 - [OpenShift](#openshift): 预设、它创建的安全上下文约束，以及 OpenShift 自带的警报。
-- [集群加固](#集群加固): Pod 安全标准和 CIS Benchmark 评分，以及代理自身的权限。
+- [集群加固](#集群加固): Pod 安全标准、CIS Benchmark 和 NSA/CISA Hardening Guide 评分，kube-bench 的节点检查，以及代理自身的权限。
 - [配置选项](#配置选项): 过滤器、采样、控制平面、服务网格、成本和标签。
 - [Kubernetes AI 代理](#kubernetes-ai-代理): 供 OneUptime AI 使用的只读 `kubectl`，以及在你允许时进行的修复。
 - [减少发送量](#减少采集的数据量): 按影响大小排列的调节手段。
@@ -317,19 +317,53 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 
 ## 集群加固
 
-集群的 **合规** 页面（在 **安全** 下）在其 **集群加固** 部分中依据三个框架为集群本身评分。它读取的是代理已经发送的数据：集群的 Pod 和命名空间，以及用于 CIS Benchmark 的 RBAC、服务账号和 NetworkPolicy。只要代理上报了集群的 Pod，集群的菜单中就会显示该页面，无论集群上是否运行着数据库。
+集群的 **合规** 页面（在 **安全** 下）在其 **集群加固** 部分中依据四个框架为集群本身评分。它读取的是代理已经发送的数据：集群的 Pod 和命名空间，以及用于 CIS Benchmark 和 NSA/CISA 指南的 RBAC、服务账号和 NetworkPolicy。开启 kube-bench 后，它还会为只有节点才能判断的内容评分：请参阅 [节点和控制平面控制项](#节点和控制平面控制项)。只要代理上报了集群的 Pod，集群的菜单中就会显示该页面，无论集群上是否运行着数据库。
 
 | 框架 | 评分对象 |
 | --- | --- |
 | **Pod 安全标准：Baseline** | 集群上运行的每个工作负载，依据集群 Kubernetes 版本的 Baseline 策略评估：特权容器、主机的命名空间、端口和路径、添加的 capability，以及该策略列出的其他所有字段，均从每个 Pod 的规格中读取 |
 | **Pod 安全标准：Restricted** | 同样的工作负载，依据 Restricted 策略评估：Baseline 的各项控制项，外加只使用它允许的卷类型、以非 root 用户运行、禁止权限提升、使用 seccomp 配置文件，以及移除所有 capability |
-| **CIS Kubernetes Benchmark v2.0** | 第 5 节中 Kubernetes API 能够判断的 27 个控制项：授予 cluster-admin、Secret、`nodes/proxy` 以及其控制项列出的其他权限的角色绑定、含通配符的角色、默认服务账号、每个命名空间中的 Pod Security Admission 或策略引擎、NetworkPolicy，以及每个 Pod 运行的内容 |
+| **CIS Kubernetes Benchmark v2.0** | 第 5 节中 Kubernetes API 能够判断的 27 个控制项：授予 cluster-admin、Secret、`nodes/proxy` 以及其控制项列出的其他权限的角色绑定、含通配符的角色、默认服务账号、每个命名空间中的 Pod Security Admission 或策略引擎、NetworkPolicy，以及每个 Pod 运行的内容。开启 kube-bench 后，还包括它在节点上检查的节点和控制平面控制项 |
+| **NSA/CISA Kubernetes Hardening Guide v1.2** | 该指南中 OneUptime 能够读取的建议：从每个 Pod 的规格中读取的非 root 容器、不可变的文件系统、不使用特权容器或主机命名空间，以及每个容器都设有资源限制；每个运行 Pod 的命名空间中入站和出站均默认拒绝的 NetworkPolicy；RBAC 中的最小权限；以及在开启 kube-bench 后，控制平面和 kubelet 的 TLS、认证、授权和审计设置 |
 
 每个框架的磁贴会显示其评分，以及它评估了多少个工作负载、其中有多少个未通过。其控制项会先列出未通过的项：每一项都会说明发现了什么问题以及如何修复，并列出未通过该项的工作负载、角色、角色绑定、服务账号或命名空间，每一个都链接到其页面，并具体到容器或卷以及字段，例如 `securityContext.privileged`。如果数据安全为集群上运行的数据库评分，这些数据库仍会显示在下方的 **此集群上的数据库** 中。
 
 Pod 安全标准按集群自身的 Kubernetes 版本评分，即集群中最新的 kubelet 的版本，最高到 OneUptime 已知的最新版本。较新版本新增的控制项只从该版本起计入，页面也会说明评分所依据的版本。
 
-该基准的其余 104 个控制项检查的是节点的文件和 kubelet，或控制平面的命令行标志，或者需要人工审查。没有任何 API 能判断它们，因此它们按原因分组列在 **不在此处评分** 下，既不算通过，也不算未通过。在 EKS、GKE 或 AKS 等托管控制平面上，页面会说明这些控制项以提供商的基准为准。
+未开启 kube-bench 时，该基准的其余 104 个控制项检查的是节点的文件和 kubelet，或控制平面的命令行标志，或者需要人工审查。没有任何 API 能判断它们，因此它们按原因分组列在 **不在此处评分** 下，既不算通过，也不算未通过。在 EKS、GKE 或 AKS 等托管控制平面上，页面会说明这些控制项以提供商的基准为准。
+
+NSA/CISA 指南中那些 OneUptime 读取的任何数据都无法判断的建议，例如扫描镜像中的漏洞或对 Secret 进行静态加密，也以同样的方式列在该指南自己的 **不在此处评分** 下，每一条都附有它在指南中所属的章节。如果集群尚未发送某个控制项所依据的数据，例如 kube-bench 运行之前的 kubelet 设置，该控制项会显示为 *未评估*，既不算通过，也不算未通过。
+
+### 节点和控制平面控制项
+
+该基准的节点和控制平面控制项，即 API 服务器、控制器管理器、调度器、etcd 和 kubelet 的命令行标志及其文件的权限，只能在节点上读取。开启 `compliance.nodeBenchmark.enabled` 后，代理每 6 小时在节点上运行一次 [kube-bench](https://github.com/aquasecurity/kube-bench)，页面会把它的每项检查都作为 CIS Benchmark 的一个控制项来评分，未通过的控制项会列出未通过它的每个节点，并且和其他控制项一样带有开关和 **接受**。由于运行它需要以下条件，它默认处于关闭状态：
+
+- 每次运行的 Pod 都以 root 身份在节点的进程命名空间（`hostPID`）中运行，kube-bench 需要借此读取各组件的命令行。它不是特权 Pod：它移除了除 `DAC_OVERRIDE` 之外的所有 Linux capability，禁止权限提升，并在只读的根文件系统上运行。
+- 它以只读方式挂载节点的 Kubernetes 目录：`/etc/kubernetes`，在控制平面节点上存放着集群的 CA 密钥和 `admin.conf`；以及 `/var/lib/kubelet`，存放着该节点上每个 Pod 的卷，其中包括 Secret。
+- 它的镜像来自 Aqua Security，而不是 OneUptime。可以用 `compliance.nodeBenchmark.image.digest` 按摘要固定镜像，并用 `compliance.nodeBenchmark.image.repository` 指向你的镜像仓库。
+- 它的服务账号不挂载任何令牌，也不绑定任何角色，并且有一个 NetworkPolicy 让它的 Pod 无法访问网络。它把每项检查的编号和结果写为其容器的终止消息，而代理的资源快照本来就会发送这些消息。
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
+  --set compliance.nodeBenchmark.enabled=true
+```
+
+要立即运行，而不是等到计划的下一次运行时间：
+
+```bash
+kubectl create job --from=cronjob/kubernetes-agent-kube-bench-workers kube-bench-now -n oneuptime-agent
+```
+
+kube-bench 运行集群所在平台的基准，并依据集群的 Kubernetes 版本选择：EKS 上为 CIS Amazon EKS Benchmark，GKE 上为 CIS GKE Benchmark，其他环境为通用基准。在 AKS 上，请添加 `--set compliance.nodeBenchmark.benchmark=aks-1.8`；如果托管集群运行的是通用基准，页面会说明应设置哪一个。在托管控制平面上，kube-bench 为工作节点评分，而控制平面的控制项仍由提供商负责，因为没有任何 Pod 能读取它们。在 GKE Autopilot、EKS Fargate 和 OpenShift 上会排除它。chart 的 README 列出了每个值，以及每个平台的基准有哪些项无法确定。
+
+**kube-bench 读取的节点** 列出它最近一次运行所在的节点，以及它运行的基准、运行时间和运行未能完成的原因。其基准标记为手动的检查按编号列在 **不在此处评分** 下，供人工审查。
+
+### 接受单个发现
+
+在未通过的发现上选择 **接受** 会询问原因，然后把该对象计为通过该控制项（或该框架的所有控制项），直到这次接受到期，或你选择 **撤销** 为止。每个控制项会单独列出其已接受的发现，而 **已接受的发现** 会列出每一项，以及是谁、在何时、因何接受的。
+
+如果未通过的工作负载属于代理自身，即其节点 Collector、eBPF 插桩、性能剖析器或 kube-bench，该发现会说明这一点、代理为什么需要该控制项判定未通过的设置，以及去掉它的值。**以此原因接受** 会打开已填好该原因的对话框，适用于该框架的所有控制项。
 
 ### 关闭框架、控制项或命名空间
 
@@ -341,7 +375,7 @@ Pod 安全标准按集群自身的 Kubernetes 版本评分，即集群中最新�
 
 ### 导出框架
 
-**导出 CSV** 和 **导出 JSON** 会下载框架的报告：每个控制项、是否通过、哪些对象未通过以及如何修复，还有评分所依据的 Kubernetes 版本。
+**导出 CSV** 和 **导出 JSON** 会下载框架的报告：每个控制项、是否通过、哪些对象未通过以及如何修复、哪些项未评分及其原因，还有评分所依据的 Kubernetes 版本。CIS Benchmark 的 JSON 还包含 kube-bench 读取的节点。
 
 ### 代理为此读取的内容
 

@@ -9,7 +9,7 @@ De OneUptime Kubernetes-agent is een Helm-chart die de metrics, events en podlog
 - [De agent installeren](#de-agent-installeren): Vier stappen met Helm.
 - [Installeren als Amazon EKS-add-on](#installeren-als-amazon-eks-add-on): Vanuit de EKS-console, zonder Helm.
 - [OpenShift](#openshift): De preset, de security context constraints die hij aanmaakt, en de eigen waarschuwingen van OpenShift.
-- [Clusterhardening](#clusterhardening): Scores voor de Pod Security Standards en de CIS Benchmark, en de eigen rechten van de agent.
+- [Clusterhardening](#clusterhardening): Scores voor de Pod Security Standards, de CIS Benchmark en de NSA/CISA Hardening Guide, de checks van kube-bench op de nodes, en de eigen rechten van de agent.
 - [Configuratieopties](#configuratieopties): Filters, sampling, controlevlak, service mesh, kosten en labels.
 - [Kubernetes-AI-agent](#kubernetes-ai-agent): Alleen-lezen `kubectl` voor OneUptime AI, en correcties als je die toestaat.
 - [Minder versturen](#het-volume-van-verzamelde-gegevens-verminderen): De hefbomen, op volgorde van effect.
@@ -317,19 +317,53 @@ Doorzoek ze in **Logboeken**, of laat de events die je niet wilt vallen met een 
 
 ## Clusterhardening
 
-De pagina **Compliance** van een cluster, onder **Beveiliging**, toetst in de sectie **Clusterhardening** het cluster zelf aan drie kaders. Ze leest wat de agent al verstuurt: de pods van het cluster, zijn namespaces en, voor de CIS Benchmark, zijn RBAC, serviceaccounts en NetworkPolicies. Het menu van het cluster toont de pagina zodra de agent de pods van het cluster meldt, of er op het cluster nu een database draait of niet.
+De pagina **Compliance** van een cluster, onder **Beveiliging**, toetst in de sectie **Clusterhardening** het cluster zelf aan vier kaders. Ze leest wat de agent al verstuurt: de pods van het cluster, zijn namespaces en, voor de CIS Benchmark en de NSA/CISA-gids, zijn RBAC, serviceaccounts en NetworkPolicies. Met kube-bench aan beoordeelt ze ook wat alleen de nodes kunnen beantwoorden: zie [Controles voor nodes en het controlevlak](#controles-voor-nodes-en-het-controlevlak). Het menu van het cluster toont de pagina zodra de agent de pods van het cluster meldt, of er op het cluster nu een database draait of niet.
 
 | Kader | Wat het beoordeelt |
 | --- | --- |
 | **Pod Security Standards: Baseline** | Elke workload die op het cluster draait, getoetst aan het Baseline-beleid van de Kubernetes-versie van het cluster: geprivilegieerde containers, de namespaces, poorten en paden van de host, toegevoegde mogelijkheden en elk ander veld dat het beleid noemt, gelezen uit de specificatie van elke pod |
 | **Pod Security Standards: Restricted** | Dezelfde workloads, getoetst aan het Restricted-beleid: de controles van Baseline, en alleen de volumetypen die het toestaat, draaien als een andere gebruiker dan root, geen escalatie van privileges, een seccomp-profiel en alle mogelijkheden verwijderd |
-| **CIS Kubernetes Benchmark v2.0** | De 27 controles uit sectie 5 die de Kubernetes-API kan beantwoorden: rolbindingen die cluster-admin, Secrets, `nodes/proxy` en de andere rechten toekennen die zijn controles noemen, rollen met wildcards, de standaardserviceaccounts, Pod Security Admission of een beleidsengine in elke namespace, NetworkPolicies, en wat elke pod draait |
+| **CIS Kubernetes Benchmark v2.0** | De 27 controles uit sectie 5 die de Kubernetes-API kan beantwoorden: rolbindingen die cluster-admin, Secrets, `nodes/proxy` en de andere rechten toekennen die zijn controles noemen, rollen met wildcards, de standaardserviceaccounts, Pod Security Admission of een beleidsengine in elke namespace, NetworkPolicies, en wat elke pod draait. Met kube-bench aan ook de controles voor nodes en het controlevlak die het op de nodes uitvoert |
+| **NSA/CISA Kubernetes Hardening Guide v1.2** | De aanbevelingen van de gids die OneUptime kan lezen: niet-root-containers, onveranderlijke bestandssystemen, geen geprivilegieerde containers of namespaces van de host en resourcelimieten op elke container, uit de specificatie van elke pod; een default-deny-NetworkPolicy in beide richtingen in elke namespace waarin pods draaien; minimale rechten in RBAC; en, met kube-bench aan, de instellingen voor TLS, authenticatie, autorisatie en audit van het controlevlak en de kubelets |
 
 De tegel van elk kader toont de score, en hoeveel workloads het heeft geëvalueerd en hoeveel er niet aan voldoen. Bij de controles staan de falende bovenaan: elke controle zegt wat ze fout vindt en hoe je dat oplost, en somt de workloads, rollen, rolbindingen, serviceaccounts of namespaces op die er niet aan voldoen, elk met een link naar de eigen pagina, tot op de container of het volume en het veld, zoals `securityContext.privileged`. Waar Gegevensbeveiliging de databases scoort die op het cluster draaien, blijven die eronder staan, onder **Databases op dit cluster**.
 
 De Pod Security Standards worden beoordeeld voor de eigen Kubernetes-versie van het cluster: die van zijn nieuwste kubelet, maar hooguit de nieuwste versie die OneUptime kent. Een controle die in een latere versie is toegevoegd, telt pas vanaf die versie mee, en de pagina vermeldt aan welke versie ze heeft getoetst.
 
-De andere 104 controles van de benchmark gaan over de bestanden en kubelets van de nodes of de flags van het controlevlak, of moeten door een persoon worden nagekeken. Geen enkele API beantwoordt ze, dus staan ze onder **Hier niet beoordeeld**, gegroepeerd naar de reden, en slagen of falen ze nooit. Bij een beheerd controlevlak, zoals bij EKS, GKE of AKS, vermeldt de pagina dat ze onder de benchmark van de provider vallen.
+Zonder kube-bench gaan de andere 104 controles van de benchmark over de bestanden en kubelets van de nodes of de flags van het controlevlak, of moeten ze door een persoon worden nagekeken. Geen enkele API beantwoordt ze, dus staan ze onder **Hier niet beoordeeld**, gegroepeerd naar de reden, en slagen of falen ze nooit. Bij een beheerd controlevlak, zoals bij EKS, GKE of AKS, vermeldt de pagina dat ze onder de benchmark van de provider vallen.
+
+De aanbevelingen van de NSA/CISA-gids waarop niets wat OneUptime leest een antwoord geeft, zoals images scannen op kwetsbaarheden of Secrets versleuteld opslaan, staan op dezelfde manier onder een eigen **Hier niet beoordeeld**, elk met zijn sectie van de gids. Een controle waarvan het cluster de bron niet heeft verstuurd, zoals een kubelet-instelling voordat kube-bench draait, is *niet geëvalueerd* en slaagt noch faalt.
+
+### Controles voor nodes en het controlevlak
+
+De controles van de benchmark voor nodes en het controlevlak, namelijk de flags van de API-server, de controller manager, de scheduler, etcd en de kubelet en de rechten op hun bestanden, zijn alleen op de nodes te lezen. Met `compliance.nodeBenchmark.enabled` draait de agent daar elke zes uur [kube-bench](https://github.com/aquasecurity/kube-bench), en de pagina beoordeelt elke check die het uitvoert als een controle van de CIS Benchmark, die elke node noemt die er niet aan voldoet, met de schakelaars en de knop **Accepteren** die elke controle heeft. Standaard staat kube-bench uit, vanwege wat het vraagt:
+
+- De pod van elke run draait als root in de procesnamespace van de node (`hostPID`), wat kube-bench nodig heeft om de opdrachtregels van de componenten te lezen. Hij is niet geprivilegieerd: hij verwijdert elke Linux-mogelijkheid behalve `DAC_OVERRIDE`, verbiedt escalatie van privileges en draait op een alleen-lezen root-bestandssysteem.
+- Hij koppelt de Kubernetes-mappen van de node alleen-lezen: `/etc/kubernetes`, dat op een controlevlaknode de CA-sleutel van het cluster en `admin.conf` bevat, en `/var/lib/kubelet`, dat de volumes van elke pod op die node bevat, waaronder Secrets.
+- Zijn image is van Aqua Security, niet van OneUptime. Pin hem vast op een digest met `compliance.nodeBenchmark.image.digest`, en mirror hem met `compliance.nodeBenchmark.image.repository`.
+- Zijn serviceaccount koppelt geen token aan en is aan geen enkele rol gebonden, en een NetworkPolicy houdt de pods van kube-bench van het netwerk weg. kube-bench schrijft het nummer en het resultaat van elke check als het beëindigingsbericht van zijn container, dat de resource-momentopnamen van de agent al versturen.
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
+  --set compliance.nodeBenchmark.enabled=true
+```
+
+Om het nu te draaien, in plaats van op het volgende geplande tijdstip:
+
+```bash
+kubectl create job --from=cronjob/kubernetes-agent-kube-bench-workers kube-bench-now -n oneuptime-agent
+```
+
+kube-bench draait de benchmark van het platform van het cluster, gekozen op basis van zijn Kubernetes-versie: de CIS Amazon EKS Benchmark op EKS, de CIS GKE Benchmark op GKE en elders de generieke benchmark. Voeg op AKS `--set compliance.nodeBenchmark.benchmark=aks-1.8` toe; waar een beheerd cluster de generieke benchmark heeft gedraaid, vermeldt de pagina welke je moet instellen. Bij een beheerd controlevlak beoordeelt kube-bench de worker-nodes, en vallen de controles van het controlevlak onder de provider, omdat geen enkele pod ze kan lezen. Op GKE Autopilot, EKS Fargate en OpenShift wordt het weggelaten. De README van de chart somt elke waarde op, en wat de benchmark van elk platform onbekend laat.
+
+**Door kube-bench gelezen knooppunten** somt de nodes op waarop kube-bench het laatst draaide, met de benchmark die het draaide, wanneer, en waarom een run niet kon worden voltooid. De checks die zijn benchmark als handmatig markeert, staan met hun nummer onder **Hier niet beoordeeld**, zodat een persoon ze kan nakijken.
+
+### Een bevinding accepteren
+
+**Accepteren** op een falende bevinding vraagt waarom, en telt dat object daarna als geslaagd voor de controle, of voor elke controle van het kader, tot de acceptatie verloopt of je die met **Intrekken** ongedaan maakt. Elke controle toont haar geaccepteerde bevindingen apart, en **Geaccepteerde bevindingen** somt ze allemaal op, met wie elke bevinding heeft geaccepteerd, wanneer en waarom.
+
+Waar een falende workload van de agent zelf is, zijn nodecollector, eBPF-instrumentatie, profiler of kube-bench, zegt de bevinding dat, en ook waarom de agent nodig heeft wat de controle fout vindt, en met welke waarde dat vervalt. **Met deze reden accepteren** opent het dialoogvenster met die reden al ingevuld, voor elke controle van het kader.
 
 ### Een kader, een controle of een namespace uitschakelen
 
@@ -341,7 +375,7 @@ Schakel uit wat niet op een cluster van toepassing is. Elke schakelaar hoort all
 
 ### Een kader exporteren
 
-**CSV exporteren** en **JSON exporteren** downloaden het rapport van een kader: elke controle, of ze slaagt, wat er niet aan voldoet en hoe je dat oplost, en de Kubernetes-versie waaraan is getoetst.
+**CSV exporteren** en **JSON exporteren** downloaden het rapport van een kader: elke controle, of ze slaagt, wat er niet aan voldoet en hoe je dat oplost, wat niet wordt beoordeeld en waarom, en de Kubernetes-versie waaraan is getoetst. De JSON van de CIS Benchmark bevat ook de nodes die kube-bench heeft gelezen.
 
 ### Wat de agent ervoor leest
 

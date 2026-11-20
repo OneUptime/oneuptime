@@ -53,6 +53,7 @@ jest.mock("react-i18next", () => {
 import KubernetesComplianceSection, {
   FINDINGS_SHOWN,
   KUBERNETES_COMPLIANCE_TEST_ID,
+  getNodeBenchmarkOnSetting,
   getSwitchControlName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/KubernetesCompliance/KubernetesComplianceSection";
 import { Translator, createTranslator } from "../../../Types/Translator";
@@ -64,7 +65,12 @@ import DataSecurityComplianceSetting from "../../../Models/DatabaseModels/DataSe
 import { ComplianceRequirementStatus } from "../../../Types/DataSecurity/ComplianceRequirementCatalog";
 import { DataStoreResourceKind } from "../../../Types/DataSecurity/DataStoreResource";
 import { JSONObject } from "../../../Types/JSON";
+import { readNodeBenchmarkMessage } from "../../../Types/Kubernetes/KubernetesNodeBenchmark";
 import { readPodSecurity } from "../../../Types/Kubernetes/KubernetesPodSecurity";
+import {
+  ONEUPTIME_AGENT_COMPONENT_WORDS,
+  OneUptimeAgentComponent,
+} from "../../../Types/Kubernetes/Compliance/KubernetesAgentWorkloads";
 import {
   KubernetesComplianceAcceptanceEntry,
   KubernetesComplianceFrameworkResponse,
@@ -79,9 +85,20 @@ import {
   scoreKubernetesFrameworks,
 } from "../../../Types/Kubernetes/Compliance/KubernetesComplianceScoring";
 import {
+  KubernetesComplianceNodeBenchmarkRun,
   KubernetesCompliancePod,
   KubernetesComplianceSnapshot,
 } from "../../../Types/Kubernetes/Compliance/KubernetesComplianceSnapshot";
+import {
+  getNodeBenchmarkScope,
+  summarizeNodeBenchmark,
+} from "../../../Types/Kubernetes/Compliance/KubernetesNodeBenchmarkScoring";
+import {
+  CONTROL_PLANE_CIS_1_12,
+  KUBE_BENCH_COULD_NOT_FINISH,
+  WORKER_CIS_1_12,
+  WORKER_EKS_1_8_0,
+} from "../../Types/Kubernetes/Compliance/KubeBenchFixtures";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
@@ -114,6 +131,9 @@ const RESTRICTED: KubernetesComplianceFramework =
   KubernetesComplianceFramework.PssRestricted;
 const CIS: KubernetesComplianceFramework =
   KubernetesComplianceFramework.CisKubernetes;
+// The NSA/CISA Kubernetes Hardening Guide (#9875): a tile like the others.
+const NSA: KubernetesComplianceFramework =
+  KubernetesComplianceFramework.NsaCisaHardening;
 
 const HARDENED: JSONObject = {
   securityContext: {
@@ -369,7 +389,7 @@ describe("a cluster's hardening", () => {
   test("shows a tile for each framework, with its score and how many controls fail", async () => {
     await drawSection();
 
-    expect(tiles()).toEqual([BASELINE, RESTRICTED, CIS]);
+    expect(tiles()).toEqual([BASELINE, RESTRICTED, CIS, NSA]);
 
     const baseline: HTMLElement = within(
       screen.getByTestId(`${KUBERNETES_COMPLIANCE_TEST_ID}-frameworks`),
@@ -698,7 +718,7 @@ describe("its switches", () => {
 
     await drawSection();
 
-    expect(tiles()).toEqual([BASELINE, CIS]);
+    expect(tiles()).toEqual([BASELINE, CIS, NSA]);
     expect(
       screen.getByTestId(`${KUBERNETES_COMPLIANCE_TEST_ID}-turned-off`),
     ).toHaveTextContent(RESTRICTED);
@@ -1118,7 +1138,7 @@ describe("what it cannot say yet", () => {
     });
 
     expect(complianceSpy).toHaveBeenCalledTimes(2);
-    expect(tiles()).toEqual([BASELINE, RESTRICTED, CIS]);
+    expect(tiles()).toEqual([BASELINE, RESTRICTED, CIS, NSA]);
   });
 });
 
@@ -1633,6 +1653,474 @@ describe("a workload scored from its pod template", () => {
     expect(
       screen.getByTestId(KUBERNETES_COMPLIANCE_TEST_ID),
     ).not.toHaveTextContent("Nothing to score yet");
-    expect(tiles()).toEqual([BASELINE, RESTRICTED, CIS]);
+    expect(tiles()).toEqual([BASELINE, RESTRICTED, CIS, NSA]);
+  });
+});
+
+/*
+ * THE ONEUPTIME AGENT'S OWN WORKLOADS (#9929): a failing workload that is
+ * one of the agent's components says so, why it needs what the control
+ * fails and the value that removes it, and offers to accept its finding for
+ * the whole framework with that reason filled in.
+ */
+describe("the OneUptime agent's own workloads", () => {
+  const AGENT_NAMESPACE: string = "oneuptime-agent";
+  const EBPF_WHY: string =
+    ONEUPTIME_AGENT_COMPONENT_WORDS[OneUptimeAgentComponent.Ebpf]!.why;
+
+  function agentSnapshot(): KubernetesComplianceSnapshot {
+    return snapshotOf([
+      {
+        ...pod(
+          AGENT_NAMESPACE,
+          "kubernetes-agent-ebpf-x1",
+          { kind: "DaemonSet", name: "kubernetes-agent-ebpf" },
+          {
+            hostPID: true,
+            containers: [
+              {
+                name: "ebpf-instrument",
+                securityContext: { privileged: true, runAsUser: 0 },
+              },
+            ],
+          },
+        ),
+        agentComponent: OneUptimeAgentComponent.Ebpf,
+      },
+      {
+        ...pod(
+          AGENT_NAMESPACE,
+          "kubernetes-agent-7d9f8-abcde",
+          { kind: "Deployment", name: "kubernetes-agent" },
+          { containers: [{ name: "otel-collector" }] },
+        ),
+        agentComponent: OneUptimeAgentComponent.Other,
+      },
+    ]);
+  }
+
+  async function drawAgent(
+    framework: KubernetesComplianceFramework,
+  ): Promise<void> {
+    complianceSpy.mockResolvedValue(answerOf({ snapshot: agentSnapshot() }));
+
+    await drawSection();
+    await pick(framework);
+  }
+
+  test("a failing workload of the agent's says which part of it it is, why it needs it, and the value that removes it", async () => {
+    await drawAgent(BASELINE);
+
+    const findings: HTMLElement = screen.getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-findings-Privileged Containers`,
+    );
+    // kube-proxy fails it too, and is no workload of the agent's.
+    const notes: Array<HTMLElement> = within(findings).getAllByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-agent-workload`,
+    );
+
+    expect(findings).toHaveTextContent("kube-proxy");
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toHaveTextContent(EBPF_WHY);
+    expect(notes[0]).toHaveTextContent("--set ebpf.enabled=false removes it.");
+    expect(
+      within(notes[0]!).getByText("--set ebpf.enabled=false").tagName,
+    ).toBe("CODE");
+  });
+
+  test("Accept With This Reason opens the dialog with its reason filled in, for every control of the framework, and makes that acceptance", async () => {
+    await drawAgent(BASELINE);
+    await press(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-accept-agent-Privileged Containers-kubernetes-agent-ebpf`,
+    );
+
+    const dialog: HTMLElement = screen.getByRole("dialog");
+
+    expect(
+      (
+        screen.getByTestId(
+          `${ACCEPT_FINDING_TEST_ID}-reason`,
+        ) as HTMLTextAreaElement
+      ).value,
+    ).toBe(EBPF_WHY);
+    expect(dialog).toHaveTextContent("Every control of this framework");
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Accept Finding" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(createSpy).toHaveBeenCalledTimes(1);
+    });
+
+    const made: DataSecurityComplianceSetting = (
+      createSpy.mock.calls[0]![0] as { model: DataSecurityComplianceSetting }
+    ).model;
+
+    expect(made.framework).toBe(BASELINE);
+    // The whole framework: no control named.
+    expect(made.requirement).toBeUndefined();
+    expect(made.namespace).toBe(AGENT_NAMESPACE);
+    expect(made.objectKind).toBe("DaemonSet");
+    expect(made.objectName).toBe("kubernetes-agent-ebpf");
+    expect(made.note).toBe(EBPF_WHY);
+    expect(made.isEnabled).toBe(false);
+  });
+
+  test("Accept on the same finding still asks why, for that control only", async () => {
+    await drawAgent(BASELINE);
+    await press(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-accept-Privileged Containers-kubernetes-agent-ebpf`,
+    );
+
+    expect(
+      (
+        screen.getByTestId(
+          `${ACCEPT_FINDING_TEST_ID}-reason`,
+        ) as HTMLTextAreaElement
+      ).value,
+    ).toBe("");
+    expect(screen.getByRole("dialog")).toHaveTextContent("This control only");
+  });
+
+  test("a workload of the agent's that needs nothing it fails says only that it is the agent's own", async () => {
+    await drawAgent(RESTRICTED);
+
+    const findings: HTMLElement = screen.getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-findings-Running as Non-root`,
+    );
+    const notes: Array<HTMLElement> = within(findings).getAllByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-agent-workload`,
+    );
+    const own: HTMLElement | undefined = notes.find(
+      (note: HTMLElement): boolean => {
+        return (
+          note.textContent ===
+          "This workload is the OneUptime Kubernetes agent's own."
+        );
+      },
+    );
+
+    expect(own).toBeDefined();
+    expect(within(own!).queryByRole("button")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-accept-agent-Running as Non-root-kubernetes-agent`,
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a reader who may not change settings sees Accept With This Reason locked", async () => {
+    canChange = false;
+
+    await drawAgent(BASELINE);
+
+    expect(
+      screen.getByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-accept-agent-Privileged Containers-kubernetes-agent-ebpf`,
+      ),
+    ).toBeDisabled();
+  });
+});
+
+/*
+ * THE CIS BENCHMARK'S NODE AND CONTROL PLANE CONTROLS (#9873), scored from
+ * what kube-bench read on the nodes: the nodes it ran on, the controls it
+ * scored by the nodes that fail them, what it marks manual, and - without
+ * it - the value that turns it on.
+ */
+describe("the CIS benchmark, with kube-bench", () => {
+  function benchmarkRun(
+    node: string,
+    message: string,
+  ): KubernetesComplianceNodeBenchmarkRun {
+    return {
+      node,
+      pod: { namespace: "oneuptime-agent", name: `${node}-kube-bench` },
+      result: readNodeBenchmarkMessage(message, new Date().toISOString())!,
+    };
+  }
+
+  function drawWithRuns(
+    runs: Array<KubernetesComplianceNodeBenchmarkRun>,
+    provider: string | null,
+  ): void {
+    const snapshot: KubernetesComplianceSnapshot = {
+      ...snapshotOf(),
+      provider,
+      nodeBenchmarks: runs,
+    };
+
+    complianceSpy.mockResolvedValue(
+      answerOf({
+        snapshot,
+        extra: {
+          provider,
+          isManagedControlPlane: provider !== null,
+          nodeBenchmark: summarizeNodeBenchmark(
+            getNodeBenchmarkScope(runs),
+            provider,
+          ),
+        },
+      }),
+    );
+  }
+
+  test("says which nodes it read, scores each control it checked by the nodes that fail it, linked to their pages", async () => {
+    drawWithRuns(
+      [
+        benchmarkRun("kind-control-plane", CONTROL_PLANE_CIS_1_12),
+        benchmarkRun("kind-worker", WORKER_CIS_1_12),
+      ],
+      null,
+    );
+
+    await drawSection();
+    await pick(CIS);
+
+    expect(
+      screen.getByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-note-node-benchmark`,
+      ),
+    ).toHaveTextContent(
+      "kube-bench read 2 nodes with cis-1.12, for the controls read on the nodes.",
+    );
+
+    const kubeletService: HTMLElement = screen.getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-control-4.1.1`,
+    );
+
+    expect(kubeletService).toHaveTextContent(
+      "Kubelet service file: permissions 600 or stricter",
+    );
+
+    const findings: HTMLElement = screen.getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-findings-4.1.1`,
+    );
+
+    expect(
+      within(findings).getByRole("link", { name: "kind-worker" }),
+    ).toHaveAttribute("href", expect.stringContaining("kind-worker"));
+    expect(
+      within(findings).getByRole("link", { name: "kind-control-plane" }),
+    ).toBeInTheDocument();
+    // Its fix, with the command as code.
+    expect(kubeletService).toHaveTextContent("Run chmod 600");
+
+    await openFold(`${KUBERNETES_COMPLIANCE_TEST_ID}-node-benchmark`);
+
+    const controlPlane: HTMLElement = screen.getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-node-benchmark-kind-control-plane`,
+    );
+
+    expect(controlPlane).toHaveTextContent("Control plane");
+    expect(controlPlane).toHaveTextContent("cis-1.12");
+    expect(
+      screen.getByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-node-benchmark-kind-worker`,
+      ),
+    ).not.toHaveTextContent("Control plane");
+  });
+
+  test("a node's finding is accepted for that node, in no namespace", async () => {
+    drawWithRuns([benchmarkRun("kind-worker", WORKER_CIS_1_12)], null);
+
+    await drawSection();
+    await pick(CIS);
+    await press(`${KUBERNETES_COMPLIANCE_TEST_ID}-accept-4.1.1-kind-worker`);
+    await act(async () => {
+      fireEvent.change(screen.getByTestId(`${ACCEPT_FINDING_TEST_ID}-reason`), {
+        target: { value: "The node image sets it; the next image fixes it." },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(
+        within(screen.getByRole("dialog")).getByRole("button", {
+          name: "Accept Finding",
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(createSpy).toHaveBeenCalledTimes(1);
+    });
+
+    const made: DataSecurityComplianceSetting = (
+      createSpy.mock.calls[0]![0] as { model: DataSecurityComplianceSetting }
+    ).model;
+
+    expect(made.requirement).toBe("4.1.1");
+    expect(made.objectKind).toBe("Node");
+    expect(made.objectName).toBe("kind-worker");
+    expect(made.namespace).toBeUndefined();
+  });
+
+  test("what it marks manual is listed by number, and the sections it read leave Not Scored Here", async () => {
+    drawWithRuns(
+      [
+        benchmarkRun("kind-control-plane", CONTROL_PLANE_CIS_1_12),
+        benchmarkRun("kind-worker", WORKER_CIS_1_12),
+      ],
+      null,
+    );
+
+    await drawSection();
+    await pick(CIS);
+    await openFold(`${KUBERNETES_COMPLIANCE_TEST_ID}-not-scored`);
+
+    const manual: HTMLElement = screen.getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-not-scored-manual-checks`,
+    );
+
+    expect(within(manual).getByText("1.2.1").tagName).toBe("CODE");
+    expect(within(manual).getByText("4.2.4")).toBeInTheDocument();
+    // kube-bench read the kubelet and the control plane: neither is listed.
+    expect(
+      screen.queryByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-not-scored-NodeAccess`,
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-node-benchmark-off`,
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a node where it could not finish says why, as kube-bench said it", async () => {
+    drawWithRuns(
+      [
+        benchmarkRun("kind-worker", WORKER_CIS_1_12),
+        {
+          ...benchmarkRun("kind-worker", KUBE_BENCH_COULD_NOT_FINISH),
+          result: readNodeBenchmarkMessage(
+            KUBE_BENCH_COULD_NOT_FINISH,
+            new Date(Date.now() + 60000).toISOString(),
+          )!,
+        },
+      ],
+      null,
+    );
+
+    await drawSection();
+    await pick(CIS);
+    await openFold(`${KUBERNETES_COMPLIANCE_TEST_ID}-node-benchmark`);
+
+    const error: HTMLElement = screen.getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-node-benchmark-error-kind-worker`,
+    );
+
+    expect(error).toHaveTextContent("kube-bench could not finish here:");
+    expect(error.querySelector("code")).toHaveTextContent("permission denied");
+  });
+
+  test("an EKS cluster that ran the generic benchmark is told the value for EKS's own", async () => {
+    drawWithRuns([benchmarkRun("ip-10-0-1-5", WORKER_CIS_1_12)], "EKS");
+
+    await drawSection();
+    await pick(CIS);
+
+    const suggested: HTMLElement = screen.getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-note-node-benchmark-suggested`,
+    );
+
+    expect(suggested).toHaveTextContent(
+      "EKS has a CIS benchmark of its own: upgrade the agent with --set compliance.nodeBenchmark.benchmark=eks-1.8.0 to score its nodes with it.",
+    );
+  });
+
+  test("on a managed platform, the control plane's controls stay the provider's", async () => {
+    drawWithRuns([benchmarkRun("ip-10-0-1-5", WORKER_EKS_1_8_0)], "EKS");
+
+    await drawSection();
+    await pick(CIS);
+
+    expect(
+      screen.getByTestId(`${KUBERNETES_COMPLIANCE_TEST_ID}-control-EKS 3.2.4`),
+    ).toBeInTheDocument();
+
+    await openFold(`${KUBERNETES_COMPLIANCE_TEST_ID}-not-scored`);
+
+    expect(
+      screen.getByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-managed-control-plane`,
+      ),
+    ).toHaveTextContent(
+      "EKS runs this cluster's control plane: kube-bench scores its worker nodes, and the control plane's controls stay the provider's.",
+    );
+    expect(
+      screen.getByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-not-scored-Provider`,
+      ),
+    ).toHaveTextContent("API server");
+  });
+
+  test("without kube-bench, Not Scored Here says the value that turns it on, and AKS's names its benchmark", async () => {
+    await drawSection();
+    await pick(CIS);
+    await openFold(`${KUBERNETES_COMPLIANCE_TEST_ID}-not-scored`);
+
+    const off: HTMLElement = screen.getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-node-benchmark-off`,
+    );
+
+    expect(
+      within(off).getByText("--set compliance.nodeBenchmark.enabled=true")
+        .tagName,
+    ).toBe("CODE");
+    expect(off).toHaveTextContent("which reads the nodes as root");
+    expect(getNodeBenchmarkOnSetting("AKS")).toBe(
+      "--set compliance.nodeBenchmark.enabled=true --set compliance.nodeBenchmark.benchmark=aks-1.8",
+    );
+  });
+});
+
+/*
+ * THE NSA/CISA KUBERNETES HARDENING GUIDE (#9875): a tile like the others,
+ * each control saying the guide's section, and what the guide asks that
+ * OneUptime cannot read listed apart, never as passing or failing.
+ */
+describe("the NSA/CISA guide", () => {
+  test("each control says the guide's section it is of", async () => {
+    await drawSection();
+    await pick(NSA);
+
+    expect(
+      screen.getByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-control-section-No privileged containers`,
+      ),
+    ).toHaveTextContent("Kubernetes Pod security");
+    expect(
+      screen.getByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-findings-No privileged containers`,
+      ),
+    ).toHaveTextContent("kube-proxy");
+  });
+
+  test("what it cannot read is listed by why and section, never as passing or failing", async () => {
+    await drawSection();
+    await pick(NSA);
+    await openFold(`${KUBERNETES_COMPLIANCE_TEST_ID}-not-scored`);
+
+    const fold: HTMLElement = screen.getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-not-scored`,
+    );
+
+    expect(
+      screen.getByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-not-scored-OutsideKubernetes`,
+      ),
+    ).toHaveTextContent("Container images scanned for vulnerabilities");
+    expect(fold).toHaveTextContent("Secrets encrypted at rest");
+    expect(within(fold).queryByText("Passing")).not.toBeInTheDocument();
+    expect(within(fold).queryByText("Failing")).not.toBeInTheDocument();
+    // The CIS benchmark's notes are its own.
+    expect(
+      screen.queryByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-node-benchmark-off`,
+      ),
+    ).not.toBeInTheDocument();
   });
 });
