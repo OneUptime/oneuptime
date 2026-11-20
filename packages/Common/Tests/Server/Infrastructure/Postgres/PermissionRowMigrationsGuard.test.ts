@@ -179,12 +179,20 @@ describe("PERMISSION_ROW_MIGRATIONS", () => {
         PERMISSION_ROW_MIGRATIONS[PERMISSION_ROW_MIGRATIONS.length - 1]!,
       ),
     );
-    expect(PERMISSION_ROWS_VERSION).toBe(1809178600000);
+    expect(PERMISSION_ROWS_VERSION).toBe(1809186970000);
   });
 
-  test("the newest is the one that retired the 28 permissions that grant nothing", () => {
+  /*
+   * It writes the address an invitation not yet accepted was sent to
+   * (#10175), which grants nothing, but it writes TeamMember rows, so it is
+   * listed as any write to a permission table is.
+   */
+  test("the newest is the one that kept each pending invitation's address", () => {
     expect(
       PERMISSION_ROW_MIGRATIONS[PERMISSION_ROW_MIGRATIONS.length - 1],
+    ).toBe("BackfillTeamMemberInviteeEmail1809186970000");
+    expect(
+      PERMISSION_ROW_MIGRATIONS[PERMISSION_ROW_MIGRATIONS.length - 2],
     ).toBe("RemovePermissionsThatGrantNothing1809178600000");
   });
 
