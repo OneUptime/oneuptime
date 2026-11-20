@@ -20,7 +20,7 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import ObjectID from "Common/Types/ObjectID";
 import { MATCH_WINDOW_MS } from "Common/Utils/Telemetry/AppleCrashMatch";
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * #9923: the occurrences table says of an occurrence that KSCrash and
