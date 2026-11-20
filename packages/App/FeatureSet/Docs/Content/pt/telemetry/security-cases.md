@@ -98,7 +98,7 @@ Cada página mantém no topo o cabeçalho do caso: número, prioridade, status e
 
 - **Visão geral**: a descrição, os rótulos e as etapas de status do caso, quem está com ele e o que o abriu, e os números dele: quantas detecções tem, há quanto tempo está aberto e quanto tempo levou para ser reconhecido e contido. Sob **Tempo até a confirmação** e **Tempo até a contenção**, ela mostra como o caso está em relação às suas metas de resposta.
 - **Por que este caso foi aberto**, na **Visão geral**: a detecção que abriu o caso e como a regra dela dispara (o limite, o campo pelo qual agrupa e a janela em que conta), quantos eventos corresponderam, de onde vieram e em que período, o que a regra procura e até onde as requisições chegaram. Sob **Correspondências**, os próprios eventos, do mais antigo ao mais recente: cada um com o que a regra procura destacado, até onde a requisição dele chegou, a linha de log ou o produto de onde veio, e o **Traço**, os **Registros** e a **Exceção** dele a um clique; a linha de log de onde ele veio abre no explorador de registros, direto nessa linha. Clique em um evento para vê-lo por inteiro, com a linha de log da qual foi lido. **Guardar neste caso**, na linha do evento ou no painel dele, guarda o evento na página **Evidências** do caso, nomeando a detecção à qual ele correspondeu; um evento que o caso já guarda diz isso, e o abre lá. Ao disparar, uma detecção guarda até 25 dos eventos que corresponderam a ela e lista esses eventos, mesmo depois que a retenção deles termina; a sua função vê os que vêm das fontes que ela pode ler. Uma regra que dispara para muitos grupos de uma vez, também uma regra de correlação, guarda eventos de cada um deles: no máximo 1.000 no total, então cada um guarda pelo menos 10, e até 25 quando dispara de novo. Para uma detecção de quando as detecções ainda não guardavam os eventos, as correspondências de uma regra são as da própria condição dela, para o grupo da detecção, nas janelas em que ela disparou; uma correspondência de inteligência de ameaças lista os eventos que contêm o indicador dela, e o alerta de um produto conectado, o evento tal como foi enviado. **Onde olhar em seguida** abre tudo sobre o endereço ou o usuário de que a detecção trata, os eventos e as linhas de log que o citam, os registros dos serviços de onde vieram as linhas de log dela e os traços das requisições dela, cada um na janela da detecção, além do **Desenrolar** e dos **Sinais conectados** do caso. As demais detecções do caso ficam recolhidas em **Outras detecções do caso**.
-- **Plano de resposta**, na **Visão geral**: o que fazer com o caso agora, o mais urgente primeiro, sob **Confirmar que é real**, **Conter a ameaça**, **Corrigir o que permitiu isso** e **Fechar o caso**. Cada etapa é sobre este caso: os endereços, usuários e hosts dele, até onde as requisições dele chegaram, com o que a regra dele diz que também pode disparar, as táticas e técnicas ATT&CK às quais as detecções dele correspondem e os playbooks que o projeto tem. As etapas próprias de uma regra de detecção, escritas sob **Etapas de resposta** no formulário dela, vêm primeiro na parte do plano em que ficam, e as regras da biblioteca de regras vêm com etapas próprias. Uma etapa que o OneUptime pode fazer tem um botão próprio: **Atribuir a mim**, **Adicionar exceção** com a regra e o endereço já preenchidos, **Executar playbook** com o playbook que suspende a conta ou aplica a contenção ao host, ou com aquele que o OneUptime AI sugere, **Declarar incidente**, **Marcar como contido** e **Fechar caso**. Uma etapa que o OneUptime não pode fazer, como bloquear um endereço no seu firewall, diz **Fora do OneUptime**, com o endereço a um clique da área de transferência. Marque uma etapa quando ela estiver concluída: ela fica guardada como uma das **Tarefas** do caso, concluída, com quem a fez e quando. As etapas que o próprio caso decide se marcam sozinhas: ele está atribuído, um incidente foi declarado, um playbook rodou, ele está contido ou fechado. Assim que todas as etapas que contêm a ameaça estiverem concluídas, o plano oferece **Marcar como contido**, que registra o tempo até a contenção do caso. Quando o OneUptime AI já classificou o caso, a avaliação dele abre o plano, e as etapas que ele sugere ficam recolhidas sob as do próprio plano.
+- **Plano de resposta**, na **Visão geral**: o que fazer com o caso agora, o mais urgente primeiro, sob **Confirmar que é real**, **Conter a ameaça**, **Corrigir o que permitiu isso** e **Fechar o caso**. Cada etapa é sobre este caso: os endereços, usuários e hosts dele, até onde as requisições dele chegaram, com o que a regra dele diz que também pode disparar, as táticas e técnicas ATT&CK às quais as detecções dele correspondem e os playbooks que o projeto tem. As etapas próprias de uma regra de detecção, escritas sob **Etapas de resposta** no formulário dela, vêm primeiro na parte do plano em que ficam, e as regras da biblioteca de regras vêm com etapas próprias. Uma etapa que o OneUptime pode fazer tem um botão próprio: **Atribuir a mim**, **Adicionar exceção** com a regra e o endereço já preenchidos, **Executar playbook** com o playbook que suspende a conta ou aplica a contenção ao host, ou com aquele que o OneUptime AI sugere, **Declarar incidente**, **Marcar como contido** e **Fechar caso**. Uma etapa que o OneUptime não pode fazer, como bloquear um endereço no seu firewall, diz **Fora do OneUptime**, com o endereço a um clique da área de transferência. Marque uma etapa quando ela estiver concluída: ela fica guardada como uma das **Tarefas** do caso, concluída, com quem a fez e quando. As etapas que o próprio caso decide se marcam sozinhas: ele está atribuído, um incidente foi declarado, um playbook rodou, ele está contido ou fechado. Assim que todas as etapas que contêm a ameaça estiverem concluídas, o plano oferece **Marcar como contido**, que registra o tempo até a contenção do caso. Quando o OneUptime AI já classificou o caso, a avaliação dele abre o plano, e as etapas que ele sugere ficam recolhidas sob as do próprio plano. O OneUptime verifica por conta própria a maioria das etapas e diz, ao lado de cada uma, o que encontrou: veja [Como o OneUptime verifica uma etapa](#como-o-oneuptime-verifica-uma-etapa).
 - **OneUptime AI**, na **Visão geral**: o que o OneUptime AI concluiu do caso, a prioridade e o playbook que ele sugere, e as evidências por trás. Veja [OneUptime AI na segurança](/docs/telemetry/security-ai).
 - **Impacto**, na **Visão geral**: o que o caso coloca em risco: se o OneUptime viu os registros dele serem alcançados pela internet, quem é dono deles, o que mudou por último neles, e os dados em risco - os repositórios com dados sensíveis que o caso nomeia ou que os usuários e funções dele podem alcançar (veja [Integrações da Segurança de dados](/docs/data-security/integrations#security-operations)). Abra-o para ver o que cada registro chama e por quem é chamado, os monitores e páginas de status que o observam e as máquinas com que os endereços do caso conversaram.
 - **MITRE ATT&CK**, na **Visão geral**: as táticas e técnicas às quais as detecções dele correspondem, cada uma com um link para a própria página em attack.mitre.org.
@@ -114,6 +114,41 @@ Cada página mantém no topo o cabeçalho do caso: número, prioridade, status e
 - **Campos personalizados**: os campos próprios do projeto, preenchidos para este caso, e **Editar campos** para alterá-los. Assim que o projeto tem um campo, a **Visão geral** também os mostra, no seu último cartão. Veja [Campos personalizados, modelos de notas e numeração](#campos-personalizados-modelos-de-notas-e-numeração).
 - **Registros de auditoria**: cada alteração feita no caso, e quem a fez. Veja [Registros de auditoria](/docs/configuration/audit-logs).
 - **Excluir caso**: exclui o caso para sempre, com as detecções, notas, linha do tempo e execuções de playbooks dele. Para manter o registro, feche-o com um veredito.
+
+### Como o OneUptime verifica uma etapa
+
+Uma marcação diz que alguém fez uma etapa. O OneUptime também verifica por conta própria as etapas do **Plano de resposta** de um caso, com base no que de fato aconteceu: a cada minuto enquanto o caso está aberto, e na hora quando uma etapa é marcada, uma tarefa muda ou um playbook contém algo. Ao lado de cada etapa que verificou, o plano diz o que encontrou:
+
+| Ao lado da etapa | Significa |
+| --- | --- |
+| **Verificado pelo OneUptime** | O OneUptime viu a etapa concluída, e ela se sustenta. Ninguém precisa marcá-la |
+| **Parece concluída** | O que o OneUptime vê combina com a etapa concluída, mas não prova. **Confirmar** a marca como sua |
+| **Ainda não concluída** | O OneUptime vê que a etapa ainda está por fazer |
+| **O OneUptime não consegue dizer** | O OneUptime não tem com o que verificar a etapa, e diz por quê, com **Como deixar o OneUptime verificar isto** |
+| **Deixou de se sustentar** | A etapa foi concluída e deixou de funcionar, como um endereço bloqueado que volta a passar |
+| **Não necessário por enquanto** | Nada aconteceu que peça a etapa |
+
+**Como sabemos**, ao lado do que o OneUptime encontrou, abre o resto: o que mais ele viu, um link para os traços ou para o produto que leu, e quando verificou. O progresso do plano conta as etapas que o OneUptime verificou por conta própria, como em "4 de 9 concluídas, 3 verificadas pelo OneUptime".
+
+| Etapa | O que o OneUptime lê |
+| --- | --- |
+| Bloquear o endereço | Se as requisições do endereço ainda chegam ao seu app, nos traços e nos registros de acesso dele. Um endereço que fica em silêncio parece concluído: pode ter sido bloqueado, ou simplesmente ter parado |
+| Verificar que nada mais passou | Como terminou cada requisição do endereço desde a primeira detecção do caso. Quando o seu app recusou todas, a etapa está verificada |
+| Suspender a conta | A conta no Okta, no Microsoft Entra ID ou no Google Workspace: suspensa, ou desativada com as sessões encerradas depois que o caso foi aberto |
+| Tirar o host da rede | O host no CrowdStrike Falcon ou no Microsoft Defender for Endpoint: contido ou isolado |
+| Declarar um incidente | Se uma requisição passou pelas verificações do seu app, ou se um monitor dos serviços que ela alcançou caiu, enquanto o caso estava aberto. Até lá, a etapa não é necessária por enquanto |
+| Descartar um falso positivo | Nada: só você pode descartá-lo. A etapa lista o que o OneUptime sabe sobre o endereço: se algum dos seus registros o tem, os feeds de inteligência de ameaças que o listam, e os usuários conectados que o usaram nos últimos 30 dias |
+
+- Uma etapa feita fora do OneUptime também conta. Bloqueie o endereço no seu próprio firewall, e o OneUptime vê as requisições dele pararem; suspenda a conta no Okta, e o OneUptime lê isso de volta.
+- Você ainda pode marcar uma etapa por conta própria, mesmo uma que o OneUptime não vê concluída. Uma etapa que o OneUptime verificou não precisa de marcação.
+- Quando uma etapa concluída deixa de se sustentar, o plano diz isso no topo, a **Linha do tempo** do caso diz o que o OneUptime viu, e as pessoas que cuidam do caso são avisadas: veja [Notificações](#notificações).
+- O OneUptime não consegue ver as requisições de um endereço quando o seu app não lhe envia traços nem registros, quando os traços dele não dizem de qual endereço veio cada requisição, ou quando trazem os endereços da Cloudflare ou de um balanceador de carga na frente do seu app em vez dos endereços dos seus visitantes. Defina o endereço do cliente (`client.address`) nos spans de servidor do seu app: a partir de `CF-Connecting-IP` atrás da Cloudflare, de `X-Forwarded-For` atrás de um balanceador de carga.
+- O OneUptime lê contas e hosts pelas conexões do projeto com os produtos que os têm, as mesmas que [Respondendo com o OneUptime](#respondendo-com-o-oneuptime) usa. Sem nenhuma, ele não consegue dizer.
+- Um produto que não responde, ou uma leitura que falha, nunca conta como uma etapa não concluída: a etapa diz que o OneUptime não conseguiu verificá-la agora, e o OneUptime tenta de novo em alguns minutos.
+
+**Marcar casos como contidos quando verificados**, em **Produtos → Eventos de segurança → Configurações → Status de casos**, passa um caso para Contido assim que cada etapa que o contém está **Verificado pelo OneUptime** ou **Não necessário por enquanto**. O tempo até a contenção é registrado, e a **Linha do tempo** do caso diz que o OneUptime verificou cada etapa que contém a ameaça. Uma etapa que só parece concluída, ou uma marcação, nunca faz um caso avançar sozinha. A configuração vem ativada em todo projeto, e um Proprietário do projeto ou Administrador do projeto pode desativá-la: aí um caso fica onde está até que alguém o marque como Contido.
+
+Todos que podem ver um caso veem o que o OneUptime encontrou. Ninguém edita isso: quem discordar marca a etapa por conta própria, o que exige uma função que possa tratar as tarefas do caso.
 
 ### Tratar casos a partir da fila
 
@@ -201,7 +236,7 @@ Um Administrador de segurança gerencia os campos personalizados e os modelos de
 
 ## Notificações
 
-O OneUptime avisa as pessoas sobre cinco coisas em um caso. Ninguém precisa configurar nada: um projeto que só clicou em **Ativar o recomendado** fica sabendo dos seus casos High e Crítico por e-mail e push.
+O OneUptime avisa as pessoas sobre seis coisas em um caso. Ninguém precisa configurar nada: um projeto que só clicou em **Ativar o recomendado** fica sabendo dos seus casos High e Crítico por e-mail e push.
 
 | Notificação | Quem é avisado | Por padrão |
 | --- | --- | --- |
@@ -210,12 +245,13 @@ O OneUptime avisa as pessoas sobre cinco coisas em um caso. Ninguém precisa con
 | Etapa de playbook aguardando minha aprovação | As pessoas do caso que podem aprovar a etapa: a pessoa a quem ele está atribuído e os membros da equipe dele. Quando nenhuma delas pode aprovar, todos no projeto que podem | E-mail e push |
 | Meta de resposta de caso de segurança | As pessoas que cuidam do caso: a pessoa a quem ele está atribuído e os membros da equipe dele. Quando ninguém cuida dele, as pessoas avisadas sobre casos novos na prioridade dele | E-mail e push |
 | Tarefa de caso de segurança atribuída a mim | A pessoa que recebe uma tarefa do caso, a menos que a tenha pegado ela mesma | E-mail e push |
+| Etapa de caso de segurança deixou de se sustentar | As pessoas que cuidam do caso, quando uma etapa que o OneUptime viu concluída deixa de se sustentar: a pessoa a quem ele está atribuído e os membros da equipe dele. Quando ninguém cuida dele, as pessoas avisadas sobre casos novos na prioridade dele | E-mail e push |
 
 - Só são avisadas sobre um caso as pessoas que podem vê-lo: Proprietários do projeto, Administradores do projeto e os papéis Administrador de segurança, Membro de segurança e Visualizador de segurança. Um papel limitado a alguns rótulos só é avisado sobre os casos com esses rótulos.
 - Ninguém é avisado sobre o que fez: a pessoa que abre um caso manualmente, o atribui ou inicia uma execução não é notificada disso.
 - Cada pessoa fica sabendo de um caso uma vez só. Um caso que abre como Medium e depois sobe para Crítico chega, quando sobe, às pessoas que escolheram High ou Crítico, e não de novo às que escolheram Medium, que já souberam dele quando ele abriu.
 - O ataque de teste de **Enviar um ataque de teste** abre um caso que não notifica ninguém.
-- Um caso Crítico e uma etapa aguardando aprovação são enviados na hora, nunca retidos em um [resumo de e-mails](/docs/emails/notification-rollup). O mesmo vale para uma meta de resposta prestes a ser perdida, ou perdida.
+- Um caso Crítico e uma etapa aguardando aprovação são enviados na hora, nunca retidos em um [resumo de e-mails](/docs/emails/notification-rollup). O mesmo vale para uma meta de resposta prestes a ser perdida, ou perdida, e para uma etapa que deixou de se sustentar.
 - A **Linha do tempo** do caso diz quem foi avisado, e quando.
 
 ### Escolha sobre o que você é avisado
@@ -470,6 +506,10 @@ Veja a **Linha do tempo** do caso, que diz quem foi notificado. Uma notificaçã
 
 :::details Um caso não mostra nenhum prazo
 A prioridade dele não tem meta de resposta, ou só ganhou uma depois que o caso abriu: os prazos de um caso são definidos quando ele abre. O caso do ataque de teste não tem nenhum. Veja [Metas de resposta](#metas-de-resposta).
+:::
+
+:::details Uma etapa diz "O OneUptime não consegue dizer"
+A etapa diz por quê, ao lado dela. Na maioria das vezes, o seu app não envia ao OneUptime traços nem registros, os traços dele não trazem o endereço do cliente, ou o projeto não tem conexão com o produto que tem a conta ou o host. Veja [Como o OneUptime verifica uma etapa](#como-o-oneuptime-verifica-uma-etapa).
 :::
 
 :::details Um playbook não rodou

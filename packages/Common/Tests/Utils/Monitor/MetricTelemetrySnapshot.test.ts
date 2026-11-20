@@ -8,7 +8,10 @@ import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigD
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
+import RollingTime from "../../../Types/RollingTime/RollingTime";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import TelemetryType from "../../../Types/Telemetry/TelemetryType";
 import MetricTelemetrySnapshot from "../../../Utils/Monitor/MetricTelemetrySnapshot";
@@ -710,5 +713,171 @@ describe("a snapshot of a check limited to some services", () => {
     expect(MetricTelemetrySnapshot.getStoredServiceIds(readBack)).toEqual([
       API,
     ]);
+  });
+});
+
+/*
+ * #10451: told the monitor, the snapshot keeps a resource monitor's logs and
+ * traces too - its resource's, from what the check read - which the event's
+ * Logs, Traces and Exceptions tabs read in place of the metric queries' own
+ * filters (a Windows service's `name`), which are on no log line or span.
+ */
+describe("a resource monitor's snapshot keeps its resource's logs and traces", () => {
+  function stepOf(
+    config: "hostMonitor" | "dockerMonitor" | "metricMonitor",
+    data: Dictionary<unknown>,
+  ): MonitorStep {
+    const step: MonitorStep = new MonitorStep();
+    (step.data as unknown as Dictionary<unknown>)[config] = {
+      metricViewConfig: { queryConfigs: [], formulaConfigs: [] },
+      rollingTime: RollingTime.Past5Minutes,
+      ...data,
+    };
+    return step;
+  }
+
+  test("Host: a Windows service's monitor keeps its host, never the service's `name`", () => {
+    const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse(
+      responseOf({
+        queryConfigs: [queryOf({ attributes: { name: "Spooler" } })],
+        queryAttributes: [{ name: "Spooler", "resource.host.name": "web-01" }],
+      }),
+      {
+        monitorType: MonitorType.Host,
+        monitorStep: stepOf("hostMonitor", { hostIdentifier: "web-01" }),
+      },
+    );
+
+    expect(snapshot.metricSignalScopes).toEqual({
+      logs: { attributes: { "resource.host.name": "web-01" }, notCarried: [] },
+      traces: {
+        attributes: { "resource.host.name": "web-01" },
+        notCarried: [],
+      },
+    });
+    // The card's scope is as it was.
+    expect(snapshot.metricQueryScopes).toEqual([
+      { "resource.host.name": "web-01" },
+    ]);
+  });
+
+  test("Docker: its host and runtime for logs, its host for traces, and its container named as not carried", () => {
+    const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse(
+      responseOf({
+        queryConfigs: [queryOf({ metricName: "container.cpu.utilization" })],
+        queryAttributes: [
+          {
+            "resource.host.name": "dock-01",
+            "resource.container.runtime": "docker",
+            "resource.container.name": "web",
+          },
+        ],
+      }),
+      {
+        monitorType: MonitorType.Docker,
+        monitorStep: stepOf("dockerMonitor", {
+          hostIdentifier: "dock-01",
+          containerFilters: { containerName: "web" },
+        }),
+      },
+    );
+
+    expect(snapshot.metricSignalScopes).toEqual({
+      logs: {
+        attributes: {
+          "resource.host.name": "dock-01",
+          "resource.container.runtime": "docker",
+        },
+        notCarried: ["resource.container.name"],
+      },
+      traces: {
+        attributes: { "resource.host.name": "dock-01" },
+        notCarried: ["resource.container.name"],
+      },
+    });
+  });
+
+  test("a Metrics monitor, or a snapshot not told its monitor, keeps none: its tabs read what they always did", () => {
+    const response: MetricMonitorResponse = responseOf({
+      queryConfigs: [queryOf({ attributes: { "http.route": "/x" } })],
+      queryAttributes: [{ "http.route": "/x" }],
+    });
+
+    expect(
+      MetricTelemetrySnapshot.fromResponse(response, {
+        monitorType: MonitorType.Metrics,
+        monitorStep: stepOf("metricMonitor", {}),
+      }),
+    ).not.toHaveProperty("metricSignalScopes");
+    expect(MetricTelemetrySnapshot.fromResponse(response)).not.toHaveProperty(
+      "metricSignalScopes",
+    );
+  });
+
+  test("read back from the event's stored JSON, as it was kept", () => {
+    const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse(
+      responseOf({
+        queryConfigs: [queryOf({})],
+        queryAttributes: [{ "resource.host.name": "web-01" }],
+      }),
+      {
+        monitorType: MonitorType.Host,
+        monitorStep: stepOf("hostMonitor", { hostIdentifier: "web-01" }),
+      },
+    );
+
+    const stored: TelemetryQuery = JSONFunctions.deserialize(
+      JSON.parse(JSON.stringify(JSONFunctions.serialize(snapshot as never))),
+    ) as unknown as TelemetryQuery;
+
+    expect(MetricTelemetrySnapshot.getStoredSignalScopes(stored)).toEqual(
+      snapshot.metricSignalScopes,
+    );
+  });
+
+  test.each([
+    ["none kept", undefined],
+    ["not a map", "web-01"],
+    ["a signal missing", { logs: { attributes: {}, notCarried: [] } }],
+    [
+      "an attribute that is not text",
+      {
+        logs: { attributes: { "resource.host.name": 7 }, notCarried: [] },
+        traces: { attributes: {}, notCarried: [] },
+      },
+    ],
+    [
+      "not-carried that is not a list of names",
+      {
+        logs: { attributes: {}, notCarried: "resource.container.name" },
+        traces: { attributes: {}, notCarried: [] },
+      },
+    ],
+  ])(
+    "a stored snapshot with %s keeps none",
+    (_name: string, stored: unknown) => {
+      expect(
+        MetricTelemetrySnapshot.getStoredSignalScopes({
+          telemetryType: TelemetryType.Metric,
+          telemetryQuery: null,
+          metricViewData: null,
+          metricSignalScopes: stored as never,
+        }),
+      ).toBeNull();
+    },
+  );
+
+  test("a snapshot of logs keeps none", () => {
+    expect(
+      MetricTelemetrySnapshot.getStoredSignalScopes({
+        telemetryType: TelemetryType.Log,
+        telemetryQuery: null,
+        metricViewData: null,
+        metricSignalScopes: {
+          logs: { attributes: {}, notCarried: [] },
+          traces: { attributes: {}, notCarried: [] },
+        },
+      }),
+    ).toBeNull();
   });
 });

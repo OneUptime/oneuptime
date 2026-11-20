@@ -8,6 +8,11 @@ import {
   DetectionRuleResponseStep,
   readDetectionRuleResponseSteps,
 } from "../SecurityEvent/DetectionRuleResponseSteps";
+import {
+  SecurityEntity,
+  inferSecurityEntityType,
+  securityEntityTypeForField,
+} from "./SecurityEntity";
 
 /*
  * WHY A CASE WAS OPENED, AND WHAT MATCHED.
@@ -454,4 +459,26 @@ export function getOpeningMatchedDetection(
     matches.detections[0] ||
     null
   );
+}
+
+/*
+ * The entity a detection is about, typed by the field its rule groups by or
+ * by its shape. Null for a detection grouped on nothing, or on several
+ * values at once ("a / b").
+ */
+export function getDetectionEntity(
+  detection: Pick<SecurityCaseMatchedDetectionJson, "groupValue" | "rule">,
+): SecurityEntity | null {
+  const value: string = detection.groupValue.trim();
+
+  if (!value || value.includes(" / ")) {
+    return null;
+  }
+
+  return {
+    type:
+      securityEntityTypeForField(detection.rule?.groupByField) ||
+      inferSecurityEntityType(value),
+    value,
+  };
 }

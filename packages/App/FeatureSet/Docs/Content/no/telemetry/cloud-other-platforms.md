@@ -167,11 +167,16 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 # The Key Vault reference, which resolves to the whole header.
 OTEL_EXPORTER_OTLP_HEADERS=@Microsoft.KeyVault(SecretUri=https://my-vault.vault.azure.net/secrets/oneuptime-otlp-headers/)
 OTEL_RESOURCE_ATTRIBUTES=cloud.account.id=00000000-0000-0000-0000-000000000000
-# Node.js:
-OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure
 ```
 
-SDK-detektorene staver plattformen `azure.app_service`, med punktum; OneUptime skriver den om til `azure_app_service` når den mottas. I .NET legger du til `OpenTelemetry.Resources.Azure` og kaller `.ConfigureResource(r => r.AddAzureAppServiceDetector())`. Andre språk legger til `cloud.provider=azure,cloud.platform=azure_app_service,cloud.region=<region>` i `OTEL_RESOURCE_ATTRIBUTES`, og henter `service.instance.id` fra `WEBSITE_INSTANCE_ID` i koden.
+SDK-detektorene staver plattformen `azure.app_service`, med punktum; OneUptime skriver den om til `azure_app_service` når den mottas. Hver stakk har sin egen ressursdetektor for App Service, som navngir hver instans og setter `cloud.resource_id` til nettstedets ID: det knytter appen til nettstedets tall fra Azure Monitor. Slå på den for stakken din:
+
+| Stakk | Ressursdetektoren for App Service |
+| --- | --- |
+| .NET | `OpenTelemetry.Resources.Azure`, med `.ConfigureResource(r => r.AddAzureAppServiceDetector())` |
+| Java | Java-agenten til OpenTelemetry, med `OTEL_RESOURCE_PROVIDERS_AZURE_ENABLED=true` |
+| Node.js | `@opentelemetry/auto-instrumentations-node`, med `OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure` |
+| Python | `opentelemetry-resource-detector-azure`, med `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=otel,azure_app_service` |
 
 :::steps
 1. Slå på appens systemtilordnede administrerte identitet (**Settings → Identity**), og gi den **Key Vault Secrets User** på hvelvet. Lagre hele headeren, `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`, som hemmeligheten `oneuptime-otlp-headers`.
@@ -182,9 +187,9 @@ SDK-detektorene staver plattformen `azure.app_service`, med punktum; OneUptime s
 
 **Nettverk:** App Service når internett direkte med mindre **VNet integration** med **Route All** er slått på. Da trenger VNet-et en NAT-gateway, eller en rute til en brannmur som tillater TCP 443 til OneUptime-verten.
 
-**Hva appens side viser:** forespørsler, feilrate og latens kommer fra appens spor, så en app som bare sender logger eller målinger, viser **Ingen spor mottatt** der, og dens **Oppsettsjekk** sier hva som må legges til. App Service gir ikke en app egen CPU eller eget minne, og flisene for CPU og minne sier det. Koble til abonnementet under **Sky → Koble til**, så får appens **Oversikt** en seksjon **Azure Monitor**: nettstedets forespørsler, server- og klientfeil, svartid, CPU-tid og minne, slik Azure måler dem, uansett hva appen sender. Fanen **Instanser** viser da instansene Azure kjører den på, og fanen **Revisjoner** utrullingene Azure lagrer.
+**Hva appens side viser:** forespørsler, feilrate og latens kommer fra appens spor, så en app som bare sender logger eller målinger, viser **Ingen spor mottatt** der, og dens **Oppsettsjekk** sier hva som må legges til. App Service gir ikke en app egen CPU eller eget minne, og flisene for CPU og minne sier det. Koble til abonnementet under **Sky → Koble til**, så får appens **Oversikt** en seksjon **Azure Monitor**: nettstedets forespørsler, server- og klientfeil, svartid, CPU-tid og minne, slik Azure måler dem, uansett hva appen sender. Fanen **Instanser** viser da instansene Azure kjører den på, og fanen **Revisjoner** utrullingene Azure lagrer. I **App-plattformer → Alle apper** og fanen **Apper** i et miljø viser en app som ikke sender spor, i stedet nettstedets tall fra Azure Monitor: forespørslene Azure telte, andelen besvart med en 5xx-status og gjennomsnittlig svartid.
 
-Appens fane **Oppsett** gir disse innstillingene som Azure Cloud Shell-kommandoer for .NET, Java, Node.js eller Python, med appens eget navn, ressursgruppe og abonnement i hver kommando. For nettstedets egne konsoll-, HTTP- og plattformlogger velger du også **Strøm målinger og logger** i abonnementets rad under **Sky → Koble til**: de vises i appens fane **Logger**, under **Fra Azures diagnoseinnstillinger**.
+Appens fane **Oppsett** gir disse innstillingene som Azure Cloud Shell-kommandoer for .NET, Java, Node.js eller Python, med appens eget navn, ressursgruppe og abonnement i hver kommando. For nettstedets egne konsoll-, HTTP- og plattformlogger velger du også **Strøm målinger og logger** i abonnementets rad under **Sky → Koble til**: de vises i appens fane **Logger**, under **Fra Azures diagnoseinnstillinger**. Miljøets oppsettsveiledning gir også trinnene for hver stakk, med plassholdere for appens navn og ressursgruppe.
 
 ## Azure Container Instances
 

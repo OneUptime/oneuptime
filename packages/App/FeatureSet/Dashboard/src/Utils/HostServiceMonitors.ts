@@ -21,6 +21,10 @@ import {
   HostServiceKind,
   HostServiceStateDefinition,
 } from "./HostServiceMonitorPrefill";
+import {
+  HostServicePromQLWatch,
+  readHostServicePromQLWatch,
+} from "./HostServicePromQL";
 
 /*
  * WHICH MONITORS ALREADY WATCH A SERVICE ON A HOST (#10296).
@@ -39,8 +43,20 @@ import {
  *     watches this one too. A query that names another service does not.
  *
  * What a person typed as a filter is compared as it is stored: a name, or a
- * list of names. A PromQL step is not read: its expression is not parsed
- * here, so such a monitor is not listed.
+ * list of names.
+ *
+ * A Metrics monitor written in PromQL is read by its expression (#10452,
+ * HostServicePromQL): it watches the service when a selector of it reads
+ * the service's state on the host, as the engine selects series. When the
+ * page cannot be sure - the selector also filters by a label the page does
+ * not know the service's series by, or the expression may leave the service
+ * out after reading it - the monitor is listed with what the page could not
+ * check (HostServiceMonitorMatch.doubt), and does not make Create Monitor
+ * say "Create Another Monitor".
+ *
+ * Not read: whether a Metrics monitor limited to some telemetry services
+ * reads the host's metrics at all. Its steps are matched as if it did, as
+ * they always were.
  */
 
 // What the list is read with: a link, a status and the steps to match.
@@ -70,6 +86,16 @@ export interface HostServiceMonitorSubject {
   hostIdentifier: string;
 }
 
+/*
+ * Why the page cannot tell whether a monitor watches the service: the labels
+ * its PromQL expression also filters by that the page does not know the
+ * service's series by, or - when there are none - a part of the expression
+ * that may leave the service out.
+ */
+export interface HostServiceMonitorDoubt {
+  uncertainLabels: Array<string>;
+}
+
 export interface HostServiceMonitorMatch {
   monitor: Monitor;
   /*
@@ -77,6 +103,8 @@ export interface HostServiceMonitorMatch {
    * (it groups by them, or names none), which watches this one among them.
    */
   isForThisService: boolean;
+  // Set when the page cannot be sure the monitor watches the service.
+  doubt?: HostServiceMonitorDoubt | undefined;
 }
 
 // The words of the service page's Monitors card.
@@ -84,6 +112,9 @@ export interface HostServiceMonitorsCopy {
   description: string;
   empty: string;
   readFailed: string;
+  // A listed monitor the page cannot be sure of: {{labels}} are label names.
+  doubtLabels: string;
+  doubtExpression: string;
 }
 
 export const HOST_SERVICE_MONITORS_TITLE: string = translationKey("Monitors");
@@ -107,6 +138,12 @@ export const HOST_SERVICE_MONITORS_COPY: Record<
     readFailed: translationKey(
       "Couldn't read the monitors that watch this service.",
     ),
+    doubtLabels: translationKey(
+      "May not watch this service: its PromQL expression also filters by {{labels}}, which this page can't check.",
+    ),
+    doubtExpression: translationKey(
+      "May not watch this service: its PromQL expression can leave some of the series it reads out, which this page can't check.",
+    ),
   },
   [HostServiceKind.SystemdUnit]: {
     description: translationKey(
@@ -115,6 +152,12 @@ export const HOST_SERVICE_MONITORS_COPY: Record<
     empty: translationKey("No monitor watches this unit yet."),
     readFailed: translationKey(
       "Couldn't read the monitors that watch this unit.",
+    ),
+    doubtLabels: translationKey(
+      "May not watch this unit: its PromQL expression also filters by {{labels}}, which this page can't check.",
+    ),
+    doubtExpression: translationKey(
+      "May not watch this unit: its PromQL expression can leave some of the series it reads out, which this page can't check.",
     ),
   },
 };
@@ -251,11 +294,52 @@ function readsServiceState(data: {
   return { isForThisService: service === FilterMatch.Named };
 }
 
+// How one step watches the service: what a match says, without its monitor.
+type StepWatch = Omit<HostServiceMonitorMatch, "monitor">;
+
+// The better of two: one the page is sure of, then one naming this service.
+function isBetterWatch(
+  candidate: StepWatch,
+  current: StepWatch | null,
+): boolean {
+  if (!current) {
+    return true;
+  }
+
+  if (Boolean(candidate.doubt) !== Boolean(current.doubt)) {
+    return !candidate.doubt;
+  }
+
+  return candidate.isForThisService && !current.isForThisService;
+}
+
+// A PromQL step, read by its expression (HostServicePromQL).
+function promQLStepWatchesService(
+  metricMonitor: MonitorStepMetricMonitor,
+  subject: HostServiceMonitorSubject,
+): StepWatch | null {
+  const watch: HostServicePromQLWatch | null = readHostServicePromQLWatch({
+    expression: MonitorStepMetricMonitorUtil.getPromQLQuery(metricMonitor),
+    subject: subject,
+  });
+
+  if (!watch) {
+    return null;
+  }
+
+  return {
+    isForThisService: watch.isForThisService,
+    ...(watch.isCertain
+      ? {}
+      : { doubt: { uncertainLabels: watch.uncertainLabels } }),
+  };
+}
+
 // Whether one step reads the service's state on the host, and how.
 function stepWatchesService(
   step: MonitorStep,
   subject: HostServiceMonitorSubject,
-): { isForThisService: boolean } | null {
+): StepWatch | null {
   const state: HostServiceStateDefinition = HOST_SERVICE_STATES[subject.kind];
   const hostMonitor: MonitorStepHostMonitor | undefined =
     step.data?.hostMonitor;
@@ -271,27 +355,28 @@ function stepWatchesService(
     }
 
     queryConfigs = hostMonitor.metricViewConfig?.queryConfigs || [];
-  } else if (
-    metricMonitor &&
-    !MonitorStepMetricMonitorUtil.isPromQL(metricMonitor)
-  ) {
+  } else if (metricMonitor) {
+    if (MonitorStepMetricMonitorUtil.isPromQL(metricMonitor)) {
+      return promQLStepWatchesService(metricMonitor, subject);
+    }
+
     queryConfigs = metricMonitor.metricViewConfig?.queryConfigs || [];
     isHostInQuery = true;
   } else {
     return null;
   }
 
-  let found: { isForThisService: boolean } | null = null;
+  let found: StepWatch | null = null;
 
   for (const queryConfig of queryConfigs) {
-    const reads: { isForThisService: boolean } | null = readsServiceState({
+    const reads: StepWatch | null = readsServiceState({
       queryConfig: queryConfig,
       state: state,
       subject: subject,
       isHostInQuery: isHostInQuery,
     });
 
-    if (reads && (!found || reads.isForThisService)) {
+    if (reads && isBetterWatch(reads, found)) {
       found = reads;
     }
   }
@@ -317,25 +402,19 @@ export function findMonitorsWatchingHostService(data: {
       continue;
     }
 
-    let found: { isForThisService: boolean } | null = null;
+    let found: StepWatch | null = null;
 
     for (const step of monitor.monitorSteps?.data?.monitorStepsInstanceArray ||
       []) {
-      const watches: { isForThisService: boolean } | null = stepWatchesService(
-        step,
-        data.subject,
-      );
+      const watches: StepWatch | null = stepWatchesService(step, data.subject);
 
-      if (watches && (!found || watches.isForThisService)) {
+      if (watches && isBetterWatch(watches, found)) {
         found = watches;
       }
     }
 
     if (found) {
-      matches.push({
-        monitor: monitor,
-        isForThisService: found.isForThisService,
-      });
+      matches.push({ monitor: monitor, ...found });
     }
   }
 

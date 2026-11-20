@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 59636,
-    "untranslated": 8227
+    "keys": 60451,
+    "untranslated": 8372
   },
   "sameAsEnglish": [
     " is",
@@ -594,6 +594,7 @@
     "Workloads",
     "Workspaces",
     "Zone",
+    "Zones",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",

@@ -167,11 +167,16 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 # The Key Vault reference, which resolves to the whole header.
 OTEL_EXPORTER_OTLP_HEADERS=@Microsoft.KeyVault(SecretUri=https://my-vault.vault.azure.net/secrets/oneuptime-otlp-headers/)
 OTEL_RESOURCE_ATTRIBUTES=cloud.account.id=00000000-0000-0000-0000-000000000000
-# Node.js:
-OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure
 ```
 
-De SDK-detectors schrijven het platform als `azure.app_service`, met een punt; OneUptime herschrijft dat bij ontvangst naar `azure_app_service`. Voeg in .NET `OpenTelemetry.Resources.Azure` toe en roep `.ConfigureResource(r => r.AddAzureAppServiceDetector())` aan. Andere talen voegen `cloud.provider=azure,cloud.platform=azure_app_service,cloud.region=<region>` toe aan `OTEL_RESOURCE_ATTRIBUTES`, en halen `service.instance.id` in code uit `WEBSITE_INSTANCE_ID`.
+De SDK-detectors schrijven het platform als `azure.app_service`, met een punt; OneUptime herschrijft dat bij ontvangst naar `azure_app_service`. Elke stack heeft een eigen resourcedetector voor App Service, die elke instantie benoemt en `cloud.resource_id` op de ID van de site zet: dat koppelt de app aan de Azure Monitor-cijfers van zijn site. Zet die van je stack aan:
+
+| Stack | Zijn resourcedetector voor App Service |
+| --- | --- |
+| .NET | `OpenTelemetry.Resources.Azure`, met `.ConfigureResource(r => r.AddAzureAppServiceDetector())` |
+| Java | De Java-agent van OpenTelemetry, met `OTEL_RESOURCE_PROVIDERS_AZURE_ENABLED=true` |
+| Node.js | `@opentelemetry/auto-instrumentations-node`, met `OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure` |
+| Python | `opentelemetry-resource-detector-azure`, met `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=otel,azure_app_service` |
 
 :::steps
 1. Zet de door het systeem toegewezen beheerde identiteit van de app aan (**Settings → Identity**), en geef die **Key Vault Secrets User** op de kluis. Sla de hele header, `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`, op als het geheim `oneuptime-otlp-headers`.
@@ -182,9 +187,9 @@ De SDK-detectors schrijven het platform als `azure.app_service`, met een punt; O
 
 **Netwerk:** App Service bereikt internet rechtstreeks, tenzij **VNet integration** met **Route All** aan staat. Dan heeft het VNet een NAT-gateway nodig, of een route naar een firewall die TCP 443 naar de OneUptime-host toestaat.
 
-**Wat de pagina van de app toont:** aanvragen, foutpercentage en latentie komen uit de traces van de app, dus een app die alleen logboeken of metrieken stuurt, toont daar **Geen traces ontvangen**, en zijn **Configuratiecontrole** zegt wat erbij moet. App Service geeft een app geen eigen CPU of geheugen, en de tegels voor CPU en geheugen zeggen dat. Koppel het abonnement onder **Cloud → Koppelen**, en het **Overzicht** van de app krijgt een sectie **Azure Monitor**: de aanvragen, server- en clientfouten, responstijd, CPU-tijd en het geheugen van de site, zoals Azure ze meet, wat de app ook stuurt. Het tabblad **Instanties** van de app toont dan de instanties waarop Azure hem draait, en het tabblad **Revisies** de implementaties die Azure bewaart.
+**Wat de pagina van de app toont:** aanvragen, foutpercentage en latentie komen uit de traces van de app, dus een app die alleen logboeken of metrieken stuurt, toont daar **Geen traces ontvangen**, en zijn **Configuratiecontrole** zegt wat erbij moet. App Service geeft een app geen eigen CPU of geheugen, en de tegels voor CPU en geheugen zeggen dat. Koppel het abonnement onder **Cloud → Koppelen**, en het **Overzicht** van de app krijgt een sectie **Azure Monitor**: de aanvragen, server- en clientfouten, responstijd, CPU-tijd en het geheugen van de site, zoals Azure ze meet, wat de app ook stuurt. Het tabblad **Instanties** van de app toont dan de instanties waarop Azure hem draait, en het tabblad **Revisies** de implementaties die Azure bewaart. In **App-platforms → Alle apps** en het tabblad **Apps** van een omgeving toont een app die geen traces stuurt in plaats daarvan de cijfers van zijn site uit Azure Monitor: de aanvragen die Azure telde, het aandeel dat met een 5xx-status werd beantwoord, en de gemiddelde responstijd.
 
-Het tabblad **Instellen** van de app geeft deze instellingen als Azure Cloud Shell-opdrachten voor .NET, Java, Node.js of Python, met de eigen naam, resourcegroep en het abonnement van de app in elke opdracht. Kies voor de eigen console-, HTTP- en platformlogboeken van de site ook **Metrieken en logboeken streamen** in de rij van het abonnement onder **Cloud → Koppelen**: ze verschijnen op het tabblad **Logboeken** van de app, onder **Uit de diagnostische instellingen van Azure**.
+Het tabblad **Instellen** van de app geeft deze instellingen als Azure Cloud Shell-opdrachten voor .NET, Java, Node.js of Python, met de eigen naam, resourcegroep en het abonnement van de app in elke opdracht. Kies voor de eigen console-, HTTP- en platformlogboeken van de site ook **Metrieken en logboeken streamen** in de rij van het abonnement onder **Cloud → Koppelen**: ze verschijnen op het tabblad **Logboeken** van de app, onder **Uit de diagnostische instellingen van Azure**. De installatiegids van de omgeving geeft de stappen van elke stack ook, met plaatshouders voor de naam en de resourcegroep van de app.
 
 ## Azure Container Instances
 

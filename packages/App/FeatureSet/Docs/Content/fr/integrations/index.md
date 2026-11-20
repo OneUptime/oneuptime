@@ -61,6 +61,7 @@ Commencez par le haut du tableau : plus une façon est haute, moins il y a à ma
 | [Okta System Log](/docs/integrations/okta) | Entrant | Amène les connexions, les modifications de comptes et les détections de menaces d'Okta dans les Événements de sécurité. |
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | Entrant | Amène les connexions et les modifications d'annuaire de Microsoft Entra ID, et le journal d'audit Microsoft 365, dans les Événements de sécurité. |
 | [Google Workspace](/docs/integrations/google-workspace) | Entrant | Amène les connexions, les modifications d'administration et les détections de Google Workspace dans les Événements de sécurité. |
+| [Cloudflare](/docs/integrations/cloudflare) | Entrant | Amène ce que le pare-feu de Cloudflare a bloqué, soumis à un challenge et journalisé dans les Événements de sécurité, à côté de ce qui a atteint votre application. |
 
 ### Outils de tickets et de gestion des services informatiques
 
