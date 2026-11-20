@@ -1265,9 +1265,7 @@ describe("the four actions #10041 adds make what an approved Ask AI card makes",
       ),
     ).toEqual(fromAskAi);
     expect(fromAskAi["props"]).toBe(props);
-    expect(rows!.userRows).toEqual([
-      { ruleId: LEVEL_ONE_ID, userId: ANA_ID },
-    ]);
+    expect(rows!.userRows).toEqual([{ ruleId: LEVEL_ONE_ID, userId: ANA_ID }]);
     expect(agent.result.title).toBe('Add to on-call policy "Payments on-call"');
     expect(agent.result.details).toEqual([
       'Adds Ana Lopez to escalation rule "Level 1".',
@@ -1499,9 +1497,7 @@ describe("a second identical call makes nothing twice", () => {
       error = caught as Error;
     }
 
-    expect(rows!.userRows).toEqual([
-      { ruleId: LEVEL_ONE_ID, userId: ANA_ID },
-    ]);
+    expect(rows!.userRows).toEqual([{ ruleId: LEVEL_ONE_ID, userId: ANA_ID }]);
     expect(
       OnCallDutyPolicyEscalationRuleUserService.create as unknown as SpyInstance,
     ).toHaveBeenCalledTimes(1);
@@ -1532,9 +1528,7 @@ describe("a second identical call makes nothing twice", () => {
       OnCallDutyPolicyEscalationRuleService.create as unknown as SpyInstance,
     ).toHaveBeenCalledTimes(1);
     expect(rows!.levels).toEqual([LEVEL_ONE_ID, LEVEL_TWO_ID]);
-    expect(rows!.userRows).toEqual([
-      { ruleId: LEVEL_TWO_ID, userId: ANA_ID },
-    ]);
+    expect(rows!.userRows).toEqual([{ ruleId: LEVEL_TWO_ID, userId: ANA_ID }]);
   });
 
   test("add_to_on_call_policy: someone added to the level since it was prepared gets no second row (409)", async () => {
@@ -1717,6 +1711,57 @@ describe("what a prepare works out is never the caller's to hand it", () => {
     ).toEqual({ emails: ["ana@acme.example"] });
   });
 
+  test("Ask AI's chat takes from the model only what a setup action's schema takes, too", async () => {
+    const props: DatabaseCommonInteractionProps = ownerProps();
+    const call: { id: string; name: string; arguments: JSONObject } = {
+      id: "call-1",
+      name: "invite_people",
+      // The model names the Owners team, which the person may not hand on.
+      arguments: {
+        emails: ["ana@acme.example"],
+        teamId: OWNERS_TEAM_ID,
+        teamName: "Owners",
+      },
+    };
+    const request: ChatTurnRequest = {
+      projectId: PROJECT_ID,
+      userId: props.userId!,
+      conversationId: ObjectID.generate(),
+      assistantMessageId: ObjectID.generate(),
+      aiRunId: ObjectID.generate(),
+      permissionMode: AIChatPermissionMode.AskForApproval,
+      props: props,
+    };
+    const spies: Spies = installSpies({
+      project: (): void => {
+        invitesPeople({ cannotGrant: [OWNERS_TEAM_ID, MEMBERS_TEAM_ID] });
+      },
+    });
+    spies.executeWithLogging.mockResolvedValueOnce({
+      content: "",
+      stopReason: "tool_use",
+      toolCalls: [call],
+      llmLog: { totalTokens: 10, costInUSDCents: 1 },
+    } as unknown as AILogResponse as never);
+
+    await ChatAgentRunner.runTurn(request);
+
+    // No card: the team the model named was dropped, and none could be picked.
+    expect(
+      spies.runUpdateOneBy.mock.calls.some((update: Array<unknown>) => {
+        return Boolean(
+          (update[0] as { data?: JSONObject }).data?.["pausedState"],
+        );
+      }),
+    ).toBe(false);
+    expect(
+      TeamMemberService.create as unknown as SpyInstance,
+    ).not.toHaveBeenCalled();
+    expect(JSON.stringify(spies.executeWithLogging.mock.calls[1])).toContain(
+      "no team could be picked for them",
+    );
+  });
+
   test("invite_people: a team the person may not hand on, named by the caller, invites nobody to it", async () => {
     installSpies({
       project: (): void => {
@@ -1742,7 +1787,9 @@ describe("what a prepare works out is never the caller's to hand it", () => {
 
     expect(error).toBeInstanceOf(BadDataException);
     expect(error?.message).toContain("no team could be picked for them");
-    expect(TeamMemberService.create as unknown as SpyInstance).not.toHaveBeenCalled();
+    expect(
+      TeamMemberService.create as unknown as SpyInstance,
+    ).not.toHaveBeenCalled();
   });
 
   test("add_to_on_call_policy: a level and a person the caller names by id are not added when the prepare reads nothing", async () => {
