@@ -142,6 +142,11 @@ const COVERED: Record<string, Coverage> = {
       suites: ["ProductAnalyticsRetentionSettings.test.tsx"],
       drawnBy: "Pages/Rum/View/ProductAnalyticsSettings",
     },
+  "packages/App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Connections.tsx":
+    {
+      suites: ["SecurityTrustedProxiesSettings.test.tsx"],
+      drawnBy: "Pages/SecurityEvents/Connections",
+    },
   "packages/App/FeatureSet/Dashboard/src/Pages/Settings/AIFeatures.tsx": {
     suites: [MORE_SETTINGS_ONE_CARD],
     drawnBy: "Pages/Settings/AIFeatures",

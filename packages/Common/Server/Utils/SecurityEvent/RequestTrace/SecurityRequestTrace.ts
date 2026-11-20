@@ -10,11 +10,13 @@ import {
   RequestTraceSpan,
   assessRequestTrace,
 } from "../../../../Utils/SecurityEvent/RequestOutcome";
+import { TrustedProxies } from "../../../../Utils/SecurityEvent/ClientAddressTrust";
 import ExceptionInstanceService from "../../../Services/ExceptionInstanceService";
 import SpanService from "../../../Services/SpanService";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { writeOwnValue } from "../../../../Utils/LookupTable";
+import SecurityTrustedProxies from "../SecurityTrustedProxies";
 
 /*
  * FOLLOWING A SECURITY EVENT INTO ITS REQUEST.
@@ -215,6 +217,8 @@ export default class SecurityRequestTrace {
       targetResource?: string | undefined;
     };
     rows: SecurityRequestTraceRows | undefined;
+    // The proxies the project trusts to say who the client was (#10416).
+    trustedProxies?: TrustedProxies | undefined;
   }): RequestTraceAssessment | null {
     if (
       !data.rows ||
@@ -229,6 +233,7 @@ export default class SecurityRequestTrace {
       eventSpanId: data.event.spanId || "",
       sqlMarkers: getSqlInjectionMarkers(),
       requestText: data.event.targetResource || "",
+      trustedProxies: data.trustedProxies,
     });
   }
 
@@ -284,10 +289,19 @@ export default class SecurityRequestTrace {
 
     let followed: number = 0;
 
+    /*
+     * The client a trace names is one its sender could not have written:
+     * the connection's own address, or one a proxy the project trusts
+     * forwarded (#10416).
+     */
+    const trustedProxies: TrustedProxies =
+      await SecurityTrustedProxies.getForProject(data.projectId);
+
     for (const event of toFollow) {
       const assessment: RequestTraceAssessment | null = this.assess({
         event,
         rows: traces.get((event.traceId || "").trim()),
+        trustedProxies,
       });
 
       if (!assessment) {

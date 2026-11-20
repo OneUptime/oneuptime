@@ -1137,6 +1137,7 @@ import { AddProjectAmazonSesIamRole1809187142000 } from "./1809187142000-AddProj
 import { AddSecurityBlocklist1809187150000 } from "./1809187150000-AddSecurityBlocklist";
 import { AddDataSecurityAiRules1809187364000 } from "./1809187364000-AddDataSecurityAiRules";
 import { AddAIRunDataSecurityIssueIndex1809187364100 } from "./1809187364100-AddAIRunDataSecurityIssueIndex";
+import { AddProjectSecurityTrustedProxies1809187364416 } from "./1809187364416-AddProjectSecurityTrustedProxies";
 import { AddCloudAppPlatformCloudResource1809187383700 } from "./1809187383700-AddCloudAppPlatformCloudResource";
 import { AddCloudAppPlatformCloudResourceIndexAndKey1809187383710 } from "./1809187383710-AddCloudAppPlatformCloudResourceIndexAndKey";
 
@@ -2280,6 +2281,7 @@ export default [
   AddSecurityBlocklist1809187150000,
   AddDataSecurityAiRules1809187364000,
   AddAIRunDataSecurityIssueIndex1809187364100,
+  AddProjectSecurityTrustedProxies1809187364416,
   AddCloudAppPlatformCloudResource1809187383700,
   AddCloudAppPlatformCloudResourceIndexAndKey1809187383710,
 ];
