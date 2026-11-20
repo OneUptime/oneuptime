@@ -59908,5 +59908,16 @@
   "Creating a recommended monitor": "正在创建建议的监视器",
   "Invited people to this project": "已邀请成员加入此项目",
   "Inviting people to this project": "正在邀请成员加入此项目",
-  "Setting how pages reach you": "正在设置呼叫如何送达你"
+  "Setting how pages reach you": "正在设置呼叫如何送达你",
+  "And it gives each subscription a diagnostic setting, {{setting}}, that sends its Activity Log to the first region's event hub.": "它还会为每个订阅添加一个诊断设置 {{setting}}，把订阅的活动日志发送到第一个区域的事件中心。",
+  "Azure Key Vault, Storage and SQL logs": "Azure Key Vault、Storage 和 SQL 日志",
+  "Changes made, Defender for Cloud alerts and what Azure Policy refused, which Security Events reads.": "所做的更改、Defender for Cloud 警报以及 Azure Policy 拒绝的操作，安全事件会读取这些内容。",
+  "Each subscription's Activity Log": "每个订阅的活动日志",
+  "For Security Events": "用于安全事件",
+  "Key vault secrets read and changed, storage requests refused, anonymous or changing data with a SAS, and Azure SQL sign-ins, refusals and permission changes.": "Key Vault 机密的读取和更改、被拒绝的存储请求、匿名请求和通过 SAS 更改数据，以及 Azure SQL 的登录、拒绝和权限更改。",
+  "Microsoft Entra ID's sign-in and audit logs": "Microsoft Entra ID 的登录日志和审计日志",
+  "Once the first command has finished, run this in {{shell}} as a Security Administrator of the tenant who may read the event hubs' key: an Owner or Contributor of {{group}}.": "第一条命令完成后，请以可读取事件中心密钥的租户 Security Administrator 身份在 {{shell}} 中运行此命令，此人需是 {{group}} 的 Owner 或 Contributor。",
+  "Run this as a Security Administrator of your tenant": "以你租户的 Security Administrator 身份运行此命令",
+  "Sign-ins, directory changes and risks, set up by a second command for a Security Administrator of your tenant.": "登录、目录更改和风险，由第二条命令设置，供你租户的 Security Administrator 运行。",
+  "Invitee Email": "Invitee Email"
 }

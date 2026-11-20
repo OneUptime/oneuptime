@@ -3,6 +3,10 @@ import { isDatabaseServerLogLine } from "./DatabaseServerLogLine";
 import AzureActivityLogParser, {
   AZURE_PREFILTER_WORDS,
 } from "./AzureActivityLogParser";
+import AzureResourceLogParser, {
+  AZURE_RESOURCE_LOG_PREFILTER_GROUPS,
+  AzureResourceLogPrefilterGroup,
+} from "./AzureResourceLogParser";
 import CloudTrailLogParser from "./CloudTrailLogParser";
 import GoogleCloudAuditLogParser, {
   AUDIT_LOG_TYPE_MARKER,
@@ -64,8 +68,17 @@ const PARSERS: ReadonlyArray<LogLineParser> = [
   (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
     return GoogleCloudAuditLogParser.parse(line);
   },
+  /*
+   * Azure's exports: the Activity Log's and Entra ID's records, and a
+   * resource's own audit log - a key vault's, a storage account's, Azure
+   * SQL's (#10110). One batch can hold records of each kind, so both read
+   * every line, each its own categories, and one record is never both.
+   */
   (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
-    return AzureActivityLogParser.parse(line);
+    return [
+      ...AzureActivityLogParser.parse(line),
+      ...AzureResourceLogParser.parse(line),
+    ];
   },
   (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
     return OpenStackAuditLogParser.parse(line);
@@ -223,6 +236,18 @@ export const SECURITY_LOG_PREFILTER: SecurityLogPrefilter = {
       requires: '"category"',
       anyOf: AZURE_PREFILTER_WORDS,
     },
+    /*
+     * A resource's own audit log (AzureResourceLogParser): a key vault's
+     * secret reads, changes and refusals; a storage request refused,
+     * served anonymously or changing data with a SAS; an Azure SQL sign-in,
+     * permission change or refusal - never a storage account's successful
+     * reads, a SQL batch or a pooled connection's sign-in.
+     */
+    ...AZURE_RESOURCE_LOG_PREFILTER_GROUPS.map(
+      (group: AzureResourceLogPrefilterGroup): SecurityLogPrefilterGroup => {
+        return { ...group };
+      },
+    ),
     /*
      * OpenStack's audit trail, through oslo.messaging's log driver: who did what in
      * Keystone, what changed or was refused on the other APIs, a security group opened

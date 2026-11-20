@@ -59908,5 +59908,16 @@
   "Creating a recommended monitor": "Création d'un moniteur recommandé",
   "Invited people to this project": "A invité des personnes dans ce projet",
   "Inviting people to this project": "Invitation de personnes dans ce projet",
-  "Setting how pages reach you": "Définition de la façon dont les alertes vous joignent"
+  "Setting how pages reach you": "Définition de la façon dont les alertes vous joignent",
+  "And it gives each subscription a diagnostic setting, {{setting}}, that sends its Activity Log to the first region's event hub.": "Et elle donne à chaque abonnement un paramètre de diagnostic, {{setting}}, qui envoie son journal d'activité vers le hub d'événements de la première région.",
+  "Azure Key Vault, Storage and SQL logs": "Journaux Azure Key Vault, Storage et SQL",
+  "Changes made, Defender for Cloud alerts and what Azure Policy refused, which Security Events reads.": "Modifications apportées, alertes de Defender for Cloud et ce qu'Azure Policy a refusé, que lit Événements de sécurité.",
+  "Each subscription's Activity Log": "Journal d'activité de chaque abonnement",
+  "For Security Events": "Pour les Événements de sécurité",
+  "Key vault secrets read and changed, storage requests refused, anonymous or changing data with a SAS, and Azure SQL sign-ins, refusals and permission changes.": "Secrets de Key Vault lus et modifiés, requêtes de stockage refusées, anonymes ou modifiant des données avec une SAS, et connexions, refus et modifications d'autorisations d'Azure SQL.",
+  "Microsoft Entra ID's sign-in and audit logs": "Journaux de connexion et d'audit de Microsoft Entra ID",
+  "Once the first command has finished, run this in {{shell}} as a Security Administrator of the tenant who may read the event hubs' key: an Owner or Contributor of {{group}}.": "Une fois la première commande terminée, exécutez ceci dans {{shell}} en tant que Security Administrator du locataire autorisé à lire la clé des hubs d'événements : un Owner ou un Contributor de {{group}}.",
+  "Run this as a Security Administrator of your tenant": "Exécutez ceci en tant que Security Administrator de votre locataire",
+  "Sign-ins, directory changes and risks, set up by a second command for a Security Administrator of your tenant.": "Connexions, modifications d'annuaire et risques, configurés par une seconde commande destinée à un Security Administrator de votre locataire.",
+  "Invitee Email": "Invitee Email"
 }

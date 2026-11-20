@@ -578,6 +578,8 @@ describe("the resource's menu has Logs for a kind a log group names", () => {
     ["an Azure web app", "azure", "Microsoft.Web/sites"],
     ["an Azure SQL database", "azure", "Microsoft.Sql/servers/databases"],
     ["an Azure key vault", "azure", "Microsoft.KeyVault/vaults"],
+    // Its blob, file, queue and table services' logs, filed under it (#10110).
+    ["an Azure storage account", "azure", "Microsoft.Storage/storageAccounts"],
     ["a Cloud Run service", "gcp", "cloud_run_revision"],
     ["a Compute Engine VM", "gcp", "gce_instance"],
     ["a Cloud SQL instance", "gcp", "cloudsql_database"],
@@ -597,7 +599,6 @@ describe("the resource's menu has Logs for a kind a log group names", () => {
     ["an Azure function", "azure", "AWS::Lambda::Function"],
     // Its own logs need an agent in it.
     ["an Azure virtual machine", "azure", "Microsoft.Compute/virtualMachines"],
-    ["an Azure storage account", "azure", "Microsoft.Storage/storageAccounts"],
     ["a Google Cloud instance group", "gcp", "instance_group"],
     ["a Google Cloud type of no rule", "gcp", "k8s_container"],
     ["a resource of no type", "aws", undefined],

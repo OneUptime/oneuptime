@@ -59908,5 +59908,16 @@
   "Creating a recommended monitor": "Создание рекомендованного монитора",
   "Invited people to this project": "Приглашены люди в этот проект",
   "Inviting people to this project": "Приглашение людей в этот проект",
-  "Setting how pages reach you": "Настройка того, как к вам приходят вызовы"
+  "Setting how pages reach you": "Настройка того, как к вам приходят вызовы",
+  "And it gives each subscription a diagnostic setting, {{setting}}, that sends its Activity Log to the first region's event hub.": "Кроме того, она задаёт каждой подписке параметр диагностики {{setting}}, который отправляет её журнал активности в концентратор событий первого региона.",
+  "Azure Key Vault, Storage and SQL logs": "Журналы Azure Key Vault, Storage и SQL",
+  "Changes made, Defender for Cloud alerts and what Azure Policy refused, which Security Events reads.": "Внесённые изменения, оповещения Defender for Cloud и отказы Azure Policy, которые читают «События безопасности».",
+  "Each subscription's Activity Log": "Журнал активности каждой подписки",
+  "For Security Events": "Для событий безопасности",
+  "Key vault secrets read and changed, storage requests refused, anonymous or changing data with a SAS, and Azure SQL sign-ins, refusals and permission changes.": "Прочитанные и изменённые секреты Key Vault, отклонённые запросы к хранилищу, анонимные запросы и изменения данных по SAS, а также входы, отказы и изменения разрешений в Azure SQL.",
+  "Microsoft Entra ID's sign-in and audit logs": "Журналы входов и аудита Microsoft Entra ID",
+  "Once the first command has finished, run this in {{shell}} as a Security Administrator of the tenant who may read the event hubs' key: an Owner or Contributor of {{group}}.": "Когда первая команда завершится, выполните это в {{shell}} от имени Security Administrator клиента, которому разрешено читать ключ концентраторов событий: Owner или Contributor группы {{group}}.",
+  "Run this as a Security Administrator of your tenant": "Выполните это от имени Security Administrator вашего клиента",
+  "Sign-ins, directory changes and risks, set up by a second command for a Security Administrator of your tenant.": "Входы, изменения каталога и риски. Их настраивает вторая команда, которую выполняет Security Administrator вашего клиента.",
+  "Invitee Email": "Invitee Email"
 }

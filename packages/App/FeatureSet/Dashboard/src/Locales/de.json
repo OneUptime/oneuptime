@@ -59908,5 +59908,16 @@
   "Creating a recommended monitor": "Empfohlener Monitor wird erstellt",
   "Invited people to this project": "Personen in dieses Projekt eingeladen",
   "Inviting people to this project": "Personen werden in dieses Projekt eingeladen",
-  "Setting how pages reach you": "Es wird festgelegt, wie Alarmierungen Sie erreichen"
+  "Setting how pages reach you": "Es wird festgelegt, wie Alarmierungen Sie erreichen",
+  "And it gives each subscription a diagnostic setting, {{setting}}, that sends its Activity Log to the first region's event hub.": "Außerdem erhält jedes Abonnement eine Diagnoseeinstellung, {{setting}}, die sein Aktivitätsprotokoll an den Event Hub der ersten Region sendet.",
+  "Azure Key Vault, Storage and SQL logs": "Azure Key Vault-, Storage- und SQL-Protokolle",
+  "Changes made, Defender for Cloud alerts and what Azure Policy refused, which Security Events reads.": "Änderungen, Warnungen von Defender for Cloud und Ablehnungen durch Azure Policy, die Sicherheitsereignisse liest.",
+  "Each subscription's Activity Log": "Aktivitätsprotokoll jedes Abonnements",
+  "For Security Events": "Für Sicherheitsereignisse",
+  "Key vault secrets read and changed, storage requests refused, anonymous or changing data with a SAS, and Azure SQL sign-ins, refusals and permission changes.": "Gelesene und geänderte Key-Vault-Secrets, abgelehnte oder anonyme Speicheranfragen und solche, die mit einer SAS Daten ändern, sowie Anmeldungen, Ablehnungen und Berechtigungsänderungen in Azure SQL.",
+  "Microsoft Entra ID's sign-in and audit logs": "Anmelde- und Audit-Protokolle von Microsoft Entra ID",
+  "Once the first command has finished, run this in {{shell}} as a Security Administrator of the tenant who may read the event hubs' key: an Owner or Contributor of {{group}}.": "Sobald der erste Befehl fertig ist, führen Sie dies in {{shell}} als Security Administrator des Mandanten aus, der den Schlüssel der Event Hubs lesen darf: als Owner oder Contributor von {{group}}.",
+  "Run this as a Security Administrator of your tenant": "Führen Sie dies als Security Administrator Ihres Mandanten aus",
+  "Sign-ins, directory changes and risks, set up by a second command for a Security Administrator of your tenant.": "Anmeldungen, Verzeichnisänderungen und Risiken, eingerichtet von einem zweiten Befehl für einen Security Administrator Ihres Mandanten.",
+  "Invitee Email": "Invitee Email"
 }
