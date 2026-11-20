@@ -136,18 +136,16 @@ async function call(
 ): Promise<Answer> {
   const next: Mock<(error?: unknown) => void> = jest.fn();
 
-  await mockRouter
-    .match("post", route)
-    .handlerFunction(
-      {
-        params: params,
-        query: {},
-        body: body,
-        headers: { "user-agent": "jest" },
-      } as never,
-      { setHeader: jest.fn() } as unknown as ExpressResponse,
-      next as unknown as NextFunction,
-    );
+  await mockRouter.match("post", route).handlerFunction(
+    {
+      params: params,
+      query: {},
+      body: body,
+      headers: { "user-agent": "jest" },
+    } as never,
+    { setHeader: jest.fn() } as unknown as ExpressResponse,
+    next as unknown as NextFunction,
+  );
 
   return {
     error: next.mock.calls[0] ? (next.mock.calls[0][0] as Exception) : null,
@@ -444,12 +442,11 @@ describe("requiring two-factor authentication of someone", () => {
 
 describe("sending someone a reset link, to their own address", () => {
   test("asks nothing: the link goes to the person, never to whoever asked", async () => {
-    const sendPasswordResetLink: Mock<(...args: Array<never>) => unknown> =
-      jest
-        .spyOn(UserService, "sendPasswordResetLink")
-        .mockResolvedValue(
-          new Email("someone@example.com") as never,
-        ) as unknown as Mock<(...args: Array<never>) => unknown>;
+    const sendPasswordResetLink: Mock<(...args: Array<never>) => unknown> = jest
+      .spyOn(UserService, "sendPasswordResetLink")
+      .mockResolvedValue(
+        new Email("someone@example.com") as never,
+      ) as unknown as Mock<(...args: Array<never>) => unknown>;
 
     const answer: Answer = await call(
       "/user/:userId/send-password-reset-link",

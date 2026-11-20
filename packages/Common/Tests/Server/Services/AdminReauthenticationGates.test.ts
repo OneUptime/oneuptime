@@ -20,7 +20,6 @@ import GlobalOidcService from "../../../Server/Services/GlobalOidcService";
 import GlobalSsoService from "../../../Server/Services/GlobalSsoService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserService from "../../../Server/Services/UserService";
-import CreateBy from "../../../Server/Types/Database/CreateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import {
   OnCreate,
@@ -543,9 +542,7 @@ describe("deleting your own account (Danger Zone > Delete Account, #10220)", () 
 
   test("a master admin deleting someone else's account, and a root delete, are as they were", async () => {
     await expect(
-      userHooks.onBeforeDelete(
-        userDelete(masterAdmin(), REAUTH_OTHER_USER_ID),
-      ),
+      userHooks.onBeforeDelete(userDelete(masterAdmin(), REAUTH_OTHER_USER_ID)),
     ).resolves.toBeDefined();
 
     await expect(
@@ -615,9 +612,9 @@ describe.each([
         .mockReturnValue(undefined);
     });
 
-    const create: (props: DatabaseCommonInteractionProps) => OnCreate<
-      GlobalSso | GlobalOidc
-    > = (
+    const create: (
+      props: DatabaseCommonInteractionProps,
+    ) => OnCreate<GlobalSso | GlobalOidc> = (
       props: DatabaseCommonInteractionProps,
     ): OnCreate<GlobalSso | GlobalOidc> => {
       return {
@@ -626,9 +623,9 @@ describe.each([
       } as unknown as OnCreate<GlobalSso | GlobalOidc>;
     };
 
-    const update: (props: DatabaseCommonInteractionProps) => UpdateBy<
-      GlobalSso | GlobalOidc
-    > = (
+    const update: (
+      props: DatabaseCommonInteractionProps,
+    ) => UpdateBy<GlobalSso | GlobalOidc> = (
       props: DatabaseCommonInteractionProps,
     ): UpdateBy<GlobalSso | GlobalOidc> => {
       return {
@@ -640,9 +637,9 @@ describe.each([
       } as unknown as UpdateBy<GlobalSso | GlobalOidc>;
     };
 
-    const remove: (props: DatabaseCommonInteractionProps) => DeleteBy<
-      GlobalSso | GlobalOidc
-    > = (
+    const remove: (
+      props: DatabaseCommonInteractionProps,
+    ) => DeleteBy<GlobalSso | GlobalOidc> = (
       props: DatabaseCommonInteractionProps,
     ): DeleteBy<GlobalSso | GlobalOidc> => {
       return {
@@ -693,7 +690,9 @@ describe.each([
         await refusalOf(hooks.onBeforeDelete(remove(masterAdmin()))),
         ReauthenticationPurpose.AdminChange,
       );
-      expect(GlobalSsoProviderChanges.beforeProviderDelete).not.toHaveBeenCalled();
+      expect(
+        GlobalSsoProviderChanges.beforeProviderDelete,
+      ).not.toHaveBeenCalled();
 
       await confirm();
 

@@ -9,12 +9,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import AmazonSesAuthenticationType from "../../../Types/Email/AmazonSesAuthenticationType";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import {
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { beforeEach, describe, expect, test } from "@jest/globals";
 import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
 
 /*

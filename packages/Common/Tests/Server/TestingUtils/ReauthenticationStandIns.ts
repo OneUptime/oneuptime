@@ -7,6 +7,8 @@ import UserTwoFactorBackupCodeService from "../../../Server/Services/UserTwoFact
 import UserWebAuthnService from "../../../Server/Services/UserWebAuthnService";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import SsoRequiredSignIn from "../../../Server/Utils/SsoRequiredSignIn";
+import ReauthenticationSignedOutEmail from "../../../Server/Utils/Reauthentication/SignedOutEmail";
+import TwoFactorBackupCodeNotification from "../../../Server/Utils/TwoFactorBackupCodeNotification";
 import IdentityRateLimit, {
   IdentityRateLimitOutcome,
 } from "../../../Server/Middleware/IdentityRateLimit";
@@ -256,6 +258,14 @@ export interface StandInAccountSpies {
   >;
   verifyKey: SpyInstance<typeof UserWebAuthnService.verifyReauthentication>;
   rateLimit: SpyInstance<typeof IdentityRateLimit.consume>;
+  /*
+   * The emails to the account's owner (#10218, #10219), held back: a suite
+   * about them restores these and sees them sent.
+   */
+  notifySignedOut: SpyInstance<typeof ReauthenticationSignedOutEmail.notify>;
+  notifyCodeUsed: SpyInstance<
+    typeof TwoFactorBackupCodeNotification.notifyCodeUsed
+  >;
 }
 
 /*
@@ -373,5 +383,11 @@ export function standInAccount(
     rateLimit: jest
       .spyOn(IdentityRateLimit, "consume")
       .mockResolvedValue({ outcome: IdentityRateLimitOutcome.Allowed }),
+    notifySignedOut: jest
+      .spyOn(ReauthenticationSignedOutEmail, "notify")
+      .mockResolvedValue(true),
+    notifyCodeUsed: jest
+      .spyOn(TwoFactorBackupCodeNotification, "notifyCodeUsed")
+      .mockResolvedValue(true),
   };
 }

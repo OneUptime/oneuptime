@@ -31,6 +31,10 @@ import Reauthentication, {
   ReauthenticationSession,
 } from "../../../../Server/Utils/Reauthentication/Reauthentication";
 import TotpAuth from "../../../../Server/Utils/TotpAuth";
+import ReauthenticationSignedOutEmail from "../../../../Server/Utils/Reauthentication/SignedOutEmail";
+import TwoFactorBackupCodeNotification, {
+  BackupCodeUse,
+} from "../../../../Server/Utils/TwoFactorBackupCodeNotification";
 import TwoFactorWrongCodes from "../../../../Server/Utils/TwoFactorWrongCodes";
 import User from "../../../../Models/DatabaseModels/User";
 import UserSession from "../../../../Models/DatabaseModels/UserSession";
@@ -300,6 +304,10 @@ let revokeSession: SpyInstance<
   typeof UserSessionService.revokeLiveSessionOfUser
 >;
 let verifyPassword: SpyInstance<typeof UserService.verifyHashedColumnValue>;
+let notifySignedOut: SpyInstance<typeof ReauthenticationSignedOutEmail.notify>;
+let notifyCodeUsed: SpyInstance<
+  typeof TwoFactorBackupCodeNotification.notifyCodeUsed
+>;
 let consumeBackupCode: SpyInstance<
   typeof UserTwoFactorBackupCodeService.consumeCode
 >;
@@ -431,6 +439,17 @@ beforeEach(() => {
   revokeSession = jest
     .spyOn(UserSessionService, "revokeLiveSessionOfUser")
     .mockResolvedValue(true as never);
+
+  /*
+   * The emails to the account's owner (#10218, #10219), held back here:
+   * what they say is ReauthenticationEmails.test.ts.
+   */
+  notifySignedOut = jest
+    .spyOn(ReauthenticationSignedOutEmail, "notify")
+    .mockResolvedValue(true);
+  notifyCodeUsed = jest
+    .spyOn(TwoFactorBackupCodeNotification, "notifyCodeUsed")
+    .mockResolvedValue(true);
 
   verifyPassword = jest
     .spyOn(UserService, "verifyHashedColumnValue")
@@ -878,6 +897,8 @@ describe("a confirmation with the password", () => {
 
       expect(refusal.message).toBe(REAUTHENTICATION_MESSAGES.wrongPassword);
       expect(revokeSession).not.toHaveBeenCalled();
+      // A wrong attempt below the limit tells nobody (#10218).
+      expect(notifySignedOut).not.toHaveBeenCalled();
     }
 
     const last: Exception = await refusalOf(
@@ -900,6 +921,34 @@ describe("a confirmation with the password", () => {
         requestOrigin: { ipAddress: "203.0.113.9" },
       },
     );
+
+    // The owner is told, once, from where (#10218).
+    expect(notifySignedOut).toHaveBeenCalledTimes(1);
+    expect(notifySignedOut).toHaveBeenCalledWith({
+      userId: USER_ID,
+      origin: { ipAddress: "203.0.113.9" },
+    });
+  });
+
+  test("a session that had already ended when its attempt reached the limit tells nobody again (#10218)", async () => {
+    revokeSession.mockResolvedValue(false as never);
+
+    for (
+      let i: number = 0;
+      i < REAUTHENTICATION_FAILURES_BEFORE_SIGN_OUT;
+      i++
+    ) {
+      await refusalOf(
+        Reauthentication.confirm({
+          session: SESSION,
+          proof: { password: `wrong ${i}` },
+          clientIp: "203.0.113.9",
+        }),
+      );
+    }
+
+    expect(revokeSession).toHaveBeenCalledTimes(1);
+    expect(notifySignedOut).not.toHaveBeenCalled();
   });
 
   test("the owner is never locked out: nothing about the account's sign-in moves, and another session confirms as before", async () => {
@@ -1072,9 +1121,17 @@ describe("a confirmation while two-factor authentication is on", () => {
       userId: USER_ID,
       code: RIGHT_BACKUP_CODE,
     });
+
+    // Spent, as a sign-in spends one: its owner is told, once (#10219).
+    expect(notifyCodeUsed).toHaveBeenCalledTimes(1);
+    expect(notifyCodeUsed).toHaveBeenCalledWith({
+      userId: USER_ID,
+      usedFor: BackupCodeUse.ConfirmItsYou,
+      origin: undefined,
+    });
   });
 
-  test("a wrong or used backup code is said", async () => {
+  test("a wrong or used backup code is said, and tells the owner nothing", async () => {
     expect(
       (
         await refusalOf(
@@ -1086,6 +1143,7 @@ describe("a confirmation while two-factor authentication is on", () => {
         )
       ).message,
     ).toBe(REAUTHENTICATION_MESSAGES.wrongBackupCode);
+    expect(notifyCodeUsed).not.toHaveBeenCalled();
   });
 
   test("the security key confirms with the password: its answer is checked for this session, as a second step", async () => {
@@ -1545,9 +1603,9 @@ describe("Sign In Again counts only when it proved its person was asked (#10217)
 
     useAccount({ ...SSO_ONLY_ACCOUNT, signedInWith: "GlobalOidc" });
 
-    expect(
-      (await Reauthentication.getStatus(SESSION)).signInAgain?.route,
-    ).toBe(`/global-oidc/${PROVIDER_ID.toString()}`);
+    expect((await Reauthentication.getStatus(SESSION)).signInAgain?.route).toBe(
+      `/global-oidc/${PROVIDER_ID.toString()}`,
+    );
   });
 
   test("a sign-in link, or a session that does not say, goes to the sign-in page", async () => {

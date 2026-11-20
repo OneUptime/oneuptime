@@ -13,6 +13,10 @@ import GlobalConfigService from "../../Services/GlobalConfigService";
 import logger from "../Logger";
 import SsoRequiredSignIn from "../SsoRequiredSignIn";
 import TotpAuth from "../TotpAuth";
+import TwoFactorBackupCodeNotification, {
+  BackupCodeUse,
+} from "../TwoFactorBackupCodeNotification";
+import ReauthenticationSignedOutEmail from "./SignedOutEmail";
 import User from "../../../Models/DatabaseModels/User";
 import UserSession from "../../../Models/DatabaseModels/UserSession";
 import UserTotpAuth from "../../../Models/DatabaseModels/UserTotpAuth";
@@ -524,6 +528,7 @@ export default class Reauthentication {
       methods: methods,
       proofKind: proofKind,
       proof: data.proof,
+      requestOrigin: data.requestOrigin,
     });
 
     if (wrong !== null) {
@@ -786,6 +791,7 @@ export default class Reauthentication {
     methods: ReauthenticationMethods;
     proofKind: ProofKind;
     proof: ReauthenticationProof;
+    requestOrigin?: RequestOrigin | undefined;
   }): Promise<string | null> {
     if (data.proofKind === ProofKind.Passkey) {
       return await Reauthentication.checkKey({
@@ -817,12 +823,30 @@ export default class Reauthentication {
     }
 
     if (typeof data.proof.backupCode === "string" && data.proof.backupCode) {
-      return (await UserTwoFactorBackupCodeService.consumeCode({
+      const isSpent: boolean = await UserTwoFactorBackupCodeService.consumeCode(
+        {
+          userId: data.session.userId,
+          code: data.proof.backupCode,
+        },
+      );
+
+      if (!isSpent) {
+        return REAUTHENTICATION_MESSAGES.wrongBackupCode;
+      }
+
+      /*
+       * Spent, as a sign-in spends one: its owner hears of it at the address
+       * on the account, with how many are left (#10219). Never waited for -
+       * the code is gone, and the confirmation stands whatever the mail
+       * server does.
+       */
+      void TwoFactorBackupCodeNotification.notifyCodeUsed({
         userId: data.session.userId,
-        code: data.proof.backupCode,
-      }))
-        ? null
-        : REAUTHENTICATION_MESSAGES.wrongBackupCode;
+        usedFor: BackupCodeUse.ConfirmItsYou,
+        origin: data.requestOrigin,
+      });
+
+      return null;
     }
 
     return (await Reauthentication.isAuthenticatorCodeRight(
@@ -944,27 +968,40 @@ export default class Reauthentication {
     }
   }
 
-  // The session that used its allowance up ends, and the browser is signed out.
+  /*
+   * The session that used its allowance up ends, and the browser is signed
+   * out. Its owner is emailed (#10218, ./SignedOutEmail) - once for the
+   * session, only by the attempt that ended it live, never by one that came
+   * after - and never waited for.
+   */
   private static async endSession(data: {
     session: ReauthenticationSession;
     requestOrigin?: RequestOrigin | undefined;
   }): Promise<never> {
-    await UserSessionService.revokeLiveSessionOfUser(
-      {
-        userId: data.session.userId,
-        sessionId: data.session.sessionId,
-      },
-      {
-        cause: SessionEndCause.ReauthenticationFailed,
-        requestOrigin: data.requestOrigin,
-      },
-    );
+    const isEndedNow: boolean =
+      await UserSessionService.revokeLiveSessionOfUser(
+        {
+          userId: data.session.userId,
+          sessionId: data.session.sessionId,
+        },
+        {
+          cause: SessionEndCause.ReauthenticationFailed,
+          requestOrigin: data.requestOrigin,
+        },
+      );
 
     await Reauthentication.forgetAttempts(data.session.sessionId);
 
     logger.info(
       `A session of user ${data.session.userId.toString()} was signed out after ${REAUTHENTICATION_FAILURES_BEFORE_SIGN_OUT} wrong attempts to confirm it was theirs.`,
     );
+
+    if (isEndedNow) {
+      void ReauthenticationSignedOutEmail.notify({
+        userId: data.session.userId,
+        origin: data.requestOrigin,
+      });
+    }
 
     throw new NotAuthenticatedException(REAUTHENTICATION_MESSAGES.signedOut);
   }

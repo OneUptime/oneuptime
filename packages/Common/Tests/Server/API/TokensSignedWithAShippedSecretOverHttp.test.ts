@@ -44,7 +44,6 @@ import http from "http";
 import jwt from "jsonwebtoken";
 import { AddressInfo } from "net";
 
-
 /*
  * The same refusal as Tests/Server/Middleware/TokensSignedWithAShippedSecret,
  * over HTTP, on the routes a stranger with such a token would go for.
