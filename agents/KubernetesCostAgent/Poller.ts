@@ -65,8 +65,8 @@ export class Poller {
    * cloud bill (#9969, EngineCorrections), and what came of it.
    */
   private readonly corrections: CorrectionSchedule;
-  // Where this process's first window starts: a previous one shipped before.
-  private readonly firstWindowStartMs: number;
+  // The engines, by address, this process has seen reconcile with a bill.
+  private readonly reconcilingEngines: Set<string> = new Set<string>();
   private correctionsSeeded: boolean = false;
   private windowsCorrected: number = 0;
   private lastCorrectionErr: string | null = null;
@@ -87,7 +87,6 @@ export class Poller {
       0,
       latestClosed - LOOKBACK_WINDOWS * WINDOW_SECONDS * 1000,
     );
-    this.firstWindowStartMs = this.checkpointMs;
   }
 
   public lastError(): string | null {
@@ -161,9 +160,14 @@ export class Poller {
 
   /*
    * A window just shipped from a Kubecost that reconciles its prices with a
-   * cloud bill is read again once it has (#9969). The first such window
-   * also hands the schedule the hours a previous process may have shipped,
-   * which this one never saw.
+   * cloud bill is read again once it has (#9969). So is one from a Kubecost
+   * this process has seen reconcile: its word on the bill comes from an API
+   * of its own (/model/cloudCost/status), and a moment that API does not
+   * answer must not cost an hour its later readings. The first such window
+   * also hands the schedule the hours before it that this process did not
+   * track: those a previous process may have shipped, and its own while the
+   * engine could not say yet (a Kubecost 3 says nothing for its first twenty
+   * minutes).
    */
   private trackForCorrection(data: {
     windowStartMs: number;
@@ -171,10 +175,6 @@ export class Poller {
     rows: Array<KubernetesCostAllocationIngestRow>;
     costEngine: KubernetesCostEngineInfo | undefined;
   }): void {
-    if (data.costEngine?.pricingSource !== "billing-integration") {
-      return;
-    }
-
     const engineUrl: string =
       typeof this.engine.engineUrl === "function"
         ? this.engine.engineUrl() || ""
@@ -184,10 +184,18 @@ export class Poller {
       return;
     }
 
+    if (data.costEngine?.pricingSource === "billing-integration") {
+      this.reconcilingEngines.add(engineUrl);
+    }
+
+    if (!this.reconcilingEngines.has(engineUrl)) {
+      return;
+    }
+
     if (!this.correctionsSeeded) {
       this.correctionsSeeded = true;
       this.corrections.seed({
-        throughMs: this.firstWindowStartMs,
+        throughMs: data.windowStartMs,
         windowMs: WINDOW_SECONDS * 1000,
         engineUrl,
       });

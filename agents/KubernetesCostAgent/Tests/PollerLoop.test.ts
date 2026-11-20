@@ -600,13 +600,31 @@ class ReconcilingEngineStub extends EngineStub {
   // What every other later reading answers, when set.
   public everyOtherReading: CorrectionReading | null = null;
   public rereads: Array<{ windowStart: Date; engineUrl: string }> = [];
+  /*
+   * Where the prices of the window read last come from, when it differs
+   * from window to window: what describe() says after that read.
+   */
+  public pricingOf:
+    | ((windowStartMs: number) => KubernetesCostEngineInfo["pricingSource"])
+    | null = null;
+  private lastReadStartMs: number = 0;
+
+  public override async fetchAllocations(data: {
+    windowStart: Date;
+    windowEnd: Date;
+  }): Promise<Array<EngineAllocation>> {
+    this.lastReadStartMs = data.windowStart.getTime();
+    return super.fetchAllocations(data);
+  }
 
   public describe(): KubernetesCostEngineInfo {
     return {
       engine: "Kubecost",
       service: "kubecost/kubecost-cost-analyzer",
       bundledEngineUnused: true,
-      pricingSource: this.pricingSource,
+      pricingSource: this.pricingOf
+        ? this.pricingOf(this.lastReadStartMs)
+        : this.pricingSource,
       pricingProvider: "AWS",
     };
   }
@@ -981,4 +999,76 @@ test("the first hour from a Kubecost that reads the bill brings in the hours a p
   // And this process's own windows keep what they shipped.
   assert.ok(corrections.get(firstShippedStart)?.fingerprint);
   assert.ok(corrections.size() > firstReadings(shipper).length);
+});
+
+test("an hour shipped while a Kubecost that reconciles could not say so is still read again", async (): Promise<void> => {
+  const engine: ReconcilingEngineStub = new ReconcilingEngineStub();
+  const shipper: ShipperStub = new ShipperStub();
+  const { tick, corrections } = makeCorrectingPoller(engine, shipper);
+
+  // The first window says it reads the bill; the next, its bill API was away.
+  let first: number | null = null;
+  engine.pricingOf = (windowStartMs: number) => {
+    first = first === null ? windowStartMs : first;
+    return windowStartMs === first ? "billing-integration" : "list-prices";
+  };
+
+  await tick();
+
+  const shipped: Array<number> = firstReadings(shipper).map(
+    (call: ShipCall): number => {
+      return Date.parse(call.rows[0]!.windowStart);
+    },
+  );
+  assert.ok(shipped.length >= 2);
+
+  // Every one is owed its later readings, with what it shipped.
+  for (const hour of shipped) {
+    assert.ok(corrections.get(hour)?.fingerprint, `hour ${hour} is tracked`);
+  }
+});
+
+test("the hours shipped before a Kubecost first said it reconciles are read again too", async (): Promise<void> => {
+  const engine: ReconcilingEngineStub = new ReconcilingEngineStub();
+  const shipper: ShipperStub = new ShipperStub();
+  const { tick, corrections } = makeCorrectingPoller(engine, shipper);
+
+  // A Kubecost 3 says nothing for its first twenty minutes.
+  let first: number | null = null;
+  engine.pricingOf = (windowStartMs: number) => {
+    first = first === null ? windowStartMs : first;
+    return windowStartMs === first ? "unknown" : "billing-integration";
+  };
+
+  await tick();
+
+  const shipped: Array<number> = firstReadings(shipper)
+    .map((call: ShipCall): number => {
+      return Date.parse(call.rows[0]!.windowStart);
+    })
+    .sort();
+  assert.ok(shipped.length >= 2);
+
+  // The one priced "unknown" is owed a reading, as one a previous process shipped.
+  const earliest: CorrectionWindow | undefined = corrections.get(shipped[0]!);
+  assert.ok(earliest);
+  assert.strictEqual(earliest!.fingerprint, null);
+  // The ones after it keep what they shipped.
+  for (const hour of shipped.slice(1)) {
+    assert.ok(corrections.get(hour)?.fingerprint);
+  }
+});
+
+test("a Kubecost never seen reconciling has none of its hours read again", async (): Promise<void> => {
+  const engine: ReconcilingEngineStub = new ReconcilingEngineStub();
+  engine.pricingOf = () => {
+    return "list-prices";
+  };
+  const shipper: ShipperStub = new ShipperStub();
+  const { tick, corrections } = makeCorrectingPoller(engine, shipper);
+
+  await tick();
+  await tick();
+
+  assert.strictEqual(corrections.size(), 0);
 });
