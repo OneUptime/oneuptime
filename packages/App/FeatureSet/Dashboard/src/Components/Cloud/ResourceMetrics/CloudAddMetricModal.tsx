@@ -40,7 +40,9 @@ import { addCloudResourceMetric } from "./CloudResourceMetricsApi";
  * A metric with dimensions can be split by one (#9808): a series per value,
  * at most CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES a resource, each charted and
  * judged on its own - and each choice's cost counts every series. A metric
- * its cloud reads only split offers no "Don't split".
+ * its cloud reads only split offers no "Don't split". On Google Cloud, which
+ * bills every series a call returns, the busiest values alone are asked
+ * for, and the dialog says so, with what that costs at most (#10076).
  */
 export interface ComponentProps {
   cloudResourceId: ObjectID;
@@ -55,6 +57,19 @@ export interface ComponentProps {
 export const CLOUD_ADD_METRIC_MODAL_TEST_ID: string = "cloud-add-metric-modal";
 
 const DONT_SPLIT: string = translationKey("Don't split");
+const SPLIT_HELP: string = translationKey(
+  "A series for each value, up to {{max}} for each resource, to chart and alert on.",
+);
+const SPLIT_REQUIRED_HELP: string = translationKey(
+  "Its cloud reads it only split. A series for each value, up to {{max}} for each resource, to chart and alert on.",
+);
+/*
+ * Google Cloud bills every series a call returns: a split is asked for each
+ * resource's busiest values alone, learned again every hour (#10076).
+ */
+const GCP_SPLIT_HELP: string = translationKey(
+  "A series for each of the {{max}} busiest values on each resource, checked every hour, so Google Cloud bills those alone.",
+);
 
 const CloudAddMetricModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -76,6 +91,8 @@ const CloudAddMetricModal: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const isAws: boolean =
     props.listing.provider.toLowerCase() === CloudProvider.AWS;
+  const isGcp: boolean =
+    props.listing.provider.toLowerCase() === CloudProvider.GCP;
   const name: string = props.metric.displayName || props.metric.name;
 
   const split: CloudPublishedMetricSplit | undefined = splits.find(
@@ -204,24 +221,22 @@ const CloudAddMetricModal: FunctionComponent<ComponentProps> = (
             >
               {translator.translateText("Split by")}
             </label>
-            <p className="mt-0.5 text-xs text-gray-500">
-              {props.metric.isSplitRequired
-                ? translator.translateTemplate(
-                    "Its cloud reads it only split. A series for each value, up to {{max}} for each resource, to chart and alert on.",
-                    {
-                      max: translator.formatNumber(
-                        CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
-                      ),
-                    },
-                  )
-                : translator.translateTemplate(
-                    "A series for each value, up to {{max}} for each resource, to chart and alert on.",
-                    {
-                      max: translator.formatNumber(
-                        CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
-                      ),
-                    },
-                  )}
+            <p
+              className="mt-0.5 text-xs text-gray-500"
+              data-testid="cloud-add-metric-split-help"
+            >
+              {translator.translateTemplate(
+                props.metric.isSplitRequired
+                  ? SPLIT_REQUIRED_HELP
+                  : isGcp
+                    ? GCP_SPLIT_HELP
+                    : SPLIT_HELP,
+                {
+                  max: translator.formatNumber(
+                    CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
+                  ),
+                },
+              )}
             </p>
             <div className="mt-2 max-w-xs">
               <Dropdown
