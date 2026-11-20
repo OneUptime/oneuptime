@@ -60467,5 +60467,9 @@
   "Run this in Cloud Shell, in the project to monitor. It creates a service account with the access below, and prints its key.": "Voer dit uit in Cloud Shell, in het project dat u wilt bewaken. Het maakt een serviceaccount met de toegang hieronder en toont de sleutel ervan.",
   "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "Voer dit uit in Google Cloud Shell in een project van je organisatie, als iemand die er rollen mag toekennen. Het maakt een serviceaccount met de toegang hieronder op elk project en toont de sleutel ervan.",
   "Arrived": "Binnengekomen",
-  "Searched what arrived {{start}} to {{end}}": "Doorzocht wat binnenkwam: {{start}} tot {{end}}"
+  "Searched what arrived {{start}} to {{end}}": "Doorzocht wat binnenkwam: {{start}} tot {{end}}",
+  "Evaluating Until": "Wordt geëvalueerd tot",
+  "Last Failed At": "Laatst mislukt op",
+  "Recent Firing Keys": "Recent verwerkte activeringen",
+  "The last run failed. It is tried again at its next interval, or within the hour if that is longer, and then checks every event it missed. Open View Error for the full message.": "De laatste uitvoering is mislukt. Die wordt bij het volgende interval opnieuw geprobeerd, of binnen het uur als dat langer is, en controleert dan elke gebeurtenis die ze miste. Open Fout bekijken voor het volledige bericht."
 }

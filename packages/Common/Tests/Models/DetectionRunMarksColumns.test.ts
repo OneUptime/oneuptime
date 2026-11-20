@@ -63,9 +63,9 @@ describe("DetectionRule.evaluatingUntil", () => {
   test("is a date, empty until a run marks a stretch", () => {
     expect(metadata().type).toBe(TableColumnType.Date);
     expect(metadata().required).toBe(false);
-    expect(typeOrmColumn(DetectionRule, "evaluatingUntil")?.options.nullable).toBe(
-      true,
-    );
+    expect(
+      typeOrmColumn(DetectionRule, "evaluatingUntil")?.options.nullable,
+    ).toBe(true);
     expect(
       typeOrmColumn(DetectionRule, "evaluatingUntil")?.options.default,
     ).toBeUndefined();
@@ -80,6 +80,47 @@ describe("DetectionRule.evaluatingUntil", () => {
     expect(access).toEqual(
       new DetectionRule().getColumnAccessControlFor("lastEvaluatedAt"),
     );
+  });
+});
+
+describe("DetectionRule.lastFailedAt (#10490)", () => {
+  test("is a date, empty while the rule's last run worked", () => {
+    expect(
+      new DetectionRule().getTableColumnMetadata("lastFailedAt").type,
+    ).toBe(TableColumnType.Date);
+    expect(typeOrmColumn(DetectionRule, "lastFailedAt")?.options.nullable).toBe(
+      true,
+    );
+  });
+
+  test("is written by the detection engine alone, and read as lastEvaluatedAt is", () => {
+    expect(
+      new DetectionRule().getColumnAccessControlFor("lastFailedAt"),
+    ).toEqual(new DetectionRule().getColumnAccessControlFor("lastEvaluatedAt"));
+  });
+
+  test("its migration adds it, nullable, and is registered after the marks'", () => {
+    const migration: string = fs.readFileSync(
+      path.join(
+        SCHEMA_MIGRATIONS_DIRECTORY,
+        "1809187220000-AddDetectionRuleLastFailedAt.ts",
+      ),
+      "utf8",
+    );
+    const index: string = fs.readFileSync(
+      path.join(SCHEMA_MIGRATIONS_DIRECTORY, "Index.ts"),
+      "utf8",
+    );
+
+    expect(migration).toContain(
+      'ALTER TABLE "DetectionRule" ADD "lastFailedAt" TIMESTAMP WITH TIME ZONE`',
+    );
+    expect(migration).toContain(
+      'ALTER TABLE "DetectionRule" DROP COLUMN "lastFailedAt"',
+    );
+    expect(
+      index.indexOf("  AddDetectionRuleLastFailedAt1809187220000,"),
+    ).toBeGreaterThan(index.indexOf(`  ${MIGRATION_NAME},`));
   });
 });
 

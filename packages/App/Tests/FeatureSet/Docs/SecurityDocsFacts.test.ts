@@ -91,16 +91,25 @@ import {
   DETECTION_MAX_FINDINGS_PER_EVALUATION,
   DETECTION_MAX_GROUPS_PER_EVALUATION,
   DETECTION_MAX_LOOKBACK_IN_MINUTES,
+  DETECTION_RETRY_AFTER_FAILURE_IN_MINUTES,
   DETECTION_RULE_ID_ATTRIBUTE,
   DETECTION_RULE_NAME_ATTRIBUTE,
   DETECTION_SIGMA_ID_ATTRIBUTE,
 } from "Common/Types/SecurityEvent/DetectionFindingConstants";
 import {
+  getDetectionRetryAt,
+  getNextStretch,
+  getScheduledArrivalRange,
+} from "Common/Server/Utils/SecurityEvent/DetectionRuleEvaluator";
+import {
   DETECTION_REAL_TIME_RULES_MAX,
   REAL_TIME_REGULAR_EXPRESSION_PROBLEM,
   getRealTimeCountWindow,
 } from "Common/Types/SecurityEvent/RealTimeDetection";
-import { DETECTION_RULE_REAL_TIME } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityDetectionStatus";
+import {
+  DETECTION_RULE_REAL_TIME,
+  DETECTION_RULE_RUN_FAILED_TRIED_AGAIN,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityDetectionStatus";
 import {
   RESPONSE_STEPS_TITLE,
   RESPONSE_STEP_MOVE_DOWN,
@@ -1832,10 +1841,29 @@ describe("the Security Events page", () => {
     expect(job).toContain(
       "DetectionRuleEvaluator.evaluateDueRulesForProject(projectId, lease)",
     );
-    // What arrived since the last run (#10337), at most a day back.
-    expect(evaluator).toContain(
-      "let arrivedAfter: Date = lastRun && !Number.isNaN(lastRun.getTime()) ? floorToSecond(lastRun) : OneUptimeDate.addRemoveMinutes( arrivedUntil, -Math.max(1, data.evaluationIntervalInMinutes || 1), ); if (OneUptimeDate.isBefore(arrivedAfter, earliest)) { arrivedAfter = earliest; }",
-    );
+    /*
+     * What arrived since the last run (#10337), at most a day back - unless
+     * the rule's runs have been failing, when it reads everything since its
+     * last good one (#10490).
+     */
+    const runNow: Date = new Date("2026-11-04T09:02:00.000Z");
+    const weekAgo: Date = new Date("2026-10-28T09:00:00.000Z");
+
+    expect(
+      getScheduledArrivalRange({
+        now: runNow,
+        lastEvaluatedAt: weekAgo,
+        evaluationIntervalInMinutes: 5,
+      }).arrivedAfter,
+    ).toEqual(new Date("2026-11-03T09:00:00.000Z"));
+    expect(
+      getScheduledArrivalRange({
+        now: runNow,
+        lastEvaluatedAt: weekAgo,
+        evaluationIntervalInMinutes: 5,
+        lastFailedAt: new Date("2026-11-04T08:30:00.000Z"),
+      }).arrivedAfter,
+    ).toEqual(weekAgo);
     /*
      * ...whenever it happened, as long as it arrived within a day of that:
      * the condition a rule's run and a hunt's run both read by
@@ -1899,6 +1927,29 @@ describe("the Security Events page", () => {
     );
     expect(page).toContain(
       "the next run covers the whole gap, up to the last 24 hours.",
+    );
+    /*
+     * A run that fails backs off and catches up, never skipping (#10490), and
+     * one stopped after it acted is redone once (#10489).
+     */
+    expect(DETECTION_RETRY_AFTER_FAILURE_IN_MINUTES).toBe(60);
+    expect(
+      getDetectionRetryAt({
+        lastFailedAt: new Date("2026-11-04T09:00:00.000Z"),
+        evaluationIntervalInMinutes: 1440,
+      }),
+    ).toEqual(new Date("2026-11-04T10:00:00.000Z"));
+    expect(
+      getNextStretch(
+        new Date("2026-11-01T09:00:00.000Z"),
+        new Date("2026-11-04T09:00:00.000Z"),
+      ).arrivedUntil,
+    ).toEqual(new Date("2026-11-02T09:00:00.000Z"));
+    expect(evaluator).toContain(
+      "lastFailedAt: OneUptimeDate.getCurrentDate(),",
+    );
+    expect(page).toContain(
+      `- A run that fails, such as one that takes too long, leaves the rule where it was: its **Status** says **${DETECTION_RULE_RUN_FAILED_TRIED_AGAIN.text}**, and it is tried again at its next interval, or within the hour when its interval is longer. The run that works reads everything that arrived since the last one that did, however long ago, a day at a time. A run stopped after it acted on its matches is done again without adding them to their case twice.`,
     );
     expect(page).toContain(
       "- Every group that reaches the threshold becomes a Detection Finding, up to 10,000 a run. Alerts, incidents and cases open for the 100 with the highest counts; the rest share one case about the rule, and the rule's **Last Error** says how many groups matched.",

@@ -60467,5 +60467,9 @@
   "Run this in Cloud Shell, in the project to monitor. It creates a service account with the access below, and prints its key.": "Exécutez ceci dans Cloud Shell, dans le projet à surveiller. Cela crée un compte de service doté de l'accès ci-dessous, et affiche sa clé.",
   "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "Exécutez ceci dans Google Cloud Shell, dans un projet de votre organisation, en tant que personne autorisée à y attribuer des rôles. Cela crée un compte de service doté de l'accès ci-dessous sur chaque projet, et affiche sa clé.",
   "Arrived": "Arrivés",
-  "Searched what arrived {{start}} to {{end}}": "Recherche dans ce qui est arrivé : {{start}} à {{end}}"
+  "Searched what arrived {{start}} to {{end}}": "Recherche dans ce qui est arrivé : {{start}} à {{end}}",
+  "Evaluating Until": "Évaluation en cours jusqu'au",
+  "Last Failed At": "Dernier échec le",
+  "Recent Firing Keys": "Déclenchements récents pris en compte",
+  "The last run failed. It is tried again at its next interval, or within the hour if that is longer, and then checks every event it missed. Open View Error for the full message.": "La dernière exécution a échoué. Elle est relancée à son prochain intervalle, ou dans l'heure si celui-ci est plus long, puis vérifie chaque événement manqué. Ouvrez Voir l'erreur pour lire le message complet."
 }

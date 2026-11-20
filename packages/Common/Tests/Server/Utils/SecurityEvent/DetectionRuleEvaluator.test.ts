@@ -29,11 +29,16 @@ import DetectionRuleEvaluator, {
   getArrivalEventTimeBounds,
   getDetectionFiringKey,
   getDetectionOverflowFiringKey,
+  getDetectionRetryAt,
+  getDetectionRuleDueTime,
+  getNextStretch,
   getScheduledArrivalRange,
   getStretchToJudgeAgain,
+  isCatchingUpAfterFailures,
   pickArrivalWindows,
 } from "../../../../Server/Utils/SecurityEvent/DetectionRuleEvaluator";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
+import DetectionRuleExceptions from "../../../../Server/Utils/SecurityEvent/DetectionRuleExceptions";
 import { MAX_SECURITY_EVENT_FUTURE_SKEW_IN_MINUTES } from "../../../../Server/Utils/SecurityEvent/SecurityEventRow";
 import SecurityProjectWork, {
   SECURITY_PROJECT_WORK_LEASE_TIMEOUT_IN_MS,
@@ -73,6 +78,7 @@ import {
   DETECTION_MAX_GROUPS_PER_EVALUATION,
   DETECTION_MAX_LOOKBACK_IN_MINUTES,
   DETECTION_MAX_WINDOWS_PER_RUN,
+  DETECTION_RETRY_AFTER_FAILURE_IN_MINUTES,
 } from "../../../../Types/SecurityEvent/DetectionFindingConstants";
 import {
   SIGMA_DEFAULT_LEVEL,
@@ -1006,7 +1012,7 @@ describe("DetectionRuleEvaluator", () => {
       );
       expect(evaluateRuleSpy).not.toHaveBeenCalled();
 
-      // Only what the due check reads, in a stable order, with no cap.
+      // Only what the due check reads (its back-off too, #10490), in a stable order, with no cap.
       expect(findAll).toHaveBeenCalledWith({
         query: { isEnabled: true, isRealTime: false },
         select: {
@@ -1014,6 +1020,7 @@ describe("DetectionRuleEvaluator", () => {
           projectId: true,
           evaluationIntervalInMinutes: true,
           lastEvaluatedAt: true,
+          lastFailedAt: true,
         },
         sort: { _id: SortOrder.Ascending },
         props: { isRoot: true },
@@ -4710,6 +4717,359 @@ describe("DetectionRuleEvaluator", () => {
           }),
         ),
       ).toBe(false);
+    });
+  });
+
+  /*
+   * BACKING OFF (#10490). A rule whose run fails stays where it was, so the
+   * next run judges the same events and nothing is lost (#10337) - but it
+   * was then tried every minute, and each try read a longer stretch. Now it
+   * says when it failed (lastFailedAt) and is tried again at its next
+   * interval, or within the hour when its interval is longer; and the run
+   * that works judges everything since its last good run, however long it
+   * failed, a day at a time, so a failure never skips an event.
+   */
+  describe("a rule whose runs keep failing", () => {
+    const FAILED_AT: Date = new Date("2026-09-18T10:00:00.000Z");
+    const MINUTE: number = 60 * 1000;
+    const DELAY: number = DETECTION_EVALUATION_DELAY_IN_SECONDS * 1000;
+
+    test("is tried again at its next interval, or within the hour when that is longer", () => {
+      expect(DETECTION_RETRY_AFTER_FAILURE_IN_MINUTES).toBe(60);
+
+      for (const [interval, minutes] of [
+        [1, 1],
+        [5, 5],
+        [30, 30],
+        [60, 60],
+        [120, 60],
+        [1440, 60],
+      ] as Array<[number, number]>) {
+        expect(
+          getDetectionRetryAt({
+            lastFailedAt: FAILED_AT,
+            evaluationIntervalInMinutes: interval,
+          }),
+        ).toEqual(new Date(FAILED_AT.getTime() + minutes * MINUTE));
+      }
+
+      // A rule whose last run worked has no retry.
+      expect(
+        getDetectionRetryAt({ evaluationIntervalInMinutes: 60 }),
+      ).toBeNull();
+      expect(
+        getDetectionRetryAt({ lastFailedAt: new Date("never") }),
+      ).toBeNull();
+    });
+
+    test("is due no sooner than its retry, on the clock rules are due by", () => {
+      // Its last good run a day and an hour before: due by its interval an hour ago, and it failed.
+      const lastEvaluatedAt: Date = new Date(
+        FAILED_AT.getTime() - 25 * 60 * MINUTE,
+      );
+
+      // Its interval passed long ago; the retry, an hour after it failed, is what it waits for.
+      expect(
+        getDetectionRuleDueTime({
+          lastEvaluatedAt,
+          lastFailedAt: FAILED_AT,
+          evaluationIntervalInMinutes: 1440,
+        }),
+      ).toBe(FAILED_AT.getTime() + 60 * MINUTE - DELAY);
+
+      // A one-minute rule is tried every minute still.
+      expect(
+        getDetectionRuleDueTime({
+          lastEvaluatedAt,
+          lastFailedAt: FAILED_AT,
+          evaluationIntervalInMinutes: 1,
+        }),
+      ).toBe(FAILED_AT.getTime() + MINUTE - DELAY);
+
+      // A rule whose last run worked is due one interval after it, as always.
+      expect(
+        getDetectionRuleDueTime({
+          lastEvaluatedAt,
+          evaluationIntervalInMinutes: 30,
+        }),
+      ).toBe(lastEvaluatedAt.getTime() + 30 * MINUTE);
+      expect(getDetectionRuleDueTime({})).toBe(0);
+
+      // Its next interval, when that comes after the retry.
+      const justRan: Date = new Date(FAILED_AT.getTime() - MINUTE);
+
+      expect(
+        getDetectionRuleDueTime({
+          lastEvaluatedAt: justRan,
+          lastFailedAt: FAILED_AT,
+          evaluationIntervalInMinutes: 90,
+        }),
+      ).toBe(justRan.getTime() + 90 * MINUTE);
+    });
+
+    test("is catching up while its failures are recent: within the day it is tried at least hourly", () => {
+      expect(
+        isCatchingUpAfterFailures({
+          now: new Date(FAILED_AT.getTime() + 30 * MINUTE),
+          lastFailedAt: FAILED_AT,
+        }),
+      ).toBe(true);
+      expect(
+        isCatchingUpAfterFailures({
+          now: new Date(
+            FAILED_AT.getTime() + DETECTION_MAX_LOOKBACK_IN_MINUTES * MINUTE,
+          ),
+          lastFailedAt: FAILED_AT,
+        }),
+      ).toBe(true);
+      // Failed days ago and not tried since: a rule that was off, or workers that were down.
+      expect(
+        isCatchingUpAfterFailures({
+          now: new Date(
+            FAILED_AT.getTime() +
+              (DETECTION_MAX_LOOKBACK_IN_MINUTES + 1) * MINUTE,
+          ),
+          lastFailedAt: FAILED_AT,
+        }),
+      ).toBe(false);
+      expect(isCatchingUpAfterFailures({ now: FAILED_AT })).toBe(false);
+      expect(
+        isCatchingUpAfterFailures({
+          now: FAILED_AT,
+          lastFailedAt: new Date(FAILED_AT.getTime() + MINUTE),
+        }),
+      ).toBe(false);
+    });
+
+    test("catching up, it judges everything since its last good run, past the day a rule otherwise reads back", () => {
+      const now: Date = new Date(FAILED_AT.getTime() + 10 * MINUTE);
+      const lastGoodRun: Date = new Date(now.getTime() - 3 * 24 * 60 * MINUTE);
+
+      expect(
+        getScheduledArrivalRange({
+          now,
+          lastEvaluatedAt: lastGoodRun,
+          evaluationIntervalInMinutes: 60,
+          lastFailedAt: FAILED_AT,
+        }).arrivedAfter,
+      ).toEqual(lastGoodRun);
+
+      // A failure from before it was turned off: a day back at most, as before.
+      expect(
+        getScheduledArrivalRange({
+          now,
+          lastEvaluatedAt: lastGoodRun,
+          evaluationIntervalInMinutes: 60,
+          lastFailedAt: new Date(now.getTime() - 2 * 24 * 60 * MINUTE),
+        }).arrivedAfter,
+      ).toEqual(
+        new Date(
+          Math.floor((now.getTime() - DELAY) / 1000) * 1000 -
+            DETECTION_MAX_LOOKBACK_IN_MINUTES * MINUTE,
+        ),
+      );
+    });
+
+    test("getNextStretch: a day of arrivals at most", () => {
+      const start: Date = new Date("2026-09-15T10:00:00.000Z");
+      const end: Date = new Date("2026-09-18T11:30:00.000Z");
+
+      expect(getNextStretch(start, end)).toEqual({
+        arrivedAfter: start,
+        arrivedUntil: new Date(
+          start.getTime() + DETECTION_MAX_LOOKBACK_IN_MINUTES * MINUTE,
+        ),
+      });
+
+      const near: Date = new Date(start.getTime() + 5 * MINUTE);
+
+      expect(getNextStretch(start, near)).toEqual({
+        arrivedAfter: start,
+        arrivedUntil: near,
+      });
+    });
+
+    test("a run that fails says when, beside why, and leaves the rule where it was", async () => {
+      const now: Date = new Date("2026-09-18T12:00:30.500Z");
+      getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(
+        now as never,
+      );
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        buildRule({ lastEvaluatedAt: new Date("2026-09-18T11:00:00.000Z") }),
+      ] as never);
+
+      const spies: EvaluationSpies = installSpies();
+      spies.findDetectionMatches.mockRejectedValue(
+        new Error("Timeout exceeded") as never,
+      );
+
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
+
+      const written: JSONObject = (
+        spies.updateOneById.mock.calls[0]?.[0] as { data: JSONObject }
+      ).data;
+
+      expect(written["lastError"]).toBe("Timeout exceeded");
+      expect(written["lastFailedAt"]).toEqual(now);
+      expect(
+        Object.prototype.hasOwnProperty.call(written, "lastEvaluatedAt"),
+      ).toBe(false);
+    });
+
+    test("a run that works clears it: the rule is due on its interval again", async () => {
+      getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(
+        new Date("2026-09-18T12:00:30.500Z") as never,
+      );
+      const spies: EvaluationSpies = installSpies({ groups: [] });
+      const rule: DetectionRule = buildRule({
+        lastEvaluatedAt: new Date("2026-09-18T11:00:00.000Z"),
+      });
+      rule.lastFailedAt = new Date("2026-09-18T11:30:00.000Z");
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      const recorded: JSONObject = (
+        spies.updateOneById.mock.calls[0]?.[0] as { data: JSONObject }
+      ).data;
+
+      expect(recorded["lastFailedAt"]).toBeNull();
+      expect(recorded["lastError"]).toBeNull();
+    });
+
+    test("a turn leaves a failing rule alone until its retry, then runs it", async () => {
+      const failedAt: Date = new Date("2026-09-18T11:00:00.000Z");
+      const rule: DetectionRule = buildRule({
+        // Its last good run more than a day before: its interval came due, and it failed.
+        lastEvaluatedAt: new Date("2026-09-17T08:00:00.000Z"),
+        evaluationIntervalInMinutes: 1440,
+      });
+      rule.lastFailedAt = failedAt;
+
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        rule,
+      ] as never);
+      const evaluateRule: Spy = getJestSpyOn(
+        DetectionRuleEvaluator,
+        "evaluateRule",
+      ).mockResolvedValue({ ruleId: RULE_ID.toString() } as never);
+      const clock: Spy = getJestSpyOn(OneUptimeDate, "getCurrentDate");
+
+      // Half an hour after it failed: not yet, though it used to be tried every minute.
+      clock.mockReturnValue(
+        new Date(failedAt.getTime() + 30 * MINUTE) as never,
+      );
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
+      expect(evaluateRule).not.toHaveBeenCalled();
+
+      // An hour after it failed: tried again.
+      clock.mockReturnValue(
+        new Date(failedAt.getTime() + 60 * MINUTE) as never,
+      );
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
+      expect(evaluateRule).toHaveBeenCalledTimes(1);
+    });
+
+    test("the cron queues a project only once one of its failing rules is due again", async () => {
+      const failedAt: Date = new Date("2026-09-18T11:00:00.000Z");
+      const rule: DetectionRule = buildRule({
+        lastEvaluatedAt: new Date("2026-09-17T08:00:00.000Z"),
+        evaluationIntervalInMinutes: 1440,
+      });
+      rule.lastFailedAt = failedAt;
+
+      const findAll: Spy = getJestSpyOn(
+        DetectionRuleService,
+        "findAllBy",
+      ).mockResolvedValue([rule] as never);
+      const enqueue: Spy = getJestSpyOn(
+        SecurityProjectWork,
+        "enqueueProjects",
+      ).mockResolvedValue(0 as never);
+      const clock: Spy = getJestSpyOn(OneUptimeDate, "getCurrentDate");
+
+      clock.mockReturnValue(
+        new Date(failedAt.getTime() + 30 * MINUTE) as never,
+      );
+      await DetectionRuleEvaluator.enqueueProjectsWithDueRules();
+      clock.mockReturnValue(
+        new Date(failedAt.getTime() + 60 * MINUTE) as never,
+      );
+      await DetectionRuleEvaluator.enqueueProjectsWithDueRules();
+
+      expect(
+        (findAll.mock.calls[0]?.[0] as { select: JSONObject }).select[
+          "lastFailedAt"
+        ],
+      ).toBe(true);
+      expect(
+        enqueue.mock.calls.map((call: Array<unknown>): number => {
+          return (call[1] as Array<unknown>).length;
+        }),
+      ).toEqual([0, 1]);
+    });
+
+    test("catching up after days of failures, a run judges them a day at a time and records each", async () => {
+      const now: Date = new Date("2026-09-18T12:00:30.500Z");
+      getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(
+        now as never,
+      );
+      const spies: EvaluationSpies = installSpies({ groups: [] });
+      const lastGoodRun: Date = new Date("2026-09-15T23:00:00.000Z");
+      const rule: DetectionRule = buildRule({
+        lastEvaluatedAt: lastGoodRun,
+        evaluationIntervalInMinutes: 60,
+      });
+      rule.lastFailedAt = new Date(now.getTime() - 61 * MINUTE);
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      const cursors: Array<unknown> = spies.updateOneById.mock.calls.map(
+        (call: Array<unknown>): unknown => {
+          return (call[0] as { data: JSONObject }).data["lastEvaluatedAt"];
+        },
+      );
+
+      expect(cursors).toEqual([
+        new Date("2026-09-16T23:00:00.000Z"),
+        new Date("2026-09-17T23:00:00.000Z"),
+        new Date("2026-09-18T11:58:30.000Z"),
+      ]);
+    });
+
+    test("a turn reads its rules' exceptions back to the oldest stretch one of them catches up from", async () => {
+      const now: Date = new Date("2026-09-18T12:00:30.500Z");
+      getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(
+        now as never,
+      );
+      const lastGoodRun: Date = new Date("2026-09-15T23:00:00.000Z");
+      const rule: DetectionRule = buildRule({
+        lastEvaluatedAt: lastGoodRun,
+        evaluationIntervalInMinutes: 60,
+      });
+      rule.lastFailedAt = new Date(now.getTime() - 61 * MINUTE);
+
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        rule,
+      ] as never);
+      installSpies({ groups: [] });
+      const loadForProject: Spy = getJestSpyOn(
+        DetectionRuleExceptions,
+        "loadForProject",
+      ).mockResolvedValue(new Map() as never);
+
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
+
+      const read: { from: Date } = loadForProject.mock.calls[0]?.[0] as {
+        from: Date;
+      };
+
+      // A day before the first arrival it judges: the events it judges may have happened then.
+      expect(read.from).toEqual(
+        getArrivalEventTimeBounds({
+          arrivedAfter: lastGoodRun,
+          arrivedUntil: now,
+        }).happenedAfter,
+      );
     });
   });
 });

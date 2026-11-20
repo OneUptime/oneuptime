@@ -664,6 +664,33 @@ export default class DetectionRule extends BaseModel {
   })
   public evaluatingUntil?: Date = undefined;
 
+  /*
+   * When the rule's last scheduled run failed; cleared by the next run that
+   * records where it got to (#10490). A failing rule is tried again at its
+   * next interval, or within the hour when its interval is longer, not every
+   * minute - and its place stays where its last good run left it, so the run
+   * that works judges everything that arrived since, however long it failed.
+   * lastError says why; this says that it failed, and when.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    title: "Last Failed At",
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    description:
+      "When the rule's last scheduled run failed. Null when its last run worked.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lastFailedAt?: Date = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: readPermissions,

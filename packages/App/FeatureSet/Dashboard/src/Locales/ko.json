@@ -60467,5 +60467,9 @@
   "Run this in Cloud Shell, in the project to monitor. It creates a service account with the access below, and prints its key.": "모니터링할 프로젝트의 Cloud Shell에서 실행하세요. 아래 액세스 권한을 가진 서비스 계정을 만들고 키를 출력합니다.",
   "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "조직의 프로젝트에서 조직에 역할을 부여할 수 있는 사용자로 Google Cloud Shell에서 실행하세요. 모든 프로젝트에 대해 아래 액세스 권한을 가진 서비스 계정을 만들고 그 키를 출력합니다.",
   "Arrived": "도착",
-  "Searched what arrived {{start}} to {{end}}": "도착 기간 검색: {{start}} ~ {{end}}"
+  "Searched what arrived {{start}} to {{end}}": "도착 기간 검색: {{start}} ~ {{end}}",
+  "Evaluating Until": "평가 중인 끝 일시",
+  "Last Failed At": "마지막 실패 일시",
+  "Recent Firing Keys": "최근 기록한 발생",
+  "The last run failed. It is tried again at its next interval, or within the hour if that is longer, and then checks every event it missed. Open View Error for the full message.": "마지막 실행이 실패했습니다. 다음 간격에, 간격이 더 길면 1시간 안에 다시 시도하며, 그때 놓친 이벤트를 모두 확인합니다. 전체 메시지를 보려면 오류 보기를 여세요."
 }

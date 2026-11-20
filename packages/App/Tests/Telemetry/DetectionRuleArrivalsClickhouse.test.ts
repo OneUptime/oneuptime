@@ -475,6 +475,7 @@ function copyOf(rule: DetectionRule): DetectionRule {
     "riskScore",
     "lastEvaluatedAt",
     "evaluatingUntil",
+    "lastFailedAt",
     "lastMatchAt",
     "lastError",
   ]) {
@@ -1541,6 +1542,92 @@ integration("a scheduled rule judges every event once (#10337)", () => {
         at(8).getTime(),
       );
       expect(storedRule(rule._id).evaluatingUntil).toBeNull();
+    });
+  });
+
+  /*
+   * BACKING OFF (#10490). A rule whose reads keep failing - timing out,
+   * say - is tried again at its next interval, or within the hour when its
+   * interval is longer, not every minute; and the run that works judges
+   * every event that arrived since its last good run, even past the day a
+   * rule otherwise reads back, a day at a time.
+   */
+  describe("a rule whose runs keep failing", () => {
+    test("is tried hourly, not every minute, and the run that works judges everything it missed, more than a day back", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in",
+        intervalInMinutes: 120,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        {
+          uid: "early",
+          time: at(39),
+          arrivesAt: at(40),
+          principalIp: "203.0.113.1",
+        },
+        {
+          uid: "half-a-day-in",
+          time: at(650),
+          arrivesAt: at(700),
+          principalIp: "203.0.113.2",
+        },
+        {
+          uid: "a-day-in",
+          time: at(1490),
+          arrivesAt: at(1500),
+          principalIp: "203.0.113.3",
+        },
+        {
+          uid: "as-it-recovers",
+          time: at(1655),
+          arrivesAt: at(1660),
+          principalIp: "203.0.113.4",
+        },
+      );
+
+      const read: typeof SecurityEventService.findDetectionMatches =
+        SecurityEventService.findDetectionMatches.bind(SecurityEventService);
+      let failing: boolean = true;
+      const tries: Array<number> = [];
+
+      jest
+        .spyOn(SecurityEventService, "findDetectionMatches")
+        .mockImplementation((async (
+          data: Parameters<typeof SecurityEventService.findDetectionMatches>[0],
+        ) => {
+          if (failing) {
+            tries.push(minuteOf(world.clock));
+            throw new Error("Timeout exceeded");
+          }
+
+          return await read(data);
+        }) as never);
+
+      // Failing for more than a day: from its first due run until 27:30.
+      await runMinutes(1, 1649);
+      failing = false;
+      await runMinutes(1650, 1700);
+
+      // Tried an hour after each failure, not every minute.
+      expect(tries[0]).toBe(122);
+      for (let index: number = 1; index < tries.length; index++) {
+        expect(tries[index]! - tries[index - 1]!).toBe(60);
+      }
+      expect(tries).toHaveLength(26);
+      expect(storedRule(rule._id).lastError).toBeNull();
+      expect(storedRule(rule._id).lastFailedAt).toBeNull();
+
+      // Nothing it missed was skipped, though the first was more than a day back.
+      expect(judgedUids(rule)).toEqual([
+        "a-day-in",
+        "as-it-recovers",
+        "early",
+        "half-a-day-in",
+      ]);
+      // Judged a day at a time, each stretch recorded as it was done.
+      expect(world.cursorWrites.map(minuteOf)).toEqual([1440, 1680]);
     });
   });
 

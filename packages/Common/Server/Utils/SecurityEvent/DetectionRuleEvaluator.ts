@@ -27,6 +27,7 @@ import {
   DETECTION_MAX_GROUPS_PER_EVALUATION,
   DETECTION_MAX_LOOKBACK_IN_MINUTES,
   DETECTION_MAX_WINDOWS_PER_RUN,
+  DETECTION_RETRY_AFTER_FAILURE_IN_MINUTES,
   DETECTION_RULE_ID_ATTRIBUTE,
   DETECTION_RULE_NAME_ATTRIBUTE,
   DETECTION_SIGMA_ID_ATTRIBUTE,
@@ -210,10 +211,96 @@ export interface DetectionRuleArrivalRange {
 }
 
 /*
+ * When a rule whose last run failed is tried again (#10490): at its next
+ * interval, or within DETECTION_RETRY_AFTER_FAILURE_IN_MINUTES when its
+ * interval is longer. Null for a rule whose last run worked.
+ */
+export function getDetectionRetryAt(rule: {
+  lastFailedAt?: Date | null | undefined;
+  evaluationIntervalInMinutes?: number | null | undefined;
+}): Date | null {
+  if (!rule.lastFailedAt) {
+    return null;
+  }
+
+  const failedAt: Date = new Date(rule.lastFailedAt);
+
+  if (Number.isNaN(failedAt.getTime())) {
+    return null;
+  }
+
+  return OneUptimeDate.addRemoveMinutes(
+    failedAt,
+    Math.min(
+      Math.max(1, rule.evaluationIntervalInMinutes || 1),
+      DETECTION_RETRY_AFTER_FAILURE_IN_MINUTES,
+    ),
+  );
+}
+
+/*
+ * When a rule is next due, in milliseconds, on the clock rules are due by
+ * (DETECTION_EVALUATION_DELAY_IN_SECONDS behind): one interval after its
+ * last run (0 for a rule that never ran) - and, while its last run failed,
+ * no sooner than its retry (getDetectionRetryAt), which is said on the
+ * wall clock its failure was: a failing rule backs off instead of being
+ * tried every minute (#10490).
+ */
+export function getDetectionRuleDueTime(rule: {
+  lastEvaluatedAt?: Date | null | undefined;
+  lastFailedAt?: Date | null | undefined;
+  evaluationIntervalInMinutes?: number | null | undefined;
+}): number {
+  const regular: number = rule.lastEvaluatedAt
+    ? OneUptimeDate.addRemoveMinutes(
+        rule.lastEvaluatedAt,
+        Math.max(1, rule.evaluationIntervalInMinutes || 1),
+      ).getTime()
+    : 0;
+  const retryAt: Date | null = getDetectionRetryAt(rule);
+
+  return retryAt
+    ? Math.max(
+        regular,
+        retryAt.getTime() - DETECTION_EVALUATION_DELAY_IN_SECONDS * 1000,
+      )
+    : regular;
+}
+
+/*
+ * Whether a rule is catching up after its runs failed (#10490): its last
+ * run failed, and recently - within DETECTION_MAX_LOOKBACK_IN_MINUTES, as a
+ * failing rule is tried at least hourly. Its next run judges everything
+ * since its last good run, however long ago, never skipping what it missed.
+ * A failure older than that is a rule that was off since (or a worker that
+ * was down): it catches up a day at most, as any rule turned on again does.
+ */
+export function isCatchingUpAfterFailures(data: {
+  now: Date;
+  lastFailedAt?: Date | null | undefined;
+}): boolean {
+  if (!data.lastFailedAt) {
+    return false;
+  }
+
+  const failedAt: number = new Date(data.lastFailedAt).getTime();
+
+  return (
+    !Number.isNaN(failedAt) &&
+    failedAt <= data.now.getTime() &&
+    data.now.getTime() - failedAt <=
+      DETECTION_MAX_LOOKBACK_IN_MINUTES * 60 * 1000
+  );
+}
+
+/*
  * What a scheduled run at `now` judges: what arrived since the rule's last
  * run (lastEvaluatedAt, where that run got to), or - a rule that never ran
  * - in the interval before; at most DETECTION_MAX_LOOKBACK_IN_MINUTES back,
- * so a rule turned on again after a month does not read a month. Up to
+ * so a rule turned on again after a month does not read a month - unless
+ * it is catching up after its runs failed (isCatchingUpAfterFailures),
+ * when it judges everything since its last good run (#10490), a stretch of
+ * at most that long at a time (runScheduled). Up to
  * DETECTION_EVALUATION_DELAY_IN_SECONDS ago, so every event stamped by
  * then is in the table.
  */
@@ -221,6 +308,7 @@ export function getScheduledArrivalRange(data: {
   now: Date;
   lastEvaluatedAt?: Date | null | undefined;
   evaluationIntervalInMinutes?: number | null | undefined;
+  lastFailedAt?: Date | null | undefined;
 }): DetectionRuleArrivalRange {
   const arrivedUntil: Date = floorToSecond(
     OneUptimeDate.addRemoveSeconds(
@@ -243,11 +331,43 @@ export function getScheduledArrivalRange(data: {
           -Math.max(1, data.evaluationIntervalInMinutes || 1),
         );
 
-  if (OneUptimeDate.isBefore(arrivedAfter, earliest)) {
+  if (
+    OneUptimeDate.isBefore(arrivedAfter, earliest) &&
+    !(
+      lastRun &&
+      isCatchingUpAfterFailures({
+        now: data.now,
+        lastFailedAt: data.lastFailedAt,
+      })
+    )
+  ) {
     arrivedAfter = earliest;
   }
 
   return { arrivedAfter, arrivedUntil };
+}
+
+/*
+ * The stretch a run judges next from `arrivedAfter`: up to `arrivedUntil`,
+ * and no more than DETECTION_MAX_LOOKBACK_IN_MINUTES of arrivals - the most
+ * any read of a rule reads - so a rule catching up after days of failures
+ * reads them a day at a time, each recorded as it is done (#10490).
+ */
+export function getNextStretch(
+  arrivedAfter: Date,
+  arrivedUntil: Date,
+): DetectionRuleArrivalRange {
+  const longest: Date = OneUptimeDate.addRemoveMinutes(
+    arrivedAfter,
+    DETECTION_MAX_LOOKBACK_IN_MINUTES,
+  );
+
+  return {
+    arrivedAfter,
+    arrivedUntil: OneUptimeDate.isBefore(longest, arrivedUntil)
+      ? longest
+      : arrivedUntil,
+  };
 }
 
 /*
@@ -458,7 +578,10 @@ interface DetectionRuleJudgement {
  * clock, so every event stamped by then is in the table, and records where
  * it got to only once it has done what its matches ask: a run that fails,
  * or a worker that stops part way, leaves the rule where it was and the
- * next run judges the same events again.
+ * next run judges the same events again - each firing done once (#10489).
+ * A rule whose run failed backs off: it is tried again at its next
+ * interval, or within the hour when that is longer, and the run that works
+ * judges everything since its last good one, however long ago (#10490).
  *
  * The work is spread by project (SecurityProjectWork): the cron queues one
  * turn for each project with a rule due, and a turn evaluates that
@@ -497,6 +620,7 @@ const DETECTION_RULE_EVALUATION_SELECT: Select<DetectionRule> = {
   incidentSeverityId: true,
   lastEvaluatedAt: true,
   evaluatingUntil: true,
+  lastFailedAt: true,
 };
 
 // ...and what a real-time run reads, to tell a rule turned off or back to its schedule since.
@@ -647,16 +771,13 @@ export default class DetectionRuleEvaluator {
     );
   }
 
-  // When a rule is next due: one interval after its last run; 0 for a rule that never ran.
+  /*
+   * When a rule is next due: one interval after its last run (0 for a rule
+   * that never ran), and no sooner than its retry while its last run failed
+   * (getDetectionRuleDueTime, #10490).
+   */
   private static dueTime(rule: DetectionRule): number {
-    if (!rule.lastEvaluatedAt) {
-      return 0;
-    }
-
-    return OneUptimeDate.addRemoveMinutes(
-      rule.lastEvaluatedAt,
-      Math.max(1, rule.evaluationIntervalInMinutes || 1),
-    ).getTime();
+    return getDetectionRuleDueTime(rule);
   }
 
   private static isDue(rule: DetectionRule, now: Date): boolean {
@@ -681,6 +802,7 @@ export default class DetectionRuleEvaluator {
         projectId: true,
         evaluationIntervalInMinutes: true,
         lastEvaluatedAt: true,
+        lastFailedAt: true,
       },
       sort: {
         _id: SortOrder.Ascending,
@@ -746,19 +868,38 @@ export default class DetectionRuleEvaluator {
     /*
      * The due rules' exceptions, in one read for the turn: those that take
      * part in any window a rule may read now - what arrived over the last
-     * DETECTION_MAX_LOOKBACK_IN_MINUTES, which happened up to
-     * DETECTION_LATE_EVENT_WINDOW_IN_MINUTES before that
-     * (getArrivalEventTimeBounds). A read that fails fails the turn before
-     * any rule runs - every rule resumes from its own last run next minute,
-     * so nothing is missed, and no rule runs blind to the exceptions
-     * somebody added.
+     * DETECTION_MAX_LOOKBACK_IN_MINUTES, or since the oldest stretch a rule
+     * judges again or catches up from after its runs failed (#10489,
+     * #10490), which happened up to DETECTION_LATE_EVENT_WINDOW_IN_MINUTES
+     * before that (getArrivalEventTimeBounds). A read that fails fails the
+     * turn before any rule runs - every rule resumes from its own last run
+     * next minute, so nothing is missed, and no rule runs blind to the
+     * exceptions somebody added.
      */
+    let oldestArrival: Date = OneUptimeDate.addRemoveMinutes(
+      now,
+      -DETECTION_MAX_LOOKBACK_IN_MINUTES,
+    );
+
+    for (const rule of dueRules) {
+      for (const start of [
+        getStretchToJudgeAgain(rule)?.arrivedAfter,
+        getScheduledArrivalRange({
+          now: OneUptimeDate.getCurrentDate(),
+          lastEvaluatedAt: rule.lastEvaluatedAt,
+          evaluationIntervalInMinutes: rule.evaluationIntervalInMinutes,
+          lastFailedAt: rule.lastFailedAt,
+        }).arrivedAfter,
+      ]) {
+        if (start && OneUptimeDate.isBefore(start, oldestArrival)) {
+          oldestArrival = start;
+        }
+      }
+    }
+
     const readable: { happenedAfter: Date; happenedBefore: Date } =
       getArrivalEventTimeBounds({
-        arrivedAfter: OneUptimeDate.addRemoveMinutes(
-          now,
-          -DETECTION_MAX_LOOKBACK_IN_MINUTES,
-        ),
+        arrivedAfter: oldestArrival,
         arrivedUntil: now,
       });
 
@@ -1081,8 +1222,11 @@ export default class DetectionRuleEvaluator {
   /*
    * evaluateRule, with a failure recorded on the rule rather than thrown.
    * The rule stays where it was: what the run did not finish judging is
-   * judged again by the next one, a minute later, so a failed run loses no
-   * event.
+   * judged again by the next one, so a failed run loses no event. It says
+   * when it failed (lastFailedAt), and the rule backs off: tried again at its
+   * next interval, or within the hour when its interval is longer, not every
+   * minute (getDetectionRuleDueTime, #10490) - and the run that works judges
+   * everything since its last good one (isCatchingUpAfterFailures).
    */
   private static async evaluateRuleRecordingFailure(
     rule: DetectionRule,
@@ -1115,6 +1259,7 @@ export default class DetectionRuleEvaluator {
               id: ruleId,
               data: {
                 lastError: ConnectorErrorMessage.toMessage(error),
+                lastFailedAt: OneUptimeDate.getCurrentDate(),
               },
               props: {
                 isRoot: true,
@@ -1279,6 +1424,7 @@ export default class DetectionRuleEvaluator {
       now: OneUptimeDate.getCurrentDate(),
       lastEvaluatedAt: rule.lastEvaluatedAt,
       evaluationIntervalInMinutes: rule.evaluationIntervalInMinutes,
+      lastFailedAt: rule.lastFailedAt,
     });
     // A stretch a run before this one stopped recording: judged again, exactly, first.
     let judgeAgain: DetectionRuleArrivalRange | null =
@@ -1319,10 +1465,9 @@ export default class DetectionRuleEvaluator {
       judgeAgain ||
       OneUptimeDate.isBefore(arrivedAfter, scheduled.arrivedUntil)
     ) {
-      const range: DetectionRuleArrivalRange = judgeAgain || {
-        arrivedAfter,
-        arrivedUntil: scheduled.arrivedUntil,
-      };
+      // A day of arrivals at most: a rule catching up after failures reads them a day at a time.
+      const range: DetectionRuleArrivalRange =
+        judgeAgain || getNextStretch(arrivedAfter, scheduled.arrivedUntil);
       // A stretch judged again is marked already, as the run before left it.
       let isMarked: boolean = Boolean(judgeAgain);
 
@@ -1646,6 +1791,8 @@ export default class DetectionRuleEvaluator {
       data: {
         lastEvaluatedAt: data.judgedUntil,
         evaluatingUntil: null as unknown as Date,
+        // The run worked: the rule is due on its interval again (#10490).
+        lastFailedAt: null as unknown as Date,
         /*
          * The rule ran; an overflow, or a correlation that had more groups
          * to check than one run reads, is what its row should say about it.

@@ -60467,5 +60467,9 @@
   "Run this in Cloud Shell, in the project to monitor. It creates a service account with the access below, and prints its key.": "इसे निगरानी वाले प्रोजेक्ट में Cloud Shell में चलाएँ। यह नीचे दिए गए एक्सेस वाला एक सेवा खाता बनाता है और उसकी कुंजी दिखाता है।",
   "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "इसे अपने संगठन के किसी प्रोजेक्ट में Google Cloud Shell में ऐसे व्यक्ति के रूप में चलाएँ जो उस पर भूमिकाएँ दे सकता है। यह एक सेवा खाता बनाता है जिसके पास हर प्रोजेक्ट पर नीचे दिया गया एक्सेस होता है, और उसकी कुंजी दिखाता है।",
   "Arrived": "आगमन",
-  "Searched what arrived {{start}} to {{end}}": "जो आया उसमें खोज: {{start}} से {{end}}"
+  "Searched what arrived {{start}} to {{end}}": "जो आया उसमें खोज: {{start}} से {{end}}",
+  "Evaluating Until": "मूल्यांकन जारी, इस समय तक",
+  "Last Failed At": "अंतिम विफलता का समय",
+  "Recent Firing Keys": "हाल में दर्ज ट्रिगर",
+  "The last run failed. It is tried again at its next interval, or within the hour if that is longer, and then checks every event it missed. Open View Error for the full message.": "पिछला रन विफल रहा। इसे अगले अंतराल पर, या अंतराल लंबा हो तो एक घंटे के भीतर, फिर से चलाया जाता है, और तब यह छूटे हुए हर इवेंट की जाँच करता है। पूरा संदेश देखने के लिए त्रुटि देखें खोलें।"
 }

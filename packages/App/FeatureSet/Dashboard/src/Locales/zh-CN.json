@@ -60467,5 +60467,9 @@
   "Run this in Cloud Shell, in the project to monitor. It creates a service account with the access below, and prints its key.": "在要监控的项目中，于 Cloud Shell 运行此命令。它会创建一个具有下方所列访问权限的服务账号，并输出其密钥。",
   "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "请以可以在组织上授予角色的身份，在组织的某个项目中于 Google Cloud Shell 运行此命令。它会创建一个对每个项目都具有下方所列访问权限的服务账号，并输出其密钥。",
   "Arrived": "到达",
-  "Searched what arrived {{start}} to {{end}}": "搜索到达时段：{{start}} 至 {{end}}"
+  "Searched what arrived {{start}} to {{end}}": "搜索到达时段：{{start}} 至 {{end}}",
+  "Evaluating Until": "正在评估至",
+  "Last Failed At": "最近失败时间",
+  "Recent Firing Keys": "最近记录的触发",
+  "The last run failed. It is tried again at its next interval, or within the hour if that is longer, and then checks every event it missed. Open View Error for the full message.": "上次运行失败。它会在下一个间隔重试，若间隔更长则在一小时内重试，然后检查它错过的每个事件。打开“查看错误”查看完整消息。"
 }
