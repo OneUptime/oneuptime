@@ -325,6 +325,13 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   // A cron schedule in words: the monitor's interval, a workflow's schedule.
   { directory: "packages/Common/Utils/CronScheduleText.ts", kind: "ui" },
   /*
+   * What Import from Grafana or Datadog and Import Alerts say about each
+   * panel, variable and rule of a file, and why a file is refused (#7697):
+   * the converters mark them, and the preview words them in the reader's
+   * language. Only the words the files mark are read.
+   */
+  { directory: "packages/Common/Utils/ObservabilityImport", kind: "keys" },
+  /*
    * What each Setup health finding says (#6812): the server sends its
    * template, and the page says it in the reader's language.
    */

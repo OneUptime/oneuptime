@@ -861,6 +861,47 @@ const convertCall: (
   return fail(DATADOG_FUNCTION_NOT_CONVERTED, { function: name });
 };
 
+// The metrics a query or formula reads, by their Datadog names.
+export const collectDatadogMetricNames: (
+  expression: DatadogExpression,
+  names: Set<string>,
+) => void = (expression: DatadogExpression, names: Set<string>): void => {
+  switch (expression.kind) {
+    case DatadogExpressionKind.Query:
+      names.add(expression.metric);
+      return;
+    case DatadogExpressionKind.Binary:
+      collectDatadogMetricNames(expression.left, names);
+      collectDatadogMetricNames(expression.right, names);
+      return;
+    case DatadogExpressionKind.Negate:
+      collectDatadogMetricNames(expression.expression, names);
+      return;
+    case DatadogExpressionKind.Call:
+      for (const arg of expression.args) {
+        collectDatadogMetricNames(arg, names);
+      }
+      return;
+    default:
+      return;
+  }
+};
+
+// The metrics a query's text reads; none when it does not parse.
+export const readDatadogMetricNames: (query: string) => Array<string> = (
+  query: string,
+): Array<string> => {
+  const names: Set<string> = new Set<string>();
+
+  try {
+    collectDatadogMetricNames(parseDatadogExpression(query), names);
+  } catch {
+    // Not converted either: nothing to look up.
+  }
+
+  return Array.from(names);
+};
+
 /*
  * A Datadog query or formula, converted for where it runs. A query no rule
  * here converts is not converted: its notes say why, and it is a candidate

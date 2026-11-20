@@ -30,7 +30,12 @@ import {
   objectField,
   textField,
 } from "../ImportValues";
-import { DatadogQueryContext, convertDatadogQuery } from "./DatadogPromQL";
+import {
+  DatadogMetricKind,
+  DatadogQueryContext,
+  convertDatadogQuery,
+  readDatadogMetricNames,
+} from "./DatadogPromQL";
 import {
   DatadogMonitorQuery,
   DatadogQueryError,
@@ -200,10 +205,12 @@ const convertMonitor: (data: {
   monitor: ImportObject;
   key: string;
   overrides: ImportQueryOverrides;
+  knownMetricKinds?: ReadonlyMap<string, DatadogMetricKind> | undefined;
 }) => AlertImportItem = (data: {
   monitor: ImportObject;
   key: string;
   overrides: ImportQueryOverrides;
+  knownMetricKinds?: ReadonlyMap<string, DatadogMetricKind> | undefined;
 }): AlertImportItem => {
   const monitor: ImportObject = data.monitor;
   const type: string = textField(monitor, "type");
@@ -305,6 +312,7 @@ const convertMonitor: (data: {
       context: DatadogQueryContext.Monitor,
       monitorTimeAggregation: query.timeAggregation,
       variablePrefixes: new Map<string, string>(),
+      knownMetricKinds: data.knownMetricKinds,
     },
     aiQuery: data.overrides.get(targetKey),
   });
@@ -406,12 +414,41 @@ const convertMonitor: (data: {
   };
 };
 
+// Every metric the monitors read, by its Datadog name.
+export const listDatadogMonitorMetricNames: (
+  monitors: Array<ImportObject>,
+) => Array<string> = (monitors: Array<ImportObject>): Array<string> => {
+  const names: Set<string> = new Set<string>();
+
+  for (const monitor of monitors) {
+    try {
+      const query: DatadogMonitorQuery = parseDatadogMonitorQuery(
+        textField(monitor, "query"),
+      );
+
+      for (const name of readDatadogMetricNames(query.expression)) {
+        names.add(name);
+      }
+    } catch {
+      // Not a metric monitor's query: nothing to look up.
+    }
+  }
+
+  return Array.from(names).sort();
+};
+
 export const convertDatadogMonitors: (
   monitors: Array<ImportObject>,
-  options?: { queryOverrides?: ImportQueryOverrides | undefined },
+  options?: {
+    queryOverrides?: ImportQueryOverrides | undefined;
+    knownMetricKinds?: ReadonlyMap<string, DatadogMetricKind> | undefined;
+  },
 ) => AlertImportPlan = (
   monitors: Array<ImportObject>,
-  options?: { queryOverrides?: ImportQueryOverrides | undefined },
+  options?: {
+    queryOverrides?: ImportQueryOverrides | undefined;
+    knownMetricKinds?: ReadonlyMap<string, DatadogMetricKind> | undefined;
+  },
 ): AlertImportPlan => {
   const overrides: ImportQueryOverrides =
     options?.queryOverrides || NO_QUERY_OVERRIDES;
@@ -425,6 +462,7 @@ export const convertDatadogMonitors: (
           monitor: asObject(monitor) || {},
           key: `monitor-${index}`,
           overrides,
+          knownMetricKinds: options?.knownMetricKinds,
         });
       }),
     notes: [],

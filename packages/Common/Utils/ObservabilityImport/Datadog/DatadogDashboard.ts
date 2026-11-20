@@ -42,8 +42,10 @@ import {
   DatadogConversionOptions,
   DatadogMetricKind,
   DatadogQueryContext,
+  collectDatadogMetricNames,
   convertDatadogQuery,
   mergeDatadogNotes,
+  readDatadogMetricNames,
 } from "./DatadogPromQL";
 import {
   DatadogExpression,
@@ -821,6 +823,30 @@ const convertWidget: (data: {
     queries: converted,
     component,
   };
+};
+
+/*
+ * Every metric the dashboard's widgets read, by its Datadog name: what the
+ * preview looks up to know a gauge from a count.
+ */
+export const listDatadogDashboardMetricNames: (
+  document: ImportObject,
+) => Array<string> = (document: ImportObject): Array<string> => {
+  const names: Set<string> = new Set<string>();
+
+  for (const widget of flattenWidgets(document)) {
+    for (const series of readRequests(widget.definition).series) {
+      for (const name of readDatadogMetricNames(series.text)) {
+        names.add(name);
+      }
+
+      for (const query of series.namedQueries.values()) {
+        collectDatadogMetricNames(query, names);
+      }
+    }
+  }
+
+  return Array.from(names).sort();
 };
 
 export interface DatadogDashboardOptions {

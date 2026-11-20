@@ -484,7 +484,7 @@ const splitOptions: (query: string) => Array<string> = (
 };
 
 const LABEL_VALUES: RegExp =
-  /^\s*label_values\(\s*(?:(.+?)\s*,\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*$/s;
+  /^\s*label_values\(\s*(?:([\s\S]+?)\s*,\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*$/;
 
 const newVariable: (data: {
   name: string;

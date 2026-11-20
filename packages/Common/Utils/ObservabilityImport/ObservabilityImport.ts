@@ -12,9 +12,15 @@ import {
   ImportQueryOverrides,
   ImportSourceKind,
 } from "../../Types/ObservabilityImport/ObservabilityImport";
-import { convertDatadogDashboard } from "./Datadog/DatadogDashboard";
+import {
+  convertDatadogDashboard,
+  listDatadogDashboardMetricNames,
+} from "./Datadog/DatadogDashboard";
 import { DatadogMetricKind } from "./Datadog/DatadogPromQL";
-import { convertDatadogMonitors } from "./Datadog/DatadogMonitors";
+import {
+  convertDatadogMonitors,
+  listDatadogMonitorMetricNames,
+} from "./Datadog/DatadogMonitors";
 import { convertGrafanaAlertRules } from "./Grafana/GrafanaAlertRules";
 import { convertGrafanaDashboard } from "./Grafana/GrafanaDashboard";
 import { ImportSourceDocument } from "./ImportSource";
@@ -74,6 +80,25 @@ export const planAlertImport: (
   }
 
   return convertPrometheusRules(source.documents, options);
+};
+
+/*
+ * The Datadog metrics a file reads, by their Datadog names, for the
+ * preview to ask the project's metrics whether each is a gauge or a count;
+ * none for a file that is not Datadog's.
+ */
+export const listDatadogMetricNames: (
+  source: ImportSourceDocument,
+) => Array<string> = (source: ImportSourceDocument): Array<string> => {
+  if (source.kind === ImportSourceKind.DatadogDashboard) {
+    return listDatadogDashboardMetricNames(source.documents[0] || {});
+  }
+
+  if (source.kind === ImportSourceKind.DatadogMonitors) {
+    return listDatadogMonitorMetricNames(source.documents);
+  }
+
+  return [];
 };
 
 // The items a dashboard is created with: each converted one's widget.
