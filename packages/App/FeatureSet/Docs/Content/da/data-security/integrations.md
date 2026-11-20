@@ -94,6 +94,12 @@ To handlinger på et problem beder OneUptime AI om hjælp. Begge sender OneUptim
 - **Forklar med AI** skriver til datalagerets ejer, hvad der er galt, hvad der kan ske, og de præcise trin til at rette det i deres cloud. Forklaringen gemmes på problemets **Tidslinje**. Hverken det problem, der blev sendt, eller svaret gemmes i **Projektindstillinger → AI → AI-logs**, som alle med rollen Projektmedlem eller Seer kan læse: rækken siger kun, at kaldet blev foretaget, og hvad det kostede. Alle, der kan læse problemet, kan spørge.
 - **Ret med AI** beder OneUptime AI om at rette problemet i din infrastrukturkode - Terraform, CloudFormation, Bicep eller lignende - med den mindste ændring, der får kontrollen til at bestå, og om at åbne en pull request. Det kræver, at det repository, der indeholder datalagerets infrastrukturkode, er forbundet under **Kode**: vælg det under **Repositorium**, når du kan spørge i flere. Pull requesten vises under **Kode** (se [Kode](/docs/ai/ai-agent)). Sikkerhedsmedlemmer og derover kan spørge, i et repository de må ændre under **Kode**, som det kræver at spørge AI der: en sikkerhedsrolle læser og ændrer ingen repositories på egen hånd, så giv også deres team **Read Code Repository** og **Edit Code Repository**. Når AI ikke kan arbejde nu - det er slået fra, projektet har ikke flere AI-kreditter, dets daglige grænser er nået, eller ingen Runner er online - siger Ret med AI, hvad der skal rettes, og starter intet.
 
+### Af sig selv
+
+Med **Arbejd med nye problemer** slået til under **Datasikkerhed → AI**, som det er for nye projekter, arbejder OneUptime AI af sig selv med hvert nyt kritisk eller højt problem. Den skriver problemets analyse, som **Forklar med AI** gør og ud fra det, den sender, og sætter den på problemets **Tidslinje**. For et telemetriproblem foreslår den de rensningsregler, der skjuler dets data i ny telemetri. Et forslag venter på den side under **Venter på dig**, de mest risikable først, med hvad der ændres, hvorfor, hvordan det bevises, og hvordan det fortrydes. **Godkend** foretager ændringen med dine egne tilladelser: en rensningsregel kræver tilladelse til at oprette logrensningsregler, trace-rensningsregler eller metrik-pipelineregler. **Afvis forslaget** siger nej, med en begrundelse, der kommer på problemets tidslinje. Problemets egen kontrol afgør, om en ændring virkede: datalageret kontrolleres igen, og problemet løses, når ingen af dets data er tilbage.
+
+Som standard spørger OneUptime AI før hver ændring, undtagen en, der kun skjuler data, kan fortrydes og er bevist sikker, og den sletter aldrig data eller tilkalder nogen uden at spørge. En ændring, den har foretaget uden at spørge, står under **Udført af AI**, med **Fortryd**. **Hvorfor AI ikke handlede** viser de problemer, den har set på og ladet være, og hvorfor. Hvert forslag, hver godkendelse, afvisning og fortrydelse står på problemets og datalagerets **Tidslinje**. Med kontakten slået fra, eller AI slået fra for projektet, fungerer datasikkerhed som altid, og **Forklar med AI** og **Ret med AI** virker stadig, når du trykker på dem.
+
 ### Spørg AI
 
 **Spørg AI** læser også Datasikkerhed. Spørg på enhver side i Datasikkerhed, hvilke datalagre der indeholder kortnumre, hvad der skal rettes først, eller hvilke datalagre en rolle kunne nå, hvis den blev lækket; på et datalagers eller et problems side læser den først den post. Den svarer med tre læseværktøjer, der kører med dine egne tilladelser:
@@ -130,6 +136,7 @@ Alt, hvad Datasikkerhed gemmer, er en post i OneUptime-API'et, som læses med de
 | Brugerdefinerede datatyper, kontrolindstillinger, overholdelsesindstillinger og residensregler | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Projektets indstillinger | `/data-security-setting` |
 | Ejere, ejerregler og etiketregler | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
+| Hvad OneUptime AI foreslår for et problem, og hvorfor den handlede eller ikke handlede på et | `/data-security-ai-proposal`, `/data-security-ai-decision` |
 
 Nogle få svar beregnes på forespørgsel i stedet for at blive gemt. Hver af dem er en `POST`:
 
@@ -149,6 +156,9 @@ Nogle få svar beregnes på forespørgsel i stedet for at blive gemt. Hver af de
 | `/data-security-issue/<id>/fix-with-ai` | **Ret med AI** på et problem |
 | `/data-store/<id>/response-actions` | Hvilke responshandlinger datalageret kan udføre nu, og hvorfor ikke |
 | `/data-store/<id>/respond` | Én responshandling på datalageret, f.eks. **Bloker offentlig adgang** eller **Slå versionsstyring til**, med det problem, den blev kørt fra |
+| `/data-security-ai-proposal/<id>/approve` | **Godkend** på en ændring, som OneUptime AI foreslår, og som foretages med dine egne tilladelser. Tager `expectedPlanFingerprint` for det forslag, du fik vist, og afviser et, der er ændret siden |
+| `/data-security-ai-proposal/<id>/dismiss` | **Afvis forslaget**, med `{"reason": "..."}`, som kommer på problemets tidslinje |
+| `/data-security-ai-proposal/<id>/undo` | **Fortryd** på en ændring, som OneUptime AI har foretaget: den trækkes tilbage, og datalageret kontrolleres igen |
 
 [Terraform-provideren](/docs/terraform/index) har en ressource for hver slags post, du opretter - datalagre, du selv tilføjer, brugerdefinerede datatyper, kontrolindstillinger, overholdelsesindstillinger, residensregler, ejer- og etiketregler - opkaldt efter posten, f.eks. `oneuptime_residency_rule`.
 

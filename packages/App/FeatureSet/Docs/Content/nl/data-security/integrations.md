@@ -94,6 +94,12 @@ Twee acties op een probleem vragen OneUptime AI om hulp. Beide sturen OneUptime 
 - **Uitleggen met AI** schrijft voor de eigenaar van de opslag op wat er mis is, wat er kan gebeuren en de precieze stappen om het in de eigen cloud op te lossen. De uitleg wordt bewaard in de **Tijdlijn** van het probleem. Noch het verzonden probleem noch het antwoord wordt bewaard in **Projectinstellingen → AI → AI-logboeken**, die elk Projectlid en elke Kijker kan lezen: die regel zegt alleen dat de aanroep is gedaan en wat die kostte. Iedereen die het probleem kan lezen, kan erom vragen.
 - **Oplossen met AI** vraagt OneUptime AI het probleem op te lossen in je infrastructuurcode - Terraform, CloudFormation, Bicep en dergelijke - met de kleinste wijziging waardoor de controle slaagt, en een pull request te openen. Daarvoor moet de repository met de infrastructuurcode van de opslag gekoppeld zijn onder **Code**: kies die onder **Repository** als je in meerdere kunt vragen. De pull request verschijnt onder **Code** (zie [Code](/docs/ai/ai-agent)). Beveiligingsleden en hoger kunnen erom vragen, in een repository die ze onder **Code** mogen wijzigen, zoals vragen aan AI daar vereist: een beveiligingsrol leest en wijzigt op zichzelf geen enkele repository, geef hun team dus ook **Read Code Repository** en **Edit Code Repository**. Als AI nu niet kan werken - het staat uit, het project heeft geen AI-tegoed meer, de daglimieten zijn bereikt of er is geen Runner online - zegt Oplossen met AI wat er opgelost moet worden, en start niets.
 
+### Uit zichzelf
+
+Met **Aan nieuwe problemen werken** ingeschakeld onder **Gegevensbeveiliging → AI**, zoals bij nieuwe projecten, werkt OneUptime AI uit zichzelf aan elk nieuw kritiek of hoog probleem. Het schrijft de analyse van het probleem, zoals **Uitleggen met AI** dat doet en op basis van wat dat verstuurt, en zet die op de **Tijdlijn** van het probleem. Voor een telemetrieprobleem stelt het de opschoonregels voor die de gegevens ervan in nieuwe telemetrie verbergen. Een voorstel wacht op die pagina onder **Wacht op u**, de riskantste eerst, met wat er verandert, waarom, hoe het wordt bewezen en hoe je het ongedaan maakt. **Goedkeuren** voert de wijziging uit met je eigen machtigingen: een opschoonregel vereist de machtiging om opschoonregels voor logs, opschoonregels voor traces of pipelineregels voor metrieken te maken. **Voorstel negeren** zegt nee, met een reden die op de tijdlijn van het probleem komt. De eigen controle van het probleem beslist of een wijziging heeft gewerkt: de opslag wordt opnieuw gecontroleerd, en het probleem wordt opgelost zodra er geen gegevens ervan over zijn.
+
+Standaard vraagt OneUptime AI vóór elke wijziging, behalve een die alleen gegevens verbergt, ongedaan kan worden gemaakt en bewezen veilig is, en het verwijdert nooit gegevens en roept nooit iemand op zonder te vragen. Een wijziging die het zonder te vragen heeft gedaan, staat onder **Gedaan door AI**, met **Ongedaan maken**. **Waarom AI niet heeft gehandeld** toont de problemen die het heeft bekeken en met rust heeft gelaten, en waarom. Elk voorstel, elke goedkeuring, elke keer negeren en elke keer ongedaan maken staat op de **Tijdlijn** van het probleem en van de opslag. Met de schakelaar uit, of AI uit voor het project, werkt gegevensbeveiliging zoals altijd, en **Uitleggen met AI** en **Oplossen met AI** werken nog steeds als je erop drukt.
+
 ### AI vragen
 
 **AI vragen** leest ook Gegevensbeveiliging. Vraag op elke pagina van Gegevensbeveiliging welke opslagen kaartnummers bevatten, wat je eerst moet oplossen, of bij welke opslagen een rol zou kunnen als die uitlekte; op de pagina van een opslag of van een probleem leest het eerst dat record. Het antwoordt met drie leestools, uitgevoerd met je eigen machtigingen:
@@ -130,6 +136,7 @@ Alles wat Gegevensbeveiliging bewaart, is een record van de OneUptime-API, gelez
 | Aangepaste gegevenstypen, controle-instellingen, compliance-instellingen en residentieregels | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | De instellingen van het project | `/data-security-setting` |
 | Eigenaren, eigenaarsregels en labelregels | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
+| Wat OneUptime AI voorstelt voor een probleem, en waarom het wel of niet heeft gehandeld | `/data-security-ai-proposal`, `/data-security-ai-decision` |
 
 Een paar antwoorden worden op verzoek berekend in plaats van opgeslagen. Elk ervan is een `POST`:
 
@@ -149,6 +156,9 @@ Een paar antwoorden worden op verzoek berekend in plaats van opgeslagen. Elk erv
 | `/data-security-issue/<id>/fix-with-ai` | **Oplossen met AI** op een probleem |
 | `/data-store/<id>/response-actions` | Welke responsacties de opslag nu kan uitvoeren, en waarom niet |
 | `/data-store/<id>/respond` | Eén responsactie op de opslag, zoals **Openbare toegang blokkeren** of **Versiebeheer inschakelen**, met het probleem van waaruit ze werd uitgevoerd |
+| `/data-security-ai-proposal/<id>/approve` | **Goedkeuren** op een wijziging die OneUptime AI voorstelt, die daarmee wordt uitgevoerd met je eigen machtigingen. Neemt de `expectedPlanFingerprint` van het voorstel dat je te zien kreeg, en weigert een voorstel dat sindsdien is veranderd |
+| `/data-security-ai-proposal/<id>/dismiss` | **Voorstel negeren**, met `{"reason": "..."}`, dat op de tijdlijn van het probleem komt |
+| `/data-security-ai-proposal/<id>/undo` | **Ongedaan maken** op een wijziging die OneUptime AI heeft gedaan: die wordt teruggedraaid, en de opslag wordt opnieuw gecontroleerd |
 
 De [Terraform-provider](/docs/terraform/index) heeft een resource voor elk soort record dat je aanmaakt - gegevensopslagen die je zelf toevoegt, aangepaste gegevenstypen, controle-instellingen, compliance-instellingen, residentieregels, eigenaars- en labelregels - genoemd naar het record, zoals `oneuptime_residency_rule`.
 

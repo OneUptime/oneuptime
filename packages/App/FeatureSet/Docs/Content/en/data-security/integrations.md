@@ -94,6 +94,12 @@ Two actions on an issue ask OneUptime AI for help. Both send OneUptime AI the is
 - **Explain with AI** writes, for the store's owner, what is wrong, what could happen and the exact steps to fix it on their cloud. For a telemetry issue it writes, for the service's owner, what reaches their telemetry and where, and how to stop it: scrub it at ingest, then change the code that writes it. The explanation is kept on the issue's **Timeline**. Neither the issue it sent nor the answer is kept in **Project Settings → AI → AI Logs**, which every Project Member and Viewer can read: that row says only that the call was made, and what it cost. Anyone who can read the issue can ask.
 - **Fix with AI** asks OneUptime AI to fix the issue in your infrastructure code - Terraform, CloudFormation, Bicep or the like - with the smallest change that makes the check pass, and to open a pull request. For a telemetry issue it asks for a change to the code of the service that writes the data instead, at each place it was found: leave the value out, or mask or hash it before it is logged or put on a span. It needs the repository that holds the store's infrastructure code - or the service's code, for a telemetry issue - connected under **Code**: choose it under **Repository** when you can ask in several. The pull request appears under **Code** (see [Code](/docs/ai/ai-agent)). Security Members and above can ask, in a repository they may change under **Code**, as asking AI there takes: a Security role reads and changes no repository on its own, so give their team **Read Code Repository** and **Edit Code Repository** too. When AI cannot work now - it is switched off, the project is out of AI credits, its daily limits are reached, or no Runner is online - Fix with AI says what to fix, and starts nothing.
 
+### On its own
+
+With **Work on new issues** turned on under **Data Security → AI**, as it is for new projects, OneUptime AI works on each new Critical or High issue by itself. It writes the issue's analysis, as **Explain with AI** does and from what that sends, and puts it on the issue's **Timeline**. For a telemetry issue it proposes the scrub rules that hide its data in new telemetry. A proposal waits on that page under **Waiting for you**, riskiest first, with what will change, why, how it is proven and how to undo it. **Approve** makes the change with your own permissions: a scrub rule takes permission to create log scrub rules, trace scrub rules or metric pipeline rules. **Dismiss proposal** says no, with a reason that goes on the issue's timeline. The issue's own check decides whether a change worked: the store is checked again, and the issue resolves when none of its data is left.
+
+Out of the box, OneUptime AI asks before every change except one that only hides data, can be undone and is proven safe, and it never deletes data or pages anyone without asking. A change it made without asking is listed under **Done by AI**, with **Undo**. **Why AI did not act** lists the issues it looked at and left alone, and why. Every proposal, approval, dismissal and undo is on the issue's and the store's **Timeline**. With the switch off, or AI off for the project, Data Security works as it always does, and **Explain with AI** and **Fix with AI** still work when you press them.
+
 ### Ask AI
 
 **Ask AI** reads Data Security too. On any Data Security page, ask which stores hold card numbers, what to fix first, or which stores a role could reach if it leaked; on a store's or an issue's page it reads that record first. It answers with three read tools, run with your own permissions:
@@ -130,6 +136,7 @@ Everything Data Security keeps is a record of the OneUptime API, read with the s
 | Custom data types, check settings, compliance settings and residency rules | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | The project's settings | `/data-security-setting` |
 | Owners, owner rules and label rules | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
+| What OneUptime AI proposes for an issue, and why it did or did not act on one | `/data-security-ai-proposal`, `/data-security-ai-decision` |
 
 A few answers are worked out on request rather than stored. Each is a `POST`:
 
@@ -149,6 +156,9 @@ A few answers are worked out on request rather than stored. Each is a `POST`:
 | `/data-security-issue/<id>/fix-with-ai` | **Fix with AI** on an issue |
 | `/data-store/<id>/response-actions` | Which response actions the store can take now, and why not |
 | `/data-store/<id>/respond` | One response action on the store, such as **Block Public Access** or **Turn On Versioning**, with the issue it was run from |
+| `/data-security-ai-proposal/<id>/approve` | **Approve** on a change OneUptime AI proposes, which makes it with your own permissions. It takes the `expectedPlanFingerprint` of the proposal you were shown, and refuses one that changed since |
+| `/data-security-ai-proposal/<id>/dismiss` | **Dismiss proposal**, with `{"reason": "..."}`, which goes on the issue's timeline |
+| `/data-security-ai-proposal/<id>/undo` | **Undo** on a change OneUptime AI made: it is taken back, and the store is checked again |
 
 The [Terraform provider](/docs/terraform/index) has a resource for each kind of record you create - data stores you add yourself, custom data types, check settings, compliance settings, residency rules, owner and label rules - named after the record, such as `oneuptime_residency_rule`.
 
