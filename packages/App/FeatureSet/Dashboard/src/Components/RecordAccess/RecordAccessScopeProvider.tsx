@@ -1,5 +1,11 @@
 import { fetchRecordAccess } from "./RecordAccessApi";
 import { getRecordAccessRefusalSentence } from "./RecordAccessReasons";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ObjectID from "Common/Types/ObjectID";
 import {
   RECORD_ACCESS_TABLES,
@@ -8,6 +14,7 @@ import {
   RecordAccessResult,
   RecordAccessVerdict,
 } from "Common/Types/RecordAccess/RecordAccess";
+import { subscribeToModelHeaderChanged } from "Common/UI/Components/Page/ModelHeaderEvents";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
 import {
   RecordAccessScope,
@@ -43,7 +50,22 @@ import React, {
  * locks at once, as the answer will agree. An answer that cannot be read
  * leaves the locks to the reader's own permissions: the server holds every
  * write to its rule whatever the page offers.
+ *
+ * Asked again when the record's details are saved on its pages - its
+ * labels, whether it is private (ModelHeaderEvents) - since the answer
+ * weighs both; the last answer stands until the new one lands.
  */
+
+// Each kind's own record: whose saved details the answer is asked again for.
+const RECORD_MODEL_TYPES: Readonly<
+  Record<RecordAccessKind, { new (): BaseModel }>
+> = {
+  [RecordAccessKind.Incident]: Incident,
+  [RecordAccessKind.Alert]: Alert,
+  [RecordAccessKind.IncidentEpisode]: IncidentEpisode,
+  [RecordAccessKind.AlertEpisode]: AlertEpisode,
+  [RecordAccessKind.ScheduledMaintenance]: ScheduledMaintenance,
+};
 
 // What the page knows of the answer for the record it is on.
 interface AnswerState {
@@ -119,6 +141,24 @@ const RecordAccessScopeProvider: FunctionComponent<ComponentProps> = (
   const recordId: string = props.modelId.toString();
 
   const [answer, setAnswer] = useState<AnswerState | null>(null);
+  // Counts the saves of the record's details: each asks again.
+  const [revision, setRevision] = useState<number>(0);
+
+  useEffect(() => {
+    if (!ObjectID.isValidUUID(recordId)) {
+      return undefined;
+    }
+
+    return subscribeToModelHeaderChanged({
+      modelType: RECORD_MODEL_TYPES[props.kind],
+      modelId: new ObjectID(recordId),
+      onChanged: () => {
+        setRevision((count: number): number => {
+          return count + 1;
+        });
+      },
+    });
+  }, [recordId, props.kind]);
 
   useEffect(() => {
     if (!ObjectID.isValidUUID(recordId)) {
@@ -143,7 +183,7 @@ const RecordAccessScopeProvider: FunctionComponent<ComponentProps> = (
     return () => {
       isCurrent = false;
     };
-  }, [recordId, props.kind]);
+  }, [recordId, props.kind, revision]);
 
   // Only the answer for the record the page is on now: none for the last one.
   const current: AnswerState | null =

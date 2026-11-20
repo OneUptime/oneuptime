@@ -33,26 +33,25 @@ const IncidentViewLayout: FunctionComponent<
        * A private incident is changed only with the permissions of the teams
        * that own it: every page of it offers only what the reader may do
        * there (PrivateRecordScopeProvider).
+       *
+       * And what the server says the reader may do on this incident by its
+       * labels, its owners and its privacy: every lock on its pages
+       * reads it (RecordAccessScopeProvider, #10272).
        */}
-      <PrivateRecordScopeProvider
-        modelType={Incident}
+      <RecordAccessScopeProvider
+        kind={RecordAccessKind.Incident}
         modelId={modelId}
-        ownerTeamModelType={IncidentOwnerTeam}
-        ownerUserModelType={IncidentOwnerUser}
-        ownerKey="incidentId"
       >
-        {/*
-         * And what the server says the reader may do on this incident by
-         * its labels, its owners and its privacy: every lock on its
-         * pages reads it (RecordAccessScopeProvider, #10272).
-         */}
-        <RecordAccessScopeProvider
-          kind={RecordAccessKind.Incident}
+        <PrivateRecordScopeProvider
+          modelType={Incident}
           modelId={modelId}
+          ownerTeamModelType={IncidentOwnerTeam}
+          ownerUserModelType={IncidentOwnerUser}
+          ownerKey="incidentId"
         >
           <Outlet />
-        </RecordAccessScopeProvider>
-      </PrivateRecordScopeProvider>
+        </PrivateRecordScopeProvider>
+      </RecordAccessScopeProvider>
     </ModelPage>
   );
 };
