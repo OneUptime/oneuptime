@@ -110,7 +110,17 @@ const DataSecurityIssueViewLayout: FunctionComponent<
           await getItemInParts<DataSecurityIssue>({
             modelType: DataSecurityIssue,
             id: issueId,
-            select: DATA_SECURITY_ISSUE_VIEW_SELECT,
+            /*
+             * Of its store, what this reader may read through the issue: the
+             * store's sensitivity, exposure, region and keys are read through
+             * a relation only by who may read the store (#10281), so a custom
+             * role that reads issues and not stores reads the store's name,
+             * kind and environment, and the issue, in one read.
+             */
+            select: PermissionGate.getSelectReadableThroughRelations(
+              DataSecurityIssue,
+              DATA_SECURITY_ISSUE_VIEW_SELECT,
+            ),
           });
 
         result = {
