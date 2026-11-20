@@ -130,6 +130,7 @@ Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUI
 | `400` | 请求有误：API 密钥无效、某个值不被允许、某个字段无法写入、它指定的某条记录不属于你，或者它一次更改多个项目。消息会说明哪里出错。 | [请求所指定的记录](#请求所指定的记录) |
 | `402` | 项目的套餐不包含请求所使用的功能。消息会指明套餐。 | [你的套餐不包含的功能](#你的套餐不包含的功能) |
 | `404` | 记录不存在、位于另一个项目中，或是你无权读取的记录：每种情况的响应都相同。 | [更改或删除你无权读取的记录](#更改或删除你无权读取的记录) |
+| `413` | 请求体超过了 OneUptime 在该请求中接受的上限：大多数请求为 1 MB，最多 100,000 个 JSON 值；发送文件、仪表板或状态页的请求为 50 MB。消息会说明上限。在你自己运行的服务器上，`REQUEST_BODY_MAX_BYTES` 和 `REQUEST_BODY_MAX_JSON_VALUES` 可以提高大多数请求的上限。 | [请求和响应](#请求和响应) |
 | `422` | 你无权这样做：API 密钥没有这类记录的权限，你可以读取该记录但不能更改它，或者某个权限的标签排除了它。消息会说明原因。 | [更改或删除你无权读取的记录](#更改或删除你无权读取的记录) |
 | `500` | 服务器上出现了故障。当新记录的所有者无法写入时，该记录会被再次移除，以便可以重试创建。 | [请求所指定的记录](#请求所指定的记录) |
 
@@ -291,6 +292,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 ```
 
 更新时请不要发送这些字段。少数由人更改的字段各有专门的请求：轮换 SCIM 客户端密钥会设置它失效的时间，`POST /api/host/:id/try-collector-config-again` 会把在主机上失败的收集器配置再次发送给该主机。你和 OneUptime 都会更改的字段，例如记录的 `labels`（标签规则会向其中添加标签），仍由你像以前一样设置。
+
+省略了字段的创建会在响应的 `X-OneUptime-Fields-Left-Out` 标头中指明这些字段，字段之间用逗号分隔；没有省略任何内容的响应没有这个标头。CLI 会在一条提示中输出这些字段，MCP 服务器的响应会在 `fieldsLeftOut` 中列出它们，Terraform 提供程序会在一条警告中显示它们。
+
+### 向列表添加条目和移除条目
+
+更改可以向列表添加记录，或移除其中一些，而无需发送整个列表：`addToList` 和 `removeFromList` 按列表指明要添加和要移除的 ID。更改没有指明的每个条目都会保留，包括其他人或标签规则在同一时刻添加的条目：
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+把它发送到 `PUT /api/monitor/<id>`，会重命名该监视器，为它添加一个标签并移除另一个标签。如果更改只添加和移除条目，请省略 `data`。条目是记录的 ID，或带有其 `_id` 的对象，与 `data` 中相同；添加列表中已有的条目，或移除列表中没有的条目，不会更改任何内容。
+
+更改可以指明的列表，就是完整的 API 参考在该资源的 `PUT` 请求下 `addToList` 中列出的列表。以这种方式进行的更改，会按上面的规则，像它留下的整个列表那样接受检查：你更改该列表的权限、它添加的每条记录都是你项目中你可以读取的记录，以及限于标签的权限所保留的标签。同时在 `data` 中整体发送、又在 `addToList` 或 `removeFromList` 中发送的列表，会以 `400` 被拒绝：
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+Terraform 和 Crossplane 提供程序就是这样更改记录的标签的，因此规则在它们运行期间添加的标签会保留：请参阅[标签和 OneUptime 也会添加的其他列表](/docs/terraform/complete-guide#标签和-oneuptime-也会添加的其他列表)。
 
 ## 状态和片段
 

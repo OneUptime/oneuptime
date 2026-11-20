@@ -31,10 +31,22 @@
  *   - the doctor's after-start run must ask the same ingress, under the same
  *     name.
  *
- * Needs Docker, and pulls the nginx image and node:26-alpine3.24. Ops
- * Config Test runs it with RUN_STATUS_CHECK_INGRESS_TESTS=1; without it the
- * suite is skipped. It removes the containers and the network it creates,
- * and nothing else.
+ * With PROVISION_SSL=true the check also asks for HOST over HTTPS, where
+ * STATUS_PAGE_HTTPS_PORT publishes the ingress's 7850 (#10169). A second
+ * ingress renders the template as the ingress image does with
+ * PROVISION_SSL=true and HOST's certificate (made here with openssl, where
+ * envsubst-on-templates.sh would write its placeholder), published on
+ * 127.0.0.1, an address of this machine's own, a port alone, [::1] and
+ * [::]. The check must pass on each, the App seeing the request come over
+ * HTTPS through the primary server; and fail, saying why, where nothing
+ * listens, where STATUS_PAGE_HTTPS_PORT names the plain-HTTP port, and at
+ * the first ingress's 7850, which serves no HTTPS for HOST, as an ingress
+ * whose TLS block failed does not.
+ *
+ * Needs Docker and openssl, and pulls the nginx image and
+ * node:26-alpine3.24. Ops Config Test runs it with
+ * RUN_STATUS_CHECK_INGRESS_TESTS=1; without it the suite is skipped. It
+ * removes the containers and the network it creates, and nothing else.
  */
 
 const crypto = require("crypto");
@@ -43,6 +55,7 @@ const http = require("http");
 const net = require("net");
 const os = require("os");
 const path = require("path");
+const tls = require("tls");
 const { spawnSync } = require("child_process");
 const yaml = require("js-yaml");
 const { configExampleSettings } = require("./Utils/ComposePorts");
@@ -76,6 +89,8 @@ const NODE_IMAGE = "public.ecr.aws/docker/library/node:26-alpine3.24";
 
 // The ingress listens on 7849 for HTTP; Compose publishes ONEUPTIME_HTTP_PORT there.
 const INGRESS_HTTP_PORT = 7849;
+// And on 7850 for HTTPS, which STATUS_PAGE_HTTPS_PORT publishes.
+const INGRESS_HTTPS_PORT = 7850;
 
 // What a request of the check is for, after the address.
 const CHECKED_PATHS = [
@@ -316,6 +331,77 @@ function postTo(origin, pathname, bytes) {
   });
 }
 
+/*
+ * A self-signed certificate for `name` in `directory`, named as the ingress
+ * names HOST's (Nginx/envsubst-on-templates.sh: ServerCerts/<host>.crt and
+ * .key), where the ingress image would write its temporary one.
+ */
+function makeCertificate(directory, name) {
+  const certificate = path.join(directory, `${name}.crt`);
+  const key = path.join(directory, `${name}.key`);
+  const result = spawnSync(
+    "openssl",
+    [
+      "req",
+      "-x509",
+      "-newkey",
+      "rsa:2048",
+      "-nodes",
+      "-subj",
+      `/CN=${name}`,
+      "-addext",
+      `subjectAltName=DNS:${name}`,
+      "-keyout",
+      key,
+      "-out",
+      certificate,
+      "-days",
+      "1",
+    ],
+    { encoding: "utf8" },
+  );
+
+  if (result.status !== 0) {
+    throw new Error(
+      `openssl could not make a certificate for ${name}: ${result.stderr || result.error}`,
+    );
+  }
+
+  // The container's nginx reads them as another user than the one who made them.
+  fs.chmodSync(certificate, 0o644);
+  fs.chmodSync(key, 0o644);
+}
+
+/*
+ * A TLS handshake with host:port asking for `servername` (SNI): the name on
+ * the certificate it was answered with, or the error.
+ */
+function handshake(host, port, servername) {
+  return new Promise((resolve) => {
+    const socket = tls.connect({
+      host,
+      port,
+      servername,
+      rejectUnauthorized: false,
+      timeout: 5000,
+    });
+
+    socket.once("secureConnect", () => {
+      const certificate = socket.getPeerCertificate() || {};
+
+      resolve({ name: (certificate.subject || {}).CN || "" });
+      socket.end();
+    });
+    socket.once("timeout", () => {
+      socket.destroy();
+      resolve({ error: "ETIMEDOUT" });
+    });
+    socket.once("error", (error) => {
+      resolve({ error: (error && error.code) || String(error) });
+    });
+  });
+}
+
 // The status of a GET of `pathname` at host:port, under the Host `name`.
 function statusAt(host, port, pathname, name) {
   return new Promise((resolve) => {
@@ -353,6 +439,8 @@ describeRuntime("npm start's status check, against the real ingress", () => {
   const network = `oneuptime-ops-status-check-${suffix}`;
   const app = `oneuptime-ops-status-check-app-${suffix}`;
   const ingress = `oneuptime-ops-status-check-ingress-${suffix}`;
+  // The ingress with PROVISION_SSL=true, which serves HOST over HTTPS (#10169).
+  const tlsIngress = `oneuptime-ops-status-check-tls-ingress-${suffix}`;
   const settings = configExampleSettings();
   // Turned off below, and said, where Docker cannot publish on [::1].
   let ipv6 = hasIpv6Loopback();
@@ -381,9 +469,10 @@ describeRuntime("npm start's status check, against the real ingress", () => {
    * Runs `script` (the status check, or the one before) where config.env
    * publishes the ingress at `setting`, with the real curl and a sleep that
    * returns at once: its exit status, what it printed, and the requests the
-   * App took meanwhile.
+   * App took meanwhile. `lines` go last in config.env, where the last of a
+   * setting's lines wins (PROVISION_SSL=true, STATUS_PAGE_HTTPS_PORT).
    */
-  function runCheck(script, setting) {
+  function runCheck(script, setting, lines) {
     const workspace = fs.mkdtempSync(path.join(directory, "check-"));
     const bin = path.join(workspace, "bin");
 
@@ -398,8 +487,10 @@ describeRuntime("npm start's status check, against the real ingress", () => {
         "HTTP_PROTOCOL=https",
         "PROVISION_SSL=false",
         `ONEUPTIME_HTTP_PORT=${setting}`,
-        "",
-      ].join("\n"),
+      ]
+        .concat(lines || [])
+        .concat([""])
+        .join("\n"),
     );
 
     const before = requestsSeen().length;
@@ -452,13 +543,43 @@ describeRuntime("npm start's status check, against the real ingress", () => {
     fs.chmodSync(requestsDirectory, 0o777);
     requestsFile = path.join(requestsDirectory, "requests.jsonl");
 
-    ports = {
-      loopback: await freePort("127.0.0.1"),
-      specific: await freePort(specific),
-      ipv6: ipv6 ? await freePort("::1") : null,
-      ipv6Any: ipv6 ? await freePort("::") : null,
-      every: await freePort("0.0.0.0"),
+    // Free ports, none of them handed out twice.
+    const taken = new Set();
+    const port = async (address) => {
+      for (;;) {
+        const found = await freePort(address);
+
+        if (!taken.has(found)) {
+          taken.add(found);
+          return found;
+        }
+      }
     };
+
+    ports = {
+      loopback: await port("127.0.0.1"),
+      specific: await port(specific),
+      ipv6: ipv6 ? await port("::1") : null,
+      ipv6Any: ipv6 ? await port("::") : null,
+      every: await port("0.0.0.0"),
+      // The first ingress's 7850, which serves no HTTPS for HOST.
+      plainHttps: await port("127.0.0.1"),
+      // The TLS ingress's 7849, and its 7850 every way it can be published.
+      tlsHttp: await port("127.0.0.1"),
+      httpsLoopback: await port("127.0.0.1"),
+      httpsSpecific: await port(specific),
+      httpsEvery: await port("0.0.0.0"),
+      httpsIpv6: ipv6 ? await port("::1") : null,
+      httpsIpv6Any: ipv6 ? await port("::") : null,
+      // Where nothing listens.
+      nothing: await port("127.0.0.1"),
+    };
+
+    // HOST's certificate, where the ingress image would write its temporary one.
+    const certificates = path.join(directory, "ServerCerts");
+
+    fs.mkdirSync(certificates);
+    makeCertificate(certificates, HOST);
 
     const version = docker(["version", "--format", "{{.Server.Version}}"]);
 
@@ -513,6 +634,8 @@ describeRuntime("npm start's status check, against the real ingress", () => {
         `${specific}:${ports.specific}:${INGRESS_HTTP_PORT}`,
         "-p",
         `${ports.every}:${INGRESS_HTTP_PORT}`,
+        "-p",
+        `127.0.0.1:${ports.plainHttps}:${INGRESS_HTTPS_PORT}`,
       ];
 
       if (withIpv6) {
@@ -523,20 +646,46 @@ describeRuntime("npm start's status check, against the real ingress", () => {
       return published;
     };
 
+    // The TLS ingress: its plain HTTP on 127.0.0.1, and HTTPS every way.
+    const tlsPublishedOn = (withIpv6) => {
+      const published = [
+        "-p",
+        `127.0.0.1:${ports.tlsHttp}:${INGRESS_HTTP_PORT}`,
+        "-p",
+        `127.0.0.1:${ports.httpsLoopback}:${INGRESS_HTTPS_PORT}`,
+        "-p",
+        `${specific}:${ports.httpsSpecific}:${INGRESS_HTTPS_PORT}`,
+        "-p",
+        `${ports.httpsEvery}:${INGRESS_HTTPS_PORT}`,
+      ];
+
+      if (withIpv6) {
+        published.push("-p", `[::1]:${ports.httpsIpv6}:${INGRESS_HTTPS_PORT}`);
+        published.push(
+          "-p",
+          `[::]:${ports.httpsIpv6Any}:${INGRESS_HTTPS_PORT}`,
+        );
+      }
+
+      return published;
+    };
+
     /*
      * As the ingress image's run.sh starts nginx: the template rendered by
      * envsubst-on-templates.sh into conf.d, with the resolver Docker's
      * network answers on (run.sh reads it from /etc/resolv.conf), then
-     * nginx with OneUptime's nginx.conf.
+     * nginx with OneUptime's nginx.conf. `extra` adds to docker run's
+     * arguments.
      */
-    const startIngress = (withIpv6) => {
+    const runIngress = (name, published, extra) => {
       return docker([
         "run",
         "-d",
         "--name",
-        ingress,
+        name,
         "--network",
         network,
+        ...extra,
         "-e",
         `HOST=${HOST}`,
         "-e",
@@ -561,11 +710,31 @@ describeRuntime("npm start's status check, against the real ingress", () => {
         `${path.join(NGINX_DIRECTORY, "envsubst-on-templates.sh")}:/etc/nginx/envsubst-on-templates.sh:ro`,
         "-v",
         `${path.join(NGINX_DIRECTORY, "nginx.conf")}:/etc/nginx/nginx.conf:ro`,
-        ...publishedOn(withIpv6),
+        ...published,
         nginxImage(),
         "sh",
         "-c",
         "sh /etc/nginx/envsubst-on-templates.sh && exec nginx -g 'daemon off;'",
+      ]);
+    };
+
+    const startIngress = (withIpv6) => {
+      return runIngress(ingress, publishedOn(withIpv6), []);
+    };
+
+    /*
+     * With PROVISION_SSL=true, as run.sh hands it to the script with HOST's
+     * PRIMARY_DOMAIN: the primary server listens on 7850 too, with HOST's
+     * certificate, found where the script looks for it.
+     */
+    const startTlsIngress = (withIpv6) => {
+      return runIngress(tlsIngress, tlsPublishedOn(withIpv6), [
+        "-e",
+        "PROVISION_SSL=true",
+        "-e",
+        `PRIMARY_DOMAIN=${HOST}`,
+        "-v",
+        `${certificates}:/etc/nginx/certs/ServerCerts:ro`,
       ]);
     };
 
@@ -595,26 +764,36 @@ describeRuntime("npm start's status check, against the real ingress", () => {
       throw new Error(`the ingress did not start: ${ingressStarted.output}`);
     }
 
-    // Up once it hands a request to the App, which it finds by its name on the network.
-    const deadline = Date.now() + 90 * 1000;
+    const tlsStarted = startTlsIngress(ipv6);
 
-    while (
-      (await statusAt("127.0.0.1", ports.loopback, "/status", "localhost")) !==
-      200
-    ) {
-      if (Date.now() > deadline) {
-        throw new Error(
-          `the ingress never answered: ${docker(["logs", ingress]).output}\n${docker(["logs", app]).output}`,
-        );
+    if (tlsStarted.status !== 0) {
+      throw new Error(`the TLS ingress did not start: ${tlsStarted.output}`);
+    }
+
+    // Up once each hands a request to the App, which it finds by its name on the network.
+    for (const [name, httpPort] of [
+      [ingress, ports.loopback],
+      [tlsIngress, ports.tlsHttp],
+    ]) {
+      const deadline = Date.now() + 90 * 1000;
+
+      while (
+        (await statusAt("127.0.0.1", httpPort, "/status", "localhost")) !== 200
+      ) {
+        if (Date.now() > deadline) {
+          throw new Error(
+            `${name} never answered: ${docker(["logs", name]).output}\n${docker(["logs", app]).output}`,
+          );
+        }
+
+        await wait(500);
       }
-
-      await wait(500);
     }
   });
 
   afterAll(() => {
     if (started) {
-      docker(["rm", "-f", "--volumes", app, ingress]);
+      docker(["rm", "-f", "--volumes", app, ingress, tlsIngress]);
       docker(["network", "rm", network]);
     }
 
@@ -942,4 +1121,182 @@ describeRuntime("npm start's status check, against the real ingress", () => {
       expect(requestsSeen().slice(before)).toEqual([]);
     },
   );
+
+  /*
+   * #10169: with PROVISION_SSL=true the check also asks for HOST over HTTPS
+   * where STATUS_PAGE_HTTPS_PORT publishes the ingress's 7850, naming HOST,
+   * which is how nginx picks the primary server and its certificate.
+   */
+  describe("HOST over HTTPS, with PROVISION_SSL (#10169)", () => {
+    // The config.env lines of an install that has the ingress serve HOST over HTTPS.
+    const provisioned = (httpsSetting) => {
+      return ["PROVISION_SSL=true", `STATUS_PAGE_HTTPS_PORT=${httpsSetting}`];
+    };
+
+    // The requests the App took over HTTPS: through the ingress's TLS.
+    const overHttps = (seen) => {
+      return seen.filter((entry) => {
+        return entry.proto === "https";
+      });
+    };
+
+    /*
+     * Where Compose publishes the TLS ingress's 7850 for each form, and the
+     * STATUS_PAGE_HTTPS_PORT that publishes it there, with where the check
+     * connects: a port alone, which Docker publishes on every address, at
+     * 127.0.0.1; [::], IPv6 alone, at [::1].
+     */
+    function httpsForms() {
+      const forms = [
+        [
+          `127.0.0.1:${ports.httpsLoopback}`,
+          `127.0.0.1:${ports.httpsLoopback}`,
+        ],
+        [
+          `${specific}:${ports.httpsSpecific}`,
+          `${specific}:${ports.httpsSpecific}`,
+        ],
+        [String(ports.httpsEvery), `127.0.0.1:${ports.httpsEvery}`],
+      ];
+
+      if (ipv6) {
+        forms.push([`[::1]:${ports.httpsIpv6}`, `[::1]:${ports.httpsIpv6}`]);
+        forms.push([`::1:${ports.httpsIpv6}`, `[::1]:${ports.httpsIpv6}`]);
+        forms.push([
+          `[::]:${ports.httpsIpv6Any}`,
+          `[::1]:${ports.httpsIpv6Any}`,
+        ]);
+      }
+
+      return forms;
+    }
+
+    test("the TLS ingress answers HOST with HOST's certificate, and a name it holds none for with no handshake at all", async () => {
+      expect(await handshake("127.0.0.1", ports.httpsLoopback, HOST)).toEqual({
+        name: HOST,
+      });
+      expect(
+        await handshake("127.0.0.1", ports.httpsLoopback, "status.example.org"),
+      ).toEqual({ error: expect.any(String) });
+      // The first ingress serves no HTTPS for HOST: its 7850 is the status pages' alone.
+      expect(await handshake("127.0.0.1", ports.plainHttps, HOST)).toEqual({
+        error: expect.any(String),
+      });
+    });
+
+    test.each([
+      ["127.0.0.1", 0],
+      ["an address of this machine's own", 1],
+      ["a port alone, every address", 2],
+      ["[::1]", 3],
+      ["::1, without brackets, as Compose takes it too", 4],
+      ["[::], every IPv6 address", 5],
+    ])(
+      "on %s: the check asks for HOST over HTTPS there, through the primary server, and passes",
+      (_label, index) => {
+        const form = httpsForms()[index];
+
+        if (!form) {
+          console.log("No ::1 on this machine: the [::1] forms are not run.");
+          return;
+        }
+
+        const [httpsSetting, checkedAt] = form;
+        const port = checkedAt.slice(checkedAt.lastIndexOf(":") + 1);
+        const result = runCheck(
+          STATUS_CHECK,
+          `127.0.0.1:${ports.tlsHttp}`,
+          provisioned(httpsSetting),
+        );
+
+        expect({ status: result.status, output: result.output }).toEqual({
+          status: 0,
+          output: expect.stringContaining("🚀 OneUptime is up! 🚀"),
+        });
+        expect(result.output).toContain(
+          `✅ App (HTTPS) endpoint is up (https://${HOST}:${port}/status/ready at ${checkedAt})`,
+        );
+        // One request over HTTPS, handed on by the primary server under its own name.
+        expect(overHttps(result.seen)).toEqual([
+          {
+            method: "GET",
+            path: "/status/ready",
+            host: "localhost",
+            proto: "https",
+            bytes: 0,
+            status: 200,
+          },
+        ]);
+        // The pages over plain HTTP, then HTTPS, then the readiness loop's five.
+        expect(result.seen.length).toBe(CHECKED_PATHS.length + 1 + 5);
+        expect(result.seen[CHECKED_PATHS.length].proto).toBe("https");
+      },
+    );
+
+    test("nothing listening where STATUS_PAGE_HTTPS_PORT publishes it: the check fails, saying where it connected", () => {
+      const result = runCheck(
+        STATUS_CHECK,
+        `127.0.0.1:${ports.tlsHttp}`,
+        provisioned(`127.0.0.1:${ports.nothing}`),
+      );
+
+      expect(result.status).toBe(1);
+      expect(result.output).toContain(
+        "❌ Error: Maximum retries reached, App (HTTPS) still not returning HTTP 200.",
+      );
+      expect(result.output).toContain(
+        `Nothing answered at 127.0.0.1:${ports.nothing}, where STATUS_PAGE_HTTPS_PORT in config.env publishes OneUptime's ingress.`,
+      );
+      expect(result.output).not.toContain("OneUptime is up!");
+      expect(overHttps(result.seen)).toEqual([]);
+    });
+
+    test("STATUS_PAGE_HTTPS_PORT naming the plain-HTTP port: something answers, but completes no TLS handshake", () => {
+      const result = runCheck(
+        STATUS_CHECK,
+        `127.0.0.1:${ports.tlsHttp}`,
+        provisioned(`127.0.0.1:${ports.tlsHttp}`),
+      );
+
+      expect(result.status).toBe(1);
+      expect(result.output).toContain(
+        `Something answers at 127.0.0.1:${ports.tlsHttp}, where STATUS_PAGE_HTTPS_PORT in config.env publishes OneUptime's ingress, but it completed no TLS handshake for ${HOST}.`,
+      );
+      expect(result.output).not.toContain("OneUptime is up!");
+    });
+
+    /*
+     * The first ingress renders the template without PROVISION_SSL's TLS
+     * block, exactly as envsubst-on-templates.sh renders it with
+     * PROVISION_SSL=true when it cannot write HOST's placeholder
+     * certificate ("HTTPS directives disabled to keep nginx healthy"): its
+     * 7850 is the status pages' server alone, with no certificate for HOST.
+     */
+    test("an ingress that serves no HTTPS for HOST, as one whose TLS block failed: the check fails, and says the handshake did", () => {
+      const result = runCheck(
+        STATUS_CHECK,
+        `127.0.0.1:${ports.loopback}`,
+        provisioned(`127.0.0.1:${ports.plainHttps}`),
+      );
+
+      expect(result.status).toBe(1);
+      expect(result.output).toContain("✅ Status Page endpoint is up");
+      expect(result.output).toContain(
+        `Something answers at 127.0.0.1:${ports.plainHttps}, where STATUS_PAGE_HTTPS_PORT in config.env publishes OneUptime's ingress, but it completed no TLS handshake for ${HOST}.`,
+      );
+      expect(result.output).not.toContain("OneUptime is up!");
+      expect(overHttps(result.seen)).toEqual([]);
+    });
+
+    test("with PROVISION_SSL=false, nothing is asked over HTTPS, as before", () => {
+      const result = runCheck(STATUS_CHECK, `127.0.0.1:${ports.tlsHttp}`, [
+        `STATUS_PAGE_HTTPS_PORT=127.0.0.1:${ports.httpsLoopback}`,
+      ]);
+
+      expect(result.status).toBe(0);
+      expect(result.output).not.toContain("App (HTTPS)");
+      expect(overHttps(result.seen)).toEqual([]);
+      expect(result.seen.length).toBe(CHECKED_PATHS.length + 5);
+    });
+  });
 });

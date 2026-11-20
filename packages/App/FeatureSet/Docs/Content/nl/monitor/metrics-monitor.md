@@ -221,6 +221,29 @@ Groepeer geen metriek die al één scalair voor het hele systeem is (een leiders
 
 De waarden van het groeperingsattribuut zijn ook beschikbaar als [templatevariabelen](/docs/monitor/incident-alert-templating) in de titel, de beschrijving en de herstelnotities van de waarschuwing of het incident: groeperen op `host.name` laat de titel `Disk almost full on {{host.name}}` luiden.
 
+## Waarschuwen bij een PromQL-expressie
+
+Een stap kan een PromQL-expressie bewaken in plaats van metriekquery's: de querytaal van Prometheus, over de metrieken van uw project, zoals op de pagina [PromQL](/docs/telemetry/promql). Elke reeks die de expressie teruggeeft, wordt op zichzelf beoordeeld, zoals die van een gegroepeerde query: ze opent haar eigen waarschuwing of incident, dat wordt opgelost als die reeks herstelt of niet meer wordt teruggegeven.
+
+:::steps
+### Overschakelen naar PromQL
+
+Klik in **Te bewaken metriek** op **PromQL**. **Querybouwer** brengt u terug naar de metriekquery's.
+
+### De expressie schrijven
+
+Typ haar, bijvoorbeeld `sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))`, of begin bij **Een metriekenaam toevoegen**. De grafiek eronder tekent elke reeks over het tijdvenster en zegt wat er mis is met een expressie die niet draait.
+
+### De regel instellen
+
+Kies in **Wanneer waarschuwen** bij **Gemeten als** hoe elke reeks wordt gemeten, en daarna een **Tijdvenster**, een **Voorwaarde** en een **Waarde**, zoals bij metriekquery's. De expressie wordt elke minuut van het venster geëvalueerd, dus **Elke waarde (het hele venster)** over **Laatste 5 minuten** vraagt dat een reeks vijf minuten lang overschrijdt, zoals `for: 5m` in een alertregel van Prometheus.
+:::
+
+- **Een vergelijking in de expressie** houdt alleen de reeksen over waarvoor ze klopt: `rate(errors_total[5m]) > 0.1` geeft de reeksen boven 0.1 terug, en geen andere. Klik op **Verplaatsen naar Wanneer waarschuwen** om er de vergelijking van de regel van te maken: de grafiek toont dan elke reeks, en de regel beoordeelt ze elk.
+- **Hooguit 100 reeksen per controle.** Geeft de expressie er meer terug, dan beoordeelt een controle er 100: eerst de reeksen met een open waarschuwing of incident, daarna de andere in de volgorde van hun labels. De rest wordt bij die controle niet beoordeeld, dus voor hen gaat niets open of dicht, en de editor meldt dat de expressie er te veel teruggeeft. Aggregeer haar met `sum by (...)` of voeg labelmatchers toe.
+- **De limieten van elke PromQL-query gelden**, over de metrieken van de services die de monitor noemt, of van het hele project als hij er geen noemt.
+- **De anomalievoorwaarden worden niet aangeboden**: een expressie heeft geen eigen geschiedenis om zich mee te vergelijken. De voorspellingsvoorwaarden wel.
+
 ## Problemen oplossen
 
 :::details De grafiek toont een overschrijding, maar de monitor waarschuwde niet

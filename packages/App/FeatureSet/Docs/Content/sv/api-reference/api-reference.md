@@ -130,6 +130,7 @@ Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUI
 | `400` | Begäran är felaktig: API-nyckeln är ogiltig, ett värde är inte tillåtet, ett fält kan inte skrivas, en post som den namnger är inte din, eller den ändrar flera projekt på en gång. Meddelandet säger vad som är fel. | [Poster som en begäran namnger](#poster-som-en-begäran-namnger) |
 | `402` | Projektets plan omfattar inte det som begäran använder. Meddelandet namnger planen. | [Funktioner som din plan inte omfattar](#funktioner-som-din-plan-inte-omfattar) |
 | `404` | Posten finns inte, ligger i ett annat projekt eller är en som du inte får läsa: samma svar för var och en. | [Ändra eller radera en post som du inte får läsa](#ändra-eller-radera-en-post-som-du-inte-får-läsa) |
+| `413` | Kroppen är större än vad OneUptime tar emot i begäran: 1 MB med högst 100 000 JSON-värden i de flesta begäranden, och 50 MB i en som skickar en fil, en instrumentpanel eller en statussida. Meddelandet anger gränsen. På en server som du själv driver höjer `REQUEST_BODY_MAX_BYTES` och `REQUEST_BODY_MAX_JSON_VALUES` gränsen för de flesta begäranden. | [Begäranden och svar](#begäranden-och-svar) |
 | `422` | Du får inte göra detta: API-nyckeln har ingen behörighet för den här sortens post, du får läsa posten men inte ändra den, eller så utesluter en behörighets etiketter den. Meddelandet säger varför. | [Ändra eller radera en post som du inte får läsa](#ändra-eller-radera-en-post-som-du-inte-får-läsa) |
 | `500` | Något misslyckades på servern. När ägaren till en ny post inte kan skrivas tas posten bort igen, så att skapandet kan försökas igen. | [Poster som en begäran namnger](#poster-som-en-begäran-namnger) |
 
@@ -291,6 +292,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 ```
 
 Utelämna de här fälten i en uppdatering. De få som en person ändrar har en egen begäran: att byta ut en SCIM-klienthemlighet anger när den slutar fungera, och `POST /api/host/:id/try-collector-config-again` skickar igen till en värd den insamlarkonfiguration som misslyckades på den. Ett fält som både du och OneUptime ändrar, till exempel en posts `labels`, där etikettregler lägger till etiketter, anger du som förut.
+
+Ett skapande som utelämnade ett fält namnger det i svarets huvud `X-OneUptime-Fields-Left-Out`, med fälten åtskilda av kommatecken; ett svar där inget har utelämnats har inget sådant huvud. CLI:t skriver ut fälten i en anteckning, MCP-serverns svar listar dem i `fieldsLeftOut`, och Terraform-providern visar dem i en varning.
+
+### Lägga till element i en lista och ta bort dem
+
+En ändring kan lägga till poster i en lista, eller ta bort några, utan att skicka hela listan: `addToList` och `removeFromList` namnger de ID:n som ska läggas till och tas bort, lista för lista. Varje element som ändringen inte namnger står kvar, även ett som någon annan eller en etikettregel lägger till i samma ögonblick:
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+Skickat till `PUT /api/monitor/<id>` byter detta namn på monitorn, lägger till en etikett på den och tar bort en annan. Utelämna `data` när ändringen bara lägger till och tar bort element. Ett element är postens ID, eller ett objekt med dess `_id`, som i `data`, och att lägga till ett element som listan redan innehåller, eller ta bort ett som den inte innehåller, ändrar ingenting.
+
+De listor som en ändring kan namnge är de som den fullständiga API-referensen listar under `addToList` för resursens `PUT`-begäran. En ändring som görs på det här sättet kontrolleras som hela den lista den lämnar efter sig skulle ha kontrollerats, enligt reglerna ovan: din behörighet att ändra listan, att varje post den lägger till är en av ditt projekts poster som du får läsa, och de etiketter som en behörighet begränsad till etiketter behåller. En lista som skickas både hel, i `data`, och i `addToList` eller `removeFromList` avvisas med en `400`:
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+Terraform- och Crossplane-providrarna ändrar en posts etiketter på det här sättet, så en etikett som en regel lägger till medan de körs står kvar: se [Etiketter och andra listor som OneUptime också lägger till i](/docs/terraform/complete-guide#etiketter-och-andra-listor-som-oneuptime-också-lägger-till-i).
 
 ## Tillstånd och episoder
 

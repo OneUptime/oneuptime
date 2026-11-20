@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | Глобальный зонд, который выполняет проверки ваших мониторов. Использует сеть хоста. |
 | `global-runner` | `oneuptime/runner` | Встроенный глобальный Runner, который выполняет шаги JavaScript runbook-ов и исправления кода от OneUptime AI для всех проектов. |
 | `postgres` | `postgres:15` | Конфигурация и состояние: мониторы, инциденты, пользователи. Хранится в томе `postgres`. |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | Телеметрия: логи, метрики, трассировки и исключения. Хранится в томе `clickhouse`. |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7.38.18` | Телеметрия: логи, метрики, трассировки и исключения. Хранится в томе `clickhouse`. |
 | `valkey` | `valkey/valkey:9.1-alpine` | Кэш и очереди. Ничего не хранит на диске. |
 
 > [!NOTE]
@@ -585,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-Когда все контейнеры запущены, повторите проверку командой `npm run status-check`. Она проверяет ingress там, где его публикует `ONEUPTIME_HTTP_PORT`, по адресу и порту, например `127.0.0.1:8080`, с именем хоста `localhost`, как это сделал бы браузер на сервере.
+Когда все контейнеры запущены, повторите проверку командой `npm run status-check`. Она проверяет ingress там, где его публикует `ONEUPTIME_HTTP_PORT`, по адресу и порту, например `127.0.0.1:8080`, с именем хоста `localhost`, как это сделал бы браузер на сервере. С `PROVISION_SSL=true` она также проверяет `HOST` по HTTPS там, где ingress публикует `STATUS_PAGE_HTTPS_PORT`.
 :::
 
 :::details Браузер показывает "OneUptime не настроен для этого адреса"

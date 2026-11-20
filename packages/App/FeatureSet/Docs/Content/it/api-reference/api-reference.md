@@ -130,6 +130,7 @@ Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUI
 | `400` | La richiesta è sbagliata: la chiave API non è valida, un valore non è consentito, un campo non può essere scritto, un record nominato non è tuo, oppure modifica più progetti insieme. Il messaggio dice cosa non va. | [I record che una richiesta nomina](#i-record-che-una-richiesta-nomina) |
 | `402` | Il piano del progetto non include ciò che la richiesta usa. Il messaggio nomina il piano. | [Funzionalità che il tuo piano non include](#funzionalità-che-il-tuo-piano-non-include) |
 | `404` | Il record non esiste, è in un altro progetto o è uno che non puoi leggere: la stessa risposta in ogni caso. | [Modificare o eliminare un record che non puoi leggere](#modificare-o-eliminare-un-record-che-non-puoi-leggere) |
+| `413` | Il corpo è più grande di quanto OneUptime accetta nella richiesta: 1 MB con al massimo 100.000 valori JSON nella maggior parte delle richieste, e 50 MB in una che invia un file, una dashboard o una pagina di stato. Il messaggio dice il limite. Su un server che gestisci tu, `REQUEST_BODY_MAX_BYTES` e `REQUEST_BODY_MAX_JSON_VALUES` alzano il limite della maggior parte delle richieste. | [Richieste e risposte](#richieste-e-risposte) |
 | `422` | Non puoi farlo: la chiave API non ha alcuna autorizzazione per questo tipo di record, puoi leggere il record ma non modificarlo, oppure le etichette di un'autorizzazione lo escludono. Il messaggio dice perché. | [Modificare o eliminare un record che non puoi leggere](#modificare-o-eliminare-un-record-che-non-puoi-leggere) |
 | `500` | Qualcosa è andato storto sul server. Quando il proprietario di un nuovo record non può essere scritto, il record viene rimosso, quindi la creazione si può ritentare. | [I record che una richiesta nomina](#i-record-che-una-richiesta-nomina) |
 
@@ -291,6 +292,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 ```
 
 Lascia questi campi fuori da un aggiornamento. I pochi che una persona modifica hanno una richiesta tutta loro: ruotare un segreto client SCIM stabilisce quando smette di funzionare, e `POST /api/host/:id/try-collector-config-again` invia di nuovo a un host la configurazione del collector che non è riuscita su di esso. Un campo che modificate sia tu sia OneUptime, come le `labels` di un record, a cui le regole sulle etichette aggiungono altre etichette, lo imposti tu come prima.
+
+Una creazione che ha lasciato fuori un campo lo nomina nell'intestazione `X-OneUptime-Fields-Left-Out` della risposta, con i campi separati da virgole; una risposta che non ha lasciato fuori nulla non ha questa intestazione. La CLI stampa i campi in una nota, la risposta del server MCP li elenca in `fieldsLeftOut`, e il provider Terraform li mostra in un avvertimento.
+
+### Aggiungere voci a un elenco e toglierle
+
+Una modifica può aggiungere record a un elenco, o toglierne alcuni, senza inviare l'elenco intero: `addToList` e `removeFromList` nominano gli ID da aggiungere e da togliere, elenco per elenco. Ogni voce che la modifica non nomina resta, compresa una che qualcun altro o una regola per etichette aggiunge nello stesso momento:
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+Inviato a `PUT /api/monitor/<id>`, questo corpo rinomina il monitor, gli aggiunge un'etichetta e ne toglie un'altra. Lascia fuori `data` quando la modifica si limita ad aggiungere e togliere voci. Una voce è l'ID del record, o un oggetto con il suo `_id`, come in `data`, e aggiungere una voce che l'elenco contiene già, o toglierne una che non contiene, non cambia nulla.
+
+Gli elenchi che una modifica può nominare sono quelli che il riferimento API completo elenca sotto `addToList` per la richiesta `PUT` della risorsa. Una modifica fatta così viene verificata come lo sarebbe l'elenco intero che lascia, secondo le regole sopra: la tua autorizzazione a modificare l'elenco, il fatto che ogni record che aggiunge sia uno del tuo progetto che puoi leggere, e le etichette che un'autorizzazione limitata a etichette mantiene. Un elenco inviato sia intero, in `data`, sia in `addToList` o `removeFromList` viene rifiutato con un `400`:
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+I provider Terraform e Crossplane modificano così le etichette di un record, quindi un'etichetta che una regola aggiunge mentre sono in esecuzione resta: vedi [Le etichette e le altre liste a cui aggiunge anche OneUptime](/docs/terraform/complete-guide#le-etichette-e-le-altre-liste-a-cui-aggiunge-anche-oneuptime).
 
 ## Stati ed episodi
 

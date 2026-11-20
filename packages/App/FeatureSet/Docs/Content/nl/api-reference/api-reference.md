@@ -130,6 +130,7 @@ Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUI
 | `400` | Het verzoek klopt niet: de API-sleutel is ongeldig, een waarde is niet toegestaan, een veld kan niet worden geschreven, een genoemd record is niet van jou, of het wijzigt meerdere projecten tegelijk. De melding zegt wat er mis is. | [Records die een verzoek noemt](#records-die-een-verzoek-noemt) |
 | `402` | Het abonnement van het project bevat niet wat het verzoek gebruikt. De melding noemt het abonnement. | [Functies die je abonnement niet bevat](#functies-die-je-abonnement-niet-bevat) |
 | `404` | Het record bestaat niet, staat in een ander project, of is er een die je niet mag lezen: hetzelfde antwoord in elk geval. | [Een record wijzigen of verwijderen dat je niet mag lezen](#een-record-wijzigen-of-verwijderen-dat-je-niet-mag-lezen) |
+| `413` | De body is groter dan OneUptime in het verzoek aanneemt: 1 MB met hoogstens 100.000 JSON-waarden bij de meeste verzoeken, en 50 MB bij een verzoek dat een bestand, een dashboard of een statuspagina stuurt. De melding noemt de limiet. Op een server die je zelf beheert, verhogen `REQUEST_BODY_MAX_BYTES` en `REQUEST_BODY_MAX_JSON_VALUES` de limiet van de meeste verzoeken. | [Verzoeken en antwoorden](#verzoeken-en-antwoorden) |
 | `422` | Je mag dit niet: de API-sleutel heeft geen machtiging voor dit soort record, je mag het record lezen maar niet wijzigen, of de labels van een machtiging sluiten het uit. De melding zegt waarom. | [Een record wijzigen of verwijderen dat je niet mag lezen](#een-record-wijzigen-of-verwijderen-dat-je-niet-mag-lezen) |
 | `500` | Er ging iets mis op de server. Als de eigenaar van een nieuw record niet kan worden geschreven, wordt het record weer verwijderd, zodat je het aanmaken opnieuw kunt proberen. | [Records die een verzoek noemt](#records-die-een-verzoek-noemt) |
 
@@ -291,6 +292,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 ```
 
 Laat deze velden weg uit een update. De paar velden die een persoon wijzigt, hebben een eigen verzoek: een SCIM-client-secret vervangen stelt in wanneer het niet meer werkt, en `POST /api/host/:id/try-collector-config-again` stuurt een host opnieuw de collectorconfiguratie die erop mislukte. Een veld dat jij en OneUptime allebei wijzigen, zoals de `labels` van een record, waar labelregels labels aan toevoegen, stel je zoals voorheen zelf in.
+
+Een aanmaak die een veld wegliet, noemt het in de header `X-OneUptime-Fields-Left-Out` van het antwoord, met de velden gescheiden door komma's; een antwoord waarin niets is weggelaten, heeft zo'n header niet. De CLI toont de velden in een notitie, het antwoord van de MCP-server somt ze op in `fieldsLeftOut`, en de Terraform-provider toont ze in een waarschuwing.
+
+### Items aan een lijst toevoegen en weer weghalen
+
+Een wijziging kan records aan een lijst toevoegen, of er enkele weghalen, zonder de hele lijst te sturen: `addToList` en `removeFromList` noemen de ID's die erbij moeten en eraf moeten, lijst voor lijst. Elk item dat de wijziging niet noemt, blijft, ook een item dat iemand anders of een labelregel op hetzelfde moment toevoegt:
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+Naar `PUT /api/monitor/<id>` gestuurd, geeft dit de monitor een nieuwe naam, voegt er één label aan toe en haalt er een ander af. Laat `data` weg als de wijziging alleen items toevoegt en weghaalt. Een item is de ID van het record, of een object met zijn `_id`, zoals in `data`, en een item toevoegen dat de lijst al bevat, of een weghalen dat ze niet bevat, verandert niets.
+
+De lijsten die een wijziging kan noemen, zijn de lijsten die de volledige API-referentie onder `addToList` opsomt voor het `PUT`-verzoek van de resource. Een wijziging die zo wordt gedaan, wordt gecontroleerd zoals de hele lijst die ze achterlaat dat zou worden, volgens de regels hierboven: je machtiging om de lijst te wijzigen, dat elk record dat ze toevoegt er een van je project is dat je mag lezen, en de labels die een machtiging beperkt tot labels behoudt. Een lijst die zowel in zijn geheel, in `data`, als in `addToList` of `removeFromList` wordt gestuurd, wordt geweigerd met een `400`:
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+De Terraform- en Crossplane-providers wijzigen de labels van een record op deze manier, zodat een label dat een regel toevoegt terwijl ze lopen, blijft: zie [Labels en andere lijsten waar OneUptime ook aan toevoegt](/docs/terraform/complete-guide#labels-en-andere-lijsten-waar-oneuptime-ook-aan-toevoegt).
 
 ## Statussen en episodes
 

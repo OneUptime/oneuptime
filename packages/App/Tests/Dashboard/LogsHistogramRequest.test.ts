@@ -15,6 +15,8 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
+import OneUptimeDate from "Common/Types/Date";
+import Timezone from "Common/Types/Timezone";
 import {
   applyTypedLogFilterToRequest,
   buildLogsAggregateScope,
@@ -30,6 +32,12 @@ import {
 } from "../../FeatureSet/Dashboard/src/Components/Logs/LogsHistogramRequest";
 
 const NOW: Date = new Date("2026-08-05T12:00:00.000Z");
+
+/*
+ * The reader's zone, pinned: every request names it, so a bar of a day
+ * starts at the reader's midnight (#7923).
+ */
+const READER_ZONE: Timezone = Timezone.AmericaNew_York;
 
 const PAST_ONE_HOUR: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -86,10 +94,24 @@ function freezeClock(): void {
 describe("buildLogsHistogramRequest", () => {
   beforeEach(() => {
     freezeClock();
+    OneUptimeDate.setUserTimezone(READER_ZONE);
   });
 
   afterEach(() => {
     jest.useRealTimers();
+    OneUptimeDate.setUserTimezone(null);
+  });
+
+  describe("the reader's zone (#7923)", () => {
+    test("names it, so a bar of a day starts at the reader's midnight", () => {
+      expect(build()["timezone"]).toBe("America/New_York");
+    });
+
+    test("names it in its current name", () => {
+      OneUptimeDate.setUserTimezone("Asia/Calcutta" as Timezone);
+
+      expect(build()["timezone"]).toBe(Timezone.AsiaKolkata);
+    });
   });
 
   describe("time window", () => {
@@ -97,6 +119,7 @@ describe("buildLogsHistogramRequest", () => {
       expect(build()).toEqual({
         startTime: "2026-08-05T11:00:00.000Z",
         endTime: "2026-08-05T12:00:00.000Z",
+        timezone: READER_ZONE,
       });
     });
 
@@ -137,6 +160,7 @@ describe("buildLogsHistogramRequest", () => {
       expect(second).toEqual({
         startTime: "2026-08-01T00:00:00.000Z",
         endTime: "2026-08-01T06:00:00.000Z",
+        timezone: READER_ZONE,
       });
     });
 
@@ -145,19 +169,25 @@ describe("buildLogsHistogramRequest", () => {
         {
           startTime: "2026-08-05T11:55:00.000Z",
           endTime: "2026-08-05T12:00:00.000Z",
+          timezone: READER_ZONE,
         },
       );
 
       expect(build({ timeRange: { range: TimeRange.PAST_ONE_DAY } })).toEqual({
         startTime: "2026-08-04T12:00:00.000Z",
         endTime: "2026-08-05T12:00:00.000Z",
+        timezone: READER_ZONE,
       });
     });
   });
 
   describe("base scope from the host page", () => {
-    test("sends nothing but the window when the viewer is unscoped", () => {
-      expect(Object.keys(build()).sort()).toEqual(["endTime", "startTime"]);
+    test("sends nothing but the window and the reader's zone when the viewer is unscoped", () => {
+      expect(Object.keys(build()).sort()).toEqual([
+        "endTime",
+        "startTime",
+        "timezone",
+      ]);
     });
 
     test("passes service, trace and span scope through", () => {
@@ -547,6 +577,8 @@ describe("typed search on the histogram request", () => {
      * Against a literal, not against another build() of the same params —
      * two identical calls agree even when both are wrong.
      */
+    OneUptimeDate.setUserTimezone(READER_ZONE);
+
     const withoutKey: JSONObject = buildLogsHistogramRequest({
       timeRange: PAST_ONE_HOUR,
       appliedFacetFilters: facets({ severityText: ["Error"] }),
@@ -555,6 +587,7 @@ describe("typed search on the histogram request", () => {
     const expected: JSONObject = {
       startTime: new Date(NOW.getTime() - 60 * 60 * 1000).toISOString(),
       endTime: NOW.toISOString(),
+      timezone: READER_ZONE,
       severityTexts: ["Error"],
     };
 
@@ -577,6 +610,8 @@ describe("typed search on the histogram request", () => {
         typedFilter: { time: new InBetween<Date>(NOW, NOW), unknown: "x" },
       }),
     ).toEqual(expected);
+
+    OneUptimeDate.setUserTimezone(null);
   });
 
   test("typed attributes merge over the base and chip attributes, typed keys winning", () => {
@@ -1234,10 +1269,13 @@ describe("buildLogsAggregateScope", () => {
     expect(scope).not.toHaveProperty("startTime");
     expect(scope).not.toHaveProperty("endTime");
 
-    const { startTime, endTime, ...histogramScope } = histogram;
+    // The window, and the zone its day bars are cut in (#7923).
+    const { startTime, endTime, timezone, ...histogramScope } = histogram;
 
     expect(startTime).toBe("2026-08-05T11:00:00.000Z");
     expect(endTime).toBe("2026-08-05T12:00:00.000Z");
+    expect(timezone).toBe(OneUptimeDate.getCurrentTimezone());
+    expect(scope).not.toHaveProperty("timezone");
     expect(onTheWire(scope)).toEqual(onTheWire(histogramScope));
   });
 

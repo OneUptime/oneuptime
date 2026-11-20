@@ -12,7 +12,10 @@ import OneUptimeDate from "Common/Types/Date";
 import MetricSparkline, { SparklinePoint } from "./MetricSparkline";
 import ObjectID from "Common/Types/ObjectID";
 import { getVisibleMetricServices } from "./MetricRowData";
-import { getMetricServicesWithin } from "./Utils/MetricRowScope";
+import {
+  getMetricRowCaption,
+  getMetricServicesWithin,
+} from "./Utils/MetricRowScope";
 import {
   METRIC_ROW_CONTAINER_CLASS_NAME,
   METRIC_ROW_DESCRIPTION_CLASS_NAME,
@@ -51,6 +54,12 @@ export interface MetricRowProps {
    * host has said already is drawn as given.
    */
   valueCaption?: string | undefined;
+  /*
+   * The time of the newest point (ISO), for a caption that ends with how
+   * long ago it was: "every hour · 2h ago" (#10026). Unset: the caption
+   * alone.
+   */
+  valueCaptionSince?: string | undefined;
   /*
    * The unit the value is in, when the host knows the metric's declared
    * unit is wrong for its scope. Unset: the metric's own unit.
@@ -237,8 +246,11 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
                 data-testid="metric-row-value-caption"
                 className="mt-0.5 text-xs text-gray-500"
               >
-                {translator.translateText(props.valueCaption) ||
-                  props.valueCaption}
+                {getMetricRowCaption({
+                  caption: props.valueCaption,
+                  captionSince: props.valueCaptionSince,
+                  translator,
+                })}
               </div>
             )}
           </div>

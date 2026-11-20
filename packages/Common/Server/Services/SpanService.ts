@@ -53,6 +53,18 @@ export interface SpanAttributeGroupCount {
   // One value per group-by attribute, in the order they were asked for.
   values: Array<string>;
   count: number;
+  /*
+   * The last value each context attribute asked for had in the group's
+   * spans, by attribute: what a device's group says about the device
+   * (TraceGroupAbsence, #9925). Only an attribute some span gave a value.
+   */
+  lastValues?: Record<string, string> | undefined;
+}
+
+// A group seen between two times: its values, and its context attributes'.
+export interface SpanAttributeGroup {
+  values: Array<string>;
+  lastValues?: Record<string, string> | undefined;
 }
 
 export interface SpanAttributeGroupCountResult {
@@ -646,6 +658,8 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     groupByAttributes: Array<string>;
     limit: number;
     props: DatabaseCommonInteractionProps;
+    // Attributes whose last value each group's spans carried is read too.
+    contextAttributes?: Array<string> | undefined;
   }): Promise<SpanAttributeGroupCountResult> {
     const query: Query<Span> = await this.readableQuery(input);
 
@@ -654,6 +668,7 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
         query: query,
         groupByAttributes: input.groupByAttributes,
         limit: input.limit,
+        contextAttributes: input.contextAttributes,
       }),
     );
     const response: ResponseJSON<JSONObject> =
@@ -663,9 +678,13 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
 
     return {
       groups: rows.map((row: JSONObject): SpanAttributeGroupCount => {
+        const lastValues: Record<string, string> | undefined =
+          SpanService.readContextValues(row, input.contextAttributes);
+
         return {
           values: SpanService.readGroupValues(row, input.groupByAttributes),
           count: toSpanCount(row["groupCount"]),
+          ...(lastValues ? { lastValues: lastValues } : {}),
         };
       }),
       totalCount: firstRow ? toSpanCount(firstRow["totalCount"]) : 0,
@@ -678,6 +697,8 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
    * the most recently seen first, at most `limit`: what a grouped monitor
    * expects to keep hearing from (TraceGroupAbsence). A group whose every
    * value is empty is none - a span that names no install is no install.
+   * With `contextAttributes`, each group carries the last value its spans
+   * gave each of them (a quiet device's name and model, #9925).
    */
   @CaptureSpan()
   public async findRecentAttributeGroups(input: {
@@ -687,7 +708,8 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     until: Date;
     limit: number;
     props: DatabaseCommonInteractionProps;
-  }): Promise<Array<Array<string>>> {
+    contextAttributes?: Array<string> | undefined;
+  }): Promise<Array<SpanAttributeGroup>> {
     const query: Query<Span> = await this.readableQuery({
       query: {
         ...input.query,
@@ -700,6 +722,7 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
       query: query,
       groupByAttributes: input.groupByAttributes,
       select: "max(startTime) AS lastSeen",
+      contextAttributes: input.contextAttributes,
     });
 
     statement.append(
@@ -728,8 +751,14 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     const response: ResponseJSON<JSONObject> =
       await dbResult.json<JSONObject>();
 
-    return (response.data || []).map((row: JSONObject): Array<string> => {
-      return SpanService.readGroupValues(row, input.groupByAttributes);
+    return (response.data || []).map((row: JSONObject): SpanAttributeGroup => {
+      const lastValues: Record<string, string> | undefined =
+        SpanService.readContextValues(row, input.contextAttributes);
+
+      return {
+        values: SpanService.readGroupValues(row, input.groupByAttributes),
+        ...(lastValues ? { lastValues: lastValues } : {}),
+      };
     });
   }
 
@@ -745,6 +774,7 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     query: Query<Span>;
     groupByAttributes: Array<string>;
     limit: number;
+    contextAttributes?: Array<string> | undefined;
   }): Statement {
     const aliases: Array<string> = SpanService.groupAliases(
       input.groupByAttributes,
@@ -755,6 +785,7 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
       groupByAttributes: input.groupByAttributes,
       select:
         "count() AS groupCount, sum(count()) OVER () AS totalCount, count() OVER () AS totalGroupCount",
+      contextAttributes: input.contextAttributes,
     });
 
     // Busiest first; the values break ties so the cut is stable.
@@ -782,11 +813,18 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     return statement;
   }
 
-  // SELECT <select>, <the group values> FROM Span WHERE <query> GROUP BY <them>
+  /*
+   * SELECT <select>, <the group values>[, <the context values>] FROM Span
+   * WHERE <query> GROUP BY <the group values>. A context value is the last
+   * value an attribute had in the group's spans, the latest span that gave
+   * one winning (argMaxIf): a device renamed in the window reads by its new
+   * name, and a span that names none does not blank it.
+   */
   private toGroupSelectStatement(input: {
     query: Query<Span>;
     groupByAttributes: Array<string>;
     select: string;
+    contextAttributes?: Array<string> | undefined;
   }): Statement {
     if (input.groupByAttributes.length === 0) {
       throw new BadDataException(
@@ -814,6 +852,23 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
         }}], 1, `,
       );
       statement.append(`${MAX_SPAN_GROUP_VALUE_LENGTH}) AS ${aliases[index]}`);
+    });
+
+    (input.contextAttributes || []).forEach((key: string, index: number) => {
+      statement.append(
+        SQL`, argMaxIf(substringUTF8(attributes[${{
+          value: key,
+          type: TableColumnType.Text,
+        }}], 1, `,
+      );
+      statement.append(`${MAX_SPAN_GROUP_VALUE_LENGTH}), startTime, `);
+      statement.append(
+        SQL`attributes[${{
+          value: key,
+          type: TableColumnType.Text,
+        }}] != '')`,
+      );
+      statement.append(` AS ${SpanService.contextAlias(index)}`);
     });
 
     statement
@@ -874,6 +929,28 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
 
       return value === undefined || value === null ? "" : String(value);
     });
+  }
+
+  private static contextAlias(index: number): string {
+    return `__context_${index}`;
+  }
+
+  // The context attributes a row gave a value, by attribute; undefined if none.
+  private static readContextValues(
+    row: JSONObject,
+    contextAttributes: Array<string> | undefined,
+  ): Record<string, string> | undefined {
+    const values: Record<string, string> = {};
+
+    (contextAttributes || []).forEach((key: string, index: number) => {
+      const value: unknown = row[SpanService.contextAlias(index)];
+
+      if (value !== undefined && value !== null && String(value) !== "") {
+        values[key] = String(value);
+      }
+    });
+
+    return Object.keys(values).length > 0 ? values : undefined;
   }
 }
 

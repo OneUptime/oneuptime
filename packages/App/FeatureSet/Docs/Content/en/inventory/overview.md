@@ -74,13 +74,13 @@ Open an item, and its own side menu has its **Overview** (its type, source and s
 
 ### Asset details
 
-A host or a network device has an **Asset Details** card that describes both the same way: hostname, IP address, MAC address, serial number, manufacturer, model, firmware version, operating system, OS version, device type and location. An Android device's card also has its security patch level, from the Android agent or its device manager. A fact nothing has reported reads **Unknown**, and the card says why and how the unknown ones get filled in: a device that does not report them over SNMP, a device not read yet, or a Meraki device whose dashboard holds them.
+A host or a network device has an **Asset Details** card that describes both the same way: hostname, IP address, MAC address, serial number, manufacturer, model, firmware version, operating system, OS version, device type and location. An Android device's card also has its security patch level, from the Android agent or its device manager. It says whether the patch is **Out of Date**, as the **Security Patch Level** column does, and how many days old it is. A fact nothing has reported reads **Unknown**, and the card says why and how the unknown ones get filled in: a device that does not report them over SNMP, a device not read yet, or a Meraki device whose dashboard holds them.
 
 - A host's facts come from the resource attributes on its telemetry: its IP and MAC addresses, architecture and operating system out of the box, and its serial number, make, model and firmware once you stamp them on.
 - A network device's facts come from its SNMP poll, its role and its site. What its poll has not read comes from discovery: the last scan of its address, a router's ARP table, or its probe's DNS lookup. A device without ENTITY-MIB, such as a Meraki MX, still gets its make, model and operating system from its system description, and its MAC address from its own ports. Its IP address is never shown as its hostname.
 - A Meraki device also takes what its poll leaves empty from the Meraki dashboard, its serial number, model and firmware among them, when a [Meraki connection](/docs/monitor/network-traffic#cisco-meraki-without-netflow) reads its organization.
 
-**All Items** finds the Android devices to act on. Its **Security Patch Level** filter lists the devices **Out of Date**, whose security patch level is more than 90 days old, the rule the Security Patch Out of Date alert of the [Host Monitor](/docs/monitor/host-monitor) reads. Its **Agent Permissions** filter lists the devices on which the [Android agent](/docs/telemetry/android-agent) still lacks READ_LOGS, READ_DROPBOX_DATA or usage access. Each has a column of the same name, hidden until you turn it on, and the CSV export carries it.
+**All Items** finds the Android devices to act on. Its **Security Patch Level** filter lists the devices **Out of Date**, whose security patch level is more than 90 days old, the rule the Security Patch Out of Date alert of the [Host Monitor](/docs/monitor/host-monitor) reads. Its **Agent Permissions** filter lists the devices on which the [Android agent](/docs/telemetry/android-agent) still lacks READ_LOGS, READ_DROPBOX_DATA or usage access. Each has a column of the same name, hidden until you turn it on, and the CSV export carries it. Beside them, the **Device Manager ID** column holds the ID a device's device manager knows it by, such as the Esper ID that `espercli secureadb connect --device` takes.
 
 The card says where each fact came from and when. The source most facts share, such as a host's collector, a network device's own SNMP poll or the discovery scan that read it, is named once, below the facts. Any other source, such as a router's ARP table or a value saved on the device, is named under its fact. A value saved on a network device is never replaced by what discovery reads, and when the two differ, the card shows both.
 
@@ -115,6 +115,7 @@ Go to **Products → Resources → Inventory**, then **Managed Devices**, click 
 | Model, manufacturer, serial number, operating system and its version, build, and IP and MAC addresses | The device's **Asset Details** card, and the columns of **All Items** |
 | Status, last check-in, group, security patch level, IMEI, battery, storage and Esper agent | The device's **Esper** card, and the **Devices** list of **Managed Devices** |
 | Apps and their versions | The device's **Installed Apps** list |
+| Its Esper device ID | The **Device Manager ID** column of **All Items** |
 
 ### One device, not two
 
@@ -138,6 +139,8 @@ A device removed from Esper is marked **Removed**, and its item is archived: it 
 On **Managed Devices**, click **Set up alerts** on the connection's row, and create **Esper Android Device Stopped Checking In** and **Esper Apple Device Stopped Checking In**. The first opens one alert for each Android device that has not checked in with Esper for more than an hour, and the second for each Apple device that has not for more than a day, each named after the device and resolved once it checks in again.
 
 Each read of the connection records how many minutes ago each device last checked in, as the metric `oneuptime.managed_device.check_in.age`, and the monitor checks each device's latest reading every 5 minutes. A device that also runs the Android Agent is left to **Host Stopped Reporting**, so it never alerts twice, and a device removed from Esper resolves its alert. A read that fails records nothing, so no alert opens or resolves until the next one. For a fleet that is switched off at night, raise the monitor's threshold.
+
+Create **Esper Security Patch Out of Date** too, and each Android device whose security patch level, as Esper reports it, is more than 90 days old opens an alert of its own, resolved once the device is updated. Each read records how many days old each Android device's patch level is, as the metric `oneuptime.managed_device.security_patch.age`. A device that runs the Android Agent is left to its host's **Security Patch Out of Date**, so it never alerts twice.
 
 ## Import devices from Microsoft Intune
 
@@ -165,7 +168,7 @@ A device checks in with Intune about every eight hours, and its last check-in is
 
 Intune names a device what its owner called it, so two devices can share a name: every iPhone nobody renamed is `iPhone`. A name two devices of a connection share is neither one's in Inventory: each is named by its serial number instead, and takes its name back once no other device has it.
 
-To get an alert when a device stops checking in, click **Set up alerts** on the connection's row and create **Intune Device Stopped Checking In**. It opens one alert for each device that has not checked in with Intune for more than a day, named after the device. A laptop left off over a weekend reads the same, so raise the monitor's threshold if a day is too soon for yours.
+To get an alert when a device stops checking in, click **Set up alerts** on the connection's row and create **Intune Device Stopped Checking In**. It opens one alert for each device that has not checked in with Intune for more than a day, named after the device. A laptop left off over a weekend reads the same, so raise the monitor's threshold if a day is too soon for yours. **Intune Security Patch Out of Date** alerts on each Android device whose security patch level is more than 90 days old, as Esper's does.
 
 ## Import devices from Workspace ONE UEM
 
@@ -191,7 +194,7 @@ A device reports to Workspace ONE on its own schedule, an iPhone hours apart, so
 
 An app or the Android Agent that sends telemetry from a device joins it as one item by the device's serial number: set the Android Agent's `device_serial` setting to the `{DeviceSerialNumber}` lookup value in its managed configuration.
 
-To get an alert when a device stops checking in, click **Set up alerts** on the connection's row and create **Workspace ONE Device Stopped Checking In**. It opens one alert for each device that has not reported to Workspace ONE for more than a day, named after the device.
+To get an alert when a device stops checking in, click **Set up alerts** on the connection's row and create **Workspace ONE Device Stopped Checking In**. It opens one alert for each device that has not reported to Workspace ONE for more than a day, named after the device. **Workspace ONE Security Patch Out of Date** alerts on each Android device whose security patch level is more than 90 days old, as Esper's does.
 
 ## Import devices from SOTI MobiControl
 
@@ -215,7 +218,7 @@ A MobiControl agent keeps a live connection to its server, so a device whose age
 
 An app or the Android Agent that sends telemetry from a device joins it as one item by the device's serial number: set the Android Agent's `device_serial` setting to the `%SERIALNUM%` macro in its managed configuration.
 
-To get an alert when a device stops checking in, click **Set up alerts** on the connection's row and create **SOTI Device Stopped Checking In** and **SOTI Apple Device Stopped Checking In**. The first opens one alert for each Android, Windows or Linux device whose agent has not been connected for more than an hour, and the second for each Apple device that has not checked in for more than a day, each named after the device.
+To get an alert when a device stops checking in, click **Set up alerts** on the connection's row and create **SOTI Device Stopped Checking In** and **SOTI Apple Device Stopped Checking In**. The first opens one alert for each Android, Windows or Linux device whose agent has not been connected for more than an hour, and the second for each Apple device that has not checked in for more than a day, each named after the device. **SOTI Security Patch Out of Date** alerts on each Android device whose security patch level is more than 90 days old, as Esper's does.
 
 ## Add something by hand
 

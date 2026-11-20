@@ -19,6 +19,9 @@ import {
   DEFAULT_SYSLOG_RECEIVER_PORT,
 } from "Common/Types/Syslog/SyslogReceiverDefaults";
 import NumberUtil from "Common/Utils/Number";
+import getRequestBodyLimit, {
+  LARGE_REQUEST_BODY_LIMIT,
+} from "Common/Server/Utils/RequestBodyLimit";
 import ProbeNetworkFailureUtil, {
   ProbeNetworkFailure,
   ProbeNetworkOperation,
@@ -1498,21 +1501,37 @@ describe("the Incoming Request Ingress page", () => {
      * Whitespace-squashed, so prettier re-wrapping a call cannot fail it. The
      * JSON and form parsers also keep a signed request's bytes
      * (keepSignedBodyBytes), and the signed-body reader keeps them for any
-     * other type, so its signature still holds through the probe.
+     * other type, so its signature still holds through the probe. A JSON
+     * body is counted first, as OneUptime counts it (#10183).
      */
     expect(ingress.replace(/\s+/g, " ")).toContain(
-      "app.use( ExpressJson({ limit: INGRESS_BODY_LIMIT, verify: keepSignedBodyBytes }), ); app.use( ExpressUrlEncoded({ extended: true, limit: INGRESS_BODY_LIMIT, verify: keepSignedBodyBytes, }), ); app.use(WebhookRequestBody.getRawReader(INGRESS_BODY_LIMIT)); app.use( WebhookRequestBody.getSignedBodyReader(INGRESS_BODY_LIMIT, isSignedRequest), ); app.use(router);",
+      "app.use( ExpressJson({ limit: INGRESS_BODY_LIMIT, verify: countJsonAndKeepSignedBodyBytes, }), ); app.use( ExpressUrlEncoded({ extended: true, limit: INGRESS_BODY_LIMIT, verify: keepSignedBodyBytes, }), ); app.use(WebhookRequestBody.getRawReader(INGRESS_BODY_LIMIT)); app.use( WebhookRequestBody.getSignedBodyReader(INGRESS_BODY_LIMIT, isSignedRequest), ); app.use(router);",
+    );
+    expect(ingress).toContain(
+      "RequestBodyJson.assertWithinLimit(buf, LARGE_REQUEST_BODY_LIMIT);",
     );
     // The text it reads as it came is forwarded as it came.
     expect(ingress).toContain(
       "if (Buffer.isBuffer(body)) {\n    return body;\n  }",
     );
-    expect(appParsers).toMatch(
-      /export const jsonBodyParserOptions: BodyParserOptions = \{\s*limit: "50mb",/,
+    /*
+     * OneUptime's parsers hold each route to its limit (RequestBodyLimit):
+     * an incoming request monitor's, under each prefix, is the large
+     * routes' 50 MiB, and the probe's listener counts a JSON body against
+     * the same.
+     */
+    expect(appParsers).toContain(
+      "const limit: RequestBodyLimit = getRequestBodyLimit(req.path);",
     );
-    expect(appParsers).toMatch(
-      /export const urlEncodedBodyParserOptions: BodyParserOptions = \{\s*limit: "50mb",/,
-    );
+
+    for (const path of [
+      "/incoming-request/key",
+      "/incoming-request-ingest/incoming-request/key",
+    ]) {
+      expect(getRequestBodyLimit(path)).toBe(LARGE_REQUEST_BODY_LIMIT);
+    }
+
+    expect(LARGE_REQUEST_BODY_LIMIT.bytes).toBe(50 * 1024 * 1024);
     expect(readSource(PROBE_INDEX)).toContain(
       "const ingressApp: ExpressApplication = createIngressApp();",
     );

@@ -3,6 +3,8 @@ import {
   Statement,
   escapeIlikePattern,
 } from "../Utils/AnalyticsDatabase/Statement";
+import TelemetryHistogramBuckets from "../Utils/Telemetry/TelemetryHistogramBuckets";
+import Timezone from "../../Types/Timezone";
 import { appendAttributeFilters } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
 import {
   getQuerySettings,
@@ -64,6 +66,12 @@ export interface HistogramRequest {
   startTime: Date;
   endTime: Date;
   bucketSizeInMinutes: number;
+  /*
+   * The reader's zone (a name the Timezone list holds): a bar of a day
+   * starts at its midnight, not UTC's (TelemetryHistogramBuckets, #7923).
+   * Every shorter bar, and a day bar without it, is counted from the epoch.
+   */
+  timezone?: Timezone | undefined;
   serviceIds?: Array<ObjectID> | undefined;
   // Resources whose rows are left out whatever else matches.
   excludedServiceIds?: Array<ObjectID> | undefined;
@@ -143,6 +151,12 @@ export interface AnalyticsRequest {
   startTime: Date;
   endTime: Date;
   bucketSizeInMinutes: number;
+  /*
+   * The reader's zone (a name the Timezone list holds): a bar of a day
+   * starts at its midnight, not UTC's (TelemetryHistogramBuckets, #7923).
+   * Every shorter bar, and a day bar without it, is counted from the epoch.
+   */
+  timezone?: Timezone | undefined;
   chartType: AnalyticsChartType;
   groupBy?: Array<string> | undefined;
   aggregation: AnalyticsAggregation;
@@ -496,8 +510,6 @@ export class LogAggregationService {
   }
 
   private static buildHistogramStatement(request: HistogramRequest): Statement {
-    const intervalSeconds: number = request.bucketSizeInMinutes * 60;
-
     /*
      * Two-stage aggregation mirroring TraceAggregationService.getHistogram.
      * The inner query groups by toStartOfInterval(time, INTERVAL 1 MINUTE) —
@@ -507,7 +519,10 @@ export class LogAggregationService {
      * column the aggregate projection does not store, so ClickHouse rejects
      * the projection and full-scans (verified: 2.1M rows / ~46ms vs 978 rows /
      * ~7ms with this form). The outer query re-buckets the tiny minute-level
-     * result to the requested size. The start edge rounds down to the minute,
+     * result to the requested size - a day bar from the reader's midnight
+     * when the request names their zone, exact because every zone's offset is
+     * a whole number of minutes (TelemetryHistogramBuckets). The start edge
+     * rounds down to the minute,
      * which is consistent with the minute-bucketed output and only widens the
      * first bucket by the partial boundary minute when the range is not
      * minute-aligned.
@@ -525,10 +540,17 @@ export class LogAggregationService {
      */
     const statement: Statement = SQL`
       SELECT
-        toStartOfInterval(minute, INTERVAL ${{
-          type: TableColumnType.Number,
-          value: intervalSeconds,
-        }} SECOND) AS bucket,
+        `;
+
+    statement.append(
+      TelemetryHistogramBuckets.buildBucketStatement({
+        timestampExpression: "minute",
+        bucketSizeInMinutes: request.bucketSizeInMinutes,
+        timezone: request.timezone,
+      }),
+    );
+
+    statement.append(SQL` AS bucket,
         severityText,
         sum(cnt_minute) AS cnt
       FROM (
@@ -549,7 +571,7 @@ export class LogAggregationService {
             type: TableColumnType.DateTime64,
             value: request.endTime,
           }}
-    `;
+    `);
 
     LogAggregationService.appendCommonFilters(statement, request);
 
@@ -995,16 +1017,21 @@ export class LogAggregationService {
   ): Statement {
     LogAggregationService.validateGroupBy(request.groupBy);
 
-    const intervalSeconds: number = request.bucketSizeInMinutes * 60;
     const aggExpr: Statement =
       LogAggregationService.getAggregationExpression(request);
 
+    // A day from the reader's midnight, when the request names their zone.
     const statement: Statement = SQL`
       SELECT
-        toStartOfInterval(time, INTERVAL ${{
-          type: TableColumnType.Number,
-          value: intervalSeconds,
-        }} SECOND) AS bucket`;
+        `
+      .append(
+        TelemetryHistogramBuckets.buildBucketStatement({
+          timestampExpression: "time",
+          bucketSizeInMinutes: request.bucketSizeInMinutes,
+          timezone: request.timezone,
+        }),
+      )
+      .append(" AS bucket");
 
     statement.append(", ").append(aggExpr).append(" AS cnt");
 

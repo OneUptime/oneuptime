@@ -103,6 +103,7 @@ oneuptime resources
 | `oneuptime deploy` | चार्ट और OneUptime AI के लिए एक डिप्लॉय, या कोई दूसरा बदलाव, रिकॉर्ड करती है | [डिप्लॉय और बदलाव](/docs/telemetry/change-events) |
 | `oneuptime data-checks apply` | प्रोजेक्ट की डेटा जाँचों को आपकी रिपॉज़िटरी की एक फ़ाइल से मिला देती है | [कमांड संदर्भ](/docs/cli/command-reference) |
 | `oneuptime dbt upload` | किसी बिल्ड के बाद किसी dbt प्रोजेक्ट के आर्टिफ़ैक्ट डेटा अवलोकनीयता को भेजती है | [कमांड संदर्भ](/docs/cli/command-reference#oneuptime-dbt-upload) |
+| `oneuptime dsym upload <paths...>` | किसी बिल्ड के बाद किसी iOS ऐप के dSYM भेजती है, ताकि उसके क्रैश और हैंग फ़ंक्शन के नाम से पढ़े जा सकें | [मोबाइल सेटअप](/docs/rum/mobile-setup#अपने-dsym-अपलोड-करें) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | एक तरह के रिकॉर्ड के साथ काम करती है | [संसाधन संचालन](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | किसी संसाधन के फ़ील्ड और उन्हें सेट करने वाले फ़्लैग सूचीबद्ध करती है | [संसाधन संचालन](/docs/cli/resource-operations#किसी-संसाधन-के-फ़ील्ड-देखें) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | घटनाओं, अलर्ट और अनुसूचित रखरखाव पर वही करती है जो डैशबोर्ड के बटन करते हैं | [संसाधन संचालन](/docs/cli/resource-operations#स्वीकार-करें-सुलझाएँ-और-नोट-जोड़ें) |

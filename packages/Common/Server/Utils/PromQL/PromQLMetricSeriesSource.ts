@@ -37,9 +37,11 @@ import {
 import {
   PROMQL_LABEL_NAME_SQL_PATTERN,
   PromQLMetricRequest,
-  PromQLSeriesKind,
+  PromQLStoredMetric,
+  PromQLStoredMetricEntry,
+  canonicalPromQLNamesOf,
   resolvePromQLMetricName,
-  toPromQLMetricName,
+  toPromQLStoredMetric,
 } from "../../../Utils/PromQL/PromQLMetricNames";
 import {
   PromQLMetricRow,
@@ -74,71 +76,85 @@ const NOT_PUSHED_DOWN_LABELS: ReadonlySet<string> = new Set<string>([
   "instance",
 ]);
 
-const STORED_NAMES_CACHE_MS: number = 60 * 1000;
+const STORED_METRICS_CACHE_MS: number = 60 * 1000;
 
-const storedNamesCache: Map<
+const storedMetricsCache: Map<
   string,
-  { names: Array<string>; expiresAt: number }
+  { metrics: Array<PromQLStoredMetric>; expiresAt: number }
 > = new Map();
 
 /*
- * The metric names a project stores, from the metric catalog, kept for a
- * minute. Read as root: the names only decide which rows to read, and the
- * rows themselves are read through the caller's service scope.
+ * The metrics a project stores, from the metric catalog, kept for a
+ * minute: each name with the unit and monotonicity its exporter declared,
+ * which its Prometheus names carry (issue #7715). Read as root: the
+ * catalog only decides which rows to read, and the rows themselves are
+ * read through the caller's service scope.
  */
-export const listStoredMetricNames: (
+export const listStoredMetrics: (
   projectId: ObjectID,
-) => Promise<Array<string>> = async (
+) => Promise<Array<PromQLStoredMetric>> = async (
   projectId: ObjectID,
-): Promise<Array<string>> => {
+): Promise<Array<PromQLStoredMetric>> => {
   const key: string = projectId.toString();
-  const cached: { names: Array<string>; expiresAt: number } | undefined =
-    storedNamesCache.get(key);
+  const cached:
+    | { metrics: Array<PromQLStoredMetric>; expiresAt: number }
+    | undefined = storedMetricsCache.get(key);
 
   if (cached && cached.expiresAt > Date.now()) {
-    return cached.names;
+    return cached.metrics;
   }
 
   const metricTypes: Array<MetricType> = await MetricTypeService.findBy({
     query: { projectId },
-    select: { name: true },
+    select: { name: true, unit: true, isMonotonic: true },
     limit: LIMIT_PER_PROJECT,
     skip: 0,
     props: { isRoot: true },
   });
 
-  const names: Array<string> = metricTypes
-    .map((metricType: MetricType): string => {
-      return (metricType.name || "").toLowerCase();
-    })
-    .filter((name: string): boolean => {
-      return name.length > 0;
-    });
+  const metrics: Array<PromQLStoredMetric> = [];
 
-  if (storedNamesCache.size > 1000) {
-    storedNamesCache.clear();
+  for (const metricType of metricTypes) {
+    const name: string = (metricType.name || "").toLowerCase();
+
+    if (name.length === 0) {
+      continue;
+    }
+
+    metrics.push({
+      name,
+      unit: metricType.unit || undefined,
+      isMonotonic: metricType.isMonotonic === true,
+    });
   }
 
-  storedNamesCache.set(key, {
-    names,
-    expiresAt: Date.now() + STORED_NAMES_CACHE_MS,
+  if (storedMetricsCache.size > 1000) {
+    storedMetricsCache.clear();
+  }
+
+  storedMetricsCache.set(key, {
+    metrics,
+    expiresAt: Date.now() + STORED_METRICS_CACHE_MS,
   });
 
-  return names;
+  return metrics;
 };
 
 /*
  * The stored metrics, and which of their series, a selector asks for. A
  * selector with a `__name__="x"` matcher means the metrics that name can
  * mean (resolvePromQLMetricName); any other selector means every stored
- * metric whose PromQL names its name matchers accept.
+ * metric whose series' names its name matchers accept - each series under
+ * the one name Prometheus gives it, with its unit (canonicalPromQLNamesOf),
+ * so `{__name__=~"http_.+"}` never reads a series twice, under its name
+ * with the unit and without it, and `{__name__!="x"}` leaves it out.
  */
 export const resolvePromQLSelection: (
   matchers: Array<PromQLLabelMatcher>,
-  storedNames: ReadonlyArray<string>,
+  storedMetrics: ReadonlyArray<PromQLStoredMetricEntry>,
 ) => Array<PromQLMetricRequest> = (
   matchers: Array<PromQLLabelMatcher>,
-  storedNames: ReadonlyArray<string>,
+  storedMetrics: ReadonlyArray<PromQLStoredMetricEntry>,
 ): Array<PromQLMetricRequest> => {
   const nameMatchers: Array<PromQLLabelMatcher> = matchers.filter(
     (matcher: PromQLLabelMatcher): boolean => {
@@ -152,27 +168,19 @@ export const resolvePromQLSelection: (
   );
 
   if (equality) {
-    return resolvePromQLMetricName(equality.value, storedNames);
+    return resolvePromQLMetricName(equality.value, storedMetrics);
   }
 
   const requests: Array<PromQLMetricRequest> = [];
   // The name matchers' patterns, compiled once for every stored name below.
   const acceptsName: PromQLLabelsTest = compilePromQLMatchers(nameMatchers);
-  const kinds: Array<{ suffix: string; kind: PromQLSeriesKind }> = [
-    { suffix: "", kind: PromQLSeriesKind.Value },
-    { suffix: "_bucket", kind: PromQLSeriesKind.Bucket },
-    { suffix: "_count", kind: PromQLSeriesKind.Count },
-    { suffix: "_sum", kind: PromQLSeriesKind.Sum },
-  ];
 
-  for (const storedName of storedNames) {
-    const base: string = toPromQLMetricName(storedName);
+  for (const entry of storedMetrics) {
+    const metric: PromQLStoredMetric = toPromQLStoredMetric(entry);
 
-    for (const { suffix, kind } of kinds) {
-      const seriesName: string = `${base}${suffix}`;
-
-      if (acceptsName({ [PROMQL_METRIC_NAME_LABEL]: seriesName })) {
-        requests.push({ storedName, kind, seriesName });
+    for (const { name, kind } of canonicalPromQLNamesOf(metric)) {
+      if (acceptsName({ [PROMQL_METRIC_NAME_LABEL]: name })) {
+        requests.push({ storedName: metric.name, kind, seriesName: name });
       }
     }
   }
@@ -358,8 +366,11 @@ export interface PromQLMetricSeriesSourceOptions {
   maxRows?: number | undefined;
   // How rows are read; tests hand in their own.
   readRows?: ((statement: Statement) => Promise<Array<JSONObject>>) | undefined;
-  // The names the project stores; tests hand in their own.
-  listStoredNames?: (() => Promise<Array<string>>) | undefined;
+  /*
+   * The metrics the project stores, by name or with their units; tests
+   * hand in their own.
+   */
+  listStoredNames?: (() => Promise<Array<PromQLStoredMetricEntry>>) | undefined;
 }
 
 export default class PromQLMetricSeriesSource implements PromQLSeriesSource {
@@ -376,15 +387,15 @@ export default class PromQLMetricSeriesSource implements PromQLSeriesSource {
   public async select(
     selection: PromQLSeriesSelection,
   ): Promise<Array<PromQLSeries>> {
-    const storedNames: Array<string> = await (
+    const storedMetrics: Array<PromQLStoredMetricEntry> = await (
       this.options.listStoredNames ||
-      ((): Promise<Array<string>> => {
-        return listStoredMetricNames(this.options.projectId);
+      ((): Promise<Array<PromQLStoredMetricEntry>> => {
+        return listStoredMetrics(this.options.projectId);
       })
     )();
     const requests: Array<PromQLMetricRequest> = resolvePromQLSelection(
       selection.matchers,
-      storedNames,
+      storedMetrics,
     );
 
     if (requests.length === 0) {

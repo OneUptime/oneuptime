@@ -74,13 +74,13 @@ OneUptime 发现的关系如果 30 天内没有再次出现，就会被移除。
 
 ### 资产详情
 
-主机或网络设备有一个 **资产详情** 卡片，以相同的方式描述两者：主机名、IP 地址、MAC 地址、序列号、制造商、型号、固件版本、操作系统、操作系统版本、设备类型和位置。Android 设备的卡片还有其安全补丁级别，来自 Android 代理或其设备管理服务。没有任何来源报告过的信息显示为 **未知**，卡片会说明原因以及如何补全这些未知信息：设备未通过 SNMP 报告这些信息、设备尚未被读取，或 Meraki 设备的这些信息保存在其控制台中。
+主机或网络设备有一个 **资产详情** 卡片，以相同的方式描述两者：主机名、IP 地址、MAC 地址、序列号、制造商、型号、固件版本、操作系统、操作系统版本、设备类型和位置。Android 设备的卡片还有其安全补丁级别，来自 Android 代理或其设备管理服务。它还会标出补丁是否 **需要更新**（与 **安全补丁级别** 列一致），并显示已过多少天。没有任何来源报告过的信息显示为 **未知**，卡片会说明原因以及如何补全这些未知信息：设备未通过 SNMP 报告这些信息、设备尚未被读取，或 Meraki 设备的这些信息保存在其控制台中。
 
 - 主机的信息来自其遥测中的资源属性：IP 和 MAC 地址、架构和操作系统开箱即有，序列号、制造商、型号和固件在你标注后才有。
 - 网络设备的信息来自其 SNMP 轮询、角色和站点。其轮询尚未读取的信息来自发现：对其地址的最近一次扫描、路由器的 ARP 表，或其探测器的 DNS 查询。没有 ENTITY-MIB 的设备（例如 Meraki MX）仍会从系统描述中获得制造商、型号和操作系统，并从自身端口获得 MAC 地址。它的 IP 地址永远不会显示为主机名。
 - 当 [Meraki 连接](/docs/monitor/network-traffic#不用-netflow-的-cisco-meraki) 读取其组织时，Meraki 设备还会从 Meraki 控制台获取其轮询留空的信息，其中包括序列号、型号和固件。
 
-**所有项目** 可以找出需要处理的 Android 设备。它的 **安全补丁级别** 筛选条件会列出 **需要更新** 的设备，即安全补丁级别距今超过 90 天的设备，这与 [主机监控](/docs/monitor/host-monitor) 的 Security Patch Out of Date 警报所依据的规则相同。它的 **代理权限** 筛选条件会列出 [Android 代理](/docs/telemetry/android-agent) 仍缺少 READ_LOGS、READ_DROPBOX_DATA 或使用情况访问权限的设备。每个筛选条件都有一个同名的列，在你开启之前处于隐藏状态，CSV 导出中也包含该列。
+**所有项目** 可以找出需要处理的 Android 设备。它的 **安全补丁级别** 筛选条件会列出 **需要更新** 的设备，即安全补丁级别距今超过 90 天的设备，这与 [主机监控](/docs/monitor/host-monitor) 的 Security Patch Out of Date 警报所依据的规则相同。它的 **代理权限** 筛选条件会列出 [Android 代理](/docs/telemetry/android-agent) 仍缺少 READ_LOGS、READ_DROPBOX_DATA 或使用情况访问权限的设备。每个筛选条件都有一个同名的列，在你开启之前处于隐藏状态，CSV 导出中也包含该列。旁边的 **设备管理服务 ID** 列显示设备管理服务识别该设备所用的 ID，例如 `espercli secureadb connect --device` 所需的 Esper ID。
 
 卡片会说明每项信息的来源和时间。大多数信息共有的来源，例如主机的采集器、网络设备自身的 SNMP 轮询或读取它的发现扫描，只在信息下方提及一次。其他来源，例如路由器的 ARP 表或保存在设备上的值，会在对应信息下方说明。保存在网络设备上的值绝不会被发现读取的内容替换，两者不同时，卡片会同时显示两者。
 
@@ -115,6 +115,7 @@ OneUptime 发现的关系如果 30 天内没有再次出现，就会被移除。
 | 型号、制造商、序列号、操作系统及其版本、构建号，以及 IP 和 MAC 地址 | 设备的 **资产详情** 卡片，以及 **所有项目** 的列 |
 | 状态、上次签入、组、安全补丁级别、IMEI、电池、存储和 Esper 代理 | 设备的 **Esper** 卡片，以及 **托管设备** 的 **设备** 列表 |
 | 应用及其版本 | 设备的 **已安装的应用** 列表 |
+| 其 Esper 设备 ID | **所有项目** 中的 **设备管理服务 ID** 列 |
 
 ### 一台设备，而不是两台
 
@@ -138,6 +139,8 @@ OneUptime 先按设备在 Esper 中的名称查找其条目，再按其序列号
 在 **托管设备** 中，点击连接所在行的 **设置警报**，然后创建 **Esper Android Device Stopped Checking In** 和 **Esper Apple Device Stopped Checking In**。前者会为每台超过 1 小时未向 Esper 签入的 Android 设备各打开一条以该设备命名的警报，后者则为每台超过一天未签入的 Apple 设备打开，设备再次签入后警报即被解决。
 
 每次读取该连接时，都会以指标 `oneuptime.managed_device.check_in.age` 记录每台设备上次签入距今多少分钟，监视器每 5 分钟检查一次每台设备的最新值。同时运行 Android Agent 的设备交由 **Host Stopped Reporting** 监视，因此不会重复发出警报；从 Esper 移除的设备，其警报会被解决。读取失败时不会记录任何内容，因此在下一次读取之前，警报既不会打开也不会解决。对于夜间关机的设备群，请调高监视器的阈值。
+
+再创建 **Esper Security Patch Out of Date**，Esper 报告的安全补丁级别超过 90 天的每台 Android 设备都会打开一条自己的警报，设备更新后即被解决。每次读取都会以指标 `oneuptime.managed_device.security_patch.age` 记录每台 Android 设备的补丁级别已过多少天。运行 Android Agent 的设备交由其主机的 **Security Patch Out of Date** 监视，因此不会重复发出警报。
 
 ## 从 Microsoft Intune 导入设备
 
@@ -165,7 +168,7 @@ OneUptime 先按设备在 Esper 中的名称查找其条目，再按其序列号
 
 Intune 用设备所有者起的名字来命名设备，因此两台设备可能同名：所有没人改过名的 iPhone 都叫 `iPhone`。一个连接中两台设备共用的名字，在资产清单中不属于其中任何一台：每台设备改用其序列号命名，一旦没有其他设备使用这个名字，就会取回自己的名字。
 
-要在设备停止签入时收到警报，请点击连接所在行的 **设置警报**，然后创建 **Intune Device Stopped Checking In**。它会为每台超过一天未向 Intune 签入的设备各打开一条以该设备命名的警报。周末关机的笔记本电脑看起来也一样，所以如果一天对你的设备来说太短，请调高监视器的阈值。
+要在设备停止签入时收到警报，请点击连接所在行的 **设置警报**，然后创建 **Intune Device Stopped Checking In**。它会为每台超过一天未向 Intune 签入的设备各打开一条以该设备命名的警报。周末关机的笔记本电脑看起来也一样，所以如果一天对你的设备来说太短，请调高监视器的阈值。与 Esper 的模板一样， **Intune Security Patch Out of Date** 会为安全补丁级别超过 90 天的每台 Android 设备发出警报。
 
 ## 从 Workspace ONE UEM 导入设备
 
@@ -191,7 +194,7 @@ Intune 用设备所有者起的名字来命名设备，因此两台设备可能�
 
 从设备发送遥测的应用或 Android Agent 会按设备的序列号与该设备合并为一个条目：在其托管配置中，将 Android Agent 的 `device_serial` 设置设为查找值 `{DeviceSerialNumber}`。
 
-要在设备停止签入时收到警报，请点击连接所在行的 **设置警报**，然后创建 **Workspace ONE Device Stopped Checking In**。它会为每台超过一天未向 Workspace ONE 报告的设备各打开一条以该设备命名的警报。
+要在设备停止签入时收到警报，请点击连接所在行的 **设置警报**，然后创建 **Workspace ONE Device Stopped Checking In**。它会为每台超过一天未向 Workspace ONE 报告的设备各打开一条以该设备命名的警报。与 Esper 的模板一样， **Workspace ONE Security Patch Out of Date** 会为安全补丁级别超过 90 天的每台 Android 设备发出警报。
 
 ## 从 SOTI MobiControl 导入设备
 
@@ -215,7 +218,7 @@ MobiControl 代理与其服务器保持实时连接，因此代理已连接的�
 
 从设备发送遥测的应用或 Android Agent 会按设备的序列号与该设备合并为一个条目：在其托管配置中，将 Android Agent 的 `device_serial` 设置设为宏 `%SERIALNUM%`。
 
-要在设备停止签入时收到警报，请点击连接所在行的 **设置警报**，然后创建 **SOTI Device Stopped Checking In** 和 **SOTI Apple Device Stopped Checking In**。前者为每台代理超过 1 小时未连接的 Android、Windows 或 Linux 设备打开一条警报，后者为每台超过一天未签入的 Apple 设备打开一条警报，每条都以该设备命名。
+要在设备停止签入时收到警报，请点击连接所在行的 **设置警报**，然后创建 **SOTI Device Stopped Checking In** 和 **SOTI Apple Device Stopped Checking In**。前者为每台代理超过 1 小时未连接的 Android、Windows 或 Linux 设备打开一条警报，后者为每台超过一天未签入的 Apple 设备打开一条警报，每条都以该设备命名。与 Esper 的模板一样， **SOTI Security Patch Out of Date** 会为安全补丁级别超过 90 天的每台 Android 设备发出警报。
 
 ## 手动添加
 

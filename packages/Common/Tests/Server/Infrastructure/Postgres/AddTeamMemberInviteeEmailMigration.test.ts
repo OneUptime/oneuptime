@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddTeamMemberInviteeEmail1809186940000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186940000-AddTeamMemberInviteeEmail";
+import { AddTeamMemberInviteeEmail1809186960000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186960000-AddTeamMemberInviteeEmail";
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import ColumnLength from "../../../../Types/Database/ColumnLength";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -46,11 +46,11 @@ function timestampOf(migration: unknown): number {
   );
 }
 
-describe("AddTeamMemberInviteeEmail1809186940000", () => {
+describe("AddTeamMemberInviteeEmail1809186960000", () => {
   test("adds the one column to TeamMember, and nothing else", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddTeamMemberInviteeEmail1809186940000().up(runner);
+        return new AddTeamMemberInviteeEmail1809186960000().up(runner);
       }),
     ).toEqual([
       `ALTER TABLE "TeamMember" ADD "inviteeEmail" character varying(100)`,
@@ -59,7 +59,7 @@ describe("AddTeamMemberInviteeEmail1809186940000", () => {
 
   test("nullable, no default, no index, no row rewritten or backfilled here", async () => {
     for (const statement of await statementsOf((runner: QueryRunner) => {
-      return new AddTeamMemberInviteeEmail1809186940000().up(runner);
+      return new AddTeamMemberInviteeEmail1809186960000().up(runner);
     })) {
       expect(statement).not.toMatch(
         /NOT NULL|DEFAULT|CREATE (UNIQUE )?INDEX|FOREIGN KEY|UPDATE |INSERT /i,
@@ -103,7 +103,7 @@ describe("AddTeamMemberInviteeEmail1809186940000", () => {
   test("down drops what up added", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddTeamMemberInviteeEmail1809186940000().down(runner);
+        return new AddTeamMemberInviteeEmail1809186960000().down(runner);
       }),
     ).toEqual([`ALTER TABLE "TeamMember" DROP COLUMN "inviteeEmail"`]);
   });
@@ -113,19 +113,19 @@ describe("AddTeamMemberInviteeEmail1809186940000", () => {
 
     expect(
       registered.filter((candidate: unknown): boolean => {
-        return candidate === AddTeamMemberInviteeEmail1809186940000;
+        return candidate === AddTeamMemberInviteeEmail1809186960000;
       }),
     ).toHaveLength(1);
 
     const position: number = registered.indexOf(
-      AddTeamMemberInviteeEmail1809186940000,
+      AddTeamMemberInviteeEmail1809186960000,
     );
 
     expect(
       Math.max(...registered.slice(0, position).map(timestampOf)),
-    ).toBeLessThan(timestampOf(AddTeamMemberInviteeEmail1809186940000));
-    expect(new AddTeamMemberInviteeEmail1809186940000().name).toBe(
-      "AddTeamMemberInviteeEmail1809186940000",
+    ).toBeLessThan(timestampOf(AddTeamMemberInviteeEmail1809186960000));
+    expect(new AddTeamMemberInviteeEmail1809186960000().name).toBe(
+      "AddTeamMemberInviteeEmail1809186960000",
     );
   });
 });

@@ -411,6 +411,7 @@
     "Search Syntax": "搜索语法",
     "Zooming Into a Time Range": "放大时间范围",
     "PromQL": "PromQL",
+    "LogQL": "LogQL",
     "Deploys and Changes": "部署与变更",
     "Log Pipelines": "日志管道",
     "Profiles": "性能剖析",

@@ -4,6 +4,7 @@ import { StringUtils } from "./StringUtils";
 import { GoCodeGenerator } from "./GoCodeGenerator";
 import {
   API_KEY_ATTRIBUTE_DESCRIPTION,
+  EXCLUSIVE_LISTS_ATTRIBUTE_DESCRIPTION,
   PROVIDER_DESCRIPTION,
   URL_ATTRIBUTE_DESCRIPTION,
 } from "./ProviderWords";
@@ -64,8 +65,9 @@ type ${StringUtils.toPascalCase(this.config.providerName)}Provider struct {
 
 // ${StringUtils.toPascalCase(this.config.providerName)}ProviderModel describes the provider data model.
 type ${StringUtils.toPascalCase(this.config.providerName)}ProviderModel struct {
-    OneuptimeUrl types.String \`tfsdk:"oneuptime_url"\`
-    ApiKey       types.String \`tfsdk:"api_key"\`
+    OneuptimeUrl   types.String \`tfsdk:"oneuptime_url"\`
+    ApiKey         types.String \`tfsdk:"api_key"\`
+    ExclusiveLists types.Bool   \`tfsdk:"exclusive_lists"\`
 }
 
 func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -86,6 +88,10 @@ func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Schema(c
                 MarkdownDescription: "${GoCodeGenerator.escapeString(API_KEY_ATTRIBUTE_DESCRIPTION)}",
                 Optional:            true,
                 Sensitive:           true,
+            },
+            "exclusive_lists": schema.BoolAttribute{
+                MarkdownDescription: "${GoCodeGenerator.escapeString(EXCLUSIVE_LISTS_ATTRIBUTE_DESCRIPTION)}",
+                Optional:            true,
             },
         },
     }
@@ -155,6 +161,11 @@ func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Configur
     }
 
     client.lastApplied = p.lastApplied
+
+    // A list OneUptime adds to as well is the configuration's whole list
+    // only when the configuration says so (entries.go). Never under
+    // Crossplane, which holds a manifest's own entries.
+    client.exclusiveLists = !data.ExclusiveLists.IsNull() && !data.ExclusiveLists.IsUnknown() && data.ExclusiveLists.ValueBool()
 
     resp.DataSourceData = client
     resp.ResourceData = client
@@ -235,6 +246,12 @@ type Client struct {
     // What the Crossplane manifest of the resource this provider plans last
     // applied (shared.go). Nil under Terraform.
     lastApplied *LastApplied
+
+    // The provider's exclusive_lists: a list OneUptime adds to as well is
+    // the configuration's whole list, as earlier versions held it
+    // (entries.go). False: the configuration adds and takes off its own
+    // entries.
+    exclusiveLists bool
 }
 
 // NewClient creates a new API client

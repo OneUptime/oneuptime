@@ -7,7 +7,9 @@ import {
 } from "../AnalyticsDatabase/PathSpelling";
 import RumSessionService from "../../Services/RumSessionService";
 import RumSessionChunkService from "../../Services/RumSessionChunkService";
-import ExceptionInstanceService from "../../Services/ExceptionInstanceService";
+import ExceptionInstanceService, {
+  EXCEPTION_ORIGINALS_SQL,
+} from "../../Services/ExceptionInstanceService";
 import {
   DbJSONResponse,
   Results,
@@ -3739,6 +3741,12 @@ export default class SessionReplayReadService {
           ),
         }}
     `);
+
+    /*
+     * One crash, counted once (ExceptionInstanceService, #9923): a repeat
+     * names the session that delivered it, not the one the crash ended.
+     */
+    statement.append(` AND ${EXCEPTION_ORIGINALS_SQL}`);
 
     if (data.primaryEntityId) {
       statement.append(

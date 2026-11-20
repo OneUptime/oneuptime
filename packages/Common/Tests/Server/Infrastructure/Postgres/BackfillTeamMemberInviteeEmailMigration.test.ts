@@ -1,8 +1,8 @@
 import {
   BACKFILL_TEAM_MEMBER_INVITEE_EMAIL_STATEMENT,
-  BackfillTeamMemberInviteeEmail1809186950000,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186950000-BackfillTeamMemberInviteeEmail";
-import { AddTeamMemberInviteeEmail1809186940000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186940000-AddTeamMemberInviteeEmail";
+  BackfillTeamMemberInviteeEmail1809186970000,
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186970000-BackfillTeamMemberInviteeEmail";
+import { AddTeamMemberInviteeEmail1809186960000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186960000-AddTeamMemberInviteeEmail";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { describe, expect, test } from "@jest/globals";
 import { QueryRunner } from "typeorm";
@@ -42,7 +42,7 @@ async function statementsOf(step: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new BackfillTeamMemberInviteeEmail1809186950000()[step](runner);
+  await new BackfillTeamMemberInviteeEmail1809186970000()[step](runner);
 
   return statements;
 }
@@ -58,7 +58,7 @@ function flat(statement: string): string {
   return statement.replace(/\s+/g, " ").trim();
 }
 
-describe("BackfillTeamMemberInviteeEmail1809186950000", () => {
+describe("BackfillTeamMemberInviteeEmail1809186970000", () => {
   test("up runs the one statement, and it is an UPDATE of the invitations' address alone", async () => {
     const statements: Array<string> = await statementsOf("up");
 
@@ -106,22 +106,22 @@ describe("BackfillTeamMemberInviteeEmail1809186950000", () => {
 
     expect(
       registered.filter((candidate: unknown): boolean => {
-        return candidate === BackfillTeamMemberInviteeEmail1809186950000;
+        return candidate === BackfillTeamMemberInviteeEmail1809186970000;
       }),
     ).toHaveLength(1);
 
     const position: number = registered.indexOf(
-      BackfillTeamMemberInviteeEmail1809186950000,
+      BackfillTeamMemberInviteeEmail1809186970000,
     );
 
     expect(registered[position - 1]).toBe(
-      AddTeamMemberInviteeEmail1809186940000,
+      AddTeamMemberInviteeEmail1809186960000,
     );
     expect(
       Math.max(...registered.slice(0, position).map(timestampOf)),
-    ).toBeLessThan(timestampOf(BackfillTeamMemberInviteeEmail1809186950000));
-    expect(new BackfillTeamMemberInviteeEmail1809186950000().name).toBe(
-      "BackfillTeamMemberInviteeEmail1809186950000",
+    ).toBeLessThan(timestampOf(BackfillTeamMemberInviteeEmail1809186970000));
+    expect(new BackfillTeamMemberInviteeEmail1809186970000().name).toBe(
+      "BackfillTeamMemberInviteeEmail1809186970000",
     );
   });
 });

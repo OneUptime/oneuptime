@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | एक ग्लोबल प्रोब जो आपके मॉनिटरों की जाँच चलाता है। यह होस्ट का नेटवर्क इस्तेमाल करता है। |
 | `global-runner` | `oneuptime/runner` | साथ आने वाला ग्लोबल Runner, जो हर प्रोजेक्ट के लिए रनबुक के JavaScript चरण और OneUptime AI के कोड सुधार चलाता है। |
 | `postgres` | `postgres:15` | कॉन्फ़िगरेशन और स्थिति: मॉनिटर, घटनाएं, उपयोगकर्ता। `postgres` वॉल्यूम में रखा जाता है। |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | टेलीमेट्री: लॉग, मेट्रिक्स, ट्रेस और एक्सेप्शन। `clickhouse` वॉल्यूम में रखी जाती है। |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7.38.18` | टेलीमेट्री: लॉग, मेट्रिक्स, ट्रेस और एक्सेप्शन। `clickhouse` वॉल्यूम में रखी जाती है। |
 | `valkey` | `valkey/valkey:9.1-alpine` | कैश और क्यू। यह डिस्क पर कुछ नहीं रखती। |
 
 > [!NOTE]
@@ -585,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-हर कंटेनर चलने लगे तो `npm run status-check` से जाँच फिर से चलाएँ। यह ingress को वहीं जाँचती है जहाँ `ONEUPTIME_HTTP_PORT` उसे प्रकाशित करता है, पते और पोर्ट समेत, जैसे `127.0.0.1:8080`, और होस्टनेम `localhost` के साथ, जैसे सर्वर पर कोई ब्राउज़र करता।
+हर कंटेनर चलने लगे तो `npm run status-check` से जाँच फिर से चलाएँ। यह ingress को वहीं जाँचती है जहाँ `ONEUPTIME_HTTP_PORT` उसे प्रकाशित करता है, पते और पोर्ट समेत, जैसे `127.0.0.1:8080`, और होस्टनेम `localhost` के साथ, जैसे सर्वर पर कोई ब्राउज़र करता। `PROVISION_SSL=true` होने पर यह `HOST` को HTTPS पर भी जाँचती है, वहीं जहाँ `STATUS_PAGE_HTTPS_PORT` ingress को प्रकाशित करता है।
 :::
 
 :::details ब्राउज़र "इस पते के लिए OneUptime सेट अप नहीं है" दिखाता है

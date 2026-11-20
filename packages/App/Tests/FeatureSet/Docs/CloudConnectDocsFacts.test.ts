@@ -27,6 +27,7 @@ import {
 import {
   AZURE_FIVE_MINUTE_READING_HOLD_MS,
   AZURE_HOURLY_READING_HOLD_MS,
+  AZURE_SIX_HOURLY_READING_HOLD_MS,
   CLOUD_HEALTH_CHECK_CRITICAL_PERCENT,
   CLOUD_MEMORY_HIGH_PERCENT,
   CLOUD_STORAGE_FULL_PERCENT,
@@ -40,6 +41,7 @@ import {
   CloudAlertTemplate,
   getCloudAlertTemplate,
   getAllCloudAlertTemplates,
+  getCloudAlertWindow,
   getGceSshCommand,
   isCloudAlertTemplateOfOpsAgent,
 } from "Common/Types/Monitor/CloudAlertTemplates";
@@ -976,6 +978,40 @@ describe("Connect a Cloud Account", () => {
     expect(AZURE_HOURLY_READING_HOLD_MS).toBe(4 * 60 * 60 * 1000);
     expect(paragraph).toContain(
       `Azure Monitor keeps a few key metrics at an hour, such as an Azure Storage account's used capacity: they are read once an hour, when they are 2 hours old, and kept until they are ${AZURE_HOURLY_READING_HOLD_MS / (60 * 60 * 1000)} hours old.`,
+    );
+  });
+
+  /*
+   * #10026: an App Service app's file system usage, which Azure Monitor
+   * keeps at six hours, is kept between its reads until it is 19 hours old.
+   */
+  it("says how long a six-hourly reading is kept", () => {
+    const paragraph: string | undefined = section("What OneUptime reads")
+      .split(/\n\s*\n/)
+      .find((block: string): boolean => {
+        return block.startsWith("A few key metrics Azure Monitor keeps");
+      });
+
+    expect(AZURE_SIX_HOURLY_READING_HOLD_MS).toBe(19 * 60 * 60 * 1000);
+    expect(paragraph).toContain(
+      `An App Service app's file system usage, which Azure Monitor keeps at six hours, comes every 6 hours, 12 to 18 hours after the period it measures, and is kept until it is ${AZURE_SIX_HOURLY_READING_HOLD_MS / (60 * 60 * 1000)} hours old.`,
+    );
+  });
+
+  /*
+   * #10028: a recommended monitor's window follows its connection's read
+   * interval - read every hour, a 15-minute window is the past 2 hours -
+   * and a monitor made before keeps its window.
+   */
+  it("says a monitor's window follows how often its connection is read", () => {
+    const window: RollingTime = getCloudAlertWindow({
+      template: getCloudAlertTemplate("cloud-azure-vm-high-cpu")!,
+      readIntervalInMinutes: 60,
+    });
+
+    expect(window).toBe(RollingTime.Past2Hours);
+    expect(PAGE).toContain(
+      `A connection read less often gives each monitor a longer window, enough to judge every reading a read brings: read every hour, the last ${window.replace("Past ", "").toLowerCase()}. A monitor made before the interval changed keeps its window.`,
     );
   });
 

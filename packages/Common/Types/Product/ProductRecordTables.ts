@@ -433,6 +433,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "RumSessionErasureRequest",
     "RumSessionPin",
     "RumSessionReplayView",
+    "TelemetryDsym",
     AnalyticsTableName.RumSession,
     AnalyticsTableName.RumSessionChunk,
     AnalyticsTableName.RumProductAnalyticsEvent,

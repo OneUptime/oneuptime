@@ -676,6 +676,8 @@ export default class MonitorIncident {
           const seriesFingerprint: string | undefined =
             seriesMatch?.fingerprint;
           const seriesLabels: JSONObject | undefined = seriesMatch?.labels;
+          // Which device it is, for the words only (#9925): never its identity.
+          const seriesContext: JSONObject | undefined = seriesMatch?.context;
           const seriesRootCause: string =
             seriesMatch?.rootCause || input.rootCause;
 
@@ -851,6 +853,7 @@ export default class MonitorIncident {
               dataToProcess: input.dataToProcess,
               monitor: input.monitor,
               seriesLabels,
+              seriesContext,
             });
 
           /*
@@ -867,6 +870,7 @@ export default class MonitorIncident {
             monitorType: input.monitor.monitorType!,
             storageMap,
             seriesLabels,
+            seriesContext,
           });
 
           incident.title = text.title;

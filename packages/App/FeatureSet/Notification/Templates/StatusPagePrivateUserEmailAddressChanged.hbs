@@ -1,0 +1,50 @@
+{{> Start this}}
+
+{{> CustomLogo this}}
+
+{{> EmailTitle title=(t "Your email address was changed") }}
+
+{{!--
+  Sent to the address a status page private user had, once their address
+  changed (#10156, Common/Types/StatusPage/PrivateUserEmailAddressChangedEmail,
+  sent by Common/Server/Utils/StatusPage/PrivateUserEmailAddressChangedNotice
+  from StatusPagePrivateUserService.onUpdateSuccess): the status page's team
+  changed it, or its identity provider through SCIM. One email per change,
+  in the page's branding and default language.
+
+  It says that the address changed and to which, masked; when; who changed
+  it, by role and never by name; and whom to ask. It has no link that does
+  anything: undoing the change from this mailbox would work for whoever
+  reads it (Types/Accounts/EmailAddressChangedEmail says why).
+
+  The page's name is its team's words, so it goes into sentences through
+  ttHtml, which escapes the whole sentence; the masked address and the time
+  are values, on plainText. Everything else is OneUptime's own words, looked
+  up in the reader's language (Utils/EmailLanguage.ts).
+--}}
+
+{{#if changedByStatusPageTeam}}
+{{> InfoBlock info=(ttHtml "The team that runs {{statusPage}} changed the email address you sign in to it with, from this address to a new one." statusPage=statusPageName)}}
+{{else if changedByIdentityProvider}}
+{{> InfoBlock info=(ttHtml "Your organization's identity provider changed the email address you sign in to {{statusPage}} with, from this address to a new one." statusPage=statusPageName)}}
+{{else}}
+{{> InfoBlock info=(ttHtml "The email address you sign in to {{statusPage}} with was changed from this address to a new one." statusPage=statusPageName)}}
+{{/if}}
+
+{{> InfoBlock info=(tHtml "Emails about signing in, such as password resets and sign-in links, now go to the new address.")}}
+
+{{!-- One card, as in every email: when, and to which address. --}}
+{{> DetailBoxStart this }}
+{{> DetailBoxField title=(t "Changed at:") plainText=changedAt }}
+{{> DetailBoxField title=(t "New email address:") plainText=newEmailAddress }}
+{{> DetailBoxEnd this }}
+
+{{#if changedByIdentityProvider}}
+{{> InfoBlock info=(tHtml "If you did not expect this, contact your organization's admin.")}}
+{{else}}
+{{> InfoBlock info=(ttHtml "If you did not expect this, contact the team that runs {{statusPage}}." statusPage=statusPageName)}}
+{{/if}}
+
+{{> VerticalSpace this}}
+
+{{> End this}}

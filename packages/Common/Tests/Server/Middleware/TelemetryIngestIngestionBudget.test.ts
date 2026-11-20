@@ -251,6 +251,7 @@ describe("which surfaces the budget gate runs on", () => {
   test.each([
     TelemetryIngestSurface.SessionReplay,
     TelemetryIngestSurface.SourceMap,
+    TelemetryIngestSurface.Dsym,
     TelemetryIngestSurface.KubernetesCost,
     TelemetryIngestSurface.ChangeEvents,
     TelemetryIngestSurface.OpenLineage,

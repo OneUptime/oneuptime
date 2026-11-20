@@ -4,7 +4,7 @@ import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatab
 import PagedFind, {
   FindBuilderAdjuster,
 } from "../../../../Server/Infrastructure/Postgres/PagedFind";
-import { BACKFILL_TEAM_MEMBER_INVITEE_EMAIL_STATEMENT } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186950000-BackfillTeamMemberInviteeEmail";
+import { BACKFILL_TEAM_MEMBER_INVITEE_EMAIL_STATEMENT } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186970000-BackfillTeamMemberInviteeEmail";
 import Query from "../../../../Server/Types/Database/Query";
 import QueryUtil from "../../../../Server/Types/Database/QueryUtil";
 import PendingInviteeProfiles, {

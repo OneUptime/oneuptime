@@ -23,9 +23,7 @@ import ResourceOverviewTab, {
   SummaryField,
 } from "../../../Components/Infrastructure/ResourceOverviewTab";
 import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetricsTab";
-import StatusBadge, {
-  StatusBadgeType,
-} from "Common/UI/Components/StatusBadge/StatusBadge";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import {
   externalIdFromRouteParam,
   fetchIoTInventoryRow,
@@ -33,13 +31,33 @@ import {
   formatPercent,
   formatUptime,
   displayNameForDevice,
-  displayStatusForDevice,
 } from "../Utils/IoTDeviceUtils";
+import {
+  IOT_DEVICE_FLEET_DISCONNECTED_NOTICE,
+  IOT_FLEET_DISCONNECTED_ACTION,
+  isIoTFleetConnected,
+} from "../Utils/IoTFleetConnection";
+import IoTDeviceStatus from "../../../Components/IoT/IoTDeviceStatus";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import { IOT_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/IoTMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
+/*
+ * One device of a fleet: what it last reported, and its charts.
+ *
+ * While its fleet is disconnected (#10014), the device's state is from
+ * before the fleet stopped: its Status says the fleet is disconnected, in
+ * grey, with the state it last reported and when (IoTDeviceStatus), and the
+ * page opens on one notice that says so and leads to the fleet's Overview,
+ * where its connection card says what to check. Its other details stay as
+ * it last sent them, dated by Last Seen. A reader who lands here from a
+ * search, a bookmark or an alert sees what to fix - the fleet's collector -
+ * rather than a red "Offline" that points at the device.
+ */
 const IoTFleetDeviceDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -68,6 +86,7 @@ const IoTFleetDeviceDetail: FunctionComponent<
         id: modelId,
         select: {
           name: true,
+          otelCollectorStatus: true,
         },
       });
       setFleet(item);
@@ -108,6 +127,10 @@ const IoTFleetDeviceDetail: FunctionComponent<
 
   const fleetName: string = fleet.name;
   const deviceName: string = row ? displayNameForDevice(row) : externalId;
+  // Whether the device's state is current: its fleet reports.
+  const isFleetConnected: boolean = isIoTFleetConnected(
+    fleet.otelCollectorStatus as string | undefined,
+  );
 
   /*
    * All charts filter on the raw `id` datapoint label (the device.id
@@ -226,15 +249,17 @@ const IoTFleetDeviceDetail: FunctionComponent<
   ];
 
   if (row) {
-    const status: string = displayStatusForDevice(row);
-    if (status) {
+    // No status until the device's first heartbeat.
+    if (row.isUp !== null && row.isUp !== undefined) {
       summaryFields.push({
         title: "Status",
         description: IOT_METRIC_DESCRIPTIONS.deviceStatus,
         value: (
-          <StatusBadge
-            text={status}
-            type={row.isUp ? StatusBadgeType.Success : StatusBadgeType.Danger}
+          <IoTDeviceStatus
+            isUp={row.isUp}
+            isFleetConnected={isFleetConnected}
+            lastSeenAt={row.lastSeenAt}
+            testId="iot-device-detail-status"
           />
         ),
       });
@@ -363,7 +388,28 @@ const IoTFleetDeviceDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs label="Device" tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <>
+      {!isFleetConnected && (
+        <Alert
+          className="mb-5"
+          type={AlertType.WARNING}
+          title={IOT_DEVICE_FLEET_DISCONNECTED_NOTICE}
+          textOnRight={IOT_FLEET_DISCONNECTED_ACTION}
+          dataTestId="iot-device-fleet-disconnected"
+          onClick={() => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.IOT_FLEET_VIEW] as Route,
+                { modelId: modelId },
+              ),
+            );
+          }}
+        />
+      )}
+      <Tabs label="Device" tabs={tabs} onTabChange={() => {}} />
+    </>
+  );
 };
 
 export default IoTFleetDeviceDetail;
