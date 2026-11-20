@@ -104,7 +104,18 @@ The suite checks what jsdom cannot:
   from any corner, the far end too, and Save Changes is on the last step,
   each by the mouse and by Tab with Enter or Space; on a 390 pixel touch
   phone, light and dark, Next and Save Changes are on the screen and work by
-  a tap and by the keyboard (#9245).
+  a tap and by the keyboard (#9245);
+- popups opened in boxes that clip are whole over the page, drawn on the
+  tooltip layer (`LayeredPopover`). `?section=popups` (`Popups.spec.ts`) has
+  a logs toolbar's menus in a list's card, Copy attributes in a row that
+  scrolls sideways, and a definition in a 224 pixel facet list (#9859, #9861,
+  #9863). `?section=layered-popups` (`LayeredPopups.spec.ts`) has an
+  explorer's search and the logs search in a short scrolling drawer, whose
+  syntax help and suggestions keep the search's focus, arrows, caret, Enter,
+  Tab and Escape (#9909). It also has Ask AI's pickers in a card that rounds
+  its corners, Code's repository picker in a request box that clips, and a
+  player's sessions menu (#9910). Each is checked at 1280 and 390 pixels,
+  with its keyboard.
 
 `Fixture/Fixture.js` records every read on `window.__fixture.reads`, every
 write on `window.__fixture.updates`, and every read it does not model on
@@ -129,6 +140,6 @@ node SharedUi/Fixture/server.js
 
 Then open
 `http://127.0.0.1:4329/dashboard/10000000-0000-4000-8000-000000000001/shared-ui`,
-with `?section=buttons|dialogs|sections|pills|avatars|states|keyboard` for one part,
+with `?section=buttons|dialogs|sections|pills|avatars|states|keyboard|popups|layered-popups` for one part,
 `&theme=dark`, `&lang=de|ja|fa|zh-CN`, `&layout=side-menu` or `&read=<ms>`.
 `SHARED_UI_FIXTURE_PORT` moves it to another port.
