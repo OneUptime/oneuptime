@@ -17,7 +17,7 @@
  * ONEUPTIME_HTTP_PORT=127.0.0.1:8080, the Docker Compose guide's setting
  * behind a reverse proxy, every page but /status answered 404 and npm start
  * ended with "Maximum retries reached" (#10024). It now connects where the
- * ingress is published and asks for localhost, with curl's --connect-to.
+ * ingress is published and asks for localhost, with curl's --resolve.
  *
  * These tests run the script itself in a throwaway directory, with a `curl`
  * on PATH that records every request it is asked for - each argument - and
@@ -151,9 +151,10 @@ function optionOf(argv, option) {
 /*
  * The request curl makes for one call, as curl documents its options: the
  * Host header names the address's host and port (none for 80), and
- * --connect-to HOST1:PORT1:HOST2:PORT2 sends a request for HOST1:PORT1 to
- * HOST2:PORT2 instead. StatusCheckIngress.test.js checks the same against
- * the real curl and nginx.
+ * --resolve HOST:PORT:ADDRESS has a request for HOST:PORT connect to
+ * ADDRESS, on that port. StatusCheckIngress.test.js checks the same against
+ * the real curl and nginx. A --connect-to would not be read here: curl
+ * before 7.49 has none, so the check never sends one.
  */
 function requestOf(argv) {
   const address = argv[argv.length - 1];
@@ -161,22 +162,24 @@ function requestOf(argv) {
     /^[a-z]+:\/\//i.test(address) ? address : `http://${address}`,
   );
   const port = url.port || (url.protocol === "https:" ? "443" : "80");
-  const connectTo = optionOf(argv, "--connect-to");
+  const resolve = optionOf(argv, "--resolve");
   let connectsTo = `${url.hostname}:${port}`;
 
-  if (connectTo) {
-    const match = /^([^:]*):(\d*):(\[[^\]]*\]|[^:]*):(\d*)$/.exec(connectTo);
+  expect(argv).not.toContain("--connect-to");
 
-    expect({ connectTo, parses: Boolean(match) }).toEqual({
-      connectTo,
+  if (resolve) {
+    // An IPv6 address without brackets, as every curl since 7.21 reads it.
+    const match = /^([^:]+):(\d+):([^[\],]+)$/.exec(resolve);
+
+    expect({ resolve, parses: Boolean(match) }).toEqual({
+      resolve,
       parses: true,
     });
 
-    if (
-      (match[1] === "" || match[1] === url.hostname) &&
-      (match[2] === "" || match[2] === port)
-    ) {
-      connectsTo = `${match[3] || url.hostname}:${match[4] || port}`;
+    if (match[1] === url.hostname && match[2] === port) {
+      connectsTo = match[3].includes(":")
+        ? `[${match[3]}]:${port}`
+        : `${match[3]}:${port}`;
     }
   }
 
@@ -270,16 +273,14 @@ describe("the address it checks", () => {
     },
   );
 
-  test("on one address of the server, every request goes there with --connect-to, and none is sent without it", () => {
+  test("on one address of the server, every request goes there with --resolve, and none is sent without it", () => {
     const result = statusCheck({
       config: configWith(["ONEUPTIME_HTTP_PORT=127.0.0.1:8080"]),
     });
 
     expect(result.status).toBe(0);
     for (const argv of result.requests) {
-      expect(optionOf(argv, "--connect-to")).toBe(
-        "localhost:8080:127.0.0.1:8080",
-      );
+      expect(optionOf(argv, "--resolve")).toBe("localhost:8080:127.0.0.1");
       expect(argv[argv.length - 1].startsWith("localhost:8080")).toBe(true);
     }
     expect(result.output).toContain(
@@ -296,7 +297,7 @@ describe("the address it checks", () => {
 
       expect(result.status).toBe(0);
       for (const argv of result.requests) {
-        expect(argv).not.toContain("--connect-to");
+        expect(argv).not.toContain("--resolve");
       }
     }
   });
@@ -364,7 +365,7 @@ describe("the address it checks", () => {
       expect(result.status).toBe(0);
       expect(result.calls[0]).toBe(address);
       for (const argv of result.requests) {
-        expect(argv).not.toContain("--connect-to");
+        expect(argv).not.toContain("--resolve");
         expect(requestOf(argv).connectsTo).toBe(connectsTo);
       }
       expect(result.output).toContain(

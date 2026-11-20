@@ -27,7 +27,7 @@
 # of the server's own, such as 10.0.0.5:8080.
 #
 # Now it connects where the ingress is published, and asks it for localhost:
-# curl's --connect-to sends the request for localhost:8080 to 127.0.0.1:8080,
+# curl's --resolve has the request for localhost:8080 connect to 127.0.0.1,
 # so the ingress reads the Host header localhost:8080, as from a browser on
 # this server. An address given on the command line is checked as it is given.
 
@@ -117,10 +117,14 @@ with_port() {
 
 HOST_TO_CHECK="${1-}"
 
-# curl's --connect-to for every request of the check, when the ingress is
-# published on one address of this server: "localhost:8080:127.0.0.1:8080"
-# sends the request for localhost:8080 to 127.0.0.1:8080.
-CONNECT_TO=""
+# curl's --resolve for every request of the check, when the ingress is
+# published on one address of this server: "localhost:8080:127.0.0.1" has the
+# request for localhost:8080 connect to 127.0.0.1, with the Host header
+# localhost:8080. --resolve, which every curl since 7.21 has (--connect-to
+# came in 7.49), with an IPv6 address without its brackets, as every one of
+# them reads it. CHECKED_AT is where it connects, as a web address writes it.
+RESOLVE=""
+CHECKED_AT=""
 CURL_TARGET=()
 WAITING_AT=""
 
@@ -132,9 +136,12 @@ if [ -z "$HOST_TO_CHECK" ]; then
     WAITING_AT="$HOST_TO_CHECK"
 
     if [ "$INGRESS_ADDRESS" != "localhost" ]; then
-        CONNECT_TO="localhost:${INGRESS_PORT}:${INGRESS_ADDRESS}:${INGRESS_PORT}"
-        CURL_TARGET=(--connect-to "$CONNECT_TO")
-        WAITING_AT="$(with_port "$INGRESS_ADDRESS" "$INGRESS_PORT"), where ONEUPTIME_HTTP_PORT publishes the ingress"
+        resolved_address="${INGRESS_ADDRESS#\[}"
+        resolved_address="${resolved_address%\]}"
+        RESOLVE="localhost:${INGRESS_PORT}:${resolved_address}"
+        CURL_TARGET=(--resolve "$RESOLVE")
+        CHECKED_AT=$(with_port "$INGRESS_ADDRESS" "$INGRESS_PORT")
+        WAITING_AT="${CHECKED_AT}, where ONEUPTIME_HTTP_PORT publishes the ingress"
     fi
 else
     WAITING_AT="$HOST_TO_CHECK"
@@ -144,24 +151,24 @@ echo "⏳ Waiting for OneUptime to answer at ${WAITING_AT}. The first start take
 echo ""
 
 
-bash "$scriptDir/endpoint-status.sh" "App" "$HOST_TO_CHECK" "$CONNECT_TO"
+bash "$scriptDir/endpoint-status.sh" "App" "$HOST_TO_CHECK" "$RESOLVE" "$CHECKED_AT"
 
-bash "$scriptDir/endpoint-status.sh" "App (Status Check)" "$HOST_TO_CHECK/status" "$CONNECT_TO"
+bash "$scriptDir/endpoint-status.sh" "App (Status Check)" "$HOST_TO_CHECK/status" "$RESOLVE" "$CHECKED_AT"
 
-bash "$scriptDir/endpoint-status.sh" "App (Ready Check)" "$HOST_TO_CHECK/status/ready" "$CONNECT_TO"
+bash "$scriptDir/endpoint-status.sh" "App (Ready Check)" "$HOST_TO_CHECK/status/ready" "$RESOLVE" "$CHECKED_AT"
 
-bash "$scriptDir/endpoint-status.sh" "Dashboard" "$HOST_TO_CHECK/dashboard" "$CONNECT_TO"
+bash "$scriptDir/endpoint-status.sh" "Dashboard" "$HOST_TO_CHECK/dashboard" "$RESOLVE" "$CHECKED_AT"
 
-bash "$scriptDir/endpoint-status.sh" "Admin Dashboard" "$HOST_TO_CHECK/admin/env.js" "$CONNECT_TO"
+bash "$scriptDir/endpoint-status.sh" "Admin Dashboard" "$HOST_TO_CHECK/admin/env.js" "$RESOLVE" "$CHECKED_AT"
 
-bash "$scriptDir/endpoint-status.sh" "Public Dashboard" "$HOST_TO_CHECK/public-dashboard" "$CONNECT_TO"
+bash "$scriptDir/endpoint-status.sh" "Public Dashboard" "$HOST_TO_CHECK/public-dashboard" "$RESOLVE" "$CHECKED_AT"
 
-bash "$scriptDir/endpoint-status.sh" "Accounts" "$HOST_TO_CHECK/accounts" "$CONNECT_TO"
+bash "$scriptDir/endpoint-status.sh" "Accounts" "$HOST_TO_CHECK/accounts" "$RESOLVE" "$CHECKED_AT"
 
 # With the slash: when billing is enabled the bare /status-page is the
 # marketing site's address for /product/status-page, and only /status-page/...
 # reaches the status page app.
-bash "$scriptDir/endpoint-status.sh" "Status Page" "$HOST_TO_CHECK/status-page/" "$CONNECT_TO"
+bash "$scriptDir/endpoint-status.sh" "Status Page" "$HOST_TO_CHECK/status-page/" "$RESOLVE" "$CHECKED_AT"
 
 # Each check above stops at the first HTTP 200, which is a weaker claim than it
 # looks: nginx serves the static bundles and answers /status/ready as soon as

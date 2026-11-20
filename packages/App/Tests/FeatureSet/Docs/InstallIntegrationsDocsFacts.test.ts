@@ -1641,7 +1641,7 @@ describe("Docker Compose, against the compose files and scripts", () => {
       'HOST_TO_CHECK=$(with_port localhost "$INGRESS_PORT")',
     );
     expect(check).toContain(
-      'CONNECT_TO="localhost:${INGRESS_PORT}:${INGRESS_ADDRESS}:${INGRESS_PORT}"',
+      'RESOLVE="localhost:${INGRESS_PORT}:${resolved_address}"',
     );
     expect(check).toContain("setting=$(read_setting ONEUPTIME_HTTP_PORT)");
     expect(check).toContain('echo "🚀 OneUptime is up! 🚀"');
@@ -1694,7 +1694,7 @@ describe("Docker Compose, against the compose files and scripts", () => {
       host: "localhost:8080",
       port: 8080,
     });
-    expect(check).toContain('CURL_TARGET=(--connect-to "$CONNECT_TO")');
+    expect(check).toContain('CURL_TARGET=(--resolve "$RESOLVE")');
     expect(check).toContain(
       '"${CURL_TARGET[@]}" "$HOST_TO_CHECK/status/ready"',
     );

@@ -2,17 +2,19 @@
 
 # Waits up to five minutes for one of OneUptime's addresses to answer HTTP 200.
 #
-#   bash Tests/Scripts/endpoint-status.sh <name> <address> [<connect-to>]
+#   bash Tests/Scripts/endpoint-status.sh <name> <address> [<resolve> <shown as>]
 #
-# <connect-to>, when it is given, is curl's --connect-to: with
-# "localhost:8080:127.0.0.1:8080" the request for localhost:8080 goes to
-# 127.0.0.1:8080, the address the ingress is published on. status-check.sh
-# says why.
+# <resolve>, when it is given, is curl's --resolve: with
+# "localhost:8080:127.0.0.1" the request for localhost:8080 connects to
+# 127.0.0.1, the address the ingress is published on, and <shown as> is that
+# address as a web address writes it (127.0.0.1:8080, [::1]:8080), for what
+# this says. status-check.sh says why.
 
 # Set the endpoint URL
 endpoint_url=$2
 name=$1
-connect_to=${3-}
+resolve=${3-}
+connected_to=${4-}
 
 # if name or endpoint is not provided, exit
 if [ $# -eq 0 ]; then
@@ -21,16 +23,14 @@ if [ $# -eq 0 ]; then
 fi
 
 curl_target=()
-# The address it connects to, as a web address writes it: 127.0.0.1:8080,
-# [::1]:8080, or 127.0.0.1 for port 80.
-connected_to=""
 where="$endpoint_url"
 
-if [ -n "$connect_to" ]; then
-    curl_target=(--connect-to "$connect_to")
-    connected_to="${connect_to#*:*:}"
-    connected_to="${connected_to%:80}"
-    where="$endpoint_url at $connected_to"
+if [ -n "$resolve" ]; then
+    curl_target=(--resolve "$resolve")
+
+    if [ -n "$connected_to" ]; then
+        where="$endpoint_url at $connected_to"
+    fi
 fi
 
 # 20 attempts, 15 seconds apart: five minutes for this endpoint to answer.
