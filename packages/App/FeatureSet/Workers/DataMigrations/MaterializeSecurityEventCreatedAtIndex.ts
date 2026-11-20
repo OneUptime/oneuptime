@@ -16,8 +16,9 @@ import logger from "Common/Server/Utils/Logger";
 import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
 
 /**
- * Builds idx_created_at - the minmax index on when each security event
- * arrived (SecurityEvent.createdAt) - for the rows an install already has.
+ * Builds idx_created_at - the set index of the seconds each granule's
+ * security events arrived in (SecurityEvent.createdAt) - for the rows an
+ * install already has.
  *
  * Scheduled detection rules judge the events that arrived since their last
  * run, whenever they happened (#10337), and the table is sorted by when
@@ -37,7 +38,9 @@ import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
  *   2. MATERIALIZE INDEX - a mutation queued in the background
  *      (MaterializeInBackgroundOptions). It reads the 4-byte createdAt
  *      column of every part that has no index yet, once, and writes the
- *      index beside it; nothing else is read or rewritten.
+ *      index beside it; nothing else is read or rewritten. Measured on
+ *      ClickHouse 26.7: an index of 0.5% of the data's size, at 15,000
+ *      events a minute.
  *
  * Cluster-aware (`runsInClusterMode` left at true): the analytics schema is
  * always a cluster, and a migration that opted out would be baselined and

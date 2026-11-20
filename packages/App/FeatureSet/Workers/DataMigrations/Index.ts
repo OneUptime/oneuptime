@@ -1551,7 +1551,7 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new CopyAuditLogWorkflowRunAsGiverColumns(),
   /*
-   * Builds idx_created_at, the minmax index on when each security event
+   * Builds idx_created_at, the set index of when each security event
    * arrived (SecurityEvent.createdAt), for the parts already on disk:
    * scheduled detection rules judge what arrived since their last run
    * (#10337), and without it a run after the upgrade reads every row of the

@@ -1,5 +1,7 @@
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
+import SecurityEvent, {
+  SECURITY_EVENT_CREATED_AT_INDEX_NAME,
+} from "Common/Models/AnalyticsModels/SecurityEvent";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
@@ -16,7 +18,10 @@ import DetectionRuleService from "Common/Server/Services/DetectionRuleService";
 import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "Common/Server/Services/OpenTelemetryIngestService";
-import SecurityEventService from "Common/Server/Services/SecurityEventService";
+import SecurityEventService, {
+  DetectionArrivalWindow,
+  isDetectionArrivalCandidate,
+} from "Common/Server/Services/SecurityEventService";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import SecurityCaseIngest, {
@@ -24,14 +29,23 @@ import SecurityCaseIngest, {
   SecurityDetectionSignal,
 } from "Common/Server/Utils/SecurityCase/SecurityCaseIngest";
 import SecurityConnections from "Common/Server/Utils/SecurityEvent/Connections/SecurityConnections";
-import DetectionRuleEvaluator from "Common/Server/Utils/SecurityEvent/DetectionRuleEvaluator";
+import DetectionRuleEvaluator, {
+  getArrivalEventTimeBounds,
+} from "Common/Server/Utils/SecurityEvent/DetectionRuleEvaluator";
 import SecurityEntityRiskRecorder from "Common/Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskRecorder";
+import SigmaClickhouseCompiler from "Common/Server/Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { SecurityDetectionMatchedEvent } from "Common/Types/SecurityCase/SecurityDetectionMatchedEvents";
+import {
+  DETECTION_LATE_EVENT_WINDOW_IN_MINUTES,
+  DETECTION_MAX_WINDOWS_PER_RUN,
+} from "Common/Types/SecurityEvent/DetectionFindingConstants";
+import { DetectionRuleDefinition } from "Common/Types/SecurityEvent/SigmaCorrelation";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import SigmaRuleSetParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import {
   afterAll,
   beforeAll,
@@ -52,8 +66,26 @@ import {
  * written - each with the time it happened and, as its createdAt, the
  * time it arrived - and the project's turn runs, as the cron runs it. The
  * rules, alerts and cases live in memory, deduplicated the way their
- * services deduplicate them; the events, the rules' reads and their
- * Detection Findings are ClickHouse's.
+ * services deduplicate them (an alert per fingerprint while it is open, a
+ * case per fingerprint while it is open); the events, the rules' reads and
+ * their Detection Findings are ClickHouse's.
+ *
+ *   on time, late, very      every event judged once, by the run after it
+ *   late, out of order       arrived, and none a day later than that
+ *   a rule that counts       a window fires once, whether the events that
+ *                            make its count arrive on time, late, across
+ *                            runs or out of order, and not again for more
+ *   alerts and cases         opened once, never again on a later pass
+ *   restarts                 a run that fails, or stops before it records
+ *                            where it got to, loses nothing
+ *   overlapping turns        two turns at once, or one that read the rule
+ *                            before another ran it, judge an event once
+ *   correlations, the        judge late events the same way
+ *   handover to real time
+ *   a backlog                read a dozen windows at a time, in one turn
+ *   the cost                 at a realistic volume, the extra reads are at
+ *                            most a granule for each late event, and the
+ *                            index on createdAt is what keeps them so
  *
  * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server,
  * credentials in the URL:
@@ -93,7 +125,7 @@ const SECOND: number = 1000;
 const MINUTE: number = 60 * SECOND;
 const HOUR: number = 60 * MINUTE;
 
-// Every test's minute 0: on the hour, a day back, so a day of history fits before it.
+// Every test's minute 0: on the hour, a day back, so a day of history fits after it.
 const BASE: Date = new Date(Math.floor(Date.now() / HOUR) * HOUR - 26 * HOUR);
 
 function at(minute: number, second: number = 0): Date {
@@ -104,6 +136,9 @@ const OPEN_ALERT_STATE_ID: ObjectID = ObjectID.generate();
 
 const TABLE_NAME: string = new SecurityEvent().tableName;
 
+// What a part of the table holds per granule, as the server is configured by default.
+const INDEX_GRANULARITY: number = 8192;
+
 const FAILED_SIGN_IN: string = `title: Failed sign-in
 id: 7c0f2a51-0000-4000-8000-000000010337
 level: high
@@ -112,6 +147,65 @@ detection:
     className: Authentication
     statusName: Failure
   condition: selection
+`;
+
+// Failures, then a success, from one address, within ten minutes.
+const FAILED_THEN_SUCCEEDED: string = `title: Failed sign-in
+id: 7c0f2a51-0000-4000-8000-000000010338
+name: failed_sign_in
+level: low
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+id: 7c0f2a51-0000-4000-8000-000000010339
+name: successful_sign_in
+level: low
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+---
+title: Failed then successful sign-in
+id: 7c0f2a51-0000-4000-8000-000000010340
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_in
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+`;
+
+// Three failures from one address within five minutes.
+const THREE_FAILURES: string = `title: Failed sign-in
+id: 7c0f2a51-0000-4000-8000-000000010341
+name: failed_sign_in
+level: low
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Three failed sign-ins from one address
+id: 7c0f2a51-0000-4000-8000-000000010342
+level: high
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 5m
+  condition:
+    gte: 3
 `;
 
 // One event as it reaches OneUptime: when it happened, and when it arrived.
@@ -129,6 +223,13 @@ interface StoredAlert {
   open: boolean;
 }
 
+// A case's detection as the case side recorded it, and the minute of the clock it came in.
+interface RecordedSignal {
+  signal: SecurityDetectionSignal;
+  at: Date;
+  repeat: boolean;
+}
+
 /*
  * One project's world: its rules as the rule service keeps them, its alerts
  * and cases, the clock, and the events still on their way.
@@ -141,11 +242,16 @@ class World {
   public readonly alerts: Array<StoredAlert> = [];
   public readonly openCases: Set<string> = new Set();
   public casesOpened: number = 0;
-  public readonly signals: Array<SecurityDetectionSignal> = [];
+  public readonly recorded: Array<RecordedSignal> = [];
   public readonly pending: Array<ArrivingEvent> = [];
-  // The Detection Findings the rules wrote, as written.
-  public readonly findings: Array<JSONObject> = [];
+  // Where each run said the rule got to, in order.
+  public readonly cursorWrites: Array<Date> = [];
   public turns: number = 0;
+  // A worker that stops: the next findings write, or the next record of where a run got to, fails.
+  public failNextFindingWrite: boolean = false;
+  public failNextCursorWrite: boolean = false;
+  // Runs once, between a turn's read of the rules and its use of them.
+  public beforeRulesReturned: (() => Promise<void>) | null = null;
 }
 
 let world: World = new World();
@@ -161,25 +267,44 @@ const service: ConnectableService =
 let client: ClickhouseClient;
 
 // The model's own table under a plain MergeTree (no Keeper on a disposable server).
-async function createTable(
-  clickhouse: ClickhouseDatabase,
-  modelType: { new (): AnalyticsBaseModel },
-): Promise<void> {
-  const model: AnalyticsBaseModel = new modelType();
+async function createTable(data: {
+  clickhouse: ClickhouseDatabase;
+  modelType: { new (): AnalyticsBaseModel };
+  tableName?: string | undefined;
+  withoutCreatedAtIndex?: boolean | undefined;
+}): Promise<void> {
+  const model: AnalyticsBaseModel = new data.modelType();
   const generator: StatementGenerator<AnalyticsBaseModel> =
     new StatementGenerator<AnalyticsBaseModel>({
-      modelType: modelType,
-      database: clickhouse,
+      modelType: data.modelType,
+      database: data.clickhouse,
     });
   const columns: Statement = generator.toColumnsCreateStatement(
-    model.tableColumns,
+    model.tableColumns.map((column: AnalyticsTableColumnLike) => {
+      // An install from before the index: the column as it was.
+      if (
+        data.withoutCreatedAtIndex &&
+        column.skipIndex?.name === SECURITY_EVENT_CREATED_AT_INDEX_NAME
+      ) {
+        const copy: AnalyticsTableColumnLike = Object.create(
+          Object.getPrototypeOf(column),
+        );
+        Object.assign(copy, column);
+        copy.skipIndex = undefined;
+        return copy;
+      }
+
+      return column;
+    }) as typeof model.tableColumns,
   );
 
   await client.command({
-    query: `CREATE TABLE ${database}.${model.tableName} (${columns.query}) ENGINE = MergeTree PARTITION BY (${model.partitionKey}) ORDER BY (${model.sortKeys.join(", ")})`,
+    query: `CREATE TABLE ${database}.${data.tableName || model.tableName} (${columns.query}) ENGINE = MergeTree PARTITION BY (${model.partitionKey}) ORDER BY (${model.sortKeys.join(", ")})`,
     query_params: columns.query_params,
   });
 }
+
+type AnalyticsTableColumnLike = AnalyticsBaseModel["tableColumns"][number];
 
 function eventRow(event: ArrivingEvent): JSONObject {
   const attributes: Record<string, string> = {
@@ -236,6 +361,10 @@ async function writeArrived(): Promise<void> {
   });
 }
 
+function arrive(...events: Array<ArrivingEvent>): void {
+  world.pending.push(...events);
+}
+
 function addRule(options: {
   name: string;
   intervalInMinutes: number;
@@ -245,6 +374,7 @@ function addRule(options: {
   yaml?: string | undefined;
   lastEvaluatedAt?: Date | undefined;
   shouldCreateAlert?: boolean | undefined;
+  isRealTime?: boolean | undefined;
 }): DetectionRule {
   const rule: DetectionRule = new DetectionRule();
   rule._id = ObjectID.generate().toString();
@@ -252,7 +382,7 @@ function addRule(options: {
   rule.name = options.name;
   rule.sigmaRuleYaml = options.yaml ?? FAILED_SIGN_IN;
   rule.isEnabled = true;
-  rule.isRealTime = false;
+  rule.isRealTime = options.isRealTime ?? false;
   rule.evaluationIntervalInMinutes = options.intervalInMinutes;
   rule.groupByField = options.groupByField ?? "principalIp";
   rule.matchCountThreshold = options.matchCountThreshold ?? 1;
@@ -306,14 +436,14 @@ function copyOf(rule: DetectionRule): DetectionRule {
   return copy;
 }
 
-function storedRule(id: unknown): DetectionRule | undefined {
-  return world.rules.get(String(id));
-}
+function storedRule(id: unknown): DetectionRule {
+  const rule: DetectionRule | undefined = world.rules.get(String(id));
 
-function applyRuleWrite(rule: DetectionRule, data: JSONObject): void {
-  for (const [key, value] of Object.entries(data)) {
-    (rule as unknown as JSONObject)[key] = value as never;
+  if (!rule) {
+    throw new Error(`No rule ${String(id)} in this world.`);
   }
+
+  return rule;
 }
 
 async function turn(): Promise<void> {
@@ -321,30 +451,39 @@ async function turn(): Promise<void> {
   await DetectionRuleEvaluator.evaluateDueRulesForProject(world.projectId);
 }
 
+// The clock at a minute: the events that have arrived by then are written.
+async function clockAt(minute: number): Promise<void> {
+  world.clock = at(minute);
+  await writeArrived();
+}
+
 // Runs every minute from `from` through `to`: the events that arrived, then the turn.
 async function runMinutes(from: number, to: number): Promise<void> {
   for (let minute: number = from; minute <= to; minute++) {
-    world.clock = at(minute);
-    await writeArrived();
+    await clockAt(minute);
     await turn();
   }
 }
 
-function signalsOf(rule: DetectionRule): Array<SecurityDetectionSignal> {
-  return world.signals.filter((signal: SecurityDetectionSignal): boolean => {
-    return signal.detectionRuleId.toString() === rule._id;
+function recordedFor(rule: DetectionRule): Array<RecordedSignal> {
+  return world.recorded.filter((recorded: RecordedSignal): boolean => {
+    return recorded.signal.detectionRuleId.toString() === rule._id;
   });
 }
 
-// Every event a rule's detections counted, by uid, as their cases keep them.
+function uidsOf(signal: SecurityDetectionSignal): Array<string> {
+  return (signal.matchedEvents?.events || []).map(
+    (event: SecurityDetectionMatchedEvent): string => {
+      return event.eventUid;
+    },
+  );
+}
+
+// Every event a rule's detections counted, by uid, as their cases keep them: one entry each time.
 function judgedUids(rule: DetectionRule): Array<string> {
-  return signalsOf(rule)
-    .flatMap((signal: SecurityDetectionSignal): Array<string> => {
-      return (signal.matchedEvents?.events || []).map(
-        (event: SecurityDetectionMatchedEvent): string => {
-          return event.eventUid;
-        },
-      );
+  return recordedFor(rule)
+    .flatMap((recorded: RecordedSignal): Array<string> => {
+      return uidsOf(recorded.signal);
     })
     .sort();
 }
@@ -353,9 +492,28 @@ function firingsFor(
   rule: DetectionRule,
   groupValue: string,
 ): Array<SecurityDetectionSignal> {
-  return signalsOf(rule).filter((signal: SecurityDetectionSignal): boolean => {
-    return signal.groupValue === groupValue;
-  });
+  return recordedFor(rule)
+    .map((recorded: RecordedSignal): SecurityDetectionSignal => {
+      return recorded.signal;
+    })
+    .filter((signal: SecurityDetectionSignal): boolean => {
+      return signal.groupValue === groupValue;
+    });
+}
+
+// The minute of the clock the detection that counted this event came in.
+function judgedAtMinute(rule: DetectionRule, uid: string): number {
+  const recorded: RecordedSignal | undefined = recordedFor(rule).find(
+    (entry: RecordedSignal): boolean => {
+      return uidsOf(entry.signal).includes(uid);
+    },
+  );
+
+  if (!recorded) {
+    throw new Error(`${uid} was never judged.`);
+  }
+
+  return (recorded.at.getTime() - BASE.getTime()) / MINUTE;
 }
 
 const SERVICE_METADATA: TelemetryServiceMetadata = {
@@ -377,7 +535,7 @@ function installWorld(): void {
   jest
     .spyOn(DetectionRuleService, "findAllBy")
     .mockImplementation((async (args: { query: JSONObject }) => {
-      return Array.from(world.rules.values())
+      const rules: Array<DetectionRule> = Array.from(world.rules.values())
         .filter((rule: DetectionRule): boolean => {
           return (
             (args.query["projectId"] === undefined ||
@@ -389,62 +547,48 @@ function installWorld(): void {
           );
         })
         .map(copyOf);
+
+      // Another turn runs between this one's read of the rules and its use of them.
+      const between: (() => Promise<void>) | null = world.beforeRulesReturned;
+
+      if (between) {
+        world.beforeRulesReturned = null;
+        await between();
+      }
+
+      return rules;
     }) as never);
 
   jest
     .spyOn(DetectionRuleService, "findOneById")
     .mockImplementation((async (args: { id: ObjectID }) => {
-      const rule: DetectionRule | undefined = storedRule(args.id);
-      return rule ? copyOf(rule) : null;
+      return copyOf(storedRule(args.id));
     }) as never);
 
   jest
     .spyOn(DetectionRuleService, "findOneBy")
     .mockImplementation((async (args: { query: JSONObject }) => {
-      const rule: DetectionRule | undefined = storedRule(args.query["_id"]);
-      return rule ? copyOf(rule) : null;
+      return copyOf(storedRule(args.query["_id"]));
     }) as never);
 
   jest
     .spyOn(DetectionRuleService, "updateOneById")
     .mockImplementation((async (args: { id: ObjectID; data: JSONObject }) => {
-      const rule: DetectionRule | undefined = storedRule(args.id);
-
-      if (!rule) {
-        return 0;
-      }
-
-      applyRuleWrite(rule, args.data);
-      return 1;
-    }) as never);
-
-  jest
-    .spyOn(DetectionRuleService, "updateOneBy")
-    .mockImplementation((async (args: {
-      query: JSONObject;
-      data: JSONObject;
-    }) => {
-      const rule: DetectionRule | undefined = storedRule(args.query["_id"]);
-
-      if (!rule) {
-        return 0;
-      }
-
-      // The compare-and-set a bookkeeping write is: the cursor it was read with.
-      if (Object.prototype.hasOwnProperty.call(args.query, "lastEvaluatedAt")) {
-        const expected: unknown = args.query["lastEvaluatedAt"];
-        const held: number | null = rule.lastEvaluatedAt
-          ? new Date(rule.lastEvaluatedAt).getTime()
-          : null;
-        const wanted: number | null =
-          expected instanceof Date ? expected.getTime() : null;
-
-        if (held !== wanted) {
-          return 0;
+      if (args.data["lastEvaluatedAt"] !== undefined) {
+        if (world.failNextCursorWrite) {
+          world.failNextCursorWrite = false;
+          throw new Error("The worker stopped before it recorded the run.");
         }
+
+        world.cursorWrites.push(args.data["lastEvaluatedAt"] as Date);
       }
 
-      applyRuleWrite(rule, args.data);
+      const rule: DetectionRule = storedRule(args.id);
+
+      for (const [key, value] of Object.entries(args.data)) {
+        (rule as unknown as JSONObject)[key] = value as never;
+      }
+
       return 1;
     }) as never);
 
@@ -505,9 +649,11 @@ function installWorld(): void {
     };
 
     for (const signal of signals) {
-      world.signals.push(signal);
+      const repeat: boolean = world.openCases.has(signal.fingerprint);
 
-      if (world.openCases.has(signal.fingerprint)) {
+      world.recorded.push({ signal, at: new Date(world.clock), repeat });
+
+      if (repeat) {
         result.detectionsRepeated++;
         continue;
       }
@@ -537,7 +683,11 @@ function installWorld(): void {
   jest.spyOn(SecurityEventService, "insertJsonRows").mockImplementation((async (
     rows: Array<JSONObject>,
   ) => {
-    world.findings.push(...rows);
+    if (world.failNextFindingWrite) {
+      world.failNextFindingWrite = false;
+      throw new Error("ClickHouse is restarting.");
+    }
+
     await client.insert({
       table: `${database}.${TABLE_NAME}`,
       values: rows,
@@ -569,6 +719,68 @@ function installWorld(): void {
   }) as never);
 }
 
+/*
+ * Settings added to a measured read: none, or - on a server that has one -
+ * the query condition cache off, which remembers the granules a filter
+ * ruled out and would make a read repeated with the same filter look cheap.
+ */
+let measuringSettings: string = "";
+
+function withSettings(query: string, settings: string): string {
+  if (!settings) {
+    return query;
+  }
+
+  return query.includes(" SETTINGS ")
+    ? `${query}, ${settings}`
+    : `${query} SETTINGS ${settings}`;
+}
+
+// What a read made ClickHouse read, from its FORMAT JSON statistics.
+async function rowsRead(statement: Statement, query?: string): Promise<number> {
+  const result: { json: () => Promise<unknown> } = await client.query({
+    query: withSettings(query ?? statement.query, measuringSettings),
+    query_params: statement.query_params,
+    format: "JSON",
+  });
+  const json: { statistics?: { rows_read?: number } } =
+    (await result.json()) as { statistics?: { rows_read?: number } };
+
+  return Number(json.statistics?.rows_read || 0);
+}
+
+// The statement a service read builds, without running it.
+async function statementOf(read: () => Promise<unknown>): Promise<Statement> {
+  let captured: Statement | null = null;
+
+  const executeQuery: ReturnType<typeof jest.spyOn> = jest
+    .spyOn(SecurityEventService, "executeQuery")
+    .mockImplementation((async (statement: Statement) => {
+      captured = statement;
+      return {
+        json: async (): Promise<JSONObject> => {
+          return { data: [] };
+        },
+      };
+    }) as never);
+
+  try {
+    await read();
+  } finally {
+    executeQuery.mockRestore();
+  }
+
+  if (!captured) {
+    throw new Error("The read built no statement.");
+  }
+
+  return captured;
+}
+
+function withoutSkipIndexes(statement: Statement): string {
+  return withSettings(statement.query, "use_skip_indexes = 0");
+}
+
 integration("a scheduled rule judges every event once (#10337)", () => {
   let clickhouse: ClickhouseDatabase;
   let original: ConnectableService | null = null;
@@ -593,7 +805,7 @@ integration("a scheduled rule judges every event once (#10337)", () => {
     clickhouse = new ClickhouseDatabase(options);
     client = await clickhouse.connect(options);
 
-    await createTable(clickhouse, SecurityEvent);
+    await createTable({ clickhouse, modelType: SecurityEvent });
 
     original = {
       database: service.database,
@@ -632,7 +844,7 @@ integration("a scheduled rule judges every event once (#10337)", () => {
         lastEvaluatedAt: at(0),
       });
 
-      world.pending.push(
+      arrive(
         {
           uid: "on-time",
           time: at(3, 10),
@@ -652,6 +864,107 @@ integration("a scheduled rule judges every event once (#10337)", () => {
 
       expect(judgedUids(rule)).toEqual(["late", "on-time"]);
     });
+
+    test("on time, late, very late and out of order: every event judged once, two minutes after it arrived", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in",
+        intervalInMinutes: 1,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        {
+          uid: "on-time",
+          time: at(3, 10),
+          arrivesAt: at(3, 15),
+          principalIp: "203.0.113.7",
+        },
+        {
+          // A span that started at 4:00 and ended, and was read, at 5:30.
+          uid: "late",
+          time: at(4),
+          arrivesAt: at(5, 30),
+          principalIp: "203.0.113.7",
+        },
+        {
+          // A cloud audit record forty-two minutes behind: dozens of windows past.
+          uid: "very-late",
+          time: at(5),
+          arrivesAt: at(47),
+          principalIp: "198.51.100.4",
+        },
+        {
+          // Written before the one that happened before it.
+          uid: "out-of-order-second",
+          time: at(7, 30),
+          arrivesAt: at(8, 10),
+          principalIp: "203.0.113.7",
+        },
+        {
+          uid: "out-of-order-first",
+          time: at(7),
+          arrivesAt: at(9, 30),
+          principalIp: "203.0.113.7",
+        },
+      );
+
+      await runMinutes(1, 55);
+
+      // Each once: no event in two detections, none in none.
+      expect(judgedUids(rule)).toEqual([
+        "late",
+        "on-time",
+        "out-of-order-first",
+        "out-of-order-second",
+        "very-late",
+      ]);
+
+      // By the first run that reads up to when it arrived: two minutes on.
+      expect(judgedAtMinute(rule, "on-time")).toBe(6);
+      expect(judgedAtMinute(rule, "late")).toBe(8);
+      expect(judgedAtMinute(rule, "very-late")).toBe(49);
+      expect(judgedAtMinute(rule, "out-of-order-second")).toBe(11);
+      expect(judgedAtMinute(rule, "out-of-order-first")).toBe(12);
+
+      // Every run recorded where it got to, never going back.
+      for (let index: number = 1; index < world.cursorWrites.length; index++) {
+        expect(world.cursorWrites[index]!.getTime()).toBeGreaterThan(
+          world.cursorWrites[index - 1]!.getTime(),
+        );
+      }
+    });
+
+    test("an event that arrives within a day of when it happened is judged; one a day and more late is not", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in",
+        intervalInMinutes: 1,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        {
+          uid: "23-hours-late",
+          time: at(30),
+          arrivesAt: at(30 + 23 * 60),
+          principalIp: "203.0.113.9",
+        },
+        {
+          uid: "a-day-and-a-minute-late",
+          time: at(10),
+          arrivesAt: at(10 + DETECTION_LATE_EVENT_WINDOW_IN_MINUTES + 1),
+          principalIp: "203.0.113.9",
+        },
+      );
+
+      await runMinutes(1, 3);
+      // The workers come back a day later: one turn catches up.
+      await runMinutes(
+        DETECTION_LATE_EVENT_WINDOW_IN_MINUTES + 15,
+        DETECTION_LATE_EVENT_WINDOW_IN_MINUTES + 15,
+      );
+
+      expect(judgedUids(rule)).toEqual(["23-hours-late"]);
+    });
   });
 
   describe("a rule that counts", () => {
@@ -663,7 +976,7 @@ integration("a scheduled rule judges every event once (#10337)", () => {
         lastEvaluatedAt: at(0),
       });
 
-      world.pending.push(
+      arrive(
         {
           uid: "first",
           time: at(6),
@@ -695,6 +1008,872 @@ integration("a scheduled rule judges every event once (#10337)", () => {
       expect(firings).toHaveLength(1);
       expect(firings[0]!.eventCount).toBe(3);
       expect(judgedUids(rule)).toEqual(["first", "second", "third"]);
+    });
+
+    test("a group past its threshold does not fire again for late events in the same window", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Three failed sign-ins from one address",
+        intervalInMinutes: 5,
+        matchCountThreshold: 3,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        ...[6, 7, 8].map((minute: number): ArrivingEvent => {
+          return {
+            uid: `on-time-${minute}`,
+            time: at(minute),
+            arrivesAt: at(minute, 5),
+            principalIp: "198.51.100.4",
+          };
+        }),
+        {
+          uid: "late-9",
+          time: at(9),
+          arrivesAt: at(25),
+          principalIp: "198.51.100.4",
+        },
+        {
+          uid: "late-5",
+          time: at(5, 30),
+          arrivesAt: at(33),
+          principalIp: "198.51.100.4",
+        },
+      );
+
+      await runMinutes(1, 45);
+
+      const firings: Array<SecurityDetectionSignal> = firingsFor(
+        rule,
+        "198.51.100.4",
+      );
+
+      expect(firings).toHaveLength(1);
+      expect(firings[0]!.eventCount).toBe(3);
+    });
+
+    test("the windows are back to back on the clock: a burst across two of them is counted apart", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Three failed sign-ins from one address",
+        intervalInMinutes: 5,
+        matchCountThreshold: 3,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        ...[
+          at(9, 40),
+          at(9, 50),
+          // 10:00 starts the next window.
+          at(10, 5),
+          at(10, 15),
+        ].map((time: Date, index: number): ArrivingEvent => {
+          return {
+            uid: `burst-${index}`,
+            time,
+            arrivesAt: new Date(time.getTime() + 5 * SECOND),
+            principalIp: "198.51.100.4",
+          };
+        }),
+      );
+
+      await runMinutes(1, 30);
+
+      expect(firingsFor(rule, "198.51.100.4")).toHaveLength(0);
+    });
+
+    test("events that make one window's count arrive across several runs, out of order: the window fires once, when the last arrives", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Three failed sign-ins from one address",
+        intervalInMinutes: 5,
+        matchCountThreshold: 3,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        {
+          uid: "middle",
+          time: at(12),
+          arrivesAt: at(12, 5),
+          principalIp: "198.51.100.4",
+        },
+        {
+          uid: "last",
+          time: at(13),
+          arrivesAt: at(16),
+          principalIp: "198.51.100.4",
+        },
+        {
+          uid: "first",
+          time: at(11),
+          arrivesAt: at(23),
+          principalIp: "198.51.100.4",
+        },
+      );
+
+      await runMinutes(1, 40);
+
+      const firings: Array<SecurityDetectionSignal> = firingsFor(
+        rule,
+        "198.51.100.4",
+      );
+
+      expect(firings).toHaveLength(1);
+      expect(firings[0]!.eventCount).toBe(3);
+      expect(judgedUids(rule)).toEqual(["first", "last", "middle"]);
+      // The run after the last of them arrived, two minutes on and on its five-minute interval.
+      expect(judgedAtMinute(rule, "first")).toBeGreaterThanOrEqual(25);
+      expect(judgedAtMinute(rule, "first")).toBeLessThanOrEqual(30);
+    });
+
+    test("an event an hour late still completes its window, once", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Three failed sign-ins from one address",
+        intervalInMinutes: 5,
+        matchCountThreshold: 3,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        {
+          uid: "first",
+          time: at(6),
+          arrivesAt: at(6, 5),
+          principalIp: "198.51.100.4",
+        },
+        {
+          uid: "second",
+          time: at(7),
+          arrivesAt: at(7, 5),
+          principalIp: "198.51.100.4",
+        },
+        {
+          // The trace scan reads a span up to an hour after it arrived.
+          uid: "an-hour-late",
+          time: at(8),
+          arrivesAt: at(68),
+          principalIp: "198.51.100.4",
+        },
+      );
+
+      await runMinutes(1, 80);
+
+      expect(firingsFor(rule, "198.51.100.4")).toHaveLength(1);
+      expect(judgedUids(rule)).toEqual(["an-hour-late", "first", "second"]);
+    });
+
+    test("a distinct count: the late value that makes the count fires once, and a repeat of a value fires nothing", async () => {
+      const rule: DetectionRule = addRule({
+        name: "One address failing against three accounts",
+        intervalInMinutes: 5,
+        matchCountThreshold: 3,
+        distinctCountField: "principalUser",
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        {
+          uid: "alice",
+          time: at(6),
+          arrivesAt: at(6, 5),
+          principalIp: "198.51.100.4",
+          principalUser: "alice",
+        },
+        {
+          uid: "bob",
+          time: at(7),
+          arrivesAt: at(7, 5),
+          principalIp: "198.51.100.4",
+          principalUser: "bob",
+        },
+        {
+          uid: "carol-late",
+          time: at(8),
+          arrivesAt: at(19),
+          principalIp: "198.51.100.4",
+          principalUser: "carol",
+        },
+        {
+          uid: "alice-again-late",
+          time: at(9),
+          arrivesAt: at(31),
+          principalIp: "198.51.100.4",
+          principalUser: "alice",
+        },
+      );
+
+      await runMinutes(1, 40);
+
+      const firings: Array<SecurityDetectionSignal> = firingsFor(
+        rule,
+        "198.51.100.4",
+      );
+
+      expect(firings).toHaveLength(1);
+      expect(judgedUids(rule)).toEqual(["alice", "bob", "carol-late"]);
+    });
+  });
+
+  describe("alerts and cases", () => {
+    test("a group's alert and case open once, and a later pass with its late events opens neither again", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in",
+        intervalInMinutes: 1,
+        lastEvaluatedAt: at(0),
+        shouldCreateAlert: true,
+      });
+
+      arrive(
+        {
+          uid: "on-time",
+          time: at(3, 10),
+          arrivesAt: at(3, 15),
+          principalIp: "203.0.113.7",
+        },
+        {
+          uid: "late",
+          time: at(3, 20),
+          arrivesAt: at(12),
+          principalIp: "203.0.113.7",
+        },
+      );
+
+      await runMinutes(1, 20);
+
+      expect(world.alerts).toHaveLength(1);
+      expect(world.casesOpened).toBe(1);
+      expect(
+        recordedFor(rule).map((recorded: RecordedSignal): boolean => {
+          return recorded.repeat;
+        }),
+      ).toEqual([false, true]);
+      expect(judgedUids(rule)).toEqual(["late", "on-time"]);
+    });
+
+    test("a window that fired opens nothing more when its late events arrive", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Three failed sign-ins from one address",
+        intervalInMinutes: 5,
+        matchCountThreshold: 3,
+        lastEvaluatedAt: at(0),
+        shouldCreateAlert: true,
+      });
+
+      arrive(
+        ...[6, 7, 8, 9].map((minute: number): ArrivingEvent => {
+          return {
+            uid: `failure-${minute}`,
+            time: at(minute),
+            // The last of them an hour late.
+            arrivesAt: minute === 9 ? at(70) : at(minute, 5),
+            principalIp: "198.51.100.4",
+          };
+        }),
+      );
+
+      await runMinutes(1, 80);
+
+      expect(world.alerts).toHaveLength(1);
+      expect(world.casesOpened).toBe(1);
+      expect(recordedFor(rule)).toHaveLength(1);
+    });
+  });
+
+  describe("restarts", () => {
+    test("a run that fails part way loses nothing: the next run judges its events, and every event is judged once", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in",
+        intervalInMinutes: 1,
+        lastEvaluatedAt: at(0),
+        shouldCreateAlert: true,
+      });
+
+      arrive(
+        {
+          uid: "in-the-failed-run",
+          time: at(3, 10),
+          arrivesAt: at(3, 15),
+          principalIp: "203.0.113.7",
+        },
+        {
+          // Arrives in the two minutes a failed run used to skip.
+          uid: "just-after",
+          time: at(4, 30),
+          arrivesAt: at(4, 40),
+          principalIp: "203.0.113.7",
+        },
+      );
+
+      await runMinutes(1, 5);
+
+      // The run that judges the first event cannot write its findings.
+      world.failNextFindingWrite = true;
+      await runMinutes(6, 6);
+
+      expect(world.casesOpened).toBe(0);
+      expect(storedRule(rule._id).lastError).toContain(
+        "ClickHouse is restarting.",
+      );
+
+      await runMinutes(7, 12);
+
+      expect(judgedUids(rule)).toEqual(["in-the-failed-run", "just-after"]);
+      // Its alert opened in the failed run is still open: not opened again.
+      expect(world.alerts).toHaveLength(1);
+      expect(world.casesOpened).toBe(1);
+      expect(storedRule(rule._id).lastError).toBeNull();
+    });
+
+    test("a worker that stops before it records where a run got to: the next run judges the same events, and opens no alert or case again", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in",
+        intervalInMinutes: 1,
+        lastEvaluatedAt: at(0),
+        shouldCreateAlert: true,
+      });
+
+      arrive({
+        uid: "judged-twice",
+        time: at(3, 10),
+        arrivesAt: at(3, 15),
+        principalIp: "203.0.113.7",
+      });
+
+      await runMinutes(1, 5);
+
+      world.failNextCursorWrite = true;
+      await runMinutes(6, 6);
+
+      // It fired, and did not get to record that it had.
+      expect(world.alerts).toHaveLength(1);
+      expect(world.casesOpened).toBe(1);
+      expect(storedRule(rule._id).lastEvaluatedAt!.getTime()).toBe(
+        at(3).getTime(),
+      );
+
+      await runMinutes(7, 10);
+
+      // At least once: judged again, but the open alert and case take it in.
+      expect(world.alerts).toHaveLength(1);
+      expect(world.casesOpened).toBe(1);
+      expect(
+        recordedFor(rule).map((recorded: RecordedSignal): boolean => {
+          return recorded.repeat;
+        }),
+      ).toEqual([false, true]);
+      expect(storedRule(rule._id).lastEvaluatedAt!.getTime()).toBe(
+        at(8).getTime(),
+      );
+    });
+  });
+
+  describe("overlapping turns", () => {
+    test("two turns of the project at once judge each event once", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in",
+        intervalInMinutes: 1,
+        lastEvaluatedAt: at(0),
+        shouldCreateAlert: true,
+      });
+
+      arrive(
+        ...[3, 4, 5, 6].map((minute: number): ArrivingEvent => {
+          return {
+            uid: `failure-${minute}`,
+            time: at(minute, 10),
+            arrivesAt: minute === 4 ? at(9) : at(minute, 15),
+            principalIp: `203.0.113.${minute}`,
+          };
+        }),
+      );
+
+      for (let minute: number = 1; minute <= 15; minute++) {
+        await clockAt(minute);
+        await Promise.all([turn(), turn()]);
+      }
+
+      expect(judgedUids(rule)).toEqual([
+        "failure-3",
+        "failure-4",
+        "failure-5",
+        "failure-6",
+      ]);
+      expect(world.alerts).toHaveLength(4);
+      expect(world.casesOpened).toBe(4);
+    });
+
+    test("a turn that read the rule before another turn ran it reads it again, and does not judge those events twice", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in",
+        intervalInMinutes: 1,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive({
+        uid: "once",
+        time: at(3, 10),
+        arrivesAt: at(3, 15),
+        principalIp: "203.0.113.7",
+      });
+
+      await runMinutes(1, 5);
+
+      // At 6:00 one turn reads the rules, then another turn runs whole before it goes on.
+      await clockAt(6);
+      world.beforeRulesReturned = turn;
+      await turn();
+
+      await runMinutes(7, 10);
+
+      expect(judgedUids(rule)).toEqual(["once"]);
+      expect(world.casesOpened).toBe(1);
+    });
+  });
+
+  describe("correlations", () => {
+    test("a sequence whose first step arrives after its last fires once, when the first arrives", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Failed then successful sign-in",
+        intervalInMinutes: 5,
+        yaml: FAILED_THEN_SUCCEEDED,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        {
+          uid: "success",
+          time: at(7),
+          arrivesAt: at(7, 5),
+          principalIp: "198.51.100.20",
+          statusName: "Success",
+        },
+        {
+          // The failure before it, read when its span ended.
+          uid: "failure",
+          time: at(6),
+          arrivesAt: at(15),
+          principalIp: "198.51.100.20",
+        },
+      );
+
+      await runMinutes(1, 30);
+
+      const firings: Array<SecurityDetectionSignal> = firingsFor(
+        rule,
+        "198.51.100.20",
+      );
+
+      expect(firings).toHaveLength(1);
+      expect(judgedUids(rule)).toEqual(["failure", "success"]);
+    });
+
+    test("a count a late event completes fires once, and a later late event in its window fires nothing", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Three failed sign-ins from one address",
+        intervalInMinutes: 5,
+        yaml: THREE_FAILURES,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        {
+          uid: "first",
+          time: at(6),
+          arrivesAt: at(6, 5),
+          principalIp: "198.51.100.30",
+        },
+        {
+          uid: "second",
+          time: at(6, 30),
+          arrivesAt: at(6, 35),
+          principalIp: "198.51.100.30",
+        },
+        {
+          uid: "third-late",
+          time: at(7),
+          arrivesAt: at(20),
+          principalIp: "198.51.100.30",
+        },
+        {
+          uid: "fourth-later",
+          time: at(7, 30),
+          arrivesAt: at(30),
+          principalIp: "198.51.100.30",
+        },
+      );
+
+      await runMinutes(1, 40);
+
+      expect(firingsFor(rule, "198.51.100.30")).toHaveLength(1);
+      expect(judgedUids(rule)).toEqual(["first", "second", "third-late"]);
+    });
+  });
+
+  describe("handing a rule over to real time", () => {
+    test("the handover judges what arrived since the schedule stopped, late events too, and nothing after it", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in",
+        intervalInMinutes: 5,
+        lastEvaluatedAt: at(10),
+        isRealTime: true,
+      });
+
+      arrive(
+        {
+          // Judged by the schedule's last run.
+          uid: "before",
+          time: at(9, 50),
+          arrivesAt: at(9, 55),
+          principalIp: "203.0.113.7",
+        },
+        {
+          // Happened before the schedule stopped, arrived after.
+          uid: "late",
+          time: at(5),
+          arrivesAt: at(11),
+          principalIp: "203.0.113.7",
+        },
+        {
+          uid: "during",
+          time: at(11, 30),
+          arrivesAt: at(11, 31),
+          principalIp: "203.0.113.7",
+        },
+        {
+          // Every process screens for the rule by now: real time judges it.
+          uid: "after",
+          time: at(11, 50),
+          arrivesAt: at(13),
+          principalIp: "203.0.113.7",
+        },
+      );
+
+      await clockAt(15);
+
+      await DetectionRuleEvaluator.evaluateRealTime(
+        copyOf(storedRule(rule._id)),
+        { startTime: at(10), endTime: at(12) },
+      );
+
+      expect(judgedUids(rule)).toEqual(["during", "late"]);
+      // A real-time rule's schedule is left as it was.
+      expect(world.cursorWrites).toHaveLength(0);
+      expect(storedRule(rule._id).lastMatchAt!.getTime()).toBe(
+        at(12).getTime(),
+      );
+    });
+  });
+
+  describe("a backlog", () => {
+    test("a rule that counts, catching up after an outage, reads its windows a dozen at a time and fires each once, in one turn", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Two failed sign-ins from one address",
+        intervalInMinutes: 1,
+        matchCountThreshold: 2,
+        lastEvaluatedAt: at(0),
+      });
+
+      const minutes: Array<number> = Array.from(
+        { length: 30 },
+        (_: unknown, index: number): number => {
+          return index + 1;
+        },
+      );
+
+      arrive(
+        ...minutes.flatMap((minute: number): Array<ArrivingEvent> => {
+          return [10, 20].map((second: number): ArrivingEvent => {
+            return {
+              uid: `m${String(minute).padStart(2, "0")}-${second}`,
+              time: at(minute, second),
+              arrivesAt: at(minute, second + 5),
+              principalIp: "198.51.100.40",
+            };
+          });
+        }),
+      );
+
+      // The workers were down: the first turn is at 40:00.
+      await runMinutes(40, 40);
+
+      expect(world.turns).toBe(1);
+      expect(firingsFor(rule, "198.51.100.40")).toHaveLength(30);
+      expect(judgedUids(rule)).toHaveLength(60);
+      expect(new Set(judgedUids(rule)).size).toBe(60);
+      // Three runs in the one turn, each recording where it got to.
+      expect(world.cursorWrites.length).toBe(
+        Math.ceil(30 / DETECTION_MAX_WINDOWS_PER_RUN),
+      );
+      expect(storedRule(rule._id).lastEvaluatedAt!.getTime()).toBe(
+        at(38).getTime(),
+      );
+    });
+  });
+
+  describe("what the extra reads cost", () => {
+    /*
+     * A busy project: about 1,500 security events a minute for 26 hours,
+     * written as they arrived and merged into parts sorted by when they
+     * happened - the layout that leaves late events mixed in with older
+     * ones. Nine in ten arrive within five seconds, the rest within two
+     * minutes, ten minutes, and a few up to six hours late.
+     */
+    const ROWS: number = 2_400_000;
+    const SPAN_IN_MINUTES: number = 26 * 60;
+    const volumeProjectId: ObjectID = ObjectID.generate();
+    const volumeSourceId: ObjectID = ObjectID.generate();
+    const NO_INDEX_TABLE: string = `${TABLE_NAME}_before_upgrade`;
+    let start: Date;
+    // The minute measured: two hours before the last events happened.
+    let minute: Date;
+
+    function generateInto(table: string): string {
+      return `INSERT INTO ${database}.${table} (_id, projectId, primaryEntityId, primaryEntityType, time, createdAt, eventUid, classUid, className, statusName, severityId, severityName, message, principalIp, observables, attributes, attributeKeys, retentionDate)
+        SELECT
+          toString(generateUUIDv7(number)),
+          {projectId:String},
+          {sourceId:String},
+          'OpenTelemetry',
+          happened,
+          toDateTime(happened + toIntervalSecond(lagSeconds)),
+          concat('volume-', toString(number)),
+          3002,
+          'Authentication',
+          if(number % 5 = 0, 'Failure', 'Success'),
+          3,
+          'Medium',
+          'A sign-in',
+          ip,
+          [ip],
+          map('oneuptime.log.id', toString(number)),
+          ['oneuptime.log.id'],
+          now() + toIntervalDay(30)
+        FROM (
+          SELECT
+            number,
+            toDateTime64({start:DateTime64(9)}, 9) + toIntervalMillisecond(intDiv(number * {spanInMs:UInt64}, {rows:UInt64})) AS happened,
+            cityHash64(number) % 1000 AS share,
+            multiIf(
+              share < 900, 1 + share % 5,
+              share < 970, 6 + cityHash64(number, 1) % 115,
+              share < 995, 121 + cityHash64(number, 2) % 480,
+              601 + cityHash64(number, 3) % 21000
+            ) AS lagSeconds,
+            concat('10.', toString(number % 200), '.', toString(intDiv(number, 200) % 250), '.1') AS ip
+          FROM numbers({rows:UInt64})
+        )`;
+    }
+
+    beforeAll(async (): Promise<void> => {
+      start = new Date(
+        Math.floor(Date.now() / MINUTE) * MINUTE - SPAN_IN_MINUTES * MINUTE,
+      );
+      minute = new Date(start.getTime() + (SPAN_IN_MINUTES - 120) * MINUTE);
+
+      const knows: { json: () => Promise<unknown> } = await client.query({
+        query:
+          "SELECT count() AS known FROM system.settings WHERE name = 'use_query_condition_cache'",
+        format: "JSONEachRow",
+      });
+      const known: Array<{ known: string }> = (await knows.json()) as Array<{
+        known: string;
+      }>;
+
+      measuringSettings =
+        Number(known[0]?.known || 0) > 0 ? "use_query_condition_cache = 0" : "";
+
+      await createTable({
+        clickhouse,
+        modelType: SecurityEvent,
+        tableName: NO_INDEX_TABLE,
+        withoutCreatedAtIndex: true,
+      });
+
+      for (const table of [TABLE_NAME, NO_INDEX_TABLE]) {
+        await client.command({
+          query: generateInto(table),
+          query_params: {
+            projectId: volumeProjectId.toString(),
+            sourceId: volumeSourceId.toString(),
+            start: OneUptimeDate.toClickhouseDateTime64(start),
+            spanInMs: SPAN_IN_MINUTES * MINUTE,
+            rows: ROWS,
+          },
+        });
+
+        await client.command({
+          query: `OPTIMIZE TABLE ${database}.${table} FINAL`,
+        });
+      }
+    });
+
+    function condition(): Statement {
+      const definition: DetectionRuleDefinition =
+        SigmaRuleSetParser.parse(FAILED_SIGN_IN);
+
+      if (definition.kind !== "single") {
+        throw new Error("The rule is a single rule.");
+      }
+
+      return SigmaClickhouseCompiler.compile(definition.rule);
+    }
+
+    // The read a one-minute rule made before: the minute's events, by when they happened.
+    async function eventTimeRead(): Promise<Statement> {
+      return await statementOf(async (): Promise<unknown> => {
+        return await SecurityEventService.findDetectionMatches({
+          projectId: volumeProjectId,
+          startTime: minute,
+          endTime: new Date(minute.getTime() + MINUTE),
+          whereFragment: condition(),
+          groupByExpression: null,
+          distinctCountExpression: null,
+          minMatchCount: 1,
+          maxGroups: 10001,
+        });
+      });
+    }
+
+    // The read a one-minute rule makes now: what arrived in the minute, whenever it happened.
+    async function arrivalRead(): Promise<Statement> {
+      const range: { arrivedAfter: Date; arrivedUntil: Date } = {
+        arrivedAfter: minute,
+        arrivedUntil: new Date(minute.getTime() + MINUTE),
+      };
+      const bounds: { happenedAfter: Date; happenedBefore: Date } =
+        getArrivalEventTimeBounds(range);
+      const restriction: Statement = isDetectionArrivalCandidate({
+        kind: "run",
+        ...range,
+        candidateStartTime: bounds.happenedAfter,
+        candidateEndTime: bounds.happenedBefore,
+      });
+      const where: Statement = condition();
+      where.append(" AND ");
+      where.append(restriction);
+
+      return await statementOf(async (): Promise<unknown> => {
+        return await SecurityEventService.findDetectionMatches({
+          projectId: volumeProjectId,
+          startTime: bounds.happenedAfter,
+          endTime: bounds.happenedBefore,
+          whereFragment: where,
+          groupByExpression: null,
+          distinctCountExpression: null,
+          minMatchCount: 1,
+          maxGroups: 10001,
+          readFirstSeen: true,
+        });
+      });
+    }
+
+    // A rule that counts: which windows hold what arrived in the minute.
+    async function windowsRead(): Promise<Statement> {
+      const range: { arrivedAfter: Date; arrivedUntil: Date } = {
+        arrivedAfter: minute,
+        arrivedUntil: new Date(minute.getTime() + MINUTE),
+      };
+
+      return await statementOf(
+        async (): Promise<Array<DetectionArrivalWindow>> => {
+          return await SecurityEventService.findDetectionArrivalWindows({
+            projectId: volumeProjectId,
+            ...range,
+            ...getArrivalEventTimeBounds(range),
+            whereFragment: condition(),
+            windowInMinutes: 5,
+            limit: DETECTION_MAX_WINDOWS_PER_RUN + 1,
+          });
+        },
+      );
+    }
+
+    // How many events arrived in the minute more than a few seconds after they happened.
+    async function lateArrivals(): Promise<number> {
+      const result: { json: () => Promise<unknown> } = await client.query({
+        query: `SELECT count() AS late FROM ${database}.${TABLE_NAME} WHERE projectId = {projectId:String} AND createdAt > {after:DateTime} AND createdAt <= {until:DateTime} AND time < {after:DateTime}`,
+        query_params: {
+          projectId: volumeProjectId.toString(),
+          after: OneUptimeDate.toClickhouseDateTime(minute),
+          until: OneUptimeDate.toClickhouseDateTime(
+            new Date(minute.getTime() + MINUTE),
+          ),
+        },
+        format: "JSONEachRow",
+      });
+      const rows: Array<{ late: string }> = (await result.json()) as Array<{
+        late: string;
+      }>;
+
+      return Number(rows[0]?.late || 0);
+    }
+
+    test("reading what arrived costs at most a granule more for each late event, not the day it may come from", async () => {
+      const before: number = await rowsRead(await eventTimeRead());
+      const now: number = await rowsRead(await arrivalRead());
+      const windows: number = await rowsRead(await windowsRead());
+      const late: number = await lateArrivals();
+      const withoutIndex: number = await rowsRead(
+        await arrivalRead(),
+        withoutSkipIndexes(await arrivalRead()),
+      );
+
+      if (process.env["DETECTION_ARRIVALS_COST_REPORT"]) {
+        process.stdout.write(
+          `${JSON.stringify({
+            rowsInProject: ROWS,
+            eventTimeReadRowsRead: before,
+            arrivalReadRowsRead: now,
+            arrivalWindowsReadRowsRead: windows,
+            arrivalReadWithoutIndexRowsRead: withoutIndex,
+            lateArrivalsInTheMinute: late,
+          })}\n`,
+        );
+      }
+
+      expect(late).toBeGreaterThan(0);
+      // Each late event costs at most the granule it sits in.
+      expect(now).toBeLessThanOrEqual(before + (late + 2) * INDEX_GRANULARITY);
+      expect(windows).toBeLessThanOrEqual(
+        before + (late + 2) * INDEX_GRANULARITY,
+      );
+      // Without the index, the read covers the rows of the whole day the run's events may come from.
+      expect(withoutIndex).toBeGreaterThan(8 * now);
+    });
+
+    test("an install from before the upgrade reads its whole day until the index is built for the parts it has, then reads as little", async () => {
+      const statement: Statement = await arrivalRead();
+      const onOldParts: string = statement.query.replace(
+        `.${TABLE_NAME} `,
+        `.${NO_INDEX_TABLE} `,
+      );
+
+      expect(onOldParts).not.toBe(statement.query);
+
+      const unindexed: number = await rowsRead(statement, onOldParts);
+      const indexed: number = await rowsRead(statement);
+
+      // What the upgrade's migration does (MaterializeSecurityEventCreatedAtIndex), waiting for it here.
+      const indexedColumn: AnalyticsTableColumnLike | undefined =
+        new SecurityEvent().tableColumns.find(
+          (column: AnalyticsTableColumnLike): boolean => {
+            return (
+              column.skipIndex?.name === SECURITY_EVENT_CREATED_AT_INDEX_NAME
+            );
+          },
+        );
+
+      await client.command({
+        query: `ALTER TABLE ${database}.${NO_INDEX_TABLE} ADD INDEX IF NOT EXISTS ${StatementGenerator.toSkipIndexDefinition(indexedColumn!)}`,
+      });
+      await client.command({
+        query: `ALTER TABLE ${database}.${NO_INDEX_TABLE} MATERIALIZE INDEX ${SECURITY_EVENT_CREATED_AT_INDEX_NAME} SETTINGS mutations_sync = 2`,
+      });
+
+      const materialized: number = await rowsRead(statement, onOldParts);
+
+      expect(unindexed).toBeGreaterThan(8 * indexed);
+      expect(materialized).toBe(indexed);
     });
   });
 });

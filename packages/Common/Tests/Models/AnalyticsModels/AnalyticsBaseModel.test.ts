@@ -3,6 +3,7 @@ import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseMod
 import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsModels from "../../../Models/AnalyticsModels/Index";
 import SecurityEvent, {
+  SECURITY_EVENT_CREATED_AT_INDEX_MAX_VALUES,
   SECURITY_EVENT_CREATED_AT_INDEX_NAME,
 } from "../../../Models/AnalyticsModels/SecurityEvent";
 import AnalyticsTableColumn, {
@@ -183,11 +184,14 @@ describe("AnalyticsBaseModel createdAt skip index", () => {
         model.getTableColumn("createdAt")?.skipIndex;
 
       if (model.tableName === new SecurityEvent().tableName) {
+        // Each granule's arrival seconds: a minmax range is stretched by its few hours-late events.
         expect(index).toEqual({
           name: SECURITY_EVENT_CREATED_AT_INDEX_NAME,
-          type: SkipIndexType.MinMax,
+          type: SkipIndexType.Set,
+          params: [SECURITY_EVENT_CREATED_AT_INDEX_MAX_VALUES],
           granularity: 1,
         });
+        expect(SECURITY_EVENT_CREATED_AT_INDEX_MAX_VALUES).toBe(4096);
         continue;
       }
 

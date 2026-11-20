@@ -21,6 +21,7 @@ import {
   SecurityLogOwner,
 } from "../../Types/SecurityCase/SecurityConnection";
 import { SECURITY_EVENT_SCOPE_MAX_ATTRIBUTE_VALUES } from "../../Types/SecurityEvent/SecurityEventScope";
+import { DETECTION_LATE_EVENT_WINDOW_IN_MINUTES } from "../../Types/SecurityEvent/DetectionFindingConstants";
 import { SECURITY_FINDINGS_CATEGORY_UID } from "../../Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
 import { SECURITY_EVENT_RECORD_COLUMNS } from "../../Utils/SecurityEvent/Destinations/SecurityEventRecord";
 import TelemetryReadScopeUtil, {
@@ -134,6 +135,15 @@ export interface DetectionRunArrival {
   candidateEndTime: Date;
 }
 
+/*
+ * How long before it arrived an event a scheduled run judges may have
+ * happened (DETECTION_LATE_EVENT_WINDOW_IN_MINUTES), held to each event:
+ * one that reached OneUptime later than that is stored and searchable, and
+ * Run on Past Events reads it, but no run judges it.
+ */
+const DETECTION_RUN_LATE_EVENT_SECONDS: number =
+  DETECTION_LATE_EVENT_WINDOW_IN_MINUTES * 60;
+
 export type DetectionArrivalRead = DetectionWriteArrival | DetectionRunArrival;
 
 // The window as it stood when the events judged came in.
@@ -168,7 +178,7 @@ export function detectionArrivedBefore(
   }}`;
 }
 
-// One of the events judged.
+// One of the events judged: for a run, one that arrived in it, within a day of when it happened.
 export function isDetectionArrivalCandidate(
   arrival: DetectionArrivalRead,
 ): Statement {
@@ -179,7 +189,10 @@ export function isDetectionArrivalCandidate(
     }} AND createdAt <= ${{
       type: TableColumnType.Date,
       value: arrival.arrivedUntil,
-    }})`;
+    }} AND time >= createdAt - toIntervalSecond(${{
+      type: TableColumnType.Number,
+      value: DETECTION_RUN_LATE_EVENT_SECONDS,
+    }}))`;
   }
 
   return SQL`has(${{

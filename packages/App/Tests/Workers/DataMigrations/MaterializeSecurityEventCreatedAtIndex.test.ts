@@ -11,9 +11,9 @@ import path from "path";
 
 /*
  * #10337: scheduled detection rules judge the security events that arrived
- * since their last run, whenever they happened, and idx_created_at - a
- * minmax index on SecurityEvent.createdAt - keeps that read to the granules
- * that hold what arrived. Boot schema-sync adds the index DEFINITION; this
+ * since their last run, whenever they happened, and idx_created_at - a set
+ * index of each granule's SecurityEvent.createdAt seconds - keeps that read
+ * to the granules that hold what arrived. Boot schema-sync adds the index DEFINITION; this
  * migration builds it for the parts the table already has, in the
  * background, so the runs of the day after an upgrade do not read a day of
  * rows each.
@@ -87,7 +87,8 @@ const CLUSTER_ENV_KEY: string = "CLICKHOUSE_CLUSTER_NAME";
 
 const MIGRATION_NAME: string = "MaterializeSecurityEventCreatedAtIndex";
 
-const DEFINITION: string = "idx_created_at createdAt TYPE minmax GRANULARITY 1";
+const DEFINITION: string =
+  "idx_created_at createdAt TYPE set(4096) GRANULARITY 1";
 
 const EXPECTED_STATEMENTS: Array<string> = [
   `ALTER TABLE SecurityEventItemV1Local ON CLUSTER 'oneuptime' ADD INDEX IF NOT EXISTS ${DEFINITION}`,
@@ -184,7 +185,7 @@ describe("MaterializeSecurityEventCreatedAtIndex", () => {
       ).toBe(true);
     });
 
-    test("the security events table declares a minmax index on when each row arrived", () => {
+    test("the security events table declares a set index of when each row arrived", () => {
       const column: AnalyticsTableColumn | undefined =
         MaterializeSecurityEventCreatedAtIndex.getIndexedColumn(
           new SecurityEvent(),
@@ -193,7 +194,8 @@ describe("MaterializeSecurityEventCreatedAtIndex", () => {
       expect(column?.key).toBe("createdAt");
       expect(column?.skipIndex).toEqual({
         name: SECURITY_EVENT_CREATED_AT_INDEX_NAME,
-        type: SkipIndexType.MinMax,
+        type: SkipIndexType.Set,
+        params: [4096],
         granularity: 1,
       });
       expect(StatementGenerator.toSkipIndexDefinition(column!)).toBe(
