@@ -905,13 +905,20 @@ export function getAwsReadOnlyRoleTemplate(data: {
       : dataSecurity
         ? ", and its data stores' configuration"
         : "";
+  /*
+   * A role that may write does not "only read": it may close a data
+   * store's exposures and fix its settings, as Data security response's
+   * choice says - its versioning, ownership and point-in-time recovery as
+   * well as its public access and sharing.
+   */
+  const verb: string = response ? "reads" : "can only read";
   const writes: string = response
-    ? "; it may also block a data store's public access and sharing"
+    ? "; it may also close a data store's exposures and fix its settings"
     : "";
 
   return JSON.stringify({
     AWSTemplateFormatVersion: "2010-09-09",
-    Description: `OneUptime: a role that can only read this account's metrics, resources, changes and health events${reads}${writes}.`,
+    Description: `OneUptime: a role that ${verb} this account's metrics, resources, changes and health events${reads}${writes}.`,
     Resources: {
       OneUptimeReadOnlyRole: {
         Type: "AWS::IAM::Role",
