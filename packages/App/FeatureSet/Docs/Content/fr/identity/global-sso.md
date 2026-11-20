@@ -104,6 +104,12 @@ Enregistrez l'URI de redirection après déconnexion qu'affiche la carte **URL d
 
 L'emplacement de ces réglages chez Okta, Microsoft Entra ID, Auth0 et Keycloak est indiqué sur la page [SSO](/docs/identity/sso).
 
+## Se reconnecter pour confirmer que c'est bien vous
+
+Quelqu'un qui se connecte uniquement par un fournisseur global confirme que c'est bien lui avec **Se reconnecter** avant de modifier sa façon de se connecter ou de supprimer son compte : OneUptime le renvoie au fournisseur avec `ForceAuthn="true"` pour SAML, ou `prompt=login` et `max_age=0` pour OpenID Connect, et ne le compte que lorsque le fournisseur indique, dans `AuthnInstant` ou `auth_time`, qu'il s'est connecté à ce moment-là ou après. Ajouter, modifier ou supprimer un fournisseur global vous demande d'abord de [confirmer que c'est bien vous](/docs/introduction/your-account#confirmer-que-cest-bien-vous).
+
+Les réglages à faire dans Okta, Microsoft Entra ID, Keycloak et Google Workspace sont indiqués sur la page [SSO](/docs/identity/sso#se-reconnecter-pour-confirmer-que-cest-bien-vous).
+
 ## Imposer le SSO
 
 Configurer un fournisseur global n'oblige personne à l'utiliser ; la connexion par mot de passe fonctionne toujours. Pour exiger le SSO, activez l'exigence pour un projet ou pour toute l'instance :

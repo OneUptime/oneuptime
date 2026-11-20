@@ -361,8 +361,17 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     }, [props.values]);
 
     useEffect(() => {
-      if (formSteps && formSteps.length > 0 && formSteps[0]) {
-        setCurrentFormStepId(formSteps[0].id);
+      /*
+       * The form opens on the first step its values show. A first step its
+       * showIf hides (the Connection step of a product whose settings all
+       * come after its credentials, edited) is skipped, as Next and the
+       * progress list skip it, rather than opened empty.
+       */
+      const firstStep: FormStep<T> | undefined =
+        getVisibleFormSteps()?.[0] || formSteps?.[0];
+
+      if (firstStep) {
+        setCurrentFormStepId(firstStep.id);
       }
     }, []);
 

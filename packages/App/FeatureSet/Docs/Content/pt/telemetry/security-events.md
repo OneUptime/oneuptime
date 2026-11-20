@@ -51,7 +51,8 @@ Abra **Produtos → Eventos de segurança**, em **Segurança**. O menu dele tem 
 | **Playbooks** | Playbooks | Etapas que rodam nos casos, sozinhas ou manualmente |
 | **Aprovações** | Playbooks | As etapas de playbook aguardando alguém aprovar ou rejeitar |
 | **Execuções** | Playbooks | O que cada playbook fez, etapa por etapa |
-| **Entidades protegidas** | Playbooks | Os usuários e hosts aos quais nenhum playbook aplica contenção |
+| **Lista de bloqueio** | Playbooks | Os endereços que seu projeto bloqueia, até quando e onde cada bloqueio é aplicado |
+| **Entidades protegidas** | Playbooks | Os usuários, hosts e endereços aos quais nenhum playbook aplica contenção e que nenhum bloqueio afeta |
 | **Configurações** | IA | Se o OneUptime AI classifica cada caso novo |
 | **Conexões** | Connections | Seus logs, os produtos de segurança que o OneUptime consulta e os SIEMs para os quais ele envia |
 | **Guia de configuração** | Connections | Trechos para enviar eventos, preenchidos com a sua chave de ingestão |
@@ -72,8 +73,8 @@ Os dados de segurança só são lidos pelos papéis Proprietário do projeto e A
 | Papel | O que pode fazer |
 | --- | --- |
 | Administrador de segurança | Tudo: eventos, casos, playbooks, regras de detecção, feeds de inteligência de ameaças e conexões |
-| Membro de segurança | Ler eventos e inteligência de ameaças, tratar casos, executar playbooks e aprovar as etapas deles, e criar, alterar e excluir regras de detecção e feeds. Não pode configurar playbooks nem conexões, nem excluir dados de segurança. |
-| Visualizador de segurança | Ler eventos, casos, playbooks, regras, feeds, indicadores e conexões |
+| Membro de segurança | Ler eventos e inteligência de ameaças, tratar casos, executar playbooks e aprovar as etapas deles, bloquear endereços, e criar, alterar e excluir regras de detecção e feeds. Não pode configurar playbooks nem conexões, nem excluir dados de segurança. |
+| Visualizador de segurança | Ler eventos, casos, playbooks, a lista de bloqueio, regras, feeds, indicadores e conexões |
 
 ## Enviar eventos de segurança
 
@@ -249,6 +250,7 @@ Uma conta da AWS, um projeto do Google Cloud ou uma assinatura do Azure [conecta
 | Okta System Log | Eventos de login, MFA, contas e políticas | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | Logins, mudanças de diretório e detecções de risco, se você quiser os logins em segundo plano e de aplicativos que falharam, e do log de auditoria do Microsoft 365 o encaminhamento de e-mail, os compartilhamentos e os veredictos de phishing | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Logins, as detecções do próprio Google, mudanças de administração e acessos concedidos a aplicativos, e compartilhamentos no Drive | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | O que o firewall dela bloqueou, desafiou e registrou na borda, como HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - Os alertas do próprio produto no nível de **Abrir casos a partir de** ou acima (**Alta e acima**, a menos que você escolha outro nível, ou **Nunca**) abrem [casos](/docs/telemetry/security-cases), agrupados pelo usuário, host ou endereço de que tratam.
 - Uma conexão lê os registros pelo momento em que o produto os criou, não pelo momento da atividade que descrevem. Uma regra de SIEM que roda de hora em hora cria detecções muito depois dos eventos correspondentes, e mesmo assim elas são importadas.

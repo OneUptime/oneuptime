@@ -72,7 +72,8 @@ export function toIngestRefusalFact(
     keyName: row.telemetryIngestionKey?.name || null,
     keyType:
       keyType === TelemetryIngestionKeyType.Browser ||
-      keyType === TelemetryIngestionKeyType.Server
+      keyType === TelemetryIngestionKeyType.Server ||
+      keyType === TelemetryIngestionKeyType.Mobile
         ? keyType
         : null,
     pinnedServiceName: row.telemetryIngestionKey?.pinnedServiceName || null,

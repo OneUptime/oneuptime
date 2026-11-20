@@ -243,6 +243,7 @@ I **När det ska larmas** väljer du under **Mätt som** hur varje serie mäts, 
 - **En jämförelse i uttrycket** behåller bara de serier den stämmer för: `rate(errors_total[5m]) > 0.1` returnerar serierna över 0.1 och inga andra. Klicka på **Flytta till När det ska larmas** för att göra den till regelns jämförelse, så att diagrammet visar varje serie och regeln bedömer var och en.
 - **Högst 100 serier per kontroll.** När uttrycket returnerar fler bedömer en kontroll 100: först serierna med ett öppet larm eller en öppen incident, sedan de andra i ordningen på deras etiketter. Resten bedöms inte vid den kontrollen, så inget öppnas eller löses för dem, och redigeraren säger att uttrycket returnerar för många. Aggregera det med `sum by (...)`, eller lägg till etikettmatchare.
 - **Gränserna för alla PromQL-frågor gäller**, över mätvärdena för de tjänster som monitorn nämner, eller för hela projektet när den inte nämner någon.
+- **Dess diagram ritar uttrycket.** Kortet överst på monitorns sida **Översikt** ritar varje serie som uttrycket returnerar, och en incident eller ett larm som den öppnar ritar den enda serie som öppnade det, med kriteriets värde som en linje och sidan som larmar skuggad. De läser uttrycket som du får läsa det, med samma gränser som sidan [PromQL](/docs/telemetry/promql).
 - **Avvikelsevillkoren erbjuds inte**: ett uttryck har ingen egen historik att jämföra med. Det har prognosvillkoren.
 
 ## Felsökning

@@ -94,7 +94,7 @@ Eine Anwendung zeigt **Empfängt Daten**, solange Telemetrie eintrifft, und **Ke
 :::steps
 ### Ingestion-Schlüssel erstellen
 
-Öffnen Sie **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** und klicken Sie auf **Ingestion-Schlüssel erstellen**. Eine Web-App braucht einen **Browser**-Schlüssel, der nur von den Ursprüngen aus funktioniert, die Sie angeben. Eine Mobil-App braucht einen **Server**-Schlüssel, weil ein mobiles SDK keinen `Origin`-Header sendet.
+Öffnen Sie **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** und klicken Sie auf **Ingestion-Schlüssel erstellen**. Eine Web-App braucht einen **Browser**-Schlüssel, der nur von den Ursprüngen aus funktioniert, die Sie angeben. Eine Mobil-App braucht einen **Mobil**-Schlüssel, festgelegt auf den `service.name` der App: Er wird mit der App ausgeliefert und kann daher nur die Traces, Logs und Metriken dieser App senden.
 
 ### App instrumentieren
 

@@ -328,6 +328,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
   [ProductKey.SecurityEvents]: [
     "DetectionRule",
     "DetectionRuleException",
+    "SecurityBlock",
+    "SecurityBlockEnforcement",
     "SecurityCase",
     "SecurityCaseCustomField",
     "SecurityCaseEvidence",
@@ -364,6 +366,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "DataSecurityIdentity",
     "DataSecurityIssue",
     "DataSecurityIssueFeed",
+    "DataSecurityAiProposal",
+    "DataSecurityAiDecision",
     "DataSecurityResidencyRule",
     "DataSecurityScan",
     "DataSecuritySetting",

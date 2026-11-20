@@ -2133,6 +2133,12 @@ describe("every /telemetry/* route", () => {
       "this file: frames of a service the caller may not read",
     "/telemetry/traces/health":
       "this file: one service's spans, and its logs only when the caller may read them",
+    "/telemetry/logs/hashed-address-search":
+      "TelemetryHashedAddressSearchRoutes.test.ts: reads the project's scrub rules, never a record; a caller who may read no log hears of no address",
+    "/telemetry/traces/hashed-address-search":
+      "TelemetryHashedAddressSearchRoutes.test.ts: reads the project's scrub rules, never a record; a caller who may read no span hears of no address",
+    "/telemetry/exceptions/hashed-address-search":
+      "TelemetryHashedAddressSearchRoutes.test.ts: reads the project's scrub rules, never a record; a caller who may read no exception hears of no address",
   };
 
   // Session replay routes: SessionReplayAPI.test.ts pins their scope.
@@ -2190,6 +2196,7 @@ describe("every /telemetry/* route", () => {
     "resolveAccessibleRumApplicationIds",
     "resolveAuthorizedSession",
     "readProductAnalyticsRequest",
+    "answerHashedAddressSearch",
   ];
 
   function telemetryApiSource(): string {

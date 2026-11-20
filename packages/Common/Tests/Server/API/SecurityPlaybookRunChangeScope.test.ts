@@ -87,6 +87,13 @@ import {
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import SecurityPlaybookContainment from "../../../Server/Utils/SecurityPlaybook/SecurityPlaybookContainment";
+import DatabaseConfig from "../../../Server/DatabaseConfig";
+import SecurityDetectionService from "../../../Server/Services/SecurityDetectionService";
+import ThreatIntelIndicatorService from "../../../Server/Services/ThreatIntelIndicatorService";
+import UserService from "../../../Server/Services/UserService";
+import User from "../../../Models/DatabaseModels/User";
+import URL from "../../../Types/API/URL";
+import Name from "../../../Types/Name";
 import SecurityPlaybookEngine from "../../../Server/Utils/SecurityPlaybook/SecurityPlaybookEngine";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import SecurityEventConnection from "../../../Models/DatabaseModels/SecurityEventConnection";
@@ -106,6 +113,7 @@ import SecurityPlaybookRunStatus, {
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import { SecurityPlaybookStep } from "../../../Types/SecurityPlaybook/SecurityPlaybookStep";
 import {
+  SecurityPlaybookApprovalDecision,
   SecurityPlaybookStepResult,
   SecurityPlaybookTargetReason,
   SecurityPlaybookTargetState,
@@ -146,7 +154,7 @@ const STEP: SecurityPlaybookStep = {
   onlyIfThreatIntelMatched: false,
 };
 
-type Route = "approve" | "reject" | "undo";
+type Route = "approve" | "reject" | "undo" | "approval";
 
 interface Row {
   permission: Permission;
@@ -502,4 +510,126 @@ describe("refused, before anything is decided, undone or written", () => {
       expectNothingDone();
     },
   );
+});
+
+/*
+ * READING A STEP'S APPROVAL (POST /security-playbook-run/:runId/approval):
+ * what the mobile app's approval card shows, in the words of every chat
+ * copy, for whoever can read the run and its case - and nobody else.
+ */
+describe("reading a step's approval, by whoever can read the run and its case", () => {
+  let caseTable: ReturnType<typeof useInMemoryTable>;
+
+  beforeEach(() => {
+    caseTable = useInMemoryTable(SecurityCaseService, [
+      {
+        _id: CASE_ID.toString(),
+        projectId: PROJECT_ID.toString(),
+        caseNumberWithPrefix: "CASE-7",
+        title: "Account takeover",
+        entities: [],
+      },
+    ]);
+    jest.spyOn(UserService, "findOneById").mockImplementation((async () => {
+      const user: User = new User();
+      user.name = new Name("Sam Starter");
+      return user;
+    }) as never);
+    jest
+      .spyOn(SecurityDetectionService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(ThreatIntelIndicatorService, "findActiveIndicatorsByValues")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(DatabaseConfig, "getDashboardUrl")
+      .mockResolvedValue(URL.fromString("https://oneuptime.test/dashboard"));
+  });
+
+  test("a Security Viewer reads it as its chat messages say it, and nothing is decided", async () => {
+    props = caller([{ permission: Permission.SecurityViewer }]);
+
+    const { answer, refusal } = await press("approval", WAITING_RUN_ID);
+
+    expect(refusal).toBeNull();
+    expect(answer).toEqual({
+      runId: WAITING_RUN_ID,
+      stepIndex: 0,
+      stepId: STEP.id,
+      standing: "Waiting",
+      headline: "Approval needed on CASE-7: Account takeover",
+      action: "Suspend the user in Okta, through Okta",
+      targets: [`${SUSPENDED_USER}: the case is grouped on it`],
+      leftAlone: [],
+      source: "Asked by Sam Starter, who started playbook Contain by hand.",
+      evidence: ["Nothing it acts on is on your protected list."],
+      undo: "Can be undone: each one, with Unsuspend the user in Okta on the case.",
+    });
+    expectNothingDone();
+  });
+
+  test("once the run moved on: the step it asked about, who approved it, and how each target went", async () => {
+    const approvedRunId: string = "3b1e7a40-5c2d-4e8f-9a61-7d0c2b4e6f0b";
+    const results: Array<SecurityPlaybookStepResult> =
+      containedStepResults() as unknown as Array<SecurityPlaybookStepResult>;
+    results[0]!.completedAt = "2026-11-20T10:44:00.000Z";
+    results[0]!.approval = {
+      decision: SecurityPlaybookApprovalDecision.Approved,
+      decidedByUserId: CALLER_USER_ID.toString(),
+      decidedAt: "2026-11-20T10:43:00.000Z",
+    };
+    useInMemoryTable(SecurityPlaybookRunService, [
+      ...runRows(),
+      {
+        ...runRows()[1]!,
+        _id: approvedRunId,
+        stepResults: results as unknown as JSONArray,
+      },
+    ]);
+    props = caller([{ permission: Permission.SecurityViewer }]);
+
+    const { answer, refusal } = await press("approval", approvedRunId);
+
+    expect(refusal).toBeNull();
+    expect(answer).toMatchObject({
+      runId: approvedRunId,
+      stepIndex: 0,
+      standing: "Approved",
+      targets: [`${SUSPENDED_USER}: done · suspended`],
+    });
+    expect(String(answer!["headline"])).toMatch(/^Approved by Sam Starter at /);
+    expect(String(answer!["progress"])).toMatch(/^Done at /);
+  });
+
+  test("a role that cannot read playbook runs is refused", async () => {
+    props = caller([{ permission: Permission.ProjectMember }]);
+
+    const { answer, refusal } = await press("approval", WAITING_RUN_ID);
+
+    expect(answer).toBeNull();
+    expect(refusal).toBeInstanceOf(NotAuthorizedException);
+    expect(refusal!.message).toBe(
+      "Reading a playbook step's approval takes a role that can read security cases.",
+    );
+  });
+
+  test("a run of another project is not found", async () => {
+    props = caller([{ permission: Permission.SecurityAdmin }]);
+
+    const { answer, refusal } = await press("approval", OTHER_PROJECT_RUN_ID);
+
+    expect(answer).toBeNull();
+    expect(refusal).toBeInstanceOf(NotFoundException);
+    expect(refusal!.message).toBe(RUN_NOT_FOUND_MESSAGE);
+  });
+
+  test("a run whose case is gone is not found", async () => {
+    props = caller([{ permission: Permission.SecurityAdmin }]);
+    caseTable.rows.splice(0);
+
+    const { answer, refusal } = await press("approval", WAITING_RUN_ID);
+
+    expect(answer).toBeNull();
+    expect(refusal).toBeInstanceOf(NotFoundException);
+  });
 });

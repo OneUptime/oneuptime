@@ -255,7 +255,7 @@ Teams, etiketter, vagtpolitikker og vagtplaner har hver deres eget navn i et pro
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Mange andre slags har også deres eget navn, fx hændelsesalvorligheder, monitorstatusser, statussider og arbejdsgange, og afviser et navn, der er taget, på samme måde:
+Mange andre slags har også deres eget navn, fx hændelsesalvorligheder, monitorstatusser, statussider og arbejdsgange, og afviser et navn, der er taget, på samme måde, både ved en oprettelse og ved en omdøbning:
 
 ```text
 Incident Severity with the same name already exists.
@@ -266,7 +266,22 @@ Ud over meddelelsen indeholder hver sådan afvisning en `refusalCode`, der siger
 - `"refusalCode": "name_taken"`: en post i drift har det. Intet blev skrevet, så den samme anmodning kan sendes igen, så snart den post opgiver navnet: Terraform-provideren spørger igen i op til 30 sekunder.
 - `"refusalCode": "name_taken_by_archived"`: kun en arkiveret post har det. Fjern den post fra arkivet, eller vælg et andet navn: det hjælper ikke at sende anmodningen igen, og Terraform-provideren gør det ikke.
 
-En opdatering, der sender en posts eget navn igen, uanset store og små bogstaver, er ingen omdøbning, så poster, der før delte et navn, stadig kan ændres og omdøbes, så de adskiller sig. For teams, etiketter, vagtpolitikker og vagtplaner svarer `GET /api/shared-names/team` (eller `label`, `on-call-policy`, `on-call-schedule`) på, hvilke der deler et navn: `{"groups": [["<id>", "<id>"]]}`, hvor hver gruppe er de ID'er, din nøgle må læse, på poster, hvis navne læses ens. Arkiverede etiketter og vagtpolitikker er udeladt.
+En opdatering, der sender en posts eget navn igen, uanset store og små bogstaver, er ingen omdøbning, så poster, der før delte et navn, stadig kan ændres og omdøbes, så de adskiller sig, men aldrig til en anden posts navn. For teams, etiketter, vagtpolitikker og vagtplaner svarer `GET /api/shared-names/team` (eller `label`, `on-call-policy`, `on-call-schedule`) på, hvilke der deler et navn: `{"groups": [["<id>", "<id>"]]}`, hvor hver gruppe er de ID'er, din nøgle må læse, på poster, hvis navne læses ens. Arkiverede etiketter og vagtpolitikker er udeladt.
+
+#### Værdier, som en anden post allerede har
+
+Nogle værdier, der ikke er et navn, hører også til én post hver: en statussides, et dashboards eller en formulars domæne, et projektdomæne, en værts eller en Kubernetes-klynges identifikator, en SSO-udbyders login-URL og en API-nøgles tilladelse, blandt andre. En oprettelse, eller en opdatering, der ændrer en af dem, til en værdi, som en anden post har, afvises med en `400`, der siger det:
+
+```text
+Status Page Domain with the same fullDomain already exists.
+```
+
+Ud over meddelelsen indeholder afvisningen en `refusalCode`, der siger, hvad der har værdien, og et `field`, der navngiver det felt, hvis værdi er taget, fx `"field": "fullDomain"`. En værdi af flere felter tilsammen kommer uden `field`. Kend afvisningen på koden, ikke på sætningen, som kan blive omformuleret:
+
+- `"refusalCode": "value_taken"`: en post i drift har den. Intet blev skrevet, så den samme anmodning kan sendes igen, så snart den post opgiver værdien: Terraform-provideren spørger igen i op til 30 sekunder.
+- `"refusalCode": "value_taken_by_archived"`: kun en arkiveret post har den. Fjern den post fra arkivet, eller vælg en anden værdi: det hjælper ikke at sende anmodningen igen, og Terraform-provideren gør det ikke.
+
+En opdatering, der sender en posts egen værdi igen, uanset store og små bogstaver, er ingen ændring, så poster, der før havde en værdi sammen, stadig kan ændres og få hver deres værdi.
 
 ### Kontakter
 

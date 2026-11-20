@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 59636,
-    "untranslated": 7956
+    "keys": 60451,
+    "untranslated": 8094
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -34,6 +34,7 @@
     "CloudKitty",
     "Community Edition",
     "Container Apps",
+    "Core Web Vitals",
     "CrowdStrike",
     "DE",
     "DES",
@@ -188,6 +189,7 @@
     "amphora",
     "arm",
     "arm64",
+    "arn:aws:iam::123456789012:role/OneUptimeSes",
     "aws_lambda · us-east-1 · nodejs 20",
     "build=1.4.2, plan=pro",
     "checkout-.*",
@@ -224,6 +226,7 @@
     "s",
     "security-alerts",
     "storage-01 · RegionOne",
+    "storefront-mobile",
     "storefront-web",
     "sum by (job) (rate(http_requests_total[5m]))",
     "svc-backup",

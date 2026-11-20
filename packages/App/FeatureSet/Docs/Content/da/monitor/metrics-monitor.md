@@ -243,6 +243,7 @@ I **Hvornår der advares** vælger du under **Målt som**, hvordan hver serie m�
 - **En sammenligning i udtrykket** beholder kun de serier, den gælder for: `rate(errors_total[5m]) > 0.1` returnerer serierne over 0.1 og ingen andre. Klik på **Flyt til Hvornår der advares** for at gøre den til reglens sammenligning, så diagrammet viser hver serie, og reglen bedømmer hver enkelt.
 - **Højst 100 serier pr. kontrol.** Når udtrykket returnerer flere, bedømmer en kontrol 100: først serierne med en åben advarsel eller hændelse, derefter de andre i rækkefølgen af deres labels. Resten bedømmes ikke ved den kontrol, så intet åbnes eller løses for dem, og editoren siger, at udtrykket returnerer for mange. Aggreger det med `sum by (...)`, eller tilføj label-matchere.
 - **Grænserne for enhver PromQL-forespørgsel gælder**, over metrikkerne for de tjenester, monitoren nævner, eller for hele projektet, når den ikke nævner nogen.
+- **Dens diagrammer tegner udtrykket.** Kortet øverst på monitorens side **Oversigt** tegner hver serie, udtrykket returnerer, og en hændelse eller advarsel, den åbner, tegner den ene serie, der åbnede den, med kriteriets værdi som en linje og den side, der advarer, skraveret. De læser udtrykket, som du må læse det, med de samme grænser som siden [PromQL](/docs/telemetry/promql).
 - **Anomalibetingelserne tilbydes ikke**: et udtryk har ingen egen historik at sammenligne med. Det gør prognosebetingelserne.
 
 ## Fejlfinding

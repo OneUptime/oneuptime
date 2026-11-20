@@ -1,11 +1,10 @@
-import {
-  SQL,
-  Statement,
-  escapeIlikePattern,
-} from "../Utils/AnalyticsDatabase/Statement";
+import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import TelemetryHistogramBuckets from "../Utils/Telemetry/TelemetryHistogramBuckets";
 import Timezone from "../../Types/Timezone";
 import { appendAttributeFilters } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
+import HashedAddressSearch, {
+  HashedAddressTokens,
+} from "../Utils/Telemetry/HashedAddressSearch";
 import {
   getQuerySettings,
   INTERACTIVE_READ_TIME_LIMIT,
@@ -149,6 +148,13 @@ export interface TraceFilters {
    * Same case-insensitive key matching as `attributes`, value via ILIKE.
    */
   attributeSearches?: Record<string, string> | undefined;
+  /*
+   * The project's IP Address Hash tokens, when the request's search names
+   * an address and the project hashes addresses out of its spans: its name,
+   * status message and attribute filters then match an address's token too
+   * (HashedAddressSearch, #10418). Set by the server, never sent.
+   */
+  hashedAddresses?: HashedAddressTokens | undefined;
 }
 
 export interface HistogramRequest extends TraceFilters {
@@ -1491,7 +1497,12 @@ export class TraceAggregationService {
       statement.append(
         SQL` AND name IN (${{
           type: TableColumnType.Text,
-          value: new Includes(request.spanNames),
+          value: new Includes(
+            HashedAddressSearch.withHashedForms(
+              request.spanNames,
+              request.hashedAddresses,
+            )!,
+          ),
         }})`,
       );
     }
@@ -1529,7 +1540,12 @@ export class TraceAggregationService {
       statement.append(
         SQL` AND name NOT IN (${{
           type: TableColumnType.Text,
-          value: new Includes(request.excludedSpanNames),
+          value: new Includes(
+            HashedAddressSearch.withHashedForms(
+              request.excludedSpanNames,
+              request.hashedAddresses,
+            )!,
+          ),
         }})`,
       );
     }
@@ -1550,11 +1566,12 @@ export class TraceAggregationService {
         if (search.trim().length === 0) {
           continue;
         }
-        statement.append(
-          SQL` AND name ILIKE ${{
-            type: TableColumnType.Text,
-            value: `%${escapeIlikePattern(search)}%`,
-          }}`,
+        statement.append(" AND ").append(
+          HashedAddressSearch.containsCondition({
+            column: "name",
+            text: search,
+            tokens: request.hashedAddresses,
+          }),
         );
       }
     }
@@ -1578,11 +1595,12 @@ export class TraceAggregationService {
     }
 
     if (request.nameSearchText && request.nameSearchText.trim().length > 0) {
-      statement.append(
-        SQL` AND name ILIKE ${{
-          type: TableColumnType.Text,
-          value: `%${escapeIlikePattern(request.nameSearchText.trim())}%`,
-        }}`,
+      statement.append(" AND ").append(
+        HashedAddressSearch.containsCondition({
+          column: "name",
+          text: request.nameSearchText.trim(),
+          tokens: request.hashedAddresses,
+        }),
       );
     }
 
@@ -1590,11 +1608,12 @@ export class TraceAggregationService {
       request.statusMessageSearchText &&
       request.statusMessageSearchText.trim().length > 0
     ) {
-      statement.append(
-        SQL` AND statusMessage ILIKE ${{
-          type: TableColumnType.Text,
-          value: `%${escapeIlikePattern(request.statusMessageSearchText)}%`,
-        }}`,
+      statement.append(" AND ").append(
+        HashedAddressSearch.containsCondition({
+          column: "statusMessage",
+          text: request.statusMessageSearchText,
+          tokens: request.hashedAddresses,
+        }),
       );
     }
 
@@ -1602,7 +1621,12 @@ export class TraceAggregationService {
       statement.append(
         SQL` AND statusMessage IN (${{
           type: TableColumnType.Text,
-          value: new Includes(request.statusMessages),
+          value: new Includes(
+            HashedAddressSearch.withHashedForms(
+              request.statusMessages,
+              request.hashedAddresses,
+            )!,
+          ),
         }})`,
       );
     }
@@ -1689,7 +1713,10 @@ export class TraceAggregationService {
      */
     appendAttributeFilters({
       statement: statement,
-      attributes: request.attributes,
+      attributes: HashedAddressSearch.bindSerializedAttributes(
+        request.attributes,
+        request.hashedAddresses,
+      ),
       validateKey: (attributeKey: string): void => {
         TraceAggregationService.validateFacetKey(attributeKey);
       },
@@ -1720,10 +1747,15 @@ export class TraceAggregationService {
           SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
             type: TableColumnType.Text,
             value: attrKey,
-          }}) AND v ILIKE ${{
-            type: TableColumnType.Text,
-            value: `%${escapeIlikePattern(attrValue)}%`,
-          }}, mapKeys(attributes), mapValues(attributes))`,
+          }}) AND `
+            .append(
+              HashedAddressSearch.containsCondition({
+                column: "v",
+                text: attrValue,
+                tokens: request.hashedAddresses,
+              }),
+            )
+            .append(SQL`, mapKeys(attributes), mapValues(attributes))`),
         );
       }
     }

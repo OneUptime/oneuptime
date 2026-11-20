@@ -39,6 +39,10 @@ import LabelService from "../../../../Services/LabelService";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import WorkspaceSharedNames, {
+  WorkspaceNamedOption,
+} from "../../WorkspaceSharedNames";
+import { getSharedNameSelect } from "../../../../../Types/Database/SharedNameMarks";
 import WorkspaceMemberActions, {
   WorkspaceEventStanding,
   WorkspaceEventStateOption,
@@ -695,6 +699,8 @@ export default class SlackIncidentActions {
         },
         select: {
           name: true,
+          // What tells two policies of one name apart (#10314).
+          ...getSharedNameSelect(OnCallDutyPolicy),
         },
         limit: LIMIT_PER_PROJECT,
       }),
@@ -708,6 +714,7 @@ export default class SlackIncidentActions {
         },
         select: {
           name: true,
+          ...getSharedNameSelect(Label),
         },
         limit: LIMIT_PER_PROJECT,
       }),
@@ -881,13 +888,16 @@ export default class SlackIncidentActions {
 
     // add on-call policy dropdown.
 
-    const onCallPolicyDropdownOptions: Array<DropdownOption> =
-      onCallPolicies.map((policy: OnCallDutyPolicy) => {
-        return {
-          label: policy.name || "",
-          value: policy._id?.toString() || "",
-        };
-      });
+    // Two policies of one name told apart in their labels (#10314).
+    const onCallPolicyDropdownOptions: Array<DropdownOption> = (
+      await WorkspaceSharedNames.getOptions({
+        records: onCallPolicies,
+        readerUserId: props.userId,
+        maxLength: SlackUtil.MENU_OPTION_TEXT_MAX_LENGTH,
+      })
+    ).map((option: WorkspaceNamedOption): DropdownOption => {
+      return { label: option.label, value: option.value };
+    });
 
     if (onCallPolicies.length > 0) {
       const onCallPolicyDropdown: WorkspaceDropdownBlock = {
@@ -903,14 +913,16 @@ export default class SlackIncidentActions {
       blocks.push(onCallPolicyDropdown);
     }
 
-    const labelsDropdownOptions: Array<DropdownOption> = labelsForProject.map(
-      (label: Label) => {
-        return {
-          label: label.name || "",
-          value: label._id?.toString() || "",
-        };
-      },
-    );
+    // And two labels of one name.
+    const labelsDropdownOptions: Array<DropdownOption> = (
+      await WorkspaceSharedNames.getOptions({
+        records: labelsForProject,
+        readerUserId: props.userId,
+        maxLength: SlackUtil.MENU_OPTION_TEXT_MAX_LENGTH,
+      })
+    ).map((option: WorkspaceNamedOption): DropdownOption => {
+      return { label: option.label, value: option.value };
+    });
 
     const labelsDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
@@ -1295,16 +1307,21 @@ export default class SlackIncidentActions {
         },
         select: {
           name: true,
+          // What tells two policies of one name apart (#10314).
+          ...getSharedNameSelect(OnCallDutyPolicy),
         },
         limit: LIMIT_PER_PROJECT,
       });
 
-    const dropdownOption: Array<DropdownOption> = onCallPolicies
-      .map((policy: OnCallDutyPolicy) => {
-        return {
-          label: policy.name || "",
-          value: policy._id?.toString() || "",
-        };
+    const dropdownOption: Array<DropdownOption> = (
+      await WorkspaceSharedNames.getOptions({
+        records: onCallPolicies,
+        readerUserId: props.userId,
+        maxLength: SlackUtil.MENU_OPTION_TEXT_MAX_LENGTH,
+      })
+    )
+      .map((option: WorkspaceNamedOption): DropdownOption => {
+        return { label: option.label, value: option.value };
       })
       .filter((option: DropdownOption) => {
         return option.label !== "" || option.value !== "";

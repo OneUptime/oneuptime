@@ -104,6 +104,12 @@ Registra presso il tuo provider l'URI di reindirizzamento dopo l'uscita mostrato
 
 Dove Okta, Microsoft Entra ID, Auth0 e Keycloak tengono queste impostazioni è spiegato nella pagina [SSO](/docs/identity/sso).
 
+## Accedere di nuovo per confermare che sei tu
+
+Chi accede solo tramite un provider globale conferma che è lui con **Accedi di nuovo** prima di cambiare il modo in cui accede o di eliminare il proprio account: OneUptime lo rimanda al provider con `ForceAuthn="true"` per SAML, oppure `prompt=login` e `max_age=0` per OpenID Connect, e lo conta solo quando il provider dice, in `AuthnInstant` o `auth_time`, che ha effettuato l'accesso in quel momento o dopo. Aggiungere, cambiare o eliminare un provider globale ti chiede prima di [confermare che sei tu](/docs/introduction/your-account#confermare-che-sei-tu).
+
+Cosa impostare in Okta, Microsoft Entra ID, Keycloak e Google Workspace è spiegato nella pagina [SSO](/docs/identity/sso#accedere-di-nuovo-per-confermare-che-sei-tu).
+
 ## Imporre l'SSO
 
 Configurare un provider globale non obbliga nessuno a usarlo; l'accesso con password continua a funzionare. Per richiedere l'SSO, attiva l'obbligo per un progetto o per l'intera istanza:

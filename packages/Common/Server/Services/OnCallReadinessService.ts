@@ -215,6 +215,17 @@ export interface ReadinessCoverageCell {
 export interface ReadinessTeam {
   _id: ObjectID;
   name: string;
+  /*
+   * When the team was made: tells two teams of one name apart in the
+   * page's team filter (#10314). Missing when its row did not say.
+   */
+  createdAt?: Date | undefined;
+}
+
+// The teams that page a responder, by id: their names, and when each was made.
+interface ReadinessTeamFacts {
+  names: Map<string, string>;
+  createdAt: Map<string, Date>;
 }
 
 export interface UserReadiness {
@@ -317,6 +328,26 @@ export const INVITATION_NOT_ACCEPTED_READINESS_REASONS: ReadonlyArray<string> =
     "Has not accepted the invitation to this project - cannot be paged",
     "Ask them to accept their invitation, or remove them from this policy's escalation rules, schedules and overrides",
   ];
+
+/*
+ * Whether a readiness is of someone invited who has not accepted yet: the
+ * reasons above are theirs alone. What may reach them is the invitation, and
+ * nothing about the project's on-call before they join (#10412): the setup
+ * reminder reads this, with no read of its own.
+ */
+export const isInvitationNotAcceptedReadiness: (
+  readiness: Pick<UserReadiness, "reasons">,
+) => boolean = (readiness: Pick<UserReadiness, "reasons">): boolean => {
+  return (
+    readiness.reasons.length ===
+      INVITATION_NOT_ACCEPTED_READINESS_REASONS.length &&
+    INVITATION_NOT_ACCEPTED_READINESS_REASONS.every(
+      (reason: string, index: number): boolean => {
+        return readiness.reasons[index] === reason;
+      },
+    )
+  );
+};
 
 /**
  * What SHAPE an identifier has, which is all masking needs to know. Kept separate from
@@ -1876,7 +1907,7 @@ export default class OnCallReadinessService {
      * the per-member read would be the same N+1 that made the report this service
      * replaced unusable — see readEveryPage.
      */
-    const teamNamesById: Map<string, string> = await this.loadTeamNames({
+    const teamFacts: ReadinessTeamFacts = await this.loadTeamNames({
       projectId: data.projectId,
       teamIds: this.distinctIds(
         Array.from(data.responders.values())
@@ -1919,7 +1950,7 @@ export default class OnCallReadinessService {
         attachment,
         userIdString,
         inputs,
-        teamNamesById,
+        teamFacts,
         memberUserIds.has(userIdString.toLowerCase()),
         invitedUserIds.has(userIdString.toLowerCase()),
       );
@@ -1965,11 +1996,12 @@ export default class OnCallReadinessService {
     projectId: ObjectID;
     teamIds: Array<ObjectID>;
     completeness: ReadCompleteness;
-  }): Promise<Map<string, string>> {
+  }): Promise<ReadinessTeamFacts> {
     const teamNamesById: Map<string, string> = new Map<string, string>();
+    const teamCreatedAtById: Map<string, Date> = new Map<string, Date>();
 
     if (data.teamIds.length === 0) {
-      return teamNamesById;
+      return { names: teamNamesById, createdAt: teamCreatedAtById };
     }
 
     await this.readEveryPage<Team>({
@@ -1984,17 +2016,26 @@ export default class OnCallReadinessService {
       select: {
         _id: true,
         name: true,
+        // When each was made: tells two teams of one name apart (#10314).
+        createdAt: true,
       },
       consumePage: (rows: Array<Team>): void => {
         for (const row of rows) {
           if (row.id && row.name) {
             teamNamesById.set(row.id.toString(), row.name);
+
+            if (
+              row.createdAt instanceof Date &&
+              !isNaN(row.createdAt.getTime())
+            ) {
+              teamCreatedAtById.set(row.id.toString(), row.createdAt);
+            }
           }
         }
       },
     });
 
-    return teamNamesById;
+    return { names: teamNamesById, createdAt: teamCreatedAtById };
   }
 
   private static sortReadiness(
@@ -2837,7 +2878,7 @@ export default class OnCallReadinessService {
     attachment: ResponderAttachment,
     userIdString: string,
     inputs: ReadinessInputs,
-    teamNamesById: Map<string, string>,
+    teamFacts: ReadinessTeamFacts,
     isProjectMember: boolean,
     hasPendingInvitation: boolean = false,
   ): UserReadiness {
@@ -2999,9 +3040,16 @@ export default class OnCallReadinessService {
        */
       teams: Array.from(attachment.teamIds)
         .map((teamId: string): ReadinessTeam | null => {
-          const name: string | undefined = teamNamesById.get(teamId);
+          const name: string | undefined = teamFacts.names.get(teamId);
+          const createdAt: Date | undefined = teamFacts.createdAt.get(teamId);
 
-          return name ? { _id: new ObjectID(teamId), name: name } : null;
+          return name
+            ? {
+                _id: new ObjectID(teamId),
+                name: name,
+                ...(createdAt ? { createdAt: createdAt } : {}),
+              }
+            : null;
         })
         .filter((team: ReadinessTeam | null): team is ReadinessTeam => {
           return team !== null;

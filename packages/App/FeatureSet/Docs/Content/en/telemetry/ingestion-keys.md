@@ -4,7 +4,7 @@ An ingestion key connects your telemetry to your project. Applications, OpenTele
 
 :::cards
 - [Create an ingestion key](#create-an-ingestion-key): A name, a type and a secret to copy.
-- [Server or Browser](#server-or-browser): Which kind of key a sender needs.
+- [Server, Browser or Mobile](#server-browser-or-mobile): Which kind of key a sender needs.
 - [Lock down a Browser key](#lock-down-a-browser-key): Origins, one service name and a limit.
 - [Rotate, turn off or delete a key](#rotate-turn-off-or-delete-a-key): What to do when a key leaks.
 :::
@@ -27,21 +27,21 @@ flowchart TB
 - **The key decides the project.** You never send a project ID: data sent with a key lands in the project the key belongs to.
 - **Changes reach every server within seconds.** Turning a key off, resetting its secret, or changing its origins, expiry or limit takes effect on every server within a few seconds.
 - **A key can have budgets of its own.** A daily budget and a per-second rate for each signal, within its project's: see [Ingestion Budgets](/docs/telemetry/ingestion-budgets).
-- **A Server key is a password.** Anyone who has it can send telemetry into your project. Keep it in your servers' secrets, never in source control or a web page.
+- **A Server key is a password.** Anyone who has it can send telemetry into your project. Keep it in your servers' secrets, never in source control, a web page or a mobile app.
 
-## Server or Browser
+## Server, Browser or Mobile
 
 Pick the type by where the key will live. The type cannot be changed after the key is created.
 
-| | **Server** | **Browser** |
-| --- | --- | --- |
-| For | Applications, collectors and agents on machines you run | Web pages, and React Native session replay |
-| Sends | Every kind of telemetry, to every endpoint | Traces, logs, metrics, session replays and [Sentry events](/docs/telemetry/compatible-endpoints#sentry-sdks) |
-| A secret | Yes: keep it on your servers | No: anyone who views the page can read it |
-| Origins | Not checked | Only the listed origins are accepted |
-| Requests per minute | No limit, unless you set one | 6,000, unless you set another limit |
+| | **Server** | **Browser** | **Mobile** |
+| --- | --- | --- | --- |
+| For | Applications, collectors and agents on machines you run | Web pages, and React Native session replay | One iOS, Android or React Native app |
+| Sends | Every kind of telemetry, to every endpoint | Traces, logs, metrics, session replays and [Sentry events](/docs/telemetry/compatible-endpoints#sentry-sdks) | That app's traces, logs and metrics, over OTLP/HTTP |
+| A secret | Yes: keep it on your servers | No: anyone who views the page can read it | No: anyone who has the app can copy it |
+| Origins | Not checked | Only the listed origins are accepted | A request from a web page is refused |
+| Requests per minute | No limit, unless you set one | 6,000, unless you set another limit | 6,000, unless you set another limit |
 
-OneUptime refuses a Browser key everywhere else, such as over gRPC and MQTT, for profiles, syslog, Fluent Bit and Fluentd, and for source map uploads. To move a sender to the other type, create a key of that type, switch the sender to it, then delete the old key.
+OneUptime refuses a Browser key everywhere else, such as over gRPC and MQTT, for profiles, syslog, Fluent Bit and Fluentd, and for source map uploads, and a Mobile key anywhere but OTLP traces, logs and metrics over HTTP. To move a sender to another type, create a key of that type, switch the sender to it, then delete the old key.
 
 ## Before you begin
 
@@ -59,9 +59,9 @@ Go to **Project Settings → Telemetry & APM → Ingestion Keys**. **Telemetry &
 
 Click **Create Ingestion Key**. The dialog starts with the name **Server key** and the **Server** type. Pick the **Key Type**, and rename the key after what will use it, such as `checkout-collector`. A **Description** is under **Advanced**.
 
-### Add a Browser key's origins
+### Add a Browser key's origins or a Mobile key's app
 
-A **Browser** key asks for its **Allowed Origins** on the next step, **Browser Settings**, with its **Pinned Service Name** under **Advanced**. See [Lock down a Browser key](#lock-down-a-browser-key).
+A **Browser** key asks for its **Allowed Origins** on the next step, **Browser Settings**, with its **Pinned Service Name** under **Advanced**. See [Lock down a Browser key](#lock-down-a-browser-key). A **Mobile** key asks for its **Pinned Service Name** on the first page instead: the `service.name` of the app it ships in.
 
 ### Create the key and copy its secret
 
@@ -106,6 +106,17 @@ An origin is a scheme, a host and an optional port: `https://app.example.com` do
 
 [Services](/docs/telemetry/services#how-a-service-gets-into-the-catalog) shows how a pinned name decides the service. The Kubernetes agent's Runner and AI agent, and the infrastructure AI agents, do not register with a pinned key: give them an unpinned Server key.
 
+## What a Mobile key limits
+
+A Mobile key ships inside your app, and anyone who has the app can copy it. These limits keep every copy to the app it was made for:
+
+- **It writes only as one app.** Everything it sends is filed under its **Pinned Service Name** as a mobile RUM application, whatever service or host the sender names. A copy cannot write into your backend services, hosts or clusters.
+- **It sends only that app's telemetry.** OTLP traces, logs and metrics over HTTP. It is refused over gRPC and MQTT, for session replays, profiles and source maps, on every other endpoint, and from any web page.
+- **It is rate limited.** 6,000 requests per minute for all copies together, unless you set its **Requests Per Minute Limit**.
+- **You can stop it.** Turn **Enabled** off, or set **Expires At**, and every copy is refused within seconds.
+
+What it cannot stop: someone who has your app can still send made-up traces, logs and metrics for that one app, up to the key's limit, until you turn the key off or it expires. Rotate the key with your releases, so an old copy stops working with its version.
+
 ## Rotate, turn off or delete a key
 
 A key's page shows its **Status**, its **Secret Key** behind **Click to reveal**, and its **Last Used At**: the last time OneUptime accepted data sent with it.
@@ -132,7 +143,9 @@ The key's page keeps count too: **Refused Telemetry** lists what was refused fro
 | `402` with `Add a payment method` | On OneUptime Cloud, the project is on the Free plan and has no payment method yet. |
 | `422` with `This telemetry ingestion key has been disabled.` | Someone turned **Enabled** off. |
 | `422` with `A browser ingestion key cannot be used for` | A Browser key reached an endpoint that takes only Server keys. |
-| `422` with `did not send an Origin header` | A Browser key was sent from outside a browser. Use a Server key there. |
+| `422` with `did not send an Origin header` | A Browser key was sent from outside a browser. Use a Mobile key in a mobile app, and a Server key anywhere else. |
+| `422` with `A mobile ingestion key cannot be used for` | A Mobile key reached an endpoint other than OTLP traces, logs and metrics over HTTP, such as gRPC or session replay. |
+| `422` with `A mobile ingestion key cannot be used from a web page` | A Mobile key was sent from a browser. Use a Browser key in a web page. |
 | `422` with `is not allowed for this browser ingestion key` | The page's origin is not in **Allowed Origins**. |
 | `422` with `is pinned to a single service` | A key with a **Pinned Service Name** was used to register an agent. Use an unpinned Server key. |
 | `429` with `Too many telemetry requests for this ingestion key` | The key reached its **Requests Per Minute Limit**. Exporters retry after the `Retry-After` time. |

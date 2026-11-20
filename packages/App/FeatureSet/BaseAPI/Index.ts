@@ -717,9 +717,11 @@ import SecurityDetectionService, {
 import SecurityPlaybookService, {
   Service as SecurityPlaybookServiceType,
 } from "Common/Server/Services/SecurityPlaybookService";
-import SecurityProtectedEntityService, {
-  Service as SecurityProtectedEntityServiceType,
-} from "Common/Server/Services/SecurityProtectedEntityService";
+import SecurityProtectedEntityAPI from "Common/Server/API/SecurityProtectedEntityAPI";
+import SecurityBlockAPI from "Common/Server/API/SecurityBlockAPI";
+import SecurityBlockEnforcementService, {
+  Service as SecurityBlockEnforcementServiceType,
+} from "Common/Server/Services/SecurityBlockEnforcementService";
 import SecurityEntityRiskService, {
   Service as SecurityEntityRiskServiceType,
 } from "Common/Server/Services/SecurityEntityRiskService";
@@ -756,6 +758,12 @@ import DataSecurityIssueService, {
 import DataSecurityIssueFeedService, {
   Service as DataSecurityIssueFeedServiceType,
 } from "Common/Server/Services/DataSecurityIssueFeedService";
+import DataSecurityAiProposalService, {
+  Service as DataSecurityAiProposalServiceType,
+} from "Common/Server/Services/DataSecurityAiProposalService";
+import DataSecurityAiDecisionService, {
+  Service as DataSecurityAiDecisionServiceType,
+} from "Common/Server/Services/DataSecurityAiDecisionService";
 import DataSecurityScanService, {
   Service as DataSecurityScanServiceType,
 } from "Common/Server/Services/DataSecurityScanService";
@@ -1968,7 +1976,7 @@ import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
-import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
+import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
 import SecurityEntityRisk from "Common/Models/DatabaseModels/SecurityEntityRisk";
 import DataSecurityAPI from "Common/Server/API/DataSecurityAPI";
 import DataObservabilityAPI from "Common/Server/API/DataObservabilityAPI";
@@ -1983,6 +1991,8 @@ import DataSecurityFlow from "Common/Models/DatabaseModels/DataSecurityFlow";
 import DataSecurityIdentity from "Common/Models/DatabaseModels/DataSecurityIdentity";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import DataSecurityIssueFeed from "Common/Models/DatabaseModels/DataSecurityIssueFeed";
+import DataSecurityAiProposal from "Common/Models/DatabaseModels/DataSecurityAiProposal";
+import DataSecurityAiDecision from "Common/Models/DatabaseModels/DataSecurityAiDecision";
 import DataSecurityScan from "Common/Models/DatabaseModels/DataSecurityScan";
 import DataSecurityCustomDataType from "Common/Models/DatabaseModels/DataSecurityCustomDataType";
 import DataSecurityCheckSetting from "Common/Models/DatabaseModels/DataSecurityCheckSetting";
@@ -4827,12 +4837,24 @@ const BaseAPIFeatureSet: FeatureSet = {
       new SecurityPlaybookRunAPI().getRouter(),
     );
 
+    // Protected entities' CRUD, with what OneUptime protects by itself.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<SecurityProtectedEntity, SecurityProtectedEntityServiceType>(
-        SecurityProtectedEntity,
-        SecurityProtectedEntityService,
-      ).getRouter(),
+      new SecurityProtectedEntityAPI().getRouter(),
+    );
+
+    // The blocklist's CRUD, with its check and where it is enforced (#10338).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityBlockAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        SecurityBlockEnforcement,
+        SecurityBlockEnforcementServiceType
+      >(SecurityBlockEnforcement, SecurityBlockEnforcementService).getRouter(),
     );
 
     /*
@@ -4931,6 +4953,23 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DataSecurityIssueFeed, DataSecurityIssueFeedServiceType>(
         DataSecurityIssueFeed,
         DataSecurityIssueFeedService,
+      ).getRouter(),
+    );
+
+    // What OneUptime AI proposes for a Data Security issue, and why it did or did not act (#10364): read here, acted on through DataSecurityAPI.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataSecurityAiProposal, DataSecurityAiProposalServiceType>(
+        DataSecurityAiProposal,
+        DataSecurityAiProposalService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataSecurityAiDecision, DataSecurityAiDecisionServiceType>(
+        DataSecurityAiDecision,
+        DataSecurityAiDecisionService,
       ).getRouter(),
     );
 

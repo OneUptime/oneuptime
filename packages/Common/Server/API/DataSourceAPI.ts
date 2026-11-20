@@ -37,7 +37,80 @@ import {
  * Upper bound on stored/ad-hoc query text. Real PromQL/SQL/DSL queries are
  * a few KB; anything beyond this is abuse or a mistake.
  */
-const MAX_QUERY_LENGTH: number = 100_000;
+export const MAX_QUERY_LENGTH: number = 100_000;
+
+/*
+ * The most services and series labels a built-in source query narrows to
+ * (issue #10227): a monitor's services, and the labels of the one series
+ * an incident or alert was opened for.
+ */
+const MAX_NARROWING_SERVICES: number = 100;
+const MAX_NARROWING_LABELS: number = 100;
+const MAX_NARROWING_TEXT_LENGTH: number = 4096;
+
+/*
+ * The services a built-in source query is narrowed to: none (every service
+ * the caller may read), or service ids. Anything else is refused, not
+ * read as none, which would read every service.
+ */
+export const readNarrowingServiceIds: (
+  value: unknown,
+) => Array<string> | undefined = (
+  value: unknown,
+): Array<string> | undefined => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (
+    !Array.isArray(value) ||
+    value.length > MAX_NARROWING_SERVICES ||
+    !value.every((id: unknown): boolean => {
+      return typeof id === "string" && ObjectID.isValidUUID(id);
+    })
+  ) {
+    throw new BadDataException(
+      "The services this query reads are not a list of up to 100 service IDs. Send serviceIds as a list of service IDs, or leave it out to read every service you may read.",
+    );
+  }
+
+  return value.length > 0 ? (value as Array<string>) : undefined;
+};
+
+/*
+ * The labels of the one series a built-in source query is narrowed to: an
+ * object of text, or none. Anything else is refused.
+ */
+export const readNarrowingSeriesLabels: (
+  value: unknown,
+) => JSONObject | undefined = (value: unknown): JSONObject | undefined => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  const isLabels: boolean =
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.keys(value as Record<string, unknown>).length <=
+      MAX_NARROWING_LABELS &&
+    Object.entries(value as Record<string, unknown>).every(
+      ([name, labelValue]: [string, unknown]): boolean => {
+        return (
+          name.length <= MAX_NARROWING_TEXT_LENGTH &&
+          typeof labelValue === "string" &&
+          labelValue.length <= MAX_NARROWING_TEXT_LENGTH
+        );
+      },
+    );
+
+  if (!isLabels) {
+    throw new BadDataException(
+      "The series this query reads is not an object of up to 100 labels, each with a text value. Send seriesLabels as the series' labels, or leave it out to read every series.",
+    );
+  }
+
+  return { ...(value as JSONObject) };
+};
 
 export default class DataSourceAPI extends BaseAPI<
   DataSource,
@@ -99,8 +172,11 @@ export default class DataSourceAPI extends BaseAPI<
      *
      * SECURITY: authenticated project users only — this route must NEVER
      * be reachable from the anonymous public-dashboard surface, because
-     * it executes caller-supplied query text. Public dashboards render a
-     * placeholder for data-source widgets instead.
+     * it executes caller-supplied query text. A public dashboard never
+     * reaches it: a widget reading an outside system is left out of one,
+     * and one reading the built-in source runs its STORED queries through
+     * the dashboard's own public route (DashboardAPI's /promql-query,
+     * issue #10226), which takes no query text at all.
      */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/query`,
@@ -159,7 +235,10 @@ export default class DataSourceAPI extends BaseAPI<
           /*
            * The built-in source: PromQL over the project's own metrics, as
            * the person looking at the dashboard (issue #7713). No record,
-           * so no record to read and no credentials.
+           * so no record to read and no credentials. A PromQL monitor's
+           * charts narrow it (issue #10227): to the services the monitor
+           * reads, of those the person may read, and on an incident or an
+           * alert to the one series that opened it.
            */
           if (
             ProjectMetricsDataSourceUtil.isProjectMetrics(body["dataSourceId"])
@@ -172,6 +251,8 @@ export default class DataSourceAPI extends BaseAPI<
                 startDate,
                 endDate,
                 stepInSeconds,
+                serviceIds: readNarrowingServiceIds(body["serviceIds"]),
+                seriesLabels: readNarrowingSeriesLabels(body["seriesLabels"]),
               });
 
             return Response.sendJsonObjectResponse(req, res, {

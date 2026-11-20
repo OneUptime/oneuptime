@@ -229,6 +229,25 @@ const SIGN_OUT_LABELS: Array<string> = [
 ];
 
 /*
+ * Where Okta, Microsoft Entra ID and Google keep what Sign In Again needs of
+ * them (#10332): Okta's Honor Force Authentication and its values, Entra
+ * ID's optional auth_time claim, Google's Session age claims. Okta's General
+ * tab, SAML Settings and Show Advanced Settings, and Google's Settings, are
+ * in the lists above.
+ */
+const SIGN_IN_AGAIN_LABELS: Array<string> = [
+  "Honor Force Authentication",
+  "Yes",
+  "No",
+  "Token configuration",
+  "Add optional claim",
+  "ID",
+  "Session age claims",
+  "Google Auth Platform",
+  "Advanced Settings",
+];
+
+/*
  * Labels of another product's console, by page. A translation keeps each
  * one bold and in English: OneUptime cannot know which language that
  * console is set to, and its English names are the ones its own docs and
@@ -240,6 +259,7 @@ const IDENTITY_PROVIDER_LABELS: Record<string, Array<string>> = {
     ...ENTRA_SSO_LABELS,
     ...OKTA_SSO_LABELS,
     ...SIGN_OUT_LABELS,
+    ...SIGN_IN_AGAIN_LABELS,
   ],
   [SCIM]: [
     // Microsoft Entra ID.
@@ -626,6 +646,12 @@ const PROSE: Record<string, Array<string>> = {
     // The two kinds of connection, as the FAQ calls them.
     "Project SCIM",
     "Status Page SCIM",
+    /*
+     * Where OneUptime runs, as two of the FAQ's answers open. The
+     * Dashboard's Self-hosted is something else: a model's, on Data
+     * Security's OneUptime AI page (#10365).
+     */
+    "Self-hosted",
   ],
 };
 
@@ -685,7 +711,6 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Refused:",
     "A removal that also changes a profile",
     "A request that changes nothing is answered as usual",
-    "Self-hosted",
     "invited",
   ],
 };
@@ -731,7 +756,8 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
  * with Persian digits as Latin ones and thousands separators dropped.
  */
 const NUMBERS: Record<string, Array<string>> = {
-  [SSO]: ["24", "17", "700016", "404", "10", "3"],
+  // 25: the Keycloak release that gives every client the basic scope (#10332).
+  [SSO]: ["24", "17", "700016", "404", "10", "3", "25"],
   [SCIM]: ["14", "30", "40", "200", "1000", "401", "402"],
 };
 

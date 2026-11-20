@@ -470,6 +470,7 @@
     "Data Flows, Access & Residency": "資料流、存取與資料落地",
     "Data Security Compliance": "資料安全合規性",
     "Data Security Integrations": "資料安全整合",
+    "OneUptime AI in Data Security": "資料安全中的 OneUptime AI",
     "Data Observability Overview": "資料可觀測性概覽",
     "Connect a Database": "連接資料庫",
     "Table Health": "資料表健康",
@@ -498,6 +499,7 @@
     "Okta System Log": "Okta 系統日誌",
     "Microsoft Entra ID": "Microsoft Entra ID",
     "Google Workspace": "Google Workspace",
+    "Cloudflare": "Cloudflare",
     "Global SSO": "全域 SSO",
     "Import and Export Label Rules": "匯入和匯出標籤規則",
     "Run Rules on Existing Resources": "對現有資源執行規則"

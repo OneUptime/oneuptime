@@ -155,6 +155,21 @@ export enum MicrosoftTeamsPublicNoteApprovalActionType {
   SubmitRejectPublicNote = "SubmitRejectPublicNote",
 }
 
+/*
+ * A playbook step that waits for approval, on its card in the channels and
+ * chats a Security Case rule names and in its approvers' personal chats
+ * (WorkspaceSecurityPlaybookApproval): Approve, Approve Some - which
+ * answers with a card of the step's targets to untick - that card's
+ * Approve, and Reject. Slack's ids, which the card's buttons carry
+ * (MicrosoftTeamsSecurityPlaybookApprovalActions).
+ */
+export enum MicrosoftTeamsSecurityPlaybookApprovalActionType {
+  ApproveSecurityPlaybookStep = "ApproveSecurityPlaybookStep",
+  ViewApproveSomeSecurityPlaybookStep = "ViewApproveSomeSecurityPlaybookStep",
+  SubmitApproveSomeSecurityPlaybookStep = "SubmitApproveSomeSecurityPlaybookStep",
+  RejectSecurityPlaybookStep = "RejectSecurityPlaybookStep",
+}
+
 // General Actions
 export enum MicrosoftTeamsGeneralActionType {
   Help = "Help",
@@ -191,6 +206,7 @@ export type MicrosoftTeamsActionType =
   | MicrosoftTeamsProjectChoiceActionType
   | MicrosoftTeamsRemediationActionType
   | MicrosoftTeamsPublicNoteApprovalActionType
+  | MicrosoftTeamsSecurityPlaybookApprovalActionType
   | MicrosoftTeamsGeneralActionType;
 
 /*

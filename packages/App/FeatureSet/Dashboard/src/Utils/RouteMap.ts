@@ -1056,6 +1056,7 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
    */
   [PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL]: "playbook-runs",
   [PageMap.SECURITY_PLAYBOOK_RUNS]: "playbook-runs/all",
+  [PageMap.SECURITY_BLOCKLIST]: "blocklist",
   [PageMap.SECURITY_PROTECTED_ENTITIES]: "protected-entities",
   // Workspace, at the addresses every product's Workspace pages have.
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK]:
@@ -1108,6 +1109,7 @@ export const DataSecurityRoutePath: Dictionary<string> = {
   [PageMap.DATA_SECURITY_ISSUE_VIEW_TIMELINE]: `issues/${RouteParams.ModelID}/timeline`,
   [PageMap.DATA_SECURITY_ISSUE_VIEW_AUDIT_LOGS]: `issues/${RouteParams.ModelID}/audit-logs`,
   [PageMap.DATA_SECURITY_ISSUE_VIEW_DELETE]: `issues/${RouteParams.ModelID}/delete`,
+  [PageMap.DATA_SECURITY_AI]: "ai",
   [PageMap.DATA_SECURITY_SENSITIVE_DATA]: "sensitive-data",
   [PageMap.DATA_SECURITY_TELEMETRY]: "telemetry",
   [PageMap.DATA_SECURITY_FLOWS]: "flows",
@@ -1119,6 +1121,7 @@ export const DataSecurityRoutePath: Dictionary<string> = {
   [PageMap.DATA_SECURITY_SETTINGS_CHECKS]: "settings/checks",
   [PageMap.DATA_SECURITY_SETTINGS_RESIDENCY]: "settings/residency",
   [PageMap.DATA_SECURITY_SETTINGS_SCANNING]: "settings/scanning",
+  [PageMap.DATA_SECURITY_SETTINGS_AI]: "settings/ai",
   [PageMap.DATA_SECURITY_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.DATA_SECURITY_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.DATA_SECURITY_SETTINGS_LABEL_RULES]: "settings/label-rules",
@@ -8649,6 +8652,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SECURITY_BLOCKLIST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_BLOCKLIST]
+    }`,
+  ),
+
   [PageMap.SECURITY_PROTECTED_ENTITIES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_PROTECTED_ENTITIES]
@@ -8912,6 +8921,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DATA_SECURITY_AI]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_AI]
+    }`,
+  ),
+
   [PageMap.DATA_SECURITY_SCANS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-security/${
       DataSecurityRoutePath[PageMap.DATA_SECURITY_SCANS]
@@ -8939,6 +8954,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_SECURITY_SETTINGS_SCANNING]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-security/${
       DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_SCANNING]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_SETTINGS_AI]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_AI]
     }`,
   ),
 

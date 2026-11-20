@@ -470,6 +470,7 @@
     "Data Flows, Access & Residency": "डेटा प्रवाह, एक्सेस और रेजिडेंसी",
     "Data Security Compliance": "डेटा सुरक्षा अनुपालन",
     "Data Security Integrations": "डेटा सुरक्षा इंटीग्रेशन",
+    "OneUptime AI in Data Security": "डेटा सुरक्षा में OneUptime AI",
     "Data Observability Overview": "डेटा ऑब्ज़र्वेबिलिटी अवलोकन",
     "Connect a Database": "डेटाबेस कनेक्ट करें",
     "Table Health": "टेबल का स्वास्थ्य",
@@ -498,6 +499,7 @@
     "Okta System Log": "Okta सिस्टम लॉग",
     "Microsoft Entra ID": "Microsoft Entra ID",
     "Google Workspace": "Google Workspace",
+    "Cloudflare": "Cloudflare",
     "Global SSO": "ग्लोबल SSO",
     "Import and Export Label Rules": "लेबल नियम आयात और निर्यात करना",
     "Run Rules on Existing Resources": "मौजूदा संसाधनों पर नियम चलाना"

@@ -5,6 +5,7 @@ import ObjectID from "Common/Types/ObjectID";
 import {
   RUM_CLIENT_KIND_BROWSER,
   RUM_CLIENT_KIND_MOBILE,
+  RUM_CLIENT_KIND_RESOURCE_ATTRIBUTE,
   RumClientKind,
 } from "Common/Types/Rum/RumClientKind";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
@@ -4850,6 +4851,21 @@ export default abstract class OtelIngestBaseService {
   protected static getRumClientType(
     attributes: JSONArray,
   ): RumClientKind | null {
+    /*
+     * Stamped on everything a Mobile ingestion key writes (issue #6457,
+     * PinMobileRumResource): its app's mobile RUM, whatever else the
+     * resource carried - read first, so a copied key's browser.* or host
+     * attributes never file it as anything else.
+     */
+    if (
+      this.getStringAttribute(
+        attributes,
+        RUM_CLIENT_KIND_RESOURCE_ATTRIBUTE,
+      ) === RUM_CLIENT_KIND_MOBILE
+    ) {
+      return RUM_CLIENT_KIND_MOBILE;
+    }
+
     const hasBrowser: boolean = Boolean(
       this.getStringAttribute(attributes, "browser.platform") ||
         this.getStringAttribute(attributes, "browser.language") ||

@@ -250,7 +250,7 @@ Gennem API'et og Terraform er rækkefølgen widgettens `arguments.sort`: en kolo
 Et [offentligt dashboard](/docs/dashboards/sharing) tegner de fleste widgets for sine besøgende, og hver viser kun det, den er sat op til at vise. Nogle få kan ikke vises uden en indlogget session:
 
 - **Logdiagram**, **Spordiagram**, **Sportabel**, **Sikkerhedshændelser**, **Flow af sikkerhedshændelser**, **Tragt** og **Fastholdelse af brugere** skriver på deres plads, at de ikke er tilgængelige på offentlige dashboards.
-- Widgets fra Eksterne datakilder udelades helt fra et offentligt dashboard, fordi deres indstillinger er selve forespørgslen.
+- Widgets fra Eksterne datakilder viser deres data, når de læser **Dette projekts metrikker (PromQL)**, aldrig deres forespørgsler. En widget med en ekstern datakilde udelades helt fra et offentligt dashboard.
 
 ## Når en widget ikke kan vises
 

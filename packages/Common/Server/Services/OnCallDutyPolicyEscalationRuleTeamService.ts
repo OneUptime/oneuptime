@@ -32,6 +32,15 @@ import OnCallChatText from "../Utils/OnCall/OnCallChatText";
 import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import TeamService from "./TeamService";
+import EscalationRuleReach, {
+  EscalationRuleOfReach,
+  LASTING_PATHS,
+  ProjectUserPair,
+  RuleMembers,
+  RulePath,
+  RuleReach,
+} from "../Utils/OnCall/EscalationRuleReach";
+import logger, { LogAttributes } from "../Utils/Logger";
 import {
   ESCALATION_RULE_TEAM_INDEX,
   EscalationRuleNames,
@@ -130,24 +139,74 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
       throw new BadDataException("Created item does not have a teamId");
     }
 
-    // send notification to the new current user.
+    /*
+     * Who the team adds to the rule (EscalationRuleReach): its accepted
+     * members who are members of the project - someone only invited to the
+     * team is paged once they join, and nothing reaches them before, not
+     * this message nor an on-call time log. Each of them hears "added" once
+     * for the rule: not when a row made before this one - their own, or
+     * another of its teams they are in - pages them already. Each keeps an
+     * on-call time log for the team on the rule. A read that fails tells and
+     * logs the team's accepted members as before.
+     */
+    const reach: RuleReach | null = await EscalationRuleReach.readOrNull({
+      ...this.getRuleOfRow(createdModel),
+      withSchedules: false,
+    });
 
-    const usersInTeam: Array<User> = await TeamMemberService.getUsersInTeam(
-      createdModel.teamId!,
-    );
+    const usersInTeam: Array<{ userId: ObjectID; isNewToRule: boolean }> = reach
+      ? EscalationRuleReach.getPagedByRow(reach, createdItemId).map(
+          (paged: {
+            userId: ObjectID;
+            paths: Array<RulePath>;
+          }): { userId: ObjectID; isNewToRule: boolean } => {
+            return {
+              userId: paged.userId,
+              isNewToRule: !EscalationRuleReach.wasPagedBefore({
+                paths: paged.paths,
+                rowId: createdItemId,
+                kinds: LASTING_PATHS,
+              }),
+            };
+          },
+        )
+      : (
+          await TeamMemberService.getUsersInTeams([createdModel.teamId!], {
+            acceptedOnly: true,
+          })
+        )
+          .filter((user: User): boolean => {
+            return Boolean(user?.id);
+          })
+          .map((user: User): { userId: ObjectID; isNewToRule: boolean } => {
+            return { userId: user.id!, isNewToRule: true };
+          });
 
-    for (const user of usersInTeam) {
+    for (const { userId: sendEmailToUserId, isNewToRule } of usersInTeam) {
+      // add start log
+      OnCallDutyPolicyTimeLogService.startTimeLogForUser({
+        userId: sendEmailToUserId,
+        onCallDutyPolicyId: createdModel.onCallDutyPolicy!.id!,
+        onCallDutyPolicyEscalationRuleId:
+          createdModel.onCallDutyPolicyEscalationRule!.id!,
+        projectId: createdModel.projectId!,
+        teamId: createdModel.teamId!,
+        startsAt: new Date(),
+      }).catch((error: Error) => {
+        logger.error(
+          `Error starting the team time log of user ${sendEmailToUserId.toString()}: ${error}`,
+          {
+            projectId: createdModel.projectId?.toString(),
+            userId: sendEmailToUserId.toString(),
+          } as LogAttributes,
+        );
+      });
+
+      if (!isNewToRule) {
+        continue;
+      }
+
       const temaName: string = createdModel.team?.name || "No name provided";
-
-      const sendEmailToUserId: ObjectID | undefined | null = user?.id;
-
-      if (!sendEmailToUserId) {
-        return createdItem;
-      }
-
-      if (!createdModel) {
-        return createdItem;
-      }
 
       const vars: Dictionary<string> = {
         onCallPolicyName:
@@ -219,17 +278,6 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
         pushNotificationMessage: pushMessage,
         whatsAppMessage,
         eventType,
-      });
-
-      // add start log
-      OnCallDutyPolicyTimeLogService.startTimeLogForUser({
-        userId: sendEmailToUserId,
-        onCallDutyPolicyId: createdModel.onCallDutyPolicy!.id!,
-        onCallDutyPolicyEscalationRuleId:
-          createdModel.onCallDutyPolicyEscalationRule!.id!,
-        projectId: createdModel.projectId!,
-        teamId: createdModel.teamId!,
-        startsAt: new Date(),
       });
     }
 
@@ -381,17 +429,94 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
       }),
     );
 
+    /*
+     * Each of the team's people is told they were removed only when nothing
+     * on the rule pages them any more (EscalationRuleReach): not while they
+     * are named on it, in another of its teams, on call in one of its
+     * schedules or next in the rotation of one - their time log stays open
+     * on those instead. A member of the project is told; someone only
+     * invited to the team was told nothing when it was added, and is told
+     * nothing now. Everyone's time log for the team on the rule ends.
+     */
+    const reachByRule: Map<string, RuleReach | null> =
+      await EscalationRuleReach.readEach({
+        rules: deletedItems.map((deletedItem: Model): EscalationRuleOfReach => {
+          return this.getRuleOfRow(deletedItem);
+        }),
+        withSchedules: true,
+      });
+
+    // One message for one person on one rule, however many of its teams went.
+    const told: Set<string> = new Set<string>();
+
     for (const deletedItem of deletedItems) {
+      if (!deletedItem.teamId || !deletedItem.projectId) {
+        continue;
+      }
+
+      const rule: EscalationRuleOfReach = this.getRuleOfRow(deletedItem);
+      const reach: RuleReach | null | undefined = reachByRule.get(
+        EscalationRuleReach.getRuleKey(rule),
+      );
+
+      // Every membership, an invitation included: an older log of theirs ends too.
       const usersInTeam: Array<User> = await TeamMemberService.getUsersInTeam(
-        deletedItem.teamId!,
+        deletedItem.teamId,
+      );
+
+      const members: RuleMembers = await EscalationRuleReach.readMembers(
+        usersInTeam
+          .filter((user: User): boolean => {
+            return Boolean(user?.id);
+          })
+          .map((user: User): ProjectUserPair => {
+            return { projectId: deletedItem.projectId!, userId: user.id! };
+          }),
       );
 
       for (const user of usersInTeam) {
         const sendEmailToUserId: ObjectID | undefined | null = user?.id;
 
         if (!sendEmailToUserId) {
-          return onDelete;
+          continue;
         }
+
+        // end time log
+        await OnCallDutyPolicyTimeLogService.endTimeLogForUser({
+          userId: sendEmailToUserId,
+          onCallDutyPolicyId: deletedItem.onCallDutyPolicy!.id!,
+          onCallDutyPolicyEscalationRuleId:
+            deletedItem.onCallDutyPolicyEscalationRule!.id!,
+
+          projectId: deletedItem.projectId!,
+          teamId: deletedItem.teamId!,
+          endsAt: OneUptimeDate.getCurrentDate(),
+        });
+
+        const paths: Array<RulePath> = reach
+          ? EscalationRuleReach.getPaths(reach, sendEmailToUserId)
+          : [];
+
+        if (paths.length > 0) {
+          EscalationRuleReach.keepTimeLogsOpen({
+            ...rule,
+            userId: sendEmailToUserId,
+            paths: paths,
+          });
+
+          continue;
+        }
+
+        const toldKey: string = `${EscalationRuleReach.getRuleKey(rule)}:${sendEmailToUserId.toString().toLowerCase()}`;
+
+        if (
+          told.has(toldKey) ||
+          !members.isMember(deletedItem.projectId, sendEmailToUserId)
+        ) {
+          continue;
+        }
+
+        told.add(toldKey);
 
         const teamName: string = deletedItem.team?.name || "No name provided";
 
@@ -464,18 +589,6 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
           pushNotificationMessage: pushMessage,
           whatsAppMessage,
           eventType,
-        });
-
-        // end time log
-        await OnCallDutyPolicyTimeLogService.endTimeLogForUser({
-          userId: sendEmailToUserId,
-          onCallDutyPolicyId: deletedItem.onCallDutyPolicy!.id!,
-          onCallDutyPolicyEscalationRuleId:
-            deletedItem.onCallDutyPolicyEscalationRule!.id!,
-
-          projectId: deletedItem.projectId!,
-          teamId: deletedItem.teamId!,
-          endsAt: OneUptimeDate.getCurrentDate(),
         });
       }
     }

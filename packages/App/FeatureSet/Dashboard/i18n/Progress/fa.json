@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 60061,
+    "keys": 60451,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -312,6 +312,7 @@
     "analytics",
     "arm",
     "arm64",
+    "arn:aws:iam::123456789012:role/OneUptimeSes",
     "aws_lambda · us-east-1 · nodejs 20",
     "build=1.4.2, plan=pro",
     "checkout-.*",
@@ -384,6 +385,7 @@
     "sensor-001",
     "sk-...",
     "storage-01 · RegionOne",
+    "storefront-mobile",
     "storefront-web",
     "sum by (job) (rate(http_requests_total[5m]))",
     "support@example.com",

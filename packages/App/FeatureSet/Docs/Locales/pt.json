@@ -470,6 +470,7 @@
     "Data Flows, Access & Residency": "Fluxos de dados, acesso e residência",
     "Data Security Compliance": "Conformidade da Segurança de dados",
     "Data Security Integrations": "Integrações da Segurança de dados",
+    "OneUptime AI in Data Security": "OneUptime AI na Segurança de dados",
     "Data Observability Overview": "Visão geral da Observabilidade de dados",
     "Connect a Database": "Conectar um banco de dados",
     "Table Health": "Saúde das tabelas",
@@ -498,6 +499,7 @@
     "Okta System Log": "Registro do sistema do Okta",
     "Microsoft Entra ID": "Microsoft Entra ID",
     "Google Workspace": "Google Workspace",
+    "Cloudflare": "Cloudflare",
     "Global SSO": "SSO global",
     "Import and Export Label Rules": "Importar e exportar regras de rótulos",
     "Run Rules on Existing Resources": "Executar regras em recursos existentes"

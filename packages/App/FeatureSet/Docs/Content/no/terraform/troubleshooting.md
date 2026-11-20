@@ -24,6 +24,7 @@ Slå opp meldingen Terraform skrev ut, eller det du så skje, i tabellen nedenfo
 | `Not Found` eller `Ambiguous Match` fra en datakilde | Rett oppslagets argumenter: se [Oppslag som finner ingen eller flere](#oppslag-som-finner-ingen-eller-flere) |
 | `There is already a team called` (en etikett, en vaktpolicy, en vaktplan) | Gi den et navn som ingen andre av samme slag har, eller gi den andre nytt navn først: se [Navn som en annen post allerede har](#navn-som-en-annen-post-allerede-har) |
 | `with the same name already exists` | Gi den et navn som ingen andre av samme slag har, eller importer posten som har det: se [Navn som en annen post allerede har](#navn-som-en-annen-post-allerede-har) |
+| `already exists` for et domene, et vertsnavn eller en påloggings-URL | Gi den en verdi som ingen annen post har, eller importer posten som har den: se [Domener og identifikatorer som en annen post allerede har](#domener-og-identifikatorer-som-en-annen-post-allerede-har) |
 | `Cannot import non-existent remote object` | Kontroller ID-en og nøkkelens tillatelser: se [Importere ressurser](/docs/terraform/importing-resources#feilsøking) |
 | `Provider produced inconsistent result after apply` | Oppgrader provideren: se [Inkonsistent resultat etter apply](#inkonsistent-resultat-etter-apply) |
 | En plan oppretter en ressurs du ikke har lagt til | Nøkkelen kan ikke lenger lese den, og OneUptime svarte `404`: gi nøkkelen lesetilgangen tilbake, og importer deretter ressursen med `terraform import`: se [En ressurs forlater state, og neste apply oppretter den på nytt](#en-ressurs-forlater-state-og-neste-apply-oppretter-den-på-nytt) |
@@ -114,6 +115,14 @@ Terraform utfører endringene i én apply side om side, så en oppretting eller 
 En arkivert post beholder navnet sitt, og ingenting en apply gjør med postene i drift, frigjør det. En oppretting eller et navnebytte til det navnet mislykkes med en gang, og feilen sier hvor posten fjernes fra arkivet: fjern den fra arkivet, eller velg et annet navn.
 
 Med en eldre provider eller en eldre OneUptime får allerede det første avslaget applyen til å mislykkes: ta i bruk på nytt, eller legg til en `depends_on` fra ressursen som tar navnet, til den som gir det fra seg.
+
+### Domener og identifikatorer som en annen post allerede har
+
+Domenet til en statusside, et dashbord eller et skjema, et prosjektdomene, identifikatoren til en vert eller en Kubernetes-klynge og påloggings-URL-en til en SSO-leverandør hører også til én post hver, uansett store og små bokstaver. En oppretting eller en endring til en verdi som en annen post allerede har, besvares med `400`, for eksempel `Status Page Domain with the same fullDomain already exists.`
+
+Provideren spør på nytt i opptil 30 sekunder også her, så å flytte et domene fra én ressurs til en annen i én apply, som sletter den ene og oppretter den andre side om side, går gjennom i én apply. Et bytte av to verdier går aldri gjennom, og det gjør heller ikke en verdi som en post utenfor konfigurasjonen har: etter 30 sekunder mislykkes applyen med `The value was still taken after asking again for 30 seconds.` Gi ressursen en verdi som ingen har, eller importer posten som har verdien, med `terraform import`. Ved et bytte gir du én av dem en midlertidig verdi, tar i bruk, og gjør så resten av endringen.
+
+En verdi som bare en arkivert post har, for eksempel vertsnavnet til en arkivert vert, mislykkes med en gang, og feilen sier hva du skal gjøre: fjern den posten fra arkivet, eller velg en annen verdi.
 
 ## Planer som ikke faller til ro
 

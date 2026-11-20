@@ -243,6 +243,7 @@ In **Quando avvisare**, scegliete in **Misurato come** come viene misurata ogni 
 - **Un confronto nell'espressione** tiene solo le serie per cui è vero: `rate(errors_total[5m]) > 0.1` restituisce le serie sopra 0.1, e nessun'altra. Fate clic su **Sposta in Quando avvisare** per farne il confronto della regola: il grafico mostra allora ogni serie, e la regola le giudica una per una.
 - **Al massimo 100 serie per controllo.** Quando l'espressione ne restituisce di più, un controllo ne giudica 100: prima le serie con un avviso o un incidente aperto, poi le altre nell'ordine delle loro etichette. Le restanti non vengono giudicate in quel controllo, quindi per loro nulla si apre né si risolve, e l'editor dice che l'espressione ne restituisce troppe. Aggregatela con `sum by (...)` oppure aggiungete dei selettori di etichette.
 - **Valgono i limiti di ogni query PromQL**, sulle metriche dei servizi che il monitor nomina, oppure di tutto il progetto se non ne nomina nessuno.
+- **I suoi grafici disegnano l'espressione.** La scheda in cima alla pagina **Panoramica** del monitor disegna ogni serie che l'espressione restituisce, e un incidente o un avviso che apre disegna la sola serie che lo ha aperto, con il valore del criterio come linea e il lato che genera avvisi ombreggiato. La leggono come potete leggerla voi, con gli stessi limiti della pagina [PromQL](/docs/telemetry/promql).
 - **Le condizioni di anomalia non sono offerte**: un'espressione non ha una cronologia propria con cui confrontarsi. Le condizioni di previsione sì.
 
 ## Risoluzione dei problemi

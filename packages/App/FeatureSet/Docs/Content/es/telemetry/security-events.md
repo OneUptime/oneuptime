@@ -51,7 +51,8 @@ Abre **Productos → Eventos de seguridad**, en **Seguridad**. Su menú tiene un
 | **Playbooks** | Playbooks | Pasos que se ejecutan sobre los casos, por sí solos o a mano |
 | **Aprobaciones** | Playbooks | Los pasos de playbook que esperan que alguien los apruebe o los rechace |
 | **Ejecuciones** | Playbooks | Lo que hizo cada playbook, paso a paso |
-| **Entidades protegidas** | Playbooks | Los usuarios y hosts a los que ningún playbook aplica contención |
+| **Lista de bloqueo** | Playbooks | Las direcciones que bloquea tu proyecto, hasta cuándo y dónde se aplica cada bloqueo |
+| **Entidades protegidas** | Playbooks | Los usuarios, hosts y direcciones a los que ningún playbook aplica contención y ningún bloqueo afecta |
 | **Ajustes** | IA | Si OneUptime AI clasifica cada caso nuevo |
 | **Conexiones** | Conexiones | Sus registros, los productos de seguridad que consulta OneUptime y los SIEM a los que envía |
 | **Guía de configuración** | Conexiones | Fragmentos para enviar eventos, rellenados con tu clave de ingesta |
@@ -72,8 +73,8 @@ Los datos de seguridad solo los leen los roles Propietario del proyecto y Admini
 | Rol | Qué puede hacer |
 | --- | --- |
 | Administrador de seguridad | Todo: eventos, casos, playbooks, reglas de detección, feeds de inteligencia de amenazas y conexiones |
-| Miembro de seguridad | Leer eventos e inteligencia de amenazas, gestionar casos, ejecutar playbooks y aprobar sus pasos, y crear, cambiar y eliminar reglas de detección y feeds. No puede configurar playbooks ni conexiones, ni eliminar datos de seguridad. |
-| Visor de seguridad | Leer eventos, casos, playbooks, reglas, feeds, indicadores y conexiones |
+| Miembro de seguridad | Leer eventos e inteligencia de amenazas, gestionar casos, ejecutar playbooks y aprobar sus pasos, bloquear direcciones, y crear, cambiar y eliminar reglas de detección y feeds. No puede configurar playbooks ni conexiones, ni eliminar datos de seguridad. |
+| Visor de seguridad | Leer eventos, casos, playbooks, la lista de bloqueo, reglas, feeds, indicadores y conexiones |
 
 ## Enviar eventos de seguridad
 
@@ -249,6 +250,7 @@ Una cuenta de AWS, un proyecto de Google Cloud o una suscripción de Azure [cone
 | Okta System Log | Eventos de inicio de sesión, MFA, cuentas y políticas | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | Inicios de sesión, cambios de directorio y detecciones de riesgo, si lo eliges los inicios de sesión en segundo plano y de aplicaciones que fallaron, y del registro de auditoría de Microsoft 365, el reenvío de correo, el uso compartido y los veredictos de phishing | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Inicios de sesión, las detecciones propias de Google, los cambios de administración y los accesos concedidos a aplicaciones, y el uso compartido en Drive | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | Lo que su firewall bloqueó, desafió y registró en el perímetro, como HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - Las alertas propias del producto con un nivel igual o superior a **Abrir casos desde** (**Alta y superior** salvo que elijas otro nivel, o **Nunca**) abren [casos](/docs/telemetry/security-cases), agrupadas por el usuario, host o dirección de los que tratan.
 - Una conexión lee los registros según el momento en que el producto los creó, no según el momento de la actividad que describen. Una regla de SIEM que se ejecuta cada hora crea detecciones mucho después de los eventos que coincidieron, y aun así se importan.

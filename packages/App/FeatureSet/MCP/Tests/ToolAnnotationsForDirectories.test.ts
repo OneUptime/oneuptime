@@ -14,8 +14,10 @@
  * states all three, a tool is destructive exactly when it is not read-only,
  * and a tool is open-world exactly when it reaches past the caller's project:
  * the public status page tools, which read any public status page on the
- * instance, and the writes that are published - shown on a status page and
- * sent to its subscribers. No directory or client is left to guess.
+ * instance, the writes that are published - shown on a status page and
+ * sent to its subscribers - the writes that point OneUptime at an address
+ * outside it, as a monitor made or changed does, and the invitations that
+ * email people outside the project. No directory or client is left to guess.
  *
  * OpenAI's plugin review also flags an update tool that takes nothing but an
  * id, so every update tool here has a field to change.
@@ -66,7 +68,10 @@ import { registerToolHandlers } from "../Handlers/ToolHandler";
 import RequestGate, { McpToolAccess } from "../OAuth/RequestGate";
 import { McpServer, createMCPServerInstance } from "../Server/MCPServer";
 import { isPublicStatusPageTool } from "../Tools/PublicStatusPageTools";
-import { isPublishedTable } from "../Tools/ToolAnnotations";
+import {
+  isOutsideAddressTable,
+  isPublishedTable,
+} from "../Tools/ToolAnnotations";
 import { generateAllTools } from "../Tools/ToolGenerator";
 import McpCredentialUtil from "../Types/McpCredential";
 import { McpToolInfo } from "../Types/McpTypes";
@@ -91,6 +96,15 @@ const PUBLISHING_WORKFLOW_TOOLS: Array<string> = [
  * (#10041), so it reaches past the project as a published write does.
  */
 const MAILING_WORKFLOW_TOOLS: Array<string> = ["invite_people"];
+
+/*
+ * The tool written by hand that points OneUptime at an address outside it:
+ * set_up_website_monitoring makes a monitor that checks the address it is
+ * given, as create_monitor does.
+ */
+const OUTSIDE_ADDRESS_WORKFLOW_TOOLS: Array<string> = [
+  "set_up_website_monitoring",
+];
 
 // The longest tool name the Claude Connectors Directory accepts.
 const MAX_TOOL_NAME_LENGTH: number = 64;
@@ -258,7 +272,7 @@ describe("every tool carries the title and the hints MCP directories ask for", (
     }
   });
 
-  test("a tool is open-world exactly when it reads public status pages, publishes what it writes, or emails outside the project", () => {
+  test("a tool is open-world exactly when it reads public status pages, publishes what it writes, points OneUptime at an address outside it, or emails outside the project", () => {
     const openWorld: Array<string> = listed()
       .filter((tool: Tool): boolean => {
         return tool.annotations?.openWorldHint === true;
@@ -271,8 +285,13 @@ describe("every tool carries the title and the hints MCP directories ask for", (
           isPublicStatusPageTool(tool.name) ||
           PUBLISHING_WORKFLOW_TOOLS.includes(tool.name) ||
           MAILING_WORKFLOW_TOOLS.includes(tool.name) ||
+          OUTSIDE_ADDRESS_WORKFLOW_TOOLS.includes(tool.name) ||
           (tool.annotations?.readOnlyHint === false &&
-            isPublishedTable(tool.tableName))
+            isPublishedTable(tool.tableName)) ||
+          // Making or changing one, not deleting it.
+          ((tool.operation === OneUptimeOperation.Create ||
+            tool.operation === OneUptimeOperation.Update) &&
+            isOutsideAddressTable(tool.tableName))
         );
       })
       .map(nameOf);
@@ -301,6 +320,19 @@ describe("every tool carries the title and the hints MCP directories ask for", (
       "add_monitors_to_status_page",
       // It emails addresses outside the project.
       "invite_people",
+      /*
+       * They point OneUptime at an address outside it. OpenAI's plugin
+       * review flagged the three monitor tools marked closed-world; a data
+       * store and a BI tool are reached the same way, with what they are
+       * given.
+       */
+      "create_monitor",
+      "update_monitor",
+      "set_up_website_monitoring",
+      "create_data_store",
+      "update_data_store",
+      "create_bi_tool",
+      "update_bi_tool",
     ]) {
       expect([name, openWorld.includes(name)]).toEqual([name, true]);
     }
@@ -311,11 +343,14 @@ describe("every tool carries the title and the hints MCP directories ask for", (
       "add_alert_note",
       "resolve_alert",
       "create_incident_internal_note",
-      "create_monitor",
+      // Deleting a monitor or a data store reaches nothing outside.
+      "delete_monitor",
+      "delete_data_store",
+      "list_monitors",
       "update_team",
       "list_incidents",
       "oneuptime_whoami",
-      "set_up_website_monitoring",
+      // A service's recommended monitors read the project's own telemetry.
       "set_up_service_monitor",
       "set_up_paging",
       "add_to_on_call_policy",

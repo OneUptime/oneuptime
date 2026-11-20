@@ -104,6 +104,12 @@ Register the sign-out redirect URI that the **Identity Provider URL** card shows
 
 Where Okta, Microsoft Entra ID, Auth0 and Keycloak keep these settings is on the [SSO](/docs/identity/sso) page.
 
+## Signing in again to confirm it's you
+
+Someone who signs in only through a global provider confirms it's them with **Sign In Again** before they change how they sign in or delete their account: OneUptime sends them back to the provider with `ForceAuthn="true"` for SAML, or `prompt=login` and `max_age=0` for OpenID Connect, and counts it only when the provider says, in `AuthnInstant` or `auth_time`, that they signed in at or after that moment. Adding, changing or deleting a global provider asks you to [confirm it's you](/docs/introduction/your-account#confirm-its-you) first.
+
+What to set in Okta, Microsoft Entra ID, Keycloak and Google Workspace is on the [SSO](/docs/identity/sso#signing-in-again-to-confirm-its-you) page.
+
 ## Enforcing SSO
 
 Configuring a global provider does not force anyone to use it; password login still works. To require SSO, turn the requirement on for a project or for the whole instance:

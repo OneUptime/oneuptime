@@ -51,7 +51,8 @@ flowchart TB
 | **Playbooks** | Playbooks | Schritte, die auf Fällen laufen, von selbst oder per Hand |
 | **Genehmigungen** | Playbooks | Die Playbook-Schritte, die darauf warten, dass jemand sie genehmigt oder ablehnt |
 | **Ausführungen** | Playbooks | Was jedes Playbook getan hat, Schritt für Schritt |
-| **Geschützte Entitäten** | Playbooks | Die Benutzer und Hosts, die kein Playbook eindämmt |
+| **Sperrliste** | Playbooks | Die Adressen, die Ihr Projekt sperrt, bis wann, und wo jede Sperre durchgesetzt wird |
+| **Geschützte Entitäten** | Playbooks | Die Benutzer, Hosts und Adressen, die kein Playbook eindämmt und keine Sperre berührt |
 | **Einstellungen** | KI | Ob OneUptime AI jeden neuen Fall triagiert |
 | **Verbindungen** | Verbindungen | Ihre Logs, die Sicherheitsprodukte, die OneUptime abfragt, und die SIEMs, an die es sendet |
 | **Einrichtungsanleitung** | Verbindungen | Snippets zum Senden von Ereignissen, mit Ihrem Ingestion-Schlüssel ausgefüllt |
@@ -72,8 +73,8 @@ Sicherheitsdaten lesen nur die Rollen Projektinhaber und Projektadministrator so
 | Rolle | Was sie darf |
 | --- | --- |
 | Sicherheits-Administrator | Alles: Ereignisse, Fälle, Playbooks, Erkennungsregeln, Threat-Intel-Feeds und Verbindungen |
-| Sicherheits-Mitglied | Ereignisse und Threat Intel lesen, Fälle bearbeiten, Playbooks ausführen und ihre Schritte genehmigen sowie Erkennungsregeln und Feeds erstellen, ändern und löschen. Sie kann keine Playbooks oder Verbindungen einrichten und keine Sicherheitsdaten löschen. |
-| Sicherheits-Betrachter | Ereignisse, Fälle, Playbooks, Regeln, Feeds, Indikatoren und Verbindungen lesen |
+| Sicherheits-Mitglied | Ereignisse und Threat Intel lesen, Fälle bearbeiten, Playbooks ausführen und ihre Schritte genehmigen, Adressen sperren sowie Erkennungsregeln und Feeds erstellen, ändern und löschen. Sie kann keine Playbooks oder Verbindungen einrichten und keine Sicherheitsdaten löschen. |
+| Sicherheits-Betrachter | Ereignisse, Fälle, Playbooks, die Sperrliste, Regeln, Feeds, Indikatoren und Verbindungen lesen |
 
 ## Sicherheitsereignisse senden
 
@@ -249,6 +250,7 @@ Ein AWS-Konto, Google Cloud-Projekt oder Azure-Abonnement, das [unter **Cloud** 
 | Okta System Log | Anmelde-, MFA-, Konto- und Richtlinienereignisse | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | Anmeldungen, Verzeichnisänderungen und Risikoerkennungen, auf Wunsch fehlgeschlagene Hintergrund- und App-Anmeldungen, und aus dem Microsoft 365-Audit-Protokoll Weiterleitungen von E-Mails, Freigaben und Phishing-Urteile | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Anmeldungen, die eigenen Erkennungen von Google, Admin-Änderungen und App-Freigaben, und Freigaben in Drive | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | Was die Firewall am Edge blockiert, mit einer Challenge geprüft und protokolliert hat, als HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - Die eigenen Warnungen des Produkts ab der Stufe, die in **Fälle eröffnen ab** eingestellt ist (**Hoch und höher**, sofern Sie keine andere Stufe wählen, oder **Nie**), eröffnen [Fälle](/docs/telemetry/security-cases), gruppiert nach dem Benutzer, dem Host oder der Adresse, um die es jeweils geht.
 - Eine Verbindung liest Datensätze nach dem Zeitpunkt, zu dem das Produkt sie erstellt hat, nicht nach der Zeit der Aktivität, die sie beschreiben. Eine SIEM-Regel, die stündlich läuft, erstellt Erkennungen lange nach den Ereignissen, auf die sie passte, und diese werden trotzdem importiert.

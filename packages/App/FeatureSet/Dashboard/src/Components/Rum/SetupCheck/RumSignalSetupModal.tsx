@@ -1,4 +1,5 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import ObjectID from "Common/Types/ObjectID";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -14,6 +15,11 @@ import {
   SET_UP_EXCEPTIONS,
   SET_UP_LOGS,
 } from "./RumSignalWords";
+import {
+  ARRIVAL_STEP_DESCRIPTION,
+  ARRIVAL_STEP_TITLE,
+} from "./RumSignalArrival";
+import RumSignalArrivalWatch from "./RumSignalArrivalWatch";
 
 /*
  * "Set up exceptions" / "Set up logs" (issue #5770): the few lines that
@@ -23,6 +29,10 @@ import {
  * an empty Exceptions or Logs chart, the empty Logs page and the setup
  * check. A mobile app is sent to the Mobile Setup docs instead: what it
  * needs depends on its SDK.
+ *
+ * Its last step waits for the first log or exception to arrive and says so
+ * (RumSignalArrivalWatch, issue #6379), or what to check when nothing does;
+ * it stops looking when the dialog closes.
  */
 
 export const EXCEPTIONS_SETUP_DESCRIPTION: string = translationKey(
@@ -34,6 +44,8 @@ export const LOGS_SETUP_DESCRIPTION: string = translationKey(
 
 export interface ComponentProps {
   signal: RumPanelSignal;
+  // The application whose first log or exception the last step waits for.
+  rumApplicationId: ObjectID;
   // The application's service.name.
   appName: string;
   onClose: () => void;
@@ -65,6 +77,22 @@ const RumSignalSetupModal: FunctionComponent<ComponentProps> = (
           title={title}
           description={description}
           icon={isExceptions ? IconProp.Bug : IconProp.Logs}
+          lastStep={{
+            title:
+              translator.translateText(ARRIVAL_STEP_TITLE[props.signal]) ||
+              ARRIVAL_STEP_TITLE[props.signal],
+            description:
+              translator.translateText(
+                ARRIVAL_STEP_DESCRIPTION[props.signal],
+              ) || ARRIVAL_STEP_DESCRIPTION[props.signal],
+            content: (
+              <RumSignalArrivalWatch
+                rumApplicationId={props.rumApplicationId}
+                signal={props.signal}
+                appName={props.appName}
+              />
+            ),
+          }}
           // A key made here is for this app's logs: the guide's own is "RUM key".
           newKeyName={translationKey("RUM logs key")}
           // The log exporter ships in the page: Browser keys only.

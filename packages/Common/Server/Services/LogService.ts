@@ -11,6 +11,8 @@ import Query from "../Types/AnalyticsDatabase/Query";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import ResourceEntityFilter from "../Utils/Telemetry/ResourceEntityFilter";
+import HashedAddressSearch from "../Utils/Telemetry/HashedAddressSearch";
+import { HashedAddressSignal } from "../../Types/Telemetry/HashedAddressSearch";
 import TelemetryRowRetention from "../Utils/Telemetry/TelemetryRowRetention";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
@@ -263,6 +265,23 @@ export class LogService extends AnalyticsDatabaseService<Log> {
   }
 
   /*
+   * A search for an IP address also finds the logs whose address an IP
+   * Address rule hashed, by the project's token for it (#10418): every
+   * read of logs - the explorer's list, total, monitors and their
+   * previews, dashboards - takes it (AnalyticsDatabaseService.bindReadQuery).
+   */
+  protected override async bindReadQuery(data: {
+    query: Query<Log>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Query<Log>> {
+    return await HashedAddressSearch.bindQuery({
+      query: data.query,
+      props: data.props,
+      signal: HashedAddressSignal.Logs,
+    });
+  }
+
+  /*
    * Count the logs a query matches once per distinct combination of the
    * given attributes' values - a grouped Logs monitor's evaluation, one
    * count per IPsec tunnel rather than one for the whole monitor.
@@ -290,7 +309,7 @@ export class LogService extends AnalyticsDatabaseService<Log> {
     const permission: CheckReadPermissionType<Log> =
       await ModelPermission.checkReadPermission(
         this.modelType,
-        countBy.query,
+        await this.bindReadQueryOf(countBy.query, input.props),
         null,
         input.props,
       );
@@ -471,7 +490,7 @@ export class LogService extends AnalyticsDatabaseService<Log> {
       const permission: CheckReadPermissionType<Log> =
         await ModelPermission.checkReadPermission(
           this.modelType,
-          countBy.query,
+          await this.bindReadQueryOf(countBy.query, input.props),
           null,
           input.props,
         );

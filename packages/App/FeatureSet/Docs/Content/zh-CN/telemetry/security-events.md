@@ -51,7 +51,8 @@ flowchart TB
 | **剧本** | Playbooks | 在案例上自动或手动运行的步骤 |
 | **待审批** | Playbooks | 等待有人批准或拒绝的剧本步骤 |
 | **剧本运行记录** | Playbooks | 每个剧本逐步做了什么 |
-| **受保护的实体** | Playbooks | 任何剧本都不会遏制的用户和主机 |
+| **封禁列表** | Playbooks | 你的项目封禁的地址、截止时间，以及每个封禁在何处生效 |
+| **受保护的实体** | Playbooks | 任何剧本都不会遏制、任何封禁都不会触及的用户、主机和地址 |
 | **设置** | 人工智能 | OneUptime AI 是否研判每个新案例 |
 | **连接** | Connections | 您的日志、OneUptime 轮询的安全产品，以及它发送到的 SIEM |
 | **设置指南** | Connections | 发送事件的代码片段，已填好你的摄取密钥 |
@@ -72,8 +73,8 @@ flowchart TB
 | 角色 | 能做什么 |
 | --- | --- |
 | 安全管理员 | 一切：事件、案例、剧本、检测规则、威胁情报源和连接 |
-| 安全成员 | 读取事件和威胁情报，处理案例，运行剧本并批准其步骤，以及创建、修改和删除检测规则和情报源。不能设置剧本或连接，也不能删除安全数据。 |
-| 安全查看者 | 读取事件、案例、剧本、规则、情报源、指标和连接 |
+| 安全成员 | 读取事件和威胁情报，处理案例，运行剧本并批准其步骤，封禁地址，以及创建、修改和删除检测规则和情报源。不能设置剧本或连接，也不能删除安全数据。 |
+| 安全查看者 | 读取事件、案例、剧本、封禁列表、规则、情报源、指标和连接 |
 
 ## 发送安全事件
 
@@ -249,6 +250,7 @@ Key Vault、存储账户和 Azure SQL 数据库各自保留一份自己的审计
 | Okta System Log | 登录、MFA、账户和策略事件 | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | 登录、目录更改和风险检测，可选的失败的后台和应用登录，以及 Microsoft 365 审计日志中的邮件转发、共享和钓鱼判定 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | 登录、Google 自身的检测、管理员更改和应用授权，以及云端硬盘中的共享 | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | 其防火墙在边缘拦截、质询和记录的请求，作为 HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - 产品自身的警报，只要级别达到或高于 **打开案例的起始严重程度**（默认为 **高及以上**，你也可以选择其他级别或 **从未**），就会打开 [案例](/docs/telemetry/security-cases)，并按它们涉及的用户、主机或地址分组。
 - 连接按产品创建记录的时间读取记录，而不是按记录所描述活动的时间。每小时运行一次的 SIEM 规则会在它匹配的事件之后很久才创建检测，这些检测仍然会被导入。

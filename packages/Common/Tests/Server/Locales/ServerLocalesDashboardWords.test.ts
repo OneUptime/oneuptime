@@ -34,6 +34,8 @@ import {
   getEveryNewIncidentRuleDescription,
   getEveryNewIncidentRuleName,
 } from "../../../Types/OnCallDutyPolicy/EveryNewEventRules";
+import { SECURITY_PLAYBOOK_ACTIONS } from "../../../Types/SecurityPlaybook/SecurityPlaybookAction";
+import { getSecurityPlaybookApprovalActionTitle } from "../../../Utils/SecurityPlaybook/SecurityPlaybookApprovalWords";
 
 /*
  * SENTENCES THE SERVER AND THE DASHBOARD BOTH WRITE (#7247).
@@ -142,6 +144,25 @@ const sentencesTheFirstPolicyLooksUp: () => Set<string> = (): Set<string> => {
   return asked;
 };
 
+/*
+ * Every sentence a playbook step's approval names its action by (#10341):
+ * each action's title, as the step editor words it.
+ */
+const sentencesThePlaybookActionTitlesLookUp: () => Set<string> =
+  (): Set<string> => {
+    const asked: Set<string> = new Set<string>();
+    const recording: Translator = recordingTranslator(asked);
+
+    for (const action of SECURITY_PLAYBOOK_ACTIONS) {
+      getSecurityPlaybookApprovalActionTitle({
+        translator: recording,
+        action: action.type,
+      });
+    }
+
+    return asked;
+  };
+
 describe("the sentences the server and the Dashboard both write", () => {
   test("come from files the server's scan reads, a new monitor's criteria and a new status page's name among them", () => {
     expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
@@ -157,6 +178,10 @@ describe("the sentences the server and the Dashboard both write", () => {
     expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
       "packages/Common/Types/OnCallDutyPolicy/EveryNewEventRules.ts",
     );
+    // Each playbook action's title, which a step's approval names (#10341).
+    expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
+      "packages/Common/Types/SecurityPlaybook/SecurityPlaybookActionWords.ts",
+    );
 
     const scanned: Array<string> = listSourceFiles();
 
@@ -169,12 +194,24 @@ describe("the sentences the server and the Dashboard both write", () => {
     expect(fs.existsSync(DASHBOARD_LOCALES_DIRECTORY)).toBe(true);
   });
 
-  test("are every sentence a new monitor's default criteria, for every monitor type, a new status page's name and the first on-call policy with its rules are written with, and nothing else", () => {
+  test("are every sentence a new monitor's default criteria, for every monitor type, a new status page's name, the first on-call policy with its rules and a playbook action's title are written with, and nothing else", () => {
     const asked: Set<string> = new Set<string>([
       ...sentencesTheCriteriaLookUp(),
       ...sentencesTheStatusPageNameLooksUp(),
       ...sentencesTheFirstPolicyLooksUp(),
+      ...sentencesThePlaybookActionTitlesLookUp(),
     ]);
+
+    // Every playbook action's title, as the step editor words it (#10341).
+    expect(sentencesThePlaybookActionTitlesLookUp()).toEqual(
+      new Set<string>(
+        SECURITY_PLAYBOOK_ACTIONS.map(
+          (action: (typeof SECURITY_PLAYBOOK_ACTIONS)[number]): string => {
+            return action.title;
+          },
+        ),
+      ),
+    );
 
     // The name Ask AI and the status page guided setup start a page with.
     expect(sentencesTheStatusPageNameLooksUp()).toEqual(

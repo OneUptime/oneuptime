@@ -172,10 +172,25 @@ describe("the setup tools are listed", () => {
     expect(
       listed("add_monitors_to_status_page").annotations?.openWorldHint,
     ).toBe(true);
-    expect(listed("set_up_website_monitoring").annotations?.openWorldHint).toBe(
+    expect(listed("set_up_paging").annotations?.openWorldHint).toBe(false);
+  });
+
+  /*
+   * A website monitor checks the address it is given, as one made with
+   * create_monitor does: it points OneUptime at an address outside it, so
+   * open-world (OpenAI's plugin review flags it marked closed-world). A
+   * service's recommended monitors read the project's own telemetry, and
+   * stay inside it.
+   */
+  it("set_up_website_monitoring points OneUptime at the address it is given: open-world", () => {
+    expect(listed("set_up_website_monitoring").annotations).toEqual({
+      readOnlyHint: false,
+      destructiveHint: true,
+      openWorldHint: true,
+    });
+    expect(listed("set_up_service_monitor").annotations?.openWorldHint).toBe(
       false,
     );
-    expect(listed("set_up_paging").annotations?.openWorldHint).toBe(false);
   });
 
   /*
@@ -250,6 +265,29 @@ describe("the setup tools are listed", () => {
     );
     expect(listed("set_how_to_reach_me").description).toContain(
       "A ladder that reaches them this way already is left as it is.",
+    );
+  });
+
+  /*
+   * Someone invited earlier is added by their address before they accept
+   * (#10412): said where an agent reads it, so it does not come back later,
+   * with the one rule that keeps it safe - paged once they join, and
+   * nothing reaches them before.
+   */
+  it("add_to_on_call_policy and invite_people say someone invited is added by their address, and paged once they join", () => {
+    expect(listed("add_to_on_call_policy").description).toContain(
+      "Someone invited to the project who has not joined yet is added by the address they were invited at: they are paged once they join, and nothing reaches them before.",
+    );
+    expect(listed("add_to_on_call_policy").description).not.toContain(
+      "can be added once they join",
+    );
+    expect(
+      JSON.stringify(listed("add_to_on_call_policy").inputSchema),
+    ).toContain(
+      "people invited who have not joined yet, by the address they were invited at",
+    );
+    expect(listed("invite_people").description).toContain(
+      "Someone invited is paged only once they join; add_to_on_call_policy adds them to a policy by their address before that.",
     );
   });
 

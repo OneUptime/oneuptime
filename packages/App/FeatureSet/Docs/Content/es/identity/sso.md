@@ -287,6 +287,31 @@ El navegador pasa por el cierre de sesión del proveedor en cuanto OneUptime lo 
 Un proveedor que no la tiene registrada muestra su propia página de error después de cerrar sesión en OneUptime, en lugar de devolver a la persona; aun así, la sesión en OneUptime queda cerrada.
 :::
 
+## Volver a iniciar sesión para confirmar que eres tú
+
+Antes de que alguien cambie cómo inicia sesión o elimine su cuenta, OneUptime le pide [confirmar que es él](/docs/introduction/your-account#confirmar-que-eres-tú). Quien inicia sesión solo a través de tu proveedor de identidad, sin contraseña ni clave de acceso en OneUptime, confirma con **Volver a iniciar sesión**: OneUptime lo envía al proveedor y le pide que le haga iniciar sesión de nuevo. Solo cuenta cuando el proveedor dice que inició sesión en ese momento o después, con un minuto de margen para los dos relojes. Un proveedor que vuelve a iniciar su sesión al instante con una sesión que ya tenía, o que no indica cuándo inició sesión, no confirma nada, y se le dice que te pida cambiarlo.
+
+:::tabs
+@tab SAML
+OneUptime envía `ForceAuthn="true"` y lee cuándo inició sesión la persona del `AuthnInstant` de la aserción.
+
+| Proveedor de identidad | Qué configurar |
+| --- | --- |
+| Okta | En la pestaña **General**, edita **SAML Settings**, haz clic en **Show Advanced Settings** y pon **Honor Force Authentication** en **Yes**. Con **No**, Okta ignora la solicitud. |
+| Microsoft Entra ID | Nada: Entra ID respeta la solicitud, y su `AuthnInstant` es cuándo inició sesión la persona. |
+| Keycloak | Nada: Keycloak respeta la solicitud. Pero su `AuthnInstant` es cuándo responde, no cuándo inició sesión la persona, así que OneUptime no puede comprobar que Keycloak se lo volvió a pedir. Conecta Keycloak mediante OpenID Connect para que OneUptime lo compruebe por sí mismo. |
+| Google Workspace | Nada que configurar. Google no dice si respeta la solicitud. Su `AuthnInstant` es la última vez que la persona inició sesión en Google, así que quien sigue con la sesión iniciada en Google la cierra primero. |
+@tab OpenID Connect
+OneUptime envía `prompt=login` y `max_age=0`, y lee cuándo inició sesión la persona del `auth_time` del token de ID.
+
+| Proveedor de identidad | Qué configurar |
+| --- | --- |
+| Okta | Nada: Okta respeta ambos y siempre envía `auth_time`. |
+| Microsoft Entra ID | En **Token configuration** del registro de la aplicación, haz clic en **Add optional claim**, elige **ID** y añade `auth_time`: Entra ID solo lo envía como notificación opcional. Respeta `prompt=login`. |
+| Keycloak | Mantén el ámbito de cliente `basic` en el cliente: incluye `auth_time`. Keycloak 25 y posteriores dan este ámbito a todos los clientes. |
+| Google Workspace | Activa **Session age claims** para el cliente OAuth, en **Google Auth Platform** > **Settings** > **Advanced Settings**; la aplicación debe estar publicada y verificada. Google no acepta ninguna de las dos solicitudes, así que OneUptime le pide `auth_time` en su lugar, y quien sigue con la sesión iniciada en Google la cierra primero. |
+:::
+
 ## Roles y equipos de los usuarios de SSO
 
 OneUptime no asigna roles ni grupos de tu proveedor de identidad. Lo que alguien puede hacer depende de los equipos a los que pertenece: un proveedor añade a los recién llegados a sus **Equipos**, y tú gestionas los equipos y sus permisos en OneUptime, como describe [Usuarios, equipos y permisos](/docs/permissions/index). Para mantener la pertenencia a los equipos alineada con tu proveedor de identidad, usa [SCIM](/docs/identity/scim). Cada equipo al que alguien se une al iniciar sesión queda registrado en la página **Registros de auditoría** de ese equipo, como un cambio de la persona que inició sesión.

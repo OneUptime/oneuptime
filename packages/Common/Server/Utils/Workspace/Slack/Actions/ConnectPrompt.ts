@@ -32,6 +32,7 @@ import SlackActionAnswer, {
   SlackAnswerPlace,
 } from "./Answer";
 import WorkspacePublicNoteApproval from "../../WorkspacePublicNoteApproval";
+import WorkspaceSecurityPlaybookApprovalPress from "../../WorkspaceSecurityPlaybookApprovalPress";
 import SlackRequestWorkspaceUtil, {
   SlackRequestWorkspace,
 } from "../SlackRequestWorkspace";
@@ -437,6 +438,20 @@ export default class SlackConnectPrompt {
 
     if (approvalPress) {
       return approvalPress;
+    }
+
+    /*
+     * A playbook step waiting for approval: never decided for somebody
+     * once they connect - containment is decided by a press made knowing
+     * who they are, so they press again.
+     */
+    const stepPress: SlackPressDescription | null =
+      WorkspaceSecurityPlaybookApprovalPress.describe({
+        actionType: actionType,
+      });
+
+    if (stepPress) {
+      return stepPress;
     }
 
     /*

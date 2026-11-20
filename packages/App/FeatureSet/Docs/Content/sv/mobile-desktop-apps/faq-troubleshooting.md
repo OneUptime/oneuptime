@@ -34,7 +34,7 @@ Ja. Varje telefon eller surfplatta är en egen push-enhet, med egna jourregler o
 :::details Vad kan jag göra i appen?
 - **Home**: vad som behöver uppmärksamhet i projektet: aktiva incidenter och larm, öppna säkerhetsärenden om din roll låter dig se dem, monitorer med problem och grupperade händelser.
 - **Monitors**: alla monitorer, filtrerade efter hälsa, med sina detaljer.
-- **Inbox**: incidenter och larm, och episoderna som grupperar dem. Öppna en för att använda **Acknowledge**, **Resolve** eller **Add Note**. Låter din roll dig se projektets säkerhetsärenden visar **Security** de öppna: öppna ett för att använda **Approve** eller **Reject** på ett playbook-steg som väntar på godkännande, ta ärendet med **Assign to me** eller använda **Close case**.
+- **Inbox**: incidenter och larm, och episoderna som grupperar dem. Öppna en för att använda **Acknowledge**, **Resolve** eller **Add Note**. Låter din roll dig se projektets säkerhetsärenden visar **Security** de öppna: öppna ett för att använda **Approve** eller **Reject** på ett playbook-steg som väntar på godkännande, ta ärendet med **Assign to me** eller använda **Close case**. Ett steg som väntar på godkännande visar vad det kommer att göra och bevisen bakom det, och **Undo** frigör det en playbook har begränsat.
 - **On-Call**: om du har jour och till när, vem mer som har det, larmen som skickats till dig, och **Cover for me**, som lämnar över dina larm till en kollega en stund.
 - **Settings**: dina projekt och enkel inloggning, utseendet, kritiska larm och larmljudet, **Biometric Unlock**, ditt jourkalenderflöde och **Sign Out**.
 

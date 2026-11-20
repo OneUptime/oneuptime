@@ -51,7 +51,8 @@ flowchart TB
 | **Playbooks** | Playbooks | Steg som körs på ärenden, av sig själva eller manuellt |
 | **Godkännanden** | Playbooks | Playbook-stegen som väntar på att någon godkänner eller avvisar dem |
 | **Playbook-körningar** | Playbooks | Vad varje playbook gjorde, steg för steg |
-| **Skyddade entiteter** | Playbooks | De användare och värdar som ingen playbook begränsar |
+| **Blocklista** | Playbooks | Adresserna som ditt projekt blockerar, till när, och var varje blockering tillämpas |
+| **Skyddade entiteter** | Playbooks | De användare, värdar och adresser som ingen playbook begränsar och ingen blockering rör |
 | **Inställningar** | AI | Om OneUptime AI bedömer varje nytt ärende |
 | **Anslutningar** | Connections | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och de SIEM som det skickar till |
 | **Installationsguide** | Connections | Kodsnuttar för att skicka händelser, ifyllda med din intagningsnyckel |
@@ -72,8 +73,8 @@ Säkerhetsdata kan bara läsas av rollerna Projektägare och Projektadministrat�
 | Roll | Vad den kan göra |
 | --- | --- |
 | Säkerhetsadministratör | Allt: händelser, ärenden, playbooks, detektionsregler, threat intel-flöden och anslutningar |
-| Säkerhetsmedlem | Läsa händelser och threat intel, arbeta med ärenden, köra playbooks och godkänna deras steg, samt skapa, ändra och ta bort detektionsregler och flöden. Den kan inte konfigurera playbooks eller anslutningar, och inte ta bort säkerhetsdata. |
-| Säkerhetstittare | Läsa händelser, ärenden, playbooks, regler, flöden, indikatorer och anslutningar |
+| Säkerhetsmedlem | Läsa händelser och threat intel, arbeta med ärenden, köra playbooks och godkänna deras steg, blockera adresser, samt skapa, ändra och ta bort detektionsregler och flöden. Den kan inte konfigurera playbooks eller anslutningar, och inte ta bort säkerhetsdata. |
+| Säkerhetstittare | Läsa händelser, ärenden, playbooks, blocklistan, regler, flöden, indikatorer och anslutningar |
 
 ## Skicka säkerhetshändelser
 
@@ -249,6 +250,7 @@ Ett AWS-konto, ett Google Cloud-projekt eller en Azure-prenumeration som är [an
 | Okta System Log | Händelser för inloggning, MFA, konton och policyer | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | Inloggningar, katalogändringar och riskidentifieringar, om du vill misslyckade bakgrunds- och appinloggningar, och från Microsoft 365-granskningsloggen vidarebefordran av e-post, delning och nätfiskeutlåtanden | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Inloggningar, Googles egna fynd, administratörsändringar och appåtkomst, och delning i Drive | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | Det som brandväggen blockerade, utmanade och loggade vid kanten, som HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - Produktens egna larm på eller över **Öppna ärenden från** (**Hög och högre** om du inte väljer en annan nivå, eller **Aldrig**) öppnar [ärenden](/docs/telemetry/security-cases), grupperade efter användaren, värden eller adressen som de handlar om.
 - En anslutning läser poster efter tiden då produkten skapade dem, inte efter tiden för aktiviteten de beskriver. En SIEM-regel som körs varje timme skapar detektioner långt efter händelserna den träffade, och de importeras ändå.

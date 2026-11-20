@@ -149,7 +149,7 @@ export default class TelemetryIngestionKeyRefusal extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Reason",
     description:
-      "Why the telemetry was refused (TelemetryIngestRefusalReason): key-disabled, key-expired, origin-not-allowed, browser-key-not-allowed-here, pinned-key-not-allowed-here, key-requests-per-minute, key-daily-budget, key-ingestion-rate, project-daily-budget, project-ingestion-rate, payment-required or project-blocked.",
+      "Why the telemetry was refused (TelemetryIngestRefusalReason): key-disabled, key-expired, origin-not-allowed, browser-key-not-allowed-here, mobile-key-not-allowed-here, pinned-key-not-allowed-here, key-requests-per-minute, key-daily-budget, key-ingestion-rate, project-daily-budget, project-ingestion-rate, payment-required or project-blocked.",
     example: "key-disabled",
   })
   @Column({

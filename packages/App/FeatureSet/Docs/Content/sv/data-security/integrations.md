@@ -89,10 +89,16 @@ Se [Utlösare för arbetsflöden](/docs/workflows/triggers) för de fält som va
 
 ## OneUptime AI
 
-Två åtgärder på ett problem ber OneUptime AI om hjälp. Båda skickar till OneUptime AI problemets titel och allvarlighetsgrad, datalagrets namn, typ, region och moln-ID, dess känslighet och datatyper, var och en med sitt namn (dina egna datatyper med namnet du gav dem), bevisen, varför kontrollen spelar roll och åtgärden för datalagrets moln – aldrig ett fynds prov. Båda körs under projektets reglage och gränser för OneUptime AI.
+Två åtgärder på ett problem ber OneUptime AI om hjälp. Båda skickar till OneUptime AI problemets titel och allvarlighetsgrad, datalagrets namn, typ, region och moln-ID, dess känslighet och datatyper, var och en med sitt namn (dina egna datatyper med namnet du gav dem), bevisen, varför kontrollen spelar roll och åtgärden för datalagrets moln – aldrig ett fynds prov. Båda körs under projektets reglage och gränser för OneUptime AI. Vad var och en skickar, vad den aldrig skickar och vilken modell den körs på finns på [OneUptime AI i Datasäkerhet](/docs/data-security/ai).
 
 - **Förklara med AI** skriver, för datalagrets ägare, vad som är fel, vad som kan hända och de exakta stegen för att åtgärda det i deras moln. Förklaringen sparas på problemets **Tidslinje**. Varken problemet som skickades eller svaret sparas i **Projektinställningar → AI → AI-loggar**, som alla med rollen Projektmedlem eller Tittare kan läsa: raden säger bara att anropet gjordes och vad det kostade. Alla som kan läsa problemet kan fråga.
 - **Åtgärda med AI** ber OneUptime AI att åtgärda problemet i din infrastrukturkod – Terraform, CloudFormation, Bicep eller liknande – med den minsta ändring som får kontrollen att godkännas, och att öppna en pull request. Den kräver att arkivet som innehåller datalagrets infrastrukturkod är anslutet under **Kod**: välj det under **Arkiv** när du kan fråga i flera. Pull requesten visas under **Kod** (se [Kod](/docs/ai/ai-agent)). Rollen Säkerhetsmedlem och högre kan fråga, i ett arkiv som de får ändra under **Kod**, som det krävs för att fråga AI där: en säkerhetsroll läser och ändrar inga arkiv på egen hand, så ge också deras team **Read Code Repository** och **Edit Code Repository**. När AI inte kan arbeta nu – den är avstängd, projektet har slut på AI-krediter, de dagliga gränserna är nådda eller ingen Runner är online – säger Åtgärda med AI vad som behöver åtgärdas och startar ingenting.
+
+### På egen hand
+
+Med **Arbeta med nya problem** påslaget under **Datasäkerhet → AI**, som det är för nya projekt, arbetar OneUptime AI på egen hand med varje nytt kritiskt eller högt problem. Den skriver problemets analys, som **Förklara med AI** gör och utifrån det den skickar, och lägger den på problemets **Tidslinje**. För ett telemetriproblem föreslår den de rensningsregler som döljer dess data i ny telemetri. Ett förslag väntar på den sidan under **Väntar på dig**, de mest riskfyllda först, med vad som ändras, varför, hur det bevisas och hur det ångras. **Godkänn** gör ändringen med dina egna behörigheter: en rensningsregel kräver behörighet att skapa loggrensningsregler, spårrensningsregler eller pipelineregler för mätvärden. **Avfärda förslaget** säger nej, med en motivering som läggs på problemets tidslinje. Problemets egen kontroll avgör om en ändring fungerade: datalagret kontrolleras igen, och problemet löses när inga av dess data finns kvar.
+
+Som standard frågar OneUptime AI före varje ändring, utom en som bara döljer data, kan ångras och är bevisat säker, och den tar aldrig bort data eller larmar någon utan att fråga. En ändring som den gjorde utan att fråga visas under **Gjort av AI**, med **Ångra**. **Varför AI inte agerade** listar de problem som den tittade på och lät vara, och varför. Varje förslag, godkännande, avfärdande och ångrande finns på problemets och datalagrets **Tidslinje**. Med reglaget av, eller AI avstängd för projektet, fungerar datasäkerhet som vanligt, och **Förklara med AI** och **Åtgärda med AI** fungerar fortfarande när du trycker på dem.
 
 ### Fråga AI
 
@@ -130,6 +136,7 @@ Allt som Datasäkerhet sparar är en post i OneUptimes API, som läses med samma
 | Anpassade datatyper, kontrollinställningar, efterlevnadsinställningar och hemvistregler | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Projektets inställningar | `/data-security-setting` |
 | Ägare, ägarregler och etikettregler | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
+| Vad OneUptime AI föreslår för ett problem, och varför den agerade eller inte agerade på ett | `/data-security-ai-proposal`, `/data-security-ai-decision` |
 
 Några svar räknas ut på begäran i stället för att lagras. Vart och ett är en `POST`:
 
@@ -149,6 +156,9 @@ Några svar räknas ut på begäran i stället för att lagras. Vart och ett är
 | `/data-security-issue/<id>/fix-with-ai` | **Åtgärda med AI** på ett problem |
 | `/data-store/<id>/response-actions` | Vilka responsåtgärder datalagret kan utföra nu, och varför inte |
 | `/data-store/<id>/respond` | En responsåtgärd på datalagret, till exempel **Blockera offentlig åtkomst** eller **Slå på versionshantering**, med problemet som den kördes från |
+| `/data-security-ai-proposal/<id>/approve` | **Godkänn** på en ändring som OneUptime AI föreslår, som görs med dina egna behörigheter. Tar `expectedPlanFingerprint` för förslaget som du visades, och avvisar ett som har ändrats sedan dess |
+| `/data-security-ai-proposal/<id>/dismiss` | **Avfärda förslaget**, med `{"reason": "..."}`, som läggs på problemets tidslinje |
+| `/data-security-ai-proposal/<id>/undo` | **Ångra** på en ändring som OneUptime AI gjorde: den tas tillbaka, och datalagret kontrolleras igen |
 
 [Terraform-providern](/docs/terraform/index) har en resurs för varje sorts post som du skapar – datalager som du lägger till själv, anpassade datatyper, kontrollinställningar, efterlevnadsinställningar, hemvistregler, ägar- och etikettregler – uppkallad efter posten, till exempel `oneuptime_residency_rule`.
 

@@ -387,6 +387,46 @@ describe("each refusal of a known key is counted against it, with its reason and
     );
   });
 
+  test("a Mobile key on a surface a mobile app's SDK does not send to (#6457)", async () => {
+    resolveTo(
+      buildPolicy({
+        keyType: TelemetryIngestionKeyType.Mobile,
+        pinnedServiceName: "storefront-mobile",
+      }),
+    );
+
+    await run(TelemetryIngestSurface.SourceMap);
+
+    expect(counted()).toEqual(
+      one(
+        TelemetryIngestRefusalReason.MobileKeyNotAllowedHere,
+        TelemetryIngestSurface.SourceMap,
+      ),
+    );
+  });
+
+  test("a Mobile key sent from a web page, with an Origin header (#6457)", async () => {
+    resolveTo(
+      buildPolicy({
+        keyType: TelemetryIngestionKeyType.Mobile,
+        pinnedServiceName: "storefront-mobile",
+      }),
+    );
+
+    const result: RunResult = await run(TelemetryIngestSurface.OtelTraces, {
+      "x-oneuptime-token": TOKEN,
+      origin: ALLOWED_ORIGIN,
+    });
+
+    expect(result.next).not.toHaveBeenCalled();
+    expect(counted()).toEqual(
+      one(
+        TelemetryIngestRefusalReason.MobileKeyNotAllowedHere,
+        TelemetryIngestSurface.OtelTraces,
+      ),
+    );
+  });
+
   test("a key pinned to one service, on an identity registration surface", async () => {
     resolveTo(buildPolicy({ pinnedServiceName: "checkout" }));
 

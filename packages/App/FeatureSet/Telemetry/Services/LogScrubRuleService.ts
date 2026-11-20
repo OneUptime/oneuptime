@@ -23,7 +23,9 @@ import ScrubJsonKeysUtil, {
   ScrubJsonKeysRule,
 } from "Common/Utils/Telemetry/ScrubJsonKeys";
 import ScrubIpAddress from "Common/Utils/Telemetry/ScrubIpAddress";
-import ScrubAction from "Common/Server/Utils/Telemetry/ScrubAction";
+import ScrubAction, {
+  ScrubHashedAddressRecorder,
+} from "Common/Server/Utils/Telemetry/ScrubAction";
 import { correlationIdAttributeKeys } from "Common/Utils/Telemetry/CorrelationIdAttributes";
 import { readOwnValue } from "Common/Utils/LookupTable";
 
@@ -204,12 +206,14 @@ export class LogScrubRuleService {
    * escapes read and stays JSON: a match is replaced only inside the values
    * it covers (Common/Utils/Telemetry/ScrubJsonText, #8923). `jsonTexts`:
    * the record's, so each such text is parsed once however many rules read
-   * it.
+   * it. `recorder`: told each address an IP Address Hash rule hides, when
+   * Security Events reads the batch's logs (ScrubAction.applyAndRecord).
    */
   private static scrubString(
     value: string,
     compiledRules: Array<CompiledRule>,
     jsonTexts: ScrubJsonTexts,
+    recorder?: ScrubHashedAddressRecorder | null | undefined,
   ): string {
     let result: string = value;
 
@@ -230,12 +234,13 @@ export class LogScrubRuleService {
           return regex.matchRanges(text);
         },
         replaceMatch: (match: string): string => {
-          return this.applyScrubAction(
-            match,
-            action,
-            patternType,
-            rule.projectId,
-          );
+          return ScrubAction.applyAndRecord({
+            match: match,
+            action: action,
+            patternType: patternType,
+            projectId: rule.projectId,
+            recorder: recorder,
+          });
         },
         // A person may have written a custom pattern against stored escapes.
         readsAsWritten: patternType === LogScrubPatternType.Custom,
@@ -286,7 +291,7 @@ export class LogScrubRuleService {
    * the attribute's own key, a key inside its value, or a key inside a JSON
    * text it holds (`keysRule`: the rule as it reads this record). `heldAsText`:
    * the keys whose values were too deep or too large to read value by
-   * value, and are read as their JSON text.
+   * value, and are read as their JSON text. `recorder`: as scrubString's.
    */
   private static scrubAttributes(
     attributes: JSONObject,
@@ -295,6 +300,7 @@ export class LogScrubRuleService {
     jsonTexts: ScrubJsonTexts,
     correlationIdKeys: ReadonlySet<string>,
     keysRule: ScrubJsonKeysRule | undefined,
+    recorder?: ScrubHashedAddressRecorder | null | undefined,
   ): void {
     const patternType: string = (compiled.rule.patternType as string) || "";
 
@@ -332,7 +338,7 @@ export class LogScrubRuleService {
     ScrubNestedValuesUtil.scrubAttributeTexts(
       attributes,
       (text: string): string => {
-        return this.scrubString(text, singleRule, jsonTexts);
+        return this.scrubString(text, singleRule, jsonTexts, recorder);
       },
     );
   }
@@ -373,9 +379,17 @@ export class LogScrubRuleService {
     return scrubbed;
   }
 
+  /*
+   * A log row as the project's rules leave it, in place. `recorder`: told
+   * each address an IP Address Hash rule hides and the token it leaves, for
+   * Security Events' address vault - passed by ingest only for a batch whose
+   * logs Security Events reads (SecurityAddressVaultWriter.startBatch,
+   * #10395). The row is scrubbed the same with it or without it.
+   */
   public static scrubLog(
     logRow: JSONObject,
     compiledRules: Array<CompiledRule>,
+    recorder?: ScrubHashedAddressRecorder | null | undefined,
   ): JSONObject {
     if (compiledRules.length === 0) {
       return logRow;
@@ -501,6 +515,7 @@ export class LogScrubRuleService {
           logRow["body"] as string,
           singleRule,
           jsonTexts,
+          recorder,
         );
       }
 
@@ -517,6 +532,7 @@ export class LogScrubRuleService {
           jsonTexts,
           correlationIdKeys,
           keysRulesOfRecord.get(compiled),
+          recorder,
         );
       }
     }

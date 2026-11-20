@@ -15,6 +15,15 @@ import { truncateToLength } from "../../Database/TruncateColumnValue";
 import WorkspaceActionAuthorization from "../WorkspaceActionAuthorization";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import MicrosoftTeamsMessageSize from "./MicrosoftTeamsMessageSize";
+import WorkspaceSharedNames, {
+  WorkspaceTwinDetails,
+} from "../WorkspaceSharedNames";
+import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import {
+  getSharedNameFacts,
+  getSharedNameOptionKey,
+  getSharedNameSelect,
+} from "../../../../Types/Database/SharedNameMarks";
 
 /*
  * The choice lists of the "create incident" and "create maintenance" cards.
@@ -71,9 +80,14 @@ type NamedRecord = {
 };
 
 export default class MicrosoftTeamsCardChoices {
-  // Rows to choices, skipping rows without a name or id.
+  /*
+   * Rows to choices, skipping rows without a name or id. A row another one
+   * of its kind shares its name with says what sets it apart after its
+   * name (`twins`, #10314), the name cut first.
+   */
   public static toChoices(
     rows: Array<NamedRecord>,
+    twins?: WorkspaceTwinDetails | undefined,
   ): Array<MicrosoftTeamsCardChoice> {
     const choices: Array<MicrosoftTeamsCardChoice> = [];
 
@@ -82,6 +96,23 @@ export default class MicrosoftTeamsCardChoices {
       const value: string = row._id?.toString() || "";
 
       if (!title || !value) {
+        continue;
+      }
+
+      const detail: string | undefined = twins?.details.get(
+        getSharedNameOptionKey(value),
+      );
+
+      if (twins && detail) {
+        choices.push({
+          title: WorkspaceSharedNames.toLabel({
+            name: title,
+            detail: detail,
+            separator: twins.separator,
+            maxLength: MICROSOFT_TEAMS_MAX_CHOICE_TITLE_LENGTH,
+          }),
+          value: value,
+        });
         continue;
       }
 
@@ -98,6 +129,34 @@ export default class MicrosoftTeamsCardChoices {
     }
 
     return choices;
+  }
+
+  /*
+   * The choices of records of one of the four kinds whose names are one
+   * record's - labels, on-call policies, teams, schedules - each twin told
+   * apart in the words and the zone of the member the card is for
+   * (#10314). Read each row with getSharedNameSelect(...).
+   */
+  public static async toNamedChoices(
+    rows: Array<BaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Array<MicrosoftTeamsCardChoice>> {
+    const twins: WorkspaceTwinDetails =
+      await WorkspaceSharedNames.getTwinDetails({
+        options: rows.map((row: BaseModel) => {
+          const name: unknown = (row as unknown as NamedRecord).name;
+
+          return {
+            value: row._id?.toString() || "",
+            label: typeof name === "string" ? name.trim() : "",
+            sharedName: getSharedNameFacts(row),
+          };
+        }),
+        readerUserId: props.userId,
+        maxLength: MICROSOFT_TEAMS_MAX_CHOICE_TITLE_LENGTH,
+      });
+
+    return this.toChoices(rows as unknown as Array<NamedRecord>, twins);
   }
 
   /*
@@ -313,6 +372,8 @@ export default class MicrosoftTeamsCardChoices {
         select: {
           _id: true,
           name: true,
+          // What tells two labels of one name apart (#10314).
+          ...getSharedNameSelect(Label),
         },
         sort: {
           name: SortOrder.Ascending,
@@ -321,7 +382,7 @@ export default class MicrosoftTeamsCardChoices {
       });
 
     return {
-      choices: this.toChoices(labels),
+      choices: await this.toNamedChoices(labels, props),
       totalCount:
         labels.length < MICROSOFT_TEAMS_MAX_LABEL_CHOICES
           ? labels.length
@@ -381,6 +442,8 @@ export default class MicrosoftTeamsCardChoices {
         select: {
           _id: true,
           name: true,
+          // What tells two policies of one name apart (#10314).
+          ...getSharedNameSelect(OnCallDutyPolicy),
         },
         sort: {
           name: SortOrder.Ascending,
@@ -389,7 +452,7 @@ export default class MicrosoftTeamsCardChoices {
       });
 
     return {
-      choices: this.toChoices(policies),
+      choices: await this.toNamedChoices(policies, props),
       totalCount:
         policies.length < MICROSOFT_TEAMS_MAX_ON_CALL_POLICY_CHOICES
           ? policies.length

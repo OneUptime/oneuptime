@@ -194,11 +194,14 @@ describe("every product's Help > Documentation page", () => {
   });
 
   test("a setup guide's words: the page draws the product's card, and the card hands the guide its words in every language", () => {
-    const guides: Array<string> = SETUP_GUIDE_DOCUMENTATION_PRODUCTS.map(
-      (product: SetupGuideDocumentationProduct): string => {
-        return product.name;
+    // A guide drawn on another page (RUM's, on each application) has no Help page.
+    const guides: Array<string> = SETUP_GUIDE_DOCUMENTATION_PRODUCTS.filter(
+      (product: SetupGuideDocumentationProduct): boolean => {
+        return product.isHelpDocumentationPage;
       },
-    );
+    ).map((product: SetupGuideDocumentationProduct): string => {
+      return product.name;
+    });
 
     expect(
       Object.entries(PAGES)
@@ -212,12 +215,7 @@ describe("every product's Help > Documentation page", () => {
     ).toEqual([...guides].sort());
 
     for (const product of SETUP_GUIDE_DOCUMENTATION_PRODUCTS) {
-      const pageFile: string = path.join(
-        DASHBOARD_SOURCE,
-        "Pages",
-        product.name,
-        "Documentation.tsx",
-      );
+      const pageFile: string = product.documentationPage;
       const page: string = fs.readFileSync(pageFile, "utf8");
       // The files the page imports, by relative path ("./Utils/Card").
       const imported: Array<string> = [

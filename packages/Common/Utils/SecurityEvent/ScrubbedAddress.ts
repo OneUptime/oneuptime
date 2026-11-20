@@ -4,7 +4,10 @@ import LogScrubAction from "../../Types/Log/LogScrubAction";
 import LogScrubField from "../../Types/Log/LogScrubField";
 import LogScrubPatternType from "../../Types/Log/LogScrubPatternType";
 import { SECURITY_REQUEST_ATTRIBUTES } from "../../Types/SecurityEvent/SecurityEventRequestOutcome";
-import { isScrubHashToken } from "../../Types/Telemetry/ScrubHashTokenFormat";
+import {
+  SCRUB_HASH_TOKEN_PATTERN,
+  isScrubHashToken,
+} from "../../Types/Telemetry/ScrubHashTokenFormat";
 import {
   LOG_SCRUB_RULE_DEFAULTS,
   TRACE_SCRUB_RULE_DEFAULTS,
@@ -99,6 +102,22 @@ export interface ScrubbedAddress {
    * token in lower case - the token the address vault looks up (#10395).
    */
   value: string;
+}
+
+/*
+ * Whether what a rule left is a token Security Events' address vault can
+ * name the address behind (#10395): a Hash rule's token of today's form,
+ * "[HASHED:" and 16 hex characters. An older 8-hex token was made before
+ * tokens were keyed per project, and no vault holds its address; what
+ * Redact or Mask left holds nothing to look up.
+ */
+export function isAddressVaultToken(
+  scrubbed: Pick<ScrubbedAddress, "kind" | "value">,
+): boolean {
+  return (
+    scrubbed.kind === ScrubbedAddressKind.Hashed &&
+    SCRUB_HASH_TOKEN_PATTERN.test(scrubbed.value)
+  );
 }
 
 // The value of SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden.

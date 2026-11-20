@@ -470,6 +470,7 @@
     "Data Flows, Access & Residency": "جریان‌های داده، دسترسی و محل نگهداری داده",
     "Data Security Compliance": "انطباق امنیت داده",
     "Data Security Integrations": "یکپارچه‌سازی‌های امنیت داده",
+    "OneUptime AI in Data Security": "OneUptime AI در امنیت داده",
     "Data Observability Overview": "نمای کلی مشاهده‌پذیری داده",
     "Connect a Database": "اتصال یک پایگاه داده",
     "Table Health": "سلامت جدول‌ها",
@@ -498,6 +499,7 @@
     "Okta System Log": "لاگ سیستم Okta",
     "Microsoft Entra ID": "Microsoft Entra ID",
     "Google Workspace": "Google Workspace",
+    "Cloudflare": "Cloudflare",
     "Global SSO": "SSO سراسری",
     "Import and Export Label Rules": "وارد کردن و صادر کردن قواعد برچسب",
     "Run Rules on Existing Resources": "اجرای قواعد روی منابع موجود"

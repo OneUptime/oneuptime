@@ -51,7 +51,8 @@ Open **Products → Security Events**, under **Security**. Its menu has a sectio
 | **Playbooks** | Playbooks | Steps that run on cases, by themselves or by hand |
 | **Approvals** | Playbooks | The playbook steps waiting for someone to approve or reject them |
 | **Playbook Runs** | Playbooks | What each playbook did, step by step |
-| **Protected Entities** | Playbooks | The users and hosts no playbook contains |
+| **Blocklist** | Playbooks | The addresses your project blocks, until when, and where each block is enforced |
+| **Protected Entities** | Playbooks | The users, hosts and addresses no playbook contains and no block touches |
 | **Settings** | AI | Whether OneUptime AI triages each new case |
 | **Connections** | Connections | Your logs, the security products OneUptime polls, and the SIEMs it sends to |
 | **Setup Guide** | Connections | Snippets to send events, filled in with your ingestion key |
@@ -72,8 +73,8 @@ Security data is read only by the Project Owner and Project Admin roles and by t
 | Role | What it can do |
 | --- | --- |
 | Security Admin | Everything: events, cases, playbooks, detection rules, threat intel feeds and connections |
-| Security Member | Read events and threat intel, work cases, run playbooks and approve their steps, and create, change and delete detection rules and feeds. It can't set up playbooks or connections, or delete security data. |
-| Security Viewer | Read events, cases, playbooks, rules, feeds, indicators and connections |
+| Security Member | Read events and threat intel, work cases, run playbooks and approve their steps, block addresses, and create, change and delete detection rules and feeds. It can't set up playbooks or connections, or delete security data. |
+| Security Viewer | Read events, cases, playbooks, the blocklist, rules, feeds, indicators and connections |
 
 ## Send security events
 
@@ -249,6 +250,7 @@ An AWS account, Google Cloud project or Azure subscription [connected under **Cl
 | Okta System Log | Sign-in, MFA, account and policy events | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | Sign-ins, directory changes and risk detections, failed background and app sign-ins if you choose, and the Microsoft 365 audit log's mail forwarding, sharing and phishing verdicts | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Sign-ins, Google's own findings, admin changes and app grants, and Drive sharing | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | What its firewall blocked, challenged and logged at the edge, as HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - The product's own alerts at or above **Open Cases From** (**High and above** unless you choose another level, or **Never**) open [cases](/docs/telemetry/security-cases), grouped by the user, host or address they are about.
 - A connection reads records by the time the product created them, not by the time of the activity they describe. A SIEM rule that runs hourly creates detections long after the events it matched, and they are still imported.

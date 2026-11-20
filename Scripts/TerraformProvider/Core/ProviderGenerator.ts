@@ -13,6 +13,10 @@ import {
   NAME_TAKEN_REFUSAL_CODE,
   REFUSAL_CODE_FIELD,
 } from "Common/Types/Exception/NameTakenException";
+import {
+  VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+  VALUE_TAKEN_REFUSAL_CODE,
+} from "Common/Types/Exception/ValueTakenException";
 
 export class ProviderGenerator {
   private config: TerraformProviderConfig;
@@ -241,7 +245,8 @@ type Client struct {
     people peopleDirectory
 
     // How long a create or an update refused only because another record
-    // has the name is asked again (askAgainWhileNameIsTaken).
+    // has the name, or another value a record holds alone, is asked again
+    // (askAgainWhileTaken).
     nameTakenRetry nameTakenRetry
 
     // What the Crossplane manifest of the resource this provider plans last
@@ -288,15 +293,16 @@ func NewClient(oneuptimeUrl, apiKey, version string) (*Client, error) {
 
 // DoRequest performs an HTTP request. The context propagates Terraform's
 // cancellation and deadlines into the HTTP layer. A create or an update the
-// server refused only because another record has the name it asks for is
-// asked again for a while first (askAgainWhileNameIsTaken).
+// server refused only because another record has the name it asks for, or
+// another value a record holds alone (a domain, an identifier), is asked
+// again for a while first (askAgainWhileTaken).
 func (c *Client) DoRequest(ctx context.Context, method, path string, body interface{}) (*http.Response, error) {
     resp, err := c.doRequestOnce(ctx, method, path, body)
     if err != nil || !writesARecord(method) {
         return resp, err
     }
 
-    return c.askAgainWhileNameIsTaken(ctx, method, path, body, resp)
+    return c.askAgainWhileTaken(ctx, method, path, body, resp)
 }
 
 // doRequestOnce performs one HTTP request, asked again only after a failure
@@ -429,7 +435,35 @@ const (
     nameTakenByArchivedRefusalCode = "${NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE}"
 )
 
-// How long, and how often, a refusal of a name another record has is asked again.
+/*
+ * A VALUE THAT IS NOT A NAME, BUT THAT A RECORD HOLDS ALONE, ASKED AGAIN THE
+ * SAME WAY (OneUptime/oneuptime#10319).
+ *
+ * A status page's, a dashboard's or a form's domain, a project domain, a
+ * host's or a Kubernetes cluster's identifier, an SSO provider's sign-on
+ * URL, an API key's permission, and every value a unique index holds: the
+ * server refuses a create or a change onto one another record has with
+ * codes of its own (Common/Types/Exception/ValueTakenException.ts), beside
+ * the field whose value is taken. Moving a domain from one resource to
+ * another in one apply deletes one and creates the other side by side, so
+ * the create is refused whenever it runs before the delete; asked again, it
+ * goes through:
+ *
+ *   - valueTakenRefusalCode: a record in service has it, and is asked again
+ *     for the same window as a name;
+ *   - valueTakenByArchivedRefusalCode: only an archived record has it, and
+ *     is handed back at once, with the server's own sentence.
+ *
+ * Once the window has passed, ParseResponse says what to do
+ * (valueTakenAdvice).
+ */
+const (
+    valueTakenRefusalCode           = "${VALUE_TAKEN_REFUSAL_CODE}"
+    valueTakenByArchivedRefusalCode = "${VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE}"
+)
+
+// How long, and how often, a refusal of a name or another value another
+// record has is asked again.
 type nameTakenRetry struct {
     // How long, from the first refusal. Zero never asks again.
     window time.Duration
@@ -450,12 +484,13 @@ func writesARecord(method string) bool {
     return method == "POST" || method == "PUT" || method == "PATCH"
 }
 
-// askAgainWhileNameIsTaken asks for the write again, with backoff, for as
-// long as the server refuses it because a record in service has the name and
-// nameTakenRetry.window has not passed. A refused write wrote nothing, so
-// asking again is safe, a create's POST included. A name only an archived
-// record has is handed back at once.
-func (c *Client) askAgainWhileNameIsTaken(ctx context.Context, method, path string, body interface{}, resp *http.Response) (*http.Response, error) {
+// askAgainWhileTaken asks for the write again, with backoff, for as long as
+// the server refuses it because a record in service has the name, or
+// another value a record holds alone, and nameTakenRetry.window has not
+// passed. A refused write wrote nothing, so asking again is safe, a
+// create's POST included. A name or a value only an archived record has is
+// handed back at once.
+func (c *Client) askAgainWhileTaken(ctx context.Context, method, path string, body interface{}, resp *http.Response) (*http.Response, error) {
     retry := c.nameTakenRetry
     if retry.window <= 0 {
         return resp, nil
@@ -476,9 +511,9 @@ func (c *Client) askAgainWhileNameIsTaken(ctx context.Context, method, path stri
             return nil, err
         }
 
-        // No resource of this apply gives up a name an archived record has.
-        if code == nameTakenByArchivedRefusalCode {
-            tflog.Debug(ctx, "OneUptime refused a name an archived record has; not asking again, since nothing this apply does gives it up", map[string]any{
+        // No resource of this apply gives up what an archived record has.
+        if isTakenByArchivedRefusalCode(code) {
+            tflog.Debug(ctx, "OneUptime refused a name or a value an archived record has; not asking again, since nothing this apply does gives it up", map[string]any{
                 "method": method,
                 "path":   path,
             })
@@ -486,7 +521,7 @@ func (c *Client) askAgainWhileNameIsTaken(ctx context.Context, method, path stri
         }
 
         remaining := time.Until(deadline)
-        if code != nameTakenRefusalCode || remaining <= 0 {
+        if !isTakenRefusalCode(code) || remaining <= 0 {
             return resp, nil
         }
 
@@ -495,7 +530,7 @@ func (c *Client) askAgainWhileNameIsTaken(ctx context.Context, method, path stri
             wait = remaining
         }
 
-        tflog.Debug(ctx, "OneUptime refused a name another record has; asking again, in case another resource of this apply is giving it up", map[string]any{
+        tflog.Debug(ctx, "OneUptime refused a name or a value another record has; asking again, in case another resource of this apply is giving it up", map[string]any{
             "method": method,
             "path":   path,
             "wait":   wait.String(),
@@ -517,6 +552,19 @@ func (c *Client) askAgainWhileNameIsTaken(ctx context.Context, method, path stri
             wait = retry.maxWait
         }
     }
+}
+
+// isTakenRefusalCode reports whether a code refuses a name or another value
+// a record in service has: the refusals another resource of the same apply
+// may end, by giving that name or value up.
+func isTakenRefusalCode(code string) bool {
+    return code == nameTakenRefusalCode || code == valueTakenRefusalCode
+}
+
+// isTakenByArchivedRefusalCode reports whether a code refuses a name or a
+// value only an archived record has: nothing an apply does gives it up.
+func isTakenByArchivedRefusalCode(code string) bool {
+    return code == nameTakenByArchivedRefusalCode || code == valueTakenByArchivedRefusalCode
 }
 
 // readRefusalCode reads the code a 400 carries beside its message: "" for
@@ -557,6 +605,14 @@ func isNameTakenRefusal(body []byte) bool {
     return refusalCodeOf(body) == nameTakenRefusalCode
 }
 
+// isValueTakenRefusal reports whether an error body refuses a value that is
+// not a name, but that a record in service holds alone: a domain, an
+// identifier. A value only an archived record has
+// (valueTakenByArchivedRefusalCode) is not one.
+func isValueTakenRefusal(body []byte) bool {
+    return refusalCodeOf(body) == valueTakenRefusalCode
+}
+
 // nameTakenAdvice is what a refusal of a name a record in service has adds
 // to the server's own words once it has been asked again for the whole
 // window: no resource of this apply gave the name up. Either a record
@@ -569,6 +625,20 @@ func (c *Client) nameTakenAdvice() string {
     }
 
     return fmt.Sprintf("The name was still taken after asking again for %s. %s", describeWait(c.nameTakenRetry.window), advice)
+}
+
+// valueTakenAdvice is what a refusal of a value a record in service holds
+// alone adds to the server's own words once it has been asked again for the
+// whole window: no resource of this apply gave the value up. Either a
+// record outside this configuration has it, or resources of this
+// configuration swap it, and neither goes through on its own.
+func (c *Client) valueTakenAdvice() string {
+    advice := "If a record outside this configuration has it, give this resource another value, or import that record. If resources in this configuration swap values, none of them can go first: give one of them a temporary value, apply, then apply the values you want."
+    if c.nameTakenRetry.window <= 0 {
+        return advice
+    }
+
+    return fmt.Sprintf("The value was still taken after asking again for %s. %s", describeWait(c.nameTakenRetry.window), advice)
 }
 
 // describeWait says a wait as an error message does: "30 seconds", "250ms".
@@ -751,6 +821,11 @@ func (c *Client) ParseResponse(resp *http.Response, target interface{}) error {
         // which say to unarchive it or pick another name.
         if resp.StatusCode == http.StatusBadRequest && isNameTakenRefusal(body) {
             message += " " + c.nameTakenAdvice()
+        }
+
+        // The same for a value a record in service holds alone (#10319).
+        if resp.StatusCode == http.StatusBadRequest && isValueTakenRefusal(body) {
+            message += " " + c.valueTakenAdvice()
         }
 
         return fmt.Errorf("the OneUptime API returned status %d: %s", resp.StatusCode, message)

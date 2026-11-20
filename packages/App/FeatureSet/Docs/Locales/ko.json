@@ -470,6 +470,7 @@
     "Data Flows, Access & Residency": "데이터 흐름, 접근 및 상주",
     "Data Security Compliance": "데이터 보안 규정 준수",
     "Data Security Integrations": "데이터 보안 통합",
+    "OneUptime AI in Data Security": "데이터 보안의 OneUptime AI",
     "Data Observability Overview": "데이터 옵저버빌리티 개요",
     "Connect a Database": "데이터베이스 연결",
     "Table Health": "테이블 상태",
@@ -498,6 +499,7 @@
     "Okta System Log": "Okta 시스템 로그",
     "Microsoft Entra ID": "Microsoft Entra ID",
     "Google Workspace": "Google Workspace",
+    "Cloudflare": "Cloudflare",
     "Global SSO": "글로벌 SSO",
     "Import and Export Label Rules": "레이블 규칙 가져오기 및 내보내기",
     "Run Rules on Existing Resources": "기존 리소스에 규칙 실행"

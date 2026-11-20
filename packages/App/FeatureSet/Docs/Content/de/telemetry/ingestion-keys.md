@@ -4,7 +4,7 @@ Ein Ingestion-Schlüssel verbindet Ihre Telemetrie mit Ihrem Projekt. Anwendunge
 
 :::cards
 - [Einen Ingestion-Schlüssel anlegen](#einen-ingestion-schlüssel-anlegen): Ein Name, ein Typ und ein Geheimnis zum Kopieren.
-- [Server oder Browser](#server-oder-browser): Welche Art von Schlüssel ein Sender braucht.
+- [Server, Browser oder Mobil](#server-browser-oder-mobil): Welche Art von Schlüssel ein Sender braucht.
 - [Einen Browser-Schlüssel absichern](#einen-browser-schlüssel-absichern): Ursprünge, ein Dienstname und ein Limit.
 - [Einen Schlüssel rotieren, ausschalten oder löschen](#einen-schlüssel-rotieren-ausschalten-oder-löschen): Was zu tun ist, wenn ein Schlüssel nach außen gelangt.
 :::
@@ -27,21 +27,21 @@ flowchart TB
 - **Der Schlüssel bestimmt das Projekt.** Sie senden nie eine Projekt-ID: Daten, die mit einem Schlüssel gesendet werden, landen in dem Projekt, zu dem der Schlüssel gehört.
 - **Änderungen erreichen jeden Server innerhalb weniger Sekunden.** Einen Schlüssel ausschalten, sein Geheimnis zurücksetzen oder seine Ursprünge, sein Ablaufdatum oder sein Limit ändern wirkt auf jedem Server innerhalb weniger Sekunden.
 - **Ein Schlüssel kann eigene Budgets haben.** Ein Tagesbudget und ein Ratenlimit pro Sekunde für jedes Signal, innerhalb der Budgets seines Projekts: siehe [Ingestion-Budgets](/docs/telemetry/ingestion-budgets).
-- **Ein Server-Schlüssel ist ein Passwort.** Wer ihn hat, kann Telemetrie in Ihr Projekt senden. Bewahren Sie ihn in den Geheimnissen Ihrer Server auf, nie in der Versionsverwaltung oder auf einer Webseite.
+- **Ein Server-Schlüssel ist ein Passwort.** Wer ihn hat, kann Telemetrie in Ihr Projekt senden. Bewahren Sie ihn in den Geheimnissen Ihrer Server auf, nie in der Versionsverwaltung, auf einer Webseite oder in einer Mobil-App.
 
-## Server oder Browser
+## Server, Browser oder Mobil
 
 Wählen Sie den Typ danach, wo der Schlüssel liegen wird. Der Typ lässt sich nach dem Anlegen des Schlüssels nicht mehr ändern.
 
-| | **Server** | **Browser** |
-| --- | --- | --- |
-| Für | Anwendungen, Collectors und Agenten auf Maschinen, die Sie betreiben | Webseiten, und React Native Session Replay |
-| Sendet | Jede Art von Telemetrie, an jeden Endpunkt | Traces, Protokolle, Metriken, Session Replays und [Sentry-Ereignisse](/docs/telemetry/compatible-endpoints#sentry-sdks) |
-| Ein Geheimnis | Ja: halten Sie ihn auf Ihren Servern | Nein: jeder, der die Seite ansieht, kann ihn lesen |
-| Ursprünge | Nicht geprüft | Nur die aufgeführten Ursprünge werden angenommen |
-| Anfragen pro Minute | Kein Limit, außer Sie setzen eines | 6.000, außer Sie setzen ein anderes Limit |
+| | **Server** | **Browser** | **Mobil** |
+| --- | --- | --- | --- |
+| Für | Anwendungen, Collectors und Agenten auf Maschinen, die Sie betreiben | Webseiten, und React Native Session Replay | Eine iOS-, Android- oder React-Native-App |
+| Sendet | Jede Art von Telemetrie, an jeden Endpunkt | Traces, Protokolle, Metriken, Session Replays und [Sentry-Ereignisse](/docs/telemetry/compatible-endpoints#sentry-sdks) | Traces, Protokolle und Metriken dieser App, über OTLP/HTTP |
+| Ein Geheimnis | Ja: halten Sie ihn auf Ihren Servern | Nein: jeder, der die Seite ansieht, kann ihn lesen | Nein: jeder, der die App hat, kann ihn kopieren |
+| Ursprünge | Nicht geprüft | Nur die aufgeführten Ursprünge werden angenommen | Eine Anfrage von einer Webseite wird abgelehnt |
+| Anfragen pro Minute | Kein Limit, außer Sie setzen eines | 6.000, außer Sie setzen ein anderes Limit | 6.000, außer Sie setzen ein anderes Limit |
 
-Überall sonst lehnt OneUptime einen Browser-Schlüssel ab, etwa über gRPC und MQTT, für Profile, Syslog, Fluent Bit und Fluentd sowie für das Hochladen von Source Maps. Um einen Sender auf den anderen Typ umzustellen, legen Sie einen Schlüssel dieses Typs an, stellen den Sender darauf um und löschen dann den alten Schlüssel.
+Überall sonst lehnt OneUptime einen Browser-Schlüssel ab, etwa über gRPC und MQTT, für Profile, Syslog, Fluent Bit und Fluentd sowie für das Hochladen von Source Maps, und einen Mobil-Schlüssel überall außer bei OTLP-Traces, -Protokollen und -Metriken über HTTP. Um einen Sender auf einen anderen Typ umzustellen, legen Sie einen Schlüssel dieses Typs an, stellen den Sender darauf um und löschen dann den alten Schlüssel.
 
 ## Bevor Sie beginnen
 
@@ -59,9 +59,9 @@ Gehen Sie zu **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüsse
 
 Klicken Sie auf **Ingestion-Schlüssel erstellen**. Der Dialog beginnt mit dem Namen **Server-Schlüssel** und dem Typ **Server**. Wählen Sie den **Schlüsseltyp** und benennen Sie den Schlüssel nach dem, was ihn nutzen wird, etwa `checkout-collector`. Eine **Beschreibung** finden Sie unter **Erweitert**.
 
-### Die Ursprünge eines Browser-Schlüssels hinzufügen
+### Die Ursprünge eines Browser-Schlüssels oder die App eines Mobil-Schlüssels hinzufügen
 
-Ein **Browser**-Schlüssel fragt im nächsten Schritt, **Browser-Einstellungen**, nach dem Feld **Zulässige Ursprünge**, mit dem Feld **Festgelegter Dienstname** unter **Erweitert**. Siehe [Einen Browser-Schlüssel absichern](#einen-browser-schlüssel-absichern).
+Ein **Browser**-Schlüssel fragt im nächsten Schritt, **Browser-Einstellungen**, nach dem Feld **Zulässige Ursprünge**, mit dem Feld **Festgelegter Dienstname** unter **Erweitert**. Siehe [Einen Browser-Schlüssel absichern](#einen-browser-schlüssel-absichern). Ein **Mobil**-Schlüssel fragt stattdessen auf der ersten Seite nach dem Feld **Festgelegter Dienstname**: dem `service.name` der App, mit der er ausgeliefert wird.
 
 ### Den Schlüssel anlegen und sein Geheimnis kopieren
 
@@ -106,6 +106,17 @@ Ein Ursprung besteht aus Schema, Host und optionalem Port: `https://app.example.
 
 Unter [Dienste](/docs/telemetry/services#wie-ein-dienst-in-den-katalog-kommt) steht, wie ein festgelegter Name den Dienst bestimmt. Runner und KI-Agent des Kubernetes-Agenten sowie die Infrastruktur-KI-Agenten registrieren sich nicht mit einem festgelegten Schlüssel: Geben Sie ihnen einen Server-Schlüssel ohne festgelegten Namen.
 
+## Was ein Mobil-Schlüssel begrenzt
+
+Ein Mobil-Schlüssel wird mit Ihrer App ausgeliefert, und jeder, der die App hat, kann ihn kopieren. Diese Grenzen halten jede Kopie bei der App, für die der Schlüssel angelegt wurde:
+
+- **Er schreibt nur als eine App.** Alles, was er sendet, wird unter dem Namen aus **Festgelegter Dienstname** als mobile RUM-Anwendung eingeordnet, egal welchen Dienst oder Host der Sender nennt. Eine Kopie kann nicht in Ihre Backend-Dienste, Hosts oder Cluster schreiben.
+- **Er sendet nur die Telemetrie dieser App.** OTLP-Traces, -Protokolle und -Metriken über HTTP. Er wird über gRPC und MQTT, für Session Replays, Profile und Source Maps, an jedem anderen Endpunkt und von jeder Webseite aus abgelehnt.
+- **Er ist begrenzt.** 6.000 Anfragen pro Minute für alle Kopien zusammen, außer Sie setzen sein **Limit für Anfragen pro Minute**.
+- **Sie können ihn stoppen.** Schalten Sie **Aktiviert** aus oder setzen Sie **Läuft ab am**, und jede Kopie wird innerhalb von Sekunden abgelehnt.
+
+Was er nicht verhindern kann: Wer Ihre App hat, kann trotzdem erfundene Traces, Protokolle und Metriken für diese eine App senden, bis zum Limit des Schlüssels, bis Sie den Schlüssel ausschalten oder er abläuft. Tauschen Sie den Schlüssel mit Ihren Releases aus, damit eine alte Kopie mit ihrer Version aufhört zu funktionieren.
+
 ## Einen Schlüssel rotieren, ausschalten oder löschen
 
 Die Seite eines Schlüssels zeigt **Status**, **Geheimer Schlüssel** hinter **Zum Anzeigen klicken** und **Zuletzt verwendet am**: den letzten Zeitpunkt, zu dem OneUptime damit gesendete Daten angenommen hat.
@@ -132,7 +143,9 @@ Die Seite des Schlüssels zählt mit: **Abgelehnte Telemetrie** listet, was in d
 | `402` mit `Add a payment method` | In OneUptime Cloud ist das Projekt im Free-Plan und hat noch keine Zahlungsmethode. |
 | `422` mit `This telemetry ingestion key has been disabled.` | Jemand hat **Aktiviert** ausgeschaltet. |
 | `422` mit `A browser ingestion key cannot be used for` | Ein Browser-Schlüssel hat einen Endpunkt erreicht, der nur Server-Schlüssel annimmt. |
-| `422` mit `did not send an Origin header` | Ein Browser-Schlüssel wurde von außerhalb eines Browsers gesendet. Nutzen Sie dort einen Server-Schlüssel. |
+| `422` mit `did not send an Origin header` | Ein Browser-Schlüssel wurde von außerhalb eines Browsers gesendet. Nutzen Sie in einer Mobil-App einen Mobil-Schlüssel und überall sonst einen Server-Schlüssel. |
+| `422` mit `A mobile ingestion key cannot be used for` | Ein Mobil-Schlüssel hat einen anderen Endpunkt als OTLP-Traces, -Protokolle und -Metriken über HTTP erreicht, etwa gRPC oder Session Replay. |
+| `422` mit `A mobile ingestion key cannot be used from a web page` | Ein Mobil-Schlüssel wurde von einem Browser gesendet. Nutzen Sie auf einer Webseite einen Browser-Schlüssel. |
 | `422` mit `is not allowed for this browser ingestion key` | Der Ursprung der Seite steht nicht in **Zulässige Ursprünge**. |
 | `422` mit `is pinned to a single service` | Ein Schlüssel, bei dem **Festgelegter Dienstname** gesetzt ist, wurde zum Registrieren eines Agenten verwendet. Nutzen Sie einen Server-Schlüssel ohne festgelegten Namen. |
 | `429` mit `Too many telemetry requests for this ingestion key` | Der Schlüssel hat sein **Limit für Anfragen pro Minute** erreicht. Exporter versuchen es nach der `Retry-After`-Zeit erneut. |

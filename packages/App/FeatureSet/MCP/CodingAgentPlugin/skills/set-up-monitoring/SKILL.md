@@ -193,7 +193,7 @@ In a project that pages people already, `add_to_on_call_policy` adds members and
 }
 ```
 
-Someone who is not in the project yet is invited first, with `invite_people`: OneUptime emails each address an invitation in the person's name, and they can be added to a policy once they join.
+Someone who is not in the project yet is invited first, with `invite_people`: OneUptime emails each address an invitation in the person's name. `add_to_on_call_policy` adds them to a policy by that address right away, as it adds anyone invited earlier who has not joined yet: they are paged once they join, and the policy tells them nothing before.
 
 ```json invite_people
 {

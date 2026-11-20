@@ -48,6 +48,17 @@ import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import { SharedNameKind } from "Common/Types/Database/SharedNames";
+import { getInlineSeparator } from "Common/Types/Translator";
+import { useSharedNameFacts } from "Common/UI/Utils/SharedNameFactsReads";
+import {
+  SharedNameFacts,
+  SharedNameMark,
+  getSharedNameMarks,
+  getSharedNameOptionKey,
+} from "Common/UI/Utils/SharedNameOptions";
+import { SharedNamePill } from "Common/UI/Components/Dropdown/SharedNameOptionLines";
 import React, { FunctionComponent, ReactElement, useId } from "react";
 
 /*
@@ -292,6 +303,42 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
       }
     }
   }
+
+  /*
+   * Policies named alike before names were held to one policy each
+   * (#10314): in Get cover's menu each wears its list's pill, and says what
+   * sets it apart after its name - read on their own, since a shift names
+   * its policies alone.
+   */
+  const coverPolicyFacts: Map<string, SharedNameFacts> = useSharedNameFacts(
+    OnCallDutyPolicy,
+    coverPolicies,
+  );
+  const coverPolicyMarks: Map<string, SharedNameMark> = getSharedNameMarks(
+    coverPolicies.map((policy: UserOverridePolicy) => {
+      return {
+        value: policy.id,
+        label: policy.name,
+        sharedName: coverPolicyFacts.get(policy.id) || {
+          kind: SharedNameKind.OnCallPolicy,
+        },
+      };
+    }),
+    translator,
+  );
+
+  // A policy's item in Get cover's menu: its name, and what sets a twin apart.
+  const getCoverPolicyText: (policy: UserOverridePolicy) => string = (
+    policy: UserOverridePolicy,
+  ): string => {
+    const mark: SharedNameMark | undefined = coverPolicyMarks.get(
+      getSharedNameOptionKey(policy.id),
+    );
+
+    return mark?.detail
+      ? `${policy.name}${getInlineSeparator(translator.language)}${mark.detail}`
+      : policy.name;
+  };
 
   // Get cover on one policy: Add User Override on that policy's own page.
   const getPolicyCoverRoute: (
@@ -619,9 +666,26 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
                   <MoreMenuItem
                     key={policy.id}
                     icon={IconProp.Call}
-                    text={policy.name}
-                    // A policy's name is its project's, drawn as written.
+                    text={getCoverPolicyText(policy)}
+                    /*
+                     * A policy's name is its project's, drawn as written;
+                     * what sets a twin apart is in the reader's words
+                     * already.
+                     */
                     isUserContent={true}
+                    rightElement={
+                      coverPolicyMarks.get(
+                        getSharedNameOptionKey(policy.id),
+                      ) ? (
+                        <SharedNamePill
+                          mark={
+                            coverPolicyMarks.get(
+                              getSharedNameOptionKey(policy.id),
+                            )!
+                          }
+                        />
+                      ) : undefined
+                    }
                     dataTestId="upcoming-shift-cover-policy"
                     onClick={() => {
                       Navigation.navigate(

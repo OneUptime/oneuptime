@@ -179,6 +179,11 @@ export function getDataSecurityBreadcrumbs(
       "Data Security",
       "Compliance",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_AI, [
+      "Project",
+      "Data Security",
+      "AI",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_SCANS, [
       "Project",
       "Data Security",
@@ -207,6 +212,12 @@ export function getDataSecurityBreadcrumbs(
       "Data Security",
       "Settings",
       "Scan Settings",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_SETTINGS_AI, [
+      "Project",
+      "Data Security",
+      "Settings",
+      "OneUptime AI",
     ]),
     /*
      * The rules live under settings/ in the address, so their trail goes

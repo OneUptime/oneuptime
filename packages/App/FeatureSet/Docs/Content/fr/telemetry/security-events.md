@@ -51,7 +51,8 @@ Ouvrez **Produits → Événements de sécurité**, sous **Sécurité**. Son men
 | **Playbooks** | Playbooks | Des étapes qui s'exécutent sur les dossiers, d'elles-mêmes ou à la main |
 | **Approbations** | Playbooks | Les étapes de playbook qui attendent que quelqu'un les approuve ou les rejette |
 | **Exécutions** | Playbooks | Ce que chaque playbook a fait, étape par étape |
-| **Entités protégées** | Playbooks | Les utilisateurs et les hôtes qu'aucun playbook ne confine |
+| **Liste de blocage** | Playbooks | Les adresses que votre projet bloque, jusqu'à quand, et où chaque blocage est appliqué |
+| **Entités protégées** | Playbooks | Les utilisateurs, les hôtes et les adresses qu'aucun playbook ne confine et qu'aucun blocage ne touche |
 | **Paramètres** | IA | Si OneUptime AI qualifie chaque nouveau dossier |
 | **Connexions** | Connexions | Vos journaux, les produits de sécurité qu'interroge OneUptime et les SIEM auxquels il envoie |
 | **Guide de configuration** | Connexions | Des extraits pour envoyer des événements, remplis avec votre clé d'ingestion |
@@ -72,8 +73,8 @@ Seuls les rôles Propriétaire du projet et Administrateur du projet, ainsi que 
 | Rôle | Ce qu'il peut faire |
 | --- | --- |
 | Administrateur de la sécurité | Tout : événements, dossiers, playbooks, règles de détection, flux de renseignement et connexions |
-| Membre de la sécurité | Lire les événements et le renseignement, traiter les dossiers, exécuter des playbooks et approuver leurs étapes, et créer, modifier et supprimer des règles de détection et des flux. Il ne peut ni configurer de playbooks ou de connexions, ni supprimer de données de sécurité. |
-| Lecteur de la sécurité | Lire les événements, les dossiers, les playbooks, les règles, les flux, les indicateurs et les connexions |
+| Membre de la sécurité | Lire les événements et le renseignement, traiter les dossiers, exécuter des playbooks et approuver leurs étapes, bloquer des adresses, et créer, modifier et supprimer des règles de détection et des flux. Il ne peut ni configurer de playbooks ou de connexions, ni supprimer de données de sécurité. |
+| Lecteur de la sécurité | Lire les événements, les dossiers, les playbooks, la liste de blocage, les règles, les flux, les indicateurs et les connexions |
 
 ## Envoyer des événements de sécurité
 
@@ -249,6 +250,7 @@ Un compte AWS, un projet Google Cloud ou un abonnement Azure [connecté sous **C
 | Okta System Log | Événements de connexion, de MFA, de compte et de stratégie | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | Connexions, modifications d'annuaire et détections de risque, si vous le choisissez les connexions en arrière-plan et d'applications qui ont échoué, et, du journal d'audit Microsoft 365, les transferts de courrier, les partages et les verdicts d'hameçonnage | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Connexions, détections propres à Google, modifications d'administration et accès accordés aux applications, et partages Drive | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | Ce que son pare-feu a bloqué, soumis à un challenge et journalisé en périphérie, en HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - Les alertes propres au produit d'un niveau égal ou supérieur à **Ouvrir des dossiers à partir de** (**Élevé et au-dessus** sauf si vous choisissez un autre niveau, ou **Jamais**) ouvrent des [dossiers](/docs/telemetry/security-cases), regroupées selon l'utilisateur, l'hôte ou l'adresse qu'elles concernent.
 - Une connexion lit les enregistrements selon le moment où le produit les a créés, pas selon le moment de l'activité qu'ils décrivent. Une règle SIEM qui s'exécute toutes les heures crée des détections bien après les événements correspondants, et elles sont tout de même importées.

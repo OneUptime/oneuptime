@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 59636,
-    "untranslated": 4618
+    "keys": 60451,
+    "untranslated": 4771
   },
   "sameAsEnglish": [
     " incidents",
@@ -165,6 +165,7 @@
     "Conversation",
     "Conversation {{id}}",
     "Conversations",
+    "Core Web Vitals",
     "Costa Rica",
     "CrowdStrike",
     "Cuba",
@@ -605,6 +606,7 @@
     "Webhooks",
     "Workers",
     "Zone",
+    "Zones",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",
@@ -616,6 +618,7 @@
     "application",
     "arm",
     "arm64",
+    "arn:aws:iam::123456789012:role/OneUptimeSes",
     "aws_lambda · us-east-1 · nodejs 20",
     "bucket",
     "build=1.4.2, plan=pro",
@@ -717,6 +720,7 @@
     "stack",
     "stacks",
     "storage-01 · RegionOne",
+    "storefront-mobile",
     "storefront-web",
     "sum by (job) (rate(http_requests_total[5m]))",
     "svc-backup",

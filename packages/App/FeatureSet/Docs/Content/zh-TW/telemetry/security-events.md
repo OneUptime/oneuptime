@@ -51,7 +51,8 @@ flowchart TB
 | **劇本** | Playbooks | 在案件上自動或手動執行的步驟 |
 | **待核准** | Playbooks | 等待有人核准或拒絕的劇本步驟 |
 | **劇本執行記錄** | Playbooks | 每個劇本逐步做了什麼 |
-| **受保護的實體** | Playbooks | 任何劇本都不會圍堵的使用者和主機 |
+| **封鎖清單** | Playbooks | 你的專案封鎖的位址、截止時間，以及每個封鎖在何處生效 |
+| **受保護的實體** | Playbooks | 任何劇本都不會圍堵、任何封鎖都不會觸及的使用者、主機和位址 |
 | **設定** | 人工智慧 | OneUptime AI 是否研判每個新案件 |
 | **連線** | Connections | 您的日誌、OneUptime 輪詢的安全產品，以及它傳送到的 SIEM |
 | **設定指南** | Connections | 傳送事件的程式碼片段，已填入你的擷取金鑰 |
@@ -72,8 +73,8 @@ flowchart TB
 | 角色 | 能做什麼 |
 | --- | --- |
 | 安全性管理員 | 一切：事件、案件、劇本、偵測規則、威脅情資來源和連線 |
-| 安全性成員 | 讀取事件和威脅情資，處理案件，執行劇本並核准其步驟，以及建立、變更和刪除偵測規則和情資來源。不能設定劇本或連線，也不能刪除安全性資料。 |
-| 安全性檢視者 | 讀取事件、案件、劇本、規則、情資來源、指標和連線 |
+| 安全性成員 | 讀取事件和威脅情資，處理案件，執行劇本並核准其步驟，封鎖位址，以及建立、變更和刪除偵測規則和情資來源。不能設定劇本或連線，也不能刪除安全性資料。 |
+| 安全性檢視者 | 讀取事件、案件、劇本、封鎖清單、規則、情資來源、指標和連線 |
 
 ## 傳送安全性事件
 
@@ -249,6 +250,7 @@ Key Vault、儲存體帳戶和 Azure SQL 資料庫各自保留一份自己的稽
 | Okta System Log | 登入、MFA、帳戶和原則事件 | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | 登入、目錄變更和風險偵測，可選的失敗的背景和應用程式登入，以及 Microsoft 365 稽核日誌中的郵件轉寄、共用和網路釣魚判定 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | 登入、Google 自身的偵測、管理員變更和應用程式授權，以及雲端硬碟中的共用 | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | 其防火牆在邊緣封鎖、質詢和記錄的請求，作為 HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - 產品本身的警示，只要等級達到或高於 **開啟案例的起始嚴重程度**（預設為 **高及以上**，你也可以選擇其他等級或 **從未**），就會開啟 [案件](/docs/telemetry/security-cases)，並依它們涉及的使用者、主機或位址分組。
 - 連線依產品建立記錄的時間讀取記錄，而不是依記錄所描述活動的時間。每小時執行一次的 SIEM 規則會在它符合的事件之後很久才建立偵測，這些偵測仍然會被匯入。

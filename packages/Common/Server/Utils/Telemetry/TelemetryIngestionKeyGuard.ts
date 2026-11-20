@@ -3,6 +3,7 @@ import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngesti
 import { TelemetryIngestRefusalReason } from "../../../Types/Telemetry/TelemetryIngestRefusal";
 import TelemetryIngestSurface, {
   BROWSER_ALLOWED_INGEST_SURFACES,
+  MOBILE_ALLOWED_INGEST_SURFACES,
   getIngestSurfaceReadableName,
 } from "../../../Types/Telemetry/TelemetryIngestSurface";
 
@@ -38,6 +39,8 @@ export enum TelemetryIngestionKeyRefusalReason {
   Disabled = "disabled",
   Expired = "expired",
   SurfaceNotAllowedForBrowserKey = "surface-not-allowed-for-browser-key",
+  // A Mobile key (issue #6457) off a mobile app's OTLP/HTTP surfaces.
+  SurfaceNotAllowedForMobileKey = "surface-not-allowed-for-mobile-key",
 }
 
 export interface TelemetryIngestionKeyRefusal {
@@ -65,7 +68,28 @@ export const TELEMETRY_INGEST_REFUSAL_REASON_FOR_KEY_REFUSAL: Readonly<
     TelemetryIngestRefusalReason.KeyExpired,
   [TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForBrowserKey]:
     TelemetryIngestRefusalReason.BrowserKeyNotAllowedHere,
+  [TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForMobileKey]:
+    TelemetryIngestRefusalReason.MobileKeyNotAllowedHere,
 };
+
+/*
+ * What a Mobile key is told on a surface it may not use (issue #6457). The
+ * HTTP guard (TelemetryIngest.getMobileKeyRefusalMessage) and this one say
+ * the same: what the key sends, and which key to use instead.
+ */
+export function getMobileKeySurfaceRefusalMessage(
+  surface: TelemetryIngestSurface | null,
+): string {
+  const readableSurfaceName: string = surface
+    ? getIngestSurfaceReadableName(surface)
+    : "this ingest endpoint";
+
+  if (surface === TelemetryIngestSurface.SessionReplay) {
+    return `A mobile ingestion key cannot be used for ${readableSurfaceName}: it sends only a mobile app's OTLP traces, logs and metrics. A React Native app records sessions with a browser ingestion key that lists the app as app:// followed by its application ID.`;
+  }
+
+  return `A mobile ingestion key cannot be used for ${readableSurfaceName}: it sends only a mobile app's OTLP traces, logs and metrics over HTTP. Use a server ingestion key here.`;
+}
 
 export default class TelemetryIngestionKeyGuard {
   /**
@@ -74,7 +98,9 @@ export default class TelemetryIngestionKeyGuard {
    * Order matters and mirrors the middleware: the kill switch is checked
    * first so that switching a leaked key off is the one action guaranteed to
    * stop it whatever else is true of the key, then expiry, then the
-   * browser-key surface rule.
+   * browser-key and mobile-key surface rules. None of these surfaces is a
+   * Mobile key's (gRPC, MQTT, the session replay probe): it sends over
+   * OTLP/HTTP only, where its rate limit runs.
    */
   public static getRefusal(data: {
     policy: TelemetryIngestionKeyPolicy;
@@ -106,6 +132,22 @@ export default class TelemetryIngestionKeyGuard {
         message: `A browser ingestion key cannot be used for ${getIngestSurfaceReadableName(
           data.surface,
         )}. Use a server ingestion key.`,
+      };
+    }
+
+    /*
+     * The sentence the HTTP guard sends for the same refusal
+     * (getMobileKeyRefusalMessage), so a key moved between transports reads
+     * the same explanation on both.
+     */
+    if (
+      policy.keyType === TelemetryIngestionKeyType.Mobile &&
+      !MOBILE_ALLOWED_INGEST_SURFACES.has(data.surface)
+    ) {
+      return {
+        reason:
+          TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForMobileKey,
+        message: getMobileKeySurfaceRefusalMessage(data.surface),
       };
     }
 

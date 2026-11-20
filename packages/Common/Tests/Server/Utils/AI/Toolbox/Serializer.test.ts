@@ -218,7 +218,7 @@ describe("ToolResultSerializer.redact - counting", () => {
   });
 
   test("matches from different rules add up", () => {
-    expect(countOf("a@b.com from 10.0.0.1")).toBe(2);
+    expect(countOf("a@b.com from 203.0.113.1")).toBe(2);
   });
 
   test("each private key block counts once, however many lines it spans", () => {
