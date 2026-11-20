@@ -20,6 +20,15 @@ import { CheckOn } from "../../../../Types/Monitor/CriteriaFilter";
 import RollingTime from "../../../../Types/RollingTime/RollingTime";
 import ObjectID from "../../../../Types/ObjectID";
 import { JSONObject } from "../../../../Types/JSON";
+import Dictionary from "../../../../Types/Dictionary";
+import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigData";
+import MetricFormulaConfigData from "../../../../Types/Metrics/MetricFormulaConfigData";
+import MetricMonitorResponse from "../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MonitorType from "../../../../Types/Monitor/MonitorType";
+import Wildcard from "../../../../Types/BaseDatabase/Wildcard";
+import MetricExplorerUrl, {
+  SerializedMetricQuery,
+} from "../../../../Utils/Metrics/MetricExplorerUrl";
 import { INHERITED_PROPERTY_NAMES } from "../../../Helpers/InheritedNames";
 import { describe, expect, test } from "@jest/globals";
 
@@ -47,21 +56,26 @@ type EvaluatorPrivate = {
   buildMetricExplorerDeepLink: (input: {
     monitor: Monitor;
     ctx: MetricCriteriaContext;
+    monitorStep?: MonitorStep | undefined;
+    metricResponse?: MetricMonitorResponse | null | undefined;
   }) => string | null;
   buildLogsExplorerDeepLink: (input: {
     monitor: Monitor;
     ctx: MetricCriteriaContext;
     monitorStep?: MonitorStep | undefined;
+    metricResponse?: MetricMonitorResponse | null | undefined;
   }) => TelemetryExplorerDeepLink | null;
   buildTracesExplorerDeepLink: (input: {
     monitor: Monitor;
     ctx: MetricCriteriaContext;
     monitorStep?: MonitorStep | undefined;
+    metricResponse?: MetricMonitorResponse | null | undefined;
   }) => TelemetryExplorerDeepLink | null;
   buildMetricRootCauseContext: (input: {
     criteriaInstance: MonitorCriteriaInstance;
     monitor: Monitor;
     monitorStep?: MonitorStep | undefined;
+    metricResponse?: MetricMonitorResponse | null | undefined;
   }) => MarkdownText | null;
   formatScopeDroppedHint: (dropped: Array<string>) => MarkdownText;
 };
@@ -509,5 +523,594 @@ describe("MonitorCriteriaEvaluator - partial-scope hint formatting", () => {
     ).toBe(
       " _(scope partially carried — not applied: severityTexts, spanIds)_",
     );
+  });
+});
+
+/*
+ * A RESOURCE MONITOR'S LINKS OPEN WHAT IT READ (#10451).
+ *
+ * A Host, Docker, Podman or IoT Device monitor reads its metric narrowed to
+ * its host, containers or fleet, and says so on its response
+ * (MetricMonitorResponse.queryAttributes). Its links used to open the
+ * metric for every host, and logs and spans by the metric's own attributes
+ * (a Windows service's `name`), which no log line or span carries. Each
+ * link is read back here as its explorer reads it: the metric explorer's
+ * own parser for `metricQueries`, the logs explorer's `filters` tuples and
+ * the traces explorer's `search` tokens.
+ */
+describe("MonitorCriteriaEvaluator - a resource monitor's links (#10451)", () => {
+  const HOST: string = "web-01";
+
+  interface LinkInput {
+    monitor: Monitor;
+    ctx: MetricCriteriaContext;
+    monitorStep?: MonitorStep | undefined;
+    metricResponse: MetricMonitorResponse;
+  }
+
+  function queryOf(data: {
+    variable: string;
+    metricName: string;
+    attributes?: JSONObject;
+  }): MetricQueryConfigData {
+    return {
+      metricAliasData: {
+        metricVariable: data.variable,
+        title: undefined,
+        description: undefined,
+        legend: undefined,
+        legendUnit: undefined,
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: data.metricName,
+          attributes: data.attributes || {},
+        },
+      },
+    } as MetricQueryConfigData;
+  }
+
+  function responseOf(data: {
+    queryConfigs: Array<MetricQueryConfigData>;
+    formulaConfigs?: Array<MetricFormulaConfigData>;
+    queryAttributes?: Array<Dictionary<unknown> | undefined>;
+    queryServiceIds?: Array<string>;
+  }): MetricMonitorResponse {
+    return {
+      projectId: ObjectID.generate(),
+      monitorId: ObjectID.generate(),
+      metricViewConfig: {
+        queryConfigs: data.queryConfigs,
+        formulaConfigs: data.formulaConfigs || [],
+      },
+      metricResult: [],
+      ...(data.queryAttributes
+        ? { queryAttributes: data.queryAttributes }
+        : {}),
+      ...(data.queryServiceIds
+        ? { queryServiceIds: data.queryServiceIds }
+        : {}),
+    } as MetricMonitorResponse;
+  }
+
+  function monitorOf(monitorType: MonitorType): Monitor {
+    const monitor: Monitor = makeMonitor(ObjectID.generate());
+    monitor.monitorType = monitorType;
+    return monitor;
+  }
+
+  function stepOf(monitorType: MonitorType, data: JSONObject): MonitorStep {
+    const step: MonitorStep = new MonitorStep();
+    const config: JSONObject = {
+      metricViewConfig: { queryConfigs: [], formulaConfigs: [] },
+      rollingTime: RollingTime.Past5Minutes,
+      ...data,
+    };
+
+    switch (monitorType) {
+      case MonitorType.Host:
+        step.data!.hostMonitor = config as never;
+        break;
+      case MonitorType.Docker:
+        step.data!.dockerMonitor = config as never;
+        break;
+      case MonitorType.Podman:
+        step.data!.podmanMonitor = config as never;
+        break;
+      case MonitorType.IoTDevice:
+        step.data!.iotMonitor = config as never;
+        break;
+      default:
+        step.data!.metricMonitor = config as never;
+    }
+
+    return step;
+  }
+
+  function criteriaOf(ctx: MetricCriteriaContext): MonitorCriteriaInstance {
+    const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+    instance.data!.filters = [
+      {
+        checkOn: CheckOn.MetricValue,
+        filterType: undefined,
+        value: undefined,
+        metricCriteriaContext: ctx,
+      },
+    ];
+    return instance;
+  }
+
+  // The metric explorer's own reading of the link's queries.
+  function metricQueriesOf(url: string): Array<SerializedMetricQuery> {
+    return MetricExplorerUrl.parseMetricQueriesParam(
+      getQueryParams(url).get("metricQueries") || "",
+    );
+  }
+
+  // The logs explorer's `filters`: [facetKey, values[]] tuples.
+  function logsFiltersOf(url: string): Array<[string, Array<string>]> {
+    const raw: string | null = getQueryParams(url).get("filters");
+    return raw ? JSON.parse(raw) : [];
+  }
+
+  describe("a Windows service's monitor, as Create Monitor makes it: Spooler on web-01", () => {
+    const spooler: MetricQueryConfigData = queryOf({
+      variable: "service_status",
+      metricName: "windows.service.status",
+      attributes: { name: "Spooler" },
+    });
+
+    const ctx: MetricCriteriaContext = makeContext({
+      metricName: "windows.service.status",
+      alias: "service_status",
+      filterAttributes: { name: "Spooler" },
+      seriesLabels: undefined,
+    });
+
+    const input: LinkInput = {
+      monitor: monitorOf(MonitorType.Host),
+      ctx: ctx,
+      monitorStep: stepOf(MonitorType.Host, { hostIdentifier: HOST }),
+      metricResponse: responseOf({
+        queryConfigs: [spooler],
+        // What monitorHost read: the service, on the host.
+        queryAttributes: [{ name: "Spooler", "resource.host.name": HOST }],
+      }),
+    };
+
+    test("Open metric charts Spooler on web-01, not on every host", () => {
+      expect(
+        metricQueriesOf(Evaluator.buildMetricExplorerDeepLink(input)!),
+      ).toEqual([
+        {
+          metricName: "windows.service.status",
+          attributes: { name: "Spooler", "resource.host.name": HOST },
+        },
+      ]);
+    });
+
+    test("Open logs reads web-01's logs, not logs whose own `name` is Spooler", () => {
+      const link: TelemetryExplorerDeepLink =
+        Evaluator.buildLogsExplorerDeepLink(input)!;
+
+      expect(logsFiltersOf(link.url)).toEqual([
+        ["attributes.resource.host.name", [HOST]],
+      ]);
+      expect(link.dropped).toEqual([]);
+      expect(getQueryParams(link.url).get("range")).toBe("Custom");
+    });
+
+    test("Open traces reads web-01's spans, not spans named Spooler", () => {
+      const link: TelemetryExplorerDeepLink =
+        Evaluator.buildTracesExplorerDeepLink(input)!;
+      const params: URLSearchParams = getQueryParams(link.url);
+
+      expect(params.get("search")).toBe(`@resource.host.name:${HOST}`);
+      expect(params.get("filters")).toBeNull();
+      expect(link.dropped).toEqual([]);
+    });
+
+    test("the root cause carries all three, with no partial-scope hint", () => {
+      const context: string = textOf(
+        Evaluator.buildMetricRootCauseContext({
+          criteriaInstance: criteriaOf(ctx),
+          ...input,
+        }),
+      )!;
+
+      expect(context).toContain("[Open metric in dashboard](");
+      expect(context).toContain("[Open logs in dashboard](");
+      expect(context).toContain("[Open traces in dashboard](");
+      expect(context).not.toContain("scope partially carried");
+    });
+  });
+
+  test("a systemd unit's logs are its journal lines on its host", () => {
+    const unitAttributes: JSONObject = {
+      "resource.systemd.unit.name": "nginx.service",
+      "systemd.unit.active_state": "active",
+    };
+
+    const link: TelemetryExplorerDeepLink = Evaluator.buildLogsExplorerDeepLink(
+      {
+        monitor: monitorOf(MonitorType.Host),
+        ctx: makeContext({
+          metricName: "systemd.unit.state",
+          alias: "unit_active",
+          filterAttributes: unitAttributes,
+          seriesLabels: undefined,
+        }),
+        monitorStep: stepOf(MonitorType.Host, { hostIdentifier: HOST }),
+        metricResponse: responseOf({
+          queryConfigs: [
+            queryOf({
+              variable: "unit_active",
+              metricName: "systemd.unit.state",
+              attributes: unitAttributes,
+            }),
+          ],
+          queryAttributes: [{ ...unitAttributes, "resource.host.name": HOST }],
+        }),
+      },
+    )!;
+
+    expect(logsFiltersOf(link.url)).toEqual([
+      ["attributes.resource.host.name", [HOST]],
+      ["attributes.systemd.unit.name", ["nginx.service"]],
+    ]);
+  });
+
+  test("a CPU monitor of every host, grouped by host: the host whose series breached", () => {
+    const input: LinkInput = {
+      monitor: monitorOf(MonitorType.Host),
+      ctx: makeContext({
+        metricName: "system.cpu.utilization",
+        alias: "cpu",
+        filterAttributes: { state: "user" },
+        seriesLabels: { "resource.host.name": "web-07" },
+      }),
+      monitorStep: stepOf(MonitorType.Host, { hostIdentifier: "" }),
+      // Nothing added: a monitor of every host is read for every host.
+      metricResponse: responseOf({
+        queryConfigs: [
+          queryOf({
+            variable: "cpu",
+            metricName: "system.cpu.utilization",
+            attributes: { state: "user" },
+          }),
+        ],
+        queryAttributes: [{ state: "user" }],
+      }),
+    };
+
+    expect(
+      metricQueriesOf(Evaluator.buildMetricExplorerDeepLink(input)!),
+    ).toEqual([
+      { metricName: "system.cpu.utilization", attributes: { state: "user" } },
+    ]);
+    expect(
+      logsFiltersOf(Evaluator.buildLogsExplorerDeepLink(input)!.url),
+    ).toEqual([["attributes.resource.host.name", ["web-07"]]]);
+    expect(
+      getQueryParams(Evaluator.buildTracesExplorerDeepLink(input)!.url).get(
+        "search",
+      ),
+    ).toBe("@resource.host.name:web-07");
+  });
+
+  test("a monitor of every host, ungrouped: the window alone, no host and no `state`", () => {
+    const input: LinkInput = {
+      monitor: monitorOf(MonitorType.Host),
+      ctx: makeContext({
+        metricName: "system.cpu.utilization",
+        alias: "cpu",
+        filterAttributes: { state: "user" },
+        seriesLabels: undefined,
+      }),
+      monitorStep: stepOf(MonitorType.Host, { hostIdentifier: "" }),
+      metricResponse: responseOf({
+        queryConfigs: [
+          queryOf({
+            variable: "cpu",
+            metricName: "system.cpu.utilization",
+            attributes: { state: "user" },
+          }),
+        ],
+        queryAttributes: [{ state: "user" }],
+      }),
+    };
+
+    const logs: URLSearchParams = getQueryParams(
+      Evaluator.buildLogsExplorerDeepLink(input)!.url,
+    );
+    const traces: URLSearchParams = getQueryParams(
+      Evaluator.buildTracesExplorerDeepLink(input)!.url,
+    );
+
+    expect(logs.get("filters")).toBeNull();
+    expect(logs.get("range")).toBe("Custom");
+    expect(traces.get("search")).toBeNull();
+    expect(traces.get("filters")).toBeNull();
+  });
+
+  describe.each([
+    [MonitorType.Docker, "docker"],
+    [MonitorType.Podman, "podman"],
+  ])("a %s monitor's links", (monitorType: MonitorType, runtime: string) => {
+    function inputOf(containerName: string): LinkInput {
+      return {
+        monitor: monitorOf(monitorType),
+        ctx: makeContext({
+          metricName: "container.restarts",
+          alias: "restarts",
+          filterAttributes: {},
+          seriesLabels: undefined,
+        }),
+        monitorStep: stepOf(monitorType, {
+          hostIdentifier: "dock-01",
+          containerFilters: containerName ? { containerName } : {},
+        }),
+        // What monitorDocker / monitorPodman read.
+        metricResponse: responseOf({
+          queryConfigs: [
+            queryOf({ variable: "restarts", metricName: "container.restarts" }),
+          ],
+          queryAttributes: [
+            {
+              "resource.host.name": "dock-01",
+              "resource.container.runtime": runtime,
+              ...(containerName
+                ? { "resource.container.name": containerName }
+                : {}),
+            },
+          ],
+        }),
+      };
+    }
+
+    test("Open metric charts the containers it read: host, runtime and container", () => {
+      expect(
+        metricQueriesOf(Evaluator.buildMetricExplorerDeepLink(inputOf("web"))!),
+      ).toEqual([
+        {
+          metricName: "container.restarts",
+          attributes: {
+            "resource.host.name": "dock-01",
+            "resource.container.runtime": runtime,
+            "resource.container.name": "web",
+          },
+        },
+      ]);
+    });
+
+    test("Open logs: the host's container logs, and it says the container is not applied", () => {
+      const link: TelemetryExplorerDeepLink =
+        Evaluator.buildLogsExplorerDeepLink(inputOf("web"))!;
+
+      expect(logsFiltersOf(link.url)).toEqual([
+        ["attributes.resource.host.name", ["dock-01"]],
+        ["attributes.resource.container.runtime", [runtime]],
+      ]);
+      expect(link.dropped).toEqual(["resource.container.name"]);
+    });
+
+    test("Open traces: the host's spans, and the same word on the container", () => {
+      const link: TelemetryExplorerDeepLink =
+        Evaluator.buildTracesExplorerDeepLink(inputOf("web"))!;
+
+      expect(getQueryParams(link.url).get("search")).toBe(
+        "@resource.host.name:dock-01",
+      );
+      expect(link.dropped).toEqual(["resource.container.name"]);
+    });
+
+    test("with no container filter, nothing is left out", () => {
+      expect(Evaluator.buildLogsExplorerDeepLink(inputOf(""))!.dropped).toEqual(
+        [],
+      );
+      expect(
+        Evaluator.buildTracesExplorerDeepLink(inputOf(""))!.dropped,
+      ).toEqual([]);
+    });
+
+    test("the root cause says, beside both links, what they could not narrow to", () => {
+      const input: LinkInput = inputOf("web");
+      const context: string = textOf(
+        Evaluator.buildMetricRootCauseContext({
+          criteriaInstance: criteriaOf(input.ctx),
+          ...input,
+        }),
+      )!;
+
+      expect(
+        context.split(
+          "_(scope partially carried — not applied: resource.container.name)_",
+        ).length - 1,
+      ).toBe(2);
+    });
+  });
+
+  test("an IoT Device monitor: the fleet it read, case aside, and logs by the fleet's name", () => {
+    const input: LinkInput = {
+      monitor: monitorOf(MonitorType.IoTDevice),
+      ctx: makeContext({
+        metricName: "temperature",
+        alias: "temperature",
+        filterAttributes: {},
+        seriesLabels: { "device.id": "dev-17" },
+      }),
+      monitorStep: stepOf(MonitorType.IoTDevice, {
+        fleetIdentifier: "Warehouse",
+        resourceFilters: {},
+      }),
+      metricResponse: responseOf({
+        queryConfigs: [
+          queryOf({ variable: "temperature", metricName: "temperature" }),
+        ],
+        queryAttributes: [
+          { "resource.iot.fleet.name": new Wildcard<string>(["Warehouse"]) },
+        ],
+      }),
+    };
+
+    const fleet: unknown = metricQueriesOf(
+      Evaluator.buildMetricExplorerDeepLink(input)!,
+    )[0]!.attributes?.["resource.iot.fleet.name"];
+
+    // The explorer rebuilds the operator the worker read with.
+    expect(fleet).toBeInstanceOf(Wildcard);
+    expect((fleet as Wildcard<string>).values).toEqual(["Warehouse"]);
+
+    const logs: TelemetryExplorerDeepLink =
+      Evaluator.buildLogsExplorerDeepLink(input)!;
+
+    expect(logsFiltersOf(logs.url)).toEqual([
+      ["attributes.resource.iot.fleet.name", ["Warehouse"]],
+    ]);
+    expect(logs.dropped).toEqual(["device.id"]);
+  });
+
+  test("a formula of a Host monitor: every query it was computed from, on the host", () => {
+    const user: MetricQueryConfigData = queryOf({
+      variable: "a",
+      metricName: "system.cpu.time",
+      attributes: { state: "user" },
+    });
+    const system: MetricQueryConfigData = queryOf({
+      variable: "b",
+      metricName: "system.cpu.time",
+      attributes: { state: "system" },
+    });
+    const formula: MetricFormulaConfigData = {
+      metricAliasData: {
+        metricVariable: "c",
+        title: undefined,
+        description: undefined,
+        legend: "CPU Busy (%)",
+        legendUnit: "%",
+      },
+      metricFormulaData: { metricFormula: "a + b" },
+    } as MetricFormulaConfigData;
+
+    const url: string = Evaluator.buildMetricExplorerDeepLink({
+      monitor: monitorOf(MonitorType.Host),
+      ctx: makeContext({
+        metricName: "a + b",
+        alias: "c",
+        isFormula: true,
+        filterAttributes: {},
+        seriesLabels: undefined,
+      }),
+      monitorStep: stepOf(MonitorType.Host, {
+        hostIdentifier: HOST,
+        metricViewConfig: {
+          queryConfigs: [user, system],
+          formulaConfigs: [formula],
+        },
+      }),
+      metricResponse: responseOf({
+        queryConfigs: [user, system],
+        formulaConfigs: [formula],
+        queryAttributes: [
+          { state: "user", "resource.host.name": HOST },
+          { state: "system", "resource.host.name": HOST },
+        ],
+      }),
+    })!;
+
+    expect(
+      metricQueriesOf(url).map((query: SerializedMetricQuery) => {
+        return query.attributes;
+      }),
+    ).toEqual([
+      { state: "user", "resource.host.name": HOST },
+      { state: "system", "resource.host.name": HOST },
+    ]);
+    // The step's own queries are as they were.
+    expect(user.metricQueryData.filterData.attributes).toEqual({
+      state: "user",
+    });
+  });
+
+  describe("a Metrics monitor's links", () => {
+    const latency: MetricQueryConfigData = queryOf({
+      variable: "a",
+      metricName: "http.server.duration",
+      attributes: { "http.route": "/checkout" },
+    });
+
+    test("Open metric is read for the services the monitor reads", () => {
+      const url: string = Evaluator.buildMetricExplorerDeepLink({
+        monitor: monitorOf(MonitorType.Metrics),
+        ctx: makeContext({
+          metricName: "http.server.duration",
+          alias: "a",
+          filterAttributes: { "http.route": "/checkout" },
+        }),
+        metricResponse: responseOf({
+          queryConfigs: [latency],
+          queryAttributes: [{ "http.route": "/checkout" }],
+          queryServiceIds: [SERVICE_ID_A],
+        }),
+      })!;
+
+      expect(metricQueriesOf(url)).toEqual([
+        {
+          metricName: "http.server.duration",
+          attributes: { "http.route": "/checkout" },
+          serviceIds: [SERVICE_ID_A],
+        },
+      ]);
+    });
+
+    test("its logs and traces keep the metric's own attributes: a span-derived metric shares its spans'", () => {
+      const input: LinkInput = {
+        monitor: monitorOf(MonitorType.Metrics),
+        ctx: makeContext({
+          metricName: "http.server.duration",
+          alias: "a",
+          filterAttributes: { "http.route": "/checkout" },
+          seriesLabels: { "resource.host.name": "api-3" },
+        }),
+        monitorStep: makeMetricMonitorStep([new ObjectID(SERVICE_ID_A)]),
+        metricResponse: responseOf({
+          queryConfigs: [latency],
+          queryAttributes: [{ "http.route": "/checkout" }],
+          queryServiceIds: [SERVICE_ID_A],
+        }),
+      };
+
+      expect(
+        logsFiltersOf(Evaluator.buildLogsExplorerDeepLink(input)!.url),
+      ).toEqual([
+        ["primaryEntityId", [SERVICE_ID_A]],
+        ["attributes.http.route", ["/checkout"]],
+        ["attributes.resource.host.name", ["api-3"]],
+      ]);
+    });
+  });
+
+  test("a response that does not say what each query was read with changes nothing", () => {
+    const url: string = Evaluator.buildMetricExplorerDeepLink({
+      monitor: monitorOf(MonitorType.Host),
+      ctx: makeContext({
+        metricName: "windows.service.status",
+        alias: "service_status",
+        filterAttributes: { name: "Spooler" },
+      }),
+      metricResponse: responseOf({
+        queryConfigs: [
+          queryOf({
+            variable: "service_status",
+            metricName: "windows.service.status",
+          }),
+          queryOf({ variable: "other", metricName: "other" }),
+        ],
+        // One read for two queries: not lined up, so not read.
+        queryAttributes: [{ "resource.host.name": HOST }],
+      }),
+    })!;
+
+    expect(metricQueriesOf(url)[0]!.attributes).toEqual({ name: "Spooler" });
   });
 });
