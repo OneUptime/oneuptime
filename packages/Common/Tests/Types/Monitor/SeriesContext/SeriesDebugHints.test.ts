@@ -1329,7 +1329,9 @@ describe("SeriesDebugHints", () => {
   /*
    * #9835: a Metrics monitor grouped by a managed device (Esper Device
    * Stopped Checking In) - the CLI can list what the device's connection
-   * last read of it.
+   * last read of it. #10098: and its Android security patch's age at each
+   * read, which a device manager's Security Patch Out of Date reads; the
+   * series names the device alone, whichever template it is of.
    */
   describe("a managed device that stopped checking in", () => {
     test("lists the device's last readings, newest first, read-only", () => {
@@ -1340,7 +1342,21 @@ describe("SeriesDebugHints", () => {
         }),
       ).toEqual([
         `oneuptime metric list --query '{"name":"oneuptime.managed_device.check_in.age","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
+        `oneuptime metric list --query '{"name":"oneuptime.managed_device.security_patch.age","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
       ]);
+    });
+
+    test("its check-ins come first, the security patch's age after them", () => {
+      const commands: Array<string> = getCommandStrings({
+        monitorType: MonitorType.Metrics,
+        seriesLabels: { "oneuptime.managed_device.name": "ESP-ID-AAAAW" },
+      });
+
+      expect(commands).toHaveLength(2);
+      expect(commands[0]).toContain("oneuptime.managed_device.check_in.age");
+      expect(commands[1]).toContain(
+        "oneuptime.managed_device.security_patch.age",
+      );
     });
 
     test("finds the device under the resource. spelling too", () => {
@@ -1355,13 +1371,16 @@ describe("SeriesDebugHints", () => {
     });
 
     test("a hostile device name is quoted into an inert argument", () => {
-      const [command] = getCommandStrings({
+      const commands: Array<string> = getCommandStrings({
         monitorType: MonitorType.Metrics,
         seriesLabels: { "oneuptime.managed_device.name": "x'; rm -rf / '" },
       });
 
-      expect(command).toContain(`'{"name":`);
-      expect(command).toContain(`x'\\''; rm -rf / '\\''`);
+      expect(commands).toHaveLength(2);
+      for (const command of commands) {
+        expect(command).toContain(`'{"name":`);
+        expect(command).toContain(`x'\\''; rm -rf / '\\''`);
+      }
     });
 
     test("a Metrics series that names no managed device has no command", () => {

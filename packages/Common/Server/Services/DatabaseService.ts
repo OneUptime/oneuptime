@@ -11111,7 +11111,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       /*
        * repository.find, with a page of a joined read taken in one query
-       * where one query gives the same page (PagedFind).
+       * where one query gives the same page (PagedFind). An order through a
+       * relation by a person's name, picture or two-factor flag reads each
+       * person as the asker sees them: someone only invited to the asker's
+       * projects by the name typed for them, else their address (#9895,
+       * PendingInviteeProfiles.orderAsTheReaderSees) - the rows below show
+       * them so, and where they fall must say no more than the rows do.
        */
       const items: Array<TBaseModel> = await PagedFind.find(
         this.getRepository(),
@@ -11124,6 +11129,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           select: onBeforeFind.select as any,
           withDeleted: withDeleted || false,
         },
+        PendingInviteeProfiles.getOrderAdjuster(narrowed.asker),
       );
 
       let decryptedItems: Array<TBaseModel> = [];

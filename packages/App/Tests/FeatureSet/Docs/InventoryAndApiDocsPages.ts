@@ -99,8 +99,12 @@ export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
  *   - a recommended monitor's name, which a Recommendations page draws as
  *     its template names it: Esper Android Device Stopped Checking In,
  *     Esper Apple Device Stopped Checking In and Intune Device Stopped
- *     Checking In (#9837), and Host Stopped Reporting for a device the
- *     Android Agent reports (#9835).
+ *     Checking In (#9837), Workspace ONE Device Stopped Checking In
+ *     (#10086), SOTI Device Stopped Checking In and SOTI Apple Device
+ *     Stopped Checking In (#10087), and Host Stopped Reporting for a device
+ *     the Android Agent reports (#9835); and each device manager's Security
+ *     Patch Out of Date (#10098), with the Android Agent's own Security
+ *     Patch Out of Date for a device it reports.
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
@@ -108,7 +112,15 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Esper Android Device Stopped Checking In",
       "Esper Apple Device Stopped Checking In",
       "Intune Device Stopped Checking In",
+      "Workspace ONE Device Stopped Checking In",
+      "SOTI Device Stopped Checking In",
+      "SOTI Apple Device Stopped Checking In",
       "Host Stopped Reporting",
+      "Esper Security Patch Out of Date",
+      "Intune Security Patch Out of Date",
+      "Workspace ONE Security Patch Out of Date",
+      "SOTI Security Patch Out of Date",
+      "Security Patch Out of Date",
     ],
     [API_REFERENCE]: ["⋯", "Owned", "On Update"],
   };

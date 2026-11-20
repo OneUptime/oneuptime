@@ -1,0 +1,133 @@
+# What `helm install` and `helm upgrade` print while nginx.http2: false keeps
+# HTTP/2 off for host (templates/NOTES.txt, issue #9973).
+#
+# nginx.http2: false turns HTTP/2 off on the gateway, for when nginx fixes a
+# vulnerability in HTTP/2 and OneUptime cannot be upgraded yet (#9846,
+# tests/nginx-http2_test.yaml). Every upgrade keeps it off until it is set
+# back, and OTLP over gRPC to host is refused meanwhile, so it is easy to
+# leave off after the upgrade that brings the fix. The notes say so at every
+# install and upgrade while it is off, and only where it changes anything: a
+# gateway this chart runs that serves host over HTTPS itself (ssl.provision).
+# Without that, the gateway speaks HTTP/1.1 alone and the value does nothing.
+# npm start's checks say the same on Docker Compose (Scripts/Install/Doctor.js).
+suite: the notes while nginx.http2 keeps HTTP/2 off
+release:
+  name: ou
+  namespace: oneuptime
+templates:
+  - templates/NOTES.txt
+tests:
+  - it: says HTTP/2 is off for host, what that stops, and how to set it back
+    set:
+      host: oneuptime.example.com
+      httpProtocol: https
+      ssl.provision: true
+      nginx.http2: false
+    asserts:
+      - matchRegexRaw:
+          pattern: '\n\nHTTP/2 is off for oneuptime\.example\.com \(nginx\.http2: false\), so OTLP over gRPC to it is refused\.\n\nUpgrades keep it off: once the gateway runs a fixed nginx, set\nnginx\.http2: true in your values and run helm upgrade\. OTLP over HTTP and\nbrowsers keep working over HTTP/1\.1 meanwhile\. Details:\nhttps://oneuptime\.com/docs/self-hosted/hardening\n'
+
+  - it: says it at every upgrade too, as long as it is off
+    release:
+      upgrade: true
+      revision: 7
+    set:
+      host: oneuptime.example.com
+      ssl.provision: true
+      nginx.http2: false
+    asserts:
+      - matchRegexRaw:
+          pattern: 'HTTP/2 is off for oneuptime\.example\.com \(nginx\.http2: false\)'
+
+  - it: names host without its port, as the gateway names its server
+    set:
+      host: oneuptime.example.com:8443
+      ssl.provision: true
+      nginx.http2: false
+    asserts:
+      - matchRegexRaw:
+          pattern: 'HTTP/2 is off for oneuptime\.example\.com \(nginx\.http2: false\)'
+
+  - it: keeps an IPv6 host's brackets, and drops its port
+    set:
+      host: "[2001:db8::1]:8443"
+      ssl.provision: true
+      nginx.http2: false
+    asserts:
+      - matchRegexRaw:
+          pattern: 'HTTP/2 is off for \[2001:db8::1\] \(nginx\.http2: false\)'
+
+  - it: comes before the closing lines, and after what the install says first
+    set:
+      host: oneuptime.example.com
+      ssl.provision: true
+      nginx.http2: false
+    asserts:
+      - matchRegexRaw:
+          pattern: '^OneUptime is installed\.'
+      - matchRegexRaw:
+          pattern: 'HTTP/2 is off for [\s\S]*OneUptime is deployed!'
+
+  - it: says nothing while HTTP/2 is on, the default
+    set:
+      host: oneuptime.example.com
+      ssl.provision: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: 'HTTP/2 is off'
+
+  - it: says nothing with nginx.http2 true
+    set:
+      host: oneuptime.example.com
+      ssl.provision: true
+      nginx.http2: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: 'HTTP/2 is off'
+
+  # A values file from before the setting has no key, which keeps it on.
+  - it: says nothing for values without the key
+    set:
+      host: oneuptime.example.com
+      ssl.provision: true
+      nginx.http2: null
+    asserts:
+      - notMatchRegexRaw:
+          pattern: 'HTTP/2 is off'
+
+  # Without ssl.provision the gateway serves no HTTPS for host: nothing to turn off.
+  - it: says nothing without ssl.provision, where the value changes nothing
+    set:
+      host: oneuptime.example.com
+      ssl.provision: false
+      nginx.http2: false
+    asserts:
+      - notMatchRegexRaw:
+          pattern: 'HTTP/2 is off'
+
+  - it: says nothing on the chart's defaults, which leave ssl.provision off
+    set:
+      nginx.http2: false
+    asserts:
+      - notMatchRegexRaw:
+          pattern: 'HTTP/2 is off'
+
+  - it: says nothing when the chart runs no gateway of its own
+    set:
+      host: oneuptime.example.com
+      ssl.provision: true
+      nginx.http2: false
+      nginx.enabled: false
+    asserts:
+      - notMatchRegexRaw:
+          pattern: 'HTTP/2 is off'
+
+  - it: says nothing when the chart renders no deployments
+    set:
+      host: oneuptime.example.com
+      ssl.provision: true
+      nginx.http2: false
+      deployment.disableDeployments: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: 'HTTP/2 is off'

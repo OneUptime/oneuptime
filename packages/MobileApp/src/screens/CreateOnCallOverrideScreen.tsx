@@ -35,6 +35,18 @@ import {
   getGlobalOverrideLockReason,
   type GlobalOverrideAccess,
 } from "../oncall/globalOverrideAccess";
+import { useOverrideTeamLimits } from "../hooks/useOverrideTeamLimits";
+import {
+  useOverrideTeamPeople,
+  type OverrideTeamPeopleState,
+} from "../hooks/useOverrideTeamPeople";
+import {
+  OVERRIDE_TEAM_PICKER_EMPTY_TEXT,
+  getMemberIdsOfTeams,
+  getOverrideTeamHint,
+  getOverrideTeamPersonRefusal,
+  type OverrideTeamLimit,
+} from "../oncall/overrideTeamAccess";
 import type { CoverPolicy } from "../api/onCallOverrides";
 import GradientButton from "../components/GradientButton";
 import SegmentedControl from "../components/SegmentedControl";
@@ -120,6 +132,10 @@ export function readPrefilledWindow(
  * on each one ticked. For someone who may cover none of them, or may add no
  * override at all, it says why in place of the form, before anything is
  * chosen.
+ *
+ * For someone who manages the user overrides of their own teams' people
+ * only, the teammate is picked from those teams' people, and the picker
+ * says which teams (issue #9883, as the Dashboard's pickers do).
  */
 export default function CreateOnCallOverrideScreen(): React.JSX.Element {
   const { theme } = useTheme();
@@ -212,10 +228,36 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
     Set<string>
   >(new Set<string>());
 
-  const projectUsers: ReturnType<typeof useProjectUsers> =
-    useProjectUsers(projectId);
+  /*
+   * For someone who manages the user overrides of their own teams' people
+   * only (Manage On-Call Policy User Overrides for Own Team, issue #9883):
+   * the server refuses cover from or for anybody else, so the picker offers
+   * only the accepted members of the teams that give them the permission,
+   * and says which teams above the list (oncall/overrideTeamAccess). Asked
+   * as the cover is added: global, or on a policy. Everyone else picks from
+   * the whole project, as before.
+   */
+  const teamLimit: OverrideTeamLimit | null = useOverrideTeamLimits(projectId)(
+    "create",
+    !prefill?.policyId && !isOnSomePolicies,
+  );
+  const teamPeople: OverrideTeamPeopleState = useOverrideTeamPeople({
+    projectId,
+    teamIds: teamLimit ? teamLimit.teamIds : null,
+  });
+  const projectUsers: ReturnType<typeof useProjectUsers> = useProjectUsers(
+    teamLimit ? null : projectId,
+  );
+
+  // Whom the picker offers: the teams' people, or the project's.
+  const people: {
+    users: ProjectUserItem[];
+    isLoading: boolean;
+    isError: boolean;
+    refetch: () => Promise<void>;
+  } = teamLimit ? teamPeople : projectUsers;
   const { refreshing: isRetryingUsers, onRefresh: retryUsers } = useRefresh(
-    projectUsers.refetch,
+    people.refetch,
   );
 
   /*
@@ -315,6 +357,26 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
 
     if (!result.ok) {
       setError(result.reason);
+      errorFeedback();
+      return;
+    }
+
+    /*
+     * Somebody the picker no longer offers - picked before the server said
+     * whom the person may name: the server's own refusal, before anything
+     * is sent.
+     */
+    const teamRefusal: string | null = getOverrideTeamPersonRefusal({
+      role: direction === "cover-me" ? "cover" : "away",
+      limit: teamLimit,
+      memberIds: teamLimit
+        ? getMemberIdsOfTeams(teamPeople.membersByTeam, teamLimit.teamIds)
+        : null,
+      userId: counterpart?.userId,
+    });
+
+    if (teamRefusal) {
+      setError(teamRefusal);
       errorFeedback();
       return;
     }
@@ -543,7 +605,7 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
                 : "Choose a teammate"
             }
             onPress={() => {
-              if (!projectUsers.isError) {
+              if (!people.isError) {
                 setIsPickerOpen(true);
               }
             }}
@@ -616,7 +678,7 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
               />
             </View>
           </Card>
-          {projectUsers.isError ? (
+          {people.isError ? (
             <View
               testID="coverage-teammates-error"
               accessibilityRole="alert"
@@ -926,12 +988,18 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
         />
       </ScrollView>
       <UserPickerModal
-        visible={isPickerOpen && !projectUsers.isError}
+        visible={isPickerOpen && !people.isError}
         title={
           direction === "cover-me" ? "Route my pages to" : "Take over from"
         }
-        users={projectUsers.users}
-        isLoading={projectUsers.isLoading}
+        users={people.users}
+        isLoading={people.isLoading}
+        hint={
+          teamLimit && teamPeople.teamNames
+            ? getOverrideTeamHint(teamPeople.teamNames)
+            : null
+        }
+        emptyText={teamLimit ? OVERRIDE_TEAM_PICKER_EMPTY_TEXT : null}
         selectedUserId={counterpart?.userId ?? null}
         excludeUserId={currentUserId}
         onSelect={(user: ProjectUserItem) => {

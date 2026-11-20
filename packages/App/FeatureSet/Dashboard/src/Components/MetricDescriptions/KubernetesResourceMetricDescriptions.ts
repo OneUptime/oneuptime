@@ -230,7 +230,7 @@ export const KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS: Record<
     "How much can still be written to the volume, measured on the claim bound to it.",
   ),
   nodeDiskUsed: translationKey(
-    "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full and red from 90%; by default the kubelet starts evicting pods at 90%, or at 85% when this disk also holds the container images.",
+    "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full, red from 85%, where the kubelet starts evicting pods by default, or from 90% when the images have a disk of their own.",
   ),
   nodeDiskFree: translationKey(
     "How much can still be written to this node's root filesystem, as the kubelet last measured it.",
@@ -239,7 +239,7 @@ export const KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS: Record<
     "The size of this node's root filesystem, as the kubelet measures it.",
   ),
   nodeImageDisk: translationKey(
-    "On a node whose container images have a disk of their own, how much of that disk is used. When it fills, new images stop pulling: the kubelet removes unused images from 85% full and evicts pods when less than 15% is free.",
+    "On a node whose container images have a disk of their own, how much of that disk is used. Amber from 80% full and red from 85%, where the kubelet by default removes unused images and evicts pods; once it fills, new images stop pulling.",
   ),
 
   nodeCpuCapacity: translationKey(

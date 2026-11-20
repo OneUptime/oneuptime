@@ -12,6 +12,7 @@ import AwsCloudConnector, {
 } from "../../../../Server/Utils/CloudConnection/Aws/AwsCloudConnector";
 import { getAwsDocumentedMetricUnit } from "../../../../Types/Cloud/AwsMetricUnits";
 import AwsRetry from "../../../../Server/Utils/CloudConnection/Aws/AwsRetry";
+import { isAwsUnitProbeResult } from "../../../../Server/Utils/CloudConnection/Aws/AwsAddedMetricUnits";
 import { AssumedRoleCache } from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
 import AwsServerIdentity from "../../../../Server/Utils/CloudConnection/Aws/AwsServerIdentity";
 import { storedAttributesOf } from "../../../../Server/Utils/CloudConnection/CloudMetricPayload";
@@ -1959,6 +1960,7 @@ describe("metrics a person added to the reads", () => {
     });
   }
 
+  // The read's own queries: its unit queries (#10077) are unitQueriesOf's.
   function queriesOf(fake: FakeAws): Array<{
     metricName: string;
     dimensions: string;
@@ -1969,8 +1971,11 @@ describe("metrics a person added to the reads", () => {
         return call.action === "GetMetricData";
       })
       .flatMap((call: { body: JSONObject }) => {
-        return (call.body["MetricDataQueries"] as Array<JSONObject>).map(
-          (query: JSONObject) => {
+        return (call.body["MetricDataQueries"] as Array<JSONObject>)
+          .filter((query: JSONObject): boolean => {
+            return !isAwsUnitProbeResult(String(query["Id"]));
+          })
+          .map((query: JSONObject) => {
             const stat: JSONObject = query["MetricStat"] as JSONObject;
             const metric: JSONObject = stat["Metric"] as JSONObject;
 
@@ -1983,8 +1988,7 @@ describe("metrics a person added to the reads", () => {
                 .join(","),
               stat: String(stat["Stat"]),
             };
-          },
-        );
+          });
       });
   }
 

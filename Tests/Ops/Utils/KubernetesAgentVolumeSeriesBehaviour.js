@@ -10,9 +10,10 @@
  *       <dir>/config.yaml: an OTLP receiver, the node collector's
  *       filter/volume-series exactly as the chart rendered it, and a file
  *       exporter (/out/metrics.json); <dir>/image: the collector image the
- *       chart runs; <dir>/payload.json: one scrape of what the kubeletstats
- *       receiver sends for every kind of volume a pod mounts, beside a
- *       node's, a pod's and a container's own series; <dir>/empty.json.
+ *       chart runs; <dir>/payload.json: one scrape of what the kubelet_stats
+ *       receiver sends for every kind of volume a pod mounts, under each name
+ *       a volume can go by, beside a node's, a pod's and a container's own
+ *       series; <dir>/empty.json.
  *   count <exported metrics.json>
  *       prints how many points came out.
  *   expected-count
@@ -25,10 +26,12 @@
 const fs = require("fs");
 const path = require("path");
 const yaml = require("js-yaml");
+const { componentTypeFor } = require("./CollectorComponentTypes");
 
 const FILTER = "filter/volume-series";
 const PIPELINE = "metrics";
-const RECEIVER = "kubeletstats";
+// The receiver, by the type the chart's pinned collector knows it by.
+const RECEIVER = "kubelet_stats";
 const CONFIG_MAP = "behaviour-kubernetes-agent-daemonset";
 const DAEMON_SET = "behaviour-kubernetes-agent-logs";
 const KUBELETSTATS_SCOPE =
@@ -41,6 +44,55 @@ const VOLUME_METRICS = [
   "k8s.volume.inodes",
   "k8s.volume.inodes.free",
   "k8s.volume.inodes.used",
+];
+
+/*
+ * The same five as semantic conventions name them (k8s.pod.volume.*, model/k8s
+ * metrics.yaml), which the receiver is to follow: up-down counters, so sums
+ * that never only rise.
+ */
+const POD_VOLUME_METRICS = [
+  "k8s.pod.volume.available",
+  "k8s.pod.volume.capacity",
+  "k8s.pod.volume.inode.count",
+  "k8s.pod.volume.inode.free",
+  "k8s.pod.volume.inode.used",
+];
+
+/*
+ * The names a collector gives a volume (#10055). The receiver names it
+ * k8s.volume.name and k8s.volume.type; semantic conventions renamed those
+ * k8s.pod.volume.name and k8s.pod.volume.type (semantic-conventions#4272),
+ * and name its series k8s.pod.volume.*. A receiver that follows them may
+ * rename the attributes alone first, or everything at once, or send both
+ * names for a while: the filter must keep and drop the same volumes under
+ * every one.
+ */
+const NAMINGS = [
+  {
+    label: "receiver",
+    names: ["k8s.volume.name"],
+    types: ["k8s.volume.type"],
+    metrics: VOLUME_METRICS,
+  },
+  {
+    label: "semconv-attributes",
+    names: ["k8s.pod.volume.name"],
+    types: ["k8s.pod.volume.type"],
+    metrics: VOLUME_METRICS,
+  },
+  {
+    label: "semconv",
+    names: ["k8s.pod.volume.name"],
+    types: ["k8s.pod.volume.type"],
+    metrics: POD_VOLUME_METRICS,
+  },
+  {
+    label: "both",
+    names: ["k8s.volume.name", "k8s.pod.volume.name"],
+    types: ["k8s.volume.type", "k8s.pod.volume.type"],
+    metrics: VOLUME_METRICS,
+  },
 ];
 
 const NAMESPACE = "shop";
@@ -119,8 +171,9 @@ function fail(message) {
 }
 
 // The name each volume's points carry, so an export says which came through.
-function caseOf(volume) {
+function caseOf(volume, naming = NAMINGS[0]) {
   return [
+    naming.label,
     volume.type || "untyped",
     volume.name,
     volume.claim ? `claim=${volume.claim}` : "",
@@ -133,16 +186,23 @@ function stringAttribute(key, value) {
   return { key, value: { stringValue: value } };
 }
 
-// A volume's resource as the receiver sends it: its pod's, and its own.
-function volumeResourceAttributes(volume) {
+/*
+ * A volume's resource as a collector sends it: its pod's, and its own, under
+ * the naming's names.
+ */
+function volumeResourceAttributes(volume, naming = NAMINGS[0]) {
   const attributes = [
     stringAttribute("k8s.pod.uid", POD_UID),
     stringAttribute("k8s.pod.name", POD),
     stringAttribute("k8s.namespace.name", NAMESPACE),
-    stringAttribute("k8s.volume.name", volume.name),
   ];
+  for (const key of naming.names) {
+    attributes.push(stringAttribute(key, volume.name));
+  }
   if (volume.type) {
-    attributes.push(stringAttribute("k8s.volume.type", volume.type));
+    for (const key of naming.types) {
+      attributes.push(stringAttribute(key, volume.type));
+    }
   }
   if (volume.claim) {
     attributes.push(
@@ -170,7 +230,7 @@ function otherResourceAttributes(other) {
 function gauge(name, label, value) {
   return {
     name,
-    unit: name.includes("inodes") ? "1" : "By",
+    unit: name.includes("inode") ? "1" : "By",
     gauge: {
       dataPoints: [
         {
@@ -183,6 +243,25 @@ function gauge(name, label, value) {
   };
 }
 
+// A semantic conventions volume series: an up-down counter.
+function upDownCounter(name, label, value) {
+  const { gauge: points, ...metric } = gauge(name, label, value);
+  return {
+    ...metric,
+    sum: {
+      aggregationTemporality: 2,
+      isMonotonic: false,
+      dataPoints: points.dataPoints,
+    },
+  };
+}
+
+function volumeSeries(name, label, value) {
+  return POD_VOLUME_METRICS.includes(name)
+    ? upDownCounter(name, label, value)
+    : gauge(name, label, value);
+}
+
 function resourceMetrics(attributes, metrics) {
   return {
     resource: { attributes },
@@ -190,17 +269,26 @@ function resourceMetrics(attributes, metrics) {
   };
 }
 
-// One scrape: every volume's five series, and the node's, pod's and container's.
+/*
+ * One scrape: every volume's five series under every naming, and the node's,
+ * pod's and container's.
+ */
 function scrapePayload() {
   return {
     resourceMetrics: [
-      ...VOLUMES.map((volume) => {
-        return resourceMetrics(
-          volumeResourceAttributes(volume),
-          VOLUME_METRICS.map((metric, index) => {
-            return gauge(metric, caseOf(volume), 1024 * (index + 1));
-          }),
-        );
+      ...NAMINGS.flatMap((naming) => {
+        return VOLUMES.map((volume) => {
+          return resourceMetrics(
+            volumeResourceAttributes(volume, naming),
+            naming.metrics.map((metric, index) => {
+              return volumeSeries(
+                metric,
+                caseOf(volume, naming),
+                1024 * (index + 1),
+              );
+            }),
+          );
+        });
       }),
       ...OTHERS.map((other) => {
         return resourceMetrics(otherResourceAttributes(other), [
@@ -211,15 +299,20 @@ function scrapePayload() {
   };
 }
 
-// What must come out: each kept volume's five series, and every other one.
+/*
+ * What must come out: each kept volume's five series under every naming, and
+ * every other one.
+ */
 function expectedLines() {
   const lines = [];
-  for (const volume of VOLUMES) {
-    if (!volume.kept) {
-      continue;
-    }
-    for (const metric of VOLUME_METRICS) {
-      lines.push(`${metric} ${caseOf(volume)}`);
+  for (const naming of NAMINGS) {
+    for (const volume of VOLUMES) {
+      if (!volume.kept) {
+        continue;
+      }
+      for (const metric of naming.metrics) {
+        lines.push(`${metric} ${caseOf(volume, naming)}`);
+      }
     }
   }
   for (const other of OTHERS) {
@@ -250,9 +343,12 @@ function readRenderedDaemonSet(renderedFile) {
 /*
  * The collector config that runs the filter, from a parsed node collector
  * config, after checking that its metrics pipeline runs it where the chart
- * says: first after the memory limiter, on what kubeletstats sends.
+ * says: first after the memory limiter, on what the kubelet receiver sends,
+ * named as the collector `image` knows it (kubeletstats on the 0.96.0 a
+ * --reuse-values upgrade keeps; with no image, as the chart's pin does).
  */
-function behaviourConfig(collector) {
+function behaviourConfig(collector, image) {
+  const receiver = image ? componentTypeFor(RECEIVER, image) : RECEIVER;
   const pipeline = collector.service.pipelines[PIPELINE];
   if (!pipeline) {
     fail(`the node collector has no ${PIPELINE} pipeline`);
@@ -262,7 +358,7 @@ function behaviourConfig(collector) {
   ) {
     fail(`${PIPELINE} runs ${pipeline.processors.join(", ")}`);
   }
-  if (!pipeline.receivers.includes(RECEIVER)) {
+  if (!pipeline.receivers.includes(receiver)) {
     fail(`${PIPELINE} receives from ${pipeline.receivers.join(", ")}`);
   }
   if (!collector.processors[FILTER]) {
@@ -291,7 +387,7 @@ function writeConfig(renderedFile, dir) {
   const { collector, image } = readRenderedDaemonSet(renderedFile);
   fs.writeFileSync(
     path.join(dir, "config.yaml"),
-    yaml.dump(behaviourConfig(collector)),
+    yaml.dump(behaviourConfig(collector, image)),
   );
   fs.writeFileSync(path.join(dir, "image"), image);
   fs.writeFileSync(
@@ -318,7 +414,9 @@ function readExported(file) {
     for (const rm of JSON.parse(line).resourceMetrics || []) {
       for (const sm of rm.scopeMetrics || []) {
         for (const metric of sm.metrics || []) {
-          for (const point of (metric.gauge || {}).dataPoints || []) {
+          const dataPoints =
+            (metric.gauge || metric.sum || {}).dataPoints || [];
+          for (const point of dataPoints) {
             const label = (point.attributes || []).find((attribute) => {
               return attribute.key === "case";
             });
@@ -351,10 +449,12 @@ function attributesText(attributes) {
 
 // What was sent for a line: its resource's attributes, or undefined.
 function sentResourceOf(line) {
-  for (const volume of VOLUMES) {
-    for (const metric of VOLUME_METRICS) {
-      if (`${metric} ${caseOf(volume)}` === line) {
-        return volumeResourceAttributes(volume);
+  for (const naming of NAMINGS) {
+    for (const volume of VOLUMES) {
+      for (const metric of naming.metrics) {
+        if (`${metric} ${caseOf(volume, naming)}` === line) {
+          return volumeResourceAttributes(volume, naming);
+        }
       }
     }
   }
@@ -448,6 +548,8 @@ module.exports = {
   PIPELINE,
   RECEIVER,
   VOLUME_METRICS,
+  POD_VOLUME_METRICS,
+  NAMINGS,
   VOLUMES,
   OTHERS,
   caseOf,

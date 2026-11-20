@@ -1170,6 +1170,93 @@ describe("an AWS resource's metrics", () => {
     ).toHaveLength(CLOUD_PUBLISHED_METRICS_UNIT_PROBES);
   });
 
+  /*
+   * #10077: the reads learn an addition's unit from its datapoints and keep
+   * it in the account's read state, so the listing shows it, and asks
+   * nothing of an addition whose unit a read learned - an organization's
+   * account's in its own state.
+   */
+  test("a unit the reads learned is the one listed, and the listing asks nothing more of it", async () => {
+    const swap: CloudAddedMetric = added({
+      provider: CloudProvider.AWS,
+      resourceType: "AWS::RDS::DBInstance",
+      namespace: "AWS/RDS",
+      name: "SwapUsage",
+      aggregation: "Average",
+      grain: undefined,
+      // Kept with none when it was added: nothing published in the fortnight.
+      unit: "",
+    });
+    const burst: CloudAddedMetric = added({
+      provider: CloudProvider.AWS,
+      resourceType: "AWS::RDS::DBInstance",
+      namespace: "AWS/RDS",
+      name: "BurstBalance",
+      aggregation: "Average",
+      grain: undefined,
+      // Kept with one; the reads found the publisher sends another now.
+      unit: "Percent",
+    });
+
+    connection = connectionRow({
+      provider: CloudProvider.AWS,
+      addedMetrics: toStoredCloudAddedMetrics([swap, burst]) as never,
+      pullState: {
+        accountStates: {
+          [LIVE_ACCOUNT]: {
+            awsAddedMetricUnits: {
+              [swap.key]: { unit: "Bytes", checkedAt: NOW.toISOString() },
+              [burst.key]: { unit: "Count", checkedAt: NOW.toISOString() },
+            },
+          },
+        },
+      } as never,
+    });
+    jest
+      .spyOn(CloudConnectionService, "findOneById")
+      .mockImplementation((async () => {
+        return connection;
+      }) as never);
+
+    const fake: FakeAwsLive = createFakeAwsLive({
+      "monitoring:ListMetrics": () => {
+        return awsJson({
+          Metrics: ["SwapUsage", "BurstBalance"].map(
+            (name: string): JSONObject => {
+              return {
+                Namespace: "AWS/RDS",
+                MetricName: name,
+                Dimensions: [{ Name: "DBInstanceIdentifier", Value: "orders" }],
+              };
+            },
+          ),
+        });
+      },
+      "monitoring:GetMetricData": unitProbe({ SwapUsage: "Kilobytes" }),
+    });
+    const listing: CloudPublishedMetricsListing =
+      await CloudResourceMetrics.listPublished({
+        projectId: PROJECT,
+        cloudResourceId: RESOURCE,
+        props: { isRoot: true },
+        canEdit: true,
+        dependencies: dependencies(fake.transport),
+      });
+    const unitOf: (name: string) => string | undefined = (
+      name: string,
+    ): string | undefined => {
+      return listing.metrics.find((metric: CloudPublishedMetric): boolean => {
+        return metric.name === name;
+      })?.unit;
+    };
+
+    expect(unitOf("SwapUsage")).toBe("Bytes");
+    expect(unitOf("BurstBalance")).toBe("Count");
+    // Learned by the reads: no listing probe, nothing saved again.
+    expect(fake.callsTo("monitoring:GetMetricData")).toHaveLength(0);
+    expect(savedAdditions()).toHaveLength(0);
+  });
+
   test("a resource whose dimensions are not known yet is not listed", async () => {
     resource = resourceRow({
       cloudProvider: CloudProvider.AWS,

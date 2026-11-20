@@ -75,6 +75,19 @@
         }
       }
     },
+    "kubeletstats": {
+      "type": "object",
+      "description": "The node, pod, container and volume metrics each node's kubelet reports.",
+      "additionalProperties": false,
+      "properties": {
+        "nodesProxy": {
+          "type": ["boolean", "string"],
+          "enum": [true, false, "auto"],
+          "description": "Whether the agent's ClusterRole grants nodes/proxy, which reaches the whole kubelet API and fails CIS Kubernetes Benchmark 5.1.10. A kubelet older than Kubernetes 1.33 lists its node's pods only for nodes/proxy, and a node whose kubelet refuses that list sends no node, pod, container or volume metrics. auto: granted on EKS 1.34 and 1.35, whose nodes may run kubelets that old, and not from 1.36. false: never, once every node runs 1.33 or later (kubectl get nodes shows each node's version). true: always.",
+          "default": "auto"
+        }
+      }
+    },
     "kubeStateMetrics": {
       "type": "object",
       "description": "kube-state-metrics, for the monitors that need the state of pods: CrashLoopBackOff, image pull errors, pending and stuck pods.",
@@ -112,6 +125,11 @@
       },
       "kubeStateMetrics": {
         "enabled": true
+      }
+    },
+    {
+      "kubeletstats": {
+        "nodesProxy": false
       }
     }
   ]

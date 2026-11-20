@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { HistogramBucket } from "./types";
+import Timezone from "../../../Types/Timezone";
 import TelemetryLoadErrorUtil, {
   TelemetryLoadError,
 } from "../../Utils/Telemetry/TelemetryLoadError";
@@ -20,12 +21,19 @@ export interface LogsHistogramData {
    * bars with another window's width.
    */
   bucketIntervalMs?: number | undefined;
+  /*
+   * The zone the query cut its day bars in (bucketTimezone, #7923), with
+   * the bars it describes.
+   */
+  bucketTimezone?: Timezone | undefined;
 }
 
 export interface LogsHistogramState {
   buckets: Array<HistogramBucket>;
   /** Width of one bucket in `buckets`; undefined when the query did not say. */
   bucketIntervalMs: number | undefined;
+  // The zone the day bars in `buckets` were cut in, when they were.
+  bucketTimezone: Timezone | undefined;
   isLoading: boolean;
   /*
    * Why the last load failed — a search stopped at the time limit, or any
@@ -56,6 +64,7 @@ function toHistogramData(
   return {
     buckets: result.buckets || [],
     bucketIntervalMs: result.bucketIntervalMs,
+    bucketTimezone: result.bucketTimezone,
   };
 }
 
@@ -174,6 +183,7 @@ const useLogsHistogram: UseLogsHistogramFunction = (
   return {
     buckets: histogram.buckets,
     bucketIntervalMs: histogram.bucketIntervalMs,
+    bucketTimezone: histogram.bucketTimezone,
     // Held back, the chart is waiting for its first request.
     isLoading: isLoading || !isEnabled,
     error: error,

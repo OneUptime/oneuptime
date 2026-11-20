@@ -33,6 +33,7 @@ const mockList: MockedFn = jest.fn();
 const mockAdd: MockedFn = jest.fn();
 const mockRemove: MockedFn = jest.fn();
 const mockReaders: MockedFn = jest.fn();
+const mockKeep: MockedFn = jest.fn();
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/ResourceMetrics/CloudResourceMetricsApi",
@@ -50,6 +51,9 @@ jest.mock(
       },
       findCloudResourceMetricReaders: (...args: Array<unknown>) => {
         return mockReaders(...args);
+      },
+      keepCloudResourceMetricFor: (...args: Array<unknown>) => {
+        return mockKeep(...args);
       },
       explainCloudResourceUnreportedKeyMetrics: () => {
         return Promise.resolve([]);
@@ -102,6 +106,7 @@ import RouteMap, {
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Route from "../../../Types/API/Route";
 import {
+  CloudAddedMetricKeepBlock,
   CloudAddedMetricReaderKind,
   CloudAddedMetricReaders,
 } from "../../../Types/Cloud/CloudAddedMetricReaders";
@@ -206,7 +211,11 @@ const READERS: CloudAddedMetricReaders = {
       kind: CloudAddedMetricReaderKind.Dashboard,
       id: DASHBOARD_ID,
       name: "Web apps",
-      widgets: ["Memory by instance", ""],
+      // A widget of a kind the catalog does not know, and no title.
+      widgets: [
+        { title: "Memory by instance", type: "Chart" },
+        { title: "", type: "" },
+      ],
     },
     {
       kind: CloudAddedMetricReaderKind.Slo,
@@ -239,6 +248,7 @@ beforeEach(() => {
   mockAdd.mockReset();
   mockRemove.mockReset();
   mockReaders.mockReset();
+  mockKeep.mockReset();
   mockReaders.mockImplementation(() => {
     return Promise.resolve(NO_READERS);
   });
@@ -1026,6 +1036,93 @@ describe("adding one split by a dimension", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * #10076: Google Cloud bills every series a call returns, so a split is
+   * asked for each resource's busiest values alone, learned every hour: the
+   * dialog says so before it is added, with what it costs at most - its
+   * reads and the hour's learning, ten series a resource each.
+   */
+  test("a Google Cloud split says only the busiest values are asked for, and what that costs at most", async () => {
+    const listed: CloudPublishedMetricsListing = listing({
+      provider: CloudProvider.GCP,
+      resourceType: "gce_instance",
+      resourcesOfType: 12,
+    });
+
+    delete listed.azureMetricsInCall;
+    listed.metrics[1] = {
+      name: "agent.googleapis.com/processes/cpu_time",
+      displayName: "Process CPU time",
+      unit: "us/s",
+      aggregation: "ALIGN_RATE",
+      status: CloudPublishedMetricStatus.Available,
+      splits: [{ name: "command" }, { name: "owner" }],
+    };
+    mockList.mockImplementation(() => {
+      return Promise.resolve(listed);
+    });
+    mockAdd.mockImplementation(() => {
+      return Promise.resolve([]);
+    });
+    await renderCard();
+    await list();
+    await act(async () => {
+      fireEvent.click(
+        within(rowOf("Process CPU time")).getByRole("button", {
+          name: /Add/,
+        }),
+      );
+    });
+
+    const dialog: HTMLElement = screen.getByTestId(
+      CLOUD_ADD_METRIC_MODAL_TEST_ID,
+    );
+
+    expect(
+      within(dialog).getByTestId("cloud-add-metric-split-help"),
+    ).toHaveTextContent(
+      "A series for each of the 10 busiest values on each resource, checked every hour, so Google Cloud bills those alone.",
+    );
+    // Whole, a series a read.
+    expect(
+      within(dialog).getByText(
+        "8,640 more time series read a month: free within the first 1,000,000 a month, then about $0.01.",
+      ),
+    ).toBeInTheDocument();
+
+    // Split by command: at most its busiest 10 a read, and the hour's learning.
+    const combobox: HTMLElement = within(dialog).getByLabelText("Split by");
+
+    fireEvent.keyDown(combobox, { key: "ArrowDown", code: 40, keyCode: 40 });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("option", { name: "command" }));
+    });
+
+    expect(
+      within(dialog).getByText(
+        "Up to 93,600 more time series read a month: free within the first 1,000,000 a month, then up to $0.05.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        "Up to 1,123,200 more time series read a month: free within the first 1,000,000 a month, then up to $0.56.",
+      ),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Add Metric/ }));
+    });
+    await waitFor(() => {
+      expect(mockAdd).toHaveBeenCalledTimes(1);
+    });
+    expect(mockAdd.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        name: "agent.googleapis.com/processes/cpu_time",
+        splitBy: "command",
+      }),
+    );
+  });
+
   test("an AWS metric split counts each value's metric read in its cost", () => {
     expect(
       drawCloudTemplate(
@@ -1088,5 +1185,439 @@ describe("what an addition costs, in words", () => {
     ).toBe(
       "No extra cost: it is read in the call that already reads the key metrics.",
     );
+  });
+});
+
+/*
+ * #10078: a metric added for every resource of its type is often read of a
+ * few of them alone. Remove then offers a clear choice: keep it for the
+ * resources its readers read - named, the rest costing nothing - or remove
+ * it for every one. Not offered while a reader reads it of every resource,
+ * which is marked and said, nor past the connection's cap, which is said.
+ */
+describe("keeping a type's metric for the resources its readers read", () => {
+  const SHOP: string = "5f8b9c1e-3333-4333-8333-000000000001";
+  const CART: string = "5f8b9c1e-3333-4333-8333-000000000002";
+  const TYPE_KEY: string = "type|microsoft.web/sites|||http3xx";
+
+  function typeWideListing(): CloudPublishedMetricsListing {
+    const listed: CloudPublishedMetricsListing = listing();
+
+    listed.metrics[0] = {
+      ...listed.metrics[0]!,
+      addedKey: TYPE_KEY,
+      addedScope: CloudAddedMetricScope.Type,
+    };
+
+    return listed;
+  }
+
+  function readersWith(
+    overrides: Partial<CloudAddedMetricReaders> = {},
+  ): CloudAddedMetricReaders {
+    return {
+      readers: [
+        {
+          kind: CloudAddedMetricReaderKind.Monitor,
+          id: MONITOR_ID,
+          name: "Shop 3xx",
+          widgets: [],
+        },
+        {
+          kind: CloudAddedMetricReaderKind.Dashboard,
+          id: DASHBOARD_ID,
+          name: "Web apps",
+          widgets: [{ title: "", type: "Chart" }],
+        },
+      ],
+      hidden: 0,
+      uncheckedKinds: [],
+      hiddenByKind: {},
+      keepFor: {
+        resources: [
+          { id: SHOP, name: "shop" },
+          { id: CART, name: "cart" },
+        ],
+      },
+      ...overrides,
+    };
+  }
+
+  async function openRemove(): Promise<HTMLElement> {
+    await act(async () => {
+      fireEvent.click(
+        within(rowOf("Http3xx")).getByRole("button", { name: /Remove/ }),
+      );
+    });
+
+    return await screen.findByTestId(CLOUD_REMOVE_METRIC_MODAL_TEST_ID);
+  }
+
+  beforeEach(() => {
+    mockList.mockImplementation(() => {
+      return Promise.resolve(typeWideListing());
+    });
+  });
+
+  test("keeping it for them is the choice it opens on: they are named, and Keep for These Resources keeps it for them, says so, and lists again", async () => {
+    const changed: Array<Array<CloudAddedMetric>> = [];
+
+    mockReaders.mockImplementation(() => {
+      return Promise.resolve(readersWith());
+    });
+    mockKeep.mockImplementation(() => {
+      return Promise.resolve([]);
+    });
+    await renderCard((metrics: Array<CloudAddedMetric>) => {
+      changed.push(metrics);
+    });
+    await list();
+
+    const dialog: HTMLElement = await openRemove();
+    const choice: HTMLElement = await within(dialog).findByTestId(
+      "cloud-remove-metric-keep-for",
+    );
+    const keep: HTMLElement = within(choice).getByRole("radio", {
+      name: /Keep it for the 2 resources its readers read/,
+    });
+
+    expect(keep).toBeChecked();
+    expect(choice).toHaveTextContent(
+      "It stops being read, and billed, for the other 184.",
+    );
+    expect(
+      within(choice).getByTestId("cloud-remove-metric-kept-resources"),
+    ).toHaveTextContent("shop, cart");
+    expect(
+      within(choice).getByRole("radio", {
+        name: /Remove it for every App Service or Function App/,
+      }),
+    ).not.toBeChecked();
+    // Keeping all of it is Cancel: nothing changes.
+    expect(screen.getByRole("button", { name: /Cancel/ })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Keep Metric/ }),
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: /Keep for These Resources/ }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(mockKeep).toHaveBeenCalledTimes(1);
+    });
+    expect(mockKeep.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        key: TYPE_KEY,
+        cloudResourceIds: [SHOP, CART],
+      }),
+    );
+    expect(mockRemove).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(changed).toEqual([[]]);
+    });
+    expect(mockToasts[0]).toEqual({
+      kind: "success",
+      title: "Http3xx is now read only for the resources its readers read.",
+    });
+    expect(
+      screen.queryByTestId(CLOUD_REMOVE_METRIC_MODAL_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+
+  test("choosing to remove it for every one removes it, by Remove Anyway", async () => {
+    mockReaders.mockImplementation(() => {
+      return Promise.resolve(readersWith());
+    });
+    mockRemove.mockImplementation(() => {
+      return Promise.resolve([]);
+    });
+    await renderCard();
+    await list();
+
+    const dialog: HTMLElement = await openRemove();
+
+    await act(async () => {
+      fireEvent.click(
+        await within(dialog).findByRole("radio", {
+          name: /Remove it for every App Service or Function App/,
+        }),
+      );
+    });
+
+    expect(
+      within(dialog).queryByTestId("cloud-remove-metric-kept-resources"),
+    ).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Remove Anyway/ }));
+    });
+
+    await waitFor(() => {
+      expect(mockRemove).toHaveBeenCalledTimes(1);
+    });
+    expect(mockKeep).not.toHaveBeenCalled();
+    expect(mockToasts[0]!.title).toBe("Http3xx is no longer read.");
+  });
+
+  test("a reader of every resource is marked, and the dialog says why it can only be kept for all or removed", async () => {
+    const readers: CloudAddedMetricReaders = readersWith({
+      keepFor: {
+        resources: [{ id: SHOP, name: "shop" }],
+        blockedBy: CloudAddedMetricKeepBlock.EveryResource,
+      },
+    });
+
+    readers.readers[1] = { ...readers.readers[1]!, readsEveryResource: true };
+    mockReaders.mockImplementation(() => {
+      return Promise.resolve(readers);
+    });
+    await renderCard();
+    await list();
+
+    const dialog: HTMLElement = await openRemove();
+
+    expect(
+      await within(dialog).findByTestId(
+        "cloud-remove-metric-readers-dashboard-note",
+      ),
+    ).toHaveTextContent("Reads it of every App Service or Function App");
+    expect(
+      within(dialog).getByTestId("cloud-remove-metric-not-kept"),
+    ).toHaveTextContent(
+      "It can't be kept for only the resources its readers read: one of them reads it of every App Service or Function App.",
+    );
+    expect(
+      within(dialog).queryByTestId("cloud-remove-metric-keep-for"),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /Keep Metric/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Remove Anyway/ }),
+    ).toBeInTheDocument();
+  });
+
+  test("one the person cannot open that reads it of every resource is said so, never named", async () => {
+    mockReaders.mockImplementation(() => {
+      return Promise.resolve(
+        readersWith({
+          hidden: 1,
+          hiddenByKind: { [CloudAddedMetricReaderKind.Slo]: 1 },
+          keepFor: {
+            resources: [{ id: SHOP, name: "shop" }],
+            blockedBy: CloudAddedMetricKeepBlock.EveryResource,
+          },
+        }),
+      );
+    });
+    await renderCard();
+    await list();
+
+    const dialog: HTMLElement = await openRemove();
+
+    expect(
+      await within(dialog).findByTestId("cloud-remove-metric-not-kept"),
+    ).toHaveTextContent(
+      "It can't be kept for only the resources its readers read: a record you can't see reads it of every App Service or Function App.",
+    );
+    expect(
+      within(dialog).getByTestId("cloud-remove-metric-readers-slo-hidden"),
+    ).toHaveTextContent("1 SLO you can't see");
+  });
+
+  test("past the connection's cap of added metrics, it says so, with the cap", async () => {
+    mockReaders.mockImplementation(() => {
+      return Promise.resolve(
+        readersWith({
+          keepFor: {
+            resources: [
+              { id: SHOP, name: "shop" },
+              { id: CART, name: "cart" },
+            ],
+            blockedBy: CloudAddedMetricKeepBlock.ConnectionFull,
+          },
+        }),
+      );
+    });
+    await renderCard();
+    await list();
+
+    const dialog: HTMLElement = await openRemove();
+
+    expect(
+      await within(dialog).findByTestId("cloud-remove-metric-not-kept"),
+    ).toHaveTextContent(
+      "It can't be kept for only the 2 resources its readers read: this connection would read more than 50 added metrics. Remove another added metric first.",
+    );
+    expect(
+      within(dialog).queryByTestId("cloud-remove-metric-keep-for"),
+    ).toBeNull();
+  });
+
+  test("records that could not be checked, or readers of every resource there is: no choice, as keeping it for them saves nothing", async () => {
+    mockReaders.mockImplementation(() => {
+      return Promise.resolve(
+        readersWith({
+          uncheckedKinds: [CloudAddedMetricReaderKind.Slo],
+          keepFor: {
+            resources: [{ id: SHOP, name: "shop" }],
+            blockedBy: CloudAddedMetricKeepBlock.Unchecked,
+          },
+        }),
+      );
+    });
+    await renderCard();
+    await list();
+
+    let dialog: HTMLElement = await openRemove();
+
+    await within(dialog).findByTestId("cloud-remove-metric-unchecked");
+    expect(
+      within(dialog).queryByTestId("cloud-remove-metric-keep-for"),
+    ).toBeNull();
+    expect(
+      within(dialog).queryByTestId("cloud-remove-metric-not-kept"),
+    ).toBeNull();
+
+    // Every one of the type read: nothing to save.
+    cleanup();
+    mockList.mockImplementation(() => {
+      const listed: CloudPublishedMetricsListing = typeWideListing();
+
+      listed.resourcesOfType = 2;
+
+      return Promise.resolve(listed);
+    });
+    mockReaders.mockImplementation(() => {
+      return Promise.resolve(readersWith());
+    });
+    await renderCard();
+    await list();
+    dialog = await openRemove();
+
+    await within(dialog).findByText("Shop 3xx");
+    expect(
+      within(dialog).queryByTestId("cloud-remove-metric-keep-for"),
+    ).toBeNull();
+  });
+
+  test("keeping it that fails says so in the dialog, and keeps it open", async () => {
+    mockReaders.mockImplementation(() => {
+      return Promise.resolve(readersWith());
+    });
+    mockKeep.mockImplementation(() => {
+      return Promise.reject(new Error("Not kept: try again."));
+    });
+    await renderCard();
+    await list();
+    await openRemove();
+    await screen.findByTestId("cloud-remove-metric-keep-for");
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: /Keep for These Resources/ }),
+      );
+    });
+
+    expect(await screen.findByText(/Not kept: try again/)).toBeInTheDocument();
+    expect(
+      screen.getByTestId(CLOUD_REMOVE_METRIC_MODAL_TEST_ID),
+    ).toBeInTheDocument();
+    expect(mockRemove).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * #10107: Remove lists what reads the metric as Drop This Metric does, by
+ * the one shared list: each kind's own line, the first five of a kind and
+ * then a count, a dashboard's untitled widget by its kind, and the ones
+ * the person cannot open counted with their kind.
+ */
+describe("Remove lists what reads it as Drop This Metric does", () => {
+  async function openRemove(): Promise<HTMLElement> {
+    await act(async () => {
+      fireEvent.click(
+        within(rowOf("Http3xx")).getByRole("button", { name: /Remove/ }),
+      );
+    });
+
+    return await screen.findByTestId(CLOUD_REMOVE_METRIC_MODAL_TEST_ID);
+  }
+
+  test("each kind with its line; the first five, then a count; widgets by title or kind; hidden ones with their kind", async () => {
+    const monitors: Array<CloudAddedMetricReaders["readers"][number]> =
+      Array.from({ length: 7 }, (_: unknown, index: number) => {
+        return {
+          kind: CloudAddedMetricReaderKind.Monitor,
+          id: `5f8b9c1e-9999-4999-8999-1000000000${String(index).padStart(2, "0")}`,
+          name: `Monitor ${index}`,
+          widgets: [],
+        };
+      });
+
+    mockReaders.mockImplementation(() => {
+      return Promise.resolve({
+        readers: [
+          ...monitors,
+          {
+            kind: CloudAddedMetricReaderKind.Dashboard,
+            id: DASHBOARD_ID,
+            name: "Web apps",
+            widgets: [
+              { title: "", type: "Gauge" },
+              { title: "Memory by instance", type: "Chart" },
+            ],
+          },
+        ],
+        hidden: 3,
+        uncheckedKinds: [],
+        hiddenByKind: {
+          [CloudAddedMetricReaderKind.Monitor]: 1,
+          [CloudAddedMetricReaderKind.Slo]: 2,
+        },
+      });
+    });
+    await renderCard();
+    await list();
+
+    const dialog: HTMLElement = await openRemove();
+    const shown: HTMLElement = await within(dialog).findByTestId(
+      "cloud-remove-metric-readers-monitor",
+    );
+
+    expect(shown).toHaveTextContent(
+      "They get no new data from it, so they can no longer alert on its values.",
+    );
+    expect(within(shown).getAllByRole("link")).toHaveLength(5);
+    expect(shown).toHaveTextContent("and 2 more");
+    expect(
+      within(dialog).getByTestId("cloud-remove-metric-readers-monitor-hidden"),
+    ).toHaveTextContent("and 1 more you can't see");
+    expect(
+      within(dialog).getByTestId("cloud-remove-metric-readers-dashboard"),
+    ).toHaveTextContent(
+      "The widgets named under each show no new data from it.",
+    );
+    expect(
+      within(dialog).getByTestId("cloud-remove-metric-widgets"),
+    ).toHaveTextContent("Gauge, Memory by instance");
+    expect(
+      within(dialog).getByTestId("cloud-remove-metric-readers-slo-hidden"),
+    ).toHaveTextContent("2 SLOs you can't see");
+    expect(
+      within(dialog).getByTestId("cloud-remove-metric-readers-slo"),
+    ).toHaveTextContent(
+      "They count no new events from it, so their error budgets no longer include it.",
+    );
+    // Counted kind by kind: never again as a total.
+    expect(dialog).not.toHaveTextContent("your role cannot open");
+    expect(
+      within(dialog).getByText(
+        "11 monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.",
+      ),
+    ).toBeInTheDocument();
   });
 });

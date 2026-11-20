@@ -23,6 +23,10 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import Email from "Common/Types/Email";
+import {
+  EMAIL_ADDRESS_CHANGED_BY_KEY,
+  EmailAddressChangedBy,
+} from "Common/Types/Accounts/EmailAddressChangedEmail";
 import Name from "Common/Types/Name";
 import Text from "Common/Types/Text";
 import PasswordHash from "Common/Server/Utils/PasswordHash";
@@ -112,6 +116,16 @@ type SCIMMember = {
 const router: ExpressRouter = Express.getRouter();
 
 /*
+ * What adding an account to a team is told of the person: the name the
+ * identity provider sent for them, which an invitation shows in place of
+ * their profile until they accept (TeamMember.inviteeName, #9899) - never
+ * the account's own.
+ */
+interface ScimTeamAddOptions {
+  inviteeName?: string | null | undefined;
+}
+
+/*
  * Adds an account to, or removes it from, the teams this SCIM configuration
  * provisions into. Whether an add is an accepted membership or an invitation
  * is ProjectSCIMAccountPolicy's call; the outcomes say which each one was.
@@ -121,13 +135,13 @@ const handleUserTeamOperations: (
   projectId: ObjectID,
   userId: ObjectID,
   scimConfig: ProjectSCIM,
-  options?: { userWasCreatedByScim?: boolean | undefined },
+  options?: ScimTeamAddOptions,
 ) => Promise<Array<ProjectSCIMTeamAddOutcome>> = async (
   operation: "add" | "remove",
   projectId: ObjectID,
   userId: ObjectID,
   scimConfig: ProjectSCIM,
-  options?: { userWasCreatedByScim?: boolean | undefined },
+  options?: ScimTeamAddOptions,
 ): Promise<Array<ProjectSCIMTeamAddOutcome>> => {
   const outcomes: Array<ProjectSCIMTeamAddOutcome> = [];
   const teamsIds: Array<ObjectID> =
@@ -154,7 +168,7 @@ const handleUserTeamOperations: (
           projectId: projectId,
           userId: userId,
           teamId: team.id!,
-          userWasCreatedByScim: options?.userWasCreatedByScim,
+          inviteeName: options?.inviteeName,
         });
 
       outcomes.push(outcome);
@@ -247,10 +261,10 @@ const wouldActivationAddToTeams: (data: {
  * Says, for the execution log, what adding an account to teams amounted to:
  * how many teams it was added to, and how many it was in already. Not
  * whether an add was an accepted membership or an invitation: on OneUptime
- * Cloud an account that existed before the identity provider created it is
- * invited, and one SCIM created is added, so the log - which the project's
- * members and viewers read - would say which addresses already had an
- * account (#9825). The project's Users list shows who is invited.
+ * Cloud that says whether the person had joined the project already, which
+ * the log - read by the project's members and viewers - has no need to
+ * repeat, and it once said which addresses already had an account (#9825,
+ * #9899). The project's Users list shows who is invited.
  */
 const describeTeamAddOutcomes: (
   outcomes: Array<ProjectSCIMTeamAddOutcome>,
@@ -272,6 +286,15 @@ const describeTeamAddOutcomes: (
 
   return `${added} added, ${alreadyInTeam} already in team`;
 };
+
+/*
+ * Whose record a create looks up when no account has the address: nobody's,
+ * so the answer is always none, and the read is the one a create of an
+ * address that had an account makes (#9899).
+ */
+const NO_ACCOUNT_RECORD_STAND_IN: ObjectID = new ObjectID(
+  "00000000-0000-4000-8000-000000000000",
+);
 
 // Constants for special teams
 const UNASSIGNED_TEAM_NAME: string = "Unassigned";
@@ -330,11 +353,11 @@ const getOrCreateUnassignedTeam: (
 const addUserToUnassignedTeam: (
   projectId: ObjectID,
   userId: ObjectID,
-  options?: { userWasCreatedByScim?: boolean | undefined },
+  options?: ScimTeamAddOptions,
 ) => Promise<{ team: Team; outcome: ProjectSCIMTeamAddOutcome }> = async (
   projectId: ObjectID,
   userId: ObjectID,
-  options?: { userWasCreatedByScim?: boolean | undefined },
+  options?: ScimTeamAddOptions,
 ): Promise<{ team: Team; outcome: ProjectSCIMTeamAddOutcome }> => {
   const unassignedTeam: Team = await getOrCreateUnassignedTeam(projectId);
 
@@ -343,7 +366,7 @@ const addUserToUnassignedTeam: (
       projectId: projectId,
       userId: userId,
       teamId: unassignedTeam.id!,
-      userWasCreatedByScim: options?.userWasCreatedByScim,
+      inviteeName: options?.inviteeName,
     });
 
   logger.debug(
@@ -443,9 +466,21 @@ const removeUsersFromUnassignedTeam: (data: {
  * Adds the accounts a SCIM group request lists to one of the project's teams,
  * through ProjectSCIMAccountPolicy, and takes each one that lands in the team
  * out of the "Unassigned" team.
+ *
+ * A member may be only a user of this connection (findProjectScimUser): an
+ * account it keeps a record of - whose record names the invitation, with
+ * the name the identity provider sent (#9899) - or a member of the project
+ * it has not written yet, as GET /Users finds one for an identity provider
+ * to link. Any other id - an account elsewhere on the server, or none at
+ * all - is skipped alike, after the same reads, with nothing written. A
+ * group add used to take any account's id: on OneUptime Cloud it invited
+ * the account, so the project's Users list showed the address behind an id
+ * someone had come by, and its owner was emailed; on a self-hosted install
+ * it made the account a member outright.
  */
 const addGroupMembersToTeam: (data: {
   projectId: ObjectID;
+  projectScimId: ObjectID;
   teamId: ObjectID;
   members: Array<SCIMMember>;
 }) => Promise<{
@@ -453,6 +488,7 @@ const addGroupMembersToTeam: (data: {
   skipped: number;
 }> = async (data: {
   projectId: ObjectID;
+  projectScimId: ObjectID;
   teamId: ObjectID;
   members: Array<SCIMMember>;
 }): Promise<{ added: number; skipped: number }> => {
@@ -476,13 +512,28 @@ const addGroupMembersToTeam: (data: {
       continue;
     }
 
-    const userId: ObjectID = new ObjectID(memberValue);
+    const scimUser: ProjectScimUser | null = await findProjectScimUser({
+      projectId: data.projectId,
+      projectScimId: data.projectScimId,
+      userId: memberValue,
+    });
+
+    if (!scimUser) {
+      counts.skipped++;
+      continue;
+    }
+
+    const userId: ObjectID = scimUser.account.id!;
 
     const outcome: ProjectSCIMTeamAddOutcome =
       await ProjectSCIMAccountPolicy.addUserToTeam({
         projectId: data.projectId,
         userId: userId,
         teamId: data.teamId,
+        // What the identity provider sent for them, never the account's own.
+        inviteeName: scimUser.record
+          ? getAccountName(getScimUserResourceOfRecord(scimUser.record)) || null
+          : null,
       });
 
     if (
@@ -552,6 +603,7 @@ const findTeamMembers: (data: {
  */
 const replaceGroupMembersOfTeam: (data: {
   projectId: ObjectID;
+  projectScimId: ObjectID;
   teamId: ObjectID;
   members: Array<SCIMMember>;
   removeOnly?: boolean | undefined;
@@ -562,6 +614,7 @@ const replaceGroupMembersOfTeam: (data: {
   removed: number;
 }> = async (data: {
   projectId: ObjectID;
+  projectScimId: ObjectID;
   teamId: ObjectID;
   members: Array<SCIMMember>;
   removeOnly?: boolean | undefined;
@@ -644,6 +697,7 @@ const replaceGroupMembersOfTeam: (data: {
     ? { added: 0, skipped: membersToAdd.length }
     : await addGroupMembersToTeam({
         projectId: data.projectId,
+        projectScimId: data.projectScimId,
         teamId: data.teamId,
         members: membersToAdd,
       });
@@ -712,6 +766,7 @@ interface GroupPatchResult {
  */
 const applyGroupPatchActions: (data: {
   projectId: ObjectID;
+  projectScimId: ObjectID;
   team: Team;
   actions: Array<ScimGroupPatchAction>;
   executionSteps: Array<string>;
@@ -719,6 +774,7 @@ const applyGroupPatchActions: (data: {
   removeOnly: boolean;
 }) => Promise<GroupPatchResult> = async (data: {
   projectId: ObjectID;
+  projectScimId: ObjectID;
   team: Team;
   actions: Array<ScimGroupPatchAction>;
   executionSteps: Array<string>;
@@ -751,6 +807,7 @@ const applyGroupPatchActions: (data: {
         removed: number;
       } = await replaceGroupMembersOfTeam({
         projectId: data.projectId,
+        projectScimId: data.projectScimId,
         teamId: data.team.id!,
         members: action.members as Array<SCIMMember>,
         removeOnly: data.removeOnly,
@@ -780,6 +837,7 @@ const applyGroupPatchActions: (data: {
       const counts: { added: number; skipped: number } =
         await addGroupMembersToTeam({
           projectId: data.projectId,
+          projectScimId: data.projectScimId,
           teamId: data.team.id!,
           members: action.members as Array<SCIMMember>,
         });
@@ -1882,9 +1940,10 @@ interface CreatedProjectScimUser {
  * account before (#9825). So the answer is the record (renderScimUser), the
  * log reads the same either way, and linking an account that exists spends
  * what creating one costs - its password's hash - so the request takes as
- * long. What still differs is the membership: on OneUptime Cloud an
- * existing account is invited (ProjectSCIMAccountPolicy), which the
- * project's Users list shows.
+ * long. Nor from what the project reads afterwards (#9899): on OneUptime
+ * Cloud both are invited, after the same reads, each invitation named by
+ * the name the identity provider sent (ProjectSCIMAccountPolicy.addUserToTeam),
+ * and on a self-hosted install both are added.
  */
 const createProjectScimUser: (data: {
   projectId: ObjectID;
@@ -1953,52 +2012,31 @@ const createProjectScimUser: (data: {
     props: { isRoot: true },
   });
 
-  // Whether this request created the account: ProjectSCIMAccountPolicy's to read, never the log's.
-  let userWasCreatedByScim: boolean = false;
+  /*
+   * Whether the connection keeps a record of the account already: asked
+   * for every address - of a stand-in, when no account has it - so a create
+   * reads the same whether or not the address had an account (#9899).
+   */
+  const recordOfAccount: ProjectSCIMUser | null =
+    await ProjectSCIMUserService.findRecord({
+      projectScimId: data.projectScimId,
+      userId: user?.id || NO_ACCOUNT_RECORD_STAND_IN,
+    });
+
+  if (user && recordOfAccount) {
+    executionSteps.push(
+      `User ${user.id?.toString()} is already provisioned by this connection - conflict`,
+    );
+    throw userExistsException(userName);
+  }
 
   if (user) {
-    if (
-      await ProjectSCIMUserService.findRecord({
-        projectScimId: data.projectScimId,
-        userId: user.id!,
-      })
-    ) {
-      executionSteps.push(
-        `User ${user.id?.toString()} is already provisioned by this connection - conflict`,
-      );
-      throw userExistsException(userName);
-    }
-
     /*
      * What creating the account would have cost - hashing its password -
      * spent here instead (PasswordHash.spendVerificationTime, #9745), so a
      * create takes as long whether or not the address had an account.
      */
     await PasswordHash.spendVerificationTime(Text.generateRandomText(20));
-
-    /*
-     * The identity provider's name for an account this project manages, as
-     * an update gives it (ProjectSCIMAccountPolicy); any other account keeps
-     * its own. Not logged, either way: the log reads the same for an account
-     * that existed and one created here.
-     */
-    if (
-      name &&
-      (user.name?.toString() || "") !== name &&
-      (await ProjectSCIMAccountPolicy.mayChangeName({
-        projectId: data.projectId,
-        userId: user.id!,
-      }))
-    ) {
-      await UserService.updateOneById({
-        id: user.id!,
-        data: {
-          name: new Name(name),
-        },
-        props: { isRoot: true },
-      });
-      user.name = new Name(name);
-    }
   } else {
     user = await UserService.createByEmail({
       email: new Email(email),
@@ -2008,7 +2046,32 @@ const createProjectScimUser: (data: {
       generateRandomPassword: true,
       props: { isRoot: true },
     });
-    userWasCreatedByScim = true;
+  }
+
+  /*
+   * The identity provider's name for an account this project manages, as
+   * an update gives it (ProjectSCIMAccountPolicy); any other account keeps
+   * its own, and one made just now has it already. Asked for every create
+   * that sends a name, whatever the account is called, so both take the
+   * same reads (#9899). Not logged, either way: the log reads the same for
+   * an account that existed and one created here.
+   */
+  if (
+    name &&
+    (await ProjectSCIMAccountPolicy.mayChangeName({
+      projectId: data.projectId,
+      userId: user.id!,
+    })) &&
+    (user.name?.toString() || "") !== name
+  ) {
+    await UserService.updateOneById({
+      id: user.id!,
+      data: {
+        name: new Name(name),
+      },
+      props: { isRoot: true },
+    });
+    user.name = new Name(name);
   }
 
   executionSteps.push(
@@ -2031,9 +2094,10 @@ const createProjectScimUser: (data: {
       `Adding user to ${scimConfig.teams.length} configured default teams`,
     );
     /*
-     * The teams, and not what each add amounted to: whether it was an
-     * invitation says, on OneUptime Cloud, whether the account existed
-     * (describeTeamAddOutcomes).
+     * The teams, and not what each add amounted to (describeTeamAddOutcomes).
+     * The name the identity provider sent names the invitations until the
+     * person accepts: the project's Users list shows it, and not the
+     * profile of an account the address may already have had (#9899).
      */
     await handleUserTeamOperations(
       "add",
@@ -2041,7 +2105,7 @@ const createProjectScimUser: (data: {
       user.id!,
       scimConfig,
       {
-        userWasCreatedByScim: userWasCreatedByScim,
+        inviteeName: name || null,
       },
     );
     teamsAdded = scimConfig.teams.map((t: Team) => {
@@ -2056,7 +2120,7 @@ const createProjectScimUser: (data: {
     );
     const unassigned: { team: Team; outcome: ProjectSCIMTeamAddOutcome } =
       await addUserToUnassignedTeam(data.projectId, user.id!, {
-        userWasCreatedByScim: userWasCreatedByScim,
+        inviteeName: name || null,
       });
     teamsAdded = [UNASSIGNED_TEAM_NAME];
     executionSteps.push(
@@ -2346,8 +2410,17 @@ const updateProjectScimUser: (data: {
     executionSteps.push(NAME_CHANGE_STEP);
   }
 
-  let changesEmail: boolean =
-    isEmailChanging &&
+  /*
+   * Whether this project's SCIM may give the account the address and the
+   * name the request carries: asked whenever it carries one and the profile
+   * may change at all - not only when it differs from what the account
+   * holds - so an update takes the same reads whether or not the address
+   * had an account, and whatever that account calls itself (#9899). An
+   * account SCIM made has the provider's name already, and one that existed
+   * its own.
+   */
+  const mayReaddress: boolean =
+    Boolean(email) &&
     !profileLeftAsItIs &&
     (await ProjectSCIMAccountPolicy.mayChangeEmail({
       projectId: data.projectId,
@@ -2355,13 +2428,17 @@ const updateProjectScimUser: (data: {
       newEmail: email!,
     }));
 
-  const changesName: boolean =
-    isNameChanging &&
+  const mayRename: boolean =
+    Boolean(name) &&
     !profileLeftAsItIs &&
     (await ProjectSCIMAccountPolicy.mayChangeName({
       projectId: data.projectId,
       userId: userId,
     }));
+
+  let changesEmail: boolean = isEmailChanging && mayReaddress;
+
+  const changesName: boolean = isNameChanging && mayRename;
 
   let teamOperationPerformed: string | null = null;
 
@@ -2403,7 +2480,14 @@ const updateProjectScimUser: (data: {
   if (active === true && !scimConfig.enablePushGroups && !missingPlan) {
     executionSteps.push("User marked as active, adding to configured teams");
     const addOutcomes: Array<ProjectSCIMTeamAddOutcome> =
-      await handleUserTeamOperations("add", data.projectId, userId, scimConfig);
+      await handleUserTeamOperations(
+        "add",
+        data.projectId,
+        userId,
+        scimConfig,
+        // The provider's name for them names the invitations (#9899).
+        { inviteeName: name || null },
+      );
     teamOperationPerformed = "added_to_teams";
     // How many teams, never whether an add was an invitation (describeTeamAddOutcomes).
     executionSteps.push(
@@ -2433,6 +2517,15 @@ const updateProjectScimUser: (data: {
       await UserService.updateOneById({
         id: userId,
         data: updateData,
+        /*
+         * A new address is the identity provider's change: the address the
+         * account leaves is told so, by role (#9907,
+         * UserService.tellPreviousAddressesOfChange).
+         */
+        miscDataProps: {
+          [EMAIL_ADDRESS_CHANGED_BY_KEY]:
+            EmailAddressChangedBy.IdentityProvider,
+        },
         props: { isRoot: true },
       });
     } catch (err) {
@@ -2463,6 +2556,21 @@ const updateProjectScimUser: (data: {
         select: SCIM_ACCOUNT_SELECT,
         props: { isRoot: true },
       })) || account;
+  }
+
+  /*
+   * The person's invitations into the project that still wait for them take
+   * the provider's new name: the project goes on seeing what the identity
+   * provider calls someone it has not met yet (#9899). Not logged beyond
+   * NAME_CHANGE_STEP, and asked the same way whether or not the account
+   * existed before the connection named it.
+   */
+  if (!profileLeftAsItIs && name && isScimNameChanging) {
+    await ProjectSCIMAccountPolicy.renamePendingInvitations({
+      projectId: data.projectId,
+      userId: userId,
+      inviteeName: name,
+    });
   }
 
   const recorded: ScimUserResource = profileLeftAsItIs ? current : next;
@@ -2997,6 +3105,7 @@ router.post(
                 (data!["members"] as Array<SCIMMember>) || [];
               await addGroupMembersToTeam({
                 projectId: projectId,
+                projectScimId: new ObjectID(projectScimId),
                 teamId: targetTeam.id!,
                 members: members,
               });
@@ -3075,6 +3184,7 @@ router.post(
 
               await replaceGroupMembersOfTeam({
                 projectId: projectId,
+                projectScimId: new ObjectID(projectScimId),
                 teamId: team.id!,
                 members: members,
                 removeOnly: Boolean(bulkMissingPlan),
@@ -3143,6 +3253,7 @@ router.post(
               // Handle SCIM patch operations, as the PATCH route does.
               await applyGroupPatchActions({
                 projectId: projectId,
+                projectScimId: new ObjectID(projectScimId),
                 team: team,
                 actions: planScimGroupPatch(data!["Operations"]),
                 executionSteps: executionSteps,
@@ -3981,6 +4092,7 @@ router.post(
         const counts: { added: number; skipped: number } =
           await addGroupMembersToTeam({
             projectId: projectId,
+            projectScimId: new ObjectID(req.params["projectScimId"]!),
             teamId: targetTeam.id!,
             members: members,
           });
@@ -4234,6 +4346,7 @@ router.put(
         removed: number;
       } = await replaceGroupMembersOfTeam({
         projectId: projectId,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
         teamId: team.id!,
         members: members,
         /*
@@ -4573,6 +4686,7 @@ router.patch(
 
       const applied: GroupPatchResult = await applyGroupPatchActions({
         projectId: projectId,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
         team: team,
         actions: operationsToApply,
         executionSteps: executionSteps,

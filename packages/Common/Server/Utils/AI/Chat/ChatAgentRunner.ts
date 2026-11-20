@@ -69,7 +69,7 @@ import {
   escapeToolResultContent,
   frameToolResult,
   getElidedToolResultCitations,
-  getToolResultLoopOutput,
+  getToolResultLoopCall,
   joinAnswerContinuation,
   MAX_ANSWER_CONTINUATIONS,
 } from "./AgentContextCompactor";
@@ -1455,17 +1455,18 @@ export default class ChatAgentRunner {
             content: toolResultText,
           });
 
-          roundCalls.push({
-            name: toolCall.name,
-            arguments: toolCall.arguments,
-            /*
-             * What the model was shown, less the citation it was framed
-             * with: what a compaction that leaves the result out names it
-             * by (getToolResultLoopOutput).
-             */
-            output: getToolResultLoopOutput(toolResultText),
-            isError: state.lastToolCallFailed === true,
-          });
+          /*
+           * What the model was shown, less the citation it was framed
+           * with: what a compaction that leaves the result out names it
+           * by (getToolResultLoopCall, the same for every agent loop).
+           */
+          roundCalls.push(
+            getToolResultLoopCall({
+              toolCall,
+              content: toolResultText,
+              isError: state.lastToolCallFailed === true,
+            }),
+          );
 
           // Keep the run visibly alive during long tool batches.
           await this.heartbeat(request, state);
@@ -2032,12 +2033,21 @@ export default class ChatAgentRunner {
           : undefined;
     const descriptionSentences: Array<AIActionSentence> =
       words?.description || [];
+    /*
+     * Why Auto-run did not make it, said on its Skipped row in the reader's
+     * language (issue #6982): only of an action skipped for it.
+     */
+    const reason: AIActionSentence | undefined =
+      status === AIChatToolActionStatus.Skipped
+        ? words?.notRunWithoutApproval?.reason
+        : undefined;
     const actionWords: AIActionWords | undefined = titleSentence
       ? {
           title: titleSentence,
           ...(descriptionSentences.length > 0
             ? { description: descriptionSentences }
             : {}),
+          ...(reason ? { reason } : {}),
           ...(words?.title && words.namedArguments
             ? { namedArguments: words.namedArguments }
             : {}),

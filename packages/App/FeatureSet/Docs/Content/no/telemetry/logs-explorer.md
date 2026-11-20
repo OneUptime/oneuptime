@@ -63,7 +63,7 @@ Klikk på en verdi i sidepanelet **Filtre** for å legge den til som en brikke: 
 Klikk på en rad. Detaljene åpnes ved siden av listen.
 :::
 
-Søket ditt, brikkene dine og tidsintervallet lagres i sidens adresse, så en ny innlasting, et bokmerke eller en delt lenke åpner de samme loggene. En lenke til én logglinje, som **Vis logglinje** på en sikkerhetshendelse, åpner den linjen over listen, lest med dine egne tillatelser. **Kopier lenke** i en linjes detaljer kopierer en slik lenke, med listen du kopierte den fra under linjen, over det samme tidsintervallet.
+Søket ditt, brikkene dine og tidsintervallet lagres i sidens adresse, så en ny innlasting, et bokmerke eller en delt lenke åpner de samme loggene. En lenke til én logglinje, som **Vis logglinje** på en sikkerhetshendelse, åpner den linjen over listen, lest med dine egne tillatelser. **Kopier lenke** i en linjes detaljer kopierer en slik lenke, med listen du kopierte den fra under linjen, over det samme tidsintervallet. Hver rad i listen har også **Kopier lenke**, ved siden av meldingen, så du kan kopiere lenken til en linje uten å åpne den.
 
 ## Les en logg
 
@@ -194,6 +194,7 @@ Trykk på `?` i Viser for å se dem.
 | --- | --- |
 | `j` / `k` | Gå til neste eller forrige logg. |
 | Enter | Åpne eller lukk den valgte loggen. |
+| `l` | Kopier en lenke til den valgte loggen. |
 | Esc | Lukk detaljpanelet. |
 | `/` | Hopp til søkefeltet. |
 | ⌘ + Enter eller Ctrl + Enter | Bruk søket. |

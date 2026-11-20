@@ -10,7 +10,12 @@
   operator named says, but neither is markup. A row without a value does
   not show - an installation that names no geo header has no location, and
   an email with no request behind it has none of the three.
+
+  The labels are OneUptime's own words, in the email's language
+  (Utils/EmailLanguage.ts): an email written in English - every email that
+  names no language - reads exactly as it always has, and one written in
+  the reader's language (EmailAddressChanged, #9907) reads its rows in it.
 --}}
-{{> DetailBoxField title="IP address:" plainText=requestIpAddress }}
-{{> DetailBoxField title="Approximate location:" plainText=requestLocation }}
-{{> DetailBoxField title="Device:" plainText=requestDevice }}
+{{> DetailBoxField title=(t "IP address:") plainText=requestIpAddress }}
+{{> DetailBoxField title=(t "Approximate location:") plainText=requestLocation }}
+{{> DetailBoxField title=(t "Device:") plainText=requestDevice }}

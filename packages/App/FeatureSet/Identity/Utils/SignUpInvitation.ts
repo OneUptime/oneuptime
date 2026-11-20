@@ -1,4 +1,7 @@
+import ProjectSsoSignInConfirmation from "./ProjectSsoSignInConfirmation";
+import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import UserProjectSsoConsentService from "Common/Server/Services/UserProjectSsoConsentService";
 import UserService from "Common/Server/Services/UserService";
 import logger from "Common/Server/Utils/Logger";
 import InvitationInviterUtil, {
@@ -14,13 +17,18 @@ import {
   SignUpInvitation,
   SignUpInvitationSsoSignIn,
 } from "Common/Types/Accounts/SignUpInvitation";
-import { ProjectSignInMethods } from "Common/Types/SSO/SignInMethods";
+import {
+  ProjectSignInMethods,
+  SsoSignInProvider,
+} from "Common/Types/SSO/SignInMethods";
 import { SsoManagedBy } from "Common/Types/SSO/SsoManagedSignIn";
+import SsoProviderType from "Common/Types/SSO/SsoProviderType";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import ObjectID from "Common/Types/ObjectID";
+import PositiveNumber from "Common/Types/PositiveNumber";
 
 /*
  * THE INVITATION A SIGN-UP LINK IS FOR, ON THE SERVER (#7471,
@@ -36,7 +44,33 @@ import ObjectID from "Common/Types/ObjectID";
  *     claimed the account, the invitation of the project the page named is
  *     accepted, as the page said creating the account would: the person
  *     followed it to join, and is not asked again.
+ *   - confirmSsoSignIn: on OneUptime Cloud, the page's link taken as the
+ *     mailbox's confirmation of the project's single sign-on, as its person
+ *     picks one of its providers, so that provider's sign-in goes through
+ *     the first time (#9898).
  */
+
+/*
+ * What came of the page's link offered as the mailbox's confirmation of a
+ * project's single sign-on (confirmSsoSignIn): logged on the server, never
+ * answered, so asking tells nobody anything.
+ */
+export enum SignUpInvitationSsoOutcome {
+  Confirmed = "confirmed",
+  NotNeeded = "this server signs people in through a project's single sign-on without asking their mailbox",
+  NotAsked = "the request did not name an address, a token and a project",
+  LinkNotLive = "the link's token is not live for the address",
+  NoAccountToClaim = "no account the link can claim: none at the address, or one that has signed up",
+  Blocked = "the account is blocked",
+  Administrator = "the account is a OneUptime administrator's",
+  NoInvitationWaiting = "no invitation into the project waits for the account",
+  NotManagedBySso = "single sign-on would not manage the person's sign-in once they join the project",
+  NoProjectProvider = "the project has no provider of its own turned on",
+  LinkSpentMeanwhile = "another request spent the link first",
+  NotJoined = "no invitation was accepted, so no consent was recorded",
+  Failed = "the server could not finish",
+}
+
 export default class SignUpInvitationUtil {
   @CaptureSpan()
   public static async read(data: {
@@ -256,5 +290,284 @@ export default class SignUpInvitationUtil {
       logger.error(err);
       return null;
     }
+  }
+
+  /*
+   * THE PAGE'S LINK, AS THE MAILBOX'S CONFIRMATION OF THE PROJECT'S SINGLE
+   * SIGN-ON (#9898).
+   *
+   * On OneUptime Cloud a project's SAML or OIDC provider signs someone in
+   * only once they have confirmed, from their mailbox, that it may: the
+   * project's admins configure it, and could assert any address
+   * (ProjectSsoSignInConfirmation). Someone invited into a project whose
+   * people sign in with SSO follows their invitation email to the sign-up
+   * page, which offers the project's providers (readSsoSignIn). Picking one
+   * went through the provider, stopped at "Check your email", and took a
+   * second email and a second trip through the provider.
+   *
+   * The page's link already proves the mailbox, exactly as that second
+   * email's link does: its registration token went only into the invitation
+   * email to the address (UserRegistrationToken), or to a master admin of a
+   * server that cannot send email (InvitationLink), who can set the
+   * account's password anyway. And picking the project's provider on the
+   * page their own invitation opens is the person saying that the project's
+   * single sign-on may sign them in, which is what the second email asked.
+   * So the page sends the link here as they pick a provider, and it counts
+   * as that confirmation: the token is spent, the invitation into the
+   * project accepted, the address verified and the consent recorded, as a
+   * confirmed email's link does (ProjectSsoSignInConfirmation.confirm). The
+   * provider's answer then signs them in the first time.
+   *
+   * Only when every one of these holds, read before anything is written;
+   * otherwise nothing is written, and a token that was live stays live:
+   *
+   *   - this is OneUptime Cloud: a self-hosted server signs people in
+   *     through a project's SSO without asking the mailbox, and verifies and
+   *     accepts as it does (ProjectSsoSignInGate);
+   *   - the token is live, and the address's;
+   *   - the account at the address has not signed up (it has no password,
+   *     so the link can claim it), is not blocked, and is no OneUptime
+   *     administrator's: a project's provider never signs one in;
+   *   - an invitation into the project waits for it;
+   *   - single sign-on would manage their sign-in there (SsoManagedSignIn),
+   *     as it does whenever the page offers providers;
+   *   - the project has a provider of its own turned on, whose sign-ins the
+   *     consent is for: an instance-wide provider asks no mailbox.
+   *
+   * The token is spent first, so of two requests racing on one link only
+   * the one whose spend removed it writes. Never throws: the route answers
+   * every request alike, whatever came of it, and only the server's log
+   * says why - by project, never by address.
+   */
+  @CaptureSpan()
+  public static async confirmSsoSignIn(data: {
+    email: unknown;
+    token: unknown;
+    projectId: unknown;
+  }): Promise<SignUpInvitationSsoOutcome> {
+    let outcome: SignUpInvitationSsoOutcome = SignUpInvitationSsoOutcome.Failed;
+    let confirmed: { userId: ObjectID; projectId: ObjectID } | null = null;
+
+    try {
+      const result: {
+        outcome: SignUpInvitationSsoOutcome;
+        userId?: ObjectID | undefined;
+        projectId?: ObjectID | undefined;
+      } = await SignUpInvitationUtil.confirmSsoSignInOrSayWhyNot(data);
+
+      outcome = result.outcome;
+
+      if (
+        outcome === SignUpInvitationSsoOutcome.Confirmed &&
+        result.userId &&
+        result.projectId
+      ) {
+        confirmed = { userId: result.userId, projectId: result.projectId };
+      }
+    } catch (err) {
+      logger.error(err);
+      outcome = SignUpInvitationSsoOutcome.Failed;
+    }
+
+    if (confirmed) {
+      logger.info(
+        "An invitation's link confirmed its project's single sign-on from the mailbox",
+        {
+          userId: confirmed.userId.toString(),
+          projectId: confirmed.projectId.toString(),
+          service: "identity",
+        },
+      );
+    } else if (outcome !== SignUpInvitationSsoOutcome.NotNeeded) {
+      const projectIdText: string =
+        typeof data.projectId === "string" &&
+        ObjectID.isValidUUID(data.projectId.trim())
+          ? data.projectId.trim()
+          : "";
+
+      logger.info(
+        `An invitation's link did not confirm the single sign-on of ${projectIdText ? `project ${projectIdText}` : "a project"}: ${outcome}.`,
+        {
+          ...(projectIdText ? { projectId: projectIdText } : {}),
+          service: "identity",
+        },
+      );
+    }
+
+    return outcome;
+  }
+
+  private static async confirmSsoSignInOrSayWhyNot(data: {
+    email: unknown;
+    token: unknown;
+    projectId: unknown;
+  }): Promise<{
+    outcome: SignUpInvitationSsoOutcome;
+    userId?: ObjectID | undefined;
+    projectId?: ObjectID | undefined;
+  }> {
+    if (!ProjectSsoSignInConfirmation.isRequired()) {
+      return { outcome: SignUpInvitationSsoOutcome.NotNeeded };
+    }
+
+    const emailText: string =
+      typeof data.email === "string" ? data.email.trim() : "";
+    const tokenText: string =
+      typeof data.token === "string" ? data.token.trim() : "";
+    const projectIdText: string =
+      typeof data.projectId === "string" ? data.projectId.trim() : "";
+
+    if (
+      !emailText ||
+      !Email.isValid(emailText) ||
+      !tokenText ||
+      !ObjectID.isValidUUID(tokenText) ||
+      !projectIdText ||
+      !ObjectID.isValidUUID(projectIdText)
+    ) {
+      return { outcome: SignUpInvitationSsoOutcome.NotAsked };
+    }
+
+    const email: Email = new Email(emailText);
+    const token: ObjectID = new ObjectID(tokenText);
+    const projectId: ObjectID = new ObjectID(projectIdText);
+
+    // The proof that whoever asks holds the invited mailbox.
+    if (
+      !(await UserRegistrationToken.isRegistrationTokenLive({
+        token: token,
+        email: email,
+      }))
+    ) {
+      return { outcome: SignUpInvitationSsoOutcome.LinkNotLive };
+    }
+
+    const user: User | null = await UserService.findOneBy({
+      query: { email: email },
+      select: {
+        _id: true,
+        password: true,
+        isBlocked: true,
+        isMasterAdmin: true,
+        isEmailVerified: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!user?.id || user.password) {
+      return { outcome: SignUpInvitationSsoOutcome.NoAccountToClaim };
+    }
+
+    if (user.isBlocked) {
+      return { outcome: SignUpInvitationSsoOutcome.Blocked };
+    }
+
+    if (
+      ProjectSsoSignInConfirmation.mustNotSignInThroughProjectProvider(user)
+    ) {
+      return { outcome: SignUpInvitationSsoOutcome.Administrator };
+    }
+
+    const userId: ObjectID = user.id;
+
+    const waiting: PositiveNumber = await TeamMemberService.countBy({
+      query: {
+        userId: userId,
+        projectId: projectId,
+        hasAcceptedInvitation: false,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (waiting.toNumber() === 0) {
+      return { outcome: SignUpInvitationSsoOutcome.NoInvitationWaiting };
+    }
+
+    if (
+      (await SsoManagedSignIn.getManagedByOnceIn({
+        userId: userId,
+        isMasterAdmin: false,
+        joiningProjectId: projectId,
+      })) !== SsoManagedBy.Projects
+    ) {
+      return { outcome: SignUpInvitationSsoOutcome.NotManagedBySso };
+    }
+
+    const methods: ProjectSignInMethods =
+      await SsoSignInMethods.getProjectSignInMethods(projectId);
+
+    if (
+      !methods.ssoProviders.some((provider: SsoSignInProvider): boolean => {
+        return (
+          provider.type === SsoProviderType.ProjectSSO ||
+          provider.type === SsoProviderType.ProjectOIDC
+        );
+      })
+    ) {
+      return { outcome: SignUpInvitationSsoOutcome.NoProjectProvider };
+    }
+
+    /*
+     * Everything that can refuse has been read. Spent before anything is
+     * written: only the request whose spend removed the token goes on.
+     */
+    if (
+      !(await UserRegistrationToken.consumeRegistrationToken({
+        token: token,
+        email: email,
+      }))
+    ) {
+      return { outcome: SignUpInvitationSsoOutcome.LinkSpentMeanwhile };
+    }
+
+    // Joining the project they picked its single sign-on for.
+    const joined: ObjectID | null =
+      await SignUpInvitationUtil.acceptForClaimedAccount({
+        userId: userId,
+        projectId: projectIdText,
+      });
+
+    /*
+     * After the memberships, so UserService's verification hook finds them
+     * accepted and gives them their notification defaults: the spent token
+     * proved the mailbox, as a sign-up that spends it does.
+     */
+    if (!user.isEmailVerified) {
+      await UserService.updateOneById({
+        id: userId,
+        data: {
+          isEmailVerified: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    /*
+     * A consent is to be in the project. With no invitation accepted -
+     * removed in the meantime, or a write that failed - none is recorded,
+     * and the provider's answer asks the mailbox as it always did.
+     */
+    if (!joined) {
+      return { outcome: SignUpInvitationSsoOutcome.NotJoined };
+    }
+
+    await UserProjectSsoConsentService.recordConsent({
+      userId: userId,
+      projectId: projectId,
+    });
+
+    await AccessTokenService.refreshUserAllPermissions(userId);
+
+    return {
+      outcome: SignUpInvitationSsoOutcome.Confirmed,
+      userId: userId,
+      projectId: projectId,
+    };
   }
 }

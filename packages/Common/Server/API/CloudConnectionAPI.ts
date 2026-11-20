@@ -88,6 +88,10 @@ import ProductKey from "../../Types/Product/ProductKey";
  *        it is removed.
  *   POST /cloud-connection/resource-metrics/:cloudResourceId/remove { key }
  *     -> { addedMetrics }
+ *   POST /cloud-connection/resource-metrics/:cloudResourceId/keep-for
+ *     { key, cloudResourceIds } -> { addedMetrics }: a metric added for
+ *        every resource of its type kept for those alone, each read by its
+ *        own addition (#10078).
  *   POST /cloud-connection/resource-metrics/:cloudResourceId/unreported
  *     { keys } -> { metrics: CloudUnreportedKeyMetricReport[] }: when each
  *        key metric the resource did not report last did, and why.
@@ -488,6 +492,66 @@ export default class CloudConnectionAPI extends BaseAPI<
             req,
             res,
             removed as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * A metric added for every resource of its type, kept for some of them
+     * alone (#10078): the ones its readers read it of, which the dialog
+     * named. For whoever may remove it.
+     */
+    this.router.post(
+      `${basePath}/resource-metrics/:cloudResourceId/keep-for`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+          this.assertCanChangeReads(props);
+
+          const body: JSONObject = this.readBody(req);
+          const key: JSONValue | undefined = body["key"];
+          const ids: JSONValue | undefined = body["cloudResourceIds"];
+
+          if (typeof key !== "string" || !key) {
+            throw new BadDataException("Say which added metric to keep.");
+          }
+
+          if (!Array.isArray(ids)) {
+            throw new BadDataException(
+              "Say which resources to keep the metric for.",
+            );
+          }
+
+          const cloudResourceIds: Array<string> = [];
+
+          for (const id of ids) {
+            if (typeof id === "string") {
+              cloudResourceIds.push(id);
+            }
+          }
+
+          const kept: { addedMetrics: Array<CloudAddedMetric> } =
+            await CloudResourceMetrics.keepFor({
+              projectId,
+              cloudResourceId: this.readCloudResourceId(req),
+              props,
+              key,
+              cloudResourceIds,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            kept as unknown as JSONObject,
           );
         } catch (error) {
           next(error);

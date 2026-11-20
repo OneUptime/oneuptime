@@ -63,7 +63,7 @@ Klicken Sie auf einen Wert in der Seitenleiste **Filter**, um ihn als Chip hinzu
 Klicken Sie auf eine Zeile. Ihre Details öffnen sich neben der Liste.
 :::
 
-Ihre Suche, Ihre Chips und der Zeitraum stehen in der Adresse der Seite, sodass ein Neuladen, ein Lesezeichen oder ein geteilter Link dieselben Protokolle öffnet. Ein Link auf eine einzelne Protokollzeile, etwa **Protokollzeile anzeigen** bei einem Sicherheitsereignis, öffnet diese Zeile über der Liste, gelesen mit Ihren eigenen Berechtigungen. **Link kopieren** in den Details einer Zeile kopiert einen solchen Link, mit der Liste, aus der Sie ihn kopiert haben, darunter und über denselben Zeitraum.
+Ihre Suche, Ihre Chips und der Zeitraum stehen in der Adresse der Seite, sodass ein Neuladen, ein Lesezeichen oder ein geteilter Link dieselben Protokolle öffnet. Ein Link auf eine einzelne Protokollzeile, etwa **Protokollzeile anzeigen** bei einem Sicherheitsereignis, öffnet diese Zeile über der Liste, gelesen mit Ihren eigenen Berechtigungen. **Link kopieren** in den Details einer Zeile kopiert einen solchen Link, mit der Liste, aus der Sie ihn kopiert haben, darunter und über denselben Zeitraum. Auch jede Zeile der Liste hat **Link kopieren**, neben ihrer Nachricht: So kopieren Sie den Link einer Zeile, ohne sie zu öffnen.
 
 ## Ein Protokoll lesen
 
@@ -194,6 +194,7 @@ Drücken Sie im Betrachter `?`, um sie zu sehen.
 | --- | --- |
 | `j` / `k` | Zum nächsten oder vorherigen Protokoll wechseln. |
 | Enter | Das ausgewählte Protokoll öffnen oder schließen. |
+| `l` | Einen Link auf das ausgewählte Protokoll kopieren. |
 | Esc | Das Detailfenster schließen. |
 | `/` | Zum Suchfeld springen. |
 | ⌘ + Enter oder Strg + Enter | Die Suche anwenden. |

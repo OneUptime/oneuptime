@@ -202,6 +202,7 @@ kubectl get pods -n oneuptime-agent
 - `logs.enabled`, `ebpf.enabled` и `aiAgent.enabled`: логи подов, трассировки eBPF и [ИИ-агент Kubernetes](#ии-агент-kubernetes), все включены по умолчанию.
 - `kubeStateMetrics.enabled`: kube-state-metrics, по умолчанию выключен.
 - `cost.enabled`: [наблюдаемость затрат](/docs/telemetry/kubernetes-cost), по умолчанию `auto`: включена, кроме пресета `eks-fargate`.
+- `kubeletstats.nodesProxy`: выдаёт ли ClusterRole агента `nodes/proxy`, который открывает весь API kubelet и не соответствует CIS 5.1.10. `auto`, значение по умолчанию, выдаёт его на EKS 1.34 и 1.35, узлы которых могут работать с kubelet старше 1.33. Задайте `false`, когда на всех узлах будет 1.33 или новее (`kubectl get nodes` показывает версию каждого узла): узел с более старым kubelet тогда не будет отправлять ни одной из метрик узла, подов, контейнеров и томов, которые сообщает его kubelet.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -390,6 +391,8 @@ kube-bench запускает бенчмарк платформы кластер
 | `cost.prometheus.nodesProxy` | `auto` (по умолчанию) выдаёт его только с пресетом `eks-fargate`, где ни один под не может обратиться к kubelet узла, а Prometheus агента для учёта затрат читает cAdvisor через API-сервер. Во всех остальных случаях он читает kubelet каждого узла на порту 10250 |
 
 Если собственная привязка агента не соответствует 5.1.10, страница сообщает, что эта привязка принадлежит самому агенту, почему она выдаёт `nodes/proxy` и какое значение убирает это право.
+
+В дополнении Amazon EKS, которое не принимает `--set` из Helm, страница вместо этого называет значение конфигурации дополнения: `{"kubeletstats": {"nodesProxy": false}}`, когда на всех узлах будет 1.33 или новее. У дополнения нет `cost.prometheus.nodesProxy`: с пресетом `eks-fargate` и включённым учётом затрат `nodes/proxy` убирает только `{"cost": {"enabled": false}}`.
 
 ## Параметры конфигурации
 

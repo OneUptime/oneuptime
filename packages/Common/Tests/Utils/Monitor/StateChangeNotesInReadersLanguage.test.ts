@@ -28,11 +28,17 @@ import {
   STATUS_CHANGED_BY_USER,
   STATUS_CHANGE_NOTES,
   StatusChangeNote,
+  WHO_OPENED_IT_NOTES,
   getStatusChangeNotePlaceholders,
+  readCostItems,
   readStatusChangeNote,
   wordStatusChangeNote,
   writeStatusChangeNote,
 } from "../../../Utils/Monitor/StatusChangeNotes";
+import RecordRootCauseWording from "../../../Utils/Monitor/RecordRootCauseWording";
+import isWhoOpenedItRootCause from "../../../Utils/Incident/WhoOpenedItRootCause";
+import { formatSloPolicyTierThreshold } from "../../../Utils/Slo/SloErrorBudgetPolicy";
+import CloudBudgetEvaluator from "../../../Server/Utils/CloudConnection/CloudBudgetEvaluator";
 import PerSeriesResolutionRootCause from "../../../Server/Utils/Monitor/PerSeriesResolutionRootCause";
 import MonitorTurnedOff from "../../../Server/Utils/Monitor/MonitorTurnedOff";
 import { LOG_GROUP_RESOLVED_ROOT_CAUSE } from "../../../Server/Utils/Monitor/LogGroupCriteriaFanOut";
@@ -541,6 +547,192 @@ const FORMERLY_WRITTEN: ReadonlyArray<Written> = [
   },
 ];
 
+/*
+ * ---------------------------------------------------------------------------
+ * An incident's or an alert's own root cause, when OneUptime opened it
+ * (#10125), as each writer writes it
+ * ---------------------------------------------------------------------------
+ *
+ * The record's Root Cause page and its What happened card read it
+ * (RecordRootCauseWording), and View Cause reads the copy its first state
+ * holds (IncidentService, AlertService): the same notes.
+ */
+const CLOUD_COSTS: Array<{ service: string; amount: number }> = [
+  { service: "Amazon EC2", amount: 437.87 },
+  { service: "Amazon S3", amount: 272.74 },
+  { service: "AWS Lambda", amount: 34.84 },
+];
+
+const RECORD_ROOT_CAUSES_WRITTEN: ReadonlyArray<Written> = [
+  {
+    writer: "IncomingRequestIncidentGrouping",
+    // As toFiringMatch writes it: the key a code span mdText writes round it.
+    stored:
+      mdText`Incoming request matched grouping key \`${"checkout-42"}\`.`.toString(),
+    keeps: ["`checkout-42`"],
+  },
+  {
+    writer: "IncomingRequestIncidentGrouping (a key with a backtick)",
+    stored:
+      mdText`Incoming request matched grouping key \`${"order`7"}\`.`.toString(),
+    keeps: ["order`7"],
+  },
+  {
+    writer: "DetectionRuleEvaluator (an alert's, an incident's)",
+    stored:
+      mdText`Sigma detection rule "${"Sudo to root"}" matched security events.`.toString(),
+    keeps: ["Sudo to root"],
+  },
+  {
+    writer: "ThreatIntelMatcher",
+    stored:
+      mdText`Threat intel feed "${"URLhaus"}" indicator matched security events.`.toString(),
+    keeps: ["URLhaus"],
+  },
+  {
+    writer: "DataSecurityIntegrations",
+    stored:
+      mdText`The Data Security check "${"s3-public-bucket"}" failed on ${"customer-exports"}.`.toString(),
+    keeps: ["s3-public-bucket", "customer-exports"],
+  },
+  {
+    writer: "EvaluateSlos (a burn rate rule)",
+    stored:
+      mdText`Error budget burn rate breached the "${"Fast burn"}" rule of SLO "${"Checkout availability"}".`.toString(),
+    keeps: ["Fast burn", "Checkout availability"],
+  },
+  {
+    writer: "EvaluateSlos (a policy tier)",
+    stored:
+      mdText`The error budget left of SLO "${"Checkout availability"}" is at or below ${formatSloPolicyTierThreshold(25)}, the "${"Freeze"}" tier of its error budget policy.`.toString(),
+    keeps: ["Checkout availability", "Freeze"],
+  },
+  {
+    writer: "EvaluateSlos (a policy tier at a fraction)",
+    stored:
+      mdText`The error budget left of SLO "${"Checkout availability"}" is at or below ${formatSloPolicyTierThreshold(12.345)}, the "${"Freeze"}" tier of its error budget policy.`.toString(),
+    keeps: ["Checkout availability", "Freeze"],
+  },
+  {
+    writer: "NetworkSiteService (a status the project named)",
+    stored:
+      mdText`Network site **${"Head Office"}** rolled up to **${"Partial Outage"}**.`.toString(),
+    keeps: ["Head Office", "Partial Outage"],
+  },
+  {
+    writer: "NetworkSiteService (a default status)",
+    stored:
+      mdText`Network site **${"Head Office"}** rolled up to **${"Degraded"}**.`.toString(),
+    keeps: ["Head Office"],
+  },
+  {
+    writer: "CloudBudgetEvaluator (three services)",
+    stored: CloudBudgetEvaluator.describeTopServices(CLOUD_COSTS, "USD")!,
+    keeps: [
+      "Amazon EC2 ($437.87)",
+      "Amazon S3 ($272.74)",
+      "AWS Lambda ($34.84)",
+    ],
+  },
+  {
+    writer: "CloudBudgetEvaluator (two services)",
+    stored: CloudBudgetEvaluator.describeTopServices(
+      CLOUD_COSTS.slice(0, 2),
+      "EUR",
+    )!,
+    keeps: ["Amazon EC2 (€437.87)", "Amazon S3 (€272.74)"],
+  },
+  {
+    writer: "CloudBudgetEvaluator (one service)",
+    stored: CloudBudgetEvaluator.describeTopServices(
+      CLOUD_COSTS.slice(0, 1),
+      "USD",
+    )!,
+    keeps: ["Amazon EC2 ($437.87)"],
+  },
+  {
+    writer: "OnCallPageService (a workflow's page)",
+    stored:
+      mdText`Created by workflow **${"Page on 5xx"}** to page people.`.toString(),
+    keeps: ["Page on 5xx"],
+  },
+  {
+    writer: "WorkspacePage (Slack, by a person)",
+    stored:
+      mdText`Created by **${"Jane Doe"}** from ${"Slack"} to page people.`.toString(),
+    keeps: ["Jane Doe", "Slack"],
+  },
+  {
+    writer: "WorkspacePage (Microsoft Teams, nobody named)",
+    stored:
+      mdText`Created from ${"Microsoft Teams"} to page people.`.toString(),
+    keeps: ["Microsoft Teams"],
+  },
+];
+
+/*
+ * Who opened the record, as OneUptime wrote it into an empty root cause
+ * until e1318450be7: older records still hold it, and so do their first
+ * state and the monitor statuses they changed (WhoOpenedItRootCause).
+ */
+const RECORD_ROOT_CAUSES_FORMERLY_WRITTEN: ReadonlyArray<Written> = [
+  {
+    writer: "IncidentService, before e1318450be7",
+    stored:
+      mdText`Incident created by ${FeedMarkdown.asMarkdown(USER_LINK)}`.toString(),
+    keeps: ["Jane Doe"],
+  },
+  {
+    writer: "AlertService, before e1318450be7",
+    stored:
+      mdText`Alert created by ${FeedMarkdown.asMarkdown(USER_LINK)}`.toString(),
+    keeps: ["Jane Doe"],
+  },
+  {
+    writer: "Slack's Declare Incident, before e1318450be7",
+    stored: mdText`Incident created by @${"maya.chen"} on Slack.`.toString(),
+    keeps: ["@maya.chen"],
+  },
+  {
+    writer: "Microsoft Teams' Declare Incident, before e1318450be7",
+    stored: "Incident created via Microsoft Teams",
+  },
+  {
+    writer: "the OneUptime AI copilot's tool, before e1318450be7",
+    stored: "Incident created via the OneUptime AI copilot.",
+  },
+];
+
+/*
+ * A value as a writer places one, of the value's shape where its note
+ * reads it only so: a person's link, a chat handle, a percentage.
+ */
+function sampleValue(note: StatusChangeNote, name: string): string {
+  if (note.people?.includes(name)) {
+    return `[The ${name}](https://oneuptime.example/${name})`;
+  }
+
+  if (note.handles?.includes(name)) {
+    return `@the-${name}`;
+  }
+
+  if (note.percents?.includes(name)) {
+    return "12.5%";
+  }
+
+  return `the ${name}`;
+}
+
+// Every note a writer writes now, and every one older rows hold.
+const ALL_WRITTEN: ReadonlyArray<Written> = [
+  ...WRITTEN,
+  ...RECORD_ROOT_CAUSES_WRITTEN,
+];
+const ALL_FORMERLY_WRITTEN: ReadonlyArray<Written> = [
+  ...FORMERLY_WRITTEN,
+  ...RECORD_ROOT_CAUSES_FORMERLY_WRITTEN,
+];
+
 // Each note as test.each takes it: its writer's name, then the note.
 function byWriter(list: ReadonlyArray<Written>): Array<[string, Written]> {
   return list.map((written: Written): [string, Written] => {
@@ -574,6 +766,26 @@ describe("every note OneUptime writes onto a State Timeline is one of its notes"
     },
   );
 
+  test.each(byWriter(RECORD_ROOT_CAUSES_WRITTEN))(
+    "a record's own root cause: %s",
+    (_writer: string, written: Written) => {
+      expect({
+        stored: written.stored,
+        read: Boolean(readStatusChangeNote(written.stored)),
+      }).toEqual({ stored: written.stored, read: true });
+    },
+  );
+
+  test.each(byWriter(RECORD_ROOT_CAUSES_FORMERLY_WRITTEN))(
+    "an older record's root cause: %s",
+    (_writer: string, written: Written) => {
+      expect({
+        stored: written.stored,
+        read: Boolean(readStatusChangeNote(written.stored)),
+      }).toEqual({ stored: written.stored, read: true });
+    },
+  );
+
   test("every note of the list is one a writer writes, or wrote", () => {
     const unread: Array<string> = STATUS_CHANGE_NOTES.flatMap(
       (note: StatusChangeNote): Array<string> => {
@@ -581,7 +793,7 @@ describe("every note OneUptime writes onto a State Timeline is one of its notes"
       },
     ).filter((template: string): boolean => {
       // The monitor's own notes have their writers in StatusChangeCauseWording.test.
-      return ![...WRITTEN, ...FORMERLY_WRITTEN].some(
+      return ![...ALL_WRITTEN, ...ALL_FORMERLY_WRITTEN].some(
         (written: Written): boolean => {
           const read: ReturnType<typeof readStatusChangeNote> =
             readStatusChangeNote(written.stored);
@@ -626,7 +838,7 @@ describe.each(LANGUAGES)(
   (language: string) => {
     const translator: Translator = dashboardTranslator(language);
 
-    test.each(byWriter([...WRITTEN, ...FORMERLY_WRITTEN]))(
+    test.each(byWriter([...ALL_WRITTEN, ...ALL_FORMERLY_WRITTEN]))(
       "%s reads in the reader's words, its values as written",
       (_writer: string, written: Written) => {
         const worded: string = plain(word(written.stored, translator));
@@ -696,7 +908,7 @@ describe("a note's values, as the reader reads them", () => {
   });
 
   test("in English, each reads as stored - but for a sentence said better", () => {
-    for (const written of [...WRITTEN, ...FORMERLY_WRITTEN]) {
+    for (const written of [...ALL_WRITTEN, ...ALL_FORMERLY_WRITTEN]) {
       const read: ReturnType<typeof readStatusChangeNote> =
         readStatusChangeNote(written.stored);
       const worded: string = plain(word(written.stored, ENGLISH));
@@ -721,6 +933,230 @@ describe("a note's values, as the reader reads them", () => {
     expect(word("Episode reopened due to new alert added.", ENGLISH)).toBe(
       EPISODE_REOPENED_BY_NEW_ALERT,
     );
+  });
+});
+
+/*
+ * A RECORD'S OWN ROOT CAUSE ON ITS ROOT CAUSE PAGE AND WHAT HAPPENED CARD
+ * (#10125).
+ *
+ * Why OneUptime opened an incident or an alert read in English on every
+ * page: "Sigma detection rule ... matched security events.", an SLO's burn
+ * rate, a network site's rollup, a budget's costs, a page from a workflow
+ * or a chat, and who opened it on older records. Each is a note of the
+ * registry now, read by RecordRootCauseWording on the record's own pages
+ * and by View Cause on the copy its first state holds - the same words.
+ */
+describe("a record's own root cause, as its Root Cause page and What happened card read it (#10125)", () => {
+  const german: Translator = dashboardTranslator("de");
+  const persian: Translator = dashboardTranslator("fa");
+  const arabic: Translator = dashboardTranslator("ar");
+
+  function wordRecord(stored: string, translator: Translator): string {
+    return RecordRootCauseWording.wordRootCause({
+      rootCause: stored,
+      translator: translator,
+      setsValuesApart: true,
+    });
+  }
+
+  test.each(
+    byWriter([
+      ...RECORD_ROOT_CAUSES_WRITTEN,
+      ...RECORD_ROOT_CAUSES_FORMERLY_WRITTEN,
+    ]),
+  )(
+    "%s reads in the reader's words on the record's pages, as View Cause reads its first state",
+    (_writer: string, written: Written) => {
+      for (const language of LANGUAGES) {
+        const translator: Translator = dashboardTranslator(language);
+        const worded: string = wordRecord(written.stored, translator);
+
+        expect({ language, worded: plain(worded) }).not.toEqual({
+          language,
+          worded: plain(written.stored),
+        });
+        // The record and its first state, which holds a copy, say the same.
+        expect(worded).toBe(word(written.stored, translator));
+
+        for (const value of written.keeps || []) {
+          expect({
+            language,
+            value,
+            kept: plain(worded).includes(value),
+          }).toEqual({ language, value, kept: true });
+        }
+      }
+    },
+  );
+
+  test("a policy tier's threshold is written in the reader's digits", () => {
+    const stored: string =
+      mdText`The error budget left of SLO "${"Checkout availability"}" is at or below ${formatSloPolicyTierThreshold(12.345)}, the "${"Freeze"}" tier of its error budget policy.`.toString();
+
+    expect(stored).toContain("12.35%");
+    expect(plain(wordRecord(stored, persian))).toContain("۱۲٫۳۵٪");
+    expect(plain(wordRecord(stored, german))).toContain("12,35 %");
+    expect(plain(wordRecord(stored, persian))).not.toContain("12.35%");
+  });
+
+  test("what cost the most is listed the way the reader's language lists it, each cost as written", () => {
+    const stored: string = CloudBudgetEvaluator.describeTopServices(
+      CLOUD_COSTS,
+      "USD",
+    )!;
+
+    expect(stored).toBe(
+      "What cost the most this month: Amazon EC2 ($437.87), Amazon S3 ($272.74) and AWS Lambda ($34.84).",
+    );
+    expect(plain(wordRecord(stored, german))).toContain(
+      "Amazon EC2 ($437.87), Amazon S3 ($272.74) und AWS Lambda ($34.84)",
+    );
+    expect(plain(wordRecord(stored, persian))).toContain(
+      "Amazon EC2 ($437.87)، Amazon S3 ($272.74) و AWS Lambda ($34.84)",
+    );
+    expect(plain(wordRecord(stored, persian))).not.toContain(" and ");
+    // Two costs, and one, read the same way.
+    expect(
+      plain(
+        wordRecord(
+          CloudBudgetEvaluator.describeTopServices(
+            CLOUD_COSTS.slice(0, 2),
+            "USD",
+          )!,
+          german,
+        ),
+      ),
+    ).toContain("Amazon EC2 ($437.87) und Amazon S3 ($272.74)");
+  });
+
+  test("a list of costs is read item by item, and a name with a bracket and a comma of its own is kept whole", () => {
+    expect(
+      readCostItems("Amazon EC2 ($1), Amazon S3 ($2) and AWS Lambda ($3)"),
+    ).toEqual(["Amazon EC2 ($1)", "Amazon S3 ($2)", "AWS Lambda ($3)"]);
+    expect(readCostItems("Amazon EC2 ($1) and Amazon S3 ($2)")).toEqual([
+      "Amazon EC2 ($1)",
+      "Amazon S3 ($2)",
+    ]);
+    expect(readCostItems("Compute (EC2) ($437.87)")).toEqual([
+      "Compute (EC2) ($437.87)",
+    ]);
+    expect(readCostItems("Foo (bar), baz ($1)")).toBeNull();
+    expect(readCostItems("Amazon EC2")).toBeNull();
+
+    const stored: string =
+      "What cost the most this month: Foo (bar), baz ($1).";
+
+    expect(plain(wordRecord(stored, german))).toContain("Foo (bar), baz ($1)");
+  });
+
+  test("a default status a site rolled up to is in the reader's words, a status the project named as written", () => {
+    const degraded: string =
+      mdText`Network site **${"Head Office"}** rolled up to **${"Degraded"}**.`.toString();
+
+    expect(plain(wordRecord(degraded, german))).toContain(
+      readDashboardLocale("de")["Degraded"] as string,
+    );
+    expect(plain(wordRecord(degraded, german))).not.toContain("Degraded");
+  });
+
+  test("who opened an older record: a person's link is kept whole, set apart in a sentence read from the right", () => {
+    const stored: string =
+      mdText`Incident created by ${FeedMarkdown.asMarkdown(USER_LINK)}`.toString();
+
+    expect(wordRecord(stored, arabic)).toContain(`⁨${USER_LINK}⁩`);
+    expect(wordRecord(stored, persian)).toContain(`⁨${USER_LINK}⁩`);
+    expect(plain(wordRecord(stored, ENGLISH))).toBe(`Declared by ${USER_LINK}`);
+    expect(
+      plain(
+        wordRecord(
+          mdText`Alert created by ${FeedMarkdown.asMarkdown(USER_LINK)}`.toString(),
+          ENGLISH,
+        ),
+      ),
+    ).toBe(`Created by ${USER_LINK}`);
+    expect(
+      plain(wordRecord("Incident created by @maya.chen on Slack.", ENGLISH)),
+    ).toBe("Declared by @maya.chen in Slack.");
+    expect(
+      plain(wordRecord("Incident created via Microsoft Teams", ENGLISH)),
+    ).toBe("Declared from Microsoft Teams.");
+    expect(
+      plain(
+        wordRecord("Incident created via the OneUptime AI copilot.", ENGLISH),
+      ),
+    ).toBe("Declared by OneUptime AI.");
+  });
+
+  test("a root cause a person typed that starts as OneUptime's reads as they wrote it", () => {
+    for (const typed of [
+      "Incident created by a bad deploy of checkout-api.",
+      "Incident created by Maya Chen",
+      `Incident created by ${USER_LINK}, who rolled back the pool size change.`,
+      "Incident created by @maya on Slack. The pool was cut to 10.",
+      "Incident created by @ on Slack.",
+      "Incident created via Microsoft Teams after a bad deploy",
+      'Sigma detection rule "Sudo" matched security events. We think it was a test.',
+      'The error budget left of SLO "Checkout" is at or below a quarter, the "Freeze" tier of its error budget policy.',
+      "What cost the most this month: EC2.\nAnd S3.",
+    ]) {
+      expect({ typed, read: readStatusChangeNote(typed) }).toEqual({
+        typed,
+        read: null,
+      });
+      expect(wordRecord(typed, ENGLISH)).toBe(typed);
+    }
+  });
+
+  test("the What happened card reads exactly the notes that say who opened the record as no root cause", () => {
+    for (const written of RECORD_ROOT_CAUSES_FORMERLY_WRITTEN) {
+      expect({
+        stored: written.stored,
+        isWhoOpenedIt: isWhoOpenedItRootCause(written.stored),
+      }).toEqual({ stored: written.stored, isWhoOpenedIt: true });
+    }
+
+    for (const written of [...WRITTEN, ...RECORD_ROOT_CAUSES_WRITTEN]) {
+      expect({
+        stored: written.stored,
+        isWhoOpenedIt: isWhoOpenedItRootCause(written.stored),
+      }).toEqual({ stored: written.stored, isWhoOpenedIt: false });
+    }
+
+    expect(
+      WHO_OPENED_IT_NOTES.map((note: StatusChangeNote): string => {
+        return note.written;
+      }),
+    ).toEqual([
+      "Incident created by {{user}}",
+      "Alert created by {{user}}",
+      "Incident created by {{handle}} on Slack.",
+      "Incident created via Microsoft Teams",
+      "Incident created via the OneUptime AI copilot.",
+    ]);
+  });
+
+  test("a criteria's Markdown, or a root cause a person wrote, reads as the record's monitor wording has it", () => {
+    const criteria: string =
+      "**Created because the following criteria was met**:\n\n**Criteria Name**: Website is down";
+    const worded: string = plain(wordRecord(criteria, german));
+
+    expect(worded).not.toContain("Criteria Name");
+    expect(worded).toContain("Website is down");
+    expect(wordRecord("The pool was cut to 10.", german)).toBe(
+      "The pool was cut to 10.",
+    );
+    expect(wordRecord("", german)).toBe("");
+  });
+
+  test("regression: a Sigma rule's root cause read in English on a Persian page", () => {
+    const stored: string =
+      mdText`Sigma detection rule "${"Sudo to root"}" matched security events.`.toString();
+
+    expect(plain(wordRecord(stored, persian))).not.toContain(
+      "matched security events",
+    );
+    expect(plain(wordRecord(stored, persian))).toContain("Sudo to root");
   });
 });
 
@@ -806,7 +1242,7 @@ describe("the notes, read whole", () => {
         const values: Record<string, string> = {};
 
         for (const name of getStatusChangeNotePlaceholders(template)) {
-          values[name] = `the ${name}`;
+          values[name] = sampleValue(note, name);
         }
 
         const read: ReturnType<typeof readStatusChangeNote> =
@@ -1083,6 +1519,56 @@ describe("the server still writes each note as it is read (#9959)", () => {
     [
       "packages/Common/Server/Utils/AI/FirstResponder/AiFirstResponder.ts",
       "mdText`Resolved by OneUptime AI: its fix was verified - every affected monitor is operational again - so nobody was paged.`",
+    ],
+    // A record's own root cause, when OneUptime opened it (#10125).
+    [
+      "packages/Common/Server/Utils/Monitor/IncomingRequestIncidentGrouping.ts",
+      "mdText`Incoming request matched grouping key \\`${input.item.keyValue}\\`.`",
+    ],
+    [
+      "packages/Common/Server/Utils/SecurityEvent/DetectionRuleEvaluator.ts",
+      'mdText`Sigma detection rule "${rule.name}" matched security events.`',
+    ],
+    [
+      "packages/Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelMatcher.ts",
+      'mdText`Threat intel feed "${feed.name}" indicator matched security events.`',
+    ],
+    [
+      "packages/Common/Server/Utils/DataSecurity/DataSecurityIntegrations.ts",
+      'mdText`The Data Security check "${issue.checkId}" failed on ${issue.dataStoreName}.`',
+    ],
+    [
+      "packages/App/FeatureSet/Workers/Jobs/Slo/EvaluateSlos.ts",
+      'mdText`Error budget burn rate breached the "${rule.name}" rule of SLO "${context.slo.name}".`',
+    ],
+    [
+      "packages/App/FeatureSet/Workers/Jobs/Slo/EvaluateSlos.ts",
+      'mdText`The error budget left of SLO "${context.slo.name || ""}" is at or below ${formatSloPolicyTierThreshold(tier.thresholdPercentage)}, the "${tier.name || ""}" tier of its error budget policy.`',
+    ],
+    [
+      "packages/Common/Server/Services/NetworkSiteService.ts",
+      "mdText`Network site **${site.name || site.id.toString()}** rolled up to **${statusName}**.`",
+    ],
+    [
+      "packages/Common/Server/Services/OnCallPageService.ts",
+      "mdText`Created by workflow **${workflowName}** to page people.`",
+    ],
+    [
+      "packages/Common/Server/Utils/Workspace/WorkspacePage.ts",
+      "mdText`Created by **${pagerName}** from ${WorkspacePage.getWorkspaceName(data.workspaceType)} to page people.`",
+    ],
+    [
+      "packages/Common/Server/Utils/Workspace/WorkspacePage.ts",
+      "mdText`Created from ${WorkspacePage.getWorkspaceName(data.workspaceType)} to page people.`",
+    ],
+    // Copied to the record's first state, where View Cause reads it.
+    [
+      "packages/Common/Server/Services/IncidentService.ts",
+      "rootCause: createdItem.rootCause,",
+    ],
+    [
+      "packages/Common/Server/Services/AlertService.ts",
+      "rootCause: createdItem.rootCause,",
     ],
   ])("%s writes %s", (file: string, written: string) => {
     expect(source(file)).toContain(written);

@@ -6,10 +6,13 @@ import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 /*
- * See the model for what a row means. Written only from the confirmation link
- * a project-SSO sign-in emails to the account's own address; read on every
- * project-SSO sign-in on the hosted service, and by SCIM when it adds an
- * existing account to a team.
+ * See the model for what a row means. Written only from a link that went to
+ * the account's own address: the confirmation link a project-SSO sign-in
+ * emails it, and the invitation email's link, as its person picks the
+ * project's single sign-on on the page it opens (#9898,
+ * SignUpInvitationUtil.confirmSsoSignIn). Read on every project-SSO sign-in
+ * on the hosted service, and by SCIM when it adds an existing account to a
+ * team.
  */
 export class Service extends DatabaseService<Model> {
   public constructor() {
