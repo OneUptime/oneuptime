@@ -4,6 +4,12 @@ import DashboardVariableInterpolation, {
   ResolvedVariableValue,
 } from "../Dashboard/VariableInterpolation";
 import escapeRegExp from "../RegExpEscape";
+import { applyGrafanaIntervalMacros } from "../PromQL/PromQLGrafanaMacros";
+import {
+  PromQLToken,
+  PromQLTokenType,
+  tokenizePromQL,
+} from "../PromQL/PromQLLexer";
 
 /*
  * A PromQL label matcher whose value is a string: the label, the operator
@@ -14,6 +20,23 @@ const PROMQL_MATCHER_PATTERN: RegExp =
 
 // A {{ name }} token, as applyVariables reads one.
 const VARIABLE_TOKEN_PATTERN: RegExp = /\{\{\s*([^{}\s]+)\s*\}\}/g;
+
+// The operators a label matcher compares its label with.
+const MATCHER_OPERATOR_TOKENS: ReadonlyArray<PromQLTokenType> = [
+  PromQLTokenType.Assign,
+  PromQLTokenType.Neq,
+  PromQLTokenType.RegexMatch,
+  PromQLTokenType.RegexNoMatch,
+];
+
+/*
+ * A window to fill Grafana's interval macros for, where only the shape of
+ * a query matters: what they become is a duration, whatever the window.
+ */
+const SHAPE_MACRO_WINDOW: { startDate: Date; endDate: Date } = {
+  startDate: new Date(0),
+  endDate: new Date(60 * 60 * 1000),
+};
 
 // What a value is inside a PromQL string of this quote.
 const escapeForPromQLString: (value: string, quote: string) => string = (
@@ -51,10 +74,95 @@ const runEnd: RunEndFunction = (
 /*
  * Pure text utilities for external Data Source queries: dashboard-variable
  * interpolation into query text, and legend templates for series naming.
- * Client-side only — the server never interpolates variables (it receives
- * the final query text).
+ * A signed-in dashboard fills its variables in on the client and sends the
+ * final query text. A public dashboard sends none (issue #10226): its
+ * PromQL route fills a stored query here, on the server, with the values a
+ * visitor may pick (PublicDashboardPromQLPolicy).
  */
 export default class DataSourceQueryText {
+  /*
+   * The names of the variables a PromQL query names anywhere but inside a
+   * label matcher's value - in its code (`[{{range}}]`, `by ({{label}})`,
+   * a metric's name), in a function's string argument, in a comment -
+   * where applyVariablesToPromQL writes a value as it is, not as a string,
+   * so a value could change what the query reads. Inside a matcher's value
+   * a value is always written as a string (fillPromQLMatcher), and can
+   * only pick which values of that label match.
+   *
+   * A matcher's value counts only where the PromQL lexer reads one too: a
+   * string right after a label's name and a matcher's operator, at the very
+   * place the matcher pattern fills. A query that does not lex - and so
+   * would not run - is read as naming every variable outside a matcher.
+   */
+  public static getVariableNamesOutsidePromQLMatchers(
+    queryText: string,
+  ): Set<string> {
+    const names: Set<string> = new Set<string>();
+
+    if (!queryText) {
+      return names;
+    }
+
+    // Grafana's macros as the durations they become, as the query runs.
+    const text: string = applyGrafanaIntervalMacros(
+      queryText,
+      SHAPE_MACRO_WINDOW,
+    );
+
+    // The strings the lexer reads as a matcher's value, by where they are.
+    const lexedMatcherValues: Set<string> = new Set<string>();
+
+    try {
+      const tokens: Array<PromQLToken> = tokenizePromQL(text);
+
+      for (let index: number = 2; index < tokens.length; index++) {
+        const value: PromQLToken = tokens[index]!;
+        const operator: PromQLToken = tokens[index - 1]!;
+        const label: PromQLToken = tokens[index - 2]!;
+
+        if (
+          value.type === PromQLTokenType.String &&
+          MATCHER_OPERATOR_TOKENS.includes(operator.type) &&
+          label.type === PromQLTokenType.Identifier
+        ) {
+          lexedMatcherValues.add(`${value.start}:${value.end}`);
+        }
+      }
+    } catch {
+      // Does not lex: no place in it is a matcher's value.
+    }
+
+    // The quoted values the matcher pattern fills, where the lexer agrees.
+    const matcherValues: Array<{ start: number; end: number }> = [];
+
+    for (const found of text.matchAll(PROMQL_MATCHER_PATTERN)) {
+      const quoted: string = found[5] || "";
+      const end: number = (found.index || 0) + found[0].length;
+      const start: number = end - quoted.length;
+
+      if (lexedMatcherValues.has(`${start}:${end}`)) {
+        matcherValues.push({ start, end });
+      }
+    }
+
+    for (const found of text.matchAll(VARIABLE_TOKEN_PATTERN)) {
+      const start: number = found.index || 0;
+      const end: number = start + found[0].length;
+
+      const isInsideAMatcherValue: boolean = matcherValues.some(
+        (span: { start: number; end: number }): boolean => {
+          return start > span.start && end < span.end;
+        },
+      );
+
+      if (!isInsideAMatcherValue && found[1]) {
+        names.add(found[1]);
+      }
+    }
+
+    return names;
+  }
+
   /*
    * Replace {{variableName}} tokens with the variable's current value.
    * Multi-select values join with "|" — regex alternation, which drops
@@ -324,18 +432,82 @@ export default class DataSourceQueryText {
       return template;
     }
 
-    /*
-     * Each "{{ key }}" as the pattern /\{\{\s*([^}\s]+)\s*\}\}/g found it:
-     * "{{", white space, a key of characters other than "}" and white
-     * space, white space, "}}" - each run read whole. Where none starts at
-     * a "{{", the next that can start is two characters before the key's
-     * end at the earliest: one that starts inside the key reads the rest of
-     * the same key, and fails at the same place. (The pattern tried every
-     * "{{" in that key again, each time reading the key to its end - on
-     * "{{{{{{..." a time that grew with the square of the template's
-     * length.)
-     */
-    const parts: Array<string> = [];
+    const parts: Array<LegendTemplatePart> =
+      DataSourceQueryText.readLegendTemplate(template);
+
+    if (
+      !parts.some((part: LegendTemplatePart): boolean => {
+        return "key" in part;
+      })
+    ) {
+      return template;
+    }
+
+    return parts
+      .map((part: LegendTemplatePart): string => {
+        if ("text" in part) {
+          return part.text;
+        }
+
+        /*
+         * A label's own value: never one every object inherits, so a
+         * template that names {{constructor}} reads "(unset)", not the
+         * code of a function.
+         */
+        const value: unknown =
+          attributes &&
+          Object.prototype.hasOwnProperty.call(attributes, part.key)
+            ? attributes[part.key]
+            : undefined;
+
+        if (value === undefined || value === "") {
+          return "(unset)";
+        }
+
+        // A column's number or a null, written as they always were.
+        return value === null ? "" : String(value);
+      })
+      .join("");
+  }
+
+  /*
+   * The labels a legend template names, in the order it names them, each
+   * once: what a series drawn by it shows of its labels. A public
+   * dashboard's chart is sent only these (issue #10226): its series are
+   * told apart by the names the template gives them, so no other label is
+   * drawn.
+   */
+  public static getLegendTemplateKeys(template: string): Array<string> {
+    const keys: Array<string> = [];
+
+    if (!template) {
+      return keys;
+    }
+
+    for (const part of DataSourceQueryText.readLegendTemplate(template)) {
+      if ("key" in part && !keys.includes(part.key)) {
+        keys.push(part.key);
+      }
+    }
+
+    return keys;
+  }
+
+  /*
+   * A legend template's parts, in order: text as written, and each
+   * "{{ key }}" as the pattern /\{\{\s*([^}\s]+)\s*\}\}/g found it: "{{",
+   * white space, a key of characters other than "}" and white space, white
+   * space, "}}" - each run read whole. Where none starts at a "{{", the next
+   * that can start is two characters before the key's end at the earliest:
+   * one that starts inside the key reads the rest of the same key, and
+   * fails at the same place. (The pattern tried every "{{" in that key
+   * again, each time reading the key to its end - on "{{{{{{..." a time
+   * that grew with the square of the template's length.)
+   */
+  private static readLegendTemplate(
+    template: string,
+  ): Array<LegendTemplatePart> {
+    const parts: Array<LegendTemplatePart> = [];
     let copied: number = 0;
     let from: number = 0;
 
@@ -351,14 +523,9 @@ export default class DataSourceQueryText {
       const closeAt: number = runEnd(WHITE_SPACE_RUN, template, keyEnd);
 
       if (keyEnd > keyStart && template.startsWith("}}", closeAt)) {
-        const key: string = template.slice(keyStart, keyEnd);
-        const value: string | undefined = attributes
-          ? attributes[key]
-          : undefined;
-
         parts.push(
-          template.slice(copied, open),
-          value === undefined || value === "" ? "(unset)" : value,
+          { text: template.slice(copied, open) },
+          { key: template.slice(keyStart, keyEnd) },
         );
         copied = closeAt + 2;
         from = copied;
@@ -368,12 +535,11 @@ export default class DataSourceQueryText {
       from = Math.max(open + 1, keyEnd - 2);
     }
 
-    if (parts.length === 0) {
-      return template;
-    }
+    parts.push({ text: template.slice(copied) });
 
-    parts.push(template.slice(copied));
-
-    return parts.join("");
+    return parts;
   }
 }
+
+// One part of a legend template: text as written, or a label to fill.
+type LegendTemplatePart = { text: string } | { key: string };

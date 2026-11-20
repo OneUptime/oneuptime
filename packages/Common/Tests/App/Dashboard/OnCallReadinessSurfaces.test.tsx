@@ -3619,6 +3619,28 @@ describe("parsing a responder's teams", () => {
     expect(parsed.teams[0]!._id).toBe(PLATFORM_TEAM_ID);
   });
 
+  /*
+   * When a team was made, which tells two of one name apart in the team
+   * filter (#10314), is read when the server sends it, and absent from a
+   * server from before it.
+   */
+  test("a team says when it was made when the server sends it, and nothing when it does not", () => {
+    const parsed: UserReadinessWire = toUserReadiness({
+      ...READY_USER,
+      teams: [
+        { ...PLATFORM_TEAM, createdAt: "2024-03-05T09:30:00.000Z" },
+        PAYMENTS_TEAM,
+      ] as JSONArray,
+    });
+
+    expect(parsed.teams[0]).toEqual({
+      _id: PLATFORM_TEAM_ID,
+      name: "Platform",
+      createdAt: "2024-03-05T09:30:00.000Z",
+    });
+    expect(parsed.teams[1]).not.toHaveProperty("createdAt");
+  });
+
   test("a team with no name is dropped rather than rendered blank", () => {
     expect(teamNamesFrom([{ _id: PLATFORM_TEAM_ID }, PAYMENTS_TEAM])).toEqual([
       "Payments",

@@ -64,7 +64,7 @@
 | [kubectl](#kubectl) | Runner | 一個 Runner，以及一個 kubeconfig 變數或 Runner 自身的存取權限 |
 | [AI](#ai) | OneUptime Worker | 一個 LLM 提供者 |
 
-在下面的每個自動步驟中，步驟的 **更多欄位** 先放步驟的 **Runner** （對於在 Runner 上執行的步驟），再放 **需要核准** 和 **失敗時繼續** ，接著是步驟自己的設定（HTTP request 步驟的標頭、SSH 步驟的連接埠、金鑰複雜密碼和主機金鑰、AI 步驟的提供者和上下文開關），最後是 **描述** 和逾時。摺疊時，它會顯示步驟的 Runner，這樣不必開啟就能看到步驟在哪裡執行。
+在下面的每個自動步驟中，步驟的 **更多欄位** 先放步驟的 **Runner** （對於在 Runner 上執行的步驟），再放 **需要核准** 和 **失敗時繼續** ，接著是步驟自己的設定（HTTP request 步驟的標頭和憑證設定、SSH 步驟的連接埠、金鑰複雜密碼和主機金鑰、AI 步驟的提供者和上下文開關），最後是 **描述** 和逾時。摺疊時，它會顯示步驟的 Runner，這樣不必開啟就能看到步驟在哪裡執行。
 
 ### Manual
 
@@ -101,6 +101,8 @@ return { durationMs: Date.now() - start };
 | **方法** | `GET`、`POST`、`PUT`、`PATCH`、`DELETE` 或 `HEAD`。 | `GET` |
 | **URL** | 要呼叫的端點。 | 空白 |
 | **標頭（JSON）** | 位於 **更多欄位** 下。一個 JSON 物件，例如 `{ "Authorization": "Bearer ..." }`。不是有效 JSON 的標頭會使步驟失敗。 | 無 |
+| **允許自簽憑證** | 位於 **更多欄位** 下。開啟後，步驟接受伺服器出示的任何憑證，因此自簽憑證可以使用，但它既不檢查主機名稱也不檢查有效期，網路路徑上的任何人都可以讀取請求（包括其中的機密）並竄改回應。 | 關閉 |
+| **CA 憑證** | 在 **允許自簽憑證** 關閉時，位於 **更多欄位** 下。簽發伺服器憑證的 CA 的憑證（PEM），或在伺服器憑證為自簽時伺服器本身的憑證。步驟隨後只信任該憑證，並且仍會檢查主機名稱和有效期。 | 無 |
 | **本文** | 方法為 `POST`、`PUT`、`PATCH` 或 `DELETE` 時顯示。能剖析為 JSON 時以 JSON 傳送，否則以文字傳送。 | 無 |
 | **請求逾時** | 在步驟失敗前等待端點回應的時間。 | 30 秒 |
 
@@ -113,6 +115,21 @@ return { durationMs: Date.now() - start };
 
 > [!TIP]
 > 不要把權杖寫進步驟。把它們存為機密 [Runbook 變數](/docs/runbooks/variables)，並在 URL、標頭或本文中值應出現的位置寫 `{{global.variables.NAME}}`。請求由 OneUptime 自己發送，所以機密也會填入，而步驟記錄的回應中該位置顯示為 `[REDACTED]`。在 JSON 標頭或 JSON 本文中，值會放進它所在的字串，因此值中的引號或換行不會破壞 JSON。
+
+憑證由伺服器自己簽發、或由你自己的 CA 簽發的伺服器，在步驟信任它之前都會被拒絕，並且不會傳送任何內容。步驟的錯誤以 "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." 開頭，並說明要改什麼。把簽發它的憑證貼到 **CA 憑證**：CA 的憑證，或在自簽時伺服器本身的憑證。步驟隨後會用它檢查伺服器的憑證，包括主機名稱和有效期，因此只是冒充你的伺服器的伺服器仍會被拒絕。只有在無法貼上憑證時，才開啟 **允許自簽憑證**。兩者都只作用於此步驟的請求，絕不作用於其他步驟、OneUptime 的其他請求或到輸出代理的連線。
+
+> [!TIP]
+> 若要改為在所有請求中一次信任你自己的 CA（包括監測器），自行託管的安裝會在其容器上設定 `NODE_EXTRA_CA_CERTS`。
+
+透過 API 和 Terraform，開關是步驟設定中的 `allowSelfSignedCertificates`，取值 `true` 或 `false`；CA 憑證是其中的 `caCertificate`，即文字形式的 PEM。當 `caCertificate` 不是憑證或包含私密金鑰時，儲存會被拒絕。
+
+```hcl
+config = {
+  method        = "GET"
+  url           = "https://billing.internal.example/health"
+  caCertificate = file("internal-ca.pem")
+}
+```
 
 ### Bash
 

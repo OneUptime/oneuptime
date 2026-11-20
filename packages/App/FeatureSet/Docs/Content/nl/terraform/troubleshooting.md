@@ -24,6 +24,7 @@ Zoek in de tabel hieronder de melding op die Terraform toonde, of wat je zag geb
 | `Not Found` of `Ambiguous Match` van een data source | Corrigeer de argumenten van de zoekopdracht: zie [Zoekopdrachten die niets of meerdere vinden](#zoekopdrachten-die-niets-of-meerdere-vinden) |
 | `There is already a team called` (een label, een bereikbaarheidsbeleid, een bereikbaarheidsschema) | Geef het een naam die geen ander record van die soort heeft, of hernoem eerst het andere: zie [Namen die een ander record al heeft](#namen-die-een-ander-record-al-heeft) |
 | `with the same name already exists` | Geef het een naam die geen ander record van die soort heeft, of importeer het record dat hem heeft: zie [Namen die een ander record al heeft](#namen-die-een-ander-record-al-heeft) |
+| `already exists` voor een domein, een hostnaam of een aanmeld-URL | Geef het een waarde die geen ander record heeft, of importeer het record dat hem heeft: zie [Domeinen en identificaties die een ander record al heeft](#domeinen-en-identificaties-die-een-ander-record-al-heeft) |
 | `Cannot import non-existent remote object` | Controleer het ID en de machtigingen van de sleutel: zie [Resources importeren](/docs/terraform/importing-resources#probleemoplossing) |
 | `Provider produced inconsistent result after apply` | Upgrade de provider: zie [Inconsistent resultaat na apply](#inconsistent-resultaat-na-apply) |
 | Een plan maakt een resource aan die je niet hebt toegevoegd | De sleutel kan hem niet meer lezen, en OneUptime antwoordde `404`: geef de sleutel zijn leestoegang terug, en importeer de resource daarna met `terraform import`: zie [Een resource verlaat de state, en de volgende apply maakt hem opnieuw aan](#een-resource-verlaat-de-state-en-de-volgende-apply-maakt-hem-opnieuw-aan) |
@@ -114,6 +115,14 @@ Terraform voert de wijzigingen van één apply naast elkaar uit, dus aanmaken of
 Een gearchiveerd record houdt zijn naam, en niets wat een apply met de records in dienst doet, maakt die vrij. Aanmaken of hernoemen naar die naam mislukt meteen, en de melding zegt waar je het record uit het archief haalt: haal het uit het archief, of kies een andere naam.
 
 Met een oudere provider of een oudere OneUptime laat de eerste weigering de apply al mislukken: pas opnieuw toe, of voeg een `depends_on` toe van de resource die de naam overneemt naar de resource die hem opgeeft.
+
+### Domeinen en identificaties die een ander record al heeft
+
+Het domein van een statuspagina, een dashboard of een formulier, een projectdomein, de identificatie van een host of een Kubernetes-cluster en de aanmeld-URL van een SSO-provider horen ook bij één record elk, in welke hoofdletters ook. Aanmaken of wijzigen naar een waarde die een ander record al heeft, krijgt `400` als antwoord, zoals `Status Page Domain with the same fullDomain already exists.`
+
+De provider vraagt het ook hier tot 30 seconden lang opnieuw, dus een domein van de ene resource naar de andere verplaatsen in één apply, die de ene verwijdert en de andere ernaast aanmaakt, lukt in één apply. Een ruil van twee waarden lukt nooit, en een waarde die een record buiten de configuratie heeft evenmin: na 30 seconden mislukt de apply met `The value was still taken after asking again for 30 seconds.` Geef de resource een waarde die niemand heeft, of importeer het record dat de waarde heeft met `terraform import`. Geef bij een ruil een van beide een tijdelijke waarde, pas toe, en voer dan de rest van de wijziging uit.
+
+Een waarde die alleen een gearchiveerd record heeft, zoals de hostnaam van een gearchiveerde host, mislukt meteen, en de melding zegt wat je moet doen: haal dat record uit het archief, of kies een andere waarde.
 
 ## Plannen die niet tot rust komen
 

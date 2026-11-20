@@ -129,6 +129,26 @@ Facturatie heeft drie eigen rollen. `BillingViewer` leest de facturatie van het 
 
 Alle {{PERMISSION_ROLE_COUNT}} rollen staan in de [Machtigingsreferentie](/docs/permissions/reference).
 
+### Productniveaus
+
+Een productniveau geeft een team één product, op één niveau, en verder niets van het project: `CloudAdmin`, `NetworkViewer`, `HostMember`. Elk niveau doet met de eigen records van het product wat een projectbrede rol met elk record doet:
+
+- **Kijker** leest daar wat de rol Kijker leest, en wijzigt niets.
+- **Lid** maakt ook de records van het product aan, wijzigt en verwijdert ze, zoals een Projectlid doet.
+- **Beheerder** doet daar ook wat een Projectbeheerder doet: de instellingen van het product, zijn verbindingen en inloggegevens, en zijn label- en eigenaarregels.
+
+Een niveau reikt nooit tot een ander product, en ook niet tot de instellingen, teams, leden, API-sleutels, SSO of facturatie van het project.
+
+:::steps
+1. Open de pagina **Machtigingen** van het team.
+2. Kies onder **Producttoegang** een niveau voor elk product waarmee het team werkt. Maak het niveau van een product leeg om het team dat product weer af te nemen.
+:::
+
+- **Monitoren, Incidenten en de andere onderdelen met eigen rollen** geeft u met **Rol toevoegen**, onder **Eén onderdeel**. Dat geldt ook voor de Telemetry-rollen, voor Logboeken, Metrieken, Traces, Profielen en Uitzonderingen, en voor de Security-rollen.
+- **AI / LLM, Inventaris en Formulieren** hebben alleen de niveaus Kijker en Beheerder, omdat een Projectlid daar niets wijzigt.
+- **Een niveau is een machtiging zoals elke andere.** U kunt het in de tabel met machtigingen beperken tot enkele labels of tot eigen records, het blokkeren, het in een aangepaste rol opnemen of het aan een API-sleutel geven. Zoals bij elke machtiging kunt u een niveau alleen geven als u het zelf hebt, tenzij u Projecteigenaar bent.
+- **Een niveau leest de records van het product, niet de telemetrie ervan.** Een team met `HostViewer` ziet de hosts van het project, en heeft voor hun grafieken ook `TelemetryViewer` nodig.
+
 ### Granulaire machtigingen
 
 Elk afzonderlijk vermogen is ook los toe te kennen — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` en {{PERMISSION_TOTAL_COUNT}} andere. Gebruik deze als een rol te breed is en u precies één ding wilt toekennen.

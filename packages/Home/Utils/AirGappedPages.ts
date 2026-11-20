@@ -1938,7 +1938,7 @@ export const AirGappedTopicPages: Array<AirGappedTopicPage> = [
           },
           {
             label: "Ready-made alerts",
-            detail: "Twenty-five templates",
+            detail: "Twenty-six templates",
             icon: "bell",
           },
           {
@@ -1977,7 +1977,7 @@ export const AirGappedTopicPages: Array<AirGappedTopicPage> = [
         },
         {
           key: "alerts",
-          title: "Twenty-five ready-made alerts",
+          title: "Twenty-six ready-made alerts",
           description:
             "Start from a template, from a silent cluster to etcd, on the metrics the agent sends.",
           icon: "bell",

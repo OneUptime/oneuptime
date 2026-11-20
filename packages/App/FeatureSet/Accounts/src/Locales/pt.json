@@ -288,6 +288,29 @@
     "templateNone": "Sem modelo",
     "uploadingFiles": "Enviando seus arquivos…"
   },
+  "formSignIn": {
+    "prompt": "Entre para abrir este formulário.",
+    "ssoOnlyPrompt": "Entre com o login único da sua organização para abrir este formulário.",
+    "noWayIn": "Ainda não há nenhuma forma de entrar configurada para este formulário. Pergunte à pessoa que o compartilhou com você.",
+    "email": "E-mail",
+    "password": "Senha",
+    "forgotPassword": "Esqueceu a senha?",
+    "signIn": "Entrar",
+    "or": "ou",
+    "signInWithProvider": "Entrar com {{provider}}",
+    "forgotTitle": "Esqueceu sua senha?",
+    "forgotPrompt": "Digite seu endereço de e-mail e enviaremos um link para você escolher uma nova senha.",
+    "sendLink": "Enviar link",
+    "forgotSent": "Se este endereço puder entrar neste formulário, um link para escolher uma nova senha está a caminho. O link funciona por 24 horas.",
+    "backToSignIn": "Voltar para o login",
+    "resetTitle": "Escolha uma nova senha",
+    "resetPrompt": "Digite a senha com a qual você vai entrar neste formulário.",
+    "newPassword": "Nova senha",
+    "savePassword": "Salvar senha",
+    "resetDone": "Sua senha foi salva. Entre com ela para abrir o formulário.",
+    "signedInAs": "Conectado como {{email}}",
+    "signOut": "Sair"
+  },
   "errors": {
     "forbidden": {
       "title": "Proibido",

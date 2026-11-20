@@ -811,11 +811,15 @@ export interface CloudConnector {
   /*
    * A small real read: is the credential accepted, may it read what the
    * connection needs, and what would a read find. Never throws: failures
-   * are a result with status "fail".
+   * are a result with status "fail". connectionId is the saved connection
+   * tested, when it is one (none for settings never saved): an AWS role's
+   * check is then kept for its reads, on every server (#10424).
    */
   testConnection(
     settings: CloudConnectionSettings,
-    options: CloudConnectorCallOptions,
+    options: CloudConnectorCallOptions & {
+      connectionId?: string | undefined;
+    },
   ): Promise<CloudConnectionTestResult>;
   // One read. Throws LlmProviderError when it cannot read at all.
   read(

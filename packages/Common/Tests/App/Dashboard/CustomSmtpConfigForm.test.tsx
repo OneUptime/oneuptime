@@ -294,6 +294,7 @@ const PLACEHOLDER: Record<string, string> = {
   amazonSesAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
   amazonSesSecretAccessKey: "Secret access key",
   amazonSesRegion: "us-east-1",
+  amazonSesRoleArn: "arn:aws:iam::123456789012:role/OneUptimeSes",
   sendgridApiKey: "SG.xxxxxxxxxxxxxxxx",
   mailgunApiKey: "Mailgun API key",
   mailgunDomain: "mg.example.com",
@@ -587,7 +588,7 @@ describe("creating a project's mail server", () => {
       "Amazon SES",
     );
     expect(providerCard(MailTransportType.AmazonSES)).toHaveTextContent(
-      "Send through Amazon Simple Email Service with an IAM access key.",
+      "Send through Amazon Simple Email Service with an IAM access key or an IAM role in your AWS account.",
     );
 
     // The server's fields wait for their own step; the description is folded.
@@ -943,6 +944,149 @@ describe("creating a project's mail server", () => {
     for (const key of [...SERVER_KEYS, "clientId", "clientSecret"]) {
       expect({ key, saved: model[key] ?? null }).toEqual({ key, saved: null });
     }
+  });
+
+  test("Amazon SES with an IAM role in the project's account: its Role ARN, what to make the role with folded under it, and no key saved", async () => {
+    const SETUP: JSONObject = {
+      isAvailable: true,
+      trustedPrincipalArn: "arn:aws:iam::999988887777:root",
+      externalId: "oneuptime-0123456789abcdef0123456789abcdef",
+      trustPolicy:
+        '{\n  "Version": "2012-10-17",\n  "Statement": [\n    {\n      "Effect": "Allow",\n      "Principal": {\n        "AWS": "arn:aws:iam::999988887777:root"\n      },\n      "Action": "sts:AssumeRole",\n      "Condition": {\n        "StringEquals": {\n          "sts:ExternalId": "oneuptime-0123456789abcdef0123456789abcdef"\n        }\n      }\n    }\n  ]\n}',
+    };
+    const asked: Array<{ url: string; headers: unknown }> = [];
+
+    getJestSpyOn(API, "get").mockImplementation((request: any) => {
+      asked.push({ url: request.url.toString(), headers: request.headers });
+
+      return Promise.resolve(new HTTPResponse<JSONObject>(200, SETUP, {}));
+    });
+
+    await renderPage();
+
+    await type("name", "Amazon SES");
+    await pickProvider(MailTransportType.AmazonSES);
+    await clickWayOn();
+    expect(activeStep()).toContain("Amazon SES");
+
+    // An access key to start, as every config had.
+    expect(
+      within(dialog()).getByRole("radio", { name: /^Access Key/ }),
+    ).toBeChecked();
+    expect(queryInput("amazonSesAccessKeyId")).not.toBeNull();
+    expect(queryInput("amazonSesRoleArn")).toBeNull();
+
+    await pick("IAM Role in Your AWS Account");
+
+    // The role's ARN, never a key.
+    expect(queryInput("amazonSesAccessKeyId")).toBeNull();
+    expect(queryInput("amazonSesSecretAccessKey")).toBeNull();
+    expect(input("amazonSesRoleArn")).toBeVisible();
+
+    // What to make the role with, asked of the server for this project, folded.
+    await waitFor(() => {
+      expect(
+        within(dialog()).getByTestId("amazon-ses-role-setup-fold"),
+      ).toBeInTheDocument();
+    });
+    expect(asked).toHaveLength(1);
+    expect(asked[0]!.url).toContain("/smtp-config/aws-role-setup");
+    expect(asked[0]!.headers).toBeDefined();
+
+    const fold: HTMLElement = within(dialog()).getByRole("button", {
+      name: "Set Up the Role in AWS",
+    });
+
+    expect(fold).toHaveAttribute("aria-expanded", "false");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(fold);
+    });
+
+    expect(
+      within(dialog()).getByTestId("amazon-ses-role-external-id"),
+    ).toHaveTextContent("oneuptime-0123456789abcdef0123456789abcdef");
+    expect(
+      within(dialog()).getByTestId("amazon-ses-role-trust-policy"),
+    ).toHaveTextContent("sts:ExternalId");
+
+    // An ARN that is no IAM role's does not walk on.
+    await type("amazonSesRoleArn", "arn:aws:iam::123456789012:user/OneUptime");
+    await type("amazonSesRegion", "eu-west-1");
+    await clickWayOn();
+    expect(activeStep()).toContain("Amazon SES");
+    expect(
+      within(dialog()).getByText(
+        "Enter the ARN of an IAM role in your AWS account, such as arn:aws:iam::123456789012:role/OneUptimeSes.",
+      ),
+    ).toBeVisible();
+
+    await type(
+      "amazonSesRoleArn",
+      "arn:aws:iam::210987654321:role/OneUptimeSes",
+    );
+    await clickWayOn();
+    expect(activeStep()).toContain("Sender");
+
+    await type("fromEmail", "alerts@example.com");
+    await type("fromName", "Example Alerts");
+    await clickWayOn();
+
+    const model: Record<string, unknown> = await saved();
+
+    expect({
+      transportType: model["transportType"],
+      amazonSesAuthenticationType: model["amazonSesAuthenticationType"],
+      amazonSesRoleArn: model["amazonSesRoleArn"],
+      amazonSesRegion: model["amazonSesRegion"],
+    }).toEqual({
+      transportType: MailTransportType.AmazonSES,
+      amazonSesAuthenticationType: "IAM Role",
+      amazonSesRoleArn: "arn:aws:iam::210987654321:role/OneUptimeSes",
+      amazonSesRegion: "eu-west-1",
+    });
+
+    // No key is kept beside a role.
+    for (const key of [
+      "amazonSesAccessKeyId",
+      "amazonSesSecretAccessKey",
+      ...SERVER_KEYS,
+    ]) {
+      expect({ key, saved: model[key] ?? null }).toEqual({ key, saved: null });
+    }
+  });
+
+  test("Amazon SES on a server with no AWS identity says so where the role would be set up", async () => {
+    getJestSpyOn(API, "get").mockImplementation(() => {
+      return Promise.resolve(
+        new HTTPResponse<JSONObject>(
+          200,
+          {
+            isAvailable: false,
+            externalId: "oneuptime-0123456789abcdef0123456789abcdef",
+          },
+          {},
+        ),
+      );
+    });
+
+    await renderPage();
+
+    await type("name", "Amazon SES");
+    await pickProvider(MailTransportType.AmazonSES);
+    await clickWayOn();
+    await pick("IAM Role in Your AWS Account");
+
+    await waitFor(() => {
+      expect(
+        within(dialog()).getByTestId("amazon-ses-role-setup-unavailable"),
+      ).toHaveTextContent(
+        "This OneUptime has no AWS identity to sign in to a role with. Sign in to Amazon SES with an access key instead.",
+      );
+    });
+    expect(
+      within(dialog()).queryByTestId("amazon-ses-role-setup-fold"),
+    ).toBeNull();
   });
 
   test("Mailgun: its key, domain and region, US to start", async () => {

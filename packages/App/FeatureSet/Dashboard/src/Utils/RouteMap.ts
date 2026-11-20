@@ -956,6 +956,8 @@ export const FormsRoutePath: Dictionary<string> = {
   [PageMap.FORM_VIEW_ON_SUBMIT]: `${RouteParams.ModelID}/on-submit`,
   [PageMap.FORM_VIEW_SHARE]: `${RouteParams.ModelID}/share`,
   [PageMap.FORM_VIEW_CUSTOM_DOMAINS]: `${RouteParams.ModelID}/custom-domains`,
+  [PageMap.FORM_VIEW_PRIVATE_USERS]: `${RouteParams.ModelID}/private-users`,
+  [PageMap.FORM_VIEW_SINGLE_SIGN_ON]: `${RouteParams.ModelID}/single-sign-on`,
   [PageMap.FORM_VIEW_SUBMISSIONS]: `${RouteParams.ModelID}/submissions`,
   [PageMap.FORM_VIEW_DUPLICATE]: `${RouteParams.ModelID}/duplicate`,
   [PageMap.FORM_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
@@ -1054,6 +1056,7 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
    */
   [PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL]: "playbook-runs",
   [PageMap.SECURITY_PLAYBOOK_RUNS]: "playbook-runs/all",
+  [PageMap.SECURITY_BLOCKLIST]: "blocklist",
   [PageMap.SECURITY_PROTECTED_ENTITIES]: "protected-entities",
   // Workspace, at the addresses every product's Workspace pages have.
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK]:
@@ -8647,6 +8650,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SECURITY_BLOCKLIST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_BLOCKLIST]
+    }`,
+  ),
+
   [PageMap.SECURITY_PROTECTED_ENTITIES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_PROTECTED_ENTITIES]
@@ -10064,6 +10073,16 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.FORM_VIEW_CUSTOM_DOMAINS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/forms/${
       FormsRoutePath[PageMap.FORM_VIEW_CUSTOM_DOMAINS]
+    }`,
+  ),
+  [PageMap.FORM_VIEW_PRIVATE_USERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW_PRIVATE_USERS]
+    }`,
+  ),
+  [PageMap.FORM_VIEW_SINGLE_SIGN_ON]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW_SINGLE_SIGN_ON]
     }`,
   ),
   [PageMap.FORM_VIEW_SUBMISSIONS]: new Route(

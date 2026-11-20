@@ -96,11 +96,13 @@ import {
   shouldDropBySampling,
 } from "Common/Types/Telemetry/DropFilterSampling";
 import {
+  checkScrubRuleCustomRegex,
   LOG_SCRUB_RULE_DEFAULTS,
   SCRUB_RULE_REGEX_FLAGS,
   ScrubRegExp,
   TRACE_SCRUB_RULE_DEFAULTS,
 } from "Common/Types/Telemetry/ScrubRule";
+import { isScrubHashToken } from "Common/Types/Telemetry/ScrubHashTokenFormat";
 import TelemetryIngestionKeyPolicy, {
   DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE,
   DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE,
@@ -141,6 +143,7 @@ import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
  * jest.fn()/jest.mock() calls (the StatusPageCertsJobs pattern).
  */
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 
@@ -324,6 +327,19 @@ function inlineCodes(text: string): Array<string> {
       return match[1] as string;
     },
   );
+}
+
+// The list item a page writes under a bold lead, which must be there.
+function listItemOf(markdown: string, lead: string): string {
+  const item: string | undefined = markdown
+    .split("\n")
+    .find((line: string): boolean => {
+      return line.startsWith(`- **${lead}**`);
+    });
+
+  expect({ lead, found: item !== undefined }).toEqual({ lead, found: true });
+
+  return item as string;
 }
 
 // Every capture of a pattern in a piece of source, in order.
@@ -2215,7 +2231,8 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       [LogScrubPatternType.CreditCard]: ["4111 1111 1111 1111"],
       [LogScrubPatternType.SSN]: ["123-45-6789"],
       [LogScrubPatternType.PhoneNumber]: ["555-123-4567"],
-      [LogScrubPatternType.IPAddress]: ["192.168.1.1"],
+      // Public ones: a private address is no one's, and is kept (#10393).
+      [LogScrubPatternType.IPAddress]: ["203.0.113.7", "2001:db8::1"],
     };
     const rows: Array<Array<string>> = tableRows(page, "Pattern Type");
 
@@ -2289,7 +2306,6 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     for (const [label, action] of [
       ["Redact", LogScrubAction.Redact],
       ["Mask", LogScrubAction.Mask],
-      ["Hash", LogScrubAction.Hash],
     ] as Array<[string, string]>) {
       expect({
         label,
@@ -2298,6 +2314,128 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
         ]),
       }).toEqual({ label, stored: shown[label] });
     }
+
+    /*
+     * A token is the project's own (#10394), so the page shows one token's
+     * shape: "[HASHED:" and 16 hex characters, as a rule of any project
+     * stores it - not the unkeyed hash it used to show.
+     */
+    const token: RegExp = /^Payment failed for \[HASHED:[0-9a-f]{16}\]$/;
+    const hashRule: { rule: LogScrubRule; regex: ScrubRegExp } = scrubRule(
+      LogScrubPatternType.Email,
+      LogScrubAction.Hash,
+    );
+
+    hashRule.rule.projectId = ObjectID.generate();
+
+    expect(shown["Hash"]).toMatch(token);
+    expect(scrubbedBody(before, [hashRule])).toMatch(token);
+    expect(shown["Hash"]).not.toContain(
+      crypto
+        .createHash("sha256")
+        .update("jane@example.com")
+        .digest("hex")
+        .slice(0, 8),
+    );
+  });
+
+  it("hides and keeps the addresses the IP Address list item names, and its custom pattern hides the rest (#10393)", () => {
+    const item: string = listItemOf(
+      page,
+      "An IP Address rule hides the addresses that are personal data.",
+    );
+    const redact: Array<{ rule: LogScrubRule; regex: ScrubRegExp }> = [
+      scrubRule(LogScrubPatternType.IPAddress, LogScrubAction.Redact),
+    ];
+    const codes: Array<string> = inlineCodes(item);
+
+    expect(codes).toEqual([
+      "2001:db8::1",
+      "[2001:db8::1]:443",
+      "2001:db8::2%eth0",
+      "::ffff:203.0.113.7",
+      "10.0.0.12",
+      "127.0.0.1",
+      "fe80::1",
+      "169.254.169.254",
+      "\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b",
+    ]);
+
+    // Hidden: shortened, whole when IPv4 written as IPv6; a port and a zone kept.
+    expect(scrubbedBody("2001:db8::1", redact)).toBe("[REDACTED]");
+    expect(scrubbedBody("[2001:db8::1]:443", redact)).toBe("[[REDACTED]]:443");
+    expect(scrubbedBody("2001:db8::2%eth0", redact)).toBe("[REDACTED]%eth0");
+    expect(scrubbedBody("::ffff:203.0.113.7", redact)).toBe("[REDACTED]");
+
+    // Kept: private, loopback, link-local, and the cloud metadata address.
+    for (const kept of ["10.0.0.12", "127.0.0.1", "fe80::1"]) {
+      expect(scrubbedBody(kept, redact)).toBe(kept);
+    }
+
+    expect(
+      scrubbedBody(
+        "GET /fetch?target=http://169.254.169.254/latest/meta-data/",
+        redact,
+      ),
+    ).toBe("GET /fetch?target=http://169.254.169.254/latest/meta-data/");
+
+    // The custom pattern it suggests saves, and hides every IPv4 address.
+    const pattern: string = codes[codes.length - 1]!;
+    const custom: { rule: LogScrubRule; regex: ScrubRegExp } = {
+      rule: scrubRule(LogScrubPatternType.Custom, LogScrubAction.Redact).rule,
+      regex: getRegexForPattern(
+        LogScrubPatternType.Custom,
+        pattern,
+      ) as ScrubRegExp,
+    };
+
+    custom.rule.customRegex = pattern;
+
+    expect(checkScrubRuleCustomRegex(pattern)).toBeNull();
+    expect(scrubbedBody("from 10.0.0.12 via 127.0.0.1", [custom])).toBe(
+      "from [REDACTED] via [REDACTED]",
+    );
+    expect(item).toContain(
+      "[Security Events](/docs/telemetry/security-events)",
+    );
+  });
+
+  it("says a Hash token is the project's, one per address however written, and 16 characters where older ones are 8 (#10394)", () => {
+    const item: string = listItemOf(
+      page,
+      "A Hash token is your project's own.",
+    );
+    const projectId: ObjectID = ObjectID.generate();
+    const hashRule: () => { rule: LogScrubRule; regex: ScrubRegExp } = (): {
+      rule: LogScrubRule;
+      regex: ScrubRegExp;
+    } => {
+      const rule: { rule: LogScrubRule; regex: ScrubRegExp } = scrubRule(
+        LogScrubPatternType.IPAddress,
+        LogScrubAction.Hash,
+      );
+
+      rule.rule.projectId = projectId;
+
+      return rule;
+    };
+
+    expect(inlineCodes(item)).toEqual([
+      "ENCRYPTION_SECRET",
+      "::ffff:203.0.113.7",
+      "203.0.113.7",
+      "[HASHED:8c87b489]",
+      "ENCRYPTION_SECRET",
+    ]);
+    expect(scrubbedBody("::ffff:203.0.113.7", [hashRule()])).toBe(
+      scrubbedBody("203.0.113.7", [hashRule()]),
+    );
+    expect(scrubbedBody("203.0.113.7", [hashRule()])).toMatch(
+      /^\[HASHED:[0-9a-f]{16}\]$/,
+    );
+    expect(isScrubHashToken("[HASHED:8c87b489]")).toBe(true);
+    expect(item).toContain("8-character");
+    expect(item).toContain("16-character");
   });
 
   it("masks each kind of value the way the Mask row says", () => {
@@ -2315,8 +2453,12 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     expect(mask(LogScrubPatternType.PhoneNumber, "555-123-4567")).toBe(
       "***-***-4567",
     );
-    expect(mask(LogScrubPatternType.IPAddress, "192.168.1.1")).toBe(
+    // An IP address is hidden completely: its shape, and none of its digits.
+    expect(mask(LogScrubPatternType.IPAddress, "203.0.113.7")).toBe(
       "***.***.***.***",
+    );
+    expect(mask(LogScrubPatternType.IPAddress, "2001:db8::1")).toBe(
+      "****:****:****:****:****:****:****:****",
     );
 
     // A sensitive value keeps its first and last characters.

@@ -100,17 +100,25 @@ const OWNERS_AND_ADMINS: Array<Permission> = [
   Permission.ProjectAdmin,
 ];
 
+/*
+ * Each list ends with Forms' levels (#10289), which follow the project-wide
+ * roles on Forms' records: Form Admin builds, changes and deletes what
+ * Project Admin does, Form Viewer reads what Viewer reads.
+ */
 const FORM_CREATORS: Array<Permission> = [
   ...OWNERS_AND_ADMINS,
   Permission.CreateForm,
+  Permission.FormAdmin,
 ];
 const FORM_EDITORS: Array<Permission> = [
   ...OWNERS_AND_ADMINS,
   Permission.EditForm,
+  Permission.FormAdmin,
 ];
 const FORM_DELETERS: Array<Permission> = [
   ...OWNERS_AND_ADMINS,
   Permission.DeleteForm,
+  Permission.FormAdmin,
 ];
 const FORM_READERS: Array<Permission> = [
   ...OWNERS_AND_ADMINS,
@@ -123,15 +131,19 @@ const FORM_READERS: Array<Permission> = [
   Permission.ScheduledMaintenanceMember,
   Permission.ScheduledMaintenanceViewer,
   Permission.ReadForm,
+  Permission.FormAdmin,
+  Permission.FormViewer,
 ];
 
 const SUBMISSION_READERS: Array<Permission> = [
   ...OWNERS_AND_ADMINS,
   Permission.ReadFormSubmission,
+  Permission.FormAdmin,
 ];
 const SUBMISSION_DELETERS: Array<Permission> = [
   ...OWNERS_AND_ADMINS,
   Permission.DeleteFormSubmission,
+  Permission.FormAdmin,
 ];
 
 const GRANULAR_PERMISSIONS: Array<[Permission, string]> = [
@@ -146,6 +158,19 @@ const GRANULAR_PERMISSIONS: Array<[Permission, string]> = [
   [Permission.DeleteFormDomain, "Delete Form Domain"],
   [Permission.EditFormDomain, "Edit Form Domain"],
   [Permission.ReadFormDomain, "Read Form Domain"],
+  // Who may sign in to a form that asks its visitors to (#10249).
+  [Permission.CreateFormPrivateUser, "Create Form Private User"],
+  [Permission.DeleteFormPrivateUser, "Delete Form Private User"],
+  [Permission.EditFormPrivateUser, "Edit Form Private User"],
+  [Permission.ReadFormPrivateUser, "Read Form Private User"],
+  [Permission.CreateFormSSO, "Create Form SSO"],
+  [Permission.DeleteFormSSO, "Delete Form SSO"],
+  [Permission.EditFormSSO, "Edit Form SSO"],
+  [Permission.ReadFormSSO, "Read Form SSO"],
+  [Permission.CreateFormOIDC, "Create Form OIDC"],
+  [Permission.DeleteFormOIDC, "Delete Form OIDC"],
+  [Permission.EditFormOIDC, "Edit Form OIDC"],
+  [Permission.ReadFormOIDC, "Read Form OIDC"],
 ];
 
 const BASE_COLUMNS: Array<string> = [
@@ -176,6 +201,9 @@ const FORM_COLUMNS: Array<string> = [
   "logoAltText",
   "faviconFile",
   "faviconFileId",
+  // Who may open it (AddFormPrivateUsersAndSingleSignOn, #10249).
+  "requireSignIn",
+  "requireSsoForLogin",
   "createdByUser",
   "createdByUserId",
   "deletedByUser",
@@ -198,6 +226,8 @@ const FORM_SETTINGS_COLUMNS: Array<string> = [
   "logoAltText",
   "faviconFile",
   "faviconFileId",
+  "requireSignIn",
+  "requireSsoForLogin",
 ];
 
 const SUBMISSION_COLUMNS: Array<string> = [
@@ -415,7 +445,7 @@ describe("Form and FormSubmission registration", () => {
   );
 });
 
-describe("the ten form permissions", () => {
+describe("the form permissions", () => {
   test.each(GRANULAR_PERMISSIONS)(
     "%s is a tenant-assignable Form permission titled %j",
     (permission: Permission, title: string) => {

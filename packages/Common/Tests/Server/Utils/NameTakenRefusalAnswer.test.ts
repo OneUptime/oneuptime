@@ -35,6 +35,10 @@ import NameTakenException, {
   REFUSAL_CODE_FIELD,
 } from "../../../Types/Exception/NameTakenException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
+import ValueTakenException, {
+  VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+  VALUE_TAKEN_REFUSAL_CODE,
+} from "../../../Types/Exception/ValueTakenException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
@@ -315,6 +319,39 @@ describe("the answer", () => {
     expect(statuses).toEqual([400]);
     expect(bodies).toEqual([
       { message: TEAM_TAKEN, refusalCode: NAME_TAKEN_REFUSAL_CODE },
+    ]);
+  });
+
+  /*
+   * A value that is not a name (#10319): its own codes, and the field whose
+   * value is taken, beside the sentence, both ways a request is answered.
+   */
+  test("a taken value answers 400 with value_taken and the field, through next(err) and sendErrorResponse", () => {
+    const DOMAIN_TAKEN: string =
+      "Status Page Domain with the same fullDomain already exists.";
+
+    handle(new ValueTakenException(DOMAIN_TAKEN, { field: "fullDomain" }));
+    ResponseUtil.sendErrorResponse(
+      { headers: {}, socket: {} } as unknown as ExpressRequest,
+      res,
+      new ValueTakenException(DOMAIN_TAKEN, {
+        field: "fullDomain",
+        isArchived: true,
+      }),
+    );
+
+    expect(statuses).toEqual([400, 400]);
+    expect(bodies).toEqual([
+      {
+        error: DOMAIN_TAKEN,
+        refusalCode: VALUE_TAKEN_REFUSAL_CODE,
+        field: "fullDomain",
+      },
+      {
+        message: DOMAIN_TAKEN,
+        refusalCode: VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+        field: "fullDomain",
+      },
     ]);
   });
 

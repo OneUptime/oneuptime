@@ -250,7 +250,7 @@ Gjennom API-et og Terraform er rekkefølgen widgetens `arguments.sort`: en kolon
 Et [offentlig dashbord](/docs/dashboards/sharing) tegner de fleste widgets for de besøkende, og hver viser bare det den er satt opp til å vise. Noen få kan ikke vises uten en pålogget økt:
 
 - **Loggdiagram**, **Spordiagram**, **Sportabell**, **Sikkerhetshendelser**, **Flyt av sikkerhetshendelser**, **Trakt** og **Brukerlojalitet** sier på sin plass at de ikke er tilgjengelige på offentlige dashbord.
-- Widgetene fra Eksterne datakilder utelates helt fra et offentlig dashbord, fordi innstillingene deres er selve spørringen.
+- Widgetene fra Eksterne datakilder viser dataene sine når de leser **Målingene i dette prosjektet (PromQL)**, aldri spørringene sine. En widget med en ekstern datakilde utelates helt fra et offentlig dashbord.
 
 ## Når en widget ikke kan vises
 

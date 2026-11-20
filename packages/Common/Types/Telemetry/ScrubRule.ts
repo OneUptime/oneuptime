@@ -263,12 +263,83 @@ class BuiltInScrubRegExp implements ScrubRegExp {
 }
 
 /*
+ * A built-in pattern whose matches code finds rather than one regular
+ * expression: the IP Address pattern, whose candidates Data Security's own
+ * detectors find and judge (Utils/Telemetry/ScrubIpAddress.ts). Every
+ * method reads the same ranges, so replace, matchRanges and test never
+ * disagree on what is a match.
+ */
+class RangesScrubRegExp implements ScrubRegExp {
+  public readonly source: string;
+  public readonly flags: string;
+  private readonly findRanges: (text: string) => Array<[number, number]>;
+
+  public constructor(data: {
+    source: string;
+    flags: string;
+    findRanges: (text: string) => Array<[number, number]>;
+  }) {
+    this.source = data.source;
+    this.flags = data.flags;
+    this.findRanges = data.findRanges;
+  }
+
+  public test(text: string): boolean {
+    return this.findRanges(text).length > 0;
+  }
+
+  public replace(
+    text: string,
+    replacer: (matchedText: string) => string,
+  ): string {
+    const ranges: Array<[number, number]> = this.findRanges(text);
+
+    if (ranges.length === 0) {
+      return text;
+    }
+
+    const pieces: Array<string> = [];
+    let copiedUpTo: number = 0;
+
+    for (const [start, end] of ranges) {
+      pieces.push(
+        text.slice(copiedUpTo, start),
+        replacer(text.slice(start, end)),
+      );
+      copiedUpTo = end;
+    }
+
+    pieces.push(text.slice(copiedUpTo));
+
+    return pieces.join("");
+  }
+
+  public matchRanges(text: string): Array<[number, number]> {
+    return this.findRanges(text);
+  }
+}
+
+/*
  * A built-in pattern, which OneUptime wrote, as ingest scrubs with it.
  * Never pass a pattern a project wrote here: compileScrubRuleCustomRegex is
  * for those.
  */
 export function scrubRegExpFromBuiltIn(regex: RegExp): ScrubRegExp {
   return new BuiltInScrubRegExp(regex);
+}
+
+/*
+ * A built-in pattern whose matches `findRanges` finds: [start, end) pairs,
+ * left to right, none overlapping. `source` and `flags` say what it finds,
+ * as a RegExp's would. OneUptime's own code only: like
+ * scrubRegExpFromBuiltIn, never for a pattern a project wrote.
+ */
+export function scrubRegExpFromRanges(data: {
+  source: string;
+  flags: string;
+  findRanges: (text: string) => Array<[number, number]>;
+}): ScrubRegExp {
+  return new RangesScrubRegExp(data);
 }
 
 export const LOG_SCRUB_PATTERN_TYPES: ReadonlyArray<string> =

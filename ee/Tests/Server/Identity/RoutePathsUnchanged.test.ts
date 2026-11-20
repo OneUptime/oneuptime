@@ -182,6 +182,11 @@ const CORE_SSO_ROUTES: Array<PinnedRoute> = [
   ["POST", "/dashboard-idp-login/:dashboardId/:dashboardSsoId"],
   ["GET", "/dashboard-oidc/:dashboardId/:dashboardOidcId"],
   ["GET", "/dashboard-oidc-callback/:dashboardId/:dashboardOidcId"],
+  // A form's SAML and OIDC, for the people who sign in to its public link (#10249).
+  ["GET", "/form-sso/:formId/:formSsoId"],
+  ["POST", "/form-idp-login/:formId/:formSsoId"],
+  ["GET", "/form-oidc/:formId/:formOidcId"],
+  ["GET", "/form-oidc-callback/:formId/:formOidcId"],
   // The page a project-SSO confirmation email links to, and its form.
   ["GET", "/sso-sign-in-confirmation/:kind/:projectId/:providerId"],
   ["POST", "/sso-sign-in-confirmation/:kind/:projectId/:providerId"],
@@ -370,15 +375,15 @@ describe("ee identity routers", () => {
 
     /*
      * The core SSO routes this compares against are really there: every one
-     * of the 29 pinned above, each once, and no other.
+     * of the 33 pinned above, each once, and no other.
      */
     expect([...coreSsoRoutes].sort()).toEqual(
       CORE_SSO_ROUTES.map((route: PinnedRoute): string => {
         return route.join(" ");
       }).sort(),
     );
-    expect(coreSsoRoutes.size).toBe(29);
-    expect(CORE_SSO_ROUTES).toHaveLength(29);
+    expect(coreSsoRoutes.size).toBe(33);
+    expect(CORE_SSO_ROUTES).toHaveLength(33);
 
     for (const entry of IDENTITY_ROUTERS) {
       for (const route of getRoutes(entry.router)) {

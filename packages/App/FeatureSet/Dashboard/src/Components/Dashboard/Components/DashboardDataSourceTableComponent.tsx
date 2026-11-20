@@ -20,7 +20,8 @@ import DataSourceQueryText from "Common/Utils/DataSource/DataSourceQueryText";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
 import {
-  isDataSourceQueryConfigured,
+  capDataSourceTableRows,
+  getRunnableDataSourceQueries,
   sortDataSourceTableRows,
 } from "../Utils/DataSourceWidget";
 import DataSourceWidgetPlaceholder from "./DataSourceWidgetPlaceholder";
@@ -37,6 +38,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   DASHBOARD_WIDGET_SORT_ARGUMENT,
+  DashboardWidgetSortChoice,
   DashboardWidgetSortColumnInfo,
   DashboardWidgetSortDirection,
   DashboardWidgetSortKind,
@@ -99,6 +101,11 @@ function getColumnSortKind(
  * everyone starts on. The widget's Max Rows trims AFTER sorting, so "top
  * 10 by this column" means what it says; the connector's own row cap still
  * applies first, as the query decides what comes back.
+ *
+ * On a public dashboard (issue #10226) it is drawn only when it reads this
+ * project's metrics: the dashboard's public PromQL route runs its stored
+ * query and sends only the rows it draws - sorted the same way, as many as
+ * its Max Rows - so a new sort there reads them again.
  */
 const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -144,10 +151,12 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
   const sortDirection: DashboardWidgetSortDirection =
     widgetSort.sort?.direction || DashboardWidgetSortDirection.Ascending;
 
-  const rawQueryConfig: DataSourceQueryConfig | undefined =
-    props.component.arguments.query;
+  // The query it runs, signed in or on a public dashboard.
+  const runnableQuery: DataSourceQueryConfig | undefined = useMemo(() => {
+    return getRunnableDataSourceQueries(props.component.arguments.query)[0];
+  }, [props.component.arguments.query]);
 
-  const isConfigured: boolean = isDataSourceQueryConfigured(rawQueryConfig);
+  const isConfigured: boolean = Boolean(runnableQuery);
 
   /*
    * What the table says until its query is set up, for where it is drawn:
@@ -159,9 +168,22 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
     useDashboardWidgetPlace(props.isEditMode),
   );
 
-  const queryConfig: DataSourceQueryConfig | undefined = isConfigured
-    ? rawQueryConfig
-    : undefined;
+  const queryConfig: DataSourceQueryConfig | undefined = runnableQuery;
+
+  /*
+   * On a public dashboard the server sends only the rows the table draws
+   * (issue #10226): the ones its sort puts first, as many as its Max Rows.
+   * So there a new sort of a table that keeps only some rows is a new
+   * read; every other table sorts the rows it has, here.
+   */
+  const maxRows: number | undefined = props.component.arguments.maxRows;
+  const publicSortKey: string =
+    isPublicDashboard() &&
+    maxRows !== undefined &&
+    maxRows !== null &&
+    maxRows > 0
+      ? `${sortKey || ""}:${sortKey ? sortDirection : ""}`
+      : "";
 
   const startAndEndDate: ReturnType<
     typeof RangeStartAndEndDateTimeUtil.getStartAndEndDate
@@ -172,21 +194,27 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
   }, [props.dashboardStartAndEndDate, props.refreshTick]);
 
   const fetchStateRef: React.MutableRefObject<{
+    componentId: string;
     queryConfig: DataSourceQueryConfig | undefined;
     variables: Array<DashboardVariable> | undefined;
     startDate: Date | undefined;
     endDate: Date | undefined;
+    sort: DashboardWidgetSortChoice | null;
   }> = useRef({
+    componentId: props.componentId.toString(),
     queryConfig: queryConfig,
     variables: props.variables,
     startDate: startAndEndDate?.startValue,
     endDate: startAndEndDate?.endValue,
+    sort: widgetSort.sort || null,
   });
   fetchStateRef.current = {
+    componentId: props.componentId.toString(),
     queryConfig: queryConfig,
     variables: props.variables,
     startDate: startAndEndDate?.startValue,
     endDate: startAndEndDate?.endValue,
+    sort: widgetSort.sort || null,
   };
 
   // Monotonic id of the newest fetch — see the staleness guard below.
@@ -208,18 +236,30 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
     }
 
     try {
-      const interpolatedQuery: string =
-        DataSourceQueryText.applyVariablesForSource({
-          dataSourceId: state.queryConfig.dataSourceId,
-          queryText: state.queryConfig.query,
-          variables: state.variables,
-        });
-      const fetched: DataSourceTableResult =
-        await DataSourceQueryUtil.fetchTable({
-          queryConfig: { ...state.queryConfig, query: interpolatedQuery },
-          startDate: state.startDate,
-          endDate: state.endDate,
-        });
+      // A public dashboard's stored query, by this widget, in its sort.
+      const fetched: DataSourceTableResult = isPublicDashboard()
+        ? await DataSourceQueryUtil.fetchPublicTable({
+            target: {
+              componentId: state.componentId,
+              queryIndex: 0,
+              variables: state.variables,
+            },
+            startDate: state.startDate,
+            endDate: state.endDate,
+            sort: state.sort,
+          })
+        : await DataSourceQueryUtil.fetchTable({
+            queryConfig: {
+              ...state.queryConfig,
+              query: DataSourceQueryText.applyVariablesForSource({
+                dataSourceId: state.queryConfig.dataSourceId,
+                queryText: state.queryConfig.query,
+                variables: state.variables,
+              }),
+            },
+            startDate: state.startDate,
+            endDate: state.endDate,
+          });
       if (fetchId !== fetchSequenceRef.current) {
         return;
       }
@@ -236,16 +276,13 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
   }, []);
 
   useEffect(() => {
-    if (isPublicDashboard()) {
-      setIsLoading(false);
-      return;
-    }
     fetchRows();
   }, [
     startAndEndDate,
     queryConfig,
     props.variables,
     props.refreshTick,
+    publicSortKey,
     fetchRows,
   ]);
 
@@ -259,11 +296,10 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
    * — this only trims what gets drawn.
    */
   const visibleRows: Array<{ [key: string]: JSONValue }> = useMemo(() => {
-    const maxRows: number | undefined = props.component.arguments.maxRows;
-    if (maxRows === undefined || maxRows === null || maxRows <= 0) {
-      return sortedRows;
-    }
-    return sortedRows.slice(0, maxRows);
+    return capDataSourceTableRows(
+      sortedRows,
+      props.component.arguments.maxRows,
+    );
   }, [sortedRows, props.component.arguments.maxRows]);
 
   const formatCell: (
@@ -319,7 +355,8 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
     ),
   );
 
-  if (isPublicDashboard()) {
+  // A public dashboard is served no query of it to run: nothing to draw.
+  if (isPublicDashboard() && !isConfigured) {
     return <DataSourceWidgetPlaceholder icon={IconProp.TableCells} />;
   }
 

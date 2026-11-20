@@ -2,7 +2,9 @@ import { buildNotificationSms } from "../../Utils/Sms/NotificationSms";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
-import OnCallDutyPolicyChildService from "./OnCallDutyPolicyChildService";
+import OnCallDutyPolicyEscalationRuleResponderService, {
+  EscalationRuleResponder,
+} from "./OnCallDutyPolicyEscalationRuleResponderService";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import Dictionary from "../../Types/Dictionary";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
@@ -28,10 +30,59 @@ import OneUptimeDate from "../../Types/Date";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import OnCallChatText from "../Utils/OnCall/OnCallChatText";
 import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import TeamService from "./TeamService";
+import {
+  ESCALATION_RULE_TEAM_INDEX,
+  EscalationRuleNames,
+  getTeamOnRuleAlreadyRefusal,
+} from "../../Types/OnCallDutyPolicy/EscalationRuleResponderOnce";
 
-export class Service extends OnCallDutyPolicyChildService<Model> {
+export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  // One row per team on a rule (EscalationRuleResponderOnce).
+  protected getResponderIndexName(): string {
+    return ESCALATION_RULE_TEAM_INDEX;
+  }
+
+  protected readResponder(data: Model): EscalationRuleResponder | null {
+    const ruleId: ObjectID | null = this.readRuleId(data);
+    const teamId: ObjectID | null = RelationIdUtil.readConsistent(
+      data as unknown as Record<string, unknown>,
+      ["teamId", "team"],
+      "Team",
+    );
+
+    if (!ruleId || !teamId) {
+      return null;
+    }
+
+    return { ruleId: ruleId, columns: { teamId: teamId } };
+  }
+
+  // "... pages the team "Platform" already": the team by its name.
+  protected async getAlreadyOnRuleRefusal(data: {
+    responder: EscalationRuleResponder;
+    rule: EscalationRuleNames | null;
+    projectId: ObjectID | null;
+  }): Promise<string> {
+    const team: Team | null = await TeamService.findOneById({
+      id: data.responder.columns["teamId"] as ObjectID,
+      select: {
+        name: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return getTeamOnRuleAlreadyRefusal({
+      rule: data.rule,
+      team: team?.name?.toString() || "",
+    });
   }
 
   protected override async onCreateSuccess(

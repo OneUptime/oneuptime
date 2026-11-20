@@ -64,7 +64,7 @@ Every step has these fields. An automated step shows its **Title** and its type'
 | [kubectl](#kubectl) | A Runner | A Runner, and a kubeconfig variable or the Runner's own access |
 | [AI](#ai) | The OneUptime Worker | An LLM provider |
 
-In every automated step below, the step's **More fields** holds its **Runner** first, for a step that runs on one, then **Require approval** and **Continue on failure**, then the step's own extra settings - an HTTP request's headers, an SSH step's port, key passphrase and host key, an AI step's provider and context switches - and last the **Description** and the timeouts. Folded, it names the step's Runner, so you see where a step runs without opening it.
+In every automated step below, the step's **More fields** holds its **Runner** first, for a step that runs on one, then **Require approval** and **Continue on failure**, then the step's own extra settings - an HTTP request's headers and certificate settings, an SSH step's port, key passphrase and host key, an AI step's provider and context switches - and last the **Description** and the timeouts. Folded, it names the step's Runner, so you see where a step runs without opening it.
 
 ### Manual
 
@@ -101,6 +101,8 @@ An outbound HTTP call, made by the OneUptime Worker. No Runner is needed.
 | **Method** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` or `HEAD`. | `GET` |
 | **URL** | The endpoint to call. | Empty |
 | **Headers (JSON)** | Under **More fields**. A JSON object, such as `{ "Authorization": "Bearer ..." }`. Headers that are not valid JSON fail the step. | None |
+| **Allow self-signed certificates** | Under **More fields**. If on, the step takes whatever certificate the server shows, so a self-signed one works, but it checks neither the host name nor the dates, and anyone on the network path could read the request, its secrets included, and change the answer. | Off |
+| **CA certificate** | Under **More fields**, while **Allow self-signed certificates** is off. The certificate, in PEM, of the CA that signed the server's certificate, or the server's own when it is self-signed. The step then trusts only that certificate, and still checks the host name and the dates. | None |
 | **Body** | Shown for `POST`, `PUT`, `PATCH` and `DELETE`. Sent as JSON when it parses as JSON, and as text otherwise. | None |
 | **Request timeout** | How long to wait for the endpoint to respond before failing the step. | 30 seconds |
 
@@ -113,6 +115,21 @@ Useful for: opening a PagerDuty incident, posting to a Slack webhook, calling yo
 
 > [!TIP]
 > Keep tokens out of the step. Store them as secret [runbook variables](/docs/runbooks/variables) and write `{{global.variables.NAME}}` where the value goes, in the URL, the headers or the body. OneUptime sends the request itself, so it fills in secrets too, and the response the step records shows `[REDACTED]` in their place. In JSON headers or a JSON body, a value goes inside its string, so a quote or a line break in it does not break the JSON.
+
+A server whose certificate it signed itself, or one your own CA signed, is refused until the step trusts it, and nothing is sent. The step's error says what to change: "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." Paste the certificate that signed it in **CA certificate**: the CA's, or the server's own when it is self-signed. The step then checks the server's certificate against it, the host name and the dates included, so a server that only pretends to be yours is still refused. Turn on **Allow self-signed certificates** only when you cannot paste one. Either applies to this step's request alone, never to another step, another request of OneUptime or the connection to an outbound proxy.
+
+> [!TIP]
+> To trust your own CA for every request at once instead, monitors included, a self-hosted installation sets `NODE_EXTRA_CA_CERTS` on its containers.
+
+Through the API and Terraform, the switch is the step config's `allowSelfSignedCertificates`, `true` or `false`, and the CA certificate is its `caCertificate`, the PEM as text. A save is refused when `caCertificate` is not a certificate or holds a private key.
+
+```hcl
+config = {
+  method        = "GET"
+  url           = "https://billing.internal.example/health"
+  caCertificate = file("internal-ca.pem")
+}
+```
 
 ### Bash
 

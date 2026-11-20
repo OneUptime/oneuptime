@@ -38,6 +38,11 @@ import {
   NAME_TAKEN_REFUSAL_CODES,
   REFUSAL_CODE_FIELD,
 } from "Common/Types/Exception/NameTakenException";
+import {
+  VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+  VALUE_TAKEN_REFUSAL_CODE,
+  VALUE_TAKEN_REFUSAL_CODES,
+} from "Common/Types/Exception/ValueTakenException";
 
 let outputDir: string;
 let clientGo: string;
@@ -418,7 +423,7 @@ describe("a name another record has", () => {
     );
     expect(doRequest).toContain("!writesARecord(method)");
     expect(doRequest).toContain(
-      "return c.askAgainWhileNameIsTaken(ctx, method, path, body, resp)",
+      "return c.askAgainWhileTaken(ctx, method, path, body, resp)",
     );
   });
 
@@ -429,15 +434,13 @@ describe("a name another record has", () => {
   });
 
   test("only while a record in service has the name: a name an archived record has is handed back at once", () => {
-    const askAgain: string = goFunction(
-      "func (c *Client) askAgainWhileNameIsTaken(",
-    );
+    const askAgain: string = goFunction("func (c *Client) askAgainWhileTaken(");
 
     expect(askAgain).toContain("code, err := readRefusalCode(resp)");
 
-    // The archived code ends the asking before any wait.
+    // The archived codes end the asking before any wait.
     const archived: number = askAgain.indexOf(
-      "if code == nameTakenByArchivedRefusalCode {",
+      "if isTakenByArchivedRefusalCode(code) {",
     );
     expect(archived).toBeGreaterThanOrEqual(0);
     expect(
@@ -448,9 +451,15 @@ describe("a name another record has", () => {
     ).toContain("return resp, nil");
     expect(archived).toBeLessThan(askAgain.indexOf("case <-time.After(wait):"));
 
-    // Anything but the code of a name a record in service has is handed back.
+    // Anything but the code of a name or a value a record in service has is handed back.
     expect(askAgain).toContain(
-      "if code != nameTakenRefusalCode || remaining <= 0 {",
+      "if !isTakenRefusalCode(code) || remaining <= 0 {",
+    );
+    expect(goFunction("func isTakenRefusalCode(")).toContain(
+      "return code == nameTakenRefusalCode || code == valueTakenRefusalCode",
+    );
+    expect(goFunction("func isTakenByArchivedRefusalCode(")).toContain(
+      "return code == nameTakenByArchivedRefusalCode || code == valueTakenByArchivedRefusalCode",
     );
   });
 
@@ -462,9 +471,7 @@ describe("a name another record has", () => {
   });
 
   test("ends with Terraform's cancellation, and asks again through the one-request path", () => {
-    const askAgain: string = goFunction(
-      "func (c *Client) askAgainWhileNameIsTaken(",
-    );
+    const askAgain: string = goFunction("func (c *Client) askAgainWhileTaken(");
 
     expect(askAgain).toContain("case <-ctx.Done():");
     expect(askAgain).toContain("return nil, ctx.Err()");
@@ -504,6 +511,101 @@ describe("a name another record has", () => {
     expect(parseResponse).not.toContain("refusalCodeOf(");
     expect(goFunction("func isNameTakenRefusal(")).not.toContain(
       "nameTakenByArchivedRefusalCode",
+    );
+  });
+});
+
+/*
+ * A create or an update refused because a record in service holds a value
+ * that is not a name, but that a record holds alone - a status page's
+ * domain, a host's identifier (#10319): asked again the same way, since a
+ * domain moved from one resource to another in one apply is one deleted
+ * and one created, side by side. client_value_taken_test.go runs it against
+ * a real HTTP server; these pin that the client tells it by the server's
+ * own codes, and says what to do in a value's words.
+ */
+describe("a value another record holds alone", () => {
+  function goFunction(name: string): string {
+    const start: number = clientGo.indexOf(name);
+    expect(start).toBeGreaterThanOrEqual(0);
+
+    const end: number = clientGo.indexOf("\nfunc ", start + name.length);
+    return clientGo.slice(start, end === -1 ? undefined : end);
+  }
+
+  test("is told by the server's own codes, emitted from Common's constants", () => {
+    expect(VALUE_TAKEN_REFUSAL_CODE).toBe("value_taken");
+    expect(VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE).toBe(
+      "value_taken_by_archived",
+    );
+    expect(VALUE_TAKEN_REFUSAL_CODES).toEqual([
+      VALUE_TAKEN_REFUSAL_CODE,
+      VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+    ]);
+
+    expect(clientGo).toContain(
+      `valueTakenRefusalCode           = "${VALUE_TAKEN_REFUSAL_CODE}"`,
+    );
+    expect(clientGo).toContain(
+      `valueTakenByArchivedRefusalCode = "${VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE}"`,
+    );
+    expect(goFunction("func isValueTakenRefusal(")).toContain(
+      "return refusalCodeOf(body) == valueTakenRefusalCode",
+    );
+  });
+
+  test("never by the server's English, which may be reworded", () => {
+    expect(clientGo).not.toContain("with the same fullDomain");
+    expect(clientGo).not.toContain("already exists");
+    expect(clientGo).not.toContain("is already in use");
+    expect(clientGo).not.toContain("already has a name");
+  });
+
+  test("is asked again only while a record in service has it, and handed back at once when only an archived one does", () => {
+    const askAgain: string = goFunction("func (c *Client) askAgainWhileTaken(");
+
+    expect(askAgain).toContain("if isTakenByArchivedRefusalCode(code) {");
+    expect(askAgain).toContain(
+      "if !isTakenRefusalCode(code) || remaining <= 0 {",
+    );
+    expect(goFunction("func isTakenRefusalCode(")).toContain(
+      "valueTakenRefusalCode",
+    );
+    expect(goFunction("func isTakenRefusalCode(")).not.toContain(
+      "valueTakenByArchivedRefusalCode",
+    );
+    expect(goFunction("func isTakenByArchivedRefusalCode(")).toContain(
+      "valueTakenByArchivedRefusalCode",
+    );
+  });
+
+  test("once given up, says what to do in a value's words, never a name's", () => {
+    const parseResponse: string = goFunction("func (c *Client) ParseResponse(");
+
+    expect(parseResponse).toContain(
+      "if resp.StatusCode == http.StatusBadRequest && isValueTakenRefusal(body) {",
+    );
+    expect(parseResponse).toContain('message += " " + c.valueTakenAdvice()');
+
+    const advice: string = goFunction("func (c *Client) valueTakenAdvice(");
+
+    expect(advice).toContain(
+      'advice := "If a record outside this configuration has it, give this resource another value, or import that record. If resources in this configuration swap values, none of them can go first: give one of them a temporary value, apply, then apply the values you want."',
+    );
+    expect(advice).toContain(
+      'return fmt.Sprintf("The value was still taken after asking again for %s. %s", describeWait(c.nameTakenRetry.window), advice)',
+    );
+    expect(advice).toContain("if c.nameTakenRetry.window <= 0 {");
+    expect(advice).not.toContain("another name");
+    expect(advice).not.toContain("temporary name");
+  });
+
+  test("adds nothing to a value an archived record has: the server's sentence says to unarchive it", () => {
+    const parseResponse: string = goFunction("func (c *Client) ParseResponse(");
+
+    expect(parseResponse).not.toContain("valueTakenByArchivedRefusalCode");
+    expect(goFunction("func isValueTakenRefusal(")).not.toContain(
+      "valueTakenByArchivedRefusalCode",
     );
   });
 });
@@ -632,6 +734,49 @@ describe("static Go test wiring", () => {
       "refusalCodeField",
       "nameTakenRefusalCode",
       "nameTakenByArchivedRefusalCode",
+    ]) {
+      expect(contents).toContain(symbol);
+      expect(clientGo).toContain(symbol);
+    }
+  });
+
+  test("client_value_taken_test.go is copied too, and tests what the client emits", () => {
+    const copied: string = path.join(
+      outputDir,
+      GENERATED_DIR,
+      "client_value_taken_test.go",
+    );
+    expect(fs.existsSync(copied)).toBe(true);
+
+    const contents: string = fs.readFileSync(copied, "utf-8");
+    expect(contents).toContain("package provider");
+
+    /*
+     * The issue's cases: a domain moved to another resource converges in
+     * one apply, a swap and a value nothing gives up give up in a value's
+     * words, a value an archived record has is handed back at once, and
+     * nothing else is asked again.
+     */
+    for (const test of [
+      "func TestDoRequest_ADomainMovedToAnotherResourceConvergesInOneApply(",
+      "func TestDoRequest_AnIdentifierSwapGivesUpWithAClearMessage(",
+      "func TestDoRequest_AValueNothingGivesUpEndsWithWhatToDo(",
+      "func TestDoRequest_NeverAsksAgainForAValueOnlyAnArchivedRecordHas(",
+      "func TestDoRequest_AValueAnArchivedRecordHasFailsTheApplyAtOnce(",
+      "func TestDoRequest_NeverAsksAgainForAValueWithoutItsCodeOrOnAnotherStatus(",
+      "func TestParseResponse_SaysWhatToDoInTheWordsOfWhatIsTaken(",
+    ]) {
+      expect(contents).toContain(test);
+    }
+
+    for (const symbol of [
+      "nameTakenRetry{",
+      "isValueTakenRefusal(",
+      "isTakenRefusalCode(",
+      "isTakenByArchivedRefusalCode(",
+      "valueTakenRefusalCode",
+      "valueTakenByArchivedRefusalCode",
+      "refusalCodeField",
     ]) {
       expect(contents).toContain(symbol);
       expect(clientGo).toContain(symbol);

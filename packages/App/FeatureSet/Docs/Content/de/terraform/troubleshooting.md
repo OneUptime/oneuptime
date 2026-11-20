@@ -24,6 +24,7 @@ Suchen Sie die Meldung, die Terraform ausgegeben hat, oder das, was Sie beobacht
 | `Not Found` oder `Ambiguous Match` aus einer Datenquelle | Korrigieren Sie die Argumente der Suche: siehe [Suchen, die keinen oder mehrere finden](#suchen-die-keinen-oder-mehrere-finden) |
 | `There is already a team called` (eine Beschriftung, eine Bereitschaftsrichtlinie, ein Bereitschaftsplan) | Geben Sie ihm einen Namen, den kein anderer Datensatz derselben Art hat, oder benennen Sie zuerst den anderen um: siehe [Namen, die schon ein anderer Datensatz hat](#namen-die-schon-ein-anderer-datensatz-hat) |
 | `with the same name already exists` | Geben Sie ihm einen Namen, den kein anderer Datensatz derselben Art hat, oder importieren Sie den Datensatz, der ihn hat: siehe [Namen, die schon ein anderer Datensatz hat](#namen-die-schon-ein-anderer-datensatz-hat) |
+| `already exists` für eine Domain, einen Hostnamen oder eine Anmelde-URL | Geben Sie ihm einen Wert, den kein anderer Datensatz hat, oder importieren Sie den Datensatz, der ihn hat: siehe [Domains und Kennungen, die schon ein anderer Datensatz hat](#domains-und-kennungen-die-schon-ein-anderer-datensatz-hat) |
 | `Cannot import non-existent remote object` | Prüfen Sie die ID und die Berechtigungen des Schlüssels: siehe [Ressourcen importieren](/docs/terraform/importing-resources#fehlerbehebung) |
 | `Provider produced inconsistent result after apply` | Aktualisieren Sie den Provider: siehe [Inkonsistentes Ergebnis nach dem Apply](#inkonsistentes-ergebnis-nach-dem-apply) |
 | Ein Plan legt eine Ressource an, die Sie nicht hinzugefügt haben | Der Schlüssel kann sie nicht mehr lesen, und OneUptime hat mit `404` geantwortet: Geben Sie dem Schlüssel den Lesezugriff zurück, dann importieren Sie die Ressource mit `terraform import`: siehe [Eine Ressource verlässt den State, und das nächste Apply legt sie erneut an](#eine-ressource-verlässt-den-state-und-das-nächste-apply-legt-sie-erneut-an) |
@@ -114,6 +115,14 @@ Terraform nimmt die Änderungen eines Apply parallel vor, daher kann ein Anlegen
 Ein archivierter Datensatz behält seinen Namen, und nichts, was ein Apply mit den Datensätzen in Dienst tut, gibt ihn frei. Ein Anlegen oder Umbenennen auf diesen Namen schlägt sofort fehl, und die Meldung sagt, wo Sie den Datensatz aus dem Archiv holen: Holen Sie ihn aus dem Archiv, oder wählen Sie einen anderen Namen.
 
 Mit einem älteren Provider oder einem älteren OneUptime lässt schon die erste Ablehnung das Apply fehlschlagen: Wenden Sie erneut an, oder geben Sie der Ressource, die den Namen übernimmt, ein `depends_on` auf die Ressource, die ihn aufgibt.
+
+### Domains und Kennungen, die schon ein anderer Datensatz hat
+
+Die Domain einer Statusseite, eines Dashboards oder eines Formulars, eine Projekt-Domain, die Kennung eines Hosts oder eines Kubernetes-Clusters und die Anmelde-URL eines SSO-Anbieters gehören ebenfalls jeweils nur einem Datensatz, unabhängig von Groß- und Kleinschreibung. Ein Anlegen oder eine Änderung auf einen solchen Wert, den schon ein anderer Datensatz hat, wird mit `400` beantwortet, etwa `Status Page Domain with the same fullDomain already exists.`
+
+Der Provider fragt auch hier bis zu 30 Sekunden lang erneut an, sodass das Verschieben einer Domain von einer Ressource zu einer anderen in einem Apply, das die eine löscht und die andere parallel anlegt, in einem Apply durchgeht. Ein Tausch zweier Werte geht nie durch, und ebenso wenig ein Wert, den ein Datensatz außerhalb der Konfiguration hat: Nach 30 Sekunden schlägt das Apply fehl mit `The value was still taken after asking again for 30 seconds.` Geben Sie der Ressource einen Wert, den niemand hat, oder importieren Sie den Datensatz, der den Wert hat, mit `terraform import`. Bei einem Tausch geben Sie einer davon einen vorübergehenden Wert, wenden an, und nehmen dann den Rest der Änderung vor.
+
+Ein Wert, den nur ein archivierter Datensatz hat, etwa der Hostname eines archivierten Hosts, schlägt sofort fehl, und die Meldung sagt, was zu tun ist: Holen Sie diesen Datensatz aus dem Archiv, oder wählen Sie einen anderen Wert.
 
 ## Pläne, die nicht zur Ruhe kommen
 

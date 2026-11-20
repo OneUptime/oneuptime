@@ -369,7 +369,7 @@ De twee stappen voor gegevensopslagen werken op de gegevensopslagen waar de zaak
 
 #### Beschermde entiteiten
 
-**Beschermde entiteiten**, onder **Playbooks** in het menu, toont de gebruikers en hosts die geen enkel playbook inperkt, zoals noodaccounts, domeincontrollers en VPN-gateways. Een waarde matcht ongeacht hoofdletters, en `*` staat voor elke reeks tekens: `svc-*` beschermt elk serviceaccount. Een stap meldt een beschermde gebruiker of host als beschermd en laat hem ongemoeid. Beveiligingsbeheerders houden de lijst bij.
+**Beschermde entiteiten**, onder **Playbooks** in het menu, toont de gebruikers, hosts en IP-adressen die geen enkel playbook inperkt en de blokkeerlijst nooit blokkeert, zoals noodaccounts, domeincontrollers, VPN-gateways en kantooradressen. Een waarde matcht ongeacht hoofdletters, en `*` staat voor elke reeks tekens: `svc-*` beschermt elk serviceaccount. Een adresvermelding is een adres of een bereik, zoals `203.0.113.0/24`, dat elk adres erin beschermt. Een stap meldt een beschermde gebruiker of host als beschermd en laat hem ongemoeid. Beveiligingsbeheerders houden de lijst bij.
 
 #### Goedkeuring
 
@@ -378,6 +378,14 @@ De acht stappen die iemand de toegang ontnemen, wachten op goedkeuring. Alleen e
 #### Ongedaan maken
 
 De herstelstappen werken op de gebruikers of hosts waar de zaak over gaat, net als de stappen die ze terugdraaien. Zodra de uitvoering is gestopt, heeft een ingeperkte gebruiker of host ook een eigen knop op zijn stap: **Opschorting opheffen**, **Indamming opheffen**, **Vrijgeven** of **Inschakelen**. Een afmelding kan niet ongedaan worden gemaakt. Elke herstelactie wordt bewaard op de tijdlijn van de zaak en in het auditlogboek van het project.
+
+### Blokkeerlijst
+
+**Blokkeerlijst**, onder **Playbooks** in het menu, toont de IP-adressen en bereiken die je project blokkeert: waarom, tot wanneer, hun zaak en wie of wat ze heeft toegevoegd. **Adres blokkeren** blokkeert een adres of een bereik voor 24 uur, tenzij je 1 uur, 7 dagen of 30 dagen kiest. Alleen een Beveiligingsbeheerder, een Projectbeheerder of een Projecteigenaar kan een blokkering behouden tot iemand ze opheft, of een bereik blokkeren dat breder is dan een /24 (een /48 bij IPv6), en niemand blokkeert een bereik dat breder is dan een /8 (een /16 bij IPv6). **Opheffen** beëindigt een blokkering, op één rij of op meerdere tegelijk, en **Verlengen** verschuift het einde ervan.
+
+De eigen adressen van je project worden nooit geblokkeerd: de vermeldingen in **Beschermde entiteiten**, je hosts, Kubernetes-nodes, cloud-resources, netwerkapparaten en -eindpunten, je adresnamen en sondes, de sondes van OneUptime Cloud, de bereiken die niet op internet liggen, en het edge-netwerk vóór je app. Een blokkering die er een zou raken, wordt geweigerd met de melding wat het adres is, en **Beschermde entiteiten** toont ze onder **Automatisch beschermd**. Als OneUptime niet kan bepalen of een adres van jou is, blokkeert het dat niet.
+
+**Toegepast bij** toont elke plek waar een blokkering wordt toegepast, en of die daar standhoudt. Zolang niets de blokkeerlijst toepast, meldt de pagina dat, en wordt een blokkering vastgelegd maar blokkeert ze niets. Elke blokkering, opheffing en verloop wordt bewaard in het auditlogboek van het project, en op de tijdlijn van de zaak als er een zaak is.
 
 ### Berichten
 
@@ -433,7 +441,7 @@ Daarboven toont een strook hoe beveiliging is ingericht: de bronnen, detecties, 
 ## Automatiseren
 
 - **Workflows**: een zaak of een notitie kan een workflow starten wanneer ze wordt aangemaakt, bijgewerkt of verwijderd. Een stap **Een workflow uitvoeren** start een workflow waarvan de trigger een webhook is.
-- **API**: zaken, notities, taken, bewijs, detecties, playbooks, uitvoeringen, beschermde entiteiten en zaakprioriteiten en zaakstatussen hebben dezelfde REST API als de rest van OneUptime, onder `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` en `/security-case-status`. Zie [API-referentie](/docs/api-reference/api-reference).
+- **API**: zaken, notities, taken, bewijs, detecties, playbooks, uitvoeringen, beschermde entiteiten, blokkeringen en zaakprioriteiten en zaakstatussen hebben dezelfde REST API als de rest van OneUptime, onder `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-block`, `/security-case-priority` en `/security-case-status`. Zie [API-referentie](/docs/api-reference/api-reference).
 - AI-agents: de MCP-server heeft tools voor zaken, notities, taken, bewijs, detecties, playbooks en zaakprioriteiten en zaakstatussen. Zie [MCP-server](/docs/ai/mcp-server).
 - Terraform: de resources `oneuptime_security_case_priority` en `oneuptime_security_case_status` leggen de prioriteiten en statussen van een project vast als code.
 

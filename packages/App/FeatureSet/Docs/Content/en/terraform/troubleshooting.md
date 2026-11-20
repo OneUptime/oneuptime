@@ -24,6 +24,7 @@ Look up the message Terraform printed, or what you saw happen, in the table belo
 | `Not Found` or `Ambiguous Match` from a data source | Fix the lookup's arguments: see [Lookups that find none or several](#lookups-that-find-none-or-several) |
 | `There is already a team called` (a label, an on-call policy, an on-call schedule) | Give it a name no other one of its kind has, or rename the other first: see [Names another record has](#names-another-record-has) |
 | `with the same name already exists` | Give it a name no other one of its kind has, or import the record that has it: see [Names another record has](#names-another-record-has) |
+| `already exists` for a domain, a host name or a sign-on URL | Give it a value no other record has, or import the record that has it: see [Domains and identifiers another record has](#domains-and-identifiers-another-record-has) |
 | `Cannot import non-existent remote object` | Check the ID and the key's permissions: see [Importing Resources](/docs/terraform/importing-resources#troubleshooting) |
 | `Provider produced inconsistent result after apply` | Upgrade the provider: see [Inconsistent result after apply](#inconsistent-result-after-apply) |
 | A plan creates a resource you did not add | The key can no longer read it, and OneUptime answered `404`: give the key read access back, then `terraform import` the resource: see [A resource leaves the state, and the next apply creates it again](#a-resource-leaves-the-state-and-the-next-apply-creates-it-again) |
@@ -114,6 +115,14 @@ Terraform makes the changes of one apply side by side, so a create or a rename o
 An archived record keeps its name, and nothing an apply does to the records in service gives it up. A create or a rename onto it fails at once, with where to unarchive it: unarchive it, or pick another name.
 
 With an older provider or an older OneUptime, the first refusal fails the apply: apply again, or add a `depends_on` from the resource that takes the name to the one that gives it up.
+
+### Domains and identifiers another record has
+
+A status page's, a dashboard's or a form's domain, a project domain, a host's or a Kubernetes cluster's identifier and an SSO provider's sign-on URL belong to one record each too, whatever their case. A create, or a change, onto one another record has answers `400`, such as `Status Page Domain with the same fullDomain already exists.`
+
+The provider asks again for up to 30 seconds here as well, so moving a domain from one resource to another in one apply, which deletes the one and creates the other side by side, goes through in one apply. A swap of two values never does, and neither does a value a record outside the configuration has: after 30 seconds the apply fails with `The value was still taken after asking again for 30 seconds.` Give the resource a value nobody has, or `terraform import` the record that has it. For a swap, give one of them a temporary value, apply, then make the rest of the change.
+
+A value only an archived record has, such as an archived host's host name, fails at once, with what to do: unarchive that record, or choose another value.
 
 ## Plans that do not settle
 
