@@ -348,12 +348,16 @@ Verktyget **`oneuptime_move_in_list`** flyttar en rad i en ordnad lista, till ex
 Servern har också Fråga AI:s inställningsåtgärder, ett anrop var: det du ställer in, i stället för en post i taget. Var och en skapar de poster som Fråga AI och de guidade inställningarna skapar för samma svar, med samma kontroller:
 
 - **`set_up_website_monitoring`**: en monitor för en webbplats eller ett API på en adress, som öppnar en incident när adressen inte svarar eller svarar med ett fel. Den är din, och en adress som en monitor redan kontrollerar får ingen andra
+- **`set_up_service_monitor`**: en av de monitorer som den guidade inställningen för telemetri rekommenderar för en tjänst som skickar telemetri: för misslyckade förfrågningar, långsamma förfrågningar, ohanterade undantag eller en ökning av felloggar. Den öppnar ett larm för ditt team, och en monitor som tjänsten redan har får ingen andra
 - **`set_up_paging`**: i ett projekt som ännu inte larmar någon, dess första jourpolicy, som larmar dig och de personer och team du nämner vid varje ny incident och varje nytt larm
+- **`add_to_on_call_policy`**: medlemmar och team som läggs till i en jourpolicy som projektet har, på en av dess nivåer eller som en ny nivå som larmar dem när ingen kvitterar. Den som en nivå redan larmar läggs inte till två gånger
+- **`invite_people`**: personer som bjuds in till projektet via e-post. Var och en får ett inbjudningsmejl i ditt namn, och en adress som redan finns i projektet bjuds inte in igen
+- **`set_how_to_reach_me`**: hur larm når dig, till exempel ett sms direkt och ett samtal efter fem minuter. Den ersätter dina inställningar i Så når man mig och använder bara de metoder du har verifierat
 - **`publish_status_page`**: en offentlig statussida som visar de monitorer du nämner
 - **`add_monitors_to_status_page`**: monitorer som läggs på en statussida som projektet har
 - **`who_is_told`**: vem som får veta när en monitor ligger nere, och vad som skulle hindra att någon nås. Den ändrar ingenting
 
-De agerar som du, inloggad med OAuth: en API-nyckel för ett projekt kan inte använda de fyra som skapar något. Din klient frågar dig före var och en av dem, och dess svar säger vad som skapades. Det som saknas, till exempel en behörighet, en adress eller plats i abonnemanget, sägs innan något skapas.
+De agerar som du, inloggad med OAuth: en API-nyckel för ett projekt kan inte använda de åtta som skapar något. Din klient frågar dig före var och en av dem, och dess svar säger vad som skapades. Det som saknas, till exempel en behörighet, en adress eller plats i abonnemanget, sägs innan något skapas.
 
 ## Fråga efter telemetri
 
