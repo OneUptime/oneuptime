@@ -17,6 +17,7 @@ import { fakeProjectSCIMUserService } from "./FakeProjectSCIMUserService";
 import {
   fakeTeamMemberService,
   fakeUserService,
+  idOf,
   scimWorld,
   WorldMembership,
   WorldUser,
@@ -1254,6 +1255,379 @@ describe.each(deployments)("on $label", ({ hosted }: { hosted: boolean }) => {
         },
       ]);
     });
+  });
+
+  /*
+   * -------------------------------------------------------------------------
+   * A group names only users of this connection.
+   *
+   * Whoever holds the connection's token may come by another account's id -
+   * a link, an export, a log. A group add used to take any account's id: on
+   * OneUptime Cloud it invited that account, so the project's Users list
+   * showed the address behind the id, and its owner was emailed; on a
+   * self-hosted install it made the account a member outright. A member may
+   * now be only a user of this connection: one it provisioned, or a member
+   * of the project it has not written yet, which GET /Users finds for an
+   * identity provider to link. Any other id - an account elsewhere on the
+   * server, or none at all - is skipped alike: the same answers, headers,
+   * log and reads, and nothing written. Each request below is what Okta or
+   * Microsoft Entra ID sends.
+   * -------------------------------------------------------------------------
+   */
+
+  // The account elsewhere on the server whose id the token holder came by.
+  const OUTSIDER_ADDRESS: string = "nadia.okafor@globex.example";
+
+  // What each kind of member id names.
+  enum NamedMember {
+    // An account of another project, which this connection never provisioned.
+    AccountElsewhere = "an account elsewhere on the server",
+    // An id no account has.
+    NoAccount = "an id no account has",
+  }
+
+  interface ForeignMemberFlow {
+    label: string;
+    groups: (memberId: string) => Promise<Array<HttpResult>>;
+  }
+
+  const groupWith: () => Promise<HttpResult> = (): Promise<HttpResult> => {
+    return send("POST", "/Groups", {
+      schemas: [GROUP_SCHEMA],
+      displayName: "Engineering",
+      members: [],
+    });
+  };
+
+  const foreignMemberFlows: Array<ForeignMemberFlow> = [
+    {
+      label: "Okta: a PATCH that adds the member",
+      groups: async (memberId: string): Promise<Array<HttpResult>> => {
+        const group: HttpResult = await groupWith();
+
+        return [
+          group,
+          await send(
+            "PATCH",
+            `/Groups/${group.body["id"]}`,
+            patch({
+              op: "add",
+              path: "members",
+              value: [{ value: memberId, display: OUTSIDER_ADDRESS }],
+            }),
+          ),
+          await send("GET", `/Groups/${group.body["id"]}`),
+        ];
+      },
+    },
+    {
+      label: "Okta: a PUT of the group that lists the member",
+      groups: async (memberId: string): Promise<Array<HttpResult>> => {
+        const group: HttpResult = await groupWith();
+
+        return [
+          group,
+          await send("PUT", `/Groups/${group.body["id"]}`, {
+            schemas: [GROUP_SCHEMA],
+            id: group.body["id"] as string,
+            displayName: "Engineering",
+            members: [{ value: memberId, display: OUTSIDER_ADDRESS }],
+          }),
+          await send("GET", `/Groups/${group.body["id"]}`),
+        ];
+      },
+    },
+    {
+      label: "Okta: a group made with the member",
+      groups: async (memberId: string): Promise<Array<HttpResult>> => {
+        const group: HttpResult = await send("POST", "/Groups", {
+          schemas: [GROUP_SCHEMA],
+          displayName: "Engineering",
+          members: [{ value: memberId, display: OUTSIDER_ADDRESS }],
+        });
+
+        return [group, await send("GET", `/Groups/${group.body["id"]}`)];
+      },
+    },
+    {
+      label: "Microsoft Entra ID: an Add of the member",
+      groups: async (memberId: string): Promise<Array<HttpResult>> => {
+        const group: HttpResult = await send("POST", "/Groups", {
+          schemas: [GROUP_SCHEMA, ENTRA_GROUP_SCHEMA],
+          externalId: "8aa1a0c0-c4c3-4bc0-b4a5-2ef676900159",
+          displayName: "Engineering",
+          meta: { resourceType: "Group" },
+        });
+
+        return [
+          group,
+          await send(
+            "PATCH",
+            `/Groups/${group.body["id"]}`,
+            patch({
+              op: "Add",
+              path: "members",
+              value: [{ value: memberId }],
+            }),
+          ),
+          // How Entra ID asks whether the member is in the group now.
+          await send(
+            "GET",
+            `/Groups?filter=${encodeURIComponent(
+              `id eq "${group.body["id"]}" and members[value eq "${memberId}"]`,
+            )}&excludedAttributes=members`,
+          ),
+        ];
+      },
+    },
+    {
+      label: "Bulk: a PATCH of the group that adds the member",
+      groups: async (memberId: string): Promise<Array<HttpResult>> => {
+        const group: HttpResult = await groupWith();
+
+        return [
+          group,
+          await send("POST", "/Bulk", {
+            schemas: [BULK_SCHEMA],
+            Operations: [
+              {
+                method: "PATCH",
+                bulkId: "g1",
+                path: `/Groups/${group.body["id"]}`,
+                data: patch({
+                  op: "add",
+                  path: "members",
+                  value: [{ value: memberId }],
+                }),
+              },
+            ],
+          }),
+          await send(
+            "GET",
+            `/Groups?filter=${encodeURIComponent(
+              `members.value eq "${memberId}"`,
+            )}`,
+          ),
+        ];
+      },
+    },
+  ];
+
+  /*
+   * The connection provisions its own user, then names `named` in a group:
+   * an account of another project, seeded with an address of its own, or an
+   * id no account has. Push groups on, as an identity provider that sends
+   * groups has them.
+   */
+  async function nameInAGroup(
+    named: NamedMember,
+    flow: ForeignMemberFlow,
+  ): Promise<{ run: Run; memberId: string }> {
+    let memberId: string = "";
+
+    const run: Run = await runIn(
+      AddressHistory.NoAccount,
+      async (): Promise<Array<HttpResult>> => {
+        projectConfig.enablePushGroups = true;
+
+        if (named === NamedMember.AccountElsewhere) {
+          memberId = scimWorld.seedUser({
+            email: OUTSIDER_ADDRESS,
+            name: "Nadia Okafor",
+          });
+          scimWorld.seedMembership({
+            userId: memberId,
+            projectId: OTHER_PROJECT_ID,
+            teamId: scimWorld.seedTeam({
+              projectId: OTHER_PROJECT_ID,
+              name: "Globex SRE",
+            }),
+          });
+        } else {
+          memberId = idOf(ObjectID.generate());
+        }
+
+        const created: HttpResult = await send(
+          "POST",
+          "/Users",
+          oktaCreate(ADDRESS),
+        );
+
+        return [created, ...(await flow.groups(memberId))];
+      },
+    );
+
+    return { run: run, memberId: memberId };
+  }
+
+  describe.each(foreignMemberFlows)(
+    "a group that names an id this connection never provisioned - $label",
+    (flow: ForeignMemberFlow) => {
+      test("is answered, logged and read alike for an account elsewhere and an id no account has, and writes nothing", async () => {
+        const noAccount: { run: Run; memberId: string } = await nameInAGroup(
+          NamedMember.NoAccount,
+          flow,
+        );
+        const elsewhere: { run: Run; memberId: string } = await nameInAGroup(
+          NamedMember.AccountElsewhere,
+          flow,
+        );
+
+        // The same statuses, bodies, headers and log, ids aside.
+        expect(visible(elsewhere.run)).toEqual(visible(noAccount.run));
+        // The same reads and writes, in the same order.
+        expect(workOf(elsewhere.run)).toEqual(workOf(noAccount.run));
+        // The project reads the same afterwards: its own user only.
+        expect(elsewhere.run.projectSees).toEqual(noAccount.run.projectSees);
+
+        for (const result of elsewhere.run.results) {
+          expect([200, 201, 204]).toContain(result.status);
+        }
+
+        // Nothing written for the account elsewhere: no membership, no invitation.
+        expect(
+          scimWorld.memberships.filter((row: WorldMembership): boolean => {
+            return row.userId === elsewhere.memberId;
+          }),
+        ).toHaveLength(1);
+        expect(
+          scimWorld.memberships.some((row: WorldMembership): boolean => {
+            return (
+              row.userId === elsewhere.memberId && row.projectId === PROJECT_ID
+            );
+          }),
+        ).toBe(false);
+        expect(
+          scimWorld.memberships
+            .map((row: WorldMembership): string | null => {
+              return row.invitationEmailRequestedFor;
+            })
+            .filter(Boolean),
+        ).toEqual(hosted ? [ADDRESS] : []);
+
+        // Its address appears in no answer and no log but what the request itself sent.
+        const answers: string = JSON.stringify(
+          elsewhere.run.results.map((result: HttpResult): JSONObject => {
+            return result.body;
+          }),
+        );
+        expect(answers).not.toContain(OUTSIDER_ADDRESS);
+        expect(answers).not.toContain("Nadia");
+        expect(
+          JSON.stringify(
+            elsewhere.run.logs.map((entry: JSONObject): unknown => {
+              return [entry["responseBody"], entry["steps"]];
+            }),
+          ),
+        ).not.toContain(OUTSIDER_ADDRESS);
+      });
+    },
+  );
+
+  test("a user the connection provisioned is still added, as the provider names them", async () => {
+    await runIn(
+      AddressHistory.NoAccount,
+      async (): Promise<Array<HttpResult>> => {
+        projectConfig.enablePushGroups = true;
+
+        const created: HttpResult = await send(
+          "POST",
+          "/Users",
+          entraCreate(ADDRESS),
+        );
+        const group: HttpResult = await groupWith();
+
+        return [
+          created,
+          group,
+          await send(
+            "PATCH",
+            `/Groups/${group.body["id"]}`,
+            patch({
+              op: "Add",
+              path: "members",
+              value: [{ value: created.body["id"] as string }],
+            }),
+          ),
+        ];
+      },
+    );
+
+    expect(projectSees()).toEqual([
+      {
+        team: "Engineering",
+        hasAcceptedInvitation: !hosted,
+        inviteeName: "Sam Rivera",
+        invitationEmailRequestedFor: null,
+      },
+    ]);
+  });
+
+  /*
+   * An identity provider that finds a member of the project with a
+   * userName lookup links them rather than creating them, and names them
+   * in its groups by the id the lookup answered: they are a user of this
+   * connection too, the project's own, and are added. Nothing of theirs is
+   * the provider's to name the invitation by.
+   */
+  test("a member of the project the connection has not written yet is added when a group names them", async () => {
+    await runIn(
+      AddressHistory.NoAccount,
+      async (): Promise<Array<HttpResult>> => {
+        projectConfig.enablePushGroups = true;
+
+        const colleague: string = scimWorld.seedUser({
+          email: "carol.danvers@acme.example",
+          name: "Carol Danvers",
+        });
+        scimWorld.seedMembership({
+          userId: colleague,
+          projectId: PROJECT_ID,
+          teamId: membersTeamId,
+          accepted: true,
+        });
+
+        const lookedUp: HttpResult = await send(
+          "GET",
+          filterByUserName("carol.danvers@acme.example"),
+        );
+        const linkedId: string = (
+          (lookedUp.body["Resources"] as Array<JSONObject>)[0] as JSONObject
+        )["id"] as string;
+        expect(linkedId).toBe(colleague);
+
+        const group: HttpResult = await groupWith();
+
+        return [
+          lookedUp,
+          group,
+          await send(
+            "PATCH",
+            `/Groups/${group.body["id"]}`,
+            patch({
+              op: "Add",
+              path: "members",
+              value: [{ value: linkedId }],
+            }),
+          ),
+        ];
+      },
+    );
+
+    expect(projectSees()).toEqual([
+      {
+        team: "Engineering",
+        hasAcceptedInvitation: true,
+        inviteeName: null,
+        invitationEmailRequestedFor: null,
+      },
+      {
+        team: "Members",
+        hasAcceptedInvitation: true,
+        inviteeName: null,
+        invitationEmailRequestedFor: null,
+      },
+    ]);
   });
 
   /*

@@ -459,37 +459,20 @@ const removeUsersFromUnassignedTeam: (data: {
 };
 
 /*
- * The name the identity provider sent for a user this connection
- * provisioned - what the connection's record of them keeps
- * (ProjectSCIMUser), never the account's own name - for a group add to name
- * an invitation by (#9899). None for an account the connection has no
- * record of, or whose provider sent no name. Read for every member alike.
- */
-const getProviderNameOfUser: (data: {
-  projectScimId: ObjectID;
-  userId: ObjectID;
-}) => Promise<string | null> = async (data: {
-  projectScimId: ObjectID;
-  userId: ObjectID;
-}): Promise<string | null> => {
-  const record: ProjectSCIMUser | null =
-    await ProjectSCIMUserService.findRecord({
-      projectScimId: data.projectScimId,
-      userId: data.userId,
-    });
-
-  if (!record) {
-    return null;
-  }
-
-  return getAccountName(getScimUserResourceOfRecord(record)) || null;
-};
-
-/*
  * Adds the accounts a SCIM group request lists to one of the project's teams,
  * through ProjectSCIMAccountPolicy, and takes each one that lands in the team
- * out of the "Unassigned" team. `projectScimId` is the connection whose
- * records name each invitation (getProviderNameOfUser).
+ * out of the "Unassigned" team.
+ *
+ * A member may be only a user of this connection (findProjectScimUser): an
+ * account it keeps a record of - whose record names the invitation, with
+ * the name the identity provider sent (#9899) - or a member of the project
+ * it has not written yet, as GET /Users finds one for an identity provider
+ * to link. Any other id - an account elsewhere on the server, or none at
+ * all - is skipped alike, after the same reads, with nothing written. A
+ * group add used to take any account's id: on OneUptime Cloud it invited
+ * the account, so the project's Users list showed the address behind an id
+ * someone had come by, and its owner was emailed; on a self-hosted install
+ * it made the account a member outright.
  */
 const addGroupMembersToTeam: (data: {
   projectId: ObjectID;
@@ -525,17 +508,28 @@ const addGroupMembersToTeam: (data: {
       continue;
     }
 
-    const userId: ObjectID = new ObjectID(memberValue);
+    const scimUser: ProjectScimUser | null = await findProjectScimUser({
+      projectId: data.projectId,
+      projectScimId: data.projectScimId,
+      userId: memberValue,
+    });
+
+    if (!scimUser) {
+      counts.skipped++;
+      continue;
+    }
+
+    const userId: ObjectID = scimUser.account.id!;
 
     const outcome: ProjectSCIMTeamAddOutcome =
       await ProjectSCIMAccountPolicy.addUserToTeam({
         projectId: data.projectId,
         userId: userId,
         teamId: data.teamId,
-        inviteeName: await getProviderNameOfUser({
-          projectScimId: data.projectScimId,
-          userId: userId,
-        }),
+        // What the identity provider sent for them, never the account's own.
+        inviteeName: scimUser.record
+          ? getAccountName(getScimUserResourceOfRecord(scimUser.record)) || null
+          : null,
       });
 
     if (
