@@ -44,7 +44,7 @@ An application's own side menu groups its pages like this; **Developer** and **A
 | **Observability** | **Metrics**, **Logs**, **Traces**, **Clients** |
 | **Product Analytics** | **Users**, **Sessions**, **Events**, **Funnels**, **User Retention**, **User Flows**, **Analytics Settings** |
 | **Session Replay** | **Session Replay**, **Replay Users**, **Health**, **Replay Policy**, **Frustration Signals**, **Replay Access Log**, **Documentation** |
-| **Developer** | **Terraform**, **API**, **CLI**, **AI Assistants** |
+| **Developer** | **Terraform**, **Crossplane**, **API**, **CLI**, **AI Assistants** |
 | **Advanced** | **Settings**, **Audit Logs**, **Delete Application** |
 
 ## How OneUptime recognises RUM

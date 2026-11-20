@@ -138,7 +138,7 @@ Mens du arbejder med den, skriver du det, du lærer, ned som **Private noter**, 
 | **Undersøgelse** | **Beskrivelse**, **Grundårsag**, **Afhjælpning**, **Runbooks**, **Tilknyttede hændelser**, **Private noter** |
 | **Team** | **Vagtudførelser** og **Ejere**: hvem der blev tilkaldt for advarslen, og hvem der ejer den |
 | **Notifikationer**      | **Notifikationslogs** og **AI-logs**: hver besked, der er sendt om advarslen, og alt, hvad AI gjorde for den |
-| **Udvikler**         | **Terraform**, **API**, **CLI** og **AI-assistenter**: advarslen styret fra kode                            |
+| **Udvikler**         | **Terraform**, **Crossplane**, **API**, **CLI** og **AI-assistenter**: advarslen styret fra kode                            |
 | **Avanceret** | **Brugerdefinerede felter**, **Indstillinger**, **Auditlogs**, **Slet advarsel** |
 
 **Oversigt**, **Undersøgelse** og **Team** er åbne; de andre sektioner er foldet sammen, indtil du klikker på dem.
