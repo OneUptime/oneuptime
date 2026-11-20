@@ -272,6 +272,11 @@ import RestrictionTimes, {
 import Permission, { UserPermission } from "../../../Types/Permission";
 import Timezone from "../../../Types/Timezone";
 import Navigation from "../../../UI/Utils/Navigation";
+import { writeReaderDay } from "../../../UI/Utils/ReaderMoments";
+import {
+  SHARED_NAME_DETAIL_TEST_ID,
+  SHARED_NAME_PILL_TEST_ID,
+} from "../../../UI/Components/Dropdown/SharedNameOptionLines";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 
 jest.setTimeout(30000);
@@ -293,6 +298,55 @@ const PLATFORM: { id: string; name: string } = {
   id: "0d51a000-0000-4000-8000-0000000000c3",
   name: "Platform",
 };
+
+/*
+ * A policy named as Payments is, from before names were held to one policy
+ * each (#10314), and when each was made: what tells the two apart.
+ */
+const PAYMENTS_TWIN: { id: string; name: string } = {
+  id: "0d51a000-0000-4000-8000-0000000000c4",
+  name: "payments",
+};
+const PAYMENTS_MADE_AT: Date = new Date("2024-03-05T09:30:00.000Z");
+const PAYMENTS_TWIN_MADE_AT: Date = new Date("2026-11-05T09:30:00.000Z");
+
+/*
+ * Serves the policies read again on their own, with when each was made, as
+ * a list of names alone reads its twins (SharedNameFactsReads), and every
+ * other read as before. Returns the reads of the policies.
+ */
+function servePolicyFacts(): Array<any> {
+  const served: ((...args: Array<any>) => any) | undefined =
+    getListMock.getMockImplementation() as
+      | ((...args: Array<any>) => any)
+      | undefined;
+  const policyReads: Array<any> = [];
+
+  getListMock.mockImplementation(async (params: any): Promise<any> => {
+    if (params.modelType === OnCallDutyPolicy) {
+      policyReads.push(params);
+
+      return list(
+        [
+          { ...PAYMENTS, createdAt: PAYMENTS_MADE_AT },
+          { ...PAYMENTS_TWIN, createdAt: PAYMENTS_TWIN_MADE_AT },
+        ].map(
+          (policy: { id: string; name: string; createdAt: Date }) => {
+            const model: OnCallDutyPolicy = new OnCallDutyPolicy();
+            model._id = policy.id;
+            model.name = policy.name;
+            model.createdAt = policy.createdAt;
+            return model;
+          },
+        ),
+      );
+    }
+
+    return served ? served(params) : list([]);
+  });
+
+  return policyReads;
+}
 
 const ALICE: string = "0d51a000-0000-4000-8000-0000000000a1";
 const BOB: string = "0d51a000-0000-4000-8000-0000000000b1";
@@ -770,6 +824,61 @@ describe("Skip until… for a member whose permission covers only some policies"
     expect(sentPolicyIds()).toEqual([PAYMENTS.id, PLATFORM.id]);
   });
 
+  test("two policies of one name: each is told apart under On-call policies, by when it was made", async () => {
+    holding(LIMITED_TO_TEAM_A);
+    attachedPolicies = [PAYMENTS, PAYMENTS_TWIN];
+    mayCoverByProject = { [PROJECT_ID]: [PAYMENTS.id, PAYMENTS_TWIN.id] };
+    const policyReads: Array<any> = servePolicyFacts();
+
+    await renderLayers();
+    await waitForSkipUnlocked(ALICE);
+
+    const modal: HTMLElement = await openSkipAndSetEnds(ALICE);
+
+    expect(within(modal).getAllByRole("checkbox")).toHaveLength(2);
+
+    await waitFor(() => {
+      expect(
+        within(modal)
+          .getAllByTestId(SHARED_NAME_DETAIL_TEST_ID)
+          .map((element: HTMLElement): string => {
+            return element.textContent || "";
+          }),
+      ).toEqual([
+        `Created ${writeReaderDay(PAYMENTS_MADE_AT)}`,
+        `Created ${writeReaderDay(PAYMENTS_TWIN_MADE_AT)}`,
+      ]);
+    });
+
+    expect(within(modal).getAllByTestId(SHARED_NAME_PILL_TEST_ID)).toHaveLength(
+      2,
+    );
+    // Read once, the two of one name only, with what tells them apart.
+    expect(policyReads).toHaveLength(1);
+    expect(policyReads[0].select).toEqual({
+      _id: true,
+      name: true,
+      description: true,
+      createdAt: true,
+    });
+  });
+
+  test("policies of names their own read nothing more, and are drawn as before", async () => {
+    holding(LIMITED_TO_TEAM_A);
+    attachedPolicies = [PAYMENTS, PLATFORM];
+    mayCoverByProject = { [PROJECT_ID]: [PAYMENTS.id, PLATFORM.id] };
+    const policyReads: Array<any> = servePolicyFacts();
+
+    await renderLayers();
+    await waitForSkipUnlocked(ALICE);
+
+    const modal: HTMLElement = await openSkipAndSetEnds(ALICE);
+
+    expect(within(modal).getByRole("checkbox", { name: "Payments" })).toBeChecked();
+    expect(within(modal).queryByTestId(SHARED_NAME_PILL_TEST_ID)).toBeNull();
+    expect(policyReads).toHaveLength(0);
+  });
+
   test("a policy unticked is left alone", async () => {
     holding(LIMITED_TO_TEAM_A);
     attachedPolicies = [PAYMENTS, PLATFORM];
@@ -1069,6 +1178,40 @@ describe("Get cover for a member whose permission covers only some policies", ()
 
     expect(route.split("?")[0]).toBe(policyPage(PROJECT_ID, PLATFORM.id));
     expect(route).toContain("coverStartsAt=");
+  });
+
+  test("two policies of one name in Get cover's menu: each says when it was made after its name", async () => {
+    holding(LIMITED_TO_TEAM_A);
+    mayCoverByProject = { [PROJECT_ID]: [PAYMENTS.id, PAYMENTS_TWIN.id] };
+    servePolicyFacts();
+
+    const [shiftRow] = (await renderCard([
+      shift({
+        shiftKey: "own",
+        policies: [policyOfShift(PAYMENTS), policyOfShift(PAYMENTS_TWIN)],
+      }),
+    ])) as [HTMLElement];
+
+    const trigger: HTMLElement = await within(shiftRow).findByTestId(
+      "upcoming-shift-cover-policies",
+    );
+
+    fireEvent.click(trigger);
+
+    await waitFor(async () => {
+      const items: Array<HTMLElement> = await screen.findAllByTestId(
+        "upcoming-shift-cover-policy",
+      );
+
+      expect(
+        items.map((item: HTMLElement): string => {
+          return item.textContent?.trim() || "";
+        }),
+      ).toEqual([
+        `Payments · Created ${writeReaderDay(PAYMENTS_MADE_AT)}Same name as another policy`,
+        `payments · Created ${writeReaderDay(PAYMENTS_TWIN_MADE_AT)}Same name as another policy`,
+      ]);
+    });
   });
 
   test("none of the shift's policies allowed: locked, with the global page's reason, as before", async () => {

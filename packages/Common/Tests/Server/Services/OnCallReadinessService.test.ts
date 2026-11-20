@@ -1727,6 +1727,45 @@ describe("the teams that page a responder", () => {
     ).toEqual(["Platform"]);
   });
 
+  /*
+   * Two teams of one name, named alike before names were held to one team
+   * each, are told apart in the readiness table's team filter (#10314): by
+   * when each was made, read with its name - never a description.
+   */
+  test("each team that pages a responder says when it was made, and one whose row does not say carries nothing", async () => {
+    const MARCH: Date = new Date("2024-03-05T09:30:00.000Z");
+    const platform: Team = teamRow(TEAM_ID, "Platform");
+    platform.createdAt = MARCH;
+    teamDirectory = [platform, teamRow(OTHER_TEAM_ID, "Platform")];
+
+    escalationTeamFindBy.mockResolvedValue([
+      escalationTeamRow(TEAM_ID),
+      escalationTeamRow(OTHER_TEAM_ID),
+    ] as never);
+    teamMemberRows = [
+      teamMemberRow(USER_B_ID, TEAM_ID),
+      teamMemberRow(USER_B_ID, OTHER_TEAM_ID),
+    ];
+
+    const readiness: UserReadiness = await onlyUser();
+
+    const byId: Map<string, ReadinessTeam> = new Map<string, ReadinessTeam>(
+      readiness.teams.map((team: ReadinessTeam): [string, ReadinessTeam] => {
+        return [team._id.toString(), team];
+      }),
+    );
+
+    expect(byId.get(TEAM_ID.toString())?.createdAt).toEqual(MARCH);
+    expect(byId.get(OTHER_TEAM_ID.toString())).not.toHaveProperty(
+      "createdAt",
+    );
+    expect(firstCall(teamFindBy).select).toEqual({
+      _id: true,
+      name: true,
+      createdAt: true,
+    });
+  });
+
   test("the team read is scoped to the project and to the teams that page somebody", async () => {
     escalationTeamFindBy.mockResolvedValue([
       escalationTeamRow(TEAM_ID),

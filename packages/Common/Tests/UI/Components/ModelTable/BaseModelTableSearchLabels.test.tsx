@@ -76,6 +76,7 @@ import Includes from "../../../../Types/BaseDatabase/Includes";
 import Query from "../../../../Types/BaseDatabase/Query";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../../Types/JSON";
+import { SHARED_NAME_VALUE_DETAIL_TEST_ID } from "../../../../UI/Components/Dropdown/SharedNameOptionLines";
 
 const LABEL_ID: string = "0192f2ce-1b1a-7000-8000-0000000000aa";
 
@@ -367,6 +368,132 @@ describe("BaseModelTable in-search label chips", () => {
         (rowCalls()[0]?.query as unknown as JSONObject)["labels"],
       ).toBeUndefined();
     });
+  });
+
+  /*
+   * Two labels of one name, named alike before names were held to one label
+   * each (#10314): the suggestions are read with what tells them apart, and
+   * each chip says it after its name, so two picked twins read as two.
+   */
+  test("two labels of one name: each chip says what sets it apart, read with the labels", async () => {
+    const OTHER_LABEL_ID: string = "0192f2ce-1b1a-7000-8000-0000000000bb";
+
+    TableFilterUrlState.write("monitors-table", "view", {
+      labels: [LABEL_ID, OTHER_LABEL_ID],
+    });
+
+    const labelSelects: Array<unknown> = [];
+    const props: BaseModelTableProps<Monitor> = makeProps(WITH_LABEL_FILTERS);
+
+    props.callbacks = {
+      ...props.callbacks,
+      getList: async (data: {
+        modelType: unknown;
+        query: Query<Monitor>;
+        limit: number;
+        select?: unknown;
+      }): Promise<ListResult<Monitor>> => {
+        calls.push({ modelType: data.modelType, query: data.query });
+
+        if (data.modelType !== Label) {
+          return { data: [], count: 0, skip: 0, limit: data.limit };
+        }
+
+        labelSelects.push(data.select);
+
+        return {
+          data: [
+            Object.assign(new Label(), {
+              _id: LABEL_ID,
+              name: "Production",
+              color: "#ef4444",
+              description: "EU workloads",
+            }),
+            Object.assign(new Label(), {
+              _id: OTHER_LABEL_ID,
+              name: "production",
+              color: "#22c55e",
+              description: "US workloads",
+            }),
+          ] as never,
+          count: 2,
+          skip: 0,
+          limit: data.limit,
+        };
+      },
+    } as unknown as BaseTableCallbacks<Monitor>;
+
+    const view: ReturnType<typeof render> = render(
+      <BaseModelTable<Monitor> {...props} />,
+    );
+
+    await waitFor(() => {
+      expect(view.queryAllByTestId(SHARED_NAME_VALUE_DETAIL_TEST_ID)).toHaveLength(
+        2,
+      );
+    });
+
+    expect(
+      view
+        .getAllByTestId(SHARED_NAME_VALUE_DETAIL_TEST_ID)
+        .map((element: HTMLElement): string => {
+          return element.textContent || "";
+        })
+        .join(" | "),
+    ).toMatch(/EU workloads.*\|.*US workloads/);
+    expect(labelSelects[0]).toMatchObject({
+      _id: true,
+      name: true,
+      color: true,
+      description: true,
+      createdAt: true,
+    });
+  });
+
+  test("a label no other one shares its name with is drawn as before", async () => {
+    TableFilterUrlState.write("monitors-table", "view", {
+      labels: [LABEL_ID],
+    });
+
+    const props: BaseModelTableProps<Monitor> = makeProps(WITH_LABEL_FILTERS);
+
+    props.callbacks = {
+      ...props.callbacks,
+      getList: async (data: {
+        modelType: unknown;
+        query: Query<Monitor>;
+        limit: number;
+      }): Promise<ListResult<Monitor>> => {
+        calls.push({ modelType: data.modelType, query: data.query });
+
+        return data.modelType === Label
+          ? {
+              data: [
+                Object.assign(new Label(), {
+                  _id: LABEL_ID,
+                  name: "Production",
+                  description: "EU workloads",
+                }),
+              ] as never,
+              count: 1,
+              skip: 0,
+              limit: data.limit,
+            }
+          : { data: [], count: 0, skip: 0, limit: data.limit };
+      },
+    } as unknown as BaseTableCallbacks<Monitor>;
+
+    const view: ReturnType<typeof render> = render(
+      <BaseModelTable<Monitor> {...props} />,
+    );
+
+    await waitFor(() => {
+      expect(view.queryByLabelText("Remove Production")).not.toBeNull();
+    });
+
+    expect(view.queryAllByTestId(SHARED_NAME_VALUE_DETAIL_TEST_ID)).toHaveLength(
+      0,
+    );
   });
 
   test("chips are cleared when the Labels filter is removed after mount", async () => {

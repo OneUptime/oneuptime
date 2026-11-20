@@ -45,6 +45,87 @@ const BUILDERS: Array<string> = [
   "packages/App/FeatureSet/Dashboard/src/Components/SetupHealth/SetupHealthQuickFix.ts",
   // A dashboard's label filter.
   "packages/App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/EntityFilterDropdown.tsx",
+  // The On-Call guided setup's policy to page (#10314).
+  "packages/App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallSetupApi.ts",
+  // A record's Affected Resources: the Labels tab (#10314).
+  "packages/App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesPicker.tsx",
+  /*
+   * A Project Labels variable's allowed labels, while the dashboard's editor
+   * picks them (#10314): what is saved keeps the name and id alone.
+   */
+  "packages/App/FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/DashboardVariablesModal.tsx",
+  // The re-read of lists that come with names alone (#10314).
+  "packages/Common/UI/Utils/SharedNameFactsReads.ts",
+];
+
+/*
+ * Lists that come with their records' names alone - a schedule's shifts
+ * name their on-call policies - and read what tells twins apart again, on
+ * their own (SharedNameFactsReads, #10314).
+ */
+const NAMES_ALONE: Array<string> = [
+  // Skip someone: the policies to add the skip on.
+  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/SkipLayerUserModal.tsx",
+  // An upcoming shift's Get cover: a menu of its policies.
+  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/UpcomingShiftRow.tsx",
+];
+
+/*
+ * Labels read through a record's relation, which takes no description: each
+ * reads when it was made, which tells twins apart by the day (#10314).
+ */
+const THROUGH_A_RELATION: Array<string> = [
+  // ModelForm's "select by labels" categories.
+  "packages/Common/UI/Components/Forms/ModelForm.tsx",
+  // The status page guided setup's label filter: its monitors' labels.
+  "packages/App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetupApi.ts",
+];
+
+/*
+ * Teams the server names in a page's answer as OneUptime (root): it sends
+ * when each was made, never a description the caller may not read
+ * (#10314).
+ */
+const SERVER_NAMED_TEAMS: Array<string> = [
+  // The Schedule Timeline's team filter.
+  "packages/Common/Server/API/OnCallScheduleTimelineAPI.ts",
+  // On-Call Readiness' team filter.
+  "packages/Common/Server/Services/OnCallReadinessService.ts",
+  // A tool import's invite team.
+  "packages/Common/Server/Utils/ToolImport/ToolImportProjectStateReader.ts",
+];
+
+/*
+ * Options the shared Dropdown draws - which marks the twins - built here
+ * with each option's facts (#10314).
+ */
+const DROPDOWN_OPTIONS_WITH_FACTS: Array<string> = [
+  "packages/App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallGuidedSetup.tsx",
+  "packages/App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetupPicker.tsx",
+  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ScheduleTimeline/TimelineToolbar.tsx",
+  "packages/App/FeatureSet/Dashboard/src/Pages/OnCallDuty/Readiness.tsx",
+  "packages/App/FeatureSet/Dashboard/src/Components/ToolImport/ToolImportReview.tsx",
+  "packages/App/FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/DashboardVariablesModal.tsx",
+];
+
+/*
+ * The chats' pickers (#10314): each read selects what tells twins apart,
+ * and the options are labelled by the chats' half of the rule
+ * (WorkspaceSharedNames).
+ */
+const CHAT_BUILDERS: Array<string> = [
+  "packages/Common/Server/Utils/Workspace/WorkspacePage.ts",
+  "packages/Common/Server/Utils/Workspace/Slack/Actions/Incident.ts",
+  "packages/Common/Server/Utils/Workspace/Slack/Actions/Alert.ts",
+  "packages/Common/Server/Utils/Workspace/Slack/Actions/AlertEpisode.ts",
+  "packages/Common/Server/Utils/Workspace/Slack/Actions/IncidentEpisode.ts",
+  "packages/Common/Server/Utils/Workspace/Slack/Actions/ScheduledMaintenance.ts",
+  "packages/Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCardChoices.ts",
+  "packages/Common/Server/Utils/Workspace/MicrosoftTeams/Actions/Incident.ts",
+  "packages/Common/Server/Utils/Workspace/MicrosoftTeams/Actions/Alert.ts",
+  "packages/Common/Server/Utils/Workspace/MicrosoftTeams/Actions/AlertEpisode.ts",
+  "packages/Common/Server/Utils/Workspace/MicrosoftTeams/Actions/IncidentEpisode.ts",
+  "packages/Common/Server/Utils/Workspace/Mattermost/MattermostActions.ts",
 ];
 
 // Builders whose options come from DropdownUtil, which reads the facts itself.
@@ -59,6 +140,33 @@ const DRAWERS: Array<string> = [
   "packages/Common/UI/Components/EntityDropdown/EntityDropdown.tsx",
   "packages/Common/UI/Components/PeoplePicker/PeopleSearchPopup.tsx",
   "packages/App/FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipDropdown.tsx",
+  // A list's in-search label chips and their suggestions (#10314).
+  "packages/Common/UI/Components/ModelTable/BaseModelTable.tsx",
+  // ModelForm's "select by labels" categories.
+  "packages/Common/UI/Components/Forms/ModelForm.tsx",
+  // Affected Resources' Labels tab.
+  "packages/App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesPicker.tsx",
+  // Skip someone's policies, and Get cover's menu.
+  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/SkipLayerUserModal.tsx",
+  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/UpcomingShiftRow.tsx",
+];
+
+/*
+ * Left out on purpose, each with why (#10314):
+ *
+ *   - a form's public page (FormRecordOptions) offers labels to anonymous
+ *     visitors, and only a record's name and color ever leave the server
+ *     for it: two labels of one name there read alike, and the person who
+ *     builds the form picks them in a picker that tells them apart;
+ *   - a Project Labels variable's saved choices are the dashboard's own
+ *     snapshot, shown in its toolbar and on its shared pages: they keep a
+ *     label's name and id alone, never what its editor saw while choosing.
+ */
+const LEFT_OUT: Array<{ file: string; never: Array<string> }> = [
+  {
+    file: "packages/Common/Server/Utils/Form/FormRecordOptions.ts",
+    never: ["getSharedNameSelect", "description: true", "createdAt: true"],
+  },
 ];
 
 describe("the builders of the four kinds' options", () => {
@@ -88,6 +196,92 @@ describe("the builders of the four kinds' options", () => {
     expect(read("packages/Common/UI/Utils/Dropdown.ts")).toMatch(
       /data\.labelField === "name"[\s\S]{0,200}getSharedNameFacts\(item\)/,
     );
+  });
+
+  test.each(NAMES_ALONE)(
+    "%s comes with names alone, and reads what tells twins apart again",
+    (file: string) => {
+      expect({
+        file,
+        reads: read(file).includes("useSharedNameFacts("),
+      }).toEqual({ file, reads: true });
+    },
+  );
+
+  test.each(THROUGH_A_RELATION)(
+    "%s reads when each label of a relation was made, the most a relation's read takes",
+    (file: string) => {
+      // A label's own columns, and when it was made, read through the relation.
+      expect(read(file)).toMatch(
+        /\{[^{}]*_id: true,[^{}]*name: true,[^{}]*color: true,[^{}]*createdAt: true/,
+      );
+      expect(read(file)).toContain("getSharedNameFacts(");
+    },
+  );
+
+  test.each(SERVER_NAMED_TEAMS)(
+    "%s sends when each team it names was made, and no description",
+    (file: string) => {
+      const source: string = read(file);
+
+      expect(source).toMatch(
+        /select:\s*\{\s*_id: true,\s*name: true,\s*(?:\/\/[^\n]*\n\s*)?createdAt: true,?\s*\}/,
+      );
+      expect(source).not.toMatch(
+        /select:\s*\{\s*_id: true,\s*name: true,[^}]*description: true/,
+      );
+    },
+  );
+
+  test.each(DROPDOWN_OPTIONS_WITH_FACTS)(
+    "%s hands its options' facts to the Dropdown, which marks the twins",
+    (file: string) => {
+      expect({
+        file,
+        facts: /sharedName(?::| \?)/.test(read(file)),
+      }).toEqual({ file, facts: true });
+    },
+  );
+
+  test.each(CHAT_BUILDERS)(
+    "%s reads what tells twins apart, and labels them by the chats' half of the rule",
+    (file: string) => {
+      const source: string = read(file);
+
+      expect({ file, select: source.includes("getSharedNameSelect(") }).toEqual(
+        { file, select: true },
+      );
+      expect({
+        file,
+        labels: /WorkspaceSharedNames\.|toNamedChoices\(/.test(source),
+      }).toEqual({ file, labels: true });
+    },
+  );
+
+  test.each(LEFT_OUT)(
+    "$file is left out on purpose: it reads nothing that tells twins apart",
+    (entry: { file: string; never: Array<string> }) => {
+      const source: string = read(entry.file);
+
+      for (const word of entry.never) {
+        expect({ file: entry.file, word, read: source.includes(word) }).toEqual(
+          { file: entry.file, word, read: false },
+        );
+      }
+    },
+  );
+
+  test("a Project Labels variable saves its labels' names and ids alone", () => {
+    const source: string = read(
+      "packages/App/FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/DashboardVariablesModal.tsx",
+    );
+
+    // The choices saved are built of the name and the id, nothing more.
+    expect(source).toContain(
+      "choices.push({ label: label.name, value: label._id.toString() });",
+    );
+    // What tells twins apart is kept beside them, for the picker alone.
+    expect(source).toContain("setFactsById(facts);");
   });
 });
 
