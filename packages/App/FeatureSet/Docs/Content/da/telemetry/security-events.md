@@ -484,9 +484,9 @@ detection:
 | **Kør i realtid** | Slået fra på en ny regel. Slået til tjekker reglen hver begivenhed, når den ankommer, i stedet for ved hvert interval; se [Realtidsregler](#realtidsregler). |
 | **Grupperingsfelt** | Valgfrit. Match, der deler dette felts værdi, f.eks. `principalHost`, tælles, advares og dedupliceres samlet: én advarsel pr. vært i stedet for hundredvis. |
 | **Felt til unik optælling** | Valgfrit. Tæl de forskellige værdier af dette felt i stedet for de matchende begivenheder. Tomme værdier tælles ikke. |
-| **Grænse for antal match** | En gruppe udløses kun, når dens optælling når dette tal inden for én kørsel, eller inden for ét vindue i realtid: 1 til 1000000, og 1 udløses ved ethvert match. |
+| **Grænse for antal match** | En gruppe udløses kun, når dens optælling når dette tal inden for ét vindue af reglens interval: 1 til 1000000, og 1 udløses ved ethvert match. |
 
-Group By og Distinct Count tager de samme feltnavne som reglen. Med dem siger tærsklen "så mange, fra den samme ting, i én kørsel", uden en monitor ovenpå:
+Group By og Distinct Count tager de samme feltnavne som reglen. Med dem siger tærsklen "så mange, fra den samme ting, i ét vindue", uden en monitor ovenpå:
 
 | Mål | Group By Field | Distinct Count Field | Tærskel |
 | --- | --- | --- | --- |
@@ -498,11 +498,11 @@ Group By og Distinct Count tager de samme feltnavne som reglen. Med dem siger t�
 
 ### Hvornår en regel kører
 
-OneUptime tjekker hvert minut for aktiverede regler, hvis interval er gået siden deres sidste kørsel. Hver kørsel læser de begivenheder, hvis begivenhedstidspunkt ligger mellem den forrige kørsel og for to minutter siden, og går så videre. De to minutter giver plads til begivenheder, der stadig er på vej, for eksempel en loglinje, der læses et minut efter, at den blev skrevet:
+OneUptime tjekker hvert minut for aktiverede regler, hvis interval er gået siden deres sidste kørsel. Hver kørsel læser de begivenheder, der er nået frem til OneUptime mellem den forrige kørsel og for to minutter siden, uanset hvornår de skete, og går så videre. De to minutter giver plads til begivenheder, der stadig er ved at blive skrevet:
 
-- Vinduerne ligger i forlængelse af hinanden og glider ikke. Med et interval på 10 minutter kan fejl kl. 09:58 og 10:01 lande i forskellige kørsler og tælles hver for sig, så hold en margin, når du vælger en tærskel.
+- En tællende regel og en korrelation tæller i vinduer så lange som intervallet, i forlængelse af hinanden efter uret: med et interval på 10 minutter falder fejl kl. 09:58 og 10:01 i forskellige vinduer og tælles hver for sig, så hold en margin, når du vælger en tærskel.
 - Efter et hul, f.eks. et worker-nedbrud eller en regel, der er slået til igen, dækker den næste kørsel hele hullet, op til de seneste 24 timer.
-- En begivenhed, der ankommer mere end to minutter for sent, efter at en kørsel har dækket dens tidspunkt, gemmes og kan søges, men den regel læser den aldrig.
+- En begivenhed, der ankommer for sent, læses alligevel én gang af den næste kørsel og tælles i det vindue, den skete i: en gruppe udløses, når dens vindue når optællingen, og højst én gang pr. vindue. En begivenhed, der ankommer mere end et døgn efter, at den skete, gemmes og kan søges, men reglens kørsler læser den ikke; **Kør på tidligere hændelser** gør.
 - Hver gruppe, der når tærsklen, bliver et Detection Finding, op til 10.000 pr. kørsel. Advarsler, hændelser og sager åbnes for de 100 med de højeste optællinger; resten deler én sag om reglen, og reglens **Seneste fejl** fortæller, hvor mange grupper der matchede.
 
 ### Realtidsregler

@@ -3,6 +3,7 @@ import {
   SecurityEventDetailField,
   buildSecurityEventOverviewFields,
 } from "./SecurityEventDetailFields";
+import { readFieldValue } from "./HiddenClientAddressText";
 import SecurityEventSeverityPill from "./SecurityEventSeverityPill";
 import IconProp from "Common/Types/Icon/IconProp";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
@@ -263,8 +264,12 @@ const SecurityLogLineCheck: FunctionComponent<ComponentProps> = (
                       {translator.translateText(field.label)}
                     </dt>
                     <dd className="break-words text-sm text-gray-900">
-                      {/* A value is as the line wrote it: an address, a name, a command. */}
-                      <bdi>{field.value}</bdi>
+                      {/*
+                       * A value is as the line wrote it: an address, a name,
+                       * a command. An address a scrub rule hid says so
+                       * (readFieldValue).
+                       */}
+                      <bdi>{readFieldValue(field, translator)}</bdi>
                     </dd>
                   </div>
                 );

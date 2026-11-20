@@ -32,6 +32,7 @@ import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
+import { isProductLevelPermission } from "../../../Types/Product/ProductLevels";
 import { describe, expect, it } from "@jest/globals";
 import { getMetadataArgsStorage } from "typeorm";
 import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
@@ -283,23 +284,46 @@ describe("ResourceAiAgent model", () => {
 
   /*
    * Beyond the roles every resource model shares, the list holds only the
-   * models' own Read permissions — never an Edit, Create or Delete one, and
+   * models' own Read permissions and their products' levels (#10289: Docker
+   * Viewer, Member and Admin read a Docker host as Viewer, Project Member
+   * and Project Admin do) — never an Edit, Create or Delete one, and
    * nothing a resource model does not itself grant read with.
    */
-  it("adds nothing but the resource models' own Read permissions to the roles they all share", () => {
+  it("adds nothing but the resource models' own Read permissions and their products' levels to the roles they all share", () => {
     const shared: Array<Permission> = intersectionOfResourceReaders();
     const extra: Array<Permission> = agent
       .getReadPermissions()
       .filter((permission: Permission): boolean => {
         return !shared.includes(permission);
       });
+    const reads: Array<Permission> = extra.filter(
+      (permission: Permission): boolean => {
+        return !isProductLevelPermission(permission);
+      },
+    );
+    const levels: Array<Permission> = extra.filter(
+      (permission: Permission): boolean => {
+        return isProductLevelPermission(permission);
+      },
+    );
 
     expect(shared.length).toBeGreaterThan(3);
     // One Read permission per model; the three clouds' accounts share one.
-    expect(extra).toHaveLength(DISTINCT_RESOURCE_MODELS.length);
+    expect(reads).toHaveLength(DISTINCT_RESOURCE_MODELS.length);
 
-    for (const permission of extra) {
+    for (const permission of reads) {
       expect(String(permission)).toMatch(/^Read/);
+    }
+
+    // Each model's product's three levels: the three clouds' accounts are Cloud's.
+    expect(levels).toHaveLength(DISTINCT_RESOURCE_MODELS.length * 3);
+
+    for (const permission of levels) {
+      expect(
+        DISTINCT_RESOURCE_MODELS.some((modelType: ModelType): boolean => {
+          return new modelType().getReadPermissions().includes(permission);
+        }),
+      ).toBe(true);
     }
   });
 
@@ -316,10 +340,18 @@ describe("ResourceAiAgent model", () => {
     expect(agent.getReadPermissions()).not.toContain(
       Permission.ReadKubernetesCluster,
     );
+    // Kubernetes' own levels (#10289) are the cluster's, as its Read is.
+    expect(kubernetesReaders).toContain(Permission.KubernetesViewer);
+    expect(agent.getReadPermissions()).not.toContain(
+      Permission.KubernetesViewer,
+    );
     expect(sorted(intersectionOfResourceReaders())).toEqual(
       sorted(
         kubernetesReaders.filter((permission: Permission): boolean => {
-          return permission !== Permission.ReadKubernetesCluster;
+          return (
+            permission !== Permission.ReadKubernetesCluster &&
+            !isProductLevelPermission(permission)
+          );
         }),
       ),
     );
