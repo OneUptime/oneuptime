@@ -121,7 +121,9 @@ import {
 import DsymIngestService, {
   DSYM_UPLOAD_ZIP_LIMITS,
   MAX_DSYM_FILES_PER_REQUEST,
+  PINNED_KEY_DSYM_REFUSAL,
 } from "../../FeatureSet/Telemetry/Services/DsymIngestService";
+import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import {
   APP_SYMBOLS,
   APP_TEXT_END_OFFSET,
@@ -155,7 +157,11 @@ interface FilePart {
   buffer: Buffer;
 }
 
-function request(data: { body?: JSONObject; files?: Array<FilePart> }): {
+function request(data: {
+  body?: JSONObject;
+  files?: Array<FilePart>;
+  pinnedServiceName?: string;
+}): {
   req: ExpressRequest;
   res: ExpressResponse;
   next: jest.Mock;
@@ -166,6 +172,9 @@ function request(data: { body?: JSONObject; files?: Array<FilePart> }): {
       body: data.body || {},
       files: data.files,
       headers: {},
+      ...(data.pinnedServiceName
+        ? { ingestionKeyPolicy: { pinnedServiceName: data.pinnedServiceName } }
+        : {}),
     } as unknown as ExpressRequest,
     res: {} as ExpressResponse,
     next: jest.fn(),
@@ -175,6 +184,7 @@ function request(data: { body?: JSONObject; files?: Array<FilePart> }): {
 async function upload(data: {
   body?: JSONObject;
   files?: Array<FilePart>;
+  pinnedServiceName?: string;
 }): Promise<{ next: jest.Mock; sent: JSONObject | null }> {
   const { req, res, next } = request(data);
 
@@ -253,6 +263,24 @@ describe("the route", () => {
 
     expect(req.headers["x-oneuptime-token"]).toBe("key-1");
     expect(next).toHaveBeenCalled();
+  });
+});
+
+describe("the key it is sent with", () => {
+  test("a key pinned to one service - the kind an app ships with - is refused, and nothing is stored", async () => {
+    const { next, sent } = await upload({
+      body: { symbolFiles: [cliFile()] },
+      pinnedServiceName: "storefront-ios",
+    });
+
+    expect(next).toHaveBeenCalledTimes(1);
+
+    const error: Error = next.mock.calls[0]![0] as Error;
+
+    expect(error).toBeInstanceOf(NotAuthorizedException);
+    expect(error.message).toBe(PINNED_KEY_DSYM_REFUSAL);
+    expect(replaceSymbolFileMock).not.toHaveBeenCalled();
+    expect(sent).toBe(null);
   });
 });
 

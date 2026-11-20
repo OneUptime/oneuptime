@@ -4,6 +4,7 @@ import { readDsymSymbolFilesFromBytes } from "Common/Server/Utils/Telemetry/Appl
 import { ZipReadOptions } from "Common/Server/Utils/Telemetry/AppleDebugSymbols/ZipArchive";
 import TelemetryDsym from "Common/Models/DatabaseModels/TelemetryDsym";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import ColumnLength from "Common/Types/Database/ColumnLength";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -43,7 +44,16 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
  * Every file is read before any is saved, so a failed request leaves
  * nothing half uploaded; each UUID uploaded again replaces its rows, so a
  * CI re-run is safe. The answer lists every binary stored.
+ *
+ * A key pinned to one service is refused. A dSYM names the frames of every
+ * app of the project that ships its binary, and replaces what was uploaded
+ * for its UUID - while the key pinned to an app's service.name is the one
+ * the docs have the app ship, which anyone can take out of it. A build
+ * uploads with a key of its own.
  */
+
+export const PINNED_KEY_DSYM_REFUSAL: string =
+  "This telemetry ingestion key is pinned to a single service, so it cannot upload dSYMs: a dSYM names the frames of every app in the project that ships its binary. Upload with an unpinned server ingestion key, your build's, not the key your app ships with.";
 
 // The most symbol files one request may hold.
 export const MAX_DSYM_FILES_PER_REQUEST: number = 200;
@@ -249,6 +259,10 @@ export default class DsymIngestService {
         throw new BadDataException(
           "Invalid request - projectId not found in request.",
         );
+      }
+
+      if ((req as TelemetryRequest).ingestionKeyPolicy?.pinnedServiceName) {
+        throw new NotAuthorizedException(PINNED_KEY_DSYM_REFUSAL);
       }
 
       const body: JSONObject =
