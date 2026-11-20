@@ -7,6 +7,8 @@ Das Inventar ist eine einzige Liste von allem, was OneUptime über Ihre Umgebung
 - [Sich zurechtfinden](#sich-zurechtfinden): Die Seiten des Inventars und die eigenen Seiten jedes Elements.
 - [Geräte aus Esper importieren](#geräte-aus-esper-importieren): Jedes Android- und Apple-Gerät, das Ihr Esper-Tenant registriert, stets aktuell.
 - [Geräte aus Microsoft Intune importieren](#geräte-aus-microsoft-intune-importieren): Jeder Windows-PC, jeder Mac, jedes iPhone, iPad und Android-Gerät, das Intune verwaltet, stets aktuell.
+- [Geräte aus Workspace ONE UEM importieren](#geräte-aus-workspace-one-uem-importieren): Jedes Smartphone, jedes Tablet und jeder Computer, die Workspace ONE verwaltet, stets aktuell.
+- [Geräte aus SOTI MobiControl importieren](#geräte-aus-soti-mobicontrol-importieren): Jedes robuste Gerät, jedes Smartphone, jedes Tablet und jeder Computer, die MobiControl verwaltet, stets aktuell.
 - [Etwas von Hand hinzufügen](#etwas-von-hand-hinzufügen): Eine Drittanbieter-API, eine externe Datenbank oder eine Appliance.
 - [Archivieren statt löschen](#archivieren-statt-löschen): Der Weg, die Liste aufzuräumen, der Bestand hat.
 :::
@@ -27,14 +29,14 @@ flowchart TB
 | Quelle | In der API | Woher es kommt | Wie lange es bleibt |
 | --- | --- | --- | --- |
 | **Erkannt** | `discovered` | OpenTelemetry-Ressourcenattribute, gelesen, sobald Telemetrie eintrifft: ein Dienst, ein Host, ein Kubernetes-Objekt oder eine virtuelle Maschine, die Telemetrie senden. | Wird mit jedem Batch erneut registriert. Wird entfernt, sobald es länger als das Zeitfenster seiner Art still war (siehe unten). |
-| **Gespiegelt** | `inventory` | Ein Datensatz, den ein OneUptime-Poller pflegt: Netzwerkgeräte, Cloud-Ressourcen, IoT-Geräte, Serverless-Funktionen, RUM-Anwendungen, Docker-Hosts, Podman-Hosts und die Geräte, die eine Esper- oder Microsoft Intune-Verbindung importiert. Wird alle 15 Minuten kopiert, ein Esper-Gerät jedes Mal, wenn seine Verbindung gelesen wird. | So lange wie sein Datensatz. Löschen Sie den Datensatz, verschwindet das Element mit ihm. |
+| **Gespiegelt** | `inventory` | Ein Datensatz, den ein OneUptime-Poller pflegt: Netzwerkgeräte, Cloud-Ressourcen, IoT-Geräte, Serverless-Funktionen, RUM-Anwendungen, Docker-Hosts, Podman-Hosts und die Geräte, die eine Verbindung zu einer Geräteverwaltung importiert. Wird alle 15 Minuten kopiert, ein verwaltetes Gerät jedes Mal, wenn seine Verbindung gelesen wird. | So lange wie sein Datensatz. Löschen Sie den Datensatz, verschwindet das Element mit ihm. |
 | **Von Ihnen hinzugefügt** | `manual` | Von Ihnen hinzugefügt, für etwas, das OneUptime nicht sehen kann: eine Drittanbieter-API, eine vom Anbieter verwaltete Datenbank, eine Appliance im Rack. | Bis Sie es löschen. Nichts lässt es ablaufen. |
 
 Ein erkanntes oder gespiegeltes Element kann nicht umbenannt werden und keinen anderen Typ bekommen: Seine Quelle würde die Änderung beim nächsten Durchlauf überschreiben. Die Seite **Einstellungen** des Elements sagt stattdessen, wo eine dauerhafte Änderung hingehört. Was Sie jedem Element jederzeit hinzufügen können, egal aus welcher Quelle, sind Werte benutzerdefinierter Felder: siehe [Benutzerdefinierte Inventarfelder](/docs/inventory/custom-fields).
 
 ### Wie lange ein stilles Element bleibt
 
-Ein erkanntes Element hat einen Herzschlag. Jedes Mal, wenn Telemetrie für es eintrifft, rückt sein Zeitpunkt der letzten Sichtung vor, und die Spalte **Status** der Liste zeigt, wie aktuell das ist. Das gilt auch für ein Gerät aus Esper oder Intune: jedes Mal, wenn es sich bei seiner Geräteverwaltung meldet. Andere gespiegelte Elemente und die von Ihnen hinzugefügten haben keinen Herzschlag, also bleibt ihr Status leer, statt Alarm zu schlagen.
+Ein erkanntes Element hat einen Herzschlag. Jedes Mal, wenn Telemetrie für es eintrifft, rückt sein Zeitpunkt der letzten Sichtung vor, und die Spalte **Status** der Liste zeigt, wie aktuell das ist. Das gilt auch für ein verwaltetes Gerät: jedes Mal, wenn es sich bei seiner Geräteverwaltung meldet. Andere gespiegelte Elemente und die von Ihnen hinzugefügten haben keinen Herzschlag, also bleibt ihr Status leer, statt Alarm zu schlagen.
 
 | Status | Bedeutung |
 | --- | --- |
@@ -60,9 +62,9 @@ Eine Beziehung, die OneUptime erkannt hat, wird entfernt, sobald sie 30 Tage lan
 | --- | --- |
 | **Übersicht** | Wie viele Elemente Sie haben, was sie sind, wie viele verstummt sind und was zuletzt hinzugekommen ist. |
 | **Alle Elemente** | Jedes Element. Suchen Sie nach Name, Beschreibung oder Identitätsschlüssel, grenzen Sie die Liste nach Typ, Quelle, Status oder benutzerdefiniertem Feld ein und fügen Sie ein Element von Hand hinzu. |
-| **Verwaltete Geräte** | Ihre Esper- und Microsoft Intune-Verbindungen und jedes Gerät, das sie importieren, mit Status, Gruppe, Modell und Betriebssystem. |
+| **Verwaltete Geräte** | Ihre Verbindungen zu Geräteverwaltungen – Esper, Microsoft Intune, Workspace ONE UEM und SOTI MobiControl – und jedes Gerät, das sie importieren, mit Status, Gruppe, Modell und Betriebssystem. |
 | **Topologiekarte** | Wie die Elemente verbunden sind: Dienste, was sie aufrufen, und die Hosts, Pods und Geräte, auf denen sie laufen. |
-| **Verstummt** | Die Elemente, von denen seit mehr als einem Tag nichts zu hören war: erkannte Elemente, die keine Telemetrie gesendet haben, und Geräte, die sich nicht mehr bei Esper melden. |
+| **Verstummt** | Die Elemente, von denen seit mehr als einem Tag nichts zu hören war: erkannte Elemente, die keine Telemetrie gesendet haben, und Geräte, die sich nicht mehr bei ihrer Geräteverwaltung melden. |
 | **Nach Quelle** | Die Elemente einer Quelle: **Erkannt**, **Gespiegelt** oder **Von Ihnen hinzugefügt**. |
 | **Einstellungen → Benutzerdefinierte Felder** | Die Felder, die Ihr Projekt an jedem Element führt. |
 | **Hilfe → Dokumentation** | Eine kurze Anleitung zum Inventar mit den Arten von Elementen, die es erkennt. |
@@ -72,7 +74,7 @@ Eine Beziehung, die OneUptime erkannt hat, wird entfernt, sobald sie 30 Tage lan
 
 ### Asset-Details
 
-Ein Host oder ein Netzwerkgerät hat eine Karte **Asset-Details**, die beide auf dieselbe Weise beschreibt: Hostname, IP-Adresse, MAC-Adresse, Seriennummer, Hersteller, Modell, Firmware-Version, Betriebssystem, Betriebssystemversion, Gerätetyp und Standort. Die Karte eines Android-Geräts enthält außerdem seine Sicherheitspatch-Ebene, vom Android-Agenten oder von Esper. Ein Fakt, den nichts gemeldet hat, lautet **Unbekannt**, und die Karte sagt, warum das so ist und wie die unbekannten ausgefüllt werden: ein Gerät, das sie nicht über SNMP meldet, ein noch nicht gelesenes Gerät oder ein Meraki-Gerät, dessen Dashboard sie enthält.
+Ein Host oder ein Netzwerkgerät hat eine Karte **Asset-Details**, die beide auf dieselbe Weise beschreibt: Hostname, IP-Adresse, MAC-Adresse, Seriennummer, Hersteller, Modell, Firmware-Version, Betriebssystem, Betriebssystemversion, Gerätetyp und Standort. Die Karte eines Android-Geräts enthält außerdem seine Sicherheitspatch-Ebene, vom Android-Agenten oder von seiner Geräteverwaltung. Ein Fakt, den nichts gemeldet hat, lautet **Unbekannt**, und die Karte sagt, warum das so ist und wie die unbekannten ausgefüllt werden: ein Gerät, das sie nicht über SNMP meldet, ein noch nicht gelesenes Gerät oder ein Meraki-Gerät, dessen Dashboard sie enthält.
 
 - Die Fakten eines Hosts stammen aus den Ressourcenattributen seiner Telemetrie: seine IP- und MAC-Adressen, Architektur und Betriebssystem von Haus aus, und seine Seriennummer, Marke, Modell und Firmware, sobald Sie sie aufprägen.
 - Die Fakten eines Netzwerkgeräts stammen aus seiner SNMP-Abfrage, seiner Rolle und seinem Standort. Was seine Abfrage nicht gelesen hat, stammt aus der Erkennung: dem letzten Scan seiner Adresse, der ARP-Tabelle eines Routers oder der DNS-Abfrage seiner Sonde. Ein Gerät ohne ENTITY-MIB, etwa ein Meraki MX, erhält Marke, Modell und Betriebssystem trotzdem aus seiner Systembeschreibung und seine MAC-Adresse von seinen eigenen Ports. Seine IP-Adresse wird nie als sein Hostname angezeigt.
@@ -164,6 +166,56 @@ Ein Gerät meldet sich etwa alle acht Stunden bei Intune, und sein letzter Konta
 Intune benennt ein Gerät so, wie sein Besitzer es genannt hat, daher können zwei Geräte denselben Namen tragen: Jedes iPhone, das niemand umbenannt hat, heißt `iPhone`. Ein Name, den zwei Geräte einer Verbindung teilen, gehört im Inventar keinem von beiden: Jedes wird stattdessen nach seiner Seriennummer benannt und bekommt seinen Namen zurück, sobald kein anderes Gerät ihn mehr trägt.
 
 Um eine Warnung zu erhalten, wenn sich ein Gerät nicht mehr meldet, klicken Sie in der Zeile der Verbindung auf **Warnungen einrichten** und erstellen Sie **Intune Device Stopped Checking In**. Der Monitor öffnet für jedes Gerät, das sich seit mehr als einem Tag nicht bei Intune gemeldet hat, eine eigene Warnung, nach dem Gerät benannt. Ein Laptop, der übers Wochenende aus ist, sieht genauso aus: Erhöhen Sie also den Schwellenwert des Monitors, wenn ein Tag für Ihre Geräte zu früh ist.
+
+## Geräte aus Workspace ONE UEM importieren
+
+Verbinden Sie einen Workspace ONE UEM-Server, und jedes Gerät, das er verwaltet, steht im Inventar: seine iPhones, iPads, Macs, Windows-PCs, Android-Geräte und Linux-Rechner. Jedes Gerät ist ein Host, mit dem, was Workspace ONE darüber weiß: seine Organisationsgruppe, sein Betriebssystem und dessen Version, sein Modell, seine Seriennummer und IMEI, seine Konformität, Registrierung und Besitzart, sein Akku, Speicherplatz und Arbeitsspeicher und seine Apps. Workspace ONE sendet nichts von selbst, daher liest OneUptime es nach Zeitplan: die Geräte alle 15 Minuten und die Apps jedes Geräts alle 6 Stunden.
+
+:::steps
+### Eine Rolle mit reinem Lesezugriff erstellen
+
+Gehen Sie in der Workspace ONE UEM-Konsole zu `Accounts`, dann zu `Administrators`, dann zu `Roles`, und klicken Sie auf `Add Role`. Wählen Sie unter `API` und dann `REST` für `Devices` und für `Apps` jeweils `Read` aus, sonst nichts. Diese Rolle ist alles, was OneUptime braucht: Sie listet die Geräte und ihre Apps und kann nichts ändern.
+
+### Einen OAuth-Client erstellen
+
+Gehen Sie zu `Groups & Settings`, dann zu `Configurations`, dann zu `OAuth Client Management`, und klicken Sie auf `Add`. Wählen Sie die Organisationsgruppe, deren Geräte OneUptime liest, und geben Sie dem Client die Rolle, die Sie erstellt haben. Kopieren Sie seine `Client ID` und sein `Client Secret`: Workspace ONE zeigt das Secret nur einmal.
+
+### Den Server verbinden
+
+Gehen Sie zu **Produkte → Ressourcen → Inventar**, dann zu **Verwaltete Geräte**, klicken Sie auf **Geräteverwaltung verbinden**, und wählen Sie **Workspace ONE UEM**. Geben Sie die **REST-API-URL** ein, die Sie unter `Groups & Settings`, `All Settings`, `System`, `Advanced`, `API`, `REST API` finden, etwa `https://as1234.awmdm.com`. Behalten Sie **OAuth-Client** unter **Anmelden mit** bei, geben Sie die **Client-ID** und das **Client-Secret** ein, und wählen Sie die **Region** des Token-Dienstes Ihres Rechenzentrums. **Verbinden** testet den Client, bevor etwas gespeichert wird: Es sagt, wie viele Geräte ein Lesevorgang importieren wird, oder was falsch ist und wie Sie es beheben.
+:::
+
+Ein Workspace ONE-Server im eigenen Rechenzentrum hat keinen Token-Dienst: Wählen Sie **Administratorkonto** unter **Anmelden mit**, und geben Sie **Benutzername** und **Passwort** eines Administrators mit der Rolle mit reinem Lesezugriff ein, dazu den **REST-API-Schlüssel** aus denselben Einstellungen der REST API, in denen die Basic-Authentifizierung erlaubt sein muss. OneUptime Cloud liest nur Server im öffentlichen Internet, daher liest ein selbst gehostetes OneUptime einen Server in einem privaten Netzwerk.
+
+Ein Gerät meldet sich nach seinem eigenen Zeitplan bei Workspace ONE, ein iPhone oft Stunden auseinander, daher ist ein Gerät, das sich einen Tag lang nicht gemeldet hat, **Offline**. Ein Gerät, das nicht mehr registriert ist, bleibt außen vor. Ein Gerät wird nach dem Namen benannt, den es meldet, nicht nach seinem Anzeigenamen, den Workspace ONE aus dem Namen seines Benutzers bildet, und nichts über den Benutzer eines Geräts wird gelesen. Jede Anfrage zählt gegen das tägliche API-Kontingent des Tenants, daher liest ein Lesevorgang die Apps von höchstens 25 Geräten und der nächste Lesevorgang die der nächsten.
+
+Telemetrie, die eine App oder der Android-Agent von einem Gerät sendet, landet über die Seriennummer des Geräts beim selben Element: Setzen Sie die Einstellung `device_serial` des Android-Agenten in seiner verwalteten Konfiguration auf den Nachschlagewert `{DeviceSerialNumber}`.
+
+Um eine Warnung zu erhalten, wenn sich ein Gerät nicht mehr meldet, klicken Sie in der Zeile der Verbindung auf **Warnungen einrichten** und erstellen Sie **Workspace ONE Device Stopped Checking In**. Der Monitor öffnet für jedes Gerät, das sich seit mehr als einem Tag nicht bei Workspace ONE gemeldet hat, eine eigene Warnung, nach dem Gerät benannt.
+
+## Geräte aus SOTI MobiControl importieren
+
+Verbinden Sie einen SOTI MobiControl-Server, in der Cloud von SOTI oder im eigenen Rechenzentrum, und jedes Gerät, das er verwaltet, steht im Inventar: seine robusten Android-Geräte, Smartphones, Tablets und Scanner, seine iPhones, iPads und Macs und seine Windows- und Linux-Computer. Jedes Gerät ist ein Host, mit dem, was MobiControl darüber weiß: seine Gerätegruppe, sein Betriebssystem und dessen Version, sein Modell, seine Seriennummer und IMEI, seine Konformität, sein Agent, sein Akku, Speicherplatz und Arbeitsspeicher und seine installierten Anwendungen. MobiControl sendet nichts von selbst, daher liest OneUptime es nach Zeitplan: die Geräte alle 15 Minuten und die Apps jedes Geräts alle 6 Stunden.
+
+:::steps
+### Einen MobiControl-Benutzer mit reinem Lesezugriff erstellen
+
+Fügen Sie in der MobiControl-Webkonsole einen eigenen Benutzer von MobiControl hinzu, keinen Benutzer von SOTI Identity. Erlauben Sie in seinen allgemeinen Berechtigungen `Web Console Access` und `View Installed Applications` und sonst nichts, und geben Sie ihm `View Groups` für die Gerätegruppen, die OneUptime liest. Dieser Benutzer ist alles, was OneUptime braucht: Er sieht die Geräte und ihre Apps und kann nichts ändern.
+
+### Einen API-Client erstellen
+
+Gehen Sie in der Webkonsole zu `Global Settings`, dann zu `Services`, dann zu `API Client`, und fügen Sie einen hinzu. Kopieren Sie seine `Client ID` und sein `Client Secret`: MobiControl zeigt das Secret nur einmal. Bei einem Server vor MobiControl 2024.0 erstellen Sie ihn auf dem Server selbst mit `MCAdmin.exe APIClientAdd -n:OneUptime`.
+
+### Den MobiControl-Server verbinden
+
+Gehen Sie zu **Produkte → Ressourcen → Inventar**, dann zu **Verwaltete Geräte**, klicken Sie auf **Geräteverwaltung verbinden**, und wählen Sie **SOTI MobiControl**. Geben Sie den **Server** ein, also die Adresse Ihrer Webkonsole ohne `/MobiControl`, etwa `https://acme.mobicontrolcloud.com`, dazu die **Client-ID** und das **Client-Secret** des API-Clients und dann **Benutzername** und **Passwort** des Benutzers. **Verbinden** testet die Anmeldung, bevor etwas gespeichert wird: Es sagt, wie viele Geräte ein Lesevorgang importieren wird, oder was falsch ist und wie Sie es beheben.
+:::
+
+Ein MobiControl-Agent hält eine dauerhafte Verbindung zu seinem Server, daher ist ein Gerät, dessen Agent verbunden ist, online, und eines, dessen Agent seit 30 Minuten nicht verbunden war, **Offline**. Ein iPhone, iPad oder Mac meldet sich über den Push-Dienst von Apple, oft Stunden auseinander, und ist nach einem Tag **Offline**. Ein Gerät, das ein Administrator deaktiviert hat, ist **Deaktiviert**, und eines, dessen Registrierung gerade aufgehoben wird, bleibt außen vor. OneUptime Cloud liest nur Server im öffentlichen Internet, daher liest ein selbst gehostetes OneUptime einen Server in einem privaten Netzwerk. Nichts über den Benutzer eines Geräts wird gelesen.
+
+Telemetrie, die eine App oder der Android-Agent von einem Gerät sendet, landet über die Seriennummer des Geräts beim selben Element: Setzen Sie die Einstellung `device_serial` des Android-Agenten in seiner verwalteten Konfiguration auf das Makro `%SERIALNUM%`.
+
+Um eine Warnung zu erhalten, wenn sich ein Gerät nicht mehr meldet, klicken Sie in der Zeile der Verbindung auf **Warnungen einrichten** und erstellen Sie **SOTI Device Stopped Checking In** und **SOTI Apple Device Stopped Checking In**. Der erste Monitor öffnet für jedes Android-, Windows- oder Linux-Gerät, dessen Agent seit mehr als einer Stunde nicht verbunden war, eine eigene Warnung, der zweite für jedes Apple-Gerät, das sich seit mehr als einem Tag nicht gemeldet hat, jede nach dem Gerät benannt.
 
 ## Etwas von Hand hinzufügen
 

@@ -148,7 +148,7 @@ Cada entrada é um objeto JSON, com as chaves sempre nesta ordem:
 | `mcpOAuthGrantId`, `mcpClientName` | O cliente MCP pelo qual foi feita, se houver. |
 | `workflowId`, `workflowName` | O workflow que a fez, se houver. |
 | `workflowRunAs`, `workflowRunAsCustomRoleName` | Na versão 3, como o passo do workflow foi executado: `Default`, `ProjectOwner` ou `CustomRole`, e o nome que a função tinha então. |
-| `workflowRunAsGivenByUserId`, `workflowRunAsGivenByApiKeyId`, `workflowRunAsGivenByName` | Na versão 3, com as permissões de quem ele foi executado: o id da pessoa ou da chave de API do projeto, e o nome que tinha então. Cada uma dessas cinco chaves é `null` quando nenhum workflow fez a alteração. |
+| `workflowRunAsGiverUserId`, `workflowRunAsGiverApiKeyId`, `workflowRunAsGiverName` | Na versão 3, com as permissões de quem ele foi executado: o id da pessoa ou da chave de API do projeto, e o nome que tinha então. Cada uma dessas cinco chaves é `null` quando nenhum workflow fez a alteração. |
 | `changes` | Cada campo alterado: `field`, com `oldValue` e `newValue`, e na versão 2 `summary`. |
 
 Um arquivo contém uma entrada por linha, compactado com gzip, e é arquivado pela hora da primeira entrada: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.

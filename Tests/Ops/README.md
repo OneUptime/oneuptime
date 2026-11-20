@@ -422,7 +422,13 @@ presets. It validates the default two once more on
 `helm upgrade --reuse-values` keeps a release's old `image.tag`, so the chart's
 configs have to start there too (0.96.0's `k8sobjects` receiver asks an API
 server for its resources while it is built, so the Deployment config goes
-without it on that run).
+without it on that run). It also starts the collector on each Kubernetes agent
+config rendered for the pinned image, until it says it is ready or gives up on
+a receiver that needs a cluster, and fails if it logged `alias is deprecated`
+for any component: the chart names every renamed component by its new type
+there (`kubernetes-agent.componentType`, #9930), since a release that drops an
+alias refuses the config, and `validate` builds the components without logging
+the warning.
 
 That is not a YAML check. `validate` constructs every component and builds the
 stanza operator graph for real, which compiles the RE2 regexes and the expr-lang
@@ -1137,9 +1143,13 @@ collector the chart ships and in 0.96.0, which an upgrade with
 `--reuse-values` keeps. It renders the chart, lifts the node collector's
 `filter/volume-series` (the first processor of its `metrics` pipeline after
 `memory_limiter`) out of its ConfigMap as rendered, and posts it one scrape of
-the `kubeletstats` volume group: the five `k8s.volume.*` series of every kind
+the `kubelet_stats` volume group: the five `k8s.volume.*` series of every kind
 of volume a pod mounts, as the receiver names and types it, beside the node's,
-a pod's and a container's own filesystem series. configMap, secret and
+a pod's and a container's own filesystem series. Every volume goes in four
+times (#10055): as the receiver names it (`k8s.volume.name`, `k8s.volume.type`),
+by semantic conventions' `k8s.pod.volume.name` and `k8s.pod.volume.type` on the
+receiver's series and on their own `k8s.pod.volume.*` up-down counters, and
+under both names at once. configMap, secret and
 downwardAPI volumes must be dropped, and a volume typed `projected` whatever it
 is called (issue #9842: no collector types one yet, and
 opentelemetry-collector-contrib#52198 asks for it); with no type, the service
@@ -1148,27 +1158,45 @@ Azure Workload Identity, Istio and Linkerd tokens must be dropped by name. A
 claim's volume whatever it is called, a generic ephemeral volume typed
 `ephemeral` or not, its claim named or not, an emptyDir, a hostPath, a volume
 with no type and no token's whole name, and the node's, pod's and container's
-series must come out once each, their resources as they went in. It needs
-docker and helm; the "Ops Config Test" workflow runs it after
-`agent-job-failures-increase-behaviour.sh`.
+series must come out once each, their resources as they went in, under every
+name, and the collector must log nothing about the filter (a condition that
+fails to evaluate keeps its volume). It needs docker and helm; the "Ops Config
+Test" workflow runs it after `agent-job-failures-increase-behaviour.sh`.
 `Utils/KubernetesAgentVolumeSeriesBehaviour.js` builds its config and payload
 and checks what comes out.
 
 ### `KubernetesAgentVolumeSeries.test.js`
 
-Holds `agent-volume-series-behaviour.sh` to the chart's condition: it reads
-the one condition `filter/volume-series` has in the template, and holds it to
-its shape (a named volume with no claim, of a type it drops, or with no type
-and a token's name), the types it drops and the token names it matches. Every
-type it drops and every token it names is a volume the script sends, the
-projected token typed too, beside every volume OneUptime reads; each volume the
-script expects kept is one the condition keeps, and each it expects dropped one
-it drops. Its check passes the export the condition predicts and fails one that
-dropped a claim's volume or the node's series, sent a typed projected volume
-(the export of a filter without the `projected` type, which sends every pod's
-token again), sent a series twice or changed its resource, or is empty. It also
-holds the config the script runs to the filter alone, first after the memory
-limiter in the render, and the workflow to running the script.
+Holds `agent-volume-series-behaviour.sh` to the chart's conditions: it reads
+the two conditions `filter/volume-series` has in the template, one for each
+name a volume goes by (`k8s.volume.*`, then `k8s.pod.volume.*`), and holds
+each to its shape (a named volume with no claim, of a type it drops, or that no
+name types, with a token's name), the same types and token names for both.
+Every type they drop and every token they name is a volume the script sends,
+the projected token typed too, beside every volume OneUptime reads; each volume
+the script expects kept is one the conditions keep, under every name, and each
+it expects dropped one they drop. Its check passes the export the conditions
+predict and fails one that dropped a claim's volume or the node's series, sent
+a typed projected volume (the export of a filter without the `projected` type,
+which sends every pod's token again), sent the small volumes semantic
+conventions name (a filter that reads the receiver's names alone), sent a
+series twice or changed its resource, or is empty. It also holds the config
+the script runs to the filter alone, first after the memory limiter in the
+render, on the receiver as the image names it, and the workflow to running the
+script.
+
+### `CollectorComponentTypes.test.js`
+
+The types the Kubernetes agent's renamed collector components go by on each
+collector (`Utils/CollectorComponentTypes.js`, #9930): `kubelet_stats`,
+`host_metrics`, `file_log`, `k8s_attributes`, `k8s_objects`,
+`resource_detection`, `cumulative_to_delta` and `otlp_http` from the first
+release with each, the old types before. It holds the table to the chart's own
+(`kubernetes-agent.renamedComponentTypes`), checks both sides of every rename,
+and fails a template that names one of them anywhere but through
+`kubernetes-agent.componentType`, or uses a variable for one it does not
+declare. The behaviour scripts above name components through it, so each
+checks the render it runs against the collector that render is for.
 
 ### `DatabaseAgentQueryEventBodyRuntime.test.js`
 

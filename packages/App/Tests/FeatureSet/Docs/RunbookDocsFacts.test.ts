@@ -2761,7 +2761,7 @@ describe("a runbook's own side menu", () => {
       { title: "Settings", items: ["Triggers", "Variables", "Settings"] },
       {
         title: "Developer",
-        items: ["Terraform", "API", "CLI", "AI Assistants"],
+        items: ["Terraform", "Crossplane", "API", "CLI", "AI Assistants"],
       },
       /*
        * Owners joined Advanced when its one-entry section went (#9218), and

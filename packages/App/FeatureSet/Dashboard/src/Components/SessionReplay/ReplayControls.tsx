@@ -11,7 +11,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
-import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
+import LayeredPopover from "Common/UI/Components/Tooltip/LayeredPopover";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
@@ -282,11 +282,7 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
 
   /* ---- Speed: a compact trigger opening a radiogroup (finding 21). ---- */
 
-  const {
-    ref: speedRef,
-    isComponentVisible: isSpeedOpen,
-    setIsComponentVisible: setIsSpeedOpen,
-  } = useComponentOutsideClick(false);
+  const [isSpeedOpen, setIsSpeedOpen] = useState<boolean>(false);
   const speedTriggerRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
   const speedRadioRefs: React.MutableRefObject<
@@ -313,7 +309,9 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
 
   /*
    * Arrow keys move the checked radio (the WAI-ARIA radiogroup pattern:
-   * selection follows focus), Escape returns to the trigger.
+   * selection follows focus). Escape is the layer's (LayeredPopover): it
+   * closes the menu, gives the trigger its focus back, and is spent before
+   * the player's window listener reads it as its own.
    */
   const handleSpeedKeyDown: (
     event: React.KeyboardEvent<HTMLDivElement>,
@@ -330,11 +328,6 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
         nextIndex = 0;
       } else if (event.key === "End") {
         nextIndex = REPLAY_SPEEDS.length - 1;
-      } else if (event.key === "Escape") {
-        event.preventDefault();
-        event.stopPropagation();
-        closeSpeed(true);
-        return;
       } else {
         return;
       }
@@ -496,7 +489,7 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
 
         <ReplayToolbarDivider />
 
-        <div ref={speedRef} className="relative shrink-0">
+        <div className="shrink-0">
           <ReplayToolButton
             ref={speedTriggerRef}
             dataTestId="replay-speed"
@@ -517,46 +510,64 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
             }}
           />
 
+          {/*
+           * Above its trigger, on the tooltip layer (LayeredPopover): the
+           * transport bar sits at the player's foot, and the player rounds
+           * its corners and goes full screen, so the menu is placed against
+           * the window, never inside the player (#9910).
+           */}
           {isSpeedOpen && (
-            <div
-              role="radiogroup"
-              aria-label={translator.translateText("Playback speed")}
-              data-testid="replay-speed-menu"
-              className="absolute bottom-full left-0 z-20 mb-1.5 flex min-w-[5.5rem] flex-col gap-0.5 rounded-xl border border-gray-200 bg-white p-1 shadow-lg"
-              onKeyDown={handleSpeedKeyDown}
+            <LayeredPopover
+              anchorRef={speedTriggerRef}
+              onClose={(): void => {
+                closeSpeed(false);
+              }}
+              side="top"
+              gap={6}
             >
-              {REPLAY_SPEEDS.map(
-                (value: number, index: number): ReactElement => {
-                  const isChecked: boolean =
-                    getReplaySpeedIndex(speed) === index;
+              <div
+                role="radiogroup"
+                aria-label={translator.translateText("Playback speed")}
+                data-testid="replay-speed-menu"
+                className="flex min-w-[5.5rem] flex-col gap-0.5 rounded-xl border border-gray-200 bg-white p-1 shadow-lg"
+                onKeyDown={handleSpeedKeyDown}
+              >
+                {REPLAY_SPEEDS.map(
+                  (value: number, index: number): ReactElement => {
+                    const isChecked: boolean =
+                      getReplaySpeedIndex(speed) === index;
 
-                  return (
-                    <button
-                      key={value}
-                      ref={(element: HTMLButtonElement | null): void => {
-                        speedRadioRefs.current[index] = element;
-                      }}
-                      type="button"
-                      role="radio"
-                      aria-checked={isChecked}
-                      tabIndex={isChecked ? 0 : -1}
-                      data-testid={`replay-speed-option-${value}`}
-                      className={`rounded-lg px-2.5 py-1.5 text-left text-xs tabular-nums transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                        isChecked
-                          ? "bg-indigo-600 font-semibold text-white"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                      onClick={(): void => {
-                        selectSpeed(value);
-                        closeSpeed(true);
-                      }}
-                    >
-                      {formatReplaySpeedInLanguage(value, translator.language)}
-                    </button>
-                  );
-                },
-              )}
-            </div>
+                    return (
+                      <button
+                        key={value}
+                        ref={(element: HTMLButtonElement | null): void => {
+                          speedRadioRefs.current[index] = element;
+                        }}
+                        type="button"
+                        role="radio"
+                        aria-checked={isChecked}
+                        tabIndex={isChecked ? 0 : -1}
+                        data-testid={`replay-speed-option-${value}`}
+                        className={`rounded-lg px-2.5 py-1.5 text-left text-xs tabular-nums transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                          isChecked
+                            ? "bg-indigo-600 font-semibold text-white"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
+                        onClick={(): void => {
+                          selectSpeed(value);
+                          closeSpeed(true);
+                        }}
+                      >
+                        {formatReplaySpeedInLanguage(
+                          value,
+                          translator.language,
+                        )}
+                      </button>
+                    );
+                  },
+                )}
+              </div>
+            </LayeredPopover>
           )}
         </div>
 

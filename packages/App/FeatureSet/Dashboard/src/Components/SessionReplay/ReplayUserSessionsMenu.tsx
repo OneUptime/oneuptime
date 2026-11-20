@@ -5,9 +5,10 @@ import React, {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
-import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
+import LayeredPopover from "Common/UI/Components/Tooltip/LayeredPopover";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   PluralTemplate,
@@ -29,9 +30,11 @@ import { ReplayPill, ReplayToolButton } from "./ReplayUi";
  * (github.com/OneUptime/oneuptime/issues/3705).
  *
  * The same shape as the speed menu in ReplayControls - a ReplayToolButton
- * trigger with the popup aria wiring, an absolutely positioned panel
- * that closes on an outside click - because a viewer who has learned one
- * menu in this chrome should not have to learn a second. It differs in
+ * trigger with the popup aria wiring, and a panel on the tooltip layer
+ * (LayeredPopover) that closes on a press outside, on Escape and on the
+ * focus leaving it - because a viewer who has learned one menu in this
+ * chrome should not have to learn a second. Drawn on the layer, a player
+ * in a card, a drawer or full screen never cuts it off (#9910). It differs in
  * being a listbox rather than a radiogroup: choosing a session NAVIGATES
  * (the page remounts the player on the new session), so an option is an
  * action, not a setting, and arrow keys move focus without choosing. The
@@ -128,11 +131,7 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
   const translator: Translator = useTranslator();
   const { sessions, currentSessionId, onOpenUserSession } = props;
 
-  const {
-    ref: menuRef,
-    isComponentVisible: isOpen,
-    setIsComponentVisible: setIsOpen,
-  } = useComponentOutsideClick(false);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
   const triggerRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
   const itemRefs: React.MutableRefObject<Array<HTMLButtonElement | null>> =
@@ -227,16 +226,6 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
         nextIndex = 0;
       } else if (event.key === "End") {
         nextIndex = sessions.length - 1;
-      } else if (event.key === "Escape") {
-        /*
-         * Stopped here so the player's window listener does not ALSO
-         * read it as its own Escape (close the details panel, leave
-         * theater, clear the rail selection).
-         */
-        event.preventDefault();
-        event.stopPropagation();
-        close(true);
-        return;
       } else if (event.key === "Enter" || event.key === " ") {
         /*
          * Handled explicitly rather than left to the button's native
@@ -271,8 +260,14 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
   );
   const isTruncated: boolean = props.isTruncated === true;
 
+  /*
+   * Escape is the layer's: it closes the menu, gives the trigger its focus
+   * back, and is spent before the player's window listener can read it as
+   * its own (close the details panel, leave theater, clear the rail
+   * selection).
+   */
   return (
-    <div ref={menuRef} className="relative shrink-0">
+    <div className="shrink-0">
       <ReplayToolButton
         ref={triggerRef}
         dataTestId="replay-user-sessions-button"
@@ -297,151 +292,164 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
       />
 
       {isOpen && (
-        <div
-          data-testid="replay-user-sessions-menu"
-          className="absolute left-0 z-20 mt-1 w-[26rem] max-w-[90vw] rounded-xl border border-gray-200 bg-white p-1 shadow-lg"
+        <LayeredPopover
+          anchorRef={triggerRef}
+          onClose={(): void => {
+            close(false);
+          }}
         >
-          <div className="px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-500">
-            {translator.translateText(
-              isTruncated ? copy.truncatedHeading : copy.heading,
-            )}
-          </div>
           <div
-            role="listbox"
-            aria-label={translator.translateText(copy.listName)}
-            className="max-h-80 overflow-y-auto"
-            onKeyDown={handleListKeyDown}
+            data-testid="replay-user-sessions-menu"
+            className="w-[26rem] max-w-[calc(100vw-1rem)] rounded-xl border border-gray-200 bg-white p-1 shadow-lg"
           >
-            {sessions.map(
-              (item: ReplayUserSessionItem, index: number): ReactElement => {
-                const description: ReplayUserSessionDescription =
-                  descriptions[index] ??
-                  describeReplayUserSession(item, nowUnixMs, translator);
-                const isCurrent: boolean = index === currentIndex;
+            <div className="px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-500">
+              {translator.translateText(
+                isTruncated ? copy.truncatedHeading : copy.heading,
+              )}
+            </div>
+            <div
+              role="listbox"
+              aria-label={translator.translateText(copy.listName)}
+              className="max-h-80 overflow-y-auto"
+              onKeyDown={handleListKeyDown}
+            >
+              {sessions.map(
+                (item: ReplayUserSessionItem, index: number): ReactElement => {
+                  const description: ReplayUserSessionDescription =
+                    descriptions[index] ??
+                    describeReplayUserSession(item, nowUnixMs, translator);
+                  const isCurrent: boolean = index === currentIndex;
 
-                return (
-                  <button
-                    key={item.sessionId}
-                    ref={(element: HTMLButtonElement | null): void => {
-                      itemRefs.current[index] = element;
-                    }}
-                    type="button"
-                    role="option"
-                    aria-selected={isCurrent}
-                    tabIndex={
-                      isCurrent || (currentIndex < 0 && index === 0) ? 0 : -1
-                    }
-                    data-testid="replay-user-session-item"
-                    data-session-id={item.sessionId}
-                    title={
-                      isCurrent
-                        ? translator.translateText(
-                            "The session you are watching",
-                          )
-                        : translator.translateTemplate("Open session {{id}}", {
-                            id: item.sessionId.slice(0, 8),
-                          })
-                    }
-                    className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                      isCurrent ? "bg-indigo-50" : ""
-                    }`}
-                    onClick={(): void => {
-                      select(item.sessionId);
-                    }}
-                  >
-                    <span className="w-28 shrink-0">
-                      <span
-                        data-testid="replay-user-session-when"
-                        className="block text-sm font-medium text-gray-900"
-                      >
-                        {description.when}
-                      </span>
-                      <span
-                        data-testid="replay-user-session-absolute"
-                        className="block text-xs text-gray-500"
-                      >
-                        {description.absolute}
-                      </span>
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span
-                        className="block truncate text-sm text-gray-700"
-                        title={item.entryUrl || undefined}
-                      >
-                        {description.path ||
-                          translator.translateText("Unknown page")}
-                      </span>
-                      {description.deviceHint.length > 0 && (
-                        <span className="block text-xs text-gray-500">
-                          {description.deviceHint}
-                        </span>
-                      )}
-                    </span>
-                    <span className="flex shrink-0 items-center gap-1.5">
-                      {isCurrent && (
-                        <ReplayPill tone="accent">
-                          {translator.translateText("Watching")}
-                        </ReplayPill>
-                      )}
-                      {/*
-                       * Red and pulsing only while footage may still
-                       * arrive. A session whose every tab has closed is
-                       * over - the finalizer has yet to count it, which
-                       * is not something the viewer can watch happen - so
-                       * it gets the same dot, gray and still.
-                       */}
-                      {isSessionReplayRecordingLive(item) && (
+                  return (
+                    <button
+                      key={item.sessionId}
+                      ref={(element: HTMLButtonElement | null): void => {
+                        itemRefs.current[index] = element;
+                      }}
+                      type="button"
+                      role="option"
+                      aria-selected={isCurrent}
+                      tabIndex={
+                        isCurrent || (currentIndex < 0 && index === 0) ? 0 : -1
+                      }
+                      data-testid="replay-user-session-item"
+                      data-session-id={item.sessionId}
+                      title={
+                        isCurrent
+                          ? translator.translateText(
+                              "The session you are watching",
+                            )
+                          : translator.translateTemplate(
+                              "Open session {{id}}",
+                              {
+                                id: item.sessionId.slice(0, 8),
+                              },
+                            )
+                      }
+                      className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                        isCurrent ? "bg-indigo-50" : ""
+                      }`}
+                      onClick={(): void => {
+                        select(item.sessionId);
+                      }}
+                    >
+                      <span className="w-28 shrink-0">
                         <span
-                          role="img"
-                          aria-label={translator.translateText("Recording now")}
-                          title={translator.translateText(
-                            "Still being recorded",
-                          )}
-                          data-testid="replay-user-session-live"
-                          className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-red-500"
-                        />
-                      )}
-                      {!item.isFinalized && item.hasRecordingEnded === true && (
-                        <span
-                          role="img"
-                          aria-label={translator.translateText(
-                            "Recording ended",
-                          )}
-                          title={translator.translateText(
-                            "Recording ended; still being finalized",
-                          )}
-                          data-testid="replay-user-session-ended"
-                          className="h-1.5 w-1.5 shrink-0 rounded-full bg-gray-400"
-                        />
-                      )}
-                      {item.errorCount > 0 && (
-                        <span
-                          data-testid="replay-user-session-errors"
-                          title={translator.translatePlural(
-                            {
-                              one: "{{count}} error in this session",
-                              other: "{{count}} errors in this session",
-                            },
-                            item.errorCount,
-                          )}
-                          className="rounded-full bg-rose-50 px-1.5 text-[11px] font-medium text-rose-700"
+                          data-testid="replay-user-session-when"
+                          className="block text-sm font-medium text-gray-900"
                         >
-                          {translator.formatNumber(item.errorCount)}
+                          {description.when}
                         </span>
-                      )}
-                      <span
-                        data-testid="replay-user-session-duration"
-                        className="font-mono text-xs tabular-nums text-gray-600"
-                      >
-                        {description.duration}
+                        <span
+                          data-testid="replay-user-session-absolute"
+                          className="block text-xs text-gray-500"
+                        >
+                          {description.absolute}
+                        </span>
                       </span>
-                    </span>
-                  </button>
-                );
-              },
-            )}
+                      <span className="min-w-0 flex-1">
+                        <span
+                          className="block truncate text-sm text-gray-700"
+                          title={item.entryUrl || undefined}
+                        >
+                          {description.path ||
+                            translator.translateText("Unknown page")}
+                        </span>
+                        {description.deviceHint.length > 0 && (
+                          <span className="block text-xs text-gray-500">
+                            {description.deviceHint}
+                          </span>
+                        )}
+                      </span>
+                      <span className="flex shrink-0 items-center gap-1.5">
+                        {isCurrent && (
+                          <ReplayPill tone="accent">
+                            {translator.translateText("Watching")}
+                          </ReplayPill>
+                        )}
+                        {/*
+                         * Red and pulsing only while footage may still
+                         * arrive. A session whose every tab has closed is
+                         * over - the finalizer has yet to count it, which
+                         * is not something the viewer can watch happen - so
+                         * it gets the same dot, gray and still.
+                         */}
+                        {isSessionReplayRecordingLive(item) && (
+                          <span
+                            role="img"
+                            aria-label={translator.translateText(
+                              "Recording now",
+                            )}
+                            title={translator.translateText(
+                              "Still being recorded",
+                            )}
+                            data-testid="replay-user-session-live"
+                            className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-red-500"
+                          />
+                        )}
+                        {!item.isFinalized &&
+                          item.hasRecordingEnded === true && (
+                            <span
+                              role="img"
+                              aria-label={translator.translateText(
+                                "Recording ended",
+                              )}
+                              title={translator.translateText(
+                                "Recording ended; still being finalized",
+                              )}
+                              data-testid="replay-user-session-ended"
+                              className="h-1.5 w-1.5 shrink-0 rounded-full bg-gray-400"
+                            />
+                          )}
+                        {item.errorCount > 0 && (
+                          <span
+                            data-testid="replay-user-session-errors"
+                            title={translator.translatePlural(
+                              {
+                                one: "{{count}} error in this session",
+                                other: "{{count}} errors in this session",
+                              },
+                              item.errorCount,
+                            )}
+                            className="rounded-full bg-rose-50 px-1.5 text-[11px] font-medium text-rose-700"
+                          >
+                            {translator.formatNumber(item.errorCount)}
+                          </span>
+                        )}
+                        <span
+                          data-testid="replay-user-session-duration"
+                          className="font-mono text-xs tabular-nums text-gray-600"
+                        >
+                          {description.duration}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                },
+              )}
+            </div>
           </div>
-        </div>
+        </LayeredPopover>
       )}
     </div>
   );

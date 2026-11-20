@@ -110,6 +110,12 @@ export interface MetricReader {
   widgets?: Array<MetricReaderWidget> | undefined;
   // A recording rule's: the metric it writes, which finds it in its list.
   outputMetricName?: string | undefined;
+  /*
+   * Asked for (keepsReferences): its references that read what was asked
+   * about, so the caller can tell more of each - which cloud resource a
+   * query reads (#10078). The server's, never sent as they are.
+   */
+  references?: Array<MetricNameReference> | undefined;
 }
 
 export interface MetricReadersOfKind {
@@ -119,6 +125,11 @@ export interface MetricReadersOfKind {
   hiddenCount: number;
   // False when the records could not be read: nothing is known of them.
   isChecked: boolean;
+  /*
+   * Asked for (keepsReferences): the references of those they may not read
+   * that read it - what they read, never which records they are.
+   */
+  hiddenReferences?: Array<MetricNameReference> | undefined;
 }
 
 export type MetricReaders = Record<MetricReaderKind, MetricReadersOfKind>;
@@ -533,6 +544,8 @@ async function findReadersOfKind<T extends { id?: ObjectID | null }>(data: {
   }) => Promise<Array<{ id?: ObjectID | null | undefined }>>;
   // The record as a reader, when it reads the metric.
   readerOf: (record: T) => MetricReader | null;
+  // Whether the hidden readers' references are kept (hiddenReferences).
+  keepsReferences?: boolean | undefined;
 }): Promise<MetricReadersOfKind> {
   const unchecked: MetricReadersOfKind = {
     readers: [],
@@ -588,6 +601,17 @@ async function findReadersOfKind<T extends { id?: ObjectID | null }>(data: {
     readers: shown,
     hiddenCount: readers.length - shown.length,
     isChecked: true,
+    ...(data.keepsReferences
+      ? {
+          hiddenReferences: readers
+            .filter((reader: MetricReader): boolean => {
+              return !visible.has(reader.id.toLowerCase());
+            })
+            .flatMap((reader: MetricReader): Array<MetricNameReference> => {
+              return reader.references || [];
+            }),
+        }
+      : {}),
   };
 }
 
@@ -604,16 +628,52 @@ export async function findMetricReaders(data: {
   projectId: ObjectID;
   reads: MetricReferenceReads;
   props: DatabaseCommonInteractionProps;
+  /*
+   * Keep each reader's references that read what is asked about
+   * (MetricReader.references), and the hidden readers'
+   * (MetricReadersOfKind.hiddenReferences): every reference is then asked,
+   * not only up to the first that reads it.
+   */
+  keepsReferences?: boolean | undefined;
 }): Promise<MetricReaders> {
+  const keepsReferences: boolean = Boolean(data.keepsReferences);
   const anyReads: (references: Array<MetricNameReference>) => boolean = (
     references: Array<MetricNameReference>,
   ): boolean => {
     return references.some(data.reads);
   };
+  /*
+   * A record's references that read it: null for none. Every one of them
+   * is asked when they are kept; else up to the first that reads it.
+   */
+  const readingOf: (
+    references: Array<MetricNameReference>,
+  ) => Array<MetricNameReference> | null = (
+    references: Array<MetricNameReference>,
+  ): Array<MetricNameReference> | null => {
+    if (!keepsReferences) {
+      return anyReads(references) ? [] : null;
+    }
+
+    const reading: Array<MetricNameReference> = references.filter(data.reads);
+
+    return reading.length > 0 ? reading : null;
+  };
+  // A reader with its references, when they are kept.
+  const withReferences: (
+    reader: MetricReader,
+    references: Array<MetricNameReference>,
+  ) => MetricReader = (
+    reader: MetricReader,
+    references: Array<MetricNameReference>,
+  ): MetricReader => {
+    return keepsReferences ? { ...reader, references } : reader;
+  };
   const common: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
-  } = { projectId: data.projectId, props: data.props };
+    keepsReferences: boolean;
+  } = { projectId: data.projectId, props: data.props, keepsReferences };
 
   const [
     monitors,
@@ -650,9 +710,15 @@ export async function findMetricReaders(data: {
         });
       },
       readerOf: (monitor: Monitor): MetricReader | null => {
-        return idOf(monitor) &&
-          anyReads(findMetricNameReferences(monitor.monitorSteps))
-          ? { id: idOf(monitor), name: monitor.name || "" }
+        const reading: Array<MetricNameReference> | null = idOf(monitor)
+          ? readingOf(findMetricNameReferences(monitor.monitorSteps))
+          : null;
+
+        return reading
+          ? withReferences(
+              { id: idOf(monitor), name: monitor.name || "" },
+              reading,
+            )
           : null;
       },
     }),
@@ -688,27 +754,35 @@ export async function findMetricReaders(data: {
         const found: DashboardMetricReferences = findDashboardMetricReferences(
           dashboard.dashboardViewConfig,
         );
-        const widgets: Array<MetricReaderWidget> = found.widgets
-          .filter(
-            (entry: {
-              widget: MetricReaderWidget;
-              references: Array<MetricNameReference>;
-            }): boolean => {
-              return anyReads(entry.references);
-            },
-          )
-          .map(
-            (entry: {
-              widget: MetricReaderWidget;
-              references: Array<MetricNameReference>;
-            }): MetricReaderWidget => {
-              return entry.widget;
-            },
+        const widgets: Array<MetricReaderWidget> = [];
+        const reading: Array<MetricNameReference> = [];
+
+        for (const entry of found.widgets) {
+          const ofWidget: Array<MetricNameReference> | null = readingOf(
+            entry.references,
           );
 
-        return idOf(dashboard) &&
-          (widgets.length > 0 || anyReads(found.dashboard))
-          ? { id: idOf(dashboard), name: dashboard.name || "", widgets }
+          if (ofWidget) {
+            widgets.push(entry.widget);
+            reading.push(...ofWidget);
+          }
+        }
+
+        // Outside its widgets: asked only when none reads it, unless every reference is kept.
+        const ofDashboard: Array<MetricNameReference> | null =
+          keepsReferences || widgets.length === 0
+            ? readingOf(found.dashboard)
+            : null;
+
+        if (ofDashboard) {
+          reading.push(...ofDashboard);
+        }
+
+        return idOf(dashboard) && (widgets.length > 0 || ofDashboard)
+          ? withReferences(
+              { id: idOf(dashboard), name: dashboard.name || "", widgets },
+              reading,
+            )
           : null;
       },
     }),
@@ -759,8 +833,12 @@ export async function findMetricReaders(data: {
           }),
         });
 
-        return idOf(slo) && anyReads(references)
-          ? { id: idOf(slo), name: slo.name || "" }
+        const reading: Array<MetricNameReference> | null = idOf(slo)
+          ? readingOf(references)
+          : null;
+
+        return reading
+          ? withReferences({ id: idOf(slo), name: slo.name || "" }, reading)
           : null;
       },
     }),
@@ -798,13 +876,19 @@ export async function findMetricReaders(data: {
         });
       },
       readerOf: (rule: MetricRecordingRule): MetricReader | null => {
-        return idOf(rule) &&
-          anyReads(findRecordingRuleMetricReferences(rule.definition))
-          ? {
-              id: idOf(rule),
-              name: rule.name || "",
-              outputMetricName: rule.outputMetricName || "",
-            }
+        const reading: Array<MetricNameReference> | null = idOf(rule)
+          ? readingOf(findRecordingRuleMetricReferences(rule.definition))
+          : null;
+
+        return reading
+          ? withReferences(
+              {
+                id: idOf(rule),
+                name: rule.name || "",
+                outputMetricName: rule.outputMetricName || "",
+              },
+              reading,
+            )
           : null;
       },
     }),

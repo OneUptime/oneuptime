@@ -81,7 +81,8 @@ import {
  *      their hosts are let go);
  *   4. reads the installed apps of the devices that are due - every
  *      MANAGED_DEVICE_APPS_READ_INTERVAL_IN_HOURS, oldest first, at most
- *      MAX_APP_DEVICES_PER_READ a read and while the budget lasts - and
+ *      MAX_APP_DEVICES_PER_READ a read (fewer for a service whose API has a
+ *      daily quota: maxAppDevicesPerRead) and while the budget lasts - and
  *      writes what changed on each;
  *   5. gives each device its host in Inventory (ManagedDeviceInventory):
  *      one host per device, shared with its apps' or agent's telemetry. A
@@ -158,6 +159,21 @@ export interface DeviceManagementReadDependencies {
         data: ManagedDeviceCheckInRecordInput,
       ) => Promise<ManagedDeviceCheckInOutcome>)
     | undefined;
+}
+
+// What a read's apps came to.
+interface AppsReadOutcome {
+  // Devices whose apps were read and written.
+  read: number;
+  // Devices whose apps are due but were not read this time.
+  waiting: number;
+  // Whether a device's apps could not be read or written.
+  failed: boolean;
+  /*
+   * Whether the devices that wait may be read soon: false when the
+   * service's own cap or a refusal held them, which a minute does not change.
+   */
+  mayCarryOn: boolean;
 }
 
 export interface DeviceManagementReadOutcome {
@@ -496,20 +512,24 @@ export default class DeviceManagementReadRunner {
       });
 
       // The installed apps of the devices that are due.
-      const apps: { read: number; waiting: number; failed: boolean } =
-        await DeviceManagementReadRunner.readApps({
-          projectId,
-          connectionId: connection.id!,
-          session,
-          enterpriseId: fleet.enterpriseId,
-          now,
-        });
+      const apps: AppsReadOutcome = await DeviceManagementReadRunner.readApps({
+        projectId,
+        connectionId: connection.id!,
+        session,
+        enterpriseId: fleet.enterpriseId,
+        now,
+      });
 
       if (apps.failed) {
         warnings.push(APPS_NOT_READ_WARNING);
       }
 
-      if (apps.waiting > 0) {
+      /*
+       * Devices whose apps wait carry the read on soon, unless what held
+       * them will not be different in a minute: the service's own cap (a
+       * daily quota) or a refusal, which the next scheduled read meets.
+       */
+      if (apps.waiting > 0 && apps.mayCarryOn) {
         isPartial = true;
       }
 
@@ -886,8 +906,10 @@ export default class DeviceManagementReadRunner {
 
   /*
    * The installed apps of the devices that are due, while the budget
-   * lasts. A device whose apps cannot be read is tried again next read; a
-   * refused key or a rate limit ends the apps for this read.
+   * lasts, and at most as many devices as the read reads apps of
+   * (MAX_APP_DEVICES_PER_READ, or the service's own, lower cap). A device
+   * whose apps cannot be read is tried again next read; a refused key, a
+   * permission the key lacks or a rate limit ends the apps for this read.
    */
   private static async readApps(data: {
     projectId: ObjectID;
@@ -895,7 +917,7 @@ export default class DeviceManagementReadRunner {
     session: DeviceManagementSession;
     enterpriseId: string;
     now: Date;
-  }): Promise<{ read: number; waiting: number; failed: boolean }> {
+  }): Promise<AppsReadOutcome> {
     const devices: Array<ManagedDevice> = await ManagedDeviceService.findBy({
       query: {
         projectId: data.projectId,
@@ -950,13 +972,30 @@ export default class DeviceManagementReadRunner {
       data.now,
     );
 
+    const serviceCap: number | undefined = data.session.maxAppDevicesPerRead;
+    const limit: number = Math.min(
+      MAX_APP_DEVICES_PER_READ,
+      serviceCap !== undefined && serviceCap >= 0
+        ? serviceCap
+        : MAX_APP_DEVICES_PER_READ,
+    );
     let read: number = 0;
+    let attempted: number = 0;
     let failed: boolean = false;
+    let mayCarryOn: boolean = true;
 
     for (const device of due) {
-      if (read >= MAX_APP_DEVICES_PER_READ || !data.session.hasBudgetFor(2)) {
+      if (attempted >= limit) {
+        // The service's own cap waits for the next scheduled read.
+        mayCarryOn = serviceCap === undefined;
         break;
       }
+
+      if (!data.session.hasBudgetFor(2)) {
+        break;
+      }
+
+      attempted++;
 
       let apps: Array<ProviderApp>;
 
@@ -975,8 +1014,11 @@ export default class DeviceManagementReadRunner {
         if (
           error instanceof LlmProviderError &&
           (error.kind === LlmConnectionFailureKind.Authentication ||
+            error.kind === LlmConnectionFailureKind.Permission ||
             error.kind === LlmConnectionFailureKind.RateLimited)
         ) {
+          // A rate limit is carried on after its wait; a refusal is the next scheduled read's.
+          mayCarryOn = error.kind === LlmConnectionFailureKind.RateLimited;
           break;
         }
 
@@ -1007,7 +1049,12 @@ export default class DeviceManagementReadRunner {
       }
     }
 
-    return { read, waiting: Math.max(0, due.length - read), failed };
+    return {
+      read,
+      waiting: Math.max(0, due.length - read),
+      failed,
+      mayCarryOn,
+    };
   }
 
   // One device's apps: what changed written, and when they were read.

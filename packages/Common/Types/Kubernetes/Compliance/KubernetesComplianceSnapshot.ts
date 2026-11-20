@@ -1,3 +1,5 @@
+import { KubernetesNodeBenchmarkBlock } from "../KubernetesNodeBenchmark";
+import { OneUptimeAgentComponent } from "./KubernetesAgentWorkloads";
 import { PodSecurity } from "../KubernetesPodSecurity";
 import {
   KubernetesNetworkPolicySpec,
@@ -31,6 +33,8 @@ export interface KubernetesCompliancePod {
   security: PodSecurity | null;
   // Its containers' images, to tell a policy engine's pods.
   images: Array<string>;
+  // The OneUptime agent's component its workload is, when it is the agent's (#9929).
+  agentComponent?: OneUptimeAgentComponent | undefined;
 }
 
 /*
@@ -48,11 +52,26 @@ export interface KubernetesComplianceTemplate {
   workload: KubernetesComplianceObject;
   // What its pods would say; null for one stored before it was kept.
   security: PodSecurity | null;
+  // The OneUptime agent's component the workload is, when it is the agent's (#9929).
+  agentComponent?: OneUptimeAgentComponent | undefined;
 }
 
 export interface KubernetesComplianceNamespace {
   name: string;
   labels: Record<string, string>;
+}
+
+/*
+ * One run of kube-bench on one node (#9873): what the pod the chart's
+ * CronJob ran there says it found. A node's earlier runs, kept by the Jobs'
+ * history, are runs too; the scoring takes each node's newest.
+ */
+export interface KubernetesComplianceNodeBenchmarkRun {
+  // The node it ran on.
+  node: string;
+  // The pod that ran it, in the agent's namespace.
+  pod: { namespace: string; name: string };
+  result: KubernetesNodeBenchmarkBlock;
 }
 
 export interface KubernetesComplianceServiceAccount {
@@ -90,6 +109,12 @@ export interface KubernetesComplianceSnapshot {
    * so a cluster whose inventory holds none has an agent that does not.
    */
   hasPolicyObjects: boolean;
+  /*
+   * What kube-bench found on the nodes (#9873), when the chart's
+   * compliance.nodeBenchmark runs it: none, or absent, leaves the CIS
+   * benchmark's node and control plane controls not scored.
+   */
+  nodeBenchmarks?: Array<KubernetesComplianceNodeBenchmarkRun> | undefined;
 }
 
 /*

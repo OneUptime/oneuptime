@@ -103,6 +103,7 @@ import {
   fetchOpenStackInventorySummary,
 } from "../../Pages/OpenStack/Utils/OpenStackResourceUtils";
 import { DataObservabilityStoreSummary } from "Common/Types/DataObservability/DataObservabilityApiTypes";
+import { hasKubernetesClusterSeparateImageDisk } from "../../Pages/Kubernetes/Utils/KubernetesImageDisk";
 import { readRumClientKind } from "Common/Types/Rum/RumClientKind";
 
 /*
@@ -862,20 +863,52 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       };
     },
     /*
-     * Said only where the provider changed the list, by the catalog's own
-     * test: an OpenShift cluster's operator and update alerts. Every other
-     * cluster is offered what every cluster is, which needs no note.
+     * Node Image Disk Almost Full is offered only where some node keeps its
+     * container images on a disk of its own (#10056), which only the
+     * cluster's nodes know: ingest keeps that disk's reading on the node's
+     * row, and on no other. A read that fails leaves it withheld, as it is on
+     * a cluster with no such node.
+     */
+    loadContext: async (data: {
+      model: BaseModel;
+      context: MonitorRecommendationContext;
+    }): Promise<MonitorRecommendationContext> => {
+      return {
+        ...data.context,
+        kubernetesHasSeparateImageDisk:
+          await hasKubernetesClusterSeparateImageDisk(
+            data.model.id as ObjectID,
+          ),
+      };
+    },
+    /*
+     * Said only where the cluster changed the list, by the catalog's own
+     * tests: an OpenShift cluster's operator and update alerts, and the image
+     * disk alert of a cluster with a node that has one. Every other cluster
+     * is offered what every cluster is, which needs no note.
      */
     describeContext: (
       context: MonitorRecommendationContext,
     ): string | undefined => {
-      if (context.kubernetesProvider !== OPENSHIFT_KUBERNETES_PROVIDER) {
-        return undefined;
+      const notes: Array<string> = [];
+
+      if (context.kubernetesProvider === OPENSHIFT_KUBERNETES_PROVIDER) {
+        notes.push(
+          translateTemplate(
+            "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.",
+          ),
+        );
       }
 
-      return translateTemplate(
-        "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.",
-      );
+      if (context.kubernetesHasSeparateImageDisk === true) {
+        notes.push(
+          translateTemplate(
+            "At least one node of this cluster keeps its container images on a disk of its own, so the recommendations below include an alert on that disk.",
+          ),
+        );
+      }
+
+      return joinCloudRecommendationNotes(notes);
     },
   },
   {

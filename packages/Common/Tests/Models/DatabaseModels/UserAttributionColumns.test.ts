@@ -332,6 +332,14 @@ describe("which columns record a person doing something", () => {
        */
       "transcriptAdded",
       "triggered",
+      /*
+       * DataSecurityComplianceSetting.turnedOffByUserId: who last turned a
+       * compliance framework or requirement off for a resource, or accepted
+       * a Kubernetes finding (#9629). The setting's service stamps it from
+       * the caller as the setting goes from on to off, and clears it when it
+       * is turned on again; no request chooses it.
+       */
+      "turnedOff",
       "viewed",
     ];
 

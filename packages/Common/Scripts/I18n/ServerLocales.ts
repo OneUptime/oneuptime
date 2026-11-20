@@ -152,6 +152,12 @@ export const SERVER_TEXT_SOURCES: ReadonlyArray<string> = [
    */
   "packages/Common/Types/Accounts/SsoSignInLinks.ts",
   "packages/App/FeatureSet/Identity/Utils/SsoSignInLinksEmail.ts",
+  /*
+   * The email that tells an account's old address the account moved
+   * (#9907), in the language on the account.
+   */
+  "packages/Common/Types/Accounts/EmailAddressChangedEmail.ts",
+  "packages/Common/Server/Utils/EmailChange/EmailAddressChangedNotice.ts",
   "packages/App/FeatureSet/Workers/Jobs",
   "packages/App/FeatureSet/Notification/Templates",
   // Sentences the Dashboard writes too, worded as it words them (above).

@@ -7,6 +7,8 @@ import {
   DeviceManagementConfig,
   readEsperTenant,
   readIntuneTenant,
+  readSotiServer,
+  readWorkspaceOneServer,
   toDeviceManagementConfigJson,
   validateDeviceManagementConfig,
 } from "../../Types/DeviceManagement/DeviceManagementConnectionSettings";
@@ -21,6 +23,7 @@ import UserMiddleware from "../Middleware/UserAuthorization";
 import DeviceManagementConnectionService, {
   DeviceManagementSecretValues,
   Service as DeviceManagementConnectionServiceClass,
+  getDeviceManagementSecretRules,
 } from "../Services/DeviceManagementConnectionService";
 import DataSourceHttpFetch from "../Utils/DataSource/HttpFetch";
 import DeviceManagementConnectorRegistry from "../Utils/DeviceManagement/DeviceManagementConnectorRegistry";
@@ -49,7 +52,8 @@ type SettingsToTest = DeviceManagementSecrets & {
 
 /*
  * Device management connections (an Esper tenant, a Microsoft Intune
- * tenant): the CRUD routes, plus
+ * tenant, a Workspace ONE UEM or SOTI MobiControl server): the CRUD
+ * routes, plus
  *
  *   POST /device-management-connection/test
  *     { provider?, config, secrets }       settings never saved: the tenant
@@ -255,9 +259,16 @@ export default class DeviceManagementConnectionAPI extends BaseAPI<
     try {
       const tenant: unknown = (config as JSONObject)["tenant"];
 
-      return provider === DeviceManagementProvider.Intune
-        ? readIntuneTenant(tenant)
-        : readEsperTenant(tenant);
+      switch (provider) {
+        case DeviceManagementProvider.Intune:
+          return readIntuneTenant(tenant);
+        case DeviceManagementProvider.WorkspaceOne:
+          return readWorkspaceOneServer(tenant);
+        case DeviceManagementProvider.Soti:
+          return readSotiServer(tenant);
+        default:
+          return readEsperTenant(tenant);
+      }
     } catch {
       return "";
     }
@@ -281,24 +292,26 @@ export default class DeviceManagementConnectionAPI extends BaseAPI<
         DeviceManagementConnectionServiceClass.readProvider(
           data.body["provider"],
         );
+      const config: DeviceManagementConfig = validateDeviceManagementConfig(
+        DeviceManagementConnectionServiceClass.parseJsonObject(
+          data.body["config"],
+          "Settings",
+        ),
+        { requireTenant: true, provider },
+      );
 
       const secrets: DeviceManagementSecretValues =
         DeviceManagementConnectionServiceClass.readSecrets(
           data.body["secrets"],
-          { required: true, provider },
+          { required: true, provider, config },
         );
 
       return {
         provider,
         apiKey: secrets.apiKey || "",
         ...(secrets.clientSecret ? { clientSecret: secrets.clientSecret } : {}),
-        config: validateDeviceManagementConfig(
-          DeviceManagementConnectionServiceClass.parseJsonObject(
-            data.body["config"],
-            "Settings",
-          ),
-          { requireTenant: true, provider },
-        ),
+        ...(secrets.password ? { password: secrets.password } : {}),
+        config,
       };
     }
 
@@ -329,14 +342,6 @@ export default class DeviceManagementConnectionAPI extends BaseAPI<
         })(),
       );
 
-    const provided: DeviceManagementSecretValues =
-      data.body["secrets"] !== undefined
-        ? DeviceManagementConnectionServiceClass.readSecrets(
-            data.body["secrets"],
-            { required: false, provider: stored.provider },
-          )
-        : {};
-
     const config: DeviceManagementConfig =
       data.body["config"] !== undefined
         ? validateDeviceManagementConfig(
@@ -361,13 +366,37 @@ export default class DeviceManagementConnectionAPI extends BaseAPI<
       );
     }
 
-    const clientSecret: string | undefined =
-      provided.clientSecret || stored.clientSecret;
+    const provided: DeviceManagementSecretValues =
+      data.body["secrets"] !== undefined
+        ? DeviceManagementConnectionServiceClass.readSecrets(
+            data.body["secrets"],
+            { required: false, provider: stored.provider, config },
+          )
+        : {};
+
+    /*
+     * The rule a save applies to the secrets: one left empty keeps the
+     * stored one - unless the connection signs in another way now, whose
+     * secrets are all new.
+     */
+    const isSameSignIn: boolean =
+      (config.authMethod || "") === (stored.config.authMethod || "");
+    const secrets: DeviceManagementSecretValues = {};
+
+    for (const rule of getDeviceManagementSecretRules(
+      stored.provider,
+      config,
+    )) {
+      secrets[rule.key] =
+        provided[rule.key] ||
+        rule.read(isSameSignIn ? stored[rule.key] : undefined);
+    }
 
     return {
       provider: stored.provider,
-      apiKey: provided.apiKey || stored.apiKey,
-      ...(clientSecret ? { clientSecret } : {}),
+      apiKey: secrets.apiKey || "",
+      ...(secrets.clientSecret ? { clientSecret: secrets.clientSecret } : {}),
+      ...(secrets.password ? { password: secrets.password } : {}),
       config,
     };
   }

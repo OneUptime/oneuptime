@@ -148,7 +148,7 @@ UDP पर, हर संदेश ज़्यादा से ज़्या�
 | `mcpOAuthGrantId`, `mcpClientName` | वह MCP क्लाइंट जिसके ज़रिए बदलाव किया गया, अगर कोई हो। |
 | `workflowId`, `workflowName` | वह वर्कफ़्लो जिसने बदलाव किया, अगर कोई हो। |
 | `workflowRunAs`, `workflowRunAsCustomRoleName` | संस्करण 3 में, वर्कफ़्लो का चरण किस रूप में चला: `Default`, `ProjectOwner` या `CustomRole`, और उस समय भूमिका का नाम। |
-| `workflowRunAsGivenByUserId`, `workflowRunAsGivenByApiKeyId`, `workflowRunAsGivenByName` | संस्करण 3 में, वह किसकी अनुमतियों के साथ चला: व्यक्ति या प्रोजेक्ट की API कुंजी की id, और उस समय उसका नाम। जब बदलाव किसी वर्कफ़्लो ने नहीं किया, तो इन पाँचों कुंजियों में से हर एक `null` होती है। |
+| `workflowRunAsGiverUserId`, `workflowRunAsGiverApiKeyId`, `workflowRunAsGiverName` | संस्करण 3 में, वह किसकी अनुमतियों के साथ चला: व्यक्ति या प्रोजेक्ट की API कुंजी की id, और उस समय उसका नाम। जब बदलाव किसी वर्कफ़्लो ने नहीं किया, तो इन पाँचों कुंजियों में से हर एक `null` होती है। |
 | `changes` | हर बदला गया फ़ील्ड: `field`, `oldValue` और `newValue` के साथ, और संस्करण 2 में `summary`। |
 
 एक फ़ाइल में हर पंक्ति में एक एंट्री होती है, gzip से कंप्रेस की हुई, और उसे उसकी पहली एंट्री के घंटे के हिसाब से रखा जाता है: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`।

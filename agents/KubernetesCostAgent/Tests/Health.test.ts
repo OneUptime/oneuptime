@@ -723,3 +723,44 @@ test("/healthz never shows the credentials in a Prometheus's address", (): void 
   });
   assert.deepStrictEqual(describeCostPrometheus(undefined), {});
 });
+
+/*
+ * #9969: the hours read again once a Kubecost reconciled them with the cloud
+ * bill, as /healthz says them: how many wait, how many were corrected, and
+ * why the last reading could not be made.
+ */
+test("/healthz says how the later readings of reconciled hours go", async (): Promise<void> => {
+  stubs.poller = pollerStatus({
+    startedAtMs: Date.now(),
+    corrections: {
+      windowsToReadAgain: 61,
+      windowsCorrected: 12,
+      lastCorrectionError: "the engine did not answer: HTTP 502",
+    },
+  });
+  stubs.shipper = shipperStatus();
+
+  const res: { statusCode: number; body: string } = await get("/healthz");
+  const body: Record<string, unknown> = JSON.parse(res.body) as Record<
+    string,
+    unknown
+  >;
+
+  assert.deepStrictEqual(body["costCorrections"], {
+    windowsToReadAgain: 61,
+    windowsCorrected: 12,
+    lastCorrectionError: "the engine did not answer: HTTP 502",
+  });
+  // A reading that could not be made is no reason to be unready.
+  assert.strictEqual(res.statusCode, 200);
+  assert.strictEqual(body["status"], "ok");
+});
+
+test("/healthz says nothing of later readings for an engine that does not reconcile", async (): Promise<void> => {
+  stubs.poller = pollerStatus({ startedAtMs: Date.now() });
+  stubs.shipper = shipperStatus();
+
+  const res: { statusCode: number; body: string } = await get("/healthz");
+
+  assert.ok(!("costCorrections" in JSON.parse(res.body)));
+});

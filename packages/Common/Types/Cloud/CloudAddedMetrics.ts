@@ -109,6 +109,14 @@ export interface CloudAddedMetric {
  */
 export const CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES: number = 10;
 
+/*
+ * Google Cloud bills every series a call returns, and timeSeries.list has
+ * no top-N, so a split is read for each resource's busiest values alone
+ * (#10076): learned over the last hour, once an hour, by a PromQL topk that
+ * returns those alone. What it costs counts them (CloudConnectionCost).
+ */
+export const GCP_SPLIT_LEARN_EVERY_MINUTES: number = 60;
+
 // Google Cloud: the aligners a split read can add a metric's other labels up with.
 export const GCP_SPLIT_ALIGNERS: ReadonlyArray<string> = [
   "ALIGN_RATE",
@@ -514,6 +522,15 @@ export const CLOUD_ADDED_METRIC_REFUSALS: Readonly<Record<string, string>> = {
     "This metric cannot be split that way: its cloud did not list that dimension for it. Pick one of the dimensions listed.",
   splitRequired:
     "Its cloud reads this metric only split by one of its dimensions. Pick one to split it by.",
+  // Keeping a type's addition for some of its resources alone (#10078).
+  keepForNotTypeWide:
+    "This metric is not added for every resource of its type, so there is nothing to keep it for. Remove it instead.",
+  keepForNone: "Pick the resources to keep this metric for: none were named.",
+  keepForOtherResource:
+    "This metric can be kept only for resources of its type that this cloud connection reads. Open the list again and pick from it.",
+  keepForUnknownResource:
+    "One of those resources is not known well enough yet to read this metric for it alone: what its cloud knows it by arrives with its next metrics. Keep the metric for every resource for now.",
+  keepForConnectionFull: `Kept for each of those resources on its own, this cloud connection would read more than ${CLOUD_MAX_ADDED_METRICS_PER_CONNECTION} added metrics. Remove another added metric first, or keep this one for every resource.`,
 };
 
 /*
@@ -704,6 +721,139 @@ export function addCloudAddedMetric(data: {
   }
 
   return [...added, metric];
+}
+
+/*
+ * KEEPING A TYPE'S ADDITION FOR SOME OF ITS RESOURCES ALONE (#10078).
+ *
+ * A metric added for every resource of its type is read, and billed, for
+ * each of them, while a monitor or a chart often reads it of a few. Kept
+ * for those alone, the type's addition is replaced by each one's own
+ * addition of the same metric, read the same way - its aggregation, grain,
+ * unit and split - so their readers get the same data and the rest stop
+ * costing anything. Each resource keeps as many additions as it had (its
+ * own takes the place of its type's), so only the connection's cap can be
+ * met: refused then, with why.
+ */
+export function keepCloudAddedMetricFor(data: {
+  added: ReadonlyArray<CloudAddedMetric>;
+  // The type's addition.
+  key: string;
+  // Each resource it is kept for: its row, and what its cloud knows it by.
+  resources: ReadonlyArray<
+    Pick<
+      CloudAddedMetric,
+      | "cloudResourceId"
+      | "azureResourceId"
+      | "accountId"
+      | "region"
+      | "dimensions"
+      | "resourceLabels"
+    >
+  >;
+  // Its unit, where the reads learned one since it was added (#10077).
+  unit?: string | undefined;
+}): Array<CloudAddedMetric> {
+  const typeWide: CloudAddedMetric | undefined = data.added.find(
+    (metric: CloudAddedMetric): boolean => {
+      return (
+        metric.key === data.key && metric.scope === CloudAddedMetricScope.Type
+      );
+    },
+  );
+
+  if (!typeWide) {
+    throw new BadDataException(
+      CLOUD_ADDED_METRIC_REFUSALS["keepForNotTypeWide"]!,
+    );
+  }
+
+  const rest: Array<CloudAddedMetric> = data.added.filter(
+    (metric: CloudAddedMetric): boolean => {
+      return metric.key !== typeWide.key;
+    },
+  );
+  const keys: Set<string> = new Set<string>(
+    rest.map((metric: CloudAddedMetric): string => {
+      return metric.key;
+    }),
+  );
+  const own: Array<CloudAddedMetric> = [];
+
+  for (const resource of data.resources) {
+    if (!resource.cloudResourceId) {
+      continue;
+    }
+
+    const metric: CloudAddedMetric = {
+      key: "",
+      provider: typeWide.provider,
+      scope: CloudAddedMetricScope.Resource,
+      resourceType: typeWide.resourceType,
+      name: typeWide.name,
+      aggregation: typeWide.aggregation,
+      unit: data.unit || typeWide.unit,
+      addedAt: typeWide.addedAt,
+      ...(typeWide.namespace ? { namespace: typeWide.namespace } : {}),
+      ...(typeWide.grain ? { grain: typeWide.grain } : {}),
+      ...(typeWide.splitBy ? { splitBy: typeWide.splitBy } : {}),
+      ...(typeWide.resourceLabelKeys
+        ? { resourceLabelKeys: [...typeWide.resourceLabelKeys] }
+        : {}),
+      ...(typeWide.addedByUserId
+        ? { addedByUserId: typeWide.addedByUserId }
+        : {}),
+      cloudResourceId: resource.cloudResourceId,
+      ...(resource.azureResourceId
+        ? { azureResourceId: resource.azureResourceId }
+        : {}),
+      ...(resource.accountId ? { accountId: resource.accountId } : {}),
+      ...(resource.region ? { region: resource.region } : {}),
+      ...(resource.dimensions
+        ? {
+            dimensions: resource.dimensions.map(
+              (dimension: CloudAddedMetricDimension) => {
+                return { name: dimension.name, value: dimension.value };
+              },
+            ),
+          }
+        : {}),
+      ...(resource.resourceLabels
+        ? { resourceLabels: { ...resource.resourceLabels } }
+        : {}),
+    };
+
+    metric.key = getCloudAddedMetricKey(metric);
+
+    // Read by what its cloud knows it as: refused while that is not known.
+    try {
+      validateCloudAddedMetric(metric);
+    } catch {
+      throw new BadDataException(
+        CLOUD_ADDED_METRIC_REFUSALS["keepForUnknownResource"]!,
+      );
+    }
+
+    // Once each: a resource named twice, or read so already, adds nothing.
+    if (keys.has(metric.key)) {
+      continue;
+    }
+
+    keys.add(metric.key);
+    own.push(metric);
+  }
+
+  if (own.length === 0) {
+    throw new BadDataException(CLOUD_ADDED_METRIC_REFUSALS["keepForNone"]!);
+  }
+
+  if (rest.length + own.length > CLOUD_MAX_ADDED_METRICS_PER_CONNECTION) {
+    throw new BadDataException(
+      CLOUD_ADDED_METRIC_REFUSALS["keepForConnectionFull"]!,
+    );
+  }
+
+  return [...rest, ...own];
 }
 
 // The connection's additions without the one of this key.

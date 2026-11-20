@@ -148,7 +148,7 @@ OneUptime هر دسته را با POST به **URL** می‌فرستد، به ش�
 | `mcpOAuthGrantId`, `mcpClientName` | کلاینت MCPای که تغییر از راه آن انجام شد، اگر بود. |
 | `workflowId`, `workflowName` | گردش کاری‌ای که تغییر را انجام داد، اگر بود. |
 | `workflowRunAs`, `workflowRunAsCustomRoleName` | در نسخهٔ ۳، اینکه گام گردش کاری به چه عنوانی اجرا شد: `Default`، `ProjectOwner` یا `CustomRole`، و نام نقش در آن زمان. |
-| `workflowRunAsGivenByUserId`, `workflowRunAsGivenByApiKeyId`, `workflowRunAsGivenByName` | در نسخهٔ ۳، اینکه با مجوزهای چه کسی اجرا شد: شناسهٔ شخص یا کلید API پروژه، و نام آن در آن زمان. هر یک از این پنج کلید `null` است وقتی هیچ گردش کاری‌ای تغییر را انجام نداده باشد. |
+| `workflowRunAsGiverUserId`, `workflowRunAsGiverApiKeyId`, `workflowRunAsGiverName` | در نسخهٔ ۳، اینکه با مجوزهای چه کسی اجرا شد: شناسهٔ شخص یا کلید API پروژه، و نام آن در آن زمان. هر یک از این پنج کلید `null` است وقتی هیچ گردش کاری‌ای تغییر را انجام نداده باشد. |
 | `changes` | هر فیلد تغییریافته: `field`، با `oldValue` و `newValue`، و در نسخهٔ ۲ `summary`. |
 
 هر فایل در هر خط یک مورد دارد، با gzip فشرده می‌شود، و بر پایهٔ ساعت نخستین موردش بایگانی می‌شود: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.

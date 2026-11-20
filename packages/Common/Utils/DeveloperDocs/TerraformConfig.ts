@@ -5,6 +5,7 @@ import {
   canLookUpByName,
   getNameColumn,
   getTerraformAttributes,
+  getTerraformProviderAttributeName,
   getTerraformTypeName,
   TerraformAttributeDescriptor,
   TerraformSecretKind,
@@ -58,8 +59,6 @@ const MAX_LOCAL_NAME_LENGTH: number = 40;
 export enum TerraformOmissionReason {
   Secret = "secret",
   Hashed = "hashed",
-  // Named like a Terraform meta-argument (`provider`), so it cannot be written.
-  ReservedName = "reserved-name",
   ServerManaged = "server-managed",
   Unsupported = "unsupported",
   // Set only at creation, or only on update, and not configuration we can carry safely.
@@ -91,8 +90,6 @@ export interface TerraformResourceConfig {
   dataSourceHcl: string;
   variables: Array<TerraformSecretVariable>;
   omittedSecrets: Array<TerraformOmittedAttribute>;
-  // Attributes with a value that Terraform cannot set: see isReservedName.
-  omittedReserved: Array<TerraformOmittedAttribute>;
 }
 
 /*
@@ -505,11 +502,46 @@ function orderAttributes(
     });
 }
 
+// An attribute a record's configuration sets, and the value it sets.
+export interface TerraformRecordAttribute {
+  descriptor: TerraformAttributeDescriptor;
+  // A required secret's is the variable it is read from.
+  value: HclExpression;
+  // The name of the record an id stands for.
+  comment?: string | undefined;
+}
+
 /*
- * One existing resource as Terraform configuration, from its API JSON
- * (BaseModel.toJSON). Null when the model has no Terraform resource.
+ * What a record's configuration says, before it is printed: every attribute
+ * it sets, by the rules above, in the order it sets them. Shared by the
+ * Terraform page (getTerraformResourceConfig) and the Crossplane page, whose
+ * manifest sets the same fields (CrossplaneConfig), so a record is written
+ * the same way for both.
  */
-export function getTerraformResourceConfig(data: {
+export interface TerraformRecordBody {
+  typeName: string;
+  id: string;
+  displayName: string | null;
+  localName: string;
+  // `monitor "Checkout API"`, or `this monitor`.
+  resourceLabel: string;
+  attributes: Array<TerraformRecordAttribute>;
+  variables: TerraformVariableCollector;
+  omittedSecrets: Array<TerraformOmittedAttribute>;
+  /*
+   * The attributes the record has a value of that are left to OneUptime,
+   * because it changes them too (ServerOwned.Shared): the labels a label
+   * rule adds. Left out, the provider keeps OneUptime's value; the
+   * Crossplane page names them, so nobody wonders where they went.
+   */
+  omittedShared: Array<TerraformAttributeDescriptor>;
+}
+
+/*
+ * One existing record's attributes, from its API JSON (BaseModel.toJSON).
+ * Null when the model has no Terraform resource.
+ */
+export function getTerraformRecordBody(data: {
   modelType: DatabaseBaseModelType;
   // The record's API JSON. Must include `_id`.
   json: Record<string, unknown>;
@@ -520,13 +552,13 @@ export function getTerraformResourceConfig(data: {
    * (`incident_severity_id = "..." # Critical Incident`).
    */
   describeId?: TerraformIdDescriber | undefined;
-}): TerraformResourceConfig | null {
+}): TerraformRecordBody | null {
   const typeName: string | null = getTerraformTypeName(data.modelType);
-  const attributes: Array<TerraformAttributeDescriptor> =
+  const descriptors: Array<TerraformAttributeDescriptor> =
     getTerraformAttributes(data.modelType);
   const id: string | null = apiId(data.json["_id"]);
 
-  if (!typeName || attributes.length === 0 || !id) {
+  if (!typeName || descriptors.length === 0 || !id) {
     return null;
   }
 
@@ -535,7 +567,6 @@ export function getTerraformResourceConfig(data: {
     data.displayName ?? (nameColumn ? apiString(data.json[nameColumn]) : null);
   const shortTypeName: string = getTerraformShortTypeName(typeName);
   const localName: string = getTerraformLocalName(displayName, shortTypeName);
-  const address: string = `${typeName}.${localName}`;
   const noun: string = toSentenceCaseName(
     new data.modelType().singularName || shortTypeName.replace(/_/g, " "),
   );
@@ -545,11 +576,11 @@ export function getTerraformResourceConfig(data: {
 
   const variables: TerraformVariableCollector =
     new TerraformVariableCollector();
-  const body: Array<HclBodyItem> = [];
+  const attributes: Array<TerraformRecordAttribute> = [];
   const omittedSecrets: Array<TerraformOmittedAttribute> = [];
-  const omittedReserved: Array<TerraformOmittedAttribute> = [];
+  const omittedShared: Array<TerraformAttributeDescriptor> = [];
 
-  for (const descriptor of orderAttributes(attributes, nameColumn)) {
+  for (const descriptor of orderAttributes(descriptors, nameColumn)) {
     const value: unknown = data.json[descriptor.columnName];
     const valuePresent: boolean = hasValue(descriptor, value);
 
@@ -564,15 +595,13 @@ export function getTerraformResourceConfig(data: {
        * still applies; any other is left to the server.
        */
       if (descriptor.isRequired) {
-        body.push(
-          Hcl.attribute(
-            descriptor.attributeName,
-            variables.add(
-              `${localName}_${descriptor.attributeName}`,
-              `The ${descriptor.title} of ${resourceLabel}.`,
-            ),
+        attributes.push({
+          descriptor,
+          value: variables.add(
+            `${localName}_${descriptor.attributeName}`,
+            `The ${descriptor.title} of ${resourceLabel}.`,
           ),
-        );
+        });
       } else {
         omittedSecrets.push({
           attributeName: descriptor.attributeName,
@@ -591,19 +620,6 @@ export function getTerraformResourceConfig(data: {
       continue;
     }
 
-    /*
-     * `provider = "EKS"` in a resource block is Terraform's provider
-     * meta-argument, and fails validation: the value stays in OneUptime.
-     */
-    if (descriptor.isReservedName) {
-      omittedReserved.push({
-        attributeName: descriptor.attributeName,
-        title: descriptor.title,
-        reason: TerraformOmissionReason.ReservedName,
-      });
-      continue;
-    }
-
     const hasDefault: boolean = descriptor.defaultValue !== undefined;
 
     if (hasDefault && isDefaultValue(descriptor, value)) {
@@ -611,6 +627,10 @@ export function getTerraformResourceConfig(data: {
     }
 
     if (!descriptor.isRequired && descriptor.isServerManaged) {
+      if (descriptor.isChangedByOneUptimeToo) {
+        omittedShared.push(descriptor);
+      }
+
       continue;
     }
 
@@ -640,28 +660,65 @@ export function getTerraformResourceConfig(data: {
     });
 
     if (hclValue) {
-      body.push(
-        Hcl.attribute(
-          descriptor.attributeName,
-          hclValue.value,
-          hclValue.comment,
-        ),
-      );
+      attributes.push({
+        descriptor,
+        value: hclValue.value,
+        comment: hclValue.comment,
+      });
     }
   }
 
-  if (omittedReserved.length > 0) {
-    body.push(Hcl.blank());
-    body.push(
-      Hcl.comment(
-        `Not set here, because Terraform reserves the name: ${omittedReserved
-          .map((omitted: TerraformOmittedAttribute): string => {
-            return omitted.attributeName;
-          })
-          .join(", ")}.\nIt stays as it is in OneUptime.`,
-      ),
-    );
+  return {
+    typeName,
+    id,
+    displayName,
+    localName,
+    resourceLabel,
+    attributes,
+    variables,
+    omittedSecrets,
+    omittedShared,
+  };
+}
+
+/*
+ * One existing resource as Terraform configuration, from its API JSON
+ * (BaseModel.toJSON). Null when the model has no Terraform resource.
+ */
+export function getTerraformResourceConfig(data: {
+  modelType: DatabaseBaseModelType;
+  // The record's API JSON. Must include `_id`.
+  json: Record<string, unknown>;
+  // The record's display name; read from the JSON's name column when left out.
+  displayName?: string | null | undefined;
+  /*
+   * The names of the records its ids point at, for a comment after each id
+   * (`incident_severity_id = "..." # Critical Incident`).
+   */
+  describeId?: TerraformIdDescriber | undefined;
+}): TerraformResourceConfig | null {
+  const record: TerraformRecordBody | null = getTerraformRecordBody(data);
+
+  if (!record) {
+    return null;
   }
+
+  const { typeName, id, localName, variables, omittedSecrets } = record;
+  const address: string = `${typeName}.${localName}`;
+  /*
+   * An attribute named like a meta-argument by the name the provider gives
+   * it: `provider = "aws"` in a resource block is Terraform's own provider
+   * meta-argument, `provider_value = "aws"` the cloud account's provider.
+   */
+  const body: Array<HclBodyItem> = record.attributes.map(
+    (attribute: TerraformRecordAttribute): HclBodyItem => {
+      return Hcl.attribute(
+        getTerraformProviderAttributeName(attribute.descriptor.attributeName),
+        attribute.value,
+        attribute.comment,
+      );
+    },
+  );
 
   if (omittedSecrets.length > 0) {
     body.push(Hcl.blank());
@@ -712,7 +769,6 @@ export function getTerraformResourceConfig(data: {
     ]),
     variables: variables.variables,
     omittedSecrets,
-    omittedReserved,
   };
 }
 

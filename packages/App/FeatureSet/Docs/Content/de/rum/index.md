@@ -44,7 +44,7 @@ Das Seitenmenü einer Anwendung gliedert ihre Seiten so; **Entwickler** und **Er
 | **Observability** | **Metriken**, **Protokolle**, **Traces**, **Clients** |
 | **Produktanalyse** | **Benutzer**, **Sitzungen**, **Ereignisse**, **Trichter**, **Benutzerbindung**, **Benutzerflüsse**, **Analyseeinstellungen** |
 | **Sitzungswiedergabe** | **Sitzungswiedergabe**, **Benutzer der Wiedergabe**, **Integrität**, **Wiedergaberichtlinie**, **Frustrationssignale**, **Zugriffsprotokoll der Wiedergaben**, **Dokumentation** |
-| **Entwickler** | **Terraform**, **API**, **CLI**, **KI-Assistenten** |
+| **Entwickler** | **Terraform**, **Crossplane**, **API**, **CLI**, **KI-Assistenten** |
 | **Erweitert** | **Einstellungen**, **Audit-Protokolle**, **Anwendung löschen** |
 
 ## Wie OneUptime RUM erkennt

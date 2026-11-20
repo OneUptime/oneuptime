@@ -85,6 +85,10 @@ describe("the App Platforms product menu", () => {
         title: "Terraform",
         href: `${APP_PLATFORMS}/environments/developer/terraform`,
       },
+      {
+        title: "Crossplane",
+        href: `${APP_PLATFORMS}/environments/developer/crossplane`,
+      },
       { title: "API", href: `${APP_PLATFORMS}/environments/developer/api` },
       { title: "CLI", href: `${APP_PLATFORMS}/environments/developer/cli` },
       {
@@ -172,6 +176,7 @@ describe("an environment's menu", () => {
     ]);
     expect(linksIn("Developer")).toEqual([
       { title: "Terraform", href: `${ENVIRONMENT_PATH}/developer/terraform` },
+      { title: "Crossplane", href: `${ENVIRONMENT_PATH}/developer/crossplane` },
       { title: "API", href: `${ENVIRONMENT_PATH}/developer/api` },
       { title: "CLI", href: `${ENVIRONMENT_PATH}/developer/cli` },
       {
