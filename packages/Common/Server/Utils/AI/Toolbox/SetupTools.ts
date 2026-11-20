@@ -1400,10 +1400,17 @@ export interface PagingResponders {
   people: Array<{ id: string; name: string }>;
   teams: Array<{ id: string; name: string }>;
   /*
-   * Addresses the same plan invites to the project (#7242), lower case:
-   * paged once they join.
+   * Addresses invited to the project whose person has not joined yet, lower
+   * case: the same plan invites them (#7242), or the project invited them
+   * before (#10412). Paged once they join.
    */
   invited: Array<string>;
+  /*
+   * Of those, the ones invited before this plan, each with the user its
+   * invitation made (readInvitedPeople): who the level pages already is
+   * read by them.
+   */
+  invitedEarlier: Array<InvitedPerson>;
   // Names that are no member or team of the project.
   notFound: Array<string>;
 }
@@ -1437,7 +1444,11 @@ export function getEmailsInvitedInPlan(
  * The people and teams a call names, matched to the project's members (by
  * name or email, without case) and teams (by name), as the person reads
  * them. The person asking is "you", however they are named. An address the
- * same plan invites (invitedInPlan) is invited, not unknown.
+ * project has invited, and whose person has not joined yet, is invited, not
+ * unknown (#10412): read as the person reads the project's memberships, by
+ * the address the invitation was sent to - so an invitation they may not
+ * read is not found, and no other address ever is. So is an address the
+ * same plan invites (invitedInPlan, #7242).
  */
 async function resolveResponders(
   ctx: ToolContext,
@@ -1461,6 +1472,7 @@ async function resolveResponders(
     people: [],
     teams: [],
     invited: [],
+    invitedEarlier: [],
     notFound: [],
   };
 
@@ -1479,20 +1491,48 @@ async function resolveResponders(
 
     await addMemberUsers(ctx, members);
 
+    const memberNamed: (asked: string) => TeamMember | undefined = (
+      asked: string,
+    ): TeamMember | undefined => {
+      const lower: string = asked.toLowerCase();
+
+      return members.find((each: TeamMember): boolean => {
+        return (
+          Boolean(each.userId) &&
+          ((each.user?.name?.toString() || "").trim().toLowerCase() === lower ||
+            (each.user?.email?.toString() || "").trim().toLowerCase() === lower)
+        );
+      });
+    };
+
+    /*
+     * The addresses no member has: someone the project invited earlier is
+     * among them while their invitation waits (#10412).
+     */
+    const invitedEarlier: Array<InvitedPerson> = await readInvitedPeople(
+      ctx,
+      peopleNames.filter((asked: string): boolean => {
+        return !memberNamed(asked);
+      }),
+      { waitingOnly: true },
+    );
+
     for (const asked of peopleNames) {
       const lower: string = asked.toLowerCase();
-      const member: TeamMember | undefined = members.find(
-        (each: TeamMember): boolean => {
-          return (
-            (each.user?.name?.toString() || "").trim().toLowerCase() ===
-              lower ||
-            (each.user?.email?.toString() || "").trim().toLowerCase() === lower
-          );
+      const member: TeamMember | undefined = memberNamed(asked);
+      const userId: string = member?.userId?.toString() || "";
+      const invitedPerson: InvitedPerson | undefined = invitedEarlier.find(
+        (person: InvitedPerson): boolean => {
+          return person.email === lower;
         },
       );
-      const userId: string = member?.userId?.toString() || "";
 
-      if ((!member || !userId) && (data.invitedInPlan || []).includes(lower)) {
+      if (!member && invitedPerson) {
+        if (!responders.invited.includes(lower)) {
+          responders.invited.push(lower);
+          responders.invitedEarlier.push(invitedPerson);
+        }
+      } else if (!member && (data.invitedInPlan || []).includes(lower)) {
         if (!responders.invited.includes(lower)) {
           responders.invited.push(lower);
         }
@@ -1567,14 +1607,15 @@ async function readPagingResponders(
 // Someone invited to the project, by the user the invitation made.
 interface InvitedPerson {
   userId: string;
+  // The address they were invited at, lower case.
   email: string;
 }
 
 /*
- * The user ids of addresses invited to the project (#7242), read once the
- * invitation exists - so after the plan's invite_people ran - as the
- * person reads the project's memberships, accepted or not. An address
- * with no membership is left out.
+ * The user ids of addresses invited to the project (#7242, #10412), read
+ * once the invitation exists - so after the plan's invite_people ran - as
+ * the person reads the project's memberships (readInvitedPeople). An
+ * address with no membership is left out.
  */
 async function readInvitedUserIds(
   ctx: ToolContext,
@@ -1587,33 +1628,97 @@ async function readInvitedUserIds(
   );
 }
 
-// The same, each with the address they were invited at.
+/*
+ * AN ADDRESS WITH A LIVE INVITATION TO THIS PROJECT (#7242, #10412): the
+ * person each of `emails` was invited as, each with the address. The only
+ * way Ask AI and the MCP server's setup tools turn an address into someone
+ * a rule may name, and the rule they keep to is the one every write of a
+ * rule's person is held to (ProjectScopedReferenceValidator: a membership
+ * of the project, an invitation still waiting included):
+ *
+ *   - an invitation of this project, made by the same plan or earlier: a
+ *     membership read as the person reads the project's memberships, so an
+ *     invitation they may not read is not found;
+ *   - found by the address the invitation was sent to
+ *     (TeamMember.inviteeEmail, #10175) - never by the address an invitee's
+ *     account has moved to, which the project does not see - and, once it
+ *     is accepted, by its member's own address, as the project sees it;
+ *   - no other address: nothing is ever written for, or sent to, an address
+ *     the project has not invited. Whoever is found is paged only once they
+ *     join (EscalationRuleReach), and told nothing before.
+ *
+ * `waitingOnly` finds the invitations still waiting for their person and no
+ * membership accepted - a member is matched as a member.
+ */
 async function readInvitedPeople(
   ctx: ToolContext,
   emails: ReadonlyArray<string>,
+  options?: { waitingOnly?: boolean | undefined } | undefined,
 ): Promise<Array<InvitedPerson>> {
-  if (emails.length === 0) {
+  const wanted: Array<string> = [];
+
+  for (const email of emails) {
+    const lower: string = email.trim().toLowerCase();
+
+    if (Email.isValid(lower) && !wanted.includes(lower)) {
+      wanted.push(lower);
+    }
+  }
+
+  if (wanted.length === 0) {
     return [];
   }
 
-  const memberships: Array<TeamMember> = await TeamMemberService.findBy({
-    query: { projectId: ctx.projectId },
-    select: { _id: true, userId: true },
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    props: ctx.props,
-  });
+  let memberships: Array<TeamMember> = [];
 
-  await addMemberUsers(ctx, memberships);
+  try {
+    memberships = await TeamMemberService.findBy({
+      query: {
+        projectId: ctx.projectId,
+        ...(options?.waitingOnly ? { hasAcceptedInvitation: false } : {}),
+      },
+      select: {
+        _id: true,
+        userId: true,
+        hasAcceptedInvitation: true,
+        inviteeEmail: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: ctx.props,
+    });
+  } catch (error) {
+    // Memberships the person may not read invite nobody.
+    logger.debug(
+      `Could not read the project's invitations as the person: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+    return [];
+  }
+
+  // Who each accepted membership is: a member is found by their own address.
+  await addMemberUsers(
+    ctx,
+    memberships.filter((membership: TeamMember): boolean => {
+      return Boolean(membership.hasAcceptedInvitation);
+    }),
+  );
 
   const people: Array<InvitedPerson> = [];
 
-  for (const email of emails) {
+  for (const email of wanted) {
     const membership: TeamMember | undefined = memberships.find(
       (each: TeamMember): boolean => {
+        const invitedAt: string = (each.inviteeEmail?.toString() || "")
+          .trim()
+          .toLowerCase();
+        const memberAt: string = each.hasAcceptedInvitation
+          ? (each.user?.email?.toString() || "").trim().toLowerCase()
+          : "";
+
         return (
-          (each.user?.email?.toString() || "").trim().toLowerCase() ===
-          email.toLowerCase()
+          Boolean(each.userId) && (invitedAt === email || memberAt === email)
         );
       },
     );
@@ -1630,6 +1735,47 @@ async function readInvitedPeople(
   }
 
   return people;
+}
+
+/*
+ * The card's lines for the people invited and not joined yet, paged once
+ * they join: those the same plan invites (#7242), and those the project
+ * invited earlier (#10412). Nothing when there is nobody.
+ */
+function describeInvitedForPerson(data: {
+  invited: ReadonlyArray<string>;
+  invitedEarlier: ReadonlyArray<InvitedPerson>;
+}): Array<AIActionSentence> {
+  const isInvitedEarlier: (email: string) => boolean = (
+    email: string,
+  ): boolean => {
+    return data.invitedEarlier.some((person: InvitedPerson): boolean => {
+      return person.email === email;
+    });
+  };
+  const inPlan: Array<string> = data.invited.filter((email: string) => {
+    return !isInvitedEarlier(email);
+  });
+  const earlier: Array<string> = data.invited.filter(isInvitedEarlier);
+  const sentences: Array<AIActionSentence> = [];
+
+  if (inPlan.length > 0) {
+    sentences.push(
+      aiActionSentence(AI_ACTION_LINES.invitedPagedOnceTheyJoin, {
+        names: aiActionList(inPlan.map(plainName)),
+      }),
+    );
+  }
+
+  if (earlier.length > 0) {
+    sentences.push(
+      aiActionSentence(AI_ACTION_LINES.invitedEarlierPagedOnceTheyJoin, {
+        names: aiActionList(earlier.map(plainName)),
+      }),
+    );
+  }
+
+  return sentences;
 }
 
 // Who a policy pages, as one of the three sentences (with or without "you").
@@ -2163,7 +2309,7 @@ export const SetUpPagingTool: ObservabilityTool = {
         type: "array",
         items: { type: "string" },
         description:
-          "Other members of the project to page too, each by the name or email the project knows them by (query_teams lists members by name), or the address of someone invite_people invites in the same answer.",
+          "Other members of the project to page too, each by the name or email the project knows them by (query_teams lists members by name), or by the address they are invited at: someone invited to the project who has not joined yet, or whom invite_people invites in the same answer, is paged once they join.",
       },
       teams: {
         type: "array",
@@ -2245,6 +2391,7 @@ export const SetUpPagingTool: ObservabilityTool = {
       people: [],
       teams: [],
       invited: [],
+      invitedEarlier: [],
       notFound: [],
     };
     // Who is paged next when nobody acknowledges (#7244).
@@ -2253,6 +2400,7 @@ export const SetUpPagingTool: ObservabilityTool = {
       people: [],
       teams: [],
       invited: [],
+      invitedEarlier: [],
       notFound: [],
     };
 
@@ -2318,7 +2466,10 @@ export const SetUpPagingTool: ObservabilityTool = {
       );
     }
 
-    // People the same plan invites: paged once they join (#7242).
+    /*
+     * People invited and not joined yet - by the same plan (#7242), or
+     * earlier (#10412): paged once they join.
+     */
     const invited: Array<string> = [...responders.invited];
 
     for (const email of next.invited) {
@@ -2327,13 +2478,12 @@ export const SetUpPagingTool: ObservabilityTool = {
       }
     }
 
-    if (invited.length > 0) {
-      description.push(
-        aiActionSentence(AI_ACTION_LINES.invitedPagedOnceTheyJoin, {
-          names: aiActionList(invited.map(plainName)),
-        }),
-      );
-    }
+    description.push(
+      ...describeInvitedForPerson({
+        invited: invited,
+        invitedEarlier: [...responders.invitedEarlier, ...next.invitedEarlier],
+      }),
+    );
 
     description.push(...describeEscalationForPerson(escalation));
 
@@ -3036,7 +3186,7 @@ async function checkPolicyAddition(
 export const AddToOnCallPolicyTool: ObservabilityTool = {
   name: "add_to_on_call_policy",
   description:
-    "Add people and teams to an on-call policy the project has, as the guided on-call setup's 'Who else is on call?' does: to a level it has (level 1, the first, by default), or as a new level after its last one, paged when nobody acknowledges within afterMinutes ('page Ana if I don't answer in 5 minutes'). Use it where set_up_paging is not proposed because the project pages people already: query_on_call_policies first, and name the policy by its name. Name people by the name or email the project knows them by, or the address of someone invite_people invites in the same answer. It always shows the person an approval card, in every mode.",
+    "Add people and teams to an on-call policy the project has, as the guided on-call setup's 'Who else is on call?' does: to a level it has (level 1, the first, by default), or as a new level after its last one, paged when nobody acknowledges within afterMinutes ('page Ana if I don't answer in 5 minutes'). Use it where set_up_paging is not proposed because the project pages people already: query_on_call_policies first, and name the policy by its name. Name people by the name or email the project knows them by; someone invited to the project who has not joined yet, or whom invite_people invites in the same answer, by the address they are invited at: they are paged once they join. It always shows the person an approval card, in every mode.",
   inputSchema: {
     type: "object",
     properties: {
@@ -3049,7 +3199,7 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
         type: "array",
         items: { type: "string" },
         description:
-          "Members of the project to add, each by the name or email the project knows them by (query_teams lists members).",
+          "Members of the project to add, each by the name or email the project knows them by (query_teams lists members), and people invited who have not joined yet, by the address they are invited at.",
       },
       teams: {
         type: "array",
@@ -3190,6 +3340,17 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
         responders.teams.filter((team: { id: string }): boolean => {
           return !already.teamIds.includes(team.id);
         });
+      /*
+       * Someone invited earlier the level names already (#10412): they are
+       * on it, waiting to join, so nobody is added again.
+       */
+      const invitedThere: Array<string> = responders.invitedEarlier
+        .filter((person: InvitedPerson): boolean => {
+          return already.userIds.includes(person.userId);
+        })
+        .map((person: InvitedPerson): string => {
+          return person.email;
+        });
       const alreadyThere: Array<string> = [
         ...responders.people
           .filter((person: { id: string }): boolean => {
@@ -3198,6 +3359,7 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
           .map((person: { name: string }): string => {
             return person.name;
           }),
+        ...invitedThere,
         ...responders.teams
           .filter((team: { id: string }): boolean => {
             return already.teamIds.includes(team.id);
@@ -3228,7 +3390,9 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
         teams: newTeams.map((team: { name: string }): string => {
           return team.name;
         }),
-        invitedEmails: responders.invited,
+        invitedEmails: responders.invited.filter((email: string): boolean => {
+          return !invitedThere.includes(email);
+        }),
       };
 
       const description: Array<AIActionSentence> = [];
@@ -3270,13 +3434,12 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
         );
       }
 
-      if (addition.invitedEmails.length > 0) {
-        description.push(
-          aiActionSentence(AI_ACTION_LINES.invitedPagedOnceTheyJoin, {
-            names: aiActionList(addition.invitedEmails.map(plainName)),
-          }),
-        );
-      }
+      description.push(
+        ...describeInvitedForPerson({
+          invited: addition.invitedEmails,
+          invitedEarlier: responders.invitedEarlier,
+        }),
+      );
 
       if (responders.notFound.length > 0) {
         description.push(

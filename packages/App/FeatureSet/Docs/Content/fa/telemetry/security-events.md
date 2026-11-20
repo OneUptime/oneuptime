@@ -250,6 +250,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | Okta System Log | رویدادهای ورود، MFA، حساب و سیاست | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | ورودها، تغییرات دایرکتوری و تشخیص‌های ریسک، در صورت انتخاب ورودهای ناموفق پس‌زمینه و برنامه‌ها، و از لاگ ممیزی Microsoft 365 بازارسال ایمیل، اشتراک‌گذاری و حکم‌های فیشینگ | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | ورودها، یافته‌های خود Google، تغییرات مدیریتی و دسترسی‌های داده‌شده به برنامه‌ها، و اشتراک‌گذاری در Drive | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | آنچه فایروالش در لبه مسدود کرد، به چالش کشید و ثبت کرد، به‌صورت HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - هشدارهای خود محصول در سطح **بازکردن پرونده از** یا بالاتر از آن (**بالا و بالاتر** ، مگر اینکه سطح دیگری برگزینید، یا **هرگز** ) [پرونده](/docs/telemetry/security-cases) باز می‌کنند، که بر پایهٔ کاربر، میزبان یا نشانی‌ای که دربارهٔ آن‌اند گروه‌بندی می‌شوند.
 - یک اتصال رکوردها را بر پایهٔ زمانی می‌خواند که محصول آن‌ها را ساخته است، نه زمان فعالیتی که توصیف می‌کنند. قاعدهٔ SIEMی که ساعتی یک بار اجرا می‌شود، تشخیص‌ها را مدت‌ها پس از رویدادهایی که با آن‌ها تطابق داشته می‌سازد، و آن‌ها باز هم وارد می‌شوند.

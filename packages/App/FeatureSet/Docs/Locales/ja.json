@@ -499,6 +499,7 @@
     "Okta System Log": "Okta システムログ",
     "Microsoft Entra ID": "Microsoft Entra ID",
     "Google Workspace": "Google Workspace",
+    "Cloudflare": "Cloudflare",
     "Global SSO": "グローバル SSO",
     "Import and Export Label Rules": "ラベルルールのインポートとエクスポート",
     "Run Rules on Existing Resources": "既存のリソースに対してルールを実行する"

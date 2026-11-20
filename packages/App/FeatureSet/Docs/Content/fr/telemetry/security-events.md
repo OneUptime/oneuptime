@@ -250,6 +250,7 @@ Un compte AWS, un projet Google Cloud ou un abonnement Azure [connecté sous **C
 | Okta System Log | Événements de connexion, de MFA, de compte et de stratégie | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | Connexions, modifications d'annuaire et détections de risque, si vous le choisissez les connexions en arrière-plan et d'applications qui ont échoué, et, du journal d'audit Microsoft 365, les transferts de courrier, les partages et les verdicts d'hameçonnage | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Connexions, détections propres à Google, modifications d'administration et accès accordés aux applications, et partages Drive | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | Ce que son pare-feu a bloqué, soumis à un challenge et journalisé en périphérie, en HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - Les alertes propres au produit d'un niveau égal ou supérieur à **Ouvrir des dossiers à partir de** (**Élevé et au-dessus** sauf si vous choisissez un autre niveau, ou **Jamais**) ouvrent des [dossiers](/docs/telemetry/security-cases), regroupées selon l'utilisateur, l'hôte ou l'adresse qu'elles concernent.
 - Une connexion lit les enregistrements selon le moment où le produit les a créés, pas selon le moment de l'activité qu'ils décrivent. Une règle SIEM qui s'exécute toutes les heures crée des détections bien après les événements correspondants, et elles sont tout de même importées.

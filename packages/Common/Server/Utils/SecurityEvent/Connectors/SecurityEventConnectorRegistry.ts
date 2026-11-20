@@ -11,6 +11,7 @@ import OktaConnector from "./Okta/OktaConnector";
 import GoogleSecOpsConnector from "./GoogleSecOps/GoogleSecOpsConnector";
 import MicrosoftEntraIdConnector from "./MicrosoftEntraId/MicrosoftEntraIdConnector";
 import GoogleWorkspaceConnector from "./GoogleWorkspace/GoogleWorkspaceConnector";
+import CloudflareConnector from "./Cloudflare/CloudflareConnector";
 
 /*
  * One connector instance per provider. Connectors are stateless (every
@@ -28,6 +29,7 @@ export default class SecurityEventConnectorRegistry {
     new OktaConnector(),
     new MicrosoftEntraIdConnector(),
     new GoogleWorkspaceConnector(),
+    new CloudflareConnector(),
     new GoogleSecOpsConnector(),
   ];
 
