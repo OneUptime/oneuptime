@@ -13,11 +13,13 @@ import WebsiteDownApi, {
 import {
   FirstCheckSentence,
   WEBSITE_DOWN_COPY,
+  WEBSITE_DOWN_RESOURCE_COPY,
   WEBSITE_DOWN_SETUP,
   WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH,
   WEBSITE_DOWN_TERMS,
   WebsiteAddress,
   WebsiteDownProgressFacts,
+  WebsiteDownResource,
   WebsiteDownRunValue,
   WebsiteDownStatusPageChoice,
   WebsiteDownStep,
@@ -66,9 +68,22 @@ import {
 } from "../AskAiGuidedSetupLinks";
 import Navigation from "Common/UI/Utils/Navigation";
 import GuidedSetupRunStore, {
+  GuidedSetupResourceUpdate,
   GuidedSetupRun,
+  GuidedSetupRunSync,
   getFirstOpenStepKey,
 } from "../GuidedSetupProgress";
+import {
+  GuidedSetupResourceRow,
+  GuidedSetupResourceState,
+  getGuidedSetupResourceStatus,
+} from "../GuidedSetupResources";
+import useGuidedSetupRunSync from "../UseGuidedSetupRunSync";
+import {
+  GuidedSetupResourceStatus,
+  GuidedSetupRunResources,
+} from "Common/Types/GuidedSetup/GuidedSetupRun";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 import AppLink from "../../AppLink/AppLink";
 import MonitorWhoIsToldCard, {
   WhoIsToldCardVariant,
@@ -193,10 +208,17 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       userId: userId,
     });
   }, [userId]);
+  // Whether the run is saved to the person's account (#7253), for the panel.
+  const runSync: GuidedSetupRunSync = useGuidedSetupRunSync(store);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
   const [run, setRun] = useState<GuidedSetupRun>({});
+  /*
+   * How each record the run makes is getting on (#10276), kept with the
+   * run: the panel beside the steps draws it.
+   */
+  const [resources, setResources] = useState<GuidedSetupRunResources>({});
   const [monitor, setMonitor] = useState<WebsiteDownMonitorRecord | null>(null);
   const [check, setCheck] = useState<FirstCheckState | null>(null);
   const [whoFacts, setWhoFacts] = useState<WhoIsToldFacts | null>(null);
@@ -319,10 +341,24 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       ? getWhoIsToldMode(whoFacts)
       : WhoIsToldMode.OwnerEmailOnly;
 
-  const saveRun: (values: Record<string, string | boolean | null>) => void = (
+  const saveRun: (
     values: Record<string, string | boolean | null>,
+    progress?: Record<string, GuidedSetupResourceUpdate | null>,
+  ) => void = (
+    values: Record<string, string | boolean | null>,
+    progress?: Record<string, GuidedSetupResourceUpdate | null>,
   ): void => {
-    setRun(store.save(values));
+    setRun(store.save(values, progress));
+    setResources(store.readResources());
+  };
+
+  // Notes how records are getting on, for the panel (and the server).
+  const track: (
+    progress: Record<string, GuidedSetupResourceUpdate | null>,
+  ) => void = (
+    progress: Record<string, GuidedSetupResourceUpdate | null>,
+  ): void => {
+    setResources(store.track(progress));
   };
 
   // Where a step leads once it is done: the next step not done, or the summary.
@@ -340,7 +376,11 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     let isActive: boolean = true;
 
     const load: () => Promise<void> = async (): Promise<void> => {
-      const stored: GuidedSetupRun = store.read();
+      /*
+       * The server's run (#7253): another device's, a reload's, or this
+       * browser's when OneUptime cannot be reached.
+       */
+      const stored: GuidedSetupRun = await store.load();
       let nextRun: GuidedSetupRun = stored;
       let loadedMonitor: WebsiteDownMonitorRecord | null = null;
       let loadedPolicy: WebsiteDownPolicyRecord | null = null;
@@ -456,6 +496,28 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       }
 
       setRun(nextRun);
+      setResources(store.readResources());
+      setIsExistingMonitor(
+        Boolean(loadedMonitor) &&
+          nextRun[WebsiteDownRunValue.MonitorIsExisting] === true,
+      );
+
+      /*
+       * Step 1 asked again, with what was typed on another device or
+       * before a reload - unless an Ask AI plan opened it with an address.
+       */
+      const runAddress: string | boolean | undefined =
+        nextRun[WebsiteDownRunValue.Address];
+
+      if (
+        !loadedMonitor &&
+        typeof runAddress === "string" &&
+        !Navigation.getQueryStringByName(GUIDED_SETUP_ADDRESS_QUERY)
+      ) {
+        setAddressText(runAddress);
+        setIsApi(nextRun[WebsiteDownRunValue.IsApi] === true);
+      }
+
       setIsOwner(loadedIsOwner);
       setNeedsPayment(loadedNeedsPayment);
       setLocationCount(loadedLocationCount);
@@ -755,6 +817,19 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     setSaveError("");
     setIsSaving(true);
 
+    /*
+     * What was asked for is kept with the run (#7253): another device asks
+     * step 1 again with it typed. A failure from an earlier try is cleared:
+     * this one says how it goes.
+     */
+    saveRun(
+      {
+        [WebsiteDownRunValue.Address]: addressText.trim(),
+        [WebsiteDownRunValue.IsApi]: isApi,
+      },
+      { [WebsiteDownResource.Monitor]: null },
+    );
+
     try {
       /*
        * A monitor this person already has for the address is this run's:
@@ -795,15 +870,40 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
 
       setOtherMonitor(null);
 
-      const monitorId: string = existing
-        ? existing.id
-        : await WebsiteDownApi.createMonitor({
-            address: address,
-            isApi: isApi,
-            translator: translator,
-          });
+      let monitorId: string;
 
-      saveRun({ [WebsiteDownRunValue.MonitorId]: monitorId });
+      if (existing) {
+        monitorId = existing.id;
+      } else {
+        // The panel shows it being made (#10276).
+        track({
+          [WebsiteDownResource.Monitor]: {
+            status: GuidedSetupResourceStatus.Creating,
+            name: address.host,
+          },
+        });
+        monitorId = await WebsiteDownApi.createMonitor({
+          address: address,
+          isApi: isApi,
+          translator: translator,
+        });
+      }
+
+      saveRun(
+        {
+          [WebsiteDownRunValue.MonitorId]: monitorId,
+          [WebsiteDownRunValue.MonitorIsExisting]: Boolean(existing),
+        },
+        {
+          [WebsiteDownResource.Monitor]: {
+            status: existing
+              ? GuidedSetupResourceStatus.Existing
+              : GuidedSetupResourceStatus.Created,
+            recordId: monitorId,
+            name: existing?.name || address.host,
+          },
+        },
+      );
       setNeedsPayment(false);
 
       /*
@@ -845,6 +945,25 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         setMonitor(await WebsiteDownApi.loadMonitor(monitorId));
       }
     } catch (err) {
+      /*
+       * The panel says the monitor was not made, and why, with Try again -
+       * unless it was made and what failed came after, which the step says.
+       */
+      if (typeof store.read()[WebsiteDownRunValue.MonitorId] !== "string") {
+        track({
+          [WebsiteDownResource.Monitor]: {
+            status: GuidedSetupResourceStatus.Failed,
+            name: address.host,
+            error: isPaymentRequired(err)
+              ? getPaymentNeededText({
+                  translator: translator,
+                  mayAddPaymentMethod: mayAddPaymentMethod(),
+                })
+              : API.getFriendlyMessage(err),
+          },
+        });
+      }
+
       if (isPaymentRequired(err)) {
         // Said with where to add one, not as the server's line in red (#7367).
         setNeedsPayment(true);
@@ -1167,7 +1286,14 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     const latestFacts: WhoIsToldFacts =
       await WebsiteDownApi.loadWhoIsToldFacts();
 
-    setRun(store.save({ [WebsiteDownRunValue.PolicyId]: null }));
+    saveRun(
+      { [WebsiteDownRunValue.PolicyId]: null },
+      {
+        [WebsiteDownResource.OnCallPolicy]: null,
+        [WebsiteDownResource.EscalationRule]: null,
+        [WebsiteDownResource.OnCallRules]: null,
+      },
+    );
     setPolicy(null);
     setWhoFacts(
       areWhoIsToldCountsKnown(latestFacts) || !whoFacts
@@ -1270,13 +1396,63 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      // Named in the reader's language, and its two rules too (#7995).
-      const policyId: string = await WebsiteDownApi.createPolicy({
-        userIds: pickedUserIds,
-        teamIds: pickedTeamIds,
-        translator: translator,
+      /*
+       * One request makes the policy, its first escalation rule and the
+       * two rules that run it: the panel shows the three being made, and
+       * made or failed together (#10276).
+       */
+      track({
+        [WebsiteDownResource.OnCallPolicy]: {
+          status: GuidedSetupResourceStatus.Creating,
+          name: getFirstOnCallPolicyName(translator),
+        },
+        [WebsiteDownResource.EscalationRule]: {
+          status: GuidedSetupResourceStatus.Creating,
+        },
+        [WebsiteDownResource.OnCallRules]: {
+          status: GuidedSetupResourceStatus.Creating,
+        },
       });
-      saveRun({ [WebsiteDownRunValue.PolicyId]: policyId });
+
+      let policyId: string;
+
+      try {
+        // Named in the reader's language, and its two rules too (#7995).
+        policyId = await WebsiteDownApi.createPolicy({
+          userIds: pickedUserIds,
+          teamIds: pickedTeamIds,
+          translator: translator,
+        });
+      } catch (err) {
+        // Nothing was made: the policy says why, the two after it wait for it.
+        track({
+          [WebsiteDownResource.OnCallPolicy]: {
+            status: GuidedSetupResourceStatus.Failed,
+            name: getFirstOnCallPolicyName(translator),
+            error: API.getFriendlyMessage(err),
+          },
+          [WebsiteDownResource.EscalationRule]: null,
+          [WebsiteDownResource.OnCallRules]: null,
+        });
+        throw err;
+      }
+
+      saveRun(
+        { [WebsiteDownRunValue.PolicyId]: policyId },
+        {
+          [WebsiteDownResource.OnCallPolicy]: {
+            status: GuidedSetupResourceStatus.Created,
+            recordId: policyId,
+            name: getFirstOnCallPolicyName(translator),
+          },
+          [WebsiteDownResource.EscalationRule]: {
+            status: GuidedSetupResourceStatus.Created,
+          },
+          [WebsiteDownResource.OnCallRules]: {
+            status: GuidedSetupResourceStatus.Created,
+          },
+        },
+      );
       setPolicyGone(null);
       setPolicy(
         (await WebsiteDownApi.loadPolicy(policyId)) || {
@@ -1565,6 +1741,12 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
 
     setSaveError("");
     setIsSaving(true);
+    track({
+      [WebsiteDownResource.StatusPage]: {
+        status: GuidedSetupResourceStatus.Creating,
+        name: pickedStatusPage.name,
+      },
+    });
 
     try {
       await WebsiteDownApi.addToStatusPage({
@@ -1572,14 +1754,30 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         monitorId: monitor.id,
         monitorName: monitor.name,
       });
-      saveRun({
-        [WebsiteDownRunValue.StatusPageId]: pickedStatusPage.id,
-        [WebsiteDownRunValue.StatusPageSkipped]: null,
-      });
+      saveRun(
+        {
+          [WebsiteDownRunValue.StatusPageId]: pickedStatusPage.id,
+          [WebsiteDownRunValue.StatusPageSkipped]: null,
+        },
+        {
+          [WebsiteDownResource.StatusPage]: {
+            status: GuidedSetupResourceStatus.Created,
+            recordId: pickedStatusPage.id,
+            name: pickedStatusPage.name,
+          },
+        },
+      );
       setStatusPageShowing(pickedStatusPage);
       openNextStep(WebsiteDownStep.StatusPage);
     } catch (err) {
       setSaveError(API.getFriendlyMessage(err));
+      track({
+        [WebsiteDownResource.StatusPage]: {
+          status: GuidedSetupResourceStatus.Failed,
+          name: pickedStatusPage.name,
+          error: API.getFriendlyMessage(err),
+        },
+      });
     }
 
     setIsSaving(false);
@@ -1648,7 +1846,10 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
           dataTestId="guided-setup-status-page-not-now"
           onClick={() => {
             setSaveError("");
-            saveRun({ [WebsiteDownRunValue.StatusPageSkipped]: true });
+            saveRun(
+              { [WebsiteDownRunValue.StatusPageSkipped]: true },
+              { [WebsiteDownResource.StatusPage]: null },
+            );
             openNextStep(WebsiteDownStep.StatusPage);
           }}
         />
@@ -1753,29 +1954,192 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     </div>
   );
 
+  /*
+   * WHAT THE SETUP MAKES, for the panel beside the steps (#10276): each
+   * record from what this page knows now and what the run kept, so a
+   * reload or another device draws the same panel.
+   */
+  const stateOf: (
+    key: WebsiteDownResource,
+    facts: {
+      exists: boolean;
+      isExisting?: boolean | undefined;
+      isSkipped?: boolean | undefined;
+    },
+  ) => { status: GuidedSetupResourceStatus; error?: string | undefined } = (
+    key: WebsiteDownResource,
+    facts: {
+      exists: boolean;
+      isExisting?: boolean | undefined;
+      isSkipped?: boolean | undefined;
+    },
+  ): { status: GuidedSetupResourceStatus; error?: string | undefined } => {
+    const state: GuidedSetupResourceState = getGuidedSetupResourceStatus({
+      ...facts,
+      progress: resources[key],
+    });
+
+    return { status: state.status, error: state.error };
+  };
+
+  const monitorRow: GuidedSetupResourceRow = {
+    key: WebsiteDownResource.Monitor,
+    stepKey: WebsiteDownStep.Check,
+    kind: WEBSITE_DOWN_RESOURCE_COPY.monitor,
+    // Named as it will be while the address is typed, as made once it is.
+    name:
+      monitor?.name ||
+      resources[WebsiteDownResource.Monitor]?.name ||
+      parseWebsiteAddress(addressText)?.host,
+    // How often it is checked; the step says what the first check found.
+    detail: monitor
+      ? MonitorCheckScheduleUtil.describeInterval(
+          monitor.monitoringInterval,
+          translator,
+        )
+      : undefined,
+    ...stateOf(WebsiteDownResource.Monitor, {
+      exists:
+        Boolean(monitor) ||
+        typeof run[WebsiteDownRunValue.MonitorId] === "string",
+      isExisting:
+        isExistingMonitor ||
+        run[WebsiteDownRunValue.MonitorIsExisting] === true,
+    }),
+    route: monitor ? routeOf(PageMap.MONITOR_VIEW, monitor.id) : undefined,
+    onRetry: () => {
+      void startChecking();
+    },
+  };
+
+  /*
+   * Step 2: the policy the run makes, with its first escalation rule and
+   * the rules that run it - or the project's own policies, in use.
+   */
+  const whoRows: Array<GuidedSetupResourceRow> = [];
+
+  if (mode === WhoIsToldMode.CreatePolicy) {
+    const isPolicyThere: boolean = Boolean(policy);
+
+    whoRows.push(
+      {
+        key: WebsiteDownResource.OnCallPolicy,
+        stepKey: WebsiteDownStep.WhoIsTold,
+        kind: WEBSITE_DOWN_RESOURCE_COPY.onCallPolicy,
+        name:
+          policy?.name ||
+          resources[WebsiteDownResource.OnCallPolicy]?.name ||
+          getFirstOnCallPolicyName(translator),
+        ...stateOf(WebsiteDownResource.OnCallPolicy, {
+          exists: isPolicyThere,
+        }),
+        route: policy
+          ? routeOf(PageMap.ON_CALL_DUTY_POLICY_VIEW, policy.id)
+          : undefined,
+        onRetry: () => {
+          void saveWhoIsTold();
+        },
+      },
+      {
+        key: WebsiteDownResource.EscalationRule,
+        stepKey: WebsiteDownStep.WhoIsTold,
+        kind: WEBSITE_DOWN_RESOURCE_COPY.escalationRule,
+        detail:
+          policy && policy.responders.length > 0
+            ? translator.translateTemplate(
+                WEBSITE_DOWN_RESOURCE_COPY.escalationRuleDetail,
+                { people: joinList(policy.responders) },
+              )
+            : undefined,
+        ...stateOf(WebsiteDownResource.EscalationRule, {
+          exists: isPolicyThere,
+        }),
+        route: policy
+          ? routeOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION, policy.id)
+          : undefined,
+      },
+      {
+        key: WebsiteDownResource.OnCallRules,
+        stepKey: WebsiteDownStep.WhoIsTold,
+        kind: WEBSITE_DOWN_RESOURCE_COPY.onCallRules,
+        detail:
+          translator.translateText(
+            WEBSITE_DOWN_RESOURCE_COPY.onCallRulesDetail,
+          ) || undefined,
+        ...stateOf(WebsiteDownResource.OnCallRules, {
+          exists: isPolicyThere,
+        }),
+        route: policy
+          ? routeOf(PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES)
+          : undefined,
+      },
+    );
+  } else if (mode === WhoIsToldMode.ExistingPolicy) {
+    whoRows.push({
+      key: WebsiteDownResource.ExistingPolicies,
+      stepKey: WebsiteDownStep.WhoIsTold,
+      kind: WEBSITE_DOWN_RESOURCE_COPY.existingPolicies,
+      detail:
+        translator.translateText(
+          WEBSITE_DOWN_RESOURCE_COPY.existingPoliciesDetail,
+        ) || undefined,
+      status: GuidedSetupResourceStatus.Existing,
+      route: routeOf(PageMap.ON_CALL_DUTY_POLICIES),
+    });
+  }
+
+  // Step 3: the test page, sent, then acknowledged - or skipped.
+  const testRow: GuidedSetupResourceRow = {
+    key: WebsiteDownResource.TestPage,
+    stepKey: WebsiteDownStep.Test,
+    kind: WEBSITE_DOWN_RESOURCE_COPY.testPage,
+    detail: testResult ? getResultSentence(translator, testResult) : undefined,
+    ...(isAcknowledged
+      ? {
+          status: GuidedSetupResourceStatus.Created,
+          statusText: WEBSITE_DOWN_RESOURCE_COPY.acknowledged,
+        }
+      : run[WebsiteDownRunValue.TestSkipped] === true
+        ? { status: GuidedSetupResourceStatus.Skipped }
+        : testResult?.status === OnCallTestPageStatus.Ended ||
+            testResult?.status === OnCallTestPageStatus.Failed
+          ? { status: GuidedSetupResourceStatus.Failed }
+          : executionLogId
+            ? {
+                status: GuidedSetupResourceStatus.Creating,
+                statusText: WEBSITE_DOWN_RESOURCE_COPY.sent,
+              }
+            : { status: GuidedSetupResourceStatus.Waiting }),
+  };
+
   const steps: Array<GuidedSetupFrameStep> = [
     {
       ...progress[0]!,
       title: WEBSITE_DOWN_COPY.checkTitle,
       outcome: WEBSITE_DOWN_COPY.checkOutcome,
       doneLine: checkSentence?.text || monitor?.name,
+      resources: [monitorRow],
       content: checkContent,
     },
     {
       ...progress[1]!,
       title: WEBSITE_DOWN_COPY.whoTitle,
+      description: WEBSITE_DOWN_RESOURCE_COPY.whoDescription,
       outcome: WEBSITE_DOWN_COPY.whoOutcome,
       doneLine: whoDoneLine,
+      resources: whoRows,
       content: whoContent,
     },
     {
       ...progress[2]!,
       title: WEBSITE_DOWN_COPY.testTitle,
+      description: WEBSITE_DOWN_RESOURCE_COPY.testDescription,
       outcome: WEBSITE_DOWN_COPY.testOutcome,
       doneLine:
         isAcknowledged && testResult
           ? getResultSentence(translator, testResult)
           : translator.translateText("Skipped") || "",
+      resources: [testRow],
       content: testContent,
     },
   ];
@@ -1785,10 +2149,36 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     steps.push({
       ...progress[3],
       title: WEBSITE_DOWN_COPY.statusPageTitle,
+      description: WEBSITE_DOWN_RESOURCE_COPY.statusPageDescription,
       outcome: WEBSITE_DOWN_COPY.statusPageOutcome,
       doneLine: statusPageShowing
         ? getStatusPageShownSentence(translator, statusPageShowing.name)
         : translator.translateText(WEBSITE_DOWN_COPY.statusPageNotNow) || "",
+      resources: [
+        {
+          key: WebsiteDownResource.StatusPage,
+          stepKey: WebsiteDownStep.StatusPage,
+          kind: WEBSITE_DOWN_RESOURCE_COPY.statusPage,
+          name:
+            statusPageShowing?.name ||
+            resources[WebsiteDownResource.StatusPage]?.name ||
+            pickedStatusPage?.name,
+          ...stateOf(WebsiteDownResource.StatusPage, {
+            exists: Boolean(statusPageShowing),
+            // It showed the monitor before this run added it.
+            isExisting:
+              Boolean(statusPageShowing) &&
+              run[WebsiteDownRunValue.StatusPageId] !== statusPageShowing?.id,
+            isSkipped: run[WebsiteDownRunValue.StatusPageSkipped] === true,
+          }),
+          route: statusPageShowing
+            ? routeOf(PageMap.STATUS_PAGE_VIEW, statusPageShowing.id)
+            : undefined,
+          onRetry: () => {
+            void addToStatusPage();
+          },
+        },
+      ],
       content: statusPageContent,
     });
   }
@@ -1946,8 +2336,10 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
           icon={IconProp.Add}
           dataTestId="guided-setup-start-over"
           onClick={() => {
+            // Here and on the server: another device starts afresh too.
             store.forget();
             setRun({});
+            setResources({});
             setMonitor(null);
             setPolicy(null);
             setTestResult(null);
@@ -1997,6 +2389,10 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
   return (
     <GuidedSetupFrame
       setup={WEBSITE_DOWN_SETUP}
+      runSync={runSync}
+      onRetryRunSync={() => {
+        store.retry();
+      }}
       steps={steps}
       openStepKey={openStepKey}
       onOpenStep={(key: string) => {
