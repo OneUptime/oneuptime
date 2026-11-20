@@ -190,11 +190,13 @@ function requestOf(argv) {
  * Every form of ONEUPTIME_HTTP_PORT that Compose publishes, as `docker
  * compose config` reads it (StatusCheckIngress.test.js holds the two to
  * each other): where the check connects, the Host it sends, and the address
- * it says it waits at. A port alone, or an address that means every address
- * of the server (none, 0.0.0.0, ::), is published on localhost too; on one
- * address of the server, the check connects to that address and asks for
- * localhost, the name the ingress serves OneUptime under. IPv6 in brackets,
- * as Compose takes it with or without them.
+ * it says it waits at. A port alone, which Docker publishes on every
+ * address, IPv4 and IPv6, and 0.0.0.0, every IPv4 address, are reached at
+ * localhost; ::, which Docker publishes on IPv6 alone, at [::1], as localhost
+ * may name 127.0.0.1 alone. On one address of the server, the check connects
+ * to that address. Each time it asks for localhost, the name the ingress
+ * serves OneUptime under. IPv6 in brackets, as Compose takes it with or
+ * without them.
  */
 const INGRESS_FORMS = [
   ["80", "localhost:80", "localhost", "localhost"],
@@ -202,8 +204,8 @@ const INGRESS_FORMS = [
   ["8080", "localhost:8080", "localhost:8080", "localhost:8080"],
   [":8080", "localhost:8080", "localhost:8080", "localhost:8080"],
   ["0.0.0.0:8080", "localhost:8080", "localhost:8080", "localhost:8080"],
-  ["[::]:8080", "localhost:8080", "localhost:8080", "localhost:8080"],
-  [":::8080", "localhost:8080", "localhost:8080", "localhost:8080"],
+  ["[::]:8080", "[::1]:8080", "localhost:8080", "[::1]:8080"],
+  [":::8080", "[::1]:8080", "localhost:8080", "[::1]:8080"],
   ["127.0.0.1:8080", "127.0.0.1:8080", "localhost:8080", "127.0.0.1:8080"],
   ["127.0.0.1:80", "127.0.0.1:80", "localhost", "127.0.0.1"],
   ["[::1]:8080", "[::1]:8080", "localhost:8080", "[::1]:8080"],
@@ -289,8 +291,27 @@ describe("the address it checks", () => {
     expect(result.output).toContain("OneUptime is up!");
   });
 
+  /*
+   * Docker publishes [::]:8080 on IPv6 alone: 127.0.0.1:8080 is refused
+   * there, and localhost is 127.0.0.1 alone where /etc/hosts gives ::1
+   * another name (Ubuntu's), and for any curl that asks the system for it.
+   */
+  test.each(["[::]:8080", ":::8080"])(
+    "on %s, every IPv6 address, it connects to [::1], whatever localhost names here",
+    (setting) => {
+      const result = statusCheck({
+        config: configWith([`ONEUPTIME_HTTP_PORT=${setting}`]),
+      });
+
+      expect(result.status).toBe(0);
+      for (const argv of result.requests) {
+        expect(optionOf(argv, "--resolve")).toBe("localhost:8080:::1");
+      }
+    },
+  );
+
   test("on every address of the server, curl is told nothing new: the request for localhost goes to localhost", () => {
-    for (const setting of ["8080", "0.0.0.0:8080", "[::]:8080"]) {
+    for (const setting of ["8080", ":8080", "0.0.0.0:8080"]) {
       const result = statusCheck({
         config: configWith([`ONEUPTIME_HTTP_PORT=${setting}`]),
       });
@@ -447,11 +468,14 @@ describeWithCompose(
           return Number(port.target) === 7849;
         });
         const hostIp = published.host_ip || "";
-        const address = ["", "0.0.0.0", "::"].includes(hostIp)
+        // Where this server reaches it: :: is IPv6 alone, so at [::1].
+        const address = ["", "0.0.0.0"].includes(hostIp)
           ? "localhost"
-          : hostIp.includes(":")
-            ? `[${hostIp}]`
-            : hostIp;
+          : hostIp === "::"
+            ? "[::1]"
+            : hostIp.includes(":")
+              ? `[${hostIp}]`
+              : hostIp;
 
         expect(`${address}:${published.published}`).toBe(connectsTo);
       },

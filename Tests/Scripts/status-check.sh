@@ -76,9 +76,11 @@ read_setting() {
 # ("127.0.0.1:8080", "[::1]:8080", "::1:8080", "10.0.0.5:8080"). Like Compose,
 # it takes what follows the last ":" for the port, and what comes before it,
 # without brackets, for the address. Sets INGRESS_ADDRESS, the address to
-# connect to - localhost for none and for one that means every address of the
-# server (0.0.0.0, ::), an IPv6 address in brackets - and INGRESS_PORT, 80
-# when the setting names none.
+# connect to, an IPv6 address in brackets - localhost for none, which Docker
+# publishes on every address, and for 0.0.0.0, every IPv4 address; [::1] for
+# ::, which Docker publishes on IPv6 alone - and INGRESS_PORT, 80 when the
+# setting names none. Scripts/Install/FollowIngressPort.js reads it the same
+# way (publishedIngressOf, connectableAddressOf).
 read_ingress() {
     local setting
     setting=$(read_setting ONEUPTIME_HTTP_PORT)
@@ -97,7 +99,8 @@ read_ingress() {
     INGRESS_ADDRESS="${INGRESS_ADDRESS%\]}"
 
     case "$INGRESS_ADDRESS" in
-        "" | "0.0.0.0" | "::") INGRESS_ADDRESS="localhost" ;;
+        "" | "0.0.0.0") INGRESS_ADDRESS="localhost" ;;
+        "::") INGRESS_ADDRESS="[::1]" ;;
         *:*) INGRESS_ADDRESS="[${INGRESS_ADDRESS}]" ;;
     esac
 

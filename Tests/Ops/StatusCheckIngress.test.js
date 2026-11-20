@@ -435,6 +435,8 @@ describeRuntime("npm start's status check, against the real ingress", () => {
     if (ipv6) {
       forms.push([`[::1]:${ports.ipv6}`, "[::1]", "::1"]);
       forms.push([`::1:${ports.ipv6}`, "[::1]", "::1"]);
+      // Every IPv6 address, which Docker publishes on IPv6 alone: reached at [::1].
+      forms.push([`[::]:${ports.ipv6Any}`, "[::1]", "::1"]);
     }
 
     return forms;
@@ -454,6 +456,7 @@ describeRuntime("npm start's status check, against the real ingress", () => {
       loopback: await freePort("127.0.0.1"),
       specific: await freePort(specific),
       ipv6: ipv6 ? await freePort("::1") : null,
+      ipv6Any: ipv6 ? await freePort("::") : null,
       every: await freePort("0.0.0.0"),
     };
 
@@ -514,6 +517,7 @@ describeRuntime("npm start's status check, against the real ingress", () => {
 
       if (withIpv6) {
         published.push("-p", `[::1]:${ports.ipv6}:${INGRESS_HTTP_PORT}`);
+        published.push("-p", `[::]:${ports.ipv6Any}:${INGRESS_HTTP_PORT}`);
       }
 
       return published;
@@ -680,6 +684,17 @@ describeRuntime("npm start's status check, against the real ingress", () => {
       expect(
         await statusAt("127.0.0.1", ports.ipv6, "/status", "localhost"),
       ).toBe(0);
+      /*
+       * [::] is every IPv6 address and no IPv4 one: Docker publishes it on
+       * IPv6 alone, so the check reaches it at [::1], not at whatever
+       * localhost names.
+       */
+      expect(await statusAt("::1", ports.ipv6Any, "/status", "localhost")).toBe(
+        200,
+      );
+      expect(
+        await statusAt("127.0.0.1", ports.ipv6Any, "/status", "localhost"),
+      ).toBe(0);
     }
   });
 
@@ -707,6 +722,12 @@ describeRuntime("npm start's status check, against the real ingress", () => {
         "::1, without brackets, as Compose takes it too",
         () => {
           return ipv6 ? oneAddressForms()[3] : null;
+        },
+      ],
+      [
+        "[::], every IPv6 address",
+        () => {
+          return ipv6 ? oneAddressForms()[4] : null;
         },
       ],
     ])(
@@ -816,6 +837,7 @@ describeRuntime("npm start's status check, against the real ingress", () => {
     ["127.0.0.1", 0],
     ["an address of this machine's own", 1],
     ["[::1]", 2],
+    ["[::], every IPv6 address", 4],
   ])(
     "on %s, the doctor's after-start run asks the same ingress, under localhost",
     (_label, index) => {
@@ -875,6 +897,7 @@ describeRuntime("npm start's status check, against the real ingress", () => {
     ["127.0.0.1", 0],
     ["an address of this machine's own", 1],
     ["[::1]", 2],
+    ["[::], every IPv6 address", 4],
   ])(
     "on %s, a bundled probe's 2 MB report reaches the App, and the status pages there keep their 1M",
     async (_label, index) => {

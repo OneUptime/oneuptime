@@ -1,5 +1,5 @@
-// Points the bundled probes at the port the ingress is published on, when
-// config.env moves the ingress off port 80.
+// Points the bundled probes at the address and port the ingress is published
+// on, when config.env moves the ingress off port 80 or onto one address.
 
 const fs = require("fs");
 const { readSettings } = require("./ReplacePlaceholderSecrets");
@@ -22,10 +22,12 @@ const { ok, listed } = require("./StartOutput");
  *
  * So `npm start`, before Compose starts anything, moves each of them that
  * calls this server over plain HTTP (localhost, 127.0.0.1 or [::1]) on
- * another port than the ingress's to the ingress's address, and says so. A
- * URL for anything else - a domain name, https, another server, a path - is
- * the operator's own choice and is left exactly as it is, as is every other
- * line of config.env. A second run changes nothing.
+ * another port than the ingress's, or at a name that does not reach it
+ * there (localhost, with the ingress on 10.0.0.5:80 or [::1]:80), to the
+ * ingress's address, and says so. A URL for anything else - a domain name,
+ * https, another server, a path - is the operator's own choice and is left
+ * exactly as it is, as is every other line of config.env. A second run
+ * changes nothing.
  *
  * Never stops `npm start`: a config.env it cannot read or write is passed
  * over (the probe then says it is disconnected, as before), and it always
@@ -41,7 +43,6 @@ const BUNDLED_URL_SETTINGS = [
 const INGRESS_PORT_SETTING = "ONEUPTIME_HTTP_PORT";
 
 const LOOPBACK_HOSTNAMES = ["localhost", "127.0.0.1", "[::1]"];
-const EVERY_ADDRESS = ["", "0.0.0.0", "::", "[::]"];
 
 const PORT_NUMBER = /^\d{1,5}$/;
 // http://<loopback>[:port][/] and nothing more: the shape config.example.env ships.
@@ -81,9 +82,9 @@ const unquotedValueOf = (line) => {
  * "[::1]:8080", "::1:8080", "10.0.0.5:8080"). Compose takes what follows
  * the last ":" for the port, and what comes before it, without brackets,
  * for the address. { address, port }: the address in brackets when it is an
- * IPv6 address, as a URL writes one, and "" for none and for one that means
- * every address of the server (0.0.0.0, ::); null when the setting is
- * neither. Tests/Scripts/status-check.sh reads it the same way.
+ * IPv6 address, as a URL writes one ("[::1]", "[::]"), and "" for none;
+ * null when the setting is neither. Tests/Scripts/status-check.sh reads it
+ * the same way.
  */
 const publishedIngressOf = (value) => {
   const text = String(value === undefined ? "80" : value).trim() || "80";
@@ -107,14 +108,30 @@ const publishedIngressOf = (value) => {
       : address;
 
   return {
-    address:
-      EVERY_ADDRESS.indexOf(bare) !== -1
-        ? ""
-        : bare.indexOf(":") !== -1
-          ? `[${bare}]`
-          : bare,
+    address: bare.indexOf(":") !== -1 ? `[${bare}]` : bare,
     port: Number(port),
   };
+};
+
+/*
+ * The address this server reaches the ingress at, from where it is
+ * published (publishedIngressOf): localhost for a port alone, which Docker
+ * publishes on every address, IPv4 and IPv6, and for 0.0.0.0, every IPv4
+ * address, which localhost names everywhere as 127.0.0.1; IPv6's loopback
+ * address for ::, which Docker publishes on IPv6 alone, where localhost may
+ * be 127.0.0.1 alone (Ubuntu's /etc/hosts gives ::1 another name); and the
+ * address itself otherwise.
+ */
+const connectableAddressOf = (address) => {
+  if (address === "" || address === "0.0.0.0") {
+    return "localhost";
+  }
+
+  if (address === "[::]") {
+    return "[::1]";
+  }
+
+  return address;
 };
 
 // ":8080", or nothing for port 80, as a web address writes its port.
@@ -125,12 +142,12 @@ const portSuffixOf = (port) => {
 /*
  * The address the ingress answers at on this server, as a URL the bundled
  * services can call, from ONEUPTIME_HTTP_PORT: a port alone ("8080") or an
- * address and a port ("127.0.0.1:8080"). Every address of the server and
- * 127.0.0.1 are http://localhost, which the ingress serves OneUptime under
- * and which names 127.0.0.1 on every server; another address is itself, as
- * localhost need not name it: where /etc/hosts gives ::1 another name, as
- * Ubuntu's does, localhost is 127.0.0.1 alone. { url, port }, or null when
- * the setting is neither.
+ * address and a port ("127.0.0.1:8080"). Where it is published on every
+ * address of the server, and on 127.0.0.1, that is http://localhost, which
+ * the ingress serves OneUptime under; elsewhere the address itself
+ * (connectableAddressOf), as localhost need not reach it. { url, port,
+ * address }, address as publishedIngressOf says it, or null when the
+ * setting is neither.
  */
 const ingressUrlOf = (value) => {
   const published = publishedIngressOf(value);
@@ -140,13 +157,14 @@ const ingressUrlOf = (value) => {
   }
 
   const hostname =
-    published.address === "" || published.address === "127.0.0.1"
+    published.address === "127.0.0.1"
       ? "localhost"
-      : published.address;
+      : connectableAddressOf(published.address);
 
   return {
     url: `http://${hostname}${portSuffixOf(published.port)}`,
     port: published.port,
+    address: published.address,
   };
 };
 
@@ -154,12 +172,12 @@ const ingressUrlOf = (value) => {
  * Where an install script asks OneUptime on this server (npm run doctor,
  * backup.sh's report): { url, host, port }. `url` connects where
  * ONEUPTIME_HTTP_PORT publishes the ingress (http://127.0.0.1:8080,
- * http://[::1]:8080, http://10.0.0.5:8080), or localhost when it is published
- * on every address of the server; `host` is the Host header to send with it:
- * localhost and the port, the name the ingress serves OneUptime under
- * whatever address it listens on. By the address it listens on, the ingress
- * serves a status page's custom domain instead (#10024). null when the
- * setting is neither a port nor an address and a port.
+ * http://[::1]:8080, http://10.0.0.5:8080; connectableAddressOf); `host` is
+ * the Host header to send with it: localhost and the port, the name the
+ * ingress serves OneUptime under whatever address it listens on. By the
+ * address it listens on, the ingress serves a status page's custom domain
+ * instead (#10024). null when the setting is neither a port nor an address
+ * and a port.
  */
 const ingressRequestOf = (value) => {
   const published = publishedIngressOf(value);
@@ -171,15 +189,41 @@ const ingressRequestOf = (value) => {
   const port = portSuffixOf(published.port);
 
   return {
-    url: `http://${published.address || "localhost"}${port}`,
+    url: `http://${connectableAddressOf(published.address)}${port}`,
     host: `localhost${port}`,
     port: published.port,
   };
 };
 
 /*
+ * Whether a loopback name reaches the ingress where it is published: any of
+ * them on every address; localhost and 127.0.0.1 on 0.0.0.0 and on
+ * 127.0.0.1, which localhost names everywhere; [::1] alone on :: and on
+ * ::1; none on an address of the server's own, such as 10.0.0.5.
+ */
+const reachesIngress = (hostname, address) => {
+  if (address === "") {
+    return true;
+  }
+
+  if (address === "0.0.0.0" || address === "127.0.0.1") {
+    return hostname === "localhost" || hostname === "127.0.0.1";
+  }
+
+  if (address === "[::]" || address === "[::1]") {
+    return hostname === "[::1]";
+  }
+
+  return false;
+};
+
+/*
  * Pure: the URL setting's value, and the ingress (ingressUrlOf), in; the
- * URL it should be, or null when it stays as it is.
+ * URL it should be, or null when it stays as it is: a loopback URL on the
+ * ingress's port, at a name that reaches it there. One that keeps the port
+ * but names an address the ingress is not published on (localhost, with the
+ * ingress on 10.0.0.5:80 or [::1]:80) is moved too: the probe there called
+ * nothing and showed Disconnected.
  */
 const followedUrl = (value, ingress) => {
   const match = LOOPBACK_URL.exec(String(value || "").trim());
@@ -188,9 +232,10 @@ const followedUrl = (value, ingress) => {
     return null;
   }
 
+  const hostname = match[1].toLowerCase();
   const port = match[2] ? Number(match[2]) : 80;
 
-  if (port === ingress.port) {
+  if (port === ingress.port && reachesIngress(hostname, ingress.address)) {
     return null;
   }
 
@@ -296,6 +341,7 @@ module.exports = {
   INGRESS_PORT_SETTING,
   LOOPBACK_HOSTNAMES,
   publishedIngressOf,
+  connectableAddressOf,
   ingressUrlOf,
   ingressRequestOf,
   followedUrl,

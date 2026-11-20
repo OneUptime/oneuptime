@@ -212,7 +212,8 @@ describe("whom it asks, with what", () => {
   test.each([
     ["8080", "http://localhost:8080", "localhost:8080"],
     ["0.0.0.0:8080", "http://localhost:8080", "localhost:8080"],
-    ["[::]:8080", "http://localhost:8080", "localhost:8080"],
+    // Docker publishes :: on IPv6 alone.
+    ["[::]:8080", "http://[::1]:8080", "localhost:8080"],
     ["127.0.0.1:80", "http://127.0.0.1", "localhost"],
     ["[::1]:8080", "http://[::1]:8080", "localhost:8080"],
     ["::1:8080", "http://[::1]:8080", "localhost:8080"],
