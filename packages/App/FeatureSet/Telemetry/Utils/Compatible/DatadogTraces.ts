@@ -503,6 +503,18 @@ interface AgentDefaults {
   env: string;
 }
 
+/*
+ * What a chunk's spans say of the process that made them: a tracer tags
+ * only a trace's first span with env, version, language and runtime-id, so
+ * the other spans of its chunk take them from there.
+ */
+interface ChunkProcess {
+  env: string;
+  version: string;
+  language: string;
+  runtimeId: string;
+}
+
 interface ResourceBucket {
   attributes: Array<OtlpKeyValue>;
   tracerVersion: string;
@@ -1286,6 +1298,8 @@ export default class DatadogTraces {
 
     for (const [payloadIndex, payload] of payloads.entries()) {
       for (const chunk of payload.chunks) {
+        const process: ChunkProcess = DatadogTraces.chunkProcess(chunk);
+
         for (const span of chunk.spans) {
           if (state.spanCount >= MAX_DATADOG_SPANS_PER_REQUEST) {
             state.droppedSpanCount++;
@@ -1308,6 +1322,7 @@ export default class DatadogTraces {
             payloadIndex,
             payload,
             span,
+            process,
             defaults,
           ).spans.push(otlpSpan);
           state.spanCount++;
@@ -1798,6 +1813,7 @@ export default class DatadogTraces {
     payloadIndex: number,
     payload: PayloadView,
     span: SpanView,
+    process: ChunkProcess,
     defaults: AgentDefaults,
   ): ResourceBucket {
     const serviceName: string =
@@ -1808,15 +1824,21 @@ export default class DatadogTraces {
       span.env ||
       DatadogTraces.tagText(span.tags, "env") ||
       payload.env ||
+      process.env ||
       defaults.env;
     const version: string =
       span.version ||
       payload.appVersion ||
-      DatadogTraces.tagText(span.tags, "version");
+      DatadogTraces.tagText(span.tags, "version") ||
+      process.version;
     const language: string =
-      payload.languageName || DatadogTraces.tagText(span.tags, "language");
+      payload.languageName ||
+      DatadogTraces.tagText(span.tags, "language") ||
+      process.language;
     const runtimeId: string =
-      payload.runtimeId || DatadogTraces.tagText(span.tags, "runtime-id");
+      payload.runtimeId ||
+      DatadogTraces.tagText(span.tags, "runtime-id") ||
+      process.runtimeId;
 
     const key: string = [
       payloadIndex,
@@ -1868,6 +1890,28 @@ export default class DatadogTraces {
     state.buckets.set(key, bucket);
 
     return bucket;
+  }
+
+  // The first of each of env, version, language and runtime-id a chunk's spans are tagged with.
+  private static chunkProcess(chunk: ChunkView): ChunkProcess {
+    const process: ChunkProcess = {
+      env: "",
+      version: "",
+      language: "",
+      runtimeId: "",
+    };
+
+    for (const span of chunk.spans) {
+      process.env = process.env || DatadogTraces.tagText(span.tags, "env");
+      process.version =
+        process.version || DatadogTraces.tagText(span.tags, "version");
+      process.language =
+        process.language || DatadogTraces.tagText(span.tags, "language");
+      process.runtimeId =
+        process.runtimeId || DatadogTraces.tagText(span.tags, "runtime-id");
+    }
+
+    return process;
   }
 
   /*

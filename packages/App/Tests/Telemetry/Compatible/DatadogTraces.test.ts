@@ -702,6 +702,41 @@ describe("DatadogTraces.tracerTracesToOtlp: a tracer's own endpoints", () => {
     expect(root.attributes["_sampling_priority_v1"]).toBeUndefined();
   });
 
+  test("a trace's spans share one resource, though only its first span is tagged with env, version, language and runtime-id", () => {
+    const body: Buffer = encodeMsgpack([
+      [
+        goSpan(),
+        goSpan({
+          span_id: 1236,
+          parent_id: 1234,
+          resource: "SELECT 1",
+          type: "sql",
+          meta: { "span.kind": "client", "db.type": "postgresql" },
+          metrics: {},
+        }),
+      ],
+    ]);
+    const translation: DatadogTracesTranslation =
+      DatadogTraces.tracerTracesToOtlp(body, {
+        protocol: "v0.4",
+        nowInMs: NOW_MS,
+      });
+
+    expect(
+      (translation.traces!["resourceSpans"] as Array<JSONObject>).length,
+    ).toBe(1);
+
+    const child: FlatSpan = bySpanId(spansOf(translation), hex16("1236"));
+
+    expect(child.resource).toMatchObject({
+      "service.name": "orders",
+      "service.version": "3.1.0",
+      "deployment.environment.name": "prod",
+      "service.instance.id": "go-runtime-1",
+      "telemetry.sdk.language": "go",
+    });
+  });
+
   test("an ID a JVM tracer wrote as a negative int64 is the unsigned ID it stands for", () => {
     const body: Buffer = encodeMsgpack([
       [
