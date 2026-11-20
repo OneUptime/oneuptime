@@ -3109,7 +3109,7 @@ export class PermissionHelper {
         permission: Permission.SecurityAdmin,
         title: "Security Admin",
         description:
-          "Full control over security operations: security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, response playbooks and their runs, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
+          "Full control over security operations: security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, response playbooks and their runs, the blocklist and its protected addresses, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -3119,7 +3119,7 @@ export class PermissionHelper {
         permission: Permission.SecurityMember,
         title: "Security Member",
         description:
-          "Reads security events and threat intelligence, sends security events, works security cases (opens, assigns, changes and closes them, fills in their custom fields, writes their notes, works their tasks and adds evidence), runs playbooks and approves their steps, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks, security event connections or the cases' settings, or delete security data.",
+          "Reads security events and threat intelligence, sends security events, works security cases (opens, assigns, changes and closes them, fills in their custom fields, writes their notes, works their tasks and adds evidence), runs playbooks and approves their steps, blocks addresses on the blocklist and lifts their blocks, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks, security event connections or the cases' settings, or delete security data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -3129,7 +3129,7 @@ export class PermissionHelper {
         permission: Permission.SecurityViewer,
         title: "Security Viewer",
         description:
-          "Read-only access to security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, playbooks and their runs, detection rules, threat intelligence feeds and indicators, and security event connections.",
+          "Read-only access to security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, playbooks and their runs, the blocklist, detection rules, threat intelligence feeds and indicators, and security event connections.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
