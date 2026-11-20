@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 59636,
-    "untranslated": 4618
+    "keys": 60450,
+    "untranslated": 4771
   },
   "sameAsEnglish": [
     " incidents",
@@ -605,6 +605,7 @@
     "Webhooks",
     "Workers",
     "Zone",
+    "Zones",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",
