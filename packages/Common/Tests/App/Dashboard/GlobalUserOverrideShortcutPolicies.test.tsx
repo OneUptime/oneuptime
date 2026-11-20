@@ -330,15 +330,13 @@ function servePolicyFacts(): Array<any> {
         [
           { ...PAYMENTS, createdAt: PAYMENTS_MADE_AT },
           { ...PAYMENTS_TWIN, createdAt: PAYMENTS_TWIN_MADE_AT },
-        ].map(
-          (policy: { id: string; name: string; createdAt: Date }) => {
-            const model: OnCallDutyPolicy = new OnCallDutyPolicy();
-            model._id = policy.id;
-            model.name = policy.name;
-            model.createdAt = policy.createdAt;
-            return model;
-          },
-        ),
+        ].map((policy: { id: string; name: string; createdAt: Date }) => {
+          const model: OnCallDutyPolicy = new OnCallDutyPolicy();
+          model._id = policy.id;
+          model.name = policy.name;
+          model.createdAt = policy.createdAt;
+          return model;
+        }),
       );
     }
 
@@ -874,7 +872,9 @@ describe("Skip until… for a member whose permission covers only some policies"
 
     const modal: HTMLElement = await openSkipAndSetEnds(ALICE);
 
-    expect(within(modal).getByRole("checkbox", { name: "Payments" })).toBeChecked();
+    expect(
+      within(modal).getByRole("checkbox", { name: "Payments" }),
+    ).toBeChecked();
     expect(within(modal).queryByTestId(SHARED_NAME_PILL_TEST_ID)).toBeNull();
     expect(policyReads).toHaveLength(0);
   });

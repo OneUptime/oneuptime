@@ -113,6 +113,12 @@ const DROPDOWN_OPTIONS_WITH_FACTS: Array<string> = [
  * and the options are labelled by the chats' half of the rule
  * (WorkspaceSharedNames).
  */
+// An option handed its record's facts: `sharedName: ...`, or a check of one.
+const OPTION_FACTS_PATTERN: RegExp = /sharedName(?::| \?)/;
+
+// Options labelled by the chats' half of the rule.
+const CHAT_LABELS_PATTERN: RegExp = /WorkspaceSharedNames\.|toNamedChoices\(/;
+
 const CHAT_BUILDERS: Array<string> = [
   "packages/Common/Server/Utils/Workspace/WorkspacePage.ts",
   "packages/Common/Server/Utils/Workspace/Slack/Actions/Incident.ts",
@@ -238,7 +244,7 @@ describe("the builders of the four kinds' options", () => {
     (file: string) => {
       expect({
         file,
-        facts: /sharedName(?::| \?)/.test(read(file)),
+        facts: OPTION_FACTS_PATTERN.test(read(file)),
       }).toEqual({ file, facts: true });
     },
   );
@@ -253,7 +259,7 @@ describe("the builders of the four kinds' options", () => {
       );
       expect({
         file,
-        labels: /WorkspaceSharedNames\.|toNamedChoices\(/.test(source),
+        labels: CHAT_LABELS_PATTERN.test(source),
       }).toEqual({ file, labels: true });
     },
   );

@@ -428,9 +428,9 @@ describe("BaseModelTable in-search label chips", () => {
     );
 
     await waitFor(() => {
-      expect(view.queryAllByTestId(SHARED_NAME_VALUE_DETAIL_TEST_ID)).toHaveLength(
-        2,
-      );
+      expect(
+        view.queryAllByTestId(SHARED_NAME_VALUE_DETAIL_TEST_ID),
+      ).toHaveLength(2);
     });
 
     expect(
@@ -491,9 +491,9 @@ describe("BaseModelTable in-search label chips", () => {
       expect(view.queryByLabelText("Remove Production")).not.toBeNull();
     });
 
-    expect(view.queryAllByTestId(SHARED_NAME_VALUE_DETAIL_TEST_ID)).toHaveLength(
-      0,
-    );
+    expect(
+      view.queryAllByTestId(SHARED_NAME_VALUE_DETAIL_TEST_ID),
+    ).toHaveLength(0);
   });
 
   test("chips are cleared when the Labels filter is removed after mount", async () => {

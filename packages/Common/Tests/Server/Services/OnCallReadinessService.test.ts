@@ -1756,9 +1756,7 @@ describe("the teams that page a responder", () => {
     );
 
     expect(byId.get(TEAM_ID.toString())?.createdAt).toEqual(MARCH);
-    expect(byId.get(OTHER_TEAM_ID.toString())).not.toHaveProperty(
-      "createdAt",
-    );
+    expect(byId.get(OTHER_TEAM_ID.toString())).not.toHaveProperty("createdAt");
     expect(firstCall(teamFindBy).select).toEqual({
       _id: true,
       name: true,

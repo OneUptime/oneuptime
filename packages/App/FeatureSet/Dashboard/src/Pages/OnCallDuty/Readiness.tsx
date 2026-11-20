@@ -1176,7 +1176,9 @@ const OnCallReadinessPage: FunctionComponent<
             sharedName: {
               kind: SharedNameKind.Team,
               createdAt:
-                createdAt && !isNaN(createdAt.getTime()) ? createdAt : undefined,
+                createdAt && !isNaN(createdAt.getTime())
+                  ? createdAt
+                  : undefined,
             },
           };
         })

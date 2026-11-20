@@ -208,7 +208,11 @@ const LabelChoices: FunctionComponent<LabelChoicesProps> = (
 
               // Two labels of one name told apart while choosing (#10314).
               return facts
-                ? { label: option.label, value: option.value, sharedName: facts }
+                ? {
+                    label: option.label,
+                    value: option.value,
+                    sharedName: facts,
+                  }
                 : option;
             },
           )}
