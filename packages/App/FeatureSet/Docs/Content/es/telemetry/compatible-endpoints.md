@@ -116,6 +116,8 @@ La salida `loki` de Fluent Bit recibe el host y la ruta por separado:
     Labels       job=fluent-bit
 ```
 
+OneUptime responde como Loki: `204` cuando un push queda guardado, `400` para uno que no puede leer, `413` para uno que supera los límites de más abajo, `401` para una clave que falta o que no se conoce, `403` para un presupuesto diario agotado, `429` con `Retry-After` al superar una tasa, y `503` cuando no puede aceptarlo en ese momento. Promtail, Alloy y Vector reintentan un `429` o un `503`, y descartan cualquier otro lote rechazado indicando el motivo; Fluent Bit descarta un `400` y reintenta todo lo demás, hasta su `Retry_Limit`.
+
 ### En qué se convierte un flujo
 
 - **Cada entrada es un registro**, con su propia marca de tiempo con precisión de nanosegundos y su línea como cuerpo.
@@ -219,7 +221,9 @@ Los SDK de Sentry exigen el `1` del final del DSN, pero no se lee. El DSN de una
 ## Límites y presupuestos de ingesta
 
 - **Tamaño de la solicitud**: el ingress de OneUptime acepta solicitudes de hasta 4 MB bajo `/telemetry`, y cada cuerpo puede descomprimirse hasta un máximo de 64 MB. Una solicitud de Prometheus remote write puede descomprimirse hasta un máximo de 32 MB y contener como máximo 500.000 series, etiquetas y muestras, para que ninguna solicitud por sí sola pueda agotar la memoria del servidor. Prometheus y Alloy envían 2.000 muestras por solicitud de forma predeterminada, muy por debajo de ambos; una solicitud que los supere se rechaza con `413`, así que reduce `max_samples_per_send` en `queue_config`.
-- **Presupuestos de ingesta**: Prometheus remote write y Loki se comprueban contra el presupuesto de métricas o de registros antes de leer su cuerpo, y se rechazan con `403` cuando está agotado. Después, una solicitud de remote write se descuenta por su tamaño descomprimido, como una solicitud OTLP, también de los presupuestos de un equipo o de una etiqueta. Un lote de HEC, una carga de Datadog o un sobre de Sentry pueden llevar varias señales, así que cada señal se descuenta de su propio presupuesto al guardarse, y se descarta cuando ese presupuesto está agotado.
+- **Pushes de Loki**: un push puede descomprimirse hasta un máximo de 32 MB y contener como máximo 500.000 entradas, etiquetas y metadatos estructurados, contando las etiquetas de un flujo una vez por cada una de sus entradas. Promtail y Alloy envían lotes de 1 MB de forma predeterminada, muy por debajo de ambos; un push que los supere se rechaza con `413`, así que reduce el tamaño de lote del cliente.
+- **Cargas JSON y de Datadog**: un cuerpo JSON puede contener como máximo 1.000.000 de valores (objetos, arrays, cadenas y números), y una carga protobuf del Datadog Agent como máximo 500.000 series, puntos, etiquetas y sketches. Cada uno se cuenta antes de leerse, y una solicitud que supere un límite se rechaza con `413`.
+- **Presupuestos de ingesta**: Prometheus remote write y Loki se comprueban contra el presupuesto de métricas o de registros antes de leer su cuerpo, y se rechazan con `403` cuando está agotado. Después, cada solicitud se descuenta por su tamaño descomprimido, como una solicitud OTLP, también de los presupuestos de un equipo o de una etiqueta. Un lote de HEC, una carga de Datadog o un sobre de Sentry pueden llevar varias señales, así que cada señal se descuenta de su propio presupuesto al guardarse, y se descarta cuando ese presupuesto está agotado: los registros y los eventos de métrica de un lote de HEC se reparten su tamaño, y un sobre de Sentry se descuenta por los elementos que OneUptime conserva, no por sus adjuntos, replays o perfiles.
 
 ## Solución de problemas
 

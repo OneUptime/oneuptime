@@ -11,6 +11,18 @@ import {
   WriteRequestV1,
   WriteRequestV2,
 } from "../../../FeatureSet/Telemetry/Utils/Compatible/PrometheusRemoteWrite";
+import {
+  LOKI_PUSH_COUNT,
+  LokiPushRequestType,
+} from "../../../FeatureSet/Telemetry/Utils/Compatible/LokiPush";
+import {
+  DATADOG_METRIC_PAYLOAD_COUNT,
+  DATADOG_SKETCH_PAYLOAD_COUNT,
+  DatadogMetricPayload,
+  DatadogMetricPayloadAsRead,
+  DatadogSketchPayload,
+  DatadogSketchPayloadAsRead,
+} from "../../../FeatureSet/Telemetry/Utils/Compatible/DatadogIntake";
 
 /*
  * A protobuf body's objects, counted on its wire format before it is
@@ -414,5 +426,258 @@ describe("ProtobufElementCounter - remote write 2.0", () => {
     expect(count(body, REMOTE_WRITE_V2_COUNT).outcome).toBe(
       ProtobufElementCountOutcome.Malformed,
     );
+  });
+});
+
+/*
+ * Loki's PushRequest and the Datadog Agent's payloads, counted with the
+ * schemas their endpoints hold them to: each must equal what protobufjs
+ * decodes - for Datadog, the payloads as read, whose bins and metadata are
+ * not decoded, so are not counted either.
+ */
+
+const pairsOf: (next: () => number, prefix: string) => Array<JSONObject> = (
+  next: () => number,
+  prefix: string,
+): Array<JSONObject> => {
+  return Array.from(
+    { length: Math.floor(next() * 4) },
+    (_: unknown, index: number): JSONObject => {
+      return { name: `${prefix}${index}`, value: next() < 0.3 ? "" : "v" };
+    },
+  );
+};
+
+describe("ProtobufElementCounter - Loki's PushRequest", () => {
+  test("counts every stream, entry, timestamp and label pair of structured metadata", () => {
+    const body: Uint8Array = LokiPushRequestType.encode(
+      LokiPushRequestType.fromObject({
+        streams: [
+          {
+            labels: '{job="varlogs", env="prod"}',
+            entries: [
+              {
+                timestamp: { seconds: 1700000000 },
+                line: "one",
+                structuredMetadata: [
+                  { name: "trace_id", value: "ab" },
+                  { name: "pod", value: "p" },
+                ],
+              },
+              { line: "two" },
+            ],
+          },
+          { labels: '{job="empty"}' },
+        ],
+      }),
+    ).finish();
+
+    // 2 streams + 2 entries + 1 timestamp + 2 metadata pairs.
+    expect(count(body, LOKI_PUSH_COUNT)).toEqual({
+      outcome: ProtobufElementCountOutcome.Counted,
+      elements: 7,
+    });
+  });
+
+  test("equals what protobufjs decodes, over many generated pushes", () => {
+    const next: () => number = random(11);
+
+    for (let run: number = 0; run < 200; run++) {
+      const streams: Array<JSONObject> = Array.from(
+        { length: Math.floor(next() * 5) },
+        (_: unknown, index: number): JSONObject => {
+          return {
+            labels: `{job="j${index}"}`,
+            hash: Math.floor(next() * 1000),
+            entries: Array.from(
+              { length: Math.floor(next() * 5) },
+              (): JSONObject => {
+                return {
+                  ...(next() < 0.7
+                    ? {
+                        timestamp: {
+                          seconds: Math.floor(next() * 1e9),
+                          nanos: Math.floor(next() * 1e9),
+                        },
+                      }
+                    : {}),
+                  line: next() < 0.2 ? "" : "a line",
+                  structuredMetadata: pairsOf(next, "m"),
+                  parsed: next() < 0.2 ? pairsOf(next, "p") : [],
+                };
+              },
+            ),
+          };
+        },
+      );
+
+      const body: Uint8Array = LokiPushRequestType.encode(
+        LokiPushRequestType.fromObject({ streams: streams }),
+      ).finish();
+
+      expect(count(body, LOKI_PUSH_COUNT)).toEqual({
+        outcome: ProtobufElementCountOutcome.Counted,
+        elements: decodedElements(
+          LokiPushRequestType.decode(body),
+          LOKI_PUSH_COUNT,
+        ),
+      });
+    }
+  });
+
+  test("16 MiB of empty streams is counted to the limit in well under a second", () => {
+    const body: Buffer = Buffer.alloc(16 * 1024 * 1024);
+
+    for (let index: number = 0; index < body.length; index += 2) {
+      body[index] = 0x0a;
+      body[index + 1] = 0x00;
+    }
+
+    const startedAt: number = Date.now();
+
+    expect(count(body, LOKI_PUSH_COUNT, 500000)).toEqual({
+      outcome: ProtobufElementCountOutcome.OverLimit,
+      elements: 500001,
+    });
+    expect(Date.now() - startedAt).toBeLessThan(1000);
+  });
+
+  test("an entry that is not a message is malformed", () => {
+    // A stream whose entries field is a varint.
+    expect(
+      count(Uint8Array.from([0x0a, 0x02, 0x10, 0x01]), LOKI_PUSH_COUNT).outcome,
+    ).toBe(ProtobufElementCountOutcome.Malformed);
+  });
+});
+
+describe("ProtobufElementCounter - the Datadog Agent's payloads, as read", () => {
+  test("a MetricPayload: each series, resource, tag and point - and not its origin metadata", () => {
+    const body: Uint8Array = DatadogMetricPayload.encode(
+      DatadogMetricPayload.fromObject({
+        series: [
+          {
+            metric: "system.cpu.user",
+            resources: [{ type: "host", name: "h" }],
+            tags: ["env:prod", "service:checkout"],
+            points: [
+              { value: 1, timestamp: 1700000000 },
+              { value: 2, timestamp: 1700000010 },
+            ],
+            metadata: { origin: { originProduct: 10 } },
+          },
+        ],
+      }),
+    ).finish();
+
+    // 1 series + 1 resource + 2 tags + 2 points.
+    expect(count(body, DATADOG_METRIC_PAYLOAD_COUNT).elements).toBe(6);
+  });
+
+  test("a MetricPayload equals what its reading type decodes, over many generated payloads", () => {
+    const next: () => number = random(13);
+
+    for (let run: number = 0; run < 200; run++) {
+      const series: Array<JSONObject> = Array.from(
+        { length: Math.floor(next() * 5) },
+        (): JSONObject => {
+          return {
+            metric: "m",
+            resources: Array.from({ length: Math.floor(next() * 3) }, () => {
+              return { type: "host", name: "h" };
+            }),
+            tags: Array.from(
+              { length: Math.floor(next() * 4) },
+              (_: unknown, index: number) => {
+                return `t${index}:v`;
+              },
+            ),
+            points: Array.from({ length: Math.floor(next() * 4) }, () => {
+              return { value: next(), timestamp: 1700000000 };
+            }),
+            type: Math.floor(next() * 4),
+            ...(next() < 0.5
+              ? { metadata: { origin: { originProduct: 1 } } }
+              : {}),
+          };
+        },
+      );
+
+      const body: Uint8Array = DatadogMetricPayload.encode(
+        DatadogMetricPayload.fromObject({ series: series }),
+      ).finish();
+
+      expect(count(body, DATADOG_METRIC_PAYLOAD_COUNT)).toEqual({
+        outcome: ProtobufElementCountOutcome.Counted,
+        elements: decodedElements(
+          DatadogMetricPayloadAsRead.decode(body),
+          DATADOG_METRIC_PAYLOAD_COUNT,
+        ),
+      });
+    }
+  });
+
+  test("a SketchPayload equals what its reading type decodes, its thousands of bins counted as nothing", () => {
+    const next: () => number = random(17);
+
+    for (let run: number = 0; run < 100; run++) {
+      const sketches: Array<JSONObject> = Array.from(
+        { length: Math.floor(next() * 4) },
+        (): JSONObject => {
+          const bins: number = Math.floor(next() * 3000);
+
+          return {
+            metric: "latency",
+            host: "h",
+            tags: Array.from({ length: Math.floor(next() * 3) }, () => {
+              return "env:prod";
+            }),
+            dogsketches: Array.from(
+              { length: Math.floor(next() * 3) },
+              (): JSONObject => {
+                return {
+                  ts: 1700000000,
+                  cnt: bins,
+                  min: 1,
+                  max: 9,
+                  sum: 50,
+                  k: Array.from(
+                    { length: bins },
+                    (_: unknown, index: number) => {
+                      return index - 1500;
+                    },
+                  ),
+                  n: Array.from({ length: bins }, () => {
+                    return 1;
+                  }),
+                };
+              },
+            ),
+            distributions:
+              next() < 0.3
+                ? [{ ts: 1700000000, cnt: 2, sum: 3, v: [1, 2], g: [1, 1] }]
+                : [],
+            metadata: { origin: { originService: 3 } },
+          };
+        },
+      );
+
+      const body: Uint8Array = DatadogSketchPayload.encode(
+        DatadogSketchPayload.fromObject({
+          sketches: sketches,
+          metadata: { agentVersion: "7.60.0", apiKey: "secret" },
+        }),
+      ).finish();
+
+      const decoded: unknown = DatadogSketchPayloadAsRead.decode(body);
+      const expected: number = decodedElements(
+        decoded,
+        DATADOG_SKETCH_PAYLOAD_COUNT,
+      );
+
+      expect(count(body, DATADOG_SKETCH_PAYLOAD_COUNT)).toEqual({
+        outcome: ProtobufElementCountOutcome.Counted,
+        elements: expected,
+      });
+    }
   });
 });

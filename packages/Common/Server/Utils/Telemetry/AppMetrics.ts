@@ -361,7 +361,7 @@ export default class AppMetrics {
       this.ingestPayloadBytes = Telemetry.getHistogram({
         name: "telemetry.ingest.request.payload.size",
         description:
-          "Size of telemetry ingestion request payloads, after decompression.",
+          "Size of telemetry ingestion request payloads as received, before decompression.",
         unit: "By",
       });
     }
