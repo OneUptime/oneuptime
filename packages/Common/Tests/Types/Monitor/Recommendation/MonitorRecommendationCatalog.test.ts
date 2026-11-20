@@ -61,7 +61,10 @@ import { getAllCloudAlertTemplates } from "../../../../Types/Monitor/CloudAlertT
 import { getAllCloudAppAlertTemplates } from "../../../../Types/Monitor/CloudAppAlertTemplates";
 import { getAllServerlessAlertTemplates } from "../../../../Types/Monitor/ServerlessAlertTemplates";
 import { getAllMessageQueueAlertTemplates } from "../../../../Types/Monitor/MessageQueueAlertTemplates";
-import { getAllManagedDeviceAlertTemplates } from "../../../../Types/Monitor/ManagedDeviceAlertTemplates";
+import {
+  getAllManagedDeviceAlertTemplates,
+  getManagedDeviceAlertTemplatesFor,
+} from "../../../../Types/Monitor/ManagedDeviceAlertTemplates";
 
 /*
  * Resource types whose recommendation set is EMPTY without context, on
@@ -369,8 +372,13 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
     // Every template reads the check-ins the connection's reads write (#9835).
     monitorTypes: [MonitorType.Metrics],
     templateCount: getAllManagedDeviceAlertTemplates().length,
-    // A constant set: every connection is an Esper tenant.
-    contextFreeTemplateCount: getAllManagedDeviceAlertTemplates().length,
+    /*
+     * A connection whose service is not known is Esper's, as every one was
+     * before #9837: it is offered Esper's templates, and each other service's
+     * connection its own (Intune's, Workspace ONE's, SOTI's).
+     */
+    contextFreeTemplateCount:
+      getManagedDeviceAlertTemplatesFor(undefined).length,
     identifierFieldName: "deviceManagementConnectionId",
   },
 ];
