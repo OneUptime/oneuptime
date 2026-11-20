@@ -359,22 +359,16 @@ Google approved this product on 6 November 2026 (its solution validation,
 case 77153319) and sent its onboarding email the same day. Producer Portal
 has been on since 17 November 2026, a few hours after we answered the Partner
 Support Desk case that asked for the project info form and the roles (step
-1). **Where it stands** (19 November 2026): the product exists (step 5); its
-listing (step 7) was approved on 18 November, and its pricing (step 6) has
-been reviewed and becomes active on 20 November if Google's automatic
-validation finds it valid (both submitted on 17 November with the
-maintainer's go-ahead); the payments profile is done;
-and `editions.json` marks the edition ready, so the Marketplace Release
-workflow pushed 15.0.0's images and deployer that evening, and release
-`15.0` is saved on the Container images page (step 8). Google's validation
-of it failed: the deployer refused the edition, and the scan flagged the
-PostgreSQL image (step 8 says why). The edition was fixed the same day and
-15.0.0 pushed again; the second validation flagged no image, but its test
-failed on the tester itself. With the tester fixed, 15.0.0 went a third time
-on 18 November: that validation passed, and the Container images review was
-submitted the same morning, with the maintainer's go-ahead. **Left**: the
-Container images review (two weeks or more), then **Publish** once all three
-are approved (the maintainer's go-ahead).
+1). **Where it stands** (20 November 2026): all three reviews are approved:
+the listing (step 7) on 18 November, the pricing (step 6) and release `15.0`
+on the Container images page (step 8) on 20 November, the last after three
+validations (step 8 says what the first two found). Producer Portal marks
+the product **Ready to publish**, and the payments profile is done. Before
+it is published, Google's Partner Support Desk (case 77498377) verifies the
+usage reporting (step 9): a test deployment from the preview has reported
+since 20 November, and Google gets the evidence once its reports hold a day
+of it. **Left**: that verification, then **Publish**, the public launch (the
+maintainer's go-ahead).
 Google's Marketplace Operations team supports the
 onboarding for 60 days from its reminder of 9 November (until about 8 January
 2027); help after that is not guaranteed. Everything lives in the
@@ -392,7 +386,7 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
      | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
      | `group:cloud-commerce-marketplace-onboarding@twosync-src.google.com` (a group) | Editor, Service Management Administrator                                                                                                                                                                                                                                   |
      | `serviceAccount:cloud-commerce-producer@system.gserviceaccount.com`            | Service Config Editor (`roles/servicemanagement.configEditor`)                                                                                                                                                                                                             |
-     | `serviceAccount:cloud-commerce-procurement@system.gserviceaccount.com`         | Service Controller. The email names Service Consumer too, which IAM grants on a service, not a project ("not supported for this resource"): grant it on the product's service (`gcloud endpoints services add-iam-policy-binding`) if Producer Portal asks, once it exists |
+     | `serviceAccount:cloud-commerce-procurement@system.gserviceaccount.com`         | Service Controller, and on each product's service both Service Consumer and Service Controller (`gcloud endpoints services add-iam-policy-binding`; IAM refuses Service Consumer on a project). Without those, Google cancels every order within seconds (step 9)          |
      | `serviceAccount:managed-services@cloud-marketplace.iam.gserviceaccount.com`    | Service Management Administrator                                                                                                                                                                                                                                           |
 
      Google's setup page
@@ -448,9 +442,12 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
    repository in the path. Customer-tenant consumption tracking applies to it
    too: Producer Portal's **Overview** lists the product's label,
    `goog-partner-solution=isol_plb32_001kf00001id1wxiar_kitw4d6nq4zmkxjfloixzbcne5jodjnp`.
-   **Still to ask**: how a deployer-based app applies it - Google's
-   requirements ask it of every product deployed into customers' projects,
-   but describe it for Kubernetes only on the Terraform type's pages.
+   How a deployer-based app applies it, Google's requirements do not say:
+   they ask it of every product deployed into customers' projects, but
+   describe it for Kubernetes only on the Terraform type's pages. Google's
+   Partner Support Desk asked for it on the usage verification's test
+   cluster, as a label on the cluster (case 77498377, 20 November 2026;
+   step 9), and said nothing of buyers' clusters.
 3. **Access for Google**: the roles of step 1 (Editor includes the
    `roles/viewer` an older version of this guide asked for), and whatever
    else Producer Portal's technical integration page asks for.
@@ -567,6 +564,69 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
    minutes, and the Container images review was submitted that morning.
    Changing a release while the review runs cancels it, as the page says:
    a newer version waits for the approval.
+
+9. **Usage verification** (before **Publish**; Google's Partner Support
+   Desk, case 77498377): Google checks that the hours the app reports reach
+   its billing. Its answers (20 November 2026): reporting straight to
+   Service Control with the reporting secret is accepted (the UBB agent is
+   recommended, not required); each hour's `DELTA` report needs its own
+   `operationId` (ours is the hour's idempotency key, the same on every
+   retry); and every image carries the service annotation. Its guide,
+   "Manual Billing Verification for K8s Apps" (a PDF on the case), and its
+   emails ask for the following, all in place since 20 November 2026:
+
+   - **A test billing account**: Producer Portal's **Test Billing Accounts**
+     page lists the billing account the test buys with. Google discounts its
+     charges for our products in full; the cluster's own costs stay.
+   - **Cloud Billing's export to BigQuery** for that account (Billing >
+     **Billing export** > **Standard usage cost**), into the dataset
+     `oneuptime-marketplace:billing_export` (US). It covers every project on
+     the account, and usage reaches it about 6 hours later.
+   - **Producer Portal's reports in BigQuery** (**Reports** > **BigQuery
+     export** > **Enable Export**): the dataset `marketplace_report`, with
+     the Incremental Insights and Detailed Disbursement reports, filled
+     within 24 hours. Google stores it free; queries are charged.
+   - **A test cluster** in `oneuptime-marketplace`, with the product's label
+     on the cluster (about USD 10 a day: delete it once Google is done):
+
+     ```bash
+     gcloud container clusters create oneuptime-marketplace-test --project=oneuptime-marketplace \
+       --zone=us-central1-a --num-nodes=3 --machine-type=e2-standard-4 --release-channel=regular \
+       --labels=goog-partner-solution=isol_plb32_001kf00001id1wxiar_kitw4d6nq4zmkxjfloixzbcne5jodjnp
+     ```
+
+   - **The order and the deployment**, from Producer Portal's **Full
+     preview**: buy the `enterprise` plan with the test billing account, then
+     deploy onto the test cluster. Google cancelled the first three orders
+     within seconds ("has rejected your subscription"), until its
+     procurement account had both roles on the product's service (step 1's
+     table):
+
+     ```bash
+     SVC=oneuptime-enterprise.endpoints.oneuptime-marketplace.cloud.goog
+     for ROLE in roles/servicemanagement.serviceConsumer roles/servicemanagement.serviceController; do
+       gcloud endpoints services add-iam-policy-binding "$SVC" \
+         --member=serviceAccount:cloud-commerce-procurement@system.gserviceaccount.com --role="$ROLE"
+     done
+     ```
+
+     The preview's deployer then could not start: the preview has it pull
+     from `gcr.io/oneuptime-marketplace/oneuptime/oneuptime-enterprise`,
+     where we have no images ([Known gaps](#known-gaps)). The test was
+     pointed at ours: `__image_repo_prefix__` in the Secret
+     `oneuptime-deployer-config` set to step 4's path, and the deployer Job
+     created again with `.../deployer:15.0.0`.
+   - **Hours to bill**: a new installation has no users, so it reports 0
+     user-hours until the first one signs up. The test's admin signed up
+     with `POST /identity/signup`, through `kubectl port-forward` to the
+     nginx Service. Its first report was accepted at 23:00 UTC on 20
+     November: 0 user-hours, for the hour before the sign-up.
+   - **The evidence**, sent on the case once the reports hold a day of
+     usage: the app's `OneUptime Enterprise marketplace billing` lines (what
+     was pushed); the billing export's rows for the order's consumer project
+     (the reporting secret's `consumer-id`, without `project:`), from the
+     guide's query on the `gcp_billing_export_v1_*` table; and the
+     Incremental Insights rows.
 
 ### The release workflow: one-time setup
 
@@ -820,9 +880,10 @@ docker buildx build --platform linux/amd64 --provenance=false \
 ```
 
 **Testing is Google's**: its review installs and tests each version we
-submit. We keep no GKE test cluster: it would cost money. Only to reproduce a
-failure Google reports, on a cluster the maintainer approves, Google's `mpdev`
-runs the same checks:
+submit. We keep no GKE test cluster: it would cost money (the usage
+verification's, step 9 of the setup, goes once Google is done). Only to
+reproduce a failure Google reports, on a cluster the maintainer approves,
+Google's `mpdev` runs the same checks:
 
 ```bash
 kubectl apply -f "https://raw.githubusercontent.com/GoogleCloudPlatform/marketplace-k8s-app-tools/master/crd/app-crd.yaml"
@@ -861,8 +922,9 @@ way, on 17 and 18 November 2026.
 ## Checking an installation
 
 We run no test installations: each marketplace's review tests every version.
-Use this when an installation needs looking at, such as a buyer's (with them)
-or one the maintainer approved to reproduce a problem:
+Use this when an installation needs looking at, such as a buyer's (with them),
+one the maintainer approved to reproduce a problem, or Google's usage
+verification (step 9 of the Google setup):
 
 1. **It runs**: every pod is ready (the first start migrates the database:
    allow up to 30 minutes), and `https://<domain>/status/ready` answers.
@@ -1271,8 +1333,9 @@ cost a review round.
 - **AWS: running as root.** Images "should be configured to run with non-root
   privileges by default"; the OneUptime `nginx` and `probe` images run as
   root. A recommendation, not a rule: expect the question.
-- **Google: the product type, the registry and consumption tracking** (step
-  2 of the Google setup).
+- **Google: the product type, the registry and consumption tracking**:
+  answered by Producer Portal and Google's Partner Support Desk, except how
+  buyers' clusters get the label (step 2 of the Google setup).
 - **Vulnerability scans on every release**, on all three (see
   [Before every release](#before-every-release)).
 
@@ -1293,6 +1356,13 @@ cost a review round.
   `gcr.io/cloud-launcher-images-prd/oneuptime-marketplace/oneuptime/oneuptime-enterprise/...`,
   with our repository's name, so the published path may have `/oneuptime`
   in it too.
+- **Where Google's deployments pull the images from.** The preview's
+  deployment (step 9 of the Google setup) tells the deployer to pull from
+  `gcr.io/oneuptime-marketplace/oneuptime/oneuptime-enterprise`, where we
+  have no images: ours are in Artifact Registry, and Google's validation
+  pulls its own copy. Asked on case 77498377 (20 November 2026) where
+  published deployments pull from, and whether to push the images under
+  `gcr.io` as well.
 - **The Google Cloud app's deploy-info IDs are inferred.** The `Application`
   names partner `oneuptime-marketplace` and product `oneuptime-enterprise`
   (`google-cloud/application.yaml`): the project and product of the
@@ -1427,6 +1497,17 @@ rejection, go-live and price change.
 | 2026-11-18 | Google      | Container images review submitted, with the maintainer's go-ahead                                   | Agent      |
 | 2026-11-18 | Google      | Product details review of `oneuptime-enterprise` approved                                           | Google     |
 | 2026-11-19 | Google      | Pricing reviewed: in Google's automatic validation, active on 20 November if valid                  | Google     |
+| 2026-11-20 | Google      | Pricing of `enterprise` approved                                                                    | Google     |
+| 2026-11-20 | Google      | Container images review approved: the product is Ready to publish                                   | Google     |
+| 2026-11-20 | Google      | Case 77498377: Google asks to verify the usage reporting with a test deployment first               | Google     |
+| 2026-11-20 | Google      | Asked on case 77498377: direct reporting or the UBB agent, the guide, which report, the label       | Agent      |
+| 2026-11-20 | Google      | Google: direct reporting accepted, UBB agent recommended; label on the test cluster                 | Google     |
+| 2026-11-20 | Google      | Test cluster `oneuptime-marketplace-test` created with the label, with the maintainer's go-ahead    | Agent      |
+| 2026-11-20 | Google      | Test orders cancelled in seconds: procurement had no role on the service; granted, then active      | Agent      |
+| 2026-11-20 | Google      | The preview's deployer pulled from gcr.io, which has no images: pointed at Artifact Registry        | Agent      |
+| 2026-11-20 | Google      | Test install up; first hourly report accepted (0 user-hours, before its admin signed up)            | Agent      |
+| 2026-11-20 | Google      | Billing export to BigQuery and Producer Portal's reports export turned on                           | Agent      |
+| 2026-11-20 | Google      | Answered case 77498377: the test reports; logs, billing rows and Insights follow in a day           | Agent      |
 
 ## Notes for agents driving the browser
 
