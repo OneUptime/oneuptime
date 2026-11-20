@@ -71,6 +71,8 @@ El cuadro pregunta cada pocos segundos qué llegó. Pub/Sub envía una entrada e
 
 Cada registro conserva la hora de su entrada al nanosegundo, su gravedad, su traza y su span, y su solicitud HTTP con los nombres de las convenciones semánticas de OpenTelemetry. Se archiva bajo un recurso cuando su recurso supervisado es de un tipo cuyas métricas lee OneUptime, como una VM (`gce_instance`), un servicio de Cloud Run (`cloud_run_revision`) o una instancia de Cloud SQL (`cloudsql_database`), y lleva el ID del recurso como `cloud.resource_id`. Los registros de solicitudes de un balanceador de carga externo, escritos bajo `http_load_balancer`, se archivan bajo su mapa de URL, la `https_lb_rule` en la que caen sus métricas.
 
+La entrada de un registro de auditoría llega entera, como cuerpo de su registro: con [Encontrar eventos de seguridad en tus registros](/docs/telemetry/security-events#encontrar-eventos-de-seguridad-en-sus-registros) activado, cada una se lee como un evento de seguridad, igual que una de una canalización de registros, y se guarda una sola vez, por muchas vías que llegue a OneUptime.
+
 Los registros de un grupo de instancias son los de sus VM, así que su página no tiene pestaña **Registros**. Una entrada de otro tipo se transmite igualmente, bajo su proyecto.
 
 ## Qué crea el comando

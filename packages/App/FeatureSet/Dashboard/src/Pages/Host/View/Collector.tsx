@@ -163,8 +163,7 @@ const HostCollector: FunctionComponent<
             openInNewTab={true}
             className="inline-flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-indigo-600"
           >
-            {translator.translateText("Android Agent docs") ||
-              "Android Agent docs"}
+            {translator.translateText("Android Agent docs")}
             <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
           </Link>
         }

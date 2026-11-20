@@ -114,7 +114,7 @@ export enum MonitorRecommendationResourceType {
    * Esper tenant, #9835). Its recommendations are Metrics monitors over the
    * check-in readings each read of it writes for its devices
    * (ManagedDeviceAlertTemplates), one monitor per connection alerting once
-   * per device; the set is a constant while Esper is the only service.
+   * per device, by its service; see MonitorRecommendationContext.
    */
   DeviceManagementConnection = "DeviceManagementConnection",
 }
@@ -140,6 +140,14 @@ export enum MonitorRecommendationResourceType {
  * database, and no budget alerts for a RUM application — rather than a guess.
  */
 export interface MonitorRecommendationContext {
+  /*
+   * A device management connection's service (its `provider`: "esper"...),
+   * which picks its templates (getManagedDeviceAlertTemplatesFor): each
+   * service's devices check in on a schedule of their own, so each is told
+   * of after a silence of its own (#9837). `null` / `undefined` is Esper,
+   * as every connection was before.
+   */
+  deviceManagementProvider?: string | null | undefined;
   /*
    * The services a cloud has reported, by what Keystone's catalog calls them. A template about a
    * service a cloud may not run is offered only to a cloud reporting it. Not known is the same as

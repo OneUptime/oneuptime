@@ -282,6 +282,16 @@ OneUptime registra quién creó un registro — y quién lo archivó, lo resolvi
 
 La referencia de la API marca estos campos como de solo lectura. Un valor que una solicitud envía para uno de ellos junto a otros cambios se ignora, así que el resto del cambio sale adelante; una actualización que no envía nada más se rechaza con un mensaje que nombra los campos. Los registros que OneUptime crea por sí mismo en nombre de alguien — una nota publicada desde Slack o Microsoft Teams, una cuenta creada por una invitación — nombran a esa persona.
 
+### Campos que solo escribe OneUptime
+
+Algunos campos solo los escribe OneUptime: cuándo se ejecutó por última vez un monitor de telemetría y cuándo se ejecutará la próxima vez, lo último que informó un agente, los plazos de un SLA, cuándo deja de funcionar un secreto de cliente SCIM. La referencia de la API los marca como de solo lectura y los deja fuera de los cuerpos de creación y de actualización. Una creación que envía uno de ellos, como hace la copia de un registro que has leído, sale adelante sin él, y el registro nuevo recibe el valor de OneUptime. Una actualización que envía uno se rechaza, y la respuesta nombra cada uno de esos campos que envió:
+
+```text
+User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor. No permission allows it: the column is changed by the server, not by a request.
+```
+
+Deja estos campos fuera de una actualización. Los pocos que cambia una persona tienen una solicitud propia: rotar un secreto de cliente SCIM fija cuándo deja de funcionar, y `POST /api/host/:id/try-collector-config-again` vuelve a enviar a un host la configuración del recolector que falló en él. Un campo que cambias tú y también OneUptime, como las `labels` de un registro, a las que las reglas de etiquetas añaden otras, lo sigues fijando tú como antes.
+
 ## Estados y episodios
 
 ### El estado en el que empieza un registro nuevo

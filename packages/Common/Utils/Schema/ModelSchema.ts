@@ -241,14 +241,24 @@ export class ModelSchema extends BaseSchema {
       return "";
     }
 
+    /*
+     * A column only OneUptime writes takes no value from a create or an
+     * update through the API, whatever its lists say (#10053): nobody, then.
+     */
+    const column: TableColumnMetadata | undefined =
+      model.getTableColumnMetadata(key);
+    const writtenOnlyByOneUptime: boolean = Boolean(
+      column && ModelSchema.isWrittenOnlyByOneUptime(column),
+    );
+
     const createPermissions: string = this.formatPermissionsForSchema(
-      accessControl.create,
+      writtenOnlyByOneUptime ? [] : accessControl.create,
     );
     const readPermissions: string = this.formatPermissionsForSchema(
       accessControl.read,
     );
     const updatePermissions: string = this.formatPermissionsForSchema(
-      accessControl.update,
+      writtenOnlyByOneUptime ? [] : accessControl.update,
     );
 
     return `Permissions - Create: [${createPermissions}], Read: [${readPermissions}], Update: [${updatePermissions}]`;

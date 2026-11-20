@@ -104,7 +104,7 @@ Android 只允許擁有 READ_LOGS 權限的應用程式讀取其他應用程式�
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-使用 Esper 時，請透過 **Secure Remote ADB** 執行該命令：為裝置啟用 ADB 存取，以 `espercli secureadb connect -d DEVICE_ID` 連線，然後執行命令。授予權限後，Android 會重新啟動代理程式，代理程式隨即開始讀取。
+使用 Esper 時，請透過 **Secure Remote ADB** 執行該命令：為裝置啟用 ADB 存取，以 `espercli secureadb connect --device DEVICE_ID` 連線，然後執行命令。授予權限後，Android 會重新啟動代理程式，代理程式隨即開始讀取。
 
 之後代理程式讀取的內容取決於 Android 版本：
 
@@ -124,6 +124,35 @@ adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
 
 第一個命令適用於 Android 15 及更新版本；使用狀況存取權也可以在裝置的 **設定 → 使用狀況存取權** 中開啟。裝置原則無法授予這些權限，代理程式的畫面會列出仍需執行的命令。授予之後， **例外** 中的每個當機都有完整的堆疊追蹤，原生當機有其訊號和當機所在的程式庫，ANR 有其主執行緒的堆疊， **日誌** 中的重新啟動則有 Android 提供的原因。代理程式讀取的內容中的卡號、電子郵件地址、權杖和密碼會在傳送前被替換為 `[card number]` 、 `[email]` 、 `[token]` 和 `[redacted]` 。
 
+### 為整個裝置群授予這些權限
+
+代理程式的每次回報都會說明它仍缺少其中哪些權限。若要列出需要這些權限的裝置，請開啟 **資產清單** ，再開啟 **所有項目** ，然後將 **代理程式權限** 篩選條件設為 **遺失** 。開啟 **代理程式權限** 欄即可查看每台裝置缺少什麼，也可以把清單匯出為 CSV。
+
+裝置原則無法授予這些權限：READ_LOGS 和 READ_DROPBOX_DATA 是只有 adb、系統或裝置製造商才能授予的權限，而使用狀況存取權則由 adb 或裝置前的人設定。以下是 Esper 提供的幾種方式，以及它們為何都無法授予這些權限：
+
+- **應用程式權限** 無論是在藍圖中設定，還是透過 `SET_APP_PERMISSION` 命令設定，都會經過 Android 的裝置擁有者 API，而這個 API 只會授予應用程式會向裝置前的人要求的權限。Android 會拒絕授予這些權限。
+- **受管理設定** 設定的是代理程式自己的設定，從不涉及 Android 的權限。
+- **Run Shell Script** 在 Linux 和 Windows 裝置上執行，無法在 Android 裝置上執行。
+- **Secure Remote ADB** 一次只能連線到一台裝置，而且要從執行 `espercli` 的電腦連線。在 Esper Foundation 裝置上，它不需要裝置前有人。在其他裝置上，第一次連線時需要裝置前的人接受 **Allow USB debugging?** 提示。
+
+因此，請用 adb 授予這些權限：
+
+- **裝置送往現場之前** ，在以 USB 纜線佈建裝置時授予。下列命令會為連接到電腦的每台裝置授予全部三項權限：
+
+  ```bash
+  for serial in $(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }'); do
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+    adb -s "$serial" shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+  done
+  ```
+
+  在 Android 14 及更早版本上，第二個命令會指出這是未知的權限：這類裝置不需要它。
+- **對於已在現場的裝置** ，透過 Secure Remote ADB 授予，每次處理 **遺失** 清單中的一台裝置。
+- **只有使用狀況存取權** 可以由裝置前的人自行開啟：在 **設定 → 使用狀況存取權** 中開啟，或使用代理程式畫面上的按鈕。
+
+裝置在一分鐘內的下一次回報會把它從 **遺失** 清單中移除。
+
 ### CPU 使用率
 
 Android 8 及更新版本不會向應用程式提供裝置的 CPU 使用率。只有裝置擁有者應用程式才能讀取它，而且只在硬體會回報它的裝置上可行。代理程式在成為裝置擁有者時讀取它；你可以用 adb 在沒有任何帳戶、也沒有其他裝置擁有者的裝置上進行設定：
@@ -141,16 +170,20 @@ adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdmi
 :::steps
 ### 提出要求
 
-在 **主機** 中開啟裝置，再開啟 **日誌** ，然後在 **日誌工作階段** 中按一下 **要求日誌工作階段** 。選擇裝置傳送日誌的時間長度（15 分鐘到 4 小時），以及它傳送的最低層級： **資訊** 、 **偵錯** 或 **詳細** 。
+在 **主機** 中開啟裝置，再開啟 **日誌** ，然後在 **日誌工作階段** 中按一下 **要求日誌工作階段** 。選擇裝置傳送日誌的時間長度（15 分鐘到 4 小時），以及它傳送的最低層級： **資訊** 、 **偵錯** 或 **詳細** 。新增 **備註** ，說明你提出要求的原因，例如「調查付款應用程式為何在下午 6 點後當機」。
 
 ### 在裝置上允許
 
-一分鐘內，裝置會顯示一則通知，說明有人要求了它的日誌，並附上此人的名稱。裝置前的人開啟代理程式並輕觸 **允許** 。在 Android 13 及更新版本上，Android 接著會詢問是否允許存取所有裝置記錄，此人也要允許。
+一分鐘內，裝置會顯示一則通知，說明有人要求了它的日誌，並附上此人的名稱和你的備註。裝置前的人開啟代理程式，要求會連同下方你的備註一起顯示在代理程式中，然後此人輕觸 **允許** 。在 Android 13 及更新版本上，Android 接著會詢問是否允許存取所有裝置記錄，此人也要允許。
 
 ### 查看日誌行
 
-工作階段會顯示為 **收集中** ，每個應用程式的日誌行都會進入裝置的日誌。按一下 **顯示日誌行** 即可單獨查看該工作階段的日誌行。工作階段會在時間到時結束，或在有人於裝置上停止它、或在 OneUptime 中取消它時結束。
+工作階段會顯示為 **收集中** ，每個應用程式的日誌行都會進入裝置的日誌。按一下 **顯示日誌行** 即可單獨查看該工作階段的日誌行，按一下 **下載日誌行** 則可將它們儲存為檔案。工作階段會在時間到時結束，或在有人於裝置上停止它、或在 OneUptime 中取消它時結束。
 :::
+
+備註是一行文字，最多 200 個字元。在工作階段等待或執行期間，裝置會在通知和代理程式的畫面上，依你寫的原樣加上引號顯示它；它絕不會被翻譯。換行會變成空格，其中的卡號、電子郵件地址、權杖和密碼會在保存前被替換為 `[card number]` 、 `[email]` 、 `[token]` 和 `[redacted]` ，與代理程式傳送的內容一樣。工作階段清單會在提出要求的人下方顯示備註，主機的 **稽核日誌** 也會將它與要求一起保存。
+
+**下載日誌行** 會把工作階段的日誌行儲存為文字檔，格式與 `logcat -v threadtime` 的輸出相同，廠商的支援人員能夠讀懂：每一行都有精確到毫秒的時間、處理程序和執行緒、層級、標籤和訊息。時間採用 UTC。檔案的前幾行會說明這是哪個工作階段、哪台裝置、哪則備註，以及是誰提出要求。檔案包含的是 **日誌** 中顯示的日誌行，也就是經代理程式遮蔽敏感資訊後的內容，因此下載它所需的權限與讀取裝置日誌相同。一個檔案最多包含 100,000 行、32 MB；較長的工作階段，其檔案結尾會說明該工作階段共有多少行。
 
 工作階段需要 READ_LOGS 和 `logcat_enabled` ；缺少它們時會顯示為 **無法使用** 。一台裝置上同一時間只會執行一個工作階段。一小時內無人允許的要求會過期；裝置在工作階段期間重新啟動時，工作階段會隨之結束，因為 Android 的權限會隨代理程式的處理程序一起結束。要求工作階段需要編輯該主機的權限，主機的 **稽核日誌** 會記錄是誰、在何時提出了要求。
 
@@ -165,11 +198,15 @@ adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdmi
 | 重新啟動 | **日誌** ，以 `@event.name:device.boot` 查找：裝置之前運行了多久、是否正常關機、關機了多久、為什麼重新啟動，以及重新啟動循環 |
 | 已安裝的應用程式 | **日誌** ，以 `@event.name:android.package.inventory` 查找：每天一次，以及每次安裝、更新和移除 |
 | 每個應用程式的當機和 ANR | **例外** ，作為未處理的例外，以應用程式命名；代理程式讀取 [DropBox](#當機堆疊和重新啟動原因) 時附帶其堆疊 |
-| 廠牌、型號、序號、作業系統版本、安全性修補程式等級和韌體 | 該裝置在 **資產清單** 中的項目 |
+| 廠牌、型號、序號、作業系統版本、安全性修補程式等級和韌體 | 該裝置在 **資產清單** 中的項目，以及 **安全性修補程式等級** 篩選條件和欄 |
+| 安全性修補程式等級有多舊 | 指標 `android.os.security_patch.age` ，以天為單位 |
+| 代理程式仍缺少的權限 | 該裝置在 **資產清單** 中的項目，以及 **代理程式權限** 篩選條件和欄 |
 
 在 **主機** 中，裝置的作業系統會顯示為 Android，並帶有 Android 的標誌。
 
-裝置在過去一小時內的開機次數是指標 `android.boot.recent_count` ，不斷重新啟動的裝置會在每次開機時記錄一筆警告日誌。在 **主機** 中，Android 裝置會獲得自己的警示範本：Device Unplugged、Low Battery、Device Overheating、Restart Loop 和 Storage Nearly Full，以及 Host Stopped Reporting、Host Restarted 和 High Memory Utilization，並在回報 CPU 使用率後獲得 High CPU Utilization。每個警示最先提供的偵錯命令都是 adb 命令。請參閱 [主機監控](/docs/monitor/host-monitor#android-裝置) 。
+當裝置的安全性修補程式等級距今超過 90 天時，它的安全性修補程式就落後了。Google 每個月發布一份 Android 安全性公告，Android Enterprise Recommended 則要求裝置製造商在 90 天內推出每一份公告的更新，因此落後更久的裝置缺少其製造商早該推出的修正。在 **資產清單** 中， **安全性修補程式等級** 篩選條件會列出 **需要更新** 的裝置； **Security Patch Out of Date** 範本會針對每一台這樣的裝置發出警示。
+
+裝置在過去一小時內的開機次數是指標 `android.boot.recent_count` ，不斷重新啟動的裝置會在每次開機時記錄一筆警告日誌。在 **主機** 中，Android 裝置會獲得自己的警示範本：Device Unplugged、Low Battery、Device Overheating、Restart Loop、Storage Nearly Full 和 Security Patch Out of Date，以及 Host Stopped Reporting、Host Restarted 和 High Memory Utilization，並在回報 CPU 使用率後獲得 High CPU Utilization。每個警示最先提供的偵錯命令都是 adb 命令。請參閱 [主機監控](/docs/monitor/host-monitor#android-裝置) 。
 
 ## 疑難排解
 

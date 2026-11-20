@@ -615,9 +615,14 @@ describe("MicrosoftDefenderXdrNormalizer", () => {
 
       expect(event.observables).toContain("192.0.2.9");
       expect(event.observables).toContain("c2.example.org");
+      // An Azure resource ID by its key, in lower case, as every source keeps it (#10034).
       expect(event.observables).toContain(
+        "/subscriptions/1/resourcegroups/rg/vm",
+      );
+      expect(event.observables).not.toContain(
         "/subscriptions/1/resourceGroups/rg/vm",
       );
+      // What the alert is about stays as Defender XDR wrote it.
       expect(event.targetResource).toBe(
         "/subscriptions/1/resourceGroups/rg/vm",
       );

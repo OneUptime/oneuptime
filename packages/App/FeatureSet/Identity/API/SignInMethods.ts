@@ -1,6 +1,7 @@
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
+import { MOBILE_SSO_HAND_OFF_SUPPORTED_FIELD } from "Common/Types/SSO/MobileSsoHandOff";
 import {
   ProjectSignInMethods,
   SignInMethods,
@@ -68,6 +69,14 @@ router.get(
         ssoProviders: methods.ssoProviders.map(toJson),
         hasProjectSsoProviders: methods.hasProjectSsoProviders,
         isMagicLinkLoginEnabled: methods.isMagicLinkLoginEnabled,
+        /*
+         * An SSO sign-in the mobile app starts with a state and a PKCE
+         * challenge is handed back as a one-time code, never as tokens
+         * (#9989, Types/SSO/MobileSsoHandOff). The app reads this before it
+         * takes a deep link that carries tokens: from this server, such a
+         * link is not the server's.
+         */
+        [MOBILE_SSO_HAND_OFF_SUPPORTED_FIELD]: true,
       });
     } catch (err) {
       return next(err);

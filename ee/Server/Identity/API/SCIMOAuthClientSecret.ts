@@ -17,6 +17,7 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
+import ServerSetColumns from "Common/Server/Utils/Database/ServerSetColumns";
 import { IdentityRoute } from "Common/ServiceRoute";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
@@ -218,18 +219,29 @@ for (const kind of CONNECTION_KINDS) {
           new Date(connection.oauthClientSecretExpiresAt!).getTime() >
             now.getTime();
 
+        const data: JSONObject = {
+          oauthClientSecretHash: hashScimClientSecret(secret),
+          oauthPreviousClientSecretHash: currentIsLive
+            ? connection.oauthClientSecretHash!
+            : null,
+        };
+
+        /*
+         * When the secrets stop working is OneUptime's to say: only
+         * OneUptime writes it, and the API takes no value for it from a
+         * person (#10053). These are OneUptime's values, written as the
+         * person who rotates the secret (ServerSetColumns).
+         */
+        ServerSetColumns.set(data, {
+          oauthClientSecretExpiresAt: expiresAt,
+          oauthPreviousClientSecretExpiresAt: currentIsLive
+            ? connection.oauthClientSecretExpiresAt!
+            : null,
+        });
+
         const updated: number = await kind.update({
           id: id,
-          data: {
-            oauthClientSecretHash: hashScimClientSecret(secret),
-            oauthClientSecretExpiresAt: expiresAt,
-            oauthPreviousClientSecretHash: currentIsLive
-              ? connection.oauthClientSecretHash!
-              : null,
-            oauthPreviousClientSecretExpiresAt: currentIsLive
-              ? connection.oauthClientSecretExpiresAt!
-              : null,
-          } as JSONObject,
+          data: data,
           props: props,
         });
 
@@ -270,12 +282,16 @@ for (const kind of CONNECTION_KINDS) {
           connection: ProjectSCIM | StatusPageSCIM;
         } = await getAuthorizedConnection(req, kind);
 
+        const data: JSONObject = { oauthPreviousClientSecretHash: null };
+
+        // OneUptime's value, as on a rotation (ServerSetColumns).
+        ServerSetColumns.set(data, {
+          oauthPreviousClientSecretExpiresAt: null,
+        });
+
         const updated: number = await kind.update({
           id: id,
-          data: {
-            oauthPreviousClientSecretHash: null,
-            oauthPreviousClientSecretExpiresAt: null,
-          } as JSONObject,
+          data: data,
           props: props,
         });
 

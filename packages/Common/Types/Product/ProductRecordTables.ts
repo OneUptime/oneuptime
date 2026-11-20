@@ -790,6 +790,7 @@ export const TABLES_OF_NO_PRODUCT: Readonly<Record<string, string>> =
       [
         "TelemetryIngestionKey",
         "TelemetryIngestionKeyRefusal",
+        "TelemetryIngestionTeamLabelBudget",
         "TelemetryUsageBilling",
       ],
     ),

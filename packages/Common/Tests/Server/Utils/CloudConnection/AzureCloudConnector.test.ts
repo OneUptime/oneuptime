@@ -1,6 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
 import AzureArm from "../../../../Server/Utils/CloudConnection/Azure/AzureArm";
 import AzureCloudConnector, {
+  applyAzureSplits,
+  getAzureSplitOrder,
   chunkAzureMetricCalls,
   withAzureResourceAdditions,
   AZURE_DEFINITION_SAMPLES,
@@ -36,9 +38,11 @@ import {
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudKeyMetricGroup } from "../../../../Types/Cloud/CloudKeyMetricGroup";
 import {
+  CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
   CloudAddedMetric,
   CloudAddedMetricScope,
   getCloudAddedMetricKey,
+  getCloudAddedMetricSplitAttribute,
 } from "../../../../Types/Cloud/CloudAddedMetrics";
 import {
   CloudMonitoredResource,
@@ -116,6 +120,12 @@ interface FakeAzureOptions {
    * own definitions do not list is refused whole, with a 400 that says so.
    */
   refuseUnpublished?: boolean;
+  /*
+   * As Azure Monitor answers a call split by a dimension ($filter=<it> eq
+   * '*'): a series per value, the first `top` of them, each its value in
+   * metadatavalues as Azure writes it, its name lowercased.
+   */
+  splitValues?: Record<string, Array<string>>;
 }
 
 function definition(
@@ -162,6 +172,9 @@ function resource(
 interface FakeAzure extends FakeProviderApi {
   metricCalls: Array<URL>;
 }
+
+// A split call's filter, "<dimension> eq '*'": the dimension it splits by.
+const SPLIT_FILTER: RegExp = /^([A-Za-z0-9]+) eq '\*'$/;
 
 function createFakeAzure(options: FakeAzureOptions = {}): FakeAzure {
   const metricCalls: Array<URL> = [];
@@ -296,6 +309,42 @@ function createFakeAzure(options: FakeAzureOptions = {}): FakeAzure {
         const start: number = Date.parse(
           (url.searchParams.get("timespan") || "").split("/")[0]!,
         );
+        const splitBy: string =
+          SPLIT_FILTER.exec(url.searchParams.get("$filter") || "")?.[1] || "";
+        const values: Array<string> = (
+          options.splitValues?.[splitBy] || []
+        ).slice(0, Number(url.searchParams.get("top") || 10));
+
+        if (values.length > 0) {
+          return json({
+            value: names.map((name: string, index: number) => {
+              return {
+                name: { value: name, localizedValue: name },
+                unit: "BytesPerSecond",
+                timeseries: values.map((value: string, valueIndex: number) => {
+                  return {
+                    metadatavalues: [
+                      {
+                        name: {
+                          value: splitBy.toLowerCase(),
+                          localizedValue: splitBy,
+                        },
+                        value,
+                      },
+                    ],
+                    data: [
+                      {
+                        timeStamp: new Date(start).toISOString(),
+                        average: 10 + index + valueIndex,
+                        total: 100 + index + valueIndex,
+                      },
+                    ],
+                  };
+                }),
+              };
+            }),
+          });
+        }
 
         return json({
           value: names.map((name: string, index: number) => {
@@ -2099,6 +2148,141 @@ describe("metrics a person added to the reads", () => {
     expect(writtenNamesOf(result, VM_2)).not.toContain(
       "azure_data_disk_read_bytes/sec_average",
     );
+  });
+
+  /*
+   * #9808: an addition split by one of its dimensions is read in a call of
+   * its own, whose filter splits it alone - never the key metrics' call,
+   * which the filter would split too - the busiest 10 values, a series
+   * each, stored with the value as the receiver files it.
+   */
+  test("a split addition is read in a call of its own, split by its dimension, its busiest values, a series each stored with its value", async () => {
+    const fake: FakeAzure = twoVms({
+      splitValues: { LUN: ["0", "1", "2"] },
+    });
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake, {}, { addedMetrics: [added({ splitBy: "LUN" })] }),
+    );
+
+    // The key metrics' call as it was, and one more for the split.
+    expect(metricNamesAsked(fake, VM)).toEqual([
+      KEY_CALL,
+      "Data Disk Read Bytes/sec",
+    ]);
+
+    const calls: Array<URL> = fake.metricCalls.filter((url: URL): boolean => {
+      return url.pathname.startsWith(`${VM}/`);
+    });
+
+    expect(calls[0]!.searchParams.get("$filter")).toBeNull();
+    expect(calls[1]!.searchParams.get("$filter")).toBe("LUN eq '*'");
+    expect(calls[1]!.searchParams.get("top")).toBe(
+      String(CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES),
+    );
+    expect(calls[1]!.searchParams.get("orderby")).toBe("average desc");
+    expect(calls[1]!.searchParams.get("ValidateDimensions")).toBe("false");
+    expect(calls[1]!.searchParams.get("aggregation")).toBe("Average");
+
+    const split: Array<{ stored: JSONObject; value: number }> = datapoints(
+      result,
+    ).filter((point: { metricName: string; stored: JSONObject }): boolean => {
+      return (
+        point.metricName === "azure_data_disk_read_bytes/sec_average" &&
+        point.stored["azuremonitor.resource_id"] === VM
+      );
+    });
+
+    expect(
+      split.map((point: { stored: JSONObject }) => {
+        return point.stored[
+          getCloudAddedMetricSplitAttribute({
+            provider: CloudProvider.Azure,
+            splitBy: "LUN",
+          })
+        ];
+      }),
+    ).toEqual(["0", "1", "2"]);
+    // A split stopped at its cap leaves no namespace's queues unread to warn of.
+    expect(result.warnings).toEqual([]);
+  });
+
+  test("a split addition of a total is ordered by its sum; one read whole rides in the key metrics' call as before", async () => {
+    const fake: FakeAzure = twoVms({
+      splitValues: { LUN: ["0"] },
+    });
+
+    await connector.read(
+      settings(),
+      readOptions(
+        fake,
+        {},
+        {
+          addedMetrics: [
+            ownAddition({
+              name: "Data Disk Read Bytes/sec",
+              aggregation: "Total",
+              splitBy: "LUN",
+            }),
+          ],
+        },
+      ),
+    );
+
+    const split: URL | undefined = fake.metricCalls.find((url: URL) => {
+      return (
+        url.pathname.startsWith(`${VM}/`) &&
+        url.searchParams.get("$filter") === "LUN eq '*'"
+      );
+    });
+
+    expect(split?.searchParams.get("orderby")).toBe("sum desc");
+    // The other VM has no addition: its key metrics' call alone.
+    expect(metricNamesAsked(fake, VM_2)).toEqual([KEY_CALL]);
+    expect(getAzureSplitOrder("Maximum")).toBe("maximum desc");
+    expect(getAzureSplitOrder("")).toBe("average desc");
+  });
+
+  test("an addition's split is the one it has now, whatever selection was kept", () => {
+    expect(
+      applyAzureSplits(
+        [
+          {
+            name: "Percentage CPU",
+            aggregation: "Average",
+            grain: "PT1M",
+            unit: "Percent",
+          },
+          {
+            name: "Data Disk Read Bytes/sec",
+            aggregation: "Average",
+            grain: "PT1M",
+            unit: "BytesPerSecond",
+            isAdded: true,
+            splitBy: "Old",
+          },
+        ],
+        [{ name: "data disk read bytes/sec", splitBy: "LUN" }],
+      ).map((metric: { name: string; splitBy?: string | undefined }) => {
+        return `${metric.name}:${metric.splitBy || ""}`;
+      }),
+    ).toEqual(["Percentage CPU:", "Data Disk Read Bytes/sec:LUN"]);
+    expect(
+      applyAzureSplits(
+        [
+          {
+            name: "Data Disk Read Bytes/sec",
+            aggregation: "Average",
+            grain: "PT1M",
+            unit: "BytesPerSecond",
+            isAdded: true,
+            splitBy: "LUN",
+          },
+        ],
+        [{ name: "Data Disk Read Bytes/sec" }],
+      )[0]!.splitBy,
+    ).toBeUndefined();
   });
 
   test("a type's addition its resources do not publish is never asked, so no call is refused", async () => {

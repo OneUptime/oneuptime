@@ -30,6 +30,13 @@ import JsonWebTokenPurpose from "Common/Types/JsonWebTokenPurpose";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
+import { MobileSsoSignIn } from "Common/Types/SSO/MobileSsoHandOff";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import MobileSsoHandOffService, {
+  MobileSsoHandOffRequest,
+} from "Common/Server/Services/MobileSsoHandOffService";
+import FakeMobileSsoHandOffRedis from "Common/Tests/Server/TestingUtils/Redis/FakeMobileSsoHandOffRedis";
+import { getMobileSsoRelayState } from "../../../FeatureSet/Identity/Utils/MobileSso";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
 
 /*
@@ -90,6 +97,24 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
   environment["HttpProtocol"] = "https://";
 
   return environment;
+});
+
+// Where the mobile app's SSO hand-off is kept (#9989): its scripts, in memory.
+const mockHandOffRedis: FakeMobileSsoHandOffRedis =
+  new FakeMobileSsoHandOffRedis();
+
+jest.mock("Common/Server/Infrastructure/Redis", () => {
+  return {
+    __esModule: true,
+    default: {
+      getClient: (): unknown => {
+        return mockHandOffRedis;
+      },
+      isConnected: (): boolean => {
+        return true;
+      },
+    },
+  };
 });
 
 // The cache that remembers which responses were used: SET NX, in memory.
@@ -298,6 +323,22 @@ jest.mock("../../../FeatureSet/Identity/Utils/OIDC", () => {
       getEndSessionEndpoint: (): string | null => {
         return discovery.endSessionEndpoint;
       },
+      // What a sign-in's start asks for (#9989's start-route tests).
+      generateState: (): string => {
+        return "state";
+      },
+      generateNonce: (): string => {
+        return "nonce";
+      },
+      generateCodeVerifier: (): string => {
+        return "code-verifier";
+      },
+      generateCodeChallenge: (): string => {
+        return "code-challenge";
+      },
+      generateAuthorizationUrl: (): string => {
+        return "https://idp.example.com/authorize";
+      },
     },
   };
 });
@@ -421,7 +462,12 @@ function handlerFor(
   return layer.route.stack[layer.route.stack.length - 1]!.handle;
 }
 
-type SignInFrom = "browser" | "mobile app";
+/*
+ * "mobile app" is an app from before #9989, which names no hand-off and is
+ * handed the session on its deep link; "mobile app with a hand-off" starts
+ * with a state and a PKCE challenge and is handed a one-time code.
+ */
+type SignInFrom = "browser" | "mobile app" | "mobile app with a hand-off";
 
 // What the provider sends the browser back to the route with.
 interface ProviderAnswer {
@@ -435,28 +481,44 @@ interface Flow {
   router: ExpressRouter;
   method: "get" | "post";
   path: string;
+  // The route that starts the sign-in, and the cookie OIDC keeps its state in.
+  startPath: string;
+  stateCookieName: string | null;
   params: Record<string, string>;
   providerId: string;
   providerType: SsoProviderType;
-  answer: (from: SignInFrom) => ProviderAnswer;
+  // `mobileFlowId`: the hand-off the sign-in's start kept, if any.
+  answer: (from: SignInFrom, mobileFlowId: string | null) => ProviderAnswer;
   // The cookie the SSO sign-in is set in, and the deep link parameter it rides in.
   ssoCookieName: string;
   deepLinkParameter: string;
 }
 
-// A SAML provider posts a signed response to the Reply URL.
+/*
+ * A SAML provider posts a signed response to the Reply URL, with the
+ * RelayState the start gave it: "mobile", or "mobile:<flow id>".
+ */
 function samlAnswer(data: {
   entityId: string;
   replyUrl: string;
-}): (from: SignInFrom) => ProviderAnswer {
-  return (from: SignInFrom): ProviderAnswer => {
+  providerId: string;
+}): (from: SignInFrom, mobileFlowId: string | null) => ProviderAnswer {
+  return (from: SignInFrom, mobileFlowId: string | null): ProviderAnswer => {
     return {
       body: {
         SAMLResponse: signedResponse(data),
-        ...(from === "mobile app" ? { RelayState: "mobile" } : {}),
+        ...(from === "browser"
+          ? {}
+          : { RelayState: getMobileSsoRelayState(mobileFlowId) }),
       },
       query: {},
-      cookies: {},
+      /*
+       * The browser that started a sign-in with a hand-off posts the answer
+       * with the intent cookie its start set (SameSite=None on HTTPS).
+       */
+      cookies: mobileFlowId
+        ? { [`sso-mobile-intent-${data.providerId}`]: mobileFlowId }
+        : {},
     };
   };
 }
@@ -464,12 +526,12 @@ function samlAnswer(data: {
 /*
  * An OIDC provider sends the browser back with a code and the state, to
  * the route that reads the state cookie the sign-in's start set: signed for
- * real, and saying whether the mobile app started it.
+ * real, saying whether the mobile app started it, and with which hand-off.
  */
 function oidcAnswer(
   stateCookieName: string,
-): (from: SignInFrom) => ProviderAnswer {
-  return (from: SignInFrom): ProviderAnswer => {
+): (from: SignInFrom, mobileFlowId: string | null) => ProviderAnswer {
+  return (from: SignInFrom, mobileFlowId: string | null): ProviderAnswer => {
     return {
       body: {},
       query: { code: "authorization-code", state: "state" },
@@ -479,7 +541,8 @@ function oidcAnswer(
             state: "state",
             nonce: "nonce",
             codeVerifier: "code-verifier",
-            isMobile: from === "mobile app",
+            isMobile: from !== "browser",
+            ...(mobileFlowId ? { mobileFlowId } : {}),
           },
           10 * 60,
         ),
@@ -488,18 +551,29 @@ function oidcAnswer(
   };
 }
 
+// The app's PKCE verifier (RFC 7636, appendix B), its challenge and state.
+const APP_CODE_VERIFIER: string = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
+const APP_HAND_OFF: MobileSsoHandOffRequest = {
+  codeChallenge: "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+  codeChallengeMethod: "S256",
+  state: "the-apps-own-state-" + "0123456789".repeat(4),
+};
+
 const FLOWS: Array<Flow> = [
   {
     name: "a project SAML sign-in",
     router: SSORouter,
     method: "post",
     path: "/idp-login/:projectId/:projectSsoId",
+    startPath: "/sso/:projectId/:projectSsoId",
+    stateCookieName: null,
     params: { projectId: PROJECT_ID, projectSsoId: PROJECT_SSO_ID },
     providerId: PROJECT_SSO_ID,
     providerType: SsoProviderType.ProjectSSO,
     answer: samlAnswer({
       entityId: `${SERVER}/${PROJECT_ID}/${PROJECT_SSO_ID}`,
       replyUrl: `${SERVER}/identity/idp-login/${PROJECT_ID}/${PROJECT_SSO_ID}`,
+      providerId: PROJECT_SSO_ID,
     }),
     ssoCookieName: CookieUtil.getUserSSOKey(new ObjectID(PROJECT_ID)),
     deepLinkParameter: "ssoToken",
@@ -509,6 +583,8 @@ const FLOWS: Array<Flow> = [
     router: OIDCRouter,
     method: "get",
     path: "/oidc-callback/:projectId/:projectOidcId",
+    startPath: "/oidc/:projectId/:projectOidcId",
+    stateCookieName: `oidc-state-${PROJECT_OIDC_ID}`,
     params: { projectId: PROJECT_ID, projectOidcId: PROJECT_OIDC_ID },
     providerId: PROJECT_OIDC_ID,
     providerType: SsoProviderType.ProjectOIDC,
@@ -521,12 +597,15 @@ const FLOWS: Array<Flow> = [
     router: GlobalSSORouter,
     method: "post",
     path: "/global-idp-login/:globalSsoId",
+    startPath: "/global-sso/:globalSsoId",
+    stateCookieName: null,
     params: { globalSsoId: GLOBAL_SSO_ID },
     providerId: GLOBAL_SSO_ID,
     providerType: SsoProviderType.GlobalSSO,
     answer: samlAnswer({
       entityId: `${SERVER}/global-sso/${GLOBAL_SSO_ID}`,
       replyUrl: `${SERVER}/identity/global-idp-login/${GLOBAL_SSO_ID}`,
+      providerId: GLOBAL_SSO_ID,
     }),
     ssoCookieName: CookieUtil.getGlobalSSOKey(),
     deepLinkParameter: "globalSsoToken",
@@ -536,6 +615,8 @@ const FLOWS: Array<Flow> = [
     router: GlobalOIDCRouter,
     method: "get",
     path: "/global-oidc-callback/:globalOidcId",
+    startPath: "/global-oidc/:globalOidcId",
+    stateCookieName: `global-oidc-state-${GLOBAL_OIDC_ID}`,
     params: { globalOidcId: GLOBAL_OIDC_ID },
     providerId: GLOBAL_OIDC_ID,
     providerType: SsoProviderType.GlobalOIDC,
@@ -594,11 +675,133 @@ interface SignIn {
   deepLink: URLSearchParams | null;
 }
 
-// Signs in through the flow's route, from a browser or from the mobile app.
-async function signIn(flow: Flow, from: SignInFrom): Promise<SignIn> {
+// What a start route did: sent the browser to the provider, or to the app.
+interface Start {
+  redirectedTo: string;
+  // Set when the start ended on the app's deep link instead.
+  deepLink: URLSearchParams | null;
+  cookies: Dictionary<string>;
+}
+
+// Starts a sign-in through the flow's start route, with `query`.
+async function startFrom(flow: Flow, query: JSONObject): Promise<Start> {
   const cookies: Dictionary<string> = {};
   const resRedirect: jest.Mock = jest.fn();
-  const answer: ProviderAnswer = flow.answer(from);
+
+  const req: ExpressRequest = {
+    params: flow.params,
+    body: {},
+    query: query,
+    headers: {},
+    cookies: {},
+    socket: { remoteAddress: "127.0.0.1" },
+    get: (): undefined => {
+      return undefined;
+    },
+  } as unknown as ExpressRequest;
+
+  const res: ExpressResponse = {
+    redirect: resRedirect,
+    status: jest.fn(() => {
+      return res;
+    }),
+    send: jest.fn().mockReturnThis(),
+    json: jest.fn().mockReturnThis(),
+    cookie: jest.fn((name: string, value: string) => {
+      cookies[name] = value;
+      return res;
+    }),
+    clearCookie: jest.fn().mockReturnThis(),
+  } as unknown as ExpressResponse;
+
+  responseRedirect.mockClear();
+
+  let nextError: unknown = undefined;
+
+  await (handlerFor(flow.router, "get", flow.startPath)(
+    req,
+    res,
+    (err?: unknown): void => {
+      nextError = err;
+    },
+  ) as unknown as Promise<void>);
+
+  expect(nextError).toBeUndefined();
+  expect(sendErrorResponse).not.toHaveBeenCalled();
+
+  if (resRedirect.mock.calls.length > 0) {
+    expect(responseRedirect).not.toHaveBeenCalled();
+
+    const link: string = resRedirect.mock.calls[0]![0] as string;
+
+    expect(link.startsWith("oneuptime://sso-callback?")).toBe(true);
+
+    return {
+      redirectedTo: link,
+      deepLink: new URLSearchParams(link.split("?")[1] || ""),
+      cookies,
+    };
+  }
+
+  expect(responseRedirect).toHaveBeenCalledTimes(1);
+
+  return {
+    redirectedTo: String(responseRedirect.mock.calls[0]![2]),
+    deepLink: null,
+    cookies,
+  };
+}
+
+/*
+ * The hand-off flow a start carries through the provider's round trip:
+ * SAML's RelayState ("mobile:<flow id>"), OIDC's signed state cookie.
+ */
+function carriedFlowId(flow: Flow, start: Start): string | null {
+  if (flow.stateCookieName) {
+    const decoded: Record<string, unknown> = JSONWebToken.decodeJsonPayload(
+      start.cookies[flow.stateCookieName]!,
+    ) as unknown as Record<string, unknown>;
+
+    expect(decoded["isMobile"]).toBe(true);
+
+    return (decoded["mobileFlowId"] as string | undefined) || null;
+  }
+
+  const relayState: string | null = new globalThis.URL(
+    start.redirectedTo,
+  ).searchParams.get("RelayState");
+
+  expect(relayState === "mobile" || relayState?.startsWith("mobile:")).toBe(
+    true,
+  );
+
+  return relayState === "mobile" ? null : relayState!.slice("mobile:".length);
+}
+
+/*
+ * Signs in through the flow's route, from a browser or from the mobile app.
+ * A sign-in with a hand-off carries `startedFlowId` - the one its start
+ * route kept - or one kept here, as the start would have.
+ */
+async function signIn(
+  flow: Flow,
+  from: SignInFrom,
+  startedFlowId?: string,
+  // The answer posted from a browser other than the one that started it.
+  options: { fromAnotherBrowser?: boolean } = {},
+): Promise<SignIn> {
+  const cookies: Dictionary<string> = {};
+  const resRedirect: jest.Mock = jest.fn();
+  // The hand-off the start route keeps for an app that names one (#9989).
+  const mobileFlowId: string | null =
+    from === "mobile app with a hand-off"
+      ? startedFlowId || (await MobileSsoHandOffService.startFlow(APP_HAND_OFF))
+      : null;
+  const answer: ProviderAnswer = flow.answer(from, mobileFlowId);
+
+  if (options.fromAnotherBrowser) {
+    answer.cookies = {};
+  }
 
   const req: ExpressRequest = {
     params: flow.params,
@@ -642,7 +845,7 @@ async function signIn(flow: Flow, from: SignInFrom): Promise<SignIn> {
 
   let deepLink: URLSearchParams | null = null;
 
-  if (from === "mobile app") {
+  if (from !== "browser") {
     expect(resRedirect).toHaveBeenCalledTimes(1);
 
     const link: string = resRedirect.mock.calls[0]![0] as string;
@@ -704,6 +907,8 @@ function existingUser(): User {
 beforeEach(() => {
   jest.clearAllMocks();
   cacheEntries.clear();
+  mockHandOffRedis.entries.clear();
+  mockHandOffRedis.evals.length = 0;
   setTestBillingEnabled(false);
   samlExtras.sessionIndex = SAML_SESSION_INDEX;
   samlExtras.rawNameIdAttributes = undefined;
@@ -875,6 +1080,186 @@ describe.each(RUNS)(
           new ObjectID(flow.providerId),
         ),
       ).toBe(true);
+    });
+
+    /*
+     * #9989: an app that starts with a state and a PKCE challenge is handed
+     * a one-time code and its state - nothing that is a session, nothing
+     * about the person - and redeems it with its verifier.
+     */
+    test("from the mobile app with a hand-off, hands it only a one-time code and its own state", async () => {
+      const { deepLink } = await signIn(flow, "mobile app with a hand-off");
+
+      expect([...deepLink!.keys()].sort()).toEqual(["code", "state"]);
+      expect(deepLink!.get("state")).toBe(APP_HAND_OFF.state);
+      expect(MobileSsoHandOffService.isFlowId(deepLink!.get("code"))).toBe(
+        true,
+      );
+    });
+
+    test("from the mobile app with a hand-off, redeems with the verifier a session the API takes as the person, and the SSO sign-in", async () => {
+      const { deepLink } = await signIn(flow, "mobile app with a hand-off");
+
+      const signedIn: MobileSsoSignIn =
+        await MobileSsoHandOffService.exchangeAuthorizationCode({
+          code: deepLink!.get("code"),
+          codeVerifier: APP_CODE_VERIFIER,
+          state: APP_HAND_OFF.state,
+        });
+
+      expect(
+        JSONWebToken.decodeJsonPayload(signedIn.accessToken)[PURPOSE_CLAIM],
+      ).toBe(JsonWebTokenPurpose.UserSession);
+      expect(await readAsSession(signedIn.accessToken)).toEqual([
+        "user",
+        "user",
+      ]);
+      expect(signedIn.refreshToken).toBe("refresh-token");
+      expect(signedIn.userId).toBe(USER_ID);
+      expect(signedIn.email).toBe(USER_EMAIL);
+
+      const isGlobal: boolean =
+        flow.providerType === SsoProviderType.GlobalSSO ||
+        flow.providerType === SsoProviderType.GlobalOIDC;
+      const ssoSignIn: string | undefined = isGlobal
+        ? signedIn.globalSsoToken
+        : signedIn.ssoToken;
+
+      expect(ssoSignIn).toBeDefined();
+      expect(signedIn.projectId).toBe(isGlobal ? undefined : PROJECT_ID);
+      expect(JSONWebToken.decodeJsonPayload(ssoSignIn!)[PURPOSE_CLAIM]).toBe(
+        JsonWebTokenPurpose.SsoSignIn,
+      );
+      expect(
+        UserMiddleware.doesSsoTokenForProjectExist(
+          requestCarrying(signedIn.accessToken, "bearer", {
+            headers: isGlobal
+              ? { "x-global-sso-token": ssoSignIn! }
+              : {
+                  "x-sso-tokens": JSON.stringify({ [PROJECT_ID]: ssoSignIn! }),
+                },
+          }),
+          new ObjectID(PROJECT_ID),
+          new ObjectID(USER_ID),
+          new ObjectID(flow.providerId),
+        ),
+      ).toBe(true);
+    });
+
+    test("a start from the mobile app with a hand-off keeps the app's state and challenge for the round trip, and nothing that signs anybody in", async () => {
+      const start: Start = await startFrom(flow, {
+        mobile: "true",
+        ...APP_HAND_OFF,
+      });
+
+      expect(start.deepLink).toBeNull();
+
+      const flowId: string | null = carriedFlowId(flow, start);
+
+      expect(MobileSsoHandOffService.isFlowId(flowId)).toBe(true);
+      expect(mockHandOffRedis.keysStartingWith("mobile-sso-")).toEqual([
+        `mobile-sso-flow-${MobileSsoHandOffService.hash(flowId!)}`,
+      ]);
+      expect(
+        JSON.parse(
+          [...mockHandOffRedis.entries.values()][0]!.value,
+        ) as JSONObject,
+      ).toEqual(APP_HAND_OFF);
+
+      // SAML's fallback for a provider that drops RelayState; OIDC's signed cookie needs none.
+      const intentCookie: string | undefined =
+        start.cookies[`sso-mobile-intent-${flow.providerId}`];
+
+      expect(intentCookie).toBe(
+        flow.providerType === SsoProviderType.ProjectOIDC ? undefined : flowId,
+      );
+    });
+
+    test("a start from the mobile app with a hand-off ends, through the provider, on a code the app redeems", async () => {
+      const start: Start = await startFrom(flow, {
+        mobile: "true",
+        ...APP_HAND_OFF,
+      });
+      const { deepLink } = await signIn(
+        flow,
+        "mobile app with a hand-off",
+        carriedFlowId(flow, start)!,
+      );
+
+      expect([...deepLink!.keys()].sort()).toEqual(["code", "state"]);
+
+      const signedIn: MobileSsoSignIn =
+        await MobileSsoHandOffService.exchangeAuthorizationCode({
+          code: deepLink!.get("code"),
+          codeVerifier: APP_CODE_VERIFIER,
+          state: APP_HAND_OFF.state,
+        });
+
+      expect(await readAsSession(signedIn.accessToken)).toEqual([
+        "user",
+        "user",
+      ]);
+
+      // The flow is spent: the sign-in cannot be handed back twice.
+      expect(mockHandOffRedis.keysStartingWith("mobile-sso-flow-")).toEqual([]);
+    });
+
+    test("a start with a hand-off that is not well formed ends on the app's deep link with why, and keeps nothing", async () => {
+      const start: Start = await startFrom(flow, {
+        mobile: "true",
+        state: APP_HAND_OFF.state,
+        codeChallenge: APP_HAND_OFF.codeChallenge,
+        codeChallengeMethod: "plain",
+      });
+
+      expect(start.deepLink!.get("error")).toBe("sso_mobile_sign_in_failed");
+      expect(start.deepLink!.get("accessToken")).toBeNull();
+      expect(mockHandOffRedis.entries.size).toBe(0);
+    });
+
+    test("a start from an app from before the hand-off names none, and keeps none, as before", async () => {
+      const start: Start = await startFrom(flow, { mobile: "true" });
+
+      expect(start.deepLink).toBeNull();
+      expect(carriedFlowId(flow, start)).toBeNull();
+      expect(mockHandOffRedis.entries.size).toBe(0);
+    });
+
+    /*
+     * A flow id copied off the address the browser was sent to the provider
+     * with: someone's own sign-in, posted into it from their browser, is
+     * handed nobody - not a code for their account to the app that started
+     * the flow. OIDC's flow is in its signed state cookie, which only the
+     * browser that started the sign-in holds.
+     */
+    test("from the mobile app with a hand-off, hands nothing to a SAML answer posted from another browser", async () => {
+      if (flow.stateCookieName) {
+        return;
+      }
+
+      const { deepLink } = await signIn(
+        flow,
+        "mobile app with a hand-off",
+        undefined,
+        { fromAnotherBrowser: true },
+      );
+
+      expect(deepLink!.get("error")).toBe("sso_mobile_sign_in_expired");
+      expect(deepLink!.get("code")).toBeNull();
+      expect(deepLink!.get("accessToken")).toBeNull();
+      expect(mockHandOffRedis.keysStartingWith("mobile-sso-code-")).toEqual([]);
+    });
+
+    test("from the mobile app with a hand-off, gives an app that intercepted the code nothing without the verifier", async () => {
+      const { deepLink } = await signIn(flow, "mobile app with a hand-off");
+
+      await expect(
+        MobileSsoHandOffService.exchangeAuthorizationCode({
+          code: deepLink!.get("code"),
+          codeVerifier: "an-interceptor-has-no-verifier-" + "x".repeat(20),
+          state: APP_HAND_OFF.state,
+        }),
+      ).rejects.toThrow(BadDataException);
     });
   },
 );

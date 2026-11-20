@@ -234,6 +234,11 @@ import TelemetryIngestionBudgetMetricTypeUtil, {
   TELEMETRY_INGESTION_BUDGET_METRIC_NAME_PREFIX,
 } from "Common/Utils/Telemetry/TelemetryIngestionBudgetMetricType";
 import ContainerStatsPercentUnit from "Common/Utils/Metrics/ContainerStatsPercentUnit";
+import TelemetryUsageMetricTypeUtil, {
+  TELEMETRY_USAGE_METRIC_NAME_PREFIX,
+} from "Common/Utils/Telemetry/TelemetryUsageMetricType";
+import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
+import { countOtlpMetricPoints } from "Common/Utils/Telemetry/OtlpRecordCount";
 import { CloudAppTelemetrySignal } from "Common/Types/Cloud/CloudAppTelemetrySignal";
 
 type MetricTimestamp = {
@@ -1067,6 +1072,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
        */
       OtelIngestBaseService.normalizeHostNameAttributesInPlace(resourceMetrics);
 
+      // Whose telemetry the batch is: null for most projects (#6355, #6386).
+      const attribution: TelemetryIngestAttribution | null =
+        (req as TelemetryRequest).telemetryIngestAttribution || null;
+
       /*
        * Proxmox VE's built-in OpenTelemetry push speaks its own dialect
        * (proxmox_* names, no `id` label, `proxmox.cluster` instead of
@@ -1663,6 +1672,23 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
           serviceDictionary[serviceName] = serviceMetadata;
 
+          /*
+           * Whose telemetry this resource is (TelemetryIngestAttribution,
+           * #6355, #6386): its share of the batch's usage, and its team's or
+           * label's budget. A used-up budget drops its records here.
+           */
+          if (
+            attribution &&
+            !(await attribution.admitResource({
+              primaryEntityId: serviceMetadata.primaryEntityId!,
+              primaryEntityType: serviceMetadata.primaryEntityType,
+              name: serviceName,
+              records: countOtlpMetricPoints(resourceMetric),
+            }))
+          ) {
+            continue;
+          }
+
           const stampHostName: string | null =
             OtelIngestBaseService.getStringAttribute(
               resourceAttributes_raw,
@@ -1948,6 +1974,22 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   ) {
                     logger.debug(
                       `Dropped metric "${metricName}" for project ${projectId.toString()}: names starting with "${TELEMETRY_INGESTION_BUDGET_METRIC_NAME_PREFIX}" are reserved for OneUptime's telemetry ingestion budget metrics.`,
+                    );
+                    continue;
+                  }
+
+                  /*
+                   * And the usage sweep's readings (#6355): they are left
+                   * out of usage and billing by name, so no sender may
+                   * write one.
+                   */
+                  if (
+                    TelemetryUsageMetricTypeUtil.isReservedMetricName(
+                      metricName,
+                    )
+                  ) {
+                    logger.debug(
+                      `Dropped metric "${metricName}" for project ${projectId.toString()}: names starting with "${TELEMETRY_USAGE_METRIC_NAME_PREFIX}" are reserved for OneUptime's telemetry usage metrics.`,
                     );
                     continue;
                   }
@@ -2435,6 +2477,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           continue;
                         }
 
+                        if (
+                          finalMetricName !== metricName &&
+                          typeof finalMetricName === "string" &&
+                          TelemetryUsageMetricTypeUtil.isReservedMetricName(
+                            finalMetricName,
+                          )
+                        ) {
+                          logger.debug(
+                            `Dropped a "${metricName}" datapoint for project ${projectId.toString()}: a metric pipeline rule renamed it to "${finalMetricName}", and names starting with "${TELEMETRY_USAGE_METRIC_NAME_PREFIX}" are reserved for OneUptime's telemetry usage metrics.`,
+                          );
+                          continue;
+                        }
+
                         /*
                          * IoT device identity lives in datapoint labels
                          * (device.id) and resource/datapoint attributes —
@@ -2562,6 +2617,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           );
         }
       }
+
+      // The batch's attribution, counted in one round trip (#6355, #6386).
+      await attribution?.settle();
 
       await this.submitMetricsBuffer(dbMetrics, pendingAcks, true);
 

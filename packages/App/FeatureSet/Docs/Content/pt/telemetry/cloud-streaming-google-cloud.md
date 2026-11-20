@@ -71,6 +71,8 @@ A caixa pergunta a cada poucos segundos o que chegou. O Pub/Sub envia uma entrad
 
 Cada log mantém o horário da entrada até o nanossegundo, a gravidade, o trace e o span, e a solicitação HTTP com os nomes das convenções semânticas do OpenTelemetry. Ele é arquivado sob um recurso quando o recurso monitorado dele é de um tipo cujas métricas o OneUptime lê, como uma VM (`gce_instance`), um serviço do Cloud Run (`cloud_run_revision`) ou uma instância do Cloud SQL (`cloudsql_database`), e leva o ID do recurso como `cloud.resource_id`. Os logs de solicitações de um balanceador de carga externo, gravados sob `http_load_balancer`, são arquivados sob o mapa de URL dele, a `https_lb_rule` em que as métricas dele chegam.
 
+A entrada de um log de auditoria chega inteira, como corpo do log: com [Encontrar eventos de segurança nos seus logs](/docs/telemetry/security-events#encontrar-eventos-de-segurança-nos-seus-logs) ativado, cada uma é lida como um evento de segurança, como uma de um pipeline de logs, e salva uma única vez, por quantos caminhos chegar ao OneUptime.
+
 Os logs de um grupo de instâncias são os das VMs dele, então a página dele não tem a aba **Registros**. Uma entrada de outro tipo é transmitida mesmo assim, sob o projeto dela.
 
 ## O que o comando cria

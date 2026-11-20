@@ -198,6 +198,12 @@ async function goTo(
   });
 }
 
+/*
+ * A page Ask AI has no context for. Not Project Settings: since #7062 it
+ * is a page Ask AI knows, with its own chip.
+ */
+const NO_CONTEXT_PAGE: string = "users";
+
 function sentRequests(): Array<PostRequest> {
   return postMock.mock.calls
     .map((call: Array<unknown>) => {
@@ -512,7 +518,7 @@ describe("module insights in Ask AI", () => {
   test("ordinary navigation away from a supported module omits context for the existing conversation", async () => {
     await openAskAi(`rum/${ENTITY_ID}`);
     await sendQuestion("Summarize this application's performance.");
-    await goTo("settings/general");
+    await goTo(NO_CONTEXT_PAGE);
 
     expect(screen.queryByTitle("Remove page context")).not.toBeInTheDocument();
     expect(
@@ -528,7 +534,7 @@ describe("module insights in Ask AI", () => {
     await sendQuestion("Summarize this application's performance.");
     fireEvent.click(screen.getByTitle("Remove page context"));
 
-    await goTo("settings/general");
+    await goTo(NO_CONTEXT_PAGE);
 
     expect(screen.queryByTitle("Remove page context")).not.toBeInTheDocument();
     expect(
@@ -549,9 +555,9 @@ describe("module insights in Ask AI", () => {
     await openAskAi(`rum/${ENTITY_ID}`);
     await sendQuestion("Summarize this application's performance.");
     fireEvent.click(screen.getByTitle("Remove page context"));
-    await goTo("settings/general");
+    await goTo(NO_CONTEXT_PAGE);
 
-    await goTo("settings/general", OTHER_PROJECT_ID);
+    await goTo(NO_CONTEXT_PAGE, OTHER_PROJECT_ID);
 
     const request: PostRequest = await sendQuestion();
     expect(request.headers["tenantid"]).toBe(OTHER_PROJECT_ID);
@@ -574,7 +580,7 @@ describe("module insights in Ask AI", () => {
         await goTo(`rum/${OTHER_ENTITY_ID}`);
       }
       await sendQuestion("Summarize the attached application.");
-      await goTo("settings/general");
+      await goTo(NO_CONTEXT_PAGE);
 
       const request: PostRequest = await sendQuestion();
       expect(request.data["conversationId"]).toBe(CONVERSATION_ID);

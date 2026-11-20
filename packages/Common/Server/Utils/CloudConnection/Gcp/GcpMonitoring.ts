@@ -38,12 +38,38 @@ import {
  *
  * One call returns a metric for every resource of the project. Cloud
  * Monitoring charges reads by the time series they return, past a million a
- * month per billing account.
+ * month per billing account. A call can be narrowed to some resources of a
+ * type by one of their labels: resource.labels.instance_id=one_of("1","2"),
+ * at most GCP_MAX_ONE_OF_VALUES values (Google's limit for one_of), so the
+ * resources of a project an added metric is read for cost one call, not one
+ * each (#9810).
  */
 
 const PROVIDER_TITLE: string = "Google Cloud Monitoring";
 const PAGE_SIZE: number = 10000;
 const MAX_PAGES: number = 20;
+
+/*
+ * Values one one_of() takes at most: "x = one_of(...)" takes up to 100
+ * strings (Cloud Monitoring's filter reference).
+ */
+export const GCP_MAX_ONE_OF_VALUES: number = 100;
+
+/*
+ * The longest filter a call sends, as its URL writes it (encoded): a call is
+ * a GET, and a filter of a hundred long label values would make a URL a
+ * proxy or Google's front end refuses. A batch past it is split.
+ */
+export const GCP_MAX_FILTER_URL_LENGTH: number = 6000;
+
+/*
+ * A label's values a call is narrowed to: resource.labels.<label> =
+ * one_of(...), the resources of one batch (GcpCloudConnector).
+ */
+export interface GcpLabelValues {
+  label: string;
+  values: ReadonlyArray<string>;
+}
 
 export interface GcpTimeSeries {
   metricType: string;
@@ -69,6 +95,20 @@ export interface GcpMetricDescriptor {
   // GA, BETA, DEPRECATED and the rest.
   launchStage: string;
   monitoredResourceTypes: Array<string>;
+  // The labels its series carry (#9808): each key, and what its values are.
+  labels?: Array<{ key: string; valueType: string; description: string }>;
+}
+
+/*
+ * A read split by one of a metric's labels (#9808): its other labels
+ * added up by `reducer` (aggregation.crossSeriesReducer), keeping the
+ * label and the monitored resource's own labels (groupByFields), so each
+ * series is one value of one resource.
+ */
+export interface GcpSplitRead {
+  label: string;
+  reducer: string;
+  resourceLabelKeys: ReadonlyArray<string>;
 }
 
 export interface GcpMonitoringOptions {
@@ -130,6 +170,11 @@ export default class GcpMonitoring {
      */
     resourceType?: string | undefined;
     resourceLabels?: Readonly<Record<string, string>> | undefined;
+    /*
+     * The resources of a batch (#9810): one label's values, the others
+     * equal (resourceLabels). Each label in name order with those.
+     */
+    resourceLabelIn?: GcpLabelValues | undefined;
   }): string {
     const parts: Array<string> = [`metric.type="${data.metricType}"`];
 
@@ -141,11 +186,41 @@ export default class GcpMonitoring {
       parts.push(`resource.type="${data.resourceType}"`);
     }
 
-    for (const name of Object.keys(data.resourceLabels || {}).sort()) {
-      parts.push(`resource.labels.${name}="${data.resourceLabels![name]}"`);
+    const resourceParts: Array<[string, string]> = Object.keys(
+      data.resourceLabels || {},
+    ).map((name: string): [string, string] => {
+      return [name, `resource.labels.${name}="${data.resourceLabels![name]}"`];
+    });
+
+    if (data.resourceLabelIn && data.resourceLabelIn.values.length > 0) {
+      const values: ReadonlyArray<string> = data.resourceLabelIn.values;
+
+      resourceParts.push([
+        data.resourceLabelIn.label,
+        values.length === 1
+          ? `resource.labels.${data.resourceLabelIn.label}="${values[0]}"`
+          : `resource.labels.${data.resourceLabelIn.label}=one_of(${values
+              .map((value: string): string => {
+                return `"${value}"`;
+              })
+              .join(",")})`,
+      ]);
+    }
+
+    resourceParts.sort((a: [string, string], b: [string, string]): number => {
+      return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0;
+    });
+
+    for (const [, part] of resourceParts) {
+      parts.push(part);
     }
 
     return parts.join(" AND ");
+  }
+
+  // How long a filter is as a call's URL writes it, encoded.
+  public static getFilterUrlLength(filter: string): number {
+    return encodeURIComponent(filter).length;
   }
 
   /*
@@ -167,6 +242,8 @@ export default class GcpMonitoring {
     firstPageOnly?: boolean | undefined;
     resourceType?: string | undefined;
     resourceLabels?: Readonly<Record<string, string>> | undefined;
+    resourceLabelIn?: GcpLabelValues | undefined;
+    split?: GcpSplitRead | undefined;
   }): Promise<Array<GcpTimeSeries>> {
     GoogleMonitoringClient.validateProjectId(data.projectId);
 
@@ -187,12 +264,14 @@ export default class GcpMonitoring {
             metricLabels: data.metricLabels,
             resourceType: data.resourceType,
             resourceLabels: data.resourceLabels,
+            resourceLabelIn: data.resourceLabelIn,
           }),
         ],
         ["interval.startTime", data.start.toISOString()],
         ["interval.endTime", data.end.toISOString()],
         ["aggregation.alignmentPeriod", `${data.alignmentPeriodSeconds}s`],
         ["aggregation.perSeriesAligner", data.aligner],
+        ...GcpMonitoring.splitParameters(data.split),
         ["pageSize", PAGE_SIZE],
         ["pageToken", pageToken],
       ]);
@@ -240,6 +319,28 @@ export default class GcpMonitoring {
     }
 
     return series;
+  }
+
+  /*
+   * The query parameters of a split read: the reducer, and each field it
+   * keeps, the label first, then the resource's labels in name order.
+   */
+  public static splitParameters(
+    split: GcpSplitRead | undefined,
+  ): Array<[string, string]> {
+    if (!split) {
+      return [];
+    }
+
+    return [
+      ["aggregation.crossSeriesReducer", split.reducer],
+      ["aggregation.groupByFields", `metric.label.${split.label}`],
+      ...[...split.resourceLabelKeys]
+        .sort()
+        .map((key: string): [string, string] => {
+          return ["aggregation.groupByFields", `resource.label.${key}`];
+        }),
+    ];
   }
 
   /*
@@ -344,6 +445,24 @@ export default class GcpMonitoring {
         })
         .filter((resourceType: string): boolean => {
           return Boolean(resourceType);
+        }),
+      labels: readArray(descriptor["labels"])
+        .map(
+          (
+            raw: unknown,
+          ): { key: string; valueType: string; description: string } => {
+            const label: JSONObject = readObject(raw);
+
+            return {
+              key: readText(label["key"]),
+              // A label's type is STRING unless it says otherwise.
+              valueType: readText(label["valueType"]) || "STRING",
+              description: readText(label["description"]),
+            };
+          },
+        )
+        .filter((label: { key: string }): boolean => {
+          return Boolean(label.key);
         }),
     };
   }

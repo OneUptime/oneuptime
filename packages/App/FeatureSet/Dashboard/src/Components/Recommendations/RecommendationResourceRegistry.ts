@@ -31,6 +31,7 @@ import {
   MessageQueueAlertTemplate,
   getAllMessageQueueAlertTemplates,
 } from "Common/Types/Monitor/MessageQueueAlertTemplates";
+import { getManagedDeviceAlertTemplatesFor } from "Common/Types/Monitor/ManagedDeviceAlertTemplates";
 import OneUptimeDate from "Common/Types/Date";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { getCloudAppTelemetryFilters } from "../../Pages/AppPlatforms/Utils/CloudApps";
@@ -477,6 +478,26 @@ export function describeMessageQueueRecommendationContext(
 
   return translateTemplate(
     "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.",
+  );
+}
+
+/*
+ * A device management connection is offered its own service's templates
+ * (getManagedDeviceAlertTemplatesFor): nothing to say while there are some,
+ * and why the list is empty when its service has none.
+ */
+export function describeDeviceManagementRecommendationContext(
+  context: MonitorRecommendationContext,
+): string | undefined {
+  if (
+    getManagedDeviceAlertTemplatesFor(context.deviceManagementProvider).length >
+    0
+  ) {
+    return undefined;
+  }
+
+  return translateTemplate(
+    "OneUptime has no recommended monitor for this connection's devices yet.",
   );
 }
 
@@ -1604,15 +1625,28 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
   /*
    * A device management connection (an Esper tenant, #9835): its monitors
    * read the check-ins each read of it writes for its devices, filtered on
-   * the connection's id, so `_id` is the identifier. Read by everyone who
-   * may read the project's Inventory; its page is opened from its row on
-   * Inventory > Managed Devices (Set up alerts).
+   * the connection's id, so `_id` is the identifier, and its service picks
+   * the templates (#9837). Read by everyone who may read the project's
+   * Inventory; its page is opened from its row on Inventory > Managed
+   * Devices (Set up alerts).
    */
   {
     resourceType: MonitorRecommendationResourceType.DeviceManagementConnection,
     modelType: DeviceManagementConnection,
     identifierFieldName: "_id",
     displayNameFieldName: "name",
+    contextFieldNames: ["provider"],
+    readContext: (model: BaseModel): MonitorRecommendationContext => {
+      const provider: unknown = (model as unknown as Record<string, unknown>)[
+        "provider"
+      ];
+
+      return {
+        deviceManagementProvider:
+          typeof provider === "string" && provider ? provider : null,
+      };
+    },
+    describeContext: describeDeviceManagementRecommendationContext,
     getCardDescription: (): string | undefined => {
       return translateTemplate(
         "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.",

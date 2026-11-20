@@ -172,13 +172,17 @@ async function askOnce(data: {
 }): Promise<AskAiEvalRun> {
   const { evalCase } = data;
   const project: AskAiEvalProject = getAskAiEvalProject(
-    evalCase.setup?.projectKind || AskAiEvalProjectKind.PagesNobody,
+    evalCase.setup?.projectKind ||
+      evalCase.howDoI?.projectKind ||
+      AskAiEvalProjectKind.PagesNobody,
   );
   const turn: AskAiEvalTurn = await AskAiEvalTurnRunner.ask({
     question: evalCase.asked,
     project,
     callModel: data.callModel,
     language: evalCase.setup?.language || evalCase.howDoI?.language || "en",
+    // A question asked on a page, with the context that page sends (#7062).
+    pageContext: evalCase.howDoI?.pageContext,
   });
   const grade: AskAiGrade = evalCase.setup
     ? gradeSetupTurn(evalCase.setup, project, turn)

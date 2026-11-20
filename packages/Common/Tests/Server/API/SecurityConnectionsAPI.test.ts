@@ -320,6 +320,54 @@ describe("POST /security-case/connections", () => {
     expect(args.readLogResources).toBe(false);
   });
 
+  /*
+   * #10033: an event read from a cloud resource's or a function's own logs
+   * says which: the ID its stream stamped and the faas.name it carried. The
+   * request's list is read as untrusted - its kinds, its values bounded.
+   */
+  test("an event's cloud resource and function, whose own logs it was read from, are passed on - and nothing else", async () => {
+    const forEntities: jest.SpyInstance = jest
+      .spyOn(SecurityConnections, "forEntities")
+      .mockResolvedValue(ANSWER);
+
+    await route(CONNECTIONS)(
+      request({
+        entities: [{ type: "IpAddress", value: "203.0.113.7" }],
+        logOwners: [
+          {
+            kind: "CloudResource",
+            value: "arn:aws:rds:us-east-1:111122223333:db:orders-primary",
+          },
+          { kind: "ServerlessFunction", value: " checkout-handler " },
+          { kind: "Host", value: "web-1" },
+          { kind: "CloudResource", value: { $ne: "" } },
+          "ServerlessFunction",
+        ],
+      } as never),
+      res,
+      next,
+    );
+
+    expect(next).not.toHaveBeenCalled();
+    expect(forEntities.mock.calls[0]![0]).toMatchObject({
+      logOwners: [
+        {
+          kind: "CloudResource",
+          value: "arn:aws:rds:us-east-1:111122223333:db:orders-primary",
+        },
+        { kind: "ServerlessFunction", value: "checkout-handler" },
+      ],
+    });
+
+    await route(CONNECTIONS)(
+      request({ entities: [{ type: "Host", value: "web-1" }] }),
+      res,
+      next,
+    );
+
+    expect(forEntities.mock.calls[1]![0]).toMatchObject({ logOwners: [] });
+  });
+
   test("an entity's page asks for the logs behind its events too", async () => {
     const forEntities: jest.SpyInstance = jest
       .spyOn(SecurityConnections, "forEntities")

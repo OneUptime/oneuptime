@@ -104,7 +104,7 @@ Android ne permet à une application de lire les journaux des autres application
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-Avec Esper, lancez cette commande via **Secure Remote ADB** : activez l'accès ADB pour l'appareil, connectez-vous avec `espercli secureadb connect -d DEVICE_ID`, puis lancez la commande. Android redémarre l'agent quand l'autorisation est accordée, et l'agent commence aussitôt à lire.
+Avec Esper, lancez cette commande via **Secure Remote ADB** : activez l'accès ADB pour l'appareil, connectez-vous avec `espercli secureadb connect --device DEVICE_ID`, puis lancez la commande. Android redémarre l'agent quand l'autorisation est accordée, et l'agent commence aussitôt à lire.
 
 Ce que l'agent lit ensuite dépend de la version d'Android :
 
@@ -124,6 +124,35 @@ adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
 
 La première commande concerne Android 15 et versions ultérieures ; l'accès aux données d'utilisation peut aussi être activé sur l'appareil dans **Paramètres → Accès aux données d'utilisation**. Une stratégie d'appareil ne peut pas les accorder, et l'écran de l'agent liste les commandes qui restent à lancer. Avec elles, chaque plantage dans **Exceptions** a sa stack trace complète, un plantage natif son signal et la bibliothèque dans laquelle il s'est produit, un ANR la pile de son thread principal, et un redémarrage dans **Journaux** le motif qu'Android en donne. Les numéros de carte, adresses e-mail, jetons et mots de passe présents dans ce que lit l'agent sont remplacés par `[card number]`, `[email]`, `[token]` et `[redacted]` avant l'envoi.
 
+### Les accorder sur tout le parc
+
+Chaque rapport de l'agent indique lesquelles de ces autorisations lui manquent encore. Pour lister les appareils qui en ont besoin, ouvrez **Inventaire**, puis **Tous les éléments**, et filtrez par **Autorisations de l'agent** : **Manquant**. Activez la colonne **Autorisations de l'agent** pour voir ce qui manque à chaque appareil, et exportez la liste en CSV.
+
+Une stratégie d'appareil ne peut pas les accorder : READ_LOGS et READ_DROPBOX_DATA sont des autorisations que seuls adb, le système ou le fabricant de l'appareil peuvent donner, et l'accès aux données d'utilisation est activé par adb ou par la personne devant l'appareil. Ce que propose Esper, et pourquoi rien de tout cela ne les accorde :
+
+- **Autorisations d'application**, dans un blueprint ou avec la commande `SET_APP_PERMISSION`, passent par l'API Android du propriétaire de l'appareil, qui n'accorde que les autorisations qu'une application demande à la personne devant l'appareil. Android refuse celles de l'agent.
+- **Configuration gérée** définit les paramètres propres à l'agent, jamais les autorisations d'Android.
+- **Run Shell Script** s'exécute sur les appareils Linux et Windows, pas sur les appareils Android.
+- **Secure Remote ADB** atteint un appareil à la fois, depuis un ordinateur qui exécute `espercli`. Sur les appareils Esper Foundation, personne n'a besoin d'être devant l'appareil. Sur les autres appareils, quelqu'un devant l'appareil accepte **Allow USB debugging?** la première fois.
+
+Accordez-les donc avec adb :
+
+- **Avant l'expédition d'un appareil**, quand il est préparé avec un câble USB. Ceci accorde les trois autorisations sur chaque appareil connecté à l'ordinateur :
+
+  ```bash
+  for serial in $(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }'); do
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+    adb -s "$serial" shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+  done
+  ```
+
+  Sous Android 14 et versions antérieures, la deuxième commande indique que l'autorisation est inconnue : cet appareil n'en a pas besoin.
+- **Sur un appareil déjà déployé**, via Secure Remote ADB, un appareil de la liste **Manquant** à la fois.
+- **Seul l'accès aux données d'utilisation** peut être activé par la personne devant l'appareil, dans **Paramètres → Accès aux données d'utilisation**, ou avec le bouton de l'écran de l'agent.
+
+Le rapport suivant de l'appareil, dans la minute, le retire de la liste **Manquant**.
+
 ### Utilisation du processeur
 
 À partir d'Android 8, Android cache aux applications l'utilisation du processeur d'un appareil. Seule une application propriétaire de l'appareil peut la lire, et seulement sur les appareils dont le matériel la fournit. L'agent la lit lorsqu'il est le propriétaire de l'appareil, ce que vous définissez avec adb sur un appareil qui n'a aucun compte ni aucun autre propriétaire :
@@ -141,16 +170,20 @@ Une session de journaux envoie pendant un moment les journaux de toutes les appl
 :::steps
 ### En demander une
 
-Ouvrez l'appareil dans **Hôtes**, puis **Journaux**, et cliquez sur **Demander une session de journaux** dans **Sessions de journaux**. Choisissez pendant combien de temps l'appareil envoie ses journaux, de 15 minutes à 4 heures, et le niveau le plus bas qu'il envoie : **Info**, **Débogage** ou **Détaillé**.
+Ouvrez l'appareil dans **Hôtes**, puis **Journaux**, et cliquez sur **Demander une session de journaux** dans **Sessions de journaux**. Choisissez pendant combien de temps l'appareil envoie ses journaux, de 15 minutes à 4 heures, et le niveau le plus bas qu'il envoie : **Info**, **Débogage** ou **Détaillé**. Ajoutez une **Note** pour dire pourquoi vous la demandez, par exemple « Vérifier pourquoi l'application de paiement plante après 18 h ».
 
 ### L'autoriser sur l'appareil
 
-En moins d'une minute, l'appareil affiche une notification indiquant que quelqu'un a demandé ses journaux, avec son nom. La personne devant l'appareil ouvre l'agent et appuie sur **Autoriser**. Sous Android 13 et versions ultérieures, Android demande ensuite d'autoriser l'accès à tous les journaux de l'appareil, et elle l'autorise aussi.
+En moins d'une minute, l'appareil affiche une notification indiquant que quelqu'un a demandé ses journaux, avec son nom et votre note. La personne devant l'appareil ouvre l'agent, où la demande s'affiche avec votre note en dessous, et appuie sur **Autoriser**. Sous Android 13 et versions ultérieures, Android demande ensuite d'autoriser l'accès à tous les journaux de l'appareil, et elle l'autorise aussi.
 
 ### Lire les lignes
 
-La session indique **Collecte en cours**, et les lignes de toutes les applications arrivent dans les journaux de l'appareil. Cliquez sur **Afficher les lignes** pour ne voir que les lignes de la session. La session se termine quand son temps est écoulé, ou quand quelqu'un l'arrête sur l'appareil ou l'annule dans OneUptime.
+La session indique **Collecte en cours**, et les lignes de toutes les applications arrivent dans les journaux de l'appareil. Cliquez sur **Afficher les lignes** pour ne voir que les lignes de la session, ou sur **Télécharger les lignes** pour les enregistrer dans un fichier. La session se termine quand son temps est écoulé, ou quand quelqu'un l'arrête sur l'appareil ou l'annule dans OneUptime.
 :::
+
+La note tient en une ligne de 200 caractères au plus. L'appareil l'affiche telle que vous l'avez écrite, entre guillemets, dans la notification et sur l'écran de l'agent tant que la session attend ou s'exécute ; elle n'est jamais traduite. Les sauts de ligne deviennent des espaces, et les numéros de carte, adresses e-mail, jetons et mots de passe qu'elle contient sont remplacés par `[card number]`, `[email]`, `[token]` et `[redacted]` avant qu'elle soit enregistrée, comme dans ce qu'envoie l'agent. La liste des sessions l'affiche sous le nom de la personne qui a fait la demande, et les **Journaux d'audit** de l'hôte la conservent avec la demande.
+
+**Télécharger les lignes** enregistre les lignes de la session dans un fichier texte au format que produit `logcat -v threadtime`, que le support d'un fournisseur sait lire : chaque ligne avec son heure à la milliseconde près, son processus et son thread, son niveau, son tag et son message. Les heures sont en UTC. Les premières lignes du fichier indiquent la session, l'appareil et la note dont il s'agit, ainsi que la personne qui a fait la demande. Il contient les lignes affichées dans **Journaux**, telles que l'agent les a masquées, et nécessite donc la même autorisation que la lecture des journaux de l'appareil. Un fichier contient au plus 100 000 lignes et 32 Mo ; le fichier d'une session plus longue se termine en indiquant combien de lignes compte la session.
 
 Une session a besoin de READ_LOGS et de `logcat_enabled` ; sans eux, elle indique **Indisponible**. Une seule session à la fois s'exécute sur un appareil. Une demande que personne n'autorise dans l'heure expire, et une session pendant laquelle l'appareil redémarre se termine avec ce redémarrage, puisque l'autorisation d'Android prend fin avec le processus de l'agent. Demander une session nécessite l'autorisation de modifier l'hôte, et les **Journaux d'audit** de l'hôte conservent qui l'a demandée, et quand.
 
@@ -165,11 +198,15 @@ Une session a besoin de READ_LOGS et de `logcat_enabled` ; sans eux, elle indiqu
 | Redémarrages | **Journaux**, avec `@event.name:device.boot` : depuis combien de temps l'appareil tournait, s'il s'est arrêté proprement, combien de temps il est resté éteint, pourquoi il a redémarré, et les boucles de redémarrage |
 | Applications installées | **Journaux**, avec `@event.name:android.package.inventory` une fois par jour, ainsi qu'à chaque installation, mise à jour et suppression |
 | Plantages et ANR de chaque application | **Exceptions**, comme non gérés, nommés d'après l'application, avec leurs piles quand l'agent lit la [DropBox](#stack-traces-des-plantages-et-motifs-de-redémarrage) |
-| Marque, modèle, numéro de série, version de l'OS, niveau de correctif de sécurité et firmware | L'élément de l'appareil dans **Inventaire** |
+| Marque, modèle, numéro de série, version de l'OS, niveau de correctif de sécurité et firmware | L'élément de l'appareil dans **Inventaire**, avec le filtre et la colonne **Niveau du correctif de sécurité** |
+| L'ancienneté de son niveau de correctif de sécurité | La métrique `android.os.security_patch.age`, en jours |
+| Les autorisations qui manquent encore à l'agent | L'élément de l'appareil dans **Inventaire**, avec le filtre et la colonne **Autorisations de l'agent** |
 
 Dans **Hôtes**, l'OS de l'appareil indique Android, avec le logo d'Android.
 
-Les démarrages de l'appareil au cours de la dernière heure forment la métrique `android.boot.recent_count`, et un appareil qui redémarre sans cesse écrit un avertissement dans ses journaux à chaque démarrage. Dans **Hôtes**, un appareil Android se voit proposer ses propres modèles d'alerte : Device Unplugged, Low Battery, Device Overheating, Restart Loop et Storage Nearly Full, avec Host Stopped Reporting, Host Restarted et High Memory Utilization, et High CPU Utilization dès qu'il signale son utilisation du processeur. Les premières commandes de débogage de chaque alerte sont des commandes adb. Voir [Surveillance des hôtes](/docs/monitor/host-monitor#appareils-android).
+Un appareil est en retard sur ses correctifs de sécurité quand son niveau de correctif de sécurité date de plus de 90 jours. Google publie chaque mois un bulletin de sécurité Android, et Android Enterprise Recommended impose au fabricant d'un appareil de livrer chacun d'eux sous 90 jours, si bien qu'il manque à un appareil plus en retard des corrections que son fabricant aurait dû livrer. Dans **Inventaire**, le filtre **Niveau du correctif de sécurité** liste les appareils **Pas à jour** ; le modèle **Security Patch Out of Date** déclenche une alerte pour chacun.
+
+Les démarrages de l'appareil au cours de la dernière heure forment la métrique `android.boot.recent_count`, et un appareil qui redémarre sans cesse écrit un avertissement dans ses journaux à chaque démarrage. Dans **Hôtes**, un appareil Android se voit proposer ses propres modèles d'alerte : Device Unplugged, Low Battery, Device Overheating, Restart Loop, Storage Nearly Full et Security Patch Out of Date, avec Host Stopped Reporting, Host Restarted et High Memory Utilization, et High CPU Utilization dès qu'il signale son utilisation du processeur. Les premières commandes de débogage de chaque alerte sont des commandes adb. Voir [Surveillance des hôtes](/docs/monitor/host-monitor#appareils-android).
 
 ## Dépannage
 

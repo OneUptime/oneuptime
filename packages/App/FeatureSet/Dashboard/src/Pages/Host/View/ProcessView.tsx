@@ -41,6 +41,7 @@ import {
   XAxisAggregateType,
 } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
 import YAxis, {
+  ValueAxisPrecision,
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
@@ -1091,9 +1092,10 @@ const HostProcessView: FunctionComponent<
         min: 0,
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
-        formatter: (value: number): string => {
+        formatter: (value: number, precision?: ValueAxisPrecision): string => {
           return ValueFormatter.formatValue(value, "By", {
             language: getDateDisplayLanguage(),
+            step: precision?.step,
           });
         },
       },
@@ -1106,9 +1108,10 @@ const HostProcessView: FunctionComponent<
         min: 0,
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
-        formatter: (value: number): string => {
+        formatter: (value: number, precision?: ValueAxisPrecision): string => {
           return ValueFormatter.formatValue(value, "By/s", {
             language: getDateDisplayLanguage(),
+            step: precision?.step,
           });
         },
       },

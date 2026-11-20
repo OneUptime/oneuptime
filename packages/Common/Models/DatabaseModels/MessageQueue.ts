@@ -894,6 +894,7 @@ export default class MessageQueue extends BaseModel {
     description:
       "Is this queue archived? Archived queues are hidden from lists but their telemetry is still collected.",
     defaultValue: false,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1089,6 +1090,7 @@ export default class MessageQueue extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {

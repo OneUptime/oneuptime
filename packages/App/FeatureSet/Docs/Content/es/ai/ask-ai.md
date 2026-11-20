@@ -30,7 +30,7 @@ En el modo **Solo lectura** las acciones nunca se ofrecen al modelo, así que la
 
 Preguntar a la IA también responde preguntas sobre el propio OneUptime: «¿Cómo recibo un SMS cuando mi sitio se cae?», «¿Qué es un episodio?», «¿Dónde añado un segundo número de teléfono?». Responde a partir de esta documentación, la copia que sirve tu OneUptime, así que funciona sin acceso a internet y no envía nada a ningún sitio nuevo. Lee la página en tu idioma cuando está traducida, cita la página y la sección de cada paso y, en lugar de adivinar, dice cuándo la documentación no cubre algo.
 
-Una respuesta a un «¿cómo hago…?» termina con un botón que abre la página de tu proyecto donde se hace, como **Crear monitor** o **Métodos de notificación**. Solo abre páginas que OneUptime tiene: las que encuentra la búsqueda (`Ctrl` + `K`).
+Una respuesta a un «¿cómo hago…?» termina con un botón que abre la página de tu proyecto donde se hace, como **Crear monitor** o **Métodos de notificación**. Solo abre páginas que OneUptime tiene: las que encuentra la búsqueda (`Ctrl` + `K`). Si preguntas por un solo registro, como una página de estado, abre la página propia de ese registro, como sus **Dominios personalizados**, y solo para un registro que puedas abrir.
 
 ## Abrir Preguntar a la IA
 
@@ -60,7 +60,7 @@ Preguntar a la IA lee tu proyecto con tus propios permisos, así que ve lo que t
 
 ## Contexto de la página
 
-Preguntar a la IA sabe desde qué página la abriste. En la página de un incidente, "¿por qué ha pasado esto?" significa ese incidente: el compositor muestra un chip con el tema de la página, y las preguntas que sugiere son las de esa página. Quita el chip para preguntar por todo el proyecto, y vuelve a añadirlo de la misma forma. Abre Preguntar a la IA en otra página y el contexto te sigue. La conversación también recuerda su primer tema en el servidor, así que una pregunta días después sigue entendiendo "este incidente".
+Preguntar a la IA sabe desde qué página la abriste. En la página de un incidente, "¿por qué ha pasado esto?" significa ese incidente: el compositor muestra un chip con el tema de la página, y las preguntas que sugiere son las de esa página. Quita el chip para preguntar por todo el proyecto, y vuelve a añadirlo de la misma forma. Abre Preguntar a la IA en otra página y el contexto te sigue. La conversación también recuerda su primer tema en el servidor, así que una pregunta días después sigue entendiendo "este incidente". También conoce las páginas donde configuras un proyecto: **Inicio**, **Ajustes del proyecto**, **Ajustes de usuario**, **Guardia**, **Páginas de estado** y los formularios que crean algo, así que «¿cómo añado uno aquí?» se responde para la página en la que estás.
 
 En un incidente, una alerta, un monitor o un evento de mantenimiento, las preguntas también siguen el estado de ese registro, que se lee cada vez que Preguntar a la IA se abre sobre él. Un incidente resuelto pregunta cómo fue la respuesta y qué evitaría que se repita, una alerta resuelta si fue un problema real y con qué frecuencia se activan alertas como ella, y un monitor que no está operativo pregunta por qué. Un evento de mantenimiento que no ha empezado pregunta si sus monitores están sanos antes de empezar, y uno que ha terminado si han vuelto a la normalidad.
 
@@ -147,7 +147,7 @@ Preguntar a la IA cuenta para los límites diarios de IA del propio proyecto cua
 ## Solución de problemas
 
 :::details Preguntar a la IA dice que la IA no está disponible
-Preguntar a la IA dice por qué antes de que escribas: el plan del proyecto no incluye IA, **Habilitar IA** está desactivado o el proyecto no tiene proveedor de LLM. Cada aviso enlaza con la página donde se cambia.
+Preguntar a la IA dice por qué antes de que escribas: el plan del proyecto no incluye IA, **Habilitar IA** está desactivado o el proyecto no tiene proveedor de LLM. Cada aviso enlaza con la página donde se cambia. Encima del aviso, Preguntar a la IA busca igualmente tu pregunta en esta documentación. Una respuesta que falla, por un límite diario o porque el proveedor no responde, muestra también debajo las páginas de la documentación sobre su pregunta.
 :::
 
 :::details Se rechazó una acción

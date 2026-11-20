@@ -55,6 +55,11 @@ type ${StringUtils.toPascalCase(this.config.providerName)}Provider struct {
     // provider is built and ran locally, and "test" when running acceptance
     // testing.
     version string
+
+    // What a Crossplane manifest last applied, for the one managed resource
+    // a provider made for its reconcile plans (NewUnderCrossplane,
+    // shared.go). Nil under Terraform.
+    lastApplied *LastApplied
 }
 
 // ${StringUtils.toPascalCase(this.config.providerName)}ProviderModel describes the provider data model.
@@ -149,6 +154,8 @@ func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Configur
         return
     }
 
+    client.lastApplied = p.lastApplied
+
     resp.DataSourceData = client
     resp.ResourceData = client
 
@@ -167,6 +174,19 @@ func New(version string) func() provider.Provider {
     return func() provider.Provider {
         return &${StringUtils.toPascalCase(this.config.providerName)}Provider{
             version: version,
+        }
+    }
+}
+
+// NewUnderCrossplane returns the provider for one Crossplane reconcile of one
+// managed resource: what its manifest last applied reaches the plan of the
+// attributes people and OneUptime both change (shared.go). xpprovider calls
+// it.
+func NewUnderCrossplane(version string, lastApplied LastApplied) func() provider.Provider {
+    return func() provider.Provider {
+        return &${StringUtils.toPascalCase(this.config.providerName)}Provider{
+            version:     version,
+            lastApplied: &lastApplied,
         }
     }
 }
@@ -211,6 +231,10 @@ type Client struct {
     // How long a create or an update refused only because another record
     // has the name is asked again (askAgainWhileNameIsTaken).
     nameTakenRetry nameTakenRetry
+
+    // What the Crossplane manifest of the resource this provider plans last
+    // applied (shared.go). Nil under Terraform.
+    lastApplied *LastApplied
 }
 
 // NewClient creates a new API client

@@ -130,7 +130,7 @@ Abra **Produtos → Infraestrutura → Hosts → Configuração → Configuraç�
 
 ### Edite o config.yaml dela
 
-Na página da configuração, selecione **Editar configuração**, mude o YAML e salve. O OneUptime o verifica primeiro e recusa, explicando o motivo, uma configuração que não pode enviar: veja [O que uma configuração pode fazer](#o-que-uma-configuração-pode-fazer).
+Na página da configuração, selecione **Editar configuração**, mude o YAML e salve. O OneUptime o verifica primeiro e recusa, explicando o motivo, uma configuração que não pode enviar: veja [O que uma configuração pode fazer](#o-que-uma-configuração-pode-fazer). Em uma configuração Linux, mantenha os `operators` do receiver `journald`: eles arquivam cada linha do journal sob a sua unidade systemd, e a página de uma unidade que falhou diz por eles por que ela falhou. Uma configuração escrita sem eles pode copiá-los de **Ver configuração** no padrão Linux.
 
 ### Acompanhe a chegada aos hosts
 

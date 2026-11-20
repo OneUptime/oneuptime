@@ -449,7 +449,11 @@ describe("what a record reads", () => {
       }),
     ).toEqual([
       { metricName: LEAKED, serviceIds: null },
-      { metricName: "http.requests", serviceIds: null },
+      {
+        metricName: "http.requests",
+        serviceIds: null,
+        attributes: { "service.name": "checkout" },
+      },
     ]);
     expect(
       findRecordingRuleMetricReferences(
@@ -468,6 +472,250 @@ describe("what a record reads", () => {
         groupByAttribute: "metricName",
       }),
     ).toEqual([]);
+  });
+});
+
+/*
+ * The series a query keeps, by their attributes (#9807): a caller that
+ * takes away the metric of some series only - a cloud resource's - names
+ * the queries of those. Always among the series named, never fewer.
+ */
+describe("the attributes a query reads a metric's series by", () => {
+  const ORDERS: Record<string, string> = {
+    Namespace: "AWS/RDS",
+    "Dimensions.DBInstanceIdentifier": "orders",
+  };
+
+  test("a metric query's own filter, values and operators as stored; none when it keeps every series", () => {
+    expect(
+      findMetricNameReferences({
+        queryConfigs: [
+          {
+            metricQueryData: {
+              filterData: { metricName: "swap", attributes: ORDERS },
+            },
+          },
+          {
+            metricQueryData: {
+              filterData: {
+                metricName: "swap",
+                attributes: {
+                  Namespace: "AWS/RDS",
+                  "Dimensions.DBInstanceIdentifier": {
+                    _type: "Includes",
+                    value: ["orders", "billing"],
+                  },
+                },
+              },
+            },
+          },
+          {
+            metricQueryData: {
+              filterData: { metricName: "swap", attributes: {} },
+            },
+          },
+          metricQuery("swap"),
+        ],
+      }),
+    ).toEqual([
+      { metricName: "swap", serviceIds: null, attributes: ORDERS },
+      {
+        metricName: "swap",
+        serviceIds: null,
+        attributes: {
+          Namespace: "AWS/RDS",
+          "Dimensions.DBInstanceIdentifier": {
+            _type: "Includes",
+            value: ["orders", "billing"],
+          },
+        },
+      },
+      { metricName: "swap", serviceIds: null },
+      { metricName: "swap", serviceIds: null },
+    ]);
+  });
+
+  test("a table's columns are read with the table's filter; a query of its own keeps its own", () => {
+    const found: DashboardMetricReferences = findDashboardMetricReferences({
+      components: [
+        {
+          componentType: "Table",
+          componentId: ObjectID.generate().toString(),
+          arguments: {
+            tableTitle: "Databases",
+            attributeFilters: ORDERS,
+            columns: [
+              { kind: "metric", metricName: "swap", variable: "a" },
+              { kind: "formula", formula: "a * 2", variable: "b" },
+            ],
+            // A table's older queries: each with its filter, which it keeps.
+            metricQueryConfigs: [
+              {
+                metricQueryData: {
+                  filterData: { metricName: "cpu", attributes: {} },
+                },
+              },
+            ],
+          },
+        },
+        {
+          componentType: "Table",
+          componentId: ObjectID.generate().toString(),
+          arguments: {
+            attributeFilters: {},
+            columns: [{ kind: "metric", metricName: "swap", variable: "a" }],
+          },
+        },
+      ],
+    });
+
+    expect(
+      found.widgets.map(
+        (entry: {
+          references: Array<MetricNameReference>;
+        }): Array<MetricNameReference> => {
+          return entry.references;
+        },
+      ),
+    ).toEqual([
+      [
+        { metricName: "swap", serviceIds: null, attributes: ORDERS },
+        { metricName: "cpu", serviceIds: null },
+      ],
+      [{ metricName: "swap", serviceIds: null }],
+    ]);
+  });
+
+  test("a Metric SLO's `@key:value` terms; terms of another kind keep fewer series and are left out", () => {
+    const slo: (filter: unknown) => Array<MetricNameReference> = (
+      filter: unknown,
+    ): Array<MetricNameReference> => {
+      return findSloMetricReferences({
+        sliType: SliType.Metric,
+        metricQueryConfig: { metricName: "swap", kind: "Histogram", filter },
+        serviceIds: [CHECKOUT],
+      });
+    };
+
+    expect(
+      slo(
+        "@Namespace:AWS/RDS @Dimensions.DBInstanceIdentifier:orders -@Role:replica @Load:<5",
+      ),
+    ).toEqual([
+      {
+        metricName: "swap",
+        serviceIds: [CHECKOUT],
+        attributes: ORDERS,
+      },
+    ]);
+    // A key said twice is read by its first value: the SLO keeps no more than that.
+    expect(slo("@Namespace:AWS/RDS @Namespace:AWS/EC2")).toEqual([
+      {
+        metricName: "swap",
+        serviceIds: [CHECKOUT],
+        attributes: { Namespace: "AWS/RDS" },
+      },
+    ]);
+    // None: no filter, one of no value, or one that cannot be read (that SLO measures nothing).
+    for (const filter of [undefined, "", "-@Role:replica", "free text", 5]) {
+      expect(slo(filter)).toEqual([
+        { metricName: "swap", serviceIds: [CHECKOUT] },
+      ]);
+    }
+  });
+
+  test("a recording rule's source: its key and value, which its cron reads only together", () => {
+    expect(
+      findRecordingRuleMetricReferences({
+        sources: [
+          {
+            alias: "A",
+            metricName: "swap",
+            aggregationType: "Avg",
+            filterAttributeKey: "Dimensions.DBInstanceIdentifier",
+            filterAttributeValue: "orders",
+          },
+          {
+            alias: "B",
+            metricName: "swap",
+            aggregationType: "Avg",
+            filterAttributeKey: "Dimensions.DBInstanceIdentifier",
+            filterAttributeValue: "",
+          },
+          {
+            alias: "C",
+            metricName: "swap",
+            aggregationType: "Avg",
+            filterAttributeValue: "orders",
+          },
+        ],
+        expression: "A + B + C",
+      }),
+    ).toEqual([
+      {
+        metricName: "swap",
+        serviceIds: null,
+        attributes: { "Dimensions.DBInstanceIdentifier": "orders" },
+      },
+      { metricName: "swap", serviceIds: null },
+      { metricName: "swap", serviceIds: null },
+    ]);
+  });
+
+  test("a caller's test of a query is given its attributes", async () => {
+    const seen: Array<MetricNameReference> = [];
+
+    monitors = [
+      (() => {
+        const monitor: Monitor = monitorOf("Orders swap", "swap");
+
+        (monitor as unknown as { monitorSteps: unknown }).monitorSteps = {
+          monitorStepsInstanceArray: [
+            {
+              data: {
+                metricMonitor: {
+                  metricViewConfig: {
+                    queryConfigs: [
+                      {
+                        metricQueryData: {
+                          filterData: {
+                            metricName: "swap",
+                            attributes: ORDERS,
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+        };
+
+        return monitor;
+      })(),
+    ];
+    jest.restoreAllMocks();
+    serve(MonitorService, { all: monitors });
+    serve(DashboardService, { all: [] });
+    serve(ServiceLevelObjectiveService, { all: [] });
+    serve(MetricRecordingRuleService, { all: [] });
+
+    const found: MetricReaders = await findMetricReaders({
+      projectId: PROJECT_ID,
+      reads: (reference: MetricNameReference): boolean => {
+        seen.push(reference);
+        return true;
+      },
+      props: PROPS,
+    });
+
+    expect(seen).toEqual([
+      { metricName: "swap", serviceIds: null, attributes: ORDERS },
+    ]);
+    expect(found[MetricReaderKind.Monitor].readers).toEqual([
+      { id: expect.any(String), name: "Orders swap" },
+    ]);
   });
 });
 

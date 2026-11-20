@@ -35,11 +35,15 @@ import RumSessionService from "../../../Server/Services/RumSessionService";
 import SecurityEventService from "../../../Server/Services/SecurityEventService";
 import SpanService from "../../../Server/Services/SpanService";
 import TelemetryUsageBillingService, {
+  getBilledExceptionsFilter,
   TelemetryResourceUsage,
 } from "../../../Server/Services/TelemetryUsageBillingService";
 import BillingService from "../../../Server/Services/BillingService";
 import ProjectService from "../../../Server/Services/ProjectService";
-import { TracesDataIngestMetredPlan } from "../../../Server/Types/Billing/MeteredPlan/AllMeteredPlans";
+import {
+  LogDataIngestMeteredPlan,
+  TracesDataIngestMetredPlan,
+} from "../../../Server/Types/Billing/MeteredPlan/AllMeteredPlans";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import logger from "../../../Server/Utils/Logger";
 import TelemetryUsageBilling from "../../../Models/DatabaseModels/TelemetryUsageBilling";
@@ -53,6 +57,11 @@ import {
   TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
   TELEMETRY_USAGE_PRODUCT_TYPES,
 } from "../../../Types/Telemetry/TelemetryUsage";
+import { TelemetryUsageAttributeFilter } from "../../../Server/Services/AnalyticsDatabaseService";
+import {
+  EXCEPTION_SOURCE_ATTRIBUTE,
+  ExceptionSource,
+} from "../../../Types/Telemetry/ExceptionSource";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -207,7 +216,10 @@ interface ScanRow {
 
 let telemetryDays: Array<string> = [];
 let spanRows: Array<ScanRow> = [];
+// The exceptions found in spans, as the exception table's Traces scan reads them.
 let exceptionRows: Array<ScanRow> = [];
+// The exceptions found in logs (issue #6590), as its Logs scan reads them.
+let logExceptionRows: Array<ScanRow> = [];
 let otherRows: Array<ScanRow> = [];
 
 interface Spies {
@@ -324,10 +336,24 @@ function installTelemetry(): void {
     .mockImplementation((async (): Promise<Array<ScanRow>> => {
       return spanRows;
     }) as never);
+  /*
+   * One table, two products (ExceptionSource): the scan answers by the
+   * attribute filter each product reads it with - the rows found in logs
+   * for Logs, every other row for Traces.
+   */
   spies.exceptionScan = jest
     .spyOn(ExceptionInstanceService, "groupTelemetryUsageByService")
-    .mockImplementation((async (): Promise<Array<ScanRow>> => {
-      return exceptionRows;
+    .mockImplementation((async (args: {
+      attributeFilter?: TelemetryUsageAttributeFilter | undefined;
+    }): Promise<Array<ScanRow>> => {
+      if (
+        args.attributeFilter?.key !== EXCEPTION_SOURCE_ATTRIBUTE ||
+        args.attributeFilter?.value !== ExceptionSource.Log
+      ) {
+        throw new Error("The exception table is read by its source");
+      }
+
+      return args.attributeFilter.isEqual ? logExceptionRows : exceptionRows;
     }) as never);
 
   const others: () => Promise<Array<ScanRow>> = async (): Promise<
@@ -449,6 +475,7 @@ beforeEach(() => {
   telemetryDays = [];
   spanRows = [];
   exceptionRows = [];
+  logExceptionRows = [];
   otherRows = [];
   spies = {} as Spies;
 
@@ -581,11 +608,10 @@ describe("a trace day's usage row, where billing is off", () => {
     expect(resource.bytes).toBe(GB + resource.exceptionBytes!);
   });
 
-  test("gives no other product's row a part", async () => {
+  test("gives no other product's row a part, Logs apart (issue #6590)", async () => {
     otherRows = [scan(SERVICE_ID, GB)];
 
     for (const productType of [
-      ProductType.Logs,
       ProductType.Metrics,
       ProductType.Profiles,
       ProductType.SessionReplay,
@@ -610,7 +636,7 @@ describe("a trace day's usage row, where billing is off", () => {
       }).toEqual({ productType, exceptionBytes: undefined });
     }
 
-    expect(store).toHaveLength(5);
+    expect(store).toHaveLength(4);
 
     for (const row of store) {
       expect({ productType: row.productType, part: exceptionsOf(row) }).toEqual(
@@ -618,7 +644,7 @@ describe("a trace day's usage row, where billing is off", () => {
       );
     }
 
-    // The exception table is read for traces only.
+    // The exception table is read for traces and logs only.
     expect(spies.exceptionScan).not.toHaveBeenCalled();
   });
 
@@ -989,24 +1015,40 @@ describe("a usage row that more is added to", () => {
     expect(exceptionsOf(store[0]!)).toBeNull();
   });
 
-  test("keeps a part on Traces rows only", async () => {
+  test("keeps a part on Traces and Logs rows only (issue #6590)", async () => {
     await add({
-      productType: ProductType.Logs,
+      productType: ProductType.Metrics,
       gigabytes: 5,
       exceptions: 2,
     });
 
-    expect(store[0]!.productType).toBe(ProductType.Logs);
+    expect(store[0]!.productType).toBe(ProductType.Metrics);
     expect(exceptionsOf(store[0]!)).toBeNull();
 
     await add({
-      productType: ProductType.Logs,
+      productType: ProductType.Metrics,
       gigabytes: 1,
       exceptions: 1,
     });
 
     expect(gbOf(store[0]!)).toBe(6);
     expect(exceptionsOf(store[0]!)).toBeNull();
+
+    store = [];
+    await add({
+      productType: ProductType.Logs,
+      gigabytes: 5,
+      exceptions: 2,
+    });
+    await add({
+      productType: ProductType.Logs,
+      gigabytes: 1,
+      exceptions: 1,
+    });
+
+    expect(store[0]!.productType).toBe(ProductType.Logs);
+    expect(gbOf(store[0]!)).toBe(6);
+    expect(exceptionsOf(store[0]!)).toBe(3);
   });
 
   test("costs, where billing stages it, what its whole GB costs, whatever its part", async () => {
@@ -1088,5 +1130,323 @@ describe("what charges for usage", () => {
     expect(update.indexOf("getTotalCostInUSD")).toBeLessThan(
       update.indexOf("getExceptionPartInGB"),
     );
+  });
+});
+
+/*
+ * Issue #6590: an exception is billed with the product it was found in
+ * (ExceptionSource). The exceptions found in spans stay with Traces; the
+ * ones found in log records move to Logs, beside the records they were
+ * found in. Logs and traces cost the same per GB and a resource keeps both
+ * for the same billed retention, so this moves what a project is billed
+ * between the two products without changing what it pays.
+ */
+describe("the exceptions found in logs are billed with Logs (issue #6590)", () => {
+  beforeEach(() => {
+    telemetryDays = ["2026-10-22"];
+  });
+
+  test("the two products read the exception table by complementary filters, so each row is billed once", () => {
+    const traces: TelemetryUsageAttributeFilter | undefined =
+      getBilledExceptionsFilter(ProductType.Traces);
+    const logs: TelemetryUsageAttributeFilter | undefined =
+      getBilledExceptionsFilter(ProductType.Logs);
+
+    expect(traces).toEqual({
+      key: EXCEPTION_SOURCE_ATTRIBUTE,
+      value: ExceptionSource.Log,
+      isEqual: false,
+    });
+    expect(logs).toEqual({
+      key: EXCEPTION_SOURCE_ATTRIBUTE,
+      value: ExceptionSource.Log,
+      isEqual: true,
+    });
+
+    for (const productType of [
+      ProductType.Metrics,
+      ProductType.Profiles,
+      ProductType.SessionReplay,
+      ProductType.SecurityEvents,
+    ]) {
+      expect({
+        productType,
+        filter: getBilledExceptionsFilter(productType),
+      }).toEqual({ productType, filter: undefined });
+    }
+  });
+
+  test("a Logs row holds the log records and the exceptions found in them, and says how much were exceptions", async () => {
+    otherRows = [scan(SERVICE_ID, 3 * GB)];
+    logExceptionRows = [scan(SERVICE_ID, GB)];
+
+    await TelemetryUsageBillingService.meterUnstagedTelemetryUsageForProject({
+      projectId: PROJECT_ID,
+      productType: ProductType.Logs,
+    });
+
+    expect(store).toHaveLength(1);
+
+    const row: StoredRow = rowFor(SERVICE_ID, ProductType.Logs);
+
+    expect(gbOf(row)).toBe(4);
+    expect(exceptionsOf(row)).toBe(1);
+    expect(costOf(row)).toBe(0);
+
+    // The Logs scan asked for the exceptions found in logs, and only those.
+    expect(spies.exceptionScan).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        spies.exceptionScan.mock.calls[0]![0] as {
+          attributeFilter: TelemetryUsageAttributeFilter;
+        }
+      ).attributeFilter,
+    ).toEqual(getBilledExceptionsFilter(ProductType.Logs));
+  });
+
+  test("a project that sends only logs is never billed for traces", async () => {
+    otherRows = [scan(SERVICE_ID, 3 * GB)];
+    logExceptionRows = [scan(SERVICE_ID, GB)];
+
+    for (const productType of [ProductType.Logs, ProductType.Traces]) {
+      await TelemetryUsageBillingService.meterUnstagedTelemetryUsageForProject({
+        projectId: PROJECT_ID,
+        productType: productType,
+      });
+    }
+
+    expect(
+      store.map((row: StoredRow): ProductType => {
+        return row.productType;
+      }),
+    ).toEqual([ProductType.Logs]);
+  });
+
+  test("a Traces row keeps only the exceptions found in spans", async () => {
+    spanRows = [scan(SERVICE_ID, 2 * GB)];
+    exceptionRows = [scan(SERVICE_ID, GB / 2)];
+    logExceptionRows = [scan(SERVICE_ID, 5 * GB)];
+
+    await TelemetryUsageBillingService.meterUnstagedTelemetryUsageForProject({
+      projectId: PROJECT_ID,
+      productType: ProductType.Traces,
+    });
+
+    const row: StoredRow = rowFor(SERVICE_ID, ProductType.Traces);
+
+    expect(gbOf(row)).toBe(2.5);
+    expect(exceptionsOf(row)).toBe(0.5);
+  });
+
+  test("a resource that only found exceptions in its logs is all exceptions, under Logs", async () => {
+    logExceptionRows = [scan(HOST_ID, GB, ServiceType.Host)];
+
+    await TelemetryUsageBillingService.meterUnstagedTelemetryUsageForProject({
+      projectId: PROJECT_ID,
+      productType: ProductType.Logs,
+    });
+
+    const row: StoredRow = rowFor(HOST_ID, ProductType.Logs);
+
+    expect(gbOf(row)).toBe(1);
+    expect(exceptionsOf(row)).toBe(1);
+    expect(row.primaryEntityType).toBe(ServiceType.Host);
+    expect(row.retainTelemetryDataForDays).toBe(30);
+  });
+
+  test("leaves out OneUptime's own resources' exceptions found in logs", async () => {
+    otherRows = [scan(SERVICE_ID, GB)];
+    logExceptionRows = [scan(MONITOR_ID, 5 * GB, ServiceType.Monitor)];
+
+    await TelemetryUsageBillingService.meterUnstagedTelemetryUsageForProject({
+      projectId: PROJECT_ID,
+      productType: ProductType.Logs,
+    });
+
+    expect(
+      store.map((row: StoredRow): string => {
+        return row.primaryEntityId.toString();
+      }),
+    ).toEqual([SERVICE_ID]);
+    expect(exceptionsOf(store[0]!)).toBe(0);
+  });
+
+  test("the days Logs looks for read the exception table by the logs filter too", async () => {
+    const days: jest.SpyInstance = jest.spyOn(
+      ExceptionInstanceService,
+      "getDaysWithRows",
+    );
+
+    otherRows = [scan(SERVICE_ID, GB)];
+
+    await TelemetryUsageBillingService.meterUnstagedTelemetryUsageForProject({
+      projectId: PROJECT_ID,
+      productType: ProductType.Logs,
+    });
+    await TelemetryUsageBillingService.meterUnstagedTelemetryUsageForProject({
+      projectId: PROJECT_ID,
+      productType: ProductType.Traces,
+    });
+
+    expect(
+      days.mock.calls.map((call: Array<unknown>): unknown => {
+        return (call[0] as { attributeFilter?: unknown }).attributeFilter;
+      }),
+    ).toEqual([
+      getBilledExceptionsFilter(ProductType.Logs),
+      getBilledExceptionsFilter(ProductType.Traces),
+    ]);
+  });
+
+  test("a day counted before the change keeps its old split: it is never staged again", async () => {
+    // Counted under the old policy: the exceptions found in logs inside Traces.
+    spanRows = [scan(SERVICE_ID, GB)];
+    exceptionRows = [scan(SERVICE_ID, 2 * GB)];
+
+    await TelemetryUsageBillingService.meterUnstagedTelemetryUsageForProject({
+      projectId: PROJECT_ID,
+      productType: ProductType.Traces,
+    });
+
+    exceptionRows = [scan(SERVICE_ID, GB / 2)];
+    logExceptionRows = [scan(SERVICE_ID, GB + GB / 2)];
+
+    await TelemetryUsageBillingService.meterUnstagedTelemetryUsageForProject({
+      projectId: PROJECT_ID,
+      productType: ProductType.Traces,
+    });
+
+    expect(store).toHaveLength(1);
+    expect(gbOf(rowFor(SERVICE_ID, ProductType.Traces))).toBe(3);
+    expect(exceptionsOf(rowFor(SERVICE_ID, ProductType.Traces))).toBe(2);
+  });
+});
+
+describe("billing on, for a paying project: the exceptions found in logs (issue #6590)", () => {
+  beforeEach(() => {
+    mockIsBillingEnabled = true;
+    telemetryDays = ["2026-10-22"];
+    // 30 GB of spans, 10 GB of span exceptions; 50 GB of logs, 10 GB found in them.
+    spanRows = [scan(SERVICE_ID, 30 * GB)];
+    exceptionRows = [scan(SERVICE_ID, 10 * GB)];
+    otherRows = [scan(SERVICE_ID, 50 * GB)];
+    logExceptionRows = [scan(SERVICE_ID, 10 * GB)];
+  });
+
+  async function stageBoth(): Promise<void> {
+    for (const productType of [ProductType.Traces, ProductType.Logs]) {
+      await TelemetryUsageBillingService.stageUnstagedTelemetryUsageForProject({
+        projectId: PROJECT_ID,
+        productType: productType,
+      });
+    }
+  }
+
+  test("each product's row costs its price of all it holds", async () => {
+    await stageBoth();
+
+    const traces: StoredRow = rowFor(SERVICE_ID, ProductType.Traces);
+    const logs: StoredRow = rowFor(SERVICE_ID, ProductType.Logs);
+
+    expect(gbOf(traces)).toBe(40);
+    expect(exceptionsOf(traces)).toBe(10);
+    expect(costOf(traces)).toBeCloseTo(
+      TracesDataIngestMetredPlan.getTotalCostInUSD({
+        dataIngestedInGB: 40,
+        retentionInDays: 15,
+      }),
+      10,
+    );
+
+    expect(gbOf(logs)).toBe(60);
+    expect(exceptionsOf(logs)).toBe(10);
+    expect(costOf(logs)).toBeCloseTo(
+      LogDataIngestMeteredPlan.getTotalCostInUSD({
+        dataIngestedInGB: 60,
+        retentionInDays: 15,
+      }),
+      10,
+    );
+  });
+
+  test("the project pays what it paid when every exception was billed with Traces", async () => {
+    await stageBoth();
+
+    const total: number = store.reduce((sum: number, row: StoredRow) => {
+      return sum + costOf(row);
+    }, 0);
+
+    // The old split: 50 GB of traces (spans and every exception), 50 GB of logs.
+    const before: number =
+      TracesDataIngestMetredPlan.getTotalCostInUSD({
+        dataIngestedInGB: 50,
+        retentionInDays: 15,
+      }) +
+      LogDataIngestMeteredPlan.getTotalCostInUSD({
+        dataIngestedInGB: 50,
+        retentionInDays: 15,
+      });
+
+    expect(total).toBeCloseTo(before, 10);
+  });
+
+  test("the billing run charges each product once, the exceptions found in logs with Logs", async () => {
+    const report: jest.SpyInstance = jest
+      .spyOn(BillingService, "addOrUpdateMeteredPricingOnSubscription")
+      .mockResolvedValue(undefined as never);
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(
+      Object.assign(new Project(), {
+        paymentProviderMeteredSubscriptionId: "sub_metered",
+        paymentProviderPlanId: "plan_growth",
+      }) as never,
+    );
+
+    await TracesDataIngestMetredPlan.reportQuantityToBillingProvider(
+      PROJECT_ID,
+      {},
+    );
+    await LogDataIngestMeteredPlan.reportQuantityToBillingProvider(
+      PROJECT_ID,
+      {},
+    );
+
+    expect(report).toHaveBeenCalledTimes(2);
+    expect(report.mock.calls[0]![1]).toBe(TracesDataIngestMetredPlan);
+    // 40 GB kept 15 days at 0.10 USD per 15 days: 4 USD, in cents.
+    expect(report.mock.calls[0]![2]).toBe(400);
+    expect(report.mock.calls[1]![1]).toBe(LogDataIngestMeteredPlan);
+    // 60 GB: 6 USD, the 10 GB of exceptions found in the logs included.
+    expect(report.mock.calls[1]![2]).toBe(600);
+
+    expect(
+      store.every((row: StoredRow): boolean => {
+        return row.isReportedToBillingProvider;
+      }),
+    ).toBe(true);
+  });
+
+  test("the marketplace usage reports' query takes both rows, at the old total", async () => {
+    await stageBoth();
+
+    // As ee/Server/CloudMarketplace/MarketplaceUsageReporter asks for them.
+    const owed: Array<TelemetryUsageBilling> =
+      await TelemetryUsageBillingService.findBy({
+        query: {
+          projectId: PROJECT_ID,
+          isReportedToBillingProvider: false,
+          totalCostInUSD: QueryHelper.greaterThan(0),
+        },
+        select: { _id: true, totalCostInUSD: true, day: true },
+        skip: 0,
+        limit: 1000,
+        props: { isRoot: true },
+      });
+
+    expect(owed).toHaveLength(2);
+    expect(
+      owed.reduce((sum: number, row: TelemetryUsageBilling): number => {
+        return sum + Number(row.totalCostInUSD!.value);
+      }, 0),
+    ).toBeCloseTo(10, 10);
   });
 });

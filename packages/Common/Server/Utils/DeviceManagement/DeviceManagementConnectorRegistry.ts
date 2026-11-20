@@ -1,6 +1,7 @@
 import BadDataException from "../../../Types/Exception/BadDataException";
 import DeviceManagementProvider from "../../../Types/DeviceManagement/DeviceManagementProvider";
 import EsperConnector from "./Esper/EsperConnector";
+import IntuneConnector from "./Intune/IntuneConnector";
 import { DeviceManagementConnector } from "./DeviceManagementTypes";
 
 /*
@@ -10,6 +11,7 @@ import { DeviceManagementConnector } from "./DeviceManagementTypes";
 const CONNECTORS: Record<DeviceManagementProvider, DeviceManagementConnector> =
   {
     [DeviceManagementProvider.Esper]: new EsperConnector(),
+    [DeviceManagementProvider.Intune]: new IntuneConnector(),
   };
 
 export default class DeviceManagementConnectorRegistry {
@@ -20,7 +22,7 @@ export default class DeviceManagementConnectorRegistry {
       CONNECTORS[provider as DeviceManagementProvider];
 
     if (!connector) {
-      throw new BadDataException("Service must be 'esper'.");
+      throw new BadDataException("Service must be 'esper' or 'intune'.");
     }
 
     return connector;
