@@ -33,6 +33,20 @@ export interface HttpRequestStepConfig {
   headersJson?: string;
   body?: string;
   timeoutInMs?: number;
+  /*
+   * When true, the step does not check the server's TLS certificate at all
+   * - who signed it, its dates, the host it names - so a server with a
+   * self-signed certificate answers. Only this step's request is sent so
+   * (Types/Runbook/HttpStepCertificates). Off unless it is exactly true.
+   */
+  allowSelfSignedCertificates?: boolean;
+  /*
+   * The certificate (PEM) the server's certificate must chain to: the
+   * private CA that signed it, or the server's own when it is self-signed.
+   * The step trusts it alone, and still checks the dates and the host
+   * name. Not used while allowSelfSignedCertificates is on.
+   */
+  caCertificate?: string;
 }
 
 export interface BashStepConfig {
