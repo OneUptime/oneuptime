@@ -164,6 +164,16 @@ const NetworkSiteViewSideMenu: FunctionComponent<ComponentProps> = (
       <SideMenuSection title="Manage">
         <SideMenuItem
           link={{
+            title: "Owners",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_SITE_VIEW_OWNERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Team}
+        />
+        <SideMenuItem
+          link={{
             title: "Settings",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.NETWORK_SITE_VIEW_SETTINGS] as Route,

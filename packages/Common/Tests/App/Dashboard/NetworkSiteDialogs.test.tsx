@@ -453,20 +453,26 @@ describe("Add Site", () => {
     expect(SITE_TYPE_FIELD_DESCRIPTION).toContain("a region, a store");
   });
 
-  test("folds the site code, the description and the location under More fields, on the first step", async () => {
+  test("folds the site code, the description, the location and the labels under More fields, on the first step", async () => {
     await openAddSite();
 
     const header: HTMLElement = moreFields();
 
     expect(header).toHaveAttribute("aria-expanded", "false");
+    /*
+     * The fold names the first four of its six fields and says how many
+     * more: the longitude and the labels (#10188).
+     */
     expect(listedNames(header)).toEqual([
       // What naming rules put in device names as {site.code} (#6619).
       "Site Code",
       "Description",
       "Address",
       "Latitude",
-      "Longitude",
     ]);
+    expect(within(header).getByTestId("folded-section-more").textContent).toBe(
+      "2 more",
+    );
     expect(
       within(dialog()).getByPlaceholderText(ADDRESS_PLACEHOLDER),
     ).not.toBeVisible();
@@ -520,7 +526,7 @@ describe("Add Child Site", () => {
     ).toHaveTextContent("Add Child Site");
   });
 
-  test("asks the type and the name, and folds the site code and the location", async () => {
+  test("asks the type and the name, and folds the site code, the location and the labels", async () => {
     await openAddChildSite();
 
     expect(comboboxOf("Site Type")).toBeVisible();
@@ -532,6 +538,8 @@ describe("Add Child Site", () => {
       "Address",
       "Latitude",
       "Longitude",
+      // A site's labels group and filter sites (#10188).
+      "Labels",
     ]);
     expect(
       within(dialog()).getByPlaceholderText(ADDRESS_PLACEHOLDER),
