@@ -25,11 +25,17 @@ import {
 
 /*
  * A span whose client address a trace scrub rule hid (#10397): the trace
- * scan reads the span after the rule ran, so its client.address is what
- * the rule left. The event names no address - nothing for threat intel to
- * match, nor for entity risk or a campaign to group - and says a scrub rule
- * hid it, what the rule left and where. A span with no client address at
- * all, or a host name for one, says nothing of the kind.
+ * scan reads the span after the rule ran, so its connection's address
+ * (network.peer.address) is what the rule left. The event names no address
+ * - nothing for threat intel to match, nor for entity risk or a campaign to
+ * group - and says a scrub rule hid it, what the rule left and where. A
+ * span with no client address at all, or a host name for one, says nothing
+ * of the kind.
+ *
+ * Only the address the sender could not have written is the client's
+ * (#10416): client.address, which instrumentations fill from
+ * X-Forwarded-For, is a claim - hidden or not - and never the marker the
+ * address vault resolves (#10395).
  */
 
 const LEGACY_TOKEN: string = `[HASHED:${crypto.createHash("sha256").update("203.0.113.7").digest("hex").substring(0, 8)}]`;
@@ -86,8 +92,9 @@ describe("a span whose client address a scrub rule hid", () => {
     ];
 
     for (const [scrubbed, kind] of cases) {
+      // A direct connection: client.address is the peer's, both hidden alike.
       const event: NormalizedSecurityEvent = onlyEvent(
-        span({ "client.address": scrubbed }),
+        span({ "network.peer.address": scrubbed, "client.address": scrubbed }),
       );
 
       expect({ scrubbed, principalIp: event.principalIp }).toEqual({
@@ -110,14 +117,18 @@ describe("a span whose client address a scrub rule hid", () => {
           "oneuptime.request.client_address_hidden": "scrub-rule",
           "oneuptime.request.client_address_scrubbed": scrubbed,
           "oneuptime.request.client_address_scrubbed_in": "span-attributes",
+          "oneuptime.request.client_address_trust": "peer",
         }),
       );
+      expect(
+        event.attributes["oneuptime.request.claimed_client_address"],
+      ).toBeUndefined();
     }
   });
 
   test("names what the rule left nowhere an address goes: not the columns, nor the observables", () => {
     const event: NormalizedSecurityEvent = onlyEvent(
-      span({ "client.address": KEYED_TOKEN, "enduser.id": "user-42" }),
+      span({ "network.peer.address": KEYED_TOKEN, "enduser.id": "user-42" }),
     );
 
     expect(event.principalIp).toBe("");
@@ -129,8 +140,8 @@ describe("a span whose client address a scrub rule hid", () => {
     expect(event.message).not.toContain(KEYED_TOKEN);
   });
 
-  test("is read from every attribute a client address is named by, the first that holds one deciding", () => {
-    for (const key of TRACE_SCAN_ATTRIBUTE_KEYS.clientAddress) {
+  test("is read from every attribute the connection's address is named by", () => {
+    for (const key of TRACE_SCAN_ATTRIBUTE_KEYS.peerAddress) {
       const event: NormalizedSecurityEvent = onlyEvent(
         span({ [key]: "[REDACTED]" }),
       );
@@ -140,30 +151,80 @@ describe("a span whose client address a scrub rule hid", () => {
         hidden: "[REDACTED]",
       });
     }
+  });
 
-    // The client's address, as it always was: the first of them the span holds.
+  test("a hidden client.address is only a hidden claim: the address vault has nothing to resolve", () => {
+    for (const key of TRACE_SCAN_ATTRIBUTE_KEYS.forwardedClientAddress) {
+      const event: NormalizedSecurityEvent = onlyEvent(
+        span({ [key]: KEYED_TOKEN }),
+      );
+
+      expect({ key, principalIp: event.principalIp }).toEqual({
+        key,
+        principalIp: "",
+      });
+      expect(readHiddenClientAddress(event)).toBeNull();
+      expect(event.attributes).toEqual(
+        expect.objectContaining({
+          "oneuptime.request.client_address_trust": "claimed",
+          "oneuptime.request.claimed_client_address": KEYED_TOKEN,
+          "oneuptime.request.claimed_client_address_from": key,
+        }),
+      );
+    }
+  });
+
+  test("a public peer is the client, whatever client.address says, hidden or not", () => {
     const hidden: NormalizedSecurityEvent = onlyEvent(
       span({
         "client.address": "[REDACTED]",
         "network.peer.address": "198.51.100.1",
       }),
     );
-    expect(hidden.principalIp).toBe("");
-    expect(readHiddenClientAddress(hidden)?.value).toBe("[REDACTED]");
+    expect(hidden.principalIp).toBe("198.51.100.1");
+    expect(readHiddenClientAddress(hidden)).toBeNull();
+    expect(hidden.attributes["oneuptime.request.claimed_client_address"]).toBe(
+      "[REDACTED]",
+    );
+  });
 
-    const known: NormalizedSecurityEvent = onlyEvent(
+  test("a hidden peer of a request that forwarded an address is no client: it may be a proxy", () => {
+    const event: NormalizedSecurityEvent = onlyEvent(
       span({
         "client.address": "203.0.113.7",
         "network.peer.address": "[REDACTED]",
       }),
     );
-    expect(known.principalIp).toBe("203.0.113.7");
-    expect(readHiddenClientAddress(known)).toBeNull();
+
+    expect(event.principalIp).toBe("");
+    expect(readHiddenClientAddress(event)).toBeNull();
+    expect(event.attributes).toEqual(
+      expect.objectContaining({
+        "oneuptime.request.client_address_trust": "claimed",
+        "oneuptime.request.claimed_client_address": "203.0.113.7",
+      }),
+    );
+  });
+
+  test("through a private load balancer, the hidden address a recorded X-Forwarded-For's proxy appended is the client, hidden", () => {
+    const event: NormalizedSecurityEvent = onlyEvent(
+      span({
+        "network.peer.address": "10.0.0.5",
+        "client.address": "[REDACTED]",
+        "http.request.header.x-forwarded-for": '["[REDACTED], [REDACTED]"]',
+      }),
+    );
+
+    expect(event.principalIp).toBe("");
+    expect(readHiddenClientAddress(event)?.value).toBe("[REDACTED]");
+    expect(event.attributes["oneuptime.request.client_address_trust"]).toBe(
+      "trusted-proxy",
+    );
   });
 
   test("an IPv4 address an IPv6 socket names, of which a rule hid the dotted quad, is hidden too", () => {
     const event: NormalizedSecurityEvent = onlyEvent(
-      span({ "client.address": "::ffff:[REDACTED]" }),
+      span({ "network.peer.address": "::ffff:[REDACTED]" }),
     );
 
     expect(event.principalIp).toBe("");
@@ -174,7 +235,7 @@ describe("a span whose client address a scrub rule hid", () => {
     const events: Array<NormalizedSecurityEvent> = buildTraceSecurityEvents(
       span({
         "url.query": "target=http://169.254.169.254/latest/meta-data/",
-        "client.address": SCRUB_IPV4_MASK,
+        "network.peer.address": SCRUB_IPV4_MASK,
       }),
     );
 
@@ -201,10 +262,10 @@ describe("a span whose client address no rule hid", () => {
     ).toEqual([]);
   });
 
-  test("with an address names it, as it always did", () => {
+  test("with its connection's address names it, as it always did", () => {
     for (const address of ["203.0.113.7", "2001:db8::7"]) {
       const event: NormalizedSecurityEvent = onlyEvent(
-        span({ "client.address": address }),
+        span({ "network.peer.address": address, "client.address": address }),
       );
 
       expect(event.principalIp).toBe(address);
@@ -212,6 +273,24 @@ describe("a span whose client address no rule hid", () => {
         address,
       );
       expect(readHiddenClientAddress(event)).toBeNull();
+    }
+  });
+
+  test("with only client.address names none: the sender could have written it", () => {
+    for (const address of ["203.0.113.7", "2001:db8::7"]) {
+      const event: NormalizedSecurityEvent = onlyEvent(
+        span({ "client.address": address }),
+      );
+
+      expect(event.principalIp).toBe("");
+      expect(
+        event.attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddress],
+      ).toBeUndefined();
+      expect(event.observables).not.toContain(address);
+      expect(readHiddenClientAddress(event)).toBeNull();
+      expect(
+        event.attributes[SECURITY_REQUEST_ATTRIBUTES.claimedClientAddress],
+      ).toBe(address);
     }
   });
 
@@ -234,6 +313,10 @@ describe("a span whose client address no rule hid", () => {
         value,
         hidden: null,
       });
+      // Neither an address nor a rule's leftover: no claim either.
+      expect(
+        event.attributes[SECURITY_REQUEST_ATTRIBUTES.claimedClientAddress],
+      ).toBeUndefined();
     }
   });
 

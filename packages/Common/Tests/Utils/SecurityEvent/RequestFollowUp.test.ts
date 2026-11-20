@@ -6,6 +6,7 @@ import SecurityEventRequestOutcome, {
 } from "../../../Types/SecurityEvent/SecurityEventRequestOutcome";
 import WebAttackLogParser from "../../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 import { applyRequestAssessment } from "../../../Utils/SecurityEvent/RequestFollowUp";
+import { resolveClientAddress } from "../../../Utils/SecurityEvent/ClientAddressTrust";
 import { RequestTraceAssessment } from "../../../Utils/SecurityEvent/RequestOutcome";
 import { WEB_LINES, logLine } from "./LogParsers/LogParserFixtures";
 
@@ -35,9 +36,15 @@ function eventFrom(body: string): NormalizedSecurityEvent {
   return events[0]!;
 }
 
+/*
+ * What a trace says, its server span naming its client by the connection's
+ * own address (the peer): an address the sender could not have written.
+ */
 function assessment(
   overrides: Partial<RequestTraceAssessment> = {},
 ): RequestTraceAssessment {
+  const clientAddress: string = overrides.clientAddress ?? "198.51.100.23";
+
   return {
     outcome: SecurityEventRequestOutcome.Rejected,
     serverSpanId: "aaaaaaaaaaaaaaaa",
@@ -45,7 +52,8 @@ function assessment(
     method: "get",
     url: "https://oneuptime.com/sitemap.xml?offset=1;SELECT%20IF((SLEEP(16)),1,2356)",
     route: "",
-    clientAddress: "198.51.100.23",
+    clientAddress,
+    client: resolveClientAddress({ peer: clientAddress }),
     userAgent: "Mozilla/5.0 (compatible; scanner)",
     userId: "",
     durationMs: 3.4,

@@ -208,6 +208,12 @@ export interface FindDetectionMatchesData {
   endTime: Date;
   whereFragment: Statement;
   groupByExpression: Statement | null;
+  /*
+   * Whether an event has a value for the field the rule groups by
+   * (buildSigmaFieldHasValue): a rule that counts per value leaves out the
+   * events that have none, so they never add up as one value (#10415).
+   */
+  groupHasValueExpression?: Statement | null | undefined;
   distinctCountExpression: Statement | null;
   minMatchCount: number;
   maxGroups: number;
@@ -579,6 +585,13 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
    * that carry no username. The threshold is enforced in HAVING so the
    * maxGroups LIMIT keeps only qualifying groups instead of letting
    * noisy-but-under-threshold groups crowd out real ones.
+   *
+   * A rule that counts per value - a group field, and a threshold above
+   * one or a distinct count - leaves out the events with no value for its
+   * group field (groupHasValueExpression, #10415), in the read and in the
+   * groups an arrival names: every failed sign-in with no address is no
+   * "one IP address". One that fires on each event keeps them, in a group
+   * of their own, as before.
    */
   public async findDetectionMatches(
     data: FindDetectionMatchesData,
@@ -657,6 +670,20 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     statement.append(data.whereFragment);
     statement.append(")");
 
+    const minMatchCount: number = Math.max(1, data.minMatchCount);
+    const leavesOutNoValue: boolean = Boolean(
+      data.groupByExpression &&
+        data.groupHasValueExpression &&
+        (data.distinctCountExpression || minMatchCount > 1),
+    );
+
+    // Events with no value for the group field are no value to count.
+    if (leavesOutNoValue) {
+      statement.append(" AND (");
+      statement.append(data.groupHasValueExpression!);
+      statement.append(")");
+    }
+
     if (arrival) {
       // The window as it stood when the events judged came in.
       statement.append(" AND ");
@@ -684,6 +711,14 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
           }} AND `,
         );
         statement.append(isDetectionArrivalCandidate(arrival));
+
+        // Nor are the groups of events that have none of the field.
+        if (leavesOutNoValue) {
+          statement.append(" AND (");
+          statement.append(data.groupHasValueExpression!);
+          statement.append(")");
+        }
+
         statement.append(")");
       }
     }
@@ -700,7 +735,6 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     const effectiveCountColumn: string = data.distinctCountExpression
       ? "distinctCount"
       : "matchCount";
-    const minMatchCount: number = Math.max(1, data.minMatchCount);
 
     if (arrival) {
       /*

