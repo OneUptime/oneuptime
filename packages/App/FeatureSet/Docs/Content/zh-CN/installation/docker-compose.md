@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | 执行监视器检查的全局探测器。它使用主机网络。 |
 | `global-runner` | `oneuptime/runner` | 内置的全局 Runner，为所有项目运行运行手册的 JavaScript 步骤和 OneUptime AI 的代码修复。 |
 | `postgres` | `postgres:15` | 配置和状态：监视器、事件、用户。保存在 `postgres` 卷中。 |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | 遥测数据：日志、指标、追踪和异常。保存在 `clickhouse` 卷中。 |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7.38.18` | 遥测数据：日志、指标、追踪和异常。保存在 `clickhouse` 卷中。 |
 | `valkey` | `valkey/valkey:9.1-alpine` | 缓存和队列。它不在磁盘上保存任何数据。 |
 
 > [!NOTE]

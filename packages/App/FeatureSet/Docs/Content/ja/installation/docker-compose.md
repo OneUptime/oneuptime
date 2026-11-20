@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | モニターのチェックを実行するグローバルプローブ。ホストのネットワークを使います。 |
 | `global-runner` | `oneuptime/runner` | すべてのプロジェクトの Runbook の JavaScript のステップと OneUptime AI のコード修正を実行する、同梱のグローバル Runner。 |
 | `postgres` | `postgres:15` | 設定と状態: モニター、インシデント、ユーザー。`postgres` ボリュームに保存されます。 |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | テレメトリ: ログ、メトリクス、トレース、例外。`clickhouse` ボリュームに保存されます。 |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7.38.18` | テレメトリ: ログ、メトリクス、トレース、例外。`clickhouse` ボリュームに保存されます。 |
 | `valkey` | `valkey/valkey:9.1-alpine` | キャッシュとキュー。ディスクには何も保存しません。 |
 
 > [!NOTE]

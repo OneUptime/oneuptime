@@ -83,7 +83,7 @@ oneuptime incident list --all --fields title,currentIncidentState.name,createdAt
 
 Un elenco chiede a OneUptime ogni campo di ogni record che la chiave può leggere. `--fields` chiede invece quelli che nomina e, dopo un punto, un campo di un record collegato, come in `currentIncidentState.name`. Una tabella mostra sei campi; il JSON li mostra tutti (vedi [Formati di output](/docs/cli/output-formats)). `--all` legge ogni pagina, 100 record alla volta, fino a 100.000; `count` dice quanti sono.
 
-Le etichette sono elencate per nome anziché dalle più recenti: prima le etichette il cui nome inizia con un numero, nell'ordine di quel numero (`2. Team` prima di `10. Owner`), poi le altre in ordine alfabetico. Per elencarle in un altro ordine, indica `--sort`.
+Le etichette sono elencate per nome anziché dalle più recenti: prima le etichette il cui nome inizia con un numero, nell'ordine di quel numero (`2. Team` prima di `10. Owner`), poi le altre in ordine alfabetico. I record che ordini trascinandoli, come gli stati degli incidenti, sono elencati in quell'ordine. Per elencarli in un altro ordine, indica `--sort`.
 
 ### Filtrare un elenco
 
@@ -209,7 +209,7 @@ Risponde `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.` Co
 
 ### Un ruolo personalizzato con cui vengono eseguiti flussi di lavoro
 
-OneUptime elimina un ruolo personalizzato con cui vengono eseguiti flussi di lavoro solo quando l'eliminazione dice con cosa vengono eseguiti invece, e rifiuta quella che non lo dice, nominando i flussi di lavoro. Dillo con `--workflows-run-as`: `Default`, le autorizzazioni predefinite, oppure `CustomRole`, un altro ruolo personalizzato che potresti dare a un team, con il suo ID in `--workflows-run-as-custom-role-id`. Mai Project Owner: eliminare un ruolo non amplia mai ciò che un flusso di lavoro può fare.
+OneUptime elimina un ruolo personalizzato con cui vengono eseguiti flussi di lavoro solo quando l'eliminazione dice con cosa vengono eseguiti invece, e rifiuta quella che non lo dice, nominando i flussi di lavoro. Dillo con `--workflows-run-as`: `Default`, le autorizzazioni predefinite, oppure `CustomRole`, un altro ruolo personalizzato che potresti dare a un team, con il suo ID in `--workflows-run-as-custom-role-id`. Mai Proprietario del progetto: eliminare un ruolo non amplia mai ciò che un flusso di lavoro può fare.
 
 ```bash
 # They run with the default permissions

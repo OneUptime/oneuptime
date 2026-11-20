@@ -532,7 +532,9 @@ describe("signing in to the mobile app", () => {
   /*
    * The server offers a project's providers by an email's domain, never by
    * the account it has (#9824), so the answer explains the domain, and says
-   * nothing about accounts or the projects an email belongs to.
+   * nothing about accounts or the projects an email belongs to. It names the
+   * roles that may add a domain to a provider, as the English pages name
+   * every built-in role they mean (DocsRoleNamesInRunningText).
    */
   it("quotes the app's answer to an email with no single sign-on", () => {
     expect(mobile("src/screens/auth/SSOLoginScreen.tsx")).toContain(
@@ -545,7 +547,7 @@ describe("signing in to the mobile app", () => {
     );
 
     expect(answer).toContain(
-      "No project on this OneUptime offers single sign-on for that email's domain yet: a project's admin adds the domain to its SSO provider, whoever the email belongs to.",
+      "No project on this OneUptime offers single sign-on for that email's domain yet: a Project Owner or Project Admin adds the domain to the project's SSO provider, whoever the email belongs to.",
     );
     expect(answer).not.toMatch(/belongs to has|has no account/);
   });

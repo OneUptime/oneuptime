@@ -282,8 +282,18 @@ const ADMIN_DASHBOARD: string = "Admin Dashboard";
  */
 const PROSE: Record<string, Array<string>> = {
   [PERMISSIONS_PAGE]: ["project", "teams", "Labels", "All resources", "All"],
-  // "**Not** covered": the paging ladder's Not (#6820) is a Dashboard label.
-  [PRIVATE_NETWORK_PAGE]: ["monitors", "probe", "Private", "Not"],
+  /*
+   * "**Android**:", the platform an item is about: the managed devices
+   * table's Android column is a Dashboard label.
+   */
+  [PUSH_PAGE]: ["Android"],
+  /*
+   * "**Not** covered": the paging ladder's Not (#6820) is a Dashboard label.
+   * "The **API server**'s environment", OneUptime's own: a cluster's
+   * Compliance page names the CIS benchmark's API server section, a
+   * Dashboard label.
+   */
+  [PRIVATE_NETWORK_PAGE]: ["monitors", "probe", "Private", "Not", "API server"],
   [ARCHITECTURE_PAGE]: ["Probes"],
   [ENTERPRISE_PAGE]: ["read-only"],
 };
@@ -327,7 +337,6 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "alarm",
     "that",
     "iOS",
-    "Android",
   ],
   [INBOUND_EMAIL_PAGE]: [
     "Incoming Email Monitor",
@@ -348,7 +357,6 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Monitor Logs:",
   ],
   [PRIVATE_NETWORK_PAGE]: [
-    "API server",
     "Forbidden",
     "user webhooks",
     "webhook subscribers who sign up on a status page",

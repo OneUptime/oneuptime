@@ -74,8 +74,8 @@ describe("Run Rules on Existing Resources docs page", () => {
       }
     }
 
-    // Data Observability's tables and OpenStack clouds, the 33rd and the 34th.
-    expect(resources.size).toBe(34);
+    // Data Observability's pipelines, which have owner rules only, the 35th.
+    expect(resources.size).toBe(35);
 
     for (const resource of resources) {
       expect(page).toContain(resource.toLowerCase());

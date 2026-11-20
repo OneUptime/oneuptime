@@ -109,7 +109,7 @@ O aplicativo não conseguiu chegar a `https://<your-oneuptime>/api/status`. Veri
 :::
 
 :::details “No SSO configuration found for the email”
-Nenhum projeto deste OneUptime oferece ainda login único para o domínio desse e-mail: um administrador do projeto adiciona o domínio ao provedor de SSO dele, seja de quem for o e-mail. Verifique o e-mail, ou entre com a sua senha. Os provedores que o seu administrador configurou para toda a instalação aparecem antes do campo de e-mail.
+Nenhum projeto deste OneUptime oferece ainda login único para o domínio desse e-mail: um Proprietário do projeto ou um Administrador do projeto adiciona o domínio ao provedor de SSO do projeto, seja de quem for o e-mail. Verifique o e-mail, ou entre com a sua senha. Os provedores que o seu administrador configurou para toda a instalação aparecem antes do campo de e-mail.
 :::
 
 :::details Uma chave de segurança é o seu único segundo fator

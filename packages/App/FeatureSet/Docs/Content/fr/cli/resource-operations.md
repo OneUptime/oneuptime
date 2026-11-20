@@ -83,7 +83,7 @@ oneuptime incident list --all --fields title,currentIncidentState.name,createdAt
 
 Une liste demande à OneUptime chaque champ de chaque enregistrement que la clé peut lire. `--fields` demande à la place ceux qu'il nomme, et, après un point, un champ d'un enregistrement lié, comme dans `currentIncidentState.name`. Un tableau affiche six champs ; le JSON les affiche tous (voir [Formats de sortie](/docs/cli/output-formats)). `--all` lit chaque page, 100 enregistrements à la fois, jusqu'à 100 000 ; `count` indique combien il y en a.
 
-Les étiquettes sont listées par nom plutôt que des plus récentes aux plus anciennes : les étiquettes dont le nom commence par un nombre viennent d'abord, dans l'ordre de ce nombre (`2. Team` avant `10. Owner`), puis les autres par ordre alphabétique. Pour les lister dans un autre ordre, indiquez `--sort`.
+Les étiquettes sont listées par nom plutôt que des plus récentes aux plus anciennes : les étiquettes dont le nom commence par un nombre viennent d'abord, dans l'ordre de ce nombre (`2. Team` avant `10. Owner`), puis les autres par ordre alphabétique. Les enregistrements que vous ordonnez en les faisant glisser, comme les états d'incident, sont listés dans cet ordre. Pour les lister dans un autre ordre, indiquez `--sort`.
 
 ### Filtrer une liste
 
@@ -209,7 +209,7 @@ Elle répond `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.
 
 ### Un rôle personnalisé sous lequel s'exécutent des flux de travail
 
-OneUptime ne supprime un rôle personnalisé sous lequel s'exécutent des flux de travail que si la suppression dit sous quoi ils s'exécutent à la place, et refuse celle qui ne le dit pas, en nommant les flux de travail. Dites-le avec `--workflows-run-as` : `Default`, les autorisations par défaut, ou `CustomRole`, un autre rôle personnalisé que vous pourriez donner à une équipe, avec son ID dans `--workflows-run-as-custom-role-id`. Jamais Project Owner : supprimer un rôle n'étend jamais ce qu'un flux de travail peut faire.
+OneUptime ne supprime un rôle personnalisé sous lequel s'exécutent des flux de travail que si la suppression dit sous quoi ils s'exécutent à la place, et refuse celle qui ne le dit pas, en nommant les flux de travail. Dites-le avec `--workflows-run-as` : `Default`, les autorisations par défaut, ou `CustomRole`, un autre rôle personnalisé que vous pourriez donner à une équipe, avec son ID dans `--workflows-run-as-custom-role-id`. Jamais Propriétaire du projet : supprimer un rôle n'étend jamais ce qu'un flux de travail peut faire.
 
 ```bash
 # They run with the default permissions

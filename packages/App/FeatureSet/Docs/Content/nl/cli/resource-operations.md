@@ -83,7 +83,7 @@ oneuptime incident list --all --fields title,currentIncidentState.name,createdAt
 
 Een lijst vraagt OneUptime om elk veld van elk record dat de sleutel mag lezen. `--fields` vraagt in plaats daarvan om de velden die het noemt, en, na een punt, om een veld van een gekoppeld record, zoals in `currentIncidentState.name`. Een tabel toont zes velden; JSON toont ze allemaal (zie [Uitvoerformaten](/docs/cli/output-formats)). `--all` leest elke pagina, 100 records tegelijk, tot 100.000; `count` zegt hoeveel het er zijn.
 
-Labels worden op naam getoond in plaats van de nieuwste eerst: labels waarvan de naam met een getal begint komen eerst, in de volgorde van dat getal (`2. Team` vóór `10. Owner`), daarna de andere alfabetisch. Wil je ze in een andere volgorde, geef dan `--sort` op.
+Labels worden op naam getoond in plaats van de nieuwste eerst: labels waarvan de naam met een getal begint komen eerst, in de volgorde van dat getal (`2. Team` vóór `10. Owner`), daarna de andere alfabetisch. Records die je door slepen ordent, zoals incidentstatussen, worden in die volgorde getoond. Wil je ze in een andere volgorde, geef dan `--sort` op.
 
 ### Een lijst filteren
 
@@ -209,7 +209,7 @@ Hij antwoordt `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully
 
 ### Een aangepaste rol waarmee workflows draaien
 
-OneUptime verwijdert een aangepaste rol waarmee workflows draaien alleen als het verwijderen zegt waarmee ze in plaats daarvan draaien, en weigert een verwijdering die dat niet zegt, met de namen van de workflows. Zeg het met `--workflows-run-as`: `Default`, de standaardmachtigingen, of `CustomRole`, een andere aangepaste rol die je een team zou kunnen geven, met de ID ervan in `--workflows-run-as-custom-role-id`. Nooit Project Owner: een rol verwijderen breidt nooit uit wat een workflow mag.
+OneUptime verwijdert een aangepaste rol waarmee workflows draaien alleen als het verwijderen zegt waarmee ze in plaats daarvan draaien, en weigert een verwijdering die dat niet zegt, met de namen van de workflows. Zeg het met `--workflows-run-as`: `Default`, de standaardmachtigingen, of `CustomRole`, een andere aangepaste rol die je een team zou kunnen geven, met de ID ervan in `--workflows-run-as-custom-role-id`. Nooit Projecteigenaar: een rol verwijderen breidt nooit uit wat een workflow mag.
 
 ```bash
 # They run with the default permissions

@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | En global sond som kör dina monitorers kontroller. Den använder värdens nätverk. |
 | `global-runner` | `oneuptime/runner` | Den medföljande globala Runnern, som kör runbooks JavaScript-steg och OneUptime AI:s kodkorrigeringar för alla projekt. |
 | `postgres` | `postgres:15` | Konfiguration och tillstånd: monitorer, incidenter, användare. Lagras i volymen `postgres`. |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | Telemetri: loggar, mätvärden, traces och undantag. Lagras i volymen `clickhouse`. |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7.38.18` | Telemetri: loggar, mätvärden, traces och undantag. Lagras i volymen `clickhouse`. |
 | `valkey` | `valkey/valkey:9.1-alpine` | Cache och köer. Den sparar ingenting på disk. |
 
 > [!NOTE]

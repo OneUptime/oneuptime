@@ -83,7 +83,7 @@ oneuptime incident list --all --fields title,currentIncidentState.name,createdAt
 
 목록은 키가 읽을 수 있는 각 레코드의 모든 필드를 OneUptime에 요청합니다. `--fields`는 대신 지정한 필드를 요청하고, `currentIncidentState.name`처럼 점 뒤에 쓰면 관련 레코드의 필드를 요청합니다. 표에는 6개 필드가 나오고, JSON에는 모두 나옵니다([출력 형식](/docs/cli/output-formats) 참조). `--all`은 한 번에 100개씩, 최대 100,000개까지 모든 페이지를 읽습니다. 전체 개수는 `count`가 알려 줍니다.
 
-레이블은 최신순이 아니라 이름순으로 나열됩니다. 이름이 숫자로 시작하는 레이블이 그 숫자의 순서대로 먼저 오고(`2. Team`이 `10. Owner`보다 앞), 그다음 나머지 레이블이 알파벳순으로 옵니다. 다른 순서로 나열하려면 `--sort`를 지정하세요.
+레이블은 최신순이 아니라 이름순으로 나열됩니다. 이름이 숫자로 시작하는 레이블이 그 숫자의 순서대로 먼저 오고(`2. Team`이 `10. Owner`보다 앞), 그다음 나머지 레이블이 알파벳순으로 옵니다. 끌어서 순서를 정하는 레코드(인시던트 상태 등)는 그 순서대로 나열됩니다. 다른 순서로 나열하려면 `--sort`를 지정하세요.
 
 ### 목록 필터링
 
@@ -209,7 +209,7 @@ oneuptime monitor delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
 
 ### 워크플로가 실행에 쓰는 사용자 지정 역할
 
-OneUptime은 워크플로가 실행에 쓰는 사용자 지정 역할을, 대신 무엇으로 실행할지 삭제에서 밝힐 때만 삭제하고, 밝히지 않은 삭제는 워크플로의 이름을 들어 거부합니다. `--workflows-run-as`로 밝히세요. `Default`는 기본 권한이고, `CustomRole`은 내가 팀에 줄 수 있는 다른 사용자 지정 역할로, 그 ID를 `--workflows-run-as-custom-role-id`에 줍니다. Project Owner는 안 됩니다. 역할을 삭제해도 워크플로가 할 수 있는 일은 늘어나지 않습니다.
+OneUptime은 워크플로가 실행에 쓰는 사용자 지정 역할을, 대신 무엇으로 실행할지 삭제에서 밝힐 때만 삭제하고, 밝히지 않은 삭제는 워크플로의 이름을 들어 거부합니다. `--workflows-run-as`로 밝히세요. `Default`는 기본 권한이고, `CustomRole`은 내가 팀에 줄 수 있는 다른 사용자 지정 역할로, 그 ID를 `--workflows-run-as-custom-role-id`에 줍니다. 프로젝트 소유자는 안 됩니다. 역할을 삭제해도 워크플로가 할 수 있는 일은 늘어나지 않습니다.
 
 ```bash
 # They run with the default permissions
