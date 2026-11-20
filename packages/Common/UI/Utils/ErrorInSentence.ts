@@ -20,6 +20,7 @@ import {
 import { MONITOR_TYPE_MISMATCH_REFUSAL } from "../../Utils/Monitor/MonitorTemplateLinkRefusal";
 import { DATA_CHECK_REFUSALS_WITH_VALUES } from "../../Types/DataObservability/DataCheckRefusals";
 import { NAME_TAKEN_REFUSALS } from "../../Types/Database/UniqueName";
+import { AWS_ROLE_WITHOUT_EXTERNAL_ID_REFUSAL } from "../../Types/CloudConnection/AwsRoleExternalIdRefusal";
 
 /*
  * AN ERROR INSIDE A SENTENCE A CARD WRITES (#7307).
@@ -119,6 +120,12 @@ const REFUSALS_WITH_VALUES: ReadonlyArray<RefusalWithValues> = [
   ...DATA_CHECK_REFUSALS_WITH_VALUES,
   // A team's or a label's name another one of the project has (#9674).
   ...NAME_TAKEN_REFUSALS,
+  /*
+   * An AWS role that lets OneUptime in without the project's external id,
+   * with the condition to add (#10425): a cloud connection's test and its
+   * last read say it.
+   */
+  AWS_ROLE_WITHOUT_EXTERNAL_ID_REFUSAL,
 ];
 
 /*

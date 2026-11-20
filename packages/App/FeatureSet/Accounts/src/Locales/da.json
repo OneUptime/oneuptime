@@ -288,6 +288,29 @@
     "templateNone": "Ingen skabelon",
     "uploadingFiles": "Dine filer uploades…"
   },
+  "formSignIn": {
+    "prompt": "Log ind for at åbne denne formular.",
+    "ssoOnlyPrompt": "Log ind med din organisations single sign-on for at åbne denne formular.",
+    "noWayIn": "Der er endnu ikke sat nogen måde at logge ind på op for denne formular. Spørg den person, der delte den med dig.",
+    "email": "E-mail",
+    "password": "Adgangskode",
+    "forgotPassword": "Glemt adgangskode?",
+    "signIn": "Log ind",
+    "or": "eller",
+    "signInWithProvider": "Log ind med {{provider}}",
+    "forgotTitle": "Har du glemt din adgangskode?",
+    "forgotPrompt": "Indtast din e-mailadresse, så sender vi dig et link til at vælge en ny adgangskode.",
+    "sendLink": "Send link",
+    "forgotSent": "Hvis denne adresse kan logge ind på denne formular, er et link til at vælge en ny adgangskode på vej. Linket virker i 24 timer.",
+    "backToSignIn": "Tilbage til login",
+    "resetTitle": "Vælg en ny adgangskode",
+    "resetPrompt": "Indtast den adgangskode, du vil logge ind på denne formular med.",
+    "newPassword": "Ny adgangskode",
+    "savePassword": "Gem adgangskode",
+    "resetDone": "Din adgangskode er gemt. Log ind med den for at åbne formularen.",
+    "signedInAs": "Logget ind som {{email}}",
+    "signOut": "Log ud"
+  },
   "errors": {
     "forbidden": {
       "title": "Forbudt",

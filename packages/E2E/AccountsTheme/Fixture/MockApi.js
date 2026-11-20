@@ -28,9 +28,11 @@
  *   mcp=read|write|loopback|noprojects|error
  *                          what the MCP consent screen is told
  *   market=ready|error     what the marketplace purchase page is told
- *   form=ok|missing        the public form, or a link to none - on its
+ *   form=ok|missing|signin the public form, or a link to none - on its
  *                          link, and on its own domain (the server's / with
- *                          formdomain=1)
+ *                          formdomain=1) - or a form that asks its visitors
+ *                          to sign in (#10249): the right password
+ *                          (FORM_PASSWORD) signs in, and the form opens
  *   brand=name|logo|logos  an installation that goes by a name of its own:
  *                          with no logo, with a logo for light backgrounds
  *                          only, or with logos for light and dark ones
@@ -47,6 +49,9 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import {
   FORM,
+  FORM_ID,
+  FORM_PASSWORD,
+  FORM_SSO_PROVIDER,
   MARKETPLACE_DETAILS,
   MCP_DETAILS,
   PROVIDERS,
@@ -125,6 +130,12 @@ window.__accountsThemeSession = {
     API.handleError(new HTTPErrorResponse(401, {}, {}));
   },
 };
+
+/*
+ * Who is signed in to the form=signin form on this page: its sessions
+ * live on the server, so a reload signs the visitor out here.
+ */
+let formSignedInAs = null;
 
 const ok = (data) => {
   // A copy each time: a page is free to change what it is handed.
@@ -352,9 +363,88 @@ const answer = (method, apiPath, data) => {
     return ok(MARKETPLACE_DETAILS);
   }
 
+  /*
+   * A form's sign-in state (#10249), the page's first question, on its
+   * link and on its own domain: whether it asks its visitors to sign
+   * in, and who is signed in. A form that is not there answers as its
+   * read does.
+   */
+  if (
+    method === "GET" &&
+    (apiPath === "/api/form/custom-domain/sign-in-state" ||
+      (apiPath.startsWith("/api/form/public/") &&
+        apiPath.endsWith("/sign-in-state")))
+  ) {
+    if (scenario["form"] === "missing") {
+      return refused(
+        404,
+        "This form is not available. It may have been turned off, or the link may be out of date.",
+      );
+    }
+
+    if (scenario["form"] !== "signin") {
+      return ok({ requireSignIn: false });
+    }
+
+    return ok({
+      requireSignIn: true,
+      formId: FORM_ID,
+      name: FORM.name,
+      signedInAs: formSignedInAs,
+    });
+  }
+
+  // The sign-in of the form=signin form: /api/form/private-user/<route>/<form>.
+  if (apiPath.startsWith("/api/form/private-user/") && method === "POST") {
+    const route = apiPath.split("/")[4];
+
+    if (route === "sign-in-methods") {
+      return ok({
+        isPasswordSignInAllowed: true,
+        samlProviders: [FORM_SSO_PROVIDER],
+        oidcProviders: [],
+      });
+    }
+
+    if (route === "refresh-token") {
+      return formSignedInAs
+        ? ok({ email: formSignedInAs })
+        : refused(401, "Your sign-in to this form has ended. Sign in again.");
+    }
+
+    if (route === "login") {
+      const credentials = (data && data.data) || {};
+
+      if (credentials.password !== FORM_PASSWORD) {
+        return refused(
+          401,
+          "That email and password do not match. Try again, or use Forgot password to choose a new password.",
+        );
+      }
+
+      formSignedInAs = credentials.email;
+
+      return ok({ email: formSignedInAs });
+    }
+
+    if (route === "logout") {
+      formSignedInAs = null;
+
+      return ok({});
+    }
+
+    if (route === "forgot-password") {
+      return ok({});
+    }
+  }
+
   if (apiPath.startsWith("/api/form/public/")) {
     if (scenario["form"] === "missing") {
       return refused(404, "This form does not exist.");
+    }
+
+    if (scenario["form"] === "signin" && !formSignedInAs) {
+      return refused(401, "Sign in to open this form.");
     }
 
     return ok(FORM);
@@ -370,6 +460,10 @@ const answer = (method, apiPath, data) => {
         404,
         "This form is not available. It may have been turned off, or the link may be out of date.",
       );
+    }
+
+    if (scenario["form"] === "signin" && !formSignedInAs) {
+      return refused(401, "Sign in to open this form.");
     }
 
     return ok(FORM);

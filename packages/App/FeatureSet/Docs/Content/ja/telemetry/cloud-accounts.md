@@ -88,7 +88,7 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 
 OneUptime は各リージョンの EC2 インスタンスとボリューム、VPC、サブネットとセキュリティグループ、NAT ゲートウェイ、Auto Scaling グループ、ロードバランサ (Application、Network、Gateway、Classic)、EKS クラスタ、ECS クラスタとサービス、Lambda 関数、RDS データベース、ElastiCache、SQS キュー、SNS トピック、DynamoDB テーブル、Kinesis ストリーム、Step Functions のステートマシン、API Gateway の API、EFS ファイルシステム、OpenSearch ドメイン、App Runner サービス、Elastic Beanstalk 環境、WAF ウェブ ACL、Network Firewall のファイアウォール、Cognito ユーザープール、AppSync の GraphQL API、SageMaker エンドポイントをタグとともに一覧にし、CloudFront ディストリビューションとそのウェブ ACL は us-east-1 で、Global Accelerator のアクセラレーターは us-west-2 で一度だけ一覧にします。それらのつながりも記録します。各リソースが動くサブネットと VPC と、それを守るセキュリティグループ、各ロードバランサがトラフィックを送る先、各 EKS クラスタのネットワークとノード インスタンスです。OneUptime がある種類を一覧にする前に作ったロールも、その種類なしで警告なく読まれます。サブネット、セキュリティグループ、EKS クラスタ、またはその後に加わったウェブ ACL、ファイアウォール、アクセラレーター、ユーザープール、GraphQL API、エンドポイントなど、その種類も一覧にするにはコマンドをもう一度実行してください。これらはメトリクスを報告する前から一覧に載るようになります。
 
-OneUptime がロールにサインインするのは、そのロールの信頼ポリシーが、コマンドが書き込む `sts:ExternalId` の条件でプロジェクトの外部 ID を要求している場合だけです。ロールを通して何かを読み取る前と、その後は毎日、OneUptime はどのプロジェクトにもない外部 ID で一度サインインします。AWS がこのサインインを拒否すれば合格なので、ロールの CloudTrail には、そのロールを読み取る OneUptime サーバーごとに、OneUptime からの `AccessDenied` がおよそ一日一度記録されます。このサインインを通してしまうロールは、ARN を知っているどのプロジェクトにも OneUptime 経由でアカウントを読み取らせてしまうため、OneUptime はそのロールを拒否し、そのロールを通して何も読み取らず、追加すべき条件を伝えます。
+OneUptime がロールにサインインするのは、そのロールの信頼ポリシーが、コマンドが書き込む `sts:ExternalId` の条件でプロジェクトの外部 ID を要求している場合だけです。ロールを通して何かを読み取る前と、その後は毎日、OneUptime はどのプロジェクトにもない外部 ID で一度サインインします。AWS がこのサインインを拒否すれば合格なので、ロールの CloudTrail には、そのロールを読み取る OneUptime サーバーがいくつあっても、OneUptime からの `AccessDenied` はおよそ一日一度記録されます。このサインインを通してしまうロールは、ARN を知っているどのプロジェクトにも OneUptime 経由でアカウントを読み取らせてしまうため、OneUptime はそのロールを拒否し、そのロールを通して何も読み取らず、追加すべき条件を伝えます。
 
 > [!NOTE]
 > セルフホストの OneUptime では、**IAM ロール** の方式に、`sts:AssumeRole` を呼び出せる OneUptime 自身の AWS ID が必要です。サーバーが実行されている IAM ロール（Amazon EKS では Helm チャートの `serviceAccount.annotations` で設定するポッドのロール、Amazon ECS ではタスクロール、Amazon EC2 ではインスタンスプロファイル）、または `CLOUD_CONNECT_AWS_ACCESS_KEY_ID` と `CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY` に設定した IAM ユーザーのキーで、キーは設定されていれば常に使われます。どちらもない場合、フォームは **アクセス キー** を提示します。
@@ -345,7 +345,7 @@ AWS Organization を読み取る接続が見つけた AWS アカウントでは�
 :::
 
 :::details ロールが、プロジェクトの外部 ID なしで OneUptime のサインインを許可している
-そのロールの信頼ポリシーは、`sts:ExternalId` の条件でプロジェクトの外部 ID を要求していません。そのため、ロールの ARN を知っているどのプロジェクトでも OneUptime 経由でアカウントを読み取れてしまうので、OneUptime はこのロールを使用しません。メッセージに表示された条件を、OneUptime を信頼するステートメントに追加するか、コマンドをもう一度実行して、出力されたロールを接続してください。テストではすぐにロールが再確認され、読み取りでは一時間以内に使用されます。
+そのロールの信頼ポリシーは、`sts:ExternalId` の条件でプロジェクトの外部 ID を要求していません。そのため、ロールの ARN を知っているどのプロジェクトでも OneUptime 経由でアカウントを読み取れてしまうので、OneUptime はこのロールを使用しません。メッセージに表示された条件を、OneUptime を信頼するステートメントに追加するか、コマンドをもう一度実行して、出力されたロールを接続してください。テストではすぐにロールが再確認され、合格すれば読み取りでもすぐにそのロールが使用されます。テストしなければ、読み取りが一時間以内にロールを再確認します。
 :::
 
 :::details Google Cloud でコマンドがキーを作成できない

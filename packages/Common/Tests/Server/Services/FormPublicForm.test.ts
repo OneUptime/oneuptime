@@ -394,6 +394,9 @@ describe("FormService.getPublicForm - what a visitor is told", () => {
         "templates",
         "successMessage",
         "ipWhitelist",
+        // Whether - and how - it asks its visitors to sign in (#10249).
+        "requireSignIn",
+        "requireSsoForLogin",
         // Its branding, the images through its own relations (FormBranding).
         "logoAltText",
         "logoFile",

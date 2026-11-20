@@ -458,6 +458,12 @@ describe("what is left is only ever drawn below the plan", () => {
     expect(drawnIn).toEqual([
       "Components/Billing/AuditLogExportPlanLeftovers.tsx",
       "Components/Billing/IdentityPlanLeftovers.tsx",
+      /*
+       * The single sign-on providers a Scale trial left on a dashboard or a
+       * form that asks its visitors to sign in (#10250, #10249), under the
+       * Single Sign-On page's upsell.
+       */
+      "Components/PrivateAccess/SingleSignOnProviders.tsx",
       "Components/Workspace/WorkspacePlanLeftoverGate.tsx",
       "Pages/OnCallDuty/OnCallDutySchedules.tsx",
       "Pages/Settings/APIKeys.tsx",

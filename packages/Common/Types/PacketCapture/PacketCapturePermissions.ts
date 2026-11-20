@@ -1,4 +1,6 @@
 import Permission from "../Permission";
+import ProductKey from "../Product/ProductKey";
+import { withProductLevelsOf } from "../Product/ProductLevels";
 
 /*
  * Who may do what with a packet capture, outside the table's own lists.
@@ -16,24 +18,36 @@ import Permission from "../Permission";
  * to the model's create list.
  */
 
-// Who may start a capture: the PacketCapture model's create list.
-export const PACKET_CAPTURE_START_PERMISSIONS: ReadonlyArray<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.CreatePacketCapture,
-];
+/*
+ * Who may start a capture: the PacketCapture model's create list, with
+ * Network's levels as the model's list takes them (Types/Product/
+ * ProductLevels): Network Admin, as Project Admin.
+ */
+export const PACKET_CAPTURE_START_PERMISSIONS: ReadonlyArray<Permission> =
+  withProductLevelsOf({
+    products: [ProductKey.Network],
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreatePacketCapture,
+    ],
+  });
 
 // Who may stop a running capture: whoever may start one.
 export const PACKET_CAPTURE_STOP_PERMISSIONS: ReadonlyArray<Permission> = [
   ...PACKET_CAPTURE_START_PERMISSIONS,
 ];
 
-// Who may download a capture's pcap file.
-export const PACKET_CAPTURE_DOWNLOAD_PERMISSIONS: ReadonlyArray<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.DownloadPacketCapture,
-];
+// Who may download a capture's pcap file: Network Admin too, as Project Admin.
+export const PACKET_CAPTURE_DOWNLOAD_PERMISSIONS: ReadonlyArray<Permission> =
+  withProductLevelsOf({
+    products: [ProductKey.Network],
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.DownloadPacketCapture,
+    ],
+  });
 
 export const PACKET_CAPTURE_DOWNLOAD_REFUSED_MESSAGE: string =
   "You do not have permission to download packet captures. Ask a Project Admin for the Download Packet Capture permission.";

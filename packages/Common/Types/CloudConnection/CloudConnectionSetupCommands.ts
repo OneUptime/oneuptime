@@ -1,9 +1,14 @@
 import Crypto from "../../Utils/Crypto";
 import { CloudProvider } from "../Cloud/CloudPlatform";
+import { JSONObject } from "../JSON";
 import {
   CloudConnectionAuthMethod,
   CloudConnectionDataSecurityLevel,
   CloudConnectionDataSecurityResponse,
+  DATA_SECURITY_FIELD_KEY,
+  DATA_SECURITY_RESPONSE_FIELD_KEY,
+  READ_SCOPE_FIELD_KEY,
+  getCloudConnectionDataSecurityLevel,
   isCloudConnectionDataSecurityResponseOn,
 } from "./CloudConnectionCatalog";
 
@@ -50,9 +55,12 @@ import {
  * (dataSecurityResponse): closing a data store's exposure. See "DATA
  * SECURITY RESPONSE" below.
  *
- * The dashboard shows these, the docs page shows the same ones
- * (CloudConnectDocsFacts holds them equal), and the server checks that a
- * role to assume carries this project's external id.
+ * The dashboard shows these, written from the settings its form holds
+ * (getCloudConnectionCommandSettings, read as the server reads them), so
+ * the command a person runs grants what they picked: no more, no less. The
+ * docs page shows the same ones (CloudConnectDocsFacts holds them equal),
+ * and the server checks that a role to assume carries this project's
+ * external id.
  */
 
 // What every resource OneUptime creates in a customer's cloud is called.
@@ -897,13 +905,20 @@ export function getAwsReadOnlyRoleTemplate(data: {
       : dataSecurity
         ? ", and its data stores' configuration"
         : "";
+  /*
+   * A role that may write does not "only read": it may close a data
+   * store's exposures and fix its settings, as Data security response's
+   * choice says - its versioning, ownership and point-in-time recovery as
+   * well as its public access and sharing.
+   */
+  const verb: string = response ? "reads" : "can only read";
   const writes: string = response
-    ? "; it may also block a data store's public access and sharing"
+    ? "; it may also close a data store's exposures and fix its settings"
     : "";
 
   return JSON.stringify({
     AWSTemplateFormatVersion: "2010-09-09",
-    Description: `OneUptime: a role that can only read this account's metrics, resources, changes and health events${reads}${writes}.`,
+    Description: `OneUptime: a role that ${verb} this account's metrics, resources, changes and health events${reads}${writes}.`,
     Resources: {
       OneUptimeReadOnlyRole: {
         Type: "AWS::IAM::Role",
@@ -1175,6 +1190,82 @@ export function getCloudConnectionSetupCommand(
   }
 
   return getGcpSetupCommand(scope, dataSecurity, dataSecurityResponse);
+}
+
+/*
+ * THE SETTINGS A COMMAND IS WRITTEN FROM, as a connection keeps them.
+ *
+ * A connection's command grants what its settings say OneUptime will use
+ * through it: the account or its organization (readScope), what Data
+ * Security may read (dataSecurity) and whether it may close an exposure
+ * (dataSecurityResponse) - the catalog's fields marked changesSetupCommand.
+ * They are read here the way the server reads them (the connectors'
+ * readCloudSetting for the scope, DataSecurityRunner's level,
+ * DataSecurityResponse's opt-in), so the command a form shows for the
+ * settings it is about to save grants exactly what the server will use:
+ * no more, no less. Anything else reads as off, and as the one account.
+ */
+export interface CloudConnectionCommandSettings {
+  scope: CloudConnectionSetupScope;
+  dataSecurity: CloudConnectionDataSecurityLevel;
+  dataSecurityResponse: CloudConnectionDataSecurityResponse;
+}
+
+export function getCloudConnectionCommandSettings(
+  config: JSONObject | undefined | null,
+): CloudConnectionCommandSettings {
+  const settings: JSONObject = config || {};
+  const scope: unknown = settings[READ_SCOPE_FIELD_KEY];
+
+  return {
+    scope:
+      typeof scope === "string" &&
+      scope.trim() === CloudConnectionSetupScope.Organization
+        ? CloudConnectionSetupScope.Organization
+        : CloudConnectionSetupScope.Account,
+    dataSecurity: getCloudConnectionDataSecurityLevel(
+      settings[DATA_SECURITY_FIELD_KEY],
+    ),
+    dataSecurityResponse: isCloudConnectionDataSecurityResponseOn(
+      settings[DATA_SECURITY_RESPONSE_FIELD_KEY],
+    )
+      ? "block"
+      : "off",
+  };
+}
+
+/*
+ * WHAT A COMMAND GRANTS BEYOND READING HOW THINGS ARE SET UP.
+ *
+ * Each cloud's explanation, under its command, and each method's hint,
+ * above it, say the access can only read, and never data or secrets. That
+ * holds for every command but one that takes either of these:
+ *   - content samples: Data Security reads samples of what the data
+ *     stores hold (s3:GetObject, Storage Blob Data Reader, Storage Object
+ *     Viewer and BigQuery Data Viewer);
+ *   - Data security response: Data Security may change a data store's
+ *     settings - the only writes a command grants.
+ * A command that takes one is shown with words of its own instead, and a
+ * line for each of these (CloudSetupCommand), so nothing beside a command
+ * says it grants less than it does. In the order the lines are drawn.
+ */
+export enum CloudConnectionAccessExtra {
+  ContentSamples = "content-samples",
+  DataSecurityResponse = "data-security-response",
+}
+
+export function getCloudConnectionAccessExtras(settings: {
+  dataSecurity?: CloudConnectionDataSecurityLevel | undefined;
+  dataSecurityResponse?: CloudConnectionDataSecurityResponse | undefined;
+}): Array<CloudConnectionAccessExtra> {
+  return [
+    ...(settings.dataSecurity === "content"
+      ? [CloudConnectionAccessExtra.ContentSamples]
+      : []),
+    ...(isCloudConnectionDataSecurityResponseOn(settings.dataSecurityResponse)
+      ? [CloudConnectionAccessExtra.DataSecurityResponse]
+      : []),
+  ];
 }
 
 /*

@@ -22,6 +22,9 @@ import { Translator } from "../../../Types/Translator";
 import {
   DASHBOARD_LANGUAGES,
   dashboardTranslator,
+  isWordedInDashboardLocale,
+  readDashboardLocale,
+  readDashboardSameAsEnglish,
 } from "../../Helpers/DashboardLocales";
 
 /*
@@ -308,6 +311,57 @@ describe("what is filled in, and what is not", () => {
 });
 
 describe("in every language", () => {
+  /*
+   * The Setup tab draws each stack's name and what it is through the
+   * reader's language (SetupGuideCard translates an option's label and
+   * description). The names are App Service's own, products every locale
+   * keeps as written (i18n/SameAsEnglish.json): so ".NET" is a Dashboard
+   * label, and the Profiles docs name it as their Dashboard draws it
+   * (TelemetryDocsTranslations). What each one is reads in the reader's
+   * words.
+   */
+  test("names each stack as App Service does, and says what it is in the reader's words", () => {
+    const english: Record<string, string> = readDashboardLocale("en");
+
+    expect(
+      APP_SERVICE_STACK_OPTIONS.map((option: { label: string }): string => {
+        return option.label;
+      }),
+    ).toEqual([".NET", "Java", "Node.js", "Python"]);
+
+    for (const option of APP_SERVICE_STACK_OPTIONS) {
+      const description: string = option.description || "";
+
+      expect(description.length).toBeGreaterThan(0);
+      expect({ label: option.label, key: english[option.label] }).toEqual({
+        label: option.label,
+        key: option.label,
+      });
+      expect({ description, key: english[description] }).toEqual({
+        description,
+        key: description,
+      });
+
+      for (const language of DASHBOARD_LANGUAGES) {
+        const translator: Translator = dashboardTranslator(language);
+
+        expect({
+          language,
+          label: translator.translateText(option.label),
+          keptAsWritten: readDashboardSameAsEnglish(language).includes(
+            option.label,
+          ),
+        }).toEqual({ language, label: option.label, keptAsWritten: true });
+        expect({
+          language,
+          description,
+          worded: isWordedInDashboardLocale(description, language),
+          read: translator.translateText(description) !== description,
+        }).toEqual({ language, description, worded: true, read: true });
+      }
+    }
+  });
+
   test("every sentence is the reader's, and every command and code span is as typed", () => {
     for (const language of DASHBOARD_LANGUAGES) {
       const translator: Translator = dashboardTranslator(language);

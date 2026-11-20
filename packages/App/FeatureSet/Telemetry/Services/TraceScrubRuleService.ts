@@ -8,7 +8,6 @@ import { JSONObject } from "Common/Types/JSON";
 import TraceScrubAction from "Common/Types/Trace/TraceScrubAction";
 import TraceScrubPatternType from "Common/Types/Trace/TraceScrubPatternType";
 import TraceScrubField from "Common/Types/Trace/TraceScrubField";
-import crypto from "crypto";
 import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
 import {
   compileScrubRuleCustomRegex,
@@ -24,7 +23,10 @@ import ScrubJsonTextUtil, {
 import ScrubJsonKeysUtil, {
   ScrubJsonKeysRule,
 } from "Common/Utils/Telemetry/ScrubJsonKeys";
-import { maskKeepingEnds } from "Common/Utils/Telemetry/ScrubMask";
+import ScrubIpAddress from "Common/Utils/Telemetry/ScrubIpAddress";
+import ScrubAction, {
+  ScrubHashedAddressRecorder,
+} from "Common/Server/Utils/Telemetry/ScrubAction";
 import { correlationIdAttributeKeys } from "Common/Utils/Telemetry/CorrelationIdAttributes";
 import { copyOwnValues, readOwnValue } from "Common/Utils/LookupTable";
 
@@ -62,7 +64,13 @@ const BUILT_IN_PATTERNS: Record<string, RegExp> = {
   [TraceScrubPatternType.SSN]: /\b\d{3}-\d{2}-\d{4}\b/g,
   [TraceScrubPatternType.PhoneNumber]:
     /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
-  [TraceScrubPatternType.IPAddress]: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g,
+  /*
+   * IP Address is not here: its matches are what Data Security's own
+   * detectors call an IP address - public IPv4 and IPv6 addresses, and
+   * documentation ones - and not private, loopback or link-local ones, so
+   * 169.254.169.254 in a request's URL stays for Security Events to find
+   * (Common/Utils/Telemetry/ScrubIpAddress, #10393).
+   */
 };
 
 /*
@@ -151,6 +159,8 @@ export class TraceScrubRuleService {
       },
       select: {
         _id: true,
+        // A Hash rule hashes with its project's own key (ScrubHashToken).
+        projectId: true,
         name: true,
         patternType: true,
         customRegex: true,
@@ -205,6 +215,11 @@ export class TraceScrubRuleService {
       return scrubRegExpFromBuiltIn(SENSITIVE_KEY_REGEX);
     }
 
+    // What Data Security calls an IP address, found by its own detectors.
+    if (patternType === TraceScrubPatternType.IPAddress) {
+      return ScrubIpAddress.toScrubRegExp();
+    }
+
     // The saved rule's own word: a pattern type no table lists matches nothing.
     const builtIn: RegExp | undefined = readOwnValue(
       BUILT_IN_PATTERNS,
@@ -217,71 +232,23 @@ export class TraceScrubRuleService {
     return null;
   }
 
+  /*
+   * What a rule leaves of a match: one answer for the log, trace and session
+   * replay scrubbers (Common/Server/Utils/Telemetry/ScrubAction). A Hash rule
+   * makes its project's token (ScrubHashToken, #10394).
+   */
   private static applyScrubAction(
     match: string,
     action: string,
     patternType: string,
+    projectId?: ObjectID | string | null | undefined,
   ): string {
-    switch (action) {
-      case TraceScrubAction.Redact:
-        return "[REDACTED]";
-
-      case TraceScrubAction.Hash: {
-        const hash: string = crypto
-          .createHash("sha256")
-          .update(match)
-          .digest("hex")
-          .substring(0, 8);
-        return `[HASHED:${hash}]`;
-      }
-
-      case TraceScrubAction.Mask:
-        return this.maskValue(match, patternType);
-
-      default:
-        return "[REDACTED]";
-    }
-  }
-
-  private static maskValue(value: string, patternType: string): string {
-    switch (patternType) {
-      case TraceScrubPatternType.Email: {
-        const atIndex: number = value.indexOf("@");
-        if (atIndex > 0) {
-          const dotIndex: number = value.lastIndexOf(".");
-          if (dotIndex > atIndex) {
-            return value[0] + "***@***" + value.substring(dotIndex);
-          }
-        }
-        return "***@***.***";
-      }
-
-      case TraceScrubPatternType.CreditCard: {
-        const digits: string = value.replace(/[-\s]/g, "");
-        if (digits.length >= 4) {
-          return "****-****-****-" + digits.substring(digits.length - 4);
-        }
-        return "****-****-****-****";
-      }
-
-      case TraceScrubPatternType.SSN:
-        return "***-**-" + value.substring(value.length - 4);
-
-      case TraceScrubPatternType.PhoneNumber: {
-        const phoneDigits: string = value.replace(/[^0-9]/g, "");
-        if (phoneDigits.length >= 4) {
-          return "***-***-" + phoneDigits.substring(phoneDigits.length - 4);
-        }
-        return "***-***-****";
-      }
-
-      case TraceScrubPatternType.IPAddress:
-        return "***.***.***.***";
-
-      default:
-        // First and last characters kept, whole (Common/Utils/Telemetry/ScrubMask).
-        return maskKeepingEnds(value);
-    }
+    return ScrubAction.apply({
+      match: match,
+      action: action,
+      patternType: patternType,
+      projectId: projectId,
+    });
   }
 
   /*
@@ -291,12 +258,14 @@ export class TraceScrubRuleService {
    * escapes read and stays JSON: a match is replaced only inside the values
    * it covers (Common/Utils/Telemetry/ScrubJsonText, #8923). `jsonTexts`:
    * the record's, so each such text is parsed once however many rules read
-   * it.
+   * it. `recorder`: told each address an IP Address Hash rule hides, when
+   * Security Events reads the batch's traces (ScrubAction.applyAndRecord).
    */
   private static scrubString(
     value: string,
     compiledRules: Array<CompiledRule>,
     jsonTexts: ScrubJsonTexts,
+    recorder?: ScrubHashedAddressRecorder | null | undefined,
   ): string {
     let result: string = value;
 
@@ -317,7 +286,13 @@ export class TraceScrubRuleService {
           return regex.matchRanges(text);
         },
         replaceMatch: (match: string): string => {
-          return this.applyScrubAction(match, action, patternType);
+          return ScrubAction.applyAndRecord({
+            match: match,
+            action: action,
+            patternType: patternType,
+            projectId: rule.projectId,
+            recorder: recorder,
+          });
         },
         // A person may have written a custom pattern against stored escapes.
         readsAsWritten: patternType === TraceScrubPatternType.Custom,
@@ -351,6 +326,7 @@ export class TraceScrubRuleService {
           text,
           action,
           TraceScrubPatternType.SensitiveKeys,
+          compiled.rule.projectId,
         );
       },
       allowance: allowance,
@@ -402,7 +378,7 @@ export class TraceScrubRuleService {
    * key inside its value, or a key inside a JSON text it holds
    * (`keysRules`: each such rule as it reads the record). `heldAsText`: the
    * keys whose values were too deep or too large to read value by value,
-   * and are read as their JSON text.
+   * and are read as their JSON text. `recorder`: as scrubString's.
    */
   private static scrubAttributesInPlace(
     attributes: JSONObject,
@@ -411,6 +387,7 @@ export class TraceScrubRuleService {
     jsonTexts: ScrubJsonTexts,
     keysRules: Map<CompiledRule, ScrubJsonKeysRule>,
     correlationIdKeys?: ReadonlySet<string> | undefined,
+    recorder?: ScrubHashedAddressRecorder | null | undefined,
   ): void {
     for (const compiled of rules) {
       const isKeyTargeted: boolean =
@@ -452,7 +429,7 @@ export class TraceScrubRuleService {
       ScrubNestedValuesUtil.scrubAttributeTexts(
         attributes,
         (text: string): string => {
-          return this.scrubString(text, singleRule, jsonTexts);
+          return this.scrubString(text, singleRule, jsonTexts, recorder);
         },
       );
     }
@@ -610,9 +587,20 @@ export class TraceScrubRuleService {
     };
   }
 
+  /*
+   * A span row as the project's rules leave it, in place. `recorder`: told
+   * each address an IP Address Hash rule hides and the token it leaves, for
+   * Security Events' address vault - passed by ingest only for a batch whose
+   * traces Security Events reads (SecurityAddressVaultWriter.startBatch,
+   * #10395). The row is scrubbed the same with it or without it. An
+   * exception's copy of an event (scrubExceptionContent) tells no recorder:
+   * Security Events reads no exception, and the span's own event has told
+   * it already.
+   */
   public static scrubSpan(
     spanRow: JSONObject,
     compiledRules: Array<CompiledRule>,
+    recorder?: ScrubHashedAddressRecorder | null | undefined,
   ): JSONObject {
     if (compiledRules.length === 0) {
       return spanRow;
@@ -700,6 +688,7 @@ export class TraceScrubRuleService {
           spanRow["name"] as string,
           singleRule,
           jsonTexts,
+          recorder,
         );
       }
 
@@ -721,6 +710,7 @@ export class TraceScrubRuleService {
           spanRow["statusMessage"] as string,
           singleRule,
           jsonTexts,
+          recorder,
         );
       }
 
@@ -737,6 +727,7 @@ export class TraceScrubRuleService {
           jsonTexts,
           keysRules,
           correlationIdKeys,
+          recorder,
         );
       }
 
@@ -764,6 +755,7 @@ export class TraceScrubRuleService {
               spanRow[columnKey] as string,
               singleRule,
               jsonTexts,
+              recorder,
             );
           }
         }
@@ -787,6 +779,8 @@ export class TraceScrubRuleService {
               heldIn(attributes),
               jsonTexts,
               keysRules,
+              undefined,
+              recorder,
             );
           }
         }
@@ -816,6 +810,7 @@ export class TraceScrubRuleService {
               event["name"] as string,
               singleRule,
               jsonTexts,
+              recorder,
             );
           }
 
@@ -826,6 +821,8 @@ export class TraceScrubRuleService {
               heldIn(event["attributes"]),
               jsonTexts,
               keysRules,
+              undefined,
+              recorder,
             );
           }
         }

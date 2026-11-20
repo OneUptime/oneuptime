@@ -30,7 +30,7 @@ import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillin
  * /identity/... to them. Changing one silently breaks sign-in for every
  * customer that uses it, with nothing on our side to notice.
  *
- * PINNED_ROUTES is the full (method, path) list of the nine SSO routers: the
+ * PINNED_ROUTES is the full (method, path) list of the eleven SSO routers: the
  * six that were registered in packages/App/FeatureSet/Identity/API/*.ts at
  * commit 2eeec4a847, read from the live routers' stacks (not from the source
  * text) before they moved to ee/ and back, plus the confirmation page added
@@ -90,6 +90,16 @@ jest.mock("../../../FeatureSet/Identity/API/MobileSsoExchange", () => {
 jest.mock("../../../FeatureSet/Identity/API/StatusPageAuthentication", () => {
   return { __esModule: true, default: { coreRouter: "status-page" } };
 });
+// A form's sign-in on its public link (#10249), mounted after the dashboard's.
+jest.mock(
+  "../../../FeatureSet/Identity/API/FormPrivateUserAuthentication",
+  () => {
+    return {
+      __esModule: true,
+      default: { coreRouter: "form-private-user" },
+    };
+  },
+);
 // A dashboard's sign-in on its public link (#10250), mounted after the rest.
 jest.mock(
   "../../../FeatureSet/Identity/API/DashboardPrivateUserAuthentication",
@@ -191,6 +201,21 @@ const PINNED_ROUTES: Array<{ name: string; routes: Array<PinnedRoute> }> = [
     routes: [
       ["GET", "/dashboard-oidc/:dashboardId/:dashboardOidcId"],
       ["GET", "/dashboard-oidc-callback/:dashboardId/:dashboardOidcId"],
+    ],
+  },
+  // A form's public link, for the people who sign in to it (#10249).
+  {
+    name: "FormSSO",
+    routes: [
+      ["GET", "/form-sso/:formId/:formSsoId"],
+      ["POST", "/form-idp-login/:formId/:formSsoId"],
+    ],
+  },
+  {
+    name: "FormOIDC",
+    routes: [
+      ["GET", "/form-oidc/:formId/:formOidcId"],
+      ["GET", "/form-oidc-callback/:formId/:formOidcId"],
     ],
   },
   /*
@@ -377,7 +402,7 @@ const readAppFile: (...parts: Array<string>) => string = (
 };
 
 describe("core SSO routers", () => {
-  test("are the nine SSO routers, in mount order", () => {
+  test("are the eleven SSO routers, in mount order", () => {
     expect(
       SSO_ROUTERS.map((entry: SsoRouterEntry): string => {
         return entry.name;
@@ -396,7 +421,7 @@ describe("core SSO routers", () => {
     },
   );
 
-  test("together serve all 29 SSO routes, in mount order", () => {
+  test("together serve all 33 SSO routes, in mount order", () => {
     const served: Array<PinnedRoute> = SSO_ROUTERS.flatMap(
       (entry: SsoRouterEntry): Array<PinnedRoute> => {
         return getRoutes(entry.router);
@@ -404,7 +429,7 @@ describe("core SSO routers", () => {
     );
 
     expect(served).toEqual(ALL_PINNED);
-    expect(served).toHaveLength(29);
+    expect(served).toHaveLength(33);
   });
 
   test("each is a distinct router, and no (method, path) is served twice", () => {
@@ -414,7 +439,7 @@ describe("core SSO routers", () => {
           return entry.router;
         }),
       ).size,
-    ).toBe(9);
+    ).toBe(11);
     expect(
       new Set(
         ALL_PINNED.map((route: PinnedRoute): string => {
@@ -558,6 +583,8 @@ describe("the URLs the product hands out are all served", () => {
     "status-page-oidc-callback",
     "dashboard-idp-login",
     "dashboard-oidc-callback",
+    "form-idp-login",
+    "form-oidc-callback",
     "global-sso",
     "global-oidc",
   ];
@@ -624,6 +651,9 @@ describe("the URLs the product hands out are all served", () => {
       prints: [
         { head: "dashboard-idp-login", parameters: 2 },
         { head: "dashboard-oidc-callback", parameters: 2 },
+        // A form's, from the same file (#10249).
+        { head: "form-idp-login", parameters: 2 },
+        { head: "form-oidc-callback", parameters: 2 },
       ],
     },
     {
@@ -720,6 +750,12 @@ describe("the URLs the product hands out are all served", () => {
         dashboardSsoId: "22222222-2222-4222-8222-222222222222",
       }).replyUrl;
     },
+    "FormSSO.ts": (): string => {
+      return SamlServiceProviders.forFormSso({
+        formId: "11111111-1111-4111-8111-111111111111",
+        formSsoId: "22222222-2222-4222-8222-222222222222",
+      }).replyUrl;
+    },
   };
 
   // The shape of the path of a built URL after its /identity/.
@@ -769,6 +805,8 @@ describe("the URLs the product hands out are all served", () => {
       { head: "dashboard-oidc-callback", parameters: 2 },
       "GET",
     ],
+    ["FormSSO.ts", { head: "form-idp-login", parameters: 2 }, "POST"],
+    ["FormOIDC.ts", { head: "form-oidc-callback", parameters: 2 }, "GET"],
   ] as Array<[string, PathShape, string]>)(
     "%s sends identity providers back to a route it serves",
     (file: string, callback: PathShape, method: string) => {
@@ -998,6 +1036,11 @@ describe("the Identity feature set mounts the SSO routers", () => {
           paths: "/api/dashboard/private-user",
           router: { coreRouter: "dashboard-private-user" },
         },
+        // And the form's, under its own API path (#10249).
+        {
+          paths: "/api/form/private-user",
+          router: { coreRouter: "form-private-user" },
+        },
       ]);
 
       // The very same router instances, not copies.
@@ -1030,6 +1073,7 @@ describe("the Identity feature set mounts the SSO routers", () => {
       }),
       { coreRouter: "status-page" },
       { coreRouter: "dashboard-private-user" },
+      { coreRouter: "form-private-user" },
     ]);
   });
 
@@ -1065,6 +1109,10 @@ describe("the Identity feature set mounts the SSO routers", () => {
       {
         paths: "/api/dashboard/private-user",
         router: { coreRouter: "dashboard-private-user" },
+      },
+      {
+        paths: "/api/form/private-user",
+        router: { coreRouter: "form-private-user" },
       },
     ]);
   });

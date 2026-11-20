@@ -1727,6 +1727,9 @@ enum PageMap {
   FORM_VIEW_SHARE = "FORM_VIEW_SHARE",
   // The form on its owner's own domain, such as report.acme.com.
   FORM_VIEW_CUSTOM_DOMAINS = "FORM_VIEW_CUSTOM_DOMAINS",
+  // Who signs in to the form's link when only people who sign in can open it (#10249).
+  FORM_VIEW_PRIVATE_USERS = "FORM_VIEW_PRIVATE_USERS",
+  FORM_VIEW_SINGLE_SIGN_ON = "FORM_VIEW_SINGLE_SIGN_ON",
   FORM_VIEW_SUBMISSIONS = "FORM_VIEW_SUBMISSIONS",
   FORM_VIEW_DUPLICATE = "FORM_VIEW_DUPLICATE",
   FORM_VIEW_AUDIT_LOGS = "FORM_VIEW_AUDIT_LOGS",

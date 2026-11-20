@@ -484,9 +484,9 @@ detection:
 | **Exécuter en temps réel** | Désactivé sur une nouvelle règle. Activé, la règle vérifie chaque événement à son arrivée au lieu de le faire à chaque intervalle ; voir [Règles en temps réel](#règles-en-temps-réel). |
 | **Champ de regroupement** | Facultatif. Les correspondances qui partagent la valeur de ce champ, comme `principalHost`, sont comptées, alertées et dédupliquées ensemble : une alerte par hôte au lieu de centaines. |
 | **Champ de comptage distinct** | Facultatif. Compter les valeurs différentes de ce champ au lieu des événements correspondants. Les valeurs vides ne comptent pas. |
-| **Seuil de nombre de correspondances** | Un groupe ne se déclenche que lorsque son comptage atteint ce nombre en une exécution, ou en une fenêtre en temps réel : de 1 à 1000000, et 1 se déclenche à la moindre correspondance. |
+| **Seuil de nombre de correspondances** | Un groupe ne se déclenche que lorsque son comptage atteint ce nombre en une fenêtre de l'intervalle de la règle : de 1 à 1000000, et 1 se déclenche à la moindre correspondance. |
 
-Le regroupement et le comptage distinct prennent les mêmes noms de champs que la règle. Avec eux, le seuil dit « autant, de la même chose, en une exécution », sans moniteur par-dessus :
+Le regroupement et le comptage distinct prennent les mêmes noms de champs que la règle. Avec eux, le seuil dit « autant, de la même chose, en une fenêtre », sans moniteur par-dessus :
 
 | Objectif | Champ de regroupement | Champ de comptage distinct | Seuil |
 | --- | --- | --- | --- |
@@ -498,11 +498,11 @@ Le regroupement et le comptage distinct prennent les mêmes noms de champs que l
 
 ### Quand une règle s'exécute
 
-OneUptime vérifie chaque minute quelles règles activées ont dépassé leur intervalle depuis leur dernière exécution. Chaque exécution lit les événements dont l'heure d'événement tombe entre l'exécution précédente et il y a deux minutes, puis avance. Ces deux minutes laissent le temps aux événements encore en route, comme une ligne de journal lue une minute après avoir été écrite :
+OneUptime vérifie chaque minute quelles règles activées ont dépassé leur intervalle depuis leur dernière exécution. Chaque exécution lit les événements arrivés dans OneUptime entre l'exécution précédente et il y a deux minutes, quel que soit le moment où ils se sont produits, puis avance. Ces deux minutes laissent le temps aux événements encore en cours d'écriture :
 
-- Les fenêtres se suivent bout à bout, elles ne glissent pas. Avec un intervalle de 10 minutes, des échecs à 09:58 et à 10:01 peuvent tomber dans des exécutions différentes et sont comptés séparément, donc gardez une marge en choisissant un seuil.
+- Une règle qui compte et une corrélation comptent dans des fenêtres aussi longues que l'intervalle, bout à bout sur l'horloge : avec un intervalle de 10 minutes, des échecs à 09:58 et à 10:01 tombent dans des fenêtres différentes et sont comptés séparément, donc gardez une marge en choisissant un seuil.
 - Après une interruption, comme une panne du worker ou une règle réactivée, l'exécution suivante couvre toute l'interruption, jusqu'aux 24 dernières heures.
-- Un événement qui arrive avec plus de deux minutes de retard, une fois qu'une exécution a couvert son heure, est stocké et consultable, mais cette règle ne le lit jamais.
+- Un événement qui arrive en retard est quand même lu, une fois, par l'exécution suivante, et compté dans la fenêtre où il s'est produit : un groupe se déclenche quand sa fenêtre atteint le comptage, et au plus une fois par fenêtre. Un événement qui arrive plus d'un jour après s'être produit est stocké et consultable, mais les exécutions de la règle ne le lisent pas ; **Exécuter sur les événements passés** le fait.
 - Chaque groupe qui atteint le seuil devient un Detection Finding, jusqu'à 10 000 par exécution. Des alertes, des incidents et des dossiers s'ouvrent pour les 100 aux comptages les plus élevés ; les autres partagent un dossier sur la règle, et la **Dernière erreur** de la règle indique combien de groupes ont correspondu.
 
 ### Règles en temps réel

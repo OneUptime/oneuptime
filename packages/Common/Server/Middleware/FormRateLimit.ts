@@ -110,12 +110,15 @@ export enum FormRateLimitBucket {
 
 /*
  * Which form a request is about, as the per-form counters key it: by the
- * share key in its path (the form's link), or by the domain it was sent to
- * (the form on its own domain, which names no key).
+ * share key in its path (the form's link), by the domain it was sent to
+ * (the form on its own domain, which names no key), or by the form's id in
+ * its path - the routes its private users sign in through (#10249), which
+ * the page reaches with the id its sign-in state gave it.
  */
 export enum FormRateLimitFormSource {
   ShareKey = "share-key",
   CustomDomain = "custom-domain",
+  FormId = "form-id",
 }
 
 export enum FormRateLimitOutcome {
@@ -809,7 +812,9 @@ export default class FormRateLimit {
       const formKey: string =
         formSource === FormRateLimitFormSource.CustomDomain
           ? FormRateLimit.resolveCustomDomainFormKey(req)
-          : FormRateLimit.resolveFormKey(req);
+          : formSource === FormRateLimitFormSource.FormId
+            ? FormRateLimit.getFormKey(req.params?.["formId"])
+            : FormRateLimit.resolveFormKey(req);
       const clientIp: string = FormRateLimit.resolveClientIp(req);
 
       const decision: FormRateLimitDecision = await FormRateLimit.consume({
