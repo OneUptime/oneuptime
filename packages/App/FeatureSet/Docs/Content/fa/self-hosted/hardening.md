@@ -129,7 +129,7 @@ curl -s -o /dev/null -w '%{http_version}\n' --http2 https://oneuptime.example.co
 ```
 
 - **What stops working.** OTLP over gRPC to your install's address. gRPC needs HTTP/2, so the gateway refuses an exporter's connection, and the exporter reports a TLS error about the application protocol. OTLP over HTTP keeps working, and browsers switch to HTTP/1.1.
-- **How long it lasts.** Until you set it back: `NGINX_HTTP2=on`, or `nginx.http2: true` on Kubernetes. Restarts and upgrades keep it, so set it back once your gateway runs a fixed nginx.
+- **How long it lasts.** Until you set it back: `NGINX_HTTP2=on`, or `nginx.http2: true` on Kubernetes. Restarts and upgrades keep it, so set it back once your gateway runs a fixed nginx. Until then, `npm start` and `npm run doctor` on Docker Compose, and `helm install` and `helm upgrade` on Kubernetes, say that it is off.
 - **What it does not fix.** Anything outside HTTP/2. nginx 1.30.7 also fixed CVE-2026-118899, a denial of service over TLS 1.3 that reaches every HTTPS listener with a certificate, including those of status pages on domains of their own. Only upgrading fixes that.
 
 ## Cryptography and FIPS 140

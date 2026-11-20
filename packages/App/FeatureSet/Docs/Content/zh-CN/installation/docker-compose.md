@@ -585,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-所有容器都运行后，用 `npm run status-check` 再次运行检查。它会在 `ONEUPTIME_HTTP_PORT` 发布 ingress 的地址和端口（例如 `127.0.0.1:8080`）上，像服务器上的浏览器那样用主机名 `localhost` 检查 ingress。
+所有容器都运行后，用 `npm run status-check` 再次运行检查。它会在 `ONEUPTIME_HTTP_PORT` 发布 ingress 的地址和端口（例如 `127.0.0.1:8080`）上，像服务器上的浏览器那样用主机名 `localhost` 检查 ingress。如果 `PROVISION_SSL=true`，它还会在 `STATUS_PAGE_HTTPS_PORT` 发布 ingress 的地方，通过 HTTPS 检查 `HOST`。
 :::
 
 :::details 浏览器显示 "此地址未设置 OneUptime"

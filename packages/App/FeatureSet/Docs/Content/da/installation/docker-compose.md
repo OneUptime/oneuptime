@@ -585,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-Når hver container kører, så kør tjekket igen med `npm run status-check`. Det tjekker ingressen dér, hvor `ONEUPTIME_HTTP_PORT` udgiver den, med adresse og port, som `127.0.0.1:8080`, og med værtsnavnet `localhost`, som en browser på serveren ville gøre.
+Når hver container kører, så kør tjekket igen med `npm run status-check`. Det tjekker ingressen dér, hvor `ONEUPTIME_HTTP_PORT` udgiver den, med adresse og port, som `127.0.0.1:8080`, og med værtsnavnet `localhost`, som en browser på serveren ville gøre. Med `PROVISION_SSL=true` tjekker det også `HOST` over HTTPS, dér hvor `STATUS_PAGE_HTTPS_PORT` udgiver ingressen.
 :::
 
 :::details Browseren viser "OneUptime er ikke sat op til denne adresse"

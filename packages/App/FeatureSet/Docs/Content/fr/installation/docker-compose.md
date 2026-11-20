@@ -585,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-Une fois chaque conteneur démarré, relancez la vérification avec `npm run status-check`. Elle vérifie l'ingress là où `ONEUPTIME_HTTP_PORT` le publie, adresse et port, comme `127.0.0.1:8080`, avec le nom d'hôte `localhost`, comme le ferait un navigateur sur le serveur.
+Une fois chaque conteneur démarré, relancez la vérification avec `npm run status-check`. Elle vérifie l'ingress là où `ONEUPTIME_HTTP_PORT` le publie, adresse et port, comme `127.0.0.1:8080`, avec le nom d'hôte `localhost`, comme le ferait un navigateur sur le serveur. Avec `PROVISION_SSL=true`, elle vérifie aussi `HOST` en HTTPS, là où `STATUS_PAGE_HTTPS_PORT` publie l'ingress.
 :::
 
 :::details Le navigateur affiche "OneUptime n'est pas configuré pour cette adresse"

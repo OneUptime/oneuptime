@@ -585,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-すべてのコンテナーが動いたら、`npm run status-check` でもう一度チェックします。このチェックは、`ONEUPTIME_HTTP_PORT` が ingress を公開しているアドレスとポート (例: `127.0.0.1:8080`) で、サーバー上のブラウザーと同じようにホスト名 `localhost` を使って ingress を確認します。
+すべてのコンテナーが動いたら、`npm run status-check` でもう一度チェックします。このチェックは、`ONEUPTIME_HTTP_PORT` が ingress を公開しているアドレスとポート (例: `127.0.0.1:8080`) で、サーバー上のブラウザーと同じようにホスト名 `localhost` を使って ingress を確認します。`PROVISION_SSL=true` のときは、`STATUS_PAGE_HTTPS_PORT` が ingress を公開しているところで、`HOST` も HTTPS で確認します。
 :::
 
 :::details ブラウザーに "このアドレスでは OneUptime が設定されていません" と表示される

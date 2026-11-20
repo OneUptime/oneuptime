@@ -1674,6 +1674,28 @@ describe("Docker Compose, against the compose files and scripts", () => {
     expect(page).not.toContain("bash Tests/Scripts/status-check.sh");
   });
 
+  // #10169: and HOST over HTTPS, where the ingress serves it itself.
+  it("with PROVISION_SSL=true the status check also checks HOST over HTTPS where STATUS_PAGE_HTTPS_PORT publishes the ingress, as the page says", () => {
+    const check: string = readSource("statusCheck");
+
+    expect(page).toContain(
+      "With `PROVISION_SSL=true` it also checks `HOST` over HTTPS, where `STATUS_PAGE_HTTPS_PORT` publishes the ingress.",
+    );
+    expect(check).toContain(
+      'if [ "$(read_setting PROVISION_SSL)" = "true" ] && [ -n "$https_name" ]; then',
+    );
+    expect(check).toContain(
+      'https_name=$(https_name_of "$(read_setting HOST)")',
+    );
+    expect(check).toContain("read_published STATUS_PAGE_HTTPS_PORT 443");
+    expect(check).toContain(
+      'HTTPS_URL="https://$(with_port "$https_name" "$PUBLISHED_PORT" 443)/status/ready"',
+    );
+    expect(check).toContain(
+      'bash "$scriptDir/endpoint-status.sh" "App (HTTPS)" "$HTTPS_URL" "$HTTPS_RESOLVE" "$HTTPS_CHECKED_AT" STATUS_PAGE_HTTPS_PORT',
+    );
+  });
+
   /*
    * Behind a proxy of one's own, the ingress listens on 127.0.0.1 alone, and
    * routes by host name (#10024): the page says what each caller sends it,
