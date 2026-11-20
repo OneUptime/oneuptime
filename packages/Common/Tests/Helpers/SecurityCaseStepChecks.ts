@@ -58,9 +58,9 @@ export interface AppRequest {
   // The HTTP status the app answered; 0 when the span or the line says none.
   status: number;
   // A span that failed (statusCode Error) with no HTTP status broke something.
-  isFailed?: boolean;
-  address?: string;
-  traceId?: string;
+  isFailed?: boolean | undefined;
+  address?: string | undefined;
+  traceId?: string | undefined;
 }
 
 export function requests(

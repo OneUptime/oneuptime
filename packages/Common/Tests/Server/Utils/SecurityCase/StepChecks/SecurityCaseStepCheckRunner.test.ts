@@ -160,7 +160,7 @@ function scannerCase(overrides: Partial<SecurityCase> = {}): SecurityCase {
   securityCase.securityCaseStatusId = testStatusId(SecurityCaseStage.New);
   securityCase.entities = [
     { type: SecurityEntityType.IpAddress, value: ADDRESS },
-  ] as unknown as SecurityCase["entities"];
+  ] as unknown as NonNullable<SecurityCase["entities"]>;
   securityCase.mitreTactics = ["TA0001"];
   securityCase.mitreTechniques = ["T1190"];
   securityCase.createdAt = at(2);
@@ -177,7 +177,7 @@ function accountCase(overrides: Partial<SecurityCase> = {}): SecurityCase {
     groupingKey: `rule:${USER}`,
     entities: [
       { type: SecurityEntityType.User, value: USER },
-    ] as unknown as SecurityCase["entities"],
+    ] as unknown as NonNullable<SecurityCase["entities"]>,
     ...overrides,
   });
 }
@@ -290,13 +290,16 @@ beforeEach(() => {
     .spyOn(ProjectService, "findOneById")
     .mockImplementation(async (): Promise<Project> => {
       const project: Project = new Project();
-      project.markSecurityCaseContainedWhenVerified = markContained;
+      if (markContained !== undefined) {
+        project.markSecurityCaseContainedWhenVerified = markContained;
+      }
       return project;
     });
   jest
     .spyOn(SecurityCaseService, "updateOneById")
-    .mockImplementation(async (data: unknown): Promise<void> => {
+    .mockImplementation(async (data: unknown): Promise<number> => {
       recorded.updates.push(data as JSONObject);
+      return 1;
     });
 });
 

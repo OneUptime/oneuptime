@@ -87,6 +87,7 @@ import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import SecurityCaseTask from "../../../Models/DatabaseModels/SecurityCaseTask";
 import SecurityCaseStepCheck from "../../../Models/DatabaseModels/SecurityCaseStepCheck";
 import { JSONObject } from "../../../Types/JSON";
+import { SecurityCaseStepCheckSentence } from "../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
 import SecurityCaseStepCheckState from "../../../Types/SecurityCase/SecurityCaseStepCheckState";
 import {
   CHECK_BLOCK_NOT_PROOF,
@@ -766,8 +767,8 @@ describe("what OneUptime found when it checked a step", () => {
   function stepCheck(data: {
     key: string;
     state: SecurityCaseStepCheckState;
-    sentence: JSONObject;
-    facts?: Array<JSONObject>;
+    sentence: SecurityCaseStepCheckSentence;
+    facts?: Array<SecurityCaseStepCheckSentence>;
     docsPath?: string;
   }): SecurityCaseStepCheck {
     const check: SecurityCaseStepCheck = new SecurityCaseStepCheck();
