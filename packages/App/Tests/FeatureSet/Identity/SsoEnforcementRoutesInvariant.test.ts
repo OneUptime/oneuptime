@@ -100,9 +100,12 @@ jest.mock(
     };
   },
 );
-jest.mock("../../../FeatureSet/Identity/API/FormPrivateUserAuthentication", () => {
-  return { __esModule: true, default: { coreRouter: "form-private-user" } };
-});
+jest.mock(
+  "../../../FeatureSet/Identity/API/FormPrivateUserAuthentication",
+  () => {
+    return { __esModule: true, default: { coreRouter: "form-private-user" } };
+  },
+);
 
 type MountRecord = { paths: unknown; router: unknown };
 
