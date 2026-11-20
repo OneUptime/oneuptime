@@ -287,6 +287,31 @@ The browser goes to the provider's own sign-out once OneUptime has signed it out
 A provider that does not have it registered shows its own error page after someone signs out of OneUptime, instead of sending them back; they are signed out of OneUptime all the same.
 :::
 
+## Signing in again to confirm it's you
+
+Before someone changes how they sign in or deletes their account, OneUptime asks them to [confirm it's them](/docs/introduction/your-account#confirm-its-you). Someone who signs in only through your identity provider, with no password or passkey in OneUptime, confirms with **Sign In Again**: OneUptime sends them to the provider and asks it to have them sign in again. It counts only when the provider says they signed in at or after that moment, give or take a minute for the two clocks. A provider that signs them straight back in with a session it already has, or does not say when they signed in, confirms nothing, and they are told to ask you to change it.
+
+:::tabs
+@tab SAML
+OneUptime sends `ForceAuthn="true"`, and reads when the person signed in from the assertion's `AuthnInstant`.
+
+| Identity provider | What to set |
+| --- | --- |
+| Okta | On the **General** tab, edit **SAML Settings**, click **Show Advanced Settings** and set **Honor Force Authentication** to **Yes**. Set to **No**, Okta ignores the request. |
+| Microsoft Entra ID | Nothing: Entra ID honors the request, and its `AuthnInstant` is when the person signed in. |
+| Keycloak | Nothing: Keycloak honors the request. Its `AuthnInstant` is when it answers, though, not when the person signed in, so OneUptime cannot check that Keycloak asked them again. Connect Keycloak through OpenID Connect for a check OneUptime makes itself. |
+| Google Workspace | Nothing to set. Google does not say whether it honors the request. Its `AuthnInstant` is when the person last signed in to Google, so someone still signed in to Google signs out of Google first. |
+@tab OpenID Connect
+OneUptime sends `prompt=login` and `max_age=0`, and reads when the person signed in from the ID token's `auth_time`.
+
+| Identity provider | What to set |
+| --- | --- |
+| Okta | Nothing: Okta honors both, and always sends `auth_time`. |
+| Microsoft Entra ID | In the app registration's **Token configuration**, click **Add optional claim**, choose **ID** and add `auth_time`: Entra ID sends it only as an optional claim. It honors `prompt=login`. |
+| Keycloak | Keep the `basic` client scope on the client: it carries `auth_time`. Keycloak 25 and later give every client this scope. |
+| Google Workspace | Turn on **Session age claims** for the OAuth client, under **Google Auth Platform** > **Settings** > **Advanced Settings**; the app must be published and verified. Google takes neither request, so OneUptime asks it for `auth_time` instead, and someone still signed in to Google signs out of Google first. |
+:::
+
 ## Roles and teams for SSO users
 
 OneUptime does not map roles or groups from your identity provider. What someone can do comes from the teams they are in: a provider adds newcomers to its **Teams**, and you manage teams and their permissions in OneUptime, as [Users, Teams & Permissions](/docs/permissions/index) describes. To keep team membership in step with your identity provider, use [SCIM](/docs/identity/scim). Each team someone joins when they sign in is recorded on that team's **Audit Logs** page, as a change made by the person who signed in.

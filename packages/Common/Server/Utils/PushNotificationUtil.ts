@@ -1009,6 +1009,11 @@ export default class PushNotificationUtil {
     securityCaseId: string;
     projectId: string;
     requireInteraction: boolean;
+    /*
+     * A playbook step waiting for approval: its run, so the app opens the
+     * approval itself on the case, not just the case.
+     */
+    runId?: string | undefined;
   }): PushNotificationMessage {
     return PushNotificationUtil.applyDefaults({
       title: params.title,
@@ -1024,6 +1029,7 @@ export default class PushNotificationUtil {
         entityId: params.securityCaseId,
         projectId: params.projectId,
         url: params.caseViewLink,
+        ...(params.runId ? { runId: params.runId } : {}),
       },
     });
   }

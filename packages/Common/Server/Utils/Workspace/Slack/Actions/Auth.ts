@@ -41,6 +41,7 @@ import SlackProjectChoice, {
   SlackProjectChoiceKind,
 } from "../SlackProjectChoice";
 import WorkspacePublicNoteApproval from "../../WorkspacePublicNoteApproval";
+import WorkspaceSecurityPlaybookApproval from "../../WorkspaceSecurityPlaybookApproval";
 import SlackOrganization from "../SlackOrganization";
 import SlackRequestWorkspaceUtil, {
   SlackRequestWorkspace,
@@ -527,6 +528,17 @@ export default class SlackAuthAction {
     if (!drawnForProjectId) {
       drawnForProjectId =
         WorkspacePublicNoteApproval.getSignedProjectId(actions);
+    }
+
+    /*
+     * The same for Approve, Approve Some… and Reject on a playbook step's
+     * approval message (WorkspaceSecurityPlaybookApproval): in a channel
+     * of no one project, or a direct message, its value names the project
+     * it was signed for.
+     */
+    if (!drawnForProjectId) {
+      drawnForProjectId =
+        WorkspaceSecurityPlaybookApproval.getSignedProjectId(actions);
     }
 
     /*

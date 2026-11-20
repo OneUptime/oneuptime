@@ -24,6 +24,7 @@
 | 資料來源傳回的 `Not Found` 或 `Ambiguous Match` | 修正查詢的引數：請參閱[找不到或找到多筆結果的查詢](#找不到或找到多筆結果的查詢) |
 | `There is already a team called`（標籤、待命策略、待命排程） | 改用同類其他記錄都沒有的名稱，或先為另一個重新命名：請參閱[其他記錄已在使用的名稱](#其他記錄已在使用的名稱) |
 | `with the same name already exists` | 改用同類其他記錄都沒有的名稱，或匯入占用該名稱的記錄：請參閱[其他記錄已在使用的名稱](#其他記錄已在使用的名稱) |
+| 網域、主機名稱或登入 URL 的 `already exists` | 改用其他記錄都沒有的值，或匯入占用該值的記錄：請參閱[其他記錄已在使用的網域和識別碼](#其他記錄已在使用的網域和識別碼) |
 | `Cannot import non-existent remote object` | 檢查 ID 和金鑰的權限：請參閱[匯入資源](/docs/terraform/importing-resources#疑難排解) |
 | `Provider produced inconsistent result after apply` | 升級提供者：請參閱[apply 之後結果不一致](#apply-之後結果不一致) |
 | 計畫建立了一個你沒有新增的資源 | 金鑰已無法讀取它，OneUptime 回應了 `404`：先恢復金鑰的讀取權限，再用 `terraform import` 匯入該資源：請參閱[資源離開 state，下一次 apply 又建立了它](#資源離開-state下一次-apply-又建立了它) |
@@ -114,6 +115,14 @@ Terraform 會平行執行同一次 apply 中的變更，因此如果建立或重
 已封存的記錄會保留其名稱，apply 對正在使用的記錄所做的任何操作都不會讓出該名稱。建立或重新命名為該名稱會立即失敗，並說明在哪裡取消封存該記錄：請取消封存，或另選一個名稱。
 
 如果使用較舊的提供者或較舊的 OneUptime，第一次拒絕就會讓 apply 失敗：請再次套用，或在接收名稱的資源上新增一個指向讓出名稱之資源的 `depends_on`。
+
+### 其他記錄已在使用的網域和識別碼
+
+狀態頁面、儀表板或表單的網域、專案網域、主機或 Kubernetes 叢集的識別碼以及 SSO 提供者的登入 URL 也各自只屬於一筆記錄，不區分大小寫。建立或變更為其他記錄已有的值時會傳回 `400`，例如 `Status Page Domain with the same fullDomain already exists.`
+
+這裡提供者同樣會在最多 30 秒內再次請求，因此在同一次 apply 中把一個網域從一個資源移到另一個資源（刪除一個並同時建立另一個）可以在一次 apply 中完成。兩個值的互換永遠無法完成，設定之外的記錄占用的值也是如此：30 秒後 apply 會失敗，並顯示 `The value was still taken after asking again for 30 seconds.` 請為資源取一個沒有人使用的值，或用 `terraform import` 匯入占用該值的記錄。如果是互換，請先為其中一個設定暫時值，套用，然後再完成其餘變更。
+
+只有已封存的記錄占用的值，例如已封存主機的主機名稱，會立即失敗，並說明該怎麼做：請取消封存這筆記錄，或另選一個值。
 
 ## 無法穩定的計畫
 

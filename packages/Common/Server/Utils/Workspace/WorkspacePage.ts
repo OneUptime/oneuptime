@@ -65,6 +65,18 @@ import WorkspacePageTextReader, {
   WorkspacePagePerson,
   WorkspacePageText,
 } from "./WorkspacePageText";
+import WorkspaceSharedNames, {
+  WorkspaceSharedNameReader,
+  WorkspaceTwinDetails,
+} from "./WorkspaceSharedNames";
+import {
+  SharedNameOption,
+  getSharedNameFacts,
+  getSharedNameOptionKey,
+  getSharedNameSelect,
+  hasSharedNameTwins,
+} from "../../../Types/Database/SharedNameMarks";
+import { getNameKey } from "../../../Types/Database/UniqueName";
 
 /*
  * PAGING SOMEBODY FROM A CHAT: `/oneuptime page` in Slack, "page" typed to
@@ -247,6 +259,21 @@ export const WORKSPACE_PAGE_MAX_CHOICES_PER_KIND: number = 100;
 
 // The longest a choice's label is: Slack shows 75 characters of an option.
 export const WORKSPACE_PAGE_MAX_CHOICE_LABEL_LENGTH: number = 75;
+
+/*
+ * How much of a schedule's description its label shows when another
+ * schedule has its name (#10314): less than a team's or a policy's, since
+ * the label also says who is on call.
+ */
+export const WORKSPACE_PAGE_SCHEDULE_DESCRIPTION_LENGTH: number = 24;
+
+// A kind of the form's choices, as a sentence names one.
+const TARGET_NOUNS: Record<WorkspacePageTargetKind, string> = {
+  [WorkspacePageTargetKind.Schedule]: "on-call schedule",
+  [WorkspacePageTargetKind.Person]: "person",
+  [WorkspacePageTargetKind.Team]: "team",
+  [WorkspacePageTargetKind.Policy]: "on-call policy",
+};
 
 // An alert's title holds this much.
 export const WORKSPACE_PAGE_MAX_TITLE_LENGTH: number = 500;
@@ -833,6 +860,8 @@ export default class WorkspacePage {
         select: {
           _id: true,
           name: true,
+          // What tells two schedules of one name apart (#10314).
+          ...getSharedNameSelect(OnCallDutyPolicySchedule),
           currentUserOnRoster: {
             _id: true,
             name: true,
@@ -871,6 +900,7 @@ export default class WorkspacePage {
         select: {
           _id: true,
           name: true,
+          ...getSharedNameSelect(Team),
         },
         sort: {
           name: SortOrder.Ascending,
@@ -888,6 +918,7 @@ export default class WorkspacePage {
         select: {
           _id: true,
           name: true,
+          ...getSharedNameSelect(OnCallDutyPolicy),
         },
         sort: {
           name: SortOrder.Ascending,
@@ -895,6 +926,20 @@ export default class WorkspacePage {
         limit: WORKSPACE_PAGE_MAX_CHOICES_PER_KIND,
       }),
     ]);
+
+    /*
+     * Schedules, teams and policies that share a name (#10314): each told
+     * apart in its label, in the words and the zone of the member the form
+     * is for - read only when the lists hold twins.
+     */
+    const twins: {
+      schedules: WorkspaceTwinDetails;
+      others: WorkspaceTwinDetails;
+    } = await WorkspacePage.getTwinDetails({
+      schedules: schedules,
+      others: [...teams, ...policies],
+      readerUserId: props.userId,
+    });
 
     const groups: Array<WorkspacePageChoiceGroup> = [];
 
@@ -915,7 +960,12 @@ export default class WorkspacePage {
             schedule.id!,
           ),
           name: name,
-          label: WorkspacePage.toScheduleLabel(name, onCall),
+          label: WorkspacePage.toScheduleLabel(name, onCall, {
+            detail: twins.schedules.details.get(
+              getSharedNameOptionKey(schedule.id!.toString()),
+            ),
+            separator: twins.schedules.separator,
+          }),
         };
       });
 
@@ -981,7 +1031,7 @@ export default class WorkspacePage {
         return {
           value: WorkspacePage.toValue(WorkspacePageTargetKind.Team, team.id!),
           name: name,
-          label: WorkspacePage.toLabel(name),
+          label: WorkspacePage.toTwinLabel(name, team.id!, twins.others),
         };
       });
 
@@ -1006,7 +1056,7 @@ export default class WorkspacePage {
             policy.id!,
           ),
           name: name,
-          label: WorkspacePage.toLabel(name),
+          label: WorkspacePage.toTwinLabel(name, policy.id!, twins.others),
         };
       });
 
@@ -1135,22 +1185,49 @@ export default class WorkspacePage {
       data.text.groups.length === 0 &&
       data.text.unknownNames.length === 0
     ) {
-      const named: Array<WorkspacePageChoice> = offered.filter(
-        (choice: WorkspacePageChoice): boolean => {
-          return !choice.value.startsWith(`${WorkspacePageTargetKind.Person}:`);
+      const named: Array<WorkspacePageChoiceGroup> = data.choices.filter(
+        (group: WorkspacePageChoiceGroup): boolean => {
+          return group.kind !== WorkspacePageTargetKind.Person;
         },
       );
 
       const name: string | null = WorkspacePageTextReader.startsWithName(
         message,
-        named.map((choice: WorkspacePageChoice): string => {
-          return choice.name;
+        named.flatMap((group: WorkspacePageChoiceGroup): Array<string> => {
+          return group.choices.map((choice: WorkspacePageChoice): string => {
+            return choice.name;
+          });
         }),
       );
 
       if (name) {
-        for (const choice of named) {
-          if (choice.name.trim().toLowerCase() === name.trim().toLowerCase()) {
+        for (const group of named) {
+          // As names are compared: case and spacing aside (getNameKey).
+          const matching: Array<WorkspacePageChoice> = group.choices.filter(
+            (choice: WorkspacePageChoice): boolean => {
+              return getNameKey(choice.name) === getNameKey(name);
+            },
+          );
+
+          /*
+           * Two of one kind with the name - schedules named alike before
+           * names were held to one record each (#10314): which one was
+           * meant is the person's to say, so neither is picked, and the
+           * form says why. A page goes to people: it never guesses. A team
+           * and a schedule of one name are both picked, as before: each
+           * is the one of its kind.
+           */
+          if (matching.length > 1) {
+            notes.push(
+              WorkspacePage.getSharedNameNote({
+                kind: group.kind,
+                name: matching[0]!.name,
+              }),
+            );
+            continue;
+          }
+
+          for (const choice of matching) {
             pick(choice.value);
           }
         }
@@ -1844,12 +1921,32 @@ export default class WorkspacePage {
   /*
    * "Primary (Nawaz Dhandala on call now)", "Primary (nobody on call now)":
    * a schedule pages whoever is on call in it when the page goes out. A long
-   * name is cut before who is on call is.
+   * name is cut before who is on call is. A schedule another one shares its
+   * name with says what sets it apart after its name (#10314): "Primary ·
+   * Created Nov 5, 2026 (Nawaz Dhandala on call now)" - kept whole, the
+   * name cut before it is.
    */
-  private static toScheduleLabel(name: string, onCall: string): string {
+  private static toScheduleLabel(
+    name: string,
+    onCall: string,
+    twin?: { detail?: string | undefined; separator: string } | undefined,
+  ): string {
     const who: string = onCall
       ? ` (${onCall} on call now)`
       : " (nobody on call now)";
+
+    if (twin?.detail) {
+      return WorkspacePage.toLabel(
+        WorkspaceSharedNames.toLabel({
+          name: name,
+          detail: twin.detail,
+          separator: twin.separator,
+          after: who,
+          maxLength: WORKSPACE_PAGE_MAX_CHOICE_LABEL_LENGTH,
+        }),
+      );
+    }
+
     const room: number = WORKSPACE_PAGE_MAX_CHOICE_LABEL_LENGTH - who.length;
     const shortName: string = name.replace(WHITE_SPACE_RUN, " ").trim();
 
@@ -1862,6 +1959,121 @@ export default class WorkspacePage {
         ? `${shortName}${who}`
         : `${shortName.substring(0, room - 1).trimEnd()}…${who}`,
     );
+  }
+
+  /*
+   * A team's or a policy's label: its name, and for one another of its kind
+   * shares the name with, what sets it apart (#10314), the name cut first.
+   */
+  private static toTwinLabel(
+    name: string,
+    id: ObjectID,
+    twins: WorkspaceTwinDetails,
+  ): string {
+    const detail: string | undefined = twins.details.get(
+      getSharedNameOptionKey(id.toString()),
+    );
+
+    if (!detail) {
+      return WorkspacePage.toLabel(name);
+    }
+
+    return WorkspacePage.toLabel(
+      WorkspaceSharedNames.toLabel({
+        name: name,
+        detail: detail,
+        separator: twins.separator,
+        maxLength: WORKSPACE_PAGE_MAX_CHOICE_LABEL_LENGTH,
+      }),
+    );
+  }
+
+  /*
+   * What sets apart each schedule, team and policy another of its kind
+   * shares its name with, in the words and the zone on the reader's
+   * account - read once, and only when any of the lists holds twins.
+   * Schedules on their own: their labels also say who is on call, so they
+   * show less of a description.
+   */
+  private static async getTwinDetails(data: {
+    schedules: Array<OnCallDutyPolicySchedule>;
+    others: Array<Team | OnCallDutyPolicy>;
+    readerUserId?: ObjectID | undefined;
+  }): Promise<{
+    schedules: WorkspaceTwinDetails;
+    others: WorkspaceTwinDetails;
+  }> {
+    const toOptions: (
+      records: Array<OnCallDutyPolicySchedule | Team | OnCallDutyPolicy>,
+    ) => Array<SharedNameOption> = (
+      records: Array<OnCallDutyPolicySchedule | Team | OnCallDutyPolicy>,
+    ): Array<SharedNameOption> => {
+      return records
+        .filter(
+          (record: OnCallDutyPolicySchedule | Team | OnCallDutyPolicy) => {
+            return Boolean(record.id);
+          },
+        )
+        .map(
+          (
+            record: OnCallDutyPolicySchedule | Team | OnCallDutyPolicy,
+          ): SharedNameOption => {
+            return {
+              value: record.id!.toString(),
+              label: record.name?.toString() || "",
+              sharedName: getSharedNameFacts(record),
+            };
+          },
+        );
+    };
+
+    const schedules: Array<SharedNameOption> = toOptions(data.schedules);
+    const others: Array<SharedNameOption> = toOptions(data.others);
+    const none: WorkspaceTwinDetails = {
+      details: new Map<string, string>(),
+      separator: "",
+    };
+
+    const hasScheduleTwins: boolean = hasSharedNameTwins(schedules);
+    const hasOtherTwins: boolean = hasSharedNameTwins(others);
+
+    if (!hasScheduleTwins && !hasOtherTwins) {
+      return { schedules: none, others: none };
+    }
+
+    const reader: WorkspaceSharedNameReader =
+      await WorkspaceSharedNames.getReader(data.readerUserId);
+
+    return {
+      schedules: hasScheduleTwins
+        ? WorkspaceSharedNames.getTwinDetailsFor({
+            options: schedules,
+            reader: reader,
+            descriptionLength: WORKSPACE_PAGE_SCHEDULE_DESCRIPTION_LENGTH,
+          })
+        : none,
+      others: hasOtherTwins
+        ? WorkspaceSharedNames.getTwinDetailsFor({
+            options: others,
+            reader: reader,
+            descriptionLength: WorkspaceSharedNames.getDescriptionLength(
+              WORKSPACE_PAGE_MAX_CHOICE_LABEL_LENGTH,
+            ),
+          })
+        : none,
+    };
+  }
+
+  /*
+   * What the form says when the name typed first is two schedules', two
+   * teams' or two policies' (#10314): neither is picked for the person, who
+   * picks the one they mean - each told apart in the list.
+   */
+  public static getSharedNameNote(data: {
+    kind: WorkspacePageTargetKind;
+    name: string;
+  }): string {
+    return `More than one ${TARGET_NOUNS[data.kind]} is called ${data.name.trim()}. Pick the one you mean below.`;
   }
 
   // A label a list shows, cut to what Slack shows of an option.

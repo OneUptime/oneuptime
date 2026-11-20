@@ -5,6 +5,7 @@ import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ValueTakenException from "../../Types/Exception/ValueTakenException";
 import { NetworkAddressNameUtil } from "../../Types/NetFlow/NetworkAddressName";
 import ObjectID from "../../Types/ObjectID";
 import NetworkAddressBlockUtil, {
@@ -98,12 +99,14 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
+    // With the code a program tells a taken value by (#10319).
     if (
       existing &&
       (!data.exceptId || existing.id?.toString() !== data.exceptId.toString())
     ) {
-      throw new BadDataException(
+      throw new ValueTakenException(
         `${data.address} already has a name: ${existing.name || ""}. Change that one instead.`,
+        { field: "address" },
       );
     }
   }
@@ -168,6 +171,15 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * An address moved onto one the project already named is refused above,
+   * with the name it has: the generic check of an update leaves the
+   * address out (#10318).
+   */
+  protected override getUniqueColumnsCheckedOnUpdate(): ReadonlyArray<string> {
+    return ["address"];
   }
 }
 

@@ -232,7 +232,9 @@ Cada persona elige por sí misma, en **Ajustes de usuario → Ajustes de notific
 
 Las opciones siguen las prioridades de caso del proyecto, con sus propios nombres: estas son las de un proyecto nuevo.
 
-No se envían mensajes de WhatsApp para los casos de seguridad. Una notificación push abre el caso en la app OneUptime On-Call (1.7.0 o posterior), donde puedes aprobar o rechazar un paso de playbook en espera, hacerte cargo del caso y cerrarlo. Su enlace abre el caso en el navegador.
+No se envían mensajes de WhatsApp para los casos de seguridad. Una notificación push abre el caso en la app OneUptime On-Call (1.7.0 o posterior), donde puedes aprobar o rechazar un paso de playbook en espera, hacerte cargo del caso y cerrarlo. Su enlace abre el caso en el navegador. Una notificación push sobre un paso que espera tu aprobación abre esa misma aprobación, con sus pruebas; si alguien la decidió entretanto, el caso dice quién, cuándo y cómo fue el paso.
+
+Un paso que espera tu aprobación te llega en Slack o Microsoft Teams como un mensaje desde el que puedes aprobarlo, y su email dice qué hará el paso y por qué: consulta [Aprobar desde Slack y Microsoft Teams](#aprobar-desde-slack-y-microsoft-teams).
 
 ### Publicar en canales de Slack, Microsoft Teams y Mattermost
 
@@ -369,15 +371,34 @@ Los dos pasos de almacenes de datos actúan sobre los almacenes de datos de los 
 
 #### Entidades protegidas
 
-**Entidades protegidas**, en **Playbooks** en el menú, lista los usuarios y hosts a los que ningún playbook aplica contención, como las cuentas de acceso de emergencia, los controladores de dominio y las puertas de enlace VPN. Un valor coincide sin distinguir mayúsculas de minúsculas, y `*` representa cualquier secuencia de caracteres: `svc-*` protege todas las cuentas de servicio. Un paso informa de un usuario o host protegido como protegido y no lo toca. La lista la mantienen los Administradores de seguridad.
+**Entidades protegidas**, en **Playbooks** en el menú, lista los usuarios, hosts y direcciones IP a los que ningún playbook aplica contención y que la lista de bloqueo nunca bloquea, como las cuentas de acceso de emergencia, los controladores de dominio, las puertas de enlace VPN y las direcciones de oficina. Un valor coincide sin distinguir mayúsculas de minúsculas, y `*` representa cualquier secuencia de caracteres: `svc-*` protege todas las cuentas de servicio. Una entrada de dirección es una dirección o un rango, como `203.0.113.0/24`, que protege todas las direcciones que contiene. Un paso informa de un usuario o host protegido como protegido y no lo toca. La lista la mantienen los Administradores de seguridad.
 
 #### Aprobación
 
 Los ocho pasos que dejan a alguien sin acceso esperan aprobación. Solo un Administrador de seguridad puede desactivar **Requiere aprobación** en uno de ellos, y OneUptime registra quién lo hizo. La aprobación lista en **Actuar sobre** los usuarios o hosts sobre los que actuaría el paso, todos marcados: desmarca los que deba dejar intactos. Los protegidos no se ofrecen. Quien inició una ejecución no puede aprobar sus pasos: lo hace otra persona, aunque sí puede rechazarlos.
 
+#### Aprobar desde Slack y Microsoft Teams
+
+Un paso que espera aprobación es un mensaje con **Aprobar**, **Rechazar** y **Abrir caso**; cuando actúa sobre más de un usuario o host, también te deja aprobar solo algunos. Va a los canales y chats de cada regla de casos de seguridad cuyas **Actualizaciones** publican **Aprobaciones pendientes**, y a cada aprobador que eligió Slack o Microsoft Teams para **Paso de playbook esperando mi aprobación**, en el idioma de su cuenta. Dice qué hará el paso y a través de qué conexión, cada usuario o host sobre el que actúa y por qué, los protegidos que deja en paz, quién o qué lo pidió, las pruebas detrás del caso (hasta dónde llegaron las solicitudes detrás de él, qué sabe threat intel, que nada sobre lo que actúa está protegido) y si se puede deshacer. El email que pide la aprobación dice lo mismo; su botón abre la aprobación en el caso y nunca decide nada, porque los escáneres de correo siguen los enlaces.
+
+- Al aprobar solo algunos, se muestran los usuarios o hosts sobre los que actuaría el paso, todos marcados: desmarca los que deba dejar en paz. Al menos uno se queda, o rechaza el paso en su lugar.
+- Pulsar un botón decide como tú, a través de la cuenta de Slack o Microsoft Teams que conectaste a OneUptime. Si aún no la has conectado, se te pide que la conectes y vuelvas a pulsar. Necesitas un rol que pueda ejecutar playbooks y poder ver el caso; quien inició la ejecución no puede aprobarla, aunque sí rechazarla. Una negativa dice por qué: en Slack solo la ves tú.
+- OneUptime comprueba que cada pulsación llegó de Slack o Microsoft Teams y decide una sola vez: una pulsación repetida, reenviada o en un mensaje sobre otro paso no decide nada, y una pulsación después de que alguien decidiera dice quién y cuándo.
+- Cuando alguien decide, en Slack, en Microsoft Teams, en el caso o en la app, cada copia del mensaje dice quién lo aprobó o rechazó y cuándo, luego cómo fue el paso y qué pasó con cada usuario o host, sin más botones que **Abrir caso**. La decisión se guarda en la cronología del caso, indicando que vino de Slack o Microsoft Teams, y en el registro de auditoría del proyecto.
+
+Mattermost recibe la aprobación como texto, sin botones.
+
 #### Deshacer
 
-Los pasos para deshacer actúan sobre los usuarios o hosts de los que trata el caso, igual que los pasos que deshacen. Cuando la ejecución se ha detenido, un usuario o host contenido tiene además un botón propio en su paso: **Reactivar**, **Levantar la contención**, **Liberar** o **Activar**. Un cierre de sesión no se puede deshacer. Cada reversión se guarda en la cronología del caso y en el registro de auditoría del proyecto.
+Los pasos para deshacer actúan sobre los usuarios o hosts de los que trata el caso, igual que los pasos que deshacen. Cuando la ejecución se ha detenido, un usuario o host contenido tiene además un botón propio en su paso: **Reactivar**, **Levantar la contención**, **Liberar** o **Activar**. Un cierre de sesión no se puede deshacer. Cada reversión se guarda en la cronología del caso y en el registro de auditoría del proyecto. En la app OneUptime On-Call, el caso muestra lo que contuvieron sus playbooks, y cada uno se puede deshacer desde allí.
+
+### Lista de bloqueo
+
+**Lista de bloqueo**, en **Playbooks** en el menú, lista las direcciones IP y los rangos que bloquea tu proyecto: por qué, hasta cuándo, su caso y quién o qué los añadió. **Bloquear dirección** bloquea una dirección o un rango durante 24 horas, salvo que elijas 1 hora, 7 días o 30 días. Solo un Administrador de seguridad, un Administrador del proyecto o un Propietario del proyecto puede mantener un bloqueo hasta que alguien lo levante, o bloquear un rango más amplio que un /24 (un /48 en IPv6), y nadie bloquea un rango más amplio que un /8 (un /16 en IPv6). **Levantar** pone fin a un bloqueo, en una fila o en varias a la vez, y **Prolongar** mueve su final.
+
+Las direcciones propias de tu proyecto nunca se bloquean: las entradas de **Entidades protegidas**, tus hosts, nodos de Kubernetes, recursos en la nube, dispositivos de red y endpoints, tus nombres de dirección y sondas, las sondas de OneUptime Cloud, los rangos que no están en internet y la red perimetral que hay delante de tu aplicación. Un bloqueo que afectaría a una de ellas se rechaza, indicando qué es la dirección, y **Entidades protegidas** las lista en **Protección automática**. Cuando OneUptime no puede saber si una dirección es tuya, no la bloquea.
+
+**Aplicado en** muestra cada lugar donde se aplica un bloqueo y si se mantiene allí. Mientras nada aplique la lista de bloqueo, la página lo indica, y un bloqueo se registra pero no bloquea nada. Cada bloqueo, levantamiento y caducidad se guarda en el registro de auditoría del proyecto, y en la cronología de su caso cuando tiene uno.
 
 ### Mensajes
 
@@ -433,7 +454,7 @@ Encima, una franja muestra cómo está configurada la seguridad: sus orígenes, 
 ## Automatizar
 
 - **Flujos de trabajo**: un caso o una nota puede iniciar un flujo de trabajo cuando se crea, se actualiza o se elimina. Un paso **Ejecutar un flujo de trabajo** inicia un flujo de trabajo cuyo desencadenante es un webhook.
-- **API**: los casos, las notas, las tareas, las evidencias, las detecciones, los playbooks, las ejecuciones, las entidades protegidas y las prioridades y estados de caso tienen la misma API REST que el resto de OneUptime, en `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` y `/security-case-status`. Consulta [Referencia de la API](/docs/api-reference/api-reference).
+- **API**: los casos, las notas, las tareas, las evidencias, las detecciones, los playbooks, las ejecuciones, las entidades protegidas, los bloqueos y las prioridades y estados de caso tienen la misma API REST que el resto de OneUptime, en `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-block`, `/security-case-priority` y `/security-case-status`. Consulta [Referencia de la API](/docs/api-reference/api-reference).
 - Agentes de IA: el servidor MCP tiene herramientas para casos, notas, tareas, evidencias, detecciones, playbooks y prioridades y estados de caso. Consulta [Servidor MCP](/docs/ai/mcp-server).
 - Terraform: los recursos `oneuptime_security_case_priority` y `oneuptime_security_case_status` mantienen como código las prioridades y estados de un proyecto.
 

@@ -27,8 +27,11 @@ import * as AwsSts from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
  *      the cache's place for them is named in AwsSts alone, never exported,
  *      and written to by AwsRoleCheckCache.set alone.
  *
- * A new caller - a project's Amazon SES role (#7378) - signs in with
- * AwsSts.assumeRole and its own connection id, and is listed in 3.
+ * A project's Amazon SES role (#7378) signs in with AwsSts.assumeRole, its
+ * config's id and a purpose of its own (AwsRolePurpose), and is listed in
+ * 3. Every purpose's external id is derived from the project's own id
+ * alone, with a label of the purpose's own, and assumeRole takes no
+ * external id from its caller: 5 holds it so.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(
@@ -92,6 +95,8 @@ const USES_ONEUPTIME_IDENTITY: Record<string, string> = {
     "where the identity comes from, and who it is (sts:GetCallerIdentity)",
   "packages/Common/Server/Utils/CloudConnection/Aws/AwsCloudConnector.ts":
     "getCredentials signs in to a connection's role with it, through AwsSts.assumeRole",
+  "packages/Common/Server/Utils/Mail/AmazonSesProjectRole.ts":
+    "a project's Amazon SES config signs in to the IAM role in its own AWS account with it, through AwsSts.assumeRole (#7378)",
 };
 const ONEUPTIME_IDENTITY_PATTERN: RegExp =
   /AwsServerIdentity\.getCredentials\(|AwsCloudConnector\.getServerCredentials\(/;
@@ -309,7 +314,80 @@ describe("only AwsSts signs in to a customer's role", () => {
     expect(body.indexOf("probeRoleExternalId(")).toBeLessThan(
       body.indexOf("requestRoleSession("),
     );
-    expect(body).toContain("getAwsExternalIdForProject(data.projectId)");
+    expect(body).toContain(
+      "externalId: getRolePurposeExternalId(data.purpose, data.projectId)",
+    );
+  });
+
+  test("assumeRole takes no external id from its caller: each purpose's is derived from the project's own id", () => {
+    const text: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, STS_FILE),
+      "utf8",
+    );
+    const start: number = text.indexOf("export async function assumeRole(");
+    const parameters: string = text.slice(
+      start,
+      text.indexOf("}): Promise<AwsAssumedRole>", start),
+    );
+
+    // What a caller hands it: never an external id, and always a purpose.
+    expect(parameters).not.toMatch(/\bexternalId\b/i);
+    expect(parameters).toContain("purpose: AwsRolePurpose;");
+
+    // Every purpose, and each one's id from the project alone.
+    expect(Object.values(AwsSts.AwsRolePurpose).sort()).toEqual(
+      ["amazon-ses", "cloud-connect"].sort(),
+    );
+
+    const project: string = "11111111-1111-4111-8111-111111111111";
+    const other: string = "22222222-2222-4222-8222-222222222222";
+    const ids: Array<string> = Object.values(AwsSts.AwsRolePurpose).map(
+      (purpose: AwsSts.AwsRolePurpose): string => {
+        return AwsSts.getRolePurposeExternalId(purpose, project);
+      },
+    );
+
+    // One project's two purposes never share an id, and no two projects do.
+    expect(new Set(ids).size).toBe(ids.length);
+
+    for (const purpose of Object.values(AwsSts.AwsRolePurpose)) {
+      expect(AwsSts.getRolePurposeExternalId(purpose, project)).toBe(
+        AwsSts.getRolePurposeExternalId(purpose, ` ${project.toUpperCase()} `),
+      );
+      expect(AwsSts.getRolePurposeExternalId(purpose, project)).not.toBe(
+        AwsSts.getRolePurposeExternalId(purpose, other),
+      );
+      // Every project's shape, so the check's random id has it too.
+      expect(AwsSts.getRolePurposeExternalId(purpose, project)).toMatch(
+        /^oneuptime-[0-9a-f]{32}$/,
+      );
+    }
+  });
+
+  test("each purpose keeps its verdicts and sessions apart: no key of one is another's", () => {
+    const role: {
+      projectId: string;
+      connectionId: string;
+      roleArn: string;
+    } = {
+      projectId: "11111111-1111-4111-8111-111111111111",
+      connectionId: "33333333-3333-4333-8333-333333333333",
+      roleArn: "arn:aws:iam::210987654321:role/Shared",
+    };
+    const keys: Array<string> = Object.values(AwsSts.AwsRolePurpose).map(
+      (purpose: AwsSts.AwsRolePurpose): string => {
+        return AwsSts.AssumedRoleCache.keyOf({ ...role, purpose });
+      },
+    );
+
+    expect(new Set(keys).size).toBe(keys.length);
+    // Cloud Connect's keys are as they were before there were purposes.
+    expect(
+      AwsSts.AssumedRoleCache.keyOf({
+        ...role,
+        purpose: AwsSts.AwsRolePurpose.CloudConnect,
+      }),
+    ).toBe(AwsSts.AssumedRoleCache.keyOf(role));
   });
 });
 

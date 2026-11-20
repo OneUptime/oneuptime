@@ -109,6 +109,18 @@ export const DASHBOARD_SHARED_TEXT_SOURCES: ReadonlyArray<string> = [
    */
   "packages/Common/Utils/GuidedSetup/OnCallPolicyRecords.ts",
   "packages/Common/Types/OnCallDutyPolicy/EveryNewEventRules.ts",
+  /*
+   * Each playbook action's title (#10341): a step waiting for a person's
+   * approval names its action, and the undo that releases it, as the step
+   * editor names them.
+   */
+  "packages/Common/Types/SecurityPlaybook/SecurityPlaybookActionWords.ts",
+  /*
+   * What a chat's picker says of records that share a name (#10314):
+   * "Created {{date}}", as the Dashboard's pickers word it (#10064), in the
+   * language on the reader's account.
+   */
+  "packages/Common/Types/Database/SharedNameMarks.ts",
 ];
 
 export const DASHBOARD_LOCALES_DIRECTORY: string = path.join(
@@ -182,6 +194,12 @@ export const SERVER_TEXT_SOURCES: ReadonlyArray<string> = [
    */
   "packages/Common/Server/Utils/TwoFactorBackupCodeNotification.ts",
   "packages/Common/Server/Utils/Reauthentication/SignedOutEmail.ts",
+  /*
+   * A playbook step waiting for a person's approval, in their own Slack and
+   * Microsoft Teams messages (#10341): what it does, to what, why, who
+   * asked, what can be undone - and the answer to their press.
+   */
+  "packages/Common/Utils/SecurityPlaybook/SecurityPlaybookApprovalWords.ts",
   "packages/App/FeatureSet/Workers/Jobs",
   "packages/App/FeatureSet/Notification/Templates",
   // Sentences the Dashboard writes too, worded as it words them (above).

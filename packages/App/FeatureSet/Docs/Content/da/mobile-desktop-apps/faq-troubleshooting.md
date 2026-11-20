@@ -34,7 +34,7 @@ Ja. Hver telefon eller tablet er sin egen push-enhed, med sine egne vagtregler o
 :::details Hvad kan jeg gøre i appen?
 - **Home**: hvad der kræver opmærksomhed i projektet: aktive hændelser og advarsler, åbne sikkerhedssager, hvis din rolle giver dig adgang til dem, monitorer med problemer og grupperede hændelser.
 - **Monitors**: alle monitorer, filtreret efter tilstand, med deres detaljer.
-- **Inbox**: hændelser og advarsler, og de episoder, der grupperer dem. Åbn en for at bruge **Acknowledge**, **Resolve** eller **Add Note**. Giver din rolle dig adgang til projektets sikkerhedssager, viser **Security** de åbne: åbn en for at bruge **Approve** eller **Reject** på et playbook-trin, der venter på godkendelse, tage sagen med **Assign to me** eller bruge **Close case**.
+- **Inbox**: hændelser og advarsler, og de episoder, der grupperer dem. Åbn en for at bruge **Acknowledge**, **Resolve** eller **Add Note**. Giver din rolle dig adgang til projektets sikkerhedssager, viser **Security** de åbne: åbn en for at bruge **Approve** eller **Reject** på et playbook-trin, der venter på godkendelse, tage sagen med **Assign to me** eller bruge **Close case**. Et trin, der venter på godkendelse, viser, hvad det vil gøre, og beviserne bag det, og **Undo** frigiver det, en playbook har inddæmmet.
 - **On-Call**: om du har vagt og til hvornår, hvem der ellers har, de alarmer, der er sendt til dig, og **Cover for me**, som giver dine alarmer videre til en kollega i et stykke tid.
 - **Settings**: dine projekter og single sign-on, udseendet, kritiske advarsler og alarmlyden, **Biometric Unlock**, dit vagtkalenderfeed og **Sign Out**.
 

@@ -219,7 +219,7 @@
   "packages/Common/Server/API/ScheduledMaintenanceInternalNoteAPI.ts": 3,
   "packages/Common/Server/API/ScheduledMaintenancePublicNoteAPI.ts": 3,
   "packages/Common/Server/API/SecurityCaseAPI.ts": 2,
-  "packages/Common/Server/API/SecurityPlaybookRunAPI.ts": 2,
+  "packages/Common/Server/API/SecurityPlaybookRunAPI.ts": 1,
   "packages/Common/Server/API/ServiceLevelObjectiveBurnRateRuleAPI.ts": 1,
   "packages/Common/Server/API/ShortLinkAPI.ts": 2,
   "packages/Common/Server/API/SlackAPI.ts": 4,

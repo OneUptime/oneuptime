@@ -687,6 +687,16 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
   },
+  // The blocklist (#10338): checking a block, and where blocks are enforced.
+  "packages/Common/Server/API/SecurityBlockAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {},
+  },
+  // The addresses and entities a block may never cover (#10338).
+  "packages/Common/Server/API/SecurityProtectedEntityAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/DetectionRuleAPI.ts": {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
@@ -1253,6 +1263,14 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/Notification/API/WhatsApp.ts": 3,
         "packages/App/FeatureSet/Notification/API/Telegram.ts": 3,
         "packages/App/FeatureSet/Notification/API/PushRelay.ts": 2,
+        /*
+         * #7378: SMTPConfig.ts also registers GET /aws-role-setup - what a
+         * project's Amazon SES config makes its IAM role with (the
+         * principal to trust, the project's email external id, a trust
+         * policy) - so it reads, and is no decision here. Its POST /test
+         * checks a role config's role afresh before it sends, as every
+         * test send of how OneUptime reaches people does.
+         */
         "packages/App/FeatureSet/Notification/API/SMTPConfig.ts": 1,
       },
     ),

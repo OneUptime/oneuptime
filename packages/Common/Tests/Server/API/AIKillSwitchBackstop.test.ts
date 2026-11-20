@@ -537,14 +537,19 @@ const KNOWN_CALL_SITES: Array<CallSite> = [
     delivery: "skip",
   },
   /*
-   * Data Security's field suggestions run in a queue job a store's scan
-   * starts: the job reads the switch first (isProjectAIEnabled) and does
-   * nothing when AI is off, and a refusal while it asks is a line in the
-   * log - the fields are asked about after the next scan.
+   * Every Data Security model call (#10365): it throws the refusal to its
+   * caller, and each caller delivers it in its own lane. Explain on an
+   * issue: the person waits on the request (POST
+   * /data-security-issue/:id/explain), and a refusal is the message the
+   * issue page shows above its fix. The field suggestions run in a queue
+   * job a store's scan starts: the job reads the switch first
+   * (isProjectAIEnabled) and does nothing when AI is off, and a refusal
+   * while it asks is a line in the log - the fields are asked about after
+   * the next scan.
    */
   {
-    file: "Common/Server/Utils/AI/DataSecurity/FieldSuggestion.ts",
-    delivery: "skip",
+    file: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiCall.ts",
+    delivery: "throw",
   },
   /*
    * Write a Check from a Sentence on a table's Checks: the person waits on
@@ -578,12 +583,6 @@ const KNOWN_CALL_SITES: Array<CallSite> = [
   { file: "Common/Server/API/IncidentAPI.ts", delivery: "throw" },
   { file: "Common/Server/API/IncidentEpisodeAPI.ts", delivery: "throw" },
   { file: "Common/Server/API/AlertAPI.ts", delivery: "throw" },
-  /*
-   * Explain on a Data Security issue: the person waits on the request
-   * (POST /data-security-issue/:id/explain), and a refusal is the message
-   * the issue page shows above its fix.
-   */
-  { file: "Common/Server/API/DataSecurityAPI.ts", delivery: "throw" },
   /*
    * An exception's explanation (#5419) and What's new on Exceptions (#5427):
    * the person waits on the request, read as them, and a refusal is the

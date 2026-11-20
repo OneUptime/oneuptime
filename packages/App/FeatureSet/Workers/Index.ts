@@ -329,6 +329,9 @@ import "./Jobs/SecurityPlaybooks/RecoverSecurityPlaybookRuns";
 import "./Jobs/SecurityCases/SendSecurityCaseNotification";
 import "./Jobs/SecurityCases/CloseSecurityCaseSourceAlerts";
 import "./Jobs/SecurityCases/CheckResponseTargets";
+import "./Jobs/SecurityBlocklist/ExpireSecurityBlocks";
+import "./Jobs/SecurityBlocklist/ReconcileSecurityBlocklist";
+import "./Jobs/SecurityBlocklist/RunSecurityBlocklistReconcile";
 
 /*
  * Instance capacity management (Community Edition). The Postgres and Redis

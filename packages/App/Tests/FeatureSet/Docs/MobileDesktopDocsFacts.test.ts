@@ -897,7 +897,14 @@ describe("pages arriving on the phone", () => {
       /function tabRouteForEntityType\(entityType: string\): string \| null \{ switch \(entityType\) \{[^}]*?case "security-case": return "Inbox";/,
     );
     expect(handlers).toMatch(
-      /case "security-case": \/\*.{0,600}?\*\/ navigationRef\.navigate\( "Inbox", buildInboxDetailNavigation\(\{ name: "SecurityCaseDetail", params: \{ caseId: entityId, projectId \},/,
+      /case "security-case": \/\*.{0,800}?\*\/ navigationRef\.navigate\( "Inbox", buildInboxDetailNavigation\(\{ name: "SecurityCaseDetail", params: \{ caseId: entityId, projectId, /,
+    );
+    // An approval's push names its run, and the case's screen opens on that approval.
+    expect(flat(common("Server/Utils/PushNotificationUtil.ts"))).toContain(
+      "...(params.runId ? { runId: params.runId } : {}),",
+    );
+    expect(handlers).toContain(
+      '...(typeof data.runId === "string" && isUuid(data.runId) ? { runId: data.runId } : {}),',
     );
   });
 });

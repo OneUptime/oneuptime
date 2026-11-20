@@ -497,8 +497,31 @@ export default class WorkspaceLiveMessages {
       return WorkspaceLiveMessageEdit.Failed;
     }
 
+    /*
+     * A direct message kept with the workspace it was sent through is
+     * edited only through the project's connection to that same workspace:
+     * never with the token of another the project was connected to since.
+     */
+    const sentThrough: string | undefined =
+      keptMessage.messageData?.workspaceProjectId;
+
+    if (sentThrough && projectAuth.workspaceProjectId !== sentThrough) {
+      logger.debug(
+        `The project is connected to another ${workspaceType} workspace than the one a kept message was sent through: it was not updated.`,
+        logAttributes,
+      );
+      await this.rememberOnly(
+        keptMessage,
+        data.rememberIfNotEdited ? data.messageData : undefined,
+        messageDataChanged,
+      );
+      return WorkspaceLiveMessageEdit.Failed;
+    }
+
     const isChat: boolean =
       keptMessage.destinationType === WorkspaceLiveMessageDestinationType.Chat;
+    // A Microsoft Teams personal chat the bot opened itself: where it is.
+    const serviceUrl: string | undefined = keptMessage.messageData?.serviceUrl;
 
     const workspaceUtil: typeof WorkspaceBase =
       WorkspaceUtil.getWorkspaceTypeUtil(workspaceType);
@@ -511,17 +534,32 @@ export default class WorkspaceLiveMessages {
           channelId: keptMessage.channelId!,
           teamId: keptMessage.teamId || undefined,
           isChat: isChat,
+          ...(serviceUrl ? { serviceUrl: serviceUrl } : {}),
         },
         messageId: keptMessage.messageId!,
         messageBlocks: data.messageBlocks,
         text: data.text,
       });
     } catch (err) {
-      if (!workspaceUtil.isMessageGoneError(err)) {
-        logger.error(
-          `Could not update a ${workspaceType} message in place: ${WorkspaceBase.getSendErrorMessage(err)}`,
-          logAttributes,
-        );
+      /*
+       * A direct message somebody deleted is theirs to delete: it is never
+       * posted again where nobody asked for it.
+       */
+      const isGone: boolean = workspaceUtil.isMessageGoneError(err);
+
+      if (!isGone || keptMessage.messageData?.directMessageUserId) {
+        if (isGone) {
+          logger.debug(
+            `A kept ${workspaceType} direct message was deleted; it is not posted again.`,
+            logAttributes,
+          );
+        } else {
+          logger.error(
+            `Could not update a ${workspaceType} message in place: ${WorkspaceBase.getSendErrorMessage(err)}`,
+            logAttributes,
+          );
+        }
+
         await this.rememberOnly(
           keptMessage,
           data.rememberIfNotEdited ? data.messageData : undefined,
