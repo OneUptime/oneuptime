@@ -25,7 +25,7 @@ tests:
       nginx.http2: false
     asserts:
       - matchRegexRaw:
-          pattern: '\n\nHTTP/2 is off for oneuptime\.example\.com \(nginx\.http2: false\), so OTLP over gRPC to it is refused\.\n\nUpgrades keep it off: once the gateway runs a fixed nginx, set nginx\.http2:\ntrue in your values and run helm upgrade\. OTLP over HTTP and browsers keep\nworking over HTTP/1\.1 meanwhile\. Details:\nhttps://oneuptime\.com/docs/self-hosted/hardening\n'
+          pattern: '\n\nHTTP/2 is off for oneuptime\.example\.com \(nginx\.http2: false\), so OTLP over gRPC to it is refused\.\n\nUpgrades keep it off: once the gateway runs a fixed nginx, set\nnginx\.http2: true in your values and run helm upgrade\. OTLP over HTTP and\nbrowsers keep working over HTTP/1\.1 meanwhile\. Details:\nhttps://oneuptime\.com/docs/self-hosted/hardening\n'
 
   - it: says it at every upgrade too, as long as it is off
     release:

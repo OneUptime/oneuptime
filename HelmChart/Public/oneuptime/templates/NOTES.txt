@@ -266,9 +266,9 @@ To keep things as they are, set nginx.service.externalTrafficPolicy=Cluster.
 
 HTTP/2 is off for {{ $http2Host }} (nginx.http2: false), so OTLP over gRPC to it is refused.
 
-Upgrades keep it off: once the gateway runs a fixed nginx, set nginx.http2:
-true in your values and run helm upgrade. OTLP over HTTP and browsers keep
-working over HTTP/1.1 meanwhile. Details:
+Upgrades keep it off: once the gateway runs a fixed nginx, set
+nginx.http2: true in your values and run helm upgrade. OTLP over HTTP and
+browsers keep working over HTTP/1.1 meanwhile. Details:
 https://oneuptime.com/docs/self-hosted/hardening
 {{- end }}
 {{- if .Values.vllm.enabled }}
