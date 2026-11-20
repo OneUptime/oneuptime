@@ -59320,5 +59320,9 @@
   "All Granted": "すべて付与済み",
   "Search agent permissions...": "エージェントの権限を検索...",
   "The Android agent reads every app's logs and crash stacks.": "Android エージェントはすべてのアプリのログとクラッシュスタックを読み取ります。",
-  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "Android エージェントには、まだ READ_LOGS、READ_DROPBOX_DATA、または使用状況へのアクセスが必要です。"
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "Android エージェントには、まだ READ_LOGS、READ_DROPBOX_DATA、または使用状況へのアクセスが必要です。",
+  "New Email Link Expires": "新しいメールアドレスのリンクの有効期限",
+  "Send Link Again": "リンクを再送信",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "{{email}} に送信したリンクの有効期限が切れたため、メールアドレスは変更されていません。変更を完了するには新しいリンクを送信するか、変更をキャンセルしてください。",
+  "We emailed the new address again.": "新しいアドレスにメールを再送信しました。"
 }

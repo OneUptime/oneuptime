@@ -59320,5 +59320,9 @@
   "All Granted": "सभी दी गईं",
   "Search agent permissions...": "एजेंट अनुमतियाँ खोजें...",
   "The Android agent reads every app's logs and crash stacks.": "Android एजेंट हर ऐप के लॉग और क्रैश स्टैक पढ़ता है।",
-  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "Android एजेंट को अभी भी READ_LOGS, READ_DROPBOX_DATA या उपयोग एक्सेस चाहिए।"
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "Android एजेंट को अभी भी READ_LOGS, READ_DROPBOX_DATA या उपयोग एक्सेस चाहिए।",
+  "New Email Link Expires": "नए ईमेल पते के लिंक की समय-सीमा",
+  "Send Link Again": "लिंक फिर से भेजें",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "हमने {{email}} पर जो लिंक भेजा था उसकी समय-सीमा समाप्त हो गई है, इसलिए आपका ईमेल पता नहीं बदला है। बदलाव पूरा करने के लिए नया लिंक भेजें, या इसे रद्द करें।",
+  "We emailed the new address again.": "हमने नए पते पर फिर से ईमेल भेजा है।"
 }

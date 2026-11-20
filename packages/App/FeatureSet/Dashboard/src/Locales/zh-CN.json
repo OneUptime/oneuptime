@@ -59320,5 +59320,9 @@
   "All Granted": "已全部授予",
   "Search agent permissions...": "搜索代理权限...",
   "The Android agent reads every app's logs and crash stacks.": "Android 代理读取所有应用的日志和崩溃堆栈。",
-  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "Android 代理仍需要 READ_LOGS、READ_DROPBOX_DATA 或使用情况访问权限。"
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "Android 代理仍需要 READ_LOGS、READ_DROPBOX_DATA 或使用情况访问权限。",
+  "New Email Link Expires": "新电子邮件地址链接的过期时间",
+  "Send Link Again": "重新发送链接",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "我们发送到 {{email}} 的链接已过期，因此您的电子邮件地址没有更改。请发送新链接以完成更改，或取消此更改。",
+  "We emailed the new address again.": "我们已再次向新地址发送了电子邮件。"
 }

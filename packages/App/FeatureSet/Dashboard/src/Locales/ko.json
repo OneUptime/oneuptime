@@ -59320,5 +59320,9 @@
   "All Granted": "모두 부여됨",
   "Search agent permissions...": "에이전트 권한 검색...",
   "The Android agent reads every app's logs and crash stacks.": "Android 에이전트가 모든 앱의 로그와 비정상 종료 스택을 읽습니다.",
-  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "Android 에이전트에 아직 READ_LOGS, READ_DROPBOX_DATA 또는 사용 정보 접근 권한이 필요합니다."
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "Android 에이전트에 아직 READ_LOGS, READ_DROPBOX_DATA 또는 사용 정보 접근 권한이 필요합니다.",
+  "New Email Link Expires": "새 이메일 주소 링크 만료 시간",
+  "Send Link Again": "링크 다시 보내기",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "{{email}}(으)로 보낸 링크가 만료되어 이메일 주소가 변경되지 않았습니다. 변경을 완료하려면 새 링크를 보내거나 변경을 취소하세요.",
+  "We emailed the new address again.": "새 주소로 이메일을 다시 보냈습니다."
 }

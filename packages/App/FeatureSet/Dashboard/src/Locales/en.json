@@ -59320,5 +59320,9 @@
   "All Granted": "All Granted",
   "Search agent permissions...": "Search agent permissions...",
   "The Android agent reads every app's logs and crash stacks.": "The Android agent reads every app's logs and crash stacks.",
-  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access."
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.",
+  "New Email Link Expires": "New Email Link Expires",
+  "Send Link Again": "Send Link Again",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.",
+  "We emailed the new address again.": "We emailed the new address again."
 }

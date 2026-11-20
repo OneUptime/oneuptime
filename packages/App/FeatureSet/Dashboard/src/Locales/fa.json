@@ -59320,5 +59320,9 @@
   "All Granted": "همه داده شده",
   "Search agent permissions...": "جستجوی دسترسی‌های عامل...",
   "The Android agent reads every app's logs and crash stacks.": "عامل Android لاگ‌ها و پشته‌های خرابی همهٔ برنامه‌ها را می‌خواند.",
-  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "عامل Android هنوز به READ_LOGS، READ_DROPBOX_DATA یا دسترسی استفاده نیاز دارد."
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "عامل Android هنوز به READ_LOGS، READ_DROPBOX_DATA یا دسترسی استفاده نیاز دارد.",
+  "New Email Link Expires": "زمان انقضای پیوند نشانی ایمیل جدید",
+  "Send Link Again": "ارسال دوباره پیوند",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "پیوندی که به {{email}} ایمیل کردیم منقضی شده است، بنابراین نشانی ایمیل شما تغییر نکرده است. برای کامل کردن تغییر یک پیوند جدید بفرستید، یا تغییر را لغو کنید.",
+  "We emailed the new address again.": "دوباره به نشانی جدید ایمیل فرستادیم."
 }

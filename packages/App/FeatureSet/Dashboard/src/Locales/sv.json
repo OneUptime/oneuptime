@@ -59320,5 +59320,9 @@
   "All Granted": "Alla beviljade",
   "Search agent permissions...": "Sök agentbehörigheter...",
   "The Android agent reads every app's logs and crash stacks.": "Android-agenten läser alla appars loggar och kraschstackar.",
-  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "Android-agenten behöver fortfarande READ_LOGS, READ_DROPBOX_DATA eller användningsåtkomst."
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "Android-agenten behöver fortfarande READ_LOGS, READ_DROPBOX_DATA eller användningsåtkomst.",
+  "New Email Link Expires": "Utgång för länk till ny e-postadress",
+  "Send Link Again": "Skicka länken igen",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "Länken vi mejlade till {{email}} har gått ut, så din e-postadress har inte ändrats. Skicka en ny länk för att slutföra bytet, eller avbryt det.",
+  "We emailed the new address again.": "Vi har mejlat den nya adressen igen."
 }

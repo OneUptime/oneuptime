@@ -59320,5 +59320,9 @@
   "All Granted": "Alle verleend",
   "Search agent permissions...": "Agentmachtigingen zoeken...",
   "The Android agent reads every app's logs and crash stacks.": "De Android-agent leest de logboeken en crashstacks van elke app.",
-  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "De Android-agent heeft nog READ_LOGS, READ_DROPBOX_DATA of gebruikstoegang nodig."
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "De Android-agent heeft nog READ_LOGS, READ_DROPBOX_DATA of gebruikstoegang nodig.",
+  "New Email Link Expires": "Vervaldatum link nieuw e-mailadres",
+  "Send Link Again": "Link opnieuw versturen",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "De link die we naar {{email}} hebben gestuurd is verlopen, dus uw e-mailadres is niet gewijzigd. Verstuur een nieuwe link om de wijziging af te ronden, of annuleer de wijziging.",
+  "We emailed the new address again.": "We hebben het nieuwe adres opnieuw een e-mail gestuurd."
 }
