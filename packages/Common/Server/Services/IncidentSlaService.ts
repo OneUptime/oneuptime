@@ -24,6 +24,7 @@ import IncidentStateService from "./IncidentStateService";
 import IncidentStateTimelineService from "./IncidentStateTimelineService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import ServerSetColumns from "../Utils/Database/ServerSetColumns";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import IncidentSlaStartUtil, {
   IncidentSlaStart,
   IncidentSlaTimelineRow,
@@ -77,13 +78,39 @@ export class Service extends ProjectReferencesService<Model> {
     // The incident and the rule are the project's first (ProjectReferencesService).
     const onCreate: OnCreate<Model> = await super.onBeforeCreate(createBy);
     const sla: Model = onCreate.createBy.data;
+    const record: Record<string, unknown> = sla as unknown as Record<
+      string,
+      unknown
+    >;
 
-    if (!sla.slaStartedAt && sla.incidentId && sla.incidentSlaRuleId) {
+    /*
+     * The incident and the rule, under either of their names - an ID
+     * column or the relation (`"incident": { "_id": ... }`) - which must
+     * name the same record when both are sent (RelationIdUtil
+     * .readConsistent, ReferenceNamesReadTogether).
+     */
+    const incidentId: ObjectID | null = RelationIdUtil.readConsistent(
+      record,
+      ["incidentId", "incident"],
+      "incident",
+    );
+    const ruleId: ObjectID | null = RelationIdUtil.readConsistent(
+      record,
+      ["incidentSlaRuleId", "incidentSlaRule"],
+      "SLA rule",
+    );
+
+    if (!sla.slaStartedAt && incidentId && ruleId) {
       const projectId: ObjectID | null | undefined =
         sla.projectId || onCreate.createBy.props.tenantId;
 
       if (projectId) {
-        await this.fillInFromRule({ sla: sla, projectId: projectId });
+        await this.fillInFromRule({
+          sla: sla,
+          incidentId: incidentId,
+          ruleId: ruleId,
+          projectId: projectId,
+        });
       }
     }
 
@@ -96,17 +123,19 @@ export class Service extends ProjectReferencesService<Model> {
    */
   private async fillInFromRule(data: {
     sla: Model;
+    incidentId: ObjectID;
+    ruleId: ObjectID;
     projectId: ObjectID;
   }): Promise<void> {
     const incident: Incident | null = await IncidentService.findOneBy({
-      query: { _id: data.sla.incidentId!, projectId: data.projectId },
+      query: { _id: data.incidentId, projectId: data.projectId },
       select: { _id: true, declaredAt: true, createdAt: true },
       props: { isRoot: true },
     });
 
     const rule: IncidentSlaRule | null = await IncidentSlaRuleService.findOneBy(
       {
-        query: { _id: data.sla.incidentSlaRuleId!, projectId: data.projectId },
+        query: { _id: data.ruleId, projectId: data.projectId },
         select: {
           _id: true,
           responseTimeInMinutes: true,
