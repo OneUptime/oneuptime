@@ -73,6 +73,14 @@ import LogService from "Common/Server/Services/LogService";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import ExceptionUtil, { TelemetryExceptionPayload } from "../Utils/Exception";
 import AppleSymbolication from "Common/Server/Utils/Telemetry/AppleSymbolication";
+import AppleCrashRegister, {
+  RegisteredAppleCrash,
+} from "Common/Server/Utils/Telemetry/AppleCrashRegister";
+import {
+  APPLE_CRASH_DUPLICATE_OF_ATTRIBUTE,
+  APPLE_CRASH_REPORTER_ATTRIBUTE,
+  AppleCrashSignature,
+} from "Common/Utils/Telemetry/AppleCrashMatch";
 import LogExceptionExtractor, {
   ExtractedLogException,
 } from "Common/Server/Utils/Telemetry/LogExceptionExtractor";
@@ -1954,6 +1962,48 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       }
     }
 
+    const occurrenceId: string = ObjectID.generateTimeOrdered().toString();
+
+    /*
+     * One iOS crash, two reports (#9923): KSCrash's and MetricKit's of the
+     * same crash on the same install (AppleCrashMatch). The second is kept,
+     * under the first one's exception, as evidence of the same crash -
+     * named as a repeat of it - and counted nowhere: the counts read only
+     * occurrences that repeat none, and its exception is not counted again.
+     */
+    let repeats: RegisteredAppleCrash | null = null;
+
+    if (faultKind === MobileAppFaultKind.Crash) {
+      const signature: AppleCrashSignature | null =
+        AppleCrashRegister.buildSignature({
+          attributes: finalAttributes,
+          stackTrace: extracted.stackTrace,
+          exceptionType: extracted.exceptionType,
+          time: data.timeDate,
+        });
+
+      if (signature) {
+        exceptionAttributes[APPLE_CRASH_REPORTER_ATTRIBUTE] =
+          signature.reporter;
+
+        repeats = await AppleCrashRegister.pairOrRecord({
+          projectId: data.projectId,
+          primaryEntityId: data.primaryEntityId,
+          signature,
+          occurrence: {
+            id: occurrenceId,
+            fingerprint,
+            fingerprintV2,
+          },
+        });
+
+        if (repeats) {
+          exceptionAttributes[APPLE_CRASH_DUPLICATE_OF_ATTRIBUTE] =
+            repeats.occurrenceId;
+        }
+      }
+    }
+
     /*
      * And the install it happened on, from the log's resource (#9716): a
      * mobile app's crash-free installs counts the installs of its crashes
@@ -1965,7 +2015,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     });
 
     data.dbExceptions.push({
-      _id: ObjectID.generateTimeOrdered().toString(),
+      _id: occurrenceId,
       createdAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       primaryEntityId: data.primaryEntityId.toString(),
@@ -1989,8 +2039,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
        * attribute bag below deliberately keeps none of the log's.
        */
       userId: readExceptionUserId([finalAttributes]),
-      fingerprint: fingerprint,
-      fingerprintV2: fingerprintV2,
+      // A repeat is filed under the exception its first report is.
+      fingerprint: repeats ? repeats.fingerprint : fingerprint,
+      fingerprintV2: repeats ? repeats.fingerprintV2 : fingerprintV2,
+      duplicateOf: repeats ? repeats.occurrenceId : "",
       spanName: "",
       release: release,
       environment: environment,
@@ -1999,6 +2051,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       attributeKeys: TelemetryUtil.getAttributeKeys(rowAttributes),
       retentionDate: data.retentionDateDb,
     });
+
+    // A repeat is the same crash: its exception is not seen again.
+    if (repeats) {
+      return;
+    }
 
     data.pendingExceptionUpserts.push({
       fingerprint: fingerprint,

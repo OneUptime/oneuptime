@@ -7,7 +7,9 @@ import {
   getQuerySettings,
   INTERACTIVE_READ_TIME_LIMIT,
 } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
-import ExceptionInstanceService from "./ExceptionInstanceService";
+import ExceptionInstanceService, {
+  EXCEPTION_ORIGINALS_SQL,
+} from "./ExceptionInstanceService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -424,6 +426,9 @@ export class ExceptionAggregationService {
     request: ExceptionFilters,
   ): void {
     TelemetryReadScopeUtil.appendServiceFilter(statement, request);
+
+    // One crash, counted once (ExceptionInstanceService, #9923).
+    statement.append(` AND ${EXCEPTION_ORIGINALS_SQL}`);
 
     if (request.exceptionTypes && request.exceptionTypes.length > 0) {
       statement.append(
