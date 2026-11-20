@@ -15,19 +15,25 @@ import {
 import { getNiceTickValues } from "recharts";
 
 /*
- * ISSUE #10079, DRAWN: THE TICKS A VALUE AXIS DRAWS READ APART.
+ * ISSUES #10079, #10117 AND #10118, DRAWN: THE TICKS A VALUE AXIS DRAWS READ
+ * APART, EVENLY, IN ROUND STEPS OF THEIR UNIT.
  *
  * The line, area and bar charts, drawn by recharts at a size: a series that
  * moves over a range small beside its values (a filesystem at 17.2 GB, give
- * or take a few megabytes) wrote "17.2 GB" on every tick of its axis. Now each
- * axis reads apart, on either side of the chart, its tooltip writes the
- * series' values to the same figures, and the axis is as wide as its widest
- * tick. An axis whose ticks already read apart draws exactly the ticks and
- * the width it always had.
+ * or take a few megabytes) wrote "17.2 GB" on every tick of its axis, and an
+ * axis whose ticks read apart stepped by recharts' uneven steps. Now every
+ * axis, on either side of the chart, steps in round steps of its unit, with
+ * the fewest figures; a duration axis in natural units of time. The tooltip
+ * writes a narrow axis's series to its ticks' figures, a wide one's as it
+ * always did, and the axis is as wide as its widest tick, never narrower
+ * than its host measured.
  */
 
 // The chart's root, as recharts is handed it: its clicks, for a bucket's.
 const chartRootProps: { current: Record<string, unknown> } = { current: {} };
+
+// How tall recharts lays each chart out: a card's short chart sets it lower.
+const chartBox: { height: number } = { height: 320 };
 
 jest.mock("recharts", () => {
   const actual: Record<string, unknown> = jest.requireActual(
@@ -47,7 +53,7 @@ jest.mock("recharts", () => {
     }): React.ReactElement => {
       return react.cloneElement(children, {
         width: 640,
-        height: 320,
+        height: chartBox.height,
       } as Record<string, unknown>);
     },
     LineChart: (props: Record<string, unknown>): React.ReactElement => {
@@ -69,6 +75,7 @@ const NBSP: string = "\u00A0";
 
 afterEach(() => {
   cleanup();
+  chartBox.height = 320;
 });
 
 function unitFormatter(unit: string, language?: string): ValueAxisFormatter {
@@ -228,8 +235,15 @@ describe("a single axis over a narrow range", () => {
     const [ticks] = valueAxesIn(container);
 
     expectApart(ticks!);
-    // Ticks a thousandth of a percent apart, from the bars' zero.
-    expect(ticks).toEqual(["0.000%", "0.001%", "0.002%", "0.003%", "0.004%"]);
+    // Ticks half a thousandth of a percent apart, from the bars' zero, to just past the top bar.
+    expect(ticks).toEqual([
+      "0.0000%",
+      "0.0005%",
+      "0.0010%",
+      "0.0015%",
+      "0.0020%",
+      "0.0025%",
+    ]);
   });
 
   test("stacked bars: the axis reaches the stacks' sums, and reads apart", () => {
@@ -300,8 +314,8 @@ describe("a single axis over a narrow range", () => {
   });
 });
 
-describe("an axis whose ticks already read apart draws as it always has", () => {
-  test("recharts' own ticks, in the formatter's own figures, at the host's width", () => {
+describe("an axis whose own figures read apart is stepped roundly too (#10117)", () => {
+  test("round ticks with the fewest figures, at the host's width", () => {
     const formatter: ValueAxisFormatter = unitFormatter("%");
     const { container } = render(
       <LineChart
@@ -315,15 +329,50 @@ describe("an axis whose ticks already read apart draws as it always has", () => 
       />,
     );
 
-    expect(valueAxesIn(container)[0]).toEqual(
+    // Recharts' own steps read "0.00%", "15.00%", ...; now quarters.
+    expect(
       getNiceTickValues([12, 64], 5, true, "adaptive").map(
         (tick: number): string => {
           return formatter(tick);
         },
       ),
-    );
+    ).not.toEqual(valueAxesIn(container)[0]);
+    expect(valueAxesIn(container)[0]).toEqual(["0%", "25%", "50%", "75%"]);
     // The plot starts where it always did: after the host's 64 pixels.
     expect(plotEdges(container).left).toBe(Y_AXIS_WIDTH_IN_PX);
+  });
+
+  test("the issue's memory axis: a tenth of a gigabyte a tick, on the right too", () => {
+    const { container } = render(
+      <LineChart
+        data={rowsOf({
+          cpu: WIDE_PERCENT,
+          memory: [7.53e9, 7.61e9, 7.94e9, 7.7e9, 7.82e9, 7.66e9],
+        })}
+        index={CHART_DATA_POINT_X_AXIS_KEY}
+        categories={["cpu", "memory"]}
+        valueFormatter={unitFormatter("%")}
+        autoMinValue={true}
+        secondYAxis={{
+          categories: ["memory"],
+          valueFormatter: unitFormatter("By"),
+          width: Y_AXIS_WIDTH_IN_PX,
+          autoMinValue: true,
+        }}
+        showLegend={false}
+      />,
+    );
+
+    const [, right] = valueAxesIn(container);
+
+    expect(right).toEqual([
+      `7.5${NBSP}GB`,
+      `7.6${NBSP}GB`,
+      `7.7${NBSP}GB`,
+      `7.8${NBSP}GB`,
+      `7.9${NBSP}GB`,
+      `8.0${NBSP}GB`,
+    ]);
   });
 });
 
@@ -387,13 +436,14 @@ describe("both axes over narrow ranges", () => {
 
     const [left, right] = valueAxesIn(container);
 
-    expect(left![0]).toBe("0.00%");
+    // From zero, with the fewest figures: "0%", not "0.00%".
+    expect(left![0]).toBe("0%");
     expect(right![0]).toBe(`0${NBSP}B`);
     expectApart(left!);
     expectApart(right!);
   });
 
-  test("a narrow left axis beside a wide right one: only the left is stepped", () => {
+  test("a narrow left axis beside a wide right one: each in round steps of its own", () => {
     const formatter: ValueAxisFormatter = unitFormatter("By");
     const { container } = render(
       <LineChart
@@ -416,13 +466,280 @@ describe("both axes over narrow ranges", () => {
     const [left, right] = valueAxesIn(container);
 
     expectApart(left!);
-    expect(right).toEqual(
-      getNiceTickValues([1e9, 12e9], 5, true, "adaptive").map(
-        (tick: number): string => {
-          return formatter(tick);
-        },
-      ),
+    for (const tick of left!) {
+      expect(tick).toMatch(/^91\.\d{3}%$/);
+    }
+    // Two and a half gigabytes a tick, not recharts' 3 GB.
+    expect(right).toEqual([
+      `0${NBSP}B`,
+      `2.5${NBSP}GB`,
+      `5.0${NBSP}GB`,
+      `7.5${NBSP}GB`,
+      `10.0${NBSP}GB`,
+      `12.5${NBSP}GB`,
+    ]);
+  });
+});
+
+// A label as it is drawn: every space a no-break one.
+function drawn(text: string): string {
+  return text.replace(/ /g, NBSP);
+}
+
+// A batch job's run, from 15 minutes to two hours, in seconds.
+const JOB_SECONDS: Array<number> = [900, 2400, 4000, 7000, 5200, 3100];
+// The issue's job: an hour and a half, give or take two seconds.
+const STILL_JOB_SECONDS: Array<number> = [
+  5398.2, 5399.1, 5400.4, 5401.7, 5400.9, 5399.6,
+];
+
+describe("a duration axis steps in natural units of time (#10118)", () => {
+  test.each([
+    ["line", LineChart],
+    ["area", AreaChart],
+    ["bar", BarChart],
+  ])(
+    "the %s chart: half an hour a tick, in hours and minutes",
+    (
+      kind: string,
+      Chart: typeof LineChart | typeof AreaChart | typeof BarChart,
+    ) => {
+      const ChartElement: React.ElementType = Chart as React.ElementType;
+      const { container } = render(
+        <ChartElement
+          data={rowsOf({ job: JOB_SECONDS })}
+          index={CHART_DATA_POINT_X_AXIS_KEY}
+          categories={["job"]}
+          valueFormatter={unitFormatter("s")}
+          valueDurationUnitInSeconds={1}
+          showLegend={false}
+        />,
+      );
+
+      expect(kind).toBeTruthy();
+      expect(valueAxesIn(container)[0]).toEqual(
+        ["0 min", "30 min", "1 h", "1 h 30 min", "2 h"].map(drawn),
+      );
+    },
+  );
+
+  test("the issue's job: a clock a second a tick, never 1.5003 hours", () => {
+    const { container } = render(
+      <LineChart
+        data={rowsOf({ job: STILL_JOB_SECONDS })}
+        index={CHART_DATA_POINT_X_AXIS_KEY}
+        categories={["job"]}
+        valueFormatter={unitFormatter("s")}
+        valueDurationUnitInSeconds={1}
+        autoMinValue={true}
+        showLegend={false}
+      />,
     );
+
+    expect(valueAxesIn(container)[0]).toEqual([
+      "1:29:58",
+      "1:29:59",
+      "1:30:00",
+      "1:30:01",
+      "1:30:02",
+    ]);
+  });
+
+  test("in Persian: Persian digits and words", () => {
+    const { container } = render(
+      <LineChart
+        data={rowsOf({ job: JOB_SECONDS })}
+        index={CHART_DATA_POINT_X_AXIS_KEY}
+        categories={["job"]}
+        valueFormatter={unitFormatter("s", "fa")}
+        valueDurationUnitInSeconds={1}
+        showLegend={false}
+      />,
+    );
+
+    expect(valueAxesIn(container)[0]).toEqual(
+      ["۰ دقیقه", "۳۰ دقیقه", "۱ ساعت", "۱ ساعت ۳۰ دقیقه", "۲ ساعت"].map(drawn),
+    );
+  });
+
+  test("a second axis in a unit of time steps in its own natural units", () => {
+    const { container } = render(
+      <LineChart
+        data={rowsOf({ cpu: WIDE_PERCENT, job: JOB_SECONDS })}
+        index={CHART_DATA_POINT_X_AXIS_KEY}
+        categories={["cpu", "job"]}
+        valueFormatter={unitFormatter("%")}
+        secondYAxis={{
+          categories: ["job"],
+          valueFormatter: unitFormatter("s"),
+          width: Y_AXIS_WIDTH_IN_PX,
+          autoMinValue: false,
+          durationUnitInSeconds: 1,
+        }}
+        showLegend={false}
+      />,
+    );
+
+    const [left, right] = valueAxesIn(container);
+
+    expect(left).toEqual(["0%", "25%", "50%", "75%"]);
+    expect(right).toEqual(
+      ["0 min", "30 min", "1 h", "1 h 30 min", "2 h"].map(drawn),
+    );
+  });
+
+  test("the issue's job's clicked moment reads to its axis's second", () => {
+    const clicks: Array<(category: string, value: number) => string> = [];
+
+    render(
+      <LineChart
+        data={rowsOf({ job: STILL_JOB_SECONDS })}
+        index={CHART_DATA_POINT_X_AXIS_KEY}
+        categories={["job"]}
+        valueFormatter={unitFormatter("s")}
+        valueDurationUnitInSeconds={1}
+        autoMinValue={true}
+        showLegend={false}
+        onBucketClick={(
+          _start: Date,
+          _end: Date,
+          _values: Record<string, number | string>,
+          formatValue?: (category: string, value: number) => string,
+        ): void => {
+          clicks.push(formatValue!);
+        }}
+      />,
+    );
+
+    act(() => {
+      (
+        chartRootProps.current["onClick"] as (
+          state: Record<string, unknown>,
+        ) => void
+      )({ activeTooltipIndex: 3 });
+    });
+
+    // Its own figures read "1.5 hours" on every tick: the axis's second, as a clock.
+    expect(clicks[0]!("job", 5401.7)).toBe("1:30:02");
+  });
+
+  test("a wide duration axis hands its values over as they always read", () => {
+    const clicks: Array<(category: string, value: number) => string> = [];
+
+    render(
+      <LineChart
+        data={rowsOf({ job: JOB_SECONDS })}
+        index={CHART_DATA_POINT_X_AXIS_KEY}
+        categories={["job"]}
+        valueFormatter={unitFormatter("s")}
+        valueDurationUnitInSeconds={1}
+        showLegend={false}
+        onBucketClick={(
+          _start: Date,
+          _end: Date,
+          _values: Record<string, number | string>,
+          formatValue?: (category: string, value: number) => string,
+        ): void => {
+          clicks.push(formatValue!);
+        }}
+      />,
+    );
+
+    act(() => {
+      (
+        chartRootProps.current["onClick"] as (
+          state: Record<string, unknown>,
+        ) => void
+      )({ activeTooltipIndex: 2 });
+    });
+
+    expect(clicks[0]!("job", 4000)).toBe(`1.11${NBSP}hours`);
+  });
+
+  test("the prop is the chart's own: it is never spread onto the chart's root", () => {
+    const { container } = render(
+      <LineChart
+        data={rowsOf({ job: JOB_SECONDS })}
+        index={CHART_DATA_POINT_X_AXIS_KEY}
+        categories={["job"]}
+        valueFormatter={unitFormatter("s")}
+        valueDurationUnitInSeconds={1}
+        showLegend={false}
+      />,
+    );
+
+    expect(container.innerHTML).not.toMatch(/durationunitinseconds/i);
+  });
+});
+
+// The plot's height as recharts laid it out: its horizontal grid lines' span.
+function plotHeight(container: HTMLElement): number {
+  const lines: Array<number> = Array.from(
+    container.querySelectorAll(".recharts-cartesian-grid-horizontal line"),
+  ).map((line: Element): number => {
+    return Number(line.getAttribute("y1") || 0);
+  });
+
+  return Math.max(...lines) - Math.min(...lines);
+}
+
+// A cluster's network throughput, up to 1.1 MB/s, as its overview's card draws it.
+const NETWORK_RATE: Array<number> = [0, 2.1e5, 4.2e5, 8.8e5, 1.1e6, 6.4e5];
+
+describe("a short plot takes only the ticks it has room for (#10117)", () => {
+  test.each([
+    ["line", LineChart],
+    ["area", AreaChart],
+    ["bar", BarChart],
+  ])(
+    "the %s chart in a card: a tick every 20px or more, from its zero",
+    (
+      kind: string,
+      Chart: typeof LineChart | typeof AreaChart | typeof BarChart,
+    ) => {
+      chartBox.height = 130;
+      const ChartElement: React.ElementType = Chart as React.ElementType;
+      const { container } = render(
+        <ChartElement
+          data={rowsOf({ network: NETWORK_RATE })}
+          index={CHART_DATA_POINT_X_AXIS_KEY}
+          categories={["network"]}
+          valueFormatter={unitFormatter("By/s")}
+          showLegend={false}
+        />,
+      );
+
+      const [ticks] = valueAxesIn(container);
+      const height: number = plotHeight(container);
+
+      expect(kind).toBeTruthy();
+      // A short plot, measured once recharts laid it out.
+      expect(height).toBeLessThan(100);
+      expect(height / (ticks!.length - 1)).toBeGreaterThanOrEqual(20);
+      expect(ticks![0]).toBe(`0${NBSP}B/s`);
+      expectApart(ticks!);
+    },
+  );
+
+  test("the same values on a tall plot keep six ticks a quarter of a megabyte apart", () => {
+    const { container } = render(
+      <LineChart
+        data={rowsOf({ network: NETWORK_RATE })}
+        index={CHART_DATA_POINT_X_AXIS_KEY}
+        categories={["network"]}
+        valueFormatter={unitFormatter("By/s")}
+        showLegend={false}
+      />,
+    );
+
+    expect(valueAxesIn(container)[0]).toEqual([
+      `0${NBSP}B/s`,
+      `250${NBSP}KB/s`,
+      `500${NBSP}KB/s`,
+      `750${NBSP}KB/s`,
+      `1.00${NBSP}MB/s`,
+      `1.25${NBSP}MB/s`,
+    ]);
   });
 });
 
