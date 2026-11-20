@@ -59746,5 +59746,10 @@
   "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "この設定の journald レシーバーにはオペレーターがないため、ホストはジャーナルの各行をユニットなしのエントリー全体として送信します。",
   "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "この設定の journald レシーバーには独自のオペレーターがありますが、ジャーナルの行をそのユニットに振り分けるものはありません。",
   "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "OneUptime の Linux 向け既定の journald レシーバーです。そのオペレーターを独自のものと並べて自分のレシーバーにコピーすると、ジャーナルの各行がユニットに振り分けられます。",
-  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "オペレーターのない各 journald レシーバーの下に追加され、ほかは変わりません。保存すると新しいバージョンになり、1 分以内にホストに届きます。"
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "オペレーターのない各 journald レシーバーの下に追加され、ほかは変わりません。保存すると新しいバージョンになり、1 分以内にホストに届きます。",
+  "More read its output metric, {{metric}}, further down the chain.": "出力メトリクス {{metric}} は、連鎖のさらに先でも読み取られています。",
+  "More read their output metrics further down the chain.": "それらの出力メトリクスは、連鎖のさらに先でも読み取られています。",
+  "The widget this link points to is no longer on this dashboard.": "このリンクが指すウィジェットは、このダッシュボードにはもうありません。",
+  "These read its output metric, {{metric}}:": "出力メトリクス {{metric}} は、次が読み取ります：",
+  "These read the output metrics of the ones you can't see:": "表示できない記録ルールの出力メトリクスは、次が読み取ります："
 }

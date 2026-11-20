@@ -59746,5 +59746,10 @@
   "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "此設定的 journald 接收器沒有 operator，因此其主機會將每行 journal 當作整筆記錄傳送，不帶單元。",
   "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "此設定的 journald 接收器有自己的 operator，但沒有一個會將 journal 行歸入其單元。",
   "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "OneUptime 用於 Linux 的預設 journald 接收器。將其中的 operator 複製到你的接收器中、放在你自己的旁邊，即可將每行 journal 歸入其單元。",
-  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "它們會加到每個沒有 operator 的 journald 接收器下，其他部分保持不變。儲存後成為新版本，其主機會在一分鐘內收到。"
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "它們會加到每個沒有 operator 的 journald 接收器下，其他部分保持不變。儲存後成為新版本，其主機會在一分鐘內收到。",
+  "More read its output metric, {{metric}}, further down the chain.": "鏈條更下游還有更多讀取其輸出指標 {{metric}} 的對象。",
+  "More read their output metrics further down the chain.": "鏈條更下游還有更多讀取它們的輸出指標的對象。",
+  "The widget this link points to is no longer on this dashboard.": "此連結指向的小工具已不在此儀表板上。",
+  "These read its output metric, {{metric}}:": "以下讀取其輸出指標 {{metric}}：",
+  "These read the output metrics of the ones you can't see:": "以下讀取您無法檢視的記錄規則的輸出指標："
 }

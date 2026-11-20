@@ -59746,5 +59746,10 @@
   "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "Il receiver journald di questa configurazione non ha operatori, quindi i suoi host inviano ogni riga del journal come voce intera, senza unità.",
   "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "Il receiver journald di questa configurazione ha operatori propri, e nessuno di essi archivia una riga del journal sotto la sua unità.",
   "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "Il receiver journald predefinito di OneUptime per Linux. Copia i suoi operatori nel tuo, accanto ai tuoi, per archiviare ogni riga del journal sotto la sua unità.",
-  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "Vanno sotto ogni receiver journald che non ne ha, e nient'altro cambia. Una volta salvata, è una nuova versione che i suoi host ricevono entro un minuto."
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "Vanno sotto ogni receiver journald che non ne ha, e nient'altro cambia. Una volta salvata, è una nuova versione che i suoi host ricevono entro un minuto.",
+  "More read its output metric, {{metric}}, further down the chain.": "Più avanti nella catena, altri leggono la sua metrica di output, {{metric}}.",
+  "More read their output metrics further down the chain.": "Più avanti nella catena, altri leggono le loro metriche di output.",
+  "The widget this link points to is no longer on this dashboard.": "Il widget a cui rimanda questo link non è più su questa dashboard.",
+  "These read its output metric, {{metric}}:": "Questi leggono la sua metrica di output, {{metric}}:",
+  "These read the output metrics of the ones you can't see:": "Questi leggono le metriche di output delle regole che non puoi vedere:"
 }

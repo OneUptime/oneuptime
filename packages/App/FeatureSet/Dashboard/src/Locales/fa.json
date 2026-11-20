@@ -59746,5 +59746,10 @@
   "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "گیرنده journald این پیکربندی عملگر ندارد، پس میزبان‌های آن هر خط ژورنال را به‌صورت یک ورودی کامل و بدون واحد می‌فرستند.",
   "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "گیرنده journald این پیکربندی عملگرهای خودش را دارد و هیچ‌کدام خط ژورنال را زیر واحدش ثبت نمی‌کند.",
   "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "گیرنده journald پیش‌فرض OneUptime برای Linux. عملگرهای آن را کنار عملگرهای خودتان در گیرنده خود کپی کنید تا هر خط ژورنال زیر واحدش ثبت شود.",
-  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "این عملگرها زیر هر گیرنده journald که عملگری ندارد قرار می‌گیرند و چیز دیگری تغییر نمی‌کند. با ذخیره، نسخه‌ای جدید ساخته می‌شود که ظرف یک دقیقه به میزبان‌های آن می‌رسد."
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "این عملگرها زیر هر گیرنده journald که عملگری ندارد قرار می‌گیرند و چیز دیگری تغییر نمی‌کند. با ذخیره، نسخه‌ای جدید ساخته می‌شود که ظرف یک دقیقه به میزبان‌های آن می‌رسد.",
+  "More read its output metric, {{metric}}, further down the chain.": "در ادامهٔ زنجیره، موارد دیگری هم متریک خروجی آن، {{metric}}، را می‌خوانند.",
+  "More read their output metrics further down the chain.": "در ادامهٔ زنجیره، موارد دیگری هم متریک‌های خروجی آن‌ها را می‌خوانند.",
+  "The widget this link points to is no longer on this dashboard.": "ویجتی که این پیوند به آن اشاره می‌کند دیگر در این داشبورد نیست.",
+  "These read its output metric, {{metric}}:": "این‌ها متریک خروجی آن، {{metric}}، را می‌خوانند:",
+  "These read the output metrics of the ones you can't see:": "این‌ها متریک‌های خروجی قواعد ضبطی را می‌خوانند که نمی‌توانید ببینید:"
 }

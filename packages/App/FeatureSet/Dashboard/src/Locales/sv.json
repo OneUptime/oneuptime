@@ -59746,5 +59746,10 @@
   "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "Den här konfigurationens journald-mottagare har inga operatorer, så dess värdar skickar varje journalrad som en hel post, utan enhet.",
   "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "Den här konfigurationens journald-mottagare har egna operatorer, och ingen av dem placerar en journalrad under sin enhet.",
   "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "OneUptimes standard-journald-mottagare för Linux. Kopiera dess operatorer till din, bredvid dina egna, för att placera varje journalrad under sin enhet.",
-  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "De hamnar under varje journald-mottagare som saknar dem, och inget annat ändras. Sparad blir den en ny version, som dess värdar får inom en minut."
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "De hamnar under varje journald-mottagare som saknar dem, och inget annat ändras. Sparad blir den en ny version, som dess värdar får inom en minut.",
+  "More read its output metric, {{metric}}, further down the chain.": "Längre ner i kedjan läser fler dess utdatamätvärde, {{metric}}.",
+  "More read their output metrics further down the chain.": "Längre ner i kedjan läser fler deras utdatamätvärden.",
+  "The widget this link points to is no longer on this dashboard.": "Widgeten som den här länken pekar på finns inte längre på den här instrumentpanelen.",
+  "These read its output metric, {{metric}}:": "Dessa läser dess utdatamätvärde, {{metric}}:",
+  "These read the output metrics of the ones you can't see:": "Dessa läser utdatamätvärdena för de regler som du inte kan se:"
 }

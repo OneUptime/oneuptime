@@ -59746,5 +59746,10 @@
   "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "이 구성의 journald 수신기에 오퍼레이터가 없어, 호스트가 저널의 각 줄을 유닛 없이 전체 항목으로 보냅니다.",
   "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "이 구성의 journald 수신기에 자체 오퍼레이터가 있지만, 저널 줄을 해당 유닛 아래에 두는 오퍼레이터는 없습니다.",
   "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "OneUptime의 Linux용 기본 journald 수신기입니다. 이 오퍼레이터를 자체 오퍼레이터 옆에 복사해 넣으면 저널의 각 줄이 해당 유닛 아래에 놓입니다.",
-  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "오퍼레이터가 없는 각 journald 수신기 아래에 추가되며 다른 부분은 바뀌지 않습니다. 저장하면 새 버전이 되고, 1분 안에 호스트에 전달됩니다."
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "오퍼레이터가 없는 각 journald 수신기 아래에 추가되며 다른 부분은 바뀌지 않습니다. 저장하면 새 버전이 되고, 1분 안에 호스트에 전달됩니다.",
+  "More read its output metric, {{metric}}, further down the chain.": "체인의 더 아래에서도 출력 메트릭 {{metric}}을(를) 읽는 항목이 더 있습니다.",
+  "More read their output metrics further down the chain.": "체인의 더 아래에서도 이들의 출력 메트릭을 읽는 항목이 더 있습니다.",
+  "The widget this link points to is no longer on this dashboard.": "이 링크가 가리키는 위젯은 더 이상 이 대시보드에 없습니다.",
+  "These read its output metric, {{metric}}:": "출력 메트릭 {{metric}}을(를) 읽는 항목:",
+  "These read the output metrics of the ones you can't see:": "볼 수 없는 기록 규칙의 출력 메트릭을 읽는 항목:"
 }

@@ -59746,5 +59746,10 @@
   "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "لا يحتوي مستقبِل journald في هذا الإعداد على عوامل معالجة، لذا يرسل مضيفوه كل سطر من journal كإدخال كامل، بلا وحدة.",
   "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "لمستقبِل journald في هذا الإعداد عوامل معالجة خاصة به، ولا يضع أيٌّ منها سطر journal تحت وحدته.",
   "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "مستقبِل journald الافتراضي في OneUptime لنظام Linux. انسخ عوامل المعالجة الخاصة به إلى مستقبِلك، بجانب عواملك، ليُوضع كل سطر من journal تحت وحدته.",
-  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "تُضاف تحت كل مستقبِل journald لا يحتوي عليها، ولا يتغير شيء آخر. وبعد الحفظ يصبح إصدارًا جديدًا يصل إلى مضيفيه خلال دقيقة."
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "تُضاف تحت كل مستقبِل journald لا يحتوي عليها، ولا يتغير شيء آخر. وبعد الحفظ يصبح إصدارًا جديدًا يصل إلى مضيفيه خلال دقيقة.",
+  "More read its output metric, {{metric}}, further down the chain.": "وتقرأ عناصر أخرى مقياس مخرجاتها، {{metric}}، في مراحل لاحقة من السلسلة.",
+  "More read their output metrics further down the chain.": "وتقرأ عناصر أخرى مقاييس مخرجاتها في مراحل لاحقة من السلسلة.",
+  "The widget this link points to is no longer on this dashboard.": "لم يعد عنصر الواجهة الذي يشير إليه هذا الرابط موجودًا في لوحة المعلومات هذه.",
+  "These read its output metric, {{metric}}:": "تقرأ هذه مقياس مخرجاتها، {{metric}}:",
+  "These read the output metrics of the ones you can't see:": "تقرأ هذه مقاييس مخرجات قواعد التسجيل التي لا يمكنك رؤيتها:"
 }
