@@ -1063,11 +1063,13 @@ jobs:
           node-version: 26
           cache: 'npm'
 
+      # No Go cache, as release.yml's publish-terraform-provider: setup-go keys
+      # it on a go.sum the repository does not have at its root.
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: 'stable'
-          cache: true
+          cache: false
 
       - name: Install GoReleaser
         uses: goreleaser/goreleaser-action@v6.1.0

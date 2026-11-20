@@ -199,11 +199,14 @@ jobs:
           node-version: 26
           cache: 'npm'
 
+      # No Go cache, as in the Terraform Provider Generation workflow: setup-go
+      # keys it on a go.sum the repository does not have at its root, so it
+      # restored nothing and only warned.
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: 'stable'
-          cache: true
+          cache: false
 
       # Both engines are installed because the suite runs end to end twice, once
       # each. The wrappers that hashicorp/setup-terraform and

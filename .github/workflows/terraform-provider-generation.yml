@@ -39,11 +39,17 @@ jobs:
           node-version: 26
           cache: 'npm'
 
+      # No Go cache. setup-go keys it on a go.sum, and the repository has none
+      # at its root: the provider's is generated, after this step, with the
+      # newest modules each time. So the cache restored nothing and only
+      # warned "Dependencies file is not found". A cache that worked would come
+      # to several GB, in the cache space the npm caches share
+      # (crossplane-provider.yml says the same).
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: 'stable'
-          cache: true
+          cache: false
 
       - name: Install Common dependencies
         uses: ./.github/actions/npm-install
