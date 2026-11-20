@@ -55,12 +55,14 @@ import {
  * routes' and the public page's own suites.
  */
 
-// The types a public dashboard serves: every type but the Data Source ones.
+/*
+ * The types a public dashboard serves: every type - a Data Source widget
+ * only while it reads this project's metrics alone, with its queries'
+ * text left out (issue #10226).
+ */
 const SERVED_TYPES: Array<PublicDashboardServedWidgetType> = Object.values(
   DashboardComponentType,
-).filter((componentType: DashboardComponentType): boolean => {
-  return !DataSourceComponentTypes.includes(componentType);
-}) as Array<PublicDashboardServedWidgetType>;
+) as Array<PublicDashboardServedWidgetType>;
 
 // Every setting a widget type has, as its declaration, its editor and its sort say.
 const settingsOf: (componentType: DashboardComponentType) => Array<string> =
@@ -75,13 +77,14 @@ const editorSettings: (componentType: DashboardComponentType) => Array<string> =
 const isSortable: (componentType: DashboardComponentType) => boolean =
   isSortableWidgetType;
 
-// Every setting a decision names, in all three of its lists.
+// Every setting a decision names, in all four of its lists.
 function decidedSettings(
   decision: PublicDashboardWidgetSettings,
 ): Array<string> {
   return [
     ...decision.served,
     ...Object.keys(decision.servedWhileOn || {}),
+    ...(decision.servedWithoutQueryText || []),
     ...decision.withheld,
   ];
 }
@@ -123,16 +126,27 @@ describe("every widget type's settings are decided: served or withheld", () => {
     }
   });
 
-  test("every type a public dashboard serves has a decision, and the Data Source types, which it leaves out whole, none", () => {
+  test("every type has a decision, and a Data Source type's serves its queries without their text - only a Data Source type's", () => {
     expect(Object.keys(PUBLIC_DASHBOARD_WIDGET_SETTINGS).sort()).toEqual(
       [...SERVED_TYPES].sort(),
     );
 
-    for (const componentType of DataSourceComponentTypes) {
+    for (const componentType of SERVED_TYPES) {
+      const decision: PublicDashboardWidgetSettings | null =
+        getPublicDashboardWidgetSettingsDecision(componentType);
+
+      expect([componentType, decision !== null]).toEqual([componentType, true]);
       expect([
         componentType,
-        getPublicDashboardWidgetSettingsDecision(componentType),
-      ]).toEqual([componentType, null]);
+        decision!.servedWithoutQueryText || [],
+      ]).toEqual([
+        componentType,
+        componentType === DashboardComponentType.DataSourceChart
+          ? ["queries"]
+          : DataSourceComponentTypes.includes(componentType)
+            ? ["query"]
+            : [],
+      ]);
     }
   });
 
@@ -321,6 +335,18 @@ describe("getPublicDashboardWidgetSettings", () => {
       stored["notes"] = "for the owner only";
       stored["queryConfigs"] = [{ query: "SELECT secret" }];
 
+      // A Data Source widget's queries, set up, with their text.
+      const query: Record<string, unknown> = {
+        id: "q1",
+        dataSourceId: "oneuptime-metrics",
+        query: "secret_metric_total",
+        legend: "{{pod}}",
+      };
+
+      for (const setting of decision.servedWithoutQueryText || []) {
+        stored[setting] = setting === "queries" ? [query] : query;
+      }
+
       const served: Record<string, unknown> = getPublicDashboardWidgetSettings(
         componentType,
         stored,
@@ -333,8 +359,25 @@ describe("getPublicDashboardWidgetSettings", () => {
 
       expect([componentType, Object.keys(served).sort()]).toEqual([
         componentType,
-        expectedKeys,
+        [...expectedKeys, ...(decision.servedWithoutQueryText || [])].sort(),
       ]);
+
+      // Its queries without their text: the source, the id and the legend.
+      const withoutText: Record<string, unknown> = {
+        id: "q1",
+        dataSourceId: "oneuptime-metrics",
+        legend: "{{pod}}",
+      };
+
+      for (const setting of decision.servedWithoutQueryText || []) {
+        expect([componentType, setting, served[setting]]).toEqual([
+          componentType,
+          setting,
+          setting === "queries" ? [withoutText] : withoutText,
+        ]);
+      }
+
+      expect(JSON.stringify(served)).not.toContain("secret");
 
       for (const key of expectedKeys) {
         expect([componentType, key, served[key] === stored[key]]).toEqual([
@@ -423,7 +466,43 @@ describe("getPublicDashboardWidgetSettings", () => {
     expect(Object.getPrototypeOf(served)).toBe(Object.prototype);
   });
 
-  test("serves nothing of a type it serves nothing of: a Data Source widget, a type no board draws, no type", () => {
+  test("serves a Data Source widget's queries without their text, and none that is not set up", () => {
+    expect(
+      getPublicDashboardWidgetSettings(DashboardComponentType.DataSourceChart, {
+        chartTitle: "Requests",
+        queries: [
+          { id: "a", dataSourceId: "oneuptime-metrics", query: "  " },
+          { id: "b", dataSourceId: "", query: "up" },
+          { id: "c", dataSourceId: "oneuptime-metrics", query: "secret_up" },
+          "not a query",
+        ],
+      }),
+    ).toEqual({
+      chartTitle: "Requests",
+      queries: [{ id: "c", dataSourceId: "oneuptime-metrics" }],
+    });
+
+    expect(
+      getPublicDashboardWidgetSettings(DashboardComponentType.DataSourceValue, {
+        title: "Requests",
+        query: { dataSourceId: "oneuptime-metrics", query: "   " },
+      }),
+    ).toEqual({ title: "Requests" });
+
+    // A list where one query is kept, an object where a list is: nothing.
+    expect(
+      getPublicDashboardWidgetSettings(DashboardComponentType.DataSourceChart, {
+        queries: { dataSourceId: "oneuptime-metrics", query: "secret_up" },
+      }),
+    ).toEqual({ queries: [] });
+    expect(
+      getPublicDashboardWidgetSettings(DashboardComponentType.DataSourceTable, {
+        query: [{ dataSourceId: "oneuptime-metrics", query: "secret_up" }],
+      }),
+    ).toEqual({});
+  });
+
+  test("serves nothing of a type it serves nothing of: a type no board draws, no type", () => {
     const stored: Record<string, unknown> = {
       title: "x",
       text: "y",
@@ -432,7 +511,6 @@ describe("getPublicDashboardWidgetSettings", () => {
     };
 
     for (const componentType of [
-      ...DataSourceComponentTypes,
       "HostMetricChart",
       " Text ",
       "text",

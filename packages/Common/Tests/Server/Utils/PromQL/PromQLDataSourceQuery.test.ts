@@ -2,7 +2,9 @@ import {
   ProjectMetricsQueryAnswer,
   mayReadProjectMetrics,
   runProjectMetricsQuery,
+  runPromQLOverProjectMetrics,
 } from "../../../../Server/Utils/PromQL/PromQLDataSourceQuery";
+import { JSONObject } from "../../../../Types/JSON";
 import TelemetryReadAccess from "../../../../Server/Utils/Telemetry/TelemetryReadAccess";
 import { getMetricReadPermissions } from "../../../../Server/Utils/Telemetry/MetricReadPermissions";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -375,5 +377,185 @@ describe("a query that cannot run says why", () => {
     await expect(
       run({ query, resultKind: DataSourceResultKind.TimeSeries }),
     ).rejects.toThrow(BadDataException);
+  });
+});
+
+describe("a PromQL monitor's charts (issue #10227)", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const runNarrowed: (data: {
+    seriesLabels: JSONObject;
+    source?: PromQLSeriesSource;
+    query?: string;
+  }) => Promise<ProjectMetricsQueryAnswer> = (data: {
+    seriesLabels: JSONObject;
+    source?: PromQLSeriesSource;
+    query?: string;
+  }): Promise<ProjectMetricsQueryAnswer> => {
+    return runProjectMetricsQuery({
+      props: memberProps(getMetricReadPermissions()),
+      query: data.query || "requests",
+      resultKind: DataSourceResultKind.TimeSeries,
+      startDate: new Date(START_MS + 30 * 60000),
+      endDate: new Date(START_MS + 40 * 60000),
+      stepInSeconds: 300,
+      seriesLabels: data.seriesLabels,
+      source: data.source || new HeldSeries(),
+    });
+  };
+
+  const jobsOf: (answer: ProjectMetricsQueryAnswer) => Array<string> = (
+    answer: ProjectMetricsQueryAnswer,
+  ): Array<string> => {
+    return (
+      answer.resultKind === DataSourceResultKind.TimeSeries
+        ? answer.result.data
+        : []
+    ).map((point: AggregatedModel): string => {
+      return (point["attributes"] as Record<string, string>)["job"]!;
+    });
+  };
+
+  test("an incident's chart reads the one series that opened it, named as the monitor names it", async () => {
+    // Without __name__, as the monitor names a series it opens one for.
+    expect(jobsOf(await runNarrowed({ seriesLabels: { job: "worker" } }))).toEqual(
+      ["worker", "worker", "worker"],
+    );
+  });
+
+  test("a series named with __name__, where the check needed it, is found by it too; labels no series has find none", async () => {
+    expect(
+      jobsOf(
+        await runNarrowed({
+          seriesLabels: { __name__: "requests", job: "api" },
+        }),
+      ),
+    ).toEqual(["api", "api", "api"]);
+
+    // A label more than the series has: another series.
+    expect(
+      (await runNarrowed({ seriesLabels: { job: "api", pod: "api-1" } }))
+        .result,
+    ).toEqual({ data: [], truncated: false });
+  });
+
+  test(`the one series is kept before the cap of ${DATA_SOURCE_MAX_SERIES}, wherever it comes`, async () => {
+    const wanted: number = DATA_SOURCE_MAX_SERIES + 40;
+    const many: PromQLSeriesSource = {
+      select: async (): Promise<Array<PromQLSeries>> => {
+        return Array.from({ length: DATA_SOURCE_MAX_SERIES + 50 }).map(
+          (_item: unknown, index: number): PromQLSeries => {
+            return {
+              labels: { __name__: "x", pod: `pod-${index}` },
+              timestampsMs: [START_MS + 38 * 60000],
+              values: [index],
+            };
+          },
+        );
+      },
+    };
+
+    const answer: ProjectMetricsQueryAnswer = await runNarrowed({
+      query: "x",
+      seriesLabels: { pod: `pod-${wanted}` },
+      source: many,
+    });
+
+    expect(answer.result.truncated).toBe(false);
+    expect(
+      (answer.resultKind === DataSourceResultKind.TimeSeries
+        ? answer.result.data
+        : []
+      ).map((point: AggregatedModel): unknown => {
+        return [point.value, point["attributes"]];
+      }),
+    ).toEqual([[wanted, { pod: `pod-${wanted}` }]]);
+  });
+
+  test("the services the monitor reads are asked for among those the person may read", async () => {
+    const serviceFilter: SpyInstance<
+      typeof TelemetryReadAccess.getServiceFilter
+    > = jest
+      .spyOn(TelemetryReadAccess, "getServiceFilter")
+      .mockRejectedValue(new Error("stop after the scope") as never);
+
+    const serviceId: string = "0f8fad5b-d9cb-469f-a165-70867728950e";
+
+    const runFor: (serviceIds: Array<string>) => Promise<unknown> = (
+      serviceIds: Array<string>,
+    ): Promise<unknown> => {
+      return runProjectMetricsQuery({
+        props: memberProps(getMetricReadPermissions()),
+        query: "requests",
+        resultKind: DataSourceResultKind.TimeSeries,
+        startDate: new Date(START_MS),
+        endDate: new Date(START_MS + 60000),
+        serviceIds,
+      });
+    };
+
+    await expect(runFor([serviceId])).rejects.toThrow("stop after the scope");
+    expect(serviceFilter.mock.calls[0]![0].requested).toEqual([serviceId]);
+
+    // None named: every service the person may read.
+    await expect(runFor([])).rejects.toThrow("stop after the scope");
+    expect(serviceFilter.mock.calls[1]![0].requested).toBeUndefined();
+  });
+
+  test("a member who may not read metrics is told which roles can", async () => {
+    await expect(
+      run({
+        query: "requests",
+        resultKind: DataSourceResultKind.TimeSeries,
+        props: memberProps([]),
+      }),
+    ).rejects.toThrow(
+      "You do not have permission to read this project's metrics. Ask a Project Owner or Project Admin for a role that reads telemetry.",
+    );
+  });
+});
+
+describe("PromQL over a project's metrics for a public dashboard (issue #10226)", () => {
+  test("reads with the same engine, step and caps as the signed-in route", async () => {
+    const source: HeldSeries = new HeldSeries();
+
+    const answer: ProjectMetricsQueryAnswer = await runPromQLOverProjectMetrics(
+      {
+        projectId: PROJECT_ID,
+        serviceFilter: {},
+        query: "sum(requests)",
+        resultKind: DataSourceResultKind.TimeSeries,
+        startDate: new Date(START_MS + 30 * 60000),
+        endDate: new Date(START_MS + 40 * 60000),
+        source,
+      },
+    );
+
+    // Ten minutes over 250 buckets, held to the 10s floor: 61 points.
+    expect(
+      answer.resultKind === DataSourceResultKind.TimeSeries
+        ? answer.result.data.length
+        : 0,
+    ).toBe(61);
+    expect(source.selections.length).toBeGreaterThan(0);
+  });
+
+  test("a query that does not parse says so, and reads nothing", async () => {
+    const source: HeldSeries = new HeldSeries();
+
+    await expect(
+      runPromQLOverProjectMetrics({
+        projectId: PROJECT_ID,
+        serviceFilter: {},
+        query: "sum(requests",
+        resultKind: DataSourceResultKind.TimeSeries,
+        startDate: new Date(START_MS),
+        endDate: new Date(START_MS + 60000),
+        source,
+      }),
+    ).rejects.toThrow("The PromQL query did not run.");
+    expect(source.selections).toEqual([]);
   });
 });
