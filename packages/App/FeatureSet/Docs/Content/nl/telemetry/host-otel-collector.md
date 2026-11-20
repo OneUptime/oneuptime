@@ -99,10 +99,69 @@ receivers:
           process.memory.utilization:
             enabled: true
 
-  # The systemd journal: every unit's logs, info and above.
+  # The systemd journal: every unit's logs, info and above. Each line is sent
+  # as its message, at its level, with the unit it is about and - for a unit
+  # that failed - systemd's own result and exit status, which the Systemd
+  # Units page reads why it failed from. The rest of an entry (its command
+  # line, user and group ids, cursor) stays on this host.
   journald:
-    directory: /var/log/journal
     priority: info
+    # A line holding a control character arrives as text, not as numbers.
+    convert_message_bytes: true
+    operators:
+      # What systemd itself says about a unit comes from PID 1, naming it in UNIT.
+      - type: move
+        if: 'body._PID == "1" and body.UNIT != nil'
+        from: body.UNIT
+        to: attributes["systemd.unit.name"]
+      - type: move
+        if: 'attributes["systemd.unit.name"] == nil and body._SYSTEMD_UNIT != nil'
+        from: body._SYSTEMD_UNIT
+        to: attributes["systemd.unit.name"]
+      # Why a unit failed, in systemd's words: its result and how its process ended.
+      - type: move
+        if: 'body._PID == "1" and body.UNIT_RESULT != nil'
+        from: body.UNIT_RESULT
+        to: attributes["systemd.unit.result"]
+      - type: move
+        if: 'body._PID == "1" and body.EXIT_CODE != nil'
+        from: body.EXIT_CODE
+        to: attributes["systemd.unit.exit_code"]
+      - type: move
+        if: 'body._PID == "1" and body.EXIT_STATUS != nil'
+        from: body.EXIT_STATUS
+        to: attributes["systemd.unit.exit_status"]
+      - type: move
+        if: 'body.SYSLOG_IDENTIFIER != nil'
+        from: body.SYSLOG_IDENTIFIER
+        to: attributes["syslog.identifier"]
+      - type: move
+        if: 'body._PID != nil'
+        from: body._PID
+        to: attributes["process.pid"]
+      # The journal's priority as the line's severity: syslog's levels.
+      - type: severity_parser
+        if: 'body.PRIORITY != nil'
+        parse_from: body.PRIORITY
+        preset: none
+        overwrite_text: true
+        mapping:
+          fatal: "0"
+          error3: "1"
+          error2: "2"
+          error: "3"
+          warn: "4"
+          info2: "5"
+          info: "6"
+          debug: "7"
+      # Nothing else of the entry leaves the host: the message is the line.
+      - type: retain
+        fields:
+          - body.MESSAGE
+      - type: move
+        from: body.MESSAGE
+        to: body
+        on_error: send_quiet
 
   # Powers the Systemd Units tab (otelcol-contrib v0.143.0+).
   systemd:
@@ -543,18 +602,20 @@ Op een systemd-host herhalen `/var/log/syslog` en `/var/log/messages` wat de jou
 
 ### systemd-journal
 
-Op een systemd-host leest de receiver `journald` de logs van elke unit op één plek, met hun gestructureerde velden. De Linux-configuratie hierboven leest ze allemaal vanaf `info`; beperk hem tot een paar units:
+Op een systemd-host leest de receiver `journald` de logs van elke unit op één plek. De Linux-configuratie hierboven leest ze allemaal vanaf `info`, en de `operators` ervan sturen elke vermelding als haar bericht, op haar syslog-niveau, opgeborgen onder de unit waar ze over gaat (`systemd.unit.name`). Voor een mislukte unit voegen ze het eigen resultaat van systemd toe en hoe het proces eindigde (`systemd.unit.result`, `systemd.unit.exit_code`, `systemd.unit.exit_status`), waaruit de pagina **Systemd-units** van de host zegt waarom de unit mislukte. Verder verlaat niets van een vermelding de machine: geen opdrachtregel, gebruiker of cursor.
+
+Houd de operators als je de receiver aanpast: zonder ze komt elke regel aan als de hele journal-vermelding in JSON, onder geen enkele unit, en kan de pagina van een mislukte unit niet zeggen waarom die mislukte. Om maar een paar units te lezen, zet je ze onder `units`:
 
 ```yaml
 receivers:
   journald:
-    directory: /var/log/journal
     units:
       # Drop this list to ingest everything; restrict it to limit volume.
       - ssh.service
       - cron.service
       - nginx.service
     priority: info
+    # Keep convert_message_bytes and the operators of the config above.
 ```
 
 De receiver voert `journalctl` uit, dat elke systemd-host heeft, en de gebruiker van de collector moet in de groep `systemd-journal` zitten.
@@ -928,11 +989,11 @@ Logs zijn bijna altijd het grootste deel, en de collector leest alleen wat je op
 ```yaml
 receivers:
   journald:
-    directory: /var/log/journal
     units:
       - ssh.service
       - nginx.service
     priority: warning # info and debug are dropped before export
+    # Keep convert_message_bytes and the operators of the config above.
 ```
 
 - Beperk het eventkanaal `Security`, met veel volume, tot de event-ID's die je controleert met een `query:` (zoals in [Windows-eventlogs](#windows-eventlogs)), of laat het kanaal vallen.

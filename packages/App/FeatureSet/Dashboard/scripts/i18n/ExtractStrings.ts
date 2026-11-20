@@ -615,6 +615,36 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * The CIS benchmarks' node and control plane controls kube-bench reads on
+   * the nodes (#9873): each one's short title, what its section looks at and
+   * how to fix it. Only the words the file marks are read: flags, paths and
+   * commands are drawn as written.
+   */
+  {
+    directory:
+      "packages/Common/Types/Kubernetes/Compliance/KubernetesNodeBenchmarkCatalog.ts",
+    kind: "keys",
+  },
+  /*
+   * The NSA/CISA Kubernetes Hardening Guide's controls (#9875): each one's
+   * title, what it finds wrong, how to fix it and the guide's section it is
+   * from, and why the guide's other recommendations are not scored.
+   */
+  {
+    directory:
+      "packages/Common/Types/Kubernetes/Compliance/NsaCisaHardening.ts",
+    kind: "keys",
+  },
+  /*
+   * Why the OneUptime agent's own workloads need what the controls fail
+   * (#9929), and the value that removes each. Settings are drawn as written.
+   */
+  {
+    directory:
+      "packages/Common/Types/Kubernetes/Compliance/KubernetesAgentWorkloads.ts",
+    kind: "keys",
+  },
+  /*
    * A host's status and what needs attention on it, by one set of rules:
    * the Hosts list and its Needs attention card, a host's hero and page,
    * and its Topology say them in the reader's language. Only the words the
