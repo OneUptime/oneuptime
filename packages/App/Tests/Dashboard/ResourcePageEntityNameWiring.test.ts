@@ -200,9 +200,18 @@ const getJsxProp: GetJsxPropFunction = (
 
 type ParseObjectLiteralFunction = (literal: string) => Record<string, string>;
 
+type ParseConditionalSpreadFunction = (entry: string) => Record<string, string>;
+
 /*
  * Parse a flat object literal `{ "a.b": expr, [CONST]: expr, }` into a map
  * of key -> value expression text. Keys keep a [computed] form as written.
+ *
+ * A chip a page shows only while something holds - the Host Logs page's
+ * log session (#9806) - is a conditional spread of another flat literal,
+ * `...(condition ? { [CONST]: expr } : {})`: its entries are read as the
+ * literal's own. Any other spread (`...rest`, a branch that is not `{}`)
+ * cannot be read here and fails, so a chip this file cannot see never
+ * passes unread.
  */
 const parseObjectLiteral: ParseObjectLiteralFunction = (
   literal: string,
@@ -250,6 +259,11 @@ const parseObjectLiteral: ParseObjectLiteralFunction = (
       continue;
     }
 
+    if (entry.trim().startsWith("...")) {
+      Object.assign(result, parseConditionalSpread(entry));
+      continue;
+    }
+
     const entryPattern: RegExp =
       /^\s*("[^"]*"|\[[^\]]*\]|[A-Za-z_$][\w$]*)\s*:\s*([\s\S]*)$/;
     const keyMatch: RegExpExecArray | null = entryPattern.exec(entry);
@@ -267,6 +281,43 @@ const parseObjectLiteral: ParseObjectLiteralFunction = (
   }
 
   return result;
+};
+
+/*
+ * The entries of `...(condition ? { ... } : {})`, read as a flat literal of
+ * their own. The condition may read optional chains (`a?.b ? {`): the
+ * literal starts at the first "?" that a "{" follows.
+ */
+const SPREAD_ENTRY: RegExp = /^\s*\.\.\.\(([\s\S]*)\)\s*$/;
+const BRANCH_START: RegExp = /\?\s*\{/;
+const EMPTY_OTHERWISE: RegExp = /^\s*:\s*\{\s*\}\s*$/;
+
+const parseConditionalSpread: ParseConditionalSpreadFunction = (
+  entry: string,
+): Record<string, string> => {
+  const spread: RegExpExecArray | null = SPREAD_ENTRY.exec(entry);
+
+  if (!spread) {
+    throw new Error(`Cannot parse spread entry: ${entry}`);
+  }
+
+  const inner: string = spread[1]!.trim();
+  const branch: RegExpExecArray | null = BRANCH_START.exec(inner);
+
+  if (!branch || !inner.substring(0, branch.index).trim()) {
+    throw new Error(`Cannot parse spread entry: ${entry}`);
+  }
+
+  const literalStart: number = inner.indexOf("{", branch.index);
+  const literal: string = readBalanced(inner, literalStart);
+  const otherwise: string = inner.substring(literalStart + literal.length);
+
+  // The chip is there only while the condition holds: no other branch.
+  if (!EMPTY_OTHERWISE.test(otherwise)) {
+    throw new Error(`Cannot parse spread entry: ${entry}`);
+  }
+
+  return parseObjectLiteral(literal);
 };
 
 type GetObjectPropFunction = (
@@ -377,7 +428,27 @@ const RAW_IDENTIFIER_EXPRESSIONS: Array<string> = [
   "host.hostIdentifier!",
   "host?.hostIdentifier",
   "containerId",
+  // A log session is filtered on by its id (#9806), never shown by it.
+  "shownSession._id",
+  "shownSession._id.toString()",
+  "shownSession?._id?.toString()",
+  "shownSession.id",
+  "shownSession.id!.toString()",
 ];
+
+/*
+ * What a chip's display value starts with: the entity's own name, its
+ * identifier only a fallback after it. A chip of a record the page picked
+ * rather than the entity it is scoped to - the Host Logs page's log session
+ * (#9806) - reads what tells that record apart for its reader: when the
+ * session was requested, in the reader's time zone.
+ */
+const FRIENDLY_NAME_FIRST: RegExp = /^(host\??\.name|containerName)\b/;
+
+const FRIENDLY_DISPLAY_VALUE_BY_KEY: Record<string, RegExp> = {
+  "[HOST_LOG_SESSION_ATTRIBUTE]":
+    /^OneUptimeDate\.getDateAsUserFriendlyLocalFormattedString\( shownSession\.createdAt, \)$/,
+};
 
 describe("source helpers", () => {
   test("getJsxElements finds nested-brace props and stops at the right />", () => {
@@ -405,6 +476,41 @@ describe("source helpers", () => {
       "resource.host.name": 'host.name || host.hostIdentifier || ""',
       "[ATTR]": "f(a, b)",
     });
+  });
+
+  test("parseObjectLiteral reads a chip shown only while its condition holds", () => {
+    expect(
+      parseObjectLiteral(
+        '{ "resource.host.name": "Host", ...(shownSession ? { [ATTR]: "Log Session" } : {}), }',
+      ),
+    ).toEqual({
+      "resource.host.name": '"Host"',
+      "[ATTR]": '"Log Session"',
+    });
+
+    // A condition that reads an optional chain, and a value that calls.
+    expect(
+      parseObjectLiteral(
+        "{ ...(session?.createdAt ? { [ATTR]: format( session.createdAt, ), } : {}) }",
+      ),
+    ).toEqual({ "[ATTR]": "format( session.createdAt, )" });
+  });
+
+  test("parseObjectLiteral refuses a spread it cannot read, so no chip passes unread", () => {
+    expect(() => {
+      return parseObjectLiteral('{ "a": x, ...rest }');
+    }).toThrow("Cannot parse spread entry");
+    // Another branch would show a chip this file never sees.
+    expect(() => {
+      return parseObjectLiteral("{ ...(c ? { [ATTR]: v } : other) }");
+    }).toThrow("Cannot parse spread entry");
+    expect(() => {
+      return parseObjectLiteral("{ ...(c ? { [ATTR]: v } : { [B]: w }) }");
+    }).toThrow("Cannot parse spread entry");
+    // A spread with no condition.
+    expect(() => {
+      return parseObjectLiteral("{ ...({ [ATTR]: v }) }");
+    }).toThrow("Cannot parse spread entry");
   });
 
   test("comment stripping keeps URLs and string content", () => {
@@ -524,7 +630,9 @@ describe("every scoped resource page gives the viewer a name, not just an id", (
           expect({ page, key, value }).toEqual({
             page,
             key,
-            value: expect.stringMatching(/^(host\??\.name|containerName)\b/),
+            value: expect.stringMatching(
+              FRIENDLY_DISPLAY_VALUE_BY_KEY[key] || FRIENDLY_NAME_FIRST,
+            ),
           });
         }
       }
@@ -646,15 +754,53 @@ describe("Host pages", () => {
     const source: string = readPage("Host/View/Logs.tsx");
     const element: string = getOnlyJsxElement(source, "DashboardLogsViewer");
 
-    expect(getObjectProp(element, "attributeFilterDisplayKeys")).toEqual({
+    expect(getObjectProp(element, "attributeFilterDisplayKeys")).toMatchObject({
       "resource.host.name": '"Host"',
     });
-    expect(getObjectProp(element, "attributeFilterDisplayValues")).toEqual({
+    expect(
+      getObjectProp(element, "attributeFilterDisplayValues"),
+    ).toMatchObject({
       "resource.host.name": "host.name || host.hostIdentifier!",
     });
 
-    // The page must load the name it displays.
-    expect(source).toMatch(/select: \{ hostIdentifier: true, name: true, \}/);
+    // The page must load the name it displays (and the OS, for Android's sessions).
+    expect(source).toMatch(
+      /select: \{ hostIdentifier: true, name: true, osType: true, \}/,
+    );
+  });
+
+  test("Host Logs labels a log session's chip 'Log Session', shows when it was requested, and filters on its id", () => {
+    const source: string = readPage("Host/View/Logs.tsx");
+    const element: string = getOnlyJsxElement(source, "DashboardLogsViewer");
+
+    expect(source).toContain(
+      'import { HOST_LOG_SESSION_ATTRIBUTE } from "Common/Types/Host/HostLogSession";',
+    );
+
+    // Every chip the viewer may show: the host's, and a session's.
+    expect(getObjectProp(element, "attributeFilterDisplayKeys")).toEqual({
+      "resource.host.name": '"Host"',
+      "[HOST_LOG_SESSION_ATTRIBUTE]": '"Log Session"',
+    });
+    expect(getObjectProp(element, "attributeFilterDisplayValues")).toEqual({
+      "resource.host.name": "host.name || host.hostIdentifier!",
+      "[HOST_LOG_SESSION_ATTRIBUTE]":
+        "OneUptimeDate.getDateAsUserFriendlyLocalFormattedString( shownSession.createdAt, )",
+    });
+
+    // A session's chip only while its lines are shown (Show Lines).
+    expect(getJsxProp(element, "attributeFilterDisplayKeys")).toContain(
+      "...(shownSession ? { [HOST_LOG_SESSION_ATTRIBUTE]:",
+    );
+    expect(getJsxProp(element, "attributeFilterDisplayValues")).toContain(
+      "...(shownSession?.createdAt ? { [HOST_LOG_SESSION_ATTRIBUTE]:",
+    );
+
+    // The filter is the session's id; the chip only reads its time.
+    expect(source).toContain(
+      "...(shownSession?._id ? { [HOST_LOG_SESSION_ATTRIBUTE]: shownSession._id.toString() } : {})",
+    );
+    expect(getJsxProp(element, "logQuery")).toBe("logQuery");
   });
 
   test("Host Logs still filters on the hostIdentifier", () => {
