@@ -179,7 +179,7 @@ Själva listan över incidenter visar **Incidentnummer**, **Titel**, **Tillstån
 | **Team**            | **Roller**, **Jourexekveringar**, **Ägare**                                               |
 | **Aviseringar**     | **Aviseringsloggar**, **AI-loggar** — hopfällt tills du klickar på **Aviseringar**        |
 | **Anteckningar**    | **Privata anteckningar**, **Offentliga anteckningar**                                     |
-| **Utvecklare**      | **Terraform**, **API**, **CLI**, **AI-assistenter** — hopfällt tills du klickar på **Utvecklare** |
+| **Utvecklare**      | **Terraform**, **Crossplane**, **API**, **CLI**, **AI-assistenter** — hopfällt tills du klickar på **Utvecklare** |
 | **Avancerad**       | **Anpassade fält**, **Inställningar**, **Granskningsloggar**, **Ta bort incident** — hopfällt tills du klickar på **Avancerad** |
 
 Vad varje sida innehåller:

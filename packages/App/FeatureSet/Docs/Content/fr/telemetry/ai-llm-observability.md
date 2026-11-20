@@ -28,7 +28,7 @@ Ouvrez **Produits → IA / LLM**, sous **Observabilité**. Le produit compte sep
 | Onglet | Ce qu'il montre |
 | --- | --- |
 | **Conversations** | Chaque conversation de votre IA, celles qui demandent de l'attention en premier. Au-dessus de la liste : conversations, réponses de l'IA, combien demandent de l'attention, coût et temps de réponse habituel. |
-| **Appels** | Chaque appel de modèle, d'embedding, d'agent et d'outil. Filtrez par service, fournisseur, modèle, opération, personne, équipe ou conversation ; un clic ouvre l'appel dans la visionneuse de traces. |
+| **Appels** | Chaque appel de modèle, d'embedding, d'agent et d'outil. Filtrez par service, fournisseur, modèle, opération, personne, équipe, conversation ou statut ; un appel en échec donne son erreur sous son statut. Un clic ouvre l'appel dans la visionneuse de traces. |
 | **Utilisation** | Les appels, jetons et coûts d'une période, classés par employé, équipe, modèle, fournisseur ou application ; sous **Comptes fournisseurs**, ce qui a été facturé à vos comptes connectés. |
 | **Alertes** | Des alertes prêtes à l'emploi pour quand l'IA répond mal, et vos moniteurs IA / LLM. |
 | **Budgets** | Des plafonds de coût quotidiens, publiés sous forme de métriques sur lesquelles alerter. |
@@ -239,7 +239,7 @@ Une alerte prête à l'emploi déclenche une alerte qui se résout d'elle-même,
 
 ## Voir qui dépense quoi
 
-L'onglet **Utilisation** montre les appels, jetons et coûts d'une période (les 7 derniers jours si vous n'en choisissez pas une autre), et un tableau des 25 premiers selon l'une de cinq ventilations : **Employé**, **Équipe**, **Modèle**, **Fournisseur** et **Application / Service**. Les appels qui ne nomment personne sont comptés sous **Non attribué**, jamais écartés.
+L'onglet **Utilisation** montre les appels, jetons et coûts d'une période (les 7 derniers jours si vous n'en choisissez pas une autre), et un tableau des 25 premiers selon l'une de cinq ventilations : **Employé**, **Équipe**, **Modèle**, **Fournisseur** et **Application / Service**. Les appels qui ne nomment personne sont comptés sous **Non attribué**, jamais écartés. Le taux d'erreur sous **Appels d'IA** ouvre **Appels** sur les appels de la période qui ont échoué, avec **Statut** sur **Erreur**.
 
 Ce sont **Vos appels d'IA**. Choisissez plutôt **Comptes fournisseurs** pour voir ce qui a été facturé à vos comptes OpenAI, Anthropic, Azure, Bedrock, Vertex AI et Cursor connectés : voir [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts#voir-lutilisation). Les deux ne sont jamais additionnés.
 

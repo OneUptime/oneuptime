@@ -153,7 +153,9 @@ describe("docs that list the Developer section name every page of it", () => {
 
     expect(titles).toContain("CLI");
     expect(titles[0]).toBe("Terraform");
-    expect(titles[1]).toBe("API");
+    // Crossplane beside the Terraform provider it is made from.
+    expect(titles[1]).toBe("Crossplane");
+    expect(titles[2]).toBe("API");
     expect(titles[titles.length - 1]).toBe("AI Assistants");
     // The CLI after the API it is a command line for.
     expect(titles.indexOf("CLI")).toBe(titles.indexOf("API") + 1);

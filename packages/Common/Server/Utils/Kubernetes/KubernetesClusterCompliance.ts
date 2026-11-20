@@ -14,7 +14,19 @@ import {
   getKubernetesOwners,
   getKubernetesPodWorkload,
 } from "../../../Types/Kubernetes/KubernetesHealth";
+import {
+  KubernetesNodeBenchmarkBlock,
+  toNodeBenchmarkBlock,
+} from "../../../Types/Kubernetes/KubernetesNodeBenchmark";
 import { toPodSecurity } from "../../../Types/Kubernetes/KubernetesPodSecurity";
+import {
+  OneUptimeAgentComponent,
+  getOneUptimeAgentComponent,
+} from "../../../Types/Kubernetes/Compliance/KubernetesAgentWorkloads";
+import {
+  getNodeBenchmarkScope,
+  summarizeNodeBenchmark,
+} from "../../../Types/Kubernetes/Compliance/KubernetesNodeBenchmarkScoring";
 import {
   readRoleBindingSpec,
   readRoleSpec,
@@ -47,6 +59,7 @@ import {
   scoreKubernetesFrameworks,
 } from "../../../Types/Kubernetes/Compliance/KubernetesComplianceScoring";
 import {
+  KubernetesComplianceNodeBenchmarkRun,
   KubernetesCompliancePod,
   KubernetesComplianceSnapshot,
   KubernetesComplianceTemplate,
@@ -204,15 +217,124 @@ export function getUnownedReplicaSets(
   return unowned;
 }
 
+// A workload row's key, as a finding's object names it.
+function getWorkloadRowKey(row: KubernetesComplianceObjectRow): string {
+  return getComplianceObjectKey({
+    kind: row.kind,
+    namespace: row.namespaceKey || "",
+    name: row.name || "",
+  });
+}
+
+/*
+ * The OneUptime agent's own workloads (#9929), by key: each workload the
+ * chart made, by its labels, and the agent's component it is.
+ */
+export function getAgentComponentsByWorkload(
+  rows: ReadonlyArray<KubernetesComplianceObjectRow>,
+): Map<string, OneUptimeAgentComponent> {
+  const components: Map<string, OneUptimeAgentComponent> = new Map();
+
+  for (const row of rows) {
+    const component: OneUptimeAgentComponent | null = row.name
+      ? getOneUptimeAgentComponent({
+          kind: row.kind,
+          labels: readLabels(row.labels),
+        })
+      : null;
+
+    if (component) {
+      components.set(getWorkloadRowKey(row), component);
+    }
+  }
+
+  return components;
+}
+
+/*
+ * The namespaces the OneUptime agent runs in: those of its workloads other
+ * than kube-bench's CronJobs. Only pods there are read for kube-bench's
+ * results (#9873), so whoever could fake them can already change the agent.
+ */
+export function getOneUptimeAgentNamespaces(
+  rows: ReadonlyArray<KubernetesComplianceObjectRow>,
+): Set<string> {
+  const namespaces: Set<string> = new Set<string>();
+
+  for (const row of rows) {
+    const component: OneUptimeAgentComponent | null =
+      getOneUptimeAgentComponent({
+        kind: row.kind,
+        labels: readLabels(row.labels),
+      });
+
+    if (
+      row.namespaceKey &&
+      component &&
+      component !== OneUptimeAgentComponent.NodeBenchmark
+    ) {
+      namespaces.add(row.namespaceKey);
+    }
+  }
+
+  return namespaces;
+}
+
+export interface KubernetesNodeBenchmarkPodRow {
+  namespaceKey: string | null;
+  name: string | null;
+  nodeName: string | null;
+  nodeBenchmark: unknown;
+}
+
+/*
+ * kube-bench's runs (#9873), from the pods the chart's CronJobs ran: each
+ * one's node and what it found, as the pod's stored block holds it. Pods
+ * outside the agent's namespaces, on no node, or with no block of this
+ * version are left out.
+ */
+export function toNodeBenchmarkRuns(
+  rows: ReadonlyArray<KubernetesNodeBenchmarkPodRow>,
+  agentNamespaces: ReadonlySet<string>,
+): Array<KubernetesComplianceNodeBenchmarkRun> {
+  const runs: Array<KubernetesComplianceNodeBenchmarkRun> = [];
+
+  for (const row of rows) {
+    const namespace: string = row.namespaceKey || "";
+    const result: KubernetesNodeBenchmarkBlock | null = toNodeBenchmarkBlock(
+      row.nodeBenchmark,
+    );
+
+    if (
+      !row.name ||
+      !row.nodeName ||
+      !result ||
+      !agentNamespaces.has(namespace)
+    ) {
+      continue;
+    }
+
+    runs.push({
+      node: row.nodeName,
+      pod: { namespace, name: row.name },
+      result,
+    });
+  }
+
+  return runs;
+}
+
 /*
  * A pod as the scoring reads it: the workload whose page a person opens
  * for it - a Job's CronJob, when it has one - or the pod itself, when
- * nothing owns it (a node's static pods included).
+ * nothing owns it (a node's static pods included), and the agent's
+ * component that workload is, when it is the agent's (#9929).
  */
 export function toCompliancePod(
   row: KubernetesCompliancePodRow,
   cronJobsByJob: Map<string, KubernetesObjectRef>,
   unownedReplicaSets: ReadonlySet<string> = new Set<string>(),
+  agentComponents: ReadonlyMap<string, OneUptimeAgentComponent> = new Map(),
 ): KubernetesCompliancePod | null {
   if (!row.name) {
     return null;
@@ -241,15 +363,26 @@ export function toCompliancePod(
     ? cronJobsByJob.get(`${namespace}/${owner.name}`)
     : undefined) ||
     owner || { kind: "Pod", namespace, name: row.name };
-
-  return {
+  const workloadObject: KubernetesComplianceObject = {
+    kind: workload.kind,
+    namespace: workload.namespace,
+    name: workload.name,
+  };
+  /*
+   * The agent's component its workload is; a pod whose workload is not in
+   * the inventory yet, by its own labels, which kube-bench's carry whole.
+   */
+  const agentComponent: OneUptimeAgentComponent | undefined =
+    agentComponents.get(getComplianceObjectKey(workloadObject)) ||
+    getOneUptimeAgentComponent({
+      kind: workload.kind,
+      labels: readLabels(row.labels),
+    }) ||
+    undefined;
+  const pod: KubernetesCompliancePod = {
     namespace,
     name: row.name,
-    workload: {
-      kind: workload.kind,
-      namespace: workload.namespace,
-      name: workload.name,
-    },
+    workload: workloadObject,
     serviceAccountName: row.serviceAccountName || "default",
     security: toPodSecurity(row.security),
     images: Array.isArray(row.images)
@@ -258,6 +391,12 @@ export function toCompliancePod(
         })
       : [],
   };
+
+  if (agentComponent) {
+    pod.agentComponent = agentComponent;
+  }
+
+  return pod;
 }
 
 /*
@@ -289,14 +428,26 @@ export function toComplianceTemplates(
       continue;
     }
 
-    templates.push({
+    const template: KubernetesComplianceTemplate = {
       workload: {
         kind: row.kind,
         namespace: row.namespaceKey || "",
         name: row.name,
       },
       security: toPodSecurity(row.security),
-    });
+    };
+    // The agent's own workload says so, from its template too (#9929).
+    const agentComponent: OneUptimeAgentComponent | null =
+      getOneUptimeAgentComponent({
+        kind: row.kind,
+        labels: readLabels(row.labels),
+      });
+
+    if (agentComponent) {
+      template.agentComponent = agentComponent;
+    }
+
+    templates.push(template);
   }
 
   return templates;
@@ -603,12 +754,30 @@ export default class KubernetesClusterCompliance {
           LIMIT $3`,
         [...scope, MAX_POLICY_OBJECTS],
       );
-    const versionRows: Array<{ kubeletVersion: string | null }> =
-      await this.query(
-        `SELECT "status"->'nodeInfo'->>'kubeletVersion' AS "kubeletVersion"
+    const versionRows: Array<{
+      name: string | null;
+      kubeletVersion: string | null;
+    }> = await this.query(
+      `SELECT "name", "status"->'nodeInfo'->>'kubeletVersion' AS "kubeletVersion"
            FROM "KubernetesResource"
           WHERE "projectId" = $1 AND "kubernetesClusterId" = $2
             AND "kind" = 'Node' AND "deletedAt" IS NULL
+          LIMIT $3`,
+      [...scope, MAX_POLICY_OBJECTS],
+    );
+    /*
+     * kube-bench's runs (#9873): the pods whose stored spec holds what it
+     * found on their node, the chart's kube-bench pods alone.
+     */
+    const nodeBenchmarkRows: Array<KubernetesNodeBenchmarkPodRow> =
+      await this.query(
+        `SELECT "namespaceKey", "name",
+                "spec"->>'nodeName' AS "nodeName",
+                "spec"->'nodeBenchmark' AS "nodeBenchmark"
+           FROM "KubernetesResource"
+          WHERE "projectId" = $1 AND "kubernetesClusterId" = $2
+            AND "kind" = 'Pod' AND "deletedAt" IS NULL
+            AND "spec"->'nodeBenchmark' IS NOT NULL
           LIMIT $3`,
         [...scope, MAX_POLICY_OBJECTS],
       );
@@ -624,10 +793,17 @@ export default class KubernetesClusterCompliance {
     const cronJobsByJob: Map<string, KubernetesObjectRef> =
       getCronJobsByJob(jobRows);
     const unownedReplicaSets: Set<string> = getUnownedReplicaSets(workloadRows);
+    const agentComponents: Map<string, OneUptimeAgentComponent> =
+      getAgentComponentsByWorkload(workloadRows);
     const pods: Array<KubernetesCompliancePod> = podRows
       .slice(0, MAX_COMPLIANCE_PODS)
       .map((row: KubernetesCompliancePodRow) => {
-        return toCompliancePod(row, cronJobsByJob, unownedReplicaSets);
+        return toCompliancePod(
+          row,
+          cronJobsByJob,
+          unownedReplicaSets,
+          agentComponents,
+        );
       })
       .filter(
         (
@@ -649,6 +825,16 @@ export default class KubernetesClusterCompliance {
         return row.kubeletVersion;
       }),
     );
+    const nodeRows: Array<KubernetesComplianceObjectRow> = versionRows.map(
+      (row: { name: string | null }): KubernetesComplianceObjectRow => {
+        return {
+          kind: "Node",
+          namespaceKey: null,
+          name: row.name,
+          labels: null,
+        };
+      },
+    );
     const policies: Pick<
       KubernetesComplianceSnapshot,
       "roles" | "bindings" | "serviceAccounts" | "networkPolicies"
@@ -666,6 +852,10 @@ export default class KubernetesClusterCompliance {
           return role.kind === "ClusterRole";
         },
       ),
+      nodeBenchmarks: toNodeBenchmarkRuns(
+        nodeBenchmarkRows,
+        getOneUptimeAgentNamespaces(workloadRows),
+      ),
     };
     const settings: Array<KubernetesComplianceSetting> =
       await this.readSettings(data.projectId, data.cluster.id);
@@ -678,7 +868,7 @@ export default class KubernetesClusterCompliance {
         now: data.now || OneUptimeDate.getCurrentDate(),
         objectsOnCluster: getObjectsOnCluster({
           pods,
-          rows: [...workloadRows, ...namespaceRows, ...policyRows],
+          rows: [...workloadRows, ...namespaceRows, ...policyRows, ...nodeRows],
         }),
       });
 
@@ -703,6 +893,10 @@ export default class KubernetesClusterCompliance {
       policyEngine: findPolicyEngine(snapshot),
       isTruncated: podRows.length > MAX_COMPLIANCE_PODS,
       namespaces: summarizeNamespaces(pods, namespaces),
+      nodeBenchmark: summarizeNodeBenchmark(
+        getNodeBenchmarkScope(snapshot.nodeBenchmarks),
+        data.cluster.provider,
+      ),
       frameworks: withTurnedOff(
         scoreKubernetesFrameworks(
           snapshot,

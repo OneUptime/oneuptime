@@ -161,6 +161,7 @@ import FeedMarkdown, {
 import FeedWorkspaceNotificationUtil from "../Utils/Feed/FeedWorkspaceNotification";
 import { NotificationRuleUpdateKind } from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import StateChangeLogScreenshots from "../../Utils/Monitor/StateChangeLogScreenshots";
+import { STATE_CHANGED_WITH_ALERT } from "../../Utils/Monitor/StatusChangeNotes";
 
 /*
  * The two spellings a write of an alert's monitor arrives under: the FK
@@ -2600,7 +2601,7 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
           alertId: itemId,
           alertStateId: updatedAlertStateId,
           notifyOwners: true,
-          rootCause: "This status was changed when the alert was updated.",
+          rootCause: STATE_CHANGED_WITH_ALERT,
           stateChangeLog: undefined,
           props: {
             isRoot: true,

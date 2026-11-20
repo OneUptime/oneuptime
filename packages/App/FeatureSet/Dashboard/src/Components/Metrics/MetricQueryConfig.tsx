@@ -47,7 +47,6 @@ import MetricQueryOverlay, {
   OverlayAxis,
   OverlayAxisReading,
   OverlayChartAxes,
-  OverlayUnitFit,
 } from "Common/Utils/Metrics/MetricQueryOverlay";
 import { getUnitNameInLanguage } from "Common/UI/Components/Charts/Utils/UnitNames";
 import HintChip from "./HintChip";
@@ -58,7 +57,8 @@ export const METRIC_QUERY_OVERLAY_TOGGLE_TEST_ID: string =
 
 /*
  * Under that switch, while it is on: this query's unit cannot be read on
- * either axis of the chart it joins (MetricQueryOverlay.readChartAxes).
+ * either axis of the chart it joins (MetricQueryOverlay.readChartAxes), so it
+ * is drawn to a scale of its own, with no axis (#10080).
  */
 export const METRIC_QUERY_OVERLAY_UNIT_NOTE_TEST_ID: string =
   "metric-query-overlay-unit-note";
@@ -108,7 +108,7 @@ export interface ComponentProps {
    * The chart's left axis is in its first query's unit, and its right axis,
    * when it has one, in the unit of its first query of another kind, so the
    * switch says when this query is drawn against the right axis, and when
-   * neither axis can read it.
+   * neither axis can read it and it is drawn to a scale of its own.
    */
   overlayChartQueries?: Array<MetricQueryConfigData> | undefined;
   // Initial state of the "Filters & grouping" section (see MetricQuery).
@@ -318,7 +318,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
    * read on (MetricQueryOverlay.readChartAxes): the left one, in the chart's
    * first query's unit, where a unit of the same kind is converted and draws
    * right, so there is nothing to say; the right one, for a unit of another
-   * kind; or neither, for a third kind of unit.
+   * kind; or neither, for a third kind of unit, drawn to a scale of its own.
    */
   const overlayChartQueries: Array<MetricQueryConfigData> =
     props.overlayChartQueries || [];
@@ -914,7 +914,9 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                       {/*
                        * Said here, before it is saved, as the chart draws it:
                        * a unit of another kind than the chart's goes on the
-                       * chart's right axis, and a third kind fits neither.
+                       * chart's right axis, and a third kind fits neither, so
+                       * it is drawn to a scale of its own, with no axis
+                       * (#10080).
                        */}
                       {overlayAxisReading?.axis === OverlayAxis.Second &&
                       overlayChartLead ? (
@@ -937,7 +939,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                           )}
                         </p>
                       ) : null}
-                      {overlayAxisReading?.fit === OverlayUnitFit.Different &&
+                      {overlayAxisReading?.axis === OverlayAxis.OwnScale &&
                       overlayChartLead &&
                       overlaySecondAxisLead ? (
                         <HintChip variant="amber">
@@ -946,7 +948,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                             data-testid={METRIC_QUERY_OVERLAY_UNIT_NOTE_TEST_ID}
                           >
                             {translator.translateTemplate(
-                              "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.",
+                              "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.",
                               {
                                 unit: getUnitName(ownUnit, ownMetricName),
                                 chartUnit: getUnitName(

@@ -108,6 +108,7 @@ import AlertService from "Common/Server/Services/AlertService";
 import AlertStateService from "Common/Server/Services/AlertStateService";
 import logger from "Common/Server/Utils/Logger";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
+import { EPISODE_RESOLVED_ALL_ALERTS_RESOLVED } from "Common/Utils/Monitor/StatusChangeNotes";
 import { ALERT_EPISODE_AUTO_RESOLVE } from "../../../../FeatureSet/Workers/Jobs/AlertEpisode/AutoResolve";
 import {
   AutoResolveEpisode,
@@ -330,10 +331,12 @@ describe("AlertEpisode:AutoResolve", () => {
         },
       ],
     ]);
+    // Saying why on its State Timeline, where it used to say nothing (#9959).
     expect(episodeService.resolveEpisode).toHaveBeenCalledWith(
       EPISODE_ID,
       undefined,
       false,
+      EPISODE_RESOLVED_ALL_ALERTS_RESOLVED,
     );
   });
 
@@ -358,6 +361,7 @@ describe("AlertEpisode:AutoResolve", () => {
       EPISODE_ID,
       undefined,
       false,
+      EPISODE_RESOLVED_ALL_ALERTS_RESOLVED,
     );
     expect(mockMemberQuery).toHaveBeenCalledTimes(1);
     // THE regressions removed: a member read and an alert read per episode.

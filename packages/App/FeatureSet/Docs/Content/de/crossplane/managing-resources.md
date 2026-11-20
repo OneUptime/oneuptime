@@ -32,7 +32,7 @@ Die Felder eines Ressourcentyps sind die Argumente der Terraform-Ressource, in c
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` zeigt den Datensatz so, wie OneUptime ihn hat, mit seiner `id`. Ein Feld, das Sie weglassen und das OneUptime ausfüllt, etwa mit einem Standardwert, wird nach dem Anlegen des Datensatzes in `spec.forProvider` übernommen, damit die nächste Prüfung nichts zu ändern findet. Ein Feld, das OneUptime selbst aktuell hält, wird nie übernommen: siehe [Felder, die OneUptime aktuell hält](#felder-die-oneuptime-aktuell-hält).
+`status.atProvider` zeigt den Datensatz so, wie OneUptime ihn hat, mit seiner `id`. Ein Feld, das Sie weglassen und das OneUptime ausfüllt, etwa mit einem Standardwert, wird nach dem Anlegen des Datensatzes in `spec.forProvider` übernommen, damit die nächste Prüfung nichts zu ändern findet. Ein Feld, das OneUptime selbst aktuell hält oder ebenfalls ändert, wird nie übernommen: siehe [Felder, die OneUptime aktuell hält](#felder-die-oneuptime-aktuell-hält).
 
 ## Auf andere Ressourcen verweisen
 
@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-Die ID des Datensatzes steht im `import`-Block, den seine Seite **Entwickler → Terraform** im Dashboard schreibt, und `oneuptime <resource> list` listet mit der [OneUptime-CLI](/docs/cli/resource-operations#datensätze-auflisten) die IDs einer Art von Datensatz auf. Sobald die Ressource bereit ist, zeigt `status.atProvider` den Datensatz. Um ihn von da an zu verwalten, schreiben Sie seine Felder in `spec.forProvider` und setzen `managementPolicies` auf `["*"]`.
+Die Seite **Entwickler → Crossplane** des Datensatzes im Dashboard schreibt dieses Manifest für Sie, mit seiner ID, und eines, das den Datensatz mit seinen Feldern so übernimmt, wie sie sind. `oneuptime <resource> list` listet mit der [OneUptime-CLI](/docs/cli/resource-operations#datensätze-auflisten) die IDs einer Art von Datensatz auf. Sobald die Ressource bereit ist, zeigt `status.atProvider` den Datensatz. Um ihn von da an zu verwalten, schreiben Sie seine Felder in `spec.forProvider` und setzen `managementPolicies` auf `["*"]`.
 
 ## Secrets
 
@@ -104,7 +104,7 @@ Ein Feld, das ein Geheimnis enthält, etwa die Passphrase des TLS-Client-Schlüs
 
 ## Änderungen außerhalb von Kubernetes
 
-Der Provider gleicht alle 10 Minuten jede Ressource mit ihrem Datensatz ab und macht rückgängig, was jemand in OneUptime geändert hat. Um häufiger zu prüfen, geben Sie dem Provider eine Laufzeitkonfiguration mit `--poll`:
+Der Provider gleicht alle 10 Minuten jede Ressource mit ihrem Datensatz ab und macht rückgängig, was jemand in OneUptime geändert hat, außer in einem Feld, das OneUptime ebenfalls ändert (siehe unten). Um häufiger zu prüfen, geben Sie dem Provider eine Laufzeitkonfiguration mit `--poll`:
 
 ```yaml title="runtime-config.yaml"
 apiVersion: pkg.crossplane.io/v1beta1
@@ -136,12 +136,15 @@ Um ein Feld nach dem Anlegen des Datensatzes dem Dashboard zu überlassen, schre
 
 ### Felder, die OneUptime aktuell hält
 
-Manche Felder hält OneUptime selbst aktuell, und der Provider überlässt sie OneUptime: Er übernimmt sie nie in `spec.forProvider` und setzt sie nie zurück.
+Manche Felder hält OneUptime selbst aktuell, andere ändert OneUptime ebenfalls, und der Provider lässt die Änderungen von OneUptime unangetastet: Er übernimmt diese Felder nie in `spec.forProvider` und setzt sie nie zurück.
 
 - Ein Feld, das nur OneUptime schreibt, etwa wann ein Telemetrie-Monitor zuletzt lief (`telemetryMonitorLastMonitorAt`) oder wie viele Knoten ein Kubernetes-Cluster hat (`nodeCount`), steht nur in `status.atProvider`.
 - Ein Feld, mit dessen Wert ein Datensatz beginnt, etwa `currentMonitorStatusId` eines Monitors oder `currentIncidentStateId` eines Vorfalls, kann zum Anlegen des Datensatzes angegeben werden, in `spec.initProvider` oder `spec.forProvider`. Danach ändert OneUptime es, so wie die Prüfungen eines Monitors seinen Status ändern, und `status.atProvider` zeigt, wo es jetzt steht.
+- Ein Feld, das Sie und OneUptime beide ändern, etwa `labels` eines Datensatzes, denen Beschriftungsregeln Einträge hinzufügen, `isResolved` einer Ausnahme oder `siteId` eines Netzwerkgeräts, das die Erkennung verschiebt, schreiben Sie selbst in `spec.forProvider`. Der Provider sendet es zum Anlegen des Datensatzes und erneut bei jeder Änderung seines Werts im Manifest und lässt eine Änderung, die OneUptime zwischendurch vornimmt, unangetastet. Eine Liste wie `labels` behält die Einträge, die OneUptime hinzugefügt hat, bekommt einen Eintrag zurück, der im Manifest steht und den jemand entfernt hat, und verliert einen Eintrag, den Sie aus dem Manifest nehmen.
 
-`kubectl explain` sagt das in der Beschreibung jedes Felds, mit dessen Wert ein Datensatz beginnt. Eine Ressource, deren `spec.forProvider` eine frühere Version des Providers mit diesen Feldern gefüllt hat, hört von selbst auf, gegen OneUptime anzukämpfen, ohne dass Sie etwas bearbeiten müssen.
+`kubectl explain` sagt das in der Beschreibung jedes Felds, mit dessen Wert ein Datensatz beginnt oder das OneUptime ebenfalls ändert. Eine Ressource, deren `spec.forProvider` eine frühere Version des Providers mit diesen Feldern gefüllt hat, hört von selbst auf, gegen OneUptime anzukämpfen, ohne dass Sie etwas bearbeiten müssen.
+
+Der Provider speichert in der Annotation `crossplane.oneuptime.com/last-applied` der Ressource, was ein Manifest zuletzt für die Felder angewendet hat, die OneUptime ebenfalls ändert. In einer Liste, die eine frühere Version des Providers gefüllt hat, etwa `labels`, bleibt ein Eintrag, den Sie herausnehmen, als Eintrag von OneUptime im Datensatz; ein Eintrag, den das Manifest aufführt, nachdem Sie die Liste zum ersten Mal geändert haben, gehört Ihnen und wird aus dem Datensatz entfernt, wenn Sie ihn herausnehmen.
 
 ## Eine Ressource löschen
 

@@ -11,7 +11,7 @@ import React, {
 } from "react";
 import SeriesPoint from "../Types/SeriesPoints";
 import { XAxis } from "../Types/XAxis/XAxis";
-import YAxis, { SecondYAxis } from "../Types/YAxis/YAxis";
+import YAxis, { OwnScaleYAxis, SecondYAxis } from "../Types/YAxis/YAxis";
 import ChartDataPoint, {
   CHART_DATA_POINT_X_AXIS_KEY,
 } from "../ChartLibrary/Types/ChartDataPoint";
@@ -25,6 +25,7 @@ import ChartTimeReferenceLineProps from "../Types/TimeReferenceLineProps";
 import XAxisType from "../Types/XAxis/XAxisType";
 import NoDataMessage from "../ChartGroup/NoDataMessage";
 import { ChartValueAxes, getChartValueAxes } from "../Utils/ValueAxes";
+import { ChartOwnScale } from "../ChartLibrary/Utils/SecondYAxis";
 import Dictionary from "../../../../Types/Dictionary";
 import {
   ChartTimeRangeZoomContextValue,
@@ -98,6 +99,13 @@ export interface ComponentProps {
    * its own ticks, and the tooltip writes a series' values as its axis does.
    */
   secondYAxis?: SecondYAxis | undefined;
+  /*
+   * Scales of their own, with no axis drawn, for the series each names
+   * (issue #10080): an overlaid query in a unit neither axis can say. Each
+   * series' line keeps its shape, the axes keep theirs, and the tooltip
+   * writes its values with its scale's formatter.
+   */
+  ownScaleYAxes?: Array<OwnScaleYAxis> | undefined;
   /*
    * How the tooltip writes a series' values, by its name, for a series whose
    * unit is neither axis's. Left out, a series' values are written as the
@@ -183,8 +191,9 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
       data: props.data,
       yAxis: props.yAxis,
       secondYAxis: props.secondYAxis,
+      ownScaleYAxes: props.ownScaleYAxes,
     });
-  }, [props.data, props.yAxis, props.secondYAxis]);
+  }, [props.data, props.yAxis, props.secondYAxis, props.ownScaleYAxes]);
   const yAxisWidthInPx: number = valueAxes.firstYAxisWidthInPx;
 
   const hasNoData: boolean =
@@ -250,6 +259,17 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
               }
             : undefined
         }
+        // Bars stand on zero on their own scales too.
+        ownScales={valueAxes.ownScales.map(
+          (ownScale: ChartOwnScale): ChartOwnScale => {
+            return {
+              ...ownScale,
+              autoMinValue: false,
+              minValue: undefined,
+              maxValue: undefined,
+            };
+          },
+        )}
         categoryValueFormatters={props.seriesValueFormatters}
       />
       {hasNoData && <NoDataMessage />}

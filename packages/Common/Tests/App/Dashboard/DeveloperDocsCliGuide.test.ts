@@ -203,7 +203,7 @@ describe("the CLI page in every Developer section", () => {
       DEVELOPER_DOCS_PAGES.map((page: DeveloperDocsPageDefinition): string => {
         return page.title;
       }),
-    ).toEqual(["Terraform", "API", "CLI", "AI Assistants"]);
+    ).toEqual(["Terraform", "Crossplane", "API", "CLI", "AI Assistants"]);
     expect(
       DEVELOPER_DOCS_PAGES.find((page: DeveloperDocsPageDefinition) => {
         return page.type === DeveloperDocsPageType.Cli;

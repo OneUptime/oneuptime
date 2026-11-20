@@ -88,6 +88,7 @@
     <string name="log_session_title">Log per la risoluzione dei problemi</string>
     <string name="log_session_request_by">%1$s chiede, in OneUptime, i log di tutte le app di questo dispositivo per %2$s, dal livello %3$s in su.</string>
     <string name="log_session_request">OneUptime chiede i log di tutte le app di questo dispositivo per %1$s, dal livello %2$s in su.</string>
+    <string name="log_session_note">«%1$s»</string>
     <string name="log_session_android_prompt">Poi Android ti chiede di consentire l\'accesso a tutti i log del dispositivo. Scegli Consenti anche lì.</string>
     <string name="log_session_allow">Consenti</string>
     <string name="log_session_decline">Rifiuta</string>

@@ -278,13 +278,18 @@ export default class IncidentSla extends BaseModel {
     update: [],
   })
   @Index()
+  /*
+   * The rule is the creator's to pick: a person who adds one to an incident
+   * (Incidents > SLA > Add SLA rule, the API, Terraform), or OneUptime for
+   * the rule an incident matches. Never changed after; what the SLA starts
+   * with, OneUptime works out from it (IncidentSlaService.onBeforeCreate).
+   */
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
     canReadOnRelationQuery: true,
     title: "SLA Rule ID",
     description: "ID of the SLA rule that was applied to this incident",
-    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ObjectID,

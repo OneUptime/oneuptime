@@ -32,7 +32,7 @@ Os campos de um tipo são os argumentos do recurso do Terraform, em camelCase, s
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` mostra o registro como ele está no OneUptime, com o `id` dele. Um campo que você deixa de fora e que o OneUptime preenche, como um valor padrão, é copiado para `spec.forProvider` depois que o registro é criado, para que a próxima verificação não encontre nada a alterar. Um campo que o próprio OneUptime mantém atualizado nunca é copiado: veja [Campos que o OneUptime mantém](#campos-que-o-oneuptime-mantém).
+`status.atProvider` mostra o registro como ele está no OneUptime, com o `id` dele. Um campo que você deixa de fora e que o OneUptime preenche, como um valor padrão, é copiado para `spec.forProvider` depois que o registro é criado, para que a próxima verificação não encontre nada a alterar. Um campo que o próprio OneUptime mantém atualizado, ou que ele também altera, nunca é copiado: veja [Campos que o OneUptime mantém](#campos-que-o-oneuptime-mantém).
 
 ## Referenciar outros recursos
 
@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-O ID do registro está no bloco `import` que a página **Desenvolvedores → Terraform** dele escreve no painel, e `oneuptime <resource> list` lista os IDs de um tipo de registro com a [CLI do OneUptime](/docs/cli/resource-operations#listar-registros). Quando o recurso estiver pronto, `status.atProvider` mostra o registro. Para gerenciá-lo daí em diante, escreva os campos dele em `spec.forProvider` e defina `managementPolicies` como `["*"]`.
+A página **Desenvolvedores → Crossplane** do registro, no painel, escreve este manifesto para você, com o ID dele, e outro que assume o registro com os campos como estão. `oneuptime <resource> list` lista os IDs de um tipo de registro com a [CLI do OneUptime](/docs/cli/resource-operations#listar-registros). Quando o recurso estiver pronto, `status.atProvider` mostra o registro. Para gerenciá-lo daí em diante, escreva os campos dele em `spec.forProvider` e defina `managementPolicies` como `["*"]`.
 
 ## Secrets
 
@@ -104,7 +104,7 @@ Um campo que guarda um segredo, como a frase secreta da chave de cliente TLS de 
 
 ## Mudanças feitas fora do Kubernetes
 
-O provider compara cada recurso com o registro dele a cada 10 minutos e desfaz o que alguém tiver mudado no OneUptime. Para verificar com mais frequência, dê ao provider uma configuração de runtime com `--poll`:
+O provider compara cada recurso com o registro dele a cada 10 minutos e desfaz o que alguém tiver mudado no OneUptime, exceto em um campo que o OneUptime também altera (veja abaixo). Para verificar com mais frequência, dê ao provider uma configuração de runtime com `--poll`:
 
 ```yaml title="runtime-config.yaml"
 apiVersion: pkg.crossplane.io/v1beta1
@@ -136,12 +136,15 @@ Para deixar o painel controlar um campo depois que o registro é criado, escreva
 
 ### Campos que o OneUptime mantém
 
-Manter alguns campos atualizados cabe ao OneUptime, e o provider os deixa com ele: nunca os copia para `spec.forProvider` e nunca os restaura.
+Manter alguns campos atualizados, ou alterá-los também, cabe ao OneUptime, e o provider não mexe nas alterações do OneUptime: nunca copia esses campos para `spec.forProvider` e nunca os restaura.
 
 - Um campo que só o OneUptime escreve, como quando um monitor de telemetria foi executado pela última vez (`telemetryMonitorLastMonitorAt`) ou quantos nós um cluster Kubernetes tem (`nodeCount`), fica apenas em `status.atProvider`.
 - Um campo que tem um valor inicial, como o `currentMonitorStatusId` de um monitor ou o `currentIncidentStateId` de um incidente, pode ser informado para criar o registro, em `spec.initProvider` ou `spec.forProvider`. Depois disso, o OneUptime o altera, como as verificações de um monitor alteram o status dele, e `status.atProvider` mostra o valor atual.
+- Um campo que tanto você quanto o OneUptime alteram, como os `labels` de um registro, aos quais as regras de rótulos adicionam rótulos, o `isResolved` de uma exceção ou o `siteId` de um dispositivo de rede, que a descoberta move, é seu: escreva-o em `spec.forProvider`. O provider o envia para criar o registro, e de novo sempre que o valor dele no manifesto muda, e não mexe em uma alteração que o OneUptime faça nesse meio-tempo. Uma lista como `labels` mantém as entradas que o OneUptime adicionou, recupera uma entrada que o manifesto lista e que alguém tirou, e perde uma entrada que você tira do manifesto.
 
-`kubectl explain` diz isso na descrição de cada campo que tem um valor inicial. Um recurso cujo `spec.forProvider` uma versão anterior do provider preencheu com esses campos deixa de entrar em conflito com o OneUptime por conta própria, sem nada a editar.
+`kubectl explain` diz isso na descrição de cada campo que tem um valor inicial ou que o OneUptime também altera. Um recurso cujo `spec.forProvider` uma versão anterior do provider preencheu com esses campos deixa de entrar em conflito com o OneUptime por conta própria, sem nada a editar.
+
+O provider guarda na anotação `crossplane.oneuptime.com/last-applied` do recurso o que um manifesto aplicou por último nos campos que o OneUptime também altera. Em uma lista que uma versão anterior do provider preencheu, como `labels`, uma entrada que você tira fica no registro como entrada do OneUptime; uma entrada que o manifesto lista depois que você muda a lista pela primeira vez é sua, e é removida do registro quando você a tira.
 
 ## Excluir um recurso
 

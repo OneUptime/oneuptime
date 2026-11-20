@@ -1,3 +1,4 @@
+import ServerOwned from "../../Types/Database/ServerOwned";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import Label from "./Label";
@@ -701,6 +702,7 @@ export default class Service extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {

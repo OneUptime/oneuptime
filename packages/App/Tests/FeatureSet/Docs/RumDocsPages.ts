@@ -168,7 +168,10 @@ export const APPLICATION_SIDE_MENU: ReadonlyArray<{
       "Documentation",
     ],
   },
-  { section: "Developer", items: ["Terraform", "API", "CLI", "AI Assistants"] },
+  {
+    section: "Developer",
+    items: ["Terraform", "Crossplane", "API", "CLI", "AI Assistants"],
+  },
   // Settings joined Advanced when its one-entry section went (#9218).
   {
     section: "Advanced",

@@ -73,6 +73,8 @@ import {
   DiscoveryScanStatus,
 } from "../../../Utils/NetworkDiscovery/DiscoveryScanStatus";
 import Queue, { QueueName } from "../../Infrastructure/Queue";
+import ColumnsOnlyOneUptimeWrites from "../Database/ColumnsOnlyOneUptimeWrites";
+import ServerSetColumns from "../Database/ServerSetColumns";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import MonitorService from "../../Services/MonitorService";
 import MonitorTemplateService from "../../Services/MonitorTemplateService";
@@ -2167,6 +2169,29 @@ export default class DiscoveryImportRunner {
    * more with the address added when another device already has that name.
    * A refusal names its reason.
    */
+  /*
+   * What discovery found for a device - the name it was seen under and its
+   * source, the name a naming rule gave it, its details, whether its MAC was
+   * learned - is OneUptime's to write, for the person who imports it
+   * (ServerSetColumns): the API takes no value for a column only OneUptime
+   * writes from a person (ColumnsOnlyOneUptimeWrites, #10053), and the
+   * device's service reads these as it creates the device.
+   */
+  private static asDiscovered(device: NetworkDevice): NetworkDevice {
+    ServerSetColumns.mark(
+      device,
+      ColumnsOnlyOneUptimeWrites.getColumns(device).filter(
+        (column: string): boolean => {
+          return (
+            (device as unknown as Record<string, unknown>)[column] !== undefined
+          );
+        },
+      ),
+    );
+
+    return device;
+  }
+
   private static async ensureDevice(
     state: ImportRunState,
     host: DiscoveredNetworkDevice,
@@ -2259,7 +2284,7 @@ export default class DiscoveryImportRunner {
 
       try {
         created = await NetworkDeviceService.create({
-          data: attempted,
+          data: this.asDiscovered(attempted),
           props: state.props,
         });
       } catch (ruleNameError) {
@@ -2297,7 +2322,7 @@ export default class DiscoveryImportRunner {
 
       try {
         created = await NetworkDeviceService.create({
-          data: attempted,
+          data: this.asDiscovered(attempted),
           props: state.props,
         });
       } catch (firstError) {
@@ -2337,7 +2362,7 @@ export default class DiscoveryImportRunner {
 
         try {
           created = await NetworkDeviceService.create({
-            data: attempted,
+            data: this.asDiscovered(attempted),
             props: state.props,
           });
         } catch {

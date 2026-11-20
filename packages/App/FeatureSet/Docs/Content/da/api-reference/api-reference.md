@@ -282,6 +282,16 @@ OneUptime registrerer, hvem der oprettede en post — og hvem der arkiverede den
 
 API-referencen markerer disse felter som skrivebeskyttede. En værdi, en forespørgsel sender for et af dem ved siden af andre ændringer, ignoreres, så resten af ændringen går igennem; en opdatering, der ikke sender andet, afvises med en besked, der nævner felterne. Poster, som OneUptime selv opretter på vegne af nogen — en note, der er sendt fra Slack eller Microsoft Teams, en konto, der er oprettet via en invitation — nævner den person.
 
+### Felter, som kun OneUptime skriver
+
+Nogle felter skrives alene af OneUptime: hvornår en telemetrimonitor sidst kørte og næste gang kører, hvad en agent sidst rapporterede, en SLA's frister, hvornår en SCIM-klienthemmelighed holder op med at virke. API-referencen markerer dem som skrivebeskyttede og udelader dem fra bodyen ved oprettelse og opdatering. En oprettelse, der sender et af dem — som en kopi af en post, du har læst, gør — går igennem uden feltet, og den nye post får OneUptimes værdi. En opdatering, der sender et af dem, afvises, og svaret nævner hvert af disse felter, som den sendte:
+
+```text
+User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor. No permission allows it: the column is changed by the server, not by a request.
+```
+
+Udelad disse felter i en opdatering. De få, som en person ændrer, har deres egen forespørgsel: at udskifte en SCIM-klienthemmelighed sætter, hvornår den holder op med at virke, og `POST /api/host/:id/try-collector-config-again` sender den collector-konfiguration, der mislykkedes på en vært, til værten igen. Et felt, som både du og OneUptime ændrer, såsom en posts `labels`, som etiketregler føjer etiketter til, sætter du selv som før.
+
 ## Tilstande og episoder
 
 ### Den tilstand, en ny post starter i
