@@ -60416,5 +60416,8 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "As métricas foram lidas {{time}}, mas {{count}} delas não puderam ser lidas.",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "As métricas foram lidas {{time}}, mas uma delas não pôde ser lida.",
   "Its metrics were read {{time}}.": "As métricas foram lidas {{time}}.",
-  "Not read since {{time}}.": "Não lida desde {{time}}."
+  "Not read since {{time}}.": "Não lida desde {{time}}.",
+  "Add the condition below to the role's trust policy, or run the setup command again, then test again.": "Adicione a condição abaixo à política de confiança da função, ou execute o comando de configuração de novo, e teste de novo.",
+  "This role lets OneUptime sign in without your project's external ID, so any project that knows its ARN could read your AWS account through OneUptime. OneUptime does not use it until its trust policy requires the external ID: add {{condition}} to the statement that trusts OneUptime, or run the setup command again and connect the role it prints.": "Esta função deixa o OneUptime fazer login sem o ID externo do seu projeto, então qualquer projeto que conheça o ARN dela poderia ler a sua conta da AWS por meio do OneUptime. O OneUptime não a usa até que a política de confiança dela exija o ID externo: adicione {{condition}} à declaração que confia no OneUptime, ou execute o comando de configuração de novo e conecte a função que ele exibe.",
+  "This role lets OneUptime sign in without your project's external ID.": "Esta função deixa o OneUptime fazer login sem o ID externo do seu projeto."
 }

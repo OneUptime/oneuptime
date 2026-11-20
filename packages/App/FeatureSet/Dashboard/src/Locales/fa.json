@@ -60416,5 +60416,8 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "متریک‌هایش {{time}} خوانده شدند، اما {{count}} مورد از آن‌ها خوانده نشد.",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "متریک‌هایش {{time}} خوانده شدند، اما یکی از آن‌ها خوانده نشد.",
   "Its metrics were read {{time}}.": "متریک‌هایش {{time}} خوانده شدند.",
-  "Not read since {{time}}.": "از {{time}} خوانده نشده است."
+  "Not read since {{time}}.": "از {{time}} خوانده نشده است.",
+  "Add the condition below to the role's trust policy, or run the setup command again, then test again.": "شرط زیر را به سیاست اعتماد نقش بیفزایید، یا فرمان راه‌اندازی را دوباره اجرا کنید، سپس دوباره آزمایش کنید.",
+  "This role lets OneUptime sign in without your project's external ID, so any project that knows its ARN could read your AWS account through OneUptime. OneUptime does not use it until its trust policy requires the external ID: add {{condition}} to the statement that trusts OneUptime, or run the setup command again and connect the role it prints.": "این نقش اجازه می‌دهد OneUptime بدون شناسه خارجی پروژه شما وارد شود، پس هر پروژه‌ای که ARN آن را بداند می‌تواند حساب AWS شما را از راه OneUptime بخواند. OneUptime تا وقتی سیاست اعتماد این نقش شناسه خارجی را نخواهد از آن استفاده نمی‌کند: {{condition}} را به بخشی از سیاست اعتماد بیفزایید که به OneUptime اعتماد می‌کند، یا فرمان راه‌اندازی را دوباره اجرا کنید و نقشی را که چاپ می‌کند وصل کنید.",
+  "This role lets OneUptime sign in without your project's external ID.": "این نقش اجازه می‌دهد OneUptime بدون شناسه خارجی پروژه شما وارد شود."
 }

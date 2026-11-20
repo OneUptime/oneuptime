@@ -60416,5 +60416,8 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "其指標已於 {{time}} 讀取，但其中 {{count}} 個未能讀取。",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "其指標已於 {{time}} 讀取，但其中 1 個未能讀取。",
   "Its metrics were read {{time}}.": "其指標已於 {{time}} 讀取。",
-  "Not read since {{time}}.": "自 {{time}} 起未讀取。"
+  "Not read since {{time}}.": "自 {{time}} 起未讀取。",
+  "Add the condition below to the role's trust policy, or run the setup command again, then test again.": "將下方的條件新增到該角色的信任政策中，或再次執行設定指令，然後再次測試。",
+  "This role lets OneUptime sign in without your project's external ID, so any project that knows its ARN could read your AWS account through OneUptime. OneUptime does not use it until its trust policy requires the external ID: add {{condition}} to the statement that trusts OneUptime, or run the setup command again and connect the role it prints.": "此角色允許 OneUptime 在沒有你的專案外部 ID 的情況下登入，因此任何知道其 ARN 的專案都能透過 OneUptime 讀取你的 AWS 帳戶。在其信任政策要求外部 ID 之前，OneUptime 不會使用它：請將 {{condition}} 新增到信任 OneUptime 的那條陳述式中，或再次執行設定指令並連接它輸出的角色。",
+  "This role lets OneUptime sign in without your project's external ID.": "此角色允許 OneUptime 在沒有你的專案外部 ID 的情況下登入。"
 }

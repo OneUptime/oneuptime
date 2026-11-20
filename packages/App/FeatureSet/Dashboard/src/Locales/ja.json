@@ -60416,5 +60416,8 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "メトリクスは {{time}} に読み取られましたが、そのうち {{count}} 件は読み取れませんでした。",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "メトリクスは {{time}} に読み取られましたが、そのうち 1 件は読み取れませんでした。",
   "Its metrics were read {{time}}.": "メトリクスは {{time}} に読み取られました。",
-  "Not read since {{time}}.": "{{time}} 以降、読み取られていません。"
+  "Not read since {{time}}.": "{{time}} 以降、読み取られていません。",
+  "Add the condition below to the role's trust policy, or run the setup command again, then test again.": "下の条件をロールの信頼ポリシーに追加するか、セットアップ コマンドをもう一度実行してから、もう一度テストしてください。",
+  "This role lets OneUptime sign in without your project's external ID, so any project that knows its ARN could read your AWS account through OneUptime. OneUptime does not use it until its trust policy requires the external ID: add {{condition}} to the statement that trusts OneUptime, or run the setup command again and connect the role it prints.": "このロールでは、OneUptime がプロジェクトの外部 ID なしでサインインできるため、ARN を知っているどのプロジェクトでも OneUptime 経由で AWS アカウントを読み取れてしまいます。OneUptime は、信頼ポリシーが外部 ID を要求するまでこのロールを使用しません。OneUptime を信頼するステートメントに {{condition}} を追加するか、セットアップ コマンドをもう一度実行して、出力されたロールを接続してください。",
+  "This role lets OneUptime sign in without your project's external ID.": "このロールでは、OneUptime がプロジェクトの外部 ID なしでサインインできます。"
 }

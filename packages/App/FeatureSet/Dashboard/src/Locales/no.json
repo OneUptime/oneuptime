@@ -60416,5 +60416,8 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "Målingene ble lest {{time}}, men {{count}} av dem kunne ikke leses.",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Målingene ble lest {{time}}, men én av dem kunne ikke leses.",
   "Its metrics were read {{time}}.": "Målingene ble lest {{time}}.",
-  "Not read since {{time}}.": "Ikke lest siden {{time}}."
+  "Not read since {{time}}.": "Ikke lest siden {{time}}.",
+  "Add the condition below to the role's trust policy, or run the setup command again, then test again.": "Legg betingelsen nedenfor til i rollens tillitspolicy, eller kjør oppsettkommandoen på nytt, og test så på nytt.",
+  "This role lets OneUptime sign in without your project's external ID, so any project that knows its ARN could read your AWS account through OneUptime. OneUptime does not use it until its trust policy requires the external ID: add {{condition}} to the statement that trusts OneUptime, or run the setup command again and connect the role it prints.": "Denne rollen lar OneUptime logge på uten prosjektets eksterne ID, så ethvert prosjekt som kjenner rollens ARN, kunne lese AWS-kontoen din gjennom OneUptime. OneUptime bruker den ikke før tillitspolicyen dens krever den eksterne ID-en: Legg {{condition}} til i den delen av tillitspolicyen som stoler på OneUptime, eller kjør oppsettkommandoen på nytt og koble til rollen den skriver ut.",
+  "This role lets OneUptime sign in without your project's external ID.": "Denne rollen lar OneUptime logge på uten prosjektets eksterne ID."
 }

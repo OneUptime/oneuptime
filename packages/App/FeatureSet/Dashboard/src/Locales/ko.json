@@ -60416,5 +60416,8 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "메트릭을 {{time}}에 읽었지만, 그중 {{count}}개는 읽지 못했습니다.",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "메트릭을 {{time}}에 읽었지만, 그중 1개는 읽지 못했습니다.",
   "Its metrics were read {{time}}.": "메트릭을 {{time}}에 읽었습니다.",
-  "Not read since {{time}}.": "{{time}} 이후로 읽지 못했습니다."
+  "Not read since {{time}}.": "{{time}} 이후로 읽지 못했습니다.",
+  "Add the condition below to the role's trust policy, or run the setup command again, then test again.": "아래 조건을 역할의 신뢰 정책에 추가하거나 설정 명령을 다시 실행한 다음 다시 테스트하세요.",
+  "This role lets OneUptime sign in without your project's external ID, so any project that knows its ARN could read your AWS account through OneUptime. OneUptime does not use it until its trust policy requires the external ID: add {{condition}} to the statement that trusts OneUptime, or run the setup command again and connect the role it prints.": "이 역할은 프로젝트의 외부 ID 없이 OneUptime의 로그인을 허용하므로, 역할의 ARN을 아는 모든 프로젝트가 OneUptime을 통해 AWS 계정을 읽을 수 있습니다. OneUptime은 신뢰 정책이 외부 ID를 요구할 때까지 이 역할을 사용하지 않습니다. OneUptime을 신뢰하는 정책 문에 {{condition}} 조건을 추가하거나, 설정 명령을 다시 실행하고 출력되는 역할을 연결하세요.",
+  "This role lets OneUptime sign in without your project's external ID.": "이 역할은 프로젝트의 외부 ID 없이 OneUptime의 로그인을 허용합니다."
 }

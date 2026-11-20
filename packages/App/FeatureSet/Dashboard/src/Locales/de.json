@@ -60416,5 +60416,8 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "Die Metriken wurden {{time}} gelesen, {{count}} davon jedoch nicht.",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Die Metriken wurden {{time}} gelesen, eine davon jedoch nicht.",
   "Its metrics were read {{time}}.": "Die Metriken wurden {{time}} gelesen.",
-  "Not read since {{time}}.": "Seit {{time}} nicht gelesen."
+  "Not read since {{time}}.": "Seit {{time}} nicht gelesen.",
+  "Add the condition below to the role's trust policy, or run the setup command again, then test again.": "Füge die unten stehende Bedingung der Vertrauensrichtlinie der Rolle hinzu oder führe den Einrichtungsbefehl erneut aus und teste dann erneut.",
+  "This role lets OneUptime sign in without your project's external ID, so any project that knows its ARN could read your AWS account through OneUptime. OneUptime does not use it until its trust policy requires the external ID: add {{condition}} to the statement that trusts OneUptime, or run the setup command again and connect the role it prints.": "Diese Rolle lässt die Anmeldung von OneUptime ohne die externe ID deines Projekts zu, daher könnte jedes Projekt, das ihren ARN kennt, dein AWS-Konto über OneUptime lesen. OneUptime verwendet sie erst, wenn ihre Vertrauensrichtlinie die externe ID verlangt: Füge {{condition}} der Anweisung hinzu, die OneUptime vertraut, oder führe den Einrichtungsbefehl erneut aus und verbinde die Rolle, die er ausgibt.",
+  "This role lets OneUptime sign in without your project's external ID.": "Diese Rolle lässt die Anmeldung von OneUptime ohne die externe ID deines Projekts zu."
 }
