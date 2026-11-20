@@ -35,6 +35,11 @@ import {
   PublicForm,
   PublicFormFieldType,
 } from "../../../Types/Form/FormPublic";
+import {
+  FORM_PRIVATE_USER_API_ROUTE,
+  FORM_SIGN_IN_STATE_ROUTE,
+  FormPrivateUserApiRoutes,
+} from "../../../Types/Form/FormPrivateUserSignIn";
 import { JSONObject } from "../../../Types/JSON";
 import { PUBLIC_FORM_LOGO_TEST_ID } from "../../../UI/Components/PublicForm/PublicFormLogo";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -61,7 +66,9 @@ jest.mock("axios", () => {
  *     finds the form by the domain;
  *   - a form that is not available says so, as its link does;
  *   - its logo is the form's own, or none: never OneUptime's;
- *   - the template its address names opens with it.
+ *   - the template its address names opens with it;
+ *   - a form that asks its visitors to sign in (#10249) is signed in to on
+ *     the domain too, and read there only once somebody is.
  */
 
 const mockedAxios: FakeTransport = axios as unknown as FakeTransport;
@@ -69,6 +76,7 @@ const mockedAxios: FakeTransport = axios as unknown as FakeTransport;
 const PAGE_ORIGIN: string = "https://report.acme.com";
 const FORM_URL: string = `${PAGE_ORIGIN}/api/form/custom-domain`;
 const SUBMIT_URL: string = `${PAGE_ORIGIN}/api/form/custom-domain/submit`;
+const SIGN_IN_STATE_URL: string = `${FORM_URL}${FORM_SIGN_IN_STATE_ROUTE}`;
 
 const NOT_AVAILABLE: string =
   "This form is not available. It may have been turned off, or the link may be out of date.";
@@ -140,6 +148,18 @@ async function openForm(reply: FakeReply): Promise<void> {
 beforeEach(() => {
   window.localStorage.clear();
   server = new FakeAxiosServer(mockedAxios);
+  /*
+   * The page's first question (#10249): this form does not ask its
+   * visitors to sign in, so the page goes on to read it - as often as a
+   * test opens the page.
+   */
+  server.on(
+    HTTPMethod.GET,
+    SIGN_IN_STATE_URL,
+    Array.from({ length: 4 }, (): FakeReply => {
+      return { status: 200, data: { requireSignIn: false } };
+    }),
+  );
   jest.spyOn(Navigation, "navigate").mockImplementation((): void => {});
 });
 
@@ -172,9 +192,15 @@ describe("the form on its own domain", () => {
   test("is read once, on its domain, with the page's header, naming no key", async () => {
     await openForm({ status: 200, data: FORM as unknown as JSONObject });
 
-    expect(sentRequests()).toEqual([`GET ${FORM_URL}`]);
+    expect(sentRequests()).toEqual([
+      `GET ${SIGN_IN_STATE_URL}`,
+      `GET ${FORM_URL}`,
+    ]);
 
-    const headers: Record<string, unknown> = server.sent[0]!.headers as Record<
+    const headers: Record<string, unknown> = server.requestsTo(
+      HTTPMethod.GET,
+      FORM_URL,
+    )[0]!.headers as Record<
       string,
       unknown
     >;
@@ -210,7 +236,11 @@ describe("the form on its own domain", () => {
     });
     await flush();
 
-    expect(sentRequests()).toEqual([`GET ${FORM_URL}`, `POST ${SUBMIT_URL}`]);
+    expect(sentRequests()).toEqual([
+      `GET ${SIGN_IN_STATE_URL}`,
+      `GET ${FORM_URL}`,
+      `POST ${SUBMIT_URL}`,
+    ]);
 
     const body: JSONObject = server.requestsTo(HTTPMethod.POST, SUBMIT_URL)[0]!
       .data as JSONObject;
@@ -270,5 +300,103 @@ describe("the form on its own domain", () => {
     await openForm({ status: 404, data: { error: NOT_AVAILABLE } });
 
     expect(screen.queryByTestId(PUBLIC_FORM_LOGO_TEST_ID)).toBeNull();
+  });
+});
+
+/*
+ * A form on its domain that asks its visitors to sign in (#10249): its
+ * sign-in state, the session the browser may hold, the ways in and the
+ * sign-in itself are all asked on the domain the page was opened on -
+ * the cookies are the domain's own - and never on OneUptime's own host.
+ */
+describe("a form on its own domain that asks its visitors to sign in", () => {
+  const FORM_ID: string = "0f000000-0000-4000-8000-000000000001";
+
+  const privateUserUrl: (route: string) => string = (
+    route: string,
+  ): string => {
+    return `${PAGE_ORIGIN}/api/form${FORM_PRIVATE_USER_API_ROUTE}${route}/${FORM_ID}`;
+  };
+
+  test("is signed in to on its domain, and the form read there once somebody is", async () => {
+    // A fresh script: this form asks its visitors to sign in.
+    server = new FakeAxiosServer(mockedAxios);
+    server.on(HTTPMethod.GET, SIGN_IN_STATE_URL, [
+      {
+        status: 200,
+        data: {
+          requireSignIn: true,
+          formId: FORM_ID,
+          name: "Report a Problem",
+          signedInAs: null,
+        },
+      },
+      {
+        status: 200,
+        data: {
+          requireSignIn: true,
+          formId: FORM_ID,
+          name: "Report a Problem",
+          signedInAs: "reader@acme.com",
+        },
+      },
+    ]);
+    server.on(
+      HTTPMethod.POST,
+      privateUserUrl(FormPrivateUserApiRoutes.refreshToken),
+      [{ status: 401, data: { message: "Signed out." } }],
+    );
+    server.on(
+      HTTPMethod.POST,
+      privateUserUrl(FormPrivateUserApiRoutes.signInMethods),
+      [
+        {
+          status: 200,
+          data: {
+            isPasswordSignInAllowed: true,
+            samlProviders: [],
+            oidcProviders: [],
+          },
+        },
+      ],
+    );
+    server.on(HTTPMethod.POST, privateUserUrl(FormPrivateUserApiRoutes.login), [
+      { status: 200, data: { email: "reader@acme.com" } },
+    ]);
+
+    await openForm({ status: 200, data: FORM as unknown as JSONObject });
+
+    // Nothing of the form before the sign-in.
+    expect(server.requestsTo(HTTPMethod.GET, FORM_URL)).toHaveLength(0);
+
+    fireEvent.change(screen.getByLabelText(/^Email/), {
+      target: { value: "reader@acme.com" },
+    });
+    fireEvent.change(screen.getByLabelText(/^Password/), {
+      target: { value: "correct horse battery staple 9" },
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
+    });
+    await flush();
+
+    expect(await screen.findByTestId("form-signed-in-as")).toHaveTextContent(
+      "reader@acme.com",
+    );
+
+    // Every request went to the domain the page was opened on.
+    for (const request of server.sent) {
+      expect(new URL(request.url).origin).toBe(PAGE_ORIGIN);
+    }
+
+    expect(sentRequests()).toEqual([
+      `GET ${SIGN_IN_STATE_URL}`,
+      `POST ${privateUserUrl(FormPrivateUserApiRoutes.refreshToken)}`,
+      `POST ${privateUserUrl(FormPrivateUserApiRoutes.signInMethods)}`,
+      `POST ${privateUserUrl(FormPrivateUserApiRoutes.login)}`,
+      `GET ${SIGN_IN_STATE_URL}`,
+      `GET ${FORM_URL}`,
+    ]);
   });
 });
