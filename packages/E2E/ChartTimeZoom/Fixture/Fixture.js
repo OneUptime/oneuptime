@@ -175,6 +175,7 @@ import {
 } from "../../SecurityOperations/Fixture/IngestionBudgetFixture.js";
 import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
+import KubernetesCostAllocation from "Common/Models/AnalyticsModels/KubernetesCostAllocation";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
@@ -890,10 +891,10 @@ insert(Host, {
   hostIdentifier: HOST_IDENTIFIER,
   otelCollectorStatus: "connected",
   /*
-   * The collector release its config stamps: older than the 0.161.0 the
-   * host guide pins, so its Agent Version carries the sign
-   * (AgentVersionSign.spec.ts). `?hostAgentVersion=` reports another one
-   * for one page load.
+   * The collector release its config stamps: older than the release the
+   * host guide pins (HOST_COLLECTOR_VERSION, 0.165.0), so its Agent Version
+   * carries the sign (AgentVersionSign.spec.ts). `?hostAgentVersion=`
+   * reports another one for one page load.
    */
   agentVersion:
     new window.URLSearchParams(window.location.search).get(
@@ -3023,12 +3024,19 @@ table(Span);
  * the events naming it (SecurityEventsInSignal), and find none.
  */
 table(SecurityEvent);
+/*
+ * The cost agent's hourly allocations, which the cluster Overview's Cost
+ * card reads: the cluster has sent none yet, so the table is empty and the
+ * card says how to turn cost monitoring on.
+ */
+table(KubernetesCostAllocation);
 const ANALYTICS_TABLES = [
   tableName(Log),
   tableName(ChangeEvent),
   tableName(Metric),
   tableName(Span),
   tableName(SecurityEvent),
+  tableName(KubernetesCostAllocation),
 ];
 
 /*
@@ -3187,6 +3195,11 @@ AnalyticsModelAPI.aggregate = async (options) => {
           }
         : null,
   });
+  // The Cost card's sums, over a cost table with no rows (above): empty.
+  if (modelName === tableName(KubernetesCostAllocation)) {
+    entry.rows = 0;
+    return { data: [] };
+  }
   if (modelName !== tableName(Metric)) {
     fixture.unhandled.push({ kind: "analytics.aggregate", modelName });
     return { data: [] };

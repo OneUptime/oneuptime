@@ -193,6 +193,7 @@ Ogni tipo arriva a OneUptime come normali log:
 | AWS CloudTrail | Un trail consegnato a CloudWatch Logs, letto dal receiver `awscloudwatch` del collector, oppure, per un account collegato in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
 | Log di audit di Google Cloud | Un sink di log verso Pub/Sub, letto dal receiver `googlecloudpubsub` del collector con `encoding: raw_text`, oppure, per un progetto collegato in **Cloud**, il suo [stream](/docs/telemetry/cloud-streaming-google-cloud) o [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
 | Log di attività di Azure e di Entra ID | Un'impostazione di diagnostica che trasmette a un Event Hub, letta dal receiver `azureeventhub` del collector con `format: raw`, oppure all'hub eventi dello [stream](/docs/telemetry/cloud-streaming-azure) di una sottoscrizione collegata, oppure, per il log attività di una sottoscrizione collegata in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
+| Log di Azure Key Vault, Storage e SQL | L'impostazione di diagnostica di una risorsa, che trasmette a un Event Hub, letta dal receiver `azureeventhub` del collector con `format: raw`, oppure le impostazioni di diagnostica dello [stream](/docs/telemetry/cloud-streaming-azure) di una sottoscrizione collegata, quando trasmette i log. Vedi [Log di audit propri delle risorse Azure](#log-di-audit-propri-delle-risorse-azure) |
 | Audit trail di OpenStack | Le notifiche e il filtro di audit di un cloud inviati ai suoi log con `driver = log`, letti dal [profilo dei log](/docs/telemetry/openstack#chi-ha-fatto-cosa) dell'agente |
 | CEF, LEEF | Il syslog del prodotto, inoltrato da [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Il syslog del firewall stesso, inoltrato da [rsyslog](/docs/telemetry/syslog) |
@@ -204,6 +205,18 @@ Su **I tuoi log**, ogni tipo indica quando è stato trovato l'ultima volta, e **
 Una minaccia che un prodotto di sicurezza scrive nei tuoi log, come un rilevamento CEF o LEEF o una minaccia di Palo Alto Networks, FortiGate o Cisco ASA, apre un [caso](/docs/telemetry/security-cases) come fa l'avviso di un prodotto collegato, e aumenta il rischio dell'utente, dell'host o dell'indirizzo che nomina. **Apri casi a partire da**, su **I tuoi log**, indica da quale gravità: **Alta e superiori** a meno che tu non ne scelga un'altra, oppure **Mai**. Gli accessi e le connessioni bloccate del prodotto restano eventi, che le tue regole leggono.
 
 Un record che raggiunge OneUptime per due vie viene salvato una sola volta: un accesso di Microsoft Entra ID letto dalla sua connessione ed esportato da Azure nei tuoi log, un record CloudTrail nei tuoi log e nel log di audit di un account AWS collegato, oppure un record di audit che lo stream di un account cloud invia e che anche **Log di audit cloud** legge.
+
+#### Log di audit propri delle risorse Azure
+
+Un Key Vault, un account di archiviazione e un database Azure SQL tengono ciascuno un proprio log di audit, che riporta ogni richiesta. Diventa un evento di sicurezza solo ciò che un team di sicurezza esamina:
+
+| Risorsa | Cosa diventa un evento di sicurezza |
+| --- | --- |
+| Key Vault (`AuditEvent`) | Una richiesta che il vault ha rifiutato; un segreto consegnato; un segreto, una chiave, un certificato o il vault stesso eliminati, eliminati definitivamente o sottoposti a backup; i suoi criteri di accesso modificati; e una modifica a ciò che contiene. Non la risposta 401 che ogni client di un SDK di Azure riceve alla sua prima chiamata, fatta senza token per conoscere il tenant: Key Vault la scrive nel log sotto la sua operazione `Authentication` |
+| Account di archiviazione (`StorageRead`, `StorageWrite`, `StorageDelete`) | Una richiesta rifiutata per mancanza di un diritto; una servita senza alcuna credenziale, tranne le pagine di un sito web statico e una richiesta preliminare CORS; l'elenco di accesso di un contenitore, di una condivisione, di una coda o di una tabella modificato, o uno di essi eliminato per intero; e una scrittura o un'eliminazione firmata da una firma di accesso condiviso (SAS). Non una lettura riuscita, nemmeno con una SAS |
+| Azure SQL (`SQLSecurityAuditEvents`) | Un accesso non riuscito; un accesso su una nuova connessione, non il riutilizzo di una connessione di un pool; un'autorizzazione concessa, negata o revocata, il membro di un ruolo o una password modificati, una rappresentazione, e un login, un utente o un ruolo creati, modificati o eliminati; e un'azione il cui controllo delle autorizzazioni non è riuscito. Non un batch, la maggior parte di un audit |
+
+Le letture riuscite di un account di archiviazione sono la maggior parte di ciò che scrive nel log: una SAS è il modo in cui la maggior parte delle app consegna file ai browser. Restano nei log, intere, nella scheda **Log** dell'account: cerca lì `"type":"SAS"` per vedere cosa ha letto una firma di accesso condiviso. Ogni evento nomina la sua risorsa con il suo ID, e quello di un servizio di archiviazione anche il suo account, quindi compare nella pagina **Eventi di sicurezza** di quella risorsa, e un record che arriva due volte viene salvato una sola volta.
 
 ### Leggere i log di audit dei tuoi account cloud
 

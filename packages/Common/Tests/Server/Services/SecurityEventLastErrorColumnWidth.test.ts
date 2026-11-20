@@ -773,12 +773,20 @@ describe("the failures Chronicle reports on an HTTP 200 are storable too", () =>
 interface RedactedEchoCase {
   label: string;
   responses: Array<{ status: number; body: string }>;
+  /*
+   * What of the answer reaches lastError: the redactor's mark, where the
+   * body is echoed. A sign-in Google refuses with its JSON error is said
+   * in Google's own words instead (#9983) - its code and its message,
+   * nothing else of the body - so those are what reach it.
+   */
+  kept?: Array<string> | undefined;
 }
 
 const REDACTED_ECHO_CASES: Array<RedactedEchoCase> = [
   {
     label: "the token exchange echoing credential fields",
     responses: [{ status: 400, body: FLAT_CREDENTIAL_BODY }],
+    kept: ["PERMISSION_DENIED", "The caller does not have permission."],
   },
   {
     label: "the token exchange echoing credentials nested inside a message",
@@ -870,12 +878,15 @@ describe("the echoed body is redacted, which is what replaced the cap", () => {
       /*
        * Falsifiable: the body really did reach the message, and the reason
        * the secret is missing from it is that the redactor replaced the
-       * value — not that the client quietly dropped the whole echo, which
-       * would satisfy "does not contain" while destroying the diagnostic
-       * this column exists to carry.
+       * value — or, for a sign-in Google refused, Google's reason did —
+       * not that the client quietly dropped the whole echo, which would
+       * satisfy "does not contain" while destroying the diagnostic this
+       * column exists to carry.
        */
-      expect(error.message).toContain(REDACTED);
-      expect(stored).toContain(REDACTED);
+      for (const kept of echoCase.kept || [REDACTED]) {
+        expect(error.message).toContain(kept);
+        expect(stored).toContain(kept);
+      }
 
       // And the redacted echo is still stored whole, on an unbounded column.
       for (const column of LAST_ERROR_COLUMNS) {

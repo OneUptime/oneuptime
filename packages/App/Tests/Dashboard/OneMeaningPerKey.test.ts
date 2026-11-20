@@ -735,6 +735,43 @@ describe("one meaning per key", () => {
   });
 
   /*
+   * #10009: a device manager connection's Status on Inventory > Managed
+   * Devices. Russian's bare Waiting, Catching up and Failing are a noun
+   * ("Ожидание"), a verb ("Догоняет") and a masculine noun ("Сбой"),
+   * where the connection's other states are neuter ("Выключено",
+   * "Устарело", "Исправно"): its words look up keys of their own, and the
+   * bare words stay the on-call logs', the security connections' and the
+   * other pages'.
+   */
+  test("a device manager connection's Waiting, Catching up and Failing are its own keys, and its words never look up the bare ones", () => {
+    const WORDS: string =
+      "Components/DeviceManagement/DeviceManagementWords.ts";
+
+    for (const [key, bare] of [
+      ["Waiting (device manager connection)", "Waiting"],
+      ["Catching up (device manager connection)", "Catching up"],
+      ["Failing (device manager connection)", "Failing"],
+    ] as Array<[string, string]>) {
+      expect({ key, files: filesLookingUp(key) }).toEqual({
+        key,
+        files: [WORDS],
+      });
+      expect(MEANING_KEYS).toContain(key);
+      expect({
+        key,
+        bareLookedUp: filesLookingUp(bare).includes(WORDS),
+      }).toEqual({ key, bareLookedUp: false });
+    }
+
+    expect(filesLookingUp("Waiting")).toContain(
+      "Components/OnCallPolicy/ExecutionLogs/OnCallLogStatusLabels.ts",
+    );
+    expect(filesLookingUp("Catching up")).toEqual([
+      "Components/SecurityEvents/SecurityEventConnectionDiagnosticsUtil.ts",
+    ]);
+  });
+
+  /*
    * #8659: a state shared by pages whose other states take two genders.
    * Russian's Expired was a token's "Истёк" (masculine) beside a threat
    * indicator's and a rule exception's neuter "Активно"; Not fetched yet a

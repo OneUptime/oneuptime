@@ -27,7 +27,9 @@ The pages:
   card shows four and the fold of five too);
 - `/dashboard/<project>/status-pages` - Status Pages (a long name beside a
   column of prose);
-- `/dashboard/<project>/settings/teams` - Settings > Teams;
+- `/dashboard/<project>/settings/teams` - Settings > Teams (the fixture
+  answers which teams share a name, `GET /shared-names/team` (#9746), as the
+  server does: none);
 - `/dashboard/<project>/network-devices/settings/roles` - Device Roles, a
   list put in order by dragging its rows;
 - `/dashboard/<project>/tables` - the gallery: every kind of column
@@ -118,7 +120,9 @@ The suite (`ModelTables.spec.ts`) measures in Chromium what jsdom cannot:
 - while the first page loads, the rows keep their shape and the header its
   height;
 - a drag-ordered list's grips sit on the rows' line, and the keyboard still
-  moves a row;
+  moves a row: the move request a drop sends (`POST <list>/:id/move`, #9609),
+  answered as the server moves the row, and the list read again in its new
+  order;
 - a member who may read none of a list (`?role=none`) is told so, with the
   one permission to ask for ("You need this permission: Read Incident. Ask
   a project admin for access.") - not drawn rows of nothing but a ⋯ under
@@ -171,7 +175,8 @@ said "Jetzt ausführen". Its screenshots are `data-observability-*.png`.
 `window.__fixture.listRequests`, every count on
 `window.__fixture.countRequests` (a product list counts its table once, to
 explain the product under its empty table while the project has none),
-every write on `window.__fixture.updates`,
+every write on `window.__fixture.updates`, every row moved in its list on
+`window.__fixture.moves`,
 every delete on `window.__fixture.deletes`, every navigation on
 `window.__fixture.navigations`, and every read of a table it does not model
 on `window.__fixture.unmodelled` (the suite fails on any).

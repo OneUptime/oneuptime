@@ -6,7 +6,6 @@ import DomainService from "Common/Server/Services/DomainService";
 import ProjectOidcService from "Common/Server/Services/ProjectOidcService";
 import ProjectSSOService from "Common/Server/Services/ProjectSsoService";
 import ObjectID from "Common/Types/ObjectID";
-import type { FindOperator } from "typeorm";
 import {
   PROJECT_OIDC_DOMAINS_JOIN,
   PROJECT_SSO_DOMAINS_JOIN,
@@ -80,13 +79,25 @@ const sameId: (a: unknown, b: unknown) => boolean = (
 };
 
 /*
+ * The part of TypeORM's FindOperator the stand-in reads. typeorm is Common's
+ * dependency, not App's, so its type cannot be imported here
+ * (TestImportsResolveFromApp.test.ts): the structural type says exactly as
+ * much as the stand-in relies on.
+ */
+interface ReadFindOperator {
+  type: string;
+  getSql?: ((alias: string) => string) | undefined;
+  objectLiteralParameters?: Record<string, unknown> | undefined;
+}
+
+/*
  * Whether a value is a TypeORM condition (a FindOperator). Read by its shape:
  * Common and App may each load their own copy of TypeORM, so instanceof
  * would tell one copy's operators from the other's.
  */
-const isFindOperator: (value: unknown) => value is FindOperator<unknown> = (
+const isFindOperator: (value: unknown) => value is ReadFindOperator = (
   value: unknown,
-): value is FindOperator<unknown> => {
+): value is ReadFindOperator => {
   return (
     Boolean(value) &&
     typeof value === "object" &&

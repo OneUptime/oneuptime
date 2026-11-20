@@ -193,6 +193,7 @@ Varje typ når OneUptime som vanliga loggar:
 | AWS CloudTrail | Ett trail som levereras till CloudWatch Logs, läst av collectorns `awscloudwatch`-receiver, eller, för ett konto som är anslutet under **Moln**, [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
 | Google Cloud-granskningsloggar | En logg-sink till Pub/Sub, läst av collectorns `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, för ett projekt som är anslutet under **Moln**, dess [ström](/docs/telemetry/cloud-streaming-google-cloud) eller [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
 | Azure-aktivitetsloggar och Entra ID-loggar | En diagnostikinställning som strömmar till en Event Hub, läst av collectorns `azureeventhub`-receiver med `format: raw`, eller till händelsehubben i en ansluten prenumerations [ström](/docs/telemetry/cloud-streaming-azure), eller, för aktivitetsloggen i en prenumeration som är ansluten under **Moln**, [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
+| Azure Key Vault-, Storage- och SQL-loggar | En resurs diagnostikinställning som strömmar till en Event Hub, läst av collectorns `azureeventhub`-receiver med `format: raw`, eller diagnostikinställningarna i en ansluten prenumerations [ström](/docs/telemetry/cloud-streaming-azure), med loggar. Se [Azure-resursers egna granskningsloggar](#azure-resursers-egna-granskningsloggar) |
 | Granskningsspår för OpenStack | Ett moln notifieringar och granskningsfilter skickade till dess loggar med `driver = log`, lästa av agentens [loggprofil](/docs/telemetry/openstack#vem-gjorde-vad) |
 | CEF, LEEF | Produktens syslog, vidarebefordrad av [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Brandväggens egen syslog, vidarebefordrad av [rsyslog](/docs/telemetry/syslog) |
@@ -204,6 +205,18 @@ På **Dina loggar** visar varje typ när den senast hittades, och **Kontrollera 
 Ett hot som en säkerhetsprodukt skriver i dina loggar, till exempel ett CEF- eller LEEF-fynd eller ett hot från Palo Alto Networks, FortiGate eller Cisco ASA, öppnar ett [ärende](/docs/telemetry/security-cases) på samma sätt som en ansluten produkts larm, och ökar risken för användaren, värden eller adressen som det nämner. **Öppna ärenden från** på **Dina loggar** anger från vilken allvarlighetsgrad: **Hög och högre** om du inte väljer en annan, eller **Aldrig**. Produktens inloggningar och blockerade anslutningar förblir händelser som dina regler kan läsa.
 
 En post som når OneUptime på två vägar lagras en gång: en Microsoft Entra ID-inloggning som anslutningen läser och som Azure även exporterar till dina loggar, en CloudTrail-post i dina loggar och i granskningsloggen för ett anslutet AWS-konto, eller en granskningspost som ett molnkontos ström skickar och som **Molngranskningsloggar** också läser.
+
+#### Azure-resursers egna granskningsloggar
+
+Ett Key Vault, ett lagringskonto och en Azure SQL-databas för var sin egen granskningslogg, som registrerar varje förfrågan. Bara det som ett säkerhetsteam tittar på blir en säkerhetshändelse:
+
+| Resurs | Vad som blir en säkerhetshändelse |
+| --- | --- |
+| Key Vault (`AuditEvent`) | En förfrågan som valvet nekade; en hemlighet som lämnades ut; en hemlighet, en nyckel, ett certifikat eller valvet självt som togs bort, rensades permanent eller säkerhetskopierades; en ändrad åtkomstprincip; och en ändring av det som valvet innehåller. Inte den 401 som varje Azure SDK-klient får vid sitt första anrop, som görs utan token för att ta reda på klientorganisationen: Key Vault loggar den under sin åtgärd `Authentication` |
+| Lagringskonto (`StorageRead`, `StorageWrite`, `StorageDelete`) | En förfrågan som nekades i brist på en behörighet; en som besvarades helt utan autentiseringsuppgifter, utom en statisk webbplats sidor och en CORS-preflight; en ändrad åtkomstlista för en container, en filresurs, en kö eller en tabell, eller en av dem borttagen i sin helhet; och en skrivning eller borttagning som en signatur för delad åtkomst (SAS) signerade. Inte en läsning som lyckades, inte heller en med SAS |
+| Azure SQL (`SQLSecurityAuditEvents`) | En misslyckad inloggning; en inloggning på en ny anslutning, inte en återanvänd anslutning från en anslutningspool; en behörighet som beviljades, nekades eller återkallades, en rollmedlem eller ett lösenord som ändrades, en personifiering, och en inloggning, användare eller roll som skapades, ändrades eller togs bort; och en åtgärd vars behörighetskontroll misslyckades. Inte en batch, huvuddelen av en granskning |
+
+Ett lagringskontos lyckade läsningar är det mesta av det som det loggar: en SAS är hur de flesta appar lämnar ut filer till webbläsare. De stannar i Loggar, hela, på kontots flik **Loggar**: sök där efter `"type":"SAS"` för att se vad en signatur för delad åtkomst läste. Varje händelse nämner sin resurs med dess ID, en lagringstjänsts även dess konto, så den visas på resursens sida **Säkerhetshändelser**, och en post som kommer två gånger lagras en gång.
 
 ### Läs granskningsloggarna för dina molnkonton
 

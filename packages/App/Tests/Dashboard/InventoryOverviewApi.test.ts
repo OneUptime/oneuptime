@@ -4,6 +4,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
+import { MANAGED_DEVICE_RESOURCE_TYPE } from "Common/Types/DeviceManagement/ManagedDeviceIdentity";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
 
@@ -97,6 +98,8 @@ const WELL_FORMED: JSONObject = {
       displayName: "checkout",
       entityType: EntityType.Service,
       source: EntitySource.Discovered,
+      // Sent empty for an item that points at no record of its own.
+      resourceType: "",
       firstSeenAt: "2026-09-26T10:00:00.000Z",
       lastSeenAt: "2026-09-26T10:05:00.000Z",
     },
@@ -105,6 +108,7 @@ const WELL_FORMED: JSONObject = {
       displayName: "Stripe",
       entityType: EntityType.ExternalService,
       source: EntitySource.Manual,
+      resourceType: "",
       firstSeenAt: "2026-09-20T08:00:00.000Z",
       lastSeenAt: null,
     },
@@ -155,6 +159,7 @@ describe("fetchInventoryOverview", () => {
           displayName: "checkout",
           entityType: EntityType.Service,
           source: EntitySource.Discovered,
+          resourceType: "",
           lastSeenAt: "2026-09-26T10:05:00.000Z",
         },
         {
@@ -162,6 +167,7 @@ describe("fetchInventoryOverview", () => {
           displayName: "Stripe",
           entityType: EntityType.ExternalService,
           source: EntitySource.Manual,
+          resourceType: "",
           lastSeenAt: null,
         },
       ],
@@ -296,9 +302,29 @@ describe("parseInventoryOverview", () => {
         displayName: "kept",
         entityType: "",
         source: "",
+        resourceType: "",
         lastSeenAt: null,
       },
     ]);
+  });
+
+  test("a managed device's host keeps its resource type: its check-ins are a heartbeat", () => {
+    const overview: InventoryOverview = parseInventoryOverview({
+      recentlyAdded: [
+        {
+          _id: "7a1b6b0e-0000-4000-8000-000000000004",
+          displayName: "Front desk tablet",
+          entityType: EntityType.Host,
+          source: EntitySource.Inventory,
+          resourceType: MANAGED_DEVICE_RESOURCE_TYPE,
+          lastSeenAt: "2026-09-26T10:05:00.000Z",
+        },
+      ],
+    });
+
+    expect(overview.recentlyAdded[0]?.resourceType).toBe(
+      MANAGED_DEVICE_RESOURCE_TYPE,
+    );
   });
 
   test("recent rows keep the order the server sent, newest first", () => {

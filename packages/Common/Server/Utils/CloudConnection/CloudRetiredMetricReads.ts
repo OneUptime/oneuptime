@@ -8,6 +8,7 @@ import {
   findRetiredCloudMetricQueries,
 } from "../../../Utils/Metrics/RetiredCloudMetricMoves";
 import { getRetiredCloudMetricReads } from "../../../Utils/Metrics/RetiredCloudMetricReads";
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
 import DashboardService from "../../Services/DashboardService";
 import MonitorService from "../../Services/MonitorService";
 
@@ -59,7 +60,10 @@ interface MemoEntry {
   reads: Array<CloudAddedMetric>;
 }
 
-const memo: Map<string, MemoEntry> = new Map<string, MemoEntry>();
+const memo: OldestKeyMap<string, MemoEntry> = new OldestKeyMap<
+  string,
+  MemoEntry
+>();
 
 function readJSON(value: unknown): unknown {
   if (typeof value !== "string") {
@@ -160,7 +164,7 @@ export default class CloudRetiredMetricReads {
     memo.delete(key);
 
     if (memo.size >= CLOUD_RETIRED_READS_MEMO_MAX_PROJECTS) {
-      const oldest: string | undefined = memo.keys().next().value;
+      const oldest: string | undefined = memo.oldestKey();
 
       if (oldest !== undefined) {
         memo.delete(oldest);

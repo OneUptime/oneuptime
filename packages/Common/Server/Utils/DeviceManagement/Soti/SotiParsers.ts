@@ -1,3 +1,4 @@
+import { getManagedDeviceStorageDetails } from "../../../../Types/DeviceManagement/ManagedDeviceCheckIn";
 import {
   ManagedDevicePlatform,
   readManagedDevicePlatformFromName,
@@ -308,6 +309,20 @@ export function parseSotiDevice(
   if (details["totalStorage"] || details["totalRam"]) {
     details["memoryUnits"] = "GB";
   }
+
+  /*
+   * In bytes, as MobiControl gives them, for how full its own storage is
+   * (#10008): TotalStorage and AvailableStorage, never an SD card's, which
+   * has fields of its own. A device without the agent reports a whole of
+   * 0: no figure.
+   */
+  Object.assign(
+    details,
+    getManagedDeviceStorageDetails({
+      totalBytes: readNumber(memory["TotalStorage"]),
+      freeBytes: readNumber(memory["AvailableStorage"]),
+    }),
+  );
 
   const battery: number | null = readNumber(raw["BatteryStatus"]);
   const ipv6: string = cleanText(raw["Ipv6"]);

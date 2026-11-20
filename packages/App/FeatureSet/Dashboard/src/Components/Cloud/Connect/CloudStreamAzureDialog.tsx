@@ -13,6 +13,7 @@ import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSect
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
 import API from "Common/UI/Utils/API/API";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -28,6 +29,7 @@ import {
 } from "./CloudConnectApi";
 import { CloudTemplate, drawCloudTemplate } from "./CloudConnectionWords";
 import {
+  AZURE_STREAM_AUDIT_LOG_OPTIONS,
   AZURE_STREAM_DOCS_PATH,
   AZURE_STREAM_WHAT_OPTIONS,
   AzureStreamChoices,
@@ -76,6 +78,11 @@ import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence
  *      each resource;
  *   3. the first events, asked for every few seconds: what arrived, from
  *      where, or why the event hubs could not be read.
+ *
+ * Beside what to stream, two switches offer what Security Events reads
+ * (#10111): each subscription's Activity Log, which the command then sets
+ * up too, and Microsoft Entra ID's logs, the tenant's - a second command,
+ * a step of its own, for a Security Administrator of the tenant.
  *
  * Azure Monitor sends only to an event hub, a storage account or a Log
  * Analytics workspace: an event hub OneUptime reads is the way that needs
@@ -353,9 +360,52 @@ const CloudStreamAzureDialog: FunctionComponent<ComponentProps> = (
               },
             )}
           />
+          {choices.activityLog ? (
+            <p
+              className="pl-5 text-xs text-gray-500"
+              data-testid={cloudStreamPart("what-it-makes-activity-log")}
+            >
+              {translator.translateTemplate(
+                "And it gives each subscription a diagnostic setting, {{setting}}, that sends its Activity Log to the first region's event hub.",
+                { setting: setup.names.diagnosticSetting },
+              )}
+            </p>
+          ) : (
+            <></>
+          )}
         </div>
       ),
     },
+    /*
+     * Microsoft Entra ID's logs are the tenant's: only a Security
+     * Administrator may send them anywhere, and the person who runs the
+     * first command need not be one.
+     */
+    ...(setup.entraCommand
+      ? [
+          {
+            title: say(
+              translationKey(
+                "Run this as a Security Administrator of your tenant",
+              ),
+            ),
+            description: translator.translateTemplate(
+              "Once the first command has finished, run this in {{shell}} as a Security Administrator of the tenant who may read the event hubs' key: an Owner or Contributor of {{group}}.",
+              { shell: shell.title, group: setup.names.resourceGroup },
+            ),
+            content: (
+              <div data-testid={cloudStreamPart("entra-command")}>
+                <CodeBlock
+                  code={setup.entraCommand}
+                  language="bash"
+                  wrapLongLines={true}
+                  maxHeight={CLOUD_STREAM_COMMAND_MAX_HEIGHT}
+                />
+              </div>
+            ),
+          },
+        ]
+      : []),
     {
       title: say(translationKey("Wait for the first events")),
       content: (
@@ -477,6 +527,32 @@ const CloudStreamAzureDialog: FunctionComponent<ComponentProps> = (
               update({ what: key as CloudStreamWhat });
             }}
           />
+        </div>
+
+        <div className="space-y-3" data-testid={cloudStreamPart("audit-logs")}>
+          <p className="text-sm font-medium text-gray-900">
+            {say(translationKey("For Security Events"))}
+          </p>
+          {AZURE_STREAM_AUDIT_LOG_OPTIONS.map(
+            (option: {
+              key: "activityLog" | "entraId";
+              title: string;
+              description: string;
+            }) => {
+              return (
+                <Toggle
+                  key={option.key}
+                  title={option.title}
+                  description={option.description}
+                  value={choices[option.key]}
+                  dataTestId={cloudStreamPart(`audit-log-${option.key}`)}
+                  onChange={(value: boolean) => {
+                    update({ [option.key]: value });
+                  }}
+                />
+              );
+            },
+          )}
         </div>
 
         {isSubscriptionsAsked ? (

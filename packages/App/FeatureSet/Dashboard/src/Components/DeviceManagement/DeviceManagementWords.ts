@@ -36,6 +36,10 @@ export interface DeviceManagementHealthWords {
 /*
  * A connection's health as its row says it. Red only for a read that
  * failed; a connection someone turned off is grey (Paused), never red.
+ * The six states are drawn one above the other, so each language words
+ * them alike (StatesDrawnTogetherAgree): Waiting, Catching up and Failing
+ * have keys of their own, as Russian words a connection's states in the
+ * neuter, where the bare words are other pages' (#10009).
  */
 export function getDeviceManagementHealthWords(
   status: DeviceManagementConnectionStatus,
@@ -51,7 +55,7 @@ export function getDeviceManagementHealthWords(
       };
     case DeviceManagementConnectionStatus.Waiting:
       return {
-        label: translationKey("Waiting"),
+        label: translationKey("Waiting (device manager connection)"),
         tone: PillTone.Info,
         tooltip: translationKey(
           "Saved. Its first read starts within a minute.",
@@ -59,7 +63,7 @@ export function getDeviceManagementHealthWords(
       };
     case DeviceManagementConnectionStatus.Partial:
       return {
-        label: translationKey("Catching up"),
+        label: translationKey("Catching up (device manager connection)"),
         tone: PillTone.Info,
         tooltip: translationKey(
           "The last read worked. Some devices' apps wait for the next read, a minute from now.",
@@ -67,7 +71,7 @@ export function getDeviceManagementHealthWords(
       };
     case DeviceManagementConnectionStatus.Failing:
       return {
-        label: translationKey("Failing"),
+        label: translationKey("Failing (device manager connection)"),
         tone: PillTone.Danger,
         tooltip: translationKey(
           "The last read failed. View the error to see why.",

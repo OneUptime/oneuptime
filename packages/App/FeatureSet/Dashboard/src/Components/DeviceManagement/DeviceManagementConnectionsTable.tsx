@@ -292,15 +292,17 @@ const DeviceManagementConnectionsTable: FunctionComponent<ComponentProps> = (
             },
           },
           /*
-           * The connection's recommended monitors (#9835): its devices
-           * that stopped checking in, one alert per device. Open to everyone
-           * who sees the row; creating a monitor asks its own permission.
+           * The connection's recommended monitors: the connection itself
+           * when it stops reading (#10006), and its devices, one alert per
+           * device (#9835). Open to everyone who sees the row; creating a
+           * monitor asks its own permission.
            */
           {
             title: "Set up alerts",
             icon: IconProp.Bell,
             buttonStyleType: ButtonStyleType.OUTLINE,
-            tooltip: "Get an alert when one of its devices stops checking in.",
+            tooltip:
+              "Get an alert when it stops reading, or when one of its devices stops checking in.",
             onClick: (
               item: DeviceManagementConnection,
               onCompleteAction: VoidFunction,

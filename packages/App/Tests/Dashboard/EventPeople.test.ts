@@ -11,11 +11,14 @@ import {
   EventRoleMember,
   EventRolesSnapshot,
   MAX_HEADER_OWNERS,
+  PickedEventPerson,
   PrimaryRoleHolding,
   getEventOwnerName,
   getPrimaryRoleHolding,
   orderEventOwners,
   toEventRoleMember,
+  withRoleGiven,
+  withRoleReassigned,
 } from "../../FeatureSet/Dashboard/src/Utils/EventPeople";
 
 /*
@@ -176,6 +179,167 @@ describe("toEventRoleMember", () => {
       email: undefined,
       hasProfilePicture: false,
     });
+  });
+
+  test("keeps the row that gives the role, which the header's commander hands on (#10195)", () => {
+    const ROW_ID: string = "77000000-0000-4000-8000-000000000001";
+
+    expect(
+      toEventRoleMember({
+        _id: ROW_ID,
+        incidentRoleId: COMMANDER_ROLE_ID,
+        userId: MAYA_ID,
+        user: { name: "Maya Chen" },
+      }).memberId,
+    ).toBe(ROW_ID);
+
+    expect(
+      toEventRoleMember({
+        _id: new ObjectID(ROW_ID),
+        incidentRoleId: COMMANDER_ROLE_ID,
+        userId: MAYA_ID,
+      }).memberId,
+    ).toBe(ROW_ID);
+
+    // A row read without its id names none.
+    expect(toEventRoleMember({ userId: MAYA_ID }).memberId).toBeUndefined();
+  });
+});
+
+/*
+ * What the header names the moment a role is given or handed on, before
+ * the roles card has read the record again and says the same.
+ */
+describe("the roles as the header has just changed them", () => {
+  const MAYA_ROW: string = "77000000-0000-4000-8000-000000000001";
+  const SAM_ROW: string = "77000000-0000-4000-8000-000000000002";
+  const JORDAN_ID: string = "80000000-0000-4000-8000-000000000003";
+
+  const snapshot: EventRolesSnapshot = {
+    roles: [commanderRole, scribeRole],
+    members: [
+      {
+        ...member(COMMANDER_ROLE_ID, MAYA_ID, "Maya Chen"),
+        memberId: MAYA_ROW,
+      },
+      { ...member(SCRIBE_ROLE_ID, SAM_ID, "Sam Rivera"), memberId: SAM_ROW },
+    ],
+  };
+
+  const jordan: PickedEventPerson = {
+    id: JORDAN_ID,
+    name: "Jordan Patel",
+    description: "jordan.patel@acme-commerce.example",
+    hasProfilePicture: true,
+  };
+
+  test("withRoleReassigned puts the person picked in the holder's place: the same row, the same role", () => {
+    const after: EventRolesSnapshot | undefined = withRoleReassigned({
+      snapshot: snapshot,
+      member: snapshot.members[0]!,
+      person: jordan,
+    });
+
+    expect(after?.roles).toBe(snapshot.roles);
+    expect(after?.members).toEqual([
+      {
+        memberId: MAYA_ROW,
+        roleId: COMMANDER_ROLE_ID,
+        userId: JORDAN_ID,
+        name: "Jordan Patel",
+        email: "jordan.patel@acme-commerce.example",
+        hasProfilePicture: true,
+      },
+      snapshot.members[1],
+    ]);
+
+    // What it was handed is left as it was.
+    expect(snapshot.members[0]!.userId).toBe(MAYA_ID);
+  });
+
+  test("a person with no name is named by their email, as the list names them", () => {
+    const after: EventRolesSnapshot | undefined = withRoleReassigned({
+      snapshot: snapshot,
+      member: snapshot.members[0]!,
+      person: {
+        id: JORDAN_ID,
+        name: "jordan.patel@acme-commerce.example",
+        description: "jordan.patel@acme-commerce.example",
+      },
+    });
+
+    expect(after?.members[0]).toEqual(
+      expect.objectContaining({
+        name: "",
+        email: "jordan.patel@acme-commerce.example",
+        hasProfilePicture: false,
+      }),
+    );
+  });
+
+  test("a holder is found by role and person when the row's id is not known", () => {
+    const withoutIds: EventRolesSnapshot = {
+      roles: snapshot.roles,
+      members: [member(COMMANDER_ROLE_ID, MAYA_ID, "Maya Chen")],
+    };
+
+    const after: EventRolesSnapshot | undefined = withRoleReassigned({
+      snapshot: withoutIds,
+      member: member(COMMANDER_ROLE_ID, MAYA_ID.toUpperCase(), "Maya Chen"),
+      person: jordan,
+    });
+
+    expect(
+      after?.members.map((held: EventRoleMember) => {
+        return held.userId;
+      }),
+    ).toEqual([JORDAN_ID]);
+  });
+
+  test("a holder the roles no longer name, or roles not read yet, are left as they are", () => {
+    expect(
+      withRoleReassigned({
+        snapshot: snapshot,
+        member: {
+          ...member(COMMANDER_ROLE_ID, JORDAN_ID, "Jordan Patel"),
+          memberId: "77000000-0000-4000-8000-000000000009",
+        },
+        person: jordan,
+      }),
+    ).toBe(snapshot);
+
+    expect(
+      withRoleReassigned({
+        snapshot: undefined,
+        member: snapshot.members[0]!,
+        person: jordan,
+      }),
+    ).toBeUndefined();
+  });
+
+  test("withRoleGiven adds the person given the role, once", () => {
+    const after: EventRolesSnapshot | undefined = withRoleGiven({
+      snapshot: snapshot,
+      roleId: SCRIBE_ROLE_ID,
+      person: jordan,
+    });
+
+    expect(after?.members).toHaveLength(3);
+    expect(after?.members[2]).toEqual({
+      roleId: SCRIBE_ROLE_ID,
+      userId: JORDAN_ID,
+      name: "Jordan Patel",
+      email: "jordan.patel@acme-commerce.example",
+      hasProfilePicture: true,
+    });
+
+    expect(
+      withRoleGiven({
+        snapshot: snapshot,
+        roleId: COMMANDER_ROLE_ID,
+        person: { id: MAYA_ID, name: "Maya Chen" },
+      }),
+    ).toBe(snapshot);
   });
 });
 

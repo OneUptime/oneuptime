@@ -192,6 +192,35 @@ jest.mock(
 );
 
 /*
+ * What OneUptime AI learned about the service, and the team's notes for it
+ * (#7672): cards that read on their own while the project uses AI, held to
+ * their reads by ServiceAiMemoryCards.test.tsx.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/ServiceAiMemory/ServiceKnowledgeCard",
+  () => {
+    return {
+      __esModule: true,
+      default: (): null => {
+        return null;
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/ServiceAiMemory/ServiceAiNotesTable",
+  () => {
+    return {
+      __esModule: true,
+      default: (): null => {
+        return null;
+      },
+    };
+  },
+);
+
+/*
  * The page draws no CardModelDetail any more; were it to again, this marker
  * would say so.
  */

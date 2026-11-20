@@ -1,4 +1,6 @@
+import { JSONObject, JSONValue } from "../../Types/JSON";
 import { SearchValueOperator } from "../../Types/Telemetry/TelemetrySearchQuery";
+import StoredDashboardViewConfig from "../Dashboard/StoredDashboardViewConfig";
 import {
   ParsedSloMetricSearch,
   SloMetricAttributeTerm,
@@ -58,14 +60,76 @@ const TABLE: string = "table";
 const TABLE_METRIC_COLUMN: string = "metric";
 const TABLE_FORMULA_COLUMN: string = "formula";
 
+function isWidget(entry: unknown): entry is UnknownRecord {
+  return StoredDashboardViewConfig.isWidgetEntry(entry);
+}
+
+/*
+ * A stored dashboard's widget entries, in order, as every board reads them
+ * (StoredDashboardViewConfig, #4571): the config as stored, as JSON text or
+ * in the envelope the API reference documented; its widget list as a list,
+ * as JSON text or as an object keyed "0", "1", ...; each widget as stored,
+ * as JSON text or in its own envelope, with arguments written as JSON text
+ * read as the object they say. Junk entries stay as they are. A query is
+ * found wherever a board draws it.
+ */
+function readEntries(config: JSONObject): Array<unknown> {
+  return StoredDashboardViewConfig.getComponentEntries(config).map(
+    (entry: unknown): unknown => {
+      return StoredDashboardViewConfig.isWidgetEntry(entry)
+        ? StoredDashboardViewConfig.withArgumentsRead(entry)
+        : entry;
+    },
+  );
+}
+
+// A stored dashboard's widgets, read without changing what was handed in.
 function getComponents(dashboardViewConfigJSON: unknown): Array<UnknownRecord> {
-  return asArray(asRecord(dashboardViewConfigJSON)?.["components"])
-    .map((component: unknown): UnknownRecord | undefined => {
-      return asRecord(component);
-    })
-    .filter((component: UnknownRecord | undefined): boolean => {
-      return Boolean(component);
-    }) as Array<UnknownRecord>;
+  return readEntries(
+    StoredDashboardViewConfig.unwrap(dashboardViewConfigJSON),
+  ).filter(isWidget);
+}
+
+/*
+ * A stored dashboard's widgets, before a move: written on the config handed
+ * in as they are read - its widget list a list of them, each with its
+ * arguments an object - so a move is written on what the caller writes,
+ * whichever of those shapes a widget was stored in.
+ */
+function getComponentsToMove(
+  dashboardViewConfigJSON: unknown,
+): Array<UnknownRecord> {
+  const config: JSONObject = StoredDashboardViewConfig.unwrap(
+    dashboardViewConfigJSON,
+  );
+  const entries: Array<unknown> = readEntries(config);
+  const widgets: Array<UnknownRecord> = entries.filter(isWidget);
+
+  if (widgets.length === 0) {
+    return [];
+  }
+
+  config["components"] = entries as Array<JSONValue>;
+
+  if (Array.isArray(dashboardViewConfigJSON)) {
+    // A bare widget list: it holds the widgets themselves.
+    dashboardViewConfigJSON.splice(
+      0,
+      dashboardViewConfigJSON.length,
+      ...entries,
+    );
+  } else {
+    const handedIn: UnknownRecord | undefined = asRecord(
+      dashboardViewConfigJSON,
+    );
+
+    // Opened out of an envelope: it now holds the config the widgets are on.
+    if (handedIn && handedIn !== config) {
+      handedIn["value"] = config;
+    }
+  }
+
+  return widgets;
 }
 
 function getComponentType(component: UnknownRecord): string {
@@ -274,12 +338,6 @@ function readComponent(
   return [];
 }
 
-function getDashboardReads(
-  dashboardViewConfigJSON: unknown,
-): Array<RetiredCloudMetricRead> {
-  return getComponents(dashboardViewConfigJSON).flatMap(readComponent);
-}
-
 /*
  * WHAT ONE WIDGET SAYS OF THE DEPRECATED METRICS IT READS (#10027): a
  * Value's or a Gauge's query, a Table's metric columns and older queries,
@@ -307,9 +365,9 @@ export function getRetiredCloudMetricNoticesOfWidget(
 export function findRetiredCloudMetricQueriesOfDashboard(
   dashboardViewConfigJSON: unknown,
 ): Array<RetiredCloudMetricQuery> {
-  return getDashboardReads(dashboardViewConfigJSON).map(
-    toRetiredCloudMetricQuery,
-  );
+  return getComponents(dashboardViewConfigJSON)
+    .flatMap(readComponent)
+    .map(toRetiredCloudMetricQuery);
 }
 
 /*
@@ -322,7 +380,9 @@ export function moveRetiredCloudMetricQueriesOfDashboard(data: {
   evidenceOf: (query: RetiredCloudMetricQuery) => CosmosLatencyEvidence | null;
 }): RetiredCloudMetricOutcome {
   return moveRetiredCloudMetricReads({
-    reads: getDashboardReads(data.dashboardViewConfigJSON),
+    reads: getComponentsToMove(data.dashboardViewConfigJSON).flatMap(
+      readComponent,
+    ),
     evidenceOf: data.evidenceOf,
   });
 }

@@ -69,6 +69,8 @@ export const FEED_LEAD_VERBS: ReadonlySet<string> = new Set<string>([
   "ended",
   "escalated",
   "executed",
+  // "Maya handed the Incident Commander role on Incident INC-18 to Jordan".
+  "handed",
   "invited",
   "joined",
   // "Valeria left the Responder role on Incident INC-18" (IncidentRoleFeedText).

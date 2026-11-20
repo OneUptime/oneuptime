@@ -1036,6 +1036,9 @@ phase_clean_ubuntu() {
     "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends systemd systemd-sysv dbus sudo curl ca-certificates && rm -rf /var/lib/apt/lists/* && useradd -m tester && echo 'tester ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/tester && chmod 0440 /etc/sudoers.d/tester"
 }
 
+# On an Ubuntu host, unload AppArmor's unix-chkpwd profile first, as the workflow does: it
+# attaches to the Rocky machine's unix_chkpwd too, and keeps it from reading /etc/shadow, so the
+# machine's sudo fails with "PAM account management error".
 ROCKY_MACHINE="dnf install -y systemd sudo tar gzip procps-ng diffutils shadow-utils ca-certificates && (command -v curl >/dev/null || dnf install -y curl-minimal || dnf install -y curl) && dnf clean all && systemctl mask dnf-makecache.timer dnf-makecache.service && useradd -m tester && echo 'tester ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/tester && chmod 0440 /etc/sudoers.d/tester"
 
 phase_clean_rocky() {

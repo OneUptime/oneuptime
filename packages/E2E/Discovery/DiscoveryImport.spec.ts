@@ -444,7 +444,7 @@ async function useDarkTheme(page: Page): Promise<void> {
 }
 
 test.describe("templates of every kind a device's monitor can be made from (#5145)", () => {
-  test("the KDS Ping template is listed under its kind, with the Port and NTP ones; a Website template is not", async ({
+  test("the KDS Ping template is listed under its kind, with the Port and NTP ones, and a Website template under Web templates", async ({
     page,
   }: {
     page: Page;
@@ -453,11 +453,14 @@ test.describe("templates of every kind a device's monitor can be made from (#514
     await toMonitoring(page);
     await page.getByTestId("discovery-import-alerting-template").check();
 
-    // One line says which kinds are listed, beside a way to the templates.
+    /*
+     * One line says which kinds are listed, and how a web one's URL is
+     * made each device's (#9546), beside a way to the templates.
+     */
     await expect(
       page.getByTestId("discovery-import-template-rule"),
     ).toContainText(
-      "Network Device, Ping, IP, Port and NTP templates are listed: other kinds cannot check a device.",
+      "Network Device, Ping, IP, Port, NTP, Website, API and SSL Certificate templates are listed. A web one's URL takes each device's address as its host.",
     );
     const manage: Locator = page.getByTestId(
       "discovery-import-manage-templates",
@@ -478,6 +481,7 @@ test.describe("templates of every kind a device's monitor can be made from (#514
     await expect(
       menu.getByText("Ping, IP, Port and NTP templates"),
     ).toBeVisible();
+    await expect(menu.getByText("Web templates")).toBeVisible();
 
     const options: Array<string> = await menu
       .getByRole("option")
@@ -492,10 +496,10 @@ test.describe("templates of every kind a device's monitor can be made from (#514
       "Receipt printers | Checks port 9100 on each device",
       "Store time servers | Asks each device for the time",
       "WB KDS Ping Monitor Template | Pings each device",
+      "Storefront website | Checks https://shop.wbhq.com/, with each device's address as the host",
     ]);
-    await expect(menu).not.toContainText("Storefront website");
 
-    // The project's templates were asked for by kind: these five, no other.
+    // The project's templates were asked for by kind: these eight, no other.
     const kinds: Array<string> = await page.evaluate((): Array<string> => {
       const requests: Array<{
         model: string;
@@ -517,7 +521,16 @@ test.describe("templates of every kind a device's monitor can be made from (#514
       );
       return (read?.query.monitorType?.values || []).map(String);
     });
-    expect(kinds).toEqual(["Network Device", "Ping", "IP", "Port", "NTP"]);
+    expect(kinds).toEqual([
+      "Network Device",
+      "Ping",
+      "IP",
+      "Port",
+      "NTP",
+      "Website",
+      "API",
+      "SSL Certificate",
+    ]);
 
     // The menu pops in (ou-animate-pop-in): shot as it ends, not half drawn.
     await page.screenshot({
