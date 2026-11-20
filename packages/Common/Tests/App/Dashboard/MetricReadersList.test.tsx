@@ -542,7 +542,11 @@ describe("what reads a recording rule's output metric, set in under the rule", (
       ruleGroup({
         outputReaders: readersOfOutput({
           monitors: {
-            readers: readersOf(MAX_METRIC_READERS_SHOWN + 2, "Alert"),
+            readers: readersOf(MAX_METRIC_READERS_SHOWN + 2, "Alert").map(
+              (reader: MetricReaderListReader) => {
+                return { id: reader.id, name: reader.name };
+              },
+            ),
             hidden: 3,
           },
           slos: { readers: [], hidden: 2 },

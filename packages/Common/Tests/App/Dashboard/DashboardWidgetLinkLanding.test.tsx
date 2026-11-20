@@ -11,6 +11,7 @@ import {
   test,
 } from "@jest/globals";
 import React, { ReactElement } from "react";
+import type { Mock } from "jest-mock";
 
 /*
  * A DASHBOARD OPENED AT ONE OF ITS WIDGETS (#10084), on the board itself:
@@ -294,7 +295,7 @@ describe("a link that names a widget of the board", () => {
     runFrames();
 
     const scrolled: number = scrolls.length;
-    const missing: jest.Mock = jest.fn();
+    const missing: Mock<() => void> = jest.fn();
 
     // A refresh, then a widget moved: the same link, the same board.
     rerender(
@@ -357,7 +358,7 @@ describe("a link that names a widget of the board", () => {
 
 describe("a link to a widget the board does not have", () => {
   test("opens the board at its top: nothing scrolled to or outlined, and the page told once", () => {
-    const missing: jest.Mock = jest.fn();
+    const missing: Mock<() => void> = jest.fn();
     const { rerender } = render(
       canvas({
         landingWidgetId: "6a1e0c00-0000-4000-8000-0000000000ff",
@@ -384,7 +385,7 @@ describe("a link to a widget the board does not have", () => {
   });
 
   test("an empty board has none of them: told too", () => {
-    const missing: jest.Mock = jest.fn();
+    const missing: Mock<() => void> = jest.fn();
 
     render(
       canvas({
@@ -400,7 +401,7 @@ describe("a link to a widget the board does not have", () => {
 
 describe("no link, and a board that comes and goes", () => {
   test("no link: nothing lands, and nothing is told", () => {
-    const missing: jest.Mock = jest.fn();
+    const missing: Mock<() => void> = jest.fn();
 
     render(canvas({ onLandingWidgetMissing: missing }));
     runFrames();

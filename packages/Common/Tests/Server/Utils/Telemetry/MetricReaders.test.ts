@@ -1135,10 +1135,22 @@ describe("what reads a recording rule's output metric, down the chain", () => {
     rules?: ((rule: MetricRecordingRule) => boolean) | Error;
   }): void {
     jest.restoreAllMocks();
-    serve(MonitorService, { all: monitors, visible: visible?.monitors });
-    serve(DashboardService, { all: dashboards, visible: visible?.dashboards });
-    serve(ServiceLevelObjectiveService, { all: slos, visible: visible?.slos });
-    serve(MetricRecordingRuleService, { all: rules, visible: visible?.rules });
+    serve(MonitorService, {
+      all: monitors,
+      ...(visible?.monitors ? { visible: visible.monitors } : {}),
+    });
+    serve(DashboardService, {
+      all: dashboards,
+      ...(visible?.dashboards ? { visible: visible.dashboards } : {}),
+    });
+    serve(ServiceLevelObjectiveService, {
+      all: slos,
+      ...(visible?.slos ? { visible: visible.slos } : {}),
+    });
+    serve(MetricRecordingRuleService, {
+      all: rules,
+      ...(visible?.rules ? { visible: visible.rules } : {}),
+    });
   }
 
   async function follow(): Promise<MetricReaders> {

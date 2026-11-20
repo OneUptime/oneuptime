@@ -214,8 +214,8 @@ const READERS: CloudAddedMetricReaders = {
       name: "Web apps",
       // A widget of a kind the catalog does not know, and no title.
       widgets: [
-        { title: "Memory by instance", type: "Chart" },
-        { title: "", type: "" },
+        { id: "", title: "Memory by instance", type: "Chart" },
+        { id: "", title: "", type: "" },
       ],
     },
     {
@@ -1228,7 +1228,7 @@ describe("keeping a type's metric for the resources its readers read", () => {
           kind: CloudAddedMetricReaderKind.Dashboard,
           id: DASHBOARD_ID,
           name: "Web apps",
-          widgets: [{ title: "", type: "Chart" }],
+          widgets: [{ id: "", title: "", type: "Chart" }],
         },
       ],
       hidden: 0,
