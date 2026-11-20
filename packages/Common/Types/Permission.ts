@@ -195,6 +195,25 @@ enum Permission {
   EditDashboardDomain = "EditDashboardDomain",
   ReadDashboardDomain = "ReadDashboardDomain",
 
+  /*
+   * Dashboard Private Users and Single Sign-On: who signs in on the public
+   * link of a dashboard that asks its visitors to sign in (#10250).
+   */
+  CreateDashboardPrivateUser = "CreateDashboardPrivateUser",
+  DeleteDashboardPrivateUser = "DeleteDashboardPrivateUser",
+  EditDashboardPrivateUser = "EditDashboardPrivateUser",
+  ReadDashboardPrivateUser = "ReadDashboardPrivateUser",
+
+  CreateDashboardSSO = "CreateDashboardSSO",
+  DeleteDashboardSSO = "DeleteDashboardSSO",
+  EditDashboardSSO = "EditDashboardSSO",
+  ReadDashboardSSO = "ReadDashboardSSO",
+
+  CreateDashboardOIDC = "CreateDashboardOIDC",
+  DeleteDashboardOIDC = "DeleteDashboardOIDC",
+  EditDashboardOIDC = "EditDashboardOIDC",
+  ReadDashboardOIDC = "ReadDashboardOIDC",
+
   // Dashboard Playlists (dashboards shown one after another on a screen)
   CreateDashboardPlaylist = "CreateDashboardPlaylist",
   DeleteDashboardPlaylist = "DeleteDashboardPlaylist",
@@ -3666,6 +3685,128 @@ export class PermissionHelper {
         title: "Read Dashboard Domain",
         description:
           "This permission can read Dashboard Domains of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+
+      // Dashboard Private User permissions.
+      {
+        permission: Permission.CreateDashboardPrivateUser,
+        title: "Create Dashboard Private User",
+        description:
+          "This permission can invite private users to dashboards of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteDashboardPrivateUser,
+        title: "Delete Dashboard Private User",
+        description:
+          "This permission can remove private users from dashboards of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.EditDashboardPrivateUser,
+        title: "Edit Dashboard Private User",
+        description:
+          "This permission can edit private users of dashboards of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadDashboardPrivateUser,
+        title: "Read Dashboard Private User",
+        description:
+          "This permission can read private users of dashboards of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+
+      // Dashboard SSO (SAML) permissions.
+      {
+        permission: Permission.CreateDashboardSSO,
+        title: "Create Dashboard SSO",
+        description:
+          "This permission can create Dashboard SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteDashboardSSO,
+        title: "Delete Dashboard SSO",
+        description:
+          "This permission can delete Dashboard SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.EditDashboardSSO,
+        title: "Edit Dashboard SSO",
+        description: "This permission can edit Dashboard SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadDashboardSSO,
+        title: "Read Dashboard SSO",
+        description: "This permission can read Dashboard SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+
+      // Dashboard OIDC permissions.
+      {
+        permission: Permission.CreateDashboardOIDC,
+        title: "Create Dashboard OIDC",
+        description:
+          "This permission can create Dashboard OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteDashboardOIDC,
+        title: "Delete Dashboard OIDC",
+        description:
+          "This permission can delete Dashboard OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.EditDashboardOIDC,
+        title: "Edit Dashboard OIDC",
+        description: "This permission can edit Dashboard OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadDashboardOIDC,
+        title: "Read Dashboard OIDC",
+        description: "This permission can read Dashboard OIDC in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

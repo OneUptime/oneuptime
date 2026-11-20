@@ -623,6 +623,10 @@ import DashboardLabelRule from "./DashboardLabelRule";
 import TableView from "./TableView";
 import Dashboard from "./Dashboard";
 import DashboardDomain from "./DashboardDomain";
+import DashboardPrivateUser from "./DashboardPrivateUser";
+import DashboardPrivateUserSession from "./DashboardPrivateUserSession";
+import DashboardSSO from "./DashboardSso";
+import DashboardOIDC from "./DashboardOidc";
 import DashboardPlaylist from "./DashboardPlaylist";
 import DashboardOwnerTeam from "./DashboardOwnerTeam";
 import DashboardOwnerUser from "./DashboardOwnerUser";
@@ -1183,6 +1187,10 @@ const AllModelTypes: Array<{
   // Dashboards
   Dashboard,
   DashboardDomain,
+  DashboardPrivateUser,
+  DashboardPrivateUserSession,
+  DashboardSSO,
+  DashboardOIDC,
   DashboardOwnerTeam,
   DashboardOwnerUser,
   DashboardPlaylist,
