@@ -8,12 +8,15 @@ export interface ComponentProps {
 }
 
 /*
- * What every external Data Source widget renders on a PUBLIC dashboard.
- * The anonymous public API deliberately exposes no data-source surface —
- * project credentials for a customer's Postgres or Prometheus are not
- * something an unauthenticated viewer gets to reach through — so the widget
- * says so plainly instead of failing a request it should never make, the
- * way every widget a public dashboard cannot draw does (WidgetPlaceholder).
+ * What a Data Source widget renders on a PUBLIC dashboard when it has no
+ * query it may run there. The anonymous public API reaches no outside
+ * system — project credentials for a customer's Postgres or Prometheus are
+ * not something an unauthenticated viewer gets to reach through — so the
+ * server leaves such a widget out, and serves only those of this project's
+ * metrics, whose stored queries its PromQL route runs (issue #10226). A
+ * widget that still arrives with nothing to run says so plainly instead of
+ * failing a request it should never make, the way every widget a public
+ * dashboard cannot draw does (WidgetPlaceholder).
  */
 const DataSourceWidgetPlaceholder: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

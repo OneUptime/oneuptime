@@ -851,6 +851,9 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         PUBLIC_PAGE,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/slo-history-aggregate/:dashboardId`":
         PUBLIC_PAGE,
+      // A public dashboard's PromQL widgets: their stored queries only (#10226).
+      "`${new this.entityType() .getCrudApiPath() ?.toString()}${PUBLIC_DASHBOARD_PROMQL_QUERY_PATH}/:dashboardId`":
+        PUBLIC_PAGE,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/master-password/:dashboardId`":
         PUBLIC_PAGE,
     },

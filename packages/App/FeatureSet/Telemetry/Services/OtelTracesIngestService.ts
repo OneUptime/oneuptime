@@ -114,6 +114,9 @@ import {
 } from "Common/Types/Telemetry/ExceptionSource";
 import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
 import { countOtlpSpans } from "Common/Utils/Telemetry/OtlpRecordCount";
+import SecurityAddressVaultWriter, {
+  SecurityAddressVaultBatch,
+} from "Common/Server/Utils/SecurityEvent/AddressVault/SecurityAddressVaultWriter";
 
 type CompiledTraceScrubRule = {
   rule: TraceScrubRule;
@@ -480,6 +483,20 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         pipelines = [];
         modelPriceOverrides = [];
       }
+
+      /*
+       * The addresses this batch's IP Address Hash rules hide, kept for
+       * Security Events' address vault when Security Events reads the
+       * project's traces (#10395): null - and nothing kept - otherwise.
+       * Written once, after the batch's spans are stored, never awaited:
+       * a span is stored with its token whatever the vault does.
+       */
+      const addressVault: SecurityAddressVaultBatch | null =
+        await SecurityAddressVaultWriter.startBatch({
+          projectId: projectId,
+          signal: "trace",
+          scrubRules: scrubRules,
+        });
 
       /*
        * The event loop is handed back by the time the work took, not every
@@ -1060,6 +1077,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     spanRow = TraceScrubRuleService.scrubSpan(
                       spanRow,
                       scrubRules,
+                      addressVault,
                     );
                   }
 
@@ -1260,6 +1278,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           logger.error(err);
         }),
       ]);
+
+      // The spans are stored: their hashed addresses go to the vault, on their own.
+      addressVault?.write();
 
       if (obiNodeInspectorSpansDropped > 0) {
         logger.debug(

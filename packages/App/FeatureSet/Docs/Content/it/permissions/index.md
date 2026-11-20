@@ -129,6 +129,26 @@ La fatturazione ha tre ruoli propri. `BillingViewer` legge la fatturazione del p
 
 Tutti i {{PERMISSION_ROLE_COUNT}} ruoli sono elencati nel [Riferimento delle autorizzazioni](/docs/permissions/reference).
 
+### Livelli di prodotto
+
+Un livello di prodotto dà a un team un solo prodotto, a un solo livello, e nient'altro del progetto: `CloudAdmin`, `NetworkViewer`, `HostMember`. Ogni livello fa sui record propri del prodotto ciò che un ruolo dell'intero progetto fa su ogni record:
+
+- **Visualizzatore** legge lì ciò che legge il ruolo Visualizzatore, e non modifica nulla.
+- **Membro** crea, modifica ed elimina anche i record del prodotto, come fa un Membro del progetto.
+- **Amministratore** fa lì anche ciò che fa un Amministratore del progetto: le impostazioni del prodotto, le sue connessioni e credenziali, e le sue regole di etichette e di proprietari.
+
+Un livello non raggiunge mai un altro prodotto, né le impostazioni, i team, i membri, le chiavi API, l'SSO o la fatturazione del progetto.
+
+:::steps
+1. Aprite la pagina **Autorizzazioni** del team.
+2. In **Accesso ai prodotti**, scegliete un livello per ogni prodotto con cui lavora il team. Svuotate il livello di un prodotto per togliere quel prodotto al team.
+:::
+
+- **I Monitor, gli Incidenti e le altre aree con ruoli propri** si assegnano con **Aggiungi ruolo**, sotto **Un'area**. Lo stesso vale per i ruoli Telemetry, per Log, Metriche, Tracce, Profili ed Eccezioni, e per i ruoli Security.
+- **IA / LLM, Inventario e Moduli** hanno solo un livello Visualizzatore e un livello Amministratore, perché un Membro del progetto non vi modifica nulla.
+- **Un livello è un'autorizzazione come le altre.** Potete limitarlo ad alcune etichette o ai record posseduti nella tabella delle autorizzazioni, bloccarlo, inserirlo in un ruolo personalizzato o assegnarlo a una chiave API. Come per ogni autorizzazione, potete assegnare un livello solo se lo detenete voi stessi, a meno che non siate Proprietari del progetto.
+- **Un livello legge i record del prodotto, non la sua telemetria.** Un team con `HostViewer` vede gli host del progetto, e per i loro grafici gli serve anche `TelemetryViewer`.
+
 ### Autorizzazioni granulari
 
 Ogni singola capacità si può assegnare anche da sola — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` e altre {{PERMISSION_TOTAL_COUNT}}. Usatele quando un ruolo è troppo ampio e dovete concedere esattamente una cosa.
