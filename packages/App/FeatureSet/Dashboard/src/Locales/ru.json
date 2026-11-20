@@ -59923,5 +59923,11 @@
   "Click to reassign": "Нажмите, чтобы переназначить",
   "Reassign {{role}}": "Переназначить: {{role}}",
   "The person was not removed from the role.": "Пользователь не снят с роли.",
-  "The role was not reassigned.": "Роль не переназначена."
+  "The role was not reassigned.": "Роль не переназначена.",
+  "Couldn't load part of this issue. {{error}}": "Не удалось загрузить часть этой проблемы. {{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "Не удалось загрузить хранилище этой проблемы. {{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "Не удалось загрузить команду, которой назначена эта проблема. {{error}}",
+  "Couldn't load this store's data types. {{error}}": "Не удалось загрузить типы данных этого хранилища. {{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "Не удалось загрузить, кто принял риск по этой проблеме. {{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "Не удалось загрузить, кому назначена эта проблема. {{error}}"
 }

@@ -59923,5 +59923,11 @@
   "Click to reassign": "Zum Neuzuweisen klicken",
   "Reassign {{role}}": "{{role}} neu zuweisen",
   "The person was not removed from the role.": "Die Person wurde nicht aus der Rolle entfernt.",
-  "The role was not reassigned.": "Die Rolle wurde nicht neu zugewiesen."
+  "The role was not reassigned.": "Die Rolle wurde nicht neu zugewiesen.",
+  "Couldn't load part of this issue. {{error}}": "Ein Teil dieses Problems konnte nicht geladen werden. {{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "Der Datenspeicher dieses Problems konnte nicht geladen werden. {{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "Das Team, dem dieses Problem zugewiesen ist, konnte nicht geladen werden. {{error}}",
+  "Couldn't load this store's data types. {{error}}": "Die Datentypen dieses Datenspeichers konnten nicht geladen werden. {{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "Es konnte nicht geladen werden, wer das Risiko dieses Problems akzeptiert hat. {{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "Es konnte nicht geladen werden, wem dieses Problem zugewiesen ist. {{error}}"
 }

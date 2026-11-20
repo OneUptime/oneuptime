@@ -59923,5 +59923,11 @@
   "Click to reassign": "Click to reassign",
   "Reassign {{role}}": "Reassign {{role}}",
   "The person was not removed from the role.": "The person was not removed from the role.",
-  "The role was not reassigned.": "The role was not reassigned."
+  "The role was not reassigned.": "The role was not reassigned.",
+  "Couldn't load part of this issue. {{error}}": "Couldn't load part of this issue. {{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "Couldn't load the store this issue is on. {{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "Couldn't load the team this issue is assigned to. {{error}}",
+  "Couldn't load this store's data types. {{error}}": "Couldn't load this store's data types. {{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "Couldn't load who accepted this issue's risk. {{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "Couldn't load who this issue is assigned to. {{error}}"
 }

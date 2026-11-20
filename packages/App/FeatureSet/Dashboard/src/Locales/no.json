@@ -59923,5 +59923,11 @@
   "Click to reassign": "Klikk for å tildele på nytt",
   "Reassign {{role}}": "Tildel {{role}} på nytt",
   "The person was not removed from the role.": "Personen ble ikke fjernet fra rollen.",
-  "The role was not reassigned.": "Rollen ble ikke tildelt på nytt."
+  "The role was not reassigned.": "Rollen ble ikke tildelt på nytt.",
+  "Couldn't load part of this issue. {{error}}": "En del av dette problemet kunne ikke lastes inn. {{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "Datalageret for dette problemet kunne ikke lastes inn. {{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "Teamet dette problemet er tildelt, kunne ikke lastes inn. {{error}}",
+  "Couldn't load this store's data types. {{error}}": "Datatypene for dette datalageret kunne ikke lastes inn. {{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "Kunne ikke laste inn hvem som godtok risikoen for dette problemet. {{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "Kunne ikke laste inn hvem dette problemet er tildelt. {{error}}"
 }

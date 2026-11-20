@@ -59923,5 +59923,11 @@
   "Click to reassign": "クリックして再割り当て",
   "Reassign {{role}}": "{{role}} を再割り当て",
   "The person was not removed from the role.": "メンバーはロールから削除されませんでした。",
-  "The role was not reassigned.": "ロールは再割り当てされませんでした。"
+  "The role was not reassigned.": "ロールは再割り当てされませんでした。",
+  "Couldn't load part of this issue. {{error}}": "この問題の一部を読み込めませんでした。{{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "この問題のデータストアを読み込めませんでした。{{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "この問題が割り当てられているチームを読み込めませんでした。{{error}}",
+  "Couldn't load this store's data types. {{error}}": "このデータストアのデータタイプを読み込めませんでした。{{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "この問題のリスクを受容したユーザーを読み込めませんでした。{{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "この問題の割り当て先を読み込めませんでした。{{error}}"
 }

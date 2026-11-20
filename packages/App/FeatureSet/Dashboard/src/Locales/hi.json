@@ -59923,5 +59923,11 @@
   "Click to reassign": "फिर से असाइन करने के लिए क्लिक करें",
   "Reassign {{role}}": "{{role}} फिर से असाइन करें",
   "The person was not removed from the role.": "व्यक्ति को भूमिका से नहीं हटाया गया।",
-  "The role was not reassigned.": "भूमिका फिर से असाइन नहीं की गई।"
+  "The role was not reassigned.": "भूमिका फिर से असाइन नहीं की गई।",
+  "Couldn't load part of this issue. {{error}}": "इस समस्या का एक हिस्सा लोड नहीं हो सका। {{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "इस समस्या का स्टोर लोड नहीं हो सका। {{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "वह टीम लोड नहीं हो सकी जिसे यह समस्या असाइन की गई है। {{error}}",
+  "Couldn't load this store's data types. {{error}}": "इस स्टोर के डेटा प्रकार लोड नहीं हो सके। {{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "यह लोड नहीं हो सका कि इस समस्या का जोखिम किसने स्वीकार किया। {{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "यह लोड नहीं हो सका कि यह समस्या किसे असाइन की गई है। {{error}}"
 }

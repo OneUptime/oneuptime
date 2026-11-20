@@ -59923,5 +59923,11 @@
   "Click to reassign": "انقر لإعادة التعيين",
   "Reassign {{role}}": "إعادة تعيين الدور {{role}}",
   "The person was not removed from the role.": "لم تتم إزالة الشخص من الدور.",
-  "The role was not reassigned.": "لم تتم إعادة تعيين الدور."
+  "The role was not reassigned.": "لم تتم إعادة تعيين الدور.",
+  "Couldn't load part of this issue. {{error}}": "تعذّر تحميل جزء من هذه المشكلة. {{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "تعذّر تحميل مخزن هذه المشكلة. {{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "تعذّر تحميل الفريق الذي عُيّنت له هذه المشكلة. {{error}}",
+  "Couldn't load this store's data types. {{error}}": "تعذّر تحميل أنواع بيانات هذا المخزن. {{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "تعذّر تحميل من قبِل مخاطرة هذه المشكلة. {{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "تعذّر تحميل من عُيّنت له هذه المشكلة. {{error}}"
 }

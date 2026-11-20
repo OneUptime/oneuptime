@@ -59923,5 +59923,11 @@
   "Click to reassign": "재할당하려면 클릭",
   "Reassign {{role}}": "{{role}} 재할당",
   "The person was not removed from the role.": "사용자가 역할에서 제거되지 않았습니다.",
-  "The role was not reassigned.": "역할이 재할당되지 않았습니다."
+  "The role was not reassigned.": "역할이 재할당되지 않았습니다.",
+  "Couldn't load part of this issue. {{error}}": "이 이슈의 일부를 불러오지 못했습니다. {{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "이 이슈의 저장소를 불러오지 못했습니다. {{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "이 이슈가 할당된 팀을 불러오지 못했습니다. {{error}}",
+  "Couldn't load this store's data types. {{error}}": "이 저장소의 데이터 유형을 불러오지 못했습니다. {{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "이 이슈의 위험을 수락한 사람을 불러오지 못했습니다. {{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "이 이슈가 할당된 사람을 불러오지 못했습니다. {{error}}"
 }

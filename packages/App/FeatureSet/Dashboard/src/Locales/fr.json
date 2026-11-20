@@ -59923,5 +59923,11 @@
   "Click to reassign": "Cliquez pour réattribuer",
   "Reassign {{role}}": "Réattribuer le rôle {{role}}",
   "The person was not removed from the role.": "La personne n'a pas été retirée du rôle.",
-  "The role was not reassigned.": "Le rôle n'a pas été réattribué."
+  "The role was not reassigned.": "Le rôle n'a pas été réattribué.",
+  "Couldn't load part of this issue. {{error}}": "Impossible de charger une partie de ce problème. {{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "Impossible de charger le magasin de données de ce problème. {{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "Impossible de charger l'équipe à laquelle ce problème est attribué. {{error}}",
+  "Couldn't load this store's data types. {{error}}": "Impossible de charger les types de données de ce magasin de données. {{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "Impossible de charger la personne qui a accepté le risque de ce problème. {{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "Impossible de charger la personne à qui ce problème est attribué. {{error}}"
 }

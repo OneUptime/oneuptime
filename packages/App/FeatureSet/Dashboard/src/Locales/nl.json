@@ -59923,5 +59923,11 @@
   "Click to reassign": "Klik om opnieuw toe te wijzen",
   "Reassign {{role}}": "{{role}} opnieuw toewijzen",
   "The person was not removed from the role.": "De persoon is niet uit de rol verwijderd.",
-  "The role was not reassigned.": "De rol is niet opnieuw toegewezen."
+  "The role was not reassigned.": "De rol is niet opnieuw toegewezen.",
+  "Couldn't load part of this issue. {{error}}": "Een deel van dit probleem kon niet worden geladen. {{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "De opslag van dit probleem kon niet worden geladen. {{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "Het team waaraan dit probleem is toegewezen, kon niet worden geladen. {{error}}",
+  "Couldn't load this store's data types. {{error}}": "De gegevenstypen van deze opslag konden niet worden geladen. {{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "Kon niet laden wie het risico van dit probleem heeft geaccepteerd. {{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "Kon niet laden aan wie dit probleem is toegewezen. {{error}}"
 }

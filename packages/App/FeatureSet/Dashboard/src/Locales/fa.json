@@ -59923,5 +59923,11 @@
   "Click to reassign": "برای تخصیص دوباره کلیک کنید",
   "Reassign {{role}}": "تخصیص دوبارهٔ {{role}}",
   "The person was not removed from the role.": "این فرد از نقش حذف نشد.",
-  "The role was not reassigned.": "نقش دوباره تخصیص داده نشد."
+  "The role was not reassigned.": "نقش دوباره تخصیص داده نشد.",
+  "Couldn't load part of this issue. {{error}}": "بخشی از این مسئله بارگذاری نشد. {{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "مخزن این مسئله بارگذاری نشد. {{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "تیمی که این مسئله به آن تخصیص یافته است بارگذاری نشد. {{error}}",
+  "Couldn't load this store's data types. {{error}}": "انواع داده این مخزن بارگذاری نشد. {{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "اینکه چه کسی ریسک این مسئله را پذیرفته است بارگذاری نشد. {{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "اینکه این مسئله به چه کسی تخصیص یافته است بارگذاری نشد. {{error}}"
 }

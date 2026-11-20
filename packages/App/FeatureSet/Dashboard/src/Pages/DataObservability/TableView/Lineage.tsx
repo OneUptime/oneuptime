@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import AppLink from "../../../Components/AppLink/AppLink";
+import PipelineLastError from "../../../Components/DataObservability/PipelineLastError";
 import TableDashboards from "../../../Components/DataObservability/TableDashboards";
 import TableLineageDiagram from "../../../Components/DataObservability/TableLineageDiagram";
 import PageMap from "../../../Utils/PageMap";
@@ -16,6 +17,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Column from "Common/UI/Components/ModelTable/Column";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import SelectEntityField from "Common/UI/Types/SelectEntityField";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
@@ -43,6 +45,22 @@ function tableLink(
 }
 
 /*
+ * What the Seen In column reads of an edge: the pipeline behind it by what a
+ * relation reads of it - its name, and how and when its latest run went -
+ * and its id, to read a failed run's error from the pipeline itself
+ * (PipelineLastError). The error, free text, was read through the relation
+ * too, which the server refused for both lists whole (#10238's guard).
+ */
+export const LINEAGE_SEEN_IN_FIELD: SelectEntityField<DataAssetLineage> = {
+  dataPipeline: {
+    jobName: true,
+    lastRunState: true,
+    lastRunStartedAt: true,
+  },
+  dataPipelineId: true,
+};
+
+/*
  * Where the table's data comes from and where it goes. First as a diagram,
  * a few steps each way with how each table and pipeline is now
  * (TableLineageDiagram); then one step each way as lists: the tables it is
@@ -68,14 +86,7 @@ const TableLineagePage: FunctionComponent<
   }, [dataAsset]);
 
   const seenInColumn: Column<DataAssetLineage> = {
-    field: {
-      dataPipeline: {
-        jobName: true,
-        lastRunState: true,
-        lastRunStartedAt: true,
-        lastErrorMessage: true,
-      },
-    },
+    field: LINEAGE_SEEN_IN_FIELD,
     title: "Seen In",
     type: FieldType.Element,
     disableSort: true,
@@ -126,11 +137,11 @@ const TableLineagePage: FunctionComponent<
               <></>
             )}
           </div>
-          {edge.dataPipeline.lastRunState === "FAIL" &&
-          edge.dataPipeline.lastErrorMessage ? (
-            <span className="block max-w-md truncate text-xs text-red-600">
-              {edge.dataPipeline.lastErrorMessage}
-            </span>
+          {edge.dataPipeline.lastRunState === "FAIL" && edge.dataPipelineId ? (
+            <PipelineLastError
+              pipelineId={edge.dataPipelineId}
+              runStartedAt={edge.dataPipeline.lastRunStartedAt}
+            />
           ) : (
             <></>
           )}

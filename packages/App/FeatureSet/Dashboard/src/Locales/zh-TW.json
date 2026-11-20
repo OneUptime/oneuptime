@@ -59923,5 +59923,11 @@
   "Click to reassign": "按一下以重新指派",
   "Reassign {{role}}": "重新指派 {{role}}",
   "The person was not removed from the role.": "成員未從該角色中移除。",
-  "The role was not reassigned.": "角色未重新指派。"
+  "The role was not reassigned.": "角色未重新指派。",
+  "Couldn't load part of this issue. {{error}}": "無法載入此問題的部分內容。{{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "無法載入此問題所在的資料儲存區。{{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "無法載入此問題所指派的團隊。{{error}}",
+  "Couldn't load this store's data types. {{error}}": "無法載入此資料儲存區的資料類型。{{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "無法載入接受此問題風險的人員。{{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "無法載入此問題的指派對象。{{error}}"
 }
