@@ -835,6 +835,9 @@ export default class SecurityBlocklistReconciler {
    * and a row for every block it has none for, says why, and waits its
    * retry. A row's state stays what it was - a block applied before is
    * probably applied still - but it is not confirmed until a read says so.
+   * An ended block's row is Removing, as it is when a read back fails
+   * (recordPass): the block ended, and the destination may hold it still.
+   * Left Applied, a lifted block would show as enforced there.
    */
   private static async recordDestinationFailure(data: {
     projectId: ObjectID;
@@ -865,8 +868,9 @@ export default class SecurityBlocklistReconciler {
         block,
         row,
         target: {
-          state:
-            row && row.state !== SecurityBlockEnforcementState.Removed
+          state: isEnded
+            ? SecurityBlockEnforcementState.Removing
+            : row && row.state !== SecurityBlockEnforcementState.Removed
               ? (row.state as SecurityBlockEnforcementState)
               : SecurityBlockEnforcementState.Pending,
           error: data.error,
