@@ -174,6 +174,26 @@ const TimelineGrid: FunctionComponent<ComponentProps> = (
     const isToday: boolean = day.key === todayKey;
     const isMonth: boolean = props.range.mode === TimelineViewMode.Month;
 
+    /*
+     * The day's name over its column, as the reader's language writes a
+     * day standing alone (#7660) - "Lun" in Spanish, "man." in Danish; it
+     * was English's "Mon" on every page - and its number in the reader's
+     * digits, its month with it on the first ("1. Okt.").
+     */
+    const weekday: string = OneUptimeDate.getDayOfWeekName(day.start, {
+      width: isMonth ? "narrow" : "short",
+      context: "standAlone",
+      timezone: props.range.timezone,
+    });
+    const dayNumber: string =
+      !isMonth && day.isFirstOfMonth
+        ? OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+            date: day.start,
+            format: "MMM D",
+            timezone: props.range.timezone,
+          })
+        : translator.formatNumber(day.dayOfMonth);
+
     return (
       <div
         key={day.key}
@@ -189,16 +209,14 @@ const TimelineGrid: FunctionComponent<ComponentProps> = (
             isToday ? "text-indigo-600" : "text-gray-500"
           }`}
         >
-          {isMonth ? day.weekdayNarrow : day.weekdayShort}
+          {weekday}
         </span>
         <span
           className={`mt-0.5 inline-flex items-center justify-center rounded-full text-sm font-semibold ${
             isMonth ? "h-6 min-w-6 px-1" : "h-7 min-w-7 px-1.5"
           } ${isToday ? "bg-indigo-600 text-white" : "text-gray-800"}`}
         >
-          {!isMonth && day.isFirstOfMonth
-            ? `${day.monthShort} ${day.dayOfMonth}`
-            : day.dayOfMonth}
+          {dayNumber}
         </span>
       </div>
     );

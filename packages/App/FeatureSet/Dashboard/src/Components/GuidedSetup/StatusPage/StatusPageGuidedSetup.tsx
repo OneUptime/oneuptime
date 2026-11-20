@@ -36,8 +36,10 @@ import {
   getDescribeItPrompt,
   readGuidedSetupPrefill,
 } from "../AskAiGuidedSetupLinks";
+import useGuidedSetupRunSync from "../UseGuidedSetupRunSync";
 import GuidedSetupRunStore, {
   GuidedSetupRun,
+  GuidedSetupRunSync,
   getFirstOpenStepKey,
 } from "../GuidedSetupProgress";
 import AppLink from "../../AppLink/AppLink";
@@ -144,6 +146,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
       userId: userId,
     });
   }, [userId]);
+  const runSync: GuidedSetupRunSync = useGuidedSetupRunSync(store);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
@@ -250,7 +253,8 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
     let isActive: boolean = true;
 
     const load: () => Promise<void> = async (): Promise<void> => {
-      const stored: GuidedSetupRun = store.read();
+      // The server's run (#7253): another device's, or this one's.
+      const stored: GuidedSetupRun = await store.load();
       let nextRun: GuidedSetupRun = stored;
       let loadedPage: StatusPageSetupRecord | null = null;
       let loadedShown: ShownMonitors = NOTHING_SHOWN;
@@ -1158,6 +1162,10 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
   return (
     <GuidedSetupFrame
       setup={STATUS_PAGE_SETUP}
+      runSync={runSync}
+      onRetryRunSync={() => {
+        store.retry();
+      }}
       steps={steps}
       openStepKey={openStepKey}
       onOpenStep={(key: string) => {

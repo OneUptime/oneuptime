@@ -30,6 +30,7 @@ import {
   WatchlistReaderKind,
 } from "../../../Types/SecurityEvent/SecurityWatchlistFilter";
 import { getJestSpyOn } from "../../Spy";
+import { NAME_TAKEN_REFUSAL_CODE } from "../../../Types/Exception/NameTakenException";
 import {
   afterEach,
   beforeEach,
@@ -379,6 +380,10 @@ describe("renaming a watchlist", () => {
     await expect(uniqueCheck({ name: "Admins" })).rejects.toThrow(
       "This project already has a watchlist named Admins.",
     );
+    // With the code a program tells a taken name by (#10065).
+    await expect(uniqueCheck({ name: "Admins" })).rejects.toMatchObject({
+      details: { refusalCode: NAME_TAKEN_REFUSAL_CODE },
+    });
   });
 
   test("a list rules, monitors or hunts read by its name keeps it: the refusal names each and what it is", async () => {

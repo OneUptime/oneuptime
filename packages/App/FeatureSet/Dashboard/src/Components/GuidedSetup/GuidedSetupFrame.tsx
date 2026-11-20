@@ -1,4 +1,5 @@
 import {
+  GuidedSetupRunSync,
   GuidedSetupStepProgress,
   GuidedSetupStepState,
   canOpenStep,
@@ -6,8 +7,14 @@ import {
   getStepNumber,
   getStepState,
 } from "./GuidedSetupProgress";
+import GuidedSetupResourcePanel, {
+  GUIDED_SETUP_PANEL_COPY,
+  GUIDED_SETUP_PANEL_TEST_IDS,
+  GuidedSetupPanelGroup,
+  GuidedSetupStepRecords,
+} from "./GuidedSetupResourcePanel";
+import { GuidedSetupResourceRow } from "./GuidedSetupResources";
 import SetupFeedback from "../Feedback/SetupFeedback";
-import { WELCOME_MINUTES_COPY } from "../Home/WelcomeChecklist/WelcomeChecklistCatalog";
 import { openAskAi } from "../AIChat/AskAiEvents";
 import {
   ASK_AI_GUIDED_SETUP_COPY,
@@ -39,16 +46,18 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 /*
  * THE FRAME EVERY GUIDED SETUP IS DRAWN IN (issue #6804; #6805 and #6806
- * reuse it).
+ * reuse it, #10276 redrew it).
  *
  * One page, a short list of steps (three to five), top to bottom:
  *
+ *   - a bar over the steps says how far the person is;
  *   - the open step shows its title and what it asks, and saves real
  *     records through the same services the normal forms use;
  *   - a done step folds to one line that says what it made, with a check;
  *     pressing it opens it again to look;
- *   - a step not reached yet shows its title only, so the person sees the
- *     whole job before they start;
+ *   - a step not reached yet shows its title and why it is there
+ *     (`description`), so the person sees the whole job, and the point of
+ *     each part of it, before they start;
  *   - once every step is done, the summary says, in plain words read from
  *     the records, what now exists and what will happen, with the next
  *     steps.
@@ -64,23 +73,39 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
  * quiet "Stuck?" under the steps before then - for every setup, so a new
  * one asks without a line of its own.
  *
- * Beside the steps, from lg up (#8897), the setup says what it sets up -
- * each step's outcome, ticked as the step is done and marked while it is
- * open - and about how long it takes, so the page uses its width for what
- * the person is working towards instead of leaving two thirds of it empty.
- * On a phone the same panel follows the steps.
+ * Beside the steps, from lg up (#8897, #10276), the setup's panel
+ * (GuidedSetupResourcePanel) says what it sets up: each step's outcome,
+ * ticked as the step is done, with the records that step makes under it as
+ * they are made - a link to each once it exists, and why one failed with
+ * Try again - then whether the run is saved to the person's account (#7253)
+ * and about how long the setup takes. On a phone the same panel follows the
+ * steps. The page itself is centred and as wide as both need
+ * (GUIDED_SETUP_PAGE_CLASS_NAME), so a wide screen frames the job instead of
+ * leaving two thirds of it empty.
  */
 
 export interface GuidedSetupFrameStep extends GuidedSetupStepProgress {
   // English, translated here.
   title: string;
   /*
+   * Why the step is there, in one sentence (English, translated here):
+   * drawn under the title until the step is reached, so every step says
+   * what it does and why before the person gets to it. Open, the step's own
+   * content says it in full.
+   */
+  description?: string | undefined;
+  /*
    * What the person has once the step is done, in one line (English,
-   * translated here): the setup's list of what it sets up, beside the steps.
+   * translated here): the setup's panel heads the step's records with it.
    */
   outcome?: string | undefined;
   // What the step made, in one line, once it is done. Translated by the step.
   doneLine?: string | undefined;
+  /*
+   * The records the step makes, and how each is getting on, for the panel
+   * (#10276). A setup that lists none keeps its outcomes alone.
+   */
+  resources?: Array<GuidedSetupResourceRow> | undefined;
   // What the step asks, drawn while it is open.
   content: ReactElement;
 }
@@ -119,6 +144,13 @@ export interface ComponentProps {
    * Left out, the setup offers none.
    */
   describeItPrompt?: string | undefined;
+  /*
+   * Where the run stands with the server (GuidedSetupRunStore, #7253), said
+   * in the panel; left out, the panel says nothing of it.
+   */
+  runSync?: GuidedSetupRunSync | undefined;
+  // Sends again what the server did not take (the panel's Try again).
+  onRetryRunSync?: (() => void) | undefined;
 }
 
 // The step key the events name while the summary is shown.
@@ -131,57 +163,36 @@ export const GUIDED_SETUP_GUIDE_LINK_TEST_ID: string =
 export const GUIDED_SETUP_GUIDE_TEXT: string =
   translationKey("Step-by-step guide");
 
-export const GUIDED_SETUP_ASIDE_TEST_ID: string = "guided-setup-aside";
+export const GUIDED_SETUP_ASIDE_TEST_ID: string =
+  GUIDED_SETUP_PANEL_TEST_IDS.panel;
 
 export const GUIDED_SETUP_DESCRIBE_IT_TEST_ID: string =
   "guided-setup-describe-it-instead";
 
 // The heading of what a setup sets up, beside its steps.
 export const GUIDED_SETUP_OUTCOMES_TITLE: string =
-  translationKey("What this sets up");
+  GUIDED_SETUP_PANEL_COPY.title;
+
+// What the progress bar is called, for a screen reader.
+export const GUIDED_SETUP_PROGRESS_LABEL: string =
+  translationKey("Setup progress");
 
 /*
- * The frame's two columns from lg up: the steps, as wide as they were
- * (max-w-3xl), and what the setup sets up beside them; on a very wide
- * screen (2xl) both a little wider, never so wide that a form's fields
- * stretch out of reach of their labels. A setup with nothing to say there
- * keeps one column.
+ * A guided setup's page (Page's className): centred, and as wide as its
+ * steps and its panel need, so a screen of any width frames the job - a
+ * 2,500-pixel screen showed the steps in its left third and nothing beside
+ * them (#10276). Its breadcrumbs and title line up with the steps.
+ */
+export const GUIDED_SETUP_PAGE_CLASS_NAME: string =
+  "mb-auto mx-auto mt-5 h-max w-full max-w-7xl px-4 sm:px-6 lg:px-8";
+
+/*
+ * The frame's two columns from lg up: the steps, taking the room there is,
+ * and the setup's panel beside them, wider on a wider screen. A setup with
+ * nothing to say there keeps one column.
  */
 export const GUIDED_SETUP_COLUMNS_CLASS_NAME: string =
-  "grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,48rem)_20rem] lg:gap-8 xl:grid-cols-[minmax(0,48rem)_22rem] 2xl:grid-cols-[minmax(0,52rem)_24rem] 2xl:gap-10";
-
-// What one outcome's mark looks like, by the state of its step.
-const OutcomeMark: FunctionComponent<{
-  state: GuidedSetupStepState;
-}> = (props: { state: GuidedSetupStepState }): ReactElement => {
-  if (props.state === GuidedSetupStepState.Done) {
-    return (
-      <span
-        aria-hidden="true"
-        className="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-emerald-500"
-      >
-        <Icon icon={IconProp.Check} className="h-3 w-3 text-white" />
-      </span>
-    );
-  }
-
-  return (
-    <span
-      aria-hidden="true"
-      className={`mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full border-2 bg-white ${
-        props.state === GuidedSetupStepState.Open
-          ? "border-indigo-600"
-          : "border-gray-300"
-      }`}
-    >
-      {props.state === GuidedSetupStepState.Open ? (
-        <span className="h-2 w-2 rounded-full bg-indigo-600"></span>
-      ) : (
-        <></>
-      )}
-    </span>
-  );
-};
+  "grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-8 xl:grid-cols-[minmax(0,1fr)_25rem] 2xl:gap-10";
 
 const StepMarker: FunctionComponent<{
   state: GuidedSetupStepState;
@@ -191,7 +202,7 @@ const StepMarker: FunctionComponent<{
     // The check a completed form step shows (Forms/Steps/Step), larger.
     return (
       <svg
-        className="h-7 w-7 flex-shrink-0 text-indigo-600"
+        className="h-8 w-8 flex-shrink-0 text-indigo-600"
         viewBox="0 0 20 20"
         fill="currentColor"
         aria-hidden="true"
@@ -208,10 +219,10 @@ const StepMarker: FunctionComponent<{
 
   return (
     <span
-      className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold ${
+      className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
         props.state === GuidedSetupStepState.Open
-          ? "border-indigo-600 text-indigo-600"
-          : "border-gray-300 text-gray-400"
+          ? "bg-indigo-600 text-white"
+          : "border-2 border-gray-300 text-gray-500"
       }`}
       aria-hidden="true"
     >
@@ -262,6 +273,10 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
   }, [props.isFinished]);
 
   const doneCount: number = countDoneSteps(props.steps);
+  const doneShare: number =
+    props.steps.length > 0
+      ? Math.round((doneCount / props.steps.length) * 100)
+      : 0;
 
   /*
    * Describe it instead (#7245): offered while the first step is open and
@@ -282,87 +297,31 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
     props.steps.length > 0 &&
     props.openStepKey === props.steps[0]!.key;
 
-  const outcomeSteps: Array<GuidedSetupFrameStep> = props.steps.filter(
-    (step: GuidedSetupFrameStep): boolean => {
-      return Boolean(step.outcome);
-    },
-  );
-  const hasAside: boolean = outcomeSteps.length > 0 || Boolean(props.minutes);
-
   /*
-   * What the setup sets up, each step's outcome marked by where the person
-   * is: done, open now, or still to come.
+   * What the setup sets up: each step with an outcome or records of its
+   * own, marked by where the person is - done, open now, or still to come.
    */
-  const aside: ReactElement = hasAside ? (
-    <aside
-      data-testid={GUIDED_SETUP_ASIDE_TEST_ID}
-      aria-label={translator.translateText(GUIDED_SETUP_OUTCOMES_TITLE) || ""}
-      className="lg:sticky lg:top-6 lg:self-start"
-    >
-      <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-indigo-50 via-white to-white p-5 shadow-sm">
-        {outcomeSteps.length > 0 ? (
-          <>
-            <h2 className="text-sm font-semibold text-gray-900">
-              {translator.translateText(GUIDED_SETUP_OUTCOMES_TITLE)}
-            </h2>
-            <ul className="mt-4 space-y-3">
-              {outcomeSteps.map((step: GuidedSetupFrameStep) => {
-                const state: GuidedSetupStepState = getStepState({
-                  step: step,
-                  openKey: props.openStepKey,
-                });
+  const groups: Array<GuidedSetupPanelGroup> = props.steps
+    .filter((step: GuidedSetupFrameStep): boolean => {
+      return Boolean(step.outcome) || Boolean(step.resources?.length);
+    })
+    .map((step: GuidedSetupFrameStep): GuidedSetupPanelGroup => {
+      return {
+        stepKey: step.key,
+        outcome: step.outcome || step.title,
+        state: getStepState({ step: step, openKey: props.openStepKey }),
+        resources: step.resources || [],
+      };
+    });
+  const hasAside: boolean = groups.length > 0 || Boolean(props.minutes);
 
-                return (
-                  <li
-                    key={step.key}
-                    className="flex items-start gap-3"
-                    data-testid={`guided-setup-outcome-${step.key}`}
-                    data-state={state}
-                    aria-current={
-                      state === GuidedSetupStepState.Open ? "step" : undefined
-                    }
-                  >
-                    <OutcomeMark state={state} />
-                    <span
-                      className={`text-sm ${
-                        state === GuidedSetupStepState.Upcoming
-                          ? "text-gray-500"
-                          : "font-medium text-gray-900"
-                      }`}
-                    >
-                      {translator.translateText(step.outcome || "")}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </>
-        ) : (
-          <></>
-        )}
-        {/* A div, not a p: an Icon draws a div around its svg. */}
-        {props.minutes ? (
-          <div
-            data-testid="guided-setup-minutes"
-            className={`flex items-center gap-1.5 text-xs text-gray-500 ${
-              outcomeSteps.length > 0
-                ? "mt-5 border-t border-gray-200 pt-4"
-                : ""
-            }`}
-          >
-            <Icon icon={IconProp.Clock} className="h-3.5 w-3.5 flex-none" />
-            <span>
-              {translator.translatePlural(
-                WELCOME_MINUTES_COPY.about,
-                props.minutes,
-              )}
-            </span>
-          </div>
-        ) : (
-          <></>
-        )}
-      </div>
-    </aside>
+  const aside: ReactElement = hasAside ? (
+    <GuidedSetupResourcePanel
+      groups={groups}
+      sync={props.runSync}
+      onRetrySync={props.onRetryRunSync}
+      minutes={props.minutes}
+    />
   ) : (
     <></>
   );
@@ -371,7 +330,7 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
     <div className="min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <p
-          className={`text-sm text-gray-500 ${PRODUCT_TEXT_CLASS_NAME}`}
+          className={`text-sm font-medium text-gray-700 ${PRODUCT_TEXT_CLASS_NAME}`}
           data-testid="guided-setup-progress"
           aria-live="polite"
         >
@@ -428,7 +387,25 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
           <></>
         )}
       </div>
-      <ol className="mt-3 space-y-3">
+      {/*
+       * How far the person is, at a glance; the line above says it in
+       * words, and a screen reader hears the bar's own label and value.
+       */}
+      <div
+        className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100"
+        role="progressbar"
+        aria-label={translator.translateText(GUIDED_SETUP_PROGRESS_LABEL) || ""}
+        aria-valuemin={0}
+        aria-valuemax={props.steps.length}
+        aria-valuenow={doneCount}
+        data-testid="guided-setup-progress-bar"
+      >
+        <div
+          className="h-full rounded-full bg-indigo-600 transition-[width] duration-500 motion-reduce:transition-none"
+          style={{ width: `${doneShare}%` }}
+        ></div>
+      </div>
+      <ol className="mt-4 space-y-3">
         {props.steps.map((step: GuidedSetupFrameStep, index: number) => {
           const state: GuidedSetupStepState = getStepState({
             step: step,
@@ -440,12 +417,12 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
           const title: string = translator.translateText(step.title) || "";
 
           const heading: ReactElement = (
-            <span className="flex min-w-0 items-start gap-3">
+            <span className="flex min-w-0 items-start gap-4">
               <StepMarker
                 state={state}
                 number={getStepNumber(props.steps, step.key) || index + 1}
               />
-              <span className="min-w-0 pt-0.5">
+              <span className="min-w-0 pt-1">
                 {/*
                  * The step's title is the setup's own words; its done line
                  * may name what the person made, and stays masked (#6834).
@@ -453,7 +430,7 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
                 <span
                   className={`block text-base font-semibold ${
                     state === GuidedSetupStepState.Upcoming
-                      ? "text-gray-500"
+                      ? "text-gray-600"
                       : "text-gray-900"
                   } ${PRODUCT_TEXT_CLASS_NAME}`}
                 >
@@ -466,6 +443,14 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
                   >
                     {step.doneLine}
                   </span>
+                ) : state === GuidedSetupStepState.Upcoming &&
+                  step.description ? (
+                  <span
+                    className={`mt-0.5 block text-sm text-gray-500 ${PRODUCT_TEXT_CLASS_NAME}`}
+                    data-testid={`guided-setup-step-${step.key}-description`}
+                  >
+                    {translator.translateText(step.description)}
+                  </span>
                 ) : (
                   <></>
                 )}
@@ -476,8 +461,10 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
           return (
             <li
               key={step.key}
-              className={`rounded-lg border bg-white ${
-                isOpen ? "border-indigo-300 shadow-sm" : "border-gray-200"
+              className={`rounded-xl border bg-white ${
+                isOpen
+                  ? "border-indigo-300 shadow-md ring-1 ring-indigo-100"
+                  : "border-gray-200"
               }`}
               data-testid={`guided-setup-step-${step.key}`}
               data-state={state}
@@ -486,7 +473,7 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
               {canOpen ? (
                 <button
                   type="button"
-                  className="flex w-full items-start rounded-lg p-4 text-start hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  className="flex w-full items-start rounded-xl p-4 text-start hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 sm:p-5"
                   onClick={() => {
                     props.onOpenStep(step.key);
                   }}
@@ -494,13 +481,22 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
                   {heading}
                 </button>
               ) : (
-                <div className="p-4">{heading}</div>
+                <div className="p-4 sm:p-5">{heading}</div>
               )}
               {isOpen ? (
                 <div
-                  className="px-4 pb-5 sm:ps-14"
+                  className="border-t border-gray-100 px-4 pb-5 pt-4 sm:px-5 sm:ps-[4.25rem]"
                   data-testid={`guided-setup-step-${step.key}-content`}
                 >
+                  {/* On a phone, what the step made, where the person is. */}
+                  {step.resources && step.resources.length > 0 ? (
+                    <GuidedSetupStepRecords
+                      stepKey={step.key}
+                      rows={step.resources}
+                    />
+                  ) : (
+                    <></>
+                  )}
                   {step.content}
                 </div>
               ) : (
@@ -523,7 +519,7 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className={`w-full ${hasAside ? "max-w-6xl 2xl:max-w-7xl" : "max-w-3xl"}`}
+      className={`w-full ${hasAside ? "" : "max-w-3xl"}`}
       data-testid="guided-setup"
     >
       {hasAside ? (

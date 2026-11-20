@@ -9,6 +9,8 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
 import PrivateRecordScopeProvider from "../../../Components/PrivateRecord/PrivateRecordScopeProvider";
+import RecordAccessScopeProvider from "../../../Components/RecordAccess/RecordAccessScopeProvider";
+import { RecordAccessKind } from "Common/Types/RecordAccess/RecordAccess";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
@@ -31,16 +33,25 @@ const IncidentViewLayout: FunctionComponent<
        * A private incident is changed only with the permissions of the teams
        * that own it: every page of it offers only what the reader may do
        * there (PrivateRecordScopeProvider).
+       *
+       * And what the server says the reader may do on this incident by its
+       * labels, its owners and its privacy: every lock on its pages
+       * reads it (RecordAccessScopeProvider, #10272).
        */}
-      <PrivateRecordScopeProvider
-        modelType={Incident}
+      <RecordAccessScopeProvider
+        kind={RecordAccessKind.Incident}
         modelId={modelId}
-        ownerTeamModelType={IncidentOwnerTeam}
-        ownerUserModelType={IncidentOwnerUser}
-        ownerKey="incidentId"
       >
-        <Outlet />
-      </PrivateRecordScopeProvider>
+        <PrivateRecordScopeProvider
+          modelType={Incident}
+          modelId={modelId}
+          ownerTeamModelType={IncidentOwnerTeam}
+          ownerUserModelType={IncidentOwnerUser}
+          ownerKey="incidentId"
+        >
+          <Outlet />
+        </PrivateRecordScopeProvider>
+      </RecordAccessScopeProvider>
     </ModelPage>
   );
 };

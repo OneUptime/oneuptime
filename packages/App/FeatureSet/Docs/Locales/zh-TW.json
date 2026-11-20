@@ -270,6 +270,7 @@
     "Dashboard Widgets": "儀表板小工具",
     "Dashboard Variables & Filters": "儀表板變數與篩選器",
     "External Data Sources": "外部資料來源",
+    "Import from Grafana and Datadog": "從 Grafana 和 Datadog 匯入",
     "Sharing & Public Dashboards": "共用與公開儀表板",
     "Dashboard Playlists": "儀表板播放清單",
     "Dashboard Configuration & Permissions": "儀表板設定與權限",

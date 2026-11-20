@@ -215,6 +215,16 @@ export const AI_DETECTION_RULE_DRAFT_FEATURE: string =
 export const AI_DATA_CHECK_DRAFT_FEATURE: string = "AI Data Check Draft";
 
 /*
+ * The LlmLog feature name for converting one query of a dashboard or an
+ * alert rule being imported from Grafana, Prometheus or Datadog
+ * (ImportQueryConversion): one request, started by a person on the
+ * import's preview and answered while they wait. Not autonomous, like a
+ * detection rule's draft.
+ */
+export const AI_IMPORT_QUERY_CONVERSION_FEATURE: string =
+  "AI Import Query Conversion";
+
+/*
  * The pre-rename values of the six labels that carried the "Sentinel" codename.
  * These are NOT written by anything any more — they exist only so the daily
  * budget keeps counting rows that ALREADY carry them:

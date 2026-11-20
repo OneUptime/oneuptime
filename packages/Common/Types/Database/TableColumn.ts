@@ -5,6 +5,7 @@ import GenericObject from "../GenericObject";
 import { JSONObject } from "../JSON";
 import { getWordOfMeaningKey } from "../MeaningKeys";
 import { ReflectionMetadataType } from "../Reflection";
+import RelationReaders from "./RelationReaders";
 import ServerOwned from "./ServerOwned";
 import TableColumnType from "./TableColumnType";
 import UserAttribution from "./UserAttribution";
@@ -108,6 +109,17 @@ export interface TableColumnMetadata {
   manyToOneRelationColumn?: string;
   type: TableColumnType;
   canReadOnRelationQuery?: boolean;
+  /*
+   * Who reads the column through a relation, when canReadOnRelationQuery
+   * lets a relation read it (RelationReaders): every reader of the relation
+   * (unset: a label on the joined row, a monitor's name on an incident), or
+   * only those who may read the column itself (ColumnReaders: a data
+   * store's sensitivity, which a Viewer of the data assets in the store may
+   * not read, #10281). RelationReadsNoWiderThanTheColumn holds every column
+   * read the first way by more roles than its own read lets in to a reason
+   * written down.
+   */
+  relationReaders?: RelationReaders;
   hideColumnInDocumentation?: boolean;
   modelType?: { new (): BaseModel };
   /*

@@ -327,7 +327,7 @@ describe("OneUptimeDate user timezone", () => {
         new Date("2026-07-09T17:00:00Z"),
       );
 
-      expect(formatted).toContain("Jul 09 2026");
+      expect(formatted).toContain("Jul 9, 2026");
       expect(formatted).toContain("13:00");
       expect(formatted).toContain("EDT");
     });

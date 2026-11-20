@@ -10,6 +10,10 @@ import { MonitorRecommendationSeverityOption } from "Common/Types/Monitor/Recomm
 import ObjectID from "Common/Types/ObjectID";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
+import {
+  getSharedNameFacts,
+  getSharedNameSelect,
+} from "Common/UI/Utils/SharedNameOptions";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -158,7 +162,8 @@ export async function loadMonitorRecommendationProjectSetup(
       query: {},
       limit: LIMIT_PER_PROJECT,
       skip: 0,
-      select: { name: true },
+      // What tells policies of one name apart (#10064).
+      select: { name: true, ...getSharedNameSelect(OnCallDutyPolicy) },
       sort: { name: SortOrder.Ascending },
     },
   );
@@ -169,7 +174,7 @@ export async function loadMonitorRecommendationProjectSetup(
     query: { isArchived: false },
     limit: LIMIT_PER_PROJECT,
     skip: 0,
-    select: { name: true },
+    select: { name: true, ...getSharedNameSelect(Label) },
     sort: { name: SortOrder.Ascending },
   });
 
@@ -197,11 +202,21 @@ export async function loadMonitorRecommendationProjectSetup(
     ),
     onCallPolicyDropdownOptions: onCallPolicyList.data.map(
       (item: OnCallDutyPolicy): DropdownOption => {
-        return { value: item._id!, label: item.name!, isUserContent: true };
+        return {
+          value: item._id!,
+          label: item.name!,
+          isUserContent: true,
+          sharedName: getSharedNameFacts(item),
+        };
       },
     ),
     labelDropdownOptions: labelList.data.map((item: Label): DropdownOption => {
-      return { value: item._id!, label: item.name!, isUserContent: true };
+      return {
+        value: item._id!,
+        label: item.name!,
+        isUserContent: true,
+        sharedName: getSharedNameFacts(item),
+      };
     }),
   };
 }

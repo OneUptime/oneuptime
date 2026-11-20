@@ -21,10 +21,9 @@ import {
  * An Intl options object that asks for a numeric hour pins a 12-hour clock
  * in the same object (hour12: true, or hourCycle "h11" or "h12"). A time on
  * the reader's clock asks getHourOption for its hour - which gives
- * "numeric" on a 12-hour clock and "2-digit" on a 24-hour one - and one on
- * its language's own clock asks getLocaleClockHourOption
- * (Common/Types/DateLanguage); the mobile app asks its own getHourOption
- * (MobileApp/src/utils/date). The rule written out by hand (twelveHour ?
+ * "numeric" on a 12-hour clock and "2-digit" on a 24-hour one - and every
+ * time is on the reader's clock since #7651 (Common/Types/DateLanguage);
+ * the mobile app asks its own getHourOption (MobileApp/src/utils/date). The rule written out by hand (twelveHour ?
  * "numeric" : "2-digit") is asked of getHourOption too, so it is kept in
  * one place. An object read only for the clock it resolves
  * (`{ hour: "numeric" }).resolvedOptions()`) writes no time.
@@ -90,12 +89,9 @@ describe("a numeric hour is asked for only on a 12-hour clock", () => {
     ],
     // The helpers, and a type that names the hour among others.
     ["{ hour: getHourOption(clock.use12HourClock), hour12: x }", 0],
-    ["{ hour: getLocaleClockHourOption(locale), minute: '2-digit' }", 0],
+    ["{ hour: getHourOption(twelveHour), minute: '2-digit' }", 0],
     ['let hour: "numeric" | "2-digit" = "2-digit";', 0],
-    [
-      'const hour: "numeric" | "2-digit" = getLocaleClockHourOption(locale);',
-      0,
-    ],
+    ['const hour: "numeric" | "2-digit" = getHourOption(twelveHour);', 0],
     // A year, a day or a minute is not an hour.
     ['{ year: "numeric", day: "numeric", minute: "2-digit" }', 0],
     ['{ day: twoDigit ? "2-digit" : "numeric" }', 0],

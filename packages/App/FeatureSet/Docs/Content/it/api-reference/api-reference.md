@@ -255,7 +255,16 @@ Team, etichette, policy di reperibilità e pianificazioni di reperibilità hanno
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Accanto al messaggio, la risposta contiene `"refusalCode": "name_taken"`. Riconosci questo rifiuto da quel codice, non dalla frase, che può essere riformulata. Non è stato scritto nulla, quindi la stessa richiesta si può inviare di nuovo appena l'altro record lascia il nome: il provider Terraform riprova fino a 30 secondi.
+Anche molti altri tipi hanno un nome tutto loro, come le gravità degli incidenti, gli stati dei monitor, le pagine di stato e i flussi di lavoro, e rifiutano allo stesso modo un nome già preso:
+
+```text
+Incident Severity with the same name already exists.
+```
+
+Accanto al messaggio, ognuno di questi rifiuti contiene un `refusalCode` che dice che cosa ha il nome. Riconosci il rifiuto da quel codice, non dalla frase, che può essere riformulata:
+
+- `"refusalCode": "name_taken"`: lo ha un record in servizio. Non è stato scritto nulla, quindi la stessa richiesta si può inviare di nuovo appena quel record lascia il nome: il provider Terraform riprova fino a 30 secondi.
+- `"refusalCode": "name_taken_by_archived"`: lo ha solo un record archiviato. Annulla l'archiviazione di quel record, o scegli un altro nome: inviare di nuovo la richiesta non serve, e il provider Terraform non lo fa.
 
 Un aggiornamento che invia di nuovo a un record il suo stesso nome, in maiuscolo o minuscolo, non è una ridenominazione, quindi i record che prima condividevano un nome si possono ancora modificare, e rinominare per distinguerli. Per team, etichette, policy di reperibilità e pianificazioni di reperibilità, `GET /api/shared-names/team` (o `label`, `on-call-policy`, `on-call-schedule`) risponde quali condividono un nome: `{"groups": [["<id>", "<id>"]]}`, ogni gruppo con gli ID, che la tua chiave può leggere, dei record i cui nomi si leggono allo stesso modo. Le etichette e le policy di reperibilità archiviate sono escluse.
 

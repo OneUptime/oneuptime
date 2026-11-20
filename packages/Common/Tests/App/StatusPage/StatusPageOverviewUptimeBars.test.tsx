@@ -620,11 +620,9 @@ const MONTHS: Array<string> = [
   "Dec",
 ];
 
+// "Sep 3, 2026": the day without a zero, as every English date (#7652).
 function utcDateLabel(date: Date): string {
-  return `${MONTHS[date.getUTCMonth()]} ${String(date.getUTCDate()).padStart(
-    2,
-    "0",
-  )}, ${date.getUTCFullYear()}`;
+  return `${MONTHS[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}`;
 }
 
 // jsdom reports a style colour as rgb().

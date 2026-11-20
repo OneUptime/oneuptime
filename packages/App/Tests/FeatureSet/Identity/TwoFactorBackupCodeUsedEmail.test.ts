@@ -160,7 +160,7 @@ describe("the sign-in's way to the email", () => {
 
 describe("what it says", () => {
   const vars: Record<string, string> = {
-    usedAt: "Oct 18 2026, 12:07 UTC",
+    usedAt: "Oct 18, 2026, 12:07 UTC",
     remainingCodeCount: "7",
     twoFactorAuthUrl:
       "https://oneuptime.example.com/dashboard/user-profile/two-factor-auth",
@@ -178,7 +178,7 @@ describe("what it says", () => {
     );
 
     expect(text).toContain(
-      "Used at: Oct 18 2026, 12:07 UTC Backup codes remaining: 7 IP address: 203.0.113.7 Approximate location: Lyon, France Device: Firefox 132 on Windows",
+      "Used at: Oct 18, 2026, 12:07 UTC Backup codes remaining: 7 IP address: 203.0.113.7 Approximate location: Lyon, France Device: Firefox 132 on Windows",
     );
   });
 

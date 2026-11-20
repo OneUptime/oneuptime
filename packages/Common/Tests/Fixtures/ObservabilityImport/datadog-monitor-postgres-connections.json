@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "created_at": "2021-03-17",
+  "last_updated_at": "2026-04-09",
+  "title": "Connection pool is reaching saturation point",
+  "tags": [
+    "integration:postgres"
+  ],
+  "description": "In PostgreSQL, there is a limit of concurrent connections that can be increased. When this limit is exceeded, new users cannot establish a connection with the database. This monitor tracks the total number of connections.",
+  "definition": {
+    "message": "{{#is_alert}}\n\n## What's happening?\nPostgreSQL connection usage on host {{host.name}} has exceeded 90% of the maximum allowed connections over the last 15 minutes.\n\n## Related Links\n\n- [Metrics Explorer (postgresql.percent_usage_connections)](/metric/explorer?exp_metric=postgresql.percent_usage_connections&exp_agg=avg&exp_type=line)\n\n{{/is_alert}}",
+    "name": "[Postgres] Number of connections is approaching connection limit on {{host.name}}",
+    "options": {
+      "escalation_message": "",
+      "include_tags": true,
+      "locked": false,
+      "new_host_delay": 300,
+      "no_data_timeframe": null,
+      "notify_audit": false,
+      "notify_no_data": false,
+      "renotify_interval": "0",
+      "require_full_window": true,
+      "thresholds": {
+        "critical": 0.9,
+        "warning": 0.8
+      },
+      "timeout_h": 0
+    },
+    "priority": null,
+    "query": "avg(last_15m):avg:postgresql.percent_usage_connections{*} > 0.9",
+    "tags": [
+      "integration:postgres"
+    ],
+    "type": "query alert"
+  }
+}

@@ -16,6 +16,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { NAME_TAKEN_REFUSAL_CODE } from "../../../Types/Exception/NameTakenException";
 import {
   afterEach,
   beforeEach,
@@ -374,6 +375,13 @@ describe("IncidentCustomFieldService.onBeforeUpdate", () => {
     ).rejects.toThrow(
       "Another incident custom field already has this name. Choose a different name.",
     );
+
+    // With the code a program tells a taken name by (#10065).
+    await expect(
+      service.onBeforeUpdate(update({ name: "severity" })),
+    ).rejects.toMatchObject({
+      details: { refusalCode: NAME_TAKEN_REFUSAL_CODE },
+    });
 
     const clashQuery: JSONObject = (countBy.mock.calls[0]![0] as JSONObject)[
       "query"

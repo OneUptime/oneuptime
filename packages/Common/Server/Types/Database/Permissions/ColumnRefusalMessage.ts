@@ -138,6 +138,27 @@ export default class ColumnRefusalMessage {
   }
 
   /*
+   * A column of a related record a select reads through a relation that
+   * only those who may read it on the related record read that way
+   * (RelationReaders.ColumnReaders) - `{ dataStore: { sensitivity: true } }`
+   * on a data asset - and the caller may not (#10281). Worded as the
+   * owner-only refusal through a relation is
+   * (OwnerOnlyColumnPermission.checkRelationSelect), never "select on -
+   * <column>": the Terraform provider and the MCP server drop a column of
+   * the select's own so named and retry (SelectRejectionMessageContract),
+   * and this one is a related record's.
+   */
+  public static getRelationSelectRefusal(data: {
+    column: string;
+    relatedModelName: string;
+    relationColumn: string;
+    modelName: string;
+    permissions: Array<Permission>;
+  }): string {
+    return `You do not have permissions to read ${data.column} of ${data.relatedModelName} through ${data.relationColumn} on ${data.modelName}. ${ColumnRefusalMessage.getWhoMay("select", data.permissions)}`;
+  }
+
+  /*
    * A column of a related record a query filters on through a relation -
    * `{ smtpConfig: { password: ... } }` - that the caller may not read.
    */

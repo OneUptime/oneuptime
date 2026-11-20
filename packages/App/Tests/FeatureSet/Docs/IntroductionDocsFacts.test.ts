@@ -1724,6 +1724,11 @@ const GUIDED_SETUP_FRAME_SOURCE: string = dashboard(
   "Components/GuidedSetup/GuidedSetupFrame.tsx",
 );
 
+// The panel beside a guided setup's steps, which the frame draws (#10276).
+const GUIDED_SETUP_PANEL_SOURCE: string = dashboard(
+  "Components/GuidedSetup/GuidedSetupResourcePanel.tsx",
+);
+
 const TASK_STEP: RegExp =
   /^ {4}step: WelcomeStep\.(\w+),\n {4}title: translationKey\("([^"]+)"\),$/gm;
 const TASK_PAGE_MAP: RegExp = /^ {4}pageMap: PageMap\.(\w+),$/m;
@@ -2666,10 +2671,12 @@ describe("Home Page & Shortcuts", () => {
   it("says a guided setup lists what it sets up beside its steps, and how long it takes", () => {
     const section: string = sectionOf(HOME, "### The welcome checklist");
 
-    expect(GUIDED_SETUP_FRAME_SOURCE).toContain(
+    expect(GUIDED_SETUP_FRAME_SOURCE).toContain("<GuidedSetupResourcePanel");
+    expect(GUIDED_SETUP_FRAME_SOURCE).toContain("minutes={props.minutes}");
+    expect(GUIDED_SETUP_PANEL_SOURCE).toContain(
       'translationKey("What this sets up")',
     );
-    expect(GUIDED_SETUP_FRAME_SOURCE).toContain("props.minutes");
+    expect(GUIDED_SETUP_PANEL_SOURCE).toContain("props.minutes");
     expect(section).toContain(
       "Beside its steps, a guided setup lists what it sets up, ticked off as you go, and says about how long it takes.",
     );
