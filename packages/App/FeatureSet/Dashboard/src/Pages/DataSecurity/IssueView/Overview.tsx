@@ -41,7 +41,7 @@ import IssueRiskScore, {
 } from "../../../Components/DataSecurity/IssueRiskScore";
 import IssueTelemetryFindings from "../../../Components/DataSecurity/IssueTelemetryFindings";
 import {
-  STORE_DATA_TYPES_NOT_READ,
+  STORE_DATA_TYPES_NOT_LOADED,
   StoreDataTypesRead,
   useStoreDataTypes,
 } from "../../../Components/DataSecurity/StoreDataTypes";
@@ -808,7 +808,7 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
                     data-testid="data-security-issue-store-data-types-error"
                   >
                     <ErrorSentence
-                      template={STORE_DATA_TYPES_NOT_READ}
+                      template={STORE_DATA_TYPES_NOT_LOADED}
                       error={storeDataTypes.error}
                     />
                   </span>

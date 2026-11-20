@@ -26,8 +26,8 @@ export const STORE_DATA_TYPES_SELECT: Select<DataStore> = {
 };
 
 // Said in place of a store's data types that could not be read.
-export const STORE_DATA_TYPES_NOT_READ: string = translationKey(
-  "Couldn't read this store's data types. {{error}}",
+export const STORE_DATA_TYPES_NOT_LOADED: string = translationKey(
+  "Couldn't load this store's data types. {{error}}",
 );
 
 export interface StoreDataTypesRead {
