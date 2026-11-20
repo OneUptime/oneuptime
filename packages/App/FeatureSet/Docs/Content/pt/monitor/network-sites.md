@@ -42,6 +42,8 @@ Os sites formam uma árvore. Cada site tem um **Tipo de site** e, opcionalmente,
 
 O tipo, o nome, a descrição, o pai e a localização de um site são editados em um só lugar: o cartão **Site Settings** na página **Configurações** do site. A visão geral do site os mostra com um link **Editar nas configurações**, e a lista **Sites** adiciona sites, mas não os edita.
 
+Os sites que não contêm nada saem de uma vez: **Excluir sites vazios**, no menu no topo da lista **Sites**, lista cada site sem dispositivos (arquivados incluídos), sem sites abaixo dele e sem endpoint, link, regra ou evento de manutenção que o use. Ele nomeia os dez primeiros e, quando você confirma, exclui exatamente os sites listados: um site que recebe um dispositivo nesse meio-tempo é mantido. É para quem pode excluir sites.
+
 Cada dispositivo se liga a um site. A subárvore de um site é o próprio site mais cada site abaixo dele, e os dispositivos da subárvore são de onde a saúde dele é resumida, então uma região sem dispositivos próprios ainda tem um status, porque as unidades abaixo dela têm.
 
 > [!NOTE]

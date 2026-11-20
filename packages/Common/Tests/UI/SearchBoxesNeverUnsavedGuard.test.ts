@@ -91,12 +91,11 @@ const HOLDS_A_VALUE: Record<string, HeldValue> = {
       reason:
         "A combobox whose text is the value itself: suggestions only help write it (a label's name, a key), so what is typed is the reader's work.",
     },
-  "packages/App/FeatureSet/Dashboard/src/Components/Team/InviteeEmailField.tsx":
-    {
-      count: 1,
-      reason:
-        "The invite dialogs' email box, a combobox whose text is the address being invited: the people it suggests only help write it, so what is typed is the reader's work (#9701).",
-    },
+  "packages/Common/UI/Components/InviteeEmailField/InviteeEmailField.tsx": {
+    count: 1,
+    reason:
+      "The invite dialogs' email box, a combobox whose text is the address being invited: the people it suggests only help write it, so what is typed is the reader's work (#9701).",
+  },
 };
 
 interface Box {

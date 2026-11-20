@@ -2179,14 +2179,25 @@ describe("copying span attributes as JSON", () => {
       within(control).getByRole("button", { name: "Copied" }),
     ).toBeInTheDocument();
 
-    await act(async () => {
-      fireEvent.click(
-        within(control).getByRole("button", { name: "Choose JSON format" }),
-      );
+    const caret: HTMLElement = within(control).getByRole("button", {
+      name: "Choose JSON format",
     });
     await act(async () => {
+      fireEvent.click(caret);
+    });
+
+    /*
+     * The picker is drawn on the page's body (LayeredPopover), not inside
+     * the panel, whose scrolling body cut its foot off (#9861): the menu the
+     * caret opens.
+     */
+    const menu: HTMLElement | null = document.getElementById(
+      caret.getAttribute("aria-controls") || "",
+    );
+    expect(menu).toBeInTheDocument();
+    await act(async () => {
       fireEvent.click(
-        within(control).getByRole("menuitemradio", { name: /Nested/ }),
+        within(menu!).getByRole("menuitemradio", { name: /Nested/ }),
       );
     });
 

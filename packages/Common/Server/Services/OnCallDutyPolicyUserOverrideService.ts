@@ -1609,6 +1609,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
      * Someone only invited to the project is named as the project knows
      * them - the name typed for them, else their address - never by their
      * account's own name, which it does not see until they join (#9823).
+     * Read through the write's transaction too: one of its own would wait,
+     * holding the lock, for a connection the writes queued behind the lock
+     * hold.
      */
     const withheld: Map<string, WithheldProfile> =
       await PendingInviteeProfiles.readWithheldProfilesInProject({
@@ -1616,6 +1619,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
           return Boolean(id);
         }),
         projectId: data.projectId,
+        manager: data.manager,
       });
 
     const nameOf: (id: string) => string = (id: string): string => {

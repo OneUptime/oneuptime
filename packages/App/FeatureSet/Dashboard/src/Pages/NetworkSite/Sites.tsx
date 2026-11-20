@@ -9,6 +9,8 @@ import AppLink from "../../Components/AppLink/AppLink";
 import MonitorStatusElement from "../../Components/MonitorStatus/MonitorStatusElement";
 import { NETWORK_SITE_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/NetworkSiteMetricDescriptions";
 import ImportSitesFromCsvModal from "../../Components/NetworkSite/ImportSitesFromCsvModal";
+import DeleteEmptySitesModal from "../../Components/NetworkSite/DeleteEmptySitesModal";
+import { DELETE_EMPTY_SITES_ACTION } from "../../Components/NetworkSite/DeleteEmptySitesWords";
 import SiteCoordinates from "../../Components/NetworkSite/SiteCoordinates";
 import {
   fetchAllNetworkSiteTypeOptions,
@@ -71,6 +73,10 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import React, {
   Fragment,
   FunctionComponent,
@@ -109,6 +115,18 @@ const NetworkSites: FunctionComponent<
     useRef<boolean>(false);
 
   const [showImportModal, setShowImportModal] = useState<boolean>(false);
+  const [showDeleteEmptySites, setShowDeleteEmptySites] =
+    useState<boolean>(false);
+
+  /*
+   * Delete Empty Sites, for who may delete sites: hundreds of sites with
+   * nothing in them, left by an add of Meraki devices that could add none
+   * (#10188), go in one confirmation instead of one by one.
+   */
+  const deleteGate: PermissionGateResult = PermissionGate.check(
+    new NetworkSite(),
+    ModelAction.Delete,
+  );
 
   /*
    * The chips above the table. Built once — every option list is fetched by the
@@ -522,6 +540,18 @@ const NetworkSites: FunctionComponent<
                 setShowImportModal(true);
               },
             } as CardButtonSchema,
+            ...(deleteGate.isAllowed
+              ? [
+                  {
+                    title: DELETE_EMPTY_SITES_ACTION,
+                    buttonStyle: ButtonStyleType.OUTLINE,
+                    icon: IconProp.Trash,
+                    onClick: () => {
+                      setShowDeleteEmptySites(true);
+                    },
+                  } as CardButtonSchema,
+                ]
+              : []),
           ],
         }}
         showViewIdButton={true}
@@ -871,6 +901,18 @@ const NetworkSites: FunctionComponent<
           );
         }}
       />
+
+      {showDeleteEmptySites && (
+        <DeleteEmptySitesModal
+          onClose={() => {
+            setShowDeleteEmptySites(false);
+          }}
+          onDeleted={() => {
+            // The list, the summary cards and the hierarchy read again.
+            setRefreshToggle(Date.now().toString());
+          }}
+        />
+      )}
 
       {showImportModal && (
         <ImportSitesFromCsvModal

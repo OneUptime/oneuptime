@@ -14,7 +14,11 @@ import {
   ClickhouseUsername,
 } from "../../../../../Server/EnvironmentConfig";
 import { getClickhouseDatabaseName } from "../../../../../Server/Utils/AnalyticsDatabase/ClusterConfig";
-import { Statement } from "../../../../../Server/Utils/AnalyticsDatabase/Statement";
+import {
+  SQL,
+  Statement,
+} from "../../../../../Server/Utils/AnalyticsDatabase/Statement";
+import TableColumnType from "../../../../../Types/AnalyticsDatabase/TableColumnType";
 import {
   ContentScanOptions,
   LocationFindings,
@@ -218,19 +222,32 @@ function describeCost(cost: ReadCost): string {
 /*
  * The metrics' newest minutes read as the scan read them before #9756: the
  * first points of each, however many of them one series wrote. Written out
- * here, values and all, to compare against.
+ * here to compare against, each metric's name bound as a parameter.
  */
 function firstPointsStatement(
   metrics: ReadonlyArray<MetricToRead>,
   perMetric: number,
-): string {
-  const ranges: string = metrics
-    .map((metric: MetricToRead): string => {
-      return `(name = '${metric.metricName.replace(/'/g, "\\'")}' AND primaryEntityId = '${metric.ownerId}' AND time >= toDateTime64(${metric.newestMinute.getTime() / 1000}, 9))`;
-    })
-    .join(" OR ");
+): Statement {
+  const statement: Statement = new Statement().append(
+    `SELECT primaryEntityId AS ownerId, toUnixTimestamp64Milli(toDateTime64(time, 3)) AS readRecordTime, substringUTF8(name, 1, 1024) AS readMetricName, arrayMap((k, v) -> tuple(substringUTF8(k, 1, 256), substringUTF8(v, 1, 4096)), arraySlice(mapKeys(attributes), 1, 128), arraySlice(mapValues(attributes), 1, 128)) AS readAttributes FROM ${getClickhouseDatabaseName()}.MetricItemV3 WHERE projectId = '${PROJECT_ID.toString()}' AND time >= now() - INTERVAL 1 HOUR AND time <= now() AND retentionDate >= now() AND (primaryEntityType = '' OR primaryEntityType = 'OpenTelemetry') AND (`,
+  );
 
-  return `SELECT primaryEntityId AS ownerId, toUnixTimestamp64Milli(toDateTime64(time, 3)) AS readRecordTime, substringUTF8(name, 1, 1024) AS readMetricName, arrayMap((k, v) -> tuple(substringUTF8(k, 1, 256), substringUTF8(v, 1, 4096)), arraySlice(mapKeys(attributes), 1, 128), arraySlice(mapValues(attributes), 1, 128)) AS readAttributes FROM ${getClickhouseDatabaseName()}.MetricItemV3 WHERE projectId = '${PROJECT_ID.toString()}' AND time >= now() - INTERVAL 1 HOUR AND time <= now() AND retentionDate >= now() AND (primaryEntityType = '' OR primaryEntityType = 'OpenTelemetry') AND (${ranges}) LIMIT ${perMetric} BY primaryEntityId, name LIMIT ${perMetric * metrics.length}`;
+  metrics.forEach((metric: MetricToRead, index: number): void => {
+    if (index > 0) {
+      statement.append(" OR ");
+    }
+
+    statement.append(
+      SQL`(name = ${{ type: TableColumnType.Text, value: metric.metricName }}`,
+    );
+    statement.append(
+      ` AND primaryEntityId = '${metric.ownerId}' AND time >= toDateTime64(${metric.newestMinute.getTime() / 1000}, 9))`,
+    );
+  });
+
+  return statement.append(
+    `) LIMIT ${perMetric} BY primaryEntityId, name LIMIT ${perMetric * metrics.length}`,
+  );
 }
 
 // How many series - different attributes - a read's rows of each metric hold.

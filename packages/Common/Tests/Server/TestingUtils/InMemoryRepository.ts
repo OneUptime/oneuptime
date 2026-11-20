@@ -7,6 +7,7 @@ import { FindOperator } from "typeorm";
 import { getPhoneLineSql } from "../../../Server/Utils/StatusPage/SubscriberContactSql";
 import SubscriberContactKey from "../../../Types/StatusPage/SubscriberContactKey";
 import { getNameKey, getNameKeySql } from "../../../Types/Database/UniqueName";
+import { matchesLikePattern } from "./QueryConditions";
 
 /*
  * A table in memory behind a DatabaseService, for tests that drive the real
@@ -16,10 +17,11 @@ import { getNameKey, getNameKeySql } from "../../../Types/Database/UniqueName";
  * It answers the repository calls that pipeline makes (find, count, save,
  * update, delete) and understands the where clauses it builds: plain values,
  * TypeORM's In / Equal / Not / IsNull / And operators, and the Raw SQL that
- * QueryHelper and the permission layer write (equality, IN, NOT IN, NOT IN
- * ... OR IS NULL, IS NULL, IS NOT NULL, comparisons, TRUE = TRUE / FALSE),
- * a phone number's line (SubscriberContactSql.onPhoneLine), a name as it
- * reads (QueryHelper.findWithSameName), and a column
+ * QueryHelper and the permission layer write (equality, IN and LOWER() IN,
+ * NOT IN, NOT IN ... OR IS NULL, IS NULL, IS NOT NULL, comparisons, LIKE,
+ * TRUE = TRUE / FALSE), a phone number's line
+ * (SubscriberContactSql.onPhoneLine), a name as it reads
+ * (QueryHelper.findWithSameName), and a column
  * naming a private incident, alert or episode - as a read is held to it
  * (PrivateRecordReadFilter), and as a write of one of its parts is
  * (PrivateRecordPermission.getReachableCondition) - answered from the
@@ -228,7 +230,24 @@ function matchesRaw(stored: unknown, operator: FindOperator<unknown>): boolean {
     );
   }
 
-  match = sql.match(/^\(c IN \(:\.\.\.(\w+)\)\)$/);
+  /*
+   * A pattern, as SQL's LIKE reads it: % any run, _ any one character, and
+   * a backslash taking the next one as itself (a site's subtree,
+   * NetworkSiteService.pathStartsWith). Case kept, as LIKE keeps it.
+   */
+  match = sql.match(/^\(c LIKE :(\w+)\)$/);
+  if (match) {
+    if (stored === null || stored === undefined) {
+      return false;
+    }
+
+    return matchesLikePattern(String(parameters[match[1]!]), String(stored), {
+      isCaseSensitive: true,
+    });
+  }
+
+  // LOWER(c) too: a text the way QueryHelper.findWithSameTextAnyOf asks.
+  match = sql.match(/^\((?:c|LOWER\(c\)) IN \(:\.\.\.(\w+)\)\)$/);
   if (match) {
     return storedText !== null && listOf(match[1]!).includes(storedText);
   }

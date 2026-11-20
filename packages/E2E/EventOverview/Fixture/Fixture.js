@@ -10096,6 +10096,30 @@ async function handleApi(method, options) {
     return ok({ isRequired: false, steps: [] });
   }
 
+  /*
+   * Whether a public note posted now is on a status page and notifies anyone
+   * (POST /<event>/public-note-reach, Types/StatusPage/PublicNoteReach),
+   * asked by the feed's Add Public Note: incident #1042, episode #12 and
+   * maintenance event #58 are each on a status page that notifies its
+   * subscribers, so a note posted now is shown there and tells them - no
+   * reason.
+   */
+  if (method === "POST" && url.endsWith("/public-note-reach")) {
+    return ok({ nothingSentReason: null });
+  }
+
+  /*
+   * Whether the status pages #58 is on show maintenance events and notify
+   * their subscribers (POST /scheduled-maintenance/reach,
+   * Types/StatusPage/PickedStatusPagesReach), asked by its header's band
+   * while it waits to be published (?publish=later): Acme Commerce Status
+   * does both, so its subscribers are told it is scheduled when it is
+   * published - no reason.
+   */
+  if (method === "POST" && url.endsWith("/scheduled-maintenance/reach")) {
+    return ok({ nothingSentReason: null });
+  }
+
   fixture.unhandled.push({ kind: "api", method, url });
   return ok({ data: [], count: 0 });
 }

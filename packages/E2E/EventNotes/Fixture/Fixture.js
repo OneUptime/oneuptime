@@ -914,6 +914,17 @@ const SUBSCRIBER_AUDIENCE = {
 };
 
 /*
+ * Whether a public note posted now is on a status page and notifies anyone
+ * (POST /<event>/public-note-reach, Types/StatusPage/PublicNoteReach): what
+ * the composer says beside "Public" and under Notify Status Page
+ * Subscribers, asked once by each public notes page. Incident #1042,
+ * maintenance event #58 and incident episode #12 are each shown on a status
+ * page that notifies its subscribers (Acme Status, above), so a note posted
+ * now is on it and tells them: no reason.
+ */
+const PUBLIC_NOTE_REACH = { nothingSentReason: null };
+
+/*
  * 'Preview notification' under the public note composer
  * (POST /notification/subscriber-notification-preview/preview): each status
  * page's email as the server would render it. Two pages, so the dialog has
@@ -951,6 +962,10 @@ async function handleApi(method, options) {
 
   if (url.includes("/incident/subscriber-audience")) {
     return ok(SUBSCRIBER_AUDIENCE);
+  }
+
+  if (method === "POST" && url.endsWith("/public-note-reach")) {
+    return ok(PUBLIC_NOTE_REACH);
   }
 
   if (url.includes("/subscriber-notification-preview/preview")) {

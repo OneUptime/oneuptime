@@ -1953,7 +1953,7 @@ const monitorTraceGroups: (data: {
       data.evaluateUntil,
       -windowSeconds,
     );
-    const since: Date = OneUptimeDate.addRemoveDays(
+    const since: Date = OneUptimeDate.addRemoveDurationInDays(
       windowStart,
       -TRACE_GROUP_EXPECTED_LOOKBACK_DAYS,
     );

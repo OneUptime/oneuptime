@@ -407,6 +407,12 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.Network],
     leftAlone: {},
   },
+  "packages/Common/Server/API/NetworkEmptySitesAPI.ts": {
+    products: [ProductKey.Network],
+    leftAlone: {
+      EMPTY_SITES_PATH: READ,
+    },
+  },
   "packages/Common/Server/API/NetworkDeviceWatchingMonitorsAPI.ts": {
     products: [ProductKey.Network],
     leftAlone: {

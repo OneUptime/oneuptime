@@ -42,6 +42,8 @@ Los sitios forman un árbol. Cada sitio tiene un **Tipo de sitio** y, opcionalme
 
 El tipo, el nombre, la descripción, el padre y la ubicación de un sitio se editan en un solo lugar: la tarjeta **Ajustes del sitio** de la página **Ajustes** del sitio. La vista general del sitio los muestra con un enlace **Editar en Ajustes**, y la lista **Sitios** añade sitios pero no los edita.
 
+Los sitios que no contienen nada se eliminan de una vez: **Eliminar sitios vacíos**, en el menú de la parte superior de la lista **Sitios**, lista cada sitio sin dispositivos (archivados incluidos), sin sitios debajo y sin ningún endpoint, enlace, regla ni evento de mantenimiento que lo use. Nombra los diez primeros y, cuando confirmas, elimina exactamente los sitios listados: un sitio que recibe un dispositivo mientras tanto se conserva. Es para quien puede eliminar sitios.
+
 Cada dispositivo pertenece a un sitio. El subárbol de un sitio es el propio sitio más todos los sitios que tiene debajo, y los dispositivos del subárbol son de los que se resume su salud, así que una región sin dispositivos propios sigue teniendo un estado, porque las unidades de debajo lo tienen.
 
 > [!NOTE]

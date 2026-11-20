@@ -203,6 +203,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
       "a pattern whose syntax JavaScript checks, for its own error message; it is never run",
   },
   {
+    file: "packages/Common/Utils/Metrics/RetiredCloudMetricMoves.ts",
+    count: 1,
+    builtFrom:
+      "the Pub/Sub response labels PUBSUB_RESPONSE_LABELS lists (response_code, response_class), to find one named in a read's filter",
+  },
+  {
     file: "packages/Common/Utils/Monitor/MonitorSecretTotp.ts",
     count: 1,
     builtFrom:

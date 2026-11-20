@@ -214,7 +214,7 @@ export function buildTemplates() {
       destination: new Hostname("time.wbhq.com"),
       monitoringInterval: "*/10 * * * *",
     }),
-    // Checks a URL: nothing of a device's to check, so never offered.
+    // Checks a URL: offered under Web templates, each device's address its host (#9546).
     addressTemplate({
       id: TEMPLATE_IDS.storefront,
       name: "Storefront website",
