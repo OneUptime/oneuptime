@@ -1,9 +1,20 @@
 import readRequestBodyRefusal, {
   APP_BODY_LIMIT_IN_BYTES,
+  APP_REQUEST_BODY_LIMIT_FIELD,
   REQUEST_BODY_REFUSAL_MESSAGES,
   REQUEST_BODY_REFUSALS,
   RequestBodyRefusal,
+  TOO_MANY_JSON_VALUES_TYPE,
+  createTooManyJsonValuesError,
+  describeBodyLimit,
+  getTooLargeForRouteMessage,
+  getTooManyJsonValuesMessage,
 } from "../../../Server/Utils/RequestBodyRefusal";
+import {
+  LARGE_REQUEST_BODY_BYTES,
+  LARGE_REQUEST_BODY_LIMIT,
+} from "../../../Server/Utils/RequestBodyLimit";
+import { JsonElementLimit } from "../../../Utils/JsonElementCount";
 import {
   EMPTY_ERROR_PHRASES,
   isEmptyErrorPhrase,
@@ -90,8 +101,10 @@ describe("readRequestBodyRefusal", () => {
     );
   });
 
-  test("the App's limit is StartServer's 50mb, in the bytes raw-body names", () => {
+  test("the App's limit is the large routes' 50 MiB, in the bytes raw-body names", () => {
     expect(APP_BODY_LIMIT_IN_BYTES).toBe(52428800);
+    expect(LARGE_REQUEST_BODY_BYTES).toBe(APP_BODY_LIMIT_IN_BYTES);
+    expect(LARGE_REQUEST_BODY_LIMIT.bytes).toBe(APP_BODY_LIMIT_IN_BYTES);
 
     const startServer: string = fs.readFileSync(
       path.join(
@@ -105,17 +118,128 @@ describe("readRequestBodyRefusal", () => {
       ),
       "utf8",
     );
-    const limits: Array<string> = Array.from(
-      startServer.matchAll(/limit:\s*"([^"]+)"/g),
-    ).map((match: RegExpMatchArray): string => {
-      return match[1]!;
-    });
 
-    // The JSON, form and protobuf parsers.
-    expect(limits).toEqual(["50mb", "50mb", "50mb"]);
+    // The JSON, form and protobuf parsers: each takes its route's bytes.
+    expect(startServer).not.toMatch(/limit:\s*"[^"]+"/);
+    expect(
+      Array.from(startServer.matchAll(/limit: limit\.bytes/g)),
+    ).toHaveLength(3);
     expect(UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime).toContain(
       "the 50 MB OneUptime takes in one request",
     );
+  });
+
+  /*
+   * #10183: most routes take 1 MB. A body over it is OneUptime's refusal
+   * too, and says that limit, not the sentence a proxy's 413 gets.
+   */
+  test("a body past the limit StartServer held its route to says that limit", () => {
+    const refusal: RequestBodyRefusal | null = readRequestBodyRefusal(
+      Object.assign(parserError(413, "entity.too.large"), {
+        limit: 1024 * 1024,
+        [APP_REQUEST_BODY_LIMIT_FIELD]: 1024 * 1024,
+      }),
+    );
+
+    expect(refusal).toEqual({
+      type: "entity.too.large",
+      status: 413,
+      message:
+        "What was sent is larger than the 1 MB OneUptime takes in one request to this address, so this did not finish. Try again with less at once.",
+    });
+    expect(meetsErrorMessageRule(refusal!.message)).toBe(true);
+    // Shown as it is: not the proxy's kind, whose words send an admin to a proxy.
+    expect(readUnexplainedError(refusal!.message)).toBeNull();
+  });
+
+  test("the App's own 50 MB keeps the sentence the front ends read back, marked or not", () => {
+    expect(
+      readRequestBodyRefusal(
+        Object.assign(parserError(413, "entity.too.large"), {
+          limit: APP_BODY_LIMIT_IN_BYTES,
+          [APP_REQUEST_BODY_LIMIT_FIELD]: APP_BODY_LIMIT_IN_BYTES,
+        }),
+      )?.message,
+    ).toBe(UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime);
+  });
+
+  test("a mark that is not the limit the parser named is not believed", () => {
+    expect(
+      readRequestBodyRefusal(
+        Object.assign(parserError(413, "entity.too.large"), {
+          limit: 64 * 1024,
+          [APP_REQUEST_BODY_LIMIT_FIELD]: 1024 * 1024,
+        }),
+      )?.message,
+    ).toBe(UNEXPLAINED_ERROR_MESSAGES.tooLarge);
+  });
+
+  test.each([
+    [1024 * 1024, "1 MB"],
+    [50 * 1024 * 1024, "50 MB"],
+    [1.5 * 1024 * 1024, "1.5 MB"],
+    [512 * 1024, "512 KB"],
+    [100, "1 KB"],
+  ])("a limit of %d bytes is said as %s", (bytes: number, said: string) => {
+    expect(describeBodyLimit(bytes)).toBe(said);
+  });
+
+  test("a JSON body with more values than its route reads is 413, with the limit it passed", () => {
+    const error: Error = createTooManyJsonValuesError(
+      {
+        values: 100001,
+        objectsArraysAndStrings: 100001,
+        passed: JsonElementLimit.Values,
+      },
+      { values: 100000, objectsArraysAndStrings: 100000 },
+    );
+
+    expect(readRequestBodyRefusal(error)).toEqual({
+      type: TOO_MANY_JSON_VALUES_TYPE,
+      status: 413,
+      message:
+        "The request body holds more than 100,000 JSON values (objects, arrays, strings and numbers), the most OneUptime reads in one request to this address, so this did not finish. Send less in each request.",
+    });
+
+    expect(
+      readRequestBodyRefusal(
+        createTooManyJsonValuesError(
+          {
+            values: 5,
+            objectsArraysAndStrings: 1000001,
+            passed: JsonElementLimit.ObjectsArraysAndStrings,
+          },
+          { values: 26214400, objectsArraysAndStrings: 1000000 },
+        ),
+      )?.message,
+    ).toBe(
+      "The request body holds more than 1,000,000 JSON objects, arrays and strings, the most OneUptime reads in one request to this address, so this did not finish. Send less in each request.",
+    );
+  });
+
+  test("the too-many-values sentences say what happened and what to do, and are shown as they are", () => {
+    for (const passed of [
+      JsonElementLimit.Values,
+      JsonElementLimit.ObjectsArraysAndStrings,
+    ]) {
+      const message: string = getTooManyJsonValuesMessage(passed, 100000);
+
+      expect(meetsErrorMessageRule(message)).toBe(true);
+      expect(isEmptyErrorPhrase(message)).toBe(false);
+      expect(message).toContain(", so this did not finish. ");
+      expect(readUnexplainedError(message)).toBeNull();
+    }
+
+    expect(meetsErrorMessageRule(getTooLargeForRouteMessage(1048576))).toBe(
+      true,
+    );
+  });
+
+  test("a too-many-values error that names no limit keeps its type's sentence", () => {
+    expect(
+      readRequestBodyRefusal(parserError(413, TOO_MANY_JSON_VALUES_TYPE))
+        ?.message,
+    ).toBe(REQUEST_BODY_REFUSAL_MESSAGES.tooManyJsonValues);
   });
 
   test.each([

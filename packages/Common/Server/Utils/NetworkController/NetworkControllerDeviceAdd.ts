@@ -654,22 +654,31 @@ export function buildNetworkDeviceFromController(data: {
 }): NetworkDevice {
   const device: NetworkDevice = new NetworkDevice();
 
+  // What the person would give Add Device: the name and the address.
   device.projectId = data.projectId;
   device.name = data.name;
   device.hostname = data.device.lanIp;
 
   /*
-   * What the controller reports is OneUptime's to write, for the person who
-   * adds the device (ServerSetColumns): the API takes no value for a column
-   * only OneUptime writes from a person (#10053), and nobody may give a
-   * device's serial number on a create.
+   * What Meraki says the box is - its serial number, its MAC and Meraki's
+   * reading of it, below - is OneUptime's to write, not the person's
+   * (ServerSetColumns), on the create made as the person who adds it. The
+   * API takes no value for a column only OneUptime writes from a person
+   * (#10053), and nobody may give a device's serial number on a create:
+   * 16.0.0 sent it as the person's, and every device was refused for it
+   * (#10188). The serial number is what the next read and the next ask
+   * find the device by, so a create never goes without it
+   * (NetworkControllerDeviceAddRunner.assertCreateKeepsAll).
    */
-  ServerSetColumns.set(device, { serialNumber: data.device.serial });
+  ServerSetColumns.set(device, {
+    serialNumber: data.device.serial,
+    macAddress: data.device.mac || undefined,
+  });
 
-  if (data.device.mac) {
-    device.macAddress = data.device.mac;
-  }
-
+  /*
+   * And what Add Device would ask them too: the role its kind stands for,
+   * and the site and the probe of the ask.
+   */
   if (data.roleId) {
     device.networkDeviceRoleId = data.roleId;
   }

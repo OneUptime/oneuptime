@@ -4,6 +4,7 @@ import {
   TerraformResource,
   TerraformAttribute,
   TerraformRelation,
+  HeldEntryAttribute,
   SharedAttribute,
 } from "./Types";
 import { FileGenerator } from "./FileGenerator";
@@ -313,6 +314,100 @@ export class ResourceGenerator {
   }
 
   /*
+   * The lists OneUptime adds to as well that a configuration holds by the
+   * entries it declares (StaticFiles/entries.go, #10134): each list or set
+   * of related records people and OneUptime both change - a record's
+   * labels, an incident's on-call policies, an SLO's monitors - by
+   * Terraform name, with its Go field, its API name and its type.
+   */
+  public static getHeldEntryAttributes(
+    resource: TerraformResource,
+  ): Array<HeldEntryAttribute> {
+    return Object.entries(resource.schema)
+      .filter(([name, attr]: [string, TerraformAttribute]): boolean => {
+        return (
+          name !== "id" &&
+          attr.serverOwned === "shared" &&
+          Boolean(attr.optional || attr.required) &&
+          (attr.type === "set" || attr.type === "list") &&
+          attr.elementKind === "entity"
+        );
+      })
+      .map(([name, attr]: [string, TerraformAttribute]): HeldEntryAttribute => {
+        const terraformName: string =
+          StringUtils.toTerraformAttributeName(name);
+
+        return {
+          name: terraformName,
+          fieldName: StringUtils.toPascalCase(terraformName),
+          apiName: attr.apiFieldName || name,
+          type: attr.type as "set" | "list",
+        };
+      })
+      .sort((a: HeldEntryAttribute, b: HeldEntryAttribute): number => {
+        return a.name.localeCompare(b.name);
+      });
+  }
+
+  /*
+   * A resource's methods that hold its lists OneUptime adds to as well to
+   * the entries a configuration declares (StaticFiles/entries.go): their
+   * state after a read, and after a create or an update. Nothing for a
+   * resource with none.
+   */
+  public static generateHeldEntryMethods(
+    resource: TerraformResource,
+    resourceTypeName: string,
+  ): string {
+    const held: Array<HeldEntryAttribute> =
+      ResourceGenerator.getHeldEntryAttributes(resource);
+
+    if (held.length === 0) {
+      return "";
+    }
+
+    const afterRead: string = held
+      .map((attribute: HeldEntryAttribute): string => {
+        return `    data.${attribute.fieldName} = ${attribute.type}EntriesAfterRead(r.client, declared, "${attribute.name}", prior.${attribute.fieldName}, data.${attribute.fieldName})`;
+      })
+      .join("\n");
+
+    const afterWrite: string = held
+      .map((attribute: HeldEntryAttribute): string => {
+        return `    data.${attribute.fieldName}, isDeclared = ${attribute.type}EntriesAfterWrite(r.client, isCreate, declared["${attribute.name}"], config.${attribute.fieldName}, plan.${attribute.fieldName}, data.${attribute.fieldName})
+    declared["${attribute.name}"] = isDeclared`;
+      })
+      .join("\n");
+
+    return `
+// heldEntriesAfterRead holds each list OneUptime adds to as well (${held
+      .map((attribute: HeldEntryAttribute): string => {
+        return attribute.name;
+      })
+      .join(", ")}) to
+// the entries the configuration declares that the record still has, after
+// a read (see entries.go).
+func (r *${resourceTypeName}Resource) heldEntriesAfterRead(ctx context.Context, private privateState, data *${resourceTypeName}ResourceModel, prior *${resourceTypeName}ResourceModel) {
+    declared := readDeclaredEntries(ctx, private)
+${afterRead}
+}
+
+// heldEntriesAfterWrite is the state of each such list after a create or an
+// update, and which of them the configuration declares from then on (see
+// entries.go): the caller keeps them in the private state.
+func (r *${resourceTypeName}Resource) heldEntriesAfterWrite(ctx context.Context, before privateState, data *${resourceTypeName}ResourceModel, plan *${resourceTypeName}ResourceModel, config *${resourceTypeName}ResourceModel, isCreate bool) declaredEntries {
+    declared := declaredEntries{}
+    if !isCreate {
+        declared = readDeclaredEntries(ctx, before)
+    }
+    var isDeclared bool
+${afterWrite}
+    return declared
+}
+`;
+  }
+
+  /*
    * The step of a resource's ModifyPlan for what people and OneUptime both
    * change (planShared, StaticFiles/shared.go), or nothing for a resource
    * with none.
@@ -567,6 +662,16 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     await this.copyStaticFile("shared.go", "internal/provider");
     await this.copyStaticFile("shared_test.go", "internal/provider");
     await this.copyStaticFile("shared_plan_test.go", "internal/provider");
+
+    /*
+     * A list OneUptime adds to as well, held to the entries a configuration
+     * declares and updated entry by entry (#10134, #10135), and what a
+     * create left out because only OneUptime writes it (#10136) - and its
+     * tests, on their own and through the real protocol server.
+     */
+    await this.copyStaticFile("entries.go", "internal/provider");
+    await this.copyStaticFile("entries_test.go", "internal/provider");
+    await this.copyStaticFile("entries_plan_test.go", "internal/provider");
 
     /*
      * How the Crossplane provider, which runs this provider in process,
@@ -1201,7 +1306,7 @@ ${
     _ = email`
     }`
     : resource.operations.read
-      ? `    resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)${this.generateMarkImported(resource)}`
+      ? `    resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)${this.generateMarkImported(resource)}${this.generateMarkEntriesAdopted(resource)}`
       : `    // Without a read endpoint, a passthrough import would silently create
     // id-only state that can never be refreshed. Fail loudly instead.
     resp.Diagnostics.AddError(
@@ -1211,7 +1316,7 @@ ${
 }
 }
 
-${this.generateKeepPlannedValuesMethod(resource, resourceTypeName)}
+${this.generateKeepPlannedValuesMethod(resource, resourceTypeName)}${ResourceGenerator.generateHeldEntryMethods(resource, resourceTypeName)}
 // Helper method to convert Terraform map to Go interface{}
 func (r *${resourceTypeName}Resource) convertTerraformMapToInterface(terraformMap types.Map) interface{} {
     if terraformMap.IsNull() || terraformMap.IsUnknown() {
@@ -1905,6 +2010,31 @@ ${ResourceGenerator.generatePlanSharedCall(resource)}${people.length > 0 ? `\n${
       .sort();
   }
 
+  /*
+   * An import adopts the record's entries of each list OneUptime adds to
+   * as well: its first read takes the record's whole list into the state
+   * (StaticFiles/entries.go), as the configuration's.
+   */
+  private generateMarkEntriesAdopted(resource: TerraformResource): string {
+    const held: Array<HeldEntryAttribute> =
+      ResourceGenerator.getHeldEntryAttributes(resource);
+
+    if (held.length === 0) {
+      return "";
+    }
+
+    return `
+
+    // An import adopts the record's entries of each list OneUptime adds to as well (see entries.go).
+    if r.client.holdsDeclaredEntries() {
+        resp.Diagnostics.Append(declaredEntries{${held
+          .map((attribute: HeldEntryAttribute): string => {
+            return `"${attribute.name}": true`;
+          })
+          .join(", ")}}.write(ctx, resp.Private)...)
+    }`;
+  }
+
   // An import names the attributes that hold what it read.
   private generateMarkImported(resource: TerraformResource): string {
     const attributes: Array<string> =
@@ -2317,7 +2447,7 @@ ${assignments}
     let readBackCode: string = `
     // No read endpoint for this resource: map the create response directly.
     // Update the model with response data
-${this.generateResponseMapping(resource, resourceVarName + "Response", true, true)}${this.generateKeepPlannedValuesCall(resource)}${this.generatePersonEmailsAfterWrite(resource)}`;
+${this.generateResponseMapping(resource, resourceVarName + "Response", true, true)}${this.generateKeepPlannedValuesCall(resource)}${this.generatePersonEmailsAfterWrite(resource)}${this.generateHeldEntriesAfterWriteCall(resource, true)}`;
 
     if (resource.operations.read) {
       const readPath: string = this.buildPathExpression(
@@ -2379,7 +2509,7 @@ ${this.generateSelectParameter(resource)}
     // Update the model with the authoritative read response
 ${this.generateResponseMapping(resource, "readResponse", true)}
     // The read response is authoritative, but never let it clobber the id we just received.
-    data.Id = types.StringValue(createdId)${this.generateKeepPlannedValuesCall(resource)}${this.generatePersonEmailsAfterWrite(resource)}`;
+    data.Id = types.StringValue(createdId)${this.generateKeepPlannedValuesCall(resource)}${this.generatePersonEmailsAfterWrite(resource)}${this.generateHeldEntriesAfterWriteCall(resource, true)}`;
     }
 
     /*
@@ -2425,6 +2555,9 @@ ${this.generateGuardedCreateRequestBody(resource, resourceVarName)}${this.genera
         ${createError}
         return
     }
+
+    // What OneUptime left out because only it writes it, if anything (see entries.go).
+    resp.Diagnostics.Append(fieldsLeftOutWarning(httpResp, "${resource.name.replace(/_/g, " ")}")...)
 ${readBackCode}
 
     // Write logs using the tflog package
@@ -2511,7 +2644,14 @@ func (r *${resourceTypeName}Resource) Read(ctx context.Context, req resource.Rea
     if resp.Diagnostics.HasError() {
         return
     }
-
+${
+  ResourceGenerator.getHeldEntryAttributes(resource).length > 0
+    ? `
+    // The state before the read: the entries the configuration declared (see entries.go).
+    prior := data
+`
+    : ""
+}
     // Create select parameter to get full object
     selectParam := map[string]interface{}{
 ${this.generateSelectParameter(resource)}
@@ -2537,7 +2677,14 @@ ${this.generatePriorPeople(resource)}
     }
 
     // Update the model with response data
-${this.generateResponseMapping(resource, resourceVarName + "Response", false)}${this.generatePersonEmailsAfterRead(resource)}
+${this.generateResponseMapping(resource, resourceVarName + "Response", false)}${this.generatePersonEmailsAfterRead(resource)}${
+      ResourceGenerator.getHeldEntryAttributes(resource).length > 0
+        ? `
+
+    // A list OneUptime adds to as well holds the entries the configuration declares (see entries.go).
+    r.heldEntriesAfterRead(ctx, req.Private, &data, &prior)`
+        : ""
+    }
 
     // Save updated data into Terraform state
     resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -2590,7 +2737,7 @@ ${this.generateSelectParameter(resource)}
 
     // Update the model with response data from the Read operation
 ${this.generateResponseMapping(resource, "readResponse", false)}
-    data.Id = state.Id${this.generateKeepPlannedValuesCall(resource)}${this.generatePersonEmailsAfterWrite(resource)}`
+    data.Id = state.Id${this.generateKeepPlannedValuesCall(resource)}${this.generatePersonEmailsAfterWrite(resource)}${this.generateListChangesCheck(resource)}${this.generateHeldEntriesAfterWriteCall(resource, false)}`
       : `
     // No read endpoint for this resource: the planned values become state.${this.generatePersonEmailsAfterWrite(resource)}`;
 
@@ -2623,7 +2770,7 @@ ${this.generateConditionalUpdateRequestBodyWithDeclaration(resource, resourceVar
     // Only call the API when there are changed fields to send. An empty
     // update body is rejected by the API; state is still refreshed below so
     // this method never writes unverified plan values into state.
-    if len(${resourceVarName}Request["data"].(map[string]interface{})) > 0 {
+    if len(${resourceVarName}Request["data"].(map[string]interface{})) > 0${this.hasHeldEntriesInUpdate(resource) ? " || listChanges.any()" : ""} {
         httpResp, err := r.client.${httpMethod}(ctx, ${finalUpdatePath}, ${resourceVarName}Request)
         if err != nil {
             resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update ${resource.name}, got error: %s", err))
@@ -2652,6 +2799,87 @@ ${readBackCode}${
     resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 `;
+  }
+
+  /*
+   * Whether a resource's update sends a list OneUptime adds to as well:
+   * entry by entry, in listChanges (StaticFiles/entries.go).
+   */
+  private hasHeldEntriesInUpdate(resource: TerraformResource): boolean {
+    return this.getHeldEntriesInUpdate(resource).length > 0;
+  }
+
+  // The held-entry attributes the update schema writes.
+  private getHeldEntriesInUpdate(
+    resource: TerraformResource,
+  ): Array<HeldEntryAttribute> {
+    const updateSchema: Record<string, TerraformAttribute> =
+      resource.operationSchemas?.update || {};
+    const written: Set<string> = new Set<string>(
+      Object.entries(updateSchema)
+        .filter(([name, attr]: [string, TerraformAttribute]): boolean => {
+          return name !== "id" && !attr.computed;
+        })
+        .map(([name]: [string, TerraformAttribute]): string => {
+          return this.sanitizeAttributeName(name);
+        }),
+    );
+
+    return ResourceGenerator.getHeldEntryAttributes(resource).filter(
+      (attribute: HeldEntryAttribute): boolean => {
+        return written.has(attribute.name);
+      },
+    );
+  }
+
+  /*
+   * After an update's read-back: what it added to each list OneUptime adds
+   * to as well is there, and what it took off is gone (entryChanges.check).
+   */
+  private generateListChangesCheck(resource: TerraformResource): string {
+    const held: Array<HeldEntryAttribute> =
+      this.getHeldEntriesInUpdate(resource);
+
+    if (held.length === 0) {
+      return "";
+    }
+
+    return `
+
+    // What this update added to a list OneUptime adds to as well is there, and what it took off is gone (see entries.go).
+${held
+  .map((attribute: HeldEntryAttribute): string => {
+    return `    resp.Diagnostics.Append(listChanges.check("${attribute.apiName}", data.${attribute.fieldName})...)`;
+  })
+  .join("\n")}
+    if resp.Diagnostics.HasError() {
+        return
+    }`;
+  }
+
+  /*
+   * After a create's or an update's read-back: the state of each list
+   * OneUptime adds to as well, and which the configuration declares
+   * (StaticFiles/entries.go).
+   */
+  private generateHeldEntriesAfterWriteCall(
+    resource: TerraformResource,
+    isCreate: boolean,
+  ): string {
+    if (ResourceGenerator.getHeldEntryAttributes(resource).length === 0) {
+      return "";
+    }
+
+    if (this.getKeptPlannedAttributes(resource).length === 0) {
+      throw new Error(
+        `${resource.name} has a list OneUptime adds to as well but no planned value to hold it to: getKeptPlannedAttributes must keep it.`,
+      );
+    }
+
+    return `
+
+    // A list OneUptime adds to as well holds the entries the configuration declares (see entries.go).
+    resp.Diagnostics.Append(r.heldEntriesAfterWrite(ctx, ${isCreate ? "nil" : "req.Private"}, &data, &plan, &config, ${isCreate}).write(ctx, resp.Private)...)`;
   }
 
   private generateDeleteMethod(
@@ -2968,6 +3196,30 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         resourceVarName +
         'Request["data"].(map[string]interface{})',
     );
+
+    /*
+     * A list OneUptime adds to as well is sent entry by entry, in the
+     * request's addToList and removeFromList (StaticFiles/entries.go,
+     * #10135), but under exclusive_lists.
+     */
+    const heldInUpdate: Map<string, HeldEntryAttribute> = new Map<
+      string,
+      HeldEntryAttribute
+    >(
+      this.getHeldEntriesInUpdate(resource).map(
+        (attribute: HeldEntryAttribute): [string, HeldEntryAttribute] => {
+          return [attribute.name, attribute];
+        },
+      ),
+    );
+
+    if (heldInUpdate.size > 0) {
+      conditionalAssignments.push(
+        "    // The entries this update adds to a list OneUptime adds to as well, and takes off it (see entries.go).",
+      );
+      conditionalAssignments.push("    listChanges := newEntryChanges()");
+    }
+
     conditionalAssignments.push("");
 
     for (const [name, attr] of Object.entries(updateSchema)) {
@@ -2997,8 +3249,30 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         terraformAttr,
       );
 
+      const held: HeldEntryAttribute | undefined =
+        heldInUpdate.get(sanitizedName);
+
+      if (held) {
+        conditionalAssignments.push(
+          `    ${changeCheckCondition} {
+        if r.client.changesEntriesOneByOne() {
+            listChanges.diff("${held.name}", "${held.apiName}", data.${fieldName}, state.${fieldName})
+        } else {
+            ${valueAssignment}
+        }
+    }`,
+        );
+        continue;
+      }
+
       conditionalAssignments.push(
         `    ${changeCheckCondition} {\n        ${valueAssignment}\n    }`,
+      );
+    }
+
+    if (heldInUpdate.size > 0) {
+      conditionalAssignments.push(
+        `    listChanges.addTo(${resourceVarName}Request)`,
       );
     }
 

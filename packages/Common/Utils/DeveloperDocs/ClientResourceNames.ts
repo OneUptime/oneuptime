@@ -20,7 +20,11 @@
  *     Notification Template" on screen, as the template itself is. Two
  *     models of one name made one provider resource, the link's endpoints
  *     won, and no template could be made with Terraform at all. The
- *     template keeps the name; the link is a status page's.
+ *     template keeps the name; the link is a status page's;
+ *   - an iOS app's uploaded dSYM is a "dSYM" on screen, which a client
+ *     cuts at its capitals into oneuptime_d_sym and `oneuptime d-sym`.
+ *     It is a dSYM file, as Apple and Xcode call one, and leaves the CLI's
+ *     `oneuptime dsym upload` (Commands/DsymCommands) its own word.
  *
  * A client names each of them as below instead, by the model's table, which
  * the OpenAPI spec says on each tag (x-oneuptime-table). The provider keeps
@@ -39,6 +43,7 @@ export const CLIENT_RESOURCE_NAMES: Readonly<Record<string, string>> = {
   ProbeOwnerTeam: "Probe Team Owner",
   StatusPageSubscriberNotificationTemplateStatusPage:
     "Status Page Subscriber Notification Template",
+  TelemetryDsym: "Dsym File",
 };
 
 /*

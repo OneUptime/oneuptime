@@ -10,11 +10,11 @@ import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredEx
 import { JSONObject } from "../../../Types/JSON";
 import {
   MAX_DEVICES_PER_CONTROLLER_DEVICE_ADD,
-  MAX_DEVICE_ADD_FAILURES_KEPT,
   MAX_DEVICE_ADD_FAILURE_TEXT_LENGTH,
   NetworkControllerDeviceAddRequest,
   NetworkControllerDeviceAddState,
   NetworkControllerDeviceAddStatus,
+  addNetworkControllerDeviceAddFailure,
   buildQueuedNetworkControllerDeviceAddState,
   isNetworkControllerDeviceAddUnderWay,
   readNetworkControllerDeviceAddState,
@@ -31,6 +31,7 @@ import NetworkSiteService from "../../Services/NetworkSiteService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import ModelPermission from "../../Types/Database/Permissions/Index";
 import CallerPlan from "../Billing/CallerPlan";
+import ColumnsOnlyOneUptimeWrites from "../Database/ColumnsOnlyOneUptimeWrites";
 import DataSourceHttpFetch from "../DataSource/HttpFetch";
 import LlmProviderError from "../LlmObservability/LlmProviderError";
 import logger from "../Logger";
@@ -64,6 +65,7 @@ import {
   matchControllerDevices,
 } from "./NetworkControllerInventory";
 import NetworkControllerScheduler from "./NetworkControllerScheduler";
+import NetworkSiteUsage from "../NetworkSite/NetworkSiteUsage";
 import {
   NetworkControllerDevice,
   NetworkControllerDeviceListing,
@@ -95,7 +97,30 @@ import {
  * the person who asked, read from the database when the worker starts and
  * again every minute, as Network Discovery's import does: someone who lost
  * the right to create devices half way stops creating them half way. Their
- * name is on every device as its creator.
+ * name is on every device as its creator, and in its audit log.
+ *
+ * WHAT MERAKI SAYS IS ONEUPTIME'S. The person's create carries what they
+ * would give Add Device - the name, the address, the role, the site, the
+ * probe - and OneUptime writes what Meraki says the box is: its serial
+ * number, its MAC and Meraki's reading of it (buildNetworkDeviceFromController
+ * marks them, ServerSetColumns). A serial number takes no value from a person
+ * at all (ServerOwned.Always): 16.0.0 sent it as the person's and every
+ * device was refused for it (#10188), and a create that dropped it would
+ * add a device the next read and the next ask no longer know. So a device
+ * is never created without a value it was built with: a column the create
+ * would take out is that device's failure, said (assertCreateKeepsAll).
+ *
+ * A SITE ONLY FOR DEVICES. The site named after a Meraki network is added
+ * as the first of its devices is, never before, and one this ask added
+ * whose devices could not be added is taken away again at the end -
+ * however the ask ends - unless something is in it by then
+ * (NetworkSiteUsage). 16.0.0 added every site first, and left hundreds
+ * empty.
+ *
+ * WHAT IT SAYS. The connection's row says what was added, what was left
+ * out and why (no address, taken, archived, past the limit), and why each
+ * device it tried could not be added - one line a reason, with how many and
+ * which, never one line a device.
  *
  * NOTHING TWICE. A device is added only when nothing here holds its serial
  * number, MAC or address, read just before the adds; a second ask while one
@@ -156,6 +181,13 @@ export const DEVICE_ADD_CONNECTION_GONE: string =
 export const DEVICE_ADD_NAME_TAKEN_REASON: string =
   "Another network device has this name.";
 
+// A device whose create would leave out a value OneUptime gave it.
+export function getDeviceAddColumnsLeftOutReason(
+  columns: Array<string>,
+): string {
+  return `OneUptime could not write this device's ${columns.join(", ")} from Meraki, so it was not added. Contact OneUptime support.`;
+}
+
 export type ReadPersonPropsFunction = (data: {
   userId: ObjectID;
   projectId: ObjectID;
@@ -196,6 +228,15 @@ export type CreateDeviceFunction = (data: {
   props: DatabaseCommonInteractionProps;
 }) => Promise<void>;
 
+/*
+ * Takes away a site the ask added, unless something is in it or names it
+ * now: whether it did.
+ */
+export type RemoveSiteIfEmptyFunction = (data: {
+  projectId: ObjectID;
+  siteId: ObjectID;
+}) => Promise<boolean>;
+
 export type ListControllerDevicesFunction = (
   settings: NetworkControllerSettings,
   options: NetworkControllerListOptions,
@@ -228,6 +269,7 @@ export interface NetworkControllerDeviceAddDependencies {
   createSite?: CreateSiteFunction | undefined;
   findRoleIds?: FindRoleIdsFunction | undefined;
   createDevice?: CreateDeviceFunction | undefined;
+  removeSiteIfEmpty?: RemoveSiteIfEmptyFunction | undefined;
   enqueueRead?:
     | ((connectionId: ObjectID, now: Date) => Promise<void>)
     | undefined;
@@ -266,6 +308,28 @@ function isNameTaken(error: unknown): boolean {
     error instanceof BadDataException &&
     error.message === "Network Device with the same name already exists."
   );
+}
+
+function toSiteKey(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+/*
+ * The sites one ask puts its devices in (see the header): the project's
+ * site named after each device's Meraki network, or one the ask adds as
+ * the first of its devices is added.
+ */
+interface AskSites {
+  // The site each device goes into, by its serial number: the site's name.
+  siteNameBySerial: Map<string, string>;
+  // The id of each site there is now, by its name in lower case.
+  idByKey: Map<string, string>;
+  // The sites to add, by their name in lower case, until they are.
+  toCreate: Map<string, { name: string; address: string }>;
+  // Sites that could not be added or found: their devices go without one.
+  unavailableKeys: Set<string>;
+  // The sites this ask added, by id: how many of its devices are in each.
+  addedDevicesBySiteId: Map<string, number>;
 }
 
 function chunks<T>(items: Array<T>, size: number): Array<Array<T>> {
@@ -483,6 +547,8 @@ export default class NetworkControllerDeviceAddRunner {
     await write(state);
 
     let settings: NetworkControllerSettings | null = null;
+    // The sites of the ask's devices, once it knows them.
+    let sites: AskSites | null = null;
 
     try {
       if (!connection.isEnabled) {
@@ -564,15 +630,13 @@ export default class NetworkControllerDeviceAddRunner {
       await write(state);
 
       if (plan.toAdd.length > 0) {
-        const siteIdBySerial: Map<string, string> = queued.request.groupBySite
-          ? await NetworkControllerDeviceAddRunner.ensureSites({
+        sites = queued.request.groupBySite
+          ? await NetworkControllerDeviceAddRunner.planSites({
               projectId,
               devices: plan.toAdd,
-              props,
-              state,
               dependencies,
             })
-          : new Map<string, string>();
+          : null;
 
         const roleIds: Map<string, string> = await (
           dependencies.findRoleIds ||
@@ -626,49 +690,75 @@ export default class NetworkControllerDeviceAddRunner {
           const roleId: string | undefined = roleKey
             ? roleIds.get(roleKey)
             : undefined;
-          const siteId: string | undefined = siteIdBySerial.get(device.serial);
-          const build: (name: string) => NetworkDevice = (
-            name: string,
-          ): NetworkDevice => {
-            return buildNetworkDeviceFromController({
-              projectId,
-              device,
-              name,
-              connection: inventoryConnection,
-              readAt,
-              ...(roleId ? { roleId: new ObjectID(roleId) } : {}),
-              ...(siteId ? { siteId: new ObjectID(siteId) } : {}),
-              ...(queued.request.probeId
-                ? { probeId: new ObjectID(queued.request.probeId) }
-                : {}),
-            });
-          };
 
           const name: string =
             names.get(device.serial) || getControllerDeviceBaseName(device);
 
           try {
+            // Its site, added now when it is the first device to go in it.
+            const siteId: string | undefined = sites
+              ? await NetworkControllerDeviceAddRunner.getSiteIdOf({
+                  sites,
+                  device,
+                  projectId,
+                  props,
+                  state,
+                  dependencies,
+                })
+              : undefined;
+
+            // Who asks, as read for this device.
+            const askerProps: DatabaseCommonInteractionProps = props;
+
+            const build: (deviceName: string) => NetworkDevice = (
+              deviceName: string,
+            ): NetworkDevice => {
+              const built: NetworkDevice = buildNetworkDeviceFromController({
+                projectId,
+                device,
+                name: deviceName,
+                connection: inventoryConnection,
+                readAt,
+                ...(roleId ? { roleId: new ObjectID(roleId) } : {}),
+                ...(siteId ? { siteId: new ObjectID(siteId) } : {}),
+                ...(queued.request.probeId
+                  ? { probeId: new ObjectID(queued.request.probeId) }
+                  : {}),
+              });
+
+              NetworkControllerDeviceAddRunner.assertCreateKeepsAll(
+                built,
+                askerProps,
+              );
+
+              return built;
+            };
+
             await NetworkControllerDeviceAddRunner.createUnderName({
               build,
               name,
               device,
-              props,
+              props: askerProps,
               createDevice,
             });
             state.addedCount++;
+
+            if (siteId && sites?.addedDevicesBySiteId.has(siteId)) {
+              sites.addedDevicesBySiteId.set(
+                siteId,
+                (sites.addedDevicesBySiteId.get(siteId) || 0) + 1,
+              );
+            }
           } catch (error) {
             if (isRefusalOfThePerson(error)) {
               throw error;
             }
 
             state.failedCount++;
-
-            if (state.failures.length < MAX_DEVICE_ADD_FAILURES_KEPT) {
-              state.failures.push({
-                name: name.substring(0, MAX_DEVICE_ADD_FAILURE_TEXT_LENGTH),
-                reason: toReason(error),
-              });
-            }
+            addNetworkControllerDeviceAddFailure(state.failureReasons, {
+              name: name.substring(0, MAX_DEVICE_ADD_FAILURE_TEXT_LENGTH),
+              reason: toReason(error),
+            });
           }
 
           if (clock().getTime() - lastFlushAt >= DEVICE_ADD_FLUSH_INTERVAL_MS) {
@@ -680,19 +770,30 @@ export default class NetworkControllerDeviceAddRunner {
       }
 
       state.status = NetworkControllerDeviceAddStatus.Done;
-      state.updatedAt = clock().toISOString();
-      state.finishedAt = state.updatedAt;
-      await write(state);
     } catch (error) {
       state.status = NetworkControllerDeviceAddStatus.Failed;
       state.message = NetworkControllerDeviceAddRunner.toFailureMessage(
         error,
         settings,
       );
-      state.updatedAt = clock().toISOString();
-      state.finishedAt = state.updatedAt;
-      await write(state);
     }
+
+    /*
+     * A site it added whose devices could not be added is taken away again,
+     * however the ask ended (see the header), before the row says so.
+     */
+    if (sites) {
+      await NetworkControllerDeviceAddRunner.removeSitesLeftEmpty({
+        projectId,
+        sites,
+        state,
+        dependencies,
+      });
+    }
+
+    state.updatedAt = clock().toISOString();
+    state.finishedAt = state.updatedAt;
+    await write(state);
 
     /*
      * The devices it added are read at once: their clients and links go on
@@ -929,36 +1030,87 @@ export default class NetworkControllerDeviceAddRunner {
   }
 
   /*
-   * The site each device goes into, by its serial number: the project's site
-   * named after its Meraki network, added first when there is none. A site
-   * that cannot be added - another one of its name was added meanwhile, say
-   * - is looked up again; its devices are added without a site when it is
-   * still not there, and the reason is kept.
+   * The sites of an ask's devices: the project's sites named after their
+   * Meraki networks, found by name without case, and the ones to add for
+   * the networks it has none of - added later, as their first device is
+   * (getSiteIdOf).
    */
-  private static async ensureSites(data: {
+  private static async planSites(data: {
     projectId: ObjectID;
     devices: Array<NetworkControllerDevice>;
-    props: DatabaseCommonInteractionProps;
-    state: NetworkControllerDeviceAddState;
     dependencies: NetworkControllerDeviceAddDependencies;
-  }): Promise<Map<string, string>> {
+  }): Promise<AskSites> {
     const findSites: FindSitesByNameFunction =
       data.dependencies.findSites ||
       NetworkControllerDeviceAddRunner.findSitesByName;
-    const names: Array<string> = getControllerSiteNames(data.devices);
-    const idByName: Map<string, string> = new Map();
+    const idByKey: Map<string, string> = new Map();
 
     for (const site of await findSites({
       projectId: data.projectId,
-      names,
+      names: getControllerSiteNames(data.devices),
     })) {
-      idByName.set(site.name.trim().toLowerCase(), site.id);
+      if (!idByKey.has(toSiteKey(site.name))) {
+        idByKey.set(toSiteKey(site.name), site.id);
+      }
     }
 
     const sitePlan: ControllerSitePlan = planControllerSites({
       devices: data.devices,
-      existingSiteNames: new Set<string>(idByName.keys()),
+      existingSiteNames: new Set<string>(idByKey.keys()),
     });
+
+    const toCreate: Map<string, { name: string; address: string }> = new Map();
+
+    for (const site of sitePlan.sitesToCreate) {
+      toCreate.set(toSiteKey(site.name), site);
+    }
+
+    return {
+      siteNameBySerial: sitePlan.siteNameBySerial,
+      idByKey,
+      toCreate,
+      unavailableKeys: new Set<string>(),
+      addedDevicesBySiteId: new Map<string, number>(),
+    };
+  }
+
+  /*
+   * The site a device goes into: the project's site of its network's name,
+   * or the one this ask adds for it - added now, as the person, when this
+   * is its first device. A site that cannot be added (another of its name
+   * was added meanwhile, say) is looked up again; when it is still not
+   * there, its devices are added without a site, and the reason is logged.
+   * A person who may no longer add sites stops the ask, as for devices.
+   */
+  private static async getSiteIdOf(data: {
+    sites: AskSites;
+    device: NetworkControllerDevice;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    state: NetworkControllerDeviceAddState;
+    dependencies: NetworkControllerDeviceAddDependencies;
+  }): Promise<string | undefined> {
+    const name: string | undefined = data.sites.siteNameBySerial.get(
+      data.device.serial,
+    );
+
+    if (!name) {
+      return undefined;
+    }
+
+    const key: string = toSiteKey(name);
+    const known: string | undefined = data.sites.idByKey.get(key);
+
+    if (known) {
+      return known;
+    }
+
+    const planned: { name: string; address: string } | undefined =
+      data.sites.toCreate.get(key);
+
+    if (!planned || data.sites.unavailableKeys.has(key)) {
+      return undefined;
+    }
 
     const createSite: CreateSiteFunction =
       data.dependencies.createSite ||
@@ -984,48 +1136,141 @@ export default class NetworkControllerDeviceAddRunner {
         return created.id!.toString();
       });
 
-    for (const site of sitePlan.sitesToCreate) {
+    try {
+      const id: string = await createSite({
+        projectId: data.projectId,
+        name: planned.name,
+        address: planned.address,
+        props: data.props,
+      });
+
+      data.sites.idByKey.set(key, id);
+      data.sites.toCreate.delete(key);
+      data.sites.addedDevicesBySiteId.set(id, 0);
+      data.state.createdSiteCount++;
+
+      return id;
+    } catch (error) {
+      if (error instanceof NotAuthorizedException) {
+        throw new NotAuthorizedException(DEVICE_ADD_MAY_NOT_CREATE_SITES);
+      }
+
+      if (isRefusalOfThePerson(error)) {
+        throw error;
+      }
+
+      const again: Array<{ id: string; name: string }> = await (
+        data.dependencies.findSites ||
+        NetworkControllerDeviceAddRunner.findSitesByName
+      )({
+        projectId: data.projectId,
+        names: [planned.name],
+      });
+
+      data.sites.toCreate.delete(key);
+
+      if (again[0]) {
+        data.sites.idByKey.set(key, again[0].id);
+        return again[0].id;
+      }
+
+      data.sites.unavailableKeys.add(key);
+
+      logger.error(
+        `Network controller device add: the site "${planned.name}" could not be added: ${toReason(error)}`,
+      );
+
+      return undefined;
+    }
+  }
+
+  /*
+   * Takes away the sites this ask added that hold none of its devices -
+   * every device of their network failed, or the ask stopped before it
+   * added one - unless something else is in them by now. Never throws: a
+   * site that cannot be taken away stays, and is counted as added.
+   */
+  private static async removeSitesLeftEmpty(data: {
+    projectId: ObjectID;
+    sites: AskSites;
+    state: NetworkControllerDeviceAddState;
+    dependencies: NetworkControllerDeviceAddDependencies;
+  }): Promise<void> {
+    const removeSite: RemoveSiteIfEmptyFunction =
+      data.dependencies.removeSiteIfEmpty ||
+      NetworkControllerDeviceAddRunner.removeSiteIfEmpty;
+
+    for (const [siteId, added] of data.sites.addedDevicesBySiteId) {
+      if (added > 0) {
+        continue;
+      }
+
       try {
-        const id: string = await createSite({
-          projectId: data.projectId,
-          name: site.name,
-          address: site.address,
-          props: data.props,
-        });
-        idByName.set(site.name.toLowerCase(), id);
-        data.state.createdSiteCount++;
+        if (
+          await removeSite({
+            projectId: data.projectId,
+            siteId: new ObjectID(siteId),
+          })
+        ) {
+          data.state.createdSiteCount = Math.max(
+            0,
+            data.state.createdSiteCount - 1,
+          );
+        }
       } catch (error) {
-        if (isRefusalOfThePerson(error)) {
-          throw error;
-        }
-
-        const again: Array<{ id: string; name: string }> = await findSites({
-          projectId: data.projectId,
-          names: [site.name],
-        });
-
-        if (again[0]) {
-          idByName.set(site.name.toLowerCase(), again[0].id);
-          continue;
-        }
-
         logger.error(
-          `Network controller device add: the site "${site.name}" could not be added: ${toReason(error)}`,
+          `Network controller device add: the site ${siteId}, added for devices that could not be added, could not be taken away again: ${toReason(error)}`,
         );
       }
     }
+  }
 
-    const siteIdBySerial: Map<string, string> = new Map();
+  /*
+   * A site the ask added, deleted as OneUptime - the ask undoing its own
+   * write, whatever the person may delete - when nothing is in it or names
+   * it (NetworkSiteUsage): whether it was.
+   */
+  public static async removeSiteIfEmpty(data: {
+    projectId: ObjectID;
+    siteId: ObjectID;
+  }): Promise<boolean> {
+    const inUse: Set<string> = await NetworkSiteUsage.findSitesInUse({
+      projectId: data.projectId,
+      siteIds: [data.siteId.toString()],
+    });
 
-    for (const [serial, name] of sitePlan.siteNameBySerial) {
-      const id: string | undefined = idByName.get(name.toLowerCase());
-
-      if (id) {
-        siteIdBySerial.set(serial, id);
-      }
+    if (inUse.size > 0) {
+      return false;
     }
 
-    return siteIdBySerial;
+    const deleted: number = await NetworkSiteService.deleteBy({
+      query: { _id: data.siteId, projectId: data.projectId },
+      limit: 1,
+      skip: 0,
+      props: { isRoot: true, tenantId: data.projectId },
+    });
+
+    return deleted > 0;
+  }
+
+  /*
+   * A device the person's create would leave a value out of - a column only
+   * OneUptime writes that it gave a value, unmarked as OneUptime's - is not
+   * created: see the header.
+   */
+  public static assertCreateKeepsAll(
+    device: NetworkDevice,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    const leftOut: Array<string> = ColumnsOnlyOneUptimeWrites.getSentByCaller({
+      model: device,
+      record: device,
+      props,
+    });
+
+    if (leftOut.length > 0) {
+      throw new BadDataException(getDeviceAddColumnsLeftOutReason(leftOut));
+    }
   }
 
   /*

@@ -137,10 +137,10 @@ describe("TelemetryIngestionKeyGuard.getRefusal", () => {
       },
     );
 
-    test("covers all twenty-eight surfaces in the matrix above", () => {
-      expect(ALL_SURFACES).toHaveLength(28);
+    test("covers all twenty-nine surfaces in the matrix above", () => {
+      expect(ALL_SURFACES).toHaveLength(29);
       expect(BROWSER_ALLOWED).toHaveLength(5);
-      expect(BROWSER_FORBIDDEN).toHaveLength(23);
+      expect(BROWSER_FORBIDDEN).toHaveLength(24);
       // A Sentry DSN ships in page JavaScript, as a browser OTLP key does.
       expect(BROWSER_ALLOWED).toContain(TelemetryIngestSurface.Sentry);
       // The other compatible endpoints are agents' and servers' pipes.
@@ -156,6 +156,8 @@ describe("TelemetryIngestionKeyGuard.getRefusal", () => {
       expect(BROWSER_FORBIDDEN).toContain(TelemetryIngestSurface.SyncWebhooks);
       // A dbt build's artifacts: a server's, never a page's.
       expect(BROWSER_FORBIDDEN).toContain(TelemetryIngestSurface.DbtArtifacts);
+      // An iOS build's dSYMs: a build's, never a page's.
+      expect(BROWSER_FORBIDDEN).toContain(TelemetryIngestSurface.Dsym);
       // The supervisor on a host OneUptime manages: never a page's.
       expect(BROWSER_FORBIDDEN).toContain(
         TelemetryIngestSurface.HostCollectorManagement,

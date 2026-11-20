@@ -180,12 +180,20 @@ export default class CloudConnection extends BaseModel {
     read: readPermissions,
     update: adminPermissions,
   })
+  /*
+   * Readable through a resource's relation: a resource's pages read how
+   * often its connection reads it (readIntervalInMinutes) - a metric that
+   * comes once an hour is missing from the last hour only past its delay,
+   * and a recommended monitor's window follows the interval (#10026,
+   * #10028). It holds no secret (secretConfig does).
+   */
   @TableColumn({
     required: false,
     type: TableColumnType.JSON,
     title: "Settings",
     description:
       "The cloud's settings that are not secret, such as a role ARN, a tenant or the regions to read. Keys are defined by the cloud.",
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.JSON,

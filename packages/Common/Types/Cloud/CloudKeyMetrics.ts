@@ -1231,6 +1231,35 @@ export const AZURE_FIVE_MINUTE_READ_MINUTES: number = 15;
  */
 export const AZURE_HOURLY_GRAIN: string = "PT1H";
 
+/*
+ * The grain a key metric is marked with when Azure Monitor keeps it at six
+ * hours at its finest (#10026): an App Service app's FileSystemUsage, the
+ * one key metric that is. It is read as every six-hour metric always was,
+ * in its own call once a whole six hours is there - six hours after they
+ * end (CloudMetricWindows) - and its reading is kept between those reads
+ * (AZURE_SIX_HOURLY_READING_HOLD_MS, CloudResourceHealth).
+ */
+export const AZURE_SIX_HOURLY_GRAIN: string = "PT6H";
+
+/*
+ * HOW OFTEN A KEY METRIC'S POINTS COME, where that is not every read: what
+ * a resource's Metrics card says of it on its row ("every hour"), and of
+ * one it did not report, and what tells it from one that stopped - a range
+ * shorter than its points' age holds none of them (CloudUnreportedKeyMetrics).
+ */
+export enum CloudKeyMetricCadence {
+  // Azure Monitor keeps it at five minutes: three points every 15 minutes.
+  FiveMinutes = "five-minutes",
+  // Azure Monitor keeps it at an hour: read once an hour, 2 to 3 hours on.
+  Hourly = "hourly",
+  // Azure Monitor keeps it at six hours: read every 6 hours, 12 to 18 on.
+  SixHourly = "six-hourly",
+  // CloudWatch publishes it a few times a day: read once an hour.
+  FewTimesADay = "few-times-a-day",
+  // CloudWatch publishes it once a day: read the day and a half after.
+  Daily = "daily",
+}
+
 export interface AzureKeyMetric {
   // Azure Monitor's name for it, "Name in REST API" in Microsoft's tables.
   name: string;
@@ -1243,11 +1272,13 @@ export interface AzureKeyMetric {
    * type's minute metrics: read in a five-minute call every
    * AZURE_FIVE_MINUTE_READ_MINUTES, with the type's other five-minute
    * metrics. Where its definition offers a minute, it is read with the
-   * minute metrics, at no cost. AZURE_HOURLY_GRAIN: Azure Monitor keeps it
-   * at an hour at its finest, and it is read once an hour, as every hourly
-   * metric is; the mark says so to the readings, which keep it between its
-   * reads. Unset for every other metric, which is read at its type's one
-   * grain finer than an hour.
+   * minute metrics, at no cost. AZURE_HOURLY_GRAIN and
+   * AZURE_SIX_HOURLY_GRAIN: Azure Monitor keeps it at an hour, or six, at
+   * its finest, and it is read once its hour or its six hours are there, as
+   * every such metric is; the mark says so to the readings, which keep it
+   * between its reads, and to its page, which says how often it comes.
+   * Unset for every other metric, which is read at its type's one grain
+   * finer than an hour.
    */
   grain?: string | undefined;
   /*
@@ -1336,6 +1367,30 @@ function azure5(name: string, group: CloudKeyMetricGroup): AzureKeyMetric {
 // A metric Azure Monitor keeps at an hour at its finest, read once an hour.
 function azure60(name: string, group: CloudKeyMetricGroup): AzureKeyMetric {
   return { name, group, grain: AZURE_HOURLY_GRAIN };
+}
+
+// A metric Azure Monitor keeps at six hours at its finest, read every six.
+function azure360(name: string, group: CloudKeyMetricGroup): AzureKeyMetric {
+  return { name, group, grain: AZURE_SIX_HOURLY_GRAIN };
+}
+
+/*
+ * How often an Azure key metric's points come, by its mark: none for one
+ * read at its type's minute.
+ */
+export function getAzureKeyMetricCadence(
+  metric: Pick<AzureKeyMetric, "grain">,
+): CloudKeyMetricCadence | undefined {
+  switch (metric.grain) {
+    case AZURE_FIVE_MINUTE_GRAIN:
+      return CloudKeyMetricCadence.FiveMinutes;
+    case AZURE_HOURLY_GRAIN:
+      return CloudKeyMetricCadence.Hourly;
+    case AZURE_SIX_HOURLY_GRAIN:
+      return CloudKeyMetricCadence.SixHourly;
+    default:
+      return undefined;
+  }
 }
 
 /*
@@ -1440,7 +1495,12 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("BytesReceived", G.Network),
       azure("BytesSent", G.Network),
       when(C.Kind, azure("FunctionExecutionUnits", G.Compute)),
-      azure("FileSystemUsage", G.Storage),
+      /*
+       * The bytes its files take of its plan's storage quota. Kept at six
+       * hours at its finest (#10026): read every six hours, and kept
+       * between those reads.
+       */
+      azure360("FileSystemUsage", G.Storage),
     ],
   },
   {
@@ -3403,15 +3463,85 @@ export interface CloudKeyMetricReference {
   rank: number;
   /*
    * The seconds between two of its points where they are further apart
-   * than the minute its cloud's other key metrics are read at: an Azure
-   * metric read at five minutes (AzureKeyMetric.grain), 300. Its resource's
-   * page says how often it comes. Unset for every other key metric.
+   * than its cloud's other key metrics' (a minute on Azure, five on AWS):
+   * an Azure metric read at five minutes (AzureKeyMetric.grain), 300; one
+   * kept at an hour, 3600, or at six hours, 21600; an AWS metric
+   * published a few times a day, 3600, or once a day, 86400. Its
+   * resource's page says how often it comes (cadence). Unset for every
+   * other key metric.
    */
   intervalSeconds?: number | undefined;
+  // How often it comes, said on its row; set with intervalSeconds.
+  cadence?: CloudKeyMetricCadence | undefined;
 }
 
-// Azure Monitor's five-minute grain, as seconds between two points.
-const AZURE_FIVE_MINUTE_GRAIN_SECONDS: number = 300;
+// Azure Monitor's grains a key metric is marked with, as seconds between two points.
+const AZURE_GRAIN_SECONDS: Readonly<Record<string, number>> = {
+  [AZURE_FIVE_MINUTE_GRAIN]: 300,
+  [AZURE_HOURLY_GRAIN]: 3600,
+  [AZURE_SIX_HOURLY_GRAIN]: 21600,
+};
+
+/*
+ * How often an AWS key metric's points come, by its period: none for the
+ * five minutes almost every CloudWatch metric is read at.
+ */
+export function getAwsKeyMetricCadence(
+  metric: Pick<AwsKeyMetric, "periodSeconds">,
+): CloudKeyMetricCadence | undefined {
+  if (metric.periodSeconds >= DAILY_PERIOD_SECONDS) {
+    return CloudKeyMetricCadence.Daily;
+  }
+
+  return metric.periodSeconds >= HOURLY_PERIOD_SECONDS
+    ? CloudKeyMetricCadence.FewTimesADay
+    : undefined;
+}
+
+/*
+ * Whether a resource of this provider and type has a key metric whose
+ * points come less often than its others' (CloudKeyMetricCadence): an App
+ * Service app's health check and file system, a Storage account's used
+ * capacity, an S3 bucket's daily storage. Google Cloud's all come a minute
+ * apart.
+ */
+export function hasCloudKeyMetricsWithCadence(data: {
+  provider: string | null | undefined;
+  type: string | null | undefined;
+}): boolean {
+  const type: string = (data.type || "").trim();
+
+  switch ((data.provider || "").trim().toLowerCase()) {
+    case CloudProvider.Azure:
+      return Boolean(
+        getAzureKeyMetrics(type)?.metrics.some(
+          (metric: AzureKeyMetric): boolean => {
+            return getAzureKeyMetricCadence(metric) !== undefined;
+          },
+        ),
+      );
+    case CloudProvider.AWS: {
+      const wanted: string = type.toLowerCase();
+
+      return (
+        AWS_CLOUDWATCH_RESOURCE_RULES as ReadonlyArray<AwsCloudWatchResourceRule>
+      ).some((rule: AwsCloudWatchResourceRule): boolean => {
+        return (
+          rule.type.toLowerCase() === wanted &&
+          Boolean(
+            getAwsKeyMetrics(rule.namespace)?.metrics.some(
+              (metric: AwsKeyMetric): boolean => {
+                return getAwsKeyMetricCadence(metric) !== undefined;
+              },
+            ),
+          )
+        );
+      });
+    }
+    default:
+      return false;
+  }
+}
 
 /*
  * The CloudWatch namespace and metric of a stored CloudWatch name
@@ -3465,8 +3595,15 @@ function findAwsKeyMetric(
   }
 
   const metric: AwsKeyMetric = entry.metrics[rank]!;
+  const cadence: CloudKeyMetricCadence | undefined =
+    getAwsKeyMetricCadence(metric);
 
-  return { name: metric.metricName, group: metric.group, rank };
+  return {
+    name: metric.metricName,
+    group: metric.group,
+    rank,
+    ...(cadence ? { intervalSeconds: metric.periodSeconds, cadence } : {}),
+  };
 }
 
 function findAzureKeyMetric(
@@ -3490,13 +3627,15 @@ function findAzureKeyMetric(
   }
 
   const metric: AzureKeyMetric = metrics[rank]!;
+  const cadence: CloudKeyMetricCadence | undefined =
+    getAzureKeyMetricCadence(metric);
 
   return {
     name: metric.name,
     group: metric.group,
     rank,
-    ...(metric.grain === AZURE_FIVE_MINUTE_GRAIN
-      ? { intervalSeconds: AZURE_FIVE_MINUTE_GRAIN_SECONDS }
+    ...(cadence && metric.grain
+      ? { intervalSeconds: AZURE_GRAIN_SECONDS[metric.grain], cadence }
       : {}),
   };
 }

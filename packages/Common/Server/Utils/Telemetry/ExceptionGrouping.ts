@@ -3,6 +3,15 @@ import StackTraceParser, {
   StackFrame,
 } from "./StackTraceParser";
 import { normalizeExceptionText } from "./ExceptionSanitizer";
+import {
+  AppleCrashFrame,
+  AppleCrashReport,
+  AppleCrashThread,
+  getAttributedAppleThread,
+  isAppleAppFrame,
+  parseAppleCrashReport,
+} from "../../../Utils/Telemetry/AppleCrashReport";
+import { toAppleSymbolDisplayName } from "../../../Utils/Telemetry/SwiftDemangle";
 
 /*
  * WHAT MAKES TWO OCCURRENCES THE SAME EXCEPTION: GROUPING V2.
@@ -219,12 +228,108 @@ function framesKey(frames: Array<StackFrame>): Array<string> {
   return parts;
 }
 
+/*
+ * AN IOS CRASH OR HANG, BY ITS CRASHED THREAD (#9922).
+ *
+ * An Apple crash report - the threads OneUptime draws from MetricKit's call
+ * stack tree, or KSCrash's Apple-format report - is no stack trace the
+ * parsers above read: grouped as one, every EXC_BAD_ACCESS of an app fell
+ * into one exception by its message ("Could not access memory"), and every
+ * hang into another. It is grouped by the thread that crashed or hung
+ * instead: each frame by its binary and its function - the name a dSYM
+ * gave it (AppleSymbolication), the same in every release, so a crash
+ * groups across releases; a name the device gave, which KSCrash writes as
+ * the binary holds it, is read the same way, demangled - or, where no
+ * dSYM resolved it, by its offset into the binary, which holds within one
+ * build. The frames of the app's
+ * own binaries when it has any (a system frame's offset moves with every
+ * iOS update), every frame otherwise; a function repeated by recursion
+ * counts once. Null for a text that is not such a report.
+ */
+export function getAppleGroupingParts(
+  report: AppleCrashReport,
+): { basis: ExceptionGroupingBasis; parts: Array<string> } | null {
+  const thread: AppleCrashThread | null = getAttributedAppleThread(report);
+
+  if (!thread) {
+    return null;
+  }
+
+  const keyOf: (frame: AppleCrashFrame) => string = (
+    frame: AppleCrashFrame,
+  ): string => {
+    const binary: string = frame.binaryName.slice(0, MAX_FRAME_TEXT_LENGTH);
+
+    if (frame.symbol) {
+      return `${binary}|${toAppleSymbolDisplayName(frame.symbol).slice(
+        0,
+        MAX_FRAME_TEXT_LENGTH,
+      )}`;
+    }
+
+    return frame.offset === null ? "" : `${binary}|+${frame.offset}`;
+  };
+
+  const collect: (frames: Array<AppleCrashFrame>) => Array<string> = (
+    frames: Array<AppleCrashFrame>,
+  ): Array<string> => {
+    const parts: Array<string> = [];
+
+    for (const frame of frames) {
+      const key: string = keyOf(frame);
+
+      if (!key || parts[parts.length - 1] === key) {
+        continue;
+      }
+
+      parts.push(key);
+
+      if (parts.length >= MAX_GROUPING_FRAMES) {
+        break;
+      }
+    }
+
+    return parts;
+  };
+
+  const inApp: Array<string> = collect(
+    thread.frames.filter((frame: AppleCrashFrame): boolean => {
+      return isAppleAppFrame(report, frame);
+    }),
+  );
+
+  if (inApp.length > 0) {
+    return { basis: ExceptionGroupingBasis.InAppFrames, parts: inApp };
+  }
+
+  const all: Array<string> = collect(thread.frames);
+
+  return all.length > 0
+    ? { basis: ExceptionGroupingBasis.AllFrames, parts: all }
+    : null;
+}
+
 export function getExceptionGroupingKey(input: {
   exceptionType?: string | undefined;
   message?: string | undefined;
   stackTrace?: string | undefined;
 }): ExceptionGroupingKey {
   const exceptionType: string = (input.exceptionType || "").trim();
+
+  if (input.stackTrace) {
+    const report: AppleCrashReport | null = parseAppleCrashReport(
+      input.stackTrace.slice(0, MAX_GROUPING_STACK_TRACE_LENGTH),
+    );
+    const apple: {
+      basis: ExceptionGroupingBasis;
+      parts: Array<string>;
+    } | null = report ? getAppleGroupingParts(report) : null;
+
+    if (apple) {
+      return { basis: apple.basis, exceptionType, parts: apple.parts };
+    }
+  }
+
   let frames: Array<StackFrame> = [];
 
   if (input.stackTrace) {

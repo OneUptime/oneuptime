@@ -45,6 +45,7 @@ import AIInsightService, {
 } from "Common/Server/Services/AIInsightService";
 import TelemetryAPI from "Common/Server/API/TelemetryAPI";
 import PrometheusAPI from "Common/Server/API/PrometheusAPI";
+import LokiAPI from "Common/Server/API/LokiAPI";
 import SessionReplayReadService from "Common/Server/Utils/SessionReplay/SessionReplayReadService";
 import { getRecorderVersion } from "../BrowserRecorder/Manifest";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
@@ -183,6 +184,9 @@ import TelemetryIngestionTeamLabelBudgetService, {
 import TelemetrySourceMapService, {
   Service as TelemetrySourceMapServiceType,
 } from "Common/Server/Services/TelemetrySourceMapService";
+import TelemetryDsymService, {
+  Service as TelemetryDsymServiceType,
+} from "Common/Server/Services/TelemetryDsymService";
 import IoTDeviceCredentialService, {
   Service as IoTDeviceCredentialServiceType,
 } from "Common/Server/Services/IoTDeviceCredentialService";
@@ -1860,6 +1864,7 @@ import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngesti
 import TelemetryIngestionKeyRefusal from "Common/Models/DatabaseModels/TelemetryIngestionKeyRefusal";
 import TelemetryIngestionTeamLabelBudget from "Common/Models/DatabaseModels/TelemetryIngestionTeamLabelBudget";
 import TelemetrySourceMap from "Common/Models/DatabaseModels/TelemetrySourceMap";
+import TelemetryDsym from "Common/Models/DatabaseModels/TelemetryDsym";
 import IoTDeviceCredential from "Common/Models/DatabaseModels/IoTDeviceCredential";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTeam";
@@ -2134,6 +2139,7 @@ import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDisc
 import NetworkDeviceNamingAPI from "Common/Server/API/NetworkDeviceNamingAPI";
 import NetworkDiscoveredDeviceAPI from "Common/Server/API/NetworkDiscoveredDeviceAPI";
 import NetworkDeviceRefreshAPI from "Common/Server/API/NetworkDeviceRefreshAPI";
+import NetworkEmptySitesAPI from "Common/Server/API/NetworkEmptySitesAPI";
 import NetworkDeviceWatchingMonitorsAPI from "Common/Server/API/NetworkDeviceWatchingMonitorsAPI";
 import NetworkDeviceUntiedMonitorsAPI from "Common/Server/API/NetworkDeviceUntiedMonitorsAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
@@ -4242,6 +4248,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<TelemetrySourceMap, TelemetrySourceMapServiceType>(
         TelemetrySourceMap,
         TelemetrySourceMapService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TelemetryDsym, TelemetryDsymServiceType>(
+        TelemetryDsym,
+        TelemetryDsymService,
       ).getRouter(),
     );
 
@@ -7698,6 +7712,9 @@ const BaseAPIFeatureSet: FeatureSet = {
     // The Prometheus HTTP API over the project's metrics: PromQL (#6796).
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, PrometheusAPI);
 
+    // The Loki HTTP API over the project's logs: LogQL (#7700).
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, LokiAPI);
+
     //attach api's
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserAPI().getRouter());
 
@@ -7967,6 +7984,12 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkSummaryAPI().getRouter(),
     );
+    /*
+     * The Sites page's Delete Empty Sites (NetworkEmptySitesAPI, #10188).
+     * Mounted after the site CRUD router, and safe there: BaseAPI claims no
+     * `/empty-sites` or `/delete-empty-sites` path on it.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, NetworkEmptySitesAPI);
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkTrafficAPI().getRouter(),

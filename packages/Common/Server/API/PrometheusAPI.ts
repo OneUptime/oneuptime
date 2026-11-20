@@ -1,3 +1,10 @@
+import {
+  apiKeyFromAuthorizationHeader,
+  readApiKeyFromAuthorization,
+} from "../Middleware/CompatibleQueryAuthorization";
+import CompatibleQueryRateLimit, {
+  CompatibleQueryApi,
+} from "../Middleware/CompatibleQueryRateLimit";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import Express, {
   ExpressRequest,
@@ -58,8 +65,13 @@ import { PromQLLabels } from "../../Utils/PromQL/PromQLLabels";
  * services they may read (TelemetryReadAccess), as on the Metrics explorer.
  * A project API key is accepted in the `ApiKey` header, as everywhere in the
  * API, and also as a bearer token or a basic-auth password, because that is
- * what Prometheus clients know how to send.
+ * what Prometheus clients know how to send (CompatibleQueryAuthorization).
+ * Each project's queries are held to a rate (CompatibleQueryRateLimit,
+ * issue #7700).
  */
+
+// Read here by the tests and the clients' docs, written once for Loki too.
+export { readApiKeyFromAuthorization };
 
 export const PROMETHEUS_API_PATH: string = "/prometheus/api/v1";
 
@@ -76,88 +88,6 @@ export const PROMETHEUS_BUILD_INFO: JSONObject = {
 // How long evaluating a query may take, after its series are read.
 const QUERY_EVALUATION_TIMEOUT_MS: number = 30000;
 
-const UUID_LENGTH: number = 36;
-
-/*
- * The project API key a Prometheus client sent in its Authorization header:
- * a bearer token, or a basic-auth password (or user name, for clients that
- * only fill that one). A value that is no API key, such as a signed-in
- * session's token, is left alone.
- */
-export const readApiKeyFromAuthorization: (
-  authorization: string | undefined,
-) => string | undefined = (
-  authorization: string | undefined,
-): string | undefined => {
-  if (!authorization) {
-    return undefined;
-  }
-
-  const [scheme, ...rest] = authorization.trim().split(/\s+/);
-  const credential: string = rest.join(" ");
-
-  if (!scheme || !credential) {
-    return undefined;
-  }
-
-  const isKey: (value: string | undefined) => value is string = (
-    value: string | undefined,
-  ): value is string => {
-    return (
-      value !== undefined &&
-      value.length === UUID_LENGTH &&
-      ObjectID.isValidUUID(value)
-    );
-  };
-
-  if (scheme.toLowerCase() === "bearer") {
-    return isKey(credential) ? credential : undefined;
-  }
-
-  if (scheme.toLowerCase() === "basic") {
-    let decoded: string = "";
-
-    try {
-      decoded = Buffer.from(credential, "base64").toString("utf8");
-    } catch {
-      return undefined;
-    }
-
-    const separator: number = decoded.indexOf(":");
-    const user: string =
-      separator === -1 ? decoded : decoded.slice(0, separator);
-    const password: string =
-      separator === -1 ? "" : decoded.slice(separator + 1);
-
-    if (isKey(password)) {
-      return password;
-    }
-
-    return isKey(user) ? user : undefined;
-  }
-
-  return undefined;
-};
-
-const apiKeyFromAuthorizationHeader: RequestHandler = (
-  req: ExpressRequest,
-  _res: ExpressResponse,
-  next: NextFunction,
-): void => {
-  if (!req.headers["apikey"]) {
-    const authorization: string | undefined = req.headers["authorization"];
-    const key: string | undefined = readApiKeyFromAuthorization(authorization);
-
-    if (key) {
-      req.headers["apikey"] = key;
-      // The key is not also a signed-in session's token.
-      delete req.headers["authorization"];
-    }
-  }
-
-  next();
-};
-
 /*
  * The metric read access the Metric model declares, so these routes let in
  * exactly who the Metrics explorer lets read metrics.
@@ -169,6 +99,22 @@ const requireMetricReadAccess: Array<RequestHandler> = [
   UserMiddleware.requirePermission({
     permissions: getMetricReadPermissions(),
     wildcard: Permission.ReadAllOperationalResources,
+  }),
+  CompatibleQueryRateLimit.getMiddleware({
+    api: CompatibleQueryApi.Prometheus,
+    refuse: (data: {
+      req: ExpressRequest;
+      res: ExpressResponse;
+      message: string;
+    }): void => {
+      // 429, in Prometheus' error envelope: unavailable, for now.
+      Response.sendJsonObjectResponse(
+        data.req,
+        data.res,
+        { status: "error", errorType: "unavailable", error: data.message },
+        { statusCode: new StatusCode(429) },
+      );
+    },
   }),
 ];
 
@@ -427,33 +373,59 @@ const answering: (data: JSONObject | Array<never>) => RequestHandler = (
   });
 };
 
-for (const method of ["get", "post"] as const) {
-  router[method](
-    `${PROMETHEUS_API_PATH}/query`,
-    ...requireMetricReadAccess,
-    instantQuery,
-  );
-  router[method](
-    `${PROMETHEUS_API_PATH}/query_range`,
-    ...requireMetricReadAccess,
-    rangeQuery,
-  );
-  router[method](
-    `${PROMETHEUS_API_PATH}/series`,
-    ...requireMetricReadAccess,
-    series,
-  );
-  router[method](
-    `${PROMETHEUS_API_PATH}/labels`,
-    ...requireMetricReadAccess,
-    labels,
-  );
-  router[method](
-    `${PROMETHEUS_API_PATH}/query_exemplars`,
-    ...requireMetricReadAccess,
-    answering([]),
-  );
-}
+/*
+ * Each read over GET and POST, as Prometheus serves them (a long query goes
+ * in a form body). Registered one by one, never through router[method]:
+ * ProductCustomRoutesGuard reads each POST a file registers.
+ */
+router.get(
+  `${PROMETHEUS_API_PATH}/query`,
+  ...requireMetricReadAccess,
+  instantQuery,
+);
+router.post(
+  `${PROMETHEUS_API_PATH}/query`,
+  ...requireMetricReadAccess,
+  instantQuery,
+);
+
+router.get(
+  `${PROMETHEUS_API_PATH}/query_range`,
+  ...requireMetricReadAccess,
+  rangeQuery,
+);
+router.post(
+  `${PROMETHEUS_API_PATH}/query_range`,
+  ...requireMetricReadAccess,
+  rangeQuery,
+);
+
+router.get(`${PROMETHEUS_API_PATH}/series`, ...requireMetricReadAccess, series);
+router.post(
+  `${PROMETHEUS_API_PATH}/series`,
+  ...requireMetricReadAccess,
+  series,
+);
+
+router.get(`${PROMETHEUS_API_PATH}/labels`, ...requireMetricReadAccess, labels);
+router.post(
+  `${PROMETHEUS_API_PATH}/labels`,
+  ...requireMetricReadAccess,
+  labels,
+);
+
+const noExemplars: RequestHandler = answering([]);
+
+router.get(
+  `${PROMETHEUS_API_PATH}/query_exemplars`,
+  ...requireMetricReadAccess,
+  noExemplars,
+);
+router.post(
+  `${PROMETHEUS_API_PATH}/query_exemplars`,
+  ...requireMetricReadAccess,
+  noExemplars,
+);
 
 router.get(
   `${PROMETHEUS_API_PATH}/label/:labelName/values`,

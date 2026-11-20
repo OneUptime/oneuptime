@@ -17,6 +17,8 @@ import {
 } from "@jest/globals";
 import React from "react";
 import Toast, { ToastItem } from "../../../UI/Utils/Toast";
+import Navigation from "../../../UI/Utils/Navigation";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Issue #4571, on the metric explorer's Add to Dashboard. It reads the
@@ -228,6 +230,38 @@ describe("Add to Dashboard keeps the widgets already on the dashboard (issue #45
     );
     expect(added.action?.title).toBe("Open Dashboard");
     expect(screen.queryByText("Chart Added")).toBeNull();
+  });
+
+  test("Open Dashboard opens it at the chart just added, wherever on the board it went (#10084)", async () => {
+    storeConfig({ components: [EXISTING_WIDGET] });
+
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {});
+    const [, chart] = (await addTheChart())["components"] as Array<JSONObject>;
+    const chartId: string = String(
+      (chart!["componentId"] as { value?: string }).value ||
+        chart!["componentId"],
+    );
+
+    await waitFor(() => {
+      expect(Toast.getToasts()[0]?.action?.title).toBe("Open Dashboard");
+    });
+    Toast.getToasts()[0]!.action!.onClick();
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+
+    const opened: URL = new URL(
+      String(navigate.mock.calls[0]![0]),
+      "https://oneuptime.example",
+    );
+
+    expect(opened.pathname).toBe(
+      `/dashboard/55555555-5555-4555-8555-555555555555/dashboards/${DASHBOARD_ID}`,
+    );
+    expect(opened.searchParams.get("widget")).toBe(chartId.toLowerCase());
+    // The chart's id, never the widget that was there before.
+    expect(chartId).not.toBe(EXISTING_WIDGET_ID);
   });
 
   test("a dashboard stored as JSON text: its widget is kept", async () => {

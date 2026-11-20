@@ -15,11 +15,11 @@ import TelemetryQueueService from "./Queue/TelemetryQueueService";
  * QUEUEING WHAT A COMPATIBLE ENDPOINT WAS SENT.
  *
  * Each compatible endpoint (Prometheus remote write, Loki, Splunk HEC,
- * Datadog, Sentry) turns its request into up to three OTLP export requests
- * in OTLP's JSON encoding - logs, metrics, traces - and hands them here.
- * Each non-empty one is queued as its own job, exactly as an OTLP/HTTP
- * export of that signal is (TelemetryQueueService), so the worker cannot
- * tell them apart from what an OpenTelemetry SDK sends.
+ * Datadog, Sentry) turns its request into up to four OTLP export requests
+ * in OTLP's JSON encoding - logs, metrics, traces, profiles - and hands
+ * them here. Each non-empty one is queued as its own job, exactly as an
+ * OTLP/HTTP export of that signal is (TelemetryQueueService), so the worker
+ * cannot tell them apart from what an OpenTelemetry SDK sends.
  *
  * INGESTION BUDGETS
  *
@@ -53,12 +53,15 @@ export interface CompatibleOtlpBatch {
   metrics?: JSONObject | null | undefined;
   // An ExportTraceServiceRequest: { resourceSpans: [...] }.
   traces?: JSONObject | null | undefined;
+  // An ExportProfilesServiceRequest: { resourceProfiles: [...] }.
+  profiles?: JSONObject | null | undefined;
 }
 
 export interface CompatibleEnqueueResult {
   queuedLogs: boolean;
   queuedMetrics: boolean;
   queuedTraces: boolean;
+  queuedProfiles: boolean;
 }
 
 // Each signal's own bytes of a request, decompressed.
@@ -66,6 +69,7 @@ export interface CompatibleSignalBytes {
   logs?: number | undefined;
   metrics?: number | undefined;
   traces?: number | undefined;
+  profiles?: number | undefined;
 }
 
 /*
@@ -76,7 +80,11 @@ export type CompatibleIngestBytes = number | CompatibleSignalBytes;
 
 type CompatibleSignal = keyof CompatibleSignalBytes;
 
-type ResourceKey = "resourceLogs" | "resourceMetrics" | "resourceSpans";
+type ResourceKey =
+  | "resourceLogs"
+  | "resourceMetrics"
+  | "resourceSpans"
+  | "resourceProfiles";
 
 interface SignalJob {
   signal: CompatibleSignal;
@@ -89,6 +97,7 @@ const RESOURCE_KEYS: Record<CompatibleSignal, ResourceKey> = {
   logs: "resourceLogs",
   metrics: "resourceMetrics",
   traces: "resourceSpans",
+  profiles: "resourceProfiles",
 };
 
 // The datapoints of every shape an OTLP metric can carry them in.
@@ -104,7 +113,7 @@ export default class CompatibleIngestService {
   // Whether an export request holds anything: a non-empty resource list.
   public static hasContent(
     payload: JSONObject | null | undefined,
-    resourceKey: "resourceLogs" | "resourceMetrics" | "resourceSpans",
+    resourceKey: ResourceKey,
   ): payload is JSONObject {
     if (!payload) {
       return false;
@@ -117,7 +126,7 @@ export default class CompatibleIngestService {
 
   /*
    * How many records an export request holds: log records, metric
-   * datapoints or spans. Only array lengths are read.
+   * datapoints, spans or profiles. Only array lengths are read.
    */
   public static recordCount(
     payload: JSONObject,
@@ -139,6 +148,12 @@ export default class CompatibleIngestService {
           resource["scopeSpans"],
         )) {
           count += CompatibleIngestService.lengthOf(scope["spans"]);
+        }
+      } else if (resourceKey === "resourceProfiles") {
+        for (const scope of CompatibleIngestService.objectsOf(
+          resource["scopeProfiles"],
+        )) {
+          count += CompatibleIngestService.lengthOf(scope["profiles"]);
         }
       } else {
         for (const scope of CompatibleIngestService.objectsOf(
@@ -263,6 +278,7 @@ export default class CompatibleIngestService {
       queuedLogs: false,
       queuedMetrics: false,
       queuedTraces: false,
+      queuedProfiles: false,
     };
 
     const jobs: Array<SignalJob> = [];
@@ -300,6 +316,22 @@ export default class CompatibleIngestService {
         productType: ProductType.Traces,
         enqueue: (request: TelemetryRequest): Promise<void> => {
           return TelemetryQueueService.addTraceIngestJob(request);
+        },
+      });
+    }
+
+    if (
+      CompatibleIngestService.hasContent(
+        data.batch.profiles,
+        "resourceProfiles",
+      )
+    ) {
+      jobs.push({
+        signal: "profiles",
+        payload: data.batch.profiles,
+        productType: ProductType.Profiles,
+        enqueue: (request: TelemetryRequest): Promise<void> => {
+          return TelemetryQueueService.addProfileIngestJob(request);
         },
       });
     }
@@ -385,6 +417,8 @@ export default class CompatibleIngestService {
         result.queuedLogs = true;
       } else if (job.productType === ProductType.Metrics) {
         result.queuedMetrics = true;
+      } else if (job.productType === ProductType.Profiles) {
+        result.queuedProfiles = true;
       } else {
         result.queuedTraces = true;
       }

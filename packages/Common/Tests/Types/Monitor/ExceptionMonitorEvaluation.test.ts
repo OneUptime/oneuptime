@@ -4,11 +4,14 @@ import {
   EXCEPTION_BASELINE_LOOKBACK_SECONDS,
   EXCEPTION_BASELINE_MINIMUM_WEEKS,
   EXCEPTION_MEASURES,
+  EXCEPTION_INSTALL_MEASURES,
   EXCEPTION_RULE_MEASURES,
+  EXCEPTION_SHARE_MEASURES,
   ExceptionAnomalySettings,
   getExceptionAnomalySettings,
   getExceptionIncreasePercent,
   getExceptionMonitorNeeds,
+  getInstallsWithExceptionsPercent,
   getSessionsWithExceptionsPercent,
   getUsualExceptionCount,
   isExceptionCountAnomaly,
@@ -62,7 +65,7 @@ function stepWith(checkOns: Array<CheckOn>): MonitorStep {
 }
 
 describe("the exception measures", () => {
-  test("are the count, new, regressed, the increase over the usual, and the sessions", () => {
+  test("are the count, new, regressed, the increase over the usual, the sessions and the installs", () => {
     expect(EXCEPTION_MEASURES).toEqual([
       CheckOn.ExceptionCount,
       CheckOn.NewExceptionCount,
@@ -70,26 +73,54 @@ describe("the exception measures", () => {
       CheckOn.ExceptionCountIncreasePercent,
       CheckOn.SessionsWithExceptionsPercent,
       CheckOn.SessionCount,
+      CheckOn.InstallsWithExceptionsPercent,
+      CheckOn.InstallCount,
     ]);
     expect(isExceptionMeasure(CheckOn.NewExceptionCount)).toBe(true);
     expect(isExceptionMeasure(CheckOn.SessionsWithExceptionsPercent)).toBe(
       true,
     );
     expect(isExceptionMeasure(CheckOn.SessionCount)).toBe(true);
+    expect(isExceptionMeasure(CheckOn.InstallsWithExceptionsPercent)).toBe(
+      true,
+    );
+    expect(isExceptionMeasure(CheckOn.InstallCount)).toBe(true);
     expect(isExceptionMeasure(CheckOn.LogCount)).toBe(false);
     expect(isExceptionMeasure("New Exceptions")).toBe(true);
+    expect(isExceptionMeasure("Installs With Exceptions (in %)")).toBe(true);
     expect(isExceptionMeasure(undefined)).toBe(false);
   });
 
-  // The form's single rule: every measure but the sessions alone (#9716).
-  test("the rule offers every measure but the sessions alone", () => {
+  /*
+   * The form's single rule: every measure but the sessions and the installs
+   * alone (#9716, #9924), which say how much the app was used.
+   */
+  test("the rule offers every measure but the sessions and the installs alone", () => {
     expect(EXCEPTION_RULE_MEASURES).toEqual([
       CheckOn.ExceptionCount,
       CheckOn.NewExceptionCount,
       CheckOn.RegressedExceptionCount,
       CheckOn.ExceptionCountIncreasePercent,
       CheckOn.SessionsWithExceptionsPercent,
+      CheckOn.InstallsWithExceptionsPercent,
     ]);
+  });
+
+  // The two shares are typed with their fraction, and judged with it.
+  test("the shares are the sessions' and the installs'", () => {
+    expect(EXCEPTION_SHARE_MEASURES).toEqual([
+      CheckOn.SessionsWithExceptionsPercent,
+      CheckOn.InstallsWithExceptionsPercent,
+    ]);
+    expect(EXCEPTION_INSTALL_MEASURES).toEqual([
+      CheckOn.InstallsWithExceptionsPercent,
+      CheckOn.InstallCount,
+    ]);
+    // Stored in monitor criteria: never renamed.
+    expect(CheckOn.InstallsWithExceptionsPercent).toBe(
+      "Installs With Exceptions (in %)",
+    );
+    expect(CheckOn.InstallCount).toBe("Installs");
   });
 });
 
@@ -102,6 +133,7 @@ describe("getExceptionMonitorNeeds", () => {
       regressedExceptions: false,
       baseline: false,
       sessions: false,
+      installs: false,
       learnedBaselineWindowDays: [],
     });
     expect(getExceptionMonitorNeeds(undefined)).toEqual({
@@ -109,6 +141,7 @@ describe("getExceptionMonitorNeeds", () => {
       regressedExceptions: false,
       baseline: false,
       sessions: false,
+      installs: false,
       learnedBaselineWindowDays: [],
     });
   });
@@ -127,6 +160,7 @@ describe("getExceptionMonitorNeeds", () => {
       regressedExceptions: true,
       baseline: true,
       sessions: false,
+      installs: false,
       learnedBaselineWindowDays: [],
     });
     expect(
@@ -136,6 +170,7 @@ describe("getExceptionMonitorNeeds", () => {
       regressedExceptions: true,
       baseline: false,
       sessions: false,
+      installs: false,
       learnedBaselineWindowDays: [],
     });
   });
@@ -150,9 +185,104 @@ describe("getExceptionMonitorNeeds", () => {
         regressedExceptions: false,
         baseline: false,
         sessions: true,
+        installs: false,
         learnedBaselineWindowDays: [],
       });
     }
+  });
+
+  test("the share of installs, or the installs alone, read the installs and nothing else (#9924)", () => {
+    for (const checkOn of [
+      CheckOn.InstallsWithExceptionsPercent,
+      CheckOn.InstallCount,
+    ]) {
+      expect(getExceptionMonitorNeeds(stepWith([checkOn]))).toEqual({
+        newExceptions: false,
+        regressedExceptions: false,
+        baseline: false,
+        sessions: false,
+        installs: true,
+        learnedBaselineWindowDays: [],
+      });
+    }
+
+    // A rule on both reads both.
+    expect(
+      getExceptionMonitorNeeds(
+        stepWith([
+          CheckOn.SessionsWithExceptionsPercent,
+          CheckOn.InstallsWithExceptionsPercent,
+        ]),
+      ),
+    ).toMatchObject({ sessions: true, installs: true });
+  });
+});
+
+/*
+ * A mobile app's crash rate per install (#9924): installs a crash happened
+ * on over the window's installs, as the Overview's Crash-free installs
+ * reads them.
+ */
+describe("the share of installs with an exception", () => {
+  test("is the installs with one over the window's installs, in percent to two decimals", () => {
+    expect(
+      getInstallsWithExceptionsPercent({
+        installsWithExceptions: 3,
+        installs: 250,
+      }),
+    ).toBe(1.2);
+    expect(
+      getInstallsWithExceptionsPercent({
+        installsWithExceptions: 1,
+        installs: 3,
+      }),
+    ).toBe(33.33);
+  });
+
+  test("an install with no session counts: installs are not sessions", () => {
+    // Two installs crashed, one of which never sent a session.id.
+    expect(
+      getInstallsWithExceptionsPercent({
+        installsWithExceptions: 2,
+        installs: 4,
+      }),
+    ).toBe(50);
+  });
+
+  test("no install to take a share of reads as no share, never 0%", () => {
+    expect(
+      getInstallsWithExceptionsPercent({
+        installsWithExceptions: 0,
+        installs: 0,
+      }),
+    ).toBeNull();
+    expect(
+      getInstallsWithExceptionsPercent({
+        installsWithExceptions: 2,
+        installs: 0,
+      }),
+    ).toBeNull();
+    expect(
+      getInstallsWithExceptionsPercent({
+        installsWithExceptions: 0,
+        installs: 120,
+      }),
+    ).toBe(0);
+  });
+
+  test("never above 100%: a crash's install may have sent no span in the window", () => {
+    expect(
+      getInstallsWithExceptionsPercent({
+        installsWithExceptions: 9,
+        installs: 4,
+      }),
+    ).toBe(100);
+    expect(
+      getInstallsWithExceptionsPercent({
+        installsWithExceptions: -3,
+        installs: 4,
+      }),
+    ).toBe(0);
   });
 });
 
@@ -347,6 +477,7 @@ describe("an anomaly condition on the exception count", () => {
       regressedExceptions: false,
       baseline: false,
       sessions: false,
+      installs: false,
       learnedBaselineWindowDays: [DEFAULT_ANOMALY_WINDOW_DAYS],
     });
   });

@@ -8,7 +8,7 @@ import {
 import JsonElementCounter, {
   JsonElementCount,
   JsonElementCountOutcome,
-} from "./JsonElementCount";
+} from "Common/Utils/JsonElementCount";
 import OtlpJson, {
   OTLP_SEVERITY_UNSPECIFIED,
   OtlpKeyValue,

@@ -207,10 +207,29 @@ describe("the bucket inspector (Components/Metrics/MetricCharts.tsx)", () => {
     expect(inspector).toContain(
       '<span className="min-w-0 flex-1 select-text truncate text-xs text-gray-700"> <span className="mr-1.5 select-none tabular-nums text-gray-500"> {index + 1}. </span> {entry.name} </span>',
     );
+    /*
+     * Each value is written by its own series (since #10058, a chart's
+     * series can be in two units, one per value axis), and is selectable.
+     */
     expect(inspector).toContain(
-      '<span className="shrink-0 select-text text-xs font-medium tabular-nums text-gray-900"> {bucketInspector.formatValue(entry.value)} </span>',
+      '<span className="shrink-0 select-text text-xs font-medium tabular-nums text-gray-900"> {bucketInspector.formatValue( entry.value, entry.seriesName, )} </span>',
     );
     expect(countOf(inspector, "select-text")).toBe(3);
+  });
+
+  test("each row's value is written in its own series' unit, as the tooltip wrote it", () => {
+    expect(code).toContain(
+      "formatValue: (value: number, seriesName: string) => string; position: { x: number; y: number }; } | null>(null);",
+    );
+    expect(
+      between(
+        code,
+        "setBucketInspector({",
+        "setIsBucketInspectorVisible(true);",
+      ),
+    ).toContain(
+      "formatValue: formatValueAsDrawn ? (value: number, seriesName: string): string => { return formatValueAsDrawn( getSeriesNameForReader(seriesName, translator), value, ); } : input.formatValue,",
+    );
   });
 });
 

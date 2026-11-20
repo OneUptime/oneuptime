@@ -17,6 +17,7 @@ import {
 } from "./HandwrittenResources";
 import {
   API_KEY_ATTRIBUTE_DESCRIPTION,
+  EXCLUSIVE_LISTS_ATTRIBUTE_DESCRIPTION,
   PROVIDER_DESCRIPTION,
   PROVIDER_DISPLAY_NAME,
   URL_ATTRIBUTE_DESCRIPTION,
@@ -465,6 +466,7 @@ provider "${this.config.providerName}" {
 ### Optional
 
 - \`api_key\` (String, Sensitive) ${API_KEY_ATTRIBUTE_DESCRIPTION}
+- \`exclusive_lists\` (Boolean) ${EXCLUSIVE_LISTS_ATTRIBUTE_DESCRIPTION}
 - \`oneuptime_url\` (String) ${URL_ATTRIBUTE_DESCRIPTION}
 
 ## Start Here

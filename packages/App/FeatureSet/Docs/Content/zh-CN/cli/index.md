@@ -103,6 +103,7 @@ oneuptime resources
 | `oneuptime deploy` | 为图表和 OneUptime AI 记录一次部署或其他变更 | [部署与变更](/docs/telemetry/change-events) |
 | `oneuptime data-checks apply` | 让项目的数据检查与你仓库中的一个文件一致 | [命令参考](/docs/cli/command-reference) |
 | `oneuptime dbt upload` | 在构建之后把 dbt 项目的产物发送到数据可观测性 | [命令参考](/docs/cli/command-reference#oneuptime-dbt-upload) |
+| `oneuptime dsym upload <paths...>` | 在构建之后发送 iOS 应用的 dSYM，让它的崩溃和卡顿按函数显示 | [移动端设置](/docs/rum/mobile-setup#上传-dsym) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 处理一种记录 | [资源操作](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | 列出资源的字段以及设置它们的标志 | [资源操作](/docs/cli/resource-operations#查看资源的字段) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | 对事件、警报和计划维护执行仪表盘按钮所做的操作 | [资源操作](/docs/cli/resource-operations#确认解决和添加备注) |

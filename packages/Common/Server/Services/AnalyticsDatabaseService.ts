@@ -1809,6 +1809,85 @@ export default class AnalyticsDatabaseService<
   }
 
   /*
+   * How many distinct values an expression takes over the rows a query
+   * matches, '' left out: the query read as countBy reads it - its count
+   * hooks, then the read permission - so it counts among exactly the rows
+   * a count of the same query would. The expression is SQL written in
+   * code, never a request's: a mobile app's install, the first of two
+   * attributes with a value (MobileAppTelemetry.STORED_APP_INSTALL_SQL,
+   * #9924). Exact, as countBy's distinct count is, and stopped as countBy's
+   * is when the time limit passes.
+   */
+  @CaptureSpan()
+  public async countDistinctNonEmpty(input: {
+    query: Query<TBaseModel>;
+    expression: string;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<number> {
+    let countBy: CountBy<TBaseModel> = {
+      query: input.query,
+      props: input.props,
+      skip: 0,
+      limit: 1,
+    };
+
+    if (!countBy.props?.ignoreHooks) {
+      countBy = await this.onBeforeCount(countBy);
+    }
+
+    const permission: CheckReadPermissionType<TBaseModel> =
+      await ModelPermission.checkReadPermission(
+        this.modelType,
+        countBy.query,
+        null,
+        countBy.props,
+      );
+
+    const dbResult: ResultSet<"JSON"> = await this.executeQuery(
+      this.toCountDistinctNonEmptyStatement({
+        query: permission.query,
+        expression: input.expression,
+      }),
+    );
+    const response: ResponseJSON<JSONObject> =
+      await dbResult.json<JSONObject>();
+    const raw: unknown = response.data?.[0]?.["count"];
+    const count: number =
+      typeof raw === "number" || typeof raw === "string" ? Number(raw) : 0;
+
+    return Number.isFinite(count) && count > 0 ? count : 0;
+  }
+
+  public toCountDistinctNonEmptyStatement(input: {
+    query: Query<TBaseModel>;
+    expression: string;
+  }): Statement {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+
+    const statement: Statement = new Statement();
+
+    statement.append(
+      `SELECT uniqExactIf(${input.expression}, ${input.expression} != '') AS count`,
+    );
+    statement
+      .append(SQL` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `)
+      .append(this.statementGenerator.toWhereStatement(input.query))
+      .append(this.getRetentionReadFilter());
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: COUNT_MAX_EXECUTION_TIME_IN_SECONDS,
+        timeoutOverflowMode: "break",
+      }),
+    );
+
+    return statement;
+  }
+
+  /*
    * Whether ClickHouse refused to finish a query in the time it was given:
    * TIMEOUT_EXCEEDED (159) once max_execution_time passes with
    * timeout_overflow_mode 'throw', TOO_SLOW (160) when the server estimates

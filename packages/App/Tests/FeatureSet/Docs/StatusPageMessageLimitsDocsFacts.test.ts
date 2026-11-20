@@ -88,6 +88,14 @@ const VARIABLES: Record<string, ConfigReading> = {
   ): number => {
     return config.kinds[PublicMessageKind.StatusPageMagicLink].perContactLimit;
   },
+  // An invitation is counted in the project that sends it (#10179)...
+  PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT_IN_PROJECT: (
+    config: PublicMessageRateLimitConfig,
+  ): number => {
+    return config.teamKinds[TeamMessageKind.Invitation]
+      .perContactInProjectLimit as number;
+  },
+  // ...and under the cap on every project's invitations to the address.
   PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT: (
     config: PublicMessageRateLimitConfig,
   ): number => {
@@ -296,9 +304,9 @@ describe("the English page gives the limits in force", () => {
     );
   });
 
-  it("gives an invitation its limit, to private status pages and projects together", () => {
+  it("gives an invitation its limits: the inviting project's, private status pages and projects together, and every project's (#10179)", () => {
     expect(englishSection()).toContain(
-      `is counted per address too: ${config.teamKinds[TeamMessageKind.Invitation].perContactLimit} to one address in an hour, both kinds together.`,
+      `is counted per address in the project that sends it: ${config.teamKinds[TeamMessageKind.Invitation].perContactInProjectLimit} from one project to one address in an hour, both kinds together, and ${config.teamKinds[TeamMessageKind.Invitation].perContactLimit} to one address from all projects together.`,
     );
   });
 

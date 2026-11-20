@@ -18,6 +18,7 @@
     "The security cases and detections suite's looks at a case's Why This Case Was Opened card and Response Plan of 2026-11-18 (CaseWork.spec.ts, #9556, #9557: 3 tests, 16.4 s locally) are added to its minutes the same way, times 1.26: 14.9 to 15.2, until App Test's runs measure it.",
     "The sign-in options suite's look at setting up a security key while signing in, with a virtual authenticator, of 2026-11-19 (SecurityKeyEnrolment.spec.ts, #9764: 8 tests, 20 s locally) is added to its minutes the same way, times 1.26: 1.2 to 1.6, until App Test's runs measure it.",
     "The accounts theme suite's looks at a required second step's choice and its security key, in dark and light, of 2026-11-19 (#9764: 4 tests, 5 s locally) are added to its minutes the same way, times 1.26: 2.6 to 2.7, until App Test's runs measure it.",
+    "The dashboard time range suite's looks at a link that opens a dashboard at one of its widgets, inside OneUptime and on its public link, of 2026-11-20 (DashboardWidgetLink.spec.ts, #10084: 8 tests, 37.4 s locally) are added to its minutes the same way, times 1.26: 4.1 to 4.9, until App Test's runs measure it.",
     "Tests/Ops/DashboardOfflineUiBudget holds every group of .github/workflows/test.app.yaml's dashboard-offline-ui to ending within 22 minutes on its run step's two lanes, its suites started at these minutes as RunUiSuites.js starts them."
   ],
   "measuredOn": "2026-11-17",
@@ -54,7 +55,7 @@
     "test-dashboard-playlists-ui": 4.8,
     "test-dashboard-table-thresholds-ui": 2.6,
     "test-dashboard-templates-ui": 3.3,
-    "test-dashboard-time-range-ui": 4.1,
+    "test-dashboard-time-range-ui": 4.9,
     "test-dashboard-value-widget-ui": 1.7,
     "test-dashboard-widget-sort-ui": 2.4,
     "test-data-security-ui": 4.1,

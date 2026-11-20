@@ -1,5 +1,7 @@
 import PostgresAppInstance from "../../Infrastructure/PostgresDatabase";
 import { FindBuilderAdjuster } from "../../Infrastructure/Postgres/PagedFind";
+import Query from "../../Types/Database/Query";
+import QueryUtil from "../../Types/Database/QueryUtil";
 import { combineWithPrivacyClause } from "../PrivacyFilterUtil";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import User from "../../../Models/DatabaseModels/User";
@@ -7,6 +9,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
+import QueryOperator from "../../../Types/BaseDatabase/QueryOperator";
 import Email from "../../../Types/Email";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import Name from "../../../Types/Name";
@@ -16,6 +19,7 @@ import Text from "../../../Types/Text";
 import UserType from "../../../Types/UserType";
 import {
   DataSource,
+  FindOperator,
   ObjectLiteral,
   OrderByCondition,
   Raw,
@@ -38,6 +42,14 @@ import { Alias } from "typeorm/query-builder/Alias";
  * Now, until someone accepts, a project sees only what it invited: the
  * address, and the name the inviter typed (TeamMember.inviteeName). Once
  * they accept, it sees their profile as it sees any member's.
+ *
+ * THE ADDRESS IS THE ONE INVITED (#10175). A read through the relation
+ * reads the account's address, which its person may change before they
+ * accept: every project that had invited them showed their new one - on its
+ * Users list, team pages, pickers and audit logs - though they never joined
+ * it. So someone pending is shown, searched, filtered and ordered by the
+ * address their invitation kept (TeamMember.inviteeEmail: the request's
+ * project first, then the newest that kept one), else their account's.
  *
  * WHO SEES WHOSE PROFILE. A person's name, picture and two-factor flag,
  * read through a relation (a membership's `user`, a record's owner, its
@@ -108,6 +120,18 @@ export const PROFILE_COLUMNS_SHOWN_ONCE_JOINED: ReadonlyArray<string> = [
 ];
 
 /*
+ * A person's address: the project's to see - it typed it - but, for someone
+ * pending, the one it invited rather than their account's (#10175).
+ */
+export const ADDRESS_COLUMN: string = "email";
+
+// The columns an order through a relation reads as the reader sees them.
+export const COLUMNS_ORDERED_AS_SHOWN: ReadonlyArray<string> = [
+  ...PROFILE_COLUMNS_SHOWN_ONCE_JOINED,
+  ADDRESS_COLUMN,
+];
+
+/*
  * A person's account dates: when it was made, last changed (which moves
  * with their activity), deleted, and how often it was written. Their own.
  */
@@ -133,6 +157,11 @@ export type ProfileReader = { userId: string } | { projectId: string };
 export interface WithheldProfile {
   // The name typed when they were invited, or null for none.
   inviteeName: string | null;
+  /*
+   * The address they were invited at (#10175), or null (or absent) when no
+   * invitation of theirs kept one: then their account's.
+   */
+  inviteeEmail?: string | null | undefined;
 }
 
 /*
@@ -152,6 +181,7 @@ interface PendingMembershipRow {
   userId: string;
   projectId: string;
   inviteeName: string | null;
+  inviteeEmail?: string | null | undefined;
   createdAt: Date | string | null;
 }
 
@@ -322,8 +352,9 @@ export default class PendingInviteeProfiles {
    * message about them to somebody else - names them by this, with
    * `withheld` the project's pending people (readWithheldProfilesInProject,
    * read once for them all): someone only invited by the name typed for
-   * them, else their address, never their account's own name; anyone else
-   * by their name, else their address. Empty when there is neither.
+   * them, else the address they were invited at (#10175), never their
+   * account's own name or new address; anyone else by their name, else
+   * their address. Empty when there is neither.
    */
   public static getNameInProject(data: {
     userId: ObjectID | string | null | undefined;
@@ -339,10 +370,31 @@ export default class PendingInviteeProfiles {
       });
 
     if (profile) {
-      return profile.inviteeName?.trim() || email;
+      return (
+        profile.inviteeName?.trim() || profile.inviteeEmail?.trim() || email
+      );
     }
 
     return data.name?.toString().trim() || email;
+  }
+
+  /*
+   * The address a project shows of someone OneUptime read for it (see
+   * getNameInProject): for someone only invited, the one they were invited
+   * at (#10175), else their account's; anyone else's own.
+   */
+  public static getAddressInProject(data: {
+    userId: ObjectID | string | null | undefined;
+    email: Email | string | null | undefined;
+    withheld: Map<string, WithheldProfile>;
+  }): string {
+    const profile: WithheldProfile | undefined =
+      PendingInviteeProfiles.getWithheldProfile({
+        userId: data.userId,
+        withheld: data.withheld,
+      });
+
+    return profile?.inviteeEmail?.trim() || data.email?.toString().trim() || "";
   }
 
   /*
@@ -401,6 +453,17 @@ export default class PendingInviteeProfiles {
       >;
 
       values["name"] = name ? new Name(name) : undefined;
+
+      // The address the project invited, in place of the account's (#10175).
+      const invitedAddress: string | null | undefined =
+        PendingInviteeProfiles.getWithheldProfile({
+          userId: user.id,
+          withheld: withheld,
+        })?.inviteeEmail;
+
+      if (invitedAddress && Email.isValid(invitedAddress)) {
+        values["email"] = new Email(invitedAddress);
+      }
 
       if ("profilePictureId" in values) {
         values["profilePictureId"] = undefined;
@@ -495,8 +558,18 @@ export default class PendingInviteeProfiles {
         },
       );
 
+      // The address they were invited at, in the same order (#10175).
+      const addressed: PendingMembershipRow | undefined = ordered.find(
+        (row: PendingMembershipRow): boolean => {
+          return Boolean(row.inviteeEmail && String(row.inviteeEmail).trim());
+        },
+      );
+
       withheld.set(userId, {
         inviteeName: named?.inviteeName?.trim() || null,
+        inviteeEmail: addressed?.inviteeEmail
+          ? String(addressed.inviteeEmail).trim()
+          : null,
       });
     }
 
@@ -541,7 +614,7 @@ export default class PendingInviteeProfiles {
         ? `SELECT "readerMembership"."projectId" FROM "TeamMember" "readerMembership" WHERE "readerMembership"."userId" = $2 AND "readerMembership"."deletedAt" IS NULL`
         : `$2::uuid`;
 
-    return `SELECT "pending"."userId" AS "userId", "pending"."projectId" AS "projectId", "pending"."inviteeName" AS "inviteeName", "pending"."createdAt" AS "createdAt" FROM "TeamMember" "pending" WHERE "pending"."userId" = ANY($1::uuid[]) AND "pending"."hasAcceptedInvitation" = false AND "pending"."deletedAt" IS NULL AND "pending"."projectId" IN (${readerProjects}) AND NOT EXISTS (SELECT 1 FROM "TeamMember" "accepted" WHERE "accepted"."userId" = "pending"."userId" AND "accepted"."hasAcceptedInvitation" = true AND "accepted"."deletedAt" IS NULL AND "accepted"."projectId" IN (${readerProjects}))`;
+    return `SELECT "pending"."userId" AS "userId", "pending"."projectId" AS "projectId", "pending"."inviteeName" AS "inviteeName", "pending"."inviteeEmail" AS "inviteeEmail", "pending"."createdAt" AS "createdAt" FROM "TeamMember" "pending" WHERE "pending"."userId" = ANY($1::uuid[]) AND "pending"."hasAcceptedInvitation" = false AND "pending"."deletedAt" IS NULL AND "pending"."projectId" IN (${readerProjects}) AND NOT EXISTS (SELECT 1 FROM "TeamMember" "accepted" WHERE "accepted"."userId" = "pending"."userId" AND "accepted"."hasAcceptedInvitation" = true AND "accepted"."deletedAt" IS NULL AND "accepted"."projectId" IN (${readerProjects}))`;
   }
 
   /*
@@ -679,8 +752,8 @@ export default class PendingInviteeProfiles {
   /*
    * One person read through a relation, as this reader may see them: their
    * account dates are theirs alone, and someone pending for the reader
-   * shows the name typed for them, or none, and no picture or two-factor
-   * flag.
+   * shows the name typed for them, or none, the address they were invited
+   * at (#10175), and no picture or two-factor flag.
    */
   public static withholdFromPerson(data: {
     person: Record<string, unknown>;
@@ -713,6 +786,16 @@ export default class PendingInviteeProfiles {
         : undefined;
     }
 
+    // The address the project invited, in place of the account's (#10175).
+    if (
+      ADDRESS_COLUMN in data.person &&
+      data.person[ADDRESS_COLUMN] &&
+      profile.inviteeEmail &&
+      Email.isValid(profile.inviteeEmail)
+    ) {
+      data.person[ADDRESS_COLUMN] = new Email(profile.inviteeEmail);
+    }
+
     for (const column of PROFILE_COLUMNS_SHOWN_ONCE_JOINED) {
       if (column !== "name" && column in data.person) {
         data.person[column] = undefined;
@@ -724,8 +807,11 @@ export default class PendingInviteeProfiles {
    * WHAT A READ IS FILTERED BY: a filter through a relation to a person, on
    * their name, picture or two-factor flag, also asks that the person is no
    * one pending for this reader - else a search could spell out, a letter at
-   * a time, a name the rows withhold. A filter a level deeper is narrowed
-   * the same way. The query is copied where it changes, never written to.
+   * a time, a name the rows withhold. One on their address reads the
+   * address their row shows (#10175): for someone pending, the one they
+   * were invited at, so a search cannot spell out the one their account
+   * has moved to. A filter a level deeper is narrowed the same way. The
+   * query is copied where it changes, never written to.
    */
   public static narrowRelationFilters<TQuery>(data: {
     modelType: { new (): BaseModel };
@@ -819,6 +905,45 @@ export default class PendingInviteeProfiles {
               ...related,
               _id: combineWithPrivacyClause(related["_id"], condition),
             };
+          }
+        }
+
+        /*
+         * A person's address, as their row shows it (#10175): someone
+         * pending is matched by the address they were invited at, never by
+         * the one their account has moved to. A filter that cannot be
+         * written on that address - one of TypeORM's own operators - matches
+         * nobody pending, as a filter on a name does.
+         */
+        if (
+          isPerson &&
+          related[ADDRESS_COLUMN] !== undefined &&
+          related[ADDRESS_COLUMN] !== null
+        ) {
+          const shown: FindWhereProperty<any> | null =
+            PendingInviteeProfiles.getShownAddressCondition({
+              filter: related[ADDRESS_COLUMN],
+              props: props,
+            });
+
+          if (shown) {
+            const rest: Record<string, unknown> = { ...related };
+            delete rest[ADDRESS_COLUMN];
+
+            related = {
+              ...rest,
+              _id: combineWithPrivacyClause(rest["_id"], shown),
+            };
+          } else {
+            const notPending: FindWhereProperty<any> | null =
+              PendingInviteeProfiles.getNotPendingCondition(props);
+
+            if (notPending) {
+              related = {
+                ...related,
+                _id: combineWithPrivacyClause(related["_id"], notPending),
+              };
+            }
           }
         }
 
@@ -955,6 +1080,211 @@ export default class PendingInviteeProfiles {
   }
 
   /*
+   * The address a pending person's row shows (#10175), as SQL: the one an
+   * invitation of theirs in the reader's projects kept - the request's
+   * project first, then the newest that kept one - or NULL when none did.
+   * `personIdSql` is the SQL of the person's id.
+   */
+  public static getInvitedAddressSql(data: {
+    personIdSql: string;
+    reader: ProfileReader;
+    readerParameter: string;
+    preferredParameter: string | null;
+    suffix: string;
+  }): string {
+    const invited: string = `invited${data.suffix}`;
+    const address: string = `BTRIM("${invited}"."inviteeEmail")`;
+    const requestFirst: string = data.preferredParameter
+      ? `CASE WHEN "${invited}"."projectId" = :${data.preferredParameter} THEN 0 ELSE 1 END, `
+      : "";
+
+    return `(SELECT ${address} FROM "TeamMember" "${invited}" WHERE "${invited}"."userId" = ${data.personIdSql} AND "${invited}"."hasAcceptedInvitation" = false AND "${invited}"."deletedAt" IS NULL AND "${invited}"."projectId" IN (${PendingInviteeProfiles.getReaderProjectsSql(
+      {
+        reader: data.reader,
+        readerParameter: data.readerParameter,
+        alias: `readerOfInvited${data.suffix}`,
+      },
+    )}) AND COALESCE(${address}, '') <> '' ORDER BY ${requestFirst}"${invited}"."createdAt" DESC LIMIT 1)`;
+  }
+
+  /*
+   * The address a person's row shows this reader, as SQL (#10175): someone
+   * pending for the reader by the address they were invited at, else their
+   * account's; anyone else by their account's. `personIdSql` and
+   * `ownAddressSql` are the SQL of the person's id and of their account's
+   * address.
+   */
+  public static getShownAddressSql(data: {
+    personIdSql: string;
+    ownAddressSql: string;
+    reader: ProfileReader;
+    readerParameter: string;
+    preferredParameter: string | null;
+    suffix: string;
+  }): string {
+    return `(CASE WHEN ${data.personIdSql} IN (${PendingInviteeProfiles.getPendingPeopleSql(
+      {
+        reader: data.reader,
+        readerParameter: data.readerParameter,
+        suffix: data.suffix,
+      },
+    )}) THEN COALESCE(${PendingInviteeProfiles.getInvitedAddressSql({
+      personIdSql: data.personIdSql,
+      reader: data.reader,
+      readerParameter: data.readerParameter,
+      preferredParameter: data.preferredParameter,
+      suffix: data.suffix,
+    })}, ${data.ownAddressSql}) ELSE ${data.ownAddressSql} END)`;
+  }
+
+  /*
+   * A filter on a person's address, through a relation, held to the address
+   * their row shows this reader (getShownAddressSql) - a condition on the
+   * person's id, which reads their account's address beside it. Null for a
+   * reader the rule cannot be asked about, and for a filter that cannot be
+   * written on another column (writeAddressFilter): it then matches nobody
+   * pending (narrowFilter).
+   */
+  public static getShownAddressCondition(data: {
+    filter: unknown;
+    props: DatabaseCommonInteractionProps;
+  }): FindWhereProperty<any> | null {
+    const reader: ProfileReader | null = PendingInviteeProfiles.getReader(
+      data.props,
+    );
+
+    if (!reader) {
+      return null;
+    }
+
+    const written: {
+      getSql: (column: string) => string;
+      parameters: Record<string, unknown>;
+    } | null = PendingInviteeProfiles.writeAddressFilter(data.filter);
+
+    if (!written) {
+      return null;
+    }
+
+    const preferredProjectId: string | null =
+      PendingInviteeProfiles.getReaderProjectId(data.props);
+
+    // Aliases and parameters of this condition's own, in any query.
+    const suffix: string = Text.generateRandomText(10);
+    const readerParameter: string = `pendingInviteeAddressReader${suffix}`;
+    const preferredParameter: string | null = preferredProjectId
+      ? `pendingInviteeAddressProject${suffix}`
+      : null;
+
+    return Raw(
+      (alias: string): string => {
+        return written.getSql(
+          PendingInviteeProfiles.getShownAddressSql({
+            personIdSql: alias,
+            ownAddressSql: PendingInviteeProfiles.getColumnBeside(
+              alias,
+              ADDRESS_COLUMN,
+            ),
+            reader: reader,
+            readerParameter: readerParameter,
+            preferredParameter: preferredParameter,
+            suffix: suffix,
+          }),
+        );
+      },
+      {
+        ...written.parameters,
+        [readerParameter]: PendingInviteeProfiles.getReaderParameter(reader),
+        ...(preferredParameter
+          ? { [preferredParameter]: preferredProjectId }
+          : {}),
+      },
+    );
+  }
+
+  /*
+   * A filter on an address as SQL that can be written on any column, with
+   * its parameters: an address (equal to it, as TypeORM compares a column
+   * with the address its transformer writes), or a filter of a query as
+   * QueryUtil writes it - a search, starts with, equal to, a list of
+   * addresses, a null check: each is SQL on the column it is handed.
+   * Null for anything else - one of TypeORM's own operators, a plain list -
+   * which TypeORM writes on the column it is keyed on alone.
+   */
+  private static writeAddressFilter(filter: unknown): {
+    getSql: (column: string) => string;
+    parameters: Record<string, unknown>;
+  } | null {
+    if (typeof filter === "string" || filter instanceof Email) {
+      const parameter: string = `pendingInviteeAddress${Text.generateRandomText(10)}`;
+
+      return {
+        getSql: (column: string): string => {
+          return `(${column} = :${parameter})`;
+        },
+        parameters: { [parameter]: filter.toString().trim().toLowerCase() },
+      };
+    }
+
+    let operator: unknown = filter;
+
+    /*
+     * A read's filters reach narrowRelationFilters already written
+     * (BasePermission.checkPermissions); one that is not is written here as
+     * the read would write it.
+     */
+    if (filter instanceof QueryOperator) {
+      try {
+        operator = (
+          QueryUtil.serializeQuery(User, {
+            [ADDRESS_COLUMN]: filter,
+          } as unknown as Query<User>) as unknown as Record<string, unknown>
+        )[ADDRESS_COLUMN];
+      } catch {
+        return null;
+      }
+    }
+
+    if (
+      operator instanceof FindOperator &&
+      operator.type === "raw" &&
+      typeof operator.getSql === "function"
+    ) {
+      return {
+        getSql: operator.getSql as (column: string) => string,
+        parameters: (operator.objectLiteralParameters || {}) as Record<
+          string,
+          unknown
+        >,
+      };
+    }
+
+    return null;
+  }
+
+  /*
+   * The column beside the one an alias names, on the same row, its table's
+   * alias quoted as QueryHelper quotes an identifier.
+   */
+  private static getColumnBeside(alias: string, column: string): string {
+    const separator: number = alias.lastIndexOf(".");
+
+    if (separator < 0) {
+      return `"${column}"`;
+    }
+
+    const qualifier: string = alias.slice(0, separator);
+    const quoted: string =
+      qualifier.length >= 2 &&
+      qualifier.startsWith('"') &&
+      qualifier.endsWith('"')
+        ? qualifier
+        : `"${qualifier.replace(/"/g, '""')}"`;
+
+    return `${quoted}."${column}"`;
+  }
+
+  /*
    * WHAT A READ IS ORDERED BY (#9895): the order of a read, through a
    * relation, by a person's name, picture or two-factor flag, as this reader
    * sees each person - for a builder TypeORM has built from a find's order
@@ -997,8 +1327,10 @@ export default class PendingInviteeProfiles {
    * for empty values:
    *
    *   - a name: someone pending for the reader by the name typed for them,
-   *     else their address - what a row shows where it withholds the name -
-   *     and anyone else by their own;
+   *     else the address they were invited at - what a row shows where it
+   *     withholds the name - and anyone else by their own;
+   *   - an address: someone pending by the one they were invited at, else
+   *     their account's (#10175); anyone else by their own;
    *   - a picture or a two-factor flag: none for someone pending, as their
    *     rows show none; anyone else's own.
    *
@@ -1093,8 +1425,7 @@ export default class PendingInviteeProfiles {
    * The person's profile column an order of the builder names through a
    * relation ("TeamMember__TeamMember_user.name"), or null for any other
    * order: one of the read's own columns, a related record that is no
-   * person, or a column of a person's that is not their profile (their
-   * address is the project's own: it typed it).
+   * person, or a column of a person's that every row shows as it is.
    */
   private static getOrderedProfileColumn<TEntity extends ObjectLiteral>(data: {
     queryBuilder: SelectQueryBuilder<TEntity>;
@@ -1110,7 +1441,7 @@ export default class PendingInviteeProfiles {
     const propertyPath: string = data.key.substring(dot + 1);
 
     if (
-      !PROFILE_COLUMNS_SHOWN_ONCE_JOINED.includes(propertyPath) ||
+      !COLUMNS_ORDERED_AS_SHOWN.includes(propertyPath) ||
       aliasName === data.queryBuilder.expressionMap.mainAlias?.name
     ) {
       return null;
@@ -1175,16 +1506,34 @@ export default class PendingInviteeProfiles {
       },
     )})`;
 
-    const shown: string =
-      data.column.propertyPath === "name"
-        ? `COALESCE(${PendingInviteeProfiles.getTypedNameSql({
-            personIdSql: personId,
-            reader: data.reader,
-            readerParameter: data.readerParameter,
-            preferredParameter: data.preferredParameter,
-            suffix: data.suffix,
-          })}, ${person}.${data.escape(data.column.emailColumnName)})`
-        : "NULL";
+    /*
+     * The address their row shows: the one they were invited at, else their
+     * account's (#10175) - what an order by address reads for them, and
+     * what one by name reads when no name was typed.
+     */
+    const address: string = `COALESCE(${PendingInviteeProfiles.getInvitedAddressSql(
+      {
+        personIdSql: personId,
+        reader: data.reader,
+        readerParameter: data.readerParameter,
+        preferredParameter: data.preferredParameter,
+        suffix: data.suffix,
+      },
+    )}, ${person}.${data.escape(data.column.emailColumnName)})`;
+
+    let shown: string = "NULL";
+
+    if (data.column.propertyPath === "name") {
+      shown = `COALESCE(${PendingInviteeProfiles.getTypedNameSql({
+        personIdSql: personId,
+        reader: data.reader,
+        readerParameter: data.readerParameter,
+        preferredParameter: data.preferredParameter,
+        suffix: data.suffix,
+      })}, ${address})`;
+    } else if (data.column.propertyPath === ADDRESS_COLUMN) {
+      shown = address;
+    }
 
     return `(CASE WHEN ${isPending} THEN ${shown} ELSE ${own} END)`;
   }
@@ -1282,21 +1631,49 @@ export default class PendingInviteeProfiles {
   /*
    * The permissions that let nobody filter or order a list by a column of a
    * record a relation reaches (QueryPermission
-   * .canFilterOrOrderByRelatedColumn). On a person's account, CurrentUser:
-   * it means the account's own person, and every signed-in person holds it
-   * (DatabaseCommonInteractionPropsUtil), because a read of the User table
-   * itself is held to the reader's own row (CurrentUserCanAccessRecordBy).
-   * Through a relation the account is whoever the relation names, so it
-   * lets in nobody there, and a filter or order through a relation names of
-   * a person only what any reader of the relation may read - their name,
-   * address, picture and two-factor flag - and their id.
+   * .canFilterOrOrderByRelatedColumn). On a person's own records,
+   * CurrentUser: it means the record's own person, and every signed-in
+   * person holds it (DatabaseCommonInteractionPropsUtil), because a read of
+   * such a table itself is held to the reader's own rows
+   * (CurrentUserCanAccessRecordBy). Through a relation the record is
+   * whoever's the relation names, so it lets in nobody there:
+   *
+   *   - a person's account (#9895): a filter or order through a relation
+   *     names of a person only what any reader of the relation may read -
+   *     their name, address, picture and two-factor flag - and their id;
+   *   - every other table a person reads only their own rows of (#10176):
+   *     their notification methods and rules, their on-call logs and
+   *     their timelines, their sessions and sign-in factors. A project's
+   *     SMS, call and WhatsApp logs relate to the on-call timeline entry
+   *     each was sent for, and through it to the person's rule and method:
+   *     a filter there - `{ userOnCallLogTimeline: { userSms: ... } }` -
+   *     read a colleague's own records one guess at a time. A column any
+   *     reader of the relation may read, and the ids and times every
+   *     select may name, are filtered and ordered by as before.
+   *
+   * But for a read pinned to the caller's own records (`isReadPinnedToCaller`,
+   * OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser: its own person
+   * column is the caller's id, exactly): the records its relations reach
+   * are theirs too - a person's rule names their own methods, their
+   * timeline their own rule and method - so CurrentUser counts there, as a
+   * select of an owner-only column through such a read is let through
+   * (OwnerOnlyColumnPermission.checkRelationSelect). Never on an account:
+   * even a person's own record names other people (whoever overrode their
+   * on-call page), and their accounts stay theirs.
    */
   public static getPermissionsNotCountedThroughRelation(
     relatedModel: BaseModel,
+    options?: { isReadPinnedToCaller?: boolean | undefined } | undefined,
   ): ReadonlyArray<Permission> {
-    return relatedModel.tableName === USER_TABLE_NAME
-      ? [Permission.CurrentUser]
-      : [];
+    if (relatedModel.tableName === USER_TABLE_NAME) {
+      return [Permission.CurrentUser];
+    }
+
+    if (relatedModel.getUserColumn() && !options?.isReadPinnedToCaller) {
+      return [Permission.CurrentUser];
+    }
+
+    return [];
   }
 
   // A related record's id, lower-cased, as a read returns it.

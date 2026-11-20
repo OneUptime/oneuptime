@@ -530,9 +530,11 @@ export interface TerraformRecordBody {
   omittedSecrets: Array<TerraformOmittedAttribute>;
   /*
    * The attributes the record has a value of that are left to OneUptime,
-   * because it changes them too (ServerOwned.Shared): the labels a label
-   * rule adds. Left out, the provider keeps OneUptime's value; the
-   * Crossplane page names them, so nobody wonders where they went.
+   * because it changes them too (ServerOwned.Shared): a setting OneUptime
+   * moves, and - but on the Terraform page (writesListsHeldEntryByEntry) -
+   * the labels a label rule adds. Left out, the provider keeps OneUptime's
+   * value; the Crossplane page names them, so nobody wonders where they
+   * went.
    */
   omittedShared: Array<TerraformAttributeDescriptor>;
 }
@@ -552,6 +554,14 @@ export function getTerraformRecordBody(data: {
    * (`incident_severity_id = "..." # Critical Incident`).
    */
   describeId?: TerraformIdDescriber | undefined;
+  /*
+   * Write a list OneUptime adds to as well with the entries the record has
+   * (TerraformAttributeDescriptor.isHeldEntryByEntry: a record's labels):
+   * the Terraform provider holds a configuration's list to the entries it
+   * declares, so an entry a rule adds later stays (#10134). Left out
+   * otherwise, as every value OneUptime changes too is.
+   */
+  writesListsHeldEntryByEntry?: boolean | undefined;
 }): TerraformRecordBody | null {
   const typeName: string | null = getTerraformTypeName(data.modelType);
   const descriptors: Array<TerraformAttributeDescriptor> =
@@ -626,7 +636,20 @@ export function getTerraformRecordBody(data: {
       continue;
     }
 
-    if (!descriptor.isRequired && descriptor.isServerManaged) {
+    /*
+     * A list OneUptime adds to as well is the configuration's own entries,
+     * on a page that says so: every entry the record has now is declared,
+     * and one a rule adds later stays (#10134).
+     */
+    const isWrittenAsOwnEntries: boolean =
+      Boolean(data.writesListsHeldEntryByEntry) &&
+      descriptor.isHeldEntryByEntry;
+
+    if (
+      !descriptor.isRequired &&
+      descriptor.isServerManaged &&
+      !isWrittenAsOwnEntries
+    ) {
       if (descriptor.isChangedByOneUptimeToo) {
         omittedShared.push(descriptor);
       }
@@ -697,7 +720,16 @@ export function getTerraformResourceConfig(data: {
    */
   describeId?: TerraformIdDescriber | undefined;
 }): TerraformResourceConfig | null {
-  const record: TerraformRecordBody | null = getTerraformRecordBody(data);
+  /*
+   * A list OneUptime adds to as well - a record's labels - is written with
+   * the entries the record has: the provider holds a configuration's list
+   * to the entries it declares, so a label a rule adds later stays
+   * (#10134).
+   */
+  const record: TerraformRecordBody | null = getTerraformRecordBody({
+    ...data,
+    writesListsHeldEntryByEntry: true,
+  });
 
   if (!record) {
     return null;

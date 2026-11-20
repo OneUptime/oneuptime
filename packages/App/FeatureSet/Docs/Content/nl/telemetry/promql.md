@@ -50,7 +50,7 @@ Een paar query's om mee te beginnen:
 sum by (job) (rate(http_requests_total[5m]))
 
 # The 95th percentile of a latency histogram
-histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
+histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m])))
 
 # The five hosts using the most memory
 topk(5, system_memory_usage)
@@ -64,15 +64,17 @@ OneUptime slaat metrieken op zoals OpenTelemetry dat doet. PromQL leest ze met d
 
 | In OneUptime | In PromQL |
 | --- | --- |
-| Een gauge `system.cpu.utilization` | `system_cpu_utilization` |
-| Een teller `http.requests` | `http_requests`, of `http_requests_total` |
-| Een histogram `http.server.request.duration` | `http_server_request_duration_bucket` (met `le`), `_count` en `_sum` |
+| Een gauge `system.cpu.utilization`, in `1` | `system_cpu_utilization_ratio`, of `system_cpu_utilization` |
+| Een gauge `system.memory.usage`, in `By` | `system_memory_usage_bytes`, of `system_memory_usage` |
+| Een teller `http.requests` | `http_requests_total`, of `http_requests` |
+| Een histogram `http.server.request.duration`, in `s` | `http_server_request_duration_seconds_bucket` (met `le`), `_count` en `_sum`, of dezelfde zonder `_seconds` |
 | Een summary `rpc.latency` | `rpc_latency` (met `quantile`), `_count` en `_sum` |
 | Een attribuut `http.route` | Het label `http_route` |
 | Een resource-attribuut `service.name` | Het label `resource_service_name`, en `job` |
 | Een resource-attribuut `service.instance.id` | Het label `resource_service_instance_id`, en `instance` |
 
 - **Punten en streepjes worden underscores** in metriek- en labelnamen. Om een metriek of een label precies zo te noemen als hij is opgeslagen, zet u de naam tussen aanhalingstekens, zoals Prometheus 3 doet: `{"http.server.request.duration", "http.route"="/checkout"}`.
+- **De eenheid hoort bij de naam**, zoals Prometheus 3 en de OpenTelemetry Collector haar schrijven: `s` voegt `_seconds` toe, `By` `_bytes`, `By/s` `_bytes_per_second` en `%` `_percent`; een gauge in `1` eindigt op `_ratio` en een teller op `_total`, en een eenheid tussen accolades, zoals `{request}`, voegt niets toe. De naam zonder eenheid vindt de metriek ook, en **Een metriekenaam toevoegen** toont elke metriek met haar eenheid.
 - **Deltatellers worden opgeteld** vanaf het begin van het tijdsbereik van de query, zodat `rate()` en `increase()` ze lezen zoals elke andere teller.
 - **Exponentiële histogrammen** hebben `_count` en `_sum`, maar geen buckets.
 
@@ -144,6 +146,7 @@ Elke query is begrensd, zodat een dashboard met veel panelen OneUptime niet kan 
 | Tijd die het evalueren mag duren | 30 seconden |
 | Hoe ver een selector terugkijkt naar de laatste meetwaarde van een reeks | 5 minuten |
 | De stap van een subquery, als de query die weglaat | 1 minuut |
+| Query's die een project per minuut mag sturen | 1.200 |
 
 ## Problemen oplossen
 
@@ -159,10 +162,15 @@ De PromQL-naam ervan heeft underscores waar de opgeslagen naam punten heeft, en 
 De query vraagt om meer dan een leesactie mag bevatten. Voeg labelmatchers toe, verkort het tijdsbereik of gebruik een grotere stap.
 :::
 
+:::details "This project sent more queries this minute than OneUptime answers."
+De dashboards, Grafana en scripts van het project stuurden deze minuut samen meer dan 1.200 query's naar de API. De panelen laden de volgende minuut weer; vernieuw dashboards minder vaak om eronder te blijven.
+:::
+
 ## Volgende stappen
 
 :::cards
 - [Metriekverkenner](/docs/telemetry/metrics-explorer): Metrieken in een grafiek zetten zonder een query te schrijven.
-- [Metrics-monitor](/docs/monitor/metrics-monitor): Waarschuwen als een metriek een drempel overschrijdt.
-- [Externe gegevensbronnen](/docs/dashboards/data-sources): Een externe Prometheus in grafieken op uw dashboards zetten.
+- [Metrics-monitor](/docs/monitor/metrics-monitor): Waarschuwen bij een metriek of een PromQL-expressie, met één incident per reeks.
+- [Externe gegevensbronnen](/docs/dashboards/data-sources): PromQL in grafieken op uw dashboards zetten, over de metrieken van dit project of een externe Prometheus.
+- [LogQL](/docs/telemetry/logql): Logs opvragen met LogQL, ook vanuit de Loki-gegevensbron van Grafana.
 :::

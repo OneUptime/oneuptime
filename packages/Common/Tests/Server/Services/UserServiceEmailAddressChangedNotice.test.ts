@@ -23,6 +23,7 @@ import RequestOrigin from "../../../Types/RequestOrigin";
 import Timezone from "../../../Types/Timezone";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
 
 /*
  * EVERY ADDRESS AN ACCOUNT LEAVES IS TOLD (#9907), AND A WAITING CHANGE
@@ -156,6 +157,9 @@ function dataOf(updateBy: UpdateBy<User>): Record<string, unknown> {
 }
 
 beforeEach(() => {
+  // Every session here has confirmed it's its person's (#10155).
+  confirmEverySession();
+
   findBy = jest
     .spyOn(UserService, "findBy")
     .mockResolvedValue([accountRow()] as never);

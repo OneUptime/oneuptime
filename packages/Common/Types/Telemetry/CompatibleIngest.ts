@@ -28,7 +28,8 @@ export const COMPATIBLE_INGEST_URL_PREFIX: string = "/telemetry";
  * of empty arrays would take half a gigabyte and seconds of that thread.
  * Every client's own batches are far below it: a 5 MB Datadog log payload,
  * or a 2 MiB batch from the OpenTelemetry Collector's Splunk HEC exporter,
- * is a few hundred thousand.
+ * is a few hundred thousand. A Datadog tracer's MessagePack body (where one
+ * byte can be an empty array) is held to the same number of values.
  */
 export const COMPATIBLE_JSON_MAX_VALUES: number = 1000000;
 
@@ -114,11 +115,35 @@ export const DATADOG_METADATA_PATHS: ReadonlyArray<string> = [
 ];
 
 /*
+ * APM traces. The trace-agent posts what the tracers sent it to
+ * apm_config.apm_dd_url + /api/v0.2/traces, as a protobuf AgentPayload, and
+ * the stats it computed from them to /api/v0.2/stats (MessagePack): an
+ * Agent's apm_dd_url is <host>/telemetry/datadog, as its dd_url is.
+ */
+export const DATADOG_TRACES_PATH: string = "/api/v0.2/traces";
+// The Agent's APM stats: accepted, so the Agent reports no error, and not kept.
+export const DATADOG_TRACE_STATS_PATH: string = "/api/v0.2/stats";
+
+/*
+ * A tracing library's own trace endpoints - the ones it posts to on the
+ * Agent - for a tracer sending with no Agent in between (dd-trace-go with
+ * DD_TRACE_AGENT_URL=https://<user>:<key>@<host>/telemetry/datadog): v0.3
+ * and v0.4 are an array of traces of spans, in MessagePack or JSON; v0.5
+ * the same with its strings in a dictionary, in MessagePack.
+ */
+export const DATADOG_TRACER_TRACES_PATHS: ReadonlyArray<string> = [
+  "/v0.3/traces",
+  "/v0.4/traces",
+  "/v0.5/traces",
+];
+
+/*
  * The most series, points, resources, tags, sketches and sketch summaries
  * one Datadog Agent protobuf payload (/api/v2/series, /api/beta/sketches)
- * may hold, counted before it is decoded: each is an object once it is.
- * The Agent splits its payloads at 10,000 points and 5 MB decompressed,
- * about 300,000 of them at most.
+ * may hold - or spans, tags, links and events (/api/v0.2/traces) - counted
+ * before it is decoded: each is an object once it is. The Agent splits its
+ * metric payloads at 10,000 points and 5 MB decompressed, and its trace
+ * payloads at 3.2 MB, about 300,000 of them at most.
  */
 export const DATADOG_PROTOBUF_MAX_ELEMENTS: number = 500000;
 
@@ -131,6 +156,9 @@ export const DATADOG_PATHS: ReadonlyArray<string> = [
   DATADOG_CHECK_RUN_PATH,
   DATADOG_VALIDATE_PATH,
   ...DATADOG_METADATA_PATHS,
+  DATADOG_TRACES_PATH,
+  DATADOG_TRACE_STATS_PATH,
+  ...DATADOG_TRACER_TRACES_PATHS,
 ];
 
 /*
@@ -138,7 +166,8 @@ export const DATADOG_PATHS: ReadonlyArray<string> = [
  * (logs_config.logs_dd_url is a host and port, never a path), so that one
  * route is served at the root too - only to a request that carries a
  * DD-API-KEY header, so nothing else under /api is ever answered by it.
- * Everything else the Agent sends goes to dd_url, which takes a path.
+ * Everything else the Agent sends goes to dd_url or apm_dd_url, which take
+ * a path.
  */
 export const DATADOG_ROOT_PATHS: ReadonlyArray<string> = [DATADOG_LOGS_PATH];
 

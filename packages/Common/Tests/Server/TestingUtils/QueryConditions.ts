@@ -33,9 +33,13 @@ const LIKE: RegExp = /\sILIKE\s/i;
 /*
  * Whether `value` matches an ILIKE pattern: % is any run of characters, _ is
  * any one, and a backslash makes the character after it itself. Case does
- * not count.
+ * not count - unless `isCaseSensitive`, as LIKE reads it.
  */
-export function matchesLikePattern(pattern: string, value: string): boolean {
+export function matchesLikePattern(
+  pattern: string,
+  value: string,
+  options?: { isCaseSensitive?: boolean | undefined },
+): boolean {
   let source: string = "^";
 
   for (let index: number = 0; index < pattern.length; index++) {
@@ -53,7 +57,10 @@ export function matchesLikePattern(pattern: string, value: string): boolean {
     }
   }
 
-  return new RegExp(`${source}$`, "i").test(value);
+  return new RegExp(
+    `${source}$`,
+    options?.isCaseSensitive ? undefined : "i",
+  ).test(value);
 }
 
 // The conditions an "and" (TypeORM's And) holds together, or null.

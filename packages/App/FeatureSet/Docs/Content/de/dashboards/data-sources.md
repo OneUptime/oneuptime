@@ -75,6 +75,7 @@ Um eine Datenquelle später zu ändern, öffnen Sie sie aus der Liste. **Bearbei
 
 Bearbeiten Sie ein Dashboard, klicken Sie auf **Widget hinzufügen** und wählen Sie ein Widget der Gruppe External Data Sources: ein **Diagramm**, einen **Wert**, einen **Messwert** oder eine **Tabelle**. In seinen Einstellungen:
 
+- **Metriken dieses Projekts (PromQL)** ist die erste **Datenquelle** und die, mit der ein neues Widget beginnt: PromQL über die Metriken, die Ihr Projekt an OneUptime sendet, gelesen für die Dienste, die Sie lesen dürfen, wie auf der Seite [PromQL](/docs/telemetry/promql). Sie braucht keine eigene Datenquelle und funktioniert daher in jedem Tarif.
 - Wählen Sie die **Datenquelle** und schreiben Sie die **Abfrage**. Der Editor nennt die Abfragesprache und zeigt ein Beispiel für den Typ.
 - In einem Diagramm legt **Abfrage hinzufügen** weitere Abfragen auf dieselben Achsen, und **Legende (optional)** benennt jede Reihe nach ihren Labels: `{{instance}} — errors` schreibt das Label `instance` der Reihe nach vorn.
 - Bei einem Wert oder Messwert macht **Zusammenfassen** aus den Punkten eine Zahl: den letzten Wert (Standard), den ersten, den Durchschnitt, die Summe, das Minimum oder das Maximum. **Einheit** fügt ein Suffix hinzu und skaliert die bekannten: `Bytes` wird zu 1.5 MB, `ms` zu 2.4 s.

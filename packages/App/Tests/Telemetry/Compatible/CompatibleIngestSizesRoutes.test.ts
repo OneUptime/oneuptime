@@ -77,6 +77,7 @@ jest.mock(
         addLogIngestJob: jest.fn(),
         addMetricIngestJob: jest.fn(),
         addTraceIngestJob: jest.fn(),
+        addProfileIngestJob: jest.fn(),
       },
     };
   },
@@ -120,6 +121,11 @@ beforeEach(() => {
   queue["addTraceIngestJob"]!.mockReset().mockImplementation(
     async (req: unknown) => {
       recordJob(jobs, "traces", req as TelemetryRequest);
+    },
+  );
+  queue["addProfileIngestJob"]!.mockReset().mockImplementation(
+    async (req: unknown) => {
+      recordJob(jobs, "profiles", req as TelemetryRequest);
     },
   );
 });
@@ -615,7 +621,7 @@ describe("Sentry", () => {
     ]);
   });
 
-  test("an envelope's attachment, replay and profile - not kept - are not counted", async () => {
+  test("an envelope's attachment and replay - not kept - are not counted, nor a profile with no samples to read", async () => {
     const attachment: string = "x".repeat(200000);
 
     const response: RouteResponse = await send(sentry("envelope"), {
@@ -630,6 +636,54 @@ describe("Sentry", () => {
 
     expect(response.status).toBe(200);
     expect(sizesOf(jobs)).toEqual([["traces", Buffer.byteLength(ERROR)]]);
+  });
+
+  test("an envelope's profile is a profiles job, counted at its bytes; its check-ins and feedback count as logs", async () => {
+    const profile: string = JSON.stringify({
+      event_id: "3b2f5dd2f3374e2f8e0e0f2d6c8b1a77",
+      platform: "python",
+      release: "checkout@1.4.2",
+      timestamp: 1700000000,
+      version: "1",
+      transactions: [],
+      profile: {
+        frames: [{ function: "main", filename: "main.py", lineno: 1 }],
+        stacks: [[0]],
+        samples: [
+          { elapsed_since_start_ns: "0", thread_id: "1", stack_id: 0 },
+          { elapsed_since_start_ns: "10000000", thread_id: "1", stack_id: 0 },
+        ],
+        thread_metadata: {},
+      },
+    });
+    const checkIn: string = JSON.stringify({
+      check_in_id: "6e1d8c2a4f5b4f7f9a3c2b1d0e9f8a7b",
+      monitor_slug: "nightly-backup",
+      status: "ok",
+    });
+    const feedback: string = JSON.stringify({
+      event_id: "1f2e3d4c5b6a49788796a5b4c3d2e1f0",
+      contexts: { feedback: { message: "The button does nothing." } },
+    });
+
+    const response: RouteResponse = await send(sentry("envelope"), {
+      headers: headers,
+      body: envelopeOf([
+        [{ type: "event" }, ERROR],
+        [{ type: "profile" }, profile],
+        [{ type: "check_in" }, checkIn],
+        [{ type: "feedback" }, feedback],
+      ]),
+    });
+
+    expect(response.status).toBe(200);
+    expect(sizesOf(jobs)).toEqual([
+      ["logs", Buffer.byteLength(checkIn) + Buffer.byteLength(feedback)],
+      ["traces", Buffer.byteLength(ERROR)],
+      ["profiles", Buffer.byteLength(profile)],
+    ]);
+    expect(jobs[2]!.productType).toBe("Profiles");
+    expect(jobs[2]!.budgetCharge).toBe("absent");
   });
 
   test("a store event is counted at its body", async () => {

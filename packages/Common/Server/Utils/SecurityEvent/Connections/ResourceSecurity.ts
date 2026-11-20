@@ -912,23 +912,25 @@ export default class ResourceSecurity {
           select: { name: true, email: true },
           props: { isRoot: true },
         });
-        const email: string = user?.email?.toString() || "";
-
-        if (!email) {
-          return null;
-        }
 
         /*
          * Named as the project knows them: a membership can be an
          * invitation not accepted yet, whose person the project sees only
-         * by the name typed for them, else their address - never by their
-         * account's own name (#9823, #9934). Searched for by the address
-         * either way: the project typed it.
+         * by the name typed for them, else the address they were invited at
+         * - never by their account's own name, or the address it has moved
+         * to (#9823, #9934, #10175). Searched for by that address either
+         * way: the project typed it.
          */
         await PendingInviteeProfiles.nameInProject({
           users: [user],
           projectId: data.projectId,
         });
+
+        const email: string = user?.email?.toString() || "";
+
+        if (!email) {
+          return null;
+        }
 
         return {
           name: user?.name?.toString() || email,

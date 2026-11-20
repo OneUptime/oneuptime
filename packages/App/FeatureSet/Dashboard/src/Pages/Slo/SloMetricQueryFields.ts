@@ -1,6 +1,10 @@
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+import Metric from "Common/Models/AnalyticsModels/Metric";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import OneUptimeDate from "Common/Types/Date";
+import type { ListResult as AnalyticsListResult } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import { JSONObject } from "Common/Types/JSON";
 import SliType from "Common/Types/ServiceLevelObjective/SliType";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
@@ -20,6 +24,11 @@ import {
   SloMetricQueryPart,
   SloMetricQueryProblem,
 } from "Common/Utils/Slo/SloMetricSli";
+import {
+  SLO_COUNTABLE_METRIC_POINT_TYPES,
+  SLO_GAUGE_METRIC_POINT_TYPE,
+  SLO_METRIC_KIND_POINT_TYPES,
+} from "Common/Utils/Slo/SloHealth";
 
 /*
  * A METRIC SLO'S METRIC, IN THE CREATE FORM AND IN SETTINGS (#8445).
@@ -307,6 +316,134 @@ export const loadSloMetricTypes: () => Promise<
 // For tests: forget the metric types read so far.
 export const forgetSloMetricTypes: () => void = (): void => {
   metricTypesByProject.clear();
+  metricPointTypes.clear();
+};
+
+// How far back a metric's newest point is looked for.
+export const SLO_METRIC_POINT_TYPE_LOOKBACK_DAYS: number = 7;
+
+export const SLO_METRIC_GAUGE_HINT: string = translationKey(
+  "This metric is a gauge, which has no events to count. Choose a counter or a histogram, or measure it by a monitor's uptime.",
+);
+export const SLO_METRIC_UNCOUNTABLE_HINT: string = translationKey(
+  "This metric is neither a counter nor an explicit-bucket histogram, so it has no events to count.",
+);
+export const SLO_METRIC_HISTOGRAM_AS_COUNTER_HINT: string = translationKey(
+  'This metric is a histogram: choose "A histogram, by a value" under Good Events.',
+);
+export const SLO_METRIC_COUNTER_AS_HISTOGRAM_HINT: string = translationKey(
+  'This metric is a counter: choose "A counter, by a condition" under Good Events.',
+);
+
+/*
+ * What the picker says of the metric picked, by the kind of point its
+ * newest one is (loadSloMetricPointType) and the kind of events the form
+ * counts it as: a gauge's line, another kind's that cannot be counted, a
+ * counter's or a histogram's counted as the other, or nothing for one
+ * counted as the kind it is, or whose kind is not known (#10027).
+ */
+export const getSloMetricKindHint: (
+  metricPointType: string | null | undefined,
+  kind?: SloMetricKind | undefined,
+) => string | null = (
+  metricPointType: string | null | undefined,
+  kind?: SloMetricKind | undefined,
+): string | null => {
+  if (!metricPointType) {
+    return null;
+  }
+
+  if (SLO_COUNTABLE_METRIC_POINT_TYPES.includes(metricPointType)) {
+    if (!kind || SLO_METRIC_KIND_POINT_TYPES[kind] === metricPointType) {
+      return null;
+    }
+
+    return kind === SloMetricKind.Counter
+      ? SLO_METRIC_HISTOGRAM_AS_COUNTER_HINT
+      : SLO_METRIC_COUNTER_AS_HISTOGRAM_HINT;
+  }
+
+  return metricPointType === SLO_GAUGE_METRIC_POINT_TYPE
+    ? SLO_METRIC_GAUGE_HINT
+    : SLO_METRIC_UNCOUNTABLE_HINT;
+};
+
+/*
+ * The kind of point a metric's newest one is ("Sum", "Histogram", "Gauge":
+ * Metric.metricPointType), read once per metric of the session, or null
+ * when it has none in the last week or cannot be read: a Metric SLO counts
+ * a counter's or a histogram's events, and a gauge has none (#10027). The
+ * picker says so of a gauge, and an SLO waiting for events of one says why.
+ */
+const metricPointTypes: Map<string, Promise<string | null>> = new Map<
+  string,
+  Promise<string | null>
+>();
+
+export const loadSloMetricPointType: (
+  metricName: string,
+) => Promise<string | null> = async (
+  metricName: string,
+): Promise<string | null> => {
+  const name: string = (metricName || "").trim();
+
+  if (!name) {
+    return null;
+  }
+
+  // Imported here, as loadSloMetricTypes does, for the same reason.
+  const [analyticsApi, projectUtil]: [
+    typeof import("Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI"),
+    typeof import("Common/UI/Utils/Project"),
+  ] = await Promise.all([
+    import("Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI"),
+    import("Common/UI/Utils/Project"),
+  ]);
+
+  const projectId: string =
+    projectUtil.default.getCurrentProjectId()?.toString() || "";
+  const cacheKey: string = `${projectId}\n${name}`;
+  const cached: Promise<string | null> | undefined =
+    metricPointTypes.get(cacheKey);
+
+  if (cached) {
+    return cached;
+  }
+
+  const endTime: Date = OneUptimeDate.getCurrentDate();
+  const query: Record<string, unknown> = {
+    projectId: projectUtil.default.getCurrentProjectId(),
+    name: name,
+    time: new InBetween<Date>(
+      OneUptimeDate.addRemoveDays(
+        endTime,
+        -1 * SLO_METRIC_POINT_TYPE_LOOKBACK_DAYS,
+      ),
+      endTime,
+    ),
+  };
+  const loading: Promise<string | null> = analyticsApi.default
+    .getList<Metric>({
+      modelType: Metric,
+      query: query,
+      select: { metricPointType: true },
+      sort: { time: SortOrder.Descending },
+      skip: 0,
+      limit: 1,
+    })
+    .then((result: AnalyticsListResult<Metric>): string | null => {
+      const pointType: unknown = result.data?.[0]?.metricPointType;
+
+      return typeof pointType === "string" && pointType ? pointType : null;
+    })
+    .catch((): string | null => {
+      metricPointTypes.delete(cacheKey);
+      return null;
+    });
+
+  metricPointTypes.set(cacheKey, loading);
+
+  return loading;
 };
 
 /*
