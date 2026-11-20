@@ -32,17 +32,19 @@ import CompatibleIngestService, {
  * Sentry's ingest API: POST /sentry/api/<n>/envelope/ and
  * /sentry/api/<n>/store/ (and under /telemetry), where a DSN of
  * https://<key>@<host>/telemetry/sentry/<n> makes every Sentry SDK send.
- * See SentryEnvelope for what an error, a transaction or a log becomes.
+ * See SentryEnvelope for what an error, a transaction, a log, a cron
+ * check-in, feedback or a profile becomes.
  *
  * Answered as Sentry answers: 200 with the event's {"id"}, 400 with a
  * {"detail"} for a body that is not an envelope or an event, 413 for one
  * whose JSON holds more than COMPATIBLE_JSON_MAX_VALUES values (counted
  * before it is parsed) - the SDK drops either - and 503 when the queue
- * cannot take it. An envelope's spans and logs are queued as separate jobs,
- * each counted against its own signal's ingestion budget
+ * cannot take it. An envelope's spans, logs and profiles are queued as
+ * separate jobs, each counted against its own signal's ingestion budget
  * (CompatibleIngestService) at the size of the items it came from,
- * decompressed: an envelope's attachments, replays and profiles, which are
- * not kept, are not counted.
+ * decompressed: its profiles against the profiles budget, its check-ins
+ * and feedback against the logs one, and its attachments, replays and
+ * sessions, which are not kept, against none.
  *
  * The key is the DSN's public key: server SDKs send it in X-Sentry-Auth,
  * browser SDKs as ?sentry_key= (a simple request, so no CORS preflight),
@@ -86,6 +88,7 @@ export default class SentryIngestService {
       await SentryIngestService.enqueue(req, translation, {
         traces: translation.ingestBytes.traces,
         logs: translation.ingestBytes.logs,
+        profiles: translation.ingestBytes.profiles,
       });
       SentryIngestService.answer(res, translation);
     } catch (error) {
@@ -144,7 +147,11 @@ export default class SentryIngestService {
     await CompatibleIngestService.enqueue({
       req: req as TelemetryRequest,
       surface: TelemetryIngestSurface.Sentry,
-      batch: { traces: translation.traces, logs: translation.logs },
+      batch: {
+        traces: translation.traces,
+        logs: translation.logs,
+        profiles: translation.profiles,
+      },
       ingestBytes: ingestBytes,
     });
   }

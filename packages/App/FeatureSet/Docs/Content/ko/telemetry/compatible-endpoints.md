@@ -6,8 +6,8 @@ Prometheus, Loki 클라이언트, Splunk 포워더, Datadog Agent 또는 Sentry 
 - [Prometheus remote write](#prometheus-remote-write): Prometheus, Grafana Alloy 또는 모든 remote write 발신자의 메트릭.
 - [Loki](#loki): Promtail, Grafana Alloy, Fluent Bit 또는 Vector의 로그.
 - [Splunk HTTP Event Collector](#splunk-http-event-collector): 모든 HEC 클라이언트의 로그와 메트릭 이벤트.
-- [Datadog Agent](#datadog-agent): Datadog Agent의 메트릭과 로그.
-- [Sentry SDK](#sentry-sdk): 모든 Sentry SDK의 오류, 트랜잭션, 로그.
+- [Datadog Agent](#datadog-agent): Datadog Agent의 메트릭, 로그, APM 트레이스.
+- [Sentry SDK](#sentry-sdk): 모든 Sentry SDK의 오류, 트랜잭션, 로그, cron 체크인, 피드백, 프로파일.
 :::
 
 ## 작동 방식
@@ -24,7 +24,7 @@ flowchart TB
     end
     tools -->|"각 도구의 프로토콜 + 수집 키"| endpoint["OneUptime 호환 엔드포인트"]
     endpoint --> otlp["OpenTelemetry 데이터로 저장"]
-    otlp --> signals["로그, 메트릭, 트레이스, 예외"]
+    otlp --> signals["로그, 메트릭, 트레이스, 예외, 프로파일"]
 ```
 
 각 엔드포인트는 해당 도구의 방식대로 응답합니다. Prometheus와 Loki에는 `204`, HEC에는 `{"text": "Success", "code": 0}`, Datadog에는 `202`, Sentry에는 이벤트 ID를 돌려주므로, 도구는 늘 하던 대로 성공과 실패를 보고합니다. 그 뒤 데이터는 OpenTelemetry SDK에서 온 데이터와 똑같이 처리됩니다.
@@ -159,7 +159,7 @@ curl https://oneuptime.com/telemetry/services/collector/event \
 
 ## Datadog Agent
 
-수집 키를 API 키로 사용해 Agent의 메트릭과 로그를 OneUptime으로 향하게 하세요.
+수집 키를 API 키로 사용해 Agent의 메트릭, 로그, APM 트레이스를 OneUptime으로 향하게 하세요.
 
 ```yaml title="datadog.yaml"
 api_key: YOUR_TELEMETRY_KEY_WITHOUT_HYPHENS
@@ -169,13 +169,14 @@ logs_config:
   use_http: true
   logs_dd_url: oneuptime.com:443
 apm_config:
-  enabled: false
+  enabled: true
+  apm_dd_url: https://oneuptime.com/telemetry/datadog
 process_config:
   process_collection:
     enabled: false
 ```
 
-Agent는 `dd_url`에 자체 경로를 붙이고, 로그는 `logs_dd_url`이 지정하는 호스트와 포트의 `/api/v2/logs`로 보냅니다. OneUptime은 `DD-API-KEY` 헤더가 있는 요청에 대해서만 루트에서 이 경로들에 응답합니다. 변경한 뒤 Agent를 다시 시작하세요. OneUptime이 키를 받아들이면 `datadog-agent status`에 API 키가 유효하다고 표시됩니다.
+Agent는 `dd_url`과 `apm_dd_url`에 자체 경로를 붙이고, 로그는 `logs_dd_url`이 지정하는 호스트와 포트의 `/api/v2/logs`로 보냅니다. OneUptime은 `DD-API-KEY` 헤더가 있는 요청에 대해서만 루트에서 이 경로들에 응답합니다. 변경한 뒤 Agent를 다시 시작하세요. OneUptime이 키를 받아들이면 `datadog-agent status`에 API 키가 유효하다고 표시됩니다.
 
 ### Agent 데이터가 변환되는 방식
 
@@ -183,10 +184,22 @@ Agent는 `dd_url`에 자체 경로를 붙이고, 로그는 `logs_dd_url`이 지�
 - **분포**는 개수, 합계, 최솟값, 최댓값을 가진 요약이 됩니다.
 - **서비스 체크**는 체크 이름을 딴 메트릭이 되며, 그 값은 체크의 상태입니다. 0은 OK, 1은 경고, 2는 심각, 3은 알 수 없음입니다.
 - **로그**는 메시지, 상태, 호스트, 서비스를 유지하고, 나머지 필드는 속성으로 유지합니다.
-- **태그는 속성이 되며**, `service`, `env`, `version` 태그가 각각 서비스, 그 환경, 그 버전을 지정합니다.
-- **아직 읽지 않는 것:** APM 트레이스, 프로세스, 컨테이너, 네트워크 데이터, 프로파일. 위와 같이 `datadog.yaml`에서 꺼 두세요.
+- **APM 트레이스**는 "트레이스"에 나타납니다. 각 스팬은 리소스(`GET /users/:id`, 쿼리)로 이름이 붙고 자기 서비스에 속합니다. `checkout-postgres`처럼 통합이 자체 서비스 이름을 붙인 스팬은 호출한 서비스에 속합니다. 오퍼레이션 이름과 유형은 `datadog.operation_name`과 `datadog.span_type`으로 유지됩니다.
+- **스팬의 오류**는 트레이서가 기록한 스택 트레이스와 함께 "예외"에 나타납니다.
+- **태그는 속성이 되며**, `service`, `env`, `version` 태그가 각각 서비스, 그 환경, 그 버전을 지정합니다. 스팬의 HTTP 태그와 데이터베이스 태그는 OpenTelemetry 이름으로도 기록됩니다. `http.status_code`는 `http.response.status_code`로, `db.type`은 `db.system.name`으로 기록됩니다.
+- **아직 읽지 않는 것:** 프로세스, 컨테이너, 네트워크 데이터, 프로파일. 위와 같이 `datadog.yaml`에서 꺼 두세요. Agent의 APM 통계는 받아들이지만 보관하지 않으며, OneUptime은 스팬에서 자체 통계를 계산합니다.
 
 Datadog의 HTTP API 클라이언트(`/api/v2/logs`로 POST하는 로그 라이브러리, 시리즈를 POST하는 스크립트 등)도 `DD-API-KEY` 헤더와 함께 같은 엔드포인트로 보낼 수 있습니다.
+
+### Agent 없이 보내기
+
+dd-trace-go는 수집 키를 Agent URL의 비밀번호로 넣어 트레이스를 OneUptime으로 직접 보낼 수 있습니다.
+
+```bash
+DD_TRACE_AGENT_URL=https://oneuptime:YOUR_TELEMETRY_KEY@oneuptime.com/telemetry/datadog
+```
+
+Python과 Node.js 트레이서는 URL의 경로와 비밀번호를 빼 버리므로, 이들의 트레이스는 Agent를 거쳐 보내세요.
 
 ## Sentry SDK
 
@@ -215,15 +228,18 @@ DSN 끝의 `1`은 Sentry SDK가 요구하는 것으로, 읽지는 않습니다. 
 - **오류**는 스택 트레이스, 원인이 된 예외와 함께 "예외"에 나타나며, 다른 예외와 마찬가지로 묶입니다. 각 오류는 해당 트레이스에서, 활성 상태였던 스팬 아래의 스팬이 됩니다.
 - **트랜잭션**과 그 스팬은 "트레이스"에 나타납니다.
 - **Sentry 로그**와 `capture_message`로 캡처한 메시지는 "로그"에 나타납니다.
+- **cron 체크인**은 체크인마다 레코드 하나씩 "로그"에 나타나며, 모니터의 슬러그는 `sentry.monitor.slug`에, 상태는 `sentry.check_in.status`에 담깁니다. 실패했거나 시간이 초과됐거나 누락된 체크인은 Error 수준으로 기록됩니다. 작업이 실패하거나 실행되지 않을 때 이를 알고 싶다면 그 슬러그로 [로그 모니터](/docs/monitor/logs-monitor)를 만드세요.
+- **사용자 피드백**은 Sentry의 피드백 위젯이나 `capture_user_feedback`에서 오며, 보낸 곳의 트레이스 안에서 "로그"에 나타납니다. 그 `sentry.feedback.associated_event_id`는 피드백이 다루는 오류의 `sentry.event_id`입니다.
+- **프로파일**은 트랜잭션의 것이든 연속 프로파일링의 것이든 월 타임(wall time) 프로파일로 "프로파일"에 나타나며, 해당 트랜잭션의 트레이스에 연결됩니다. Android 프로파일은 아직 읽지 않습니다.
 - **서비스**는 `service` 태그이며, 없으면 릴리스 이름의 `@` 앞부분입니다. `checkout@1.4.2`는 `checkout`이 됩니다. 릴리스는 서비스 버전이 되고, 환경은 유지됩니다.
-- **유지되지 않는 것:** 세션, 리플레이, 첨부 파일, 프로파일, 체크인. SDK는 이를 계속 보내며, OneUptime은 받아들인 뒤 버립니다.
+- **유지되지 않는 것:** 세션, 리플레이, 첨부 파일. SDK는 이를 계속 보내며, OneUptime은 받아들인 뒤 버립니다.
 
 ## 한도와 수집 예산
 
 - **요청 크기**: OneUptime의 인그레스는 `/telemetry` 아래에서 최대 4MB의 요청을 받으며, 각 본문은 압축을 풀었을 때 최대 64MB까지입니다. Prometheus remote write 요청은 압축을 풀었을 때 최대 32MB, 시리즈, 레이블, 샘플을 합쳐 최대 500,000개까지 담을 수 있어, 어떤 요청 하나도 서버의 메모리를 바닥낼 수 없습니다. Prometheus와 Alloy는 기본적으로 요청마다 2,000개의 샘플을 보내므로 두 한도에 한참 못 미칩니다. 한도를 넘은 요청은 `413`으로 거부되니, 그런 경우 `queue_config`의 `max_samples_per_send`를 낮추세요.
 - **Loki push**: push는 압축을 풀었을 때 최대 32MB, 항목, 레이블, 구조화 메타데이터를 합쳐 최대 500,000개까지 담을 수 있으며, 스트림의 레이블은 그 항목마다 한 번씩 셉니다. Promtail과 Alloy는 기본적으로 1MB 배치를 보내므로 두 한도에 한참 못 미칩니다. 한도를 넘은 push는 `413`으로 거부되니, 그런 경우 클라이언트의 배치 크기를 낮추세요.
-- **JSON과 Datadog 페이로드**: JSON 본문은 값(객체, 배열, 문자열, 숫자)을 최대 1,000,000개, Datadog Agent의 protobuf 페이로드는 시리즈, 포인트, 태그, 스케치를 최대 500,000개까지 담을 수 있습니다. 각각 읽기 전에 세며, 한도를 넘은 요청은 `413`으로 거부됩니다.
-- **수집 예산**: Prometheus remote write와 Loki는 본문을 읽기 전에 메트릭 또는 로그 예산과 대조되며, 예산이 소진되면 `403`으로 거부됩니다. 그다음 모든 요청은 OTLP 요청처럼 압축을 푼 크기로 집계되며, 팀이나 레이블의 예산에도 집계됩니다. HEC 배치, Datadog 페이로드, Sentry 엔벨로프는 여러 신호를 담을 수 있으므로, 각 신호는 저장될 때 자체 예산에 집계되고 그 예산이 소진되면 버려집니다. HEC 배치의 로그와 메트릭 이벤트는 그 크기를 나눠 가지며, Sentry 엔벨로프는 OneUptime이 보관하는 항목의 크기로 집계되고, 첨부 파일, 리플레이, 프로필은 집계되지 않습니다.
+- **JSON, MessagePack, Datadog 페이로드**: JSON 또는 MessagePack 본문은 값(객체, 배열, 문자열, 숫자)을 최대 1,000,000개, Datadog Agent의 protobuf 페이로드는 시리즈, 포인트, 스팬, 태그, 스케치를 최대 500,000개까지 담을 수 있습니다. 각각 읽기 전에 세며, 한도를 넘은 요청은 `413`으로 거부됩니다.
+- **수집 예산**: Prometheus remote write와 Loki는 본문을 읽기 전에 메트릭 또는 로그 예산과 대조되며, 예산이 소진되면 `403`으로 거부됩니다. 그다음 모든 요청은 OTLP 요청처럼 압축을 푼 크기로 집계되며, 팀이나 레이블의 예산에도 집계됩니다. HEC 배치, Datadog 페이로드, Sentry 엔벨로프는 여러 신호를 담을 수 있으므로, 각 신호는 저장될 때 자체 예산에 집계되고 그 예산이 소진되면 버려집니다. HEC 배치의 로그와 메트릭 이벤트는 그 크기를 나눠 가지며, Sentry 엔벨로프의 항목은 각자의 신호에 집계됩니다. 프로파일은 프로파일 예산에, 체크인과 피드백은 로그 예산에 집계되고, 보관하지 않는 첨부 파일, 리플레이, 세션은 어디에도 집계되지 않습니다.
 
 ## 문제 해결
 
@@ -238,6 +254,10 @@ Sentry SDK는 키에 하이픈이 있는 DSN을 거부합니다. 키를 하이�
 ### Datadog 메트릭은 들어오지만 로그는 들어오지 않음
 
 `logs_config.use_http`가 `true`인지, `logs_config.logs_dd_url`이 URL이 아니라 호스트와 포트인지 확인하세요. `use_http`가 설정되지 않으면 Agent는 로그를 TCP로 보냅니다.
+
+### Datadog 로그가 트레이스에 연결되지 않음
+
+트레이서가 트레이스 ID의 하위 64비트만 로그에 기록했습니다. ID 전체를 기록하도록 트레이서에 `DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED=true`를 설정하세요.
 
 ### Prometheus가 415를 보고함
 
