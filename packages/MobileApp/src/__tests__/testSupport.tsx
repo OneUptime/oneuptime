@@ -509,6 +509,55 @@ export function makeWaitingPlaybookRun(
   };
 }
 
+/*
+ * A run whose containment step ran, approved: one account suspended, one
+ * the approver left out, and a note step with nothing to undo.
+ */
+export function makeContainedPlaybookRun(
+  overrides: Partial<SecurityPlaybookRunItem> = {},
+): SecurityPlaybookRunItem {
+  return {
+    _id: "7a6b0000-0002-4000-8000-000000000002",
+    securityCaseId: "5ec0ca5e-0142-4d1a-9a00-000000000142",
+    playbookName: "Contain a compromised account",
+    status: "Succeeded",
+    trigger: "Case Opened",
+    currentStepIndex: 2,
+    steps: [
+      { id: "note", action: "Add Case Note" },
+      { id: "suspend", action: "Suspend Okta User" },
+    ],
+    stepResults: [
+      { stepId: "note", action: "Add Case Note", status: "Succeeded" },
+      {
+        stepId: "suspend",
+        action: "Suspend Okta User",
+        status: "Succeeded",
+        targets: [
+          {
+            type: "User",
+            value: "alice@acme.test",
+            reason: "Grouped On",
+            state: "Done",
+            detail: "suspended",
+          },
+          {
+            type: "User",
+            value: "bob@acme.test",
+            reason: "Threat Intel",
+            state: "Left Out",
+          },
+        ],
+      },
+    ],
+    triggeredByUserId: null,
+    triggeredByUser: null,
+    startedAt: "2026-08-30T09:47:00.000Z",
+    createdAt: "2026-08-30T09:47:00.000Z",
+    ...overrides,
+  };
+}
+
 export function makeSecurityCaseFeedItem(
   overrides: Partial<SecurityCaseFeedItem> = {},
 ): SecurityCaseFeedItem {

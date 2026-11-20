@@ -232,7 +232,9 @@ Ieder kiest dat voor zichzelf, onder **Gebruikersinstellingen → Meldingsinstel
 
 De keuzes volgen de zaakprioriteiten van het project, onder hun eigen namen: dit zijn die van een nieuw project.
 
-Voor beveiligingszaken worden geen WhatsApp-berichten verstuurd. Een pushmelding opent de zaak in de app OneUptime On-Call (1.7.0 of nieuwer), waar u een wachtende playbookstap kunt goedkeuren of afwijzen, de zaak kunt oppakken en sluiten. De link erin opent de zaak in de browser.
+Voor beveiligingszaken worden geen WhatsApp-berichten verstuurd. Een pushmelding opent de zaak in de app OneUptime On-Call (1.7.0 of nieuwer), waar u een wachtende playbookstap kunt goedkeuren of afwijzen, de zaak kunt oppakken en sluiten. De link erin opent de zaak in de browser. Een pushmelding over een stap die op uw goedkeuring wacht, opent die goedkeuring zelf, met het bewijs; heeft iemand er intussen over beslist, dan zegt de zaak wie, wanneer en hoe de stap verliep.
+
+Een stap die op uw goedkeuring wacht, bereikt u in Slack of Microsoft Teams als een bericht waaruit u hem kunt goedkeuren, en de e-mail ervan zegt wat de stap gaat doen en waarom: zie [Goedkeuren vanuit Slack en Microsoft Teams](#goedkeuren-vanuit-slack-en-microsoft-teams).
 
 ### Plaatsen in kanalen van Slack, Microsoft Teams en Mattermost
 
@@ -375,9 +377,20 @@ De twee stappen voor gegevensopslagen werken op de gegevensopslagen waar de zaak
 
 De acht stappen die iemand de toegang ontnemen, wachten op goedkeuring. Alleen een Beveiligingsbeheerder kan **Goedkeuring nodig** voor een ervan uitzetten, en OneUptime legt vast wie dat deed. De goedkeuring toont onder **Toepassen op** de gebruikers of hosts waarop de stap zou werken, allemaal aangevinkt: vink uit wat hij ongemoeid moet laten. Beschermde gebruikers en hosts staan er niet tussen. Wie een uitvoering heeft gestart, kan haar stappen niet goedkeuren: dat doet iemand anders, maar afwijzen kan die persoon nog wel.
 
+#### Goedkeuren vanuit Slack en Microsoft Teams
+
+Een stap die op goedkeuring wacht, is een bericht met **Goedkeuren**, **Afwijzen** en **Zaak openen**; als hij op meer dan één gebruiker of host werkt, kunt u ook maar een deel ervan goedkeuren. Het gaat naar de kanalen en chats van elke regel voor beveiligingszaken waarvan de **Updates** **Benodigde goedkeuringen** posten, en naar elke goedkeurder die Slack of Microsoft Teams heeft gekozen voor **Playbookstap wacht op mijn goedkeuring**, in de taal van zijn account. Het zegt wat de stap gaat doen en via welke verbinding, op welke gebruikers of hosts hij werkt en waarom, welke beschermde hij met rust laat, wie of wat erom vroeg, het bewijs achter de zaak (hoe ver de verzoeken erachter kwamen, wat threat intelligence weet, dat niets waarop hij werkt beschermd is) en of hij ongedaan kan worden gemaakt. De e-mail die om de goedkeuring vraagt, zegt hetzelfde; de knop erin opent de goedkeuring op de zaak en beslist nooit iets, omdat mailscanners links volgen.
+
+- Wie maar een deel goedkeurt, ziet de gebruikers of hosts waarop de stap zou werken, allemaal aangevinkt: vink uit wat hij met rust moet laten. Er blijft er minstens één over, anders wijst u de stap af.
+- Op een knop drukken beslist als u, via het Slack- of Microsoft Teams-account dat u aan OneUptime hebt gekoppeld. Nog niet gekoppeld? Dan wordt u gevraagd te koppelen en daarna opnieuw te drukken. U hebt een rol nodig die playbooks mag uitvoeren, en u moet de zaak kunnen zien; wie de uitvoering startte, kan die niet goedkeuren, maar wel afwijzen. Een weigering zegt waarom: in Slack ziet alleen u die.
+- OneUptime controleert dat elke druk uit Slack of Microsoft Teams kwam, en beslist één keer: een druk die wordt herhaald, opnieuw wordt verzonden of op een bericht over een andere stap staat, beslist niets, en een druk nadat iemand heeft beslist, zegt wie en wanneer.
+- Zodra iemand beslist, in Slack, in Microsoft Teams, op de zaak of in de app, zegt elke kopie van het bericht wie het goedkeurde of afwees en wanneer, daarna hoe de stap verliep en wat er met elke gebruiker of host gebeurde, zonder andere knoppen dan **Zaak openen**. De beslissing wordt bewaard op de tijdlijn van de zaak, met de vermelding dat ze uit Slack of Microsoft Teams kwam, en in het auditlogboek van het project.
+
+Mattermost krijgt de goedkeuring als tekst, zonder knoppen.
+
 #### Ongedaan maken
 
-De herstelstappen werken op de gebruikers of hosts waar de zaak over gaat, net als de stappen die ze terugdraaien. Zodra de uitvoering is gestopt, heeft een ingeperkte gebruiker of host ook een eigen knop op zijn stap: **Opschorting opheffen**, **Indamming opheffen**, **Vrijgeven** of **Inschakelen**. Een afmelding kan niet ongedaan worden gemaakt. Elke herstelactie wordt bewaard op de tijdlijn van de zaak en in het auditlogboek van het project.
+De herstelstappen werken op de gebruikers of hosts waar de zaak over gaat, net als de stappen die ze terugdraaien. Zodra de uitvoering is gestopt, heeft een ingeperkte gebruiker of host ook een eigen knop op zijn stap: **Opschorting opheffen**, **Indamming opheffen**, **Vrijgeven** of **Inschakelen**. Een afmelding kan niet ongedaan worden gemaakt. Elke herstelactie wordt bewaard op de tijdlijn van de zaak en in het auditlogboek van het project. In de app OneUptime On-Call toont de zaak wat de playbooks ervan hebben ingeperkt, en elk daarvan kan daar ongedaan worden gemaakt.
 
 ### Blokkeerlijst
 

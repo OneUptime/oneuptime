@@ -146,6 +146,17 @@ export const OWN_EMAIL_ONLY_MESSAGE: string =
   "You can only change your own email address.";
 
 /*
+ * Why an account still in a project is not deleted: told to the person
+ * deleting their own (Danger Zone > Delete Account), and to a master admin
+ * deleting someone else's (Admin Dashboard > Users > Delete).
+ */
+export const ACCOUNT_IN_A_PROJECT_MESSAGE: string =
+  "You cannot delete your account because you are a member of one or more projects. Please leave all projects before deleting your account.";
+
+export const SOMEONES_ACCOUNT_IN_A_PROJECT_MESSAGE: string =
+  "This account is a member of one or more projects, so it cannot be deleted. Remove it from each project on its Projects page first, then delete it.";
+
+/*
  * Names the Redis mutex that serializes the first-Master-Admin election across
  * every process on this instance. Namespaced the same way as the other
  * cross-process mutexes in this codebase (see ProjectService's counter locks)
@@ -1346,9 +1357,46 @@ export class Service extends DatabaseService<Model> {
         kind: RealtimeAccessChangeKind.SessionsEnded,
         userId: userId.toString(),
       });
+
+      /*
+       * Recorded for whoever runs the server (#10330): an account in no
+       * project has no audit log to say it went, nor who deleted it.
+       */
+      logger.info(
+        Service.getAccountDeletedLogLine({
+          userId: userId,
+          props: onDelete.deleteBy.props,
+        }),
+      );
     }
 
     return onDelete;
+  }
+
+  /*
+   * What the server's log says of an account deleted (#10330), by its id
+   * and whoever deleted it - never an address: its owner, a master admin by
+   * their id, or OneUptime's own delete.
+   */
+  public static getAccountDeletedLogLine(data: {
+    userId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): string {
+    const userId: string = data.userId.toString();
+
+    if (data.props.isRoot || !data.props.userId) {
+      return `Account of user ${userId} deleted by OneUptime.`;
+    }
+
+    const callerId: string = data.props.userId.toString();
+
+    if (callerId.toLowerCase() === userId.toLowerCase()) {
+      return `Account of user ${userId} deleted by its owner.`;
+    }
+
+    return data.props.isMasterAdmin
+      ? `Account of user ${userId} deleted by master admin ${callerId}.`
+      : `Account of user ${userId} deleted by user ${callerId}.`;
   }
 
   @CaptureSpan()
@@ -1362,6 +1410,10 @@ export class Service extends DatabaseService<Model> {
         _id: true,
       },
     );
+
+    const callerId: string | null = deleteBy.props.userId
+      ? deleteBy.props.userId.toString().toLowerCase()
+      : null;
 
     for (const user of users) {
       const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
@@ -1380,56 +1432,74 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (teamMembers.length > 0) {
+        /*
+         * Whose account it is, in the refusal: a master admin deleting
+         * someone else's (Admin Dashboard > Users > Delete) was told to
+         * leave their own projects.
+         */
         throw new BadDataException(
-          "You cannot delete your account because you are a member of one or more projects. Please leave all projects before deleting your account.",
+          user.id?.toString().toLowerCase() === callerId
+            ? ACCOUNT_IN_A_PROJECT_MESSAGE
+            : SOMEONES_ACCOUNT_IN_A_PROJECT_MESSAGE,
         );
       }
     }
 
-    await this.assertOwnAccountDeleteIsConfirmed(deleteBy, users);
+    await this.assertAccountDeleteIsConfirmed(deleteBy, users);
 
     return { deleteBy, carryForward: null };
   }
 
   /*
-   * DELETING YOUR OWN ACCOUNT WAITS UNTIL YOUR SESSION CONFIRMS IT'S YOU
-   * (#10220).
+   * DELETING AN ACCOUNT WAITS UNTIL THE SESSION THAT ASKS CONFIRMS IT'S ITS
+   * PERSON'S (#10220, #10330).
    *
-   * Danger Zone > Delete Account, or DELETE /api/user/:id, deletes an
-   * account for good once it is in no project: the one change nobody
-   * recovers from. A session could leave each project and then delete the
-   * account; now the delete of the caller's own account is refused until
-   * their session has confirmed it's theirs (Utils/Reauthentication), as a
-   * change to how they sign in is. Asked after the rule that it is in no
-   * project, so nobody confirms for a delete that cannot happen, and before
-   * anything is deleted, so the same delete goes through once they have.
-   * The Dashboard asks and sends it again on its own.
+   * Danger Zone > Delete Account, Admin Dashboard > Users > Delete, or
+   * DELETE /api/user/:id deletes an account for good once it is in no
+   * project: the one change nobody recovers from. So the delete is refused
+   * until the caller's session has confirmed it's theirs
+   * (Utils/Reauthentication), as a change to how someone signs in is:
    *
-   * Root deletes, and a master admin's delete of somebody else's account
-   * (Admin Dashboard > Users > Delete), are as they were. `rows` are the
-   * rows the delete may remove, as onBeforeDelete read them.
+   *   - their own account (#10220), for DeleteAccount: a session could
+   *     leave each project and then delete the account;
+   *   - anybody else's, which only a master admin may delete (#10330), for
+   *     AdminChange, as their changes to how someone else signs in are
+   *     (#10216): whoever held a master admin's session, without their
+   *     password, could delete any account that is in no project. The
+   *     master API key has no session, and is refused
+   *     (Reauthentication.getSessionOf).
+   *
+   * Asked after the rule that it is in no project, so nobody confirms for a
+   * delete that cannot happen, and before anything is deleted, so the same
+   * delete goes through once they have: the Dashboard and the Admin
+   * Dashboard ask and send it again on their own. A root delete is the
+   * server's own, and is not asked. `rows` are the rows the delete may
+   * remove, as onBeforeDelete read them: only those the caller may delete,
+   * so another person's only for a master admin.
    */
-  private async assertOwnAccountDeleteIsConfirmed(
+  private async assertAccountDeleteIsConfirmed(
     deleteBy: DeleteBy<Model>,
     rows: Array<Model>,
   ): Promise<void> {
-    if (deleteBy.props.isRoot || !deleteBy.props.userId) {
+    if (deleteBy.props.isRoot || rows.length === 0) {
       return;
     }
 
-    const callerId: string = deleteBy.props.userId.toString().toLowerCase();
+    const callerId: string | null = deleteBy.props.userId
+      ? deleteBy.props.userId.toString().toLowerCase()
+      : null;
 
-    const deletesOwnAccount: boolean = rows.some((row: Model): boolean => {
-      return row.id?.toString().toLowerCase() === callerId;
-    });
-
-    if (!deletesOwnAccount) {
-      return;
-    }
+    const deletesOwnAccount: boolean =
+      callerId !== null &&
+      rows.some((row: Model): boolean => {
+        return row.id?.toString().toLowerCase() === callerId;
+      });
 
     await Reauthentication.assertConfirmed(
       deleteBy.props,
-      ReauthenticationPurpose.DeleteAccount,
+      deletesOwnAccount
+        ? ReauthenticationPurpose.DeleteAccount
+        : ReauthenticationPurpose.AdminChange,
     );
   }
 

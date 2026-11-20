@@ -34,7 +34,7 @@ Ja. Elke telefoon of tablet is een eigen pushapparaat, met eigen bereikbaarheids
 :::details Wat kan ik in de app doen?
 - **Home**: wat in het project aandacht nodig heeft: actieve incidenten en waarschuwingen, open beveiligingszaken als uw rol u ze laat zien, monitors met problemen en gegroepeerde gebeurtenissen.
 - **Monitors**: alle monitors, gefilterd op gezondheid, met hun details.
-- **Inbox**: incidenten en waarschuwingen, en de episodes die ze groeperen. Open er een om **Acknowledge**, **Resolve** of **Add Note** te gebruiken. Laat uw rol u de beveiligingszaken van het project zien, dan toont **Security** de open zaken: open er een om **Approve** of **Reject** te gebruiken voor een playbookstap die op goedkeuring wacht, de zaak op te pakken met **Assign to me** of **Close case** te gebruiken.
+- **Inbox**: incidenten en waarschuwingen, en de episodes die ze groeperen. Open er een om **Acknowledge**, **Resolve** of **Add Note** te gebruiken. Laat uw rol u de beveiligingszaken van het project zien, dan toont **Security** de open zaken: open er een om **Approve** of **Reject** te gebruiken voor een playbookstap die op goedkeuring wacht, de zaak op te pakken met **Assign to me** of **Close case** te gebruiken. Een stap die op goedkeuring wacht, toont wat hij gaat doen en het bewijs erachter, en **Undo** geeft vrij wat een playbook heeft ingeperkt.
 - **On-Call**: of u dienst hebt en tot wanneer, wie nog meer, de oproepen die naar u gingen, en **Cover for me**, dat uw oproepen een tijdje aan een collega overdraagt.
 - **Settings**: uw projecten en single sign-on, het uiterlijk, kritieke meldingen en het alarmgeluid, **Biometric Unlock**, uw agendafeed voor diensten, en **Sign Out**.
 

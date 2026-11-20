@@ -287,6 +287,31 @@ O navegador passa pela saída do provedor assim que o OneUptime encerra a sessã
 Um provedor em que ele não está registrado mostra a própria página de erro depois que alguém sai do OneUptime, em vez de devolver a pessoa; mesmo assim, ela saiu do OneUptime.
 :::
 
+## Entrar novamente para confirmar que é você
+
+Antes que alguém altere como entra ou exclua sua conta, o OneUptime pede que [confirme que é ele](/docs/introduction/your-account#confirmar-que-é-você). Quem entra apenas pelo seu provedor de identidade, sem senha nem chave de acesso no OneUptime, confirma com **Entrar novamente**: o OneUptime o envia ao provedor e pede que o faça entrar novamente. Só conta quando o provedor diz que ele entrou naquele momento ou depois, com um minuto de folga para os dois relógios. Um provedor que o faz entrar de novo na hora com uma sessão que já tem, ou que não informa quando ele entrou, não confirma nada, e a pessoa é orientada a pedir a você que mude isso.
+
+:::tabs
+@tab SAML
+O OneUptime envia `ForceAuthn="true"` e lê quando a pessoa entrou no `AuthnInstant` da asserção.
+
+| Provedor de identidade | O que configurar |
+| --- | --- |
+| Okta | Na guia **General**, edite **SAML Settings**, clique em **Show Advanced Settings** e defina **Honor Force Authentication** como **Yes**. Com **No**, o Okta ignora a solicitação. |
+| Microsoft Entra ID | Nada: o Entra ID respeita a solicitação, e seu `AuthnInstant` é quando a pessoa entrou. |
+| Keycloak | Nada: o Keycloak respeita a solicitação. Mas seu `AuthnInstant` é quando ele responde, não quando a pessoa entrou, então o OneUptime não consegue verificar que o Keycloak pediu de novo. Conecte o Keycloak por OpenID Connect para uma verificação que o próprio OneUptime faz. |
+| Google Workspace | Nada a configurar. O Google não diz se respeita a solicitação. Seu `AuthnInstant` é a última vez que a pessoa entrou no Google, então quem ainda está conectado ao Google sai do Google primeiro. |
+@tab OpenID Connect
+O OneUptime envia `prompt=login` e `max_age=0`, e lê quando a pessoa entrou no `auth_time` do token de ID.
+
+| Provedor de identidade | O que configurar |
+| --- | --- |
+| Okta | Nada: o Okta respeita os dois e sempre envia `auth_time`. |
+| Microsoft Entra ID | Em **Token configuration** do registro do aplicativo, clique em **Add optional claim**, escolha **ID** e adicione `auth_time`: o Entra ID só o envia como declaração opcional. Ele respeita `prompt=login`. |
+| Keycloak | Mantenha o escopo de cliente `basic` no cliente: ele traz `auth_time`. O Keycloak 25 e versões posteriores dão esse escopo a todos os clientes. |
+| Google Workspace | Ative **Session age claims** para o cliente OAuth, em **Google Auth Platform** > **Settings** > **Advanced Settings**; o aplicativo precisa estar publicado e verificado. O Google não aceita nenhuma das duas solicitações, então o OneUptime pede `auth_time` em vez disso, e quem ainda está conectado ao Google sai do Google primeiro. |
+:::
+
 ## Funções e equipes dos usuários de SSO
 
 O OneUptime não mapeia funções nem grupos do seu provedor de identidade. O que alguém pode fazer depende das equipes em que está: um provedor adiciona os recém-chegados às **Equipes** dele, e você gerencia as equipes e suas permissões no OneUptime, como descreve [Usuários, equipes e permissões](/docs/permissions/index). Para manter a participação nas equipes alinhada ao seu provedor de identidade, use o [SCIM](/docs/identity/scim). Cada equipe em que alguém entra ao fazer login é registrada na página **Registros de auditoria** dessa equipe, como uma alteração feita pela pessoa que fez login.

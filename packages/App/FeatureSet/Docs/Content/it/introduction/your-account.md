@@ -156,11 +156,11 @@ Alcune modifiche ti chiedono prima di confermare che sei tu, anche se hai già e
 - disattivi l'autenticazione a due fattori;
 - elimini il tuo account.
 
-La finestra **Conferma che sei tu** chiede la tua password e, finché l'autenticazione a due fattori è attiva, il tuo secondo passaggio: un codice dalla tua app di autenticazione, la tua chiave di sicurezza o uno dei tuoi codici di backup. Con una passkey, fai invece clic su **Usa una passkey**. Se accedi solo con il single sign-on, Google o Microsoft, fai clic su **Accedi di nuovo**: OneUptime fa sì che il tuo provider di identità ti chieda di accedere di nuovo, poi ti riporta alla pagina. A quel punto la modifica viene applicata.
+La finestra **Conferma che sei tu** chiede la tua password e, finché l'autenticazione a due fattori è attiva, il tuo secondo passaggio: un codice dalla tua app di autenticazione, la tua chiave di sicurezza o uno dei tuoi codici di backup. Con una passkey, fai invece clic su **Usa una passkey**. Se accedi solo con il single sign-on, Google o Microsoft, fai clic su **Accedi di nuovo**: OneUptime fa sì che il tuo provider di identità ti chieda di accedere di nuovo, poi ti riporta alla pagina. A quel punto la modifica viene applicata. Se accedi solo con Vercel, che non può confermare che sei tu, scegli invece **Accedi in un altro modo** e accedi con un link che ti inviamo via email.
 
 Dopo la conferma, non ti viene chiesto di nuovo per 10 minuti in quel browser. Cinque tentativi sbagliati disconnettono quel browser, ma non bloccano mai il tuo account: accedi di nuovo e riprova. OneUptime ti invia un'email quando succede, e ogni volta che un codice di backup conferma che sei tu.
 
-Su un server self-hosted, gli amministratori principali confermano allo stesso modo che sono loro prima di cambiare il modo in cui un'altra persona accede, rendere qualcuno amministratore principale, cambiare i provider di single sign-on o le impostazioni email del server, o creare una chiave API master. La chiave API master non può fare queste modifiche.
+Su un server self-hosted, gli amministratori principali confermano allo stesso modo che sono loro prima di cambiare il modo in cui un'altra persona accede, eliminare l'account di un'altra persona, rendere qualcuno amministratore principale, cambiare i provider di single sign-on o le impostazioni email del server, o creare una chiave API master o riattivarla. La chiave API master non può fare queste modifiche.
 
 Il nuovo accesso conta solo se il tuo provider di identità dice che hai effettuato l'accesso dopo che OneUptime ti ci ha mandato. Se il provider ti fa accedere con una sessione che ha già, senza chiederti la password, non conferma nulla: esci prima dal provider, poi fai clic su **Accedi di nuovo**. Dove il tuo server consente di accedere con un link inviato via email, **Accedi in un altro modo** fa questo al suo posto. Cosa chiede OneUptime a ciascun provider, e cosa può cambiare un amministratore quando il nuovo accesso non conferma nulla:
 
@@ -170,6 +170,9 @@ Il nuovo accesso conta solo se il tuo provider di identità dice che hai effettu
 | OpenID Connect | `prompt=login` e `max_age=0`, e il momento in cui hai effettuato l'accesso (`auth_time`) | Fai inviare `auth_time` dal provider. In Microsoft Entra ID, aggiungilo al token ID come attestazione facoltativa. |
 | Google | Il momento in cui hai effettuato l'accesso (`auth_time`). A Google non si può chiedere di farti accedere di nuovo. | Attiva Session age claims per l'app di accesso Google del server, che deve essere pubblicata e verificata. |
 | Microsoft | `prompt=login` e `max_age=0`, e il momento in cui hai effettuato l'accesso (`auth_time`) | Aggiungi `auth_time` al token ID dell'app di accesso Microsoft del server come attestazione facoltativa. |
+| Vercel | Niente: a Vercel non si può chiedere di farti accedere di nuovo, e non dice quando hai effettuato l'accesso. | Non conferma mai. Scegli **Accedi in un altro modo** e accedi con un link che ti inviamo via email, oppure imposta una password con **Password dimenticata?** e conferma con quella. |
+
+Cosa impostare in Okta, Microsoft Entra ID, Keycloak e Google Workspace è spiegato nella pagina [SSO](/docs/identity/sso#accedere-di-nuovo-per-confermare-che-sei-tu).
 
 ## I tuoi progetti
 

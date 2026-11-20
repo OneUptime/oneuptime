@@ -232,7 +232,9 @@ Ognuno sceglie per sé, in **Impostazioni utente → Impostazioni notifiche → 
 
 Le scelte seguono le priorità dei casi del progetto, con i loro nomi: queste sono quelle di un nuovo progetto.
 
-Per i casi di sicurezza non vengono inviati messaggi WhatsApp. Una notifica push apre il caso nell'app OneUptime On-Call (1.7.0 o successiva), dove puoi approvare o rifiutare un passo di playbook in attesa, prendere in carico il caso e chiuderlo. Il suo link apre il caso nel browser.
+Per i casi di sicurezza non vengono inviati messaggi WhatsApp. Una notifica push apre il caso nell'app OneUptime On-Call (1.7.0 o successiva), dove puoi approvare o rifiutare un passo di playbook in attesa, prendere in carico il caso e chiuderlo. Il suo link apre il caso nel browser. Una notifica push su un passo in attesa della tua approvazione apre proprio quell'approvazione, con le sue prove; se nel frattempo qualcuno l'ha decisa, il caso dice chi, quando e com'è andato il passo.
+
+Un passo in attesa della tua approvazione ti raggiunge in Slack o Microsoft Teams come un messaggio da cui puoi approvarlo, e la sua email dice cosa farà il passo e perché: vedi [Approvare da Slack e Microsoft Teams](#approvare-da-slack-e-microsoft-teams).
 
 ### Pubblicare nei canali di Slack, Microsoft Teams e Mattermost
 
@@ -375,9 +377,20 @@ I due passi degli archivi dati agiscono sugli archivi dati di cui tratta il caso
 
 Gli otto passi che tagliano fuori qualcuno attendono un'approvazione. Solo un Amministratore della sicurezza può disattivare **Richiede approvazione** per uno di essi, e OneUptime registra chi l'ha fatto. L'approvazione elenca sotto **Agisci su** gli utenti o gli host su cui agirebbe il passo, tutti selezionati: deseleziona quelli che deve lasciare intatti. Quelli protetti non vengono proposti. Chi ha avviato un'esecuzione non può approvarne i passi: lo fa qualcun altro, anche se può comunque rifiutarli.
 
+#### Approvare da Slack e Microsoft Teams
+
+Un passo in attesa di approvazione è un messaggio con **Approva**, **Rifiuta** e **Apri caso**; quando agisce su più di un utente o host, permette anche di approvarne solo alcuni. Va ai canali e alle chat di ogni regola dei casi di sicurezza i cui **Aggiornamenti** pubblicano le **Approvazioni richieste**, e a ogni approvatore che ha scelto Slack o Microsoft Teams per **Passaggio di playbook in attesa della mia approvazione**, nella lingua del suo account. Dice cosa farà il passo e attraverso quale connessione, ogni utente o host su cui agisce e perché, i protetti che lascia stare, chi o cosa l'ha chiesto, le prove dietro il caso (fin dove sono arrivate le richieste che lo hanno originato, cosa sa la threat intelligence, che nulla di ciò su cui agisce è protetto) e se si può annullare. L'email che chiede l'approvazione dice lo stesso; il suo pulsante apre l'approvazione sul caso e non decide mai nulla, perché gli scanner di posta seguono i link.
+
+- Approvandone solo alcuni, compare l'elenco degli utenti o degli host su cui il passo agirebbe, tutti spuntati: togli la spunta a quelli che deve lasciare stare. Almeno uno resta, altrimenti rifiuta il passo.
+- Premere un pulsante decide a tuo nome, attraverso l'account Slack o Microsoft Teams che hai collegato a OneUptime. Se non l'hai ancora collegato, ti viene chiesto di collegarlo e poi di premere di nuovo. Ti serve un ruolo che possa eseguire playbook e poter vedere il caso; chi ha avviato l'esecuzione non può approvarla, ma può rifiutarla. Un rifiuto dice perché: in Slack lo vedi solo tu.
+- OneUptime verifica che ogni pressione arrivi da Slack o Microsoft Teams e decide una volta sola: una pressione ripetuta, inviata di nuovo o su un messaggio relativo a un altro passo non decide nulla, e una pressione dopo che qualcuno ha deciso dice chi e quando.
+- Appena qualcuno decide, in Slack, in Microsoft Teams, sul caso o nell'app, ogni copia del messaggio dice chi l'ha approvato o rifiutato e quando, poi com'è andato il passo e cosa è successo a ogni utente o host, senza altri pulsanti che **Apri caso**. La decisione resta nella cronologia del caso, indicando che è arrivata da Slack o Microsoft Teams, e nel log di audit del progetto.
+
+Mattermost riceve l'approvazione come testo, senza pulsanti.
+
 #### Annullamento
 
-I passi di annullamento agiscono sugli utenti o sugli host di cui tratta il caso, come i passi che annullano. Una volta che l'esecuzione si è fermata, un utente o un host contenuto ha anche un proprio pulsante sul suo passo: **Riattiva**, **Rimuovi il contenimento**, **Rilascia** o **Attiva**. Una disconnessione non si può annullare. Ogni annullamento resta nella cronologia del caso e nel log di audit del progetto.
+I passi di annullamento agiscono sugli utenti o sugli host di cui tratta il caso, come i passi che annullano. Una volta che l'esecuzione si è fermata, un utente o un host contenuto ha anche un proprio pulsante sul suo passo: **Riattiva**, **Rimuovi il contenimento**, **Rilascia** o **Attiva**. Una disconnessione non si può annullare. Ogni annullamento resta nella cronologia del caso e nel log di audit del progetto. Nell'app OneUptime On-Call, il caso elenca ciò che i suoi playbook hanno contenuto, e ciascuno si può annullare da lì.
 
 ### Blocklist
 

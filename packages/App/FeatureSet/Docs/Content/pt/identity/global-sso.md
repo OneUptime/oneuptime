@@ -104,6 +104,12 @@ Registre no seu provedor o URI de redirecionamento após sair que o cartão **UR
 
 Onde o Okta, o Microsoft Entra ID, o Auth0 e o Keycloak guardam essas configurações está na página [SSO](/docs/identity/sso).
 
+## Entrar novamente para confirmar que é você
+
+Quem entra apenas por um provedor global confirma que é ele com **Entrar novamente** antes de alterar como entra ou excluir sua conta: o OneUptime o devolve ao provedor com `ForceAuthn="true"` para SAML, ou `prompt=login` e `max_age=0` para OpenID Connect, e só conta quando o provedor diz, em `AuthnInstant` ou `auth_time`, que ele entrou naquele momento ou depois. Adicionar, alterar ou excluir um provedor global pede primeiro que você [confirme que é você](/docs/introduction/your-account#confirmar-que-é-você).
+
+O que configurar no Okta, no Microsoft Entra ID, no Keycloak e no Google Workspace está na página [SSO](/docs/identity/sso#entrar-novamente-para-confirmar-que-é-você).
+
 ## Impor o SSO
 
 Configurar um provedor global não obriga ninguém a usá-lo; o login com senha continua funcionando. Para exigir SSO, ligue a exigência em um projeto ou na instância inteira:
