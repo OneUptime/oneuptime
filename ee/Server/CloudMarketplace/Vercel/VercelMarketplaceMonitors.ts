@@ -614,7 +614,9 @@ export default class VercelMarketplaceMonitors {
     const reason: ServerProductOffReason | null =
       await ServerProducts.getOffReasonOfServerWork(product);
 
-    return reason ? getProductOffMessage({ product: product, reason: reason }) : null;
+    return reason
+      ? getProductOffMessage({ product: product, reason: reason })
+      : null;
   }
 
   private static getConnectionSelect(): Record<string, true> {
