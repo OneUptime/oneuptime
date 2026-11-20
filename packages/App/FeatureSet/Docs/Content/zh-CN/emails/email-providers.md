@@ -64,7 +64,7 @@
 
 ### 使用服务器的 IAM 角色登录
 
-在 AWS 上自托管的安装可以以 AWS 赋予服务器的 IAM 角色身份发送自己的邮件，OneUptime 中不存储任何访问密钥：AWS 发放的凭证会在数小时内过期，OneUptime 会在过期前获取新的凭证。这仅适用于服务器自己的邮件。项目的 Amazon SES 配置始终使用访问密钥登录，因为服务器的角色是服务器自己的 AWS 身份，而不是某个项目的。
+自托管的安装可以以 IAM 角色身份发送自己的邮件，OneUptime 中不存储任何访问密钥：在 AWS 上是 AWS 赋予服务器的角色，在其他任何地方是它通过 IAM Roles Anywhere 登录的角色。凭证会在数小时内过期，OneUptime 会在过期前获取新的凭证。这仅适用于服务器自己的邮件。项目的 Amazon SES 配置始终使用访问密钥登录，因为服务器的角色是服务器自己的 AWS 身份，而不是某个项目的。
 
 为角色附加上面的策略，然后以该角色运行 OneUptime：
 
@@ -88,11 +88,32 @@ serviceAccount:
 ```bash
 aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
 ```
+@tab IAM Roles Anywhere
+在 AWS 之外，在你自己的服务器上或另一个云中，服务器通过 IAM Roles Anywhere 以角色身份登录，它用 X.509 证书换取角色的凭证。在 IAM Roles Anywhere 中，为你的证书颁发机构创建一个信任锚（trust anchor），并为该角色创建一个 profile。然后把 AWS 的凭证助手 `aws_signing_helper`，与证书、其私钥以及一个 AWS 配置文件放在同一个文件夹中，该配置文件中的 profile 将助手作为其 `credential_process` 运行：
+
+```ini title="aws/config"
+[profile oneuptime]
+credential_process = /etc/oneuptime/aws/aws_signing_helper credential-process --certificate /etc/oneuptime/aws/certificate.pem --private-key /etc/oneuptime/aws/private-key.pem --trust-anchor-arn arn:aws:rolesanywhere:us-east-1:123456789012:trust-anchor/TRUST_ANCHOR_ID --profile-arn arn:aws:rolesanywhere:us-east-1:123456789012:profile/PROFILE_ID --role-arn arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+使用 Docker Compose 时，在 `docker-compose.yml` 旁边的 `docker-compose.override.yml` 中以只读方式挂载该文件夹，并指定文件和 profile：
+
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      AWS_CONFIG_FILE: /etc/oneuptime/aws/config
+      AWS_PROFILE: oneuptime
+    volumes:
+      - ./aws:/etc/oneuptime/aws:ro
+```
+
+使用 Helm Chart 时，通过 `extraVolumes` 和 `extraVolumeMounts` 从一个 Secret 挂载配置、证书及其密钥，通过 `extraEnv` 设置 `AWS_CONFIG_FILE` 和 `AWS_PROFILE`，并把助手放进基于 OneUptime 镜像构建的镜像中：一个 Secret 最多容纳 1 MB。OneUptime 运行助手时不经过 shell，使用其完整路径，最长 30 秒，并且只从它自己无法更改的配置文件运行：它能写入的配置文件会被拒绝。
 :::
 
 然后在 Admin Dashboard 中点击 **编辑 Amazon SES**，将 **认证类型** 选为 **此服务器的 IAM 角色**，并输入 **区域**。保存后，之前存储的访问密钥会被删除。
 
-OneUptime 按照 AWS SDK 的方式，依次在以下位置查找服务器的凭证：其环境中的 `AWS_ACCESS_KEY_ID` 和 `AWS_SECRET_ACCESS_KEY`、Web 身份令牌（`AWS_ROLE_ARN` 和 `AWS_WEB_IDENTITY_TOKEN_FILE`）、Amazon ECS 和 EKS Pod Identity 的容器凭证端点，最后是 EC2 的实例元数据服务（IMDSv2）。
+OneUptime 按照 AWS SDK 的方式，依次在以下位置查找服务器的凭证：其环境中的 `AWS_ACCESS_KEY_ID` 和 `AWS_SECRET_ACCESS_KEY`、`AWS_PROFILE`、`AWS_CONFIG_FILE` 或 `AWS_SHARED_CREDENTIALS_FILE` 指定的 AWS profile（其密钥或其 `credential_process`）、Web 身份令牌（`AWS_ROLE_ARN` 和 `AWS_WEB_IDENTITY_TOKEN_FILE`）、Amazon ECS 和 EKS Pod Identity 的容器凭证端点，最后是 EC2 的实例元数据服务（IMDSv2）。这三者都未设置时，OneUptime 不会读取任何 AWS 配置文件。
 
 ## SendGrid
 

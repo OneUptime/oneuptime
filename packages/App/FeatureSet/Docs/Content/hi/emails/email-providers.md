@@ -64,7 +64,7 @@ AWS पर स्व-होस्टेड इंस्टॉलेशन कु
 
 ### सर्वर की IAM भूमिका से साइन इन करें
 
-AWS पर स्व-होस्टेड इंस्टॉलेशन अपने ईमेल उस IAM भूमिका के रूप में भेज सकता है जो AWS सर्वर को देता है, और OneUptime में कोई एक्सेस कुंजी संग्रहीत नहीं होती: AWS जो क्रेडेंशियल देता है वे कुछ घंटों में समाप्त हो जाते हैं, और OneUptime उनके समाप्त होने से पहले नए ले लेता है। यह केवल सर्वर के अपने ईमेल के लिए है। किसी प्रोजेक्ट का Amazon SES कॉन्फ़िग हमेशा एक्सेस कुंजी से साइन इन करता है, क्योंकि सर्वर की भूमिका सर्वर की अपनी AWS पहचान है, किसी प्रोजेक्ट की नहीं।
+स्व-होस्टेड इंस्टॉलेशन अपने ईमेल किसी IAM भूमिका के रूप में भेज सकता है, और OneUptime में कोई एक्सेस कुंजी संग्रहीत नहीं होती: AWS पर वह भूमिका जो AWS सर्वर को देता है, और कहीं और वह भूमिका जिसमें वह IAM Roles Anywhere से साइन इन करता है। क्रेडेंशियल कुछ घंटों में समाप्त हो जाते हैं, और OneUptime उनके समाप्त होने से पहले नए ले लेता है। यह केवल सर्वर के अपने ईमेल के लिए है। किसी प्रोजेक्ट का Amazon SES कॉन्फ़िग हमेशा एक्सेस कुंजी से साइन इन करता है, क्योंकि सर्वर की भूमिका सर्वर की अपनी AWS पहचान है, किसी प्रोजेक्ट की नहीं।
 
 भूमिका को ऊपर दी गई पॉलिसी दें, फिर OneUptime को उस भूमिका के रूप में चलाएँ:
 
@@ -88,11 +88,32 @@ EKS Pod Identity के साथ, इसके बजाय भूमिका 
 ```bash
 aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
 ```
+@tab IAM Roles Anywhere
+AWS के बाहर, आपके अपने सर्वरों पर या किसी दूसरे क्लाउड में, सर्वर IAM Roles Anywhere के ज़रिए एक भूमिका के रूप में साइन इन करता है, जो एक X.509 प्रमाणपत्र के बदले भूमिका के क्रेडेंशियल देता है। IAM Roles Anywhere में अपने प्रमाणपत्र प्राधिकरण के लिए एक trust anchor और भूमिका के लिए एक प्रोफ़ाइल बनाएँ। फिर AWS के क्रेडेंशियल हेल्पर `aws_signing_helper` को प्रमाणपत्र, उसकी निजी कुंजी और एक AWS कॉन्फ़िग फ़ाइल के साथ एक फ़ोल्डर में रखें, जिसकी प्रोफ़ाइल हेल्पर को अपने `credential_process` के रूप में चलाती है:
+
+```ini title="aws/config"
+[profile oneuptime]
+credential_process = /etc/oneuptime/aws/aws_signing_helper credential-process --certificate /etc/oneuptime/aws/certificate.pem --private-key /etc/oneuptime/aws/private-key.pem --trust-anchor-arn arn:aws:rolesanywhere:us-east-1:123456789012:trust-anchor/TRUST_ANCHOR_ID --profile-arn arn:aws:rolesanywhere:us-east-1:123456789012:profile/PROFILE_ID --role-arn arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+Docker Compose के साथ, फ़ोल्डर को केवल-पढ़ने के लिए माउंट करें और `docker-compose.yml` के बगल में `docker-compose.override.yml` में फ़ाइल और प्रोफ़ाइल का नाम दें:
+
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      AWS_CONFIG_FILE: /etc/oneuptime/aws/config
+      AWS_PROFILE: oneuptime
+    volumes:
+      - ./aws:/etc/oneuptime/aws:ro
+```
+
+Helm चार्ट के साथ, कॉन्फ़िग, प्रमाणपत्र और उसकी कुंजी को `extraVolumes` और `extraVolumeMounts` से किसी Secret से माउंट करें, `extraEnv` से `AWS_CONFIG_FILE` और `AWS_PROFILE` सेट करें, और हेल्पर को OneUptime के इमेज पर बने इमेज में रखें: एक Secret में अधिकतम 1 MB आता है। OneUptime हेल्पर को बिना shell के, उसके पूरे पाथ से, अधिकतम 30 सेकंड तक, और केवल ऐसी कॉन्फ़िग फ़ाइल से चलाता है जिसे वह बदल नहीं सकता: जिस फ़ाइल में वह लिख सकता है, वह अस्वीकार कर दी जाती है।
 :::
 
 फिर Admin Dashboard में **Amazon SES संपादित करें** पर क्लिक करें, **प्रमाणीकरण प्रकार** के रूप में **इस सर्वर की IAM भूमिका** चुनें, और **क्षेत्र** डालें। इसे सहेजने पर पहले संग्रहीत कोई भी एक्सेस कुंजी हटा दी जाती है।
 
-OneUptime सर्वर के क्रेडेंशियल वहीं ढूँढता है जहाँ AWS SDK ढूँढते हैं, इस क्रम में: उसके परिवेश में `AWS_ACCESS_KEY_ID` और `AWS_SECRET_ACCESS_KEY`, एक वेब आइडेंटिटी टोकन (`AWS_ROLE_ARN` और `AWS_WEB_IDENTITY_TOKEN_FILE`), Amazon ECS और EKS Pod Identity का कंटेनर क्रेडेंशियल एंडपॉइंट, फिर EC2 की इंस्टेंस मेटाडेटा सेवा (IMDSv2)।
+OneUptime सर्वर के क्रेडेंशियल वहीं ढूँढता है जहाँ AWS SDK ढूँढते हैं, इस क्रम में: उसके परिवेश में `AWS_ACCESS_KEY_ID` और `AWS_SECRET_ACCESS_KEY`, वह AWS प्रोफ़ाइल जिसका नाम `AWS_PROFILE`, `AWS_CONFIG_FILE` या `AWS_SHARED_CREDENTIALS_FILE` देता है (उसकी कुंजियाँ, या उसका `credential_process`), एक वेब आइडेंटिटी टोकन (`AWS_ROLE_ARN` और `AWS_WEB_IDENTITY_TOKEN_FILE`), Amazon ECS और EKS Pod Identity का कंटेनर क्रेडेंशियल एंडपॉइंट, फिर EC2 की इंस्टेंस मेटाडेटा सेवा (IMDSv2)। इन तीनों में से कोई सेट न हो, तो OneUptime कोई AWS कॉन्फ़िग फ़ाइल नहीं पढ़ता।
 
 ## SendGrid
 

@@ -4413,5 +4413,18 @@
   "Same name as another label": "다른 레이블과 같은 이름",
   "Same name as another policy": "다른 정책과 같은 이름",
   "Same name as another schedule": "다른 일정과 같은 이름",
-  "Created {{date}}": "{{date}}에 생성됨"
+  "Created {{date}}": "{{date}}에 생성됨",
+  "Signs In As": "로그인 ID",
+  "Check again": "다시 확인",
+  "Couldn't ask the server which AWS identity it signs in as. {{error}}": "서버가 어떤 AWS ID로 로그인하는지 서버에 물을 수 없었습니다. {{error}}",
+  "This server cannot sign in to AWS. {{error}}": "이 서버는 AWS에 로그인할 수 없습니다. {{error}}",
+  "A test email shows whether it may send.": "보낼 수 있는지는 테스트 이메일로 알 수 있습니다.",
+  "From AWS_ACCESS_KEY_ID in the server's environment.": "서버 환경의 AWS_ACCESS_KEY_ID에서.",
+  "From the server's AWS profile.": "서버의 AWS 프로필에서.",
+  "From IAM roles for service accounts.": "서비스 계정용 IAM 역할에서.",
+  "From EKS Pod Identity.": "EKS Pod Identity에서.",
+  "From the ECS task role.": "ECS 작업 역할에서.",
+  "From the container credentials endpoint.": "컨테이너 자격 증명 엔드포인트에서.",
+  "From the EC2 instance profile.": "EC2 인스턴스 프로파일에서.",
+  "The server did not say which AWS identity it signs in as.": "서버가 어떤 AWS ID로 로그인하는지 알려 주지 않았습니다."
 }
