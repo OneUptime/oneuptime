@@ -4,6 +4,8 @@ import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerpr
 import {
   EVIDENCE_SCOPE_FIELD,
   EVIDENCE_TRUNCATED_FIELD,
+  LOGGED_SERIES_FIELD,
+  LoggedSeries,
   STORED_CHECK_MAX_SIZE_IN_BYTES,
   StoredCheckEvidenceScope,
 } from "../../../Utils/Monitor/StoredCheckEvidence";
@@ -204,6 +206,211 @@ export default class MonitorStoredCheck {
     scoped[EVIDENCE_SCOPE_FIELD] = scope as unknown as JSONObject;
 
     return scoped as unknown as DataToProcess;
+  }
+
+  /*
+   * A grouped evaluation as the monitor's log keeps it (MonitorLogUtil,
+   * #10108): its series lists - a Metrics monitor's seriesBreakdown, a Logs
+   * monitor's groups - held to maxSizeInBytes of JSON, the series the
+   * evaluation acted on first, then the others in the evaluation's order.
+   * A Metrics check's metricResult keeps the points of the series kept,
+   * query by query and formula by formula, as a record about one series
+   * does (scopeToSeries), so the two halve the budget between them. The
+   * copy says how many series there were (LOGGED_SERIES_FIELD) and that it
+   * was cut (EVIDENCE_TRUNCATED_FIELD).
+   *
+   * The log used to keep every series: 73 MB of JSON per evaluation at
+   * 16,000 series, copied, redacted and encoded on the event loop - four
+   * seconds of the evaluation - and written to ClickHouse every five
+   * minutes, for a page that cannot show it. A check whose series fit is
+   * returned as it is; nothing it holds is changed or copied, but its own
+   * object and lists.
+   */
+  public static boundSeriesForLog(input: {
+    check: DataToProcess;
+    // The series the evaluation acted on: kept first.
+    firstFingerprints?: ReadonlySet<string> | undefined;
+    maxSizeInBytes?: number | undefined;
+  }): DataToProcess {
+    if (!MonitorStoredCheck.isPlainObject(input.check)) {
+      return input.check;
+    }
+
+    const maxSizeInBytes: number =
+      input.maxSizeInBytes || STORED_CHECK_MAX_SIZE_IN_BYTES;
+    const source: JSONObject = input.check as unknown as JSONObject;
+
+    const fields: Array<string> = SERIES_LIST_FIELDS.filter(
+      (field: string): boolean => {
+        return Array.isArray(source[field]);
+      },
+    );
+
+    if (fields.length === 0) {
+      return input.check;
+    }
+
+    const hasMetricPoints: boolean =
+      fields.includes(METRIC_SERIES_LIST_FIELD) &&
+      Array.isArray(source["metricResult"]);
+
+    // What the series take: their lists, and a Metrics check's points.
+    let size: number = 0;
+
+    for (const field of hasMetricPoints
+      ? [...fields, "metricResult"]
+      : fields) {
+      size += JsonBudget.measure(source[field], maxSizeInBytes - size);
+
+      if (size > maxSizeInBytes) {
+        break;
+      }
+    }
+
+    if (size <= maxSizeInBytes) {
+      return input.check;
+    }
+
+    const bounded: JSONObject = { ...source };
+    let room: number = hasMetricPoints
+      ? Math.floor(maxSizeInBytes / 2)
+      : maxSizeInBytes;
+    let logged: LoggedSeries | undefined = undefined;
+
+    for (const field of fields) {
+      const list: Array<unknown> = source[field] as Array<unknown>;
+      const kept: Array<JSONObject> = [];
+
+      for (const entry of MonitorStoredCheck.orderForLog({
+        list: list,
+        firstFingerprints: input.firstFingerprints,
+      })) {
+        // The entry, and the comma before it.
+        const entrySize: number = JsonBudget.measure(entry, room) + 1;
+
+        if (entrySize > room) {
+          break;
+        }
+
+        kept.push(entry);
+        room -= entrySize;
+      }
+
+      bounded[field] = kept;
+
+      if (!logged) {
+        logged = {
+          seriesInEvaluation: list.length,
+          seriesWithDataInEvaluation:
+            field === METRIC_SERIES_LIST_FIELD
+              ? MonitorStoredCheck.countSeriesWithData(list)
+              : list.length,
+          seriesKept: kept.length,
+        };
+      }
+
+      if (field === METRIC_SERIES_LIST_FIELD && hasMetricPoints) {
+        bounded["metricResult"] = MonitorStoredCheck.pointsOfSeries({
+          results: source["metricResult"] as Array<unknown>,
+          series: kept,
+        });
+      }
+    }
+
+    bounded[LOGGED_SERIES_FIELD] = logged as unknown as JSONObject;
+    bounded[EVIDENCE_TRUNCATED_FIELD] = true;
+
+    return bounded as unknown as DataToProcess;
+  }
+
+  // A series list in the order the log keeps it: the series acted on first.
+  private static orderForLog(input: {
+    list: ReadonlyArray<unknown>;
+    firstFingerprints?: ReadonlySet<string> | undefined;
+  }): Array<JSONObject> {
+    const first: Array<JSONObject> = [];
+    const rest: Array<JSONObject> = [];
+
+    for (const entry of input.list) {
+      if (!MonitorStoredCheck.isPlainObject(entry)) {
+        continue;
+      }
+
+      const fingerprint: unknown = (entry as JSONObject)["fingerprint"];
+
+      if (
+        input.firstFingerprints &&
+        typeof fingerprint === "string" &&
+        input.firstFingerprints.has(fingerprint)
+      ) {
+        first.push(entry as JSONObject);
+      } else {
+        rest.push(entry as JSONObject);
+      }
+    }
+
+    return first.length > 0 ? [...first, ...rest] : rest;
+  }
+
+  /*
+   * How many series of a Metrics check had a data point, as its log page
+   * counts them (MonitorLogSummaryUtil): an absent host's seeded series has
+   * none.
+   */
+  private static countSeriesWithData(list: ReadonlyArray<unknown>): number {
+    let count: number = 0;
+
+    for (const entry of list) {
+      const results: unknown = MonitorStoredCheck.isPlainObject(entry)
+        ? (entry as JSONObject)["aggregatedResults"]
+        : undefined;
+
+      if (
+        Array.isArray(results) &&
+        results.some((result: unknown): boolean => {
+          const data: unknown = (result as JSONObject | null)?.["data"];
+          return Array.isArray(data) && data.length > 0;
+        })
+      ) {
+        count++;
+      }
+    }
+
+    return count;
+  }
+
+  /*
+   * metricResult for the series kept: each query's and formula's result,
+   * with the points of those series - their aggregatedResults, in the same
+   * order - and whatever else the result says (a read cut at its limit).
+   */
+  private static pointsOfSeries(input: {
+    results: ReadonlyArray<unknown>;
+    series: ReadonlyArray<JSONObject>;
+  }): Array<JSONObject> {
+    return input.results.map((result: unknown, index: number): JSONObject => {
+      const data: Array<unknown> = [];
+
+      for (const entry of input.series) {
+        const results: unknown = entry["aggregatedResults"];
+        const own: unknown = Array.isArray(results)
+          ? (results[index] as JSONObject | undefined)?.["data"]
+          : undefined;
+
+        if (Array.isArray(own)) {
+          for (const point of own) {
+            data.push(point);
+          }
+        }
+      }
+
+      return {
+        ...(MonitorStoredCheck.isPlainObject(result)
+          ? (result as JSONObject)
+          : {}),
+        data: data as Array<JSONObject>,
+      };
+    });
   }
 
   // The entry of a series list with this fingerprint, through its index.

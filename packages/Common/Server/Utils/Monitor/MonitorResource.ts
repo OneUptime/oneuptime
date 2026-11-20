@@ -2366,12 +2366,40 @@ export default class MonitorResourceUtil {
         keepResponseContent:
           MonitorRecordEvidence.keepsResponseContent(monitor),
         monitorStep: monitorStep,
+        seriesActedOn: MonitorResourceUtil.getSeriesActedOn(response),
       });
 
       return response;
     } finally {
       await releaseMutex();
     }
+  }
+
+  /*
+   * The series a grouped evaluation matched, under any criteria: what its
+   * monitor log keeps first when it cannot keep every series
+   * (MonitorStoredCheck.boundSeriesForLog). Empty for any other evaluation.
+   */
+  public static getSeriesActedOn(
+    response: ProbeApiIngestResponse,
+  ): Set<string> {
+    const fingerprints: Set<string> = new Set<string>();
+
+    for (const matched of response.matchedCriteria || []) {
+      for (const series of matched.perSeriesMatches || []) {
+        if (series.fingerprint) {
+          fingerprints.add(series.fingerprint);
+        }
+      }
+    }
+
+    for (const series of response.perSeriesMatches || []) {
+      if (series.fingerprint) {
+        fingerprints.add(series.fingerprint);
+      }
+    }
+
+    return fingerprints;
   }
 
   /*

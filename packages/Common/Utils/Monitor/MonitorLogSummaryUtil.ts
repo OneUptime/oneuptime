@@ -5,6 +5,7 @@ import MonitorType, {
   MonitorTypeHelper,
 } from "../../Types/Monitor/MonitorType";
 import ObjectID from "../../Types/ObjectID";
+import { LOGGED_SERIES_FIELD, LoggedSeries } from "./StoredCheckEvidence";
 import TelemetryObservation, {
   TelemetryObservationKind,
 } from "../../Types/Monitor/TelemetryObservation";
@@ -223,6 +224,28 @@ export default class MonitorLogSummaryUtil {
 
     if (!Array.isArray(metricResult) && !Array.isArray(seriesBreakdown)) {
       return null;
+    }
+
+    /*
+     * A row of a grouped check too large to keep every series says how many
+     * it had (LOGGED_SERIES_FIELD, #10108): those are what it saw, not the
+     * share of them it kept.
+     */
+    const logged: unknown = logBody[LOGGED_SERIES_FIELD];
+    const loggedWithData: unknown =
+      logged && typeof logged === "object" && !Array.isArray(logged)
+        ? (logged as Partial<LoggedSeries>).seriesWithDataInEvaluation
+        : undefined;
+
+    if (
+      typeof loggedWithData === "number" &&
+      Number.isInteger(loggedWithData) &&
+      loggedWithData > 0
+    ) {
+      return {
+        kind: TelemetryObservationKind.MetricSeries,
+        count: loggedWithData,
+      };
     }
 
     if (Array.isArray(seriesBreakdown) && seriesBreakdown.length > 0) {

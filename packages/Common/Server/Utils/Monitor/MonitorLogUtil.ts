@@ -11,6 +11,7 @@ import { JSONObject } from "../../../Types/JSON";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import DataToProcess from "./DataToProcess";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import MonitorStoredCheck from "./MonitorStoredCheck";
 
 /*
  * Maximum rows held in memory before we force a flush, and the
@@ -124,6 +125,12 @@ export default class MonitorLogUtil {
     keepResponseContent: boolean;
     // The step the check ran: the row names the destination it configures.
     monitorStep?: MonitorStep | undefined;
+    /*
+     * The series of a grouped check the evaluation acted on: what the row
+     * keeps first when it cannot keep every series
+     * (MonitorStoredCheck.boundSeriesForLog).
+     */
+    seriesActedOn?: ReadonlySet<string> | undefined;
   }): void {
     if (!data.monitorId) {
       return;
@@ -161,6 +168,18 @@ export default class MonitorLogUtil {
           retentionDays,
         );
 
+        /*
+         * A grouped check keeps a bounded share of its series, the ones the
+         * evaluation acted on first, and says how many it had (#10108):
+         * every series of 16,000 was 73 MB of JSON to copy, redact and
+         * encode on the event loop, every evaluation. Anything else is kept
+         * as it is.
+         */
+        const check: DataToProcess = MonitorStoredCheck.boundSeriesForLog({
+          check: data.dataToProcess,
+          firstFingerprints: data.seriesActedOn,
+        });
+
         const monitorLogRow: JSONObject = {
           _id: ObjectID.generateTimeOrdered().toString(),
           createdAt: logTimestamp,
@@ -181,7 +200,7 @@ export default class MonitorLogUtil {
            * https://github.com/OneUptime/oneuptime/issues/6341
            */
           logBody: MonitorRecordEvidence.redactCheck({
-            check: JSON.parse(JSON.stringify(data.dataToProcess)),
+            check: JSON.parse(JSON.stringify(check)),
             keepResponseContent: data.keepResponseContent,
             monitorStep: data.monitorStep,
           }),
