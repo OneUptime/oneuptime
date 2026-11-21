@@ -347,6 +347,8 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
           lastSuccessfulPollAt: true,
           lastEventIngestedAt: true,
           lastError: true,
+          // Blocking on: the test checks its write access too (#10343).
+          blockingSettings: true,
         },
         props: { isRoot: true },
       });

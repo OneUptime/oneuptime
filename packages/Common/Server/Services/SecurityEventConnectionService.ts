@@ -17,6 +17,10 @@ import {
 import DataSourceEgressGuard from "../Utils/DataSource/EgressGuard";
 import SecurityEventConnectorRegistry from "../Utils/SecurityEvent/Connectors/SecurityEventConnectorRegistry";
 import { SecurityConnectorSettings } from "../Utils/SecurityEvent/Connectors/Types";
+import {
+  CloudflareBlockingSettings,
+  readCloudflareBlockingSettings,
+} from "../../Types/SecurityBlocklist/CloudflareBlocking";
 
 /*
  * Validation happens at save time so a connection that stores is a
@@ -589,6 +593,8 @@ export class Service extends DatabaseService<Model> {
     let provider: SecurityEventConnectorProvider | undefined =
       connection.provider;
     let alertingOnly: boolean = connection.alertingOnly !== false;
+    let blockingSettings: JSONObject | undefined = connection.blockingSettings;
+    let projectId: ObjectID | undefined = connection.projectId;
 
     if (
       (secretsJson === undefined ||
@@ -600,10 +606,12 @@ export class Service extends DatabaseService<Model> {
         id: connection.id,
         select: {
           _id: true,
+          projectId: true,
           provider: true,
           config: true,
           secrets: true,
           alertingOnly: true,
+          blockingSettings: true,
         },
         props: { isRoot: true },
       });
@@ -616,16 +624,29 @@ export class Service extends DatabaseService<Model> {
       config = loaded.config;
       provider = loaded.provider;
       alertingOnly = loaded.alertingOnly !== false;
+      blockingSettings = loaded.blockingSettings;
+      projectId = loaded.projectId;
     }
 
     const definition: SecurityEventConnectorDefinition =
       Service.getDefinitionOrThrow(provider);
+    const blocking: CloudflareBlockingSettings =
+      readCloudflareBlockingSettings(blockingSettings);
 
     return {
       provider: definition.provider,
       config: Service.parseJsonObject(config, "Configuration"),
       secrets: Service.parseJsonObject(secretsJson, "Credentials"),
       alertingOnly,
+      // Blocking on: Test Connection checks the write access it needs (#10343).
+      ...(blocking.isEnabled && projectId
+        ? {
+            blocking: {
+              projectId: projectId.toString(),
+              zoneIds: blocking.zoneIds,
+            },
+          }
+        : {}),
     };
   }
 }

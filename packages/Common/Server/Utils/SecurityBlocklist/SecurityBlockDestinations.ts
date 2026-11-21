@@ -1,6 +1,7 @@
 import ObjectID from "../../../Types/ObjectID";
 import { SecurityBlockDestinationProvider } from "../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
 import logger from "../Logger";
+import { CLOUDFLARE_BLOCK_DESTINATION_SOURCE } from "../SecurityEvent/Connectors/Cloudflare/CloudflareBlockDestination";
 import SecurityBlockDestination from "./SecurityBlockDestination";
 
 /*
@@ -27,6 +28,23 @@ import SecurityBlockDestination from "./SecurityBlockDestination";
 export interface SecurityBlockDestinationSource {
   provider: SecurityBlockDestinationProvider;
   findForProject(projectId: ObjectID): Promise<Array<SecurityBlockDestination>>;
+
+  /*
+   * The projects whose destinations of this kind have work beyond their
+   * blocks - a setup asked for or due a check, a destination turned off
+   * with what OneUptime set up still to take away - at most `limit`. The
+   * every-minute pass reconciles them too, so a project with no block yet
+   * still has its destination set up. Absent: only blocks give work.
+   */
+  findProjectIdsWithWork?(limit: number): Promise<Array<ObjectID>>;
+
+  /*
+   * Work beside the project's destinations, once a pass, after them:
+   * Cloudflare takes away the lists and rules OneUptime set up for a
+   * connection whose blocking was turned off. Never throws: what it could
+   * not do it says where it keeps its state, and does on a later pass.
+   */
+  settle?(projectId: ObjectID, now: Date): Promise<void>;
 }
 
 export interface SecurityBlockDestinationsFound {
@@ -41,10 +59,10 @@ export interface SecurityBlockDestinationsFound {
 /*
  * The kinds of destination OneUptime enforces the blocklist at. Each
  * provider's issue adds its own source here, with its import at the top of
- * this file.
+ * this file: Cloudflare's IP lists and custom rules (#10343).
  */
 export const SECURITY_BLOCK_DESTINATION_SOURCES: ReadonlyArray<SecurityBlockDestinationSource> =
-  [];
+  [CLOUDFLARE_BLOCK_DESTINATION_SOURCE];
 
 export default class SecurityBlockDestinations {
   /*
@@ -114,5 +132,51 @@ export default class SecurityBlockDestinations {
     }
 
     return { destinations, failedProviders };
+  }
+
+  /*
+   * The projects whose destinations have work of their own, of every kind
+   * that says (SecurityBlockDestinationSource.findProjectIdsWithWork), each
+   * once. A kind that cannot be read is logged and left out for this pass.
+   */
+  public static async findProjectIdsWithWork(
+    limit: number,
+  ): Promise<Array<ObjectID>> {
+    const found: Map<string, ObjectID> = new Map();
+
+    for (const source of this.sources) {
+      if (!source.findProjectIdsWithWork) {
+        continue;
+      }
+
+      try {
+        for (const projectId of await source.findProjectIdsWithWork(limit)) {
+          found.set(projectId.toString(), projectId);
+        }
+      } catch (error) {
+        logger.warn(
+          `SecurityBlockDestinations: could not find the projects whose ${source.provider} destinations have work: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+
+    return Array.from(found.values()).slice(0, limit);
+  }
+
+  // Each kind's work beside its destinations (SecurityBlockDestinationSource.settle). Never throws.
+  public static async settle(projectId: ObjectID, now: Date): Promise<void> {
+    for (const source of this.sources) {
+      if (!source.settle) {
+        continue;
+      }
+
+      try {
+        await source.settle(projectId, now);
+      } catch (error) {
+        logger.warn(
+          `SecurityBlockDestinations: the ${source.provider} destinations of project ${projectId.toString()} could not settle: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
   }
 }

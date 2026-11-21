@@ -70,6 +70,7 @@ import SecurityBlockAPI, {
 } from "../../../Server/API/SecurityBlockAPI";
 import SecurityBlockService from "../../../Server/Services/SecurityBlockService";
 import SecurityCaseFeedService from "../../../Server/Services/SecurityCaseFeedService";
+import SecurityEventConnectionService from "../../../Server/Services/SecurityEventConnectionService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import {
   ExpressRequest,
@@ -220,6 +221,11 @@ beforeEach(() => {
   jest
     .spyOn(SecurityCaseFeedService, "createSecurityCaseFeedItem")
     .mockResolvedValue(undefined as never);
+  /*
+   * The project has no Cloudflare connection, the one kind of destination
+   * that ships (#10343): nothing enforces its blocklist until a test says.
+   */
+  jest.spyOn(SecurityEventConnectionService, "findBy").mockResolvedValue([]);
   reconcile = jest
     .spyOn(SecurityBlocklistJobs, "queueReconcile")
     .mockResolvedValue(undefined) as unknown as MockedFn;

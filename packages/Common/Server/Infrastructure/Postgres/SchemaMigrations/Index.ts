@@ -1138,6 +1138,7 @@ import { AddSecurityBlocklist1809187150000 } from "./1809187150000-AddSecurityBl
 import { AddDataSecurityAiRules1809187364000 } from "./1809187364000-AddDataSecurityAiRules";
 import { AddAIRunDataSecurityIssueIndex1809187364100 } from "./1809187364100-AddAIRunDataSecurityIssueIndex";
 import { AddProjectSecurityTrustedProxies1809187364416 } from "./1809187364416-AddProjectSecurityTrustedProxies";
+import { AddSecurityEventConnectionBlocking1809187364500 } from "./1809187364500-AddSecurityEventConnectionBlocking";
 
 export default [
   InitialMigration,
@@ -2280,4 +2281,5 @@ export default [
   AddDataSecurityAiRules1809187364000,
   AddAIRunDataSecurityIssueIndex1809187364100,
   AddProjectSecurityTrustedProxies1809187364416,
+  AddSecurityEventConnectionBlocking1809187364500,
 ];

@@ -1391,8 +1391,21 @@ describe("the every-minute pass", () => {
     }) as never);
   });
 
-  test("queues nothing, and reads nothing, while no kind of destination exists", async () => {
+  test("the kinds of destination OneUptime ships: Cloudflare's lists and rules (#10343)", () => {
     SecurityBlockDestinations.resetSourcesForTests();
+
+    expect(SecurityBlockDestinations.hasSources()).toBe(true);
+    expect(
+      SecurityBlockDestinations.getSources().map(
+        (source: SecurityBlockDestinationSource): string => {
+          return source.provider;
+        },
+      ),
+    ).toEqual([SecurityBlockDestinationProvider.Cloudflare]);
+  });
+
+  test("queues nothing, and reads nothing, while no kind of destination exists", async () => {
+    SecurityBlockDestinations.setSourcesForTests([]);
     projectsWithWork = [PROJECT_ID];
 
     expect(SecurityBlockDestinations.hasSources()).toBe(false);
