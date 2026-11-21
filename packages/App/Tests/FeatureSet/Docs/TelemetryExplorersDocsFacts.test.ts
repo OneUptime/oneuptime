@@ -65,6 +65,8 @@ import {
 } from "Common/Utils/Suggestions/TracePerformanceFixSuggestion";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
+import ProductKey from "Common/Types/Product/ProductKey";
+import { withoutProductLevels } from "./DocsProductLevels";
 import ErrorClass, {
   NON_ACTIONABLE_ERROR_CLASSES,
   isNonActionableErrorClass,
@@ -574,8 +576,30 @@ describe("Services (telemetry/services)", () => {
 
   it("names the roles that read and change services as the Service model grants them", () => {
     const service: Service = new Service();
+    /*
+     * The Services product's levels (#10289) read and change them too, each
+     * as the role it follows: the permissions page describes them once for
+     * every product, as the other pages leave them to it.
+     */
+    const named: (permissions: Array<Permission>) => Array<Permission> = (
+      permissions: Array<Permission>,
+    ): Array<Permission> => {
+      return withoutProductLevels({
+        permissions,
+        product: ProductKey.Services,
+      });
+    };
+
+    expect(service.readRecordPermissions).toEqual(
+      expect.arrayContaining([
+        Permission.ServiceAdmin,
+        Permission.ServiceMember,
+        Permission.ServiceViewer,
+      ]),
+    );
+
     const readers: Array<string> = permissionTitles(
-      service.readRecordPermissions,
+      named(service.readRecordPermissions),
     );
     const readPermission: string = PermissionHelper.getTitle(
       Permission.ReadService,
@@ -593,7 +617,7 @@ describe("Services (telemetry/services)", () => {
     ].map((grant: Array<Array<Permission> | Permission>): Array<string> => {
       const own: string = PermissionHelper.getTitle(grant[1] as Permission);
 
-      return permissionTitles(grant[0] as Array<Permission>).filter(
+      return permissionTitles(named(grant[0] as Array<Permission>)).filter(
         (title: string): boolean => {
           return title !== own;
         },
