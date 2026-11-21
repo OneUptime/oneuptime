@@ -205,6 +205,12 @@ export interface SecurityEntityRiskContribution {
   detectionRuleId?: string | undefined;
   threatIntelFeedId?: string | undefined;
   securityEventConnectionId?: string | undefined;
+  /*
+   * The names of the latest firings it counted (#10489,
+   * Types/SecurityCase/SecurityFiringKeys): a rule's run judged again after
+   * its worker stopped hands the same firing, which counts once.
+   */
+  firingKeys?: Array<string> | undefined;
 }
 
 /*

@@ -42,6 +42,7 @@ import {
   DetectionRetrohuntGroup,
   DetectionRetrohuntResult,
   isDetectionRetrohuntNoisy,
+  isDetectionRetrohuntPeriod,
 } from "Common/Types/SecurityEvent/DetectionRetrohunt";
 import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -72,6 +73,12 @@ export interface ComponentProps {
    * each time a run starts, so a form's latest values are the ones run.
    */
   getRequest: (periodInHours: number) => JSONObject;
+  /*
+   * The period it first runs over: the last 7 days when left out. The
+   * notice about events that arrived late opens it on the period that
+   * reaches back to when they happened (#10491).
+   */
+  initialPeriodInHours?: number | undefined;
 }
 
 // One of the model's sentences, in the reader's language.
@@ -104,17 +111,19 @@ export function writeRetrohuntSentence(
  * how often it would have fired, for whom, and what its exceptions kept
  * out (POST /detection-rule/retrohunt). Nothing is opened, sent or written.
  *
- * It runs as soon as it is shown, over the last 7 days, and again on
- * another period or on Run again; a form's rule that changes after a run
- * says so beside the answer. One quiet list of what it fired for, the ten
- * that fired most first.
+ * It runs as soon as it is shown, over the last 7 days (or the period it
+ * is opened on), and again on another period or on Run again; a form's
+ * rule that changes after a run says so beside the answer. One quiet list
+ * of what it fired for, the ten that fired most first.
  */
 const DetectionRuleRetrohuntPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [periodInHours, setPeriodInHours] = useState<number>(
-    RETROHUNT_DEFAULT_PERIOD_IN_HOURS,
+    isDetectionRetrohuntPeriod(props.initialPeriodInHours)
+      ? props.initialPeriodInHours
+      : RETROHUNT_DEFAULT_PERIOD_IN_HOURS,
   );
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [error, setError] = useState<string>("");

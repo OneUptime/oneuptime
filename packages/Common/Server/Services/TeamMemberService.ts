@@ -114,7 +114,13 @@ import { SsoManagedBy } from "../../Types/SSO/SsoManagedSignIn";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import { EntityManager } from "typeorm";
 import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
-import EscalationRuleReach from "../Utils/OnCall/EscalationRuleReach";
+import EscalationRuleReach, {
+  MemberJoin,
+} from "../Utils/OnCall/EscalationRuleReach";
+import OnCallJoinNotices from "../Utils/OnCall/OnCallJoinNotices";
+import ProjectMembership, {
+  ProjectUserPair,
+} from "../Utils/TeamMember/ProjectMembership";
 
 /*
  * What cleanupOnCallAssignmentsForUserLeavingProject did, for logging and
@@ -219,6 +225,16 @@ export interface TeamMemberCreateCarryForward {
   invitationWindow: InvitationEmailWindowClaim | null;
   // Set once onCreateSuccess has started the email: nothing is given back after.
   isSending: boolean;
+}
+
+/*
+ * What onBeforeUpdate hands an acceptance's onUpdateSuccess (#10557): who
+ * of the people it accepts was a member of the project before it, by
+ * ProjectMembership.getKey - null when that could not be read. Anyone else
+ * joins the project with it.
+ */
+export interface TeamMemberAcceptanceCarryForward {
+  memberKeysBefore: Set<string> | null;
 }
 
 // The limits on people a membership create is held to.
@@ -1998,9 +2014,13 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       unknown
     >;
 
+    const isAcceptance: boolean = data["hasAcceptedInvitation"] === true;
+
+    // The memberships an acceptance accepts, once read for the check below.
+    let acceptedMemberships: Array<TeamMember> | null = null;
+
     if (
-      (data["hasAcceptedInvitation"] === true ||
-        data["invitationAcceptedAt"] !== undefined) &&
+      (isAcceptance || data["invitationAcceptedAt"] !== undefined) &&
       !updateBy.props.isRoot &&
       !updateBy.props.isMasterAdmin
     ) {
@@ -2008,7 +2028,10 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         await this.findRowsAndHoldUpdateToThem(updateBy, {
           _id: true,
           userId: true,
+          projectId: true,
         });
+
+      acceptedMemberships = memberships;
 
       const callerId: string | undefined = updateBy.props.userId
         ?.toString()
@@ -2028,7 +2051,71 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       }
     }
 
-    return { updateBy, carryForward: null };
+    if (!isAcceptance) {
+      return { updateBy, carryForward: null };
+    }
+
+    const carryForward: TeamMemberAcceptanceCarryForward = {
+      memberKeysBefore: await this.readMemberKeysBeforeAcceptance(
+        updateBy,
+        acceptedMemberships,
+      ),
+    };
+
+    return { updateBy, carryForward: carryForward };
+  }
+
+  /*
+   * Who of the people an acceptance accepts was a member of the project
+   * before it (#10557): anyone who was not joins the project with it, and
+   * is told, once, which on-call policies page them from now on - not
+   * again when an invitation they accepted already is accepted a second
+   * time. The memberships are read as the update writes them, and held to
+   * (findRowsAndHoldUpdateToThem). Null when they cannot be read: then
+   * nobody is told, as before.
+   */
+  private async readMemberKeysBeforeAcceptance(
+    updateBy: UpdateBy<TeamMember>,
+    memberships: Array<TeamMember> | null,
+  ): Promise<Set<string> | null> {
+    try {
+      const accepted: Array<TeamMember> =
+        memberships ||
+        (await this.findRowsAndHoldUpdateToThem(updateBy, {
+          _id: true,
+          userId: true,
+          projectId: true,
+        }));
+
+      const pairs: Array<ProjectUserPair> = [];
+
+      for (const membership of accepted) {
+        if (membership.projectId && membership.userId) {
+          pairs.push({
+            projectId: membership.projectId,
+            userId: membership.userId,
+          });
+        }
+      }
+
+      return pairs.length > 0
+        ? await ProjectMembership.getMemberKeys(pairs)
+        : new Set<string>();
+    } catch (err) {
+      logger.error(err as Error);
+      return null;
+    }
+  }
+
+  // What onBeforeUpdate handed an acceptance, or null for an update that is not one.
+  private static readMemberKeysBefore(
+    carryForward: unknown,
+  ): Set<string> | null {
+    const memberKeysBefore: unknown = (
+      carryForward as TeamMemberAcceptanceCarryForward | null
+    )?.memberKeysBefore;
+
+    return memberKeysBefore instanceof Set ? memberKeysBefore : null;
   }
 
   /*
@@ -2278,8 +2365,10 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
      * An accepted membership puts the person in the project, so whatever else
      * they were invited to there is accepted with it.
      */
+    let acceptedInvitations: number = 0;
+
     if (createdItem.hasAcceptedInvitation) {
-      await this.acceptPendingInvitationsInProject({
+      acceptedInvitations = await this.acceptPendingInvitationsInProject({
         userId: createdItem.userId!,
         projectId: onCreate.createBy.data.projectId!,
       });
@@ -2317,6 +2406,21 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       this.openOnCallTimeLogsOfMember({
         projectId: onCreate.createBy.data.projectId || createdItem.projectId,
         userId: createdItem.userId,
+      });
+
+      /*
+       * And they are told which on-call policies page them from now on
+       * (#10557): someone whose invitations this accepted had none of the
+       * project's, and joined it; otherwise this membership decides - a
+       * team joined by a member, or the project joined when no accepted
+       * membership of theirs was there before it.
+       */
+      this.tellOnCallPoliciesOfMember({
+        projectId: onCreate.createBy.data.projectId || createdItem.projectId,
+        userId: createdItem.userId,
+        join: {
+          membershipId: acceptedInvitations > 0 ? null : createdItem.id || null,
+        },
       });
     }
 
@@ -2422,18 +2526,24 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
      */
     const acceptedProjectKeys: Set<string> = new Set<string>();
 
+    // Who was a member before this acceptance (onBeforeUpdate).
+    const memberKeysBefore: Set<string> | null =
+      TeamMemberService.readMemberKeysBefore(onUpdate.carryForward);
+
     for (const item of items) {
       /*
        * Accepting one invitation into a project accepts the person's other
        * invitations there too: they have just agreed to be in the project.
        */
       const projectKey: string = `${item.userId?.toString()}:${item.projectId?.toString()}`;
+      let isFirstOfPerson: boolean = false;
 
       if (
         updateBy.data.hasAcceptedInvitation &&
         !acceptedProjectKeys.has(projectKey)
       ) {
         acceptedProjectKeys.add(projectKey);
+        isFirstOfPerson = true;
 
         await this.acceptPendingInvitationsInProject({
           userId: item.userId!,
@@ -2450,10 +2560,40 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
           user: item.user,
         });
 
-        this.openOnCallTimeLogsOfMember({
-          projectId: item.projectId,
-          userId: item.userId,
-        });
+        /*
+         * Once for each person, however many of their invitations this
+         * accepts: each start, in the background, would otherwise race the
+         * others to open the same logs twice.
+         */
+        if (isFirstOfPerson) {
+          this.openOnCallTimeLogsOfMember({
+            projectId: item.projectId,
+            userId: item.userId,
+          });
+        }
+
+        /*
+         * Someone who was not a member before joined the project with this
+         * acceptance: they are told, once - however many invitations of
+         * theirs it accepts - which on-call policies page them from now on
+         * (#10557), through the settings just written. An invitation they
+         * had accepted already, accepted again, tells them nothing again.
+         */
+        if (
+          isFirstOfPerson &&
+          item.projectId &&
+          item.userId &&
+          memberKeysBefore &&
+          !memberKeysBefore.has(
+            ProjectMembership.getKey(item.projectId, item.userId),
+          )
+        ) {
+          this.tellOnCallPoliciesOfMember({
+            projectId: item.projectId,
+            userId: item.userId,
+            join: { membershipId: null },
+          });
+        }
       }
     }
 
@@ -2519,6 +2659,33 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         projectId: projectId.toString(),
         userId: userId.toString(),
       } as LogAttributes);
+    });
+  }
+
+  /*
+   * They joined the project, or another of its teams: they are told, once
+   * for each on-call policy, of the escalation rules that page them from
+   * now on and did not before (OnCallJoinNotices, #10557) - never with an
+   * invitation, only once it is accepted, and after their notification
+   * defaults are written, which the message goes out through. In the
+   * background: it never holds up or fails the write, and tells and logs
+   * what fails itself.
+   */
+  private tellOnCallPoliciesOfMember(data: {
+    projectId: ObjectID | null | undefined;
+    userId: ObjectID | null | undefined;
+    join: MemberJoin;
+  }): void {
+    if (!data.projectId || !data.userId) {
+      return;
+    }
+
+    OnCallJoinNotices.tellJoined({
+      projectId: data.projectId,
+      userId: data.userId,
+      join: data.join,
+    }).catch((error: Error): void => {
+      logger.error(error);
     });
   }
 

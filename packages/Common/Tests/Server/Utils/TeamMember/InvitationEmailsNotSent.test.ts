@@ -1,3 +1,4 @@
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import EmailLogService from "../../../../Server/Services/EmailLogService";
 import InvitationEmailsNotSent, {
   EMAILS_READ_PER_PERSON,
@@ -168,7 +169,9 @@ describe("the read", () => {
             "userId",
             "projectSmtpConfigId",
             "deletedByUserId",
-          ].includes(key)
+          ].includes(key) &&
+          // What created the record and who last modified it (#10290): no notice.
+          !RecordActorUtil.isColumn(key)
         );
       },
     );

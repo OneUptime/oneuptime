@@ -1,10 +1,5 @@
 import PageMap from "../../Utils/PageMap";
-import { SecurityCaseMatchesJson } from "Common/Types/SecurityCase/SecurityCaseMatches";
-import {
-  HiddenClientAddress,
-  ScrubbedAddressSignal,
-  readHiddenClientAddress,
-} from "Common/Utils/SecurityEvent/ScrubbedAddress";
+import { ScrubbedAddressSignal } from "Common/Utils/SecurityEvent/ScrubbedAddress";
 
 /*
  * AN ADDRESS A SCRUB RULE HID, AS THE DASHBOARD READS IT (#10397): which
@@ -29,33 +24,8 @@ export const HIDDEN_ADDRESS_RULES_PAGES: Readonly<
 
 /*
  * The client address a scrub rule hid from every event a case's detections
- * matched: the first one that names its rule, else the first. Null when
- * there is no event to read, or one of them names its address or says
- * nothing of one - a case with an address to block names it, and one about
- * events that never had an address is not about a hidden one.
+ * matched. Read in Common, beside the events' own, so a case's Response
+ * Plan - built in Common for the server and the browser (#10340) - says it
+ * wherever it is built.
  */
-export function getCaseHiddenClientAddress(
-  matches: SecurityCaseMatchesJson | null,
-): HiddenClientAddress | null {
-  if (!matches) {
-    return null;
-  }
-
-  let found: HiddenClientAddress | null = null;
-
-  for (const detection of matches.detections) {
-    for (const event of detection.events) {
-      const hidden: HiddenClientAddress | null = readHiddenClientAddress(event);
-
-      if (!hidden) {
-        return null;
-      }
-
-      if (!found || (!found.ruleName && hidden.ruleName)) {
-        found = hidden;
-      }
-    }
-  }
-
-  return found;
-}
+export { getCaseHiddenClientAddress } from "Common/Utils/SecurityEvent/ScrubbedAddress";

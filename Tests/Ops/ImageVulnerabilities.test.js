@@ -1672,6 +1672,129 @@ describe("the nightly Vulnerability Re-scan", () => {
   });
 });
 
+/*
+ * Scripts/GHA/scan_sbom_vulnerabilities.sh, which the gate, the release's
+ * scan and the nightly run all scan through, run with a fake grype that
+ * writes down how each run of it was started. Grype 0.110.0 (what
+ * anchore/scan-action/download-grype@v7 installs) matches Go's standard
+ * library by its CPE by default, and 0.122.1 does not: on 17.1.0's
+ * resource-ai-agent SBOM it found none of the eight high CVE-2026-97033 to
+ * CVE-2026-97043 in its go1.26.10 docker and govc (#10383), where 0.110.0
+ * found all of them. So the script turns that matching on itself.
+ */
+describe("scan_sbom_vulnerabilities.sh", () => {
+  const SCAN_SCRIPT = path.join(
+    REPO_ROOT,
+    "Scripts/GHA/scan_sbom_vulnerabilities.sh",
+  );
+  const NAMES = [
+    "oneuptime-infrastructure-agent_linux_amd64",
+    "resource-ai-agent",
+  ];
+  let work;
+
+  beforeEach(() => {
+    work = fs.mkdtempSync(path.join(os.tmpdir(), "scan-sboms-"));
+    fs.mkdirSync(path.join(work, "bin"));
+    fs.mkdirSync(path.join(work, "sbom"));
+    fs.writeFileSync(
+      path.join(work, "bin", "grype"),
+      [
+        "#!/usr/bin/env bash",
+        'printf "%s\\t%s\\n" "${GRYPE_MATCH_GOLANG_ALWAYS_USE_CPE_FOR_STDLIB-unset}" "$*" >> "$GRYPE_CALLS"',
+        'if [ "$1" = "db" ]; then exit 0; fi',
+        "echo '{\"matches\": []}'",
+        "",
+      ].join("\n"),
+      { mode: 0o755 },
+    );
+    for (const name of NAMES) {
+      fs.writeFileSync(path.join(work, "sbom", `${name}.cdx.json`), "{}");
+    }
+  });
+
+  afterEach(() => {
+    fs.rmSync(work, { recursive: true, force: true });
+  });
+
+  // Each grype run: the setting it saw, and its arguments.
+  function scan(environment = {}) {
+    const callsFile = path.join(work, "calls.tsv");
+    const result = childProcess.spawnSync(
+      "bash",
+      [
+        SCAN_SCRIPT,
+        "--input-dir",
+        path.join(work, "sbom"),
+        "--output-dir",
+        path.join(work, "vulnerabilities"),
+      ],
+      {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          PATH: `${path.join(work, "bin")}${path.delimiter}${process.env.PATH}`,
+          GRYPE_CALLS: callsFile,
+          GITHUB_STEP_SUMMARY: "",
+          RETRY_WITH_BACKOFF_DELAYS: "",
+          ...environment,
+        },
+      },
+    );
+    if (result.status !== 0) {
+      throw new Error(
+        `scan_sbom_vulnerabilities.sh exited ${result.status}:\n${result.stderr}`,
+      );
+    }
+    return fs
+      .readFileSync(callsFile, "utf8")
+      .trim()
+      .split("\n")
+      .map((line) => {
+        const [setting, args] = line.split("\t");
+        return { setting, args };
+      });
+  }
+
+  test("every grype it runs matches Go's standard library by its CPE, whatever grype's default", () => {
+    const calls = scan();
+
+    expect(
+      calls.map((call) => {
+        return call.args;
+      }),
+    ).toEqual([
+      "db update",
+      ...NAMES.map((name) => {
+        return `sbom:${path.join(work, "sbom", `${name}.cdx.json`)} --output json --quiet`;
+      }),
+    ]);
+    expect(
+      calls.map((call) => {
+        return call.setting;
+      }),
+    ).toEqual(["true", "true", "true"]);
+    expect(fs.readdirSync(path.join(work, "vulnerabilities")).sort()).toEqual([
+      ...NAMES.map((name) => {
+        return `${name}.grype.json`;
+      }),
+      "vulnerability-summary.md",
+    ]);
+  });
+
+  test("even when it is started with that matching turned off", () => {
+    const calls = scan({
+      GRYPE_MATCH_GOLANG_ALWAYS_USE_CPE_FOR_STDLIB: "false",
+    });
+
+    expect(
+      calls.map((call) => {
+        return call.setting;
+      }),
+    ).toEqual(["true", "true", "true"]);
+  });
+});
+
 describe("PrioritizeReleaseRuns.sh", () => {
   let bin;
 

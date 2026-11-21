@@ -54,9 +54,10 @@ import {
  * semicolon: "; " in German, "؛ " in Persian, " ; " in French.
  *
  * And (#7678): the monitors that were linked are linked, whatever happened
- * to the rest - the page reads its count, its table and the monitors that
- * can still be linked again, and says how many of how many could not be
- * linked whenever more than one was picked, "1 of 3" too. The server's
+ * to the rest - the page reads its count and its table again, the dialog
+ * keeps picked only the monitors it could not link (#10399), and says how
+ * many of how many could not be linked whenever more than one was picked,
+ * "1 of 3" too. The server's
  * refusals are sentences of the Dashboard's locales, a type mismatch with
  * its two types, so a German reader reads why in German.
  */
@@ -77,6 +78,9 @@ interface CapturedFormModal {
   title: string;
   error?: string | undefined;
   onSubmit: (values: { monitorIds: Array<string> }) => Promise<void> | void;
+  formProps?:
+    | { initialValues?: { monitorIds?: Array<string> } | undefined }
+    | undefined;
 }
 
 let capturedTables: Array<CapturedMonitorTable> = [];
@@ -397,10 +401,8 @@ function lastTable(): CapturedMonitorTable {
   return capturedTables[capturedTables.length - 1]!;
 }
 
-// How many times the monitors that can be linked have been read.
-function eligibleReads(): number {
-  return (ModelAPI.getList as unknown as { mock: { calls: Array<unknown> } })
-    .mock.calls.length;
+function lastDialog(): CapturedFormModal {
+  return capturedModals[capturedModals.length - 1]!;
 }
 
 describe("Link Existing Monitors, when some monitors could not be linked", () => {
@@ -449,7 +451,7 @@ describe("Link Existing Monitors, when some monitors could not be linked", () =>
 });
 
 describe("Link Existing Monitors, when some monitors were linked and some were not (#7678)", () => {
-  test("2 of 3 linked: the count, the table and the monitors that can be linked are read again, and the line says 1 of 3", async () => {
+  test("2 of 3 linked: the count and the table are read again, the one not linked is still picked, and the line says 1 of 3", async () => {
     await openLinkDialog("de");
 
     await waitFor(() => {
@@ -457,7 +459,9 @@ describe("Link Existing Monitors, when some monitors were linked and some were n
     });
 
     const refreshBefore: string | undefined = lastTable().refreshToggle;
-    const readsBefore: number = eligibleReads();
+
+    // Nothing is picked when the dialog opens.
+    expect(lastDialog().formProps?.initialValues?.monitorIds).toEqual([]);
 
     // Two of the three are linked by the time the page asks again.
     linkedMonitors = 2;
@@ -475,9 +479,15 @@ describe("Link Existing Monitors, when some monitors were linked and some were n
     expect(lastTable().title).toBe("Verknüpfte Monitore (2)");
     expect(lastTable().refreshToggle).not.toBe(refreshBefore);
 
-    // The dialog stays open, and the two that were linked leave its list.
+    /*
+     * The dialog stays open, its form drawn again with only the one not
+     * linked still picked: the two that were linked leave it, and the
+     * server leaves them out of the picker's list from now on (#10399).
+     */
     await waitFor(() => {
-      expect(eligibleReads()).toBe(readsBefore + 1);
+      expect(lastDialog().formProps?.initialValues?.monitorIds).toEqual([
+        GONE_ID,
+      ]);
     });
     expect(await dialogError()).toContain("1 von 3");
   });

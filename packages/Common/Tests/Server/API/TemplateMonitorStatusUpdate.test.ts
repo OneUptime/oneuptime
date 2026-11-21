@@ -74,6 +74,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { withoutLastModifiedStamp } from "../TestingUtils/LastModifiedStamp";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 
@@ -293,9 +294,9 @@ async function put(kind: TemplateKind, data: JSONObject): Promise<void> {
 function written(): Record<string, unknown> {
   expect(repositoryUpdate).toHaveBeenCalledTimes(1);
 
-  const set: Record<string, unknown> = {
-    ...(repositoryUpdate.mock.calls[0]![1] as Record<string, unknown>),
-  };
+  const set: Record<string, unknown> = withoutLastModifiedStamp(
+    repositoryUpdate.mock.calls[0]![1] as Record<string, unknown>,
+  );
 
   delete set["version"];
 

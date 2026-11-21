@@ -98,7 +98,7 @@ Elke pagina houdt bovenaan de kop van de zaak: nummer, prioriteit, status en tit
 
 - **Overzicht**: de beschrijving, labels en statusstappen van de zaak, wie haar heeft en wat haar opende, en haar cijfers: hoeveel detecties ze heeft, hoe lang ze al open is, en hoe lang het duurde tot ze bevestigd en ingedamd was. Onder **Tijd tot bevestiging** en **Tijd tot indamming** staat hoe de zaak ervoor staat ten opzichte van haar reactiedoelen.
 - **Waarom deze zaak is geopend**, op het **Overzicht**: de detectie die de zaak opende en hoe haar regel afgaat (zijn drempel, waarop hij groepeert en het venster waarin hij telt), hoeveel gebeurtenissen ze matchte, waar die vandaan kwamen en tussen welke tijdstippen, waar de regel naar zoekt, en hoe ver de verzoeken kwamen. Onder **Treffers** staan de gebeurtenissen zelf, de oudste eerst: in elke gebeurtenis is gemarkeerd waar de regel naar zoekt, en ze toont hoe ver haar verzoek kwam en uit welke logregel of van welk product ze komt, met **Trace**, **Logboeken** en **Uitzondering** elk één klik verwijderd; de logregel waaruit ze komt, opent in de logboekverkenner op die regel. Klik op een gebeurtenis om haar volledig te zien, met de logregel waaruit ze is gelezen. **Bij deze zaak bewaren**, in haar rij of in haar paneel, bewaart de gebeurtenis op de pagina **Bewijs** van de zaak en noemt daarbij de detectie die haar matchte; een gebeurtenis die de zaak al bewaart, zegt dat en opent haar daar. Een detectie bewaart, wanneer ze afgaat, tot 25 van de gebeurtenissen die ze matchte, en toont die, ook als hun bewaartermijn voorbij is; je rol ziet die uit de bronnen die hij mag lezen. Een regel die voor veel groepen tegelijk afgaat, ook een correlatieregel, bewaart gebeurtenissen voor elk ervan: hoogstens 1.000 in totaal, dus elk bewaart er minstens 10, en tot 25 als hij opnieuw afgaat. Voor een detectie uit de tijd dat detecties nog geen gebeurtenissen bewaarden, zijn de treffers van een regel wat zijn eigen voorwaarde matchte, voor de groep van de detectie, in de vensters waarin hij afging; een threat-intelmatch toont de gebeurtenissen die zijn indicator bevatten, en een waarschuwing van een gekoppeld product de gebeurtenis waarin ze werd verzonden. **Verder kijken** opent alles over het adres of de gebruiker waar de detectie over gaat, de gebeurtenissen en logregels die deze waarde noemen, de logboeken van de services waar haar logregels vandaan kwamen en de traces van haar verzoeken, elk over het venster van de detectie, en het **Verloop** en de **Verbonden signalen** van de zaak. De andere detecties van de zaak zijn ingeklapt onder **Ook op deze zaak**.
-- **Responsplan**, op het **Overzicht**: wat er nu aan de zaak moet gebeuren, het dringendste eerst, onder **Bevestigen dat het echt is**, **Indammen**, **Herstellen wat het mogelijk maakte** en **De zaak sluiten**. Elke stap gaat over deze zaak: haar adressen, gebruikers en hosts, hoe ver haar verzoeken kwamen, waarop haar regel volgens eigen zeggen ook kan afgaan, de ATT&CK-tactieken en -technieken waarop haar detecties zijn gemapt, en de playbooks die het project heeft. De eigen stappen van een detectieregel, geschreven onder **Responsstappen** in zijn formulier, komen eerst in het deel van het plan waaronder ze vallen, en de regels uit de regelbibliotheek hebben hun eigen stappen. Een stap die OneUptime kan uitvoeren, heeft zijn eigen knop: **Aan mij toewijzen**, **Uitzondering toevoegen** met de regel en het adres al ingevuld, **Playbook uitvoeren** voor het playbook dat het account opschort of de host indamt, of voor het playbook dat OneUptime AI voorstelt, **Incident melden**, **Markeren als ingedamd** en **Zaak sluiten**. Een stap die OneUptime niet kan uitvoeren, zoals een adres blokkeren op je firewall, toont **Buiten OneUptime**, met het adres één klik van je klembord. Vink een stap af als hij klaar is: hij wordt bewaard als een van de **Taken** van de zaak, afgerond, met wie het deed en wanneer. Stappen waarover de zaak zelf beslist, vinken zichzelf af: ze is toegewezen, er is een incident gemeld, een playbook heeft gedraaid, ze is ingedamd of gesloten. Zodra elke stap die de dreiging indamt, klaar is, biedt het plan **Markeren als ingedamd** aan, waarmee de tijd tot indamming van de zaak wordt vastgelegd. Als OneUptime AI de zaak heeft beoordeeld, staat zijn lezing bovenaan het plan, en de stappen die het voorstelt, zijn ingeklapt onder die van het plan zelf.
+- **Responsplan**, op het **Overzicht**: wat er nu aan de zaak moet gebeuren, het dringendste eerst, onder **Bevestigen dat het echt is**, **Indammen**, **Herstellen wat het mogelijk maakte** en **De zaak sluiten**. Elke stap gaat over deze zaak: haar adressen, gebruikers en hosts, hoe ver haar verzoeken kwamen, waarop haar regel volgens eigen zeggen ook kan afgaan, de ATT&CK-tactieken en -technieken waarop haar detecties zijn gemapt, en de playbooks die het project heeft. De eigen stappen van een detectieregel, geschreven onder **Responsstappen** in zijn formulier, komen eerst in het deel van het plan waaronder ze vallen, en de regels uit de regelbibliotheek hebben hun eigen stappen. Een stap die OneUptime kan uitvoeren, heeft zijn eigen knop: **Aan mij toewijzen**, **Uitzondering toevoegen** met de regel en het adres al ingevuld, **Playbook uitvoeren** voor het playbook dat het account opschort of de host indamt, of voor het playbook dat OneUptime AI voorstelt, **Incident melden**, **Markeren als ingedamd** en **Zaak sluiten**. Een stap die OneUptime niet kan uitvoeren, zoals een adres blokkeren op je firewall, toont **Buiten OneUptime**, met het adres één klik van je klembord. Vink een stap af als hij klaar is: hij wordt bewaard als een van de **Taken** van de zaak, afgerond, met wie het deed en wanneer. Stappen waarover de zaak zelf beslist, vinken zichzelf af: ze is toegewezen, er is een incident gemeld, een playbook heeft gedraaid, ze is ingedamd of gesloten. Zodra elke stap die de dreiging indamt, klaar is, biedt het plan **Markeren als ingedamd** aan, waarmee de tijd tot indamming van de zaak wordt vastgelegd. Als OneUptime AI de zaak heeft beoordeeld, staat zijn lezing bovenaan het plan, en de stappen die het voorstelt, zijn ingeklapt onder die van het plan zelf. De meeste stappen controleert OneUptime zelf, en het zegt naast elke stap wat het vond: zie [Hoe OneUptime een stap controleert](#hoe-oneuptime-een-stap-controleert).
 - **OneUptime AI**, op het **Overzicht**: wat OneUptime AI van de zaak maakt, de prioriteit en het playbook die het voorstelt, en het bewijs erachter. Zie [OneUptime AI in beveiliging](/docs/telemetry/security-ai).
 - **Impact**, op het **Overzicht**: wat de zaak in gevaar brengt: of OneUptime heeft gezien dat haar records vanaf het internet werden bereikt, wie de eigenaar is, wat er het laatst aan veranderde, en de gegevens in gevaar - de opslagen met gevoelige gegevens die de zaak noemt of waar haar gebruikers en rollen bij kunnen (zie [Integraties van Gegevensbeveiliging](/docs/data-security/integrations#security-operations)). Klap het open om te zien wat elk record aanroept en waardoor het wordt aangeroepen, welke monitors en statuspagina's het in de gaten houden en met welke machines de adressen van de zaak praatten.
 - **MITRE ATT&CK**, op het **Overzicht**: de tactieken en technieken waarop haar detecties zijn gemapt, elk gelinkt aan de bijbehorende pagina op attack.mitre.org.
@@ -114,6 +114,41 @@ Elke pagina houdt bovenaan de kop van de zaak: nummer, prioriteit, status en tit
 - **Aangepaste velden**: de eigen velden van het project, ingevuld voor deze zaak, en **Velden bewerken** om ze te wijzigen. Zodra het project een veld heeft, toont het **Overzicht** ze ook, in zijn laatste kaart. Zie [Aangepaste velden, notitiesjablonen en nummering](#aangepaste-velden-notitiesjablonen-en-nummering).
 - **Auditlogboeken**: elke wijziging aan de zaak, en wie die maakte. Zie [Auditlogboeken](/docs/configuration/audit-logs).
 - **Zaak verwijderen**: verwijdert de zaak voorgoed, met haar detecties, notities, tijdlijn en playbook-uitvoeringen. Wil je haar als verslag bewaren, sluit haar dan met een oordeel.
+
+### Hoe OneUptime een stap controleert
+
+Een vinkje zegt dat iemand een stap heeft gedaan. OneUptime controleert de stappen in het **Responsplan** van een zaak ook zelf, aan wat er echt gebeurde: elke minuut zolang de zaak open is, en meteen wanneer een stap wordt afgevinkt, een taak verandert of een playbook iets indamt. Naast elke stap die het controleerde, zegt het plan wat het vond:
+
+| Naast de stap | Betekent |
+| --- | --- |
+| **Gecontroleerd door OneUptime** | OneUptime zag de stap afgerond, en hij houdt stand. Niemand hoeft hem af te vinken |
+| **Lijkt afgerond** | Wat OneUptime ziet, past bij een afgeronde stap, maar bewijst het niet. **Bevestigen** vinkt hem af als de jouwe |
+| **Nog niet afgerond** | OneUptime ziet dat de stap nog moet gebeuren |
+| **OneUptime kan het niet zeggen** | OneUptime heeft niets om de stap aan te controleren, en zegt waarom, met **Zo laat u OneUptime dit controleren** |
+| **Houdt geen stand meer** | De stap was afgerond en werkt niet meer, zoals een geblokkeerd adres dat weer doorkomt |
+| **Voorlopig niet nodig** | Er is niets gebeurd dat om de stap vraagt |
+
+**Hoe we het weten**, naast wat OneUptime vond, opent de rest: wat het nog meer zag, een link naar de traces of het product dat het las, en wanneer het controleerde. De voortgang van het plan telt de stappen die OneUptime zelf controleerde, zoals in "4 van 9 afgerond, 3 gecontroleerd door OneUptime".
+
+| Stap | Wat OneUptime leest |
+| --- | --- |
+| Het adres blokkeren | Of aanvragen van het adres je app nog bereiken, in de traces en toegangslogboeken ervan. Een adres dat stil wordt, lijkt afgerond: het is misschien geblokkeerd, of misschien gewoon gestopt |
+| Controleren dat er niets anders doorkwam | Hoe elke aanvraag van het adres sinds de eerste detectie van de zaak eindigde. Als je app ze allemaal afwees, is de stap gecontroleerd |
+| Het account opschorten | Het account in Okta, Microsoft Entra ID of Google Workspace: opgeschort, of uitgeschakeld met de sessies beëindigd nadat de zaak werd geopend |
+| De host van het netwerk halen | De host in CrowdStrike Falcon of Microsoft Defender for Endpoint: ingedamd of geïsoleerd |
+| Een incident melden | Of een aanvraag door de controles van je app kwam, of een monitor van de diensten die ze bereikte uitviel, terwijl de zaak open was. Tot dan is de stap voorlopig niet nodig |
+| Een fout-positief uitsluiten | Niets: alleen jij kunt het uitsluiten. De stap somt op wat OneUptime over het adres weet: of een van je records het heeft, de feeds met dreigingsinformatie die het vermelden, en de aangemelde gebruikers die het de afgelopen 30 dagen gebruikten |
+
+- Een stap die buiten OneUptime is gedaan, telt ook. Blokkeer het adres op je eigen firewall, en OneUptime ziet de aanvragen ervan stoppen; schort het account op in Okta, en OneUptime leest het terug.
+- Je kunt een stap nog steeds zelf afvinken, ook een die OneUptime niet afgerond ziet. Een stap die OneUptime heeft gecontroleerd, heeft geen vinkje nodig.
+- Als een afgeronde stap geen stand meer houdt, zegt het plan dat bovenaan, zegt de **Tijdlijn** van de zaak wat OneUptime zag, en horen de mensen die aan de zaak werken het: zie [Meldingen](#meldingen).
+- OneUptime kan de aanvragen van een adres niet zien als je app het geen traces of logboeken stuurt, als de traces niet zeggen van welk adres elke aanvraag kwam, of als ze de adressen van Cloudflare of van een load balancer voor je app dragen in plaats van die van je bezoekers. Stel het adres van de client (`client.address`) in op de serverspans van je app: vanuit `CF-Connecting-IP` achter Cloudflare, vanuit `X-Forwarded-For` achter een load balancer.
+- OneUptime leest accounts en hosts via de verbindingen van het project met de producten die ze hebben, dezelfde die [Reageren via OneUptime](#reageren-via-oneuptime) gebruikt. Zonder zo'n verbinding kan het het niet zeggen.
+- Een product dat niet antwoordt, of een leesactie die mislukt, telt nooit als een stap die niet is gedaan: de stap zegt dat OneUptime hem nu niet kon controleren, en OneUptime probeert het over een paar minuten opnieuw.
+
+**Zaken als ingedamd markeren wanneer geverifieerd**, onder **Producten → Beveiligingsgebeurtenissen → Instellingen → Zaakstatussen**, zet een zaak op Ingedamd zodra elke stap die hem indamt **Gecontroleerd door OneUptime** of **Voorlopig niet nodig** is. De tijd tot indamming wordt vastgelegd, en de **Tijdlijn** van de zaak zegt dat OneUptime elke stap heeft geverifieerd die de dreiging indamt. Een stap die alleen afgerond lijkt, of een vinkje, zet een zaak nooit uit zichzelf verder. De instelling staat in elk project aan, en een Projecteigenaar of Projectbeheerder kan haar uitzetten: een zaak blijft dan waar hij is totdat iemand hem als Ingedamd markeert.
+
+Iedereen die een zaak kan zien, ziet wat OneUptime vond. Niemand bewerkt het: wie het er niet mee eens is, vinkt de stap zelf af, en daarvoor is een rol nodig die de taken van de zaak mag afhandelen.
 
 ### Zaken afhandelen vanuit de wachtrij
 
@@ -201,7 +236,7 @@ Een Beveiligingsbeheerder beheert de aangepaste velden en notitiesjablonen, en e
 
 ## Meldingen
 
-OneUptime brengt mensen op de hoogte van vijf dingen op een zaak. Niemand hoeft iets in te stellen: een project dat alleen op **Aanbevolen inschakelen** heeft geklikt, hoort per e-mail en push over zijn zaken met prioriteit High en Kritiek.
+OneUptime brengt mensen op de hoogte van zes dingen op een zaak. Niemand hoeft iets in te stellen: een project dat alleen op **Aanbevolen inschakelen** heeft geklikt, hoort per e-mail en push over zijn zaken met prioriteit High en Kritiek.
 
 | Melding | Wie het hoort | Standaard |
 | --- | --- | --- |
@@ -210,12 +245,13 @@ OneUptime brengt mensen op de hoogte van vijf dingen op een zaak. Niemand hoeft 
 | Playbookstap wacht op mijn goedkeuring | De mensen van de zaak die de stap mogen goedkeuren: de persoon aan wie ze is toegewezen en de leden van haar team. Mag geen van hen goedkeuren, dan iedereen in het project die het mag | E-mail en push |
 | Reactiedoel van een beveiligingszaak | De mensen die aan de zaak werken: de persoon aan wie ze is toegewezen en de leden van haar team. Werkt niemand eraan, dan de mensen die over nieuwe zaken met haar prioriteit horen | E-mail en push |
 | Aan mij toegewezen taak van een beveiligingszaak | De persoon die een taak van de zaak krijgt, tenzij die hem zelf nam | E-mail en push |
+| Stap van een beveiligingszaak houdt geen stand meer | De mensen die aan de zaak werken, wanneer een stap die OneUptime afgerond zag geen stand meer houdt: de persoon aan wie ze is toegewezen en de leden van haar team. Werkt niemand eraan, dan de mensen die over nieuwe zaken met haar prioriteit horen | E-mail en push |
 
 - Alleen mensen die de zaak kunnen zien, horen erover: Projecteigenaren, Projectbeheerders en de rollen Beveiligingsbeheerder, Beveiligingslid en Beveiligingskijker. Een rol die tot bepaalde labels is beperkt, hoort alleen over de zaken met die labels.
 - Niemand hoort over wat hij zelf deed: wie een zaak met de hand opent, haar toewijst of een uitvoering start, krijgt daar geen melding van.
 - Ieder hoort één keer over een zaak. Een zaak die op Medium wordt geopend en later naar Kritiek stijgt, bereikt bij die stijging de mensen die High of Kritiek kozen, en niet opnieuw de mensen die Medium kozen, want die hoorden erover toen ze werd geopend.
 - De testaanval van **Testaanval sturen** opent een zaak die niemand een melding geeft.
-- Een zaak met Kritiek en een stap die op goedkeuring wacht, worden meteen verstuurd en nooit vastgehouden in een [e-mailbundeling](/docs/emails/notification-rollup). Dat geldt ook voor een reactiedoel dat bijna wordt gemist, of is gemist.
+- Een zaak met Kritiek en een stap die op goedkeuring wacht, worden meteen verstuurd en nooit vastgehouden in een [e-mailbundeling](/docs/emails/notification-rollup). Dat geldt ook voor een reactiedoel dat bijna wordt gemist, of is gemist, en voor een stap die geen stand meer houdt.
 - De **Tijdlijn** van de zaak laat zien wie het hoorde, en wanneer.
 
 ### Kiezen wat je hoort
@@ -470,6 +506,10 @@ Kijk op de **Tijdlijn** van de zaak, die laat zien wie een melding kreeg. Een me
 
 :::details Een zaak toont geen termijn
 Haar prioriteit heeft geen reactiedoel, of kreeg er pas een nadat de zaak was geopend: de termijnen van een zaak worden bij het openen vastgesteld. De zaak van de testaanval heeft er geen. Zie [Reactiedoelen](#reactiedoelen).
+:::
+
+:::details Een stap zegt "OneUptime kan het niet zeggen"
+De stap zegt ernaast waarom. Meestal stuurt je app OneUptime geen traces of logboeken, dragen de traces het adres van de client niet, of heeft het project geen verbinding met het product dat het account of de host heeft. Zie [Hoe OneUptime een stap controleert](#hoe-oneuptime-een-stap-controleert).
 :::
 
 :::details Een playbook draaide niet

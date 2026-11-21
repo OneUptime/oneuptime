@@ -1,3 +1,4 @@
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import { AddScheduledMaintenancePublishOnStatusPageAt1807960000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1807960000000-AddScheduledMaintenancePublishOnStatusPageAt";
 import { AddDashboardPlaylists1808070000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808070000000-AddDashboardPlaylists";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
@@ -149,6 +150,10 @@ describe("the Dashboard Playlists migration", () => {
       .concat(["createdAt", "updatedAt", "deletedAt", "version"])
       .filter((column: string, index: number, all: Array<string>) => {
         return all.indexOf(column) === index;
+      })
+      .filter((column: string): boolean => {
+        // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+        return !RecordActorUtil.isColumn(column);
       })
       .sort();
 

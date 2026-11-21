@@ -1,3 +1,4 @@
+import { withoutLastModifiedStamp } from "../TestingUtils/LastModifiedStamp";
 import BaseAPI from "../../../Server/API/BaseAPI";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
@@ -339,7 +340,7 @@ beforeEach(() => {
       where: { _id: string },
       set: Record<string, unknown>,
     ): Promise<{ affected: number }> => {
-      const written: Record<string, unknown> = { ...set };
+      const written: Record<string, unknown> = withoutLastModifiedStamp(set);
       delete written["version"];
       writes.push({ statusPageId: where._id.toString(), data: written });
       return { affected: 1 };
