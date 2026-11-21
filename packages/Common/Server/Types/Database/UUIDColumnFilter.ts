@@ -9,6 +9,7 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesAnyOfGroups from "../../../Types/BaseDatabase/IncludesAnyOfGroups";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../Types/BaseDatabase/IncludesNoneOrNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
@@ -254,6 +255,10 @@ export default class UUIDColumnFilter {
       return new IncludesNone(this.getIdTexts(columnName, value.values));
     }
 
+    if (value instanceof IncludesNoneOrNull) {
+      return new IncludesNoneOrNull(this.getIdTexts(columnName, value.values));
+    }
+
     /*
      * Text matches compare the id cast to text, and IsNull / NotNull compare
      * nothing: none of them asks Postgres to read a uuid.
@@ -309,6 +314,12 @@ export default class UUIDColumnFilter {
 
     if (value instanceof IncludesNone) {
       return new IncludesNone(this.getRelatedIdTexts(columnName, value.values));
+    }
+
+    if (value instanceof IncludesNoneOrNull) {
+      return new IncludesNoneOrNull(
+        this.getRelatedIdTexts(columnName, value.values),
+      );
     }
 
     if (value instanceof IncludesAnyOfGroups) {

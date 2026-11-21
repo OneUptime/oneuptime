@@ -3,6 +3,7 @@ import FieldType from "../../../UI/Components/Types/FieldType";
 import Filter from "../../../UI/Components/Filters/Types/Filter";
 import FilterData from "../../../UI/Components/Filters/Types/FilterData";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import GenericObject from "../../../Types/GenericObject";
@@ -57,6 +58,20 @@ describe("EntityFilter operator round trip", () => {
     renderWith({ ownerId: "user-1" } as unknown as FilterData<Resource>);
 
     expect(screen.getByText("is")).toBeTruthy();
+  });
+
+  /*
+   * What "is not" writes since #10581: the records pointing at none kept.
+   * The plain IncludesNone below is how a link or a saved view made before
+   * then wrote it, and still reads back the same.
+   */
+  test("a one-item IncludesNoneOrNull reads back as 'is not', with its entity", () => {
+    renderWith({
+      ownerId: new IncludesNoneOrNull(["user-1"]),
+    } as unknown as FilterData<Resource>);
+
+    expect(screen.getByText("is not")).toBeTruthy();
+    expect(screen.getByText("Alex")).toBeTruthy();
   });
 
   test("a one-item IncludesNone reads back as 'is not', not 'is'", () => {

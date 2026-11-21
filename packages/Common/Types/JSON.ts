@@ -10,6 +10,7 @@ import Includes from "./BaseDatabase/Includes";
 import IncludesAll from "./BaseDatabase/IncludesAll";
 import IncludesAnyOfGroups from "./BaseDatabase/IncludesAnyOfGroups";
 import IncludesNone from "./BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "./BaseDatabase/IncludesNoneOrNull";
 import StartsWith from "./BaseDatabase/StartsWith";
 import EndsWith from "./BaseDatabase/EndsWith";
 import NotContains from "./BaseDatabase/NotContains";
@@ -87,6 +88,7 @@ export enum ObjectType {
   IncludesAll = "IncludesAll",
   IncludesAnyOfGroups = "IncludesAnyOfGroups",
   IncludesNone = "IncludesNone",
+  IncludesNoneOrNull = "IncludesNoneOrNull",
   StartsWith = "StartsWith",
   EndsWith = "EndsWith",
   NotContains = "NotContains",
@@ -188,6 +190,8 @@ export type JSONValue =
   | Array<IncludesAnyOfGroups>
   | IncludesNone
   | Array<IncludesNone>
+  | IncludesNoneOrNull
+  | Array<IncludesNoneOrNull>
   | StartsWith<string>
   | Array<StartsWith<string>>
   | EndsWith<string>
