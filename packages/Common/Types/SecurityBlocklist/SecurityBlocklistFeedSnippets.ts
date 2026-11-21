@@ -123,10 +123,7 @@ function fetchLines(): Array<string> {
 }
 
 // Each script's first lines: what it is, and where it reads from.
-function scriptHeadLines(data: {
-  what: string;
-  url: string;
-}): Array<string> {
+function scriptHeadLines(data: { what: string; url: string }): Array<string> {
   return [
     "#!/bin/sh",
     `# ${data.what}`,
@@ -356,10 +353,10 @@ export function renderWindowsFirewallSnippet(data: {
     `  $Part = $Addresses[$i..([Math]::Min($i + ${perRule - 1}, $Addresses.Count - 1))]`,
     "  $Name = '{0}{1:D3}' -f $Prefix, $Count",
     "  if (Get-NetFirewallRule -Name $Name -ErrorAction SilentlyContinue) { Set-NetFirewallRule -Name $Name -RemoteAddress $Part }",
-    "  else { New-NetFirewallRule -Name $Name -DisplayName \"OneUptime blocklist $Count\" -Direction Inbound -Action Block -RemoteAddress $Part | Out-Null }",
+    '  else { New-NetFirewallRule -Name $Name -DisplayName "OneUptime blocklist $Count" -Direction Inbound -Action Block -RemoteAddress $Part | Out-Null }',
     "  $Count++",
     "}",
-    "Get-NetFirewallRule -Name \"$Prefix*\" -ErrorAction SilentlyContinue |",
+    'Get-NetFirewallRule -Name "$Prefix*" -ErrorAction SilentlyContinue |',
     "  Where-Object { [int]$_.Name.Substring($Prefix.Length) -ge $Count } | Remove-NetFirewallRule",
     "$Etag = @($Resp.Headers['ETag'])[0]",
     "if ($Etag) { Set-Content -Path $EtagFile -Value $Etag }",
@@ -375,7 +372,7 @@ export function renderWindowsFirewallSnippet(data: {
     "@'",
     ...script,
     "'@ | Set-Content -Path $Script",
-    "$Action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument \"-NoProfile -NonInteractive -ExecutionPolicy Bypass -File `\"$Script`\"\"",
+    '$Action = New-ScheduledTaskAction -Execute \'powershell.exe\' -Argument "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$Script`""',
     "$Trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 1)",
     "$Settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 5)",
     `Register-ScheduledTask -TaskName ${quoteForPowerShell(SECURITY_BLOCKLIST_WINDOWS_TASK)} -Action $Action -Trigger $Trigger -Settings $Settings -User 'NT AUTHORITY\\SYSTEM' -RunLevel Highest -Force | Out-Null`,

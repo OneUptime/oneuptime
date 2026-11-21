@@ -307,9 +307,12 @@ function makeFeed(): SecurityBlocklistFeed {
   return made;
 }
 
-function copy<T extends object>(model: T): T {
-  const made: T = Object.create(Object.getPrototypeOf(model));
-  Object.assign(made, model);
+// A row as a read hands it back: a copy of its own, so a test changes the table only through the service.
+function copy<T>(model: T): T {
+  const made: T = Object.create(
+    Object.getPrototypeOf(model as unknown as Record<string, unknown>),
+  ) as T;
+  Object.assign(made as unknown as Record<string, unknown>, model);
   return made;
 }
 
@@ -532,8 +535,11 @@ describe("authentication", () => {
       (await fetchFeed(feedPath(), { headers: bearer(OTHER_SECRET) })).status,
     ).toBe(401);
     expect(
-      (await fetchFeed(feedPath(), { headers: basic("oneuptime", OTHER_SECRET) }))
-        .status,
+      (
+        await fetchFeed(feedPath(), {
+          headers: basic("oneuptime", OTHER_SECRET),
+        })
+      ).status,
     ).toBe(401);
     expect((await fetchFeed(pathSecretPath(OTHER_SECRET))).status).toBe(404);
     // Not shaped like a secret: refused before anything is read.
@@ -837,10 +843,9 @@ describe("what is served", () => {
   });
 
   test("each format, by its file: the commented list, the nftables script, the nginx include, and the MD5", async () => {
-    const commented: HttpResult = await fetchFeed(
-      `${feedPath()}?comments=1`,
-      { headers: bearer(SECRET) },
-    );
+    const commented: HttpResult = await fetchFeed(`${feedPath()}?comments=1`, {
+      headers: bearer(SECRET),
+    });
     expect(commented.body).toBe(
       "# OneUptime blocklist until 2026-11-21 11:00 UTC\n35.205.11.131\n# OneUptime blocklist until 2026-11-21 11:00 UTC\n2001:db8::9\n",
     );
@@ -861,7 +866,9 @@ describe("what is served", () => {
     });
     expect(nginx.body).toContain("deny 35.205.11.131;\ndeny 2001:db8::9;\n");
 
-    const md5: HttpResult = await fetchFeed(pathSecretPath(SECRET, "blocklist.txt.md5"));
+    const md5: HttpResult = await fetchFeed(
+      pathSecretPath(SECRET, "blocklist.txt.md5"),
+    );
     expect(md5.body).toBe(
       getSecurityBlocklistFeedMd5("35.205.11.131\n2001:db8::9\n"),
     );

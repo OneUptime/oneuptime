@@ -82,7 +82,8 @@ export default class SecurityBlocklistFeedHealth {
           _id: true,
           projectId: true,
           name: true,
-          secret: true,
+          // Whether it has a secret: its hint is there exactly while it does.
+          secretHint: true,
           lastFetchedAt: true,
           usualFetchIntervalInSeconds: true,
           stoppedReadingToldAt: true,
@@ -147,7 +148,7 @@ export default class SecurityBlocklistFeedHealth {
     }
 
     // Revoked on purpose: nothing stopped working.
-    if (!feed.secret || feed.stoppedReadingToldAt) {
+    if (!feed.secretHint || feed.stoppedReadingToldAt) {
       return false;
     }
 

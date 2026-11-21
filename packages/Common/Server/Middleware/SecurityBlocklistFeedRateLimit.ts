@@ -1,5 +1,9 @@
 import Redis, { ClientType } from "../Infrastructure/Redis";
-import { ExpressRequest, ExpressResponse, NextFunction } from "../Utils/Express";
+import {
+  ExpressRequest,
+  ExpressResponse,
+  NextFunction,
+} from "../Utils/Express";
 import logger from "../Utils/Logger";
 import resolveTrustedClientIp, { ClientIpRequestLike } from "../Utils/ClientIp";
 import ClientRateLimitCounter, {
@@ -125,9 +129,7 @@ export default class SecurityBlocklistFeedRateLimit {
 
     const windowSeconds: number =
       SECURITY_BLOCKLIST_FEED_RATE_LIMIT_WINDOW_SECONDS;
-    const windowIndex: number = Math.floor(
-      Date.now() / (windowSeconds * 1000),
-    );
+    const windowIndex: number = Math.floor(Date.now() / (windowSeconds * 1000));
 
     try {
       const refusal: ClientRateLimitRefusal<SecurityBlocklistFeedRateLimitScope> | null =
@@ -195,12 +197,15 @@ export default class SecurityBlocklistFeedRateLimit {
     next: NextFunction,
   ): Promise<void> {
     const feedKey: string = SecurityBlocklistFeedRateLimit.resolveFeedKey(req);
-    const clientIp: string = SecurityBlocklistFeedRateLimit.resolveClientIp(req);
+    const clientIp: string =
+      SecurityBlocklistFeedRateLimit.resolveClientIp(req);
 
     const decision: SecurityBlocklistFeedRateLimitDecision =
       await SecurityBlocklistFeedRateLimit.consume({ feedKey, clientIp });
 
-    if (decision.outcome === SecurityBlocklistFeedRateLimitOutcome.RateLimited) {
+    if (
+      decision.outcome === SecurityBlocklistFeedRateLimitOutcome.RateLimited
+    ) {
       if (decision.retryAfterSeconds) {
         res.setHeader("Retry-After", String(decision.retryAfterSeconds));
       }

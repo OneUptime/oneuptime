@@ -98,6 +98,9 @@ export const SECURITY_BLOCKLIST_FEED_REALM: string = "OneUptime blocklist feed";
 // The longest user agent a fetch keeps.
 const USER_AGENT_MAX_LENGTH: number = 500;
 
+// Base64, as basic auth's credentials are written.
+const BASE64_PATTERN: RegExp = /^[A-Za-z0-9+/]+={0,2}$/;
+
 export interface SecurityBlocklistFeedFetchRequest {
   // As the URL gives them, unchecked.
   feedId: string | null | undefined;
@@ -177,7 +180,7 @@ export function readSecurityBlocklistFeedCredentials(data: {
   }
 
   // RFC 7617: base64 of "username:password"; the password is all after the first colon.
-  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(value)) {
+  if (!BASE64_PATTERN.test(value)) {
     return null;
   }
 
@@ -278,9 +281,8 @@ export default class SecurityBlocklistFeedServe {
   public static async answer(
     request: SecurityBlocklistFeedFetchRequest,
   ): Promise<SecurityBlocklistFeedFetchAnswer> {
-    const file: SecurityBlocklistFeedFile | null = readSecurityBlocklistFeedFile(
-      request.fileName,
-    );
+    const file: SecurityBlocklistFeedFile | null =
+      readSecurityBlocklistFeedFile(request.fileName);
     const feedIdText: string = (request.feedId || "").trim();
     const isPathRoute: boolean = request.pathSecret !== null;
 
@@ -356,7 +358,9 @@ export default class SecurityBlocklistFeedServe {
       family: feed.family,
     });
     const listMd5: string = getSecurityBlocklistFeedMd5(list);
-    const body: string = file.isMd5 ? renderSecurityBlocklistFeedMd5(listMd5) : list;
+    const body: string = file.isMd5
+      ? renderSecurityBlocklistFeedMd5(listMd5)
+      : list;
     const etag: string = `"${file.isMd5 ? getSecurityBlocklistFeedMd5(body) : listMd5}"`;
     const isNotModified: boolean = isSecurityBlocklistFeedNotModified(
       request.ifNoneMatch,

@@ -193,7 +193,8 @@ export default class SecurityBlocklistFeedFetch extends BaseModel {
     type: TableColumnType.LongText,
     computed: true,
     title: "User Agent",
-    description: "What the feed was fetched with: the firewall or tool that read it.",
+    description:
+      "What the feed was fetched with: the firewall or tool that read it.",
     example: "PAN-OS",
   })
   @Column({

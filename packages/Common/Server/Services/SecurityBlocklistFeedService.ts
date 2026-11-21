@@ -26,6 +26,7 @@ import {
   SECURITY_BLOCKLIST_FEED_SECRET_GRACE_IN_MS,
   SecurityBlocklistFeedAllowlist,
   SecurityBlocklistFeedFirewall,
+  fillSecurityBlocklistFeedSentence,
   getSecurityBlocklistFeedSecretHint,
   isPreviousSecurityBlocklistFeedSecretInGrace,
   isSecurityBlocklistFeedFamily,
@@ -137,7 +138,9 @@ export class Service extends ProjectReferencesService<Model> {
    * The writes rotateSecret and revokeSecret make: only these may name a
    * secret's columns. Only this service adds to it.
    */
-  private readonly secretWrites: WeakSet<object> = new WeakSet<object>();
+  private readonly secretWrites: WeakSet<Record<string, unknown>> = new WeakSet<
+    Record<string, unknown>
+  >();
 
   public constructor() {
     super(Model);
@@ -345,7 +348,6 @@ export class Service extends ProjectReferencesService<Model> {
         name: true,
         firewall: true,
         family: true,
-        secret: true,
         revokedAt: true,
         lastFetchedAt: true,
         servedValues: true,
@@ -389,9 +391,7 @@ export class Service extends ProjectReferencesService<Model> {
       data["family"] !== undefined &&
       !isSecurityBlocklistFeedFamily(data["family"])
     ) {
-      throw new BadDataException(
-        "A feed serves Both, IPv4 or IPv6 addresses.",
-      );
+      throw new BadDataException("A feed serves Both, IPv4 or IPv6 addresses.");
     }
 
     if (data["allowedSourceAddresses"] !== undefined) {
@@ -403,7 +403,9 @@ export class Service extends ProjectReferencesService<Model> {
         );
 
       if (allowlist.problem) {
-        throw new BadDataException(allowlist.problem);
+        throw new BadDataException(
+          fillSecurityBlocklistFeedSentence(allowlist.problem),
+        );
       }
 
       data["allowedSourceAddresses"] =
@@ -422,9 +424,11 @@ export class Service extends ProjectReferencesService<Model> {
       | Record<string, unknown>
       | undefined;
 
-    const isWritten: boolean = SECRET_COLUMNS.some((column: string): boolean => {
-      return record?.[column] !== undefined;
-    });
+    const isWritten: boolean = SECRET_COLUMNS.some(
+      (column: string): boolean => {
+        return record?.[column] !== undefined;
+      },
+    );
 
     if (!isWritten || (record && this.secretWrites.has(record))) {
       return;
@@ -521,9 +525,7 @@ export class Service extends ProjectReferencesService<Model> {
     const onUpdate: OnUpdate<Model> = await super.onBeforeUpdate(updateBy);
 
     this.assertSecretWrittenHere(updateBy.data);
-    this.normalizeSettings(
-      updateBy.data as unknown as Record<string, unknown>,
-    );
+    this.normalizeSettings(updateBy.data as unknown as Record<string, unknown>);
 
     return onUpdate;
   }

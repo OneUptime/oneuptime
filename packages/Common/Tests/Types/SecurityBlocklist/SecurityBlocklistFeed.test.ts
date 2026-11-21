@@ -1,5 +1,7 @@
 import {
   SECURITY_BLOCKLIST_FEED_ALLOWLIST_PROBLEMS,
+  SECURITY_BLOCKLIST_FEED_SENTENCES,
+  fillSecurityBlocklistFeedSentence,
   SECURITY_BLOCKLIST_FEED_FAMILIES,
   SECURITY_BLOCKLIST_FEED_FIREWALLS,
   SECURITY_BLOCKLIST_FEED_FIREWALL_NAMES,
@@ -193,12 +195,18 @@ describe("the source allowlist", () => {
       readSecurityBlocklistFeedAllowlist("203.0.113.7\nfirewall.example.com");
 
     expect(allowlist.entries).toEqual([]);
-    expect(allowlist.problem).toBe(
+    expect(allowlist.problem).toEqual(
       SECURITY_BLOCKLIST_FEED_ALLOWLIST_PROBLEMS.notAnAddress(
         "firewall.example.com",
       ),
     );
-    expect(allowlist.problem).toContain("firewall.example.com is not an IP");
+    // The server answers it in English; the form in the reader's language, from the same key.
+    expect(fillSecurityBlocklistFeedSentence(allowlist.problem!)).toBe(
+      "firewall.example.com is not an IP address or a range. Write each as an address, such as 203.0.113.7, or a range, such as 203.0.113.0/24.",
+    );
+    expect(allowlist.problem!.template).toBe(
+      SECURITY_BLOCKLIST_FEED_SENTENCES.notAnAddress,
+    );
   });
 
   test("more than the most a feed takes is refused", () => {
@@ -209,8 +217,15 @@ describe("the source allowlist", () => {
       },
     ).join("\n");
 
-    expect(readSecurityBlocklistFeedAllowlist(many).problem).toBe(
+    expect(readSecurityBlocklistFeedAllowlist(many).problem).toEqual(
       SECURITY_BLOCKLIST_FEED_ALLOWLIST_PROBLEMS.tooMany,
+    );
+    expect(
+      fillSecurityBlocklistFeedSentence(
+        readSecurityBlocklistFeedAllowlist(many).problem!,
+      ),
+    ).toBe(
+      "A feed takes at most 50 source addresses and ranges. Use a range that holds several.",
     );
 
     const enough: string = many.split("\n").slice(1).join("\n");
@@ -372,7 +387,7 @@ describe("what a feed serves", () => {
   test("an entry's comment is one line of printable text", () => {
     expect(
       toSecurityBlocklistFeedComment(
-        "OneUptime case CASE-1\nuntil\r\n2026 later\u0000",
+        `OneUptime case CASE-1\nuntil\r\n2026${String.fromCharCode(0x2028)}later${String.fromCharCode(0)}`,
       ),
     ).toBe("OneUptime case CASE-1 until 2026 later");
     expect(toSecurityBlocklistFeedComment("x".repeat(500))).toHaveLength(200);
@@ -455,9 +470,14 @@ describe("protected addresses are never served", () => {
 
     expect(values(filtered.served)).toEqual(["8.8.8.8"]);
     expect(
-      filtered.withheld.map((withheld: { entry: SecurityBlocklistFeedEntry; protection: SecurityAddressProtection }): [string, string] => {
-        return [withheld.entry.value, withheld.protection.protectedValue];
-      }),
+      filtered.withheld.map(
+        (withheld: {
+          entry: SecurityBlocklistFeedEntry;
+          protection: SecurityAddressProtection;
+        }): [string, string] => {
+          return [withheld.entry.value, withheld.protection.protectedValue];
+        },
+      ),
     ).toEqual([
       ["192.0.2.9", "192.0.2.0/24"],
       ["198.51.100.0/24", "198.51.100.20"],

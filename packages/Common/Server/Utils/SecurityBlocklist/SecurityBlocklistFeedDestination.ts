@@ -51,7 +51,9 @@ import {
 
 export const SECURITY_BLOCKLIST_FEED_DESTINATION_KEY_PREFIX: string = "Feed:";
 
-export function getSecurityBlocklistFeedDestinationKey(feedId: ObjectID): string {
+export function getSecurityBlocklistFeedDestinationKey(
+  feedId: ObjectID,
+): string {
   return `${SECURITY_BLOCKLIST_FEED_DESTINATION_KEY_PREFIX}${feedId.toString()}`;
 }
 
@@ -108,7 +110,9 @@ export default class SecurityBlocklistFeedDestination
       value: read.value,
     });
 
-    return refusal ? { isSupported: false, reason: refusal } : { isSupported: true };
+    return refusal
+      ? { isSupported: false, reason: refusal }
+      : { isSupported: true };
   }
 
   public async capacity(): Promise<SecurityBlockCapacity> {
@@ -119,18 +123,22 @@ export default class SecurityBlocklistFeedDestination
   public async apply(
     entries: Array<SecurityBlockEntry>,
   ): Promise<Array<SecurityBlockWriteResult>> {
-    return entries.map((entry: SecurityBlockEntry): SecurityBlockWriteResult => {
-      return { value: entry.value, action: entry.action, isDone: true };
-    });
+    return entries.map(
+      (entry: SecurityBlockEntry): SecurityBlockWriteResult => {
+        return { value: entry.value, action: entry.action, isDone: true };
+      },
+    );
   }
 
   // Gone from the next fetch: nothing to ask the firewall.
   public async remove(
     items: Array<SecurityBlockHeldItem>,
   ): Promise<Array<SecurityBlockWriteResult>> {
-    return items.map((item: SecurityBlockHeldItem): SecurityBlockWriteResult => {
-      return { value: item.value, action: item.action, isDone: true };
-    });
+    return items.map(
+      (item: SecurityBlockHeldItem): SecurityBlockWriteResult => {
+        return { value: item.value, action: item.action, isDone: true };
+      },
+    );
   }
 
   /*

@@ -65,14 +65,10 @@ export class AddSecurityBlocklistFeeds1809187400000
     await queryRunner.query(
       `DROP INDEX "public"."IDX_6a6efa3c385be850307ffd2059"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "SecurityBlocklistFeedFetch"`,
-    );
+    await queryRunner.query(`DROP TABLE "SecurityBlocklistFeedFetch"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_f8db287ffd55e831bb709f2533"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "SecurityBlocklistFeed"`,
-    );
+    await queryRunner.query(`DROP TABLE "SecurityBlocklistFeed"`);
   }
 }

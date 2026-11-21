@@ -117,9 +117,7 @@ export function isSecurityBlocklistFeedFirewall(
 ): value is SecurityBlocklistFeedFirewall {
   return (
     typeof value === "string" &&
-    (SECURITY_BLOCKLIST_FEED_FIREWALLS as ReadonlyArray<string>).includes(
-      value,
-    )
+    (SECURITY_BLOCKLIST_FEED_FIREWALLS as ReadonlyArray<string>).includes(value)
   );
 }
 
@@ -176,15 +174,62 @@ export function isPreviousSecurityBlocklistFeedSecretInGrace(data: {
 // The most addresses and ranges a feed's source allowlist holds.
 export const SECURITY_BLOCKLIST_FEED_MAX_ALLOWED_SOURCES: number = 50;
 
-// What an allowlist that cannot be read says, as the server answers and the form shows.
-export const SECURITY_BLOCKLIST_FEED_ALLOWLIST_PROBLEMS: {
-  notAnAddress: (value: string) => string;
+/*
+ * Marks an English sentence as a key of the Dashboard's locales, as
+ * SecurityBlock.ts does: the feed's form says what is wrong with an
+ * allowlist in the reader's language, with the very sentences the server
+ * answers an API client with in English.
+ */
+const translationKey: (text: string) => string = (text: string): string => {
+  return text;
+};
+
+// A sentence with its values: the server fills it in English, the Dashboard in the reader's language.
+export interface SecurityBlocklistFeedSentence {
+  template: string;
+  values: Record<string, string>;
+}
+
+export const SECURITY_BLOCKLIST_FEED_SENTENCES: {
+  notAnAddress: string;
   tooMany: string;
 } = {
-  notAnAddress: (value: string): string => {
-    return `${value} is not an IP address or a range. Write each as an address, such as 203.0.113.7, or a range, such as 203.0.113.0/24.`;
+  notAnAddress: translationKey(
+    "{{value}} is not an IP address or a range. Write each as an address, such as 203.0.113.7, or a range, such as 203.0.113.0/24.",
+  ),
+  tooMany: translationKey(
+    "A feed takes at most {{count}} source addresses and ranges. Use a range that holds several.",
+  ),
+};
+
+// A sentence filled in English, as the server answers.
+export function fillSecurityBlocklistFeedSentence(
+  sentence: SecurityBlocklistFeedSentence,
+): string {
+  let text: string = sentence.template;
+
+  for (const [key, value] of Object.entries(sentence.values)) {
+    text = text.split(`{{${key}}}`).join(value);
+  }
+
+  return text;
+}
+
+// What an allowlist that cannot be read says.
+export const SECURITY_BLOCKLIST_FEED_ALLOWLIST_PROBLEMS: {
+  notAnAddress: (value: string) => SecurityBlocklistFeedSentence;
+  tooMany: SecurityBlocklistFeedSentence;
+} = {
+  notAnAddress: (value: string): SecurityBlocklistFeedSentence => {
+    return {
+      template: SECURITY_BLOCKLIST_FEED_SENTENCES.notAnAddress,
+      values: { value },
+    };
   },
-  tooMany: `A feed takes at most ${SECURITY_BLOCKLIST_FEED_MAX_ALLOWED_SOURCES} source addresses and ranges. Use a range that holds several.`,
+  tooMany: {
+    template: SECURITY_BLOCKLIST_FEED_SENTENCES.tooMany,
+    values: { count: String(SECURITY_BLOCKLIST_FEED_MAX_ALLOWED_SOURCES) },
+  },
 };
 
 export interface SecurityBlocklistFeedAllowlist {
@@ -192,7 +237,7 @@ export interface SecurityBlocklistFeedAllowlist {
   entries: Array<string>;
   blocks: Array<NetworkAddressBlock>;
   // What is wrong with it, or null.
-  problem: string | null;
+  problem: SecurityBlocklistFeedSentence | null;
 }
 
 /*
@@ -375,7 +420,9 @@ export function selectSecurityBlocklistFeedEntries(data: {
   const entries: Map<string, SecurityBlocklistFeedEntry> = new Map();
 
   for (const block of data.blocks) {
-    if ((block.action || SecurityBlockAction.Block) !== SecurityBlockAction.Block) {
+    if (
+      (block.action || SecurityBlockAction.Block) !== SecurityBlockAction.Block
+    ) {
       continue;
     }
 
@@ -383,9 +430,7 @@ export function selectSecurityBlocklistFeedEntries(data: {
       continue;
     }
 
-    const read: SecurityBlockValue | null = readSecurityBlockValue(
-      block.value,
-    );
+    const read: SecurityBlockValue | null = readSecurityBlockValue(block.value);
 
     if (
       !read ||
@@ -588,7 +633,10 @@ export function getSecurityBlocklistFeedUsualIntervalInMs(
   for (const time of times) {
     const last: number | undefined = polls[polls.length - 1];
 
-    if (last === undefined || last - time >= SECURITY_BLOCKLIST_FEED_SAME_POLL_IN_MS) {
+    if (
+      last === undefined ||
+      last - time >= SECURITY_BLOCKLIST_FEED_SAME_POLL_IN_MS
+    ) {
       polls.push(time);
     }
 
@@ -624,7 +672,8 @@ export function getSecurityBlocklistFeedStoppedReadingAfterInMs(
 ): number {
   return Math.max(
     SECURITY_BLOCKLIST_FEED_STOPPED_READING_FLOOR_IN_MS,
-    (usualIntervalInMs || 0) * SECURITY_BLOCKLIST_FEED_STOPPED_READING_INTERVALS,
+    (usualIntervalInMs || 0) *
+      SECURITY_BLOCKLIST_FEED_STOPPED_READING_INTERVALS,
   );
 }
 

@@ -44,7 +44,9 @@ const SECRET: string =
   "4f1c0e5d8a7b6c3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e";
 const BASE: string = `${API_URL}/blocklist-feed/${FEED_ID}`;
 
-function setup(firewall: SecurityBlocklistFeedFirewall): SecurityBlocklistFeedSetup {
+function setup(
+  firewall: SecurityBlocklistFeedFirewall,
+): SecurityBlocklistFeedSetup {
   return SECURITY_BLOCKLIST_FEED_SETUPS[firewall];
 }
 
@@ -82,8 +84,9 @@ describe("each firewall's setup", () => {
 
     for (const [firewall, domain] of Object.entries(domains)) {
       expect(
-        new URL(setup(firewall as SecurityBlocklistFeedFirewall).documentationUrl)
-          .hostname,
+        new URL(
+          setup(firewall as SecurityBlocklistFeedFirewall).documentationUrl,
+        ).hostname,
       ).toBe(domain);
     }
   });
@@ -157,7 +160,9 @@ describe("each firewall's setup", () => {
 
   test("Check Point documents IPv4 for a network feed, so a feed for it serves IPv4; every other firewall takes both", () => {
     expect(
-      getSecurityBlocklistFeedDefaultFamily(SecurityBlocklistFeedFirewall.CheckPoint),
+      getSecurityBlocklistFeedDefaultFamily(
+        SecurityBlocklistFeedFirewall.CheckPoint,
+      ),
     ).toBe(SecurityBlocklistFeedFamily.IPv4);
 
     for (const firewall of SECURITY_BLOCKLIST_FEED_FIREWALLS) {
@@ -206,18 +211,18 @@ describe("each firewall's setup", () => {
   });
 
   test("a step that names the URL, the username or the interval says so with its placeholder", () => {
-    expect(setup(SecurityBlocklistFeedFirewall.PaloAlto).steps.join(" ")).toContain(
-      "{{url}}",
-    );
-    expect(setup(SecurityBlocklistFeedFirewall.PaloAlto).steps.join(" ")).toContain(
-      "{{username}}",
-    );
-    expect(setup(SecurityBlocklistFeedFirewall.Cisco).steps.join(" ")).toContain(
-      "{{md5Url}}",
-    );
-    expect(setup(SecurityBlocklistFeedFirewall.FortiGate).steps.join(" ")).toContain(
-      "{{minutes}}",
-    );
+    expect(
+      setup(SecurityBlocklistFeedFirewall.PaloAlto).steps.join(" "),
+    ).toContain("{{url}}");
+    expect(
+      setup(SecurityBlocklistFeedFirewall.PaloAlto).steps.join(" "),
+    ).toContain("{{username}}");
+    expect(
+      setup(SecurityBlocklistFeedFirewall.Cisco).steps.join(" "),
+    ).toContain("{{md5Url}}");
+    expect(
+      setup(SecurityBlocklistFeedFirewall.FortiGate).steps.join(" "),
+    ).toContain("{{minutes}}");
 
     for (const firewall of SECURITY_BLOCKLIST_FEED_FIREWALLS) {
       for (const step of setup(firewall).steps) {
@@ -475,9 +480,11 @@ describe("the scripts a host runs", () => {
       renderHaproxySnippet,
     ]) {
       const snippet: string = render({ url: URL_TEXT, secret: SECRET });
-      const lines: Array<string> = snippet.split("\n").filter((line: string): boolean => {
-        return line.includes(SECRET);
-      });
+      const lines: Array<string> = snippet
+        .split("\n")
+        .filter((line: string): boolean => {
+          return line.includes(SECRET);
+        });
 
       expect(lines).toEqual([
         `printf 'Authorization: Bearer %s\\n' '${SECRET}' > /etc/oneuptime-blocklist/auth`,

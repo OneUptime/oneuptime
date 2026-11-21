@@ -36,6 +36,12 @@ import { describe, expect, test } from "@jest/globals";
 
 const NOW: Date = new Date("2026-11-21T10:00:00.000Z");
 
+// A line OPNsense skips: one that starts with a space, a comma, a semicolon, a pipe or a #.
+const OPNSENSE_SKIPPED: RegExp = /^[\s,;|#]/;
+
+// nginx's access module: deny address | CIDR;
+const NGINX_DENY: RegExp = /^deny (\S+);$/;
+
 function block(
   value: string,
   comment: string = "OneUptime case CASE-42 until 2026-11-22 10:00 UTC",
@@ -159,7 +165,9 @@ function readAsCisco(text: string): Array<string> {
 function readAsOpnsense(text: string): Array<string> {
   return linesOf(text)
     .filter((line: string): boolean => {
-      return Boolean(line) && !/^[\s,;|#]/.test(line) && !line.startsWith("//");
+      return (
+        Boolean(line) && !OPNSENSE_SKIPPED.test(line) && !line.startsWith("//")
+      );
     })
     .map((line: string): string => {
       const entry: string = line.split(/[\s,;|#]+/)[0] || "";
@@ -302,13 +310,17 @@ describe("the plain list", () => {
     expect(
       NetworkAddressBlockUtil.contains(
         NetworkAddressBlockUtil.parse("192.0.2.0/24")!,
-        getSecurityBlocklistFeedEmptyPlaceholder(SecurityBlocklistFeedFamily.Both),
+        getSecurityBlocklistFeedEmptyPlaceholder(
+          SecurityBlocklistFeedFamily.Both,
+        ),
       ),
     ).toBe(true);
     expect(
       NetworkAddressBlockUtil.contains(
         NetworkAddressBlockUtil.parse("2001:db8::/32")!,
-        getSecurityBlocklistFeedEmptyPlaceholder(SecurityBlocklistFeedFamily.IPv6),
+        getSecurityBlocklistFeedEmptyPlaceholder(
+          SecurityBlocklistFeedFamily.IPv6,
+        ),
       ),
     ).toBe(true);
   });
@@ -419,7 +431,7 @@ describe("the nginx include", () => {
     );
 
     for (const line of linesOf(include).slice(1)) {
-      const match: RegExpExecArray | null = /^deny (\S+);$/.exec(line);
+      const match: RegExpExecArray | null = NGINX_DENY.exec(line);
       expect(match).not.toBeNull();
       expect(NetworkAddressBlockUtil.parse(match![1])).not.toBeNull();
     }
@@ -450,13 +462,17 @@ describe("the files a feed serves", () => {
       format: SecurityBlocklistFeedFormat.Nginx,
       isMd5: false,
     });
-    expect(SECURITY_BLOCKLIST_FEED_FILE_NAMES[SecurityBlocklistFeedFormat.Plain]).toBe(
-      "blocklist.txt",
-    );
+    expect(
+      SECURITY_BLOCKLIST_FEED_FILE_NAMES[SecurityBlocklistFeedFormat.Plain],
+    ).toBe("blocklist.txt");
   });
 
   test("Cisco's list file ends in .txt, as its feeds must", () => {
-    expect(SECURITY_BLOCKLIST_FEED_FILE_NAMES[SecurityBlocklistFeedFormat.Plain].endsWith(".txt")).toBe(true);
+    expect(
+      SECURITY_BLOCKLIST_FEED_FILE_NAMES[
+        SecurityBlocklistFeedFormat.Plain
+      ].endsWith(".txt"),
+    ).toBe(true);
   });
 
   test("anything else is no file", () => {

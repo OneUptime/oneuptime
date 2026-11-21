@@ -112,9 +112,12 @@ let protections: Array<SecurityAddressProtection>;
 let reconcilesQueued: number;
 let locks: InMemoryLocks;
 
-function copy<T extends object>(model: T): T {
-  const made: T = Object.create(Object.getPrototypeOf(model));
-  Object.assign(made, model);
+// A row as a read hands it back: a copy of its own, so a test changes the table only through the service.
+function copy<T>(model: T): T {
+  const made: T = Object.create(
+    Object.getPrototypeOf(model as unknown as Record<string, unknown>),
+  ) as T;
+  Object.assign(made as unknown as Record<string, unknown>, model);
   return made;
 }
 
@@ -444,9 +447,9 @@ describe("a block is enforced at a feed once a firewall fetched it", () => {
     expect(row.destinationName).toBe(FEED_NAME);
     expect(row.provider).toBe(SecurityBlockDestinationProvider.Feed);
     expect(viewOf(1, at(3))).toBe(SecurityBlockEnforcementView.Enforced);
-    expect(
-      getSecurityBlockEnforcementSummary([row], at(3)).enforcedAt,
-    ).toEqual([FEED_NAME]);
+    expect(getSecurityBlockEnforcementSummary([row], at(3)).enforcedAt).toEqual(
+      [FEED_NAME],
+    );
   });
 
   test("a fetch made before the block does not count for it, nor does the reconciler's own read", async () => {
@@ -514,9 +517,11 @@ describe("a block is enforced at a feed once a firewall fetched it", () => {
 
     expect(second.status).toBe(304);
     expect(feed.servedConfirmedAt).toEqual(at(9));
-    expect(fetches.map((made: SecurityBlocklistFeedFetchRecord): number => {
-      return made.statusCode;
-    })).toEqual([200, 304]);
+    expect(
+      fetches.map((made: SecurityBlocklistFeedFetchRecord): number => {
+        return made.statusCode;
+      }),
+    ).toEqual([200, 304]);
     expect(fetches[1]!.isChanged).toBe(false);
 
     await reconcile(9);

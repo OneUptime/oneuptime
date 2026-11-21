@@ -2725,6 +2725,21 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.SECURITY_BLOCKLIST_FEEDS,
+            title: "Blocklist Feeds",
+            icon: IconProp.CloudArrowDown,
+            keywords: [
+              "blocklist feed",
+              "external dynamic list",
+              "threat feed",
+              "firewall feed url",
+              "palo alto edl",
+              "fortigate threat feed",
+              "nftables blocklist",
+              "nginx deny list",
+            ],
+          },
+          {
             page: PageMap.SECURITY_PROTECTED_ENTITIES,
             title: "Protected Entities",
             icon: IconProp.Lock,

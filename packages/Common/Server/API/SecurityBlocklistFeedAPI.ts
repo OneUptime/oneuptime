@@ -263,7 +263,10 @@ export default class SecurityBlocklistFeedAPI extends BaseAPI<
       fetchHandler(true),
     );
 
-    this.router.all(BLOCKLIST_FEED_FALLBACK_ROUTE, blocklistFeedFallbackHandler);
+    this.router.all(
+      BLOCKLIST_FEED_FALLBACK_ROUTE,
+      blocklistFeedFallbackHandler,
+    );
 
     this.router.post(
       ROTATE_SECRET_ROUTE,
@@ -280,6 +283,9 @@ export default class SecurityBlocklistFeedAPI extends BaseAPI<
               id: this.readFeedId(req),
               props,
             });
+
+          // The one answer that holds the new secret: nothing may keep it.
+          res.setHeader("Cache-Control", "no-store");
 
           return Response.sendJsonObjectResponse(req, res, {
             secret: made.secret,
@@ -315,6 +321,16 @@ export default class SecurityBlocklistFeedAPI extends BaseAPI<
         }
       },
     );
+  }
+
+  // The create's answer holds the new feed's secret: no cache may keep it.
+  protected override async onBeforeCreate(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<any> {
+    res.setHeader("Cache-Control", "no-store");
+
+    return await super.onBeforeCreate(req, res);
   }
 
   private readFeedId(req: ExpressRequest): ObjectID {
