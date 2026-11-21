@@ -294,11 +294,12 @@ describe.each(SCRUB_RULE_PAGES)("$form", (page: DataRulePage) => {
     expect(customRegex?.isConditional).toBe(true);
   });
 
-  test("folds the description, the action, the fields and Enabled under one Advanced, last", () => {
+  test("folds the description, the action, the fields, the service and Enabled under one Advanced, last", () => {
     expect(keys(foldedFields(form))).toEqual([
       "description",
       "scrubAction",
       "fieldsToScrub",
+      "service",
       "isEnabled",
     ]);
     expect(
@@ -332,7 +333,9 @@ describe.each(SCRUB_RULE_PAGES)("$form", (page: DataRulePage) => {
   test("builds its form with the shared scrub rule builder, and flags rules that scrub nothing", () => {
     const code: string = readCode(page.file);
 
-    expect(code).toMatch(/get(Log|Trace)ScrubRuleFormFields\(\)/);
+    expect(code).toMatch(/get(Log|Trace)ScrubRuleFormFields\(/);
+    // Under the name, what reads the values the rule would hide (#10433).
+    expect(code).toContain("<ScrubRuleReadersPreview");
     expect(code).not.toContain("FormFieldSchemaType.");
     expect(code).not.toContain("formSteps=");
     expect(code).toContain("<ScrubRulePatternPill");
