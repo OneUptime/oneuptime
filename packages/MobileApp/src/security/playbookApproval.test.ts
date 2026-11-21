@@ -509,6 +509,7 @@ describe("what the case's playbooks contained", () => {
         "Suspend the user in Google Workspace",
         "Unsuspend the user in Google Workspace",
       ],
+      ["Block the address", "Lift the block on the address"],
     ]);
   });
 

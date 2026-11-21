@@ -1,4 +1,5 @@
 import BlockAddressStepCheck, {
+  BLOCK_APPLYING_RECHECK_MINUTES,
   decideBlockAddress,
   getBlockSince,
 } from "../../../../../Server/Utils/SecurityCase/StepChecks/BlockAddressStepCheck";
@@ -13,6 +14,8 @@ import { settleStepCheck } from "../../../../../Server/Utils/SecurityCase/StepCh
 import { ResponseLinkKind } from "../../../../../Types/SecurityCase/SecurityCaseResponseLink";
 import SecurityCaseStepCheckState from "../../../../../Types/SecurityCase/SecurityCaseStepCheckState";
 import {
+  CHECK_BLOCK_ENFORCED_AT,
+  CHECK_BLOCK_NOT_ENFORCED,
   CHECK_BLOCK_NOT_PROOF,
   CHECK_BLOCK_QUIET,
   CHECK_BLOCK_QUIET_SINCE,
@@ -215,15 +218,169 @@ describe("a block made by hand, outside OneUptime, and then proven by the reques
     expect(result.evidence.data["destination"]).toBe("Cloudflare");
   });
 
-  test("a destination that cannot be read verifies nothing: the step is judged by the requests alone", async () => {
-    const { result } = await check({
+  /*
+   * #10562: the Blocklist that cannot be read says nothing either way - the
+   * step says OneUptime could not check it just now and looks again soon,
+   * never "not blocked", and never judges by the requests as if no block
+   * were there.
+   */
+  test("a Blocklist that cannot be read: OneUptime could not check it just now, and looks again in two minutes", async () => {
+    const { result, recording } = await check({
       appRequests: BLOCKED_BY_HAND,
       minute: 35,
       target: target({ task: tick(KEY, 25) }),
       evidence: { failing: ["readAddressBlocks"] },
     });
 
+    expect(result.state).toBe(SecurityCaseStepCheckState.CannotTell);
+    expect(result.evidence.sentence).toEqual({
+      template: CHECK_CANNOT_READ_FAILED,
+      values: {},
+    });
+    expect(result.evidence.data["readFailed"]).toBe(true);
+    expect(result.recheckInMinutes).toBe(2);
+    // The requests are not read once the Blocklist could not be.
+    expect(
+      recording.reads.map((read: { reader: string }): string => {
+        return read.reader;
+      }),
+    ).toEqual(["readAddressBlocks"]);
+  });
+
+  test("a step that stopped holding stays so through a Blocklist that cannot be read", async () => {
+    const previous: ReturnType<typeof previousCheck> = previousCheck({
+      stepKey: KEY,
+      state: SecurityCaseStepCheckState.Regressed,
+      evidence: {
+        sentence: {
+          template: CHECK_BLOCK_REGRESSED,
+          values: { address: ADDRESS },
+        },
+        facts: [],
+        links: [],
+        data: { regressedAt: at(38).toISOString() },
+      },
+      stateSince: at(40),
+    });
+    const { result } = await check({
+      appRequests: BLOCKED_BY_HAND,
+      minute: 45,
+      target: target({ task: tick(KEY, 25), previous }),
+      evidence: { failing: ["readAddressBlocks"] },
+    });
+
+    expect(result.state).toBe(SecurityCaseStepCheckState.CannotTell);
+    expect(
+      settleStepCheck({
+        previous,
+        result,
+        now: at(45),
+        intervalInMinutes: BlockAddressStepCheck.intervalInMinutes,
+      }).state,
+    ).toBe(SecurityCaseStepCheckState.Regressed);
+  });
+});
+
+/*
+ * #10562: a block the Blocklist records that no destination holds is never
+ * the address blocked. The step says it beside what the requests say, and
+ * looks again within a minute while a destination is still applying it.
+ */
+describe("a block the Blocklist records that nothing holds", () => {
+  // The address sent a request a minute until minute 25, when the step was ticked.
+  const BLOCKED_BY_HAND: Array<AppRequest> = requests(25, {
+    minute: 0,
+    status: 404,
+  });
+  const recorded: (isApplying: boolean) => AddressBlockEvidence = (
+    isApplying: boolean,
+  ): AddressBlockEvidence => {
+    return {
+      destination: "",
+      appliedAt: at(26),
+      sentence: {
+        template: CHECK_BLOCK_NOT_ENFORCED,
+        values: { value: ADDRESS },
+      },
+      link: { kind: ResponseLinkKind.OpenBlocklist, value: ADDRESS },
+      isNotEnforced: true,
+      isApplying,
+    };
+  };
+
+  test("never verifies the step: a quiet address after a tick still only looks done, and says the block holds nowhere", async () => {
+    const { result } = await check({
+      appRequests: BLOCKED_BY_HAND,
+      minute: 35,
+      target: target({ task: tick(KEY, 25) }),
+      evidence: { blocks: [recorded(false)] },
+    });
+
     expect(result.state).toBe(SecurityCaseStepCheckState.LooksDone);
+    expect(result.evidence.facts[0]).toEqual({
+      template: CHECK_BLOCK_NOT_ENFORCED,
+      values: { value: ADDRESS },
+    });
+    expect(result.evidence.links).toContainEqual({
+      kind: ResponseLinkKind.OpenBlocklist,
+      value: ADDRESS,
+    });
+    expect(result.evidence.data["isBlockNotEnforced"]).toBe(true);
+    expect(result.recheckInMinutes).toBeUndefined();
+  });
+
+  test("an address that still reaches the app is not done yet, with the block said to hold nowhere", async () => {
+    const { result } = await check({
+      appRequests: requests(41, { minute: 0, status: 404 }),
+      minute: 45,
+      evidence: { blocks: [recorded(false)] },
+    });
+
+    expect(result.state).toBe(SecurityCaseStepCheckState.NotDone);
+    expect(result.evidence.facts).toContainEqual({
+      template: CHECK_BLOCK_NOT_ENFORCED,
+      values: { value: ADDRESS },
+    });
+  });
+
+  test("while a destination is still applying it, the step is checked again within a minute", async () => {
+    const { result } = await check({
+      appRequests: requests(41, { minute: 0, status: 404 }),
+      minute: 45,
+      evidence: { blocks: [recorded(true)] },
+    });
+
+    expect(result.recheckInMinutes).toBe(BLOCK_APPLYING_RECHECK_MINUTES);
+    expect(BLOCK_APPLYING_RECHECK_MINUTES).toBe(1);
+  });
+
+  test("a block a destination holds beside one it does not: verified by the one that holds", async () => {
+    const held: AddressBlockEvidence = {
+      destination: "Cloudflare",
+      appliedAt: at(30),
+      sentence: {
+        template: CHECK_BLOCK_ENFORCED_AT,
+        values: { address: ADDRESS, destination: "Cloudflare" },
+      },
+      link: { kind: ResponseLinkKind.OpenBlocklist, value: ADDRESS },
+    };
+    const { result } = await check({
+      appRequests: BLOCKED_BY_HAND,
+      minute: 40,
+      target: target({ task: tick(KEY, 25) }),
+      evidence: { blocks: [recorded(true), held] },
+    });
+
+    expect(result.state).toBe(SecurityCaseStepCheckState.Verified);
+    expect(result.evidence.sentence).toEqual(held.sentence);
+    expect(result.evidence.facts).not.toContainEqual(recorded(true).sentence);
+    expect(result.recheckInMinutes).toBeUndefined();
+  });
+
+  test("the moment requests are counted from is the block a destination holds, never one it only records", () => {
+    expect(
+      getBlockSince({ target: target(), blocks: [recorded(true)] }),
+    ).toBeNull();
   });
 });
 
