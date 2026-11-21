@@ -451,8 +451,9 @@ describe("Services (telemetry/services)", () => {
     expect(page).toContain(
       "**Containers name themselves.** Telemetry from the Docker and Podman agents names a service after its container when it has no `service.name`.",
     );
+    // And so is everything a Browser or a Mobile key sends (#6457, #10539).
     expect(page).toContain(
-      "Telemetry from a browser or a mobile app belongs to a [RUM application](/docs/rum/applications) instead.",
+      "Telemetry from a browser or a mobile app, and everything sent with a Browser or Mobile key, belongs to a [RUM application](/docs/rum/applications) instead.",
     );
   });
 

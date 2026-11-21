@@ -19,7 +19,7 @@ flowchart TB
     app["Din mobilapp"] --> sdk["OpenTelemetry-SDK<br/>med device.*-attributter"]
     sdk -->|"OTLP med en<br/>Mobil-nøgle"| oneuptime["OneUptime"]
     oneuptime --> rum["Mobil RUM-applikation"]
-    replay["React Native-<br/>afspilnings-SDK"] -->|"optagelser med en<br/>Browser-nøgle"| oneuptime
+    replay["React Native-<br/>afspilnings-SDK"] -->|"optagelser med den<br/>samme Mobil-nøgle"| oneuptime
 ```
 
 ## Hvad OneUptime har brug for
@@ -52,7 +52,7 @@ Gør `device.id` til et id pr. installation, aldrig et reklame-id eller noget an
 | Logs | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> Nøglen følger med i din app, og en app kan pakkes ud, så gå ud fra, at nogen kopierer den. En kopi af en Mobil-nøgle kan kun sende denne apps spor, logs og metrikker, arkiveret under dens **Fastgjort tjenestenavn**, og aldrig fra en webside. Den kan stadig sende opdigtede data for denne app, op til nøglens **Grænse for anmodninger pr. minut**, så tilføj en dato under **Udløber den**, og udskift nøglen med dine udgivelser.
+> Nøglen følger med i din app, og en app kan pakkes ud, så gå ud fra, at nogen kopierer den. En kopi af en Mobil-nøgle kan kun sende denne apps spor, logs, metrikker og sessionsafspilninger, arkiveret under dens **Fastgjort tjenestenavn**, og aldrig fra en webside. Den kan stadig sende opdigtede data for denne app, op til nøglens **Grænse for anmodninger pr. minut**, så tilføj en dato under **Udløber den**, og udskift nøglen med dine udgivelser.
 
 ## Sæt din platform op
 
@@ -289,7 +289,7 @@ Kør appen, og brug den et øjeblik. Den vises under **Produkter → Ressourcer 
 
 ## Session Replay på mobil
 
-React Native-apps kan optage sessioner med `@oneuptime/react-native-replay`. Den optager det native visningstræ som en trådramme, aldrig skærmbilleder eller teksten på skærmen, og dens optagelser åbner i samme afspiller som webapps. Den sender med en **Browser**-nøgle, hvis **Tilladte oprindelser** angiver din app som `app://` efterfulgt af dens Android-applikations-id eller iOS-bundle-id: en anden nøgle end den Mobil-nøgle, dit OpenTelemetry-SDK bruger. [Installer i React Native](/docs/telemetry/session-replay#installation-i-react-native) guider dig igennem.
+React Native-apps kan optage sessioner med `@oneuptime/react-native-replay`. Den optager det native visningstræ som en trådramme, aldrig skærmbilleder eller teksten på skærmen, og dens optagelser åbner i samme afspiller som webapps. Den sender med den samme **Mobil**-nøgle som dit OpenTelemetry-SDK, med nøglens **Fastgjort tjenestenavn** som `appIdentifier`, så appen kun har én nøgle med. En **Browser**-nøgle, hvis **Tilladte oprindelser** angiver din app som `app://` efterfulgt af dens Android-applikations-id eller iOS-bundle-id, virker også. [Installer i React Native](/docs/telemetry/session-replay#installation-i-react-native) guider dig igennem.
 
 Native Android- og iOS-apps og de andre platforme har ingen sessionsoptager: Deres side **Sessionsafspilning** forbliver tom, mens spor, logs, metrikker, undtagelser og siden **Klienter** virker som normalt.
 
@@ -298,7 +298,7 @@ Native Android- og iOS-apps og de andre platforme har ingen sessionsoptager: Der
 :::details Nøgletjekket returnerer 401, eller nøglen afvises
 En `401` betyder, at nøglen er ukendt, tilbagekaldt, slået fra eller udløbet: Opret en Mobil-nøgle, og byg appen igen med den.
 
-En Browser-nøgle består tjekket, men hver eksport fra en mobilapp afvises med en `422`, der lyder `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Brug en **Mobil**-nøgle. En Mobil-nøgle afvises også med en `422` over gRPC og fra en webside: Eksportér over OTLP/HTTP.
+En Browser-nøgle består tjekket, men hver eksport fra en mobilapp afvises med en `422`, der lyder `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Brug en **Mobil**-nøgle. En Mobil-nøgle afvises også med en `422` over gRPC, fra en webside og for en sessionsafspilning, hvis `appIdentifier` ikke er dens **Fastgjort tjenestenavn**: Eksportér over OTLP/HTTP, og giv afspilnings-SDK'et nøglens fastgjorte navn.
 :::
 
 :::details Appen vises under Tjenester i stedet for Overvågning af reelle brugere
