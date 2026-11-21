@@ -6,13 +6,19 @@ import {
 } from "./ContainStepChecks";
 import FalsePositiveStepCheck from "./FalsePositiveStepCheck";
 import IncidentStepCheck from "./IncidentStepCheck";
+import {
+  BlockAddressEverywhereStepCheck,
+  BlockDomainStepCheck,
+  QuarantineFileStepCheck,
+} from "./IndicatorBlockStepChecks";
 import RequestsStepCheck from "./RequestsStepCheck";
 import { StepCheck } from "./StepCheck";
 
 /*
  * THE KINDS OF RESPONSE PLAN STEP ONEUPTIME CHECKS ITSELF (#10340), one
- * module a kind. A step of any other kind - a rule's own step, a Fix step,
- * blocking a domain until #10346 reads it back - is a person's to tick.
+ * module a kind. A step of any other kind - a rule's own step, a Fix step -
+ * is a person's to tick. Blocking a domain, a file or a command-and-control
+ * address on every machine is read back from the blocklist (#10346).
  *
  * A new kind of step plugs in here: a StepCheck whose `kind` is the start
  * of the step's key (Utils/SecurityCase/ResponsePlan/ResponsePlanKeys), and
@@ -24,6 +30,9 @@ export const STEP_CHECKS: ReadonlyArray<StepCheck> = [
   FalsePositiveStepCheck,
   ContainUserStepCheck,
   ContainHostStepCheck,
+  BlockDomainStepCheck,
+  QuarantineFileStepCheck,
+  BlockAddressEverywhereStepCheck,
   IncidentStepCheck,
 ];
 

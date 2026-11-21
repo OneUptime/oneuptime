@@ -1,5 +1,6 @@
 import { SecurityCaseFeedEventType } from "../../../Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseFeedService from "../../Services/SecurityCaseFeedService";
+import SecurityCaseStepChecks from "../SecurityCase/StepChecks/SecurityCaseStepChecks";
 import {
   Gray500,
   Green500,
@@ -189,7 +190,13 @@ export function blockNotAppliedMarkdown(data: {
 }
 
 export default class SecurityBlockTimeline {
-  // One line on the case's timeline. Never throws (SecurityCaseFeedService).
+  /*
+   * One line on the case's timeline. Never throws (SecurityCaseFeedService).
+   * Every line is a change to one of the case's blocks - made, lifted,
+   * extended, ended, held at a destination or refused there - so the case's
+   * Response Plan steps are checked at once too (#10346): a step blocked
+   * from the plan reads done within moments of a destination holding it.
+   */
   public static async write(data: {
     projectId: ObjectID;
     securityCaseId: ObjectID | null | undefined;
@@ -210,6 +217,12 @@ export default class SecurityBlockTimeline {
       displayColor: data.color,
       ...(data.userId ? { userId: data.userId } : {}),
       ...(data.postedAt ? { postedAt: data.postedAt } : {}),
+    });
+
+    // Never throws either: a block stands whether or not its case could be checked.
+    await SecurityCaseStepChecks.requestCheck({
+      projectId: data.projectId,
+      securityCaseId: data.securityCaseId,
     });
   }
 

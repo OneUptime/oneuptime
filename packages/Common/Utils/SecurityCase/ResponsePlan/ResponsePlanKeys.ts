@@ -20,6 +20,7 @@ export const RESPONSE_STEP_KINDS: {
   host: string;
   blockDomain: string;
   quarantineFile: string;
+  blockIpEverywhere: string;
   hiddenAddress: string;
   claimedAddress: string;
   incident: string;
@@ -37,6 +38,8 @@ export const RESPONSE_STEP_KINDS: {
   host: "contain:host",
   blockDomain: "contain:block-domain",
   quarantineFile: "contain:quarantine-file",
+  // A command-and-control address, on every machine (#10346): beside the edge's block-ip.
+  blockIpEverywhere: "contain:block-ip-everywhere",
   hiddenAddress: "contain:hidden-address",
   claimedAddress: "contain:claimed-address",
   incident: "contain:incident",

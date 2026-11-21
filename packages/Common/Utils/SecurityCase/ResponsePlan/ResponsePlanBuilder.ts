@@ -45,6 +45,24 @@ import {
   getDetectionRuleResponseStepKey,
 } from "../../../Types/SecurityEvent/DetectionRuleResponseSteps";
 import { SECURITY_REQUEST_ATTRIBUTES } from "../../../Types/SecurityEvent/SecurityEventRequestOutcome";
+import {
+  SecurityBlockAction,
+  SecurityBlockDuration,
+  SecurityBlockIndicatorType,
+  SecurityBlockReach,
+  doesSecurityBlockReachCover,
+  getSecurityBlockFileType,
+  getSecurityBlockValueKey,
+} from "../../../Types/SecurityBlocklist/SecurityBlock";
+import { SecurityBlockDestinationProvider } from "../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
+import {
+  SecurityBlockHolder,
+  getEveryMachineHolders,
+} from "../../../Types/SecurityBlocklist/SecurityBlockHolders";
+import {
+  SecurityBlockHashReading,
+  readSecurityBlockHash,
+} from "../../../Types/SecurityBlocklist/SecurityBlockIndicator";
 import { SecurityPlaybookActionType } from "../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import SecurityPlaybookRunStatus from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
@@ -64,6 +82,8 @@ import {
   RESPONSE_PHASES,
   ResponseAction,
   ResponseActionKind,
+  ResponseBlock,
+  ResponseBlocklist,
   ResponsePhase,
   ResponsePlan,
   ResponsePlaybook,
@@ -77,6 +97,8 @@ import {
 import {
   ACTION_ADD_EXCEPTION,
   ACTION_ASSIGN_TO_ME,
+  ACTION_BLOCK_FILE,
+  ACTION_BLOCK_FOR_7_DAYS,
   ACTION_CLOSE_CASE,
   ACTION_DECLARE_INCIDENT,
   ACTION_MARK_CONTAINED,
@@ -91,8 +113,13 @@ import {
   REQUESTS_ALL_TURNED_AWAY,
   REQUESTS_GOT_THROUGH,
   STEP_AI_PLAYBOOK,
+  STEP_BLOCK_C2_BY_HAND,
   STEP_BLOCK_DOMAIN,
+  STEP_BLOCK_EVERYWHERE_WITH,
+  STEP_BLOCK_FILE_WITH,
+  STEP_BLOCK_FILE_WITH_TWO,
   STEP_BLOCK_PUBLIC_IP,
+  STEP_BLOCK_WAITING,
   STEP_CLOSE,
   STEP_CONTAIN_HOST,
   STEP_CONTAIN_HOST_PLAYBOOK,
@@ -121,6 +148,8 @@ import {
   STEP_ISOLATE_PRIVATE_IP,
   STEP_MARK_CONTAINED,
   STEP_QUARANTINE_FILE,
+  STEP_QUARANTINE_FILE_WITH,
+  STEP_QUARANTINE_FILE_WITH_TWO,
   STEP_REQUESTS_THROUGH,
   STEP_REQUESTS_TURNED_AWAY,
   STEP_REQUESTS_UNKNOWN,
@@ -228,6 +257,108 @@ export interface ResponsePlanInput {
   } | null;
   // What OneUptime found when it checked the case's steps itself, by step.
   checks?: Array<ResponseStepCheck> | undefined;
+  /*
+   * The project's blocklist (#10346): what its destinations can hold, and
+   * the blocks in force on the case's values. Without it, a domain's, a
+   * file's and a command-and-control address's step are done by hand.
+   */
+  blocklist?: ResponseBlocklist | undefined;
+}
+
+// ---------- Blocking on every machine (#10346) ----------
+
+// The ATT&CK ids of command and control: a case about a C2 server blocks its address on every machine too.
+export const C2_ATTACK_IDS: ReadonlyArray<string> = ["TA0011", "T1095", "T1105"];
+
+// How long a step blocks a domain, an address on every machine, and a file: an address is soon someone else's, a file's hash never is.
+export const RESPONSE_BLOCK_DURATION: SecurityBlockDuration =
+  SecurityBlockDuration.SevenDays;
+export const RESPONSE_FILE_BLOCK_DURATION: SecurityBlockDuration =
+  SecurityBlockDuration.ThirtyDays;
+
+// A product as a step names it, by its destination's provider.
+const BLOCKING_PRODUCT_NAMES: Readonly<Record<string, string>> = {
+  [SecurityBlockDestinationProvider.MicrosoftDefender]: "Microsoft Defender",
+  [SecurityBlockDestinationProvider.CrowdStrike]: "CrowdStrike Falcon",
+};
+
+/*
+ * The products holders are, each once, in the order given: a step names
+ * the product - "with Microsoft Defender" - however many of its
+ * connections block.
+ */
+export function getBlockingProducts(
+  holders: ReadonlyArray<SecurityBlockHolder>,
+): Array<string> {
+  const names: Array<string> = [];
+
+  for (const holder of holders) {
+    const name: string = BLOCKING_PRODUCT_NAMES[holder.provider] || holder.name;
+
+    if (name && !names.includes(name)) {
+      names.push(name);
+    }
+  }
+
+  return names;
+}
+
+/*
+ * The block in force on a value that does what a block at `reach` would:
+ * of the same value, everywhere when everywhere is asked.
+ */
+export function findResponseBlock(data: {
+  blocklist: ResponseBlocklist | undefined;
+  value: string;
+  reach: SecurityBlockReach;
+}): ResponseBlock | null {
+  const key: string = getSecurityBlockValueKey(data.value).toLowerCase();
+
+  return (
+    data.blocklist?.blocks.find((block: ResponseBlock): boolean => {
+      return (
+        getSecurityBlockValueKey(block.value).toLowerCase() === key &&
+        doesSecurityBlockReachCover({ held: block.reach, wanted: data.reach })
+      );
+    }) || null
+  );
+}
+
+/*
+ * What a step that blocks on every machine says of its value's block: done
+ * while a product holds it (fail toward a person: a block nothing holds is
+ * not done), waiting while it is on the blocklist and no product holds it
+ * yet, and its button while there is none.
+ */
+function everyMachineBlock(data: {
+  blocklist: ResponseBlocklist | undefined;
+  value: string;
+  product: string;
+  action: ResponseAction;
+}): {
+  isDoneByCase: boolean;
+  action?: ResponseAction | undefined;
+  detail?: ResponseText | undefined;
+} {
+  const block: ResponseBlock | null = findResponseBlock({
+    blocklist: data.blocklist,
+    value: data.value,
+    reach: SecurityBlockReach.Everywhere,
+  });
+
+  if (!block) {
+    return { isDoneByCase: false, action: data.action };
+  }
+
+  return block.enforcedAt.length > 0
+    ? { isDoneByCase: true }
+    : {
+        isDoneByCase: false,
+        detail: {
+          template: STEP_BLOCK_WAITING,
+          values: { product: data.product },
+        },
+      };
 }
 
 // ---------- OneUptime AI's suggested steps ----------
@@ -525,7 +656,7 @@ const FIX_RULES: ReadonlyArray<FixRule> = [
   },
   {
     key: "fix:c2",
-    ids: ["TA0011", "T1095", "T1105"],
+    ids: C2_ATTACK_IDS,
     text: (): ResponseText => {
       return { template: STEP_FIX_C2, values: {} };
     },
@@ -637,6 +768,92 @@ interface StepToAdd {
    * without the playbook.
    */
   isOnlyDoneByCase?: boolean | undefined;
+}
+
+/*
+ * A file's step when an endpoint product the project connected blocks
+ * files of its hash's kind (#10346): blocked and quarantined where
+ * Microsoft Defender can, blocked where CrowdStrike Falcon can - one click,
+ * for 30 days - naming each product as what it does. Null for a file done
+ * by hand: no product blocks its hash's kind.
+ */
+function getFileBlockStep(data: {
+  key: string;
+  value: string;
+  holders: ReadonlyArray<SecurityBlockHolder>;
+  blocklist: ResponseBlocklist | undefined;
+}): StepToAdd | null {
+  const hash: SecurityBlockHashReading | null = readSecurityBlockHash(
+    data.value,
+  );
+
+  if (!hash) {
+    return null;
+  }
+
+  const blockers: Array<SecurityBlockHolder> = getEveryMachineHolders({
+    holders: data.holders,
+    indicatorType: getSecurityBlockFileType(hash.kind),
+  });
+
+  if (blockers.length === 0) {
+    return null;
+  }
+
+  const quarantining: Array<string> = getBlockingProducts(
+    blockers.filter((holder: SecurityBlockHolder): boolean => {
+      return holder.quarantinesFiles;
+    }),
+  );
+  const blockingOnly: Array<string> = getBlockingProducts(blockers).filter(
+    (name: string): boolean => {
+      return !quarantining.includes(name);
+    },
+  );
+  const isQuarantine: boolean = quarantining.length > 0;
+  const product: string = isQuarantine ? quarantining[0]! : blockingOnly[0]!;
+  const otherProduct: string | undefined = isQuarantine
+    ? blockingOnly[0]
+    : blockingOnly[1];
+
+  const template: string = isQuarantine
+    ? otherProduct
+      ? STEP_QUARANTINE_FILE_WITH_TWO
+      : STEP_QUARANTINE_FILE_WITH
+    : otherProduct
+      ? STEP_BLOCK_FILE_WITH_TWO
+      : STEP_BLOCK_FILE_WITH;
+
+  return {
+    key: data.key,
+    phase: ResponsePhase.Contain,
+    text: {
+      template,
+      values: {
+        value: data.value,
+        product,
+        ...(otherProduct ? { otherProduct } : {}),
+      },
+    },
+    copyValue: data.value,
+    ...everyMachineBlock({
+      blocklist: data.blocklist,
+      value: data.value,
+      product,
+      action: {
+        kind: ResponseActionKind.BlockIndicator,
+        title: ACTION_BLOCK_FILE,
+        block: {
+          value: data.value,
+          action: isQuarantine
+            ? SecurityBlockAction.BlockAndQuarantine
+            : SecurityBlockAction.Block,
+          reach: SecurityBlockReach.Everywhere,
+          duration: RESPONSE_FILE_BLOCK_DURATION,
+        },
+      },
+    }),
+  };
 }
 
 function hasReached(
@@ -965,6 +1182,12 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
     return !address || !claimedOnly.has(address);
   });
 
+  const holders: Array<SecurityBlockHolder> = input.blocklist?.holders || [];
+  const isCommandAndControl: boolean = holdsAttackId(
+    [...input.mitreTactics, ...input.mitreTechniques],
+    C2_ATTACK_IDS,
+  );
+
   for (const entity of containEntities) {
     switch (entity.type) {
       case SecurityEntityType.IpAddress: {
@@ -984,6 +1207,62 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
           isOutsideOneUptime: true,
           copyValue: entity.value,
         });
+
+        /*
+         * A command-and-control server: the machines reaching out to it is
+         * what matters, so beside the edge's block, block it on every
+         * machine (#10346) - one click where Microsoft Defender can.
+         */
+        if (isPublic && isCommandAndControl) {
+          const products: Array<string> = getBlockingProducts(
+            getEveryMachineHolders({
+              holders,
+              indicatorType: SecurityBlockIndicatorType.IpAddress,
+            }),
+          );
+          const key: string = getResponseStepKey(
+            RESPONSE_STEP_KINDS.blockIpEverywhere,
+            entity.value,
+          );
+
+          if (products.length > 0) {
+            add({
+              key,
+              phase: ResponsePhase.Contain,
+              text: {
+                template: STEP_BLOCK_EVERYWHERE_WITH,
+                values: { value: entity.value, product: products[0]! },
+              },
+              copyValue: entity.value,
+              ...everyMachineBlock({
+                blocklist: input.blocklist,
+                value: entity.value,
+                product: products[0]!,
+                action: {
+                  kind: ResponseActionKind.BlockIndicator,
+                  title: ACTION_BLOCK_FOR_7_DAYS,
+                  block: {
+                    value: entity.value,
+                    action: SecurityBlockAction.Block,
+                    reach: SecurityBlockReach.Everywhere,
+                    duration: RESPONSE_BLOCK_DURATION,
+                  },
+                },
+              }),
+            });
+          } else {
+            add({
+              key,
+              phase: ResponsePhase.Contain,
+              text: {
+                template: STEP_BLOCK_C2_BY_HAND,
+                values: { value: entity.value },
+              },
+              isOutsideOneUptime: true,
+              copyValue: entity.value,
+            });
+          }
+        }
         break;
       }
 
@@ -1039,12 +1318,49 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
         break;
       }
 
-      case SecurityEntityType.Domain:
+      case SecurityEntityType.Domain: {
+        const key: string = getResponseStepKey(
+          RESPONSE_STEP_KINDS.blockDomain,
+          entity.value,
+        );
+        const products: Array<string> = getBlockingProducts(
+          getEveryMachineHolders({
+            holders,
+            indicatorType: SecurityBlockIndicatorType.Domain,
+          }),
+        );
+
+        // One click where an endpoint product blocks domains (#10346); by hand otherwise.
+        if (products.length > 0) {
+          add({
+            key,
+            phase: ResponsePhase.Contain,
+            text: {
+              template: STEP_BLOCK_EVERYWHERE_WITH,
+              values: { value: entity.value, product: products[0]! },
+            },
+            copyValue: entity.value,
+            ...everyMachineBlock({
+              blocklist: input.blocklist,
+              value: entity.value,
+              product: products[0]!,
+              action: {
+                kind: ResponseActionKind.BlockIndicator,
+                title: ACTION_BLOCK_FOR_7_DAYS,
+                block: {
+                  value: entity.value,
+                  action: SecurityBlockAction.Block,
+                  reach: SecurityBlockReach.Everywhere,
+                  duration: RESPONSE_BLOCK_DURATION,
+                },
+              },
+            }),
+          });
+          break;
+        }
+
         add({
-          key: getResponseStepKey(
-            RESPONSE_STEP_KINDS.blockDomain,
-            entity.value,
-          ),
+          key,
           phase: ResponsePhase.Contain,
           text: {
             template: STEP_BLOCK_DOMAIN,
@@ -1054,22 +1370,34 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
           copyValue: entity.value,
         });
         break;
+      }
 
-      case SecurityEntityType.FileHash:
-        add({
-          key: getResponseStepKey(
-            RESPONSE_STEP_KINDS.quarantineFile,
-            entity.value,
-          ),
-          phase: ResponsePhase.Contain,
-          text: {
-            template: STEP_QUARANTINE_FILE,
-            values: { value: entity.value },
-          },
-          isOutsideOneUptime: true,
-          copyValue: entity.value,
+      case SecurityEntityType.FileHash: {
+        const key: string = getResponseStepKey(
+          RESPONSE_STEP_KINDS.quarantineFile,
+          entity.value,
+        );
+        const fileStep: StepToAdd | null = getFileBlockStep({
+          key,
+          value: entity.value,
+          holders,
+          blocklist: input.blocklist,
         });
+
+        add(
+          fileStep || {
+            key,
+            phase: ResponsePhase.Contain,
+            text: {
+              template: STEP_QUARANTINE_FILE,
+              values: { value: entity.value },
+            },
+            isOutsideOneUptime: true,
+            copyValue: entity.value,
+          },
+        );
         break;
+      }
 
       default:
         break;
