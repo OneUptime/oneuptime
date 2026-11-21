@@ -78,6 +78,12 @@ export function getResponseLinkRoute(
     case ResponseLinkKind.OpenScrubRules:
       return getHiddenAddressRulesRoute(link.signal);
 
+    // The project's Blocklist, where the block of a case's address is (#10562).
+    case ResponseLinkKind.OpenBlocklist:
+      return RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SECURITY_BLOCKLIST] as Route,
+      ) as Route;
+
     default:
       return null;
   }

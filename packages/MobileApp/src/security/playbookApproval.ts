@@ -53,7 +53,11 @@ export const SECURITY_PLAYBOOK_TARGET_STATES: ReadonlyArray<SecurityPlaybookTarg
   ];
 
 // Why a step acts on an entity (Common SecurityPlaybookTargetReason).
-export type SecurityPlaybookTargetReason = "Grouped On" | "Threat Intel";
+export type SecurityPlaybookTargetReason =
+  | "Grouped On"
+  | "Threat Intel"
+  // A person picked it on the case: an address they blocked from its plan.
+  | "On the Case";
 
 /*
  * Each action a step can take, by the title the step list reads, as the
@@ -93,6 +97,8 @@ export const SECURITY_PLAYBOOK_ACTION_TITLES: Readonly<Record<string, string>> =
     "Unsuspend Google Workspace User": "Unsuspend the user in Google Workspace",
     "Block Data Store Public Access": "Block public access to data stores",
     "Revoke Data Store Sharing": "Revoke data store sharing",
+    "Block Address": "Block the address",
+    "Lift Address Block": "Lift the block on the address",
     "Send Webhook": "Send a webhook",
     "Run Workflow": "Run a workflow",
     "Run Runbook": "Run a runbook",
@@ -199,7 +205,11 @@ export function readPlaybookTargets(value: unknown): Array<PlaybookTarget> {
       type: getEntityTerm(record["type"]).type,
       value: targetValue,
       reason:
-        reason === "Grouped On" || reason === "Threat Intel" ? reason : null,
+        reason === "Grouped On" ||
+        reason === "Threat Intel" ||
+        reason === "On the Case"
+          ? reason
+          : null,
       state: record["state"],
       ...(protectedBy ? { protectedBy } : {}),
     });
@@ -301,6 +311,10 @@ export function describePlaybookTarget(target: PlaybookTarget): string {
       : "Protected: never acted on";
   }
 
+  if (target.reason === "On the Case") {
+    return "One of the case's addresses";
+  }
+
   return target.reason === "Threat Intel"
     ? "Known to threat intel"
     : "What the case is grouped on";
@@ -319,6 +333,7 @@ export const SECURITY_PLAYBOOK_UNDO_ACTIONS: Readonly<Record<string, string>> =
     "Isolate Defender Device": "Release Defender Device",
     "Disable Entra ID User": "Enable Entra ID User",
     "Suspend Google Workspace User": "Unsuspend Google Workspace User",
+    "Block Address": "Lift Address Block",
   };
 
 // The run statuses a step's target cannot be undone in: the run is still going.

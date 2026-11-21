@@ -1,4 +1,18 @@
 import AddRuleExceptionModal from "../../SecurityEvents/RuleExceptions/AddRuleExceptionModal";
+import { BLOCK_ADMIN_PERMISSIONS } from "../../SecurityEvents/Blocklist/BlockAddressModal";
+import { LIFTED_TOAST } from "../../SecurityEvents/Blocklist/BlocklistCopy";
+import {
+  AddressBlockLine,
+  BlockHelp,
+  BlockStepActions,
+} from "./SecurityCaseBlockStep";
+import { BlockChoice } from "./SecurityCaseBlockStepModel";
+import {
+  BlockFromCaseStarted,
+  blockFromCase,
+  liftBlockFromCase,
+  loadAddressBlocking,
+} from "./SecurityCaseAddressBlocks";
 import { ADD_EXCEPTION_DESCRIPTION } from "../../SecurityEvents/RuleExceptions/RuleExceptionsCopy";
 import { SecurityCaseValueLists } from "../SecurityCaseValues";
 import {
@@ -32,6 +46,9 @@ import {
   STEP_CHECK_HOW_WE_KNOW,
   STEP_CHECK_STATE_LABELS,
   ACTION_COPY,
+  BLOCK_ASKED_TOAST,
+  BLOCK_STARTED_TOAST,
+  LIFTED_FROM_PLAN_REASON,
 } from "./SecurityCaseResponseCopy";
 import {
   StepCheckLinkTarget,
@@ -59,6 +76,7 @@ import {
   buildResponsePlan,
   getResponseStepKey,
   isAiStep,
+  readAddressBlockRuns,
   readPlaybookRuns,
 } from "./SecurityCaseResponsePlan";
 import {
@@ -72,6 +90,7 @@ import {
   ResponseStepCompletion,
   ResponseText,
 } from "./SecurityCaseResponseTypes";
+import SecurityBlock from "Common/Models/DatabaseModels/SecurityBlock";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
@@ -94,6 +113,12 @@ import {
   readSecurityEntities,
 } from "Common/Types/SecurityCase/SecurityEntity";
 import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
+import { getCaseBlockableAddresses } from "Common/Utils/SecurityCase/ResponsePlan/BlockableAddresses";
+import {
+  ResponseAddressBlock,
+  ResponseAddressBlocking,
+} from "Common/Utils/SecurityCase/ResponsePlan/ResponsePlanTypes";
+import Toast from "Common/UI/Utils/Toast";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, {
   ButtonSize,
@@ -119,7 +144,7 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, formatList } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -190,6 +215,12 @@ interface PlanData {
   // The playbooks a run of which succeeded on the case, and where the others' latest runs stand.
   ranPlaybookIds: Array<string>;
   playbookRunStates: Record<string, ResponsePlaybookRunState>;
+  /*
+   * Where the blocklist is enforced and what it holds of the case's
+   * addresses (#10342); undefined when it could not be read, and the block
+   * step is then one done by hand.
+   */
+  addressBlocking: ResponseAddressBlocking | undefined;
 }
 
 const PHASE_HEADING_CLASS_NAME: string =
@@ -201,6 +232,11 @@ function readText(text: ResponseText, translator: Translator): string {
 
   for (const key of Object.keys(text.numbers || {})) {
     values[key] = translator.formatNumber(text.numbers![key] || 0);
+  }
+
+  // Names the sentence lists, as the reader's language lists them (#10342).
+  for (const key of Object.keys(text.lists || {})) {
+    values[key] = formatList(text.lists![key] || [], translator);
   }
 
   return typeof text.template === "string"
@@ -238,6 +274,39 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     new SecurityPlaybookRun(),
     ModelAction.Create,
   );
+  // A block from the plan is a one-step run that writes the blocklist (#10342): it takes both.
+  const blockCreateGate: PermissionGateResult = PermissionGate.check(
+    new SecurityBlock(),
+    ModelAction.Create,
+  );
+  const blockUpdateGate: PermissionGateResult = PermissionGate.check(
+    new SecurityBlock(),
+    ModelAction.Update,
+  );
+  const blockLockReason: string | undefined = !runGate.isAllowed
+    ? runGate.disabledReason || ""
+    : !blockCreateGate.isAllowed
+      ? blockCreateGate.disabledReason || ""
+      : undefined;
+  const liftLockReason: string | undefined = blockUpdateGate.isAllowed
+    ? undefined
+    : blockUpdateGate.disabledReason || "";
+  const mayBlockUntilLifted: boolean = PermissionGate.holdsAnyOf(
+    BLOCK_ADMIN_PERMISSIONS,
+  );
+
+  /*
+   * The case's addresses its block steps are about (#10342): its public
+   * ones, never one its requests only claimed. Read by the load below.
+   */
+  const blockableAddresses: Array<string> = getCaseBlockableAddresses({
+    entities: readSecurityEntities(props.securityCase.entities),
+    matches: props.matches,
+  });
+  const blockableAddressesKey: string = blockableAddresses.join(",");
+  const blockableAddressesRef: MutableRefObject<Array<string>> =
+    useRef<Array<string>>(blockableAddresses);
+  blockableAddressesRef.current = blockableAddresses;
   const exceptionGate: PermissionGateResult = PermissionGate.check(
     new DetectionRuleException(),
     ModelAction.Create,
@@ -276,7 +345,14 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
         ModelAPI.getList<SecurityPlaybookRun>({
           modelType: SecurityPlaybookRun,
           query: { securityCaseId: new ObjectID(caseIdText) },
-          select: { _id: true, securityPlaybookId: true, status: true },
+          // A one-step block's address is in its step's targets (#10342).
+          select: {
+            _id: true,
+            securityPlaybookId: true,
+            status: true,
+            steps: true,
+            stepResults: true,
+          },
           sort: { createdAt: SortOrder.Descending },
           skip: 0,
           limit: 100,
@@ -301,12 +377,40 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
         ),
       ]);
 
+      // The blocklist that cannot be read leaves the block step as one done by hand.
+      const addressBlocking: ResponseAddressBlocking | undefined =
+        await loadAddressBlocking({
+          addresses: blockableAddressesRef.current,
+          runStates: readAddressBlockRuns(
+            runs.data.map(
+              (
+                run: SecurityPlaybookRun,
+              ): {
+                securityPlaybookId?: unknown;
+                status: string;
+                steps?: unknown;
+                stepResults?: unknown;
+              } => {
+                return {
+                  securityPlaybookId: run.securityPlaybookId,
+                  status: run.status || "",
+                  steps: run.steps,
+                  stepResults: run.stepResults,
+                };
+              },
+            ),
+          ),
+        }).catch((): undefined => {
+          return undefined;
+        });
+
       if (readNumber === latestReadRef.current) {
         setData({
           tasks: tasks.data,
           playbooks: playbooks.data,
           checks: checks.rows,
           isChecksUnread: checks.isUnread,
+          addressBlocking,
           ...readPlaybookRuns(
             runs.data.map(
               (
@@ -331,7 +435,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     void load();
-  }, [load, props.refreshToggle]);
+  }, [load, props.refreshToggle, blockableAddressesKey]);
 
   // A colleague ticking a step off - or a task changed on the Tasks page - reads it again.
   useEffect(() => {
@@ -365,6 +469,19 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
           {
             eventType,
             modelType: SecurityCaseStepCheck,
+            tenantId: projectId,
+          },
+          () => {
+            void load();
+          },
+        );
+      }),
+      // A block from the plan approved, made or failed (#10342).
+      ...eventTypes.map((eventType: ModelEventType): (() => void) => {
+        return Realtime.listenToModelEvent<SecurityPlaybookRun>(
+          {
+            eventType,
+            modelType: SecurityPlaybookRun,
             tenantId: projectId,
           },
           () => {
@@ -438,9 +555,81 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
       report: securityCase.aiTriageReport,
     },
     checks: readResponseStepChecks(data.checks),
+    addressBlocking: data.addressBlocking,
   });
 
   const isClosed: boolean = stage === SecurityCaseStage.Closed;
+
+  /*
+   * Blocks the step's address through the playbook engine (#10342): at
+   * once for someone who may let a block run without approval, else once
+   * someone else approves it. Why not - already blocked, protected - is
+   * said where the plan's errors are.
+   */
+  const blockAddress: (step: ResponseStep, choice: BlockChoice) => Promise<void> =
+    async (step: ResponseStep, choice: BlockChoice): Promise<void> => {
+      const value: string = step.action?.entity?.value || "";
+
+      if (!value || workingStepKey) {
+        return;
+      }
+
+      setWorkingStepKey(step.key);
+      setActionError("");
+
+      try {
+        const started: BlockFromCaseStarted = await blockFromCase({
+          securityCaseId: props.caseId,
+          value,
+          blockAction: choice.blockAction,
+          duration: choice.duration,
+        });
+
+        Toast.success(
+          translator.translateTemplate(
+            started.needsApproval ? BLOCK_ASKED_TOAST : BLOCK_STARTED_TOAST,
+            { value },
+          ),
+        );
+      } catch (err) {
+        setActionError(API.getFriendlyMessage(err));
+      }
+
+      await load();
+      setWorkingStepKey("");
+    };
+
+  // Lifts the block that holds the step's address, as the Blocklist lifts it.
+  const liftBlock: (
+    step: ResponseStep,
+    block: ResponseAddressBlock,
+  ) => Promise<void> = async (
+    step: ResponseStep,
+    block: ResponseAddressBlock,
+  ): Promise<void> => {
+    if (workingStepKey) {
+      return;
+    }
+
+    setWorkingStepKey(step.key);
+    setActionError("");
+
+    try {
+      await liftBlockFromCase({
+        blockId: block.id,
+        reason: translator.translateText(LIFTED_FROM_PLAN_REASON),
+      });
+
+      Toast.success(
+        translator.translateTemplate(LIFTED_TOAST, { value: block.value }),
+      );
+    } catch (err) {
+      setActionError(API.getFriendlyMessage(err));
+    }
+
+    await load();
+    setWorkingStepKey("");
+  };
 
   // Tick a step off - or on again: its task made, or changed.
   const toggle: (step: ResponseStep) => Promise<void> = async (
@@ -519,6 +708,9 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
           Navigation.navigate(action.route);
         }
         return;
+      // Its own buttons, beside the step (BlockStepActions).
+      case ResponseActionKind.BlockAddress:
+        return;
     }
   };
 
@@ -535,6 +727,8 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
           : exceptionGate.disabledReason || "";
       case ResponseActionKind.OpenRoute:
         return undefined;
+      case ResponseActionKind.BlockAddress:
+        return blockLockReason;
       default:
         return caseUpdateGate.isAllowed
           ? undefined
@@ -804,6 +998,24 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
+            {step.addressBlock ? (
+              <AddressBlockLine
+                address={step.action?.entity?.value || step.copyValue || ""}
+                block={step.addressBlock}
+                liftLockReason={isClosed ? "" : liftLockReason}
+                isWorking={isWorking || Boolean(workingStepKey)}
+                onLift={() => {
+                  void liftBlock(step, step.addressBlock!);
+                }}
+              />
+            ) : (
+              <></>
+            )}
+            {step.isBlockHelpShown && step.copyValue && !step.isDone ? (
+              <BlockHelp address={step.copyValue} />
+            ) : (
+              <></>
+            )}
             {step.check ? renderCheck(step) : <></>}
             {isHighlighted ? (
               <p
@@ -901,7 +1113,19 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
               ) : (
                 <></>
               )}
-              {step.action ? (
+              {step.action?.kind === ResponseActionKind.BlockAddress ? (
+                <BlockStepActions
+                  address={step.action.entity?.value || ""}
+                  lockReason={actionLock}
+                  mayBlockUntilLifted={mayBlockUntilLifted}
+                  isWorking={
+                    isWorking || Boolean(workingStepKey) || props.isWorking
+                  }
+                  onBlock={(choice: BlockChoice) => {
+                    void blockAddress(step, choice);
+                  }}
+                />
+              ) : step.action ? (
                 <Button
                   title={step.action.title}
                   buttonStyle={ButtonStyleType.NORMAL}
