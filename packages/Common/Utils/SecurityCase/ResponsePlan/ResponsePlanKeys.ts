@@ -27,6 +27,10 @@ export const RESPONSE_STEP_KINDS: {
   playbook: string;
   ai: string;
   close: string;
+  fixPublicApp: string;
+  fixCredentials: string;
+  fixBruteForce: string;
+  fixAccountChanges: string;
 } = {
   take: "confirm:take",
   requests: "confirm:requests",
@@ -44,6 +48,11 @@ export const RESPONSE_STEP_KINDS: {
   playbook: "playbook",
   ai: "ai",
   close: "close",
+  // The Fix steps OneUptime checks itself (#10347): the route, the password, MFA, the account's changes.
+  fixPublicApp: "fix:public-app",
+  fixCredentials: "fix:credentials",
+  fixBruteForce: "fix:brute-force",
+  fixAccountChanges: "fix:account-changes",
 };
 
 // A short, stable hash of a text: FNV-1a, 32 bits, as hex.

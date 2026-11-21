@@ -44,7 +44,7 @@ import {
   DetectionRuleResponseStep,
   getDetectionRuleResponseStepKey,
 } from "../../../Types/SecurityEvent/DetectionRuleResponseSteps";
-import { SECURITY_REQUEST_ATTRIBUTES } from "../../../Types/SecurityEvent/SecurityEventRequestOutcome";
+import { ROUTE_MAX_LENGTH, getEventRequestPath } from "../RouteAttackScope";
 import { SecurityPlaybookActionType } from "../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import SecurityPlaybookRunStatus from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
@@ -446,31 +446,8 @@ export function getRequestedRoute(
   const counts: Map<string, number> = new Map();
 
   for (const event of events) {
-    const route: string = (
-      event.attributes[SECURITY_REQUEST_ATTRIBUTES.route] || ""
-    ).trim();
-    const address: string = (
-      event.attributes[SECURITY_REQUEST_ATTRIBUTES.url] || ""
-    ).trim();
-    let path: string = route || address;
-
-    if (!path) {
-      continue;
-    }
-
-    // An address's path, without its scheme, host or query.
-    const schemeEnd: number = path.indexOf("://");
-
-    if (schemeEnd !== -1) {
-      const pathStart: number = path.indexOf("/", schemeEnd + 3);
-      path = pathStart === -1 ? "/" : path.slice(pathStart);
-    }
-
-    const queryStart: number = path.search(/[?#]/);
-
-    if (queryStart !== -1) {
-      path = path.slice(0, queryStart);
-    }
+    // Its route, else its address's path, without its scheme, host or query.
+    const path: string = getEventRequestPath(event);
 
     if (path) {
       counts.set(path, (counts.get(path) || 0) + 1);
@@ -487,7 +464,9 @@ export function getRequestedRoute(
     }
   }
 
-  return best.length > 200 ? `${best.slice(0, 199)}…` : best;
+  return best.length > ROUTE_MAX_LENGTH
+    ? `${best.slice(0, ROUTE_MAX_LENGTH - 1)}…`
+    : best;
 }
 
 // ---------- Fix steps, from what the attack was ----------
@@ -538,7 +517,7 @@ const FIX_RULES: ReadonlyArray<FixRule> = [
     },
   },
   {
-    key: "fix:account-changes",
+    key: RESPONSE_STEP_KINDS.fixAccountChanges,
     ids: ["T1098", "T1136", "T1556"],
     text: (): ResponseText => {
       return { template: STEP_FIX_ACCOUNT_CHANGES, values: {} };
@@ -559,14 +538,14 @@ const FIX_RULES: ReadonlyArray<FixRule> = [
     },
   },
   {
-    key: "fix:brute-force",
+    key: RESPONSE_STEP_KINDS.fixBruteForce,
     ids: ["T1110", "T1621"],
     text: (): ResponseText => {
       return { template: STEP_FIX_BRUTE_FORCE, values: {} };
     },
   },
   {
-    key: "fix:credentials",
+    key: RESPONSE_STEP_KINDS.fixCredentials,
     ids: ["TA0006", "T1078", "T1003", "T1552", "T1528"],
     text: (entities: Array<SecurityEntity>): ResponseText => {
       const user: string = userOf(entities);
@@ -1237,7 +1216,7 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
       (holdsAttackId(attackIds, ["TA0001"]) && Boolean(requestedRoute)))
   ) {
     add({
-      key: getResponseStepKey("fix:public-app"),
+      key: getResponseStepKey(RESPONSE_STEP_KINDS.fixPublicApp),
       phase: ResponsePhase.Fix,
       text: requestedRoute
         ? {
