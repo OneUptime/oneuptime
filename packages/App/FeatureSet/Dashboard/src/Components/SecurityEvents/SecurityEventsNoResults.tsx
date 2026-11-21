@@ -23,6 +23,9 @@ import { RefusedTelemetry } from "Common/Utils/SecurityEvent/RefusedTelemetry";
 
 export const SECURITY_EVENTS_NO_RESULTS_ID: string =
   "security-events-no-results";
+// What an ingestion budget or rate refused in the window, under the message.
+export const SECURITY_EVENTS_NO_RESULTS_REFUSED_ID: string =
+  "security-events-no-results-refused";
 
 export interface ComponentProps {
   /*
@@ -76,9 +79,6 @@ export function getShowTimeRangeButtonTitle(
  * happened where it could not look (#10431): it says, under the message,
  * that events from then are missing.
  */
-export const SECURITY_EVENTS_NO_RESULTS_REFUSED_ID: string =
-  "security-events-no-results-refused";
-
 const SecurityEventsNoResults: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
