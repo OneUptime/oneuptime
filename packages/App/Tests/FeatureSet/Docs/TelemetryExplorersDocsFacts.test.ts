@@ -2948,7 +2948,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
 
     // Both ingest paths store each occurrence under its exception's choice.
     for (const ingest of [tracesIngest, logsIngest]) {
-      expect(ingest).toContain("ExceptionUtil.getFingerprintV2({");
+      expect(ingest).toContain("ExceptionUtil.getOccurrenceFingerprints({");
       expect(ingest).toContain(
         "await ExceptionUtil.assignRowGroupFingerprints(batch);",
       );
@@ -2956,10 +2956,13 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(exceptionUtil).toContain(
       "await ExceptionUtil.assignPayloadGroupFingerprints(exceptions)",
     );
-    // An exception recorded before keeps its first fingerprint.
-    expect(exceptionUtil).toContain(
-      "chosen.set(key, cached?.exists ? candidate.v1 : candidate.v2);",
-    );
+    /*
+     * An exception recorded before keeps its first fingerprint: its v1 one is
+     * tried first, and a new exception is made under its v2 one.
+     */
+    expect(exceptionUtil).toContain("fingerprintCandidates: [v1, v2, keyed],");
+    expect(exceptionUtil).toContain("fingerprintV2: v2,");
+    expect(exceptionUtil).toContain("chosen.set(key, candidate.v2);");
 
     const troubleshooting: string = section(page, "## Troubleshooting");
     expect(troubleshooting).toContain(
