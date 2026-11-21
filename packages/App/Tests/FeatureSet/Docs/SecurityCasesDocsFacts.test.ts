@@ -17,6 +17,15 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseChanges";
 import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
 import { UNDO_BUTTON_TITLES } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunStepRows";
+import {
+  ACTION_BLOCK_FOR_A_DAY,
+  BLOCK_CHALLENGE_INSTEAD,
+  BLOCK_FOR_SEVEN_DAYS,
+  BLOCK_FROM_CASE_MENU_ITEM,
+  BLOCK_HELP_SHOW,
+  BLOCK_UNTIL_LIFTED,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponseCopy";
+import { NOT_ENFORCED_ANYWHERE_ERROR } from "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookAddressBlocks";
 import { CREATE_FROM_TEMPLATE } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookTemplateModel";
 import {
   ATTACK_COVERAGE_VIEW_LABELS,
@@ -1491,18 +1500,57 @@ describe("Security Cases and Playbooks docs", () => {
         },
       );
 
-    // Okta, CrowdStrike, Defender, and Microsoft Entra ID and Google Workspace's two each.
-    expect(disruptive).toHaveLength(8);
+    /*
+     * Okta, CrowdStrike, Defender, Microsoft Entra ID and Google Workspace's
+     * two each, and blocking an address (#10342).
+     */
+    expect(disruptive).toHaveLength(9);
     expect(
       disruptive.every((action: SecurityPlaybookActionDefinition): boolean => {
         return action.category === SecurityPlaybookActionCategory.Contain;
       }),
     ).toBe(true);
     expect(page).toContain(
-      "The eight steps that cut someone off always do, unless a Security Admin turns it off.",
+      "The nine steps that cut someone off always do, unless a Security Admin turns it off.",
     );
     expect(flat(section(page, "Approval"))).toContain(
-      "The eight steps that cut someone off wait for approval.",
+      "The nine steps that cut someone off wait for approval.",
+    );
+  });
+
+  /*
+   * #10342: a case's address is blocked from its Response Plan in one
+   * click, through the playbook engine, with the words its card draws.
+   */
+  it("says how an address is blocked from a case, in the words the step and its menu draw", () => {
+    const text: string = flat(section(page, "Block an address from a case"));
+
+    expect(ACTION_BLOCK_FOR_A_DAY).toBe("Block for 24 Hours");
+    expect(BLOCK_CHALLENGE_INSTEAD).toBe("Challenge Instead");
+    expect(BLOCK_FOR_SEVEN_DAYS).toBe("Block for 7 Days");
+    expect(BLOCK_UNTIL_LIFTED).toBe("Block Until Lifted");
+    expect(BLOCK_HELP_SHOW).toBe("How to Block It");
+    expect(BLOCK_FROM_CASE_MENU_ITEM).toBe("Block…");
+
+    for (const words of [
+      `**${ACTION_BLOCK_FOR_A_DAY}**`,
+      `**${BLOCK_CHALLENGE_INSTEAD}**`,
+      `**${BLOCK_FOR_SEVEN_DAYS}**`,
+      `**${BLOCK_UNTIL_LIFTED}**`,
+      `**${BLOCK_HELP_SHOW}**`,
+      `**${BLOCK_FROM_CASE_MENU_ITEM}**`,
+      "**Lift**",
+    ]) {
+      expect(text).toContain(words);
+    }
+
+    // The approval rule is a playbook's: someone else's, unless the person may turn it off.
+    expect(text).toContain(
+      "It waits for someone else's approval, unless you are a Security Admin, a Project Admin or a Project Owner.",
+    );
+    // A block nothing enforces fails a playbook's step, in the step's own words.
+    expect(flat(section(page, "Containment"))).toContain(
+      `"${NOT_ENFORCED_ANYWHERE_ERROR}"`,
     );
   });
 
@@ -2099,16 +2147,17 @@ describe("Security Cases and Playbooks docs", () => {
       ]!;
     });
 
-    // Okta's and Google Workspace's undo are both Unsuspend.
+    // Okta's and Google Workspace's undo are both Unsuspend; a block's is Lift (#10342).
     expect(undoable).toEqual([
       "Unsuspend",
       "Lift Containment",
       "Release",
       "Enable",
       "Unsuspend",
+      "Lift",
     ]);
     expect(flat(section(page, "Undo"))).toContain(
-      "a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment**, **Release** or **Enable**. A sign-out cannot be undone.",
+      "a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment**, **Release**, **Enable** or **Lift**. A sign-out cannot be undone.",
     );
   });
 
