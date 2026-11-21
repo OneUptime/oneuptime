@@ -411,13 +411,15 @@ function open(data: {
   );
 
   if (joinable) {
-    joinable.to = data.to === null ? null : toIso(data.to);
     joinable.refusedBytes += data.refusedBytes;
     joinable.refusedRequests += data.refusedRequests;
     joinable.scopeName = data.name || joinable.scopeName;
 
-    if (joinable.to !== null) {
-      close(joinable, data.to as number);
+    if (data.to === null) {
+      joinable.to = null;
+    } else {
+      // Never shorter than it was.
+      close(joinable, Math.max(data.to, toTime(joinable.to) ?? data.to));
     }
 
     return;
