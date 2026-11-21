@@ -3,6 +3,7 @@ import BadDataException from "../Exception/BadDataException";
 import { JSONObject, ObjectType } from "../JSON";
 import Typeof from "../Typeof";
 import IPType from "./IPType";
+import IpCanonicalUtil from "../../Utils/IpCanonicalUtil";
 import { FindOperator } from "typeorm";
 
 export default class IP extends DatabaseProperty {
@@ -52,8 +53,15 @@ export default class IP extends DatabaseProperty {
         continue;
       }
 
-      // Direct IP match
-      if (trimmedEntry === ip) {
+      /*
+       * Direct IP match. An IPv6 address has many spellings ("2001:DB8::1",
+       * "2001:db8:0:0:0:0:0:1"), and Node reports a visitor in only one of
+       * them, so the two are compared as addresses, not as text.
+       */
+      if (
+        trimmedEntry === ip ||
+        IpCanonicalUtil.areSameIpAddress(trimmedEntry, ip)
+      ) {
         return true;
       }
 
