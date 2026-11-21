@@ -53,7 +53,7 @@ A triage reads:
 
 It can also read the rest of OneUptime the way an incident's investigation does: logs, traces, metrics, hosts, and the read-only tools of the project's MCP servers.
 
-Everyone who may see the case reads its triage, so a triage reads only what all of them may read, as an incident's investigation does. A kind of record that no team, custom role or API key reads only by owner or by label is read whole; where some do, a host, cluster, service or other record that an owner or a label sets apart is left out, and it is never named or counted. The case is always read, and so is the incident it declared, unless that incident is private. Private incidents and alerts are never read.
+Everyone who may see the case reads its triage, so a triage reads only what all of them may read. A team, custom role or API key that reads a kind of record only by owner or by label counts only when the API key, or someone on the team, may read security cases or the audit log. A kind of record that none of them reads only by owner or by label is read whole; where some do, a host, cluster, service or other record that an owner or a label sets apart is left out, and it is never named or counted. Who may read security cases is worked out each time a triage runs, so a triage written before someone got that access may name records set apart from them; triage the case again to leave those out. The case is always read, and so is the incident it declared, unless that incident is private. Private incidents and alerts are never read.
 
 ### What it concludes
 

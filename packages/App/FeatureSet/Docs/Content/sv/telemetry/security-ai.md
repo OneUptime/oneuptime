@@ -53,7 +53,7 @@ En AI-bedömning läser:
 
 Den kan också läsa resten av OneUptime som utredningen av en incident gör: loggar, traces, mätvärden, värdar och de skrivskyddade verktygen på projektets MCP-servrar.
 
-Alla som får se ärendet läser dess AI-bedömning, så en AI-bedömning läser bara det som alla får läsa, som utredningen av en incident gör. En typ av post som inget team, ingen anpassad roll och ingen API-nyckel bara läser utifrån ägare eller etikett läses i sin helhet; där några gör det utelämnas en värd, ett kluster, en tjänst eller en annan post som en ägare eller en etikett skiljer av, och den namnges eller räknas aldrig. Ärendet läses alltid, och det gör också incidenten som ärendet har deklarerat, om den incidenten inte är privat. Privata incidenter och larm läses aldrig.
+Alla som får se ärendet läser dess AI-bedömning, så en AI-bedömning läser bara det som alla får läsa. Ett team, en anpassad roll eller en API-nyckel som bara läser en typ av post utifrån ägare eller etikett räknas bara när API-nyckeln, eller någon i teamet, får läsa säkerhetsärenden eller granskningsloggen. En typ av post som ingen av dem bara läser utifrån ägare eller etikett läses i sin helhet; där några gör det utelämnas en värd, ett kluster, en tjänst eller en annan post som en ägare eller en etikett skiljer av, och den namnges eller räknas aldrig. Vem som får läsa säkerhetsärenden avgörs varje gång en AI-bedömning körs, så en AI-bedömning som skrevs innan någon fick den åtkomsten kan namnge poster som skiljts av från den personen; kör AI-bedömningen av ärendet igen för att utelämna dem. Ärendet läses alltid, och det gör också incidenten som ärendet har deklarerat, om den incidenten inte är privat. Privata incidenter och larm läses aldrig.
 
 ### Vad den drar för slutsats
 

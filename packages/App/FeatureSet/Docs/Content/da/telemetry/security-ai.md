@@ -53,7 +53,7 @@ En vurdering læser:
 
 Den kan også læse resten af OneUptime, som undersøgelsen af en hændelse gør: logs, traces, metrikker, værter og de skrivebeskyttede værktøjer på projektets MCP-servere.
 
-Alle, der må se sagen, læser dens vurdering, så en vurdering læser kun det, de alle må læse, som undersøgelsen af en hændelse gør. En slags post, som intet team, ingen brugerdefineret rolle og ingen API-nøgle kun læser ud fra ejer eller etiket, læses helt; hvor nogle gør, udelades en vært, klynge, tjeneste eller anden post, som en ejer eller en etiket sætter til side, og den bliver aldrig nævnt eller talt med. Sagen læses altid, og det gør den hændelse, den har erklæret, også, medmindre den hændelse er privat. Private hændelser og advarsler læses aldrig.
+Alle, der må se sagen, læser dens vurdering, så en vurdering læser kun det, de alle må læse. Et team, en brugerdefineret rolle eller en API-nøgle, der kun læser en slags post ud fra ejer eller etiket, tæller kun med, når API-nøglen eller nogen på teamet må læse sikkerhedssager eller auditloggen. En slags post, som ingen af dem kun læser ud fra ejer eller etiket, læses helt; hvor nogle gør, udelades en vært, klynge, tjeneste eller anden post, som en ejer eller en etiket sætter til side, og den bliver aldrig nævnt eller talt med. Hvem der må læse sikkerhedssager, afgøres, hver gang en vurdering kører, så en vurdering, der blev skrevet, før nogen fik den adgang, kan nævne poster, der er sat til side for dem; vurder sagen igen for at udelade dem. Sagen læses altid, og det gør den hændelse, den har erklæret, også, medmindre den hændelse er privat. Private hændelser og advarsler læses aldrig.
 
 ### Hvad den konkluderer
 

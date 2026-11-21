@@ -17,7 +17,10 @@ import { readRepoFile } from "./InventoryAndApiDocsSupport";
  *    whole project for an insight about none (ReadAudienceReader, subject:
  *    the insight);
  *  - a case's triage reads for the case's readers, beside the case and the
- *    incident it declared, unless that incident is private.
+ *    incident it declared, unless that incident is private; posted on the
+ *    case alone, it counts only the owner and label narrowing that reaches
+ *    somebody who may read security cases or the audit log (#9632), worked
+ *    out each time it runs.
  *
  * The English lines are held to their words; every language's lines to
  * their place, which AiDocsTranslations and AiToolingAndSecurityDocsTranslations
@@ -41,7 +44,7 @@ const INSIGHT_TRIAGE_READS: string =
 const CASE_READS: string =
   "It can also read the rest of OneUptime the way an incident's investigation does";
 const CASE_TRIAGE_READS: string =
-  "Everyone who may see the case reads its triage, so a triage reads only what all of them may read, as an incident's investigation does. A kind of record that no team, custom role or API key reads only by owner or by label is read whole; where some do, a host, cluster, service or other record that an owner or a label sets apart is left out, and it is never named or counted. The case is always read, and so is the incident it declared, unless that incident is private. Private incidents and alerts are never read.";
+  "Everyone who may see the case reads its triage, so a triage reads only what all of them may read. A team, custom role or API key that reads a kind of record only by owner or by label counts only when the API key, or someone on the team, may read security cases or the audit log. A kind of record that none of them reads only by owner or by label is read whole; where some do, a host, cluster, service or other record that an owner or a label sets apart is left out, and it is never named or counted. Who may read security cases is worked out each time a triage runs, so a triage written before someone got that access may name records set apart from them; triage the case again to leave those out. The case is always read, and so is the incident it declared, unless that incident is private. Private incidents and alerts are never read.";
 
 // A page's lines, 0-based.
 function linesOf(lang: string, page: string): Array<string> {
@@ -164,6 +167,17 @@ describe("AI docs: what a fix, an insight's triage and a case's triage read (#96
     expect(caseRunner).toContain("ReadAudienceReader.forSubject");
     // A private declared incident is never named for the case's readers.
     expect(readers).toContain("incident.isPrivate === true");
+    // A case's triage weighs only the narrowing that reaches the case's readers (#9632)...
+    expect(caseRunner).toContain("{ postsOnlyWhereTheSubjectIsRead: true }");
+    expect(readers).toContain("readRowsReachingReaders");
+    // ...who read the case, its timeline, or the audit log.
+    for (const readOn of ["SecurityCase,", "SecurityCaseFeed,", "AuditLog()"]) {
+      expect(readers).toContain(readOn);
+    }
+
+    // An insight's triage and a fix count every row, as the pages say.
+    expect(insightRunner).not.toContain("postsOnlyWhereTheSubjectIsRead");
+    expect(fixReaders).not.toContain("postsOnlyWhereTheSubjectIsRead");
   });
 
   describe.each(DOCS_LANGUAGES)("%s", (lang: string) => {
