@@ -16,8 +16,10 @@ import ObjectID from "../../../../../Types/ObjectID";
 import {
   AwsCredentials,
   AwsPartition,
+  AwsRefusalCause,
   AwsRestResponse,
   awsErrorCodeOf,
+  awsRefusalCauseOf,
   getAwsHost,
   getAwsPartition,
   readXmlChildren,
@@ -295,6 +297,35 @@ function isRefusal(error: unknown): boolean {
   );
 }
 
+// Why AWS refused a call, as its message says (AwsRefusalCause); Unknown for anything but a refusal.
+function refusalCauseOf(error: unknown): AwsRefusalCause {
+  return isRefusal(error)
+    ? awsRefusalCauseOf((error as LlmProviderError).responseBody || "")
+    : AwsRefusalCause.Unknown;
+}
+
+/*
+ * STOP ASKING WHAT AWS REFUSED (#10427). Every call AWS refuses is a
+ * refused call in the customer's CloudTrail, and twenty of them in ten
+ * minutes is what Security Events' Burst of access-denied API calls
+ * looks for. So a read asks nothing it already knows the answer to:
+ *
+ *   - an action AWS refused because no identity-based policy of the role
+ *     allows it (a role saved before Data Security needed the action) is
+ *     refused on every resource of the account: it is asked once, and every
+ *     other call of it in the account is read as that refusal, unasked
+ *     (AccountNotes.ask);
+ *   - a setting a bucket's own policy refused (a policy that admits only a
+ *     VPC endpoint) says the bucket refuses the role: the bucket's other
+ *     settings are read as refused, unasked (readBucket).
+ *
+ * What a call not asked stands for is read exactly as the refusal it would
+ * have been: the same null fact, the same line on the store and the same
+ * warning for the account. A refusal AWS gives no reason for, or another
+ * reason (a service control policy, a permissions boundary, an explicit
+ * deny in the role's own policy, which may name some resources only), is
+ * asked again each time, as before.
+ */
 class AccountNotes {
   public budgetSpent: boolean = false;
   // A listing that did not finish: what it did not list may still be there.
@@ -303,9 +334,76 @@ class AccountNotes {
   private refused: Set<string> = new Set<string>();
   private failed: Map<string, { count: number; message: string }> = new Map();
   private lines: Array<string> = [];
+  // Actions no identity-based policy of the role allows, with the refusal AWS gave.
+  private refusedForAccount: Map<string, unknown> = new Map();
+  // The first call of each action, while it waits for AWS's answer.
+  private firstAsks: Map<string, Promise<void>> = new Map();
+  // Actions AWS has answered with anything but such a refusal: asked freely.
+  private answered: Set<string> = new Set<string>();
 
   public constructor(subject: string) {
     this.subject = subject;
+  }
+
+  // Whether the account refused the action on every resource: it is not asked again.
+  public isRefusedForAccount(action: string): boolean {
+    return this.refusedForAccount.has(action);
+  }
+
+  /*
+   * One call of an action - unless no identity-based policy of the role
+   * allows it, as AWS said of an earlier call in this account: then that
+   * refusal is thrown again without asking, and read as it was. The first
+   * call of an action in the account goes alone, and the reads running
+   * beside it wait for its answer, so they do not all ask at once what AWS
+   * is about to refuse.
+   */
+  public async ask<T>(action: string, call: () => Promise<T>): Promise<T> {
+    for (;;) {
+      if (this.refusedForAccount.has(action)) {
+        throw this.refusedForAccount.get(action);
+      }
+
+      if (this.answered.has(action)) {
+        return await call();
+      }
+
+      const first: Promise<void> | undefined = this.firstAsks.get(action);
+
+      if (!first) {
+        break;
+      }
+
+      await first;
+    }
+
+    let settle: () => void = (): void => {
+      return undefined;
+    };
+
+    this.firstAsks.set(
+      action,
+      new Promise<void>((resolve: () => void): void => {
+        settle = resolve;
+      }),
+    );
+
+    try {
+      const value: T = await call();
+      this.answered.add(action);
+      return value;
+    } catch (error) {
+      if (refusalCauseOf(error) === AwsRefusalCause.NoIdentityPolicyAllows) {
+        this.refusedForAccount.set(action, error);
+      } else {
+        this.answered.add(action);
+      }
+
+      throw error;
+    } finally {
+      this.firstAsks.delete(action);
+      settle();
+    }
   }
 
   /*
@@ -420,13 +518,14 @@ interface AccountContext {
   reached: Set<string>;
 }
 
+// One call of an action, unless the account already refused it (AccountNotes.ask).
 async function attempt<T>(
   ctx: AccountContext,
   action: string,
   call: () => Promise<T>,
 ): Promise<Answer<T>> {
   try {
-    return { ok: true, value: await call() };
+    return { ok: true, value: await ctx.notes.ask(action, call) };
   } catch (error) {
     return ctx.notes.unread(action, error);
   }
@@ -775,13 +874,23 @@ async function readAwsManagedKeyIds(
 
   try {
     for (let page: number = 0; page < MAX_KMS_PAGES; page++) {
-      const answer: JSONObject = await jsonCall(ctx, region, {
-        service: "kms",
-        target: "TrentService.ListAliases",
-        jsonVersion: "1.1",
-        body: { Limit: 100, ...(marker ? { Marker: marker } : {}) },
-        step: "key alias list request",
-      });
+      const body: JSONObject = {
+        Limit: 100,
+        ...(marker ? { Marker: marker } : {}),
+      };
+      // Unless no identity-based policy allowed it in another Region already.
+      const answer: JSONObject = await ctx.notes.ask(
+        "kms:ListAliases",
+        async (): Promise<JSONObject> => {
+          return await jsonCall(ctx, region, {
+            service: "kms",
+            target: "TrentService.ListAliases",
+            jsonVersion: "1.1",
+            body,
+            step: "key alias list request",
+          });
+        },
+      );
 
       for (const raw of readArray(answer["Aliases"])) {
         const alias: JSONObject = readObject(raw);
@@ -1167,11 +1276,14 @@ interface BucketTarget {
   region: string;
 }
 
-// One bucket setting: as set, not set (a fact), or not read.
+/*
+ * One bucket setting: as set, not set (a fact), or not read - with what
+ * AWS answered, when it answered.
+ */
 type BucketPart =
   | { state: "set"; text: string }
   | { state: "unset" }
-  | { state: "unknown"; unread: Unread };
+  | { state: "unknown"; unread: Unread; error?: unknown };
 
 interface PublicAccessBlock {
   blockPublicAcls: Fact;
@@ -1275,13 +1387,19 @@ async function readBucketPart(
 ): Promise<BucketPart> {
   for (let redirects: number = 0; ; redirects++) {
     try {
-      const answer: AwsRestResponse = await restCall(ctx, bucket.region, {
-        service: "s3",
-        path: `/${bucket.name}`,
-        query: { [subresource]: "" },
-        step: `bucket ${subresource} request`,
-        providerTitle: S3_TITLE,
-      });
+      // Unless the account already refused the setting on every bucket.
+      const answer: AwsRestResponse = await ctx.notes.ask(
+        action,
+        async (): Promise<AwsRestResponse> => {
+          return await restCall(ctx, bucket.region, {
+            service: "s3",
+            path: `/${bucket.name}`,
+            query: { [subresource]: "" },
+            step: `bucket ${subresource} request`,
+            providerTitle: S3_TITLE,
+          });
+        },
+      );
 
       return { state: "set", text: answer.text };
     } catch (error) {
@@ -1310,6 +1428,7 @@ async function readBucketPart(
         unread: ctx.notes.unread(action, error, {
           tolerateAuthentication: bucket.region !== ctx.homeRegion,
         }),
+        error,
       };
     }
   }
@@ -1409,14 +1528,19 @@ async function readAccountPublicAccessBlock(
   }
 
   try {
-    const answer: AwsRestResponse = await restCall(ctx, ctx.homeRegion, {
-      service: "s3",
-      host: `${ctx.accountId}.${getAwsHost("s3-control", ctx.homeRegion)}`,
-      path: "/v20180820/configuration/publicAccessBlock",
-      headers: { "x-amz-account-id": ctx.accountId },
-      step: "account public access block request",
-      providerTitle: S3_TITLE,
-    });
+    const answer: AwsRestResponse = await ctx.notes.ask(
+      "s3:GetAccountPublicAccessBlock",
+      async (): Promise<AwsRestResponse> => {
+        return await restCall(ctx, ctx.homeRegion, {
+          service: "s3",
+          host: `${ctx.accountId}.${getAwsHost("s3-control", ctx.homeRegion)}`,
+          path: "/v20180820/configuration/publicAccessBlock",
+          headers: { "x-amz-account-id": ctx.accountId },
+          step: "account public access block request",
+          providerTitle: S3_TITLE,
+        });
+      },
+    );
 
     return readPublicAccessBlock(answer.text);
   } catch (error) {
@@ -1564,12 +1688,37 @@ async function readBucket(
 ): Promise<CloudDataStoreRead> {
   const bucket: BucketTarget = { ...target };
   const parts: Map<string, BucketPart> = new Map();
+  // The refusal of the bucket's own policy, once one setting met it.
+  let refusedByBucket: unknown = undefined;
 
   for (const [subresource, action] of BUCKET_PARTS) {
-    parts.set(
+    /*
+     * The bucket's own policy refused the role a setting: it refuses the
+     * role the bucket, and the rest are read as refused, unasked (#10427).
+     */
+    if (refusedByBucket !== undefined) {
+      parts.set(subresource, {
+        state: "unknown",
+        unread: ctx.notes.unread(action, refusedByBucket),
+      });
+      continue;
+    }
+
+    const read: BucketPart = await readBucketPart(
+      ctx,
+      bucket,
       subresource,
-      await readBucketPart(ctx, bucket, subresource, action),
+      action,
     );
+
+    parts.set(subresource, read);
+
+    if (
+      read.state === "unknown" &&
+      refusalCauseOf(read.error) === AwsRefusalCause.ResourcePolicy
+    ) {
+      refusedByBucket = read.error;
+    }
   }
 
   const store: CloudDataStoreRead = newStore(ctx, {
