@@ -24,29 +24,45 @@ import { closeConnectionAfterAnswer } from "../Utils/RequestBodyRefusal";
  * Now a response whose headers are written while its request's body is not
  * all in, and nobody has begun to read it, closes the connection once it is
  * sent, without a byte more read (closeConnectionAfterAnswer): the answer
- * says "Connection: close", and the client still reads it. A body a route
- * reads - whole, or until it refuses it - is not this one's: a reader that
- * refuses a body closes the connection itself, and a route that reads one
- * through answers once it is in.
+ * says "Connection: close", and the client still reads it. A body that
+ * declares no more than a socket read is read off as before, and keeps its
+ * connection (UNREAD_BODY_READ_OFF_BYTES). A body a route reads - whole, or
+ * until it refuses it - is not this one's: a reader that refuses a body
+ * closes the connection itself, and a route that reads one through answers
+ * once it is in.
  */
 
 /*
- * Whether a request came with a body that is not all in, and that nobody
- * has begun to read: no data listener, pipe, resume or pause yet.
+ * The most a body may declare and still be read off as Node reads it: a
+ * socket read. Reading it costs that much, and keeps the connection for the
+ * client's next request - a small body answered before the server parsed it
+ * (a route that answers in the same turn as the headers arrive) is no more
+ * than that. A chunked body says nothing of its size, so it is never this.
+ */
+export const UNREAD_BODY_READ_OFF_BYTES: number = 64 * 1024;
+
+/*
+ * Whether a request came with a body that is not all in, that nobody has
+ * begun to read - no data listener, pipe, resume or pause yet - and that
+ * may be more than UNREAD_BODY_READ_OFF_BYTES.
  */
 export const isRequestBodyLeftUnread: (req: ExpressRequest) => boolean = (
   req: ExpressRequest,
 ): boolean => {
+  if (req.complete || req.readableFlowing !== null) {
+    return false;
+  }
+
+  if (req.headers["transfer-encoding"] !== undefined) {
+    return true;
+  }
+
   const declaredLength: number = parseInt(
     headerValueToString(req.headers["content-length"]) || "",
     10,
   );
 
-  const hasBody: boolean =
-    req.headers["transfer-encoding"] !== undefined ||
-    (!isNaN(declaredLength) && declaredLength > 0);
-
-  return hasBody && !req.complete && req.readableFlowing === null;
+  return !isNaN(declaredLength) && declaredLength > UNREAD_BODY_READ_OFF_BYTES;
 };
 
 export default class UnreadRequestBody {
