@@ -121,6 +121,7 @@ const ANSWER: DetectionRetrohuntResult = {
   groups: [],
   hasMoreGroups: false,
   candidateLimit: null,
+  uncounted: null,
 };
 
 let ruleReads: Array<Record<string, unknown>>;
