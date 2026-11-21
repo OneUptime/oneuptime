@@ -175,7 +175,12 @@ describe("isSameRuleYaml", () => {
       false,
     );
     expect(isSameRuleYaml(yaml, `${yaml}  condition: selection\n`)).toBe(false);
-    expect(isSameRuleYaml(yaml, yaml.replace("\n", "\n\n"))).toBe(false);
+
+    // A blank line inside the rule, after its title.
+    const lines: Array<string> = yaml.split("\n");
+    lines.splice(1, 0, "");
+
+    expect(isSameRuleYaml(yaml, lines.join("\n"))).toBe(false);
   });
 });
 
@@ -282,12 +287,34 @@ describe("DetectionRuleLibraryUpgradeCopies", () => {
     );
     const installed: Installed = install(rules);
 
-    expect(await DetectionRuleLibraryUpgradeCopies.upgradeAll()).toBe(450);
+    expect(
+      await DetectionRuleLibraryUpgradeCopies.upgradeCopiesOf(upgradeOf(BURST)),
+    ).toBe(450);
     expect(
       installed.reads.map((read: JSONObject): number => {
         return Number(read["skip"]);
       }),
     ).toEqual([0, 200, 400]);
+  });
+
+  test("every fixed rule's copies are read, each by its own id", async () => {
+    const installed: Installed = install([]);
+
+    await DetectionRuleLibraryUpgradeCopies.upgradeAll();
+
+    expect(
+      installed.reads.map((read: JSONObject): string => {
+        return (
+          (read["query"] as JSONObject)["sigmaRuleYaml"] as Search<string>
+        ).toString();
+      }),
+    ).toEqual(
+      DETECTION_RULE_LIBRARY_UPGRADES.map(
+        (upgrade: DetectionRuleLibraryUpgrade): string => {
+          return `id: ${upgrade.id}`;
+        },
+      ),
+    );
   });
 
   test("one rule that cannot be saved does not keep the rest from the fix", async () => {

@@ -345,11 +345,6 @@ class AccountNotes {
     this.subject = subject;
   }
 
-  // Whether the account refused the action on every resource: it is not asked again.
-  public isRefusedForAccount(action: string): boolean {
-    return this.refusedForAccount.has(action);
-  }
-
   /*
    * One call of an action - unless no identity-based policy of the role
    * allows it, as AWS said of an earlier call in this account: then that
