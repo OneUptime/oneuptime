@@ -1143,6 +1143,8 @@ import { AddCloudAppPlatformCloudResourceIndexAndKey1809187383710 } from "./1809
 import { AddSecurityCaseStepChecks1809187390000 } from "./1809187390000-AddSecurityCaseStepChecks";
 import { AddSecurityCaseNextStepCheckIndex1809187390010 } from "./1809187390010-AddSecurityCaseNextStepCheckIndex";
 import { AddRecordCreatedByAndLastModifiedColumns1809187400000 } from "./1809187400000-AddRecordCreatedByAndLastModifiedColumns";
+import { AddAIAgentTaskPullRequestSecurityCase1809187420000 } from "./1809187420000-AddAIAgentTaskPullRequestSecurityCase";
+import { AddAIAgentTaskPullRequestSecurityCaseIndex1809187420010 } from "./1809187420010-AddAIAgentTaskPullRequestSecurityCaseIndex";
 
 export default [
   InitialMigration,
@@ -2290,4 +2292,6 @@ export default [
   AddSecurityCaseStepChecks1809187390000,
   AddSecurityCaseNextStepCheckIndex1809187390010,
   AddRecordCreatedByAndLastModifiedColumns1809187400000,
+  AddAIAgentTaskPullRequestSecurityCase1809187420000,
+  AddAIAgentTaskPullRequestSecurityCaseIndex1809187420010,
 ];
