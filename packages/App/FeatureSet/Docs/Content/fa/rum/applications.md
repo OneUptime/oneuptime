@@ -168,7 +168,7 @@ const resource = defaultResource().merge(
 | گروه | توصیه‌ها |
 | --- | --- |
 | Core Web Vitals | برای برنامه وب: Poor Largest Contentful Paint، Poor Interaction to Next Paint، Poor Cumulative Layout Shift، Slow First Contentful Paint و Slow Time to First Byte. [Core Web Vitals](/docs/rum/web-vitals) را ببینید. |
-| خطاها | App Crashes و App Not Responding (ANR) برای برنامه موبایل، و نرخ‌های آن‌ها، App Crash Rate و App ANR Rate، برای برنامه‌ای با صدها نشست در ساعت؛ Failed User Operations برای هر دو، و Unhandled Browser Exceptions برای برنامه وب. |
+| خطاها | App Crashes و App Not Responding (ANR) برای برنامه موبایل، و نرخ‌های آن‌ها، App Crash Rate و App ANR Rate، برای برنامه‌ای با صدها نشست در ساعت، و Daily Crash Rate و Daily ANR Rate، سهم نصب‌هایی از یک روز که کرش کردند یا هنگ کردند؛ Failed User Operations برای هر دو، و Unhandled Browser Exceptions برای برنامه وب. |
 | کارایی | برای برنامه موبایل: Slow Cold Start، وقتی یک شروع سرد ۵ ثانیه یا بیشتر طول بکشد، که Android vitals آن را بیش از حد می‌داند، و Frozen Frames، وقتی رندر یک فریم بیش از ۷۰۰ میلی‌ثانیه طول بکشد. |
 | در دسترس بودن | برای برنامه موبایل: App Stopped Reporting، وقتی برنامه ۳۰ دقیقه هیچ اسپنی نفرستد، و Device Stopped Reporting، وقتی یکی از دستگاه‌هایش پس از فرستادن اسپن در هفتهٔ گذشته، یک ساعت هیچ اسپنی نفرستد. |
 | بازپخش نشست | چهار [هشدار بودجه ذخیره‌سازی](/docs/telemetry/session-replay#هشدارهای-بودجه-ذخیرهسازی)، که پیش از تمام شدن محدودیت روزانه پروژه یا بودجه ماهانه برنامه هشدار می‌دهند. همین که برنامه بازپخشی ضبط کرده باشد پیشنهاد می‌شوند، و جفت ماهانه وقتی افزون بر آن بودجه ماهانه هم داشته باشد. |

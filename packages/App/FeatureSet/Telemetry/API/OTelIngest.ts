@@ -249,7 +249,7 @@ router.get(
                * it. Its pinned app is not named: that is the shape of the
                * project's defences, as the browser message keeps its origins.
                */
-              "Ingestion token is valid. It is a MOBILE ingestion key: it is accepted only from a mobile app, without an Origin header, and only for OTLP traces, logs and metrics over HTTP, all filed under the app it is pinned to. Use a server ingestion key in a collector, an agent, or any backend service, and a browser ingestion key in a web page."
+              "Ingestion token is valid. It is a MOBILE ingestion key: it is accepted only from a mobile app, without an Origin header, and only for OTLP traces, logs and metrics over HTTP and the app's session replays, all filed under the app it is pinned to. Use a server ingestion key in a collector, an agent, or any backend service, and a browser ingestion key in a web page."
             : "Ingestion token is valid.",
       });
     } catch (err) {

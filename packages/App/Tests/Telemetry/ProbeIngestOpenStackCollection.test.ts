@@ -138,7 +138,7 @@ jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
     default: {
       isAuthorizedServiceMiddleware: jest.fn(),
       isAuthorizedFromHeadersMiddleware: jest.fn(),
-      isAuthorizedFromReportOpeningMiddleware: jest.fn(),
+      isAuthorizedFromReportOpening: jest.fn(),
     },
   };
 });
@@ -432,16 +432,14 @@ describe("wiring", () => {
   );
 
   /*
-   * #10222: the key is checked before the report is parsed - from the headers before a
-   * byte is read, then from the start of an older probe's report - and only a report whose
-   * probe is still not known is parsed under a large route's limit and authenticated from
-   * its body.
+   * #10222, #10260: the key is checked before the report is read - from the headers before
+   * a byte is read, or, for an older probe, from the start of its report before the rest
+   * is read (readCollectionBody) - and the report is parsed only after.
    */
-  test("a collection's key is checked before its report is parsed", () => {
+  test("a collection's key is checked before its report is read", () => {
     expect(router.routes.get(COLLECTION_URI)?.middlewares).toEqual([
       ProbeAuthorization.isAuthorizedFromHeadersMiddleware,
       readCollectionBody,
-      ProbeAuthorization.isAuthorizedFromReportOpeningMiddleware,
       parseCollectionBody,
       ProbeAuthorization.isAuthorizedServiceMiddleware,
     ]);

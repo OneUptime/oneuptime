@@ -10,6 +10,8 @@ import {
   TelemetryAdminDocsPageEntry,
 } from "./TelemetryAdminDocsPages";
 import { readPage } from "./DocsContentSupport";
+import { withoutProductLevels } from "./DocsProductLevels";
+import ProductKey from "Common/Types/Product/ProductKey";
 import {
   MenuSection,
   PACKAGES_DIR,
@@ -806,15 +808,19 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       "Sends",
       "Every kind of telemetry, to every endpoint",
       `Traces, logs, metrics, session replays and [Sentry events](${SENTRY_SDKS_LINK})`,
-      "That app's traces, logs and metrics, over OTLP/HTTP",
+      "That app's traces, logs and metrics, over OTLP/HTTP, and its session replays",
     ]);
 
-    // A Mobile key sends what the Sends row says, and nothing else (#6457).
+    /*
+     * A Mobile key sends what the Sends row says, and nothing else (#6457):
+     * its app's OTLP signals, and that app's session replays (#10540).
+     */
     expect([...MOBILE_ALLOWED_INGEST_SURFACES].sort()).toEqual(
       [
         TelemetryIngestSurface.OtelTraces,
         TelemetryIngestSurface.OtelLogs,
         TelemetryIngestSurface.OtelMetrics,
+        TelemetryIngestSurface.SessionReplay,
       ].sort(),
     );
     expect(rows[3]).toEqual([
@@ -828,7 +834,7 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       "A browser app's DSN is public, so use a **Browser** ingestion key there, with your site's origins on it.",
     );
     expect(page).toContain(
-      "OneUptime refuses a Browser key everywhere else, such as over gRPC and MQTT, for profiles, syslog, Fluent Bit and Fluentd, and for source map uploads, and a Mobile key anywhere but OTLP traces, logs and metrics over HTTP.",
+      "OneUptime refuses a Browser key everywhere else, such as over gRPC and MQTT, for profiles, syslog, Fluent Bit and Fluentd, and for source map uploads, and a Mobile key anywhere but OTLP traces, logs and metrics over HTTP and its app's session replays.",
     );
   });
 
@@ -845,12 +851,15 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       "- **It writes only as one app.** Everything it sends is filed under its **Pinned Service Name** as a mobile RUM application, whatever service or host the sender names.",
     );
     expect(limits).toContain(
-      "- **It sends only that app's telemetry.** OTLP traces, logs and metrics over HTTP. It is refused over gRPC and MQTT, for session replays, profiles and source maps, on every other endpoint, and from any web page.",
+      "- **It sends only that app's telemetry.** OTLP traces, logs and metrics over HTTP, and the app's session replays from its React Native recorder, with the key's **Pinned Service Name** as their `appIdentifier`. It is refused over gRPC and MQTT, for another app's session replays, profiles and source maps, on every other endpoint, and from any web page.",
     );
+    // Its own app's session replays, and no other app's (#10540).
+    expect(
+      MOBILE_ALLOWED_INGEST_SURFACES.has(TelemetryIngestSurface.SessionReplay),
+    ).toBe(true);
     for (const surface of [
       TelemetryIngestSurface.Grpc,
       TelemetryIngestSurface.Mqtt,
-      TelemetryIngestSurface.SessionReplay,
       TelemetryIngestSurface.OtelProfiles,
       TelemetryIngestSurface.SourceMap,
       TelemetryIngestSurface.Sentry,
@@ -874,7 +883,7 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       )} requests per minute for all copies together, unless you set its **Requests Per Minute Limit**.`,
     );
     expect(limits).toContain(
-      "What it cannot stop: someone who has your app can still send made-up traces, logs and metrics for that one app, up to the key's limit, until you turn the key off or it expires.",
+      "What it cannot stop: someone who has your app can still send made-up traces, logs, metrics and session replays for that one app, up to the key's limit, until you turn the key off or it expires.",
     );
   });
 
@@ -1000,7 +1009,7 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       ].sort(),
     );
     expect(page).toContain(
-      "| **Pinned Service Name** | Files everything the key sends over OTLP/HTTP under this one service, whatever `service.name` the sender set.",
+      "| **Pinned Service Name** | Files everything the key sends over OTLP/HTTP under this one application, whatever `service.name` the sender set.",
     );
     expect(page).toContain(
       "The Kubernetes agent's Runner and AI agent, and the infrastructure AI agents, do not register with a pinned key: give them an unpinned Server key.",
@@ -1128,6 +1137,7 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
         [422, "A browser ingestion key cannot be used for"],
         [422, "did not send an Origin header"],
         [422, "A mobile ingestion key cannot be used for"],
+        [422, "A mobile ingestion key can send session replays only"],
         [422, "A mobile ingestion key cannot be used from a web page"],
         [422, "is not allowed for this browser ingestion key"],
         [422, "is pinned to a single service"],
@@ -1186,6 +1196,15 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       },
       {
         fragment: "A mobile ingestion key cannot be used for",
+        request: {
+          surface: TelemetryIngestSurface.OtelProfiles,
+          headers: WITH_KEY,
+          resolvesTo: mobilePolicy({}),
+        },
+      },
+      // A page's recording, sent with a Mobile key (#10540).
+      {
+        fragment: "A mobile ingestion key can send session replays only",
         request: {
           surface: TelemetryIngestSurface.SessionReplay,
           headers: WITH_KEY,
@@ -3592,9 +3611,29 @@ describe("Topology (telemetry/topology)", () => {
       Permission.ReadTelemetryService,
     );
 
-    expect(permissionTitles(new InventoryItem().readRecordPermissions)).toEqual(
-      [...TOPOLOGY_READ_ROLES, permission],
+    /*
+     * The Inventory product's levels (#10289) read it too, Inventory Admin
+     * as Project Admin and Inventory Viewer as Viewer: the permissions page
+     * describes them once for every product, as the other pages leave them
+     * to it.
+     */
+    const readers: Array<Permission> = new InventoryItem()
+      .readRecordPermissions;
+
+    expect(readers).toEqual(
+      expect.arrayContaining([
+        Permission.InventoryAdmin,
+        Permission.InventoryViewer,
+      ]),
     );
+    expect(
+      permissionTitles(
+        withoutProductLevels({
+          permissions: readers,
+          product: ProductKey.Inventory,
+        }),
+      ),
+    ).toEqual([...TOPOLOGY_READ_ROLES, permission]);
     expect(page).toContain(
       `**A role that reads telemetry.** ${writtenList(TOPOLOGY_READ_ROLES, "or")}, or a custom role with the ${permission} permission.`,
     );

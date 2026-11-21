@@ -132,24 +132,33 @@ describe.each(EXPLORERS)(
 );
 
 describe("the shared picker itself", () => {
-  const PICKER: string = squash(
-    stripComments(
-      fs.readFileSync(
-        path.join(
-          __dirname,
-          "..",
-          "..",
-          "..",
-          "Common",
-          "UI",
-          "Components",
-          "Date",
-          "TimeRangePickerDropdown.tsx",
+  /*
+   * The picker, and the module it names a range with (TimeRangeLabel, which
+   * a page's pure helpers share with it, #10552): the custom window's label
+   * is written there.
+   */
+  const PICKER: string = ["TimeRangePickerDropdown.tsx", "TimeRangeLabel.ts"]
+    .map((file: string): string => {
+      return squash(
+        stripComments(
+          fs.readFileSync(
+            path.join(
+              __dirname,
+              "..",
+              "..",
+              "..",
+              "Common",
+              "UI",
+              "Components",
+              "Date",
+              file,
+            ),
+            "utf8",
+          ),
         ),
-        "utf8",
-      ),
-    ),
-  );
+      );
+    })
+    .join(" ");
 
   test("formats a custom window through the timezone- and clock-aware helper", () => {
     expect(PICKER).toContain("OneUptimeDate.getLocalDateTimeRangeEnds");

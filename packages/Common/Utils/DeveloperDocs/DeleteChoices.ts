@@ -5,6 +5,7 @@ import {
   WORKFLOWS_RUN_AS_INSTEAD_ROLE_KEY,
   WorkflowRunAs,
 } from "../../Types/Workflow/WorkflowRunAs";
+import { splitCapitalRunsBeforeWords } from "../CapitalRuns";
 
 /*
  * WHAT A DELETE SAYS BESIDES THE RECORD: ITS CHOICES.
@@ -190,12 +191,17 @@ function companionsOf(
   });
 }
 
-// CustomRole -> custom-role, as the API's path and the CLI's command write a table.
+/*
+ * CustomRole -> custom-role, as the API's path and the CLI's command write a
+ * table; a run of capitals before a word is one word of its own
+ * (OIDCProvider -> oidc-provider), split in time in line with the name's
+ * length (Utils/CapitalRuns).
+ */
 function toKebabCase(name: string): string {
-  return name
-    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
-    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
-    .toLowerCase();
+  return splitCapitalRunsBeforeWords(
+    name.replace(/([a-z0-9])([A-Z])/g, "$1-$2"),
+    "-",
+  ).toLowerCase();
 }
 
 /*

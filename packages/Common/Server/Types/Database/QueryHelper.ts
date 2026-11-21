@@ -464,6 +464,25 @@ export default class QueryHelper {
   }
 
   /*
+   * Anything but this value, an empty column included (NotEqualOrNull,
+   * #10399): `!=` alone is not true of NULL, so notEquals leaves empty rows
+   * out. Postgres's IS DISTINCT FROM, written as notInOrNull writes its own.
+   */
+  public static notEqualsOrNull(
+    value: string | ObjectID,
+  ): FindWhereProperty<any> {
+    const rid: string = Text.generateRandomText(10);
+    return Raw(
+      (alias: string) => {
+        return `(${alias} != :${rid} OR ${alias} IS NULL)`;
+      },
+      {
+        [rid]: value.toString(),
+      },
+    );
+  }
+
+  /*
    * Contains, starts with, ends with and does not contain read what was
    * typed literally: a `%` or `_` in it is escaped, as ClickHouse's
    * compiler escapes it (Statement.serializeValue) and as searchAllWords

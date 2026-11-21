@@ -428,7 +428,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Key Type",
     description:
-      "Server keys are for backend services and OpenTelemetry collectors: full ingest, no origin checks. Browser keys are write-only client keys: listed web origins may send traces, logs, metrics, session replays and Sentry events, while listed app:// identities currently authorize React Native session replay only. Mobile keys are write-only keys for one mobile app: pinned to its service name, they send only that app's OTLP traces, logs and metrics over HTTP, never from a web page. This cannot be changed after the key is created - create a new key instead.",
+      "Server keys are for backend services and OpenTelemetry collectors: full ingest, no origin checks. Browser keys are write-only client keys: listed web origins may send traces, logs, metrics, session replays and Sentry events, while listed app:// identities currently authorize React Native session replay only. Mobile keys are write-only keys for one mobile app: pinned to its service name, they send only that app's OTLP traces, logs and metrics over HTTP and its session replays, never from a web page. This cannot be changed after the key is created - create a new key instead.",
     defaultValue: TelemetryIngestionKeyType.Server,
     example: TelemetryIngestionKeyType.Server,
   })
@@ -515,7 +515,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Pinned Service Name",
     description:
-      "When set, every OpenTelemetry resource ingested with this key has its service.name REPLACED with this value. This is what stops data written with a scraped key from masquerading as another service: forged spans land in one service you can see and mute, instead of poisoning your backend services' dashboards and alerts. Required on a Mobile key, where it is the service.name of the app the key ships in.",
+      "When set, every OpenTelemetry resource ingested with this key has its service.name REPLACED with this value. This is what stops data written with a scraped key from masquerading as another service: forged spans land in one service you can see and mute, instead of poisoning your backend services' dashboards and alerts. Required on a Mobile key, where it is the service.name of the app the key ships in, and the only RUM application it may send session replays for.",
     example: "checkout-web",
   })
   @Column({

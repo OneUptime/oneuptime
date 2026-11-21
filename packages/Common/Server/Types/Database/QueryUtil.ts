@@ -19,6 +19,7 @@ import IsNull from "../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../Types/BaseDatabase/NotEqualOrNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import Search from "../../../Types/BaseDatabase/Search";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
@@ -577,6 +578,15 @@ export default class QueryUtil {
       ) {
         query[key] = QueryHelper.notEquals(
           QueryUtil.getComparedValue(key, query[key] as NotEqual<any>),
+        ) as FindOperator<any> as any;
+      } else if (
+        query[key] &&
+        query[key] instanceof NotEqualOrNull &&
+        tableColumnMetadata
+      ) {
+        // Anything but the value, an empty column included (#10399).
+        query[key] = QueryHelper.notEqualsOrNull(
+          QueryUtil.getComparedValue(key, query[key] as NotEqualOrNull<any>),
         ) as FindOperator<any> as any;
       } else if (
         query[key] &&
