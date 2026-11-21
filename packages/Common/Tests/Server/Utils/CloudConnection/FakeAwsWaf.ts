@@ -418,6 +418,13 @@ export function createFakeAwsWaf(options: FakeAwsWafOptions = {}): FakeAwsWaf {
           (body["Addresses"] as Array<string>) || []
         ).map(String);
 
+        if (addresses.length > (options.maxAddresses ?? 10000)) {
+          return wafError(
+            "WAFLimitsExceededException",
+            "AWS WAF couldn’t perform the operation because you exceeded your resource limit.",
+          );
+        }
+
         if (
           addresses.some((address: string): boolean => {
             return !isCidrOf(address, version);

@@ -409,13 +409,29 @@ export default class AwsWafBlockDestination
       removed.push(...written.removed.map(toResult));
     }
 
-    // OneUptime's rule, when it adds it, once something was added to the sets.
-    if (
-      this.data.addsRule &&
-      applied.some((result: SecurityBlockWriteResult): boolean => {
+    const isAnyAdded: boolean = applied.some(
+      (result: SecurityBlockWriteResult): boolean => {
         return result.isDone;
-      })
-    ) {
+      },
+    );
+
+    /*
+     * A web ACL kept in code: all four sets made, so the rule its team adds
+     * - which references each - can be written, with every ARN, before a
+     * block of each kind exists.
+     */
+    if (!this.data.addsRule && isAnyAdded) {
+      try {
+        await group.ensureSets();
+      } catch (error) {
+        logger.warn(
+          `AwsWafBlockDestination: could not make every IP set of ${this.name}. ${errorText(error)}`,
+        );
+      }
+    }
+
+    // OneUptime's rule, when it adds it, once something was added to the sets.
+    if (this.data.addsRule && isAnyAdded) {
       let state: AwsWafRuleState;
 
       try {
