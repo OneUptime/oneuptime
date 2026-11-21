@@ -512,18 +512,75 @@ describe("a user a scrub rule hid (#10435)", () => {
     expect(statement!.query).toContain(") AND NOT ((principalUser != ''");
   });
 
+  test("Run on Past Events counts an event stored before the marker, whose user is still Redact's or a mask's, as one a rule hid", () => {
+    const statement: Statement | null = buildUncountedRetrohuntStatement({
+      projectId: PROJECT_ID,
+      tableName: "oneuptime.SecurityEvent",
+      ruleWhere: SQL`statusName = ${{
+        type: TableColumnType.Text,
+        value: "Failure",
+      }}`,
+      counting: BY_USER,
+      skipped: null,
+      serviceFilter: {},
+      startTime: START_TIME,
+      endTime: END_TIME,
+    });
+    const params: Record<string, unknown> = statement!.query_params;
+    const name: (value: string) => string = (value: string): string => {
+      return Object.keys(params).find((key: string): boolean => {
+        return params[key] === value;
+      })!;
+    };
+
+    // The marker, or the user's own column holding what Redact or Mask left.
+    expect(statement!.query).toContain(
+      `WITH false AS __skipped, (attributes[{${name("oneuptime.principal_user_hidden")}:String}] = {${name("scrub-rule")}:String} OR (position(principalUser, {${name("[REDACTED]")}:String}) > 0 OR position(principalUser, {${name("***")}:String}) > 0)) AS __hidden, attributes[{${name("oneuptime.principal_user_scrubbed_in")}:String}] = {${name("trace")}:String} AS __inTraces SELECT`,
+    );
+
+    // A rule that counts per address reads only its marker: an address column holds no placeholder.
+    const byAddress: Statement | null = buildUncountedRetrohuntStatement({
+      projectId: PROJECT_ID,
+      tableName: "oneuptime.SecurityEvent",
+      ruleWhere: SQL`statusName = ${{
+        type: TableColumnType.Text,
+        value: "Failure",
+      }}`,
+      counting: { ...BY_USER, groupByField: "principalIp" },
+      skipped: null,
+      serviceFilter: {},
+      startTime: START_TIME,
+      endTime: END_TIME,
+    });
+
+    expect(byAddress!.query).not.toContain("position(");
+    expect(Object.values(byAddress!.query_params)).not.toContain("[REDACTED]");
+    expect(byAddress!.query).toMatch(
+      /WITH false AS __skipped, \(attributes\[\{p\d+:String\}\] = \{p\d+:String\}\) AS __hidden, /,
+    );
+  });
+
   test("each field reads its own marker: a target user its own, an address the address's", () => {
     expect(getHiddenValueMarker("targetUser")).toEqual({
       hiddenKey: "oneuptime.target_user_hidden",
       hiddenValue: "scrub-rule",
       inKey: "oneuptime.target_user_scrubbed_in",
       inTracesValue: "trace",
+      storedIn: "targetUser",
+    });
+    expect(getHiddenValueMarker(" principalUser ")).toEqual({
+      hiddenKey: "oneuptime.principal_user_hidden",
+      hiddenValue: "scrub-rule",
+      inKey: "oneuptime.principal_user_scrubbed_in",
+      inTracesValue: "trace",
+      storedIn: "principalUser",
     });
     expect(getHiddenValueMarker("principalIp")).toEqual({
       hiddenKey: "oneuptime.request.client_address_hidden",
       hiddenValue: "scrub-rule",
       inKey: "oneuptime.request.client_address_scrubbed_in",
       inTracesValue: "span-attributes",
+      storedIn: null,
     });
   });
 

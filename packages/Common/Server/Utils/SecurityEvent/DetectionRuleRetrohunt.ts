@@ -51,6 +51,7 @@ import {
 } from "../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import { buildHoldsSharedScrubPlaceholderSql } from "../Telemetry/ScrubPlaceholderSql";
 import TelemetryReadScopeUtil, {
   TelemetryServiceFilter,
 } from "../Telemetry/TelemetryReadScope";
@@ -360,12 +361,19 @@ export function buildSingleRuleRetrohuntStatement(data: {
  * with the value that means a span. A rule grouped by a user reads the
  * user's marker (ScrubbedUser, #10435); any other the client address's
  * (ScrubbedAddress, #10397).
+ *
+ * `storedIn` is the user's own column, for an event stored before the scans
+ * set the marker: it still holds Redact's "[REDACTED]" or a mask, which say
+ * a rule hid the user just as well. Such an event doesn't say where the
+ * user was hidden, so it is counted with the logs, where most such users
+ * are found.
  */
 export interface HiddenValueMarker {
   hiddenKey: string;
   hiddenValue: string;
   inKey: string;
   inTracesValue: string;
+  storedIn: string | null;
 }
 
 export function getHiddenValueMarker(groupByField: string): HiddenValueMarker {
@@ -384,6 +392,7 @@ export function getHiddenValueMarker(groupByField: string): HiddenValueMarker {
       hiddenValue: USER_HIDDEN_BY_SCRUB_RULE,
       inKey: keys.in,
       inTracesValue: "trace",
+      storedIn: field,
     };
   }
 
@@ -392,6 +401,7 @@ export function getHiddenValueMarker(groupByField: string): HiddenValueMarker {
     hiddenValue: CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
     inKey: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbedIn,
     inTracesValue: ScrubbedAddressPlace.SpanAttributes,
+    storedIn: null,
   };
 }
 
@@ -430,13 +440,22 @@ export function buildUncountedRetrohuntStatement(data: {
   }
 
   statement.append(
-    SQL` AS __skipped, attributes[${{
+    SQL` AS __skipped, (attributes[${{
       type: TableColumnType.Text,
       value: marker.hiddenKey,
     }}] = ${{
       type: TableColumnType.Text,
       value: marker.hiddenValue,
-    }} AS __hidden, attributes[${{
+    }}`,
+  );
+
+  if (marker.storedIn) {
+    statement.append(" OR ");
+    statement.append(buildHoldsSharedScrubPlaceholderSql(marker.storedIn));
+  }
+
+  statement.append(
+    SQL`) AS __hidden, attributes[${{
       type: TableColumnType.Text,
       value: marker.inKey,
     }}] = ${{
