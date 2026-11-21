@@ -50,6 +50,9 @@ export enum AwsWafScope {
   CloudFront = "CLOUDFRONT",
 }
 
+// A web ACL's type, as the inventory and CloudResourceCatalog name it.
+export const AWS_WAF_WEB_ACL_RESOURCE_TYPE: string = "AWS::WAFv2::WebACL";
+
 // CloudFront's web ACLs and IP sets live in US East (N. Virginia), scope CLOUDFRONT.
 export const AWS_WAF_CLOUDFRONT_REGION: string = "us-east-1";
 
@@ -231,6 +234,42 @@ export function parseAwsWafArn(value: unknown): AwsWafArn | null {
     name,
     id,
   };
+}
+
+/*
+ * A web ACL's ARN, from what the inventory keeps of it (its Name, Id and
+ * Scope properties, its Region and account): null when it lacks any of
+ * them - a web ACL found by its metrics alone, before a role that may list
+ * web ACLs lists it - or names a scope AWS WAF has not.
+ */
+export function buildAwsWafWebAclArn(data: {
+  region: string | undefined | null;
+  accountId: string | undefined | null;
+  scope: unknown;
+  name: unknown;
+  id: unknown;
+}): string | null {
+  const region: string = (data.region || "").trim().toLowerCase();
+  const scope: unknown = data.scope;
+
+  if (scope !== AwsWafScope.Regional && scope !== AwsWafScope.CloudFront) {
+    return null;
+  }
+
+  // CloudFront's web ACLs are the commercial partition's, in us-east-1.
+  if (scope === AwsWafScope.CloudFront && region !== AWS_WAF_CLOUDFRONT_REGION) {
+    return null;
+  }
+
+  const partition: string = region.startsWith("cn-")
+    ? "aws-cn"
+    : region.startsWith("us-gov-")
+      ? "aws-us-gov"
+      : "aws";
+  const arn: string = `arn:${partition}:wafv2:${region}:${(data.accountId || "").trim()}:${scope === AwsWafScope.CloudFront ? "global" : "regional"}/webacl/${typeof data.name === "string" ? data.name.trim() : ""}/${typeof data.id === "string" ? data.id.trim() : ""}`;
+  const parsed: AwsWafArn | null = parseAwsWafArn(arn);
+
+  return parsed && parsed.resourceType === "webacl" ? parsed.arn : null;
 }
 
 // ---------- Addresses ----------
