@@ -150,13 +150,8 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeCreate(createBy);
     const data: Model = createBy.data;
 
-    if (
-      createBy.props.isRoot &&
-      this.oneStepRuns.has(data) &&
-      data.projectId &&
-      data.securityCaseId &&
-      !data.securityPlaybookId
-    ) {
+    // A one-step run from a case (#10342), as startOneStepRun alone makes one.
+    if (createBy.props.isRoot && this.oneStepRuns.has(data)) {
       return await this.readyOneStepRun(createBy);
     }
 
@@ -271,6 +266,12 @@ export class Service extends ProjectReferencesService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     const data: Model = createBy.data;
+
+    if (!data.projectId || !data.securityCaseId) {
+      throw new BadDataException("A one-step run names its case.");
+    }
+
+    // None of a playbook: readOneStepRun reads a run with a playbook as none.
     const read: OneStepRunRead | null = readOneStepRun(data);
 
     if (!read || read.values.length === 0) {
@@ -281,7 +282,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     const securityCase: SecurityCase | null =
       await SecurityCaseService.findOneBy({
-        query: { _id: data.securityCaseId!, projectId: data.projectId! },
+        query: { _id: data.securityCaseId, projectId: data.projectId },
         select: { _id: true },
         props: { isRoot: true },
       });
@@ -292,8 +293,8 @@ export class Service extends ProjectReferencesService<Model> {
 
     const unfinished: Array<Model> = await this.findBy({
       query: {
-        projectId: data.projectId!,
-        securityCaseId: data.securityCaseId!,
+        projectId: data.projectId,
+        securityCaseId: data.securityCaseId,
         securityPlaybookId: QueryHelper.isNull(),
         status: new Includes(UNFINISHED_SECURITY_PLAYBOOK_RUN_STATUSES),
       },
