@@ -485,9 +485,10 @@ export default class ReadAudienceReader {
    * the team is given Security Viewer - then reads what earlier runs wrote,
    * as anybody reads what was written before their access changed.
    *
-   * Three reads of the project's own rows at most - the rows that grant a
-   * reading permission, and who is on the teams that narrow - and none when
-   * no row names a team or a key.
+   * Four reads of the project's own rows at most - the teams' and the keys'
+   * rows that grant a reading permission, who is on the teams that narrow,
+   * and which of them is on a team that reads - and none when no row names
+   * a team or a key.
    */
   @CaptureSpan()
   public static async readRowsReachingReaders(data: {
