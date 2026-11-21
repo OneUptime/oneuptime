@@ -103,7 +103,9 @@ import OpenStackDependencySuppression from "../OpenStack/OpenStackDependencySupp
 import MonitorStatusTimelineUtil from "./MonitorStatusTimeline";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
-import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
+import MonitorEvaluationSummary, {
+  MonitorEvaluationEvent,
+} from "../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorStatusService from "../../Services/MonitorStatusService";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
 import Probe, {
@@ -171,6 +173,25 @@ export interface MonitorResourceOptions {
         value: string;
       }
     | undefined;
+  /*
+   * Requests to this Incoming Request monitor skipped before this one, which
+   * its log has not said yet: this evaluation's log says so first
+   * (describeSkippedIncomingRequests). Only from a monitor that evaluates
+   * every request it receives (#10582).
+   */
+  skippedIncomingRequests?: SkippedIncomingRequestsNote | undefined;
+}
+
+/*
+ * Requests an Incoming Request monitor that evaluates every request skipped
+ * (IncomingRequestPendingStore, in the Telemetry worker).
+ */
+export interface SkippedIncomingRequestsNote {
+  // More were waiting than a monitor keeps, so the oldest were skipped.
+  overLimit: number;
+  // Evaluating each failed `attempts` times, so it was skipped.
+  afterFailures: number;
+  attempts: number;
 }
 
 export default class MonitorResourceUtil {
@@ -276,6 +297,51 @@ export default class MonitorResourceUtil {
     );
   }
 
+  /*
+   * What an Incoming Request monitor's log says of requests skipped before
+   * the one it evaluates: never nothing. An incident or alert one of them
+   * would have opened or resolved was not, so the reader knows to look.
+   */
+  public static describeSkippedIncomingRequests(
+    skipped: SkippedIncomingRequestsNote,
+  ): Array<MonitorEvaluationEvent> {
+    const events: Array<MonitorEvaluationEvent> = [];
+    const at: Date = OneUptimeDate.getCurrentDate();
+
+    if (skipped.overLimit > 0) {
+      events.push({
+        type: "requests-skipped",
+        ...EvaluationEventText.from({
+          title: translatableSentence("Requests not evaluated: {{skipped}}", {
+            skipped: skipped.overLimit,
+          }),
+          message: translatableSentence(
+            "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
+          ),
+        }),
+        at: at,
+      });
+    }
+
+    if (skipped.afterFailures > 0) {
+      events.push({
+        type: "requests-skipped",
+        ...EvaluationEventText.from({
+          title: translatableSentence("Requests not evaluated: {{skipped}}", {
+            skipped: skipped.afterFailures,
+          }),
+          message: translatableSentence(
+            "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
+            { attempts: skipped.attempts },
+          ),
+        }),
+        at: at,
+      });
+    }
+
+    return events;
+  }
+
   @CaptureSpan()
   public static async monitorResource(
     dataToProcess: DataToProcess,
@@ -328,6 +394,14 @@ export default class MonitorResourceUtil {
 
     response.evaluationSummary = evaluationSummary;
     dataToProcess.evaluationSummary = evaluationSummary;
+
+    if (options?.skippedIncomingRequests) {
+      evaluationSummary.events.push(
+        ...MonitorResourceUtil.describeSkippedIncomingRequests(
+          options.skippedIncomingRequests,
+        ),
+      );
+    }
 
     const monitorStatusNameCache: Dictionary<string | null> = {};
 

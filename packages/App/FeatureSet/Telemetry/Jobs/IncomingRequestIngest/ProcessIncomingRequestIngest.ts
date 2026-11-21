@@ -1,4 +1,7 @@
-import { IncomingRequestIngestJobData } from "../../Services/Queue/TelemetryQueueService";
+import TelemetryQueueService, {
+  IncomingRequestIngestJobData,
+  IncomingRequestPendingJobData,
+} from "../../Services/Queue/TelemetryQueueService";
 import logger from "Common/Server/Utils/Logger";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import OneUptimeDate from "Common/Types/Date";
@@ -13,7 +16,10 @@ import WebhookVerificationProvider, {
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorService from "Common/Server/Services/MonitorService";
-import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
+import MonitorResourceUtil, {
+  SkippedIncomingRequestsNote,
+} from "Common/Server/Utils/Monitor/MonitorResource";
+import IncomingRequestIncidentGrouping from "Common/Server/Utils/Monitor/IncomingRequestIncidentGrouping";
 import IncomingRequestReceivedAtStore from "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore";
 import MonitorSecretKeyCache, {
   MonitorOfSecretKey,
@@ -30,28 +36,397 @@ import MonitorPauseState, {
 import IncomingRequestLatestPayloadStore, {
   LatestIncomingRequestPayload,
 } from "../../Utils/IncomingRequestLatestPayloadStore";
+import IncomingRequestPendingStore, {
+  PendingIncomingRequest,
+  SkippedIncomingRequests,
+} from "../../Utils/IncomingRequestPendingStore";
 import { isNonActionableIngestError } from "Common/Server/Utils/Monitor/NonActionableIngestError";
 
 /*
- * Entry point for a queued Incoming Request job.
+ * The most requests one job evaluates in turn. A monitor with more waiting
+ * gets its job queued once more for the rest, behind every job already
+ * waiting, so one sender takes its turn with everyone else's: a sender
+ * flooding one monitor holds one worker slot at a time, for at most this
+ * many evaluations.
+ */
+export const MAX_REQUESTS_PER_JOB: number = 100;
+
+/*
+ * How many times a request is tried before it is skipped: as often as a job
+ * of its own is (the Telemetry queue's 3 attempts). A request that can never
+ * be evaluated then holds up its monitor's later requests for three tries,
+ * not for good, and the monitor's log says it was skipped.
+ */
+export const MAX_ATTEMPTS_PER_REQUEST: number = 3;
+
+/*
+ * A job whose last attempt failed queues the next one for the monitor's
+ * waiting requests this much later, so they are never left without a job
+ * while the failure lasts.
+ */
+export const RETRY_WAITING_REQUESTS_AFTER_MS: number = 60 * 1000;
+
+const NOTHING_SKIPPED: SkippedIncomingRequests = {
+  overLimit: 0,
+  afterFailures: 0,
+};
+
+/*
+ * A monitor's waiting requests (IncomingRequestPendingStore), oldest first,
+ * the job that works through them being the monitor's only one (BullMQ
+ * deduplication), so they are evaluated one at a time and in the order they
+ * arrived.
  *
- * A coalesced job (one carrying coalescedPayloadId) does not evaluate the
- * request it was created with. While it waited, coalescing may have
- * discarded newer requests for the same monitor in its favour, so it
- * evaluates the monitor's newest request from
+ *   - A monitor whose criteria group by a payload field evaluates every
+ *     request, each against its own values: a burst of triggers and resets
+ *     across many values opens and resolves each one's alert. Up to
+ *     MAX_REQUESTS_PER_JOB per job; the rest after the jobs already waiting.
+ *     What was skipped before a request - too many waiting, or failing every
+ *     try - its evaluation's log says first.
+ *   - Any other monitor evaluates only its newest request, and the older
+ *     ones are superseded: a heartbeat or a status says only what is true
+ *     now. Exactly as before.
+ *
+ * Which, is read from the monitor only when it matters: when more than one
+ * request is waiting, or a skip is left to report. A single request is
+ * evaluated either way.
+ *
+ * Each evaluation takes the monitor's lock itself (MonitorResource), so a
+ * background check of the monitor can go between two of them, and a request
+ * whose evaluation could not get the lock, or lost it, is tried again.
+ */
+export async function processPendingIncomingRequestsFromQueue(
+  jobData: IncomingRequestPendingJobData,
+  options: {
+    // This job's last attempt: on a failure, it queues the next job itself.
+    isFinalAttempt: boolean;
+  },
+): Promise<void> {
+  const secretKeyHash: string | undefined = jobData?.secretKeyHash;
+
+  if (!secretKeyHash) {
+    throw new BadDataException(
+      "The incoming request job does not say which monitor it is for.",
+    );
+  }
+
+  let evaluatesEveryRequest: boolean | undefined = undefined;
+  let tried: number = 0;
+
+  while (tried < MAX_REQUESTS_PER_JOB) {
+    const oldest: PendingIncomingRequest | null =
+      await IncomingRequestPendingStore.peekOldest(secretKeyHash);
+
+    if (!oldest) {
+      return;
+    }
+
+    if (
+      evaluatesEveryRequest === undefined &&
+      (oldest.waiting > 1 || hasSkipped(oldest.skipped))
+    ) {
+      evaluatesEveryRequest = await isEveryRequestEvaluated(
+        oldest.payload.secretKey,
+      );
+    }
+
+    if (evaluatesEveryRequest === false) {
+      await evaluateNewestRequest({
+        secretKeyHash: secretKeyHash,
+        isFinalAttempt: options.isFinalAttempt,
+      });
+      return;
+    }
+
+    await evaluateRequestInTurn({
+      secretKeyHash: secretKeyHash,
+      request: oldest,
+      // Only a monitor known to evaluate every request says what it skipped.
+      sayWhatWasSkipped: evaluatesEveryRequest === true,
+      isFinalAttempt: options.isFinalAttempt,
+    });
+
+    tried++;
+  }
+
+  if (await IncomingRequestPendingStore.hasPending(secretKeyHash)) {
+    /*
+     * This job is active, so BullMQ queues this one after it, behind every
+     * job already waiting.
+     */
+    await TelemetryQueueService.addIncomingRequestPendingJob({
+      secretKeyHash: secretKeyHash,
+    });
+  }
+}
+
+/*
+ * Whether the monitor whose key this is evaluates every request it
+ * receives: when a criteria of it groups by a payload field. A key that
+ * finds no monitor, or a monitor that is not being monitored, evaluates only
+ * its newest: every request waiting for it is refused alike, so refusing the
+ * newest settles them all.
+ */
+async function isEveryRequestEvaluated(secretKey: string): Promise<boolean> {
+  const select: {
+    _id: true;
+    monitorType: true;
+    monitorSteps: true;
+  } & typeof MONITOR_PAUSE_FLAGS_SELECT = {
+    _id: true,
+    monitorType: true,
+    monitorSteps: true,
+    ...MONITOR_PAUSE_FLAGS_SELECT,
+  };
+
+  const monitorOfKey: MonitorOfSecretKey | null =
+    await MonitorSecretKeyCache.getMonitor({
+      kind: MonitorSecretKeyKind.IncomingRequest,
+      secretKey: secretKey,
+    });
+
+  const monitor: Monitor | null = monitorOfKey
+    ? await MonitorService.findOneById({
+        id: monitorOfKey.monitorId,
+        select: select,
+        props: {
+          isRoot: true,
+        },
+      })
+    : await MonitorService.findOneByPresentedKey({
+        column: "incomingRequestSecretKey",
+        presentedKey: secretKey,
+        query: {
+          monitorType: MonitorType.IncomingRequest,
+        },
+        select: select,
+        props: {
+          isRoot: true,
+        },
+      });
+
+  if (!monitor || MonitorPauseState.isPaused(monitor)) {
+    return false;
+  }
+
+  return (
+    monitor.monitorType === MonitorType.IncomingRequest &&
+    IncomingRequestIncidentGrouping.isGroupingConfiguredOnMonitor(
+      monitor.monitorSteps,
+    )
+  );
+}
+
+function hasSkipped(skipped: SkippedIncomingRequests): boolean {
+  return skipped.overLimit > 0 || skipped.afterFailures > 0;
+}
+
+/*
+ * One request of a monitor that evaluates every request: evaluated, then
+ * removed. A refusal of the monitor (deleted, archived, disabled, paused)
+ * refuses every request waiting for it, so they are all removed. A failure
+ * leaves the request at the head of the list, counted, for the job's retry
+ * - until it has failed MAX_ATTEMPTS_PER_REQUEST times, when it is skipped
+ * and the next request goes on.
+ */
+async function evaluateRequestInTurn(data: {
+  secretKeyHash: string;
+  request: PendingIncomingRequest;
+  sayWhatWasSkipped: boolean;
+  isFinalAttempt: boolean;
+}): Promise<void> {
+  const { secretKeyHash, request } = data;
+
+  const skipped: SkippedIncomingRequests = data.sayWhatWasSkipped
+    ? request.skipped
+    : NOTHING_SKIPPED;
+
+  if (hasSkipped(skipped)) {
+    logger.warn(
+      `Incoming requests skipped before request ${request.requestId}: ${skipped.overLimit} because more were waiting than a monitor keeps, ${skipped.afterFailures} after failing ${MAX_ATTEMPTS_PER_REQUEST} times. The monitor's log says so.`,
+    );
+  }
+
+  let isEvaluated: boolean = false;
+
+  try {
+    isEvaluated = await processIncomingRequestFromQueue(request.payload, {
+      skippedIncomingRequests: hasSkipped(skipped)
+        ? {
+            overLimit: skipped.overLimit,
+            afterFailures: skipped.afterFailures,
+            attempts: MAX_ATTEMPTS_PER_REQUEST,
+          }
+        : undefined,
+    });
+  } catch (err) {
+    await settleFailedRequest({
+      secretKeyHash: secretKeyHash,
+      request: request,
+      error: err,
+      isFinalAttempt: data.isFinalAttempt,
+      skip: async (): Promise<void> => {
+        await IncomingRequestPendingStore.skipAfterFailures(
+          secretKeyHash,
+          request.requestId,
+        );
+      },
+    });
+    return;
+  }
+
+  await IncomingRequestPendingStore.remove(secretKeyHash, request.requestId);
+
+  /*
+   * Said in this evaluation's log - unless the request was refused before
+   * its evaluation (its project's secret requirement, a paused monitor), and
+   * the next one that is evaluated says it.
+   */
+  if (isEvaluated) {
+    await IncomingRequestPendingStore.acknowledgeSkipped(
+      secretKeyHash,
+      skipped,
+    );
+  }
+}
+
+/*
+ * The newest request of a monitor that evaluates only its newest: evaluated,
+ * then removed with every older one, which it supersedes. Requests that
+ * arrived meanwhile are the next job's: BullMQ queued it behind this one.
+ */
+async function evaluateNewestRequest(data: {
+  secretKeyHash: string;
+  isFinalAttempt: boolean;
+}): Promise<void> {
+  const { secretKeyHash } = data;
+
+  const newest: PendingIncomingRequest | null =
+    await IncomingRequestPendingStore.peekNewest(secretKeyHash);
+
+  if (!newest) {
+    return;
+  }
+
+  if (newest.waiting > 1) {
+    logger.debug(
+      `Incoming request ${newest.requestId} is its monitor's newest of ${newest.waiting}: the older ones are superseded and not evaluated.`,
+    );
+  }
+
+  const removeThroughNewest: () => Promise<void> = async (): Promise<void> => {
+    await IncomingRequestPendingStore.removeThrough(
+      secretKeyHash,
+      newest.requestId,
+    );
+
+    /*
+     * Requests a monitor that evaluates only its newest skipped are ones
+     * this newest one supersedes anyway: nothing for its log to say.
+     */
+    await IncomingRequestPendingStore.acknowledgeSkipped(
+      secretKeyHash,
+      newest.skipped,
+    );
+  };
+
+  try {
+    await processIncomingRequestFromQueue(newest.payload);
+  } catch (err) {
+    await settleFailedRequest({
+      secretKeyHash: secretKeyHash,
+      request: newest,
+      error: err,
+      isFinalAttempt: data.isFinalAttempt,
+      skip: removeThroughNewest,
+    });
+    return;
+  }
+
+  await removeThroughNewest();
+}
+
+/*
+ * A request whose evaluation threw.
+ *
+ *   - The monitor refused it (isNonActionableIngestError): it refuses every
+ *     request waiting for it alike, so they are all removed, and the job
+ *     completes (ProcessTelemetry) - as a job of its own would.
+ *   - It has now failed MAX_ATTEMPTS_PER_REQUEST times: skipped (`skip`), and
+ *     the job goes on.
+ *   - Otherwise it stays waiting, counted, and the job fails for BullMQ to
+ *     retry it after a backoff - requests that arrive meanwhile wait behind
+ *     it. On the job's last attempt the next job is queued first, a while
+ *     later, so the waiting requests are not left without one.
+ */
+async function settleFailedRequest(data: {
+  secretKeyHash: string;
+  request: PendingIncomingRequest;
+  error: unknown;
+  isFinalAttempt: boolean;
+  skip: () => Promise<void>;
+}): Promise<void> {
+  const { secretKeyHash, request, error } = data;
+
+  if (isNonActionableIngestError(error)) {
+    const newest: PendingIncomingRequest | null =
+      await IncomingRequestPendingStore.peekNewest(secretKeyHash);
+
+    await IncomingRequestPendingStore.removeThrough(
+      secretKeyHash,
+      newest ? newest.requestId : request.requestId,
+    );
+
+    throw error;
+  }
+
+  const failures: number = await IncomingRequestPendingStore.countFailure(
+    secretKeyHash,
+    request.requestId,
+  );
+
+  if (failures >= MAX_ATTEMPTS_PER_REQUEST) {
+    logger.error(
+      `Incoming request ${request.requestId} failed to evaluate ${failures} times, so it is skipped.`,
+    );
+    logger.error(error);
+    await data.skip();
+    return;
+  }
+
+  if (data.isFinalAttempt) {
+    await TelemetryQueueService.addIncomingRequestPendingJob({
+      secretKeyHash: secretKeyHash,
+      delayInMs: RETRY_WAITING_REQUESTS_AFTER_MS,
+    });
+  }
+
+  throw error;
+}
+
+/*
+ * Entry point for a queued Incoming Request job that carries its request:
+ * one queued with coalescing off, or by an earlier release.
+ *
+ * A job an earlier release coalesced (one carrying coalescedPayloadId) does
+ * not evaluate the request it was created with. While it waited, coalescing
+ * may have discarded newer requests for the same monitor in its favour, so
+ * it evaluates the monitor's newest request from
  * IncomingRequestLatestPayloadStore - which may be its own - and then clears
  * it, unless an even newer one was stored meanwhile; that one is evaluated by
  * the job queued behind this one. If nothing is stored, an earlier job already
  * evaluated a request at least as new as this one, and there is nothing to do.
+ * This release queues no such job (it keeps every request in
+ * IncomingRequestPendingStore): these are the ones queued during an upgrade.
  *
- * A job without the marker - queued with coalescing off, or before the store
- * existed - evaluates its own request, as before.
+ * A job without the marker evaluates its own request, as before.
  */
 export async function processIncomingRequestJobFromQueue(
   jobData: IncomingRequestIngestJobData,
 ): Promise<void> {
   if (!jobData.coalescedPayloadId) {
-    return processIncomingRequestFromQueue(jobData);
+    await processIncomingRequestFromQueue(jobData);
+    return;
   }
 
   const latest: LatestIncomingRequestPayload | null =
@@ -96,9 +471,21 @@ export async function processIncomingRequestJobFromQueue(
   });
 }
 
+/*
+ * Evaluates one request against its monitor's criteria. Returns whether it
+ * reached the evaluation: false for one refused before it - its project's
+ * secret requirement, a paused monitor - which is done with all the same.
+ */
 export async function processIncomingRequestFromQueue(
   jobData: IncomingRequestIngestJobData,
-): Promise<void> {
+  options?: {
+    /*
+     * Requests to the monitor skipped before this one, for its evaluation's
+     * log to say first (processPendingIncomingRequestsFromQueue).
+     */
+    skippedIncomingRequests?: SkippedIncomingRequestsNote | undefined;
+  },
+): Promise<boolean> {
   const requestHeaders: Dictionary<string> = jobData.requestHeaders;
   const requestBody: string | JSONObject = jobData.requestBody;
   const monitorSecretKeyAsString: string = jobData.secretKey;
@@ -178,7 +565,7 @@ export async function processIncomingRequestFromQueue(
       logger.debug(
         `Incoming request received for archived or disabled monitor ${monitor._id.toString()}. Skipping.`,
       );
-      return;
+      return false;
     }
 
     monitorOfKey = {
@@ -216,7 +603,7 @@ export async function processIncomingRequestFromQueue(
     logger.debug(
       `Incoming request for monitor ${monitorOfKey.monitorId.toString()} refused: its project requires an incoming request secret (${secretDecision.verdict}).`,
     );
-    return;
+    return false;
   }
 
   /*
@@ -303,6 +690,7 @@ export async function processIncomingRequestFromQueue(
         column: "incomingRequestSecretKey",
         value: monitorSecretKeyAsString,
       },
+      skippedIncomingRequests: options?.skippedIncomingRequests,
     });
   } catch (err) {
     /*
@@ -322,6 +710,8 @@ export async function processIncomingRequestFromQueue(
 
     throw err;
   }
+
+  return true;
 }
 
 /*

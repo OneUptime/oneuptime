@@ -24,7 +24,10 @@ import {
   processSnmpTrapBatchFromQueue,
 } from "../ProbeIngest/ProcessCoalescedProbeIngest";
 import KubernetesCostIngestService from "../../Services/KubernetesCostIngestService";
-import { processIncomingRequestJobFromQueue } from "../IncomingRequestIngest/ProcessIncomingRequestIngest";
+import {
+  processIncomingRequestJobFromQueue,
+  processPendingIncomingRequestsFromQueue,
+} from "../IncomingRequestIngest/ProcessIncomingRequestIngest";
 import { processTelemetryMonitorEvaluationFromQueue } from "../../../Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import logger from "Common/Server/Utils/Logger";
@@ -480,6 +483,17 @@ async function withSessionReplaySlot(fn: () => Promise<void>): Promise<void> {
 }
 
 /*
+ * Whether this run of the job is its last: BullMQ fails it for good if this
+ * one throws (attemptsMade counts the attempts that failed before it).
+ */
+export function isFinalAttemptOf(job: QueueJob): boolean {
+  const attempts: number = Number(job.opts?.attempts) || 1;
+  const failedBefore: number = Number(job.attemptsMade) || 0;
+
+  return failedBefore + 1 >= attempts;
+}
+
+/*
  * What in a telemetry job this release cannot process, or null when it can
  * process all of it: a type of telemetry, or a kind of probe ingest, that a
  * newer release added. Ingest runs on the app servers and this queue on the
@@ -750,6 +764,17 @@ if (DisableQueueWorkers) {
               logger.debug(
                 `Successfully processed incoming request ingest job`,
               );
+              break;
+
+            case TelemetryType.IncomingRequestPending:
+              // A monitor's waiting requests (IncomingRequestPendingStore).
+              if (jobData.incomingRequestPending) {
+                await processPendingIncomingRequestsFromQueue(
+                  jobData.incomingRequestPending,
+                  { isFinalAttempt: isFinalAttemptOf(job) },
+                );
+              }
+              logger.debug(`Successfully processed incoming request job`);
               break;
 
             case TelemetryType.TelemetryMonitorEvaluation:
