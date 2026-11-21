@@ -2968,6 +2968,15 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(troubleshooting).toContain(
       "New exceptions are grouped by the functions of your own code instead, so this mostly concerns exceptions recorded before; merge two that are the same bug from **Similar exceptions**.",
     );
+
+    /*
+     * A scrub rule splits no exception, and one a rule split before #10434
+     * keeps its occurrences: the logs ingest tries what it grouped by then.
+     */
+    expect(troubleshooting).toContain(
+      "A scrub rule doesn't split an exception: it is grouped by what it said before the rules ran. An exception found in logs that a rule split into two in an earlier version of OneUptime stays two; merge them the same way.",
+    );
+    expect(logsIngest).toContain("findsGroupsOfStoredText: true,");
   });
 
   /*
