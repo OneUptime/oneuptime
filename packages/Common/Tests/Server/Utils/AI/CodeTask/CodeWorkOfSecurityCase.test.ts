@@ -125,7 +125,7 @@ describe("Code says a fix asked from a security case started from that case", ()
     expect(
       CodeTaskOrigin.describe({
         run: fixOfCase((run: AIRun) => {
-          run.triggeredBySecurityCaseId = undefined;
+          delete run.triggeredBySecurityCaseId;
         }),
         subjects: subjectsWith(),
       }),
@@ -155,7 +155,7 @@ describe("Code says a fix asked from a security case started from that case", ()
       projectId: PROJECT_ID,
       runs: [
         fixOfCase((run: AIRun) => {
-          run.triggeredByTelemetryExceptionId = undefined;
+          delete run.triggeredByTelemetryExceptionId;
         }),
       ],
       props: READER,
@@ -252,7 +252,7 @@ describe("the pull request a case's fix opens is kept on the case", () => {
   test("a run of no case, or of another project, keeps none", async () => {
     const none: { created: Array<AIAgentTaskPullRequest> } = stubRecording(
       fixOfCase((run: AIRun) => {
-        run.triggeredBySecurityCaseId = undefined;
+        delete run.triggeredBySecurityCaseId;
       }),
     );
 

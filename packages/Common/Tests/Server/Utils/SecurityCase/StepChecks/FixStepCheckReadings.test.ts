@@ -15,6 +15,7 @@ import {
   readRouteAttacksRow,
 } from "../../../../../Server/Utils/SecurityCase/StepChecks/Evidence/RouteAttacks";
 import AnalyticsTableName from "../../../../../Types/AnalyticsDatabase/AnalyticsTableName";
+import URL from "../../../../../Types/API/URL";
 import CodeRepositoryType from "../../../../../Types/CodeRepository/CodeRepositoryType";
 import PullRequestState from "../../../../../Types/CodeRepository/PullRequestState";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -390,7 +391,9 @@ describe("what shipped to the service, as the check reads it", () => {
     const pullRequest: AIAgentTaskPullRequest = new AIAgentTaskPullRequest();
 
     pullRequest.pullRequestNumber = 123;
-    pullRequest.pullRequestUrl = "https://github.com/acme/api/pull/123";
+    pullRequest.pullRequestUrl = URL.fromString(
+      "https://github.com/acme/api/pull/123",
+    );
     pullRequest.pullRequestState = PullRequestState.Merged;
     pullRequest.mergedAt = at(20);
     pullRequest.deployedAt = at(30);
@@ -408,9 +411,12 @@ describe("what shipped to the service, as the check reads it", () => {
       deployedVersion: "v2.4.1",
     });
 
-    pullRequest.pullRequestUrl = "javascript:alert(1)";
+    // An address that is not https is not linked.
+    pullRequest.pullRequestUrl = URL.fromString(
+      "http://github.com/acme/api/pull/123",
+    );
     pullRequest.pullRequestState = PullRequestState.Open;
-    pullRequest.pullRequestNumber = undefined;
+    delete pullRequest.pullRequestNumber;
 
     expect(readFixPullRequest(pullRequest)).toMatchObject({
       number: null,
