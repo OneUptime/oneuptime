@@ -6,6 +6,7 @@ import {
   AI_OUTCOMES_SCAN_LIMIT,
   AI_OUTCOMES_UNKNOWN_MODEL,
   AiOutcomes,
+  AiOutcomesIssueVerdicts,
   AiOutcomesModelChange,
   AiOutcomesModelResult,
   AiOutcomesModels,
@@ -164,6 +165,17 @@ const WEEK_COUNT_KEYS: ReadonlyArray<keyof Omit<AiOutcomesWeek, "weekStart">> =
     "rootCausesJudged",
   ];
 
+// OneUptime AI's verdicts on Data Security issues (#10369).
+const ISSUE_VERDICT_KEYS: ReadonlyArray<keyof AiOutcomesIssueVerdicts> = [
+  "agreed",
+  "disagreed",
+  "waiting",
+  "cannotTell",
+  "real",
+  "likelyByDesign",
+  "likelyWrongFinding",
+];
+
 // A week's first day as the server writes it: YYYY-MM-DD.
 const WEEK_START_REGEX: RegExp = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -226,8 +238,18 @@ function parseWeek(value: unknown): AiOutcomesWeek | null {
 
   const counts: Omit<AiOutcomesWeek, "weekStart"> | null | undefined =
     parseCounts<Omit<AiOutcomesWeek, "weekStart">>(value, WEEK_COUNT_KEYS);
+  // A server of the release before counts no verdicts (#10369).
+  const verdictsAgreed: unknown = value["verdictsAgreed"];
+  const verdictsDecided: unknown = value["verdictsDecided"];
 
-  return counts ? { weekStart, ...counts } : null;
+  return counts
+    ? {
+        weekStart,
+        ...counts,
+        ...(isCount(verdictsAgreed) ? { verdictsAgreed } : {}),
+        ...(isCount(verdictsDecided) ? { verdictsDecided } : {}),
+      }
+    : null;
 }
 
 // One model's results, or null for one this page cannot read.
@@ -340,12 +362,18 @@ export function parseAiOutcomes(data: unknown): AiOutcomes | null {
     );
   const rootCauses: AiOutcomesRootCauses | null | undefined =
     parseCounts<AiOutcomesRootCauses>(data["rootCauses"], ROOT_CAUSE_KEYS);
+  const issueVerdicts: AiOutcomesIssueVerdicts | null | undefined =
+    parseCounts<AiOutcomesIssueVerdicts>(
+      data["issueVerdicts"],
+      ISSUE_VERDICT_KEYS,
+    );
 
   if (
     pages === undefined ||
     remediationFixes === undefined ||
     pullRequestFixes === undefined ||
-    rootCauses === undefined
+    rootCauses === undefined ||
+    issueVerdicts === undefined
   ) {
     return null;
   }
@@ -379,6 +407,8 @@ export function parseAiOutcomes(data: unknown): AiOutcomes | null {
     remediationFixes,
     pullRequestFixes,
     rootCauses,
+    // A server that counts no verdicts sends none: nothing to draw, not zeros.
+    ...(data["issueVerdicts"] === undefined ? {} : { issueVerdicts }),
     models: parseModels(data["models"]),
     weeks,
     isPartial: data["isPartial"] === true,
@@ -391,8 +421,21 @@ export function canReadAnyAiResults(outcomes: AiOutcomes): boolean {
     outcomes.pages ||
       outcomes.remediationFixes ||
       outcomes.pullRequestFixes ||
-      outcomes.rootCauses,
+      outcomes.rootCauses ||
+      outcomes.issueVerdicts,
   );
+}
+
+// The Data Security issues OneUptime AI analyzed in the window (#10369).
+export function getAnalyzedIssueCount(
+  verdicts: AiOutcomesIssueVerdicts | null | undefined,
+): number {
+  return verdicts
+    ? verdicts.real +
+        verdicts.likelyByDesign +
+        verdicts.likelyWrongFinding +
+        verdicts.cannotTell
+    : 0;
 }
 
 /*
@@ -412,7 +455,13 @@ export function hasAiResults(outcomes: AiOutcomes): boolean {
     ? outcomes.rootCauses.completed
     : 0;
 
-  return pagesHeld + fixes + investigations > 0;
+  return (
+    pagesHeld +
+      fixes +
+      investigations +
+      getAnalyzedIssueCount(outcomes.issueVerdicts) >
+    0
+  );
 }
 
 function sumOf<T>(counts: T | null, keys: ReadonlyArray<keyof T>): number {
@@ -435,6 +484,7 @@ export enum AiResultsCardKind {
   PagesAvoided = "pages-avoided",
   FixesVerified = "fixes-verified",
   RootCausesConfirmed = "root-causes-confirmed",
+  VerdictsAgreed = "verdicts-agreed",
 }
 
 // One piece of a card's bar: an outcome and how many ended so.
@@ -1175,6 +1225,167 @@ function getRootCausesCard(
   };
 }
 
+// Data Security verdicts (#10369) -------------------------------------------
+
+export const VERDICTS_AGREED_TITLE: string = translationKey("Verdicts Agreed");
+
+export const VERDICTS_AGREED_DESCRIPTION: string = translationKey(
+  "Data Security issues OneUptime AI analyzed over the last 12 weeks, and whether what people decided agreed with its verdict.",
+);
+
+export const VERDICTS_AGREED_HEADLINE: PluralTemplate = {
+  one: "{{value}} of {{count}} decided issue went the way OneUptime AI's verdict said.",
+  other:
+    "{{value}} of {{count}} decided issues went the way OneUptime AI's verdict said.",
+};
+
+export const VERDICT_OUTCOME_LABELS: Record<"agreed" | "disagreed", string> = {
+  agreed: translationKey("Went as its verdict said"),
+  disagreed: translationKey("Went the other way"),
+};
+
+/*
+ * Beside the bar: the verdicts it gave, and the analyzed issues nobody has
+ * decided on yet.
+ */
+export const VERDICT_FACT_LABELS: Record<
+  "real" | "likelyByDesign" | "likelyWrongFinding" | "cannotTell" | "waiting",
+  string
+> = {
+  real: translationKey("Said real"),
+  likelyByDesign: translationKey("Said likely by design"),
+  likelyWrongFinding: translationKey("Said likely a wrong finding"),
+  cannotTell: translationKey("Could not tell"),
+  waiting: translationKey("Not decided yet"),
+};
+
+export const VERDICTS_WEEK_LEGEND: AiResultsWeekLegend = {
+  value: VERDICT_OUTCOME_LABELS.agreed,
+  total: translationKey("All decided issues"),
+};
+
+// How an analyzed issue comes to count, for a card with none decided yet.
+export const VERDICTS_HOW_DECIDED: string = translationKey(
+  "An issue counts once it is decided: fixed, its risk accepted, or marked not an issue.",
+);
+
+function getVerdictsCard(
+  verdicts: AiOutcomesIssueVerdicts,
+  weeks: Array<AiOutcomesWeek>,
+): AiResultsCard {
+  const total: number = verdicts.agreed + verdicts.disagreed;
+  const analyzed: number = getAnalyzedIssueCount(verdicts);
+  const startNotes: Array<string> = [];
+
+  if (total === 0) {
+    startNotes.push(
+      analyzed > 0
+        ? translatePlural(
+            {
+              one: "OneUptime AI analyzed {{count}} Data Security issue, and nobody has decided on it yet.",
+              other:
+                "OneUptime AI analyzed {{count}} Data Security issues, and none has been decided yet.",
+            },
+            analyzed,
+          )
+        : translateTemplate("No analyzed Data Security issues yet."),
+      translateTemplate(VERDICTS_HOW_DECIDED),
+    );
+  }
+
+  return {
+    kind: AiResultsCardKind.VerdictsAgreed,
+    title: VERDICTS_AGREED_TITLE,
+    description: VERDICTS_AGREED_DESCRIPTION,
+    value: verdicts.agreed,
+    total,
+    headline: VERDICTS_AGREED_HEADLINE,
+    startNotes,
+    breakdowns:
+      total > 0
+        ? [
+            {
+              segments: [
+                {
+                  label: VERDICT_OUTCOME_LABELS.agreed,
+                  value: verdicts.agreed,
+                  color: COLOR_WORKED,
+                  records: {
+                    part: AiOutcomesPart.IssueVerdicts,
+                    outcome: "agreed",
+                  },
+                },
+                {
+                  label: VERDICT_OUTCOME_LABELS.disagreed,
+                  value: verdicts.disagreed,
+                  color: COLOR_DID_NOT_WORK,
+                  records: {
+                    part: AiOutcomesPart.IssueVerdicts,
+                    outcome: "disagreed",
+                  },
+                },
+              ],
+            },
+          ]
+        : [],
+    facts:
+      analyzed > 0
+        ? [
+            { label: VERDICT_FACT_LABELS.real, value: verdicts.real },
+            {
+              label: VERDICT_FACT_LABELS.likelyByDesign,
+              value: verdicts.likelyByDesign,
+            },
+            {
+              label: VERDICT_FACT_LABELS.likelyWrongFinding,
+              value: verdicts.likelyWrongFinding,
+            },
+            {
+              label: VERDICT_FACT_LABELS.cannotTell,
+              value: verdicts.cannotTell,
+            },
+            { label: VERDICT_FACT_LABELS.waiting, value: verdicts.waiting },
+          ]
+        : [],
+    weekLegend: VERDICTS_WEEK_LEGEND,
+    byModel: null,
+    modelChanges: [],
+    weeks: weeks.map((week: AiOutcomesWeek): AiResultsWeekBar => {
+      const value: number = week.verdictsAgreed || 0;
+      const decided: number = week.verdictsDecided || 0;
+
+      return {
+        weekStart: week.weekStart,
+        value,
+        total: decided,
+        description:
+          decided > 0
+            ? translatePlural(
+                {
+                  one: "Week of {{date}}: {{value}} of {{count}} decided issue went as its verdict said",
+                  other:
+                    "Week of {{date}}: {{value}} of {{count}} decided issues went as their verdicts said",
+                },
+                decided,
+                {
+                  date: describeTrendDate(week.weekStart),
+                  value: formatCount(value),
+                },
+              )
+            : translateTemplate("Week of {{date}}: no decided issues", {
+                date: describeTrendDate(week.weekStart),
+              }),
+      };
+    }),
+    recentWeeks: describeRecentWeeks(weeks, (week: AiOutcomesWeek) => {
+      return {
+        value: week.verdictsAgreed || 0,
+        total: week.verdictsDecided || 0,
+      };
+    }),
+  };
+}
+
 /*
  * The line under a card's bars: its last AI_RESULTS_RECENT_WEEK_COUNT
  * weeks against the ones before, each "N of M" - whether it is getting
@@ -1374,6 +1585,10 @@ export function getAiResultsCards(outcomes: AiOutcomes): Array<AiResultsCard> {
     cards.push(
       getRootCausesCard(outcomes.rootCauses, outcomes.weeks, outcomes.models),
     );
+  }
+
+  if (outcomes.issueVerdicts) {
+    cards.push(getVerdictsCard(outcomes.issueVerdicts, outcomes.weeks));
   }
 
   return cards;

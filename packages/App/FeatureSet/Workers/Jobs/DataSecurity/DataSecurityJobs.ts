@@ -266,8 +266,8 @@ JobDictionary.setTimeoutInMs(
 
 /*
  * The email a store's owners get about its new issues, held while OneUptime
- * AI analyses them (#10369): sent once its work is done, or after ten
- * minutes, with each analysed issue's verdict and shortest path.
+ * AI analyzes them (#10369): sent once its work is done, or after ten
+ * minutes, with each analyzed issue's verdict and shortest path.
  */
 JobDictionary.setJobFunction(
   DATA_SECURITY_NOTIFY_OWNERS_JOB,

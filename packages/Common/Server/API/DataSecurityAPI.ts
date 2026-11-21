@@ -636,7 +636,7 @@ export default class DataSecurityAPI extends BaseAPI<
      * when nothing it rests on changed, with no model call; else one written
      * now, through the one Data Security call, which keeps neither what it
      * sent nor what OneUptime AI answered in the AI Logs (#10361); and with
-     * { force: true } (Analyse Again), one written now whatever changed.
+     * { force: true } (Analyze Again), one written now whatever changed.
      * Kept on the issue, in the language of the person who asked when they
      * asked for a new one.
      */

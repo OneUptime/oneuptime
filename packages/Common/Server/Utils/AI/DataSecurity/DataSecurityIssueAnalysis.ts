@@ -52,8 +52,8 @@ import {
  *     reopened issue the project's Data Security AI rules say (out of the
  *     box, Critical and High): analyze(), which never throws - what stopped
  *     it is the reason Why AI did not act says;
- *   - when a person asks - Explain with AI on the API and the MCP, Analyse
- *     on an issue it never analysed, Analyse Again - analyzeForPerson(),
+ *   - when a person asks - Explain with AI on the API and the MCP, Analyze
+ *     on an issue it never analyzed, Analyze Again - analyzeForPerson(),
  *     which says in words what stopped it.
  *
  * Each reads what OneUptime knows about the issue (DataSecurityIssueDossier),
@@ -61,7 +61,7 @@ import {
  * OneUptime AI would be sent. Kept for what it was written from: when the
  * hash is the one the issue keeps, nothing is asked - opening the page, or
  * the issue being evaluated again with nothing changed, makes no model call.
- * Analyse Again asks anyway.
+ * Analyze Again asks anyway.
  *
  * What is sent is the builder's (the AnalyzeIssue or ExplainIssue feature of
  * DATA_SECURITY_AI_FEATURES) - names, counts and configuration, never a
@@ -256,9 +256,9 @@ export default class DataSecurityIssueAnalysis {
   }
 
   /*
-   * A person asked: Explain with AI, Analyse, Analyse Again. The analysis
+   * A person asked: Explain with AI, Analyze, Analyze Again. The analysis
    * the issue keeps when its input did not change - no model call - else a
-   * new one, written in the language of the person who asked; `force` (Analyse
+   * new one, written in the language of the person who asked; `force` (Analyze
    * Again) writes a new one whatever changed. With the project's AI off it is
    * refused before anything is read.
    */
@@ -431,10 +431,10 @@ export default class DataSecurityIssueAnalysis {
       eventType: DataSecurityIssueFeedEventType.AiAnalysis,
       displayColor: Purple500,
       feedInfoInMarkdown: (previous
-        ? mdText`OneUptime AI analysed this issue again: **${verdict}**. It said **${previous}** before.`
+        ? mdText`OneUptime AI analyzed this issue again: **${verdict}**. It said **${previous}** before.`
         : data.previous
-          ? mdText`OneUptime AI analysed this issue again: **${verdict}**.`
-          : mdText`OneUptime AI analysed this issue: **${verdict}**.`
+          ? mdText`OneUptime AI analyzed this issue again: **${verdict}**.`
+          : mdText`OneUptime AI analyzed this issue: **${verdict}**.`
       ).toString(),
       userId: data.userId,
     });

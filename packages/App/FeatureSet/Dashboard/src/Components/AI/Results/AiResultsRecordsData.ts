@@ -42,6 +42,7 @@ export const AI_RESULTS_RECORDS_CLICK_HINTS: Record<AiOutcomesPart, string> = {
   ),
   [AiOutcomesPart.PullRequestFixes]: translationKey("Show the pull requests"),
   [AiOutcomesPart.RootCauses]: translationKey("Show the incidents and alerts"),
+  [AiOutcomesPart.IssueVerdicts]: translationKey("Show the issues"),
 };
 
 /*
@@ -69,6 +70,11 @@ export const AI_RESULTS_RECORDS_COUNTS: Record<AiOutcomesPart, PluralTemplate> =
       one: "{{count}} investigation OneUptime AI finished over the last 12 weeks.",
       other:
         "{{count}} investigations OneUptime AI finished over the last 12 weeks, newest first.",
+    },
+    [AiOutcomesPart.IssueVerdicts]: {
+      one: "{{count}} Data Security issue OneUptime AI analyzed over the last 12 weeks.",
+      other:
+        "{{count}} Data Security issues OneUptime AI analyzed over the last 12 weeks, newest first.",
     },
   };
 
@@ -120,7 +126,10 @@ function readSubject(value: unknown): AiOutcomesRecordSubject | undefined {
   const kind: unknown = value["kind"];
   const id: string | undefined = readText(value["id"]);
 
-  if ((kind !== "incident" && kind !== "alert") || !id) {
+  if (
+    (kind !== "incident" && kind !== "alert" && kind !== "dataSecurityIssue") ||
+    !id
+  ) {
     return undefined;
   }
 
@@ -159,6 +168,8 @@ function readRecord(value: unknown): AiOutcomesRecord | null {
     "summary",
     "humanVerdict",
     "autoGrade",
+    "issueVerdict",
+    "issueStatus",
   ];
 
   const record: AiOutcomesRecord = { id, at };
@@ -237,8 +248,42 @@ export function parseAiOutcomesRecords(
 export function describeRecordSubject(
   subject: AiOutcomesRecordSubject,
 ): string {
-  return describeSubject(subject);
+  // A Data Security issue is named by its title, OneUptime's words for its check (#10369).
+  if (subject.kind === "dataSecurityIssue") {
+    const translator: Translator = getGlobalTranslator();
+
+    return (
+      translator.translateText(subject.title) ||
+      subject.title ||
+      translator.translateText(DATA_SECURITY_ISSUE) ||
+      DATA_SECURITY_ISSUE
+    );
+  }
+
+  return describeSubject(subject as Parameters<typeof describeSubject>[0]);
 }
+
+const DATA_SECURITY_ISSUE: string = translationKey("Data Security issue");
+
+/*
+ * What an analyzed issue's record says under it (#10369): OneUptime AI's
+ * verdict, and where the issue stands now.
+ */
+export const ISSUE_VERDICT_FACTS: Readonly<Record<string, string>> = {
+  Real: translationKey("OneUptime AI said: real"),
+  LikelyByDesign: translationKey("OneUptime AI said: likely by design"),
+  LikelyWrongFinding: translationKey(
+    "OneUptime AI said: likely a wrong finding",
+  ),
+  CannotTell: translationKey("OneUptime AI could not tell"),
+};
+
+export const ISSUE_STATUS_FACTS: Readonly<Record<string, string>> = {
+  Open: translationKey("Still open"),
+  Resolved: translationKey("Fixed: its check passes"),
+  Accepted: translationKey("Its risk was accepted"),
+  "Not an issue": translationKey("Marked not an issue"),
+};
 
 /*
  * The small grey facts under a record, as translation keys: what kind of
@@ -249,6 +294,15 @@ export function getRecordFacts(
   part: AiOutcomesPart,
   record: AiOutcomesRecord,
 ): Array<string> {
+  if (part === AiOutcomesPart.IssueVerdicts) {
+    return [
+      ISSUE_VERDICT_FACTS[record.issueVerdict || ""] || "",
+      ISSUE_STATUS_FACTS[record.issueStatus || ""] || "",
+    ].filter((fact: string): boolean => {
+      return fact.length > 0;
+    });
+  }
+
   if (part === AiOutcomesPart.RemediationFixes) {
     // A runbook says its name instead (Runbook: {{name}}).
     if (record.runbookName) {

@@ -5,15 +5,17 @@ import LlmLogService from "../../../../Server/Services/LlmLogService";
 import LlmProviderService from "../../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import DataSecurityAiCall from "../../../../Server/Utils/AI/DataSecurity/DataSecurityAiCall";
-import { DataSecurityAiPrompt } from "../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
-import { buildExplainIssuePrompt } from "../../../../Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt";
+import {
+  AiIssueDossier,
+  DataSecurityAiPrompt,
+} from "../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
+import { buildIssueAnalysisPrompt } from "../../../../Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt";
 import { buildFieldSuggestionPrompt } from "../../../../Server/Utils/AI/DataSecurity/FieldSuggestionPrompt";
 import LLMService from "../../../../Server/Utils/LLM/LLMService";
-import DataSecurityIssue from "../../../../Models/DatabaseModels/DataSecurityIssue";
-import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import LlmLog from "../../../../Models/DatabaseModels/LlmLog";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
 import Project from "../../../../Models/DatabaseModels/Project";
+import { DataSecurityAiFeature } from "../../../../Types/DataSecurity/DataSecurityAiFeatures";
 import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
 import LlmType from "../../../../Types/LLM/LlmType";
 import ObjectID from "../../../../Types/ObjectID";
@@ -30,22 +32,36 @@ import ts from "typescript";
  * Security keeps every page, check, scan and integration it has. That
  * holds because Data Security's own code - its scans, checks, issues,
  * integrations, owners, flows and jobs, on the workers and on a probe -
- * reaches OneUptime AI at two places only, each asking the switch first:
+ * reaches OneUptime AI at these places only, each asking the switch first
+ * or asking no model at all:
  *
  *   - a content scan that found fields no detector could place asks for
  *     suggestions only when AIService.isProjectAIEnabled says yes
  *     (DataSecurityFindingWriter; DataSecurityFindingWriter.test);
  *   - the job that asks runs FieldSuggestion.suggestForStore, which asks the
- *     switch again and sends nothing when it is off (FieldSuggestion.test).
+ *     switch again and sends nothing when it is off (FieldSuggestion.test);
+ *   - the job that works on a new issue runs DataSecurityAiEngine
+ *     .evaluateIssue (#10364), which reads Enable AI and Work on new issues
+ *     first and does nothing, and writes nothing, with either off
+ *     (DataSecurityAiEngine.test) - the analysis of the issue (#10369)
+ *     among what it does;
+ *   - the job that emails a store's owners runs DataSecurityOwnerNotice
+ *     .send (#10369), which waits for the analysis only while the engine
+ *     works on new issues, reads the analysis the issue keeps, and asks no
+ *     model (DataSecurityOwnerNotice.test);
+ *   - an issue that closes, in its service and in the reconciler, has
+ *     DataSecurityAiProposals.onIssuesClosed set aside what waits for a
+ *     person for it: a write of proposals, never a model's call.
  *
  * Everything else a person can start with AI is asked for on purpose, in
- * Data Security's API: Explain with AI and the field suggestions through
- * the one Data Security call, whose AIService.executeWithLogging refuses a
- * project with AI off before a model is asked (below); Fix with AI through
- * the Code task's gate, whose answer with AI off is what to fix, with
- * nothing started (DataSecurityCodeTask.test); and Ask AI's chat, which
- * the chat's own switch refuses. On the Dashboard, the issue's page draws
- * neither AI action with Enable AI off, and is whole without them
+ * Data Security's API: the analysis of an issue (Explain with AI) and the
+ * field suggestions through the one Data Security call, whose
+ * AIService.executeWithLogging refuses a project with AI off before a model
+ * is asked (below); Fix with AI through the Code task's gate, whose answer
+ * with AI off is what to fix, with nothing started
+ * (DataSecurityCodeTask.test); and Ask AI's chat, which the chat's own
+ * switch refuses. On the Dashboard, the issue's page draws no analysis and
+ * no AI action with Enable AI off, and is whole without them
  * (DataSecurityIssuePageThroughTheServer.test); the pages below draw no
  * other.
  *
@@ -97,6 +113,26 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
     {
       module: "Common/Server/Utils/AI/DataSecurity/FieldSuggestion",
       uses: ["DataSecurityFieldSuggestion.suggestForStore"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiEngine",
+      uses: ["DataSecurityAiEngine.evaluateIssue"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityOwnerNotice",
+      uses: ["DataSecurityOwnerNotice.send"],
+    },
+  ],
+  "Common/Server/Services/DataSecurityIssueService.ts": [
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
+      uses: ["DataSecurityAiProposals.onIssuesClosed"],
+    },
+  ],
+  "Common/Server/Utils/DataSecurity/DataSecurityIssueReconciler.ts": [
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
+      uses: ["DataSecurityAiProposals.onIssuesClosed"],
     },
   ],
 };
@@ -239,7 +275,7 @@ function findAiReaches(file: string): Array<AiReach> {
   return reaches;
 }
 
-describe("Data Security's scans, checks and integrations reach OneUptime AI at two places only", () => {
+describe("Data Security's scans, checks and integrations reach OneUptime AI at the places listed only", () => {
   const files: Array<string> = DATA_SECURITY_CODE.flatMap(listFiles);
 
   test("it reads Data Security's code, on the workers and on a probe", () => {
@@ -322,18 +358,32 @@ describe("with Enable AI off, the one Data Security call sends nothing", () => {
     projectId: PROJECT_ID,
   } as unknown as LlmProvider;
 
+  // The analysis of an issue (#10369), as a person asks for it.
   function explainPrompt(): DataSecurityAiPrompt {
-    const issue: DataSecurityIssue = new DataSecurityIssue();
-    issue.checkId = "public-read";
-    issue.title = "Anyone on the internet can read it";
-    issue.severity = SecuritySeverity.Critical;
-    issue.evidence = "The bucket policy grants s3:GetObject to *.";
-    const store: DataStore = new DataStore();
-    store.name = "acme-card-exports";
-    store.kind = DataStoreKind.AwsS3Bucket;
-    issue.dataStore = store;
+    const dossier: AiIssueDossier = {
+      issue: {
+        checkId: "public-read",
+        title: "Anyone on the internet can read it",
+        severity: SecuritySeverity.Critical,
+        evidence: "The bucket policy grants s3:GetObject to *.",
+      },
+      store: { name: "acme-card-exports", kind: DataStoreKind.AwsS3Bucket },
+      places: [],
+      access: [],
+      copies: [],
+      securityCaseIds: [],
+      responses: [],
+      proposals: [],
+      declaredCode: null,
+      owners: { recordIds: [], names: [], count: 0 },
+      now: new Date("2026-11-20T12:00:00.000Z"),
+    };
 
-    return buildExplainIssuePrompt({ issue });
+    return buildIssueAnalysisPrompt({
+      feature: DataSecurityAiFeature.ExplainIssue,
+      dossier,
+      language: "en",
+    });
   }
 
   function fieldPrompt(): DataSecurityAiPrompt {
@@ -375,7 +425,7 @@ describe("with Enable AI off, the one Data Security call sends nothing", () => {
   });
 
   test.each([
-    ["Explain with AI", explainPrompt],
+    ["The analysis of an issue", explainPrompt],
     ["the field suggestions", fieldPrompt],
   ])(
     "%s: refused with the switch's own sentence, and no model is asked",
@@ -423,7 +473,7 @@ describe("the Dashboard's Data Security pages draw an AI action in one place, be
     );
   }
 
-  test("only the issue's page and the Fix with AI dialog it opens name one", () => {
+  test("only the issue's page, its analysis card and the Fix with AI dialog it opens name one", () => {
     const found: Record<string, Array<string>> = {};
 
     for (const file of [
@@ -441,7 +491,10 @@ describe("the Dashboard's Data Security pages draw an AI action in one place, be
 
     expect(found).toEqual({
       [path.join("Pages", "DataSecurity", "IssueView", "Overview.tsx")]: [
-        "Explain with AI",
+        "Fix with AI",
+      ],
+      // The analysis card's words (#10369): its path to fixed offers Fix with AI.
+      [path.join("Components", "DataSecurity", "IssueAiAnalysisCopy.ts")]: [
         "Fix with AI",
       ],
       [path.join("Components", "DataSecurity", "IssueModals.tsx")]: [
@@ -450,7 +503,7 @@ describe("the Dashboard's Data Security pages draw an AI action in one place, be
     });
   });
 
-  test("the issue's page draws both only when the project's Enable AI offers them", () => {
+  test("the issue's page draws its analysis and Fix with AI only when the project's Enable AI offers them", () => {
     const page: string = fs.readFileSync(
       path.join(
         PACKAGES,
@@ -463,10 +516,12 @@ describe("the Dashboard's Data Security pages draw an AI action in one place, be
 
     expect(page).toContain("const isAiOffered: boolean = useAiOffered();");
     expect(page.indexOf("if (isAiOffered) {")).toBeGreaterThan(0);
-    expect(page.indexOf('title: "Explain with AI"')).toBeGreaterThan(
+    expect(page.indexOf('title: "Fix with AI"')).toBeGreaterThan(
       page.indexOf("if (isAiOffered) {"),
     );
-    expect(gated).toContain('title: "Explain with AI"');
     expect(gated).toContain('title: "Fix with AI"');
+    // OneUptime AI's analysis (#10369), and every action it offers, is drawn once, behind the switch.
+    expect(page.split("<IssueAiAnalysisCard").length).toBe(2);
+    expect(page).toMatch(/\{isAiOffered \? \(\s*<IssueAiAnalysisCard\b/);
   });
 });

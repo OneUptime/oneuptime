@@ -669,7 +669,7 @@ export interface DataSecurityIssueAnalysisRecord {
   facts: Array<DataSecurityAnalysisFact>;
 }
 
-// Bumped when what the analysis is asked changes, so every issue is analysed again once.
+// Bumped when what the analysis is asked changes, so every issue is analyzed again once.
 export const DATA_SECURITY_ANALYSIS_VERSION: number = 1;
 
 /*

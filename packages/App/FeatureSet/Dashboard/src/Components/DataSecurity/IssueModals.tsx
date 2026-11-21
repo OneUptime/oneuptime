@@ -303,7 +303,7 @@ export const NotAnIssueModal: FunctionComponent<NotAnIssueModalProps> = (
           field: { [NOT_AN_ISSUE_REASON_KEY]: true },
           title: "Reason",
           description:
-            "Why the finding was wrong, for whoever looks next. OneUptime AI learns from it which findings are noise.",
+            "Why the finding was wrong, for whoever looks next. The issue and its timeline keep it.",
           fieldType: FormFieldSchemaType.LongText,
           required: true,
           placeholder:

@@ -77,7 +77,7 @@ export const DATA_SECURITY_API_ROUTES: {
    * OneUptime AI's analysis of an issue (#10369), as the caller may read
    * it: the one the issue keeps when nothing it rests on changed, else one
    * written now - { force: true } writes a new one whatever changed
-   * (Analyse Again).
+   * (Analyze Again).
    */
   explainIssue: (issueId: string): string => {
     return `/data-security-issue/${issueId}/explain`;

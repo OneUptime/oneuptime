@@ -88,11 +88,15 @@ type FeatureCall =
   | { kind: "askAiTools"; file: string; chatFile: string };
 
 const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
+  /*
+   * OneUptime AI's analysis of an issue (#10369): a person's, from the
+   * issue's page or Explain with AI, and its own of a new issue (#10364),
+   * in its queue job - one file, one call.
+   */
   [DataSecurityAiFeature.ExplainIssue]: {
     kind: "ask",
-    file: "packages/Common/Server/API/DataSecurityAPI.ts",
+    file: `${AI_DIRECTORY}/DataSecurityIssueAnalysis.ts`,
   },
-  // OneUptime AI's own analysis of a new issue (#10364), in its queue job.
   [DataSecurityAiFeature.AnalyzeIssue]: {
     kind: "ask",
     file: `${AI_DIRECTORY}/DataSecurityIssueAnalysis.ts`,
@@ -539,14 +543,17 @@ describe("A: every Data Security AI feature is listed, with the file that makes 
       .sort();
 
     expect(asking).toEqual(
-      Object.values(FEATURE_CALLS)
-        .filter((call: FeatureCall): boolean => {
-          return call.kind === "ask";
-        })
-        .map((call: FeatureCall): string => {
-          return call.file;
-        })
-        .sort(),
+      Array.from(
+        new Set(
+          Object.values(FEATURE_CALLS)
+            .filter((call: FeatureCall): boolean => {
+              return call.kind === "ask";
+            })
+            .map((call: FeatureCall): string => {
+              return call.file;
+            }),
+        ),
+      ).sort(),
     );
   });
 

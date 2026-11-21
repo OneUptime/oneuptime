@@ -19,7 +19,9 @@ import DataSecurityAiActions from "../../../../../Server/Utils/AI/DataSecurity/D
 import DataSecurityAiEngine, {
   DataSecurityAiEvaluation,
 } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiEngine";
-import DataSecurityIssueAnalysis from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis";
+import DataSecurityIssueAnalysis, {
+  StoredDataSecurityIssueAnalysis,
+} from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis";
 import logger from "../../../../../Server/Utils/Logger";
 import AutoRemediationTriggerEntity from "../../../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import {
@@ -38,6 +40,7 @@ import {
   DataSecurityAiDecisionReason,
   DataSecurityAiIssueSkipReason,
 } from "../../../../../Types/DataSecurity/DataSecurityAiDecision";
+import { DataSecurityAiVerdict } from "../../../../../Types/DataSecurity/DataSecurityIssueAnalysis";
 import DataSecurityIssueStatus from "../../../../../Types/DataSecurity/DataSecurityIssueStatus";
 import { DataStoreKind } from "../../../../../Types/DataSecurity/DataStoreKind";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -74,7 +77,6 @@ interface World {
   store: Partial<DataStore> | null;
   rules: Array<Partial<AutoRemediationRule>> | null;
   decisionsActedToday: { store: number; project: number };
-  analyzedThisOpening: number;
   changesWithoutAskingThisHour: number;
   earlierProposals: Array<Partial<DataSecurityAiProposal>>;
 }
@@ -136,6 +138,24 @@ function dataSecurityRule(
     ...overrides,
   };
 }
+
+// The analysis the issue keeps (#10369): what the work after it reads.
+const ANALYSIS: StoredDataSecurityIssueAnalysis = {
+  record: {
+    version: 1,
+    verdict: DataSecurityAiVerdict.Real,
+    language: "en",
+    lines: {
+      reason: {
+        text: "The AWS key in the logs is live: the store's readers can use it.",
+        facts: ["P1"],
+      },
+    },
+    facts: [],
+  },
+  analyzedAt: new Date("2026-11-20T09:00:00.000Z"),
+  inputHash: "a".repeat(64),
+};
 
 // A contain action that plans one mask-only change, and makes it when asked.
 function fakeAction(
@@ -213,7 +233,6 @@ beforeEach(() => {
     store: logsStore(),
     rules: [],
     decisionsActedToday: { store: 0, project: 0 },
-    analyzedThisOpening: 0,
     changesWithoutAskingThisHour: 0,
     earlierProposals: [],
   };
@@ -255,10 +274,6 @@ beforeEach(() => {
     .mockImplementation((async (countBy: {
       query: Record<string, unknown>;
     }) => {
-      if (countBy.query["didAnalyze"] === true) {
-        return new PositiveNumber(world.analyzedThisOpening);
-      }
-
       return new PositiveNumber(
         countBy.query["dataStoreId"]
           ? world.decisionsActedToday.store
@@ -310,7 +325,7 @@ beforeEach(() => {
 
   analyze = jest
     .spyOn(DataSecurityIssueAnalysis, "analyze")
-    .mockResolvedValue({ analyzed: true });
+    .mockResolvedValue({ analyzed: true, analysis: ANALYSIS });
   jest
     .spyOn(DataSecurityAiActions, "forWork")
     .mockImplementation((work: DataSecurityAiWork) => {
@@ -640,15 +655,42 @@ describe("the limits", () => {
 });
 
 describe("work done once", () => {
-  test("an issue analyzed since it last opened is not analyzed again", async () => {
-    world.analyzedThisOpening = 1;
+  test("an issue whose analysis rests on what has not changed is not analyzed again (#10369): the analysis says so", async () => {
+    analyze.mockResolvedValue({
+      analyzed: false,
+      reason: DataSecurityAiDecisionReason.AlreadyAnalyzed,
+      analysis: ANALYSIS,
+    });
 
     const evaluation: DataSecurityAiEvaluation | null = await evaluate();
 
-    expect(analyze).not.toHaveBeenCalled();
+    expect(analyze).toHaveBeenCalledTimes(1);
     expect(entryOf(evaluation, DataSecurityAiWork.Analyze).reason).toBe(
       DataSecurityAiDecisionReason.AlreadyAnalyzed,
     );
+    expect(lastDecision().didAnalyze).toBe(false);
+  });
+
+  test("the analysis, new or kept, is what the work after it reads: a proposal's input (#10369)", async () => {
+    for (const outcome of [
+      { analyzed: true as const, analysis: ANALYSIS },
+      {
+        analyzed: false as const,
+        reason: DataSecurityAiDecisionReason.AlreadyAnalyzed,
+        analysis: ANALYSIS,
+      },
+    ]) {
+      analyze.mockResolvedValue(outcome);
+      (action.plan as jest.Mock).mockClear();
+
+      await evaluate();
+
+      expect(
+        (action.plan as jest.Mock).mock.calls[0]![0] as {
+          analysis?: unknown;
+        },
+      ).toMatchObject({ analysis: ANALYSIS.record });
+    }
   });
 
   test("the same change is not proposed for an issue twice", async () => {
@@ -710,7 +752,7 @@ describe("what stopped the work, recorded", () => {
   ])(
     "an analysis stopped by %s says so, and the rest goes on",
     async (reason: DataSecurityAiDecisionReason) => {
-      analyze.mockResolvedValue({ analyzed: false, reason });
+      analyze.mockResolvedValue({ analyzed: false, reason, analysis: null });
 
       const evaluation: DataSecurityAiEvaluation | null = await evaluate();
 

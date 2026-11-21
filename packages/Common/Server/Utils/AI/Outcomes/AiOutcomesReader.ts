@@ -6,11 +6,16 @@ import IncidentService from "../../../Services/IncidentService";
 import LlmLogService from "../../../Services/LlmLogService";
 import OnCallDutyPolicyExecutionLogService from "../../../Services/OnCallDutyPolicyExecutionLogService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import AiOutcomesIssueVerdicts, {
+  AiOutcomesIssueVerdictReadRow,
+  AiOutcomesIssueVerdictRows,
+} from "./AiOutcomesIssueVerdicts";
 import InvestigationReportSummary, {
   InvestigationReportSummaryRun,
 } from "../SRE/InvestigationReportSummary";
 import AiOutcomesBuilder, {
   AiOutcomesInvestigationRow,
+  AiOutcomesIssueVerdictRow,
   AiOutcomesPageRow,
   AiOutcomesPullRequestRow,
   AiOutcomesRemediationRow,
@@ -33,6 +38,7 @@ import {
   AI_OUTCOMES_RECORDS_TEXT_MAX_LENGTH,
   AI_OUTCOMES_SCAN_LIMIT,
   AiOutcomes,
+  AiOutcomesIssueVerdictOutcome,
   AiOutcomesPart,
   AiOutcomesRecord,
   AiOutcomesRecordSubject,
@@ -66,7 +72,10 @@ import ObjectID from "../../../../Types/ObjectID";
  *     caller who may read neither incidents nor alerts are left out (null),
  *     and a fix pull request about neither (an exception's) still counts;
  *   - the models investigations ran on are named only to a caller who may
- *     read the project's AI Logs, where each call's model is listed (#7762).
+ *     read the project's AI Logs, where each call's model is listed (#7762);
+ *   - OneUptime AI's verdicts on Data Security issues are read under the
+ *     caller's props too, by their own reader (AiOutcomesIssueVerdicts,
+ *     #10369): a caller who may not read those issues gets none.
  *
  * The counts carry no title, rationale or report. The records a number
  * opens are read by the same rows and filters, so they are exactly what it
@@ -200,16 +209,24 @@ export default class AiOutcomesReader {
   ): Promise<AiOutcomes> {
     const now: Date = options.now || new Date();
 
-    const [rows, canReadModels]: [AiOutcomesCountedRows, boolean] =
-      await Promise.all([
-        this.readCountedRows({
-          projectId: options.projectId,
-          props: options.props,
-          now,
-          parts: AI_OUTCOMES_PARTS,
-        }),
-        this.canReadModels(options),
-      ]);
+    const [rows, canReadModels, verdicts]: [
+      AiOutcomesCountedRows,
+      boolean,
+      AiOutcomesIssueVerdictRows | null,
+    ] = await Promise.all([
+      this.readCountedRows({
+        projectId: options.projectId,
+        props: options.props,
+        now,
+        parts: AI_OUTCOMES_PARTS,
+      }),
+      this.canReadModels(options),
+      AiOutcomesIssueVerdicts.readRows({
+        projectId: options.projectId,
+        props: options.props,
+        now,
+      }),
+    ]);
 
     return AiOutcomesBuilder.build({
       now,
@@ -272,7 +289,14 @@ export default class AiOutcomesReader {
             };
           })
         : null,
-      isPartial: rows.isPartial,
+      issueVerdictRows: verdicts
+        ? verdicts.rows.map(
+            (row: AiOutcomesIssueVerdictReadRow): AiOutcomesIssueVerdictRow => {
+              return row;
+            },
+          )
+        : null,
+      isPartial: rows.isPartial || Boolean(verdicts?.isPartial),
       canReadModels,
     });
   }
@@ -309,6 +333,18 @@ export default class AiOutcomesReader {
       1,
       Math.floor(options.pageSize || AI_OUTCOMES_RECORDS_PAGE_SIZE),
     );
+
+    // OneUptime AI's verdicts on Data Security issues have a reader of their own.
+    if (part === AiOutcomesPart.IssueVerdicts) {
+      return await AiOutcomesIssueVerdicts.readRecords({
+        projectId,
+        props,
+        outcome: outcome as AiOutcomesIssueVerdictOutcome,
+        windowEnd,
+        skip,
+        pageSize,
+      });
+    }
 
     const rows: AiOutcomesCountedRows = await this.readCountedRows({
       projectId,

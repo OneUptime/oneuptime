@@ -74,7 +74,11 @@ export interface ComponentProps {
 function getSubjectRoute(subject: AiOutcomesRecordSubject): Route {
   return RouteUtil.populateRouteParams(
     RouteMap[
-      subject.kind === "incident" ? PageMap.INCIDENT_VIEW : PageMap.ALERT_VIEW
+      subject.kind === "incident"
+        ? PageMap.INCIDENT_VIEW
+        : subject.kind === "dataSecurityIssue"
+          ? PageMap.DATA_SECURITY_ISSUE_VIEW
+          : PageMap.ALERT_VIEW
     ] as Route,
     { modelId: subject.id },
   );

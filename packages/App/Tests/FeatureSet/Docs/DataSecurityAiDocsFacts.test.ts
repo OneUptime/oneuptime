@@ -136,10 +136,13 @@ describe("what OneUptime AI sees", () => {
     );
   });
 
-  it("names the features that read the team's AI context: Explain with AI and Ask AI, not the field suggestions", () => {
-    expect(source("packages/Common/Server/API/DataSecurityAPI.ts")).toContain(
-      "await AiContextReader.read({",
-    );
+  it("names the features that read the team's AI context: the analysis, on request and of new issues, and Ask AI, not the field suggestions", () => {
+    // Both analyses are written in one place, the team's notes first (#10369).
+    expect(
+      source(
+        "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts",
+      ),
+    ).toContain("await AiContextReader.read({");
     expect(
       source("packages/Common/Server/Utils/AI/Chat/ChatAgentRunner.ts"),
     ).toContain("AiContextReader");
@@ -147,15 +150,8 @@ describe("what OneUptime AI sees", () => {
       source("packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestion.ts"),
     ).not.toContain("AiContext");
     expect(flat(sees)).toContain(
-      "**Explain with AI** and **Ask AI** also read your team's [AI context](/docs/ai/ai-context) first, when it has one",
+      "**Analysis on request**, **Analysis of new issues** and **Ask AI** also read your team's [AI context](/docs/ai/ai-context) first, when it has one",
     );
-    // The analysis of a new issue (#10364) asks what Explain asks, its notes first.
-    expect(
-      source(
-        "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts",
-      ),
-    ).toContain("await AiContextReader.read({");
-    expect(flat(sees)).toContain("**Analysis of new issues** reads it too.");
     // The AI context's own page lists Explain with AI among what reads it.
     expect(
       tables(readPage("en", "ai/ai-context"))
@@ -183,7 +179,7 @@ describe("what OneUptime AI sees", () => {
       "The coding agent behind Fix with AI and Ask AI's chat still keep a failed call's provider error in its row.",
     );
     expect(kept).toContain(
-      "Explain with AI and the field suggestions keep no word of the provider's error",
+      "the analysis and the field suggestions keep no word of the provider's error",
     );
   });
 });

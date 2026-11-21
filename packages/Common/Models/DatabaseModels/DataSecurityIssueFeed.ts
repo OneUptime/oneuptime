@@ -44,7 +44,7 @@ export enum DataSecurityIssueFeedEventType {
   AiExplanation = "AiExplanation",
   AiFixRequested = "AiFixRequested",
   /*
-   * OneUptime AI analysed the issue (#10369): one entry per analysis
+   * OneUptime AI analyzed the issue (#10369): one entry per analysis
    * written, never per view, saying its verdict. The analysis itself is on
    * the issue, read through its own route.
    */

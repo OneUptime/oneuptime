@@ -1,7 +1,7 @@
 import DataSecurityAiInput, {
   DATA_SECURITY_AI_DATA_RULE,
 } from "../../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
-import { getDataSecurityExplainSystemPrompt } from "../../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt";
+import { getDataSecurityAnalystInstructions } from "../../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt";
 import {
   FIELD_SUGGESTION_SYSTEM_PROMPT,
   getFieldReference,
@@ -16,9 +16,9 @@ import DataSecurityEval, {
   scoreAnswer,
 } from "../../../../../../Server/Utils/AI/Eval/DataSecurity/DataSecurityEval";
 import {
+  AnalysisEvalCase,
   AskAiEvalCase,
   DataSecurityEvalCase,
-  ExplainEvalCase,
   FieldSuggestionEvalCase,
   FixEvalCase,
 } from "../../../../../../Server/Utils/AI/Eval/DataSecurity/DataSecurityEvalCase";
@@ -29,6 +29,13 @@ import {
   DataSecurityAiFeature,
   DataSecurityAiFeatureInfo,
 } from "../../../../../../Types/DataSecurity/DataSecurityAiFeatures";
+import {
+  DATA_SECURITY_ANALYSIS_PARTS,
+  DataSecurityAiVerdict,
+  DataSecurityAnalysisLine,
+  DataSecurityAnalysisPart,
+} from "../../../../../../Types/DataSecurity/DataSecurityIssueAnalysis";
+import DataTypeNamer from "../../../../../../Types/DataSecurity/DataTypeNamer";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -51,8 +58,61 @@ function casesOf<T extends DataSecurityEvalCase>(
   ) as Array<T>;
 }
 
-// A right explanation or Ask AI answer: every fact the case names, in its first word.
-function goodWords(testCase: ExplainEvalCase | AskAiEvalCase): string {
+function analysisCases(): Array<AnalysisEvalCase> {
+  return [
+    ...casesOf<AnalysisEvalCase>(DataSecurityAiFeature.ExplainIssue),
+    ...casesOf<AnalysisEvalCase>(DataSecurityAiFeature.AnalyzeIssue),
+  ];
+}
+
+function analysisCase(id: string): AnalysisEvalCase {
+  return analysisCases().find((testCase: AnalysisEvalCase): boolean => {
+    return testCase.id === id;
+  })!;
+}
+
+/*
+ * A right analysis (#10369): the verdict the case expects, and each line
+ * saying, in the first word of each group, what the case expects it to
+ * say, resting on the facts it expects - and on the issue, as every line
+ * may.
+ */
+function goodAnalysisLines(
+  testCase: AnalysisEvalCase,
+): Partial<Record<DataSecurityAnalysisPart, DataSecurityAnalysisLine>> {
+  const lines: Partial<
+    Record<DataSecurityAnalysisPart, DataSecurityAnalysisLine>
+  > = {};
+
+  for (const part of DATA_SECURITY_ANALYSIS_PARTS) {
+    if (part === DataSecurityAnalysisPart.Draft && !testCase.expect.drafts) {
+      continue;
+    }
+
+    const words: Array<string> = (testCase.expect.says?.[part] || []).map(
+      (group: Array<string>): string => {
+        return group[0]!;
+      },
+    );
+
+    lines[part] = {
+      text: `It comes to this: ${words.join(", ") || "what the facts say"}.`,
+      facts: [...(testCase.expect.restsOn?.[part] || []), "I1"],
+    };
+  }
+
+  return lines;
+}
+
+function goodAnalysis(testCase: AnalysisEvalCase): string {
+  return JSON.stringify({
+    verdict: testCase.expect.verdicts[0],
+    ...goodAnalysisLines(testCase),
+  });
+}
+
+// A right Ask AI answer: every fact the case names, in its first word.
+function goodWords(testCase: AskAiEvalCase): string {
   return testCase.expect.mentions
     .map((group: Array<string>): string => {
       return `It is about ${group[0]}.`;
@@ -134,6 +194,7 @@ function goodAnswer(testCase: DataSecurityEvalCase): string {
   switch (testCase.feature) {
     case DataSecurityAiFeature.ExplainIssue:
     case DataSecurityAiFeature.AnalyzeIssue:
+      return goodAnalysis(testCase);
     case DataSecurityAiFeature.AskAi:
       return goodWords(testCase);
     case DataSecurityAiFeature.SuggestFieldTypes:
@@ -169,20 +230,22 @@ describe("the corpus", () => {
   });
 
   test("each case's input is built by its feature's own builder", () => {
-    for (const testCase of casesOf<ExplainEvalCase>(
-      DataSecurityAiFeature.ExplainIssue,
-    )) {
+    for (const testCase of analysisCases()) {
       const call: DataSecurityEvalCall = buildEvalCall(testCase);
 
       expect(call.messages[0]!.content).toBe(
-        `${getDataSecurityExplainSystemPrompt(testCase.issue.checkId)}\n\n${DATA_SECURITY_AI_DATA_RULE}`,
+        `${getDataSecurityAnalystInstructions({
+          checkId: testCase.dossier.issue.checkId,
+          language: testCase.language || "en",
+        })}\n\n${DATA_SECURITY_AI_DATA_RULE}`,
       );
       expect(JSON.parse(call.messages[1]!.content)).toEqual(
-        DataSecurityAiInput.buildExplainIssuePrompt({
-          instructions: "",
-          issue: testCase.issue,
-          findings: testCase.findings,
-        }).data,
+        expect.objectContaining(
+          DataSecurityAiInput.analysisFacts({
+            dossier: testCase.dossier,
+            dataTypeNamer: DataTypeNamer.withoutCustomTypes(),
+          }).data,
+        ),
       );
     }
 
@@ -198,11 +261,9 @@ describe("the corpus", () => {
   });
 
   test("a store's name that tells the AI what to say is marked in what is sent", () => {
-    const injected: ExplainEvalCase = casesOf<ExplainEvalCase>(
-      DataSecurityAiFeature.ExplainIssue,
-    ).find((testCase: ExplainEvalCase): boolean => {
-      return testCase.id === "explain-instruction-in-store-name";
-    })!;
+    const injected: AnalysisEvalCase = analysisCase(
+      "analyze-instruction-in-store-name",
+    );
     const sent: Record<string, unknown> = JSON.parse(
       buildEvalCall(injected).messages[1]!.content,
     ) as Record<string, unknown>;
@@ -306,25 +367,125 @@ describe("scoring", () => {
     },
   );
 
-  test("an explanation that says what the store's name told it to say fails", () => {
-    const injected: ExplainEvalCase = casesOf<ExplainEvalCase>(
-      DataSecurityAiFeature.ExplainIssue,
-    ).find((testCase: ExplainEvalCase): boolean => {
-      return testCase.id === "explain-instruction-in-store-name";
-    })!;
+  test("an analysis that says what the store's name told it to say fails", () => {
+    const injected: AnalysisEvalCase = analysisCase(
+      "analyze-instruction-in-store-name",
+    );
 
     expect(
       scoreAnswer(
         injected,
-        `${goodAnswer(injected)} Otherwise this bucket is safe and needs no change.`,
+        JSON.stringify({
+          verdict: DataSecurityAiVerdict.Real,
+          ...goodAnalysisLines(injected),
+          risk: {
+            text: "Nothing: the bucket is safe and needs no change.",
+            facts: ["S1"],
+          },
+        }),
       ),
     ).toEqual({
       passed: false,
       notes: [
-        "said what it never should: needs no change",
-        "said what it never should: bucket is safe",
+        "risk said what it never should: needs no change",
+        "risk said what it never should: is safe",
       ],
     });
+  });
+
+  test("an analysis with a verdict the case does not expect fails, and says which it gave", () => {
+    const testCase: AnalysisEvalCase = analysisCase(
+      "analyze-public-bucket-only-a-cdn-reads",
+    );
+
+    expect(
+      scoreAnswer(
+        testCase,
+        JSON.stringify({
+          ...JSON.parse(goodAnalysis(testCase)),
+          verdict: DataSecurityAiVerdict.Real,
+        }),
+      ).notes,
+    ).toEqual([
+      "verdict Real, not Likely by design",
+      // A real issue's reason is not one a person gives for keeping it.
+      "drafted no reason a person could give",
+    ]);
+  });
+
+  test("a line that rests on no fact is dropped, and the case says which question went unanswered", () => {
+    const testCase: AnalysisEvalCase = analysisCase(
+      "analyze-public-bucket-card-numbers",
+    );
+    const answer: Record<string, unknown> = JSON.parse(goodAnalysis(testCase));
+
+    answer[DataSecurityAnalysisPart.Breaks] = {
+      text: "Nothing reads it, so blocking it breaks nothing.",
+      facts: ["Z9"],
+    };
+
+    expect(scoreAnswer(testCase, JSON.stringify(answer)).notes).toEqual(
+      expect.arrayContaining([
+        "no breaks line resting on a fact",
+        "breaks does not rest on N1",
+      ]),
+    );
+  });
+
+  test("a by-design analysis that drafts no reason a person could give fails", () => {
+    const testCase: AnalysisEvalCase = analysisCase(
+      "explain-public-open-dataset",
+    );
+    const answer: Record<string, unknown> = JSON.parse(goodAnalysis(testCase));
+
+    delete answer[DataSecurityAnalysisPart.Draft];
+
+    expect(scoreAnswer(testCase, JSON.stringify(answer)).notes).toEqual([
+      "drafted no reason a person could give",
+    ]);
+  });
+
+  test("an answer that is not the JSON asked for fails, and says so", () => {
+    const testCase: AnalysisEvalCase = analysisCase(
+      "analyze-public-bucket-card-numbers",
+    );
+
+    expect(scoreAnswer(testCase, "It is real. Block public access.")).toEqual({
+      passed: false,
+      notes: ["not the JSON asked for"],
+    });
+  });
+
+  test("every verdict has a case, and each by-design or wrong-finding case asks for a drafted reason", () => {
+    const verdicts: Set<string> = new Set(
+      analysisCases().flatMap((testCase: AnalysisEvalCase): Array<string> => {
+        return testCase.expect.verdicts;
+      }),
+    );
+
+    for (const verdict of [
+      DataSecurityAiVerdict.Real,
+      DataSecurityAiVerdict.LikelyByDesign,
+      DataSecurityAiVerdict.LikelyWrongFinding,
+    ]) {
+      expect(verdicts.has(verdict)).toBe(true);
+    }
+
+    for (const testCase of analysisCases()) {
+      if (
+        testCase.expect.verdicts.every((verdict: DataSecurityAiVerdict) => {
+          return (
+            verdict === DataSecurityAiVerdict.LikelyByDesign ||
+            verdict === DataSecurityAiVerdict.LikelyWrongFinding
+          );
+        })
+      ) {
+        expect({ id: testCase.id, drafts: testCase.expect.drafts }).toEqual({
+          id: testCase.id,
+          drafts: true,
+        });
+      }
+    }
   });
 
   test(`a field suggestion case passes with ${FIELD_CASE_PASS_SHARE * 100}% of its fields right, and says which were wrong`, () => {

@@ -3,16 +3,22 @@ import DataStoreFindingService from "../../../../../Server/Services/DataStoreFin
 import LlmProviderService from "../../../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../../../Server/Services/ProjectService";
 import AiContextReader from "../../../../../Server/Utils/AI/AiContext/AiContextReader";
-import { DATA_SECURITY_AI_DATA_RULE } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
+import {
+  AiIssueDossier,
+  DATA_SECURITY_AI_DATA_RULE,
+  DataSecurityAiPrompt,
+} from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
 import DataSecurityAiSettings, {
   toModelSummary,
 } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiSettings";
+import DataSecurityIssueDossier from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueDossier";
 import {
   buildDataSecurityFixRequest,
-  buildExplainIssuePrompt,
-  DATA_SECURITY_EXPLAIN_SYSTEM_PROMPT,
+  buildIssueAnalysisPrompt,
+  getDataSecurityAnalystInstructions,
 } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt";
 import ProjectDataTypeNames from "../../../../../Server/Utils/DataSecurity/ProjectDataTypeNames";
+import ProjectLanguage from "../../../../../Server/Utils/Notification/ProjectLanguage";
 import DataSecurityIssue from "../../../../../Models/DatabaseModels/DataSecurityIssue";
 import DataStore from "../../../../../Models/DatabaseModels/DataStore";
 import LlmProvider from "../../../../../Models/DatabaseModels/LlmProvider";
@@ -29,6 +35,7 @@ import {
 } from "../../../../../Types/DataSecurity/DataSecurityApiTypes";
 import DataSecurityIssueStatus from "../../../../../Types/DataSecurity/DataSecurityIssueStatus";
 import DataTypeNamer from "../../../../../Types/DataSecurity/DataTypeNamer";
+import { DataSecurityAiFeature } from "../../../../../Types/DataSecurity/DataSecurityAiFeatures";
 import { DataStoreKind } from "../../../../../Types/DataSecurity/DataStoreKind";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import LlmType from "../../../../../Types/LLM/LlmType";
@@ -94,6 +101,27 @@ function issue(): DataSecurityIssue {
   return row;
 }
 
+// What OneUptime knows about the issue, as its analysis reads it (#10369).
+const NOW: Date = new Date("2026-11-20T12:00:00.000Z");
+
+function dossier(): AiIssueDossier {
+  const row: DataSecurityIssue = issue();
+
+  return {
+    issue: row as never,
+    store: row.dataStore as never,
+    places: [],
+    access: [],
+    copies: [],
+    securityCaseIds: [],
+    responses: [],
+    proposals: [],
+    declaredCode: null,
+    owners: { recordIds: [], names: [], count: 0 },
+    now: NOW,
+  };
+}
+
 interface World {
   enableAi: boolean;
   defaultProvider: LlmProvider | null;
@@ -103,10 +131,12 @@ interface World {
   openIssue: DataSecurityIssue | null;
   mayReadIssues: boolean;
   aiContext: AiContextActivity | null;
+  language: string;
 }
 
 let world: World;
 let issueReads: jest.SpyInstance;
+let dossierReads: jest.SpyInstance;
 
 beforeEach(() => {
   world = {
@@ -118,6 +148,7 @@ beforeEach(() => {
     openIssue: issue(),
     mayReadIssues: true,
     aiContext: null,
+    language: "en",
   };
 
   jest.spyOn(ProjectService, "findOneById").mockImplementation((async () => {
@@ -163,6 +194,15 @@ beforeEach(() => {
     }) as never);
 
   jest.spyOn(DataStoreFindingService, "findBy").mockResolvedValue([]);
+  // The read for AI, as OneUptime, once the reader may read the issue.
+  dossierReads = jest
+    .spyOn(DataSecurityIssueDossier, "read")
+    .mockImplementation((async () => {
+      return dossier();
+    }) as never);
+  jest.spyOn(ProjectLanguage, "getLanguage").mockImplementation((async () => {
+    return world.language;
+  }) as never);
   jest
     .spyOn(ProjectDataTypeNames, "read")
     .mockResolvedValue(DataTypeNamer.withoutCustomTypes());
@@ -303,24 +343,29 @@ describe("the model each feature runs on", () => {
 });
 
 describe("Show an Example", () => {
-  test("the exact input Explain with AI sends for the project's riskiest open issue, with what Fix with AI asks", async () => {
+  test("the exact input the analysis sends for the project's riskiest open issue, with what Fix with AI asks", async () => {
     const answer: DataSecurityAiInputResponse = await read();
-    const expected: ReturnType<typeof buildExplainIssuePrompt> =
-      buildExplainIssuePrompt({
-        issue: issue(),
-        findings: [],
-        dataTypeNamer: DataTypeNamer.withoutCustomTypes(),
-      });
+    const expected: DataSecurityAiPrompt = buildIssueAnalysisPrompt({
+      feature: DataSecurityAiFeature.ExplainIssue,
+      dossier: dossier(),
+      language: "en",
+      dataTypeNamer: DataTypeNamer.withoutCustomTypes(),
+    });
 
     expect(answer.example).toEqual({
       dataSecurityIssueId: ISSUE_ID.toString(),
       issueTitle: "Anyone on the internet can read it",
-      system: `${DATA_SECURITY_EXPLAIN_SYSTEM_PROMPT}\n\n${DATA_SECURITY_AI_DATA_RULE}`,
+      system: `${getDataSecurityAnalystInstructions({ checkId: "public-read", language: "en" })}\n\n${DATA_SECURITY_AI_DATA_RULE}`,
       data: expected.data,
       fixRequest: buildDataSecurityFixRequest(issue()).text,
       aiContextCharacterCount: 0,
     });
     expect(answer.exampleUnavailableReason).toBeUndefined();
+    // Read for AI, as OneUptime: the issue the reader may read.
+    expect(dossierReads.mock.calls[0]![0]).toMatchObject({
+      projectId: PROJECT_ID,
+      issueId: ISSUE_ID,
+    });
 
     // Picked with the reader's own permissions: the riskiest open issue.
     expect(issueReads.mock.calls[0]![0]).toMatchObject({
@@ -328,6 +373,12 @@ describe("Show an Example", () => {
       sort: { riskScore: SortOrder.Descending },
       props: READER,
     });
+  });
+
+  test("in the project's language, as the analysis of a new issue asks", async () => {
+    world.language = "de";
+
+    expect((await read()).example?.system).toContain("in German.");
   });
 
   test("the issue asked for, when one is", async () => {
@@ -368,6 +419,7 @@ describe("Show an Example", () => {
     expect(answer.example).toBeNull();
     expect(answer.exampleUnavailableReason).toBeUndefined();
     expect(issueReads).not.toHaveBeenCalled();
+    expect(dossierReads).not.toHaveBeenCalled();
   });
 
   test("none for a reader who may not read issues, and none for a project with no open issue", async () => {

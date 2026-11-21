@@ -12,15 +12,14 @@ import DataSecurityAiCall, {
   DATA_SECURITY_AI_CALL_LABELS,
 } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiCall";
 import DataSecurityAiInput, {
+  AiIssueDossier,
   DataSecurityAiPrompt,
 } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
-import { buildExplainIssuePrompt } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt";
+import { buildIssueAnalysisPrompt } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt";
 import { buildFieldSuggestionPrompt } from "../../../../../Server/Utils/AI/DataSecurity/FieldSuggestionPrompt";
 import LLMService, {
   LLMCompletionRequest,
 } from "../../../../../Server/Utils/LLM/LLMService";
-import DataSecurityIssue from "../../../../../Models/DatabaseModels/DataSecurityIssue";
-import DataStore from "../../../../../Models/DatabaseModels/DataStore";
 import LlmLog from "../../../../../Models/DatabaseModels/LlmLog";
 import LlmProvider from "../../../../../Models/DatabaseModels/LlmProvider";
 import Project from "../../../../../Models/DatabaseModels/Project";
@@ -99,18 +98,32 @@ const RULE_PICK: LlmProvider = {
   projectId: PROJECT_ID,
 } as unknown as LlmProvider;
 
+// A person's analysis of an issue (#10369), as the issue's page asks for it.
 function explainPrompt(): DataSecurityAiPrompt {
-  const issue: DataSecurityIssue = new DataSecurityIssue();
-  issue.checkId = "public-read";
-  issue.title = "Anyone on the internet can read it";
-  issue.severity = SecuritySeverity.Critical;
-  issue.evidence = "The bucket policy grants s3:GetObject to *.";
-  const store: DataStore = new DataStore();
-  store.name = "acme-card-exports";
-  store.kind = DataStoreKind.AwsS3Bucket;
-  issue.dataStore = store;
+  const dossier: AiIssueDossier = {
+    issue: {
+      checkId: "public-read",
+      title: "Anyone on the internet can read it",
+      severity: SecuritySeverity.Critical,
+      evidence: "The bucket policy grants s3:GetObject to *.",
+    },
+    store: { name: "acme-card-exports", kind: DataStoreKind.AwsS3Bucket },
+    places: [],
+    access: [],
+    copies: [],
+    securityCaseIds: [],
+    responses: [],
+    proposals: [],
+    declaredCode: null,
+    owners: { recordIds: [], names: [], count: 0 },
+    now: new Date("2026-11-20T12:00:00.000Z"),
+  };
 
-  return buildExplainIssuePrompt({ issue });
+  return buildIssueAnalysisPrompt({
+    feature: DataSecurityAiFeature.ExplainIssue,
+    dossier,
+    language: "en",
+  });
 }
 
 function fieldPrompt(): DataSecurityAiPrompt {

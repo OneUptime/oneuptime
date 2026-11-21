@@ -83,6 +83,32 @@ export interface AiOutcomesRootCauses {
   completed: number;
 }
 
+/*
+ * OneUptime AI's verdicts on Data Security issues (#10369): the issues it
+ * analyzed in the window, and whether what people did with each agreed
+ * with its verdict (getIssueVerdictOutcome, Server/Utils/AI/Outcomes):
+ *
+ *   - Real: agreed when the issue was fixed (its check passed) or its risk
+ *     accepted; not when it was marked not an issue;
+ *   - Likely by design: agreed when its risk was accepted, it was marked not
+ *     an issue, or its store marked public by design; not when it was fixed;
+ *   - Likely a wrong finding: agreed when it was marked not an issue; not
+ *     when it was fixed or its risk accepted;
+ *   - Cannot tell makes no claim, and an issue still open waits.
+ */
+export interface AiOutcomesIssueVerdicts {
+  agreed: number;
+  disagreed: number;
+  // Still open: nobody decided yet.
+  waiting: number;
+  // OneUptime AI could not tell: no claim to agree with.
+  cannotTell: number;
+  // Every issue it analyzed, by the verdict it gave.
+  real: number;
+  likelyByDesign: number;
+  likelyWrongFinding: number;
+}
+
 export interface AiOutcomesWeek {
   // The week's first day, YYYY-MM-DD (UTC).
   weekStart: string;
@@ -99,6 +125,13 @@ export interface AiOutcomesWeek {
   rootCausesConfirmed: number;
   // Investigations judged: confirmed, partial or wrong.
   rootCausesJudged: number;
+  /*
+   * Data Security issues OneUptime AI analyzed that week whose verdict what
+   * people decided agreed with, of those decided (#10369). Absent from a
+   * server of the release before.
+   */
+  verdictsAgreed?: number | undefined;
+  verdictsDecided?: number | undefined;
 }
 
 /*
@@ -167,6 +200,12 @@ export interface AiOutcomes {
    * model is listed, so the page names no model (#7762).
    */
   models: AiOutcomesModels | null;
+  /*
+   * OneUptime AI's verdicts on Data Security issues (#10369). Null: the
+   * caller may not read Data Security issues; absent from a server of the
+   * release before.
+   */
+  issueVerdicts?: AiOutcomesIssueVerdicts | null | undefined;
   // AI_OUTCOMES_WEEK_COUNT weeks, oldest first.
   weeks: Array<AiOutcomesWeek>;
   // A kind of row reached AI_OUTCOMES_SCAN_LIMIT: the newest were counted.
@@ -201,6 +240,7 @@ export enum AiOutcomesPart {
   RemediationFixes = "remediationFixes",
   PullRequestFixes = "pullRequestFixes",
   RootCauses = "rootCauses",
+  IssueVerdicts = "issueVerdicts",
 }
 
 export const AI_OUTCOMES_PARTS: ReadonlyArray<AiOutcomesPart> = [
@@ -208,6 +248,7 @@ export const AI_OUTCOMES_PARTS: ReadonlyArray<AiOutcomesPart> = [
   AiOutcomesPart.RemediationFixes,
   AiOutcomesPart.PullRequestFixes,
   AiOutcomesPart.RootCauses,
+  AiOutcomesPart.IssueVerdicts,
 ];
 
 /*
@@ -238,6 +279,16 @@ export type AiOutcomesRootCauseOutcome = "confirmed" | "partial" | "wrong";
 export const AI_OUTCOMES_ROOT_CAUSE_OUTCOMES: ReadonlyArray<AiOutcomesRootCauseOutcome> =
   ["confirmed", "partial", "wrong"];
 
+// What became of a Data Security issue OneUptime AI gave a verdict on (#10369).
+export type AiOutcomesIssueVerdictOutcome =
+  | "agreed"
+  | "disagreed"
+  | "waiting"
+  | "cannotTell";
+
+export const AI_OUTCOMES_ISSUE_VERDICT_OUTCOMES: ReadonlyArray<AiOutcomesIssueVerdictOutcome> =
+  ["agreed", "disagreed", "waiting", "cannotTell"];
+
 export const AI_OUTCOMES_PART_OUTCOMES: Record<
   AiOutcomesPart,
   ReadonlyArray<string>
@@ -246,6 +297,7 @@ export const AI_OUTCOMES_PART_OUTCOMES: Record<
   [AiOutcomesPart.RemediationFixes]: AI_OUTCOMES_REMEDIATION_FIX_OUTCOMES,
   [AiOutcomesPart.PullRequestFixes]: AI_OUTCOMES_PULL_REQUEST_FIX_OUTCOMES,
   [AiOutcomesPart.RootCauses]: AI_OUTCOMES_ROOT_CAUSE_OUTCOMES,
+  [AiOutcomesPart.IssueVerdicts]: AI_OUTCOMES_ISSUE_VERDICT_OUTCOMES,
 };
 
 export function isAiOutcomesPartOutcome(
@@ -255,9 +307,13 @@ export function isAiOutcomesPartOutcome(
   return AI_OUTCOMES_PART_OUTCOMES[part].includes(outcome);
 }
 
-export type AiOutcomesRecordSubjectKind = "incident" | "alert";
+export type AiOutcomesRecordSubjectKind =
+  | "incident"
+  | "alert"
+  // A Data Security issue OneUptime AI analyzed (#10369).
+  | "dataSecurityIssue";
 
-// The incident or alert a record was about.
+// The incident, alert or Data Security issue a record was about.
 export interface AiOutcomesRecordSubject {
   kind: AiOutcomesRecordSubjectKind;
   id: string;
@@ -288,6 +344,9 @@ export interface AiOutcomesRecord {
   summary?: string | undefined;
   humanVerdict?: string | undefined;
   autoGrade?: string | undefined;
+  // A Data Security issue: OneUptime AI's verdict, and where the issue stands.
+  issueVerdict?: string | undefined;
+  issueStatus?: string | undefined;
 }
 
 export interface AiOutcomesRecords {

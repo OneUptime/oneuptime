@@ -165,6 +165,7 @@ describe("the dialog's words", () => {
       [AiOutcomesPart.RemediationFixes]: "Show the incidents and alerts",
       [AiOutcomesPart.PullRequestFixes]: "Show the pull requests",
       [AiOutcomesPart.RootCauses]: "Show the incidents and alerts",
+      [AiOutcomesPart.IssueVerdicts]: "Show the issues",
     });
   });
 
@@ -231,5 +232,61 @@ describe("what a record says beyond its incident or alert", () => {
     ]) {
       expect(getRecordFacts(part, RECORDS.records[0]!)).toEqual([]);
     }
+  });
+
+  test("an issue OneUptime AI analyzed (#10369): its verdict, and what people decided", () => {
+    expect(
+      getRecordFacts(AiOutcomesPart.IssueVerdicts, {
+        id: "1",
+        at: "2026-11-10T09:00:00.000Z",
+        issueVerdict: "LikelyByDesign",
+        issueStatus: "Accepted",
+      }),
+    ).toEqual(["OneUptime AI said: likely by design", "Its risk was accepted"]);
+    expect(
+      getRecordFacts(AiOutcomesPart.IssueVerdicts, {
+        id: "2",
+        at: "2026-11-10T09:00:00.000Z",
+        issueVerdict: "Real",
+        issueStatus: "Not an issue",
+      }),
+    ).toEqual(["OneUptime AI said: real", "Marked not an issue"]);
+    // A verdict or a status this page does not know says nothing.
+    expect(
+      getRecordFacts(AiOutcomesPart.IssueVerdicts, {
+        id: "3",
+        at: "2026-11-10T09:00:00.000Z",
+        issueVerdict: "Maybe",
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("a Data Security issue a verdict number opens (#10369)", () => {
+  test("is read, and named by its title", () => {
+    const read: AiOutcomesRecords | null = parseAiOutcomesRecords({
+      part: AiOutcomesPart.IssueVerdicts,
+      outcome: "agreed",
+      total: 1,
+      nextSkip: null,
+      records: [
+        {
+          id: "15000000-0000-4000-8000-000000000001",
+          at: "2026-11-10T09:00:00.000Z",
+          subject: {
+            kind: "dataSecurityIssue",
+            id: "15000000-0000-4000-8000-000000000001",
+            title: "Anyone on the internet can read it",
+          },
+          issueVerdict: "Real",
+          issueStatus: "Resolved",
+        },
+      ],
+    });
+
+    expect(read?.records[0]?.subject?.kind).toBe("dataSecurityIssue");
+    expect(describeRecordSubject(read!.records[0]!.subject!)).toBe(
+      "Anyone on the internet can read it",
+    );
   });
 });

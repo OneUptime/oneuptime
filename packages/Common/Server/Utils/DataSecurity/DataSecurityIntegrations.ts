@@ -78,7 +78,7 @@ import Markdown, { MarkdownContentType } from "../../Types/Markdown";
  *  - Every new issue is emailed to its store's owners (on by default),
  *    with the issue and the data types - never a sample. While OneUptime AI
  *    works on new issues, the email waits for its analysis - at most ten
- *    minutes - and carries each analysed issue's verdict and shortest path,
+ *    minutes - and carries each analyzed issue's verdict and shortest path,
  *    each owner reading only what they may read (DataSecurityOwnerNotice,
  *    #10369).
  *  - OneUptime AI works on every new and reopened issue, as the project's
@@ -187,7 +187,7 @@ export function getOwnerNoticeSubject(data: {
  * comes from a cloud or from a person, so it is placed as text (mdText),
  * never as Markdown or HTML. Never a sample.
  *
- * Under an issue OneUptime AI analysed, its analysis in two lines - the
+ * Under an issue OneUptime AI analyzed, its analysis in two lines - the
  * verdict and the shortest path (#10369) - when the reader may read them:
  * `analysisLines`, by the issue's place in `issues`.
  */

@@ -857,7 +857,7 @@ export default class DataSecurityIssue extends BaseModel {
   })
   public aiAnalyzedAt?: Date = undefined;
 
-  // What the analysis was written from, hashed: the same input is not analysed again.
+  // What the analysis was written from, hashed: the same input is not analyzed again.
   @ColumnAccessControl(hiddenColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
