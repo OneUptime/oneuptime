@@ -446,6 +446,12 @@ enum Permission {
   EditSecurityBlock = "EditSecurityBlock",
   ReadSecurityBlock = "ReadSecurityBlock",
 
+  // Blocklist Feeds (the secret URLs firewalls and proxies read the blocklist from)
+  CreateSecurityBlocklistFeed = "CreateSecurityBlocklistFeed",
+  DeleteSecurityBlocklistFeed = "DeleteSecurityBlocklistFeed",
+  EditSecurityBlocklistFeed = "EditSecurityBlocklistFeed",
+  ReadSecurityBlocklistFeed = "ReadSecurityBlocklistFeed",
+
   // Data Stores: the buckets, databases, warehouses and telemetry Data Security watches
   CreateDataStore = "CreateDataStore",
   DeleteDataStore = "DeleteDataStore",
@@ -9814,6 +9820,48 @@ export class PermissionHelper {
         title: "Read Security Block",
         description:
           "This permission can read the Blocklist of this project: what is blocked, why, until when and where it is enforced.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Blocklist Feed Permissions
+      {
+        permission: Permission.CreateSecurityBlocklistFeed,
+        title: "Create Security Blocklist Feed",
+        description:
+          "This permission can create the Blocklist feeds of this project: the secret URLs firewalls and proxies read the Blocklist from.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityBlocklistFeed,
+        title: "Delete Security Blocklist Feed",
+        description:
+          "This permission can delete the Blocklist feeds of this project, which stops their URLs working.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityBlocklistFeed,
+        title: "Edit Security Blocklist Feed",
+        description:
+          "This permission can change, rotate and revoke the secrets of the Blocklist feeds of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityBlocklistFeed,
+        title: "Read Security Blocklist Feed",
+        description:
+          "This permission can read the Blocklist feeds of this project and when each firewall last fetched one, never their secrets.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
