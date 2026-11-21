@@ -9,14 +9,14 @@ import {
 } from "../Utils/Express";
 import { RequestBodyLimit } from "../Utils/RequestBodyLimit";
 import {
-  APP_REQUEST_BODY_LIMIT_FIELD,
   closeConnectionAfterAnswer,
+  createInflateFailedError,
+  createTooLargeError,
   createTooManyJsonValuesError,
+  stopReadingRequestBody,
 } from "../Utils/RequestBodyRefusal";
 import { isJsonContentType } from "./GzipRequestBody";
-import RequestBodyAfterAuthentication, {
-  createJsonParseFailedError,
-} from "./RequestBodyAfterAuthentication";
+import RequestBodyAfterAuthentication from "./RequestBodyAfterAuthentication";
 import { PassThrough, Transform, TransformOptions } from "stream";
 import zlib from "zlib";
 
@@ -51,14 +51,16 @@ import zlib from "zlib";
  *
  * When the check refuses the body, it answers the request itself, and not a
  * byte more is read. Any other refusal here - a body over the limit, a
- * Content-Encoding no parser reads, a compressed body that does not inflate
- * - is handed on as body-parser's error for it, which expressErrorHandler
- * answers in RequestBodyRefusal's words, again with the rest unread.
+ * Content-Encoding no parser reads - is handed on as body-parser's error for
+ * it, and a compressed body that does not inflate as the gzip reader's
+ * (INFLATE_FAILED_TYPE, #10597), which expressErrorHandler answers in
+ * RequestBodyRefusal's words, again with the rest unread.
  *
  * A refused body's connection is closed once its answer is sent
  * ("Connection: close", closeConnectionAfterAnswer), whatever the client
- * asked for: the check's answer is marked to close before the check runs,
- * and a body it lets through keeps its connection as the client asked.
+ * asked for, and the client still reads the answer: the check's answer is
+ * marked to close before the check runs, and a body it lets through keeps
+ * its connection as the client asked.
  *
  * Bodies are inflated as body-parser inflates them: gzip and deflate.
  */
@@ -111,23 +113,6 @@ const createBodyError: (
     status: status,
     statusCode: status,
     expose: true,
-  });
-};
-
-/*
- * Over the limit's bytes: as sent, as declared, or as it inflates. Marked as
- * the App's own limit, as StartServer marks body-parser's, so the answer says
- * it.
- */
-export const createTooLargeError: (limit: number, bytes: number) => Error = (
-  limit: number,
-  bytes: number,
-): Error => {
-  return createBodyError("request entity too large", 413, {
-    type: "entity.too.large",
-    limit: limit,
-    length: bytes,
-    [APP_REQUEST_BODY_LIMIT_FIELD]: limit,
   });
 };
 
@@ -361,7 +346,7 @@ class OpeningFirstRead {
       return;
     }
 
-    this.refuse(createJsonParseFailedError(error));
+    this.refuse(createInflateFailedError(error));
   };
 
   /*
@@ -464,7 +449,7 @@ class OpeningFirstRead {
     (this.req as OneUptimeRequest).requestBodyLimit = limit;
 
     if (this.decoderErrorDuringCheck) {
-      this.refuse(createJsonParseFailedError(this.decoderErrorDuringCheck));
+      this.refuse(createInflateFailedError(this.decoderErrorDuringCheck));
       return;
     }
 
@@ -548,8 +533,7 @@ class OpeningFirstRead {
    * the answer is sent, the rest of the body unread (see above).
    */
   private stopReading(): void {
-    this.pauseRequest();
-    closeConnectionAfterAnswer(this.res);
+    stopReadingRequestBody(this.req, this.res);
   }
 
   private pauseRequest(): void {

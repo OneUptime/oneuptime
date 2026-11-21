@@ -102,12 +102,12 @@ const closeSocketGracefully: (socket: Socket | null | undefined) => void = (
       this.end();
     }
 
-    const timer: NodeJS.Timeout = setTimeout((): void => {
+    const timer: ReturnType<typeof setTimeout> = setTimeout((): void => {
       this.destroy();
     }, UNREAD_BODY_CONNECTION_GRACE_MS);
 
     // A connection on its way out does not hold the process open.
-    timer.unref();
+    (timer as { unref?: () => void }).unref?.();
 
     this.once("close", (): void => {
       clearTimeout(timer);
@@ -263,17 +263,47 @@ export const createTooManyJsonValuesError: (
 };
 
 /*
+ * A body over the limit a reader holds it to - as declared, as sent, or as it
+ * inflates: body-parser's error for it (entity.too.large, with the limit in
+ * bytes), marked as the App's own limit, as StartServer marks body-parser's,
+ * so the answer says that limit.
+ */
+export const createTooLargeError: (limit: number, bytes: number) => Error = (
+  limit: number,
+  bytes: number,
+): Error => {
+  return Object.assign(new Error("request entity too large"), {
+    type: "entity.too.large",
+    status: 413,
+    statusCode: 413,
+    expose: true,
+    limit: limit,
+    length: bytes,
+    [APP_REQUEST_BODY_LIMIT_FIELD]: limit,
+  });
+};
+
+/*
  * Whether an error is zlib's for bytes that do not inflate ("incorrect header
- * check", "unexpected end of file"...): a "Z_" code, as zlib names them. As
+ * check", "unexpected end of file"...): zlib's errno, and its "Z_" code. As
  * body-parser hands one on, it is that error, with a 400 status added.
  */
 export const isInflateError: (error: unknown) => boolean = (
   error: unknown,
 ): boolean => {
-  const code: unknown = (error as { code?: unknown } | null)?.code;
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const candidate: { code?: unknown; errno?: unknown } = error as {
+    code?: unknown;
+    errno?: unknown;
+  };
 
   return (
-    error instanceof Error && typeof code === "string" && code.startsWith("Z_")
+    typeof candidate.code === "string" &&
+    candidate.code.startsWith("Z_") &&
+    typeof candidate.errno === "number"
   );
 };
 

@@ -1,15 +1,26 @@
 import readRequestBodyRefusal, {
   APP_BODY_LIMIT_IN_BYTES,
   APP_REQUEST_BODY_LIMIT_FIELD,
+  INFLATE_FAILED_TYPE,
   REQUEST_BODY_REFUSAL_MESSAGES,
   REQUEST_BODY_REFUSALS,
   RequestBodyRefusal,
   TOO_MANY_JSON_VALUES_TYPE,
+  UNREAD_BODY_CONNECTION_GRACE_MS,
+  closeConnectionAfterAnswer,
+  createInflateFailedError,
+  createTooLargeError,
   createTooManyJsonValuesError,
   describeBodyLimit,
   getTooLargeForRouteMessage,
   getTooManyJsonValuesMessage,
+  isInflateError,
+  stopReadingRequestBody,
 } from "../../../Server/Utils/RequestBodyRefusal";
+import {
+  ExpressRequest,
+  ExpressResponse,
+} from "../../../Server/Utils/Express";
 import {
   LARGE_REQUEST_BODY_BYTES,
   LARGE_REQUEST_BODY_LIMIT,
@@ -25,11 +36,13 @@ import {
   UnexplainedErrorKind,
   readUnexplainedError,
 } from "../../../Types/Exception/UnexplainedError";
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { EventEmitter } from "events";
 import express from "express";
 import fs from "fs";
 import path from "path";
 import { PassThrough } from "stream";
+import zlib from "zlib";
 
 /*
  * readRequestBodyRefusal tells a body parser's refusal of the client's body
@@ -627,5 +640,286 @@ describe("the errors the real parsers raise are read", () => {
 
     expect(error).toBeUndefined();
     expect(readRequestBodyRefusal(error)).toBeNull();
+  });
+});
+
+/*
+ * #10597: a body whose Content-Encoding says gzip or deflate, and that does
+ * not inflate, is the client's. It was a 500 and an error-level log line.
+ */
+describe("a body that does not inflate", () => {
+  // zlib's own errors, as each way of not inflating raises them.
+  function zlibErrorOf(inflate: () => unknown): Error {
+    try {
+      inflate();
+    } catch (err) {
+      return err as Error;
+    }
+
+    throw new Error("expected zlib to refuse the bytes");
+  }
+
+  const NOT_INFLATING: Array<[string, () => unknown]> = [
+    [
+      "not gzip at all",
+      (): unknown => {
+        return zlib.gunzipSync(Buffer.from("this is not gzip"));
+      },
+    ],
+    [
+      "gzip cut off",
+      (): unknown => {
+        return zlib.gunzipSync(
+          zlib.gzipSync(Buffer.from("x".repeat(10000))).subarray(0, 20),
+        );
+      },
+    ],
+    [
+      "not deflate at all",
+      (): unknown => {
+        return zlib.inflateSync(Buffer.from("this is not deflate"));
+      },
+    ],
+  ];
+
+  test.each(NOT_INFLATING)(
+    "zlib's error for a body %s is told apart",
+    (_what: string, inflate: () => unknown) => {
+      expect(isInflateError(zlibErrorOf(inflate))).toBe(true);
+    },
+  );
+
+  test.each(NOT_INFLATING)(
+    "a body %s is refused 400, in a sentence of its own",
+    (_what: string, inflate: () => unknown) => {
+      const error: Error = createInflateFailedError(zlibErrorOf(inflate));
+
+      expect(readRequestBodyRefusal(error)).toEqual({
+        type: INFLATE_FAILED_TYPE,
+        status: 400,
+        message: REQUEST_BODY_REFUSAL_MESSAGES.notInflated,
+      });
+      expect(error.message).not.toBe("");
+    },
+  );
+
+  test("as body-parser hands zlib's error on - with a 400 added - it is still told apart", () => {
+    const error: Error = Object.assign(
+      zlibErrorOf((): unknown => {
+        return zlib.inflateSync(Buffer.from("garbage"));
+      }),
+      { status: 400, statusCode: 400, expose: true },
+    );
+
+    expect(isInflateError(error)).toBe(true);
+    // Without the type, it is no refusal of the client's body at all.
+    expect(readRequestBodyRefusal(error)).toBeNull();
+  });
+
+  test.each([
+    ["an error of another kind", new Error("boom")],
+    [
+      "a socket's error",
+      Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET" }),
+    ],
+    ["a Z_ code on something that is no error", { code: "Z_DATA_ERROR" }],
+    ["nothing", undefined],
+    ["null", null],
+  ])("%s is not zlib's", (_what: string, error: unknown) => {
+    expect(isInflateError(error)).toBe(false);
+  });
+
+  test("a cause with no message still gives the error one", () => {
+    expect(createInflateFailedError(undefined).message).not.toBe("");
+    expect(createInflateFailedError(new Error("")).message).not.toBe("");
+  });
+
+  test("the sentence says what happened and what to do, and is shown as it is", () => {
+    const message: string = REQUEST_BODY_REFUSAL_MESSAGES.notInflated;
+
+    expect(meetsErrorMessageRule(message)).toBe(true);
+    expect(isEmptyErrorPhrase(message)).toBe(false);
+    expect(message).toContain(", so this did not finish. ");
+    expect(message).toContain("Content-Encoding");
+    expect(readUnexplainedError(message)).toBeNull();
+  });
+});
+
+describe("a body over a reader's limit", () => {
+  test("says the route's limit, as body-parser's error marked by StartServer does", () => {
+    const error: Error = createTooLargeError(1024 * 1024, 64 * 1024 * 1024);
+
+    expect(error).toMatchObject({
+      type: "entity.too.large",
+      status: 413,
+      expose: true,
+      limit: 1024 * 1024,
+      length: 64 * 1024 * 1024,
+      [APP_REQUEST_BODY_LIMIT_FIELD]: 1024 * 1024,
+    });
+    expect(readRequestBodyRefusal(error)?.message).toBe(
+      getTooLargeForRouteMessage(1024 * 1024),
+    );
+  });
+
+  test("past the App's own 50 MB, says the sentence the front ends read back", () => {
+    expect(
+      readRequestBodyRefusal(
+        createTooLargeError(
+          APP_BODY_LIMIT_IN_BYTES,
+          APP_BODY_LIMIT_IN_BYTES + 1,
+        ),
+      )?.message,
+    ).toBe(UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime);
+  });
+});
+
+/*
+ * The answer to a body refused unread closes its connection without a byte
+ * more read, and without cutting the answer off (#10598). Over a socket:
+ * RequestBodyParserOverHttp.test.ts and GzipRequestBodyConnection.test.ts.
+ */
+describe("closeConnectionAfterAnswer", () => {
+  interface FakeSocket extends EventEmitter {
+    writable: boolean;
+    end: ReturnType<typeof jest.fn>;
+    destroy: ReturnType<typeof jest.fn>;
+    destroySoon?: () => void;
+  }
+
+  function fakeSocket(): FakeSocket {
+    const socket: FakeSocket = new EventEmitter() as FakeSocket;
+
+    socket.writable = true;
+    socket.end = jest.fn();
+    socket.destroy = jest.fn();
+
+    return socket;
+  }
+
+  function fakeAnswer(data: {
+    shouldKeepAlive: boolean;
+    headersSent?: boolean;
+    req?: PassThrough | undefined;
+    socket?: FakeSocket | undefined;
+  }): ExpressResponse {
+    return {
+      shouldKeepAlive: data.shouldKeepAlive,
+      headersSent: Boolean(data.headersSent),
+      req: data.req,
+      socket: data.socket,
+    } as unknown as ExpressResponse;
+  }
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test("says whether the connection was to be kept, and has the answer close it", () => {
+    for (const wasKept of [true, false]) {
+      const res: ExpressResponse = fakeAnswer({ shouldKeepAlive: wasKept });
+
+      expect(closeConnectionAfterAnswer(res)).toBe(wasKept);
+      expect(res.shouldKeepAlive).toBe(false);
+    }
+  });
+
+  test("an answer already on its way is left as it is", () => {
+    const res: ExpressResponse = fakeAnswer({
+      shouldKeepAlive: true,
+      headersSent: true,
+    });
+
+    expect(closeConnectionAfterAnswer(res)).toBe(true);
+    expect(res.shouldKeepAlive).toBe(true);
+  });
+
+  test("the body is never read off once the answer is sent", () => {
+    const req: PassThrough = new PassThrough();
+
+    req.write(Buffer.alloc(64 * 1024, 1));
+    closeConnectionAfterAnswer(fakeAnswer({ shouldKeepAlive: true, req: req }));
+
+    // What Node calls once the answer is sent, for a body nobody read.
+    (req as unknown as { _dump: () => void })._dump();
+
+    expect(req.readableFlowing).toBeNull();
+    expect(req.readableLength).toBe(64 * 1024);
+  });
+
+  test("once the answer is written, the socket is half-closed and destroyed only after the grace", () => {
+    jest.useFakeTimers();
+
+    const socket: FakeSocket = fakeSocket();
+
+    closeConnectionAfterAnswer(
+      fakeAnswer({ shouldKeepAlive: true, socket: socket }),
+    );
+
+    // What Node calls once the answer is written, to close the connection.
+    socket.destroySoon!();
+
+    expect(socket.end).toHaveBeenCalledTimes(1);
+    expect(socket.destroy).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(UNREAD_BODY_CONNECTION_GRACE_MS - 1);
+    expect(socket.destroy).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(1);
+    expect(socket.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a client that hangs up first ends it, and nothing is destroyed after", () => {
+    jest.useFakeTimers();
+
+    const socket: FakeSocket = fakeSocket();
+
+    closeConnectionAfterAnswer(
+      fakeAnswer({ shouldKeepAlive: true, socket: socket }),
+    );
+    socket.destroySoon!();
+    socket.emit("close");
+
+    jest.advanceTimersByTime(UNREAD_BODY_CONNECTION_GRACE_MS * 2);
+    expect(socket.destroy).not.toHaveBeenCalled();
+  });
+
+  test("a socket that can no longer be written is not ended again", () => {
+    jest.useFakeTimers();
+
+    const socket: FakeSocket = fakeSocket();
+
+    socket.writable = false;
+    closeConnectionAfterAnswer(
+      fakeAnswer({ shouldKeepAlive: true, socket: socket }),
+    );
+    socket.destroySoon!();
+
+    expect(socket.end).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(UNREAD_BODY_CONNECTION_GRACE_MS);
+    expect(socket.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  test("an answer with no request or socket of its own (a test's) is still marked", () => {
+    const res: ExpressResponse = fakeAnswer({ shouldKeepAlive: true });
+
+    expect(() => {
+      closeConnectionAfterAnswer(res);
+    }).not.toThrow();
+    expect(res.shouldKeepAlive).toBe(false);
+  });
+
+  test("stopReadingRequestBody pauses the body, and has the answer close the connection", () => {
+    const req: PassThrough = new PassThrough();
+    const res: ExpressResponse = fakeAnswer({
+      shouldKeepAlive: true,
+      req: req,
+    });
+
+    req.on("data", (): void => {});
+    stopReadingRequestBody(req as unknown as ExpressRequest, res);
+
+    expect(req.readableFlowing).toBe(false);
+    expect(res.shouldKeepAlive).toBe(false);
   });
 });
