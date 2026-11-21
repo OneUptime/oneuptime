@@ -26,9 +26,10 @@ import GzipRequestBodyMiddleware from "./GzipRequestBody";
  *   - readBytes leaves the body's bytes in req.body, unparsed: a gzip body
  *     inflated by GzipRequestBody (bounded, and its values counted as it
  *     inflates when it is JSON), any other as it was sent. Both are held to
- *     the limit's bytes. A probe's collection reads them this way, and a
- *     probe that sent no headers has its key read from them before they
- *     are parsed (ProbeReportOpening).
+ *     the limit's bytes. A probe's collection reads them this way once its
+ *     headers named the probe. An older probe names itself only at the
+ *     start of its report, and its body is read no further than that until
+ *     the key there is checked (RequestBodyOpening, #10260).
  *   - readJson reads them and parses them, counted first (RequestBodyJson),
  *     for a route whose caller's key is in its headers, checked before
  *     this runs.

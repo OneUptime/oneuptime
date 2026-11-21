@@ -12,6 +12,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger from "../Utils/Logger";
 import SecurityCaseNotifications from "../Utils/SecurityCase/SecurityCaseNotifications";
+import SecurityCaseStepChecks from "../Utils/SecurityCase/StepChecks/SecurityCaseStepChecks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { Gray500, Green500 } from "../../Types/BrandColors";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -41,6 +42,10 @@ import {
  * happened to each task - added, done, opened again, handed to somebody,
  * deleted - and the person a task is handed to is told
  * (SecurityCaseNotifications), unless they handed it to themselves.
+ *
+ * A task made from a step of the case's Response Plan is a person saying the
+ * step is done: ticked off, or opened again, the case's steps are checked at
+ * once (SecurityCaseStepChecks), so OneUptime's evidence follows the tick.
  */
 
 const ASSIGNEE_KEYS: Array<string> = ["assignedToUserId", "assignedToUser"];
@@ -56,6 +61,8 @@ interface TaskBeforeChange {
   title: string;
   isDone: boolean;
   assignedToUserId: string | undefined;
+  // The Response Plan step it was made from, when it was.
+  responseStepKey: string | undefined;
 }
 
 // A task's title as it is kept: trimmed, never empty, at most 500 characters.
@@ -239,6 +246,14 @@ export class Service extends ProjectReferencesService<Model> {
           actorUserId,
         });
       }
+
+      // A step ticked off where it is suggested: OneUptime looks at it now.
+      if (createdItem.responseStepKey) {
+        await SecurityCaseStepChecks.requestCheck({
+          projectId: createdItem.projectId,
+          securityCaseId: createdItem.securityCaseId,
+        });
+      }
     } catch (error) {
       // The task is added; what is said about it must not undo that.
       logger.error(
@@ -281,6 +296,7 @@ export class Service extends ProjectReferencesService<Model> {
         title: true,
         isDone: true,
         assignedToUserId: true,
+        responseStepKey: true,
       },
     );
 
@@ -298,6 +314,7 @@ export class Service extends ProjectReferencesService<Model> {
         title: row.title || "",
         isDone: row.isDone === true,
         assignedToUserId: idText(row.assignedToUserId),
+        responseStepKey: row.responseStepKey || undefined,
       });
     }
 
@@ -389,6 +406,14 @@ export class Service extends ProjectReferencesService<Model> {
           displayColor: isDone ? Green500 : Gray500,
           userId: actorUserId,
         });
+
+        // A step ticked off, or opened again: OneUptime looks at it now.
+        if (old.responseStepKey) {
+          await SecurityCaseStepChecks.requestCheck({
+            projectId,
+            securityCaseId,
+          });
+        }
       }
     }
 

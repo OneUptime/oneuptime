@@ -74,6 +74,9 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import MonitorStepMetricMonitor, {
+  MonitorStepMetricMonitorUtil,
+} from "../../../Types/Monitor/MonitorStepMetricMonitor";
 import { MonitorStepLogMonitorUtil } from "../../../Types/Monitor/MonitorStepLogMonitor";
 import { MonitorStepTraceMonitorUtil } from "../../../Types/Monitor/MonitorStepTraceMonitor";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
@@ -104,6 +107,12 @@ import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData"
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
 import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import MetricExplorerUrl from "../../../Utils/Metrics/MetricExplorerUrl";
+import MetricQueryServices from "../../../Utils/Metrics/MetricQueryServices";
+import MetricTelemetrySnapshot from "../../../Utils/Monitor/MetricTelemetrySnapshot";
+import MonitorResourceSignalScope, {
+  ResourceSignal,
+  ResourceSignalScope,
+} from "../../../Utils/Monitor/MonitorResourceSignalScope";
 import {
   CrossSignalQueryParams,
   TelemetryCrossSignalScope,
@@ -2047,6 +2056,9 @@ ${incomingRequestGrouping.rootCauseNote}
         criteriaInstance: input.criteriaInstance,
         monitor: input.monitor,
         monitorStep: input.monitorStep,
+        metricResponse: MonitorCriteriaDataExtractor.getMetricMonitorResponse(
+          input.dataToProcess,
+        ),
       });
     }
 
@@ -2237,6 +2249,12 @@ ${incomingRequestGrouping.rootCauseNote}
     criteriaInstance: MonitorCriteriaInstance;
     monitor: Monitor;
     monitorStep?: MonitorStep | undefined;
+    /*
+     * What the worker read, when it says: each query's attribute filters as
+     * it read them, and the services it read them for. The links open what
+     * the check read (#10451).
+     */
+    metricResponse?: MetricMonitorResponse | null | undefined;
   }): MarkdownText | null {
     const ctx: MetricCriteriaContext | undefined =
       MonitorCriteriaEvaluator.getMetricCriteriaContext(input.criteriaInstance);
@@ -2379,6 +2397,7 @@ ${incomingRequestGrouping.rootCauseNote}
         monitor: input.monitor,
         ctx,
         monitorStep: input.monitorStep,
+        metricResponse: input.metricResponse,
       });
 
     if (deepLink) {
@@ -2396,6 +2415,7 @@ ${incomingRequestGrouping.rootCauseNote}
         monitor: input.monitor,
         ctx,
         monitorStep: input.monitorStep,
+        metricResponse: input.metricResponse,
       });
 
     if (logsLink) {
@@ -2411,6 +2431,7 @@ ${incomingRequestGrouping.rootCauseNote}
         monitor: input.monitor,
         ctx,
         monitorStep: input.monitorStep,
+        metricResponse: input.metricResponse,
       });
 
     if (tracesLink) {
@@ -2781,10 +2802,79 @@ ${incomingRequestGrouping.rootCauseNote}
     return `${input.breachingCount} sample${input.breachingCount === 1 ? "" : "s"} breached the threshold.`;
   }
 
+  /*
+   * What the monitor added to each query it read, lined up with the
+   * queries it read (MetricTelemetrySnapshot.getQueryScopes): the host a
+   * Host monitor reads, a Docker or Podman monitor's host, runtime and
+   * container filters, an IoT monitor's fleet and device filters. Null
+   * when the worker's response does not say what it read each query with.
+   */
+  private static getQueryReadScopes(
+    metricResponse: MetricMonitorResponse | null | undefined,
+  ): Array<Dictionary<unknown> | null> | null {
+    return MetricTelemetrySnapshot.getQueryScopes({
+      queryConfigs: metricResponse?.metricViewConfig?.queryConfigs,
+      queryAttributes: metricResponse?.queryAttributes,
+    });
+  }
+
+  /*
+   * The query a criteria compared, among the ones the worker read: the one
+   * its alias names, else the first, as MetricMonitorCriteria falls back
+   * to it. -1 for a formula, which compared every query.
+   */
+  private static getComparedQueryIndex(input: {
+    ctx: MetricCriteriaContext;
+    queryConfigs: Array<MetricQueryConfigData>;
+  }): number {
+    if (input.ctx.isFormula) {
+      return -1;
+    }
+
+    const index: number = input.queryConfigs.findIndex(
+      (queryConfig: MetricQueryConfigData): boolean => {
+        return queryConfig?.metricAliasData?.metricVariable === input.ctx.alias;
+      },
+    );
+
+    return index >= 0 ? index : 0;
+  }
+
+  /*
+   * What the worker read the compared query with - every query's, for a
+   * formula - as it says (MetricMonitorResponse.queryAttributes): its own
+   * filters and the ones the monitor added. Empty when it does not say.
+   */
+  private static getComparedQueryReads(input: {
+    ctx: MetricCriteriaContext;
+    metricResponse: MetricMonitorResponse | null | undefined;
+  }): Array<Dictionary<unknown> | undefined> {
+    const queryConfigs: Array<MetricQueryConfigData> | undefined =
+      input.metricResponse?.metricViewConfig?.queryConfigs;
+    const reads: Array<Dictionary<unknown> | undefined> | undefined =
+      input.metricResponse?.queryAttributes;
+
+    if (
+      !Array.isArray(queryConfigs) ||
+      !Array.isArray(reads) ||
+      reads.length !== queryConfigs.length
+    ) {
+      return [];
+    }
+
+    const index: number = MonitorCriteriaEvaluator.getComparedQueryIndex({
+      ctx: input.ctx,
+      queryConfigs: queryConfigs,
+    });
+
+    return index >= 0 ? [reads[index]] : [...reads];
+  }
+
   private static buildMetricExplorerDeepLink(input: {
     monitor: Monitor;
     ctx: MetricCriteriaContext;
     monitorStep?: MonitorStep | undefined;
+    metricResponse?: MetricMonitorResponse | null | undefined;
   }): string | null {
     const projectId: string | undefined = input.monitor.projectId?.toString();
 
@@ -2793,25 +2883,78 @@ ${incomingRequestGrouping.rootCauseNote}
     }
 
     /*
+     * A Metrics monitor written in PromQL compares its expression, which its
+     * context names as the metric (getPromQLViewConfig): opened as a metric,
+     * the explorer charted nothing. The expression opens on the PromQL page,
+     * which reads it from `query`.
+     */
+    const metricMonitor: MonitorStepMetricMonitor | undefined =
+      input.monitorStep?.data?.metricMonitor;
+
+    if (MonitorStepMetricMonitorUtil.isPromQL(metricMonitor)) {
+      const expression: string =
+        MonitorStepMetricMonitorUtil.getPromQLQuery(metricMonitor);
+
+      if (!expression) {
+        return null;
+      }
+
+      const promQLParams: URLSearchParams = new URLSearchParams();
+      promQLParams.set("query", expression);
+
+      return `${DashboardClientUrl.toString()}/${projectId}/metrics/promql?${promQLParams.toString()}`;
+    }
+
+    /*
+     * The query as the worker read it (#10451): its own filters, and what
+     * the monitor narrowed it to beside them - the host of a Host monitor,
+     * a Docker or Podman monitor's host and container filters, an IoT
+     * monitor's fleet. Linked with its own filters alone, a Host monitor's
+     * metric was charted for every host in the project.
+     */
+    const readScopes: Array<Dictionary<unknown> | null> | null =
+      MonitorCriteriaEvaluator.getQueryReadScopes(input.metricResponse);
+
+    const comparedReadScope: Dictionary<unknown> =
+      (readScopes &&
+        readScopes[
+          MonitorCriteriaEvaluator.getComparedQueryIndex({
+            ctx: input.ctx,
+            queryConfigs:
+              input.metricResponse?.metricViewConfig?.queryConfigs || [],
+          })
+        ]) ||
+      {};
+
+    // And for the services a Metrics monitor reads every query for (#6266).
+    const serviceIds: Array<string> = MetricQueryServices.normalize(
+      input.metricResponse?.queryServiceIds,
+    );
+
+    /*
      * The explorer URL schema (metricQueries/startTime/endTime params)
      * is owned by MetricExplorerUrl — the same module the explorer uses
      * for its own URL round-trip — so this deep link can never drift
      * from what the explorer parses.
      */
     let queryConfigs: Array<MetricQueryConfigData> = [
-      {
-        metricQueryData: {
-          filterData: {
-            metricName: input.ctx.metricName,
-            attributes: MetricExplorerUrl.sanitizeAttributes(
-              input.ctx.filterAttributes,
-            ),
-            ...(input.ctx.aggregationType
-              ? { aggegationType: input.ctx.aggregationType }
-              : {}),
+      MetricQueryServices.withServiceIds(
+        {
+          metricQueryData: {
+            filterData: {
+              metricName: input.ctx.metricName,
+              attributes: MetricExplorerUrl.sanitizeAttributes({
+                ...(input.ctx.filterAttributes || {}),
+                ...comparedReadScope,
+              }),
+              ...(input.ctx.aggregationType
+                ? { aggegationType: input.ctx.aggregationType }
+                : {}),
+            },
           },
         },
-      },
+        serviceIds,
+      ),
     ];
     let formulaConfigs: Array<MetricFormulaConfigData> = [];
 
@@ -2839,6 +2982,19 @@ ${incomingRequestGrouping.rootCauseNote}
 
       queryConfigs = metricViewConfig.queryConfigs || [];
       formulaConfigs = metricViewConfig.formulaConfigs || [];
+
+      // Each query as the worker read it, as above.
+      if (readScopes && readScopes.length === queryConfigs.length) {
+        queryConfigs = MetricTelemetrySnapshot.applyScopes({
+          queryConfigs: queryConfigs,
+          scopes: readScopes,
+        });
+      }
+
+      queryConfigs = MetricTelemetrySnapshot.applyServices({
+        queryConfigs: queryConfigs,
+        serviceIds: serviceIds,
+      });
     }
 
     const breachWindow: { startTime: Date; endTime: Date } =
@@ -2885,25 +3041,53 @@ ${incomingRequestGrouping.rootCauseNote}
   }
 
   /*
+   * A Host, Docker, Podman or IoT Device monitor's logs or traces: its
+   * resource's, as its own Logs and Traces pages read them, from what the
+   * check read (MonitorResourceSignalScope, #10451). Null for any other
+   * monitor, whose links carry the metric's own attributes.
+   */
+  private static getResourceSignalScope(input: {
+    monitor: Monitor;
+    ctx: MetricCriteriaContext;
+    monitorStep?: MonitorStep | undefined;
+    metricResponse?: MetricMonitorResponse | null | undefined;
+    signal: ResourceSignal;
+  }): ResourceSignalScope | null {
+    return MonitorResourceSignalScope.getScope({
+      monitorType: input.monitor.monitorType,
+      monitorStep: input.monitorStep,
+      signal: input.signal,
+      queryAttributes: input.ctx.filterAttributes,
+      seriesLabels: input.ctx.seriesLabels,
+      readAttributes: MonitorCriteriaEvaluator.getComparedQueryReads({
+        ctx: input.ctx,
+        metricResponse: input.metricResponse,
+      }),
+    });
+  }
+
+  /*
    * The slice of telemetry a metric breach describes, in cross-signal
    * terms: the breach window, the criteria's metric attribute filters
    * (overlaid with the per-series labels when per-series alerting
    * identified a specific series), and the monitor step's telemetry
-   * service scope when one is configured.
+   * service scope when one is configured. A resource monitor's is its
+   * resource instead (resourceScope): a host metric's own attributes - a
+   * service's `name`, a CPU's `state` - are on no log line or span.
    */
   private static buildMetricBreachTelemetryScope(input: {
     ctx: MetricCriteriaContext;
     monitorStep?: MonitorStep | undefined;
+    resourceScope?: ResourceSignalScope | null | undefined;
   }): TelemetryCrossSignalScope {
     const breachWindow: { startTime: Date; endTime: Date } =
       MonitorCriteriaEvaluator.getMetricBreachExplorerWindow(input.ctx);
 
     const attributes: Dictionary<string> = {};
 
-    const attributeSources: Array<JSONObject> = [
-      input.ctx.filterAttributes || {},
-      input.ctx.seriesLabels || {},
-    ];
+    const attributeSources: Array<JSONObject> = input.resourceScope
+      ? [input.resourceScope.attributes]
+      : [input.ctx.filterAttributes || {}, input.ctx.seriesLabels || {}];
 
     for (const source of attributeSources) {
       for (const key of Object.keys(source)) {
@@ -2938,6 +3122,7 @@ ${incomingRequestGrouping.rootCauseNote}
     monitor: Monitor;
     ctx: MetricCriteriaContext;
     monitorStep?: MonitorStep | undefined;
+    metricResponse?: MetricMonitorResponse | null | undefined;
   }): TelemetryExplorerDeepLink | null {
     const projectId: string | undefined = input.monitor.projectId?.toString();
 
@@ -2945,10 +3130,17 @@ ${incomingRequestGrouping.rootCauseNote}
       return null;
     }
 
+    const resourceScope: ResourceSignalScope | null =
+      MonitorCriteriaEvaluator.getResourceSignalScope({
+        ...input,
+        signal: ResourceSignal.Logs,
+      });
+
     const scope: TelemetryCrossSignalScope =
       MonitorCriteriaEvaluator.buildMetricBreachTelemetryScope({
         ctx: input.ctx,
         monitorStep: input.monitorStep,
+        resourceScope: resourceScope,
       });
 
     /*
@@ -2967,7 +3159,8 @@ ${incomingRequestGrouping.rootCauseNote}
 
     return {
       url: `${DashboardClientUrl.toString()}/${projectId}/logs?${params.toString()}`,
-      dropped: queryParams.dropped,
+      // And the container or device the logs cannot be narrowed to.
+      dropped: [...queryParams.dropped, ...(resourceScope?.notCarried || [])],
     };
   }
 
@@ -2975,6 +3168,7 @@ ${incomingRequestGrouping.rootCauseNote}
     monitor: Monitor;
     ctx: MetricCriteriaContext;
     monitorStep?: MonitorStep | undefined;
+    metricResponse?: MetricMonitorResponse | null | undefined;
   }): TelemetryExplorerDeepLink | null {
     const projectId: string | undefined = input.monitor.projectId?.toString();
 
@@ -2982,10 +3176,17 @@ ${incomingRequestGrouping.rootCauseNote}
       return null;
     }
 
+    const resourceScope: ResourceSignalScope | null =
+      MonitorCriteriaEvaluator.getResourceSignalScope({
+        ...input,
+        signal: ResourceSignal.Traces,
+      });
+
     const scope: TelemetryCrossSignalScope =
       MonitorCriteriaEvaluator.buildMetricBreachTelemetryScope({
         ctx: input.ctx,
         monitorStep: input.monitorStep,
+        resourceScope: resourceScope,
       });
 
     const queryParams: CrossSignalQueryParams =
@@ -2999,7 +3200,8 @@ ${incomingRequestGrouping.rootCauseNote}
 
     return {
       url: `${DashboardClientUrl.toString()}/${projectId}/traces?${params.toString()}`,
-      dropped: queryParams.dropped,
+      // And the container or device the spans cannot be narrowed to.
+      dropped: [...queryParams.dropped, ...(resourceScope?.notCarried || [])],
     };
   }
 
@@ -4489,6 +4691,9 @@ ${incomingRequestGrouping.rootCauseNote}
    *
    * `identityLines` is null when the step carries no config for the
    * monitor type; the metric details are still rendered from the context.
+   *
+   * `dataToProcess` is what the worker read: its links open the metric as
+   * it was read, and the resource's own logs and traces (#10451).
    */
   private static buildTelemetryResourceRootCauseContext(input: {
     heading: string;
@@ -4496,6 +4701,7 @@ ${incomingRequestGrouping.rootCauseNote}
     monitor: Monitor;
     monitorStep: MonitorStep;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
+    dataToProcess?: DataToProcess | undefined;
   }): MarkdownText | null {
     const sections: Array<MarkdownText> = [];
 
@@ -4522,6 +4728,11 @@ ${incomingRequestGrouping.rootCauseNote}
           criteriaInstance: input.criteriaInstance,
           monitor: input.monitor,
           monitorStep: input.monitorStep,
+          metricResponse: input.dataToProcess
+            ? MonitorCriteriaDataExtractor.getMetricMonitorResponse(
+                input.dataToProcess,
+              )
+            : null,
         })
       : null;
 
@@ -4538,6 +4749,7 @@ ${incomingRequestGrouping.rootCauseNote}
     monitorStep: MonitorStep;
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
+    dataToProcess?: DataToProcess | undefined;
   }): MarkdownText | null {
     // Docker host context
     const dockerMonitor: MonitorStepDockerMonitor | undefined =
@@ -4569,6 +4781,7 @@ ${incomingRequestGrouping.rootCauseNote}
       monitor: input.monitor,
       monitorStep: input.monitorStep,
       criteriaInstance: input.criteriaInstance,
+      dataToProcess: input.dataToProcess,
     });
   }
 
@@ -4576,6 +4789,7 @@ ${incomingRequestGrouping.rootCauseNote}
     monitorStep: MonitorStep;
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
+    dataToProcess?: DataToProcess | undefined;
   }): MarkdownText | null {
     // Host context
     const hostMonitor: MonitorStepHostMonitor | undefined =
@@ -4589,6 +4803,7 @@ ${incomingRequestGrouping.rootCauseNote}
       monitor: input.monitor,
       monitorStep: input.monitorStep,
       criteriaInstance: input.criteriaInstance,
+      dataToProcess: input.dataToProcess,
     });
   }
 
@@ -4596,6 +4811,7 @@ ${incomingRequestGrouping.rootCauseNote}
     monitorStep: MonitorStep;
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
+    dataToProcess?: DataToProcess | undefined;
   }): MarkdownText | null {
     // Podman host context
     const podmanMonitor: MonitorStepPodmanMonitor | undefined =
@@ -4627,6 +4843,7 @@ ${incomingRequestGrouping.rootCauseNote}
       monitor: input.monitor,
       monitorStep: input.monitorStep,
       criteriaInstance: input.criteriaInstance,
+      dataToProcess: input.dataToProcess,
     });
   }
 
@@ -4634,6 +4851,7 @@ ${incomingRequestGrouping.rootCauseNote}
     monitorStep: MonitorStep;
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
+    dataToProcess?: DataToProcess | undefined;
   }): MarkdownText | null {
     // IoT fleet / device context
     const iotMonitor: MonitorStepIoTMonitor | undefined =
@@ -4692,6 +4910,7 @@ ${incomingRequestGrouping.rootCauseNote}
       monitor: input.monitor,
       monitorStep: input.monitorStep,
       criteriaInstance: input.criteriaInstance,
+      dataToProcess: input.dataToProcess,
     });
   }
 

@@ -462,6 +462,7 @@ const CloudAccountOverview: FunctionComponent<
           "Which account it is in its cloud, and the connection that reads it.",
         )}
         recordId={modelId.toString()}
+        recordModelType={CloudAccount}
         settingsRoute={populate(PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS)}
         labels={account.labels}
       />

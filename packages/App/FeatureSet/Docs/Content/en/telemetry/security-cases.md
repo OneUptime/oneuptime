@@ -98,7 +98,7 @@ Every page keeps the case's header on top: its number, priority, status and titl
 
 - **Overview**: the case's description, labels and status steps, who has it and what opened it, and its figures: how many detections it has, how long it has been open, and how long it took to acknowledge and to contain. Under **Time to Acknowledge** and **Time to Contain**, it says where the case stands against its response targets.
 - **Why This Case Was Opened**, on the **Overview**: the detection that opened the case and how its rule fires (its threshold, what it groups by and the window it counts in), how many events it matched, from what and between when, what the rule looks for, and how far the requests got. Under **What matched**, the events themselves, oldest first: each with what the rule looks for highlighted, how far its request got, the log line or product it came from, and its **Trace**, **Logs** and **Exception** one click away; the log line it came from opens in the Logs explorer at that line. Click an event to see all of it, with the log line it was read from. **Keep on This Case**, on its row or in its panel, keeps the event on the case's **Evidence**, naming the detection that matched it; an event the case keeps already says so, and opens it there. A detection keeps up to 25 of the events it matched when it fires, and lists those, even once they are past their retention; your role sees the ones from the sources it can read. A rule that fires for many groups at once, a correlation rule too, keeps events for every one of them: at most 1,000 in all, so each keeps at least 10, and up to 25 as it fires again. For a detection from before it kept them, a rule's matches are its own condition, for the detection's group, over the windows it fired in; a threat intel match lists the events carrying its indicator, and a connected product's alert the event it was sent as. **Look next** opens everything about the address or user the detection is about, the events and log lines naming it, the logs of the services its log lines came from and the traces of its requests, each over the detection's window, and the case's **Story** and **Connected Signals**. The case's other detections fold under **Also on this case**.
-- **Response Plan**, on the **Overview**: what to do about the case now, most urgent first, under **Confirm it is real**, **Contain it**, **Fix what let it happen** and **Close the case**. Each step is about this case: its addresses, users and hosts, how far its requests got, what its rule says it can also fire on, the ATT&CK tactics and techniques its detections map to, and the playbooks the project has. The steps a detection rule carries of its own, written under **Response Steps** on its form, come first in the part of the plan they go under, and the rule library's rules come with steps of their own. A step OneUptime can do has its button: **Assign to Me**, **Add Exception** with the rule and the address filled in, **Run Playbook** on the playbook that suspends the account or contains the host, or the one OneUptime AI suggests, **Declare Incident**, **Mark as Contained** and **Close Case**. A step OneUptime cannot do, such as blocking an address at your firewall, says **Outside OneUptime**, with the address one click from the clipboard. Tick a step off when it is done: it is kept as one of the case's **Tasks**, done, with who did it and when. Steps the case decides tick themselves: it is assigned, an incident was declared, a playbook ran, it is contained or closed. Once every step that contains the threat is done, the plan offers **Mark as Contained**, which records the case's time to contain. When OneUptime AI has triaged the case, its read leads the plan, and its suggested steps fold under the plan's own.
+- **Response Plan**, on the **Overview**: what to do about the case now, most urgent first, under **Confirm it is real**, **Contain it**, **Fix what let it happen** and **Close the case**. Each step is about this case: its addresses, users and hosts, how far its requests got, what its rule says it can also fire on, the ATT&CK tactics and techniques its detections map to, and the playbooks the project has. The steps a detection rule carries of its own, written under **Response Steps** on its form, come first in the part of the plan they go under, and the rule library's rules come with steps of their own. A step OneUptime can do has its button: **Assign to Me**, **Add Exception** with the rule and the address filled in, **Run Playbook** on the playbook that suspends the account or contains the host, or the one OneUptime AI suggests, **Declare Incident**, **Mark as Contained** and **Close Case**. A step OneUptime cannot do, such as blocking an address at your firewall, says **Outside OneUptime**, with the address one click from the clipboard. Tick a step off when it is done: it is kept as one of the case's **Tasks**, done, with who did it and when. Steps the case decides tick themselves: it is assigned, an incident was declared, a playbook ran, it is contained or closed. Once every step that contains the threat is done, the plan offers **Mark as Contained**, which records the case's time to contain. OneUptime checks most steps itself, and says beside each what it found: see [How OneUptime checks a step](#how-oneuptime-checks-a-step). When OneUptime AI has triaged the case, its read leads the plan, and its suggested steps fold under the plan's own.
 - **OneUptime AI**, on the **Overview**: what OneUptime AI made of the case, the priority and playbook it suggests, and the evidence behind them. See [OneUptime AI in Security](/docs/telemetry/security-ai).
 - **Impact**, on the **Overview**: what the case puts at risk: whether OneUptime has seen its records reached from the internet, who owns them, what last changed on them, and the data at risk - the stores with sensitive data the case names or its users and roles can reach (see [Data Security Integrations](/docs/data-security/integrations#security-operations)). Open it to see what each record calls and is called by, the monitors and status pages watching it, and the machines the case's addresses talked to.
 - **MITRE ATT&CK**, on the **Overview**: the tactics and techniques its detections map to, each linked to its page on attack.mitre.org.
@@ -114,6 +114,41 @@ Every page keeps the case's header on top: its number, priority, status and titl
 - **Custom Fields**: the project's own fields, filled in for this case, and **Edit Fields** to change them. Once the project has a field, the **Overview** shows them too, in its last card. See [Custom fields, note templates and numbering](#custom-fields-note-templates-and-numbering).
 - **Audit Logs**: every change made to the case, and who made it. See [Audit Logs](/docs/configuration/audit-logs).
 - **Delete Case**: deletes the case and its detections, notes, timeline and playbook runs for good. To keep the record, close it with a verdict instead.
+
+### How OneUptime checks a step
+
+A tick says someone did a step. OneUptime also checks the steps of a case's **Response Plan** itself, against what really happened: every minute while the case is open, and at once when a step is ticked off, a task changes or a playbook contains something. Beside each step it checked, the plan says what it found:
+
+| Beside the step | Means |
+| --- | --- |
+| **Checked by OneUptime** | OneUptime saw the step done, and it holds. Nobody needs to tick it |
+| **Looks Done** | What OneUptime sees fits the step being done, but does not prove it. **Confirm** ticks it off as yours |
+| **Not Done Yet** | OneUptime sees the step is still to do |
+| **OneUptime Cannot Tell** | OneUptime has nothing to check the step against, and says why, with **How to let OneUptime check this** |
+| **Stopped Holding** | The step was done, and has stopped working, such as a blocked address getting through again |
+| **Not Needed So Far** | Nothing has happened that calls for the step |
+
+**How We Know**, beside what OneUptime found, opens the rest: what else it saw, a link to the traces or the product it read, and when it checked. The plan's progress counts the steps OneUptime checked itself, as in "4 of 9 done, 3 checked by OneUptime".
+
+| Step | What OneUptime reads |
+| --- | --- |
+| Block the address | Whether requests from the address still reach your app, in its traces and access logs. An address that goes quiet looks done: it may have been blocked, or may simply have stopped |
+| Check that nothing else got through | How every request from the address since the case's first detection ended. When your app turned every one of them away, the step is checked |
+| Suspend the account | The account in Okta, Microsoft Entra ID or Google Workspace: suspended, or disabled with its sessions ended after the case opened |
+| Take the host off the network | The host in CrowdStrike Falcon or Microsoft Defender for Endpoint: contained, or isolated |
+| Declare an incident | Whether a request got past your app's checks, or a monitor of the services it reached went down, while the case was open. Until one does, the step is not needed so far |
+| Rule out a false positive | Nothing: only you can rule it out. The step lists what OneUptime knows about the address: whether one of your records has it, the threat intel feeds that list it, and the signed-in users who used it in the last 30 days |
+
+- A step done outside OneUptime counts as well. Block the address at your own firewall, and OneUptime sees its requests stop; suspend the account in Okta, and OneUptime reads it back.
+- You can still tick a step off yourself, even one OneUptime does not see done. A step OneUptime has checked needs no tick.
+- When a step that was done stops holding, the plan says so at its top, the case's **Timeline** says what OneUptime saw, and the people on the case are told: see [Notifications](#notifications).
+- OneUptime cannot see an address's requests when your app sends it no traces or logs, when its traces do not say which address each request came from, or when they carry the addresses of Cloudflare or a load balancer in front of your app instead of your visitors'. Set the client's address (`client.address`) on your app's server spans: from `CF-Connecting-IP` behind Cloudflare, from `X-Forwarded-For` behind a load balancer.
+- OneUptime reads accounts and hosts through the project's connections to the products that hold them, the ones [Responding through OneUptime](#responding-through-oneuptime) uses. With none, it cannot tell.
+- A product that does not answer, or a read that fails, never counts as a step not done: the step says OneUptime could not check it just now, and OneUptime tries again in a few minutes.
+
+**Mark Cases Contained When Verified**, under **Products → Security Events → Settings → Case Statuses**, moves a case to Contained once every step that contains it is **Checked by OneUptime** or **Not Needed So Far**. Its time to contain is recorded, and the case's **Timeline** says OneUptime verified every step that contains the threat. A step that only looks done, or a tick, never moves a case on its own. The setting is on in every project, and a Project Owner or Project Admin can turn it off: a case then stays where it is until somebody marks it Contained.
+
+Everyone who can see a case sees what OneUptime found. Nobody edits it: a person who disagrees ticks the step themselves, which takes a role that can work the case's tasks.
 
 ### Work cases from the queue
 
@@ -201,7 +236,7 @@ A Security Admin manages the custom fields and note templates, and a Security Me
 
 ## Notifications
 
-OneUptime tells people about five things on a case. Nobody has to set anything up: a project that only clicked **Turn on recommended** hears about its High and Critical cases by email and push.
+OneUptime tells people about six things on a case. Nobody has to set anything up: a project that only clicked **Turn on recommended** hears about its High and Critical cases by email and push.
 
 | Notification | Who is told | By default |
 | --- | --- | --- |
@@ -210,12 +245,13 @@ OneUptime tells people about five things on a case. Nobody has to set anything u
 | Playbook step waiting for my approval | The people on the case who can approve the step: the person it is assigned to and the members of its team. When none of them can approve, everyone in the project who can | Email and push |
 | Security case response target | The people on the case: the person it is assigned to and the members of its team. When nobody is on it, the people told about new cases at its priority | Email and push |
 | Security case task assigned to me | The person a task on the case is handed to, unless they took it themselves | Email and push |
+| Security case step stopped holding | The people on the case, when a step OneUptime saw done stops holding: the person it is assigned to and the members of its team. When nobody is on it, the people told about new cases at its priority | Email and push |
 
 - Only people who can see the case are told about it: Project Owners, Project Admins, and the Security Admin, Security Member and Security Viewer roles. A role limited to some labels is told only about the cases with those labels.
 - Nobody is told about what they did: the person who opens a case by hand, assigns it or starts a run is not notified of it.
 - Each person hears about a case once. A case that opens at Medium and later rises to Critical reaches the people who chose High or Critical when it rises, and not again the people who chose Medium, who heard about it when it opened.
 - The test attack from **Send a test attack** opens a case that notifies nobody.
-- A Critical case and a step waiting for approval are sent at once, never held back in an [email rollup](/docs/emails/notification-rollup). So is a response target about to be missed, or missed.
+- A Critical case and a step waiting for approval are sent at once, never held back in an [email rollup](/docs/emails/notification-rollup). So is a response target about to be missed, or missed, and a step that stopped holding.
 - The case's **Timeline** says who was told, and when.
 
 ### Choose what you are told
@@ -470,6 +506,10 @@ Look at the case's **Timeline**, which says who was notified. A **New security c
 
 :::details A case shows no due time
 Its priority has no response target, or got one only after the case opened: a case's due times are set as it opens. The test attack's case has none. See [Response targets](#response-targets).
+:::
+
+:::details A step says OneUptime Cannot Tell
+The step says why, beside it. Most often your app sends OneUptime no traces or logs, its traces do not carry the client's address, or the project has no connection to the product that holds the account or the host. See [How OneUptime checks a step](#how-oneuptime-checks-a-step).
 :::
 
 :::details A playbook did not run

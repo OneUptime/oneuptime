@@ -54,6 +54,7 @@ import ThreatIntelFeedPoller, {
   StixIndicatorParseResult,
   StixParseContext,
 } from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelFeedPoller";
+import { isDetectionArrivalCandidate } from "Common/Server/Utils/SecurityEvent/DetectionArrivalRead";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
@@ -90,16 +91,30 @@ import {
   DETECTION_MAX_FINDINGS_PER_EVALUATION,
   DETECTION_MAX_GROUPS_PER_EVALUATION,
   DETECTION_MAX_LOOKBACK_IN_MINUTES,
+  DETECTION_RETRY_AFTER_FAILURE_IN_MINUTES,
   DETECTION_RULE_ID_ATTRIBUTE,
   DETECTION_RULE_NAME_ATTRIBUTE,
   DETECTION_SIGMA_ID_ATTRIBUTE,
 } from "Common/Types/SecurityEvent/DetectionFindingConstants";
 import {
+  getDetectionRetryAt,
+  getNextStretch,
+  getScheduledArrivalRange,
+} from "Common/Server/Utils/SecurityEvent/DetectionRuleEvaluator";
+import SecurityEventLateArrival from "Common/Models/AnalyticsModels/SecurityEventLateArrival";
+import {
+  SECURITY_EVENT_LATE_ARRIVAL_IN_SECONDS,
+  SECURITY_EVENT_LATE_ARRIVAL_NOTICE_DAYS,
+} from "Common/Types/SecurityEvent/SecurityEventLateArrival";
+import {
   DETECTION_REAL_TIME_RULES_MAX,
   REAL_TIME_REGULAR_EXPRESSION_PROBLEM,
   getRealTimeCountWindow,
 } from "Common/Types/SecurityEvent/RealTimeDetection";
-import { DETECTION_RULE_REAL_TIME } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityDetectionStatus";
+import {
+  DETECTION_RULE_REAL_TIME,
+  DETECTION_RULE_RUN_FAILED_TRIED_AGAIN,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityDetectionStatus";
 import {
   RESPONSE_STEPS_TITLE,
   RESPONSE_STEP_MOVE_DOWN,
@@ -1831,14 +1846,49 @@ describe("the Security Events page", () => {
     expect(job).toContain(
       "DetectionRuleEvaluator.evaluateDueRulesForProject(projectId, lease)",
     );
-    // What arrived since the last run (#10337), at most a day back.
-    expect(evaluator).toContain(
-      "let arrivedAfter: Date = lastRun && !Number.isNaN(lastRun.getTime()) ? floorToSecond(lastRun) : OneUptimeDate.addRemoveMinutes( arrivedUntil, -Math.max(1, data.evaluationIntervalInMinutes || 1), ); if (OneUptimeDate.isBefore(arrivedAfter, earliest)) { arrivedAfter = earliest; }",
+    /*
+     * What arrived since the last run (#10337), at most a day back - unless
+     * the rule's runs have been failing, when it reads everything since its
+     * last good one (#10490).
+     */
+    const runNow: Date = new Date("2026-11-04T09:02:00.000Z");
+    const weekAgo: Date = new Date("2026-10-28T09:00:00.000Z");
+
+    expect(
+      getScheduledArrivalRange({
+        now: runNow,
+        lastEvaluatedAt: weekAgo,
+        evaluationIntervalInMinutes: 5,
+      }).arrivedAfter,
+    ).toEqual(new Date("2026-11-03T09:00:00.000Z"));
+    expect(
+      getScheduledArrivalRange({
+        now: runNow,
+        lastEvaluatedAt: weekAgo,
+        evaluationIntervalInMinutes: 5,
+        lastFailedAt: new Date("2026-11-04T08:30:00.000Z"),
+      }).arrivedAfter,
+    ).toEqual(weekAgo);
+    /*
+     * ...whenever it happened, as long as it arrived within a day of that:
+     * the condition a rule's run and a hunt's run both read by
+     * (DetectionArrivalRead), as it is built.
+     */
+    const arrived: { query: string; query_params: Record<string, unknown> } =
+      isDetectionArrivalCandidate({
+        kind: "run",
+        arrivedAfter: new Date("2026-11-04T09:00:00.000Z"),
+        arrivedUntil: new Date("2026-11-04T09:01:00.000Z"),
+        candidateStartTime: new Date("2026-11-03T09:00:00.000Z"),
+        candidateEndTime: new Date("2026-11-04T10:02:00.000Z"),
+      });
+    expect(arrived.query).toBe(
+      "(createdAt > {p0:DateTime} AND createdAt <= {p1:DateTime} AND time >= createdAt - toIntervalSecond({p2:Int32}))",
     );
-    // ...whenever it happened, as long as it arrived within a day of that.
-    expect(service).toContain(
-      "AND time >= createdAt - toIntervalSecond(${{ type: TableColumnType.Number, value: DETECTION_RUN_LATE_EVENT_SECONDS, }}))`;",
+    expect(arrived.query_params["p2"]).toBe(
+      DETECTION_LATE_EVENT_WINDOW_IN_MINUTES * 60,
     );
+    expect(service).toContain("isDetectionArrivalCandidate(arrival)");
     expect(DETECTION_LATE_EVENT_WINDOW_IN_MINUTES).toBe(24 * 60);
     // A rule that counts reads the windows of its interval on the clock that hold what arrived.
     expect(evaluator).toContain(
@@ -1880,8 +1930,48 @@ describe("the Security Events page", () => {
     expect(page).toContain(
       "- An event that arrives late is still read, once, by the next run, and counted in the window it happened in: a group fires when its window reaches the count, and at most once a window. One that arrives more than a day after it happened is stored and searchable, but the rule's runs don't read it; **Run on Past Events** does.",
     );
+    /*
+     * What arrives later than that is counted by a view whose filter is the
+     * exact complement of a run's bound, and Detection Rules says so for the
+     * last week, opening Run on Past Events over it (#10491).
+     */
+    expect(SECURITY_EVENT_LATE_ARRIVAL_IN_SECONDS).toBe(
+      DETECTION_LATE_EVENT_WINDOW_IN_MINUTES * 60,
+    );
+    expect(
+      new SecurityEventLateArrival().materializedViews[0]?.query,
+    ).toContain(
+      `WHERE time < createdAt - toIntervalSecond(${SECURITY_EVENT_LATE_ARRIVAL_IN_SECONDS})`,
+    );
+    expect(SECURITY_EVENT_LATE_ARRIVAL_NOTICE_DAYS).toBe(7);
+    expect(page).toContain(
+      "**Run on Past Events** does. That is on purpose, so a backfill of history doesn't open alerts about the past: when any arrived that late in the last 7 days, a notice above the rules says how many, from which sources and when they happened, and opens **Run on Past Events** over that time.",
+    );
     expect(page).toContain(
       "the next run covers the whole gap, up to the last 24 hours.",
+    );
+    /*
+     * A run that fails backs off and catches up, never skipping (#10490), and
+     * one stopped after it acted is redone once (#10489).
+     */
+    expect(DETECTION_RETRY_AFTER_FAILURE_IN_MINUTES).toBe(60);
+    expect(
+      getDetectionRetryAt({
+        lastFailedAt: new Date("2026-11-04T09:00:00.000Z"),
+        evaluationIntervalInMinutes: 1440,
+      }),
+    ).toEqual(new Date("2026-11-04T10:00:00.000Z"));
+    expect(
+      getNextStretch(
+        new Date("2026-11-01T09:00:00.000Z"),
+        new Date("2026-11-04T09:00:00.000Z"),
+      ).arrivedUntil,
+    ).toEqual(new Date("2026-11-02T09:00:00.000Z"));
+    expect(evaluator).toContain(
+      "lastFailedAt: OneUptimeDate.getCurrentDate(),",
+    );
+    expect(page).toContain(
+      `- A run that fails, such as one that takes too long, leaves the rule where it was: its **Status** says **${DETECTION_RULE_RUN_FAILED_TRIED_AGAIN.text}**, and it is tried again at its next interval, or within the hour when its interval is longer. The run that works reads everything that arrived since the last one that did, however long ago, a day at a time. A run stopped after it acted on its matches is done again without adding them to their case twice.`,
     );
     expect(page).toContain(
       "- Every group that reaches the threshold becomes a Detection Finding, up to 10,000 a run. Alerts, incidents and cases open for the 100 with the highest counts; the rest share one case about the rule, and the rule's **Last Error** says how many groups matched.",

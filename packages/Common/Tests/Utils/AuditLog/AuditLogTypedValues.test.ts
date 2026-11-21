@@ -24,6 +24,7 @@ import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import NotContains from "../../../Types/BaseDatabase/NotContains";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../Types/BaseDatabase/NotEqualOrNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import NotOnWatchlist from "../../../Types/BaseDatabase/NotOnWatchlist";
 import NotWildcard from "../../../Types/BaseDatabase/NotWildcard";
@@ -190,6 +191,9 @@ const SAMPLES: Readonly<Partial<Record<ObjectType, () => unknown>>> = {
   [ObjectType.NotEqual]: (): unknown => {
     return new NotEqual("checkout");
   },
+  [ObjectType.NotEqualOrNull]: (): unknown => {
+    return new NotEqualOrNull("checkout");
+  },
   [ObjectType.Search]: (): unknown => {
     return new Search("checkout");
   },
@@ -275,6 +279,7 @@ const KEPT_AS_JSON: Readonly<Record<string, string>> = {
   [ObjectType.EqualTo]: "a query filter",
   [ObjectType.EqualToOrNull]: "a query filter",
   [ObjectType.NotEqual]: "a query filter",
+  [ObjectType.NotEqualOrNull]: "a query filter",
   [ObjectType.Search]: "a query filter",
   [ObjectType.MultiSearch]: "a query filter",
   [ObjectType.GreaterThan]: "a query filter",

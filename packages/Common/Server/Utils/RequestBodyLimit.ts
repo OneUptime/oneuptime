@@ -206,7 +206,7 @@ export const LARGE_REQUEST_BODY_ROUTES: ReadonlyArray<LargeRequestBodyRoute> = [
     limit: REPORT_REQUEST_BODY_LIMIT,
     readsBodyAfterAuthentication: true,
     reason:
-      "A probe's collection of a vCenter or an OpenStack cloud is up to 48 MiB of OTLP metrics: millions of values, and a refused collection is lost. The probe's key is checked first, from its headers or from the start of its report, and a collection whose probe is not known by then is parsed only up to a large route's 1,000,000 values.",
+      "A probe's collection of a vCenter or an OpenStack cloud is up to 48 MiB of OTLP metrics: millions of values, and a refused collection is lost. The probe's key is checked first, from its headers or from the first few kilobytes of its report, and a collection whose probe is not known by then is refused with the rest of it unread.",
   },
   {
     paths: ["/telemetry-writer/insert"],

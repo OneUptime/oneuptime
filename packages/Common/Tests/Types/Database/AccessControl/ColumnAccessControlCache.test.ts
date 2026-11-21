@@ -7,7 +7,9 @@ import { ColumnAccessControl } from "../../../../Types/BaseDatabase/AccessContro
 import ColumnBillingAccessControl from "../../../../Types/BaseDatabase/ColumnBillingAccessControl";
 import { getColumnAccessControlForAllColumns } from "../../../../Types/Database/AccessControl/ColumnAccessControl";
 import { getColumnBillingAccessControlForAllColumns } from "../../../../Types/Database/AccessControl/ColumnBillingAccessControl";
+import { RECORD_ACTOR_COLUMNS } from "../../../../Types/Database/RecordActor";
 import Dictionary from "../../../../Types/Dictionary";
+import Permission from "../../../../Types/Permission";
 import "reflect-metadata";
 
 type ModelCtor = new () => DatabaseBaseModel;
@@ -179,9 +181,32 @@ describe("DatabaseBaseModel.getColumnAccessControlForAllColumns override", () =>
       });
     }
 
+    /*
+     * What created the record and who last modified it are read as who
+     * created it is, never by a status page's visitor, and written by no
+     * request (#10290).
+     */
+    const creatorReaders: Array<Permission> = (
+      merged["createdByUserId"]?.read || monitor.readRecordPermissions
+    ).filter((permission: Permission): boolean => {
+      return permission !== Permission.Public;
+    });
+
+    expect(creatorReaders.length).toBeGreaterThan(0);
+
+    for (const key of RECORD_ACTOR_COLUMNS) {
+      expect({ key, access: merged[key] }).toEqual({
+        key,
+        access: { read: creatorReaders, create: [], update: [] },
+      });
+    }
+
     // Decorated columns flow through as the exact same Reflect singletons.
     for (const key of Object.keys(raw)) {
-      if (!DEFAULT_COLUMNS.includes(key)) {
+      if (
+        !DEFAULT_COLUMNS.includes(key) &&
+        !RECORD_ACTOR_COLUMNS.includes(key)
+      ) {
         expect(merged[key]).toBe(raw[key]);
       }
     }

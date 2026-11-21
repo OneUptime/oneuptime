@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddCloudAccountFeed1808480000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808480000000-AddCloudAccountFeed";
 import CloudAccountFeed from "../../../../Models/DatabaseModels/CloudAccountFeed";
@@ -75,13 +76,17 @@ describe("AddCloudAccountFeed1808480000000", () => {
       .getTableColumns()
       .columns.filter((column: string): boolean => {
         // Relations are their id columns in the table.
-        return ![
-          "project",
-          "cloudAccount",
-          "createdByUser",
-          "deletedByUser",
-          "user",
-        ].includes(column);
+        return (
+          ![
+            "project",
+            "cloudAccount",
+            "createdByUser",
+            "deletedByUser",
+            "user",
+          ].includes(column) &&
+          // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+          !RecordActorUtil.isColumn(column)
+        );
       });
 
     for (const column of declared) {

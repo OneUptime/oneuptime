@@ -116,7 +116,7 @@ De här monitorerna utvärderar alltid **Mätvärde** – värdet av den konfigu
 
 ### Villkor
 
-Statiska trösklar jämförs med det **Tröskel** du anger: **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** och **Lika med**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något.
+Statiska trösklar jämförs med det **Tröskel** du anger: **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med**, **Lika med** och **Inte lika med**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något.
 
 Avvikelseidentifiering mot en baslinje behöver ingen tröskel. Välj ett av de här villkoren så visar formuläret i stället **Känslighet** och **Baslinjefönster**:
 

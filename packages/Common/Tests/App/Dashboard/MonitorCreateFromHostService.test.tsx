@@ -481,7 +481,7 @@ describe("Monitor Create, opened from a systemd unit's page", () => {
       }),
     );
     expect(criteriaOf(form)[1]!.data!.filters[0]!.filterType).toBe(
-      FilterType.LessThan,
+      FilterType.NotEqualTo,
     );
   });
 });

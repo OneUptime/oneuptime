@@ -850,15 +850,27 @@ describe("Kubernetes AI agent", () => {
  * Swarm, Proxmox, VMware, Ceph, database and host agent, and for the socket
  * and host kinds as root, with the engine socket or the host's namespaces.
  * So it ships only node, tini, the CA store and the programs its executors
- * spawn: the docker CLI, the ceph CLI and nsenter from Alpine's own signed
- * packages, and govc from VMware's release, checked against a digest pinned
- * per architecture in a stage that does not ship (Alpine's govc was built
- * with an x/text that has two high vulnerabilities, #9830). No download tool
- * ships; Proxmox and the databases are reached from Node itself.
+ * spawn: the ceph CLI and nsenter from Alpine's own signed packages, and the
+ * docker CLI and govc from their own releases, each checked against a digest
+ * pinned per architecture in a stage that does not ship. Alpine's builds of
+ * those two had high vulnerabilities their upstream releases did not: govc's
+ * x/text (#9830), and the Go that built docker-cli (#10383). No download
+ * tool ships; Proxmox and the databases are reached from Node itself.
  */
 describe("Resource AI agent", () => {
   const template = "agents/ResourceAIAgent/Dockerfile.tpl";
+  const DOCKER_COPY =
+    /^COPY --from=(\S+) \/usr\/bin\/docker \/usr\/bin\/docker$/;
   const GOVC_COPY = /^COPY --from=(\S+) \/usr\/bin\/govc \/usr\/bin\/govc$/;
+
+  /*
+   * The first Docker release built with a Go that fixes CVE-2026-97033 to
+   * CVE-2026-97043 (Go 1.26.11 and 1.27.4, 2026-11-10): 29.10.0, built with
+   * 1.27.4 (read with go version -m). Alpine 3.24's docker-cli 29.9.3-r1,
+   * and Docker's own 29.9.3, are built before it. So that a revert, a merge
+   * or a "pin what worked" cannot take the image back to one of them.
+   */
+  const FIRST_FIXED_DOCKER = "29.10.0";
 
   function shippedLines(environment) {
     const stages = stagesOf(template, environment);
@@ -872,18 +884,62 @@ describe("Resource AI agent", () => {
     };
   }
 
+  // The stage a binary is copied in from, by the COPY that names it.
+  function donorStage(environment, copyPattern) {
+    const { stages, lines } = shippedLines(environment);
+    const copy = lines.find((line) => {
+      return copyPattern.test(line);
+    });
+    expect(copy).toBeDefined();
+    const donorName = copyPattern.exec(copy)[1].toLowerCase();
+    return stages.find((stage) => {
+      return stage.name === donorName;
+    });
+  }
+
+  // Compares two major.minor.patch releases part by part, as numbers.
+  function compareReleases(left, right) {
+    const a = left.split(".").map(Number);
+    const b = right.split(".").map(Number);
+    for (let index = 0; index < Math.max(a.length, b.length); index += 1) {
+      const difference = (a[index] || 0) - (b[index] || 0);
+      if (difference !== 0) {
+        return difference;
+      }
+    }
+    return 0;
+  }
+
+  // The value of an ARG a stage declares with a default.
+  function argOf(stage, name) {
+    const pattern = new RegExp(`^ARG ${name}=(\\S+)$`);
+    const line = stage.instructions.find((instruction) => {
+      return pattern.test(instruction);
+    });
+    return line ? pattern.exec(line)[1] : undefined;
+  }
+
+  // Where an executor runs its program: its exported *_BINARY constant.
+  function executorBinary(file, constant) {
+    const match = new RegExp(
+      `^export const ${constant}: string = "([^"]+)";$`,
+      "m",
+    ).exec(read(file));
+    expect(match).not.toBeNull();
+    return match[1];
+  }
+
   test("is a template the repository builds", () => {
     expect(TEMPLATES).toContain(template);
   });
 
   test.each(ENVIRONMENTS)(
-    "%s: installs nothing from the OS beyond the CA store, tini and the three programs its executors run from Alpine",
+    "%s: installs nothing from the OS beyond the CA store, tini and the two programs its executors run from Alpine",
     (environment) => {
       const { lines } = shippedLines(environment);
       expect(lines.flatMap(installedPackagesIn).sort()).toEqual([
         "ca-certificates",
         "ceph19-common",
-        "docker-cli",
         "tini",
         "util-linux-misc",
       ]);
@@ -891,39 +947,66 @@ describe("Resource AI agent", () => {
   );
 
   test.each(ENVIRONMENTS)(
-    "%s: copies in govc alone, from a stage that does not ship",
+    "%s: copies in the docker CLI and govc alone, each from a stage that does not ship",
     (environment) => {
       const { stages, chain, lines } = shippedLines(environment);
       const copies = lines.filter((line) => {
         return /^COPY --from=/.test(line);
       });
-      expect(copies).toHaveLength(1);
-      expect(copies[0]).toMatch(GOVC_COPY);
+      expect(copies).toHaveLength(2);
+      expect(copies).toEqual([
+        expect.stringMatching(DOCKER_COPY),
+        expect.stringMatching(GOVC_COPY),
+      ]);
 
-      const donorName = GOVC_COPY.exec(copies[0])[1].toLowerCase();
-      expect(
-        stages.map((stage) => {
-          return stage.name;
-        }),
-      ).toContain(donorName);
-      expect(
-        chain.map((stage) => {
-          return stage.name;
-        }),
-      ).not.toContain(donorName);
+      const donorNames = [
+        DOCKER_COPY.exec(copies[0])[1].toLowerCase(),
+        GOVC_COPY.exec(copies[1])[1].toLowerCase(),
+      ];
+      // Two stages of their own: neither download rides on the other's.
+      expect(new Set(donorNames).size).toBe(2);
+      for (const donorName of donorNames) {
+        expect(
+          stages.map((stage) => {
+            return stage.name;
+          }),
+        ).toContain(donorName);
+        expect(
+          chain.map((stage) => {
+            return stage.name;
+          }),
+        ).not.toContain(donorName);
+      }
+    },
+  );
+
+  test.each(ENVIRONMENTS)(
+    "%s: puts the docker CLI and govc where DockerExecutor and GovcExecutor run them",
+    (environment) => {
+      const { lines } = shippedLines(environment);
+      const destinations = lines
+        .filter((line) => {
+          return /^COPY --from=/.test(line);
+        })
+        .map((line) => {
+          return line.split(/\s+/).pop();
+        });
+
+      expect(destinations).toEqual([
+        executorBinary(
+          "agents/ResourceAIAgent/Executors/DockerExecutor.ts",
+          "DOCKER_BINARY",
+        ),
+        executorBinary(
+          "agents/ResourceAIAgent/Executors/GovcExecutor.ts",
+          "GOVC_BINARY",
+        ),
+      ]);
     },
   );
 
   test("the govc stage checks VMware's release against its pinned sha256 before installing it", () => {
-    const { stages, lines } = shippedLines("production");
-    const donorName = GOVC_COPY.exec(
-      lines.find((line) => {
-        return GOVC_COPY.test(line);
-      }),
-    )[1].toLowerCase();
-    const donor = stages.find((stage) => {
-      return stage.name === donorName;
-    });
+    const donor = donorStage("production", GOVC_COPY);
 
     // One instruction downloads, verifies and installs, so a failed check
     // fails the build before anything reaches /usr/bin.
@@ -948,6 +1031,71 @@ describe("Resource AI agent", () => {
         expect.stringMatching(/^ARG GOVC_SHA256_ARM64=[0-9a-f]{64}$/),
       ]),
     );
+  });
+
+  test("the docker stage checks Docker's static release against its pinned sha256 before installing the CLI out of it", () => {
+    const donor = donorStage("production", DOCKER_COPY);
+
+    // One instruction downloads, verifies, unpacks and installs, so a failed
+    // check fails the build before anything is unpacked or reaches /usr/bin.
+    const download = donor.instructions.filter((line) => {
+      return /https:\/\/download\.docker\.com\/linux\/static\/stable\//.test(
+        line,
+      );
+    });
+    expect(download).toHaveLength(1);
+    const verify = download[0].search(/\bsha256sum -c\b/);
+    const unpack = download[0].search(/\btar\b/);
+    const install = download[0].search(
+      /\binstall\b[^&|;]*\s\/usr\/bin\/docker\b/,
+    );
+    expect(verify).toBeGreaterThan(-1);
+    expect(unpack).toBeGreaterThan(verify);
+    expect(install).toBeGreaterThan(unpack);
+
+    // Only the CLI comes out of the archive: not dockerd, containerd or runc.
+    expect(download[0]).toMatch(/\btar -xzf \S+ -C \S+ docker\/docker &&/);
+
+    // Docker's names for the two architectures the image is built for.
+    expect(download[0]).toMatch(
+      /\bamd64\) platform=x86_64; sha256="\$\{DOCKER_SHA256_AMD64\}"/,
+    );
+    expect(download[0]).toMatch(
+      /\barm64\) platform=aarch64; sha256="\$\{DOCKER_SHA256_ARM64\}"/,
+    );
+
+    // A release, and both architectures pinned to a full digest.
+    expect(donor.instructions).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^ARG DOCKER_VERSION=\d+\.\d+\.\d+$/),
+        expect.stringMatching(/^ARG DOCKER_SHA256_AMD64=[0-9a-f]{64}$/),
+        expect.stringMatching(/^ARG DOCKER_SHA256_ARM64=[0-9a-f]{64}$/),
+      ]),
+    );
+    expect(argOf(donor, "DOCKER_SHA256_AMD64")).not.toBe(
+      argOf(donor, "DOCKER_SHA256_ARM64"),
+    );
+  });
+
+  test("releases compare part by part, as numbers (29.10.0 is newer than 29.9.3)", () => {
+    expect(compareReleases("29.9.3", "29.10.0")).toBeLessThan(0);
+    expect(compareReleases("29.10.0", "29.10.0")).toBe(0);
+    expect(compareReleases("29.10.1", "29.10.0")).toBeGreaterThan(0);
+    expect(compareReleases("30.0.0", "29.10.0")).toBeGreaterThan(0);
+    expect(compareReleases("28.99.99", "29.10.0")).toBeLessThan(0);
+  });
+
+  test(`the docker CLI is ${FIRST_FIXED_DOCKER} or later, the first Docker release built with a Go that fixes CVE-2026-97033 to CVE-2026-97043`, () => {
+    const version = argOf(
+      donorStage("production", DOCKER_COPY),
+      "DOCKER_VERSION",
+    );
+    expect(version).toMatch(/^\d+\.\d+\.\d+$/);
+    if (compareReleases(version, FIRST_FIXED_DOCKER) < 0) {
+      throw new Error(
+        `${template} pins DOCKER_VERSION=${version}, a Docker release built with a Go that has CVE-2026-97033 to CVE-2026-97043. Move it, and both digests, to ${FIRST_FIXED_DOCKER} or later.`,
+      );
+    }
   });
 
   test.each(ENVIRONMENTS)(

@@ -93,6 +93,22 @@ jest.mock("../../../UI/Components/ModelTable/AnalyticsModelTable", () => {
   };
 });
 
+/*
+ * The notice about events that arrived too late for the rules reads the
+ * server on its own (SecurityEventsLateArrivalsNotice.test.tsx).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/LateArrivals/LateArrivalsNotice",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
+  },
+);
+
 import DetectionRulesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules";
 import ThreatIntelPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/ThreatIntel";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";

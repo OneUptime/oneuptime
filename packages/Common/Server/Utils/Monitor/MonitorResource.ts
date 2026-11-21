@@ -1455,6 +1455,11 @@ export default class MonitorResourceUtil {
         if (recoveries.fingerprints.length > 0 || wholeMonitor) {
           await keepEvaluationLock();
 
+          /*
+           * A recovery resolves only what its criteria's incident or alert
+           * lets resolve on its own (Auto Resolve). One it leaves open is
+           * named in the monitor log, with why (#10550).
+           */
           await MonitorIncident.resolveSeriesIncidentsByFingerprint({
             monitor: monitor,
             fingerprints: recoveries.fingerprints,
@@ -1463,6 +1468,7 @@ export default class MonitorResourceUtil {
             dataToProcess: dataToProcess,
             autoResolveCriteriaInstanceIdIncidentIdsDictionary,
             evaluationSummary: evaluationSummary,
+            noteLeftOpen: true,
           });
 
           await MonitorAlert.resolveSeriesAlertsByFingerprint({
@@ -1473,6 +1479,7 @@ export default class MonitorResourceUtil {
             dataToProcess: dataToProcess,
             autoResolveCriteriaInstanceIdAlertIdsDictionary,
             evaluationSummary: evaluationSummary,
+            noteLeftOpen: true,
           });
         }
       }
@@ -1594,10 +1601,13 @@ export default class MonitorResourceUtil {
           /*
            * Each query as the check read it: with the cluster, host or
            * fleet an infrastructure monitor narrows it to, so the event's
-           * card charts what the monitor evaluated (issue #6265).
+           * card charts what the monitor evaluated (issue #6265). And a
+           * resource monitor's logs and traces, which the event's tabs read
+           * (#10451).
            */
           telemetryQuery = MetricTelemetrySnapshot.fromResponse(
             dataToProcess as MetricMonitorResponse,
+            { monitorType: monitor.monitorType, monitorStep: monitorStep },
           );
           logger.debug(
             `${dataToProcess.monitorId.toString()} - Metric query found.`,

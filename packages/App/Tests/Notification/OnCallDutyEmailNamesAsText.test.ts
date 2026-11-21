@@ -24,6 +24,10 @@ import OnCallShiftReminderRunner, {
   ShiftReminderMessage,
 } from "Common/Server/Utils/OnCall/OnCallShiftReminderRunner";
 import OnDutyPoliciesCache from "Common/Server/Utils/OnCall/OnDutyPoliciesCache";
+import EscalationRuleReach, {
+  RuleMembers,
+  RuleReach,
+} from "Common/Server/Utils/OnCall/EscalationRuleReach";
 import URL from "Common/Types/API/URL";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -336,6 +340,23 @@ beforeEach(() => {
     .mockResolvedValue("**Ana**" as never);
   jest
     .spyOn(TeamMemberService, "getUsersInTeam")
+    .mockResolvedValue([person()] as never);
+  /*
+   * Who each rule pages is not read here (EscalationRuleReach, #10464):
+   * every hook then tells as it always did - a team added to a rule its
+   * accepted members - which is what these emails' words are read off.
+   */
+  jest.spyOn(EscalationRuleReach, "readOrNull").mockResolvedValue(null);
+  jest
+    .spyOn(EscalationRuleReach, "readEach")
+    .mockResolvedValue(new Map<string, RuleReach | null>());
+  jest.spyOn(EscalationRuleReach, "readMembers").mockResolvedValue({
+    isMember: (): boolean => {
+      return true;
+    },
+  } as RuleMembers);
+  jest
+    .spyOn(TeamMemberService, "getUsersInTeams")
     .mockResolvedValue([person()] as never);
   jest
     .spyOn(OnCallDutyPolicyScheduleService, "getCurrentUserIdInSchedule")

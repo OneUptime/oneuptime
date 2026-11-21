@@ -397,10 +397,10 @@ jobs:
   # The resource AI agent image (agents/ResourceAIAgent), which the Docker,
   # Podman, Swarm, Proxmox, VMware, Ceph, database and host agents run as
   # their "ai-agent" service. Built on every pull request so an Alpine
-  # package that is renamed or dropped (docker-cli, ceph19-common,
-  # util-linux-misc), a govc release whose pinned digest no longer matches,
-  # or an agent that does not compile inside the image, fails here rather
-  # than in the release. This builds the runner's
+  # package that is renamed or dropped (ceph19-common, util-linux-misc), a
+  # docker or govc release whose pinned digest no longer matches, or an
+  # agent that does not compile inside the image, fails here rather than in
+  # the release. This builds the runner's
   # architecture (amd64) only; test-release.yaml builds both on every push to
   # main.
   docker-build-resource-ai-agent:
