@@ -14,11 +14,13 @@ import {
   DETECTION_MAX_GROUPS_PER_EVALUATION,
   DETECTION_MAX_LOOKBACK_IN_MINUTES,
   DETECTION_CORRELATION_TYPE_ATTRIBUTE,
+  DETECTION_RETRY_AFTER_FAILURE_IN_MINUTES,
   DETECTION_RULE_ID_ATTRIBUTE,
   DETECTION_RULE_NAME_ATTRIBUTE,
   DETECTION_SIGMA_ID_ATTRIBUTE,
   DETECTION_SUMMARY_ATTRIBUTE,
 } from "Common/Types/SecurityEvent/DetectionFindingConstants";
+import { SECURITY_EVENT_LATE_ARRIVAL_NOTICE_DAYS } from "Common/Types/SecurityEvent/SecurityEventLateArrival";
 import {
   SIGMA_CORRELATION_MAX_GROUP_BY_FIELDS,
   SIGMA_CORRELATION_MAX_TEMPORAL_RULES,
@@ -608,7 +610,8 @@ Each run searches the events that **arrived** between where the previous run sto
 - **A rule that counts counts by when events happened.** Its windows are as long as its **Evaluation Interval**, back to back on the clock: with a 10-minute interval, events at 09:58 and 10:01 fall in different windows and are counted separately. Leave some headroom when you choose a threshold.
 - **The first run** looks back one interval.
 - **After a gap** — a worker outage, or a rule re-enabled after being disabled — the next run checks everything that arrived during it, up to the last ${LOOKBACK_IN_HOURS}${NO_BREAK_SPACE}hours.
-- **Late events are checked too.** A log line read a minute after it was written, a span read when its request ended, a batch a shipper held back: each is checked by the first run after it arrives, and counted in the window it happened in. A group fires when its window reaches the count - however late the event that makes it arrives - and at most once a window. An event that reaches OneUptime more than ${LATE_EVENT_WINDOW_IN_HOURS}${NO_BREAK_SPACE}hours after it happened is stored and searchable, but no run checks it: **Run on Past Events** does.
+- **A run that fails** is tried again at the rule's next interval, or within ${DETECTION_RETRY_AFTER_FAILURE_IN_MINUTES}${NO_BREAK_SPACE}minutes when the interval is longer, and the run that works checks everything that arrived since the last one that did, however long ago. A run stopped after it acted on its matches is done again without adding them to their case twice.
+- **Late events are checked too.** A log line read a minute after it was written, a span read when its request ended, a batch a shipper held back: each is checked by the first run after it arrives, and counted in the window it happened in. A group fires when its window reaches the count - however late the event that makes it arrives - and at most once a window. An event that reaches OneUptime more than ${LATE_EVENT_WINDOW_IN_HOURS}${NO_BREAK_SPACE}hours after it happened is stored and searchable, but no run checks it, so a backfill of history does not open alerts about the past: when any arrived that late in the last ${SECURITY_EVENT_LATE_ARRIVAL_NOTICE_DAYS}${NO_BREAK_SPACE}days, a notice above the rules says how many, from which sources and when they happened, and opens **Run on Past Events** over that time.
 
 #### Group By Field
 
@@ -791,7 +794,7 @@ The form shows the parser's reason. The usual causes:
 - Fields that are not typed columns or common spellings are read from the event's attributes, spelled exactly as they appear there — \`threat.matched\`, not \`attributes.threat.matched\`.
 - \`logsource\` does not filter anything; a rule that relies on it matches more than you expect, not less.
 - With a threshold above 1, that many matches must land in **one** window. Try a longer interval or a lower threshold.
-- Events that arrive with a timestamp from before the rule's last run are never evaluated by it.
+- An event that arrived more than ${LATE_EVENT_WINDOW_IN_HOURS}${NO_BREAK_SPACE}hours after it happened is never checked by the rule's runs; the notice above the rules says when any did.
 - An exception skips them: **View Exceptions** in the rule's row lists what it skips.
 - **Run on Past Events** in the rule's row shows what it would have found over the last day, week or month.
 
