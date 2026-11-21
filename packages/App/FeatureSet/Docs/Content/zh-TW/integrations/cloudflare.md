@@ -1,11 +1,12 @@
 # Cloudflare
 
-將 [Cloudflare](https://www.cloudflare.com) 防火牆在邊緣所做的事匯入 OneUptime 的安全事件：其受管理與自訂 WAF 規則、速率限制、IP Access Rules、機器人管理與 HTTP DDoS 防護所封鎖、質詢或記錄的請求。每個請求都與你的應用程式本身的請求並列，因此案例會說明 Cloudflare 攔下了什麼，以及什麼仍然到達了你的應用程式。OneUptime 使用只能讀取的 API 權杖讀取它們，不會在 Cloudflare 中變更任何內容。
+將 [Cloudflare](https://www.cloudflare.com) 防火牆在邊緣所做的事匯入 OneUptime 的安全事件：其受管理與自訂 WAF 規則、速率限制、IP Access Rules、機器人管理與 HTTP DDoS 防護所封鎖、質詢或記錄的請求。每個請求都與你的應用程式本身的請求並列，因此案例會說明 Cloudflare 攔下了什麼，以及什麼仍然到達了你的應用程式。OneUptime 使用只能讀取的 API 權杖讀取它們，除非你開啟封鎖，否則不會在 Cloudflare 中變更任何內容；開啟後，它會在那裡執行你的封鎖清單。
 
 :::cards
 - [設定連線](#設定連線): 一個具有兩項讀取權限的 API 權杖，以及連線的表單。
 - [匯入的內容](#匯入的內容): 匯入哪些事件，以及每個事件如何成為一個安全性事件。
 - [輪詢的運作方式](#輪詢的運作方式): 每次輪詢讀取的時間範圍，以及它為什麼重疊 10 分鐘。
+- [在 Cloudflare 封鎖位址](#在-cloudflare-封鎖位址): 你的封鎖清單，由兩份 IP 清單和每份清單一條自訂規則執行。
 - [疑難排解](#疑難排解): 每個錯誤的含義，以及需要更改什麼。
 :::
 
@@ -63,7 +64,7 @@ OneUptime 每分鐘輪詢每個已啟用且輪詢間隔已到的連線。一次�
 
 ### 寫入權限是另外的選擇
 
-此連線從不變更 Cloudflare 中的任何內容。在那裡封鎖位址是另外的選擇加入，需要寫入權限：清單需要 `Account > Account Filter Lists > Edit`，每個要封鎖的區域需要 `Zone > Zone WAF > Edit`，清單不足的方案需要 `Account > Account Firewall Access Rules > Edit`。只有在開啟封鎖時才把它們加到權杖上。
+在你於該連線所在列開啟封鎖之前，此連線不會在 Cloudflare 中變更任何內容。只有那時 OneUptime 才會請求寫入權限，並在封鎖任何內容之前檢查它們：[在 Cloudflare 封鎖位址](#在-cloudflare-封鎖位址) 列出了每項權限及其用途。只在開啟封鎖時才將它們加入權杖。
 
 ## 匯入的內容
 
@@ -151,6 +152,58 @@ Cloudflare 的 Logpush 也能傳送防火牆事件，自 2026 年 9 月 30 日�
 
 測試中的每個請求都有 20 秒的期限。測試從不匯入任何內容，也不移動游標，每個失敗的檢查都會說明需要更改什麼。
 
+## 在 Cloudflare 封鎖位址
+
+開啟封鎖後，Cloudflare 會執行你專案的[封鎖清單](/docs/telemetry/security-cases#封鎖清單)。你封鎖的每個位址會在 1 分鐘內加入你 Cloudflare 帳戶中的一份 IP 清單，而在每個區域中，每份清單對應的一條自訂規則會封鎖或挑戰清單中的位址。在 **封鎖清單** 中，對於 OneUptime 已從 Cloudflare 讀回的每個封鎖，**生效於** 會顯示 Cloudflare；10 分鐘內未讀回的封鎖在那裡不會生效。
+
+封鎖需要連線的 API 權杖具有以下寫入權限：
+
+| 權限 | OneUptime 用它做什麼 |
+| --- | --- |
+| `Account > Account Filter Lists > Edit` | 建立它的兩份清單，並新增和移除其中的位址。 |
+| `Zone > Zone WAF > Edit`，在每個要封鎖的區域上 | 新增它的自訂規則，並讀取該區域自己的規則。 |
+| `Account > Account Firewall Access Rules > Edit` | 在沒有空餘清單或自訂規則的方案上，新增和移除 IP Access Rules。 |
+
+:::steps
+### 為權杖授予寫入權限
+
+在 Cloudflare 中開啟 **My Profile → API Tokens**，編輯該連線的權杖，並加入上面的權限。或者建立一個具有這些權限和兩項讀取權限的權杖。
+
+### 開啟封鎖
+
+在連線所在列選擇 **封鎖位址**。將新權杖貼到 **新的 API 權杖**，或留空以保留目前的權杖，並在 **區域** 中保留 **所有區域**，或選擇要封鎖的區域。**檢查權限** 會詢問 Cloudflare 權杖是否具有每項權限，不會變更任何內容。**開啟封鎖** 只在所有檢查都通過時才開啟封鎖，接著 OneUptime 會在 1 分鐘內設定好 Cloudflare。
+:::
+
+封鎖開啟期間，**測試連線** 也會執行相同的檢查：**How blocking is set up**、**Edit the lists**、**Edit custom rules in each zone**，以及在使用 IP Access Rules 時的 **Edit IP Access Rules**。
+
+### OneUptime 加入 Cloudflare 的內容
+
+| 在 Cloudflare 中 | 是什麼 |
+| --- | --- |
+| 清單 `oneuptime_block` 和 `oneuptime_challenge` | 帳戶中的兩份 IP 清單，一份用於封鎖，一份用於挑戰。它們的描述寫明你的 OneUptime 專案。 |
+| 每個區域中，每份清單一條自訂規則 | 動作為 Block 的 `(ip.src in $oneuptime_block)`，以及動作為 Managed Challenge 的 `(ip.src in $oneuptime_challenge)`。它們的描述說明由 OneUptime 管理。 |
+| 每個封鎖一個清單項目 | 其註解寫明案件以及封鎖的結束時間，例如 `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`。 |
+
+每條規則都排在該區域自訂規則的最前面，因此會比你的規則先執行：你的 Skip 規則無法讓被封鎖的位址通過。當你的 Skip 規則放行某些位址時，例如你的監視器或合作夥伴的位址，**封鎖狀態** 會列出它們。**保護這些位址** 會將它們加入 **受保護的實體**，任何人都無法封鎖其中的位址。
+
+### 封鎖的方案限制
+
+| 方案 | Free | Pro | Business | Enterprise |
+| --- | --- | --- | --- | --- |
+| 帳戶中的清單 | 1 | 10 | 10 | 1,000 |
+| 帳戶中的清單項目 | 10,000 | 10,000 | 10,000 | 500,000 |
+| 區域中的自訂規則 | 5 | 20 | 100 | 1,000 |
+
+你自己的清單和規則也會計入。開啟封鎖時，如果方案還有空餘，每種動作會使用一份清單以及每個區域中的一條規則，Block 優先；沒有空餘時則使用 IP Access Rules。在唯一清單空著的 Free 方案上，封鎖使用該清單，挑戰使用 IP Access Rules。一個帳戶最多可容納 50,000 條 IP Access Rules，每條是一個位址、一個 /16 或 /24 的 IPv4 範圍，或一個 /32、/48 或 /64 的 IPv6 範圍：其他範圍的封鎖在那裡不會生效，**封鎖清單** 會說明原因。**How blocking is set up** 會說明每種動作使用什麼，以及原因。
+
+### 當有人變更規則時
+
+OneUptime 每 3 分鐘讀回一次它的清單和規則，而且從不復原別人在 Cloudflare 中所做的變更。在那裡被關閉、刪除或變更的規則，會連同其區域一起顯示在連線所在列和 **封鎖狀態** 中，**封鎖清單** 會將該區域規則對應的封鎖顯示為未在 Cloudflare 生效。**還原** 會重新設定該規則。只要 **區域** 為 **所有區域**，之後加入帳戶的區域也會自動設定。
+
+### 關閉封鎖
+
+**關閉封鎖** 會詢問是否從 Cloudflare 移除 OneUptime 的清單和規則，並預設選取 **從 Cloudflare 移除 OneUptime 的清單和規則**。移除作業會依據 OneUptime 賦予的名稱、參照和備註，找到並移除 OneUptime 的規則、它的兩份清單以及它加入的 IP Access Rules，不會動到其他任何內容。如果保留，它們會留在 Cloudflare 中，繼續封鎖其中的位址。正在封鎖位址的連線無法刪除：請先關閉封鎖，等移除完成後再刪除它。
+
 ## 疑難排解
 
 連線的 **最近的錯誤** 會保留完整的錯誤訊息，憑證已遮蔽。連線出錯時，在其 **操作** 欄中選擇 **檢視錯誤** 閱讀，並在對話方塊中用 **複製錯誤** 複製。每則訊息都會指出失敗的請求，並引用 Cloudflare 自己給出的原因。
@@ -176,7 +229,11 @@ Cloudflare 不認得該權杖：它已被刪除、輪替，或從未完整貼上
 :::
 
 :::details 案例顯示了 Cloudflare 的處理，但你的應用程式中沒有該位址的任何請求
-在 Cloudflare 後面，除非你的應用程式從 `CF-Connecting-IP` 標頭讀取訪客的位址，否則它看到的是 Cloudflare 的位址。把該位址作為 `client.address` 寫入你的日誌和追蹤，OneUptime 就能把你的應用程式的請求與 Cloudflare 處理過的位址對應起來。
+在 Cloudflare 之後，你的應用程式收到的請求來自 Cloudflare 的位址，而訪客的位址是 Cloudflare 最後加入 `X-Forwarded-For` 的那一個。請在你的追蹤中記錄該標頭（`http.request.header.x-forwarded-for`）和連線本身的位址（`network.peer.address`）。只要此連線存在，OneUptime 就會將 Cloudflare 的位址視為受信任的代理，因此會從標頭讀取訪客，並將你應用程式的請求與 Cloudflare 處理過的位址對應起來。你的應用程式從 `CF-Connecting-IP` 複製的 `client.address` 不受信任：任何直接連到你應用程式的人都可以傳送該標頭。
+:::
+
+:::details 封鎖狀態顯示 `already exists in this Cloudflare account`
+另一個 OneUptime 專案或某個人建立了名為 `oneuptime_block` 或 `oneuptime_challenge` 的清單，而 OneUptime 從不變更並非它為此專案建立的清單。請在 Cloudflare 中重新命名或刪除該清單，或在建立它的專案中關閉封鎖。OneUptime 會在 5 分鐘內重新設定封鎖。
 :::
 
 :::details 測試通過，但 Last Polled 為 Never

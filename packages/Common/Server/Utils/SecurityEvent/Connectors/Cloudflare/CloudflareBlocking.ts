@@ -111,6 +111,25 @@ const MAX_ZONE_PAGES: number = 4;
 // The note OneUptime's IP Access Rules are found by.
 const ONEUPTIME_NOTE_SEARCH: string = "OneUptime";
 
+/*
+ * The checks blocking adds to a test, as the test report names them, in the
+ * order they run (checkWriteAccess). The Cloudflare docs page names them so.
+ */
+export const CLOUDFLARE_BLOCKING_CHECK_NAMES: Readonly<{
+  // The account could not be read, so nothing else is checked.
+  unreadable: string;
+  setup: string;
+  lists: string;
+  rules: string;
+  accessRules: string;
+}> = {
+  unreadable: "Read what blocking needs",
+  setup: "How blocking is set up",
+  lists: "Edit the lists",
+  rules: "Edit custom rules in each zone",
+  accessRules: "Edit IP Access Rules",
+};
+
 export interface CloudflareBlockingScope {
   projectId: string;
   accountId: string;
@@ -1481,7 +1500,7 @@ export default class CloudflareBlocking {
       checks.push(
         makeCheck({
           key: "blocking-setup",
-          name: "Read what blocking needs",
+          name: CLOUDFLARE_BLOCKING_CHECK_NAMES.unreadable,
           status: "fail",
           startedAtMs,
           message: errorText(error),
@@ -1514,7 +1533,7 @@ export default class CloudflareBlocking {
     checks.push(
       makeCheck({
         key: "blocking-setup",
-        name: "How blocking is set up",
+        name: CLOUDFLARE_BLOCKING_CHECK_NAMES.setup,
         status:
           reading.foreignListNames.length > 0 ||
           reading.missingZoneIds.length > 0
@@ -1540,7 +1559,7 @@ export default class CloudflareBlocking {
       checks.push(
         await this.probeCheck({
           key: "blocking-lists",
-          name: "Edit the lists",
+          name: CLOUDFLARE_BLOCKING_CHECK_NAMES.lists,
           permission: CLOUDFLARE_LIST_EDIT_PERMISSION,
           startedAtMs,
           probe: (): Promise<CloudflareWriteAccess> => {
@@ -1577,7 +1596,7 @@ export default class CloudflareBlocking {
       checks.push(
         makeCheck({
           key: "blocking-rules",
-          name: "Edit custom rules in each zone",
+          name: CLOUDFLARE_BLOCKING_CHECK_NAMES.rules,
           status: missing.length ? "fail" : unknown.length ? "warn" : "pass",
           startedAtMs,
           message: missing.length
@@ -1599,7 +1618,7 @@ export default class CloudflareBlocking {
       checks.push(
         await this.probeCheck({
           key: "blocking-access-rules",
-          name: "Edit IP Access Rules",
+          name: CLOUDFLARE_BLOCKING_CHECK_NAMES.accessRules,
           permission: CLOUDFLARE_ACCESS_RULES_EDIT_PERMISSION,
           startedAtMs,
           probe: (): Promise<CloudflareWriteAccess> => {

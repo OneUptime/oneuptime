@@ -1,11 +1,12 @@
 # Cloudflare
 
-将 [Cloudflare](https://www.cloudflare.com) 防火墙在边缘所做的事情导入 OneUptime 的安全事件：其托管和自定义 WAF 规则、速率限制、IP Access Rules、机器人管理和 HTTP DDoS 防护所拦截、质询或记录的请求。每个请求都与你的应用自身的请求并排，因此案例会说明 Cloudflare 拦下了什么，以及什么仍然到达了你的应用。OneUptime 使用只能读取的 API 令牌读取它们，不会在 Cloudflare 中更改任何内容。
+将 [Cloudflare](https://www.cloudflare.com) 防火墙在边缘所做的事情导入 OneUptime 的安全事件：其托管和自定义 WAF 规则、速率限制、IP Access Rules、机器人管理和 HTTP DDoS 防护所拦截、质询或记录的请求。每个请求都与你的应用自身的请求并排，因此案例会说明 Cloudflare 拦下了什么，以及什么仍然到达了你的应用。OneUptime 使用只能读取的 API 令牌读取它们，除非你开启封禁，否则不会在 Cloudflare 中更改任何内容；开启后，它会在那里执行你的封禁列表。
 
 :::cards
 - [设置连接](#设置连接): 一个带两项读取权限的 API 令牌，以及连接的表单。
 - [导入的内容](#导入的内容): 导入哪些事件，以及每个事件如何成为一个安全事件。
 - [轮询的工作方式](#轮询的工作方式): 每次轮询读取的时间窗口，以及它为什么重叠 10 分钟。
+- [在 Cloudflare 封禁地址](#在-cloudflare-封禁地址): 你的封禁列表，由两个 IP 列表和每个列表一条自定义规则执行。
 - [故障排除](#故障排除): 每个错误的含义，以及需要更改什么。
 :::
 
@@ -59,11 +60,11 @@ OneUptime 每分钟轮询每个已启用且轮询间隔已到的连接。一次�
 | **区域** | 可选。留空会读取账户中所有活动的区域，包括以后添加的区域。一个连接最多读取 50 个区域。 |
 | **API 令牌** | 只填令牌本身，不带 `Bearer`。它会被加密，API 从不返回，也不会再次显示。可在连接上用 **更新凭据** 替换它。 |
 
-**轮询** 步骤还有可选的 **描述**、**轮询间隔（分钟）**（一个从 `1` 到 `1440` 的整数，起始为 `5`），以及默认开启的 **已启用**。Cloudflare 的事件是请求而不是告警，因此表单不会询问 **打开案例的起始严重程度**：案例来自读取这些事件的检测规则。
+**轮询** 步骤还有可选的 **描述**、**轮询间隔（分钟）**（一个从 `1` 到 `1440` 的整数，起始为 `5`），以及默认开启的 **已启用**。Cloudflare 的事件是请求而不是警报，因此表单不会询问 **打开案例的起始严重程度**：案例来自读取这些事件的检测规则。
 
 ### 写入权限是单独的选择
 
-该连接从不更改 Cloudflare 中的任何内容。在那里拦截地址是单独的选择加入，需要写入权限：列表需要 `Account > Account Filter Lists > Edit`，每个要拦截的区域需要 `Zone > Zone WAF > Edit`，列表不足的套餐需要 `Account > Account Firewall Access Rules > Edit`。只有在开启拦截时才把它们加到令牌上。
+在你于该连接所在行开启封禁之前，此连接不会在 Cloudflare 中更改任何内容。只有那时 OneUptime 才会请求写入权限，并在封禁任何内容之前检查它们：[在 Cloudflare 封禁地址](#在-cloudflare-封禁地址) 列出了每个权限及其用途。只在开启封禁时才把它们添加到令牌中。
 
 ## 导入的内容
 
@@ -151,6 +152,58 @@ Cloudflare 的 Logpush 也能发送防火墙事件，自 2026 年 9 月 30 日�
 
 测试中的每个请求都有 20 秒的期限。测试从不导入任何内容，也不移动游标，每个失败的检查都会说明需要更改什么。
 
+## 在 Cloudflare 封禁地址
+
+开启封禁后，Cloudflare 会执行你项目的[封禁列表](/docs/telemetry/security-cases#封禁列表)。你封禁的每个地址会在 1 分钟内加入你 Cloudflare 账户中的一个 IP 列表，并且在每个区域中，每个列表对应的一条自定义规则会封禁或质询该列表中的地址。在 **封禁列表** 中，对于 OneUptime 已从 Cloudflare 读回的每个封禁，**生效于** 会显示 Cloudflare；10 分钟内未读回的封禁在那里不生效。
+
+封禁需要连接的 API 令牌具有以下写入权限：
+
+| 权限 | OneUptime 用它做什么 |
+| --- | --- |
+| `Account > Account Filter Lists > Edit` | 创建它的两个列表，并添加和移除其中的地址。 |
+| `Zone > Zone WAF > Edit`，在每个要封禁的区域上 | 添加它的自定义规则，并读取该区域自己的规则。 |
+| `Account > Account Firewall Access Rules > Edit` | 在没有空余列表或自定义规则的套餐上，添加和移除 IP Access Rules。 |
+
+:::steps
+### 为令牌授予写入权限
+
+在 Cloudflare 中打开 **My Profile → API Tokens**，编辑该连接的令牌，并添加上面的权限。或者创建一个具有这些权限和两个读取权限的令牌。
+
+### 开启封禁
+
+在连接所在行选择 **封禁地址**。将新令牌粘贴到 **新的 API 令牌**，或留空以保留当前令牌，并在 **区域** 中保留 **所有区域**，或选择要封禁的区域。**检查权限** 会询问 Cloudflare 令牌是否具有每项权限，不会更改任何内容。**开启封禁** 仅在所有检查都通过时才开启封禁，随后 OneUptime 会在 1 分钟内设置好 Cloudflare。
+:::
+
+封禁开启期间，**测试连接** 也会运行相同的检查：**How blocking is set up**、**Edit the lists**、**Edit custom rules in each zone**，以及在使用 IP Access Rules 时的 **Edit IP Access Rules**。
+
+### OneUptime 向 Cloudflare 添加的内容
+
+| 在 Cloudflare 中 | 是什么 |
+| --- | --- |
+| 列表 `oneuptime_block` 和 `oneuptime_challenge` | 账户中的两个 IP 列表，一个用于封禁，一个用于质询。它们的描述写明你的 OneUptime 项目。 |
+| 每个区域中，每个列表一条自定义规则 | 操作为 Block 的 `(ip.src in $oneuptime_block)`，以及操作为 Managed Challenge 的 `(ip.src in $oneuptime_challenge)`。它们的描述说明由 OneUptime 管理。 |
+| 每个封禁一个列表项 | 其注释写明案例以及封禁的结束时间，例如 `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`。 |
+
+每条规则都排在该区域自定义规则的首位，因此会先于你的规则运行：你的 Skip 规则无法让被封禁的地址通过。当你的 Skip 规则放行某些地址时，例如你的监控器或合作伙伴的地址，**封禁状态** 会列出它们。**保护这些地址** 会把它们添加到 **受保护的实体**，任何人都无法封禁其中的地址。
+
+### 封禁的套餐限制
+
+| 套餐 | Free | Pro | Business | Enterprise |
+| --- | --- | --- | --- | --- |
+| 账户中的列表 | 1 | 10 | 10 | 1,000 |
+| 账户中的列表项 | 10,000 | 10,000 | 10,000 | 500,000 |
+| 区域中的自定义规则 | 5 | 20 | 100 | 1,000 |
+
+你自己的列表和规则也计算在内。开启封禁时，如果套餐还有空余，每种操作会占用一个列表以及每个区域中的一条规则，Block 优先；没有空余时则使用 IP Access Rules。在唯一列表空闲的 Free 套餐上，封禁使用该列表，质询使用 IP Access Rules。一个账户最多容纳 50,000 条 IP Access Rules，每条是一个地址、一个 /16 或 /24 的 IPv4 范围，或一个 /32、/48 或 /64 的 IPv6 范围：其他范围的封禁在那里不生效，**封禁列表** 会说明原因。**How blocking is set up** 会说明每种操作使用什么，以及原因。
+
+### 当有人更改规则时
+
+OneUptime 每 3 分钟读回一次它的列表和规则，并且从不撤销别人在 Cloudflare 中所做的更改。在那里被关闭、删除或更改的规则会连同其区域一起显示在连接所在行和 **封禁状态** 中，**封禁列表** 会把该区域规则对应的封禁显示为未在 Cloudflare 生效。**恢复** 会重新设置该规则。只要 **区域** 为 **所有区域**，之后添加到账户的区域也会自动设置。
+
+### 关闭封禁
+
+**关闭封禁** 会询问是否从 Cloudflare 移除 OneUptime 的列表和规则，并默认选中 **从 Cloudflare 移除 OneUptime 的列表和规则**。移除操作会根据 OneUptime 赋予的名称、引用和备注，找到并移除 OneUptime 的规则、它的两个列表以及它添加的 IP Access Rules，不会动其他任何内容。如果保留，它们会留在 Cloudflare 中，继续封禁其中的地址。正在封禁地址的连接无法删除：请先关闭封禁，等移除完成后再删除它。
+
 ## 故障排除
 
 连接的 **最近错误** 会保留完整的错误消息，凭据已隐去。连接出错时，在其 **操作** 列中选择 **查看错误** 阅读，并在对话框中用 **复制错误** 复制。每条消息都会指出失败的请求，并引用 Cloudflare 自己给出的原因。
@@ -176,7 +229,11 @@ Cloudflare 不认识该令牌：它已被删除、轮换，或从未完整粘贴
 :::
 
 :::details 案例显示了 Cloudflare 的处理，但你的应用中没有该地址的任何请求
-在 Cloudflare 后面，除非你的应用从 `CF-Connecting-IP` 标头读取访问者的地址，否则它看到的是 Cloudflare 的地址。把该地址作为 `client.address` 写入你的日志和追踪，OneUptime 就能把你的应用的请求与 Cloudflare 处理过的地址对应起来。
+在 Cloudflare 之后，你的应用收到的请求来自 Cloudflare 的地址，而访问者的地址是 Cloudflare 最后添加到 `X-Forwarded-For` 中的那个。请在你的追踪中记录该请求头（`http.request.header.x-forwarded-for`）和连接自身的地址（`network.peer.address`）。只要此连接存在，OneUptime 就会把 Cloudflare 的地址作为代理信任，因此会从请求头中读取访问者，并将你应用的请求与 Cloudflare 处理过的地址对应起来。你的应用从 `CF-Connecting-IP` 复制的 `client.address` 不被信任：任何直接访问你应用的人都可以发送该请求头。
+:::
+
+:::details 封禁状态显示 `already exists in this Cloudflare account`
+另一个 OneUptime 项目或某个人创建了名为 `oneuptime_block` 或 `oneuptime_challenge` 的列表，而 OneUptime 从不更改并非它为此项目创建的列表。请在 Cloudflare 中重命名或删除该列表，或在创建它的项目中关闭封禁。OneUptime 会在 5 分钟内重新设置封禁。
 :::
 
 :::details 测试通过，但 Last Polled 为 Never

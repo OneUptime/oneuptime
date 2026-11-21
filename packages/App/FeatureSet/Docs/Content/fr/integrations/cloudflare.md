@@ -1,11 +1,12 @@
 # Cloudflare
 
-Importez dans les événements de sécurité de OneUptime ce que le pare-feu de [Cloudflare](https://www.cloudflare.com) a fait en périphérie : les requêtes que ses règles WAF gérées et personnalisées, la limitation de débit, les IP Access Rules, la gestion des bots et la protection DDoS HTTP ont bloquées, soumises à un challenge ou journalisées. Chacune se place à côté des requêtes de votre propre application, si bien qu'un dossier dit ce que Cloudflare a arrêté et ce qui a quand même atteint votre application. OneUptime les lit avec un jeton d'API qui ne peut que lire, et ne change rien dans Cloudflare.
+Importez dans les événements de sécurité de OneUptime ce que le pare-feu de [Cloudflare](https://www.cloudflare.com) a fait en périphérie : les requêtes que ses règles WAF gérées et personnalisées, la limitation de débit, les IP Access Rules, la gestion des bots et la protection DDoS HTTP ont bloquées, soumises à un challenge ou journalisées. Chacune se place à côté des requêtes de votre propre application, si bien qu'un dossier dit ce que Cloudflare a arrêté et ce qui a quand même atteint votre application. OneUptime les lit avec un jeton d'API qui ne peut que lire, et ne change rien dans Cloudflare tant que vous n'activez pas le blocage, qui y applique votre liste de blocage.
 
 :::cards
 - [Configurer la connexion](#configurer-la-connexion): Un jeton d'API avec deux autorisations de lecture, et le formulaire de la connexion.
 - [Ce qui est importé](#ce-qui-est-importé): Quels événements, et comment chacun devient un événement de sécurité.
 - [Fonctionnement des interrogations](#fonctionnement-des-interrogations): La fenêtre que lit chaque interrogation, et pourquoi elle chevauche de 10 minutes.
+- [Bloquer des adresses chez Cloudflare](#bloquer-des-adresses-chez-cloudflare): Votre liste de blocage, appliquée par deux listes d'IP et une règle personnalisée par liste.
 - [Dépannage](#dépannage): Ce que signifie chaque erreur, et ce qu'il faut changer.
 :::
 
@@ -63,7 +64,7 @@ L'étape **Interrogation** comporte aussi une **Description** facultative, l'**I
 
 ### L'accès en écriture est un choix à part
 
-Cette connexion ne change jamais rien dans Cloudflare. Y bloquer des adresses est un accord à part, qui demande des autorisations d'écriture : `Account > Account Filter Lists > Edit` pour les listes, `Zone > Zone WAF > Edit` sur chaque zone où bloquer, et `Account > Account Firewall Access Rules > Edit` pour les offres sans assez de listes. Ajoutez-les au jeton seulement quand vous activez le blocage.
+Cette connexion ne change rien dans Cloudflare tant que vous n'activez pas le blocage, sur sa ligne. C'est seulement alors que OneUptime demande des autorisations d'écriture, et il les vérifie avant de bloquer quoi que ce soit : [Bloquer des adresses chez Cloudflare](#bloquer-des-adresses-chez-cloudflare) nomme chacune d'elles et son usage. Ajoutez-les au jeton seulement quand vous activez le blocage.
 
 ## Ce qui est importé
 
@@ -151,6 +152,58 @@ Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récente
 
 Chaque requête d'un test a un délai de 20 secondes. Un test n'importe jamais rien et ne déplace jamais le curseur, et chaque vérification en échec dit ce qu'il faut changer.
 
+## Bloquer des adresses chez Cloudflare
+
+Quand le blocage est activé, Cloudflare applique la [liste de blocage](/docs/telemetry/security-cases#liste-de-blocage) de votre projet. Chaque adresse que vous bloquez rejoint en moins d'une minute une liste d'IP de votre compte Cloudflare, et dans chaque zone une règle personnalisée par liste bloque les adresses qu'elle contient ou leur impose un défi. Dans la **Liste de blocage**, **Appliqué sur** nomme Cloudflare pour chaque blocage que OneUptime a relu dans Cloudflare ; un blocage qui n'est pas relu en 10 minutes n'y est pas appliqué.
+
+Le blocage a besoin d'autorisations d'écriture sur le jeton d'API de la connexion :
+
+| Autorisation | Ce que OneUptime fait avec elle |
+| --- | --- |
+| `Account > Account Filter Lists > Edit` | Crée ses deux listes, et y ajoute ou en retire des adresses. |
+| `Zone > Zone WAF > Edit`, sur chaque zone où bloquer | Ajoute ses règles personnalisées, et lit celles de la zone. |
+| `Account > Account Firewall Access Rules > Edit` | Ajoute et retire des IP Access Rules, sur un forfait sans liste ni règle personnalisée disponible. |
+
+:::steps
+### Donner au jeton des autorisations d'écriture
+
+Dans Cloudflare, ouvrez **My Profile → API Tokens**, modifiez le jeton de la connexion et ajoutez les autorisations ci-dessus. Ou créez un jeton qui les a, avec les deux autorisations de lecture.
+
+### Activer le blocage
+
+Sur la ligne de la connexion, sélectionnez **Bloquer des adresses**. Collez un nouveau jeton dans **Nouveau jeton d'API**, ou laissez-le vide pour garder le jeton actuel, et dans **Zones** laissez **Toutes les zones**, ou choisissez les zones où bloquer. **Vérifier les autorisations** demande à Cloudflare si le jeton a chaque autorisation, et ne change rien. **Activer le blocage** n'active le blocage que si chaque vérification réussit, puis OneUptime configure Cloudflare en moins d'une minute.
+:::
+
+Tant que le blocage est activé, **Tester la connexion** exécute les mêmes vérifications : **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** et, là où des IP Access Rules servent, **Edit IP Access Rules**.
+
+### Ce que OneUptime ajoute à Cloudflare
+
+| Dans Cloudflare | Ce que c'est |
+| --- | --- |
+| Les listes `oneuptime_block` et `oneuptime_challenge` | Deux listes d'IP dans le compte, l'une pour les blocages et l'autre pour les défis. Leur description nomme votre projet OneUptime. |
+| Une règle personnalisée par liste, dans chaque zone | `(ip.src in $oneuptime_block)` avec l'action Block, et `(ip.src in $oneuptime_challenge)` avec l'action Managed Challenge. Leur description indique que OneUptime les gère. |
+| Un élément de liste par blocage | Son commentaire nomme le dossier et la fin du blocage, par exemple `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
+
+Chaque règle passe en premier parmi les règles personnalisées de la zone, et s'exécute donc avant les vôtres : une règle Skip de votre part ne peut pas laisser passer une adresse bloquée. Quand vos règles Skip laissent passer des adresses, comme celles de vos moniteurs ou d'un partenaire, **État du blocage** les nomme. **Protéger ces adresses** les ajoute aux **Entités protégées**, que personne ne peut bloquer.
+
+### Limites des forfaits pour le blocage
+
+| Offre | Free | Pro | Business | Enterprise |
+| --- | --- | --- | --- | --- |
+| Listes dans le compte | 1 | 10 | 10 | 1 000 |
+| Éléments de liste dans le compte | 10 000 | 10 000 | 10 000 | 500 000 |
+| Règles personnalisées dans une zone | 5 | 20 | 100 | 1 000 |
+
+Vos propres listes et règles comptent aussi. Quand vous activez le blocage, chaque action prend une liste, et une règle dans chaque zone, là où le forfait en a de disponibles, Block d'abord ; sinon, elle prend des IP Access Rules. Sur un forfait Free dont l'unique liste est libre, les blocages prennent la liste et les défis des IP Access Rules. Un compte contient 50 000 IP Access Rules, chacune une adresse, une plage IPv4 en /16 ou /24, ou une plage IPv6 en /32, /48 ou /64 : un blocage d'une autre plage n'y est pas appliqué, et la **Liste de blocage** dit pourquoi. **How blocking is set up** indique ce que prend chaque action, et pourquoi.
+
+### Quand quelqu'un modifie une règle
+
+OneUptime relit ses listes et ses règles toutes les 3 minutes, et n'annule jamais une modification faite par quelqu'un dans Cloudflare. Une règle désactivée, supprimée ou modifiée là-bas apparaît sur la ligne de la connexion et dans **État du blocage**, avec sa zone, et la **Liste de blocage** montre les blocages de la règle de cette zone comme non appliqués chez Cloudflare. **Rétablir** remet la règle en place. Tant que **Zones** vaut **Toutes les zones**, une zone ajoutée plus tard au compte est configurée d'elle-même.
+
+### Désactiver le blocage
+
+**Désactiver le blocage** demande s'il faut retirer de Cloudflare les listes et les règles de OneUptime, avec **Retirer les listes et les règles de OneUptime de Cloudflare** sélectionné. Le retrait enlève les règles de OneUptime, ses deux listes et les IP Access Rules qu'il a ajoutées, retrouvées par les noms, références et notes qu'il leur a donnés, et rien d'autre. Conservées, elles restent dans Cloudflare et continuent de bloquer ce qu'elles contiennent. Une connexion qui bloque des adresses ne peut pas être supprimée : désactivez d'abord le blocage, puis supprimez-la une fois le retrait terminé.
+
 ## Dépannage
 
 La **Dernière erreur** de la connexion garde le message d'erreur complet, avec les identifiants masqués. Quand une connexion a une erreur, sélectionnez **Voir l'erreur** dans sa colonne **Actions** pour la lire, et **Copier l'erreur** dans la boîte de dialogue pour la copier. Chaque message nomme la requête qui a échoué, et cite la raison donnée par Cloudflare.
@@ -176,7 +229,11 @@ La requête n'a reçu aucune réponse : un délai dépassé, un nom qui ne se r�
 :::
 
 :::details Un dossier montre les actions de Cloudflare, mais aucune requête de l'adresse dans votre application
-Derrière Cloudflare, votre application voit les adresses de Cloudflare, sauf si elle lit celle du visiteur dans l'en-tête `CF-Connecting-IP`. Écrivez cette adresse dans vos journaux et vos traces comme `client.address`, pour que OneUptime puisse rapprocher les requêtes de votre application de l'adresse que Cloudflare a traitée.
+Derrière Cloudflare, les requêtes de votre application viennent des adresses de Cloudflare, et l'adresse du visiteur est la dernière que Cloudflare ajoute à `X-Forwarded-For`. Enregistrez cet en-tête (`http.request.header.x-forwarded-for`) et l'adresse propre de la connexion (`network.peer.address`) dans vos traces. Tant que cette connexion existe, OneUptime fait confiance aux adresses de Cloudflare en tant que proxy : il lit donc le visiteur dans l'en-tête et rapproche les requêtes de votre application de l'adresse sur laquelle Cloudflare a agi. Un `client.address` que votre application copie depuis `CF-Connecting-IP` n'est pas jugé fiable : quiconque atteint directement votre application peut envoyer cet en-tête.
+:::
+
+:::details L'état du blocage indique `already exists in this Cloudflare account`
+Un autre projet OneUptime, ou une personne, a créé une liste nommée `oneuptime_block` ou `oneuptime_challenge`, et OneUptime ne modifie jamais une liste qu'il n'a pas créée pour ce projet. Renommez ou supprimez cette liste dans Cloudflare, ou désactivez le blocage dans le projet qui l'a créée. OneUptime configure à nouveau le blocage dans les 5 minutes.
 :::
 
 :::details Le test réussit, mais Dernière interrogation vaut Never
