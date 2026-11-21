@@ -22,6 +22,8 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   SecurityBlockClientAddress,
+  SecurityBlockCloudWafLeftItem,
+  SecurityBlockCloudWafLeftKind,
   SecurityBlockCloudWafStatus,
 } from "../../../../Types/SecurityBlocklist/SecurityBlockCloudWaf";
 import InMemoryLocks from "../../TestingUtils/InMemoryLocks";
@@ -218,7 +220,7 @@ async function check(
 async function remove(
   row: SecurityBlockCloudWaf,
   keepInCloud: boolean = false,
-): Promise<{ leftInCloud: Array<string> }> {
+): Promise<{ leftInCloud: Array<SecurityBlockCloudWafLeftItem> }> {
   return await SecurityBlockCloudWafs.remove({
     projectId: PROJECT_ID,
     cloudWafId: new ObjectID(row._id!),
@@ -523,7 +525,8 @@ describe("Remove", () => {
     bumpIpSet(ipSet("block-ipv4")!, ["35.205.11.131/32"]);
     reconcile.mockClear();
 
-    const removal: { leftInCloud: Array<string> } = await remove(row);
+    const removal: { leftInCloud: Array<SecurityBlockCloudWafLeftItem> } =
+      await remove(row);
 
     expect(removal).toEqual({ leftInCloud: [] });
     expect(rulesOf("prod-alb")).toEqual([["geo", 10]]);
@@ -569,11 +572,12 @@ describe("Remove", () => {
     bumpWebAcl(acl, teamRules());
     bumpIpSet(ipSet("block-ipv4")!, ["35.205.11.131/32"]);
 
-    const removal: { leftInCloud: Array<string> } = await remove(row);
+    const removal: { leftInCloud: Array<SecurityBlockCloudWafLeftItem> } =
+      await remove(row);
 
     expect(removal.leftInCloud).toEqual(
-      SETS.map((set: { name: string }): string => {
-        return `IP set ${set.name}`;
+      SETS.map((set: { name: string }): SecurityBlockCloudWafLeftItem => {
+        return { kind: SecurityBlockCloudWafLeftKind.IpSet, name: set.name };
       }),
     );
     expect(
@@ -618,18 +622,50 @@ describe("Remove", () => {
     await check(row);
 
     const calls: number = fake.calls.length;
-    const removal: { leftInCloud: Array<string> } = await remove(row, true);
+    const removal: { leftInCloud: Array<SecurityBlockCloudWafLeftItem> } =
+      await remove(row, true);
 
     expect(fake.calls).toHaveLength(calls);
     expect(removal.leftInCloud).toEqual([
-      `rule ${RULES.block} in prod-alb`,
-      `rule ${RULES.challenge} in prod-alb`,
-      ...SETS.map((set: { name: string }): string => {
-        return `IP set ${set.name}`;
+      {
+        kind: SecurityBlockCloudWafLeftKind.Rule,
+        name: RULES.block,
+        webAcl: "prod-alb",
+      },
+      {
+        kind: SecurityBlockCloudWafLeftKind.Rule,
+        name: RULES.challenge,
+        webAcl: "prod-alb",
+      },
+      ...SETS.map((set: { name: string }): SecurityBlockCloudWafLeftItem => {
+        return { kind: SecurityBlockCloudWafLeftKind.IpSet, name: set.name };
       }),
     ]);
     expect(stored(row)).toBeUndefined();
     expect(rulesOf("prod-alb")).toHaveLength(2);
+  });
+
+  test("from OneUptime only, while another web ACL of the Region uses the sets: only its rules are named, never the sets the other still needs", async () => {
+    const { row } = picked({ index: 1, name: "prod-alb" });
+    const other: { row: SecurityBlockCloudWaf } = picked({
+      index: 2,
+      name: "api-alb",
+    });
+
+    await check(row);
+    await check(other.row);
+
+    const removal: { leftInCloud: Array<SecurityBlockCloudWafLeftItem> } =
+      await remove(row, true);
+
+    expect(
+      removal.leftInCloud.map((item: SecurityBlockCloudWafLeftItem): string => {
+        return item.kind;
+      }),
+    ).toEqual([
+      SecurityBlockCloudWafLeftKind.Rule,
+      SecurityBlockCloudWafLeftKind.Rule,
+    ]);
   });
 
   test("while a pass holds the sets' lock longer than a removal waits, it says to try again, and nothing is removed", async () => {

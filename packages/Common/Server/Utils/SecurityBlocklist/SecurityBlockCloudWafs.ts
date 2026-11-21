@@ -35,7 +35,11 @@ import { getAwsExternalIdForProject } from "../../../Types/CloudConnection/Cloud
 import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import { SecurityBlockCloudWafStatus } from "../../../Types/SecurityBlocklist/SecurityBlockCloudWaf";
+import {
+  SecurityBlockCloudWafLeftItem,
+  SecurityBlockCloudWafLeftKind,
+  SecurityBlockCloudWafStatus,
+} from "../../../Types/SecurityBlocklist/SecurityBlockCloudWaf";
 
 /*
  * SETTING UP AND TAKING DOWN A CLOUD WAF THAT ENFORCES THE BLOCKLIST
@@ -66,8 +70,8 @@ import { SecurityBlockCloudWafStatus } from "../../../Types/SecurityBlocklist/Se
 export const CLOUD_WAF_LOCK_WAIT_IN_MS: number = 30 * 1000;
 
 export interface SecurityBlockCloudWafRemoval {
-  // What OneUptime left in the cloud, for the person to delete: "IP set oneuptime-...-block-ipv4".
-  leftInCloud: Array<string>;
+  // What OneUptime left in the cloud, for the person to delete.
+  leftInCloud: Array<SecurityBlockCloudWafLeftItem>;
 }
 
 interface AwsWafTarget {
@@ -298,40 +302,30 @@ export default class SecurityBlockCloudWafs {
   }): Promise<SecurityBlockCloudWafRemoval> {
     const target: AwsWafTarget = await this.readTarget(data);
     const { row, group, webAcl } = target;
-    let leftInCloud: Array<string> = [];
+    let leftInCloud: Array<SecurityBlockCloudWafLeftItem> = [];
 
     if (data.keepInCloud) {
-      leftInCloud = this.whatStaysInCloud(target);
+      leftInCloud = this.whatStaysInCloud({
+        target,
+        // The sets stay OneUptime's while another web ACL uses them: never the person's to delete.
+        isSetsInUse: await this.isSetsInUseElsewhere(target),
+      });
     } else {
       leftInCloud = await this.withLock(
         target.lockKey,
-        async (): Promise<Array<string>> => {
+        async (): Promise<Array<SecurityBlockCloudWafLeftItem>> => {
           try {
             if (target.addsRule) {
               await group.removeRules(webAcl);
             }
 
-            const others: number = (
-              await SecurityBlockCloudWafService.findForProject(data.projectId)
-            ).filter((other: SecurityBlockCloudWaf): boolean => {
-              const otherAcl: AwsWafArn | null = parseAwsWafArn(other.wafId);
-
-              return (
-                other.id?.toString() !== row.id?.toString() &&
-                Boolean(otherAcl) &&
-                otherAcl!.accountId === webAcl.accountId &&
-                otherAcl!.region === webAcl.region &&
-                otherAcl!.scope === webAcl.scope
-              );
-            }).length;
-
-            if (others > 0) {
+            if (await this.isSetsInUseElsewhere(target)) {
               return [];
             }
 
             return (await group.emptyAndDeleteSets()).map(
-              (name: string): string => {
-                return `IP set ${name}`;
+              (name: string): SecurityBlockCloudWafLeftItem => {
+                return { kind: SecurityBlockCloudWafLeftKind.IpSet, name };
               },
             );
           } catch (error) {
@@ -353,8 +347,31 @@ export default class SecurityBlockCloudWafs {
     return { leftInCloud };
   }
 
+  // Whether another web ACL of the project in the account, scope and Region uses the sets.
+  private static async isSetsInUseElsewhere(
+    target: AwsWafTarget,
+  ): Promise<boolean> {
+    return (
+      await SecurityBlockCloudWafService.findForProject(target.row.projectId!)
+    ).some((other: SecurityBlockCloudWaf): boolean => {
+      const otherAcl: AwsWafArn | null = parseAwsWafArn(other.wafId);
+
+      return (
+        other.id?.toString() !== target.row.id?.toString() &&
+        Boolean(otherAcl) &&
+        otherAcl!.accountId === target.webAcl.accountId &&
+        otherAcl!.region === target.webAcl.region &&
+        otherAcl!.scope === target.webAcl.scope
+      );
+    });
+  }
+
   // What OneUptime keeps in AWS WAF for a web ACL, for a person who takes it out by hand.
-  private static whatStaysInCloud(target: AwsWafTarget): Array<string> {
+  private static whatStaysInCloud(data: {
+    target: AwsWafTarget;
+    isSetsInUse: boolean;
+  }): Array<SecurityBlockCloudWafLeftItem> {
+    const { target } = data;
     const externalId: string = getAwsExternalIdForProject(
       target.row.projectId!.toString(),
     );
@@ -363,16 +380,26 @@ export default class SecurityBlockCloudWafs {
 
     return [
       ...(target.addsRule
-        ? [
-            `rule ${names.block} in ${target.webAcl.name}`,
-            `rule ${names.challenge} in ${target.webAcl.name}`,
-          ]
+        ? [names.block, names.challenge].map(
+            (name: string): SecurityBlockCloudWafLeftItem => {
+              return {
+                kind: SecurityBlockCloudWafLeftKind.Rule,
+                name,
+                webAcl: target.webAcl.name,
+              };
+            },
+          )
         : []),
-      ...getAwsWafBlocklistSets(externalId).map(
-        (set: { name: string }): string => {
-          return `IP set ${set.name}`;
-        },
-      ),
+      ...(data.isSetsInUse
+        ? []
+        : getAwsWafBlocklistSets(externalId).map(
+            (set: { name: string }): SecurityBlockCloudWafLeftItem => {
+              return {
+                kind: SecurityBlockCloudWafLeftKind.IpSet,
+                name: set.name,
+              };
+            },
+          )),
     ];
   }
 }

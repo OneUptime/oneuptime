@@ -141,3 +141,21 @@ export function isSecurityBlockCloudWafStatus(
 
 // The longest status message a cloud WAF keeps.
 export const SECURITY_BLOCK_CLOUD_WAF_MESSAGE_MAX_LENGTH: number = 1000;
+
+/*
+ * What OneUptime leaves in a cloud WAF it no longer enforces the blocklist
+ * in - its rule, kept by "remove from OneUptime only", or an IP set a rule
+ * of the team's still references - named for the person to delete there.
+ */
+export enum SecurityBlockCloudWafLeftKind {
+  IpSet = "ipSet",
+  Rule = "rule",
+}
+
+export interface SecurityBlockCloudWafLeftItem {
+  kind: SecurityBlockCloudWafLeftKind;
+  // Its name in the WAF: "oneuptime-1a2b3c4d-block-ipv4".
+  name: string;
+  // A rule's web ACL.
+  webAcl?: string | undefined;
+}

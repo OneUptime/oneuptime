@@ -569,9 +569,7 @@ export class AwsWafBlockDestinationSource
     for (const row of rows) {
       const connection: CloudConnection | undefined = connections.find(
         (candidate: CloudConnection): boolean => {
-          return (
-            candidate.id?.toString() === row.cloudConnectionId?.toString()
-          );
+          return candidate.id?.toString() === row.cloudConnectionId?.toString();
         },
       );
       const webAcl: AwsWafArn | null = parseAwsWafArn(row.wafId);

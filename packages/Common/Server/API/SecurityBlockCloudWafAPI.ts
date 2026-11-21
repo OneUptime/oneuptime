@@ -55,7 +55,9 @@ import CommonAPI from "./CommonAPI";
  *   POST /security-block-cloud-waf/:cloudWafId/remove { keepInCloud? }
  *     -> { leftInCloud }: OneUptime's rule taken out of the web ACL and its
  *        IP sets deleted once nothing uses them, then the row; with
- *        keepInCloud, the row alone, naming what stays in AWS WAF.
+ *        keepInCloud, the row alone. leftInCloud names what stays in AWS
+ *        WAF for the person to delete, each { kind: "rule" | "ipSet",
+ *        name, webAcl? }, worded by the page in the reader's language.
  *
  * Each takes the role that adds a web ACL (Project Owner, Project Admin,
  * Security Admin): it writes the customer's cloud. A plain DELETE is

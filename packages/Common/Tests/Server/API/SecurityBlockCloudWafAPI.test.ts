@@ -527,7 +527,7 @@ describe("changing and removing one", () => {
       const remove: MockedFn = jest
         .spyOn(SecurityBlockCloudWafs, "remove")
         .mockResolvedValue({
-          leftInCloud: ["IP set oneuptime-x-block-ipv4"],
+          leftInCloud: [{ kind: "ipSet", name: "oneuptime-x-block-ipv4" }],
         }) as unknown as MockedFn;
 
       const { refusal } = await call({
@@ -551,7 +551,7 @@ describe("changing and removing one", () => {
       expect(asked.keepInCloud).toBe(true);
       expect(answered()).toEqual({
         removed: true,
-        leftInCloud: ["IP set oneuptime-x-block-ipv4"],
+        leftInCloud: [{ kind: "ipSet", name: "oneuptime-x-block-ipv4" }],
       });
     },
   );
