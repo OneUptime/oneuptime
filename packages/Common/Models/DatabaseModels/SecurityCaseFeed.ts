@@ -49,6 +49,8 @@ export enum SecurityCaseFeedEventType {
   Evidence = "Evidence",
   // A response target about to be missed, or missed (SecurityCaseTargetCheck).
   ResponseTarget = "ResponseTarget",
+  // A Response Plan step OneUptime saw done stopped holding (SecurityCaseStepCheckRunner).
+  StepCheck = "StepCheck",
 }
 
 /*

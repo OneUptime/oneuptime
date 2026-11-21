@@ -36,6 +36,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { withoutLastModifiedStamp } from "../TestingUtils/LastModifiedStamp";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
@@ -255,13 +256,13 @@ beforeEach(() => {
       _where: unknown,
       set: Record<string, unknown>,
     ): Promise<{ affected: number }> => {
-      const written: Record<string, unknown> = { ...set };
+      const written: Record<string, unknown> = withoutLastModifiedStamp(set);
       delete written["version"];
       writes.push({ through: "update", data: written });
       return { affected: 1 };
     },
     save: async (entity: Record<string, unknown>): Promise<unknown> => {
-      const written: Record<string, unknown> = { ...entity };
+      const written: Record<string, unknown> = withoutLastModifiedStamp(entity);
       delete written["_id"];
       writes.push({ through: "save", data: written });
       return entity;

@@ -46,6 +46,7 @@ on:
       - .github/workflows/data-security-ai-eval.yml
       # One feature's own words.
       - packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts
       - packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestionPrompt.ts
       - packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestion.ts
       - packages/Common/Server/Utils/AI/Toolbox/DataSecurityTools.ts
@@ -56,7 +57,7 @@ on:
   workflow_dispatch:
     inputs:
       features:
-        description: "Features to run, separated by commas: ExplainIssue, FixIssue, SuggestFieldTypes, AskAi. Empty: all of them."
+        description: "Features to run, separated by commas: ExplainIssue, AnalyzeIssue, FixIssue, SuggestFieldTypes, AskAi. Empty: all of them."
         required: false
         default: ""
       cases:

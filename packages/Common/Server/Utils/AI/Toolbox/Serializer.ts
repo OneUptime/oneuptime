@@ -1,6 +1,9 @@
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import PromptText from "../../../../Utils/AI/PromptText";
 import { replacePrivateKeyBlocks } from "../../../../Utils/PrivateKeyBlocks";
+import ScrubIpAddress, {
+  ScrubIpAddressRange,
+} from "../../../../Utils/Telemetry/ScrubIpAddress";
 
 /*
  * Prepares tool results for the LLM prompt: redacts likely secrets/PII,
@@ -30,9 +33,10 @@ export const MAX_PAYLOAD_BYTES: number = 64 * 1024;
 /*
  * A rule is a pattern and what replaces each match, or - where one pattern
  * cannot read a text in time in line with its length - a function that
- * reads the text itself and says how many it replaced. Each names the
- * placeholder it writes where it hid a value ("[redacted-ip]"): a model
- * shown it knows a value was there, never the value.
+ * reads the text itself, writes the rule's placeholder where it hid a
+ * value, and says how many it replaced. Each names the placeholder it
+ * writes ("[redacted-ip]"): a model shown it knows a value was there, never
+ * the value.
  */
 type RedactionRule =
   | {
@@ -44,10 +48,69 @@ type RedactionRule =
   | {
       name: string;
       placeholder: string;
-      redact: (text: string) => { text: string; count: number };
+      redact: (
+        text: string,
+        placeholder: string,
+      ) => { text: string; count: number };
     };
 
 const PRIVATE_KEY_PLACEHOLDER: string = "[redacted-private-key]";
+
+/*
+ * THE IP ADDRESSES A MODEL IS NEVER SHOWN: EXACTLY THOSE AN IP ADDRESS SCRUB
+ * RULE HIDES (#10417).
+ *
+ * The rule here was /\b(?:\d{1,3}\.){3}\d{1,3}\b/, so "8.8.8.8" in a log line
+ * reached the model as "[redacted-ip]" while "2001:4860:4860::8888" in the
+ * same line reached it as it is: which visitors' addresses left for the
+ * model's provider, and stayed in AI Logs, depended on which IP version they
+ * used. Now the addresses are found by ScrubIpAddress.findRanges, the very
+ * function an IP Address scrub rule runs on every log and span (#10393), with
+ * Data Security's own detectors, so the two can never disagree on what an
+ * address is:
+ *
+ *  - hidden: public IPv4 and IPv6 addresses, written out or compressed, in
+ *    capitals, in brackets with a port ([2001:db8::1]:443 keeps its brackets
+ *    and port), with a zone, and an IPv4 address written as IPv6
+ *    (::ffff:8.8.8.8, ::ffff:808:808), hidden whole; and the documentation
+ *    ranges (203.0.113.7, 2001:db8::1), so a test shows the rule working;
+ *  - kept: private, loopback and link-local addresses (10.0.0.12, 127.0.0.1,
+ *    fe80::1, 169.254.169.254), which point at no one, and which a model
+ *    needs to read a project's own infrastructure: the database at
+ *    10.0.0.12:5432 that refused a connection, the cloud metadata address
+ *    in a request's URL. The old rule hid them too;
+ *  - never an address: a clock (12:34:56), a C++ scope (std::vector), a MAC
+ *    address, a trace or span id, a version with more parts (1.3.6.1.4.1).
+ *
+ * In time in line with the text's length: each detector's pattern is
+ * bounded and cannot start inside a longer run of its characters
+ * (ScrubIpAddressLinearTime.test.ts, SerializerIpAddresses.test.ts).
+ */
+const redactIpAddresses: (
+  text: string,
+  placeholder: string,
+) => { text: string; count: number } = (
+  text: string,
+  placeholder: string,
+): { text: string; count: number } => {
+  const ranges: Array<ScrubIpAddressRange> = ScrubIpAddress.findRanges(text);
+
+  if (ranges.length === 0) {
+    return { text, count: 0 };
+  }
+
+  const parts: Array<string> = [];
+  let at: number = 0;
+
+  for (const [start, end] of ranges) {
+    parts.push(text.slice(at, start), placeholder);
+    at = end;
+  }
+
+  parts.push(text.slice(at));
+
+  return { text: parts.join(""), count: ranges.length };
+};
 
 /*
  * These are security redactions, not the fingerprint-normalization regexes
@@ -136,10 +199,10 @@ const REDACTION_RULES: Array<RedactionRule> = [
     replacement: "[redacted-email]",
   },
   {
-    name: "ipv4",
+    // IPv4 and IPv6, as an IP Address scrub rule finds them: see redactIpAddresses.
+    name: "ip-address",
     placeholder: "[redacted-ip]",
-    regex: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g,
-    replacement: "[redacted-ip]",
+    redact: redactIpAddresses,
   },
   {
     /*
@@ -203,21 +266,22 @@ export interface SerializedResult {
  * security work is about. A triage cannot judge "a sign-in from
  * 203.0.113.7" when it reads "a sign-in from [redacted-ip]", nor look a
  * file's SHA-256 up in threat intel when the digest reads [redacted-hex].
- * Secrets - tokens, keys, private keys, card numbers, "password=..." -
- * are redacted in a security result as in every other.
+ * An IPv6 address is kept as an IPv4 one is (#10417). Secrets - tokens,
+ * keys, private keys, card numbers, "password=..." - are redacted in a
+ * security result as in every other.
  */
 export const SECURITY_OBSERVABLE_RULE_NAMES: ReadonlyArray<string> = [
   "email",
-  "ipv4",
+  "ip-address",
   "hex-secret",
 ];
 
 export interface RedactionOptions {
   /*
-   * Keep IP addresses, email addresses and long hex digests (file hashes):
-   * for the security tools, whose results are those observables
-   * (SecurityEventTools, SecurityCaseTools) and the security case triage's
-   * context.
+   * Keep IP addresses (IPv4 and IPv6), email addresses and long hex
+   * digests (file hashes): for the security tools, whose results are those
+   * observables (SecurityEventTools, SecurityCaseTools) and the security
+   * case triage's context.
    */
   keepSecurityObservables?: boolean | undefined;
 }
@@ -229,7 +293,7 @@ export default class ToolResultSerializer {
     rule: RedactionRule,
   ): { text: string; count: number } {
     if ("redact" in rule) {
-      return rule.redact(text);
+      return rule.redact(text, rule.placeholder);
     }
 
     let count: number = 0;

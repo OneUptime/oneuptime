@@ -75,8 +75,10 @@ export default class OktaResponseClient {
     });
   }
 
-  // The user signing in as this login (or with this id), or null when Okta has none.
-  public async findUser(loginOrId: string): Promise<OktaUser | null> {
+  // The user record Okta holds for this login (or id), or null when it has none.
+  private async fetchUser(
+    loginOrId: string,
+  ): Promise<{ user: OktaUser; body: JSONObject } | null> {
     const step: string = "Okta user lookup";
     const result: ResponseHttpResult = await this.send(
       step,
@@ -116,10 +118,45 @@ export default class OktaResponseClient {
         : {};
 
     return {
-      id,
-      status: typeof body["status"] === "string" ? body["status"] : "",
-      login:
-        typeof profile["login"] === "string" ? profile["login"] : loginOrId,
+      user: {
+        id,
+        status: typeof body["status"] === "string" ? body["status"] : "",
+        login:
+          typeof profile["login"] === "string" ? profile["login"] : loginOrId,
+      },
+      body,
+    };
+  }
+
+  // The user signing in as this login (or with this id), or null when Okta has none.
+  public async findUser(loginOrId: string): Promise<OktaUser | null> {
+    return (await this.fetchUser(loginOrId))?.user || null;
+  }
+
+  /*
+   * The user, and when Okta last changed their status (statusChanged): what
+   * a Response Plan step's check reads back to say since when an account is
+   * suspended (#10340). Null when Okta has no such user.
+   */
+  public async readUserState(
+    loginOrId: string,
+  ): Promise<{ user: OktaUser; statusChangedAt: Date | null } | null> {
+    const found: { user: OktaUser; body: JSONObject } | null =
+      await this.fetchUser(loginOrId);
+
+    if (!found) {
+      return null;
+    }
+
+    const changed: Date | null =
+      typeof found.body["statusChanged"] === "string"
+        ? new Date(found.body["statusChanged"])
+        : null;
+
+    return {
+      user: found.user,
+      statusChangedAt:
+        changed && !Number.isNaN(changed.getTime()) ? changed : null,
     };
   }
 

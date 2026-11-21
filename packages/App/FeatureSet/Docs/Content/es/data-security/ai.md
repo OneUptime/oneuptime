@@ -3,11 +3,26 @@
 OneUptime AI trabaja con lo que encontró Seguridad de datos sin ver tus datos. Recibe nombres, formas, recuentos y configuración, nunca un valor de tus datos, una muestra enmascarada, una entrada ni una cadena de conexión. Cada función se ejecuta en el modelo propio de tu proyecto, incluido uno autoalojado, y cada página, comprobación, escaneo e integración de Seguridad de datos funciona con la IA desactivada.
 
 :::cards
+- [Por su cuenta](#por-su-cuenta): Qué hace con cada problema nuevo, qué te espera y las reglas de IA.
 - [Lo que ve OneUptime AI](#lo-que-ve-oneuptime-ai): Lo que envía cada función, y lo que nunca envía.
 - [Compruébalo tú mismo](#compruébalo-tú-mismo): La entrada exacta que enviaría uno de tus problemas.
 - [Tu propio modelo](#tu-propio-modelo): Cada función en el proveedor de tu proyecto, Ollama, vLLM o cualquier endpoint compatible con OpenAI.
 - [Cómo se mide](#cómo-se-mide): Cada función con casos fijos, antes de cada versión.
 :::
+
+## Por su cuenta
+
+Con **Trabajar en los problemas nuevos** activado en **Seguridad de datos → IA**, como en los proyectos nuevos, la IA de OneUptime trabaja por su cuenta en cada problema nuevo crítico o alto. Escribe el análisis del problema, como hace **Explicar con IA** y a partir de lo que esa acción envía, y lo añade a la **Cronología** del problema. Para un problema de telemetría propone las reglas de depuración que ocultan sus datos en la telemetría nueva. Una propuesta espera en esa página en **Esperándote**, primero las más arriesgadas, con qué cambiará, por qué, cómo se demostrará y cómo deshacerlo. **Aprobar** hace el cambio con tus propios permisos: una regla de depuración requiere permiso para crear reglas de depuración de registros, reglas de depuración de trazas o reglas del pipeline de métricas. **Descartar propuesta** dice que no, con un motivo que se añade a la cronología del problema. La comprobación propia del problema decide si un cambio funcionó: el almacén se vuelve a comprobar y el problema se resuelve cuando no queda ninguno de sus datos.
+
+De forma predeterminada, la IA de OneUptime pregunta antes de cada cambio, salvo uno que solo oculta datos, se puede deshacer y está demostrado que es seguro, y nunca borra datos ni avisa a nadie sin preguntar. Un cambio que hizo sin preguntar aparece en **Hecho por la IA**, con **Deshacer**. **Por qué la IA no actuó** lista los problemas que revisó y dejó como estaban, y por qué. Cada propuesta, aprobación, descarte y reversión está en la **Cronología** del problema y del almacén. Con el interruptor desactivado, o la IA desactivada en el proyecto, la seguridad de datos funciona como siempre, y **Explicar con IA** y **Corregir con IA** siguen funcionando cuando los pulsas.
+
+En la página de un problema, la tarjeta **OneUptime AI** sobre **Cómo corregirlo** muestra el análisis y lo que se propuso para ese problema, con los mismos botones. La **Vista general** de seguridad de datos dice cuántas fugas contuvo la IA de OneUptime esta semana y cuántas propuestas te esperan. **Notas para la IA de OneUptime** cuenta semana a semana en qué quedaron sus cambios: consulta [Cómo le va a OneUptime AI](/docs/ai/ai-sre#cómo-le-va-a-oneuptime-ai).
+
+### Reglas de IA
+
+En **Reglas de IA** de **Seguridad de datos → IA**, una regla dice en qué problemas trabaja la IA de OneUptime - por su comprobación o grupo de comprobaciones, su gravedad, y la sensibilidad, el tipo, el proveedor, el entorno, las etiquetas, las categorías de datos y el servicio del almacén - y, para cada tipo de trabajo, **Analizar**, **Contener**, **Corrección** y **Juzgar**, si está en **Desactivado**, **Sugerir** (propone y te espera) o **Sin preguntar**. Cuando varias reglas coinciden con un problema, un tipo de trabajo se ejecuta si alguna lo activa, y **Sugerir** gana a **Sin preguntar**. Cada propuesta dice qué regla la decidió. Sin ninguna regla, se aplican los valores predeterminados del proyecto: analizar los problemas críticos y altos, y sugerir todo lo demás.
+
+Las reglas de IA pertenecen a todo el proyecto, como las de incidentes y alertas: los propietarios y administradores del proyecto las cambian, igual que cualquiera con los permisos de reglas de IA. Los roles de seguridad ven lo que la IA de OneUptime propuso e hizo, pero no las reglas.
 
 ## Lo que ve OneUptime AI
 
@@ -23,11 +38,12 @@ Seguridad de datos lee tus datos ella misma, dentro de sus escaneos, y no guarda
 | Función | Lo que envía | Se ejecuta sola |
 | --- | --- | --- |
 | **Explicar con IA** | El título, la gravedad y las evidencias del problema, por qué importa su comprobación y la corrección para la nube del almacén; el nombre, el tipo, la región y el ID en la nube del almacén, su sensibilidad y los nombres de sus tipos de datos; para un problema en la telemetría, dónde se encontró cada clase de datos: el atributo, el cuerpo del registro o el prompt en que está | No: una persona la pide, en la página de un problema |
+| **Análisis de problemas nuevos** | El título, la gravedad y las evidencias del problema, por qué importa su comprobación y la corrección para la nube del almacén; el nombre, el tipo, la región y el ID en la nube del almacén, su sensibilidad y los nombres de sus tipos de datos; para un problema en la telemetría, dónde se encontró cada clase de datos: el atributo, el cuerpo del registro o el prompt en que está | Sí: un problema nuevo crítico o alto la inicia, mientras **Trabajar en los problemas nuevos** está activado |
 | **Corregir con IA** | Lo que envía Explicar con IA, como solicitud al agente de código, que luego lee el propio código del repositorio para hacer el cambio | No: una persona la pide, en un repositorio que puede cambiar en **Código** |
 | **Sugerencias para campos que ningún detector identificó** | El tipo de almacén y los tipos de datos que la IA puede nombrar; el nombre de cada campo, los nombres de los campos de al lado y las formas de sus valores, cada letra como `a` o `A` y cada dígito como `9`; cuántos valores se leyeron y qué longitud tienen | Sí: el escaneo de contenido de un almacén las inicia |
 | **Preguntar a la IA** | Los almacenes, problemas y accesos que la persona puede leer en Seguridad de datos; qué se encontró y dónde, cada tipo de datos por su ubicación, con recuentos y confianza | No: una persona hace una pregunta |
 
-**Explicar con IA** y **Preguntar a la IA** también leen primero el [contexto de IA](/docs/ai/ai-context) de tu equipo, cuando tiene uno: las notas que tu equipo escribió para OneUptime AI sobre tus sistemas.
+**Explicar con IA** y **Preguntar a la IA** también leen primero el [contexto de IA](/docs/ai/ai-context) de tu equipo, cuando tiene uno: las notas que tu equipo escribió para OneUptime AI sobre tus sistemas. **Análisis de problemas nuevos** también lo lee.
 
 ### El texto que escribieron tus sistemas es un dato
 

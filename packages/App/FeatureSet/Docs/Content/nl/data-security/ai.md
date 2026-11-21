@@ -3,11 +3,26 @@
 OneUptime AI werkt met wat Gegevensbeveiliging heeft gevonden, zonder je gegevens te zien. Het krijgt namen, vormen, aantallen en configuratie, nooit een waarde van je gegevens, een gemaskeerd voorbeeld, een record of een verbindingsreeks. Elke functie draait op het eigen model van je project, ook een zelf gehost model, en elke pagina, controle, scan en integratie van Gegevensbeveiliging werkt met AI uitgeschakeld.
 
 :::cards
+- [Uit zichzelf](#uit-zichzelf): Wat het met elk nieuw probleem doet, wat op je wacht, en de AI-regels.
 - [Wat OneUptime AI ziet](#wat-oneuptime-ai-ziet): Wat elke functie verstuurt, en wat die nooit verstuurt.
 - [Zie het zelf](#zie-het-zelf): De exacte invoer die een van je problemen zou versturen.
 - [Je eigen model](#je-eigen-model): Elke functie op de provider van je project, Ollama, vLLM of een OpenAI-compatibel endpoint.
 - [Hoe het wordt gemeten](#hoe-het-wordt-gemeten): Elke functie op vaste gevallen, voor elke release.
 :::
+
+## Uit zichzelf
+
+Met **Aan nieuwe problemen werken** ingeschakeld onder **Gegevensbeveiliging → AI**, zoals bij nieuwe projecten, werkt OneUptime AI uit zichzelf aan elk nieuw kritiek of hoog probleem. Het schrijft de analyse van het probleem, zoals **Uitleggen met AI** dat doet en op basis van wat dat verstuurt, en zet die op de **Tijdlijn** van het probleem. Voor een telemetrieprobleem stelt het de opschoonregels voor die de gegevens ervan in nieuwe telemetrie verbergen. Een voorstel wacht op die pagina onder **Wacht op u**, de riskantste eerst, met wat er verandert, waarom, hoe het wordt bewezen en hoe je het ongedaan maakt. **Goedkeuren** voert de wijziging uit met je eigen machtigingen: een opschoonregel vereist de machtiging om opschoonregels voor logs, opschoonregels voor traces of pipelineregels voor metrieken te maken. **Voorstel negeren** zegt nee, met een reden die op de tijdlijn van het probleem komt. De eigen controle van het probleem beslist of een wijziging heeft gewerkt: de opslag wordt opnieuw gecontroleerd, en het probleem wordt opgelost zodra er geen gegevens ervan over zijn.
+
+Standaard vraagt OneUptime AI vóór elke wijziging, behalve een die alleen gegevens verbergt, ongedaan kan worden gemaakt en bewezen veilig is, en het verwijdert nooit gegevens en roept nooit iemand op zonder te vragen. Een wijziging die het zonder te vragen heeft gedaan, staat onder **Gedaan door AI**, met **Ongedaan maken**. **Waarom AI niet heeft gehandeld** toont de problemen die het heeft bekeken en met rust heeft gelaten, en waarom. Elk voorstel, elke goedkeuring, elke keer negeren en elke keer ongedaan maken staat op de **Tijdlijn** van het probleem en van de opslag. Met de schakelaar uit, of AI uit voor het project, werkt gegevensbeveiliging zoals altijd, en **Uitleggen met AI** en **Oplossen met AI** werken nog steeds als je erop drukt.
+
+Op de pagina van een probleem toont de kaart **OneUptime AI** boven **Zo lost u het op** de analyse en wat er voor dat probleem is voorgesteld, met dezelfde knoppen. Het **Overzicht** van gegevensbeveiliging zegt hoeveel lekken OneUptime AI deze week heeft ingedamd en hoeveel voorstellen op je wachten. **Notities voor OneUptime AI** telt week voor week wat de wijzigingen opleverden: zie [Hoe goed OneUptime AI het doet](/docs/ai/ai-sre#hoe-goed-oneuptime-ai-het-doet).
+
+### AI-regels
+
+Onder **AI-regels** op **Gegevensbeveiliging → AI** zegt een regel aan welke problemen OneUptime AI werkt - op hun controle of controlegroep, ernst, en de gevoeligheid, soort, provider, omgeving, labels, gegevenscategorieën en service van de opslag - en, voor elk soort werk, **Analyseren**, **Indammen**, **Herstel** en **Beoordelen**, of het **Uit** staat, op **Voorstellen** (het stelt voor en wacht op jou) of op **Zonder te vragen**. Als meerdere regels bij een probleem passen, draait een soort werk als een van hen het aanzet, en **Voorstellen** gaat voor **Zonder te vragen**. Elk voorstel zegt welke regel erover besliste. Zonder regel gelden de standaarden van het project: kritieke en hoge problemen analyseren, en al het andere voorstellen.
+
+AI-regels horen bij het hele project, net als die voor incidenten en waarschuwingen: projecteigenaren en projectbeheerders wijzigen ze, net als iedereen die de rechten voor AI-regels heeft gekregen. De beveiligingsrollen zien wat OneUptime AI heeft voorgesteld en gedaan, maar niet de regels.
 
 ## Wat OneUptime AI ziet
 
@@ -23,11 +38,12 @@ Gegevensbeveiliging leest je gegevens zelf, in de eigen scans, en bewaart er nie
 | Functie | Wat die verstuurt | Draait vanzelf |
 | --- | --- | --- |
 | **Uitleggen met AI** | De titel, de ernst en het bewijs van het probleem, waarom de controle ervan ertoe doet en de oplossing voor de cloud van de opslag; de naam, het soort, de regio en de cloud-ID van de opslag, de gevoeligheid en de namen van de gegevenstypen; bij een probleem in de telemetrie, waar elk soort gegevens is gevonden: het attribuut, de logtekst of de prompt waarin het staat | Nee: een persoon vraagt erom, op de pagina van een probleem |
+| **Analyse van nieuwe problemen** | De titel, de ernst en het bewijs van het probleem, waarom de controle ervan ertoe doet en de oplossing voor de cloud van de opslag; de naam, het soort, de regio en de cloud-ID van de opslag, de gevoeligheid en de namen van de gegevenstypen; bij een probleem in de telemetrie, waar elk soort gegevens is gevonden: het attribuut, de logtekst of de prompt waarin het staat | Ja: een nieuw kritiek of hoog probleem start haar, zolang **Aan nieuwe problemen werken** aan staat |
 | **Oplossen met AI** | Wat Uitleggen met AI verstuurt, als verzoek aan de code-agent, die daarna de eigen code van de repository leest om de wijziging te maken | Nee: een persoon vraagt erom, in een repository die die persoon onder **Code** mag wijzigen |
 | **Suggesties voor velden die geen detector heeft geplaatst** | Het soort opslag en de gegevenstypen die de AI mag noemen; de naam van elk veld, de namen van de velden ernaast en de vormen van de waarden, elke letter als `a` of `A` en elk cijfer als `9`; hoeveel waarden zijn gelezen en hoe lang ze zijn | Ja: de inhoudsscan van een opslag start ze |
 | **AI vragen** | De opslagen, problemen en toegang die de persoon in Gegevensbeveiliging mag lezen; wat waar is gevonden, elk gegevenstype per locatie, met aantallen en betrouwbaarheid | Nee: een persoon stelt een vraag |
 
-**Uitleggen met AI** en **AI vragen** lezen ook eerst de [AI-context](/docs/ai/ai-context) van je team, als die er is: de notities die je team voor OneUptime AI over je systemen heeft geschreven.
+**Uitleggen met AI** en **AI vragen** lezen ook eerst de [AI-context](/docs/ai/ai-context) van je team, als die er is: de notities die je team voor OneUptime AI over je systemen heeft geschreven. **Analyse van nieuwe problemen** leest die ook.
 
 ### Tekst die je systemen schreven is gegevens
 

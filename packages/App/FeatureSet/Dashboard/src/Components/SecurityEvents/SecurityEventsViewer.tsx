@@ -110,6 +110,16 @@ import {
   SECURITY_EVENT_SCOPE_QUERY_KEY,
   SecurityEventScope,
 } from "Common/Types/SecurityEvent/SecurityEventScope";
+import {
+  SecurityEventArrivalRange,
+  readSecurityEventArrivalRangeFromSearch,
+} from "Common/Types/SecurityEvent/SecurityEventArrival";
+import {
+  applySecurityEventsArrival,
+  getSecurityEventsArrivalChip,
+  getSecurityEventsArrivalParams,
+  isSecurityEventsArrivalChip,
+} from "./SecurityEventsArrivalFilter";
 import { HuntSearchState } from "./Hunts/HuntsModel";
 import { EVENT_PLURAL, EVENT_SINGULAR } from "./Hunts/HuntsCopy";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -189,6 +199,8 @@ interface InitialUrlState {
   search: string;
   page: number;
   pageSize: number;
+  // The events that arrived in a range: a hunt's run, opened on what it counted.
+  arrival: SecurityEventArrivalRange | null;
 }
 
 /*
@@ -323,6 +335,7 @@ function readInitialUrlState(
       startsFromHunt && hunt ? hunt.searchQuery : params.get("search") || "",
     page: parsePositiveInt(params.get("page"), 1),
     pageSize: parsePositiveInt(params.get("pageSize"), DEFAULT_PAGE_SIZE),
+    arrival: readSecurityEventArrivalRangeFromSearch(search),
   };
 }
 
@@ -404,6 +417,18 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
   const [facetFilters, setFacetFilters] = useState<Map<string, Set<string>>>(
     initialUrlState.facetFilters,
   );
+
+  /*
+   * The events that arrived in a range (#10488): what a hunt's run counted,
+   * as its notification, its last find and its Run History open it. A chip
+   * over the list, which its x takes off.
+   */
+  const [arrival, setArrival] = useState<SecurityEventArrivalRange | null>(
+    initialUrlState.arrival,
+  );
+  const arrivalKey: string = arrival
+    ? `${arrival.arrivedAfter.toISOString()}|${arrival.arrivedUntil.toISOString()}`
+    : "";
 
   const [page, setPage] = useState<number>(initialUrlState.page);
   const [pageSize, setPageSize] = useState<number>(initialUrlState.pageSize);
@@ -499,18 +524,21 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
     /*
      * Search first, chips second: a chip is an explicit click on a value the
      * user can see and remove, so when both name the same column the chip is
-     * the one they are steering with. The page's scope goes on last, under
-     * a key of its own neither writes.
+     * the one they are steering with. The page's scope and a run's arrivals
+     * go on last, each under a key of its own neither writes.
      */
-    return applySecurityEventsViewerScope(
-      applySecurityEventFacetFiltersToQuery({
-        query: applySecurityEventSearchToQuery({
-          query: base,
-          filters: searchFilters,
+    return applySecurityEventsArrival(
+      applySecurityEventsViewerScope(
+        applySecurityEventFacetFiltersToQuery({
+          query: applySecurityEventSearchToQuery({
+            query: base,
+            filters: searchFilters,
+          }),
+          filters: facetFilters,
         }),
-        filters: facetFilters,
-      }),
-      props.scope,
+        props.scope,
+      ),
+      arrival,
     );
   }, [
     projectId?.toString(),
@@ -518,6 +546,7 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
     searchFilters,
     facetFilters,
     scopeKey,
+    arrivalKey,
   ]);
 
   // --- What the page searches, for a hunt's page ---
@@ -545,12 +574,13 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
       ...(getSecurityEventsTimeRangeParams(timeRange) as Dictionary<
         string | null
       >),
+      ...getSecurityEventsArrivalParams(arrival),
       filters: serializeTelemetryFilterTuplesAsPairs(tuples),
       search: submittedSearch ? submittedSearch : null,
       page: page > 1 ? page.toString() : null,
       pageSize: pageSize !== DEFAULT_PAGE_SIZE ? pageSize.toString() : null,
     });
-  }, [timeRange, facetFilters, submittedSearch, page, pageSize]);
+  }, [timeRange, facetFilters, submittedSearch, page, pageSize, arrivalKey]);
 
   // --- List ---
 
@@ -1054,6 +1084,13 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
 
   const handleRemoveFilter: (facetKey: string, value: string) => void =
     useCallback((facetKey: string, value: string): void => {
+      // A run's arrivals: everything in the time range shows again.
+      if (isSecurityEventsArrivalChip(facetKey)) {
+        setArrival(null);
+        setPage(1);
+        return;
+      }
+
       setFacetFilters(
         (previous: Map<string, Set<string>>): Map<string, Set<string>> => {
           const current: Set<string> | undefined = previous.get(facetKey);
@@ -1081,6 +1118,7 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
 
   const handleClearAllFilters: () => void = useCallback((): void => {
     setFacetFilters(new Map());
+    setArrival(null);
     setSearchValue("");
     setSubmittedSearch("");
     setPage(1);
@@ -1111,6 +1149,11 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
       ? [{ ...props.scope.chip, readOnly: true }]
       : [];
 
+    // A run's arrivals next: what it counted, before anything the reader added.
+    if (arrival) {
+      filters.push(getSecurityEventsArrivalChip(arrival));
+    }
+
     for (const [facetKey, values] of facetFilters.entries()) {
       for (const value of values) {
         filters.push({
@@ -1127,7 +1170,7 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
     }
 
     return filters;
-  }, [facetFilters, sourceNames, props.scope?.chip]);
+  }, [facetFilters, sourceNames, props.scope?.chip, arrivalKey]);
 
   const facetConfigs: Array<FacetConfig> = useMemo(() => {
     return buildSecurityEventFacetConfigs({ sourceNames: sourceNames });

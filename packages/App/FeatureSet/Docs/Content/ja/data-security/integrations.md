@@ -94,6 +94,8 @@ flowchart TB
 - **AI で説明** は、データストアの所有者に向けて、何が問題か、何が起こりうるか、そして所有者のクラウドで修正する正確な手順を書きます。説明は問題の **タイムライン** に保存されます。送信した問題も回答も、すべてのプロジェクトメンバーと閲覧者が読める **プロジェクト設定 → AI → AI ログ** には保存されません。その行には、呼び出しが行われたこととそのコストだけが記録されます。問題を閲覧できる人なら誰でも依頼できます。
 - **AI で修正** は、チェックに合格する最小限の変更でインフラストラクチャのコード (Terraform、CloudFormation、Bicep など) の問題を修正し、プルリクエストを作成するよう OneUptime AI に依頼します。データストアのインフラストラクチャのコードがあるリポジトリが **コード** の下で接続されている必要があります: 依頼できるリポジトリが複数ある場合は **リポジトリ** で選びます。プルリクエストは **コード** の下に表示されます ( [コード](/docs/ai/ai-agent) を参照)。セキュリティメンバー以上のロールが、**コード** で変更できるリポジトリで依頼できます。そこで AI に依頼するのと同じ権限が必要です。セキュリティロールだけではリポジトリを読むことも変更することもできないため、チームに **Read Code Repository** と **Edit Code Repository** も付与してください。AI が今は動けない場合 (オフになっている、プロジェクトの AI クレジットが尽きた、1 日の上限に達した、オンラインの Runner がない) は、AI で修正 は直すべき点を示し、何も開始しません。
 
+OneUptime AI は、AI ルールが許す範囲で、新しい問題それぞれにも自動で対応します。[データセキュリティにおける OneUptime AI](/docs/data-security/ai) を参照してください。
+
 ### AI に質問
 
 **AI に質問** はデータセキュリティも読み取ります。データセキュリティのどのページでも、どのデータストアがカード番号を保持しているか、何から修正すべきか、あるロールが漏えいした場合にどのデータストアに到達できるかを尋ねられます。データストアや問題のページでは、まずそのレコードを読み取ります。回答には 3 つの読み取りツールを使い、それらはあなた自身の権限で実行されます。
@@ -130,6 +132,7 @@ flowchart TB
 | カスタムデータタイプ、チェックの設定、コンプライアンスの設定、データ所在地ルール | `/data-security-custom-data-type`、`/data-security-check-setting`、`/data-security-compliance-setting`、`/data-security-residency-rule` |
 | プロジェクトの設定 | `/data-security-setting` |
 | 所有者、所有者ルール、ラベルルール | `/data-store-owner-user`、`/data-store-owner-team`、`/data-store-owner-rule`、`/data-store-label-rule` |
+| OneUptime AI が問題に対して提案する内容と、問題に対応した理由または対応しなかった理由 | `/data-security-ai-proposal`、`/data-security-ai-decision` |
 
 いくつかの回答は、保存されているのではなく、リクエストのたびに算出されます。どれも `POST` です。
 
@@ -149,6 +152,9 @@ flowchart TB
 | `/data-security-issue/<id>/fix-with-ai` | 問題での **AI で修正** |
 | `/data-store/<id>/response-actions` | データストアでいま実行できる対応アクションと、実行できない場合はその理由 |
 | `/data-store/<id>/respond` | 実行元の問題を指定して、データストアに対応アクションを 1 つ実行します ( **パブリックアクセスをブロック** や **バージョニングを有効にする** など) |
+| `/data-security-ai-proposal/<id>/approve` | OneUptime AI が提案する変更での **承認**。あなた自身の権限で変更を行います。表示された提案の `expectedPlanFingerprint` を受け取り、その後に変わった提案は拒否します |
+| `/data-security-ai-proposal/<id>/dismiss` | **提案を却下**。 `{"reason": "..."}` を受け取り、理由は問題のタイムラインに記録されます |
+| `/data-security-ai-proposal/<id>/undo` | OneUptime AI が行った変更での **元に戻す**: 変更が取り消され、データストアが再チェックされます |
 
 [Terraform プロバイダー](/docs/terraform/index) には、作成する各種類のレコード (自分で追加するデータストア、カスタムデータタイプ、チェックの設定、コンプライアンスの設定、データ所在地ルール、所有者ルールとラベルルール) ごとに、 `oneuptime_residency_rule` のようにレコードにちなんだ名前のリソースがあります。
 

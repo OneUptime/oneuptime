@@ -57,6 +57,9 @@ import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import DataSecurityCheckSetting from "Common/Models/DatabaseModels/DataSecurityCheckSetting";
 import DataSecurityCustomDataType from "Common/Models/DatabaseModels/DataSecurityCustomDataType";
 import DataSecurityFlow from "Common/Models/DatabaseModels/DataSecurityFlow";
+import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
+import DataSecurityAiDecision from "Common/Models/DatabaseModels/DataSecurityAiDecision";
+import DataSecurityAiProposal from "Common/Models/DatabaseModels/DataSecurityAiProposal";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import DataSecurityIssueFeed, {
   DataSecurityIssueFeedEventType,
@@ -127,6 +130,19 @@ import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityResponseUnavailableReason,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
+import {
+  DataSecurityAiAskReason,
+  DataSecurityAiAutonomy,
+  DataSecurityAiChangeSafety,
+  DataSecurityAiProposalKind,
+  DataSecurityAiProposalStatus,
+  DataSecurityAiWork,
+} from "Common/Types/DataSecurity/DataSecurityAi";
+import {
+  DataSecurityAiDecisionReason,
+  DataSecurityAiIssueSkipReason,
+} from "Common/Types/DataSecurity/DataSecurityAiDecision";
 import {
   DataSecurityResponseAction,
   getDataSecurityResponseActions,
@@ -156,6 +172,8 @@ const dataSet = ["empty", "busy"].includes(params.get("data"))
   ? params.get("data")
   : "default";
 const isFailing = params.get("fail") === "reads";
+// ?ai=on: OneUptime AI has proposed, made and left alone (Data Security → AI).
+const isAiOn = params.get("ai") === "on";
 const rolePermissions =
   role === "viewer"
     ? [Permission.SecurityViewer]
@@ -194,6 +212,10 @@ const ID = {
   identity: (n) => uuid("1a000000", n),
   // The checkout service, whose logs are a store.
   service: (n) => uuid("1b000000", n),
+  // OneUptime AI's proposals and decisions on the issues.
+  proposal: (n) => uuid("1d000000", n),
+  rule: (n) => uuid("1f000000", n),
+  decision: (n) => uuid("1e000000", n),
 };
 
 const fixture = {
@@ -218,6 +240,8 @@ const fixture = {
     vendorIdentity: ID.identity(3),
     legacyIdentity: ID.identity(4),
     serviceIdentity: ID.identity(5),
+    waitingProposal: ID.proposal(1),
+    madeProposal: ID.proposal(2),
   },
   scenario: {
     language,
@@ -225,6 +249,7 @@ const fixture = {
     response: isResponseOn ? "on" : "off",
     data: dataSet,
     fail: isFailing ? "reads" : "",
+    ai: isAiOn ? "on" : "",
   },
   getItemRequests: [],
   listRequests: [],
@@ -1244,6 +1269,110 @@ table(DataSecurityIssueFeed).push(
 
 /*
  * ---------------------------------------------------------------------------
+ * OneUptime AI's work on the issues (#10364)
+ * ---------------------------------------------------------------------------
+ *
+ * Data Security → AI lists what OneUptime AI proposes and made, and the
+ * issues it left alone; the side menu counts what waits beside AI, on every
+ * page. The project has the switch on, as a new project does. The default
+ * data set has no proposal, so every other page reads as it did; ?ai=on
+ * adds one waiting on the logs' email issue, one made without asking, and
+ * one issue left alone.
+ */
+table(Project).push({
+  _id: PROJECT_ID,
+  name: "Acme Commerce",
+  enableAi: true,
+  enableAutomaticDataSecurityAi: true,
+});
+table(DataSecurityAiProposal);
+table(DataSecurityAiDecision);
+// Data Security's AI rules: AI rules with the DataSecurityIssue trigger.
+table(AutoRemediationRule);
+
+if (isAiOn) {
+  table(AutoRemediationRule).push({
+    _id: ID.rule(1),
+    projectId,
+    name: "Production stores",
+    triggerEntityType: AutoRemediationTriggerEntity.DataSecurityIssue,
+    isEnabled: true,
+    dataSecurityAnalyze: DataSecurityAiAutonomy.WithoutAsking,
+    dataSecurityContain: DataSecurityAiAutonomy.Suggest,
+    dataSecurityFix: DataSecurityAiAutonomy.Suggest,
+    dataSecurityJudge: DataSecurityAiAutonomy.Off,
+    dataStoreEnvironments: ["Production"],
+  });
+  table(DataSecurityAiProposal).push(
+    {
+      _id: ID.proposal(1),
+      projectId,
+      dataSecurityIssueId: new ObjectID(ID.issue(3)),
+      dataStoreId: new ObjectID(ID.store(4)),
+      kind: DataSecurityAiProposalKind.ScrubTelemetry,
+      work: DataSecurityAiWork.Contain,
+      safety: DataSecurityAiChangeSafety.MaskOnly,
+      status: DataSecurityAiProposalStatus.Proposed,
+      riskScore: 72,
+      title: "Scrub Email address in log.body of checkout · Logs",
+      changeMarkdown:
+        "A log scrub rule, **Data Security: Email address in `log.body`**, that masks email addresses in the service's new logs before they are stored.",
+      reasonMarkdown:
+        "**Email address in logs**: Email address was found in 1 place of checkout · Logs in the last 7 days, and no scrub rule hides it as the telemetry arrives.",
+      proofMarkdown:
+        "The issue's own check decides. Once the rule is made, the store is checked again: the issue resolves when none of its data is left unscrubbed.",
+      undoMarkdown:
+        "Undo deletes the scrub rule this made - never a rule that was there before - and checks the store again.",
+      plan: {
+        places: [
+          {
+            signal: "Logs",
+            dataTypeId: "email",
+            dataTypeName: "Email address",
+            location: "log.body",
+          },
+        ],
+      },
+      askReason: DataSecurityAiAskReason.NotProvenSafe,
+      autoRemediationRuleId: new ObjectID(ID.rule(1)),
+      autoRemediationRuleName: "Production stores",
+      createdAt: ago(2 * HOUR),
+    },
+    {
+      _id: ID.proposal(2),
+      projectId,
+      dataSecurityIssueId: new ObjectID(ID.issue(3)),
+      dataStoreId: new ObjectID(ID.store(4)),
+      kind: DataSecurityAiProposalKind.ScrubTelemetry,
+      work: DataSecurityAiWork.Contain,
+      safety: DataSecurityAiChangeSafety.MaskOnly,
+      status: DataSecurityAiProposalStatus.AppliedWithoutAsking,
+      riskScore: 40,
+      title: "Scrub Phone number in log.body of checkout · Logs",
+      plan: { places: [] },
+      createdAt: ago(DAY + HOUR),
+      appliedAt: ago(DAY),
+    },
+  );
+  table(DataSecurityAiDecision).push({
+    _id: ID.decision(1),
+    projectId,
+    dataSecurityIssueId: new ObjectID(ID.issue(2)),
+    dataStoreId: new ObjectID(ID.store(2)),
+    didAct: false,
+    skipReason: DataSecurityAiIssueSkipReason.NoRuleMatched,
+    entries: [
+      {
+        work: DataSecurityAiWork.Analyze,
+        reason: DataSecurityAiDecisionReason.WorkOff,
+      },
+    ],
+    createdAt: ago(3 * HOUR),
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * The other data sets: a busy project, and a new one
  * ---------------------------------------------------------------------------
  */
@@ -1538,6 +1667,9 @@ function emptyData() {
     DataStoreOwnerRule,
     DataStoreFeed,
     DataSecurityIssueFeed,
+    DataSecurityAiProposal,
+    DataSecurityAiDecision,
+    AutoRemediationRule,
   ]) {
     table(modelType).length = 0;
   }
@@ -1698,6 +1830,18 @@ function sortRecords(records, sort) {
 
 // The relations the pages select through a record, joined at read time.
 function withRelations(modelName, record) {
+  if (
+    modelName === tableName(DataSecurityAiDecision) &&
+    record.dataSecurityIssueId
+  ) {
+    const issue = table(DataSecurityIssue).find((row) => {
+      return row._id === String(record.dataSecurityIssueId);
+    });
+    return {
+      ...record,
+      dataSecurityIssue: issue ? make(DataSecurityIssue, issue) : undefined,
+    };
+  }
   if (
     record.dataStoreId &&
     (modelName === tableName(DataSecurityIssue) ||
@@ -2266,7 +2410,54 @@ const ROUTE = {
   explain: DATA_SECURITY_API_ROUTES.explainIssue(":id"),
   occurrences: DATA_SECURITY_API_ROUTES.findingOccurrences(":id"),
   scrub: DATA_SECURITY_API_ROUTES.scrubFinding(":id"),
+  approveAiProposal: DATA_SECURITY_API_ROUTES.approveAiProposal(":id"),
+  dismissAiProposal: DATA_SECURITY_API_ROUTES.dismissAiProposal(":id"),
+  undoAiProposal: DATA_SECURITY_API_ROUTES.undoAiProposal(":id"),
 };
+
+// What Data Security → AI's notice reads: AI is on, with a provider to use.
+const AI_PROVIDERS = {
+  isAIEnabledForProject: true,
+  defaultProviderId: "9d9d9d9d-0000-4000-8000-000000000001",
+  providers: [
+    {
+      id: "9d9d9d9d-0000-4000-8000-000000000001",
+      name: "OneUptime AI",
+      isGlobal: true,
+      isDefault: false,
+    },
+  ],
+};
+
+/*
+ * A press on a proposal, as the server answers it: a Security Viewer may
+ * not, and the proposal moves on - made, dismissed or undone.
+ */
+function actOnProposal(proposalId, status) {
+  if (role === "viewer") {
+    return new HTTPErrorResponse(
+      403,
+      { message: "You do not have permission to do this in Data Security." },
+      {},
+    );
+  }
+  const proposal = table(DataSecurityAiProposal).find((row) => {
+    return row._id === proposalId;
+  });
+  if (!proposal) {
+    return new HTTPErrorResponse(
+      404,
+      { message: "This proposal was not found." },
+      {},
+    );
+  }
+  proposal.status = status;
+  return new HTTPResponse(
+    200,
+    { proposalId, status, waitsForSecondApproval: false },
+    {},
+  );
+}
 
 // "/data-security/store/:id/respond" against a request's path.
 function idOf(pattern, pathname) {
@@ -2339,6 +2530,25 @@ async function handleApi(method, options) {
       );
     }
     return new HTTPResponse(200, scrub(scrubOf), {});
+  }
+
+  if (method === "POST" && pathname.endsWith("/ai-chat/providers")) {
+    return new HTTPResponse(200, AI_PROVIDERS, {});
+  }
+
+  const approveOf = idOf(ROUTE.approveAiProposal, pathname);
+  if (method === "POST" && approveOf) {
+    return actOnProposal(approveOf, DataSecurityAiProposalStatus.Applied);
+  }
+
+  const dismissOf = idOf(ROUTE.dismissAiProposal, pathname);
+  if (method === "POST" && dismissOf) {
+    return actOnProposal(dismissOf, DataSecurityAiProposalStatus.Dismissed);
+  }
+
+  const undoOf = idOf(ROUTE.undoAiProposal, pathname);
+  if (method === "POST" && undoOf) {
+    return actOnProposal(undoOf, DataSecurityAiProposalStatus.Undone);
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

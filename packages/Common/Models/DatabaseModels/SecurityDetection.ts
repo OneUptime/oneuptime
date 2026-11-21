@@ -563,6 +563,35 @@ export default class SecurityDetection extends BaseModel {
   })
   public matchedEvents?: JSONObject = undefined;
 
+  /*
+   * The firings the detection took last, by the names their source gave
+   * them (SecurityDetectionSignal.firingKey): at most
+   * SECURITY_DETECTION_FIRING_KEYS_KEPT, the latest last. A source that can
+   * judge the same events twice - a detection rule's run judged again after
+   * a worker stopped before it recorded where it got to (#10489) - hands the
+   * same firing under the same name, and a firing the detection took
+   * already adds nothing: its counts go up once.
+   *
+   * Read by OneUptime alone, never through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Recent Firing Keys",
+    description:
+      "The names of the latest firings the detection took, so that one handed again is taken once.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public recentFiringKeys?: JSONArray = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: readPermissions,

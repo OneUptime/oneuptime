@@ -94,6 +94,8 @@ flowchart TB
 - **AI로 설명** 은 저장소 소유자를 위해 무엇이 잘못되었는지, 무슨 일이 일어날 수 있는지, 소유자의 클라우드에서 해결하는 정확한 단계를 작성합니다. 설명은 이슈의 **타임라인** 에 보관됩니다. 보낸 이슈와 답변은 모든 프로젝트 구성원과 뷰어가 읽을 수 있는 **프로젝트 설정 → AI → AI 로그** 에 보관되지 않습니다. 그 행에는 호출이 이루어졌다는 사실과 그 비용만 남습니다. 이슈를 읽을 수 있는 사람이면 누구나 요청할 수 있습니다.
 - **AI로 수정** 은 OneUptime AI에 인프라 코드(Terraform, CloudFormation, Bicep 등)에서 검사를 통과시키는 가장 작은 변경으로 이슈를 해결하고 풀 리퀘스트를 열도록 요청합니다. 저장소의 인프라 코드가 있는 리포지토리가 **코드** 에 연결되어 있어야 하며, 요청할 수 있는 리포지토리가 여러 개 있으면 **저장소** 에서 고르세요. 풀 리퀘스트는 **코드** 아래에 나타납니다([코드](/docs/ai/ai-agent) 참고). 보안 구성원 이상이 **코드** 에서 변경할 수 있는 리포지토리에서 요청할 수 있으며, 그곳에서 AI에 요청할 때와 같은 권한이 필요합니다. 보안 역할만으로는 리포지토리를 읽거나 변경할 수 없으므로 팀에 **Read Code Repository** 와 **Edit Code Repository** 도 부여하세요. 지금 AI가 작업할 수 없으면(꺼져 있거나, 프로젝트의 AI 크레딧이 소진되었거나, 일일 한도에 도달했거나, 온라인 Runner가 없으면) AI로 수정은 무엇을 고쳐야 하는지 알려 주고 아무것도 시작하지 않습니다.
 
+OneUptime AI는 AI 규칙이 허용하는 대로 새 이슈마다 스스로도 처리합니다. [데이터 보안의 OneUptime AI](/docs/data-security/ai)를 참조하세요.
+
 ### AI에게 질문
 
 **AI에게 질문** 은 데이터 보안도 읽습니다. 어느 데이터 보안 페이지에서든 어떤 저장소에 카드 번호가 있는지, 무엇부터 고쳐야 하는지, 어떤 역할이 유출되면 어떤 저장소에 접근할 수 있는지 물어보세요. 저장소나 이슈의 페이지에서는 그 레코드를 먼저 읽습니다. 사용자 본인의 권한으로 실행되는 세 가지 읽기 도구로 답합니다.
@@ -130,6 +132,7 @@ flowchart TB
 | 사용자 지정 데이터 유형, 검사 설정, 규정 준수 설정, 데이터 상주 규칙 | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | 프로젝트의 설정 | `/data-security-setting` |
 | 소유자, 소유자 규칙, 레이블 규칙 | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
+| OneUptime AI가 이슈에 대해 제안하는 내용과, 이슈에 조치했거나 조치하지 않은 이유 | `/data-security-ai-proposal`, `/data-security-ai-decision` |
 
 일부 응답은 저장되지 않고 요청할 때 계산됩니다. 모두 `POST` 입니다.
 
@@ -149,6 +152,9 @@ flowchart TB
 | `/data-security-issue/<id>/fix-with-ai` | 이슈의 **AI로 수정** |
 | `/data-store/<id>/response-actions` | 저장소가 지금 취할 수 있는 대응 작업과, 취할 수 없는 경우 그 이유 |
 | `/data-store/<id>/respond` | 실행한 이슈와 함께, 저장소에 대한 대응 작업 하나(예: **공개 액세스 차단** 또는 **버전 관리 켜기**) |
+| `/data-security-ai-proposal/<id>/approve` | OneUptime AI가 제안한 변경의 **승인**. 사용자 본인의 권한으로 변경을 적용합니다. 표시된 제안의 `expectedPlanFingerprint` 를 받으며, 그 후 바뀐 제안은 거부합니다 |
+| `/data-security-ai-proposal/<id>/dismiss` | **제안 무시**. `{"reason": "..."}` 를 받으며, 사유는 이슈의 타임라인에 기록됩니다 |
+| `/data-security-ai-proposal/<id>/undo` | OneUptime AI가 적용한 변경의 **실행 취소**: 변경을 되돌리고 저장소를 다시 검사합니다 |
 
 [Terraform 프로바이더](/docs/terraform/index)에는 직접 만드는 레코드의 종류마다 리소스가 있으며(직접 추가하는 데이터 저장소, 사용자 지정 데이터 유형, 검사 설정, 규정 준수 설정, 데이터 상주 규칙, 소유자 규칙과 레이블 규칙), 리소스 이름은 `oneuptime_residency_rule` 처럼 레코드의 이름을 따릅니다.
 

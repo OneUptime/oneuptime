@@ -1,4 +1,3 @@
-import IP from "../../Types/IP/IP";
 import { JSONObject } from "../../Types/JSON";
 import NormalizedSecurityEvent from "../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity, {
@@ -19,14 +18,19 @@ import {
   readStatusCode,
 } from "./RequestOutcome";
 import {
+  ClientAddressReading,
+  ClientAddressTrust,
+  getAddressSlotText,
+  readClaimedClientAddress,
+  readClientAddressTrust,
+} from "./ClientAddressTrust";
+import {
   HiddenClientAddress,
-  ScrubbedAddress,
   ScrubbedAddressPlace,
   clearClientAddressScrubbed,
   isAddressVaultToken,
   markClientAddressScrubbed,
   readHiddenClientAddress,
-  readScrubbedAddress,
 } from "./ScrubbedAddress";
 
 /*
@@ -42,6 +46,11 @@ import {
  *
  * A web attack is then judged again: its severity follows how far it got
  * (severityForWebAttack) and its message says what the app answered.
+ *
+ * The client the trace names is one its sender could not have written
+ * (ClientAddressTrust, #10416): an address the request only claimed - the
+ * span's client.address from X-Forwarded-For - is kept as a claim, never
+ * the event's principalIp.
  *
  * Pure: the trace reader (Server/Utils/SecurityEvent/RequestTrace) hands it
  * an assessment, and it changes the event in place.
@@ -74,14 +83,6 @@ function setIfAbsent(
   attributes[key] = cut(text);
 }
 
-function readClientAddress(value: string): string {
-  const candidate: string = (value || "").trim();
-
-  return candidate && candidate.length <= 64 && IP.isIP(candidate)
-    ? candidate
-    : "";
-}
-
 function addObservable(event: NormalizedSecurityEvent, value: string): void {
   if (value && !event.observables.includes(value)) {
     event.observables.push(value);
@@ -94,7 +95,8 @@ export function applyRequestAssessment(
 ): void {
   const attributes: JSONObject = event.attributes;
   const method: string = (assessment.method || "").trim().toUpperCase();
-  const clientAddress: string = readClientAddress(assessment.clientAddress);
+  const client: ClientAddressReading = assessment.client;
+  const clientAddress: string = client.address;
   const userId: string = cut((assessment.userId || "").trim(), 255);
 
   setIfAbsent(attributes, SECURITY_REQUEST_ATTRIBUTES.method, method);
@@ -181,33 +183,69 @@ export function applyRequestAssessment(
     event.principalIp = clientAddress;
     // A log rule hid the address the trace names: nothing is hidden now.
     clearClientAddressScrubbed(attributes);
+    // How the trace knew it, in place of what the line could not verify.
+    if (client.trust) {
+      attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddressTrust] = client.trust;
+    }
   }
 
   /*
    * The trace's span holds what a trace scrub rule left of the client's
-   * address (#10397): an event that names no address, nor says why, says
-   * that. One that already says a log rule hid it keeps saying so - unless
-   * the log's rule left nothing to look up and the trace's Hash rule left
-   * a token Security Events' address vault can name (#10395): the token is
-   * what may still name the address, so it is the one the event keeps.
+   * verified address (#10397): an event that names no address, nor says
+   * why, says that. One that already says a log rule hid it keeps saying
+   * so - unless the log's rule left nothing to look up and the trace's Hash
+   * rule left a token Security Events' address vault can name (#10395): the
+   * token is what may still name the address, so it is the one the event
+   * keeps. A token only the request claimed is never one (#10416): the
+   * trace's verified address is the only one read here.
    */
-  if (!event.principalIp) {
+  if (!event.principalIp && client.scrubbed) {
     const hidden: HiddenClientAddress | null = readHiddenClientAddress(event);
-    const scrubbed: ScrubbedAddress | null = readScrubbedAddress(
-      assessment.clientAddress || "",
-    );
 
     if (
-      scrubbed &&
-      (!hidden ||
-        (isAddressVaultToken(scrubbed) && !isAddressVaultToken(hidden)))
+      !hidden ||
+      (isAddressVaultToken(client.scrubbed) && !isAddressVaultToken(hidden))
     ) {
       clearClientAddressScrubbed(attributes);
       markClientAddressScrubbed(attributes, {
-        scrubbed,
+        scrubbed: client.scrubbed,
         place: ScrubbedAddressPlace.SpanAttributes,
       });
+
+      if (client.trust) {
+        attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddressTrust] =
+          client.trust;
+      }
     }
+  }
+
+  /*
+   * What the request claimed beside it, when the event says nothing of a
+   * claim: never the event's address, only said as claimed.
+   */
+  if (
+    client.claimed &&
+    !readClaimedClientAddress(event) &&
+    !(client.claimed.address && client.claimed.address === event.principalIp)
+  ) {
+    attributes[SECURITY_REQUEST_ATTRIBUTES.claimedClientAddress] =
+      getAddressSlotText(client.claimed);
+
+    if (client.claimedFrom) {
+      attributes[SECURITY_REQUEST_ATTRIBUTES.claimedClientAddressFrom] =
+        client.claimedFrom;
+    }
+  }
+
+  // Nothing verified anywhere: the event says its address is only claimed.
+  if (
+    !event.principalIp &&
+    !readHiddenClientAddress(event) &&
+    !readClientAddressTrust(event) &&
+    client.trust === ClientAddressTrust.Claimed
+  ) {
+    attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddressTrust] =
+      ClientAddressTrust.Claimed;
   }
 
   addObservable(event, event.principalIp);

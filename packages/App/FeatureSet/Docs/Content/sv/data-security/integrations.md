@@ -94,6 +94,8 @@ Två åtgärder på ett problem ber OneUptime AI om hjälp. Båda skickar till O
 - **Förklara med AI** skriver, för datalagrets ägare, vad som är fel, vad som kan hända och de exakta stegen för att åtgärda det i deras moln. Förklaringen sparas på problemets **Tidslinje**. Varken problemet som skickades eller svaret sparas i **Projektinställningar → AI → AI-loggar**, som alla med rollen Projektmedlem eller Tittare kan läsa: raden säger bara att anropet gjordes och vad det kostade. Alla som kan läsa problemet kan fråga.
 - **Åtgärda med AI** ber OneUptime AI att åtgärda problemet i din infrastrukturkod – Terraform, CloudFormation, Bicep eller liknande – med den minsta ändring som får kontrollen att godkännas, och att öppna en pull request. Den kräver att arkivet som innehåller datalagrets infrastrukturkod är anslutet under **Kod**: välj det under **Arkiv** när du kan fråga i flera. Pull requesten visas under **Kod** (se [Kod](/docs/ai/ai-agent)). Rollen Säkerhetsmedlem och högre kan fråga, i ett arkiv som de får ändra under **Kod**, som det krävs för att fråga AI där: en säkerhetsroll läser och ändrar inga arkiv på egen hand, så ge också deras team **Read Code Repository** och **Edit Code Repository**. När AI inte kan arbeta nu – den är avstängd, projektet har slut på AI-krediter, de dagliga gränserna är nådda eller ingen Runner är online – säger Åtgärda med AI vad som behöver åtgärdas och startar ingenting.
 
+OneUptime AI arbetar också på egen hand med varje nytt problem, som dina AI-regler tillåter: se [OneUptime AI i datasäkerhet](/docs/data-security/ai).
+
 ### Fråga AI
 
 **Fråga AI** läser också Datasäkerhet. På vilken sida i Datasäkerhet som helst kan du fråga vilka datalager som innehåller kortnummer, vad du ska åtgärda först, eller vilka datalager en roll skulle kunna nå om den läckte; på ett datalagers eller ett problems sida läser den den posten först. Den svarar med tre läsverktyg, som körs med dina egna behörigheter:
@@ -130,6 +132,7 @@ Allt som Datasäkerhet sparar är en post i OneUptimes API, som läses med samma
 | Anpassade datatyper, kontrollinställningar, efterlevnadsinställningar och hemvistregler | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Projektets inställningar | `/data-security-setting` |
 | Ägare, ägarregler och etikettregler | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
+| Vad OneUptime AI föreslår för ett problem, och varför den agerade eller inte agerade på ett | `/data-security-ai-proposal`, `/data-security-ai-decision` |
 
 Några svar räknas ut på begäran i stället för att lagras. Vart och ett är en `POST`:
 
@@ -149,6 +152,9 @@ Några svar räknas ut på begäran i stället för att lagras. Vart och ett är
 | `/data-security-issue/<id>/fix-with-ai` | **Åtgärda med AI** på ett problem |
 | `/data-store/<id>/response-actions` | Vilka responsåtgärder datalagret kan utföra nu, och varför inte |
 | `/data-store/<id>/respond` | En responsåtgärd på datalagret, till exempel **Blockera offentlig åtkomst** eller **Slå på versionshantering**, med problemet som den kördes från |
+| `/data-security-ai-proposal/<id>/approve` | **Godkänn** på en ändring som OneUptime AI föreslår, som görs med dina egna behörigheter. Tar `expectedPlanFingerprint` för förslaget som du visades, och avvisar ett som har ändrats sedan dess |
+| `/data-security-ai-proposal/<id>/dismiss` | **Avfärda förslaget**, med `{"reason": "..."}`, som läggs på problemets tidslinje |
+| `/data-security-ai-proposal/<id>/undo` | **Ångra** på en ändring som OneUptime AI gjorde: den tas tillbaka, och datalagret kontrolleras igen |
 
 [Terraform-providern](/docs/terraform/index) har en resurs för varje sorts post som du skapar – datalager som du lägger till själv, anpassade datatyper, kontrollinställningar, efterlevnadsinställningar, hemvistregler, ägar- och etikettregler – uppkallad efter posten, till exempel `oneuptime_residency_rule`.
 

@@ -8,7 +8,8 @@ import { DataSecurityEvalCase } from "./DataSecurityEvalCase";
  * benchmark's --repeat and --report-markdown (BenchmarkCommandLine):
  *
  *   --feature=<id>[,<id>]   run only these features' cases: ExplainIssue,
- *                           FixIssue, SuggestFieldTypes, AskAi (any case)
+ *                           AnalyzeIssue, FixIssue, SuggestFieldTypes, AskAi
+ *                           (any case)
  *   --case=<id>[,<id>]      run only these cases
  *   --changed-files=<path>  run only the features the files listed in it
  *                           (one path a line) change: what a pull request
@@ -66,8 +67,13 @@ const FEATURES_OF_FILE: ReadonlyArray<{
     path: "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt.ts",
     features: [
       DataSecurityAiFeature.ExplainIssue,
+      DataSecurityAiFeature.AnalyzeIssue,
       DataSecurityAiFeature.FixIssue,
     ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts",
+    features: [DataSecurityAiFeature.AnalyzeIssue],
   },
   {
     path: "packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestionPrompt.ts",
@@ -89,6 +95,7 @@ const FEATURES_OF_FILE: ReadonlyArray<{
     path: "packages/Common/Types/DataSecurity/DataSecurityCheckCatalog.ts",
     features: [
       DataSecurityAiFeature.ExplainIssue,
+      DataSecurityAiFeature.AnalyzeIssue,
       DataSecurityAiFeature.FixIssue,
     ],
   },

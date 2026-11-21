@@ -61,6 +61,7 @@ Börja från toppen av tabellen: ju högre upp ett sätt står, desto mindre fin
 | [Okta System Log](/docs/integrations/okta) | Inkommande | Hämtar inloggningar, kontoändringar och hotdetektioner från Okta till Säkerhetshändelser. |
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | Inkommande | Hämtar inloggningar och katalogändringar från Microsoft Entra ID och Microsoft 365-granskningsloggen till Säkerhetshändelser. |
 | [Google Workspace](/docs/integrations/google-workspace) | Inkommande | Hämtar inloggningar, administratörsändringar och detektioner från Google Workspace till Säkerhetshändelser. |
+| [Cloudflare](/docs/integrations/cloudflare) | Inkommande | Hämtar det som Cloudflares brandvägg blockerade, utmanade och loggade till Säkerhetshändelser, bredvid det som nådde din app. |
 
 ### Ärendehantering och IT-tjänstehantering
 

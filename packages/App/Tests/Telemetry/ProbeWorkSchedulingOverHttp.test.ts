@@ -102,8 +102,9 @@ jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
         next();
       },
       /*
-       * A collection's key checks before its report is parsed (#10222):
-       * nothing here posts a collection's key, so they let it through.
+       * A collection's key checks before its report is read (#10222,
+       * #10260): nothing here posts a collection's key, so they let it
+       * through.
        */
       isAuthorizedFromHeadersMiddleware: (
         _req: unknown,
@@ -112,12 +113,10 @@ jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
       ): void => {
         next();
       },
-      isAuthorizedFromReportOpeningMiddleware: (
-        _req: unknown,
-        _res: unknown,
-        next: () => void,
-      ): void => {
-        next();
+      isAuthorizedFromReportOpening: async (data: {
+        next: () => void;
+      }): Promise<void> => {
+        data.next();
       },
     },
   };

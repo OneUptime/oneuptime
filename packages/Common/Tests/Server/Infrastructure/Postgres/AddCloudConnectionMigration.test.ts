@@ -1,3 +1,4 @@
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import { AddCloudConnection1805400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805400000000-AddCloudConnection";
 import { AddCloudResourceCloudConnectionIndexAndKey1805450000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805450000000-AddCloudResourceCloudConnectionIndexAndKey";
@@ -127,7 +128,9 @@ function storedColumnsOf(
   return Object.keys(columns).filter((key: string): boolean => {
     return (
       columns[key]!.type !== TableColumnType.Entity &&
-      columns[key]!.type !== TableColumnType.EntityArray
+      columns[key]!.type !== TableColumnType.EntityArray &&
+      // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+      !RecordActorUtil.isColumn(key)
     );
   });
 }

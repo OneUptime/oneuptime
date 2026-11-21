@@ -1,5 +1,6 @@
 import AIService, {
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
+  AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
   AILogRequest,
   LLM_LOG_PREVIEW_NOT_KEPT,
@@ -250,6 +251,9 @@ describe("what every Data Security call keeps", () => {
     expect(DATA_SECURITY_AI_CALL_LABELS).toEqual({
       [DataSecurityAiFeature.ExplainIssue]:
         AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
+      // OneUptime AI's own analysis of a new issue (#10364): autonomous, so budgeted.
+      [DataSecurityAiFeature.AnalyzeIssue]:
+        AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
       [DataSecurityAiFeature.SuggestFieldTypes]:
         AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
     });
@@ -423,6 +427,7 @@ describe("every call runs on the project's own model", () => {
       );
 
     expect(sources).toEqual([
+      DataSecurityAiModelSource.ProjectProvider,
       DataSecurityAiModelSource.ProjectProvider,
       DataSecurityAiModelSource.CodeAgent,
       DataSecurityAiModelSource.ProjectProvider,

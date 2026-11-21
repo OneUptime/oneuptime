@@ -151,6 +151,8 @@ async function loadApp(data: {
           signalArrivalsTrackedSince: true,
           // Its site in Azure Monitor, for an App Service app.
           providerResourceId: true,
+          // The site the server tied it to (#10407), read first.
+          platformCloudResourceId: true,
         },
       }),
       ModelAPI.getItem<CloudResource>({

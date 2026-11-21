@@ -28,6 +28,7 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import Link from "Common/UI/Components/Link/Link";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import {
@@ -77,7 +78,8 @@ import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence
  *   - What Data Security Reads, and When an Issue Opens: one switch each,
  *     saving the moment it is flipped (ModelSwitchRow); under Raise alerts
  *     and Declare incidents, while each is on, the severity of what it
- *     opens.
+ *     opens. When an Issue Opens ends with the way to Data Security → AI,
+ *     where what OneUptime AI does on a new issue is set.
  *   - Cloud Accounts: what a scan may read in a cloud account is not set
  *     here but on the account's cloud connection - Off, Configuration only,
  *     or Configuration and content samples - with a way to the connections.
@@ -380,6 +382,21 @@ const NOTIFY_OWNERS_SWITCH: ScanningSwitch = {
   ),
   dataTestId: "data-security-notify-owners",
 };
+
+/*
+ * What OneUptime AI does when an issue opens (#10364) is set on Data
+ * Security → AI, beside what it proposes and did: this row says so and
+ * leads there.
+ */
+const AI_ROW: { title: string; description: string; link: string } = {
+  title: translationKey("OneUptime AI"),
+  description: translationKey(
+    "Whether OneUptime AI works on new issues, and what it may change without asking, is set on Data Security's AI page.",
+  ),
+  link: translationKey("Open AI settings"),
+};
+
+export const SCANNING_AI_ROW_TEST_ID: string = "data-security-scanning-ai";
 
 // The three levels a cloud connection grants, as its form names them.
 const CLOUD_LEVELS: Array<{ title: string; description: string }> = [
@@ -839,6 +856,25 @@ const DataSecurityScanning: FunctionComponent<
             }
           />
           <SwitchRow definition={NOTIFY_OWNERS_SWITCH} setting={setting} />
+          <div
+            className="px-5 py-4 md:px-6"
+            data-testid={SCANNING_AI_ROW_TEST_ID}
+          >
+            <div className="text-sm font-medium text-gray-900">
+              {translator.translateText(AI_ROW.title)}
+            </div>
+            <div className="mt-0.5 text-sm text-gray-500">
+              {translator.translateText(AI_ROW.description)}
+            </div>
+            <Link
+              className="mt-1 inline-block text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.DATA_SECURITY_AI] as Route,
+              )}
+            >
+              {translator.translateText(AI_ROW.link)}
+            </Link>
+          </div>
         </div>
       </Card>
 

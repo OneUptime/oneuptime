@@ -11,8 +11,14 @@
 {{> DetailBoxStart this }}
 {{!-- Names people type - the policy's, the rule's, a team's or a schedule's in the reason - are written as text (#8166). --}}
 {{> DetailBoxField title="On-Call Policy:" plainText=onCallPolicyName }}
+{{!-- Someone who joined hears of every rule of a policy that pages them now in one email (OnCallJoinNotices). --}}
+{{#if hasSeveralEscalationRules}}
+{{> DetailBoxField title="Escalation Rules: " plainText=escalationRuleName  }}
+{{> DetailBoxField title="Escalation Orders: " plainText=escalationRuleOrder  }}
+{{else}}
 {{> DetailBoxField title="Escalation Rule: " plainText=escalationRuleName  }}
 {{> DetailBoxField title="Escalation Order: " plainText=escalationRuleOrder  }}
+{{/if}}
 {{> DetailBoxField title="More Information:" plainText=reason  }}
 
 

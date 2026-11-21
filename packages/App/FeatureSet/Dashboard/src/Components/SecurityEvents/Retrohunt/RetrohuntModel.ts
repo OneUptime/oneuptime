@@ -15,11 +15,20 @@ import {
   PERIOD_LAST_DAY,
   PERIOD_LAST_MONTH,
   PERIOD_LAST_WEEK,
+  UNCOUNTED_HIDDEN_BY_SCRUB_RULE,
+  UNCOUNTED_NO_HOST,
+  UNCOUNTED_NO_IP_ADDRESS,
+  UNCOUNTED_NO_USER,
+  UNCOUNTED_NO_VALUE,
   WOULD_HAVE_FIRED,
   WOULD_NOT_HAVE_FIRED,
 } from "./RetrohuntCopy";
 import { JSONObject } from "Common/Types/JSON";
-import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
+import {
+  SecurityEntityType,
+  securityEntityTypeForField,
+} from "Common/Types/SecurityCase/SecurityEntity";
+import { ScrubbedAddressSignal } from "Common/Utils/SecurityEvent/ScrubbedAddress";
 import {
   DETECTION_RETROHUNT_DEFAULT_PERIOD_IN_HOURS,
   DETECTION_RETROHUNT_PERIODS_IN_HOURS,
@@ -221,6 +230,67 @@ export function getRetrohuntExceptionLines(
   }
 
   return lines;
+}
+
+/*
+ * What a rule that counts per value could not count (#10415): the matching
+ * events that had no value for its Group By Field - "1,204 matching events
+ * had no IP address, so this rule couldn't count them." - and, when a scrub
+ * rule hid the address of some of them (#10397), how many, with the kind
+ * of record whose Scrub Rules say why: the one most of them were hidden in.
+ * Nothing for a rule that left nothing out.
+ */
+export interface RetrohuntUncounted {
+  lines: Array<RetrohuntSentence>;
+  scrubRulesSignal: ScrubbedAddressSignal | null;
+}
+
+export function getRetrohuntUncounted(
+  result: Pick<DetectionRetrohuntResult, "uncounted">,
+): RetrohuntUncounted | null {
+  const uncounted: DetectionRetrohuntResult["uncounted"] = result.uncounted;
+
+  if (!uncounted || uncounted.eventCount <= 0) {
+    return null;
+  }
+
+  const entityType: SecurityEntityType | undefined = securityEntityTypeForField(
+    uncounted.field,
+  );
+  let template: PluralTemplate = UNCOUNTED_NO_VALUE;
+
+  if (entityType === SecurityEntityType.IpAddress) {
+    template = UNCOUNTED_NO_IP_ADDRESS;
+  } else if (entityType === SecurityEntityType.User) {
+    template = UNCOUNTED_NO_USER;
+  } else if (entityType === SecurityEntityType.Host) {
+    template = UNCOUNTED_NO_HOST;
+  }
+
+  const lines: Array<RetrohuntSentence> = [
+    {
+      template,
+      count: uncounted.eventCount,
+      values: template === UNCOUNTED_NO_VALUE ? { field: uncounted.field } : {},
+    },
+  ];
+
+  const hidden: number =
+    uncounted.hiddenInLogsCount + uncounted.hiddenInTracesCount;
+
+  if (hidden <= 0) {
+    return { lines, scrubRulesSignal: null };
+  }
+
+  lines.push({ template: UNCOUNTED_HIDDEN_BY_SCRUB_RULE, count: hidden });
+
+  return {
+    lines,
+    scrubRulesSignal:
+      uncounted.hiddenInTracesCount > uncounted.hiddenInLogsCount
+        ? "trace"
+        : "log",
+  };
 }
 
 // What a group's row says it fired for: its value, or "Every match" for a rule that groups nothing.

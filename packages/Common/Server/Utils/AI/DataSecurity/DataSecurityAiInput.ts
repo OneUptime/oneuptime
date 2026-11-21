@@ -1204,6 +1204,34 @@ export function buildExplainIssuePrompt(data: {
 }
 
 /*
+ * OneUptime AI's own analysis of a new issue (#10364): Explain's
+ * instructions and data, asked on its own when the issue opens, under a
+ * feature of its own - so its AI Logs label, its budget and what Settings
+ * says of it are its own.
+ */
+export function buildAnalyzeIssuePrompt(data: {
+  instructions: string;
+  issue: AiIssueRecord;
+  findings?: ReadonlyArray<AiFindingRecord> | undefined;
+  dataTypeNamer?: DataTypeNamer | undefined;
+  aiContext?: AiContextActivity | null | undefined;
+}): DataSecurityAiPrompt {
+  const marks: AiInputMarks = new AiInputMarks();
+
+  return prompt({
+    feature: DataSecurityAiFeature.AnalyzeIssue,
+    instructions: withAiContext(data.instructions, data.aiContext),
+    facts: issueData({
+      issue: data.issue,
+      findings: data.findings,
+      dataTypeNamer: data.dataTypeNamer,
+      marks,
+    }),
+    marks,
+  });
+}
+
+/*
  * The field suggestions: the kind of store, the data types the answer may
  * name (by id and name, the project's own types its text), and the fields,
  * each by its reference.
@@ -1393,6 +1421,7 @@ const DataSecurityAiInput: {
   storeIssueRow: typeof storeIssueRow;
   issueRow: typeof issueRow;
   buildExplainIssuePrompt: typeof buildExplainIssuePrompt;
+  buildAnalyzeIssuePrompt: typeof buildAnalyzeIssuePrompt;
   buildSuggestFieldTypesPrompt: typeof buildSuggestFieldTypesPrompt;
   buildFixIssueRequest: typeof buildFixIssueRequest;
   isDataSecurityAiPrompt: typeof isDataSecurityAiPrompt;
@@ -1414,6 +1443,7 @@ const DataSecurityAiInput: {
   storeIssueRow,
   issueRow,
   buildExplainIssuePrompt,
+  buildAnalyzeIssuePrompt,
   buildSuggestFieldTypesPrompt,
   buildFixIssueRequest,
   isDataSecurityAiPrompt,

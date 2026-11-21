@@ -9,6 +9,8 @@ import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import DetailRecordLine from "Common/UI/Components/Detail/DetailRecordLine";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "Common/Models/DatabaseModels/Label";
 import OneUptimeDate from "Common/Types/Date";
 import {
@@ -222,6 +224,12 @@ export interface ResourceOverviewProps {
    * place of a row that spelled all 36 characters out first.
    */
   recordId?: string | undefined;
+  /*
+   * What the record is - Service, Database Server, Cloud Account - so its
+   * line also says who created it and who last modified it, and links to
+   * its history (RecordActivityLine, #10290).
+   */
+  recordModelType?: { new (): BaseModel } | undefined;
   /*
    * Its labels, for a phone: from 640px up the page's header lists them
    * beside the page's title (ModelPage), and the card under the Details
@@ -1021,7 +1029,14 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
             )}
             {props.recordId ? (
               <div className="px-5 py-3 md:px-6">
-                <DetailRecordLine recordId={props.recordId} />
+                {props.recordModelType ? (
+                  <RecordActivityLine
+                    modelType={props.recordModelType}
+                    recordId={props.recordId}
+                  />
+                ) : (
+                  <DetailRecordLine recordId={props.recordId} />
+                )}
               </div>
             ) : (
               <></>

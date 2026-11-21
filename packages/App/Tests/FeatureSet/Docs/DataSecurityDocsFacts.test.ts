@@ -79,6 +79,11 @@ import {
 } from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
 import { DATA_SECURITY_API_ROUTES } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import {
+  DATA_SECURITY_AI_ALWAYS_ASKS,
+  DATA_SECURITY_AI_DEFAULT_ANALYZED_SEVERITIES,
+  DataSecurityAiChangeSafety,
+} from "Common/Types/DataSecurity/DataSecurityAi";
+import {
   ALL_DATA_SECURITY_RESPONSE_ACTIONS,
   BLOCKABLE_DATA_STORE_KINDS,
   DATA_SECURITY_RESPONSE_ACTION_CHECKS,
@@ -2572,6 +2577,9 @@ describe("Data Security Integrations", () => {
       DATA_SECURITY_API_ROUTES.fixIssueWithAi("<id>"),
       DATA_SECURITY_API_ROUTES.responseActions("<id>"),
       DATA_SECURITY_API_ROUTES.respond("<id>"),
+      DATA_SECURITY_API_ROUTES.approveAiProposal("<id>"),
+      DATA_SECURITY_API_ROUTES.dismissAiProposal("<id>"),
+      DATA_SECURITY_API_ROUTES.undoAiProposal("<id>"),
     ]);
   });
 
@@ -2612,6 +2620,134 @@ describe("Data Security Integrations", () => {
     expect(page).toContain(
       `\`oneuptime_${residencyRule.toLowerCase().split(" ").join("_")}\``,
     );
+  });
+
+  it("says what OneUptime AI does on its own as Data Security → AI names it", () => {
+    // On OneUptime AI's own page; Integrations points there.
+    const onItsOwn: string = section(english(AI), "## On its own");
+    expect(section(page, "## OneUptime AI")).toContain(
+      "](/docs/data-security/ai)",
+    );
+    const menu: string = source(
+      "App/FeatureSet/Dashboard/src/Utils/DataSecurityNavigation.ts",
+    );
+    const copy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityAiCopy.ts",
+    );
+    const switches: string = source(
+      "App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy.ts",
+    );
+
+    // The page, its switch, its lists and their buttons, by the names the Dashboard draws.
+    expect(menu).toMatch(/page: PageMap\.DATA_SECURITY_AI,\s+title: "AI"/);
+    expect(onItsOwn).toContain("**Data Security → AI**");
+    expect(switches).toContain('title: translationKey("Work on new issues")');
+    expect(onItsOwn).toContain("**Work on new issues**");
+
+    for (const name of [
+      "Waiting for you",
+      "Approve",
+      "Dismiss proposal",
+      "Done by AI",
+      "Undo",
+      "Why AI did not act",
+    ]) {
+      expect(copy).toContain(`translationKey("${name}")`);
+      expect(onItsOwn).toContain(`**${name}**`);
+    }
+
+    // An issue's AI card, above How to Fix, and the Overview's line.
+    const issueOverview: string = source(
+      "App/FeatureSet/Dashboard/src/Pages/DataSecurity/IssueView/Overview.tsx",
+    );
+    expect(issueOverview.indexOf("<IssueAiCard")).toBeGreaterThan(-1);
+    expect(issueOverview.indexOf("<IssueAiCard")).toBeLessThan(
+      issueOverview.indexOf('"How to Fix"'),
+    );
+    expect(copy).toContain('title: translationKey("OneUptime AI")');
+    expect(onItsOwn).toContain(
+      "the **OneUptime AI** card above **How to Fix**",
+    );
+    expect(copy).toContain("OneUptime AI contained {{count}} leaks this week.");
+    expect(onItsOwn).toContain(
+      "how many leaks OneUptime AI contained this week and how many proposals wait for you",
+    );
+
+    // On for new projects, as the server makes them.
+    const projectService: string = source(
+      "Common/Server/Services/ProjectService.ts",
+    );
+    const defaults: string = projectService.slice(
+      projectService.indexOf("export const NEW_PROJECT_AI_DEFAULT_COLUMNS"),
+    );
+    expect(defaults.slice(0, defaults.indexOf("];"))).toContain(
+      '"enableAutomaticDataSecurityAi"',
+    );
+    expect(onItsOwn).toContain("as it is for new projects");
+
+    // Out of the box, the issues it works on.
+    expect([...DATA_SECURITY_AI_DEFAULT_ANALYZED_SEVERITIES]).toEqual([
+      SecuritySeverity.Critical,
+      SecuritySeverity.High,
+    ]);
+    expect(onItsOwn).toContain("each new Critical or High issue");
+
+    // Deleting data and paging people always ask, whatever a rule says.
+    expect([...DATA_SECURITY_AI_ALWAYS_ASKS]).toEqual(
+      expect.arrayContaining([
+        DataSecurityAiChangeSafety.Deletes,
+        DataSecurityAiChangeSafety.Pages,
+      ]),
+    );
+    expect(onItsOwn).toContain(
+      "it never deletes data or pages anyone without asking",
+    );
+
+    // The AI rules, by the names their table and form draw.
+    const rules: string = section(english(AI), "### AI rules");
+
+    for (const name of [
+      "AI Rules",
+      "Analyze",
+      "Contain",
+      "Fix",
+      "Judge",
+      "Off",
+      "Suggest",
+      "Without asking",
+    ]) {
+      expect(copy).toContain(`translationKey("${name}")`);
+      expect(rules).toContain(`**${name}**`);
+    }
+
+    // Suggest wins over Without asking, as the engine decides it.
+    expect(rules).toContain("**Suggest** wins over **Without asking**");
+    expect(source("Common/Types/DataSecurity/DataSecurityAi.ts")).toContain(
+      "otherwise the careful answer wins - Suggest when any rule that",
+    );
+
+    /*
+     * Who changes them, as the model's own access control says: Project
+     * Owners and Admins and the AI rule permissions - no Security role.
+     */
+    expect(rules).toContain(
+      "Project Owners and Admins change them, and so does anyone given the AI rule permissions",
+    );
+    const access: string = source(
+      "Common/Models/DatabaseModels/AutoRemediationRule.ts",
+    )
+      .split("@TableAccessControl(")[1]!
+      .split("})")[0]!;
+
+    for (const permission of [
+      "Permission.ProjectOwner",
+      "Permission.ProjectAdmin",
+      "Permission.CreateAutoRemediationRule",
+      "Permission.EditAutoRemediationRule",
+    ]) {
+      expect(access).toContain(permission);
+    }
+    expect(access).not.toContain("Permission.Security");
   });
 
   it("names the AI actions as the API and the Dashboard do", () => {

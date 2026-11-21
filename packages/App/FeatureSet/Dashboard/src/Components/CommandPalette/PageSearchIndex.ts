@@ -1601,6 +1601,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Bell,
             keywords: ["reminders"],
           },
+          {
+            page: PageMap.ALERTS_SETTINGS_RULES_AUDIT_LOGS,
+            title: "Audit Logs",
+            icon: IconProp.List,
+            keywords: ["history", "who changed", "rule changes"],
+          },
         ],
       },
       {
@@ -2813,7 +2819,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "case states",
               "custom case status",
               "case workflow",
+              "auto contain",
+              "verified containment",
             ],
+            settings: ["Mark Cases Contained When Verified"],
           },
           {
             page: PageMap.SECURITY_EVENTS_SETTINGS_CUSTOM_FIELDS,
@@ -2911,6 +2920,22 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "unencrypted",
               "misconfigurations",
             ],
+          },
+          {
+            page: PageMap.DATA_SECURITY_AI,
+            title: "AI",
+            icon: IconProp.Sparkles,
+            keywords: [
+              "data security ai",
+              "ai proposals",
+              "waiting for you",
+              "done by ai",
+              "approve ai changes",
+              "oneuptime ai data security",
+              "data security ai rules",
+              "what ai may do without asking",
+            ],
+            settings: ["Work on new issues"],
           },
           {
             page: PageMap.DATA_SECURITY_SENSITIVE_DATA,

@@ -1,4 +1,7 @@
 import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
+import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
+import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
@@ -19,12 +22,12 @@ import {
   DETECTION_FINDING_CLASS_NAME,
   DETECTION_FINDING_CLASS_UID,
   DETECTION_GROUP_VALUE_ATTRIBUTE,
-  DETECTION_LATE_EVENT_WINDOW_IN_MINUTES,
   DETECTION_MATCH_COUNT_ATTRIBUTE,
   DETECTION_MAX_FINDINGS_PER_EVALUATION,
   DETECTION_MAX_GROUPS_PER_EVALUATION,
   DETECTION_MAX_LOOKBACK_IN_MINUTES,
   DETECTION_MAX_WINDOWS_PER_RUN,
+  DETECTION_RETRY_AFTER_FAILURE_IN_MINUTES,
   DETECTION_RULE_ID_ATTRIBUTE,
   DETECTION_RULE_NAME_ATTRIBUTE,
   DETECTION_SIGMA_ID_ATTRIBUTE,
@@ -78,11 +81,13 @@ import {
 import SigmaClickhouseCompiler, {
   buildSigmaDistinctCountExpression,
   buildSigmaFieldExpression,
+  buildSigmaFieldHasValue,
 } from "./Sigma/SigmaClickhouseCompiler";
+import { buildSecurityEventDbRow } from "./SecurityEventRow";
 import {
-  MAX_SECURITY_EVENT_FUTURE_SKEW_IN_MINUTES,
-  buildSecurityEventDbRow,
-} from "./SecurityEventRow";
+  floorToSecond,
+  getArrivalEventTimeBounds as getSecurityEventArrivalTimeBounds,
+} from "../../../Types/SecurityEvent/SecurityEventArrival";
 import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import {
   detectionOverflowMarkdown,
@@ -206,16 +211,97 @@ export interface DetectionRuleArrivalRange {
   arrivedUntil: Date;
 }
 
-// A whole second, as createdAt keeps it: the run's edges match its rows exactly.
-function floorToSecond(date: Date): Date {
-  return new Date(Math.floor(date.getTime() / 1000) * 1000);
+/*
+ * When a rule whose last run failed is tried again (#10490): at its next
+ * interval, or within DETECTION_RETRY_AFTER_FAILURE_IN_MINUTES when its
+ * interval is longer. Null for a rule whose last run worked.
+ */
+export function getDetectionRetryAt(rule: {
+  lastFailedAt?: Date | null | undefined;
+  evaluationIntervalInMinutes?: number | null | undefined;
+}): Date | null {
+  if (!rule.lastFailedAt) {
+    return null;
+  }
+
+  const failedAt: Date = new Date(rule.lastFailedAt);
+
+  if (Number.isNaN(failedAt.getTime())) {
+    return null;
+  }
+
+  return OneUptimeDate.addRemoveMinutes(
+    failedAt,
+    Math.min(
+      Math.max(1, rule.evaluationIntervalInMinutes || 1),
+      DETECTION_RETRY_AFTER_FAILURE_IN_MINUTES,
+    ),
+  );
+}
+
+/*
+ * When a rule is next due, in milliseconds, on the clock rules are due by
+ * (DETECTION_EVALUATION_DELAY_IN_SECONDS behind): one interval after its
+ * last run (0 for a rule that never ran) - and, while its last run failed,
+ * no sooner than its retry (getDetectionRetryAt), which is said on the
+ * wall clock its failure was: a failing rule backs off instead of being
+ * tried every minute (#10490).
+ */
+export function getDetectionRuleDueTime(rule: {
+  lastEvaluatedAt?: Date | null | undefined;
+  lastFailedAt?: Date | null | undefined;
+  evaluationIntervalInMinutes?: number | null | undefined;
+}): number {
+  const regular: number = rule.lastEvaluatedAt
+    ? OneUptimeDate.addRemoveMinutes(
+        rule.lastEvaluatedAt,
+        Math.max(1, rule.evaluationIntervalInMinutes || 1),
+      ).getTime()
+    : 0;
+  const retryAt: Date | null = getDetectionRetryAt(rule);
+
+  return retryAt
+    ? Math.max(
+        regular,
+        retryAt.getTime() - DETECTION_EVALUATION_DELAY_IN_SECONDS * 1000,
+      )
+    : regular;
+}
+
+/*
+ * Whether a rule is catching up after its runs failed (#10490): its last
+ * run failed, and recently - within DETECTION_MAX_LOOKBACK_IN_MINUTES, as a
+ * failing rule is tried at least hourly. Its next run judges everything
+ * since its last good run, however long ago, never skipping what it missed.
+ * A failure older than that is a rule that was off since (or a worker that
+ * was down): it catches up a day at most, as any rule turned on again does.
+ */
+export function isCatchingUpAfterFailures(data: {
+  now: Date;
+  lastFailedAt?: Date | null | undefined;
+}): boolean {
+  if (!data.lastFailedAt) {
+    return false;
+  }
+
+  const failedAt: number = new Date(data.lastFailedAt).getTime();
+
+  return (
+    !Number.isNaN(failedAt) &&
+    failedAt <= data.now.getTime() &&
+    data.now.getTime() - failedAt <=
+      DETECTION_MAX_LOOKBACK_IN_MINUTES * 60 * 1000
+  );
 }
 
 /*
  * What a scheduled run at `now` judges: what arrived since the rule's last
  * run (lastEvaluatedAt, where that run got to), or - a rule that never ran
  * - in the interval before; at most DETECTION_MAX_LOOKBACK_IN_MINUTES back,
- * so a rule turned on again after a month does not read a month. Up to
+ * so a rule turned on again after a month does not read a month - unless
+ * it is catching up after its runs failed (isCatchingUpAfterFailures),
+ * when it judges everything since its last good run (#10490), a stretch of
+ * at most that long at a time (runScheduled). Up to
  * DETECTION_EVALUATION_DELAY_IN_SECONDS ago, so every event stamped by
  * then is in the table.
  */
@@ -223,6 +309,7 @@ export function getScheduledArrivalRange(data: {
   now: Date;
   lastEvaluatedAt?: Date | null | undefined;
   evaluationIntervalInMinutes?: number | null | undefined;
+  lastFailedAt?: Date | null | undefined;
 }): DetectionRuleArrivalRange {
   const arrivedUntil: Date = floorToSecond(
     OneUptimeDate.addRemoveSeconds(
@@ -245,11 +332,43 @@ export function getScheduledArrivalRange(data: {
           -Math.max(1, data.evaluationIntervalInMinutes || 1),
         );
 
-  if (OneUptimeDate.isBefore(arrivedAfter, earliest)) {
+  if (
+    OneUptimeDate.isBefore(arrivedAfter, earliest) &&
+    !(
+      lastRun &&
+      isCatchingUpAfterFailures({
+        now: data.now,
+        lastFailedAt: data.lastFailedAt,
+      })
+    )
+  ) {
     arrivedAfter = earliest;
   }
 
   return { arrivedAfter, arrivedUntil };
+}
+
+/*
+ * The stretch a run judges next from `arrivedAfter`: up to `arrivedUntil`,
+ * and no more than DETECTION_MAX_LOOKBACK_IN_MINUTES of arrivals - the most
+ * any read of a rule reads - so a rule catching up after days of failures
+ * reads them a day at a time, each recorded as it is done (#10490).
+ */
+export function getNextStretch(
+  arrivedAfter: Date,
+  arrivedUntil: Date,
+): DetectionRuleArrivalRange {
+  const longest: Date = OneUptimeDate.addRemoveMinutes(
+    arrivedAfter,
+    DETECTION_MAX_LOOKBACK_IN_MINUTES,
+  );
+
+  return {
+    arrivedAfter,
+    arrivedUntil: OneUptimeDate.isBefore(longest, arrivedUntil)
+      ? longest
+      : arrivedUntil,
+  };
 }
 
 /*
@@ -258,22 +377,14 @@ export function getScheduledArrivalRange(data: {
  * and as far ahead of the last as a source's clock may run
  * (MAX_SECURITY_EVENT_FUTURE_SKEW_IN_MINUTES, past which ingest stamps an
  * event with when it arrived). Every read of the run is held to it, so the
- * table's sort by event time keeps each read to these parts of it.
+ * table's sort by event time keeps each read to these parts of it. Shared
+ * with a scheduled hunt and the Events page (SecurityEventArrival).
  */
 export function getArrivalEventTimeBounds(range: DetectionRuleArrivalRange): {
   happenedAfter: Date;
   happenedBefore: Date;
 } {
-  return {
-    happenedAfter: OneUptimeDate.addRemoveMinutes(
-      range.arrivedAfter,
-      -DETECTION_LATE_EVENT_WINDOW_IN_MINUTES,
-    ),
-    happenedBefore: OneUptimeDate.addRemoveMinutes(
-      range.arrivedUntil,
-      MAX_SECURITY_EVENT_FUTURE_SKEW_IN_MINUTES + 1,
-    ),
-  };
+  return getSecurityEventArrivalTimeBounds(range);
 }
 
 /*
@@ -342,6 +453,81 @@ export function pickArrivalWindows(data: {
 }
 
 /*
+ * WHICH FIRING A JUDGEMENT IS (#10489).
+ *
+ * A scheduled run judges a stretch of what arrived, and a rule that counts
+ * judges it a window at a time: where the stretch starts (`stretchStart`,
+ * the rule's lastEvaluatedAt when the run began it), the window, and a
+ * group name one firing for good. A run that judges the same stretch again
+ * - the one after a worker stopped before recording where its run got to -
+ * fires the same groups under the same names, so each thing a firing does
+ * (its Detection Finding, its case detection, its risk) is done once
+ * (Types/SecurityCase/SecurityFiringKeys).
+ */
+export interface DetectionRuleFiring {
+  stretchStart: Date;
+  // A rule that counts: the window of its interval. None for one that fires on each match.
+  windowStart?: Date | undefined;
+  /*
+   * A judgement whose firings may have been recorded already - a stretch
+   * judged again, a handover job run again - so its Detection Findings are
+   * looked for before they are written.
+   */
+  mayRepeat: boolean;
+}
+
+// The name of one group's firing (DetectionRuleFiring): its stretch, its window, its group.
+export function getDetectionFiringKey(data: {
+  stretchStart: Date;
+  windowStart?: Date | undefined;
+  groupValue: string;
+}): string {
+  return `run:${data.stretchStart.getTime()}:${
+    data.windowStart ? data.windowStart.getTime() : "each"
+  }:${MetricSeriesFingerprint.computeFingerprint({
+    groupValue: data.groupValue || "",
+  })}`;
+}
+
+// The name of the firing a stretch's overflow is: one a window.
+export function getDetectionOverflowFiringKey(data: {
+  stretchStart: Date;
+  windowStart?: Date | undefined;
+}): string {
+  return `run:${data.stretchStart.getTime()}:${
+    data.windowStart ? data.windowStart.getTime() : "each"
+  }:overflow`;
+}
+
+/*
+ * The stretch a scheduled run judges again first, exactly, when a run
+ * before it stopped while it recorded what it found (#10489): from where
+ * the rule got to (lastEvaluatedAt) to where that run had judged up to
+ * (evaluatingUntil). Null when no run stopped so.
+ */
+export function getStretchToJudgeAgain(rule: {
+  lastEvaluatedAt?: Date | null | undefined;
+  evaluatingUntil?: Date | null | undefined;
+}): DetectionRuleArrivalRange | null {
+  if (!rule.lastEvaluatedAt || !rule.evaluatingUntil) {
+    return null;
+  }
+
+  const arrivedAfter: Date = floorToSecond(new Date(rule.lastEvaluatedAt));
+  const arrivedUntil: Date = floorToSecond(new Date(rule.evaluatingUntil));
+
+  if (
+    Number.isNaN(arrivedAfter.getTime()) ||
+    Number.isNaN(arrivedUntil.getTime()) ||
+    arrivedUntil.getTime() <= arrivedAfter.getTime()
+  ) {
+    return null;
+  }
+
+  return { arrivedAfter, arrivedUntil };
+}
+
+/*
  * The events one judgement reads, and what its matches say they cover.
  */
 interface DetectionRuleRead {
@@ -357,6 +543,8 @@ interface DetectionRuleRead {
   countWindow?: DetectionRuleCountWindow | undefined;
   // Read when each group's earliest match happened, to say from when the matches cover.
   readFirstSeen?: boolean | undefined;
+  // Which firing this is: a scheduled run's, or a handover's (#10489).
+  firing?: DetectionRuleFiring | undefined;
 }
 
 // What one judgement did, and what the rule's row should say of it.
@@ -391,7 +579,10 @@ interface DetectionRuleJudgement {
  * clock, so every event stamped by then is in the table, and records where
  * it got to only once it has done what its matches ask: a run that fails,
  * or a worker that stops part way, leaves the rule where it was and the
- * next run judges the same events again.
+ * next run judges the same events again - each firing done once (#10489).
+ * A rule whose run failed backs off: it is tried again at its next
+ * interval, or within the hour when that is longer, and the run that works
+ * judges everything since its last good one, however long ago (#10490).
  *
  * The work is spread by project (SecurityProjectWork): the cron queues one
  * turn for each project with a rule due, and a turn evaluates that
@@ -429,6 +620,8 @@ const DETECTION_RULE_EVALUATION_SELECT: Select<DetectionRule> = {
   alertSeverityId: true,
   incidentSeverityId: true,
   lastEvaluatedAt: true,
+  evaluatingUntil: true,
+  lastFailedAt: true,
 };
 
 // ...and what a real-time run reads, to tell a rule turned off or back to its schedule since.
@@ -579,16 +772,13 @@ export default class DetectionRuleEvaluator {
     );
   }
 
-  // When a rule is next due: one interval after its last run; 0 for a rule that never ran.
+  /*
+   * When a rule is next due: one interval after its last run (0 for a rule
+   * that never ran), and no sooner than its retry while its last run failed
+   * (getDetectionRuleDueTime, #10490).
+   */
   private static dueTime(rule: DetectionRule): number {
-    if (!rule.lastEvaluatedAt) {
-      return 0;
-    }
-
-    return OneUptimeDate.addRemoveMinutes(
-      rule.lastEvaluatedAt,
-      Math.max(1, rule.evaluationIntervalInMinutes || 1),
-    ).getTime();
+    return getDetectionRuleDueTime(rule);
   }
 
   private static isDue(rule: DetectionRule, now: Date): boolean {
@@ -613,6 +803,7 @@ export default class DetectionRuleEvaluator {
         projectId: true,
         evaluationIntervalInMinutes: true,
         lastEvaluatedAt: true,
+        lastFailedAt: true,
       },
       sort: {
         _id: SortOrder.Ascending,
@@ -678,19 +869,38 @@ export default class DetectionRuleEvaluator {
     /*
      * The due rules' exceptions, in one read for the turn: those that take
      * part in any window a rule may read now - what arrived over the last
-     * DETECTION_MAX_LOOKBACK_IN_MINUTES, which happened up to
-     * DETECTION_LATE_EVENT_WINDOW_IN_MINUTES before that
-     * (getArrivalEventTimeBounds). A read that fails fails the turn before
-     * any rule runs - every rule resumes from its own last run next minute,
-     * so nothing is missed, and no rule runs blind to the exceptions
-     * somebody added.
+     * DETECTION_MAX_LOOKBACK_IN_MINUTES, or since the oldest stretch a rule
+     * judges again or catches up from after its runs failed (#10489,
+     * #10490), which happened up to DETECTION_LATE_EVENT_WINDOW_IN_MINUTES
+     * before that (getArrivalEventTimeBounds). A read that fails fails the
+     * turn before any rule runs - every rule resumes from its own last run
+     * next minute, so nothing is missed, and no rule runs blind to the
+     * exceptions somebody added.
      */
+    let oldestArrival: Date = OneUptimeDate.addRemoveMinutes(
+      now,
+      -DETECTION_MAX_LOOKBACK_IN_MINUTES,
+    );
+
+    for (const rule of dueRules) {
+      for (const start of [
+        getStretchToJudgeAgain(rule)?.arrivedAfter,
+        getScheduledArrivalRange({
+          now: OneUptimeDate.getCurrentDate(),
+          lastEvaluatedAt: rule.lastEvaluatedAt,
+          evaluationIntervalInMinutes: rule.evaluationIntervalInMinutes,
+          lastFailedAt: rule.lastFailedAt,
+        }).arrivedAfter,
+      ]) {
+        if (start && OneUptimeDate.isBefore(start, oldestArrival)) {
+          oldestArrival = start;
+        }
+      }
+    }
+
     const readable: { happenedAfter: Date; happenedBefore: Date } =
       getArrivalEventTimeBounds({
-        arrivedAfter: OneUptimeDate.addRemoveMinutes(
-          now,
-          -DETECTION_MAX_LOOKBACK_IN_MINUTES,
-        ),
+        arrivedAfter: oldestArrival,
         arrivedUntil: now,
       });
 
@@ -951,6 +1161,16 @@ export default class DetectionRuleEvaluator {
           parsedRule,
           range: { arrivedAfter, arrivedUntil: handover.arrivedUntil },
           exceptions,
+          /*
+           * A job its queue may run again, whose window is its own: its
+           * stretches are the same each time, so its firings may repeat
+           * (#10489), and nothing is marked on the rule, which runs on no
+           * interval while it checks events as they arrive.
+           */
+          mayRepeat: true,
+          beforeEffects: async (): Promise<void> => {
+            // Its window is the job's: nothing to mark.
+          },
         });
 
       judgement = judgement
@@ -1003,8 +1223,11 @@ export default class DetectionRuleEvaluator {
   /*
    * evaluateRule, with a failure recorded on the rule rather than thrown.
    * The rule stays where it was: what the run did not finish judging is
-   * judged again by the next one, a minute later, so a failed run loses no
-   * event.
+   * judged again by the next one, so a failed run loses no event. It says
+   * when it failed (lastFailedAt), and the rule backs off: tried again at its
+   * next interval, or within the hour when its interval is longer, not every
+   * minute (getDetectionRuleDueTime, #10490) - and the run that works judges
+   * everything since its last good one (isCatchingUpAfterFailures).
    */
   private static async evaluateRuleRecordingFailure(
     rule: DetectionRule,
@@ -1037,6 +1260,7 @@ export default class DetectionRuleEvaluator {
               id: ruleId,
               data: {
                 lastError: ConnectorErrorMessage.toMessage(error),
+                lastFailedAt: OneUptimeDate.getCurrentDate(),
               },
               props: {
                 isRoot: true,
@@ -1174,6 +1398,15 @@ export default class DetectionRuleEvaluator {
    * soon as it is done (lastEvaluatedAt: where the rule got to) - so a run
    * that stops, fails or loses its worker part way leaves the rule where
    * its last finished stretch got it, and the next run judges the rest.
+   *
+   * Exactly once (#10489): a stretch that found matches is marked on the
+   * rule (evaluatingUntil, with lastEvaluatedAt at where it starts) before
+   * it does what they ask, and the mark goes when its end is recorded. A
+   * worker that stops in between leaves the mark: the next run judges that
+   * stretch again first, exactly - the same events, the same windows, the
+   * same groups, under the same firing names - and each firing's finding,
+   * case detection and risk are done once. A stretch that found nothing is
+   * never marked: it does nothing a second pass could repeat.
    */
   private static async runScheduled(
     rule: DetectionRule,
@@ -1192,9 +1425,23 @@ export default class DetectionRuleEvaluator {
       now: OneUptimeDate.getCurrentDate(),
       lastEvaluatedAt: rule.lastEvaluatedAt,
       evaluationIntervalInMinutes: rule.evaluationIntervalInMinutes,
+      lastFailedAt: rule.lastFailedAt,
     });
+    // A stretch a run before this one stopped recording: judged again, exactly, first.
+    let judgeAgain: DetectionRuleArrivalRange | null =
+      getStretchToJudgeAgain(rule);
     const readable: { happenedAfter: Date; happenedBefore: Date } =
-      getArrivalEventTimeBounds(scheduled);
+      getArrivalEventTimeBounds({
+        arrivedAfter:
+          judgeAgain &&
+          OneUptimeDate.isBefore(
+            judgeAgain.arrivedAfter,
+            scheduled.arrivedAfter,
+          )
+            ? judgeAgain.arrivedAfter
+            : scheduled.arrivedAfter,
+        arrivedUntil: scheduled.arrivedUntil,
+      });
     const exceptions: Array<DetectionRuleExceptionShape> =
       options.exceptions ||
       (await DetectionRuleExceptions.loadForRule({
@@ -1210,16 +1457,39 @@ export default class DetectionRuleEvaluator {
         return true;
       });
 
-    let arrivedAfter: Date = scheduled.arrivedAfter;
+    let arrivedAfter: Date = judgeAgain
+      ? judgeAgain.arrivedAfter
+      : scheduled.arrivedAfter;
     let total: DetectionRuleEvaluationResult | null = null;
 
-    while (OneUptimeDate.isBefore(arrivedAfter, scheduled.arrivedUntil)) {
+    while (
+      judgeAgain ||
+      OneUptimeDate.isBefore(arrivedAfter, scheduled.arrivedUntil)
+    ) {
+      // A day of arrivals at most: a rule catching up after failures reads them a day at a time.
+      const range: DetectionRuleArrivalRange =
+        judgeAgain || getNextStretch(arrivedAfter, scheduled.arrivedUntil);
+      // A stretch judged again is marked already, as the run before left it.
+      let isMarked: boolean = Boolean(judgeAgain);
+
       const judged: { judgedUntil: Date; judgement: DetectionRuleJudgement } =
         await this.judgeArrivals(rule, {
           definition,
           parsedRule,
-          range: { arrivedAfter, arrivedUntil: scheduled.arrivedUntil },
+          range,
           exceptions,
+          mayRepeat: Boolean(judgeAgain),
+          beforeEffects: async (judgedUntil: Date): Promise<void> => {
+            if (isMarked) {
+              return;
+            }
+
+            isMarked = true;
+            await this.markScheduledRun(rule, {
+              arrivedAfter: range.arrivedAfter,
+              judgedUntil,
+            });
+          },
         });
 
       await this.recordScheduledRun(rule, {
@@ -1231,6 +1501,7 @@ export default class DetectionRuleEvaluator {
         ? addEvaluationResults(total, judged.judgement.result)
         : judged.judgement.result;
       arrivedAfter = judged.judgedUntil;
+      judgeAgain = null;
 
       if (!hasTimeLeft()) {
         break;
@@ -1238,6 +1509,28 @@ export default class DetectionRuleEvaluator {
     }
 
     return total || this.emptyJudgement(rule, exceptions).result;
+  }
+
+  /*
+   * A stretch about to do what its matches ask (#10489): the rule says where
+   * the stretch starts and how far it judged, so a worker that stops before
+   * the stretch is recorded leaves the next run that stretch to judge again,
+   * exactly. Written as OneUptime, as the run's record is.
+   */
+  private static async markScheduledRun(
+    rule: DetectionRule,
+    data: { arrivedAfter: Date; judgedUntil: Date },
+  ): Promise<void> {
+    await DetectionRuleService.updateOneById({
+      id: rule.id!,
+      data: {
+        lastEvaluatedAt: data.arrivedAfter,
+        evaluatingUntil: data.judgedUntil,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   /*
@@ -1254,6 +1547,11 @@ export default class DetectionRuleEvaluator {
    *     brought to the count. At most DETECTION_MAX_WINDOWS_PER_RUN windows
    *     (pickArrivalWindows): a stretch whose events fall in more is judged
    *     up to where they fill that many.
+   *
+   * Each firing is named by the stretch, its window and its group
+   * (DetectionRuleFiring); `beforeEffects` runs, with how far the stretch
+   * judges, before the first firing does anything (#10489), and
+   * `mayRepeat` says the stretch's firings may have been recorded already.
    */
   private static async judgeArrivals(
     rule: DetectionRule,
@@ -1262,6 +1560,8 @@ export default class DetectionRuleEvaluator {
       parsedRule: SigmaRule;
       range: DetectionRuleArrivalRange;
       exceptions: Array<DetectionRuleExceptionShape>;
+      mayRepeat: boolean;
+      beforeEffects: (judgedUntil: Date) => Promise<void>;
     },
   ): Promise<{ judgedUntil: Date; judgement: DetectionRuleJudgement }> {
     const { definition, parsedRule, range } = data;
@@ -1297,6 +1597,13 @@ export default class DetectionRuleEvaluator {
             coveredUntil: range.arrivedUntil,
             restrictTo: isDetectionArrivalCandidate(arrival),
             readFirstSeen: true,
+            firing: {
+              stretchStart: range.arrivedAfter,
+              mayRepeat: data.mayRepeat,
+            },
+          },
+          beforeEffects: async (): Promise<void> => {
+            await data.beforeEffects(range.arrivedUntil);
           },
         }),
       };
@@ -1372,6 +1679,8 @@ export default class DetectionRuleEvaluator {
         candidateEndTime: window.endTime,
       };
 
+      const judgedUntil: Date = picked.judgedUntil;
+
       const windowJudgement: DetectionRuleJudgement = await this.judge(rule, {
         definition,
         parsedRule,
@@ -1382,9 +1691,17 @@ export default class DetectionRuleEvaluator {
           endTime: window.endTime,
           // A window still filling covers up to where the run judged.
           coveredUntil: new Date(
-            Math.min(window.endTime.getTime(), picked.judgedUntil.getTime()),
+            Math.min(window.endTime.getTime(), judgedUntil.getTime()),
           ),
           countWindow: { window, arrival },
+          firing: {
+            stretchStart: range.arrivedAfter,
+            windowStart: window.startTime,
+            mayRepeat: data.mayRepeat,
+          },
+        },
+        beforeEffects: async (): Promise<void> => {
+          await data.beforeEffects(judgedUntil);
         },
       });
 
@@ -1454,8 +1771,9 @@ export default class DetectionRuleEvaluator {
 
   /*
    * Where a scheduled run got to, once it has done what its matches ask:
-   * the rule's next run judges what arrived after `judgedUntil`. Written
-   * as OneUptime: nobody writes when a rule last ran.
+   * the rule's next run judges what arrived after `judgedUntil`, and the
+   * stretch's mark goes (markScheduledRun, #10489). Written as OneUptime:
+   * nobody writes when a rule last ran.
    */
   private static async recordScheduledRun(
     rule: DetectionRule,
@@ -1473,6 +1791,9 @@ export default class DetectionRuleEvaluator {
       id: rule.id!,
       data: {
         lastEvaluatedAt: data.judgedUntil,
+        evaluatingUntil: null as unknown as Date,
+        // The run worked: the rule is due on its interval again (#10490).
+        lastFailedAt: null as unknown as Date,
         /*
          * The rule ran; an overflow, or a correlation that had more groups
          * to check than one run reads, is what its row should say about it.
@@ -1521,7 +1842,10 @@ export default class DetectionRuleEvaluator {
    * rule's from its compiled condition, counted by the rule's Group By
    * Field and threshold - and everything they ask for: alerts, incidents,
    * Detection Findings, cases and risk. Nothing about the rule's own row:
-   * each kind of run records that itself.
+   * each kind of run records that itself - but a scheduled run's
+   * `beforeEffects` runs once its groups are known and before any of them
+   * does anything (#10489), so a stretch that found matches is marked on the
+   * rule first.
    */
   private static async judge(
     rule: DetectionRule,
@@ -1531,6 +1855,7 @@ export default class DetectionRuleEvaluator {
       read: DetectionRuleRead;
       exceptions: Array<DetectionRuleExceptionShape>;
       isSetupTest: boolean;
+      beforeEffects?: (() => Promise<void>) | undefined;
     },
   ): Promise<DetectionRuleJudgement> {
     const { definition, parsedRule, read, exceptions } = data;
@@ -1632,7 +1957,34 @@ export default class DetectionRuleEvaluator {
       totalMatches += matchGroup.matchCount;
     }
 
+    /*
+     * Each group's firing, by its value (#10489): a scheduled run's names, so
+     * the run that judges the same stretch again does each thing once.
+     */
+    const firing: DetectionRuleFiring | undefined = setupTest
+      ? undefined
+      : read.firing;
+    const firingKeys: Map<string, string> = new Map();
+
+    if (firing) {
+      for (const matchGroup of split.recorded) {
+        firingKeys.set(
+          matchGroup.groupValue,
+          getDetectionFiringKey({
+            stretchStart: firing.stretchStart,
+            windowStart: firing.windowStart,
+            groupValue: matchGroup.groupValue,
+          }),
+        );
+      }
+    }
+
     if (split.recorded.length > 0) {
+      // The stretch is marked on the rule before any of its firings does anything.
+      if (!setupTest && data.beforeEffects) {
+        await data.beforeEffects();
+      }
+
       if (!setupTest && rule.shouldCreateAlert !== false) {
         alertsCreated = await this.openAlertsForMatches({
           rule,
@@ -1660,16 +2012,20 @@ export default class DetectionRuleEvaluator {
       }
 
       if (writesFindings) {
-        findingEventUids = await this.writeDetectionFindings({
-          rule,
-          parsedRule,
-          matchedGroups: split.recorded,
-          correlationType:
-            definition.kind === "correlation"
-              ? definition.correlation.type
-              : undefined,
-        });
-        findingsWritten = findingEventUids.size;
+        const findings: { eventUids: Map<string, string>; written: number } =
+          await this.writeDetectionFindings({
+            rule,
+            parsedRule,
+            matchedGroups: split.recorded,
+            correlationType:
+              definition.kind === "correlation"
+                ? definition.correlation.type
+                : undefined,
+            firing,
+            firingKeys,
+          });
+        findingEventUids = findings.eventUids;
+        findingsWritten = findings.written;
       }
 
       /*
@@ -1704,6 +2060,7 @@ export default class DetectionRuleEvaluator {
           matchedEvents,
           startTime: coveredFrom,
           endTime: coveredUntil,
+          firingKeys,
         });
 
         if (overflowNotice && !setupTest) {
@@ -1715,6 +2072,12 @@ export default class DetectionRuleEvaluator {
               summary: overflowNotice,
               startTime: coveredFrom,
               endTime: coveredUntil,
+              firingKey: firing
+                ? getDetectionOverflowFiringKey({
+                    stretchStart: firing.stretchStart,
+                    windowStart: firing.windowStart,
+                  })
+                : undefined,
             }),
           );
         }
@@ -1752,6 +2115,7 @@ export default class DetectionRuleEvaluator {
             parsedRule,
             matchedGroups: split.opened,
             seenAt: coveredUntil,
+            firingKeys,
           }),
         );
       }
@@ -1846,6 +2210,15 @@ export default class DetectionRuleEvaluator {
       ? buildSigmaFieldExpression(rule.groupByField)
       : null;
 
+    /*
+     * A rule that counts per value leaves out the events with no value for
+     * its group field (#10415): the read decides when, by the threshold and
+     * the distinct count it is given.
+     */
+    const groupHasValueExpression: Statement | null = rule.groupByField
+      ? buildSigmaFieldHasValue(rule.groupByField)
+      : null;
+
     const distinctCountExpression: Statement | null = rule.distinctCountField
       ? buildSigmaDistinctCountExpression(rule.distinctCountField)
       : null;
@@ -1859,6 +2232,7 @@ export default class DetectionRuleEvaluator {
         endTime: data.endTime,
         whereFragment,
         groupByExpression,
+        groupHasValueExpression,
         distinctCountExpression,
         minMatchCount: matchCountThreshold,
         // One more than a run records, so it can tell "more than it reads".
@@ -1895,6 +2269,8 @@ export default class DetectionRuleEvaluator {
     summary: string;
     startTime: Date;
     endTime: Date;
+    // The overflow's firing, from a scheduled run (#10489): taken once.
+    firingKey?: string | undefined;
   }): SecurityDetectionSignal {
     const { rule, parsedRule } = data;
     const ruleName: string = rule.name || parsedRule.title;
@@ -1931,6 +2307,7 @@ export default class DetectionRuleEvaluator {
       ruleName,
       detectionRuleId: rule.id!,
       seenAt: data.endTime,
+      ...(data.firingKey ? { firingKey: data.firingKey } : {}),
     };
   }
 
@@ -1991,6 +2368,8 @@ export default class DetectionRuleEvaluator {
     matchedEvents?: Map<string, SecurityDetectionMatchedEvents> | undefined;
     startTime: Date;
     endTime: Date;
+    // Each group's firing, by its value: a scheduled run's (#10489).
+    firingKeys?: Map<string, string> | undefined;
   }): Array<SecurityDetectionSignal> {
     const { rule, parsedRule } = data;
     const severity: OcsfSeverity =
@@ -2036,6 +2415,9 @@ export default class DetectionRuleEvaluator {
           eventUid: data.findingEventUids.get(matchGroup.groupValue),
           matchedEvents: data.matchedEvents?.get(matchGroup.groupValue),
           seenAt: data.endTime,
+          ...(data.firingKeys?.has(matchGroup.groupValue)
+            ? { firingKey: data.firingKeys.get(matchGroup.groupValue) }
+            : {}),
         };
       },
     );
@@ -2326,15 +2708,67 @@ export default class DetectionRuleEvaluator {
     return descriptionParts.join("\n\n");
   }
 
+  /*
+   * A Detection Finding for each group, written back into the events. A
+   * scheduled run's firing names its finding (#10489): the same firing,
+   * judged again after a worker stopped before the run recorded where it
+   * got to, has the same eventUid, and a judgement whose firings may have
+   * been recorded (`firing.mayRepeat`) looks for them first - one read for
+   * all its groups - and writes only those it does not find. Each group's
+   * finding is in the map either way, for its case detection to point at.
+   */
   private static async writeDetectionFindings(data: {
     rule: DetectionRule;
     parsedRule: SigmaRule;
     matchedGroups: Array<DetectionMatchGroup>;
     // A correlation rule's type, stamped on its findings so they can be told apart.
     correlationType?: string | undefined;
-  }): Promise<Map<string, string>> {
+    firing?: DetectionRuleFiring | undefined;
+    // Each group's firing, by its value.
+    firingKeys?: Map<string, string> | undefined;
+  }): Promise<{ eventUids: Map<string, string>; written: number }> {
     const { rule, parsedRule, matchedGroups } = data;
     const projectId: ObjectID = rule.projectId!;
+    const findingUidOf: (matchGroup: DetectionMatchGroup) => string = (
+      matchGroup: DetectionMatchGroup,
+    ): string => {
+      const prefix: string = `detection:${rule.id!.toString()}:${this.buildFingerprint(
+        rule.id!,
+        matchGroup.groupValue,
+      )}`;
+      const firingKey: string | undefined = data.firingKeys?.get(
+        matchGroup.groupValue,
+      );
+
+      return firingKey
+        ? `${prefix}:${firingKey}`
+        : `${prefix}:${OneUptimeDate.getCurrentDateAsUnixNano()}`;
+    };
+
+    const eventUids: Map<string, string> = new Map();
+
+    for (const matchGroup of matchedGroups) {
+      eventUids.set(matchGroup.groupValue, findingUidOf(matchGroup));
+    }
+
+    const written: Set<string> =
+      data.firing?.mayRepeat && data.firingKeys && data.firingKeys.size > 0
+        ? await this.readWrittenFindings({
+            projectId,
+            eventUids: Array.from(eventUids.values()),
+            writtenAfter: data.firing.stretchStart,
+          })
+        : new Set();
+
+    const toWrite: Array<DetectionMatchGroup> = matchedGroups.filter(
+      (matchGroup: DetectionMatchGroup): boolean => {
+        return !written.has(eventUids.get(matchGroup.groupValue) || "");
+      },
+    );
+
+    if (toWrite.length === 0) {
+      return { eventUids, written: 0 };
+    }
 
     const serviceMetadata: TelemetryServiceMetadata =
       await OTelIngestService.telemetryServiceFromName({
@@ -2357,9 +2791,7 @@ export default class DetectionRuleEvaluator {
       DETECTION_FINDING_CLASS_UID,
     );
 
-    const eventUids: Map<string, string> = new Map();
-
-    const rows: Array<JSONObject> = matchedGroups.map(
+    const rows: Array<JSONObject> = toWrite.map(
       (matchGroup: DetectionMatchGroup): JSONObject => {
         // A correlation's own sentence, or a single rule's distinct count.
         const distinctSuffix: string = matchGroup.summary
@@ -2368,12 +2800,7 @@ export default class DetectionRuleEvaluator {
             ? `, ${matchGroup.distinctCount} distinct ${rule.distinctCountField}`
             : "";
 
-        const eventUid: string = `detection:${rule.id!.toString()}:${this.buildFingerprint(
-          rule.id!,
-          matchGroup.groupValue,
-        )}:${OneUptimeDate.getCurrentDateAsUnixNano()}`;
-
-        eventUids.set(matchGroup.groupValue, eventUid);
+        const eventUid: string = eventUids.get(matchGroup.groupValue)!;
 
         /*
          * What the finding is about, first in its observables: each value a
@@ -2479,7 +2906,48 @@ export default class DetectionRuleEvaluator {
       );
     }
 
-    return eventUids;
+    return { eventUids, written: rows.length };
+  }
+
+  /*
+   * Which of these Detection Findings are written already (#10489): a
+   * stretch judged again after its worker stopped finds the findings its
+   * first pass wrote, each under its firing's name. One read for all of
+   * them, by the eventUid bloom index, from when the stretch started: a
+   * finding is written after the events it records arrived.
+   */
+  private static async readWrittenFindings(data: {
+    projectId: ObjectID;
+    eventUids: Array<string>;
+    writtenAfter: Date;
+  }): Promise<Set<string>> {
+    if (data.eventUids.length === 0) {
+      return new Set();
+    }
+
+    const rows: Array<SecurityEvent> = await SecurityEventService.findBy({
+      query: {
+        projectId: data.projectId,
+        eventUid: new Includes(data.eventUids),
+        time: new GreaterThanOrEqual<Date>(data.writtenAfter),
+      },
+      select: {
+        eventUid: true,
+      },
+      skip: 0,
+      limit: data.eventUids.length,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return new Set(
+      rows
+        .map((row: SecurityEvent): string => {
+          return row.eventUid?.toString() || "";
+        })
+        .filter(Boolean),
+    );
   }
 
   /*

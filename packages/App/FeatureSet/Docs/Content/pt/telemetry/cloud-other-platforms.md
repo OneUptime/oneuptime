@@ -167,11 +167,16 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 # The Key Vault reference, which resolves to the whole header.
 OTEL_EXPORTER_OTLP_HEADERS=@Microsoft.KeyVault(SecretUri=https://my-vault.vault.azure.net/secrets/oneuptime-otlp-headers/)
 OTEL_RESOURCE_ATTRIBUTES=cloud.account.id=00000000-0000-0000-0000-000000000000
-# Node.js:
-OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure
 ```
 
-Os detectores dos SDKs escrevem a plataforma como `azure.app_service`, com um ponto; o OneUptime a reescreve como `azure_app_service` ao recebê-la. No .NET, adicione `OpenTelemetry.Resources.Azure` e chame `.ConfigureResource(r => r.AddAzureAppServiceDetector())`. As outras linguagens adicionam `cloud.provider=azure,cloud.platform=azure_app_service,cloud.region=<region>` a `OTEL_RESOURCE_ATTRIBUTES`, e pegam `service.instance.id` de `WEBSITE_INSTANCE_ID` no código.
+Os detectores dos SDKs escrevem a plataforma como `azure.app_service`, com um ponto; o OneUptime a reescreve como `azure_app_service` ao recebê-la. Cada stack tem um detector de recursos do App Service próprio, que nomeia cada instância e define `cloud.resource_id` como o ID do site: é isso que liga o app aos números do Azure Monitor do site dele. Ative o da sua stack:
+
+| Stack | O detector de recursos do App Service dela |
+| --- | --- |
+| .NET | `OpenTelemetry.Resources.Azure`, com `.ConfigureResource(r => r.AddAzureAppServiceDetector())` |
+| Java | O agente Java do OpenTelemetry, com `OTEL_RESOURCE_PROVIDERS_AZURE_ENABLED=true` |
+| Node.js | `@opentelemetry/auto-instrumentations-node`, com `OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure` |
+| Python | `opentelemetry-resource-detector-azure`, com `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=otel,azure_app_service` |
 
 :::steps
 1. Ative a identidade gerenciada atribuída pelo sistema do app (**Settings → Identity**), e conceda a ela **Key Vault Secrets User** no cofre. Guarde o cabeçalho completo, `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`, como o segredo `oneuptime-otlp-headers`.
@@ -182,9 +187,9 @@ Os detectores dos SDKs escrevem a plataforma como `azure.app_service`, com um po
 
 **Rede:** o App Service alcança a internet diretamente, a menos que a **VNet integration** com **Route All** esteja ativada. Nesse caso a VNet precisa de um gateway NAT, ou de uma rota para um firewall que permita TCP 443 até o host do OneUptime.
 
-**O que a página do app mostra:** requisições, taxa de erros e latência vêm dos traços do app, então um app que envia só registros ou métricas mostra ali **Nenhum traço recebido**, e a sua **Verificação da configuração** diz o que adicionar. O App Service não dá a um app CPU nem memória próprias, e os blocos de CPU e memória dele dizem isso. Conecte a assinatura em **Nuvem → Conectar**, e a **Visão geral** do app ganha uma seção **Azure Monitor**: as requisições, os erros de servidor e de cliente, o tempo de resposta, o tempo de CPU e a memória do site, como o Azure os mede, seja o que for que o app envie. A aba **Instâncias** dele lista então as instâncias em que o Azure o executa, e a aba **Revisões**, as implantações que o Azure guarda.
+**O que a página do app mostra:** requisições, taxa de erros e latência vêm dos traços do app, então um app que envia só registros ou métricas mostra ali **Nenhum traço recebido**, e a sua **Verificação da configuração** diz o que adicionar. O App Service não dá a um app CPU nem memória próprias, e os blocos de CPU e memória dele dizem isso. Conecte a assinatura em **Nuvem → Conectar**, e a **Visão geral** do app ganha uma seção **Azure Monitor**: as requisições, os erros de servidor e de cliente, o tempo de resposta, o tempo de CPU e a memória do site, como o Azure os mede, seja o que for que o app envie. A aba **Instâncias** dele lista então as instâncias em que o Azure o executa, e a aba **Revisões**, as implantações que o Azure guarda. Em **Plataformas de aplicativos → Todos os apps** e na aba **Apps** de um ambiente, um app que não envia traços mostra no lugar os números do site dele no Azure Monitor: as requisições que o Azure contou, a parcela respondida com status 5xx e o tempo de resposta médio.
 
-A aba **Configuração** do app dá essas configurações como comandos do Azure Cloud Shell para .NET, Java, Node.js ou Python, com o nome, o grupo de recursos e a assinatura do próprio app em cada comando. Para os próprios registros de console, HTTP e de plataforma do site, escolha também **Transmitir métricas e logs** na linha da assinatura em **Nuvem → Conectar**: eles aparecem na aba **Registros** do app, em **Das configurações de diagnóstico do Azure**.
+A aba **Configuração** do app dá essas configurações como comandos do Azure Cloud Shell para .NET, Java, Node.js ou Python, com o nome, o grupo de recursos e a assinatura do próprio app em cada comando. Para os próprios registros de console, HTTP e de plataforma do site, escolha também **Transmitir métricas e logs** na linha da assinatura em **Nuvem → Conectar**: eles aparecem na aba **Registros** do app, em **Das configurações de diagnóstico do Azure**. O guia de configuração do ambiente também dá os passos de cada stack, com marcadores para o nome e o grupo de recursos do app.
 
 ## Azure Container Instances
 

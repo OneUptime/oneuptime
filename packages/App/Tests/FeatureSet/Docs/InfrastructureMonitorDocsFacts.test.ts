@@ -2373,6 +2373,8 @@ describe("the criteria of the telemetry-backed monitors", () => {
         FilterType.GreaterThanOrEqualTo,
         FilterType.LessThanOrEqualTo,
         FilterType.EqualTo,
+        // A state written as a number is asked "anything but" (#10449).
+        FilterType.NotEqualTo,
         FilterType.AnomalouslyHigh,
         FilterType.AnomalouslyLow,
         FilterType.Anomalous,
@@ -2384,7 +2386,7 @@ describe("the criteria of the telemetry-backed monitors", () => {
     );
 
     const written: string =
-      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.";
+      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To**, **Equal To** or **Not Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.";
 
     // The forecast conditions, as the Condition dropdown draws them.
     const forecastWritten: string =
@@ -2396,7 +2398,7 @@ describe("the criteria of the telemetry-backed monitors", () => {
     }
 
     expect(englishPage(KUBERNETES)).toContain(
-      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** and **Equal To**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.",
+      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To**, **Equal To** and **Not Equal To**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.",
     );
 
     // The words the Condition dropdown draws for the two data conditions.

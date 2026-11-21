@@ -393,6 +393,9 @@ enum Permission {
   EditSecurityCaseTask = "EditSecurityCaseTask",
   ReadSecurityCaseTask = "ReadSecurityCaseTask",
 
+  // Security Case Step Checks (what OneUptime found of a Response Plan step, written by OneUptime)
+  ReadSecurityCaseStepCheck = "ReadSecurityCaseStepCheck",
+
   // Security Case Evidence (files and links kept on a case)
   CreateSecurityCaseEvidence = "CreateSecurityCaseEvidence",
   DeleteSecurityCaseEvidence = "DeleteSecurityCaseEvidence",
@@ -472,6 +475,10 @@ enum Permission {
 
   // Data Security Issue Feed: what happened on an issue, written by OneUptime
   ReadDataSecurityIssueFeed = "ReadDataSecurityIssueFeed",
+
+  // Data Security AI: what OneUptime AI proposes for an issue, and why it did or did not act
+  ReadDataSecurityAiProposal = "ReadDataSecurityAiProposal",
+  ReadDataSecurityAiDecision = "ReadDataSecurityAiDecision",
 
   // Data Security Scans: what each scan read and found
   DeleteDataSecurityScan = "DeleteDataSecurityScan",
@@ -9463,6 +9470,18 @@ export class PermissionHelper {
         group: PermissionGroup.Security,
       },
 
+      // Security Case Step Check Permissions
+      {
+        permission: Permission.ReadSecurityCaseStepCheck,
+        title: "Read Security Case Step Check",
+        description:
+          "This permission can read what OneUptime found when it checked the steps of Security Cases' Response Plans of this project, and the evidence for it.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
       // Security Case Evidence Permissions
       {
         permission: Permission.CreateSecurityCaseEvidence,
@@ -9963,6 +9982,28 @@ export class PermissionHelper {
         title: "Read Data Security Issue Feed",
         description:
           "This permission can read the timelines of Data Security Issues of this project: what happened on each issue and when.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Data Security AI Permissions
+      {
+        permission: Permission.ReadDataSecurityAiProposal,
+        title: "Read Data Security AI Proposal",
+        description:
+          "This permission can read what OneUptime AI proposes for the Data Security Issues of this project, and what it did without asking. Approving one takes the permission to make the change itself.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadDataSecurityAiDecision,
+        title: "Read Data Security AI Decision",
+        description:
+          "This permission can read why OneUptime AI did, or did not, act on each Data Security Issue of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

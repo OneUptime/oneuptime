@@ -311,6 +311,36 @@ export function buildSigmaDistinctCountExpression(field: string): Statement {
   return buildSigmaFieldExpression(field);
 }
 
+/*
+ * Whether an event has a value for a field, as the field's kind says
+ * "none" (#10415): text and an attribute say it with '', a number column
+ * with 0 (its documented not-applicable value, as
+ * buildSigmaDistinctCountExpression reads it), a list by being empty. A
+ * rule that counts per value leaves out the events that have none, so
+ * they never add up as one value - every failed sign-in with no address
+ * as "one IP address".
+ */
+export function buildSigmaFieldHasValue(field: string): Statement {
+  const resolved: ResolvedField = resolveSigmaField(field);
+
+  if (resolved.kind === "attribute") {
+    const statement: Statement = SQL`attributes[`;
+    statement.append(textParam(resolved.attributeKey));
+    statement.append("] != ''");
+    return statement;
+  }
+
+  if (resolved.kind === "numberColumn") {
+    return new Statement([`${resolved.column} != 0`], []);
+  }
+
+  if (resolved.kind === "arrayColumn") {
+    return new Statement([`notEmpty(${resolved.column})`], []);
+  }
+
+  return new Statement([`${resolved.column} != ''`], []);
+}
+
 export default class SigmaClickhouseCompiler {
   /*
    * Compile a rule (or raw YAML) into a boolean SQL expression. The

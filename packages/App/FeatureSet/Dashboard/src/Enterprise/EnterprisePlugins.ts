@@ -54,6 +54,11 @@ export interface AuditLogsTableProps {
   title: string;
   description: string;
   resourceType?: string | undefined;
+  /*
+   * Entries about any of these types, where a page lists the history of a
+   * family of records rather than one: a product's rules (#10290).
+   */
+  resourceTypes?: ReadonlyArray<string> | undefined;
   resourceId?: ObjectID | undefined;
   /*
    * Lists every entry that rolls up to this resource: its own, and those of

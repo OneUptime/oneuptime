@@ -50,6 +50,18 @@ export interface ExplainEvalCase extends DataSecurityEvalCaseBase {
 }
 
 /*
+ * OneUptime AI's own analysis of a new issue (#10364): asked what Explain is
+ * asked, so its cases read the same - an issue, its places, and what the
+ * analysis must say.
+ */
+export interface AnalyzeEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.AnalyzeIssue;
+  issue: AiIssueRecord;
+  findings?: Array<AiFindingRecord> | undefined;
+  expect: DataSecurityEvalWords;
+}
+
+/*
  * The field suggestions: one request's fields, and the type each should
  * get - a listed id, or null where nothing points to one.
  */
@@ -104,6 +116,7 @@ export interface AskAiEvalCase extends DataSecurityEvalCaseBase {
 
 export type DataSecurityEvalCase =
   | ExplainEvalCase
+  | AnalyzeEvalCase
   | FieldSuggestionEvalCase
   | FixEvalCase
   | AskAiEvalCase;

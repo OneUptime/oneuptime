@@ -94,6 +94,8 @@ Duas ações em um problema pedem ajuda ao OneUptime AI. As duas enviam ao OneUp
 - **Explicar com IA** escreve, para o proprietário do repositório, o que está errado, o que pode acontecer e os passos exatos para corrigir isso na nuvem dele. A explicação fica guardada na **Linha do tempo** do problema. Nem o problema enviado nem a resposta ficam guardados em **Configurações do projeto → IA → Registros de IA**, que qualquer Membro do projeto e Visualizador pode ler: essa linha diz só que a chamada foi feita e quanto custou. Qualquer pessoa que pode ler o problema pode pedir.
 - **Corrigir com IA** pede ao OneUptime AI que corrija o problema no seu código de infraestrutura - Terraform, CloudFormation, Bicep ou similares - com a menor mudança que faz a verificação passar, e que abra um pull request. Ele precisa que o repositório de código com o código de infraestrutura do repositório de dados esteja conectado em **Código**: escolha-o em **Repositório** quando você puder pedir em vários. O pull request aparece em **Código** (veja [Código](/docs/ai/ai-agent)). Membros de segurança e funções acima podem pedir, em um repositório que possam alterar em **Código**, como exige pedir à IA ali: uma função de segurança sozinha não lê nem altera nenhum repositório, então dê também à equipe deles **Read Code Repository** e **Edit Code Repository**. Quando a IA não pode trabalhar agora (está desligada, o projeto ficou sem créditos de IA, atingiu seus limites diários ou nenhum Runner está online), Corrigir com IA diz o que corrigir e não inicia nada.
 
+O OneUptime AI também trabalha por conta própria em cada novo problema, como suas regras de IA permitem: veja [OneUptime AI na segurança de dados](/docs/data-security/ai).
+
 ### Pergunte à IA
 
 O **Pergunte à IA** também lê a Segurança de dados. Em qualquer página da Segurança de dados, pergunte quais repositórios guardam números de cartão, o que corrigir primeiro ou quais repositórios uma função poderia acessar se vazasse; na página de um repositório ou de um problema, ele lê esse registro primeiro. Ele responde com três ferramentas de leitura, executadas com as suas próprias permissões:
@@ -130,6 +132,7 @@ Tudo o que a Segurança de dados guarda é um registro da API do OneUptime, lido
 | Tipos de dados personalizados, configurações das verificações, configurações de conformidade e regras de residência | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | As configurações do projeto | `/data-security-setting` |
 | Proprietários, regras de proprietário e regras de rótulos | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
+| O que o OneUptime AI propõe para um problema, e por que ele agiu ou não em um | `/data-security-ai-proposal`, `/data-security-ai-decision` |
 
 Algumas respostas são calculadas no momento do pedido, em vez de armazenadas. Cada uma é um `POST`:
 
@@ -149,6 +152,9 @@ Algumas respostas são calculadas no momento do pedido, em vez de armazenadas. C
 | `/data-security-issue/<id>/fix-with-ai` | **Corrigir com IA** em um problema |
 | `/data-store/<id>/response-actions` | Quais ações de resposta o repositório pode receber agora, e por que não |
 | `/data-store/<id>/respond` | Uma ação de resposta no repositório, como **Bloquear acesso público** ou **Ativar o versionamento**, com o problema a partir do qual foi executada |
+| `/data-security-ai-proposal/<id>/approve` | **Aprovar** em uma mudança que o OneUptime AI propõe, que a faz com as suas próprias permissões. Recebe o `expectedPlanFingerprint` da proposta que foi mostrada a você e recusa uma que mudou desde então |
+| `/data-security-ai-proposal/<id>/dismiss` | **Dispensar proposta**, com `{"reason": "..."}`, que vai para a linha do tempo do problema |
+| `/data-security-ai-proposal/<id>/undo` | **Desfazer** em uma mudança que o OneUptime AI fez: ela é revertida, e o repositório é verificado de novo |
 
 O [provedor do Terraform](/docs/terraform/index) tem um recurso para cada tipo de registro que você cria - repositórios de dados que você mesmo adiciona, tipos de dados personalizados, configurações das verificações, configurações de conformidade, regras de residência, regras de proprietário e de rótulos - com o nome do registro, como `oneuptime_residency_rule`.
 

@@ -94,6 +94,8 @@ flowchart TB
 - **用 AI 解释** 会为数据存储的所有者写出问题所在、可能造成的后果，以及在其云上修复它的确切步骤。解释会保存在问题的 **时间线** 上。发送的问题和回答都不会保存在 **项目设置 → 人工智能 → AI 日志** 中，而那里每个项目成员和查看者都能读取：那一行只记录发生了调用以及花费了多少。任何能读取该问题的人都可以使用。
 - **用 AI 修复** 会请 OneUptime AI 用能让检查通过的最小更改，在你的基础设施代码（Terraform、CloudFormation、Bicep 等）中修复该问题，并打开一个拉取请求。它需要在 **代码** 下连接保存该数据存储基础设施代码的存储库：你能在多个存储库中使用时，请在 **存储库** 下选择它。拉取请求会出现在 **代码** 下（参见 [代码](/docs/ai/ai-agent)）。安全成员及以上角色可以在他们能在 **代码** 下更改的存储库中使用，这与在那里请 AI 工作所需的权限相同：安全角色本身不读取也不更改任何存储库，因此还要给他们的团队 **Read Code Repository** 和 **Edit Code Repository**。当 AI 现在无法工作时（已关闭、项目的 AI 额度已用完、已达到每日限制，或没有在线的 Runner），用 AI 修复会说明需要解决什么，并且不启动任何内容。
 
+OneUptime AI 还会按照您的 AI 规则，自动处理每个新问题：请参阅[数据安全中的 OneUptime AI](/docs/data-security/ai)。
+
 ### 询问 AI
 
 **询问 AI** 也会读取数据安全。在任何数据安全页面上，你都可以询问哪些数据存储保存着卡号、应该先修复什么，或者某个角色泄露后可以访问哪些数据存储；在数据存储或问题的页面上，它会先读取该记录。它使用三个读取工具作答，并以你自己的权限运行：
@@ -130,6 +132,7 @@ flowchart TB
 | 自定义数据类型、检查设置、合规设置和数据驻留规则 | `/data-security-custom-data-type`、`/data-security-check-setting`、`/data-security-compliance-setting`、`/data-security-residency-rule` |
 | 项目的设置 | `/data-security-setting` |
 | 所有者、所有者规则和标签规则 | `/data-store-owner-user`、`/data-store-owner-team`、`/data-store-owner-rule`、`/data-store-label-rule` |
+| OneUptime AI 为问题提出的提议，以及它对问题采取或未采取行动的原因 | `/data-security-ai-proposal`、`/data-security-ai-decision` |
 
 有几项结果是在请求时计算出来的，而不是存储的。每项都是一个 `POST`：
 
@@ -149,6 +152,9 @@ flowchart TB
 | `/data-security-issue/<id>/fix-with-ai` | 对问题执行 **用 AI 修复** |
 | `/data-store/<id>/response-actions` | 数据存储当前可以执行哪些响应操作，以及不能执行的原因 |
 | `/data-store/<id>/respond` | 对数据存储执行一项响应操作，例如 **阻止公开访问** 或 **开启版本控制**，并附上发起它的问题 |
+| `/data-security-ai-proposal/<id>/approve` | 对 OneUptime AI 提议的更改执行 **批准**，以你自己的权限进行该更改。它接受你看到的提议的 `expectedPlanFingerprint`，并拒绝此后已发生变化的提议 |
+| `/data-security-ai-proposal/<id>/dismiss` | **忽略提议**，接受 `{"reason": "..."}`，原因会写入问题的时间线 |
+| `/data-security-ai-proposal/<id>/undo` | 对 OneUptime AI 所做的更改执行 **撤销**：撤回该更改，并重新检查数据存储 |
 
 [Terraform 提供程序](/docs/terraform/index) 为你创建的每种记录（你自己添加的数据存储、自定义数据类型、检查设置、合规设置、数据驻留规则、所有者规则和标签规则）都提供一个以该记录命名的资源，例如 `oneuptime_residency_rule`。
 

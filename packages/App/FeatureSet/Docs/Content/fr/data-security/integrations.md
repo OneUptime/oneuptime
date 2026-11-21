@@ -94,6 +94,8 @@ Deux actions sur un problème demandent de l'aide à OneUptime AI. Toutes deux e
 - **Expliquer avec l'IA** rédige, pour le propriétaire du magasin de données, ce qui ne va pas, ce qui pourrait arriver et les étapes exactes pour le corriger sur son cloud. L'explication est conservée dans la **Chronologie** du problème. Ni le problème envoyé ni la réponse ne sont conservés dans **Paramètres du projet → IA → Journaux IA**, que tout Membre du projet et tout Lecteur peut lire : cette ligne dit seulement que l'appel a eu lieu, et ce qu'il a coûté. Quiconque peut lire le problème peut la demander.
 - **Corriger avec l'IA** demande à OneUptime AI de corriger le problème dans votre code d'infrastructure - Terraform, CloudFormation, Bicep ou équivalent - avec la plus petite modification qui fait réussir le contrôle, et d'ouvrir une pull request. Il faut que le dépôt qui contient le code d'infrastructure du magasin de données soit connecté sous **Code** : choisissez-le sous **Dépôt** quand vous pouvez la demander dans plusieurs. La pull request apparaît sous **Code** (voir [Code](/docs/ai/ai-agent)). Les Membres de la sécurité et les rôles supérieurs peuvent la demander, dans un dépôt qu'ils peuvent modifier sous **Code**, comme l'exige une demande à l'IA à cet endroit : un rôle de sécurité ne lit ni ne modifie aucun dépôt à lui seul, donnez donc aussi à leur équipe **Read Code Repository** et **Edit Code Repository**. Quand l'IA ne peut pas travailler maintenant (elle est désactivée, le projet n'a plus de crédits d'IA, ses limites quotidiennes sont atteintes, ou aucun Runner n'est en ligne), Corriger avec l'IA dit ce qu'il faut corriger et ne lance rien.
 
+OneUptime AI travaille aussi de lui-même sur chaque nouveau problème, comme vos règles IA le permettent : voir [OneUptime AI dans la sécurité des données](/docs/data-security/ai).
+
 ### Demander à l'IA
 
 **Demander à l'IA** lit aussi Sécurité des données. Sur n'importe quelle page de Sécurité des données, demandez quels magasins de données contiennent des numéros de carte, quoi corriger en premier, ou quels magasins de données un rôle pourrait atteindre s'il fuitait ; sur la page d'un magasin de données ou d'un problème, elle lit d'abord cet enregistrement. Elle répond avec trois outils de lecture, exécutés avec vos propres autorisations :
@@ -130,6 +132,7 @@ Tout ce que conserve Sécurité des données est un enregistrement de l'API OneU
 | Les types de données personnalisés, les paramètres des contrôles, les paramètres de conformité et les règles de résidence | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Les paramètres du projet | `/data-security-setting` |
 | Les propriétaires, les règles de propriétaire et les règles d'étiquettes | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
+| Ce qu'OneUptime AI propose pour un problème, et pourquoi il a agi ou non sur un problème | `/data-security-ai-proposal`, `/data-security-ai-decision` |
 
 Quelques réponses sont calculées à la demande plutôt que stockées. Chacune est un `POST` :
 
@@ -149,6 +152,9 @@ Quelques réponses sont calculées à la demande plutôt que stockées. Chacune 
 | `/data-security-issue/<id>/fix-with-ai` | **Corriger avec l'IA** sur un problème |
 | `/data-store/<id>/response-actions` | Les actions de réponse que le magasin de données peut effectuer maintenant, et la raison quand il ne le peut pas |
 | `/data-store/<id>/respond` | Une action de réponse sur le magasin de données, comme **Bloquer l'accès public** ou **Activer le versioning**, avec le problème depuis lequel l'action a été lancée |
+| `/data-security-ai-proposal/<id>/approve` | **Approuver** sur une modification proposée par OneUptime AI, qui la fait avec vos propres autorisations. Prend le `expectedPlanFingerprint` de la proposition qui vous a été montrée, et refuse celle qui a changé depuis |
+| `/data-security-ai-proposal/<id>/dismiss` | **Ignorer la proposition**, avec `{"reason": "..."}`, ajouté à la chronologie du problème |
+| `/data-security-ai-proposal/<id>/undo` | **Annuler** sur une modification faite par OneUptime AI : elle est annulée, et le magasin de données est contrôlé à nouveau |
 
 Le [fournisseur Terraform](/docs/terraform/index) a une ressource pour chaque sorte d'enregistrement que vous créez - les magasins de données que vous ajoutez vous-même, les types de données personnalisés, les paramètres des contrôles, les paramètres de conformité, les règles de résidence, les règles de propriétaire et d'étiquettes - nommée d'après l'enregistrement, comme `oneuptime_residency_rule`.
 

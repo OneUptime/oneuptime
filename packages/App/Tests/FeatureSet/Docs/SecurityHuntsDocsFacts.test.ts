@@ -5,6 +5,7 @@ import { SECURITY_CASE_EVIDENCE_COPY } from "../../../FeatureSet/Dashboard/src/C
 import { KEEP_ON_CASE } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Matches/SecurityCaseMatchesCopy";
 import {
   ADD_TO_CASE,
+  ARRIVED_CHIP_KEY,
   DELETE_HUNT,
   DISCARD_CHANGES,
   EDIT_HUNT,
@@ -71,9 +72,11 @@ import {
   SecurityHuntSchedule,
   getSecurityHuntIntervalInMinutes,
   getSecurityHuntRetryAt,
+  getSecurityHuntRunEventTimeRange,
   getSecurityHuntRunWindow,
   isScheduledSecurityHunt,
 } from "Common/Types/SecurityEvent/SecurityHunt";
+import { DETECTION_LATE_EVENT_WINDOW_IN_MINUTES } from "Common/Types/SecurityEvent/DetectionFindingConstants";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -313,22 +316,33 @@ describe("the Security Events page on hunts", () => {
     );
   });
 
-  it("says what a run reads: after the run before, up to two minutes ago, and a day more than its interval after an outage", () => {
+  it("says what a run reads: what arrived after the run before, up to two minutes ago, whenever it happened, and a day more than its interval after an outage", () => {
     expect(SECURITY_HUNT_RUN_DELAY_IN_SECONDS).toBe(2 * 60);
     expect(SECURITY_HUNT_MAX_CATCH_UP_IN_MINUTES).toBe(24 * 60);
 
     const now: Date = new Date("2026-10-29T12:00:00.000Z");
     const twoMinutesAgo: Date = new Date("2026-10-29T11:58:00.000Z");
 
-    // From where the run before stopped, to two minutes ago: no event twice.
+    // What arrived after where the run before stopped, to two minutes ago: no event twice.
     const next: SecurityHuntRunWindow | null = getSecurityHuntRunWindow({
       schedule: SecurityHuntSchedule.EveryHour,
       searchedUpTo: new Date("2026-10-29T10:58:00.000Z"),
       now,
     });
 
-    expect(next?.startTime.toISOString()).toBe("2026-10-29T10:58:00.001Z");
+    expect(next?.startTime.toISOString()).toBe("2026-10-29T10:58:00.000Z");
     expect(next?.endTime.toISOString()).toBe(twoMinutesAgo.toISOString());
+
+    // Whenever it happened, within a day before it arrived (#10488).
+    expect(
+      getSecurityHuntRunEventTimeRange(next!).startTime.toISOString(),
+    ).toBe(
+      new Date(
+        next!.startTime.getTime() -
+          DETECTION_LATE_EVENT_WINDOW_IN_MINUTES * MINUTE_IN_MILLISECONDS,
+      ).toISOString(),
+    );
+    expect(DETECTION_LATE_EVENT_WINDOW_IN_MINUTES).toBe(24 * 60);
 
     // After three days without a run, an hourly hunt reads a day and an hour.
     const caughtUp: SecurityHuntRunWindow | null = getSecurityHuntRunWindow({
@@ -355,10 +369,13 @@ describe("the Security Events page on hunts", () => {
     const text: string = hunts();
 
     expect(text).toContain(
-      "reads the events whose time falls after the run before, up to two minutes ago, so every event is searched once.",
+      "reads the events that arrived after the run before, up to two minutes ago, whenever they happened, so every event is searched once, even one that arrives late.",
     );
     expect(text).toContain(
       "after an outage a run catches up on at most a day more than its interval.",
+    );
+    expect(text).toContain(
+      "An event that arrives more than a day after it happened is stored and searchable, but no run counts it.",
     );
   });
 
@@ -467,8 +484,19 @@ describe("the Security Events page on hunts", () => {
       });
     }
 
+    // Exactly the events its run counted: the chip the Events page draws, over the day before them.
+    expect(ARRIVED_CHIP_KEY).toBe("Arrived");
     expect(hunts()).toContain(
-      "and links to the hunt's page on those events; no event's own words are in it.",
+      `how many events its run found and when they arrived, and links to the hunt's page on exactly those events: the **${ARRIVED_CHIP_KEY}** filter over the day before them, which you can take off to see everything else in that time; no event's own words are in it.`,
+    );
+    expect(source("huntNotifications")).toContain(
+      "SECURITY_EVENTS_ARRIVED_AFTER_PARAM,",
+    );
+    expect(source("huntNotifications")).toContain(
+      "getSecurityHuntRunEventTimeRange(",
+    );
+    expect(source("template")).toContain(
+      '{{> DetailBoxField title="Arrived: " plainText=windowText }}',
     );
   });
 
@@ -597,7 +625,7 @@ describe("the Security Events page on hunts", () => {
       `Each scheduled run is kept for ${SECURITY_HUNT_RUN_RETENTION_IN_DAYS} days. **${RUN_HISTORY}**, at the end of the line that says what a hunt's runs found, lists them newest first:`,
     );
     expect(text).toContain(
-      `with **${SHOW_THEM}** to open those events on the hunt's page;`,
+      `when each ran and when the events it searched arrived, then how many it found, with **${SHOW_THEM}** to open exactly those events on the hunt's page;`,
     );
     expect(text).toContain("Whoever can open a hunt can read its runs.");
   });

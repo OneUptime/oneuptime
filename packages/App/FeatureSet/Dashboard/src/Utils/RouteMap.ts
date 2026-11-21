@@ -1109,6 +1109,7 @@ export const DataSecurityRoutePath: Dictionary<string> = {
   [PageMap.DATA_SECURITY_ISSUE_VIEW_TIMELINE]: `issues/${RouteParams.ModelID}/timeline`,
   [PageMap.DATA_SECURITY_ISSUE_VIEW_AUDIT_LOGS]: `issues/${RouteParams.ModelID}/audit-logs`,
   [PageMap.DATA_SECURITY_ISSUE_VIEW_DELETE]: `issues/${RouteParams.ModelID}/delete`,
+  [PageMap.DATA_SECURITY_AI]: "ai",
   [PageMap.DATA_SECURITY_SENSITIVE_DATA]: "sensitive-data",
   [PageMap.DATA_SECURITY_TELEMETRY]: "telemetry",
   [PageMap.DATA_SECURITY_FLOWS]: "flows",
@@ -1515,6 +1516,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.ALERTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
   [PageMap.ALERTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
+  [PageMap.ALERTS_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.ALERTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
   [PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP]: "settings/episode-membership",
   [PageMap.ALERTS_SETTINGS_NUMBERING]: "settings/numbering",
@@ -2275,6 +2277,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ALERTS_SETTINGS_REMINDER_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_REMINDER_RULES]
+    }`,
+  ),
+
+  [PageMap.ALERTS_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_RULES_AUDIT_LOGS]
     }`,
   ),
 
@@ -8917,6 +8925,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_SECURITY_COMPLIANCE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-security/${
       DataSecurityRoutePath[PageMap.DATA_SECURITY_COMPLIANCE]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_AI]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_AI]
     }`,
   ),
 

@@ -323,8 +323,12 @@ test("the Details rows line up with the card's title at every width", () => {
   expect(component).toContain(
     'className="px-5 py-3 sm:grid sm:grid-cols-3 sm:gap-4 md:px-6"',
   );
+  /*
+   * The ID line says who created the resource and who last modified it
+   * where the page says what the resource is (RecordActivityLine, #10290).
+   */
   expect(component).toContain(
-    '<div className="px-5 py-3 md:px-6"> <DetailRecordLine recordId={props.recordId} /> </div>',
+    '<div className="px-5 py-3 md:px-6"> {props.recordModelType ? ( <RecordActivityLine modelType={props.recordModelType} recordId={props.recordId} /> ) : ( <DetailRecordLine recordId={props.recordId} /> )} </div>',
   );
   expect(component).not.toContain("-m-6");
   expect(component).not.toMatch(/"px-4 py-3/);

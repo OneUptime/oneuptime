@@ -94,6 +94,8 @@ Dos acciones de un problema piden ayuda a OneUptime AI. Ambas envían a OneUptim
 - **Explicar con IA** redacta, para el propietario del almacén, qué falla, qué podría pasar y los pasos exactos para corregirlo en su nube. La explicación se guarda en la **Cronología** del problema. Ni el problema enviado ni la respuesta se guardan en **Ajustes del proyecto → IA → Registros de IA**, que puede leer cualquier Miembro del proyecto o Visor: esa fila solo dice que se hizo la llamada y cuánto costó. Puede pedirla cualquiera que pueda leer el problema.
 - **Corregir con IA** pide a OneUptime AI que corrija el problema en tu código de infraestructura (Terraform, CloudFormation, Bicep o similares) con el cambio más pequeño que haga que la comprobación se supere, y que abra una pull request. Necesita que el repositorio que contiene el código de infraestructura del almacén esté conectado en **Código**: elígelo en **Repositorio** cuando puedas pedirla en varios. La pull request aparece en **Código** (consulta [Código](/docs/ai/ai-agent)). Pueden pedirla los Miembros de seguridad y los roles superiores, en un repositorio que puedan cambiar en **Código**, como exige pedírselo a la IA allí: un rol de seguridad no lee ni cambia repositorios por sí solo, así que da también a su equipo **Read Code Repository** y **Edit Code Repository**. Cuando la IA no puede trabajar ahora (está desactivada, el proyecto no tiene créditos de IA, alcanzó sus límites diarios o no hay ningún Runner en línea), Corregir con IA dice qué hay que arreglar y no inicia nada.
 
+La IA de OneUptime también trabaja por su cuenta en cada problema nuevo, según lo que permiten tus reglas de IA: consulta [OneUptime AI en seguridad de datos](/docs/data-security/ai).
+
 ### Preguntar a la IA
 
 **Preguntar a la IA** también lee Seguridad de datos. En cualquier página de Seguridad de datos, pregunta qué almacenes contienen números de tarjeta, qué corregir primero o a qué almacenes podría acceder un rol si se filtrara; en la página de un almacén o de un problema, lee primero ese registro. Responde con tres herramientas de lectura, que se ejecutan con tus propios permisos:
@@ -130,6 +132,7 @@ Todo lo que guarda Seguridad de datos es un registro de la API de OneUptime, que
 | Los tipos de datos personalizados, los ajustes de las comprobaciones, los ajustes de cumplimiento y las reglas de residencia | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Los ajustes del proyecto | `/data-security-setting` |
 | Los propietarios, las reglas del propietario y las reglas de etiquetas | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
+| Lo que la IA de OneUptime propone para un problema, y por qué actuó o no en uno | `/data-security-ai-proposal`, `/data-security-ai-decision` |
 
 Algunas respuestas se calculan bajo demanda en lugar de guardarse. Cada una es un `POST`:
 
@@ -149,6 +152,9 @@ Algunas respuestas se calculan bajo demanda en lugar de guardarse. Cada una es u
 | `/data-security-issue/<id>/fix-with-ai` | **Corregir con IA** en un problema |
 | `/data-store/<id>/response-actions` | Qué acciones de respuesta admite el almacén ahora, y por qué no |
 | `/data-store/<id>/respond` | Una acción de respuesta en el almacén, como **Bloquear el acceso público** o **Activar el control de versiones**, con el problema desde el que se ejecutó |
+| `/data-security-ai-proposal/<id>/approve` | **Aprobar** en un cambio que propone la IA de OneUptime, que lo hace con tus propios permisos. Recibe el `expectedPlanFingerprint` de la propuesta que se te mostró, y rechaza una que cambió desde entonces |
+| `/data-security-ai-proposal/<id>/dismiss` | **Descartar propuesta**, con `{"reason": "..."}`, que se añade a la cronología del problema |
+| `/data-security-ai-proposal/<id>/undo` | **Deshacer** en un cambio que hizo la IA de OneUptime: se revierte y el almacén se vuelve a comprobar |
 
 El [proveedor de Terraform](/docs/terraform/index) tiene un recurso para cada tipo de registro que creas (los almacenes de datos que añades tú mismo, los tipos de datos personalizados, los ajustes de las comprobaciones, los ajustes de cumplimiento, las reglas de residencia, las reglas del propietario y las de etiquetas) con el nombre del registro, como `oneuptime_residency_rule`.
 

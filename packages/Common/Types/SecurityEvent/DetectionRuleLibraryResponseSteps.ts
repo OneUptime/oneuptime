@@ -656,6 +656,31 @@ const LIBRARY_STEP_TEXTS: Readonly<Record<LibraryStepId, LibraryStepText>> = {
     phase: Fix,
     text: "Fix the code the exception points to, so a request like it is turned away instead.",
   },
+  // ----- At Cloudflare -----
+  "check-cloudflare-hits-reached-app": {
+    phase: Confirm,
+    text: "Check whether any of the address's requests got past Cloudflare to your app: the case's Impact shows Cloudflare's actions beside what reached it.",
+  },
+  "block-with-managed-rules": {
+    phase: Fix,
+    text: "Set the Cloudflare managed rules that only logged these requests to Block, on the routes they target.",
+  },
+  "check-after-challenge": {
+    phase: Confirm,
+    text: "Check what the address asked for after it passed the challenge, and whether any of it reached your app.",
+  },
+  "block-instead-of-challenge": {
+    phase: Fix,
+    text: "Block attack payloads on the routes it targeted with a Cloudflare managed rule set to Block, not a challenge a bot can solve.",
+  },
+  "check-let-through-reached": {
+    phase: Confirm,
+    text: "Find the requests that reached your app, and check what the app did with each.",
+  },
+  "narrow-skip-rule": {
+    phase: Fix,
+    text: "Narrow the Cloudflare rule that skipped the WAF or only logged, so attacks on this route are blocked.",
+  },
   "check-ssrf-metadata": {
     phase: Confirm,
     text: "Check whether the request reached the metadata service and got credentials back.",
@@ -1214,6 +1239,22 @@ const LIBRARY_RULE_STEPS: Readonly<Record<string, Array<LibraryStepId>>> = {
   "47d32cc6-462c-44f9-8bcb-b99d7b083860": [
     "check-app-exception",
     "fix-exception-code",
+  ],
+  // Many Cloudflare managed rule hits from one address
+  "00146e5e-0b2d-4e09-ad97-91f6f54715fc": [
+    "check-cloudflare-hits-reached-app",
+    "block-with-managed-rules",
+  ],
+  // An address passed a Cloudflare challenge, then sent attacks
+  "38bf7cff-c78b-4958-a56d-e75628ff87b2": [
+    "check-after-challenge",
+    "block-instead-of-challenge",
+  ],
+  // An attack Cloudflare let through reached your app
+  "237b4117-52ca-42e3-85e8-cbcc518ccbae": [
+    "check-let-through-reached",
+    "block-vulnerable-route",
+    "narrow-skip-rule",
   ],
   // Shell opened in a pod
   "1ce3af71-a3d5-409a-b477-34e4a734aa83": [

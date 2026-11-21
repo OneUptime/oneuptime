@@ -3,11 +3,26 @@
 OneUptime AI works on what Data Security found without seeing your data. It is sent names, shapes, counts and configuration, never a value of your data, a masked sample, a record or a connection string. Every feature runs on your project's own model, a self-hosted one included, and every page, check, scan and integration of Data Security works with AI switched off.
 
 :::cards
+- [On its own](#on-its-own): What it does with each new issue, what waits for you, and the AI rules.
 - [What OneUptime AI sees](#what-oneuptime-ai-sees): What each feature sends, and what it never sends.
 - [See it for yourself](#see-it-for-yourself): The exact input one of your issues would send.
 - [Your own model](#your-own-model): Every feature on your project's provider, Ollama, vLLM or any OpenAI-compatible endpoint.
 - [How it is measured](#how-it-is-measured): Every feature on fixed cases, before every release.
 :::
+
+## On its own
+
+With **Work on new issues** turned on under **Data Security → AI**, as it is for new projects, OneUptime AI works on each new Critical or High issue by itself. It writes the issue's analysis, as **Explain with AI** does and from what that sends, and puts it on the issue's **Timeline**. For a telemetry issue it proposes the scrub rules that hide its data in new telemetry. A proposal waits on that page under **Waiting for you**, riskiest first, with what will change, why, how it is proven and how to undo it. **Approve** makes the change with your own permissions: a scrub rule takes permission to create log scrub rules, trace scrub rules or metric pipeline rules. **Dismiss proposal** says no, with a reason that goes on the issue's timeline. The issue's own check decides whether a change worked: the store is checked again, and the issue resolves when none of its data is left.
+
+Out of the box, OneUptime AI asks before every change except one that only hides data, can be undone and is proven safe, and it never deletes data or pages anyone without asking. A change it made without asking is listed under **Done by AI**, with **Undo**. **Why AI did not act** lists the issues it looked at and left alone, and why. Every proposal, approval, dismissal and undo is on the issue's and the store's **Timeline**. With the switch off, or AI off for the project, Data Security works as it always does, and **Explain with AI** and **Fix with AI** still work when you press them.
+
+On an issue's page, the **OneUptime AI** card above **How to Fix** shows the analysis and what was proposed for that issue, with the same buttons. The Data Security **Overview** says how many leaks OneUptime AI contained this week and how many proposals wait for you. What came of its changes is counted week by week under **Notes for OneUptime AI**: see [How well OneUptime AI is doing](/docs/ai/ai-sre#how-well-oneuptime-ai-is-doing).
+
+### AI rules
+
+Under **AI Rules** on **Data Security → AI**, a rule says which issues OneUptime AI works on - by their check or check group, severity, and the store's sensitivity, kind, provider, environment, labels, data categories and service - and, for each kind of work, **Analyze**, **Contain**, **Fix** and **Judge**, whether it is **Off**, **Suggest** (it proposes, and waits for you) or **Without asking**. When several rules match an issue, a kind of work runs if any of them turns it on, and **Suggest** wins over **Without asking**. Each proposal says which rule decided it. With no rule, the project's defaults apply: analyze Critical and High issues, and suggest everything else.
+
+AI rules belong to the whole project, like the AI rules for incidents and alerts: Project Owners and Admins change them, and so does anyone given the AI rule permissions. The Security roles see what OneUptime AI proposed and did, but not the rules.
 
 ## What OneUptime AI sees
 
@@ -23,11 +38,12 @@ Data Security reads your data itself, inside its scans, and keeps none of it. Wh
 | Feature | What it sends | Runs on its own |
 | --- | --- | --- |
 | **Explain with AI** | The issue's title, severity and evidence, why its check matters and the fix for the store's cloud; the store's name, kind, region and cloud ID, its sensitivity and the names of its data types; for a telemetry issue, where each kind of data was found: the attribute, log body or prompt it sits in | No: a person asks, on an issue's page |
+| **Analysis of new issues** | The issue's title, severity and evidence, why its check matters and the fix for the store's cloud; the store's name, kind, region and cloud ID, its sensitivity and the names of its data types; for a telemetry issue, where each kind of data was found: the attribute, log body or prompt it sits in | Yes: a new Critical or High issue starts it, while **Work on new issues** is on |
 | **Fix with AI** | What Explain with AI sends, as a request to the coding agent, which then reads the repository's own code to make the change | No: a person asks, in a repository they may change in **Code** |
 | **Suggestions for fields no detector placed** | The kind of store and the data types it may name; each field's name, the names of the fields beside it, and the shapes of its values, every letter as `a` or `A` and every digit as `9`; how many values were read, and how long they are | Yes: a store's content scan starts it |
 | **Ask AI** | The stores, issues and access the person may read in Data Security; what was found where, each data type by its location, with counts and confidence | No: a person asks a question |
 
-**Explain with AI** and **Ask AI** also read your team's [AI context](/docs/ai/ai-context) first, when it has one: the notes your team wrote for OneUptime AI about your systems.
+**Explain with AI** and **Ask AI** also read your team's [AI context](/docs/ai/ai-context) first, when it has one: the notes your team wrote for OneUptime AI about your systems. **Analysis of new issues** reads it too.
 
 ### Text your systems wrote is data
 

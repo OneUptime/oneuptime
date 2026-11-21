@@ -10,6 +10,9 @@ import DataStoreService from "../../Services/DataStoreService";
 import DataSecurityIssueFeedService from "../../Services/DataSecurityIssueFeedService";
 import DataSecurityIssueService from "../../Services/DataSecurityIssueService";
 import MailService from "../../Services/MailService";
+import ProjectService from "../../Services/ProjectService";
+import Project from "../../../Models/DatabaseModels/Project";
+import { queueDataSecurityAiEvaluation } from "./DataSecurityJobs";
 import TeamMemberService from "../../Services/TeamMemberService";
 import UserService from "../../Services/UserService";
 import SecurityDetectionService from "../../Services/SecurityDetectionService";
@@ -30,6 +33,7 @@ import SecurityDetection from "../../../Models/DatabaseModels/SecurityDetection"
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import URL from "../../../Types/API/URL";
+import DatabaseConfig from "../../DatabaseConfig";
 import { Blue500, Red500 } from "../../../Types/BrandColors";
 import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue";
 import Includes from "../../../Types/BaseDatabase/Includes";
@@ -70,6 +74,9 @@ import Markdown, { MarkdownContentType } from "../../Types/Markdown";
  *    the project's incident process should run. Whoever runs it closes it.
  *  - Every new issue is emailed to its store's owners (on by default),
  *    with the issue and the data types - never a sample.
+ *  - OneUptime AI works on every new and reopened issue, as the project's
+ *    Data Security AI rules say, while its AI switches are on
+ *    (DataSecurityAiEngine, #10364): one queued job per issue.
  *
  * The issue keeps a link to the case, the alert and the incident it
  * started (securityCaseId, alertId, incidentId), which its page shows.
@@ -178,6 +185,11 @@ export function buildOwnerNoticeMarkdown(data: {
   sensitivity: DataSensitivity;
   issues: ReadonlyArray<Pick<OpenedIssueForIntegrations, "severity" | "title">>;
   storeLink: URL;
+  /*
+   * Data Security → AI, when OneUptime AI works on the project's new issues
+   * on its own (#10364): the owners hear where what it proposes waits.
+   */
+  aiLink?: URL | undefined;
 }): MarkdownText {
   return FeedMarkdown.join(
     [
@@ -194,8 +206,24 @@ export function buildOwnerNoticeMarkdown(data: {
         ),
       ),
       mdText`[Open the store](${data.storeLink.toString()}) to see each issue and how to fix it.`,
+      ...(data.aiLink
+        ? [
+            mdText`OneUptime AI looks at new issues as your AI rules allow. Anything it proposes waits for you on [Data Security → AI](${data.aiLink.toString()}), and anything it does is on the issue's timeline.`,
+          ]
+        : []),
     ],
     "\n\n",
+  );
+}
+
+// Data Security → AI in the Dashboard, for a project.
+export async function getDataSecurityAiLinkInDashboard(
+  projectId: ObjectID,
+): Promise<URL> {
+  const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+  return URL.fromString(dashboardUrl.toString()).addRoute(
+    `/${projectId.toString()}/data-security/ai`,
   );
 }
 
@@ -234,8 +262,80 @@ export default class DataSecurityIntegrations {
       );
     }
 
+    // Nothing opened, nothing to read: the project's switches are left alone.
+    const isAiWorking: boolean =
+      data.issues.length > 0
+        ? await this.isAutomaticAiOn(data.projectId)
+        : false;
+
     if (data.setting.notifyOwners !== false) {
-      await this.notifyOwners(data.projectId, data.issues);
+      await this.notifyOwners(data.projectId, data.issues, isAiWorking);
+    }
+
+    if (isAiWorking) {
+      await this.queueAiWork(data.projectId, data.issues);
+    }
+  }
+
+  /*
+   * OneUptime AI works on every issue that opened, or opened again, as the
+   * project's Data Security AI rules say (DataSecurityAiEngine, #10364) -
+   * while Enable AI and "Work on new Data Security issues" are on. Each
+   * issue is its own job; with either switch off nothing is queued, and
+   * Data Security runs as it always did.
+   */
+  /*
+   * Whether OneUptime AI works on the project's new issues on its own: AI on
+   * for the project, and Data Security → AI's switch on. Read once per batch
+   * of opened issues; a read that fails is off, and the issues open either
+   * way.
+   */
+  private static async isAutomaticAiOn(projectId: ObjectID): Promise<boolean> {
+    try {
+      const project: Project | null = await ProjectService.findOneById({
+        id: projectId,
+        select: {
+          _id: true,
+          enableAi: true,
+          enableAutomaticDataSecurityAi: true,
+        },
+        props: { isRoot: true },
+      });
+
+      return Boolean(
+        project &&
+          project.enableAi !== false &&
+          project.enableAutomaticDataSecurityAi === true,
+      );
+    } catch (error) {
+      logger.error(
+        `DataSecurity: could not read whether OneUptime AI works on the new issues of project ${projectId.toString()}:`,
+      );
+      logger.error(error);
+      return false;
+    }
+  }
+
+  private static async queueAiWork(
+    projectId: ObjectID,
+    issues: Array<OpenedIssueForIntegrations>,
+  ): Promise<void> {
+    if (issues.length === 0) {
+      return;
+    }
+
+    try {
+      for (const issue of issues) {
+        await queueDataSecurityAiEvaluation({
+          projectId,
+          dataSecurityIssueId: issue.issueId,
+        });
+      }
+    } catch (error) {
+      logger.error(
+        `DataSecurity: could not queue OneUptime AI's work on the new issues of project ${projectId.toString()}:`,
+      );
+      logger.error(error);
     }
   }
 
@@ -642,7 +742,12 @@ export default class DataSecurityIntegrations {
   private static async notifyOwners(
     projectId: ObjectID,
     issues: Array<OpenedIssueForIntegrations>,
+    isAiWorking: boolean,
   ): Promise<void> {
+    const aiLink: URL | undefined = isAiWorking
+      ? await getDataSecurityAiLinkInDashboard(projectId)
+      : undefined;
+
     const byStore: Map<string, Array<OpenedIssueForIntegrations>> = new Map();
 
     for (const issue of issues) {
@@ -675,6 +780,7 @@ export default class DataSecurityIntegrations {
             sensitivity: first.sensitivity,
             issues: storeIssues,
             storeLink: link,
+            aiLink,
           }).toString(),
           MarkdownContentType.Email,
         );

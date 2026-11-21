@@ -22,6 +22,7 @@ import {
   getTableColumns,
 } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
+import UserAttribution from "../../../../Types/Database/UserAttribution";
 import Dictionary from "../../../../Types/Dictionary";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
@@ -591,7 +592,15 @@ export default class SortValidator {
 
     let message: string = `${listName} have no field ${SortValidator.quote(field)} to sort by. Sort by one of these fields: ${sortable.columns.join(", ")}.`;
 
-    const relation: string | undefined = sortable.relations[0];
+    /*
+     * The example is one of the record's own relations where it has one:
+     * every record names who last modified it (#10290), and "sort by the
+     * name of who last modified it" tells nobody what this list holds.
+     */
+    const relation: string | undefined =
+      sortable.relations.find((candidate: string): boolean => {
+        return !UserAttribution.isRecordActorColumn(candidate);
+      }) || sortable.relations[0];
     const relatedModelType: { new (): BaseModel } | undefined = relation
       ? (getTableColumn(level.model, relation) as TableColumnMetadata).modelType
       : undefined;

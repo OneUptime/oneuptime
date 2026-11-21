@@ -3,11 +3,26 @@
 OneUptime AI travaille sur ce que Sécurité des données a trouvé sans voir vos données. Il reçoit des noms, des formes, des décomptes et de la configuration, jamais une valeur de vos données, un échantillon masqué, un enregistrement ou une chaîne de connexion. Chaque fonctionnalité s'exécute sur le modèle propre à votre projet, y compris un modèle auto-hébergé, et chaque page, contrôle, analyse et intégration de Sécurité des données fonctionne avec l'IA désactivée.
 
 :::cards
+- [De lui-même](#de-lui-même): Ce qu'il fait de chaque nouveau problème, ce qui vous attend, et les règles IA.
 - [Ce que voit OneUptime AI](#ce-que-voit-oneuptime-ai): Ce que chaque fonctionnalité envoie, et ce qu'elle n'envoie jamais.
 - [Voyez par vous-même](#voyez-par-vous-même): L'entrée exacte qu'enverrait l'un de vos problèmes.
 - [Votre propre modèle](#votre-propre-modèle): Chaque fonctionnalité sur le fournisseur de votre projet, Ollama, vLLM ou tout endpoint compatible OpenAI.
 - [Comment c'est mesuré](#comment-cest-mesuré): Chaque fonctionnalité sur des cas fixes, avant chaque version.
 :::
+
+## De lui-même
+
+Avec **Travailler sur les nouveaux problèmes** activé sous **Sécurité des données → IA**, comme pour les nouveaux projets, OneUptime AI travaille de lui-même sur chaque nouveau problème critique ou élevé. Il rédige l'analyse du problème, comme le fait **Expliquer avec l'IA** et à partir de ce qu'elle envoie, et l'ajoute à la **Chronologie** du problème. Pour un problème de télémétrie, il propose les règles de nettoyage qui masquent ses données dans la nouvelle télémétrie. Une proposition attend sur cette page sous **En attente de votre part**, les plus risquées d'abord, avec ce qui va changer, pourquoi, comment ce sera prouvé et comment l'annuler. **Approuver** fait la modification avec vos propres autorisations : une règle de nettoyage demande l'autorisation de créer des règles de nettoyage de journaux, des règles de nettoyage de traces ou des règles de pipeline de métriques. **Ignorer la proposition** dit non, avec une raison ajoutée à la chronologie du problème. Le contrôle propre au problème décide si une modification a fonctionné : le magasin de données est contrôlé à nouveau, et le problème est résolu quand il ne reste plus aucune de ses données.
+
+Par défaut, OneUptime AI demande avant chaque modification, sauf celle qui ne fait que masquer des données, peut être annulée et est prouvée sûre, et il ne supprime jamais de données ni n'alerte personne sans demander. Une modification faite sans demander apparaît sous **Fait par l'IA**, avec **Annuler**. **Pourquoi l'IA n'a pas agi** liste les problèmes qu'il a examinés et laissés tels quels, et pourquoi. Chaque proposition, approbation, refus et annulation figure dans la **Chronologie** du problème et du magasin de données. Avec l'interrupteur désactivé, ou l'IA désactivée pour le projet, la sécurité des données fonctionne comme toujours, et **Expliquer avec l'IA** et **Corriger avec l'IA** fonctionnent toujours quand vous les utilisez.
+
+Sur la page d'un problème, la carte **OneUptime AI** au-dessus de **Comment corriger** montre l'analyse et ce qui a été proposé pour ce problème, avec les mêmes boutons. La **Vue d'ensemble** de la sécurité des données indique combien de fuites OneUptime AI a confinées cette semaine et combien de propositions vous attendent. Ce qu'il est ressorti de ses modifications est compté semaine par semaine dans **Notes pour l'IA de OneUptime** : voir [Comment OneUptime AI s'en sort](/docs/ai/ai-sre#comment-oneuptime-ai-sen-sort).
+
+### Règles IA
+
+Sous **Règles IA** dans **Sécurité des données → IA**, une règle dit sur quels problèmes OneUptime AI travaille - selon leur contrôle ou groupe de contrôles, leur gravité, et la sensibilité, le type, le fournisseur, l'environnement, les étiquettes, les catégories de données et le service du magasin de données - et, pour chaque type de travail, **Analyser**, **Confinement**, **Correction** et **Juger**, s'il est **Désactivé**, **Suggérer** (il propose et vous attend) ou **Sans demander**. Quand plusieurs règles correspondent à un problème, un type de travail s'exécute si l'une d'elles l'active, et **Suggérer** l'emporte sur **Sans demander**. Chaque proposition indique la règle qui l'a décidée. Sans règle, les valeurs par défaut du projet s'appliquent : analyser les problèmes critiques et élevés, et suggérer tout le reste.
+
+Les règles IA appartiennent à tout le projet, comme celles des incidents et des alertes : les propriétaires et administrateurs du projet les modifient, ainsi que toute personne ayant reçu les permissions des règles IA. Les rôles de sécurité voient ce qu'OneUptime AI a proposé et fait, mais pas les règles.
 
 ## Ce que voit OneUptime AI
 
@@ -23,11 +38,12 @@ Sécurité des données lit vos données elle-même, dans ses analyses, et n'en 
 | Fonctionnalité | Ce qu'elle envoie | S'exécute seule |
 | --- | --- | --- |
 | **Expliquer avec l'IA** | Le titre, la gravité et les preuves du problème, pourquoi son contrôle compte et la correction pour le cloud du magasin de données ; le nom du magasin de données, son type, sa région et son ID dans son cloud, sa sensibilité et les noms de ses types de données ; pour un problème dans la télémétrie, l'endroit où chaque type de données a été trouvé : l'attribut, le corps du journal ou le prompt qui le contient | Non : une personne la demande, sur la page d'un problème |
+| **Analyse des nouveaux problèmes** | Le titre, la gravité et les preuves du problème, pourquoi son contrôle compte et la correction pour le cloud du magasin de données ; le nom du magasin de données, son type, sa région et son ID dans son cloud, sa sensibilité et les noms de ses types de données ; pour un problème dans la télémétrie, l'endroit où chaque type de données a été trouvé : l'attribut, le corps du journal ou le prompt qui le contient | Oui : un nouveau problème critique ou élevé la lance, tant que **Travailler sur les nouveaux problèmes** est activé |
 | **Corriger avec l'IA** | Ce qu'envoie Expliquer avec l'IA, sous forme de demande à l'agent de code, qui lit ensuite le code du dépôt lui-même pour effectuer la modification | Non : une personne la demande, dans un dépôt qu'elle peut modifier sous **Code** |
 | **Suggestions pour les champs qu'aucun détecteur n'a identifiés** | Le type de magasin de données et les types de données que l'IA peut nommer ; le nom de chaque champ, les noms des champs voisins et les formes de ses valeurs, chaque lettre comme `a` ou `A` et chaque chiffre comme `9` ; combien de valeurs ont été lues, et leur longueur | Oui : l'analyse du contenu d'un magasin de données les lance |
 | **Demander à l'IA** | Les magasins de données, problèmes et accès que la personne peut lire dans Sécurité des données ; ce qui a été trouvé et où, chaque type de données selon son emplacement, avec des décomptes et la confiance | Non : une personne pose une question |
 
-**Expliquer avec l'IA** et **Demander à l'IA** lisent aussi d'abord le [contexte IA](/docs/ai/ai-context) de votre équipe, quand elle en a un : les notes que votre équipe a écrites pour OneUptime AI sur vos systèmes.
+**Expliquer avec l'IA** et **Demander à l'IA** lisent aussi d'abord le [contexte IA](/docs/ai/ai-context) de votre équipe, quand elle en a un : les notes que votre équipe a écrites pour OneUptime AI sur vos systèmes. **Analyse des nouveaux problèmes** le lit aussi.
 
 ### Le texte écrit par vos systèmes est une donnée
 

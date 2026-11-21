@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 59636,
-    "untranslated": 8227
+    "keys": 60451,
+    "untranslated": 8372
   },
   "sameAsEnglish": [
     " is",
@@ -594,6 +594,7 @@
     "Workloads",
     "Workspaces",
     "Zone",
+    "Zones",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",
@@ -924,6 +925,7 @@
     "{{minutes}} min {{seconds}} s",
     "{{monitorName}} is offline",
     "{{name}} (monitor: {{monitor}})",
+    "{{name}} (workflow)",
     "{{online}} online, {{offline}} offline",
     "{{rate}}/min",
     "{{rate}}/s",

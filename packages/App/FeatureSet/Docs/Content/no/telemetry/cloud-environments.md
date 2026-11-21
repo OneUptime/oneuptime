@@ -102,7 +102,7 @@ Inntaket oppretter miljøer for deg, så det er ingenting å skrive inn. Åpne *
 
 ## Apper og utrullinger
 
-Hver tjeneste et miljø kjører, er en app i det, navngitt slik plattformens konsoll navngir den. **App-plattformer → Alle apper** viser hver app med revisjonen den kjører og forespørslene, feilraten og p95-latensen dens den siste timen, og fanen **Apper** i et miljø viser miljøets egne.
+Hver tjeneste et miljø kjører, er en app i det, navngitt slik plattformens konsoll navngir den. **App-plattformer → Alle apper** viser hver app med revisjonen den kjører og forespørslene, feilraten og p95-latensen dens den siste timen, og fanen **Apper** i et miljø viser miljøets egne. En App Service-app som ikke sender spor, viser der i stedet nettstedets tall fra Azure Monitor: forespørslene Azure telte, andelen besvart med en 5xx-status og gjennomsnittlig svartid.
 
 | Plattform | App | Holdt adskilt av | Revisjon |
 | --- | --- | --- | --- |
