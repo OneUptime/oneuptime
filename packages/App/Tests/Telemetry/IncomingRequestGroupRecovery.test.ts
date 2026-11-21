@@ -742,7 +742,7 @@ describe("The alert as the Dashboard adds it to a criteria: Auto Resolve Alert o
     // The criteria saved with its alert's switch on; the alerts stay as they are.
     monitorUnderTest.monitorSteps = monitorWith([
       orionCriteria({ autoResolveAlert: true }),
-    ]).monitorSteps;
+    ]).monitorSteps!;
 
     const summary: MonitorEvaluationSummary = await post(orionReset("48214"));
 
