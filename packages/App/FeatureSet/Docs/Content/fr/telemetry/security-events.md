@@ -234,6 +234,16 @@ Un compte AWS, un projet Google Cloud ou un abonnement Azure [connecté sous **C
 - La lecture du compte n'apporte rien de plus : les événements de données, les journaux Data Access et les journaux de Microsoft Entra ID passent toujours par **Vos journaux** ou par une [connexion](/docs/integrations/microsoft-entra-id).
 - Chaque événement nomme les ressources cloud dont parle son enregistrement par leurs propres identifiants - un ARN, un ID de ressource Azure, un nom de ressource Google Cloud -, il apparaît donc sur la page **Événements de sécurité** de chacune, et sur celle d'une fonction serverless dès que sa télémétrie définit `cloud.account.id` et `cloud.region`.
 
+### Les propres sondes de OneUptime dans vos flux réseau
+
+Activez **Flux réseau**, sous **Vos données OneUptime** sur **Connexions**, et les flux que vos appareils réseau exportent sont lus pour y trouver des scans de ports, des balayages réseau, du trafic avec des adresses malveillantes connues et de gros transferts sortants. Le travail d'une sonde y ressemble à un scan : interroger 40 appareils en SNMP atteint le port 161 sur 40 hôtes toutes les cinq minutes. Le trafic de l'une des propres sondes de OneUptime qui correspond exactement à ce que la sonde est configurée pour faire est donc mis de côté :
+
+- les appareils réseau qu'elle interroge, par ping et en SNMP sur leur port ;
+- la plage de chacune de ses découvertes, pendant que le scan tourne ;
+- les hôtes et les ports que ses moniteurs vérifient.
+
+Il est conservé comme un événement informatif, `oneuptime-probe-traffic`, qui nomme la sonde, et aucune règle ne le lit. **Flux réseau** indique combien a été mis de côté au cours du dernier jour, avec **Les voir**. Tout le reste venant de l'adresse d'une sonde est compté comme le trafic de n'importe qui, et un balayage ou un scan au-delà du travail de la sonde est signalé, en nommant la sonde. Une sonde est reconnue à l'adresse depuis laquelle elle se signale et aux adresses de ses propres interfaces réseau, qu'elle liste à chaque fois qu'elle se signale.
+
 ### Connecter un produit de sécurité
 
 **Connexions** interroge un produit de sécurité pour vous et importe ses nouveaux enregistrements comme événements de sécurité. Une connexion conserve les paramètres du produit et un identifiant chiffré ; un worker l'interroge à l'intervalle que vous fixez et ignore les enregistrements déjà importés.

@@ -234,6 +234,16 @@ Uma conta da AWS, um projeto do Google Cloud ou uma assinatura do Azure [conecta
 - A leitura da conta não traz mais nada: eventos de dados, logs Data Access e os logs do Microsoft Entra ID ainda precisam de **Seus logs** ou de uma [conexão](/docs/integrations/microsoft-entra-id).
 - Cada evento nomeia os recursos de nuvem de que o seu registro trata pelos próprios IDs - um ARN, um ID de recurso do Azure, um nome de recurso do Google Cloud -, então ele aparece na página **Eventos de segurança** de cada um, e na de uma função serverless assim que a telemetria dela define `cloud.account.id` e `cloud.region`.
 
+### As sondas do próprio OneUptime nos seus fluxos de rede
+
+Ative **Fluxos de rede**, em **Seus dados do OneUptime** na página **Conexões**, e os fluxos que seus dispositivos de rede exportam são lidos em busca de varreduras de portas, varreduras de rede, tráfego com endereços maliciosos conhecidos e grandes transferências para fora. O trabalho de uma sonda parece ali uma varredura: consultar 40 dispositivos por SNMP alcança a porta 161 em 40 hosts a cada cinco minutos. Por isso o tráfego de uma das sondas do próprio OneUptime que é exatamente o que a sonda está configurada para fazer é posto de lado:
+
+- os dispositivos de rede que ela consulta, com ping e por SNMP na porta deles;
+- o intervalo de cada uma das descobertas dela, enquanto a varredura está em andamento;
+- os hosts e as portas que os monitores dela verificam.
+
+Ele é guardado como um evento informativo, `oneuptime-probe-traffic`, que nomeia a sonda, e nenhuma regra o lê. **Fluxos de rede** diz quantos foram postos de lado no último dia, com **Ver**. Qualquer outra coisa vinda do endereço de uma sonda é contada como o tráfego de qualquer um, e uma varredura além do trabalho da sonda é relatada, nomeando a sonda. Uma sonda é reconhecida pelo endereço de onde ela se apresenta e pelos endereços das suas próprias interfaces de rede, que ela lista sempre que se apresenta.
+
 ### Conecte um produto de segurança
 
 **Conexões** consulta um produto de segurança por você e importa os registros novos dele como eventos de segurança. Uma conexão guarda as configurações do produto e uma credencial criptografada; um worker a consulta no intervalo que você define e pula os registros que já importou.
