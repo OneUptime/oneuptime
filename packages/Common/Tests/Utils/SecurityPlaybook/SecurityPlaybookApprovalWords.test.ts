@@ -237,6 +237,119 @@ describe("what a waiting approval says", () => {
   });
 });
 
+/*
+ * A PERSON'S BLOCK FROM THE CASE (#10342): Block for 24 Hours on the case's
+ * Response Plan is a one-step run with no playbook. Its approval says the
+ * address is one of the case's, who asked on the case, and leaves the
+ * project's own addresses alone, saying what each is.
+ */
+function blockFromCase(
+  overrides: Partial<SecurityPlaybookApprovalAsk> = {},
+): SecurityPlaybookApprovalAsk {
+  return askOf({
+    action: SecurityPlaybookActionType.BlockAddress,
+    connectionName: undefined,
+    targets: [
+      {
+        value: "35.205.11.131",
+        reason: SecurityPlaybookTargetReason.OnTheCase,
+        state: SecurityPlaybookTargetState.Proposed,
+      },
+      {
+        value: "35.205.11.7",
+        reason: SecurityPlaybookTargetReason.GroupedOn,
+        state: SecurityPlaybookTargetState.Protected,
+        detail: "35.205.11.7 is the address of load balancer prod-alb.",
+      },
+    ],
+    source: {
+      kind: SecurityPlaybookApprovalSourceKind.Person,
+      playbookName: "",
+      personName: "Nawaz Dhandala",
+    },
+    evidence: [
+      {
+        kind: SecurityPlaybookApprovalEvidenceKind.NotOwnAddress,
+        values: ["35.205.11.131"],
+      },
+    ],
+    undoAction: SecurityPlaybookActionType.LiftAddressBlock,
+    ...overrides,
+  });
+}
+
+describe("a person's block from the case (#10342)", () => {
+  test("the address is one of the case's, asked for on the case; the project's own address is left alone, saying what it is", () => {
+    const wording: SecurityPlaybookApprovalWording = word(blockFromCase());
+
+    expect(wording.action.text).toBe("Block the address");
+    expect(texts(wording.targets)).toEqual([
+      "35.205.11.131: one of the case's addresses",
+      "35.205.11.7: one of your own addresses, so it is never blocked · 35.205.11.7 is the address of load balancer prod-alb.",
+    ]);
+    expect(wording.source.text).toBe("Asked by Nawaz Dhandala, on the case.");
+    expect(texts(wording.evidence)).toEqual([
+      "Not one of your addresses: 35.205.11.131",
+    ]);
+    expect(wording.undo.text).toBe(
+      "Can be undone: each one, with Lift the block on the address on the case.",
+    );
+  });
+
+  test("a protected target with nothing said of it reads as the protected list's, as before", () => {
+    expect(
+      texts(
+        word(
+          blockFromCase({
+            targets: [
+              {
+                value: "35.205.11.7",
+                state: SecurityPlaybookTargetState.Protected,
+                protectedBy: "35.205.11.0/24",
+              },
+            ],
+          }),
+        ).targets,
+      ),
+    ).toEqual([
+      "35.205.11.7: matches 35.205.11.0/24 on your protected list, so it is never acted on",
+    ]);
+  });
+
+  test.each(
+    READER_LANGUAGE_CODES.filter((language: string): boolean => {
+      return language !== "en";
+    }),
+  )("%s words it, every value in place", (language: string) => {
+    const english: SecurityPlaybookApprovalWording = word(blockFromCase());
+    const worded: SecurityPlaybookApprovalWording = word(
+      blockFromCase(),
+      contextIn(language),
+    );
+    const lines: Array<[string, string]> = [
+      [english.source.text, worded.source.text],
+      ...texts(english.targets).map(
+        (line: string, index: number): [string, string] => {
+          return [line, texts(worded.targets)[index] || ""];
+        },
+      ),
+      [english.action.text, worded.action.text],
+    ];
+
+    for (const [inEnglish, inLanguage] of lines) {
+      expect({ language, line: inLanguage }).not.toEqual({
+        language,
+        line: inEnglish,
+      });
+      expect(inLanguage).not.toContain("{{");
+    }
+
+    expect(worded.source.text).toContain("Nawaz Dhandala");
+    expect(texts(worded.targets).join("\n")).toContain("35.205.11.131");
+    expect(texts(worded.targets).join("\n")).toContain("prod-alb");
+  });
+});
+
 describe("who or what asked: every source of an approval", () => {
   test.each([
     [
@@ -829,8 +942,8 @@ describe("each playbook action's title, as a message names it", () => {
   });
 
   test("an action this build does not know reads by its own name, and none reads as nothing", () => {
-    expect(getSecurityPlaybookActionTitleWords("Block Address")).toBe(
-      "Block Address",
+    expect(getSecurityPlaybookActionTitleWords("Quarantine Mailbox")).toBe(
+      "Quarantine Mailbox",
     );
     expect(getSecurityPlaybookActionTitleWords(undefined)).toBe("");
   });

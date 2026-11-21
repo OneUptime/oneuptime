@@ -18,6 +18,12 @@ import SecurityPlaybookAddressBlocks, {
   joinNames,
 } from "../../../../Server/Utils/SecurityPlaybook/SecurityPlaybookAddressBlocks";
 import ObjectID from "../../../../Types/ObjectID";
+import { assertPlaybookBlocksExpire } from "../../../../Server/Services/SecurityPlaybookService";
+import { SecurityPlaybookActionType } from "../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
+import {
+  SecurityPlaybookStep,
+  parseSecurityPlaybookSteps,
+} from "../../../../Types/SecurityPlaybook/SecurityPlaybookStep";
 import {
   SecurityBlockAction,
   SecurityBlockDuration,
@@ -744,5 +750,41 @@ describe("the words", () => {
       detail: "blocked until 2026-11-22 10:42 UTC, but no destination holds it yet",
       isEnforcedSomewhere: false,
     });
+  });
+});
+
+describe("a playbook's block expires", () => {
+  function stepsOf(
+    duration: SecurityBlockDuration,
+  ): Array<SecurityPlaybookStep> {
+    return parseSecurityPlaybookSteps([
+      {
+        action: SecurityPlaybookActionType.AddCaseNote,
+        config: { note: "Blocking the scanner." },
+      },
+      {
+        action: SecurityPlaybookActionType.BlockAddress,
+        config: { blockAction: SecurityBlockAction.Block, duration },
+      },
+    ]);
+  }
+
+  test.each([
+    SecurityBlockDuration.OneHour,
+    SecurityBlockDuration.OneDay,
+    SecurityBlockDuration.SevenDays,
+    SecurityBlockDuration.ThirtyDays,
+  ])("%s is a playbook's to choose", (duration: SecurityBlockDuration) => {
+    expect(() => {
+      assertPlaybookBlocksExpire(stepsOf(duration));
+    }).not.toThrow();
+  });
+
+  test("until someone lifts it is a person's: a playbook saved with it is refused, naming the step", () => {
+    expect(() => {
+      assertPlaybookBlocksExpire(stepsOf(SecurityBlockDuration.UntilLifted));
+    }).toThrow(
+      "Step 2 (Block the address): a playbook's block expires. Choose 1 hour, 24 hours, 7 days or 30 days.",
+    );
   });
 });
