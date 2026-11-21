@@ -217,6 +217,8 @@ import {
   SecurityPlaybookActionCategory,
   SecurityPlaybookActionDefinition,
   SecurityPlaybookActionType,
+  actsThroughBlocklist,
+  getSecurityPlaybookAction,
   getSecurityPlaybookUndoAction,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookAction";
 import SecurityPlaybookRunStatus from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
@@ -1902,7 +1904,10 @@ describe("Security Cases and Playbooks docs", () => {
     const containRows: Array<Array<string>> = rowsOf("Containment");
     const containTitles: Array<string> = SECURITY_PLAYBOOK_ACTIONS.filter(
       (action: SecurityPlaybookActionDefinition): boolean => {
-        return action.category === SecurityPlaybookActionCategory.Contain;
+        return (
+          action.category === SecurityPlaybookActionCategory.Contain &&
+          !actsThroughBlocklist(action.type)
+        );
       },
     ).map((action: SecurityPlaybookActionDefinition): string => {
       return action.title;
@@ -1910,6 +1915,10 @@ describe("Security Cases and Playbooks docs", () => {
 
     expect(column(containRows, 0).join(", ").split(", ").sort()).toEqual(
       [...containTitles].sort(),
+    );
+    // The blocklist's steps need no connection of their own (#10342): said beside the table.
+    expect(flat(section(page, "Containment"))).toContain(
+      `**${getSecurityPlaybookAction(SecurityPlaybookActionType.BlockAddress)!.title}** and **${getSecurityPlaybookAction(SecurityPlaybookActionType.LiftAddressBlock)!.title}** act through your [Blocklist](#blocklist), which its destinations enforce, so they need no connection of their own.`,
     );
     expect(page).toContain(
       `A step acts on at most ${CONTAINMENT_ENTITY_LIMIT} users or hosts.`,
