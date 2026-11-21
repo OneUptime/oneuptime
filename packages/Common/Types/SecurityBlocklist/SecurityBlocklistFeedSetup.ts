@@ -337,10 +337,10 @@ export const SECURITY_BLOCKLIST_FEED_SETUPS: Readonly<
     refreshInMinutes: 1,
     steps: [
       translationKey(
-        "Add the deny line to the frontend to protect, then run the commands below once, as root.",
+        "As root, create the list file, add the two lines shown to haproxy.cfg and reload HAProxy once: its Runtime API updates only a list HAProxy already reads.",
       ),
       translationKey(
-        "The script runs every minute from cron and, when the list changed, writes the file and updates HAProxy through its Runtime API, with no reload.",
+        "Then run the rest of the commands. The script runs every minute from cron and, when the list changed, writes the file and updates HAProxy through its Runtime API, with no reload.",
       ),
     ],
     note: null,

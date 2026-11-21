@@ -325,8 +325,8 @@ describe("the scripts a host runs", () => {
         '  rm -f "$STATE/etag"',
         "  nft -f - <<'NFT'",
         "table inet oneuptime {",
-        "  set blocklist_v4 { type ipv4_addr; flags interval; }",
-        "  set blocklist_v6 { type ipv6_addr; flags interval; }",
+        "  set blocklist_v4 { type ipv4_addr; flags interval; auto-merge; }",
+        "  set blocklist_v6 { type ipv6_addr; flags interval; auto-merge; }",
         "  chain input {",
         "    type filter hook input priority filter; policy accept;",
         "    ip saddr @blocklist_v4 drop",
@@ -372,8 +372,8 @@ describe("the scripts a host runs", () => {
       "ip6tables -t raw -C PREROUTING -m set --match-set oneuptime_v6 src -j DROP 2>/dev/null || ip6tables -t raw -I PREROUTING -m set --match-set oneuptime_v6 src -j DROP",
       "ipset destroy oneuptime_v4_new 2>/dev/null || true",
       '  echo "create oneuptime_v4_new hash:net family inet"',
-      "  grep -v '^#' \"$TMP\" | grep -v ':' | sed 's/^/add oneuptime_v4_new /'",
-      "  grep -v '^#' \"$TMP\" | grep ':' | sed 's/^/add oneuptime_v6_new /'",
+      "  grep -v -e '^[[:space:]]*$' -e '^#' \"$TMP\" | grep -v ':' | sed 's/^/add oneuptime_v4_new /'",
+      "  grep -v -e '^[[:space:]]*$' -e '^#' \"$TMP\" | grep ':' | sed 's/^/add oneuptime_v6_new /'",
       "} | ipset -exist restore",
       "ipset swap oneuptime_v4_new oneuptime_v4",
       "ipset swap oneuptime_v6_new oneuptime_v6",
@@ -411,9 +411,18 @@ describe("the scripts a host runs", () => {
       secret: SECRET,
     });
 
-    expect(snippet).toContain(
-      "#   stats socket /run/haproxy/admin.sock mode 660 level admin\n",
-    );
+    /*
+     * The Runtime API updates only a list HAProxy already reads: the file,
+     * the two lines of haproxy.cfg and a reload come before any command.
+     */
+    expect(snippet.split("\n").slice(0, 6)).toEqual([
+      "# As root, first make the list HAProxy reads:",
+      "touch /etc/haproxy/oneuptime-blocklist.lst",
+      "# then add these lines to haproxy.cfg (HAProxy 2.4 or later) and reload HAProxy once:",
+      "#   global:   stats socket /run/haproxy/admin.sock mode 660 level admin",
+      "#   frontend: http-request deny if { src -n -f /etc/haproxy/oneuptime-blocklist.lst }",
+      "# and then run the rest, once:",
+    ]);
     expect(snippet).toContain(
       `VERSION=$(echo "prepare acl /etc/haproxy/oneuptime-blocklist.lst" | socat -t 30 stdio unix-connect:/run/haproxy/admin.sock | awk '/New version created:/ {print $NF}')\n`,
     );
@@ -423,9 +432,6 @@ describe("the scripts a host runs", () => {
     );
     expect(snippet).toContain(
       '  echo "commit acl @$VERSION /etc/haproxy/oneuptime-blocklist.lst"; echo quit; } | socat -t 30 stdio unix-connect:/run/haproxy/admin.sock >/dev/null\n',
-    );
-    expect(snippet).toContain(
-      "#   http-request deny if { src -n -f /etc/haproxy/oneuptime-blocklist.lst }\n",
     );
   });
 
@@ -441,6 +447,8 @@ describe("the scripts a host runs", () => {
       `Set-Content -Path (Join-Path $Dir 'token.txt') -Value '${SECRET}'`,
       'icacls $Dir /inheritance:r /grant:r "SYSTEM:(OI)(CI)F" "Administrators:(OI)(CI)F" | Out-Null',
       "catch { if ($_.Exception.Response -and $_.Exception.Response.StatusCode.value__ -eq 304) { exit 0 }; throw }",
+      // Rules gone while an ETag is kept: the whole list again, never a 304 forever.
+      "if (-not (Get-NetFirewallRule -Name ('{0}000' -f $Prefix) -ErrorAction SilentlyContinue)) { Remove-Item -Path $EtagFile -ErrorAction SilentlyContinue }",
       "for ($i = 0; $i -lt $Addresses.Count; $i += 1000) {",
       "  $Part = $Addresses[$i..([Math]::Min($i + 999, $Addresses.Count - 1))]",
       "  if (Get-NetFirewallRule -Name $Name -ErrorAction SilentlyContinue) { Set-NetFirewallRule -Name $Name -RemoteAddress $Part }",

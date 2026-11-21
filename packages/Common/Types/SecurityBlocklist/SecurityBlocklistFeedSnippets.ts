@@ -182,8 +182,9 @@ export function renderNftablesSnippet(data: {
       '  rm -f "$STATE/etag"',
       "  nft -f - <<'NFT'",
       `table ${table} {`,
-      `  set ${v4} { type ipv4_addr; flags interval; }`,
-      `  set ${v6} { type ipv6_addr; flags interval; }`,
+      // The feed never lists two entries that overlap; auto-merge takes them if one ever did.
+      `  set ${v4} { type ipv4_addr; flags interval; auto-merge; }`,
+      `  set ${v6} { type ipv6_addr; flags interval; auto-merge; }`,
       "  chain input {",
       "    type filter hook input priority filter; policy accept;",
       `    ip saddr @${v4} drop`,
@@ -236,8 +237,9 @@ export function renderIpsetSnippet(data: {
       "{",
       `  echo "create ${v4}_new hash:net family inet"`,
       `  echo "create ${v6}_new hash:net family inet6"`,
-      `  grep -v '^#' "$TMP" | grep -v ':' | sed 's/^/add ${v4}_new /'`,
-      `  grep -v '^#' "$TMP" | grep ':' | sed 's/^/add ${v6}_new /'`,
+      // No blank line or comment reaches ipset: one would stop the restore.
+      `  grep -v -e '^[[:space:]]*$' -e '^#' "$TMP" | grep -v ':' | sed 's/^/add ${v4}_new /'`,
+      `  grep -v -e '^[[:space:]]*$' -e '^#' "$TMP" | grep ':' | sed 's/^/add ${v6}_new /'`,
       "} | ipset -exist restore",
       `ipset swap ${v4}_new ${v4}`,
       `ipset swap ${v6}_new ${v6}`,
@@ -294,11 +296,18 @@ export function renderHaproxySnippet(data: {
   const acl: string = SECURITY_BLOCKLIST_HAPROXY_ACL_FILE;
   const socket: string = `unix-connect:${SECURITY_BLOCKLIST_HAPROXY_SOCKET}`;
 
+  /*
+   * The Runtime API updates only a list HAProxy already reads, so the file
+   * and the two lines of haproxy.cfg come first, and one reload.
+   */
   return lines([
-    "# Run once, as root. HAProxy 2.4 or later, with a Runtime API socket in its global section:",
-    `#   stats socket ${SECURITY_BLOCKLIST_HAPROXY_SOCKET} mode 660 level admin`,
-    ...secretFileLines(data.secret),
+    "# As root, first make the list HAProxy reads:",
     `touch ${acl}`,
+    "# then add these lines to haproxy.cfg (HAProxy 2.4 or later) and reload HAProxy once:",
+    `#   global:   stats socket ${SECURITY_BLOCKLIST_HAPROXY_SOCKET} mode 660 level admin`,
+    `#   frontend: http-request deny if { src -n -f ${acl} }`,
+    "# and then run the rest, once:",
+    ...secretFileLines(data.secret),
     ...installLines([
       ...scriptHeadLines({
         what: "Updates the OneUptime blocklist in HAProxy when it changed, with no reload.",
@@ -312,9 +321,6 @@ export function renderHaproxySnippet(data: {
       `cp "$TMP" ${acl}.new && mv ${acl}.new ${acl}`,
       SAVE_ETAG_LINE,
     ]),
-    "",
-    "# Then add this line to the frontend to protect, and reload HAProxy once:",
-    `#   http-request deny if { src -n -f ${acl} }`,
   ]);
 }
 
@@ -338,6 +344,8 @@ export function renderWindowsFirewallSnippet(data: {
     `$Uri = ${quoteForPowerShell(data.url)}`,
     `$Prefix = ${quoteForPowerShell(prefix)}`,
     "$EtagFile = Join-Path $Dir 'blocklist.etag'",
+    // Rules removed (by hand, a policy reset) while an ETag is kept would never come back: the whole list is fetched again.
+    "if (-not (Get-NetFirewallRule -Name ('{0}000' -f $Prefix) -ErrorAction SilentlyContinue)) { Remove-Item -Path $EtagFile -ErrorAction SilentlyContinue }",
     "$Headers = @{ Authorization = \"Bearer $((Get-Content (Join-Path $Dir 'token.txt') -Raw).Trim())\" }",
     "if (Test-Path $EtagFile) { $Headers['If-None-Match'] = (Get-Content $EtagFile -Raw).Trim() }",
     "try { $Resp = Invoke-WebRequest -Uri $Uri -Headers $Headers -UseBasicParsing -TimeoutSec 60 }",
