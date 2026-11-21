@@ -3,11 +3,26 @@
 O OneUptime AI trabalha com o que a Segurança de dados encontrou sem ver os seus dados. Ele recebe nomes, formas, contagens e configuração, nunca um valor dos seus dados, uma amostra mascarada, uma entrada ou uma string de conexão. Cada recurso roda no modelo do próprio projeto, inclusive um auto-hospedado, e cada página, verificação, varredura e integração da Segurança de dados funciona com a IA desligada.
 
 :::cards
+- [Por conta própria](#por-conta-própria): O que ele faz com cada novo problema, o que aguarda você e as regras de IA.
 - [O que o OneUptime AI vê](#o-que-o-oneuptime-ai-vê): O que cada recurso envia, e o que nunca envia.
 - [Veja você mesmo](#veja-você-mesmo): A entrada exata que um dos seus problemas enviaria.
 - [O seu próprio modelo](#o-seu-próprio-modelo): Cada recurso no provedor do seu projeto, Ollama, vLLM ou qualquer endpoint compatível com OpenAI.
 - [Como é medido](#como-é-medido): Cada recurso em casos fixos, antes de cada versão.
 :::
+
+## Por conta própria
+
+Com **Trabalhar em problemas novos** ligado em **Segurança de dados → IA**, como nos projetos novos, o OneUptime AI trabalha por conta própria em cada novo problema crítico ou alto. Ele escreve a análise do problema, como **Explicar com IA** faz e a partir do que essa ação envia, e a coloca na **Linha do tempo** do problema. Para um problema de telemetria, ele propõe as regras de limpeza que ocultam os dados dele na telemetria nova. Uma proposta aguarda nessa página em **Aguardando você**, as mais arriscadas primeiro, com o que vai mudar, por quê, como será comprovado e como desfazer. **Aprovar** faz a mudança com as suas próprias permissões: uma regra de limpeza exige permissão para criar regras de limpeza de logs, regras de limpeza de traces ou regras de pipeline de métricas. **Dispensar proposta** diz não, com um motivo que vai para a linha do tempo do problema. A própria verificação do problema decide se uma mudança funcionou: o repositório é verificado de novo, e o problema é resolvido quando não resta nenhum dos dados dele.
+
+Por padrão, o OneUptime AI pergunta antes de cada mudança, exceto uma que só oculta dados, pode ser desfeita e está comprovadamente segura, e nunca apaga dados nem aciona ninguém sem perguntar. Uma mudança que ele fez sem perguntar aparece em **Feito pela IA**, com **Desfazer**. **Por que a IA não agiu** lista os problemas que ele analisou e deixou como estavam, e por quê. Cada proposta, aprovação, dispensa e reversão está na **Linha do tempo** do problema e do repositório. Com a chave desligada, ou a IA desligada no projeto, a segurança de dados funciona como sempre, e **Explicar com IA** e **Corrigir com IA** continuam funcionando quando você os aciona.
+
+Na página de um problema, o cartão **OneUptime AI** acima de **Como corrigir** mostra a análise e o que foi proposto para aquele problema, com os mesmos botões. A **Visão geral** da segurança de dados diz quantos vazamentos o OneUptime AI conteve esta semana e quantas propostas aguardam você. **Notas para o OneUptime AI** conta, semana a semana, o resultado das alterações dele: veja [Como a OneUptime AI está se saindo](/docs/ai/ai-sre#como-a-oneuptime-ai-está-se-saindo).
+
+### Regras de IA
+
+Em **Regras de IA** de **Segurança de dados → IA**, uma regra diz em quais problemas o OneUptime AI trabalha - pela verificação ou grupo de verificações, gravidade, e sensibilidade, tipo, provedor, ambiente, rótulos, categorias de dados e serviço do repositório - e, para cada tipo de trabalho, **Analisar**, **Conter**, **Correção** e **Julgar**, se está em **Desativado**, **Sugerir** (ele propõe e aguarda você) ou **Sem perguntar**. Quando várias regras correspondem a um problema, um tipo de trabalho é executado se alguma delas o liga, e **Sugerir** prevalece sobre **Sem perguntar**. Cada proposta diz qual regra a decidiu. Sem regra, valem os padrões do projeto: analisar problemas críticos e altos, e sugerir todo o resto.
+
+As regras de IA pertencem ao projeto todo, como as de incidentes e alertas: proprietários e administradores do projeto as alteram, assim como qualquer pessoa com as permissões de regras de IA. Os papéis de segurança veem o que o OneUptime AI propôs e fez, mas não as regras.
 
 ## O que o OneUptime AI vê
 

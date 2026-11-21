@@ -50,9 +50,19 @@ export const DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES: number = 1440;
 /*
  * Cap on how far back one evaluation may scan, whatever lastEvaluatedAt
  * says — a rule re-enabled after a month must not trigger a month-long
- * table scan.
+ * table scan. A rule catching up after its runs failed (#10490) reads past
+ * it, a stretch of at most this long at a time.
  */
 export const DETECTION_MAX_LOOKBACK_IN_MINUTES: number = 24 * 60;
+
+/*
+ * How soon a scheduled rule whose run failed is tried again (#10490): at
+ * its next interval, or within the hour when its interval is longer - a
+ * daily rule that failed once would otherwise wait a day, and a failing rule
+ * tried every minute read a longer stretch each time. Its place stays where
+ * its last good run left it, so nothing it missed is skipped.
+ */
+export const DETECTION_RETRY_AFTER_FAILURE_IN_MINUTES: number = 60;
 
 /*
  * The groups one run opens alerts, incidents and cases for, at most: the

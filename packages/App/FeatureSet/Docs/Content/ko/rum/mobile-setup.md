@@ -19,7 +19,7 @@ flowchart TB
     app["사용자의 모바일 앱"] --> sdk["OpenTelemetry SDK와<br/>device.* 속성"]
     sdk -->|"모바일 키를 쓰는<br/>OTLP"| oneuptime["OneUptime"]
     oneuptime --> rum["모바일 RUM 애플리케이션"]
-    replay["React Native<br/>리플레이 SDK"] -->|"Browser 키를 쓰는<br/>녹화"| oneuptime
+    replay["React Native<br/>리플레이 SDK"] -->|"같은 모바일 키를<br/>쓰는 녹화"| oneuptime
 ```
 
 ## OneUptime에 필요한 것
@@ -52,7 +52,7 @@ flowchart TB
 | 로그 | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> 키는 앱 안에 담겨 배포되고 앱은 풀어 볼 수 있으므로, 누군가 키를 복사한다고 가정하세요. 모바일 키의 복사본은 이 앱의 트레이스, 로그, 메트릭만 보낼 수 있으며, 모두 **고정된 서비스 이름** 아래 분류되고, 웹 페이지에서는 보낼 수 없습니다. 그래도 키의 **분당 요청 한도**까지는 이 앱의 꾸며 낸 데이터를 보낼 수 있으므로, **만료 시각** 날짜를 추가하고 릴리스마다 키를 교체하세요.
+> 키는 앱 안에 담겨 배포되고 앱은 풀어 볼 수 있으므로, 누군가 키를 복사한다고 가정하세요. 모바일 키의 복사본은 이 앱의 트레이스, 로그, 메트릭, 세션 리플레이만 보낼 수 있으며, 모두 **고정된 서비스 이름** 아래 분류되고, 웹 페이지에서는 보낼 수 없습니다. 그래도 키의 **분당 요청 한도**까지는 이 앱의 꾸며 낸 데이터를 보낼 수 있으므로, **만료 시각** 날짜를 추가하고 릴리스마다 키를 교체하세요.
 
 ## 플랫폼 설정
 
@@ -289,7 +289,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 ## 모바일 세션 리플레이
 
-React Native 앱은 `@oneuptime/react-native-replay`로 세션을 녹화할 수 있습니다. 네이티브 뷰 트리를 와이어프레임으로 기록하며, 스크린샷이나 화면의 텍스트는 절대 기록하지 않습니다. 녹화는 웹 녹화와 같은 플레이어에서 열립니다. 전송에는 **브라우저** 키를 쓰며, 그 **허용된 출처**에 앱을 `app://` 뒤에 Android 애플리케이션 ID나 iOS 번들 ID를 붙인 형태로 등록합니다. 이 키는 OpenTelemetry SDK가 쓰는 모바일 키와는 별개입니다. 자세한 절차는 [React Native에 설치하기](/docs/telemetry/session-replay#react-native에-설치하기)에서 안내합니다.
+React Native 앱은 `@oneuptime/react-native-replay`로 세션을 녹화할 수 있습니다. 네이티브 뷰 트리를 와이어프레임으로 기록하며, 스크린샷이나 화면의 텍스트는 절대 기록하지 않습니다. 녹화는 웹 녹화와 같은 플레이어에서 열립니다. 전송에는 OpenTelemetry SDK와 같은 **모바일** 키를 쓰며, 키의 **고정된 서비스 이름**을 `appIdentifier`로 지정합니다. 그래서 앱에는 키 하나만 담깁니다. **허용된 출처**에 앱을 `app://` 뒤에 Android 애플리케이션 ID나 iOS 번들 ID를 붙인 형태로 등록한 **브라우저** 키도 쓸 수 있습니다. 자세한 절차는 [React Native에 설치하기](/docs/telemetry/session-replay#react-native에-설치하기)에서 안내합니다.
 
 네이티브 Android 앱과 iOS 앱, 그리고 그 밖의 플랫폼에는 세션 레코더가 없습니다. 이들의 **세션 리플레이** 페이지는 비어 있지만, 트레이스, 로그, 메트릭, 예외, **클라이언트** 페이지는 평소처럼 작동합니다.
 
@@ -298,7 +298,7 @@ React Native 앱은 `@oneuptime/react-native-replay`로 세션을 녹화할 수 
 :::details 키 확인이 401을 돌려주거나 키가 거부됨
 `401`은 키가 알 수 없거나, 취소되었거나, 꺼져 있거나, 만료되었다는 뜻입니다. 모바일 키를 만들고 그 키로 앱을 다시 빌드하세요.
 
-Browser 키는 확인을 통과하지만, 모바일 앱에서 보내는 모든 내보내기가 `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.`라는 `422`로 거부됩니다. **모바일** 키를 쓰세요. 모바일 키도 gRPC로 보내거나 웹 페이지에서 보내면 `422`로 거부됩니다. OTLP/HTTP로 내보내세요.
+Browser 키는 확인을 통과하지만, 모바일 앱에서 보내는 모든 내보내기가 `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.`라는 `422`로 거부됩니다. **모바일** 키를 쓰세요. 모바일 키도 gRPC로 보내거나, 웹 페이지에서 보내거나, `appIdentifier`가 키의 **고정된 서비스 이름**이 아닌 세션 리플레이를 보내면 `422`로 거부됩니다. OTLP/HTTP로 내보내고, 리플레이 SDK에는 키의 고정된 이름을 주세요.
 :::
 
 :::details 앱이 실제 사용자 모니터링이 아니라 서비스에 나타남

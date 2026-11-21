@@ -370,7 +370,7 @@ export const SECURITY_PLAYBOOK_APPROVAL_WORDS: {
     "Asked by playbook {{playbook}}, which started for a new detection.",
   ),
   sourceTriaged: translationKey(
-    "Asked by playbook {{playbook}}, which started when {{product}} AI triaged the case as likely malicious.",
+    "Asked by playbook {{playbook}}, which started when {{ai}} triaged the case as likely malicious.",
   ),
   sourceByHand: translationKey(
     "Asked by playbook {{playbook}}, which was started by hand.",
@@ -383,7 +383,7 @@ export const SECURITY_PLAYBOOK_APPROVAL_WORDS: {
     "Asked by the automatic response policy {{policy}}.",
   ),
   sourceOneUptimeAi: translationKey(
-    "Asked by {{product}} AI, which is working the case.",
+    "Asked by {{ai}}, which is working the case.",
   ),
   outcomeRejected: translationKey("Turned away: {{count}}"),
   outcomeReachedApp: translationKey("Reached the app: {{count}}"),
@@ -518,6 +518,19 @@ const product: (context: SecurityPlaybookApprovalWordingContext) => {
   context: SecurityPlaybookApprovalWordingContext,
 ): { product: ApprovalValue } => {
   return { product: asText(context.productName) };
+};
+
+/*
+ * The product's AI by its name, "OneUptime AI" or a self-hosted install's
+ * "<brand> AI": one value, written as it is in every language, as the name
+ * of a product is - never a word a translation words as its own (#10341).
+ */
+const productAi: (context: SecurityPlaybookApprovalWordingContext) => {
+  ai: ApprovalValue;
+} = (
+  context: SecurityPlaybookApprovalWordingContext,
+): { ai: ApprovalValue } => {
+  return { ai: asText(`${context.productName} AI`) };
 };
 
 // Values joined as the reader's language joins a list, each as code.
@@ -819,7 +832,7 @@ function wordSource(
         policy: asBold(source.policyName || ""),
       });
     case SecurityPlaybookApprovalSourceKind.OneUptimeAi:
-      return say(context, words.sourceOneUptimeAi, product(context));
+      return say(context, words.sourceOneUptimeAi, productAi(context));
     default:
       break;
   }
@@ -832,7 +845,7 @@ function wordSource(
     case SecurityPlaybookTrigger.TriagedAsLikelyMalicious:
       return say(context, words.sourceTriaged, {
         playbook,
-        ...product(context),
+        ...productAi(context),
       });
     default:
       return say(context, words.sourceByHand, { playbook });

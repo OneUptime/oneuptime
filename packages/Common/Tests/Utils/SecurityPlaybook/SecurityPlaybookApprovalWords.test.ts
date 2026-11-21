@@ -436,6 +436,49 @@ describe("who or what asked: every source of an approval", () => {
       }).undo.text,
     ).toBe("Cannot be undone from Acme Watch.");
   });
+
+  /*
+   * The product's AI is a name, one value in its sentences ({{ai}}): every
+   * language writes it as the install names it, and none can word its
+   * "AI" as a word of its own (Italian's IA) or split it from the name.
+   */
+  test.each([
+    ["it", "Richiesto da Acme Watch AI, che sta lavorando al caso."],
+    ["de", "Angefragt von Acme Watch AI, die den Fall bearbeitet."],
+    ["ko", "케이스를 처리 중인 Acme Watch AI의 요청입니다."],
+  ])(
+    "OneUptime AI is named as the install names it, in %s",
+    (language: string, said: string) => {
+      expect(
+        wordSecurityPlaybookApproval({
+          ask: askOf({
+            source: {
+              kind: SecurityPlaybookApprovalSourceKind.OneUptimeAi,
+              playbookName: "Contain",
+            },
+          }),
+          context: { ...contextIn(language), productName: "Acme Watch" },
+        }).source.text,
+      ).toBe(said);
+    },
+  );
+
+  test("a playbook OneUptime AI's triage started names the AI as the install names it", () => {
+    expect(
+      wordSecurityPlaybookApproval({
+        ask: askOf({
+          source: {
+            kind: SecurityPlaybookApprovalSourceKind.Playbook,
+            playbookName: "Contain",
+            trigger: SecurityPlaybookTrigger.TriagedAsLikelyMalicious,
+          },
+        }),
+        context: { ...contextIn("it"), productName: "Acme Watch" },
+      }).source.text,
+    ).toBe(
+      "Richiesto dal playbook Contain, avviato quando Acme Watch AI ha valutato il caso come probabilmente malevolo.",
+    );
+  });
 });
 
 describe("the evidence", () => {

@@ -227,6 +227,13 @@ jest.mock(
 
 import Response from "Common/Server/Utils/Response";
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
+import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
+import {
+  MOBILE_KEY_SESSION_REPLAY_OTHER_APP_MESSAGE,
+  TelemetryIngestionKeyRefusalReason,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyGuard";
+import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
+import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import SessionReplayIngestService, {
   SessionReplayGateOutcome,
 } from "../../FeatureSet/Telemetry/Services/SessionReplayIngestService";
@@ -1344,6 +1351,138 @@ describe("GET /session-replay/v1/config and /validate", () => {
     expect(registeredGetHandlers["/session-replay/v1/validate"]).not.toContain(
       authMiddleware,
     );
+  });
+});
+
+/*
+ * The key probe answers for a Mobile key as the chunk route would (issue
+ * #10540): a Mobile key records only the app it is pinned to, so a probe
+ * that names another app is told the key will not do, with the guard's own
+ * reason and sentence, and one that names its own app, or none, that it
+ * will.
+ */
+describe("GET /session-replay/v1/validate with a Mobile key", () => {
+  const MOBILE_APP: string = "storefront-mobile";
+
+  function keyPolicy(
+    keyType: TelemetryIngestionKeyType,
+    pinnedServiceName: string | null,
+  ): TelemetryIngestionKeyPolicy {
+    return {
+      ingestionKeyId: ObjectID.generate(),
+      projectId: PROJECT_ID,
+      keyType: keyType,
+      allowedOrigins:
+        keyType === TelemetryIngestionKeyType.Browser
+          ? ["app://com.example.storefront"]
+          : [],
+      pinnedServiceName: pinnedServiceName,
+      isEnabled: true,
+      expiresAt: null,
+      requestsPerMinuteLimit: null,
+    };
+  }
+
+  async function probe(data: {
+    policy: TelemetryIngestionKeyPolicy;
+    appIdentifier?: string;
+  }): Promise<{ body: JSONObject; statusCode: number | undefined }> {
+    (
+      TelemetryIngestionKeyService.getPolicyFromSecretKey as unknown as MockedFn
+    ).mockResolvedValue(data.policy as never);
+
+    const handlers: Array<unknown> =
+      registeredGetHandlers["/session-replay/v1/validate"]!;
+    const handler: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void> = handlers[handlers.length - 1] as (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void>;
+
+    const headers: Record<string, string> = {
+      "x-oneuptime-token": "mobile-key-token",
+    };
+
+    if (data.appIdentifier !== undefined) {
+      headers[SESSION_REPLAY_APP_IDENTIFIER_HEADER] = data.appIdentifier;
+    }
+
+    await handler(
+      { headers } as unknown as ExpressRequest,
+      buildResponse() as unknown as ExpressResponse,
+      jest.fn() as unknown as NextFunction,
+    );
+
+    expect(sendJsonMock).toHaveBeenCalledTimes(1);
+
+    const call: Array<unknown> = sendJsonMock.mock.calls[0] as Array<unknown>;
+
+    return {
+      body: call[2] as JSONObject,
+      statusCode: (
+        call[3] as { statusCode?: StatusCode } | undefined
+      )?.statusCode?.toNumber(),
+    };
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("a Mobile key naming the app it is pinned to is valid for replay", async () => {
+    const answer: { body: JSONObject; statusCode: number | undefined } =
+      await probe({
+        policy: keyPolicy(TelemetryIngestionKeyType.Mobile, MOBILE_APP),
+        appIdentifier: ` ${MOBILE_APP.toUpperCase()} `,
+      });
+
+    expect(answer.statusCode).toBeUndefined();
+    expect(answer.body["valid"]).toBe(true);
+    expect(answer.body["keyType"]).toBe(TelemetryIngestionKeyType.Mobile);
+  });
+
+  test("a Mobile key naming another app is not, as the chunk route would refuse it", async () => {
+    const answer: { body: JSONObject; statusCode: number | undefined } =
+      await probe({
+        policy: keyPolicy(TelemetryIngestionKeyType.Mobile, MOBILE_APP),
+        appIdentifier: APP_IDENTIFIER,
+      });
+
+    expect(answer.statusCode).toBe(401);
+    expect(answer.body).toEqual({
+      tokenProvided: true,
+      valid: false,
+      keyType: TelemetryIngestionKeyType.Mobile,
+      reason: TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForMobileKey,
+      message: MOBILE_KEY_SESSION_REPLAY_OTHER_APP_MESSAGE,
+    });
+    // Its pinned app stays the project's.
+    expect(JSON.stringify(answer.body)).not.toContain(MOBILE_APP);
+  });
+
+  test("a Mobile key with no app named is valid: there is nothing to compare", async () => {
+    const answer: { body: JSONObject; statusCode: number | undefined } =
+      await probe({
+        policy: keyPolicy(TelemetryIngestionKeyType.Mobile, MOBILE_APP),
+      });
+
+    expect(answer.body["valid"]).toBe(true);
+    expect(answer.body["appIdentifierProvided"]).toBe(false);
+  });
+
+  test("a Browser key is valid for any app it names, as before", async () => {
+    const answer: { body: JSONObject; statusCode: number | undefined } =
+      await probe({
+        policy: keyPolicy(TelemetryIngestionKeyType.Browser, null),
+        appIdentifier: APP_IDENTIFIER,
+      });
+
+    expect(answer.body["valid"]).toBe(true);
+    expect(answer.body["keyType"]).toBe(TelemetryIngestionKeyType.Browser);
   });
 });
 

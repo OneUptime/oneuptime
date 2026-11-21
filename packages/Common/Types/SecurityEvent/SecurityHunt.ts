@@ -1,6 +1,11 @@
 import OneUptimeDate from "../Date";
 import TimeRange from "../Time/TimeRange";
 import { DETECTION_EVALUATION_DELAY_IN_SECONDS } from "./DetectionFindingConstants";
+import {
+  SecurityEventArrivalRange,
+  floorToSecond,
+  getArrivalEventTimeBounds,
+} from "./SecurityEventArrival";
 import { writeOwnValue } from "../../Utils/LookupTable";
 
 /*
@@ -395,13 +400,22 @@ export function areSecurityHuntFiltersEqual(
 /*
  * THE SCHEDULE'S RUNS.
  *
- * A run reads as far as SECURITY_HUNT_RUN_DELAY_IN_SECONDS behind the
- * clock, as detection rules do, so an event is in the table before its
- * moment is read. It reads from where the run before it stopped - from when
- * the schedule was set, for the first - so every event is searched once.
- * A run the workers could not make for a while (an outage, a failed run)
- * reads what came in since, up to SECURITY_HUNT_MAX_CATCH_UP_IN_MINUTES
- * more than one interval.
+ * A run counts the events that ARRIVED since the run before it, whenever
+ * they happened (#10488): an event that reached OneUptime late - a span
+ * read when it ended, a flow read in whole windows, a cloud audit log that
+ * lags, a batch a log shipper held - is counted by the first run after it
+ * arrived, once, as a scheduled detection rule judges it (#10337). It
+ * counts when it arrived within a day of when it happened
+ * (Types/SecurityEvent/SecurityEventArrival): one later than that is stored
+ * and searchable, but no run counts it.
+ *
+ * A run's window is when its events arrived: after where the run before
+ * stopped (searchedUpToAt; when the schedule was set, for the first) and up
+ * to SECURITY_HUNT_RUN_DELAY_IN_SECONDS behind the clock, as detection rules
+ * read, so every event stamped by then is in the table. Both ends are whole
+ * seconds, as an event's arrival is kept. A run the workers could not make
+ * for a while (an outage, a failed run) reads what came in since, up to
+ * SECURITY_HUNT_MAX_CATCH_UP_IN_MINUTES more than one interval.
  */
 export const SECURITY_HUNT_RUN_DELAY_IN_SECONDS: number =
   DETECTION_EVALUATION_DELAY_IN_SECONDS;
@@ -415,8 +429,17 @@ export const SECURITY_HUNT_MAX_CATCH_UP_IN_MINUTES: number = 24 * 60;
  */
 export const SECURITY_HUNT_RETRY_AFTER_FAILURE_IN_MINUTES: number = 60;
 
+/*
+ * When a run's events arrived: after `startTime`, up to and including
+ * `endTime` (#10488). A run's history, its hunt's last find and the
+ * notification keep it so, and the Events page opens on it
+ * (getSecurityHuntRunArrival) with the times those events can have
+ * happened in its time range (getSecurityHuntRunEventTimeRange).
+ */
 export interface SecurityHuntRunWindow {
+  // Exclusive: what arrived by then, the run before counted.
   startTime: Date;
+  // Inclusive.
   endTime: Date;
 }
 
@@ -429,8 +452,9 @@ export function getSecurityHuntSearchStart(now: Date): Date {
 }
 
 /*
- * The events a run made at `now` reads: from where the last one stopped
- * (`searchedUpTo`), to SECURITY_HUNT_RUN_DELAY_IN_SECONDS before now. Null
+ * The events a run made at `now` counts: those that arrived after where
+ * the last one stopped (`searchedUpTo`), up to
+ * SECURITY_HUNT_RUN_DELAY_IN_SECONDS before now, on whole seconds. Null
  * when the hunt does not run on its own, or there is nothing new to read.
  */
 export function getSecurityHuntRunWindow(data: {
@@ -446,19 +470,18 @@ export function getSecurityHuntRunWindow(data: {
     return null;
   }
 
-  const endTime: Date = getSecurityHuntSearchStart(data.now);
+  const endTime: Date = floorToSecond(getSecurityHuntSearchStart(data.now));
   const earliest: Date = OneUptimeDate.addRemoveMinutes(
     endTime,
     -(interval + SECURITY_HUNT_MAX_CATCH_UP_IN_MINUTES),
   );
 
   /*
-   * A read takes in both ends of its window, so a run starts a millisecond
-   * after the one before it stopped: an event at that moment is counted
-   * once.
+   * What arrived after where the run before stopped: its last second is
+   * the run before's, so an event that arrived then is counted once.
    */
   let startTime: Date = data.searchedUpTo
-    ? new Date(new Date(data.searchedUpTo).getTime() + 1)
+    ? floorToSecond(new Date(data.searchedUpTo))
     : OneUptimeDate.addRemoveMinutes(endTime, -interval);
 
   if (Number.isNaN(startTime.getTime())) {
@@ -474,6 +497,35 @@ export function getSecurityHuntRunWindow(data: {
   }
 
   return { startTime, endTime };
+}
+
+// The events a run counted, as a read of what arrived names them.
+export function getSecurityHuntRunArrival(
+  window: SecurityHuntRunWindow,
+): SecurityEventArrivalRange {
+  return {
+    arrivedAfter: floorToSecond(new Date(window.startTime)),
+    arrivedUntil: floorToSecond(new Date(window.endTime)),
+  };
+}
+
+/*
+ * When the events a run counted can have happened: from a day before the
+ * first of them arrived to the most a source's clock may run ahead of the
+ * last (getArrivalEventTimeBounds). The Events page opens a run on this
+ * window, with the run's arrivals as a filter, so every event it counted is
+ * listed wherever in the day before it happened.
+ */
+export function getSecurityHuntRunEventTimeRange(
+  window: SecurityHuntRunWindow,
+): SecurityHuntRunWindow {
+  const happened: { happenedAfter: Date; happenedBefore: Date } =
+    getArrivalEventTimeBounds(getSecurityHuntRunArrival(window));
+
+  return {
+    startTime: happened.happenedAfter,
+    endTime: happened.happenedBefore,
+  };
 }
 
 /*

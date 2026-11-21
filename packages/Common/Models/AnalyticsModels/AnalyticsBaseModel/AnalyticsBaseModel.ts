@@ -151,7 +151,7 @@ export default class AnalyticsBaseModel extends CommonModel {
 
     if (data.includeBaseColumns === false && data.createdAtSkipIndex) {
       throw new BadDataException(
-        "createdAtSkipIndex needs the base columns: createdAt is not part of the table schema when includeBaseColumns is false",
+        "A skip index on createdAt needs the base columns, and this model leaves them out (includeBaseColumns is false). Remove createdAtSkipIndex, or keep the base columns.",
       );
     }
 

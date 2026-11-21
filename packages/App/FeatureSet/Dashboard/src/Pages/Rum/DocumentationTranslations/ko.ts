@@ -17,8 +17,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "그런 다음 앱의 **첫 번째** import로 만들어, 다른 코드가 실행되기 전에 계측이 `fetch`를 패치하도록 합니다:",
   "Replace `storefront-web` with your application's name. It is how the app appears in OneUptime, so keep it stable: a new name registers a new application.":
     "`storefront-web`을 애플리케이션 이름으로 바꾸세요. OneUptime에서 앱이 표시되는 이름이므로 바꾸지 말고 유지하세요. 새 이름은 새 애플리케이션으로 등록됩니다.",
-  "> **Setting `service.name` alone is not enough.** The OpenTelemetry browser SDKs do not add `browser.*` attributes unless you enable the browser resource detector or set them yourself — without them this becomes a backend Service, not a RUM application.":
-    "> **`service.name`만 설정하는 것으로는 충분하지 않습니다.** OpenTelemetry 브라우저 SDK는 브라우저 리소스 감지기를 켜거나 직접 설정하지 않는 한 `browser.*` 속성을 추가하지 않습니다. 이 속성이 없으면 RUM 애플리케이션이 아니라 백엔드 서비스가 됩니다.",
+  "> **Keep `browserDetector`.** Everything a Browser key sends is filed as this application, but the OpenTelemetry browser SDKs add no `browser.*` attributes unless you enable the browser resource detector or set them yourself — and without `browser.platform` the **Clients** tab lists no platforms.":
+    "> **`browserDetector`를 유지하세요.** 브라우저 키가 보내는 모든 것은 이 애플리케이션으로 저장되지만, OpenTelemetry 브라우저 SDK는 브라우저 리소스 감지기를 켜거나 직접 설정하지 않는 한 `browser.*` 속성을 추가하지 않습니다. `browser.platform`이 없으면 **클라이언트** 탭에 플랫폼이 나열되지 않습니다.",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
     "1단계에서 수집 키를 선택하면 `<YOUR_API_KEY>`가 채워집니다.",
   "Merge it into your existing `connect-src` directive. No Content Security Policy on your site? Skip this step.":
@@ -27,8 +27,10 @@ const TRANSLATION: SetupGuideTranslation = {
     '`200`과 `"valid": true`는 OneUptime이 키를 허용한다는 뜻입니다. 브라우저 키라면 메시지에 브라우저에서, 허용된 출처 중 하나에서만 작동한다는 내용이 덧붙습니다. `401`은 키를 알 수 없거나, 취소되었거나, 비활성화되었거나, 만료되었다는 뜻입니다.',
   "Then load a page of your site. Within a minute the application appears under **Real User Monitoring**, named after its `service.name`, with page views, error rate and p95 duration.":
     "그런 다음 사이트의 페이지를 로드하세요. 1분 안에 애플리케이션이 `service.name`을 이름으로 하여 페이지 뷰, 오류율, p95 지속 시간과 함께 **실제 사용자 모니터링**에 표시됩니다.",
-  "OneUptime classifies telemetry as **RUM** when its resource carries client attributes — for web, any of `browser.platform`, `browser.language` or a non-empty `browser.brands`. The application is identified by `service.name` (matched case-insensitively), and its telemetry is owned by this RUM application — it is never duplicated as a backend Service.":
-    "OneUptime은 리소스에 클라이언트 속성이 있을 때 텔레메트리를 **RUM**으로 분류합니다. 웹의 경우 `browser.platform`, `browser.language` 또는 비어 있지 않은 `browser.brands` 중 하나입니다. 애플리케이션은 `service.name`(대소문자 구분 없음)으로 식별되며, 그 텔레메트리는 이 RUM 애플리케이션에 속하고 백엔드 서비스로 중복 저장되지 않습니다.",
+  "Everything a Browser key sends is filed as this browser app, whatever its resource says. The key keeps only what a page says about itself on the resource — such as its `service.*`, `browser.*`, `user_agent.*` and `telemetry.*` attributes and its `oneuptime.label.*` labels — and drops the rest, so a copied key cannot pass its telemetry off as a host, a cluster or a backend service.":
+    "브라우저 키가 보내는 모든 것은 리소스에 무엇이 적혀 있든 이 브라우저 앱으로 저장됩니다. 키는 리소스 중 페이지가 자신에 대해 말하는 것(`service.*`, `browser.*`, `user_agent.*`, `telemetry.*` 속성과 `oneuptime.label.*` 레이블 등)만 남기고 나머지는 버리므로, 복사된 키는 자신의 텔레메트리를 호스트, 클러스터 또는 백엔드 서비스의 것으로 위장할 수 없습니다.",
+  "With any other key, OneUptime classifies telemetry as **RUM** when its resource carries client attributes — for web, any of `browser.platform`, `browser.language` or a non-empty `browser.brands`. The application is identified by `service.name` (matched case-insensitively), and its telemetry is owned by this RUM application — it is never duplicated as a backend Service.":
+    "다른 키를 사용하면 OneUptime은 리소스에 클라이언트 속성이 있을 때 텔레메트리를 **RUM**으로 분류합니다. 웹의 경우 `browser.platform`, `browser.language` 또는 비어 있지 않은 `browser.brands` 중 하나입니다. 애플리케이션은 `service.name`(대소문자 구분 없음)으로 식별되며, 그 텔레메트리는 이 RUM 애플리케이션에 속하고 백엔드 서비스로 중복 저장되지 않습니다.",
   "| Attribute | Required | What it does |": "| 속성 | 필수 | 하는 일 |",
   "| `service.name` | **yes** | The application's identity, e.g. `storefront-web`. Renaming it later creates a new application. |":
     "| `service.name` | **예** | 애플리케이션의 식별자(예: `storefront-web`). 나중에 이름을 바꾸면 새 애플리케이션이 만들어집니다. |",
@@ -62,8 +64,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "OpenTelemetry 브라우저 SDK는 처리되지 않은 오류를 자동으로 포착하지 않습니다. 명시적으로 보고하면 백엔드 오류와 함께 **예외** 보기에 표시됩니다:",
   "Traces are enough to fill the overview. Add log and metric pipelines if you want browser logs searchable in OneUptime, or Core Web Vitals:":
     "개요를 채우는 데는 트레이스로 충분합니다. OneUptime에서 브라우저 로그를 검색하거나 Core Web Vitals를 보려면 로그 및 메트릭 파이프라인을 추가하세요:",
-  "Their exporters send to `<YOUR_ONEUPTIME_URL>/otlp/v1/logs` and `<YOUR_ONEUPTIME_URL>/otlp/v1/metrics` with the same `x-oneuptime-token` header — [Browser Setup](/docs/rum/browser-setup) has the code. Build them with the same `resource` object: a pipeline whose resource lacks `browser.*` is filed as a separate backend Service.":
-    "이들의 익스포터는 같은 `x-oneuptime-token` 헤더로 `<YOUR_ONEUPTIME_URL>/otlp/v1/logs`와 `<YOUR_ONEUPTIME_URL>/otlp/v1/metrics`에 보냅니다. 코드는 [브라우저 설정](/docs/rum/browser-setup)에 있습니다. 같은 `resource` 객체로 구성하세요. 리소스에 `browser.*`가 없는 파이프라인은 별도의 백엔드 서비스로 저장됩니다.",
+  "Their exporters send to `<YOUR_ONEUPTIME_URL>/otlp/v1/logs` and `<YOUR_ONEUPTIME_URL>/otlp/v1/metrics` with the same `x-oneuptime-token` header — [Browser Setup](/docs/rum/browser-setup) has the code. Build them with the same `resource` object, so their logs and metrics are filed under this application too.":
+    "이들의 익스포터는 같은 `x-oneuptime-token` 헤더로 `<YOUR_ONEUPTIME_URL>/otlp/v1/logs`와 `<YOUR_ONEUPTIME_URL>/otlp/v1/metrics`에 보냅니다. 코드는 [브라우저 설정](/docs/rum/browser-setup)에 있습니다. 같은 `resource` 객체로 구성하면 로그와 메트릭도 이 애플리케이션 아래에 저장됩니다.",
   "The **Core Web Vitals** card — LCP, INP, CLS, FCP and TTFB — is filled only from metrics your app reports, under names such as `web_vital.lcp`. [Core Web Vitals](/docs/rum/web-vitals) lists the names OneUptime reads and wires up the `web-vitals` library.":
     "**Core Web Vitals** 카드(LCP, INP, CLS, FCP, TTFB)는 앱이 `web_vital.lcp` 같은 이름으로 보고하는 메트릭으로만 채워집니다. [Core Web Vitals](/docs/rum/web-vitals)에 OneUptime이 읽는 이름과 `web-vitals` 라이브러리 연결 방법이 나와 있습니다.",
   "Any resource attribute prefixed `oneuptime.label.` becomes a project label on the application — `oneuptime.label.env` set to `production` adds the label `env:production`:":
@@ -104,8 +106,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **`401`** — 키를 알 수 없거나, 취소되었거나, 만료되었습니다. 5단계에서 키 확인을 실행하고 1단계에서 유효한 브라우저 키를 선택하거나 만드세요.",
   "- **`404`** — the URL is wrong. The trace exporter needs the full path, `/otlp/v1/traces`.":
     "- **`404`** — URL이 잘못되었습니다. 트레이스 익스포터에는 전체 경로 `/otlp/v1/traces`가 필요합니다.",
-  "The resource carries no browser attribute, so the telemetry was filed as a backend Service. Enable `browserDetector` as in step 3, or set the `browser.*` attributes yourself (**How OneUptime recognises a browser app** under Advanced).":
-    "리소스에 브라우저 속성이 없어 텔레메트리가 백엔드 서비스로 저장되었습니다. 3단계처럼 `browserDetector`를 켜거나 `browser.*` 속성을 직접 설정하세요(고급의 **OneUptime이 브라우저 앱을 인식하는 방법**).",
+  "The telemetry was sent with a key other than a Browser key, and its resource carries no browser attribute, so it was filed as a backend Service. Send with a Browser key (step 1), which files everything it sends as this app, or set the `browser.*` attributes yourself (**How OneUptime recognises a browser app** under Advanced).":
+    "텔레메트리가 브라우저 키가 아닌 키로 전송되었고 리소스에 브라우저 속성이 없어 백엔드 서비스로 저장되었습니다. 보내는 모든 것을 이 앱으로 저장하는 브라우저 키(1단계)로 보내거나 `browser.*` 속성을 직접 설정하세요(고급의 **OneUptime이 브라우저 앱을 인식하는 방법**).",
   "Confirm what you send in DevTools → **Network** → the OTLP request → **Payload**: `resourceSpans[0].resource.attributes` is the list that decides it.":
     "DevTools → **Network** → OTLP 요청 → **Payload**에서 보내는 내용을 확인하세요. `resourceSpans[0].resource.attributes`가 결정하는 목록입니다.",
   "The Service that was already created does not turn into a RUM application — the two are separate records — so delete it once RUM telemetry arrives.":
@@ -160,8 +162,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "`device.manufacturer`도 배치를 모바일로 표시하지만, `host.name`이나 `host.id`가 없는 리소스에서만 그렇습니다. 이 속성은 호스트 인벤토리 항목에서 물리 머신의 제조사로도 쓰이기 때문입니다. `device.id`나 `device.model.identifier`도 설정하면 이 구분은 생기지 않습니다.",
   "`device.id` should be an install-scoped identifier, not an advertising ID or anything that identifies a person.":
     "`device.id`는 설치별 식별자여야 하며, 광고 ID나 개인을 식별하는 값이어서는 안 됩니다.",
-  "> **Anyone who has your app can copy its key.** That is why it is a Mobile key: a copy can only send this app's traces, logs and metrics, filed under the service name the key is pinned to, and never from a web page. It can still send made-up data for this app, up to the key's limit, so set an expiry, rotate the key with your releases, and turn it off if it is misused.":
-    "> **앱을 가진 누구나 그 앱의 키를 복사할 수 있습니다.** 그래서 모바일 키를 씁니다. 복사본은 이 앱의 트레이스, 로그, 메트릭만 보낼 수 있고, 모두 키에 고정된 서비스 이름으로 저장되며, 웹 페이지에서는 절대 보낼 수 없습니다. 그래도 키의 한도 안에서 이 앱의 꾸며 낸 데이터를 보낼 수는 있으므로, 만료일을 정하고, 릴리스마다 키를 교체하고, 악용되면 끄세요.",
+  "> **Anyone who has your app can copy its key.** That is why it is a Mobile key: a copy can only send this app's traces, logs, metrics and session replays, filed under the service name the key is pinned to, and never from a web page. It can still send made-up data for this app, up to the key's limit, so set an expiry, rotate the key with your releases, and turn it off if it is misused.":
+    "> **앱을 가진 누구나 그 앱의 키를 복사할 수 있습니다.** 그래서 모바일 키를 씁니다. 복사본은 이 앱의 트레이스, 로그, 메트릭, 세션 리플레이만 보낼 수 있고, 모두 키에 고정된 서비스 이름으로 저장되며, 웹 페이지에서는 절대 보낼 수 없습니다. 그래도 키의 한도 안에서 이 앱의 꾸며 낸 데이터를 보낼 수는 있으므로, 만료일을 정하고, 릴리스마다 키를 교체하고, 악용되면 끄세요.",
   "Each of these is on the key's page in **Project Settings > Telemetry & APM > Ingestion Keys**: **Pinned Service Name** is the app everything the key sends is filed under, **Requests Per Minute Limit** caps the key across every copy of your app, **Expires At** stops it being accepted after a date, and **Enabled** turns it off at once.":
     "모두 **프로젝트 설정 > 텔레메트리 및 APM > 수집 키**의 키 페이지에 있습니다. **고정된 서비스 이름**은 키가 보내는 모든 것이 저장되는 앱이고, **분당 요청 한도**는 앱의 모든 복사본에 걸쳐 키를 제한하며, **만료 시각**은 특정 날짜 이후 키를 더 이상 허용하지 않고, **활성화됨**은 즉시 키를 끕니다.",
   "Never ship a **Server** key in an app instead: it can write every kind of telemetry into this project, from anywhere, as any service.":
@@ -170,8 +172,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **Android** — [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) 에이전트(`io.opentelemetry.android:android-agent`)는 자체 리소스에 `device.model.identifier`, `device.model.name`, `device.manufacturer`를 설정하므로 추가 설정 없이 분류가 작동하며, 크래시, ANR, 느린 프레임과 멈춘 프레임, 앱 시작, 세션을 직접 보고합니다. `service.name`을 설정하지 않으면 런처 레이블로 앱 이름을 정하며, `device.id`는 보내지 않습니다. [Android 설정](/docs/rum/android-setup)에 Gradle 의존성, 코드, 그리고 각각이 OneUptime에서 무엇이 되는지가 나와 있습니다.",
   "- **iOS / Swift** — with [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift), set `device.model.identifier` and `device.manufacturer` on the resource yourself: the resource an SDK version contributes has changed between releases.":
     "- **iOS / Swift** — [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift)를 사용하면 리소스에 `device.model.identifier`와 `device.manufacturer`를 직접 설정하세요. SDK 버전이 추가하는 리소스는 릴리스마다 달라졌습니다.",
-  "- **React Native / Expo** — runs the JavaScript SDK, so the setup is the browser one from [Browser Setup](/docs/rum/browser-setup) with two differences: there is no `browserDetector`, and you set `device.manufacturer` and `device.model.identifier` yourself so the **Clients** tab lists the devices. It sends with a **Mobile** key, like any mobile app.":
-    "- **React Native / Expo** — JavaScript SDK를 실행하므로 설정은 [브라우저 설정](/docs/rum/browser-setup)의 브라우저 설정과 같지만 두 가지가 다릅니다. `browserDetector`가 없고, **클라이언트** 탭에 기기가 나열되도록 `device.manufacturer`와 `device.model.identifier`를 직접 설정합니다. 다른 모바일 앱과 마찬가지로 **모바일** 키로 보냅니다.",
+  "- **React Native / Expo** — runs the JavaScript SDK, so the setup is the browser one from [Browser Setup](/docs/rum/browser-setup) with two differences: there is no `browserDetector`, and you set `device.manufacturer` and `device.model.identifier` yourself so the **Clients** tab lists the devices. It sends with a **Mobile** key, like any mobile app, and so do its [session replays](/docs/telemetry/session-replay#install-in-react-native): give the replay SDK the same key, with the key's pinned service name as `appIdentifier`.":
+    "- **React Native / Expo** — JavaScript SDK를 실행하므로 설정은 [브라우저 설정](/docs/rum/browser-setup)의 브라우저 설정과 같지만 두 가지가 다릅니다. `browserDetector`가 없고, **클라이언트** 탭에 기기가 나열되도록 `device.manufacturer`와 `device.model.identifier`를 직접 설정합니다. 다른 모바일 앱과 마찬가지로 **모바일** 키로 보내며, [세션 리플레이](/docs/telemetry/session-replay#install-in-react-native)도 마찬가지입니다. 리플레이 SDK에 같은 키를 주고, 키에 고정된 서비스 이름을 `appIdentifier`로 지정하세요.",
   "- **Anything else** — Flutter, Unity, .NET MAUI or a hand-rolled OTLP writer work the same way, as long as the resource carries `service.name` plus one `device.*` attribute.":
     "- **그 밖의 모든 것** — Flutter, Unity, .NET MAUI 또는 직접 작성한 OTLP 전송기도 리소스에 `service.name`과 `device.*` 속성 하나가 있으면 같은 방식으로 작동합니다.",
   "The mobile OpenTelemetry SDKs change their builder APIs between releases. [Mobile Setup](/docs/rum/mobile-setup) has code for each; check the method names against the version you pin.":
@@ -186,8 +188,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **클라이언트** — `device.model.identifier`에서 가져온, 애플리케이션이 확인된 기기 모델. 모델 단위로 대략적이며, 최종 사용자 단위가 아닙니다.",
   "A `401` means the key is unknown, revoked, disabled or expired: pick or create a Mobile key in step 1 and rebuild the app with it.":
     "`401`은 키를 알 수 없거나, 취소되었거나, 비활성화되었거나, 만료되었다는 뜻입니다. 1단계에서 모바일 키를 선택하거나 만들고 그 키로 앱을 다시 빌드하세요.",
-  "A `422` says what was refused. A Mobile key sends only the app's OTLP traces, logs and metrics, over HTTP, and never from a web page: an SDK that exports over gRPC, or a request that carries an `Origin` header, is refused. A Browser key passes the check but is refused from a mobile app, because it needs an `Origin` header and mobile SDKs send none.":
-    "`422`는 무엇이 거부되었는지 알려 줍니다. 모바일 키는 앱의 OTLP 트레이스, 로그, 메트릭만 HTTP로 보내며 웹 페이지에서는 절대 보내지 않습니다. gRPC로 내보내는 SDK나 `Origin` 헤더가 있는 요청은 거부됩니다. 브라우저 키는 확인은 통과하지만 모바일 앱에서는 거부됩니다. `Origin` 헤더가 필요한데 모바일 SDK는 이를 보내지 않기 때문입니다.",
+  "A `422` says what was refused. A Mobile key sends only the app's OTLP traces, logs and metrics, over HTTP, and its session replays, and never from a web page: an SDK that exports over gRPC, a request that carries an `Origin` header, or another app's recording, is refused. A Browser key passes the check but is refused from a mobile app, because it needs an `Origin` header and mobile SDKs send none.":
+    "`422`는 무엇이 거부되었는지 알려 줍니다. 모바일 키는 앱의 OTLP 트레이스, 로그, 메트릭을 HTTP로, 그리고 앱의 세션 리플레이만 보내며 웹 페이지에서는 절대 보내지 않습니다. gRPC로 내보내는 SDK, `Origin` 헤더가 있는 요청, 다른 앱의 녹화는 거부됩니다. 브라우저 키는 확인은 통과하지만 모바일 앱에서는 거부됩니다. `Origin` 헤더가 필요한데 모바일 SDK는 이를 보내지 않기 때문입니다.",
   "The telemetry was sent with a Server key, and its resource carries no `device.id` or `device.model.identifier`, so it was filed as a backend Service. Send with a Mobile key (step 1), which files everything it sends as this app, or set them on the SDK's resource, as in step 2.":
     "텔레메트리가 서버 키로 전송되었고 리소스에 `device.id`나 `device.model.identifier`가 없어 백엔드 서비스로 저장되었습니다. 보내는 모든 것을 이 앱으로 저장하는 모바일 키(1단계)로 보내거나, 2단계처럼 SDK 리소스에 이 속성을 설정하세요.",
   "Client rows come from `device.model.identifier` specifically. An SDK that only sets `device.manufacturer` classifies as mobile, but lists no clients — set `device.model.identifier` as well.":

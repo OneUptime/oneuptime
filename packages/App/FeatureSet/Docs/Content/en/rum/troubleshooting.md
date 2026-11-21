@@ -87,14 +87,14 @@ A browser rarely sends batches that large unless spans carry big attributes, suc
 
 ## Check where the telemetry lands
 
-The request succeeds, but the app shows up under **Products → Services** instead of **Products → Resources → Real User Monitoring**. This is the most common report, and the cause is nearly always a resource without client attributes. OneUptime files a batch as RUM only when its resource carries one of these:
+The request succeeds, but the app shows up under **Products → Services** instead of **Products → Resources → Real User Monitoring**. This is the most common report, and the cause is nearly always a key other than a Browser or Mobile key, sending a resource without client attributes. Everything a Browser or Mobile key sends is filed as RUM; with any other key, OneUptime files a batch as RUM only when its resource carries one of these:
 
 | Kind | Attributes |
 | --- | --- |
 | Browser | `browser.platform`, `browser.language`, or a non-empty `browser.brands` |
 | Mobile | `device.id` or `device.model.identifier`, or `device.manufacturer` on a resource with no host identity (`host.name`, `host.id` or `k8s.node.name`) |
 
-A `service.name` alone makes a backend service. The OpenTelemetry browser SDK adds no `browser.*` attributes unless you add the browser resource detector or set them yourself: see [Browser Setup](/docs/rum/browser-setup).
+With any other key, a `service.name` alone makes a backend service. The OpenTelemetry browser SDK adds no `browser.*` attributes unless you add the browser resource detector or set them yourself: see [Browser Setup](/docs/rum/browser-setup).
 
 To see what you actually send, open the OTLP request in the Network tab and look at its payload: `resourceSpans[0].resource.attributes` is the list that decides it. If no `browser.*` attribute is there, the SDK is not adding it, whatever its documentation says.
 
@@ -127,7 +127,7 @@ The empty chart on the application's **Overview** says which case it is, and the
 
 Exceptions need an error handler, because the SDK does not capture uncaught errors: [Report uncaught errors](/docs/rum/browser-setup#report-uncaught-errors) has the code. An error that an error boundary or a `try`/`catch` handles never reaches the window, so record it where you handle it, with `span.recordException`.
 
-Logs need a log pipeline and code that writes log records, because a `LoggerProvider` on its own sends nothing: [Add logs and metrics](/docs/rum/browser-setup#add-logs-and-metrics) has both. Build the pipeline with the same `resource` as your traces, or the logs are filed under a backend service.
+Logs need a log pipeline and code that writes log records, because a `LoggerProvider` on its own sends nothing: [Add logs and metrics](/docs/rum/browser-setup#add-logs-and-metrics) has both. Build the pipeline with the same `resource` as your traces, so the logs are filed under the same application.
 
 When page loads arrive, the key, its allowed origins and your Content Security Policy let exceptions and logs through as well, as long as the log exporter uses the same key and host. An error handler that has caught nothing sends nothing, exactly like one that was never added, so throw a test error from the browser's console to tell the two apart:
 

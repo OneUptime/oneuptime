@@ -60,9 +60,9 @@ const DELAY: number = SECURITY_HUNT_RUN_DELAY_IN_SECONDS * 1000;
 const SEARCHED_UP_TO: Date = new Date(NOW.getTime() - 61 * MINUTE);
 const DUE_AT: Date = new Date(NOW.getTime() - MINUTE);
 
-// The window an hourly run made at NOW reads.
+// The window an hourly run made at NOW reads: what arrived after SEARCHED_UP_TO, up to two minutes ago.
 const WINDOW: SecurityHuntRunWindow = {
-  startTime: new Date(SEARCHED_UP_TO.getTime() + 1),
+  startTime: SEARCHED_UP_TO,
   endTime: new Date(NOW.getTime() - DELAY),
 };
 

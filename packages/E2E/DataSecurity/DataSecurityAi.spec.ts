@@ -36,6 +36,8 @@ const WAITING_PROPOSAL: string = "1d000000-0000-4000-8000-000000000001";
 const WAITING_TITLE: string =
   "Scrub Email address in log.body of checkout · Logs";
 const MADE_TITLE: string = "Scrub Phone number in log.body of checkout · Logs";
+const EMAIL_IN_LOGS_ISSUE: string = "30000000-0000-4000-8000-000000000003";
+const OVERVIEW: string = `/dashboard/${PROJECT_ID}/data-security`;
 // The database's issue, which no Data Security AI rule matches.
 const LEFT_ALONE_ISSUE_TITLE: string = "Its data is not encrypted at rest";
 
@@ -93,7 +95,12 @@ test.afterEach(async ({ page }: { page: Page }) => {
 
 async function open(
   page: Page,
-  options: { width?: number; role?: "owner" | "viewer" } = {},
+  options: {
+    width?: number;
+    role?: "owner" | "viewer";
+    // Another Data Security page than Data Security → AI.
+    pathname?: string;
+  } = {},
 ): Promise<void> {
   await page.setViewportSize({ width: options.width || LAPTOP, height: 1000 });
   await page.clock.setFixedTime(NOW);
@@ -102,7 +109,7 @@ async function open(
   if (options.role && options.role !== "owner") {
     params.set("role", options.role);
   }
-  await page.goto(`${AI_PAGE}?${params.toString()}`);
+  await page.goto(`${options.pathname || AI_PAGE}?${params.toString()}`);
   // The first load parses a large bundle.
   await expect(page.getByTestId("synthetic-banner")).toBeVisible({
     timeout: 60000,
@@ -212,7 +219,16 @@ test.describe("Data Security → AI", () => {
     ]);
 
     await expect(card(page, "Waiting for you")).toContainText(WAITING_TITLE);
+    // Which rule decided it, by its name.
+    await expect(card(page, "Waiting for you")).toContainText(
+      "Production stores",
+    );
     await expect(card(page, "Done by AI")).toContainText(MADE_TITLE);
+    // The AI rules, each with what every kind of work may do.
+    await expect(card(page, "AI Rules")).toContainText("Production stores");
+    await expect(card(page, "AI Rules")).toContainText(
+      "Analyze: Without asking",
+    );
     await expect(card(page, "Why AI did not act")).toContainText(
       "No Data Security AI rule matches this issue.",
     );
@@ -314,6 +330,75 @@ test.describe("Data Security → AI", () => {
     await settle(page);
     await expectNoSidewaysScroll(page);
     await screenshot(page, "ai-inbox-390");
+  });
+
+  test("an issue's OneUptime AI card sits above How to Fix, with the proposal and its Approve", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, {
+      pathname: `/dashboard/${PROJECT_ID}/data-security/issues/${EMAIL_IN_LOGS_ISSUE}`,
+    });
+
+    const aiCard: Locator = page.getByTestId("data-security-issue-ai-card");
+    await expect(aiCard).toContainText(WAITING_TITLE);
+    await expect(aiCard).toContainText("Waiting for you");
+    await expect(
+      aiCard.getByRole("button", { name: "Approve", exact: true }),
+    ).toBeVisible();
+
+    const aiTop: number = (await aiCard.boundingBox())!.y;
+    const fixTop: number = (await card(page, "How to Fix").boundingBox())!.y;
+    expect(aiTop).toBeLessThan(fixTop);
+
+    await settle(page);
+    await screenshot(page, "ai-issue-card-1280");
+  });
+
+  test("on a phone, the issue's AI card gives each proposal's title its own row, with its buttons under it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, {
+      width: PHONE,
+      pathname: `/dashboard/${PROJECT_ID}/data-security/issues/${EMAIL_IN_LOGS_ISSUE}`,
+    });
+
+    const aiCard: Locator = page.getByTestId("data-security-issue-ai-card");
+    const title: Locator = aiCard.getByText(WAITING_TITLE, { exact: true });
+    const approve: Locator = aiCard.getByRole("button", {
+      name: "Approve",
+      exact: true,
+    });
+    await expect(approve).toBeVisible();
+    await settle(page);
+
+    const titleBox: { y: number; height: number; width: number } =
+      (await title.boundingBox())!;
+    const approveTop: number = (await approve.boundingBox())!.y;
+    const cardWidth: number = (await aiCard.boundingBox())!.width;
+
+    expect(titleBox.y + titleBox.height).toBeLessThanOrEqual(approveTop + 1);
+    // The title is not squeezed beside its buttons: it reads in a line or two.
+    expect(titleBox.width).toBeGreaterThan(cardWidth * 0.6);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "ai-issue-card-390");
+  });
+
+  test("the Overview says what OneUptime AI contained this week and what waits", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, { pathname: OVERVIEW });
+
+    const line: Locator = page.getByTestId("data-security-ai-overview-line");
+    await expect(line).toContainText(
+      "OneUptime AI contained 1 leak this week. 1 proposal waits for you.",
+    );
+    await expect(line.getByRole("link")).toHaveAttribute("href", AI_PAGE);
   });
 
   test("a Security Viewer's Approve is refused in the dialog, in the server's words, and the proposal still waits", async ({

@@ -27,6 +27,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * ONEUPTIME AI'S OWN ANALYSIS OF A NEW DATA SECURITY ISSUE (#10364): the
@@ -57,11 +58,11 @@ function issue(): DataSecurityIssue {
   } as unknown as DataSecurityIssue;
 }
 
-let call: jest.SpiedFunction<typeof AIService.executeWithLogging>;
-let feed: jest.SpiedFunction<
+let call: SpyInstance<typeof AIService.executeWithLogging>;
+let feed: SpyInstance<
   typeof DataSecurityIssueFeedService.createDataSecurityIssueFeedItem
 >;
-let blocker: jest.SpiedFunction<
+let blocker: SpyInstance<
   typeof AIInvestigationEngine.getProviderOrBalanceReason
 >;
 
@@ -151,7 +152,7 @@ describe("OneUptime AI's analysis of a new issue", () => {
   });
 
   test("is built by the input builder, as its own feature, and asked through the one Data Security call", async () => {
-    const ask: jest.SpiedFunction<typeof DataSecurityAiCall.ask> = jest.spyOn(
+    const ask: SpyInstance<typeof DataSecurityAiCall.ask> = jest.spyOn(
       DataSecurityAiCall,
       "ask",
     );
@@ -190,10 +191,17 @@ describe("OneUptime AI's analysis of a new issue", () => {
     expect(blocker).toHaveBeenCalledWith(PROJECT_ID, PROVIDER_ID);
   });
 
-  test.each([
+  const BLOCKED: Array<
+    [
+      "provider_missing" | "insufficient_ai_balance",
+      DataSecurityAiDecisionReason,
+    ]
+  > = [
     ["provider_missing", DataSecurityAiDecisionReason.NoLlmProvider],
     ["insufficient_ai_balance", DataSecurityAiDecisionReason.NoAiCredits],
-  ] as const)(
+  ];
+
+  test.each(BLOCKED)(
     "with %s asks the model nothing, and says why",
     async (
       reason: "provider_missing" | "insufficient_ai_balance",
