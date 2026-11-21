@@ -60,8 +60,10 @@ interface CachedSnapshot {
 }
 
 export default class SecurityBlocklistFeedProtection {
-  private static cache: OldestKeyMap<string, CachedSnapshot> =
-    new OldestKeyMap<string, CachedSnapshot>();
+  private static cache: OldestKeyMap<string, CachedSnapshot> = new OldestKeyMap<
+    string,
+    CachedSnapshot
+  >();
 
   // For tests: forget what every project protects.
   public static clearCache(): void {

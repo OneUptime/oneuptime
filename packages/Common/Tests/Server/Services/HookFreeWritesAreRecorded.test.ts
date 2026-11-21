@@ -660,7 +660,8 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "SecurityBlocklistFeedServe.recordFetch SecurityBlocklistFeed":
         Why.Reported,
-      "SecurityBlocklistFeedServe.writeHeld SecurityBlocklistFeed": Why.Reported,
+      "SecurityBlocklistFeedServe.writeHeld SecurityBlocklistFeed":
+        Why.Reported,
     },
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseIngest.ts": {
     "SecurityCaseIngest.addDetection SecurityCase": Why.Reported,

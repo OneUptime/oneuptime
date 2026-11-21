@@ -283,7 +283,9 @@ function enforcement(
 
 const FEED_ID: string = "74444444-4444-4444-8444-444444444444";
 
-function feed(values: Partial<SecurityBlocklistFeed> = {}): SecurityBlocklistFeed {
+function feed(
+  values: Partial<SecurityBlocklistFeed> = {},
+): SecurityBlocklistFeed {
   const model: SecurityBlocklistFeed = new SecurityBlocklistFeed();
   model._id = FEED_ID;
   model.name = "Palo Alto feed";
@@ -577,7 +579,10 @@ describe("the Blocklist page", () => {
     feeds = [
       feed({ lastFetchedAt: new Date(Date.now() - 60 * 1000) }),
       // Revoked on purpose: nothing stopped working.
-      feed({ _id: "76666666-6666-4666-8666-666666666666", secretHint: null as never }),
+      feed({
+        _id: "76666666-6666-4666-8666-666666666666",
+        secretHint: null as never,
+      }),
       // Not set up yet: the feed's page says so.
       feed({
         _id: "77777777-7777-4777-8777-777777777777",
@@ -801,7 +806,9 @@ describe("a row's cells", () => {
         now,
         createdAt,
       ),
-    ).toBe("Waiting for a firewall to fetch Palo Alto feed without this block.");
+    ).toBe(
+      "Waiting for a firewall to fetch Palo Alto feed without this block.",
+    );
   });
 
   test("Blocked and Challenged are plain facts, never red", () => {
@@ -1507,7 +1514,9 @@ describe("the notice, alone", () => {
       }),
     ).toEqual(["Security Connections", "Cloud Connections", "Blocklist Feeds"]);
     expect(
-      screen.getByRole("link", { name: "Blocklist Feeds" }).getAttribute("href"),
+      screen
+        .getByRole("link", { name: "Blocklist Feeds" })
+        .getAttribute("href"),
     ).toMatch(/\/security-events\/blocklist\/feeds$/);
   });
 });
