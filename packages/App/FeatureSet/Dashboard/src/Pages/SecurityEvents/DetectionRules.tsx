@@ -101,6 +101,7 @@ import DetectionRuleRetrohuntInForm from "../../Components/SecurityEvents/Retroh
 import DetectionRuleWatchlists from "../../Components/SecurityEvents/Watchlists/DetectionRuleWatchlists";
 import DetectionRuleRetrohuntModal from "../../Components/SecurityEvents/Retrohunt/DetectionRuleRetrohuntModal";
 import { RUN_ON_PAST_EVENTS } from "../../Components/SecurityEvents/Retrohunt/RetrohuntCopy";
+import SecurityEventsLateArrivalsNotice from "../../Components/SecurityEvents/LateArrivals/LateArrivalsNotice";
 import AddRuleExceptionModal from "../../Components/SecurityEvents/RuleExceptions/AddRuleExceptionModal";
 import {
   ACTIVE_EXCEPTION_COUNT,
@@ -276,6 +277,12 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         guide={DetectionRulesGuide}
         listItemCount={ruleCount}
       />
+
+      {/*
+       * Events that arrived more than a day after they happened, which no
+       * rule's run checked (#10491): shown only when some did, last week.
+       */}
+      <SecurityEventsLateArrivalsNotice />
 
       <ModelTable<DetectionRule>
         modelType={DetectionRule}

@@ -329,6 +329,7 @@ import "./Jobs/SecurityPlaybooks/RecoverSecurityPlaybookRuns";
 import "./Jobs/SecurityCases/SendSecurityCaseNotification";
 import "./Jobs/SecurityCases/CloseSecurityCaseSourceAlerts";
 import "./Jobs/SecurityCases/CheckResponseTargets";
+import "./Jobs/SecurityCases/CheckResponseSteps";
 import "./Jobs/SecurityBlocklist/ExpireSecurityBlocks";
 import "./Jobs/SecurityBlocklist/ReconcileSecurityBlocklist";
 import "./Jobs/SecurityBlocklist/RunSecurityBlocklistReconcile";

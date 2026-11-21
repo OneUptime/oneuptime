@@ -37,6 +37,8 @@ describe("readSshSignIn", () => {
       user: "admin",
       isInvalidUser: true,
       ip: "203.0.113.7",
+      scrubbed: null,
+      source: "203.0.113.7",
       port: 52314,
     });
   });
@@ -48,6 +50,8 @@ describe("readSshSignIn", () => {
       user: "root",
       isInvalidUser: false,
       ip: "198.51.100.23",
+      scrubbed: null,
+      source: "198.51.100.23",
       port: 41200,
     });
   });
@@ -70,6 +74,8 @@ describe("readSshSignIn", () => {
       user: "oracle",
       isInvalidUser: true,
       ip: "203.0.113.8",
+      scrubbed: null,
+      source: "203.0.113.8",
       port: 60001,
     });
   });

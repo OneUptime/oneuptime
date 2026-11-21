@@ -61,6 +61,7 @@ Start from the top of the table: the higher a way is, the less there is to maint
 | [Okta System Log](/docs/integrations/okta) | Inbound | Bring Okta sign-ins, account changes and threat detections into Security Events. |
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | Inbound | Bring Microsoft Entra ID sign-ins and directory changes, and the Microsoft 365 audit log, into Security Events. |
 | [Google Workspace](/docs/integrations/google-workspace) | Inbound | Bring Google Workspace sign-ins, admin changes and Google's own findings into Security Events. |
+| [Cloudflare](/docs/integrations/cloudflare) | Inbound | Bring what Cloudflare's firewall blocked, challenged and logged into Security Events, beside what reached your app. |
 
 ### Ticketing and IT service management
 

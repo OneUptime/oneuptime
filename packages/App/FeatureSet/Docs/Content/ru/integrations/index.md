@@ -61,6 +61,7 @@ flowchart TB
 | [Okta System Log](/docs/integrations/okta) | Входящее | Передаёт входы, изменения учётных записей и обнаружения угроз Okta в События безопасности. |
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | Входящее | Передаёт входы и изменения каталога Microsoft Entra ID, а также журнал аудита Microsoft 365 в События безопасности. |
 | [Google Workspace](/docs/integrations/google-workspace) | Входящее | Передаёт входы, изменения администраторов и обнаружения Google Workspace в События безопасности. |
+| [Cloudflare](/docs/integrations/cloudflare) | Входящее | Передаёт в События безопасности то, что межсетевой экран Cloudflare заблокировал, проверил и записал в журнал, рядом с тем, что дошло до вашего приложения. |
 
 ### Тикеты и управление ИТ-услугами
 

@@ -106,6 +106,7 @@ const ANSWER: DetectionRetrohuntResult = {
   ],
   hasMoreGroups: false,
   candidateLimit: null,
+  uncounted: null,
 };
 
 let props: DatabaseCommonInteractionProps;

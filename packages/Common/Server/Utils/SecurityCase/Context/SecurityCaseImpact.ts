@@ -20,6 +20,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import {
   SECURITY_CASE_IMPACT_DEPENDENCY_WINDOW_IN_DAYS,
   SecurityCaseDataAtRiskJson,
+  SecurityCaseEdgeJson,
   SECURITY_CASE_IMPACT_MAX_FLOW_ADDRESSES,
   SECURITY_CASE_IMPACT_MAX_FLOW_PEERS,
   SECURITY_CASE_IMPACT_MAX_OWNERS,
@@ -43,6 +44,12 @@ import {
   SecurityEntityType,
 } from "../../../../Types/SecurityCase/SecurityEntity";
 import SecurityEventRequestOutcome from "../../../../Types/SecurityEvent/SecurityEventRequestOutcome";
+import {
+  EDGE_ACTION_ATTRIBUTE,
+  EDGE_SAMPLE_INTERVAL_ATTRIBUTE,
+} from "../../../../Types/SecurityEvent/EdgeAction";
+import { HTTP_ACTIVITY_CLASS_UID } from "../../../../Types/SecurityEvent/SecurityAttackCampaign";
+import { foldEdgeActivityRows } from "../../../../Utils/SecurityCase/SecurityCaseEdgeFacts";
 import { TopologyEntityResponseJSON } from "../../../../Types/Topology/TopologyApi";
 import {
   ReachedRequest,
@@ -164,6 +171,11 @@ export const IMPACT_MAX_CLOUD_RESOURCES_READ: number = 20;
 export const IMPACT_MAX_MONITORS_READ: number = 100;
 // The most events read for requests from public addresses that reached the app.
 export const IMPACT_MAX_REACHED_REQUESTS: number = 50;
+/*
+ * The most groups read for what the edge did with the case's addresses: ten
+ * addresses, each by product, six edge actions and the app's four outcomes.
+ */
+export const IMPACT_MAX_EDGE_ROWS: number = 500;
 
 function recordKey(kind: SecurityConnectionKind, id: string): string {
   return `${kind}:${id}`;
@@ -349,6 +361,62 @@ export function buildReachedRequestsStatement(data: {
   return statement;
 }
 
+/*
+ * The SQL that reads what the edge in front of the app did with the case's
+ * addresses, beside the requests OneUptime saw in the app itself: their web
+ * requests (OCSF HTTP Activity) in the case's window and the reader's
+ * sources, grouped by address, product, edge action (empty for the app's
+ * own requests) and how far each got, each group's requests the sum of its
+ * events' sample intervals. foldEdgeActivityRows makes the case's entries
+ * of it.
+ */
+export function buildEdgeActivityStatement(data: {
+  projectId: ObjectID;
+  addresses: Array<string>;
+  start: Date;
+  end: Date;
+  serviceFilter: TelemetryServiceFilter;
+  limit: number;
+}): Statement {
+  const statement: Statement = SQL`SELECT principalIp, vendorName, attributes[${{
+    type: TableColumnType.Text,
+    value: EDGE_ACTION_ATTRIBUTE,
+  }}] AS edgeAction, requestOutcome, sum(greatest(toUInt64(1), toUInt64OrZero(attributes[${{
+    type: TableColumnType.Text,
+    value: EDGE_SAMPLE_INTERVAL_ATTRIBUTE,
+  }}]))) AS requests, max(toUInt64OrZero(attributes[${{
+    type: TableColumnType.Text,
+    value: EDGE_SAMPLE_INTERVAL_ATTRIBUTE,
+  }}])) AS maxSampleInterval FROM ${AnalyticsTableName.SecurityEvent} WHERE projectId = ${{
+    type: TableColumnType.ObjectID,
+    value: data.projectId,
+  }} AND time >= ${{
+    type: TableColumnType.DateTime64,
+    value: data.start,
+  }} AND time <= ${{
+    type: TableColumnType.DateTime64,
+    value: data.end,
+  }} AND principalIp IN (${{
+    type: TableColumnType.Text,
+    value: new Includes(data.addresses),
+  }}) AND classUid = ${{
+    type: TableColumnType.Number,
+    value: HTTP_ACTIVITY_CLASS_UID,
+  }}`;
+
+  TelemetryReadScopeUtil.appendServiceFilter(statement, data.serviceFilter);
+
+  statement.append(
+    SQL` GROUP BY principalIp, vendorName, edgeAction, requestOutcome ORDER BY principalIp ASC LIMIT ${{
+      type: TableColumnType.Number,
+      value: Math.max(1, Math.trunc(data.limit)),
+    }}`,
+  );
+  statement.append(getQuerySettings(SECURITY_CONNECTION_READ_TIME_LIMIT));
+
+  return statement;
+}
+
 // The addresses a case names, each once, in one spelling.
 export function getCaseAddresses(
   entities: ReadonlyArray<SecurityEntity>,
@@ -427,6 +495,7 @@ export default class SecurityCaseImpact {
       reached,
       recordAddresses,
       dataAtRisk,
+      edge,
     ]: [
       Map<string, DependencyFacts> | null,
       Map<string, SecurityCaseImpactOwnersJson> | null,
@@ -436,6 +505,7 @@ export default class SecurityCaseImpact {
       Array<ReachedRequest> | null,
       Array<RecordAddress>,
       SecurityCaseDataAtRiskJson | null,
+      SecurityCaseEdgeJson | null,
     ] = await Promise.all([
       tracker.read(
         SecurityCaseImpactSource.Dependencies,
@@ -520,6 +590,19 @@ export default class SecurityCaseImpact {
           });
         },
       ),
+      addresses.length > 0
+        ? tracker.read(
+            SecurityCaseImpactSource.Events,
+            (): Promise<SecurityCaseEdgeJson> => {
+              return this.readEdgeActivity({
+                projectId: data.projectId,
+                addresses,
+                scope,
+                props: data.props,
+              });
+            },
+          )
+        : Promise.resolve({ addresses: [] }),
     ]);
 
     const records: Array<SecurityCaseImpactRecordJson> = resources.map(
@@ -568,6 +651,7 @@ export default class SecurityCaseImpact {
         recordAddresses,
       }),
       dataAtRisk,
+      edge,
       unreadableSources: tracker.getUnreadable(),
       failedSources: tracker.getFailed(),
     };
@@ -1162,6 +1246,45 @@ export default class SecurityCaseImpact {
       .filter((request: ReachedRequest | null): request is ReachedRequest => {
         return Boolean(request);
       });
+  }
+
+  /*
+   * What the edge in front of the app did with the case's addresses, beside
+   * what OneUptime saw reach the app: one grouped read, in the reader's
+   * sources (SecurityCaseEdgeFacts).
+   */
+  private static async readEdgeActivity(data: {
+    projectId: ObjectID;
+    addresses: Array<string>;
+    scope: SecurityCaseContextScope;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<SecurityCaseEdgeJson> {
+    const serviceFilter: TelemetryServiceFilter =
+      await TelemetryReadAccess.getServiceFilter({
+        modelType: SecurityEvent,
+        props: data.props,
+      });
+
+    const result: Awaited<
+      ReturnType<typeof SecurityEventService.executeQuery>
+    > = await SecurityEventService.executeQuery(
+      buildEdgeActivityStatement({
+        projectId: data.projectId,
+        addresses: data.addresses,
+        start: data.scope.window.start,
+        end: data.scope.window.end,
+        serviceFilter,
+        limit: IMPACT_MAX_EDGE_ROWS,
+      }),
+    );
+    const response: { data?: Array<JSONObject> } = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return foldEdgeActivityRows({
+      rows: response.data || [],
+      addresses: data.addresses,
+    });
   }
 
   /*

@@ -6,6 +6,7 @@ import { DropIncidentTemplateOwnerNotifiedFlag1809185210000 } from "../../../Ser
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { UniqueColumnsTogetherMetadata } from "../../../Types/Database/UniqueColumnsTogether";
 import TableColumnType from "../../../Types/Database/TableColumnType";
+import UserAttribution from "../../../Types/Database/UserAttribution";
 import {
   DefaultNamingStrategy,
   MigrationInterface,
@@ -83,6 +84,8 @@ const OWNER_MODELS: Array<OwnerModel> = (AllModelTypes as Array<ModelType>)
       .columns.filter((column: string): boolean => {
         return (
           !NON_RESOURCE_ID_COLUMNS.includes(column) &&
+          // Who created or last modified the row (#10290): never what it owns.
+          !UserAttribution.isDecidedByServer(column) &&
           model.getTableColumnMetadata(column).type === TableColumnType.ObjectID
         );
       });

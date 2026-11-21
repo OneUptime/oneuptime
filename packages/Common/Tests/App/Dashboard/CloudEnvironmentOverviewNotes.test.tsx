@@ -28,7 +28,12 @@ import { MemoryRouter } from "react-router-dom";
  *     the same; zeros when an app has sent traces before, or when the apps
  *     could not be counted;
  *   - a span read that failed is unknown, not a note: "could not load" on
- *     the tiles, and the Requests chart says something went wrong.
+ *     the tiles, and the Requests chart says something went wrong;
+ *   - an App Service environment whose apps send only metrics (#6795):
+ *     every tile says why it has no number - No traces received, Not on
+ *     Azure App Service, Not reported - and none shows a 0; one app that
+ *     sends traces gives the trace tiles their numbers; while its apps are
+ *     still being counted, nothing is said in place of a number.
  *
  * The notes' rules on their own are held in CloudAppTelemetrySetup.test.ts;
  * App's Tests/Dashboard/CloudResourcePages reads the page's code.
@@ -52,8 +57,8 @@ const mockReads: {
   environment: Record<string, unknown>;
   instances: Array<Record<string, unknown>>;
   span: SpanReply;
-  // The apps of the environment that sent a trace, or a failed count.
-  appsWithTraces: number | "fail";
+  // The apps of the environment that sent a trace, or a count that failed or never ends.
+  appsWithTraces: number | "fail" | "pending";
   countQueries: Array<Record<string, unknown>>;
 } = {
   environment: {},
@@ -122,6 +127,10 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
         if (mockReads.appsWithTraces === "fail") {
           throw new Error("403 Forbidden");
+        }
+
+        if (mockReads.appsWithTraces === "pending") {
+          return await new Promise<number>((): void => {});
         }
 
         return mockReads.appsWithTraces;
@@ -511,5 +520,173 @@ describe("the environment's trace tiles and Requests chart", () => {
 
     expect(chartText("Requests")).toContain(CLOUD_APP_CHART_LOAD_FAILED);
     expect(chartText("Requests")).not.toContain(CLOUD_APP_NO_TRACES_NOTE);
+  });
+});
+
+/*
+ * #6795: the wiring for an App Service environment whose apps send only
+ * metrics - the customer's (#6770). A wrong field or a lost NotNull in the
+ * count would make every environment read "No traces received", or none.
+ */
+describe("an App Service environment whose apps send only metrics", () => {
+  // The issue's environment: App Service gives an app no CPU or memory of its own.
+  function appServiceEnvironment(): Record<string, unknown> {
+    return {
+      name: "Azure App Service · northcentralus",
+      resourceIdentifier:
+        "azure_app_service|d6252cc9-f01c-428b-924d-9896199f9a13|northcentralus",
+      otelCollectorStatus: "connected",
+      cloudPlatform: "azure_app_service",
+      cloudProvider: "azure",
+      cloudRegion: "northcentralus",
+      cloudAccountId: "d6252cc9-f01c-428b-924d-9896199f9a13",
+      lastSeenAt: minutesAgo(1),
+    };
+  }
+
+  const NOT_ON_APP_SERVICE: string = "Not on Azure App Service";
+  const ALL_TILES: Array<string> = [
+    "CPU",
+    "Memory",
+    "Instances",
+    ...TRACE_TILES,
+  ];
+
+  beforeEach(() => {
+    mockReads.environment = appServiceEnvironment();
+  });
+
+  test("every tile says why it has no number - and none shows a 0", async () => {
+    await renderOverview();
+
+    expect(
+      ALL_TILES.map((title: string): [string, string | null, string | null] => {
+        const drawn: DrawnTile = tile(title);
+        return [title, drawn.note, drawn.value];
+      }),
+    ).toEqual([
+      ["CPU", NOT_ON_APP_SERVICE, null],
+      ["Memory", NOT_ON_APP_SERVICE, null],
+      ["Instances", CLOUD_APP_NOT_REPORTED_NOTE, null],
+      ["Requests", CLOUD_APP_NO_TRACES_NOTE, null],
+      ["Error rate", CLOUD_APP_NO_TRACES_NOTE, null],
+      ["p95 latency", CLOUD_APP_NO_TRACES_NOTE, null],
+    ]);
+
+    const tiles: HTMLElement = screen.getByTestId("resource-overview-tiles");
+
+    for (const value of Array.from(tiles.querySelectorAll(".text-2xl"))) {
+      expect(value.textContent).not.toBe(formatCompact(0));
+    }
+    expect(tiles.querySelectorAll(".text-2xl")).toHaveLength(0);
+    // No meter for a rate never measured.
+    expect(tile("Error rate").hasMeter).toBe(false);
+  });
+
+  test("its apps are counted for this environment only, by the traces they sent", async () => {
+    await renderOverview();
+
+    expect(mockReads.countQueries.length).toBeGreaterThan(0);
+
+    for (const query of mockReads.countQueries) {
+      expect((query["cloudResourceId"] as ObjectID).toString()).toBe(
+        ENVIRONMENT_ID,
+      );
+      expect(query["tracesLastReceivedAt"]).toBeInstanceOf(NotNull);
+    }
+  });
+
+  test("one app that sends traces: the trace tiles show the numbers it measured", async () => {
+    mockReads.appsWithTraces = 1;
+    mockReads.span = {
+      total: 1200,
+      errors: 24,
+      errorRatePercent: 2,
+      p95DurationMs: 180,
+    };
+
+    await renderOverview();
+
+    expect(tile("Requests")).toEqual({
+      value: formatCompact(1200),
+      note: null,
+      sublabel: "selected range",
+      hasMeter: false,
+    });
+    expect(tile("Error rate")).toEqual({
+      value: formatPercent(2),
+      note: null,
+      sublabel: `${formatCompact(24)} errored`,
+      hasMeter: true,
+    });
+    expect(tile("p95 latency")).toEqual({
+      value: formatDurationMs(180),
+      note: null,
+      sublabel: "selected range",
+      hasMeter: false,
+    });
+    // App Service still gives its apps no CPU or memory of their own.
+    expect(tile("CPU").note).toBe(NOT_ON_APP_SERVICE);
+    expect(tile("Memory").note).toBe(NOT_ON_APP_SERVICE);
+  });
+
+  test("one app that sends traces, none in the range: the zeros it measured, never No traces received", async () => {
+    mockReads.appsWithTraces = 1;
+
+    await renderOverview();
+
+    expect(tile("Requests")).toEqual({
+      value: formatCompact(0),
+      note: null,
+      sublabel: "selected range",
+      hasMeter: false,
+    });
+  });
+
+  test("while its apps are still being counted: no note, the numbers as read", async () => {
+    mockReads.appsWithTraces = "pending";
+
+    await renderOverview();
+
+    for (const title of TRACE_TILES) {
+      expect({ title, note: tile(title).note }).toEqual({ title, note: null });
+    }
+    expect(tile("Requests").value).toBe(formatCompact(0));
+    expect(chartText("Requests")).not.toContain(CLOUD_APP_NO_TRACES_NOTE);
+  });
+
+  test("the apps could not be counted: no note, the numbers as read", async () => {
+    mockReads.appsWithTraces = "fail";
+
+    await renderOverview();
+
+    for (const title of TRACE_TILES) {
+      expect({ title, note: tile(title).note }).toEqual({ title, note: null });
+    }
+    expect(tile("Requests").value).toBe(formatCompact(0));
+  });
+
+  test("a span read that failed: a dash over could not load, never No traces received", async () => {
+    mockReads.span = {
+      total: 0,
+      errors: 0,
+      errorRatePercent: null,
+      p95DurationMs: null,
+      failed: true,
+    };
+
+    await renderOverview();
+
+    for (const title of TRACE_TILES) {
+      expect({ title, tile: tile(title) }).toEqual({
+        title,
+        tile: {
+          value: QUIET_DASH_TEXT,
+          note: null,
+          sublabel: CLOUD_APP_LOAD_FAILED_SUBLABEL,
+          hasMeter: false,
+        },
+      });
+    }
   });
 });

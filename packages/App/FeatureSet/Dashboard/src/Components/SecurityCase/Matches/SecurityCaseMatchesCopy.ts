@@ -3,6 +3,10 @@ import {
   PluralTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import {
+  REQUESTS_ALL_TURNED_AWAY,
+  REQUESTS_GOT_THROUGH,
+} from "Common/Utils/SecurityCase/ResponsePlan/ResponsePlanWords";
 
 /*
  * The words of a case's "Why This Case Was Opened" card: why the case was
@@ -79,15 +83,8 @@ export const MATCHED_BETWEEN: PluralTemplate = {
   other: "{{count}} events between {{start}} and {{end}}",
 };
 
-// How far the matched requests got, said in one sentence.
-export const REQUESTS_ALL_TURNED_AWAY: PluralTemplate = {
-  one: "The request was turned away.",
-  other: "All {{count}} requests were turned away.",
-};
-export const REQUESTS_GOT_THROUGH: PluralTemplate = {
-  one: "{{through}} of {{count}} request got past the app's checks.",
-  other: "{{through}} of {{count}} requests got past the app's checks.",
-};
+// How far the matched requests got, said in one sentence: the Response Plan's words too.
+export { REQUESTS_ALL_TURNED_AWAY, REQUESTS_GOT_THROUGH };
 
 // What the listed events are, when they are not exactly what the rule matched.
 export const BASIS_NOTES: Record<SecurityCaseMatchBasis, string> = {

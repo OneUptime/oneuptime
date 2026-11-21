@@ -5,8 +5,10 @@ import SecurityEventRequestOutcome, {
 } from "../../../Types/SecurityEvent/SecurityEventRequestOutcome";
 import WebAttackLogParser from "../../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 import { applyRequestAssessment } from "../../../Utils/SecurityEvent/RequestFollowUp";
+import { resolveClientAddress } from "../../../Utils/SecurityEvent/ClientAddressTrust";
 import { RequestTraceAssessment } from "../../../Utils/SecurityEvent/RequestOutcome";
 import {
+  CLIENT_ADDRESS_SCRUB_MARKER_ATTRIBUTES,
   HiddenClientAddress,
   ScrubbedAddressKind,
   ScrubbedAddressPlace,
@@ -38,6 +40,11 @@ function eventFrom(body: string): NormalizedSecurityEvent {
   return events[0]!;
 }
 
+/*
+ * A trace whose server span names its client by the connection's own
+ * address (the peer), as a scrub rule left it or not: the address the
+ * follow-up reads as verified (ClientAddressTrust, #10416).
+ */
 function assessment(clientAddress: string): RequestTraceAssessment {
   return {
     outcome: SecurityEventRequestOutcome.Rejected,
@@ -47,6 +54,7 @@ function assessment(clientAddress: string): RequestTraceAssessment {
     url: "/static/../../etc/passwd",
     route: "",
     clientAddress,
+    client: resolveClientAddress({ peer: clientAddress }),
     userAgent: "curl/8.5.0",
     userId: "",
     durationMs: 3,
@@ -114,9 +122,13 @@ describe("following a request whose client address a scrub rule hid", () => {
     expect(readHiddenClientAddress(event)).toBeNull();
     expect(
       Object.keys(event.attributes).filter((key: string): boolean => {
-        return key.startsWith("oneuptime.request.client_address");
+        return CLIENT_ADDRESS_SCRUB_MARKER_ATTRIBUTES.includes(key);
       }),
     ).toEqual([]);
+    // Known as the trace knew it: the connection's own address.
+    expect(event.attributes["oneuptime.request.client_address_trust"]).toBe(
+      "peer",
+    );
   });
 
   test("an event that says a log rule hid its address keeps saying so when the trace's is hidden too", () => {

@@ -217,6 +217,78 @@ export default class MicrosoftDefenderEndpointClient {
     return machines;
   }
 
+  /*
+   * Whether a device is isolated, from its isolation actions: the latest of
+   * its Isolate and Unisolate actions that succeeded says, and when. What a
+   * Response Plan step's check reads back (#10340); null when none of them
+   * ever succeeded. Needs Machine.Read.All, as the lookup does.
+   */
+  public async getIsolation(
+    machineId: string,
+  ): Promise<{ isIsolated: boolean; since: Date | null } | null> {
+    const step: string = "Microsoft Defender isolation lookup";
+    const params: URLSearchParams = new URLSearchParams();
+    params.set("$filter", `machineId eq ${odataQuotedValue(machineId)}`);
+    params.set("$top", "50");
+
+    const result: ResponseHttpResult = await this.sendAuthenticated(
+      step,
+      "GET",
+      `${this.endpoints.apiHost}/api/machineactions?${params.toString()}`,
+    );
+
+    if (!ResponseHttp.isSuccess(result)) {
+      throw ResponseHttp.failure({
+        step,
+        result,
+        secrets: this.secrets(),
+        hint:
+          result.statusCode === 403
+            ? "The app registration needs the WindowsDefenderATP permission Machine.Read.All, with admin consent."
+            : undefined,
+      });
+    }
+
+    const value: unknown = (result.bodyJson as JSONObject | undefined)?.[
+      "value"
+    ];
+    let latest: { isIsolated: boolean; since: Date | null; at: number } | null =
+      null;
+
+    for (const item of Array.isArray(value) ? value : []) {
+      if (!item || typeof item !== "object") {
+        continue;
+      }
+
+      const action: JSONObject = item as JSONObject;
+      const type: unknown = action["type"];
+      const status: unknown = action["status"];
+
+      if (
+        (type !== "Isolate" && type !== "Unisolate") ||
+        status !== "Succeeded"
+      ) {
+        continue;
+      }
+
+      const when: unknown =
+        action["lastUpdateDateTimeUtc"] || action["creationDateTimeUtc"];
+      const since: Date | null =
+        typeof when === "string" && !Number.isNaN(new Date(when).getTime())
+          ? new Date(when)
+          : null;
+      const at: number = since ? since.getTime() : 0;
+
+      if (!latest || at > latest.at) {
+        latest = { isIsolated: type === "Isolate", since, at };
+      }
+    }
+
+    return latest
+      ? { isIsolated: latest.isIsolated, since: latest.since }
+      : null;
+  }
+
   public async releaseMachine(data: {
     machineId: string;
     comment: string;

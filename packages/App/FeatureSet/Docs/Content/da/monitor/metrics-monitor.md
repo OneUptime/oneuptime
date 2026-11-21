@@ -116,7 +116,7 @@ Jo længere vinduet er, jo bredere er hvert tidsinterval, så ét datapunkt stå
 
 ## Kriterier
 
-Disse monitorer evaluerer altid **Metrikværdi**: den aggregerede værdi af den konfigurerede metrikforespørgsel eller formel. **Hvornår der advares** opretter ét kriterium ud fra **Målt som**, **Tidsvindue**, **Betingelse** og **Værdi**. Når metrikken har en enhed, vælger du værdiens enhed ved siden af den. Dens **Betingelse** er **Over**, **På eller over**, **Under**, **På eller under**, **Præcis**, **Usædvanligt høj**, **Usædvanligt lav**, **Usædvanligt høj eller lav**, **Forventes at stige over** eller **Forventes at falde under**. For flere kriterier, f.eks. alvorlighedsbånd, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Metrik**, en **Aggregering**, en **Betingelse** og en **Tærskel**.
+Disse monitorer evaluerer altid **Metrikværdi**: den aggregerede værdi af den konfigurerede metrikforespørgsel eller formel. **Hvornår der advares** opretter ét kriterium ud fra **Målt som**, **Tidsvindue**, **Betingelse** og **Værdi**. Når metrikken har en enhed, vælger du værdiens enhed ved siden af den. Dens **Betingelse** er **Over**, **På eller over**, **Under**, **På eller under**, **Præcis**, **Alt andet end**, **Usædvanligt høj**, **Usædvanligt lav**, **Usædvanligt høj eller lav**, **Forventes at stige over** eller **Forventes at falde under**. For flere kriterier, f.eks. alvorlighedsbånd, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Metrik**, en **Aggregering**, en **Betingelse** og en **Tærskel**.
 
 | Betingelse | Matcher, når værdien er… |
 | --- | --- |
@@ -125,6 +125,7 @@ Disse monitorer evaluerer altid **Metrikværdi**: den aggregerede værdi af den 
 | **Mindre end** | under tærsklen |
 | **Mindre end eller lig med** | lig med tærsklen eller derunder |
 | **Lig med** | præcis tærsklen |
+| **Ikke lig med** | alt andet end tærsklen |
 | **Unormalt høj** | over det forventede interval for denne time på ugen |
 | **Unormalt lav** | under det interval |
 | **Unormal** | uden for det interval, i begge retninger |

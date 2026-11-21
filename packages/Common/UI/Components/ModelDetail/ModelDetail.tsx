@@ -4,6 +4,15 @@ import User from "../../Utils/User";
 import Detail, { DetailStyle } from "../Detail/Detail";
 import { isRecordIdField } from "../Detail/DetailRecordId";
 import { isRecordTimeField } from "../Detail/DetailRecordTime";
+import {
+  getRecordActivitySelect,
+  RecordActivity,
+} from "../Detail/DetailRecordActivity";
+import RecordHistoryContext, {
+  GetRecordHistoryRoute,
+} from "../Detail/RecordHistoryContext";
+import useRecordActivity from "../Detail/UseRecordActivity";
+import Route from "../../../Types/API/Route";
 import DetailSkeleton from "../Detail/DetailSkeleton";
 import DetailField from "../Detail/Field";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
@@ -13,7 +22,14 @@ import Dictionary from "../../../Types/Dictionary";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import React, { ReactElement, useEffect, useRef, useState } from "react";
+import React, {
+  ReactElement,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useAsyncEffect } from "use-async-effect";
 import Select from "../../../Types/BaseDatabase/Select";
 import {
@@ -62,6 +78,14 @@ const ModelDetail: <TBaseModel extends BaseModel>(
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [item, setItem] = useState<TBaseModel | null>(null);
+  /*
+   * What the read of `item` asked for of who made it and who last modified
+   * it (getRecordActivitySelect), kept with it: a person it did not ask for
+   * is not named, rather than read as gone.
+   */
+  const [itemActivitySelect, setItemActivitySelect] = useState<
+    Select<BaseModel> | undefined
+  >(undefined);
 
   const [onBeforeFetchData, setOnBeforeFetchData] = useState<
     JSONObject | undefined
@@ -173,6 +197,69 @@ const ModelDetail: <TBaseModel extends BaseModel>(
 
       return relationSelect;
     };
+
+  /*
+   * Whether the card ends with the record's line - its ID, or when it was
+   * created or last updated (Detail's record line) - and so says who created
+   * the record and who last modified it there too (#10290).
+   */
+  const drawsRecordLine: boolean = props.fields.some(
+    (field: Field<TBaseModel>): boolean => {
+      const key: string | undefined = Object.keys(field.field || {})[0];
+
+      if (!key) {
+        return false;
+      }
+
+      const detailField: Field<TBaseModel> & { key: string } = {
+        ...field,
+        key: key,
+      };
+
+      return isRecordIdField(detailField) || isRecordTimeField(detailField);
+    },
+  );
+
+  /*
+   * What the read asks for that line, of the columns the reader may read:
+   * the server refuses a whole read that names one they may not. The page's
+   * own fields win where both name a column.
+   */
+  type GetRecordActivitySelectFunction = () => Select<TBaseModel>;
+
+  const getActivitySelect: GetRecordActivitySelectFunction =
+    (): Select<TBaseModel> => {
+      if (!drawsRecordLine) {
+        return {};
+      }
+
+      return getRecordActivitySelect(
+        new props.modelType(),
+        hasPermissionToReadField,
+      ) as Select<TBaseModel>;
+    };
+
+  const recordActivity: RecordActivity | null = useRecordActivity({
+    item: item,
+    select: itemActivitySelect,
+    isEnabled: drawsRecordLine,
+  });
+
+  // Where the record's history is, for a reader who may open it.
+  const getRecordHistoryRoute: GetRecordHistoryRoute | null =
+    useContext(RecordHistoryContext);
+  const modelIdText: string = props.modelId ? props.modelId.toString() : "";
+
+  const recordHistoryRoute: Route | null = useMemo(() => {
+    if (!drawsRecordLine || !getRecordHistoryRoute || !modelIdText) {
+      return null;
+    }
+
+    return getRecordHistoryRoute({
+      modelType: props.modelType,
+      modelId: new ObjectID(modelIdText),
+    });
+  }, [drawsRecordLine, getRecordHistoryRoute, props.modelType, modelIdText]);
 
   type GetDetailFieldsFunction = () => Array<DetailField<TBaseModel>>;
 
@@ -297,10 +384,13 @@ const ModelDetail: <TBaseModel extends BaseModel>(
 
       const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
 
+      const activitySelect: Select<TBaseModel> = getActivitySelect();
+
       const item: TBaseModel | null = await modelAPI.getItem({
         modelType: props.modelType,
         id: props.modelId,
         select: {
+          ...activitySelect,
           ...getSelectFields(),
           ...getRelationSelect(),
         },
@@ -328,6 +418,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
         props.onItemLoaded(item);
       }
 
+      setItemActivitySelect(activitySelect as Select<BaseModel>);
       setItem(item);
     } catch (err) {
       if (isStale()) {
@@ -404,6 +495,8 @@ const ModelDetail: <TBaseModel extends BaseModel>(
       showDetailsInNumberOfColumns={props.showDetailsInNumberOfColumns}
       style={props.style}
       emptyMessage={props.emptyMessage}
+      recordActivity={recordActivity}
+      recordHistoryRoute={recordHistoryRoute}
     />
   );
 };

@@ -15,7 +15,7 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatList, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
@@ -131,7 +131,19 @@ const HostServiceMonitorsCard: FunctionComponent<ComponentProps> = (
   }
 
   const copy: HostServiceMonitorsCopy = HOST_SERVICE_MONITORS_COPY[props.kind];
-  const hasMonitors: boolean = Boolean(matches && matches.length > 0);
+
+  /*
+   * "Create Another Monitor" only while a monitor surely watches the
+   * service: one the page cannot be sure of (a PromQL expression it cannot
+   * read all of, #10452) is listed, and says why, but leaves "Create
+   * Monitor" as it is.
+   */
+  const hasMonitors: boolean = Boolean(
+    matches &&
+      matches.some((match: HostServiceMonitorMatch): boolean => {
+        return !match.doubt;
+      }),
+  );
 
   const createButton: ReactElement | null = isCreateShown ? (
     <Button
@@ -230,8 +242,25 @@ const HostServiceMonitorsCard: FunctionComponent<ComponentProps> = (
               data-testid={`${HOST_SERVICE_MONITORS_TEST_ID}-item`}
               className="flex items-center justify-between gap-3 px-5 py-3 md:px-6"
             >
-              <div className="min-w-0 text-sm font-medium text-gray-900">
-                <MonitorElement monitor={match.monitor} />
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-gray-900">
+                  <MonitorElement monitor={match.monitor} />
+                </div>
+                {match.doubt ? (
+                  <p
+                    className="mt-0.5 text-xs text-gray-500"
+                    data-testid={`${HOST_SERVICE_MONITORS_TEST_ID}-doubt`}
+                  >
+                    {match.doubt.uncertainLabels.length > 0
+                      ? translator.translateTemplate(copy.doubtLabels, {
+                          labels: formatList(
+                            match.doubt.uncertainLabels,
+                            translator,
+                          ),
+                        })
+                      : translator.translateText(copy.doubtExpression)}
+                  </p>
+                ) : null}
               </div>
               <div className="flex-shrink-0">{renderStatus(match.monitor)}</div>
             </li>

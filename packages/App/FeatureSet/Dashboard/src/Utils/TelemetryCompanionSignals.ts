@@ -11,8 +11,12 @@ import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
-import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
+import {
+  TelemetryQuery,
+  TelemetrySignalScope,
+} from "Common/Types/Telemetry/TelemetryQuery";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
+import MetricTelemetrySnapshot from "Common/Utils/Monitor/MetricTelemetrySnapshot";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import SessionReplayBudgetMetricTypeUtil from "Common/Utils/SessionReplay/SessionReplayBudgetMetricType";
 import TelemetryIngestionBudgetMetricTypeUtil from "Common/Utils/Telemetry/TelemetryIngestionBudgetMetricType";
@@ -302,6 +306,24 @@ function extractScopeFromMetricPrimary(
   };
 }
 
+/*
+ * A resource monitor's logs or traces, as its snapshot keeps them
+ * (MetricTelemetrySnapshot.getSignalScopes, #10451): its resource's
+ * attributes, and the monitor's narrowing the signal cannot carry (a
+ * container's name), each named as an attribute is in the hint.
+ */
+function extractScopeFromSignalScope(
+  signalScope: TelemetrySignalScope,
+): ExtractedPrimaryScope {
+  return {
+    serviceIds: [],
+    entityKeys: [],
+    attributes: { ...signalScope.attributes },
+    severityTexts: [],
+    notCarried: signalScope.notCarried.map(getAttributeScopeNote),
+  };
+}
+
 function hasAnyAttributes(
   attributes: Dictionary<CompanionScopeAttributeValue>,
 ): boolean {
@@ -500,6 +522,39 @@ export const deriveCompanionSignalQueries: DeriveCompanionSignalQueriesFunction 
       ) {
         // Malformed metric scope — unknowable, so widen nothing.
         return NO_COMPANIONS;
+      }
+
+      /*
+       * A Host, Docker, Podman or IoT Device monitor's logs and traces are
+       * its resource's (#10451): its host, a container host's runtime, its
+       * fleet, a systemd unit's journal lines. The metric queries' own
+       * filters are the metric's - a Windows service's `name`, a CPU's
+       * `state` - and on no log line or span, so carried to the tabs they
+       * said nothing was logged, and never named the host. An exception is
+       * an application's, read as its spans are.
+       */
+      const resourceScopes: {
+        logs: TelemetrySignalScope;
+        traces: TelemetrySignalScope;
+      } | null = MetricTelemetrySnapshot.getStoredSignalScopes(telemetryQuery);
+
+      if (resourceScopes) {
+        return {
+          primaryType: primaryType,
+          logs: buildLogsCompanion(
+            extractScopeFromSignalScope(resourceScopes.logs),
+            window,
+          ),
+          traces: buildTracesCompanion(
+            extractScopeFromSignalScope(resourceScopes.traces),
+            window,
+          ),
+          metrics: null,
+          exceptions: buildExceptionsCompanion(
+            extractScopeFromSignalScope(resourceScopes.traces),
+            window,
+          ),
+        };
       }
 
       scope = extractScopeFromMetricPrimary(

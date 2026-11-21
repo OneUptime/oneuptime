@@ -68,6 +68,7 @@ import AlertSettingsOwnerRules from "../Pages/Alerts/Settings/AlertOwnerRules";
 import AlertSettingsRunbookRules from "../Pages/Alerts/Settings/AlertRunbookRules";
 
 import AlertSettingsReminderRules from "../Pages/Alerts/Settings/AlertReminderRules";
+import AlertRulesAuditLogs from "../Pages/Alerts/Settings/AlertRulesAuditLogs";
 
 import AlertSettingsPrivacyRules from "../Pages/Alerts/Settings/AlertPrivacyRules";
 
@@ -457,6 +458,18 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.ALERTS_SETTINGS_REMINDER_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_RULES_AUDIT_LOGS] || ""}
+          element={
+            <AlertRulesAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_RULES_AUDIT_LOGS] as Route
               }
             />
           }

@@ -11,6 +11,7 @@ import { JSONObject } from "Common/Types/JSON";
 import SecurityEventRequestOutcome, {
   SECURITY_REQUEST_ATTRIBUTES,
 } from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
+import { resolveClientAddress } from "Common/Utils/SecurityEvent/ClientAddressTrust";
 import { RequestTraceAssessment } from "Common/Utils/SecurityEvent/RequestOutcome";
 import {
   Translator,
@@ -59,6 +60,7 @@ function facts(
     route: "",
     clientAddress: "",
     hiddenClientAddress: null,
+    claimedClientAddress: null,
     userAgent: "",
     userId: "",
     durationMs: 0,
@@ -73,9 +75,15 @@ function facts(
   };
 }
 
+/*
+ * A fresh read of the trace, its server span naming its client by the
+ * connection's own address (the peer): verified (ClientAddressTrust).
+ */
 function assessment(
   overrides: Partial<RequestTraceAssessment> = {},
 ): RequestTraceAssessment {
+  const clientAddress: string = overrides.clientAddress ?? "198.51.100.7";
+
   return {
     outcome: SecurityEventRequestOutcome.ReachedApp,
     serverSpanId: "server",
@@ -83,7 +91,8 @@ function assessment(
     method: "get",
     url: "/search?q=1",
     route: "/search",
-    clientAddress: "198.51.100.7",
+    clientAddress,
+    client: resolveClientAddress({ peer: clientAddress }),
     userAgent: "sqlmap",
     userId: "user-42",
     durationMs: 12,

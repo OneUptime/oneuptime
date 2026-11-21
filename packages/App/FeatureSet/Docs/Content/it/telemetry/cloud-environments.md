@@ -102,7 +102,7 @@ L'acquisizione crea gli ambienti per te, quindi non c'è nulla da inserire. Apri
 
 ## App e distribuzioni
 
-Ogni servizio che un ambiente esegue è una sua app, chiamata come la chiama la console della piattaforma. **Piattaforme applicative → Tutte le app** elenca ogni app con la revisione che esegue e le sue richieste, il suo tasso di errore e la sua latenza p95 nell'ultima ora, e la scheda **App** di un ambiente elenca le sue.
+Ogni servizio che un ambiente esegue è una sua app, chiamata come la chiama la console della piattaforma. **Piattaforme applicative → Tutte le app** elenca ogni app con la revisione che esegue e le sue richieste, il suo tasso di errore e la sua latenza p95 nell'ultima ora, e la scheda **App** di un ambiente elenca le sue. Un'app di App Service che non invia tracce vi mostra invece i numeri del suo sito da Azure Monitor: le richieste che Azure ha contato, la quota a cui ha risposto con uno stato 5xx e il tempo di risposta medio.
 
 | Piattaforma | App | Separata per | Revisione |
 | --- | --- | --- | --- |
