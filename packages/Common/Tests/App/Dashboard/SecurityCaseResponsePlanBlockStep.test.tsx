@@ -573,7 +573,12 @@ function expectBlockButton(drawn: HTMLElement, translator: Translator): void {
       within(drawn).getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.block)
         .textContent,
     ),
-  ).toBe(text((translator.translateText(ACTION_BLOCK_FOR_A_DAY) || ACTION_BLOCK_FOR_A_DAY)));
+  ).toBe(
+    text(
+      translator.translateText(ACTION_BLOCK_FOR_A_DAY) ||
+        ACTION_BLOCK_FOR_A_DAY,
+    ),
+  );
 }
 
 function expectedLine(data: {
@@ -623,7 +628,9 @@ const STATES: ReadonlyArray<BlockState> = [
           translator.translateTemplate(BLOCK_HELP_CONNECT, {
             cloudflare: "Cloudflare",
             awsWaf: "AWS WAF",
-            firewall: (translator.translateText(BLOCK_HELP_FIREWALL) || BLOCK_HELP_FIREWALL),
+            firewall:
+              translator.translateText(BLOCK_HELP_FIREWALL) ||
+              BLOCK_HELP_FIREWALL,
           }),
         ),
       );
@@ -633,7 +640,9 @@ const STATES: ReadonlyArray<BlockState> = [
             SECURITY_CASE_RESPONSE_TEST_IDS.blockHelpToggle,
           ).textContent,
         ),
-      ).toBe(text((translator.translateText(BLOCK_HELP_SHOW) || BLOCK_HELP_SHOW)));
+      ).toBe(
+        text(translator.translateText(BLOCK_HELP_SHOW) || BLOCK_HELP_SHOW),
+      );
       // OneUptime can do it once something is connected: never "Outside OneUptime".
       expect(
         within(drawn).queryByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.byHand),
@@ -641,7 +650,7 @@ const STATES: ReadonlyArray<BlockState> = [
       expect(
         within(drawn).queryByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.block),
       ).toBeNull();
-      expectSays(drawn, (translator.translateText(ACTION_COPY) || ACTION_COPY));
+      expectSays(drawn, translator.translateText(ACTION_COPY) || ACTION_COPY);
     },
   },
   {
@@ -662,7 +671,10 @@ const STATES: ReadonlyArray<BlockState> = [
     },
     expect: ({ translator, drawn }: StateRead): void => {
       expectSays(drawn, sentenceOfStep(translator));
-      expectSays(drawn, (translator.translateText(STEP_BLOCK_WAITING) || STEP_BLOCK_WAITING));
+      expectSays(
+        drawn,
+        translator.translateText(STEP_BLOCK_WAITING) || STEP_BLOCK_WAITING,
+      );
       expect(
         within(drawn).queryByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.block),
       ).toBeNull();
@@ -674,7 +686,10 @@ const STATES: ReadonlyArray<BlockState> = [
       runs = [oneStepRun(SecurityPlaybookRunStatus.Running)];
     },
     expect: ({ translator, drawn }: StateRead): void => {
-      expectSays(drawn, (translator.translateText(STEP_BLOCK_RUNNING) || STEP_BLOCK_RUNNING));
+      expectSays(
+        drawn,
+        translator.translateText(STEP_BLOCK_RUNNING) || STEP_BLOCK_RUNNING,
+      );
       expect(
         within(drawn).queryByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.block),
       ).toBeNull();
@@ -686,7 +701,10 @@ const STATES: ReadonlyArray<BlockState> = [
       runs = [oneStepRun(SecurityPlaybookRunStatus.Failed)];
     },
     expect: ({ translator, drawn }: StateRead): void => {
-      expectSays(drawn, (translator.translateText(STEP_BLOCK_FAILED) || STEP_BLOCK_FAILED));
+      expectSays(
+        drawn,
+        translator.translateText(STEP_BLOCK_FAILED) || STEP_BLOCK_FAILED,
+      );
       expectBlockButton(drawn, translator);
     },
   },
@@ -721,7 +739,7 @@ const STATES: ReadonlyArray<BlockState> = [
           within(line).getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.lift)
             .textContent,
         ),
-      ).toBe(text((translator.translateText(LIFT_ACTION) || LIFT_ACTION)));
+      ).toBe(text(translator.translateText(LIFT_ACTION) || LIFT_ACTION));
       expect(drawn).toHaveAttribute("data-done", "true");
       expect(
         within(drawn).queryByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.block),
@@ -885,7 +903,7 @@ describe("how to block it by hand, unfolded", () => {
         BLOCK_HELP_NGINX,
         BLOCK_HELP_NFTABLES,
       ]) {
-        expect(said).toContain(text((translator.translateText(key) || key)));
+        expect(said).toContain(text(translator.translateText(key) || key));
       }
 
       expect(said).toContain(`deny ${ADDRESS};`);
@@ -899,7 +917,9 @@ describe("how to block it by hand, unfolded", () => {
             SECURITY_CASE_RESPONSE_TEST_IDS.blockHelpToggle,
           ).textContent,
         ),
-      ).toBe(text((translator.translateText(BLOCK_HELP_HIDE) || BLOCK_HELP_HIDE)));
+      ).toBe(
+        text(translator.translateText(BLOCK_HELP_HIDE) || BLOCK_HELP_HIDE),
+      );
     },
   );
 });
