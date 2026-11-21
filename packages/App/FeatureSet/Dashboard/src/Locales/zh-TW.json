@@ -61206,5 +61206,16 @@
   "{{count}} more sources": "另外 {{count}} 個來源",
   "{{count}} more sources_one": "另外 {{count}} 個來源",
   "{{source}}: {{count}} events that happened from {{from}} to {{to}}": "{{source}}：{{count}} 個事件，發生於 {{from}} 至 {{to}}",
-  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}：{{count}} 個事件，發生於 {{from}} 至 {{to}}"
+  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}：{{count}} 個事件，發生於 {{from}} 至 {{to}}",
+  "A scrub rule hid the user of {{count}} of them.": "其中 {{count}} 個的使用者被清除規則隱藏。",
+  "A scrub rule hid the user of {{count}} of them._one": "其中 {{count}} 個的使用者被清除規則隱藏。",
+  "A scrub rule redacted or masked the user of these events, so they can't be counted as users": "清除規則已編修或遮罩這些事件的使用者，因此無法將其計為使用者",
+  "Show events whose user a scrub rule hid": "顯示使用者被清除規則隱藏的事件",
+  "Users whose ID a scrub rule hashed: each is counted once, but nobody can name them": "ID 被清除規則雜湊處理的使用者：每位只計一次，但無法得知是誰",
+  "{{hidden}} is usage whose person a scrub rule hid, so it isn't counted as anyone's.": "{{hidden}} 是使用者被清除規則隱藏的使用量，因此不計入任何人。",
+  "{{hidden}} is usage whose team a scrub rule hid, so it isn't counted as any team's.": "{{hidden}} 是團隊被清除規則隱藏的使用量，因此不計入任何團隊。",
+  "{{number}} events with a hidden user": "{{number}} 個使用者被隱藏的事件",
+  "{{number}} events with a hidden user_one": "{{number}} 個使用者被隱藏的事件",
+  "{{number}} hidden users": "{{number}} 位被隱藏的使用者",
+  "{{number}} hidden users_one": "{{number}} 位被隱藏的使用者"
 }

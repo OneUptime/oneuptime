@@ -61206,5 +61206,16 @@
   "{{count}} more sources": "{{count}} और स्रोत",
   "{{count}} more sources_one": "{{count}} और स्रोत",
   "{{source}}: {{count}} events that happened from {{from}} to {{to}}": "{{source}}: {{from}} से {{to}} के बीच हुए {{count}} इवेंट",
-  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{from}} से {{to}} के बीच हुआ {{count}} इवेंट"
+  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{from}} से {{to}} के बीच हुआ {{count}} इवेंट",
+  "A scrub rule hid the user of {{count}} of them.": "इनमें से {{count}} का उपयोगकर्ता एक सफ़ाई नियम ने छिपाया।",
+  "A scrub rule hid the user of {{count}} of them._one": "इनमें से {{count}} का उपयोगकर्ता एक सफ़ाई नियम ने छिपाया।",
+  "A scrub rule redacted or masked the user of these events, so they can't be counted as users": "एक सफ़ाई नियम ने इन इवेंट के उपयोगकर्ता को छिपाया या मास्क किया, इसलिए इन्हें उपयोगकर्ताओं के रूप में नहीं गिना जा सकता",
+  "Show events whose user a scrub rule hid": "वे इवेंट दिखाएँ जिनका उपयोगकर्ता सफ़ाई नियम ने छिपाया",
+  "Users whose ID a scrub rule hashed: each is counted once, but nobody can name them": "वे उपयोगकर्ता जिनकी ID एक सफ़ाई नियम ने हैश की: हर एक को एक बार गिना जाता है, पर कोई उनका नाम नहीं बता सकता",
+  "{{hidden}} is usage whose person a scrub rule hid, so it isn't counted as anyone's.": "{{hidden}} वह उपयोग है जिसका व्यक्ति एक सफ़ाई नियम ने छिपाया, इसलिए इसे किसी के नाम नहीं गिना जाता।",
+  "{{hidden}} is usage whose team a scrub rule hid, so it isn't counted as any team's.": "{{hidden}} वह उपयोग है जिसकी टीम एक सफ़ाई नियम ने छिपाई, इसलिए इसे किसी टीम के नाम नहीं गिना जाता।",
+  "{{number}} events with a hidden user": "छिपे उपयोगकर्ता वाले {{number}} इवेंट",
+  "{{number}} events with a hidden user_one": "छिपे उपयोगकर्ता वाला {{number}} इवेंट",
+  "{{number}} hidden users": "{{number}} छिपे उपयोगकर्ता",
+  "{{number}} hidden users_one": "{{number}} छिपा उपयोगकर्ता"
 }

@@ -61206,5 +61206,16 @@
   "{{count}} more sources": "{{count}} autres sources",
   "{{count}} more sources_one": "{{count}} autre source",
   "{{source}}: {{count}} events that happened from {{from}} to {{to}}": "{{source}} : {{count}} événements survenus du {{from}} au {{to}}",
-  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}} : {{count}} événement survenu du {{from}} au {{to}}"
+  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}} : {{count}} événement survenu du {{from}} au {{to}}",
+  "A scrub rule hid the user of {{count}} of them.": "Une règle de nettoyage a masqué l'utilisateur de {{count}} d'entre eux.",
+  "A scrub rule hid the user of {{count}} of them._one": "Une règle de nettoyage a masqué l'utilisateur de {{count}} d'entre eux.",
+  "A scrub rule redacted or masked the user of these events, so they can't be counted as users": "Une règle de nettoyage a masqué en tout ou en partie l'utilisateur de ces événements, qui ne peuvent donc pas être comptés comme des utilisateurs",
+  "Show events whose user a scrub rule hid": "Afficher les événements dont une règle de nettoyage a masqué l'utilisateur",
+  "Users whose ID a scrub rule hashed: each is counted once, but nobody can name them": "Utilisateurs dont une règle de nettoyage a haché l'ID : chacun est compté une fois, mais personne ne peut les nommer",
+  "{{hidden}} is usage whose person a scrub rule hid, so it isn't counted as anyone's.": "{{hidden}} regroupe l'utilisation dont une règle de nettoyage a masqué la personne, elle n'est donc attribuée à personne.",
+  "{{hidden}} is usage whose team a scrub rule hid, so it isn't counted as any team's.": "{{hidden}} regroupe l'utilisation dont une règle de nettoyage a masqué l'équipe, elle n'est donc attribuée à aucune équipe.",
+  "{{number}} events with a hidden user": "{{number}} événements avec un utilisateur masqué",
+  "{{number}} events with a hidden user_one": "{{number}} événement avec un utilisateur masqué",
+  "{{number}} hidden users": "{{number}} utilisateurs masqués",
+  "{{number}} hidden users_one": "{{number}} utilisateur masqué"
 }

@@ -61206,5 +61206,16 @@
   "{{count}} more sources": "ほか {{count}} 件のソース",
   "{{count}} more sources_one": "ほか {{count}} 件のソース",
   "{{source}}: {{count}} events that happened from {{from}} to {{to}}": "{{source}}: {{from}} から {{to}} までに発生した {{count}} 件のイベント",
-  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{from}} から {{to}} までに発生した {{count}} 件のイベント"
+  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{from}} から {{to}} までに発生した {{count}} 件のイベント",
+  "A scrub rule hid the user of {{count}} of them.": "そのうち {{count}} 件は、スクラブルールによってユーザーが非表示にされました。",
+  "A scrub rule hid the user of {{count}} of them._one": "そのうち {{count}} 件は、スクラブルールによってユーザーが非表示にされました。",
+  "A scrub rule redacted or masked the user of these events, so they can't be counted as users": "スクラブルールによってこれらのイベントのユーザーが秘匿またはマスクされたため、ユーザーとして数えられません",
+  "Show events whose user a scrub rule hid": "スクラブルールによってユーザーが非表示にされたイベントを表示",
+  "Users whose ID a scrub rule hashed: each is counted once, but nobody can name them": "スクラブルールによって ID がハッシュ化されたユーザー：それぞれ 1 回ずつ数えられますが、誰なのかは特定できません",
+  "{{hidden}} is usage whose person a scrub rule hid, so it isn't counted as anyone's.": "{{hidden}} は、スクラブルールによって人物が非表示にされた使用量で、誰の使用量としても数えられません。",
+  "{{hidden}} is usage whose team a scrub rule hid, so it isn't counted as any team's.": "{{hidden}} は、スクラブルールによってチームが非表示にされた使用量で、どのチームの使用量としても数えられません。",
+  "{{number}} events with a hidden user": "ユーザーが非表示の {{number}} 件のイベント",
+  "{{number}} events with a hidden user_one": "ユーザーが非表示の {{number}} 件のイベント",
+  "{{number}} hidden users": "非表示の {{number}} 人のユーザー",
+  "{{number}} hidden users_one": "非表示の {{number}} 人のユーザー"
 }

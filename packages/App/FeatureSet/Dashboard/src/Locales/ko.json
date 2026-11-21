@@ -61206,5 +61206,16 @@
   "{{count}} more sources": "그 밖의 소스 {{count}}개",
   "{{count}} more sources_one": "그 밖의 소스 {{count}}개",
   "{{source}}: {{count}} events that happened from {{from}} to {{to}}": "{{source}}: {{from}}부터 {{to}}까지 발생한 이벤트 {{count}}개",
-  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{from}}부터 {{to}}까지 발생한 이벤트 {{count}}개"
+  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{from}}부터 {{to}}까지 발생한 이벤트 {{count}}개",
+  "A scrub rule hid the user of {{count}} of them.": "그중 {{count}}개는 정리 규칙이 사용자를 숨겼습니다.",
+  "A scrub rule hid the user of {{count}} of them._one": "그중 {{count}}개는 정리 규칙이 사용자를 숨겼습니다.",
+  "A scrub rule redacted or masked the user of these events, so they can't be counted as users": "정리 규칙이 이 이벤트들의 사용자를 삭제 처리하거나 마스크했기 때문에 사용자로 셀 수 없습니다",
+  "Show events whose user a scrub rule hid": "정리 규칙이 사용자를 숨긴 이벤트 표시",
+  "Users whose ID a scrub rule hashed: each is counted once, but nobody can name them": "정리 규칙이 ID를 해시한 사용자: 각각 한 번씩 세지만 누구인지 알 수 없습니다",
+  "{{hidden}} is usage whose person a scrub rule hid, so it isn't counted as anyone's.": "{{hidden}}은 정리 규칙이 사람을 숨긴 사용량이므로 누구의 사용량으로도 세지 않습니다.",
+  "{{hidden}} is usage whose team a scrub rule hid, so it isn't counted as any team's.": "{{hidden}}은 정리 규칙이 팀을 숨긴 사용량이므로 어느 팀의 사용량으로도 세지 않습니다.",
+  "{{number}} events with a hidden user": "사용자가 숨겨진 이벤트 {{number}}개",
+  "{{number}} events with a hidden user_one": "사용자가 숨겨진 이벤트 {{number}}개",
+  "{{number}} hidden users": "숨겨진 사용자 {{number}}명",
+  "{{number}} hidden users_one": "숨겨진 사용자 {{number}}명"
 }

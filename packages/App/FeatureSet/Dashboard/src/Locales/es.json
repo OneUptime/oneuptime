@@ -61206,5 +61206,16 @@
   "{{count}} more sources": "{{count}} orígenes más",
   "{{count}} more sources_one": "{{count}} origen más",
   "{{source}}: {{count}} events that happened from {{from}} to {{to}}": "{{source}}: {{count}} eventos que ocurrieron entre {{from}} y {{to}}",
-  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{count}} evento que ocurrió entre {{from}} y {{to}}"
+  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{count}} evento que ocurrió entre {{from}} y {{to}}",
+  "A scrub rule hid the user of {{count}} of them.": "Una regla de depuración ocultó el usuario de {{count}} de ellos.",
+  "A scrub rule hid the user of {{count}} of them._one": "Una regla de depuración ocultó el usuario de {{count}} de ellos.",
+  "A scrub rule redacted or masked the user of these events, so they can't be counted as users": "Una regla de depuración ocultó o enmascaró el usuario de estos eventos, así que no se pueden contar como usuarios",
+  "Show events whose user a scrub rule hid": "Mostrar los eventos cuyo usuario ocultó una regla de depuración",
+  "Users whose ID a scrub rule hashed: each is counted once, but nobody can name them": "Usuarios cuyo ID convirtió en hash una regla de depuración: cada uno se cuenta una vez, pero nadie puede nombrarlos",
+  "{{hidden}} is usage whose person a scrub rule hid, so it isn't counted as anyone's.": "{{hidden}} es el uso cuya persona ocultó una regla de depuración, así que no se atribuye a nadie.",
+  "{{hidden}} is usage whose team a scrub rule hid, so it isn't counted as any team's.": "{{hidden}} es el uso cuyo equipo ocultó una regla de depuración, así que no se atribuye a ningún equipo.",
+  "{{number}} events with a hidden user": "{{number}} eventos con un usuario oculto",
+  "{{number}} events with a hidden user_one": "{{number}} evento con un usuario oculto",
+  "{{number}} hidden users": "{{number}} usuarios ocultos",
+  "{{number}} hidden users_one": "{{number}} usuario oculto"
 }
