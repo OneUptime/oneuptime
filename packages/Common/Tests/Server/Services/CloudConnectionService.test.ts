@@ -623,31 +623,45 @@ describe("a connection that enforces the blocklist in AWS WAF", () => {
     );
   });
 
-  test("with no web ACL it turns off; and moving between OneUptime's rule and the team's own never asks", async () => {
+  test("with no web ACL it turns off, or moves to the team's own rule", async () => {
     webAcls = 0;
 
-    const off: OnUpdate<CloudConnection> = await service.onBeforeUpdate(
-      updateBy({ config: awsWaf("off") }),
+    for (const choice of ["off", "code"]) {
+      const saved: OnUpdate<CloudConnection> = await service.onBeforeUpdate(
+        updateBy({ config: awsWaf(choice) }),
+      );
+
+      expect(
+        ((saved.updateBy.data as JSONObject)["config"] as JSONObject)[
+          "wafBlocklist"
+        ],
+      ).toBe(choice);
+    }
+  });
+
+  test("moving from OneUptime's rule to the team's own is refused while a web ACL uses it: its command could no longer take OneUptime's rule out", async () => {
+    await expect(
+      service.onBeforeUpdate(updateBy({ config: awsWaf("code") })),
+    ).rejects.toThrow(
+      'This connection enforces your blocklist in a web ACL. Remove the web ACL under Cloud WAFs on the Blocklist page first, so OneUptime takes its rule out of it, then pick "On, and I add the rule in code".',
     );
+  });
 
-    expect(
-      ((off.updateBy.data as JSONObject)["config"] as JSONObject)[
-        "wafBlocklist"
-      ],
-    ).toBe("off");
-
-    counted.mockClear();
+  test("moving from the team's own rule to OneUptime's never asks: it only gains what it may write", async () => {
     webAcls = 2;
+    jest
+      .spyOn(CloudConnectionService, "findOneById")
+      .mockResolvedValue(stored({ config: awsWaf("code") }));
 
-    const code: OnUpdate<CloudConnection> = await service.onBeforeUpdate(
-      updateBy({ config: awsWaf("code") }),
+    const rule: OnUpdate<CloudConnection> = await service.onBeforeUpdate(
+      updateBy({ config: awsWaf("rule") }),
     );
 
     expect(
-      ((code.updateBy.data as JSONObject)["config"] as JSONObject)[
+      ((rule.updateBy.data as JSONObject)["config"] as JSONObject)[
         "wafBlocklist"
       ],
-    ).toBe("code");
+    ).toBe("rule");
     expect(counted).not.toHaveBeenCalled();
   });
 

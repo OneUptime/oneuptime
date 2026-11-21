@@ -13,6 +13,7 @@ import {
   CloudConnectionDefinition,
   CloudConnectionField,
   WAF_BLOCKLIST_FIELD_KEY,
+  doesCloudConnectionWafBlocklistAddRule,
   getCloudConnectionAuthMethod,
   getCloudConnectionDefinition,
   getCloudConnectionFieldsForMethod,
@@ -475,18 +476,34 @@ export class Service extends DatabaseService<Model> {
       requireRequiredSecrets: true,
     });
 
+    const wafBefore: unknown = Service.parseJsonObject(
+      current.config,
+      "Settings",
+    )[WAF_BLOCKLIST_FIELD_KEY];
+    const wafAfter: unknown = settings.config[WAF_BLOCKLIST_FIELD_KEY];
+
     if (
-      isCloudConnectionWafBlocklistOn(
-        Service.parseJsonObject(current.config, "Settings")[
-          WAF_BLOCKLIST_FIELD_KEY
-        ],
-      ) &&
-      !isCloudConnectionWafBlocklistOn(settings.config[WAF_BLOCKLIST_FIELD_KEY])
+      isCloudConnectionWafBlocklistOn(wafBefore) &&
+      !isCloudConnectionWafBlocklistOn(wafAfter)
     ) {
       await Service.refuseWhileEnforcingBlocklist({
         projectId: current.projectId,
         connectionId: new ObjectID(connectionId),
         doing: "turn off Block addresses in AWS WAF",
+      });
+    } else if (
+      doesCloudConnectionWafBlocklistAddRule(wafBefore) &&
+      !doesCloudConnectionWafBlocklistAddRule(wafAfter)
+    ) {
+      /*
+       * Its command then no longer lets OneUptime write the web ACLs: the
+       * rules it added would stay there, which Remove could no longer take
+       * out, and nobody would keep them.
+       */
+      await Service.refuseWhileEnforcingBlocklist({
+        projectId: current.projectId,
+        connectionId: new ObjectID(connectionId),
+        doing: 'pick "On, and I add the rule in code"',
       });
     }
 
