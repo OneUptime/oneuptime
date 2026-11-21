@@ -87,14 +87,14 @@ Un navigateur envoie rarement des lots aussi gros, sauf si des spans portent de 
 
 ## Vérifier où la télémétrie arrive
 
-La requête réussit, mais l'application apparaît sous **Produits → Services** au lieu de **Produits → Ressources → Surveillance des utilisateurs réels**. C'est le signalement le plus courant, et la cause est presque toujours une ressource sans attributs client. OneUptime ne range un lot comme RUM que si sa ressource porte l'un de ceux-ci :
+La requête réussit, mais l'application apparaît sous **Produits → Services** au lieu de **Produits → Ressources → Surveillance des utilisateurs réels**. C'est le signalement le plus courant, et la cause est presque toujours une autre clé qu'une clé Navigateur ou Mobile, qui envoie une ressource sans attributs client. Tout ce qu'envoie une clé Navigateur ou Mobile est rangé comme RUM ; avec toute autre clé, OneUptime ne range un lot comme RUM que si sa ressource porte l'un de ceux-ci :
 
 | Type | Attributs |
 | --- | --- |
 | Navigateur | `browser.platform`, `browser.language`, ou un `browser.brands` non vide |
 | Mobile | `device.id` ou `device.model.identifier`, ou `device.manufacturer` sur une ressource sans identité d'hôte (`host.name`, `host.id` ou `k8s.node.name`) |
 
-Un `service.name` seul crée un service backend. Le SDK navigateur OpenTelemetry n'ajoute aucun attribut `browser.*` sauf si vous ajoutez le détecteur de ressources du navigateur ou les définissez vous-même : voir [Configuration navigateur](/docs/rum/browser-setup).
+Avec toute autre clé, un `service.name` seul crée un service backend. Le SDK navigateur OpenTelemetry n'ajoute aucun attribut `browser.*` sauf si vous ajoutez le détecteur de ressources du navigateur ou les définissez vous-même : voir [Configuration navigateur](/docs/rum/browser-setup).
 
 Pour voir ce que vous envoyez réellement, ouvrez la requête OTLP dans l'onglet Réseau et regardez sa charge : `resourceSpans[0].resource.attributes` est la liste qui décide. Si aucun attribut `browser.*` n'y figure, le SDK ne l'ajoute pas, quoi qu'en dise sa documentation.
 
@@ -127,7 +127,7 @@ Le graphique vide de la **Vue d'ensemble** de l'application indique de quel cas 
 
 Les exceptions ont besoin d'un gestionnaire d'erreurs, car le SDK ne capture pas les erreurs non interceptées : [Signaler les erreurs non interceptées](/docs/rum/browser-setup#signaler-les-erreurs-non-interceptées) donne le code. Une erreur qu'une error boundary ou un `try`/`catch` intercepte n'atteint jamais la fenêtre : enregistrez-la là où vous la traitez, avec `span.recordException`.
 
-Les journaux ont besoin d'un pipeline de journaux et de code qui écrit des entrées de journal, car un `LoggerProvider` seul n'envoie rien : [Ajouter journaux et métriques](/docs/rum/browser-setup#ajouter-journaux-et-métriques) donne les deux. Construisez le pipeline avec la même `resource` que vos traces, sinon les journaux sont classés sous un service backend.
+Les journaux ont besoin d'un pipeline de journaux et de code qui écrit des entrées de journal, car un `LoggerProvider` seul n'envoie rien : [Ajouter journaux et métriques](/docs/rum/browser-setup#ajouter-journaux-et-métriques) donne les deux. Construisez le pipeline avec la même `resource` que vos traces, pour que les journaux soient classés sous la même application.
 
 Quand les chargements de page arrivent, la clé, ses origines autorisées et votre Content Security Policy laissent aussi passer les exceptions et les journaux, tant que l'exportateur de journaux utilise la même clé et le même hôte. Un gestionnaire d'erreurs qui n'a encore rien intercepté n'envoie rien, exactement comme un gestionnaire jamais ajouté : levez une erreur de test depuis la console du navigateur pour distinguer les deux :
 

@@ -381,12 +381,17 @@ describe("the paths the App's own clients send large bodies to", () => {
  * A probe's collection is read by its route, once the route has checked the
  * key in its headers (#10222), as the bytes the gzip reader inflated,
  * whatever its Content-Type said - one that is not JSON's is not counted as
- * it inflates. It is counted before it is parsed: up to a collection's
- * 8,000,000 values for a probe whose key is right, and up to a large route's
- * 1,000,000 for one whose probe is not known by then.
+ * it inflates. It is counted before it is parsed, up to a collection's
+ * 8,000,000 values. A collection whose probe no header named is read no
+ * further than the key at its start until that key is checked (#10260), so
+ * a body that opens with anything else is refused unread.
  */
 describe("a collection is counted before it is parsed", () => {
-  function gzipRequest(body: Buffer, contentType: string): ExpressRequest {
+  function gzipRequest(
+    body: Buffer,
+    contentType: string,
+    probe?: Probe,
+  ): ExpressRequest {
     const stream: PassThrough = new PassThrough();
     const req: ExpressRequest = stream as unknown as ExpressRequest;
 
@@ -396,11 +401,21 @@ describe("a collection is counted before it is parsed", () => {
       "content-length": String(body.length),
     };
 
+    if (probe) {
+      (req as ProbeExpressRequest).probe = probe;
+    }
+
     setImmediate(() => {
       stream.end(body);
     });
 
     return req;
+  }
+
+  // An answer, as Response.sendErrorResponse writes one.
+  interface Answered {
+    status?: number;
+    body?: unknown;
   }
 
   function run(
@@ -410,11 +425,26 @@ describe("a collection is counted before it is parsed", () => {
       next: NextFunction,
     ) => void,
     req: ExpressRequest,
+    answered: Answered = {},
   ): Promise<unknown> {
     return new Promise<unknown>((resolve: (value: unknown) => void) => {
+      const res: Record<string, unknown> = {
+        headersSent: false,
+        shouldKeepAlive: true,
+        status: (status: number): unknown => {
+          answered.status = status;
+          return res;
+        },
+        send: (body: unknown): unknown => {
+          answered.body = body;
+          resolve("answered");
+          return res;
+        },
+      };
+
       middleware(
         req,
-        {} as ExpressResponse,
+        res as unknown as ExpressResponse,
         ((error?: unknown) => {
           resolve(error);
         }) as NextFunction,
@@ -422,12 +452,15 @@ describe("a collection is counted before it is parsed", () => {
     });
   }
 
-  const bomb: Buffer = Buffer.from(
-    `[${"[],".repeat(Math.floor((20 * 1024 * 1024) / 3))}[]]`,
-  );
-
-  test("of 20 MiB of empty arrays sent as text/plain, whose probe is not known, is refused 413 and never parsed", async () => {
-    const req: ExpressRequest = gzipRequest(zlib.gzipSync(bomb), "text/plain");
+  test("of 26 MiB of empty arrays sent as text/plain by a probe its headers named, is refused 413 at a collection's 8,000,000 values and never parsed", async () => {
+    const bomb: Buffer = Buffer.from(
+      `[${"[],".repeat(Math.floor((26 * 1024 * 1024) / 3))}[]]`,
+    );
+    const req: ExpressRequest = gzipRequest(
+      zlib.gzipSync(bomb),
+      "text/plain",
+      new Probe(new ObjectID("11111111-1111-4111-8111-111111111111")),
+    );
 
     // The route's own reader: not JSON's type, so not counted as it inflates.
     expect(await run(readCollectionBody, req)).toBeUndefined();
@@ -447,13 +480,33 @@ describe("a collection is counted before it is parsed", () => {
         req,
       );
 
-      // Under a large route's 1,000,000, not a collection's 8,000,000.
       expect(error).toMatchObject({
         type: "entity.too.many.values",
         status: 413,
         expose: true,
-        limit: LARGE_REQUEST_BODY_LIMIT.values,
+        limit: REPORT_REQUEST_BODY_LIMIT.values,
       });
+      expect(jsonParse).not.toHaveBeenCalled();
+    } finally {
+      jsonParse.mockRestore();
+    }
+  }, 120000);
+
+  test("of 20 MiB of empty arrays whose probe no header named, is refused at its opening, read no further and never parsed", async () => {
+    const bomb: Buffer = Buffer.from(
+      `[${"[],".repeat(Math.floor((20 * 1024 * 1024) / 3))}[]]`,
+    );
+    const req: ExpressRequest = gzipRequest(zlib.gzipSync(bomb), "text/plain");
+    const answered: Answered = {};
+    const jsonParse: ReturnType<typeof jest.spyOn> = jest.spyOn(JSON, "parse");
+
+    try {
+      expect(await run(readCollectionBody, req, answered)).toBe("answered");
+      expect(answered).toEqual({
+        status: 400,
+        body: { message: "ProbeId or ProbeKey is missing" },
+      });
+      expect((req as unknown as { body: unknown }).body).toBeUndefined();
       expect(jsonParse).not.toHaveBeenCalled();
     } finally {
       jsonParse.mockRestore();

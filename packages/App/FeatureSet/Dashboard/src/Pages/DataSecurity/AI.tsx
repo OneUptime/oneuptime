@@ -7,41 +7,34 @@ import {
   DataSecurityAiSettingsCopy,
   ProjectAiNoticeContext,
 } from "../../Components/AISettings/ProjectAiSettingsCopy";
-import DataSecurityApi from "../../Components/DataSecurity/DataSecurityApi";
 import {
   DATA_SECURITY_AI_TABLE_IDS,
   DataSecurityAiPageCopy,
-  getDataSecurityAiAskReasonSentence,
+  DataSecurityAiRulesCopy,
   getDataSecurityAiDecisionLines,
   getDataSecurityAiSkipSentence,
   getDataSecurityAiWorkLabel,
 } from "../../Components/DataSecurity/DataSecurityAiCopy";
+import {
+  DATA_SECURITY_AI_PROPOSAL_DIALOG_SELECT,
+  DataSecurityAiProposalActions,
+  useDataSecurityAiProposalActions,
+} from "../../Components/DataSecurity/DataSecurityAiProposalActions";
+import DataSecurityAiRulesTable from "../../Components/DataSecurity/DataSecurityAiRulesTable";
 import { getDataSecurityIssueRoute } from "../../Components/DataSecurity/StoreIssuesTable";
 import DataSecurityAiDecision from "Common/Models/DatabaseModels/DataSecurityAiDecision";
 import DataSecurityAiProposal from "Common/Models/DatabaseModels/DataSecurityAiProposal";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import {
-  DataSecurityAiProposalStatus,
-  getDataSecurityAiPlanFingerprint,
-} from "Common/Types/DataSecurity/DataSecurityAi";
+import { DataSecurityAiProposalStatus } from "Common/Types/DataSecurity/DataSecurityAi";
 import IconProp from "Common/Types/Icon/IconProp";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import API from "Common/UI/Utils/API/API";
-import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import { LABEL_WITH_COLON } from "Common/UI/Utils/LabelWithColon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -60,82 +53,16 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  *   - Done by AI: what it changed without asking, as the AI rules allow,
  *     each with Undo.
  *   - Why AI did not act: the issues it looked at and left alone, and why.
+ *   - AI Rules: which issues it works on, and what each kind of work may do.
  *
- * Each row opens its issue. Proposals and decisions are read through their
- * own CRUD routes, and acted on only through Data Security's
- * (DataSecurityApi): the server decides every press - who may make the
- * change, whether two people must approve it - and says why when it will
- * not, which the dialog shows.
+ * A proposal says which rule decided it, or that the project's defaults
+ * did: what a rule allows is what the lists show. Each row opens its issue.
+ * Proposals and decisions are read through their own CRUD routes, and
+ * acted on only through Data Security's (DataSecurityAiProposalActions):
+ * the server decides every press - who may make the change, whether two
+ * people must approve it - and says why when it will not, which the dialog
+ * shows.
  */
-
-// The proposal the person approves, as it was drawn for them.
-const PROPOSAL_REVIEW_FIELDS: Array<{
-  key: "changeMarkdown" | "reasonMarkdown" | "proofMarkdown" | "undoMarkdown";
-  title: string;
-}> = [
-  { key: "changeMarkdown", title: DataSecurityAiPageCopy.whatWillChange },
-  { key: "reasonMarkdown", title: DataSecurityAiPageCopy.why },
-  { key: "proofMarkdown", title: DataSecurityAiPageCopy.howItIsProven },
-  { key: "undoMarkdown", title: DataSecurityAiPageCopy.howToUndoIt },
-];
-
-const ProposalReview: FunctionComponent<{
-  proposal: DataSecurityAiProposal;
-}> = (props: { proposal: DataSecurityAiProposal }): ReactElement => {
-  const translator: Translator = useTranslator();
-  const askReason: string | undefined = getDataSecurityAiAskReasonSentence(
-    props.proposal.askReason,
-  );
-
-  return (
-    <div className="space-y-4" data-testid="data-security-ai-proposal-review">
-      <p className="text-sm font-medium text-gray-900">
-        <IsolatedText text={props.proposal.title || ""} />
-      </p>
-      {PROPOSAL_REVIEW_FIELDS.map(
-        (field: { key: string; title: string }): ReactElement => {
-          const text: string = String(
-            (props.proposal as unknown as JSONObject)[field.key] || "",
-          );
-
-          if (!text) {
-            return <React.Fragment key={field.key}></React.Fragment>;
-          }
-
-          return (
-            <div key={field.key}>
-              <h4 className="text-sm font-medium text-gray-900">
-                {translator.translateText(field.title)}
-              </h4>
-              <div className="mt-1 text-sm text-gray-600">
-                <MarkdownViewer text={text} safeMode={true} />
-              </div>
-            </div>
-          );
-        },
-      )}
-      {askReason ? (
-        <div>
-          <h4 className="text-sm font-medium text-gray-900">
-            {translator.translateText(DataSecurityAiPageCopy.whyItAsks)}
-          </h4>
-          <p className="mt-1 text-sm text-gray-600">
-            {translator.translateText(askReason)}
-          </p>
-        </div>
-      ) : (
-        <></>
-      )}
-      {props.proposal.firstApprovedByUserId ? (
-        <p className="text-sm text-gray-600">
-          {translator.translateText(DataSecurityAiPageCopy.approvedOnce)}
-        </p>
-      ) : (
-        <></>
-      )}
-    </div>
-  );
-};
 
 const openIssue: (item: {
   dataSecurityIssueId?: ObjectID | undefined;
@@ -152,49 +79,32 @@ const DataSecurityAiPage: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [refreshToggle, setRefreshToggle] = useState<string>("");
-  const [approving, setApproving] = useState<DataSecurityAiProposal | null>(
-    null,
-  );
-  const [dismissing, setDismissing] = useState<DataSecurityAiProposal | null>(
-    null,
-  );
-  const [undoing, setUndoing] = useState<DataSecurityAiProposal | null>(null);
-  const [modalError, setModalError] = useState<string>("");
-  const [isActing, setIsActing] = useState<boolean>(false);
+  const actions: DataSecurityAiProposalActions =
+    useDataSecurityAiProposalActions((): void => {
+      setRefreshToggle(ObjectID.generate().toString());
+    });
 
-  // The lists, and the side menu's count of what waits beside AI.
-  const refresh: () => void = (): void => {
-    setRefreshToggle(ObjectID.generate().toString());
-    GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
-  };
-
-  const closeModals: () => void = (): void => {
-    setApproving(null);
-    setDismissing(null);
-    setUndoing(null);
-    setModalError("");
-  };
-
-  // One press at a time; the dialog says why the server would not.
-  const act: (press: () => Promise<void>) => Promise<void> = async (
-    press: () => Promise<void>,
-  ): Promise<void> => {
-    if (isActing) {
-      return;
-    }
-
-    setIsActing(true);
-    setModalError("");
-
-    try {
-      await press();
-      closeModals();
-      refresh();
-    } catch (error) {
-      setModalError(API.getFriendlyMessage(error));
-    }
-
-    setIsActing(false);
+  // The rule that decided a proposal, or the project's defaults.
+  const ruleColumn: {
+    field: { autoRemediationRuleName: true };
+    title: string;
+    type: FieldType;
+    hideOnMobile: boolean;
+    getElement: (item: DataSecurityAiProposal) => ReactElement;
+  } = {
+    field: { autoRemediationRuleName: true },
+    title: DataSecurityAiRulesCopy.ruleColumn,
+    type: FieldType.Element,
+    hideOnMobile: true,
+    getElement: (item: DataSecurityAiProposal): ReactElement => {
+      return item.autoRemediationRuleName ? (
+        <IsolatedText text={item.autoRemediationRuleName} />
+      ) : (
+        <span className="text-gray-500">
+          {translator.translateText(DataSecurityAiRulesCopy.projectDefaults)}
+        </span>
+      );
+    },
   };
 
   return (
@@ -229,17 +139,7 @@ const DataSecurityAiPage: FunctionComponent<PageComponentProps> = (
           description: DataSecurityAiPageCopy.waitingDescription,
         }}
         noItemsMessage={DataSecurityAiPageCopy.waitingEmpty}
-        selectMoreFields={{
-          kind: true,
-          plan: true,
-          dataSecurityIssueId: true,
-          changeMarkdown: true,
-          reasonMarkdown: true,
-          proofMarkdown: true,
-          undoMarkdown: true,
-          askReason: true,
-          firstApprovedByUserId: true,
-        }}
+        selectMoreFields={DATA_SECURITY_AI_PROPOSAL_DIALOG_SELECT}
         actionButtons={[
           {
             title: DataSecurityAiPageCopy.approve,
@@ -250,8 +150,7 @@ const DataSecurityAiPage: FunctionComponent<PageComponentProps> = (
               item: DataSecurityAiProposal,
               onCompleteAction: VoidFunction,
             ) => {
-              closeModals();
-              setApproving(item);
+              actions.approve(item);
               onCompleteAction();
             },
           },
@@ -263,8 +162,7 @@ const DataSecurityAiPage: FunctionComponent<PageComponentProps> = (
               item: DataSecurityAiProposal,
               onCompleteAction: VoidFunction,
             ) => {
-              closeModals();
-              setDismissing(item);
+              actions.dismiss(item);
               onCompleteAction();
             },
           },
@@ -292,6 +190,7 @@ const DataSecurityAiPage: FunctionComponent<PageComponentProps> = (
               );
             },
           },
+          ruleColumn,
           {
             field: { createdAt: true },
             title: "Proposed",
@@ -333,8 +232,7 @@ const DataSecurityAiPage: FunctionComponent<PageComponentProps> = (
               item: DataSecurityAiProposal,
               onCompleteAction: VoidFunction,
             ) => {
-              closeModals();
-              setUndoing(item);
+              actions.undo(item);
               onCompleteAction();
             },
           },
@@ -347,6 +245,7 @@ const DataSecurityAiPage: FunctionComponent<PageComponentProps> = (
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-md",
           },
+          ruleColumn,
           {
             field: { appliedAt: true },
             title: "Made",
@@ -453,84 +352,9 @@ const DataSecurityAiPage: FunctionComponent<PageComponentProps> = (
         ]}
       />
 
-      {approving?._id ? (
-        <ConfirmModal
-          title={DataSecurityAiPageCopy.approveTitle}
-          description={<ProposalReview proposal={approving} />}
-          submitButtonText={DataSecurityAiPageCopy.approve}
-          isLoading={isActing}
-          error={modalError || undefined}
-          onClose={closeModals}
-          onSubmit={() => {
-            void act(async (): Promise<void> => {
-              await DataSecurityApi.approveAiProposal({
-                proposalId: new ObjectID(approving._id!.toString()),
-                // The plan drawn above: one that changed since is not approved.
-                expectedPlanFingerprint: getDataSecurityAiPlanFingerprint({
-                  kind: approving.kind,
-                  plan: approving.plan,
-                }),
-              });
-            });
-          }}
-        />
-      ) : (
-        <></>
-      )}
+      <DataSecurityAiRulesTable />
 
-      {dismissing?._id ? (
-        <BasicFormModal<JSONObject>
-          title={DataSecurityAiPageCopy.dismissTitle}
-          description={DataSecurityAiPageCopy.dismissDescription}
-          submitButtonText={DataSecurityAiPageCopy.dismiss}
-          isSubmitting={isActing}
-          error={modalError || undefined}
-          onClose={closeModals}
-          formProps={{
-            name: "Dismiss proposal",
-            initialValues: {},
-            fields: [
-              {
-                field: { reason: true },
-                title: DataSecurityAiPageCopy.dismissReasonTitle,
-                fieldType: FormFieldSchemaType.LongText,
-                placeholder: DataSecurityAiPageCopy.dismissReasonPlaceholder,
-                required: true,
-              },
-            ],
-          }}
-          onSubmit={async (values: FormValues<JSONObject>) => {
-            await act(async (): Promise<void> => {
-              await DataSecurityApi.dismissAiProposal({
-                proposalId: new ObjectID(dismissing._id!.toString()),
-                reason: String((values as JSONObject)["reason"] || ""),
-              });
-            });
-          }}
-        />
-      ) : (
-        <></>
-      )}
-
-      {undoing?._id ? (
-        <ConfirmModal
-          title={DataSecurityAiPageCopy.undoTitle}
-          description={DataSecurityAiPageCopy.undoDescription}
-          submitButtonText={DataSecurityAiPageCopy.undo}
-          isLoading={isActing}
-          error={modalError || undefined}
-          onClose={closeModals}
-          onSubmit={() => {
-            void act(async (): Promise<void> => {
-              await DataSecurityApi.undoAiProposal(
-                new ObjectID(undoing._id!.toString()),
-              );
-            });
-          }}
-        />
-      ) : (
-        <></>
-      )}
+      {actions.dialogs}
     </>
   );
 };

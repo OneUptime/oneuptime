@@ -4,6 +4,7 @@ import {
   JsonElementLimits,
   JsonElementTallyCount,
 } from "../../Utils/JsonElementCount";
+import { ExpressResponse } from "./Express";
 
 /**
  * A REQUEST BODY THE APP'S BODY PARSERS REFUSED IS THE CLIENT'S, NOT A FAULT
@@ -59,6 +60,29 @@ export const TOO_MANY_JSON_VALUES_TYPE: string = "entity.too.many.values";
  */
 export const APP_REQUEST_BODY_LIMIT_FIELD: string =
   "appRequestBodyLimitInBytes";
+
+/*
+ * Has the answer to a body refused part-read close its connection once it is
+ * sent (#10260), so not a byte more of the body is read. A reader that
+ * refuses a body stops reading it (pauses the request), but that alone does
+ * not end the connection: Node keeps a keep-alive connection whose body was
+ * paused unread open until its keep-alive timeout, and drains one whose body
+ * was never touched - reads every byte the client goes on sending - to keep
+ * it usable (measured on Node 26). Told not to keep it, Node answers
+ * "Connection: close" and ends it. Returns whether the connection was to be
+ * kept, for a reader that takes the body after all.
+ */
+export const closeConnectionAfterAnswer: (res: ExpressResponse) => boolean = (
+  res: ExpressResponse,
+): boolean => {
+  const wasKept: boolean = Boolean(res.shouldKeepAlive);
+
+  if (!res.headersSent) {
+    res.shouldKeepAlive = false;
+  }
+
+  return wasKept;
+};
 
 // A size as the too-large sentences say one: "1 MB", "50 MB", "1.5 MB".
 export const describeBodyLimit: (bytes: number) => string = (

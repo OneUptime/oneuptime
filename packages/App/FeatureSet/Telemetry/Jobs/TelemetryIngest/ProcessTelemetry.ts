@@ -50,7 +50,12 @@ import SessionReplayIngestService from "../../Services/SessionReplayIngestServic
 import ProductAnalyticsEventIngestService from "../../Services/ProductAnalyticsEventIngestService";
 import { JSONObject } from "Common/Types/JSON";
 import PinServiceName from "Common/Server/Utils/Telemetry/PinServiceName";
-import PinMobileRumResource from "Common/Server/Utils/Telemetry/PinMobileRumResource";
+import PinRumClientResource from "Common/Server/Utils/Telemetry/PinRumClientResource";
+import {
+  RUM_CLIENT_KIND_BROWSER,
+  RUM_CLIENT_KIND_MOBILE,
+  RumClientKind,
+} from "Common/Types/Rum/RumClientKind";
 import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
 import { TelemetryIngestionBudgetSignal } from "Common/Types/Telemetry/TelemetryIngestionBudget";
 
@@ -110,23 +115,50 @@ function applyPinnedServiceName(
   }
 
   /*
-   * A Mobile key's batch (issue #6457) is its app's mobile RUM and nothing
-   * else: only a mobile app's own resource attributes are kept, the pinned
-   * service.name among them, and every resource is stamped as a mobile
-   * client (PinMobileRumResource). After the pin, for the same reason, and
-   * wrapped for the same reason: it never throws, and must not fail the job
-   * if it ever does.
+   * A public key's batch is its app's or its page's RUM and nothing else: a
+   * Mobile key's its app's mobile RUM (issue #6457), a Browser key's its
+   * page's browser RUM (issue #10539). Only what that kind of client says
+   * about itself is kept on each resource, the pinned service.name among
+   * them, and every resource is stamped as that kind of client
+   * (PinRumClientResource), so a copied key files nothing under a host, a
+   * cluster, a cloud resource, a database or a backend service. After the
+   * pin, for the same reason, and wrapped for the same reason: it never
+   * throws, and must not fail the job if it ever does.
    */
-  if (jobData.isMobileKey) {
+  const publicKeyClientKind: RumClientKind | null =
+    getPublicKeyRumClientKind(jobData);
+
+  if (publicKeyClientKind) {
     try {
-      PinMobileRumResource.pinInPlace(body);
+      PinRumClientResource.pinInPlace(body, publicKeyClientKind);
     } catch (error) {
       logger.error(
-        `ProcessTelemetry: failed to file a Mobile key's batch as mobile RUM for project ${jobData.projectId}:`,
+        `ProcessTelemetry: failed to file a ${publicKeyClientKind} key's batch as ${publicKeyClientKind} RUM for project ${jobData.projectId}:`,
       );
       logger.error(error);
     }
   }
+}
+
+/*
+ * Which kind of RUM client a public key's job is from, or null for any
+ * other job. A Mobile key's flag is read first: the two are never both set,
+ * and a Mobile key's batch must never be filed as anything but mobile.
+ *
+ * Exported for tests.
+ */
+export function getPublicKeyRumClientKind(
+  jobData: Pick<TelemetryIngestJobData, "isMobileKey" | "isBrowserKey">,
+): RumClientKind | null {
+  if (jobData.isMobileKey) {
+    return RUM_CLIENT_KIND_MOBILE;
+  }
+
+  if (jobData.isBrowserKey) {
+    return RUM_CLIENT_KIND_BROWSER;
+  }
+
+  return null;
 }
 
 /*

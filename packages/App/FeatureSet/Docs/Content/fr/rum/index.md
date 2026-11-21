@@ -49,7 +49,7 @@ Le menu latéral d'une application regroupe ses pages ainsi ; **Développeurs** 
 
 ## Comment OneUptime reconnaît le RUM
 
-La plupart des questions du type « mon application n'apparaît pas » se terminent ici. OneUptime décide, pour chaque lot de télémétrie à son arrivée, à partir de ses **attributs de ressource** :
+La plupart des questions du type « mon application n'apparaît pas » se terminent ici. Tout ce qu'envoie une clé **Navigateur** est du RUM navigateur, et tout ce qu'envoie une clé **Mobile** est du RUM mobile, quoi que dise sa ressource. Avec toute autre clé, OneUptime décide, pour chaque lot de télémétrie à son arrivée, à partir de ses **attributs de ressource** :
 
 1. Un lot dont la ressource porte `browser.platform`, `browser.language` ou un `browser.brands` non vide est du RUM **navigateur**.
 2. Sinon, un lot avec `device.id` ou `device.model.identifier` est du RUM **mobile**.
@@ -71,7 +71,7 @@ Les SDK backend ne définissent jamais `browser.*`, `device.id` ni `device.model
 OneUptime retrouve l'application par son `service.name`, sans tenir compte de la casse, et la crée si le projet n'en a pas. Un nouveau `service.name` démarre une nouvelle application : gardez-le donc stable et distinguez les environnements par une étiquette plutôt que par un nouveau nom. [Gérer les applications](/docs/rum/applications) couvre les noms, les étiquettes, les propriétaires et la rétention.
 
 > [!IMPORTANT]
-> Le SDK OpenTelemetry pour navigateur n'ajoute aucun attribut `browser.*` tant que vous n'ajoutez pas le détecteur de ressources du navigateur ou ne les définissez pas vous-même. Avec seulement `service.name`, la télémétrie devient un service backend, pas une application RUM. [Configuration navigateur](/docs/rum/browser-setup) montre les deux façons de faire.
+> Le SDK OpenTelemetry pour navigateur n'ajoute aucun attribut `browser.*` tant que vous n'ajoutez pas le détecteur de ressources du navigateur ou ne les définissez pas vous-même. Envoyée avec une clé Navigateur, la télémétrie reste une application RUM, mais sa page **Clients** ne liste aucune plateforme ; avec toute autre clé et seulement `service.name`, elle devient un service backend, pas une application RUM. [Configuration navigateur](/docs/rum/browser-setup) montre les deux façons de faire.
 
 ## Ce que vous obtenez
 
@@ -94,7 +94,7 @@ Une application affiche **Reçoit des données** tant que la télémétrie arriv
 :::steps
 ### Créer une clé d'ingestion
 
-Ouvrez **Paramètres du projet → Télémétrie & APM → Clés d'ingestion** et cliquez sur **Créer une clé d'ingestion**. Une application web a besoin d'une clé **Navigateur**, qui ne fonctionne que depuis les origines que vous listez. Une application mobile a besoin d'une clé **Mobile**, épinglée au `service.name` de l'application : elle est livrée dans l'application, elle ne peut donc envoyer que les traces, les journaux et les métriques de cette application.
+Ouvrez **Paramètres du projet → Télémétrie & APM → Clés d'ingestion** et cliquez sur **Créer une clé d'ingestion**. Une application web a besoin d'une clé **Navigateur**, qui ne fonctionne que depuis les origines que vous listez. Une application mobile a besoin d'une clé **Mobile**, épinglée au `service.name` de l'application : elle est livrée dans l'application, elle ne peut donc envoyer que les traces, les journaux, les métriques et les relectures de session de cette application.
 
 ### Instrumenter votre application
 

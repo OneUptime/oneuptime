@@ -386,6 +386,8 @@ En webhook beskriver kun det, der står i den payload, så OneUptime løser aldr
 1. **Field that signals recovery** og **Value that means recovered** er udfyldt og matcher payloaden. Sammenligningen er nøjagtig og skelner mellem store og små bogstaver — `Resolved` matcher ikke `resolved`.
 2. Kriteriets hændelse har **Løs hændelse automatisk** slået til under **Flere felter** i hændelsesformularen. Uden det ignoreres matchende meldinger om, at problemet er ovre, og hændelserne forbliver åbne. (Det samme gælder for advarsler og **Løs advarsel automatisk**.) Standardkriteriet for offline starter med det slået til; en hændelse, du selv føjer til et kriterium, starter med det slået fra.
 
+En advarsel, du selv føjer til et kriterium, starter også med **Løs advarsel automatisk** slået fra, så en genoprettelse lader advarslen stå åben, indtil den er slået til. **Auto-resolve each incident when…** viser, hvilke af kriteriets hændelser og advarsler en genoprettelse løser, og nævner hver, den ville lade stå åben, med en knap, der slår den tilhørende indstilling til. Kortet **Monitor-resumé** på monitorens **Oversigt** nævner hver hændelse og advarsel, som en genoprettelse lod stå åben, og hvorfor.
+
 **Max incidents per request** begrænser udtrækningen, ikke kun oprettelsen. Nøgler ud over loftet er også usynlige for løsningen, så i en payload med flere særskilte nøgler end loftet lukker en advarsel, der melder `resolved` ud over loftet, ikke sin hændelse.
 
 > [!NOTE]
