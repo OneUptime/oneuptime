@@ -411,7 +411,7 @@ describe("every way a probe presents its key goes through the one check", () => 
   const middlewares: Array<string> = [
     "isAuthorizedServiceMiddleware",
     "isAuthorizedFromHeadersMiddleware",
-    "isAuthorizedFromReportOpeningMiddleware",
+    "isAuthorizedFromReportOpening",
   ];
 
   // A method's code: from its signature to the next method's, or the end.

@@ -51,7 +51,7 @@ import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
 import { mergeOwnValues } from "Common/Utils/LookupTable";
-import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import logger, {
   getLogAttributesFromRequest,
   type RequestLike,
@@ -71,7 +71,10 @@ import {
 } from "../Config";
 import LogService from "Common/Server/Services/LogService";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
-import ExceptionUtil, { TelemetryExceptionPayload } from "../Utils/Exception";
+import ExceptionUtil, {
+  OccurrenceFingerprints,
+  TelemetryExceptionPayload,
+} from "../Utils/Exception";
 import AppleSymbolication from "Common/Server/Utils/Telemetry/AppleSymbolication";
 import AppleCrashRegister, {
   RegisteredAppleCrash,
@@ -1464,6 +1467,31 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     retentionDate: retentionDateDb,
                   };
 
+                  /*
+                   * The record as it arrived, for the exception it may hold
+                   * (#10434): an exception is grouped by what it said before
+                   * the scrub rules hid anything, as a span's is, and the
+                   * rules below change the attributes in place. Only the
+                   * map is copied - a rule copies a list or a map it changes
+                   * (ScrubNestedValues) - and only for a record that may
+                   * hold an exception, as a pipeline can make of any.
+                   */
+                  const arrivedRow: JSONObject | null =
+                    TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED &&
+                    loadedScrubRules.length > 0 &&
+                    (loadedPipelines.length > 0 ||
+                      LogExceptionExtractor.mayHoldException({
+                        attributes: logRow["attributes"] as JSONObject,
+                        severityNumber: logSeverityNumber,
+                      }))
+                      ? {
+                          ...logRow,
+                          attributes: mergeOwnValues<JSONValue>(
+                            logRow["attributes"] as JSONObject,
+                          ),
+                        }
+                      : null;
+
                   // Sensitive data scrubbing
                   if (loadedScrubRules.length > 0) {
                     logRow = LogScrubRuleService.scrubLog(
@@ -1472,6 +1500,9 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                       addressVault,
                     );
                   }
+
+                  // What the rules left of it, before the pipelines.
+                  const scrubbedRow: JSONObject = logRow;
 
                   // Pipeline processing
                   if (loadedPipelines.length > 0) {
@@ -1486,12 +1517,16 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                    * view. Runs on the post-scrub/post-pipeline logRow (not the
                    * pre-scrub locals) so scrubbed secrets never reach the
                    * exception columns. A drop-filtered log already `continue`d
-                   * above, so it never reaches this point.
+                   * above, so it never reaches this point. It is grouped by
+                   * the record as it arrived (arrivedRow).
                    */
                   if (TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED) {
                     try {
                       await this.collectExceptionFromLog({
                         logRow,
+                        arrivedRow,
+                        scrubbedRow,
+                        pipelines: loadedPipelines,
                         projectId,
                         primaryEntityId,
                         serviceMetadata,
@@ -1863,6 +1898,14 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
    */
   private static async collectExceptionFromLog(data: {
     logRow: JSONObject;
+    /*
+     * The record as it arrived, before the scrub rules (#10434): null when
+     * no rule ran, or the record could hold no exception.
+     */
+    arrivedRow: JSONObject | null;
+    // What the scrub rules left of it, before the pipelines.
+    scrubbedRow: JSONObject;
+    pipelines: Array<LoadedPipeline>;
     projectId: ObjectID;
     primaryEntityId: ObjectID;
     serviceMetadata: TelemetryServiceMetadata;
@@ -1903,6 +1946,39 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       return;
     }
 
+    /*
+     * The exception as it arrived (#10434): what it is grouped by, as a
+     * span's is. Read off the record as it was before the scrub rules,
+     * through the same pipelines - which can name an exception's parts from
+     * other attributes - and the same way, so it is what would be stored
+     * had no rule hidden anything. A record the rules changed nothing in is
+     * read once. None found in it as it arrived, it is grouped by what was
+     * found, as before.
+     */
+    let arrived: ExtractedLogException = extracted;
+
+    if (
+      data.arrivedRow &&
+      OtelLogsIngestService.scrubChangedRecord(
+        data.arrivedRow,
+        data.scrubbedRow,
+      )
+    ) {
+      const arrivedRow: JSONObject =
+        data.pipelines.length > 0
+          ? LogPipelineService.processLog(data.arrivedRow, data.pipelines)
+          : data.arrivedRow;
+
+      arrived =
+        LogExceptionExtractor.extractFromLogRecord({
+          body: (arrivedRow["body"] as string) || "",
+          attributes: (arrivedRow["attributes"] as JSONObject) || {},
+          severityNumber: data.severityNumber,
+          hasTraceAndSpan:
+            Boolean(arrivedRow["traceId"]) && Boolean(arrivedRow["spanId"]),
+        }) || extracted;
+    }
+
     const faultKind: MobileAppFaultKind | null =
       getMobileAppFaultKind(finalAttributes);
 
@@ -1910,39 +1986,55 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
      * An iOS app's crash or hang (#9922): each frame whose binary has an
      * uploaded dSYM named by its function before it is grouped, so it reads
      * "CartViewController.checkout()" and groups by function across
-     * releases. A stack no dSYM resolves is kept as it was sent.
+     * releases. A stack no dSYM resolves is kept as it was sent. The stack
+     * it arrived with is named too, once more only when a rule changed it.
      */
-    if (faultKind && extracted.stackTrace) {
-      const symbolicated: string | null =
-        await AppleSymbolication.symbolicateStackTrace({
-          projectId: data.projectId,
-          stackTrace: extracted.stackTrace,
-        });
+    if (faultKind) {
+      const found: ExtractedLogException = extracted;
 
-      if (symbolicated) {
-        extracted = LogExceptionExtractor.withStackTrace(
-          extracted,
-          symbolicated,
-        );
+      extracted = await OtelLogsIngestService.symbolicated({
+        projectId: data.projectId,
+        exception: found,
+      });
+
+      if (arrived === found) {
+        arrived = extracted;
+      } else if (arrived.stackTrace === found.stackTrace) {
+        arrived = {
+          ...arrived,
+          stackTrace: extracted.stackTrace,
+          parsedFrames: extracted.parsedFrames,
+        };
+      } else {
+        arrived = await OtelLogsIngestService.symbolicated({
+          projectId: data.projectId,
+          exception: arrived,
+        });
       }
     }
 
-    const fingerprint: string = ExceptionUtil.getFingerprint({
-      projectId: data.projectId,
-      primaryEntityId: data.primaryEntityId,
-      message: extracted.message,
-      stackTrace: extracted.stackTrace,
-      exceptionType: extracted.exceptionType,
-    });
-
-    // Grouping v2's: which of the two it keeps is decided as it is stored.
-    const fingerprintV2: string = ExceptionUtil.getFingerprintV2({
-      projectId: data.projectId,
-      primaryEntityId: data.primaryEntityId,
-      message: extracted.message,
-      stackTrace: extracted.stackTrace,
-      exceptionType: extracted.exceptionType,
-    });
+    /*
+     * Grouped by the exception as it arrived, stored as the rules left it
+     * (ExceptionUtil.getOccurrenceFingerprints). Before #10434 an exception
+     * found in a log was grouped by what the rules left: one a rule split
+     * that way keeps the occurrences it has had since.
+     */
+    const fingerprints: OccurrenceFingerprints =
+      ExceptionUtil.getOccurrenceFingerprints({
+        projectId: data.projectId,
+        primaryEntityId: data.primaryEntityId,
+        arrived: {
+          message: arrived.message,
+          stackTrace: arrived.stackTrace,
+          exceptionType: arrived.exceptionType,
+        },
+        stored: {
+          message: extracted.message,
+          stackTrace: extracted.stackTrace,
+          exceptionType: extracted.exceptionType,
+        },
+        findsGroupsOfStoredText: true,
+      });
 
     const release: string =
       (finalAttributes["resource.service.version"] as string) || "";
@@ -2013,8 +2105,9 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           signature,
           occurrence: {
             id: occurrenceId,
-            fingerprint,
-            fingerprintV2,
+            fingerprint: fingerprints.fingerprint,
+            fingerprintV2: fingerprints.fingerprintV2,
+            fingerprintCandidates: fingerprints.fingerprintCandidates,
           },
         });
 
@@ -2061,8 +2154,15 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
        */
       userId: readExceptionUserId([finalAttributes]),
       // A repeat is filed under the exception its first report is.
-      fingerprint: repeats ? repeats.fingerprint : fingerprint,
-      fingerprintV2: repeats ? repeats.fingerprintV2 : fingerprintV2,
+      fingerprint: repeats ? repeats.fingerprint : fingerprints.fingerprint,
+      fingerprintV2: repeats
+        ? repeats.fingerprintV2
+        : fingerprints.fingerprintV2,
+      ...(repeats
+        ? repeats.fingerprintCandidates
+          ? { fingerprintCandidates: repeats.fingerprintCandidates }
+          : {}
+        : { fingerprintCandidates: fingerprints.fingerprintCandidates }),
       duplicateOf: repeats ? repeats.occurrenceId : "",
       spanName: "",
       release: release,
@@ -2079,8 +2179,9 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     }
 
     data.pendingExceptionUpserts.push({
-      fingerprint: fingerprint,
-      fingerprintV2: fingerprintV2,
+      fingerprint: fingerprints.fingerprint,
+      fingerprintV2: fingerprints.fingerprintV2,
+      fingerprintCandidates: fingerprints.fingerprintCandidates,
       projectId: data.projectId,
       primaryEntityId: data.primaryEntityId,
       primaryEntityType: data.serviceMetadata.primaryEntityType,
@@ -2100,6 +2201,62 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       ...(release ? { release: release } : {}),
       ...(environment ? { environment: environment } : {}),
     });
+  }
+
+  /*
+   * Whether the scrub rules changed a record: its body, or any of its
+   * attributes. A rule writes a new value in place of each one it changes,
+   * and copies a list or a map it changes (ScrubNestedValues), so an
+   * attribute it left alone is the very value that arrived.
+   */
+  private static scrubChangedRecord(
+    arrived: JSONObject,
+    scrubbed: JSONObject,
+  ): boolean {
+    if (arrived["body"] !== scrubbed["body"]) {
+      return true;
+    }
+
+    const arrivedAttributes: JSONObject =
+      (arrived["attributes"] as JSONObject) || {};
+    const scrubbedAttributes: JSONObject =
+      (scrubbed["attributes"] as JSONObject) || {};
+    const keys: Array<string> = Object.keys(arrivedAttributes);
+
+    if (keys.length !== Object.keys(scrubbedAttributes).length) {
+      return true;
+    }
+
+    for (const key of keys) {
+      if (arrivedAttributes[key] !== scrubbedAttributes[key]) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /*
+   * An iOS app's crash or hang with its stack trace named by its dSYMs
+   * (AppleSymbolication, #9922); as it was when none resolves it.
+   */
+  private static async symbolicated(data: {
+    projectId: ObjectID;
+    exception: ExtractedLogException;
+  }): Promise<ExtractedLogException> {
+    if (!data.exception.stackTrace) {
+      return data.exception;
+    }
+
+    const symbolicated: string | null =
+      await AppleSymbolication.symbolicateStackTrace({
+        projectId: data.projectId,
+        stackTrace: data.exception.stackTrace,
+      });
+
+    return symbolicated
+      ? LogExceptionExtractor.withStackTrace(data.exception, symbolicated)
+      : data.exception;
   }
 
   /*

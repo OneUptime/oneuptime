@@ -174,7 +174,9 @@ describe("AnalyticsBaseModel createdAt skip index", () => {
           },
         }),
       );
-    }).toThrow("createdAtSkipIndex needs the base columns");
+    }).toThrow(
+      "A skip index on createdAt needs the base columns, and this model leaves them out (includeBaseColumns is false). Remove createdAtSkipIndex, or keep the base columns.",
+    );
   });
 
   test("the security events table indexes when each event arrived, and no other table does", () => {

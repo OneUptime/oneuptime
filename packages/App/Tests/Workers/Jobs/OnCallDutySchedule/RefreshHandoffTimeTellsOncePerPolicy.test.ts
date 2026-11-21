@@ -10,7 +10,13 @@ import OnCallDutyPolicyTimeLogService from "Common/Server/Services/OnCallDutyPol
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import UserService from "Common/Server/Services/UserService";
 import logger from "Common/Server/Utils/Logger";
+import EscalationRuleReach, {
+  PersonRulePath,
+  PolicyReachOfPerson,
+  RulePathKind,
+} from "Common/Server/Utils/OnCall/EscalationRuleReach";
 import OnCallHandoffPosts from "Common/Server/Utils/OnCall/OnCallHandoffPosts";
+import ProjectMembership from "Common/Server/Utils/TeamMember/ProjectMembership";
 import WorkspaceUserGroupSync from "Common/Server/Utils/Workspace/UserGroups/WorkspaceUserGroupSync";
 import URL from "Common/Types/API/URL";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
@@ -189,6 +195,8 @@ interface Sent {
 let sent: Array<Sent>;
 let stored: Array<Record<string, unknown>>;
 let timeLogsStarted: Array<string>;
+// Who is a member of the project: everyone the hand-off names, unless a test says otherwise.
+let memberUserIds: Array<ObjectID>;
 
 function tellSummary(): Array<string> {
   return sent.map((message: Sent): string => {
@@ -222,6 +230,7 @@ beforeEach(() => {
   sent = [];
   stored = [];
   timeLogsStarted = [];
+  memberUserIds = [CARL, ANA, BOB];
 
   jest.spyOn(logger, "debug").mockImplementation((() => {}) as never);
   jest.spyOn(logger, "error").mockImplementation((() => {}) as never);
@@ -288,6 +297,26 @@ beforeEach(() => {
     .spyOn(OnCallDutyPolicyTimeLogService, "endTimeLogForUser")
     .mockResolvedValue(undefined as never);
   jest.spyOn(OnCallHandoffPosts, "post").mockResolvedValue(undefined as never);
+
+  // Nothing on the policies pages whoever's shift ended but the schedule.
+  jest
+    .spyOn(ProjectMembership, "getMemberUserIds")
+    .mockImplementation((async (data: { userIds: Array<ObjectID> }) => {
+      return new Set<string>(
+        data.userIds
+          .filter((userId: ObjectID): boolean => {
+            return memberUserIds.some((member: ObjectID): boolean => {
+              return member.toString() === userId.toString();
+            });
+          })
+          .map((userId: ObjectID): string => {
+            return userId.toString().toLowerCase();
+          }),
+      );
+    }) as never);
+  jest
+    .spyOn(EscalationRuleReach, "readPolicyPathsOfPerson")
+    .mockResolvedValue(new Map() as PolicyReachOfPerson);
 });
 
 afterEach(() => {
@@ -374,6 +403,60 @@ describe("OnCallDutySchedule:RefreshHandoffTime, at a hand-off", () => {
       }),
     ).toEqual(["Carl", "Ana", "Bob"]);
     expect(stored).toHaveLength(1);
+  });
+
+  /*
+   * The hand-off speaks for the policy as a whole (#10556): a shift ending
+   * says nothing of a policy that still pages the person, and someone only
+   * invited is told nothing and logged nowhere.
+   */
+  test("REGRESSION: a shift ending for someone a rule of the policy still names tells them nothing of it", async () => {
+    scheduleIsDue();
+    attachedRows([PAYMENTS_FIRST_LINE, PAYMENTS_ESCALATE, CHECKOUT_FIRST_LINE]);
+
+    // Carl is named on another rule of Payments; Checkout pages him by nothing else.
+    const named: PersonRulePath = {
+      kind: RulePathKind.Person,
+      rowId: ObjectID.generate().toString(),
+      createdAt: null,
+      teamId: null,
+      scheduleId: null,
+      policyId: PAYMENTS,
+      ruleId: ObjectID.generate(),
+    };
+    jest
+      .spyOn(EscalationRuleReach, "readPolicyPathsOfPerson")
+      .mockResolvedValue(
+        new Map([[PAYMENTS.toString().toLowerCase(), [named]]]),
+      );
+
+    await tick();
+
+    expect(tellSummary()).toEqual([
+      `Ana: ${NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER} (Payments)`,
+      `Bob: ${NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER} (Payments)`,
+      `Carl: ${NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER} (Checkout)`,
+      `Ana: ${NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER} (Checkout)`,
+      `Bob: ${NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER} (Checkout)`,
+    ]);
+    expect(stored).toHaveLength(1);
+  });
+
+  test("REGRESSION: someone only invited coming on call is told nothing and logged nowhere", async () => {
+    scheduleIsDue();
+    attachedRows([PAYMENTS_FIRST_LINE, PAYMENTS_ESCALATE]);
+    memberUserIds = [CARL, BOB];
+
+    await tick();
+
+    // It was "Ana: now on call", and a time log for each rule.
+    expect(tellSummary()).toEqual([
+      `Carl: ${NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER} (Payments)`,
+      `Bob: ${NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER} (Payments)`,
+    ]);
+    expect(timeLogsStarted).toEqual([]);
+    // The roster still moves on: Ana is on it, and paged once she joins.
+    expect(String(stored[0]!["currentUserIdOnRoster"])).toBe(ANA.toString());
   });
 
   test("a roster that did not move tells nobody and stores nothing", async () => {

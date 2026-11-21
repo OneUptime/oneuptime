@@ -152,6 +152,7 @@ const OUTCOMES: AiOutcomes = {
     unverifiable: 1,
   },
   rootCauses: null,
+  dataSecurity: null,
   models: null,
   weeks: [],
   isPartial: true,

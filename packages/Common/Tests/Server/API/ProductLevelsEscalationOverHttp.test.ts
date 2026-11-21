@@ -792,6 +792,39 @@ describe("a product's own routes take its levels where they take the role", () =
     }
   });
 
+  /*
+   * Starting one is a create: the model's list, with Network's levels as it
+   * takes them (PACKET_CAPTURE_START_PERMISSIONS). With no probe named, who
+   * may start one gets past every permission check to the service's own
+   * question; anyone else is refused before it.
+   */
+  test("Network's Admin starts a packet capture; its Member and Viewer, and Cloud's Admin, may not", async () => {
+    for (const [permission, isLetThrough] of [
+      [Permission.NetworkAdmin, true],
+      [Permission.ProjectAdmin, true],
+      [Permission.NetworkMember, false],
+      [Permission.NetworkViewer, false],
+      [Permission.ProjectMember, false],
+      [Permission.CloudAdmin, false],
+    ] as Array<[Permission, boolean]>) {
+      caller = callerWith([permission]);
+      useInMemoryTable(asService(PacketCaptureService), []);
+
+      const sent: SentRequest = await server.request(
+        "POST",
+        "/api/packet-capture",
+        { data: { projectId: PROJECT_ID.toString() } },
+      );
+
+      expect({ permission, said: saidIn(sent) }).toEqual({
+        permission,
+        said: isLetThrough
+          ? "Pick the probe to capture on."
+          : "You do not have permissions to create Packet Capture. You need one of these permissions: Project Owner, Project Admin, Start Packet Capture, Network Admin",
+      });
+    }
+  });
+
   test("Network's Admin stops and downloads a packet capture; its Member and Viewer, and Cloud's Admin, may not", async () => {
     for (const [permission, isLetThrough] of [
       [Permission.NetworkAdmin, true],

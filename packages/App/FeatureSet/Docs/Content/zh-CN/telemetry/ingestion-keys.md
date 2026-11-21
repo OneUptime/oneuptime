@@ -35,13 +35,13 @@ flowchart TB
 
 | | **服务器** | **浏览器** | **移动端** |
 | --- | --- | --- | --- |
-| 用途 | 在你运营的机器上运行的应用、collector 和代理 | 网页，以及 React Native Session Replay | 一个 iOS、Android 或 React Native 应用 |
-| 发送内容 | 所有类型的遥测，发往所有端点 | 追踪、日志、指标、Session Replay 和 [Sentry 事件](/docs/telemetry/compatible-endpoints#sentry-sdk) | 该应用的追踪、日志和指标，通过 OTLP/HTTP |
+| 用途 | 在你运营的机器上运行的应用、collector 和代理 | 网页 | 一个 iOS、Android 或 React Native 应用 |
+| 发送内容 | 所有类型的遥测，发往所有端点 | 追踪、日志、指标、Session Replay 和 [Sentry 事件](/docs/telemetry/compatible-endpoints#sentry-sdk) | 该应用的追踪、日志和指标，通过 OTLP/HTTP，以及它的 Session Replay |
 | 是否为机密 | 是：请把它保存在你的服务器上 | 否：任何查看页面的人都能读取它 | 否：任何拥有该应用的人都能复制它 |
 | 来源 | 不检查 | 只接受列出的来源 | 来自网页的请求会被拒绝 |
 | 每分钟请求数 | 无限制，除非你设置了限额 | 6,000，除非你设置了其他限额 | 6,000，除非你设置了其他限额 |
 
-在其他所有地方，OneUptime 都会拒绝浏览器密钥，例如通过 gRPC 和 MQTT、用于性能剖析数据、Syslog、Fluent Bit 和 Fluentd，以及上传 source map；移动端密钥则除了通过 HTTP 发送的 OTLP 追踪、日志和指标之外一律被拒绝。要把发送方换成另一种类型，请创建该类型的密钥，把发送方切换到新密钥，然后删除旧密钥。
+在其他所有地方，OneUptime 都会拒绝浏览器密钥，例如通过 gRPC 和 MQTT、用于性能剖析数据、Syslog、Fluent Bit 和 Fluentd，以及上传 source map；移动端密钥则除了通过 HTTP 发送的 OTLP 追踪、日志和指标以及其应用的 Session Replay 之外一律被拒绝。要把发送方换成另一种类型，请创建该类型的密钥，把发送方切换到新密钥，然后删除旧密钥。
 
 ## 开始之前
 
@@ -85,16 +85,16 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## 锁定浏览器密钥
 
-浏览器密钥位于你的页面中，任何人都能复制它。以下设置限制了副本能做的事。在密钥页面上通过 **编辑摄取密钥** 修改它们。
+浏览器密钥位于你的页面中，任何人都能复制它。它发送的所有内容都会作为浏览器 RUM 应用存储，绝不会作为主机、集群、云资源、数据库或后端服务存储：对于发送方设置的资源，密钥只保留页面对自身的描述，例如 `service.*`、`browser.*` 和 `user_agent.*` 属性以及 `oneuptime.label.*` 标签。以下设置限制了副本能做的事。在密钥页面上通过 **编辑摄取密钥** 修改它们。
 
 | 设置 | 作用 |
 | --- | --- |
 | **允许的来源** | 接受该密钥的唯一来源。来自其他任何来源的请求，或完全没有 `Origin` 请求头的请求，都会被拒绝。浏览器密钥必须至少保留一个来源。 |
-| **固定的服务名称** | 把密钥通过 OTLP/HTTP 发送的所有内容都归入这一个服务，无论发送方设置了什么 `service.name`。这样，密钥的副本只能写入该服务。 |
+| **固定的服务名称** | 把密钥通过 OTLP/HTTP 发送的所有内容都归入这一个应用，无论发送方设置了什么 `service.name`。这样，密钥的副本只能写入该应用。 |
 | **每分钟请求数上限** | 该密钥每分钟可被接受的最大请求数，由所有访问者共享。留空时，浏览器密钥的限额为 6,000。 |
 | **过期时间** | 过了这个日期，密钥就会被拒绝，已公开的副本也随之失效。 |
 
-来源由协议、主机和可选的端口组成：`https://app.example.com` 不包括 `https://app.example.com:8443`。开头的一个 `*.` 涵盖所有子域名，但不包括域名本身。React Native Session Replay 发送一个精确的 `app://` 标识，不能使用通配符：
+来源由协议、主机和可选的端口组成：`https://app.example.com` 不包括 `https://app.example.com:8443`。开头的一个 `*.` 涵盖所有子域名，但不包括域名本身。使用浏览器密钥的 React Native Session Replay 会发送一个精确的 `app://` 标识，不能使用通配符：
 
 ```json
 [
@@ -111,11 +111,11 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 移动端密钥随你的应用一起发布，任何拥有该应用的人都能复制它。以下限制把每一份副本都限定在为其创建密钥的应用上：
 
 - **它只以一个应用的身份写入。** 无论发送方声称是哪个服务或主机，它发送的所有内容都会归入其 **固定的服务名称**，作为移动端 RUM 应用程序。副本无法写入你的后端服务、主机或集群。
-- **它只发送该应用的遥测。** 通过 HTTP 发送的 OTLP 追踪、日志和指标。通过 gRPC 和 MQTT、用于 Session Replay、性能剖析数据和 source map、发往任何其他端点，或来自任何网页的请求都会被拒绝。
+- **它只发送该应用的遥测。** 通过 HTTP 发送的 OTLP 追踪、日志和指标，以及来自应用 React Native 录制器的 Session Replay，以密钥的 **固定的服务名称** 作为其 `appIdentifier`。通过 gRPC 和 MQTT、用于其他应用的 Session Replay、性能剖析数据和 source map、发往任何其他端点，或来自任何网页的请求都会被拒绝。
 - **它受速率限制。** 所有副本合计每分钟 6,000 个请求，除非你设置了它的 **每分钟请求数上限**。
 - **你可以停用它。** 关闭 **已启用**，或设置 **过期时间**，每份副本都会在几秒内被拒绝。
 
-它无法阻止的：拥有你应用的人仍可以在密钥的限额内为这一个应用发送编造的追踪、日志和指标，直到你关闭密钥或它过期。请随每次发布轮换密钥，让旧副本随其版本一起失效。
+它无法阻止的：拥有你应用的人仍可以在密钥的限额内为这一个应用发送编造的追踪、日志、指标和 Session Replay，直到你关闭密钥或它过期。请随每次发布轮换密钥，让旧副本随其版本一起失效。
 
 ## 轮换、停用或删除密钥
 
@@ -144,7 +144,8 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 | `422` 加 `This telemetry ingestion key has been disabled.` | 有人关闭了 **已启用**。 |
 | `422` 加 `A browser ingestion key cannot be used for` | 浏览器密钥到达了只接受服务器密钥的端点。 |
 | `422` 加 `did not send an Origin header` | 浏览器密钥是从浏览器之外发送的。请在移动应用中使用移动端密钥，在其他地方使用服务器密钥。 |
-| `422` 加 `A mobile ingestion key cannot be used for` | 移动端密钥到达了通过 HTTP 发送的 OTLP 追踪、日志和指标以外的端点，例如 gRPC 或 Session Replay。 |
+| `422` 加 `A mobile ingestion key cannot be used for` | 移动端密钥到达了通过 HTTP 发送的 OTLP 追踪、日志和指标以及 Session Replay 以外的端点，例如 gRPC 或性能剖析数据。 |
+| `422` 加 `A mobile ingestion key can send session replays only` | 移动端密钥发送了网页的录制，或其他应用的录制。请将密钥的 **固定的服务名称** 作为 React Native 录制器的 `appIdentifier`。 |
 | `422` 加 `A mobile ingestion key cannot be used from a web page` | 移动端密钥是从浏览器发送的。请在网页中使用浏览器密钥。 |
 | `422` 加 `is not allowed for this browser ingestion key` | 页面的来源不在 **允许的来源** 中。 |
 | `422` 加 `is pinned to a single service` | 有人用设置了 **固定的服务名称** 的密钥注册代理。请使用没有固定名称的服务器密钥。 |

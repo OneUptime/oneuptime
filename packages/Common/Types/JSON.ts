@@ -57,6 +57,7 @@ export enum ObjectType {
   PositiveNumber = "PositiveNumber",
   MonitorCriteriaInstance = "MonitorCriteriaInstance",
   NotEqual = "NotEqual",
+  NotEqualOrNull = "NotEqualOrNull",
   Email = "Email",
   Phone = "Phone",
   Color = "Color",

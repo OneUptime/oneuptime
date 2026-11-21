@@ -2,8 +2,8 @@ import { describe, expect, test } from "@jest/globals";
 import { createHash } from "crypto";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddAIAgentTaskPullRequestSecurityCase1809187420000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187420000-AddAIAgentTaskPullRequestSecurityCase";
-import { AddAIAgentTaskPullRequestSecurityCaseIndex1809187420010 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187420010-AddAIAgentTaskPullRequestSecurityCaseIndex";
+import { AddAIAgentTaskPullRequestSecurityCase1809187421500 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187421500-AddAIAgentTaskPullRequestSecurityCase";
+import { AddAIAgentTaskPullRequestSecurityCaseIndex1809187421510 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187421510-AddAIAgentTaskPullRequestSecurityCaseIndex";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -55,11 +55,11 @@ function typeOrmIndexName(table: string, columns: Array<string>): string {
     .substring(0, 26)}`;
 }
 
-describe("AddAIAgentTaskPullRequestSecurityCase1809187420000", () => {
+describe("AddAIAgentTaskPullRequestSecurityCase1809187421500", () => {
   test("adds the case a pull request fixes, nullable, and nothing else", async () => {
     expect(
       await statementsOf(
-        new AddAIAgentTaskPullRequestSecurityCase1809187420000(),
+        new AddAIAgentTaskPullRequestSecurityCase1809187421500(),
         "up",
       ),
     ).toEqual([
@@ -67,7 +67,7 @@ describe("AddAIAgentTaskPullRequestSecurityCase1809187420000", () => {
     ]);
     expect(
       await statementsOf(
-        new AddAIAgentTaskPullRequestSecurityCase1809187420000(),
+        new AddAIAgentTaskPullRequestSecurityCase1809187421500(),
         "down",
       ),
     ).toEqual([
@@ -92,9 +92,9 @@ describe("AddAIAgentTaskPullRequestSecurityCase1809187420000", () => {
   });
 });
 
-describe("AddAIAgentTaskPullRequestSecurityCaseIndex1809187420010", () => {
-  const migration: AddAIAgentTaskPullRequestSecurityCaseIndex1809187420010 =
-    new AddAIAgentTaskPullRequestSecurityCaseIndex1809187420010();
+describe("AddAIAgentTaskPullRequestSecurityCaseIndex1809187421510", () => {
+  const migration: AddAIAgentTaskPullRequestSecurityCaseIndex1809187421510 =
+    new AddAIAgentTaskPullRequestSecurityCaseIndex1809187421510();
 
   test("builds the index online, outside a transaction, under TypeORM's own name for it", () => {
     expect(migration.transaction).toBe(false);
@@ -115,11 +115,11 @@ describe("AddAIAgentTaskPullRequestSecurityCaseIndex1809187420010", () => {
         return registered.name;
       },
     );
-    const column: string = "AddAIAgentTaskPullRequestSecurityCase1809187420000";
+    const column: string = "AddAIAgentTaskPullRequestSecurityCase1809187421500";
     const index: string =
-      "AddAIAgentTaskPullRequestSecurityCaseIndex1809187420010";
+      "AddAIAgentTaskPullRequestSecurityCaseIndex1809187421510";
 
-    expect(new AddAIAgentTaskPullRequestSecurityCase1809187420000().name).toBe(
+    expect(new AddAIAgentTaskPullRequestSecurityCase1809187421500().name).toBe(
       column,
     );
     expect(migration.name).toBe(index);

@@ -19,7 +19,7 @@ flowchart TB
     app["Your mobile app"] --> sdk["OpenTelemetry SDK<br/>with device.* attributes"]
     sdk -->|"OTLP with<br/>a Mobile key"| oneuptime["OneUptime"]
     oneuptime --> rum["Mobile RUM application"]
-    replay["React Native<br/>replay SDK"] -->|"recordings with<br/>a Browser key"| oneuptime
+    replay["React Native<br/>replay SDK"] -->|"recordings with<br/>the same Mobile key"| oneuptime
 ```
 
 ## What OneUptime needs
@@ -52,7 +52,7 @@ Make `device.id` an install-scoped identifier, never an advertising ID or anythi
 | Logs | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> The key ships inside your app, and an app can be unpacked, so assume someone will copy it. A copy of a Mobile key can send only this app's traces, logs and metrics, filed under its **Pinned Service Name**, and never from a web page. It can still send made-up data for this app, up to the key's **Requests Per Minute Limit**, so add an **Expires At** date and rotate the key with your releases.
+> The key ships inside your app, and an app can be unpacked, so assume someone will copy it. A copy of a Mobile key can send only this app's traces, logs, metrics and session replays, filed under its **Pinned Service Name**, and never from a web page. It can still send made-up data for this app, up to the key's **Requests Per Minute Limit**, so add an **Expires At** date and rotate the key with your releases.
 
 ## Set up your platform
 
@@ -289,7 +289,7 @@ Open the application's **Clients** page: each device model from `device.model.id
 
 ## Session Replay on mobile
 
-React Native apps can record sessions with `@oneuptime/react-native-replay`. It records the native view tree as a wireframe, never screenshots or the text on screen, and its recordings open in the same player as web ones. It sends with a **Browser** key whose **Allowed Origins** list your app as `app://` followed by its Android application ID or iOS bundle ID: a separate key from the Mobile key your OpenTelemetry SDK uses. [Install in React Native](/docs/telemetry/session-replay#install-in-react-native) walks through it.
+React Native apps can record sessions with `@oneuptime/react-native-replay`. It records the native view tree as a wireframe, never screenshots or the text on screen, and its recordings open in the same player as web ones. It sends with the same **Mobile** key as your OpenTelemetry SDK, with the key's **Pinned Service Name** as its `appIdentifier`, so the app ships one key. A **Browser** key whose **Allowed Origins** list your app as `app://` followed by its Android application ID or iOS bundle ID works too. [Install in React Native](/docs/telemetry/session-replay#install-in-react-native) walks through it.
 
 Native Android and iOS apps, and the other platforms, have no session recorder: their **Session Replay** page stays empty, while traces, logs, metrics, exceptions and the **Clients** page work as usual.
 
@@ -298,7 +298,7 @@ Native Android and iOS apps, and the other platforms, have no session recorder: 
 :::details The key check returns 401, or the key is refused
 A `401` means the key is unknown, revoked, switched off or expired: create a Mobile key and rebuild the app with it.
 
-A Browser key passes the check, but every export from a mobile app is refused with a `422` that reads `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Use a **Mobile** key. A Mobile key is refused with a `422` too over gRPC, and from a web page: export over OTLP/HTTP.
+A Browser key passes the check, but every export from a mobile app is refused with a `422` that reads `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Use a **Mobile** key. A Mobile key is refused with a `422` too over gRPC, from a web page, and for a session replay whose `appIdentifier` is not its **Pinned Service Name**: export over OTLP/HTTP, and give the replay SDK the key's pinned name.
 :::
 
 :::details The app shows up under Services instead of Real User Monitoring

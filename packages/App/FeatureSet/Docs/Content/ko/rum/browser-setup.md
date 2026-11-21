@@ -62,7 +62,7 @@ npm install @opentelemetry/api \
 
 ### 텔레메트리 파일 만들기
 
-`src/telemetry.ts`를 만듭니다. `browserDetector`는 텔레메트리를 RUM으로 분류하게 하는 `browser.*` 속성을 추가하고, `service.name`은 애플리케이션의 이름이 됩니다.
+`src/telemetry.ts`를 만듭니다. `browserDetector`는 **클라이언트** 페이지가 나열하는 `browser.*` 속성을 추가하고, `service.name`은 애플리케이션의 이름이 됩니다. 브라우저 키가 보내는 모든 것은 이 애플리케이션 아래 RUM으로 저장됩니다.
 
 ```ts title="src/telemetry.ts"
 import {
@@ -88,8 +88,8 @@ const ONEUPTIME_URL = "https://oneuptime.com";
 const ONEUPTIME_TOKEN = "YOUR_TELEMETRY_INGESTION_TOKEN";
 
 /*
- * browserDetector supplies the browser.* attributes. Without them this
- * telemetry is classified as a backend Service, not a RUM application.
+ * browserDetector supplies the browser.* attributes the Clients page
+ * lists. A Browser key files everything it sends as browser RUM.
  * The attributes set last win, so service.name here overrides the
  * "unknown_service" that defaultResource() provides.
  */
@@ -166,11 +166,11 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | --- | --- |
 | **허용된 출처** | 이 출처에서 온 요청만 받습니다. 각 출처에는 스킴과, 있다면 포트를 포함합니다. 호스트는 `*.` 와일드카드 하나로 시작할 수 있습니다. `https://*.example.com`은 `example.com`의 모든 하위 도메인에 해당하지만 `example.com` 자체는 포함하지 않습니다. |
 | **분당 요청 한도** | 키를 쓰는 모든 방문자가 함께 쓰는 하나의 상한입니다. 직접 정하지 않으면 분당 6000건입니다. |
-| **고정된 서비스 이름** | 키가 쓰는 모든 데이터에 `service.name`을 강제하므로, 복사본이 텔레메트리를 백엔드 서비스인 것처럼 꾸밀 수 없습니다. |
+| **고정된 서비스 이름** | 키가 쓰는 모든 데이터에 `service.name`을 강제하므로, 복사본은 그 애플리케이션 하나에만 쓸 수 있습니다. |
 | **만료 시각** | 이 날짜가 지나면 키가 더는 수락되지 않습니다. |
 | **활성화됨** | 끄면 유출된 키를 즉시 막을 수 있습니다. |
 
-Browser 키는 OTLP 트레이스, 로그, 메트릭, 세션 리플레이, 브라우저에서 실행되는 [Sentry SDK](/docs/telemetry/compatible-endpoints#sentry-sdk)의 이벤트만 쓸 수 있으며, 그 밖의 모든 수집 경로는 이 키를 거부합니다. 이 설정은 키 자체의 페이지에서 바꿉니다. 키 유형은 키를 만든 뒤에는 바꿀 수 없습니다.
+Browser 키는 OTLP 트레이스, 로그, 메트릭, 세션 리플레이, 브라우저에서 실행되는 [Sentry SDK](/docs/telemetry/compatible-endpoints#sentry-sdk)의 이벤트만 쓸 수 있으며, 그 밖의 모든 수집 경로는 이 키를 거부합니다. 이 키가 쓰는 모든 것은 브라우저 RUM으로 저장되며, 호스트, 클러스터, 백엔드 서비스로 저장되지 않습니다. 리소스 중에서는 페이지가 자신에 대해 말하는 것(`service.*`, `browser.*`, `user_agent.*` 속성과 `oneuptime.label.*` 레이블 등)만 남깁니다. 이 설정은 키 자체의 페이지에서 바꿉니다. 키 유형은 키를 만든 뒤에는 바꿀 수 없습니다.
 
 > [!WARNING]
 > **서버** 키는 절대 페이지에 넣지 마세요. 서버 키는 출처 확인 없이 어디서든 모든 종류의 텔레메트리를 쓸 수 있으므로, 페이지를 읽은 누구나 프로젝트에 데이터를 쓸 수 있게 됩니다.
@@ -179,7 +179,7 @@ Browser 키는 OTLP 트레이스, 로그, 메트릭, 세션 리플레이, 브라
 
 `browserDetector`는 [UA Client Hints API](https://wicg.github.io/ua-client-hints/)를 읽는데, 이 API는 Chromium 계열 브라우저에만 있습니다. Safari와 Firefox에서는 `browser.language`와 `user_agent.original`은 설정하지만 `browser.platform`, `browser.brands`, `browser.mobile`은 설정하지 않습니다.
 
-`browser.language`만으로도 배치가 브라우저 RUM으로 표시되므로, 텔레메트리는 여전히 RUM으로 분류됩니다. 하지만 **클라이언트** 페이지는 `browser.platform`으로 플랫폼을 나열하므로, Safari와 Firefox 방문은 그곳에 행을 추가하지 않습니다.
+브라우저 키로 보내면 텔레메트리는 어떤 경우에도 RUM으로 분류되고, 다른 키라면 `browser.language`만으로도 배치가 브라우저 RUM으로 표시됩니다. 하지만 **클라이언트** 페이지는 `browser.platform`으로 플랫폼을 나열하므로, Safari와 Firefox 방문은 그곳에 행을 추가하지 않습니다.
 
 감지기를 쓰지 않으려면, 또는 모든 브라우저에 플랫폼을 주려면 속성을 직접 설정하세요.
 
@@ -402,7 +402,7 @@ metrics.setGlobalMeterProvider(
 );
 ```
 
-같은 `resource` 객체로 만드세요. 리소스에 `browser.*`가 없는 로그나 메트릭 파이프라인은 별도의 백엔드 서비스로 분류됩니다.
+같은 `resource` 객체로 만드세요. 그러면 로그와 메트릭도 같은 애플리케이션 아래에 분류됩니다.
 
 로그 파이프라인은 코드가 기록한 레코드만 보냅니다. 알아 둘 만한 일이 일어나는 곳마다 레코드를 기록하세요.
 
@@ -452,7 +452,7 @@ logger.emit({
 :::
 
 :::details 앱이 실제 사용자 모니터링이 아니라 서비스에 나타남
-리소스에 `browser.*` 속성이 없어서 텔레메트리가 백엔드 서비스로 분류되었습니다. `browserDetector`를 추가하거나, [감지기 없이 `browser.*` 설정하기](#감지기-없이-browser-설정하기)처럼 속성을 설정하세요.
+텔레메트리가 브라우저 키가 아닌 키로 전송되었고 리소스에 `browser.*` 속성이 없어서 백엔드 서비스로 분류되었습니다. 보내는 모든 것을 RUM으로 저장하는 브라우저 키로 보내거나, `browserDetector`를 추가하거나, [감지기 없이 `browser.*` 설정하기](#감지기-없이-browser-설정하기)처럼 속성을 설정하세요.
 
 보내는 내용은 네트워크 탭의 요청 페이로드에서 확인하세요. 판단 기준은 `resourceSpans[0].resource.attributes` 목록입니다. 이미 만들어진 서비스는 RUM 애플리케이션으로 바뀌지 않으므로, RUM 텔레메트리가 도착하면 **제품 → 서비스**에서 삭제하세요.
 :::

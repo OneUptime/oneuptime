@@ -14,6 +14,7 @@ import IncludesAll from "../../../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../../../Types/BaseDatabase/IncludesNone";
 import IsNull from "../../../../../Types/BaseDatabase/IsNull";
 import NotEqual from "../../../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../../../Types/BaseDatabase/NotEqualOrNull";
 import NotNull from "../../../../../Types/BaseDatabase/NotNull";
 import Search from "../../../../../Types/BaseDatabase/Search";
 import StartsWith from "../../../../../Types/BaseDatabase/StartsWith";
@@ -284,6 +285,16 @@ describe("the operators a read across projects may filter the project by", () =>
       "NotEqual keeps every project but that one",
       new NotEqual<string>(secondProjectId.toString()),
       [firstProjectId],
+    ],
+    [
+      "NotEqualOrNull keeps every project but that one: no record's project is empty",
+      new NotEqualOrNull<string>(secondProjectId.toString()),
+      [firstProjectId],
+    ],
+    [
+      "NotEqualOrNull of a project the caller is not in keeps all of theirs",
+      new NotEqualOrNull<string>(outsideProjectId.toString()),
+      [firstProjectId, secondProjectId],
     ],
     [
       "EqualToOrNull keeps its one project: no record's project is empty",

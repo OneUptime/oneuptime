@@ -386,6 +386,8 @@ Een webhook beschrijft alleen wat in die payload staat, dus OneUptime lost een i
 1. **Field that signals recovery** en **Value that means recovered** zijn ingevuld en komen overeen met de payload. De vergelijking is exact en hoofdlettergevoelig: `Resolved` komt niet overeen met `resolved`.
 2. Bij het incident van het criterium staat **Incident automatisch oplossen** aan, onder **Meer velden** in het incidentformulier. Zonder die optie worden overeenkomende herstelgebeurtenissen genegeerd en blijven de incidenten open. (Hetzelfde geldt voor waarschuwingen en **Waarschuwing automatisch oplossen**.) Bij het standaard offline-criterium staat het al aan; bij een incident dat u zelf aan een criterium toevoegt, staat het eerst uit.
 
+Ook bij een waarschuwing die u zelf aan een criterium toevoegt, staat **Waarschuwing automatisch oplossen** eerst uit, dus een herstel laat de waarschuwing open tot die optie aan staat. **Auto-resolve each incident when…** laat zien welke incidenten en waarschuwingen van het criterium een herstel oplost, en noemt elk incident en elke waarschuwing die het open zou laten, met een knop die de bijbehorende optie aanzet. De kaart **Monitorsamenvatting** op het **Overzicht** van de monitor noemt elk incident en elke waarschuwing die een herstel open liet, en waarom.
+
 **Max incidents per request** begrenst het uitlezen, niet alleen het aanmaken. Sleutels voorbij de grens zijn ook onzichtbaar voor het herstel, dus in een payload met meer verschillende sleutels dan de grens sluit een waarschuwing die voorbij die grens `resolved` meldt, haar incident niet.
 
 > [!NOTE]

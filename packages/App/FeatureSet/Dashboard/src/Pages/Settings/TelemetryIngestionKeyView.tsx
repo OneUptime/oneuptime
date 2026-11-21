@@ -233,7 +233,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
                       <Pill color={Purple} text="Mobile" />
                       <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">
                         {translator.translateText(
-                          "Safe to ship in a mobile app. Everything sent with it is filed under the pinned service name below, and it is accepted only for that app's traces, logs and metrics, never from a web page.",
+                          "Safe to ship in a mobile app. Everything sent with it is filed under the pinned service name below, and it is accepted only for that app's traces, logs, metrics and session replays, never from a web page.",
                         )}
                       </p>
                     </div>

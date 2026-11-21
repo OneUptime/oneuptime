@@ -1,17 +1,28 @@
+import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyEscalationRule from "../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyEscalationRuleSchedule from "../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import OnCallDutyPolicyEscalationRuleTeam from "../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import OnCallDutyPolicyEscalationRuleUser from "../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
+import OnCallDutyPolicySchedule from "../../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import Team from "../../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import User from "../../../../Models/DatabaseModels/User";
 import OnCallDutyPolicyEscalationRuleScheduleService from "../../../../Server/Services/OnCallDutyPolicyEscalationRuleScheduleService";
+import OnCallDutyPolicyEscalationRuleService from "../../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyEscalationRuleTeamService from "../../../../Server/Services/OnCallDutyPolicyEscalationRuleTeamService";
 import OnCallDutyPolicyEscalationRuleUserService from "../../../../Server/Services/OnCallDutyPolicyEscalationRuleUserService";
 import OnCallDutyPolicyScheduleService from "../../../../Server/Services/OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyTimeLogService from "../../../../Server/Services/OnCallDutyPolicyTimeLogService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
+import TeamService from "../../../../Server/Services/TeamService";
+import UserService from "../../../../Server/Services/UserService";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import ProjectMembership, {
   ProjectUserPair,
 } from "../../../../Server/Utils/TeamMember/ProjectMembership";
+import Name from "../../../../Types/Name";
 import ObjectID from "../../../../Types/ObjectID";
 import { jest } from "@jest/globals";
 
@@ -22,6 +33,16 @@ import { jest } from "@jest/globals";
  * reads EscalationRuleReach makes - and the time logs the services and it
  * write - are answered from here, so a test adds and removes rows, calls a
  * service's hooks, and reads who was told and logged.
+ *
+ * Rules belong to a policy (Payments, unless describeRule puts one in
+ * another), and every row is its rule's policy's. Each membership has an id
+ * and the moment it was made; each schedule a roster as its hand-offs keep
+ * it (currentUserIdOnRoster: whoever is on call in it, unless `roster` says
+ * otherwise; nextUserIdOnRoster: whoever is next, unless `rosterNext` says
+ * otherwise; and when the shift hands off); and policies, rules, teams and
+ * schedules have names, for the reads that say who was told of what. So do
+ * people: their own (`userNames`), and the one typed with an invitation
+ * (`inviteeNames`), what a project calls someone only invited.
  */
 
 export const PROJECT_ID: ObjectID = new ObjectID(
@@ -35,6 +56,13 @@ export const RULE_ID: ObjectID = new ObjectID(
 );
 export const OTHER_RULE_ID: ObjectID = new ObjectID(
   "10464000-0000-4000-8000-0000000000e2",
+);
+// A second policy, and a rule of it.
+export const OTHER_POLICY_ID: ObjectID = new ObjectID(
+  "10464000-0000-4000-8000-0000000000d2",
+);
+export const OTHER_POLICY_RULE_ID: ObjectID = new ObjectID(
+  "10464000-0000-4000-8000-0000000000e3",
 );
 
 export const ANA: ObjectID = new ObjectID(
@@ -68,7 +96,16 @@ export const SECONDARY: ObjectID = new ObjectID(
 interface WorldRow {
   id: ObjectID;
   ruleId: ObjectID;
+  // The policy of the row's rule.
+  policyId: ObjectID;
   createdAt: Date;
+}
+
+// A rule, as describeRule puts it: its policy, name and order.
+export interface WorldRule {
+  policyId: ObjectID;
+  name: string;
+  order: number;
 }
 
 export interface WorldUserRow extends WorldRow {
@@ -85,6 +122,8 @@ export interface WorldScheduleRow extends WorldRow {
 }
 
 export interface WorldMembership {
+  id: ObjectID;
+  createdAt: Date;
   userId: ObjectID;
   teamId: ObjectID;
   accepted: boolean;
@@ -144,29 +183,149 @@ export default class ReachWorld {
   // Who is on call in each schedule now, and next in its rotation.
   public onCall: Map<string, ObjectID | null> = new Map();
   public next: Map<string, ObjectID | null> = new Map();
+  /*
+   * Who each schedule's roster has on call (currentUserIdOnRoster), where
+   * it is not who is on call now: a hand-off not stored yet. And who it has
+   * next (nextUserIdOnRoster), where it is not who is next now.
+   */
+  public roster: Map<string, ObjectID | null> = new Map();
+  public rosterNext: Map<string, ObjectID | null> = new Map();
+  // When each roster's shift hands off, and the next one starts.
+  public rosterHandoffAt: Date = new Date("2026-11-20T17:50:00.000Z");
+  public rosterNextStartAt: Date = new Date("2026-11-20T17:50:00.000Z");
+  // People's own names, and the names typed with their invitations.
+  public userNames: Map<string, string> = new Map<string, string>();
+  public inviteeNames: Map<string, string> = new Map<string, string>();
   public timeLogs: Array<TimeLogWrite> = [];
   // Set to make every read of the rule's rows fail.
   public failReads: boolean = false;
+
+  public rules: Map<string, WorldRule> = new Map<string, WorldRule>([
+    [
+      RULE_ID.toString().toLowerCase(),
+      { policyId: POLICY_ID, name: "Level 1", order: 1 },
+    ],
+    [
+      OTHER_RULE_ID.toString().toLowerCase(),
+      { policyId: POLICY_ID, name: "Level 2", order: 2 },
+    ],
+    [
+      OTHER_POLICY_RULE_ID.toString().toLowerCase(),
+      { policyId: OTHER_POLICY_ID, name: "First line", order: 1 },
+    ],
+  ]);
+
+  public names: Map<string, string> = new Map<string, string>([
+    [POLICY_ID.toString().toLowerCase(), "Payments"],
+    [OTHER_POLICY_ID.toString().toLowerCase(), "Checkout"],
+    [PLATFORM.toString().toLowerCase(), "Platform"],
+    [PAYMENTS_TEAM.toString().toLowerCase(), "Payments team"],
+    [PRIMARY.toString().toLowerCase(), "Primary"],
+    [SECONDARY.toString().toLowerCase(), "Secondary"],
+  ]);
+
+  // A rule of a policy, by name and order; a rule never described is Payments'.
+  public describeRule(ruleId: ObjectID, rule: WorldRule): void {
+    this.rules.set(ruleId.toString().toLowerCase(), rule);
+  }
+
+  public ruleOf(ruleId: ObjectID): WorldRule {
+    return (
+      this.rules.get(ruleId.toString().toLowerCase()) || {
+        policyId: POLICY_ID,
+        name: "",
+        order: 1,
+      }
+    );
+  }
+
+  // What a policy, team or schedule is called.
+  public nameOf(id: ObjectID): string {
+    return this.names.get(id.toString().toLowerCase()) || "";
+  }
+
+  // Who a schedule's roster has on call, as its hand-offs stored it.
+  public rosterOf(scheduleId: ObjectID | string): ObjectID | null {
+    const key: string = scheduleId.toString();
+
+    return this.roster.has(key)
+      ? this.roster.get(key) || null
+      : this.onCall.get(key) || null;
+  }
+
+  // Who a schedule's roster has next, as its hand-offs stored it.
+  public rosterNextOf(scheduleId: ObjectID | string): ObjectID | null {
+    const key: string = scheduleId.toString();
+
+    return this.rosterNext.has(key)
+      ? this.rosterNext.get(key) || null
+      : this.next.get(key) || null;
+  }
+
+  // A membership gone: left, removed, or its invitation withdrawn.
+  public leave(membership: WorldMembership): void {
+    this.memberships = this.memberships.filter(
+      (each: WorldMembership): boolean => {
+        return !same(each.id, membership.id);
+      },
+    );
+  }
+
+  // Whether `userId` holds only invitations to the project.
+  public isInvitedOnly(userId: ObjectID | string): boolean {
+    return (
+      !this.isMember(userId) &&
+      this.memberships.some((membership: WorldMembership): boolean => {
+        return same(membership.userId, userId);
+      })
+    );
+  }
 
   public addMember(
     userId: ObjectID,
     teamId: ObjectID,
     accepted: boolean,
-  ): void {
-    this.memberships.push({ userId, teamId, accepted });
+  ): WorldMembership {
+    const membership: WorldMembership = {
+      ...nextRowAt(),
+      userId,
+      teamId,
+      accepted,
+    };
+    this.memberships.push(membership);
+    return membership;
+  }
+
+  // Every invitation of theirs accepted, as accepting one accepts them all.
+  public accept(userId: ObjectID): void {
+    for (const membership of this.memberships) {
+      if (same(membership.userId, userId)) {
+        membership.accepted = true;
+      }
+    }
   }
 
   public namePerson(
     userId: ObjectID,
     ruleId: ObjectID = RULE_ID,
   ): WorldUserRow {
-    const row: WorldUserRow = { ...nextRowAt(), ruleId, userId };
+    const row: WorldUserRow = {
+      ...nextRowAt(),
+      ruleId,
+      policyId: this.ruleOf(ruleId).policyId,
+      userId,
+    };
     this.userRows.push(row);
     return row;
   }
 
   public nameTeam(teamId: ObjectID, ruleId: ObjectID = RULE_ID): WorldTeamRow {
-    const row: WorldTeamRow = { ...nextRowAt(), ruleId, teamId };
+    const row: WorldTeamRow = {
+      ...nextRowAt(),
+      ruleId,
+      policyId: this.ruleOf(ruleId).policyId,
+      teamId,
+    };
     this.teamRows.push(row);
     return row;
   }
@@ -175,9 +334,11 @@ export default class ReachWorld {
     scheduleId: ObjectID,
     options?: { pageNextInRotation?: boolean; ruleId?: ObjectID },
   ): WorldScheduleRow {
+    const ruleId: ObjectID = options?.ruleId || RULE_ID;
     const row: WorldScheduleRow = {
       ...nextRowAt(),
-      ruleId: options?.ruleId || RULE_ID,
+      ruleId: ruleId,
+      policyId: this.ruleOf(ruleId).policyId,
       scheduleId,
       pageNextInRotation: Boolean(options?.pageNextInRotation),
     };
@@ -234,12 +395,16 @@ export default class ReachWorld {
         const userIds: Array<string> | null = readQueryValues(
           args.query["userId"],
         );
+        const policyIds: Array<string> | null = readQueryValues(
+          args.query["onCallDutyPolicyId"],
+        );
 
         return this.userRows
           .filter((row: WorldUserRow): boolean => {
             return (
               (!ruleIds || ruleIds.includes(row.ruleId.toString())) &&
-              (!userIds || userIds.includes(row.userId.toString()))
+              (!userIds || userIds.includes(row.userId.toString())) &&
+              (!policyIds || policyIds.includes(row.policyId.toString()))
             );
           })
           .map((row: WorldUserRow): OnCallDutyPolicyEscalationRuleUser => {
@@ -249,7 +414,7 @@ export default class ReachWorld {
             model.userId = row.userId;
             model.createdAt = row.createdAt;
             model.projectId = PROJECT_ID;
-            model.onCallDutyPolicyId = POLICY_ID;
+            model.onCallDutyPolicyId = row.policyId;
             model.onCallDutyPolicyEscalationRuleId = row.ruleId;
             return model;
           });
@@ -267,12 +432,16 @@ export default class ReachWorld {
         const teamIds: Array<string> | null = readQueryValues(
           args.query["teamId"],
         );
+        const policyIds: Array<string> | null = readQueryValues(
+          args.query["onCallDutyPolicyId"],
+        );
 
         return this.teamRows
           .filter((row: WorldTeamRow): boolean => {
             return (
               (!ruleIds || ruleIds.includes(row.ruleId.toString())) &&
-              (!teamIds || teamIds.includes(row.teamId.toString()))
+              (!teamIds || teamIds.includes(row.teamId.toString())) &&
+              (!policyIds || policyIds.includes(row.policyId.toString()))
             );
           })
           .map((row: WorldTeamRow): OnCallDutyPolicyEscalationRuleTeam => {
@@ -282,7 +451,7 @@ export default class ReachWorld {
             model.teamId = row.teamId;
             model.createdAt = row.createdAt;
             model.projectId = PROJECT_ID;
-            model.onCallDutyPolicyId = POLICY_ID;
+            model.onCallDutyPolicyId = row.policyId;
             model.onCallDutyPolicyEscalationRuleId = row.ruleId;
             return model;
           });
@@ -297,10 +466,20 @@ export default class ReachWorld {
         const ruleIds: Array<string> | null = readQueryValues(
           args.query["onCallDutyPolicyEscalationRuleId"],
         );
+        const policyIds: Array<string> | null = readQueryValues(
+          args.query["onCallDutyPolicyId"],
+        );
+        const scheduleIds: Array<string> | null = readQueryValues(
+          args.query["onCallDutyPolicyScheduleId"],
+        );
 
         return this.scheduleRows
           .filter((row: WorldScheduleRow): boolean => {
-            return !ruleIds || ruleIds.includes(row.ruleId.toString());
+            return (
+              (!ruleIds || ruleIds.includes(row.ruleId.toString())) &&
+              (!policyIds || policyIds.includes(row.policyId.toString())) &&
+              (!scheduleIds || scheduleIds.includes(row.scheduleId.toString()))
+            );
           })
           .map(
             (row: WorldScheduleRow): OnCallDutyPolicyEscalationRuleSchedule => {
@@ -311,44 +490,54 @@ export default class ReachWorld {
               model.pageNextInRotation = row.pageNextInRotation;
               model.createdAt = row.createdAt;
               model.projectId = PROJECT_ID;
-              model.onCallDutyPolicyId = POLICY_ID;
+              model.onCallDutyPolicyId = row.policyId;
               model.onCallDutyPolicyEscalationRuleId = row.ruleId;
+
+              // With its policy, rule and schedule, as a hand-off reads them.
+              model.onCallDutyPolicy = this.policyModel(row.policyId);
+              model.onCallDutyPolicyEscalationRule = this.ruleModel(row.ruleId);
+
+              const schedule: OnCallDutyPolicySchedule =
+                new OnCallDutyPolicySchedule();
+              schedule._id = row.scheduleId.toString();
+              schedule.name = this.nameOf(row.scheduleId);
+              model.onCallDutyPolicySchedule = schedule;
               return model;
             },
           );
       }) as never);
 
-    jest
-      .spyOn(TeamMemberService, "findBy")
-      .mockImplementation((async (args: {
-        query: Record<string, unknown>;
-      }): Promise<Array<TeamMember>> => {
-        const teamIds: Array<string> | null = readQueryValues(
-          args.query["teamId"],
-        );
-        const userIds: Array<string> | null = readQueryValues(
-          args.query["userId"],
-        );
-        const acceptedOnly: boolean =
-          args.query["hasAcceptedInvitation"] === true;
+    jest.spyOn(TeamMemberService, "findBy").mockImplementation((async (args: {
+      query: Record<string, unknown>;
+    }): Promise<Array<TeamMember>> => {
+      const teamIds: Array<string> | null = readQueryValues(
+        args.query["teamId"],
+      );
+      const userIds: Array<string> | null = readQueryValues(
+        args.query["userId"],
+      );
+      const acceptedOnly: boolean =
+        args.query["hasAcceptedInvitation"] === true;
 
-        return this.memberships
-          .filter((membership: WorldMembership): boolean => {
-            return (
-              (!teamIds || teamIds.includes(membership.teamId.toString())) &&
-              (!userIds || userIds.includes(membership.userId.toString())) &&
-              (!acceptedOnly || membership.accepted)
-            );
-          })
-          .map((membership: WorldMembership): TeamMember => {
-            const model: TeamMember = new TeamMember();
-            model.userId = membership.userId;
-            model.teamId = membership.teamId;
-            model.projectId = PROJECT_ID;
-            model.hasAcceptedInvitation = membership.accepted;
-            return model;
-          });
-      }) as never);
+      return this.memberships
+        .filter((membership: WorldMembership): boolean => {
+          return (
+            (!teamIds || teamIds.includes(membership.teamId.toString())) &&
+            (!userIds || userIds.includes(membership.userId.toString())) &&
+            (!acceptedOnly || membership.accepted)
+          );
+        })
+        .map((membership: WorldMembership): TeamMember => {
+          const model: TeamMember = new TeamMember();
+          model._id = membership.id.toString();
+          model.createdAt = membership.createdAt;
+          model.userId = membership.userId;
+          model.teamId = membership.teamId;
+          model.projectId = PROJECT_ID;
+          model.hasAcceptedInvitation = membership.accepted;
+          return model;
+        });
+    }) as never);
 
     const usersIn: (
       teamIds: Array<ObjectID>,
@@ -454,6 +643,169 @@ export default class ReachWorld {
         };
       }) as never);
 
+    /*
+     * The schedules whose roster has someone on call, or next, as hand-offs
+     * stored it.
+     */
+    jest
+      .spyOn(OnCallDutyPolicyScheduleService, "findBy")
+      .mockImplementation((async (args: {
+        query: Record<string, unknown>;
+      }): Promise<Array<OnCallDutyPolicySchedule>> => {
+        this.throwIfFailing();
+        const onRosterUserIds: Array<string> | null = readQueryValues(
+          args.query["currentUserIdOnRoster"],
+        );
+        const nextOnRosterUserIds: Array<string> | null = readQueryValues(
+          args.query["nextUserIdOnRoster"],
+        );
+        const ids: Array<string> | null = readQueryValues(args.query["_id"]);
+
+        return [PRIMARY, SECONDARY]
+          .filter((scheduleId: ObjectID): boolean => {
+            const onRoster: ObjectID | null = this.rosterOf(scheduleId);
+            const nextOnRoster: ObjectID | null = this.rosterNextOf(scheduleId);
+
+            return (
+              (!ids || ids.includes(scheduleId.toString())) &&
+              (!onRosterUserIds ||
+                Boolean(
+                  onRoster && onRosterUserIds.includes(onRoster.toString()),
+                )) &&
+              (!nextOnRosterUserIds ||
+                Boolean(
+                  nextOnRoster &&
+                    nextOnRosterUserIds.includes(nextOnRoster.toString()),
+                ))
+            );
+          })
+          .map((scheduleId: ObjectID): OnCallDutyPolicySchedule => {
+            const model: OnCallDutyPolicySchedule =
+              new OnCallDutyPolicySchedule();
+            model._id = scheduleId.toString();
+            model.name = this.nameOf(scheduleId);
+            model.projectId = PROJECT_ID;
+
+            const onRoster: ObjectID | null = this.rosterOf(scheduleId);
+            const nextOnRoster: ObjectID | null = this.rosterNextOf(scheduleId);
+
+            if (onRoster) {
+              model.currentUserIdOnRoster = onRoster;
+              model.rosterHandoffAt = this.rosterHandoffAt;
+            }
+
+            if (nextOnRoster) {
+              model.nextUserIdOnRoster = nextOnRoster;
+              model.rosterNextStartAt = this.rosterNextStartAt;
+            }
+
+            return model;
+          });
+      }) as never);
+
+    // Teams by name.
+    jest.spyOn(TeamService, "findBy").mockImplementation((async (args: {
+      query: Record<string, unknown>;
+    }): Promise<Array<Team>> => {
+      this.throwIfFailing();
+      const ids: Array<string> = readQueryValues(args.query["_id"]) || [];
+
+      return ids
+        .filter((id: string): boolean => {
+          return Boolean(this.names.get(id));
+        })
+        .map((id: string): Team => {
+          const team: Team = new Team();
+          team._id = id;
+          team.name = this.names.get(id) || "";
+          return team;
+        });
+    }) as never);
+
+    // People by their own names.
+    jest.spyOn(UserService, "findBy").mockImplementation((async (args: {
+      query: Record<string, unknown>;
+    }): Promise<Array<User>> => {
+      this.throwIfFailing();
+      const ids: Array<string> = readQueryValues(args.query["_id"]) || [];
+
+      return ids.map((id: string): User => {
+        const user: User = new User();
+        user._id = id;
+
+        const name: string | undefined = this.userNames.get(id);
+
+        if (name) {
+          user.name = new Name(name);
+        }
+
+        return user;
+      });
+    }) as never);
+
+    /*
+     * Who is only invited to the project, as the project knows them: the
+     * name typed with the invitation, and the address it was sent to.
+     */
+    jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockImplementation((async (data: {
+        userIds: Array<string>;
+      }): Promise<Map<string, WithheldProfile>> => {
+        this.throwIfFailing();
+        const withheld: Map<string, WithheldProfile> = new Map<
+          string,
+          WithheldProfile
+        >();
+
+        for (const userId of data.userIds) {
+          const key: string = userId.toLowerCase();
+
+          if (this.isInvitedOnly(key)) {
+            withheld.set(key, {
+              inviteeName: this.inviteeNames.get(key) || null,
+              inviteeEmail: `invitee-${key.slice(-4)}@acme.test`,
+            });
+          }
+        }
+
+        return withheld;
+      }) as never);
+
+    // The rules, by name and order, with their policy's name.
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "findBy")
+      .mockImplementation((async (args: {
+        query: Record<string, unknown>;
+      }): Promise<Array<OnCallDutyPolicyEscalationRule>> => {
+        this.throwIfFailing();
+        const ids: Array<string> | null = readQueryValues(args.query["_id"]);
+
+        return [...this.rules.keys()]
+          .filter((ruleKey: string): boolean => {
+            return !ids || ids.includes(ruleKey);
+          })
+          .map((ruleKey: string): OnCallDutyPolicyEscalationRule => {
+            return this.ruleModel(new ObjectID(ruleKey));
+          });
+      }) as never);
+
+    // A team, by name.
+    jest.spyOn(TeamService, "findOneById").mockImplementation((async (args: {
+      id: ObjectID;
+    }): Promise<Team | null> => {
+      const name: string = this.nameOf(args.id);
+
+      if (!name) {
+        return null;
+      }
+
+      const team: Team = new Team();
+      team._id = args.id.toString();
+      team.name = name;
+      return team;
+    }) as never);
+
     const record: (
       action: "start" | "end",
       data: {
@@ -492,6 +844,28 @@ export default class ReachWorld {
       .mockImplementation((async (data: never) => {
         record("end", data);
       }) as never);
+  }
+
+  // A policy as a row's relation reads it: its id and name.
+  public policyModel(policyId: ObjectID): OnCallDutyPolicy {
+    const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
+    policy._id = policyId.toString();
+    policy.name = this.nameOf(policyId);
+    return policy;
+  }
+
+  // A rule as a read of it answers: its name, order and policy.
+  public ruleModel(ruleId: ObjectID): OnCallDutyPolicyEscalationRule {
+    const rule: WorldRule = this.ruleOf(ruleId);
+    const model: OnCallDutyPolicyEscalationRule =
+      new OnCallDutyPolicyEscalationRule();
+    model._id = ruleId.toString();
+    model.name = rule.name;
+    model.order = rule.order;
+    model.projectId = PROJECT_ID;
+    model.onCallDutyPolicyId = rule.policyId;
+    model.onCallDutyPolicy = this.policyModel(rule.policyId);
+    return model;
   }
 
   private throwIfFailing(): void {

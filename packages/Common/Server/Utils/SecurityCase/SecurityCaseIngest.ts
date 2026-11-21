@@ -34,6 +34,10 @@ import {
   mergeSecurityEntities,
 } from "../../../Types/SecurityCase/SecurityEntity";
 import { cutShortDetectionText } from "../../../Types/SecurityCase/SecurityDetectionText";
+import {
+  hasTakenFiring,
+  takeFiring,
+} from "../../../Types/SecurityCase/SecurityFiringKeys";
 import OcsfSeverity, {
   OcsfSeverityId,
 } from "../../../Types/SecurityEvent/OcsfSeverity";
@@ -88,12 +92,22 @@ export interface SecurityDetectionSignal {
    * contained over a test.
    */
   isSetupTest?: boolean | undefined;
+  /*
+   * The name of the firing this signal is, from a source that can judge
+   * the same events twice: a detection rule's scheduled run, judged again
+   * after a worker stopped before it recorded where it got to (#10489,
+   * Types/SecurityCase/SecurityFiringKeys). A detection that took this
+   * firing already takes nothing more from it. None: taken every time.
+   */
+  firingKey?: string | undefined;
 }
 
 export interface SecurityCaseIngestResult {
   casesOpened: number;
   detectionsAdded: number;
   detectionsRepeated: number;
+  // Signals whose firing their detection had taken already: nothing was added (#10489).
+  detectionsAlreadyTaken?: number | undefined;
 }
 
 /*
@@ -216,7 +230,8 @@ export function worseSeverity(
  *  1. A signal whose detection is already in an open case (same
  *     fingerprint) is a repeat: the detection's counts and last-seen time go
  *     up, and nothing else happens. A rule matching every minute is one line
- *     on a case.
+ *     on a case. A repeat of a firing the detection took already - a rule's
+ *     run judged again after its worker stopped (#10489) - adds nothing.
  *  2. A new signal about an entity that an open case is already about joins
  *     that case: one compromised host is one case, however many rules see
  *     it. The case's priority rises to the new detection's, and the
@@ -252,6 +267,12 @@ export default class SecurityCaseIngest {
       result.casesOpened += projectResult.casesOpened;
       result.detectionsAdded += projectResult.detectionsAdded;
       result.detectionsRepeated += projectResult.detectionsRepeated;
+
+      if (projectResult.detectionsAlreadyTaken) {
+        result.detectionsAlreadyTaken =
+          (result.detectionsAlreadyTaken || 0) +
+          projectResult.detectionsAlreadyTaken;
+      }
     }
 
     return result;
@@ -329,6 +350,7 @@ export default class SecurityCaseIngest {
           securityCaseId: true,
           severity: true,
           entities: true,
+          recentFiringKeys: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -441,6 +463,20 @@ export default class SecurityCaseIngest {
           fingerprint,
           openCases,
         });
+
+        /*
+         * A firing the detection took already (#10489): a rule's run judged
+         * the same events again after its worker stopped before recording
+         * where it got to. Its counts went up when the firing was taken.
+         */
+        if (
+          repeated &&
+          hasTakenFiring(repeated.recentFiringKeys, signal.firingKey)
+        ) {
+          result.detectionsAlreadyTaken =
+            (result.detectionsAlreadyTaken || 0) + 1;
+          continue;
+        }
 
         if (repeated) {
           await this.recordRepeat({
@@ -679,6 +715,14 @@ export default class SecurityCaseIngest {
       detection.eventUid = cutShortDetectionText(signal.eventUid);
     }
 
+    // The firing it was opened by, so the same firing handed again adds nothing (#10489).
+    if (signal.firingKey) {
+      detection.recentFiringKeys = takeFiring(
+        [],
+        signal.firingKey,
+      ) as unknown as JSONArray;
+    }
+
     const kept: SecurityDetectionMatchedEvents | null = signal.matchedEvents
       ? keepSecurityDetectionMatchedEvents({
           kept: null,
@@ -700,6 +744,10 @@ export default class SecurityCaseIngest {
     // A signal later in the batch can repeat it: it merges onto this.
     if (created.id) {
       data.keptEvents.set(created.id.toString(), kept);
+    }
+
+    if (detection.recentFiringKeys && !created.recentFiringKeys) {
+      created.recentFiringKeys = detection.recentFiringKeys;
     }
 
     await SecurityCaseService.atomicAddToColumnsByIdWithoutHooks({
@@ -855,6 +903,20 @@ export default class SecurityCaseIngest {
 
     if (signal.sampleMessage) {
       set.sampleMessage = signal.sampleMessage;
+    }
+
+    // The firing taken, among the latest it keeps (#10489).
+    if (signal.firingKey) {
+      const firingKeys: Array<string> = takeFiring(
+        detection.recentFiringKeys,
+        signal.firingKey,
+      );
+
+      set.recentFiringKeys = firingKeys as unknown as NonNullable<
+        PartialEntity<SecurityDetection>["recentFiringKeys"]
+      >;
+      // A later signal of this batch for the same detection reads it.
+      detection.recentFiringKeys = firingKeys as unknown as JSONArray;
     }
 
     /*

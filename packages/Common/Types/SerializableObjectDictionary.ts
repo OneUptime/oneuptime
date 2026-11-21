@@ -24,6 +24,7 @@ import LessThanOrEqual from "./BaseDatabase/LessThanOrEqual";
 import LessThanOrNull from "./BaseDatabase/LessThanOrNull";
 import GreaterThanOrNull from "./BaseDatabase/GreaterThanOrNull";
 import NotEqual from "./BaseDatabase/NotEqual";
+import NotEqualOrNull from "./BaseDatabase/NotEqualOrNull";
 import NotNull from "./BaseDatabase/NotNull";
 import Search from "./BaseDatabase/Search";
 import MultiSearch from "./BaseDatabase/MultiSearch";
@@ -98,6 +99,9 @@ const SerializableObjectDictionary: Dictionary<any> = {
   },
   get [ObjectType.NotEqual](): any {
     return NotEqual;
+  },
+  get [ObjectType.NotEqualOrNull](): any {
+    return NotEqualOrNull;
   },
   get [ObjectType.Email](): any {
     return Email;

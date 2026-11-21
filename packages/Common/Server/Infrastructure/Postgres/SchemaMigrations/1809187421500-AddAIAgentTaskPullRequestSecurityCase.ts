@@ -9,13 +9,13 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * opened the pull request from, so the case's Fix step's check reads
  * whether a fix shipped. Empty on every existing pull request. Its index
  * is built online, in AddAIAgentTaskPullRequestSecurityCaseIndex
- * 1809187420010: the table already holds every pull request OneUptime AI
+ * 1809187421510: the table already holds every pull request OneUptime AI
  * opened.
  */
-export class AddAIAgentTaskPullRequestSecurityCase1809187420000
+export class AddAIAgentTaskPullRequestSecurityCase1809187421500
   implements MigrationInterface
 {
-  public name: string = "AddAIAgentTaskPullRequestSecurityCase1809187420000";
+  public name: string = "AddAIAgentTaskPullRequestSecurityCase1809187421500";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
