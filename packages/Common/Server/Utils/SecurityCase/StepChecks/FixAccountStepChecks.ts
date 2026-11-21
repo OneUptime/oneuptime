@@ -457,8 +457,8 @@ export function decideMfa(input: MfaInput): StepCheckResult {
       CHECK_FIX_MFA_MISSING,
       { user: without[0]!.user },
       {
-        numbers: { missing: without.length },
-        count: without.length + withMfa.length,
+        numbers: { total: without.length + withMfa.length },
+        count: without.length,
       },
     );
     const wasHolding: boolean =

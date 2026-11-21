@@ -388,10 +388,11 @@ export const CHECK_FIX_MFA_ALL: PluralTemplate = {
   one: "The {{count}} account the attack went after has MFA set up.",
   other: "All {{count}} accounts the attack went after have MFA set up.",
 };
+// Counted by the accounts without MFA, of {{total}} the attack went after.
 export const CHECK_FIX_MFA_MISSING: PluralTemplate = {
-  one: "{{missing}} of the {{count}} account the attack went after has no MFA set up, {{user}} among them.",
+  one: "{{user}}, {{count}} of the {{total}} accounts the attack went after, has no MFA set up.",
   other:
-    "{{missing}} of the {{count}} accounts the attack went after have no MFA set up, {{user}} among them.",
+    "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them.",
 };
 export const CHECK_FIX_FACT_MFA_ON: string = translationKey(
   "{{user}} has MFA set up in {{provider}}.",

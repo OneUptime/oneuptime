@@ -395,8 +395,8 @@ describe("MFA on the accounts it went after", () => {
     expect(result.evidence.sentence).toEqual({
       template: CHECK_FIX_MFA_MISSING,
       values: { user: BOB },
-      numbers: { missing: 2 },
-      count: 3,
+      numbers: { total: 3 },
+      count: 2,
     });
     expect(result.evidence.facts).toEqual([
       {
