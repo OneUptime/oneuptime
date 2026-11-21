@@ -95,13 +95,25 @@ export interface TelemetryExceptionPayload {
  * exist from then on. Capped, and cleared whole when full.
  */
 const EXISTING_GROUP_CACHE_TTL_MS: number = 10 * 60 * 1000;
-const EXISTING_GROUP_CACHE_MAX_ENTRIES: number = 100000;
+export const EXISTING_GROUP_CACHE_MAX_ENTRIES: number = 100000;
 const existingGroupCache: Map<string, { exists: boolean; at: number }> =
   new Map();
 
 // Forgets which exceptions exist under which fingerprints (tests).
 export function clearExistingV1FingerprintCache(): void {
   existingGroupCache.clear();
+}
+
+// Remembers that an exception exists under a fingerprint, within the cap.
+function rememberGroupMade(cacheKey: string, at: number): void {
+  if (
+    existingGroupCache.size >= EXISTING_GROUP_CACHE_MAX_ENTRIES &&
+    !existingGroupCache.has(cacheKey)
+  ) {
+    existingGroupCache.clear();
+  }
+
+  existingGroupCache.set(cacheKey, { exists: true, at: at });
 }
 
 // An exception the upsert reopened, as its statement hands it back.
@@ -406,8 +418,9 @@ export default class ExceptionUtil {
    * rule hid (#10434).
    *
    * One indexed read per project for the fingerprints a batch tries that are
-   * not cached. When it fails, the occurrence keeps its `v1`: grouped as
-   * before v2, never lost.
+   * not cached. When it fails, the occurrence keeps its `v1`, never lost:
+   * its grouping v1 fingerprint, grouped as before v2, unless a scrub rule
+   * hid part of what that one hashes (getOccurrenceFingerprints).
    *
    * A new exception made here exists for the occurrences after it at once -
    * those of this batch, and those of the batches this process reads next -
@@ -515,10 +528,7 @@ export default class ExceptionUtil {
       // A new exception is made under its v2, for the occurrences after it.
       chosen.set(key, candidate.v2);
       known.set(`${candidate.projectId}|${candidate.v2}`, true);
-      existingGroupCache.set(`${candidate.projectId}|${candidate.v2}`, {
-        exists: true,
-        at: now,
-      });
+      rememberGroupMade(`${candidate.projectId}|${candidate.v2}`, now);
     }
 
     return chosen;
