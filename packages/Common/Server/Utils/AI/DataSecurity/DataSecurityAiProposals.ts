@@ -46,9 +46,12 @@ import NotFoundException from "../../../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
+import Query from "../../../Types/Database/Query";
 import FeedMarkdown, { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import DataSecurityAiProposalService from "../../../Services/DataSecurityAiProposalService";
 import DataSecurityIssueFeedService from "../../../Services/DataSecurityIssueFeedService";
+import DataSecurityIssueService from "../../../Services/DataSecurityIssueService";
+import { NO_OWNER_CHECK_ID } from "../../../../Types/DataSecurity/DataSecurityCheckCatalog";
 import DataStoreFeedService from "../../../Services/DataStoreFeedService";
 import ProjectService from "../../../Services/ProjectService";
 import logger from "../../Logger";
@@ -116,6 +119,12 @@ export const PROPOSAL_APPROVER_MUST_BE_A_PERSON_MESSAGE: string =
 
 export const PROPOSAL_ALREADY_APPROVED_FIRST_MESSAGE: string =
   "You already approved this change. It is a riskier change, and this project asks two people to approve one, so it is made once someone else approves it too.";
+
+export const PROPOSAL_TAKES_NO_CHANGES_MESSAGE: string =
+  "This kind of proposal is approved as OneUptime AI proposed it, so nothing was done. Approve it as it is, or dismiss it.";
+
+export const PROPOSAL_TWO_APPROVALS_TAKE_NO_CHANGES_MESSAGE: string =
+  "A change two people approve is approved as it was proposed, so nothing was done. Approve it as it is, or dismiss it.";
 
 export const DISMISS_REASON_REQUIRED_MESSAGE: string =
   "Say why you are dismissing this proposal, so OneUptime AI and your team know.";
@@ -281,24 +290,74 @@ export default class DataSecurityAiProposals {
   }
 
   /*
+   * The proposals that are for the same thing as a new one, of its kind:
+   * an issue's; a store's owners, whatever issue they hang on (#10374);
+   * an owner rule's, by the rule it is - its plan key - since each rule is
+   * a thing of its own.
+   */
+  public static getSameSubjectQuery(data: {
+    projectId: ObjectID;
+    kind: DataSecurityAiProposalKind;
+    issue?: DataSecurityIssue | null | undefined;
+    store?: DataStore | null | undefined;
+    planKey: string;
+  }): Query<DataSecurityAiProposal> {
+    if (data.kind === DataSecurityAiProposalKind.CreateOwnerRule) {
+      return {
+        projectId: data.projectId,
+        kind: data.kind,
+        planKey: data.planKey.slice(0, 100),
+      };
+    }
+
+    if (data.kind === DataSecurityAiProposalKind.SetStoreOwners) {
+      if (!data.store?.id) {
+        throw new BadDataException("An owner proposal is for a store.");
+      }
+
+      return {
+        projectId: data.projectId,
+        kind: data.kind,
+        dataStoreId: data.store.id,
+      };
+    }
+
+    if (!data.issue?.id) {
+      throw new BadDataException(`A ${data.kind} proposal is for an issue.`);
+    }
+
+    return {
+      projectId: data.projectId,
+      kind: data.kind,
+      dataSecurityIssueId: data.issue.id,
+    };
+  }
+
+  /*
    * A change an action planned, recorded as a proposal - and, where the
    * verdict lets it run without asking, made right away as OneUptime AI.
-   * The same change proposed for the issue before (its plan key) is not
-   * proposed again, unless that one expired; a plan of the same kind that
-   * differs replaces the one still waiting. What happened is the entry Why
-   * AI did not act reads.
+   * The same change proposed for the same thing before (its plan key) is
+   * not proposed again, unless that one expired; a plan of the same kind
+   * that differs replaces the one still waiting. What happened is the entry
+   * Why AI did not act reads.
    */
   @CaptureSpan()
   public static async propose(data: {
     projectId: ObjectID;
-    issue: DataSecurityIssue;
-    store: DataStore;
+    /*
+     * The issue it is for - none for an owner rule, or for the owners of a
+     * store with no issue (#10374) - and its store: none for an owner rule.
+     */
+    issue?: DataSecurityIssue | null | undefined;
+    store?: DataStore | null | undefined;
     // The action that planned the change: it makes it, too.
     action: DataSecurityAiAction;
     change: DataSecurityAiPlannedChange;
     work: DataSecurityAiWorkDecision;
     verdict: DataSecurityAiWithoutAskingVerdict;
     aiRunId?: ObjectID | undefined;
+    // Where it waits among the rest: the issue's risk score unless given.
+    riskScore?: number | undefined;
     now: Date;
   }): Promise<DataSecurityAiDecisionEntry> {
     const kind: DataSecurityAiProposalKind = data.action.kind;
@@ -323,11 +382,13 @@ export default class DataSecurityAiProposals {
 
     const earlier: Array<DataSecurityAiProposal> =
       await DataSecurityAiProposalService.findBy({
-        query: {
+        query: DataSecurityAiProposals.getSameSubjectQuery({
           projectId: data.projectId,
-          dataSecurityIssueId: data.issue.id!,
           kind,
-        },
+          issue: data.issue,
+          store: data.store,
+          planKey: data.change.planKey,
+        }),
         select: { _id: true, status: true, planKey: true },
         skip: 0,
         limit: 100,
@@ -349,8 +410,14 @@ export default class DataSecurityAiProposals {
       });
     }
 
-    // A newer plan of the same kind replaces the one still waiting.
-    for (const waiting of earlier) {
+    /*
+     * A newer plan of the same kind replaces the one still waiting - but
+     * every owner rule is a thing of its own, and replaces none.
+     */
+    const replaced: Array<DataSecurityAiProposal> =
+      kind === DataSecurityAiProposalKind.CreateOwnerRule ? [] : earlier;
+
+    for (const waiting of replaced) {
       if (waiting.id && isDataSecurityAiProposalWaiting(waiting.status)) {
         await DataSecurityAiProposalService.attemptTransition({
           proposalId: waiting.id,
@@ -368,8 +435,15 @@ export default class DataSecurityAiProposals {
     const proposal: DataSecurityAiProposal = new DataSecurityAiProposal();
 
     proposal.projectId = data.projectId;
-    proposal.dataSecurityIssueId = data.issue.id!;
-    proposal.dataStoreId = data.store.id!;
+
+    if (data.issue?.id) {
+      proposal.dataSecurityIssueId = data.issue.id;
+    }
+
+    if (data.store?.id) {
+      proposal.dataStoreId = data.store.id;
+    }
+
     proposal.kind = kind;
     proposal.work = work;
     proposal.safety = safety;
@@ -385,7 +459,7 @@ export default class DataSecurityAiProposals {
       kind,
       plan: data.change.plan,
     });
-    proposal.riskScore = data.issue.riskScore || 0;
+    proposal.riskScore = data.riskScore ?? (data.issue?.riskScore || 0);
     proposal.autonomy = data.work.autonomy;
 
     // Why it waits, where OneUptime AI could have made it on its own.
@@ -415,6 +489,16 @@ export default class DataSecurityAiProposals {
         props: { isRoot: true },
       });
     const proposalId: string = created.id?.toString() || "";
+
+    if (data.action.onProposed) {
+      try {
+        await data.action.onProposed({ projectId: data.projectId });
+      } catch (error) {
+        logger.error(
+          `DataSecurity AI: what follows proposal ${proposalId} could not be queued: ${error}`,
+        );
+      }
+    }
 
     if (!data.verdict.runWithoutAsking) {
       await DataSecurityAiProposals.writeTimelines({
@@ -559,7 +643,10 @@ export default class DataSecurityAiProposals {
    * A person approves a proposal: the change is made as them, with their
    * permissions - or, for a riskier change where the project asks two
    * people, their approval is recorded and the change waits for someone
-   * else's.
+   * else's. A person may change it first where its kind takes changes
+   * ("change one first": another owner, #10374): what they approve is then
+   * what they changed it to, held to what the kind allows. A change two
+   * people approve is approved as it was proposed.
    */
   @CaptureSpan()
   public static async approve(data: {
@@ -568,6 +655,7 @@ export default class DataSecurityAiProposals {
     proposalId: unknown;
     expectedPlanFingerprint?: unknown;
     expectedApprovalStep?: unknown;
+    changes?: unknown;
   }): Promise<DataSecurityAiProposalActionResult> {
     const proposal: DataSecurityAiProposal =
       await DataSecurityAiProposals.readForPerson(data);
@@ -593,9 +681,24 @@ export default class DataSecurityAiProposals {
 
     const action: DataSecurityAiAction =
       DataSecurityAiProposals.actionOf(proposal);
+    let changes: JSONObject | undefined;
+
+    if (data.changes !== undefined && data.changes !== null) {
+      if (!action.readChanges) {
+        throw new BadDataException(PROPOSAL_TAKES_NO_CHANGES_MESSAGE);
+      }
+
+      changes = await action.readChanges({
+        projectId: data.projectId,
+        proposal,
+        changes: data.changes,
+      });
+    }
+
     const refusal: string | null = action.getApproveRefusal({
       props: data.props,
       proposal,
+      changes,
     });
 
     if (refusal) {
@@ -631,6 +734,11 @@ export default class DataSecurityAiProposals {
       if (!offered || !isSameRemediationApprovalStep(offered, step)) {
         throw new BadDataException(getProposalApprovalStepChangedMessage(step));
       }
+    }
+
+    // What two people approve is the plan both were shown.
+    if (changes && step.kind !== RemediationApprovalStepKind.Only) {
+      throw new BadDataException(PROPOSAL_TWO_APPROVALS_TAKE_NO_CHANGES_MESSAGE);
     }
 
     const now: Date = OneUptimeDate.getCurrentDate();
@@ -711,6 +819,7 @@ export default class DataSecurityAiProposals {
         projectId: data.projectId,
         proposal,
         actor: { props: data.props, userId },
+        changes,
       });
     } catch (error) {
       // Refused for the person: nothing changed, and it waits again.
@@ -758,7 +867,9 @@ export default class DataSecurityAiProposals {
       color: Green500,
       markdown: FeedMarkdown.join(
         [
-          mdText`Approved OneUptime AI's proposal **${proposal.title || ""}**, and the change was made with this person's permissions.`,
+          changes
+            ? mdText`Approved OneUptime AI's proposal **${proposal.title || ""}** after changing it, and the change was made with this person's permissions.`
+            : mdText`Approved OneUptime AI's proposal **${proposal.title || ""}**, and the change was made with this person's permissions.`,
           FeedMarkdown.asMarkdown(made.summaryMarkdown),
         ],
         " ",
@@ -960,6 +1071,7 @@ export default class DataSecurityAiProposals {
             dataSecurityIssueId: issueId,
             at,
           });
+          await DataSecurityAiProposals.proveOwnerRules({ issueId, at });
         }
 
         await DataSecurityAiProposalService.expireWaitingForIssue({
@@ -972,6 +1084,37 @@ export default class DataSecurityAiProposals {
         );
       }
     }
+  }
+
+  /*
+   * A store's "Nobody owns this sensitive store" passed: an owner rule
+   * OneUptime AI proposed that set owners on the store is proven by it
+   * (#10374), as a store's own owners are by their issue's check.
+   */
+  private static async proveOwnerRules(data: {
+    issueId: ObjectID;
+    at: Date;
+  }): Promise<void> {
+    const issue: DataSecurityIssue | null =
+      await DataSecurityIssueService.findOneById({
+        id: data.issueId,
+        select: { _id: true, projectId: true, checkId: true, dataStoreId: true },
+        props: { isRoot: true },
+      });
+
+    if (
+      !issue?.projectId ||
+      !issue.dataStoreId ||
+      issue.checkId !== NO_OWNER_CHECK_ID
+    ) {
+      return;
+    }
+
+    await DataSecurityAiProposalService.markOwnerRuleProvenForStore({
+      projectId: issue.projectId,
+      dataStoreId: issue.dataStoreId,
+      at: data.at,
+    });
   }
 
   // How many proposals of the project wait for a person: the side menu's count.
