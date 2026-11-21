@@ -107,6 +107,7 @@ const ANSWER: DetectionRetrohuntResult = {
   hasMoreGroups: false,
   candidateLimit: null,
   uncounted: null,
+  refusedTelemetry: [],
 };
 
 let props: DatabaseCommonInteractionProps;

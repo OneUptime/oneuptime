@@ -15,11 +15,9 @@ import {
 } from "./HuntsCopy";
 import { HUNT_RUN_HISTORY_PAGE_SIZE, getHuntRunWindow } from "./HuntsModel";
 import { HUNT_RUN_REFUSED } from "../RefusedTelemetry/RefusedTelemetryCopy";
+import { isPeriodRefused } from "../RefusedTelemetry/RefusedTelemetryModel";
 import useProjectRefusedTelemetry from "../RefusedTelemetry/useProjectRefusedTelemetry";
-import {
-  RefusedTelemetry,
-  getRefusedTelemetryBetween,
-} from "Common/Utils/SecurityEvent/RefusedTelemetry";
+import { RefusedTelemetry } from "Common/Utils/SecurityEvent/RefusedTelemetry";
 import RelativeTime from "../../EpisodeView/RelativeTime";
 import SecurityHuntRun from "Common/Models/DatabaseModels/SecurityHuntRun";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -133,22 +131,6 @@ const RunCell: FunctionComponent<{ run: SecurityHuntRun }> = (props: {
  * refused some of the telemetry Security Events reads (#10431): what it
  * found - or that it found nothing - is not all there was.
  */
-export function isHuntRunWindowRefused(data: {
-  window: SecurityHuntRunWindow | null;
-  refusals: ReadonlyArray<RefusedTelemetry>;
-  now: Date;
-}): boolean {
-  return Boolean(
-    data.window &&
-      getRefusedTelemetryBetween({
-        refusals: data.refusals,
-        from: data.window.startTime,
-        to: data.window.endTime,
-        now: data.now,
-      }).length > 0,
-  );
-}
-
 const RefusedNote: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
 
@@ -188,9 +170,10 @@ const FoundCell: FunctionComponent<{
   const run: SecurityHuntRun = props.run;
   const result: SecurityHuntRunResult = getSecurityHuntRunResult(run);
   const window: SecurityHuntRunWindow | null = getHuntRunWindow(run);
-  const isRefused: boolean = isHuntRunWindowRefused({
-    window,
+  const isRefused: boolean = isPeriodRefused({
     refusals: props.refusals,
+    from: window?.startTime || null,
+    to: window?.endTime || null,
     now: OneUptimeDate.getCurrentDate(),
   });
 

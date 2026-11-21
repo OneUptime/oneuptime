@@ -28,7 +28,18 @@ import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntit
 import {
   DETECTION_RETROHUNT_MAX_GROUPS,
   DetectionRetrohuntResult,
+  detectionRetrohuntResultToJSON,
+  parseDetectionRetrohuntResult,
 } from "../../../../Types/SecurityEvent/DetectionRetrohunt";
+import SecurityLogSourceService from "../../../../Server/Services/SecurityLogSourceService";
+import SecurityTelemetrySourceService from "../../../../Server/Services/SecurityTelemetrySourceService";
+import ProductType from "../../../../Types/MeteredPlan/ProductType";
+import { TelemetryIngestionBudgetScope } from "../../../../Types/Telemetry/TelemetryIngestionBudget";
+import {
+  RefusedTelemetry,
+  RefusedTelemetryKind,
+  writeRefusedTelemetryRecord,
+} from "../../../../Utils/SecurityEvent/RefusedTelemetry";
 import { DetectionRuleExceptionKind } from "../../../../Types/SecurityEvent/DetectionRuleException";
 import { getJestSpyOn } from "../../../Spy";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -614,6 +625,87 @@ detection:
     expect(result.endTime).toEqual(NOW);
     expect(result.windowInMinutes).toBe(10);
     expect(result.threshold).toBe(5);
+  });
+
+  /*
+   * #10431: logs or traces a budget or a rate refused in the period never
+   * became events, so a rule that "would not have fired" may only have been
+   * blind there. The answer says what was refused, and when.
+   */
+  test("says what a budget or a rate refused over the period, as the sources kept it", async () => {
+    const refusal: (data: Partial<RefusedTelemetry>) => RefusedTelemetry = (
+      data: Partial<RefusedTelemetry>,
+    ): RefusedTelemetry => {
+      return {
+        signal: ProductType.Logs,
+        kind: RefusedTelemetryKind.BudgetUsedUp,
+        scope: TelemetryIngestionBudgetScope.Project,
+        scopeId: PROJECT_ID.toString(),
+        scopeName: "",
+        from: "2026-10-27T09:00:00.000Z",
+        to: "2026-10-27T11:00:00.000Z",
+        refusedBytes: 4096,
+        refusedRequests: 30,
+        ...data,
+      };
+    };
+    const inPeriod: RefusedTelemetry = refusal({});
+    const traces: RefusedTelemetry = refusal({
+      signal: ProductType.Traces,
+      kind: RefusedTelemetryKind.RateLimited,
+      from: "2026-10-27T11:30:00.000Z",
+      to: null,
+      refusedBytes: 0,
+    });
+
+    getJestSpyOn(DetectionRuleExceptionService, "findAllBy").mockResolvedValue(
+      [] as never,
+    );
+    stubQuery([]);
+    const logSource: Spy = getJestSpyOn(
+      SecurityLogSourceService,
+      "findOneBy",
+    ).mockResolvedValue({
+      lastScanResult: writeRefusedTelemetryRecord({
+        observation: null,
+        refusals: [
+          // Three days ago: before the last day.
+          refusal({
+            from: "2026-10-24T09:00:00.000Z",
+            to: "2026-10-24T10:00:00.000Z",
+          }),
+          inPeriod,
+        ],
+      }),
+    } as never);
+    getJestSpyOn(SecurityTelemetrySourceService, "findOneBy").mockResolvedValue(
+      {
+        lastScanResult: writeRefusedTelemetryRecord({
+          observation: null,
+          refusals: [traces],
+        }),
+      } as never,
+    );
+
+    const result: DetectionRetrohuntResult = await DetectionRuleRetrohunt.run({
+      projectId: PROJECT_ID,
+      rule: { sigmaRuleYaml: FAILED_SIGN_IN_YAML },
+      periodInHours: 24,
+      serviceFilter: {},
+      now: NOW,
+    });
+
+    expect(result.refusedTelemetry).toEqual([inPeriod, traces]);
+    // Read as OneUptime: what was refused is about the project, not what a person reads.
+    expect(
+      (logSource.mock.calls[0]![0] as { props: JSONObject }).props,
+    ).toEqual({ isRoot: true });
+
+    // And the API answer carries it to the Dashboard.
+    expect(
+      parseDetectionRetrohuntResult(detectionRetrohuntResultToJSON(result))
+        .refusedTelemetry,
+    ).toEqual([inPeriod, traces]);
   });
 
   test("a rule not saved yet has no exceptions to read", async () => {

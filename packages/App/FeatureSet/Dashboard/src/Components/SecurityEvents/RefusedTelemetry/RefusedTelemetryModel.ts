@@ -274,6 +274,58 @@ export function describeRefusedTelemetryList(data: {
 }
 
 /*
+ * Whether anything was refused in a period - a hunt's run window: what it
+ * found, or that it found nothing, is then not all there was.
+ */
+export function isPeriodRefused(data: {
+  refusals: ReadonlyArray<RefusedTelemetry>;
+  from: Date | null;
+  to: Date | null;
+  now: Date;
+}): boolean {
+  if (!data.from || !data.to) {
+    return false;
+  }
+
+  return (
+    getRefusedTelemetryBetween({
+      refusals: data.refusals,
+      from: data.from,
+      to: data.to,
+      now: data.now,
+    }).length > 0
+  );
+}
+
+/*
+ * What was refused while a case was open: from its first detection (or,
+ * before one, its creation) to its close, or to now while it is open - the
+ * detections it could have gathered then may be missing. Nothing for a
+ * case with neither date.
+ */
+export function getRefusedTelemetryWhileCaseOpen(data: {
+  refusals: ReadonlyArray<RefusedTelemetry>;
+  firstDetectedAt?: Date | string | null | undefined;
+  createdAt?: Date | string | null | undefined;
+  closedAt?: Date | string | null | undefined;
+  now: Date;
+}): Array<RefusedTelemetry> {
+  const openedAt: Date | string | null | undefined =
+    data.firstDetectedAt || data.createdAt;
+
+  if (!openedAt) {
+    return [];
+  }
+
+  return getRefusedTelemetryBetween({
+    refusals: data.refusals,
+    from: new Date(openedAt),
+    to: data.closedAt ? new Date(data.closedAt) : data.now,
+    now: data.now,
+  });
+}
+
+/*
  * What a source's last scan result kept: every stretch, or only those that
  * overlap a period (a hunt's run, a case) when one is given.
  */

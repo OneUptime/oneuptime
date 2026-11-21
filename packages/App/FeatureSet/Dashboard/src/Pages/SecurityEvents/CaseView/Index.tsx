@@ -43,10 +43,8 @@ import {
 import RefusedTelemetryLines from "../../../Components/SecurityEvents/RefusedTelemetry/RefusedTelemetryLines";
 import { CASE_REFUSED } from "../../../Components/SecurityEvents/RefusedTelemetry/RefusedTelemetryCopy";
 import useProjectRefusedTelemetry from "../../../Components/SecurityEvents/RefusedTelemetry/useProjectRefusedTelemetry";
-import {
-  RefusedTelemetry,
-  getRefusedTelemetryBetween,
-} from "Common/Utils/SecurityEvent/RefusedTelemetry";
+import { getRefusedTelemetryWhileCaseOpen } from "../../../Components/SecurityEvents/RefusedTelemetry/RefusedTelemetryModel";
+import { RefusedTelemetry } from "Common/Utils/SecurityEvent/RefusedTelemetry";
 import Card from "Common/UI/Components/Card/Card";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -173,16 +171,14 @@ const SecurityCaseOverviewPage: FunctionComponent<
    * to its close, or to now - the case's detections from then may be
    * missing.
    */
-  const caseOpenedAt: Date | undefined =
-    securityCase.firstDetectedAt || securityCase.createdAt;
-  const refusedWhileOpen: Array<RefusedTelemetry> = caseOpenedAt
-    ? getRefusedTelemetryBetween({
-        refusals: projectRefusals,
-        from: new Date(caseOpenedAt),
-        to: securityCase.closedAt ? new Date(securityCase.closedAt) : now,
-        now,
-      })
-    : [];
+  const refusedWhileOpen: Array<RefusedTelemetry> =
+    getRefusedTelemetryWhileCaseOpen({
+      refusals: projectRefusals,
+      firstDetectedAt: securityCase.firstDetectedAt,
+      createdAt: securityCase.createdAt,
+      closedAt: securityCase.closedAt,
+      now,
+    });
 
   return (
     <>
