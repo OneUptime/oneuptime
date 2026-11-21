@@ -13,6 +13,8 @@ import {
   READ_INTERVAL_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
   RESOURCE_COSTS_FIELD_KEY,
+  WAF_BLOCKLIST_FIELD_KEY,
+  doesCloudConnectionWafBlocklistAddRule,
   getCloudConnectionAuthMethod,
   getCloudConnectionAuthMethodDefinition,
   getCloudConnectionDataSecurityLevel,
@@ -20,9 +22,11 @@ import {
   getCloudConnectionFieldsForMethod,
   getCloudConnectionReadIntervalInMinutes,
   getCloudConnectionTitle,
+  getCloudConnectionWafBlocklist,
   isCloudConnectionAuthMethod,
   isCloudConnectionProvider,
   isCloudConnectionResourceCostsOn,
+  isCloudConnectionWafBlocklistOn,
   splitCloudConnectionList,
 } from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import { describe, expect, test } from "@jest/globals";
@@ -185,6 +189,8 @@ describe("the catalog", () => {
       RESOURCE_COSTS_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
+      // Writes in the account, off until someone opts in (#10344).
+      WAF_BLOCKLIST_FIELD_KEY,
     ]);
     expect(folded(CloudProvider.Azure)).toEqual([
       "subscriptionIds",
@@ -242,6 +248,73 @@ describe("the catalog", () => {
    * already. Off until someone turns it on - each read is one more Cost
    * Explorer request, at $0.01 - and only "on" reads them.
    */
+  test("blocking addresses in AWS WAF is an AWS setting, folded with the command, off until someone picks a way to turn it on", () => {
+    const field: CloudConnectionField | undefined = definitionOf(
+      CloudProvider.AWS,
+    ).configFields.find((candidate: CloudConnectionField): boolean => {
+      return candidate.key === WAF_BLOCKLIST_FIELD_KEY;
+    });
+
+    expect(field).toBeDefined();
+    expect(field!.title).toBe("Block addresses in AWS WAF");
+    expect(field!.isAdvanced).toBe(true);
+    expect(field!.changesSetupCommand).toBe(true);
+    expect(field!.required).toBe(false);
+    expect(field!.defaultValue).toBe("off");
+    // Both ways in: a role, and an access key's user.
+    expect(field!.authMethods).toBeUndefined();
+    expect(field!.description.length).toBeLessThanOrEqual(150);
+    expect(field!.description).toContain("The command changes with it.");
+    expect(
+      (field!.options || []).map(
+        (option: { label: string; value: string }): Array<string> => {
+          return [option.value, option.label];
+        },
+      ),
+    ).toEqual([
+      ["off", "Off"],
+      ["rule", "On, and OneUptime adds its rule"],
+      ["code", "On, and I add the rule in code"],
+    ]);
+
+    // Azure WAF and Cloud Armor are their own issues' (#10348, #10349).
+    for (const provider of [CloudProvider.Azure, CloudProvider.GCP]) {
+      expect(keysOf(definitionOf(provider).configFields)).not.toContain(
+        WAF_BLOCKLIST_FIELD_KEY,
+      );
+    }
+
+    expect(getCloudConnectionWafBlocklist("rule")).toBe("rule");
+    expect(getCloudConnectionWafBlocklist("code")).toBe("code");
+    expect(isCloudConnectionWafBlocklistOn("rule")).toBe(true);
+    expect(isCloudConnectionWafBlocklistOn("code")).toBe(true);
+    expect(doesCloudConnectionWafBlocklistAddRule("rule")).toBe(true);
+    expect(doesCloudConnectionWafBlocklistAddRule("code")).toBe(false);
+
+    // Anything else - absent, off, misspelt, another type - writes nothing.
+    for (const value of [
+      undefined,
+      null,
+      "off",
+      "",
+      "Rule",
+      " rule ",
+      "on",
+      "block",
+      true,
+      1,
+      ["rule"],
+      { value: "rule" },
+    ]) {
+      expect({ value, read: getCloudConnectionWafBlocklist(value) }).toEqual({
+        value,
+        read: "off",
+      });
+      expect(isCloudConnectionWafBlocklistOn(value)).toBe(false);
+      expect(doesCloudConnectionWafBlocklistAddRule(value)).toBe(false);
+    }
+  });
+
   test("what each resource costs is an AWS setting, folded and off until someone turns it on", () => {
     const field: CloudConnectionField | undefined = definitionOf(
       CloudProvider.AWS,
@@ -297,6 +370,7 @@ describe("fields by sign-in method", () => {
       RESOURCE_COSTS_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
+      WAF_BLOCKLIST_FIELD_KEY,
     ]);
     expect(
       keysOf(
@@ -320,6 +394,7 @@ describe("fields by sign-in method", () => {
       RESOURCE_COSTS_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
+      WAF_BLOCKLIST_FIELD_KEY,
     ]);
     expect(
       keysOf(
