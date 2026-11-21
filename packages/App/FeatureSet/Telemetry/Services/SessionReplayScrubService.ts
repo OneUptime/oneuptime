@@ -8,6 +8,7 @@ import ObjectID from "Common/Types/ObjectID";
 import LogScrubRuleService from "./LogScrubRuleService";
 import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 import ScrubAction from "Common/Server/Utils/Telemetry/ScrubAction";
+import { getScrubRulesOfRecord } from "Common/Types/Telemetry/ScrubRuleScope";
 
 /*
  * Server-side second net over a decoded rrweb event tree.
@@ -244,11 +245,19 @@ export default class SessionReplayScrubService {
    * empty rule array; for replay that would mean writing an unscrubbed
    * recording because Postgres was briefly unreachable. The caller must
    * treat a throw as "drop the chunk".
+   *
+   * Only the rules that apply to the replay's RUM application: a rule that
+   * names a service scrubs that service's logs alone, and a replay is no
+   * service's (Types/Telemetry/ScrubRuleScope, #10433).
    */
   public static async loadRules(
     projectId: ObjectID,
+    rumApplicationId?: ObjectID | string | null | undefined,
   ): Promise<Array<CompiledScrubRule>> {
-    return await LogScrubRuleService.loadScrubRules(projectId);
+    return getScrubRulesOfRecord(
+      await LogScrubRuleService.loadScrubRules(projectId),
+      rumApplicationId,
+    );
   }
 
   /*

@@ -1,13 +1,16 @@
 import LogScrubRule from "../../../../Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "../../../../Models/DatabaseModels/MetricPipelineRule";
+import Service from "../../../../Models/DatabaseModels/Service";
 import TraceScrubRule from "../../../../Models/DatabaseModels/TraceScrubRule";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ColumnLength from "../../../../Types/Database/ColumnLength";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import DataCategory from "../../../../Types/DataSecurity/DataCategory";
 import {
   DataTypeInfo,
   getBuiltInDataType,
 } from "../../../../Types/DataSecurity/DataTypeCatalog";
+import { readTelemetryDataStoreKeyOwnerId } from "../../../../Types/DataSecurity/DataStoreKey";
 import {
   DataStoreKind,
   isDataStoreKind,
@@ -37,8 +40,10 @@ import MetricPipelineRuleType from "../../../../Types/Metrics/MetricPipelineRule
 import ObjectID from "../../../../Types/ObjectID";
 import {
   checkScrubRuleCustomRegex,
+  DATA_TYPE_OF_SCRUB_PATTERN_TYPE,
   doesScrubRuleScrubNothing,
   LOG_SCRUB_FIELDS,
+  SCRUB_RULE_SENSITIVE_KEY_REGEX,
   LOG_SCRUB_PATTERN_TYPES,
   LOG_SCRUB_RULE_DEFAULTS,
   SCRUB_RULE_CUSTOM_PATTERN_TYPE,
@@ -49,6 +54,7 @@ import {
   TRACE_SCRUB_PATTERN_TYPES,
   TRACE_SCRUB_RULE_DEFAULTS,
 } from "../../../../Types/Telemetry/ScrubRule";
+import { getScrubRuleServiceId } from "../../../../Types/Telemetry/ScrubRuleScope";
 import TraceScrubAction from "../../../../Types/Trace/TraceScrubAction";
 import TraceScrubField from "../../../../Types/Trace/TraceScrubField";
 import { isCustomDataTypeId } from "../../../../Utils/DataSecurity/CustomDataTypeDetector";
@@ -58,6 +64,7 @@ import { PatternProblemReason } from "../../../../Utils/LinearRegExp/PatternProb
 import { CORRELATION_ID_ATTRIBUTE_KEYS } from "../../../../Utils/Telemetry/CorrelationIdAttributes";
 import LogScrubRuleService from "../../../Services/LogScrubRuleService";
 import MetricPipelineRuleService from "../../../Services/MetricPipelineRuleService";
+import ServiceService from "../../../Services/ServiceService";
 import TraceScrubRuleService from "../../../Services/TraceScrubRuleService";
 import WorkspaceActionAuthorization from "../../Workspace/WorkspaceActionAuthorization";
 import ProjectDataTypeNames from "../ProjectDataTypeNames";
@@ -157,7 +164,12 @@ export interface CoveringScrubRule {
   fieldsToScrub: string;
   // A metric pipeline rule's: the attribute it redacts or removes.
   attributeKey?: string | undefined;
-  // A metric pipeline rule's: the service it is for; none for every service.
+  /*
+   * The service it is for; none for every service. A metric pipeline
+   * rule's, and a log or trace scrub rule's since #10433: such a rule hides
+   * data in its service's records only, so it covers that service's
+   * findings only.
+   */
   serviceId?: string | undefined;
   // A metric pipeline rule's: the rows it applies to.
   filters?: Array<MetricPipelineRuleFilterCondition> | undefined;
@@ -193,12 +205,12 @@ export interface CreatedScrubRule {
 /*
  * The attribute-KEY denylist ingest's sensitive-keys rules read
  * (SENSITIVE_KEY_REGEX in App/FeatureSet/Telemetry/Services/
- * LogScrubRuleService.ts and TraceScrubRuleService.ts), written out again
- * here because Common cannot import from App. TelemetryScrubCoverage.test.ts
- * reads both and fails when they differ.
+ * LogScrubRuleService.ts and TraceScrubRuleService.ts), kept in Common
+ * (Types/Telemetry/ScrubRule) because Common cannot import from App.
+ * TelemetryScrubCoverage.test.ts reads both and fails when they differ.
  */
 export const INGEST_SENSITIVE_KEY_REGEX: RegExp =
-  /(password|passwd|pwd|secret|token|api[._-]?key|access[._-]?key|private[._-]?key|client[._-]?secret|authorization|auth[._-]?header|cookie|session[._-]?id|credit[._-]?card|card[._-]?number|ssn|csrf|xsrf)/i;
+  SCRUB_RULE_SENSITIVE_KEY_REGEX;
 
 // The longest key read: no attribute key is longer than a location.
 const MAX_KEY_LENGTH: number = 1_024;
@@ -231,15 +243,8 @@ function sensitiveKeysRuleHides(target: ScrubTarget): boolean {
   );
 }
 
-// The data type each built-in pattern type finds. Log and trace rules share them.
-export const DATA_TYPE_OF_SCRUB_PATTERN_TYPE: Readonly<Record<string, string>> =
-  {
-    [LogScrubPatternType.Email]: "email-address",
-    [LogScrubPatternType.CreditCard]: "credit-card-number",
-    [LogScrubPatternType.SSN]: "us-ssn",
-    [LogScrubPatternType.PhoneNumber]: "phone-number",
-    [LogScrubPatternType.IPAddress]: "ip-address",
-  };
+// The data type each built-in pattern type finds (Types/Telemetry/ScrubRule).
+export { DATA_TYPE_OF_SCRUB_PATTERN_TYPE };
 
 const SCRUB_PATTERN_TYPE_OF_DATA_TYPE: ReadonlyMap<string, string> = new Map(
   Object.entries(DATA_TYPE_OF_SCRUB_PATTERN_TYPE).map(
@@ -259,8 +264,11 @@ const MASKED_PATTERN_TYPES: ReadonlySet<string> = new Set([
 // What the name of every rule "Scrub it" makes starts with.
 export const DATA_SECURITY_SCRUB_RULE_NAME_PREFIX: string = "Data Security: ";
 
-// The rule columns' lengths (character varying(50) and (500)).
-const MAX_RULE_NAME_LENGTH: number = 50;
+/*
+ * The rule columns' lengths: character varying(100) for a name since
+ * WidenThingNameColumns (1808992530000), and (500) for a description.
+ */
+const MAX_RULE_NAME_LENGTH: number = ColumnLength.ShortText;
 const MAX_RULE_DESCRIPTION_LENGTH: number = 500;
 export const MAX_SCRUB_PATTERN_LENGTH: number = 500;
 
@@ -474,6 +482,11 @@ function ruleCovers(
     return metricRuleCovers(rule, target, finding);
   }
 
+  // A rule for one service hides nothing in another's records (#10433).
+  if (!isRuleOfService(rule, finding)) {
+    return false;
+  }
+
   if (rule.patternType === SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE) {
     // A key's whole value, whatever the rule's fields say - as ingest runs it.
     return sensitiveKeysRuleHides(target);
@@ -543,7 +556,7 @@ function toCoveringRule(
     return null;
   }
 
-  return {
+  const covering: CoveringScrubRule = {
     id,
     name: rule.name || "",
     signal,
@@ -555,6 +568,13 @@ function toCoveringRule(
         ? LOG_SCRUB_RULE_DEFAULTS.fieldsToScrub
         : TRACE_SCRUB_RULE_DEFAULTS.fieldsToScrub),
   };
+  const serviceId: string = getScrubRuleServiceId(rule);
+
+  if (serviceId) {
+    covering.serviceId = serviceId;
+  }
+
+  return covering;
 }
 
 /*
@@ -619,6 +639,8 @@ export async function getScrubCoverage(
         patternType: true,
         customRegex: true,
         fieldsToScrub: true,
+        // A rule for one service covers that service's findings only (#10433).
+        serviceId: true,
       },
       skip: 0,
       limit: LIMIT_MAX,
@@ -632,6 +654,7 @@ export async function getScrubCoverage(
         patternType: true,
         customRegex: true,
         fieldsToScrub: true,
+        serviceId: true,
       },
       skip: 0,
       limit: LIMIT_MAX,
@@ -867,7 +890,8 @@ export function buildScrubPatternForDataType(
   return pattern;
 }
 
-interface ScrubRulePlan {
+// The rule Scrub It makes for a finding: what it finds, does, and where in the record.
+export interface ScrubRulePlan {
   patternType: string;
   customRegex?: string | undefined;
   scrubAction: string;
@@ -953,7 +977,7 @@ function noRuleReason(dataTypeId: string, location: string): string {
   return `${info.name} is told apart from other values only by the words around it, which a scrub rule cannot read, so a rule would hide far more than ${info.name}. ${keyAdvice}`;
 }
 
-function planScrubRule(data: {
+export function planScrubRule(data: {
   dataTypeId: string;
   location: string;
   target: ScrubTarget;
@@ -1005,19 +1029,189 @@ function cut(text: string, maxLength: number): string {
   return text.length > maxLength ? text.slice(0, maxLength - 1) + "…" : text;
 }
 
-function describeFields(plan: ScrubRulePlan, signal: ScrubRuleSignal): string {
-  const records: string = signal === "log" ? "log" : "span";
+/*
+ * WHERE SCRUB IT'S RULE APPLIES (#10433).
+ *
+ * A finding is evidence about one service's telemetry, so Scrub It's log or
+ * trace rule is that service's (LogScrubRule.serviceId): it hides the data
+ * in the logs or spans the service sends, and changes no other service's -
+ * nor breaks the monitors and recording rules that read them. A metric's
+ * rule always was its service's (buildMetricScrubRule).
+ *
+ * A RUM application's session replays are the one exception: a rule names a
+ * service, never an application, so Scrub It's rule for a replay's logs or
+ * spans applies to every service and app of the project - and says so, in
+ * the dialog, the rule's name and its description.
+ */
+export interface ScrubRuleScopeOfFinding {
+  // The service the rule is for; null for every service and app of the project.
+  serviceId: ObjectID | null;
+  // The service's name; "" for every service.
+  serviceName: string;
+}
 
+export const EVERY_SERVICE_SCRUB_SCOPE: ScrubRuleScopeOfFinding = {
+  serviceId: null,
+  serviceName: "",
+};
+
+// Why Scrub It makes no rule for a service that is gone, in a sentence a person can act on.
+export const SCRUB_SERVICE_GONE: string =
+  "The service this telemetry was sent under no longer exists, so no new telemetry of it is left to scrub.";
+
+/*
+ * The service a finding's telemetry was sent under, as its store names it:
+ * the store's own serviceId, else the owner its key names (a store made
+ * before stores kept the column). None for a RUM application's session
+ * replays, whose owner is no service.
+ */
+export function readFindingServiceId(data: {
+  kind: DataStoreKind | string | null | undefined;
+  serviceId?: ObjectID | string | null | undefined;
+  storeKey?: string | null | undefined;
+}): string {
+  if (data.kind === DataStoreKind.TelemetrySessionReplays) {
+    return "";
+  }
+
+  const own: string = data.serviceId ? data.serviceId.toString().trim() : "";
+
+  if (ObjectID.isValidUUID(own)) {
+    return own.toLowerCase();
+  }
+
+  const fromKey: string =
+    readTelemetryDataStoreKeyOwnerId(data.storeKey || null) || "";
+
+  return ObjectID.isValidUUID(fromKey) ? fromKey.toLowerCase() : "";
+}
+
+/*
+ * Where Scrub It's log or trace rule for a finding applies: its service,
+ * read with its name, or every service for a RUM application's replays.
+ * Refuses (BadDataException) a service-owned store whose service is gone:
+ * a rule for every service instead would change what nobody found
+ * anything in.
+ */
+export async function readScrubScopeOfFinding(data: {
+  projectId: ObjectID;
+  kind: DataStoreKind;
+  serviceId?: ObjectID | string | null | undefined;
+  storeKey?: string | null | undefined;
+}): Promise<ScrubRuleScopeOfFinding> {
+  if (data.kind === DataStoreKind.TelemetrySessionReplays) {
+    return EVERY_SERVICE_SCRUB_SCOPE;
+  }
+
+  const serviceId: string = readFindingServiceId(data);
+
+  if (!serviceId) {
+    throw new BadDataException(SCRUB_SERVICE_GONE);
+  }
+
+  const service: Service | null = await ServiceService.findOneBy({
+    query: { projectId: data.projectId, _id: serviceId },
+    select: { _id: true, name: true },
+    props: { isRoot: true },
+  });
+
+  if (!service) {
+    throw new BadDataException(SCRUB_SERVICE_GONE);
+  }
+
+  return {
+    serviceId: new ObjectID(serviceId),
+    serviceName: (service.name || "").trim() || "Service",
+  };
+}
+
+// What a rule does with a match, as a verb its description uses.
+function actionVerb(scrubAction: string): string {
+  switch (scrubAction) {
+    case LogScrubAction.Mask:
+      return "masks";
+    case LogScrubAction.Hash:
+      return "hashes";
+    default:
+      return "redacts";
+  }
+}
+
+// The parts of the records a rule scrubs, as its name says them.
+function fieldsNoun(plan: ScrubRulePlan, signal: ScrubRuleSignal): string {
+  if (signal === "log") {
+    switch (plan.fieldsToScrub) {
+      case LogScrubField.Body:
+        return "log bodies";
+      case LogScrubField.Attributes:
+        return "log attributes";
+      default:
+        return "logs";
+    }
+  }
+
+  switch (plan.fieldsToScrub) {
+    case TraceScrubField.Attributes:
+      return "span attributes";
+    case TraceScrubField.Events:
+      return "span events";
+    case TraceScrubField.Name:
+      return "span names";
+    default:
+      return "spans";
+  }
+}
+
+// The same parts, as a sentence of its description says them.
+function describeFields(plan: ScrubRulePlan, signal: ScrubRuleSignal): string {
   switch (plan.fieldsToScrub) {
     case LogScrubField.Body:
       return "log bodies";
+    case LogScrubField.Both:
+      return "log bodies and attribute values";
     case TraceScrubField.Events:
       return "span events and exceptions";
     case TraceScrubField.Name:
       return "span names";
+    case TraceScrubField.All:
+      return "span names, attributes, events and exceptions";
     default:
-      return `${records} attribute values`;
+      return signal === "log" ? "log attribute values" : "span attribute values";
   }
+}
+
+// The records a rule applies to, as its description says them.
+function describeScope(
+  scope: ScrubRuleScopeOfFinding,
+  signal: ScrubRuleSignal,
+): string {
+  const records: string = signal === "log" ? "logs" : "spans";
+
+  return scope.serviceId
+    ? `${scope.serviceName}'s ${records} only: other services' ${records} are not changed`
+    : `the ${records} of every service and app in the project`;
+}
+
+/*
+ * The name of the rule Scrub It makes: what it hides, in which parts of the
+ * records, and whose - "Data Security: Email address in log attributes of
+ * checkout". It hides every value of the type there, not one attribute's,
+ * so the finding's own place is said in its description, not its name.
+ */
+export function nameScrubItRule(data: {
+  plan: ScrubRulePlan;
+  signal: ScrubRuleSignal;
+  dataTypeName: string;
+  scope: ScrubRuleScopeOfFinding;
+}): string {
+  const owner: string = data.scope.serviceId
+    ? ` of ${data.scope.serviceName}`
+    : "";
+
+  return cut(
+    `${DATA_SECURITY_SCRUB_RULE_NAME_PREFIX}${data.dataTypeName} in ${fieldsNoun(data.plan, data.signal)}${owner}`,
+    MAX_RULE_NAME_LENGTH,
+  );
 }
 
 function describeRule(data: {
@@ -1026,21 +1220,20 @@ function describeRule(data: {
   dataTypeName: string;
   location: string;
   kind: DataStoreKind;
+  scope: ScrubRuleScopeOfFinding;
 }): string {
   const origin: string = `Made by Data Security ("Scrub it") from a finding of ${data.dataTypeName} in ${data.location} (${data.kind}).`;
+  const applies: string = `It applies to ${describeScope(data.scope, data.signal)}.`;
 
   if (data.plan.patternType === SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE) {
     return cut(
-      `${origin} It hides the whole value of every attribute whose key looks sensitive - password, token, secret, cookie, ... - and every value under such a key inside a list, a map, a log body or a JSON text, from now on. What is stored already stays until its retention ends.`,
+      `${origin} It ${actionVerb(data.plan.scrubAction)} the whole value of every attribute whose key looks sensitive - password, token, secret, cookie, ... - and every value under such a key inside a list, a map, a log body or a JSON text, from now on. ${applies} What is stored already stays until its retention ends.`,
       MAX_RULE_DESCRIPTION_LENGTH,
     );
   }
 
-  const verb: string =
-    data.plan.scrubAction === LogScrubAction.Mask ? "masks" : "redacts";
-
   return cut(
-    `${origin} It ${verb} every ${data.dataTypeName.toLowerCase()} in ${describeFields(data.plan, data.signal)} from now on. What is stored already stays until its retention ends.`,
+    `${origin} It ${actionVerb(data.plan.scrubAction)} every ${data.dataTypeName.toLowerCase()} in ${describeFields(data.plan, data.signal)} from now on. ${applies} What is stored already stays until its retention ends.`,
     MAX_RULE_DESCRIPTION_LENGTH,
   );
 }
@@ -1311,7 +1504,7 @@ export async function createDropRuleForFinding(data: {
  * details, a metric's name). Refuses with BadDataException, in the words
  * Scrub It answers with.
  */
-function readScrubbableTarget(data: {
+export function readScrubbableTarget(data: {
   kind: DataStoreKind;
   dataTypeId: string;
   location: string;
@@ -1374,6 +1567,7 @@ export async function previewScrubRuleForFinding(data: {
   dataTypeName?: string | null | undefined;
   location: string;
   serviceId?: ObjectID | string | null | undefined;
+  storeKey?: string | null | undefined;
 }): Promise<ScrubRulePreview> {
   const scrubbable: {
     location: string;
@@ -1405,29 +1599,82 @@ export async function previewScrubRuleForFinding(data: {
     };
   }
 
-  const plan: ScrubRulePlan = planScrubRule({
-    dataTypeId: scrubbable.dataTypeId,
+  const rule: ScrubItRule = await planScrubItRule({
+    ...data,
     location: scrubbable.location,
-    target: scrubbable.target,
-  });
-  const dataTypeName: string = await nameTypeForRule({
-    projectId: data.projectId,
     dataTypeId: scrubbable.dataTypeId,
-    dataTypeName: data.dataTypeName,
+    target: scrubbable.target as ScrubTarget & { signal: "log" | "trace" },
   });
 
   return {
-    signal: scrubbable.target.signal,
-    name: cut(
-      `${DATA_SECURITY_SCRUB_RULE_NAME_PREFIX}${dataTypeName} in ${scrubbable.location}`,
-      MAX_RULE_NAME_LENGTH,
-    ),
+    signal: rule.signal,
+    name: rule.name,
+    description: rule.description,
+  };
+}
+
+/*
+ * The log or trace scrub rule Scrub It makes for a finding no rule covers
+ * yet, whole: what it finds and does (planScrubRule), the service it is for
+ * (readScrubScopeOfFinding), and its name and description, which say both.
+ * What the dialog shows before the rule is made, and what is made.
+ */
+export interface ScrubItRule {
+  signal: "log" | "trace";
+  plan: ScrubRulePlan;
+  dataTypeId: string;
+  // The type as the rule calls it: the catalog's name, or the project's own.
+  dataTypeName: string;
+  scope: ScrubRuleScopeOfFinding;
+  name: string;
+  description: string;
+}
+
+export async function planScrubItRule(data: {
+  projectId: ObjectID;
+  kind: DataStoreKind;
+  dataTypeId: string;
+  dataTypeName?: string | null | undefined;
+  location: string;
+  target: ScrubTarget & { signal: "log" | "trace" };
+  serviceId?: ObjectID | string | null | undefined;
+  storeKey?: string | null | undefined;
+}): Promise<ScrubItRule> {
+  // Refused first, for a type no rule can find, before anything is read.
+  const plan: ScrubRulePlan = planScrubRule({
+    dataTypeId: data.dataTypeId,
+    location: data.location,
+    target: data.target,
+  });
+  const [dataTypeName, scope]: [string, ScrubRuleScopeOfFinding] =
+    await Promise.all([
+      nameTypeForRule({
+        projectId: data.projectId,
+        dataTypeId: data.dataTypeId,
+        dataTypeName: data.dataTypeName,
+      }),
+      readScrubScopeOfFinding(data),
+    ]);
+
+  return {
+    signal: data.target.signal,
+    plan,
+    dataTypeId: data.dataTypeId,
+    dataTypeName,
+    scope,
+    name: nameScrubItRule({
+      plan,
+      signal: data.target.signal,
+      dataTypeName,
+      scope,
+    }),
     description: describeRule({
       plan,
-      signal: scrubbable.target.signal,
+      signal: data.target.signal,
       dataTypeName,
-      location: scrubbable.location,
+      location: data.location,
       kind: data.kind,
+      scope,
     }),
   };
 }
@@ -1440,8 +1687,13 @@ export async function createScrubRuleForFinding(data: {
   // The name the finding kept for its type: what the rule calls a type that is gone.
   dataTypeName?: string | null | undefined;
   location: string;
-  // The service the store is the telemetry of: a metric rule is its own.
+  /*
+   * The service the store is the telemetry of: the rule is its own - a
+   * metric rule always was, a log or trace rule since #10433.
+   */
   serviceId?: ObjectID | string | null | undefined;
+  // The store's key, which names its service for a store kept without one.
+  storeKey?: string | null | undefined;
 }): Promise<CreatedScrubRule> {
   const {
     location,
@@ -1452,7 +1704,12 @@ export async function createScrubRuleForFinding(data: {
 
   const existing: CoveringScrubRule | null = findCoveringScrubRule(
     await getScrubCoverage(data.projectId),
-    { kind: data.kind, dataTypeId, location, serviceId: data.serviceId },
+    {
+      kind: data.kind,
+      dataTypeId,
+      location,
+      serviceId: readFindingServiceId(data) || data.serviceId,
+    },
   );
 
   if (existing) {
@@ -1472,34 +1729,29 @@ export async function createScrubRuleForFinding(data: {
     });
   }
 
-  const plan: ScrubRulePlan = planScrubRule({ dataTypeId, location, target });
-  const dataTypeName: string = await nameTypeForRule({
-    projectId: data.projectId,
+  const planned: ScrubItRule = await planScrubItRule({
+    ...data,
     dataTypeId,
-    dataTypeName: data.dataTypeName,
-  });
-  const name: string = cut(
-    `${DATA_SECURITY_SCRUB_RULE_NAME_PREFIX}${dataTypeName} in ${location}`,
-    MAX_RULE_NAME_LENGTH,
-  );
-  const description: string = describeRule({
-    plan,
-    signal: target.signal,
-    dataTypeName,
     location,
-    kind: data.kind,
+    target: target as ScrubTarget & { signal: "log" | "trace" },
   });
+  const plan: ScrubRulePlan = planned.plan;
+  const name: string = planned.name;
   const props: DatabaseCommonInteractionProps = await propsFor(data);
 
   if (target.signal === "log") {
     const rule: LogScrubRule = new LogScrubRule();
     rule.projectId = data.projectId;
     rule.name = name;
-    rule.description = description;
+    rule.description = planned.description;
     rule.patternType = plan.patternType;
     rule.scrubAction = plan.scrubAction;
     rule.fieldsToScrub = plan.fieldsToScrub;
     rule.isEnabled = true;
+
+    if (planned.scope.serviceId) {
+      rule.serviceId = planned.scope.serviceId;
+    }
 
     if (plan.customRegex) {
       rule.customRegex = plan.customRegex;
@@ -1520,11 +1772,15 @@ export async function createScrubRuleForFinding(data: {
   const rule: TraceScrubRule = new TraceScrubRule();
   rule.projectId = data.projectId;
   rule.name = name;
-  rule.description = description;
+  rule.description = planned.description;
   rule.patternType = plan.patternType;
   rule.scrubAction = plan.scrubAction;
   rule.fieldsToScrub = plan.fieldsToScrub;
   rule.isEnabled = true;
+
+  if (planned.scope.serviceId) {
+    rule.serviceId = planned.scope.serviceId;
+  }
 
   if (plan.customRegex) {
     rule.customRegex = plan.customRegex;
