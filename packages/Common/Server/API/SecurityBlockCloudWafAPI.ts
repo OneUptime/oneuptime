@@ -16,6 +16,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import ProductKey from "../../Types/Product/ProductKey";
+import { SecurityBlockCloudWafLeftItem } from "../../Types/SecurityBlocklist/SecurityBlockCloudWaf";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CloudConnectionService from "../Services/CloudConnectionService";
 import CloudResourceService from "../Services/CloudResourceService";
@@ -155,7 +156,15 @@ export default class SecurityBlockCloudWafAPI extends BaseAPI<
 
           return Response.sendJsonObjectResponse(req, res, {
             removed: true,
-            leftInCloud: removal.leftInCloud,
+            leftInCloud: removal.leftInCloud.map(
+              (item: SecurityBlockCloudWafLeftItem): JSONObject => {
+                return {
+                  kind: item.kind,
+                  name: item.name,
+                  ...(item.webAcl ? { webAcl: item.webAcl } : {}),
+                };
+              },
+            ),
           });
         } catch (error) {
           next(error);
