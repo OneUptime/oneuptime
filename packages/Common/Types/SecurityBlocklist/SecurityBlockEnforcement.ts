@@ -47,6 +47,10 @@ export const SECURITY_BLOCK_ENFORCEMENT_STATES: ReadonlyArray<SecurityBlockEnfor
  */
 export enum SecurityBlockDestinationProvider {
   Test = "Test",
+  // Microsoft Defender for Endpoint's indicators, on every machine (#10346).
+  MicrosoftDefender = "MicrosoftDefender",
+  // CrowdStrike Falcon's custom IOCs, on every machine (#10346).
+  CrowdStrike = "CrowdStrike",
 }
 
 /*

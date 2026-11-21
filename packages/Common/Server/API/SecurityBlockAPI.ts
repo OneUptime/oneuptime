@@ -5,8 +5,11 @@ import ObjectID from "../../Types/ObjectID";
 import ProductKey from "../../Types/Product/ProductKey";
 import {
   SECURITY_BLOCK_VALUE_MAX_LENGTH,
+  SecurityBlockReach,
+  isSecurityBlockReach,
   isWiderThanLargestRange,
 } from "../../Types/SecurityBlocklist/SecurityBlock";
+import { SecurityBlockHolder } from "../../Types/SecurityBlocklist/SecurityBlockHolders";
 import { SecurityAddressProtection } from "../../Types/SecurityBlocklist/SecurityProtectedAddress";
 import NetworkAddressBlockUtil from "../../Utils/NetworkTraffic/NetworkAddressBlock";
 import UserMiddleware from "../Middleware/UserAuthorization";
@@ -105,8 +108,20 @@ export default class SecurityBlockAPI extends BaseAPI<
               ? body["value"].slice(0, SECURITY_BLOCK_VALUE_MAX_LENGTH * 2)
               : "";
 
+          // Where it would be enforced: an address everywhere is covered only by a block everywhere.
+          const reach: SecurityBlockReach | undefined = isSecurityBlockReach(
+            body["reach"],
+          )
+            ? body["reach"]
+            : undefined;
+
           const check: Awaited<ReturnType<SecurityBlockServiceType["check"]>> =
-            await SecurityBlockService.check({ projectId, value, props });
+            await SecurityBlockService.check({
+              projectId,
+              value,
+              reach,
+              props,
+            });
 
           const protection: SecurityProtectionCheck | null = check.protection;
 
@@ -123,7 +138,7 @@ export default class SecurityBlockAPI extends BaseAPI<
             value: check.value?.value || null,
             indicatorType: check.value?.indicatorType || null,
             problem: check.problem,
-            isWiderThanLargestRange: check.value
+            isWiderThanLargestRange: check.value?.block
               ? isWiderThanLargestRange(check.value.block)
               : false,
             coveredBy: check.coveredBy
@@ -152,7 +167,7 @@ export default class SecurityBlockAPI extends BaseAPI<
             ),
             isYourAddress: Boolean(
               yourAddress &&
-                check.value &&
+                check.value?.block &&
                 NetworkAddressBlockUtil.contains(
                   check.value.block,
                   yourAddress,
@@ -187,15 +202,25 @@ export default class SecurityBlockAPI extends BaseAPI<
 
           const found: SecurityBlockDestinationsFound =
             await SecurityBlockDestinations.findForProject(projectId);
+          const holders: Array<SecurityBlockHolder> =
+            SecurityBlockDestinations.getHolders(found.destinations);
 
           return Response.sendJsonObjectResponse(req, res, {
             destinations: found.destinations.map(
-              (destination: SecurityBlockDestination): JSONObject => {
+              (destination: SecurityBlockDestination, index: number) => {
+                const holder: SecurityBlockHolder | undefined = holders[index];
+
                 return {
                   key: destination.key,
                   name: destination.name,
                   provider: destination.provider,
-                };
+                  // What it can hold (#10346): what a case's plan offers as one click.
+                  enforcesOnEveryMachine: Boolean(
+                    holder?.enforcesOnEveryMachine,
+                  ),
+                  blocks: holder ? [...holder.blocks] : [],
+                  quarantinesFiles: Boolean(holder?.quarantinesFiles),
+                } as JSONObject;
               },
             ),
             // A kind of destination that could not be listed: the page cannot tell it has none.
