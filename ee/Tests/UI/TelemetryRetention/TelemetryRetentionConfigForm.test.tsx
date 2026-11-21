@@ -160,6 +160,25 @@ describe("TelemetryRetentionConfigForm: pillar defaults", () => {
     expect(lastEmitted()).toBeNull();
   });
 
+  /*
+   * A type the form does not show - security events, session replay - can
+   * be set through the API. Clearing every field the form shows must leave
+   * it, not emit null and erase it (#10432).
+   */
+  test("keeps a type it does not show when every field it shows is cleared", () => {
+    renderForm({
+      logs: { default: 30 },
+      securityEvents: { default: 45 },
+      sessionReplay: { default: 14 },
+    });
+    type(pillarInput("logs"), "");
+
+    expect(lastEmitted()).toEqual({
+      securityEvents: { default: 45 },
+      sessionReplay: { default: 14 },
+    });
+  });
+
   test("drops only the cleared pillar while another still has a value", () => {
     renderForm();
     type(pillarInput("logs"), "30");

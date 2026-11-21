@@ -63,6 +63,23 @@ let capturedTableProps: CapturedTableProps | null = null;
  * A hover tip (the rule type's Pill explains its kind there) is drawn as its
  * title here, so it can be read without hovering.
  */
+/*
+ * How long the project keeps its security events is read from the server
+ * on its own (SecurityEventRetentionUi.test.tsx): not known here, so
+ * nothing is said of it (#10432).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retention/UseSecurityEventRetention",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Components/Tooltip/Tooltip", () => {
   const ReactInFactory: typeof React = jest.requireActual(
     "react",
@@ -218,6 +235,8 @@ describe("readDetectionRuleShape", () => {
       valueFields: [],
       minimumCount: null,
       stepsNeeded: null,
+      // A single rule reads nothing before the events it judges (#10432).
+      lookbackInSeconds: 0,
     });
   });
 
@@ -232,6 +251,8 @@ describe("readDetectionRuleShape", () => {
       valueFields: [],
       minimumCount: null,
       stepsNeeded: null,
+      // Its timespan before the events it judges (#10432).
+      lookbackInSeconds: 600,
     });
   });
 

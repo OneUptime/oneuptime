@@ -638,6 +638,14 @@ Handlingen **Opret monitor** i en regels række åbner en ny monitor, der allere
 
 Sikkerhedsbegivenheder faktureres pr. indtaget GB ligesom resten af din telemetri og opbevares i din telemetriopbevaringsperiode: projektets **Standardopbevaring (dage)** under **Projektindstillinger → Telemetri og APM → Dataopbevaring** eller en opbevaring, der er angivet på den telemetritjeneste, de hører til. Når en begivenheds opbevaring udløber, slettes den.
 
+Alt i Sikkerhedshændelser, der læser tidligere hændelser, læser kun de hændelser, der stadig opbevares, og siger, når det ville have brug for flere:
+
+- En **Først set**-regel, hvis tidsrum er længere end hændelserne opbevares, afgør ud fra de opbevarede dage, om en værdi er ny: med et tidsrum på 30 dage og 15 dages opbevaring siger dens alarmer og sager `First awsRegion in 15 days`, og en værdi, der sidst blev set for 20 dage siden, regnes som ny. Dens række viser **Kræver opmærksomhed**, og **Vis fejl** siger, hvad der skal ændres. Regelformularen og en regels detaljer i regelbiblioteket siger det, før den gemmes eller tilføjes. En optælling eller en sekvens, hvis vindue er længere end hændelserne opbevares, tæller kun dem.
+- **Kør på tidligere hændelser** over en periode, der begynder før de opbevarede hændelser, siger, at sikkerhedshændelser opbevares i 15 dage, så den kiggede 15 dage tilbage, og det, den ikke fandt, gælder kun de dage. En hændelse, der skete tidligere, men kom for sent, er stadig opbevaret og læses stadig. En **Først set**-regel siger, hvor meget af de 30 dage før perioden den kunne se.
+- En hunt, hvis **Tidsinterval** er længere end hændelserne opbevares, finder intet ældre, og dens formular siger det.
+
+**Projektindstillinger → Telemetri og APM → Dataopbevaring** viser de aktiverede regler, der kigger længere tilbage end dens **Standardopbevaring (dage)**. For at dække dem skal du opbevare hændelser længere, med **Skift opbevaring** under en regel, eller forkorte en regels tidsrum til det, der opbevares. OneUptime opbevarer 15 dage, medmindre du ændrer det, fordi opbevaringen bestemmer, hvad din telemetri koster, og hvor længe persondata i hændelser, såsom adresser og brugernavne, opbevares. En ny opbevaring gælder for hændelser, der ankommer fra da af, så reglerne ser længere tilbage, efterhånden som de hændelser bliver ældre.
+
 ## Fejlfinding
 
 :::details Begivenhederne vises ikke

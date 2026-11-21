@@ -12,9 +12,11 @@ import {
   getRetrohuntGroupLabel,
   getRetrohuntGroupsNoun,
   getRetrohuntHeadline,
+  getRetrohuntKeptLines,
   getRetrohuntPeriodOptions,
   getRetrohuntVisibleGroups,
   isPluralSentence,
+  isRetrohuntWithoutHistory,
   isRetrohuntUngrouped,
   isSameRetrohuntRule,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retrohunt/RetrohuntModel";
@@ -43,6 +45,14 @@ import {
   WOULD_HAVE_FIRED,
   WOULD_NOT_HAVE_FIRED,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retrohunt/RetrohuntCopy";
+import {
+  RETROHUNT_CORRELATION_FOUND_NOTHING_KEPT,
+  RETROHUNT_COULD_NOT_TELL,
+  RETROHUNT_FIRST_SEEN_NO_HISTORY,
+  RETROHUNT_FIRST_SEEN_SHORT_HISTORY,
+  RETROHUNT_KEPT,
+  RETROHUNT_NO_MATCHES_KEPT,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retention/SecurityEventRetentionCopy";
 import { PluralTemplate } from "../../../UI/Utils/TranslateTemplate";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import {
@@ -84,6 +94,9 @@ function result(
     startTime: new Date("2026-10-20T12:00:00.000Z"),
     endTime: new Date("2026-10-27T12:00:00.000Z"),
     periodInHours: 168,
+    retentionInDays: 15,
+    keptFrom: null,
+    firstSeenHistory: null,
     isCorrelation: false,
     windowInMinutes: 5,
     threshold: 3,
@@ -390,6 +403,153 @@ describe("the facts under the headline", () => {
         }),
       ),
     ).toEqual([{ template: CORRELATION_FOUND_NOTHING }]);
+  });
+});
+
+/*
+ * #10432: a period that starts before the kept events do - the last 30
+ * days, in a project keeping 15 - says so, and nothing found is said of
+ * the kept days ("in the last 15 days"), never of the whole period. A First
+ * seen rule says how much of the history before the period it could see,
+ * and one that could see none says it could not tell what was new, which
+ * is not "nothing new".
+ */
+describe("what it says of the events the project keeps", () => {
+  const DAY: number = 24 * 60 * 60;
+
+  const MONTH: Partial<DetectionRetrohuntResult> = {
+    startTime: new Date("2026-09-27T12:00:00.000Z"),
+    endTime: new Date("2026-10-27T12:00:00.000Z"),
+    periodInHours: 720,
+    retentionInDays: 15,
+    keptFrom: new Date("2026-10-12T12:00:00.000Z"),
+  };
+
+  const NOTHING: Partial<DetectionRetrohuntResult> = {
+    firedCount: 0,
+    groupCount: 0,
+    groups: [],
+    matchedEventCount: 0,
+  };
+
+  test("a period past the kept events: they are kept 15 days, so this looked back 15", () => {
+    expect(getRetrohuntKeptLines(result(MONTH))).toEqual([
+      { template: RETROHUNT_KEPT, spans: { retention: 15 * DAY } },
+    ]);
+  });
+
+  test("a period the kept events cover says nothing of them", () => {
+    expect(getRetrohuntKeptLines(result())).toEqual([]);
+    // An answer from before it was said, too.
+    expect(
+      getRetrohuntKeptLines(result({ retentionInDays: null, keptFrom: null })),
+    ).toEqual([]);
+  });
+
+  test("nothing matched: said of the last 15 days, never of the whole period", () => {
+    const facts: Array<RetrohuntSentence> = getRetrohuntFacts(
+      result({ ...MONTH, ...NOTHING }),
+    );
+
+    expect(facts).toEqual([
+      { template: RETROHUNT_NO_MATCHES_KEPT, spans: { retention: 15 * DAY } },
+    ]);
+    expect(facts).not.toContainEqual({ template: NO_MATCHES });
+  });
+
+  test("a correlation that found nothing: said of the kept days too", () => {
+    expect(
+      getRetrohuntFacts(
+        result({
+          ...MONTH,
+          ...NOTHING,
+          isCorrelation: true,
+          matchedEventCount: null,
+          threshold: null,
+        }),
+      ),
+    ).toEqual([
+      {
+        template: RETROHUNT_CORRELATION_FOUND_NOTHING_KEPT,
+        spans: { retention: 15 * DAY },
+      },
+    ]);
+  });
+
+  test("how close it came is about the events it matched, as before", () => {
+    expect(
+      getRetrohuntFacts(
+        result({ ...MONTH, ...NOTHING, matchedEventCount: 12 }),
+      ),
+    ).toEqual([{ template: NEAR_MISS, count: 12, values: { threshold: 3 } }]);
+  });
+
+  test("a day's rate is over the days kept: 30 firings in 15 kept days are 2 a day", () => {
+    expect(getRetrohuntFacts(result({ ...MONTH, firedCount: 30 }))[0]).toEqual({
+      template: FIRINGS_A_DAY,
+      values: { count: 2 },
+    });
+  });
+
+  test("a First seen rule that could see 8 of its 30 days before the period says so", () => {
+    const answer: DetectionRetrohuntResult = result({
+      isCorrelation: true,
+      firstSeenHistory: {
+        lookbackInSeconds: 30 * DAY,
+        keptLookbackInSeconds: 8 * DAY,
+      },
+    });
+
+    expect(isRetrohuntWithoutHistory(answer)).toBe(false);
+    expect(getRetrohuntKeptLines(answer)).toEqual([
+      {
+        template: RETROHUNT_FIRST_SEEN_SHORT_HISTORY,
+        spans: { lookback: 30 * DAY, kept: 8 * DAY },
+      },
+    ]);
+  });
+
+  test("one that could see none of it could not tell what was new: never 'would not have fired'", () => {
+    const answer: DetectionRetrohuntResult = result({
+      ...MONTH,
+      ...NOTHING,
+      isCorrelation: true,
+      matchedEventCount: null,
+      threshold: null,
+      firstSeenHistory: {
+        lookbackInSeconds: 30 * DAY,
+        keptLookbackInSeconds: 0,
+      },
+    });
+
+    expect(isRetrohuntWithoutHistory(answer)).toBe(true);
+    expect(getRetrohuntHeadline(answer)).toEqual({
+      template: RETROHUNT_COULD_NOT_TELL,
+    });
+    expect(getRetrohuntFacts(answer)).toEqual([]);
+    expect(getRetrohuntKeptLines(answer)).toEqual([
+      { template: RETROHUNT_KEPT, spans: { retention: 15 * DAY } },
+      {
+        template: RETROHUNT_FIRST_SEEN_NO_HISTORY,
+        spans: { lookback: 30 * DAY },
+      },
+    ]);
+  });
+
+  test("one that could see none of it but still found a new value says how often", () => {
+    const answer: DetectionRetrohuntResult = result({
+      isCorrelation: true,
+      firedCount: 1,
+      firstSeenHistory: {
+        lookbackInSeconds: 30 * DAY,
+        keptLookbackInSeconds: 0,
+      },
+    });
+
+    expect(getRetrohuntHeadline(answer)).toEqual({
+      template: WOULD_HAVE_FIRED,
+      count: 1,
+    });
   });
 });
 

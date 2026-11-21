@@ -638,6 +638,14 @@ La acción **Crear monitor** de la fila de una regla abre un monitor nuevo ya co
 
 Los eventos de seguridad se facturan por GB ingerido, como el resto de tu telemetría, y se conservan durante tu retención de telemetría: la **Retención predeterminada (días)** del proyecto, en **Ajustes del proyecto → Telemetría y APM → Retención de datos**, o una retención definida en el servicio de telemetría al que pertenecen. Cuando termina la retención de un evento, se elimina.
 
+Todo lo que en Eventos de seguridad lee eventos pasados lee solo los eventos que aún se conservan, y dice cuándo necesitaría más:
+
+- Una regla **Visto por primera vez** cuyo intervalo es más largo que lo que se conservan los eventos decide que un valor es nuevo según los días conservados: con un intervalo de 30 días y 15 días conservados, sus alertas y casos dicen `First awsRegion in 15 days`, y un valor visto por última vez hace 20 días se toma por nuevo. Su fila muestra **Requiere atención**, y **Ver error** dice qué cambiar. El formulario de la regla y el detalle de una regla en la biblioteca de reglas lo dicen antes de guardarla o añadirla. Un conteo o una secuencia cuya ventana es más larga que lo que se conservan los eventos cuenta solo esos.
+- **Ejecutar sobre eventos pasados** en un periodo que empieza antes de los eventos conservados dice que los eventos de seguridad se conservan 15 días, así que miró 15 días atrás, y lo que no encontró se dice solo de esos días. Un evento que ocurrió antes pero llegó tarde sigue conservado, y se sigue leyendo. Una regla **Visto por primera vez** dice cuánto de los 30 días anteriores al periodo pudo ver.
+- Una cacería cuyo **Intervalo de tiempo** es más largo que lo que se conservan los eventos no encuentra nada más antiguo, y su formulario lo dice.
+
+**Ajustes del proyecto → Telemetría y APM → Retención de datos** lista las reglas activadas que miran más atrás que su **Retención predeterminada (días)**. Para cubrirlas, conserva los eventos más tiempo, con **Cambiar retención** bajo una regla, o acorta el intervalo de una regla a lo que se conserva. OneUptime conserva 15 días salvo que lo cambies, porque la retención fija lo que cuesta tu telemetría y cuánto tiempo se guardan los datos personales de los eventos, como direcciones y nombres de usuario. Una nueva retención se aplica a los eventos que llegan desde entonces, así que las reglas ven más atrás a medida que esos eventos envejecen.
+
 ## Solución de problemas
 
 :::details Los eventos no aparecen
