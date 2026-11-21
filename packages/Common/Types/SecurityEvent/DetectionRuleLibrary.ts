@@ -1670,11 +1670,21 @@ detection:
   condition: selection
 `,
     },
+    /*
+     * OneUptime's own reads are left out (#10427): Data Security reads a
+     * connected account through the connection's role, and every call AWS
+     * refuses it - a role saved before Data Security needed an action, a
+     * bucket that admits only a VPC endpoint - is in the account's
+     * CloudTrail. The events are still kept and searchable, marked as
+     * OneUptime's own (OneUptimeAwsSessions: only a call signed with a key
+     * AWS handed OneUptime itself is). LIBRARY_RULE_UPGRADES upgrades a
+     * project's copy of the rule as it was added before.
+     */
     {
       id: "2917bec0-2331-4e59-bdd4-a81211529156",
       title: "Burst of access-denied API calls",
       description:
-        "Twenty or more AWS API calls denied for one identity within ten minutes: someone probing what a stolen key can do.",
+        "Twenty or more AWS API calls denied for one identity within ten minutes: someone probing what a stolen key can do. OneUptime's own reads of a connected account are left out.",
       category: DetectionRuleLibraryCategory.Cloud,
       dataSource: "AWS CloudTrail events",
       dataKind: DetectionRuleDataKind.AwsCloudTrail,
@@ -1683,7 +1693,7 @@ detection:
       matchCountThreshold: 20,
       sigmaRuleYaml: `title: Burst of access-denied API calls
 id: 2917bec0-2331-4e59-bdd4-a81211529156
-description: Many AWS API calls denied for one identity.
+description: Many AWS API calls denied for one identity, other than OneUptime's own reads.
 level: medium
 tags:
   - attack.discovery
@@ -1694,7 +1704,9 @@ detection:
       - AccessDenied
       - UnauthorizedOperation
       - Client.UnauthorizedOperation
-  condition: selection
+  filter_oneuptime:
+    oneuptime.actor: oneuptime
+  condition: selection and not filter_oneuptime
 `,
     },
 

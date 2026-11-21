@@ -158,6 +158,7 @@ import AddAuditLogWorkflowRunAsColumns from "./AddAuditLogWorkflowRunAsColumns";
 import CopyAuditLogWorkflowRunAsGiverColumns from "./CopyAuditLogWorkflowRunAsGiverColumns";
 import RedactDataSecurityIssueExplanationLogs from "./RedactDataSecurityIssueExplanationLogs";
 import MaterializeSecurityEventCreatedAtIndex from "./MaterializeSecurityEventCreatedAtIndex";
+import UpgradeLibraryRuleCopies from "./UpgradeLibraryRuleCopies";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -1590,6 +1591,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * keeps.
    */
   new MaterializeSecurityEventCreatedAtIndex(),
+  /*
+   * Gives each project's copy of a fixed Rule Library rule the library's
+   * fix, while the copy is still word for word the rule as it was added
+   * (DETECTION_RULE_LIBRARY_UPGRADES): Burst of access-denied API calls
+   * leaves OneUptime's own reads of a connected AWS account out (#10427).
+   * A rule anyone edited is left as it is. Postgres only, idempotent; no
+   * ordering requirement of its own; before the two slots kept last.
+   */
+  new UpgradeLibraryRuleCopies(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams
