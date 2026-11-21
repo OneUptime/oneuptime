@@ -495,7 +495,9 @@ describe("what acts on the fix reads it back", () => {
   });
 
   test("a fix never checked, or that only looks done, is not verified", async () => {
-    jest.spyOn(SecurityCaseStepCheckService, "findOneBy").mockResolvedValue(null);
+    jest
+      .spyOn(SecurityCaseStepCheckService, "findOneBy")
+      .mockResolvedValue(null);
 
     expect(
       await FixStepState.readRouteFix({

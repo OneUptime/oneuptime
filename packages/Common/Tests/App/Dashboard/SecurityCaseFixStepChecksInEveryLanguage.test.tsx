@@ -290,9 +290,8 @@ describe("the card draws the Fix steps' checks in the reader's language", () => 
   test.each(["en", ...DASHBOARD_LANGUAGES])(
     "%s: the route's fix in each state, the password and MFA",
     async (language: string) => {
-      const words: Record<string, string> = readDashboardLocaleAsDrawn(
-        language,
-      );
+      const words: Record<string, string> =
+        readDashboardLocaleAsDrawn(language);
 
       for (const state of STATES) {
         stepChecks = [
@@ -310,8 +309,7 @@ describe("the card draws the Fix steps' checks in the reader's language", () => 
         await inLanguage(language);
         await drawn();
 
-        const drawnCheck: { chip: string; line: string } =
-          checkOf(ROUTE_KEY);
+        const drawnCheck: { chip: string; line: string } = checkOf(ROUTE_KEY);
         const stateLabel: string =
           StepCheckWords.STEP_CHECK_STATE_LABELS[
             ROUTE_FIX_EVIDENCE[state]!.state as SecurityCaseStepCheckState

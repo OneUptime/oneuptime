@@ -148,15 +148,20 @@ function readDate(value: Date | string | null | undefined): Date | null {
   return Number.isNaN(time.getTime()) ? null : time;
 }
 
+// A pull request's page is linked only when it is https.
+const HTTPS_ADDRESS: RegExp = /^https:\/\//i;
+
 // A pull request row as the check reads it.
-export function readFixPullRequest(row: AIAgentTaskPullRequest): FixPullRequest {
+export function readFixPullRequest(
+  row: AIAgentTaskPullRequest,
+): FixPullRequest {
   const url: string = row.pullRequestUrl?.toString() || "";
 
   return {
     id: row._id?.toString() || row.id?.toString() || "",
     number:
       typeof row.pullRequestNumber === "number" ? row.pullRequestNumber : null,
-    url: /^https:\/\//i.test(url) ? url : "",
+    url: HTTPS_ADDRESS.test(url) ? url : "",
     host: CodeHost.getFacts(row.codeRepository?.repositoryHostedAt).name,
     state: row.pullRequestState || "",
     mergedAt: readDate(row.mergedAt),
@@ -284,7 +289,8 @@ export default class FixChanges {
     const serviceNames: Record<string, string> = {};
 
     for (const service of services) {
-      const id: string = service._id?.toString() || service.id?.toString() || "";
+      const id: string =
+        service._id?.toString() || service.id?.toString() || "";
 
       if (id && service.name) {
         serviceNames[id] = service.name;

@@ -330,7 +330,11 @@ export default class MicrosoftEntraIdResponseClient {
     );
 
     if (!ResponseHttp.isSuccess(result)) {
-      throw this.failure(step, result, ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION);
+      throw this.failure(
+        step,
+        result,
+        ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION,
+      );
     }
 
     const methods: unknown = (result.bodyJson as JSONObject | undefined)?.[

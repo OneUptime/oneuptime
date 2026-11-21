@@ -198,7 +198,10 @@ export interface AttackRequest {
 
 export function attacks(
   count: number,
-  from: Omit<AttackRequest, "minute"> & { minute: number; everyMinutes?: number },
+  from: Omit<AttackRequest, "minute"> & {
+    minute: number;
+    everyMinutes?: number;
+  },
 ): Array<AttackRequest> {
   const made: Array<AttackRequest> = [];
 

@@ -205,7 +205,9 @@ describe("Okta", () => {
 
     const logs: URL = new URL(api.requests[1]!.url);
 
-    expect(logs.origin + logs.pathname).toBe("https://acme.okta.com/api/v1/logs");
+    expect(logs.origin + logs.pathname).toBe(
+      "https://acme.okta.com/api/v1/logs",
+    );
     expect(logs.searchParams.get("filter")).toBe(
       'eventType eq "user.session.clear" and target.id eq "00u1"',
     );
@@ -267,13 +269,22 @@ describe("Okta", () => {
       [{ id: "f1", factorType: "sms", status: "PENDING_ACTIVATION" }],
     ]) {
       expect(
-        (await mfa(OKTA_SETTINGS, "alice@acme.com", okta({ factors }).transport))
-          ?.hasMfa,
+        (
+          await mfa(
+            OKTA_SETTINGS,
+            "alice@acme.com",
+            okta({ factors }).transport,
+          )
+        )?.hasMfa,
       ).toBe(false);
     }
 
     const refused: Error = await caught(
-      mfa(OKTA_SETTINGS, "alice@acme.com", okta({ factorsStatus: 403 }).transport),
+      mfa(
+        OKTA_SETTINGS,
+        "alice@acme.com",
+        okta({ factorsStatus: 403 }).transport,
+      ),
     );
 
     expect(refused.message).toContain("cannot read this user's factors");
@@ -309,11 +320,9 @@ describe("Microsoft Entra ID", () => {
                 error: { code: "Authorization_RequestDenied" },
               })
             : respond(200, {
-                value: (data.methods || []).map(
-                  (type: string): JSONObject => {
-                    return { "@odata.type": type, id: type };
-                  },
-                ),
+                value: (data.methods || []).map((type: string): JSONObject => {
+                  return { "@odata.type": type, id: type };
+                }),
               });
         }
 
@@ -388,7 +397,10 @@ describe("Microsoft Entra ID", () => {
             ENTRA_SETTINGS,
             "alice@contoso.com",
             entra({
-              methods: ["#microsoft.graph.passwordAuthenticationMethod", method],
+              methods: [
+                "#microsoft.graph.passwordAuthenticationMethod",
+                method,
+              ],
             }).transport,
           )
         )?.hasMfa,
@@ -485,9 +497,13 @@ describe("a product that cannot be read for an account", () => {
     expect(
       (
         await caught(
-          credentials(settings, "alice@acme.com", readOnly(() => {
-            return respond(200, {});
-          })),
+          credentials(
+            settings,
+            "alice@acme.com",
+            readOnly(() => {
+              return respond(200, {});
+            }),
+          ),
         )
       ).message,
     ).toBe("OneUptime cannot read an account in CrowdStrike Falcon.");
@@ -499,7 +515,9 @@ describe("every identity product the project is connected to is asked", () => {
     jest.restoreAllMocks();
   });
 
-  function connection(provider: SecurityEventConnectorProvider): SecurityEventConnection {
+  function connection(
+    provider: SecurityEventConnectorProvider,
+  ): SecurityEventConnection {
     const row: SecurityEventConnection = new SecurityEventConnection();
     row.id = ObjectID.generate();
     row.provider = provider;
@@ -516,7 +534,9 @@ describe("every identity product the project is connected to is asked", () => {
     jest
       .spyOn(SecurityEventConnectionService, "getConnectorSettings")
       .mockImplementation(
-        async (row: SecurityEventConnection): Promise<SecurityConnectorSettings> => {
+        async (
+          row: SecurityEventConnection,
+        ): Promise<SecurityConnectorSettings> => {
           return row.provider === SecurityEventConnectorProvider.OktaSystemLog
             ? OKTA_SETTINGS
             : ENTRA_SETTINGS;

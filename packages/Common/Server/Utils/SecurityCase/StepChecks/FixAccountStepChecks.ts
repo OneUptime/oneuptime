@@ -360,7 +360,9 @@ export interface MfaInput {
 }
 
 // The accounts a step about MFA is about: the case's users, each once.
-export function getCaseAccounts(entities: Array<SecurityEntity>): Array<string> {
+export function getCaseAccounts(
+  entities: Array<SecurityEntity>,
+): Array<string> {
   const accounts: Array<string> = [];
 
   for (const entity of entities) {
@@ -504,9 +506,11 @@ export function decideMfa(input: MfaInput): StepCheckResult {
         user: string;
         answers: Array<AccountProductAnswer>;
       }): Array<AccountProductAnswer> => {
-        return account.answers.filter((answer: AccountProductAnswer): boolean => {
-          return Boolean(answer.provider);
-        });
+        return account.answers.filter(
+          (answer: AccountProductAnswer): boolean => {
+            return Boolean(answer.provider);
+          },
+        );
       },
     );
 
@@ -559,11 +563,13 @@ export function decideMfa(input: MfaInput): StepCheckResult {
 
 export const FixMfaStepCheck: StepCheck = {
   kind: RESPONSE_STEP_KINDS.fixBruteForce,
-  intervalInMinutes: 15,
+  /*
+   * Hourly: an account's MFA changes rarely, and each read asks every
+   * product about every account. A tick or a playbook checks it at once.
+   */
+  intervalInMinutes: 60,
   check: async (context: StepCheckContext): Promise<StepCheckResult | null> => {
-    const users: Array<string> = getCaseAccounts(
-      context.securityCase.entities,
-    );
+    const users: Array<string> = getCaseAccounts(context.securityCase.entities);
 
     // A case that names no account has none to read.
     if (users.length === 0) {

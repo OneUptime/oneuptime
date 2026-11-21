@@ -84,7 +84,6 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import SecurityCaseStage from "../../../Types/SecurityCase/SecurityCaseStage";
-import SecurityCaseStepCheckState from "../../../Types/SecurityCase/SecurityCaseStepCheckState";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
@@ -202,9 +201,11 @@ beforeEach(() => {
     .spyOn(UserUtil, "getUserId")
     .mockReturnValue(new ObjectID("aaaaaaaa-aaaa-4aaa-8aaa-000000000001"));
   jest.spyOn(OneUptimeDate, "fromNow").mockReturnValue("5 minutes ago");
-  jest.spyOn(Realtime, "listenToModelEvent").mockImplementation(((): (() => void) => {
-    return (): void => {};
-  }) as never);
+  jest
+    .spyOn(Realtime, "listenToModelEvent")
+    .mockImplementation(((): (() => void) => {
+      return (): void => {};
+    }) as never);
   jest
     .spyOn(GlobalEvents, "dispatchEvent")
     .mockImplementation((() => {}) as never);

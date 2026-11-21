@@ -741,17 +741,22 @@ export default class SecurityPlaybookContainment {
       data.transport || DataSourceHttpFetch.fetch;
     const provider: string = PRODUCT_NAMES[data.provider] || data.provider;
     const value: string = data.value.trim();
-    const facts: (hasMfa: boolean, url: string | undefined) => AccountFixFacts =
-      (hasMfa: boolean, url: string | undefined): AccountFixFacts => {
-        return {
-          provider,
-          canTellPassword: false,
-          passwordChangedAt: null,
-          sessionsEndedAt: null,
-          hasMfa,
-          url,
-        };
+    const facts: (
+      hasMfa: boolean,
+      url: string | undefined,
+    ) => AccountFixFacts = (
+      hasMfa: boolean,
+      url: string | undefined,
+    ): AccountFixFacts => {
+      return {
+        provider,
+        canTellPassword: false,
+        passwordChangedAt: null,
+        sessionsEndedAt: null,
+        hasMfa,
+        url,
       };
+    };
 
     switch (data.provider) {
       case SecurityEventConnectorProvider.OktaSystemLog: {

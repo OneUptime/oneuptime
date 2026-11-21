@@ -561,24 +561,26 @@ describe("which change fixed it", () => {
   });
 
   test("a first deploy that did not stop it, then the one that did: judged around the second, the first's failures counted before it", async () => {
-    const recorded: { result: StepCheckResult | null; recorded: RecordingEvidence } =
-      await check({
-        minute: 400,
-        evidence: {
-          attacks: [
-            ...BEFORE,
-            ...attacks(4, {
-              minute: 80,
-              outcome: SecurityEventRequestOutcome.ReachedDatabase,
-            }),
-            ...attacks(12, {
-              minute: 200,
-              outcome: SecurityEventRequestOutcome.Rejected,
-            }),
-          ],
-          fixChanges: { deploys: [deploy(60), deploy(150, "v2.4.2")] },
-        },
-      });
+    const recorded: {
+      result: StepCheckResult | null;
+      recorded: RecordingEvidence;
+    } = await check({
+      minute: 400,
+      evidence: {
+        attacks: [
+          ...BEFORE,
+          ...attacks(4, {
+            minute: 80,
+            outcome: SecurityEventRequestOutcome.ReachedDatabase,
+          }),
+          ...attacks(12, {
+            minute: 200,
+            outcome: SecurityEventRequestOutcome.Rejected,
+          }),
+        ],
+        fixChanges: { deploys: [deploy(60), deploy(150, "v2.4.2")] },
+      },
+    });
 
     expect(recorded.result!.state).toBe(SecurityCaseStepCheckState.Verified);
     expect(recorded.result!.evidence.sentence).toMatchObject({
@@ -798,10 +800,7 @@ describe("no attempts since the fix", () => {
     const result: StepCheckResult = await checked({
       minute: 300,
       evidence: {
-        attacks: [
-          ...BEFORE,
-          ...attacks(5, { minute: 120, outcome: "" }),
-        ],
+        attacks: [...BEFORE, ...attacks(5, { minute: 120, outcome: "" })],
         fixChanges: { deploys: [deploy(60)] },
       },
     });
@@ -986,7 +985,10 @@ describe("failing toward a person", () => {
         evidence: (
           await checked({
             minute: 100,
-            evidence: { attacks: BEFORE, fixChanges: { deploys: [deploy(60)] } },
+            evidence: {
+              attacks: BEFORE,
+              fixChanges: { deploys: [deploy(60)] },
+            },
           })
         ).evidence,
         stateSince: at(100),
@@ -1058,9 +1060,7 @@ describe("how much evidence counts as proof", () => {
       const rate: number = harmful / followed;
 
       expect(Math.pow(1 - rate, needed)).toBeLessThanOrEqual(0.05);
-      expect(Math.pow(1 - rate, needed - 1) > 0.05 || needed === 3).toBe(
-        true,
-      );
+      expect(Math.pow(1 - rate, needed - 1) > 0.05 || needed === 3).toBe(true);
     }
   });
 });
@@ -1171,7 +1171,9 @@ describe("the same kind of attack on the same route", () => {
       },
     );
     expect(getRouteAttackScope({ matches: null, route: ROUTE })).toBeNull();
-    expect(getRouteAttackScope({ matches: matchesOf(), route: " " })).toBeNull();
+    expect(
+      getRouteAttackScope({ matches: matchesOf(), route: " " }),
+    ).toBeNull();
   });
 
   test("a route that carries a traversal is matched by the part before it, never the whole site", () => {

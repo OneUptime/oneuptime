@@ -243,7 +243,10 @@ describe("reset the password and revoke the tokens", () => {
 
     expect(both.state).toBe(SecurityCaseStepCheckState.Verified);
     expect(both.evidence.facts).toEqual([
-      { template: CHECK_FIX_PASSWORD_GOOGLE_CANNOT_TELL, values: { user: USER } },
+      {
+        template: CHECK_FIX_PASSWORD_GOOGLE_CANNOT_TELL,
+        values: { user: USER },
+      },
     ]);
   });
 
@@ -314,9 +317,7 @@ describe("reset the password and revoke the tokens", () => {
 
     expect(failed.state).toBe(SecurityCaseStepCheckState.CannotTell);
     expect(failed.evidence.sentence.template).toBe(CHECK_COULD_NOT_CHECK);
-    expect(
-      (await credentials({ evidence: {}, value: "" })).result,
-    ).toBeNull();
+    expect((await credentials({ evidence: {}, value: "" })).result).toBeNull();
   });
 });
 
@@ -419,10 +420,7 @@ describe("MFA on the accounts it went after", () => {
       users: [USER],
       evidence: {
         mfa: {
-          [USER]: reading(
-            okta({ hasMfa: true }),
-            entra({ hasMfa: false }),
-          ),
+          [USER]: reading(okta({ hasMfa: true }), entra({ hasMfa: false })),
         },
       },
     }))!;

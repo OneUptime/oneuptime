@@ -299,9 +299,7 @@ describe("a fix asked again stays the case's", () => {
       taskType: CodeFixTaskType.FixException,
     });
 
-    expect(turn.triggeredBySecurityCaseId?.toString()).toBe(
-      CASE_ID.toString(),
-    );
+    expect(turn.triggeredBySecurityCaseId?.toString()).toBe(CASE_ID.toString());
     expect(turn.triggeredByTelemetryExceptionId?.toString()).toBe(
       EXCEPTION_ID.toString(),
     );

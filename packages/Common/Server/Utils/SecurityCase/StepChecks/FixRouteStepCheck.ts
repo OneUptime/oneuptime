@@ -41,7 +41,10 @@ import { shortCommitSha } from "../../../../Utils/Telemetry/ChangeEventFields";
 import { FIX_PRODUCTION_THRESHOLDS } from "../../AI/CodeFix/FixProductionVerdict";
 import { readFailed } from "./AddressStepChecks";
 import { FixChangesReading, FixPullRequest } from "./Evidence/FixChanges";
-import { RouteAttackCounts, RouteAttacksReading } from "./Evidence/RouteAttacks";
+import {
+  RouteAttackCounts,
+  RouteAttacksReading,
+} from "./Evidence/RouteAttacks";
 import {
   STEP_CHECK_DOCS_PATH,
   StepCheck,
@@ -288,7 +291,9 @@ export function pickFixingChange(data: {
  * out of the database when some reached it, else turned away. With none
  * followed before it, the window's own say: any that reached the database.
  */
-export function getFixCriterion(reading: RouteAttacksReading): FixRouteCriterion {
+export function getFixCriterion(
+  reading: RouteAttacksReading,
+): FixRouteCriterion {
   const followedBefore: number =
     reading.before.requests - reading.before.unknown;
   const reachedDatabase: number =
@@ -495,9 +500,7 @@ function beforeFacts(data: {
     : [];
 }
 
-function edgeFacts(
-  input: FixRouteInput,
-): Array<SecurityCaseStepCheckSentence> {
+function edgeFacts(input: FixRouteInput): Array<SecurityCaseStepCheckSentence> {
   return input.reading.edgeStoppedAfter > 0
     ? [
         sentence(
@@ -515,8 +518,7 @@ function edgeFacts(
  */
 export function decideFixRoute(input: FixRouteInput): StepCheckResult {
   const { scope, reading, change, criterion } = input;
-  const isKeptOut: boolean =
-    criterion === FixRouteCriterion.KeptOutOfDatabase;
+  const isKeptOut: boolean = criterion === FixRouteCriterion.KeptOutOfDatabase;
   const settledAt: Date = getSettledAt(change);
   const harmfulBefore: number = countHarmful(reading.before, criterion);
   const followedBefore: number =
@@ -563,9 +565,7 @@ export function decideFixRoute(input: FixRouteInput): StepCheckResult {
       ? reading.firstHarmAfterAt
       : reading.firstThroughAfterAt;
     const isNew: boolean = Boolean(
-      doneSince &&
-        lastHarmAt &&
-        lastHarmAt.getTime() > doneSince.getTime(),
+      doneSince && lastHarmAt && lastHarmAt.getTime() > doneSince.getTime(),
     );
 
     if (isNew || isStillRegressed(input.target)) {
@@ -594,7 +594,10 @@ export function decideFixRoute(input: FixRouteInput): StepCheckResult {
             { times: { time: regressedAt } },
           ),
           facts,
-          links: [throughTracesLink(reading), pullRequestLink(change.pullRequest)],
+          links: [
+            throughTracesLink(reading),
+            pullRequestLink(change.pullRequest),
+          ],
           data: { ...data, regressedAt },
         }),
       };
@@ -615,7 +618,10 @@ export function decideFixRoute(input: FixRouteInput): StepCheckResult {
           },
         ),
         facts,
-        links: [throughTracesLink(reading), pullRequestLink(change.pullRequest)],
+        links: [
+          throughTracesLink(reading),
+          pullRequestLink(change.pullRequest),
+        ],
         data,
       }),
     };
@@ -757,11 +763,10 @@ const FixRouteStepCheck: StepCheck = {
     });
 
     try {
-      const changes: FixChangesReading =
-        await context.evidence.readFixChanges({
-          serviceIds: scope.serviceIds,
-          since,
-        });
+      const changes: FixChangesReading = await context.evidence.readFixChanges({
+        serviceIds: scope.serviceIds,
+        since,
+      });
       const shipped: Array<ShippedChange> = getShippedChanges({
         changes,
         since,
