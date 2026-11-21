@@ -39,7 +39,8 @@ import {
 export const BLOCK_CHECK_KEY: string = "block-permission";
 
 export const DEFENDER_BLOCK_CHECK_NAME: string = "Block with Microsoft Defender";
-export const CROWDSTRIKE_BLOCK_CHECK_NAME: string = "Block files with CrowdStrike";
+// Named apart from the connection's switch, Block files with CrowdStrike, which the Dashboard translates.
+export const CROWDSTRIKE_BLOCK_CHECK_NAME: string = "Block with CrowdStrike Falcon";
 
 export const DEFENDER_BLOCK_REMEDIATION: string =
   "In the Microsoft Entra admin center, open the app registration's API permissions, add the APIs my organization uses > WindowsDefenderATP application permission Ti.ReadWrite.All, and grant admin consent. Or turn off Block domains, addresses and files with Defender.";

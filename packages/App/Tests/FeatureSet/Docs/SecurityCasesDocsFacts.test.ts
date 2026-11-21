@@ -93,12 +93,22 @@ import {
 } from "Common/Types/SecurityBlocklist/SecurityBlock";
 import { SecurityProtectedAddressSource } from "Common/Types/SecurityBlocklist/SecurityProtectedAddress";
 import {
+  BLOCK_DOMAIN_TITLE,
+  BLOCK_FILE_TITLE,
   ENFORCED_AT_COLUMN_TITLE,
+  EVERY_MACHINE_FIELD_TITLE,
   EXTEND_ACTION,
   LIFT_ACTION,
   LIFT_SELECTED_TITLE,
   NOTHING_ENFORCES_TITLE,
+  QUARANTINE_FIELD_TITLE,
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistCopy";
+import {
+  BLOCKLIST_KINDS,
+  BLOCKLIST_KIND_DEFAULT_DURATIONS,
+  BLOCKLIST_KIND_WORDS,
+  BlocklistKind,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistKinds";
 import { AUTOMATIC_PROTECTIONS_TITLE } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/ProtectedEntities/AutomaticProtectionsCopy";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import {
@@ -1946,13 +1956,47 @@ describe("Security Cases and Playbooks docs", () => {
       }),
     ).toContain("Protected Entities");
     expect(page).toContain(
-      "**Protected Entities**, under **Playbooks** in the menu, lists the users, hosts and IP addresses no playbook contains and the blocklist never blocks",
+      "**Protected Entities**, under **Playbooks** in the menu, lists the users, hosts, IP addresses, domains and files no playbook contains and the blocklist never blocks",
     );
     expect(PROTECTED_ENTITY_TYPES).toEqual([
       SecurityEntityType.User,
       SecurityEntityType.Host,
       SecurityEntityType.IpAddress,
+      SecurityEntityType.Domain,
+      SecurityEntityType.FileHash,
     ]);
+
+    // A domain protects itself and refuses the domains above it; `*.` protects every name under it (#10346).
+    expect(page).toContain(
+      "A domain entry, such as `status.acme.com`, is never blocked, nor is a domain above it, whose block would block it too; write `*.` before a domain, such as `*.acme.com`, to protect every name under it as well.",
+    );
+    const statusDomain: Array<{ type: SecurityEntityType; value: string }> = [
+      { type: SecurityEntityType.Domain, value: "status.acme.com" },
+    ];
+    expect(
+      findProtectingRule({
+        type: SecurityEntityType.Domain,
+        value: "acme.com",
+        rules: statusDomain,
+      }),
+    ).toBeDefined();
+    expect(
+      findProtectingRule({
+        type: SecurityEntityType.Domain,
+        value: "evil.acme.com",
+        rules: statusDomain,
+      }),
+    ).toBeUndefined();
+    expect(
+      findProtectingRule({
+        type: SecurityEntityType.Domain,
+        value: "evil.acme.com",
+        rules: [{ type: SecurityEntityType.Domain, value: "*.acme.com" }],
+      }),
+    ).toBeDefined();
+    expect(page).toContain(
+      "A file hash entry, MD5, SHA-1 or SHA-256, protects that file: list the hashes of the software you ship.",
+    );
     expect(page).toContain(
       "An address entry is an address or a range, such as `203.0.113.0/24`, which protects every address in it.",
     );
@@ -1991,7 +2035,32 @@ describe("Security Cases and Playbooks docs", () => {
       }),
     ).toContain("Blocklist");
     expect(blocklist).toContain(
-      "**Blocklist**, under **Playbooks** in the menu, lists the IP addresses and ranges your project blocks",
+      "**Blocklist**, under **Playbooks** in the menu, lists what your project blocks, on a tab of each kind, **Addresses**, **Domains and URLs** and **Files**",
+    );
+    expect(
+      BLOCKLIST_KINDS.map((kind: BlocklistKind): string => {
+        return BLOCKLIST_KIND_WORDS[kind].plural;
+      }),
+    ).toEqual(["Addresses", "Domains and URLs", "Files"]);
+
+    // Domains, URLs and files, on every machine, for as long as each tab says (#10346).
+    expect([BLOCK_DOMAIN_TITLE, BLOCK_FILE_TITLE, QUARANTINE_FIELD_TITLE]).toEqual(
+      ["Block Domain or URL", "Block File", "Quarantine It"],
+    );
+    expect(blocklist).toContain(
+      "**Block Domain or URL** and **Block File** block on every machine, through a [Microsoft Defender](/docs/integrations/microsoft-defender-xdr) or [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) connection with blocking turned on",
+    );
+    expect(BLOCKLIST_KIND_DEFAULT_DURATIONS).toEqual({
+      [BlocklistKind.Addresses]: SecurityBlockDuration.OneDay,
+      [BlocklistKind.DomainsAndUrls]: SecurityBlockDuration.SevenDays,
+      [BlocklistKind.Files]: SecurityBlockDuration.ThirtyDays,
+    });
+    expect(blocklist).toContain(
+      "A domain or a URL is blocked for 7 days and a file for 30 unless you choose otherwise.",
+    );
+    expect(EVERY_MACHINE_FIELD_TITLE).toBe("Block on Every Machine Too");
+    expect(blocklist).toContain(
+      "**Block on Every Machine Too**, on **Block Address**, blocks an address on every machine as well as at the edge",
     );
 
     // Every block expires: a day unless chosen otherwise.
@@ -2029,7 +2098,7 @@ describe("Security Cases and Playbooks docs", () => {
       "**Lift** ends a block, on one row or several at once, and **Extend** moves its end.",
     );
 
-    // What protects an address, each a source the check reads.
+    // What protects an address, each a source the check reads; and a domain or a file (#10346).
     expect(Object.values(SecurityProtectedAddressSource).sort()).toEqual(
       [
         SecurityProtectedAddressSource.ProtectedEntity,
@@ -2044,7 +2113,16 @@ describe("Security Cases and Playbooks docs", () => {
         SecurityProtectedAddressSource.GlobalProbe,
         SecurityProtectedAddressSource.OneUptimeCloud,
         SecurityProtectedAddressSource.Edge,
+        SecurityProtectedAddressSource.OneUptime,
+        SecurityProtectedAddressSource.EndpointProduct,
+        SecurityProtectedAddressSource.Monitor,
+        SecurityProtectedAddressSource.StatusPage,
+        SecurityProtectedAddressSource.ProjectDomain,
+        SecurityProtectedAddressSource.EmptyFile,
       ].sort(),
+    );
+    expect(blocklist).toContain(
+      "Nor are its own domains blocked: OneUptime's, Microsoft Defender's and CrowdStrike Falcon's, the hosts your monitors check, your status pages' and verified domains, and your cloud resources' DNS names and zones, nor the hash of an empty file.",
     );
     expect(blocklist).toContain(
       "Your project's own addresses are never blocked: the entries of **Protected Entities**, your hosts, Kubernetes nodes, cloud resources, network devices and endpoints, your address names and probes, OneUptime Cloud's probes, the ranges that are not on the internet, and the edge in front of your app.",

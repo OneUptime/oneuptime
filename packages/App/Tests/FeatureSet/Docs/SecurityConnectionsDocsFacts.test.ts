@@ -101,6 +101,7 @@ import { JSONObject } from "Common/Types/JSON";
 import Permission from "Common/Types/Permission";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
 import {
+  BLOCK_INDICATORS_KEY,
   ConnectorField,
   ENTRA_BACKGROUND_SIGN_INS_KEY,
   SecurityEventConnectorCatalog,
@@ -758,9 +759,18 @@ describe("every connection page's test checklist", () => {
       const peer: FakePeer = fakePeer((): DataSourceHttpResponse => {
         return json(401, { error: "invalid_client" });
       });
+      /*
+       * Its blocking switch on, as a connection that blocks has it (#10346):
+       * the page lists every check, the blocking one among them, which
+       * only such a connection's test reports.
+       */
+      const settings: SecurityConnectorSettings = settingsFor(entry.provider);
       const report: { checks: Array<SecurityConnectorCheck> } =
         await SecurityEventConnectionTester.test({
-          settings: settingsFor(entry.provider),
+          settings: {
+            ...settings,
+            config: { ...settings.config, [BLOCK_INDICATORS_KEY]: true },
+          },
           connectorOverride: connectorFor(entry.provider, peer.transport),
           platformOverride: {
             workerConsumers: 1,
