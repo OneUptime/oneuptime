@@ -488,9 +488,11 @@ export default class OnCallLeaveNotices {
 
     const policyIds: Array<ObjectID> = eachOnce(
       rows
-        .map((row: OnCallDutyPolicyEscalationRuleTeam): ObjectID | undefined => {
-          return row.onCallDutyPolicyId;
-        })
+        .map(
+          (row: OnCallDutyPolicyEscalationRuleTeam): ObjectID | undefined => {
+            return row.onCallDutyPolicyId;
+          },
+        )
         .filter((policyId: ObjectID | undefined): policyId is ObjectID => {
           return Boolean(policyId);
         }),

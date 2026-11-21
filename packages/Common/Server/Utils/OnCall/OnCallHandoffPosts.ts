@@ -1114,14 +1114,17 @@ export default class OnCallHandoffPosts {
           data.userId,
         );
 
-        const policies: Array<OnCallHandoffPolicy> = OnCallHandoffPolicies.group(
-          rows.filter((row: OnCallDutyPolicyEscalationRuleSchedule): boolean => {
-            return this.isSameUser(
-              row.onCallDutyPolicyScheduleId,
-              schedule.id,
-            );
-          }),
-        );
+        const policies: Array<OnCallHandoffPolicy> =
+          OnCallHandoffPolicies.group(
+            rows.filter(
+              (row: OnCallDutyPolicyEscalationRuleSchedule): boolean => {
+                return this.isSameUser(
+                  row.onCallDutyPolicyScheduleId,
+                  schedule.id,
+                );
+              },
+            ),
+          );
 
         for (const policy of policies) {
           const currentUserId: ObjectID | null =

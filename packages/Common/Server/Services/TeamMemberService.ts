@@ -3442,7 +3442,9 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       : null;
 
     return (members || []).filter((member: TeamMember): boolean => {
-      return !removed || Boolean(member.id && removed.has(member.id.toString()));
+      return (
+        !removed || Boolean(member.id && removed.has(member.id.toString()))
+      );
     });
   }
 
