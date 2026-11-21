@@ -59,7 +59,7 @@ import {
   playbookStepMarkdown,
   playbookStoppedMarkdown,
 } from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
-import { isOneStepSecurityPlaybookRun } from "../../../Types/SecurityPlaybook/SecurityPlaybookOneStepRun";
+import { readOneStepRun } from "../../../Types/SecurityPlaybook/SecurityPlaybookOneStepRun";
 import PartialEntity from "../../../Types/Database/PartialEntity";
 import SecurityCaseStepChecks from "../SecurityCase/StepChecks/SecurityCaseStepChecks";
 import WorkspaceSecurityPlaybookApprovalMessages from "../Workspace/WorkspaceSecurityPlaybookApprovalMessages";
@@ -289,7 +289,7 @@ export default class SecurityPlaybookEngine {
      * timeline says what its step did, not that a playbook started and
      * finished around it.
      */
-    const isOneStepRun: boolean = isOneStepSecurityPlaybookRun(run);
+    const isOneStepRun: boolean = readOneStepRun(run) !== null;
 
     if (!run.startedAt) {
       await SecurityPlaybookRunService.updateColumnsByIdWithoutHooks({

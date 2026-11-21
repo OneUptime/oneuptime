@@ -121,6 +121,23 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * A run names its playbook - except a one-step run from a case (#10342),
+   * which has none, and which startOneStepRun alone makes: it names its
+   * project and its case, as every run does.
+   */
+  protected override checkRequiredFields(data: Model): Model {
+    if (!this.oneStepRuns.has(data)) {
+      return super.checkRequiredFields(data);
+    }
+
+    if (!data.projectId || !data.securityCaseId) {
+      throw new BadDataException("A one-step run names its case.");
+    }
+
+    return data;
+  }
+
+  /*
    * Creating a run is starting one: name the case and the playbook, and the
    * run gets the playbook's steps as they are now, a pending result for each,
    * and a place in the queue. A person's run is a Manual one, whatever they
