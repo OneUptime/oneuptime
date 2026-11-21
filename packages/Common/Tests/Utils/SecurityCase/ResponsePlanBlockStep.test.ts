@@ -109,7 +109,9 @@ function blocking(
   };
 }
 
-function block(overrides: Partial<ResponseAddressBlock> = {}): ResponseAddressBlock {
+function block(
+  overrides: Partial<ResponseAddressBlock> = {},
+): ResponseAddressBlock {
   return {
     id: "bbbbbbbb-bbbb-4bbb-8bbb-000000000001",
     value: ADDRESS,
@@ -252,7 +254,10 @@ describe("with the blocklist", () => {
   });
 
   test.each([
-    ["still being applied", block({ enforcedAt: [], pendingAt: ["Cloudflare"] })],
+    [
+      "still being applied",
+      block({ enforcedAt: [], pendingAt: ["Cloudflare"] }),
+    ],
     [
       "turned down everywhere",
       block({
@@ -370,7 +375,10 @@ describe("where a block from the case stands", () => {
       readAddressBlockRuns([
         run({ status: SecurityPlaybookRunStatus.WaitingForApproval }),
         run({ status: SecurityPlaybookRunStatus.Failed }),
-        run({ status: SecurityPlaybookRunStatus.Queued, value: "35.205.11.131" }),
+        run({
+          status: SecurityPlaybookRunStatus.Queued,
+          value: "35.205.11.131",
+        }),
         run({ status: SecurityPlaybookRunStatus.Failed, value: "35.205.12.7" }),
       ]),
     ).toEqual({
@@ -388,7 +396,9 @@ describe("where a block from the case stands", () => {
       ]),
     ).toEqual({});
     expect(
-      readAddressBlockRuns([run({ status: SecurityPlaybookRunStatus.Cancelled })]),
+      readAddressBlockRuns([
+        run({ status: SecurityPlaybookRunStatus.Cancelled }),
+      ]),
     ).toEqual({});
   });
 
@@ -475,11 +485,13 @@ describe("the addresses a case may be blocked from", () => {
     });
 
     expect(
-      built.steps.filter((step: ResponseStep): boolean => {
-        return step.action?.kind === ResponseActionKind.BlockAddress;
-      }).map((step: ResponseStep): string | undefined => {
-        return step.action?.entity?.value;
-      }),
+      built.steps
+        .filter((step: ResponseStep): boolean => {
+          return step.action?.kind === ResponseActionKind.BlockAddress;
+        })
+        .map((step: ResponseStep): string | undefined => {
+          return step.action?.entity?.value;
+        }),
     ).toEqual([ADDRESS]);
   });
 

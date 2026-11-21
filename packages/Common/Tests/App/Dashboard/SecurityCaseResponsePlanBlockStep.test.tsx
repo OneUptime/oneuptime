@@ -324,7 +324,9 @@ function oneStepRun(status: SecurityPlaybookRunStatus): SecurityPlaybookRun {
   return run;
 }
 
-function buildCase(stage: SecurityCaseStage = SecurityCaseStage.New): SecurityCase {
+function buildCase(
+  stage: SecurityCaseStage = SecurityCaseStage.New,
+): SecurityCase {
   const securityCase: SecurityCase = new SecurityCase();
   securityCase._id = CASE_ID;
   securityCase.securityCaseStatusId = testStatusId(stage);
@@ -509,8 +511,7 @@ afterEach(async () => {
 });
 
 beforeAll(async () => {
-  const resources: Record<string, { translation: Record<string, string> }> =
-    {};
+  const resources: Record<string, { translation: Record<string, string> }> = {};
 
   for (const language of LANGUAGES) {
     resources[language] = { translation: readDashboardLocaleAsDrawn(language) };
@@ -542,11 +543,17 @@ async function inLanguage(language: string): Promise<Translator> {
 
 // ---------- The states, each as a reader in any language reads it ----------
 
+// What a state's expectations read: the reader's words, and the step as drawn.
+interface StateRead {
+  translator: Translator;
+  drawn: HTMLElement;
+}
+
 interface BlockState {
   name: string;
   arrange: () => void;
   // What the step says, in the reader's words.
-  expect: (data: { translator: Translator; drawn: HTMLElement }) => void;
+  expect: (data: StateRead) => void;
 }
 
 function sentenceOfStep(translator: Translator): string {
@@ -601,7 +608,7 @@ const STATES: ReadonlyArray<BlockState> = [
     arrange: () => {
       destinations = [];
     },
-    expect: ({ translator, drawn }) => {
+    expect: ({ translator, drawn }: StateRead): void => {
       expectSays(
         drawn,
         translator.translateTemplate(STEP_BLOCK_PUBLIC_IP, { value: ADDRESS }),
@@ -640,7 +647,7 @@ const STATES: ReadonlyArray<BlockState> = [
   {
     name: "a destination enforces it: the step names where, with Block for 24 Hours",
     arrange: () => {},
-    expect: ({ translator, drawn }) => {
+    expect: ({ translator, drawn }: StateRead): void => {
       expectSays(drawn, sentenceOfStep(translator));
       expectBlockButton(drawn, translator);
       expect(
@@ -653,7 +660,7 @@ const STATES: ReadonlyArray<BlockState> = [
     arrange: () => {
       runs = [oneStepRun(SecurityPlaybookRunStatus.WaitingForApproval)];
     },
-    expect: ({ translator, drawn }) => {
+    expect: ({ translator, drawn }: StateRead): void => {
       expectSays(drawn, sentenceOfStep(translator));
       expectSays(drawn, translator.translateText(STEP_BLOCK_WAITING));
       expect(
@@ -666,7 +673,7 @@ const STATES: ReadonlyArray<BlockState> = [
     arrange: () => {
       runs = [oneStepRun(SecurityPlaybookRunStatus.Running)];
     },
-    expect: ({ translator, drawn }) => {
+    expect: ({ translator, drawn }: StateRead): void => {
       expectSays(drawn, translator.translateText(STEP_BLOCK_RUNNING));
       expect(
         within(drawn).queryByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.block),
@@ -678,7 +685,7 @@ const STATES: ReadonlyArray<BlockState> = [
     arrange: () => {
       runs = [oneStepRun(SecurityPlaybookRunStatus.Failed)];
     },
-    expect: ({ translator, drawn }) => {
+    expect: ({ translator, drawn }: StateRead): void => {
       expectSays(drawn, translator.translateText(STEP_BLOCK_FAILED));
       expectBlockButton(drawn, translator);
     },
@@ -700,7 +707,7 @@ const STATES: ReadonlyArray<BlockState> = [
         }),
       ];
     },
-    expect: ({ translator, drawn }) => {
+    expect: ({ translator, drawn }: StateRead): void => {
       const line: HTMLElement = within(drawn).getByTestId(
         SECURITY_CASE_RESPONSE_TEST_IDS.blockLine,
       );
@@ -733,7 +740,7 @@ const STATES: ReadonlyArray<BlockState> = [
         }),
       ];
     },
-    expect: ({ translator, drawn }) => {
+    expect: ({ translator, drawn }: StateRead): void => {
       const line: HTMLElement = within(drawn).getByTestId(
         SECURITY_CASE_RESPONSE_TEST_IDS.blockLine,
       );
@@ -758,7 +765,7 @@ const STATES: ReadonlyArray<BlockState> = [
         }),
       ];
     },
-    expect: ({ translator, drawn }) => {
+    expect: ({ translator, drawn }: StateRead): void => {
       const line: HTMLElement = within(drawn).getByTestId(
         SECURITY_CASE_RESPONSE_TEST_IDS.blockLine,
       );
@@ -797,7 +804,7 @@ const STATES: ReadonlyArray<BlockState> = [
         }),
       ];
     },
-    expect: ({ translator, drawn }) => {
+    expect: ({ translator, drawn }: StateRead): void => {
       const line: HTMLElement = within(drawn).getByTestId(
         SECURITY_CASE_RESPONSE_TEST_IDS.blockLine,
       );
@@ -882,7 +889,9 @@ describe("how to block it by hand, unfolded", () => {
       }
 
       expect(said).toContain(`deny ${ADDRESS};`);
-      expect(said).toContain(`nft add element inet filter blocklist { ${ADDRESS} }`);
+      expect(said).toContain(
+        `nft add element inet filter blocklist { ${ADDRESS} }`,
+      );
       expect(said).toContain(`${ADDRESS}/32`);
       expect(
         text(
@@ -941,9 +950,7 @@ describe("Block for 24 Hours, and the choices beside it", () => {
       duration: SecurityBlockDuration.OneDay,
     });
     await waitFor(() => {
-      expect(toasts).toEqual([
-        BLOCK_ASKED_TOAST.replace("{{value}}", ADDRESS),
-      ]);
+      expect(toasts).toEqual([BLOCK_ASKED_TOAST.replace("{{value}}", ADDRESS)]);
     });
   });
 

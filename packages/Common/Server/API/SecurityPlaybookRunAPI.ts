@@ -193,7 +193,8 @@ export default class SecurityPlaybookRunAPI extends BaseAPI<
 
           CommonAPI.assertPermittedInProject({
             databaseProps: props,
-            allowedPermissions: new SecurityPlaybookRun().getCreatePermissions(),
+            allowedPermissions:
+              new SecurityPlaybookRun().getCreatePermissions(),
             errorMessage: ONE_STEP_BLOCK_REFUSED_MESSAGE,
           });
 

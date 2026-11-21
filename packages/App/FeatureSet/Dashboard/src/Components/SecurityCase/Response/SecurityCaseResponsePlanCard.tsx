@@ -569,38 +569,43 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
    * someone else approves it. Why not - already blocked, protected - is
    * said where the plan's errors are.
    */
-  const blockAddress: (step: ResponseStep, choice: BlockChoice) => Promise<void> =
-    async (step: ResponseStep, choice: BlockChoice): Promise<void> => {
-      const value: string = step.action?.entity?.value || "";
+  const blockAddress: (
+    step: ResponseStep,
+    choice: BlockChoice,
+  ) => Promise<void> = async (
+    step: ResponseStep,
+    choice: BlockChoice,
+  ): Promise<void> => {
+    const value: string = step.action?.entity?.value || "";
 
-      if (!value || workingStepKey) {
-        return;
-      }
+    if (!value || workingStepKey) {
+      return;
+    }
 
-      setWorkingStepKey(step.key);
-      setActionError("");
+    setWorkingStepKey(step.key);
+    setActionError("");
 
-      try {
-        const started: BlockFromCaseStarted = await blockFromCase({
-          securityCaseId: props.caseId,
-          value,
-          blockAction: choice.blockAction,
-          duration: choice.duration,
-        });
+    try {
+      const started: BlockFromCaseStarted = await blockFromCase({
+        securityCaseId: props.caseId,
+        value,
+        blockAction: choice.blockAction,
+        duration: choice.duration,
+      });
 
-        Toast.success(
-          translator.translateTemplate(
-            started.needsApproval ? BLOCK_ASKED_TOAST : BLOCK_STARTED_TOAST,
-            { value },
-          ),
-        );
-      } catch (err) {
-        setActionError(API.getFriendlyMessage(err));
-      }
+      Toast.success(
+        translator.translateTemplate(
+          started.needsApproval ? BLOCK_ASKED_TOAST : BLOCK_STARTED_TOAST,
+          { value },
+        ),
+      );
+    } catch (err) {
+      setActionError(API.getFriendlyMessage(err));
+    }
 
-      await load();
-      setWorkingStepKey("");
-    };
+    await load();
+    setWorkingStepKey("");
+  };
 
   // Lifts the block that holds the step's address, as the Blocklist lifts it.
   const liftBlock: (

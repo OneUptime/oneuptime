@@ -378,8 +378,7 @@ describe("a block a destination holds", () => {
       }),
     );
 
-    const evidence: Array<AddressBlockEvidence> =
-      await read("2001:db8:1:2::7");
+    const evidence: Array<AddressBlockEvidence> = await read("2001:db8:1:2::7");
 
     expect(evidence).toHaveLength(1);
     expect(evidence[0]!.sentence.values["range"]).toBe("2001:db8:1::/48");

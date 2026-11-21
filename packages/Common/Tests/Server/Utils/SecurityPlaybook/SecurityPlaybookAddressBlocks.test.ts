@@ -94,7 +94,9 @@ function madeBlock(data: {
   expiresAt?: Date | null;
 }): SecurityBlock {
   const block: SecurityBlock = new SecurityBlock(
-    new ObjectID(`bbbbbbbb-bbbb-4bbb-8bbb-${String(data.index).padStart(12, "0")}`),
+    new ObjectID(
+      `bbbbbbbb-bbbb-4bbb-8bbb-${String(data.index).padStart(12, "0")}`,
+    ),
   );
   block.value = data.value;
   block.action = data.action || SecurityBlockAction.Block;
@@ -140,7 +142,10 @@ function withDestinations(names: Array<string>): void {
       provider: SecurityBlockDestinationProvider.Test,
       findForProject: async () => {
         return names.map((name: string): TestSecurityBlockDestination => {
-          return new TestSecurityBlockDestination({ key: `Test:${name}`, name });
+          return new TestSecurityBlockDestination({
+            key: `Test:${name}`,
+            name,
+          });
         });
       },
     },
@@ -158,8 +163,9 @@ beforeEach(() => {
     .mockImplementation(
       async (request: SecurityBlockRequest): Promise<SecurityBlockOutcome> => {
         asked.push(request);
-        const outcome: SecurityBlockOutcome | Error | undefined =
-          outcomes.get(request.value);
+        const outcome: SecurityBlockOutcome | Error | undefined = outcomes.get(
+          request.value,
+        );
 
         if (outcome instanceof Error) {
           throw outcome;
@@ -214,7 +220,10 @@ async function blockTargets(data: {
 describe("blocking each target", () => {
   test("blocked and enforced at two destinations: done, saying until when and where", async () => {
     const block: SecurityBlock = madeBlock({ index: 1, value: ADDRESS });
-    outcomes.set(ADDRESS, { status: SecurityBlockOutcomeStatus.Blocked, block });
+    outcomes.set(ADDRESS, {
+      status: SecurityBlockOutcomeStatus.Blocked,
+      block,
+    });
     enforcement.push(
       row({
         block,
@@ -288,7 +297,10 @@ describe("blocking each target", () => {
 
   test("a destination still applying it: done, saying where it is being applied", async () => {
     const block: SecurityBlock = madeBlock({ index: 1, value: ADDRESS });
-    outcomes.set(ADDRESS, { status: SecurityBlockOutcomeStatus.Blocked, block });
+    outcomes.set(ADDRESS, {
+      status: SecurityBlockOutcomeStatus.Blocked,
+      block,
+    });
     enforcement.push(
       row({
         block,
@@ -314,7 +326,10 @@ describe("blocking each target", () => {
       action: SecurityBlockAction.Challenge,
       expiresAt: null,
     });
-    outcomes.set(ADDRESS, { status: SecurityBlockOutcomeStatus.Blocked, block });
+    outcomes.set(ADDRESS, {
+      status: SecurityBlockOutcomeStatus.Blocked,
+      block,
+    });
     enforcement.push(
       row({
         block,
@@ -344,7 +359,10 @@ describe("blocking each target", () => {
 
   test("turned down by every destination: the step fails, saying why, and the block is the person's to lift", async () => {
     const block: SecurityBlock = madeBlock({ index: 1, value: ADDRESS });
-    outcomes.set(ADDRESS, { status: SecurityBlockOutcomeStatus.Blocked, block });
+    outcomes.set(ADDRESS, {
+      status: SecurityBlockOutcomeStatus.Blocked,
+      block,
+    });
     enforcement.push(
       row({
         block,
@@ -495,7 +513,10 @@ describe("blocking each target", () => {
 
   test("a reconcile that fails leaves the block to the queued one: it reads as being applied", async () => {
     const block: SecurityBlock = madeBlock({ index: 1, value: ADDRESS });
-    outcomes.set(ADDRESS, { status: SecurityBlockOutcomeStatus.Blocked, block });
+    outcomes.set(ADDRESS, {
+      status: SecurityBlockOutcomeStatus.Blocked,
+      block,
+    });
     reconcile.mockRejectedValueOnce(new Error("Cloudflare timed out"));
     enforcement.push(
       row({
@@ -510,7 +531,9 @@ describe("blocking each target", () => {
     });
 
     expect(outcome.status).toBe(SecurityPlaybookStepStatus.Succeeded);
-    expect(outcome.targets?.[0]?.detail).toContain("being applied at Cloudflare");
+    expect(outcome.targets?.[0]?.detail).toContain(
+      "being applied at Cloudflare",
+    );
   });
 
   test("only the targets still to act on: protected and left-out ones are never sent", async () => {
@@ -692,7 +715,9 @@ describe("lifting the block on each target", () => {
     active.push(madeBlock({ index: 1, value: ADDRESS }));
     jest
       .spyOn(SecurityBlockService, "lift")
-      .mockRejectedValue(new Error("You do not have permissions to edit Block."));
+      .mockRejectedValue(
+        new Error("You do not have permissions to edit Block."),
+      );
 
     expect(
       await SecurityPlaybookAddressBlocks.liftOne({
@@ -747,7 +772,8 @@ describe("the words", () => {
         hasDestinations: true,
       }),
     ).toEqual({
-      detail: "blocked until 2026-11-22 10:42 UTC, but no destination holds it yet",
+      detail:
+        "blocked until 2026-11-22 10:42 UTC, but no destination holds it yet",
       isEnforcedSomewhere: false,
     });
   });

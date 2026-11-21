@@ -771,9 +771,7 @@ describe("marking a case Contained", () => {
 
     test("a block the Blocklist records that nothing holds leaves the case to a person", async () => {
       blocklist.push(blockOfAddress());
-      enforcement.push(
-        rowAt({ state: SecurityBlockEnforcementState.Pending }),
-      );
+      enforcement.push(rowAt({ state: SecurityBlockEnforcementState.Pending }));
 
       const outcome: StepCheckRunOutcome = await runThroughBlocklist(60);
 

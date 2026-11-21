@@ -441,9 +441,10 @@ describe("the addresses a block step acts on", () => {
     getJestSpyOn(SecurityCaseMatches, "build").mockResolvedValue(
       matchesClaiming(CLAIMED) as never,
     );
-    getJestSpyOn(SecurityProtectedAddresses, "findProtection").mockResolvedValue(
-      { protection: null, unreadSources: [] } as never,
-    );
+    getJestSpyOn(
+      SecurityProtectedAddresses,
+      "findProtection",
+    ).mockResolvedValue({ protection: null, unreadSources: [] } as never);
 
     const targets: Array<SecurityPlaybookTarget> =
       await SecurityPlaybookTargets.selectTargets({
@@ -474,21 +475,22 @@ describe("the addresses a block step acts on", () => {
     getJestSpyOn(SecurityCaseMatches, "build").mockResolvedValue(
       matchesClaiming(CLAIMED) as never,
     );
-    getJestSpyOn(SecurityProtectedAddresses, "findProtection").mockImplementation(
-      (async (data: { block: { text: string } }) => {
-        return data.block.text === OWN
-          ? {
-              protection: {
-                source: SecurityProtectedAddressSource.CloudResource,
-                protectedValue: OWN,
-                name: "prod-alb",
-                kind: "load balancer",
-              },
-              unreadSources: [],
-            }
-          : { protection: null, unreadSources: [] };
-      }) as never,
-    );
+    getJestSpyOn(
+      SecurityProtectedAddresses,
+      "findProtection",
+    ).mockImplementation((async (data: { block: { text: string } }) => {
+      return data.block.text === OWN
+        ? {
+            protection: {
+              source: SecurityProtectedAddressSource.CloudResource,
+              protectedValue: OWN,
+              name: "prod-alb",
+              kind: "load balancer",
+            },
+            unreadSources: [],
+          }
+        : { protection: null, unreadSources: [] };
+    }) as never);
 
     const targets: Array<SecurityPlaybookTarget> =
       await SecurityPlaybookTargets.selectTargets({

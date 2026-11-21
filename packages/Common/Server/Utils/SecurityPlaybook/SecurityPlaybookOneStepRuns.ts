@@ -258,13 +258,12 @@ export default class SecurityPlaybookOneStepRuns {
     address: string;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
-    const check: Awaited<
-      ReturnType<(typeof SecurityBlockService)["check"]>
-    > = await SecurityBlockService.check({
-      projectId: data.projectId,
-      value: data.address,
-      props: data.props,
-    });
+    const check: Awaited<ReturnType<(typeof SecurityBlockService)["check"]>> =
+      await SecurityBlockService.check({
+        projectId: data.projectId,
+        value: data.address,
+        props: data.props,
+      });
     const read: SecurityBlockValue | null = check.value;
 
     if (check.problem || !read) {

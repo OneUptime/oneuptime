@@ -269,9 +269,9 @@ describe("where the blocklist is enforced", () => {
   });
 
   test("none: nothing enforces it", () => {
-    expect(readDestinationNames({ destinations: [], cannotTell: false })).toEqual(
-      [],
-    );
+    expect(
+      readDestinationNames({ destinations: [], cannotTell: false }),
+    ).toEqual([]);
   });
 
   test("none listed and a kind could not be: OneUptime cannot tell, and the step is done by hand", () => {
@@ -280,7 +280,9 @@ describe("where the blocklist is enforced", () => {
     ).toBeNull();
     expect(
       readDestinationNames({
-        destinations: [{ key: "a", name: "Cloudflare", provider: "Cloudflare" }],
+        destinations: [
+          { key: "a", name: "Cloudflare", provider: "Cloudflare" },
+        ],
         cannotTell: true,
       }),
     ).toEqual(["Cloudflare"]);
@@ -378,9 +380,11 @@ describe("the blocks that hold the case's addresses", () => {
     );
     expect(loaded?.destinations).toEqual(["Cloudflare"]);
     expect(
-      loaded?.blocks.map((block: ResponseAddressBlock): [string, Array<string>] => {
-        return [block.value, block.enforcedAt];
-      }),
+      loaded?.blocks.map(
+        (block: ResponseAddressBlock): [string, Array<string>] => {
+          return [block.value, block.enforcedAt];
+        },
+      ),
     ).toEqual([
       ["2001:db8::1", ["Cloudflare"]],
       ["35.205.11.0/24", []],
@@ -399,7 +403,9 @@ describe("the blocks that hold the case's addresses", () => {
 });
 
 describe("the line a block draws", () => {
-  function line(overrides: Partial<ResponseAddressBlock>): ResponseAddressBlock {
+  function line(
+    overrides: Partial<ResponseAddressBlock>,
+  ): ResponseAddressBlock {
     return {
       id: BLOCK_ID,
       value: "35.205.11.131",
@@ -423,7 +429,12 @@ describe("the line a block draws", () => {
       false,
       BLOCK_LINE_BLOCKED_BY_UNTIL_LIFTED,
     ],
-    [SecurityBlockAction.Block, undefined, false, BLOCK_LINE_BLOCKED_UNTIL_LIFTED],
+    [
+      SecurityBlockAction.Block,
+      undefined,
+      false,
+      BLOCK_LINE_BLOCKED_UNTIL_LIFTED,
+    ],
     [SecurityBlockAction.Challenge, "Jane Doe", true, BLOCK_LINE_CHALLENGED_BY],
     [SecurityBlockAction.Challenge, undefined, true, BLOCK_LINE_CHALLENGED],
     [
@@ -468,9 +479,7 @@ describe("the line a block draws", () => {
         translator: ENGLISH,
         now: NOW,
       }),
-    ).toMatch(
-      /^Blocked at Cloudflare and AWS WAF .+ by Jane Doe, until .+\.$/,
-    );
+    ).toMatch(/^Blocked at Cloudflare and AWS WAF .+ by Jane Doe, until .+\.$/);
   });
 
   test("being applied, and held nowhere", () => {

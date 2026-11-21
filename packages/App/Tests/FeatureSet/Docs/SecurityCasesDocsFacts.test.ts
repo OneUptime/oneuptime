@@ -17,14 +17,6 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseChanges";
 import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
 import { UNDO_BUTTON_TITLES } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunStepRows";
-import {
-  ACTION_BLOCK_FOR_A_DAY,
-  BLOCK_CHALLENGE_INSTEAD,
-  BLOCK_FOR_SEVEN_DAYS,
-  BLOCK_FROM_CASE_MENU_ITEM,
-  BLOCK_HELP_SHOW,
-  BLOCK_UNTIL_LIFTED,
-} from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponseCopy";
 import { NOT_ENFORCED_ANYWHERE_ERROR } from "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookAddressBlocks";
 import { CREATE_FROM_TEMPLATE } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookTemplateModel";
 import {
@@ -136,10 +128,16 @@ import { THREAT_INTEL_MAX_INDICATORS_PER_EVALUATION } from "Common/Types/Securit
 import {
   ACTION_ADD_EXCEPTION,
   ACTION_ASSIGN_TO_ME,
+  ACTION_BLOCK_FOR_A_DAY,
   ACTION_CLOSE_CASE,
   ACTION_DECLARE_INCIDENT,
   ACTION_MARK_CONTAINED,
   ACTION_RUN_PLAYBOOK,
+  BLOCK_CHALLENGE_INSTEAD,
+  BLOCK_FOR_SEVEN_DAYS,
+  BLOCK_FROM_CASE_MENU_ITEM,
+  BLOCK_HELP_SHOW,
+  BLOCK_UNTIL_LIFTED,
   RESPONSE_BY_HAND,
   RESPONSE_PHASE_TITLES,
   RESPONSE_TITLE,

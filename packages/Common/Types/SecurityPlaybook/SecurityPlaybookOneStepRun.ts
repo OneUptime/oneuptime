@@ -25,8 +25,9 @@ import {
  */
 
 // The actions a one-step run takes: containment that needs no connection of its own.
-export const ONE_STEP_RUN_ACTIONS: ReadonlyArray<SecurityPlaybookActionType> =
-  [SecurityPlaybookActionType.BlockAddress];
+export const ONE_STEP_RUN_ACTIONS: ReadonlyArray<SecurityPlaybookActionType> = [
+  SecurityPlaybookActionType.BlockAddress,
+];
 
 export function isOneStepRunAction(value: unknown): boolean {
   return (

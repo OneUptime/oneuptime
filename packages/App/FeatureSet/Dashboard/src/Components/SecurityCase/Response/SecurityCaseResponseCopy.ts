@@ -28,7 +28,9 @@ export const ENTITY_ACTIONS_LABEL: string = translationKey(
 );
 
 // What a block from the plan says once it is asked for.
-export const BLOCK_STARTED_TOAST: string = translationKey("Blocking {{value}}.");
+export const BLOCK_STARTED_TOAST: string = translationKey(
+  "Blocking {{value}}.",
+);
 export const BLOCK_ASKED_TOAST: string = translationKey(
   "{{value}} is blocked once someone else approves it on the case's Playbooks page.",
 );

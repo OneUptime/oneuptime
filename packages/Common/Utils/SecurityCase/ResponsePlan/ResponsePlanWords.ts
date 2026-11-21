@@ -128,9 +128,7 @@ export const STEP_BLOCK_AT_DESTINATIONS: string = translationKey(
 export const STEP_BLOCK_WAITING: string = translationKey(
   "The block is waiting for someone else's approval on the case's Playbooks page.",
 );
-export const STEP_BLOCK_RUNNING: string = translationKey(
-  "Blocking it now.",
-);
+export const STEP_BLOCK_RUNNING: string = translationKey("Blocking it now.");
 export const STEP_BLOCK_FAILED: string = translationKey(
   "The last block did not finish. See why on the case's Playbooks page.",
 );

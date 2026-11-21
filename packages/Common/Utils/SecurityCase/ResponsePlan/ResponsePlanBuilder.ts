@@ -719,7 +719,10 @@ export function getBlockAddressStep(data: {
   value: string;
   blocking: ResponseAddressBlocking;
 }): StepToAdd {
-  const key: string = getResponseStepKey(RESPONSE_STEP_KINDS.blockIp, data.value);
+  const key: string = getResponseStepKey(
+    RESPONSE_STEP_KINDS.blockIp,
+    data.value,
+  );
   const address: string = canonicalAddress(data.value) || data.value.trim();
   const read: SecurityBlockValue | null = readSecurityBlockValue(address);
   const block: ResponseAddressBlock | null = read

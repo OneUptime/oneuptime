@@ -118,15 +118,19 @@ import {
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import { SecurityPlaybookActionType } from "../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import { readOneStepRun } from "../../../Types/SecurityPlaybook/SecurityPlaybookOneStepRun";
-import SecurityPlaybookRunStatus from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
+import SecurityPlaybookRunStatus, {
+  SecurityPlaybookStepStatus,
+} from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
   SecurityPlaybookStep,
   doesStepNeedApproval,
   parseSecurityPlaybookSteps,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStep";
 import {
+  SecurityPlaybookStepResult,
   SecurityPlaybookTargetReason,
   SecurityPlaybookTargetState,
+  readStepResults,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
 import SecurityPlaybookTrigger from "../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { SECURITY_REQUEST_ATTRIBUTES } from "../../../Types/SecurityEvent/SecurityEventRequestOutcome";
@@ -151,11 +155,6 @@ import {
   SecurityBlockDestinationProvider,
   SecurityBlockEnforcementState,
 } from "../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
-import { SecurityPlaybookStepStatus } from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
-import {
-  SecurityPlaybookStepResult,
-  readStepResults,
-} from "../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import { everyServerProductIsOn } from "../TestingUtils/ServerProductsOn";
 
@@ -478,7 +477,9 @@ describe("Block for 24 Hours from a case's Response Plan", () => {
       // The engine makes the block: nothing is written to the blocklist here.
       expect(blocks.rows).toEqual([]);
       // A one-step run says nothing of a playbook starting.
-      expect(SecurityCaseFeedService.createSecurityCaseFeedItem).not.toHaveBeenCalled();
+      expect(
+        SecurityCaseFeedService.createSecurityCaseFeedItem,
+      ).not.toHaveBeenCalled();
     },
   );
 
@@ -675,9 +676,9 @@ describe("what is never blocked from a case", () => {
     expect((await block({ value: "" })).refusal?.message).toBe(
       "Name the address to block.",
     );
-    expect(
-      (await block({ blockAction: "Tarpit" })).refusal?.message,
-    ).toBe("Choose Block or Challenge.");
+    expect((await block({ blockAction: "Tarpit" })).refusal?.message).toBe(
+      "Choose Block or Challenge.",
+    );
     expect((await block({ duration: "Forever" })).refusal?.message).toContain(
       "Choose how long the block lasts",
     );
@@ -777,14 +778,18 @@ describe("from the click to the block, and back", () => {
     );
     writeRunCompareAndSet();
 
-    jest.spyOn(AuditLogService, "recordUpdate").mockResolvedValue(undefined as never);
+    jest
+      .spyOn(AuditLogService, "recordUpdate")
+      .mockResolvedValue(undefined as never);
     jest
       .spyOn(SecurityCaseNotifications, "approvalRequested")
       .mockResolvedValue();
     jest
       .spyOn(WorkspaceSecurityPlaybookApprovalMessages, "refreshInBackground")
       .mockReturnValue(undefined);
-    jest.spyOn(SecurityProtectedEntityService, "getRules").mockResolvedValue([]);
+    jest
+      .spyOn(SecurityProtectedEntityService, "getRules")
+      .mockResolvedValue([]);
 
     // Cloudflare enforces the project's blocklist, and holds each block once reconciled.
     SecurityBlockDestinations.setSourcesForTests([
