@@ -46,8 +46,10 @@ import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import {
+  REFUSED_TELEMETRY_SIGNALS,
   RefusedTelemetry,
   RefusedTelemetryKind,
+  RefusedTelemetrySignal,
   writeRefusedTelemetryRecord,
 } from "../../../Utils/SecurityEvent/RefusedTelemetry";
 import {
@@ -703,8 +705,8 @@ describe("the budget banners of what Security Events reads", () => {
     countersAvailable: true,
     project: {
       scope: TelemetryIngestionBudgetScope.Project,
-      signals: [ProductType.Logs, ProductType.Traces].map(
-        (signal: ProductType.Logs | ProductType.Traces) => {
+      signals: REFUSED_TELEMETRY_SIGNALS.map(
+        (signal: RefusedTelemetrySignal) => {
           return {
             signal,
             dailyBudgetBytes: 1000,
