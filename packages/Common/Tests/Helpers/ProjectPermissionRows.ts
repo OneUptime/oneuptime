@@ -114,7 +114,7 @@ function ofProject(
 
   return (
     !projectId ||
-    query["projectId"]!.toString().toLowerCase() ===
+    String(query["projectId"]).toLowerCase() ===
       projectId.toString().toLowerCase()
   );
 }
