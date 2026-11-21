@@ -66,13 +66,15 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
+type MockedFn = ReturnType<typeof jest.fn>;
+
 const api: {
-  readBlockingConnection: jest.Mock;
-  readBlockingZoneChoices: jest.Mock;
-  checkBlocking: jest.Mock;
-  turnBlockingOn: jest.Mock;
-  turnBlockingOff: jest.Mock;
-  putBlockingBack: jest.Mock;
+  readBlockingConnection: MockedFn;
+  readBlockingZoneChoices: MockedFn;
+  checkBlocking: MockedFn;
+  turnBlockingOn: MockedFn;
+  turnBlockingOff: MockedFn;
+  putBlockingBack: MockedFn;
 } = {
   readBlockingConnection: jest.fn(),
   readBlockingZoneChoices: jest.fn(),
@@ -87,7 +89,7 @@ jest.mock(
   () => {
     const actual: Record<string, unknown> = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/CloudflareBlocking/CloudflareBlockingApi",
-    );
+    ) as Record<string, unknown>;
 
     return {
       __esModule: true,
@@ -180,8 +182,14 @@ function connection(data: {
   model.name = "Production Cloudflare";
   model.provider = SecurityEventConnectorProvider.Cloudflare;
   model.config = { accountId: ACCOUNT_ID };
-  model.blockingSettings = data.blockingSettings || undefined;
-  model.blockingStatus = data.blockingStatus || undefined;
+  if (data.blockingSettings) {
+    model.blockingSettings = data.blockingSettings;
+  }
+
+  if (data.blockingStatus) {
+    model.blockingStatus = data.blockingStatus;
+  }
+
   return model;
 }
 
@@ -245,10 +253,10 @@ const ON_SETTINGS: JSONObject = {
 async function openDialog(
   read: SecurityEventConnection,
   isTurningOff: boolean = false,
-): Promise<{ onClose: jest.Mock; onChanged: jest.Mock }> {
+): Promise<{ onClose: MockedFn; onChanged: MockedFn }> {
   api.readBlockingConnection.mockResolvedValue(read as never);
-  const onClose: jest.Mock = jest.fn();
-  const onChanged: jest.Mock = jest.fn();
+  const onClose: MockedFn = jest.fn();
+  const onChanged: MockedFn = jest.fn();
 
   await act(async () => {
     render(
@@ -573,14 +581,15 @@ describe("the API module", () => {
     read.config = { accountId: ACCOUNT_ID, zoneIds: ZONE_B };
 
     // The module's own, not the dialog's stand-in.
-    const actual: {
+    type ZoneChoicesModule = {
       readBlockingZoneChoices: (
         connection: SecurityEventConnection,
         fetcher: () => Promise<unknown>,
       ) => Promise<Array<{ value: string }>>;
-    } = jest.requireActual(
+    };
+    const actual: ZoneChoicesModule = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/CloudflareBlocking/CloudflareBlockingApi",
-    );
+    ) as ZoneChoicesModule;
     const zones: Array<{ value: string }> =
       await actual.readBlockingZoneChoices(read, async () => {
         return {
