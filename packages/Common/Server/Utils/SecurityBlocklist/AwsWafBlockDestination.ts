@@ -25,6 +25,7 @@ import {
   AwsWafArn,
   AwsWafBlocklistSetSpec,
   getAwsWafAddressFamily,
+  getAwsWafBlocklistRuleName,
   getAwsWafBlocklistSetFor,
   parseAwsWafArn,
   toAwsWafAddress,
@@ -212,6 +213,57 @@ export default class AwsWafBlockDestination
 
   private get clientAddress(): SecurityBlockClientAddress {
     return readCloudWafClientAddress(this.data.row);
+  }
+
+  // The web ACL, as AWS WAF names it: "prod-alb".
+  public get webAcl(): AwsWafArn {
+    return this.data.webAcl;
+  }
+
+  // Whether its last check found its rule blocking the sets.
+  public isEnforcing(): boolean {
+    return this.data.row.status === SecurityBlockCloudWafStatus.Enforcing;
+  }
+
+  /*
+   * When AWS WAF last turned the address away here, by action, from the
+   * requests it sampled for the rules that block the sets - the ones its
+   * last check found, or OneUptime's own - over [from, to].
+   */
+  public async readSampledBlocks(data: {
+    address: string;
+    from: Date;
+    to: Date;
+  }): Promise<Partial<Record<SecurityBlockAction, Date>>> {
+    const recorded: JSONObject = ((this.data.row.ruleDetails as JSONObject) ||
+      {})["sampledMetricNames"] as JSONObject;
+    const metricNames: Partial<Record<SecurityBlockAction, string>> = {};
+
+    for (const action of [
+      SecurityBlockAction.Block,
+      SecurityBlockAction.Challenge,
+    ]) {
+      const name: unknown = (recorded || {})[action];
+
+      if (typeof name === "string" && name) {
+        metricNames[action] = name;
+      } else if (this.data.addsRule) {
+        // OneUptime's rule samples under its own name.
+        metricNames[action] = getAwsWafBlocklistRuleName(
+          this.data.group.ruleNames,
+          action,
+        );
+      }
+    }
+
+    return await this.data.group.readSampledBlocks({
+      webAcl: this.data.webAcl,
+      clientAddress: this.clientAddress,
+      metricNames,
+      address: data.address,
+      from: data.from,
+      to: data.to,
+    });
   }
 
   public supports(entry: {

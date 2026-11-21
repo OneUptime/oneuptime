@@ -14,6 +14,7 @@ import {
   getAwsWafBlocklistRuleNames,
   getAwsWafBlocklistSets,
   getAwsWafRulePriority,
+  getAwsWafSampleClientAddress,
   pickAwsWafBlocklistPriorities,
   planAwsWafBlocklistRules,
   withoutAwsWafBlocklistRules,
@@ -31,11 +32,13 @@ import {
   AwsWafErrorCode,
   AwsWafIpSet,
   AwsWafIpSetSummary,
+  AwsWafSampledRequest,
   AwsWafSession,
   AwsWafWebAcl,
   createAwsWafIpSet,
   deleteAwsWafIpSet,
   getAwsWafIpSet,
+  getAwsWafSampledRequests,
   getAwsWafWebAcl,
   isAwsWafError,
   listAwsWafIpSets,
@@ -535,6 +538,77 @@ export default class AwsWafBlocklistGroup {
 
   // ---------- A web ACL's rules ----------
 
+  /*
+   * When the web ACL's rules of the blocklist last turned the address away,
+   * by action, from the requests AWS WAF sampled for each rule over the
+   * window (at most the last three hours): AWS WAF's own word that a block
+   * holds. The address is matched where the web ACL reads the client's
+   * address. Left out for an action whose rule sampled nothing from it.
+   */
+  public async readSampledBlocks(data: {
+    webAcl: AwsWafArn;
+    clientAddress: SecurityBlockClientAddress;
+    // The rule of each action that blocks the sets, by its metric name.
+    metricNames: Partial<Record<SecurityBlockAction, string>>;
+    address: string;
+    from: Date;
+    to: Date;
+  }): Promise<Partial<Record<SecurityBlockAction, Date>>> {
+    const address: string | null = fromAwsWafAddress(data.address);
+    const latest: Partial<Record<SecurityBlockAction, Date>> = {};
+
+    if (!address) {
+      return latest;
+    }
+
+    for (const action of [
+      SecurityBlockAction.Block,
+      SecurityBlockAction.Challenge,
+    ]) {
+      const metricName: string | undefined = data.metricNames[action];
+
+      if (!metricName) {
+        continue;
+      }
+
+      const samples: Array<AwsWafSampledRequest> =
+        await getAwsWafSampledRequests(await this.getSession(), {
+          webAclArn: data.webAcl.arn,
+          webAclName: data.webAcl.name,
+          ruleMetricName: metricName,
+          from: data.from,
+          to: data.to,
+          maxItems: 500,
+        });
+
+      for (const sample of samples) {
+        const isFromAddress: boolean =
+          getAwsWafSampleClientAddress({
+            clientIp: sample.clientIp,
+            headers: sample.headers,
+            clientAddress: data.clientAddress,
+          }) === address;
+
+        // Turned away by the rule's own action: BLOCK, or CHALLENGE.
+        if (
+          !sample.timestamp ||
+          !isFromAddress ||
+          sample.action !== action.toUpperCase()
+        ) {
+          continue;
+        }
+
+        const seen: Date | undefined = latest[action];
+
+        if (!seen || sample.timestamp.getTime() > seen.getTime()) {
+          latest[action] = sample.timestamp;
+        }
+      }
+    }
+
+    return latest;
+  }
+
   public async readWebAcl(webAcl: AwsWafArn): Promise<AwsWafWebAcl> {
     return await getAwsWafWebAcl(await this.getSession(), {
       name: webAcl.name,
@@ -571,7 +645,8 @@ export default class AwsWafBlocklistGroup {
     addsRule: boolean;
     read?: AwsWafWebAcl | undefined;
   }): Promise<AwsWafRuleState> {
-    const read: AwsWafWebAcl = data.read || (await this.readWebAcl(data.webAcl));
+    const read: AwsWafWebAcl =
+      data.read || (await this.readWebAcl(data.webAcl));
     const refs: Array<AwsWafBlocklistSetRef> = await this.getSetRefs();
     const rules: Array<unknown> = Array.isArray(read.webAcl["Rules"])
       ? (read.webAcl["Rules"] as Array<unknown>)
@@ -650,7 +725,8 @@ export default class AwsWafBlocklistGroup {
     };
     const block: number | null = find(this.ruleNames.block);
     const challenge: number | null = find(this.ruleNames.challenge);
-    const missing: number = (block === null ? 1 : 0) + (challenge === null ? 1 : 0);
+    const missing: number =
+      (block === null ? 1 : 0) + (challenge === null ? 1 : 0);
 
     if (missing === 0) {
       return { block, challenge };

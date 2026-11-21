@@ -3,7 +3,7 @@ import SecurityBlockDestination, {
   SecurityBlockHeldItem,
   SecurityBlockWriteResult,
 } from "../../../../Server/Utils/SecurityBlocklist/SecurityBlockDestination";
-import { SECURITY_BLOCK_DESTINATION_SOURCES } from "../../../../Server/Utils/SecurityBlocklist/SecurityBlockDestinations";
+import { getSecurityBlockDestinationSources } from "../../../../Server/Utils/SecurityBlocklist/SecurityBlockDestinations";
 import TestSecurityBlockDestination from "../../../../Server/Utils/SecurityBlocklist/TestSecurityBlockDestination";
 import ObjectID from "../../../../Types/ObjectID";
 import {
@@ -80,7 +80,7 @@ describe("the destination", () => {
 
   test("is never one a project has: no source in production lists it", () => {
     expect(
-      SECURITY_BLOCK_DESTINATION_SOURCES.some(
+      getSecurityBlockDestinationSources().some(
         (source: { provider: SecurityBlockDestinationProvider }): boolean => {
           return source.provider === SecurityBlockDestinationProvider.Test;
         },

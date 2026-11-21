@@ -229,7 +229,8 @@ export function parseAwsWafArn(value: unknown): AwsWafArn | null {
     partition,
     region,
     accountId,
-    scope: scopeWord === "global" ? AwsWafScope.CloudFront : AwsWafScope.Regional,
+    scope:
+      scopeWord === "global" ? AwsWafScope.CloudFront : AwsWafScope.Regional,
     resourceType,
     name,
     id,
@@ -257,7 +258,10 @@ export function buildAwsWafWebAclArn(data: {
   }
 
   // CloudFront's web ACLs are the commercial partition's, in us-east-1.
-  if (scope === AwsWafScope.CloudFront && region !== AWS_WAF_CLOUDFRONT_REGION) {
+  if (
+    scope === AwsWafScope.CloudFront &&
+    region !== AWS_WAF_CLOUDFRONT_REGION
+  ) {
     return null;
   }
 
@@ -305,6 +309,43 @@ export function getAwsWafAddressFamily(value: string): 4 | 6 | null {
   const read: SecurityBlockValue | null = readSecurityBlockValue(value);
 
   return read ? read.block.family : null;
+}
+
+/*
+ * The client's address a sampled request was matched on, as the web ACL's
+ * rule reads it: the request's source address, or the address in the
+ * header it is set to read - X-Forwarded-For's last, a single-address
+ * header's only one. Written as blocks write values; null when the request
+ * carries none.
+ */
+export function getAwsWafSampleClientAddress(data: {
+  clientIp: string;
+  // Header values by lower-case name, as GetSampledRequests answers them.
+  headers: Record<string, Array<string>>;
+  clientAddress: SecurityBlockClientAddress;
+}): string | null {
+  const header: SecurityBlockClientAddressHeader | null =
+    getSecurityBlockClientAddressHeader(data.clientAddress);
+
+  if (!header) {
+    return fromAwsWafAddress(data.clientIp);
+  }
+
+  const addresses: Array<string> = (
+    data.headers[header.header.toLowerCase()] || []
+  )
+    .join(",")
+    .split(",")
+    .map((address: string): string => {
+      return address.trim();
+    })
+    .filter((address: string): boolean => {
+      return Boolean(address);
+    });
+  const picked: string | undefined =
+    header.position === "LAST" ? addresses[addresses.length - 1] : addresses[0];
+
+  return picked ? fromAwsWafAddress(picked) : null;
 }
 
 // ---------- The rules ----------
@@ -531,7 +572,9 @@ export function findAwsWafBlocklistEnforcement(data: {
       }
     }
 
-    const visibility: JSONObject = readObject(readObject(rule)["VisibilityConfig"]);
+    const visibility: JSONObject = readObject(
+      readObject(rule)["VisibilityConfig"],
+    );
     const metricName: string = readText(visibility["MetricName"]);
 
     if (
@@ -607,7 +650,9 @@ export function isAwsWafBlocklistRuleCurrent(
   const ruleShape: Array<string> = shape(
     getAwsWafRuleIpSetReferences(ruleObject),
   );
-  const wantedShape: Array<string> = shape(getAwsWafRuleIpSetReferences(wanted));
+  const wantedShape: Array<string> = shape(
+    getAwsWafRuleIpSetReferences(wanted),
+  );
   const statements: unknown = readObject(statement["OrStatement"])[
     "Statements"
   ];
@@ -951,36 +996,34 @@ export function getAwsWafBlocklistTerraform(
     ];
   };
 
-  return CODE_RULES.map(
-    (code: (typeof CODE_RULES)[number]): string => {
-      const name: string = codeRuleName(rule, code.action);
+  return CODE_RULES.map((code: (typeof CODE_RULES)[number]): string => {
+    const name: string = codeRuleName(rule, code.action);
 
-      return [
-        "rule {",
-        `  name     = "${name}"`,
-        `  priority = ${codeRulePriority(rule, code.action)}`,
-        "",
-        "  action {",
-        `    ${code.terraformAction} {}`,
-        "  }",
-        "",
-        "  statement {",
-        "    or_statement {",
-        ...reference(rule.setArns[code.ipv4] || ""),
-        "",
-        ...reference(rule.setArns[code.ipv6] || ""),
-        "    }",
-        "  }",
-        "",
-        "  visibility_config {",
-        "    cloudwatch_metrics_enabled = true",
-        `    metric_name                = "${name}"`,
-        "    sampled_requests_enabled   = true",
-        "  }",
-        "}",
-      ].join("\n");
-    },
-  ).join("\n\n");
+    return [
+      "rule {",
+      `  name     = "${name}"`,
+      `  priority = ${codeRulePriority(rule, code.action)}`,
+      "",
+      "  action {",
+      `    ${code.terraformAction} {}`,
+      "  }",
+      "",
+      "  statement {",
+      "    or_statement {",
+      ...reference(rule.setArns[code.ipv4] || ""),
+      "",
+      ...reference(rule.setArns[code.ipv6] || ""),
+      "    }",
+      "  }",
+      "",
+      "  visibility_config {",
+      "    cloudwatch_metrics_enabled = true",
+      `    metric_name                = "${name}"`,
+      "    sampled_requests_enabled   = true",
+      "  }",
+      "}",
+    ].join("\n");
+  }).join("\n\n");
 }
 
 /*
@@ -1010,25 +1053,23 @@ export function getAwsWafBlocklistCloudFormation(
     ];
   };
 
-  return CODE_RULES.map(
-    (code: (typeof CODE_RULES)[number]): string => {
-      const name: string = codeRuleName(rule, code.action);
+  return CODE_RULES.map((code: (typeof CODE_RULES)[number]): string => {
+    const name: string = codeRuleName(rule, code.action);
 
-      return [
-        `- Name: ${name}`,
-        `  Priority: ${codeRulePriority(rule, code.action)}`,
-        "  Action:",
-        `    ${code.action === SecurityBlockAction.Challenge ? "Challenge" : "Block"}: {}`,
-        "  Statement:",
-        "    OrStatement:",
-        "      Statements:",
-        ...reference(rule.setArns[code.ipv4] || ""),
-        ...reference(rule.setArns[code.ipv6] || ""),
-        "  VisibilityConfig:",
-        "    SampledRequestsEnabled: true",
-        "    CloudWatchMetricsEnabled: true",
-        `    MetricName: ${name}`,
-      ].join("\n");
-    },
-  ).join("\n");
+    return [
+      `- Name: ${name}`,
+      `  Priority: ${codeRulePriority(rule, code.action)}`,
+      "  Action:",
+      `    ${code.action === SecurityBlockAction.Challenge ? "Challenge" : "Block"}: {}`,
+      "  Statement:",
+      "    OrStatement:",
+      "      Statements:",
+      ...reference(rule.setArns[code.ipv4] || ""),
+      ...reference(rule.setArns[code.ipv6] || ""),
+      "  VisibilityConfig:",
+      "    SampledRequestsEnabled: true",
+      "    CloudWatchMetricsEnabled: true",
+      `    MetricName: ${name}`,
+    ].join("\n");
+  }).join("\n");
 }

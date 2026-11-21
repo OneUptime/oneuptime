@@ -1,6 +1,7 @@
 import ObjectID from "../../../../../Types/ObjectID";
 import { ResponseLink } from "../../../../../Types/SecurityCase/SecurityCaseResponseLink";
 import { SecurityCaseStepCheckSentence } from "../../../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
+import AwsWafBlockedRequests from "./AwsWafBlockedRequests";
 
 /*
  * THE BLOCKS OF AN ADDRESS THAT ARE IN FORCE AT A DESTINATION (#10340): the
@@ -41,8 +42,13 @@ export interface AddressBlockSource {
   }): Promise<Array<AddressBlockEvidence>>;
 }
 
-// The sources of blocks: the blocklist's destinations add theirs here (#10338, #10342).
-export const ADDRESS_BLOCK_SOURCES: Array<AddressBlockSource> = [];
+/*
+ * The sources of blocks: the blocklist's destinations add theirs here
+ * (#10338, #10342) - AWS WAF the requests its web ACLs turned away (#10344).
+ */
+export const ADDRESS_BLOCK_SOURCES: Array<AddressBlockSource> = [
+  AwsWafBlockedRequests,
+];
 
 export default class AddressBlocks {
   public static async read(data: {
