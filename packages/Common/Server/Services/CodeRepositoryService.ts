@@ -661,6 +661,57 @@ export class Service extends ProjectReferencesService<Model> {
 
     return await reader.getTreePaths(repository.mainBranchName);
   }
+
+  /*
+   * One file's text on a resolvable repository's main branch, as its tree
+   * is read above: GitHub's through the installation, any other host's
+   * through its reader. Null when the file is not there; a host whose
+   * files OneUptime does not read throws. What reads a repository's code
+   * owners file (#10374) reads it this way.
+   */
+  public static async getRepositoryFileText(
+    repository: ResolvableRepository,
+    filePath: string,
+  ): Promise<string | null> {
+    if (
+      !repository.repositoryHostedAt ||
+      repository.repositoryHostedAt === CodeRepositoryType.GitHub
+    ) {
+      const file: { content: string } | null =
+        await GitHubUtil.getFileContent({
+          installationId: repository.gitHubAppInstallationId!,
+          organizationName: repository.organizationName,
+          repositoryName: repository.repositoryName,
+          branchName: repository.mainBranchName,
+          filePath,
+        });
+
+      return file ? file.content : null;
+    }
+
+    const row: Model | null = await CodeRepositoryServiceInstance.findOneById({
+      id: new ObjectID(repository.id),
+      select: CODE_HOST_REPOSITORY_SELECT,
+      props: { isRoot: true },
+    });
+
+    const reader: CodeHostReader | null = row
+      ? await CodeHostAccess.getReaderForRepository(row)
+      : null;
+
+    if (!reader || !reader.canReadCode) {
+      throw new BadDataException(
+        "OneUptime does not read this repository's files.",
+      );
+    }
+
+    const file: { content: string } | null = await reader.getFileContent({
+      filePath,
+      branchName: repository.mainBranchName,
+    });
+
+    return file ? file.content : null;
+  }
 }
 
 const CodeRepositoryServiceInstance: Service = new Service();
