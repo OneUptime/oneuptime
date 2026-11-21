@@ -5,6 +5,7 @@ import AIService, {
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
   AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
+  AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
   AILogResponse,
 } from "../../../Services/AIService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -58,6 +59,8 @@ export const DATA_SECURITY_AI_CALL_LABELS: Readonly<
   [DataSecurityAiFeature.AnalyzeIssue]: AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   [DataSecurityAiFeature.SuggestFieldTypes]:
     AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
+  [DataSecurityAiFeature.ProposeStoreOwners]:
+    AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
 };
 
 export interface DataSecurityAiCallRequest {
