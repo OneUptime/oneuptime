@@ -386,6 +386,8 @@ Un webhook ne décrit que ce que contient cette charge utile : OneUptime ne rés
 1. **Champ qui signale le rétablissement** et **Value that means recovered** sont définis et correspondent à la charge utile. La comparaison est exacte et sensible à la casse — `Resolved` ne correspond pas à `resolved`.
 2. L'incident du critère a **Résoudre automatiquement l'incident** activé, sous **Plus de champs** dans le formulaire d'incident. Sans cela, les événements de rétablissement correspondants sont ignorés et les incidents restent ouverts. (Il en va de même pour les alertes et **Résoudre automatiquement l'alerte**.) Le critère hors ligne par défaut l'a activé dès le départ ; un incident que vous ajoutez vous-même à un critère commence avec l'option désactivée.
 
+Une alerte que vous ajoutez vous-même à un critère commence elle aussi avec **Résoudre automatiquement l'alerte** désactivé : un rétablissement laisse donc l'alerte ouverte tant que l'option n'est pas activée. **Auto-resolve each incident when…** indique quels incidents et alertes du critère un rétablissement résout, et nomme chacun de ceux qu'il laisserait ouverts, avec un bouton qui active l'option correspondante. La carte **Résumé du moniteur** de la **Vue d'ensemble** du moniteur nomme chaque incident et chaque alerte qu'un rétablissement a laissés ouverts, et pourquoi.
+
 **Incidents max par requête** plafonne l'extraction, pas seulement la création. Les clés au-delà du plafond sont aussi invisibles pour le rétablissement : dans une charge utile portant plus de clés différentes que le plafond, une alerte qui signale `resolved` au-delà de celui-ci ne fermera pas son incident.
 
 > [!NOTE]

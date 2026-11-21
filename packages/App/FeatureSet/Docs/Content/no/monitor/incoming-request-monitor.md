@@ -386,6 +386,8 @@ En webhook beskriver bare det som står i den nyttelasten, så OneUptime løser 
 1. **Field that signals recovery** og **Value that means recovered** er fylt inn og samsvarer med nyttelasten. Sammenligningen er nøyaktig og skiller mellom store og små bokstaver — `Resolved` samsvarer ikke med `resolved`.
 2. Hendelsen til kriteriet har **Løs hendelse automatisk** slått på, under **Flere felt** i hendelsesskjemaet. Uten det ignoreres samsvarende meldinger om at problemet er over, og hendelsene forblir åpne. (Det samme gjelder varsler og **Løs varsel automatisk**.) Standardkriteriet for offline starter med det slått på; en hendelse du selv legger til i et kriterium, starter med det slått av.
 
+Et varsel du selv legger til i et kriterium, starter også med **Løs varsel automatisk** slått av, så en gjenoppretting lar varselet stå åpent til det er slått på. **Auto-resolve each incident when…** viser hvilke av kriteriets hendelser og varsler en gjenoppretting løser, og nevner hver den ville la stå åpen, med en knapp som slår på den tilhørende innstillingen. Kortet **Monitor-sammendrag** på monitorens **Oversikt** nevner hver hendelse og hvert varsel en gjenoppretting lot stå åpent, og hvorfor.
+
 **Max incidents per request** begrenser uthentingen, ikke bare opprettelsen. Nøkler forbi taket er også usynlige for løsningen, så i en nyttelast med flere særskilte nøkler enn taket lukker ikke et varsel som melder `resolved` forbi taket, hendelsen sin.
 
 > [!NOTE]
