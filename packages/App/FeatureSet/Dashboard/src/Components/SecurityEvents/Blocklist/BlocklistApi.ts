@@ -6,9 +6,22 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
+  SecurityBlockAction,
+  SecurityBlockIndicatorType,
+  SecurityBlockReach,
+  isSecurityBlockAction,
+  isSecurityBlockIndicatorType,
+  isSecurityBlockReach,
+} from "Common/Types/SecurityBlocklist/SecurityBlock";
+import { SecurityBlockHolder } from "Common/Types/SecurityBlocklist/SecurityBlockHolders";
+import {
   SecurityAddressProtection,
   SecurityProtectedAddressSource,
 } from "Common/Types/SecurityBlocklist/SecurityProtectedAddress";
+import {
+  ResponseBlock,
+  ResponseBlocklist,
+} from "Common/Utils/SecurityCase/ResponsePlan/ResponsePlanTypes";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
@@ -26,6 +39,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 export const SECURITY_BLOCK_CHECK_PATH: string = "/security-block/check";
 export const SECURITY_BLOCK_DESTINATIONS_PATH: string =
   "/security-block/destinations";
+export const SECURITY_BLOCK_FOR_VALUES_PATH: string =
+  "/security-block/for-values";
 export const AUTOMATIC_PROTECTIONS_PATH: string =
   "/security-protected-entity/automatic";
 
@@ -111,9 +126,20 @@ async function post(path: string, data: JSONObject): Promise<JSONObject> {
   return (response.data || {}) as JSONObject;
 }
 
-// What a block of `value` would meet, as the server answers it.
-export async function checkBlockValue(value: string): Promise<BlockValueCheck> {
-  return readBlockValueCheck(await post(SECURITY_BLOCK_CHECK_PATH, { value }));
+/*
+ * What a block of `value` would meet, as the server answers it: covered by
+ * a block that already does what it would, where it would be enforced.
+ */
+export async function checkBlockValue(
+  value: string,
+  reach?: SecurityBlockReach | undefined,
+): Promise<BlockValueCheck> {
+  return readBlockValueCheck(
+    await post(SECURITY_BLOCK_CHECK_PATH, {
+      value,
+      ...(reach ? { reach } : {}),
+    }),
+  );
 }
 
 export function readBlockValueCheck(data: JSONObject): BlockValueCheck {
@@ -204,6 +230,72 @@ export async function readBlockEnforcements(
   }
 
   return byBlock;
+}
+
+/*
+ * What a case's Response Plan reads of the blocklist (#10346): what the
+ * project's destinations can hold, and the blocks in force on the values
+ * the case names, with where each holds now.
+ */
+export async function readCaseBlocklist(
+  values: Array<string>,
+): Promise<ResponseBlocklist> {
+  return readResponseBlocklist(
+    await post(SECURITY_BLOCK_FOR_VALUES_PATH, { values }),
+  );
+}
+
+export function readResponseBlocklist(data: JSONObject): ResponseBlocklist {
+  const holders: Array<SecurityBlockHolder> = [];
+  const blocks: Array<ResponseBlock> = [];
+
+  for (const item of Array.isArray(data["holders"]) ? data["holders"] : []) {
+    const object: JSONObject | null = readObject(item);
+    const name: string | null = readText(object?.["name"]);
+
+    if (!object || !name) {
+      continue;
+    }
+
+    holders.push({
+      name,
+      provider: readText(object["provider"]) || "",
+      enforcesOnEveryMachine: object["enforcesOnEveryMachine"] === true,
+      blocks: (Array.isArray(object["blocks"]) ? object["blocks"] : []).filter(
+        (type: JSONValue): type is SecurityBlockIndicatorType => {
+          return isSecurityBlockIndicatorType(type);
+        },
+      ),
+      quarantinesFiles: object["quarantinesFiles"] === true,
+    });
+  }
+
+  for (const item of Array.isArray(data["blocks"]) ? data["blocks"] : []) {
+    const object: JSONObject | null = readObject(item);
+    const value: string | null = readText(object?.["value"]);
+
+    if (!object || !value) {
+      continue;
+    }
+
+    blocks.push({
+      value,
+      reach: isSecurityBlockReach(object["reach"])
+        ? object["reach"]
+        : SecurityBlockReach.Edge,
+      action: isSecurityBlockAction(object["action"])
+        ? object["action"]
+        : SecurityBlockAction.Block,
+      enforcedAt: (Array.isArray(object["enforcedAt"])
+        ? object["enforcedAt"]
+        : []
+      ).filter((name: JSONValue): name is string => {
+        return typeof name === "string" && name.length > 0;
+      }),
+    });
+  }
+
+  return { holders, blocks };
 }
 
 // What OneUptime protects of the project by itself, source by source.

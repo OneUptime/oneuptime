@@ -7,6 +7,9 @@ import {
   BLOCKLIST_TEST_IDS,
   CHALLENGED_LABEL,
   ENFORCEMENT_TOOLTIPS,
+  EVERY_MACHINE_LABEL,
+  EVERY_MACHINE_TOOLTIP,
+  QUARANTINED_LABEL,
   EXPIRED_LABEL,
   LIFTED_LABEL,
   NOT_ENFORCED_LABEL,
@@ -21,8 +24,10 @@ import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import {
   SecurityBlockAction,
+  SecurityBlockReach,
   SecurityBlockSource,
   SecurityBlockState,
+  isSecurityBlockAddressType,
 } from "Common/Types/SecurityBlocklist/SecurityBlock";
 import {
   SecurityBlockEnforcementState,
@@ -94,15 +99,35 @@ export interface AddressCellProps {
   block: SecurityBlock;
 }
 
-// The address or range, as code, with why it was blocked under it.
+/*
+ * What is blocked, as code - an address or a range, a domain, a URL, a
+ * file's hash - with why it was blocked under it, and an address blocked
+ * on every machine too saying so (#10346).
+ */
 export const BlockAddressCell: FunctionComponent<AddressCellProps> = (
   props: AddressCellProps,
 ): ReactElement => {
+  const isEveryMachine: boolean =
+    isSecurityBlockAddressType(props.block.indicatorType) &&
+    props.block.reach === SecurityBlockReach.Everywhere;
+
   return (
     <div data-testid={BLOCKLIST_TEST_IDS.addressCell}>
       <span className="break-all font-mono text-sm text-gray-900">
         {props.block.value || ""}
       </span>
+      {isEveryMachine ? (
+        <span className="ml-2 inline-block align-middle">
+          <Pill
+            text={EVERY_MACHINE_LABEL}
+            tooltip={EVERY_MACHINE_TOOLTIP}
+            tone={PillTone.Neutral}
+            isDotHidden={true}
+          />
+        </span>
+      ) : (
+        <></>
+      )}
       {props.block.reason ? (
         <span className="mt-0.5 block text-xs text-gray-500">
           <IsolatedText text={props.block.reason} />
@@ -115,22 +140,20 @@ export const BlockAddressCell: FunctionComponent<AddressCellProps> = (
 };
 
 /*
- * Blocked or Challenged: what someone chose to do to the address, a plain
- * fact, so never red (Docs/ux: red is for what broke).
+ * Blocked, Challenged, or - a file - Blocked and quarantined: what someone
+ * chose to do, a plain fact, so never red (Docs/ux: red is for what broke).
  */
 export const BlockActionCell: FunctionComponent<AddressCellProps> = (
   props: AddressCellProps,
 ): ReactElement => {
-  const isChallenge: boolean =
-    props.block.action === SecurityBlockAction.Challenge;
+  const text: string =
+    props.block.action === SecurityBlockAction.Challenge
+      ? CHALLENGED_LABEL
+      : props.block.action === SecurityBlockAction.BlockAndQuarantine
+        ? QUARANTINED_LABEL
+        : BLOCKED_LABEL;
 
-  return (
-    <Pill
-      text={isChallenge ? CHALLENGED_LABEL : BLOCKED_LABEL}
-      tone={PillTone.Neutral}
-      isDotHidden={true}
-    />
-  );
+  return <Pill text={text} tone={PillTone.Neutral} isDotHidden={true} />;
 };
 
 export interface EnforcedAtCellProps {

@@ -271,4 +271,9 @@ export const ACTION_CLOSE_CASE: string = translationKey("Close Case");
 export const ACTION_BLOCK_FOR_7_DAYS: string =
   translationKey("Block for 7 Days");
 export const ACTION_BLOCK_FILE: string = translationKey("Block File");
+
+// What the card says once a step's block is made (#10346): on the blocklist, not yet held.
+export const RESPONSE_BLOCKED: string = translationKey(
+  "{{value}} is on the blocklist. The step is done once it is blocked on every machine.",
+);
 export const ACTION_COPY: string = translationKey("Copy");

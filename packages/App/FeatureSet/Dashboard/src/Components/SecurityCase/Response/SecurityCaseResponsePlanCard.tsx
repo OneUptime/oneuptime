@@ -32,7 +32,9 @@ import {
   STEP_CHECK_HOW_WE_KNOW,
   STEP_CHECK_STATE_LABELS,
   ACTION_COPY,
+  RESPONSE_BLOCKED,
 } from "./SecurityCaseResponseCopy";
+import { readCaseBlocklist } from "../../SecurityEvents/Blocklist/BlocklistApi";
 import {
   StepCheckLinkTarget,
   canConfirmStep,
@@ -72,6 +74,7 @@ import {
   ResponseStepCompletion,
   ResponseText,
 } from "./SecurityCaseResponseTypes";
+import SecurityBlock from "Common/Models/DatabaseModels/SecurityBlock";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
@@ -91,8 +94,15 @@ import URL from "Common/Types/API/URL";
 import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
 import {
   SecurityEntity,
+  SecurityEntityType,
   readSecurityEntities,
 } from "Common/Types/SecurityCase/SecurityEntity";
+import { getSecurityBlockExpiry } from "Common/Types/SecurityBlocklist/SecurityBlock";
+import {
+  ResponseBlockRequest,
+  ResponseBlocklist,
+} from "Common/Utils/SecurityCase/ResponsePlan/ResponsePlanTypes";
+import Toast from "Common/UI/Utils/Toast";
 import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, {
@@ -141,9 +151,12 @@ import React, {
  * A step OneUptime can do has its button: Assign to Me, Run Playbook (the
  * playbook that contains an account or a host, or the one OneUptime AI
  * suggests), Add Exception (the rule and the entity filled in), Declare
- * Incident, Mark as Contained, Close Case. A step OneUptime cannot do - no
- * firewall OneUptime blocks an address in - says so ("Outside OneUptime"),
- * with what it acts on one click from the clipboard.
+ * Incident, Mark as Contained, Close Case - and, where Microsoft Defender
+ * or CrowdStrike blocks it on every machine, Block for 7 Days or Block File
+ * for a domain, a file or a command-and-control address (#10346), done once
+ * a product holds the block. A step OneUptime cannot do - no firewall
+ * OneUptime blocks an address in - says so ("Outside OneUptime"), with what
+ * it acts on one click from the clipboard.
  *
  * A step is ticked off where it is suggested: the tick makes it one of the
  * case's tasks, done, by whoever ticked it and when, so the Tasks page, the
@@ -187,6 +200,12 @@ interface PlanData {
   // What OneUptime found of the steps; none when they could not be read.
   checks: Array<SecurityCaseStepCheck>;
   isChecksUnread: boolean;
+  /*
+   * What the blocklist's destinations can hold and the blocks on the case's
+   * values (#10346); null when it could not be read, which leaves those
+   * steps to be done by hand.
+   */
+  blocklist: ResponseBlocklist | null;
   // The playbooks a run of which succeeded on the case, and where the others' latest runs stand.
   ranPlaybookIds: Array<string>;
   playbookRunStates: Record<string, ResponsePlaybookRunState>;
@@ -194,6 +213,34 @@ interface PlanData {
 
 const PHASE_HEADING_CLASS_NAME: string =
   "text-xs font-medium uppercase tracking-wide text-gray-500";
+
+// The kinds of value a step blocks through the blocklist (#10346).
+const BLOCKABLE_ENTITY_TYPES: ReadonlyArray<SecurityEntityType> = [
+  SecurityEntityType.IpAddress,
+  SecurityEntityType.Domain,
+  SecurityEntityType.FileHash,
+];
+
+// The case's values the plan asks the blocklist about.
+export function getBlockableValues(
+  entities: ReadonlyArray<SecurityEntity>,
+): Array<string> {
+  const values: Array<string> = [];
+
+  for (const entity of entities) {
+    const value: string = (entity.value || "").trim();
+
+    if (
+      value &&
+      BLOCKABLE_ENTITY_TYPES.includes(entity.type) &&
+      !values.includes(value)
+    ) {
+      values.push(value);
+    }
+  }
+
+  return values;
+}
 
 // A sentence of the plan, in the reader's words.
 function readText(text: ResponseText, translator: Translator): string {
@@ -242,6 +289,15 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     new DetectionRuleException(),
     ModelAction.Create,
   );
+  const blockGate: PermissionGateResult = PermissionGate.check(
+    new SecurityBlock(),
+    ModelAction.Create,
+  );
+
+  // The values the plan asks the blocklist about, as one key the read depends on.
+  const blockableValues: string = getBlockableValues(
+    readSecurityEntities(props.securityCase.entities),
+  ).join("\n");
 
   // Only the newest read lands: a slow one never replaces a newer one.
   const latestReadRef: MutableRefObject<number> = useRef<number>(0);
@@ -251,11 +307,12 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     latestReadRef.current = readNumber;
 
     try {
-      const [tasks, playbooks, runs, checks]: [
+      const [tasks, playbooks, runs, checks, blocklist]: [
         ListResult<SecurityCaseTask>,
         ListResult<SecurityPlaybook>,
         ListResult<SecurityPlaybookRun>,
         { rows: Array<SecurityCaseStepCheck>; isUnread: boolean },
+        ResponseBlocklist | null,
       ] = await Promise.all([
         ModelAPI.getList<SecurityCaseTask>({
           modelType: SecurityCaseTask,
@@ -299,6 +356,16 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
             return { rows: [], isUnread: true };
           },
         ),
+        /*
+         * A blocklist that cannot be read - or a reader who may not read it -
+         * leaves the steps it would make one click to be done by hand.
+         */
+        (blockableValues
+          ? readCaseBlocklist(blockableValues.split("\n"))
+          : Promise.resolve(null)
+        ).catch((): null => {
+          return null;
+        }),
       ]);
 
       if (readNumber === latestReadRef.current) {
@@ -307,6 +374,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
           playbooks: playbooks.data,
           checks: checks.rows,
           isChecksUnread: checks.isUnread,
+          blocklist,
           ...readPlaybookRuns(
             runs.data.map(
               (
@@ -327,7 +395,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
         setLoadError(API.getFriendlyMessage(err));
       }
     }
-  }, [caseIdText]);
+  }, [caseIdText, blockableValues]);
 
   useEffect(() => {
     void load();
@@ -438,9 +506,62 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
       report: securityCase.aiTriageReport,
     },
     checks: readResponseStepChecks(data.checks),
+    blocklist: data.blocklist || undefined,
   });
 
   const isClosed: boolean = stage === SecurityCaseStage.Closed;
+
+  /*
+   * Blocks a step's value through the blocklist (#10346), as the person: the
+   * server refuses a protected value, or one nothing could hold, and says
+   * why; the step is done once a product holds the block.
+   */
+  const block: (step: ResponseStep, action: ResponseAction) => Promise<void> =
+    async (step: ResponseStep, action: ResponseAction): Promise<void> => {
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      const request: ResponseBlockRequest | undefined = action.block;
+
+      if (!projectId || !request || workingStepKey) {
+        return;
+      }
+
+      setWorkingStepKey(step.key);
+      setActionError("");
+
+      try {
+        const record: SecurityBlock = new SecurityBlock();
+        record.projectId = projectId;
+        record.value = request.value;
+        record.action = request.action;
+        record.reach = request.reach;
+        record.securityCaseId = props.caseId;
+
+        const expiresAt: Date | null = getSecurityBlockExpiry(
+          request.duration,
+          OneUptimeDate.getCurrentDate(),
+        );
+
+        if (expiresAt) {
+          record.expiresAt = expiresAt;
+        }
+
+        await ModelAPI.create<SecurityBlock>({
+          model: record,
+          modelType: SecurityBlock,
+        });
+
+        Toast.success(
+          translator.translateTemplate(RESPONSE_BLOCKED, {
+            value: request.value,
+          }),
+        );
+        await load();
+      } catch (err) {
+        setActionError(API.getFriendlyMessage(err));
+      }
+
+      setWorkingStepKey("");
+    };
 
   // Tick a step off - or on again: its task made, or changed.
   const toggle: (step: ResponseStep) => Promise<void> = async (
@@ -490,10 +611,14 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     setWorkingStepKey("");
   };
 
-  const runAction: (action: ResponseAction) => void = (
+  const runAction: (action: ResponseAction, step: ResponseStep) => void = (
     action: ResponseAction,
+    step: ResponseStep,
   ): void => {
     switch (action.kind) {
+      case ResponseActionKind.BlockIndicator:
+        void block(step, action);
+        return;
       case ResponseActionKind.AssignToMe:
         props.onAssignToMe();
         return;
@@ -527,6 +652,8 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     action: ResponseAction,
   ): string | undefined => {
     switch (action.kind) {
+      case ResponseActionKind.BlockIndicator:
+        return blockGate.isAllowed ? undefined : blockGate.disabledReason || "";
       case ResponseActionKind.RunPlaybook:
         return runGate.isAllowed ? undefined : runGate.disabledReason || "";
       case ResponseActionKind.AddRuleException:
@@ -906,11 +1033,16 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
                   title={step.action.title}
                   buttonStyle={ButtonStyleType.NORMAL}
                   buttonSize={ButtonSize.Small}
-                  disabled={actionLock !== undefined || props.isWorking}
+                  disabled={
+                    actionLock !== undefined ||
+                    props.isWorking ||
+                    Boolean(workingStepKey)
+                  }
+                  isLoading={isWorking}
                   tooltip={actionLock || undefined}
                   dataTestId={SECURITY_CASE_RESPONSE_TEST_IDS.action}
                   onClick={() => {
-                    runAction(step.action!);
+                    runAction(step.action!, step);
                   }}
                 />
               ) : (

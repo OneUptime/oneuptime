@@ -52,6 +52,23 @@ export const PROTECTED_ENTITY_TYPES: ReadonlyArray<SecurityEntityType> = [
 export const PROTECTED_SUBDOMAINS_PREFIX: string = "*.";
 
 /*
+ * What a domain or a file entry says when its value is not one, as the
+ * server answers and the Protected Entities form says in the reader's words
+ * (the Dashboard's locales read this file for what it marks).
+ */
+const translationKey: (text: string) => string = (text: string): string => {
+  return text;
+};
+
+export const PROTECTED_DOMAIN_PROBLEM: string = translationKey(
+  "Enter a domain to protect, such as example.com, or *. and a domain, such as *.example.com, to protect every name under it.",
+);
+
+export const PROTECTED_FILE_HASH_PROBLEM: string = translationKey(
+  "Enter the file's MD5, SHA-1 or SHA-256 hash to protect it.",
+);
+
+/*
  * A protected domain as stored: a name as blocks write it (lower case,
  * ASCII, no trailing dot), or `*.` and one for every name under it - or
  * null for a value that is neither.
