@@ -420,7 +420,6 @@ describe("the addresses a block step acts on", () => {
       values.map((value: string): SecurityDetection => {
         const detection: SecurityDetection = new SecurityDetection();
         detection.groupValue = value;
-        detection.groupByField = "principalIp";
         detection.entities = [
           { type: SecurityEntityType.IpAddress, value },
         ] as unknown as JSONArray;
