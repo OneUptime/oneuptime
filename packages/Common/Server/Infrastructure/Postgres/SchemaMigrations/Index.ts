@@ -1142,6 +1142,7 @@ import { AddCloudAppPlatformCloudResource1809187383700 } from "./1809187383700-A
 import { AddCloudAppPlatformCloudResourceIndexAndKey1809187383710 } from "./1809187383710-AddCloudAppPlatformCloudResourceIndexAndKey";
 import { AddSecurityCaseStepChecks1809187390000 } from "./1809187390000-AddSecurityCaseStepChecks";
 import { AddSecurityCaseNextStepCheckIndex1809187390010 } from "./1809187390010-AddSecurityCaseNextStepCheckIndex";
+import { AddDataSecurityIssueAiAnalysis1809187410369 } from "./1809187410369-AddDataSecurityIssueAiAnalysis";
 
 export default [
   InitialMigration,
@@ -2288,4 +2289,5 @@ export default [
   AddCloudAppPlatformCloudResourceIndexAndKey1809187383710,
   AddSecurityCaseStepChecks1809187390000,
   AddSecurityCaseNextStepCheckIndex1809187390010,
+  AddDataSecurityIssueAiAnalysis1809187410369,
 ];

@@ -28,7 +28,11 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import SecuritySeverity from "../../Types/SecuritySeverity";
 import DataSecurityIssueStatus from "../../Types/DataSecurity/DataSecurityIssueStatus";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import { JSONArray } from "../../Types/JSON";
+import {
+  DATA_SECURITY_AI_VERDICTS,
+  DataSecurityAiVerdict,
+} from "../../Types/DataSecurity/DataSecurityIssueAnalysis";
+import { JSONArray, JSONObject } from "../../Types/JSON";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
@@ -87,6 +91,21 @@ const createOnlyColumnAccess: {
 } = {
   create: createPermissions,
   read: readPermissions,
+  update: [],
+};
+
+/*
+ * Columns OneUptime keeps for its own work, read through no CRUD route:
+ * OneUptime AI's analysis, which its own route serves to each reader with
+ * only what they may read.
+ */
+const hiddenColumnAccess: {
+  create: Array<Permission>;
+  read: Array<Permission>;
+  update: Array<Permission>;
+} = {
+  create: [],
+  read: [],
   update: [],
 };
 
@@ -760,4 +779,116 @@ export default class DataSecurityIssue extends BaseModel {
     default: false,
   })
   public isOwnerNotified?: boolean = undefined;
+
+  /*
+   * Why a person said it is not an issue (#10369): asked for when they say
+   * so, as Accept Risk asks why, and cleared when it opens again. OneUptime
+   * AI learns from these reasons which findings are noise (#10372).
+   */
+  @ColumnAccessControl(peopleEditableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.LongText,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Why Not an Issue",
+    description: "Why a person said the finding was wrong.",
+    serverOwned: ServerOwned.Shared,
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public notAnIssueReason?: string = undefined;
+
+  /*
+   * OneUptime AI's analysis of the issue (#10369): its verdict, which lists
+   * filter by, and the analysis itself - the four lines and the facts each
+   * rests on - which only its own route serves, leaving out each fact the
+   * reader may not read (Server/Utils/AI/DataSecurity/
+   * DataSecurityIssueAnalysisReader). Written by OneUptime alone; nothing
+   * here changes the issue's status or severity.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    allowedValues: [...DATA_SECURITY_AI_VERDICTS],
+    title: "OneUptime AI Verdict",
+    description:
+      "OneUptime AI's verdict on the issue: Real, Likely by design, Likely a wrong finding, or Cannot tell. A person decides what to do with it.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public aiVerdict?: DataSecurityAiVerdict = undefined;
+
+  @ColumnAccessControl(hiddenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "OneUptime AI Analysis",
+    description:
+      "OneUptime AI's analysis and the facts it rests on. Read through the issue's analysis route, which leaves out what the reader may not read.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public aiAnalysis?: JSONObject = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "OneUptime AI Analyzed At",
+    description: "When OneUptime AI last wrote its analysis of the issue.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAnalyzedAt?: Date = undefined;
+
+  // What the analysis was written from, hashed: the same input is not analysed again.
+  @ColumnAccessControl(hiddenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    computed: true,
+    title: "OneUptime AI Analysis Input Hash",
+    description:
+      "The hash of what the analysis was written from. An evaluation with the same input makes no new model call.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public aiAnalysisInputHash?: string = undefined;
+
+  // The AI Logs row of the model call that wrote it: its model, tokens and cost.
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "OneUptime AI Analysis Log ID",
+    description:
+      "The AI Logs row of the model call that wrote the analysis: which model, its tokens and its cost.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public aiAnalysisLlmLogId?: ObjectID = undefined;
 }
