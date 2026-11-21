@@ -1,24 +1,30 @@
 import {
   AiResultsBreakdown,
+  AiResultsByKind,
   AiResultsByModel,
   AiResultsCard,
   AiResultsFact,
+  AiResultsKindRow,
   AiResultsModelRow,
   AiResultsRecordsTarget,
   AiResultsSegment,
   AiResultsWeekBar,
+  BY_KIND_TITLE,
   BY_MODEL_TITLE,
   MODEL_CHANGE_LEGEND,
   UNKNOWN_MODEL_LABEL,
   describeAiResultsPartial,
   describeAiResultsWindow,
+  describeKindResult,
   describeModelResult,
   getAiResultsCards,
 } from "./AiResultsData";
 import AiResultsRecordsDialog from "./AiResultsRecordsDialog";
 import { AI_RESULTS_RECORDS_CLICK_HINTS } from "./AiResultsRecordsData";
 import { describeTrendDate } from "../ActivityInsights/AiActivityInsightsData";
+import { formatCompactDurationInMinutes } from "../../../Utils/CompactDuration";
 import { AiOutcomes } from "Common/Types/AI/AiOutcomes";
+import { isDataSecurityAiProposalKind } from "Common/Types/DataSecurity/DataSecurityAi";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -36,9 +42,10 @@ import React, {
 /*
  * The AI Results page's body (AiResultsPage loads it): one card per
  * question - did OneUptime AI keep people from being paged, did its fixes
- * work, was it right about the root cause - each with its number out of
- * what it counts, its 12 weeks one bar a week, and how the number breaks
- * down. Every sentence comes from AiResultsData.
+ * work, was it right about the root cause, did its changes for Data
+ * Security issues work - each with its number out of what it counts, its
+ * 12 weeks one bar a week, and how the number breaks down. Every sentence
+ * comes from AiResultsData.
  *
  * Inside a card nothing is a box of its own: the number and its breakdown
  * on one side, the weeks on the other, side by side where there is room
@@ -46,10 +53,13 @@ import React, {
  *
  * Each part of a breakdown opens what it counts (#7768): its legend entry
  * is a button, and the dialog lists the incidents and alerts, fixes, pull
- * requests or investigations behind the number (AiResultsRecordsDialog).
- * Under the breakdown, By model says how each model OneUptime AI ran on
- * did, once more than one did, and a week whose investigations moved to
- * another model is marked over its bar (#7762).
+ * requests, investigations or Data Security issues behind the number
+ * (AiResultsRecordsDialog); so does a fact that counts something, such as
+ * the Data Security issues OneUptime AI analyzed. Under the breakdown, By
+ * model says how each model OneUptime AI ran on did, once more than one
+ * did, and a week whose investigations moved to another model is marked
+ * over its bar (#7762); By kind says how each kind of Data Security change
+ * did, once more than one kind was made (#10364).
  */
 
 // The part of a breakdown whose records are open, and its label.
@@ -265,7 +275,10 @@ function Breakdown(props: {
   );
 }
 
-function Facts(props: { facts: Array<AiResultsFact> }): ReactElement {
+function Facts(props: {
+  facts: Array<AiResultsFact>;
+  onOpenRecords: (records: OpenRecords) => void;
+}): ReactElement {
   const translator: Translator = useTranslator();
 
   if (props.facts.length === 0) {
@@ -275,6 +288,15 @@ function Facts(props: { facts: Array<AiResultsFact> }): ReactElement {
   return (
     <dl className="divide-y divide-gray-100" data-testid="ai-results-facts">
       {props.facts.map((fact: AiResultsFact): ReactElement => {
+        // A duration in the reader's own units ("3 d 5 h"), else a count.
+        const value: string = fact.isDurationInMinutes
+          ? formatCompactDurationInMinutes(fact.value, translator.language)
+          : translator.formatNumber(fact.value);
+        const records: AiResultsRecordsTarget | undefined = fact.records;
+        const hint: string = records
+          ? AI_RESULTS_RECORDS_CLICK_HINTS[records.part]
+          : "";
+
         return (
           <div
             key={fact.label}
@@ -284,8 +306,38 @@ function Facts(props: { facts: Array<AiResultsFact> }): ReactElement {
             <dt className="min-w-0 text-gray-600">
               {translator.translateText(fact.label)}
             </dt>
-            <dd className="font-medium text-gray-900">
-              {translator.formatNumber(fact.value)}
+            <dd className="whitespace-nowrap font-medium text-gray-900">
+              {records ? (
+                /*
+                 * A count that opens what it counts, drawn as a breakdown's
+                 * part is (StackedProgressBar's legend button): read after
+                 * its label, with what it shows on hover and as its
+                 * description.
+                 */
+                <button
+                  type="button"
+                  data-testid="ai-results-fact-button"
+                  aria-haspopup="dialog"
+                  title={translator.translateText(hint) || hint}
+                  onClick={(): void => {
+                    props.onOpenRecords({
+                      target: records,
+                      label: fact.label,
+                    });
+                  }}
+                  className="group inline-flex items-center gap-1 rounded hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 [@media(pointer:coarse)]:min-h-11"
+                >
+                  <span className="underline decoration-gray-300 decoration-dotted underline-offset-4 group-hover:decoration-indigo-400">
+                    {value}
+                  </span>
+                  <Icon
+                    icon={IconProp.ChevronRight}
+                    className="h-3 w-3 flex-none opacity-70"
+                  />
+                </button>
+              ) : (
+                value
+              )}
             </dd>
           </div>
         );
@@ -371,6 +423,60 @@ function ByModel(props: { byModel: AiResultsByModel }): ReactElement {
   );
 }
 
+/*
+ * How each kind of Data Security change did (#10364): a line a kind - its
+ * name, a bar of what worked, and "9 of 12" - the most made first.
+ */
+function ByKind(props: { byKind: AiResultsByKind }): ReactElement {
+  const translator: Translator = useTranslator();
+
+  return (
+    <div data-testid="ai-results-by-kind">
+      <p className="text-xs font-medium text-gray-500">
+        {translator.translateText(BY_KIND_TITLE)}
+      </p>
+      <ul className="mt-2 space-y-2">
+        {props.byKind.rows.map((row: AiResultsKindRow): ReactElement => {
+          const share: number =
+            row.total > 0 ? (row.value / row.total) * 100 : 0;
+          // A kind this build does not know is named as it is stored.
+          const name: string = isDataSecurityAiProposalKind(row.kind)
+            ? translator.translateText(row.label) || row.label
+            : row.label;
+
+          return (
+            <li
+              key={row.kind}
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 text-sm sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)_auto]"
+              data-testid="ai-results-by-kind-row"
+              data-kind={row.kind}
+            >
+              <span className="min-w-0 break-words font-medium text-gray-800">
+                {name}
+              </span>
+              <span
+                className="col-span-2 order-last h-1.5 overflow-hidden rounded-full bg-gray-200 sm:order-none sm:col-span-1"
+                aria-hidden="true"
+              >
+                <span
+                  className="block h-full rounded-full bg-emerald-500"
+                  style={{ width: `${share}%` }}
+                />
+              </span>
+              <span
+                className="whitespace-nowrap text-gray-600"
+                data-testid="ai-results-by-kind-count"
+              >
+                {describeKindResult(row, translator)}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 function ResultCard(props: {
   card: AiResultsCard;
   onOpenRecords: (records: OpenRecords) => void;
@@ -441,8 +547,9 @@ function ResultCard(props: {
               );
             },
           )}
-          <Facts facts={card.facts} />
+          <Facts facts={card.facts} onOpenRecords={props.onOpenRecords} />
           {card.byModel ? <ByModel byModel={card.byModel} /> : <></>}
+          {card.byKind ? <ByKind byKind={card.byKind} /> : <></>}
         </div>
         {hasResults ? <WeekBars card={card} /> : <></>}
       </div>

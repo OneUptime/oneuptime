@@ -1,3 +1,4 @@
+import { getDataSecurityKindLabel } from "./AiResultsData";
 import { describeSubject } from "../ActivityInsights/AiActivityInsightsData";
 import {
   describeFixKind,
@@ -7,6 +8,7 @@ import {
   AI_OUTCOMES_PARTS,
   AiOutcomesPart,
   AiOutcomesRecord,
+  AiOutcomesRecordDataSecurityIssue,
   AiOutcomesRecordSubject,
   AiOutcomesRecords,
   isAiOutcomesPartOutcome,
@@ -25,7 +27,8 @@ import {
  * out (4)" opens the four held pages, each with its incident or alert;
  * "Missed the root cause (15)" the fifteen investigations, each with what
  * it found and how it was judged; "Still happening after the fix (2)" the
- * two fix pull requests.
+ * two fix pull requests; a Data Security number (#10364) the issues it
+ * counts, each with the change OneUptime AI made or proposed for it.
  *
  * The server lists exactly what the number counts (POST
  * /ai-activity/outcomes/records, AiOutcomesReader.readRecords), so the
@@ -42,6 +45,9 @@ export const AI_RESULTS_RECORDS_CLICK_HINTS: Record<AiOutcomesPart, string> = {
   ),
   [AiOutcomesPart.PullRequestFixes]: translationKey("Show the pull requests"),
   [AiOutcomesPart.RootCauses]: translationKey("Show the incidents and alerts"),
+  [AiOutcomesPart.DataSecurityAnalyses]: translationKey("Show the issues"),
+  [AiOutcomesPart.DataSecurityChanges]: translationKey("Show the issues"),
+  [AiOutcomesPart.DataSecurityProposals]: translationKey("Show the issues"),
 };
 
 /*
@@ -70,7 +76,27 @@ export const AI_RESULTS_RECORDS_COUNTS: Record<AiOutcomesPart, PluralTemplate> =
       other:
         "{{count}} investigations OneUptime AI finished over the last 12 weeks, newest first.",
     },
+    [AiOutcomesPart.DataSecurityAnalyses]: {
+      one: "{{count}} Data Security issue OneUptime AI analyzed over the last 12 weeks.",
+      other:
+        "{{count}} Data Security issues OneUptime AI analyzed over the last 12 weeks, newest first.",
+    },
+    [AiOutcomesPart.DataSecurityChanges]: {
+      one: "{{count}} change for a Data Security issue over the last 12 weeks.",
+      other:
+        "{{count}} changes for Data Security issues over the last 12 weeks, newest first.",
+    },
+    [AiOutcomesPart.DataSecurityProposals]: {
+      one: "{{count}} proposal by OneUptime AI over the last 12 weeks.",
+      other:
+        "{{count}} proposals by OneUptime AI over the last 12 weeks, newest first.",
+    },
   };
+
+// A Data Security issue a record names when it has no title.
+export const AI_RESULTS_RECORDS_UNTITLED_ISSUE: string = translationKey(
+  "Data Security Issue",
+);
 
 // Nothing counts under the number any more: it changed after the page counted it.
 export const AI_RESULTS_RECORDS_EMPTY: string = translationKey(
@@ -135,6 +161,20 @@ function readSubject(value: unknown): AiOutcomesRecordSubject | undefined {
   };
 }
 
+// The Data Security issue a record names (#10364), when it names one.
+function readDataSecurityIssue(
+  value: unknown,
+): AiOutcomesRecordDataSecurityIssue | undefined {
+  if (!isObject(value)) {
+    return undefined;
+  }
+
+  const id: string | undefined = readText(value["id"]);
+  const title: string | undefined = readText(value["title"]);
+
+  return id ? { id, ...(title ? { title } : {}) } : undefined;
+}
+
 function readRecord(value: unknown): AiOutcomesRecord | null {
   if (!isObject(value)) {
     return null;
@@ -150,6 +190,8 @@ function readRecord(value: unknown): AiOutcomesRecord | null {
   const subject: AiOutcomesRecordSubject | undefined = readSubject(
     value["subject"],
   );
+  const dataSecurityIssue: AiOutcomesRecordDataSecurityIssue | undefined =
+    readDataSecurityIssue(value["dataSecurityIssue"]);
   const url: string | undefined = readText(value["pullRequestUrl"]);
 
   const texts: Array<keyof AiOutcomesRecord> = [
@@ -159,12 +201,18 @@ function readRecord(value: unknown): AiOutcomesRecord | null {
     "summary",
     "humanVerdict",
     "autoGrade",
+    "proposalTitle",
+    "proposalKind",
   ];
 
   const record: AiOutcomesRecord = { id, at };
 
   if (subject) {
     record.subject = subject;
+  }
+
+  if (dataSecurityIssue) {
+    record.dataSecurityIssue = dataSecurityIssue;
   }
 
   for (const key of texts) {
@@ -241,14 +289,47 @@ export function describeRecordSubject(
 }
 
 /*
+ * How its Data Security issue is named, as the issue lists name it: its
+ * title (a check's title, which the reader's language words), or the kind
+ * of record it is when it has none.
+ */
+export function describeRecordDataSecurityIssue(
+  issue: AiOutcomesRecordDataSecurityIssue,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  if (issue.title) {
+    return translator.translateText(issue.title) || issue.title;
+  }
+
+  return (
+    translator.translateText(AI_RESULTS_RECORDS_UNTITLED_ISSUE) ||
+    AI_RESULTS_RECORDS_UNTITLED_ISSUE
+  );
+}
+
+/*
  * The small grey facts under a record, as translation keys: what kind of
- * fix it was, and how an investigation was judged - by your team on its AI
- * card, and against the root cause written when it was resolved.
+ * fix it was, how an investigation was judged - by your team on its AI
+ * card, and against the root cause written when it was resolved - and
+ * what kind of change OneUptime AI made for a Data Security issue, when no
+ * line says what it was.
  */
 export function getRecordFacts(
   part: AiOutcomesPart,
   record: AiOutcomesRecord,
 ): Array<string> {
+  if (
+    part === AiOutcomesPart.DataSecurityChanges ||
+    part === AiOutcomesPart.DataSecurityProposals
+  ) {
+    // Its line names the change, and its kind with it.
+    if (record.proposalTitle || !record.proposalKind) {
+      return [];
+    }
+
+    return [getDataSecurityKindLabel(record.proposalKind)];
+  }
+
   if (part === AiOutcomesPart.RemediationFixes) {
     // A runbook says its name instead (Runbook: {{name}}).
     if (record.runbookName) {

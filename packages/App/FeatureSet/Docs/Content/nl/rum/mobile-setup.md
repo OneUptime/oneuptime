@@ -19,7 +19,7 @@ flowchart TB
     app["Je mobiele app"] --> sdk["OpenTelemetry-SDK<br/>met device.*-attributen"]
     sdk -->|"OTLP met een<br/>Mobiel-sleutel"| oneuptime["OneUptime"]
     oneuptime --> rum["Mobiele RUM-applicatie"]
-    replay["React Native-<br/>replay-SDK"] -->|"opnames met een<br/>Browser-sleutel"| oneuptime
+    replay["React Native-<br/>replay-SDK"] -->|"opnames met dezelfde<br/>Mobiel-sleutel"| oneuptime
 ```
 
 ## Wat OneUptime nodig heeft
@@ -52,7 +52,7 @@ Maak van `device.id` een ID per installatie, nooit een advertentie-ID of iets an
 | Logs | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> De sleutel zit in je app, en een app kan worden uitgepakt, dus ga ervan uit dat iemand hem kopieert. Een kopie van een Mobiel-sleutel kan alleen de traces, logs en metrieken van deze app versturen, ingedeeld onder zijn **Vastgezette servicenaam**, en nooit vanaf een webpagina. Hij kan wel verzonnen gegevens voor deze app versturen, tot de **Limiet voor verzoeken per minuut** van de sleutel, dus voeg een datum bij **Verloopt om** toe en vervang de sleutel bij elke release.
+> De sleutel zit in je app, en een app kan worden uitgepakt, dus ga ervan uit dat iemand hem kopieert. Een kopie van een Mobiel-sleutel kan alleen de traces, logs, metrieken en sessieherhalingen van deze app versturen, ingedeeld onder zijn **Vastgezette servicenaam**, en nooit vanaf een webpagina. Hij kan wel verzonnen gegevens voor deze app versturen, tot de **Limiet voor verzoeken per minuut** van de sleutel, dus voeg een datum bij **Verloopt om** toe en vervang de sleutel bij elke release.
 
 ## Je platform instellen
 
@@ -289,7 +289,7 @@ Open de pagina **Clients** van de applicatie: elk apparaatmodel uit `device.mode
 
 ## Session Replay op mobiel
 
-React Native-apps kunnen sessies opnemen met `@oneuptime/react-native-replay`. Het neemt de native viewboom op als draadmodel, nooit schermafbeeldingen of de tekst op het scherm, en de opnames openen in dezelfde speler als die van het web. Het verstuurt met een **Browser**-sleutel waarvan de **Toegestane origins** je app vermelden als `app://` gevolgd door de Android-applicatie-ID of de iOS-bundle-ID: een andere sleutel dan de Mobiel-sleutel die je OpenTelemetry-SDK gebruikt. [Installeren in React Native](/docs/telemetry/session-replay#installeren-in-react-native) leidt je erdoorheen.
+React Native-apps kunnen sessies opnemen met `@oneuptime/react-native-replay`. Het neemt de native viewboom op als draadmodel, nooit schermafbeeldingen of de tekst op het scherm, en de opnames openen in dezelfde speler als die van het web. Het verstuurt met dezelfde **Mobiel**-sleutel als je OpenTelemetry-SDK, met de **Vastgezette servicenaam** van de sleutel als `appIdentifier`, zodat de app één sleutel meelevert. Een **Browser**-sleutel waarvan de **Toegestane origins** je app vermelden als `app://` gevolgd door de Android-applicatie-ID of de iOS-bundle-ID werkt ook. [Installeren in React Native](/docs/telemetry/session-replay#installeren-in-react-native) leidt je erdoorheen.
 
 Native Android- en iOS-apps, en de andere platforms, hebben geen sessierecorder: hun pagina **Sessieherhaling** blijft leeg, terwijl traces, logs, metrieken, uitzonderingen en de pagina **Clients** gewoon werken.
 
@@ -298,7 +298,7 @@ Native Android- en iOS-apps, en de andere platforms, hebben geen sessierecorder:
 :::details De sleutelcontrole geeft 401, of de sleutel wordt geweigerd
 Een `401` betekent dat de sleutel onbekend, ingetrokken, uitgeschakeld of verlopen is: maak een Mobiel-sleutel aan en bouw de app er opnieuw mee.
 
-Een Browser-sleutel doorstaat de controle, maar elke export vanuit een mobiele app wordt geweigerd met een `422` die luidt: `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Gebruik een **Mobiel**-sleutel. Ook een Mobiel-sleutel wordt met een `422` geweigerd via gRPC en vanaf een webpagina: exporteer via OTLP/HTTP.
+Een Browser-sleutel doorstaat de controle, maar elke export vanuit een mobiele app wordt geweigerd met een `422` die luidt: `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Gebruik een **Mobiel**-sleutel. Ook een Mobiel-sleutel wordt met een `422` geweigerd via gRPC, vanaf een webpagina en voor een sessieherhaling waarvan de `appIdentifier` niet zijn **Vastgezette servicenaam** is: exporteer via OTLP/HTTP en geef de replay-SDK de vastgezette naam van de sleutel.
 :::
 
 :::details De app verschijnt onder Services in plaats van onder Real User Monitoring

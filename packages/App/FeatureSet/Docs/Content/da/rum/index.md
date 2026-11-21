@@ -49,7 +49,7 @@ En applikations egen sidemenu grupperer dens sider sådan; **Udvikler** og **Ava
 
 ## Sådan genkender OneUptime RUM
 
-De fleste spørgsmål af typen "min app dukker ikke op" ender her. OneUptime afgør for hver batch telemetri ved ankomst ud fra dens **ressourceattributter**:
+De fleste spørgsmål af typen "min app dukker ikke op" ender her. Alt, hvad en **Browser**-nøgle sender, er browser-RUM, og alt, hvad en **Mobil**-nøgle sender, er mobil-RUM, uanset hvad dens ressource siger. Med enhver anden nøgle afgør OneUptime for hver batch telemetri ved ankomst ud fra dens **ressourceattributter**:
 
 1. En batch, hvis ressource har `browser.platform`, `browser.language` eller et ikke-tomt `browser.brands`, er **browser**-RUM.
 2. Ellers er en batch med `device.id` eller `device.model.identifier` **mobil**-RUM.
@@ -71,7 +71,7 @@ Backend-SDK'er sætter aldrig `browser.*`, `device.id` eller `device.model.ident
 OneUptime finder applikationen ud fra `service.name` uden hensyn til store og små bogstaver og opretter den, når projektet ikke har en. En ny `service.name` starter en ny applikation, så hold den stabil, og skeln mellem miljøer med en etiket i stedet for et nyt navn. [Administrer applikationer](/docs/rum/applications) gennemgår navne, etiketter, ejere og opbevaring.
 
 > [!IMPORTANT]
-> OpenTelemetry-browser-SDK'et tilføjer ingen `browser.*`-attributter, medmindre du tilføjer browserens ressourcedetektor eller selv sætter dem. Med kun `service.name` bliver telemetrien en backend-tjeneste, ikke en RUM-applikation. [Browseropsætning](/docs/rum/browser-setup) viser begge måder.
+> OpenTelemetry-browser-SDK'et tilføjer ingen `browser.*`-attributter, medmindre du tilføjer browserens ressourcedetektor eller selv sætter dem. Sendt med en Browser-nøgle er telemetrien stadig en RUM-applikation, men dens side **Klienter** viser ingen platforme; med enhver anden nøgle og kun `service.name` bliver den en backend-tjeneste, ikke en RUM-applikation. [Browseropsætning](/docs/rum/browser-setup) viser begge måder.
 
 ## Det får du
 
@@ -94,7 +94,7 @@ En applikation viser **Modtager data**, så længe der kommer telemetri, og **In
 :::steps
 ### Opret en indtagelsesnøgle
 
-Åbn **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**, og klik på **Opret indtagelsesnøgle**. En webapp skal bruge en **Browser**-nøgle, som kun virker fra de oprindelser, du angiver. En mobilapp skal bruge en **Mobil**-nøgle, fastgjort til appens `service.name`: Den følger med i appen og kan derfor kun sende den apps spor, logs og metrikker.
+Åbn **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**, og klik på **Opret indtagelsesnøgle**. En webapp skal bruge en **Browser**-nøgle, som kun virker fra de oprindelser, du angiver. En mobilapp skal bruge en **Mobil**-nøgle, fastgjort til appens `service.name`: Den følger med i appen og kan derfor kun sende den apps spor, logs, metrikker og sessionsafspilninger.
 
 ### Instrumenter din app
 

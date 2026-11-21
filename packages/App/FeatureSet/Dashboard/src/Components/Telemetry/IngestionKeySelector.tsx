@@ -170,7 +170,7 @@ export const BROWSER_KEY_WITHOUT_ORIGINS_CAUTION: string = translationKey(
 );
 
 export const MOBILE_KEY_CAUTION: string = translationKey(
-  "Mobile key: safe to ship in your app. It can send only traces, logs and metrics, all filed under {{service}}, and never from a web page. Anyone who has the app can copy it, so it is rate limited, and you can turn it off at any time.",
+  "Mobile key: safe to ship in your app. It can send only traces, logs, metrics and session replays, all filed under {{service}}, and never from a web page. Anyone who has the app can copy it, so it is rate limited, and you can turn it off at any time.",
 );
 
 export const SERVER_KEY_CAUTION: string = translationKey(
@@ -552,7 +552,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
                 )
               : isMobileKeyOnly
                 ? translator.translateText(
-                    "A mobile key is the one safe to ship in an app: it is pinned to the app, and it can only send that app's traces, logs and metrics.",
+                    "A mobile key is the one safe to ship in an app: it is pinned to the app, and it can only send that app's traces, logs, metrics and session replays.",
                   )
                 : translator.translateText(
                     "Create an ingestion key to authenticate your telemetry data.",
@@ -696,7 +696,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
             isBrowserKeyOnly
               ? "Create a browser telemetry ingestion key. It is safe to publish in your page, and is accepted only from the origins you list below."
               : isMobileKeyOnly
-                ? "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to."
+                ? "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs, metrics and session replays of the app it is pinned to."
                 : "Create a new telemetry ingestion key for sending data to OneUptime."
           }
           onClose={() => {

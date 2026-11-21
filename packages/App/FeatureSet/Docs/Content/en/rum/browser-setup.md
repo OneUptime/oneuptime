@@ -62,7 +62,7 @@ npm install @opentelemetry/api \
 
 ### Create the telemetry file
 
-Create `src/telemetry.ts`. `browserDetector` adds the `browser.*` attributes that file the telemetry as RUM, and `service.name` names the application.
+Create `src/telemetry.ts`. `browserDetector` adds the `browser.*` attributes the **Clients** page lists, and `service.name` names the application: everything a Browser key sends is filed under it as RUM.
 
 ```ts title="src/telemetry.ts"
 import {
@@ -88,8 +88,8 @@ const ONEUPTIME_URL = "https://oneuptime.com";
 const ONEUPTIME_TOKEN = "YOUR_TELEMETRY_INGESTION_TOKEN";
 
 /*
- * browserDetector supplies the browser.* attributes. Without them this
- * telemetry is classified as a backend Service, not a RUM application.
+ * browserDetector supplies the browser.* attributes the Clients page
+ * lists. A Browser key files everything it sends as browser RUM.
  * The attributes set last win, so service.name here overrides the
  * "unknown_service" that defaultResource() provides.
  */
@@ -166,11 +166,11 @@ Everything in the snippet ships to your visitors, so anyone can copy the token f
 | --- | --- |
 | **Allowed Origins** | Requests are accepted only from these origins, each with its scheme and any port. A host may start with one `*.` wildcard: `https://*.example.com` covers every subdomain of `example.com`, but not `example.com` itself. |
 | **Requests Per Minute Limit** | One ceiling for every visitor using the key: 6000 requests per minute unless you set your own. |
-| **Pinned Service Name** | Forces `service.name` on everything the key writes, so a copy cannot pass its telemetry off as one of your backend services. |
+| **Pinned Service Name** | Forces `service.name` on everything the key writes, so a copy can write only into that one application. |
 | **Expires At** | The key stops being accepted after this date. |
 | **Enabled** | Switch it off to stop a leaked key at once. |
 
-A Browser key writes OTLP traces, logs and metrics, session replays, and events from a [Sentry browser SDK](/docs/telemetry/compatible-endpoints#sentry-sdks); every other ingest route refuses it. You change these settings on the key's own page. The key type cannot be changed after the key is created.
+A Browser key writes OTLP traces, logs and metrics, session replays, and events from a [Sentry browser SDK](/docs/telemetry/compatible-endpoints#sentry-sdks); every other ingest route refuses it. Everything it writes is filed as browser RUM, never as a host, a cluster or a backend service: of the resource, it keeps only what a page says about itself, such as `service.*`, `browser.*` and `user_agent.*` attributes and `oneuptime.label.*` labels. You change these settings on the key's own page. The key type cannot be changed after the key is created.
 
 > [!WARNING]
 > Never put a **Server** key in a page. A Server key writes every kind of telemetry from anywhere, with no origin check, so anyone who reads your page could write into your project.
@@ -179,7 +179,7 @@ A Browser key writes OTLP traces, logs and metrics, session replays, and events 
 
 `browserDetector` reads the [UA Client Hints API](https://wicg.github.io/ua-client-hints/), which only Chromium browsers have. On Safari and Firefox it sets `browser.language` and `user_agent.original`, but not `browser.platform`, `browser.brands` or `browser.mobile`.
 
-That is still enough to file the telemetry as RUM, because `browser.language` alone marks a batch as browser RUM. The **Clients** page lists platforms from `browser.platform`, though, so Safari and Firefox visits add no row there.
+With a Browser key, the telemetry is filed as RUM either way, and with any other key `browser.language` alone marks a batch as browser RUM. The **Clients** page lists platforms from `browser.platform`, though, so Safari and Firefox visits add no row there.
 
 To skip the detector, or to give every browser a platform, set the attributes yourself:
 
@@ -402,7 +402,7 @@ metrics.setGlobalMeterProvider(
 );
 ```
 
-Build them with the same `resource` object. A log or metric pipeline whose resource lacks `browser.*` is filed as a separate backend service.
+Build them with the same `resource` object, so their logs and metrics are filed under the same application.
 
 A log pipeline sends only the records your code writes, so write one wherever something worth knowing happens:
 
@@ -452,7 +452,7 @@ Open your browser's developer tools, go to the Network tab and filter for `otlp`
 :::
 
 :::details The app shows up under Services instead of Real User Monitoring
-The resource has no `browser.*` attribute, so the telemetry was filed as a backend service. Add `browserDetector`, or set the attributes as in [Setting `browser.*` without the detector](#setting-browser-without-the-detector).
+The telemetry was sent with a key other than a Browser key, and its resource has no `browser.*` attribute, so it was filed as a backend service. Send with a Browser key, which files everything it sends as RUM, or add `browserDetector` or set the attributes as in [Setting `browser.*` without the detector](#setting-browser-without-the-detector).
 
 Check what you send in the Network tab, in the request's payload: `resourceSpans[0].resource.attributes` is the list that decides it. The service that was already created does not turn into a RUM application, so delete it under **Products → Services** once RUM telemetry arrives.
 :::
