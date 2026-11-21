@@ -189,7 +189,51 @@ const occurrences: Array<OccurrenceFixture> = [
    */
   { fingerprint: "checkout-merged-fp", userId: "ana", at: 2 * HOUR_MS },
   { fingerprint: "checkout-merged-fp", userId: "eve", at: 2 * HOUR_MS + 1 },
+
+  /*
+   * Users a scrub rule hid (#10435), as the occurrences store them.
+   * redacted-fp: three people, every one's id redacted.
+   */
+  { fingerprint: "redacted-fp", userId: "[REDACTED]", at: 3 * HOUR_MS },
+  { fingerprint: "redacted-fp", userId: "[REDACTED]", at: 3 * HOUR_MS + 1 },
+  { fingerprint: "redacted-fp", userId: "[REDACTED]", at: 3 * HOUR_MS + 2 },
+  /*
+   * scrubbed-fp: one user no rule touched; three a Hash rule hid - one of
+   * them twice, one in the form tokens had before #10394; and three
+   * occurrences whose user Redact or Mask hid, one only in part.
+   */
+  { fingerprint: "scrubbed-fp", userId: "ana", at: 4 * HOUR_MS },
+  {
+    fingerprint: "scrubbed-fp",
+    userId: "[HASHED:3f9a1c0e7b2d4a68]",
+    at: 4 * HOUR_MS + 1,
+  },
+  {
+    fingerprint: "scrubbed-fp",
+    userId: "[HASHED:3f9a1c0e7b2d4a68]",
+    at: 4 * HOUR_MS + 2,
+  },
+  {
+    fingerprint: "scrubbed-fp",
+    userId: "[HASHED:0c4f2e9b7a1d5e36]",
+    at: 4 * HOUR_MS + 3,
+  },
+  {
+    fingerprint: "scrubbed-fp",
+    userId: "[HASHED:8c87b489]",
+    at: 4 * HOUR_MS + 4,
+  },
+  { fingerprint: "scrubbed-fp", userId: "j***@***.com", at: 4 * HOUR_MS + 5 },
+  {
+    fingerprint: "scrubbed-fp",
+    userId: "auth0|[REDACTED]",
+    at: 4 * HOUR_MS + 6,
+  },
+  { fingerprint: "scrubbed-fp", userId: "[REDACTED]", at: 4 * HOUR_MS + 7 },
 ];
+
+const REDACTED: string = "30000000-0000-4000-8000-0000000000c4";
+const SCRUBBED: string = "30000000-0000-4000-8000-0000000000c5";
 
 function occurrenceRow(fixture: OccurrenceFixture): JSONObject {
   const time: Date = new Date(rangeStart.getTime() + fixture.at);
@@ -385,6 +429,65 @@ integration("the exceptions list's stats against ClickHouse", () => {
 
     // ana, ben, cy and dee - not early, late, expired or the other project's.
     expect(users).toEqual([4, 1, 0]);
+    // Nobody's id was hidden.
+    expect(
+      stats.items.map((item: ExceptionListStats["items"][number]) => {
+        return [item.hiddenUsers, item.hiddenUserOccurrences];
+      }),
+    ).toEqual([
+      [0, 0],
+      [0, 0],
+      [0, 0],
+    ]);
+  });
+
+  describe("users a scrub rule hid (#10435)", () => {
+    beforeEach(() => {
+      findBy.mockImplementation((async (args: {
+        query: Record<string, unknown>;
+      }) => {
+        if ("mergedIntoTelemetryExceptionId" in args.query) {
+          return [];
+        }
+
+        return [
+          group(REDACTED, "redacted-fp", checkoutServiceId),
+          group(SCRUBBED, "scrubbed-fp", checkoutServiceId),
+        ];
+      }) as never);
+    });
+
+    test("exceptions from three users whose ids are redacted count no users, not one: three events with a hidden user", async () => {
+      const stats: ExceptionListStats = await read([REDACTED]);
+
+      expect(stats.items[0]).toEqual(
+        expect.objectContaining({
+          affectedUsers: 0,
+          hiddenUsers: 0,
+          hiddenUserOccurrences: 3,
+        }),
+      );
+    });
+
+    test("a hashed user id counts as its own user, once however often; redacted and masked ones never do", async () => {
+      const stats: ExceptionListStats = await read([SCRUBBED]);
+
+      expect(stats.items[0]).toEqual(
+        expect.objectContaining({
+          // ana.
+          affectedUsers: 1,
+          // Two of today's tokens and one from before #10394.
+          hiddenUsers: 3,
+          // The mask, "auth0|[REDACTED]" and "[REDACTED]".
+          hiddenUserOccurrences: 3,
+        }),
+      );
+      expect(
+        stats.items[0]!.trend.reduce((a: number, b: number) => {
+          return a + b;
+        }),
+      ).toBe(8);
+    });
   });
 
   test("each occurrence in the range lands in its hour's bar, the last instant in the last", async () => {

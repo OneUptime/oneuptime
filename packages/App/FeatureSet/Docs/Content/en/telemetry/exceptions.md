@@ -52,7 +52,7 @@ Go to **Products → Observability → Exceptions**. The badge on the **Exceptio
 
 Switch between **Unresolved**, **Resolved**, **Archived** and **All**. The chart above the list shows how many occurrences were **Unhandled** and how many **Handled** over time. A row marked **Regressed** came back after it was resolved, and one marked **New** was first seen in the last 24 hours.
 
-Each row also shows how many users the exception affected in the time range you picked, and a small chart of its occurrences over that range. An occurrence names its user with the `user.id`, `enduser.id` or `enduser.pseudo.id` attribute, on the exception event, its span or log record, or its resource; occurrences that name no user are not counted.
+Each row also shows how many users the exception affected in the time range you picked, and a small chart of its occurrences over that range. An occurrence names its user with the `user.id`, `enduser.id` or `enduser.pseudo.id` attribute, on the exception event, its span or log record, or its resource; occurrences that name no user are not counted. A user ID a scrub rule hid is never counted as a user. A hashed ID still counts once, as a hidden user; occurrences whose ID was redacted or masked count as events with a hidden user, since they can't be told apart.
 
 ### Choose what counts as an issue
 

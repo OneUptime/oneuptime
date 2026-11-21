@@ -52,7 +52,7 @@ Gå till **Produkter → Observerbarhet → Undantag**. Märket på fliken **Und
 
 Växla mellan **Olöst**, **Löst**, **Arkiverad** och **Alla**. Diagrammet ovanför listan visar hur många förekomster som var **Ohanterad** och hur många som var **Hanterad** över tid. En rad markerad **Regression** kom tillbaka efter att den lösts, och en markerad **Ny** sågs första gången under de senaste 24 timmarna.
 
-Varje rad visar också hur många användare undantaget drabbade under den valda perioden, och ett litet diagram över dess förekomster under perioden. En förekomst anger sin användare med attributet `user.id`, `enduser.id` eller `enduser.pseudo.id`, på undantagshändelsen, dess span eller loggpost eller dess resurs; förekomster som inte anger någon användare räknas inte.
+Varje rad visar också hur många användare undantaget drabbade under den valda perioden, och ett litet diagram över dess förekomster under perioden. En förekomst anger sin användare med attributet `user.id`, `enduser.id` eller `enduser.pseudo.id`, på undantagshändelsen, dess span eller loggpost eller dess resurs; förekomster som inte anger någon användare räknas inte. Ett användar-ID som en rensningsregel har dolt räknas aldrig som en användare. Ett hashat ID räknas ändå en gång, som en dold användare; förekomster vars ID har dolts helt eller delvis räknas som händelser med en dold användare, eftersom de inte går att skilja åt.
 
 ### Välj vad som räknas som ett problem
 

@@ -52,7 +52,7 @@ Ga naar **Producten → Observability → Uitzonderingen**. De badge op het tabb
 
 Wissel tussen **Niet opgelost**, **Opgelost**, **Gearchiveerd** en **Alle**. De grafiek boven de lijst toont hoeveel voorvallen in de loop van de tijd **Niet-afgehandeld** en hoeveel **Afgehandeld** waren. Een rij gemarkeerd als **Regressie** kwam terug nadat ze was opgelost, en een rij gemarkeerd als **Nieuw** werd voor het eerst gezien in de afgelopen 24 uur.
 
-Elke rij toont ook hoeveel gebruikers de uitzondering in de gekozen periode trof, en een kleine grafiek van haar voorvallen in die periode. Een voorval noemt zijn gebruiker met het attribuut `user.id`, `enduser.id` of `enduser.pseudo.id`, op de uitzonderingsgebeurtenis, de span of het logrecord, of de resource; voorvallen die geen gebruiker noemen, worden niet geteld.
+Elke rij toont ook hoeveel gebruikers de uitzondering in de gekozen periode trof, en een kleine grafiek van haar voorvallen in die periode. Een voorval noemt zijn gebruiker met het attribuut `user.id`, `enduser.id` of `enduser.pseudo.id`, op de uitzonderingsgebeurtenis, de span of het logrecord, of de resource; voorvallen die geen gebruiker noemen, worden niet geteld. Een gebruikers-ID die een opschoonregel verborg, wordt nooit als gebruiker geteld. Een gehashte ID telt nog steeds één keer, als verborgen gebruiker; voorvallen waarvan de ID geredigeerd of gemaskeerd is, tellen als gebeurtenissen met een verborgen gebruiker, omdat ze niet van elkaar te onderscheiden zijn.
 
 ### Kiezen wat als probleem telt
 

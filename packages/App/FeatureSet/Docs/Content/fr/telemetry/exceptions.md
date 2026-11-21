@@ -52,7 +52,7 @@ Ouvrez **Produits → Observabilité → Exceptions**. Le badge de l'onglet **Ex
 
 Passez de **Non résolu** à **Résolu**, **Archivé** et **Tous**. Le graphique au-dessus de la liste montre combien d'occurrences étaient **Non géré** et combien **Géré** au fil du temps. Une ligne marquée **Régression** est revenue après avoir été résolue, et une ligne marquée **Nouveau** a été vue pour la première fois au cours des dernières 24 heures.
 
-Chaque ligne indique aussi combien d'utilisateurs l'exception a touchés sur la période choisie, avec un petit graphique de ses occurrences sur cette période. Une occurrence nomme son utilisateur avec l'attribut `user.id`, `enduser.id` ou `enduser.pseudo.id`, sur l'événement d'exception, son span ou son enregistrement de log, ou sa ressource ; les occurrences qui ne nomment aucun utilisateur ne sont pas comptées.
+Chaque ligne indique aussi combien d'utilisateurs l'exception a touchés sur la période choisie, avec un petit graphique de ses occurrences sur cette période. Une occurrence nomme son utilisateur avec l'attribut `user.id`, `enduser.id` ou `enduser.pseudo.id`, sur l'événement d'exception, son span ou son enregistrement de log, ou sa ressource ; les occurrences qui ne nomment aucun utilisateur ne sont pas comptées. Un ID utilisateur qu'une règle de nettoyage a masqué n'est jamais compté comme un utilisateur. Un ID haché compte tout de même une fois, comme utilisateur masqué ; les occurrences dont l'ID a été masqué en tout ou en partie comptent comme des événements avec un utilisateur masqué, car on ne peut pas les distinguer.
 
 ### Choisir ce qui compte comme un problème
 

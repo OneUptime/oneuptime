@@ -52,7 +52,7 @@ Aprite **Prodotti → Osservabilità → Eccezioni**. Il badge sulla scheda **Ec
 
 Passate tra **Non risolto**, **Risolto**, **Archiviato** e **Tutti**. Il grafico sopra l'elenco mostra quante occorrenze sono state **Non gestito** e quante **Gestito** nel tempo. Una riga segnata **Regressione** si è ripresentata dopo essere stata risolta, e una segnata **Nuovo** è stata vista per la prima volta nelle ultime 24 ore.
 
-Ogni riga mostra anche quanti utenti l'eccezione ha colpito nell'intervallo scelto, e un piccolo grafico delle sue occorrenze in quell'intervallo. Un'occorrenza indica il suo utente con l'attributo `user.id`, `enduser.id` o `enduser.pseudo.id`, sull'evento dell'eccezione, sul suo span o record di log, o sulla sua risorsa; le occorrenze che non indicano alcun utente non vengono contate.
+Ogni riga mostra anche quanti utenti l'eccezione ha colpito nell'intervallo scelto, e un piccolo grafico delle sue occorrenze in quell'intervallo. Un'occorrenza indica il suo utente con l'attributo `user.id`, `enduser.id` o `enduser.pseudo.id`, sull'evento dell'eccezione, sul suo span o record di log, o sulla sua risorsa; le occorrenze che non indicano alcun utente non vengono contate. Un ID utente nascosto da una regola di pulizia non viene mai contato come utente. Un ID sottoposto a hash conta comunque una volta, come utente nascosto; le occorrenze il cui ID è stato oscurato o mascherato contano come eventi con un utente nascosto, perché non si possono distinguere.
 
 ### Scegliere che cosa conta come problema
 
