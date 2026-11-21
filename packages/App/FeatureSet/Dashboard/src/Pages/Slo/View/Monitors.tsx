@@ -6,7 +6,6 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
   SLO_RULE_ATTACHED_MONITOR_REMOVAL_MESSAGE,
-  SloAddableMonitorOption,
   SloMonitorActionAvailability,
   SloMonitorMembership,
   SloMonitorSource,
@@ -14,7 +13,7 @@ import {
   buildSloMonitorsUpdateData,
   describeSloMonitorCounts,
   getAddMonitorsAvailability,
-  getAddableMonitorOptions,
+  getAddableMonitorsQuery,
   getRemoveMonitorAvailability,
   getSelectedMonitorIds,
   getSloMonitorMembership,
@@ -24,7 +23,6 @@ import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Black, Blue500, Gray500, Red500 } from "Common/Types/BrandColors";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -51,7 +49,7 @@ import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, {
   ModelAction,
@@ -116,11 +114,9 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [showNothingToAddModal, setShowNothingToAddModal] =
     useState<boolean>(false);
+  // Counting the monitors Add can offer, as its dialog opens.
   const [isLoadingAddOptions, setIsLoadingAddOptions] =
     useState<boolean>(false);
-  const [addOptions, setAddOptions] = useState<Array<SloAddableMonitorOption>>(
-    [],
-  );
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [addError, setAddError] = useState<string | null>(null);
 
@@ -245,52 +241,35 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
   };
 
   /*
-   * The add modal only offers monitors that are not already on the SLO, so
-   * the list is fetched when the modal opens - a monitor created a moment ago
-   * is immediately selectable.
+   * The add modal only offers monitors that are not already on the SLO, read
+   * afresh as it opens. The server counts them, to say "Nothing to Add" in
+   * place of an empty picker; the picker searches the server for them
+   * (#10399), so a monitor created a moment ago is there, and so is every
+   * monitor of a project of any size.
    */
   const openAddModal: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoadingAddOptions(true);
     setAddError(null);
 
     try {
-      const [monitors, current]: [ListResult<Monitor>, SloMonitorState] =
-        await Promise.all([
-          ModelAPI.getList<Monitor>({
-            modelType: Monitor,
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            select: {
-              _id: true,
-              name: true,
-            },
-            sort: {
-              name: SortOrder.Ascending,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-          }),
-          fetchSloMonitorState(),
-        ]);
+      const current: SloMonitorState = await fetchSloMonitorState();
 
       setMonitorState(current);
 
-      const options: Array<SloAddableMonitorOption> = getAddableMonitorOptions({
-        monitors: monitors.data,
-        attachedMonitorIds: current.membership.monitorIds,
+      const addableMonitorCount: number = await ModelAPI.count<Monitor>({
+        modelType: Monitor,
+        query: getAddableMonitorsQuery({
+          attachedMonitorIds: current.membership.monitorIds,
+        }),
       });
 
-      setAddOptions(options);
-
-      if (options.length === 0) {
+      if (addableMonitorCount === 0) {
         setShowNothingToAddModal(true);
         return;
       }
 
       setShowAddModal(true);
     } catch (err) {
-      setAddOptions([]);
       setAddError(API.getFriendlyMessage(err));
       setShowAddModal(true);
     } finally {
@@ -709,7 +688,19 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 fieldType: FormFieldSchemaType.MultiSelectDropdown,
                 required: true,
                 placeholder: "Select monitors",
-                dropdownOptions: addOptions,
+                /*
+                 * Searched on the server as the reader types, 50 names at
+                 * a time, within the monitors not on the SLO: every one of
+                 * them, however many the project has (#10399).
+                 */
+                dropdownModal: {
+                  type: Monitor,
+                  labelField: "name",
+                  valueField: "_id",
+                  query: getAddableMonitorsQuery({
+                    attachedMonitorIds: membership.monitorIds,
+                  }),
+                },
               },
             ],
           }}
