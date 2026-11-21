@@ -324,10 +324,17 @@ integration(
 
       jest
         .spyOn(NetworkFlowService, "executeQuery")
-        .mockImplementation(async (statement: Statement) => {
-          statements.push(statement.query);
-          return executeQuery(statement);
-        });
+        .mockImplementation(
+          async (
+            statement: string | Statement,
+            options?: Parameters<typeof NetworkFlowService.executeQuery>[1],
+          ) => {
+            statements.push(
+              typeof statement === "string" ? statement : statement.query,
+            );
+            return executeQuery(statement, options);
+          },
+        );
 
       read = await FlowSecurityScan.readWindow({
         window: {
