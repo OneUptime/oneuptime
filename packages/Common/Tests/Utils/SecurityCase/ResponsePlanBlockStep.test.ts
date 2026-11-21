@@ -461,7 +461,7 @@ describe("the addresses a case may be blocked from", () => {
           attributes: {
             [SECURITY_REQUEST_ATTRIBUTES.claimedClientAddress]: claimed,
           },
-        } as SecurityCaseMatchedEventJson,
+        } as unknown as SecurityCaseMatchedEventJson,
       ]),
     );
     const entities: Array<{ type: SecurityEntityType; value: string }> = [
