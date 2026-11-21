@@ -434,7 +434,7 @@ The undo steps act on the users or hosts the case is about, like the steps they 
 
 Your project's own addresses are never blocked: the entries of **Protected Entities**, your hosts, Kubernetes nodes, cloud resources, network devices and endpoints, your address names and probes, OneUptime Cloud's probes, the ranges that are not on the internet, and the edge in front of your app. A block that would meet one is refused, saying what the address is, and **Protected Entities** lists them under **Protected Automatically**. When OneUptime cannot tell whether an address is yours, it does not block it.
 
-**Enforced At** shows each place a block is enforced, and whether it holds there. While nothing enforces the blocklist, the page says so, and a block is recorded but blocks nothing. Each block, lift and expiry is kept in the project's audit log, and on its case's timeline when it has a case.
+**Enforced At** shows each place a block is enforced, and whether it holds there. A firewall or a proxy enforces it by reading a [blocklist feed](/docs/telemetry/blocklist-feeds), a secret URL it fetches every few minutes. While nothing enforces the blocklist, the page says so, and a block is recorded but blocks nothing. Each block, lift and expiry is kept in the project's audit log, and on its case's timeline when it has a case.
 
 ### Messages
 

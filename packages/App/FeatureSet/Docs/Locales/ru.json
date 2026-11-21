@@ -458,6 +458,7 @@
     "Get Started with Security": "Начало работы с безопасностью",
     "Security Events (SIEM)": "События безопасности (SIEM)",
     "Security Cases and Playbooks (SOAR)": "Кейсы безопасности и плейбуки (SOAR)",
+    "Blocklist Feeds for Firewalls and Proxies": "Blocklist Feeds for Firewalls and Proxies",
     "Entity Risk (Risk-Based Alerting)": "Риск сущностей (оповещения на основе риска)",
     "Connected Signals": "Связанные сигналы",
     "Threat Intelligence (STIX/TAXII)": "Аналитика угроз (STIX/TAXII)",
