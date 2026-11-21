@@ -358,7 +358,8 @@ export async function settleIngestionBudgetCharge(data: {
  * statement rate is negligible, so their retry idempotence costs nothing
  * to keep.
  *
- * The probe / server-monitor / incoming-request types are excluded
+ * The probe / server-monitor / incoming-request types (a request of its
+ * own, and a monitor's waiting requests) are excluded
  * deliberately: their inserts go through shared cross-job buffers
  * (MonitorLogUtil / monitor metrics), where a flushed batch can mix
  * rows from several jobs — a retry would then reuse a token for a

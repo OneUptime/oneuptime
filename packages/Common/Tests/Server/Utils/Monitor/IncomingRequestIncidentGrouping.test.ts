@@ -7,7 +7,10 @@ import DataToProcess from "../../../../Server/Utils/Monitor/DataToProcess";
 import { CheckOn, FilterType } from "../../../../Types/Monitor/CriteriaFilter";
 import IncidentGroupingConfig from "../../../../Types/Monitor/IncomingMonitor/IncidentGroupingConfig";
 import IncomingMonitorRequest from "../../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import MonitorCriteria from "../../../../Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
+import MonitorStep from "../../../../Types/Monitor/MonitorStep";
+import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import {
   MonitorEvaluationFilterResult,
   MonitorEvaluationGroupingNote,
@@ -1114,6 +1117,98 @@ describe("IncomingRequestIncidentGrouping", () => {
       ).toBe(false);
       expect(
         IncomingRequestIncidentGrouping.isGroupingConfigured(undefined),
+      ).toBe(false);
+    });
+  });
+
+  /*
+   * Whether a monitor's requests are each evaluated, in order, or only its
+   * newest: a monitor with a criteria that groups, in any step, evaluates
+   * every request (the Telemetry worker, #10582).
+   */
+  describe("isGroupingConfiguredOnMonitor", () => {
+    function stepWith(
+      criteria: Array<MonitorCriteriaInstance> | undefined,
+    ): MonitorStep {
+      const step: MonitorStep = new MonitorStep();
+
+      if (criteria) {
+        const monitorCriteria: MonitorCriteria = new MonitorCriteria();
+        monitorCriteria.data = { monitorCriteriaInstanceArray: criteria };
+        step.data!.monitorCriteria = monitorCriteria;
+      } else {
+        step.data!.monitorCriteria = undefined as never;
+      }
+
+      return step;
+    }
+
+    function stepsOf(steps: Array<MonitorStep>): MonitorSteps {
+      const monitorSteps: MonitorSteps = new MonitorSteps();
+      monitorSteps.data = {
+        monitorStepsInstanceArray: steps,
+        defaultMonitorStatusId: ObjectID.generate(),
+      };
+      return monitorSteps;
+    }
+
+    const grouped: () => MonitorCriteriaInstance =
+      (): MonitorCriteriaInstance => {
+        return makeCriteria({ groupByJSONPath: "requestBody.alertActiveID" });
+      };
+
+    it("is true when a criteria of the monitor groups by a payload field", () => {
+      expect(
+        IncomingRequestIncidentGrouping.isGroupingConfiguredOnMonitor(
+          stepsOf([stepWith([makeCriteria(undefined), grouped()])]),
+        ),
+      ).toBe(true);
+    });
+
+    it("reads every step, not only the first", () => {
+      expect(
+        IncomingRequestIncidentGrouping.isGroupingConfiguredOnMonitor(
+          stepsOf([stepWith([makeCriteria(undefined)]), stepWith([grouped()])]),
+        ),
+      ).toBe(true);
+    });
+
+    it("is false when no criteria groups", () => {
+      expect(
+        IncomingRequestIncidentGrouping.isGroupingConfiguredOnMonitor(
+          stepsOf([
+            stepWith([makeCriteria(undefined), makeCriteria(undefined)]),
+          ]),
+        ),
+      ).toBe(false);
+    });
+
+    it("is false for grouping turned on with no path to group by", () => {
+      expect(
+        IncomingRequestIncidentGrouping.isGroupingConfiguredOnMonitor(
+          stepsOf([stepWith([makeCriteria({ groupByJSONPath: "" })])]),
+        ),
+      ).toBe(false);
+    });
+
+    it("is false for a monitor without steps, criteria or settings", () => {
+      expect(
+        IncomingRequestIncidentGrouping.isGroupingConfiguredOnMonitor(
+          undefined,
+        ),
+      ).toBe(false);
+      expect(
+        IncomingRequestIncidentGrouping.isGroupingConfiguredOnMonitor(null),
+      ).toBe(false);
+      expect(
+        IncomingRequestIncidentGrouping.isGroupingConfiguredOnMonitor(
+          stepsOf([]),
+        ),
+      ).toBe(false);
+      expect(
+        IncomingRequestIncidentGrouping.isGroupingConfiguredOnMonitor(
+          stepsOf([stepWith(undefined)]),
+        ),
       ).toBe(false);
     });
   });
