@@ -4,7 +4,8 @@ import {
   JsonElementLimits,
   JsonElementTallyCount,
 } from "../../Utils/JsonElementCount";
-import { ExpressResponse } from "./Express";
+import { ExpressRequest, ExpressResponse } from "./Express";
+import { Socket } from "net";
 
 /**
  * A REQUEST BODY THE APP'S BODY PARSERS REFUSED IS THE CLIENT'S, NOT A FAULT
@@ -39,6 +40,11 @@ import { ExpressResponse } from "./Express";
  * limit, as the 50 MB does: OneUptime refused it, and no proxy did. And a
  * JSON body with more values than its route reads ("entity.too.many.values")
  * is refused before it is parsed, with how many it may hold.
+ *
+ * A third (#10597): a body whose Content-Encoding says gzip or deflate, and
+ * that does not inflate ("entity.inflate.failed") - not gzip at all, cut off,
+ * or with bytes after its end. It used to be a 500 and an error-level log
+ * line, from any client, with no key: the gzip reader runs before routing.
  */
 
 /*
@@ -54,6 +60,12 @@ export const APP_BODY_LIMIT_IN_BYTES: number = 50 * 1024 * 1024;
 export const TOO_MANY_JSON_VALUES_TYPE: string = "entity.too.many.values";
 
 /*
+ * The type of the error a body that does not inflate is refused with: its
+ * Content-Encoding says gzip or deflate, and its bytes are not (#10597).
+ */
+export const INFLATE_FAILED_TYPE: string = "entity.inflate.failed";
+
+/*
  * Set on the error a parser StartServer runs raises for a body over the
  * route's limit: its bytes, so the answer can say the limit OneUptime held
  * it to (see readRequestBodyRefusal).
@@ -62,15 +74,72 @@ export const APP_REQUEST_BODY_LIMIT_FIELD: string =
   "appRequestBodyLimitInBytes";
 
 /*
- * Has the answer to a body refused part-read close its connection once it is
- * sent (#10260), so not a byte more of the body is read. A reader that
- * refuses a body stops reading it (pauses the request), but that alone does
- * not end the connection: Node keeps a keep-alive connection whose body was
- * paused unread open until its keep-alive timeout, and drains one whose body
- * was never touched - reads every byte the client goes on sending - to keep
- * it usable (measured on Node 26). Told not to keep it, Node answers
- * "Connection: close" and ends it. Returns whether the connection was to be
- * kept, for a reader that takes the body after all.
+ * How long the connection of a body refused unread is kept once its answer is
+ * sent, before it is closed under the client (closeConnectionAfterAnswer):
+ * half-closed - the answer and the end of the stream are on their way - with
+ * not a byte more of the body read. Long enough for the answer to cross a
+ * slow link and be read; a client that reads it and hangs up ends it sooner.
+ * A client can hold a connection longer than this for free (an idle
+ * keep-alive one is kept for over a minute), so it buys nobody more.
+ */
+export const UNREAD_BODY_CONNECTION_GRACE_MS: number = 2000;
+
+/*
+ * Has a socket's end, once an answer has been written (Node calls
+ * destroySoon then), be a half-close: the answer is flushed and followed by
+ * the end of the stream, and the socket is destroyed only after the grace,
+ * or as soon as the client goes away. Nothing reads from it meanwhile.
+ */
+const closeSocketGracefully: (socket: Socket | null | undefined) => void = (
+  socket: Socket | null | undefined,
+): void => {
+  if (!socket || typeof socket.end !== "function") {
+    return;
+  }
+
+  socket.destroySoon = function destroyAfterGrace(this: Socket): void {
+    if (this.writable) {
+      this.end();
+    }
+
+    const timer: NodeJS.Timeout = setTimeout((): void => {
+      this.destroy();
+    }, UNREAD_BODY_CONNECTION_GRACE_MS);
+
+    // A connection on its way out does not hold the process open.
+    timer.unref();
+
+    this.once("close", (): void => {
+      clearTimeout(timer);
+    });
+  };
+};
+
+/*
+ * Has the answer to a body refused unread, or part-read, close its connection
+ * once it is sent (#10260, #10598), with not a byte more of the body read, and
+ * the answer still read by the client. Measured on Node 26, over loopback:
+ *
+ *   - Left to itself, Node drains a body nobody read once the answer is sent
+ *     (IncomingMessage._dump): every byte the client goes on sending is read
+ *     and thrown away, to keep the connection usable. A keep-alive connection
+ *     whose body was paused instead was held open, unread, until its
+ *     keep-alive timeout.
+ *   - Told not to keep the connection, Node answers "Connection: close" - but
+ *     it destroys the socket as soon as the answer is written. With the
+ *     client's body unread, the kernel resets the connection, and Node's own
+ *     http client and fetch - the probe, the CLI, an OpenTelemetry exporter
+ *     in Node - reported EPIPE instead of the 413 nearly every time, 64 MiB
+ *     sent with a Content-Length or chunked, on keep-alive connections and
+ *     not. (curl and Python's requests read the answer either way.)
+ *
+ * So the answer says "Connection: close"; once it is written, the socket is
+ * half-closed and destroyed only after UNREAD_BODY_CONNECTION_GRACE_MS, or
+ * when the client hangs up; and the body is never drained - not now, not
+ * after the answer. Each of those clients then reads the 413. Returns whether
+ * the connection was to be kept, for a reader that takes the body after all
+ * (RequestBodyOpening): setting res.shouldKeepAlive back is all it needs, as
+ * a body read whole leaves nothing to drain or to reset.
  */
 export const closeConnectionAfterAnswer: (res: ExpressResponse) => boolean = (
   res: ExpressResponse,
@@ -81,7 +150,34 @@ export const closeConnectionAfterAnswer: (res: ExpressResponse) => boolean = (
     res.shouldKeepAlive = false;
   }
 
+  const req: ExpressRequest | undefined = (
+    res as { req?: ExpressRequest | undefined }
+  ).req;
+
+  if (req) {
+    // Node drains a body nobody read once the answer is sent: not this one.
+    (req as unknown as { _dump: () => void })._dump = (): void => {};
+  }
+
+  closeSocketGracefully(res.socket as Socket | null | undefined);
+
   return wasKept;
+};
+
+/*
+ * Stops reading a request's body for good, for a reader that refuses it: the
+ * request is paused, and its answer closes the connection without a byte more
+ * of the body read (closeConnectionAfterAnswer).
+ */
+export const stopReadingRequestBody: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+) => void = (req: ExpressRequest, res: ExpressResponse): void => {
+  if (typeof req.pause === "function") {
+    req.pause();
+  }
+
+  closeConnectionAfterAnswer(res);
 };
 
 // A size as the too-large sentences say one: "1 MB", "50 MB", "1.5 MB".
@@ -166,6 +262,44 @@ export const createTooManyJsonValuesError: (
   });
 };
 
+/*
+ * Whether an error is zlib's for bytes that do not inflate ("incorrect header
+ * check", "unexpected end of file"...): a "Z_" code, as zlib names them. As
+ * body-parser hands one on, it is that error, with a 400 status added.
+ */
+export const isInflateError: (error: unknown) => boolean = (
+  error: unknown,
+): boolean => {
+  const code: unknown = (error as { code?: unknown } | null)?.code;
+
+  return (
+    error instanceof Error && typeof code === "string" && code.startsWith("Z_")
+  );
+};
+
+/*
+ * The error a body that does not inflate is refused with (#10597): shaped as
+ * body-parser's own, so expressErrorHandler answers it 400 in its sentence,
+ * and logs it at debug - any client can send one, before any key is checked.
+ */
+export const createInflateFailedError: (cause: unknown) => Error = (
+  cause: unknown,
+): Error => {
+  return Object.assign(
+    new Error(
+      cause instanceof Error && cause.message
+        ? cause.message
+        : "The request body does not inflate.",
+    ),
+    {
+      type: INFLATE_FAILED_TYPE,
+      status: 400,
+      statusCode: 400,
+      expose: true,
+    },
+  );
+};
+
 export const REQUEST_BODY_REFUSAL_MESSAGES: {
   tooLargeForOneUptime: string;
   tooLarge: string;
@@ -174,6 +308,7 @@ export const REQUEST_BODY_REFUSAL_MESSAGES: {
   cutOff: string;
   sizeMismatch: string;
   encodingUnsupported: string;
+  notInflated: string;
   charsetUnsupported: string;
   tooDeep: string;
   tooManyJsonValues: string;
@@ -195,6 +330,8 @@ export const REQUEST_BODY_REFUSAL_MESSAGES: {
     "The request body was not the size its Content-Length header said, so this did not finish. Send the request again with the right Content-Length.",
   encodingUnsupported:
     "The request body is compressed in a way OneUptime does not read, so this did not finish. Send it uncompressed, or with a Content-Encoding of gzip or deflate.",
+  notInflated:
+    "The request body is not the gzip or deflate data its Content-Encoding header says it is, so this did not finish. Compress the body as the header says, or send it uncompressed without the header.",
   charsetUnsupported:
     "The request body is in a character set OneUptime does not read, so this did not finish. Send it in UTF-8.",
   tooDeep:
@@ -261,6 +398,14 @@ export const REQUEST_BODY_REFUSALS: Record<string, RequestBodyRefusalRule> = {
   "encoding.unsupported": {
     status: 415,
     message: REQUEST_BODY_REFUSAL_MESSAGES.encodingUnsupported,
+  },
+  /*
+   * A gzip or deflate body that does not inflate (#10597): the gzip reader's,
+   * the opening reader's and body-parser's alike. OneUptime's own type.
+   */
+  [INFLATE_FAILED_TYPE]: {
+    status: 400,
+    message: REQUEST_BODY_REFUSAL_MESSAGES.notInflated,
   },
   // A charset the parser cannot decode.
   "charset.unsupported": {
