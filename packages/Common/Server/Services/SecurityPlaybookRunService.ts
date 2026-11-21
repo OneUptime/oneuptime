@@ -26,8 +26,19 @@ import {
   SecurityPlaybookStep,
   parseSecurityPlaybookSteps,
 } from "../../Types/SecurityPlaybook/SecurityPlaybookStep";
-import { buildPendingStepResults } from "../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
+import {
+  SecurityPlaybookStepResult,
+  SecurityPlaybookTarget,
+  buildPendingStepResults,
+} from "../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
 import SecurityPlaybookTrigger from "../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
+import { getSecurityPlaybookAction } from "../../Types/SecurityPlaybook/SecurityPlaybookAction";
+import {
+  OneStepRunRead,
+  isOneStepRunAction,
+  readOneStepRun,
+} from "../../Types/SecurityPlaybook/SecurityPlaybookOneStepRun";
+import QueryHelper from "../Types/Database/QueryHelper";
 import {
   playbookCancelledMarkdown,
   playbookStartedMarkdown,
@@ -41,9 +52,72 @@ export const UNFINISHED_SECURITY_PLAYBOOK_RUN_STATUSES: Array<SecurityPlaybookRu
     SecurityPlaybookRunStatus.WaitingForApproval,
   ];
 
+// What a one-step run from a case is started with (startOneStepRun).
+export interface OneStepRunRequest {
+  projectId: ObjectID;
+  securityCaseId: ObjectID;
+  // The person who asked for it: the run is theirs, and approved by someone else.
+  userId: ObjectID;
+  // One step of an action a one-step run takes (ONE_STEP_RUN_ACTIONS).
+  step: SecurityPlaybookStep;
+  // What it acts on, picked by the person and checked by the caller.
+  targets: Array<SecurityPlaybookTarget>;
+}
+
 export class Service extends ProjectReferencesService<Model> {
+  /*
+   * The one-step runs startOneStepRun is creating: only those are created
+   * with no playbook. Only this service adds to it, so a create through the
+   * API always names a playbook.
+   */
+  private readonly oneStepRuns: WeakSet<Model> = new WeakSet<Model>();
+
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A person's one-step run from a case (#10342): one containment step on
+   * the targets they picked, through the engine as any run - its approval
+   * (a step that cuts somebody off waits for someone else's unless the
+   * step says a Security Admin let it run), its timeline, its audit and
+   * its undo - with no playbook written first. The caller checks the
+   * person may run it and that its targets are the case's to act on.
+   */
+  @CaptureSpan()
+  public async startOneStepRun(data: OneStepRunRequest): Promise<Model> {
+    if (!isOneStepRunAction(data.step.action)) {
+      throw new BadDataException(
+        `"${data.step.action}" cannot be run on its own from a case.`,
+      );
+    }
+
+    // The step as a run reads it back: cleaned, and refused when it cannot run.
+    const steps: Array<SecurityPlaybookStep> = parseSecurityPlaybookSteps([
+      data.step,
+    ]);
+    const results: Array<SecurityPlaybookStepResult> =
+      buildPendingStepResults(steps);
+
+    results[0] = { ...results[0]!, targets: data.targets };
+
+    const run: Model = new Model();
+    run.projectId = data.projectId;
+    run.securityCaseId = data.securityCaseId;
+    run.playbookName =
+      getSecurityPlaybookAction(data.step.action)?.title || data.step.action;
+    run.trigger = SecurityPlaybookTrigger.Manual;
+    run.triggeredByUserId = data.userId;
+    run.steps = steps as unknown as JSONArray;
+    run.stepResults = results as unknown as JSONArray;
+
+    this.oneStepRuns.add(run);
+
+    try {
+      return await this.create({ data: run, props: { isRoot: true } });
+    } finally {
+      this.oneStepRuns.delete(run);
+    }
   }
 
   /*
@@ -58,6 +132,16 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
     const data: Model = createBy.data;
+
+    if (
+      createBy.props.isRoot &&
+      this.oneStepRuns.has(data) &&
+      data.projectId &&
+      data.securityCaseId &&
+      !data.securityPlaybookId
+    ) {
+      return await this.readyOneStepRun(createBy);
+    }
 
     if (!data.projectId || !data.securityCaseId || !data.securityPlaybookId) {
       throw new BadDataException("Choose the case and the playbook to run.");
@@ -160,6 +244,80 @@ export class Service extends ProjectReferencesService<Model> {
     return { createBy: createBy, carryForward: undefined };
   }
 
+  /*
+   * A one-step run as it starts: queued, its step and its targets as
+   * startOneStepRun gave them. One unfinished one-step run of an action on
+   * an address at a time: a second click on Block while the first waits
+   * for approval must not ask twice.
+   */
+  private async readyOneStepRun(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    const data: Model = createBy.data;
+    const read: OneStepRunRead | null = readOneStepRun(data);
+
+    if (!read || read.values.length === 0) {
+      throw new BadDataException(
+        "A one-step run needs one step of an action it can take, and what it acts on.",
+      );
+    }
+
+    const securityCase: SecurityCase | null =
+      await SecurityCaseService.findOneBy({
+        query: { _id: data.securityCaseId!, projectId: data.projectId! },
+        select: { _id: true },
+        props: { isRoot: true },
+      });
+
+    if (!securityCase) {
+      throw new BadDataException("That case does not exist.");
+    }
+
+    const unfinished: Array<Model> = await this.findBy({
+      query: {
+        projectId: data.projectId!,
+        securityCaseId: data.securityCaseId!,
+        securityPlaybookId: QueryHelper.isNull(),
+        status: new Includes(UNFINISHED_SECURITY_PLAYBOOK_RUN_STATUSES),
+      },
+      select: {
+        _id: true,
+        securityPlaybookId: true,
+        steps: true,
+        stepResults: true,
+      },
+      skip: 0,
+      limit: 100,
+      props: { isRoot: true },
+    });
+    const wanted: Set<string> = new Set(
+      read.values.map((value: string): string => {
+        return value.trim().toLowerCase();
+      }),
+    );
+
+    for (const run of unfinished) {
+      const other: OneStepRunRead | null = readOneStepRun(run);
+      const clash: string | undefined = other?.values.find(
+        (value: string): boolean => {
+          return wanted.has(value.trim().toLowerCase());
+        },
+      );
+
+      if (other && other.action === read.action && clash) {
+        throw new BadDataException(
+          `${getSecurityPlaybookAction(read.action)?.title || read.action} is already waiting or running for ${clash} on this case. Wait for it to finish, or cancel it first.`,
+        );
+      }
+    }
+
+    data.status = SecurityPlaybookRunStatus.Queued;
+    data.currentStepIndex = 0;
+    data.threatIntelMatched = false;
+
+    return { createBy, carryForward: undefined };
+  }
+
   @CaptureSpan()
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
@@ -185,17 +343,20 @@ export class Service extends ProjectReferencesService<Model> {
       });
     }
 
-    await SecurityCaseFeedService.createSecurityCaseFeedItem({
-      projectId: createdItem.projectId,
-      securityCaseId: createdItem.securityCaseId,
-      feedInfoInMarkdown: playbookStartedMarkdown({
-        playbookName: createdItem.playbookName || "",
-        trigger: createdItem.trigger || SecurityPlaybookTrigger.Manual,
-      }).toString(),
-      eventType: SecurityCaseFeedEventType.PlaybookRun,
-      displayColor: Indigo500,
-      userId: createdItem.triggeredByUserId,
-    });
+    // A one-step run's step says what it did: no playbook started.
+    if (createdItem.securityPlaybookId) {
+      await SecurityCaseFeedService.createSecurityCaseFeedItem({
+        projectId: createdItem.projectId,
+        securityCaseId: createdItem.securityCaseId,
+        feedInfoInMarkdown: playbookStartedMarkdown({
+          playbookName: createdItem.playbookName || "",
+          trigger: createdItem.trigger || SecurityPlaybookTrigger.Manual,
+        }).toString(),
+        eventType: SecurityCaseFeedEventType.PlaybookRun,
+        displayColor: Indigo500,
+        userId: createdItem.triggeredByUserId,
+      });
+    }
 
     try {
       await SecurityPlaybookEngine.enqueueRun(createdItem.id);

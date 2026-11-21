@@ -51,12 +51,15 @@ import FeedMarkdown, {
 } from "../../../Utils/Markdown/FeedMarkdown";
 import {
   approvalRequestedMarkdown,
+  oneStepRunFailedMarkdown,
+  oneStepRunMarkdown,
   playbookFailedMarkdown,
   playbookFinishedMarkdown,
   playbookInterruptedMarkdown,
   playbookStepMarkdown,
   playbookStoppedMarkdown,
 } from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
+import { isOneStepSecurityPlaybookRun } from "../../../Types/SecurityPlaybook/SecurityPlaybookOneStepRun";
 import PartialEntity from "../../../Types/Database/PartialEntity";
 import SecurityCaseStepChecks from "../SecurityCase/StepChecks/SecurityCaseStepChecks";
 import WorkspaceSecurityPlaybookApprovalMessages from "../Workspace/WorkspaceSecurityPlaybookApprovalMessages";
@@ -176,6 +179,7 @@ export default class SecurityPlaybookEngine {
         _id: true,
         projectId: true,
         securityCaseId: true,
+        securityPlaybookId: true,
         playbookName: true,
         status: true,
         steps: true,
@@ -280,6 +284,12 @@ export default class SecurityPlaybookEngine {
     const projectId: ObjectID = run.projectId;
     const securityCaseId: ObjectID = run.securityCaseId;
     const playbookName: string = run.playbookName || "Playbook";
+    /*
+     * A person's one-step run from a case (#10342) has no playbook: its
+     * timeline says what its step did, not that a playbook started and
+     * finished around it.
+     */
+    const isOneStepRun: boolean = isOneStepSecurityPlaybookRun(run);
 
     if (!run.startedAt) {
       await SecurityPlaybookRunService.updateColumnsByIdWithoutHooks({
@@ -542,6 +552,7 @@ export default class SecurityPlaybookEngine {
           securityCase,
           triggeredByUserId: run.triggeredByUserId,
           targets: results[index]!.targets,
+          isOneStepRun,
         });
       } catch (error) {
         outcome = {
@@ -607,12 +618,15 @@ export default class SecurityPlaybookEngine {
         await SecurityCaseFeedService.createSecurityCaseFeedItem({
           projectId,
           securityCaseId,
-          feedInfoInMarkdown: playbookStepMarkdown({
-            playbookName,
-            stepNumber,
-            stepTitle,
-            summary: outcome.summary,
-          }).toString(),
+          feedInfoInMarkdown: (isOneStepRun
+            ? oneStepRunMarkdown({ summary: outcome.summary })
+            : playbookStepMarkdown({
+                playbookName,
+                stepNumber,
+                stepTitle,
+                summary: outcome.summary,
+              })
+          ).toString(),
           moreInformationInMarkdown: outcome.detailsInMarkdown?.toString(),
           eventType:
             outcome.feedEventType || SecurityCaseFeedEventType.PlaybookStep,
@@ -634,11 +648,13 @@ export default class SecurityPlaybookEngine {
           feed: {
             projectId,
             securityCaseId,
-            markdown: playbookFailedMarkdown({
-              playbookName,
-              stepNumber,
-              stepTitle,
-            }),
+            markdown: isOneStepRun
+              ? oneStepRunFailedMarkdown({ stepTitle })
+              : playbookFailedMarkdown({
+                  playbookName,
+                  stepNumber,
+                  stepTitle,
+                }),
             detailsInMarkdown: outcome.error
               ? FeedMarkdown.multilineText(outcome.error)
               : undefined,
@@ -646,6 +662,15 @@ export default class SecurityPlaybookEngine {
         });
         return;
       }
+    }
+
+    // A one-step run's step said what it did: nothing finished around it.
+    if (isOneStepRun) {
+      await this.finishRun({
+        runId,
+        status: SecurityPlaybookRunStatus.Succeeded,
+      });
+      return;
     }
 
     const counts: { succeeded: number; skipped: number; failed: number } = {
