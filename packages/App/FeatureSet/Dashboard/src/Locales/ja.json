@@ -60983,5 +60983,15 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "モバイル用のテレメトリ取り込みキーを作成します。アプリに安全に同梱できます: 固定されたアプリのトレース、ログ、メトリクスだけを送ります。",
   "Includes records where these {{count}} addresses were hashed.": "この {{count}} 件のアドレスがハッシュ化されたレコードを含みます。",
   "Includes records where these {{count}} addresses were hashed._one": "このアドレスがハッシュ化されたレコードを含みます。",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "トークンが 8 文字の古いレコード ({{example}} など) は、アドレスと照合できません。"
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "トークンが 8 文字の古いレコード ({{example}} など) は、アドレスと照合できません。",
+  "A recovery leaves this criteria's alerts open until Auto Resolve Alert is on.": "「アラートを自動解決」がオンになるまで、回復してもこの条件のアラートは開いたままです。",
+  "A recovery leaves this criteria's incidents open until Auto Resolve Incident is on.": "「インシデントを自動解決」がオンになるまで、回復してもこの条件のインシデントは開いたままです。",
+  "A request reported this alert recovered, but Auto Resolve Alert is off in its criteria, so the alert stays open. Turn on Auto Resolve Alert, under More fields in the criteria's alert, to resolve it on recovery.": "リクエストがこのアラートの回復を報告しましたが、条件の「アラートを自動解決」がオフのため、アラートは開いたままです。回復時に解決するには、条件のアラートの「その他の項目」で「アラートを自動解決」をオンにしてください。",
+  "A request reported this incident recovered, but Auto Resolve Incident is off in its criteria, so the incident stays open. Turn on Auto Resolve Incident, under More fields in the criteria's incident, to resolve it on recovery.": "リクエストがこのインシデントの回復を報告しましたが、条件の「インシデントを自動解決」がオフのため、インシデントは開いたままです。回復時に解決するには、条件のインシデントの「その他の項目」で「インシデントを自動解決」をオンにしてください。",
+  "Alert left open: {{title}}": "開いたままのアラート: {{title}}",
+  "Incident left open: {{title}}": "開いたままのインシデント: {{title}}",
+  "Resolves an alert when {{field}} equals {{value}}.": "{{field}} が {{value}} と等しいときにアラートを解決します。",
+  "Resolves an incident and an alert when {{field}} equals {{value}}.": "{{field}} が {{value}} と等しいときにインシデントとアラートを解決します。",
+  "Turn On Auto Resolve Alert": "「アラートを自動解決」を有効にする",
+  "Turn On Auto Resolve Incident": "「インシデントを自動解決」を有効にする"
 }

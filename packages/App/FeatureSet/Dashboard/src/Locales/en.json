@@ -60983,5 +60983,15 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.",
   "Includes records where these {{count}} addresses were hashed.": "Includes records where these {{count}} addresses were hashed.",
   "Includes records where these {{count}} addresses were hashed._one": "Includes records where this address was hashed.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.",
+  "A recovery leaves this criteria's alerts open until Auto Resolve Alert is on.": "A recovery leaves this criteria's alerts open until Auto Resolve Alert is on.",
+  "A recovery leaves this criteria's incidents open until Auto Resolve Incident is on.": "A recovery leaves this criteria's incidents open until Auto Resolve Incident is on.",
+  "A request reported this alert recovered, but Auto Resolve Alert is off in its criteria, so the alert stays open. Turn on Auto Resolve Alert, under More fields in the criteria's alert, to resolve it on recovery.": "A request reported this alert recovered, but Auto Resolve Alert is off in its criteria, so the alert stays open. Turn on Auto Resolve Alert, under More fields in the criteria's alert, to resolve it on recovery.",
+  "A request reported this incident recovered, but Auto Resolve Incident is off in its criteria, so the incident stays open. Turn on Auto Resolve Incident, under More fields in the criteria's incident, to resolve it on recovery.": "A request reported this incident recovered, but Auto Resolve Incident is off in its criteria, so the incident stays open. Turn on Auto Resolve Incident, under More fields in the criteria's incident, to resolve it on recovery.",
+  "Alert left open: {{title}}": "Alert left open: {{title}}",
+  "Incident left open: {{title}}": "Incident left open: {{title}}",
+  "Resolves an alert when {{field}} equals {{value}}.": "Resolves an alert when {{field}} equals {{value}}.",
+  "Resolves an incident and an alert when {{field}} equals {{value}}.": "Resolves an incident and an alert when {{field}} equals {{value}}.",
+  "Turn On Auto Resolve Alert": "Turn On Auto Resolve Alert",
+  "Turn On Auto Resolve Incident": "Turn On Auto Resolve Incident"
 }

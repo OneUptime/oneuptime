@@ -20871,7 +20871,7 @@
   "Resolved by {{name}}": "Resolved by {{name}}",
   "Resolved {{time}}": "Resolved {{time}}",
   "Resolved {{time}} by {{name}}": "Resolved {{time}} by {{name}}",
-  "Resolves an incident when {{field}} equals {{value}}.": "Resolves an incident when {{field}} equals {{value}}.",
+  "Resolves an incident when {{field}} equals {{value}}.": "{{field}}이(가) {{value}}와(과) 같으면 인시던트를 해결합니다.",
   "Resolving alert": "경고를 해결하는 중",
   "Resolving incident": "인시던트를 해결하는 중",
   "Resolving names": "이름을 확인하는 중",
@@ -60983,5 +60983,15 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "모바일 텔레메트리 수집 키를 만듭니다. 앱 안에 안전하게 포함할 수 있습니다. 고정된 앱의 트레이스, 로그, 메트릭만 보냅니다.",
   "Includes records where these {{count}} addresses were hashed.": "이 {{count}}개 주소가 해싱된 레코드를 포함합니다.",
   "Includes records where these {{count}} addresses were hashed._one": "이 주소가 해싱된 레코드를 포함합니다.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "토큰이 8자인 이전 레코드(예: {{example}})는 주소와 연결할 수 없습니다."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "토큰이 8자인 이전 레코드(예: {{example}})는 주소와 연결할 수 없습니다.",
+  "A recovery leaves this criteria's alerts open until Auto Resolve Alert is on.": "\"경고 자동 해결\"이 켜질 때까지 복구해도 이 기준의 경고는 열린 상태로 남습니다.",
+  "A recovery leaves this criteria's incidents open until Auto Resolve Incident is on.": "\"인시던트 자동 해결\"이 켜질 때까지 복구해도 이 기준의 인시던트는 열린 상태로 남습니다.",
+  "A request reported this alert recovered, but Auto Resolve Alert is off in its criteria, so the alert stays open. Turn on Auto Resolve Alert, under More fields in the criteria's alert, to resolve it on recovery.": "요청이 이 경고의 복구를 보고했지만 기준의 \"경고 자동 해결\"이 꺼져 있어 경고가 열린 상태로 남습니다. 복구 시 해결하려면 기준 경고의 \"추가 필드\"에서 \"경고 자동 해결\"을 켜세요.",
+  "A request reported this incident recovered, but Auto Resolve Incident is off in its criteria, so the incident stays open. Turn on Auto Resolve Incident, under More fields in the criteria's incident, to resolve it on recovery.": "요청이 이 인시던트의 복구를 보고했지만 기준의 \"인시던트 자동 해결\"이 꺼져 있어 인시던트가 열린 상태로 남습니다. 복구 시 해결하려면 기준 인시던트의 \"추가 필드\"에서 \"인시던트 자동 해결\"을 켜세요.",
+  "Alert left open: {{title}}": "열린 상태로 남은 경고: {{title}}",
+  "Incident left open: {{title}}": "열린 상태로 남은 인시던트: {{title}}",
+  "Resolves an alert when {{field}} equals {{value}}.": "{{field}}이(가) {{value}}와(과) 같으면 경고를 해결합니다.",
+  "Resolves an incident and an alert when {{field}} equals {{value}}.": "{{field}}이(가) {{value}}와(과) 같으면 인시던트와 경고를 해결합니다.",
+  "Turn On Auto Resolve Alert": "\"경고 자동 해결\" 켜기",
+  "Turn On Auto Resolve Incident": "\"인시던트 자동 해결\" 켜기"
 }

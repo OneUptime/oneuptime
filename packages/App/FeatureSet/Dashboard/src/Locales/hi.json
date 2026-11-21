@@ -20871,7 +20871,7 @@
   "Resolved by {{name}}": "Resolved by {{name}}",
   "Resolved {{time}}": "Resolved {{time}}",
   "Resolved {{time}} by {{name}}": "Resolved {{time}} by {{name}}",
-  "Resolves an incident when {{field}} equals {{value}}.": "Resolves an incident when {{field}} equals {{value}}.",
+  "Resolves an incident when {{field}} equals {{value}}.": "जब {{field}} {{value}} के बराबर हो, तब घटना सुलझाता है।",
   "Resolving alert": "अलर्ट हल किया जा रहा है",
   "Resolving incident": "घटना हल की जा रही है",
   "Resolving names": "नामों की पहचान हो रही है",
@@ -60983,5 +60983,15 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "मोबाइल टेलीमेट्री इंजेशन कुंजी बनाएँ। इसे आपके ऐप के अंदर सुरक्षित रूप से भेजा जा सकता है: यह केवल उसी ऐप के ट्रेस, लॉग और मेट्रिक्स भेजती है जिस पर यह पिन है।",
   "Includes records where these {{count}} addresses were hashed.": "इसमें वे रिकॉर्ड शामिल हैं जिनमें ये {{count}} पते हैश किए गए थे।",
   "Includes records where these {{count}} addresses were hashed._one": "इसमें वे रिकॉर्ड शामिल हैं जिनमें यह पता हैश किया गया था।",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "8 वर्णों के टोकन वाले पुराने रिकॉर्ड, जैसे {{example}}, किसी पते से मिलाए नहीं जा सकते।"
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "8 वर्णों के टोकन वाले पुराने रिकॉर्ड, जैसे {{example}}, किसी पते से मिलाए नहीं जा सकते।",
+  "A recovery leaves this criteria's alerts open until Auto Resolve Alert is on.": "जब तक \"अलर्ट स्वतः सुलझाएं\" चालू न हो, रिकवरी इस मानदंड के अलर्ट को खुला छोड़ देती है।",
+  "A recovery leaves this criteria's incidents open until Auto Resolve Incident is on.": "जब तक \"घटना स्वतः सुलझाएं\" चालू न हो, रिकवरी इस मानदंड की घटनाओं को खुला छोड़ देती है।",
+  "A request reported this alert recovered, but Auto Resolve Alert is off in its criteria, so the alert stays open. Turn on Auto Resolve Alert, under More fields in the criteria's alert, to resolve it on recovery.": "एक अनुरोध ने इस अलर्ट की रिकवरी की सूचना दी, लेकिन इसके मानदंड में \"अलर्ट स्वतः सुलझाएं\" बंद है, इसलिए अलर्ट खुला रहता है। रिकवरी पर इसे सुलझाने के लिए मानदंड के अलर्ट के \"और फ़ील्ड\" में \"अलर्ट स्वतः सुलझाएं\" चालू करें।",
+  "A request reported this incident recovered, but Auto Resolve Incident is off in its criteria, so the incident stays open. Turn on Auto Resolve Incident, under More fields in the criteria's incident, to resolve it on recovery.": "एक अनुरोध ने इस घटना की रिकवरी की सूचना दी, लेकिन इसके मानदंड में \"घटना स्वतः सुलझाएं\" बंद है, इसलिए घटना खुली रहती है। रिकवरी पर इसे सुलझाने के लिए मानदंड की घटना के \"और फ़ील्ड\" में \"घटना स्वतः सुलझाएं\" चालू करें।",
+  "Alert left open: {{title}}": "अलर्ट खुला छोड़ा गया: {{title}}",
+  "Incident left open: {{title}}": "घटना खुली छोड़ी गई: {{title}}",
+  "Resolves an alert when {{field}} equals {{value}}.": "जब {{field}} {{value}} के बराबर हो, तब अलर्ट सुलझाता है।",
+  "Resolves an incident and an alert when {{field}} equals {{value}}.": "जब {{field}} {{value}} के बराबर हो, तब घटना और अलर्ट सुलझाता है।",
+  "Turn On Auto Resolve Alert": "\"अलर्ट स्वतः सुलझाएं\" चालू करें",
+  "Turn On Auto Resolve Incident": "\"घटना स्वतः सुलझाएं\" चालू करें"
 }

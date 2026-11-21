@@ -20871,7 +20871,7 @@
   "Resolved by {{name}}": "Resolved by {{name}}",
   "Resolved {{time}}": "Resolved {{time}}",
   "Resolved {{time}} by {{name}}": "Resolved {{time}} by {{name}}",
-  "Resolves an incident when {{field}} equals {{value}}.": "Resolves an incident when {{field}} equals {{value}}.",
+  "Resolves an incident when {{field}} equals {{value}}.": "當 {{field}} 等於 {{value}} 時解決事件。",
   "Resolving alert": "正在解決警示",
   "Resolving incident": "正在解決事件",
   "Resolving names": "正在解析名稱",
@@ -60983,5 +60983,15 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "建立行動裝置遙測擷取金鑰。它可以安全地隨您的應用程式發布：它只傳送其所固定的應用程式的追蹤、日誌和指標。",
   "Includes records where these {{count}} addresses were hashed.": "包含這 {{count}} 個位址經過雜湊處理的記錄。",
   "Includes records where these {{count}} addresses were hashed._one": "包含此位址經過雜湊處理的記錄。",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "權杖為 8 個字元的較舊記錄（例如 {{example}}）無法與位址比對。"
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "權杖為 8 個字元的較舊記錄（例如 {{example}}）無法與位址比對。",
+  "A recovery leaves this criteria's alerts open until Auto Resolve Alert is on.": "在開啟「自動解決警示」之前，恢復不會解決此條件的警示。",
+  "A recovery leaves this criteria's incidents open until Auto Resolve Incident is on.": "在開啟「自動解決事件」之前，恢復不會解決此條件的事件。",
+  "A request reported this alert recovered, but Auto Resolve Alert is off in its criteria, so the alert stays open. Turn on Auto Resolve Alert, under More fields in the criteria's alert, to resolve it on recovery.": "請求回報此警示已恢復，但其條件中的「自動解決警示」已關閉，因此警示保持開啟。請在該條件警示的「更多欄位」中開啟「自動解決警示」，以便在恢復時解決它。",
+  "A request reported this incident recovered, but Auto Resolve Incident is off in its criteria, so the incident stays open. Turn on Auto Resolve Incident, under More fields in the criteria's incident, to resolve it on recovery.": "請求回報此事件已恢復，但其條件中的「自動解決事件」已關閉，因此事件保持開啟。請在該條件事件的「更多欄位」中開啟「自動解決事件」，以便在恢復時解決它。",
+  "Alert left open: {{title}}": "警示保持開啟：{{title}}",
+  "Incident left open: {{title}}": "事件保持開啟：{{title}}",
+  "Resolves an alert when {{field}} equals {{value}}.": "當 {{field}} 等於 {{value}} 時解決警示。",
+  "Resolves an incident and an alert when {{field}} equals {{value}}.": "當 {{field}} 等於 {{value}} 時解決事件和警示。",
+  "Turn On Auto Resolve Alert": "開啟「自動解決警示」",
+  "Turn On Auto Resolve Incident": "開啟「自動解決事件」"
 }

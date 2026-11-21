@@ -60983,5 +60983,15 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "أنشئ مفتاح استيعاب للقياس عن بُعد خاصًا بالهاتف المحمول. شحنه داخل تطبيقك آمن: فهو لا يرسل إلا تتبعات التطبيق المثبّت عليه وسجلاته ومقاييسه.",
   "Includes records where these {{count}} addresses were hashed.": "يتضمن السجلات التي استُبدلت فيها هذه العناوين ({{count}}) بقيمة تجزئة.",
   "Includes records where these {{count}} addresses were hashed._one": "يتضمن السجلات التي استُبدل فيها هذا العنوان بقيمة تجزئة.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "لا يمكن مطابقة السجلات الأقدم التي يتكون رمزها من 8 أحرف، مثل {{example}}، مع عنوان."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "لا يمكن مطابقة السجلات الأقدم التي يتكون رمزها من 8 أحرف، مثل {{example}}، مع عنوان.",
+  "A recovery leaves this criteria's alerts open until Auto Resolve Alert is on.": "يترك التعافي تنبيهات هذا المعيار مفتوحة حتى يُفعَّل «حل التنبيه تلقائيًا».",
+  "A recovery leaves this criteria's incidents open until Auto Resolve Incident is on.": "يترك التعافي حوادث هذا المعيار مفتوحة حتى يُفعَّل «حل الحادثة تلقائيًا».",
+  "A request reported this alert recovered, but Auto Resolve Alert is off in its criteria, so the alert stays open. Turn on Auto Resolve Alert, under More fields in the criteria's alert, to resolve it on recovery.": "أبلغ طلب عن تعافي هذا التنبيه، لكن «حل التنبيه تلقائيًا» غير مفعّل في معياره، لذا يبقى التنبيه مفتوحًا. فعّل «حل التنبيه تلقائيًا» ضمن «المزيد من الحقول» في تنبيه المعيار ليُحل عند التعافي.",
+  "A request reported this incident recovered, but Auto Resolve Incident is off in its criteria, so the incident stays open. Turn on Auto Resolve Incident, under More fields in the criteria's incident, to resolve it on recovery.": "أبلغ طلب عن تعافي هذه الحادثة، لكن «حل الحادثة تلقائيًا» غير مفعّل في معيارها، لذا تبقى الحادثة مفتوحة. فعّل «حل الحادثة تلقائيًا» ضمن «المزيد من الحقول» في حادثة المعيار لتُحل عند التعافي.",
+  "Alert left open: {{title}}": "تُرك التنبيه مفتوحًا: {{title}}",
+  "Incident left open: {{title}}": "تُركت الحادثة مفتوحة: {{title}}",
+  "Resolves an alert when {{field}} equals {{value}}.": "يحل تنبيهًا عندما يساوي {{field}} القيمة {{value}}.",
+  "Resolves an incident and an alert when {{field}} equals {{value}}.": "يحل حادثة وتنبيهًا عندما يساوي {{field}} القيمة {{value}}.",
+  "Turn On Auto Resolve Alert": "تفعيل «حل التنبيه تلقائيًا»",
+  "Turn On Auto Resolve Incident": "تفعيل «حل الحادثة تلقائيًا»"
 }

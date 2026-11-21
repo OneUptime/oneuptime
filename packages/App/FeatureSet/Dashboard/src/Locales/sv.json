@@ -20871,7 +20871,7 @@
   "Resolved by {{name}}": "Resolved by {{name}}",
   "Resolved {{time}}": "Resolved {{time}}",
   "Resolved {{time}} by {{name}}": "Resolved {{time}} by {{name}}",
-  "Resolves an incident when {{field}} equals {{value}}.": "Resolves an incident when {{field}} equals {{value}}.",
+  "Resolves an incident when {{field}} equals {{value}}.": "Löser en incident när {{field}} är lika med {{value}}.",
   "Resolving alert": "Löser larm",
   "Resolving incident": "Löser incident",
   "Resolving names": "Slår upp namn",
@@ -60983,5 +60983,15 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Skapa en mobil intagningsnyckel för telemetri. Den kan säkert följa med i din app: den skickar bara spår, loggar och mätvärden från appen den är fäst vid.",
   "Includes records where these {{count}} addresses were hashed.": "Omfattar poster där dessa {{count}} adresser hashades.",
   "Includes records where these {{count}} addresses were hashed._one": "Omfattar poster där den här adressen hashades.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Äldre poster vars token har 8 tecken, som {{example}}, kan inte kopplas till en adress."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Äldre poster vars token har 8 tecken, som {{example}}, kan inte kopplas till en adress.",
+  "A recovery leaves this criteria's alerts open until Auto Resolve Alert is on.": "En återhämtning lämnar det här kriteriets larm öppna tills ”Lös larm automatiskt” är på.",
+  "A recovery leaves this criteria's incidents open until Auto Resolve Incident is on.": "En återhämtning lämnar det här kriteriets incidenter öppna tills ”Lös incident automatiskt” är på.",
+  "A request reported this alert recovered, but Auto Resolve Alert is off in its criteria, so the alert stays open. Turn on Auto Resolve Alert, under More fields in the criteria's alert, to resolve it on recovery.": "En begäran rapporterade att det här larmet har återhämtat sig, men ”Lös larm automatiskt” är av i dess kriterium, så larmet förblir öppet. Slå på ”Lös larm automatiskt” under ”Fler fält” i kriteriets larm för att lösa det vid återhämtning.",
+  "A request reported this incident recovered, but Auto Resolve Incident is off in its criteria, so the incident stays open. Turn on Auto Resolve Incident, under More fields in the criteria's incident, to resolve it on recovery.": "En begäran rapporterade att den här incidenten har återhämtat sig, men ”Lös incident automatiskt” är av i dess kriterium, så incidenten förblir öppen. Slå på ”Lös incident automatiskt” under ”Fler fält” i kriteriets incident för att lösa den vid återhämtning.",
+  "Alert left open: {{title}}": "Larm lämnat öppet: {{title}}",
+  "Incident left open: {{title}}": "Incident lämnad öppen: {{title}}",
+  "Resolves an alert when {{field}} equals {{value}}.": "Löser ett larm när {{field}} är lika med {{value}}.",
+  "Resolves an incident and an alert when {{field}} equals {{value}}.": "Löser en incident och ett larm när {{field}} är lika med {{value}}.",
+  "Turn On Auto Resolve Alert": "Slå på ”Lös larm automatiskt”",
+  "Turn On Auto Resolve Incident": "Slå på ”Lös incident automatiskt”"
 }

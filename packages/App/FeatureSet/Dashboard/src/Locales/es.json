@@ -20871,7 +20871,7 @@
   "Resolved by {{name}}": "Resolved by {{name}}",
   "Resolved {{time}}": "Resolved {{time}}",
   "Resolved {{time}} by {{name}}": "Resolved {{time}} by {{name}}",
-  "Resolves an incident when {{field}} equals {{value}}.": "Resolves an incident when {{field}} equals {{value}}.",
+  "Resolves an incident when {{field}} equals {{value}}.": "Resuelve un incidente cuando {{field}} es igual a {{value}}.",
   "Resolving alert": "Resolviendo la alerta",
   "Resolving incident": "Resolviendo el incidente",
   "Resolving names": "Resolviendo nombres",
@@ -60983,5 +60983,15 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Crea una clave de ingesta de telemetría móvil. Puedes incluirla en tu app con seguridad: solo envía las trazas, registros y métricas de la app a la que está fijada.",
   "Includes records where these {{count}} addresses were hashed.": "Incluye registros en los que estas {{count}} direcciones se convirtieron en hash.",
   "Includes records where these {{count}} addresses were hashed._one": "Incluye registros en los que esta dirección se convirtió en hash.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Los registros más antiguos cuyo token tiene 8 caracteres, como {{example}}, no se pueden asociar a una dirección."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Los registros más antiguos cuyo token tiene 8 caracteres, como {{example}}, no se pueden asociar a una dirección.",
+  "A recovery leaves this criteria's alerts open until Auto Resolve Alert is on.": "Una recuperación deja abiertas las alertas de este criterio hasta que se active «Resolver alerta automáticamente».",
+  "A recovery leaves this criteria's incidents open until Auto Resolve Incident is on.": "Una recuperación deja abiertos los incidentes de este criterio hasta que se active «Resolver incidente automáticamente».",
+  "A request reported this alert recovered, but Auto Resolve Alert is off in its criteria, so the alert stays open. Turn on Auto Resolve Alert, under More fields in the criteria's alert, to resolve it on recovery.": "Una solicitud informó que esta alerta se recuperó, pero «Resolver alerta automáticamente» está desactivado en su criterio, así que la alerta sigue abierta. Activa «Resolver alerta automáticamente», en «Más campos» de la alerta del criterio, para resolverla al recuperarse.",
+  "A request reported this incident recovered, but Auto Resolve Incident is off in its criteria, so the incident stays open. Turn on Auto Resolve Incident, under More fields in the criteria's incident, to resolve it on recovery.": "Una solicitud informó que este incidente se recuperó, pero «Resolver incidente automáticamente» está desactivado en su criterio, así que el incidente sigue abierto. Activa «Resolver incidente automáticamente», en «Más campos» del incidente del criterio, para resolverlo al recuperarse.",
+  "Alert left open: {{title}}": "Alerta dejada abierta: {{title}}",
+  "Incident left open: {{title}}": "Incidente dejado abierto: {{title}}",
+  "Resolves an alert when {{field}} equals {{value}}.": "Resuelve una alerta cuando {{field}} es igual a {{value}}.",
+  "Resolves an incident and an alert when {{field}} equals {{value}}.": "Resuelve un incidente y una alerta cuando {{field}} es igual a {{value}}.",
+  "Turn On Auto Resolve Alert": "Activar «Resolver alerta automáticamente»",
+  "Turn On Auto Resolve Incident": "Activar «Resolver incidente automáticamente»"
 }

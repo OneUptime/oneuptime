@@ -60983,5 +60983,15 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "یک کلید دریافت داده موبایل برای تله‌متری بسازید. منتشر کردنش همراه اپ امن است: فقط ترِیس‌ها، لاگ‌ها و متریک‌های اپی را می‌فرستد که به آن سنجاق شده است.",
   "Includes records where these {{count}} addresses were hashed.": "شامل رکوردهایی است که این {{count}} نشانی در آن‌ها درهم‌سازی شده‌اند.",
   "Includes records where these {{count}} addresses were hashed._one": "شامل رکوردهایی است که این نشانی در آن‌ها درهم‌سازی شده است.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "رکوردهای قدیمی‌تر که توکن آن‌ها ۸ نویسه دارد، مانند {{example}}، را نمی‌توان با یک نشانی تطبیق داد."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "رکوردهای قدیمی‌تر که توکن آن‌ها ۸ نویسه دارد، مانند {{example}}، را نمی‌توان با یک نشانی تطبیق داد.",
+  "A recovery leaves this criteria's alerts open until Auto Resolve Alert is on.": "تا وقتی «رفع خودکار هشدار» روشن نشود، بازیابی هشدارهای این معیار را باز می‌گذارد.",
+  "A recovery leaves this criteria's incidents open until Auto Resolve Incident is on.": "تا وقتی «رفع خودکار حادثه» روشن نشود، بازیابی حادثه‌های این معیار را باز می‌گذارد.",
+  "A request reported this alert recovered, but Auto Resolve Alert is off in its criteria, so the alert stays open. Turn on Auto Resolve Alert, under More fields in the criteria's alert, to resolve it on recovery.": "درخواستی بازیابی این هشدار را گزارش کرد، اما «رفع خودکار هشدار» در معیار آن خاموش است، پس هشدار باز می‌ماند. برای برطرف شدن آن هنگام بازیابی، «رفع خودکار هشدار» را در «فیلدهای بیشتر» هشدار معیار روشن کنید.",
+  "A request reported this incident recovered, but Auto Resolve Incident is off in its criteria, so the incident stays open. Turn on Auto Resolve Incident, under More fields in the criteria's incident, to resolve it on recovery.": "درخواستی بازیابی این حادثه را گزارش کرد، اما «رفع خودکار حادثه» در معیار آن خاموش است، پس حادثه باز می‌ماند. برای برطرف شدن آن هنگام بازیابی، «رفع خودکار حادثه» را در «فیلدهای بیشتر» حادثه معیار روشن کنید.",
+  "Alert left open: {{title}}": "هشدار باز ماند: {{title}}",
+  "Incident left open: {{title}}": "حادثه باز ماند: {{title}}",
+  "Resolves an alert when {{field}} equals {{value}}.": "وقتی {{field}} برابر {{value}} باشد، هشدار را برطرف می‌کند.",
+  "Resolves an incident and an alert when {{field}} equals {{value}}.": "وقتی {{field}} برابر {{value}} باشد، حادثه و هشدار را برطرف می‌کند.",
+  "Turn On Auto Resolve Alert": "روشن کردن «رفع خودکار هشدار»",
+  "Turn On Auto Resolve Incident": "روشن کردن «رفع خودکار حادثه»"
 }

@@ -20871,7 +20871,7 @@
   "Resolved by {{name}}": "Resolved by {{name}}",
   "Resolved {{time}}": "Resolved {{time}}",
   "Resolved {{time}} by {{name}}": "Resolved {{time}} by {{name}}",
-  "Resolves an incident when {{field}} equals {{value}}.": "Resolves an incident when {{field}} equals {{value}}.",
+  "Resolves an incident when {{field}} equals {{value}}.": "Behebt einen Vorfall, wenn {{field}} gleich {{value}} ist.",
   "Resolving alert": "Warnung wird gelöst",
   "Resolving incident": "Vorfall wird gelöst",
   "Resolving names": "Namen werden aufgelöst",
@@ -60983,5 +60983,15 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Erstellen Sie einen mobilen Ingestion-Schlüssel für Telemetrie. Sie können ihn gefahrlos mit Ihrer App ausliefern: Er sendet nur Traces, Protokolle und Metriken der App, auf die er festgelegt ist.",
   "Includes records where these {{count}} addresses were hashed.": "Enthält Datensätze, in denen diese {{count}} Adressen gehasht wurden.",
   "Includes records where these {{count}} addresses were hashed._one": "Enthält Datensätze, in denen diese Adresse gehasht wurde.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Ältere Datensätze, deren Token 8 Zeichen hat, etwa {{example}}, lassen sich keiner Adresse zuordnen."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Ältere Datensätze, deren Token 8 Zeichen hat, etwa {{example}}, lassen sich keiner Adresse zuordnen.",
+  "A recovery leaves this criteria's alerts open until Auto Resolve Alert is on.": "Eine Erholung lässt die Warnungen dieses Kriteriums offen, bis „Warnung automatisch beheben“ eingeschaltet ist.",
+  "A recovery leaves this criteria's incidents open until Auto Resolve Incident is on.": "Eine Erholung lässt die Vorfälle dieses Kriteriums offen, bis „Vorfall automatisch beheben“ eingeschaltet ist.",
+  "A request reported this alert recovered, but Auto Resolve Alert is off in its criteria, so the alert stays open. Turn on Auto Resolve Alert, under More fields in the criteria's alert, to resolve it on recovery.": "Eine Anfrage hat die Erholung dieser Warnung gemeldet, aber „Warnung automatisch beheben“ ist in ihrem Kriterium ausgeschaltet, deshalb bleibt die Warnung offen. Schalten Sie „Warnung automatisch beheben“ unter „Weitere Felder“ in der Warnung des Kriteriums ein, damit sie bei einer Erholung behoben wird.",
+  "A request reported this incident recovered, but Auto Resolve Incident is off in its criteria, so the incident stays open. Turn on Auto Resolve Incident, under More fields in the criteria's incident, to resolve it on recovery.": "Eine Anfrage hat die Erholung dieses Vorfalls gemeldet, aber „Vorfall automatisch beheben“ ist in seinem Kriterium ausgeschaltet, deshalb bleibt der Vorfall offen. Schalten Sie „Vorfall automatisch beheben“ unter „Weitere Felder“ im Vorfall des Kriteriums ein, damit er bei einer Erholung behoben wird.",
+  "Alert left open: {{title}}": "Warnung offen gelassen: {{title}}",
+  "Incident left open: {{title}}": "Vorfall offen gelassen: {{title}}",
+  "Resolves an alert when {{field}} equals {{value}}.": "Behebt eine Warnung, wenn {{field}} gleich {{value}} ist.",
+  "Resolves an incident and an alert when {{field}} equals {{value}}.": "Behebt einen Vorfall und eine Warnung, wenn {{field}} gleich {{value}} ist.",
+  "Turn On Auto Resolve Alert": "„Warnung automatisch beheben“ einschalten",
+  "Turn On Auto Resolve Incident": "„Vorfall automatisch beheben“ einschalten"
 }

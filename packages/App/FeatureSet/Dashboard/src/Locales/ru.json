@@ -20871,7 +20871,7 @@
   "Resolved by {{name}}": "Resolved by {{name}}",
   "Resolved {{time}}": "Resolved {{time}}",
   "Resolved {{time}} by {{name}}": "Resolved {{time}} by {{name}}",
-  "Resolves an incident when {{field}} equals {{value}}.": "Resolves an incident when {{field}} equals {{value}}.",
+  "Resolves an incident when {{field}} equals {{value}}.": "Устраняет инцидент, когда {{field}} равно {{value}}.",
   "Resolving alert": "Разрешение оповещения",
   "Resolving incident": "Разрешение инцидента",
   "Resolving names": "Сопоставление имён",
@@ -60983,5 +60983,15 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Создайте мобильный ключ приёма телеметрии. Его можно безопасно поставлять в приложении: он отправляет только трассировки, журналы и метрики приложения, за которым закреплён.",
   "Includes records where these {{count}} addresses were hashed.": "Включает записи, в которых были хешированы эти адреса ({{count}}).",
   "Includes records where these {{count}} addresses were hashed._one": "Включает записи, в которых был хеширован этот адрес.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Более старые записи с токеном из 8 символов, например {{example}}, нельзя сопоставить с адресом."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Более старые записи с токеном из 8 символов, например {{example}}, нельзя сопоставить с адресом.",
+  "A recovery leaves this criteria's alerts open until Auto Resolve Alert is on.": "При восстановлении оповещения этого критерия остаются открытыми, пока не включено «Автоустранение оповещения».",
+  "A recovery leaves this criteria's incidents open until Auto Resolve Incident is on.": "При восстановлении инциденты этого критерия остаются открытыми, пока не включено «Автоустранение инцидента».",
+  "A request reported this alert recovered, but Auto Resolve Alert is off in its criteria, so the alert stays open. Turn on Auto Resolve Alert, under More fields in the criteria's alert, to resolve it on recovery.": "Запрос сообщил о восстановлении этого оповещения, но в его критерии выключено «Автоустранение оповещения», поэтому оповещение остаётся открытым. Включите «Автоустранение оповещения» в разделе «Дополнительные поля» оповещения критерия, чтобы оно устранялось при восстановлении.",
+  "A request reported this incident recovered, but Auto Resolve Incident is off in its criteria, so the incident stays open. Turn on Auto Resolve Incident, under More fields in the criteria's incident, to resolve it on recovery.": "Запрос сообщил о восстановлении этого инцидента, но в его критерии выключено «Автоустранение инцидента», поэтому инцидент остаётся открытым. Включите «Автоустранение инцидента» в разделе «Дополнительные поля» инцидента критерия, чтобы он устранялся при восстановлении.",
+  "Alert left open: {{title}}": "Оповещение оставлено открытым: {{title}}",
+  "Incident left open: {{title}}": "Инцидент оставлен открытым: {{title}}",
+  "Resolves an alert when {{field}} equals {{value}}.": "Устраняет оповещение, когда {{field}} равно {{value}}.",
+  "Resolves an incident and an alert when {{field}} equals {{value}}.": "Устраняет инцидент и оповещение, когда {{field}} равно {{value}}.",
+  "Turn On Auto Resolve Alert": "Включить «Автоустранение оповещения»",
+  "Turn On Auto Resolve Incident": "Включить «Автоустранение инцидента»"
 }

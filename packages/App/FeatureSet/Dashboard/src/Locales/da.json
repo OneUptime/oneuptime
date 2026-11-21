@@ -20871,7 +20871,7 @@
   "Resolved by {{name}}": "Resolved by {{name}}",
   "Resolved {{time}}": "Resolved {{time}}",
   "Resolved {{time}} by {{name}}": "Resolved {{time}} by {{name}}",
-  "Resolves an incident when {{field}} equals {{value}}.": "Resolves an incident when {{field}} equals {{value}}.",
+  "Resolves an incident when {{field}} equals {{value}}.": "Løser en hændelse, når {{field}} er lig med {{value}}.",
   "Resolving alert": "Løser advarsel",
   "Resolving incident": "Løser hændelse",
   "Resolving names": "Slår navne op",
@@ -60983,5 +60983,15 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Opret en mobil indtagelsesnøgle til telemetri. Den kan trygt følge med i din app: den sender kun spor, protokoller og metrikker fra den app, den er fastgjort til.",
   "Includes records where these {{count}} addresses were hashed.": "Omfatter poster, hvor disse {{count}} adresser blev hashet.",
   "Includes records where these {{count}} addresses were hashed._one": "Omfatter poster, hvor denne adresse blev hashet.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Ældre poster, hvis token har 8 tegn, som {{example}}, kan ikke kobles til en adresse."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Ældre poster, hvis token har 8 tegn, som {{example}}, kan ikke kobles til en adresse.",
+  "A recovery leaves this criteria's alerts open until Auto Resolve Alert is on.": "En genoprettelse lader dette kriteries advarsler stå åbne, indtil \"Løs advarsel automatisk\" er slået til.",
+  "A recovery leaves this criteria's incidents open until Auto Resolve Incident is on.": "En genoprettelse lader dette kriteries hændelser stå åbne, indtil \"Løs hændelse automatisk\" er slået til.",
+  "A request reported this alert recovered, but Auto Resolve Alert is off in its criteria, so the alert stays open. Turn on Auto Resolve Alert, under More fields in the criteria's alert, to resolve it on recovery.": "En anmodning rapporterede, at denne advarsel er genoprettet, men \"Løs advarsel automatisk\" er slået fra i dens kriterie, så advarslen forbliver åben. Slå \"Løs advarsel automatisk\" til under \"Flere felter\" i kriteriets advarsel for at løse den ved genoprettelse.",
+  "A request reported this incident recovered, but Auto Resolve Incident is off in its criteria, so the incident stays open. Turn on Auto Resolve Incident, under More fields in the criteria's incident, to resolve it on recovery.": "En anmodning rapporterede, at denne hændelse er genoprettet, men \"Løs hændelse automatisk\" er slået fra i dens kriterie, så hændelsen forbliver åben. Slå \"Løs hændelse automatisk\" til under \"Flere felter\" i kriteriets hændelse for at løse den ved genoprettelse.",
+  "Alert left open: {{title}}": "Advarsel efterladt åben: {{title}}",
+  "Incident left open: {{title}}": "Hændelse efterladt åben: {{title}}",
+  "Resolves an alert when {{field}} equals {{value}}.": "Løser en advarsel, når {{field}} er lig med {{value}}.",
+  "Resolves an incident and an alert when {{field}} equals {{value}}.": "Løser en hændelse og en advarsel, når {{field}} er lig med {{value}}.",
+  "Turn On Auto Resolve Alert": "Slå \"Løs advarsel automatisk\" til",
+  "Turn On Auto Resolve Incident": "Slå \"Løs hændelse automatisk\" til"
 }
