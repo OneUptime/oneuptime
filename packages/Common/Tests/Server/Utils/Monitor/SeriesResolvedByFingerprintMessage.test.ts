@@ -337,9 +337,12 @@ describe("resolveSeriesAlertsByFingerprint", () => {
     });
 
     test("an alert from no criteria is not the recovery's to name", async () => {
-      const unowned: Alert = orionAlert("fp-48214");
+      // Opened by hand, not by a criteria: no createdCriteriaId.
+      const unowned: Alert = new Alert();
 
-      unowned.createdCriteriaId = undefined;
+      unowned.id = ObjectID.generate();
+      unowned.title = "Hardware status is Critical";
+      unowned.seriesFingerprint = "fp-48214";
       openAlerts = [unowned];
 
       const evaluationSummary: MonitorEvaluationSummary = summary();
