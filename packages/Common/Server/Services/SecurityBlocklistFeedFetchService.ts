@@ -82,7 +82,8 @@ export class Service extends ProjectReferencesService<Model> {
       select: { _id: true, fetchedAt: true },
       sort: { fetchedAt: SortOrder.Descending },
       skip: 0,
-      limit: SECURITY_BLOCKLIST_FEED_INTERVAL_SAMPLE_SIZE + 1,
+      // Twice the polls the interval reads: a poll can be two fetches (the list and its MD5).
+      limit: (SECURITY_BLOCKLIST_FEED_INTERVAL_SAMPLE_SIZE + 1) * 2,
       props: { isRoot: true },
     });
 

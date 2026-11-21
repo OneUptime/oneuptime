@@ -580,17 +580,27 @@ export function getSecurityBlocklistFeedUsualIntervalInMs(
     })
     .sort((first: number, second: number): number => {
       return second - first;
-    })
-    .slice(0, SECURITY_BLOCKLIST_FEED_INTERVAL_SAMPLE_SIZE + 1);
+    });
+
+  // One time per poll: a fetch within moments of the poll before it is part of that poll.
+  const polls: Array<number> = [];
+
+  for (const time of times) {
+    const last: number | undefined = polls[polls.length - 1];
+
+    if (last === undefined || last - time >= SECURITY_BLOCKLIST_FEED_SAME_POLL_IN_MS) {
+      polls.push(time);
+    }
+
+    if (polls.length > SECURITY_BLOCKLIST_FEED_INTERVAL_SAMPLE_SIZE) {
+      break;
+    }
+  }
 
   const gaps: Array<number> = [];
 
-  for (let index: number = 1; index < times.length; index++) {
-    const gap: number = times[index - 1]! - times[index]!;
-
-    if (gap >= SECURITY_BLOCKLIST_FEED_SAME_POLL_IN_MS) {
-      gaps.push(gap);
-    }
+  for (let index: number = 1; index < polls.length; index++) {
+    gaps.push(polls[index - 1]! - polls[index]!);
   }
 
   if (gaps.length === 0) {

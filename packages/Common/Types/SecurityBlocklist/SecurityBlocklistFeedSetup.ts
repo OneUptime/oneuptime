@@ -294,7 +294,7 @@ export const SECURITY_BLOCKLIST_FEED_SETUPS: Readonly<
     refreshInMinutes: 1,
     steps: [
       translationKey(
-        "As root, run the commands below once: they make two sets, the iptables and ip6tables rules that drop what they hold, and a script.",
+        "As root, run the commands below once: they make two sets, the iptables and ip6tables rules in the raw table that drop what they hold, and a script.",
       ),
       translationKey(
         "The script runs every minute from cron, fills new sets when the list changed and swaps them in, so the rules never see a set half full.",
@@ -344,8 +344,7 @@ export const SECURITY_BLOCKLIST_FEED_SETUPS: Readonly<
       ),
     ],
     note: null,
-    documentationUrl:
-      "https://docs.haproxy.org/2.8/management.html#9.3-prepare%20acl",
+    documentationUrl: "https://docs.haproxy.org/3.4/management.html#9.3",
     docsAnchor: "haproxy",
     hasSnippet: true,
   },
