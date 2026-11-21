@@ -1163,15 +1163,59 @@ describe("SecurityEventConnectionService.getConnectorSettings", () => {
       id: CONNECTION_ID,
       select: {
         _id: true,
+        projectId: true,
         provider: true,
         config: true,
         secrets: true,
         alertingOnly: true,
+        blockingSettings: true,
       },
       props: { isRoot: true },
     });
     expect(settings.secrets).toEqual({ apiToken: SECRET_VALUE });
     expect(settings.alertingOnly).toBe(true);
+  });
+
+  test("blocking on hands the connector the project and the zones it blocks in, so a test checks the write access blocking needs (#10343)", async () => {
+    const findOneById: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      SecurityEventConnectionService,
+      "findOneById",
+    );
+
+    const settings: SecurityConnectorSettings =
+      await SecurityEventConnectionService.getConnectorSettings(
+        storedConnection({
+          provider: SecurityEventConnectorProvider.Cloudflare,
+          config: { accountId: "a".repeat(32), zoneIds: [] },
+          projectId: PROJECT_ID,
+          blockingSettings: { isEnabled: true, zoneIds: ["z".repeat(32)] },
+        }),
+      );
+
+    expect(settings.blocking).toEqual({
+      projectId: PROJECT_ID.toString(),
+      zoneIds: ["z".repeat(32)],
+    });
+    expect(findOneById).not.toHaveBeenCalled();
+  });
+
+  test("blocking off, or a row with no project, asks for no write access", async () => {
+    for (const overrides of [
+      { projectId: PROJECT_ID, blockingSettings: { isEnabled: false } },
+      { projectId: PROJECT_ID },
+      { blockingSettings: { isEnabled: true, zoneIds: [] } },
+    ] as Array<Partial<SecurityEventConnection>>) {
+      const settings: SecurityConnectorSettings =
+        await SecurityEventConnectionService.getConnectorSettings(
+          storedConnection({
+            provider: SecurityEventConnectorProvider.Cloudflare,
+            config: { accountId: "a".repeat(32), zoneIds: [] },
+            ...overrides,
+          }),
+        );
+
+      expect(settings.blocking).toBeUndefined();
+    }
   });
 
   test("a row that vanished is an error, not empty settings", async () => {
