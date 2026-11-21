@@ -13,7 +13,10 @@ import {
   LARGE_REQUEST_BODY_LIMIT,
   RequestBodyLimit,
 } from "../Utils/RequestBodyLimit";
-import { createTooManyJsonValuesError } from "../Utils/RequestBodyRefusal";
+import {
+  closeConnectionAfterAnswer,
+  createTooManyJsonValuesError,
+} from "../Utils/RequestBodyRefusal";
 import Response from "../Utils/Response";
 import zlib from "zlib";
 
@@ -121,6 +124,11 @@ export default class GzipRequestBodyMiddleware {
       const declaredLength: number = parseInt(contentLengthHeader, 10);
 
       if (!isNaN(declaredLength) && declaredLength > maxBytes) {
+        /*
+         * Never touched, a keep-alive connection's body would be drained -
+         * every byte of it read - once this is answered: it is closed.
+         */
+        closeConnectionAfterAnswer(res);
         GzipRequestBodyMiddleware.rejectTooLarge(
           req,
           res,
@@ -183,14 +191,17 @@ export default class GzipRequestBodyMiddleware {
      * connection usable for the next chunk, but that is a cooperative
      * first-party client sending a 4 MiB cap's worth of bytes. Here the
      * body we are refusing may be gigabytes from someone who wants us to
-     * read them, so we pause: Node flushes the response we already wrote
-     * and then closes the connection because the request was never
-     * consumed, which is precisely the outcome we want.
+     * read them, so we pause, and the answer closes the connection once it
+     * is sent. A pause alone ends it only for a client that asked to close
+     * it: a keep-alive one was held open, unread, until its keep-alive
+     * timeout (closeConnectionAfterAnswer, #10260).
      */
     const stopReading: () => void = (): void => {
       if (typeof req.pause === "function") {
         req.pause();
       }
+
+      closeConnectionAfterAnswer(res);
     };
 
     const onData: (chunk: Buffer | string) => void = (
@@ -329,6 +340,8 @@ export default class GzipRequestBodyMiddleware {
 
     inflate.on("error", (err: Error): void => {
       settle((): void => {
+        // The rest is not read: flowing on with no listener would drain it.
+        stopReading();
         logger.error(err, getLogAttributesFromRequest(req as OneUptimeRequest));
 
         Response.sendErrorResponse(

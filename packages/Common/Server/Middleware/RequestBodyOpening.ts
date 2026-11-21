@@ -10,6 +10,7 @@ import {
 import { RequestBodyLimit } from "../Utils/RequestBodyLimit";
 import {
   APP_REQUEST_BODY_LIMIT_FIELD,
+  closeConnectionAfterAnswer,
   createTooManyJsonValuesError,
 } from "../Utils/RequestBodyRefusal";
 import { isJsonContentType } from "./GzipRequestBody";
@@ -55,11 +56,9 @@ import zlib from "zlib";
  * answers in RequestBodyRefusal's words, again with the rest unread.
  *
  * A refused body's connection is closed once its answer is sent
- * ("Connection: close"), whatever the client asked for. Left to itself, Node
- * keeps a keep-alive connection whose body was paused unread open until its
- * keep-alive timeout, and drains one whose body was never touched - reads
- * every byte the client sends - to keep it usable (measured on Node 26). A
- * body the check lets through keeps its connection as the client asked.
+ * ("Connection: close", closeConnectionAfterAnswer), whatever the client
+ * asked for: the check's answer is marked to close before the check runs,
+ * and a body it lets through keeps its connection as the client asked.
  *
  * Bodies are inflated as body-parser inflates them: gzip and deflate.
  */
@@ -140,25 +139,6 @@ export const createEncodingUnsupportedError: (encoding: string) => Error = (
     type: "encoding.unsupported",
     encoding: encoding,
   });
-};
-
-/*
- * Has the answer close its connection once it is sent (see above): Node
- * then answers "Connection: close" and ends the connection, nothing more of
- * the body read and nothing waiting on the rest. Returns whether the
- * connection was to be kept, for a check that lets the body through after
- * all: set back, the answer is the usual keep-alive one.
- */
-const closeConnectionAfterAnswer: (res: ExpressResponse) => boolean = (
-  res: ExpressResponse,
-): boolean => {
-  const wasKept: boolean = Boolean(res.shouldKeepAlive);
-
-  if (!res.headersSent) {
-    res.shouldKeepAlive = false;
-  }
-
-  return wasKept;
 };
 
 // The client went away, or its stream broke, before the body was in.
