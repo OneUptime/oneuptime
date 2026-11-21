@@ -736,6 +736,140 @@ describe("what goes wrong", () => {
   });
 });
 
+/*
+ * A delete's hook reads what the teams were on before it returns - a team
+ * deleted with its members takes the rows of the rules that name it right
+ * after them - and the telling goes on in the background.
+ */
+describe("starting the telling from a delete's hook", () => {
+  // The calls of a query that names teams and no policy: what the teams were on.
+  function readsOfTeamsLeft(): number {
+    return jest
+      .mocked(OnCallDutyPolicyEscalationRuleTeamService.findBy)
+      .mock.calls.filter((call: Array<unknown>): boolean => {
+        const query: Record<string, unknown> = (
+          call[0] as { query: Record<string, unknown> }
+        ).query;
+
+        return (
+          query["teamId"] !== undefined &&
+          query["onCallDutyPolicyId"] === undefined
+        );
+      }).length;
+  }
+
+  test("REGRESSION: what the teams were on is read before it returns; the telling, handed it, reads it no more", async () => {
+    inProject(ANA);
+    const platform: WorldMembership = world.addMember(ANA, PLATFORM, true);
+    world.nameTeam(PLATFORM);
+    world.leave(platform);
+
+    const tellings: Array<Promise<void>> = [];
+    const tell: typeof OnCallLeaveNotices.tellLeft =
+      OnCallLeaveNotices.tellLeft.bind(OnCallLeaveNotices);
+
+    jest
+      .spyOn(OnCallLeaveNotices, "tellLeft")
+      .mockImplementation(
+        (data: Parameters<typeof OnCallLeaveNotices.tellLeft>[0]) => {
+          // The team is deleted meanwhile, and its rule's rows with it.
+          world.teamRows = [];
+
+          const telling: Promise<void> = tell(data);
+          tellings.push(telling);
+          return telling;
+        },
+      );
+
+    await OnCallLeaveNotices.startTellingLeft({
+      projectId: PROJECT_ID,
+      leavers: [{ userId: ANA, teamIds: [PLATFORM] }],
+    });
+
+    expect(readsOfTeamsLeft()).toBe(1);
+    expect(OnCallLeaveNotices.tellLeft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        teamsLeft: expect.objectContaining({
+          teamNames: new Map<string, string>([
+            [PLATFORM.toString().toLowerCase(), "Platform"],
+          ]),
+        }),
+      }),
+    );
+
+    await Promise.all(tellings);
+
+    expect(subjects()).toEqual([
+      "You have been removed from the on-call policy Payments for team Platform",
+    ]);
+    expect(readsOfTeamsLeft()).toBe(1);
+  });
+
+  test("a team no rule names: one read, and no telling started", async () => {
+    inProject(ANA);
+    jest.spyOn(OnCallLeaveNotices, "tellLeft");
+
+    await OnCallLeaveNotices.startTellingLeft({
+      projectId: PROJECT_ID,
+      leavers: [{ userId: ANA, teamIds: [PAYMENTS_TEAM] }],
+    });
+
+    expect(readsOfTeamsLeft()).toBe(1);
+    expect(OnCallLeaveNotices.tellLeft).not.toHaveBeenCalled();
+  });
+
+  test("a read that fails: logged, no telling started, never thrown", async () => {
+    world.nameTeam(PLATFORM);
+    world.failReads = true;
+    jest.spyOn(OnCallLeaveNotices, "tellLeft");
+
+    await expect(
+      OnCallLeaveNotices.startTellingLeft({
+        projectId: PROJECT_ID,
+        leavers: [{ userId: ANA, teamIds: [PLATFORM] }],
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(OnCallLeaveNotices.tellLeft).not.toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledWith(
+      "Could not tell the people who left teams of a project which on-call policies stopped paging them.",
+      expect.anything(),
+    );
+  });
+
+  test("the telling, failing in the background, is logged and fails nothing", async () => {
+    inProject(ANA);
+    world.nameTeam(PLATFORM);
+
+    let fail: (error: Error) => void = (): void => {};
+
+    jest.spyOn(OnCallLeaveNotices, "tellLeft").mockImplementation(() => {
+      return new Promise<void>(
+        (_resolve: () => void, reject: (error: Error) => void): void => {
+          fail = reject;
+        },
+      );
+    });
+
+    await expect(
+      OnCallLeaveNotices.startTellingLeft({
+        projectId: PROJECT_ID,
+        leavers: [{ userId: ANA, teamIds: [PLATFORM] }],
+      }),
+    ).resolves.toBeUndefined();
+
+    fail(new Error("unreachable"));
+    await new Promise<void>((resolve: () => void): void => {
+      setTimeout(resolve, 0);
+    });
+
+    expect(logger.error).toHaveBeenCalledWith(
+      "Could not tell the people who left teams of a project which on-call policies stopped paging them.",
+      expect.anything(),
+    );
+  });
+});
+
 describe("getNotices: each policy once, its rules in order and its teams by name", () => {
   function row(data: {
     policyId: ObjectID;

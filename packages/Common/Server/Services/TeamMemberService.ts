@@ -3245,16 +3245,6 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     );
 
     /*
-     * Whoever left a team an escalation rule names, and is still a member
-     * of the project, is told once for each on-call policy that pages them
-     * through nothing any more (OnCallLeaveNotices, #10587).
-     */
-    this.tellOnCallPoliciesOfLeavers(
-      onDelete.carryForward as Array<TeamMember>,
-      itemIdsBeforeDelete,
-    );
-
-    /*
      * Someone who declined their own invitation: the project's window for
      * them ends, so inviting them again emails them (#10179). Removing them
      * is not declining: a SCIM connection that deletes the users it created
@@ -3417,6 +3407,18 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       );
     }
 
+    /*
+     * Whoever left a team an escalation rule names, and is still a member
+     * of the project, is told once for each on-call policy that pages them
+     * through nothing any more (OnCallLeaveNotices, #10587). After their
+     * access is settled; before this returns, while a team deleted with its
+     * members is still there to read.
+     */
+    await this.tellOnCallPoliciesOfLeavers(
+      onDelete.carryForward as Array<TeamMember>,
+      itemIdsBeforeDelete,
+    );
+
     if (refreshError) {
       throw refreshError;
     }
@@ -3453,13 +3455,16 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
    * accepted memberships the delete removed (an invitation withdrawn paged
    * nobody). They are told, once for each on-call policy that pages them
    * through nothing any more, while they are still members of the project
-   * (OnCallLeaveNotices, #10587). In the background, one project after
-   * another: it never holds up or fails the delete, and logs what fails.
+   * (OnCallLeaveNotices, #10587). What the teams they left were on is read
+   * now - a team deleted with its members takes the rows of the rules that
+   * name it right after them (TeamService.onBeforeDelete) - and the telling
+   * goes on in the background: it never holds up or fails the delete, and
+   * logs what fails.
    */
-  private tellOnCallPoliciesOfLeavers(
+  private async tellOnCallPoliciesOfLeavers(
     members: Array<TeamMember>,
     removedIds: Array<ObjectID> | undefined,
-  ): void {
+  ): Promise<void> {
     const byProject: Map<
       string,
       { projectId: ObjectID; leavers: Map<string, OnCallLeaver> }
@@ -3498,21 +3503,21 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       byProject.set(projectKey, project);
     }
 
-    if (byProject.size === 0) {
-      return;
-    }
-
-    (async (): Promise<void> => {
-      for (const project of byProject.values()) {
-        // OnCallLeaveNotices.tellLeft never throws.
-        await OnCallLeaveNotices.tellLeft({
+    for (const project of byProject.values()) {
+      try {
+        await OnCallLeaveNotices.startTellingLeft({
           projectId: project.projectId,
           leavers: [...project.leavers.values()],
         });
+      } catch (error) {
+        logger.error(
+          error as Error,
+          {
+            projectId: project.projectId.toString(),
+          } as LogAttributes,
+        );
       }
-    })().catch((error: Error): void => {
-      logger.error(error);
-    });
+    }
   }
 
   /*

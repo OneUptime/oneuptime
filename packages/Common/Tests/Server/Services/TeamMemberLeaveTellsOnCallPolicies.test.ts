@@ -1,5 +1,6 @@
 import Team from "../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
+import OnCallDutyPolicyEscalationRuleTeamService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleTeamService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import OnCallDutyPolicyTimeLogService from "../../../Server/Services/OnCallDutyPolicyTimeLogService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
@@ -64,6 +65,8 @@ const SRE: ObjectID = new ObjectID("10587000-0000-4000-8000-0000000000b3");
 type Hook = (first: unknown, second?: unknown) => Promise<unknown>;
 
 // The real leave notices, before any test stands in for them.
+const REAL_START_TELLING_LEFT: typeof OnCallLeaveNotices.startTellingLeft =
+  OnCallLeaveNotices.startTellingLeft.bind(OnCallLeaveNotices);
 const REAL_TELL_LEFT: typeof OnCallLeaveNotices.tellLeft =
   OnCallLeaveNotices.tellLeft.bind(OnCallLeaveNotices);
 
@@ -101,7 +104,7 @@ function asRow(world: WorldMembership): TeamMember {
   });
 }
 
-let tellLeft: SpyInstance<typeof OnCallLeaveNotices.tellLeft>;
+let startTellingLeft: SpyInstance<typeof OnCallLeaveNotices.startTellingLeft>;
 let told: Array<Promise<void>>;
 
 beforeEach(() => {
@@ -131,8 +134,8 @@ beforeEach(() => {
     .spyOn(OnCallDutyPolicyTimeLogService, "endTimeForUser")
     .mockResolvedValue(undefined as never);
 
-  tellLeft = jest
-    .spyOn(OnCallLeaveNotices, "tellLeft")
+  startTellingLeft = jest
+    .spyOn(OnCallLeaveNotices, "startTellingLeft")
     .mockImplementation(async (): Promise<void> => {
       return undefined;
     });
@@ -173,8 +176,10 @@ async function deleted(
 
 // What onDeleteSuccess handed OnCallLeaveNotices, as "user: team, team".
 function handedOver(): Array<Array<string>> {
-  return tellLeft.mock.calls.map(
-    (call: Parameters<typeof OnCallLeaveNotices.tellLeft>): Array<string> => {
+  return startTellingLeft.mock.calls.map(
+    (
+      call: Parameters<typeof OnCallLeaveNotices.startTellingLeft>,
+    ): Array<string> => {
       return call[0].leavers.map((leaver: OnCallLeaver): string => {
         return `${call[0].projectId.toString()} ${leaver.userId.toString()}: ${leaver.teamIds
           .map((teamId: ObjectID): string => {
@@ -219,7 +224,7 @@ describe("what a delete hands the leave notices", () => {
       membership({ userId: IVY, teamId: PLATFORM, accepted: false }),
     ]);
 
-    expect(tellLeft).not.toHaveBeenCalled();
+    expect(startTellingLeft).not.toHaveBeenCalled();
   });
 
   test("only the memberships the delete removed", async () => {
@@ -236,7 +241,7 @@ describe("what a delete hands the leave notices", () => {
   test("a delete that removed nobody tells nobody", async () => {
     await deleted([membership({ userId: ANA, teamId: PLATFORM })], []);
 
-    expect(tellLeft).not.toHaveBeenCalled();
+    expect(startTellingLeft).not.toHaveBeenCalled();
   });
 
   test("each project is told of its own leavers", async () => {
@@ -257,14 +262,8 @@ describe("what a delete hands the leave notices", () => {
     ]);
   });
 
-  test("telling them never holds up or fails the delete", async () => {
-    let finish: () => void = (): void => {};
-
-    tellLeft.mockImplementation((): Promise<void> => {
-      return new Promise<void>((resolve: () => void): void => {
-        finish = resolve;
-      });
-    });
+  test("the delete never fails with it: what goes wrong is logged", async () => {
+    startTellingLeft.mockRejectedValue(new Error("unreachable") as never);
 
     await expect(
       onDeleteSuccess(
@@ -276,23 +275,31 @@ describe("what a delete hands the leave notices", () => {
       ),
     ).resolves.toBeDefined();
 
-    expect(tellLeft).toHaveBeenCalledTimes(1);
-    finish();
-
-    tellLeft.mockRejectedValue(new Error("unreachable") as never);
-
-    await expect(
-      onDeleteSuccess(
-        {
-          deleteBy: { query: {}, props: { isRoot: true } },
-          carryForward: [membership({ userId: BO, teamId: PLATFORM })],
-        },
-        undefined,
-      ),
-    ).resolves.toBeDefined();
-
-    await afterTheDelete();
+    expect(startTellingLeft).toHaveBeenCalledTimes(1);
     expect(logger.error).toHaveBeenCalled();
+  });
+
+  test("after their access is settled: the leave cleanups run first", async () => {
+    const steps: Array<string> = [];
+
+    jest
+      .mocked(
+        (
+          TeamMemberService as unknown as {
+            cleanupOnCallAssignmentsIfUserLeftProject: () => Promise<void>;
+          }
+        ).cleanupOnCallAssignmentsIfUserLeftProject,
+      )
+      .mockImplementation(async (): Promise<void> => {
+        steps.push("leave cleanup");
+      });
+    startTellingLeft.mockImplementation(async (): Promise<void> => {
+      steps.push("leave notices");
+    });
+
+    await deleted([membership({ userId: ANA, teamId: PLATFORM })]);
+
+    expect(steps).toEqual(["leave cleanup", "leave notices"]);
   });
 
   test("the team's own time logs still end, for every membership removed", async () => {
@@ -321,14 +328,17 @@ describe("what they hear, through the real delete hook", () => {
     world.names.set(SRE.toString().toLowerCase(), "SRE");
     subjects = [];
 
-    // The real notices, each telling kept to be waited for.
-    tellLeft.mockImplementation(
-      (data: Parameters<typeof OnCallLeaveNotices.tellLeft>[0]) => {
-        const telling: Promise<void> = REAL_TELL_LEFT(data);
-        told.push(telling);
-        return telling;
-      },
-    );
+    // The real notices, each telling in the background kept to be waited for.
+    startTellingLeft.mockImplementation(REAL_START_TELLING_LEFT);
+    jest
+      .spyOn(OnCallLeaveNotices, "tellLeft")
+      .mockImplementation(
+        (data: Parameters<typeof OnCallLeaveNotices.tellLeft>[0]) => {
+          const telling: Promise<void> = REAL_TELL_LEFT(data);
+          told.push(telling);
+          return telling;
+        },
+      );
 
     jest
       .spyOn(OnCallDutyPolicyService, "getOnCallDutyPolicyLinkInDashboard")
@@ -422,5 +432,57 @@ describe("what they hear, through the real delete hook", () => {
     await remove(invitation);
 
     expect(subjects).toEqual([]);
+  });
+
+  test("REGRESSION: a team deleted with its members - the rules' rows that name it gone right after - still tells them", async () => {
+    world.addMember(ANA, SRE, true);
+    world.addMember(BO, SRE, true);
+    const platform: Array<WorldMembership> = [
+      world.addMember(ANA, PLATFORM, true),
+      world.addMember(BO, PLATFORM, true),
+    ];
+    world.nameTeam(PLATFORM);
+
+    // A database answers later than the hook goes on.
+    const readRows: typeof OnCallDutyPolicyEscalationRuleTeamService.findBy =
+      jest
+        .mocked(OnCallDutyPolicyEscalationRuleTeamService.findBy)
+        .getMockImplementation() as typeof OnCallDutyPolicyEscalationRuleTeamService.findBy;
+
+    jest
+      .mocked(OnCallDutyPolicyEscalationRuleTeamService.findBy)
+      .mockImplementation((async (
+        args: Parameters<typeof readRows>[0],
+      ): Promise<Awaited<ReturnType<typeof readRows>>> => {
+        await new Promise<void>((resolve: () => void): void => {
+          setTimeout(resolve, 5);
+        });
+
+        return await readRows(args);
+      }) as never);
+
+    for (const each of platform) {
+      world.leave(each);
+    }
+
+    await onDeleteSuccess(
+      {
+        deleteBy: { query: {}, props: { isRoot: true } },
+        carryForward: platform.map(asRow),
+      } as unknown as OnDelete<TeamMember>,
+      platform.map((each: WorldMembership): ObjectID => {
+        return each.id;
+      }),
+    );
+
+    // TeamService deletes the team now: its rule's rows go with it, hook-free.
+    world.teamRows = [];
+
+    await afterTheDelete();
+
+    expect(subjects).toEqual([
+      "Ana: You have been removed from the on-call policy Payments for team Platform",
+      `${BO.toString()}: You have been removed from the on-call policy Payments for team Platform`,
+    ]);
   });
 });

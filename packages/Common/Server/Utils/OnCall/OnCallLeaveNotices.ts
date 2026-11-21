@@ -85,6 +85,16 @@ export interface OnCallLeaver {
   teamIds: Array<ObjectID>;
 }
 
+/*
+ * What the teams a delete took people out of were on (readTeamsLeft): the
+ * rows of the escalation rules that name them, and the teams' names by
+ * lower-cased id.
+ */
+export interface OnCallTeamsLeft {
+  teamRows: Array<OnCallDutyPolicyEscalationRuleTeam>;
+  teamNames: Map<string, string>;
+}
+
 // One policy that stopped paging someone who left a team, as they hear of it.
 export interface OnCallLeaveNotice {
   policyId: ObjectID;
@@ -126,51 +136,31 @@ export default class OnCallLeaveNotices {
   /*
    * Tells each of `leavers` - the people one delete took out of teams of
    * the project - of every on-call policy that pages them through nothing
-   * any more: once for each policy. Called once the memberships are gone
-   * (TeamMemberService.onDeleteSuccess). Never throws: what fails is
-   * logged, and the delete stands.
+   * any more: once for each policy. What the teams they left were on is
+   * read first (readTeamsLeft), unless the caller read it already, while
+   * the teams were still there. Never throws: what fails is logged, and the
+   * delete stands.
    */
   public static async tellLeft(data: {
     projectId: ObjectID;
     leavers: ReadonlyArray<OnCallLeaver>;
+    teamsLeft?: OnCallTeamsLeft | null | undefined;
   }): Promise<void> {
     try {
-      const teamIds: Array<ObjectID> = eachOnce(
-        data.leavers.flatMap((leaver: OnCallLeaver): Array<ObjectID> => {
-          return leaver.teamIds;
-        }),
-      );
+      const teamsLeft: OnCallTeamsLeft | null =
+        data.teamsLeft === undefined
+          ? await OnCallLeaveNotices.readTeamsLeft(data)
+          : data.teamsLeft;
 
-      if (teamIds.length === 0) {
-        return;
-      }
-
-      // The rules that name the teams they left: most teams are on none.
-      const teamRows: Array<OnCallDutyPolicyEscalationRuleTeam> =
-        await OnCallDutyPolicyEscalationRuleTeamService.findBy({
-          query: {
-            projectId: data.projectId,
-            teamId: QueryHelper.any(teamIds),
-          },
-          select: {
-            _id: true,
-            teamId: true,
-            onCallDutyPolicyId: true,
-            onCallDutyPolicyEscalationRuleId: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: { isRoot: true },
-        });
-
-      if (teamRows.length === 0) {
+      if (!teamsLeft) {
         return;
       }
 
       const leavers: Array<OnCallLeaver> = data.leavers.filter(
         (leaver: OnCallLeaver): boolean => {
           return (
-            OnCallLeaveNotices.getRowsOfLeaver(teamRows, leaver).length > 0
+            OnCallLeaveNotices.getRowsOfLeaver(teamsLeft.teamRows, leaver)
+              .length > 0
           );
         },
       );
@@ -198,17 +188,14 @@ export default class OnCallLeaveNotices {
         return;
       }
 
-      // The rules' and the teams' names, read once for everyone.
-      const [ruleRows, teams]: [
-        Array<OnCallDutyPolicyEscalationRule>,
-        Array<Team>,
-      ] = await Promise.all([
-        OnCallDutyPolicyEscalationRuleService.findBy({
+      // The rules' names, read once for everyone.
+      const ruleRows: Array<OnCallDutyPolicyEscalationRule> =
+        await OnCallDutyPolicyEscalationRuleService.findBy({
           query: {
             projectId: data.projectId,
             _id: QueryHelper.any(
               eachOnce(
-                teamRows
+                teamsLeft.teamRows
                   .map(
                     (
                       row: OnCallDutyPolicyEscalationRuleTeam,
@@ -237,26 +224,7 @@ export default class OnCallLeaveNotices {
           limit: LIMIT_PER_PROJECT,
           skip: 0,
           props: { isRoot: true },
-        }),
-        TeamService.findBy({
-          query: {
-            projectId: data.projectId,
-            _id: QueryHelper.any(teamIds),
-          },
-          select: { _id: true, name: true },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: { isRoot: true },
-        }),
-      ]);
-
-      const teamNames: Map<string, string> = new Map<string, string>();
-
-      for (const team of teams) {
-        if (team.id) {
-          teamNames.set(keyOf(team.id), team.name?.toString() || "");
-        }
-      }
+        });
 
       for (const leaver of members) {
         // One person's failure keeps nobody else from being told.
@@ -264,9 +232,9 @@ export default class OnCallLeaveNotices {
           await OnCallLeaveNotices.tellLeaver({
             projectId: data.projectId,
             leaver: leaver,
-            teamRows: teamRows,
+            teamRows: teamsLeft.teamRows,
             ruleRows: ruleRows,
-            teamNames: teamNames,
+            teamNames: teamsLeft.teamNames,
           });
         } catch (error) {
           OnCallLeaveNotices.logFailure(
@@ -276,17 +244,121 @@ export default class OnCallLeaveNotices {
         }
       }
     } catch (error) {
-      logger.error(
-        "Could not tell the people who left teams of a project which on-call policies stopped paging them.",
-        { projectId: data.projectId.toString() } as LogAttributes,
-      );
-      logger.error(
-        error as Error,
-        {
-          projectId: data.projectId.toString(),
-        } as LogAttributes,
-      );
+      OnCallLeaveNotices.logBatchFailure(data.projectId, error as Error);
     }
+  }
+
+  /*
+   * WHAT THE TEAMS A DELETE TOOK PEOPLE OUT OF WERE ON: the rows of the
+   * escalation rules that name them, and the teams' names - or null when no
+   * rule names any of them, as for most teams: one read, and nothing more.
+   * Read while the delete's hook runs (TeamMemberService.onDeleteSuccess),
+   * before the telling goes on in the background: a team deleted with its
+   * members (TeamService.onBeforeDelete) takes the rows of the rules that
+   * name it with it right after them, hook-free. Throws what the reads
+   * throw.
+   */
+  public static async readTeamsLeft(data: {
+    projectId: ObjectID;
+    leavers: ReadonlyArray<OnCallLeaver>;
+  }): Promise<OnCallTeamsLeft | null> {
+    const teamIds: Array<ObjectID> = eachOnce(
+      data.leavers.flatMap((leaver: OnCallLeaver): Array<ObjectID> => {
+        return leaver.teamIds;
+      }),
+    );
+
+    if (teamIds.length === 0) {
+      return null;
+    }
+
+    // The rules that name the teams they left: most teams are on none.
+    const teamRows: Array<OnCallDutyPolicyEscalationRuleTeam> =
+      await OnCallDutyPolicyEscalationRuleTeamService.findBy({
+        query: {
+          projectId: data.projectId,
+          teamId: QueryHelper.any(teamIds),
+        },
+        select: {
+          _id: true,
+          teamId: true,
+          onCallDutyPolicyId: true,
+          onCallDutyPolicyEscalationRuleId: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    if (teamRows.length === 0) {
+      return null;
+    }
+
+    const teams: Array<Team> = await TeamService.findBy({
+      query: {
+        projectId: data.projectId,
+        _id: QueryHelper.any(
+          eachOnce(
+            teamRows
+              .map(
+                (
+                  row: OnCallDutyPolicyEscalationRuleTeam,
+                ): ObjectID | undefined => {
+                  return row.teamId;
+                },
+              )
+              .filter((teamId: ObjectID | undefined): teamId is ObjectID => {
+                return Boolean(teamId);
+              }),
+          ),
+        ),
+      },
+      select: { _id: true, name: true },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    const teamNames: Map<string, string> = new Map<string, string>();
+
+    for (const team of teams) {
+      if (team.id) {
+        teamNames.set(keyOf(team.id), team.name?.toString() || "");
+      }
+    }
+
+    return { teamRows: teamRows, teamNames: teamNames };
+  }
+
+  /*
+   * What the teams were on, read now, and the telling, in the background:
+   * how a delete's hook starts it (TeamMemberService.onDeleteSuccess), so
+   * the delete waits for one read - two, when a rule names a team left -
+   * and never for anybody to be told. Never throws.
+   */
+  public static async startTellingLeft(data: {
+    projectId: ObjectID;
+    leavers: ReadonlyArray<OnCallLeaver>;
+  }): Promise<void> {
+    let teamsLeft: OnCallTeamsLeft | null = null;
+
+    try {
+      teamsLeft = await OnCallLeaveNotices.readTeamsLeft(data);
+    } catch (error) {
+      OnCallLeaveNotices.logBatchFailure(data.projectId, error as Error);
+      return;
+    }
+
+    if (!teamsLeft) {
+      return;
+    }
+
+    // tellLeft never throws.
+    OnCallLeaveNotices.tellLeft({ ...data, teamsLeft: teamsLeft }).catch(
+      (error: Error): void => {
+        OnCallLeaveNotices.logBatchFailure(data.projectId, error);
+      },
+    );
   }
 
   /*
@@ -595,6 +667,14 @@ export default class OnCallLeaveNotices {
         paths: rulePaths,
       });
     }
+  }
+
+  private static logBatchFailure(projectId: ObjectID, error: Error): void {
+    logger.error(
+      "Could not tell the people who left teams of a project which on-call policies stopped paging them.",
+      { projectId: projectId.toString() } as LogAttributes,
+    );
+    logger.error(error, { projectId: projectId.toString() } as LogAttributes);
   }
 
   private static logFailure(
