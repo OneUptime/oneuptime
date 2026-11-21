@@ -354,7 +354,7 @@ export const CHECK_FIX_FACT_NONE_BEFORE: string = translationKey(
   "Before it, no attack request to {{route}} got past your app's checks either, so the attacks cannot show the fix worked.",
 );
 export const CHECK_FIX_FACT_TOO_FEW_BEFORE: string = translationKey(
-  "Before it, too few attack requests to {{route}} got through for the attacks since to show the fix worked.",
+  "Before it, so few attack requests to {{route}} got through that the attacks since cannot show the fix worked.",
 );
 export const CHECK_FIX_FACT_EDGE_STOPPED: PluralTemplate = {
   one: "Since then, {{count}} attack request to {{route}} was stopped at the edge and never reached your app, so it says nothing of the fix.",
