@@ -187,13 +187,14 @@ describe("the lines of a turn nothing pages", () => {
     expect(
       OnCallChatText.nobodyPaged({
         policy: POLICY,
+        schedule: "Primary",
         onCall: person("Ivy"),
         until: HANDOFF_AT,
         next: mdText`@bob`,
         moment: at,
       }).toString(),
     ).toBe(
-      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) until 22:50 UTC, when @bob takes over: **Ivy** is on call but hasn't joined the project yet.`,
+      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) through schedule Primary until 22:50 UTC, when @bob takes over: **Ivy** is on call but hasn't joined the project yet.`,
     );
   });
 
@@ -201,33 +202,36 @@ describe("the lines of a turn nothing pages", () => {
     expect(
       OnCallChatText.nobodyPaged({
         policy: POLICY,
+        schedule: "Primary",
         onCall: person("Ivy"),
         until: HANDOFF_AT,
         moment: at,
       }).toString(),
     ).toBe(
-      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) until 22:50 UTC: **Ivy** is on call but hasn't joined the project yet.`,
+      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) through schedule Primary until 22:50 UTC: **Ivy** is on call but hasn't joined the project yet.`,
     );
     expect(
       OnCallChatText.nobodyPaged({
         policy: POLICY,
+        schedule: "Primary",
         onCall: person("Ivy"),
         until: null,
         next: mdText`@bob`,
         moment: at,
       }).toString(),
     ).toBe(
-      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}): **Ivy** is on call but hasn't joined the project yet. @bob is next.`,
+      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) through schedule Primary: **Ivy** is on call but hasn't joined the project yet. @bob is next.`,
     );
     expect(
       OnCallChatText.nobodyPaged({
         policy: POLICY,
+        schedule: "Primary",
         onCall: person("Ivy"),
         until: null,
         moment: at,
       }).toString(),
     ).toBe(
-      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}): **Ivy** is on call but hasn't joined the project yet.`,
+      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) through schedule Primary: **Ivy** is on call but hasn't joined the project yet.`,
     );
   });
 
@@ -302,10 +306,11 @@ describe("the lines of a turn nothing pages", () => {
         policy: POLICY,
         from: HANDOFF_AT,
         notPaged: person("Ivy"),
+        schedule: "Primary",
         moment: at,
       }).toString(),
     ).toBe(
-      `⚠️ Nobody will be paged for [Payments](${POLICY_LINK}) from 22:50 UTC: **Ivy** is next but hasn't joined the project yet.`,
+      `⚠️ Nobody will be paged for [Payments](${POLICY_LINK}) through schedule Primary from 22:50 UTC: **Ivy** is next but hasn't joined the project yet.`,
     );
     expect(
       OnCallChatText.nextOnCall({
@@ -313,10 +318,11 @@ describe("the lines of a turn nothing pages", () => {
         policy: POLICY,
         from: null,
         notPaged: person("Ivy"),
+        schedule: "Primary",
         moment: at,
       }).toString(),
     ).toBe(
-      `⚠️ Nobody will be paged for [Payments](${POLICY_LINK}) after this shift: **Ivy** is next but hasn't joined the project yet.`,
+      `⚠️ Nobody will be paged for [Payments](${POLICY_LINK}) through schedule Primary after this shift: **Ivy** is next but hasn't joined the project yet.`,
     );
   });
 
@@ -369,6 +375,17 @@ describe("the lines of a turn nothing pages", () => {
     );
   });
 
+  test("through which schedule: its name is text; none for a schedule with no name", () => {
+    expect(OnCallChatText.throughSchedule("Primary").toString()).toBe(
+      " through schedule Primary",
+    );
+    expect(OnCallChatText.throughSchedule("  ").toString()).toBe("");
+    expect(OnCallChatText.throughSchedule(undefined).toString()).toBe("");
+    expect(
+      OnCallChatText.throughSchedule("[Primary](https://evil.test)").toString(),
+    ).not.toContain("[Primary](https://evil.test)");
+  });
+
   test("the lines every member's hand-off had stay word for word", () => {
     expect(
       OnCallChatText.nowOnCall({
@@ -408,6 +425,7 @@ describe("the lines of a turn nothing pages", () => {
     const lines: Array<string> = [
       OnCallChatText.nobodyPaged({
         policy: POLICY,
+        schedule: "Primary",
         onCall: person("Ivy"),
         until: HANDOFF_AT,
         next: mdText`@bob`,
@@ -768,7 +786,7 @@ describe("posting a turn nothing pages", () => {
 
     expect(
       feed.startsWith(
-        `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) until Nov 14, 2026, `,
+        `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) through schedule Primary until Nov 14, 2026, `,
       ),
     ).toBe(true);
     expect(
@@ -780,7 +798,7 @@ describe("posting a turn nothing pages", () => {
     expect(sends).toHaveLength(1);
     expect(sends[0]!.workspaceNotification.updateKinds).toEqual([NobodyOnCall]);
     expect(sends[0]!.markdownByWorkspaceType?.[WorkspaceType.Slack]).toBe(
-      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) until ${SLACK_UNTIL}, when @bob takes over: **Ivy** is on call but hasn't joined the project yet.`,
+      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) through schedule Primary until ${SLACK_UNTIL}, when @bob takes over: **Ivy** is on call but hasn't joined the project yet.`,
     );
 
     // It was "📞 Ivy is now on call for Payments ..." everywhere.
@@ -790,6 +808,32 @@ describe("posting a turn nothing pages", () => {
     ]) {
       expect(words).not.toContain("is now on call");
     }
+  });
+
+  test("the schedule is named once, through it - a policy that pages another schedule too has no second name for it", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleScheduleService, "findOneBy")
+      .mockResolvedValue(new OnCallDutyPolicyEscalationRuleSchedule());
+
+    await OnCallHandoffPosts.post(ivyOnCall());
+    await OnCallHandoffPosts.post(
+      ivyNext({ previousUserId: ANA, previousNextUserId: CARL }),
+    );
+
+    expect(sends[0]!.markdownByWorkspaceType?.[WorkspaceType.Slack]).toBe(
+      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) through schedule Primary until ${SLACK_UNTIL}, when @bob takes over: **Ivy** is on call but hasn't joined the project yet.`,
+    );
+    expect(sends[1]!.markdownByWorkspaceType?.[WorkspaceType.Slack]).toBe(
+      `⚠️ Nobody will be paged for [Payments](${POLICY_LINK}) through schedule Primary from ${SLACK_UNTIL}: **Ivy** is next but hasn't joined the project yet.`,
+    );
+  });
+
+  test("a schedule with no name: the line says the policy alone", async () => {
+    await OnCallHandoffPosts.post(ivyOnCall({ scheduleName: "  " }));
+
+    expect(sends[0]!.markdownByWorkspaceType?.[WorkspaceType.Slack]).toBe(
+      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) until ${SLACK_UNTIL}, when @bob takes over: **Ivy** is on call but hasn't joined the project yet.`,
+    );
   });
 
   test("REGRESSION: never their email address in a channel - not with no name typed, not when the name typed is one", async () => {
@@ -861,7 +905,7 @@ describe("posting a turn nothing pages", () => {
       },
       {
         updateKinds: [OnCallNext],
-        slack: `⚠️ Nobody will be paged for [Payments](${POLICY_LINK}) from ${SLACK_UNTIL}: **Ivy** is next but hasn't joined the project yet.`,
+        slack: `⚠️ Nobody will be paged for [Payments](${POLICY_LINK}) through schedule Primary from ${SLACK_UNTIL}: **Ivy** is next but hasn't joined the project yet.`,
       },
     ]);
 
@@ -888,7 +932,7 @@ describe("posting a turn nothing pages", () => {
     expect(rows[0]!.displayColor?.toString()).toBe(Yellow500.toString());
     expect(rows[0]!.userId?.toString()).toBe(IVY.toString());
     expect(rows[0]!.feedInfoInMarkdown).toMatch(
-      /^⚠️ Nobody will be paged for \[Payments\]\(.+\) from Nov 14, 2026, .+ EST: \*\*\[ivy@acme\.test\]/,
+      /^⚠️ Nobody will be paged for \[Payments\]\(.+\) through schedule Primary from Nov 14, 2026, .+ EST: \*\*\[ivy@acme\.test\]/,
     );
     expect(sends).toHaveLength(1);
     expect(sends[0]!.workspaceNotification.updateKinds).toEqual([OnCallNext]);
@@ -913,7 +957,7 @@ describe("posting a turn nothing pages", () => {
     );
 
     expect(sends[0]!.markdownByWorkspaceType?.[WorkspaceType.Slack]).toBe(
-      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) until ${SLACK_UNTIL}: **Ivy** is on call but hasn't joined the project yet.`,
+      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) through schedule Primary until ${SLACK_UNTIL}: **Ivy** is on call but hasn't joined the project yet.`,
     );
   });
 
@@ -927,7 +971,7 @@ describe("posting a turn nothing pages", () => {
     );
 
     expect(sends[0]!.markdownByWorkspaceType?.[WorkspaceType.Slack]).toBe(
-      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) until ${SLACK_UNTIL}, when @bob takes over: **Carl** is on call but isn't a member of the project.`,
+      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) through schedule Primary until ${SLACK_UNTIL}, when @bob takes over: **Carl** is on call but isn't a member of the project.`,
     );
   });
 
@@ -942,7 +986,7 @@ describe("posting a turn nothing pages", () => {
       OnCallDutyPolicyFeedEventType.CoverageGapStarted,
     );
     expect(sends[0]!.markdownByWorkspaceType?.[WorkspaceType.Slack]).toBe(
-      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) until ${SLACK_UNTIL}, when @bob takes over: the person on call isn't a member of the project.`,
+      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) through schedule Primary until ${SLACK_UNTIL}, when @bob takes over: the person on call isn't a member of the project.`,
     );
     expect(logger.error).toHaveBeenCalledWith(
       "Could not read who an on-call handoff names that nothing pages; they are said to be no members, with no name.",

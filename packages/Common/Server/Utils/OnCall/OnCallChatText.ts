@@ -17,11 +17,12 @@ import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
  *
  * Someone only invited to the project can be in a schedule's rotation
  * (#10412), and nothing pages them until they join (#10586): their turn is
- * a gap, and the lines say so, and why, rather than name them as covering:
+ * a gap, and the lines say so - through which schedule - and why, rather
+ * than name them as covering:
  *
- *   ⚠️ Nobody is paged for Payments until Fri at 5:50 PM, when @Bob takes over: Ivy is on call but hasn't joined the project yet.
+ *   ⚠️ Nobody is paged for Payments through schedule Primary until Fri at 5:50 PM, when @Bob takes over: Ivy is on call but hasn't joined the project yet.
  *   📞 @Ana is now on call for Payments until Fri at 5:50 PM, then nobody: Ivy is next but hasn't joined the project yet.
- *   ⚠️ Nobody will be paged for Payments from Fri at 5:50 PM: Ivy is next but hasn't joined the project yet.
+ *   ⚠️ Nobody will be paged for Payments through schedule Primary from Fri at 5:50 PM: Ivy is next but hasn't joined the project yet.
  *   📞 Ivy has joined the project and is now on call for Payments until Fri at 5:50 PM, then @Bob.
  *
  * The policy's name links to it; a policy that pages more than one
@@ -146,6 +147,8 @@ export default class OnCallChatText {
     from: Date | null;
     // Nothing pages them: said in place of `person`.
     notPaged?: OnCallNotPagedPerson | undefined;
+    // The schedule nobody will be paged through then, when nothing pages them.
+    schedule?: string | undefined;
     // They joined the project before their turn came.
     hasJustJoined?: boolean | undefined;
     moment: OnCallMomentText;
@@ -155,10 +158,13 @@ export default class OnCallChatText {
         person: data.notPaged,
         isNext: true,
       });
+      const through: MarkdownText = OnCallChatText.throughSchedule(
+        data.schedule,
+      );
 
       return data.from
-        ? mdText`⚠️ Nobody will be paged for ${data.policy} from ${data.moment(data.from)}: ${why}.`
-        : mdText`⚠️ Nobody will be paged for ${data.policy} after this shift: ${why}.`;
+        ? mdText`⚠️ Nobody will be paged for ${data.policy}${through} from ${data.moment(data.from)}: ${why}.`
+        : mdText`⚠️ Nobody will be paged for ${data.policy}${through} after this shift: ${why}.`;
     }
 
     const next: MarkdownText = data.hasJustJoined
@@ -211,11 +217,15 @@ export default class OnCallChatText {
   /*
    * Somebody on call whom nothing pages (#10586) - only invited to the
    * project, or no longer in it: alerts that reach the schedule page no one
-   * until their shift ends. Until when, who takes over then when somebody
-   * paged does, and why.
+   * until their shift ends. Through which schedule - the policy's other
+   * rules may still page somebody, and a level that pages nobody passes
+   * on at once - until when, who takes over then when somebody paged
+   * does, and why.
    */
   public static nobodyPaged(data: {
     policy: MarkdownText;
+    // The schedule whose turn it is.
+    schedule: string;
     onCall: OnCallNotPagedPerson;
     until: Date | null;
     // Who takes over then: somebody paged.
@@ -230,19 +240,32 @@ export default class OnCallChatText {
       isNext: false,
     });
 
+    const paged: MarkdownText = mdText`⚠️ Nobody is paged for ${data.policy}${OnCallChatText.throughSchedule(data.schedule)}`;
+
     if (data.until && next) {
-      return mdText`⚠️ Nobody is paged for ${data.policy} until ${data.moment(data.until)}, when ${next} takes over: ${why}.`;
+      return mdText`${paged} until ${data.moment(data.until)}, when ${next} takes over: ${why}.`;
     }
 
     if (data.until) {
-      return mdText`⚠️ Nobody is paged for ${data.policy} until ${data.moment(data.until)}: ${why}.`;
+      return mdText`${paged} until ${data.moment(data.until)}: ${why}.`;
     }
 
     if (next) {
-      return mdText`⚠️ Nobody is paged for ${data.policy}: ${why}. ${next} is next.`;
+      return mdText`${paged}: ${why}. ${next} is next.`;
     }
 
-    return mdText`⚠️ Nobody is paged for ${data.policy}: ${why}.`;
+    return mdText`${paged}: ${why}.`;
+  }
+
+  /*
+   * " through schedule Primary": what a line that says nobody is paged is
+   * about - the schedule, not the whole policy. Nothing for a schedule with
+   * no name.
+   */
+  public static throughSchedule(schedule: string | undefined): MarkdownText {
+    const name: string = (schedule || "").trim();
+
+    return name ? mdText` through schedule ${name}` : mdText``;
   }
 
   /*

@@ -91,8 +91,10 @@ import OnCallChatText, {
  * Now such a turn is a gap, said as the gap it is - the feed's Coverage gap
  * started, to the channels that want Nobody on call, the one push signal
  * for a gap there is (OnCallDutyPolicyFeedEventType.CoverageGapStarted) -
- * with why: "⚠️ Nobody is paged for Payments until 5:50 PM, when @Bob takes
- * over: Ivy is on call but hasn't joined the project yet." Who is next, when
+ * through which schedule, since the policy's other rules may still page
+ * somebody, and why: "⚠️ Nobody is paged for Payments through schedule
+ * Primary until 5:50 PM, when @Bob takes over: Ivy is on call but hasn't
+ * joined the project yet." Who is next, when
  * nothing pages them, is no one to take over: "..., then nobody: Ivy is next
  * but hasn't joined the project yet." Setup Health and On-Call Readiness
  * already name the invitee, with the fix ("Ivy hasn't accepted the
@@ -353,6 +355,12 @@ export default class OnCallHandoffPosts {
     line: OnCallChatLine;
     handoff: OnCallHandoff;
     policy: MarkdownText;
+    /*
+     * The policy without the schedule beside its name, for a line that
+     * names the schedule itself: nobody is paged through it (#10586). Left
+     * out, `policy`.
+     */
+    policyAlone?: MarkdownText | undefined;
     nameOf: OnCallNameOf;
     moment: OnCallMomentText;
     /*
@@ -411,7 +419,8 @@ export default class OnCallHandoffPosts {
       }
 
       return OnCallChatText.nobodyPaged({
-        policy: data.policy,
+        policy: data.policyAlone || data.policy,
+        schedule: handoff.scheduleName,
         onCall: await notPagedOf(handoff.currentUserId),
         until: handoff.handoffAt,
         // Who takes over then, only when a page reaches them.
@@ -429,9 +438,11 @@ export default class OnCallHandoffPosts {
 
       return OnCallChatText.nextOnCall({
         person: next || FeedMarkdown.empty(),
-        policy: data.policy,
+        // Nobody paged then is said of the schedule, which the line names.
+        policy: nextNotPaged ? data.policyAlone || data.policy : data.policy,
         from: handoff.nextStartsAt,
         notPaged: nextNotPaged,
+        schedule: handoff.scheduleName,
         hasJustJoined: Boolean(handoff.nextUserJustJoined),
         moment: data.moment,
       });
@@ -469,26 +480,40 @@ export default class OnCallHandoffPosts {
         return;
       }
 
+      const link: string = (
+        await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+          handoff.projectId,
+          handoff.onCallDutyPolicyId,
+        )
+      ).toString();
+
       const policy: MarkdownText = OnCallChatText.policy({
         name: handoff.onCallDutyPolicyName,
-        link: (
-          await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
-            handoff.projectId,
-            handoff.onCallDutyPolicyId,
-          )
-        ).toString(),
+        link: link,
         scheduleName: (await this.pagesOtherSchedules(handoff))
           ? handoff.scheduleName
           : undefined,
+      });
+
+      // For a line that names the schedule itself.
+      const policyAlone: MarkdownText = OnCallChatText.policy({
+        name: handoff.onCallDutyPolicyName,
+        link: link,
       });
 
       // Who of its people nothing pages, why, and what a channel calls them.
       const notPaged: OnCallNotPagedPeople =
         await this.readNotPagedPeople(handoff);
 
-      await this.writeFeedEntry({ handoff, change, policy, notPaged });
+      await this.writeFeedEntry({
+        handoff,
+        change,
+        policy,
+        policyAlone,
+        notPaged,
+      });
 
-      await this.postToChannels({ handoff, policy, notPaged });
+      await this.postToChannels({ handoff, policy, policyAlone, notPaged });
     } catch (err) {
       logger.error("Could not post an on-call handoff to the policy.", {
         projectId: handoff.projectId?.toString(),
@@ -537,6 +562,7 @@ export default class OnCallHandoffPosts {
     handoff: OnCallHandoff;
     change: OnCallHandoffChange;
     policy: MarkdownText;
+    policyAlone: MarkdownText;
     notPaged: OnCallNotPagedPeople;
   }): Promise<void> {
     const handoff: OnCallHandoff = data.handoff;
@@ -567,6 +593,7 @@ export default class OnCallHandoffPosts {
       line: line,
       handoff: handoff,
       policy: data.policy,
+      policyAlone: data.policyAlone,
       nameOf: nameOf,
       moment: (date: Date): MarkdownText => {
         return mdText`${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
@@ -626,6 +653,7 @@ export default class OnCallHandoffPosts {
   private static async postToChannels(data: {
     handoff: OnCallHandoff;
     policy: MarkdownText;
+    policyAlone: MarkdownText;
     notPaged: OnCallNotPagedPeople;
   }): Promise<void> {
     const handoff: OnCallHandoff = data.handoff;
@@ -662,6 +690,7 @@ export default class OnCallHandoffPosts {
                 line: post.line,
                 handoff: handoff,
                 policy: data.policy,
+                policyAlone: data.policyAlone,
                 nameOf: writer.nameOf,
                 moment: writer.moment,
                 notPagedOf: notPagedOf,
@@ -674,6 +703,7 @@ export default class OnCallHandoffPosts {
           line: post.line,
           handoff: handoff,
           policy: data.policy,
+          policyAlone: data.policyAlone,
           nameOf: chat.nameIn(null),
           moment: (date: Date): MarkdownText => {
             return WorkspaceMessageTime.dateAndTime(date);

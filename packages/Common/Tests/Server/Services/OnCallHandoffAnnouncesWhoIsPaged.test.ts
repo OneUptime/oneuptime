@@ -251,7 +251,7 @@ describe("an invitee reached in the rotation", () => {
 
     // It was "📞 @ivy@acme.test is now on call for Payments ..., then @bo."
     expect(lines).toEqual([
-      `[NobodyOnCall] ⚠️ Nobody is paged for [Payments](${POLICY_LINK}) until ${SLACK_TOMORROW}, when @bo takes over: **Ivy** is on call but hasn't joined the project yet.`,
+      `[NobodyOnCall] ⚠️ Nobody is paged for [Payments](${POLICY_LINK}) through schedule Primary until ${SLACK_TOMORROW}, when @bo takes over: **Ivy** is on call but hasn't joined the project yet.`,
     ]);
 
     // Ivy is told nothing and logged nowhere, as #10567 made it.
@@ -290,7 +290,7 @@ describe("an invitee reached in the rotation", () => {
     expect(lines).toEqual([
       `[OnCallNow] 📞 @bo is now on call for [Payments](${POLICY_LINK}) until ${SLACK_TOMORROW}, then nobody: **Ivy** is next but hasn't joined the project yet.`,
       `[OnCallNow] 📞 @bo is now on call for [Payments](${POLICY_LINK}) until ${SLACK_TOMORROW}.`,
-      `[OnCallNext] ⚠️ Nobody will be paged for [Payments](${POLICY_LINK}) from ${SLACK_TOMORROW}: **Ivy** is next but hasn't joined the project yet.`,
+      `[OnCallNext] ⚠️ Nobody will be paged for [Payments](${POLICY_LINK}) through schedule Primary from ${SLACK_TOMORROW}: **Ivy** is next but hasn't joined the project yet.`,
     ]);
     expect(told).toEqual([
       "Ana: no longer on call for Payments",
@@ -326,7 +326,7 @@ describe("an invitee reached in the rotation", () => {
     await handoff({ from: BO, to: CY });
 
     expect(lines).toEqual([
-      `[NobodyOnCall] ⚠️ Nobody is paged for [Payments](${POLICY_LINK}) until ${SLACK_TOMORROW}: **Cy** is on call but isn't a member of the project.`,
+      `[NobodyOnCall] ⚠️ Nobody is paged for [Payments](${POLICY_LINK}) through schedule Primary until ${SLACK_TOMORROW}: **Cy** is on call but isn't a member of the project.`,
     ]);
   });
 
