@@ -362,10 +362,10 @@ export default class OnCallLeaveNotices {
   }
 
   /*
-   * One policy for each policy that pages them through nothing any more,
+   * A notice for each policy that pages them through nothing any more,
    * from the rows that named the teams they left: its rules in their order,
    * and the teams, each once, by name. A rule removed meanwhile is left
-   * out, and so is a policy left with none. By the policy's name.
+   * out, and so is a policy left with none. Sorted by the policy's name.
    */
   public static getNotices(data: {
     rows: ReadonlyArray<OnCallDutyPolicyEscalationRuleTeam>;
