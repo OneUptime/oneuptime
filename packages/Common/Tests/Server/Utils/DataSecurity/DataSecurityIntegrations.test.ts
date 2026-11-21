@@ -28,6 +28,7 @@ import SecurityDetection from "../../../../Models/DatabaseModels/SecurityDetecti
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import User from "../../../../Models/DatabaseModels/User";
 import URL from "../../../../Types/API/URL";
+import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import { Blue500, Red500 } from "../../../../Types/BrandColors";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -1575,6 +1576,25 @@ describe("onIssuesOpened: OneUptime AI's work", () => {
     queueSpy = jest
       .spyOn(DataSecurityJobs, "queueDataSecurityAiEvaluation")
       .mockResolvedValue(undefined);
+    jest
+      .spyOn(DatabaseConfig, "getDashboardUrl")
+      .mockResolvedValue(URL.fromString(DASHBOARD));
+  });
+
+  test("the owners' email says where OneUptime AI's proposals wait, while it works on new issues", async () => {
+    projectWith({});
+    ownedBy(STORE_A, userOf("Alice Owner", "alice@acme.io"));
+
+    await opened([issueOf({ severity: SecuritySeverity.Critical })]);
+    await settle();
+
+    expect(mails()).toHaveLength(1);
+    expect(mails()[0]!.message).toContain(
+      "OneUptime AI looks at new issues as your AI rules allow.",
+    );
+    expect(mails()[0]!.message).toContain(
+      `${DASHBOARD}/${PROJECT_ID.toString()}/data-security/ai`,
+    );
   });
 
   test("queues one job per issue that opened, while both switches are on", async () => {
@@ -1612,6 +1632,8 @@ describe("onIssuesOpened: OneUptime AI's work", () => {
       expect(queueSpy).not.toHaveBeenCalled();
       expect(casesSpy).toHaveBeenCalledTimes(1);
       expect(mails()).toHaveLength(1);
+      // The owners' email is as it always was: no word of OneUptime AI.
+      expect(mails()[0]!.message).not.toContain("OneUptime AI");
     },
   );
 

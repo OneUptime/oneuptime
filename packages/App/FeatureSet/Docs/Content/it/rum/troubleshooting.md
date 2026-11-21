@@ -87,14 +87,14 @@ Un browser invia raramente batch così grandi, a meno che gli span non portino a
 
 ## Verificare dove arriva la telemetria
 
-La richiesta funziona, ma l'app compare in **Prodotti → Servizi** invece che in **Prodotti → Risorse → Monitoraggio degli utenti reali**. È la segnalazione più comune, e la causa è quasi sempre una risorsa senza attributi del client. OneUptime archivia un batch come RUM solo quando la sua risorsa ne porta uno di questi:
+La richiesta funziona, ma l'app compare in **Prodotti → Servizi** invece che in **Prodotti → Risorse → Monitoraggio degli utenti reali**. È la segnalazione più comune, e la causa è quasi sempre una chiave diversa da una chiave Browser o Mobile, che invia una risorsa senza attributi del client. Tutto ciò che invia una chiave Browser o Mobile viene archiviato come RUM; con qualsiasi altra chiave, OneUptime archivia un batch come RUM solo quando la sua risorsa ne porta uno di questi:
 
 | Tipo | Attributi |
 | --- | --- |
 | Browser | `browser.platform`, `browser.language` o un `browser.brands` non vuoto |
 | Mobile | `device.id` o `device.model.identifier`, oppure `device.manufacturer` su una risorsa senza identità host (`host.name`, `host.id` o `k8s.node.name`) |
 
-Un `service.name` da solo crea un servizio di backend. L'SDK OpenTelemetry per browser non aggiunge alcun attributo `browser.*` a meno che tu non aggiunga il rilevatore di risorse del browser o li imposti tu stesso: vedi [Configurazione browser](/docs/rum/browser-setup).
+Con qualsiasi altra chiave, un `service.name` da solo crea un servizio di backend. L'SDK OpenTelemetry per browser non aggiunge alcun attributo `browser.*` a meno che tu non aggiunga il rilevatore di risorse del browser o li imposti tu stesso: vedi [Configurazione browser](/docs/rum/browser-setup).
 
 Per vedere cosa invii davvero, apri la richiesta OTLP nella scheda Rete e guarda il suo payload: `resourceSpans[0].resource.attributes` è l'elenco che decide. Se non c'è alcun attributo `browser.*`, l'SDK non lo sta aggiungendo, qualunque cosa dica la sua documentazione.
 
@@ -127,7 +127,7 @@ Il grafico vuoto nella **Panoramica** dell'applicazione dice di quale caso si tr
 
 Le eccezioni hanno bisogno di un gestore degli errori, perché l'SDK non cattura gli errori non gestiti: [Segnalare gli errori non gestiti](/docs/rum/browser-setup#segnalare-gli-errori-non-gestiti) contiene il codice. Un errore gestito da un error boundary o da un `try`/`catch` non raggiunge mai la finestra, quindi registralo dove lo gestisci, con `span.recordException`.
 
-I log hanno bisogno di una pipeline di log e di codice che scriva record di log, perché un `LoggerProvider` da solo non invia nulla: [Aggiungere log e metriche](/docs/rum/browser-setup#aggiungere-log-e-metriche) contiene entrambi. Costruisci la pipeline con la stessa `resource` delle tue tracce, altrimenti i log vengono archiviati sotto un servizio backend.
+I log hanno bisogno di una pipeline di log e di codice che scriva record di log, perché un `LoggerProvider` da solo non invia nulla: [Aggiungere log e metriche](/docs/rum/browser-setup#aggiungere-log-e-metriche) contiene entrambi. Costruisci la pipeline con la stessa `resource` delle tue tracce, così i log vengono archiviati sotto la stessa applicazione.
 
 Quando arrivano i caricamenti di pagina, la chiave, le sue origini consentite e la tua Content Security Policy lasciano passare anche le eccezioni e i log, purché l'exporter dei log usi la stessa chiave e lo stesso host. Un gestore degli errori che non ha ancora catturato nulla non invia nulla, esattamente come uno mai aggiunto, quindi lancia un errore di prova dalla console del browser per distinguere i due casi:
 

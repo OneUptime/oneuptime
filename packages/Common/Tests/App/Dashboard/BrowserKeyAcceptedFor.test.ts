@@ -71,12 +71,15 @@ const PICKER_CAUTION: string =
 const TOKEN_CHECK: string =
   "Ingestion token is valid, but it is a BROWSER ingestion key. It is accepted only from a browser, only from one of its allowed origins, and only for OTLP traces, logs and metrics, session replays, and events from a Sentry browser SDK. Use a server ingestion key in a collector, an agent, or any backend service.";
 
-// The Mobile key's sentence is the issue #6457's: what one mobile app ships.
+/*
+ * The Mobile key's sentence is the issue #6457's: what one mobile app ships,
+ * its session replays included (#10540).
+ */
 const KEY_TYPE_DESCRIPTION: string =
-  "Server keys are for backend services and OpenTelemetry collectors: full ingest, no origin checks. Browser keys are write-only client keys: listed web origins may send traces, logs, metrics, session replays and Sentry events, while listed app:// identities currently authorize React Native session replay only. Mobile keys are write-only keys for one mobile app: pinned to its service name, they send only that app's OTLP traces, logs and metrics over HTTP, never from a web page. This cannot be changed after the key is created - create a new key instead.";
+  "Server keys are for backend services and OpenTelemetry collectors: full ingest, no origin checks. Browser keys are write-only client keys: listed web origins may send traces, logs, metrics, session replays and Sentry events, while listed app:// identities currently authorize React Native session replay only. Mobile keys are write-only keys for one mobile app: pinned to its service name, they send only that app's OTLP traces, logs and metrics over HTTP and its session replays, never from a web page. This cannot be changed after the key is created - create a new key instead.";
 
 const MOBILE_TOKEN_CHECK: string =
-  "Ingestion token is valid. It is a MOBILE ingestion key: it is accepted only from a mobile app, without an Origin header, and only for OTLP traces, logs and metrics over HTTP, all filed under the app it is pinned to. Use a server ingestion key in a collector, an agent, or any backend service, and a browser ingestion key in a web page.";
+  "Ingestion token is valid. It is a MOBILE ingestion key: it is accepted only from a mobile app, without an Origin header, and only for OTLP traces, logs and metrics over HTTP and the app's session replays, all filed under the app it is pinned to. Use a server ingestion key in a collector, an agent, or any backend service, and a browser ingestion key in a web page.";
 
 type LocaleFile = Record<string, unknown>;
 

@@ -1318,17 +1318,28 @@ describe("when a criteria's incidents and alerts open and close", () => {
   );
 
   it("opens one at a time per criteria, per host or value when grouped", () => {
+    /*
+     * A criteria's open incidents, kept by their series and looked up for
+     * each series the criteria matched (#10108): another criteria's, or
+     * another series', never stops one opening.
+     */
     expect(MONITOR_INCIDENT).toContain(
-      "(incident.createdCriteriaId || undefined) ===\n                  (input.criteriaInstance.data?.id?.toString() || undefined) &&",
+      "if ((incident.createdCriteriaId || undefined) !== criteriaId) {",
     );
     expect(MONITOR_INCIDENT).toContain(
-      "(incident.seriesFingerprint || undefined) === seriesFingerprint",
+      "const seriesKey: string | undefined =\n        incident.seriesFingerprint || undefined;",
+    );
+    expect(MONITOR_INCIDENT).toContain(
+      "openIncidentsBySeries.get(seriesFingerprint)",
     );
     expect(MONITOR_INCIDENT).toContain(
       '"Skipped creating a new incident because an active incident exists for this criteria."',
     );
     expect(MONITOR_ALERT).toContain(
       "(alert.createdCriteriaId || undefined) ===",
+    );
+    expect(MONITOR_ALERT).toContain(
+      "openAlertsBySeries.get(seriesFingerprint)",
     );
     expect(MONITOR_ALERT).toContain(
       '"Skipped creating a new alert because an active alert exists for this criteria."',

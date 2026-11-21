@@ -1,5 +1,6 @@
 /*
- * A PROBE'S COLLECTION, AUTHENTICATED BEFORE IT IS PARSED (#10222), over HTTP.
+ * A PROBE'S COLLECTION, AUTHENTICATED BEFORE IT IS READ (#10222, #10260),
+ * over HTTP.
  *
  * A vCenter's or an OpenStack cloud's collection is up to 48 MiB of JSON,
  * millions of values: 8,000,000 cost JSON.parse 1.4 s and 490 MiB. The
@@ -10,18 +11,22 @@
  * (Common/Tests/Server/Utils/RequestBodyLimitOverHttp holds it to that).
  * The probe's key is checked by the real ProbeService against a stand-in for
  * the probe table, wrong keys are counted by the real WrongComponentKeyLimit
- * against a stand-in for Valkey, and JSON.parse is watched:
+ * against a stand-in for Valkey, and what each request cost is watched: the
+ * bytes the server read off its connection, the bytes zlib inflated, the
+ * bytes whose JSON values were counted, and JSON.parse:
  *
  *   - a wrong key in the headers is refused before a byte of the body is
  *     read, and counted as a wrong key is from a body;
  *   - a probe that sends its key in the headers has a 40 MiB report read and
  *     parsed whole;
  *   - an older probe, whose key is in its report alone, has it checked from
- *     the start of the report, before the report is parsed, and a large
- *     report still read whole;
- *   - a body whose probe is not known before it is parsed is held to a large
- *     route's 1,000,000 values: 8 million empty objects are refused without
- *     being parsed.
+ *     the start of the report, before the rest is read, and a large report
+ *     still read whole;
+ *   - a client without the right key is refused after the first few
+ *     kilobytes of its body, however it is compressed or shaped (#10260): a
+ *     decompression bomb, a body nested millions deep, a report that opens
+ *     with a probe's id and a wrong key. It used to have 50 MiB inflated and
+ *     8,000,000 values counted first.
  */
 import FakeCounterRedis from "Common/Tests/Server/TestingUtils/Redis/FakeCounterRedis";
 import {
@@ -41,8 +46,10 @@ import ProbeKeyHeaders, {
   PROBE_KEY_HEADER,
 } from "Common/Types/Probe/ProbeKeyHeaders";
 import Dictionary from "Common/Types/Dictionary";
+import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   afterAll,
+  afterEach,
   beforeAll,
   beforeEach,
   describe,
@@ -52,6 +59,7 @@ import {
 } from "@jest/globals";
 import http from "http";
 import { AddressInfo } from "net";
+import { Readable } from "stream";
 import zlib from "zlib";
 
 const mockRedisState: { client: FakeCounterRedis | null; connected: boolean } =
@@ -157,6 +165,7 @@ jest.mock("Common/Server/Middleware/TelemetryIngestionDisabled", () => {
 
 type AnyModule = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
+const KIB: number = 1024;
 const MIB: number = 1024 * 1024;
 
 // The probes the probe table holds: id -> key.
@@ -174,6 +183,16 @@ const OTHER_CLIENT: string = "198.51.100.41";
 const VMWARE: string = "/probe-ingest/probe/vmware/collection";
 const OPENSTACK: string = "/probe-ingest/probe/openstack/collection";
 
+/*
+ * What a client without the right key may cost before it is refused
+ * (#10260), as RequestBodyOpening reads an opening: a socket read or two
+ * off the connection, of whatever was sent; as inflated, the 4 KiB opening,
+ * the zlib output chunk that holds it and one more the inflate holds; and
+ * not a value counted or parsed.
+ */
+const MOST_READ_BEFORE_THE_KEY: number = 512 * KIB;
+const MOST_INFLATED_BEFORE_THE_KEY: number = 4 * KIB + 48 * KIB;
+
 // The probe table as Postgres answers the service's lookups.
 function probeTable(query: JSONObject): JSONObject | null {
   const id: string | undefined = Object.keys(PROBES).find(
@@ -190,16 +209,34 @@ interface RunningApp {
   port: number;
   probeService: AnyModule;
   gzipReader: AnyModule;
+  jsonTally: AnyModule;
 }
 
 let running: RunningApp;
 let redis: FakeCounterRedis;
+
+// What the server read off each request's connection by the time it answered.
+const bytesReadByRequest: Map<string, number> = new Map();
+
+/*
+ * What zlib inflated, counted where its streams hand their output on: what
+ * the readers took and what an inflate holds for them alike; and the bytes
+ * whose JSON values were counted.
+ */
+const watched: { inflated: number; counted: number } = {
+  inflated: 0,
+  counted: 0,
+};
+
+// When each key check ran: what had been inflated by then.
+const inflatedAtKeyCheck: Array<number> = [];
 
 beforeAll(async () => {
   let vmware: AnyModule;
   let openStack: AnyModule;
   let probeService: AnyModule;
   let gzipReader: AnyModule;
+  let jsonTally: AnyModule;
 
   jest.isolateModules(() => {
     /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
@@ -221,12 +258,21 @@ beforeAll(async () => {
     });
     probeService.updateLastAlive = jest.fn(async () => {});
 
-    // The real check, watched: when it ran, against JSON.parse.
-    const verifyProbeKey: AnyModule =
+    /*
+     * The real check, watched: when it ran, against JSON.parse, and how much
+     * of the body had been inflated by then.
+     */
+    const verifyProbeKey: (data: unknown) => Promise<boolean> =
       probeService.verifyProbeKey.bind(probeService);
-    probeService.verifyProbeKey = jest.fn(verifyProbeKey);
+    probeService.verifyProbeKey = jest.fn(
+      async (data: unknown): Promise<boolean> => {
+        inflatedAtKeyCheck.push(watched.inflated);
+        return await verifyProbeKey(data);
+      },
+    );
 
     gzipReader = require("Common/Server/Middleware/GzipRequestBody").default;
+    jsonTally = require("Common/Utils/JsonElementCount").JsonElementTally;
 
     vmware =
       require("../../FeatureSet/Telemetry/API/ProbeIngest/VMwareCollection").default;
@@ -236,6 +282,16 @@ beforeAll(async () => {
   });
 
   const app: ExpressApplication = createExpressApp();
+
+  app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    const tag: string = String(req.headers["x-test"] || "");
+
+    res.on("finish", () => {
+      bytesReadByRequest.set(tag, req.socket.bytesRead);
+    });
+
+    next();
+  });
 
   // As the App mounts them, with no body parser before them.
   app.use(["/probe-ingest", "/ingestor", "/"], vmware);
@@ -268,6 +324,7 @@ beforeAll(async () => {
     port: (server.address() as AddressInfo).port,
     probeService: probeService!,
     gzipReader: gzipReader!,
+    jsonTally: jsonTally!,
   };
 });
 
@@ -281,12 +338,26 @@ afterAll(async () => {
 
 let jsonParse: ReturnType<typeof jest.spyOn>;
 let gzipReads: ReturnType<typeof jest.spyOn>;
+let watchers: Array<ReturnType<typeof jest.spyOn>> = [];
+
+const readablePush: Readable["push"] = Readable.prototype.push;
+
+// zlib's own functions are read-only: its output is counted on its streams.
+const ZLIB_STREAMS: Array<{ push: Readable["push"] }> = [
+  (zlib as unknown as { Gunzip: { prototype: { push: Readable["push"] } } })
+    .Gunzip.prototype,
+  (zlib as unknown as { Inflate: { prototype: { push: Readable["push"] } } })
+    .Inflate.prototype,
+];
 
 beforeEach(() => {
   redis = new FakeCounterRedis();
   mockRedisState.client = redis;
   mockRedisState.connected = true;
   mockRecorded.length = 0;
+  inflatedAtKeyCheck.length = 0;
+  watched.inflated = 0;
+  watched.counted = 0;
   running.probeService.verifyProbeKey.mockClear();
   running.probeService.findOneBy.mockClear();
 
@@ -294,6 +365,58 @@ beforeEach(() => {
   jsonParse = jest.spyOn(JSON, "parse");
   gzipReads?.mockRestore();
   gzipReads = jest.spyOn(running.gzipReader, "parseBody");
+
+  watchers = ZLIB_STREAMS.map(
+    (prototype: { push: Readable["push"] }): ReturnType<typeof jest.spyOn> => {
+      return jest.spyOn(prototype, "push").mockImplementation(function (
+        this: Readable,
+        chunk: unknown,
+        encoding?: Parameters<Readable["push"]>[1],
+      ): boolean {
+        if (Buffer.isBuffer(chunk)) {
+          watched.inflated += chunk.length;
+        }
+
+        return readablePush.call(this, chunk, encoding);
+      });
+    },
+  );
+
+  const tallyAdd: (bytes: Uint8Array, start?: number, end?: number) => boolean =
+    running.jsonTally.prototype.add;
+
+  watchers.push(
+    jest.spyOn(running.jsonTally.prototype, "add").mockImplementation(function (
+      this: unknown,
+      bytes: unknown,
+      start?: unknown,
+      end?: unknown,
+    ): boolean {
+      const counted: Uint8Array = bytes as Uint8Array;
+      const from: number = (start as number | undefined) ?? 0;
+      const to: number = Math.min(
+        (end as number | undefined) ?? counted.length,
+        counted.length,
+      );
+
+      watched.counted += Math.max(0, to - from);
+
+      return tallyAdd.call(
+        this,
+        counted,
+        start as number | undefined,
+        end as number | undefined,
+      );
+    }),
+  );
+});
+
+afterEach(() => {
+  for (const watcher of watchers) {
+    watcher.mockRestore();
+  }
+
+  watchers = [];
 });
 
 // The JSON.parse calls that read a text of at least `bytes`, in call order.
@@ -318,8 +441,18 @@ interface Answer {
   status: number;
   body: JSONObject;
   retryAfter: string | undefined;
+  connection: string | undefined;
+  // What the server read off the request's connection by its answer.
+  bytesRead: number;
 }
 
+let requestCount: number = 0;
+
+/*
+ * Each request on a connection of its own, which asks to be kept alive:
+ * what the server read off it is this request's alone, and whether it is
+ * closed is the server's choice.
+ */
 function post(data: {
   path: string;
   body: Buffer;
@@ -327,6 +460,9 @@ function post(data: {
   headers?: Dictionary<string>;
   gzip?: boolean;
 }): Promise<Answer> {
+  const agent: http.Agent = new http.Agent({ keepAlive: true });
+  const tag: string = `request-${++requestCount}`;
+
   return new Promise<Answer>(
     (resolve: (answer: Answer) => void, reject: (err: Error) => void) => {
       const request: http.ClientRequest = http.request(
@@ -335,6 +471,7 @@ function post(data: {
           port: running.port,
           path: data.path,
           method: "POST",
+          agent: agent,
           headers: {
             "content-type": "application/json",
             ...(data.gzip === false ? {} : { "content-encoding": "gzip" }),
@@ -342,6 +479,7 @@ function post(data: {
             "content-length": String(data.body.length),
             // As the bundled Nginx forwards it: the client's address last.
             "x-forwarded-for": data.from || CLIENT,
+            "x-test": tag,
           },
         },
         (response: http.IncomingMessage) => {
@@ -355,20 +493,24 @@ function post(data: {
             const retryAfter: string | string[] | undefined =
               response.headers["retry-after"];
 
+            agent.destroy();
             resolve({
               status: response.statusCode || 0,
               body: text ? (JSON.parse(text) as JSONObject) : {},
               retryAfter: Array.isArray(retryAfter)
                 ? retryAfter[0]
                 : retryAfter,
+              connection: response.headers["connection"],
+              bytesRead: bytesReadByRequest.get(tag) || 0,
             });
           });
         },
       );
 
-      // A server that answered before reading the body may close under it.
+      // A server that answered before reading the body closes under it.
       request.on("error", (err: NodeJS.ErrnoException) => {
         if (err.code !== "EPIPE" && err.code !== "ECONNRESET") {
+          agent.destroy();
           reject(err);
         }
       });
@@ -449,6 +591,8 @@ describe("a probe that sends its key in the headers", () => {
     expect(inflatedBytes).toBeGreaterThan(40 * MIB);
     expect(inflatedBytes).toBeLessThan(48 * MIB);
 
+    watched.inflated = 0;
+
     const answer: Answer = await post({
       path: VMWARE,
       body: largeReportOfProbeOne,
@@ -457,12 +601,18 @@ describe("a probe that sends its key in the headers", () => {
 
     expect(answer.status).toBe(200);
     expect(answer.body).toMatchObject({ accepted: true });
+    expect(answer.connection).toBe("keep-alive");
     expect(mockRecorded).toEqual([{ probeId: PROBE_ONE, resources: 310000 }]);
 
-    // The key was checked once, from the headers, before the report was parsed.
+    // The key was checked once, from the headers, before a byte was inflated.
     expect(keyChecks()).toHaveLength(1);
+    expect(inflatedAtKeyCheck).toEqual([0]);
     expect(parsesOfAtLeast(MIB)).toHaveLength(1);
     expect(keyChecks()[0]!).toBeLessThan(parsesOfAtLeast(MIB)[0]!);
+
+    // Read as it always was: by the gzip reader, whole.
+    expect(gzipReads).toHaveBeenCalledTimes(1);
+    expect(watched.inflated).toBe(inflatedBytes);
   }, 120000);
 
   test("is refused with not a byte of the body read when the key is wrong, and the body is never parsed", async () => {
@@ -477,6 +627,7 @@ describe("a probe that sends its key in the headers", () => {
     expect(answer.body["message"]).toBe("Invalid Probe ID or Probe Key");
 
     expect(gzipReads).not.toHaveBeenCalled();
+    expect(watched.inflated).toBe(0);
     expect(parsesOfAtLeast(MIB)).toEqual([]);
     expect(mockRecorded).toEqual([]);
   }, 120000);
@@ -560,7 +711,12 @@ describe("a probe that sends its key in the headers", () => {
       ).status,
     ).toBe(200);
 
-    expect(gzipReads).toHaveBeenCalledTimes(2);
+    /*
+     * Only the probe's own report went through the gzip reader: the others
+     * were refused on their headers, and the opening's report was read no
+     * further than its opening (RequestBodyOpening).
+     */
+    expect(gzipReads).toHaveBeenCalledTimes(1);
   });
 
   test("with only one of the two headers, is refused as a body without both is", async () => {
@@ -642,7 +798,11 @@ describe("a probe that sends its key in the headers", () => {
 });
 
 describe("an older probe, whose key is in its report alone", () => {
-  test("has its key checked from the start of its report, before the report is parsed, and a 40 MiB report read whole", async () => {
+  test("has its key checked from the start of its report, before the rest is read, and a 40 MiB report read whole", async () => {
+    const inflatedBytes: number = zlib.gunzipSync(largeReportOfProbeOne).length;
+
+    watched.inflated = 0;
+
     const answer: Answer = await post({
       path: VMWARE,
       body: largeReportOfProbeOne,
@@ -650,9 +810,19 @@ describe("an older probe, whose key is in its report alone", () => {
 
     expect(answer.status).toBe(200);
     expect(answer.body).toMatchObject({ accepted: true });
+    expect(answer.connection).toBe("keep-alive");
     expect(mockRecorded).toEqual([{ probeId: PROBE_ONE, resources: 310000 }]);
 
+    // Checked once, with no more than its opening inflated, then read whole.
     expect(keyChecks()).toHaveLength(1);
+    expect(inflatedAtKeyCheck).toHaveLength(1);
+    expect(inflatedAtKeyCheck[0]!).toBeLessThanOrEqual(
+      MOST_INFLATED_BEFORE_THE_KEY,
+    );
+    expect(watched.inflated).toBe(inflatedBytes);
+
+    // Its values counted as it inflated, the opening's among them, then parsed.
+    expect(watched.counted).toBeGreaterThanOrEqual(inflatedBytes);
     expect(parsesOfAtLeast(MIB)).toHaveLength(1);
     expect(keyChecks()[0]!).toBeLessThan(parsesOfAtLeast(MIB)[0]!);
   }, 120000);
@@ -675,7 +845,35 @@ describe("an older probe, whose key is in its report alone", () => {
     expect(keyChecks()[0]!).toBeLessThan(parsesOfAtLeast(MIB)[0]!);
   }, 60000);
 
-  test("is refused when that key is wrong, its report never parsed, the wrong key counted", async () => {
+  test("sent uncompressed or deflated, the same", async () => {
+    const json: Buffer = report({
+      probeId: PROBE_ONE,
+      probeKey: PROBES[PROBE_ONE]!,
+      points: 120000,
+    });
+
+    for (const sent of [
+      { body: json, headers: {} },
+      {
+        body: zlib.deflateSync(json),
+        headers: { "content-encoding": "deflate" },
+      },
+    ]) {
+      mockRecorded.length = 0;
+
+      const answer: Answer = await post({
+        path: VMWARE,
+        gzip: false,
+        body: sent.body,
+        headers: sent.headers,
+      });
+
+      expect(answer.status).toBe(200);
+      expect(mockRecorded).toEqual([{ probeId: PROBE_ONE, resources: 120000 }]);
+    }
+  }, 60000);
+
+  test("is refused when that key is wrong, its report never read past its opening, the wrong key counted", async () => {
     const answer: Answer = await post({
       path: VMWARE,
       body: zlib.gzipSync(
@@ -685,7 +883,10 @@ describe("an older probe, whose key is in its report alone", () => {
 
     expect(answer.status).toBe(400);
     expect(answer.body["message"]).toBe("Invalid Probe ID or Probe Key");
-    expect(parsesOfAtLeast(MIB)).toEqual([]);
+    expect(answer.connection).toBe("close");
+    expect(watched.inflated).toBeLessThanOrEqual(MOST_INFLATED_BEFORE_THE_KEY);
+    expect(watched.counted).toBe(0);
+    expect(parsesOfAtLeast(KIB)).toEqual([]);
     expect(mockRecorded).toEqual([]);
     expect(redis.sets.size).toBe(1);
   }, 60000);
@@ -712,67 +913,238 @@ describe("an older probe, whose key is in its report alone", () => {
 
     expect(mockRecorded).toHaveLength(3);
   });
-});
 
-describe("a body whose probe is not known before it is parsed", () => {
-  test("is held to a large route's 1,000,000 values: 8 million empty objects are refused, never parsed", async () => {
-    const bomb: Buffer = zlib.gzipSync(emptyObjects(7900000));
-
-    // A few hundred KB on the wire.
-    expect(bomb.length).toBeLessThan(MIB);
-
-    for (const path of [VMWARE, OPENSTACK]) {
-      const started: number = Date.now();
-      const answer: Answer = await post({ path: path, body: bomb });
-
-      expect({
-        path,
-        status: answer.status,
-        limit: answer.body["limit"],
-      }).toEqual({ path, status: 413, limit: 1000000 });
-      expect(answer.body["type"]).toBe("entity.too.many.values");
-      // JSON.parse took 1.4 s and 490 MiB of heap for it.
-      expect(Date.now() - started).toBeLessThan(5000);
-    }
-
-    expect(parsesOfAtLeast(MIB)).toEqual([]);
-    expect(keyChecks()).toEqual([]);
-    expect(mockRecorded).toEqual([]);
-  }, 120000);
-
-  test("with a probe's key somewhere other than its start, and fewer values than that, is parsed and authenticated from its body, as before", async () => {
+  test("a report of a failed collection, shorter than an opening, is its own opening", async () => {
     const body: string = JSON.stringify({
-      vmwareVCenterId: "44444444-4444-4444-8444-444444444444",
+      probeKey: PROBES[PROBE_TWO],
+      probeId: PROBE_TWO,
+      openStackCloudId: "55555555-5555-4555-8555-555555555555",
       status: "Failed",
-      errorMessage: "Refused.",
-      probeKey: PROBES[PROBE_ONE],
-      probeId: PROBE_ONE,
+      errorMessage: "Keystone answered 401.",
     });
 
+    expect(body.length).toBeLessThan(4 * KIB);
+
     const answer: Answer = await post({
-      path: VMWARE,
+      path: OPENSTACK,
       body: zlib.gzipSync(Buffer.from(body)),
     });
 
     expect(answer.status).toBe(200);
-    expect(mockRecorded).toEqual([{ probeId: PROBE_ONE, resources: 0 }]);
+    expect(mockRecorded).toEqual([{ probeId: PROBE_TWO, resources: 0 }]);
   });
+});
 
-  test("with more values than that, is refused whatever key it carries further in", async () => {
-    const body: string = `{"status":"Succeeded","resourceMetrics":${emptyObjects(
-      1100000,
-    ).toString()},"probeKey":"${PROBES[PROBE_ONE]}","probeId":"${PROBE_ONE}"}`;
+/*
+ * A client without the right key (#10260). It sends no key headers, so its
+ * body is read as an older probe's: no further than the key and id every
+ * probe release opens its report with. Whatever the body is - and however
+ * it is compressed - it is refused there, having cost the App a socket read
+ * or two and a few dozen kilobytes inflated, with not a value counted or
+ * parsed and its connection closed. Before, a body like each of these was
+ * read whole first: up to 50 MiB inflated and 8,000,000 values counted.
+ */
+describe("a client without the right key", () => {
+  interface Shape {
+    name: string;
+    body: () => Buffer;
+    encoding: "gzip" | "deflate" | "identity";
+    // The answer it is refused with.
+    message: string;
+  }
 
-    const answer: Answer = await post({
-      path: VMWARE,
-      body: zlib.gzipSync(Buffer.from(body)),
-    });
+  const random: SeededRandom = seededRandom(10260);
 
-    expect(answer.status).toBe(413);
-    expect(answer.body["limit"]).toBe(1000000);
-    expect(parsesOfAtLeast(MIB)).toEqual([]);
-    expect(mockRecorded).toEqual([]);
-  }, 60000);
+  const SHAPES: Array<Shape> = [
+    {
+      name: "8 million empty objects, gzip: a few hundred KB inflating to 24 MiB",
+      body: (): Buffer => {
+        return zlib.gzipSync(emptyObjects(7900000));
+      },
+      encoding: "gzip",
+      message: "ProbeId or ProbeKey is missing",
+    },
+    {
+      name: "a decompression bomb: 50 MiB of zeros in 50 KB of gzip",
+      body: (): Buffer => {
+        return zlib.gzipSync(Buffer.alloc(50 * MIB));
+      },
+      encoding: "gzip",
+      message: "ProbeId or ProbeKey is missing",
+    },
+    {
+      name: "50 MiB of white space, which holds no JSON value to count",
+      body: (): Buffer => {
+        return zlib.gzipSync(Buffer.alloc(50 * MIB - KIB, " "));
+      },
+      encoding: "gzip",
+      message: "ProbeId or ProbeKey is missing",
+    },
+    {
+      name: "one string of 50 MiB: a single value",
+      body: (): Buffer => {
+        return zlib.gzipSync(
+          Buffer.concat([
+            Buffer.from('"'),
+            Buffer.alloc(50 * MIB - KIB, "a"),
+            Buffer.from('"'),
+          ]),
+        );
+      },
+      encoding: "gzip",
+      message: "ProbeId or ProbeKey is missing",
+    },
+    {
+      name: "a body nested ten million deep",
+      body: (): Buffer => {
+        return zlib.gzipSync(
+          Buffer.concat([
+            Buffer.alloc(10000000, "["),
+            Buffer.alloc(10000000, "]"),
+          ]),
+        );
+      },
+      encoding: "gzip",
+      message: "ProbeId or ProbeKey is missing",
+    },
+    {
+      name: "a probe's key and id at its start, deep nesting after them",
+      body: (): Buffer => {
+        return zlib.gzipSync(
+          Buffer.concat([
+            Buffer.from(
+              `{"probeKey":"a-wrong-key","probeId":"${PROBE_ONE}","x":`,
+            ),
+            Buffer.alloc(10000000, "["),
+          ]),
+        );
+      },
+      encoding: "gzip",
+      message: "Invalid Probe ID or Probe Key",
+    },
+    {
+      name: "a report that opens as a probe's, valid JSON, with a wrong key: 40 MiB",
+      body: (): Buffer => {
+        return zlib.gzipSync(
+          report({
+            probeId: PROBE_ONE,
+            probeKey: "a-wrong-key",
+            points: 310000,
+          }),
+        );
+      },
+      encoding: "gzip",
+      message: "Invalid Probe ID or Probe Key",
+    },
+    {
+      name: "a report with the key further in than its start",
+      body: (): Buffer => {
+        return zlib.gzipSync(
+          Buffer.from(
+            `{"status":"Succeeded","resourceMetrics":${emptyObjects(
+              1100000,
+            ).toString()},"probeKey":"${PROBES[PROBE_ONE]}","probeId":"${PROBE_ONE}"}`,
+          ),
+        );
+      },
+      encoding: "gzip",
+      message: "ProbeId or ProbeKey is missing",
+    },
+    {
+      name: "16 million empty objects, deflate",
+      body: (): Buffer => {
+        return zlib.deflateSync(emptyObjects(16000000));
+      },
+      encoding: "deflate",
+      message: "ProbeId or ProbeKey is missing",
+    },
+    {
+      name: "a deflate bomb: 50 MiB of zeros",
+      body: (): Buffer => {
+        return zlib.deflateSync(Buffer.alloc(50 * MIB));
+      },
+      encoding: "deflate",
+      message: "ProbeId or ProbeKey is missing",
+    },
+    {
+      name: "24 MiB of empty objects, uncompressed",
+      body: (): Buffer => {
+        return emptyObjects(7900000);
+      },
+      encoding: "identity",
+      message: "ProbeId or ProbeKey is missing",
+    },
+    {
+      name: "4 MiB of seeded noise, gzip: what compresses poorly arrives in full",
+      body: (): Buffer => {
+        const noise: Buffer = Buffer.alloc(4 * MIB);
+
+        for (let index: number = 0; index < noise.length; index++) {
+          noise[index] = random(256);
+        }
+
+        return zlib.gzipSync(noise);
+      },
+      encoding: "gzip",
+      message: "ProbeId or ProbeKey is missing",
+    },
+  ];
+
+  test.each(
+    SHAPES.map((shape: Shape) => {
+      return [shape.name, shape];
+    }),
+  )(
+    "%s: refused after its first kilobytes, never counted or parsed, its connection closed",
+    async (_name: unknown, shape: unknown) => {
+      const { body: build, encoding, message } = shape as Shape;
+      const body: Buffer = build();
+
+      for (const path of [VMWARE, OPENSTACK]) {
+        watched.inflated = 0;
+        watched.counted = 0;
+
+        const answer: Answer = await post({
+          path: path,
+          body: body,
+          gzip: false,
+          headers:
+            encoding === "identity" ? {} : { "content-encoding": encoding },
+        });
+
+        expect({
+          path,
+          status: answer.status,
+          message: answer.body["message"],
+        }).toEqual({
+          path,
+          status: 400,
+          message: message,
+        });
+
+        // Read a socket read or two of it, inflated a few dozen KB of it.
+        expect(answer.bytesRead).toBeLessThanOrEqual(MOST_READ_BEFORE_THE_KEY);
+        expect(watched.inflated).toBeLessThanOrEqual(
+          MOST_INFLATED_BEFORE_THE_KEY,
+        );
+
+        // Not a value counted, nothing parsed, nothing recorded.
+        expect(watched.counted).toBe(0);
+        expect(parsesOfAtLeast(KIB)).toEqual([]);
+        expect(mockRecorded).toEqual([]);
+
+        // Closed, though the client asked to keep it: the rest goes unread.
+        expect(answer.connection).toBe("close");
+      }
+
+      // Only an opening that names a probe has its key looked up.
+      expect(keyChecks()).toHaveLength(
+        message === "Invalid Probe ID or Probe Key" ? 2 : 0,
+      );
+      expect(gzipReads).not.toHaveBeenCalled();
+    },
+    120000,
+  );
 
   test("with no key at all, is refused as it always was", async () => {
     const answer: Answer = await post({
@@ -782,5 +1154,67 @@ describe("a body whose probe is not known before it is parsed", () => {
 
     expect(answer.status).toBe(400);
     expect(answer.body["message"]).toBe("ProbeId or ProbeKey is missing");
+  });
+
+  test("an empty body, gzip announced, is refused as a body without a key is", async () => {
+    const answer: Answer = await post({
+      path: VMWARE,
+      body: Buffer.alloc(0),
+    });
+
+    expect(answer.status).toBe(400);
+    expect(answer.body["message"]).toBe("ProbeId or ProbeKey is missing");
+  });
+
+  test("a Content-Length past 50 MiB is refused before a byte is read", async () => {
+    const answer: Answer = await new Promise<Answer>(
+      (resolve: (answer: Answer) => void, reject: (err: Error) => void) => {
+        const agent: http.Agent = new http.Agent({ keepAlive: true });
+        const request: http.ClientRequest = http.request(
+          {
+            host: "127.0.0.1",
+            port: running.port,
+            path: VMWARE,
+            method: "POST",
+            agent: agent,
+            headers: {
+              "content-type": "application/json",
+              "content-encoding": "gzip",
+              "content-length": String(50 * MIB + 1),
+            },
+          },
+          (response: http.IncomingMessage) => {
+            const chunks: Array<Buffer> = [];
+
+            response.on("data", (chunk: Buffer) => {
+              chunks.push(chunk);
+            });
+            response.on("end", () => {
+              agent.destroy();
+              resolve({
+                status: response.statusCode || 0,
+                body: JSON.parse(Buffer.concat(chunks).toString("utf8")),
+                retryAfter: undefined,
+                connection: response.headers["connection"],
+                bytesRead: 0,
+              });
+            });
+          },
+        );
+
+        request.on("error", (err: NodeJS.ErrnoException) => {
+          if (err.code !== "EPIPE" && err.code !== "ECONNRESET") {
+            agent.destroy();
+            reject(err);
+          }
+        });
+        request.write(zlib.gzipSync(emptyObjects(1000)));
+      },
+    );
+
+    expect(answer.status).toBe(413);
+    expect(answer.body["type"]).toBe("entity.too.large");
+    expect(answer.connection).toBe("close");
+    expect(keyChecks()).toEqual([]);
   });
 });

@@ -87,14 +87,14 @@ Een browser verstuurt zelden zulke grote batches, tenzij spans grote attributen 
 
 ## Controleren waar de telemetrie terechtkomt
 
-Het verzoek werkt, maar de app verschijnt onder **Producten → Services** in plaats van onder **Producten → Bronnen → Real User Monitoring**. Dit is de meest gemelde situatie, en de oorzaak is bijna altijd een resource zonder clientattributen. OneUptime archiveert een batch alleen als RUM wanneer de resource een van deze meedraagt:
+Het verzoek werkt, maar de app verschijnt onder **Producten → Services** in plaats van onder **Producten → Bronnen → Real User Monitoring**. Dit is de meest gemelde situatie, en de oorzaak is bijna altijd een andere sleutel dan een Browser- of Mobiel-sleutel, die een resource zonder clientattributen verstuurt. Alles wat een Browser- of Mobiel-sleutel verstuurt, wordt als RUM gearchiveerd; met elke andere sleutel archiveert OneUptime een batch alleen als RUM wanneer de resource een van deze meedraagt:
 
 | Soort | Attributen |
 | --- | --- |
 | Browser | `browser.platform`, `browser.language` of een niet-lege `browser.brands` |
 | Mobiel | `device.id` of `device.model.identifier`, of `device.manufacturer` op een resource zonder hostidentiteit (`host.name`, `host.id` of `k8s.node.name`) |
 
-Een `service.name` alleen maakt een backend-service aan. De OpenTelemetry-browser-SDK voegt geen `browser.*`-attributen toe, tenzij je de browser-resourcedetector toevoegt of ze zelf instelt: zie [Browserconfiguratie](/docs/rum/browser-setup).
+Met elke andere sleutel maakt een `service.name` alleen een backend-service aan. De OpenTelemetry-browser-SDK voegt geen `browser.*`-attributen toe, tenzij je de browser-resourcedetector toevoegt of ze zelf instelt: zie [Browserconfiguratie](/docs/rum/browser-setup).
 
 Om te zien wat je echt verstuurt, open je het OTLP-verzoek op het tabblad Netwerk en bekijk je de payload: `resourceSpans[0].resource.attributes` is de lijst die het bepaalt. Als er geen `browser.*`-attribuut is, voegt de SDK het niet toe, wat de documentatie ervan ook zegt.
 
@@ -127,7 +127,7 @@ De lege grafiek op het **Overzicht** van de applicatie zegt welk geval het is, e
 
 Uitzonderingen hebben een foutafhandelaar nodig, omdat de SDK onafgevangen fouten niet opvangt: [Onafgevangen fouten melden](/docs/rum/browser-setup#onafgevangen-fouten-melden) heeft de code. Een fout die een error boundary of een `try`/`catch` afhandelt, bereikt het venster nooit, dus leg hem vast waar je hem afhandelt, met `span.recordException`.
 
-Logs hebben een logpipeline nodig en code die logrecords schrijft, omdat een `LoggerProvider` op zichzelf niets verstuurt: [Logs en metrieken toevoegen](/docs/rum/browser-setup#logs-en-metrieken-toevoegen) heeft allebei. Bouw de pipeline met dezelfde `resource` als je traces, anders worden de logs onder een backend-service ingedeeld.
+Logs hebben een logpipeline nodig en code die logrecords schrijft, omdat een `LoggerProvider` op zichzelf niets verstuurt: [Logs en metrieken toevoegen](/docs/rum/browser-setup#logs-en-metrieken-toevoegen) heeft allebei. Bouw de pipeline met dezelfde `resource` als je traces, zodat de logs onder dezelfde applicatie worden ingedeeld.
 
 Als paginaladingen binnenkomen, laten de sleutel, de toegestane origins ervan en je Content Security Policy ook uitzonderingen en logs door, zolang de logexporter dezelfde sleutel en host gebruikt. Een foutafhandelaar die nog niets heeft opgevangen, verstuurt niets, precies zoals een die nooit is toegevoegd, dus gooi een testfout vanuit de console van de browser om de twee uit elkaar te houden:
 

@@ -386,14 +386,14 @@ export const getIngestionKeyFormFields: (
                 title: "Browser",
                 icon: IconProp.Globe,
                 description:
-                  "For websites and React Native session replay. Safe to publish: limited to the origins you list, and rate limited.",
+                  "For websites. Safe to publish: limited to the origins you list, and rate limited.",
               },
               {
                 value: TelemetryIngestionKeyType.Mobile,
                 title: "Mobile",
                 icon: IconProp.DevicePhoneMobile,
                 description:
-                  "For an iOS, Android or React Native app. Safe to ship in the app: it sends only that app's traces, logs and metrics, and is rate limited.",
+                  "For an iOS, Android or React Native app. Safe to ship in the app: it sends only that app's traces, logs, metrics and session replays, and is rate limited.",
               },
             ],
             required: true,

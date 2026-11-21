@@ -31,6 +31,7 @@ import NotContains from "../../Types/BaseDatabase/NotContains";
 import Wildcard from "../../Types/BaseDatabase/Wildcard";
 import NotWildcard from "../../Types/BaseDatabase/NotWildcard";
 import NotEqual from "../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../Types/BaseDatabase/NotEqualOrNull";
 import NotNull from "../../Types/BaseDatabase/NotNull";
 import Search from "../../Types/BaseDatabase/Search";
 import StartsWith from "../../Types/BaseDatabase/StartsWith";
@@ -59,6 +60,9 @@ describe("SerializableObjectDictionary registration", () => {
   test("each entry resolves to the class it names", () => {
     expect(SerializableObjectDictionary[ObjectType.EqualTo]).toBe(EqualTo);
     expect(SerializableObjectDictionary[ObjectType.NotEqual]).toBe(NotEqual);
+    expect(SerializableObjectDictionary[ObjectType.NotEqualOrNull]).toBe(
+      NotEqualOrNull,
+    );
     expect(SerializableObjectDictionary[ObjectType.Search]).toBe(Search);
     expect(SerializableObjectDictionary[ObjectType.GreaterThan]).toBe(
       GreaterThan,
@@ -124,6 +128,9 @@ describe("query operators survive a serialize/deserialize round trip", () => {
 
   test("the comparison operators keep their class and value", () => {
     expect(roundTrip(new NotEqual<string>("a"))).toBeInstanceOf(NotEqual);
+    expect(roundTrip(new NotEqualOrNull<string>("a"))).toBeInstanceOf(
+      NotEqualOrNull,
+    );
     expect(roundTrip(new EqualTo<string>("a"))).toBeInstanceOf(EqualTo);
     expect(roundTrip(new EqualToOrNull<string>("a"))).toBeInstanceOf(
       EqualToOrNull,

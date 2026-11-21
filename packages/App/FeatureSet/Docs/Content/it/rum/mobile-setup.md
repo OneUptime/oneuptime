@@ -19,7 +19,7 @@ flowchart TB
     app["La tua app mobile"] --> sdk["SDK OpenTelemetry<br/>con attributi device.*"]
     sdk -->|"OTLP con una<br/>chiave Mobile"| oneuptime["OneUptime"]
     oneuptime --> rum["Applicazione RUM mobile"]
-    replay["SDK di riproduzione<br/>React Native"] -->|"registrazioni con una<br/>chiave Browser"| oneuptime
+    replay["SDK di riproduzione<br/>React Native"] -->|"registrazioni con la<br/>stessa chiave Mobile"| oneuptime
 ```
 
 ## Cosa serve a OneUptime
@@ -52,7 +52,7 @@ Fai di `device.id` un identificativo legato all'installazione, mai un ID pubblic
 | Log | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> La chiave viaggia dentro la tua app, e un'app si può spacchettare: dai quindi per scontato che qualcuno la copierà. Una copia di una chiave Mobile può inviare solo le tracce, i log e le metriche di questa app, archiviati sotto il suo **Nome del servizio fissato**, e mai da una pagina web. Può comunque inviare dati inventati per questa app, fino al **Limite di richieste al minuto** della chiave, quindi aggiungi una data in **Scade il** e ruota la chiave a ogni rilascio.
+> La chiave viaggia dentro la tua app, e un'app si può spacchettare: dai quindi per scontato che qualcuno la copierà. Una copia di una chiave Mobile può inviare solo le tracce, i log, le metriche e le riproduzioni delle sessioni di questa app, archiviati sotto il suo **Nome del servizio fissato**, e mai da una pagina web. Può comunque inviare dati inventati per questa app, fino al **Limite di richieste al minuto** della chiave, quindi aggiungi una data in **Scade il** e ruota la chiave a ogni rilascio.
 
 ## Configurare la piattaforma
 
@@ -289,7 +289,7 @@ Apri la pagina **Client** dell'applicazione: ogni modello di dispositivo da `dev
 
 ## Session Replay su mobile
 
-Le app React Native possono registrare le sessioni con `@oneuptime/react-native-replay`. Registra l'albero delle viste native come wireframe, mai schermate né il testo a video, e le sue registrazioni si aprono nello stesso player di quelle web. Invia con una chiave **Browser** le cui **Origini consentite** elencano la tua app come `app://` seguito dal suo ID applicazione Android o dal suo bundle ID iOS: una chiave diversa dalla chiave Mobile usata dal tuo SDK OpenTelemetry. [Installare in React Native](/docs/telemetry/session-replay#installazione-in-react-native) ti guida passo per passo.
+Le app React Native possono registrare le sessioni con `@oneuptime/react-native-replay`. Registra l'albero delle viste native come wireframe, mai schermate né il testo a video, e le sue registrazioni si aprono nello stesso player di quelle web. Invia con la stessa chiave **Mobile** del tuo SDK OpenTelemetry, con il **Nome del servizio fissato** della chiave come `appIdentifier`, così l'app distribuisce una sola chiave. Funziona anche una chiave **Browser** le cui **Origini consentite** elencano la tua app come `app://` seguito dal suo ID applicazione Android o dal suo bundle ID iOS. [Installare in React Native](/docs/telemetry/session-replay#installazione-in-react-native) ti guida passo per passo.
 
 Le app Android e iOS native, e le altre piattaforme, non hanno un registratore di sessioni: la loro pagina **Riproduzione delle sessioni** resta vuota, mentre tracce, log, metriche, eccezioni e la pagina **Client** funzionano come sempre.
 
@@ -298,7 +298,7 @@ Le app Android e iOS native, e le altre piattaforme, non hanno un registratore d
 :::details La verifica della chiave restituisce 401, o la chiave viene rifiutata
 Un `401` significa che la chiave è sconosciuta, revocata, disattivata o scaduta: crea una chiave Mobile e ricompila l'app con essa.
 
-Una chiave Browser supera la verifica, ma ogni esportazione da un'app mobile viene rifiutata con un `422` che dice `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Usa una chiave **Mobile**. Anche una chiave Mobile viene rifiutata con un `422` tramite gRPC e da una pagina web: esporta tramite OTLP/HTTP.
+Una chiave Browser supera la verifica, ma ogni esportazione da un'app mobile viene rifiutata con un `422` che dice `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Usa una chiave **Mobile**. Anche una chiave Mobile viene rifiutata con un `422` tramite gRPC, da una pagina web e per una riproduzione della sessione il cui `appIdentifier` non è il suo **Nome del servizio fissato**: esporta tramite OTLP/HTTP e dai all'SDK di riproduzione il nome fissato della chiave.
 :::
 
 :::details L'app compare in Servizi invece che in Monitoraggio degli utenti reali

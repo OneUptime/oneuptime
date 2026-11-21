@@ -1,4 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import { JSONObject } from "Common/Types/JSON";
+import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import {
   SLO_MONITORS_MANAGED_BY_RULES_MESSAGE,
@@ -9,7 +12,7 @@ import {
   buildSloMonitorsUpdateData,
   describeSloMonitorCounts,
   getAddMonitorsAvailability,
-  getAddableMonitorOptions,
+  getAddableMonitorsQuery,
   getRemoveMonitorAvailability,
   getSelectedMonitorIds,
   getSloMonitorMembership,
@@ -190,27 +193,41 @@ describe("buildSloMonitorsUpdateData", () => {
   });
 });
 
-describe("getAddableMonitorOptions", () => {
-  test("offers only monitors not already attached, sorted by name", () => {
+/*
+ * Which monitors Add Monitors offers is the server's to say (#10399): the
+ * picker searches it with this query, 50 names at a time, where the dialog
+ * used to read the project's first 10,000 monitors into the browser.
+ */
+describe("getAddableMonitorsQuery", () => {
+  test("offers every monitor to an SLO with none attached", () => {
+    expect(getAddableMonitorsQuery({ attachedMonitorIds: [] })).toEqual({});
+  });
+
+  test("leaves out the monitors already attached, each once, whatever their case or type", () => {
+    const query: Record<string, unknown> = getAddableMonitorsQuery({
+      attachedMonitorIds: [
+        MANUAL.toUpperCase(),
+        new ObjectID(RULE),
+        { _id: MANUAL },
+      ],
+    });
+
+    expect(query["_id"]).toBeInstanceOf(IncludesNone);
+    expect((query["_id"] as IncludesNone).values).toEqual([MANUAL, RULE]);
+  });
+
+  test("is sent to the server as a list of ids none of which it offers", () => {
     expect(
-      getAddableMonitorOptions({
-        monitors: [
-          { _id: OTHER, name: "checkout" },
-          { _id: MANUAL, name: "attached" },
-          { _id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", name: "API" },
-          { _id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee" },
-          { _id: OTHER, name: "duplicate row" },
-        ],
-        attachedMonitorIds: [MANUAL.toUpperCase()],
-      }),
-    ).toEqual([
-      { value: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", label: "API" },
-      { value: OTHER, label: "checkout" },
-      {
-        value: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
-        label: "Untitled monitor",
-      },
-    ]);
+      JSON.parse(
+        JSON.stringify(
+          JSONFunctions.serialize(
+            getAddableMonitorsQuery({
+              attachedMonitorIds: [OTHER],
+            }) as JSONObject,
+          ),
+        ),
+      ),
+    ).toEqual({ _id: { _type: "IncludesNone", value: [OTHER] } });
   });
 });
 

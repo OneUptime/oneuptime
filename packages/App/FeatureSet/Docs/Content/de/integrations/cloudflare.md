@@ -59,7 +59,7 @@ Klicken Sie auf **Diese Einstellungen testen** unter **Vor dem Speichern testen*
 | **Zonen** | Optional. Leer liest jede aktive Zone des Kontos, auch später hinzugefügte. Eine Verbindung liest höchstens 50 Zonen. |
 | **API-Token** | Das Token allein, ohne `Bearer`. Es wird verschlüsselt, nie von der API zurückgegeben und nie wieder angezeigt. Ersetzen Sie es mit **Anmeldedaten aktualisieren** an der Verbindung. |
 
-Der Schritt **Abfrage** hat außerdem eine optionale **Beschreibung**, das **Abfrageintervall (Minuten)**, eine ganze Zahl von `1` bis `1440`, die mit `5` beginnt, und **Aktiviert**, das eingeschaltet beginnt. Die Ereignisse von Cloudflare sind Anfragen, keine Alarme, daher fragt das Formular nicht nach **Fälle eröffnen ab**: Fälle entstehen durch die Erkennungsregeln, die sie lesen.
+Der Schritt **Abfrage** hat außerdem eine optionale **Beschreibung**, das **Abfrageintervall (Minuten)**, eine ganze Zahl von `1` bis `1440`, die mit `5` beginnt, und **Aktiviert**, das eingeschaltet beginnt. Die Ereignisse von Cloudflare sind Anfragen, keine Warnungen, daher fragt das Formular nicht nach **Fälle eröffnen ab**: Fälle entstehen durch die Erkennungsregeln, die sie lesen.
 
 ### Schreibzugriff ist eine eigene Entscheidung
 
