@@ -329,7 +329,7 @@ describe("what the AI is given is redacted and capped", () => {
     incident.incidentNumber = 1;
     incident.description = [
       "Contact jane.doe@example.com about it.",
-      "The key was AKIAIOSFODNN7EXAMPLE and the server 10.1.2.3.",
+      "The key was AKIAIOSFODNN7EXAMPLE and the server 198.51.100.3.",
       "Authorization: Bearer abcdefghijklmnopqrstuvwxyz0123456789",
       "password=hunter2-very-secret",
     ].join("\n");
@@ -342,7 +342,7 @@ describe("what the AI is given is redacted and capped", () => {
 
     expect(snapshot).not.toContain("jane.doe@example.com");
     expect(snapshot).not.toContain("AKIAIOSFODNN7EXAMPLE");
-    expect(snapshot).not.toContain("10.1.2.3");
+    expect(snapshot).not.toContain("198.51.100.3");
     expect(snapshot).not.toContain("abcdefghijklmnopqrstuvwxyz0123456789");
     expect(snapshot).not.toContain("hunter2-very-secret");
     expect(snapshot).toContain("[redacted-email]");

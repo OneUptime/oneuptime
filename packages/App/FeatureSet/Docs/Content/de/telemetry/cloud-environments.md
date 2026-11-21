@@ -102,7 +102,7 @@ Die Erfassung legt Umgebungen für Sie an, Sie müssen also nichts eintippen. Ö
 
 ## Apps und Deployments
 
-Jeder Dienst, den eine Umgebung ausführt, ist eine App von ihr, benannt so, wie die Konsole der Plattform sie nennt. **App-Plattformen → Alle Apps** listet jede App mit der Revision auf, die sie ausführt, und mit ihren Anfragen, ihrer Fehlerrate und ihrer p95-Latenz der letzten Stunde, und der Tab **Apps** einer Umgebung listet ihre eigenen.
+Jeder Dienst, den eine Umgebung ausführt, ist eine App von ihr, benannt so, wie die Konsole der Plattform sie nennt. **App-Plattformen → Alle Apps** listet jede App mit der Revision auf, die sie ausführt, und mit ihren Anfragen, ihrer Fehlerrate und ihrer p95-Latenz der letzten Stunde, und der Tab **Apps** einer Umgebung listet ihre eigenen. Eine App-Service-App, die keine Traces sendet, zeigt dort stattdessen die Werte ihrer Site aus Azure Monitor: die Anfragen, die Azure gezählt hat, den Anteil, der mit einem 5xx-Status beantwortet wurde, und die durchschnittliche Antwortzeit.
 
 | Plattform | App | Getrennt nach | Revision |
 | --- | --- | --- | --- |

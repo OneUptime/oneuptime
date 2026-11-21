@@ -110,6 +110,8 @@ describe("an attack in a request's URL", () => {
           "url.query": "offset=1;SELECT%20IF((SLEEP(16)),1,2356)",
           "http.request.method": "GET",
           "http.response.status_code": "404",
+          // A direct connection: the peer is the client.
+          "network.peer.address": "203.0.113.7",
           "client.address": "203.0.113.7",
           "user_agent.original": "sqlmap/1.7",
           "http.route": "/sitemap.xml",
@@ -124,6 +126,9 @@ describe("an attack in a request's URL", () => {
       "SQL injection attempt: GET /sitemap.xml?offset=1;SELECT%20IF((SLEEP(16)),1,2356) → 404",
     );
     expect(event!.principalIp).toBe("203.0.113.7");
+    expect(event!.attributes["oneuptime.request.client_address_trust"]).toBe(
+      "peer",
+    );
     expect(event!.principalUser).toBe("user-42");
     expect(event!.targetResource).toBe(
       "/sitemap.xml?offset=1;SELECT%20IF((SLEEP(16)),1,2356)",

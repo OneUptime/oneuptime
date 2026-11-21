@@ -1,3 +1,4 @@
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import { AddTelemetryIngestionTeamLabelBudgets1809186905386 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186905386-AddTelemetryIngestionTeamLabelBudgets";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import TelemetryIngestionTeamLabelBudget from "../../../../Models/DatabaseModels/TelemetryIngestionTeamLabelBudget";
@@ -136,6 +137,10 @@ describe("the team and label budgets migration", () => {
     const stored: Array<string> = Object.keys(getTableColumns(budget))
       .filter((column: string): boolean => {
         return !budget.isEntityColumn(column);
+      })
+      .filter((column: string): boolean => {
+        // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+        return !RecordActorUtil.isColumn(column);
       })
       .sort();
 

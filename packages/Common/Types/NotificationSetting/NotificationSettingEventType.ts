@@ -141,6 +141,14 @@ enum NotificationSettingEventType {
   // A task on a security case is handed to the person (SecurityCaseTaskService).
   SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION = "Send notification when a task on a security case is assigned to me",
   /*
+   * A step of a security case's Response Plan that OneUptime saw done stops
+   * holding - the address got through again, the account is active again
+   * (SecurityCaseStepCheckRunner, #10340): told to the people on the case -
+   * its assignee and its team - or, when nobody is, to the people told about
+   * cases at its priority. Never held back in a rollup: the attacker is back.
+   */
+  SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION = "Send notification when a step of a security case I am on stops holding",
+  /*
    * A scheduled hunt found security events (SecurityHuntNotifications): told
    * to the people the hunt names and the members of the teams it names, who
    * can read its project's hunts and security events.

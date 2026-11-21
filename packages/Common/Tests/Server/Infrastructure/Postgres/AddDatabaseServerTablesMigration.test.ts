@@ -1,3 +1,4 @@
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import { AddDatabaseServerTables1795000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1795000000000-AddDatabaseServerTables";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import DatabaseServer from "../../../../Models/DatabaseModels/DatabaseServer";
@@ -64,7 +65,12 @@ function persistedColumns(modelType: unknown): Array<string> {
     for (const column of getMetadataArgsStorage().columns) {
       if (column.target === current) {
         const args: ColumnMetadataArgs = column;
-        names.push(args.options.name || args.propertyName);
+        const name: string = args.options.name || args.propertyName;
+
+        // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+        if (!RecordActorUtil.isColumn(name)) {
+          names.push(name);
+        }
       }
     }
 

@@ -116,7 +116,7 @@ Jo lengre vinduet er, desto bredere er hvert tidsintervall, så ett datapunkt st
 
 ## Kriterier
 
-Disse monitorene evaluerer alltid **Målingsverdi**: den aggregerte verdien av den konfigurerte målingsspørringen eller formelen. **Når det skal varsles** setter opp ett kriterium ut fra **Målt som**, **Tidsvindu**, **Betingelse** og **Verdi**. Når målingen har en enhet, velger du verdiens enhet ved siden av den. **Betingelse** er **Over**, **På eller over**, **Under**, **På eller under**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav**, **Uvanlig høy eller lav**, **Ventes å stige over** eller **Ventes å falle under**. For flere kriterier, for eksempel alvorlighetsbånd, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har en **Måling**, en **Aggregering**, en **Betingelse** og en **Terskel**.
+Disse monitorene evaluerer alltid **Målingsverdi**: den aggregerte verdien av den konfigurerte målingsspørringen eller formelen. **Når det skal varsles** setter opp ett kriterium ut fra **Målt som**, **Tidsvindu**, **Betingelse** og **Verdi**. Når målingen har en enhet, velger du verdiens enhet ved siden av den. **Betingelse** er **Over**, **På eller over**, **Under**, **På eller under**, **Nøyaktig**, **Alt annet enn**, **Uvanlig høy**, **Uvanlig lav**, **Uvanlig høy eller lav**, **Ventes å stige over** eller **Ventes å falle under**. For flere kriterier, for eksempel alvorlighetsbånd, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har en **Måling**, en **Aggregering**, en **Betingelse** og en **Terskel**.
 
 | Betingelse | Samsvarer når verdien er… |
 | --- | --- |
@@ -125,6 +125,7 @@ Disse monitorene evaluerer alltid **Målingsverdi**: den aggregerte verdien av d
 | **Mindre enn** | under terskelen |
 | **Mindre enn eller lik** | lik terskelen eller lavere |
 | **Lik** | nøyaktig terskelen |
+| **Ikke lik** | alt annet enn terskelen |
 | **Unormalt høy** | over det forventede området for denne timen i uken |
 | **Unormalt lav** | under det området |
 | **Avvikende** | utenfor det området, i hvilken som helst retning |

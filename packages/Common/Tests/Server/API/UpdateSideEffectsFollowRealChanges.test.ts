@@ -94,6 +94,7 @@ import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import StatusPageAnnouncement from "../../../Models/DatabaseModels/StatusPageAnnouncement";
 import URL from "../../../Types/API/URL";
+import RecordActorType from "../../../Types/Database/RecordActor";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import IncidentMetricType from "../../../Types/Incident/IncidentMetricType";
 import { JSONObject } from "../../../Types/JSON";
@@ -511,8 +512,13 @@ describe("PUT an incident", () => {
       shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: false,
     });
 
+    // The flag, and who last modified the incident: a master admin (#10290).
     expect(written()).toEqual({
       shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: false,
+      lastModifiedAt: expect.any(Date),
+      lastModifiedByActorType: RecordActorType.MasterAdmin,
+      lastModifiedByActorId: null,
+      lastModifiedByUserId: USER_ID,
     });
   });
 

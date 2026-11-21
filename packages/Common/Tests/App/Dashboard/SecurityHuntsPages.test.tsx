@@ -273,8 +273,12 @@ import SecurityCaseEvidenceKind from "../../../Types/SecurityCase/SecurityCaseEv
 import { buildSecurityCaseEventSnapshot } from "../../../Types/SecurityCase/SecurityCaseEventEvidence";
 import {
   SECURITY_HUNT_RUN_ERRORS,
+  SecurityHuntRunWindow,
   SecurityHuntSchedule,
+  getSecurityHuntRunArrival,
+  getSecurityHuntRunEventTimeRange,
 } from "../../../Types/SecurityEvent/SecurityHunt";
+import { getSecurityEventsArrivalParams } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsArrivalFilter";
 import TimeRange from "../../../Types/Time/TimeRange";
 import { BulkActionOnClickProps } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
@@ -763,22 +767,38 @@ describe("a hunt's page", () => {
     expect(screen.getByTestId(HUNTS_TEST_IDS.edit)).toBeInTheDocument();
   });
 
-  test("Show them opens the explorer on the window the last find read", async () => {
+  test("Show them opens the explorer on exactly the events the last find counted", async () => {
     await renderHunt();
 
     const mounts: number = viewerMounts;
+    const lastFind: SecurityHuntRunWindow = {
+      startTime: stored!.lastFoundSinceAt!,
+      endTime: stored!.lastFoundAt!,
+    };
+    const shown: SecurityHuntRunWindow =
+      getSecurityHuntRunEventTimeRange(lastFind);
 
     fireEvent.click(screen.getByTestId(HUNTS_TEST_IDS.showThem));
 
     expect(queryStrings).toHaveLength(1);
+    /*
+     * What arrived in its window (#10488), over the day before it, in which
+     * those events can have happened.
+     */
     expect(queryStrings[0]).toMatchObject({
       search: null,
       filters: null,
       page: null,
       range: TimeRange.CUSTOM,
-      start: stored!.lastFoundSinceAt!.toISOString(),
-      end: stored!.lastFoundAt!.toISOString(),
+      start: shown.startTime.toISOString(),
+      end: shown.endTime.toISOString(),
+      ...getSecurityEventsArrivalParams(getSecurityHuntRunArrival(lastFind)),
     });
+    expect(queryStrings[0]!["arrivedAfter"]).toBe(
+      new Date(
+        Math.floor(stored!.lastFoundSinceAt!.getTime() / 1000) * 1000,
+      ).toISOString(),
+    );
     // The explorer starts afresh on it.
     await waitFor(() => {
       expect(viewerMounts).toBe(mounts + 1);
@@ -835,10 +855,19 @@ describe("a hunt's page", () => {
     });
 
     expect(screen.queryByTestId(HUNTS_TEST_IDS.runHistory)).toBeNull();
+    const pastWindow: SecurityHuntRunWindow = {
+      startTime: pastRun.windowStartAt,
+      endTime: pastRun.windowEndAt,
+    };
+    const pastShown: SecurityHuntRunWindow =
+      getSecurityHuntRunEventTimeRange(pastWindow);
+
+    // That run's arrivals, over the day before them, as its notification opens it.
     expect(queryStrings[queryStrings.length - 1]).toMatchObject({
       range: TimeRange.CUSTOM,
-      start: pastRun.windowStartAt.toISOString(),
-      end: pastRun.windowEndAt.toISOString(),
+      start: pastShown.startTime.toISOString(),
+      end: pastShown.endTime.toISOString(),
+      ...getSecurityEventsArrivalParams(getSecurityHuntRunArrival(pastWindow)),
     });
     await waitFor(() => {
       expect(viewerMounts).toBe(mounts + 1);

@@ -282,9 +282,10 @@ describe("a web access log line whose client an IP Address rule scrubbed", () =>
   });
 
   test("an address its attributes held, scrubbed, is said to be hidden in the attributes", () => {
+    // The connection's own address: one its sender could not have written (#10416).
     const { row } = scrubLogLine({
       body: "WARN rejected /static/../../etc/passwd",
-      attributes: { "client.address": "203.0.113.7" },
+      attributes: { "network.peer.address": "203.0.113.7" },
       action: "mask",
       fields: LogScrubField.Attributes,
     });
@@ -324,12 +325,13 @@ describe("a server span whose client address an IP Address rule scrubbed", () =>
           attributes: {
             "url.path": "/download",
             "url.query": "file=../../../../etc/passwd",
-            "client.address": address,
+            // The connection's own address, which the scan blames (#10416).
+            "network.peer.address": address,
           },
           action,
         });
 
-        expect(attributes["client.address"]).not.toBe(address);
+        expect(attributes["network.peer.address"]).not.toBe(address);
 
         const events: Array<NormalizedSecurityEvent> = buildTraceSecurityEvents(
           span(attributes),
@@ -371,7 +373,7 @@ describe("a server span whose client address an IP Address rule scrubbed", () =>
       attributes: {
         "url.path": "/download",
         "url.query": "file=../../../../etc/passwd",
-        "client.address": "203.0.113.7",
+        "network.peer.address": "203.0.113.7",
       },
       action: "redact",
       fields: TraceScrubField.Name,

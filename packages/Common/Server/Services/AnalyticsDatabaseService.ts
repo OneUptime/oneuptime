@@ -496,6 +496,8 @@ export default class AnalyticsDatabaseService<
         countBy = await this.onBeforeCount(countBy);
       }
 
+      countBy.query = await this.bindReadQueryOf(countBy.query, countBy.props);
+
       // A grouped count counts the distinct values of its group-by column.
       const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
@@ -664,7 +666,7 @@ export default class AnalyticsDatabaseService<
       const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
           this.modelType,
-          data.query,
+          await this.bindReadQueryOf(data.query, data.props),
           null,
           data.props,
         );
@@ -791,7 +793,7 @@ export default class AnalyticsDatabaseService<
       const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
           this.modelType,
-          data.query,
+          await this.bindReadQueryOf(data.query, data.props),
           null,
           data.props,
         );
@@ -909,7 +911,7 @@ export default class AnalyticsDatabaseService<
       const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
           this.modelType,
-          existsBy.query,
+          await this.bindReadQueryOf(existsBy.query, existsBy.props),
           null,
           existsBy.props,
         );
@@ -1459,7 +1461,7 @@ export default class AnalyticsDatabaseService<
       const result: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
           this.modelType,
-          aggregateBy.query,
+          await this.bindReadQueryOf(aggregateBy.query, aggregateBy.props),
           ModelPermission.getSelectWithGroupBy(
             this.modelType,
             {
@@ -1660,6 +1662,11 @@ export default class AnalyticsDatabaseService<
       const onBeforeFind: FindBy<TBaseModel> = { ...onFind.findBy };
       const carryForward: any = onFind.carryForward;
 
+      onBeforeFind.query = await this.bindReadQueryOf(
+        onBeforeFind.query,
+        onBeforeFind.props,
+      );
+
       if (
         !onBeforeFind.select ||
         Object.keys(onBeforeFind.select).length === 0
@@ -1821,6 +1828,37 @@ export default class AnalyticsDatabaseService<
   }
 
   /*
+   * A read's query as this table's service binds it before it is compiled
+   * - a place holder method used for overriding. Every read of the table
+   * takes it, after its find or count hook and before its read permission:
+   * a list, a count, a grouped count, a count per window, a count per
+   * value, an aggregate and an existence check, so they all read the same
+   * rows. Logs, spans and exceptions bind a search for an IP address to the
+   * project's Hash token for it too (HashedAddressSearch, #10418). A
+   * binding widens what a filter matches - never narrows a read - and the
+   * permission check still applies to what it hands back. A read that asks
+   * for no hooks (props.ignoreHooks) is not bound.
+   */
+  protected async bindReadQuery(data: {
+    query: Query<TBaseModel>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Query<TBaseModel>> {
+    return Promise.resolve(data.query);
+  }
+
+  // The read's query, bound unless the read asks for no hooks.
+  protected async bindReadQueryOf(
+    query: Query<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Query<TBaseModel>> {
+    if (!query || props?.ignoreHooks) {
+      return query;
+    }
+
+    return await this.bindReadQuery({ query, props });
+  }
+
+  /*
    * How many distinct values an expression takes over the rows a query
    * matches, '' left out: the query read as countBy reads it - its count
    * hooks, then the read permission - so it counts among exactly the rows
@@ -1851,7 +1889,7 @@ export default class AnalyticsDatabaseService<
     const permission: CheckReadPermissionType<TBaseModel> =
       await ModelPermission.checkReadPermission(
         this.modelType,
-        countBy.query,
+        await this.bindReadQueryOf(countBy.query, countBy.props),
         null,
         countBy.props,
       );

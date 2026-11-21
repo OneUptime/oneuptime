@@ -91,6 +91,7 @@ export const SECURITY_CASE_NOTIFICATION_EVENT_TYPES: ReadonlyArray<NotificationS
     NotificationSettingEventType.SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION,
     NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION,
     NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
+    NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION,
   ];
 
 // The events SecurityHuntNotifications sends, in the order the settings list them.
@@ -1411,6 +1412,13 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       userId,
       projectId,
       NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
+      { alertByPush: true },
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION,
       { alertByPush: true },
     );
   }

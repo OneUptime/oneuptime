@@ -711,7 +711,7 @@ describe("what each sync copies", () => {
     const single: string = sourceBetween(
       view,
       "const onSingleSyncSubmit",
-      "useEffect(",
+      "const onLinkSubmit",
     );
     const defaults: Array<string> = serviceFieldList("DEFAULT_SYNCABLE_FIELDS");
     const sentence: string = paragraphStarting(page, "To sync one monitor,");

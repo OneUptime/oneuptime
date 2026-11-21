@@ -1,4 +1,5 @@
 import AppLink from "../AppLink/AppLink";
+import { CLAIMED_NOT_VERIFIED } from "./ClaimedClientAddressCopy";
 import {
   HIDDEN_BY_A_SCRUB_RULE,
   HIDDEN_BY_THE_SCRUB_RULE,
@@ -14,6 +15,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export const HIDDEN_CLIENT_ADDRESS_TEST_ID: string =
   "security-hidden-client-address";
+
+export const CLAIMED_CLIENT_ADDRESS_TEST_ID: string =
+  "security-claimed-client-address";
 
 export interface ComponentProps {
   hidden: HiddenClientAddress;
@@ -88,6 +92,27 @@ export function readFieldValue(
 ): ReactElement | string {
   if (field.hiddenAddress) {
     return <HiddenClientAddressText hidden={field.hiddenAddress} />;
+  }
+
+  /*
+   * An address the request only claimed (#10416): the address, or that a
+   * scrub rule hid it, and always that it is claimed, not verified.
+   */
+  if (field.claimedAddress) {
+    const value: string = field.isValueTranslated
+      ? translator.translateText(field.value) || field.value
+      : field.value;
+
+    return (
+      <span data-testid={CLAIMED_CLIENT_ADDRESS_TEST_ID}>
+        <span className="[overflow-wrap:anywhere]">{value}</span>
+        <span className="text-gray-500">
+          {" · "}
+          {translator.translateText(CLAIMED_NOT_VERIFIED) ||
+            CLAIMED_NOT_VERIFIED}
+        </span>
+      </span>
+    );
   }
 
   return field.isValueTranslated

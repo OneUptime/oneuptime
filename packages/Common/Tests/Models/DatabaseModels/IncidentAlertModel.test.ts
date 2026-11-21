@@ -13,6 +13,7 @@ import ReadPermission from "../../../Server/Types/Database/Permissions/ReadPermi
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { OwnedThroughMetadata } from "../../../Types/Database/AccessControl/OwnedThrough";
+import { RECORD_ACTOR_COLUMNS } from "../../../Types/Database/RecordActor";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { UniqueColumnsTogetherMetadata } from "../../../Types/Database/UniqueColumnsTogether";
@@ -327,6 +328,8 @@ describe("IncidentAlert columns", () => {
       "updatedAt",
       "deletedAt",
       "version",
+      // What created each record and who last modified it (#10290).
+      ...RECORD_ACTOR_COLUMNS,
     ];
 
     expect([...model().getTableColumns().columns].sort()).toEqual(

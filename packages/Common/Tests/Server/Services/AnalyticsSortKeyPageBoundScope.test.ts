@@ -97,6 +97,11 @@ const BOUNDED_DEFAULT_LISTS: Record<string, boolean> = {
   RumSessionChunkV1: true,
   RumSessionV1: true,
   SecurityEventItemV1: true,
+  /*
+   * Events that arrived too late for the rules (#10491): an aggregate
+   * target with no _id, read by its own statement and never listed.
+   */
+  SecurityEventLateArrivalV1: false,
   SloHistory: true,
   SpanCountBaseline: false,
   SpanItemV3: true,

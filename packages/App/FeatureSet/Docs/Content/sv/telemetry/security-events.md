@@ -250,6 +250,7 @@ Ett AWS-konto, ett Google Cloud-projekt eller en Azure-prenumeration som är [an
 | Okta System Log | Händelser för inloggning, MFA, konton och policyer | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | Inloggningar, katalogändringar och riskidentifieringar, om du vill misslyckade bakgrunds- och appinloggningar, och från Microsoft 365-granskningsloggen vidarebefordran av e-post, delning och nätfiskeutlåtanden | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Inloggningar, Googles egna fynd, administratörsändringar och appåtkomst, och delning i Drive | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | Det som brandväggen blockerade, utmanade och loggade vid kanten, som HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - Produktens egna larm på eller över **Öppna ärenden från** (**Hög och högre** om du inte väljer en annan nivå, eller **Aldrig**) öppnar [ärenden](/docs/telemetry/security-cases), grupperade efter användaren, värden eller adressen som de handlar om.
 - En anslutning läser poster efter tiden då produkten skapade dem, inte efter tiden för aktiviteten de beskriver. En SIEM-regel som körs varje timme skapar detektioner långt efter händelserna den träffade, och de importeras ändå.
@@ -339,7 +340,7 @@ En hunt som sparats med filter från sidofältet under Händelser visar dem i **
 
 En schemalagd hunt aviserar de personer och team som du väljer under **Avisera**: minst en och högst 50 totalt. Varje körning:
 
-- läser händelserna vars tid ligger efter körningen innan, fram till för två minuter sedan, så att varje händelse söks igenom en gång. Den första körningen läser från när schemat sattes eller sökningen senast ändrades, och efter ett avbrott tar en körning igen högst en dag mer än sitt intervall.
+- läser händelserna som kom in efter körningen innan, fram till för två minuter sedan, oavsett när de inträffade, så att varje händelse söks igenom en gång, även en som kommer sent. Den första körningen läser från när schemat sattes eller sökningen senast ändrades, och efter ett avbrott tar en körning igen högst en dag mer än sitt intervall. En händelse som kommer mer än en dag efter att den inträffade sparas och går att söka i, men ingen körning räknar den.
 - räknar händelserna som dess sökning hittar där, precis som **Händelser** skulle lista dem, och läser bara det som personen den körs som får läsa.
 - aviserar, när den hittar händelser, de personer som hunten nämner, och medlemmarna i de team den nämner, som får läsa hunts och säkerhetshändelser.
 
@@ -349,11 +350,11 @@ En schemalagd hunt körs som den person som senast satte dess schema, ändrade d
 
 ### Körningshistorik
 
-Varje schemalagd körning sparas i 90 dagar. **Körningshistorik**, i slutet av raden som säger vad en hunts körningar hittade, listar dem med den senaste först: när var och en kördes och vilka händelser den sökte i, sedan hur många den hittade, med **Visa dem** för att öppna de händelserna på huntens sida; att den inte hittade något; eller varför den inte kunde köras. Den som kan öppna en hunt kan läsa dess körningar.
+Varje schemalagd körning sparas i 90 dagar. **Körningshistorik**, i slutet av raden som säger vad en hunts körningar hittade, listar dem med den senaste först: när var och en kördes och när händelserna den sökte i kom in, sedan hur många den hittade, med **Visa dem** för att öppna just de händelserna på huntens sida; att den inte hittade något; eller varför den inte kunde köras. Den som kan öppna en hunt kan läsa dess körningar.
 
 ### Vem som aviseras
 
-Aviseringen **En hunt hittade säkerhetshändelser** nämner hunten och dess sökning, hur många händelser körningen hittade och vilket fönster den läste, och länkar till huntens sida för de händelserna; inga av händelsernas egna ord finns i den. Alla får den via e-post och push och väljer dess kanaler under **Användarinställningar → Aviseringsinställningar**. Liksom andra rutinmejl kan den hållas tillbaka i en [mejlsammanställning](/docs/emails/notification-rollup).
+Aviseringen **En hunt hittade säkerhetshändelser** nämner hunten och dess sökning, hur många händelser körningen hittade och när de kom in, och länkar till huntens sida för just de händelserna: filtret **Kommit in** över dagen före dem, som du kan ta bort för att se allt annat från den tiden; inga av händelsernas egna ord finns i den. Alla får den via e-post och push och väljer dess kanaler under **Användarinställningar → Aviseringsinställningar**. Liksom andra rutinmejl kan den hållas tillbaka i en [mejlsammanställning](/docs/emails/notification-rollup).
 
 För att posta det hunts hittar i Slack, Microsoft Teams eller Mattermost lägger du till en regel i **Regler för hunts** under **Produkter → Säkerhetshändelser → Arbetsyta → Slack** (eller **Microsoft Teams** eller **Mattermost**), under reglerna som postar [säkerhetsärenden](/docs/telemetry/security-cases#posta-i-kanaler-i-slack-microsoft-teams-och-mattermost). En regel anger kanalerna att posta i (och i Microsoft Teams chattarna) och, om du vill, de hunts den gäller för, efter **Huntens namn**: ett namn som är din text, innehåller den, börjar eller slutar med den. Varje gång en schemalagd körning hittar händelser postar den hunten, dess sökning, hur många händelser och när, med en länk till dem, och inga av en händelses egna ord. En huntregel sätts upp av en roll som får sätta upp säkerhets-playbooks, som Projektägare, Projektadministratör eller Säkerhetsadministratör.
 
@@ -503,7 +504,8 @@ OneUptime kontrollerar varje minut om det finns aktiverade regler vars intervall
 
 - En räknande regel och en korrelation räknar i fönster lika långa som intervallet, efter varandra enligt klockan: med ett intervall på 10 minuter hamnar misslyckanden kl. 09:58 och 10:01 i olika fönster och räknas var för sig, så lämna marginal när du väljer en tröskel.
 - Efter ett uppehåll, till exempel ett worker-avbrott eller en regel som slagits på igen, täcker nästa körning hela uppehållet, upp till de senaste 24 timmarna.
-- En händelse som kommer in sent läses ändå en gång av nästa körning och räknas i det fönster den hände i: en grupp löser ut när dess fönster når räkningen, och högst en gång per fönster. En händelse som kommer in mer än ett dygn efter att den hände lagras och är sökbar, men regelns körningar läser den inte; **Kör på tidigare händelser** gör det.
+- En körning som misslyckas, till exempel en som tar för lång tid, lämnar regeln där den var: dess **Status** säger **Körningen misslyckades**, och den görs om vid nästa intervall, eller inom en timme om intervallet är längre. Körningen som lyckas läser allt som kommit in sedan den senaste som lyckades, hur länge sedan det än var, en dag i taget. En körning som stoppades efter att den agerat på sina träffar görs om utan att lägga till dem i deras ärende två gånger.
+- En händelse som kommer in sent läses ändå en gång av nästa körning och räknas i det fönster den hände i: en grupp löser ut när dess fönster når räkningen, och högst en gång per fönster. En händelse som kommer in mer än ett dygn efter att den hände lagras och är sökbar, men regelns körningar läser den inte; **Kör på tidigare händelser** gör det. Det är avsiktligt, så att en inläsning av historik inte öppnar larm om det förflutna: när någon har kommit in så sent de senaste 7 dagarna säger ett meddelande ovanför reglerna hur många, från vilka källor och när de hände, och öppnar **Kör på tidigare händelser** över den tiden.
 - Varje grupp som når tröskeln blir ett Detection Finding, upp till 10 000 per körning. Larm, incidenter och ärenden öppnas för de 100 med högst räkning; resten delar ett ärende om regeln, och regelns **Senaste fel** säger hur många grupper som träffade.
 
 ### Realtidsregler

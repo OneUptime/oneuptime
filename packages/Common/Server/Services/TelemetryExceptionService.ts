@@ -34,6 +34,8 @@ import TelemetryService from "../../Models/DatabaseModels/Service";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import HashedAddressSearch from "../Utils/Telemetry/HashedAddressSearch";
+import { HashedAddressSignal } from "../../Types/Telemetry/HashedAddressSearch";
 import Query from "../Types/Database/Query";
 import Select from "../Types/Database/Select";
 import Includes from "../../Types/BaseDatabase/Includes";
@@ -266,6 +268,10 @@ export class Service extends ProjectReferencesService<Model> {
    * unattributed ones), and a block with labels takes away the groups of the
    * resources carrying them. The occurrences behind a group (ExceptionInstance)
    * follow the same scope, so the list, its counts and the occurrences agree.
+   *
+   * A search for an IP address in a group's message also finds the groups
+   * whose address an IP Address rule hashed, by the project's token for it,
+   * as the occurrences' search does (HashedAddressSearch, #10418).
    */
   @CaptureSpan()
   protected override async onBeforeFind(
@@ -273,7 +279,9 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnFind<Model>> {
     findBy.query = await this.addExceptionScope(
       Service.hideMergedExceptions(
-        await this.withMergedFingerprintAliases(findBy.query),
+        await this.withMergedFingerprintAliases(
+          await Service.bindHashedAddressSearch(findBy.query, findBy.props),
+        ),
       ),
       findBy.props,
       DatabaseRequestType.Read,
@@ -288,13 +296,31 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<PositiveNumber> {
     countBy.query = await this.addExceptionScope(
       Service.hideMergedExceptions(
-        await this.withMergedFingerprintAliases(countBy.query),
+        await this.withMergedFingerprintAliases(
+          await Service.bindHashedAddressSearch(countBy.query, countBy.props),
+        ),
       ),
       countBy.props,
       DatabaseRequestType.Read,
     );
 
     return super.countBy(countBy);
+  }
+
+  // A read's message search, bound to the project's IP Address tokens (#10418).
+  private static async bindHashedAddressSearch<TQuery>(
+    query: TQuery,
+    props: DatabaseCommonInteractionProps | undefined,
+  ): Promise<TQuery> {
+    if (!query || props?.ignoreHooks) {
+      return query;
+    }
+
+    return await HashedAddressSearch.bindQuery({
+      query,
+      props,
+      signal: HashedAddressSignal.Exceptions,
+    });
   }
 
   /*

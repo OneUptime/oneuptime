@@ -311,6 +311,47 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Validation of settings a form holds before it has asked for all of
+   * them: the credentials in full, and only the shape of the configuration
+   * there is (no required field may be missing yet). A Cloudflare form
+   * lists the token's accounts and zones (POST /field-choices) before
+   * either is picked. The connector checks the credentials themselves when
+   * it lists.
+   */
+  public static validateCredentials(data: {
+    provider: unknown;
+    config: JSONObject;
+    secrets: JSONObject;
+    alertingOnly: boolean;
+  }): SecurityConnectorSettings {
+    const definition: SecurityEventConnectorDefinition =
+      this.getDefinitionOrThrow(data.provider);
+
+    this.validateFields({
+      definition,
+      fields: definition.configFields,
+      values: data.config,
+      label: "Configuration",
+      requireRequiredFields: false,
+    });
+
+    this.validateFields({
+      definition,
+      fields: definition.secretFields,
+      values: data.secrets,
+      label: "Credentials",
+      requireRequiredFields: true,
+    });
+
+    return {
+      provider: definition.provider,
+      config: data.config,
+      secrets: data.secrets,
+      alertingOnly: data.alertingOnly,
+    };
+  }
+
+  /*
    * Secrets are write-only, so an edit form cannot echo them back and a
    * rotation may replace only one key. Each submitted key is read as:
    *   - a non-empty value: replaces the stored one;

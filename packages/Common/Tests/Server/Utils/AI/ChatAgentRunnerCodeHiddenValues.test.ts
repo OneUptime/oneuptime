@@ -82,8 +82,8 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const SERVERS: string = "config/servers.ts";
 
 const ON_BRANCH: string = [
-  'export const PRIMARY_HOST = "10.0.0.12";',
-  'export const BACKUP_HOST = "10.0.0.13";',
+  'export const PRIMARY_HOST = "203.0.113.12";',
+  'export const BACKUP_HOST = "203.0.113.13";',
   'export const ON_CALL = "ops@acme.com";',
   "export const RETRIES = 3;",
   "",
@@ -350,7 +350,11 @@ const RETRIES_FIVE_ON_BRANCH: string = ON_BRANCH.replace(
   "RETRIES = 5;",
 );
 
-const HIDDEN_VALUES: Array<string> = ["10.0.0.12", "10.0.0.13", "ops@acme.com"];
+const HIDDEN_VALUES: Array<string> = [
+  "203.0.113.12",
+  "203.0.113.13",
+  "ops@acme.com",
+];
 
 // Everything the turn kept or sent anywhere but the code host: none of it may hold a value.
 const everythingButTheCommit: (spies: Spies) => string = (
@@ -469,7 +473,7 @@ describe("Ask to act: each line kept as shown has its value written back (#6388)
     // As the card said: the changed line's placeholder; every other value as the file has it.
     expect(repository.branches.get("fix/login")!.get(SERVERS)).toBe(
       RETRIES_FIVE_ON_BRANCH.replace(
-        'PRIMARY_HOST = "10.0.0.12";',
+        'PRIMARY_HOST = "203.0.113.12";',
         'PRIMARY_HOST = "[redacted-ip]"; // the main one',
       ),
     );

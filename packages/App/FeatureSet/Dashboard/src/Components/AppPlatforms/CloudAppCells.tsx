@@ -25,6 +25,11 @@ import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparato
 import TableEmptyValue, {
   getValueOrQuietDash,
 } from "Common/UI/Components/Table/TableEmptyValue";
+import Icon from "Common/UI/Components/Icon/Icon";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
+import IconProp from "Common/Types/Icon/IconProp";
+import { CloudAppPlatformSignals } from "../../Pages/AppPlatforms/Utils/CloudAppPlatformSignals";
+import { AZURE_MONITOR_SECTION_TITLE } from "./CloudAppAzureMonitorCard";
 
 /*
  * The cells an App Platforms app shows in a list - All Apps, an
@@ -281,6 +286,147 @@ export const APP_REQUESTS_SUMMARY: string = translationKey(
 export const APP_P95_SUMMARY: string = translationKey("p95 {{latency}}");
 export const APP_NO_REQUESTS: string = translationKey("No requests");
 
+/*
+ * An App Service app that sends no traces, in a list (#10406): its site's
+ * numbers from Azure Monitor - 5xx answers, not every error a trace calls
+ * one, and a mean response time, not a p95 - each said as what it is, and
+ * the source named under them, so no one reads them as traced requests.
+ */
+export const APP_PLATFORM_SERVER_ERRORS_SUMMARY: string = translationKey(
+  "{{rate}} server errors",
+);
+export const APP_PLATFORM_RESPONSE_TIME_SUMMARY: string = translationKey(
+  "{{latency}} on average",
+);
+export const APP_PLATFORM_SIGNALS_SOURCE: string = AZURE_MONITOR_SECTION_TITLE;
+export const APP_PLATFORM_SIGNALS_HINT: string = translationKey(
+  "No traces received from this app. These are its site's numbers from Azure Monitor: every request the site answered, the share answered with a 5xx status, and the average response time.",
+);
+
+export interface CloudAppPlatformSignalsSummaryProps {
+  signals: CloudAppPlatformSignals;
+}
+
+interface PlatformSignalDetail {
+  key: string;
+  text: string;
+}
+
+/*
+ * An App Service app's site's last hour, as Azure Monitor counted it: its
+ * 5xx share first - toned as a traced error rate is - then its requests
+ * and mean response time, and "Azure Monitor" under them. A site that
+ * answered nothing says so; a number Azure Monitor did not report is left
+ * out, never written as 0.
+ */
+export const CloudAppPlatformSignalsSummary: FunctionComponent<
+  CloudAppPlatformSignalsSummaryProps
+> = (props: CloudAppPlatformSignalsSummaryProps): ReactElement => {
+  const translator: Translator = useTranslator();
+  const signals: CloudAppPlatformSignals = props.signals;
+  const requests: number = signals.requests || 0;
+  const tone: CloudAppErrorRateTone = getCloudAppErrorRateTone(
+    signals.serverErrorRatePercent,
+  );
+  const requestsText: string = translator.translateTemplate(
+    APP_REQUESTS_SUMMARY,
+    { requests: formatCompact(requests, translator) },
+  );
+  const responseTimeMs: number | null = signals.responseTimeMs;
+  const responseText: string | null =
+    responseTimeMs === null
+      ? null
+      : translator.translateTemplate(APP_PLATFORM_RESPONSE_TIME_SUMMARY, {
+          latency: composedValue((sentence: Translator): string => {
+            return formatDurationMsInLanguage(responseTimeMs, sentence);
+          }),
+        });
+  const hasRate: boolean = signals.serverErrorRatePercent !== null;
+
+  // What the first line does not say, in the line under it.
+  const details: Array<PlatformSignalDetail> = [];
+
+  if (requests > 0 && hasRate) {
+    details.push({ key: "requests", text: requestsText });
+  }
+
+  if (requests > 0 && responseText) {
+    details.push({ key: "response-time", text: responseText });
+  }
+
+  let firstLine: ReactElement;
+
+  if (requests <= 0) {
+    firstLine = (
+      <div
+        className="text-sm text-gray-500"
+        data-testid="cloud-app-platform-no-requests"
+      >
+        {translator.translateText(APP_NO_REQUESTS)}
+      </div>
+    );
+  } else if (hasRate) {
+    firstLine = (
+      <div
+        className={"text-sm tabular-nums " + ERROR_RATE_CLASS_NAMES[tone]}
+        data-testid="cloud-app-platform-server-errors"
+        data-tone={tone}
+      >
+        {translator.translateTemplate(APP_PLATFORM_SERVER_ERRORS_SUMMARY, {
+          rate: formatPercent(signals.serverErrorRatePercent, translator),
+        })}
+      </div>
+    );
+  } else {
+    firstLine = (
+      <div
+        className="text-sm tabular-nums text-gray-700"
+        data-testid="cloud-app-platform-requests"
+      >
+        {requestsText}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="min-w-0"
+      title={translator.translateText(APP_PLATFORM_SIGNALS_HINT)}
+      data-testid="cloud-app-platform-signals"
+    >
+      {firstLine}
+      {details.length > 0 ? (
+        <div className="mt-0.5 whitespace-nowrap text-xs tabular-nums text-gray-500">
+          {details.map(
+            (detail: PlatformSignalDetail, index: number): ReactElement => {
+              return (
+                <React.Fragment key={detail.key}>
+                  {index > 0 ? <InlineSeparator /> : <></>}
+                  <span data-testid={`cloud-app-platform-${detail.key}`}>
+                    {detail.text}
+                  </span>
+                </React.Fragment>
+              );
+            },
+          )}
+        </div>
+      ) : (
+        <></>
+      )}
+      <div
+        className="mt-0.5 flex items-center gap-1 text-xs text-gray-500"
+        data-testid="cloud-app-platform-source"
+      >
+        <Icon
+          icon={IconProp.Cloud}
+          className="h-3 w-3 flex-shrink-0 text-gray-400"
+        />
+        <span>{translator.translateText(APP_PLATFORM_SIGNALS_SOURCE)}</span>
+      </div>
+    </div>
+  );
+};
+
 export interface CloudAppSignalsSummaryCellProps {
   // Undefined while the signals load; null when they could not be read.
   signals: CloudAppSignals | null | undefined;
@@ -291,13 +437,22 @@ export interface CloudAppSignalsSummaryCellProps {
    * requests". Unset: not known, as before.
    */
   hasTraces?: boolean | undefined;
+  /*
+   * For such an app on App Service, its site's numbers from Azure Monitor
+   * (#10406), shown where "No traces" would be. Unset: none to show.
+   */
+  platformSignals?: CloudAppPlatformSignals | undefined;
+  // Its site's numbers are still being read: a skeleton, not "No traces" first.
+  isLoadingPlatformSignals?: boolean | undefined;
 }
 
 /*
  * An app's last hour in one cell, the way a list has room for it: its error
  * rate first - in amber from 1% and red from 5% - and its requests and p95
  * under it. An app that served no request says so - and one that sends no
- * traces says that instead, its requests never having been counted.
+ * traces says that instead, its requests never having been counted, unless
+ * Azure Monitor counted its App Service site's (#10406): those are shown,
+ * marked as Azure Monitor's.
  */
 export const CloudAppSignalsSummaryCell: FunctionComponent<
   CloudAppSignalsSummaryCellProps
@@ -317,6 +472,19 @@ export const CloudAppSignalsSummaryCell: FunctionComponent<
   const signals: CloudAppSignals = props.signals;
 
   if (signals.requests <= 0 && props.hasTraces === false) {
+    // A refresh keeps what the cell shows until the new numbers are in.
+    if (props.isLoadingPlatformSignals && !props.platformSignals) {
+      return (
+        <span data-testid="cloud-app-platform-signals-loading">
+          <InlineValueSkeleton widthClassName="w-24" />
+        </span>
+      );
+    }
+
+    if (props.platformSignals && props.platformSignals.requests !== null) {
+      return <CloudAppPlatformSignalsSummary signals={props.platformSignals} />;
+    }
+
     return (
       <span
         className="text-sm text-gray-500"

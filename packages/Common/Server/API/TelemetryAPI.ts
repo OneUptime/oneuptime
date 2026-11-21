@@ -201,6 +201,14 @@ import ResourceFacetPlanner, {
 } from "../Utils/Telemetry/ResourceFacetPlanner";
 import TimedOutFacets from "../Utils/Telemetry/TimedOutFacets";
 import { RESOURCE_FACET_CATALOG_KEYS } from "../../Types/Telemetry/ResourceFacetCatalog";
+import HashedAddressSearch, {
+  HashedAddressTokens,
+} from "../Utils/Telemetry/HashedAddressSearch";
+import {
+  HashedAddressSignal,
+  MAX_HASHED_ADDRESS_SEARCH_TEXTS,
+  MAX_HASHED_ADDRESS_SEARCH_TEXT_LENGTH,
+} from "../../Types/Telemetry/HashedAddressSearch";
 import ResourceEntityFilter, {
   ResourceEntityScope,
 } from "../Utils/Telemetry/ResourceEntityFilter";
@@ -972,6 +980,11 @@ router.post(
         spanIds,
         sessionIds,
         attributes,
+        hashedAddresses: await hashedAddressesOf(
+          HashedAddressSignal.Logs,
+          databaseProps.tenantId,
+          { bodySearchText, attributes },
+        ),
       };
 
       const buckets: Array<HistogramBucket> =
@@ -986,6 +999,168 @@ router.post(
         buckets: buckets as unknown as JSONObject,
         bucketSizeInMinutes: bucketSizeInMinutes,
         ...dayBarTimezoneField(bucketSizeInMinutes, timezone),
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- A search for an IP address, matched by its hash token too (#10418) ---
+
+/*
+ * The texts of a search an explorer asks about: a list of strings, as many
+ * and as long as one question may hold (MAX_HASHED_ADDRESS_SEARCH_TEXTS),
+ * refused with a 400 otherwise.
+ */
+const readHashedAddressSearchTexts: (body: JSONObject) => Array<string> = (
+  body: JSONObject,
+): Array<string> => {
+  const texts: unknown = body?.["texts"];
+
+  if (!Array.isArray(texts)) {
+    throw new BadDataException(
+      "Send the texts of the search, as a list of strings in texts.",
+    );
+  }
+
+  if (texts.length > MAX_HASHED_ADDRESS_SEARCH_TEXTS) {
+    throw new BadDataException(
+      `A search is asked about at most ${MAX_HASHED_ADDRESS_SEARCH_TEXTS} texts at once.`,
+    );
+  }
+
+  return texts.map((text: unknown): string => {
+    if (typeof text !== "string") {
+      throw new BadDataException("Each text of the search is a string.");
+    }
+
+    if (text.length > MAX_HASHED_ADDRESS_SEARCH_TEXT_LENGTH) {
+      throw new BadDataException(
+        `A text of the search is at most ${MAX_HASHED_ADDRESS_SEARCH_TEXT_LENGTH} characters long.`,
+      );
+    }
+
+    return text;
+  });
+};
+
+/*
+ * Which addresses a search also matched by their hash token: what an
+ * explorer says once, above its results ("Includes records where this
+ * address was hashed."). The explorer sends the texts its search compares
+ * on the fields a search for an address reads (getHashedAddressSearchTexts,
+ * the same fields the read binds), and hears back the addresses among them
+ * that its search matches by the project's token - none when the project
+ * hashes no addresses out of the signal. Read with the signal's own read
+ * access, and held to the caller's read scope: a caller who may read none
+ * of the signal's records hears of no address, as their search shows none.
+ * It reads the project's scrub rules and no record, and names no address
+ * the person did not type.
+ */
+const answerHashedAddressSearch: (data: {
+  signal: HashedAddressSignal;
+  modelType: typeof Log | typeof Span | typeof ExceptionInstance;
+  req: ExpressRequest;
+  res: ExpressResponse;
+}) => Promise<void> = async (data: {
+  signal: HashedAddressSignal;
+  modelType: typeof Log | typeof Span | typeof ExceptionInstance;
+  req: ExpressRequest;
+  res: ExpressResponse;
+}): Promise<void> => {
+  const databaseProps: DatabaseCommonInteractionProps =
+    await CommonAPI.getDatabaseCommonInteractionProps(data.req);
+
+  if (!databaseProps?.tenantId) {
+    return Response.sendErrorResponse(
+      data.req,
+      data.res,
+      new BadDataException("Invalid Project ID"),
+    );
+  }
+
+  const texts: Array<string> = readHashedAddressSearchTexts(
+    data.req.body as JSONObject,
+  );
+
+  const scope: TelemetryReadScope = await TelemetryReadAccess.getScope(
+    data.modelType,
+    databaseProps,
+  );
+
+  const readsNoRecord: boolean =
+    TelemetryReadScopeUtil.getReadableIds(scope)?.length === 0;
+
+  const addresses: Array<string> = readsNoRecord
+    ? []
+    : await HashedAddressSearch.getAddressesMatchedByToken({
+        projectId: databaseProps.tenantId,
+        signal: data.signal,
+        texts,
+      });
+
+  return Response.sendJsonObjectResponse(data.req, data.res, {
+    addresses: addresses,
+  });
+};
+
+router.post(
+  "/telemetry/logs/hashed-address-search",
+  ...requireLogReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      await answerHashedAddressSearch({
+        signal: HashedAddressSignal.Logs,
+        modelType: Log,
+        req,
+        res,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+router.post(
+  "/telemetry/traces/hashed-address-search",
+  ...requireTraceReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      await answerHashedAddressSearch({
+        signal: HashedAddressSignal.Traces,
+        modelType: Span,
+        req,
+        res,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+router.post(
+  "/telemetry/exceptions/hashed-address-search",
+  ...requireExceptionReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      await answerHashedAddressSearch({
+        signal: HashedAddressSignal.Exceptions,
+        modelType: ExceptionInstance,
+        req,
+        res,
       });
     } catch (err: unknown) {
       next(err);
@@ -1115,6 +1290,12 @@ router.post(
        */
       const timedOutFacets: TimedOutFacets = new TimedOutFacets();
 
+      const hashedAddresses: HashedAddressTokens | undefined =
+        await hashedAddressesOf(HashedAddressSignal.Logs, projectId, {
+          bodySearchText,
+          attributes,
+        });
+
       const facets: Record<
         string,
         Array<FacetValue>
@@ -1141,6 +1322,7 @@ router.post(
             spanIds,
             sessionIds,
             attributes,
+            hashedAddresses,
           };
           return timedOutFacets.watch(facetKey, () => {
             return LogAggregationService.getFacetValues(request);
@@ -1570,6 +1752,12 @@ router.post(
         await TelemetryReadAccess.getScope(Span, databaseProps),
       );
 
+      traceFilters.hashedAddresses = await hashedAddressesOf(
+        HashedAddressSignal.Traces,
+        databaseProps.tenantId,
+        traceFilters,
+      );
+
       const request: TraceHistogramRequest = {
         projectId: databaseProps.tenantId,
         startTime,
@@ -1738,6 +1926,12 @@ router.post(
           ),
         },
         scope,
+      );
+
+      traceFilters.hashedAddresses = await hashedAddressesOf(
+        HashedAddressSignal.Traces,
+        databaseProps.tenantId,
+        traceFilters,
       );
 
       /*
@@ -2143,6 +2337,12 @@ router.post(
         await TelemetryReadAccess.getScope(Span, databaseProps),
       );
 
+      traceFilters.hashedAddresses = await hashedAddressesOf(
+        HashedAddressSignal.Traces,
+        databaseProps.tenantId,
+        traceFilters,
+      );
+
       /*
        * A table's order (the dashboard Trace Table's sortable headers): a
        * column from the fixed list, else none - the busiest groups first.
@@ -2255,6 +2455,12 @@ router.post(
           ),
         },
         await TelemetryReadAccess.getScope(Span, databaseProps),
+      );
+
+      traceFilters.hashedAddresses = await hashedAddressesOf(
+        HashedAddressSignal.Traces,
+        databaseProps.tenantId,
+        traceFilters,
       );
 
       const result: TraceSessionCountResult =
@@ -2979,6 +3185,11 @@ router.post(
         traceIds,
         escaped,
         messageSearchText,
+        hashedAddresses: await hashedAddressesOf(
+          HashedAddressSignal.Exceptions,
+          databaseProps.tenantId,
+          { messageSearchText },
+        ),
       };
 
       const buckets: Array<ExceptionHistogramBucket> =
@@ -3199,6 +3410,11 @@ router.post(
        */
       const timedOutFacets: TimedOutFacets = new TimedOutFacets();
 
+      const exceptionHashedAddresses: HashedAddressTokens | undefined =
+        await hashedAddressesOf(HashedAddressSignal.Exceptions, projectId, {
+          messageSearchText,
+        });
+
       const facets: Record<
         string,
         Array<ExceptionFacetValue>
@@ -3224,6 +3440,7 @@ router.post(
             traceIds,
             escaped,
             messageSearchText,
+            hashedAddresses: exceptionHashedAddresses,
           };
           return timedOutFacets.watch(facetKey, () => {
             return ExceptionAggregationService.getFacetValues(request);
@@ -3603,6 +3820,12 @@ router.post(
         attributes: parseAttributeFilterRecord(body["attributes"]),
         limit,
       };
+
+      request.hashedAddresses = await hashedAddressesOf(
+        HashedAddressSignal.Logs,
+        databaseProps.tenantId,
+        request,
+      );
 
       if (chartType === "timeseries") {
         const data: Array<AnalyticsTimeseriesRow> =
@@ -3986,6 +4209,11 @@ router.post(
           spanIds,
           sessionIds,
           attributes,
+          hashedAddresses: await hashedAddressesOf(
+            HashedAddressSignal.Logs,
+            databaseProps.tenantId,
+            { bodySearchText, attributes },
+          ),
         },
       );
 
@@ -4240,7 +4468,32 @@ async function scopeErrorPatternFilters(
       props: databaseProps,
       requested: filters.serviceIds,
     })),
+    hashedAddresses: await hashedAddressesOf(
+      HashedAddressSignal.Logs,
+      filters.projectId,
+      filters,
+    ),
   };
+}
+
+/*
+ * The project's IP Address Hash tokens for a chart's, a facet's, an
+ * export's or an insight's request, when its search names an address and
+ * the project hashes addresses out of the signal: its free text and
+ * attribute filters then match an address's token too, as the list's do
+ * (HashedAddressSearch, #10418). None otherwise, and the request reads as
+ * it did.
+ */
+async function hashedAddressesOf(
+  signal: HashedAddressSignal,
+  projectId: ObjectID,
+  request: Parameters<typeof HashedAddressSearch.getRequestTexts>[0],
+): Promise<HashedAddressTokens | undefined> {
+  return await HashedAddressSearch.getTokensForRequest({
+    projectId,
+    signal,
+    request,
+  });
 }
 
 /*

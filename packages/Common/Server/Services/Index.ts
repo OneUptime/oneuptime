@@ -160,6 +160,7 @@ import DataSourceService from "./DataSourceService";
 import AuditLogService from "./AuditLogService";
 import LogService from "./LogService";
 import SecurityEventService from "./SecurityEventService";
+import SecurityEventLateArrivalService from "./SecurityEventLateArrivalService";
 import ChangeEventService from "./ChangeEventService";
 import MailService from "./MailService";
 import MetricService from "./MetricService";
@@ -433,6 +434,7 @@ import SecurityCaseService from "./SecurityCaseService";
 import SecurityCaseFeedService from "./SecurityCaseFeedService";
 import SecurityCaseNoteService from "./SecurityCaseNoteService";
 import SecurityCaseTaskService from "./SecurityCaseTaskService";
+import SecurityCaseStepCheckService from "./SecurityCaseStepCheckService";
 import SecurityCaseEvidenceService from "./SecurityCaseEvidenceService";
 import SecurityCasePriorityService from "./SecurityCasePriorityService";
 import SecurityCaseStatusService from "./SecurityCaseStatusService";
@@ -1048,6 +1050,7 @@ const services: Array<BaseService> = [
   SecurityCaseFeedService,
   SecurityCaseNoteService,
   SecurityCaseTaskService,
+  SecurityCaseStepCheckService,
   SecurityCaseEvidenceService,
   SecurityCasePriorityService,
   SecurityCaseStatusService,
@@ -1304,6 +1307,11 @@ export const AnalyticsServices: Array<
   RumProductAnalyticsEventService,
   AuditLogService,
   SecurityEventService,
+  /*
+   * Events that arrived more than a day late (#10491): its view reads
+   * SecurityEventItemV1, and every table is created before any view is.
+   */
+  SecurityEventLateArrivalService,
   ThreatIntelIndicatorService,
   /*
    * Security Events' address vault (#10395). Here only so boot creates its

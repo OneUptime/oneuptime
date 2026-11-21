@@ -16,18 +16,43 @@ import {
   RESPONSE_MARK_NOT_DONE,
   RESPONSE_PHASE_TITLES,
   RESPONSE_PROGRESS,
+  RESPONSE_PROGRESS_CHECKED,
   RESPONSE_READY_TO_CONTAIN,
   RESPONSE_RULE_FALSE_POSITIVES,
   RESPONSE_TITLE,
   SECURITY_CASE_RESPONSE_TEST_IDS,
+  STEP_CHECKS_NOT_READ,
+  STEP_CHECK_CHECKED_AT,
+  STEP_CHECK_CONFIRM,
+  STEP_CHECK_CONFIRM_TOOLTIP,
+  STEP_CHECK_DOCS_LINK,
+  STEP_CHECK_DONE_ANYWAY,
+  STEP_CHECK_DONE_BY_CHECK,
+  STEP_CHECK_HIDE_HOW_WE_KNOW,
+  STEP_CHECK_HOW_WE_KNOW,
+  STEP_CHECK_STATE_LABELS,
   ACTION_COPY,
 } from "./SecurityCaseResponseCopy";
 import {
+  StepCheckLinkTarget,
+  canConfirmStep,
+  getStepCheckDocsUrl,
+  getStepCheckLineClassName,
+  getStepCheckLinkTarget,
+  getStepCheckTone,
+  isCheckExplainedInline,
+  isDoneAnyway,
+  isDoneByCheckOnly,
+  readCheckSentence,
+} from "./SecurityCaseResponseChecks";
+import {
   RESPONSE_PLAYBOOK_SELECT,
+  RESPONSE_STEP_CHECK_SELECT,
   RESPONSE_TASK_SELECT,
   getCaseResponseVerdictTone,
   getResponseStepTitle,
   readResponsePlaybooks,
+  readResponseStepChecks,
   readResponseTasks,
 } from "./SecurityCaseResponseData";
 import {
@@ -48,6 +73,7 @@ import {
   ResponseText,
 } from "./SecurityCaseResponseTypes";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
+import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
@@ -59,12 +85,16 @@ import ObjectID from "Common/Types/ObjectID";
 import ModelEventType from "Common/Types/Realtime/ModelEventType";
 import { isSecurityCaseAiVerdict } from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
 import { SecurityCaseMatchesJson } from "Common/Types/SecurityCase/SecurityCaseMatches";
+import { ResponseLink } from "Common/Types/SecurityCase/SecurityCaseResponseLink";
+import { SecurityCaseStepCheckSentence } from "Common/Types/SecurityCase/SecurityCaseStepCheckEvidence";
+import URL from "Common/Types/API/URL";
 import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
 import {
   SecurityEntity,
   readSecurityEntities,
 } from "Common/Types/SecurityCase/SecurityEntity";
 import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -74,6 +104,7 @@ import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import Link from "Common/UI/Components/Link/Link";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
@@ -124,6 +155,16 @@ import React, {
  *
  * OneUptime AI's own suggested steps, from its triage, fold under the plan's
  * own, in its words.
+ *
+ * OneUptime checks most steps itself (#10340, SecurityCaseStepCheck): a
+ * step it checked says so - Checked by OneUptime, with the line of its
+ * evidence and the rest under How We Know - apart from a person's tick
+ * ("Done by Jane Doe"). One that looks done offers Confirm, which makes it
+ * the person's tick; one OneUptime cannot tell about says why, with the
+ * docs that say how to let it check; and one that was done and stopped
+ * holding is said at the top of the card. Anyone may still tick a step by
+ * hand: one OneUptime does not see done is ticked "anyway". A card whose
+ * checks cannot be read still draws the plan, and says so.
  */
 
 export interface ComponentProps {
@@ -143,6 +184,9 @@ export interface ComponentProps {
 interface PlanData {
   tasks: Array<SecurityCaseTask>;
   playbooks: Array<SecurityPlaybook>;
+  // What OneUptime found of the steps; none when they could not be read.
+  checks: Array<SecurityCaseStepCheck>;
+  isChecksUnread: boolean;
   // The playbooks a run of which succeeded on the case, and where the others' latest runs stand.
   ranPlaybookIds: Array<string>;
   playbookRunStates: Record<string, ResponsePlaybookRunState>;
@@ -175,6 +219,8 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
   const [workingStepKey, setWorkingStepKey] = useState<string>("");
   const [isShowingAiSteps, setIsShowingAiSteps] = useState<boolean>(false);
   const [exceptionFor, setExceptionFor] = useState<ResponseAction | null>(null);
+  // The steps whose How We Know is open.
+  const [openHowWeKnow, setOpenHowWeKnow] = useState<Array<string>>([]);
 
   const caseUpdateGate: PermissionGateResult = PermissionGate.check(
     new SecurityCase(),
@@ -205,10 +251,11 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     latestReadRef.current = readNumber;
 
     try {
-      const [tasks, playbooks, runs]: [
+      const [tasks, playbooks, runs, checks]: [
         ListResult<SecurityCaseTask>,
         ListResult<SecurityPlaybook>,
         ListResult<SecurityPlaybookRun>,
+        { rows: Array<SecurityCaseStepCheck>; isUnread: boolean },
       ] = await Promise.all([
         ModelAPI.getList<SecurityCaseTask>({
           modelType: SecurityCaseTask,
@@ -234,12 +281,32 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
           skip: 0,
           limit: 100,
         }),
+        // Checks that cannot be read leave the plan as it is, and say so.
+        ModelAPI.getList<SecurityCaseStepCheck>({
+          modelType: SecurityCaseStepCheck,
+          query: { securityCaseId: new ObjectID(caseIdText) },
+          select: RESPONSE_STEP_CHECK_SELECT,
+          sort: { createdAt: SortOrder.Ascending },
+          skip: 0,
+          limit: 100,
+        }).then(
+          (
+            result: ListResult<SecurityCaseStepCheck>,
+          ): { rows: Array<SecurityCaseStepCheck>; isUnread: boolean } => {
+            return { rows: result.data || [], isUnread: false };
+          },
+          (): { rows: Array<SecurityCaseStepCheck>; isUnread: boolean } => {
+            return { rows: [], isUnread: true };
+          },
+        ),
       ]);
 
       if (readNumber === latestReadRef.current) {
         setData({
           tasks: tasks.data,
           playbooks: playbooks.data,
+          checks: checks.rows,
+          isChecksUnread: checks.isUnread,
           ...readPlaybookRuns(
             runs.data.map(
               (
@@ -274,22 +341,38 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const stops: Array<() => void> = [
+    const eventTypes: Array<ModelEventType> = [
       ModelEventType.Create,
       ModelEventType.Update,
       ModelEventType.Delete,
-    ].map((eventType: ModelEventType): (() => void) => {
-      return Realtime.listenToModelEvent<SecurityCaseTask>(
-        {
-          eventType,
-          modelType: SecurityCaseTask,
-          tenantId: projectId,
-        },
-        () => {
-          void load();
-        },
-      );
-    });
+    ];
+    const stops: Array<() => void> = [
+      ...eventTypes.map((eventType: ModelEventType): (() => void) => {
+        return Realtime.listenToModelEvent<SecurityCaseTask>(
+          {
+            eventType,
+            modelType: SecurityCaseTask,
+            tenantId: projectId,
+          },
+          () => {
+            void load();
+          },
+        );
+      }),
+      // OneUptime checking a step again reads the plan again too.
+      ...eventTypes.map((eventType: ModelEventType): (() => void) => {
+        return Realtime.listenToModelEvent<SecurityCaseStepCheck>(
+          {
+            eventType,
+            modelType: SecurityCaseStepCheck,
+            tenantId: projectId,
+          },
+          () => {
+            void load();
+          },
+        );
+      }),
+    ];
 
     return () => {
       for (const stop of stops) {
@@ -354,6 +437,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
       suggestedPlaybookId: securityCase.aiSuggestedPlaybookId?.toString(),
       report: securityCase.aiTriageReport,
     },
+    checks: readResponseStepChecks(data.checks),
   });
 
   const isClosed: boolean = stage === SecurityCaseStage.Closed;
@@ -458,6 +542,167 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const sentenceText: (sentence: SecurityCaseStepCheckSentence) => string = (
+    sentence: SecurityCaseStepCheckSentence,
+  ): string => {
+    return readCheckSentence(sentence, translator);
+  };
+
+  // A link of the evidence: a page of the Dashboard, or the product's own, in a new tab.
+  const renderCheckLink: (link: ResponseLink, index: number) => ReactElement = (
+    link: ResponseLink,
+    index: number,
+  ): ReactElement => {
+    const target: StepCheckLinkTarget | null = getStepCheckLinkTarget(link);
+
+    if (!target) {
+      return <React.Fragment key={index} />;
+    }
+
+    return (
+      <Link
+        key={index}
+        to={target.url || target.route}
+        openInNewTab={Boolean(target.url)}
+        className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+        dataTestId={SECURITY_CASE_RESPONSE_TEST_IDS.checkLink}
+      >
+        {translator.translateTemplate(target.title, target.values)}
+      </Link>
+    );
+  };
+
+  /*
+   * What OneUptime found of a step: its chip and its line, then - for a step
+   * it cannot tell about - why, at once, with the docs; for any other, what
+   * else it saw under How We Know.
+   */
+  const renderCheck: (step: ResponseStep) => ReactElement = (
+    step: ResponseStep,
+  ): ReactElement => {
+    const check: NonNullable<ResponseStep["check"]> = step.check!;
+    const isInline: boolean = isCheckExplainedInline(check.state);
+    const isOpen: boolean = openHowWeKnow.includes(step.key);
+    const docsUrl: URL | null = getStepCheckDocsUrl(check.evidence.docsPath);
+    const facts: ReactElement =
+      check.evidence.facts.length > 0 ? (
+        <ul
+          className="ms-4 list-disc space-y-0.5 text-xs text-gray-600"
+          data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.checkFacts}
+        >
+          {check.evidence.facts.map(
+            (
+              fact: SecurityCaseStepCheckSentence,
+              index: number,
+            ): ReactElement => {
+              return <li key={index}>{sentenceText(fact)}</li>;
+            },
+          )}
+        </ul>
+      ) : (
+        <></>
+      );
+    const links: ReactElement =
+      check.evidence.links.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {check.evidence.links.map(renderCheckLink)}
+        </div>
+      ) : (
+        <></>
+      );
+
+    return (
+      <div
+        className="space-y-1"
+        data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.checkLine}
+        data-check-state={check.state}
+      >
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.checkChip}>
+            <Pill
+              text={STEP_CHECK_STATE_LABELS[check.state]}
+              tone={getStepCheckTone(check.state)}
+            />
+          </span>
+          <p
+            className={`min-w-0 break-words text-xs ${getStepCheckLineClassName(
+              check.state,
+            )}`}
+          >
+            {sentenceText(check.evidence.sentence)}
+          </p>
+        </div>
+        {isInline ? (
+          <div className="space-y-1">
+            {facts}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              {check.evidence.links.map(renderCheckLink)}
+              {docsUrl ? (
+                <Link
+                  to={docsUrl}
+                  openInNewTab={true}
+                  className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                  dataTestId={SECURITY_CASE_RESPONSE_TEST_IDS.docsLink}
+                >
+                  {translator.translateText(STEP_CHECK_DOCS_LINK)}
+                </Link>
+              ) : (
+                <></>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <button
+              type="button"
+              className="rounded text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              aria-expanded={isOpen}
+              data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.howWeKnow}
+              onClick={() => {
+                setOpenHowWeKnow(
+                  isOpen
+                    ? openHowWeKnow.filter((key: string): boolean => {
+                        return key !== step.key;
+                      })
+                    : [...openHowWeKnow, step.key],
+                );
+              }}
+            >
+              {translator.translateText(
+                isOpen ? STEP_CHECK_HIDE_HOW_WE_KNOW : STEP_CHECK_HOW_WE_KNOW,
+              )}
+            </button>
+            {isOpen ? (
+              <div
+                className="space-y-1"
+                data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.howWeKnowPanel}
+              >
+                {facts}
+                {links}
+                {check.checkedAt ? (
+                  <p
+                    className="text-xs text-gray-500"
+                    title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                      check.checkedAt,
+                    )}
+                  >
+                    {translator.translateTemplate(STEP_CHECK_CHECKED_AT, {
+                      time: OneUptimeDate.fromNow(check.checkedAt),
+                    })}
+                  </p>
+                ) : (
+                  <></>
+                )}
+              </div>
+            ) : (
+              <></>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderStep: (step: ResponseStep) => ReactElement = (
     step: ResponseStep,
   ): ReactElement => {
@@ -472,12 +717,20 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     const tickGate: PermissionGateResult = step.taskId
       ? taskUpdateGate
       : taskCreateGate;
+    // A step OneUptime itself checked done, with no tick to take back, has nothing to tick.
+    const isDoneByCheck: boolean = isDoneByCheckOnly(step);
     const canTick: boolean =
       step.completion === ResponseStepCompletion.ByTask &&
       !isClosed &&
+      !isDoneByCheck &&
       tickGate.isAllowed &&
       !isWorking &&
       !workingStepKey;
+    const canConfirm: boolean =
+      canConfirmStep(step) &&
+      step.completion === ResponseStepCompletion.ByTask &&
+      !isClosed &&
+      tickGate.isAllowed;
     const isMarkContained: boolean =
       step.key === getResponseStepKey("contain:mark-contained");
     const isHighlighted: boolean =
@@ -505,12 +758,18 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
             title={
               step.completion === ResponseStepCompletion.ByCase
                 ? translator.translateText(RESPONSE_DONE_BY_CASE)
-                : tickGate.isAllowed
-                  ? translator.translateTemplate(
-                      step.isDone ? RESPONSE_MARK_NOT_DONE : RESPONSE_MARK_DONE,
-                      { step: text },
-                    )
-                  : tickGate.disabledReason
+                : isDoneByCheck
+                  ? translator.translateText(STEP_CHECK_DONE_BY_CHECK)
+                  : tickGate.isAllowed
+                    ? translator.translateTemplate(
+                        step.isDone
+                          ? RESPONSE_MARK_NOT_DONE
+                          : isDoneAnyway(step)
+                            ? STEP_CHECK_DONE_ANYWAY
+                            : RESPONSE_MARK_DONE,
+                        { step: text },
+                      )
+                    : tickGate.disabledReason
             }
             data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.checkbox}
             onChange={() => {
@@ -545,6 +804,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
+            {step.check ? renderCheck(step) : <></>}
             {isHighlighted ? (
               <p
                 className="text-xs text-indigo-700"
@@ -609,8 +869,28 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
               )}
             </div>
           </div>
-          {(step.action || (step.copyValue && !step.isDone)) && !isClosed ? (
+          {(step.action || canConfirm || (step.copyValue && !step.isDone)) &&
+          !isClosed ? (
             <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+              {canConfirm ? (
+                <Button
+                  title={STEP_CHECK_CONFIRM}
+                  buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
+                  buttonSize={ButtonSize.Small}
+                  disabled={isWorking || Boolean(workingStepKey)}
+                  ariaLabel={translator.translateTemplate(
+                    STEP_CHECK_CONFIRM_TOOLTIP,
+                    { step: text },
+                  )}
+                  isAriaLabelTranslated={true}
+                  dataTestId={SECURITY_CASE_RESPONSE_TEST_IDS.confirm}
+                  onClick={() => {
+                    void toggle(step);
+                  }}
+                />
+              ) : (
+                <></>
+              )}
               {step.copyValue && !step.isDone ? (
                 <CopyTextButton
                   textToBeCopied={step.copyValue}
@@ -646,6 +926,11 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
   };
 
   const aiSteps: Array<ResponseStep> = plan.steps.filter(isAiStep);
+  const regressedSteps: Array<ResponseStep> = plan.steps.filter(
+    (step: ResponseStep): boolean => {
+      return Boolean(step.check) && plan.regressedStepKeys.includes(step.key);
+    },
+  );
   const aiVerdict: string = isSecurityCaseAiVerdict(securityCase.aiVerdict)
     ? securityCase.aiVerdict
     : "";
@@ -660,15 +945,57 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
             className="whitespace-nowrap text-sm tabular-nums text-gray-500"
             data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.progress}
           >
-            {translator.translateTemplate(RESPONSE_PROGRESS, {
-              done: translator.formatNumber(plan.done),
-              total: translator.formatNumber(plan.total),
-            })}
+            {plan.checked > 0
+              ? translator.translatePlural(
+                  RESPONSE_PROGRESS_CHECKED,
+                  plan.checked,
+                  {
+                    done: translator.formatNumber(plan.done),
+                    total: translator.formatNumber(plan.total),
+                  },
+                )
+              : translator.translateTemplate(RESPONSE_PROGRESS, {
+                  done: translator.formatNumber(plan.done),
+                  total: translator.formatNumber(plan.total),
+                })}
           </span>
         }
       >
         <div className="space-y-4">
           {actionError ? <ErrorMessage message={actionError} /> : <></>}
+
+          {/* A step that was done and stopped holding: the attacker is back. */}
+          {regressedSteps.length > 0 ? (
+            <div data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.regressed}>
+              <Alert
+                type={AlertType.DANGER}
+                title={
+                  <span className="block space-y-1">
+                    {regressedSteps.map((step: ResponseStep): ReactElement => {
+                      return (
+                        <span key={step.key} className="block">
+                          {sentenceText(step.check!.evidence.sentence)}
+                        </span>
+                      );
+                    })}
+                  </span>
+                }
+              />
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {data.isChecksUnread ? (
+            <p
+              className="text-xs text-gray-500"
+              data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.checksNotRead}
+            >
+              {translator.translateText(STEP_CHECKS_NOT_READ)}
+            </p>
+          ) : (
+            <></>
+          )}
 
           {aiVerdict ? (
             <div

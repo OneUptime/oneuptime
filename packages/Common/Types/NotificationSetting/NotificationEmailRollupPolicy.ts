@@ -42,6 +42,12 @@ export const NEVER_ROLLED_UP_EVENT_TYPES: ReadonlySet<NotificationSettingEventTy
      */
     NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION,
     /*
+     * A step of a security case that stopped holding: the attacker is getting
+     * through again, now. Held back five minutes, they would have had five
+     * more minutes.
+     */
+    NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION,
+    /*
      * A public note waiting for the person's approval: it is published only
      * once somebody approves it, and the customers it is written for are
      * waiting for it - often in the middle of an incident. Held back five

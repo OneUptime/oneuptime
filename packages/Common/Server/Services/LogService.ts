@@ -11,6 +11,8 @@ import Query from "../Types/AnalyticsDatabase/Query";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import ResourceEntityFilter from "../Utils/Telemetry/ResourceEntityFilter";
+import HashedAddressSearch from "../Utils/Telemetry/HashedAddressSearch";
+import { HashedAddressSignal } from "../../Types/Telemetry/HashedAddressSearch";
 import TelemetryRowRetention from "../Utils/Telemetry/TelemetryRowRetention";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
@@ -120,12 +122,14 @@ export class LogService extends AnalyticsDatabaseService<Log> {
   }
 
   /*
-   * The prefilter as a ClickHouse condition on the body, every word bound as
-   * a parameter: a line holds one of `anyOf`, or matches one of the groups.
+   * The prefilter as a ClickHouse condition on the body, its words bound as
+   * parameters: a line holds one of `anyOf`, or matches one of the groups.
    * Every word is sent hex encoded (Statement's sendAsHex): ClickHouse writes
    * a failed query down, and the scan reads the logs it is written in -
    * where its own words, all together, would pass this very filter
-   * (issue #6419).
+   * (issue #6419). Each list of words is one parameter, however many words
+   * it holds: a parameter a word took the read past the 1,000 fields
+   * ClickHouse 26.7 takes in a request, and it read nothing (issue #10520).
    */
   public static buildSecurityLogPrefilter(): Statement {
     const statement: Statement = SQL`(multiSearchAnyCaseInsensitive(body, ${{
@@ -263,6 +267,23 @@ export class LogService extends AnalyticsDatabaseService<Log> {
   }
 
   /*
+   * A search for an IP address also finds the logs whose address an IP
+   * Address rule hashed, by the project's token for it (#10418): every
+   * read of logs - the explorer's list, total, monitors and their
+   * previews, dashboards - takes it (AnalyticsDatabaseService.bindReadQuery).
+   */
+  protected override async bindReadQuery(data: {
+    query: Query<Log>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Query<Log>> {
+    return await HashedAddressSearch.bindQuery({
+      query: data.query,
+      props: data.props,
+      signal: HashedAddressSignal.Logs,
+    });
+  }
+
+  /*
    * Count the logs a query matches once per distinct combination of the
    * given attributes' values - a grouped Logs monitor's evaluation, one
    * count per IPsec tunnel rather than one for the whole monitor.
@@ -290,7 +311,7 @@ export class LogService extends AnalyticsDatabaseService<Log> {
     const permission: CheckReadPermissionType<Log> =
       await ModelPermission.checkReadPermission(
         this.modelType,
-        countBy.query,
+        await this.bindReadQueryOf(countBy.query, input.props),
         null,
         input.props,
       );
@@ -471,7 +492,7 @@ export class LogService extends AnalyticsDatabaseService<Log> {
       const permission: CheckReadPermissionType<Log> =
         await ModelPermission.checkReadPermission(
           this.modelType,
-          countBy.query,
+          await this.bindReadQueryOf(countBy.query, input.props),
           null,
           input.props,
         );

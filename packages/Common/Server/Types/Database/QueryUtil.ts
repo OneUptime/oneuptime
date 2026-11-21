@@ -19,6 +19,7 @@ import IsNull from "../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../Types/BaseDatabase/NotEqualOrNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import Search from "../../../Types/BaseDatabase/Search";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
@@ -580,6 +581,15 @@ export default class QueryUtil {
         ) as FindOperator<any> as any;
       } else if (
         query[key] &&
+        query[key] instanceof NotEqualOrNull &&
+        tableColumnMetadata
+      ) {
+        // Anything but the value, an empty column included (#10399).
+        query[key] = QueryHelper.notEqualsOrNull(
+          QueryUtil.getComparedValue(key, query[key] as NotEqualOrNull<any>),
+        ) as FindOperator<any> as any;
+      } else if (
+        query[key] &&
         (query[key] as any)._value &&
         Array.isArray((query[key] as any)._value) &&
         (query[key] as any)._value.length > 0 &&
@@ -640,16 +650,29 @@ export default class QueryUtil {
         query[key] instanceof Wildcard &&
         tableColumnMetadata
       ) {
-        query[key] = QueryHelper.wildcard(
-          (query[key] as Wildcard<string>).toString() as any,
+        // Several globs are any of them; one (or none) reads as it always has.
+        const globs: Array<string> = (query[key] as Wildcard<string>).values;
+
+        query[key] = (
+          globs.length > 1
+            ? QueryHelper.wildcardAny(globs)
+            : QueryHelper.wildcard(
+                (query[key] as Wildcard<string>).toString() as any,
+              )
         ) as any;
       } else if (
         query[key] &&
         query[key] instanceof NotWildcard &&
         tableColumnMetadata
       ) {
-        query[key] = QueryHelper.notWildcard(
-          (query[key] as NotWildcard<string>).toString() as any,
+        const globs: Array<string> = (query[key] as NotWildcard<string>).values;
+
+        query[key] = (
+          globs.length > 1
+            ? QueryHelper.notWildcardAny(globs)
+            : QueryHelper.notWildcard(
+                (query[key] as NotWildcard<string>).toString() as any,
+              )
         ) as any;
       } else if (
         query[key] &&

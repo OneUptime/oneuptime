@@ -228,7 +228,11 @@ describe("SLO Monitors page", () => {
     expect(code).toContain("getAddMonitorsAvailability(");
     expect(code).toContain("getRemoveMonitorAvailability(");
     expect(code).toContain("getSloMonitorSource(");
-    expect(code).toContain("getAddableMonitorOptions(");
+    // Searched on the server within the monitors not on the SLO (#10399).
+    expect(code).toContain("getAddableMonitorsQuery(");
+    expect(code).toContain("dropdownModal: {");
+    expect(code).not.toContain("LIMIT_PER_PROJECT");
+    expect(code).not.toContain("dropdownOptions:");
   });
 
   test("shows where each monitor came from", () => {
