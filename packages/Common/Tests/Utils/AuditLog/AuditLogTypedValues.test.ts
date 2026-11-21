@@ -17,6 +17,7 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesAnyOfGroups from "../../../Types/BaseDatabase/IncludesAnyOfGroups";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
@@ -239,6 +240,9 @@ const SAMPLES: Readonly<Partial<Record<ObjectType, () => unknown>>> = {
   [ObjectType.IncludesNone]: (): unknown => {
     return new IncludesNone(["a", "b"]);
   },
+  [ObjectType.IncludesNoneOrNull]: (): unknown => {
+    return new IncludesNoneOrNull(["a", "b"]);
+  },
   [ObjectType.StartsWith]: (): unknown => {
     return new StartsWith("check");
   },
@@ -294,6 +298,7 @@ const KEPT_AS_JSON: Readonly<Record<string, string>> = {
   [ObjectType.IncludesAll]: "a query filter",
   [ObjectType.IncludesAnyOfGroups]: "a query filter",
   [ObjectType.IncludesNone]: "a query filter",
+  [ObjectType.IncludesNoneOrNull]: "a query filter",
   [ObjectType.StartsWith]: "a query filter",
   [ObjectType.EndsWith]: "a query filter",
   [ObjectType.NotContains]: "a query filter",

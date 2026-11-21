@@ -48,7 +48,7 @@ import useResourceOwners, {
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
-import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import { JSONObject } from "../../../Types/JSON";
@@ -258,8 +258,9 @@ const expectIncluded: ExpectIncludedFunction = (
   excluded: boolean = false,
 ): void => {
   const value: unknown = getTable().query[field];
-  expect(value).toBeInstanceOf(excluded ? IncludesNone : Includes);
-  expect((value as Includes | IncludesNone).values).toEqual(values);
+  // "Is not" keeps the resources with no value (#10581).
+  expect(value).toBeInstanceOf(excluded ? IncludesNoneOrNull : Includes);
+  expect((value as Includes | IncludesNoneOrNull).values).toEqual(values);
 };
 
 beforeEach(() => {
@@ -654,7 +655,7 @@ describe("inventory facet persistence and embedded scopes", () => {
         new Includes([EntityType.Host, EntityType.KubernetesPod]),
       );
       expect(query["inventoryStatus"]).toEqual(
-        new IncludesNone(["live", "recent"]),
+        new IncludesNoneOrNull(["live", "recent"]),
       );
     }
     expect(
