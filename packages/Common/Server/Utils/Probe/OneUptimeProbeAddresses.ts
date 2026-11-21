@@ -1,6 +1,7 @@
 import Probe from "../../../Models/DatabaseModels/Probe";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
+import OneUptimeProbeKind from "../../../Types/Probe/OneUptimeProbeKind";
 import ProbeInterfaceAddressesUtil from "../../../Types/Probe/ProbeInterfaceAddresses";
 import NetworkAddressBlockUtil, {
   NetworkAddressBlock,
@@ -40,14 +41,7 @@ import QueryHelper from "../../Types/Database/QueryHelper";
  * probe, so a person sees why.
  */
 
-export enum OneUptimeProbeKind {
-  // One of the project's own probes.
-  Project = "project",
-  // One of OneUptime's probes, which belong to no project.
-  Global = "global",
-  // OneUptime Cloud's probe addresses, as the instance's setting lists them.
-  OneUptimeCloud = "oneuptime-cloud",
-}
+export { OneUptimeProbeKind };
 
 export enum OneUptimeProbeAddressSource {
   // Where the probe checks in from, as OneUptime saw it.
