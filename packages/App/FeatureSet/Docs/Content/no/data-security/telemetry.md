@@ -1,13 +1,13 @@
 # Sensitive data i telemetri
 
-Telemetri inneholder det koden din skriver: en e-postadresse i en logglinje, et kortnummer i et span-attributt, et token i en stakksporing, et spørsmål fra en kunde i en prompt, en brukers IP-adresse i etiketten til en måling. Datasikkerhet behandler loggene, sporene, målingene, unntakene og AI-samtalene til hver tjeneste, og øktene til hver RUM-applikasjon, som egne datalagre. Den tar stikkprøver av dem hver time, finner sensitive data i dem slik den gjør i en bucket, og **Rens** gjør et funn om til en regel som maskerer disse dataene ved inntak fra da av.
+Telemetri inneholder det koden din skriver: en e-postadresse i en logglinje, et kortnummer i et span-attributt, et token i en stakksporing, et spørsmål fra en kunde i en prompt, en brukers IP-adresse i etiketten til en måling. Datasikkerhet behandler loggene, sporene, målingene, unntakene og AI-samtalene til hver tjeneste, og øktene til hver RUM-applikasjon, som egne datalagre. Den tar stikkprøver av dem hver time, finner sensitive data i dem slik den gjør i en bucket, og **Rens** gjør et funn om til en regel som skjuler disse dataene ved inntak fra da av, i tjenesten de ble funnet i.
 
 Det er ingenting å sette opp: telemetrien til hver tjeneste skannes hver time, med mindre **Skann telemetri** er slått av i prosjektets innstillinger. For å utelate én tjenestes logger, sporinger eller et annet av dens signaler, slår du av **Skann innhold** i det datalagerets **Innstillinger**: fra neste skanning leses ingenting av det.
 
 :::cards
 - [Hva som leses](#hva-som-leses): Attributtene, brødtekstene, meldingene og promptene til hvert signal.
 - [Slik tar en skanning stikkprøver](#slik-tar-en-skanning-stikkprøver): De nyeste postene fra hver tjeneste, hver time.
-- [Rens](#rens): Masker et funn ved inntak, med ett klikk.
+- [Rens](#rens): Skjul et funn ved inntak, i tjenesten det ble funnet i.
 - [Forkast denne målingen](#forkast-denne-målingen): Slutt å lagre målingene der navnet inneholder sensitive data.
 - [Hva som regnes som renset](#hva-som-regnes-som-renset): Når en rensingsregel allerede dekker et funn.
 :::
@@ -94,14 +94,14 @@ For å utelate noe legger du det til i datalagerets **Skanneunntak**: en plasser
 
 ### Trykk på Rens
 
-Klikk på **Rens**. For logger og loggene til en RUM-applikasjon lager OneUptime en rensingsregel for logger, for spans, unntak og AI-kall en rensingsregel for spor, på den delen av posten funnet ligger i, og for attributtet til en måling en pipelineregel for målinger.
+Klikk på **Rens**. En dialog sier hva regelen ville gjøre før noe opprettes: hvem sine poster den endrer, hva den gjør med det den finner, og hva som leser verdiene den ville skjule. Klikk på **Rens** i den for å opprette regelen. For logger og loggene til en RUM-applikasjon lager OneUptime en rensingsregel for logger, for spans, unntak og AI-kall en rensingsregel for spor, på den delen av posten funnet ligger i, og for attributtet til en måling en pipelineregel for målinger.
 
 ### Rett koden også
 
-Regelen maskerer nye data før de lagres. Data som allerede er lagret, blir liggende til oppbevaringstiden er ute, så rett koden som skriver dem: funnet nevner tjenesten og attributtet.
+Regelen skjuler nye data før de lagres. Data som allerede er lagret, blir liggende til oppbevaringstiden er ute, så rett koden som skriver dem: funnet nevner tjenesten og attributtet.
 :::
 
-Regelen får navn etter det den skjuler, for eksempel «Data Security: Email address in attributes.user.email», og står sammen med de andre rensingsreglene dine (se [Forkastingsfiltre og rensingsregler](/docs/telemetry/drop-filters-and-scrub-rules#rens-sensitive-data)). Den er en av disse:
+Regelen får navn etter det den skjuler, for eksempel «Data Security: Email address in log attributes of checkout», og står sammen med de andre rensingsreglene dine (se [Forkastingsfiltre og rensingsregler](/docs/telemetry/drop-filters-and-scrub-rules#rens-sensitive-data)). Den er en av disse:
 
 | Funn | Regelen Rens lager |
 | --- | --- |
@@ -109,6 +109,10 @@ Regelen får navn etter det den skjuler, for eksempel «Data Security: Email add
 | En verdi under en nøkkel som ser sensitiv ut, for eksempel `password` eller `token` | En regel av typen **Sensitive attributtnøkler**, som sladder hele verdien til hvert slikt attributt |
 | Enhver annen datatype et mønster kan finne | En regel av typen **Egendefinert regex**, laget av datatypens egne mønstre, som sladder hver verdi med den formen |
 | Enhver datatype i attributtet til en måling | En pipelineregel for målinger av typen **Sladd attributt** for tjenesten, som erstatter verdiene i attributtet som har datatypens form, med `[REDACTED]`, eller hver verdi i attributtet der ingen mønstre finner datatypen |
+
+En regel for logger eller traces gjelder for tjenesten funnet ble funnet i: den renser loggene eller spans fra den tjenesten, og andre tjenesters forblir som de er, så ingenting som leser deres, endres. Kolonnen **Omfang** i listen over rensingsregler sier hvilken tjeneste en regel gjelder for. Et funn i en RUM-applikasjons øktopptak oppretter en regel for alle tjenester og apper i prosjektet, siden regler for logger også renser opptak, og dialogen sier det. Finnes ikke tjenesten lenger, sier **Rens** det og oppretter ingen regel.
+
+Dialogen nevner, hver som en lenke, monitorene, dashbordene med widgetene sine, lagrede visninger, opptaksregler og SLO-er som leser verdiene regelen ville skjule, og hva som skjer med dem: et filter på en skjult verdi slutter å samsvare, og en gruppering etter den viser ikke lenger de virkelige verdiene. Den sier også hva [Sikkerhetshendelser](/docs/telemetry/security-events) ville miste når de leser disse postene: med IP-adressene skjult kan hendelsene ikke oppgi adressen som skal blokkeres. Det du ikke kan se, telles, men nevnes aldri. Dialogen stopper aldri regelen: den sier det, og du bestemmer. Skjemaene for rensingsregler viser det samme før en regel lagres eller slås på.
 
 Noen funn kan ikke renses av en regel, og **Rens** sier hvorfor. Attributtet til en måling kan alltid renses, siden regelen kan skjule hver verdi i attributtet:
 
@@ -139,6 +143,7 @@ Et funn merkes som renset bare når inntaket ville kjørt en aktivert regel over
 
 - **De riktige postene.** Loggregler dekker logger og loggene til en RUM-applikasjon. Sporregler dekker spans, unntak og AI-kall: et unntak er en kopi av unntakshendelsen i sitt span, så reglene som renser hendelser, renser det.
 - **Den riktige delen.** Regelens **Felt som skal renses** inkluderer den delen av posten funnet ligger i, eller regelen lar dem stå på standardverdien.
+- **Riktig tjeneste.** En regel for logger eller traces for én tjeneste dekker bare den tjenestens funn. En regel uten tjeneste dekker alle tjenesters.
 - **Et mønster som finner typen.** En innebygd **Mønstertype** finner sin egen datatype: **E-postadresse** finner e-postadresser, **Kredittkortnummer** kortnumre, **SSN (personnummer)** amerikanske Social Security-numre, **Telefonnummer** telefonnumre og **IP-adresse** IP-adresser. **Sensitive attributtnøkler** dekker hver verdi under en nøkkel som ser sensitiv ut, uansett hva verdien er.
 - **Dine egne mønstre teller aldri.** En **Egendefinert regex** dekker et funn bare når den er nøyaktig det mønsteret **Rens** lager for typen. Et funn beholder bare maskerte prøver, som ingen mønstre kan prøves på, så OneUptime kunne ikke bevise at mønsteret ditt skjuler dataene, og et funn som feilaktig kalles renset, er en lekkasje ingen ser på.
 - **Attributtet til en måling.** En pipelineregel for målinger av typen **Sladd attributt** eller **Fjern attributt** for nøkkelen til det attributtet, for tjenesten til funnet eller hele prosjektet, dekker funnet når den ikke har noe filter, eller nøyaktig filteret **Rens** lager. Et filter du har skrevet selv, teller aldri, av samme grunn.
