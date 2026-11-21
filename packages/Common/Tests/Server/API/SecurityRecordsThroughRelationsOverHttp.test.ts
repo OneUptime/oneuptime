@@ -15,23 +15,28 @@ jest.mock("../../../Server/Utils/Logger", () => {
 import BaseAPI from "../../../Server/API/BaseAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import DataSecurityAPI from "../../../Server/API/DataSecurityAPI";
+import SecurityBlockAPI from "../../../Server/API/SecurityBlockAPI";
 import SecurityWatchlistAPI from "../../../Server/API/SecurityWatchlistAPI";
+import CloudResourceService from "../../../Server/Services/CloudResourceService";
 import DataSecurityIssueService from "../../../Server/Services/DataSecurityIssueService";
 import DataSecurityScanService from "../../../Server/Services/DataSecurityScanService";
 import DataStoreFindingService from "../../../Server/Services/DataStoreFindingService";
 import DataStoreService from "../../../Server/Services/DataStoreService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
+import SecurityBlockService from "../../../Server/Services/SecurityBlockService";
 import SecurityWatchlistService from "../../../Server/Services/SecurityWatchlistService";
 import ThreatIntelFeedService from "../../../Server/Services/ThreatIntelFeedService";
 import QueryPermission from "../../../Server/Types/Database/Permissions/QueryPermission";
 import Select from "../../../Server/Types/Database/Select";
 import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
+import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue";
 import DataSecurityScan from "../../../Models/DatabaseModels/DataSecurityScan";
 import DataStore from "../../../Models/DatabaseModels/DataStore";
 import DataStoreFinding from "../../../Models/DatabaseModels/DataStoreFinding";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import SecurityBlock from "../../../Models/DatabaseModels/SecurityBlock";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import SecurityEventConnection from "../../../Models/DatabaseModels/SecurityEventConnection";
 import SecurityWatchlist from "../../../Models/DatabaseModels/SecurityWatchlist";
@@ -58,6 +63,7 @@ import {
   useInMemoryTable,
 } from "../TestingUtils/InMemoryRepository";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
+import { everyServerProductIsOn } from "../TestingUtils/ServerProductsOn";
 import {
   afterAll,
   afterEach,
@@ -89,17 +95,24 @@ import {
  *
  * Here every request goes over HTTP through Express's body parser, the
  * routes the App serves (SecurityWatchlistAPI, DataSecurityAPI for data
- * stores, BaseAPI for the rest), the permission layer and the error handler,
- * into tables held in memory that join the related record as Postgres would
- * (DashboardRequestsOverHttp, InMemoryRepository):
+ * stores, SecurityBlockAPI for blocks, BaseAPI for the rest), the
+ * permission layer and the error handler, into tables held in memory that
+ * join the related record as Postgres would (DashboardRequestsOverHttp,
+ * InMemoryRepository):
  *
  *   - before: with the records as 17.1.0 shipped them, every reader of the
  *     first reads all of the second - the leak;
- *   - after, through each of the seven relations, for each of its readers:
+ *   - after, through each of the nine relations, for each of its readers:
  *     which record it is (its name, its kind or provider, whether it is on;
  *     a case by its number) is answered; the rest is answered for who may
  *     read the record itself and refused for everyone else, saying who may,
  *     before the table is read - and so is a filter or an order by it.
+ *
+ * Two of the nine came after #10310, with readers of their own the details
+ * are held from as well: a block names the case it was made for (#10338),
+ * read by a custom role that reads blocks; and App Platforms' levels
+ * (#10289) read a cloud's resources, which name their connection, though
+ * only Cloud's levels and the roles they follow read the connection.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -300,8 +313,9 @@ interface Joiner {
 const SECURITY_RECORD_READERS: string =
   "Project Owner, Project Admin, Security Admin, Security Member, Security Viewer";
 
+// A cloud connection's and account's readers: Cloud's levels too (#10289), never App Platforms'.
 const CLOUD_READERS: string =
-  "You need one of these permissions: Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member, Settings Viewer, Read Cloud Resource.";
+  "You need one of these permissions: Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member, Settings Viewer, Read Cloud Resource, Cloud Admin, Cloud Member, Cloud Viewer.";
 
 function customRole(name: string, permissions: Array<Permission>): Reader {
   return { name: name, permissions: permissions };
@@ -331,6 +345,42 @@ const READS_SCANS: Reader = customRole("a custom role that reads scans", [
 const READS_STORES_AND_CLOUD: Reader = customRole(
   "a Security Viewer who also reads cloud resources",
   [Permission.SecurityViewer, Permission.ReadCloudResource],
+);
+const READS_BLOCKS: Reader = customRole("a custom role that reads blocks", [
+  Permission.ReadSecurityBlock,
+]);
+const READS_BLOCKS_AND_CASES: Reader = customRole(
+  "a custom role that reads blocks and cases",
+  [Permission.ReadSecurityBlock, Permission.ReadSecurityCase],
+);
+
+// A cloud's resources' readers (#10289): every one of them reads its connection but App Platforms' levels.
+const VIEWER: Reader = { name: "Viewer", permissions: [Permission.Viewer] };
+const SETTINGS_VIEWER: Reader = {
+  name: "Settings Viewer",
+  permissions: [Permission.SettingsViewer],
+};
+const READS_CLOUD_RESOURCES: Reader = customRole(
+  "a custom role that reads cloud resources",
+  [Permission.ReadCloudResource],
+);
+const CLOUD_ADMIN: Reader = {
+  name: "Cloud Admin",
+  permissions: [Permission.CloudAdmin],
+};
+const CLOUD_VIEWER: Reader = {
+  name: "Cloud Viewer",
+  permissions: [Permission.CloudViewer],
+};
+const APP_PLATFORM_LEVELS: Array<Reader> = [
+  { name: "App Platform Admin", permissions: [Permission.AppPlatformAdmin] },
+  { name: "App Platform Member", permissions: [Permission.AppPlatformMember] },
+  { name: "App Platform Viewer", permissions: [Permission.AppPlatformViewer] },
+];
+// An App Platforms team given Cloud's Viewer level too: reads the connection.
+const APP_PLATFORMS_AND_CLOUD: Reader = customRole(
+  "an App Platform Viewer who is also a Cloud Viewer",
+  [Permission.AppPlatformViewer, Permission.CloudViewer],
 );
 
 const JOINERS: Array<Joiner> = [
@@ -485,6 +535,60 @@ const JOINERS: Array<Joiner> = [
     readsRelated: [OWNER, ADMIN, READS_STORES_AND_CLOUD],
     labels: ["name", "provider"],
     filterColumn: "accountId",
+    whoMay: CLOUD_READERS,
+  },
+  {
+    // The case a block was made for (#10338).
+    name: "SecurityBlock.securityCase",
+    path: "/api/security-block/get-list",
+    service: SecurityBlockService as unknown as DatabaseService<BaseModel>,
+    relation: "securityCase",
+    relatedModel: new SecurityCase(),
+    joined: CASE,
+    row: {
+      value: "203.0.113.7",
+      securityCaseId: CASE_ID,
+    },
+    readers: [OWNER, ADMIN, ...SECURITY_TIERS, READS_BLOCKS],
+    readsRelated: [OWNER, ADMIN, ...SECURITY_TIERS, READS_BLOCKS_AND_CASES],
+    labels: ["caseNumber", "caseNumberWithPrefix"],
+    filterColumn: "verdict",
+    whoMay: `You need one of these permissions: ${SECURITY_RECORD_READERS}, Read Security Case.`,
+  },
+  {
+    // The connection a cloud's resource is read through, for App Platforms' levels too (#10289).
+    name: "CloudResource.cloudConnection",
+    path: "/api/cloud-resource/get-list",
+    service: CloudResourceService as unknown as DatabaseService<BaseModel>,
+    relation: "cloudConnection",
+    relatedModel: new CloudConnection(),
+    joined: CLOUD_CONNECTION,
+    row: {
+      name: "checkout-api",
+      cloudConnectionId: CLOUD_CONNECTION_ID,
+    },
+    readers: [
+      OWNER,
+      ADMIN,
+      VIEWER,
+      SETTINGS_VIEWER,
+      READS_CLOUD_RESOURCES,
+      CLOUD_ADMIN,
+      CLOUD_VIEWER,
+      ...APP_PLATFORM_LEVELS,
+    ],
+    readsRelated: [
+      OWNER,
+      ADMIN,
+      VIEWER,
+      SETTINGS_VIEWER,
+      READS_CLOUD_RESOURCES,
+      CLOUD_ADMIN,
+      CLOUD_VIEWER,
+      APP_PLATFORMS_AND_CLOUD,
+    ],
+    labels: ["isEnabled", "name", "provider"],
+    filterColumn: "lastError",
     whoMay: CLOUD_READERS,
   },
 ];
@@ -669,9 +773,14 @@ function asShippedIn1710(joiner: Joiner): () => void {
 beforeAll(async () => {
   server = new DashboardRequestsOverHttp();
   await server.start([
-    // The App serves watchlists and data stores with routes of their own.
+    // The App serves watchlists, data stores and blocks with routes of their own.
     new SecurityWatchlistAPI().getRouter(),
     new DataSecurityAPI().getRouter(),
+    new SecurityBlockAPI().getRouter(),
+    new BaseAPI<CloudResource, DatabaseService<BaseModel>>(
+      CloudResource,
+      CloudResourceService as unknown as DatabaseService<BaseModel>,
+    ).getRouter(),
     new BaseAPI<ThreatIntelFeed, DatabaseService<BaseModel>>(
       ThreatIntelFeed,
       ThreatIntelFeedService as unknown as DatabaseService<BaseModel>,
@@ -698,6 +807,8 @@ afterAll(async () => {
 beforeEach(() => {
   server.requests.length = 0;
   caller = callerWith([Permission.ProjectOwner]);
+
+  everyServerProductIsOn();
 
   jest
     .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
@@ -1075,6 +1186,48 @@ describe("the readers are the models' own", () => {
     );
     expect(new ThreatIntelFeed().readRecordPermissions).not.toEqual(
       expect.arrayContaining([Permission.ReadProjectDetectionRule]),
+    );
+  });
+
+  test("App Platforms' levels read a cloud's resources and not its connections; Cloud's read both (#10289)", () => {
+    const resourceReaders: Array<Permission> =
+      new CloudResource().readRecordPermissions || [];
+    const connectionReaders: Array<Permission> =
+      new CloudConnection().readRecordPermissions || [];
+
+    for (const level of [
+      Permission.AppPlatformAdmin,
+      Permission.AppPlatformMember,
+      Permission.AppPlatformViewer,
+    ]) {
+      expect({
+        level,
+        readsResources: resourceReaders.includes(level),
+      }).toEqual({ level, readsResources: true });
+      expect({
+        level,
+        readsConnections: connectionReaders.includes(level),
+      }).toEqual({ level, readsConnections: false });
+    }
+
+    for (const level of [
+      Permission.CloudAdmin,
+      Permission.CloudMember,
+      Permission.CloudViewer,
+    ]) {
+      expect([
+        resourceReaders.includes(level),
+        connectionReaders.includes(level),
+      ]).toEqual([true, true]);
+    }
+  });
+
+  test("a custom role that reads blocks does not read cases (#10338)", () => {
+    expect(new SecurityBlock().readRecordPermissions).toEqual(
+      expect.arrayContaining([Permission.ReadSecurityBlock]),
+    );
+    expect(new SecurityCase().readRecordPermissions).not.toEqual(
+      expect.arrayContaining([Permission.ReadSecurityBlock]),
     );
   });
 });
