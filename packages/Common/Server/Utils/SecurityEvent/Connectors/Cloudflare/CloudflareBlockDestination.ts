@@ -19,6 +19,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import SecurityEventConnectorProvider from "../../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import {
   CLOUDFLARE_BLOCK_LIST_NAMES,
+  CLOUDFLARE_PLAN_LIMITS,
   CloudflareActionStatus,
   CloudflareBlockingMechanism,
   CloudflareBlockingSettings,
@@ -377,11 +378,15 @@ export class CloudflareBlockDestination implements SecurityBlockDestination {
       }),
     );
 
+    const planItems: number = this.status
+      ? CLOUDFLARE_PLAN_LIMITS[this.status.plan].listItems
+      : limit;
+
     return {
       limit,
       fullReason: usesAccessRules
         ? `Cloudflare's IP Access Rules are full (${limit.toLocaleString("en-US")})`
-        : `Cloudflare's lists are full: your plan holds ${limit.toLocaleString("en-US")} more items beside your own lists'`,
+        : `Cloudflare's lists are full: your plan holds ${planItems.toLocaleString("en-US")} list items, and your own lists use ${(planItems - limit).toLocaleString("en-US")}`,
     };
   }
 
