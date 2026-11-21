@@ -135,7 +135,10 @@ let rowsCreated: number;
 let fake: FakeAwsWaf;
 let clock: number;
 
-function copy<T extends object>(model: T, empty: T): T {
+function copy<T extends SecurityBlock | SecurityBlockEnforcement>(
+  model: T,
+  empty: T,
+): T {
   return Object.assign(empty, model);
 }
 
@@ -367,9 +370,7 @@ beforeEach(() => {
 
   jest
     .spyOn(SecurityBlockEnforcementService, "findForReconcile")
-    .mockImplementation((async (): Promise<
-      Array<SecurityBlockEnforcement>
-    > => {
+    .mockImplementation((async (): Promise<Array<SecurityBlockEnforcement>> => {
       return Array.from(rows.values()).map(
         (row: SecurityBlockEnforcement): SecurityBlockEnforcement => {
           return copy(row, new SecurityBlockEnforcement());
@@ -444,11 +445,13 @@ afterEach(() => {
 });
 
 // One regional web ACL, its row, and the destination each pass makes of it.
-function enforceIn(data: {
-  rules?: Array<JSONObject> | undefined;
-  addsRule?: boolean | undefined;
-  clientAddress?: SecurityBlockClientAddress | undefined;
-} = {}): { acl: FakeWafWebAcl; row: SecurityBlockCloudWaf; key: string } {
+function enforceIn(
+  data: {
+    rules?: Array<JSONObject> | undefined;
+    addsRule?: boolean | undefined;
+    clientAddress?: SecurityBlockClientAddress | undefined;
+  } = {},
+): { acl: FakeWafWebAcl; row: SecurityBlockCloudWaf; key: string } {
   const acl: FakeWafWebAcl = fake.addWebAcl({
     region: REGION,
     scope: "REGIONAL",
@@ -490,9 +493,7 @@ describe("a block from a case", () => {
     expect(row.connectionId?.toString()).toBe(CONNECTION_ID.toString());
     expect(row.providerRef).toBe(setName("block-ipv4"));
     expect(row.lastConfirmedAt).toEqual(at(1));
-    expect(
-      getSecurityBlockEnforcementSummary([row], at(1)),
-    ).toEqual({
+    expect(getSecurityBlockEnforcementSummary([row], at(1))).toEqual({
       isEnforced: true,
       enforcedAt: ["AWS WAF (prod-alb)"],
       notEnforcedAt: [],
@@ -512,7 +513,9 @@ describe("a block from a case", () => {
     // The case hears it once.
     expect(
       feedItems.filter((item: JSONObject): boolean => {
-        return String(item["feedInfoInMarkdown"]).includes("AWS WAF (prod-alb)");
+        return String(item["feedInfoInMarkdown"]).includes(
+          "AWS WAF (prod-alb)",
+        );
       }),
     ).toHaveLength(1);
 
@@ -889,9 +892,11 @@ describe("web ACLs that share a Region's sets", () => {
     expect(ipSet("block-ipv4")!.addresses).toEqual(["35.205.11.131/32"]);
     expect(writesOf("UpdateWebACL")).toBe(2);
     expect(
-      fake.getRules(REGION, "REGIONAL", "api-gateway").map((rule: JSONObject) => {
-        return rule["Name"];
-      }),
+      fake
+        .getRules(REGION, "REGIONAL", "api-gateway")
+        .map((rule: JSONObject) => {
+          return rule["Name"];
+        }),
     ).toEqual([RULES.block, RULES.challenge]);
   });
 });
@@ -920,7 +925,8 @@ describe("CloudFront's web ACLs", () => {
     );
     expect(destinationNow().name).toBe("AWS WAF (site-cdn)");
     expect(
-      fake.getIpSet("us-east-1", "CLOUDFRONT", setName("block-ipv4"))!.addresses,
+      fake.getIpSet("us-east-1", "CLOUDFRONT", setName("block-ipv4"))!
+        .addresses,
     ).toEqual(["35.205.11.131/32"]);
   });
 });
@@ -963,7 +969,9 @@ describe("the source", () => {
     connection.provider = CloudProvider.AWS;
     connection.config = settings("rule").config;
 
-    jest.spyOn(CloudConnectionService, "findBy").mockResolvedValue([connection]);
+    jest
+      .spyOn(CloudConnectionService, "findBy")
+      .mockResolvedValue([connection]);
     jest
       .spyOn(CloudConnectionService, "getConnectorSettings")
       .mockResolvedValue(settings("rule"));

@@ -91,6 +91,24 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The web ACL's connection is required of every row, and never the
+   * caller's to give: onCreatePermitted writes it - after the required
+   * check, so it is not held against the caller's column permissions -
+   * from the inventory row onBeforeCreate resolved, and a create whose web
+   * ACL has no connection was refused there.
+   */
+  protected override isRequiredColumnValueGiven(
+    column: string,
+    value: unknown,
+  ): boolean {
+    if (column === "cloudConnectionId") {
+      return true;
+    }
+
+    return super.isRequiredColumnValueGiven(column, value);
+  }
+
+  /*
    * The web ACL a create picks, read from the project's inventory as
    * OneUptime: one it listed, of a connection that may block addresses in
    * AWS WAF, not picked yet. The reference check (super) has already held
@@ -350,7 +368,6 @@ export class Service extends ProjectReferencesService<Model> {
       })
     ).toNumber();
   }
-
 }
 
 export default new Service();

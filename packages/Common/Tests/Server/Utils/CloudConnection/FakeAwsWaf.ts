@@ -85,7 +85,10 @@ export interface FakeWafCall {
 export interface FakeAwsWaf extends FakeProviderApi {
   calls: Array<FakeWafCall>;
   actions: () => Array<string>;
-  state: (region: string, scope: "REGIONAL" | "CLOUDFRONT") => FakeWafScopeState;
+  state: (
+    region: string,
+    scope: "REGIONAL" | "CLOUDFRONT",
+  ) => FakeWafScopeState;
   addWebAcl: (data: {
     region: string;
     scope: "REGIONAL" | "CLOUDFRONT";
@@ -254,7 +257,9 @@ export function createFakeAwsWaf(options: FakeAwsWafOptions = {}): FakeAwsWaf {
     return scope === "CLOUDFRONT" ? "global" : "regional";
   };
 
-  const addIpSet: FakeAwsWaf["addIpSet"] = (data) => {
+  const addIpSet: FakeAwsWaf["addIpSet"] = (
+    data: Parameters<FakeAwsWaf["addIpSet"]>[0],
+  ): FakeWafIpSet => {
     const id: string = nextUuid();
     const set: FakeWafIpSet = {
       name: data.name,
@@ -272,7 +277,9 @@ export function createFakeAwsWaf(options: FakeAwsWafOptions = {}): FakeAwsWaf {
     return set;
   };
 
-  const addWebAcl: FakeAwsWaf["addWebAcl"] = (data) => {
+  const addWebAcl: FakeAwsWaf["addWebAcl"] = (
+    data: Parameters<FakeAwsWaf["addWebAcl"]>[0],
+  ): FakeWafWebAcl => {
     const id: string = data.id || nextUuid();
     const acl: FakeWafWebAcl = {
       webAcl: {
@@ -312,7 +319,11 @@ export function createFakeAwsWaf(options: FakeAwsWafOptions = {}): FakeAwsWaf {
     }
   };
 
-  const respond: (action: string, region: string, body: JSONObject) => FakeResponse = (
+  const respond: (
+    action: string,
+    region: string,
+    body: JSONObject,
+  ) => FakeResponse = (
     action: string,
     region: string,
     body: JSONObject,
@@ -696,17 +707,27 @@ export function createFakeAwsWaf(options: FakeAwsWafOptions = {}): FakeAwsWaf {
     state,
     addWebAcl,
     addIpSet,
-    getIpSet: (region: string, scope: "REGIONAL" | "CLOUDFRONT", name: string) => {
+    getIpSet: (
+      region: string,
+      scope: "REGIONAL" | "CLOUDFRONT",
+      name: string,
+    ) => {
       return state(region, scope).ipSets.get(name);
     },
-    getRules: (region: string, scope: "REGIONAL" | "CLOUDFRONT", name: string) => {
+    getRules: (
+      region: string,
+      scope: "REGIONAL" | "CLOUDFRONT",
+      name: string,
+    ) => {
       const acl: FakeWafWebAcl | undefined = Array.from(
         state(region, scope).webAcls.values(),
       ).find((candidate: FakeWafWebAcl): boolean => {
         return candidate.webAcl["Name"] === name;
       });
 
-      return ((acl?.webAcl["Rules"] as Array<JSONObject>) || []).map(readObject);
+      return ((acl?.webAcl["Rules"] as Array<JSONObject>) || []).map(
+        readObject,
+      );
     },
     failNext: (action: string, response: FakeResponse, times: number = 1) => {
       failures.set(action, [
@@ -732,7 +753,10 @@ export function bumpIpSet(set: FakeWafIpSet, addresses?: Array<string>): void {
 }
 
 // Another writer's write of a web ACL: its token spent, its rules as given.
-export function bumpWebAcl(acl: FakeWafWebAcl, rules?: Array<JSONObject>): void {
+export function bumpWebAcl(
+  acl: FakeWafWebAcl,
+  rules?: Array<JSONObject>,
+): void {
   if (rules) {
     acl.webAcl["Rules"] = rules;
   }
