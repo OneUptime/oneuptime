@@ -64,6 +64,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { EventEmitter } from "events";
 import fs from "fs";
 import path from "path";
@@ -807,12 +808,11 @@ describe("GzipRequestBodyMiddleware - a JSON body's values are counted as it inf
   ): Buffer => {
     const gaps: Array<string> = [" ", "\n", "\t", "\r\n", "  ", ""];
     const parts: Array<string> = ["["];
+    const random: SeededRandom = seededRandom(17);
     let length: number = 1;
-    let seed: number = 17;
 
     while (length < bytes - 4) {
-      seed = (seed * 1103515245 + 12345) % 2147483648;
-      const part: string = `[],${gaps[seed % gaps.length]!}`;
+      const part: string = `[],${gaps[random(gaps.length)]!}`;
       parts.push(part);
       length += part.length;
     }

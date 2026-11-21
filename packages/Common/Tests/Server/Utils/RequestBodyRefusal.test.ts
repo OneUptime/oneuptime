@@ -17,10 +17,7 @@ import readRequestBodyRefusal, {
   isInflateError,
   stopReadingRequestBody,
 } from "../../../Server/Utils/RequestBodyRefusal";
-import {
-  ExpressRequest,
-  ExpressResponse,
-} from "../../../Server/Utils/Express";
+import { ExpressRequest, ExpressResponse } from "../../../Server/Utils/Express";
 import {
   LARGE_REQUEST_BODY_BYTES,
   LARGE_REQUEST_BODY_LIMIT,

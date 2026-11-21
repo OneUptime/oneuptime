@@ -22,9 +22,7 @@ jest.mock("../../../Server/Utils/Logger", () => {
   };
 });
 
-import Express, {
-  ExpressApplication,
-} from "../../../Server/Utils/Express";
+import Express, { ExpressApplication } from "../../../Server/Utils/Express";
 import logger from "../../../Server/Utils/Logger";
 import {
   INFLATE_FAILED_TYPE,
@@ -582,14 +580,14 @@ describe("a body read whole", () => {
       { "content-type": "application/json", "content-encoding": "deflate" },
       zlib.deflateSync(Buffer.from('{"query":{"name":"API"}}')),
     ],
-    ["a small text nobody reads", { "content-type": "text/plain" }, Buffer.from("ok")],
+    [
+      "a small text nobody reads",
+      { "content-type": "text/plain" },
+      Buffer.from("ok"),
+    ],
   ])(
     "%s keeps its connection, as the client asked",
-    async (
-      _kind: string,
-      headers: Record<string, string>,
-      body: Buffer,
-    ) => {
+    async (_kind: string, headers: Record<string, string>, body: Buffer) => {
       const tag: string = nextTag();
       const answer: Answer = await send({
         tag: tag,

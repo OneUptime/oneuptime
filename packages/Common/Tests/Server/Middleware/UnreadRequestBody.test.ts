@@ -58,11 +58,7 @@ describe("isRequestBodyLeftUnread", () => {
       { "content-length": String(UNREAD_BODY_READ_OFF_BYTES + 1) },
       true,
     ],
-    [
-      "a body of 64 MiB",
-      { "content-length": String(64 * 1024 * 1024) },
-      true,
-    ],
+    ["a body of 64 MiB", { "content-length": String(64 * 1024 * 1024) }, true],
     ["a chunked body, of any size", { "transfer-encoding": "chunked" }, true],
     ["a Content-Length that is no number", { "content-length": "many" }, false],
   ])(
@@ -167,9 +163,9 @@ describe("closeConnectionInstead", () => {
 
     expect(outcome.nextCalls).toBe(1);
     expect(outcome.res.shouldKeepAlive).toBe(false);
-    expect(
-      typeof (req as unknown as { _dump?: unknown })._dump,
-    ).toBe("function");
+    expect(typeof (req as unknown as { _dump?: unknown })._dump).toBe(
+      "function",
+    );
     // The head is written as it was asked to be, and returns what it did.
     expect(outcome.written).toEqual([[413, { "x-reason": "test" }]]);
     expect(outcome.returned).toBe(outcome.res);

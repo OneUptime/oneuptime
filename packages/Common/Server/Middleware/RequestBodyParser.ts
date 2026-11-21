@@ -45,9 +45,9 @@ import { Readable } from "stream";
  * inflate is refused as one (400, INFLATE_FAILED_TYPE), where body-parser's
  * zlib error was answered 500.
  *
- * Only a body that has not been read is read here. One something read before
- * - another parser, the gzip reader - goes to body-parser as it is, which
- * passes over it as it always has.
+ * Only a body that has not been read is read here. A request something read
+ * before - another parser, the gzip reader - is handed to body-parser itself,
+ * as it always was: there is nothing left on the connection to bound.
  */
 
 // The request a stand-in reads for: verify functions are given it.
@@ -87,6 +87,9 @@ const BYTE_UNITS: Record<string, number> = {
   gb: 1024 * 1024 * 1024,
 };
 
+// A number of bytes, with a unit or none: "50mb", "1.5MB", "512".
+const BYTE_LIMIT_PATTERN: RegExp = /^(\d+(?:\.\d+)?)\s*(b|kb|mb|gb)?$/i;
+
 /*
  * A limit in bytes, read as body-parser reads it (the `bytes` package): a
  * number of bytes, or a number and a unit ("50mb", "100kb"), 1024 to a unit.
@@ -99,8 +102,7 @@ export const parseBodyLimit: (limit: number | string | undefined) => number = (
   }
 
   if (typeof limit === "string") {
-    const match: RegExpExecArray | null =
-      /^\s*(\d+(?:\.\d+)?)\s*(b|kb|mb|gb)?\s*$/i.exec(limit);
+    const match: RegExpExecArray | null = BYTE_LIMIT_PATTERN.exec(limit.trim());
 
     if (match) {
       const unit: string = (match[2] || "b").toLowerCase();
@@ -288,9 +290,7 @@ class BoundedBodyRead {
 
     this.settle();
 
-    const req: ExpressRequest & { _body?: boolean } = this.req as ExpressRequest & {
-      _body?: boolean;
-    };
+    const req: ExpressRequest & { _body?: boolean } = this.req;
 
     req.body = this.standIn.body;
 
