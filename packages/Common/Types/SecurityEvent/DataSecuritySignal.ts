@@ -79,11 +79,16 @@ export enum DataStoreProtection {
  * (DataSecurityRunner's POSTURE_CHANGING_OPERATIONS).
  */
 
-// What makes a bucket public: its policy, its ACL, its public access block.
+/*
+ * What makes a bucket public: its policy, its ACL, its public access block -
+ * by the names CloudTrail records them under, which the change events keep:
+ * S3's DeletePublicAccessBlock is DeleteBucketPublicAccessBlock there
+ * ("Amazon S3 CloudTrail events", S3 User Guide).
+ */
 export const DATA_STORE_PUBLIC_ACCESS_OPERATIONS: ReadonlyArray<string> = [
   "s3:PutBucketPolicy",
   "s3:PutBucketAcl",
-  "s3:DeletePublicAccessBlock",
+  "s3:DeleteBucketPublicAccessBlock",
 ];
 
 // What hands a database's copy to another account.

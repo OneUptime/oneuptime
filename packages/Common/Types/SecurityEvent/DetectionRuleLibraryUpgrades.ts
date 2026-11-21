@@ -43,6 +43,29 @@ detection:
   condition: selection
 `,
     },
+    {
+      id: "7c8121cd-87ff-4e1c-bd5e-b1c3ab130737",
+      why: "A sensitive bucket was made public reads a public access block taken off by CloudTrail's name for it, DeleteBucketPublicAccessBlock",
+      previousDescription:
+        "The policy or ACL of a bucket Data Security found sensitive data in was changed, or its public access block removed: the changes that open a bucket to the internet.",
+      previousSigmaRuleYaml: `title: A sensitive bucket was made public
+id: 7c8121cd-87ff-4e1c-bd5e-b1c3ab130737
+description: The policy or ACL of a bucket that holds sensitive data changed, or its public access block was removed.
+level: high
+tags:
+  - attack.collection
+  - attack.t1530
+detection:
+  selection:
+    oneuptime.signal: data-security.store-change
+    oneuptime.cloud.operation:
+      - s3:PutBucketPolicy
+      - s3:PutBucketAcl
+      - s3:DeletePublicAccessBlock
+    statusName: Success
+  condition: selection
+`,
+    },
   ];
 
 // A YAML's lines as written: whatever its line endings, and the spaces that end its lines.

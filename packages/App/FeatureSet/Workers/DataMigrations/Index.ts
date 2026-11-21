@@ -1595,9 +1595,11 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Gives each project's copy of a fixed Rule Library rule the library's
    * fix, while the copy is still word for word the rule as it was added
    * (DETECTION_RULE_LIBRARY_UPGRADES): Burst of access-denied API calls
-   * leaves OneUptime's own reads of a connected AWS account out (#10427).
-   * A rule anyone edited is left as it is. Postgres only, idempotent; no
-   * ordering requirement of its own; before the two slots kept last.
+   * leaves OneUptime's own reads of a connected AWS account out (#10427),
+   * and A sensitive bucket was made public reads CloudTrail's name for a
+   * public access block taken off. A rule anyone edited is left as it is.
+   * Postgres only, idempotent; no ordering requirement of its own; before
+   * the two slots kept last.
    */
   new UpgradeLibraryRuleCopies(),
   /*

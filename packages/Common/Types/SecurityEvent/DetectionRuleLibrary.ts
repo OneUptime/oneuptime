@@ -1677,7 +1677,7 @@ detection:
      * bucket that admits only a VPC endpoint - is in the account's
      * CloudTrail. The events are still kept and searchable, marked as
      * OneUptime's own (OneUptimeAwsSessions: only a call signed with a key
-     * AWS handed OneUptime itself is). LIBRARY_RULE_UPGRADES upgrades a
+     * AWS handed OneUptime itself is). DETECTION_RULE_LIBRARY_UPGRADES upgrades a
      * project's copy of the rule as it was added before.
      */
     {
@@ -2774,6 +2774,12 @@ detection:
      * case is the store's, and the store's risk and criticality count.
      * Only a change that went through counts: a refused one opened nothing.
      */
+    /*
+     * A public access block taken off reads as CloudTrail records it,
+     * DeleteBucketPublicAccessBlock: S3's API name, DeletePublicAccessBlock,
+     * never reached a change event, and the rule never fired on it. Earlier
+     * copies get the fix through DETECTION_RULE_LIBRARY_UPGRADES.
+     */
     {
       id: "7c8121cd-87ff-4e1c-bd5e-b1c3ab130737",
       title: "A sensitive bucket was made public",
@@ -2798,7 +2804,7 @@ detection:
     oneuptime.cloud.operation:
       - s3:PutBucketPolicy
       - s3:PutBucketAcl
-      - s3:DeletePublicAccessBlock
+      - s3:DeleteBucketPublicAccessBlock
     statusName: Success
   condition: selection
 `,

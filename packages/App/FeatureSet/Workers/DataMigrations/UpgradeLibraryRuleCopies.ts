@@ -9,11 +9,17 @@ import logger from "Common/Server/Utils/Logger";
  * YAML, so a fix to a library rule reached only the rules added after it.
  * Each copy that is still word for word a fixed rule as it was added
  * (DETECTION_RULE_LIBRARY_UPGRADES) gets the library's YAML now, and its
- * description while that is the library's too: Burst of access-denied API
- * calls leaves OneUptime's own reads of a connected AWS account out
- * (#10427), so Data Security's reads no longer open a case that names
- * OneUptime's own role as the suspect. A rule anyone edited is theirs and
- * is left as it is; so is everything a team sets on a rule beside its YAML.
+ * description while that is the library's too:
+ *
+ *   - Burst of access-denied API calls leaves OneUptime's own reads of a
+ *     connected AWS account out (#10427), so Data Security's reads no
+ *     longer open a case that names OneUptime's own role as the suspect;
+ *   - A sensitive bucket was made public reads a public access block taken
+ *     off by CloudTrail's name for it, DeleteBucketPublicAccessBlock: it
+ *     never fired on one before.
+ *
+ * A rule anyone edited is theirs and is left as it is; so is everything a
+ * team sets on a rule beside its YAML.
  *
  * Postgres only. Safe to run twice, and two at once: a copy already given
  * the fix is no longer the earlier wording, and is not touched again.
