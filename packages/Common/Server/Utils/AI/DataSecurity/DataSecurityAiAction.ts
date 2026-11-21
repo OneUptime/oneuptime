@@ -6,6 +6,7 @@ import {
   DataSecurityAiChangeSafety,
   DataSecurityAiProposalKind,
 } from "../../../../Types/DataSecurity/DataSecurityAi";
+import { DataSecurityIssueAnalysisRecord } from "../../../../Types/DataSecurity/DataSecurityIssueAnalysis";
 import DataTypeNamer from "../../../../Types/DataSecurity/DataTypeNamer";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -45,6 +46,15 @@ export interface DataSecurityAiIssueContext {
   // The project's names for its data types (ProjectDataTypeNames).
   dataTypeNamer: DataTypeNamer;
   now: Date;
+  /*
+   * OneUptime AI's analysis of the issue, when it has one (#10369), set by
+   * Analyze before any other work is planned: its verdict and the facts
+   * each line rests on, which an action may propose from - Accept Risk on
+   * a verdict of Likely by design, Not an issue on Likely a wrong finding
+   * (#10372), each still for a person to approve. Never a reason to change
+   * anything on OneUptime AI's word alone.
+   */
+  analysis?: DataSecurityIssueAnalysisRecord | null | undefined;
 }
 
 // A change an action would make, as a proposal shows it.

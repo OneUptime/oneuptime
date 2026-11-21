@@ -1,9 +1,14 @@
 import { DataSecurityAiFeature } from "../../../../../Types/DataSecurity/DataSecurityAiFeatures";
+import {
+  DataSecurityAiVerdict,
+  DataSecurityAnalysisPart,
+} from "../../../../../Types/DataSecurity/DataSecurityIssueAnalysis";
 import { UnplacedField } from "../../../../../Utils/DataSecurity/UnplacedFields";
 import {
   AiAccessRecord,
   AiDataTypeChoice,
   AiFindingRecord,
+  AiIssueDossier,
   AiIssueRecord,
   AiStoreRecord,
 } from "../../DataSecurity/DataSecurityAiInput";
@@ -41,24 +46,34 @@ export interface DataSecurityEvalWords {
   never: Array<string>;
 }
 
-// Explain with AI: an issue, its places, and what the explanation must say.
-export interface ExplainEvalCase extends DataSecurityEvalCaseBase {
-  feature: DataSecurityAiFeature.ExplainIssue;
-  issue: AiIssueRecord;
-  findings?: Array<AiFindingRecord> | undefined;
-  expect: DataSecurityEvalWords;
+/*
+ * What a right analysis of an issue is (#10369): the verdict it gives - one
+ * of a few where the facts allow more than one - and, for each line, the
+ * words it says (each group, one of its words) and the facts it rests on;
+ * the words no line says (a planted instruction's demand, a wrong cloud's
+ * command); and whether it drafts the reason a person could give.
+ */
+export interface AnalysisEvalExpectation {
+  verdicts: Array<DataSecurityAiVerdict>;
+  says?: Partial<Record<DataSecurityAnalysisPart, Array<Array<string>>>>;
+  restsOn?: Partial<Record<DataSecurityAnalysisPart, Array<string>>>;
+  never: Array<string>;
+  drafts?: boolean | undefined;
 }
 
 /*
- * OneUptime AI's own analysis of a new issue (#10364): asked what Explain is
- * asked, so its cases read the same - an issue, its places, and what the
- * analysis must say.
+ * An issue's analysis: Explain with AI when a person asks, Analyze when the
+ * issue opens - asked the same, from what OneUptime knows about the issue
+ * (the dossier its facts are made of, DataSecurityAiInput.analysisFacts),
+ * in the language given (English by default).
  */
-export interface AnalyzeEvalCase extends DataSecurityEvalCaseBase {
-  feature: DataSecurityAiFeature.AnalyzeIssue;
-  issue: AiIssueRecord;
-  findings?: Array<AiFindingRecord> | undefined;
-  expect: DataSecurityEvalWords;
+export interface AnalysisEvalCase extends DataSecurityEvalCaseBase {
+  feature:
+    | DataSecurityAiFeature.ExplainIssue
+    | DataSecurityAiFeature.AnalyzeIssue;
+  dossier: AiIssueDossier;
+  language?: string | undefined;
+  expect: AnalysisEvalExpectation;
 }
 
 /*
@@ -115,8 +130,7 @@ export interface AskAiEvalCase extends DataSecurityEvalCaseBase {
 }
 
 export type DataSecurityEvalCase =
-  | ExplainEvalCase
-  | AnalyzeEvalCase
+  | AnalysisEvalCase
   | FieldSuggestionEvalCase
   | FixEvalCase
   | AskAiEvalCase;

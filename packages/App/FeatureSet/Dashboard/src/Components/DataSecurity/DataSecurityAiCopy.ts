@@ -43,7 +43,7 @@ export const DATA_SECURITY_AI_REASON_LINES: Readonly<
   ),
   [DataSecurityAiDecisionReason.Analyzed]: translationKey("Analyzed"),
   [DataSecurityAiDecisionReason.AlreadyAnalyzed]: translationKey(
-    "Analyzed already since the issue opened",
+    "Analyzed already, and nothing it rests on changed",
   ),
   [DataSecurityAiDecisionReason.NoLlmProvider]: translationKey(
     "No LLM provider is set up",

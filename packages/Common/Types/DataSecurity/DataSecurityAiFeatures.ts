@@ -31,10 +31,14 @@ import { translationKey } from "../Translator";
  */
 
 export enum DataSecurityAiFeature {
+  /*
+   * OneUptime AI's analysis of an issue when a person asks (#10369): on its
+   * page, or Explain with AI through the API and the MCP.
+   */
   ExplainIssue = "ExplainIssue",
   /*
-   * OneUptime AI's own analysis of a new issue (#10364): what Explain
-   * writes, asked on its own when the issue opens.
+   * The same analysis, written on its own when an issue opens or opens
+   * again (#10364's Analyze work).
    */
   AnalyzeIssue = "AnalyzeIssue",
   FixIssue = "FixIssue",
@@ -106,29 +110,51 @@ export const DATA_SECURITY_AI_LOGS_KEEP_PROVIDER_ERRORS: string =
     "When a call fails, its AI Logs row also keeps the provider's error, which can quote what was sent.",
   );
 
+/*
+ * What an issue's analysis sends (#10369), on its own or when a person asks:
+ * the facts it is written from, each counted, named or bucketed.
+ */
+const ISSUE_ANALYSIS_SENDS: ReadonlyArray<string> = [
+  translationKey(
+    "The issue's title, severity and evidence, why its check matters and the steps that fix it",
+  ),
+  translationKey(
+    "The store's name, kind, region, tags and configuration, its sensitivity, the names of its data types and about how many records it holds",
+  ),
+  translationKey(
+    "Who can reach the store: each grant's identity, level and how it is granted, and roughly when it was last used; the services seen using it",
+  ),
+  translationKey(
+    "Copies of its data in other stores, its security cases, the response action that fixes it, and the repository and files that declare it",
+  ),
+  translationKey("How many owners the store has, never who they are"),
+  translationKey(
+    "For a telemetry issue, where each kind of data was found: the attribute, log body or prompt it sits in",
+  ),
+];
+
+const ISSUE_ANALYSIS_NEVER_SENDS: ReadonlyArray<string> = [
+  translationKey("A sample of what was found, not even a masked one"),
+  translationKey("A record the data was seen in"),
+  translationKey("The names or email addresses of the store's owners"),
+];
+
+const ISSUE_ANALYSIS_KEEPS: string = translationKey(
+  "The analysis, on the issue, with one entry on its timeline for each analysis written.",
+);
+
 export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo> =
   [
     {
       feature: DataSecurityAiFeature.ExplainIssue,
-      title: translationKey("Explain with AI"),
-      startedBy: translationKey("A person, on an issue's page."),
+      title: translationKey("Analysis on request"),
+      startedBy: translationKey(
+        "A person, on an issue's page, or Explain with AI through the API or the MCP.",
+      ),
       runsOnItsOwn: false,
-      sends: [
-        translationKey(
-          "The issue's title, severity and evidence, why its check matters and the fix for the store's cloud",
-        ),
-        translationKey(
-          "The store's name, kind, region and cloud ID, its sensitivity and the names of its data types",
-        ),
-        translationKey(
-          "For a telemetry issue, where each kind of data was found: the attribute, log body or prompt it sits in",
-        ),
-      ],
-      neverSends: [
-        translationKey("A sample of what was found, not even a masked one"),
-        translationKey("A record the data was seen in"),
-      ],
-      keeps: translationKey("The explanation, on the issue's timeline."),
+      sends: ISSUE_ANALYSIS_SENDS,
+      neverSends: ISSUE_ANALYSIS_NEVER_SENDS,
+      keeps: ISSUE_ANALYSIS_KEEPS,
       keepsProviderErrors: false,
       modelSource: DataSecurityAiModelSource.ProjectProvider,
     },
@@ -136,25 +162,12 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       feature: DataSecurityAiFeature.AnalyzeIssue,
       title: translationKey("Analysis of new issues"),
       startedBy: translationKey(
-        "A new Critical or High issue, while Work on new issues is on, as your Data Security AI rules allow.",
+        "A new or reopened Critical or High issue, while Work on new issues is on, as your Data Security AI rules allow.",
       ),
       runsOnItsOwn: true,
-      sends: [
-        translationKey(
-          "The issue's title, severity and evidence, why its check matters and the fix for the store's cloud",
-        ),
-        translationKey(
-          "The store's name, kind, region and cloud ID, its sensitivity and the names of its data types",
-        ),
-        translationKey(
-          "For a telemetry issue, where each kind of data was found: the attribute, log body or prompt it sits in",
-        ),
-      ],
-      neverSends: [
-        translationKey("A sample of what was found, not even a masked one"),
-        translationKey("A record the data was seen in"),
-      ],
-      keeps: translationKey("The analysis, on the issue's timeline."),
+      sends: ISSUE_ANALYSIS_SENDS,
+      neverSends: ISSUE_ANALYSIS_NEVER_SENDS,
+      keeps: ISSUE_ANALYSIS_KEEPS,
       keepsProviderErrors: false,
       modelSource: DataSecurityAiModelSource.ProjectProvider,
     },
@@ -167,7 +180,7 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       runsOnItsOwn: false,
       sends: [
         translationKey(
-          "What Explain with AI sends, as a request to the coding agent",
+          "The issue as its check saw it, the store's name, kind, region and cloud ID, and for a telemetry issue where its data was found, as a request to the coding agent",
         ),
         translationKey(
           "The repository's own code, which the coding agent reads to make the change",

@@ -73,7 +73,18 @@ const FEATURES_OF_FILE: ReadonlyArray<{
   },
   {
     path: "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts",
-    features: [DataSecurityAiFeature.AnalyzeIssue],
+    features: [
+      DataSecurityAiFeature.ExplainIssue,
+      DataSecurityAiFeature.AnalyzeIssue,
+    ],
+  },
+  // How an analysis's answer is held to its facts (#10369).
+  {
+    path: "packages/Common/Types/DataSecurity/DataSecurityIssueAnalysis.ts",
+    features: [
+      DataSecurityAiFeature.ExplainIssue,
+      DataSecurityAiFeature.AnalyzeIssue,
+    ],
   },
   {
     path: "packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestionPrompt.ts",
