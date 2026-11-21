@@ -37,6 +37,7 @@ import SecurityDetectionSource from "../../../Types/SecurityCase/SecurityDetecti
 import {
   SecurityEntity,
   SecurityEntityType,
+  canActOnSecurityEntity,
 } from "../../../Types/SecurityCase/SecurityEntity";
 import { getDetectionExceptionEntity } from "../../../Types/SecurityEvent/DetectionRuleException";
 import {
@@ -369,7 +370,9 @@ export function getRuleResponseSteps(
 /*
  * The things the Contain steps are about: the entity the opening detection
  * is about first, then the case's own, each once (whatever its case), only
- * the kinds a step acts on, at most RESPONSE_MAX_CONTAIN_ENTITIES.
+ * the kinds a step acts on, at most RESPONSE_MAX_CONTAIN_ENTITIES. Never
+ * what a scrub rule left of one, nor one of OneUptime's own actors as a
+ * user (canActOnSecurityEntity): "Suspend [REDACTED]" is no step.
  */
 export function getContainEntities(data: {
   opening: SecurityCaseMatchedDetectionJson | null;
@@ -396,6 +399,7 @@ export function getContainEntities(data: {
       !value ||
       seen.has(key) ||
       !containable.includes(entity.type) ||
+      !canActOnSecurityEntity({ type: entity.type, value }) ||
       (entity.type === SecurityEntityType.IpAddress &&
         getSecurityAddressScope(value) === SecurityAddressScope.Local)
     ) {
@@ -499,10 +503,14 @@ interface FixRule {
   text: (entities: Array<SecurityEntity>) => ResponseText;
 }
 
+// The case's first user a step can name as an account: never a placeholder.
 function userOf(entities: Array<SecurityEntity>): string {
   return (
     entities.find((entity: SecurityEntity): boolean => {
-      return entity.type === SecurityEntityType.User;
+      return (
+        entity.type === SecurityEntityType.User &&
+        canActOnSecurityEntity(entity)
+      );
     })?.value || ""
   );
 }
