@@ -40,6 +40,7 @@ import {
   UNCOUNTED_NO_IP_ADDRESS,
   UNCOUNTED_NO_USER,
   UNCOUNTED_NO_VALUE,
+  UNCOUNTED_USER_HIDDEN_BY_SCRUB_RULE,
   WOULD_HAVE_FIRED,
   WOULD_NOT_HAVE_FIRED,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retrohunt/RetrohuntCopy";
@@ -191,6 +192,33 @@ describe("what a rule that counts per value could not count (#10415)", () => {
     ).toBe("trace");
   });
 
+  test("says how many a scrub rule hid the user of, for a rule that counts per user (#10435)", () => {
+    for (const field of ["principalUser", "targetUser"]) {
+      expect({
+        field,
+        uncounted: getRetrohuntUncounted(
+          result({
+            uncounted: {
+              field,
+              eventCount: 340,
+              hiddenInLogsCount: 12,
+              hiddenInTracesCount: 300,
+            },
+          }),
+        ),
+      }).toEqual({
+        field,
+        uncounted: {
+          lines: [
+            { template: UNCOUNTED_NO_USER, count: 340, values: {} },
+            { template: UNCOUNTED_USER_HIDDEN_BY_SCRUB_RULE, count: 312 },
+          ],
+          scrubRulesSignal: "trace",
+        },
+      });
+    }
+  });
+
   test("says nothing for a rule that left nothing out", () => {
     expect(getRetrohuntUncounted(result())).toBeNull();
     expect(
@@ -223,6 +251,9 @@ describe("what a rule that counts per value could not count (#10415)", () => {
 
     expect(UNCOUNTED_NO_IP_ADDRESS.other).toBe(
       "{{count}} matching events had no IP address, so this rule couldn't count them.",
+    );
+    expect(UNCOUNTED_USER_HIDDEN_BY_SCRUB_RULE.other).toBe(
+      "A scrub rule hid the user of {{count}} of them.",
     );
   });
 });

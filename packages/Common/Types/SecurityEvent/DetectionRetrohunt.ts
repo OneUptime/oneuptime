@@ -68,7 +68,8 @@ export interface DetectionRetrohuntGroup {
  * What a single rule that counts per value could not count over the period
  * (#10415): the events it matched that had no value for its group field -
  * left out, so they never add up as one value - and how many of them had
- * their client address hidden by a scrub rule, by the kind of record the
+ * that value hidden by a scrub rule - the client address (#10397), or the
+ * user of a rule grouped by one (#10435) - by the kind of record the
  * rule's logs' or traces' Scrub Rules hold.
  */
 export interface DetectionRetrohuntUncounted {

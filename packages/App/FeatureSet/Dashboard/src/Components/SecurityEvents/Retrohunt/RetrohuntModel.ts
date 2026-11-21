@@ -20,6 +20,7 @@ import {
   UNCOUNTED_NO_IP_ADDRESS,
   UNCOUNTED_NO_USER,
   UNCOUNTED_NO_VALUE,
+  UNCOUNTED_USER_HIDDEN_BY_SCRUB_RULE,
   WOULD_HAVE_FIRED,
   WOULD_NOT_HAVE_FIRED,
 } from "./RetrohuntCopy";
@@ -236,8 +237,9 @@ export function getRetrohuntExceptionLines(
  * What a rule that counts per value could not count (#10415): the matching
  * events that had no value for its Group By Field - "1,204 matching events
  * had no IP address, so this rule couldn't count them." - and, when a scrub
- * rule hid the address of some of them (#10397), how many, with the kind
- * of record whose Scrub Rules say why: the one most of them were hidden in.
+ * rule hid the address of some of them (#10397), or the user of a rule that
+ * counts per user (#10435), how many, with the kind of record whose Scrub
+ * Rules say why: the one most of them were hidden in.
  * Nothing for a rule that left nothing out.
  */
 export interface RetrohuntUncounted {
@@ -282,7 +284,13 @@ export function getRetrohuntUncounted(
     return { lines, scrubRulesSignal: null };
   }
 
-  lines.push({ template: UNCOUNTED_HIDDEN_BY_SCRUB_RULE, count: hidden });
+  lines.push({
+    template:
+      entityType === SecurityEntityType.User
+        ? UNCOUNTED_USER_HIDDEN_BY_SCRUB_RULE
+        : UNCOUNTED_HIDDEN_BY_SCRUB_RULE,
+    count: hidden,
+  });
 
   return {
     lines,
