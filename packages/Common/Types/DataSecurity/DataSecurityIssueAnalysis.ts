@@ -1181,6 +1181,54 @@ export function readDataSecurityIssueAnalysis(
   };
 }
 
+/*
+ * The analysis as the server served it to its reader (getAnalysisView),
+ * read defensively by the Dashboard, or null for none: its lines and facts
+ * as readDataSecurityIssueAnalysis reads them, and the lines hidden from
+ * the reader, by what they may not read.
+ */
+export function readDataSecurityIssueAnalysisView(
+  value: unknown,
+): DataSecurityIssueAnalysisView | null {
+  const record: DataSecurityIssueAnalysisRecord | null =
+    readDataSecurityIssueAnalysis(value);
+
+  if (!record) {
+    return null;
+  }
+
+  const raw: Record<string, unknown> = value as Record<string, unknown>;
+  const rawHidden: unknown = raw["hiddenLines"];
+  const hiddenLines: Partial<
+    Record<DataSecurityAnalysisPart, Array<DataSecurityAnalysisFactSource>>
+  > = {};
+
+  if (rawHidden && typeof rawHidden === "object" && !Array.isArray(rawHidden)) {
+    for (const part of DATA_SECURITY_ANALYSIS_PARTS) {
+      const sources: Array<DataSecurityAnalysisFactSource> = readStrings(
+        (rawHidden as Record<string, unknown>)[part],
+      ).filter((source: string): source is DataSecurityAnalysisFactSource => {
+        return (
+          DATA_SECURITY_ANALYSIS_FACT_SOURCES as ReadonlyArray<string>
+        ).includes(source);
+      });
+
+      if (sources.length > 0 && !record.lines[part]) {
+        hiddenLines[part] = sources;
+      }
+    }
+  }
+
+  return {
+    verdict: record.verdict,
+    analyzedAt: readOptionalString(raw["analyzedAt"]),
+    language: record.language,
+    lines: record.lines,
+    hiddenLines,
+    facts: record.facts,
+  };
+}
+
 // The analysis as the issue keeps it: plain JSON.
 export function toDataSecurityIssueAnalysisJson(
   record: DataSecurityIssueAnalysisRecord,
