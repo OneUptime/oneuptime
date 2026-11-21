@@ -69,8 +69,8 @@ describe("readSecurityBlockDomain", () => {
   });
 
   test("at most 253 characters in all", () => {
-    const label: string = "a".repeat(60);
-    const atMost: string = `${label}.${label}.${label}.${label.slice(0, 54)}.ab`;
+    const label: string = "a".repeat(63);
+    const atMost: string = `${label}.${label}.${label}.${"a".repeat(58)}.ab`;
 
     expect(atMost.length).toBe(SECURITY_BLOCK_DOMAIN_MAX_LENGTH);
     expect(readSecurityBlockDomain(atMost)?.domain).toBe(atMost);

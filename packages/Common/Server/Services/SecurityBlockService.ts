@@ -776,7 +776,7 @@ export class Service extends ProjectReferencesService<Model> {
     if (!record.projectId || !read) {
       return {
         status: SecurityBlockOutcomeStatus.Refused,
-        message: SECURITY_BLOCK_MESSAGES.notAnAddress,
+        message: SECURITY_BLOCK_MESSAGES.notAValue,
       };
     }
 

@@ -64,8 +64,12 @@ export function getDefenderIndicatorMarker(connectionId: string): string {
 export function toDefenderAddress(value: string): string {
   const read: SecurityBlockValue | null = readSecurityBlockValue(value);
 
-  if (!read || read.block.family === 4) {
+  if (!read) {
     return value;
+  }
+
+  if (read.block.family === 4) {
+    return read.value;
   }
 
   return read.block.groups

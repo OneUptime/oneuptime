@@ -649,6 +649,12 @@ export function fillSecurityBlockSentence(
 export const SECURITY_BLOCK_MESSAGES: {
   enterAddress: string;
   notAnAddress: string;
+  enterValue: string;
+  notAValue: string;
+  wildcardDomain: string;
+  unsupportedHash: string;
+  urlTooLong: (data: { max: string }) => string;
+  urlScheme: string;
   tooWide: (data: { value: string; largest: string }) => string;
   widerThanAnyone: (data: { value: string; widest: string }) => string;
   untilLiftedTakesAdmin: string;
@@ -667,9 +673,21 @@ export const SECURITY_BLOCK_MESSAGES: {
   alreadyBlocked: (data: { value: string; by: string }) => string;
   notDeletable: string;
   checkFailed: (data: { value: string }) => string;
+  checkFailedValue: (data: { value: string }) => string;
 } = {
-  enterAddress: SECURITY_BLOCK_SENTENCES.enterValue,
-  notAnAddress: SECURITY_BLOCK_SENTENCES.notAValue,
+  enterAddress: SECURITY_BLOCK_SENTENCES.enterAddress,
+  notAnAddress: SECURITY_BLOCK_SENTENCES.notAnAddress,
+  enterValue: SECURITY_BLOCK_SENTENCES.enterValue,
+  notAValue: SECURITY_BLOCK_SENTENCES.notAValue,
+  wildcardDomain: SECURITY_BLOCK_SENTENCES.wildcardDomain,
+  unsupportedHash: SECURITY_BLOCK_SENTENCES.unsupportedHash,
+  urlTooLong: (data: { max: string }): string => {
+    return fillSecurityBlockSentence({
+      template: SECURITY_BLOCK_SENTENCES.urlTooLong,
+      values: data,
+    });
+  },
+  urlScheme: SECURITY_BLOCK_SENTENCES.urlScheme,
   tooWide: (data: { value: string; largest: string }): string => {
     return fillSecurityBlockSentence({
       template: SECURITY_BLOCK_SENTENCES.tooWide,
@@ -716,10 +734,17 @@ export const SECURITY_BLOCK_MESSAGES: {
   },
   notDeletable:
     "Blocks are kept, so a case and the next block of the address can say it was blocked before. Lift the block instead.",
+  // Of an address whether it is the project's own, of anything else whether it is protected.
   checkFailed: (data: { value: string }): string => {
     return fillSecurityBlockSentence(
       getSecurityBlockCheckFailedSentence(data.value),
     );
+  },
+  checkFailedValue: (data: { value: string }): string => {
+    return fillSecurityBlockSentence({
+      template: SECURITY_BLOCK_SENTENCES.checkFailedValue,
+      values: data,
+    });
   },
 };
 

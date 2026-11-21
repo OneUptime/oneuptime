@@ -167,9 +167,18 @@ export function readDefenderRetryAfter(
     return null;
   }
 
-  return seconds < 120
-    ? `${Math.ceil(seconds)} seconds`
-    : `${Math.ceil(seconds / 60)} minutes`;
+  return describeWait(seconds);
+}
+
+// A wait in seconds, in words: "1 second", "30 seconds", "5 minutes".
+export function describeWait(seconds: number): string {
+  if (seconds < 120) {
+    const whole: number = Math.max(1, Math.ceil(seconds));
+
+    return whole === 1 ? "1 second" : `${whole} seconds`;
+  }
+
+  return `${Math.ceil(seconds / 60)} minutes`;
 }
 
 /*

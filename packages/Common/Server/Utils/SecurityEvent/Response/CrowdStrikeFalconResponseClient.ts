@@ -2,6 +2,7 @@ import APIException from "../../../../Types/Exception/ApiException";
 import { JSONObject } from "../../../../Types/JSON";
 import { ConnectorTransport } from "../Connectors/Types";
 import { getCrowdStrikeFalconBaseUrl } from "../Connectors/CrowdStrikeFalcon/CrowdStrikeFalconClient";
+import { describeWait } from "./MicrosoftDefenderEndpointClient";
 import ResponseHttp, { ResponseHttpResult } from "./ResponseHttp";
 
 /*
@@ -127,11 +128,7 @@ export function readFalconRetryAfter(
     return null;
   }
 
-  const seconds: number = Math.max(1, epochSeconds - now.getTime() / 1000);
-
-  return seconds < 120
-    ? `${Math.ceil(seconds)} seconds`
-    : `${Math.ceil(seconds / 60)} minutes`;
+  return describeWait(Math.max(1, epochSeconds - now.getTime() / 1000));
 }
 
 function readIocText(record: JSONObject, key: string): string {
