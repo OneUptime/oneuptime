@@ -61171,5 +61171,10 @@
   "Who changed this record, what they changed and when.": "谁更改了此记录、更改了什么以及何时更改。",
   "{{name}} (Master Admin)": "{{name}}（主管理员）",
   "{{name}} (workflow)": "{{name}}（工作流）",
-  "{{name}} via an MCP client": "{{name}}（通过 MCP 客户端）"
+  "{{name}} via an MCP client": "{{name}}（通过 MCP 客户端）",
+  "Interface IP Addresses": "接口 IP 地址",
+  "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "过去一天中，OneUptime 自有探测器的 {{count}} 次网络扫描和端口扫描已另行保存。",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "过去一天中，OneUptime 自有探测器的 {{count}} 次网络扫描和端口扫描已另行保存。",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "过去一天中，OneUptime 自有探测器的 {{count}} 次网络扫描和端口扫描已另行保存。",
+  "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "OneUptime 自有探测器的流量中，恰好是其设备轮询、发现和监视器检查的部分会被标记为它们的流量并另行保存，不会被报告为扫描。"
 }

@@ -61171,5 +61171,10 @@
   "Who changed this record, what they changed and when.": "چه کسی این رکورد را تغییر داد، چه چیزی را و چه زمانی.",
   "{{name}} (Master Admin)": "{{name}} (مدیر اصلی)",
   "{{name}} (workflow)": "{{name}} (گردش کاری)",
-  "{{name}} via an MCP client": "{{name}} از طریق یک کلاینت MCP"
+  "{{name}} via an MCP client": "{{name}} از طریق یک کلاینت MCP",
+  "Interface IP Addresses": "آدرس‌های IP رابط‌ها",
+  "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "در یک روز گذشته {{count}} پیمایش یا پویش از پراب‌های خود OneUptime کنار گذاشته شد.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "در یک روز گذشته {{count}} پیمایش و پویش از پراب‌های خود OneUptime کنار گذاشته شد.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "در یک روز گذشته {{count}} پیمایش یا پویش از پراب‌های خود OneUptime کنار گذاشته شد.",
+  "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "ترافیک پراب‌های خود OneUptime که دقیقاً همان پرس‌وجوی دستگاه‌ها، کشف و بررسی مانیتورهای آن‌هاست، به نام خودشان برچسب می‌خورد و کنار گذاشته می‌شود و به‌عنوان پویش گزارش نمی‌شود."
 }

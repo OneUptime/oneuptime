@@ -61171,5 +61171,10 @@
   "Who changed this record, what they changed and when.": "من غيّر هذا السجل، وما الذي غيّره، ومتى.",
   "{{name}} (Master Admin)": "{{name}} (المسؤول الرئيسي)",
   "{{name}} (workflow)": "{{name}} (سير العمل)",
-  "{{name}} via an MCP client": "{{name}} عبر عميل MCP"
+  "{{name}} via an MCP client": "{{name}} عبر عميل MCP",
+  "Interface IP Addresses": "عناوين IP للواجهات",
+  "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "نُحّي جانبًا خلال اليوم الأخير {{count}} مسح أو فحص من مسابير OneUptime نفسها.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "عمليات المسح والفحص من مسابير OneUptime نفسها التي نُحّيت جانبًا خلال اليوم الأخير: {{count}}.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "نُحّي جانبًا خلال اليوم الأخير {{count}} مسح أو فحص من مسابير OneUptime نفسها.",
+  "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "حركة المرور من مسابير OneUptime نفسها التي هي بالضبط استطلاع الأجهزة والاكتشاف وفحوص المراقبات الخاصة بها تُوسَم على أنها لها وتُنحّى جانبًا، ولا يُبلَّغ عنها على أنها فحص."
 }

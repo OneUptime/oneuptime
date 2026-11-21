@@ -61171,5 +61171,10 @@
   "Who changed this record, what they changed and when.": "Quem alterou este registro, o que alterou e quando.",
   "{{name}} (Master Admin)": "{{name}} (administrador mestre)",
   "{{name}} (workflow)": "{{name}} (fluxo de trabalho)",
-  "{{name}} via an MCP client": "{{name}} por meio de um cliente MCP"
+  "{{name}} via an MCP client": "{{name}} por meio de um cliente MCP",
+  "Interface IP Addresses": "Endereços IP das interfaces",
+  "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "{{count}} varredura das sondas do próprio OneUptime foi posta de lado no último dia.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "{{count}} varreduras das sondas do próprio OneUptime foram postas de lado no último dia.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "{{count}} varredura das sondas do próprio OneUptime foi posta de lado no último dia.",
+  "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "O tráfego das sondas do próprio OneUptime que é exatamente a consulta de dispositivos, a descoberta e as verificações de monitores delas é marcado como delas e posto de lado, em vez de ser relatado como uma varredura."
 }

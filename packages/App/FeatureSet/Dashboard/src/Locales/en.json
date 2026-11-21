@@ -61171,5 +61171,10 @@
   "Who changed this record, what they changed and when.": "Who changed this record, what they changed and when.",
   "{{name}} (Master Admin)": "{{name}} (Master Admin)",
   "{{name}} (workflow)": "{{name}} (workflow)",
-  "{{name}} via an MCP client": "{{name}} via an MCP client"
+  "{{name}} via an MCP client": "{{name}} via an MCP client",
+  "Interface IP Addresses": "Interface IP Addresses",
+  "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.",
+  "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan."
 }

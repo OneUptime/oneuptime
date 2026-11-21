@@ -61171,5 +61171,10 @@
   "Who changed this record, what they changed and when.": "Hvem der ændrede denne post, hvad der blev ændret, og hvornår.",
   "{{name}} (Master Admin)": "{{name}} (masteradministrator)",
   "{{name}} (workflow)": "{{name}} (arbejdsgang)",
-  "{{name}} via an MCP client": "{{name}} via en MCP-klient"
+  "{{name}} via an MCP client": "{{name}} via en MCP-klient",
+  "Interface IP Addresses": "Grænsefladernes IP-adresser",
+  "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "{{count}} sweep eller scanning fra OneUptimes egne sonder blev lagt til side det seneste døgn.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "{{count}} sweeps og scanninger fra OneUptimes egne sonder blev lagt til side det seneste døgn.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "{{count}} sweep eller scanning fra OneUptimes egne sonder blev lagt til side det seneste døgn.",
+  "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "Trafik fra OneUptimes egne sonder, der netop er deres forespørgsler til enheder, opdagelse og monitortjek, mærkes som deres og lægges til side i stedet for at blive rapporteret som en scanning."
 }

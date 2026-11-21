@@ -61171,5 +61171,10 @@
   "Who changed this record, what they changed and when.": "このレコードを誰が、何を、いつ変更したか。",
   "{{name}} (Master Admin)": "{{name}}（マスター管理者）",
   "{{name}} (workflow)": "{{name}}（ワークフロー）",
-  "{{name}} via an MCP client": "{{name}}（MCP クライアント経由）"
+  "{{name}} via an MCP client": "{{name}}（MCP クライアント経由）",
+  "Interface IP Addresses": "インターフェースの IP アドレス",
+  "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "直近の一日で、OneUptime 自身のプローブによるスイープとスキャン {{count}} 件が別に保管されました。",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "直近の一日で、OneUptime 自身のプローブによるスイープとスキャン {{count}} 件が別に保管されました。",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "直近の一日で、OneUptime 自身のプローブによるスイープとスキャン {{count}} 件が別に保管されました。",
+  "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "OneUptime 自身のプローブのトラフィックのうち、デバイスのポーリング、検出、モニターのチェックそのものであるものは、プローブのものとしてラベル付けされて別に保管され、スキャンとしては報告されません。"
 }

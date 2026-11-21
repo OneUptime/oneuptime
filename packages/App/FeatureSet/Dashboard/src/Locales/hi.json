@@ -61171,5 +61171,10 @@
   "Who changed this record, what they changed and when.": "इस रिकॉर्ड को किसने बदला, क्या बदला और कब।",
   "{{name}} (Master Admin)": "{{name}} (मास्टर एडमिन)",
   "{{name}} (workflow)": "{{name}} (वर्कफ़्लो)",
-  "{{name}} via an MCP client": "{{name}} एक MCP क्लाइंट के ज़रिए"
+  "{{name}} via an MCP client": "{{name}} एक MCP क्लाइंट के ज़रिए",
+  "Interface IP Addresses": "इंटरफ़ेस आईपी पते",
+  "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "पिछले एक दिन में OneUptime के अपने प्रोब का {{count}} स्वीप या स्कैन अलग रखा गया।",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "पिछले एक दिन में OneUptime के अपने प्रोब के {{count}} स्वीप और स्कैन अलग रखे गए।",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "पिछले एक दिन में OneUptime के अपने प्रोब का {{count}} स्वीप या स्कैन अलग रखा गया।",
+  "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "OneUptime के अपने प्रोब का जो ट्रैफ़िक ठीक उनकी डिवाइस पोलिंग, डिस्कवरी और मॉनिटर जाँच है, उसे उनका चिह्नित करके अलग रखा जाता है, स्कैन के रूप में रिपोर्ट नहीं किया जाता।"
 }

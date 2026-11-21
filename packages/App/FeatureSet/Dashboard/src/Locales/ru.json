@@ -61171,5 +61171,10 @@
   "Who changed this record, what they changed and when.": "Кто изменил эту запись, что изменил и когда.",
   "{{name}} (Master Admin)": "{{name}} (главный администратор)",
   "{{name}} (workflow)": "{{name}} (рабочий процесс)",
-  "{{name}} via an MCP client": "{{name}} через MCP-клиент"
+  "{{name}} via an MCP client": "{{name}} через MCP-клиент",
+  "Interface IP Addresses": "IP-адреса интерфейсов",
+  "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "{{count}} обход или сканирование собственных зондов OneUptime отложено в сторону за последние сутки.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "Обходов и сканирований собственных зондов OneUptime, отложенных в сторону за последние сутки: {{count}}.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "{{count}} обход или сканирование собственных зондов OneUptime отложено в сторону за последние сутки.",
+  "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "Трафик собственных зондов OneUptime, который в точности является их опросом устройств, обнаружением и проверками мониторов, помечается как их трафик и откладывается в сторону, а не сообщается как сканирование."
 }
