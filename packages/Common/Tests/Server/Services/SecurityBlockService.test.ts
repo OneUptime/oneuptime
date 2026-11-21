@@ -5,6 +5,7 @@ import SecurityBlockService, {
   SecurityBlockOutcome,
   SecurityBlockOutcomeStatus,
 } from "../../../Server/Services/SecurityBlockService";
+import SecurityBlocklistFeedService from "../../../Server/Services/SecurityBlocklistFeedService";
 import SecurityCaseFeedService from "../../../Server/Services/SecurityCaseFeedService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import logger from "../../../Server/Utils/Logger";
@@ -219,6 +220,10 @@ describe("SecurityBlockService", () => {
     protectionSpy = jest
       .spyOn(SecurityProtectedAddresses, "findProtection")
       .mockResolvedValue({ protection: null, unreadSources: [] });
+    // The project has made no blocklist feed (#10345): nothing enforces its blocks.
+    jest
+      .spyOn(SecurityBlocklistFeedService, "findForProject")
+      .mockResolvedValue([]);
     auditCreateSpy = jest
       .spyOn(AuditLogService, "recordCreate")
       .mockResolvedValue(undefined);
