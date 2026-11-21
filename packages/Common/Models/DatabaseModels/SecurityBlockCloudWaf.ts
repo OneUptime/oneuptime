@@ -22,8 +22,6 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import {
-  SECURITY_BLOCK_CLIENT_ADDRESSES,
-  SECURITY_BLOCK_CLOUD_WAF_STATUSES,
   SecurityBlockClientAddress,
   SecurityBlockCloudWafStatus,
 } from "../../Types/SecurityBlocklist/SecurityBlockCloudWaf";
@@ -318,7 +316,7 @@ export default class SecurityBlockCloudWaf extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     required: true,
-    allowedValues: [...SECURITY_BLOCK_CLIENT_ADDRESSES],
+    allowedValues: Object.values(SecurityBlockClientAddress),
     title: "Client Address",
     description:
       "Where the WAF reads the client's address: the request's source address, or a header a proxy or CDN in front of it writes.",
@@ -337,7 +335,7 @@ export default class SecurityBlockCloudWaf extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     computed: true,
-    allowedValues: [...SECURITY_BLOCK_CLOUD_WAF_STATUSES],
+    allowedValues: Object.values(SecurityBlockCloudWafStatus),
     title: "Status",
     description:
       "Where the WAF stands, as OneUptime last read it: Checking, Enforcing, Waiting for your rule, No free priority, or Failed.",

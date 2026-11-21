@@ -118,7 +118,8 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    const onCreate: OnCreate<Model> = await super.onBeforeCreate(createBy);
+    await super.onBeforeCreate(createBy);
+
     const projectId: ObjectID | undefined =
       createBy.data.projectId || createBy.props.tenantId;
     const cloudResourceId: ObjectID | null = RelationIdUtil.readConsistent(
@@ -140,7 +141,7 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data.clientAddress = SECURITY_BLOCK_DEFAULT_CLIENT_ADDRESS;
     }
 
-    return { createBy: onCreate.createBy, carryForward: resolved };
+    return { createBy, carryForward: resolved };
   }
 
   /*

@@ -2155,11 +2155,7 @@ export const NAMED_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudNamedOnlyResourceType
       "AWS::EC2::VPCEndpoint",
       translationKey("VPC Endpoint"),
     ),
-    namedOnly(
-      CloudProvider.AWS,
-      "AWS::EC2::EIP",
-      translationKey("Elastic IP Address"),
-    ),
+    // An Elastic IP is listed since #10504 (INVENTORY_ONLY_RESOURCE_TYPES): a resource, no longer only named.
     namedOnly(
       CloudProvider.AWS,
       "AWS::EC2::LaunchTemplate",
