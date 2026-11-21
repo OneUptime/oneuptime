@@ -164,7 +164,16 @@ export enum SecurityTelemetrySignal {
   McpClientAuthorized = "mcp-client-authorized",
   PacketCaptureDownloaded = "packet-capture-downloaded",
   SecurityControlChanged = "security-control-changed",
+  // A person, an API key or a workflow deleting many records at once.
   MassDelete = "mass-delete",
+  /*
+   * OneUptime itself deleting many records at once - its own jobs, a SCIM
+   * sync, what a delete takes with it - recorded when the project stores
+   * system events (#10430). Kept for the record, Informational, and apart
+   * from mass-delete, so no rule that watches people's deletes opens a case
+   * on OneUptime's own bookkeeping.
+   */
+  OneUptimeMassDelete = "oneuptime-mass-delete",
   // Session replay.
   UserInTwoCountries = "user-in-two-countries",
 }
@@ -199,6 +208,8 @@ export const SECURITY_TELEMETRY_SIGNAL_SOURCES: Record<
   [SecurityTelemetrySignal.SecurityControlChanged]:
     SecurityTelemetrySourceKind.AuditLog,
   [SecurityTelemetrySignal.MassDelete]: SecurityTelemetrySourceKind.AuditLog,
+  [SecurityTelemetrySignal.OneUptimeMassDelete]:
+    SecurityTelemetrySourceKind.AuditLog,
   [SecurityTelemetrySignal.UserInTwoCountries]:
     SecurityTelemetrySourceKind.RumSessions,
 };

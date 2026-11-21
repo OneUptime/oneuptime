@@ -59,6 +59,19 @@ detection:
     statusName: Success
   condition: selection`;
 
+/*
+ * A user as a distinct value, read past what Redact or Mask left (#10435,
+ * buildSigmaDistinctCountExpression): a user a scrub rule hid is no value
+ * to count. Compared with the parameters' numbers left out, since each
+ * statement numbers its own.
+ */
+const DISTINCT_USER: string =
+  "if((position(principalUser, {p}) > 0 OR position(principalUser, {p}) > 0), '', principalUser)";
+
+function withoutParameterNumbers(query: string): string {
+  return query.replace(/\{p\d+:String\}/g, "{p}");
+}
+
 function correlation(
   yaml: string,
 ): Extract<DetectionRuleDefinition, { kind: "correlation" }> {
@@ -220,8 +233,8 @@ ${FAILED}`);
       limit: 10,
     }).query;
 
-    expect(query).toContain(
-      "uniqExactStateIf(toString(ifNull(principalUser, '')), toString(ifNull(principalUser, '')) != '') AS __s",
+    expect(withoutParameterNumbers(query)).toContain(
+      `uniqExactStateIf(toString(ifNull(${DISTINCT_USER}, '')), toString(ifNull(${DISTINCT_USER}, '')) != '') AS __s`,
     );
     expect(query).toContain("uniqExactMerge(__s) OVER");
     expect(query).toContain("max(__rollingDistinct) AS distinctCount");
@@ -253,8 +266,8 @@ ${FAILED}`);
       limit: 10,
     }).query;
 
-    expect(query).toContain(
-      "uniqExactStateIf(tuple(toString(ifNull(principalUser, '')), toString(ifNull(targetHost, ''))), toString(ifNull(principalUser, '')) != '' AND toString(ifNull(targetHost, '')) != '')",
+    expect(withoutParameterNumbers(query)).toContain(
+      `uniqExactStateIf(tuple(toString(ifNull(${DISTINCT_USER}, '')), toString(ifNull(targetHost, ''))), toString(ifNull(${DISTINCT_USER}, '')) != '' AND toString(ifNull(targetHost, '')) != '')`,
     );
   });
 
@@ -381,8 +394,8 @@ ${FAILED}`);
       limit: 10,
     }).query;
 
-    expect(query).toMatch(
-      /uniqExactStateIf\(toString\(ifNull\(principalUser, ''\)\), toString\(ifNull\(principalUser, ''\)\) != '' AND _id < \{p\d+:String\}\) AS __sb/,
+    expect(withoutParameterNumbers(query)).toContain(
+      `uniqExactStateIf(toString(ifNull(${DISTINCT_USER}, '')), toString(ifNull(${DISTINCT_USER}, '')) != '' AND _id < {p}) AS __sb`,
     );
     expect(query).toContain("uniqExactMerge(__sb) OVER");
     expect(query).toContain(

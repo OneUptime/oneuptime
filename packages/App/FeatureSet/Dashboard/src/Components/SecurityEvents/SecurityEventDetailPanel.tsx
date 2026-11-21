@@ -52,6 +52,7 @@ import useSecurityEventRequestStory, {
 } from "./useSecurityEventRequestStory";
 import { DETAILS_TITLE } from "./SecurityEventRequestCopy";
 import { FILTER_BY_HIDDEN_ADDRESS } from "./HiddenClientAddressCopy";
+import { FILTER_BY_HIDDEN_USER } from "./HiddenUserCopy";
 import { readFieldValue } from "./HiddenClientAddressText";
 
 export const SECURITY_EVENT_DETAIL_PANEL_TEST_ID: string =
@@ -368,9 +369,11 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
               filterLabel={
                 field.hiddenAddress
                   ? translator.translateText(FILTER_BY_HIDDEN_ADDRESS)
-                  : translator.translateTemplate("Filter by {{field}}", {
-                      field: translatableTerm(field.label),
-                    })
+                  : field.isHiddenUser
+                    ? translator.translateText(FILTER_BY_HIDDEN_USER)
+                    : translator.translateTemplate("Filter by {{field}}", {
+                        field: translatableTerm(field.label),
+                      })
               }
               onFilter={
                 props.onFilterBy && field.facetKey

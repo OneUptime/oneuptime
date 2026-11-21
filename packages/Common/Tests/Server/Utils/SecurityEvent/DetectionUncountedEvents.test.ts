@@ -11,6 +11,7 @@ import DetectionRuleRetrohunt, {
   DetectionRetrohuntCounting,
   buildSingleRuleRetrohuntStatement,
   buildUncountedRetrohuntStatement,
+  getHiddenValueMarker,
   readUncountedRetrohuntRow,
 } from "../../../../Server/Utils/SecurityEvent/DetectionRuleRetrohunt";
 import DetectionRuleExceptionService from "../../../../Server/Services/DetectionRuleExceptionService";
@@ -443,5 +444,110 @@ detection:
       hiddenInLogsCount: 12,
       hiddenInTracesCount: 0,
     });
+  });
+});
+
+/*
+ * A USER A SCRUB RULE HID IS NO USER TO COUNT BY (#10435). A rule that
+ * counts per user - Repeated failed sign-ins for one account, fifteen per
+ * user - leaves out the events whose user a rule redacted or masked: the
+ * scans store them with no user now, and one stored before them, holding
+ * "[REDACTED]", reads the same. Run on Past Events says how many of those a
+ * rule hid, from the user's marker (ScrubbedUser).
+ */
+describe("a user a scrub rule hid (#10435)", () => {
+  const BY_USER: DetectionRetrohuntCounting = {
+    windowInMinutes: 15,
+    threshold: 15,
+    groupByField: "principalUser",
+    distinctCountField: "",
+  };
+
+  test("a user column has a value only when it is not what Redact or Mask left", () => {
+    for (const column of ["principalUser", "targetUser"]) {
+      const statement: Statement = buildSigmaFieldHasValue(column);
+
+      expect(statement.query).toBe(
+        `(${column} != '' AND NOT (position(${column}, {p0:String}) > 0 OR position(${column}, {p1:String}) > 0))`,
+      );
+      expect(Object.values(statement.query_params)).toEqual([
+        "[REDACTED]",
+        "***",
+      ]);
+    }
+
+    // Any other column says none as it did.
+    expect(buildSigmaFieldHasValue("principalHost").query).toBe(
+      "principalHost != ''",
+    );
+  });
+
+  test("Run on Past Events counts the events whose user a rule hid, from the user's marker", () => {
+    const statement: Statement | null = buildUncountedRetrohuntStatement({
+      projectId: PROJECT_ID,
+      tableName: "oneuptime.SecurityEvent",
+      ruleWhere: SQL`statusName = ${{
+        type: TableColumnType.Text,
+        value: "Failure",
+      }}`,
+      counting: BY_USER,
+      skipped: null,
+      serviceFilter: {},
+      startTime: START_TIME,
+      endTime: END_TIME,
+    });
+
+    expect(statement).not.toBeNull();
+    expect(Object.values(statement!.query_params)).toEqual(
+      expect.arrayContaining([
+        "oneuptime.principal_user_hidden",
+        "scrub-rule",
+        "oneuptime.principal_user_scrubbed_in",
+        "trace",
+      ]),
+    );
+    expect(Object.values(statement!.query_params)).not.toContain(
+      "oneuptime.request.client_address_hidden",
+    );
+    expect(statement!.query).toContain(") AND NOT ((principalUser != ''");
+  });
+
+  test("each field reads its own marker: a target user its own, an address the address's", () => {
+    expect(getHiddenValueMarker("targetUser")).toEqual({
+      hiddenKey: "oneuptime.target_user_hidden",
+      hiddenValue: "scrub-rule",
+      inKey: "oneuptime.target_user_scrubbed_in",
+      inTracesValue: "trace",
+    });
+    expect(getHiddenValueMarker("principalIp")).toEqual({
+      hiddenKey: "oneuptime.request.client_address_hidden",
+      hiddenValue: "scrub-rule",
+      inKey: "oneuptime.request.client_address_scrubbed_in",
+      inTracesValue: "span-attributes",
+    });
+  });
+
+  test("the library's rules that count per user leave out the events with no user", () => {
+    const byUser: Array<DetectionRuleLibraryEntry> =
+      DETECTION_RULE_LIBRARY.filter(
+        (entry: DetectionRuleLibraryEntry): boolean => {
+          return entry.groupByField === "principalUser";
+        },
+      );
+
+    expect(
+      byUser.some((entry: DetectionRuleLibraryEntry): boolean => {
+        return entry.title === "Repeated failed sign-ins for one account";
+      }),
+    ).toBe(true);
+
+    for (const entry of byUser) {
+      if ((entry.matchCountThreshold ?? 1) > 1) {
+        expect([
+          entry.title,
+          doesDetectionRuleLeaveOutEventsWithNoValue(entry),
+        ]).toEqual([entry.title, true]);
+      }
+    }
   });
 });

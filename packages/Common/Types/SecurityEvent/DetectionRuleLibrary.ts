@@ -2684,7 +2684,7 @@ detection:
       id: "51a51214-ca6e-43bc-b9ba-abf06cf4a135",
       title: "Many records deleted at once in OneUptime",
       description:
-        "One person or API key deleted twenty-five or more records within five minutes: a mistake worth catching, or somebody destroying what they found.",
+        "One person, API key or workflow deleted twenty-five or more records within five minutes: a mistake worth catching, a workflow gone wrong, or somebody destroying what they found.",
       category: DetectionRuleLibraryCategory.Identity,
       dataSource: "OneUptime audit log",
       dataKind: DetectionRuleDataKind.OneUptimeAuditLog,

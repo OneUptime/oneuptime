@@ -3,9 +3,20 @@ import { JSONObject } from "../../../Types/JSON";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import {
+  ONEUPTIME_PRINCIPAL,
+  getWorkflowPrincipal,
+} from "../../../Types/SecurityEvent/OneUptimeActorPrincipal";
+import {
   SecurityTelemetrySignal,
   SecurityTelemetrySourceKind,
 } from "../../../Types/SecurityEvent/SecurityTelemetrySource";
+import UserType from "../../../Types/UserType";
+import {
+  WorkflowRunAs,
+  describeWorkflowRunAs,
+  describeWorkflowRunAsGiver,
+  readWorkflowRunAs,
+} from "../../../Types/Workflow/WorkflowRunAs";
 import {
   buildTelemetrySecurityEvent,
   cutTelemetryText,
@@ -30,6 +41,19 @@ import {
  * the projects that turned it on; elsewhere it is empty and this finds
  * nothing. Only the records whose type is in AUDIT_SECURITY_RESOURCE_TYPES
  * are read, by the scan as by this.
+ *
+ * WHO ACTED (#10430). An entry names its actor by kind (userType) and by
+ * the ids of that kind: a person (userId, and their email and name), a
+ * project API key (apiKeyId), a step of one of the project's workflows
+ * (workflowId, and what it ran as, #9766), or OneUptime itself ("System",
+ * when the project stores system events). Every actor is one of its own:
+ * deletes are summed per kind and id, never across them, and each event
+ * names its actor - a person by their email, a key by its name, "The
+ * workflow "Nightly Cleanup"" with what it ran as and whose permissions
+ * those were, "OneUptime" - with a principal a rule can group on
+ * (Types/SecurityEvent/OneUptimeActorPrincipal: "workflow:<id>",
+ * "oneuptime"). An entry that names no actor at all says "Someone" rather
+ * than guess.
  *
  * Pure: the scan hands it the records it read.
  */
@@ -60,6 +84,13 @@ export const USER_ACCESS_MANAGEMENT_CLASS_UID: number = 3005;
 export const GROUP_MANAGEMENT_CLASS_UID: number = 3006;
 export const API_ACTIVITY_CLASS_UID: number = 6003;
 
+/*
+ * The actor type of OneUptime's own entries: a change made with root
+ * privileges and no actor (ee/Server/AuditLog/AuditLogRecorder.resolveActor)
+ * - a job, a SCIM sync, what a delete takes with it.
+ */
+export const AUDIT_SYSTEM_ACTOR_TYPE: string = "System";
+
 export const AUDIT_ATTRIBUTES: {
   recordId: string;
   resourceType: string;
@@ -71,7 +102,11 @@ export const AUDIT_ATTRIBUTES: {
   userEmail: string;
   apiKeyName: string;
   mcpClientName: string;
+  workflowId: string;
   workflowName: string;
+  workflowRunAs: string;
+  workflowRunAsRole: string;
+  workflowRunAsGivenBy: string;
   deletes: string;
   sampleResourceTypes: string;
 } = {
@@ -85,19 +120,22 @@ export const AUDIT_ATTRIBUTES: {
   userEmail: "audit.user_email",
   apiKeyName: "audit.api_key_name",
   mcpClientName: "audit.mcp_client_name",
+  workflowId: "audit.workflow_id",
   workflowName: "audit.workflow_name",
+  workflowRunAs: "audit.workflow_run_as",
+  workflowRunAsRole: "audit.workflow_run_as_role",
+  workflowRunAsGivenBy: "audit.workflow_run_as_given_by",
   deletes: "audit.deletes",
   sampleResourceTypes: "audit.sample_resource_types",
 };
 
-// One audit record as the scan reads it.
-export interface AuditScanRecord {
-  id: string;
-  createdAt: Date;
-  resourceType: string;
-  resourceId: string;
-  resourceName: string;
-  action: string;
+/*
+ * Who made a change, as an entry records it: its kind (userType) and the
+ * ids and names of that kind. A workflow's entry also says what it ran as
+ * (#9766): Default, ProjectOwner or CustomRole, the role's name, and the
+ * person or API key whose permissions those were.
+ */
+export interface AuditActor {
   userId: string;
   userName: string;
   userEmail: string;
@@ -105,17 +143,31 @@ export interface AuditScanRecord {
   apiKeyId: string;
   apiKeyName: string;
   mcpClientName: string;
+  workflowId: string;
   workflowName: string;
+  workflowRunAs: string;
+  workflowRunAsCustomRoleName: string;
+  workflowRunAsGiverName: string;
+  // Set when an API key, not a person, gave the workflow its permissions.
+  workflowRunAsGiverApiKeyId: string;
 }
 
-// One actor's deletes in a window, as the database summed them.
-export interface MassDeleteRow {
-  userId: string;
-  userName: string;
-  userEmail: string;
-  userType: string;
-  apiKeyId: string;
-  apiKeyName: string;
+// One audit record as the scan reads it.
+export interface AuditScanRecord extends AuditActor {
+  id: string;
+  createdAt: Date;
+  resourceType: string;
+  resourceId: string;
+  resourceName: string;
+  action: string;
+}
+
+/*
+ * One actor's deletes in a window, as the database summed them: one row per
+ * kind and id (userType, userId, apiKeyId, workflowId), with its names as
+ * the latest of its entries in the window say them.
+ */
+export interface MassDeleteRow extends AuditActor {
   deletes: number;
   sampleResourceTypes: Array<string>;
   firstAt: Date;
@@ -258,34 +310,139 @@ function quoted(name: string): string {
   return value ? ` "${cutTelemetryText(value, 120)}"` : "";
 }
 
-// Who made a change, as a sentence names them.
-export function describeAuditActor(
-  actor: Pick<
-    AuditScanRecord,
-    "userEmail" | "userName" | "apiKeyName" | "workflowName" | "mcpClientName"
-  >,
-): string {
-  if ((actor.userEmail || "").trim()) {
-    return actor.userEmail.trim();
+function textOf(value: string | null | undefined): string {
+  return (value || "").trim();
+}
+
+// Whether a workflow's step made the change: by its kind, or the workflow it names.
+export function isWorkflowAuditActor(actor: Partial<AuditActor>): boolean {
+  return (
+    textOf(actor.userType) === UserType.Workflow ||
+    textOf(actor.workflowId) !== "" ||
+    textOf(actor.workflowName) !== ""
+  );
+}
+
+/*
+ * Whether OneUptime itself made the change - a "System" entry naming no
+ * person, key or workflow - rather than someone it acted for. An entry of
+ * any other kind, or one that names a person, is theirs.
+ */
+export function isOneUptimeAuditActor(actor: Partial<AuditActor>): boolean {
+  return (
+    textOf(actor.userType) === AUDIT_SYSTEM_ACTOR_TYPE &&
+    !textOf(actor.userId) &&
+    !textOf(actor.userEmail) &&
+    !textOf(actor.userName) &&
+    !textOf(actor.apiKeyId) &&
+    !textOf(actor.apiKeyName) &&
+    !isWorkflowAuditActor(actor)
+  );
+}
+
+/*
+ * What a workflow ran as and with whose permissions, as a clause set off
+ * after its name: ", running as Project Owner with the permissions Jane Doe
+ * gave it,". Nothing for the default permissions, or for a Run As this
+ * version cannot read - it says nothing rather than guess.
+ */
+function describeWorkflowRanAs(actor: Partial<AuditActor>): string {
+  const runAs: WorkflowRunAs | null = readWorkflowRunAs(
+    textOf(actor.workflowRunAs),
+  );
+
+  if (!runAs || runAs === WorkflowRunAs.Default) {
+    return "";
   }
 
-  if ((actor.userName || "").trim()) {
-    return actor.userName.trim();
+  const roleName: string = textOf(actor.workflowRunAsCustomRoleName);
+  const ranAs: string = describeWorkflowRunAs({
+    runAs,
+    customRoleName: roleName ? cutTelemetryText(roleName, 120) : undefined,
+  });
+  const giver: string = textOf(actor.workflowRunAsGiverName);
+
+  if (!giver) {
+    return `, running as ${ranAs},`;
   }
 
-  if ((actor.apiKeyName || "").trim()) {
-    return `The API key${quoted(actor.apiKeyName)}`;
+  return `, running as ${ranAs} with the permissions ${describeWorkflowRunAsGiver(
+    {
+      name: cutTelemetryText(giver, 120),
+      isApiKey: textOf(actor.workflowRunAsGiverApiKeyId) !== "",
+    },
+  )} gave it,`;
+}
+
+/*
+ * Who made a change, as the subject of a sentence names them: a person by
+ * their email or name, "The API key "terraform"", "The workflow "Nightly
+ * Cleanup"" - with what it ran as, when that was more than the default
+ * permissions - "The MCP client "Cursor"", "OneUptime" for OneUptime's own
+ * change, and "Someone" when the entry names no actor: never a guess.
+ */
+export function describeAuditActor(actor: Partial<AuditActor>): string {
+  if (textOf(actor.userEmail)) {
+    return textOf(actor.userEmail);
   }
 
-  if ((actor.workflowName || "").trim()) {
-    return `The workflow${quoted(actor.workflowName)}`;
+  if (textOf(actor.userName)) {
+    return textOf(actor.userName);
   }
 
-  if ((actor.mcpClientName || "").trim()) {
-    return `The MCP client${quoted(actor.mcpClientName)}`;
+  if (textOf(actor.apiKeyName)) {
+    return `The API key${quoted(textOf(actor.apiKeyName))}`;
+  }
+
+  if (isWorkflowAuditActor(actor)) {
+    const name: string = textOf(actor.workflowName);
+
+    return `${name ? `The workflow${quoted(name)}` : "A workflow"}${describeWorkflowRanAs(actor)}`;
+  }
+
+  if (textOf(actor.mcpClientName)) {
+    return `The MCP client${quoted(textOf(actor.mcpClientName))}`;
+  }
+
+  if (textOf(actor.userType) === UserType.API) {
+    return "An API key";
+  }
+
+  if (isOneUptimeAuditActor(actor)) {
+    return "OneUptime";
   }
 
   return "Someone";
+}
+
+/*
+ * Who made a change, as an event's principal user: the person's email or
+ * name, the API key's name, "workflow:" and the workflow's id, or
+ * "oneuptime" (OneUptimeActorPrincipal) - one for each actor, so a rule
+ * that groups by principal never sums two of them. "" when the entry names
+ * no actor, or a workflow but not which.
+ */
+export function getAuditActorPrincipal(actor: Partial<AuditActor>): string {
+  const workflow: string = getWorkflowPrincipal(actor.workflowId);
+
+  if (workflow) {
+    return workflow;
+  }
+
+  if (isWorkflowAuditActor(actor)) {
+    return "";
+  }
+
+  const named: string =
+    textOf(actor.userEmail) ||
+    textOf(actor.userName) ||
+    textOf(actor.apiKeyName);
+
+  if (named) {
+    return named;
+  }
+
+  return isOneUptimeAuditActor(actor) ? ONEUPTIME_PRINCIPAL : "";
 }
 
 function verbOf(action: string): string {
@@ -339,41 +496,36 @@ export function describeAuditChange(record: AuditScanRecord): string {
   }
 }
 
-function principalOf(
-  actor: Pick<AuditScanRecord, "userEmail" | "userName" | "apiKeyName">,
-): string {
-  return (
-    (actor.userEmail || "").trim() ||
-    (actor.userName || "").trim() ||
-    (actor.apiKeyName || "").trim()
-  );
-}
-
-function actorAttributes(
-  actor: Pick<
-    AuditScanRecord,
-    | "userType"
-    | "userId"
-    | "userEmail"
-    | "apiKeyName"
-    | "mcpClientName"
-    | "workflowName"
-  >,
-): JSONObject {
+/*
+ * The actor as attributes a search and a rule read: its kind and ids, and
+ * for a workflow what it ran as and whose permissions those were.
+ */
+function actorAttributes(actor: Partial<AuditActor>): JSONObject {
   const attributes: JSONObject = {};
+  const isWorkflow: boolean = isWorkflowAuditActor(actor);
 
-  const values: Array<[string, string]> = [
+  const values: Array<[string, string | undefined]> = [
     [AUDIT_ATTRIBUTES.actorType, actor.userType],
     [AUDIT_ATTRIBUTES.userId, actor.userId],
     [AUDIT_ATTRIBUTES.userEmail, actor.userEmail],
     [AUDIT_ATTRIBUTES.apiKeyName, actor.apiKeyName],
     [AUDIT_ATTRIBUTES.mcpClientName, actor.mcpClientName],
+    [AUDIT_ATTRIBUTES.workflowId, actor.workflowId],
     [AUDIT_ATTRIBUTES.workflowName, actor.workflowName],
+    [AUDIT_ATTRIBUTES.workflowRunAs, isWorkflow ? actor.workflowRunAs : ""],
+    [
+      AUDIT_ATTRIBUTES.workflowRunAsRole,
+      isWorkflow ? actor.workflowRunAsCustomRoleName : "",
+    ],
+    [
+      AUDIT_ATTRIBUTES.workflowRunAsGivenBy,
+      isWorkflow ? actor.workflowRunAsGiverName : "",
+    ],
   ];
 
   for (const [key, value] of values) {
-    if ((value || "").trim()) {
-      attributes[key] = value.trim();
+    if (textOf(value)) {
+      attributes[key] = textOf(value);
     }
   }
 
@@ -414,7 +566,7 @@ export function buildAuditRecordEvent(
     statusName: "Success",
     severity: reading.severity,
     message: describeAuditChange(record),
-    principalUser: principalOf(record),
+    principalUser: getAuditActorPrincipal(record),
     targetResource: [
       record.resourceType,
       (record.resourceName || record.resourceId || "").trim(),
@@ -431,6 +583,29 @@ function minutesBetween(first: Date, last: Date): number {
   return Number.isFinite(minutes) && minutes > 0 ? minutes : 1;
 }
 
+/*
+ * The actor's part of a mass delete's id: a person's or a key's id, as it
+ * always was, a workflow's principal or OneUptime's - the same actor in the
+ * same window is one event, however often the window is read.
+ */
+function getMassDeleteActorKey(row: MassDeleteRow, actor: string): string {
+  return (
+    getWorkflowPrincipal(row.workflowId) ||
+    (isOneUptimeAuditActor(row) ? ONEUPTIME_PRINCIPAL : "") ||
+    textOf(row.userId) ||
+    textOf(row.apiKeyId) ||
+    actor
+  );
+}
+
+/*
+ * One actor's deletes in a window, once they reach the threshold: High, and
+ * named - "The workflow "Nightly Cleanup" deleted 40 records in 3 minutes".
+ * OneUptime's own bookkeeping is Informational under a signal of its own
+ * (oneuptime-mass-delete), kept for the record and read by no rule that
+ * watches people's deletes; its message says what such work is, since the
+ * audit log does not say which it was.
+ */
 export function buildMassDeleteEvent(
   row: MassDeleteRow,
   windowStart: Date,
@@ -439,43 +614,38 @@ export function buildMassDeleteEvent(
     return null;
   }
 
-  const actor: string = describeAuditActor({
-    userEmail: row.userEmail,
-    userName: row.userName,
-    apiKeyName: row.apiKeyName,
-    workflowName: "",
-    mcpClientName: "",
-  });
+  const isOneUptime: boolean = isOneUptimeAuditActor(row);
+  const signal: SecurityTelemetrySignal = isOneUptime
+    ? SecurityTelemetrySignal.OneUptimeMassDelete
+    : SecurityTelemetrySignal.MassDelete;
+  const actor: string = describeAuditActor(row);
   const minutes: number = minutesBetween(row.firstAt, row.lastAt);
   const types: Array<string> = [...row.sampleResourceTypes]
     .filter(Boolean)
     .sort()
     .slice(0, 5);
+  const deleted: string = `${actor} deleted ${row.deletes} records in ${minutes} ${
+    minutes === 1 ? "minute" : "minutes"
+  }${types.length > 0 ? ` (${types.join(", ")})` : ""}`;
 
   return buildTelemetrySecurityEvent({
     kind: SecurityTelemetrySourceKind.AuditLog,
-    signal: SecurityTelemetrySignal.MassDelete,
+    signal,
     time: row.firstAt,
-    eventUid: `audit:${SecurityTelemetrySignal.MassDelete}:${
-      row.userId || row.apiKeyId || actor
-    }:${windowStart.toISOString()}`,
+    eventUid: `audit:${signal}:${getMassDeleteActorKey(
+      row,
+      actor,
+    )}:${windowStart.toISOString()}`,
     classUid: API_ACTIVITY_CLASS_UID,
     activityName: "Delete",
     statusName: "Success",
-    severity: OcsfSeverity.High,
-    message: `${actor} deleted ${row.deletes} records in ${minutes} ${
-      minutes === 1 ? "minute" : "minutes"
-    }${types.length > 0 ? ` (${types.join(", ")})` : ""}`,
-    principalUser: principalOf(row),
+    severity: isOneUptime ? OcsfSeverity.Informational : OcsfSeverity.High,
+    message: isOneUptime
+      ? `${deleted}: its own work, such as a scheduled cleanup, a SCIM sync or what another delete took with it`
+      : deleted,
+    principalUser: getAuditActorPrincipal(row),
     attributes: {
-      ...actorAttributes({
-        userType: row.userType,
-        userId: row.userId,
-        userEmail: row.userEmail,
-        apiKeyName: row.apiKeyName,
-        mcpClientName: "",
-        workflowName: "",
-      }),
+      ...actorAttributes(row),
       [AUDIT_ATTRIBUTES.deletes]: String(row.deletes),
       [AUDIT_ATTRIBUTES.sampleResourceTypes]: types.join(","),
     },

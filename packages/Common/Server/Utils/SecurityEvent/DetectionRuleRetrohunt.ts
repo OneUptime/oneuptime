@@ -27,6 +27,11 @@ import {
   CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
   ScrubbedAddressPlace,
 } from "../../../Utils/SecurityEvent/ScrubbedAddress";
+import {
+  SCRUBBED_USER_ATTRIBUTES,
+  ScrubbedUserRole,
+  USER_HIDDEN_BY_SCRUB_RULE,
+} from "../../../Utils/SecurityEvent/ScrubbedUser";
 import { DetectionRuleExceptionShape } from "../../../Types/SecurityEvent/DetectionRuleException";
 import { DetectionRuleDefinition } from "../../../Types/SecurityEvent/SigmaCorrelation";
 import SigmaRule from "../../../Types/SecurityEvent/SigmaRule";
@@ -350,10 +355,52 @@ export function buildSingleRuleRetrohuntStatement(data: {
 }
 
 /*
+ * The marker a scrub rule leaves on an event whose value of a group field it
+ * hid: the key that says so and its value, and the key that says where,
+ * with the value that means a span. A rule grouped by a user reads the
+ * user's marker (ScrubbedUser, #10435); any other the client address's
+ * (ScrubbedAddress, #10397).
+ */
+export interface HiddenValueMarker {
+  hiddenKey: string;
+  hiddenValue: string;
+  inKey: string;
+  inTracesValue: string;
+}
+
+export function getHiddenValueMarker(groupByField: string): HiddenValueMarker {
+  const field: string = (groupByField || "").trim();
+
+  if (field === "principalUser" || field === "targetUser") {
+    const keys: { hidden: string; in: string } =
+      SCRUBBED_USER_ATTRIBUTES[
+        field === "principalUser"
+          ? ScrubbedUserRole.Principal
+          : ScrubbedUserRole.Target
+      ];
+
+    return {
+      hiddenKey: keys.hidden,
+      hiddenValue: USER_HIDDEN_BY_SCRUB_RULE,
+      inKey: keys.in,
+      inTracesValue: "trace",
+    };
+  }
+
+  return {
+    hiddenKey: SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden,
+    hiddenValue: CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
+    inKey: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbedIn,
+    inTracesValue: ScrubbedAddressPlace.SpanAttributes,
+  };
+}
+
+/*
  * What a single rule that counts per value left out (#10415): the events it
  * matched, and its exceptions kept, that had no value for its group field,
- * and how many of them had their client address hidden by a scrub rule
- * (#10397), in a log line or a span. Null for a rule that leaves none out.
+ * and how many of them had that value hidden by a scrub rule - a client
+ * address (#10397) or a user (#10435) - in a log line or a span. Null for a
+ * rule that leaves none out.
  */
 export function buildUncountedRetrohuntStatement(data: {
   projectId: ObjectID;
@@ -369,6 +416,9 @@ export function buildUncountedRetrohuntStatement(data: {
     return null;
   }
 
+  const marker: HiddenValueMarker = getHiddenValueMarker(
+    data.counting.groupByField,
+  );
   const statement: Statement = SQL`WITH `;
 
   if (data.skipped) {
@@ -382,16 +432,16 @@ export function buildUncountedRetrohuntStatement(data: {
   statement.append(
     SQL` AS __skipped, attributes[${{
       type: TableColumnType.Text,
-      value: SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden,
+      value: marker.hiddenKey,
     }}] = ${{
       type: TableColumnType.Text,
-      value: CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
+      value: marker.hiddenValue,
     }} AS __hidden, attributes[${{
       type: TableColumnType.Text,
-      value: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbedIn,
+      value: marker.inKey,
     }}] = ${{
       type: TableColumnType.Text,
-      value: ScrubbedAddressPlace.SpanAttributes,
+      value: marker.inTracesValue,
     }} AS __inTraces SELECT countIf(NOT __skipped) AS eventCount, countIf(NOT __skipped AND __hidden AND NOT __inTraces) AS hiddenInLogsCount, countIf(NOT __skipped AND __hidden AND __inTraces) AS hiddenInTracesCount FROM `,
   );
   statement.append(data.tableName);

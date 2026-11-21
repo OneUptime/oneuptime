@@ -150,6 +150,15 @@ export const UNCOUNTED_HIDDEN_BY_SCRUB_RULE: PluralTemplate = {
   other: "A scrub rule hid the address of {{count}} of them.",
 };
 
+/*
+ * Why, when a scrub rule hid their users (#10435): Redact's "[REDACTED]" or
+ * a mask, which stands for everybody a rule hid and so is no user to count.
+ */
+export const UNCOUNTED_USER_HIDDEN_BY_SCRUB_RULE: PluralTemplate = {
+  one: "A scrub rule hid the user of {{count}} of them.",
+  other: "A scrub rule hid the user of {{count}} of them.",
+};
+
 // ---------- What it fired for ----------
 
 export const FIRED_FOR_COLUMN: string = translationKey("Fired for");

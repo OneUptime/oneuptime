@@ -44,6 +44,7 @@ import {
 } from "../NormalizerHelpers";
 import { writeOwnValue } from "../../LookupTable";
 import { TrustedProxies } from "../ClientAddressTrust";
+import { readEventUsers } from "../ScrubbedUser";
 
 /*
  * One log line as the log parsers read it: the line itself, the attributes
@@ -497,10 +498,8 @@ export function buildLogSecurityEvent(
     "Base Event";
   const logId: string = input.line.logId || "";
 
-  const principalUser: string = (input.principalUser || "").trim();
   const principalHost: string = (input.principalHost || "").trim();
   const principalIp: string = (input.principalIp || "").trim();
-  const targetUser: string = (input.targetUser || "").trim();
   const targetHost: string = (input.targetHost || "").trim();
   const targetIp: string = (input.targetIp || "").trim();
 
@@ -509,6 +508,21 @@ export function buildLogSecurityEvent(
     [SECURITY_LOG_SOURCE_ATTRIBUTE]: SECURITY_LOG_SOURCE_VALUE,
     [SECURITY_LOG_FORMAT_ATTRIBUTE]: input.format,
   };
+
+  /*
+   * A user a scrub rule hid is no user: Redact's and a mask's are none at
+   * all, a Hash token stays one, and the event says which (ScrubbedUser,
+   * #10435). Every parser's user fields reach the event through here.
+   */
+  const {
+    principalUser,
+    targetUser,
+  }: { principalUser: string; targetUser: string } = readEventUsers({
+    principalUser: input.principalUser,
+    targetUser: input.targetUser,
+    attributes,
+    signal: "log",
+  });
 
   if (logId) {
     attributes[SECURITY_LOG_ID_ATTRIBUTE] = logId;

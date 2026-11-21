@@ -514,6 +514,89 @@ describe("the audit log reader", () => {
     ]);
     expect(queries).toHaveLength(1);
   });
+
+  test("reads each workflow's deletes as that workflow's, and OneUptime's own apart (#10430)", async () => {
+    const nightly: string = "0192f1a0-0000-7000-8000-00000000a411";
+    const archiver: string = "0192f1a0-0000-7000-8000-00000000a412";
+    const workflowRow: (
+      id: string,
+      name: string,
+      deletes: string,
+    ) => JSONObject = (
+      id: string,
+      name: string,
+      deletes: string,
+    ): JSONObject => {
+      return {
+        actorUserType: "Workflow",
+        actorUserId: null,
+        actorUserName: null,
+        actorUserEmail: null,
+        actorApiKeyId: null,
+        actorApiKeyName: null,
+        actorWorkflowId: id,
+        actorWorkflowName: name,
+        actorWorkflowRunAs: "ProjectOwner",
+        actorWorkflowRunAsRole: "",
+        actorWorkflowRunAsGivenBy: "Jane Doe",
+        actorWorkflowRunAsGiverApiKeyId: "",
+        deletes,
+        sampleResourceTypes: ["Incident"],
+        firstAt: "2026-10-27 10:00:00",
+        lastAt: "2026-10-27 10:02:00",
+      };
+    };
+
+    jest.spyOn(AuditLogService, "executeQuery").mockImplementation((async (
+      statement: Statement,
+    ) => {
+      return statement.query.includes("AS deletes")
+        ? answer([
+            workflowRow(nightly, "Nightly Cleanup", "30"),
+            workflowRow(archiver, "Archive Old Incidents", "26"),
+            {
+              actorUserType: "System",
+              actorUserId: null,
+              actorUserName: null,
+              actorUserEmail: null,
+              actorApiKeyId: null,
+              actorApiKeyName: null,
+              actorWorkflowId: null,
+              actorWorkflowName: "",
+              actorWorkflowRunAs: "",
+              actorWorkflowRunAsRole: "",
+              actorWorkflowRunAsGivenBy: "",
+              actorWorkflowRunAsGiverApiKeyId: "",
+              deletes: "300",
+              sampleResourceTypes: ["Team Member"],
+              firstAt: "2026-10-27 10:00:00",
+              lastAt: "2026-10-27 10:01:00",
+            },
+          ])
+        : answer([]);
+    }) as never);
+
+    const read: TelemetryWindowRead = await AuditLogSecurityScan.readWindow({
+      window: WINDOW,
+      offset: 0,
+      pageSize: 100,
+    });
+
+    expect(signalsOf(read.events)).toEqual([
+      SecurityTelemetrySignal.MassDelete,
+      SecurityTelemetrySignal.MassDelete,
+      SecurityTelemetrySignal.OneUptimeMassDelete,
+    ]);
+    expect(
+      read.events.map((event: NormalizedSecurityEvent): string => {
+        return event.principalUser;
+      }),
+    ).toEqual([`workflow:${nightly}`, `workflow:${archiver}`, "oneuptime"]);
+    expect(read.events[0]!.message).toBe(
+      'The workflow "Nightly Cleanup", running as Project Owner with the permissions Jane Doe gave it, deleted 30 records in 2 minutes (Incident)',
+    );
+    expect(read.events[2]!.severityName).toBe("Informational");
+  });
 });
 
 describe("the session replay reader", () => {
