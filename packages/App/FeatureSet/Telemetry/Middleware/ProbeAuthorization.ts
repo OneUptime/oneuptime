@@ -100,9 +100,9 @@ export default class ProbeAuthorization {
    *
    * A request a collection route has authenticated already - from its
    * headers, or from the id and key its report opens with, before its body
-   * was parsed (#10222) - is that probe's: it is not authenticated again,
-   * and it is timed from here, once its body is in, as every other probe
-   * request is.
+   * was read (#10222, #10260) - is that probe's: it is not authenticated
+   * again, and it is timed from here, once its body is in, as every other
+   * probe request is.
    */
   public static async isAuthorizedServiceMiddleware(
     req: ProbeExpressRequest,
@@ -162,8 +162,8 @@ export default class ProbeAuthorization {
    *
    * A request with neither header is an older probe's, whose key is in its
    * body alone: it goes on, to be authenticated from the id and key its
-   * report opens with (isAuthorizedFromReportOpeningMiddleware), or from
-   * its body once that is parsed.
+   * report opens with (isAuthorizedFromReportOpening) before the rest of
+   * the report is read.
    */
   public static async isAuthorizedFromHeadersMiddleware(
     req: ProbeExpressRequest,
@@ -196,47 +196,44 @@ export default class ProbeAuthorization {
   }
 
   /*
-   * A collection route, once its body's bytes are read and before they are
-   * parsed (#10222): a request its headers did not authenticate - an older
+   * A collection route, with its report read no further than its opening
+   * (#10222, #10260): a request its headers did not authenticate - an older
    * probe's - is authenticated from the id and key its report opens with
-   * (ProbeReportOpening), which every probe release puts first. A wrong key
-   * is refused as it is in a parsed body, and counted as one, with the
-   * report unparsed; a right one has the whole report parsed.
+   * (ProbeReportOpening), which every probe release puts first. They are
+   * read off the report's first few kilobytes, as it inflates, and checked
+   * before another byte of it is read (readCollectionBody).
    *
-   * A body that opens with anything else goes on unauthenticated: it is
-   * parsed under a large route's limit, and its key, if it has one, read
-   * from it then (isAuthorizedServiceMiddleware).
+   * A wrong key is refused as it is in a parsed body, and counted as one; a
+   * body that opens with anything else is refused as a body without a key
+   * is ("ProbeId or ProbeKey is missing"). Either way the rest of the
+   * report is never read, so a client without the right key costs the App
+   * a few kilobytes, however large or however shaped the body it sends. A
+   * right key has the whole report read and parsed.
    */
-  public static async isAuthorizedFromReportOpeningMiddleware(
-    req: ProbeExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> {
+  public static async isAuthorizedFromReportOpening(data: {
+    req: ProbeExpressRequest;
+    res: ExpressResponse;
+    next: NextFunction;
+    // The report's first bytes, inflated (MAX_REPORT_OPENING_BYTES at most).
+    opening: Uint8Array;
+  }): Promise<void> {
+    const { req, res, next } = data;
+
     try {
       if (req.probe?.id) {
         return next();
       }
 
-      const body: unknown = req.body;
-
-      if (!(Buffer.isBuffer(body) || body instanceof Uint8Array)) {
-        return next();
-      }
-
       const opening: ProbeReportOpeningCredentials | null =
-        ProbeReportOpening.read(body);
-
-      if (!opening) {
-        return next();
-      }
+        ProbeReportOpening.read(data.opening);
 
       return await ProbeAuthorization.authorize({
         req: req,
         res: res,
         next: next,
-        probeId: opening.probeId,
-        probeKey: opening.probeKey,
-        // The release the probe runs is further into its report, unparsed.
+        probeId: opening?.probeId,
+        probeKey: opening?.probeKey,
+        // The release the probe runs is further into its report, unread.
         versionReport: undefined,
         // Timed once its body is parsed (isAuthorizedServiceMiddleware).
         observeDuration: false,

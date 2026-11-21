@@ -351,11 +351,22 @@ export interface TelemetryIngestJobData {
   /*
    * Set only for a job a Mobile ingestion key admitted (issue #6457): the
    * worker keeps only a mobile app's own resource attributes and files the
-   * batch as the pinned app's mobile RUM (PinMobileRumResource), so a key
+   * batch as the pinned app's mobile RUM (PinRumClientResource), so a key
    * copied out of an app can write nothing else. Carried on the job for the
    * same reason as pinnedServiceName: the payload is decoded in the worker.
    */
   isMobileKey?: true;
+  /*
+   * The same for a job a Browser ingestion key admitted (issue #10539): the
+   * worker keeps only a web page's own resource attributes and files the
+   * batch as the page's browser RUM, so a key copied out of a page - its
+   * Origin header is any a script likes - cannot file telemetry under a
+   * host, a cluster, a cloud resource, a database or a backend service. A
+   * flag of its own rather than a kind beside isMobileKey, so a worker of
+   * the release before, during a rolling upgrade, still files a Mobile
+   * key's batch as it always did.
+   */
+  isBrowserKey?: true;
   /*
    * Set only when the body was counted against an ingestion budget at an
    * estimate - a compressed OTLP/HTTP body, sized from its own header
@@ -806,12 +817,24 @@ export default class TelemetryQueueService {
         jobData.pinnedServiceName = pinnedServiceName;
       }
 
-      // A Mobile key writes only its app's mobile RUM (issue #6457).
+      /*
+       * A Mobile key writes only its app's mobile RUM (issue #6457), and a
+       * Browser key only its page's browser RUM (issue #10539). Every OTel
+       * job they make is marked, the ones the Sentry endpoint queues for a
+       * Browser key's envelopes among them (CompatibleIngestService).
+       */
       if (
         isOtelType &&
         ingestionKeyPolicy?.keyType === TelemetryIngestionKeyType.Mobile
       ) {
         jobData.isMobileKey = true;
+      }
+
+      if (
+        isOtelType &&
+        ingestionKeyPolicy?.keyType === TelemetryIngestionKeyType.Browser
+      ) {
+        jobData.isBrowserKey = true;
       }
 
       const budgetSignal: TelemetryIngestionBudgetSignal | null =

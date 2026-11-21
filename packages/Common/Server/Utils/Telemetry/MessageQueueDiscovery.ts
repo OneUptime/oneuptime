@@ -34,6 +34,7 @@ import {
   resolveMessagingSpan,
 } from "../../../Types/MessageQueue/MessagingTelemetryResolver";
 import { QUERY_SETTINGS, escapeSql } from "./ServiceDependencyDiscovery";
+import { notRumClientRowSql } from "./RumClientRows";
 
 /*
  * Message queue discovery — the pure half of the queue step of
@@ -725,7 +726,9 @@ export interface MessageQueueDiscoveryWindow {
  * the attribute map) before the map is read: a span carries a messaging
  * trigger key, and one whose only trigger is an Azure provider key names
  * Service Bus or Event Hubs there. Then the spans the resolver certainly
- * names no queue for are dropped too (rule 1).
+ * names no queue for are dropped too (rule 1). A RUM client's spans are
+ * never read (notRumClientRowSql, #10539): a browser or an app calls no
+ * broker directly, and a key copied out of one must not add a queue.
  */
 export function buildMessagingSpanDiscoverySql(
   window: MessageQueueDiscoveryWindow,
@@ -751,6 +754,7 @@ export function buildMessagingSpanDiscoverySql(
           AND startTime >= ${window.startSql}
           AND startTime < ${window.endSql}
           AND ${spanKindSql()}
+          AND ${notRumClientRowSql()}
           AND hasAny(attributeKeys, ${sqlArray(MESSAGING_TRIGGER_ATTRIBUTES)})
           AND (${spanTriggerSql()})
           AND NOT (${certainlyNoQueueSql()})
@@ -790,7 +794,8 @@ function metricWindowSql(window: { startSql: string; endSql: string }): string {
  * Pulsar's consumer name and id) are neither selected nor filtered on: they
  * are per instance, so grouping on them would split a topic's rows per
  * consumer, and a repeat folds into its subscription's own series of the
- * same topic, which names the same queue.
+ * same topic, which names the same queue. A RUM client's datapoints are
+ * never read (notRumClientRowSql, #10539), for the spans' reason.
  */
 export function buildMessagingMetricDiscoverySql(
   window: MessageQueueDiscoveryWindow,
@@ -812,6 +817,7 @@ export function buildMessagingMetricDiscoverySql(
         WHERE projectId = '${escapeSql(window.projectId)}'
           AND name IN ${sqlTuple(MESSAGE_QUEUE_DISCOVERY_METRIC_NAMES)}
           AND ${metricWindowSql(window)}
+          AND ${notRumClientRowSql()}
         GROUP BY name, ${columns}`,
       columns: `name, ${columns}, pointCount, lastSeenUnixMs`,
       shareSql: "name",

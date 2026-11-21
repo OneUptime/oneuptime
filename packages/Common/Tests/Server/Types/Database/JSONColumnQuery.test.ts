@@ -20,6 +20,7 @@ import LessThan from "../../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../../Types/BaseDatabase/LessThanOrEqual";
 import NotContains from "../../../../Types/BaseDatabase/NotContains";
 import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../../Types/BaseDatabase/NotEqualOrNull";
 import NotNull from "../../../../Types/BaseDatabase/NotNull";
 import Search from "../../../../Types/BaseDatabase/Search";
 import StartsWith from "../../../../Types/BaseDatabase/StartsWith";
@@ -265,6 +266,20 @@ describe("buildJSONColumnQuery — negation includes rows without the key", () =
 
     expect(sql).toContain("IS NOT TRUE");
     expect(sql).not.toMatch(/NOT\s+\(/);
+  });
+
+  /*
+   * NotEqualOrNull (#10399) asks for an empty value too, which IS NOT TRUE
+   * already keeps: on a key it is NotEqual, never the containment check an
+   * operator nobody handles would fall through to.
+   */
+  test("NotEqualOrNull on a key is NotEqual: the same SQL, with the key missing kept", () => {
+    const sql: string = sqlOf({ Team: new NotEqualOrNull("Payments") });
+
+    expect(sql).toBe(sqlOf({ Team: new NotEqual("Payments") }));
+    expect(sql).toContain("IS NOT TRUE");
+    // Not the containment check a value nothing handles falls through to.
+    expect(sql).not.toBe(sqlOf({ Team: { value: "Payments" } }));
   });
 
   test("IncludesNone negates the whole any-of predicate", () => {

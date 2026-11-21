@@ -35,13 +35,13 @@ flowchart TB
 
 | | **伺服器** | **瀏覽器** | **行動裝置** |
 | --- | --- | --- | --- |
-| 用途 | 在你營運的機器上執行的應用程式、collector 和代理程式 | 網頁，以及 React Native Session Replay | 一個 iOS、Android 或 React Native 應用程式 |
-| 傳送內容 | 所有類型的遙測，送往所有端點 | 追蹤、日誌、指標、Session Replay 和 [Sentry 事件](/docs/telemetry/compatible-endpoints#sentry-sdk) | 該應用程式的追蹤、日誌和指標，透過 OTLP/HTTP |
+| 用途 | 在你營運的機器上執行的應用程式、collector 和代理程式 | 網頁 | 一個 iOS、Android 或 React Native 應用程式 |
+| 傳送內容 | 所有類型的遙測，送往所有端點 | 追蹤、日誌、指標、Session Replay 和 [Sentry 事件](/docs/telemetry/compatible-endpoints#sentry-sdk) | 該應用程式的追蹤、日誌和指標，透過 OTLP/HTTP，以及它的 Session Replay |
 | 是否為機密 | 是：請把它保存在你的伺服器上 | 否：任何檢視頁面的人都能讀取它 | 否：任何擁有該應用程式的人都能複製它 |
 | 來源 | 不檢查 | 只接受列出的來源 | 來自網頁的請求會被拒絕 |
 | 每分鐘請求數 | 無上限，除非你設定了上限 | 6,000，除非你設定了其他上限 | 6,000，除非你設定了其他上限 |
 
-在其他所有地方，OneUptime 都會拒絕瀏覽器金鑰，例如透過 gRPC 和 MQTT、用於效能剖析資料、Syslog、Fluent Bit 和 Fluentd，以及上傳 source map；行動裝置金鑰則除了透過 HTTP 傳送的 OTLP 追蹤、日誌和指標之外一律被拒絕。若要把傳送端換成另一種類型，請建立該類型的金鑰，把傳送端切換到新金鑰，然後刪除舊金鑰。
+在其他所有地方，OneUptime 都會拒絕瀏覽器金鑰，例如透過 gRPC 和 MQTT、用於效能剖析資料、Syslog、Fluent Bit 和 Fluentd，以及上傳 source map；行動裝置金鑰則除了透過 HTTP 傳送的 OTLP 追蹤、日誌和指標以及其應用程式的 Session Replay 之外一律被拒絕。若要把傳送端換成另一種類型，請建立該類型的金鑰，把傳送端切換到新金鑰，然後刪除舊金鑰。
 
 ## 開始之前
 
@@ -85,16 +85,16 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## 鎖定瀏覽器金鑰
 
-瀏覽器金鑰位於你的頁面中，任何人都能複製它。以下設定限制了副本能做的事。在金鑰頁面上透過 **編輯擷取金鑰** 變更它們。
+瀏覽器金鑰位於你的頁面中，任何人都能複製它。它傳送的所有內容都會以瀏覽器 RUM 應用程式的形式儲存，絕不會以主機、叢集、雲端資源、資料庫或後端服務的形式儲存：對於傳送端設定的資源，金鑰只保留頁面對自身的描述，例如 `service.*`、`browser.*` 和 `user_agent.*` 屬性以及 `oneuptime.label.*` 標籤。以下設定限制了副本能做的事。在金鑰頁面上透過 **編輯擷取金鑰** 變更它們。
 
 | 設定 | 作用 |
 | --- | --- |
 | **允許的來源** | 接受該金鑰的唯一來源。來自其他任何來源的請求，或完全沒有 `Origin` 標頭的請求，都會遭到拒絕。瀏覽器金鑰必須至少保留一個來源。 |
-| **固定的服務名稱** | 把金鑰透過 OTLP/HTTP 傳送的所有內容都歸入這一個服務，無論傳送端設定了什麼 `service.name`。如此一來，金鑰的副本只能寫入該服務。 |
+| **固定的服務名稱** | 把金鑰透過 OTLP/HTTP 傳送的所有內容都歸入這一個應用程式，無論傳送端設定了什麼 `service.name`。如此一來，金鑰的副本只能寫入該應用程式。 |
 | **每分鐘請求數上限** | 該金鑰每分鐘可被接受的最大請求數，由所有訪客共用。留空時，瀏覽器金鑰的上限為 6,000。 |
 | **到期於** | 過了這個日期，金鑰就會遭到拒絕，已公開的副本也隨之失效。 |
 
-來源由通訊協定、主機和選用的連接埠組成：`https://app.example.com` 不包含 `https://app.example.com:8443`。開頭的一個 `*.` 涵蓋所有子網域，但不包含網域本身。React Native Session Replay 會傳送精確的 `app://` 識別碼，不能使用萬用字元：
+來源由通訊協定、主機和選用的連接埠組成：`https://app.example.com` 不包含 `https://app.example.com:8443`。開頭的一個 `*.` 涵蓋所有子網域，但不包含網域本身。使用瀏覽器金鑰的 React Native Session Replay 會傳送精確的 `app://` 識別碼，不能使用萬用字元：
 
 ```json
 [
@@ -111,11 +111,11 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 行動裝置金鑰會隨你的應用程式一起發布，任何擁有該應用程式的人都能複製它。以下限制把每一份副本都限定在為其建立金鑰的應用程式上：
 
 - **它只以一個應用程式的身分寫入。** 無論傳送端聲稱是哪個服務或主機，它傳送的所有內容都會歸入其 **固定的服務名稱**，作為行動 RUM 應用程式。副本無法寫入你的後端服務、主機或叢集。
-- **它只傳送該應用程式的遙測。** 透過 HTTP 傳送的 OTLP 追蹤、日誌和指標。透過 gRPC 和 MQTT、用於 Session Replay、效能剖析資料和 source map、送往任何其他端點，或來自任何網頁的請求都會被拒絕。
+- **它只傳送該應用程式的遙測。** 透過 HTTP 傳送的 OTLP 追蹤、日誌和指標，以及來自應用程式 React Native 錄製器的 Session Replay，以金鑰的 **固定的服務名稱** 作為其 `appIdentifier`。透過 gRPC 和 MQTT、用於其他應用程式的 Session Replay、效能剖析資料和 source map、送往任何其他端點，或來自任何網頁的請求都會被拒絕。
 - **它受速率限制。** 所有副本合計每分鐘 6,000 個請求，除非你設定了它的 **每分鐘請求數上限**。
 - **你可以停用它。** 關閉 **已啟用**，或設定 **到期於**，每份副本都會在幾秒內被拒絕。
 
-它無法阻止的：擁有你應用程式的人仍可在金鑰的上限內為這一個應用程式傳送捏造的追蹤、日誌和指標，直到你關閉金鑰或它到期。請隨每次發布輪替金鑰，讓舊副本隨其版本一起失效。
+它無法阻止的：擁有你應用程式的人仍可在金鑰的上限內為這一個應用程式傳送捏造的追蹤、日誌、指標和 Session Replay，直到你關閉金鑰或它到期。請隨每次發布輪替金鑰，讓舊副本隨其版本一起失效。
 
 ## 輪替、停用或刪除金鑰
 
@@ -144,7 +144,8 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 | `422` 加 `This telemetry ingestion key has been disabled.` | 有人關閉了 **已啟用**。 |
 | `422` 加 `A browser ingestion key cannot be used for` | 瀏覽器金鑰到達了只接受伺服器金鑰的端點。 |
 | `422` 加 `did not send an Origin header` | 瀏覽器金鑰是從瀏覽器之外傳送的。請在行動應用程式中使用行動裝置金鑰，在其他地方使用伺服器金鑰。 |
-| `422` 加 `A mobile ingestion key cannot be used for` | 行動裝置金鑰到達了透過 HTTP 傳送的 OTLP 追蹤、日誌和指標以外的端點，例如 gRPC 或 Session Replay。 |
+| `422` 加 `A mobile ingestion key cannot be used for` | 行動裝置金鑰到達了透過 HTTP 傳送的 OTLP 追蹤、日誌和指標以及 Session Replay 以外的端點，例如 gRPC 或效能剖析資料。 |
+| `422` 加 `A mobile ingestion key can send session replays only` | 行動裝置金鑰傳送了網頁的錄製，或其他應用程式的錄製。請將金鑰的 **固定的服務名稱** 作為 React Native 錄製器的 `appIdentifier`。 |
 | `422` 加 `A mobile ingestion key cannot be used from a web page` | 行動裝置金鑰是從瀏覽器傳送的。請在網頁中使用瀏覽器金鑰。 |
 | `422` 加 `is not allowed for this browser ingestion key` | 頁面的來源不在 **允許的來源** 中。 |
 | `422` 加 `is pinned to a single service` | 有人用設定了 **固定的服務名稱** 的金鑰註冊代理程式。請改用沒有固定名稱的伺服器金鑰。 |

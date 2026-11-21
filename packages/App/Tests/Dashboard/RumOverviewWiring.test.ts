@@ -78,14 +78,19 @@ describe("correlation-11: the sessions tile names the range it counted and carri
     expect(tile).toContain("PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY");
   });
 
-  test("the range helpers write the explorer grammar (range, start, end) and lower-case the preset", () => {
+  test("the range helpers write the explorer grammar (range, start, end) and name the range as the picker does", () => {
     const describe: string = helperBlock(
       "export function describeTimeRangeForTile",
       "\n}\n",
     );
 
-    expect(describe).toContain('"custom range"');
-    expect(describe).toContain(".toLowerCase()");
+    /*
+     * The picker's own label, in the reader's language (#10552): never the
+     * lowercased TimeRange value, nor "custom range", which no locale words.
+     */
+    expect(describe).toContain("return getTimeRangeButtonLabel(timeRange);");
+    expect(describe).not.toContain('"custom range"');
+    expect(describe).not.toContain(".toLowerCase()");
 
     const ranged: string = helperBlock(
       "export function buildRangedListRoute",

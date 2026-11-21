@@ -684,8 +684,9 @@ describe("Zooming Into a Time Range docs: the words a reader meets on screen", (
   });
 
   it("names the presets the way the time-range picker labels them", () => {
+    // The presets live with the picker's label helpers (TimeRangeLabel).
     const picker: string = readCode(
-      `${COMMON_UI}/Components/Date/TimeRangePickerDropdown.tsx`,
+      `${COMMON_UI}/Components/Date/TimeRangeLabel.ts`,
     );
     const presets: Array<string> = Array.from(
       readProse(ZOOM_PAGE).matchAll(/"(Past [^"]+)"/g),

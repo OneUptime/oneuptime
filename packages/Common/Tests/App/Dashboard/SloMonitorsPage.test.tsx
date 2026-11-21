@@ -205,19 +205,48 @@ jest.mock("../../../UI/Components/FormModal/BasicFormModal", () => {
     default: (
       props: BasicFormModalProps<{ monitors: Array<string> }>,
     ): React.ReactElement => {
-      const options: Array<{ label: string }> =
-        (props.formProps.fields[0]?.dropdownOptions as
-          | Array<{ label: string }>
-          | undefined) || [];
+      /*
+       * The picker searches the server (#10399): what it is handed is the
+       * query it searches within, drawn here as the server receives it.
+       */
+      const picker:
+        | {
+            type: unknown;
+            labelField: string;
+            query?: Record<string, unknown> | undefined;
+          }
+        | undefined = props.formProps.fields[0]?.dropdownModal as
+        | {
+            type: unknown;
+            labelField: string;
+            query?: Record<string, unknown> | undefined;
+          }
+        | undefined;
+
+      const monitorModel: unknown = (
+        jest.requireActual("../../../Models/DatabaseModels/Monitor") as {
+          default: unknown;
+        }
+      ).default;
+      const jsonFunctions: { serialize: (value: unknown) => unknown } = (
+        jest.requireActual("../../../Types/JSONFunctions") as {
+          default: { serialize: (value: unknown) => unknown };
+        }
+      ).default;
 
       return (
         <div data-testid="add-monitors-modal">
           <h2>{props.title}</h2>
-          <ul>
-            {options.map((option: { label: string }) => {
-              return <li key={option.label}>{option.label}</li>;
-            })}
-          </ul>
+          <p data-testid="add-monitors-picker">
+            {picker && picker.type === monitorModel
+              ? `${picker.labelField} ${JSON.stringify(
+                  jsonFunctions.serialize(picker.query || {}),
+                )}`
+              : "no server picker"}
+          </p>
+          <p data-testid="add-monitors-static-options">
+            {String((props.formProps.fields[0]?.dropdownOptions || []).length)}
+          </p>
           {props.error ? <p data-testid="add-error">{props.error}</p> : null}
           <button
             onClick={() => {
@@ -242,6 +271,8 @@ import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelOb
 import ServiceLevelObjectiveMonitorRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import { JSONObject } from "../../../Types/JSON";
+import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
@@ -296,6 +327,44 @@ async function renderPage(): Promise<void> {
 
 function row(id: string): HTMLElement {
   return screen.getByTestId(`row-${id}`);
+}
+
+/*
+ * The server's counts: the SLO's enabled monitor rules, in the order they
+ * are read (the last standing for every read after it), and the monitors
+ * Add Monitors can offer, which it counts as it opens (#10399).
+ */
+function countsAre(data: {
+  enabledRules: Array<number>;
+  addableMonitors: number;
+}): void {
+  const rules: Array<number> = [...data.enabledRules];
+
+  mockCount.mockImplementation((...args: Array<unknown>): unknown => {
+    const request: { modelType: unknown } = args[0] as { modelType: unknown };
+
+    if (request.modelType === Monitor) {
+      return Promise.resolve(data.addableMonitors);
+    }
+
+    return Promise.resolve(rules.length > 1 ? rules.shift()! : rules[0]!);
+  });
+}
+
+// The monitors Add Monitors counted, as the server received the query.
+function addableCountQueries(): Array<string> {
+  return mockCount.mock.calls
+    .map((call: Array<unknown>) => {
+      return call[0] as { modelType: unknown; query: Record<string, unknown> };
+    })
+    .filter((request: { modelType: unknown }): boolean => {
+      return request.modelType === Monitor;
+    })
+    .map((request: { query: Record<string, unknown> }): string => {
+      return JSON.stringify(
+        JSONFunctions.serialize(request.query as unknown as JSONObject),
+      );
+    });
 }
 
 describe("SLO Monitors page", () => {
@@ -501,11 +570,7 @@ describe("SLO Monitors page", () => {
       // ...and by the time the person saves, a rule sync added EXTRA.
       .mockResolvedValueOnce(sloWith([MANUAL, EXTRA], []))
       .mockResolvedValue(sloWith([MANUAL, EXTRA, OTHER], []));
-    mockCount.mockResolvedValue(0);
-    mockGetList.mockResolvedValue({
-      data: [monitor(MANUAL, "Checkout API"), monitor(OTHER, "Search API")],
-      count: 2,
-    });
+    countsAre({ enabledRules: [0], addableMonitors: 1 });
 
     await renderPage();
 
@@ -515,13 +580,23 @@ describe("SLO Monitors page", () => {
 
     const modal: HTMLElement = await screen.findByTestId("add-monitors-modal");
 
+    /*
+     * Its picker searches the server for monitors by name, within the ones
+     * not attached as the modal opened (#10399): never a list of the
+     * project's first 10,000 monitors, read into the browser.
+     */
+    const withinUnattached: string = JSON.stringify({
+      _id: { _type: "IncludesNone", value: [MANUAL] },
+    });
+
+    expect(within(modal).getByTestId("add-monitors-picker")).toHaveTextContent(
+      `name ${withinUnattached}`,
+    );
     expect(
-      within(modal)
-        .getAllByRole("listitem")
-        .map((item: HTMLElement) => {
-          return item.textContent;
-        }),
-    ).toEqual(["Search API"]);
+      within(modal).getByTestId("add-monitors-static-options"),
+    ).toHaveTextContent("0");
+    expect(addableCountQueries()).toEqual([withinUnattached]);
+    expect(mockGetList).not.toHaveBeenCalled();
 
     mockSelection = [OTHER];
 
@@ -560,14 +635,8 @@ describe("SLO Monitors page", () => {
 
   test("a rule enabled while the modal was open refuses the add without writing", async () => {
     mockGetItem.mockResolvedValue(sloWith([MANUAL], []));
-    mockCount
-      .mockResolvedValueOnce(0)
-      .mockResolvedValueOnce(0)
-      .mockResolvedValue(1);
-    mockGetList.mockResolvedValue({
-      data: [monitor(OTHER, "Search API")],
-      count: 1,
-    });
+    // No rule as the page and the modal open; one by the time of the save.
+    countsAre({ enabledRules: [0, 0, 1], addableMonitors: 1 });
 
     await renderPage();
 
@@ -592,11 +661,7 @@ describe("SLO Monitors page", () => {
 
   test("an empty selection writes nothing", async () => {
     mockGetItem.mockResolvedValue(sloWith([MANUAL], []));
-    mockCount.mockResolvedValue(0);
-    mockGetList.mockResolvedValue({
-      data: [monitor(OTHER, "Search API")],
-      count: 1,
-    });
+    countsAre({ enabledRules: [0], addableMonitors: 1 });
 
     await renderPage();
 
@@ -618,11 +683,8 @@ describe("SLO Monitors page", () => {
 
   test("says so when every monitor in the project is already attached", async () => {
     mockGetItem.mockResolvedValue(sloWith([MANUAL], []));
-    mockCount.mockResolvedValue(0);
-    mockGetList.mockResolvedValue({
-      data: [monitor(MANUAL, "Checkout API")],
-      count: 1,
-    });
+    // The server counts no monitor that is not on the SLO.
+    countsAre({ enabledRules: [0], addableMonitors: 0 });
 
     await renderPage();
 
@@ -634,6 +696,27 @@ describe("SLO Monitors page", () => {
       await screen.findByRole("dialog", { name: "Nothing to Add" }),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("add-monitors-modal")).not.toBeInTheDocument();
+    expect(addableCountQueries()).toEqual([
+      JSON.stringify({ _id: { _type: "IncludesNone", value: [MANUAL] } }),
+    ]);
+  });
+
+  test("offers every monitor to an SLO with none attached: the count and the picker leave none out", async () => {
+    mockGetItem.mockResolvedValue(sloWith([], []));
+    countsAre({ enabledRules: [0], addableMonitors: 3 });
+
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Add Monitors" }));
+    });
+
+    const modal: HTMLElement = await screen.findByTestId("add-monitors-modal");
+
+    expect(addableCountQueries()).toEqual(["{}"]);
+    expect(within(modal).getByTestId("add-monitors-picker")).toHaveTextContent(
+      "name {}",
+    );
   });
 
   test("removing a hand-attached monitor asks first, then writes the list without it", async () => {

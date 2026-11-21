@@ -17,8 +17,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "然后将它作为应用的**第一个**导入，这样插桩会在其他任何代码运行之前修补 `fetch`：",
   "Replace `storefront-web` with your application's name. It is how the app appears in OneUptime, so keep it stable: a new name registers a new application.":
     "将 `storefront-web` 替换为您的应用名称。应用在 OneUptime 中以此名称显示，因此请保持不变：新名称会注册为新应用。",
-  "> **Setting `service.name` alone is not enough.** The OpenTelemetry browser SDKs do not add `browser.*` attributes unless you enable the browser resource detector or set them yourself — without them this becomes a backend Service, not a RUM application.":
-    "> **仅设置 `service.name` 是不够的**。OpenTelemetry 浏览器 SDK 不会添加 `browser.*` 属性，除非您启用浏览器资源检测器或自行设置——没有这些属性，它会成为后端服务，而不是 RUM 应用。",
+  "> **Keep `browserDetector`.** Everything a Browser key sends is filed as this application, but the OpenTelemetry browser SDKs add no `browser.*` attributes unless you enable the browser resource detector or set them yourself — and without `browser.platform` the **Clients** tab lists no platforms.":
+    "> **保留 `browserDetector`**。浏览器密钥发送的所有内容都会作为此应用存储，但 OpenTelemetry 浏览器 SDK 不会添加 `browser.*` 属性，除非您启用浏览器资源检测器或自行设置——没有 `browser.platform`，**客户端**标签页不会列出任何平台。",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
     "在步骤 1 中选择一个摄取密钥来填入 `<YOUR_API_KEY>`。",
   "Merge it into your existing `connect-src` directive. No Content Security Policy on your site? Skip this step.":
@@ -27,8 +27,10 @@ const TRANSLATION: SetupGuideTranslation = {
     '`200` 加上 `"valid": true` 表示 OneUptime 接受该密钥——对于浏览器密钥，消息还会说明它只能在浏览器中、从其允许的来源之一使用。`401` 表示该密钥未知、已撤销、已停用或已过期。',
   "Then load a page of your site. Within a minute the application appears under **Real User Monitoring**, named after its `service.name`, with page views, error rate and p95 duration.":
     "然后加载您网站的一个页面。一分钟内，该应用会以其 `service.name` 命名出现在**真实用户监控**中，并显示页面浏览量、错误率和 p95 时长。",
-  "OneUptime classifies telemetry as **RUM** when its resource carries client attributes — for web, any of `browser.platform`, `browser.language` or a non-empty `browser.brands`. The application is identified by `service.name` (matched case-insensitively), and its telemetry is owned by this RUM application — it is never duplicated as a backend Service.":
-    "当资源带有客户端属性时，OneUptime 会将遥测归类为 **RUM**——对于 Web，即 `browser.platform`、`browser.language` 或非空 `browser.brands` 中的任意一个。应用以 `service.name`（不区分大小写）识别，其遥测属于此 RUM 应用——绝不会再作为后端服务重复存储。",
+  "Everything a Browser key sends is filed as this browser app, whatever its resource says. The key keeps only what a page says about itself on the resource — such as its `service.*`, `browser.*`, `user_agent.*` and `telemetry.*` attributes and its `oneuptime.label.*` labels — and drops the rest, so a copied key cannot pass its telemetry off as a host, a cluster or a backend service.":
+    "浏览器密钥发送的所有内容都会作为此浏览器应用存储，无论其资源怎么写。密钥只保留资源中页面对自身的描述——例如其 `service.*`、`browser.*`、`user_agent.*` 和 `telemetry.*` 属性以及 `oneuptime.label.*` 标签——其余全部丢弃，因此复制的密钥无法将其遥测冒充为主机、集群或后端服务。",
+  "With any other key, OneUptime classifies telemetry as **RUM** when its resource carries client attributes — for web, any of `browser.platform`, `browser.language` or a non-empty `browser.brands`. The application is identified by `service.name` (matched case-insensitively), and its telemetry is owned by this RUM application — it is never duplicated as a backend Service.":
+    "使用其他任何密钥时，当资源带有客户端属性时，OneUptime 会将遥测归类为 **RUM**——对于 Web，即 `browser.platform`、`browser.language` 或非空 `browser.brands` 中的任意一个。应用以 `service.name`（不区分大小写）识别，其遥测属于此 RUM 应用——绝不会再作为后端服务重复存储。",
   "| Attribute | Required | What it does |": "| 属性 | 必需 | 作用 |",
   "| `service.name` | **yes** | The application's identity, e.g. `storefront-web`. Renaming it later creates a new application. |":
     "| `service.name` | **是** | 应用的标识，例如 `storefront-web`。之后重命名会创建新应用。 |",
@@ -62,8 +64,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "OpenTelemetry 浏览器 SDK 不会自动捕获未处理的错误。请显式上报它们，使其与后端错误一起出现在**异常**视图中：",
   "Traces are enough to fill the overview. Add log and metric pipelines if you want browser logs searchable in OneUptime, or Core Web Vitals:":
     "追踪足以填充概览。如果您想在 OneUptime 中搜索浏览器日志，或查看核心 Web 指标，请添加日志和指标管道：",
-  "Their exporters send to `<YOUR_ONEUPTIME_URL>/otlp/v1/logs` and `<YOUR_ONEUPTIME_URL>/otlp/v1/metrics` with the same `x-oneuptime-token` header — [Browser Setup](/docs/rum/browser-setup) has the code. Build them with the same `resource` object: a pipeline whose resource lacks `browser.*` is filed as a separate backend Service.":
-    "它们的导出器使用相同的 `x-oneuptime-token` 标头发送到 `<YOUR_ONEUPTIME_URL>/otlp/v1/logs` 和 `<YOUR_ONEUPTIME_URL>/otlp/v1/metrics`——代码见[浏览器设置](/docs/rum/browser-setup)。请使用同一个 `resource` 对象构建它们：资源中没有 `browser.*` 的管道会被存储为单独的后端服务。",
+  "Their exporters send to `<YOUR_ONEUPTIME_URL>/otlp/v1/logs` and `<YOUR_ONEUPTIME_URL>/otlp/v1/metrics` with the same `x-oneuptime-token` header — [Browser Setup](/docs/rum/browser-setup) has the code. Build them with the same `resource` object, so their logs and metrics are filed under this application too.":
+    "它们的导出器使用相同的 `x-oneuptime-token` 标头发送到 `<YOUR_ONEUPTIME_URL>/otlp/v1/logs` 和 `<YOUR_ONEUPTIME_URL>/otlp/v1/metrics`——代码见[浏览器设置](/docs/rum/browser-setup)。请使用同一个 `resource` 对象构建它们，这样它们的日志和指标也会归入此应用之下。",
   "The **Core Web Vitals** card — LCP, INP, CLS, FCP and TTFB — is filled only from metrics your app reports, under names such as `web_vital.lcp`. [Core Web Vitals](/docs/rum/web-vitals) lists the names OneUptime reads and wires up the `web-vitals` library.":
     "**核心 Web 指标**卡片（LCP、INP、CLS、FCP 和 TTFB）只由您的应用以 `web_vital.lcp` 等名称上报的指标填充。[Core Web Vitals](/docs/rum/web-vitals) 列出了 OneUptime 读取的名称，并介绍如何接入 `web-vitals` 库。",
   "Any resource attribute prefixed `oneuptime.label.` becomes a project label on the application — `oneuptime.label.env` set to `production` adds the label `env:production`:":
@@ -104,8 +106,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **`401`**——该密钥未知、已撤销或已过期。在步骤 5 中运行密钥检查，并在步骤 1 中选择或创建一个有效的浏览器密钥。",
   "- **`404`** — the URL is wrong. The trace exporter needs the full path, `/otlp/v1/traces`.":
     "- **`404`**——URL 错误。追踪导出器需要完整路径 `/otlp/v1/traces`。",
-  "The resource carries no browser attribute, so the telemetry was filed as a backend Service. Enable `browserDetector` as in step 3, or set the `browser.*` attributes yourself (**How OneUptime recognises a browser app** under Advanced).":
-    "资源中没有任何浏览器属性，因此遥测被存储为后端服务。像步骤 3 那样启用 `browserDetector`，或自行设置 `browser.*` 属性（见高级中的**OneUptime 如何识别浏览器应用**）。",
+  "The telemetry was sent with a key other than a Browser key, and its resource carries no browser attribute, so it was filed as a backend Service. Send with a Browser key (step 1), which files everything it sends as this app, or set the `browser.*` attributes yourself (**How OneUptime recognises a browser app** under Advanced).":
+    "该遥测是用浏览器密钥以外的密钥发送的，且其资源中没有任何浏览器属性，因此被存储为后端服务。请使用浏览器密钥（步骤 1）发送——它会将发送的所有内容作为此应用存储——或自行设置 `browser.*` 属性（见高级中的**OneUptime 如何识别浏览器应用**）。",
   "Confirm what you send in DevTools → **Network** → the OTLP request → **Payload**: `resourceSpans[0].resource.attributes` is the list that decides it.":
     "在 DevTools → **Network** → OTLP 请求 → **Payload** 中检查您发送的内容：决定结果的是 `resourceSpans[0].resource.attributes` 列表。",
   "The Service that was already created does not turn into a RUM application — the two are separate records — so delete it once RUM telemetry arrives.":
@@ -160,8 +162,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "`device.manufacturer` 也会将一批数据标记为移动端，但仅限于没有 `host.name` 或 `host.id` 的资源——它在主机的资产清单条目中也表示物理机器的制造商。同时设置 `device.id` 或 `device.model.identifier`，就永远不会遇到这种区分。",
   "`device.id` should be an install-scoped identifier, not an advertising ID or anything that identifies a person.":
     "`device.id` 应是每次安装的标识符，而不是广告 ID 或任何能识别个人的信息。",
-  "> **Anyone who has your app can copy its key.** That is why it is a Mobile key: a copy can only send this app's traces, logs and metrics, filed under the service name the key is pinned to, and never from a web page. It can still send made-up data for this app, up to the key's limit, so set an expiry, rotate the key with your releases, and turn it off if it is misused.":
-    "> **任何拥有您应用的人都能复制它的密钥**。这正是它是移动端密钥的原因：副本只能发送此应用的追踪、日志和指标，归入该密钥所固定的服务名称之下，且绝不能从网页发送。它仍然可以在密钥的限额内为此应用发送编造的数据，因此请设置过期时间，随版本发布轮换密钥，并在被滥用时将其关闭。",
+  "> **Anyone who has your app can copy its key.** That is why it is a Mobile key: a copy can only send this app's traces, logs, metrics and session replays, filed under the service name the key is pinned to, and never from a web page. It can still send made-up data for this app, up to the key's limit, so set an expiry, rotate the key with your releases, and turn it off if it is misused.":
+    "> **任何拥有您应用的人都能复制它的密钥**。这正是它是移动端密钥的原因：副本只能发送此应用的追踪、日志、指标和会话回放，归入该密钥所固定的服务名称之下，且绝不能从网页发送。它仍然可以在密钥的限额内为此应用发送编造的数据，因此请设置过期时间，随版本发布轮换密钥，并在被滥用时将其关闭。",
   "Each of these is on the key's page in **Project Settings > Telemetry & APM > Ingestion Keys**: **Pinned Service Name** is the app everything the key sends is filed under, **Requests Per Minute Limit** caps the key across every copy of your app, **Expires At** stops it being accepted after a date, and **Enabled** turns it off at once.":
     "这些都在**项目设置 > 遥测与 APM > 摄取密钥**中该密钥的页面上：**固定的服务名称**是该密钥发送的所有内容所归入的应用，**每分钟请求数上限**在您应用的所有副本之间限制该密钥，**过期时间**让它在某个日期之后不再被接受，**已启用**可立即将其关闭。",
   "Never ship a **Server** key in an app instead: it can write every kind of telemetry into this project, from anywhere, as any service.":
@@ -170,8 +172,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **Android**——[OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) 代理（`io.opentelemetry.android:android-agent`）会在自己的资源上设置 `device.model.identifier`、`device.model.name` 和 `device.manufacturer`，因此无需额外配置即可完成分类，并且它会自行上报崩溃、ANR、缓慢帧和冻结帧、应用启动以及会话。除非您设置 `service.name`，否则它会以启动器标签为应用命名，并且不发送 `device.id`。[Android 设置](/docs/rum/android-setup)提供了 Gradle 依赖、代码，以及每一项在 OneUptime 中对应什么。",
   "- **iOS / Swift** — with [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift), set `device.model.identifier` and `device.manufacturer` on the resource yourself: the resource an SDK version contributes has changed between releases.":
     "- **iOS / Swift**——使用 [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift) 时，请自行在资源上设置 `device.model.identifier` 和 `device.manufacturer`：各 SDK 版本添加的资源在不同版本之间有所变化。",
-  "- **React Native / Expo** — runs the JavaScript SDK, so the setup is the browser one from [Browser Setup](/docs/rum/browser-setup) with two differences: there is no `browserDetector`, and you set `device.manufacturer` and `device.model.identifier` yourself so the **Clients** tab lists the devices. It sends with a **Mobile** key, like any mobile app.":
-    "- **React Native / Expo**——运行 JavaScript SDK，因此设置与[浏览器设置](/docs/rum/browser-setup)中的浏览器设置相同，但有两点不同：没有 `browserDetector`，并且您需要自行设置 `device.manufacturer` 和 `device.model.identifier`，使**客户端**标签页列出设备。它与任何移动应用一样使用**移动端**密钥发送。",
+  "- **React Native / Expo** — runs the JavaScript SDK, so the setup is the browser one from [Browser Setup](/docs/rum/browser-setup) with two differences: there is no `browserDetector`, and you set `device.manufacturer` and `device.model.identifier` yourself so the **Clients** tab lists the devices. It sends with a **Mobile** key, like any mobile app, and so do its [session replays](/docs/telemetry/session-replay#install-in-react-native): give the replay SDK the same key, with the key's pinned service name as `appIdentifier`.":
+    "- **React Native / Expo**——运行 JavaScript SDK，因此设置与[浏览器设置](/docs/rum/browser-setup)中的浏览器设置相同，但有两点不同：没有 `browserDetector`，并且您需要自行设置 `device.manufacturer` 和 `device.model.identifier`，使**客户端**标签页列出设备。它与任何移动应用一样使用**移动端**密钥发送，其[会话回放](/docs/telemetry/session-replay#install-in-react-native)也是如此：为回放 SDK 提供同一个密钥，并将该密钥固定的服务名称用作 `appIdentifier`。",
   "- **Anything else** — Flutter, Unity, .NET MAUI or a hand-rolled OTLP writer work the same way, as long as the resource carries `service.name` plus one `device.*` attribute.":
     "- **其他任何方式**——Flutter、Unity、.NET MAUI 或手写的 OTLP 写入器都以同样的方式工作，只要资源带有 `service.name` 加一个 `device.*` 属性。",
   "The mobile OpenTelemetry SDKs change their builder APIs between releases. [Mobile Setup](/docs/rum/mobile-setup) has code for each; check the method names against the version you pin.":
@@ -186,8 +188,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **客户端**——见过此应用的设备型号，来自 `device.model.identifier`。按型号粗略统计，绝不按单个终端用户统计。",
   "A `401` means the key is unknown, revoked, disabled or expired: pick or create a Mobile key in step 1 and rebuild the app with it.":
     "`401` 表示该密钥未知、已撤销、已停用或已过期：请在步骤 1 中选择或创建一个移动端密钥，并用它重新构建应用。",
-  "A `422` says what was refused. A Mobile key sends only the app's OTLP traces, logs and metrics, over HTTP, and never from a web page: an SDK that exports over gRPC, or a request that carries an `Origin` header, is refused. A Browser key passes the check but is refused from a mobile app, because it needs an `Origin` header and mobile SDKs send none.":
-    "`422` 会说明被拒绝的内容。移动端密钥只通过 HTTP 发送应用的 OTLP 追踪、日志和指标，绝不从网页发送：通过 gRPC 导出的 SDK，或带有 `Origin` 标头的请求，都会被拒绝。浏览器密钥能通过检查，但从移动应用发送时会被拒绝，因为它需要 `Origin` 标头，而移动端 SDK 不会发送。",
+  "A `422` says what was refused. A Mobile key sends only the app's OTLP traces, logs and metrics, over HTTP, and its session replays, and never from a web page: an SDK that exports over gRPC, a request that carries an `Origin` header, or another app's recording, is refused. A Browser key passes the check but is refused from a mobile app, because it needs an `Origin` header and mobile SDKs send none.":
+    "`422` 会说明被拒绝的内容。移动端密钥只通过 HTTP 发送应用的 OTLP 追踪、日志和指标，以及该应用的会话回放，绝不从网页发送：通过 gRPC 导出的 SDK、带有 `Origin` 标头的请求，或其他应用的录制，都会被拒绝。浏览器密钥能通过检查，但从移动应用发送时会被拒绝，因为它需要 `Origin` 标头，而移动端 SDK 不会发送。",
   "The telemetry was sent with a Server key, and its resource carries no `device.id` or `device.model.identifier`, so it was filed as a backend Service. Send with a Mobile key (step 1), which files everything it sends as this app, or set them on the SDK's resource, as in step 2.":
     "该遥测是用服务器密钥发送的，且其资源中既没有 `device.id` 也没有 `device.model.identifier`，因此被存储为后端服务。请使用移动端密钥（步骤 1）发送——它会将发送的所有内容作为此应用存储——或者像步骤 2 那样在 SDK 的资源上设置这些属性。",
   "Client rows come from `device.model.identifier` specifically. An SDK that only sets `device.manufacturer` classifies as mobile, but lists no clients — set `device.model.identifier` as well.":

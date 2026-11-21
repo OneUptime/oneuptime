@@ -221,7 +221,7 @@ sentry_sdk.init(
 )
 ```
 
-Le `1` à la fin du DSN est exigé par les SDK Sentry et n'est pas lu. Le DSN d'une application de navigateur est public : utilisez-y donc une clé d'ingestion **Navigateur**, limitée aux origines de votre site.
+Le `1` à la fin du DSN est exigé par les SDK Sentry et n'est pas lu. Le DSN d'une application de navigateur est public : utilisez-y donc une clé d'ingestion **Navigateur**, limitée aux origines de votre site. Tout ce qu'elle envoie est alors classé comme télémétrie RUM de cette application de navigateur, jamais comme un service backend.
 
 ### Ce que devient une enveloppe
 

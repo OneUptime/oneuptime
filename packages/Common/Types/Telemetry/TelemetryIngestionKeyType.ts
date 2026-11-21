@@ -16,8 +16,13 @@
  *   therefore treated as PUBLIC write-only credentials and are constrained
  *   on every axis that can be enforced server-side: a required origin
  *   allowlist, a pinned service.name, a per-key rate limit, an expiry, a
- *   kill switch, and a reduced set of ingest surfaces (see
- *   BROWSER_ALLOWED_INGEST_SURFACES).
+ *   kill switch, a reduced set of ingest surfaces (see
+ *   BROWSER_ALLOWED_INGEST_SURFACES), and what it writes filed as the
+ *   page's browser RUM, keeping only what a page says about itself on each
+ *   resource (issue #10539, PinRumClientResource): a script can send any
+ *   Origin it likes, so the allowlist stops a page, not a copy, and a copy
+ *   must not be able to file telemetry under a host, a cluster, a cloud
+ *   resource, a database or a backend service.
  * - Mobile keys are compiled into an iOS, Android or React Native app
  *   (issue #6457), so they are public too: anyone who has the app can pull
  *   the key out of it. A Browser key cannot serve there - it is checked
@@ -25,12 +30,13 @@
  *   Server key must never ship in an app: it writes every kind of telemetry
  *   from anywhere. A Mobile key is pinned to ONE app (its service.name is
  *   required and replaces the one on everything it writes), writes only
- *   that app's OTLP traces, logs and metrics over HTTP
- *   (MOBILE_ALLOWED_INGEST_SURFACES), is refused from a web page, files what
- *   it writes as that app's mobile RUM, and has the Browser key's default
- *   rate limit, expiry and kill switch. What it cannot stop: someone with
- *   the app can still send made-up RUM telemetry for that one app, as much
- *   as the key's limit lets them, until the key is turned off.
+ *   that app's OTLP traces, logs and metrics over HTTP and, from a React
+ *   Native app, that app's session replays (MOBILE_ALLOWED_INGEST_SURFACES,
+ *   issue #10540), is refused from a web page, files what it writes as that
+ *   app's mobile RUM, and has the Browser key's default rate limit, expiry
+ *   and kill switch. What it cannot stop: someone with the app can still
+ *   send made-up RUM telemetry and recordings for that one app, as much as
+ *   the key's limit lets them, until the key is turned off.
  *
  * The type of a key is immutable after creation - see the keyType column on
  * TelemetryIngestionKey for why.

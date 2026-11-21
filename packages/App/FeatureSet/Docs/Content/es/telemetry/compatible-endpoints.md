@@ -221,7 +221,7 @@ sentry_sdk.init(
 )
 ```
 
-Los SDK de Sentry exigen el `1` del final del DSN, pero no se lee. El DSN de una aplicación de navegador es público, así que usa ahí una clave de ingesta de **Navegador**, limitada a los orígenes de tu sitio.
+Los SDK de Sentry exigen el `1` del final del DSN, pero no se lee. El DSN de una aplicación de navegador es público, así que usa ahí una clave de ingesta de **Navegador**, limitada a los orígenes de tu sitio. Todo lo que envía se archiva entonces como telemetría RUM de esa aplicación de navegador, nunca como un servicio backend.
 
 ### En qué se convierte un sobre
 
