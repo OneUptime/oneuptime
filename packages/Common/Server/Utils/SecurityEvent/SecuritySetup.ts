@@ -96,7 +96,7 @@ import {
 import ProductType from "../../../Types/MeteredPlan/ProductType";
 import {
   RefusedTelemetry,
-  getRecentRefusedTelemetry,
+  getRefusedTelemetryBetween,
   sortRefusedTelemetryForReading,
 } from "../../../Utils/SecurityEvent/RefusedTelemetry";
 import RefusedTelemetryReader, {
@@ -130,6 +130,13 @@ import RefusedTelemetryReader, {
 
 const SETUP_TEST_DETECTIONS_SERVICE_NAME: string = "OneUptime Detections";
 
+/*
+ * How far back the setup says what a budget or a rate refused: the
+ * Overview's longest window (its cases' 30 days), so each of its figures can
+ * tell a quiet stretch from one it could not see.
+ */
+export const SETUP_REFUSED_TELEMETRY_IN_DAYS: number = 30;
+
 export interface SecuritySetupStatus {
   // Where security events come from.
   connections: number;
@@ -161,9 +168,10 @@ export interface SecuritySetupStatus {
    * What an ingestion budget or rate refused of the telemetry Security
    * Events reads (#10431): of the logs while "Your logs" is on and of the
    * traces while the Traces source is, each stretch that goes on now or
-   * ended in the last day - with the budget counters as they are now
-   * folded in - what goes on first. Empty for a source that is off, or
-   * that the person may not read.
+   * ended in the last SETUP_REFUSED_TELEMETRY_IN_DAYS - with the budget
+   * counters as they are now folded in - what goes on first, then the
+   * latest. Empty for a source that is off, or that the person may not
+   * read.
    */
   refusedTelemetry: Array<RefusedTelemetry>;
 }
@@ -498,9 +506,10 @@ export default class SecuritySetup {
   /*
    * What a budget or a rate refused of the sources that are on: what they
    * kept, with the counters as they are now folded in, the stretches that
-   * go on or ended in the last day, what goes on first. The counters are
-   * read as OneUptime - a person who may read the source is told what it
-   * could not see, and nothing else of the budgets: no budget, no usage.
+   * go on or ended in the last SETUP_REFUSED_TELEMETRY_IN_DAYS, what goes
+   * on first. The counters are read as OneUptime - a person who may read
+   * the source is told what it could not see, and nothing else of the
+   * budgets: no budget, no usage.
    */
   private static async readRefusedTelemetry(data: {
     projectId: ObjectID;
@@ -531,12 +540,17 @@ export default class SecuritySetup {
       const now: Date = OneUptimeDate.getCurrentDate();
 
       return sortRefusedTelemetryForReading(
-        getRecentRefusedTelemetry({
+        getRefusedTelemetryBetween({
           refusals: await RefusedTelemetryReader.readLive({
             projectId: data.projectId,
             sources,
             now,
           }),
+          from: OneUptimeDate.addRemoveDays(
+            now,
+            -SETUP_REFUSED_TELEMETRY_IN_DAYS,
+          ),
+          to: now,
           now,
         }),
       );

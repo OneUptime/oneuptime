@@ -13,7 +13,11 @@ import {
   needsCloudAccountNote,
 } from "./SecurityTelemetrySourcesModel";
 import AppLink from "../AppLink/AppLink";
+import RefusedTelemetryLines from "./RefusedTelemetry/RefusedTelemetryLines";
+import { readSourceRefusedTelemetry } from "./RefusedTelemetry/RefusedTelemetryModel";
 import PageMap from "../../Utils/PageMap";
+import OneUptimeDate from "Common/Types/Date";
+import { getRecentRefusedTelemetry } from "Common/Utils/SecurityEvent/RefusedTelemetry";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import SecurityTelemetrySource from "Common/Models/DatabaseModels/SecurityTelemetrySource";
@@ -431,6 +435,28 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
                           error={status.error}
                         />
                       </p>
+                    ) : (
+                      <></>
+                    )}
+
+                    {/*
+                     * What an ingestion budget or rate refused of the
+                     * traces in the last day (#10431): the check never saw
+                     * them. The other kinds read nothing a telemetry budget
+                     * refuses.
+                     */}
+                    {isOn && row.kind === SecurityTelemetrySourceKind.Traces ? (
+                      <RefusedTelemetryLines
+                        refusals={getRecentRefusedTelemetry({
+                          refusals: readSourceRefusedTelemetry({
+                            lastScanResult: source?.lastScanResult,
+                          }),
+                          now: OneUptimeDate.getCurrentDate(),
+                        })}
+                        showsSource={false}
+                        showsOpenBudgets={true}
+                        dataTestId={`security-telemetry-source-refused-${row.kind}`}
+                      />
                     ) : (
                       <></>
                     )}
