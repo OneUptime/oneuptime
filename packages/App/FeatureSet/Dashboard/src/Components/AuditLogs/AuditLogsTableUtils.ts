@@ -5,6 +5,7 @@ import {
   AUDIT_LOG_STATUS_PAGE_READER_ACTOR_TYPE,
   AUDIT_LOG_STATUS_PAGE_SESSION_RESOURCE_TYPE,
 } from "Common/Types/AuditLog/AuditLogStatusPageSession";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -743,6 +744,12 @@ export const AUDIT_LOG_WORKFLOW_RAN_AS_FILTER_OPTIONS: Array<DropdownOption> = [
 export interface AuditLogsQueryOptions {
   projectId: ObjectID | null;
   resourceType?: string | undefined;
+  /*
+   * Entries about any of these types: a product's rules, each kind its own
+   * type (Alerts > Rules > Audit Logs, #10290). resourceType, when given,
+   * wins.
+   */
+  resourceTypes?: ReadonlyArray<string> | undefined;
   resourceId?: ObjectID | undefined;
   rootResourceId?: ObjectID | undefined;
 }
@@ -764,6 +771,12 @@ export const getAuditLogsQuery: (
 
   if (options.resourceType) {
     query.resourceType = options.resourceType;
+  } else if (options.resourceTypes && options.resourceTypes.length > 0) {
+    /*
+     * Each type by every name it is stored under: the server reads a list
+     * of types so (withAuditLogResourceTypeSpellings).
+     */
+    query.resourceType = new Includes([...options.resourceTypes]) as never;
   }
 
   if (options.resourceId) {

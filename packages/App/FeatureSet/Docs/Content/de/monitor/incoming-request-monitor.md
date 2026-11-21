@@ -386,6 +386,8 @@ Ein Webhook beschreibt nur, was in dieser Nutzlast steht, deshalb behebt OneUpti
 1. **Feld, das die Erholung signalisiert** und **Wert, der „wiederhergestellt“ bedeutet** sind gesetzt und passen zur Nutzlast. Der Vergleich ist exakt und beachtet Groß- und Kleinschreibung — `Resolved` passt nicht auf `resolved`.
 2. Beim Vorfall des Kriteriums ist **Vorfall automatisch beheben** eingeschaltet, unter **Weitere Felder** im Vorfallformular. Ohne das werden passende Erholungsereignisse ignoriert und die Vorfälle bleiben offen. (Dasselbe gilt für Warnungen und **Warnung automatisch beheben**.) Beim Offline-Standardkriterium ist es von Anfang an eingeschaltet; bei einem Vorfall, den Sie einem Kriterium selbst hinzufügen, ist es zunächst ausgeschaltet.
 
+Auch eine Warnung, die Sie einem Kriterium selbst hinzufügen, beginnt mit ausgeschaltetem **Warnung automatisch beheben**, sodass eine Erholung die Warnung offen lässt, bis es eingeschaltet ist. **Auto-resolve each incident when…** zeigt, welche Vorfälle und Warnungen des Kriteriums eine Erholung behebt, und nennt alles, was sie offen lassen würde, mit einer Schaltfläche, die den zugehörigen Schalter einschaltet. Die Karte **Monitor-Zusammenfassung** in der **Übersicht** des Monitors nennt jeden Vorfall und jede Warnung, die eine Erholung offen gelassen hat, und warum.
+
 **Max. Vorfälle pro Anfrage** begrenzt das Auslesen, nicht nur das Erstellen. Schlüssel jenseits der Grenze sind auch für die Erholung unsichtbar, in einer Nutzlast mit mehr unterschiedlichen Schlüsseln als die Grenze schließt eine Warnung, die jenseits davon `resolved` meldet, ihren Vorfall also nicht.
 
 > [!NOTE]

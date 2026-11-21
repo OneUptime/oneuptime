@@ -1,3 +1,4 @@
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -257,50 +258,29 @@ export const buildSloMonitorsUpdateData: BuildSloMonitorsUpdateDataFunction = (
   };
 };
 
-export interface SloAddableMonitorOption {
-  label: string;
-  value: string;
-}
+type GetAddableMonitorsQueryFunction = (data: {
+  attachedMonitorIds: Iterable<SloMonitorIdValue>;
+}) => Record<string, unknown>;
 
-type GetAddableMonitorOptionsFunction = (data: {
-  monitors: Array<SloMonitorReference & { name?: string | undefined }>;
-  attachedMonitorIds: Iterable<string>;
-}) => Array<SloAddableMonitorOption>;
+/*
+ * The project's monitors not already on the SLO, as the server lists them:
+ * Add Monitors' picker sends this query with every search, and the server
+ * searches, 50 names at a time (#10399). The dialog used to read the
+ * project's first 10,000 monitors by name and drop the SLO's in the browser,
+ * so in a bigger project a monitor whose name sorted late was never offered,
+ * and "Nothing to Add" could be said of a project with thousands more. A
+ * monitor never lacks an id, so "not one of these" (IncludesNone, NOT IN)
+ * keeps every other monitor.
+ */
+export const getAddableMonitorsQuery: GetAddableMonitorsQueryFunction = (data: {
+  attachedMonitorIds: Iterable<SloMonitorIdValue>;
+}): Record<string, unknown> => {
+  const attached: Array<string> = toMonitorIdList(
+    Array.from(data.attachedMonitorIds),
+  );
 
-// The project's monitors not already on the SLO, by name.
-export const getAddableMonitorOptions: GetAddableMonitorOptionsFunction =
-  (data: {
-    monitors: Array<SloMonitorReference & { name?: string | undefined }>;
-    attachedMonitorIds: Iterable<string>;
-  }): Array<SloAddableMonitorOption> => {
-    const attached: Set<string> = new Set<string>(
-      toMonitorIdList(Array.from(data.attachedMonitorIds)),
-    );
-    const seen: Set<string> = new Set<string>();
-    const options: Array<SloAddableMonitorOption> = [];
-
-    for (const monitor of data.monitors) {
-      const id: string = normalizeMonitorId(monitor);
-
-      if (!id || attached.has(id) || seen.has(id)) {
-        continue;
-      }
-
-      seen.add(id);
-      options.push({
-        value: id,
-        label: monitor.name?.trim() || "Untitled monitor",
-      });
-    }
-
-    return options.sort(
-      (a: SloAddableMonitorOption, b: SloAddableMonitorOption): number => {
-        return a.label.localeCompare(b.label, undefined, {
-          sensitivity: "base",
-        });
-      },
-    );
-  };
+  return attached.length > 0 ? { _id: new IncludesNone(attached) } : {};
+};
 
 type GetSelectedMonitorIdsFunction = (value: unknown) => Array<string>;
 

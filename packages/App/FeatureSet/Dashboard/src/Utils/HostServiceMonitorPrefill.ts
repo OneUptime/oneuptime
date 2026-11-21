@@ -55,7 +55,8 @@ import { RouteUtil } from "./RouteMap";
  *            1 Stopped, 2 Start Pending, 3 Stop Pending, 4 Running,
  *            5 Continue Pending, 6 Pause Pending, 7 Paused. Running is 4,
  *            in the middle, so no "greater than" or "less than" says "not
- *            running": every other state is below 4 or above it.
+ *            running": every other state is below 4 or above it, and
+ *            "Not Equal To 4" says it (#10449).
  *   systemd  systemd.unit.state, a state set: one point per active_state per
  *            scrape, 1 on the state the unit is in and 0 on the rest. Read
  *            on active_state "active", it is 1 while the unit is active and
@@ -71,12 +72,15 @@ import { RouteUtil } from "./RouteMap";
  *
  *   1. Running: the service was running in a minute of the time range
  *      (Equal To, Any Value) - online.
- *   2. Not running: it was not, in any minute (every other state: below or
- *      above Running on Windows, below 1 for systemd, Any Value) - offline,
- *      and an incident. Checked after 1, so it is reached only when no
- *      minute of the time range had the service running: "not running for
- *      the whole time range", as OneUptime's sustained criteria read, and a
- *      restart that is over within the time range opens nothing.
+ *   2. Not running: it was not, in any minute (every other state: Not Equal
+ *      To the running value, Any Value) - offline, and an incident. Checked
+ *      after 1, so it is reached only when no minute of the time range had
+ *      the service running: "not running for the whole time range", as
+ *      OneUptime's sustained criteria read, and a restart that is over
+ *      within the time range opens nothing. Before the criteria form offered
+ *      Not Equal To for a metric (#10449) this was two filters, either of
+ *      which matched - below Running, or above it - which matched exactly
+ *      the same minutes; a monitor saved then keeps them.
  *   3. Stopped reporting: no state arrived in the whole time range (Has No
  *      Data) - offline, and an incident of its own. The service was removed
  *      or renamed, or excluded from the collector's services, or the host
@@ -122,8 +126,8 @@ export const HOST_SERVICE_MONITOR_ROLLING_TIME: RollingTime =
 /*
  * What a service's state is on each kind of host: the metric, the attribute
  * that names the service (as ingest stores it), what the query narrows the
- * metric to besides, the value that says it is running, and the conditions
- * that say it is not.
+ * metric to besides, and the value that says it is running. Any other value
+ * says it is not (Not Equal To it).
  */
 export interface HostServiceStateDefinition {
   metricName: string;
@@ -132,7 +136,6 @@ export interface HostServiceStateDefinition {
   runningValue: number;
   // The query's variable, which the criteria compare.
   metricAlias: string;
-  notRunningFilterTypes: Array<FilterType>;
 }
 
 export const HOST_SERVICE_STATES: Record<
@@ -143,11 +146,9 @@ export const HOST_SERVICE_STATES: Record<
     metricName: WINDOWS_SERVICE_METRIC_NAME,
     nameAttribute: SERVICE_NAME_ATTR,
     stateAttributes: {},
-    // SERVICE_RUNNING.
+    // SERVICE_RUNNING; every other state is below it (1-3) or above it (5-7).
     runningValue: 4,
     metricAlias: "service_status",
-    // Every other state is below Running (1-3) or above it (5-7).
-    notRunningFilterTypes: [FilterType.LessThan, FilterType.GreaterThan],
   },
   [HostServiceKind.SystemdUnit]: {
     metricName: SYSTEMD_UNIT_STATE_METRIC_NAME,
@@ -156,7 +157,6 @@ export const HOST_SERVICE_STATES: Record<
     // 1 while the unit is active, 0 in every other state.
     runningValue: 1,
     metricAlias: "unit_active",
-    notRunningFilterTypes: [FilterType.LessThan],
   },
 };
 
@@ -515,11 +515,7 @@ export function buildHostServiceMonitorCriteria(data: {
   };
 
   const notRunning: MonitorCriteriaInstance = offlineCriteria({
-    filters: state.notRunningFilterTypes.map(
-      (filterType: FilterType): CriteriaFilter => {
-        return stateFilter({ state: state, filterType: filterType });
-      },
-    ),
+    filters: [stateFilter({ state: state, filterType: FilterType.NotEqualTo })],
     name: words.notRunning,
     description: words.notRunningDescription,
     incidentDescription: words.notRunningIncident,

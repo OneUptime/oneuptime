@@ -1421,7 +1421,17 @@ export default class CriteriaFilterUtil {
           i.value === FilterType.LessThan ||
           i.value === FilterType.LessThanOrEqualTo ||
           i.value === FilterType.GreaterThanOrEqualTo ||
-          i.value === FilterType.EqualTo;
+          i.value === FilterType.EqualTo ||
+          /*
+           * Right after Equal To, in FilterType's order. Many metrics are a
+           * state written as a number - a Windows service's status (4 is
+           * Running), a unit's state, an enum gauge - and what is asked of
+           * one is "anything but the healthy state" (#10449). Without it,
+           * "not Running" took two comparisons (Less Than 4, or Greater
+           * Than 4), and Less Than 4 alone missed Paused (7).
+           */
+          (checkOn === CheckOn.MetricValue &&
+            i.value === FilterType.NotEqualTo);
         const baseAnomaly: boolean =
           allowAnomaly &&
           (i.value === FilterType.AnomalouslyHigh ||

@@ -87,14 +87,14 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 ## 檢查遙測資料落在哪裡
 
-請求成功了，但應用程式出現在 **產品 → 服務** 下，而不是 **產品 → 資源 → 真實使用者監測** 下。這是最常見的回報，原因幾乎總是資源上沒有用戶端屬性。只有當一批資料的資源帶有下列屬性之一時，OneUptime 才會將其歸為 RUM：
+請求成功了，但應用程式出現在 **產品 → 服務** 下，而不是 **產品 → 資源 → 真實使用者監測** 下。這是最常見的回報，原因幾乎總是使用了瀏覽器金鑰或行動裝置金鑰以外的金鑰，傳送的資源上又沒有用戶端屬性。瀏覽器金鑰或行動裝置金鑰傳送的所有內容都會歸為 RUM；使用其他任何金鑰時，只有當一批資料的資源帶有下列屬性之一時，OneUptime 才會將其歸為 RUM：
 
 | 類型 | 屬性 |
 | --- | --- |
 | 瀏覽器 | `browser.platform` 、 `browser.language` ，或非空的 `browser.brands` |
 | 行動裝置 | `device.id` 或 `device.model.identifier` ，或是在沒有主機識別（ `host.name` 、 `host.id` 或 `k8s.node.name` ）的資源上的 `device.manufacturer` |
 
-只有 `service.name` 會成為後端服務。OpenTelemetry 瀏覽器 SDK 不會新增任何 `browser.*` 屬性，除非你加入瀏覽器資源偵測器或自行設定它們：請參閱 [瀏覽器端設定](/docs/rum/browser-setup) 。
+使用其他任何金鑰時，只有 `service.name` 會成為後端服務。OpenTelemetry 瀏覽器 SDK 不會新增任何 `browser.*` 屬性，除非你加入瀏覽器資源偵測器或自行設定它們：請參閱 [瀏覽器端設定](/docs/rum/browser-setup) 。
 
 若要查看你實際傳送了什麼，請在 Network 分頁中開啟 OTLP 請求並查看其承載：起決定作用的是 `resourceSpans[0].resource.attributes` 清單。如果其中沒有 `browser.*` 屬性，那麼無論文件怎麼說，SDK 都沒有新增它。
 
@@ -127,7 +127,7 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 例外需要錯誤處理常式，因為 SDK 不會擷取未攔截的錯誤：程式碼見 [回報未攔截的錯誤](/docs/rum/browser-setup#回報未攔截的錯誤)。由 error boundary 或 `try`/`catch` 處理的錯誤永遠不會到達 window，所以要在處理它的地方用 `span.recordException` 記錄。
 
-日誌需要日誌管線和寫入日誌記錄的程式碼，因為單靠 `LoggerProvider` 什麼也不會傳送：兩者都在 [加入日誌和指標](/docs/rum/browser-setup#加入日誌和指標) 中。用與追蹤相同的 `resource` 建立管線，否則日誌會被歸到一個後端服務下。
+日誌需要日誌管線和寫入日誌記錄的程式碼，因為單靠 `LoggerProvider` 什麼也不會傳送：兩者都在 [加入日誌和指標](/docs/rum/browser-setup#加入日誌和指標) 中。用與追蹤相同的 `resource` 建立管線，這樣日誌也會歸到同一個應用程式下。
 
 如果頁面載入能送達，那麼只要日誌匯出器使用相同的金鑰和主機，金鑰、其允許的來源以及你的 Content Security Policy 也會放行例外和日誌。尚未攔截任何錯誤的錯誤處理常式不會傳送任何內容，這與從未加入的處理常式完全一樣，所以要從瀏覽器主控台擲出一個測試錯誤來區分兩者：
 

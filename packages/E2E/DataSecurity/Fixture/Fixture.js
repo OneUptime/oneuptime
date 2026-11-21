@@ -57,6 +57,7 @@ import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import DataSecurityCheckSetting from "Common/Models/DatabaseModels/DataSecurityCheckSetting";
 import DataSecurityCustomDataType from "Common/Models/DatabaseModels/DataSecurityCustomDataType";
 import DataSecurityFlow from "Common/Models/DatabaseModels/DataSecurityFlow";
+import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import DataSecurityAiDecision from "Common/Models/DatabaseModels/DataSecurityAiDecision";
 import DataSecurityAiProposal from "Common/Models/DatabaseModels/DataSecurityAiProposal";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
@@ -129,8 +130,10 @@ import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityResponseUnavailableReason,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 import {
   DataSecurityAiAskReason,
+  DataSecurityAiAutonomy,
   DataSecurityAiChangeSafety,
   DataSecurityAiProposalKind,
   DataSecurityAiProposalStatus,
@@ -211,6 +214,7 @@ const ID = {
   service: (n) => uuid("1b000000", n),
   // OneUptime AI's proposals and decisions on the issues.
   proposal: (n) => uuid("1d000000", n),
+  rule: (n) => uuid("1f000000", n),
   decision: (n) => uuid("1e000000", n),
 };
 
@@ -1283,8 +1287,22 @@ table(Project).push({
 });
 table(DataSecurityAiProposal);
 table(DataSecurityAiDecision);
+// Data Security's AI rules: AI rules with the DataSecurityIssue trigger.
+table(AutoRemediationRule);
 
 if (isAiOn) {
+  table(AutoRemediationRule).push({
+    _id: ID.rule(1),
+    projectId,
+    name: "Production stores",
+    triggerEntityType: AutoRemediationTriggerEntity.DataSecurityIssue,
+    isEnabled: true,
+    dataSecurityAnalyze: DataSecurityAiAutonomy.WithoutAsking,
+    dataSecurityContain: DataSecurityAiAutonomy.Suggest,
+    dataSecurityFix: DataSecurityAiAutonomy.Suggest,
+    dataSecurityJudge: DataSecurityAiAutonomy.Off,
+    dataStoreEnvironments: ["Production"],
+  });
   table(DataSecurityAiProposal).push(
     {
       _id: ID.proposal(1),
@@ -1316,6 +1334,8 @@ if (isAiOn) {
         ],
       },
       askReason: DataSecurityAiAskReason.NotProvenSafe,
+      autoRemediationRuleId: new ObjectID(ID.rule(1)),
+      autoRemediationRuleName: "Production stores",
       createdAt: ago(2 * HOUR),
     },
     {
@@ -1649,6 +1669,7 @@ function emptyData() {
     DataSecurityIssueFeed,
     DataSecurityAiProposal,
     DataSecurityAiDecision,
+    AutoRemediationRule,
   ]) {
     table(modelType).length = 0;
   }

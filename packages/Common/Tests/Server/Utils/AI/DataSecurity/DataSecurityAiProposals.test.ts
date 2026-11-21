@@ -44,6 +44,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * A PROPOSAL OF ONEUPTIME AI'S, FROM WAITING TO MADE, DISMISSED OR UNDONE
@@ -71,12 +72,10 @@ const PLAN: { kind: string; places: Array<string> } = {
 let row: Record<string, unknown>;
 let twoApprovals: boolean;
 let action: DataSecurityAiAction;
-let issueFeed: jest.SpiedFunction<
+let issueFeed: SpyInstance<
   typeof DataSecurityIssueFeedService.createDataSecurityIssueFeedItem
 >;
-let storeFeed: jest.SpiedFunction<
-  typeof DataStoreFeedService.createDataStoreFeedItem
->;
+let storeFeed: SpyInstance<typeof DataStoreFeedService.createDataStoreFeedItem>;
 
 function person(userId: ObjectID): DatabaseCommonInteractionProps {
   return {
@@ -647,12 +646,12 @@ describe("undoing a change", () => {
 
 describe("an issue that closed", () => {
   test("whose check passed proves each change made for it, and expires what still waited", async () => {
-    const proven: jest.SpiedFunction<
+    const proven: SpyInstance<
       typeof DataSecurityAiProposalService.markProvenForIssue
     > = jest
       .spyOn(DataSecurityAiProposalService, "markProvenForIssue")
       .mockResolvedValue(1);
-    const expired: jest.SpiedFunction<
+    const expired: SpyInstance<
       typeof DataSecurityAiProposalService.expireWaitingForIssue
     > = jest
       .spyOn(DataSecurityAiProposalService, "expireWaitingForIssue")
@@ -673,12 +672,12 @@ describe("an issue that closed", () => {
   });
 
   test("that a person set aside proves nothing, and expires what still waited", async () => {
-    const proven: jest.SpiedFunction<
+    const proven: SpyInstance<
       typeof DataSecurityAiProposalService.markProvenForIssue
     > = jest
       .spyOn(DataSecurityAiProposalService, "markProvenForIssue")
       .mockResolvedValue(0);
-    const expired: jest.SpiedFunction<
+    const expired: SpyInstance<
       typeof DataSecurityAiProposalService.expireWaitingForIssue
     > = jest
       .spyOn(DataSecurityAiProposalService, "expireWaitingForIssue")

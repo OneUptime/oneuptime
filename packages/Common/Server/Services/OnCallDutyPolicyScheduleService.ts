@@ -67,6 +67,9 @@ import OnCallHandoffPolicies, {
   OnCallHandoffPolicy,
   OnCallHandoffRuleVars,
 } from "../Utils/OnCall/OnCallHandoffPolicies";
+import EscalationRuleReach, {
+  HandoffReach,
+} from "../Utils/OnCall/EscalationRuleReach";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import UniqueNameInProject, {
@@ -937,9 +940,44 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
      * call, or take them off call, for that rule - no message, no on-call
      * time log, no feed entry. OnCallHandoffPolicies leaves it out.
      */
-    for (const policy of OnCallHandoffPolicies.group(
+    const policies: Array<OnCallHandoffPolicy> = OnCallHandoffPolicies.group(
       escalationRulesAttachedToSchedule,
-    )) {
+    );
+
+    // Only rules that page the next person: nobody to tell, nothing to post.
+    if (policies.length === 0) {
+      return;
+    }
+
+    const isOnCallUserChanged: boolean =
+      previousInformation.currentUserIdOnRoster?.toString() !==
+      newInformation.currentUserIdOnRoster?.toString();
+
+    /*
+     * Each person is told, and logged, for the policy as a whole (#10556):
+     * someone only invited - or who has left - is told nothing and logged
+     * nowhere, and whoever's shift ended hears "no longer on-call" for a
+     * policy only when nothing on it pages them any more - not while one of
+     * its rules names them, one of its teams has them, or another of its
+     * schedules has them on call (EscalationRuleReach.readHandoff).
+     */
+    const handoffReach: HandoffReach = await EscalationRuleReach.readHandoff({
+      // A schedule's rules are all of its project.
+      projectId: policies[0]!.projectId,
+      policyIds: policies.map((policy: OnCallHandoffPolicy): ObjectID => {
+        return policy.policyId;
+      }),
+      endedUserId: isOnCallUserChanged
+        ? previousInformation.currentUserIdOnRoster
+        : null,
+      userIds: [
+        previousInformation.currentUserIdOnRoster,
+        newInformation.currentUserIdOnRoster,
+        newInformation.nextUserIdOnRoster,
+      ],
+    });
+
+    for (const policy of policies) {
       const projectId: ObjectID = policy.projectId;
       const onCallPolicyId: ObjectID = policy.policyId;
       const onCallPolicyName: string = policy.policyName;
@@ -988,99 +1026,112 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
         ) {
           // the user has changed. Send notifiction to old user that he has been removed.
 
-          // send notification to the new current user.
-
           const sendEmailToUserId: ObjectID =
             previousInformation.currentUserIdOnRoster;
 
-          const userTimezone: Timezone | null =
-            await UserService.getTimezoneForUser(sendEmailToUserId);
+          /*
+           * "No longer on-call" for the policy only when nothing on it
+           * pages them any more (#10556): while one of its rules names
+           * them, one of its teams has them, or another of its schedules
+           * has them on call, the policy still pages them, and their shift
+           * ending here is no news of the policy. Someone only invited, or
+           * who has left, is told nothing either. Their shift's time log
+           * ends all the same, below.
+           */
+          const isToldNoLongerOnCall: boolean =
+            handoffReach.isMember(sendEmailToUserId) &&
+            !handoffReach.isStillPagedBy(onCallPolicyId);
 
-          const vars: Dictionary<string> = {
-            onCallPolicyName: onCallPolicyName || "No name provided",
-            ...ruleVars,
-            reason:
-              "Your on-call roster on schedule " +
-              onCallScheduleName +
-              " just ended.",
-            rosterStartsAt:
-              OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
-                date: previousInformation.rosterStartAt!,
-                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
-              }),
-            rosterEndsAt:
-              OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
-                date: OneUptimeDate.isInTheFuture(
-                  previousInformation.rosterHandoffAt!,
+          if (isToldNoLongerOnCall) {
+            const userTimezone: Timezone | null =
+              await UserService.getTimezoneForUser(sendEmailToUserId);
+
+            const vars: Dictionary<string> = {
+              onCallPolicyName: onCallPolicyName || "No name provided",
+              ...ruleVars,
+              reason:
+                "Your on-call roster on schedule " +
+                onCallScheduleName +
+                " just ended.",
+              rosterStartsAt:
+                OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                  date: previousInformation.rosterStartAt!,
+                  timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
+                }),
+              rosterEndsAt:
+                OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                  date: OneUptimeDate.isInTheFuture(
+                    previousInformation.rosterHandoffAt!,
+                  )
+                    ? OneUptimeDate.getCurrentDate()
+                    : previousInformation.rosterHandoffAt!,
+                  timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
+                }),
+              onCallPolicyViewLink: (
+                await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+                  projectId,
+                  onCallPolicyId,
                 )
-                  ? OneUptimeDate.getCurrentDate()
-                  : previousInformation.rosterHandoffAt!,
-                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
-              }),
-            onCallPolicyViewLink: (
-              await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
-                projectId,
-                onCallPolicyId,
-              )
-            ).toString(),
-          };
+              ).toString(),
+            };
 
-          // current user changed, send alert the new current user.
-          const emailMessage: EmailEnvelope = {
-            templateType: EmailTemplateType.UserNoLongerActiveOnOnCallRoster,
-            vars: vars,
-            subject: "You are no longer on-call for " + onCallPolicyName,
-            isSubjectLiteral: true,
-          };
+            // current user changed, send alert the new current user.
+            const emailMessage: EmailEnvelope = {
+              templateType: EmailTemplateType.UserNoLongerActiveOnOnCallRoster,
+              vars: vars,
+              subject: "You are no longer on-call for " + onCallPolicyName,
+              isSubjectLiteral: true,
+            };
 
-          const sms: SMSMessage = {
-            message: buildNotificationSms(
-              `You are no longer on-call for ${onCallPolicyName} because your on-call roster on schedule ${onCallScheduleName} just ended.`,
-            ),
-          };
+            const sms: SMSMessage = {
+              message: buildNotificationSms(
+                `You are no longer on-call for ${onCallPolicyName} because your on-call roster on schedule ${onCallScheduleName} just ended.`,
+              ),
+            };
 
-          const callMessage: CallRequestMessage = {
-            data: [
-              {
-                sayMessage: `This is a message from OneUptime. You are no longer on-call for ${onCallPolicyName} because your on-call roster on schedule ${onCallScheduleName} just ended. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
-              },
-            ],
-          };
+            const callMessage: CallRequestMessage = {
+              data: [
+                {
+                  sayMessage: `This is a message from OneUptime. You are no longer on-call for ${onCallPolicyName} because your on-call roster on schedule ${onCallScheduleName} just ended. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
+                },
+              ],
+            };
 
-          const pushMessage: PushNotificationMessage =
-            PushNotificationUtil.createGenericNotification({
-              title: "On-Call Shift Ended",
-              body: `You are no longer on-call for ${onCallPolicyName} as your roster on schedule ${onCallScheduleName} has ended.`,
-              tag: "on-call-duty-ended",
-              requireInteraction: false,
-            });
+            const pushMessage: PushNotificationMessage =
+              PushNotificationUtil.createGenericNotification({
+                title: "On-Call Shift Ended",
+                body: `You are no longer on-call for ${onCallPolicyName} as your roster on schedule ${onCallScheduleName} has ended.`,
+                tag: "on-call-duty-ended",
+                requireInteraction: false,
+              });
 
-          const eventType: NotificationSettingEventType =
-            NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER;
+            const eventType: NotificationSettingEventType =
+              NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER;
 
-          const whatsAppMessage: WhatsAppMessagePayload =
-            createWhatsAppMessageFromTemplate({
+            const whatsAppMessage: WhatsAppMessagePayload =
+              createWhatsAppMessageFromTemplate({
+                eventType,
+                templateVariables: {
+                  on_call_policy_name: onCallPolicyName,
+                  schedule_name: onCallScheduleName,
+                  schedule_link: vars["onCallPolicyViewLink"] || "",
+                },
+              });
+
+            await UserNotificationSettingService.sendUserNotification({
+              userId: sendEmailToUserId,
+              projectId: projectId,
+              emailEnvelope: emailMessage,
+              smsMessage: sms,
+              callRequestMessage: callMessage,
+              pushNotificationMessage: pushMessage,
+              whatsAppMessage,
               eventType,
-              templateVariables: {
-                on_call_policy_name: onCallPolicyName,
-                schedule_name: onCallScheduleName,
-                schedule_link: vars["onCallPolicyViewLink"] || "",
-              },
+              onCallPolicyId: onCallPolicyId,
+              onCallPolicyEscalationRuleId: firstRuleId,
+              onCallScheduleId: data.scheduleId,
             });
-
-          await UserNotificationSettingService.sendUserNotification({
-            userId: sendEmailToUserId,
-            projectId: projectId,
-            emailEnvelope: emailMessage,
-            smsMessage: sms,
-            callRequestMessage: callMessage,
-            pushNotificationMessage: pushMessage,
-            whatsAppMessage,
-            eventType,
-            onCallPolicyId: onCallPolicyId,
-            onCallPolicyEscalationRuleId: firstRuleId,
-            onCallScheduleId: data.scheduleId,
-          });
+          }
 
           // add end log for user, for each rule.
           this.endTimeLogsForUserOnHandoff({
@@ -1097,11 +1148,17 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
          * rotation period; without this user-changed check a continuing (e.g.
          * single-user) roster was re-sent the full email + SMS + phone call +
          * push + WhatsApp bundle every period. Mirrors the removal branch above.
+         *
+         * Only a member of the project is told, and logged as on call
+         * (#10556): nothing pages someone only invited, so nothing tells
+         * them they are on call, and no time log says so - joining logs the
+         * rest of their shift (EscalationRuleReach.openTimeLogsOfMember).
          */
         if (
           previousInformation.currentUserIdOnRoster?.toString() !==
             newInformation.currentUserIdOnRoster?.toString() &&
-          newInformation.currentUserIdOnRoster?.toString()
+          newInformation.currentUserIdOnRoster?.toString() &&
+          handoffReach.isMember(newInformation.currentUserIdOnRoster)
         ) {
           // send email to the new current user.
           const sendEmailToUserId: ObjectID =
@@ -1216,12 +1273,14 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
          * change, which happens every rotation period; without this
          * user-changed check a continuing (e.g. single-user) roster re-sent the
          * full email + SMS + phone call + push + WhatsApp bundle every period.
-         * Mirrors the current-user "now on-call" branch above.
+         * Mirrors the current-user "now on-call" branch above - a member of
+         * the project only (#10556).
          */
         if (
           previousInformation.nextUserIdOnRoster?.toString() !==
             newInformation.nextUserIdOnRoster?.toString() &&
-          newInformation.nextUserIdOnRoster?.toString()
+          newInformation.nextUserIdOnRoster?.toString() &&
+          handoffReach.isMember(newInformation.nextUserIdOnRoster)
         ) {
           // send email to the next user.
           const sendEmailToUserId: ObjectID = newInformation.nextUserIdOnRoster;

@@ -62,7 +62,7 @@ npm install @opentelemetry/api \
 
 ### テレメトリファイルを作成する
 
-`src/telemetry.ts` を作成します。 `browserDetector` はテレメトリを RUM として分類させる `browser.*` 属性を追加し、 `service.name` がアプリケーションの名前になります。
+`src/telemetry.ts` を作成します。 `browserDetector` は **クライアント** ページが一覧にする `browser.*` 属性を追加し、 `service.name` がアプリケーションの名前になります。ブラウザーキーが送るものはすべて、このアプリケーションの RUM として記録されます。
 
 ```ts title="src/telemetry.ts"
 import {
@@ -88,8 +88,8 @@ const ONEUPTIME_URL = "https://oneuptime.com";
 const ONEUPTIME_TOKEN = "YOUR_TELEMETRY_INGESTION_TOKEN";
 
 /*
- * browserDetector supplies the browser.* attributes. Without them this
- * telemetry is classified as a backend Service, not a RUM application.
+ * browserDetector supplies the browser.* attributes the Clients page
+ * lists. A Browser key files everything it sends as browser RUM.
  * The attributes set last win, so service.name here overrides the
  * "unknown_service" that defaultResource() provides.
  */
@@ -166,11 +166,11 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | --- | --- |
 | **許可されたオリジン** | これらのオリジンからのリクエストだけを受け付けます。各オリジンにはスキームと、あればポートを含めます。ホストの先頭には `*.` のワイルドカードを一つだけ使えます。 `https://*.example.com` は `example.com` のすべてのサブドメインに一致しますが、 `example.com` 自体には一致しません。 |
 | **1 分あたりのリクエスト数の上限** | キーを使うすべての訪問者で共有するひとつの上限です。独自に設定しない限り、毎分 6000 リクエストです。 |
-| **固定されたサービス名** | キーが書き込むすべてのデータに `service.name` を強制し、コピーされたキーのテレメトリがバックエンドサービスを装えないようにします。 |
+| **固定されたサービス名** | キーが書き込むすべてのデータに `service.name` を強制し、コピーされたキーが、その一つのアプリケーションにしか書き込めないようにします。 |
 | **有効期限** | この日付を過ぎると、キーは受け付けられなくなります。 |
 | **有効** | オフにすると、漏えいしたキーをすぐに止められます。 |
 
-ブラウザーキーが書き込めるのは OTLP のトレース、ログ、メトリクス、セッションリプレイ、ブラウザーで動く [Sentry SDK](/docs/telemetry/compatible-endpoints#sentry-sdk) のイベントだけで、ほかの取り込み経路はすべてこのキーを拒否します。これらの設定はキー自体のページで変更します。キーの種類は、キーの作成後には変更できません。
+ブラウザーキーが書き込めるのは OTLP のトレース、ログ、メトリクス、セッションリプレイ、ブラウザーで動く [Sentry SDK](/docs/telemetry/compatible-endpoints#sentry-sdk) のイベントだけで、ほかの取り込み経路はすべてこのキーを拒否します。書き込んだものはすべてブラウザーの RUM として記録され、ホスト、クラスター、バックエンドサービスとして記録されることはありません。リソースのうち残すのは、ページが自分自身について述べること ( `service.*`、 `browser.*`、 `user_agent.*` の属性や `oneuptime.label.*` のラベルなど) だけです。これらの設定はキー自体のページで変更します。キーの種類は、キーの作成後には変更できません。
 
 > [!WARNING]
 > **サーバー** キーは決してページに入れないでください。サーバーキーはオリジンを確認せずにどこからでもあらゆる種類のテレメトリを書き込めるため、ページを読んだ誰もがプロジェクトに書き込めてしまいます。
@@ -179,7 +179,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 `browserDetector` は [UA Client Hints API](https://wicg.github.io/ua-client-hints/) を読み取りますが、この API は Chromium 系のブラウザーにしかありません。Safari と Firefox では `browser.language` と `user_agent.original` は設定されますが、 `browser.platform` 、 `browser.brands` 、 `browser.mobile` は設定されません。
 
-それでも、 `browser.language` だけでバッチがブラウザー RUM としてマークされるため、テレメトリは RUM に分類されます。ただし **クライアント** ページは `browser.platform` からプラットフォームを一覧にするため、Safari と Firefox からの訪問はそこに行を追加しません。
+ブラウザーキーなら、テレメトリはいずれにしても RUM に分類されます。ほかのキーでも、 `browser.language` だけでバッチがブラウザー RUM としてマークされます。ただし **クライアント** ページは `browser.platform` からプラットフォームを一覧にするため、Safari と Firefox からの訪問はそこに行を追加しません。
 
 検出器を使わない場合や、すべてのブラウザーにプラットフォームを持たせたい場合は、属性を自分で設定します。
 
@@ -402,7 +402,7 @@ metrics.setGlobalMeterProvider(
 );
 ```
 
-同じ `resource` オブジェクトで作成してください。リソースに `browser.*` がないログやメトリクスのパイプラインは、別のバックエンドサービスとして分類されます。
+同じ `resource` オブジェクトで作成してください。そうすれば、そのログとメトリクスも同じアプリケーションの下に記録されます。
 
 ログのパイプラインは、コードが書いたレコードだけを送ります。知っておく価値のあることが起きる場所で、レコードを書いてください。
 
@@ -452,7 +452,7 @@ logger.emit({
 :::
 
 :::details アプリがリアルユーザーモニタリングではなくサービスに表示される
-リソースに `browser.*` 属性がないため、テレメトリがバックエンドサービスに分類されました。 `browserDetector` を追加するか、 [検出器を使わずに `browser.*` を設定する](#検出器を使わずに-browser-を設定する) のように属性を設定してください。
+テレメトリがブラウザーキー以外のキーで送られ、リソースに `browser.*` 属性がないため、バックエンドサービスに分類されました。送るものすべてを RUM として記録するブラウザーキーで送信するか、 `browserDetector` を追加するか、 [検出器を使わずに `browser.*` を設定する](#検出器を使わずに-browser-を設定する) のように属性を設定してください。
 
 送っている内容は、ネットワークタブのリクエストのペイロードで確認できます。判定を決めるのは `resourceSpans[0].resource.attributes` の一覧です。すでに作成されたサービスは RUM アプリケーションには変わらないため、RUM のテレメトリが届いたら **製品 → サービス** で削除してください。
 :::

@@ -19,7 +19,7 @@ flowchart TB
     app["Seu aplicativo móvel"] --> sdk["SDK do OpenTelemetry<br/>com atributos device.*"]
     sdk -->|"OTLP com uma<br/>chave Celular"| oneuptime["OneUptime"]
     oneuptime --> rum["Aplicação RUM móvel"]
-    replay["SDK de reprodução<br/>do React Native"] -->|"gravações com uma<br/>chave Browser"| oneuptime
+    replay["SDK de reprodução<br/>do React Native"] -->|"gravações com a<br/>mesma chave Celular"| oneuptime
 ```
 
 ## O que o OneUptime precisa
@@ -52,7 +52,7 @@ Faça de `device.id` um identificador próprio da instalação, nunca um ID de p
 | Registros | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> A chave vai dentro do seu aplicativo, e um aplicativo pode ser descompactado, então parta do princípio de que alguém vai copiá-la. Uma cópia de uma chave Celular só pode enviar os traços, registros e métricas deste aplicativo, arquivados sob o seu **Nome do serviço fixado**, e nunca a partir de uma página web. Ainda assim, ela pode enviar dados inventados para este aplicativo, até o **Limite de solicitações por minuto** da chave, então adicione uma data em **Expira em** e troque a chave a cada versão.
+> A chave vai dentro do seu aplicativo, e um aplicativo pode ser descompactado, então parta do princípio de que alguém vai copiá-la. Uma cópia de uma chave Celular só pode enviar os traços, registros, métricas e reproduções de sessões deste aplicativo, arquivados sob o seu **Nome do serviço fixado**, e nunca a partir de uma página web. Ainda assim, ela pode enviar dados inventados para este aplicativo, até o **Limite de solicitações por minuto** da chave, então adicione uma data em **Expira em** e troque a chave a cada versão.
 
 ## Configurar sua plataforma
 
@@ -289,7 +289,7 @@ Abra a página **Clientes** da aplicação: cada modelo de dispositivo de `devic
 
 ## Session Replay em dispositivos móveis
 
-Aplicativos React Native podem gravar sessões com `@oneuptime/react-native-replay`. Ele grava a árvore de views nativa como um wireframe, nunca capturas de tela nem o texto na tela, e as gravações dele abrem no mesmo player que as da web. Ele envia com uma chave **Navegador** cujas **Origens permitidas** listam o seu aplicativo como `app://` seguido do ID do aplicativo Android ou do ID de bundle do iOS: uma chave diferente da chave Celular que o seu SDK do OpenTelemetry usa. [Instalar no React Native](/docs/telemetry/session-replay#instalação-no-react-native) mostra o passo a passo.
+Aplicativos React Native podem gravar sessões com `@oneuptime/react-native-replay`. Ele grava a árvore de views nativa como um wireframe, nunca capturas de tela nem o texto na tela, e as gravações dele abrem no mesmo player que as da web. Ele envia com a mesma chave **Celular** do seu SDK do OpenTelemetry, com o **Nome do serviço fixado** da chave como `appIdentifier`, então o aplicativo leva uma só chave. Uma chave **Navegador** cujas **Origens permitidas** listam o seu aplicativo como `app://` seguido do ID do aplicativo Android ou do ID de bundle do iOS também funciona. [Instalar no React Native](/docs/telemetry/session-replay#instalação-no-react-native) mostra o passo a passo.
 
 Aplicativos nativos de Android e iOS, e as demais plataformas, não têm gravador de sessão: a página **Reprodução de sessões** deles fica vazia, enquanto traços, registros, métricas, exceções e a página **Clientes** funcionam normalmente.
 
@@ -298,7 +298,7 @@ Aplicativos nativos de Android e iOS, e as demais plataformas, não têm gravado
 :::details A verificação da chave devolve 401, ou a chave é recusada
 Um `401` significa que a chave é desconhecida, foi revogada, desativada ou expirou: crie uma chave Celular e recompile o aplicativo com ela.
 
-Uma chave Browser passa na verificação, mas toda exportação de um aplicativo móvel é recusada com um `422` que diz `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Use uma chave **Celular**. Uma chave Celular também é recusada com um `422` por gRPC e a partir de uma página web: exporte por OTLP/HTTP.
+Uma chave Browser passa na verificação, mas toda exportação de um aplicativo móvel é recusada com um `422` que diz `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Use uma chave **Celular**. Uma chave Celular também é recusada com um `422` por gRPC, a partir de uma página web e para uma reprodução de sessão cujo `appIdentifier` não é o **Nome do serviço fixado** dela: exporte por OTLP/HTTP e dê ao SDK de reprodução o nome fixado da chave.
 :::
 
 :::details O aplicativo aparece em Serviços em vez de Monitoramento de Usuários Reais

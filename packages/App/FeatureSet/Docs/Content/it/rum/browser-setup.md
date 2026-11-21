@@ -62,7 +62,7 @@ npm install @opentelemetry/api \
 
 ### Creare il file di telemetria
 
-Crea `src/telemetry.ts`. `browserDetector` aggiunge gli attributi `browser.*` che classificano la telemetria come RUM, e `service.name` dà il nome all'applicazione.
+Crea `src/telemetry.ts`. `browserDetector` aggiunge gli attributi `browser.*` che la pagina **Client** elenca, e `service.name` dà il nome all'applicazione: tutto ciò che invia una chiave Browser viene archiviato sotto di essa come RUM.
 
 ```ts title="src/telemetry.ts"
 import {
@@ -88,8 +88,8 @@ const ONEUPTIME_URL = "https://oneuptime.com";
 const ONEUPTIME_TOKEN = "YOUR_TELEMETRY_INGESTION_TOKEN";
 
 /*
- * browserDetector supplies the browser.* attributes. Without them this
- * telemetry is classified as a backend Service, not a RUM application.
+ * browserDetector supplies the browser.* attributes the Clients page
+ * lists. A Browser key files everything it sends as browser RUM.
  * The attributes set last win, so service.name here overrides the
  * "unknown_service" that defaultResource() provides.
  */
@@ -166,11 +166,11 @@ Tutto ciò che è nello snippet arriva ai tuoi visitatori, quindi chiunque può 
 | --- | --- |
 | **Origini consentite** | Le richieste sono accettate solo da queste origini, ciascuna con il suo schema e l'eventuale porta. Un host può iniziare con un solo carattere jolly `*.`: `https://*.example.com` copre ogni sottodominio di `example.com`, ma non `example.com` stesso. |
 | **Limite di richieste al minuto** | Un unico tetto per tutti i visitatori che usano la chiave: 6000 richieste al minuto, a meno che tu non ne imposti uno tuo. |
-| **Nome del servizio fissato** | Impone `service.name` su tutto ciò che la chiave scrive, così una copia non può far passare la sua telemetria per uno dei tuoi servizi backend. |
+| **Nome del servizio fissato** | Impone `service.name` su tutto ciò che la chiave scrive, così una copia può scrivere solo in quell'unica applicazione. |
 | **Scade il** | Dopo questa data la chiave non viene più accettata. |
 | **Abilitato** | Disattivalo per fermare subito una chiave trapelata. |
 
-Una chiave Browser scrive tracce, log e metriche OTLP, riproduzioni delle sessioni ed eventi di un [SDK di Sentry nel browser](/docs/telemetry/compatible-endpoints#sdk-di-sentry); ogni altra via di acquisizione la rifiuta. Queste impostazioni si cambiano nella pagina della chiave. Il tipo di chiave non si può cambiare dopo la creazione della chiave.
+Una chiave Browser scrive tracce, log e metriche OTLP, riproduzioni delle sessioni ed eventi di un [SDK di Sentry nel browser](/docs/telemetry/compatible-endpoints#sdk-di-sentry); ogni altra via di acquisizione la rifiuta. Tutto ciò che scrive viene archiviato come RUM del browser, mai come un host, un cluster o un servizio backend: della risorsa tiene solo ciò che una pagina dice di sé, come gli attributi `service.*`, `browser.*` e `user_agent.*` e le etichette `oneuptime.label.*`. Queste impostazioni si cambiano nella pagina della chiave. Il tipo di chiave non si può cambiare dopo la creazione della chiave.
 
 > [!WARNING]
 > Non mettere mai una chiave **Server** in una pagina. Una chiave Server scrive qualsiasi tipo di telemetria da qualsiasi posto, senza controllo dell'origine, quindi chiunque legga la tua pagina potrebbe scrivere nel tuo progetto.
@@ -179,7 +179,7 @@ Una chiave Browser scrive tracce, log e metriche OTLP, riproduzioni delle sessio
 
 `browserDetector` legge l'[API UA Client Hints](https://wicg.github.io/ua-client-hints/), che solo i browser Chromium hanno. Su Safari e Firefox imposta `browser.language` e `user_agent.original`, ma non `browser.platform`, `browser.brands` o `browser.mobile`.
 
-Basta comunque per classificare la telemetria come RUM, perché `browser.language` da solo contrassegna un lotto come RUM browser. La pagina **Client** però elenca le piattaforme da `browser.platform`, quindi le visite da Safari e Firefox non vi aggiungono alcuna riga.
+Con una chiave Browser la telemetria viene classificata come RUM in ogni caso, e con qualsiasi altra chiave `browser.language` da solo contrassegna un lotto come RUM browser. La pagina **Client** però elenca le piattaforme da `browser.platform`, quindi le visite da Safari e Firefox non vi aggiungono alcuna riga.
 
 Per fare a meno del rilevatore, o per dare una piattaforma a ogni browser, imposta tu gli attributi:
 
@@ -402,7 +402,7 @@ metrics.setGlobalMeterProvider(
 );
 ```
 
-Costruiscile con lo stesso oggetto `resource`. Una pipeline di log o di metriche la cui risorsa non ha `browser.*` viene archiviata come servizio backend separato.
+Costruiscile con lo stesso oggetto `resource`, così i loro log e le loro metriche vengono archiviati sotto la stessa applicazione.
 
 Una pipeline di log invia solo i record che il tuo codice scrive, quindi scrivine uno ovunque accada qualcosa che valga la pena sapere:
 
@@ -452,7 +452,7 @@ Apri gli strumenti per sviluppatori del browser, vai alla scheda Rete e filtra p
 :::
 
 :::details L'app compare in Servizi invece che in Monitoraggio degli utenti reali
-La risorsa non ha alcun attributo `browser.*`, quindi la telemetria è stata archiviata come servizio backend. Aggiungi `browserDetector`, oppure imposta gli attributi come in [Impostare `browser.*` senza il rilevatore](#impostare-browser-senza-il-rilevatore).
+La telemetria è stata inviata con una chiave diversa da una chiave Browser, e la sua risorsa non ha alcun attributo `browser.*`, quindi è stata archiviata come servizio backend. Invia con una chiave Browser, che archivia come RUM tutto ciò che invia, oppure aggiungi `browserDetector` o imposta gli attributi come in [Impostare `browser.*` senza il rilevatore](#impostare-browser-senza-il-rilevatore).
 
 Controlla cosa invii nella scheda Rete, nel payload della richiesta: `resourceSpans[0].resource.attributes` è l'elenco che decide. Il servizio già creato non diventa un'applicazione RUM, quindi eliminalo in **Prodotti → Servizi** quando arriva la telemetria RUM.
 :::

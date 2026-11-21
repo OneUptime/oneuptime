@@ -30,6 +30,8 @@ import {
   getDetailGridClassName,
 } from "./DetailGridLayout";
 import DetailRecordLine from "./DetailRecordLine";
+import { RecordActivity } from "./DetailRecordActivity";
+import Route from "../../../Types/API/Route";
 import {
   DETAIL_IMAGE_BACKDROP_ATTRIBUTE,
   DETAIL_IMAGE_BACKDROP_CLASS_NAMES,
@@ -132,6 +134,14 @@ export interface ComponentProps<T extends GenericObject> {
    * out, such a detail draws nothing but that line, as it always did.
    */
   emptyMessage?: string | undefined;
+  /*
+   * Who created the record and who last modified it, for its line
+   * (DetailRecordActivity, #10290): ModelDetail reads it with the record.
+   * The line says it whether or not the card declares the record's times.
+   */
+  recordActivity?: RecordActivity | null | undefined;
+  // The record's history page, for a reader who may read it (RecordHistoryContext).
+  recordHistoryRoute?: Route | null | undefined;
 }
 
 type DetailFunction = <T extends GenericObject>(
@@ -1362,7 +1372,12 @@ const Detail: DetailFunction = <T extends GenericObject>(
       </p>
     ) : null;
 
-  if (!recordId && recordTimes.length === 0) {
+  const hasRecordActivity: boolean = Boolean(
+    showRecordLine &&
+      (props.recordActivity?.created || props.recordActivity?.lastModified),
+  );
+
+  if (!recordId && recordTimes.length === 0 && !hasRecordActivity) {
     if (emptyLine) {
       return (
         <div id={props.id} className="w-full">
@@ -1410,6 +1425,8 @@ const Detail: DetailFunction = <T extends GenericObject>(
       <DetailRecordLine
         recordId={recordId}
         times={recordTimes}
+        activity={showRecordLine ? props.recordActivity : null}
+        historyRoute={showRecordLine ? props.recordHistoryRoute : null}
         className={recordLineClassName}
       />
     </div>

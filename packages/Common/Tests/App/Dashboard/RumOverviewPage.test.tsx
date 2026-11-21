@@ -793,7 +793,7 @@ describe("RUM overview: normal data", () => {
     );
     expectTile("Exceptions", "17", "reported by your app");
     expectTile("Clients", "4", "platforms seen");
-    expectTile("Sessions recorded", "50+", "past 1 hour");
+    expectTile("Sessions recorded", "50+", "Past 1 Hour");
   });
 
   test("the tiles are in the order a reader scans them, page loads first", async () => {
@@ -839,7 +839,7 @@ describe("RUM overview: normal data", () => {
     });
     await renderPage();
 
-    expectTile("Sessions recorded", "7", "past 1 hour");
+    expectTile("Sessions recorded", "7", "Past 1 Hour");
   });
 
   test("the error-rate bar is coloured by its 1% / 5% thresholds", async () => {
@@ -1586,7 +1586,7 @@ describe("RUM overview: refreshing", () => {
     expectTile("Page loads", "1.2k", "3 failed");
     expectTile("Page load time (p95)", "2.34 s", "median 850 ms");
     expectTile("Exceptions", "17", "reported by your app");
-    expectTile("Sessions recorded", "50+", "past 1 hour");
+    expectTile("Sessions recorded", "50+", "Past 1 Hour");
   });
 
   test("a range change reloads with spinners and names the new range on the sessions tile", async () => {
@@ -1607,7 +1607,7 @@ describe("RUM overview: refreshing", () => {
 
     expect(tile("Page loads")).toHaveAttribute("aria-busy", "true");
     expect(tile("Page load time (p95)")).toHaveAttribute("aria-busy", "true");
-    expectTile("Sessions recorded", "3", "past 1 day");
+    expectTile("Sessions recorded", "3", "Past 1 Day");
   });
 
   test("a slow response from the previous range does not overwrite the new one", async () => {
@@ -2501,7 +2501,7 @@ describe("RUM overview: a mobile app's tiles (#9588)", () => {
     arrangeMobile();
     await renderMobilePage();
 
-    expectTile("Sessions", "200", "past 1 hour");
+    expectTile("Sessions", "200", "Past 1 Hour");
     expectTile("Crash-free sessions", "99.00%", "2 sessions crashed");
     expectTile("Crashes", "3", "in 2 sessions");
     expectTile("ANRs", "1", "in 1 session");
@@ -2648,7 +2648,7 @@ describe("RUM overview: a mobile app's reads", () => {
 
     expect(fetchMobileSessionsMock).toHaveBeenCalledTimes(2);
     // The answer is out; the old figure stays rather than a spinner.
-    expectTile("Sessions", "200", "past 1 hour");
+    expectTile("Sessions", "200", "Past 1 Hour");
   });
 });
 
@@ -2966,6 +2966,106 @@ describe("RUM overview: a mobile app's empty and failed reads", () => {
 
     for (const [title] of MOBILE_TILE_TITLES.slice(0, 7)) {
       expect(tile(title)).toHaveAttribute("aria-busy", "true");
+    }
+  });
+});
+
+describe("RUM overview: the tiles name their range in the reader's language (#10552)", () => {
+  const german: Record<string, string> = JSON.parse(
+    fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Locales/de.json",
+      ),
+      "utf8",
+    ),
+  ) as Record<string, string>;
+  // Every English way the range was ever written under a tile.
+  const ENGLISH_RANGES: RegExp = /past \d|custom range/i;
+
+  function useGerman(keys: Array<string>): void {
+    for (const key of keys) {
+      expect(german[key]).toBeTruthy();
+      expect(german[key]).not.toBe(key);
+      TRANSLATIONS[key] = german[key]!;
+    }
+  }
+
+  afterEach(() => {
+    for (const key of Object.keys(TRANSLATIONS)) {
+      delete TRANSLATIONS[key];
+    }
+  });
+
+  test("a German page reads Sessions recorded over the past hour in German, with no English range on any tile", async () => {
+    useGerman(["Past 1 Hour", "Past 1 Day"]);
+
+    arrange();
+    await renderPage();
+
+    expectTile("Sessions recorded", "50+", german["Past 1 Hour"]!);
+    expect(german["Past 1 Hour"]).toBe("Letzte Stunde");
+    for (const title of TILE_TITLES.map(
+      ([tileTitle]: [string, RumMetric]): string => {
+        return tileTitle;
+      },
+    )) {
+      expect({ title, text: tile(title).textContent }).not.toEqual({
+        title,
+        text: expect.stringMatching(ENGLISH_RANGES),
+      });
+    }
+
+    // A new range is named in German too, its noun keeping its capital.
+    arrange({
+      sessionList: Promise.resolve({
+        sessions: sessions(3),
+        nextCursor: null,
+        ignoredFilters: [],
+      }),
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Pick past day" }));
+    await flush();
+
+    expectTile("Sessions recorded", "3", german["Past 1 Day"]!);
+    expect(german["Past 1 Day"]).toBe("Letzter Tag");
+  });
+
+  test("a German mobile app's Sessions, Crashes and ANRs tiles name the range in German", async () => {
+    useGerman(["Past 1 Hour"]);
+
+    arrangeMobile({
+      faults: Promise.resolve<MobileFaults>({
+        crashes: {
+          total: 0,
+          series: [],
+          sessions: null,
+          installs: null,
+          failed: false,
+        },
+        anrs: {
+          total: 0,
+          series: [],
+          sessions: null,
+          installs: null,
+          failed: false,
+        },
+      }),
+    });
+    await renderMobilePage();
+
+    expectTile("Sessions", "200", german["Past 1 Hour"]!);
+    expect(
+      within(tile("Crashes")).getByText(german["Past 1 Hour"]!),
+    ).toBeInTheDocument();
+    expect(
+      within(tile("ANRs")).getByText(german["Past 1 Hour"]!),
+    ).toBeInTheDocument();
+    for (const title of ["Sessions", "Crashes", "ANRs"]) {
+      expect({ title, text: tile(title).textContent }).not.toEqual({
+        title,
+        text: expect.stringMatching(ENGLISH_RANGES),
+      });
     }
   });
 });

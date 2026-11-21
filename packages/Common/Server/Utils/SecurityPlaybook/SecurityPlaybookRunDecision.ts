@@ -47,6 +47,7 @@ import SecurityEventConnectionService from "../../Services/SecurityEventConnecti
 import SecurityPlaybookRunService from "../../Services/SecurityPlaybookRunService";
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 import logger from "../Logger";
+import SecurityCaseStepChecks from "../SecurityCase/StepChecks/SecurityCaseStepChecks";
 import WorkspaceSecurityPlaybookApprovalMessages from "../Workspace/WorkspaceSecurityPlaybookApprovalMessages";
 import SecurityPlaybookApprovalReader from "./SecurityPlaybookApprovalReader";
 import SecurityPlaybookContainment, {
@@ -629,6 +630,12 @@ export default class SecurityPlaybookRunDecision {
         eventType: SecurityCaseFeedEventType.ResponseAction,
         displayColor: Green500,
         userId: data.props.userId,
+      });
+
+      // Let back in: the case's containment steps no longer hold, and OneUptime says so now (#10340).
+      await SecurityCaseStepChecks.requestCheck({
+        projectId: data.projectId,
+        securityCaseId: run.securityCaseId,
       });
     }
 

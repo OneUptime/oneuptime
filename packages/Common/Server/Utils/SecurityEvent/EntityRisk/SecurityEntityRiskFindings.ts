@@ -50,6 +50,13 @@ export interface SecurityRiskFinding {
   detectionRuleId?: ObjectID | undefined;
   threatIntelFeedId?: ObjectID | undefined;
   securityEventConnectionId?: ObjectID | undefined;
+  /*
+   * The name of the firing it is, from a rule's scheduled run (#10489,
+   * Types/SecurityCase/SecurityFiringKeys): the same firing handed again,
+   * after a worker stopped before the run recorded where it got to, adds
+   * its risk once.
+   */
+  firingKey?: string | undefined;
 }
 
 // The most imported alerts one poll adds risk from: the most severe first.
@@ -69,6 +76,8 @@ export function riskFindingsForRuleMatches(data: {
   parsedRule: SigmaRule;
   matchedGroups: Array<DetectionMatchGroup>;
   seenAt: Date;
+  // Each group's firing, by its value: a scheduled run's (#10489).
+  firingKeys?: Map<string, string> | undefined;
 }): Array<SecurityRiskFinding> {
   const { rule, parsedRule } = data;
 
@@ -121,6 +130,10 @@ export function riskFindingsForRuleMatches(data: {
       continue;
     }
 
+    const firingKey: string | undefined = data.firingKeys?.get(
+      matchGroup.groupValue,
+    );
+
     findings.push({
       projectId: rule.projectId,
       source: SecurityDetectionSource.DetectionRule,
@@ -133,6 +146,7 @@ export function riskFindingsForRuleMatches(data: {
       mitreTechniques: parsedRule.mitreTechniques,
       seenAt: data.seenAt,
       detectionRuleId: rule.id,
+      ...(firingKey ? { firingKey } : {}),
     });
   }
 

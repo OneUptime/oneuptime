@@ -342,11 +342,12 @@ describe("The comparisons the rule editor offers", () => {
         monitorType: MonitorType.Traces,
       }),
     ).toEqual([...threshold, ...anomaly]);
+    // A metric's value is also asked "anything but", after Exactly (#10449).
     expect(
       TelemetryAlertRuleUtil.getComparisons({
         monitorType: MonitorType.Metrics,
       }),
-    ).toEqual([...threshold, ...anomaly, ...forecast]);
+    ).toEqual([...threshold, FilterType.NotEqualTo, ...anomaly, ...forecast]);
     // The count against its own earlier weeks (ExceptionLearnedBaseline).
     expect(
       TelemetryAlertRuleUtil.getComparisons({
@@ -1869,11 +1870,13 @@ describe("Matching a value, as the server compares one number", () => {
  * exactly as before - with no measure.
  */
 describe("an Exceptions rule's measure", () => {
-  test("Exceptions offer five measures; every other type its one", () => {
+  test("Exceptions offer six measures; every other type its one", () => {
     /*
-     * The share of sessions with an exception is a rule's (#9716); the
-     * sessions alone are not: they say how much the app was used, a
-     * floor for that share in the criteria editor.
+     * The share of sessions with an exception is a rule's (#9716), and so
+     * is the share of installs (#9924), which the rule editor offers as "A
+     * share of installs"; the sessions and installs alone are not: they say
+     * how much the app was used, a floor for those shares in the criteria
+     * editor.
      */
     expect(
       TelemetryAlertRuleUtil.getMeasureOptions(MonitorType.Exceptions),
@@ -1883,13 +1886,24 @@ describe("an Exceptions rule's measure", () => {
       CheckOn.RegressedExceptionCount,
       CheckOn.ExceptionCountIncreasePercent,
       CheckOn.SessionsWithExceptionsPercent,
+      CheckOn.InstallsWithExceptionsPercent,
     ]);
+
+    for (const volume of [CheckOn.SessionCount, CheckOn.InstallCount]) {
+      expect(
+        TelemetryAlertRuleUtil.getRuleMeasure({
+          monitorType: MonitorType.Exceptions,
+          rule: { measure: volume },
+        }),
+      ).toBe(CheckOn.ExceptionCount);
+    }
+
     expect(
       TelemetryAlertRuleUtil.getRuleMeasure({
         monitorType: MonitorType.Exceptions,
-        rule: { measure: CheckOn.SessionCount },
+        rule: { measure: CheckOn.InstallsWithExceptionsPercent },
       }),
-    ).toBe(CheckOn.ExceptionCount);
+    ).toBe(CheckOn.InstallsWithExceptionsPercent);
     expect(TelemetryAlertRuleUtil.getMeasureOptions(MonitorType.Logs)).toEqual([
       CheckOn.LogCount,
     ]);

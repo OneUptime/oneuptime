@@ -985,6 +985,7 @@ const MessageQueueOverview: FunctionComponent<
           "Its broker and destination, where OneUptime found it, and its broker metrics.",
         )}
         recordId={modelId.toString()}
+        recordModelType={MessageQueue}
         labels={q.labels}
         settingsRoute={populate(PageMap.MESSAGE_QUEUE_VIEW_SETTINGS)}
       />

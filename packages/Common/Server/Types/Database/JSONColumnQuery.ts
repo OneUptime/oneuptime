@@ -19,6 +19,7 @@ import Wildcard from "../../../Types/BaseDatabase/Wildcard";
 import NotWildcard from "../../../Types/BaseDatabase/NotWildcard";
 import { toLikePattern } from "../../../Types/BaseDatabase/WildcardPattern";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../Types/BaseDatabase/NotEqualOrNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import Search from "../../../Types/BaseDatabase/Search";
 import StartsWith from "../../../Types/BaseDatabase/StartsWith";
@@ -442,7 +443,11 @@ class KeyPredicateBuilder {
       return values.length === 0 ? null : this.anyOf(values);
     }
 
-    if (value instanceof NotEqual) {
+    /*
+     * negate() already keeps a key that is missing or empty, so on a key
+     * NotEqualOrNull (#10399) asks what NotEqual asks.
+     */
+    if (value instanceof NotEqual || value instanceof NotEqualOrNull) {
       return this.negate(this.equals(toScalar(value.value)));
     }
 

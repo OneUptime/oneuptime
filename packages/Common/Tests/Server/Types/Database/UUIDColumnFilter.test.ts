@@ -21,6 +21,7 @@ import IncludesAnyOfGroups from "../../../../Types/BaseDatabase/IncludesAnyOfGro
 import IncludesNone from "../../../../Types/BaseDatabase/IncludesNone";
 import IsNull from "../../../../Types/BaseDatabase/IsNull";
 import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../../Types/BaseDatabase/NotEqualOrNull";
 import NotNull from "../../../../Types/BaseDatabase/NotNull";
 import Search from "../../../../Types/BaseDatabase/Search";
 import StartsWith from "../../../../Types/BaseDatabase/StartsWith";
@@ -320,6 +321,11 @@ describe("serializeQuery — a serialized ObjectID is the id it holds", () => {
     ["EqualTo", EqualTo, "Incident.currentIncidentStateId = :"],
     ["NotEqual", NotEqual, "Incident.currentIncidentStateId != :"],
     ["EqualToOrNull", EqualToOrNull, "IS NULL"],
+    [
+      "NotEqualOrNull",
+      NotEqualOrNull,
+      "OR Incident.currentIncidentStateId IS NULL",
+    ],
   ])(
     "binds the id, not [object Object], for a serialized ObjectID inside %s",
     (_name: string, Operator: any, sql: string) => {
@@ -587,6 +593,7 @@ describe("serializeQuery — anything else on a uuid column is refused", () => {
     ["IncludesAll", new IncludesAll(["abc"])],
     ["EqualTo", new EqualTo("abc")],
     ["NotEqual", new NotEqual("")],
+    ["NotEqualOrNull", new NotEqualOrNull("abc")],
     ["EqualToOrNull", new EqualToOrNull("[object Object]")],
     ["GreaterThan", new GreaterThan(5)],
     ["InBetween", new InBetween(STATE_ID, "abc")],
@@ -682,6 +689,7 @@ describe("serializeQuery — the ids of a relation filter", () => {
   it.each([
     ["EqualTo", new EqualTo("abc")],
     ["NotEqual", new NotEqual("[object Object]")],
+    ["NotEqualOrNull", new NotEqualOrNull("[object Object]")],
     ["EqualToOrNull", new EqualToOrNull(UNRESOLVED_REFERENCE)],
     ["GreaterThan", new GreaterThan(42)],
     ["InBetween", new InBetween(STATE_ID, "abc")],

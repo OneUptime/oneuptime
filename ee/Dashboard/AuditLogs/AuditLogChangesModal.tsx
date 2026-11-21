@@ -7,6 +7,7 @@ import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
 import { readAuditLogChange } from "Common/Utils/AuditLog/AuditLogTypedValues";
+import { getAuditLogFieldTitle } from "Common/Utils/AuditLog/AuditLogFieldTitles";
 import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
 import { getAuditLogActionLabel } from "Common/Types/AuditLog/AuditLogActionLabel";
 import {
@@ -40,6 +41,12 @@ export interface ComponentProps {
   onClose: () => void;
   action: AuditLogModalAction;
   resourceType?: string | undefined;
+  /*
+   * The type the entry is stored under (AuditLog.resourceType), which names
+   * its model, so each field reads as its model names it (#10290).
+   * resourceType above is what the reader is shown.
+   */
+  storedResourceType?: string | undefined;
   resourceName?: string | undefined;
   changes: JSONArray | undefined;
 }
@@ -112,7 +119,7 @@ export const readChangeRows: (changes: unknown) => Array<ChangeRow> = (
   return rows;
 };
 
-const humanizeFieldName: (field: string) => string = (
+export const humanizeFieldName: (field: string) => string = (
   field: string,
 ): string => {
   if (!field) {
@@ -127,6 +134,79 @@ const humanizeFieldName: (field: string) => string = (
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 };
 
+/*
+ * What a field an entry recorded is called, in the reader's language: the
+ * title its model gives the column ("Interval", "Monitor Steps"), where the
+ * entry's type names a model that has it (AuditLogFieldTitles), and its key
+ * split into words otherwise, as the log always drew it (#10290).
+ */
+export const getChangeFieldLabel: (data: {
+  field: string;
+  storedResourceType?: string | undefined;
+  translator?: Translator | undefined;
+}) => string = (data: {
+  field: string;
+  storedResourceType?: string | undefined;
+  translator?: Translator | undefined;
+}): string => {
+  const title: string | null = getAuditLogFieldTitle(
+    data.storedResourceType,
+    data.field,
+  );
+
+  if (title) {
+    return data.translator?.translateText(title) || title;
+  }
+
+  return humanizeFieldName(data.field);
+};
+
+// How many changed fields a row of the log names before it says how many more.
+export const CHANGED_FIELDS_NAMED_ON_A_ROW: number = 3;
+
+export const AUDIT_LOG_MORE_FIELDS: PluralTemplate = {
+  one: "{{count}} more",
+  other: "{{count}} more",
+};
+
+/*
+ * The fields an update changed, as a row of the log names them under its
+ * Changes button: the first few by their names (getChangeFieldLabel), then
+ * how many more, in the reader's plural forms (#10290).
+ */
+export const getChangedFieldLabels: (data: {
+  changes: unknown;
+  storedResourceType?: string | undefined;
+  translator: Translator;
+}) => Array<string> = (data: {
+  changes: unknown;
+  storedResourceType?: string | undefined;
+  translator: Translator;
+}): Array<string> => {
+  const rows: Array<ChangeRow> = readChangeRows(data.changes);
+
+  const labels: Array<string> = rows
+    .slice(0, CHANGED_FIELDS_NAMED_ON_A_ROW)
+    .map((row: ChangeRow): string => {
+      return getChangeFieldLabel({
+        field: row.field,
+        storedResourceType: data.storedResourceType,
+        translator: data.translator,
+      });
+    });
+
+  if (rows.length > CHANGED_FIELDS_NAMED_ON_A_ROW) {
+    labels.push(
+      data.translator.translatePlural(
+        AUDIT_LOG_MORE_FIELDS,
+        rows.length - CHANGED_FIELDS_NAMED_ON_A_ROW,
+      ),
+    );
+  }
+
+  return labels;
+};
+
 const ISO_DATE_REGEX: RegExp =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$/;
 
@@ -134,13 +214,29 @@ const isISODate: (value: string) => boolean = (value: string): boolean => {
   return ISO_DATE_REGEX.test(value);
 };
 
-const formatScalar: (value: JSONValue | undefined) => string = (
+const formatScalar: (
   value: JSONValue | undefined,
+  translator?: Translator | undefined,
+) => string = (
+  value: JSONValue | undefined,
+  translator?: Translator | undefined,
 ): string => {
   if (value === null || value === undefined || value === "") {
     return EMPTY_VALUE_MARK;
   }
   if (typeof value === "boolean") {
+    /*
+     * A switch, as the reader says it: "Yes" or "No" in their language, where
+     * it read "true" or "false" in every one (#10290).
+     */
+    if (translator) {
+      return (
+        (value
+          ? translator.translateText("Yes")
+          : translator.translateText("No")) || (value ? "Yes" : "No")
+      );
+    }
+
     return value ? "true" : "false";
   }
   if (typeof value === "number") {
@@ -374,7 +470,7 @@ const renderValue: (
 
   return (
     <span className="text-gray-900 whitespace-pre-wrap break-words">
-      {getValueOrQuietDash(formatScalar(value))}
+      {getValueOrQuietDash(formatScalar(value, translator))}
     </span>
   );
 };
@@ -493,8 +589,15 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                   className="bg-white px-4 py-3 hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      {humanizeFieldName(row.field)}
+                    <span
+                      data-testid="audit-log-change-field"
+                      className="text-xs font-semibold uppercase tracking-wide text-gray-500"
+                    >
+                      {getChangeFieldLabel({
+                        field: row.field,
+                        storedResourceType: props.storedResourceType,
+                        translator: translator,
+                      })}
                     </span>
                     <span className="text-xs font-mono text-gray-500">
                       {row.field}

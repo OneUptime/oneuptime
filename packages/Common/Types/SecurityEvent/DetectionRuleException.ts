@@ -1,4 +1,5 @@
 import {
+  SecurityEntity,
   SecurityEntityType,
   isIpAddress,
 } from "../SecurityCase/SecurityEntity";
@@ -655,4 +656,39 @@ export function getDetectionRuleExceptionColumns(
     expiresAt: readDetectionRuleExceptionDate(exception.expiresAt),
     reason,
   };
+}
+
+/*
+ * The entity an exception for a detection skips: of the entities it names,
+ * the one it was grouped by when that is a user, a host or an address,
+ * else the first such entity it names. Null when it names none.
+ */
+export function getDetectionExceptionEntity(detection: {
+  groupValue?: string | undefined | null;
+  entities: ReadonlyArray<SecurityEntity>;
+}): SecurityEntity | null {
+  const skippable: Array<SecurityEntity> = detection.entities.filter(
+    (entity: SecurityEntity): boolean => {
+      return (
+        isDetectionRuleExceptionEntityType(entity.type) &&
+        Boolean(entity.value && entity.value.trim())
+      );
+    },
+  );
+
+  const groupValue: string = (detection.groupValue || "").trim().toLowerCase();
+
+  if (groupValue) {
+    const grouped: SecurityEntity | undefined = skippable.find(
+      (entity: SecurityEntity): boolean => {
+        return entity.value.trim().toLowerCase() === groupValue;
+      },
+    );
+
+    if (grouped) {
+      return grouped;
+    }
+  }
+
+  return skippable[0] || null;
 }

@@ -87,7 +87,7 @@ const AppServiceSetupTab: FunctionComponent<ComponentProps> = (
         title={APP_SERVICE_SETUP_TITLE}
         description={APP_SERVICE_SETUP_DESCRIPTION}
         icon={IconProp.Code}
-        newKeyName={translationKey("Cloud key")}
+        newKeyName={translationKey("App Service key")}
         optionsLabel={APP_SERVICE_SETUP_OPTIONS_LABEL}
         options={APP_SERVICE_STACK_OPTIONS}
         getContent={(context: SetupGuideRenderContext): SetupGuideContent => {

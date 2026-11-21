@@ -5,6 +5,7 @@ import {
   DETECTION_RULE_NEEDS_ATTENTION,
   DETECTION_RULE_REAL_TIME,
   DETECTION_RULE_RUN_FAILED,
+  DETECTION_RULE_RUN_FAILED_TRIED_AGAIN,
   DETECTION_RULE_WAITING,
   LAST_ERROR_LABEL,
   LAST_MATCH_ERROR_LABEL,
@@ -236,12 +237,15 @@ describe("a detection rule's Status", () => {
       }),
     );
 
-    expect(status).toBe(DETECTION_RULE_RUN_FAILED);
+    // A scheduled run backs off, and the run that works checks what it missed (#10490).
+    expect(status).toBe(DETECTION_RULE_RUN_FAILED_TRIED_AGAIN);
     expect(status.text).toBe("Run failed");
     expect(status.color).toBe(Red);
     expect(status.tooltip).toBe(
-      "The last run failed. Open View Error for the full message.",
+      "The last run failed. It is tried again at its next interval, or within the hour if that is longer, and then checks every event it missed. Open View Error for the full message.",
     );
+    // The same words as any failed run, beside what is said of the retry.
+    expect(status.text).toBe(DETECTION_RULE_RUN_FAILED.text);
   });
 
   test("a run that matched more groups than it opens cases for needs a look, in yellow", () => {
@@ -348,6 +352,7 @@ describe("every Status is worded in every Dashboard language", () => {
     THREAT_INTEL_FEED_NEEDS_ATTENTION,
     THREAT_INTEL_FEED_WAITING,
     DETECTION_RULE_RUN_FAILED,
+    DETECTION_RULE_RUN_FAILED_TRIED_AGAIN,
     DETECTION_RULE_NEEDS_ATTENTION,
     DETECTION_RULE_WAITING,
     DETECTION_RULE_REAL_TIME,

@@ -55,6 +55,7 @@ const SECURITY_EVENTS: Array<NotificationSettingEventType> = [
   NotificationSettingEventType.SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION,
   NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION,
   NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
+  NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION,
 ];
 
 const DATA_MIGRATIONS_DIR: string = path.resolve(
@@ -410,14 +411,14 @@ describe("AddSecurityCaseNotificationSettingsForUsers with the real helper", () 
 
     await new AddSecurityCaseNotificationSettingsForUsers().migrate();
 
-    // Two members, five settings each.
-    expect(created).toBe(10);
+    // Two members, every security case setting each.
+    expect(created).toBe(2 * SECURITY_EVENTS.length);
     expect(
       (
         UserNotificationSettingService.create as unknown as {
           mock: { calls: Array<unknown> };
         }
       ).mock.calls.length,
-    ).toBe(10);
+    ).toBe(2 * SECURITY_EVENTS.length);
   });
 });

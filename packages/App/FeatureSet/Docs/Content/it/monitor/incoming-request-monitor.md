@@ -386,6 +386,8 @@ Un webhook descrive solo ciò che c'è in quel payload, quindi OneUptime non ris
 1. **Field that signals recovery** e **Value that means recovered** sono impostati e corrispondono al payload. Il confronto è esatto e sensibile a maiuscole e minuscole: `Resolved` non corrisponde a `resolved`.
 2. L'incidente del criterio ha **Risoluzione automatica dell'incidente** attiva, sotto **Altri campi** nel modulo dell'incidente. Senza questa opzione, gli eventi di ripristino corrispondenti vengono ignorati e gli incidenti restano aperti. (Lo stesso vale per gli avvisi e **Risoluzione automatica dell'avviso**.) Il criterio offline predefinito la ha attiva fin dall'inizio; un incidente che aggiungete voi a un criterio parte con l'opzione disattivata.
 
+Anche un avviso che aggiungete voi a un criterio parte con **Risoluzione automatica dell'avviso** disattivata, quindi un ripristino lascia l'avviso aperto finché l'opzione non viene attivata. **Auto-resolve each incident when…** indica quali incidenti e avvisi del criterio un ripristino risolve, e nomina ciascuno di quelli che lascerebbe aperti, con un pulsante che attiva la relativa opzione. La scheda **Riepilogo del monitor** nella **Panoramica** del monitor nomina ogni incidente e avviso che un ripristino ha lasciato aperto, e perché.
+
 **Max incidents per request** limita l'estrazione, non solo la creazione. Anche per il ripristino le chiavi oltre il limite sono invisibili, quindi in un payload con più chiavi distinte del limite, un avviso che riporta `resolved` oltre quel limite non chiuderà il suo incidente.
 
 > [!NOTE]

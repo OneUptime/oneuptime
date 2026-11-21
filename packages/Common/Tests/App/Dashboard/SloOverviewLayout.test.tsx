@@ -526,8 +526,15 @@ describe("SLO overview details sidebar", () => {
       within(details).getByText(storedSlo.description!),
     ).toBeInTheDocument();
     expect(within(details).getByText("Customer facing")).toBeInTheDocument();
+    /*
+     * The details end with the SLO's record line (its ID, who created it and
+     * who last modified it, #10290), under the fields' grid.
+     */
     const fields: HTMLElement =
-      details.querySelector<HTMLElement>("#slo-details")!;
+      details.querySelector<HTMLElement>("#slo-details > div")!;
+    expect(
+      within(details).getByTestId("detail-record-line"),
+    ).toBeInTheDocument();
     // One column at every width: no wider grid from any breakpoint.
     expect(fields).toHaveClass("grid-cols-1");
     expect(fields.className).not.toMatch(/(^|\s)(sm|md|lg|xl):grid-cols-[2-9]/);
@@ -543,6 +550,15 @@ describe("SLO overview details sidebar", () => {
         modelType: ServiceLevelObjective,
         id: SLO_ID,
         select: {
+          // Who created it and who last modified it, for its record line.
+          createdAt: true,
+          createdByActorType: true,
+          createdByActorId: true,
+          createdByUser: { name: true, email: true },
+          lastModifiedAt: true,
+          lastModifiedByActorType: true,
+          lastModifiedByActorId: true,
+          lastModifiedByUser: { name: true, email: true },
           _id: true,
           name: true,
           description: true,

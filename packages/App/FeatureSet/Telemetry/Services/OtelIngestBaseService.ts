@@ -4852,18 +4852,24 @@ export default abstract class OtelIngestBaseService {
     attributes: JSONArray,
   ): RumClientKind | null {
     /*
-     * Stamped on everything a Mobile ingestion key writes (issue #6457,
-     * PinMobileRumResource): its app's mobile RUM, whatever else the
-     * resource carried - read first, so a copied key's browser.* or host
-     * attributes never file it as anything else.
+     * Stamped on everything a public ingestion key writes
+     * (PinRumClientResource): a Mobile key's is its app's mobile RUM
+     * (issue #6457), a Browser key's its page's browser RUM (issue #10539),
+     * whatever else the resource carried - read first, so a copied key's
+     * other client's attributes or a resource with no browser.* at all
+     * never file it as anything else, a backend Service included.
      */
-    if (
-      this.getStringAttribute(
-        attributes,
-        RUM_CLIENT_KIND_RESOURCE_ATTRIBUTE,
-      ) === RUM_CLIENT_KIND_MOBILE
-    ) {
+    const stampedClientKind: string | null = this.getStringAttribute(
+      attributes,
+      RUM_CLIENT_KIND_RESOURCE_ATTRIBUTE,
+    );
+
+    if (stampedClientKind === RUM_CLIENT_KIND_MOBILE) {
       return RUM_CLIENT_KIND_MOBILE;
+    }
+
+    if (stampedClientKind === RUM_CLIENT_KIND_BROWSER) {
+      return RUM_CLIENT_KIND_BROWSER;
     }
 
     const hasBrowser: boolean = Boolean(
