@@ -3,6 +3,7 @@ import Text from "../../Types/Text";
 import { isSensitiveSampleKey } from "../../Types/Workflow/StepSamples";
 import { tableNameToWords } from "../../UI/Components/Workflow/ComponentPicker/PickerCatalog";
 import { splitCapitalRunsBeforeWords } from "../../Utils/CapitalRuns";
+import { getDeleteChoiceExampleValue } from "../../Utils/DeveloperDocs/DeleteChoices";
 import { toTerraformSnakeCase } from "../../Utils/DeveloperDocs/TerraformSchema";
 import { generatedTexts } from "../Helpers/GeneratedTexts";
 import { fastestRun } from "../Helpers/FastestRun";
@@ -93,6 +94,15 @@ describe("a long run of capitals is split quickly", () => {
           },
         ],
         [
+          "the ID a delete's choice names in an example (#10119)",
+          (): unknown => {
+            return getDeleteChoiceExampleValue({
+              key: "workflowsRunAsInsteadRoleId",
+              relatedTableName: text,
+            });
+          },
+        ],
+        [
           "a database column named in an error",
           (): unknown => {
             return (
@@ -180,5 +190,77 @@ describe("the separator goes where the pattern put it", () => {
       "Status Page SMTP Config",
     );
     expect(isSensitiveSampleKey("AWSSecretAccessKey")).toBe(true);
+    // A table as the API's path and the CLI's command write it (#10119).
+    expect(
+      getDeleteChoiceExampleValue({ key: "x", relatedTableName: "CustomRole" }),
+    ).toBe("<custom-role-id>");
+    expect(
+      getDeleteChoiceExampleValue({
+        key: "x",
+        relatedTableName: "OIDCProvider",
+      }),
+    ).toBe("<oidc-provider-id>");
+    expect(
+      getDeleteChoiceExampleValue({
+        key: "x",
+        relatedTableName: "StatusPageSMTPConfig",
+      }),
+    ).toBe("<status-page-smtp-config-id>");
+    expect(
+      getDeleteChoiceExampleValue({ key: "x", relatedTableName: "APIKey" }),
+    ).toBe("<api-key-id>");
+    expect(getDeleteChoiceExampleValue({ key: "workflowsRunAs" })).toBe(
+      "<workflows-run-as>",
+    );
+  });
+
+  /*
+   * A delete's choice names a table as the API's path and the CLI write it
+   * (#10119): a hyphen between two words and before the word a run of
+   * capitals ends in, as its two patterns put them.
+   */
+  test("a delete's choice names a table where its two patterns did, on forty thousand drawn names", () => {
+    const asThePatternsWroteIt: (name: string) => string = (
+      name: string,
+    ): string => {
+      return name
+        .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+        .replace(
+          new RegExp(CAPITAL_RUN_BEFORE_WORD_BEFORE.source, "g"),
+          "$1-$2",
+        )
+        .toLowerCase();
+    };
+    const differences: Array<string> = [];
+    let split: number = 0;
+
+    for (const name of generatedTexts(
+      40000,
+      10119,
+      ["A", "B", "Z", "a", "z", "0", "9", "-", "ID", "OIDC", "Role", "SSO"],
+      10,
+    )) {
+      // No name is no related table: the choice is named by its key.
+      if (!name) {
+        continue;
+      }
+
+      const written: string = asThePatternsWroteIt(name);
+      const expected: string = `<${written}-id>`;
+
+      if (written !== name.toLowerCase()) {
+        split++;
+      }
+
+      if (
+        getDeleteChoiceExampleValue({ key: "x", relatedTableName: name }) !==
+        expected
+      ) {
+        differences.push(JSON.stringify(name));
+      }
+    }
+
+    expect(differences).toEqual([]);
+    expect(split).toBeGreaterThan(10000);
   });
 });
