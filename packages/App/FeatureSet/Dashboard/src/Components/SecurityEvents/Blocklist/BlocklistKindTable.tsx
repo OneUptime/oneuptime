@@ -60,6 +60,17 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * File), refusing the project's own and protected values.
  */
 
+/*
+ * A tab's table id, which is also where a person's columns are kept: the
+ * addresses' as it was before the other kinds came (#10346), so nobody's
+ * saved columns reset.
+ */
+export function getBlocklistTableId(kind: BlocklistKind): string {
+  return kind === BlocklistKind.Addresses
+    ? "security-blocklist-table"
+    : `security-blocklist-table-${kind}`;
+}
+
 // The actions a tab's filter offers: an address is challenged, a file quarantined.
 export function getBlocklistActionFilterOptions(
   kind: BlocklistKind,
@@ -116,9 +127,13 @@ const BlocklistKindTable: FunctionComponent<ComponentProps> = (
     <>
       <ModelTable<SecurityBlock>
         modelType={SecurityBlock}
-        id={`security-blocklist-table-${props.kind}`}
-        name={`Security Events > Blocklist > ${props.kind}`}
-        userPreferencesKey={`security-blocklist-table-${props.kind}`}
+        id={getBlocklistTableId(props.kind)}
+        name={
+          props.kind === BlocklistKind.Addresses
+            ? "Security Events > Blocklist"
+            : `Security Events > Blocklist > ${props.kind}`
+        }
+        userPreferencesKey={getBlocklistTableId(props.kind)}
         singularName={words.singular}
         pluralName={words.plural}
         createVerb={BLOCK_VERB}

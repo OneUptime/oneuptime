@@ -1,5 +1,6 @@
 import { BlockValueCheck, checkBlockValue } from "./BlocklistApi";
 import {
+  BLOCKLIST_KIND_DEFAULT_DURATIONS,
   BLOCKLIST_KIND_WORDS,
   BlocklistKind,
   BlocklistKindWords,
@@ -35,7 +36,6 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import {
-  SECURITY_BLOCK_DEFAULT_DURATION,
   SECURITY_BLOCK_EXPIRING_DURATIONS,
   SecurityBlockAction,
   SecurityBlockDuration,
@@ -241,7 +241,7 @@ const BlockAddressModal: FunctionComponent<ComponentProps> = (
       isAdmin && values[UNTIL_LIFTED_FIELD] === true;
     const duration: SecurityBlockDuration =
       (values[EXPIRES_FIELD] as SecurityBlockDuration) ||
-      SECURITY_BLOCK_DEFAULT_DURATION;
+      BLOCKLIST_KIND_DEFAULT_DURATIONS[kind];
 
     const request: { action: SecurityBlockAction; reach: SecurityBlockReach } =
       getBlockRequest({ kind, values });
@@ -414,11 +414,15 @@ const BlockAddressModal: FunctionComponent<ComponentProps> = (
       formProps={{
         name: words.blockTitle,
         initialValues: typed || {
-          [EXPIRES_FIELD]: SECURITY_BLOCK_DEFAULT_DURATION,
-          [ACTION_FIELD]: SecurityBlockAction.Block,
+          [EXPIRES_FIELD]: BLOCKLIST_KIND_DEFAULT_DURATIONS[kind],
           [UNTIL_LIFTED_FIELD]: false,
-          [EVERY_MACHINE_FIELD]: false,
-          [QUARANTINE_FIELD]: true,
+          ...(kind === BlocklistKind.Addresses
+            ? {
+                [ACTION_FIELD]: SecurityBlockAction.Block,
+                [EVERY_MACHINE_FIELD]: false,
+              }
+            : {}),
+          ...(kind === BlocklistKind.Files ? { [QUARANTINE_FIELD]: true } : {}),
         },
         fields: [
           {

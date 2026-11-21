@@ -64,6 +64,26 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+// What the project's blocklist holds, for the case's values (#10346): nothing connected, unless a test says.
+const readCaseBlocklistMock: MockFunction = getJestMockFunction();
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistApi",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistApi",
+    ) as Record<string, unknown>;
+
+    return {
+      __esModule: true,
+      ...actual,
+      readCaseBlocklist: (...args: Array<unknown>) => {
+        return readCaseBlocklistMock(...args);
+      },
+    };
+  },
+);
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleExceptions/AddRuleExceptionModal",
   () => {
@@ -77,7 +97,19 @@ jest.mock(
   },
 );
 
-import SecurityCaseResponsePlanCard from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponsePlanCard";
+import SecurityCaseResponsePlanCard, {
+  getBlockableValues,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponsePlanCard";
+import { readResponseBlocklist } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistApi";
+import SecurityBlock from "../../../Models/DatabaseModels/SecurityBlock";
+import {
+  SecurityBlockAction,
+  SecurityBlockIndicatorType,
+  SecurityBlockReach,
+} from "../../../Types/SecurityBlocklist/SecurityBlock";
+import { SecurityBlockDestinationProvider } from "../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
+import { SecurityBlockHolder } from "../../../Types/SecurityBlocklist/SecurityBlockHolders";
+import Toast from "../../../UI/Utils/Toast";
 import {
   RESPONSE_STEP_CHECK_SELECT,
   RESPONSE_TASK_SELECT,
@@ -316,6 +348,8 @@ beforeEach(() => {
   createMock.mockResolvedValue({} as never);
   updateByIdMock.mockReset();
   updateByIdMock.mockResolvedValue({} as never);
+  readCaseBlocklistMock.mockReset();
+  readCaseBlocklistMock.mockResolvedValue({ holders: [], blocks: [] } as never);
 });
 
 afterEach(() => {
@@ -1112,5 +1146,311 @@ describe("what OneUptime found when it checked a step", () => {
       expect.objectContaining({ modelType: SecurityCaseStepCheck }),
       expect.any(Function),
     );
+  });
+});
+
+// ---------- Blocking on every machine, one click (#10346) ----------
+
+describe("a domain, a file and a command-and-control address, blocked on every machine", () => {
+  const DOMAIN: string = "evil.example";
+  const SHA256: string =
+    "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f";
+
+  const DEFENDER: SecurityBlockHolder = {
+    name: "Microsoft Defender",
+    provider: SecurityBlockDestinationProvider.MicrosoftDefender,
+    enforcesOnEveryMachine: true,
+    blocks: [
+      SecurityBlockIndicatorType.IpAddress,
+      SecurityBlockIndicatorType.Domain,
+      SecurityBlockIndicatorType.Url,
+      SecurityBlockIndicatorType.FileSha256,
+      SecurityBlockIndicatorType.FileSha1,
+      SecurityBlockIndicatorType.FileMd5,
+    ],
+    quarantinesFiles: true,
+  };
+
+  function caseAbout(): SecurityCase {
+    return buildCase({
+      entities: [
+        { type: SecurityEntityType.IpAddress, value: "35.196.249.14" },
+        { type: SecurityEntityType.Domain, value: DOMAIN },
+        { type: SecurityEntityType.FileHash, value: SHA256 },
+        { type: SecurityEntityType.User, value: "k.morgan@acme.example" },
+      ] as never,
+      mitreTactics: ["TA0011"],
+    });
+  }
+
+  test("asks the blocklist about the case's addresses, domains and files, each once", () => {
+    expect(
+      getBlockableValues([
+        { type: SecurityEntityType.IpAddress, value: " 35.196.249.14 " },
+        { type: SecurityEntityType.Domain, value: DOMAIN },
+        { type: SecurityEntityType.Domain, value: DOMAIN },
+        { type: SecurityEntityType.FileHash, value: SHA256 },
+        { type: SecurityEntityType.User, value: "k.morgan@acme.example" },
+        { type: SecurityEntityType.Domain, value: "  " },
+      ]),
+    ).toEqual(["35.196.249.14", DOMAIN, SHA256]);
+  });
+
+  test("with Microsoft Defender connected, each is one click, named for the product", async () => {
+    readCaseBlocklistMock.mockResolvedValue({
+      holders: [DEFENDER],
+      blocks: [],
+    } as never);
+
+    await drawn(caseAbout());
+
+    expect(readCaseBlocklistMock).toHaveBeenCalledWith([
+      "35.196.249.14",
+      DOMAIN,
+      SHA256,
+    ]);
+    expect(stepOf(`contain:block-domain:${DOMAIN}`)).toHaveTextContent(
+      `Block ${DOMAIN} on every machine with Microsoft Defender.`,
+    );
+    expect(actionOf(`contain:block-domain:${DOMAIN}`)).toHaveTextContent(
+      "Block for 7 Days",
+    );
+    expect(stepOf(`contain:quarantine-file:${SHA256}`)).toHaveTextContent(
+      `Block and quarantine the file ${SHA256} with Microsoft Defender.`,
+    );
+    expect(actionOf(`contain:quarantine-file:${SHA256}`)).toHaveTextContent(
+      "Block File",
+    );
+    expect(
+      stepOf("contain:block-ip-everywhere:35.196.249.14"),
+    ).toHaveTextContent(
+      "Block 35.196.249.14 on every machine with Microsoft Defender.",
+    );
+  });
+
+  test("a click blocks the domain for 7 days, for the case, on every machine, and says so", async () => {
+    readCaseBlocklistMock.mockResolvedValue({
+      holders: [DEFENDER],
+      blocks: [],
+    } as never);
+    const toast: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(Toast, "success")
+      .mockImplementation(() => {
+        return "";
+      });
+    const before: number = Date.now();
+
+    await drawn(caseAbout());
+
+    const readsBefore: number = readCaseBlocklistMock.mock.calls.length;
+
+    await act(async () => {
+      fireEvent.click(actionOf(`contain:block-domain:${DOMAIN}`));
+    });
+
+    expect(createMock).toHaveBeenCalledTimes(1);
+
+    const made: SecurityBlock = (
+      createMock.mock.calls[0]![0] as { model: SecurityBlock }
+    ).model;
+
+    expect(made.value).toBe(DOMAIN);
+    expect(made.action).toBe(SecurityBlockAction.Block);
+    expect(made.reach).toBe(SecurityBlockReach.Everywhere);
+    expect(made.securityCaseId?.toString()).toBe(CASE_ID);
+
+    const end: number = new Date(made.expiresAt as Date).getTime();
+    expect(end).toBeGreaterThanOrEqual(before + 7 * 24 * 60 * 60 * 1000);
+    expect(end).toBeLessThanOrEqual(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    expect(toast).toHaveBeenCalledWith(
+      `${DOMAIN} is on the blocklist. The step is done once it is blocked on every machine.`,
+    );
+    // The plan reads the blocklist again: the step waits for Defender to hold it.
+    await waitFor(() => {
+      expect(readCaseBlocklistMock.mock.calls.length).toBeGreaterThan(
+        readsBefore,
+      );
+    });
+  });
+
+  test("a file is blocked and quarantined, for 30 days", async () => {
+    readCaseBlocklistMock.mockResolvedValue({
+      holders: [DEFENDER],
+      blocks: [],
+    } as never);
+    jest.spyOn(Toast, "success").mockImplementation(() => {
+      return "";
+    });
+    const before: number = Date.now();
+
+    await drawn(caseAbout());
+
+    await act(async () => {
+      fireEvent.click(actionOf(`contain:quarantine-file:${SHA256}`));
+    });
+
+    const made: SecurityBlock = (
+      createMock.mock.calls[0]![0] as { model: SecurityBlock }
+    ).model;
+
+    expect(made.action).toBe(SecurityBlockAction.BlockAndQuarantine);
+    expect(new Date(made.expiresAt as Date).getTime()).toBeGreaterThanOrEqual(
+      before + 30 * 24 * 60 * 60 * 1000,
+    );
+  });
+
+  test("a block the server refuses says why, and the step stays to do", async () => {
+    readCaseBlocklistMock.mockResolvedValue({
+      holders: [DEFENDER],
+      blocks: [],
+    } as never);
+    createMock.mockRejectedValue(
+      new Error(
+        "Blocking acme.com would also block status.acme.com. status.acme.com is the domain of your status page Acme Status.",
+      ) as never,
+    );
+
+    await drawn(caseAbout());
+
+    await act(async () => {
+      fireEvent.click(actionOf(`contain:block-domain:${DOMAIN}`));
+    });
+
+    expect(
+      await screen.findByText(
+        "Blocking acme.com would also block status.acme.com. status.acme.com is the domain of your status page Acme Status.",
+        { exact: false },
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("on the blocklist and held by nothing yet, the step waits; held, it is done", async () => {
+    readCaseBlocklistMock.mockResolvedValue({
+      holders: [DEFENDER],
+      blocks: [
+        {
+          value: DOMAIN,
+          reach: SecurityBlockReach.Everywhere,
+          action: SecurityBlockAction.Block,
+          enforcedAt: [],
+        },
+        {
+          value: SHA256,
+          reach: SecurityBlockReach.Everywhere,
+          action: SecurityBlockAction.BlockAndQuarantine,
+          enforcedAt: ["Microsoft Defender"],
+        },
+      ],
+    } as never);
+
+    await drawn(caseAbout());
+
+    expect(stepOf(`contain:block-domain:${DOMAIN}`)).toHaveTextContent(
+      "On the blocklist, waiting for Microsoft Defender to hold it.",
+    );
+    expect(
+      within(stepOf(`contain:block-domain:${DOMAIN}`)).queryByTestId(
+        SECURITY_CASE_RESPONSE_TEST_IDS.action,
+      ),
+    ).toBeNull();
+    expect(
+      within(stepOf(`contain:quarantine-file:${SHA256}`)).queryByTestId(
+        SECURITY_CASE_RESPONSE_TEST_IDS.action,
+      ),
+    ).toBeNull();
+  });
+
+  test("a blocklist that cannot be read leaves them to be done by hand", async () => {
+    readCaseBlocklistMock.mockRejectedValue(new Error("down") as never);
+
+    await drawn(caseAbout());
+
+    expect(stepOf(`contain:block-domain:${DOMAIN}`)).toHaveTextContent(
+      `Block ${DOMAIN} at your DNS filter or web proxy.`,
+    );
+    expect(
+      stepOf("contain:block-ip-everywhere:35.196.249.14"),
+    ).toHaveTextContent(
+      "Block 35.196.249.14 on every machine too, at your EDR or egress firewall, so none of them can reach it.",
+    );
+  });
+
+  test("a case with nothing to block never asks the blocklist", async () => {
+    await drawn(
+      buildCase({
+        entities: [
+          { type: SecurityEntityType.User, value: "k.morgan@acme.example" },
+        ] as never,
+      }),
+    );
+
+    expect(readCaseBlocklistMock).not.toHaveBeenCalled();
+  });
+
+  test("whoever may not block sees the button locked, saying why", async () => {
+    permissions = [Permission.SecurityViewer];
+    readCaseBlocklistMock.mockResolvedValue({
+      holders: [DEFENDER],
+      blocks: [],
+    } as never);
+
+    await drawn(caseAbout());
+
+    expect(actionOf(`contain:block-domain:${DOMAIN}`)).toBeDisabled();
+  });
+});
+
+describe("the blocklist as the plan reads it", () => {
+  test("keeps what it can read, and reads the rest as nothing", () => {
+    expect(
+      readResponseBlocklist({
+        holders: [
+          {
+            name: "Microsoft Defender",
+            provider: "MicrosoftDefender",
+            enforcesOnEveryMachine: true,
+            blocks: ["Domain", "NotAKind"],
+            quarantinesFiles: true,
+          },
+          { provider: "NoName" },
+          "not an object",
+        ],
+        blocks: [
+          {
+            value: "evil.example",
+            reach: "Everywhere",
+            action: "Block",
+            enforcedAt: ["Microsoft Defender", 7],
+          },
+          { value: "198.51.100.7", reach: "Somewhere", action: "Smite" },
+          { reach: "Edge" },
+        ],
+      } as unknown as JSONObject),
+    ).toEqual({
+      holders: [
+        {
+          name: "Microsoft Defender",
+          provider: "MicrosoftDefender",
+          enforcesOnEveryMachine: true,
+          blocks: [SecurityBlockIndicatorType.Domain],
+          quarantinesFiles: true,
+        },
+      ],
+      blocks: [
+        {
+          value: "evil.example",
+          reach: SecurityBlockReach.Everywhere,
+          action: SecurityBlockAction.Block,
+          enforcedAt: ["Microsoft Defender"],
+        },
+        {
+          value: "198.51.100.7",
+          reach: SecurityBlockReach.Edge,
+          action: SecurityBlockAction.Block,
+          enforcedAt: [],
+        },
+      ],
+    });
   });
 });

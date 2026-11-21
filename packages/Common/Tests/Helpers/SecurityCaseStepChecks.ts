@@ -6,6 +6,7 @@ import {
   AddressRequestsReading,
 } from "../../Server/Utils/SecurityCase/StepChecks/Evidence/AddressRequests";
 import { ContainmentStateReading } from "../../Server/Utils/SecurityCase/StepChecks/Evidence/ContainmentState";
+import { IndicatorBlockReading } from "../../Server/Utils/SecurityCase/StepChecks/Evidence/IndicatorBlocks";
 import { MonitorsDownReading } from "../../Server/Utils/SecurityCase/StepChecks/Evidence/MonitorsDown";
 import {
   StepCheckCase,
@@ -177,6 +178,8 @@ export interface FakeEvidence {
   appRequests?: Array<AppRequest>;
   coverage?: AddressCoverageReading;
   blocks?: Array<AddressBlockEvidence>;
+  // A value's blocks on the blocklist and where each holds (#10346).
+  indicatorBlocks?: IndicatorBlockReading;
   userState?: ContainmentStateReading;
   hostState?: ContainmentStateReading;
   monitors?: MonitorsDownReading;
@@ -234,6 +237,12 @@ export function fakeEvidence(fake: FakeEvidence = {}): RecordingEvidence {
     ): Promise<Array<AddressBlockEvidence>> => {
       read("readAddressBlocks", address);
       return fake.blocks || [];
+    },
+    readIndicatorBlocks: async (
+      value: string,
+    ): Promise<IndicatorBlockReading> => {
+      read("readIndicatorBlocks", value);
+      return fake.indicatorBlocks || { blocks: [], lastEndedAt: null };
     },
     readUserState: async (user: string): Promise<ContainmentStateReading> => {
       read("readUserState", user);

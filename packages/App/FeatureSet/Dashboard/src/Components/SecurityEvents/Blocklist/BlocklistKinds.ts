@@ -31,8 +31,10 @@ import {
 } from "./BlocklistCopy";
 import {
   SECURITY_BLOCK_ADDRESS_TYPES,
+  SECURITY_BLOCK_DEFAULT_DURATION,
   SECURITY_BLOCK_FILE_TYPES,
   SECURITY_BLOCK_SENTENCES,
+  SecurityBlockDuration,
   SecurityBlockIndicatorType,
   SecurityBlockIndicatorValue,
   SecurityBlockSentence,
@@ -113,6 +115,20 @@ export const BLOCKLIST_KIND_WORDS: Readonly<
   },
 };
 
+/*
+ * How long a tab's dialog blocks for unless chosen: an address for a day -
+ * soon someone else's - a domain or a URL for 7 days and a file for 30, as
+ * the Response Plan's one click blocks them: a file's hash is never anyone
+ * else's.
+ */
+export const BLOCKLIST_KIND_DEFAULT_DURATIONS: Readonly<
+  Record<BlocklistKind, SecurityBlockDuration>
+> = {
+  [BlocklistKind.Addresses]: SECURITY_BLOCK_DEFAULT_DURATION,
+  [BlocklistKind.DomainsAndUrls]: SecurityBlockDuration.SevenDays,
+  [BlocklistKind.Files]: SecurityBlockDuration.ThirtyDays,
+};
+
 // The kinds of value each tab holds.
 export const BLOCKLIST_KIND_TYPES: Readonly<
   Record<BlocklistKind, ReadonlyArray<SecurityBlockIndicatorType>>
@@ -149,6 +165,13 @@ const OTHER_KIND_SENTENCES: Readonly<Record<BlocklistKind, string>> = {
   [BlocklistKind.Files]: NOT_A_FILE_HASH,
 };
 
+// What a tab's field says while nothing is typed.
+const ENTER_SENTENCES: Readonly<Record<BlocklistKind, string>> = {
+  [BlocklistKind.Addresses]: SECURITY_BLOCK_SENTENCES.enterAddress,
+  [BlocklistKind.DomainsAndUrls]: NOT_A_DOMAIN_OR_URL,
+  [BlocklistKind.Files]: NOT_A_FILE_HASH,
+};
+
 /*
  * What is wrong with what was typed in a tab's dialog, as a sentence with
  * its values, or null: the shared rules' answer (missing, not a value,
@@ -162,12 +185,9 @@ export function getBlocklistKindSentence(data: {
 }): SecurityBlockSentence | null {
   const text: string = typeof data.value === "string" ? data.value.trim() : "";
 
-  // Nothing typed, or nothing it could be: this tab's own words for what it takes.
+  // Nothing typed: this tab's own words for what it takes.
   if (!text) {
-    return getSecurityBlockValueSentence({
-      value: text,
-      mayBlockWideRanges: data.mayBlockWideRanges,
-    });
+    return { template: ENTER_SENTENCES[data.kind], values: {} };
   }
 
   const read: SecurityBlockIndicatorValue | null =
