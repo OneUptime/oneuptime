@@ -60,6 +60,10 @@ import {
   SecurityEventLateArrivals,
   parseLateArrivals,
 } from "Common/Types/SecurityEvent/SecurityEventLateArrival";
+import {
+  SecurityEventRetentionStatus,
+  parseSecurityEventRetentionStatus,
+} from "Common/Types/SecurityEvent/SecurityEventRetention";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 
@@ -443,6 +447,17 @@ export default class SecurityCaseApi {
    */
   public static async getLateArrivals(): Promise<SecurityEventLateArrivals | null> {
     return parseLateArrivals(await post("/detection-rule/late-arrivals", {}));
+  }
+
+  /*
+   * How long the project keeps its security events, and the enabled rules
+   * that read further back (POST /detection-rule/retention, #10432). Null
+   * when the answer is not one.
+   */
+  public static async getSecurityEventRetention(): Promise<SecurityEventRetentionStatus | null> {
+    return parseSecurityEventRetentionStatus(
+      await post("/detection-rule/retention", {}),
+    );
   }
 
   /*

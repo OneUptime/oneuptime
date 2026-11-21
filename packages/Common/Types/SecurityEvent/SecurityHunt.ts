@@ -118,6 +118,22 @@ export const SECURITY_HUNT_TIME_RANGES: ReadonlyArray<TimeRange> =
 export const DEFAULT_SECURITY_HUNT_TIME_RANGE: TimeRange =
   TimeRange.PAST_ONE_WEEK;
 
+/*
+ * How far back a hunt's window reaches, in minutes: what the events a
+ * project keeps must cover for it to find all it asks for (#10432). Null
+ * for a range that is not one a hunt searches over.
+ */
+export function getSecurityHuntTimeRangeLengthInMinutes(
+  range: TimeRange | string | null | undefined,
+): number | null {
+  const entry: [TimeRange, number] | undefined =
+    TIME_RANGE_LENGTH_IN_MINUTES.find((item: [TimeRange, number]): boolean => {
+      return item[0] === range;
+    });
+
+  return entry ? entry[1] : null;
+}
+
 export function isSecurityHuntTimeRange(value: unknown): value is TimeRange {
   return SECURITY_HUNT_TIME_RANGES.includes(value as TimeRange);
 }

@@ -84,6 +84,7 @@ import SecurityEventService, {
   DetectionMatchGroup,
 } from "Common/Server/Services/SecurityEventService";
 import DetectionRuleExceptionService from "Common/Server/Services/DetectionRuleExceptionService";
+import SecurityEventRetention from "Common/Server/Utils/SecurityEvent/SecurityEventRetention";
 import {
   buildDetectionRuleExceptionsFilter,
   buildDetectionRuleExceptionsMatch,
@@ -564,6 +565,10 @@ detection:
         jest
           .spyOn(DetectionRuleExceptionService, "findAllBy")
           .mockResolvedValue(rows as never);
+        // How long the project keeps its events: the run reads only those.
+        jest
+          .spyOn(SecurityEventRetention, "getRetentionInDays")
+          .mockResolvedValue(15 as never);
       }
 
       async function retrohunt(

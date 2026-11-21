@@ -13,6 +13,10 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { getArrowOn } from "Common/Types/DirectionArrow";
 import React, { FunctionComponent, ReactElement } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { formatTimespan } from "./Timespan";
+
+// A timespan in its largest whole unit, as these sentences say one (Timespan).
+export { formatTimespan };
 
 /*
  * What a correlation rule looks for, in one sentence: the Detection Rules
@@ -20,49 +24,6 @@ import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparato
  * rule's details. "Fires when Failed sign-in → Successful sign-in happen in
  * this order for the same principalIp within 10 minutes."
  */
-
-const TIMESPAN_UNITS: Array<{
-  seconds: number;
-  plural: { one: string; other: string };
-}> = [
-  {
-    seconds: 7 * 24 * 60 * 60,
-    plural: { one: "{{count}} week", other: "{{count}} weeks" },
-  },
-  {
-    seconds: 24 * 60 * 60,
-    plural: { one: "{{count}} day", other: "{{count}} days" },
-  },
-  {
-    seconds: 60 * 60,
-    plural: { one: "{{count}} hour", other: "{{count}} hours" },
-  },
-  {
-    seconds: 60,
-    plural: { one: "{{count}} minute", other: "{{count}} minutes" },
-  },
-  {
-    seconds: 1,
-    plural: { one: "{{count}} second", other: "{{count}} seconds" },
-  },
-];
-
-// A timespan in its largest whole unit: "10 minutes", "2 weeks".
-export function formatTimespan(
-  seconds: number,
-  translator: Translator,
-): string {
-  for (const unit of TIMESPAN_UNITS) {
-    if (seconds >= unit.seconds && seconds % unit.seconds === 0) {
-      return translator.translatePlural(unit.plural, seconds / unit.seconds);
-    }
-  }
-
-  return translator.translatePlural(
-    { one: "{{count}} second", other: "{{count}} seconds" },
-    seconds,
-  );
-}
 
 /*
  * The sentence names the rules a correlation reads and the fields it groups
