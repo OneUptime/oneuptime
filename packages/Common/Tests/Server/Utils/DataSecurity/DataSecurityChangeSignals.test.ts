@@ -163,6 +163,7 @@ function change(overrides: Partial<PostureChange> = {}): PostureChange {
     cloudResourceId: "",
     eventId: "8b7e0f52-1111-4a5b-9c3d-0e6f1a2b3c4d",
     failed: false,
+    madeByOneUptime: false,
     ...overrides,
   };
 }
@@ -581,6 +582,7 @@ describe("recordPostureChangeSignals", () => {
     expect(result).toEqual({
       changesRead: 5,
       changesMatched: 4,
+      onlyRemovedAccess: 0,
       eventsRecorded: 3,
       isTruncated: false,
     });

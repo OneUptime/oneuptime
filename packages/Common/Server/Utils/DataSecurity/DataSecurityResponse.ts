@@ -25,6 +25,7 @@ import {
   turnOnGcsUniformAccess,
 } from "./Cloud/Gcp/GcpDataSecurityResponse";
 import { DataSecurityResponseOutcome } from "./Cloud/DataSecurityCloudTypes";
+import { getResponseActionStoreFeedMarkdown } from "./DataSecurityResponseFeed";
 import { queueDataSecurityConnectionRead } from "./DataSecurityJobs";
 import DataSecurityRunner from "./DataSecurityRunner";
 import { Gray500, Green500 } from "../../../Types/BrandColors";
@@ -125,15 +126,16 @@ export default class DataSecurityResponse {
     // Green when the store's configuration changed, grey when it was already so.
     const displayColor: Color = outcome.changed ? Green500 : Gray500;
 
+    // The line a change OneUptime made in its own session is tied to (DataSecurityResponseFeed).
     await DataStoreFeedService.createDataStoreFeedItem({
       projectId: data.projectId,
       dataStoreId: data.dataStoreId,
       dataStoreFeedEventType: DataStoreFeedEventType.ResponseActionTaken,
       displayColor: displayColor,
-      feedInfoInMarkdown: (outcome.changed
-        ? mdText`**${data.action}**, through the store's cloud connection: ${outcome.summary} The store is being checked again.`
-        : mdText`**${data.action}** changed nothing: ${outcome.summary}`
-      ).toString(),
+      feedInfoInMarkdown: getResponseActionStoreFeedMarkdown({
+        action: data.action,
+        outcome,
+      }).toString(),
       userId: data.userId,
     });
 
