@@ -165,6 +165,10 @@ describe("the dialog's words", () => {
       [AiOutcomesPart.RemediationFixes]: "Show the incidents and alerts",
       [AiOutcomesPart.PullRequestFixes]: "Show the pull requests",
       [AiOutcomesPart.RootCauses]: "Show the incidents and alerts",
+      // Data Security's numbers open its issues (#10364).
+      [AiOutcomesPart.DataSecurityAnalyses]: "Show the issues",
+      [AiOutcomesPart.DataSecurityChanges]: "Show the issues",
+      [AiOutcomesPart.DataSecurityProposals]: "Show the issues",
     });
   });
 

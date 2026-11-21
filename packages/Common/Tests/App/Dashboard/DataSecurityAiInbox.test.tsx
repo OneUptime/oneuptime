@@ -33,8 +33,10 @@ import {
   DATA_SECURITY_AI_REASON_LINES,
   DATA_SECURITY_AI_SKIP_SENTENCES,
   DataSecurityAiPageCopy,
+  DataSecurityAiRulesCopy,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityAiCopy";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import DataSecurityAiDecision from "../../../Models/DatabaseModels/DataSecurityAiDecision";
 import DataSecurityAiProposal from "../../../Models/DatabaseModels/DataSecurityAiProposal";
 import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue";
@@ -44,8 +46,10 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { DATA_SECURITY_API_ROUTES } from "../../../Types/DataSecurity/DataSecurityApiTypes";
+import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import {
   DataSecurityAiAskReason,
+  DataSecurityAiAutonomy,
   DataSecurityAiProposalKind,
   DataSecurityAiProposalStatus,
   DataSecurityAiWork,
@@ -172,6 +176,7 @@ const WAITING: DataSecurityAiProposal = proposal({
   proofMarkdown: "The issue's own check decides.",
   undoMarkdown: "Undo deletes the scrub rule this made.",
   askReason: DataSecurityAiAskReason.NotProvenSafe,
+  autoRemediationRuleName: "Production stores",
 });
 
 const APPROVED_ONCE: DataSecurityAiProposal = proposal({
@@ -218,6 +223,24 @@ function decision(): DataSecurityAiDecision {
   return row;
 }
 
+function rule(): AutoRemediationRule {
+  const row: AutoRemediationRule = new AutoRemediationRule();
+
+  Object.assign(row, {
+    _id: "3c3c3c3c-0000-4000-8000-000000000001",
+    projectId: new ObjectID(PROJECT_ID),
+    name: "Production stores",
+    triggerEntityType: AutoRemediationTriggerEntity.DataSecurityIssue,
+    isEnabled: true,
+    dataSecurityAnalyze: DataSecurityAiAutonomy.WithoutAsking,
+    dataSecurityContain: DataSecurityAiAutonomy.Suggest,
+    dataSecurityFix: DataSecurityAiAutonomy.Off,
+    dataSecurityJudge: DataSecurityAiAutonomy.Suggest,
+  });
+
+  return row;
+}
+
 interface ListCall {
   model: string;
   query: Record<string, unknown>;
@@ -232,6 +255,7 @@ interface PostCall {
 let project: Record<string, unknown> = {};
 let proposals: Array<DataSecurityAiProposal> = [];
 let decisions: Array<DataSecurityAiDecision> = [];
+let rules: Array<AutoRemediationRule> = [];
 let listCalls: Array<ListCall> = [];
 let posts: Array<PostCall> = [];
 // What Data Security's routes answer to a press, when they refuse it.
@@ -268,6 +292,7 @@ beforeEach(() => {
   };
   proposals = [WAITING, APPROVED_ONCE, MADE];
   decisions = [decision()];
+  rules = [rule()];
   listCalls = [];
   posts = [];
   refusal = null;
@@ -304,6 +329,12 @@ beforeEach(() => {
         if (request.modelType === DataSecurityAiProposal) {
           rows = proposals.filter((row: DataSecurityAiProposal): boolean => {
             return row.status === query["status"];
+          });
+        }
+
+        if (request.modelType === AutoRemediationRule) {
+          rows = rules.filter((row: AutoRemediationRule): boolean => {
+            return row.triggerEntityType === query["triggerEntityType"];
           });
         }
 
@@ -479,6 +510,9 @@ describe("Data Security → AI", () => {
     expect(waiting).toHaveTextContent(APPROVED_ONCE.title!);
     expect(waiting).not.toHaveTextContent(MADE.title!);
     expect(waiting).toHaveTextContent("Contain");
+    // Which rule decided each: one by name, the other the project's defaults.
+    expect(waiting).toHaveTextContent("Production stores");
+    expect(waiting).toHaveTextContent(DataSecurityAiRulesCopy.projectDefaults);
 
     const done: HTMLElement = await list(
       DataSecurityAiPageCopy.doneTitle,
@@ -532,6 +566,126 @@ describe("Data Security → AI", () => {
         );
       }),
     ).toBe(true);
+  });
+
+  test("AI Rules lists Data Security's rules only, each with what every kind of work may do", async () => {
+    await openPage();
+
+    const card: HTMLElement = await list(
+      DataSecurityAiRulesCopy.title,
+      "Production stores",
+    );
+
+    expect(card).toHaveTextContent("Analyze: Without asking");
+    expect(card).toHaveTextContent("Contain: Suggest");
+    expect(card).toHaveTextContent("Fix: Off");
+    expect(card).toHaveTextContent("Judge: Suggest");
+    expect(
+      listCalls.some((call: ListCall): boolean => {
+        return (
+          call.model === "AutoRemediationRule" &&
+          call.query["triggerEntityType"] ===
+            AutoRemediationTriggerEntity.DataSecurityIssue
+        );
+      }),
+    ).toBe(true);
+  });
+
+  test("Create AI Rule starts from the project's defaults, and saves a Data Security rule that starts on", async () => {
+    const saved: Array<AutoRemediationRule> = [];
+
+    jest
+      .spyOn(ModelAPI, "createOrUpdate")
+      .mockImplementation(async (data: unknown): Promise<never> => {
+        const model: AutoRemediationRule = (
+          data as { model: AutoRemediationRule }
+        ).model;
+
+        saved.push(model);
+
+        return {
+          data: Object.assign(new AutoRemediationRule(), {
+            _id: "3c3c3c3c-0000-4000-8000-000000000002",
+            name: model.name,
+          }),
+        } as never;
+      });
+
+    await openPage();
+
+    const card: HTMLElement = await list(
+      DataSecurityAiRulesCopy.title,
+      "Production stores",
+    );
+
+    fireEvent.click(
+      within(card)
+        .getAllByTestId("card-button")
+        .find((button: HTMLElement): boolean => {
+          return (button.textContent || "").includes("Create AI Rule");
+        })!,
+    );
+
+    const modal: HTMLElement = await screen.findByTestId("modal");
+    const name: HTMLElement = await within(modal).findByPlaceholderText(
+      DataSecurityAiRulesCopy.namePlaceholder,
+    );
+
+    // A rule starts on: its Enabled switch is on the edit form only.
+    expect(modal).not.toHaveTextContent("Enable or disable this rule.");
+    expect(modal).toHaveTextContent(DataSecurityAiRulesCopy.worksSection);
+    expect(modal).toHaveTextContent(DataSecurityAiRulesCopy.matchSection);
+
+    fireEvent.change(name, { target: { value: "Telemetry" } });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(modal).getByRole("button", { name: "Create AI Rule" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(saved).toHaveLength(1);
+    });
+
+    expect(saved[0]!.name).toBe("Telemetry");
+    expect(saved[0]!.triggerEntityType).toBe(
+      AutoRemediationTriggerEntity.DataSecurityIssue,
+    );
+    expect(saved[0]!.dataSecurityAnalyze).toBe(
+      DataSecurityAiAutonomy.WithoutAsking,
+    );
+    expect(saved[0]!.dataSecurityContain).toBe(DataSecurityAiAutonomy.Suggest);
+    expect(saved[0]!.dataSecurityFix).toBe(DataSecurityAiAutonomy.Suggest);
+    expect(saved[0]!.dataSecurityJudge).toBe(DataSecurityAiAutonomy.Suggest);
+    expect(saved[0]!.isEnabled).not.toBe(false);
+  });
+
+  test("a Security Viewer reads what waits, but not the project's AI rules, which take the AI rule permissions", async () => {
+    grant([
+      Permission.Public,
+      Permission.User,
+      Permission.CurrentUser,
+      Permission.ProjectUser,
+      Permission.SecurityViewer,
+    ]);
+    PermissionGate.clearPermissionPropsCache();
+
+    await openPage();
+
+    await list(DataSecurityAiPageCopy.waitingTitle, WAITING.title!);
+    expect(
+      screen
+        .getAllByTestId("card-details-heading")
+        .map((heading: HTMLElement): string => {
+          return (heading.textContent || "").trim();
+        }),
+    ).not.toContain(DataSecurityAiRulesCopy.title);
+    expect(
+      listCalls.some((call: ListCall): boolean => {
+        return call.model === "AutoRemediationRule";
+      }),
+    ).toBe(false);
   });
 
   test("Approve shows what will change, why, how it is proven, how to undo it and why it asks - then approves that plan", async () => {

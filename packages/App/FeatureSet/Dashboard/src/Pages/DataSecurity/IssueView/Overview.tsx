@@ -86,6 +86,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
+import IssueAiCard from "../../../Components/DataSecurity/IssueAiCard";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
@@ -866,6 +867,15 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
           onChanged={() => {
             view.refresh();
           }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {issue._id ? (
+        <IssueAiCard
+          issueId={new ObjectID(issue._id.toString())}
+          hideAnalysis={Boolean(explanation)}
         />
       ) : (
         <></>
