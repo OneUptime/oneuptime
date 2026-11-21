@@ -26,13 +26,15 @@ import {
 } from "../../../Components/Cloud/Connect/CloudConnectionWords";
 import {
   APP_SERVICE_SITE_TYPE,
+  CloudAppKeptSiteSource,
   CloudAppPlatformEnvironment,
-  CloudAppPlatformResourceSource,
   CloudAppSiteMatch,
   CloudAppSiteResolution,
   CloudAppSubscription,
   CloudAppSubscriptionSource,
   fetchCloudAppSiteCandidates,
+  fetchKeptCloudAppSite,
+  getCloudAppSiteMatchOf,
   getCloudAppSiteName,
   getCloudAppSlotName,
   getCloudAppSubscription,
@@ -61,6 +63,11 @@ import {
  * does not read this subscription, a connection turned off or failing, a
  * subscription the app's telemetry does not name, or a connected
  * subscription that holds no App Service app of the app's name.
+ *
+ * The site is the one the server keeps on the app (#10407,
+ * CloudApp.platformCloudResourceId) when it keeps one the reader may read;
+ * else it is looked up here, by the same rules (resolveCloudAppSite), which
+ * also say why none is found.
  *
  * Read with the reader's own permissions (Cloud Resources, Cloud Accounts
  * and Cloud Connections are read by the same roles as App Platforms). The
@@ -398,7 +405,7 @@ async function countSitesInSubscription(
  * the sites could not be read.
  */
 export async function fetchCloudAppAzureLink(data: {
-  app: CloudAppPlatformResourceSource;
+  app: CloudAppKeptSiteSource;
   environment?: CloudAppPlatformEnvironment | null | undefined;
 }): Promise<CloudAppAzureLink | null> {
   const siteName: string = getCloudAppSiteName(data.app);
@@ -426,17 +433,24 @@ export async function fetchCloudAppAzureLink(data: {
     return link;
   }
 
-  const resolution: CloudAppSiteResolution<CloudResource> = resolveCloudAppSite(
-    {
-      app: data.app,
-      candidates: await fetchCloudAppSiteCandidates(data.app),
-      environment: data.environment,
-    },
-  );
+  // The site the server keeps on the app, else the one found here.
+  const kept: CloudResource | null = await fetchKeptCloudAppSite(data.app);
 
-  link.site = resolution.site;
-  link.matchedBy = resolution.matchedBy;
-  link.elsewhere = resolution.elsewhere;
+  if (kept) {
+    link.site = kept;
+    link.matchedBy = getCloudAppSiteMatchOf({ app: data.app, site: kept });
+  } else {
+    const resolution: CloudAppSiteResolution<CloudResource> =
+      resolveCloudAppSite({
+        app: data.app,
+        candidates: await fetchCloudAppSiteCandidates(data.app),
+        environment: data.environment,
+      });
+
+    link.site = resolution.site;
+    link.matchedBy = resolution.matchedBy;
+    link.elsewhere = resolution.elsewhere;
+  }
 
   // Its telemetry names no subscription: the site found by its name does.
   if (!link.subscription && link.site?.providerResourceId) {

@@ -35,7 +35,15 @@ describe("SystemColumns", () => {
     expect([...baseColumnIds].sort()).toEqual([
       "_id",
       "createdAt",
+      // What created the record and who last modified it (#10290).
+      "createdByActorId",
+      "createdByActorType",
       "deletedAt",
+      "lastModifiedAt",
+      "lastModifiedByActorId",
+      "lastModifiedByActorType",
+      "lastModifiedByUser",
+      "lastModifiedByUserId",
       "updatedAt",
       "version",
     ]);

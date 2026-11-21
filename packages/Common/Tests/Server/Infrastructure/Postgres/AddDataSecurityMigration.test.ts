@@ -1,3 +1,4 @@
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import { AddDataSecurity1808500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808500000000-AddDataSecurity";
 import { AddSecurityHunts1808450000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808450000000-AddSecurityHunts";
 import { AddDataSecurityIdentities1808791000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808791000000-AddDataSecurityIdentities";
@@ -257,6 +258,10 @@ function storedColumns(model: BaseModel): Array<string> {
     .concat(["createdAt", "updatedAt", "deletedAt", "version"])
     .filter((column: string, index: number, all: Array<string>): boolean => {
       return all.indexOf(column) === index;
+    })
+    .filter((column: string): boolean => {
+      // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+      return !RecordActorUtil.isColumn(column);
     })
     .sort();
 }

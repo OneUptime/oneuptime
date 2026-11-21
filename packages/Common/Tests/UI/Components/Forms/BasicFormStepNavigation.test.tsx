@@ -349,6 +349,70 @@ describe("BasicForm step navigation", () => {
     expect(handleSubmit).not.toHaveBeenCalled();
   });
 
+  test("opens on the first step its values show, never on a first step its showIf hides", async () => {
+    /*
+     * An edit form whose first step has nothing to ask of this record (a
+     * Cloudflare connection's Connection step: its settings all come after
+     * its credentials) opens on the step after it, not on an empty page.
+     */
+    const handleSubmit: MockFunction = getJestMockFunction();
+    const user: UserEvent = userEvent.setup({ delay: null });
+
+    render(
+      <BasicForm
+        id="hidden-first-step"
+        fields={FIELDS}
+        steps={[
+          { title: "Browser Settings", id: "browser", showIf: isBrowser },
+          { title: "Details", id: "details" },
+          { title: "Confirmation", id: "confirmation" },
+        ]}
+        initialValues={{ kind: "server" }}
+        onSubmit={handleSubmit}
+        submitButtonText="Create"
+        disableAutofocus={true}
+      />,
+    );
+
+    expect(await screen.findByRole("textbox", { name: "Name" })).toBeVisible();
+    expect(
+      screen.queryByRole("textbox", { name: "Origin" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Step 1 of 2");
+    expect(screen.getByRole("status")).toHaveTextContent("Details");
+
+    // And the steps after it follow as before.
+    await enterName();
+    await goNext(user);
+    expect(
+      await screen.findByRole("textbox", { name: "Confirmation Text" }),
+    ).toBeVisible();
+    expect(handleSubmit).not.toHaveBeenCalled();
+  });
+
+  test("a first step its values show is where the form opens, as it always was", async () => {
+    render(
+      <BasicForm
+        id="shown-first-step"
+        fields={FIELDS}
+        steps={[
+          { title: "Browser Settings", id: "browser", showIf: isBrowser },
+          { title: "Details", id: "details" },
+          { title: "Confirmation", id: "confirmation" },
+        ]}
+        initialValues={{ kind: "browser" }}
+        onSubmit={getJestMockFunction()}
+        submitButtonText="Create"
+        disableAutofocus={true}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("textbox", { name: "Origin" }),
+    ).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent("Step 1 of 3");
+  });
+
   test("does not add navigation to a form without steps", async () => {
     render(
       <BasicForm

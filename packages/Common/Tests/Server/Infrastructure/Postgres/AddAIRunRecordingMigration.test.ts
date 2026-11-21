@@ -1,3 +1,4 @@
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import { AddAIRunRecording1809125000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809125000000-AddAIRunRecording";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AIRunRecording from "../../../../Models/DatabaseModels/AIRunRecording";
@@ -132,6 +133,10 @@ describe("the AI Run Recording migration", () => {
     const stored: Array<string> = Object.keys(getTableColumns(recording))
       .filter((column: string): boolean => {
         return !recording.isEntityColumn(column);
+      })
+      .filter((column: string): boolean => {
+        // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+        return !RecordActorUtil.isColumn(column);
       })
       .sort();
 

@@ -116,7 +116,7 @@ Cuanto más larga es la ventana, más ancho es cada tramo de tiempo, así que un
 
 ## Criterios
 
-Estos monitores evalúan siempre el **Valor de la métrica**: el valor agregado de la consulta de métricas o la fórmula configurada. **Cuándo alertar** configura un criterio a partir de **Medido como**, **Ventana de tiempo**, **Condición** y **Valor**. Cuando la métrica tiene unidad, elige la unidad del valor a su lado. Su **Condición** es **Por encima de**, **Igual o por encima de**, **Por debajo de**, **Igual o por debajo de**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo**, **Inusualmente alto o bajo**, **Previsto por encima de** o **Previsto por debajo de**. Para varios criterios, como franjas de gravedad, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Métrica**, una **Agregación**, una **Condición** y un **Umbral**.
+Estos monitores evalúan siempre el **Valor de la métrica**: el valor agregado de la consulta de métricas o la fórmula configurada. **Cuándo alertar** configura un criterio a partir de **Medido como**, **Ventana de tiempo**, **Condición** y **Valor**. Cuando la métrica tiene unidad, elige la unidad del valor a su lado. Su **Condición** es **Por encima de**, **Igual o por encima de**, **Por debajo de**, **Igual o por debajo de**, **Exactamente**, **Distinto de**, **Inusualmente alto**, **Inusualmente bajo**, **Inusualmente alto o bajo**, **Previsto por encima de** o **Previsto por debajo de**. Para varios criterios, como franjas de gravedad, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Métrica**, una **Agregación**, una **Condición** y un **Umbral**.
 
 | Condición | Coincide cuando el valor está… |
 | --- | --- |
@@ -125,6 +125,7 @@ Estos monitores evalúan siempre el **Valor de la métrica**: el valor agregado 
 | **Menor que** | por debajo del umbral |
 | **Menor o igual que** | en el umbral o por debajo |
 | **Igual a** | exactamente en el umbral |
+| **Distinto de** | por encima o por debajo del umbral |
 | **Anómalamente alto** | por encima del rango esperado para esta hora de la semana |
 | **Anómalamente bajo** | por debajo de ese rango |
 | **Anómalo** | fuera de ese rango, en cualquier sentido |

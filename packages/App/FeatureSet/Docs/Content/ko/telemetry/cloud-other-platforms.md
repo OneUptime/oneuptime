@@ -167,11 +167,16 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 # The Key Vault reference, which resolves to the whole header.
 OTEL_EXPORTER_OTLP_HEADERS=@Microsoft.KeyVault(SecretUri=https://my-vault.vault.azure.net/secrets/oneuptime-otlp-headers/)
 OTEL_RESOURCE_ATTRIBUTES=cloud.account.id=00000000-0000-0000-0000-000000000000
-# Node.js:
-OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure
 ```
 
-SDK 감지기는 플랫폼을 점이 들어간 `azure.app_service`로 씁니다. OneUptime은 받을 때 이를 `azure_app_service`로 바꿉니다. .NET에서는 `OpenTelemetry.Resources.Azure`를 추가하고 `.ConfigureResource(r => r.AddAzureAppServiceDetector())`를 호출합니다. 다른 언어에서는 `OTEL_RESOURCE_ATTRIBUTES`에 `cloud.provider=azure,cloud.platform=azure_app_service,cloud.region=<region>`을 추가하고, `service.instance.id`는 코드에서 `WEBSITE_INSTANCE_ID`로 가져옵니다.
+SDK 감지기는 플랫폼을 점이 들어간 `azure.app_service`로 씁니다. OneUptime은 받을 때 이를 `azure_app_service`로 바꿉니다. 스택마다 고유한 App Service 리소스 감지기가 있으며, 각 인스턴스에 이름을 붙이고 `cloud.resource_id`를 사이트 ID로 설정합니다. 이것이 앱을 사이트의 Azure Monitor 수치와 연결합니다. 사용하는 스택의 감지기를 켜세요:
+
+| 스택 | 해당 App Service 리소스 감지기 |
+| --- | --- |
+| .NET | `OpenTelemetry.Resources.Azure`, `.ConfigureResource(r => r.AddAzureAppServiceDetector())` |
+| Java | OpenTelemetry Java 에이전트, `OTEL_RESOURCE_PROVIDERS_AZURE_ENABLED=true` |
+| Node.js | `@opentelemetry/auto-instrumentations-node`, `OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure` |
+| Python | `opentelemetry-resource-detector-azure`, `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=otel,azure_app_service` |
 
 :::steps
 1. 앱의 시스템 할당 관리 ID를 켜고(**Settings → Identity**), 자격 증명 모음에 대한 **Key Vault Secrets User**를 부여합니다. 헤더 전체 `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`을 시크릿 `oneuptime-otlp-headers`로 저장합니다.
@@ -182,9 +187,9 @@ SDK 감지기는 플랫폼을 점이 들어간 `azure.app_service`로 씁니다.
 
 **네트워킹:** **VNet integration**과 **Route All**을 켜지 않았다면 App Service는 인터넷에 바로 닿습니다. 켰다면 VNet에 NAT 게이트웨이나, OneUptime 호스트로 가는 TCP 443을 허용하는 방화벽으로의 경로가 필요합니다.
 
-**앱 페이지에 표시되는 내용:** 요청, 오류율, 지연 시간은 앱의 트레이스에서 나오므로, 로그나 메트릭만 보내는 앱에는 그곳에 **수신된 트레이스 없음**이 표시되고 앱의 **설정 점검**이 무엇을 추가해야 하는지 알려 줍니다. App Service는 앱에 자체 CPU나 메모리를 주지 않으며, CPU와 메모리 타일이 그렇다고 알려 줍니다. **클라우드 → 연결**에서 구독을 연결하면 앱의 **개요**에 **Azure Monitor** 섹션이 추가되어, 앱이 무엇을 보내든 Azure가 측정한 사이트의 요청, 서버 오류와 클라이언트 오류, 응답 시간, CPU 시간, 메모리를 보여 줍니다. 이후 앱의 **인스턴스** 탭에는 Azure가 앱을 실행하는 인스턴스가, **리비전** 탭에는 Azure가 보관하는 배포가 나열됩니다.
+**앱 페이지에 표시되는 내용:** 요청, 오류율, 지연 시간은 앱의 트레이스에서 나오므로, 로그나 메트릭만 보내는 앱에는 그곳에 **수신된 트레이스 없음**이 표시되고 앱의 **설정 점검**이 무엇을 추가해야 하는지 알려 줍니다. App Service는 앱에 자체 CPU나 메모리를 주지 않으며, CPU와 메모리 타일이 그렇다고 알려 줍니다. **클라우드 → 연결**에서 구독을 연결하면 앱의 **개요**에 **Azure Monitor** 섹션이 추가되어, 앱이 무엇을 보내든 Azure가 측정한 사이트의 요청, 서버 오류와 클라이언트 오류, 응답 시간, CPU 시간, 메모리를 보여 줍니다. 이후 앱의 **인스턴스** 탭에는 Azure가 앱을 실행하는 인스턴스가, **리비전** 탭에는 Azure가 보관하는 배포가 나열됩니다. **앱 플랫폼 → 모든 앱**과 환경의 **앱** 탭에서는 트레이스를 보내지 않는 앱이 대신 Azure Monitor의 사이트 수치를 보여 줍니다. Azure가 집계한 요청, 5xx 상태로 응답한 비율, 평균 응답 시간입니다.
 
-앱의 **설정** 탭은 이 설정들을 .NET, Java, Node.js, Python용 Azure Cloud Shell 명령으로 제공하며, 모든 명령에 앱 자체의 이름, 리소스 그룹, 구독이 들어 있습니다. 사이트 자체의 콘솔, HTTP, 플랫폼 로그도 보려면 **클라우드 → 연결**에서 구독 행의 **메트릭 및 로그 스트리밍**을 선택하세요. 로그는 앱의 **로그** 탭에서 **Azure 진단 설정에서** 아래에 표시됩니다.
+앱의 **설정** 탭은 이 설정들을 .NET, Java, Node.js, Python용 Azure Cloud Shell 명령으로 제공하며, 모든 명령에 앱 자체의 이름, 리소스 그룹, 구독이 들어 있습니다. 사이트 자체의 콘솔, HTTP, 플랫폼 로그도 보려면 **클라우드 → 연결**에서 구독 행의 **메트릭 및 로그 스트리밍**을 선택하세요. 로그는 앱의 **로그** 탭에서 **Azure 진단 설정에서** 아래에 표시됩니다. 환경의 설정 가이드도 앱 이름과 리소스 그룹을 자리 표시자로 둔 각 스택의 단계를 제공합니다.
 
 ## Azure Container Instances
 

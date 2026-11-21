@@ -2,6 +2,7 @@ import LogRecordingRule from "../../Models/DatabaseModels/LogRecordingRule";
 import TraceRecordingRule from "../../Models/DatabaseModels/TraceRecordingRule";
 import AllModelTypes from "../../Models/DatabaseModels/Index";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
+import { RECORD_ACTOR_COLUMNS } from "../../Types/Database/RecordActor";
 import Dictionary from "../../Types/Dictionary";
 import Permission, {
   PermissionGroup,
@@ -108,6 +109,8 @@ describe("LogRecordingRule", () => {
         "outputMetricName",
         "project",
         "projectId",
+        // What created each record and who last modified it (#10290).
+        ...RECORD_ACTOR_COLUMNS,
       ].sort(),
     );
 

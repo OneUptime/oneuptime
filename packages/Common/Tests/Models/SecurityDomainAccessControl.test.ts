@@ -5,6 +5,7 @@ import ThreatIntelFeed from "../../Models/DatabaseModels/ThreatIntelFeed";
 import SecurityCase from "../../Models/DatabaseModels/SecurityCase";
 import SecurityCaseFeed from "../../Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "../../Models/DatabaseModels/SecurityCaseNote";
+import SecurityCaseStepCheck from "../../Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityDetection from "../../Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "../../Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "../../Models/DatabaseModels/SecurityPlaybookRun";
@@ -102,6 +103,7 @@ const buildSecurityModels: BuildSecurityModelsFunction =
       new SecurityCase(),
       new SecurityCaseFeed(),
       new SecurityCaseNote(),
+      new SecurityCaseStepCheck(),
       new SecurityDetection(),
       new SecurityPlaybook(),
       new SecurityPlaybookRun(),
@@ -112,6 +114,7 @@ const buildSecurityModels: BuildSecurityModelsFunction =
           | SecurityCase
           | SecurityCaseFeed
           | SecurityCaseNote
+          | SecurityCaseStepCheck
           | SecurityDetection
           | SecurityPlaybook
           | SecurityPlaybookRun
@@ -228,6 +231,7 @@ describe("Security domain access control", () => {
       "SecurityCase",
       "SecurityCaseFeed",
       "SecurityCaseNote",
+      "SecurityCaseStepCheck",
       "SecurityDetection",
       "SecurityEvent",
       "SecurityEventConnection",
@@ -363,6 +367,38 @@ describe("Security domain access control", () => {
    * .secrets, and the move must not have opened it either: it has to be a
    * secret field of the catalog entry, never a (readable) config field.
    */
+  /*
+   * What OneUptime found when it checked a step of a case's Response Plan
+   * itself (#10340) is OneUptime's own account: read like the case, and
+   * written by nobody through the API - not even a Security Admin. A person
+   * who disagrees ticks the step themselves.
+   */
+  test("a Response Plan step's check is read like the case and written by nobody", () => {
+    const model: SecurityCaseStepCheck = new SecurityCaseStepCheck();
+
+    expect(model.readRecordPermissions).toEqual(
+      expect.arrayContaining([
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        ...SECURITY_TIERS,
+      ]),
+    );
+    expect(model.createRecordPermissions).toEqual([]);
+    expect(model.updateRecordPermissions).toEqual([]);
+    expect(model.deleteRecordPermissions).toEqual([]);
+
+    for (const [column, accessControl] of columnsOf(model)) {
+      expect({ column, create: accessControl?.create || [] }).toEqual({
+        column,
+        create: [],
+      });
+      expect({ column, update: accessControl?.update || [] }).toEqual({
+        column,
+        update: [],
+      });
+    }
+  });
+
   test("the Google SecOps service-account key stays unreadable by everyone", () => {
     const definition: SecurityEventConnectorDefinition | undefined =
       getSecurityEventConnectorDefinition(

@@ -98,6 +98,25 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
+/*
+ * The notice about events that arrived too late for the rules reads the
+ * server on its own (SecurityEventsLateArrivalsNotice.test.tsx): a marker
+ * here, so tests can check where the page puts it.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/LateArrivals/LateArrivalsNotice",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return React.createElement("div", {
+          "data-testid": "late-arrivals-notice-marker",
+        });
+      },
+    };
+  },
+);
+
 import DetectionRulesPage, {
   DETECTION_RULE_TUNING_MENU_GROUP,
   DETECTION_RULE_YAML_TOOLS_TEST_ID,
@@ -341,6 +360,26 @@ describe("Detection Rules page", () => {
       expect(card).toHaveTextContent(DetectionRulesGuide.title);
       expect(
         card.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    test("the notice about events that arrived too late for the rules sits between the card and the table (#10491)", () => {
+      renderPage();
+
+      const card: HTMLElement = screen.getByTestId(
+        `how-it-works-${DetectionRulesGuide.id}`,
+      );
+      const notice: HTMLElement = screen.getByTestId(
+        "late-arrivals-notice-marker",
+      );
+      const table: HTMLElement = screen.getByTestId("detection-rules-table");
+
+      expect(
+        card.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        notice.compareDocumentPosition(table) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
     });
 

@@ -78,10 +78,25 @@ jest.mock(
 );
 
 import SecurityCaseResponsePlanCard from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponsePlanCard";
-import { RESPONSE_TASK_SELECT } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponseData";
+import {
+  RESPONSE_STEP_CHECK_SELECT,
+  RESPONSE_TASK_SELECT,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponseData";
 import { SECURITY_CASE_RESPONSE_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponseCopy";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import SecurityCaseTask from "../../../Models/DatabaseModels/SecurityCaseTask";
+import SecurityCaseStepCheck from "../../../Models/DatabaseModels/SecurityCaseStepCheck";
+import { JSONObject } from "../../../Types/JSON";
+import { SecurityCaseStepCheckSentence } from "../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
+import SecurityCaseStepCheckState from "../../../Types/SecurityCase/SecurityCaseStepCheckState";
+import {
+  CHECK_BLOCK_NOT_PROOF,
+  CHECK_BLOCK_QUIET_SINCE,
+  CHECK_BLOCK_REGRESSED,
+  CHECK_CANNOT_NO_TELEMETRY,
+  CHECK_INCIDENT_NOT_NEEDED,
+  CHECK_REQUESTS_ALL_TURNED_AWAY,
+} from "../../../Utils/SecurityCase/ResponsePlan/StepCheckWords";
 import SecurityPlaybook from "../../../Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "../../../Models/DatabaseModels/SecurityPlaybookRun";
 import User from "../../../Models/DatabaseModels/User";
@@ -112,6 +127,9 @@ const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const CASE_ID: string = "22222222-2222-4222-8222-222222222222";
 const RULE_ID: string = "44444444-4444-4444-8444-444444444444";
 const ME: string = "aaaaaaaa-aaaa-4aaa-8aaa-000000000001";
+// Where a step OneUptime cannot tell about sends the reader (StepCheck's STEP_CHECK_DOCS_PATH).
+const STEP_CHECK_DOCS_PATH: string =
+  "/telemetry/security-cases#how-oneuptime-checks-a-step";
 
 let permissions: Array<Permission>;
 let tasks: Array<SecurityCaseTask>;
@@ -730,5 +748,369 @@ describe("a plan that cannot be read", () => {
         screen.getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.error),
       ).toBeInTheDocument();
     });
+  });
+});
+
+/*
+ * WHAT ONEUPTIME FOUND WHEN IT CHECKED A STEP ITSELF (#10340), drawn beside
+ * the step and apart from a person's tick: a chip that says what it found,
+ * the line of its evidence and, under How We Know, the rest and when it
+ * checked. A step that looks done offers Confirm; one it cannot tell about
+ * says why at once, with the docs; one that stopped holding is said at the
+ * top of the card. Checks that cannot be read leave the plan as it was.
+ */
+describe("what OneUptime found when it checked a step", () => {
+  const BLOCK_KEY: string = "contain:block-ip:35.196.249.14";
+  let stepChecks: Array<SecurityCaseStepCheck>;
+  let isChecksFailing: boolean;
+
+  function stepCheck(data: {
+    key: string;
+    state: SecurityCaseStepCheckState;
+    sentence: SecurityCaseStepCheckSentence;
+    facts?: Array<SecurityCaseStepCheckSentence>;
+    docsPath?: string;
+  }): SecurityCaseStepCheck {
+    const check: SecurityCaseStepCheck = new SecurityCaseStepCheck();
+    check._id = ObjectID.generate().toString();
+    check.stepKey = data.key;
+    check.state = data.state;
+    check.evidence = {
+      sentence: data.sentence,
+      facts: data.facts || [],
+      links: [],
+      ...(data.docsPath ? { docsPath: data.docsPath } : {}),
+      data: {},
+    } as unknown as JSONObject;
+    check.checkedAt = new Date("2026-11-17T20:00:00.000Z");
+    check.stateSince = new Date("2026-11-17T20:00:00.000Z");
+    return check;
+  }
+
+  beforeEach(() => {
+    stepChecks = [];
+    isChecksFailing = false;
+
+    const listTheRest: (args: unknown) => Promise<unknown> =
+      getListMock.getMockImplementation() as (
+        args: unknown,
+      ) => Promise<unknown>;
+
+    getListMock.mockImplementation(async (args: unknown) => {
+      if (
+        (args as { modelType: unknown }).modelType === SecurityCaseStepCheck
+      ) {
+        if (isChecksFailing) {
+          throw new Error("You do not have permission to read this.");
+        }
+
+        return { data: stepChecks, count: stepChecks.length };
+      }
+
+      return await listTheRest(args);
+    });
+  });
+
+  test("reads the case's checks with the plan", async () => {
+    await drawn();
+
+    expect(getListMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelType: SecurityCaseStepCheck,
+        query: { securityCaseId: new ObjectID(CASE_ID) },
+        select: RESPONSE_STEP_CHECK_SELECT,
+      }),
+    );
+  });
+
+  test("a step OneUptime verified is done by its check, said apart from a person's tick, with nothing to tick", async () => {
+    stepChecks = [
+      stepCheck({
+        key: "confirm:requests",
+        state: SecurityCaseStepCheckState.Verified,
+        sentence: {
+          template: CHECK_REQUESTS_ALL_TURNED_AWAY,
+          values: { address: "35.196.249.14" },
+          count: 12,
+        },
+      }),
+    ];
+
+    await drawn();
+
+    const requests: HTMLElement = stepOf("confirm:requests");
+
+    expect(requests).toHaveAttribute("data-done", "true");
+    expect(
+      within(requests).getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.checkChip),
+    ).toHaveTextContent("Checked by OneUptime");
+    expect(
+      within(requests).getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.checkLine),
+    ).toHaveAttribute("data-check-state", SecurityCaseStepCheckState.Verified);
+    expect(
+      within(requests).getByText(
+        "All 12 requests from 35.196.249.14 were turned away by your app.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(requests).getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.checkbox),
+    ).toBeDisabled();
+    expect(
+      within(requests).getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.checkbox),
+    ).toHaveAttribute(
+      "title",
+      "OneUptime checked this step itself, so it is not ticked by hand.",
+    );
+    // Verified, its button has nothing left to do.
+    expect(
+      within(requests).queryByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.action),
+    ).toBeNull();
+    expect(
+      screen.getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.progress),
+    ).toHaveTextContent("1 of 8 done, 1 checked by OneUptime");
+  });
+
+  test("How We Know opens what else it saw, and when it checked", async () => {
+    stepChecks = [
+      stepCheck({
+        key: "confirm:requests",
+        state: SecurityCaseStepCheckState.Verified,
+        sentence: {
+          template: CHECK_REQUESTS_ALL_TURNED_AWAY,
+          values: { address: "35.196.249.14" },
+          count: 12,
+        },
+        facts: [{ template: CHECK_BLOCK_NOT_PROOF, values: {} }],
+      }),
+    ];
+
+    await drawn();
+
+    const toggle: HTMLElement = within(stepOf("confirm:requests")).getByTestId(
+      SECURITY_CASE_RESPONSE_TEST_IDS.howWeKnow,
+    );
+
+    expect(toggle).toHaveTextContent("How We Know");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.queryByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.howWeKnowPanel),
+    ).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(toggle);
+    });
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveTextContent("Hide How We Know");
+
+    const panel: HTMLElement = screen.getByTestId(
+      SECURITY_CASE_RESPONSE_TEST_IDS.howWeKnowPanel,
+    );
+
+    expect(panel).toHaveTextContent(
+      "An address that goes quiet may have been blocked, or may simply have stopped: OneUptime cannot tell which.",
+    );
+    expect(panel).toHaveTextContent("OneUptime checked this 5 minutes ago.");
+  });
+
+  test("a step that looks done offers Confirm, which ticks it off as the person's", async () => {
+    stepChecks = [
+      stepCheck({
+        key: BLOCK_KEY,
+        state: SecurityCaseStepCheckState.LooksDone,
+        sentence: {
+          template: CHECK_BLOCK_QUIET_SINCE,
+          values: { address: "35.196.249.14" },
+          times: { since: "2026-11-17T19:20:00.000Z" },
+        },
+      }),
+    ];
+
+    await drawn();
+
+    const block: HTMLElement = stepOf(BLOCK_KEY);
+    const confirm: HTMLElement = within(block).getByTestId(
+      SECURITY_CASE_RESPONSE_TEST_IDS.confirm,
+    );
+
+    expect(
+      within(block).getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.checkChip),
+    ).toHaveTextContent("Looks Done");
+    expect(confirm).toHaveTextContent("Confirm");
+    expect(confirm).toHaveAttribute(
+      "aria-label",
+      "Confirm Block 35.196.249.14 at your firewall, WAF or load balancer. is done: it is kept on the case's tasks as yours.",
+    );
+    expect(block).toHaveAttribute("data-done", "false");
+
+    await act(async () => {
+      fireEvent.click(confirm);
+    });
+
+    await waitFor(() => {
+      expect(createMock).toHaveBeenCalledTimes(1);
+    });
+
+    const created: SecurityCaseTask = (
+      createMock.mock.calls[0]![0] as { model: SecurityCaseTask }
+    ).model;
+
+    expect(created.responseStepKey).toBe(BLOCK_KEY);
+    expect(created.isDone).toBe(true);
+  });
+
+  test("a step OneUptime cannot tell about says why at once, with the docs that say how to let it check", async () => {
+    stepChecks = [
+      stepCheck({
+        key: BLOCK_KEY,
+        state: SecurityCaseStepCheckState.CannotTell,
+        sentence: {
+          template: CHECK_CANNOT_NO_TELEMETRY,
+          values: { address: "35.196.249.14" },
+        },
+        docsPath: STEP_CHECK_DOCS_PATH,
+      }),
+    ];
+
+    await drawn();
+
+    const block: HTMLElement = stepOf(BLOCK_KEY);
+
+    expect(
+      within(block).getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.checkChip),
+    ).toHaveTextContent("OneUptime Cannot Tell");
+    expect(
+      within(block).getByText(
+        "OneUptime receives no traces or logs from your app, so it cannot see the requests from 35.196.249.14.",
+      ),
+    ).toBeInTheDocument();
+
+    const docs: HTMLElement = within(block).getByTestId(
+      SECURITY_CASE_RESPONSE_TEST_IDS.docsLink,
+    );
+
+    expect(docs).toHaveTextContent("How to let OneUptime check this");
+    expect(docs.getAttribute("href") || "").toContain(
+      "/docs/telemetry/security-cases#how-oneuptime-checks-a-step",
+    );
+    // Said at once: nothing folded under How We Know.
+    expect(
+      within(block).queryByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.howWeKnow),
+    ).toBeNull();
+    // Ticking it is the person's call: done anyway.
+    expect(
+      within(block).getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.checkbox),
+    ).toHaveAttribute(
+      "title",
+      "Mark Block 35.196.249.14 at your firewall, WAF or load balancer. done anyway",
+    );
+  });
+
+  test("a step that stopped holding is said at the top of the card, and beside the step", async () => {
+    stepChecks = [
+      stepCheck({
+        key: BLOCK_KEY,
+        state: SecurityCaseStepCheckState.Regressed,
+        sentence: {
+          template: CHECK_BLOCK_REGRESSED,
+          values: { address: "35.196.249.14" },
+          times: { time: "2026-11-17T20:10:00.000Z" },
+        },
+      }),
+    ];
+
+    await drawn();
+
+    expect(
+      screen.getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.regressed),
+    ).toHaveTextContent(
+      /35\.196\.249\.14 got through again at .+: the block is not holding\./,
+    );
+    expect(
+      within(stepOf(BLOCK_KEY)).getByTestId(
+        SECURITY_CASE_RESPONSE_TEST_IDS.checkChip,
+      ),
+    ).toHaveTextContent("Stopped Holding");
+  });
+
+  test("Declare Incident, not needed so far, still has its button: anyone can still declare one", async () => {
+    stepChecks = [
+      stepCheck({
+        key: "contain:incident",
+        state: SecurityCaseStepCheckState.NotNeeded,
+        sentence: { template: CHECK_INCIDENT_NOT_NEEDED, values: {} },
+      }),
+    ];
+
+    await drawn();
+
+    const incident: HTMLElement = stepOf("contain:incident");
+
+    expect(incident).toHaveAttribute("data-done", "true");
+    expect(
+      within(incident).getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.checkChip),
+    ).toHaveTextContent("Not Needed So Far");
+    expect(actionOf("contain:incident")).toHaveTextContent("Declare Incident");
+  });
+
+  test("checks that cannot be read leave the plan as it was, and say so", async () => {
+    isChecksFailing = true;
+
+    await drawn();
+
+    expect(
+      screen.getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.checksNotRead),
+    ).toHaveTextContent(
+      "OneUptime's checks of these steps could not be read. The plan is shown without them.",
+    );
+    expect(
+      screen.getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.progress),
+    ).toHaveTextContent("0 of 8 done");
+  });
+
+  test("a Security Viewer reads what OneUptime found, but cannot Confirm it", async () => {
+    permissions = [Permission.SecurityViewer];
+    stepChecks = [
+      stepCheck({
+        key: BLOCK_KEY,
+        state: SecurityCaseStepCheckState.LooksDone,
+        sentence: {
+          template: CHECK_BLOCK_QUIET_SINCE,
+          values: { address: "35.196.249.14" },
+          times: { since: "2026-11-17T19:20:00.000Z" },
+        },
+      }),
+    ];
+
+    await drawn();
+
+    const block: HTMLElement = stepOf(BLOCK_KEY);
+
+    expect(
+      within(block).getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.checkChip),
+    ).toHaveTextContent("Looks Done");
+    expect(
+      within(block).queryByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.confirm),
+    ).toBeNull();
+  });
+
+  test("OneUptime checking a step again reads the plan again", async () => {
+    await drawn();
+
+    const readsBefore: number = getListMock.mock.calls.length;
+
+    await act(async () => {
+      for (const change of colleagueChanges) {
+        change();
+      }
+    });
+
+    await waitFor(() => {
+      expect(getListMock.mock.calls.length).toBeGreaterThan(readsBefore);
+    });
+    expect(Realtime.listenToModelEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ modelType: SecurityCaseStepCheck }),
+      expect.any(Function),
+    );
   });
 });

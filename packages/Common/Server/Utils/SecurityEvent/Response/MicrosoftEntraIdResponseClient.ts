@@ -226,6 +226,34 @@ export default class MicrosoftEntraIdResponseClient {
     return MicrosoftEntraIdResponseClient.readUser(found[0]);
   }
 
+  /*
+   * When the account's sessions were last ended: Graph's
+   * signInSessionsValidFromDateTime, which revoking them moves to now. What
+   * a Response Plan step's check reads back to say a compromised account's
+   * sessions were ended after its case opened (#10340). Null when Graph
+   * keeps none.
+   */
+  public async readSessionsValidFrom(user: EntraIdUser): Promise<Date | null> {
+    const step: string = "Microsoft Entra ID sign-in sessions lookup";
+    const result: ResponseHttpResult = await this.send(
+      step,
+      "GET",
+      `${this.graphHost}/v1.0/users/${encodeURIComponent(user.id)}?$select=signInSessionsValidFromDateTime`,
+    );
+
+    if (!ResponseHttp.isSuccess(result)) {
+      throw this.failure(step, result, "User.Read.All");
+    }
+
+    const value: unknown = (result.bodyJson as JSONObject | undefined)?.[
+      "signInSessionsValidFromDateTime"
+    ];
+    const validFrom: Date | null =
+      typeof value === "string" ? new Date(value) : null;
+
+    return validFrom && !Number.isNaN(validFrom.getTime()) ? validFrom : null;
+  }
+
   public async disableUser(
     user: EntraIdUser,
   ): Promise<EntraIdContainmentOutcome> {

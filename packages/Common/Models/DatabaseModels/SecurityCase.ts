@@ -852,6 +852,29 @@ export default class SecurityCase extends BaseModel {
   })
   public nextTargetCheckAt?: Date = undefined;
 
+  /*
+   * When OneUptime next checks the steps of the case's Response Plan
+   * itself (#10340, Server/Utils/SecurityCase/StepChecks): now, as the case
+   * opens and whenever something changes what a step's check would find -
+   * a task ticked, a playbook step finished, the case reopened - then as
+   * often as its steps need. The every-minute check reads the cases whose
+   * moment has come, by this index. Empty once the case is closed.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    title: "Next Step Check At",
+    description:
+      "When OneUptime next checks the steps of the case's Response Plan itself. Empty once the case is closed.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public nextStepCheckAt?: Date = undefined;
+
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     manyToOneRelationColumn: "closedByUserId",

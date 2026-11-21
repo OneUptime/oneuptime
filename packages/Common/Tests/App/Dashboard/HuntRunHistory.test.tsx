@@ -296,7 +296,8 @@ describe("a hunt's Run History", () => {
       FOUND.windowStartAt!.toISOString(),
       FOUND.windowEndAt!.toISOString(),
     ]);
-    expect(runRow(FOUND)).toHaveTextContent(/Searched .+ to .+/);
+    // The events that arrived then, whenever they happened (#10488).
+    expect(runRow(FOUND)).toHaveTextContent(/Searched what arrived .+ to .+/);
   });
 
   test("writes each moment as every list writes a date: short, and whole under the pointer", async () => {

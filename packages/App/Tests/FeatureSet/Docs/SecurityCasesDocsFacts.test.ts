@@ -226,6 +226,15 @@ import {
 import { SECURITY_PLAYBOOK_TRIGGERS } from "Common/Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { SECURITY_CASE_TEMPLATE_PLACEHOLDERS } from "Common/Utils/SecurityCase/SecurityCaseMarkdown";
 import { SECURITY_CASE_NOTIFICATION_EVENT_TYPES } from "Common/Server/Services/UserNotificationSettingService";
+import { STEP_CHECK_DOCS_PATH } from "Common/Server/Utils/SecurityCase/StepChecks/StepCheck";
+import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
+import { SECURITY_CASE_STEP_CHECK_STATES } from "Common/Types/SecurityCase/SecurityCaseStepCheckState";
+import {
+  STEP_CHECK_CONFIRM,
+  STEP_CHECK_DOCS_LINK,
+  STEP_CHECK_HOW_WE_KNOW,
+  STEP_CHECK_STATE_LABELS,
+} from "Common/Utils/SecurityCase/ResponsePlan/StepCheckWords";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import {
   SECURITY_CASE_NOTIFICATION_CHOICE_TEMPLATES,
@@ -816,6 +825,69 @@ describe("Security Cases and Playbooks docs", () => {
         said: true,
       });
     }
+  });
+
+  it("says how OneUptime checks a step: each state as the plan's chip names it, its buttons by their words, and where its docs link lands", () => {
+    const heading: string = "How OneUptime checks a step";
+    const checks: string = flat(section(page, heading));
+    const states: Array<Array<string>> = rowsOf(heading);
+
+    // Every state a check can be in, in the order the model lists them, as its chip draws it.
+    expect(
+      column(states, 0).map((cell: string): string => {
+        return cell.replace(/\*\*/g, "");
+      }),
+    ).toEqual(
+      SECURITY_CASE_STEP_CHECK_STATES.map((state: string): string => {
+        return STEP_CHECK_STATE_LABELS[
+          state as keyof typeof STEP_CHECK_STATE_LABELS
+        ];
+      }),
+    );
+
+    for (const words of [
+      STEP_CHECK_CONFIRM,
+      STEP_CHECK_DOCS_LINK,
+      STEP_CHECK_HOW_WE_KNOW,
+    ]) {
+      expect({ words, said: checks.includes(`**${words}**`) }).toEqual({
+        words,
+        said: true,
+      });
+    }
+
+    // A step OneUptime cannot tell about links here, to this section.
+    expect(STEP_CHECK_DOCS_PATH).toBe(
+      `/${PAGE}#${slugifyMarkdownHeading(heading)}`,
+    );
+
+    // The Response Plan points to it.
+    expect(flat(section(page, "Work a case"))).toContain(
+      `[${heading}](#${slugifyMarkdownHeading(heading)})`,
+    );
+  });
+
+  it("names the switch that marks a case Contained once its containment is verified as the Case Statuses page titles it, and who may turn it off", () => {
+    const checks: string = flat(section(page, "How OneUptime checks a step"));
+    const statusesPage: string = source(
+      `${DASHBOARD}/Pages/SecurityEvents/Settings/CaseStatuses.tsx`,
+    );
+
+    expect(statusesPage).toContain('"Mark Cases Contained When Verified"');
+    expect(checks).toContain(
+      "**Mark Cases Contained When Verified**, under **Products → Security Events → Settings → Case Statuses**",
+    );
+
+    // On in every project; only a Project Owner or Project Admin changes it.
+    expect(checks).toContain("The setting is on in every project");
+    expect(checks).toContain(
+      "a Project Owner or Project Admin can turn it off",
+    );
+    expect(
+      new Project().getColumnAccessControlFor(
+        "markSecurityCaseContainedWhenVerified",
+      )?.update,
+    ).toEqual([Permission.ProjectOwner, Permission.ProjectAdmin]);
   });
 
   it("says what the case's header keeps on every page, and where a link to the case lands", () => {
@@ -2150,7 +2222,7 @@ describe("Security Cases and Playbooks docs", () => {
     );
   });
 
-  it("names the five notifications as Notification Settings lists them, on by email and push", () => {
+  it("names the six notifications as Notification Settings lists them, on by email and push", () => {
     const settingsPage: string = source(
       `${DASHBOARD}/Pages/UserSettings/NotificationSettings.tsx`,
     );
@@ -2165,9 +2237,10 @@ describe("Security Cases and Playbooks docs", () => {
       "Playbook step waiting for my approval",
       "Security case response target",
       "Security case task assigned to me",
+      "Security case step stopped holding",
     ]);
     expect(flat(section(page, "Notifications"))).toContain(
-      "OneUptime tells people about five things on a case.",
+      "OneUptime tells people about six things on a case.",
     );
 
     for (const label of column(notificationRows, 0)) {
@@ -2189,6 +2262,7 @@ describe("Security Cases and Playbooks docs", () => {
 
     expect(column(notificationRows, 2)).toEqual([
       "Email and push, for High and Critical cases",
+      "Email and push",
       "Email and push",
       "Email and push",
       "Email and push",

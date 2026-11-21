@@ -1601,10 +1601,13 @@ export default class MonitorResourceUtil {
           /*
            * Each query as the check read it: with the cluster, host or
            * fleet an infrastructure monitor narrows it to, so the event's
-           * card charts what the monitor evaluated (issue #6265).
+           * card charts what the monitor evaluated (issue #6265). And a
+           * resource monitor's logs and traces, which the event's tabs read
+           * (#10451).
            */
           telemetryQuery = MetricTelemetrySnapshot.fromResponse(
             dataToProcess as MetricMonitorResponse,
+            { monitorType: monitor.monitorType, monitorStep: monitorStep },
           );
           logger.debug(
             `${dataToProcess.monitorId.toString()} - Metric query found.`,

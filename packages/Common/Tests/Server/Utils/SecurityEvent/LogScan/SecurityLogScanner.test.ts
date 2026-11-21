@@ -677,6 +677,7 @@ describe("SecurityLogScanner.scanSource", () => {
               attributes: {
                 "http.response.status_code": "404",
                 "http.request.method": "GET",
+                "network.peer.address": "198.51.100.23",
                 "client.address": "198.51.100.23",
                 "user_agent.original": "Mozilla/5.0 (scanner)",
               },

@@ -105,6 +105,8 @@ const PRODUCTS: Array<Product> = [
       [PageMap.ALERTS_SETTINGS_PRIVACY_RULES, "Privacy Rules"],
       [PageMap.ALERTS_SETTINGS_LABEL_RULES, "Label Rules"],
       [PageMap.ALERTS_SETTINGS_REMINDER_RULES, "Reminder Rules"],
+      // Who changed the rules above, what and when (#10290).
+      [PageMap.ALERTS_SETTINGS_RULES_AUDIT_LOGS, "Audit Logs"],
     ],
   },
   {

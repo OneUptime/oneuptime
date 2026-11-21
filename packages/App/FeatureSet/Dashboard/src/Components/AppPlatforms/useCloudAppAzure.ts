@@ -77,6 +77,7 @@ const useCloudAppAzure: (data: {
         app.name,
         app.groupName,
         app.providerResourceId,
+        app.platformCloudResourceId?.toString(),
         app.cloudPlatform,
         data.environment?.cloudAccountId,
         data.environment?.cloudRegion,

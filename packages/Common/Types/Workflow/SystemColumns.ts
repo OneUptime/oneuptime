@@ -1,3 +1,5 @@
+import { RECORD_ACTOR_COLUMNS } from "../Database/RecordActor";
+
 /*
  * Columns OneUptime fills in itself, which a workflow builder never types.
  *
@@ -38,6 +40,8 @@ const SYSTEM_COLUMN_IDS: Array<string> = [
   "archivedAt",
   "archivedByUserId",
   "archivedByUser",
+  // What created the record and who last modified it (#10290).
+  ...RECORD_ACTOR_COLUMNS,
 ];
 
 /*

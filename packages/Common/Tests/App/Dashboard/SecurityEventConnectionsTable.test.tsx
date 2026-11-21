@@ -271,6 +271,11 @@ const EXPECTED_TILES: Array<ExpectedTile> = [
     docsSlug: "google-workspace",
   },
   {
+    provider: SecurityEventConnectorProvider.Cloudflare,
+    title: "Cloudflare",
+    docsSlug: "cloudflare",
+  },
+  {
     provider: SecurityEventConnectorProvider.GoogleSecOps,
     title: "Google SecOps",
     docsSlug: "google-secops",

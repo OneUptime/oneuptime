@@ -1,0 +1,192 @@
+# Cloudflare
+
+Importér det, som [Cloudflare](https://www.cloudflare.com)s firewall gjorde ved edge, til OneUptimes sikkerhedshændelser: de anmodninger, som dens administrerede og egne WAF-regler, hastighedsbegrænsning, IP Access Rules, bot-administration og HTTP-DDoS-beskyttelse blokerede, udfordrede eller loggede. Hver enkelt står ved siden af din apps egne anmodninger, så en sag siger, hvad Cloudflare stoppede, og hvad der alligevel nåede din app. OneUptime læser dem med et API-token, der kun kan læse, og ændrer intet i Cloudflare.
+
+:::cards
+- [Opsæt forbindelsen](#opsæt-forbindelsen): Et API-token med to læsetilladelser og forbindelsens formular.
+- [Hvad der importeres](#hvad-der-importeres): Hvilke begivenheder, og hvordan hver bliver en sikkerhedsbegivenhed.
+- [Sådan fungerer polling](#sådan-fungerer-polling): Det vindue, hver hentning læser, og hvorfor det overlapper med 10 minutter.
+- [Fejlfinding](#fejlfinding): Hvad hver fejl betyder, og hvad du skal ændre.
+:::
+
+## Sådan fungerer det
+
+```mermaid title="Fra en anmodning, Cloudflare handlede på, til en sikkerhedshændelse"
+flowchart TB
+    edge["Cloudflares firewall<br/>handler på en<br/>anmodning"] --> poll["OneUptime henter<br/>i forbindelsens<br/>interval"]
+    poll --> zones["Den læser hver<br/>zones firewall-<br/>hændelser siden<br/>sidste gang"]
+    zones --> event["Hver gemmes som<br/>en HTTP Activity-<br/>hændelse"]
+```
+
+Hvert minut henter OneUptime fra hver aktiveret forbindelse, hvis hentningsinterval er gået. En hentning lister kontoens zoner, læser i GraphQL Analytics API'ets settings-node, hvad hver zones abonnement tillader, og læser hver zones firewallhændelser siden sidste hentning fra datasættet `firewallEventsAdaptive` ([Security Events](https://developers.cloudflare.com/waf/analytics/security-events/)), de ældste først. Hver hændelse gemmes som en [OCSF](https://schema.ocsf.io/)-hændelse af typen HTTP Activity.
+
+## Før du går i gang
+
+- I OneUptime rollen Projektejer, Projektadministrator eller Sikkerhedsadministrator. Sikkerhedsmedlem og Sikkerhedsseer kan se forbindelser og deres kørselshistorik, men ikke ændre dem.
+- En Cloudflare-bruger, der kan oprette API-tokens til kontoens zoner.
+- Zoner, hvis trafik går gennem Cloudflare: deres DNS-poster er proxied.
+- Udgående HTTPS fra OneUptimes app og workers til `api.cloudflare.com`.
+
+## Opsæt forbindelsen
+
+Forbindelsen læser med et [API-token](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/), aldrig med en Global API Key: et token er begrænset til kontoen og dens zoner, og du kan tilbagekalde det for sig. Det skal have to [tilladelser](https://developers.cloudflare.com/fundamentals/api/reference/permissions/), begge kun til læsning:
+
+| Tilladelse | Hvad OneUptime læser med den |
+| --- | --- |
+| `Zone > Zone > Read` | Zonerne, med deres konti og abonnementer. |
+| `Zone > Analytics > Read` | Hver zones firewallhændelser, gennem GraphQL Analytics API'et. |
+
+:::steps
+### Opret et API-token
+
+1. Åbn **My Profile → API Tokens** i Cloudflares dashboard, vælg **Create Token**, og vælg **Create Custom Token**.
+2. Kald det `oneuptime-security-events`. Tilføj `Zone > Zone > Read` og `Zone > Analytics > Read` under **Permissions**.
+3. Medtag under **Zone Resources** alle kontoens zoner, eller de zoner, der skal importeres.
+4. Vælg **Continue to summary**, derefter **Create Token**, og kopiér tokenet. Cloudflare viser det kun én gang.
+
+### Tilføj forbindelsen i OneUptime
+
+Åbn **Produkter → Sikkerhedshændelser → Forbindelser** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **Cloudflare** under **Cloudsikkerhed**, og klik på **Næste**. Indsæt tokenet i **API-token**. OneUptime lister derefter de konti og zoner, tokenet kan læse: vælg **Konto**, og lad **Alle zoner** stå under **Zoner**, eller vælg de zoner, der skal importeres.
+
+### Test den, før du gemmer
+
+Klik på **Test disse indstillinger** under **Test, før du gemmer**. Testen kontrollerer hver tilladelse med værdierne i formularen, nævner dem, der mangler, og gemmer intet. Klik derefter på **Næste**, giv forbindelsen et **Navn**, og opret den.
+:::
+
+| Indstilling | Hvad du skal angive |
+| --- | --- |
+| **Konto** | Den Cloudflare-konto, der skal læses, valgt blandt de konti, dit API-token læser. Et token, der læser én konto, vælger den for dig. |
+| **Zoner** | Valgfri. Tom læser hver aktiv zone på kontoen, også zoner, der tilføjes senere. En forbindelse læser højst 50 zoner. |
+| **API-token** | Kun tokenet, uden `Bearer`. Det krypteres, returneres aldrig af API'et og vises aldrig igen. Erstat det med **Opdater legitimationsoplysninger** på forbindelsen. |
+
+Trinnet **Hentning** har også en valgfri **Beskrivelse**, **Hentningsinterval (minutter)**, et heltal fra `1` til `1440`, der starter ved `5`, og **Aktiveret**, der starter slået til. Cloudflares hændelser er anmodninger, ikke alarmer, så formularen spørger ikke om **Åbn sager fra**: sager kommer fra de detektionsregler, der læser dem.
+
+### Skriveadgang er et særskilt valg
+
+Denne forbindelse ændrer aldrig noget i Cloudflare. At blokere adresser der er et særskilt tilvalg, som kræver skrivetilladelser: `Account > Account Filter Lists > Edit` til listerne, `Zone > Zone WAF > Edit` på hver zone, der skal blokeres i, og `Account > Account Firewall Access Rules > Edit` på abonnementer uden nok lister. Tilføj dem først til tokenet, når du slår blokering til.
+
+## Hvad der importeres
+
+Hver hændelse har leverandøren `Cloudflare` og produktet `Cloudflare WAF` og er en hændelse af typen HTTP Activity (`4002`).
+
+| Cloudflares felt | I sikkerhedshændelsen |
+| --- | --- |
+| `clientIP` | Principal-IP'en og `client.address` |
+| `clientRequestHTTPHost`, `clientRequestPath`, `clientRequestQuery` | Målværten, målressourcen (stien og forespørgslen) og `url.original` |
+| `clientRequestHTTPMethodName`, `userAgent` | Aktiviteten, `http.request.method` og `user_agent.original` |
+| `action` | Status og `oneuptime.edge.action` |
+| `source`, `ruleId`, `description` | Regel-ID'et, regelnavnet og `cloudflare.source` |
+| `rayName`, `clientCountryName`, `clientAsn` | `cloudflare.ray_id`, `cloudflare.client.country` og `cloudflare.client.asn` |
+| `sampleInterval` | `oneuptime.edge.sample_interval` |
+
+| Hvad Cloudflare gjorde | Status | `oneuptime.edge.action` | Anmodningens udfald | Alvorlighed |
+| --- | --- | --- | --- | --- |
+| Blokerede, lukkede forbindelsen, eller en udfordring mislykkedes | Blocked, eller Dropped ved en lukket forbindelse | `blocked` | Rejected | Low |
+| Svarede med en administreret, JS- eller interaktiv udfordring | Challenge | `challenged` | Rejected | Low |
+| En bestået udfordring, eller en besøgende, der allerede havde bestået en | Allowed | `passed-challenge` | Intet | Informational |
+| Loggede den og lukkede den igennem | Logged | `logged` | Oprindelsens statuskode | Medium; High når oprindelsen fejlede; Low når den afviste anmodningen |
+| Lukkede den igennem på en af dine skip- eller allow-regler | Allowed | `let-through` | Oprindelsens statuskode | Som for en logget anmodning |
+
+En anmodning, som en af dine egne skip- eller allow-regler lukkede igennem, importeres kun, når den indeholder et angreb (SQL-injektion, path traversal eller et Log4Shell-opslag), eller Cloudflares WAF attack score vurderer den som et. Resten er trafik, du tillader med vilje, som dine monitorer: hver kørsel tæller den og udelader den.
+
+Cloudflare tager stikprøver af en travl zones hændelser. Hver hændelse beholder sit stikprøveinterval, antallet af lignende anmodninger, den repræsenterer, og hvert antal, OneUptime laver ud fra dem, siger *cirka*.
+
+Hændelserne vises under Hændelser, under Kampagner (angrebsanmodninger efter adresse), i enhedsrisiko og i detektionsregler. En sag om en adresse viser under **Ved edge** i dens påvirkning, hvad Cloudflare gjorde med adressens anmodninger, ved siden af det, der nåede din app. Regelbibliotekets Cloudflare-regler læser dem, som de importeres her: mange hits fra administrerede regler fra én adresse, en adresse, der bestod en udfordring og derefter sendte angreb, og et angreb, som Cloudflare lukkede igennem, og som nåede din app.
+
+## Abonnementsgrænser
+
+Hvert abonnement har firewallhændelser gennem API'et. **What each zone's plan gives** i **Test forbindelse** læser hver zones egne grænser hos Cloudflare.
+
+| Abonnement | Free | Pro | Business | Enterprise |
+| --- | --- | --- | --- | --- |
+| Gemte firewallhændelser | 31 dage | 31 dage | 31 dage | 31 dage |
+| Længste forespørgsel | 30 dage | 30 dage | 30 dage | 31 dage |
+
+Cloudflares Logpush kan også sende firewallhændelser, på hvert abonnement siden 30. september 2026, med betaling efter forbrug. Denne forbindelse henter i stedet, så den behøver intet ud over de to læsetilladelser.
+
+## Sådan fungerer polling
+
+- **Hændelser læses efter, hvornår de skete ved edge.** Cloudflares analysedata kan forespørges et minut eller to efter anmodningen.
+- **Den første poll ser 24 timer tilbage**, så en ny forbindelse straks viser sine nylige begivenheder.
+- **Hver senere hentning starter 10 minutter før den gemte markør**, så en hændelse, som Cloudflare gør læsbar sent, læses ved næste hentning, og dubletter frasorteres på hver hændelses Ray ID i projektet.
+- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer.
+- **Zonerne læses på skift**, en side med op til 2.000 hændelser hver, så en travl zone ikke kan bruge en hentning op, før en rolig er læst.
+- **Cloudflares hastighedsgrænser overholdes.** Cloudflare tillader 1.200 REST-anmodninger og 300 GraphQL-forespørgsler på fem minutter. En `429`, der beder om at vente 30 sekunder eller mindre, ventes ud og spørges igen; en længere stopper hentningen, og den næste fortsætter.
+- **En zone, tokenet ikke kan læse, holder intet tilbage.** De andre zoner importeres, kørslen er **Delvis**, og dens advarsel nævner zonen. Giv tokenet `Zone > Analytics > Read` der, og brug derefter **Importér dette tidsinterval** til at hente vinduet ind.
+- **En mislykket kørsel ændrer intet.** Efter en netværksfejl, eller en fejlstatus fra Cloudflare, forbliver markøren og vinduets længde, som de var, og den næste hentning læser det samme vindue igen. Den eneste undtagelse er en anmodning, der fik timeout: markøren bliver, men det næste vindue er halvt så langt, da et vindue, der er for tungt til at svare i tide, ville få timeout ved hvert forsøg.
+
+### Når et vindue indeholder mere, end én poll kan læse
+
+En hentning sender højst 120 anmodninger, læser højst 20.000 hændelser og stopper efter 4 minutter. Hændelser læses de ældste først, så når et budget stopper en hentning, er kørslen **Delvis**, og den næste hentning fortsætter fra den ældste hændelse, de ufærdige zoner blev læst til. Når ikke hver zone kunne læses én gang, gør OneUptime i stedet vinduet kortere:
+
+1. **Indsnævr.** Den næste hentning læser et halvt så langt vindue fra samme startpunkt og halverer igen, indtil et vindue læses helt, ned til ét minut. Kørslens advarsel siger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Hændelser, der allerede er importeret fra det længere vindue, springes over som dubletter.
+2. **Voks igen.** Når et vindue er læst helt, flyttes markøren til dets slutning, og det næste vindue er igen dobbelt så langt, op til 24 timer.
+3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere, end en hentning kan læse, går hentningen forbi det, så nyere hændelser bliver ved med at komme. Kørslen forbliver **Delvis**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Importér dette tidsinterval** for at hente det ind, en kørsel kan læse.
+
+At ændre **Hentningsinterval (minutter)** ændrer intet af dette: det afgør, hvor ofte en poll starter, ikke hvor dens vindue begynder.
+
+### Kør, se forhåndsvisning og importér efter behov
+
+Klik på **Diagnosticering** på en forbindelse for at se dens seneste kørsler og arbejde med den manuelt. Alle, der kan ændre forbindelsen, kan starte disse handlinger; alle, der kan se den, kan læse historikken.
+
+- **Kør nu** starter straks en poll med den sædvanlige markør, også når forbindelsen ikke er **Aktiveret**.
+- **Forhåndsvis firewallhændelser** læser et tidsinterval på op til 7 dage og importerer intet.
+- **Importér dette tidsinterval** importerer et interval på op til 7 dage, efter du har bekræftet, uden at flytte markøren. Hændelser, der allerede er importeret, springes over. Cloudflare gemmer firewallhændelser i 31 dage.
+- **Kopiér diagnosticering** på en kørsel kopierer dens rapport til support. Den indeholder aldrig legitimationsoplysninger.
+
+## Test forbindelse
+
+**Test forbindelse** på en forbindelses række og **Test disse indstillinger** i formularen kører i API-processen, ikke i en baggrundsworker, så en test også svarer, når det er workerne, der er problemet. Den kører disse kontroller i rækkefølge:
+
+| Kontrol | Hvad den kontrollerer |
+| --- | --- |
+| **Konfiguration** | Tokenet, kontoen og zonerne er velformede. Intet kontaktes, når dette fejler. |
+| **Verify the API token** | Cloudflare accepterer tokenet, en brugers eller et, kontoen ejer, og det er aktivt. Et, der udløber inden for 14 dage, er en advarsel. |
+| **List the zones** | Tokenet har `Zone > Zone > Read`: det lister kontoens zoner og hver valgt zone. |
+| **Read firewall events** | Tokenet har `Zone > Analytics > Read` på hver zone. En fejl nævner de zoner, den mangler på. |
+| **What each zone's plan gives** | Hvor længe hver zones abonnement gemmer firewallhændelser, og hvor lang én forespørgsel må være. En zone, hvis abonnement ingen har, er en advarsel. |
+| **Firewall events available to import** | Cirka hvor mange hændelser de sidste 24 timer og de sidste 7 dage indeholder. Ingen er en advarsel. |
+| **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen side: en proces tager jobbene fra Worker-køen, poll-jobbet kører hvert minut, og lageret for sikkerhedsbegivenheder svarer. |
+| **Planlagt hentning** | For en gemt forbindelse: polling er slået til, ingen kørsel sidder fast og venter på en worker, og polls kører til tiden. |
+
+Hver anmodning i en test har en frist på 20 sekunder. En test importerer aldrig noget og flytter aldrig markøren, og hver mislykket kontrol siger, hvad du skal ændre.
+
+## Fejlfinding
+
+Forbindelsens **Seneste fejl** gemmer hele fejlmeddelelsen, med legitimationsoplysninger skjult. Når en forbindelse har en fejl, så vælg **Vis fejl** i dens kolonne **Handlinger** for at læse den, og **Kopiér fejl** i dialogen for at kopiere den. Hver meddelelse nævner den anmodning, der fejlede, og citerer Cloudflares egen begrundelse.
+
+:::details Seneste fejl lyder `Invalid API Token (1000)`
+Cloudflare kender ikke tokenet: det blev slettet, fornyet eller aldrig indsat helt. En Global API Key afvises, før den sendes. Opret et token som ovenfor, og gem det med **Opdater legitimationsoplysninger**.
+:::
+
+:::details Seneste fejl lyder `Unauthorized to access requested resource (9109)`
+Tokenet kan ikke liste zoner. Giv det `Zone > Zone > Read`, med de zoner, der skal importeres, under **Zone Resources**.
+:::
+
+:::details Seneste fejl lyder `cannot read the analytics of`
+Tokenet mangler `Zone > Analytics > Read` på de zoner, meddelelsen nævner. Tilføj den der, og brug derefter **Importér dette tidsinterval** til at hente det ind, der ikke blev importeret.
+:::
+
+:::details Seneste fejl lyder `rate limit`
+Noget andet, der bruger den samme Cloudflare-bruger, har brugt sin kvote op. Hentningen fortsætter af sig selv, når de fem minutter er gået; giv OneUptime et token fra en bruger for sig selv for at holde kvoten adskilt.
+:::
+
+:::details Seneste fejl siger `did not complete`
+Anmodningen fik intet svar: en timeout, et navn, der ikke kan slås op, eller en afvist adresse. Kontrollér, at OneUptimes app og workers kan nå `api.cloudflare.com`, gennem en eventuel proxy, du bruger.
+:::
+
+:::details En sag viser Cloudflares handlinger, men ingen af adressens anmodninger i din app
+Bag Cloudflare ser din app Cloudflares adresser, medmindre den læser den besøgendes fra headeren `CF-Connecting-IP`. Skriv den adresse i dine logs og traces som `client.address`, så OneUptime kan matche din apps anmodninger med den adresse, Cloudflare handlede på.
+:::
+
+:::details Testen lykkes, men Last Polled er Never
+Poll-jobbet har aldrig kørt. Læs kontrollerne **Background workers** og **Poll scheduler**. På en selvhostet installation er den sædvanlige årsag `DISABLE_QUEUE_WORKERS=true` på appen, uden en separat worker-udrulning, der tager jobbene: sæt den til `false`, eller kør worker-udrulningen (Helm: `worker.enabled: true`, som er `false` som standard).
+:::
+
+## Næste trin
+
+:::cards
+- [Sikkerhedsbegivenheder](/docs/telemetry/security-events): Søg, korrelér og advar på det, du importerer.
+- [Sikkerhedssager](/docs/telemetry/security-cases): Se, hvad Cloudflare gjorde, ved siden af det, der nåede din app.
+- [Oversigt over integrationer](/docs/integrations/index): De andre værktøjer, du kan forbinde.
+:::
