@@ -38,6 +38,7 @@ import DataStoreFinding from "../../../Models/DatabaseModels/DataStoreFinding";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SecurityBlock from "../../../Models/DatabaseModels/SecurityBlock";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
+import SecurityPlaybookRun from "../../../Models/DatabaseModels/SecurityPlaybookRun";
 import SecurityEventConnection from "../../../Models/DatabaseModels/SecurityEventConnection";
 import SecurityWatchlist from "../../../Models/DatabaseModels/SecurityWatchlist";
 import ThreatIntelFeed from "../../../Models/DatabaseModels/ThreatIntelFeed";
@@ -244,6 +245,19 @@ const CLOUD_CONNECTION: StoredRow = {
   addedMetrics: [{ name: "AWS/S3 BucketSizeBytes" }],
 };
 
+// The playbook run that made a block (#10338).
+const RUN: StoredRow = {
+  _id: "10310000-0000-4000-8000-0000000000c6",
+  projectId: PROJECT_ID.toString(),
+  securityCaseId: CASE_ID,
+  securityPlaybookId: "10310000-0000-4000-8000-0000000000c7",
+  playbookName: "Contain account takeover",
+  trigger: "Triaged as Likely Malicious",
+  status: "Succeeded",
+  startedAt: AT,
+  completedAt: AT,
+};
+
 const CLOUD_ACCOUNT: StoredRow = {
   _id: CLOUD_ACCOUNT_ID,
   projectId: PROJECT_ID.toString(),
@@ -352,6 +366,10 @@ const READS_BLOCKS: Reader = customRole("a custom role that reads blocks", [
 const READS_BLOCKS_AND_CASES: Reader = customRole(
   "a custom role that reads blocks and cases",
   [Permission.ReadSecurityBlock, Permission.ReadSecurityCase],
+);
+const READS_BLOCKS_AND_RUNS: Reader = customRole(
+  "a custom role that reads blocks and playbook runs",
+  [Permission.ReadSecurityBlock, Permission.ReadSecurityPlaybookRun],
 );
 
 // A cloud's resources' readers (#10289): every one of them reads its connection but App Platforms' levels.
@@ -554,6 +572,27 @@ const JOINERS: Array<Joiner> = [
     labels: ["caseNumber", "caseNumberWithPrefix"],
     filterColumn: "verdict",
     whoMay: `You need one of these permissions: ${SECURITY_RECORD_READERS}, Read Security Case.`,
+  },
+  {
+    /*
+     * The playbook run that made a block (#10338): every reader of the block
+     * reads which run it was, and nothing of it but who may read the run.
+     */
+    name: "SecurityBlock.securityPlaybookRun",
+    path: "/api/security-block/get-list",
+    service: SecurityBlockService as unknown as DatabaseService<BaseModel>,
+    relation: "securityPlaybookRun",
+    relatedModel: new SecurityPlaybookRun(),
+    joined: RUN,
+    row: {
+      value: "198.51.100.9",
+      securityPlaybookRunId: RUN["_id"],
+    },
+    readers: [OWNER, ADMIN, ...SECURITY_TIERS, READS_BLOCKS],
+    readsRelated: [OWNER, ADMIN, ...SECURITY_TIERS, READS_BLOCKS_AND_RUNS],
+    labels: [],
+    filterColumn: "playbookName",
+    whoMay: `You need one of these permissions: ${SECURITY_RECORD_READERS}, Read Security Playbook Run.`,
   },
   {
     // The connection a cloud's resource is read through, for App Platforms' levels too (#10289).
@@ -1045,11 +1084,12 @@ describe("after: through each relation, the rest of the record is read only by w
     ) => {
       caller = callerWith(reader.permissions);
 
+      // Beside which record it is, when a relation reads that much of it.
+      const label: string | undefined =
+        "name" in joiner.joined ? "name" : joiner.labels[0];
+
       const { sent, table } = await send(joiner, {
-        select: selectOf(joiner, [
-          "name" in joiner.joined ? "name" : joiner.labels[0]!,
-          column,
-        ]),
+        select: selectOf(joiner, label ? [label, column] : [column]),
       });
 
       expect(sent.status).toBe(REFUSED);
