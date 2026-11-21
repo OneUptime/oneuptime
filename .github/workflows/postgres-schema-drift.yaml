@@ -5072,6 +5072,8 @@ jobs:
           Tests/Server/API/ListIsNotFilterPostgres.test.ts
           Tests/Server/API/RunbookPickerSearchPostgres.test.ts
           Tests/Server/API/DashboardWidgetPickerSearchPostgres.test.ts
+          Tests/Server/API/PlaylistDashboardPickerSearchPostgres.test.ts
+          Tests/Server/API/StatusPageSetupSearchPostgres.test.ts
           --forceExit
 
       # The LLM provider an AI rule picks, on migrated Postgres: the two

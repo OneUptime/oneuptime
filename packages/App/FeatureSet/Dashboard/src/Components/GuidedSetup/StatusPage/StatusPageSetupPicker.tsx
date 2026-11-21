@@ -1,7 +1,9 @@
 import {
+  NOTHING_FOUND,
   NO_STATUS_PAGE_SETUP_FILTER,
   STATUS_PAGE_SETUP_COPY,
   StatusPageSetupFilter,
+  StatusPageSetupFound,
   StatusPageSetupLabel,
   StatusPageSetupMonitor,
   StatusPageSetupMonitorGroup,
@@ -11,6 +13,7 @@ import {
   pickShownItems,
   togglePickedMonitor,
 } from "./StatusPageSetup";
+import StatusPageSetupApi from "./StatusPageSetupApi";
 import Color from "Common/Types/Color";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import Dropdown, {
@@ -25,7 +28,14 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translateRecordName } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  MutableRefObject,
+  ReactElement,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 /*
  * STEP 1'S LIST OF WHAT THE PAGE SHOWS (#6806, #7147): the project's
@@ -35,7 +45,10 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * A busy project's list - longer than its box shows at once - gets a search
  * by name, and a label to narrow it by when its monitors carry labels:
  * "Select all" then picks what the list shows, adding to what was picked,
- * so a label and Select all pick every monitor that carries it. A monitor
+ * so a label and Select all pick every monitor that carries it. The search
+ * and the label are asked of the server, a page of each kind by name
+ * (#10580): a monitor is found however many the project has, and a list
+ * that matches more than it shows says how many. A monitor
  * group is put on the page as one row (BulkAddStatusPageMonitorGroups).
  * What the page picked already shows (#7517) is ticked and locked, "On the
  * page", and never counted as picked.
@@ -45,12 +58,28 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 export const STATUS_PAGE_SETUP_SEARCH_FROM: number = 9;
 
 export interface ComponentProps {
+  /*
+   * The first page of the project's monitors and monitor groups, by name,
+   * and how many it has in all (#10580): the list a search starts from.
+   */
   monitors: ReadonlyArray<StatusPageSetupMonitor>;
   monitorGroups: ReadonlyArray<StatusPageSetupMonitorGroup>;
+  monitorCount?: number | undefined;
+  monitorGroupCount?: number | undefined;
   // Monitor ids and monitor group ids, in the order they were picked.
   picked: ReadonlyArray<string>;
   pickedGroups: ReadonlyArray<string>;
   onPick: (picked: Array<string>, pickedGroups: Array<string>) => void;
+  /*
+   * What a search found beyond the first page: the setup keeps their names
+   * and statuses, for what is picked from them.
+   */
+  onFound?:
+    | ((found: {
+        monitors: Array<StatusPageSetupMonitor>;
+        monitorGroups: Array<StatusPageSetupMonitorGroup>;
+      }) => void)
+    | undefined;
   // What the page the monitors go on shows already, by id.
   onThePageMonitorIds?: ReadonlyArray<string> | undefined;
   onThePageGroupIds?: ReadonlyArray<string> | undefined;
@@ -58,8 +87,37 @@ export interface ComponentProps {
   error?: string | undefined;
 }
 
+// How long typing pauses before the list is searched.
+export const STATUS_PAGE_SETUP_SEARCH_DEBOUNCE_MS: number = 250;
+
 const linkClassName: string =
   "text-sm font-medium text-indigo-600 hover:text-indigo-800 underline-offset-2 hover:underline";
+
+// Each label once, by name: the project's and those the list's records carry.
+const mergeLabels: (
+  first: ReadonlyArray<StatusPageSetupLabel>,
+  second: ReadonlyArray<StatusPageSetupLabel>,
+) => Array<StatusPageSetupLabel> = (
+  first: ReadonlyArray<StatusPageSetupLabel>,
+  second: ReadonlyArray<StatusPageSetupLabel>,
+): Array<StatusPageSetupLabel> => {
+  const byId: Map<string, StatusPageSetupLabel> = new Map<
+    string,
+    StatusPageSetupLabel
+  >();
+
+  for (const label of [...first, ...second]) {
+    if (label.id && !byId.has(label.id)) {
+      byId.set(label.id, label);
+    }
+  }
+
+  return Array.from(byId.values()).sort(
+    (a: StatusPageSetupLabel, b: StatusPageSetupLabel): number => {
+      return a.name.localeCompare(b.name);
+    },
+  );
+};
 
 const StatusPageSetupPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -68,37 +126,158 @@ const StatusPageSetupPicker: FunctionComponent<ComponentProps> = (
   const [filter, setFilter] = useState<StatusPageSetupFilter>(
     NO_STATUS_PAGE_SETUP_FILTER,
   );
+  /*
+   * What the server found for the filter, a page of each kind, by name;
+   * null while nothing is typed and no label picked (the first page shows).
+   */
+  const [found, setFound] = useState<{
+    monitors: StatusPageSetupFound<StatusPageSetupMonitor>;
+    monitorGroups: StatusPageSetupFound<StatusPageSetupMonitorGroup>;
+  } | null>(null);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  // The project's labels, read once the list is long enough to narrow.
+  const [projectLabels, setProjectLabels] = useState<
+    Array<StatusPageSetupLabel>
+  >([]);
+  // Only the latest search may write the list.
+  const searchIdRef: MutableRefObject<number> = useRef<number>(0);
 
   const onPageMonitors: ReadonlyArray<string> = props.onThePageMonitorIds || [];
   const onPageGroups: ReadonlyArray<string> = props.onThePageGroupIds || [];
 
-  const labels: Array<StatusPageSetupLabel> = getLabelsOfList({
-    monitors: props.monitors,
-    monitorGroups: props.monitorGroups,
-  });
-  const rowCount: number = props.monitors.length + props.monitorGroups.length;
+  const monitorTotal: number = Math.max(
+    props.monitorCount ?? 0,
+    props.monitors.length,
+  );
+  const groupTotal: number = Math.max(
+    props.monitorGroupCount ?? 0,
+    props.monitorGroups.length,
+  );
+  const rowCount: number = monitorTotal + groupTotal;
   const isLong: boolean = rowCount >= STATUS_PAGE_SETUP_SEARCH_FROM;
   const isFiltered: boolean = isStatusPageSetupFiltered(filter);
 
+  // The filter, searched on the server once typing pauses.
+  useEffect(() => {
+    const searchId: number = ++searchIdRef.current;
+
+    if (!isStatusPageSetupFiltered(filter)) {
+      setFound(null);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+
+    const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
+      Promise.all([
+        StatusPageSetupApi.searchMonitors(filter),
+        // A read of the groups the person may not make: monitors alone.
+        StatusPageSetupApi.searchMonitorGroups(filter).catch(() => {
+          return NOTHING_FOUND as StatusPageSetupFound<StatusPageSetupMonitorGroup>;
+        }),
+      ])
+        .then(
+          ([monitors, monitorGroups]: [
+            StatusPageSetupFound<StatusPageSetupMonitor>,
+            StatusPageSetupFound<StatusPageSetupMonitorGroup>,
+          ]) => {
+            if (searchId !== searchIdRef.current) {
+              return;
+            }
+
+            setFound({ monitors: monitors, monitorGroups: monitorGroups });
+            setIsSearching(false);
+            props.onFound?.({
+              monitors: monitors.items,
+              monitorGroups: monitorGroups.items,
+            });
+          },
+        )
+        .catch(() => {
+          if (searchId === searchIdRef.current) {
+            setFound({
+              monitors:
+                NOTHING_FOUND as StatusPageSetupFound<StatusPageSetupMonitor>,
+              monitorGroups:
+                NOTHING_FOUND as StatusPageSetupFound<StatusPageSetupMonitorGroup>,
+            });
+            setIsSearching(false);
+          }
+        });
+    }, STATUS_PAGE_SETUP_SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [filter.search, filter.labelId]);
+
+  // The project's labels, once a list long enough to narrow is drawn.
+  useEffect(() => {
+    if (!isLong) {
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    StatusPageSetupApi.loadLabels()
+      .then((labels: Array<StatusPageSetupLabel> | undefined) => {
+        if (isCurrent) {
+          setProjectLabels(labels || []);
+        }
+      })
+      .catch(() => {
+        // The labels the list's own records carry still narrow it.
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [isLong]);
+
+  // The rows to list: what the search found, or the first page.
+  const listedMonitors: ReadonlyArray<StatusPageSetupMonitor> = found
+    ? found.monitors.items
+    : props.monitors;
+  const listedGroups: ReadonlyArray<StatusPageSetupMonitorGroup> = found
+    ? found.monitorGroups.items
+    : props.monitorGroups;
+
+  const labels: Array<StatusPageSetupLabel> = mergeLabels(
+    projectLabels,
+    getLabelsOfList({
+      monitors: [...props.monitors, ...listedMonitors],
+      monitorGroups: [...props.monitorGroups, ...listedGroups],
+    }),
+  );
+
+  /*
+   * The server searched by name and label; the same filter here keeps the
+   * rows a search typed since has not reached yet out of the list.
+   */
   const shownGroups: Array<StatusPageSetupMonitorGroup> = getShownItems({
-    items: props.monitorGroups,
+    items: listedGroups,
     filter: filter,
   });
   const shownMonitors: Array<StatusPageSetupMonitor> = getShownItems({
-    items: props.monitors,
+    items: listedMonitors,
     filter: filter,
   });
 
-  // What can be picked: everything but what the page shows already.
+  // How many match in all, and whether the list shows each of them.
+  const matchCount: number = found
+    ? Math.max(found.monitors.count, found.monitors.items.length) +
+      Math.max(found.monitorGroups.count, found.monitorGroups.items.length)
+    : rowCount;
+  const shownCount: number = shownMonitors.length + shownGroups.length;
+
+  /*
+   * What can be picked: everything but what the page shows already - every
+   * monitor and group of the project, not only the ones listed.
+   */
   const pickableCount: number =
-    props.monitors.filter((monitor: StatusPageSetupMonitor): boolean => {
-      return !onPageMonitors.includes(monitor.id);
-    }).length +
-    props.monitorGroups.filter(
-      (group: StatusPageSetupMonitorGroup): boolean => {
-        return !onPageGroups.includes(group.id);
-      },
-    ).length;
+    Math.max(0, monitorTotal - onPageMonitors.length) +
+    Math.max(0, groupTotal - onPageGroups.length);
   const shownPickableCount: number =
     shownMonitors.filter((monitor: StatusPageSetupMonitor): boolean => {
       return !onPageMonitors.includes(monitor.id);
@@ -321,7 +500,9 @@ const StatusPageSetupPicker: FunctionComponent<ComponentProps> = (
             </li>
           );
         })}
-        {isFiltered && shownGroups.length + shownMonitors.length === 0 ? (
+        {isFiltered &&
+        !isSearching &&
+        shownGroups.length + shownMonitors.length === 0 ? (
           <li
             className="px-3 py-3 text-sm text-gray-500"
             data-testid="guided-setup-no-match"
@@ -332,6 +513,26 @@ const StatusPageSetupPicker: FunctionComponent<ComponentProps> = (
           <></>
         )}
       </ul>
+      {/*
+       * More match than one read lists (#10580): how many, and how to find
+       * the rest - typing more of a name, or a label, narrows them.
+       */}
+      {!isSearching && shownCount > 0 && matchCount > shownCount ? (
+        <p
+          className="mt-2 text-xs text-gray-500"
+          data-testid="guided-setup-more"
+        >
+          {translator.translateTemplate(
+            "Showing {{shown}} of {{total}}. Type to narrow the list.",
+            {
+              shown: translator.formatNumber(shownCount),
+              total: translator.formatNumber(matchCount),
+            },
+          )}
+        </p>
+      ) : (
+        <></>
+      )}
       {props.error ? (
         <FieldError message={props.error} className="mt-2 text-sm" />
       ) : (

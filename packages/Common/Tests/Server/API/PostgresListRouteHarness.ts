@@ -45,12 +45,14 @@ import { DataSource } from "typeorm";
  * table a read touches is found, empty, in public.
  *
  * A suite opts in with RUN_POSTGRES_PICKER_SEARCH_TESTS=true against a
- * database the registered migrations have been applied to. Each suite file
- * mocks what this harness needs mocked (jest.mock is hoisted only in the
- * file it is written in): EnvironmentConfig (no billing), Express's router
- * (mockRouter), Response (captured) and the app's DataSourceOptions (the
- * data source is built here). Copy the four from an existing suite, e.g.
- * ListIsNotFilterPostgres.test.ts.
+ * database the registered migrations have been applied to, and reads the
+ * flag itself (process.env["RUN_POSTGRES_PICKER_SEARCH_TESTS"]): that is how
+ * Tests/Ops/PostgresSuitesRunInCi finds a suite, and checks a workflow runs
+ * it. Each suite file also mocks what this harness needs mocked (jest.mock
+ * is hoisted only in the file it is written in): EnvironmentConfig (no
+ * billing), Express's router (mockRouter), Response (captured) and the
+ * app's DataSourceOptions (the data source is built here). Copy them from
+ * an existing suite, e.g. ListIsNotFilterPostgres.test.ts.
  *
  *   RUN_POSTGRES_PICKER_SEARCH_TESTS=true \
  *   PICKER_SEARCH_TEST_DATABASE_HOST=127.0.0.1 \
@@ -58,9 +60,6 @@ import { DataSource } from "typeorm";
  *   DATABASE_PASSWORD=... node node_modules/.bin/jest --runInBand \
  *     Tests/Server/API/ListIsNotFilterPostgres.test.ts --forceExit
  */
-
-export const IS_POSTGRES_PICKER_SEARCH_RUN: boolean =
-  process.env["RUN_POSTGRES_PICKER_SEARCH_TESTS"] === "true";
 
 // The tables every member's request reads, besides the suite's own.
 export const MEMBER_TABLES: Array<string> = [

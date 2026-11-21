@@ -1,6 +1,5 @@
 import { mockRouter } from "./Helpers";
 import PostgresListRouteHarness, {
-  IS_POSTGRES_PICKER_SEARCH_RUN,
   ListedPage,
   valuesOf,
 } from "./PostgresListRouteHarness";
@@ -44,9 +43,10 @@ import {
  *
  * Opt in with RUN_POSTGRES_PICKER_SEARCH_TESTS=true (see the harness).
  */
-const describePostgres: typeof describe.skip = IS_POSTGRES_PICKER_SEARCH_RUN
-  ? describe
-  : describe.skip;
+const describePostgres: typeof describe.skip =
+  process.env["RUN_POSTGRES_PICKER_SEARCH_TESTS"] === "true"
+    ? describe
+    : describe.skip;
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   return {
