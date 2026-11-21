@@ -581,8 +581,8 @@ describe("the Blocklist page", () => {
       // Not set up yet: the feed's page says so.
       feed({
         _id: "77777777-7777-4777-8777-777777777777",
-        lastFetchedAt: undefined,
-        usualFetchIntervalInSeconds: undefined,
+        lastFetchedAt: null as unknown as Date,
+        usualFetchIntervalInSeconds: null as unknown as number,
       }),
     ];
 

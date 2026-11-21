@@ -17,6 +17,7 @@ import {
   filterProtectedSecurityBlocklistFeedEntries,
   getSecurityBlocklistFeedFamilyRefusal,
   getSecurityBlocklistFeedSecretHint,
+  getSecurityBlocklistFeedExpectedIntervalInMs,
   getSecurityBlocklistFeedStatus,
   getSecurityBlocklistFeedStoppedReadingAfterInMs,
   getSecurityBlocklistFeedUsualIntervalInMs,
@@ -622,6 +623,80 @@ describe("whether the firewall still reads the feed", () => {
       hasSecurityBlocklistFeedStoppedReading({
         lastFetchedAt: at(-11 * MINUTE_IN_MS).toISOString(),
         usualIntervalInMs: MINUTE_IN_MS,
+        now: NOW,
+      }),
+    ).toBe(true);
+  });
+
+  test("until it has fetched twice, a feed is held to as often as its firewall can fetch: no alarm ten minutes after an hourly firewall's first fetch", () => {
+    // Measured: the usual interval, whatever the firewall.
+    expect(
+      getSecurityBlocklistFeedExpectedIntervalInMs({
+        usualIntervalInMs: 2 * HOUR_IN_MS,
+        firewall: SecurityBlocklistFeedFirewall.PaloAlto,
+      }),
+    ).toBe(2 * HOUR_IN_MS);
+    // Not yet: OPNsense every hour, pfSense every day, five minutes otherwise.
+    expect(
+      getSecurityBlocklistFeedExpectedIntervalInMs({
+        usualIntervalInMs: null,
+        firewall: SecurityBlocklistFeedFirewall.OPNsense,
+      }),
+    ).toBe(HOUR_IN_MS);
+    expect(
+      getSecurityBlocklistFeedExpectedIntervalInMs({
+        usualIntervalInMs: null,
+        firewall: SecurityBlocklistFeedFirewall.PfSense,
+      }),
+    ).toBe(24 * HOUR_IN_MS);
+    for (const firewall of [
+      SecurityBlocklistFeedFirewall.PaloAlto,
+      SecurityBlocklistFeedFirewall.Nftables,
+      SecurityBlocklistFeedFirewall.Other,
+      undefined,
+    ]) {
+      expect([
+        firewall,
+        getSecurityBlocklistFeedExpectedIntervalInMs({
+          usualIntervalInMs: null,
+          firewall,
+        }),
+      ]).toEqual([firewall, 5 * MINUTE_IN_MS]);
+    }
+
+    // OPNsense fetched once, 20 minutes ago: still reading, until 3 hours pass.
+    expect(
+      hasSecurityBlocklistFeedStoppedReading({
+        lastFetchedAt: at(-20 * MINUTE_IN_MS),
+        usualIntervalInMs: null,
+        firewall: SecurityBlocklistFeedFirewall.OPNsense,
+        now: NOW,
+      }),
+    ).toBe(false);
+    expect(
+      hasSecurityBlocklistFeedStoppedReading({
+        lastFetchedAt: at(-3 * HOUR_IN_MS - 1),
+        usualIntervalInMs: null,
+        firewall: SecurityBlocklistFeedFirewall.OPNsense,
+        now: NOW,
+      }),
+    ).toBe(true);
+    // pfSense fetched once, yesterday: still reading.
+    expect(
+      getSecurityBlocklistFeedStatus({
+        hasSecret: true,
+        lastFetchedAt: at(-24 * HOUR_IN_MS),
+        usualIntervalInMs: null,
+        firewall: SecurityBlocklistFeedFirewall.PfSense,
+        now: NOW,
+      }),
+    ).toBe(SecurityBlocklistFeedStatus.Reading);
+    // A firewall that should fetch every five minutes, fetched once 16 minutes ago: stopped.
+    expect(
+      hasSecurityBlocklistFeedStoppedReading({
+        lastFetchedAt: at(-16 * MINUTE_IN_MS),
+        usualIntervalInMs: null,
+        firewall: SecurityBlocklistFeedFirewall.FortiGate,
         now: NOW,
       }),
     ).toBe(true);

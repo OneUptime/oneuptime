@@ -666,6 +666,41 @@ export function getSecurityBlocklistFeedUsualIntervalInMs(
     : Math.round((gaps[middle - 1]! + gaps[middle]!) / 2);
 }
 
+/*
+ * The shortest interval a firewall's maker lets it fetch a URL list at, for
+ * the firewalls that cannot fetch every few minutes: OPNsense every hour,
+ * pfSense every day.
+ */
+export const SECURITY_BLOCKLIST_FEED_SHORTEST_REFRESH_IN_MINUTES: Readonly<
+  Partial<Record<SecurityBlocklistFeedFirewall, number>>
+> = {
+  [SecurityBlocklistFeedFirewall.OPNsense]: 60,
+  [SecurityBlocklistFeedFirewall.PfSense]: 24 * 60,
+};
+
+/*
+ * The interval a feed's fetches are held to: its usual one, once OneUptime
+ * has seen two polls to measure it, and until then as often as its
+ * firewall can fetch - every five minutes, as its steps say, every hour for
+ * OPNsense and every day for pfSense. Without it, a firewall that fetches
+ * every hour would be told stopped ten minutes after its first fetch.
+ */
+export function getSecurityBlocklistFeedExpectedIntervalInMs(data: {
+  usualIntervalInMs: number | null;
+  firewall?: SecurityBlocklistFeedFirewall | string | null | undefined;
+}): number {
+  if (data.usualIntervalInMs !== null && data.usualIntervalInMs > 0) {
+    return data.usualIntervalInMs;
+  }
+
+  const minutes: number =
+    SECURITY_BLOCKLIST_FEED_SHORTEST_REFRESH_IN_MINUTES[
+      data.firewall as SecurityBlocklistFeedFirewall
+    ] ?? SECURITY_BLOCKLIST_FEED_RECOMMENDED_REFRESH_IN_MINUTES;
+
+  return minutes * 60 * 1000;
+}
+
 // How long without a fetch means the firewall stopped reading the feed.
 export function getSecurityBlocklistFeedStoppedReadingAfterInMs(
   usualIntervalInMs: number | null,
@@ -679,12 +714,14 @@ export function getSecurityBlocklistFeedStoppedReadingAfterInMs(
 
 /*
  * Whether the firewall has stopped reading the feed at `now`: it fetched
- * it before, and not for three times its usual interval. A feed never
- * fetched has not been set up yet, which its page says instead.
+ * it before, and not for three times its usual interval - or, before that
+ * is known, three times the interval its firewall can fetch at. A feed
+ * never fetched has not been set up yet, which its page says instead.
  */
 export function hasSecurityBlocklistFeedStoppedReading(data: {
   lastFetchedAt: Date | string | null | undefined;
   usualIntervalInMs: number | null;
+  firewall?: SecurityBlocklistFeedFirewall | string | null | undefined;
   now: Date;
 }): boolean {
   if (!data.lastFetchedAt) {
@@ -699,7 +736,12 @@ export function hasSecurityBlocklistFeedStoppedReading(data: {
 
   return (
     data.now.getTime() - last >
-    getSecurityBlocklistFeedStoppedReadingAfterInMs(data.usualIntervalInMs)
+    getSecurityBlocklistFeedStoppedReadingAfterInMs(
+      getSecurityBlocklistFeedExpectedIntervalInMs({
+        usualIntervalInMs: data.usualIntervalInMs,
+        firewall: data.firewall,
+      }),
+    )
   );
 }
 
@@ -722,6 +764,7 @@ export function getSecurityBlocklistFeedStatus(data: {
   hasSecret: boolean;
   lastFetchedAt: Date | string | null | undefined;
   usualIntervalInMs: number | null;
+  firewall?: SecurityBlocklistFeedFirewall | string | null | undefined;
   now: Date;
 }): SecurityBlocklistFeedStatus {
   if (!data.hasSecret) {

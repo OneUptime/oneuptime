@@ -102,7 +102,8 @@ export class Service extends ProjectReferencesService<Model> {
    */
   @CaptureSpan()
   public async purgeExpired(now?: Date | undefined): Promise<number> {
-    const before: Date = OneUptimeDate.addRemoveDays(
+    // 30 days as a length of time, whatever zone the server runs in.
+    const before: Date = OneUptimeDate.addRemoveDurationInDays(
       now || OneUptimeDate.getCurrentDate(),
       -SECURITY_BLOCKLIST_FEED_FETCH_RETENTION_IN_DAYS,
     );

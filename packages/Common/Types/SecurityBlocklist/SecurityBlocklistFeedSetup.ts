@@ -361,7 +361,7 @@ export const SECURITY_BLOCKLIST_FEED_SETUPS: Readonly<
         "In PowerShell as an administrator, run the commands below once: they save a script and register a task that runs it every minute.",
       ),
       translationKey(
-        "The script keeps one inbound rule, OneUptime blocklist, blocking every address on the list.",
+        "The script keeps inbound rules that block every address on the list, 1,000 to a rule: OneUptime blocklist 0, OneUptime blocklist 1 and on.",
       ),
     ],
     note: null,

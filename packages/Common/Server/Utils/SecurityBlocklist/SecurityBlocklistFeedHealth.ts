@@ -82,6 +82,8 @@ export default class SecurityBlocklistFeedHealth {
           _id: true,
           projectId: true,
           name: true,
+          // Until its usual interval is known, it is held to its firewall's.
+          firewall: true,
           // Whether it has a secret: its hint is there exactly while it does.
           secretHint: true,
           lastFetchedAt: true,
@@ -156,6 +158,7 @@ export default class SecurityBlocklistFeedHealth {
       !hasSecurityBlocklistFeedStoppedReading({
         lastFetchedAt: feed.lastFetchedAt,
         usualIntervalInMs,
+        firewall: feed.firewall,
         now: data.now,
       })
     ) {

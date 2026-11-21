@@ -1,6 +1,5 @@
 import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/SecurityBlocklistFeed";
-import { EncryptionSecret } from "../EnvironmentConfig";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
@@ -16,6 +15,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import HashedString from "../../Types/HashedString";
+import TableColumnType from "../../Types/Database/TableColumnType";
 import ObjectID from "../../Types/ObjectID";
 import {
   getSecurityBlocklistFeedDefaultFamily,
@@ -153,9 +153,9 @@ export class Service extends ProjectReferencesService<Model> {
     return PresentedKey.generate();
   }
 
-  // What a secret is kept as: the SHA-256 of it with ENCRYPTION_SECRET.
+  // What a secret is kept as: its lookup hash, as every key presented to OneUptime is kept.
   public hashSecret(secret: string): string {
-    return HashedString.computeHash(secret, EncryptionSecret);
+    return PresentedKey.hash(secret, TableColumnType.HashedString) || "";
   }
 
   /*

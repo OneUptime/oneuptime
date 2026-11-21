@@ -25,6 +25,9 @@ import {
   STATUS_COLUMN_TITLE,
 } from "../../Components/SecurityEvents/BlocklistFeeds/BlocklistFeedsCopy";
 import { getBlocklistFeedViewRoute } from "../../Components/SecurityEvents/BlocklistFeeds/BlocklistFeedRoutes";
+import SecurityListNameCell, {
+  SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
+} from "../../Components/SecurityEvents/SecurityListNameCell";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SecurityBlocklistFeed from "Common/Models/DatabaseModels/SecurityBlocklistFeed";
@@ -38,6 +41,7 @@ import {
   SecurityBlocklistFeedFirewall,
 } from "Common/Types/SecurityBlocklist/SecurityBlocklistFeed";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -154,20 +158,19 @@ const SecurityBlocklistFeedsPage: FunctionComponent<PageComponentProps> = (
           title: NAME_COLUMN_TITLE,
           type: FieldType.Element,
           wrapContent: true,
-          wrapMaxWidthClassName: "max-w-[18rem]",
+          wrapMaxWidthClassName: SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
           getExportValue: (feed: SecurityBlocklistFeed): string => {
             return feed.name || "";
           },
+          // The name over the firewall that reads it: each line reads its own way.
+          getLineText: drawsItsOwnLines,
           getElement: (feed: SecurityBlocklistFeed): ReactElement => {
             return (
-              <div>
-                <span className="text-sm font-medium text-gray-900">
-                  {feed.name || ""}
-                </span>
-                <span className="mt-0.5 block text-xs text-gray-500">
-                  {getFirewallName(translator, feed.firewall)}
-                </span>
-              </div>
+              <SecurityListNameCell
+                name={feed.name || ""}
+                detailParts={[getFirewallName(translator, feed.firewall)]}
+                detailTestId="blocklist-feed-firewall-cell"
+              />
             );
           },
         },

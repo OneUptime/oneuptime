@@ -59,6 +59,7 @@ const BlocklistFeedsStoppedNotice: FunctionComponent<ComponentProps> = (
       select: {
         _id: true,
         name: true,
+        firewall: true,
         secretHint: true,
         lastFetchedAt: true,
         usualFetchIntervalInSeconds: true,

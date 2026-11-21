@@ -135,7 +135,7 @@ export function getBlocklistFeedFormFields(data: {
 export function getFeedStatus(
   feed: Pick<
     SecurityBlocklistFeed,
-    "secretHint" | "lastFetchedAt" | "usualFetchIntervalInSeconds"
+    "secretHint" | "lastFetchedAt" | "usualFetchIntervalInSeconds" | "firewall"
   >,
   now: Date,
 ): SecurityBlocklistFeedStatus {
@@ -147,6 +147,7 @@ export function getFeedStatus(
       typeof feed.usualFetchIntervalInSeconds === "number"
         ? feed.usualFetchIntervalInSeconds * 1000
         : null,
+    firewall: feed.firewall,
     now,
   });
 }

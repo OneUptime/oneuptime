@@ -4,6 +4,7 @@ import SecurityProtectedAddresses, {
   SecurityProtectionSnapshot,
 } from "./SecurityProtectedAddresses";
 import ObjectID from "../../../Types/ObjectID";
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
 import {
   SecurityBlocklistFeedEntry,
   SecurityBlocklistFeedWithheldEntry,
@@ -59,7 +60,8 @@ interface CachedSnapshot {
 }
 
 export default class SecurityBlocklistFeedProtection {
-  private static cache: Map<string, CachedSnapshot> = new Map();
+  private static cache: OldestKeyMap<string, CachedSnapshot> =
+    new OldestKeyMap<string, CachedSnapshot>();
 
   // For tests: forget what every project protects.
   public static clearCache(): void {
@@ -146,7 +148,7 @@ export default class SecurityBlocklistFeedProtection {
 
     if (snapshot.unreadSources.length === 0) {
       if (this.cache.size >= CACHED_PROJECTS && !this.cache.has(key)) {
-        const oldest: string | undefined = this.cache.keys().next().value;
+        const oldest: string | undefined = this.cache.oldestKey();
 
         if (oldest !== undefined) {
           this.cache.delete(oldest);

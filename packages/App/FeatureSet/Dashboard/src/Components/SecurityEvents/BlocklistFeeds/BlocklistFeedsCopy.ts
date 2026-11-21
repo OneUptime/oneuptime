@@ -101,8 +101,6 @@ export const REVOKED_SENTENCE: string = translationKey(
   "This feed's secret was revoked, so no firewall can read it. Rotate Secret makes a new one.",
 );
 
-export const OPEN_FEED: string = translationKey("Open Feed");
-
 // ---------- The secret ----------
 
 export const SECRET_SHOWN_ONCE_TITLE: string = translationKey(
@@ -140,7 +138,6 @@ export const URL_LABEL: string = translationKey("URL");
 export const MD5_URL_LABEL: string = translationKey("MD5 URL");
 export const USERNAME_LABEL: string = translationKey("Username");
 export const PASSWORD_LABEL: string = translationKey("Password");
-export const BEARER_TOKEN_LABEL: string = translationKey("Bearer token");
 export const SCRIPT_LABEL: string = translationKey("Commands");
 export const SCRIPT_SECRET_SENTENCE: string = translationKey(
   "Put the feed's secret where the commands say {{placeholder}}. OneUptime shows it only when it is made: Rotate Secret to see a new one.",
