@@ -95,11 +95,14 @@ export interface AwsInventoryType {
     | undefined;
   /*
    * A type with no metrics: its id, the identity dimension it is named
-   * under ("VpcId") and its ARN.
+   * under ("VpcId") and its ARN. The id is what Cloud Control lists it by,
+   * unless `id` reads it from what was listed: an Elastic IP is listed by
+   * its address and its allocation together.
    */
   inventoryId?:
     | {
         dimension: string;
+        id?: ((listed: AwsListedResource) => string) | undefined;
         arn: (id: string, context: AwsInventoryContext) => string;
       }
     | undefined;
@@ -219,6 +222,79 @@ const VPC: string = "AWS::EC2::VPC";
 const SECURITY_GROUP: string = "AWS::EC2::SecurityGroup";
 const INSTANCE: string = "AWS::EC2::Instance";
 export const EKS_CLUSTER: string = "AWS::EKS::Cluster";
+export const ELASTIC_IP: string = "AWS::EC2::EIP";
+export const NAT_GATEWAY: string = "AWS::EC2::NatGateway";
+
+// An Elastic IP's allocation id: "eipalloc-" and hexadecimal digits.
+const ALLOCATION_ID_PREFIX: string = "eipalloc-";
+
+/*
+ * Cloud Control lists an Elastic IP by its address and its allocation
+ * together ("203.0.113.25|eipalloc-0abc"): each read from its properties
+ * first, else from that identifier.
+ */
+function elasticIpParts(listed: AwsListedResource): {
+  publicIp: string;
+  allocationId: string;
+} {
+  const parts: Array<string> = listed.identifier
+    .split("|")
+    .map((part: string): string => {
+      return part.trim();
+    });
+
+  return {
+    publicIp:
+      textAt(listed.properties, "PublicIp") ||
+      parts.find((part: string): boolean => {
+        return Boolean(part) && !part.startsWith(ALLOCATION_ID_PREFIX);
+      }) ||
+      "",
+    allocationId:
+      textAt(listed.properties, "AllocationId") ||
+      parts.find((part: string): boolean => {
+        return part.startsWith(ALLOCATION_ID_PREFIX);
+      }) ||
+      "",
+  };
+}
+
+export function getElasticIpAddress(listed: AwsListedResource): string {
+  return elasticIpParts(listed).publicIp;
+}
+
+// An Elastic IP's allocation id, else its address (an EC2-Classic address has no allocation).
+export function getElasticIpAllocationId(listed: AwsListedResource): string {
+  const parts: { publicIp: string; allocationId: string } =
+    elasticIpParts(listed);
+
+  return parts.allocationId || parts.publicIp;
+}
+
+/*
+ * The Elastic IPs a NAT gateway sends its traffic from, by allocation: its
+ * own (AllocationId), its secondary ones, and a regional NAT gateway's in
+ * each Availability Zone.
+ */
+export function getNatGatewayAllocationIds(
+  properties: JSONObject,
+): Array<string> {
+  const zones: unknown = properties["AvailabilityZoneAddresses"];
+
+  return Array.from(
+    new Set<string>([
+      ...textsAt(properties, "AllocationId"),
+      ...textsAt(properties, "SecondaryAllocationIds"),
+      ...(Array.isArray(zones) ? zones : []).flatMap(
+        (zone: unknown): Array<string> => {
+          return zone && typeof zone === "object"
+            ? textsAt(zone as JSONObject, "AllocationIds")
+            : [];
+        },
+      ),
+    ]),
+  );
+}
 
 // The tag keys EKS puts on the instances of a cluster's node groups.
 const EKS_CLUSTER_NAME_TAGS: ReadonlyArray<string> = [
@@ -586,8 +662,40 @@ export const AWS_INVENTORY_TYPES: ReadonlyArray<AwsInventoryType> = [
     },
     quietWhenRefused: true,
   },
+  /*
+   * An Elastic IP (#10504): a static public address of the account's - an
+   * instance's, a NAT gateway's, a load balancer's own. The project's own
+   * traffic comes from it, so the blocklist never blocks it: its address is
+   * an endpoint, which the protected addresses read. Listed before NAT
+   * gateways, whose public addresses are their Elastic IPs
+   * (addAwsNatGatewayAddresses). A role set up before may not list it
+   * (ec2:DescribeAddresses): it lists everything else as it did.
+   */
   {
-    type: "AWS::EC2::NatGateway",
+    type: ELASTIC_IP,
+    inventoryId: {
+      dimension: "AllocationId",
+      id: getElasticIpAllocationId,
+      arn: (id: string, context: AwsInventoryContext) => {
+        return arnOf(context, "ec2", `elastic-ip/${id}`);
+      },
+    },
+    name: getElasticIpAddress,
+    properties: [
+      "PublicIp",
+      "AllocationId",
+      "Domain",
+      "InstanceId",
+      "NetworkBorderGroup",
+      "PublicIpv4Pool",
+    ],
+    endpoints: (listed: AwsListedResource) => {
+      return [getElasticIpAddress(listed)];
+    },
+    quietWhenRefused: true,
+  },
+  {
+    type: NAT_GATEWAY,
     metrics: {
       namespace: () => {
         return "AWS/NATGateway";
@@ -596,7 +704,14 @@ export const AWS_INVENTORY_TYPES: ReadonlyArray<AwsInventoryType> = [
         return { NatGatewayId: listed.identifier };
       },
     },
-    properties: ["ConnectivityType", "SubnetId", "VpcId"],
+    properties: [
+      "ConnectivityType",
+      "SubnetId",
+      "VpcId",
+      "AllocationId",
+      "SecondaryAllocationIds",
+      "PublicIps",
+    ],
     relationships: (listed: AwsListedResource) => {
       return inSubnets(listed.properties, "SubnetId");
     },
@@ -1568,7 +1683,11 @@ export function getAwsInventoryIdentity(
   }
 
   if (inventoryType.inventoryId) {
-    const id: string = listed.identifier.trim();
+    const id: string = (
+      inventoryType.inventoryId.id
+        ? inventoryType.inventoryId.id(listed)
+        : listed.identifier
+    ).trim();
 
     if (!id) {
       return null;
@@ -1673,6 +1792,61 @@ export function buildAwsInventoryItem(
       inventoryType.endpoints ? inventoryType.endpoints(listed, context) : [],
     ),
   };
+}
+
+/*
+ * A NAT gateway's public addresses (#10504): the Elastic IPs its
+ * allocations name, from the Region's Elastic IPs, kept as its endpoints
+ * and its PublicIps. Every private subnet's traffic leaves from them, so
+ * the blocklist refuses to block one, naming the NAT gateway. A Region
+ * whose Elastic IPs were not listed (a role set up before) leaves its NAT
+ * gateways as they were: their addresses are protected once its setup
+ * command runs again.
+ */
+export function addAwsNatGatewayAddresses(data: {
+  items: Array<CloudInventoryItem>;
+  elasticIps: Array<AwsListedResource>;
+  listedByItem: Map<CloudInventoryItem, AwsListedResource>;
+}): void {
+  const addressByAllocation: Map<string, string> = new Map();
+
+  for (const elasticIp of data.elasticIps) {
+    const allocationId: string = getElasticIpAllocationId(elasticIp);
+    const address: string = getElasticIpAddress(elasticIp);
+
+    if (allocationId && address) {
+      addressByAllocation.set(allocationId, address);
+    }
+  }
+
+  if (addressByAllocation.size === 0) {
+    return;
+  }
+
+  for (const item of data.items) {
+    const listed: AwsListedResource | undefined = data.listedByItem.get(item);
+
+    if (item.resource.resourceType !== NAT_GATEWAY || !listed) {
+      continue;
+    }
+
+    const addresses: Array<string> = getNatGatewayAllocationIds(
+      listed.properties,
+    )
+      .map((allocationId: string): string => {
+        return addressByAllocation.get(allocationId) || "";
+      })
+      .filter((address: string): boolean => {
+        return address.length > 0;
+      });
+
+    if (addresses.length === 0) {
+      continue;
+    }
+
+    item.endpoints = normalizeCloudEndpoints([...item.endpoints, ...addresses]);
+    item.properties = { ...item.properties, PublicIps: addresses };
+  }
 }
 
 /*
