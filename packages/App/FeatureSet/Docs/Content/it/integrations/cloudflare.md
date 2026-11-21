@@ -1,11 +1,12 @@
 # Cloudflare
 
-Importa negli eventi di sicurezza di OneUptime ciò che il firewall di [Cloudflare](https://www.cloudflare.com) ha fatto all'edge: le richieste che le sue regole WAF gestite e personalizzate, la limitazione della frequenza, le IP Access Rules, la gestione dei bot e la protezione DDoS HTTP hanno bloccato, sottoposto a challenge o registrato. Ognuna sta accanto alle richieste della tua app, così un caso dice cosa ha fermato Cloudflare e cosa ha comunque raggiunto la tua app. OneUptime le legge con un token API che può solo leggere, e non cambia nulla in Cloudflare.
+Importa negli eventi di sicurezza di OneUptime ciò che il firewall di [Cloudflare](https://www.cloudflare.com) ha fatto all'edge: le richieste che le sue regole WAF gestite e personalizzate, la limitazione della frequenza, le IP Access Rules, la gestione dei bot e la protezione DDoS HTTP hanno bloccato, sottoposto a challenge o registrato. Ognuna sta accanto alle richieste della tua app, così un caso dice cosa ha fermato Cloudflare e cosa ha comunque raggiunto la tua app. OneUptime le legge con un token API che può solo leggere, e non cambia nulla in Cloudflare finché non attivi il blocco, che vi applica la tua blocklist.
 
 :::cards
 - [Configurare la connessione](#configurare-la-connessione): Un token API con due permessi di lettura, e il modulo della connessione.
 - [Cosa viene importato](#cosa-viene-importato): Quali eventi, e come ognuno diventa un evento di sicurezza.
 - [Come funziona il polling](#come-funziona-il-polling): La finestra che legge ogni interrogazione, e perché si sovrappone di 10 minuti.
+- [Bloccare indirizzi su Cloudflare](#bloccare-indirizzi-su-cloudflare): La tua blocklist, applicata da due liste IP e una regola personalizzata per lista.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Cosa significa ogni errore e cosa cambiare.
 :::
 
@@ -63,7 +64,7 @@ Il passo **Interrogazione** ha anche una **Descrizione** facoltativa, l'**Interv
 
 ### L'accesso in scrittura è una scelta a parte
 
-Questa connessione non cambia mai nulla in Cloudflare. Bloccare indirizzi lì è un consenso a parte, che richiede permessi di scrittura: `Account > Account Filter Lists > Edit` per le liste, `Zone > Zone WAF > Edit` su ogni zona in cui bloccare, e `Account > Account Firewall Access Rules > Edit` sui piani senza abbastanza liste. Aggiungili al token solo quando attivi il blocco.
+Questa connessione non cambia nulla in Cloudflare finché non attivi il blocco, sulla sua riga. Solo allora OneUptime chiede i permessi di scrittura, e li verifica prima di bloccare qualcosa: [Bloccare indirizzi su Cloudflare](#bloccare-indirizzi-su-cloudflare) li nomina uno per uno e dice a cosa servono. Aggiungili al token solo quando attivi il blocco.
 
 ## Cosa viene importato
 
@@ -151,6 +152,58 @@ Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti
 
 Ogni richiesta di un test ha una scadenza di 20 secondi. Un test non importa mai nulla e non sposta mai il cursore, e ogni controllo fallito dice cosa cambiare.
 
+## Bloccare indirizzi su Cloudflare
+
+Con il blocco attivo, Cloudflare applica la [blocklist](/docs/telemetry/security-cases#blocklist) del tuo progetto. Ogni indirizzo che blocchi finisce entro un minuto in una lista IP del tuo account Cloudflare, e in ogni zona una regola personalizzata per lista blocca gli indirizzi che contiene o li sottopone a una verifica. Nella **Blocklist**, **Applicato su** nomina Cloudflare per ogni blocco che OneUptime ha riletto da Cloudflare; un blocco non riletto entro 10 minuti non vi è applicato.
+
+Il blocco richiede permessi di scrittura sul token API della connessione:
+
+| Permesso | Cosa ci fa OneUptime |
+| --- | --- |
+| `Account > Account Filter Lists > Edit` | Crea le sue due liste, e ne aggiunge e rimuove gli indirizzi. |
+| `Zone > Zone WAF > Edit`, su ogni zona in cui bloccare | Aggiunge le sue regole personalizzate, e legge quelle della zona. |
+| `Account > Account Firewall Access Rules > Edit` | Aggiunge e rimuove IP Access Rules, su un piano senza una lista o una regola personalizzata libera. |
+
+:::steps
+### Dare al token i permessi di scrittura
+
+In Cloudflare, apri **My Profile → API Tokens**, modifica il token della connessione e aggiungi i permessi qui sopra. Oppure crea un token che li abbia, insieme ai due permessi di lettura.
+
+### Attivare il blocco
+
+Sulla riga della connessione, seleziona **Blocca indirizzi**. Incolla un nuovo token in **Nuovo token API**, o lascialo vuoto per tenere quello attuale, e in **Zone** lascia **Tutte le zone**, oppure scegli le zone in cui bloccare. **Controlla autorizzazioni** chiede a Cloudflare se il token ha ogni permesso, e non cambia nulla. **Attiva il blocco** attiva il blocco solo quando ogni controllo riesce, e OneUptime configura Cloudflare entro un minuto.
+:::
+
+Finché il blocco è attivo, **Testa la connessione** esegue gli stessi controlli: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** e, dove si usano IP Access Rules, **Edit IP Access Rules**.
+
+### Cosa aggiunge OneUptime a Cloudflare
+
+| In Cloudflare | Che cos'è |
+| --- | --- |
+| Le liste `oneuptime_block` e `oneuptime_challenge` | Due liste IP nell'account, una per i blocchi e una per le verifiche. La loro descrizione nomina il tuo progetto OneUptime. |
+| Una regola personalizzata per lista, in ogni zona | `(ip.src in $oneuptime_block)` con l'azione Block, e `(ip.src in $oneuptime_challenge)` con l'azione Managed Challenge. La loro descrizione dice che le gestisce OneUptime. |
+| Un elemento di lista per blocco | Il suo commento nomina il caso e quando finisce il blocco, ad esempio `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
+
+Ogni regola va per prima tra le regole personalizzate della zona, quindi viene eseguita prima delle tue: una tua regola Skip non può far passare un indirizzo bloccato. Quando le tue regole Skip lasciano passare degli indirizzi, come quelli dei tuoi monitor o di un partner, **Stato del blocco** li nomina. **Proteggi questi indirizzi** li aggiunge alle **Entità protette**, che nessuno può bloccare.
+
+### Limiti del piano per il blocco
+
+| Piano | Free | Pro | Business | Enterprise |
+| --- | --- | --- | --- | --- |
+| Liste nell'account | 1 | 10 | 10 | 1.000 |
+| Elementi di lista nell'account | 10.000 | 10.000 | 10.000 | 500.000 |
+| Regole personalizzate in una zona | 5 | 20 | 100 | 1.000 |
+
+Contano anche le tue liste e regole. Quando attivi il blocco, ogni azione prende una lista, e una regola in ogni zona, dove il piano le ha libere, Block per prima; dove no, prende IP Access Rules. Su un piano Free con l'unica lista libera, i blocchi prendono la lista e le verifiche IP Access Rules. Un account contiene 50.000 IP Access Rules, ciascuna un indirizzo, un intervallo IPv4 /16 o /24, o un intervallo IPv6 /32, /48 o /64: il blocco di un altro intervallo non vi è applicato, e la **Blocklist** dice perché. **How blocking is set up** dice cosa prende ogni azione, e perché.
+
+### Quando qualcuno cambia una regola
+
+OneUptime rilegge le sue liste e regole ogni 3 minuti, e non annulla mai una modifica fatta da qualcuno in Cloudflare. Una regola disattivata, eliminata o modificata lì compare sulla riga della connessione e in **Stato del blocco**, con la sua zona, e la **Blocklist** mostra i blocchi della regola di quella zona come non applicati su Cloudflare. **Ripristina** rimette a posto la regola. Finché **Zone** è **Tutte le zone**, una zona aggiunta in seguito all'account viene configurata da sola.
+
+### Disattivare il blocco
+
+**Disattiva il blocco** chiede se rimuovere da Cloudflare le liste e le regole di OneUptime, con **Rimuovi le liste e le regole di OneUptime da Cloudflare** selezionato. La rimozione toglie le regole di OneUptime, le sue due liste e le IP Access Rules che ha aggiunto, trovate dai nomi, riferimenti e note che ha dato loro, e nient'altro. Se le conservi, restano in Cloudflare e continuano a bloccare ciò che contengono. Una connessione che blocca indirizzi non si può eliminare: disattiva prima il blocco, ed eliminala quando la rimozione è terminata.
+
 ## Risoluzione dei problemi
 
 L'**Ultimo errore** della connessione conserva il messaggio di errore completo, con le credenziali oscurate. Quando una connessione ha un errore, seleziona **Visualizza errore** nella sua colonna **Azioni** per leggerlo, e **Copia errore** nella finestra di dialogo per copiarlo. Ogni messaggio nomina la richiesta non riuscita e cita il motivo dato da Cloudflare.
@@ -176,7 +229,11 @@ La richiesta non ha ricevuto risposta: un timeout, un nome che non si risolve o 
 :::
 
 :::details Un caso mostra le azioni di Cloudflare, ma nessuna richiesta dell'indirizzo nella tua app
-Dietro Cloudflare, la tua app vede gli indirizzi di Cloudflare a meno che non legga quello del visitatore dall'intestazione `CF-Connecting-IP`. Scrivi quell'indirizzo nei tuoi log e nelle tue tracce come `client.address`, così OneUptime può collegare le richieste della tua app all'indirizzo trattato da Cloudflare.
+Dietro Cloudflare, le richieste della tua app arrivano dagli indirizzi di Cloudflare, e l'indirizzo del visitatore è l'ultimo che Cloudflare aggiunge a `X-Forwarded-For`. Registra quell'intestazione (`http.request.header.x-forwarded-for`) e l'indirizzo proprio della connessione (`network.peer.address`) nelle tue tracce. Finché questa connessione esiste, OneUptime considera gli indirizzi di Cloudflare un proxy affidabile, quindi legge il visitatore dall'intestazione e associa le richieste della tua app all'indirizzo su cui Cloudflare è intervenuto. Un `client.address` che la tua app copia da `CF-Connecting-IP` non è considerato affidabile: chiunque raggiunga direttamente la tua app può inviare quell'intestazione.
+:::
+
+:::details Lo stato del blocco riporta `already exists in this Cloudflare account`
+Un altro progetto OneUptime, o una persona, ha creato una lista chiamata `oneuptime_block` o `oneuptime_challenge`, e OneUptime non cambia mai una lista che non ha creato per questo progetto. Rinomina o elimina quella lista in Cloudflare, oppure disattiva il blocco nel progetto che l'ha creata. OneUptime configura di nuovo il blocco entro 5 minuti.
 :::
 
 :::details Il test riesce, ma Last Polled è Never

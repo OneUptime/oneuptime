@@ -1145,6 +1145,7 @@ import { AddSecurityCaseNextStepCheckIndex1809187390010 } from "./1809187390010-
 import { AddRecordCreatedByAndLastModifiedColumns1809187400000 } from "./1809187400000-AddRecordCreatedByAndLastModifiedColumns";
 import { AddDetectionRunMarksAndFiringKeys1809187421130 } from "./1809187421130-AddDetectionRunMarksAndFiringKeys";
 import { AddDetectionRuleLastFailedAt1809187421140 } from "./1809187421140-AddDetectionRuleLastFailedAt";
+import { AddSecurityEventConnectionBlocking1809187425300 } from "./1809187425300-AddSecurityEventConnectionBlocking";
 
 export default [
   InitialMigration,
@@ -2294,4 +2295,5 @@ export default [
   AddRecordCreatedByAndLastModifiedColumns1809187400000,
   AddDetectionRunMarksAndFiringKeys1809187421130,
   AddDetectionRuleLastFailedAt1809187421140,
+  AddSecurityEventConnectionBlocking1809187425300,
 ];
