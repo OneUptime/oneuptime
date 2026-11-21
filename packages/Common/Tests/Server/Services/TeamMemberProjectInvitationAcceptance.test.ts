@@ -1210,6 +1210,33 @@ describe("TeamMemberService.onUpdateSuccess - accepting one invitation accepts t
     expect(logsSpy).not.toHaveBeenCalled();
   });
 
+  test("several invitations of one person accepted together start their time logs once, not once a row racing the others", async () => {
+    const logsSpy: jest.SpyInstance = jest
+      .spyOn(EscalationRuleReach, "openTimeLogsOfMember")
+      .mockResolvedValue(undefined);
+    rowsSpy.mockResolvedValue([
+      membershipRow({ userId: USER_ID, projectId: PROJECT_ID }),
+      membershipRow({ userId: USER_ID, projectId: PROJECT_ID }),
+      membershipRow({ userId: OTHER_USER_ID, projectId: PROJECT_ID }),
+    ]);
+
+    await callHook(
+      "onUpdateSuccess",
+      onUpdate({ hasAcceptedInvitation: true }),
+      [MEMBER_ID, ObjectID.generate(), ObjectID.generate()],
+    );
+
+    expect(logsSpy).toHaveBeenCalledTimes(2);
+    expect(logsSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+    });
+    expect(logsSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: OTHER_USER_ID,
+    });
+  });
+
   /*
    * Accepting an invitation joins the project: they are told, once, which
    * on-call policies page them from now on (#10557) - who was a member

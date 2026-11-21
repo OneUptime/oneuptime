@@ -2560,10 +2560,17 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
           user: item.user,
         });
 
-        this.openOnCallTimeLogsOfMember({
-          projectId: item.projectId,
-          userId: item.userId,
-        });
+        /*
+         * Once for each person, however many of their invitations this
+         * accepts: each start, in the background, would otherwise race the
+         * others to open the same logs twice.
+         */
+        if (isFirstOfPerson) {
+          this.openOnCallTimeLogsOfMember({
+            projectId: item.projectId,
+            userId: item.userId,
+          });
+        }
 
         /*
          * Someone who was not a member before joined the project with this
