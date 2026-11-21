@@ -388,6 +388,8 @@ En webhook beskriver bara det som finns i den nyttolasten, så OneUptime löser 
 
 Ett larm som du själv lägger till i ett kriterium börjar också med **Lös larm automatiskt** avslaget, så en återhämtning lämnar larmet öppet tills det är påslaget. **Auto-resolve each incident when…** visar vilka av kriteriets incidenter och larm en återhämtning löser, och namnger var och en som den skulle lämna öppen, med en knapp som slår på den tillhörande inställningen. Kortet **Monitor-sammanfattning** på monitorns **Översikt** namnger varje incident och larm som en återhämtning lämnade öppet, och varför.
 
+En återhämtning löser bara incidenterna och larmen för det kriterium som läser den: det vars **Field that signals recovery** och **Value that means recovered** matchar nyttolasten. Ett annat kriteriums incidenter och larm för samma värde förblir öppna, och de för ett kriterium som lämnar fälten tomma löses manuellt.
+
 **Max incidents per request** begränsar uthämtningen, inte bara skapandet. Nycklar bortom taket är också osynliga för lösningen, så i en nyttolast med fler distinkta nycklar än taket stänger ett larm som rapporterar `resolved` bortom taket inte sin incident.
 
 > [!NOTE]

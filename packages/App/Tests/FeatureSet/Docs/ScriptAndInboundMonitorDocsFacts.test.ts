@@ -2310,6 +2310,70 @@ describe("Incoming Request Monitor", () => {
    * the waiting-request store keeps, and no longer sends a reader to the
    * operator's switch as a way round skipped requests.
    */
+  /*
+   * A recovery resolves only the records of the criteria whose own fields
+   * read it (#10585): the page says so, and the recoveries are read per
+   * criteria - one that reads the payload's status files the value, one
+   * that reads the alert's own status, still firing, files nothing.
+   */
+  it("says a recovery resolves only the records of the criteria that reads it", () => {
+    function groupedBy(
+      id: string,
+      resolvedWhenJSONPath: string | undefined,
+    ): MonitorCriteriaInstance {
+      const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+      instance.data!.id = id;
+      instance.data!.incidentGrouping = {
+        groupByJSONPath: "requestBody.alerts[*].labels.alertname",
+        ...(resolvedWhenJSONPath
+          ? {
+              resolvedWhenJSONPath: resolvedWhenJSONPath,
+              resolvedWhenValue: "resolved",
+            }
+          : {}),
+      };
+      return instance;
+    }
+
+    const recoveries: ReturnType<
+      typeof IncomingRequestIncidentGrouping.collectRecoveries
+    > = IncomingRequestIncidentGrouping.collectRecoveries({
+      dataToProcess: {
+        projectId: ObjectID.generate(),
+        monitorId: ObjectID.generate(),
+        requestBody: {
+          status: "resolved",
+          alerts: [{ status: "firing", labels: { alertname: "HighCPU" } }],
+        },
+        incomingRequestReceivedAt: new Date(),
+        checkedAt: new Date(),
+      } as unknown as Parameters<
+        typeof IncomingRequestIncidentGrouping.collectRecoveries
+      >[0]["dataToProcess"],
+      criteriaInstances: [
+        groupedBy("alert-status", "requestBody.alerts[*].status"),
+        groupedBy("payload-status", "requestBody.status"),
+        groupedBy("by-hand", undefined),
+      ],
+    });
+
+    expect(Object.keys(recoveries.fingerprintsByCriteriaId)).toEqual([
+      "payload-status",
+    ]);
+    expect(
+      readRepoFile("Common/Server/Utils/Monitor/MonitorResource.ts"),
+    ).toContain(
+      "fingerprintsByCriteriaId: recoveries.fingerprintsByCriteriaId,",
+    );
+
+    expect(page).toContain(
+      "A recovery resolves only the incidents and alerts of the criteria that reads it: the one whose **Field that signals recovery** and **Value that means recovered** match the payload.",
+    );
+    expect(page).toContain(
+      "Another criteria's incidents and alerts for the same value stay open, and those of a criteria that leaves the fields blank are resolved by hand.",
+    );
+  });
+
   it("says a grouped monitor evaluates every request in order, and how many may wait", () => {
     expect(MAX_PENDING_REQUESTS_PER_MONITOR).toBe(1000);
     expect(MAX_PENDING_BYTES_PER_MONITOR).toBe(16 * 1024 * 1024);

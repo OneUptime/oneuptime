@@ -1489,9 +1489,11 @@ export default class MonitorResourceUtil {
        * Incoming Request / webhook grouped resolution (event-driven). A
        * payload can explicitly mark keys as resolved (e.g. Grafana
        * status=resolved). Resolve exactly those keys' incidents — never by
-       * absence. Runs regardless of whether a firing criteria matched, so a
-       * pure "resolved" webhook still closes the right incident. No-op
-       * unless a criteria has incidentGrouping configured.
+       * absence — and each criteria's only for the keys its own recovery
+       * fields read resolved (#10585). Runs regardless of whether a firing
+       * criteria matched, so a pure "resolved" webhook still closes the
+       * right incident. No-op unless a criteria has incidentGrouping
+       * configured.
        *
        * A request the matched grouped criteria reads with every item
        * without a value recovered also resolves that criteria's incident
@@ -1537,6 +1539,12 @@ export default class MonitorResourceUtil {
           await MonitorIncident.resolveSeriesIncidentsByFingerprint({
             monitor: monitor,
             fingerprints: recoveries.fingerprints,
+            /*
+             * Each criteria's records resolve on its own recoveries only:
+             * another criteria may read the same value as still firing,
+             * and resolving its record there reopened it at once (#10585).
+             */
+            fingerprintsByCriteriaId: recoveries.fingerprintsByCriteriaId,
             rootCause: "Incoming request reported this key as resolved.",
             wholeMonitor: wholeMonitor,
             dataToProcess: dataToProcess,
@@ -1548,6 +1556,7 @@ export default class MonitorResourceUtil {
           await MonitorAlert.resolveSeriesAlertsByFingerprint({
             monitor: monitor,
             fingerprints: recoveries.fingerprints,
+            fingerprintsByCriteriaId: recoveries.fingerprintsByCriteriaId,
             rootCause: "Incoming request reported this key as resolved.",
             wholeMonitor: wholeMonitor,
             dataToProcess: dataToProcess,

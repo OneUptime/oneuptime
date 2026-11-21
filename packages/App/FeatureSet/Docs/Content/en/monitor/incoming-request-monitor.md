@@ -388,6 +388,8 @@ A webhook describes only what is in that payload, so OneUptime never resolves an
 
 An alert you add to a criteria starts with **Auto Resolve Alert** off as well, so a recovery leaves the alert open until it is on. **Auto-resolve each incident when…** says which of the criteria's incidents and alerts a recovery resolves, and names each one it would leave open, with a button that turns its switch on. The **Monitor Summary** card on the monitor's **Overview** names each incident and alert a recovery left open, and why.
 
+A recovery resolves only the incidents and alerts of the criteria that reads it: the one whose **Field that signals recovery** and **Value that means recovered** match the payload. Another criteria's incidents and alerts for the same value stay open, and those of a criteria that leaves the fields blank are resolved by hand.
+
 **Max incidents per request** caps extraction, not just creation. Keys past the cap are invisible to recovery as well, so in a payload carrying more distinct keys than the cap, an alert reporting `resolved` beyond it will not close its incident.
 
 > [!NOTE]

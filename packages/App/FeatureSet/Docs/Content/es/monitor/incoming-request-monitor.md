@@ -388,6 +388,8 @@ Un webhook solo describe lo que hay en esa carga útil, así que OneUptime nunca
 
 Una alerta que añade usted mismo a un criterio también empieza con **Resolver alerta automáticamente** desactivado, así que una recuperación deja la alerta abierta hasta que se active. **Auto-resolve each incident when…** indica qué incidentes y alertas del criterio resuelve una recuperación, y nombra cada uno que dejaría abierto, con un botón que activa su opción. La tarjeta **Resumen del monitor** de la **Vista general** del monitor nombra cada incidente y alerta que una recuperación dejó abiertos, y por qué.
 
+Una recuperación resuelve solo los incidentes y las alertas del criterio que la lee: aquel cuyo **Campo que indica la recuperación** y **Valor que significa recuperado** coinciden con la carga útil. Los incidentes y las alertas de otro criterio para el mismo valor siguen abiertos, y los de un criterio que deja esos campos vacíos se resuelven a mano.
+
 **Máximo de incidentes por solicitud** limita la extracción, no solo la creación. Las claves que superan el límite también son invisibles para la recuperación, así que, en una carga útil con más claves distintas que el límite, una alerta que informe `resolved` por encima de él no cerrará su incidente.
 
 > [!NOTE]

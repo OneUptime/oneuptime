@@ -388,6 +388,8 @@ En webhook beskriver bare det som står i den nyttelasten, så OneUptime løser 
 
 Et varsel du selv legger til i et kriterium, starter også med **Løs varsel automatisk** slått av, så en gjenoppretting lar varselet stå åpent til det er slått på. **Auto-resolve each incident when…** viser hvilke av kriteriets hendelser og varsler en gjenoppretting løser, og nevner hver den ville la stå åpen, med en knapp som slår på den tilhørende innstillingen. Kortet **Monitor-sammendrag** på monitorens **Oversikt** nevner hver hendelse og hvert varsel en gjenoppretting lot stå åpent, og hvorfor.
 
+En gjenoppretting løser bare hendelsene og varslene til kriteriet som leser den: det der **Field that signals recovery** og **Value that means recovered** samsvarer med nyttelasten. Hendelsene og varslene til et annet kriterium for samme verdi forblir åpne, og de til et kriterium som lar feltene stå tomme, løses manuelt.
+
 **Max incidents per request** begrenser uthentingen, ikke bare opprettelsen. Nøkler forbi taket er også usynlige for løsningen, så i en nyttelast med flere særskilte nøkler enn taket lukker ikke et varsel som melder `resolved` forbi taket, hendelsen sin.
 
 > [!NOTE]

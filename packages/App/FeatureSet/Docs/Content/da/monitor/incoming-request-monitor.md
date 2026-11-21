@@ -388,6 +388,8 @@ En webhook beskriver kun det, der står i den payload, så OneUptime løser aldr
 
 En advarsel, du selv føjer til et kriterium, starter også med **Løs advarsel automatisk** slået fra, så en genoprettelse lader advarslen stå åben, indtil den er slået til. **Auto-resolve each incident when…** viser, hvilke af kriteriets hændelser og advarsler en genoprettelse løser, og nævner hver, den ville lade stå åben, med en knap, der slår den tilhørende indstilling til. Kortet **Monitor-resumé** på monitorens **Oversigt** nævner hver hændelse og advarsel, som en genoprettelse lod stå åben, og hvorfor.
 
+En genopretning løser kun hændelserne og advarslerne fra det kriterium, der læser den: det, hvis **Field that signals recovery** og **Value that means recovered** matcher payloaden. Et andet kriteriums hændelser og advarsler for samme værdi forbliver åbne, og dem fra et kriterium, der lader felterne stå tomme, løses manuelt.
+
 **Max incidents per request** begrænser udtrækningen, ikke kun oprettelsen. Nøgler ud over loftet er også usynlige for løsningen, så i en payload med flere særskilte nøgler end loftet lukker en advarsel, der melder `resolved` ud over loftet, ikke sin hændelse.
 
 > [!NOTE]

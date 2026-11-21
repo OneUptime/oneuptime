@@ -388,6 +388,8 @@ Ein Webhook beschreibt nur, was in dieser Nutzlast steht, deshalb behebt OneUpti
 
 Auch eine Warnung, die Sie einem Kriterium selbst hinzufügen, beginnt mit ausgeschaltetem **Warnung automatisch beheben**, sodass eine Erholung die Warnung offen lässt, bis es eingeschaltet ist. **Auto-resolve each incident when…** zeigt, welche Vorfälle und Warnungen des Kriteriums eine Erholung behebt, und nennt alles, was sie offen lassen würde, mit einer Schaltfläche, die den zugehörigen Schalter einschaltet. Die Karte **Monitor-Zusammenfassung** in der **Übersicht** des Monitors nennt jeden Vorfall und jede Warnung, die eine Erholung offen gelassen hat, und warum.
 
+Eine Erholung behebt nur die Vorfälle und Warnungen des Kriteriums, das sie liest: des Kriteriums, dessen **Feld, das die Erholung signalisiert** und **Wert, der „wiederhergestellt“ bedeutet** zur Nutzlast passen. Die Vorfälle und Warnungen eines anderen Kriteriums für denselben Wert bleiben offen, und die eines Kriteriums, das diese Felder leer lässt, werden von Hand behoben.
+
 **Max. Vorfälle pro Anfrage** begrenzt das Auslesen, nicht nur das Erstellen. Schlüssel jenseits der Grenze sind auch für die Erholung unsichtbar, in einer Nutzlast mit mehr unterschiedlichen Schlüsseln als die Grenze schließt eine Warnung, die jenseits davon `resolved` meldet, ihren Vorfall also nicht.
 
 > [!NOTE]

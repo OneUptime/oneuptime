@@ -2,6 +2,7 @@ import IncomingRequestIncidentGrouping, {
   GROUPING_NOTE_TITLES,
   IncomingRequestGroupingDecision,
   IncomingRequestGroupingScan,
+  IncomingRequestRecoveries,
 } from "../../../../Server/Utils/Monitor/IncomingRequestIncidentGrouping";
 import DataToProcess from "../../../../Server/Utils/Monitor/DataToProcess";
 import { CheckOn, FilterType } from "../../../../Types/Monitor/CriteriaFilter";
@@ -944,6 +945,105 @@ describe("IncomingRequestIncidentGrouping", () => {
           criteriaInstances: [makeCriteria(PER_ALERT)],
         }),
       ).toEqual([]);
+    });
+  });
+
+  /*
+   * Each grouped criteria reads a request's recoveries with its own fields,
+   * and only its own records resolve on them (#10585): two criteria grouped
+   * by paths with the same last segment share fingerprints, so a value one
+   * reads recovered and the other still firing must not resolve the
+   * other's record - which it then reopened in the same evaluation.
+   */
+  describe("collectRecoveries: what each criteria reads recovered", () => {
+    const BY_ALERT_STATUS: IncidentGroupingConfig = {
+      groupByJSONPath: "requestBody.alerts[*].labels.alertname",
+      resolvedWhenJSONPath: "requestBody.alerts[*].status",
+      resolvedWhenValue: "resolved",
+    };
+
+    const BY_PAYLOAD_STATUS: IncidentGroupingConfig = {
+      groupByJSONPath: "requestBody.alerts[*].labels.alertname",
+      resolvedWhenJSONPath: "requestBody.status",
+      resolvedWhenValue: "resolved",
+    };
+
+    // The payload says resolved; its one alert is still firing.
+    const SPLIT: JSONObject = {
+      status: "resolved",
+      alerts: [{ status: "firing", labels: { alertname: "HighCPU" } }],
+    };
+
+    it("files each value under the criteria whose fields read it recovered, and only those", () => {
+      const recoveries: IncomingRequestRecoveries =
+        IncomingRequestIncidentGrouping.collectRecoveries({
+          dataToProcess: makeRequest(SPLIT),
+          criteriaInstances: [
+            makeCriteria(BY_ALERT_STATUS, "by-alert-status"),
+            makeCriteria(BY_PAYLOAD_STATUS, "by-payload-status"),
+          ],
+        });
+
+      expect(recoveries.fingerprints).toHaveLength(1);
+      expect(recoveries.fingerprintsByCriteriaId).toEqual({
+        "by-payload-status": recoveries.fingerprints,
+      });
+    });
+
+    it("files a value both criteria read recovered under both", () => {
+      const recoveries: IncomingRequestRecoveries =
+        IncomingRequestIncidentGrouping.collectRecoveries({
+          dataToProcess: makeRequest({
+            status: "resolved",
+            alerts: [{ status: "resolved", labels: { alertname: "HighCPU" } }],
+          }),
+          criteriaInstances: [
+            makeCriteria(BY_ALERT_STATUS, "by-alert-status"),
+            makeCriteria(BY_PAYLOAD_STATUS, "by-payload-status"),
+          ],
+        });
+
+      expect(recoveries.fingerprintsByCriteriaId).toEqual({
+        "by-alert-status": recoveries.fingerprints,
+        "by-payload-status": recoveries.fingerprints,
+      });
+    });
+
+    it("files nothing under a criteria that names no recovery field, or does not group", () => {
+      const recoveries: IncomingRequestRecoveries =
+        IncomingRequestIncidentGrouping.collectRecoveries({
+          dataToProcess: makeRequest({
+            status: "resolved",
+            alerts: [{ status: "resolved", labels: { alertname: "HighCPU" } }],
+          }),
+          criteriaInstances: [
+            makeCriteria(
+              { groupByJSONPath: "requestBody.alerts[*].labels.alertname" },
+              "no-recovery-field",
+            ),
+            makeCriteria(undefined, "no-grouping"),
+            makeCriteria(BY_ALERT_STATUS, "by-alert-status"),
+          ],
+        });
+
+      expect(Object.keys(recoveries.fingerprintsByCriteriaId)).toEqual([
+        "by-alert-status",
+      ]);
+    });
+
+    it("files nothing on the background check, which carries no fresh request", () => {
+      expect(
+        IncomingRequestIncidentGrouping.collectRecoveries({
+          dataToProcess: makeRequest(SPLIT, {
+            onlyCheckForIncomingRequestReceivedAt: true,
+          }),
+          criteriaInstances: [makeCriteria(BY_PAYLOAD_STATUS, "c")],
+        }),
+      ).toEqual({
+        fingerprints: [],
+        fingerprintsByCriteriaId: {},
+        wholeMonitorCriteriaIds: [],
+      });
     });
   });
 

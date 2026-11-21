@@ -388,6 +388,8 @@ Een webhook beschrijft alleen wat in die payload staat, dus OneUptime lost een i
 
 Ook bij een waarschuwing die u zelf aan een criterium toevoegt, staat **Waarschuwing automatisch oplossen** eerst uit, dus een herstel laat de waarschuwing open tot die optie aan staat. **Auto-resolve each incident when…** laat zien welke incidenten en waarschuwingen van het criterium een herstel oplost, en noemt elk incident en elke waarschuwing die het open zou laten, met een knop die de bijbehorende optie aanzet. De kaart **Monitorsamenvatting** op het **Overzicht** van de monitor noemt elk incident en elke waarschuwing die een herstel open liet, en waarom.
 
+Een herstel lost alleen de incidenten en waarschuwingen op van het criterium dat het leest: het criterium waarvan **Field that signals recovery** en **Value that means recovered** overeenkomen met de payload. De incidenten en waarschuwingen van een ander criterium voor dezelfde waarde blijven open, en die van een criterium dat deze velden leeg laat, los je met de hand op.
+
 **Max incidents per request** begrenst het uitlezen, niet alleen het aanmaken. Sleutels voorbij de grens zijn ook onzichtbaar voor het herstel, dus in een payload met meer verschillende sleutels dan de grens sluit een waarschuwing die voorbij die grens `resolved` meldt, haar incident niet.
 
 > [!NOTE]

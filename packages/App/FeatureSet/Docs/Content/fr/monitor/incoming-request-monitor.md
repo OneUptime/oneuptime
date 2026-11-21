@@ -388,6 +388,8 @@ Un webhook ne décrit que ce que contient cette charge utile : OneUptime ne rés
 
 Une alerte que vous ajoutez vous-même à un critère commence elle aussi avec **Résoudre automatiquement l'alerte** désactivé : un rétablissement laisse donc l'alerte ouverte tant que l'option n'est pas activée. **Auto-resolve each incident when…** indique quels incidents et alertes du critère un rétablissement résout, et nomme chacun de ceux qu'il laisserait ouverts, avec un bouton qui active l'option correspondante. La carte **Résumé du moniteur** de la **Vue d'ensemble** du moniteur nomme chaque incident et chaque alerte qu'un rétablissement a laissés ouverts, et pourquoi.
 
+Un rétablissement ne résout que les incidents et les alertes du critère qui le lit : celui dont **Champ qui signale le rétablissement** et **Value that means recovered** correspondent à la charge utile. Les incidents et les alertes d'un autre critère pour la même valeur restent ouverts, et ceux d'un critère qui laisse ces champs vides se résolvent à la main.
+
 **Incidents max par requête** plafonne l'extraction, pas seulement la création. Les clés au-delà du plafond sont aussi invisibles pour le rétablissement : dans une charge utile portant plus de clés différentes que le plafond, une alerte qui signale `resolved` au-delà de celui-ci ne fermera pas son incident.
 
 > [!NOTE]
