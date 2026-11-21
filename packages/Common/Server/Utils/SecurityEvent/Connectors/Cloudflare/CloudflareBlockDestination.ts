@@ -24,6 +24,7 @@ import {
   CloudflareBlockingMechanism,
   CloudflareBlockingSettings,
   CloudflareBlockingStatus,
+  CloudflareZoneStatus,
   getCloudflareAccessRuleValueProblem,
   getCloudflareActionStatus,
   getCloudflareListValueProblem,
@@ -38,6 +39,14 @@ import {
   SecurityBlockIndicatorType,
 } from "../../../../../Types/SecurityBlocklist/SecurityBlock";
 import { SecurityBlockDestinationProvider } from "../../../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
+import {
+  SecurityAddressProtection,
+  findProtectionAmong,
+} from "../../../../../Types/SecurityBlocklist/SecurityProtectedAddress";
+import NetworkAddressBlockUtil, {
+  NetworkAddressBlock,
+} from "../../../../../Utils/NetworkTraffic/NetworkAddressBlock";
+import SecurityProtectedAddresses from "../../../SecurityBlocklist/SecurityProtectedAddresses";
 import { ConnectorTransport, SecurityConnectorSettings } from "../Types";
 import CloudflareBlocking, { CloudflareSleep } from "./CloudflareBlocking";
 import CloudflareClient from "./CloudflareClient";
@@ -166,6 +175,7 @@ export class CloudflareBlockDestination implements SecurityBlockDestination {
   private broken: string | null;
   // When the first setup failed, before there was any status to keep.
   private failedAt: string | undefined;
+  private projectId: ObjectID;
   private now: () => Date;
 
   public constructor(data: {
@@ -185,6 +195,7 @@ export class CloudflareBlockDestination implements SecurityBlockDestination {
     this.settings = data.settings;
     this.status = data.status;
     this.failedAt = data.failedAt;
+    this.projectId = data.projectId;
     this.written = JSON.stringify(data.status || null);
     this.now =
       data.options?.now ||
@@ -316,7 +327,62 @@ export class CloudflareBlockDestination implements SecurityBlockDestination {
       throw error;
     }
 
+    await this.keepUnprotectedSkipAddresses();
     await this.writeStatus();
+  }
+
+  /*
+   * The zones' skip-rule addresses that no Protected Entity of the project
+   * holds yet: the connection offers to protect those, and stops offering
+   * an address once it is. When the list cannot be read, every one is
+   * offered still.
+   */
+  private async keepUnprotectedSkipAddresses(): Promise<void> {
+    const status: CloudflareBlockingStatus | null = this.status;
+
+    if (
+      !status ||
+      !status.zones.some((zone: CloudflareZoneStatus): boolean => {
+        return Boolean(zone.skipAddresses?.length);
+      })
+    ) {
+      return;
+    }
+
+    let protections: Array<SecurityAddressProtection>;
+
+    try {
+      protections = (
+        await SecurityProtectedAddresses.readProtectedEntities(
+          this.projectId,
+          ROOT,
+        )
+      ).protections;
+    } catch {
+      return;
+    }
+
+    this.status = {
+      ...status,
+      zones: status.zones.map(
+        (zone: CloudflareZoneStatus): CloudflareZoneStatus => {
+          const kept: Array<string> = (zone.skipAddresses || []).filter(
+            (value: string): boolean => {
+              const block: NetworkAddressBlock | null =
+                NetworkAddressBlockUtil.parse(value);
+
+              return !block || !findProtectionAmong({ block, protections });
+            },
+          );
+          const withoutSkip: CloudflareZoneStatus = { ...zone };
+          delete withoutSkip.skipAddresses;
+
+          return kept.length > 0
+            ? { ...withoutSkip, skipAddresses: kept }
+            : withoutSkip;
+        },
+      ),
+    };
   }
 
   public supports(entry: {

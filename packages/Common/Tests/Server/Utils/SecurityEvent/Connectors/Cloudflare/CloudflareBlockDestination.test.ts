@@ -7,6 +7,8 @@ import SecurityBlockEnforcementService from "../../../../../../Server/Services/S
 import SecurityBlockService from "../../../../../../Server/Services/SecurityBlockService";
 import SecurityCaseFeedService from "../../../../../../Server/Services/SecurityCaseFeedService";
 import SecurityEventConnectionService from "../../../../../../Server/Services/SecurityEventConnectionService";
+import SecurityProtectedEntityService from "../../../../../../Server/Services/SecurityProtectedEntityService";
+import SecurityProtectedEntity from "../../../../../../Models/DatabaseModels/SecurityProtectedEntity";
 import CloudflareBlockDestinations, {
   CLOUDFLARE_BLOCKING_CHECK_INTERVAL_IN_MS,
   CloudflareBlockDestination,
@@ -625,6 +627,50 @@ describe("turning blocking off", () => {
 
     await pass(10);
     expect(api.lists).toEqual([]);
+  });
+});
+
+describe("the zones' skip rules", () => {
+  test("the addresses they let through are offered to protect, but not those a Protected Entity already holds", async () => {
+    api.addCustomerRule(ZONE_A, {
+      action: "skip",
+      expression: "(ip.src in {203.0.113.7 198.51.100.0/24})",
+    });
+
+    const protectedEntity: SecurityProtectedEntity =
+      new SecurityProtectedEntity();
+    protectedEntity._id = "10343000-0000-4000-8000-0000000000ef";
+    protectedEntity.value = "203.0.113.0/24";
+    protectedEntity.description = "Office";
+    jest
+      .spyOn(SecurityProtectedEntityService, "findBy")
+      .mockResolvedValue([protectedEntity]);
+
+    await pass(0);
+
+    expect(
+      storedStatus().zones.find((zone: { id: string }): boolean => {
+        return zone.id === ZONE_A;
+      })?.skipAddresses,
+    ).toEqual(["198.51.100.0/24"]);
+  });
+
+  test("when the protected list cannot be read, every one is offered still", async () => {
+    api.addCustomerRule(ZONE_A, {
+      action: "skip",
+      expression: "(ip.src eq 203.0.113.7)",
+    });
+    jest
+      .spyOn(SecurityProtectedEntityService, "findBy")
+      .mockRejectedValue(new Error("database is down"));
+
+    await pass(0);
+
+    expect(
+      storedStatus().zones.find((zone: { id: string }): boolean => {
+        return zone.id === ZONE_A;
+      })?.skipAddresses,
+    ).toEqual(["203.0.113.7"]);
   });
 });
 
