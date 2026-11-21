@@ -16,7 +16,7 @@ Con **Lavora sui nuovi problemi** attivo in **Sicurezza dei dati → IA**, come 
 
 Per impostazione predefinita, OneUptime AI chiede prima di ogni modifica, tranne una che nasconde solo dati, si può annullare ed è dimostrata sicura, e non elimina mai dati né avvisa nessuno senza chiedere. Una modifica fatta senza chiedere compare sotto **Fatto dall'IA**, con **Annulla**. **Perché l'IA non ha agito** elenca i problemi che ha esaminato e lasciato com'erano, e perché. Ogni proposta, approvazione, rifiuto e annullamento è nella **Cronologia** del problema e dell'archivio. Con l'interruttore disattivato, o l'IA disattivata per il progetto, la sicurezza dei dati funziona come sempre, e **Spiega con l'IA** e **Correggi con l'IA** funzionano ancora quando li premi.
 
-Nella pagina di un problema, la scheda **OneUptime AI** sopra **Come correggere** mostra l'analisi e ciò che è stato proposto per quel problema, con gli stessi pulsanti. La **Panoramica** della sicurezza dei dati dice quante fughe OneUptime AI ha contenuto questa settimana e quante proposte ti aspettano.
+Nella pagina di un problema, la scheda **OneUptime AI** sopra **Come correggere** mostra l'analisi e ciò che è stato proposto per quel problema, con gli stessi pulsanti. La **Panoramica** della sicurezza dei dati dice quante fughe OneUptime AI ha contenuto questa settimana e quante proposte ti aspettano. **Note per OneUptime AI** conta settimana per settimana com'è andata con le sue modifiche: vedi [Come se la cava OneUptime AI](/docs/ai/ai-sre#come-se-la-cava-oneuptime-ai).
 
 ### Regole IA
 

@@ -16,7 +16,7 @@ Com **Trabalhar em problemas novos** ligado em **Segurança de dados → IA**, c
 
 Por padrão, o OneUptime AI pergunta antes de cada mudança, exceto uma que só oculta dados, pode ser desfeita e está comprovadamente segura, e nunca apaga dados nem aciona ninguém sem perguntar. Uma mudança que ele fez sem perguntar aparece em **Feito pela IA**, com **Desfazer**. **Por que a IA não agiu** lista os problemas que ele analisou e deixou como estavam, e por quê. Cada proposta, aprovação, dispensa e reversão está na **Linha do tempo** do problema e do repositório. Com a chave desligada, ou a IA desligada no projeto, a segurança de dados funciona como sempre, e **Explicar com IA** e **Corrigir com IA** continuam funcionando quando você os aciona.
 
-Na página de um problema, o cartão **OneUptime AI** acima de **Como corrigir** mostra a análise e o que foi proposto para aquele problema, com os mesmos botões. A **Visão geral** da segurança de dados diz quantos vazamentos o OneUptime AI conteve esta semana e quantas propostas aguardam você.
+Na página de um problema, o cartão **OneUptime AI** acima de **Como corrigir** mostra a análise e o que foi proposto para aquele problema, com os mesmos botões. A **Visão geral** da segurança de dados diz quantos vazamentos o OneUptime AI conteve esta semana e quantas propostas aguardam você. **Notas para o OneUptime AI** conta, semana a semana, o resultado das alterações dele: veja [Como a OneUptime AI está se saindo](/docs/ai/ai-sre#como-a-oneuptime-ai-está-se-saindo).
 
 ### Regras de IA
 

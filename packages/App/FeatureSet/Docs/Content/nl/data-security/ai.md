@@ -16,7 +16,7 @@ Met **Aan nieuwe problemen werken** ingeschakeld onder **Gegevensbeveiliging →
 
 Standaard vraagt OneUptime AI vóór elke wijziging, behalve een die alleen gegevens verbergt, ongedaan kan worden gemaakt en bewezen veilig is, en het verwijdert nooit gegevens en roept nooit iemand op zonder te vragen. Een wijziging die het zonder te vragen heeft gedaan, staat onder **Gedaan door AI**, met **Ongedaan maken**. **Waarom AI niet heeft gehandeld** toont de problemen die het heeft bekeken en met rust heeft gelaten, en waarom. Elk voorstel, elke goedkeuring, elke keer negeren en elke keer ongedaan maken staat op de **Tijdlijn** van het probleem en van de opslag. Met de schakelaar uit, of AI uit voor het project, werkt gegevensbeveiliging zoals altijd, en **Uitleggen met AI** en **Oplossen met AI** werken nog steeds als je erop drukt.
 
-Op de pagina van een probleem toont de kaart **OneUptime AI** boven **Zo lost u het op** de analyse en wat er voor dat probleem is voorgesteld, met dezelfde knoppen. Het **Overzicht** van gegevensbeveiliging zegt hoeveel lekken OneUptime AI deze week heeft ingedamd en hoeveel voorstellen op je wachten.
+Op de pagina van een probleem toont de kaart **OneUptime AI** boven **Zo lost u het op** de analyse en wat er voor dat probleem is voorgesteld, met dezelfde knoppen. Het **Overzicht** van gegevensbeveiliging zegt hoeveel lekken OneUptime AI deze week heeft ingedamd en hoeveel voorstellen op je wachten. **Notities voor OneUptime AI** telt week voor week wat de wijzigingen opleverden: zie [Hoe goed OneUptime AI het doet](/docs/ai/ai-sre#hoe-goed-oneuptime-ai-het-doet).
 
 ### AI-regels
 

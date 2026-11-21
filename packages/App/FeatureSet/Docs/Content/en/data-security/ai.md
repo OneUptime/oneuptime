@@ -16,7 +16,7 @@ With **Work on new issues** turned on under **Data Security → AI**, as it is f
 
 Out of the box, OneUptime AI asks before every change except one that only hides data, can be undone and is proven safe, and it never deletes data or pages anyone without asking. A change it made without asking is listed under **Done by AI**, with **Undo**. **Why AI did not act** lists the issues it looked at and left alone, and why. Every proposal, approval, dismissal and undo is on the issue's and the store's **Timeline**. With the switch off, or AI off for the project, Data Security works as it always does, and **Explain with AI** and **Fix with AI** still work when you press them.
 
-On an issue's page, the **OneUptime AI** card above **How to Fix** shows the analysis and what was proposed for that issue, with the same buttons. The Data Security **Overview** says how many leaks OneUptime AI contained this week and how many proposals wait for you.
+On an issue's page, the **OneUptime AI** card above **How to Fix** shows the analysis and what was proposed for that issue, with the same buttons. The Data Security **Overview** says how many leaks OneUptime AI contained this week and how many proposals wait for you. What came of its changes is counted week by week under **Notes for OneUptime AI**: see [How well OneUptime AI is doing](/docs/ai/ai-sre#how-well-oneuptime-ai-is-doing).
 
 ### AI rules
 

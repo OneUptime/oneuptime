@@ -16,7 +16,7 @@ Med **Arbeta med nya problem** påslaget under **Datasäkerhet → AI**, som det
 
 Som standard frågar OneUptime AI före varje ändring, utom en som bara döljer data, kan ångras och är bevisat säker, och den tar aldrig bort data eller larmar någon utan att fråga. En ändring som den gjorde utan att fråga visas under **Gjort av AI**, med **Ångra**. **Varför AI inte agerade** listar de problem som den tittade på och lät vara, och varför. Varje förslag, godkännande, avfärdande och ångrande finns på problemets och datalagrets **Tidslinje**. Med reglaget av, eller AI avstängd för projektet, fungerar datasäkerhet som vanligt, och **Förklara med AI** och **Åtgärda med AI** fungerar fortfarande när du trycker på dem.
 
-På ett problems sida visar kortet **OneUptime AI** ovanför **Så åtgärdar du det** analysen och det som föreslogs för problemet, med samma knappar. Datasäkerhetens **Översikt** säger hur många läckor OneUptime AI begränsade den här veckan och hur många förslag som väntar på dig.
+På ett problems sida visar kortet **OneUptime AI** ovanför **Så åtgärdar du det** analysen och det som föreslogs för problemet, med samma knappar. Datasäkerhetens **Översikt** säger hur många läckor OneUptime AI begränsade den här veckan och hur många förslag som väntar på dig. **Anteckningar för OneUptime AI** räknar vecka för vecka vad ändringarna ledde till: se [Hur bra OneUptime AI klarar sig](/docs/ai/ai-sre#hur-bra-oneuptime-ai-klarar-sig).
 
 ### AI-regler
 

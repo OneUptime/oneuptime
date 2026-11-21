@@ -16,7 +16,7 @@ Ist **An neuen Problemen arbeiten** unter **Datensicherheit → KI** eingeschalt
 
 Standardmäßig fragt OneUptime AI vor jeder Änderung, außer vor einer, die nur Daten verbirgt, rückgängig gemacht werden kann und nachweislich sicher ist, und sie löscht nie Daten und alarmiert nie jemanden ohne Rückfrage. Eine Änderung, die sie ohne Rückfrage vorgenommen hat, steht unter **Von der KI erledigt**, mit **Rückgängig**. **Warum die KI nicht gehandelt hat** listet die Probleme, die sie angesehen und unberührt gelassen hat, und warum. Jeder Vorschlag, jede Genehmigung, jedes Verwerfen und jedes Rückgängigmachen steht in der **Zeitachse** des Problems und des Datenspeichers. Ist der Schalter aus oder die KI für das Projekt ausgeschaltet, funktioniert die Datensicherheit wie immer, und **Mit KI erklären** und **Mit KI beheben** funktionieren weiterhin, wenn Sie sie drücken.
 
-Auf der Seite eines Problems zeigt die Karte **OneUptime AI** über **Behebung** die Analyse und was für dieses Problem vorgeschlagen wurde, mit denselben Schaltflächen. Die **Übersicht** der Datensicherheit sagt, wie viele Lecks OneUptime AI diese Woche eingedämmt hat und wie viele Vorschläge auf Sie warten.
+Auf der Seite eines Problems zeigt die Karte **OneUptime AI** über **Behebung** die Analyse und was für dieses Problem vorgeschlagen wurde, mit denselben Schaltflächen. Die **Übersicht** der Datensicherheit sagt, wie viele Lecks OneUptime AI diese Woche eingedämmt hat und wie viele Vorschläge auf Sie warten. Was aus ihren Änderungen geworden ist, zählt **Notizen für OneUptime AI** Woche für Woche: siehe [Wie gut OneUptime AI abschneidet](/docs/ai/ai-sre#wie-gut-oneuptime-ai-abschneidet).
 
 ### KI-Regeln
 

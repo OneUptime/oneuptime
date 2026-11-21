@@ -16,7 +16,7 @@ Med **Arbejd med nye problemer** slået til under **Datasikkerhed → AI**, som 
 
 Som standard spørger OneUptime AI før hver ændring, undtagen en, der kun skjuler data, kan fortrydes og er bevist sikker, og den sletter aldrig data eller tilkalder nogen uden at spørge. En ændring, den har foretaget uden at spørge, står under **Udført af AI**, med **Fortryd**. **Hvorfor AI ikke handlede** viser de problemer, den har set på og ladet være, og hvorfor. Hvert forslag, hver godkendelse, afvisning og fortrydelse står på problemets og datalagerets **Tidslinje**. Med kontakten slået fra, eller AI slået fra for projektet, fungerer datasikkerhed som altid, og **Forklar med AI** og **Ret med AI** virker stadig, når du trykker på dem.
 
-På et problems side viser kortet **OneUptime AI** over **Sådan rettes det** analysen og det, der blev foreslået for problemet, med de samme knapper. Datasikkerhedens **Oversigt** siger, hvor mange lækager OneUptime AI inddæmmede i denne uge, og hvor mange forslag der venter på dig.
+På et problems side viser kortet **OneUptime AI** over **Sådan rettes det** analysen og det, der blev foreslået for problemet, med de samme knapper. Datasikkerhedens **Oversigt** siger, hvor mange lækager OneUptime AI inddæmmede i denne uge, og hvor mange forslag der venter på dig. **Noter til OneUptime AI** tæller uge for uge, hvad der kom ud af dens ændringer: se [Hvor godt OneUptime AI klarer sig](/docs/ai/ai-sre#hvor-godt-oneuptime-ai-klarer-sig).
 
 ### AI-regler
 

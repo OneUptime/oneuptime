@@ -16,7 +16,7 @@ Con **Trabajar en los problemas nuevos** activado en **Seguridad de datos → IA
 
 De forma predeterminada, la IA de OneUptime pregunta antes de cada cambio, salvo uno que solo oculta datos, se puede deshacer y está demostrado que es seguro, y nunca borra datos ni avisa a nadie sin preguntar. Un cambio que hizo sin preguntar aparece en **Hecho por la IA**, con **Deshacer**. **Por qué la IA no actuó** lista los problemas que revisó y dejó como estaban, y por qué. Cada propuesta, aprobación, descarte y reversión está en la **Cronología** del problema y del almacén. Con el interruptor desactivado, o la IA desactivada en el proyecto, la seguridad de datos funciona como siempre, y **Explicar con IA** y **Corregir con IA** siguen funcionando cuando los pulsas.
 
-En la página de un problema, la tarjeta **OneUptime AI** sobre **Cómo corregirlo** muestra el análisis y lo que se propuso para ese problema, con los mismos botones. La **Vista general** de seguridad de datos dice cuántas fugas contuvo la IA de OneUptime esta semana y cuántas propuestas te esperan.
+En la página de un problema, la tarjeta **OneUptime AI** sobre **Cómo corregirlo** muestra el análisis y lo que se propuso para ese problema, con los mismos botones. La **Vista general** de seguridad de datos dice cuántas fugas contuvo la IA de OneUptime esta semana y cuántas propuestas te esperan. **Notas para la IA de OneUptime** cuenta semana a semana en qué quedaron sus cambios: consulta [Cómo le va a OneUptime AI](/docs/ai/ai-sre#cómo-le-va-a-oneuptime-ai).
 
 ### Reglas de IA
 
