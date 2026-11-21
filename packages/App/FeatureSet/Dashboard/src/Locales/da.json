@@ -61232,5 +61232,6 @@
   "{{count}} requests were throttled.": "{{count}} anmodninger blev begrænset.",
   "{{count}} requests were throttled._one": "{{count}} anmodning blev begrænset.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} anmodninger ({{size}}) blev ikke gemt.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} anmodning ({{size}}) blev ikke gemt."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} anmodning ({{size}}) blev ikke gemt.",
+  "Some of your logs or traces in this time range were refused and never scanned, so events from them are missing.": "En del af dine logs eller spor i dette tidsrum blev afvist og aldrig scannet, så hændelser fra dem mangler."
 }

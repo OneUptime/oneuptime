@@ -51,8 +51,8 @@ const PLURALS: ReadonlyArray<PluralTemplate> = Object.values(Copy).filter(
 
 describe("the words for what a budget or a rate refused", () => {
   test("are each an English key the Dashboard's locales hold", () => {
-    // 24 lines, the two sources' names, Open Budgets and 7 more.
-    expect(SENTENCES).toHaveLength(34);
+    // 24 lines, the two sources' names, Open Budgets and 8 more.
+    expect(SENTENCES).toHaveLength(35);
     expect(PLURALS).toHaveLength(3);
 
     const english: Record<string, string> = readDashboardLocale("en");

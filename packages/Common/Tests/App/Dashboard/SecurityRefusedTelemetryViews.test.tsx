@@ -128,6 +128,9 @@ import { HUNTS_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Compone
 import SecurityEventsReadBudgetBanners, {
   getSecurityEventsReadBudgetBannerSignals,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RefusedTelemetry/SecurityEventsReadBudgetBanners";
+import SecurityEventsNoResults, {
+  SECURITY_EVENTS_NO_RESULTS_REFUSED_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsNoResults";
 
 const NOW: Date = new Date("2026-11-20T15:00:00.000Z");
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -619,6 +622,73 @@ describe("a hunt's runs", () => {
     ).toHaveTextContent(Copy.HUNT_RUN_REFUSED);
     expect(
       within(clearRow).queryByTestId(`${HUNTS_TEST_IDS.runRow}-refused`),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("the events list with nothing in its time range", () => {
+  function stubSources(): void {
+    jest.spyOn(ModelAPI, "getList").mockImplementation((async (
+      options: Record<string, unknown>,
+    ) => {
+      if (options["modelType"] === SecurityLogSource) {
+        const value: SecurityLogSource = new SecurityLogSource();
+        value.lastScanResult = keptResult([refusal({})]);
+        return { data: [value], count: 1, skip: 0, limit: 1 };
+      }
+
+      return { data: [], count: 0, skip: 0, limit: 1 };
+    }) as never);
+  }
+
+  async function drawNoResults(data: {
+    from: string;
+    to: string;
+    latest?: string | undefined;
+  }): Promise<void> {
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <SecurityEventsNoResults
+            latestEventTime={data.latest ? new Date(data.latest) : undefined}
+            windowStartDate={new Date(data.from)}
+            windowEndDate={new Date(data.to)}
+          />
+        </MemoryRouter>,
+      );
+    });
+  }
+
+  test("says events from a refused stretch are missing, never just that there were none", async () => {
+    stubSources();
+
+    await drawNoResults({
+      from: "2026-11-20T14:00:00.000Z",
+      to: "2026-11-20T15:00:00.000Z",
+      latest: "2026-11-20T13:00:00.000Z",
+    });
+
+    expect(
+      await screen.findByTestId(SECURITY_EVENTS_NO_RESULTS_REFUSED_ID),
+    ).toHaveTextContent(Copy.NO_EVENTS_BUT_REFUSED);
+    expect(
+      screen.getByText("No security events in this time range"),
+    ).toBeInTheDocument();
+  });
+
+  test("a time range nothing was refused in says only what it always said", async () => {
+    stubSources();
+
+    await drawNoResults({
+      from: "2026-11-19T10:00:00.000Z",
+      to: "2026-11-19T11:00:00.000Z",
+    });
+
+    expect(
+      screen.getByText("No security events in this time range"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId(SECURITY_EVENTS_NO_RESULTS_REFUSED_ID),
     ).not.toBeInTheDocument();
   });
 });

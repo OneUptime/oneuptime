@@ -61232,5 +61232,6 @@
   "{{count}} requests were throttled.": "요청 {{count}}건이 스로틀링되었습니다.",
   "{{count}} requests were throttled._one": "요청 {{count}}건이 스로틀링되었습니다.",
   "{{size}} in {{count}} requests was not stored.": "요청 {{count}}건({{size}})이 저장되지 않았습니다.",
-  "{{size}} in {{count}} requests was not stored._one": "요청 {{count}}건({{size}})이 저장되지 않았습니다."
+  "{{size}} in {{count}} requests was not stored._one": "요청 {{count}}건({{size}})이 저장되지 않았습니다.",
+  "Some of your logs or traces in this time range were refused and never scanned, so events from them are missing.": "이 기간의 로그나 트레이스 일부가 거부되어 검사되지 않았으므로, 그로부터 나올 이벤트가 누락되었습니다."
 }

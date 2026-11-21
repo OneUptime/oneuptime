@@ -61232,5 +61232,6 @@
   "{{count}} requests were throttled.": "Ограничено по скорости запросов: {{count}}.",
   "{{count}} requests were throttled._one": "{{count}} запрос ограничен по скорости.",
   "{{size}} in {{count}} requests was not stored.": "Не сохранено запросов: {{count}} ({{size}}).",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} запрос ({{size}}) не сохранён."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} запрос ({{size}}) не сохранён.",
+  "Some of your logs or traces in this time range were refused and never scanned, so events from them are missing.": "Часть ваших логов или трассировок за этот период была отклонена и так и не проверена, поэтому событий из них не хватает."
 }

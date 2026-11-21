@@ -61232,5 +61232,6 @@
   "{{count}} requests were throttled.": "{{count}} Anfragen wurden gedrosselt.",
   "{{count}} requests were throttled._one": "{{count}} Anfrage wurde gedrosselt.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} Anfragen mit {{size}} wurden nicht gespeichert.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} Anfrage mit {{size}} wurde nicht gespeichert."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} Anfrage mit {{size}} wurde nicht gespeichert.",
+  "Some of your logs or traces in this time range were refused and never scanned, so events from them are missing.": "Ein Teil Ihrer Protokolle oder Traces in diesem Zeitraum wurde abgelehnt und nie geprüft, daher fehlen Ereignisse daraus."
 }

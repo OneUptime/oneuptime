@@ -61232,5 +61232,6 @@
   "{{count}} requests were throttled.": "{{count}} begäranden ströps.",
   "{{count}} requests were throttled._one": "{{count}} begäran ströps.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} begäranden ({{size}}) lagrades inte.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} begäran ({{size}}) lagrades inte."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} begäran ({{size}}) lagrades inte.",
+  "Some of your logs or traces in this time range were refused and never scanned, so events from them are missing.": "En del av dina loggar eller spår i det här tidsintervallet avvisades och skannades aldrig, så händelser från dem saknas."
 }

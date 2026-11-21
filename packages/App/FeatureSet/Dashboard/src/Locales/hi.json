@@ -61232,5 +61232,6 @@
   "{{count}} requests were throttled.": "{{count}} अनुरोध थ्रॉटल किए गए।",
   "{{count}} requests were throttled._one": "{{count}} अनुरोध थ्रॉटल किया गया।",
   "{{size}} in {{count}} requests was not stored.": "{{count}} अनुरोध ({{size}}) सहेजे नहीं गए।",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} अनुरोध ({{size}}) सहेजा नहीं गया।"
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} अनुरोध ({{size}}) सहेजा नहीं गया।",
+  "Some of your logs or traces in this time range were refused and never scanned, so events from them are missing.": "इस समय सीमा के आपके कुछ लॉग या ट्रेस अस्वीकार किए गए और कभी स्कैन नहीं किए गए, इसलिए उनसे बनने वाले इवेंट गायब हैं।"
 }

@@ -61232,5 +61232,6 @@
   "{{count}} requests were throttled.": "{{count}} 件のリクエストがスロットリングされました。",
   "{{count}} requests were throttled._one": "{{count}} 件のリクエストがスロットリングされました。",
   "{{size}} in {{count}} requests was not stored.": "{{count}} 件のリクエスト（{{size}}）が保存されませんでした。",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} 件のリクエスト（{{size}}）が保存されませんでした。"
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} 件のリクエスト（{{size}}）が保存されませんでした。",
+  "Some of your logs or traces in this time range were refused and never scanned, so events from them are missing.": "この期間のログやトレースの一部は拒否され、スキャンされていないため、そこから生じるイベントが欠けています。"
 }

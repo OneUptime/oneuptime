@@ -61232,5 +61232,6 @@
   "{{count}} requests were throttled.": "{{count}} درخواست محدود شد.",
   "{{count}} requests were throttled._one": "{{count}} درخواست محدود شد.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} درخواست ({{size}}) ذخیره نشد.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} درخواست ({{size}}) ذخیره نشد."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} درخواست ({{size}}) ذخیره نشد.",
+  "Some of your logs or traces in this time range were refused and never scanned, so events from them are missing.": "بخشی از لاگ‌ها یا ترِیس‌های شما در این بازه زمانی رد شد و هرگز بررسی نشد، پس رویدادهای آن‌ها در دست نیست."
 }

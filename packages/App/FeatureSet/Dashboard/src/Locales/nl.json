@@ -61232,5 +61232,6 @@
   "{{count}} requests were throttled.": "{{count}} verzoeken zijn afgeremd.",
   "{{count}} requests were throttled._one": "{{count}} verzoek is afgeremd.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} verzoeken ({{size}}) zijn niet opgeslagen.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} verzoek ({{size}}) is niet opgeslagen."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} verzoek ({{size}}) is niet opgeslagen.",
+  "Some of your logs or traces in this time range were refused and never scanned, so events from them are missing.": "Een deel van uw logboeken of traces in dit tijdsbereik is geweigerd en nooit gescand, dus gebeurtenissen daaruit ontbreken."
 }

@@ -1240,6 +1240,7 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
       <SecurityEventsNoResults
         latestEventTime={latestEventTime || undefined}
         windowStartDate={new Date(timeWindow.startValue)}
+        windowEndDate={new Date(timeWindow.endValue)}
         onShowTimeRange={applyTimeRange}
       />
     );

@@ -61232,5 +61232,6 @@
   "{{count}} requests were throttled.": "{{count}} 個請求遭到節流。",
   "{{count}} requests were throttled._one": "{{count}} 個請求遭到節流。",
   "{{size}} in {{count}} requests was not stored.": "{{count}} 個請求（{{size}}）未被儲存。",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} 個請求（{{size}}）未被儲存。"
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} 個請求（{{size}}）未被儲存。",
+  "Some of your logs or traces in this time range were refused and never scanned, so events from them are missing.": "此時間範圍內你的部分日誌或追蹤遭到拒絕，從未被掃描，因此缺少由它們產生的事件。"
 }

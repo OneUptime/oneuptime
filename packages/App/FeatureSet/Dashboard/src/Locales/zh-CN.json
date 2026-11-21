@@ -61232,5 +61232,6 @@
   "{{count}} requests were throttled.": "{{count}} 个请求被限流。",
   "{{count}} requests were throttled._one": "{{count}} 个请求被限流。",
   "{{size}} in {{count}} requests was not stored.": "{{count}} 个请求（{{size}}）未被存储。",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} 个请求（{{size}}）未被存储。"
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} 个请求（{{size}}）未被存储。",
+  "Some of your logs or traces in this time range were refused and never scanned, so events from them are missing.": "此时间范围内你的部分日志或追踪被拒绝，从未被扫描，因此缺少由它们产生的事件。"
 }

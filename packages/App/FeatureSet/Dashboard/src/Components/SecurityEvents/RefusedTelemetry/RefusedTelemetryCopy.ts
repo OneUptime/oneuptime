@@ -159,6 +159,11 @@ export const HUNT_RUN_REFUSED: string = translationKey(
   "Some of your logs or traces in this window were refused and never scanned.",
 );
 
+// Under the events list's "No security events", over a time range something was refused in.
+export const NO_EVENTS_BUT_REFUSED: string = translationKey(
+  "Some of your logs or traces in this time range were refused and never scanned, so events from them are missing.",
+);
+
 // Above a case's lines.
 export const CASE_REFUSED: string = translationKey(
   "Some of your logs or traces were refused while this case was open, so detections from that time may be missing.",
