@@ -1188,7 +1188,7 @@ function describeScope(
   const records: string = signal === "log" ? "logs" : "spans";
 
   return scope.serviceId
-    ? `${scope.serviceName}'s ${records} only: other services' ${records} are not changed`
+    ? `the ${records} of ${scope.serviceName} only: other services' ${records} are not changed`
     : `the ${records} of every service and app in the project`;
 }
 
