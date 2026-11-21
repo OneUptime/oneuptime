@@ -35,15 +35,15 @@ import zlib from "zlib";
  * Here the body is read in two steps:
  *
  *   1. Its opening: the first `openingBytes` of it as it inflates (or all of
- *      it, when it is shorter), from at most MAX_BYTES_READ_FOR_OPENING
- *      bytes as sent. A chunk is read off the socket only once the one
+ *      it, when it is shorter, or what MAX_BYTES_READ_FOR_OPENING bytes as
+ *      sent inflated to). A chunk is read off the socket only once the one
  *      before it is through the inflate, so no more is read or inflated
- *      than the opening takes: a socket read's worth as sent (64 KiB), and
- *      as inflated one zlib output chunk past the opening and one more the
- *      inflate holds (16 KiB each). Nothing is counted or parsed, so neither
- *      the shape of the body - a bomb, a body nested a million deep - nor
- *      its size costs more. Then the request is paused, and `check` reads
- *      the opening.
+ *      than the opening takes: the socket reads that hold it as sent (64 KiB
+ *      each), and as inflated one zlib output chunk past the opening and one
+ *      more the inflate holds (16 KiB each). Nothing is counted or parsed,
+ *      so neither the shape of the body - a bomb, a body nested a million
+ *      deep - nor its size costs more. Then the request is paused, and
+ *      `check` reads the opening.
  *   2. The rest, only when the check lets it through: held to `limit` from
  *      the first byte - its size as sent and inflated, and its values as
  *      they inflate when it is JSON - as RequestBodyAfterAuthentication
