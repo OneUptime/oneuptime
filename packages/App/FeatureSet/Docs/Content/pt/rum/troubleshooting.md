@@ -87,14 +87,14 @@ Um navegador raramente envia lotes tão grandes, a menos que os spans carreguem 
 
 ## Verificar onde a telemetria chega
 
-A requisição funciona, mas o aplicativo aparece em **Produtos → Serviços** em vez de **Produtos → Recursos → Monitoramento de Usuários Reais**. É o relato mais comum, e a causa quase sempre é um recurso sem atributos de cliente. O OneUptime só arquiva um lote como RUM quando o recurso dele carrega um destes:
+A requisição funciona, mas o aplicativo aparece em **Produtos → Serviços** em vez de **Produtos → Recursos → Monitoramento de Usuários Reais**. É o relato mais comum, e a causa quase sempre é uma chave que não é Navegador nem Celular, enviando um recurso sem atributos de cliente. Tudo o que uma chave Navegador ou Celular envia é arquivado como RUM; com qualquer outra chave, o OneUptime só arquiva um lote como RUM quando o recurso dele carrega um destes:
 
 | Tipo | Atributos |
 | --- | --- |
 | Navegador | `browser.platform`, `browser.language` ou um `browser.brands` não vazio |
 | Móvel | `device.id` ou `device.model.identifier`, ou `device.manufacturer` em um recurso sem identidade de host (`host.name`, `host.id` ou `k8s.node.name`) |
 
-Um `service.name` sozinho cria um serviço de backend. O SDK do OpenTelemetry para navegador não adiciona nenhum atributo `browser.*` a menos que você adicione o detector de recursos do navegador ou os defina você mesmo: consulte [Configuração para navegadores](/docs/rum/browser-setup).
+Com qualquer outra chave, um `service.name` sozinho cria um serviço de backend. O SDK do OpenTelemetry para navegador não adiciona nenhum atributo `browser.*` a menos que você adicione o detector de recursos do navegador ou os defina você mesmo: consulte [Configuração para navegadores](/docs/rum/browser-setup).
 
 Para ver o que você realmente envia, abra a requisição OTLP na aba Rede e olhe o payload dela: `resourceSpans[0].resource.attributes` é a lista que decide. Se não houver nenhum atributo `browser.*`, o SDK não o está adicionando, diga o que disser a documentação dele.
 
@@ -127,7 +127,7 @@ O gráfico vazio na **Visão geral** da aplicação diz qual é o caso, e a **Ve
 
 As exceções precisam de um manipulador de erros, porque o SDK não captura erros não tratados: [Relatar erros não tratados](/docs/rum/browser-setup#relatar-erros-não-tratados) tem o código. Um erro que um error boundary ou um `try`/`catch` trata nunca chega à janela, então registre-o onde você o trata, com `span.recordException`.
 
-Os registros precisam de um pipeline de registros e de código que escreva entradas de registro, porque um `LoggerProvider` sozinho não envia nada: [Adicionar registros e métricas](/docs/rum/browser-setup#adicionar-registros-e-métricas) tem os dois. Monte o pipeline com o mesmo `resource` dos seus traços, ou os registros são arquivados sob um serviço de backend.
+Os registros precisam de um pipeline de registros e de código que escreva entradas de registro, porque um `LoggerProvider` sozinho não envia nada: [Adicionar registros e métricas](/docs/rum/browser-setup#adicionar-registros-e-métricas) tem os dois. Monte o pipeline com o mesmo `resource` dos seus traços, para que os registros sejam arquivados sob a mesma aplicação.
 
 Quando os carregamentos de página chegam, a chave, as origens permitidas dela e a sua Content Security Policy também deixam passar as exceções e os registros, desde que o exportador de registros use a mesma chave e o mesmo host. Um manipulador de erros que ainda não capturou nada não envia nada, exatamente como um que nunca foi adicionado, então lance um erro de teste no console do navegador para diferenciar os dois:
 

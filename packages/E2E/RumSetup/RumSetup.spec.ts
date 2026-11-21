@@ -897,7 +897,7 @@ test.describe("a mobile app", () => {
       shownDropdownValue(guide.getByTestId("ingestion-key-picker-row")),
     ).toHaveText(created[0]!["name"] as string);
     expect(await readText(guide.getByTestId("ingestion-key-caution"))).toBe(
-      "Mobile key: safe to ship in your app. It can send only traces, logs and metrics, all filed under storefront-mobile, and never from a web page. Anyone who has the app can copy it, so it is rate limited, and you can turn it off at any time.",
+      "Mobile key: safe to ship in your app. It can send only traces, logs, metrics and session replays, all filed under storefront-mobile, and never from a web page. Anyone who has the app can copy it, so it is rate limited, and you can turn it off at any time.",
     );
 
     await expectNoSidewaysScroll(page);

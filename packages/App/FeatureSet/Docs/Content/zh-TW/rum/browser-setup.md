@@ -62,7 +62,7 @@ npm install @opentelemetry/api \
 
 ### 建立遙測檔案
 
-建立 `src/telemetry.ts` 。 `browserDetector` 會加入讓遙測被歸類為 RUM 的 `browser.*` 屬性，而 `service.name` 則為應用程式命名。
+建立 `src/telemetry.ts` 。 `browserDetector` 會加入 **用戶端** 頁面列出的 `browser.*` 屬性，而 `service.name` 則為應用程式命名：瀏覽器金鑰傳送的所有內容都會以 RUM 的形式歸入該應用程式。
 
 ```ts title="src/telemetry.ts"
 import {
@@ -88,8 +88,8 @@ const ONEUPTIME_URL = "https://oneuptime.com";
 const ONEUPTIME_TOKEN = "YOUR_TELEMETRY_INGESTION_TOKEN";
 
 /*
- * browserDetector supplies the browser.* attributes. Without them this
- * telemetry is classified as a backend Service, not a RUM application.
+ * browserDetector supplies the browser.* attributes the Clients page
+ * lists. A Browser key files everything it sends as browser RUM.
  * The attributes set last win, so service.name here overrides the
  * "unknown_service" that defaultResource() provides.
  */
@@ -166,11 +166,11 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | --- | --- |
 | **允許的來源** | 只接受來自這些來源的請求，每個來源都包含通訊協定和連接埠（如有）。主機可以用一個 `*.` 萬用字元開頭： `https://*.example.com` 涵蓋 `example.com` 的所有子網域，但不包括 `example.com` 本身。 |
 | **每分鐘請求數上限** | 所有使用該金鑰的訪客共用的一個上限：除非你自行設定，否則為每分鐘 6000 個請求。 |
-| **固定的服務名稱** | 對金鑰寫入的所有資料強制使用 `service.name` ，因此副本無法把它的遙測偽裝成你的某個後端服務。 |
+| **固定的服務名稱** | 對金鑰寫入的所有資料強制使用 `service.name` ，因此副本只能寫入這一個應用程式。 |
 | **到期於** | 過了這個日期，金鑰就不再被接受。 |
 | **已啟用** | 關閉它即可立刻停用外洩的金鑰。 |
 
-Browser 金鑰只能寫入 OTLP 追蹤、日誌和指標，以及工作階段重播和瀏覽器中 [Sentry SDK](/docs/telemetry/compatible-endpoints#sentry-sdk) 傳送的事件；其他所有擷取路由都會拒絕它。這些設定在金鑰自己的頁面上變更。金鑰建立後，金鑰類型無法變更。
+Browser 金鑰只能寫入 OTLP 追蹤、日誌和指標，以及工作階段重播和瀏覽器中 [Sentry SDK](/docs/telemetry/compatible-endpoints#sentry-sdk) 傳送的事件；其他所有擷取路由都會拒絕它。它寫入的所有內容都會歸類為瀏覽器 RUM，絕不會歸類為主機、叢集或後端服務：對於資源，它只保留頁面對自身的描述，例如 `service.*` 、 `browser.*` 和 `user_agent.*` 屬性以及 `oneuptime.label.*` 標籤。這些設定在金鑰自己的頁面上變更。金鑰建立後，金鑰類型無法變更。
 
 > [!WARNING]
 > 切勿把 **伺服器** 金鑰放進頁面。伺服器金鑰可以從任何地方寫入各種遙測，不做來源檢查，因此任何讀過你頁面的人都能寫入你的專案。
@@ -179,7 +179,7 @@ Browser 金鑰只能寫入 OTLP 追蹤、日誌和指標，以及工作階段重
 
 `browserDetector` 會讀取 [UA Client Hints API](https://wicg.github.io/ua-client-hints/) ，而只有 Chromium 瀏覽器提供這個 API。在 Safari 和 Firefox 上，它會設定 `browser.language` 和 `user_agent.original` ，但不會設定 `browser.platform` 、 `browser.brands` 或 `browser.mobile` 。
 
-這仍足以把遙測歸類為 RUM，因為光是 `browser.language` 就能把批次標記為瀏覽器 RUM。不過 **用戶端** 頁面依 `browser.platform` 列出平台，因此 Safari 和 Firefox 的造訪不會在那裡新增列。
+使用瀏覽器金鑰時，遙測無論如何都會歸類為 RUM；使用其他任何金鑰時，光是 `browser.language` 就能把批次標記為瀏覽器 RUM。不過 **用戶端** 頁面依 `browser.platform` 列出平台，因此 Safari 和 Firefox 的造訪不會在那裡新增列。
 
 若要略過偵測器，或讓每個瀏覽器都有平台，請自行設定這些屬性：
 
@@ -402,7 +402,7 @@ metrics.setGlobalMeterProvider(
 );
 ```
 
-用同一個 `resource` 物件來建立它們。資源中缺少 `browser.*` 的日誌或指標管線，會被歸為一個獨立的後端服務。
+用同一個 `resource` 物件來建立它們，這樣它們的日誌和指標也會歸入同一個應用程式。
 
 日誌管線只傳送你的程式碼寫入的記錄，所以在每個值得了解的事情發生的地方寫一筆：
 
@@ -452,7 +452,7 @@ logger.emit({
 :::
 
 :::details 應用程式出現在服務下，而不是真實使用者監測下
-資源沒有任何 `browser.*` 屬性，因此遙測被歸為後端服務。請加入 `browserDetector` ，或依照 [不使用偵測器設定 `browser.*`](#不使用偵測器設定-browser) 設定這些屬性。
+該遙測是用瀏覽器金鑰以外的金鑰傳送的，且其資源沒有任何 `browser.*` 屬性，因此被歸為後端服務。請使用會把傳送的所有內容歸為 RUM 的瀏覽器金鑰傳送，或加入 `browserDetector` ，或依照 [不使用偵測器設定 `browser.*`](#不使用偵測器設定-browser) 設定這些屬性。
 
 在網路分頁中查看請求的承載，確認你傳送的內容： `resourceSpans[0].resource.attributes` 就是決定歸類的清單。已建立的服務不會變成 RUM 應用程式，因此在 RUM 遙測抵達後，請在 **產品 → 服務** 下刪除它。
 :::
