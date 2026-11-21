@@ -61171,6 +61171,7 @@
   "Last Modified by User ID": "最終更新したユーザーの ID",
   "Last modified": "最終更新",
   "Last modified by {{actor}}": "{{actor}} が最終更新",
+  "No monitors to link yet.": "リンクできるモニターはまだありません。",
   "Only the changes to one record are shown.": "1 件のレコードの変更のみを表示しています。",
   "Record History": "レコードの履歴",
   "Resolves an alert when {{field}} equals {{value}}.": "{{field}} が {{value}} と等しいときにアラートを解決します。",

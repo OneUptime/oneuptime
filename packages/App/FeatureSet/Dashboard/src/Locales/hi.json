@@ -61171,6 +61171,7 @@
   "Last Modified by User ID": "आख़िरी बार बदलने वाले उपयोगकर्ता की ID",
   "Last modified": "आख़िरी बार बदला गया",
   "Last modified by {{actor}}": "{{actor}} द्वारा आख़िरी बार बदला गया",
+  "No monitors to link yet.": "अभी लिंक करने के लिए कोई मॉनिटर नहीं है।",
   "Only the changes to one record are shown.": "केवल एक रिकॉर्ड के बदलाव दिखाए जा रहे हैं।",
   "Record History": "रिकॉर्ड का इतिहास",
   "Resolves an alert when {{field}} equals {{value}}.": "जब {{field}} {{value}} के बराबर हो, तब अलर्ट सुलझाता है।",

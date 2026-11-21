@@ -61171,6 +61171,7 @@
   "Last Modified by User ID": "Last Modified by User ID",
   "Last modified": "Last modified",
   "Last modified by {{actor}}": "Last modified by {{actor}}",
+  "No monitors to link yet.": "No monitors to link yet.",
   "Only the changes to one record are shown.": "Only the changes to one record are shown.",
   "Record History": "Record History",
   "Resolves an alert when {{field}} equals {{value}}.": "Resolves an alert when {{field}} equals {{value}}.",

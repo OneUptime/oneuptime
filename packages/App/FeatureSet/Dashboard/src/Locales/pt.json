@@ -61171,6 +61171,7 @@
   "Last Modified by User ID": "ID do usuário que alterou por último",
   "Last modified": "Última alteração",
   "Last modified by {{actor}}": "Alterado por último por {{actor}}",
+  "No monitors to link yet.": "Ainda não há monitores para vincular.",
   "Only the changes to one record are shown.": "São mostradas apenas as alterações de um registro.",
   "Record History": "Histórico do registro",
   "Resolves an alert when {{field}} equals {{value}}.": "Resolve um alerta quando {{field}} é igual a {{value}}.",

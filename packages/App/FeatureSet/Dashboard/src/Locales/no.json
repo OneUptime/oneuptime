@@ -61171,6 +61171,7 @@
   "Last Modified by User ID": "ID-en til brukeren som endret sist",
   "Last modified": "Senest endret",
   "Last modified by {{actor}}": "Sist endret av {{actor}}",
+  "No monitors to link yet.": "Ingen monitorer å koble til ennå.",
   "Only the changes to one record are shown.": "Bare endringene i én post vises.",
   "Record History": "Postens historikk",
   "Resolves an alert when {{field}} equals {{value}}.": "Løser et varsel når {{field}} er lik {{value}}.",

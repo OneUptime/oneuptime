@@ -61171,6 +61171,7 @@
   "Last Modified by User ID": "마지막으로 수정한 사용자 ID",
   "Last modified": "마지막 수정",
   "Last modified by {{actor}}": "{{actor}}이(가) 마지막으로 수정",
+  "No monitors to link yet.": "아직 연결할 모니터가 없습니다.",
   "Only the changes to one record are shown.": "레코드 하나의 변경 사항만 표시됩니다.",
   "Record History": "레코드 기록",
   "Resolves an alert when {{field}} equals {{value}}.": "{{field}}이(가) {{value}}와(과) 같으면 경고를 해결합니다.",

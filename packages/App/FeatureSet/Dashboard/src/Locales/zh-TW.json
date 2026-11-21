@@ -61171,6 +61171,7 @@
   "Last Modified by User ID": "最後修改的使用者 ID",
   "Last modified": "最後修改",
   "Last modified by {{actor}}": "由 {{actor}} 最後修改",
+  "No monitors to link yet.": "尚無可連結的監測器。",
   "Only the changes to one record are shown.": "僅顯示一筆記錄的變更。",
   "Record History": "記錄歷程",
   "Resolves an alert when {{field}} equals {{value}}.": "當 {{field}} 等於 {{value}} 時解決警示。",

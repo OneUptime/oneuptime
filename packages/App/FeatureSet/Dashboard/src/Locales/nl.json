@@ -61171,6 +61171,7 @@
   "Last Modified by User ID": "ID van de gebruiker die het laatst wijzigde",
   "Last modified": "Laatst gewijzigd",
   "Last modified by {{actor}}": "Laatst gewijzigd door {{actor}}",
+  "No monitors to link yet.": "Nog geen monitoren om te koppelen.",
   "Only the changes to one record are shown.": "Alleen de wijzigingen van één record worden getoond.",
   "Record History": "Geschiedenis van het record",
   "Resolves an alert when {{field}} equals {{value}}.": "Lost een waarschuwing op wanneer {{field}} gelijk is aan {{value}}.",

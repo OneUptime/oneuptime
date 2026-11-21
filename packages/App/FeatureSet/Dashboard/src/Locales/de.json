@@ -61171,6 +61171,7 @@
   "Last Modified by User ID": "Zuletzt geändert von Benutzer-ID",
   "Last modified": "Zuletzt geändert",
   "Last modified by {{actor}}": "Zuletzt geändert von {{actor}}",
+  "No monitors to link yet.": "Noch keine Monitore zum Verknüpfen.",
   "Only the changes to one record are shown.": "Es werden nur die Änderungen an einem Datensatz angezeigt.",
   "Record History": "Verlauf des Datensatzes",
   "Resolves an alert when {{field}} equals {{value}}.": "Behebt eine Warnung, wenn {{field}} gleich {{value}} ist.",

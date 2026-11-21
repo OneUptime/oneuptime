@@ -61171,6 +61171,7 @@
   "Last Modified by User ID": "ID пользователя, изменившего последним",
   "Last modified": "Изменено",
   "Last modified by {{actor}}": "Последним изменил: {{actor}}",
+  "No monitors to link yet.": "Пока нет мониторов, которые можно связать.",
   "Only the changes to one record are shown.": "Показаны только изменения одной записи.",
   "Record History": "История записи",
   "Resolves an alert when {{field}} equals {{value}}.": "Устраняет оповещение, когда {{field}} равно {{value}}.",

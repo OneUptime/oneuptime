@@ -61171,6 +61171,7 @@
   "Last Modified by User ID": "معرّف المستخدم الذي عدّل آخر مرة",
   "Last modified": "آخر تعديل",
   "Last modified by {{actor}}": "آخر من عدّل: {{actor}}",
+  "No monitors to link yet.": "ليس هناك مراقبات لربطها بعد.",
   "Only the changes to one record are shown.": "تُعرض تغييرات سجل واحد فقط.",
   "Record History": "تاريخ السجل",
   "Resolves an alert when {{field}} equals {{value}}.": "يحل تنبيهًا عندما يساوي {{field}} القيمة {{value}}.",

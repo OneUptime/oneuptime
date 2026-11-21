@@ -61171,6 +61171,7 @@
   "Last Modified by User ID": "ID de l'utilisateur de la dernière modification",
   "Last modified": "Dernière modification",
   "Last modified by {{actor}}": "Dernière modification par {{actor}}",
+  "No monitors to link yet.": "Aucun moniteur à lier pour l'instant.",
   "Only the changes to one record are shown.": "Seules les modifications d'un enregistrement sont affichées.",
   "Record History": "Historique de l'enregistrement",
   "Resolves an alert when {{field}} equals {{value}}.": "Résout une alerte lorsque {{field}} est égal à {{value}}.",

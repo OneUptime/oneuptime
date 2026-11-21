@@ -61171,6 +61171,7 @@
   "Last Modified by User ID": "شناسهٔ کاربر آخرین تغییردهنده",
   "Last modified": "آخرین تغییر",
   "Last modified by {{actor}}": "آخرین تغییر به‌دست {{actor}}",
+  "No monitors to link yet.": "هنوز مانیتوری برای پیوند دادن وجود ندارد.",
   "Only the changes to one record are shown.": "فقط تغییرهای یک رکورد نشان داده می‌شود.",
   "Record History": "تاریخچهٔ رکورد",
   "Resolves an alert when {{field}} equals {{value}}.": "وقتی {{field}} برابر {{value}} باشد، هشدار را برطرف می‌کند.",

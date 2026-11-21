@@ -61171,6 +61171,7 @@
   "Last Modified by User ID": "最后修改的用户 ID",
   "Last modified": "最后修改",
   "Last modified by {{actor}}": "由 {{actor}} 最后修改",
+  "No monitors to link yet.": "还没有可关联的监视器。",
   "Only the changes to one record are shown.": "仅显示一条记录的更改。",
   "Record History": "记录历史",
   "Resolves an alert when {{field}} equals {{value}}.": "当 {{field}} 等于 {{value}} 时解决警报。",
