@@ -321,7 +321,7 @@ describe("a project without a Cloudflare connection is behind no edge", () => {
       connectionRow({
         id: ObjectID.generate().toString(),
         projectId: PROJECT_ID,
-        provider: SecurityEventConnectorProvider.Okta,
+        provider: SecurityEventConnectorProvider.OktaSystemLog,
         isEnabled: true,
       }),
       cloudflareConnection({ isEnabled: true, projectId: OTHER_PROJECT_ID }),

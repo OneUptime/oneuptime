@@ -499,6 +499,11 @@ export default class CloudflareBlockDestinations {
     this.options = options || {};
   }
 
+  // How the blocking routes' checks reach Cloudflare: as the destinations do.
+  public static getOptionsForChecks(): CloudflareDestinationOptions {
+    return this.options;
+  }
+
   // A destination per Cloudflare connection of the project with blocking on.
   public static async findForProject(
     projectId: ObjectID,

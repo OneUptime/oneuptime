@@ -1,7 +1,7 @@
 import SecurityEventConnection from "../../Models/DatabaseModels/SecurityEventConnection";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
-import { JSONObject, JSONValue } from "../../Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import { SecurityConnectorTestReport } from "../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import {
@@ -32,6 +32,22 @@ import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import ProductKey from "../../Types/Product/ProductKey";
+import CloudflareBlockingControl, {
+  CloudflareBlockingCheckResult,
+} from "../Utils/SecurityEvent/Connectors/Cloudflare/CloudflareBlockingControl";
+import OneUptimeDate from "../../Types/Date";
+
+// Who may turn blocking on and off: whoever may change the connection.
+export const BLOCKING_REFUSED_MESSAGE: string =
+  "Project Owners, Project Admins and Security Admins can turn blocking on and off.";
+
+// What the blocking route does (`/:connectionId/blocking/:action`).
+export const BLOCKING_ACTIONS: ReadonlyArray<string> = [
+  "check",
+  "turn-on",
+  "turn-off",
+  "put-back",
+];
 
 /*
  * The settings a test or a field-choices request names: a saved
@@ -225,6 +241,111 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
             res,
             report as unknown as JSONObject,
           );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * Blocking addresses at Cloudflare (#10343), off until a person turns it
+     * on, with the same gate as editing the connection
+     * (CloudflareBlockingControl):
+     *
+     *   check      { zoneIds?, secrets?: { apiToken } } - how blocking would
+     *              be set up, and whether the token (or one pasted to
+     *              replace it) may write what that needs; changes nothing;
+     *   turn-on    the same body: on only when every check passes, with the
+     *              token pasted saved, and the zones (none: every zone);
+     *   turn-off   { removeFromCloudflare } - off, OneUptime's lists and
+     *              rules taken away from Cloudflare or kept as they are;
+     *   put-back   { zoneIds? } - what was turned off, deleted or changed at
+     *              Cloudflare, set up again.
+     */
+    this.router.post(
+      `${basePath}/:connectionId/blocking/:action`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions:
+              new SecurityEventConnection().getUpdatePermissions(),
+            errorMessage: BLOCKING_REFUSED_MESSAGE,
+          });
+
+          const action: string = String(req.params["action"] || "");
+
+          if (!BLOCKING_ACTIONS.includes(action)) {
+            throw new BadDataException(
+              `Blocking has no "${action.slice(0, 40)}": choose check, turn-on, turn-off or put-back.`,
+            );
+          }
+
+          const connectionId: string | undefined = req.params["connectionId"];
+
+          if (!connectionId || !ObjectID.isValidUUID(connectionId)) {
+            throw new BadDataException("A valid connection ID is required.");
+          }
+
+          const accessible: SecurityEventConnection | null =
+            await this.service.findOneBy({
+              query: { _id: connectionId, projectId },
+              select: { _id: true, projectId: true },
+              props,
+            });
+          CommonAPI.assertResourceBelongsToProject({
+            resourceProjectId: accessible?.projectId,
+            projectId,
+          });
+
+          const connection: SecurityEventConnection =
+            await CloudflareBlockingControl.loadConnection(
+              new ObjectID(connectionId),
+            );
+          const body: JSONObject = SecurityEventConnectionAPI.readBody(req);
+          const now: Date = OneUptimeDate.getCurrentDate();
+
+          if (action === "check") {
+            const result: CloudflareBlockingCheckResult =
+              await CloudflareBlockingControl.check({ connection, body });
+
+            return Response.sendJsonObjectResponse(req, res, {
+              isReady: result.isReady,
+              checks: result.checks as unknown as JSONArray,
+            });
+          }
+
+          if (action === "turn-on") {
+            const result: CloudflareBlockingCheckResult =
+              await CloudflareBlockingControl.turnOn({
+                connection,
+                body,
+                props,
+                now,
+              });
+
+            return Response.sendJsonObjectResponse(req, res, {
+              isOn: result.isReady,
+              checks: result.checks as unknown as JSONArray,
+            });
+          }
+
+          if (action === "turn-off") {
+            await CloudflareBlockingControl.turnOff({ connection, body, now });
+
+            return Response.sendJsonObjectResponse(req, res, { isOn: false });
+          }
+
+          await CloudflareBlockingControl.putBack({ connection, body, now });
+
+          return Response.sendJsonObjectResponse(req, res, { isOn: true });
         } catch (error) {
           next(error);
         }

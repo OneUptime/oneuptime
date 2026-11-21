@@ -1,8 +1,9 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/SecurityEventConnection";
 import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -19,7 +20,9 @@ import SecurityEventConnectorRegistry from "../Utils/SecurityEvent/Connectors/Se
 import { SecurityConnectorSettings } from "../Utils/SecurityEvent/Connectors/Types";
 import {
   CloudflareBlockingSettings,
+  isCloudflareBlockingRemovalPending,
   readCloudflareBlockingSettings,
+  readCloudflareBlockingStatus,
 } from "../../Types/SecurityBlocklist/CloudflareBlocking";
 
 /*
@@ -579,6 +582,56 @@ export class Service extends DatabaseService<Model> {
     incoming["secrets"] = JSON.stringify(mergedSecrets);
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * A Cloudflare connection that blocks addresses, or whose lists and rules
+   * OneUptime is still taking away, is not deleted (#10343): turning blocking
+   * off first asks whether to take OneUptime's lists and rules away from
+   * Cloudflare, and does so - which takes the connection's token, gone with
+   * the connection. Turned off and settled, it deletes as any other.
+   */
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    const rows: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
+        name: true,
+        provider: true,
+        blockingSettings: true,
+        blockingStatus: true,
+      },
+    );
+
+    for (const row of rows) {
+      if (row.provider !== SecurityEventConnectorProvider.Cloudflare) {
+        continue;
+      }
+
+      const settings: CloudflareBlockingSettings =
+        readCloudflareBlockingSettings(row.blockingSettings);
+
+      if (settings.isEnabled) {
+        throw new BadDataException(
+          `${row.name || "This connection"} blocks addresses at Cloudflare. Turn blocking off first: OneUptime then asks whether to remove its lists and rules from Cloudflare.`,
+        );
+      }
+
+      if (
+        isCloudflareBlockingRemovalPending(
+          settings,
+          readCloudflareBlockingStatus(row.blockingStatus),
+        )
+      ) {
+        throw new BadDataException(
+          `OneUptime is still removing its lists and rules from Cloudflare for ${row.name || "this connection"}. Delete it once that is done, in a few minutes.`,
+        );
+      }
+    }
+
+    return { deleteBy, carryForward: null };
   }
 
   /*
