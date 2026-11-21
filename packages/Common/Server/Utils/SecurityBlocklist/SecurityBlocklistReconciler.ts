@@ -123,6 +123,26 @@ function blockKey(block: SecurityBlock): string {
 }
 
 /*
+ * Whether a destination's confirmation of a value is older than the block:
+ * a feed's firewall still holding the value from an earlier block of it,
+ * fetched before this one was made (#10345). That says nothing of this
+ * block, which is held there only once a fetch made after it returns it.
+ * A destination read now (no confirmedAt) is never older.
+ */
+export function isConfirmedBeforeBlock(
+  item: Pick<SecurityBlockHeldItem, "confirmedAt">,
+  block: Pick<SecurityBlock, "createdAt">,
+): boolean {
+  if (!item.confirmedAt || !block.createdAt) {
+    return false;
+  }
+
+  return (
+    new Date(item.confirmedAt).getTime() < new Date(block.createdAt).getTime()
+  );
+}
+
+/*
  * What an entry says about itself where the provider keeps a comment:
  * "OneUptime case CASE-123 until 2026-11-21 10:42 UTC".
  */
@@ -697,7 +717,10 @@ export default class SecurityBlocklistReconciler {
           failedAttempts: 0,
           retryAt: null,
         };
-      } else if (confirmedByKey.has(key)) {
+      } else if (
+        confirmedByKey.has(key) &&
+        !isConfirmedBeforeBlock(confirmedByKey.get(key)!, block)
+      ) {
         const item: SecurityBlockHeldItem = confirmedByKey.get(key)!;
         const providerRef: string | null =
           item.providerRef ||

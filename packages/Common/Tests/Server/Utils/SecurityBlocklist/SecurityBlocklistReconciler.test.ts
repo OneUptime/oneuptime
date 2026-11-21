@@ -1392,7 +1392,8 @@ describe("the every-minute pass", () => {
   });
 
   test("queues nothing, and reads nothing, while no kind of destination exists", async () => {
-    SecurityBlockDestinations.resetSourcesForTests();
+    // Every server has the feeds (#10345), so a server with no kind of destination is one a test makes.
+    SecurityBlockDestinations.setSourcesForTests([]);
     projectsWithWork = [PROJECT_ID];
 
     expect(SecurityBlockDestinations.hasSources()).toBe(false);

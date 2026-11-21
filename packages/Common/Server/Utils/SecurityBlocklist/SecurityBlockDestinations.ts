@@ -2,6 +2,7 @@ import ObjectID from "../../../Types/ObjectID";
 import { SecurityBlockDestinationProvider } from "../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
 import logger from "../Logger";
 import SecurityBlockDestination from "./SecurityBlockDestination";
+import SecurityBlocklistFeedDestination from "./SecurityBlocklistFeedDestination";
 
 /*
  * WHERE A PROJECT'S BLOCKLIST IS ENFORCED (#10338): every destination of
@@ -44,7 +45,23 @@ export interface SecurityBlockDestinationsFound {
  * this file.
  */
 export const SECURITY_BLOCK_DESTINATION_SOURCES: ReadonlyArray<SecurityBlockDestinationSource> =
-  [];
+  [
+    /*
+     * The project's blocklist feeds, which firewalls read (#10345). Written
+     * here rather than imported as an object: the feed's module reaches
+     * back to this one (its service queues reconciles), so whichever loads
+     * first would see the other half-loaded. The class is only looked up
+     * when a project's destinations are asked for.
+     */
+    {
+      provider: SecurityBlockDestinationProvider.Feed,
+      findForProject: (
+        projectId: ObjectID,
+      ): Promise<Array<SecurityBlockDestination>> => {
+        return SecurityBlocklistFeedDestination.findForProject(projectId);
+      },
+    },
+  ];
 
 export default class SecurityBlockDestinations {
   /*
