@@ -1,3 +1,4 @@
+import { SessionReplayRecorderKind } from "../../../Types/Rum/SessionReplay";
 import TelemetryIngestionKeyPolicy from "../../../Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import { TelemetryIngestRefusalReason } from "../../../Types/Telemetry/TelemetryIngestRefusal";
@@ -84,11 +85,67 @@ export function getMobileKeySurfaceRefusalMessage(
     ? getIngestSurfaceReadableName(surface)
     : "this ingest endpoint";
 
-  if (surface === TelemetryIngestSurface.SessionReplay) {
-    return `A mobile ingestion key cannot be used for ${readableSurfaceName}: it sends only a mobile app's OTLP traces, logs and metrics. A React Native app records sessions with a browser ingestion key that lists the app as app:// followed by its application ID.`;
+  return `A mobile ingestion key cannot be used for ${readableSurfaceName}: it sends only a mobile app's OTLP traces, logs and metrics over HTTP, and its session replays. Use a server ingestion key here.`;
+}
+
+/*
+ * Whether `appIdentifier` - the RUM application a session replay request
+ * names - is the app a Mobile key is pinned to (issue #10540). A RUM
+ * application is identified by its service.name, matched trimmed and
+ * without case (RumApplicationService, SessionReplayGateCache), so this
+ * matches the same way. No pin, or no identifier, is never a match.
+ */
+export function isMobileKeyPinnedToApp(data: {
+  pinnedServiceName: string | null | undefined;
+  appIdentifier: string | null | undefined;
+}): boolean {
+  const pinned: string = (data.pinnedServiceName || "").trim().toLowerCase();
+  const named: string = (data.appIdentifier || "").trim().toLowerCase();
+
+  return pinned.length > 0 && pinned === named;
+}
+
+export const MOBILE_KEY_SESSION_REPLAY_WEB_RECORDER_MESSAGE: string =
+  "A mobile ingestion key can send session replays only from a React Native app's recorder. Use a browser ingestion key in a web page.";
+
+export const MOBILE_KEY_SESSION_REPLAY_OTHER_APP_MESSAGE: string =
+  "A mobile ingestion key can send session replays only for the app it is pinned to. Set the recorder's appIdentifier to the key's Pinned Service Name, or send with that app's own mobile ingestion key.";
+
+/*
+ * Why a Mobile key may not send this session replay request, or null when
+ * it may (issue #10540). A Mobile key records its own app's sessions, so
+ * one key serves a React Native app's telemetry and its recordings:
+ *
+ *   - only from the React Native recorder (`rn-view-tree`): a page's
+ *     recorder sends with a Browser key, whose origins are checked;
+ *   - only for the RUM application its pinned service name names: the
+ *     recordings are filed under the application the request names, so a
+ *     copy must not be able to name another one.
+ *
+ * The rest is the application's and the key's, as for any key: the
+ * application's replay policy and allowed origins (its app:// identities),
+ * its byte budgets and the key's rate limit. Never names the pinned app:
+ * a caller holding a copy is not entitled to it.
+ */
+export function getMobileKeySessionReplayRefusalMessage(data: {
+  pinnedServiceName: string | null | undefined;
+  appIdentifier: string | null | undefined;
+  recorderKind: SessionReplayRecorderKind | null;
+}): string | null {
+  if (data.recorderKind !== "rn-view-tree") {
+    return MOBILE_KEY_SESSION_REPLAY_WEB_RECORDER_MESSAGE;
   }
 
-  return `A mobile ingestion key cannot be used for ${readableSurfaceName}: it sends only a mobile app's OTLP traces, logs and metrics over HTTP. Use a server ingestion key here.`;
+  if (
+    !isMobileKeyPinnedToApp({
+      pinnedServiceName: data.pinnedServiceName,
+      appIdentifier: data.appIdentifier,
+    })
+  ) {
+    return MOBILE_KEY_SESSION_REPLAY_OTHER_APP_MESSAGE;
+  }
+
+  return null;
 }
 
 export default class TelemetryIngestionKeyGuard {
@@ -98,9 +155,10 @@ export default class TelemetryIngestionKeyGuard {
    * Order matters and mirrors the middleware: the kill switch is checked
    * first so that switching a leaked key off is the one action guaranteed to
    * stop it whatever else is true of the key, then expiry, then the
-   * browser-key and mobile-key surface rules. None of these surfaces is a
-   * Mobile key's (gRPC, MQTT, the session replay probe): it sends over
-   * OTLP/HTTP only, where its rate limit runs.
+   * browser-key and mobile-key surface rules. gRPC and MQTT are never a
+   * Mobile key's: it sends over HTTP only, where its rate limit runs. The
+   * session replay probe admits one here, and then asks whether the app
+   * it names is the key's (isMobileKeyPinnedToApp), as the HTTP guard does.
    */
   public static getRefusal(data: {
     policy: TelemetryIngestionKeyPolicy;

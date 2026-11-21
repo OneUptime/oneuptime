@@ -1,10 +1,12 @@
 import AiOutcomesBuilder, {
+  AiOutcomesDataSecurityProposalRow,
   AiOutcomesInvestigationRow,
   getSubjectKey,
 } from "../../../../../Server/Utils/AI/Outcomes/AiOutcomesBuilder";
 import AIRunAutoGrade from "../../../../../Types/AI/AIRunAutoGrade";
 import AIRunHumanVerdict from "../../../../../Types/AI/AIRunHumanVerdict";
 import {
+  AI_OUTCOMES_DATA_SECURITY_PARTS,
   AI_OUTCOMES_PAGE_OUTCOMES,
   AI_OUTCOMES_PART_OUTCOMES,
   AI_OUTCOMES_PARTS,
@@ -17,6 +19,7 @@ import {
 } from "../../../../../Types/AI/AiOutcomes";
 import FixProductionStatus from "../../../../../Types/AI/FixProductionStatus";
 import AutoRemediationVerificationStatus from "../../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
+import { DataSecurityAiProposalStatus } from "../../../../../Types/DataSecurity/DataSecurityAi";
 import ObjectID from "../../../../../Types/ObjectID";
 import { OnCallPolicyAiHoldOutcome } from "../../../../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import { describe, expect, test } from "@jest/globals";
@@ -239,8 +242,102 @@ describe("what a record request may name", () => {
       AiOutcomesPart.RemediationFixes,
       AiOutcomesPart.PullRequestFixes,
       AiOutcomesPart.RootCauses,
+      AiOutcomesPart.DataSecurityAnalyses,
+      AiOutcomesPart.DataSecurityChanges,
+      AiOutcomesPart.DataSecurityProposals,
     ]);
+    expect(AI_OUTCOMES_DATA_SECURITY_PARTS).toEqual(AI_OUTCOMES_PARTS.slice(4));
   });
+
+  test("Data Security's outcomes are exactly the keys of its counts (#10364)", () => {
+    const outcomes: AiOutcomes = build({
+      dataSecurityProposalRows: [],
+      dataSecurityAnalysisRows: [],
+    });
+
+    expect(
+      [...AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.DataSecurityChanges]].sort(),
+    ).toEqual(Object.keys(outcomes.dataSecurity!.changes).sort());
+    expect(
+      [
+        ...AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.DataSecurityProposals],
+      ].sort(),
+    ).toEqual(Object.keys(outcomes.dataSecurity!.proposals).sort());
+    // One outcome: the issues analyzed, AiOutcomesDataSecurity.issuesAnalyzed.
+    expect(
+      AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.DataSecurityAnalyses],
+    ).toEqual(["analyzed"]);
+    expect(outcomes.dataSecurity!.issuesAnalyzed).toBe(0);
+    // A change's outcome is no proposal's, and the other way round.
+    expect(
+      isAiOutcomesPartOutcome(AiOutcomesPart.DataSecurityChanges, "approved"),
+    ).toBe(false);
+    expect(
+      isAiOutcomesPartOutcome(AiOutcomesPart.DataSecurityProposals, "proven"),
+    ).toBe(false);
+    expect(
+      isAiOutcomesPartOutcome(AiOutcomesPart.DataSecurityAnalyses, "failed"),
+    ).toBe(false);
+  });
+});
+
+describe("Data Security proposals (#10364)", () => {
+  test.each(
+    Object.values(DataSecurityAiProposalStatus).flatMap(
+      (status: DataSecurityAiProposalStatus) => {
+        return [
+          [status, false, false],
+          [status, true, false],
+          [status, false, true],
+        ] as Array<[DataSecurityAiProposalStatus, boolean, boolean]>;
+      },
+    ),
+  )(
+    "%s (proven: %p, approved by a person: %p) counts under its outcomes, and only there",
+    (
+      status: DataSecurityAiProposalStatus,
+      isProven: boolean,
+      isApprovedByPerson: boolean,
+    ) => {
+      const row: AiOutcomesDataSecurityProposalRow = {
+        settledAt: IN_WINDOW,
+        status,
+        kind: "ScrubTelemetry",
+        isApprovedByPerson,
+        ...(isProven ? { verifiedAt: IN_WINDOW } : {}),
+      };
+      const change: string | null =
+        AiOutcomesBuilder.getDataSecurityChangeOutcome(row);
+      const proposal: string | null =
+        AiOutcomesBuilder.getDataSecurityProposalOutcome(row);
+      const outcomes: AiOutcomes = build({ dataSecurityProposalRows: [row] });
+
+      for (const other of AI_OUTCOMES_PART_OUTCOMES[
+        AiOutcomesPart.DataSecurityChanges
+      ]) {
+        expect({
+          other,
+          count: (
+            outcomes.dataSecurity!.changes as unknown as Record<string, number>
+          )[other],
+        }).toEqual({ other, count: other === change ? 1 : 0 });
+      }
+
+      for (const other of AI_OUTCOMES_PART_OUTCOMES[
+        AiOutcomesPart.DataSecurityProposals
+      ]) {
+        expect({
+          other,
+          count: (
+            outcomes.dataSecurity!.proposals as unknown as Record<
+              string,
+              number
+            >
+          )[other],
+        }).toEqual({ other, count: other === proposal ? 1 : 0 });
+      }
+    },
+  );
 });
 
 describe("the window a number and its records share", () => {

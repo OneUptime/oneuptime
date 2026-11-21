@@ -41,6 +41,8 @@ import { DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS } from "Common/Types/Rum/Sessi
 import { PRODUCT_ANALYTICS_SOURCE_PERSON_KEY_SQL } from "Common/Models/AnalyticsModels/RumProductAnalyticsSession";
 import RumProductAnalyticsSavedView from "Common/Models/DatabaseModels/RumProductAnalyticsSavedView";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
+import ProductKey from "Common/Types/Product/ProductKey";
+import { withProductLevelsOf } from "Common/Types/Product/ProductLevels";
 import { PRODUCT_ANALYTICS_SAVED_VIEWS_PER_APPLICATION_MAX } from "Common/Types/Rum/ProductAnalyticsSavedViews";
 import {
   WIDGET_CATALOG,
@@ -598,16 +600,23 @@ describe("Product Analytics: privacy, retention and who can see it", () => {
 
   it("reads under the session list's permissions, and names under the identity ones", () => {
     const api: string = source("telemetryApi");
+    /*
+     * Each list takes RUM's levels where Project Admin is (#10289), as the
+     * permissions page says of every product's levels.
+     */
     const list: string = between(
       api,
-      "const SESSION_REPLAY_LIST_PERMISSIONS: Array<Permission> = [",
-      "];",
+      "const SESSION_REPLAY_LIST_PERMISSIONS: Array<Permission> = withProductLevelsOf({",
+      "});",
     );
     const identity: string = between(
       api,
-      "const SESSION_REPLAY_IDENTITY_PERMISSIONS: Array<Permission> = [",
-      "];",
+      "const SESSION_REPLAY_IDENTITY_PERMISSIONS: Array<Permission> =\n  withProductLevelsOf({",
+      "});",
     );
+
+    expect(list).toContain("products: [ProductKey.Rum],");
+    expect(identity).toContain("products: [ProductKey.Rum],");
     const titles: Map<string, string> = new Map<string, string>(
       Array.from(source("permissions").matchAll(PERMISSION_TITLE)).map(
         (match: RegExpMatchArray): [string, string] => {
@@ -816,14 +825,28 @@ describe("Product Analytics: All cohorts, and saved funnels and retention tables
   });
 
   it("keeps them under the permissions these pages are read with", () => {
-    const list: Array<string> = allMatches(
-      between(
-        source("telemetryApi"),
-        "const SESSION_REPLAY_LIST_PERMISSIONS: Array<Permission> = [",
-        "];",
-      ),
-      /Permission\.(\w+)/g,
-    ).sort();
+    const declared: string = between(
+      source("telemetryApi"),
+      "const SESSION_REPLAY_LIST_PERMISSIONS: Array<Permission> = withProductLevelsOf({",
+      "});",
+    );
+
+    expect(declared).toContain("products: [ProductKey.Rum],");
+
+    // The list as the route builds it: the roles it names, and RUM's levels where they are (#10289).
+    const list: Array<string> = withProductLevelsOf({
+      products: [ProductKey.Rum],
+      permissions: allMatches(
+        declared,
+        /Permission\.(\w+)/g,
+      ) as Array<Permission>,
+    })
+      .map((permission: Permission): string => {
+        return permission.toString();
+      })
+      .sort();
+
+    expect(list).toContain(Permission.RumAdmin.toString());
     const model: RumProductAnalyticsSavedView =
       new RumProductAnalyticsSavedView();
 

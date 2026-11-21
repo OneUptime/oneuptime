@@ -378,7 +378,7 @@ describe("the key's Refused Telemetry card", () => {
         TelemetryIngestRefusalReason.MobileKeyNotAllowedHere
       ],
     ).toBe(
-      "Use a Browser key in a web page and a Server key everywhere else: a Mobile key is only for its app's traces, logs and metrics, sent over HTTP.",
+      "Use a Browser key in a web page and a Server key everywhere else: a Mobile key is only for its own app's traces, logs and metrics, sent over HTTP, and its session replays.",
     );
     // One fix per reason, none shared by two.
     expect(Object.keys(KEY_PAGE_REFUSAL_FIX_WORDS).sort()).toEqual(

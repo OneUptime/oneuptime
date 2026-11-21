@@ -87,14 +87,14 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 ## 检查遥测数据落在哪里
 
-请求成功了，但应用出现在 **产品 → 服务** 下，而不是 **产品 → 资源 → 真实用户监控** 下。这是最常见的问题，原因几乎总是资源上没有客户端属性。只有当一批数据的资源带有以下属性之一时，OneUptime 才会将其归为 RUM：
+请求成功了，但应用出现在 **产品 → 服务** 下，而不是 **产品 → 资源 → 真实用户监控** 下。这是最常见的问题，原因几乎总是使用了浏览器密钥或移动端密钥以外的密钥，发送的资源上又没有客户端属性。浏览器密钥或移动端密钥发送的所有内容都会归为 RUM；使用其他任何密钥时，只有当一批数据的资源带有以下属性之一时，OneUptime 才会将其归为 RUM：
 
 | 类型 | 属性 |
 | --- | --- |
 | 浏览器 | `browser.platform` 、 `browser.language` ，或非空的 `browser.brands` |
 | 移动端 | `device.id` 或 `device.model.identifier` ，或者在没有主机标识（ `host.name` 、 `host.id` 或 `k8s.node.name` ）的资源上的 `device.manufacturer` |
 
-仅有 `service.name` 会成为后端服务。OpenTelemetry 浏览器 SDK 不会添加任何 `browser.*` 属性，除非你添加浏览器资源检测器或自己设置它们：参见 [浏览器端设置](/docs/rum/browser-setup) 。
+使用其他任何密钥时，仅有 `service.name` 会成为后端服务。OpenTelemetry 浏览器 SDK 不会添加任何 `browser.*` 属性，除非你添加浏览器资源检测器或自己设置它们：参见 [浏览器端设置](/docs/rum/browser-setup) 。
 
 要查看你实际发送了什么，在 Network 选项卡中打开 OTLP 请求并查看其负载：起决定作用的是 `resourceSpans[0].resource.attributes` 列表。如果里面没有 `browser.*` 属性，那么无论文档怎么说，SDK 都没有添加它。
 
@@ -127,7 +127,7 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 异常需要错误处理程序，因为 SDK 不会捕获未捕获的错误：代码见 [上报未捕获的错误](/docs/rum/browser-setup#上报未捕获的错误)。由 error boundary 或 `try`/`catch` 处理的错误永远不会到达 window，所以要在处理它的地方用 `span.recordException` 记录。
 
-日志需要日志管道和写入日志记录的代码，因为单靠 `LoggerProvider` 什么也不会发送：两者都在 [添加日志和指标](/docs/rum/browser-setup#添加日志和指标) 中。用与追踪相同的 `resource` 构建管道，否则日志会被归到一个后端服务下。
+日志需要日志管道和写入日志记录的代码，因为单靠 `LoggerProvider` 什么也不会发送：两者都在 [添加日志和指标](/docs/rum/browser-setup#添加日志和指标) 中。用与追踪相同的 `resource` 构建管道，这样日志也会归到同一个应用程序下。
 
 如果页面加载能到达，那么只要日志导出器使用相同的密钥和主机，密钥、其允许的来源以及你的 Content Security Policy 也会放行异常和日志。尚未捕获任何错误的错误处理程序不会发送任何内容，这与从未添加的处理程序完全一样，所以要从浏览器控制台抛出一个测试错误来区分两者：
 

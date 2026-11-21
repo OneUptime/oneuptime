@@ -1,8 +1,9 @@
 /*
  * AI RESULTS (issue #6800): what OneUptime AI's work came to for a project,
  * in outcomes rather than activity - the pages it kept from waking people,
- * the fixes it verified, and the root causes people confirmed - week by
- * week, so a team can see whether it is getting better.
+ * the fixes it verified, the root causes people confirmed, and the changes
+ * it made for Data Security issues that each issue's own check proved
+ * (#10364) - week by week, so a team can see whether it is getting better.
  *
  * Read on the server (Server/Utils/AI/Outcomes/AiOutcomesReader) behind the
  * caller's own read access: a part the caller may not read is null and the
@@ -83,6 +84,77 @@ export interface AiOutcomesRootCauses {
   completed: number;
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * DATA SECURITY (issue #10364).
+ * ---------------------------------------------------------------------------
+ *
+ * What OneUptime AI did about the project's Data Security issues, read from
+ * its proposals (DataSecurityAiProposal) and the record of each time it
+ * worked on an issue (DataSecurityAiDecision). A proposal counts once it
+ * settled, in the week it did: a change in the week it was made (appliedAt),
+ * one that could not be made in the week it failed (failedAt), one a person
+ * dismissed in the week they did (dismissedAt) - however long the issue's
+ * check took to pass after it. A proposal still waiting for a person, or
+ * one no longer needed (Expired), is not counted.
+ */
+
+// The changes OneUptime AI made, or tried to make, by what came of them.
+export interface AiOutcomesDataSecurityChanges {
+  /*
+   * Made, and the issue's own check passed after it (verifiedAt): proven,
+   * never on OneUptime AI's word.
+   */
+  proven: number;
+  // Made, and standing; the issue's check has not passed since.
+  waiting: number;
+  // Made, then taken back by a person - proven before or not.
+  undone: number;
+  // Making it failed, and nothing changed.
+  failed: number;
+}
+
+// What people did with the changes OneUptime AI proposed and waited on them for.
+export interface AiOutcomesDataSecurityProposals {
+  /*
+   * A person approved it (approvedByUserId), and the change was made or
+   * making it failed. A change made without asking was approved by nobody.
+   */
+  approved: number;
+  // A person dismissed it, with a reason.
+  dismissed: number;
+}
+
+// One kind of change (DataSecurityAiProposalKind) and its own counts.
+export interface AiOutcomesDataSecurityKind
+  extends AiOutcomesDataSecurityChanges,
+    AiOutcomesDataSecurityProposals {
+  // The kind as stored: ScrubTelemetry, or one a newer build knows.
+  kind: string;
+}
+
+export interface AiOutcomesDataSecurity {
+  /*
+   * The issues OneUptime AI analyzed (DataSecurityAiDecision.didAnalyze),
+   * each once, in the week of its first analysis in the window. Null: the
+   * caller may not read why OneUptime AI acted on an issue.
+   */
+  issuesAnalyzed: number | null;
+  changes: AiOutcomesDataSecurityChanges;
+  proposals: AiOutcomesDataSecurityProposals;
+  // By kind: every kind with something counted, the most changes first.
+  kinds: Array<AiOutcomesDataSecurityKind>;
+  /*
+   * The median time, in whole minutes, from an issue opening (its
+   * firstDetectedAt) to its check first passing after a change counted as
+   * proven; null when none was. Each issue counts once, however many of
+   * its changes were proven.
+   */
+  medianMinutesToCheckPassed: number | null;
+  // The issues that median is over.
+  issuesCheckPassed: number;
+}
+
 export interface AiOutcomesWeek {
   // The week's first day, YYYY-MM-DD (UTC).
   weekStart: string;
@@ -99,6 +171,13 @@ export interface AiOutcomesWeek {
   rootCausesConfirmed: number;
   // Investigations judged: confirmed, partial or wrong.
   rootCausesJudged: number;
+  /*
+   * The changes OneUptime AI made for Data Security issues that week
+   * (appliedAt) whose issue's check then passed, and every change it made
+   * that week: proven, waiting for the check or undone.
+   */
+  dataSecurityChangesProven: number;
+  dataSecurityChangesMade: number;
 }
 
 /*
@@ -162,6 +241,8 @@ export interface AiOutcomes {
   pullRequestFixes: AiOutcomesPullRequestFixes | null;
   // Null: the caller may read neither incidents nor alerts.
   rootCauses: AiOutcomesRootCauses | null;
+  // Null: the caller may not read OneUptime AI's Data Security proposals.
+  dataSecurity: AiOutcomesDataSecurity | null;
   /*
    * Null: the caller may not read the project's AI Logs, where each call's
    * model is listed, so the page names no model (#7762).
@@ -186,7 +267,8 @@ export interface AiOutcomes {
  *
  * Read by the same rows, filters and limits as the number (AiOutcomesReader),
  * so it lists exactly what the number counts: only incidents and alerts the
- * reader may read, private ones included, and `total` is the number.
+ * reader may read, private ones included, and `total` is the number. A Data
+ * Security number lists the issues it counts, each one the reader may read.
  */
 export const AI_OUTCOMES_RECORDS_PATH: string = "/ai-activity/outcomes/records";
 
@@ -201,6 +283,12 @@ export enum AiOutcomesPart {
   RemediationFixes = "remediationFixes",
   PullRequestFixes = "pullRequestFixes",
   RootCauses = "rootCauses",
+  // The Data Security issues OneUptime AI analyzed (#10364).
+  DataSecurityAnalyses = "dataSecurityAnalyses",
+  // The changes it made, or tried to make, for Data Security issues.
+  DataSecurityChanges = "dataSecurityChanges",
+  // What people did with the changes it proposed.
+  DataSecurityProposals = "dataSecurityProposals",
 }
 
 export const AI_OUTCOMES_PARTS: ReadonlyArray<AiOutcomesPart> = [
@@ -208,6 +296,16 @@ export const AI_OUTCOMES_PARTS: ReadonlyArray<AiOutcomesPart> = [
   AiOutcomesPart.RemediationFixes,
   AiOutcomesPart.PullRequestFixes,
   AiOutcomesPart.RootCauses,
+  AiOutcomesPart.DataSecurityAnalyses,
+  AiOutcomesPart.DataSecurityChanges,
+  AiOutcomesPart.DataSecurityProposals,
+];
+
+// The parts of the Data Security card, whose records are Data Security issues.
+export const AI_OUTCOMES_DATA_SECURITY_PARTS: ReadonlyArray<AiOutcomesPart> = [
+  AiOutcomesPart.DataSecurityAnalyses,
+  AiOutcomesPart.DataSecurityChanges,
+  AiOutcomesPart.DataSecurityProposals,
 ];
 
 /*
@@ -238,6 +336,20 @@ export type AiOutcomesRootCauseOutcome = "confirmed" | "partial" | "wrong";
 export const AI_OUTCOMES_ROOT_CAUSE_OUTCOMES: ReadonlyArray<AiOutcomesRootCauseOutcome> =
   ["confirmed", "partial", "wrong"];
 
+// An issue OneUptime AI analyzed: AiOutcomesDataSecurity.issuesAnalyzed.
+export type AiOutcomesDataSecurityAnalysisOutcome = "analyzed";
+
+export const AI_OUTCOMES_DATA_SECURITY_ANALYSIS_OUTCOMES: ReadonlyArray<AiOutcomesDataSecurityAnalysisOutcome> =
+  ["analyzed"];
+
+export const AI_OUTCOMES_DATA_SECURITY_CHANGE_OUTCOMES: ReadonlyArray<
+  keyof AiOutcomesDataSecurityChanges
+> = ["proven", "waiting", "undone", "failed"];
+
+export const AI_OUTCOMES_DATA_SECURITY_PROPOSAL_OUTCOMES: ReadonlyArray<
+  keyof AiOutcomesDataSecurityProposals
+> = ["approved", "dismissed"];
+
 export const AI_OUTCOMES_PART_OUTCOMES: Record<
   AiOutcomesPart,
   ReadonlyArray<string>
@@ -246,6 +358,12 @@ export const AI_OUTCOMES_PART_OUTCOMES: Record<
   [AiOutcomesPart.RemediationFixes]: AI_OUTCOMES_REMEDIATION_FIX_OUTCOMES,
   [AiOutcomesPart.PullRequestFixes]: AI_OUTCOMES_PULL_REQUEST_FIX_OUTCOMES,
   [AiOutcomesPart.RootCauses]: AI_OUTCOMES_ROOT_CAUSE_OUTCOMES,
+  [AiOutcomesPart.DataSecurityAnalyses]:
+    AI_OUTCOMES_DATA_SECURITY_ANALYSIS_OUTCOMES,
+  [AiOutcomesPart.DataSecurityChanges]:
+    AI_OUTCOMES_DATA_SECURITY_CHANGE_OUTCOMES,
+  [AiOutcomesPart.DataSecurityProposals]:
+    AI_OUTCOMES_DATA_SECURITY_PROPOSAL_OUTCOMES,
 };
 
 export function isAiOutcomesPartOutcome(
@@ -267,8 +385,18 @@ export interface AiOutcomesRecordSubject {
   numberWithPrefix?: string | undefined;
 }
 
+// The Data Security issue a record was about (#10364).
+export interface AiOutcomesRecordDataSecurityIssue {
+  id: string;
+  title?: string | undefined;
+}
+
 export interface AiOutcomesRecord {
-  // The row's own id: the held page's run, the fix, the pull request, the investigation.
+  /*
+   * The row's own id: the held page's run, the fix, the pull request, the
+   * investigation, the Data Security proposal, or the first analysis of a
+   * Data Security issue.
+   */
   id: string;
   // ISO: when the work started, the moment its week counts it at.
   at: string;
@@ -277,6 +405,15 @@ export interface AiOutcomesRecord {
    * (an exception's, say) has none.
    */
   subject?: AiOutcomesRecordSubject | undefined;
+  // A Data Security number's record: the issue it was about.
+  dataSecurityIssue?: AiOutcomesRecordDataSecurityIssue | undefined;
+  /*
+   * A change OneUptime AI made, or proposed, for a Data Security issue:
+   * what it was, in a line (its proposal's title), and its kind
+   * (DataSecurityAiProposalKind).
+   */
+  proposalTitle?: string | undefined;
+  proposalKind?: string | undefined;
   // A fix OneUptime AI ran: its runbook, or what kind of fix it was.
   runbookName?: string | undefined;
   suggestionType?: string | undefined;
@@ -351,4 +488,22 @@ export function getJudgedRootCauseCount(
   rootCauses: AiOutcomesRootCauses,
 ): number {
   return rootCauses.confirmed + rootCauses.partial + rootCauses.wrong;
+}
+
+/*
+ * The changes OneUptime AI made for Data Security issues: proven, waiting
+ * for the issue's check, or undone - not the ones it could not make, which
+ * changed nothing.
+ */
+export function getDataSecurityChangesMadeCount(
+  changes: AiOutcomesDataSecurityChanges,
+): number {
+  return changes.proven + changes.waiting + changes.undone;
+}
+
+// Proposals a person approved or dismissed.
+export function getDataSecurityProposalsDecidedCount(
+  proposals: AiOutcomesDataSecurityProposals,
+): number {
+  return proposals.approved + proposals.dismissed;
 }

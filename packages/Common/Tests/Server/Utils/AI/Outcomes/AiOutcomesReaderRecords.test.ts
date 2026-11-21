@@ -2,6 +2,9 @@ import AIAgentTaskPullRequestService from "../../../../../Server/Services/AIAgen
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import AlertService from "../../../../../Server/Services/AlertService";
 import AutoRemediationSuggestionService from "../../../../../Server/Services/AutoRemediationSuggestionService";
+import DataSecurityAiDecisionService from "../../../../../Server/Services/DataSecurityAiDecisionService";
+import DataSecurityAiProposalService from "../../../../../Server/Services/DataSecurityAiProposalService";
+import DataSecurityIssueService from "../../../../../Server/Services/DataSecurityIssueService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
 import LlmLogService from "../../../../../Server/Services/LlmLogService";
 import OnCallDutyPolicyExecutionLogService from "../../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
@@ -85,7 +88,11 @@ type TableName =
   | "runs"
   | "incidents"
   | "alerts"
-  | "llmLogs";
+  | "llmLogs"
+  // Data Security's proposals, its records of analyses, and its issues (#10364).
+  | "dataSecurityProposals"
+  | "dataSecurityDecisions"
+  | "dataSecurityIssues";
 
 type Tables = Record<TableName, Array<FakeRow>>;
 
@@ -124,6 +131,9 @@ function install(
       incidents: [],
       alerts: [],
       llmLogs: [],
+      dataSecurityProposals: [],
+      dataSecurityDecisions: [],
+      dataSecurityIssues: [],
       ...tables,
     },
     access: {
@@ -134,6 +144,9 @@ function install(
       incidents: "read",
       alerts: "read",
       llmLogs: "read",
+      dataSecurityProposals: "read",
+      dataSecurityDecisions: "read",
+      dataSecurityIssues: "read",
       ...access,
     },
     readableIncidentIds: readable.incidentIds
@@ -215,6 +228,15 @@ function install(
   jest
     .spyOn(LlmLogService, "findBy")
     .mockImplementation(find("llmLogs") as never);
+  jest
+    .spyOn(DataSecurityAiProposalService, "findBy")
+    .mockImplementation(find("dataSecurityProposals") as never);
+  jest
+    .spyOn(DataSecurityAiDecisionService, "findBy")
+    .mockImplementation(find("dataSecurityDecisions") as never);
+  jest
+    .spyOn(DataSecurityIssueService, "findBy")
+    .mockImplementation(find("dataSecurityIssues") as never);
   jest
     .spyOn(InvestigationReportSummary, "getForRuns")
     .mockResolvedValue(new Map<string, string>());
@@ -497,6 +519,13 @@ describe("a number opens exactly what it counts", () => {
         string,
         number
       >,
+      [AiOutcomesPart.DataSecurityAnalyses]: {
+        analyzed: outcomes.dataSecurity!.issuesAnalyzed!,
+      },
+      [AiOutcomesPart.DataSecurityChanges]: outcomes.dataSecurity!
+        .changes as unknown as Record<string, number>,
+      [AiOutcomesPart.DataSecurityProposals]: outcomes.dataSecurity!
+        .proposals as unknown as Record<string, number>,
     };
 
     let opened: number = 0;

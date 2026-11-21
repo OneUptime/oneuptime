@@ -46,7 +46,10 @@ import {
   SpanStatus,
 } from "Common/Models/AnalyticsModels/Span";
 import { isNonActionableErrorClass } from "Common/Types/Telemetry/ErrorClass";
-import ExceptionUtil, { TelemetryExceptionPayload } from "../Utils/Exception";
+import ExceptionUtil, {
+  OccurrenceFingerprints,
+  TelemetryExceptionPayload,
+} from "../Utils/Exception";
 import StackTraceParser, {
   ParsedStackTrace,
 } from "Common/Server/Utils/Telemetry/StackTraceParser";
@@ -163,8 +166,13 @@ type ExceptionEventPayload = {
   attributes: JSONObject;
   time: ParsedUnixNano;
   fingerprint: string;
-  // Grouping v2's, until submitExceptionsBuffer picks the group's.
+  /*
+   * The one a new exception is made under, and those of the exceptions it
+   * may already belong to (OccurrenceFingerprints), until
+   * submitExceptionsBuffer picks the group's.
+   */
   fingerprintV2: string;
+  fingerprintCandidates: Array<string>;
   release: string;
   environment: string;
   parsedFrames: string;
@@ -1463,7 +1471,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
    * upsert payloads for a span's exception events. Runs post-drop and
    * post-scrub: stored content is the scrubbed view, while the fingerprint
    * hashes the pre-scrub content to keep existing group identities stable
-   * (see the comment at the getFingerprint call).
+   * (see the comment at the getOccurrenceFingerprints call).
    *
    * Buffering rationale: the legacy code called
    * ExceptionUtil.saveOrUpdateTelemetryException fire-and-forget per
@@ -1537,39 +1545,37 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         const exceptionType: string = scrubbed.exceptionType ?? "";
 
         /*
-         * Fingerprint deliberately computed on the PRE-scrub content while
-         * everything STORED uses the scrubbed values. The fingerprint is a
-         * one-way SHA-256 over normalized text — it never surfaces content
-         * — but it IS the group identity: hashing post-scrub text would
-         * re-fingerprint every existing group the moment a project adds a
-         * scrub rule matching its exception messages, orphaning the old
-         * rows (with their resolved/archived/classification state) and
-         * restarting occurrence counts from zero.
+         * Fingerprints deliberately computed on the PRE-scrub content while
+         * everything STORED uses the scrubbed values: the fingerprint IS the
+         * group identity, and hashing post-scrub text would re-fingerprint
+         * every existing group the moment a project adds a scrub rule
+         * matching its exception messages, orphaning the old rows (with
+         * their resolved/archived/classification state) and restarting
+         * occurrence counts from zero. A new exception whose hidden text
+         * the fingerprint would hash is made under a keyed one instead, so
+         * its fingerprint gives nothing a rule hid away; which one the
+         * occurrence keeps is decided when the batch is stored
+         * (ExceptionUtil.getOccurrenceFingerprints, #10434).
          *
          * For exactly the same reason, sessionId is NOT an input here.
          * It is a per-session value, so folding it in would give every
          * session its own exception group.
          */
-        const fingerprint: string = ExceptionUtil.getFingerprint({
-          projectId: spanContext.projectId,
-          primaryEntityId: spanContext.primaryEntityId,
-          message: rawException.message,
-          stackTrace: rawException.stackTrace,
-          exceptionType: rawException.exceptionType,
-        });
-
-        /*
-         * And grouping v2's, from the same pre-scrub content: what a new
-         * exception is grouped by. Which of the two the occurrence keeps is
-         * decided when the batch is stored (assignRowGroupFingerprints).
-         */
-        const fingerprintV2: string = ExceptionUtil.getFingerprintV2({
-          projectId: spanContext.projectId,
-          primaryEntityId: spanContext.primaryEntityId,
-          message: rawException.message,
-          stackTrace: rawException.stackTrace,
-          exceptionType: rawException.exceptionType,
-        });
+        const fingerprints: OccurrenceFingerprints =
+          ExceptionUtil.getOccurrenceFingerprints({
+            projectId: spanContext.projectId,
+            primaryEntityId: spanContext.primaryEntityId,
+            arrived: {
+              message: rawException.message,
+              stackTrace: rawException.stackTrace,
+              exceptionType: rawException.exceptionType,
+            },
+            stored: {
+              message: message,
+              stackTrace: stackTrace,
+              exceptionType: exceptionType,
+            },
+          });
 
         // Extract release and environment from resource attributes
         const release: string =
@@ -1628,8 +1634,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
             [EXCEPTION_SOURCE_ATTRIBUTE]: ExceptionSource.Span,
           },
           time: rawException.time,
-          fingerprint: fingerprint,
-          fingerprintV2: fingerprintV2,
+          fingerprint: fingerprints.fingerprint,
+          fingerprintV2: fingerprints.fingerprintV2,
+          fingerprintCandidates: fingerprints.fingerprintCandidates,
           release: release,
           environment: environment,
           parsedFrames: parsedFramesJson,
@@ -1639,8 +1646,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         data.dbExceptions.push(this.buildExceptionRow(exceptionData));
 
         data.pendingExceptionUpserts.push({
-          fingerprint: fingerprint,
-          fingerprintV2: fingerprintV2,
+          fingerprint: fingerprints.fingerprint,
+          fingerprintV2: fingerprints.fingerprintV2,
+          fingerprintCandidates: fingerprints.fingerprintCandidates,
           projectId: spanContext.projectId,
           primaryEntityId: spanContext.primaryEntityId,
           primaryEntityType: spanContext.serviceMetadata.primaryEntityType,
@@ -1903,6 +1911,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       userId: data.userId || "",
       fingerprint: data.fingerprint,
       fingerprintV2: data.fingerprintV2,
+      fingerprintCandidates: data.fingerprintCandidates,
       spanName: data.spanName || "",
       release: data.release || "",
       environment: data.environment || "",
