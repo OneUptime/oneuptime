@@ -17,7 +17,11 @@ import {
   SecurityBlockValue,
   readSecurityBlockValue,
 } from "Common/Types/SecurityBlocklist/SecurityBlock";
-import { Translator, formatList } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  formatList,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import { ResponseAddressBlock } from "Common/Utils/SecurityCase/ResponsePlan/ResponsePlanTypes";
 
 /*
@@ -28,6 +32,33 @@ import { ResponseAddressBlock } from "Common/Utils/SecurityCase/ResponsePlan/Res
  * choices beside Block for 24 Hours; and the address filled into the places
  * people block an address by hand.
  */
+
+// The last two names of a list a sentence reads: "Cloudflare and AWS WAF".
+const NAMES_AND_LAST: string = translationKey("{{items}} and {{last}}");
+
+/*
+ * Names as a sentence lists them, in the reader's language: "Cloudflare",
+ * "Cloudflare and AWS WAF", "Cloudflare, AWS WAF and Azure WAF" - a clause,
+ * so the last two are joined as the language joins them, each name set
+ * apart so a right-to-left sentence keeps the list's order.
+ */
+export function formatNamesInSentence(
+  names: ReadonlyArray<string>,
+  translator: Translator,
+): string {
+  if (names.length <= 1) {
+    return names[0] || "";
+  }
+
+  return translator.translateTemplate(
+    NAMES_AND_LAST,
+    {
+      items: formatList(names.slice(0, -1), translator),
+      last: names[names.length - 1]!,
+    },
+    { setsValuesApart: true },
+  );
+}
 
 // What a one-click block from the plan blocks, and for how long.
 export interface BlockChoice {
@@ -110,7 +141,7 @@ export function writeAddressBlockLine(data: {
 
   if (block.enforcedAt.length > 0) {
     return translator.translateTemplate(getEnforcedBlockTemplate(block), {
-      destinations: formatList(block.enforcedAt, translator),
+      destinations: formatNamesInSentence(block.enforcedAt, translator),
       time: writeCheckTime(since, now),
       name: block.createdByName || "",
       until: block.expiresAt ? writeCheckTime(block.expiresAt, now) : "",
@@ -120,7 +151,7 @@ export function writeAddressBlockLine(data: {
   if (block.pendingAt.length > 0) {
     return translator.translateTemplate(BLOCK_LINE_PENDING, {
       time: writeCheckTime(block.createdAt || now, now),
-      destinations: formatList(block.pendingAt, translator),
+      destinations: formatNamesInSentence(block.pendingAt, translator),
     });
   }
 

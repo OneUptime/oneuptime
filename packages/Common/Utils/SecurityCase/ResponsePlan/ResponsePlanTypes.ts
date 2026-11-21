@@ -163,6 +163,8 @@ export interface ResponseStep {
    * drawn with where it is enforced, until when, and a Lift.
    */
   addressBlock?: ResponseAddressBlock | undefined;
+  // The address a block step is about (#10342), as the case names it.
+  address?: string | undefined;
   /*
    * Nothing enforces the project's blocklist (#10342): the step says how to
    * connect what would, and folds how to block the address by hand.

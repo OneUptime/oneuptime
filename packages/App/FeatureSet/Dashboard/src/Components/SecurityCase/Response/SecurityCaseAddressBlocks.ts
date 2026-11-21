@@ -22,6 +22,7 @@ import {
   SecurityBlockState,
   isSecurityBlockInForce,
   isSecurityBlockSource,
+  readSecurityBlockValue,
 } from "Common/Types/SecurityBlocklist/SecurityBlock";
 import {
   SecurityBlockEnforcementShape,
@@ -211,6 +212,12 @@ export async function loadAddressBlocking(data: {
   }
 
   const now: Date = data.now || new Date();
+  // The addresses as blocks are written: an IPv6 address compressed (RFC 5952).
+  const values: Array<string> = data.addresses.map(
+    (address: string): string => {
+      return readSecurityBlockValue(address)?.value || address;
+    },
+  );
 
   const [own, ranges]: [ListResult<SecurityBlock>, ListResult<SecurityBlock>] =
     await Promise.all([
@@ -219,12 +226,12 @@ export async function loadAddressBlocking(data: {
         query: {
           projectId,
           state: SecurityBlockState.Active,
-          value: new Includes(data.addresses),
+          value: new Includes(values),
         },
         select: BLOCK_SELECT,
         sort: { createdAt: SortOrder.Descending },
         skip: 0,
-        limit: data.addresses.length,
+        limit: values.length,
       }),
       ModelAPI.getList<SecurityBlock>({
         modelType: SecurityBlock,

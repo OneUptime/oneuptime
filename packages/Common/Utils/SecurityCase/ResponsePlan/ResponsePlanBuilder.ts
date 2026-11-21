@@ -652,6 +652,7 @@ interface StepToAdd {
   copyValue?: string | undefined;
   action?: ResponseAction | undefined;
   addressBlock?: ResponseAddressBlock | undefined;
+  address?: string | undefined;
   isBlockHelpShown?: boolean | undefined;
   // The case says it is done: it is assigned, contained, a playbook ran.
   isDoneByCase?: boolean | undefined;
@@ -739,6 +740,7 @@ export function getBlockAddressStep(data: {
       key,
       phase: ResponsePhase.Contain,
       text,
+      address: data.value,
       addressBlock: block,
       // Done once a destination holds it: a block nothing enforces blocks nothing.
       isDoneByCase: block.enforcedAt.length > 0,
@@ -750,6 +752,7 @@ export function getBlockAddressStep(data: {
       key,
       phase: ResponsePhase.Contain,
       text,
+      address: data.value,
       copyValue: data.value,
       isBlockHelpShown: true,
     };
@@ -762,6 +765,7 @@ export function getBlockAddressStep(data: {
     key,
     phase: ResponsePhase.Contain,
     text,
+    address: data.value,
     ...(runState === ResponsePlaybookRunState.Waiting
       ? { detail: { template: STEP_BLOCK_WAITING, values: {} } }
       : runState === ResponsePlaybookRunState.Running
@@ -949,6 +953,7 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
       isOutsideOneUptime: step.isOutsideOneUptime === true,
       copyValue: step.copyValue,
       ...(step.addressBlock ? { addressBlock: step.addressBlock } : {}),
+      ...(step.address ? { address: step.address } : {}),
       ...(step.isBlockHelpShown ? { isBlockHelpShown: true } : {}),
       /*
        * A closed case is done with: nothing more to press. Nor is a step the

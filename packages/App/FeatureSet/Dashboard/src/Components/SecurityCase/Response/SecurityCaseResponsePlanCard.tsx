@@ -6,7 +6,10 @@ import {
   BlockHelp,
   BlockStepActions,
 } from "./SecurityCaseBlockStep";
-import { BlockChoice } from "./SecurityCaseBlockStepModel";
+import {
+  BlockChoice,
+  formatNamesInSentence,
+} from "./SecurityCaseBlockStepModel";
 import {
   BlockFromCaseStarted,
   blockFromCase,
@@ -144,7 +147,7 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
-import { Translator, formatList } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -236,7 +239,7 @@ function readText(text: ResponseText, translator: Translator): string {
 
   // Names the sentence lists, as the reader's language lists them (#10342).
   for (const key of Object.keys(text.lists || {})) {
-    values[key] = formatList(text.lists![key] || [], translator);
+    values[key] = formatNamesInSentence(text.lists![key] || [], translator);
   }
 
   return typeof text.template === "string"
@@ -1000,7 +1003,12 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
             )}
             {step.addressBlock ? (
               <AddressBlockLine
-                address={step.action?.entity?.value || step.copyValue || ""}
+                address={
+                  step.address ||
+                  step.action?.entity?.value ||
+                  step.copyValue ||
+                  ""
+                }
                 block={step.addressBlock}
                 liftLockReason={isClosed ? "" : liftLockReason}
                 isWorking={isWorking || Boolean(workingStepKey)}
