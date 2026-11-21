@@ -36,6 +36,13 @@ import RumSecurityScan from "./RumSecurityScan";
 import { TelemetryScanWindow } from "./TelemetryScanStatements";
 import { TelemetryWindowRead } from "./TelemetryScanTypes";
 import TraceSecurityScan from "./TraceSecurityScan";
+import RefusedTelemetryReader from "../RefusedTelemetryReader";
+import ProductType from "../../../../Types/MeteredPlan/ProductType";
+import {
+  RefusedTelemetry,
+  RefusedTelemetryObservation,
+  RefusedTelemetryRecord,
+} from "../../../../Utils/SecurityEvent/RefusedTelemetry";
 
 /*
  * "Your OneUptime data" (SecurityTelemetrySource): every minute, for each
@@ -72,6 +79,12 @@ import TraceSecurityScan from "./TraceSecurityScan";
  * read brings them in (CloudAudit/CloudAuditSecurityEvents.ts), so a project
  * that turned on only them is never queued, and their source is never
  * scanned here.
+ *
+ * Traces an ingestion budget or rate refused never reach the Span table,
+ * so no scan can read them (#10431). Each turn of the traces reads the
+ * project's budget counters for traces and keeps, on its result, the
+ * stretches in which one refused them (RefusedTelemetryReader), as "Your
+ * logs" does for the logs.
  */
 
 export const SECURITY_TELEMETRY_SCAN_PROJECT_WORK: SecurityProjectWorkDefinition =
@@ -164,6 +177,15 @@ export interface SecurityTelemetryScanResult {
   partialWindowProcessed: number;
   scannedFrom: string;
   scannedTo: string;
+  /*
+   * Traces only: the stretches in which an ingestion budget or rate refused
+   * this project's traces (#10431), kept from scan to scan for as long as a
+   * retrohunt can ask about them, and the budget counters they were last
+   * read with (Utils/SecurityEvent/RefusedTelemetry). The other kinds read
+   * nothing a telemetry budget refuses, and keep neither.
+   */
+  refusedTelemetry?: Array<RefusedTelemetry> | undefined;
+  refusedTelemetryObservation?: RefusedTelemetryObservation | null | undefined;
 }
 
 function readCursor(value: string | undefined): Date | null {
@@ -371,6 +393,20 @@ export default class SecurityTelemetryScanner {
       scannedFrom: cursor.toISOString(),
       scannedTo: cursor.toISOString(),
     };
+
+    // What a budget or a rate refused of the traces since the last turn (#10431).
+    if (kind === SecurityTelemetrySourceKind.Traces) {
+      const refused: RefusedTelemetryRecord =
+        await RefusedTelemetryReader.observe({
+          projectId,
+          signal: ProductType.Traces,
+          lastScanResult: previous,
+          now,
+        });
+
+      result.refusedTelemetry = refused.refusals;
+      result.refusedTelemetryObservation = refused.observation;
+    }
 
     let serviceMetadata: TelemetryServiceMetadata | null = null;
     let lastEventFoundAt: Date | null = null;
