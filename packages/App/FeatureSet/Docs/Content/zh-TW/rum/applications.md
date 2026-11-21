@@ -168,7 +168,7 @@ RUM 遙測就是一般的日誌、指標與追蹤，因此沒有獨立的 RUM �
 | 群組 | 建議 |
 | --- | --- |
 | Core Web Vitals | 適用於 Web 應用程式：Poor Largest Contentful Paint、Poor Interaction to Next Paint、Poor Cumulative Layout Shift、Slow First Contentful Paint 與 Slow Time to First Byte。請參閱 [Core Web Vitals](/docs/rum/web-vitals) 。 |
-| 錯誤 | 適用於行動應用程式的 App Crashes 與 App Not Responding (ANR)，以及適用於每小時有數百個工作階段之應用程式的對應比率 App Crash Rate 與 App ANR Rate；兩者皆適用的 Failed User Operations，以及適用於 Web 應用程式的 Unhandled Browser Exceptions。 |
+| 錯誤 | 適用於行動應用程式的 App Crashes 與 App Not Responding (ANR)，以及適用於每小時有數百個工作階段之應用程式的對應比率 App Crash Rate 與 App ANR Rate，以及一天內當機或卡頓的安裝佔比 Daily Crash Rate 與 Daily ANR Rate；兩者皆適用的 Failed User Operations，以及適用於 Web 應用程式的 Unhandled Browser Exceptions。 |
 | 效能 | 適用於行動應用程式：Slow Cold Start，在冷啟動耗時 5 秒或更久時觸發，Android vitals 將這種情況視為過長；以及 Frozen Frames，在某個影格的繪製時間超過 700 ms 時觸發。 |
 | 可用性 | 適用於行動應用程式：App Stopped Reporting，在應用程式 30 分鐘內沒有傳送任何 span 時觸發；以及 Device Stopped Reporting，在應用程式的某台裝置過去一週內傳送過 span、之後一小時沒有傳送任何 span 時觸發。 |
 | 工作階段重播 | 四個 [儲存預算警示](/docs/telemetry/session-replay#儲存預算警示) ，會在專案的每日上限或應用程式的每月預算用盡之前發出警告。應用程式錄製過重播後就會提供它們，每月那一組則在應用程式也設定了每月預算後提供。 |

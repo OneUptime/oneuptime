@@ -10,6 +10,8 @@ import {
   TelemetryAdminDocsPageEntry,
 } from "./TelemetryAdminDocsPages";
 import { readPage } from "./DocsContentSupport";
+import { withoutProductLevels } from "./DocsProductLevels";
+import ProductKey from "Common/Types/Product/ProductKey";
 import {
   MenuSection,
   PACKAGES_DIR,
@@ -49,6 +51,10 @@ import LogDropFilterService, {
   LoadedLogDropFilter,
 } from "../../../FeatureSet/Telemetry/Services/LogDropFilterService";
 import LogScrubRuleService from "../../../FeatureSet/Telemetry/Services/LogScrubRuleService";
+import ExceptionUtil, {
+  ExceptionGroupingContent,
+  OccurrenceFingerprints,
+} from "../../../FeatureSet/Telemetry/Utils/Exception";
 import TraceScrubRuleService from "../../../FeatureSet/Telemetry/Services/TraceScrubRuleService";
 import TelemetryIngest, {
   getEffectiveRequestsPerMinuteLimit,
@@ -1975,6 +1981,78 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     );
   });
 
+  /*
+   * #10434: an exception is grouped by what it said before the rules ran,
+   * so a rule added later never makes an exception a new one; and a new one
+   * whose grouped text a rule hid is grouped under a fingerprint keyed to
+   * the project, as a Hash token is.
+   */
+  it("groups an exception by what it said before scrubbing, keyed to the project where a rule hid what groups it", () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const primaryEntityId: ObjectID = ObjectID.generate();
+    const arrived: ExceptionGroupingContent = {
+      exceptionType: "CartNotFoundError",
+      message: "No cart for ada@example.com",
+      stackTrace: "",
+    };
+    const stored: ExceptionGroupingContent = {
+      ...arrived,
+      message: scrubbedBody(arrived.message, [
+        scrubRule(LogScrubPatternType.Email, LogScrubAction.Redact),
+      ]),
+    };
+    const asItArrived: {
+      projectId: ObjectID;
+      primaryEntityId: ObjectID;
+    } & ExceptionGroupingContent = { projectId, primaryEntityId, ...arrived };
+
+    expect(stored.message).toBe("No cart for [REDACTED]");
+
+    const fingerprints: OccurrenceFingerprints =
+      ExceptionUtil.getOccurrenceFingerprints({
+        projectId,
+        primaryEntityId,
+        arrived,
+        stored,
+        findsGroupsOfStoredText: true,
+      });
+
+    // The exception from before the rule is found by what it said as it arrived.
+    expect(fingerprints.fingerprintCandidates).toContain(
+      ExceptionUtil.getFingerprint(asItArrived),
+    );
+    expect(fingerprints.fingerprintCandidates).toContain(
+      ExceptionUtil.getFingerprintV2(asItArrived),
+    );
+    // A new one is not made under an unkeyed hash of the address...
+    expect(fingerprints.fingerprintV2).not.toBe(
+      ExceptionUtil.getFingerprintV2(asItArrived),
+    );
+    // ...but under one keyed per project from the installation's secret.
+    const keyed: string = readCommonSource(
+      "Server/Utils/Telemetry/KeyedExceptionFingerprint.ts",
+    );
+    expect(keyed).toContain(
+      '.createHmac("sha256", EncryptionSecret.toString())',
+    );
+    expect(keyed).toContain("`${PROJECT_KEY_DERIVATION_LABEL}:${id}`");
+
+    // Both ingests group an exception so, the logs ingest off the record as it arrived.
+    for (const ingest of [logsIngest, tracesIngest]) {
+      expect(ingest).toContain("ExceptionUtil.getOccurrenceFingerprints({");
+    }
+    expect(logsIngest).toContain(
+      "LogPipelineService.processLog(data.arrivedRow, data.pipelines)",
+    );
+
+    expect(page).toContain(
+      "Each exception is still grouped by what it said before scrubbing, so adding a rule never turns an exception you already have into a new one, or sets off **New Exception** for it again.",
+    );
+    expect(page).toContain(
+      "When a rule hides part of what a new exception is grouped by, its fingerprint is keyed to your project, as a Hash token is, so no one can work it back to what was hidden.",
+    );
+  });
+
   it("creates a filter on Match then Action, Drop picked, with the description and Enabled under Advanced", () => {
     expect(dropForm).toContain('{ title: "Match", id: "match" },');
     expect(dropForm).toContain('{ title: "Action", id: "action" },');
@@ -3590,9 +3668,29 @@ describe("Topology (telemetry/topology)", () => {
       Permission.ReadTelemetryService,
     );
 
-    expect(permissionTitles(new InventoryItem().readRecordPermissions)).toEqual(
-      [...TOPOLOGY_READ_ROLES, permission],
+    /*
+     * The Inventory product's levels (#10289) read it too, Inventory Admin
+     * as Project Admin and Inventory Viewer as Viewer: the permissions page
+     * describes them once for every product, as the other pages leave them
+     * to it.
+     */
+    const readers: Array<Permission> = new InventoryItem()
+      .readRecordPermissions;
+
+    expect(readers).toEqual(
+      expect.arrayContaining([
+        Permission.InventoryAdmin,
+        Permission.InventoryViewer,
+      ]),
     );
+    expect(
+      permissionTitles(
+        withoutProductLevels({
+          permissions: readers,
+          product: ProductKey.Inventory,
+        }),
+      ),
+    ).toEqual([...TOPOLOGY_READ_ROLES, permission]);
     expect(page).toContain(
       `**A role that reads telemetry.** ${writtenList(TOPOLOGY_READ_ROLES, "or")}, or a custom role with the ${permission} permission.`,
     );
