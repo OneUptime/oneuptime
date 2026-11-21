@@ -1467,6 +1467,25 @@ describe("Data Retention (telemetry/data-retention)", () => {
     );
   });
 
+  /*
+   * #10432: security events are kept by the same settings, and what reads
+   * them back - detection rules, Run on Past Events, hunts - reads only as
+   * far as they go, as the card that sets the default says.
+   */
+  it("keeps security events the same way, and says what reads them back is held to it", () => {
+    const ingest: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/SecurityEventsIngestService.ts",
+    );
+
+    expect(ingest).toContain('pillar: "securityEvents",');
+    expect(settings).toContain(
+      "How long telemetry is kept when no override applies, security events included: Security Events' rules, Run on Past Events and hunts read back only this far.",
+    );
+    expect(page).toContain(
+      "**Security events are kept the same way.** Detection rules, Run on Past Events and hunts read back only as far as security events are kept, and say so where they would need more: see [Security Events](/docs/telemetry/security-events).",
+    );
+  });
+
   it("names the resources whose Settings page has the two retention cards", () => {
     const pages: Array<string> = [
       "Service",

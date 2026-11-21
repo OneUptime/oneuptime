@@ -638,6 +638,14 @@ L'action **Créer un moniteur** dans la ligne d'une règle ouvre un nouveau moni
 
 Les événements de sécurité sont facturés par Go ingéré, comme le reste de votre télémétrie, et conservés selon votre conservation de télémétrie : la **Conservation par défaut (jours)** du projet, sous **Paramètres du projet → Télémétrie & APM → Rétention des données**, ou une conservation réglée sur le service de télémétrie auquel ils appartiennent. Quand la conservation d'un événement prend fin, il est supprimé.
 
+Tout ce qui, dans Événements de sécurité, lit des événements passés ne lit que les événements encore conservés, et dit quand il lui en faudrait davantage :
+
+- Une règle **Vu pour la première fois** dont la durée dépasse la conservation des événements juge qu'une valeur est nouvelle d'après les jours conservés : avec une durée de 30 jours et 15 jours conservés, ses alertes et ses dossiers disent `First awsRegion in 15 days`, et une valeur vue pour la dernière fois il y a 20 jours est considérée comme nouvelle. Sa ligne affiche **Attention requise**, et **Voir l'erreur** dit quoi changer. Le formulaire de la règle et le détail d'une règle dans la bibliothèque de règles le disent avant qu'elle soit enregistrée ou ajoutée. Un comptage ou une séquence dont la fenêtre dépasse la conservation des événements ne compte que ceux-là.
+- **Exécuter sur les événements passés** sur une période qui commence avant les événements conservés dit que les événements de sécurité sont conservés 15 jours, donc qu'il a remonté 15 jours, et ce qu'il n'a pas trouvé ne vaut que pour ces jours-là. Un événement survenu plus tôt mais arrivé en retard reste conservé, et reste lu. Une règle **Vu pour la première fois** dit quelle part des 30 jours précédant la période elle a pu voir.
+- Une chasse dont la **Plage temporelle** dépasse la conservation des événements ne trouve rien de plus ancien, et son formulaire le dit.
+
+**Paramètres du projet → Télémétrie & APM → Rétention des données** liste les règles activées qui remontent plus loin que sa **Conservation par défaut (jours)**. Pour les couvrir, conservez les événements plus longtemps, avec **Modifier la rétention** sous une règle, ou raccourcissez la durée d'une règle à ce qui est conservé. OneUptime conserve 15 jours sauf si vous le changez, car la conservation fixe ce que coûte votre télémétrie et combien de temps les données personnelles des événements, comme les adresses et les noms d'utilisateur, sont gardées. Une nouvelle conservation s'applique aux événements qui arrivent à partir de ce moment, donc les règles voient plus loin à mesure que ces événements vieillissent.
+
 ## Dépannage
 
 :::details Les événements n'apparaissent pas
