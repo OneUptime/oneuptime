@@ -14,7 +14,6 @@ import KubernetesResourceService from "../../Services/KubernetesResourceService"
 import NetworkAddressNameService from "../../Services/NetworkAddressNameService";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import NetworkEndpointService from "../../Services/NetworkEndpointService";
-import ProbeService from "../../Services/ProbeService";
 import SecurityProtectedEntityService from "../../Services/SecurityProtectedEntityService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
@@ -22,6 +21,11 @@ import DnsResolutionCache, {
   DnsResolution,
 } from "../Monitor/DnsResolutionCache";
 import NetworkAddressNamesUtil from "../NetworkFlow/NetworkAddressNames";
+import OneUptimeProbeAddresses, {
+  OneUptimeProbe,
+  OneUptimeProbeAddress,
+  OneUptimeProbeRead,
+} from "../Probe/OneUptimeProbeAddresses";
 import CallerPermission from "../Permission/CallerPermission";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import SecurityEdgeRanges, { SecurityEdge } from "./SecurityEdgeRanges";
@@ -58,7 +62,10 @@ import NetworkAddressBlockUtil, {
  *   - ranges that are not on the internet, and OneUptime Cloud's probe
  *     addresses (IP_WHITELIST);
  *   - the address each of the project's probes, and each of OneUptime's,
- *     checks in from (Probe.egressIpAddress);
+ *     checks in from (Probe.egressIpAddress), and the addresses on the
+ *     project's probes' own network interfaces (Probe.interfaceIpAddresses):
+ *     the one list of OneUptime's own probe addresses, which Security
+ *     Events reads too (Probe/OneUptimeProbeAddresses);
  *   - the addresses and ranges its people named (Address Names);
  *   - its hosts' addresses (host.ip), its Kubernetes nodes' InternalIP and
  *     ExternalIP, its cloud resources' endpoints and properties - and its
@@ -89,13 +96,6 @@ export const LOAD_BALANCERS_RESOLVED_PER_CHECK: number = 200;
 
 // How many DNS names are resolved at once.
 const DNS_NAMES_RESOLVED_AT_ONCE: number = 10;
-
-// What a probe's read selects: its name and the address it checks in from.
-const PROBE_SELECT: { _id: true; name: true; egressIpAddress: true } = {
-  _id: true,
-  name: true,
-  egressIpAddress: true,
-};
 
 // How long a load balancer's name that could not be resolved waits to be asked again.
 export const DNS_FAILURE_RETRY_IN_MS: number = 30 * 1000;
@@ -237,6 +237,30 @@ function protectionsOf(data: {
   }
 
   return protections;
+}
+
+/*
+ * The protections OneUptime's own probes hold: one per address of each, the
+ * address it checks in from first, named by the probe.
+ */
+function protectionsOfProbes(
+  probes: Array<OneUptimeProbe>,
+  source: SecurityProtectedAddressSource,
+): Array<SecurityAddressProtection> {
+  return probes.flatMap(
+    (probe: OneUptimeProbe): Array<SecurityAddressProtection> => {
+      return protectionsOf({
+        values: probe.addresses.map(
+          (address: OneUptimeProbeAddress): string => {
+            return address.value;
+          },
+        ),
+        source,
+        name: probe.name,
+        recordId: probe.probeId || undefined,
+      });
+    },
+  );
 }
 
 // A text column narrowed to the scan's text, or to any value at all.
@@ -535,15 +559,28 @@ export default class SecurityProtectedAddresses {
     );
   }
 
-  // OneUptime Cloud's probe addresses: the IP_WHITELIST setting, each an address or a range.
+  /*
+   * OneUptime Cloud's probe addresses: the IP_WHITELIST setting, each an
+   * address or a range, as the one list of OneUptime's own probe addresses
+   * holds it (Probe/OneUptimeProbeAddresses).
+   */
   public static getOneUptimeCloudProtections(
     setting: string = IpWhitelist,
   ): Array<SecurityAddressProtection> {
-    return protectionsOf({
-      values: listEntries(setting),
-      source: SecurityProtectedAddressSource.OneUptimeCloud,
-      name: "OneUptime Cloud",
-    });
+    const cloud: OneUptimeProbe | null =
+      OneUptimeProbeAddresses.getOneUptimeCloud(setting);
+
+    return cloud
+      ? protectionsOf({
+          values: cloud.addresses.map(
+            (address: OneUptimeProbeAddress): string => {
+              return address.value;
+            },
+          ),
+          source: SecurityProtectedAddressSource.OneUptimeCloud,
+          name: cloud.name,
+        })
+      : [];
   }
 
   // The address entries of the project's Protected Entities list, by their descriptions.
@@ -598,32 +635,28 @@ export default class SecurityProtectedAddresses {
     };
   }
 
-  // The project's own probes, by the address each checks in from.
+  /*
+   * The project's own probes, by the address each checks in from and the
+   * addresses on its own network interfaces (#10429): the one list of
+   * OneUptime's own probe addresses (Probe/OneUptimeProbeAddresses), which
+   * Security Events reads too.
+   */
   public static async readProjectProbes(
     projectId: ObjectID,
     scan: SourceScan,
   ): Promise<SourceReading> {
-    const read: { rows: Array<Probe>; isComplete: boolean } = keepRead(
-      await ProbeService.findBy({
-        query: { projectId, egressIpAddress: textFilter(scan) as never },
-        select: PROBE_SELECT,
-        skip: 0,
-        limit: readLimit(scan),
+    const read: OneUptimeProbeRead =
+      await OneUptimeProbeAddresses.readProjectProbes({
+        projectId,
+        contains: scan.contains,
+        limit: scan.limit,
         props: scan.props,
-      }),
-      scan,
-    );
+      });
 
     return {
-      protections: read.rows.flatMap(
-        (probe: Probe): Array<SecurityAddressProtection> => {
-          return protectionsOf({
-            values: [probe.egressIpAddress],
-            source: SecurityProtectedAddressSource.Probe,
-            name: probe.name || "",
-            recordId: probe.id?.toString(),
-          });
-        },
+      protections: protectionsOfProbes(
+        read.probes,
+        SecurityProtectedAddressSource.Probe,
       ),
       isComplete: read.isComplete,
     };
@@ -636,30 +669,16 @@ export default class SecurityProtectedAddresses {
   public static async readGlobalProbes(
     scan: SourceScan,
   ): Promise<SourceReading> {
-    const read: { rows: Array<Probe>; isComplete: boolean } = keepRead(
-      await ProbeService.findBy({
-        query: {
-          isGlobalProbe: true,
-          egressIpAddress: textFilter(scan) as never,
-        },
-        select: PROBE_SELECT,
-        skip: 0,
-        limit: readLimit(scan),
-        props: ROOT,
-      }),
-      scan,
-    );
+    const read: OneUptimeProbeRead =
+      await OneUptimeProbeAddresses.readGlobalProbes({
+        contains: scan.contains,
+        limit: scan.limit,
+      });
 
     return {
-      protections: read.rows.flatMap(
-        (probe: Probe): Array<SecurityAddressProtection> => {
-          return protectionsOf({
-            values: [probe.egressIpAddress],
-            source: SecurityProtectedAddressSource.GlobalProbe,
-            name: probe.name || "",
-            recordId: probe.id?.toString(),
-          });
-        },
+      protections: protectionsOfProbes(
+        read.probes,
+        SecurityProtectedAddressSource.GlobalProbe,
       ),
       isComplete: read.isComplete,
     };
