@@ -1,6 +1,7 @@
 import DatabaseService from "./DatabaseService";
 import AuditLogService from "./AuditLogService";
 import ServiceService from "./ServiceService";
+import SecurityBlockCloudWafService from "./SecurityBlockCloudWafService";
 import { Service as SecurityEventConnectionServiceClass } from "./SecurityEventConnectionService";
 import Model from "../../Models/DatabaseModels/CloudConnection";
 import TelemetryService from "../../Models/DatabaseModels/Service";
@@ -11,10 +12,12 @@ import {
   CloudConnectionAuthMethod,
   CloudConnectionDefinition,
   CloudConnectionField,
+  WAF_BLOCKLIST_FIELD_KEY,
   getCloudConnectionAuthMethod,
   getCloudConnectionDefinition,
   getCloudConnectionFieldsForMethod,
   isCloudConnectionProvider,
+  isCloudConnectionWafBlocklistOn,
 } from "../../Types/CloudConnection/CloudConnectionCatalog";
 import {
   CLOUD_STREAM_KEY_WRITE_ATTEMPTS,
@@ -28,11 +31,13 @@ import {
   AzureCloudStreamState,
   readAzureCloudStreamState,
 } from "../../Types/CloudConnection/CloudStreamAzure";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CloudConnectorRegistry from "../Utils/CloudConnection/CloudConnectorRegistry";
@@ -470,10 +475,80 @@ export class Service extends DatabaseService<Model> {
       requireRequiredSecrets: true,
     });
 
+    if (
+      isCloudConnectionWafBlocklistOn(
+        Service.parseJsonObject(current.config, "Settings")[
+          WAF_BLOCKLIST_FIELD_KEY
+        ],
+      ) &&
+      !isCloudConnectionWafBlocklistOn(settings.config[WAF_BLOCKLIST_FIELD_KEY])
+    ) {
+      await Service.refuseWhileEnforcingBlocklist({
+        projectId: current.projectId,
+        connectionId: new ObjectID(connectionId),
+        doing: "turn off Block addresses in AWS WAF",
+      });
+    }
+
     incoming["config"] = settings.config;
     incoming["secrets"] = JSON.stringify(settings.secrets);
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * A connection that enforces the blocklist in a web ACL (#10344) keeps
+   * its setting and stays until each web ACL is removed from the Blocklist
+   * page, which takes OneUptime's rule out of it: turned off or deleted
+   * first, the web ACL would go on blocking what OneUptime's IP sets hold,
+   * and a block lifted would no longer reach it.
+   */
+  private static async refuseWhileEnforcingBlocklist(data: {
+    projectId: ObjectID;
+    connectionId: ObjectID;
+    // What the person tried, for the words: "delete this connection".
+    doing: string;
+  }): Promise<void> {
+    const count: number = await SecurityBlockCloudWafService.countForConnection(
+      {
+        projectId: data.projectId,
+        cloudConnectionId: data.connectionId,
+      },
+    );
+
+    if (count === 0) {
+      return;
+    }
+
+    throw new BadDataException(
+      count === 1
+        ? `This connection enforces your blocklist in a web ACL. Remove the web ACL under Cloud WAFs on the Blocklist page first, so OneUptime takes its rule out of it, then ${data.doing}.`
+        : `This connection enforces your blocklist in ${count} web ACLs. Remove them under Cloud WAFs on the Blocklist page first, so OneUptime takes its rule out of each, then ${data.doing}.`,
+    );
+  }
+
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    const connections: Array<Model> = await this.findBy({
+      query: deleteBy.query,
+      select: { _id: true, projectId: true },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: { isRoot: true },
+    });
+
+    for (const connection of connections) {
+      if (connection.id && connection.projectId) {
+        await Service.refuseWhileEnforcingBlocklist({
+          projectId: connection.projectId,
+          connectionId: connection.id,
+          doing: "delete this connection",
+        });
+      }
+    }
+
+    return { deleteBy, carryForward: null };
   }
 
   /*

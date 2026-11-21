@@ -1,6 +1,7 @@
 import ObjectID from "../../../Types/ObjectID";
 import { SecurityBlockDestinationProvider } from "../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
 import logger from "../Logger";
+import { AwsWafBlockDestinationSource } from "./AwsWafBlockDestination";
 import SecurityBlockDestination from "./SecurityBlockDestination";
 
 /*
@@ -44,7 +45,10 @@ export interface SecurityBlockDestinationsFound {
  * this file.
  */
 export const SECURITY_BLOCK_DESTINATION_SOURCES: ReadonlyArray<SecurityBlockDestinationSource> =
-  [];
+  [
+    // The AWS WAF web ACLs a project picked, through their cloud connections (#10344).
+    new AwsWafBlockDestinationSource(),
+  ];
 
 export default class SecurityBlockDestinations {
   /*
