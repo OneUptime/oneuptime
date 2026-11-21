@@ -775,7 +775,7 @@ describe("what is beyond a probe's work is still reported", () => {
     expect(sweeps[0]!.severityName).toBe(OcsfSeverity.Medium);
     expect(sweeps[0]!.targetPort).toBe(22);
     expect(sweeps[0]!.message).toBe(
-      `Network sweep: ${OFFICE_ADDRESS} (probe "Office probe") reached port 22 on 45 hosts beyond what it is set to check`,
+      `Network sweep: ${OFFICE_ADDRESS}, an address of probe "Office probe", reached port 22 on 45 hosts the probe is not set to check`,
     );
     expect(sweeps[0]!.attributes[PROBE_FLOW_ATTRIBUTES.traffic]).toBe(
       ProbeFlowTraffic.BeyondOwnWork,

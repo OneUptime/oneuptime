@@ -413,7 +413,7 @@ describe("a probe's sweep beyond its work", () => {
     expect(signalOf(event)).toBe(SecurityTelemetrySignal.NetworkSweep);
     expect(event.severityName).toBe(OcsfSeverity.Medium);
     expect(event.message).toBe(
-      `Network sweep: 10.0.0.250 (probe "Office probe") reached port 22 on 45 hosts beyond what it is set to check`,
+      `Network sweep: 10.0.0.250, an address of probe "Office probe", reached port 22 on 45 hosts the probe is not set to check`,
     );
     expect(event.attributes).toMatchObject({
       [PROBE_FLOW_ATTRIBUTES.probeId]: OFFICE.probeId,
@@ -446,7 +446,7 @@ describe("a probe's sweep beyond its work", () => {
 
     expect(signalOf(event)).toBe(SecurityTelemetrySignal.NetworkSweep);
     expect(event.message).toBe(
-      `Network sweep: 10.0.0.250 (probe "Office probe") reached port 161 on 45 hosts beyond what it is set to check, besides 40 hosts of its device polling`,
+      `Network sweep: 10.0.0.250, an address of probe "Office probe", reached port 161 on 45 hosts the probe is not set to check, besides 40 hosts of its device polling`,
     );
     expect(event.attributes[FLOW_ATTRIBUTES.sampleHosts]).toBe(
       [...strangers].sort().slice(0, 10).join(","),
@@ -468,7 +468,7 @@ describe("a probe's sweep beyond its work", () => {
       ProbeFlowTraffic.WorkUnread,
     );
     expect(event.message).toBe(
-      `Network sweep: 10.0.0.250 (probe "Office probe") reached port 161 on 40 hosts. What this probe is set to check could not be read.`,
+      `Network sweep: 10.0.0.250, an address of probe "Office probe", reached port 161 on 40 hosts. What the probe is set to check could not be read.`,
     );
     expect(sigmaRuleMatchesEvent(rule(SWEEP_RULE), event)).toBe(true);
   });
@@ -538,7 +538,7 @@ describe("a probe's port scan", () => {
     expect(signalOf(event)).toBe(SecurityTelemetrySignal.PortScan);
     expect(event.severityName).toBe(OcsfSeverity.Medium);
     expect(event.message).toBe(
-      `Port scan: 10.0.0.250 (probe "Office probe") reached 26 ports on 10.0.0.9 beyond what it is set to check`,
+      `Port scan: 10.0.0.250, an address of probe "Office probe", reached 26 ports on 10.0.0.9 the probe is not set to check`,
     );
     expect(event.attributes[FLOW_ATTRIBUTES.samplePorts]).toBe(
       ports.slice(0, 10).join(","),

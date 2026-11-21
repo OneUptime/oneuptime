@@ -372,10 +372,16 @@ export function buildProbeNetworkSweepEvent(data: {
 }): NormalizedSecurityEvent | null {
   const { row, window, probe, split } = data;
   const who: string = `${row.srcIp} (${describeProbe(probe)})`;
+  /*
+   * What is beyond a probe's work came from its address, which may be
+   * shared - a NAT's, or another machine's sending from it - so a report
+   * says whose address it is, never that the probe sent it.
+   */
+  const whose: string = `${row.srcIp}, an address of ${describeProbe(probe)},`;
 
   if (!split) {
     return buildNetworkSweepEvent(row, window, {
-      message: `Network sweep: ${who} reached port ${row.dstPort} on ${row.hosts} hosts. What this probe is set to check could not be read.`,
+      message: `Network sweep: ${whose} reached port ${row.dstPort} on ${row.hosts} hosts. What the probe is set to check could not be read.`,
       attributes: probeAttributes({
         probe,
         traffic: ProbeFlowTraffic.WorkUnread,
@@ -387,7 +393,7 @@ export function buildProbeNetworkSweepEvent(data: {
 
   if (split.other >= NETWORK_SWEEP_MIN_HOSTS) {
     const stamp: FlowEventStamp = {
-      message: `Network sweep: ${who} reached port ${row.dstPort} on ${split.other} hosts beyond what it is set to check${
+      message: `Network sweep: ${whose} reached port ${row.dstPort} on ${split.other} hosts the probe is not set to check${
         split.ownWork > 0
           ? `, besides ${plural(split.ownWork, "host", "hosts")} of its ${describeProbeWorks(split.works)}`
           : ""
@@ -460,10 +466,16 @@ export function buildProbePortScanEvent(data: {
 }): NormalizedSecurityEvent | null {
   const { row, window, probe, split } = data;
   const who: string = `${row.srcIp} (${describeProbe(probe)})`;
+  /*
+   * What is beyond a probe's work came from its address, which may be
+   * shared - a NAT's, or another machine's sending from it - so a report
+   * says whose address it is, never that the probe sent it.
+   */
+  const whose: string = `${row.srcIp}, an address of ${describeProbe(probe)},`;
 
   if (!split) {
     return buildPortScanEvent(row, window, {
-      message: `Port scan: ${who} reached ${row.ports} ports on ${row.dstIp}. What this probe is set to check could not be read.`,
+      message: `Port scan: ${whose} reached ${row.ports} ports on ${row.dstIp}. What the probe is set to check could not be read.`,
       attributes: probeAttributes({
         probe,
         traffic: ProbeFlowTraffic.WorkUnread,
@@ -482,7 +494,7 @@ export function buildProbePortScanEvent(data: {
       },
       window,
       {
-        message: `Port scan: ${who} reached ${split.other} ports on ${row.dstIp} beyond what it is set to check${
+        message: `Port scan: ${whose} reached ${split.other} ports on ${row.dstIp} the probe is not set to check${
           split.ownWork > 0
             ? `, besides ${plural(split.ownWork, "port", "ports")} of its ${describeProbeWorks(split.works)}`
             : ""
