@@ -463,39 +463,37 @@ export default class ReachWorld {
           );
       }) as never);
 
-    jest
-      .spyOn(TeamMemberService, "findBy")
-      .mockImplementation((async (args: {
-        query: Record<string, unknown>;
-      }): Promise<Array<TeamMember>> => {
-        const teamIds: Array<string> | null = readQueryValues(
-          args.query["teamId"],
-        );
-        const userIds: Array<string> | null = readQueryValues(
-          args.query["userId"],
-        );
-        const acceptedOnly: boolean =
-          args.query["hasAcceptedInvitation"] === true;
+    jest.spyOn(TeamMemberService, "findBy").mockImplementation((async (args: {
+      query: Record<string, unknown>;
+    }): Promise<Array<TeamMember>> => {
+      const teamIds: Array<string> | null = readQueryValues(
+        args.query["teamId"],
+      );
+      const userIds: Array<string> | null = readQueryValues(
+        args.query["userId"],
+      );
+      const acceptedOnly: boolean =
+        args.query["hasAcceptedInvitation"] === true;
 
-        return this.memberships
-          .filter((membership: WorldMembership): boolean => {
-            return (
-              (!teamIds || teamIds.includes(membership.teamId.toString())) &&
-              (!userIds || userIds.includes(membership.userId.toString())) &&
-              (!acceptedOnly || membership.accepted)
-            );
-          })
-          .map((membership: WorldMembership): TeamMember => {
-            const model: TeamMember = new TeamMember();
-            model._id = membership.id.toString();
-            model.createdAt = membership.createdAt;
-            model.userId = membership.userId;
-            model.teamId = membership.teamId;
-            model.projectId = PROJECT_ID;
-            model.hasAcceptedInvitation = membership.accepted;
-            return model;
-          });
-      }) as never);
+      return this.memberships
+        .filter((membership: WorldMembership): boolean => {
+          return (
+            (!teamIds || teamIds.includes(membership.teamId.toString())) &&
+            (!userIds || userIds.includes(membership.userId.toString())) &&
+            (!acceptedOnly || membership.accepted)
+          );
+        })
+        .map((membership: WorldMembership): TeamMember => {
+          const model: TeamMember = new TeamMember();
+          model._id = membership.id.toString();
+          model.createdAt = membership.createdAt;
+          model.userId = membership.userId;
+          model.teamId = membership.teamId;
+          model.projectId = PROJECT_ID;
+          model.hasAcceptedInvitation = membership.accepted;
+          return model;
+        });
+    }) as never);
 
     const usersIn: (
       teamIds: Array<ObjectID>,
@@ -631,8 +629,13 @@ export default class ReachWorld {
             model._id = scheduleId.toString();
             model.name = this.nameOf(scheduleId);
             model.projectId = PROJECT_ID;
-            model.currentUserIdOnRoster =
-              this.rosterOf(scheduleId) || undefined;
+
+            const onRoster: ObjectID | null = this.rosterOf(scheduleId);
+
+            if (onRoster) {
+              model.currentUserIdOnRoster = onRoster;
+            }
+
             return model;
           });
       }) as never);
