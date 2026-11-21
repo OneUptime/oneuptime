@@ -211,8 +211,147 @@ export function getEmptyTelemetryFieldReadersByKind(
   };
 }
 
+/*
+ * An answer as it arrived, read defensively for a page: a reader without an
+ * id or a name is no reader, a widget without an id no widget, a reading of
+ * a part or a use no answer names is dropped, and a count that is no count
+ * is none. A kind or Security Events the answer does not say was checked
+ * is said to be unchecked, never empty.
+ */
+const UUID_PATTERN: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function asObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function asArray(value: unknown): Array<unknown> {
+  return Array.isArray(value) ? value : [];
+}
+
+function textOf(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function isOneOf<T extends string>(
+  values: ReadonlyArray<T>,
+  value: unknown,
+): value is T {
+  return (
+    typeof value === "string" &&
+    (values as ReadonlyArray<string>).includes(value)
+  );
+}
+
+function readReader(value: unknown): TelemetryFieldReader | null {
+  const entry: Record<string, unknown> = asObject(value);
+  const id: string = textOf(entry["id"]);
+
+  if (!UUID_PATTERN.test(id) || typeof entry["name"] !== "string") {
+    return null;
+  }
+
+  const reader: TelemetryFieldReader = {
+    id,
+    name: entry["name"],
+    reads: asArray(entry["reads"])
+      .map(asObject)
+      .filter((read: Record<string, unknown>): boolean => {
+        return (
+          isOneOf(Object.values(TelemetryFieldPart), read["part"]) &&
+          isOneOf(Object.values(TelemetryFieldUse), read["use"])
+        );
+      })
+      .map((read: Record<string, unknown>): TelemetryFieldRead => {
+        const field: TelemetryFieldRead = {
+          part: read["part"] as TelemetryFieldPart,
+          use: read["use"] as TelemetryFieldUse,
+        };
+
+        if (typeof read["key"] === "string" && read["key"]) {
+          field.key = read["key"];
+        }
+
+        return field;
+      }),
+  };
+
+  if (isOneOf(Object.values(TelemetryFieldReaderList), entry["list"])) {
+    reader.list = entry["list"];
+  }
+
+  if (Array.isArray(entry["widgets"])) {
+    reader.widgets = entry["widgets"]
+      .map(asObject)
+      .filter((widget: Record<string, unknown>): boolean => {
+        return Boolean(textOf(widget["id"]));
+      })
+      .map((widget: Record<string, unknown>): TelemetryFieldReaderWidget => {
+        return {
+          id: textOf(widget["id"]),
+          title: textOf(widget["title"]),
+          type: textOf(widget["type"]),
+        };
+      });
+  }
+
+  return reader;
+}
+
+export function readTelemetryFieldReaders(
+  value: unknown,
+): TelemetryFieldReaders {
+  const answer: Record<string, unknown> = asObject(value);
+  const kinds: Record<string, unknown> = asObject(answer["kinds"]);
+  const read: TelemetryFieldReadersByKind =
+    getEmptyTelemetryFieldReadersByKind(false);
+
+  for (const kind of TELEMETRY_FIELD_READER_KINDS) {
+    const ofKind: Record<string, unknown> = asObject(kinds[kind]);
+    const hidden: unknown = ofKind["hiddenCount"];
+
+    read[kind] = {
+      readers: asArray(ofKind["readers"])
+        .map(readReader)
+        .filter((reader: TelemetryFieldReader | null): boolean => {
+          return reader !== null;
+        }) as Array<TelemetryFieldReader>,
+      hiddenCount:
+        typeof hidden === "number" && Number.isInteger(hidden) && hidden > 0
+          ? hidden
+          : 0,
+      isChecked: ofKind["isChecked"] === true,
+    };
+  }
+
+  const securityEvents: Record<string, unknown> = asObject(
+    answer["securityEvents"],
+  );
+
+  return {
+    kinds: read,
+    securityEvents: {
+      isChecked: securityEvents["isChecked"] === true,
+      sources: asArray(securityEvents["sources"]).filter(
+        (source: unknown): source is SecurityEventsTelemetrySource => {
+          return isOneOf(Object.values(SecurityEventsTelemetrySource), source);
+        },
+      ),
+      loses: asArray(securityEvents["loses"]).filter(
+        (need: unknown): need is SecurityEventsFieldNeed => {
+          return isOneOf(Object.values(SecurityEventsFieldNeed), need);
+        },
+      ),
+    },
+  };
+}
+
 // Whether anything reads what the change takes away: a reader named or counted, or Security Events.
-export function isAnyTelemetryFieldRead(readers: TelemetryFieldReaders): boolean {
+export function isAnyTelemetryFieldRead(
+  readers: TelemetryFieldReaders,
+): boolean {
   return (
     TELEMETRY_FIELD_READER_KINDS.some((kind: TelemetryFieldReaderKind) => {
       const ofKind: TelemetryFieldReadersOfKind = readers.kinds[kind];
