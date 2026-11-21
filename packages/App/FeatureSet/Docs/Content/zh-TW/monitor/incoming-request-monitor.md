@@ -391,7 +391,7 @@ flowchart TB
 **Max incidents per request** 限制的是擷取，而不只是建立。超出上限的鍵對復原判斷同樣不可見，因此在一個不同鍵數量超過上限的酬載中，超出上限的部分即使回報 `resolved`，也不會關閉它的事件。
 
 > [!NOTE]
-> 當一個監測器收到請求的速度快於 OneUptime 評估它們的速度時，OneUptime 會評估最新的請求並略過中間的請求，因此一波突發的 Webhook 可能讓某則觸發中或已解決的警示沒有被評估。在自行託管的伺服器上，於 OneUptime 應用程式的環境中設定 `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false`，就會個別評估每一個請求。
+> 某個條件依酬載欄位分組的監測器，會依到達順序逐一評估它收到的每一個請求，因此一波突發的警示與恢復會為每個值開啟並解決各自的事件與警示。最多有 1,000 個請求（或 16 MB）可以等待評估；超過之後，等待中最早的請求會被略過， **監測器摘要** 卡片會顯示略過了多少個。沒有分組的監測器只評估等待中的最新請求。
 
 > [!NOTE]
 > 如果 **Field that signals recovery** 包含 `[*]`，而 **Open a separate incident for each…** 不包含，那麼只有當該陣列的每個元素都表示已復原時，請求才算已復原。使用 `requestBody.alerts[*].status` 和 `resolved` 時，依 `requestBody.groupLabels.alertname` 分組的事件會在請求的所有警示都已解決時解決，只要還有一個仍在觸發就會保持開啟。

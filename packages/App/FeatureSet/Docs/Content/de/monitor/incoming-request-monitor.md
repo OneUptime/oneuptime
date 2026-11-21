@@ -391,7 +391,7 @@ Auch eine Warnung, die Sie einem Kriterium selbst hinzufügen, beginnt mit ausge
 **Max. Vorfälle pro Anfrage** begrenzt das Auslesen, nicht nur das Erstellen. Schlüssel jenseits der Grenze sind auch für die Erholung unsichtbar, in einer Nutzlast mit mehr unterschiedlichen Schlüsseln als die Grenze schließt eine Warnung, die jenseits davon `resolved` meldet, ihren Vorfall also nicht.
 
 > [!NOTE]
-> Erhält ein Monitor Anfragen schneller, als OneUptime sie prüft, prüft es die neueste und überspringt die dazwischen, sodass ein Schwall von Webhooks eine auslösende oder eine behobene Warnung ungeprüft lassen kann. Auf einem selbst gehosteten Server prüft `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` in der Umgebung der OneUptime-App jede Anfrage einzeln.
+> Ein Monitor, bei dem ein Kriterium nach einem Feld der Anfrage gruppiert, prüft jede Anfrage, die er erhält, einzeln und in der Reihenfolge ihres Eingangs, sodass ein Schwall von Warnungen und Erholungen den Vorfall und die Warnung jedes Werts eröffnet und behebt. Bis zu 1.000 Anfragen oder 16 MB davon warten auf ihre Prüfung; darüber hinaus werden die ältesten wartenden übersprungen, und die Karte **Monitor-Zusammenfassung** nennt, wie viele. Ein Monitor ohne Gruppierung prüft nur die neueste der Anfragen, die auf ihn warten.
 
 > [!NOTE]
 > Enthält **Feld, das die Erholung signalisiert** ein `[*]`, **Einen eigenen Vorfall eröffnen pro…** aber nicht, hat sich eine Anfrage erst erholt, wenn jedes Element dieses Arrays das sagt. Mit `requestBody.alerts[*].status` und `resolved` wird ein nach `requestBody.groupLabels.alertname` gruppierter Vorfall behoben, sobald jede Warnung einer Anfrage behoben ist, und er bleibt offen, solange eine noch auslöst.

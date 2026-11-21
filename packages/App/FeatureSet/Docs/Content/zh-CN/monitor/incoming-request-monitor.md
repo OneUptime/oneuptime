@@ -391,7 +391,7 @@ flowchart TB
 **Max incidents per request** 限制的是提取，而不仅是创建。超出上限的键对恢复判断同样不可见，因此在一个不同键数量超过上限的负载中，超出上限部分报告 `resolved` 的警报不会关闭它的事件。
 
 > [!NOTE]
-> 当一个监视器收到请求的速度快于 OneUptime 评估它们的速度时，OneUptime 会评估最新的请求并跳过中间的请求，因此一波突发的 Webhook 可能让某条触发中或已解决的警报得不到评估。在自托管服务器上，在 OneUptime 应用的环境中设置 `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false`，即可单独评估每一个请求。
+> 某个条件按负载字段分组的监视器，会按到达顺序逐个评估它收到的每一个请求，因此一波突发的警报和恢复会为每个值打开并解决各自的事件和警报。最多有 1,000 个请求（或 16 MB）可以等待评估；超出后，等待中最早的请求会被跳过， **监视器摘要** 卡片会显示跳过了多少个。没有分组的监视器只评估等待中的最新请求。
 
 > [!NOTE]
 > 如果 **Field that signals recovery** 包含 `[*]`，而 **Open a separate incident for each…** 不包含，那么只有当该数组的每个元素都表示已恢复时，请求才算已恢复。使用 `requestBody.alerts[*].status` 和 `resolved` 时，按 `requestBody.groupLabels.alertname` 分组的事件会在请求的所有警报都已解决时解决，只要还有一个仍在触发就保持打开。

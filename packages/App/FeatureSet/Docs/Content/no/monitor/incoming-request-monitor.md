@@ -391,7 +391,7 @@ Et varsel du selv legger til i et kriterium, starter også med **Løs varsel aut
 **Max incidents per request** begrenser uthentingen, ikke bare opprettelsen. Nøkler forbi taket er også usynlige for løsningen, så i en nyttelast med flere særskilte nøkler enn taket lukker ikke et varsel som melder `resolved` forbi taket, hendelsen sin.
 
 > [!NOTE]
-> Når én monitor mottar forespørsler raskere enn OneUptime evaluerer dem, evaluerer OneUptime den nyeste og hopper over dem imellom, så en bølge av webhooks kan etterlate et aktivt eller et løst varsel uevaluert. På en selvhostet server får `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` i miljøet til OneUptime-appen hver forespørsel til å bli evaluert for seg.
+> En monitor med et kriterium som grupperer etter et felt i innholdet, evaluerer hver forespørsel den mottar, én om gangen og i den rekkefølgen de kom, så en bølge av varsler og gjenopprettinger åpner og løser hendelsen og varselet for hver verdi. Opptil 1 000 forespørsler, eller 16 MB av dem, venter på å bli evaluert; utover det hoppes de eldste ventende over, og kortet **Monitor-sammendrag** sier hvor mange. En monitor uten gruppering evaluerer bare den nyeste av forespørslene som venter på den.
 
 > [!NOTE]
 > Hvis **Field that signals recovery** inneholder `[*]`, men **Open a separate incident for each…** ikke gjør det, er en forespørsel over først når hvert element i matrisen sier det. Med `requestBody.alerts[*].status` og `resolved` løses en hendelse gruppert etter `requestBody.groupLabels.alertname` når alle varslene i en forespørsel er løst, og den forblir åpen så lenge ett fortsatt er aktivt.

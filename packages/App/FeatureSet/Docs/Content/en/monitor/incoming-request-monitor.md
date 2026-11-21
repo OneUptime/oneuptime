@@ -391,7 +391,7 @@ An alert you add to a criteria starts with **Auto Resolve Alert** off as well, s
 **Max incidents per request** caps extraction, not just creation. Keys past the cap are invisible to recovery as well, so in a payload carrying more distinct keys than the cap, an alert reporting `resolved` beyond it will not close its incident.
 
 > [!NOTE]
-> When one monitor receives requests faster than OneUptime evaluates them, it evaluates the newest and skips the ones in between, so a burst of webhooks can leave a firing or a resolved alert unevaluated. On a self-hosted server, setting `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` in the OneUptime app's environment evaluates every request on its own.
+> A monitor with a criteria that groups by a payload field evaluates every request it receives, one at a time and in the order they arrived, so a burst of alerts and recoveries opens and resolves each value's incident and alert. Up to 1,000 requests, or 16 MB of them, wait to be evaluated; past that, the oldest waiting are skipped, and the **Monitor Summary** card says how many. A monitor without grouping evaluates only the newest of the requests waiting for it.
 
 > [!NOTE]
 > If **Field that signals recovery** contains `[*]` but **Open a separate incident for each…** does not, a request has recovered only when every element of that array says so. With `requestBody.alerts[*].status` and `resolved`, an incident grouped by `requestBody.groupLabels.alertname` resolves once every alert of a request is resolved, and stays open while one still fires.

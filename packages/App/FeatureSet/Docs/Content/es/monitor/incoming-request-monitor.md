@@ -391,7 +391,7 @@ Una alerta que añade usted mismo a un criterio también empieza con **Resolver 
 **Máximo de incidentes por solicitud** limita la extracción, no solo la creación. Las claves que superan el límite también son invisibles para la recuperación, así que, en una carga útil con más claves distintas que el límite, una alerta que informe `resolved` por encima de él no cerrará su incidente.
 
 > [!NOTE]
-> Cuando un monitor recibe solicitudes más rápido de lo que OneUptime las evalúa, evalúa la más reciente y se salta las intermedias, así que una ráfaga de webhooks puede dejar sin evaluar una alerta activa o una resuelta. En un servidor autoalojado, definir `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` en el entorno de la aplicación OneUptime evalúa cada solicitud por separado.
+> Un monitor con un criterio que agrupa por un campo de la carga evalúa cada solicitud que recibe, una a la vez y en el orden en que llegaron, así que una ráfaga de alertas y recuperaciones abre y resuelve el incidente y la alerta de cada valor. Hasta 1.000 solicitudes, o 16 MB de ellas, esperan a ser evaluadas; pasado eso, se omiten las más antiguas en espera, y la tarjeta **Resumen del monitor** dice cuántas. Un monitor sin agrupación evalúa solo la más reciente de las solicitudes que lo esperan.
 
 > [!NOTE]
 > Si **Campo que indica la recuperación** contiene `[*]` pero **Abrir un incidente separado para cada…** no, una solicitud solo se ha recuperado cuando todos los elementos de ese array lo dicen. Con `requestBody.alerts[*].status` y `resolved`, un incidente agrupado por `requestBody.groupLabels.alertname` se resuelve cuando todas las alertas de una solicitud están resueltas, y sigue abierto mientras alguna siga activa.

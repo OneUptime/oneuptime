@@ -90,6 +90,10 @@ import {
 } from "Common/Utils/Monitor/IncomingEmailMonitorAddress";
 import { EVERY_THIRTY_SECONDS } from "Common/Utils/CronTime";
 import { describe, expect, it } from "@jest/globals";
+import {
+  MAX_PENDING_BYTES_PER_MONITOR,
+  MAX_PENDING_REQUESTS_PER_MONITOR,
+} from "../../../FeatureSet/Telemetry/Utils/IncomingRequestPendingStore";
 import fs from "fs";
 import path from "path";
 
@@ -1558,16 +1562,21 @@ describe("Incoming Request Monitor", () => {
       "Bodies up to 50 MB are accepted; a larger one is refused with a `413`.",
     );
 
-    // The reply is sent first; the request is queued afterwards.
-    const reply: number = api.indexOf(
-      "Response.sendEmptySuccessResponse(req, res);",
-    );
+    /*
+     * The request is queued, then answered (#10582: a request sent once this
+     * one was answered is evaluated after it). It is processed on the
+     * queue, after the reply: the route evaluates nothing itself.
+     */
     const queued: number = api.indexOf(
       "await TelemetryQueueService.addIncomingRequestIngestJob({",
     );
+    const reply: number = api.indexOf(
+      "Response.sendEmptySuccessResponse(req, res);",
+    );
 
-    expect(reply).toBeGreaterThan(0);
-    expect(queued).toBeGreaterThan(reply);
+    expect(queued).toBeGreaterThan(0);
+    expect(reply).toBeGreaterThan(queued);
+    expect(api).not.toContain("MonitorResourceUtil");
     expect(page).toContain(
       "OneUptime replies `200` with an empty JSON object (`{}`) immediately and processes the request on a queue.",
     );
@@ -2295,16 +2304,33 @@ describe("Incoming Request Monitor", () => {
     );
   });
 
-  it("names the switch that evaluates every request on its own", () => {
+  /*
+   * Every request of a grouped monitor is evaluated, in order, with a
+   * limit on how many wait (#10582): the page says so, with the limits
+   * the waiting-request store keeps, and no longer sends a reader to the
+   * operator's switch as a way round skipped requests.
+   */
+  it("says a grouped monitor evaluates every request in order, and how many may wait", () => {
+    expect(MAX_PENDING_REQUESTS_PER_MONITOR).toBe(1000);
+    expect(MAX_PENDING_BYTES_PER_MONITOR).toBe(16 * 1024 * 1024);
     expect(
-      fs.existsSync(
-        path.join(PACKAGES_DIR, "App/FeatureSet/Telemetry/Config.ts"),
-      ) &&
-        readRepoFile("App/FeatureSet/Telemetry/Config.ts").includes(
-          "INCOMING_REQUEST_INGEST_COALESCE_ENABLED",
-        ),
-    ).toBe(true);
-    expect(page).toContain("`INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false`");
+      readRepoFile(
+        "App/FeatureSet/Telemetry/Jobs/IncomingRequestIngest/ProcessIncomingRequestIngest.ts",
+      ),
+    ).toContain(
+      "IncomingRequestIncidentGrouping.isGroupingConfiguredOnMonitor(",
+    );
+
+    expect(page).toContain(
+      "A monitor with a criteria that groups by a payload field evaluates every request it receives, one at a time and in the order they arrived",
+    );
+    expect(page).toContain(
+      "Up to 1,000 requests, or 16 MB of them, wait to be evaluated; past that, the oldest waiting are skipped, and the **Monitor Summary** card says how many.",
+    );
+    expect(page).toContain(
+      "A monitor without grouping evaluates only the newest of the requests waiting for it.",
+    );
+    expect(page).not.toContain("INCOMING_REQUEST_INGEST_COALESCE_ENABLED");
   });
 });
 
