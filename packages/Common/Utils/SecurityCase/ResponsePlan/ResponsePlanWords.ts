@@ -116,6 +116,24 @@ export const STEP_AI_PLAYBOOK: string = translationKey(
 export const STEP_BLOCK_PUBLIC_IP: string = translationKey(
   "Block {{value}} at your firewall, WAF or load balancer.",
 );
+/*
+ * Where the project's blocklist is enforced (#10342): the step names where
+ * the block would hold - "Block 35.205.11.131 at Cloudflare, AWS WAF." -
+ * and blocks it in one click.
+ */
+export const STEP_BLOCK_AT_DESTINATIONS: string = translationKey(
+  "Block {{value}} at {{destinations}}.",
+);
+// Under the block step, while a block of the address from the case has not been made.
+export const STEP_BLOCK_WAITING: string = translationKey(
+  "The block is waiting for someone else's approval on the case's Playbooks page.",
+);
+export const STEP_BLOCK_RUNNING: string = translationKey(
+  "Blocking it now.",
+);
+export const STEP_BLOCK_FAILED: string = translationKey(
+  "The last block did not finish. See why on the case's Playbooks page.",
+);
 export const STEP_ISOLATE_PRIVATE_IP: string = translationKey(
   "Find the machine at {{value}}, and take it off the network if it is compromised.",
 );
@@ -240,3 +258,6 @@ export const ACTION_MARK_CONTAINED: string =
   translationKey("Mark as Contained");
 export const ACTION_CLOSE_CASE: string = translationKey("Close Case");
 export const ACTION_COPY: string = translationKey("Copy");
+// One click blocks the address for a day; the menu beside it holds the rest (#10342).
+export const ACTION_BLOCK_FOR_A_DAY: string =
+  translationKey("Block for 24 Hours");

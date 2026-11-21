@@ -64,6 +64,8 @@ import {
   RESPONSE_PHASES,
   ResponseAction,
   ResponseActionKind,
+  ResponseAddressBlock,
+  ResponseAddressBlocking,
   ResponsePhase,
   ResponsePlan,
   ResponsePlaybook,
@@ -75,8 +77,18 @@ import {
   ResponseText,
 } from "./ResponsePlanTypes";
 import {
+  SecurityBlockValue,
+  findCoveringSecurityBlock,
+  readSecurityBlockValue,
+} from "../../../Types/SecurityBlocklist/SecurityBlock";
+import {
+  OneStepRunRead,
+  readOneStepRun,
+} from "../../../Types/SecurityPlaybook/SecurityPlaybookOneStepRun";
+import {
   ACTION_ADD_EXCEPTION,
   ACTION_ASSIGN_TO_ME,
+  ACTION_BLOCK_FOR_A_DAY,
   ACTION_CLOSE_CASE,
   ACTION_DECLARE_INCIDENT,
   ACTION_MARK_CONTAINED,
@@ -91,8 +103,12 @@ import {
   REQUESTS_ALL_TURNED_AWAY,
   REQUESTS_GOT_THROUGH,
   STEP_AI_PLAYBOOK,
+  STEP_BLOCK_AT_DESTINATIONS,
   STEP_BLOCK_DOMAIN,
+  STEP_BLOCK_FAILED,
   STEP_BLOCK_PUBLIC_IP,
+  STEP_BLOCK_RUNNING,
+  STEP_BLOCK_WAITING,
   STEP_CLOSE,
   STEP_CONTAIN_HOST,
   STEP_CONTAIN_HOST_PLAYBOOK,
@@ -228,6 +244,13 @@ export interface ResponsePlanInput {
   } | null;
   // What OneUptime found when it checked the case's steps itself, by step.
   checks?: Array<ResponseStepCheck> | undefined;
+  /*
+   * Where the project's blocklist is enforced and what it holds of the
+   * case's addresses (#10342): the block step offers Block, names where it
+   * holds, and is done by the case once a destination enforces it. Left
+   * out, the step is one done outside OneUptime.
+   */
+  addressBlocking?: ResponseAddressBlocking | undefined;
 }
 
 // ---------- OneUptime AI's suggested steps ----------
@@ -628,6 +651,8 @@ interface StepToAdd {
   isOutsideOneUptime?: boolean | undefined;
   copyValue?: string | undefined;
   action?: ResponseAction | undefined;
+  addressBlock?: ResponseAddressBlock | undefined;
+  isBlockHelpShown?: boolean | undefined;
   // The case says it is done: it is assigned, contained, a playbook ran.
   isDoneByCase?: boolean | undefined;
   /*
@@ -671,6 +696,147 @@ export function getContainmentSteps(
       step.key !== getResponseStepKey(RESPONSE_STEP_KINDS.incident)
     );
   });
+}
+
+/*
+ * The block step of a public address, where the plan knows the project's
+ * blocklist (#10342):
+ *
+ *   - a block on the Blocklist holds the address: the step draws it, with
+ *     where it is enforced and a Lift, and is done by the case once a
+ *     destination enforces it - never while nothing does;
+ *   - a destination enforces the blocklist: the step names where the block
+ *     would hold, and blocks the address in one click - Block for 24 Hours,
+ *     with the rest beside it - unless a block of it from the case is
+ *     waiting for approval or running;
+ *   - nothing does: the step is to block it where the address reaches the
+ *     app, with how to connect what would let OneUptime do it, and how to
+ *     do it by hand. Never "Outside OneUptime": OneUptime can do it once
+ *     a destination is connected.
+ */
+export function getBlockAddressStep(data: {
+  value: string;
+  blocking: ResponseAddressBlocking;
+}): StepToAdd {
+  const key: string = getResponseStepKey(RESPONSE_STEP_KINDS.blockIp, data.value);
+  const address: string = canonicalAddress(data.value) || data.value.trim();
+  const read: SecurityBlockValue | null = readSecurityBlockValue(address);
+  const block: ResponseAddressBlock | null = read
+    ? findCoveringSecurityBlock(read, data.blocking.blocks)
+    : null;
+  const destinations: Array<string> = data.blocking.destinations;
+  const text: ResponseText =
+    destinations.length > 0
+      ? {
+          template: STEP_BLOCK_AT_DESTINATIONS,
+          values: { value: data.value },
+          lists: { destinations },
+        }
+      : { template: STEP_BLOCK_PUBLIC_IP, values: { value: data.value } };
+
+  if (block) {
+    return {
+      key,
+      phase: ResponsePhase.Contain,
+      text,
+      addressBlock: block,
+      // Done once a destination holds it: a block nothing enforces blocks nothing.
+      isDoneByCase: block.enforcedAt.length > 0,
+    };
+  }
+
+  if (destinations.length === 0) {
+    return {
+      key,
+      phase: ResponsePhase.Contain,
+      text,
+      copyValue: data.value,
+      isBlockHelpShown: true,
+    };
+  }
+
+  const runState: ResponsePlaybookRunState | undefined =
+    data.blocking.runStates?.[address];
+
+  return {
+    key,
+    phase: ResponsePhase.Contain,
+    text,
+    ...(runState === ResponsePlaybookRunState.Waiting
+      ? { detail: { template: STEP_BLOCK_WAITING, values: {} } }
+      : runState === ResponsePlaybookRunState.Running
+        ? { detail: { template: STEP_BLOCK_RUNNING, values: {} } }
+        : runState === ResponsePlaybookRunState.Failed
+          ? {
+              detail: { template: STEP_BLOCK_FAILED, values: {} },
+              isDetailWarning: true,
+            }
+          : {}),
+    action:
+      runState === ResponsePlaybookRunState.Waiting ||
+      runState === ResponsePlaybookRunState.Running
+        ? undefined
+        : {
+            kind: ResponseActionKind.BlockAddress,
+            title: ACTION_BLOCK_FOR_A_DAY,
+            entity: { type: SecurityEntityType.IpAddress, value: address },
+          },
+  };
+}
+
+/*
+ * Where each one-step block of an address from the case stands (#10342),
+ * by address, newest first: waiting for approval, still running, or
+ * failed. A block that was made is on the Blocklist, which says the rest;
+ * a cancelled or rejected one leaves the address as if never asked.
+ */
+export function readAddressBlockRuns(
+  runs: Array<{
+    securityPlaybookId?: unknown;
+    status: string;
+    steps?: unknown;
+    stepResults?: unknown;
+  }>,
+): Record<string, ResponsePlaybookRunState> {
+  const states: Record<string, ResponsePlaybookRunState> = {};
+  // The addresses whose newest run is read: an older run of one says nothing.
+  const seen: Set<string> = new Set<string>();
+
+  for (const run of runs) {
+    const read: OneStepRunRead | null = readOneStepRun(run);
+
+    if (!read || read.action !== SecurityPlaybookActionType.BlockAddress) {
+      continue;
+    }
+
+    for (const value of read.values) {
+      const address: string | null = canonicalAddress(value);
+
+      if (!address || seen.has(address)) {
+        continue;
+      }
+
+      seen.add(address);
+
+      switch (run.status) {
+        case SecurityPlaybookRunStatus.WaitingForApproval:
+          states[address] = ResponsePlaybookRunState.Waiting;
+          break;
+        case SecurityPlaybookRunStatus.Queued:
+        case SecurityPlaybookRunStatus.Running:
+          states[address] = ResponsePlaybookRunState.Running;
+          break;
+        case SecurityPlaybookRunStatus.Failed:
+          states[address] = ResponsePlaybookRunState.Failed;
+          break;
+        default:
+          // Done, cancelled or rejected: the Blocklist says the rest.
+          break;
+      }
+    }
+  }
+
+  return states;
 }
 
 export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
@@ -782,6 +948,8 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
       quotes: step.quotes || [],
       isOutsideOneUptime: step.isOutsideOneUptime === true,
       copyValue: step.copyValue,
+      ...(step.addressBlock ? { addressBlock: step.addressBlock } : {}),
+      ...(step.isBlockHelpShown ? { isBlockHelpShown: true } : {}),
       /*
        * A closed case is done with: nothing more to press. Nor is a step the
        * case did, or one OneUptime verified - but one it found not needed
@@ -970,6 +1138,16 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
       case SecurityEntityType.IpAddress: {
         const isPublic: boolean =
           getSecurityAddressScope(entity.value) === SecurityAddressScope.Public;
+
+        if (isPublic && input.addressBlocking) {
+          add(
+            getBlockAddressStep({
+              value: entity.value,
+              blocking: input.addressBlocking,
+            }),
+          );
+          break;
+        }
 
         add({
           key: getResponseStepKey(

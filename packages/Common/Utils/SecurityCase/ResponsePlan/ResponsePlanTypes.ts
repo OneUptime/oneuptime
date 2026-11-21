@@ -1,4 +1,8 @@
 import { ResponseLink } from "../../../Types/SecurityCase/SecurityCaseResponseLink";
+import {
+  SecurityBlockAction,
+  SecurityBlockSource,
+} from "../../../Types/SecurityBlocklist/SecurityBlock";
 import { SecurityEntity } from "../../../Types/SecurityCase/SecurityEntity";
 import { SecurityCaseStepCheckEvidence } from "../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
 import SecurityCaseStepCheckState from "../../../Types/SecurityCase/SecurityCaseStepCheckState";
@@ -36,6 +40,11 @@ export enum ResponseActionKind {
   CloseCase = "CloseCase",
   // Opens what the action's link says: the traces, the events.
   OpenRoute = "OpenRoute",
+  /*
+   * Blocks the step's address in one click (#10342): for 24 hours, or as
+   * the menu beside it says - challenged, for 7 days, until lifted.
+   */
+  BlockAddress = "BlockAddress",
 }
 
 export interface ResponseAction {
@@ -67,6 +76,54 @@ export interface ResponseText {
   // Figures, written in the reader's digits where the sentence is drawn.
   numbers?: Record<string, number> | undefined;
   count?: number | undefined;
+  /*
+   * Names listed in the sentence, joined where it is drawn as the reader's
+   * language lists them: "Cloudflare, AWS WAF" (#10342).
+   */
+  lists?: Record<string, Array<string>> | undefined;
+}
+
+/*
+ * A block on the project's Blocklist that holds one of the case's addresses
+ * (#10342): what it does, until when, who made it, and where it is
+ * enforced - which the block step reads to say it is done, and the card
+ * draws with a Lift.
+ */
+export interface ResponseAddressBlock {
+  id: string;
+  // As blocks are written: the address, or a range that holds it.
+  value: string;
+  action: SecurityBlockAction;
+  createdAt?: Date | undefined;
+  // When it ends; null when it stays until someone lifts it.
+  expiresAt: Date | null;
+  // Who made it: a person's name, or what did.
+  createdByName?: string | undefined;
+  source?: SecurityBlockSource | undefined;
+  // The destinations that hold it now, by name, and since when the first did.
+  enforcedAt: Array<string>;
+  enforcedSince?: Date | undefined;
+  // The destinations asked to hold it that have not yet.
+  pendingAt: Array<string>;
+  // The destinations that turned it down, and why.
+  notAppliedAt: Array<{ name: string; reason: string | null }>;
+}
+
+/*
+ * What the block step of an address reads besides the case (#10342): where
+ * the project's blocklist is enforced, the blocks that hold the case's
+ * addresses, and where a one-step block of an address from the case
+ * stands. Left out, the step is one done outside OneUptime, as every
+ * reader of the plan read it before the blocklist: the server's checks,
+ * OneUptime AI and the mobile app.
+ */
+export interface ResponseAddressBlocking {
+  // The destinations that enforce the project's blocklist, by name: none when nothing does.
+  destinations: Array<string>;
+  // The project's active blocks that hold any of the case's addresses.
+  blocks: Array<ResponseAddressBlock>;
+  // Where a one-step block of an address stands, by address: waiting for approval, running, failed.
+  runStates?: Record<string, ResponsePlaybookRunState> | undefined;
 }
 
 /*
@@ -101,6 +158,16 @@ export interface ResponseStep {
   quotes: Array<string>;
   // Done outside OneUptime: OneUptime has no way to do it.
   isOutsideOneUptime: boolean;
+  /*
+   * The block on the Blocklist that holds the step's address (#10342),
+   * drawn with where it is enforced, until when, and a Lift.
+   */
+  addressBlock?: ResponseAddressBlock | undefined;
+  /*
+   * Nothing enforces the project's blocklist (#10342): the step says how to
+   * connect what would, and folds how to block the address by hand.
+   */
+  isBlockHelpShown?: boolean | undefined;
   // The value it acts on by hand (an address to block), copied with a click.
   copyValue?: string | undefined;
   action?: ResponseAction | undefined;
