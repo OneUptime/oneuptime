@@ -121,6 +121,11 @@ export const SECURITY_TELEMETRY_SIGNAL_ATTACK: Record<
     tactics: ["TA0040"],
     techniques: ["T1485"],
   },
+  // OneUptime's own bookkeeping stands for no attack, as an API key's delete.
+  [SecurityTelemetrySignal.OneUptimeMassDelete]: {
+    tactics: [],
+    techniques: [],
+  },
   [SecurityTelemetrySignal.UserInTwoCountries]: {
     tactics: ["TA0001"],
     techniques: ["T1078"],

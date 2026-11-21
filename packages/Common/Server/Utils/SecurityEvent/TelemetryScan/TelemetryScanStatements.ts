@@ -290,7 +290,7 @@ export function buildAuditRecordsStatement(
     offset: number;
   },
 ): Statement {
-  const statement: Statement = SQL`SELECT _id, createdAt, resourceType, resourceId, resourceName, action, userId, userName, userEmail, userType, apiKeyId, apiKeyName, mcpClientName, workflowName FROM `;
+  const statement: Statement = SQL`SELECT _id, createdAt, resourceType, resourceId, resourceName, action, userId, userName, userEmail, userType, apiKeyId, apiKeyName, mcpClientName, workflowId, workflowName, workflowRunAs, workflowRunAsCustomRoleName, workflowRunAsGiverApiKeyId, workflowRunAsGiverName FROM `;
   statement.append(tableOf(AnalyticsTableName.AuditLog));
   statement.append(
     SQL` WHERE projectId = ${{
@@ -318,14 +318,23 @@ export function buildAuditRecordsStatement(
   return statement;
 }
 
-// One row per actor that deleted at least `minDeletes` records in the window.
+/*
+ * One row per actor that deleted at least `minDeletes` records in the
+ * window. An actor is its kind and its id (#10430): a person (userId), a
+ * project API key (apiKeyId), one of the project's workflows (workflowId)
+ * or OneUptime itself (userType System, no id). Summed by userId and
+ * apiKeyId alone, every workflow's deletes and OneUptime's own fell into
+ * one group with no id, and two workflows deleting 15 records each read as
+ * one actor deleting 30. A workflow is named as the latest of its entries
+ * in the window name it, with what it ran as.
+ */
 export function buildMassDeleteStatement(
   data: Omit<TelemetryScanWindow, "happenedAfter"> & {
     minDeletes: number;
     limit: number;
   },
 ): Statement {
-  const statement: Statement = SQL`SELECT toString(userId) AS actorUserId, any(userName) AS actorUserName, any(userEmail) AS actorUserEmail, any(userType) AS actorUserType, toString(apiKeyId) AS actorApiKeyId, any(apiKeyName) AS actorApiKeyName, count() AS deletes, groupUniqArray(5)(resourceType) AS sampleResourceTypes, min(createdAt) AS firstAt, max(createdAt) AS lastAt FROM `;
+  const statement: Statement = SQL`SELECT ifNull(userType, '') AS actorUserType, toString(userId) AS actorUserId, any(userName) AS actorUserName, any(userEmail) AS actorUserEmail, toString(apiKeyId) AS actorApiKeyId, any(apiKeyName) AS actorApiKeyName, toString(workflowId) AS actorWorkflowId, argMax(ifNull(workflowName, ''), createdAt) AS actorWorkflowName, argMax(ifNull(workflowRunAs, ''), createdAt) AS actorWorkflowRunAs, argMax(ifNull(workflowRunAsCustomRoleName, ''), createdAt) AS actorWorkflowRunAsRole, argMax(ifNull(workflowRunAsGiverName, ''), createdAt) AS actorWorkflowRunAsGivenBy, argMax(ifNull(toString(workflowRunAsGiverApiKeyId), ''), createdAt) AS actorWorkflowRunAsGiverApiKeyId, count() AS deletes, groupUniqArray(5)(resourceType) AS sampleResourceTypes, min(createdAt) AS firstAt, max(createdAt) AS lastAt FROM `;
   statement.append(tableOf(AnalyticsTableName.AuditLog));
   statement.append(
     SQL` WHERE projectId = ${{
@@ -340,7 +349,7 @@ export function buildMassDeleteStatement(
     }} AND action = ${{
       type: TableColumnType.Text,
       value: AuditLogAction.Delete,
-    }} AND retentionDate >= now() GROUP BY userId, apiKeyId HAVING deletes >= ${{
+    }} AND retentionDate >= now() GROUP BY userType, userId, apiKeyId, workflowId HAVING deletes >= ${{
       type: TableColumnType.Number,
       value: Math.max(1, Math.trunc(data.minDeletes)),
     }} ORDER BY deletes DESC LIMIT ${{

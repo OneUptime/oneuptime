@@ -54,7 +54,14 @@ export function toAuditScanRecord(row: JSONObject): AuditScanRecord {
     apiKeyId: readRowText(row["apiKeyId"]),
     apiKeyName: readRowText(row["apiKeyName"]),
     mcpClientName: readRowText(row["mcpClientName"]),
+    workflowId: readRowText(row["workflowId"]),
     workflowName: readRowText(row["workflowName"]),
+    workflowRunAs: readRowText(row["workflowRunAs"]),
+    workflowRunAsCustomRoleName: readRowText(
+      row["workflowRunAsCustomRoleName"],
+    ),
+    workflowRunAsGiverName: readRowText(row["workflowRunAsGiverName"]),
+    workflowRunAsGiverApiKeyId: readRowText(row["workflowRunAsGiverApiKeyId"]),
   };
 }
 
@@ -66,6 +73,16 @@ export function toMassDeleteRow(row: JSONObject): MassDeleteRow {
     userType: readRowText(row["actorUserType"]),
     apiKeyId: readRowText(row["actorApiKeyId"]),
     apiKeyName: readRowText(row["actorApiKeyName"]),
+    // The deletes are summed per actor, never per client (MCP clients act as their member).
+    mcpClientName: "",
+    workflowId: readRowText(row["actorWorkflowId"]),
+    workflowName: readRowText(row["actorWorkflowName"]),
+    workflowRunAs: readRowText(row["actorWorkflowRunAs"]),
+    workflowRunAsCustomRoleName: readRowText(row["actorWorkflowRunAsRole"]),
+    workflowRunAsGiverName: readRowText(row["actorWorkflowRunAsGivenBy"]),
+    workflowRunAsGiverApiKeyId: readRowText(
+      row["actorWorkflowRunAsGiverApiKeyId"],
+    ),
     deletes: readRowNumber(row["deletes"]),
     sampleResourceTypes: readRowTextArray(row["sampleResourceTypes"]),
     firstAt: readRowDate(row["firstAt"]) || new Date(0),
