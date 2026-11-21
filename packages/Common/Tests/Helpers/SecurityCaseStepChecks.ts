@@ -1,4 +1,13 @@
+import { AccountFixReading } from "../../Server/Utils/SecurityCase/StepChecks/Evidence/AccountFixState";
 import { AddressBlockEvidence } from "../../Server/Utils/SecurityCase/StepChecks/Evidence/AddressBlocks";
+import { FixChangesReading } from "../../Server/Utils/SecurityCase/StepChecks/Evidence/FixChanges";
+import {
+  EMPTY_ROUTE_ATTACK_COUNTS,
+  RouteAttackCounts,
+  RouteAttacksReading,
+} from "../../Server/Utils/SecurityCase/StepChecks/Evidence/RouteAttacks";
+import SecurityEventRequestOutcome from "../../Types/SecurityEvent/SecurityEventRequestOutcome";
+import { RouteAttackScope } from "../../Utils/SecurityCase/RouteAttackScope";
 import { AddressFactsReading } from "../../Server/Utils/SecurityCase/StepChecks/Evidence/AddressFacts";
 import {
   AddressCoverage,
@@ -172,6 +181,184 @@ export const SEES_ADDRESSES: AddressCoverageReading = {
   addressCount: 1,
 };
 
+/*
+ * One attack request to a route, as the security events the app's logs and
+ * traces raised for it say (#10347): when it came, how far it got, and
+ * whether the edge stopped it before the app saw it.
+ */
+export interface AttackRequest {
+  // Minutes after the case's first detection.
+  minute: number;
+  // How far it got; "" when it could not be followed.
+  outcome: SecurityEventRequestOutcome | "";
+  // Stopped at the edge (a Cloudflare block or challenge): it never reached the app.
+  isEdge?: boolean | undefined;
+  traceId?: string | undefined;
+}
+
+export function attacks(
+  count: number,
+  from: Omit<AttackRequest, "minute"> & { minute: number; everyMinutes?: number },
+): Array<AttackRequest> {
+  const made: Array<AttackRequest> = [];
+
+  for (let index: number = 0; index < count; index++) {
+    made.push({
+      minute: from.minute + index * (from.everyMinutes ?? 1),
+      outcome: from.outcome,
+      isEdge: from.isEdge,
+      traceId: from.traceId ? `${from.traceId}-${index}` : undefined,
+    });
+  }
+
+  return made;
+}
+
+const OUTCOME_RANKS: Record<string, number> = {
+  [SecurityEventRequestOutcome.Rejected]: 1,
+  [SecurityEventRequestOutcome.ReachedApp]: 2,
+  [SecurityEventRequestOutcome.Errored]: 3,
+  [SecurityEventRequestOutcome.ReachedDatabase]: 4,
+};
+
+function countAttacks(
+  list: Array<AttackRequest & { at: Date; rank: number }>,
+): RouteAttackCounts {
+  if (list.length === 0) {
+    return { ...EMPTY_ROUTE_ATTACK_COUNTS };
+  }
+
+  const ofRank: (rank: number) => number = (rank: number): number => {
+    return list.filter((request: { rank: number }): boolean => {
+      return request.rank === rank;
+    }).length;
+  };
+
+  return {
+    requests: list.length,
+    unknown: ofRank(0),
+    rejected: ofRank(1),
+    reachedApp: ofRank(2),
+    errored: ofRank(3),
+    reachedDatabase: ofRank(4),
+    firstAt: list[0]!.at,
+    lastAt: list[list.length - 1]!.at,
+  };
+}
+
+/*
+ * What RouteAttacks reads of these attacks over [start, end], with the
+ * same counts its statement makes: before `splitAt` (strictly), from
+ * `settledAt` on, the furthest a request got as its rank, and what the
+ * edge stopped counted apart from `splitAt` on.
+ */
+export function readAttacks(data: {
+  attacks: Array<AttackRequest>;
+  scope: RouteAttackScope;
+  start: Date;
+  end: Date;
+  splitAt: Date | null;
+  settledAt: Date | null;
+}): RouteAttacksReading {
+  const inWindow: Array<AttackRequest & { at: Date; rank: number }> =
+    data.attacks
+      .map(
+        (
+          request: AttackRequest,
+        ): AttackRequest & { at: Date; rank: number } => {
+          return {
+            ...request,
+            at: at(request.minute),
+            rank: OUTCOME_RANKS[request.outcome] || 0,
+          };
+        },
+      )
+      .filter((request: { at: Date }): boolean => {
+        return (
+          request.at.getTime() >= data.start.getTime() &&
+          request.at.getTime() <= data.end.getTime()
+        );
+      })
+      .sort((left: { at: Date }, right: { at: Date }): number => {
+        return left.at.getTime() - right.at.getTime();
+      });
+  const split: number = (data.splitAt || data.end).getTime();
+  const settled: number = (data.settledAt || data.end).getTime();
+  const app: Array<AttackRequest & { at: Date; rank: number }> =
+    inWindow.filter((request: AttackRequest): boolean => {
+      return !request.isEdge;
+    });
+  const before: Array<AttackRequest & { at: Date; rank: number }> = app.filter(
+    (request: { at: Date }): boolean => {
+      return request.at.getTime() < split;
+    },
+  );
+  const after: Array<AttackRequest & { at: Date; rank: number }> = app.filter(
+    (request: { at: Date }): boolean => {
+      return request.at.getTime() >= settled;
+    },
+  );
+  const latest: (
+    list: Array<{ at: Date; rank: number }>,
+    rank: number,
+  ) => Date | null = (
+    list: Array<{ at: Date; rank: number }>,
+    rank: number,
+  ): Date | null => {
+    const found: Array<{ at: Date; rank: number }> = list.filter(
+      (request: { rank: number }): boolean => {
+        return request.rank >= rank;
+      },
+    );
+
+    return found[found.length - 1]?.at || null;
+  };
+  const earliest: (
+    list: Array<{ at: Date; rank: number }>,
+    rank: number,
+  ) => Date | null = (
+    list: Array<{ at: Date; rank: number }>,
+    rank: number,
+  ): Date | null => {
+    return (
+      list.find((request: { rank: number }): boolean => {
+        return request.rank >= rank;
+      })?.at || null
+    );
+  };
+
+  return {
+    scope: data.scope,
+    windowStart: data.start,
+    windowEnd: data.end,
+    splitAt: data.splitAt,
+    settledAt: data.settledAt,
+    before: countAttacks(before),
+    after: countAttacks(after),
+    all: countAttacks(app),
+    lastThroughAt: latest(app, 2),
+    lastHarmAt: latest(app, 3),
+    firstThroughAfterAt: earliest(after, 2),
+    firstHarmAfterAt: earliest(after, 3),
+    throughAfterTraceIds: Array.from(
+      new Set(
+        after
+          .filter((request: AttackRequest & { rank: number }): boolean => {
+            return request.rank >= 2 && Boolean(request.traceId);
+          })
+          .map((request: AttackRequest): string => {
+            return request.traceId!;
+          }),
+      ),
+    ).slice(0, 20),
+    edgeStoppedAfter: inWindow.filter(
+      (request: AttackRequest & { at: Date }): boolean => {
+        return Boolean(request.isEdge) && request.at.getTime() >= split;
+      },
+    ).length,
+  };
+}
+
 // What each reader answers; a reader left out answers nothing, one named in `failing` throws.
 export interface FakeEvidence {
   appRequests?: Array<AppRequest>;
@@ -181,6 +368,13 @@ export interface FakeEvidence {
   hostState?: ContainmentStateReading;
   monitors?: MonitorsDownReading;
   facts?: AddressFactsReading;
+  // The attack requests to the case's route (#10347).
+  attacks?: Array<AttackRequest>;
+  // What shipped since the case opened: its fixes and its services' deploys.
+  fixChanges?: Partial<FixChangesReading>;
+  credentials?: AccountFixReading;
+  // Each account's MFA, by its name.
+  mfa?: Record<string, AccountFixReading>;
   failing?: Array<keyof StepCheckEvidence>;
 }
 
@@ -258,6 +452,41 @@ export function fakeEvidence(fake: FakeEvidence = {}): RecordingEvidence {
         }
       );
     },
+    readRouteAttacks: async (asked: {
+      scope: RouteAttackScope;
+      start: Date;
+      end: Date;
+      splitAt: Date | null;
+      settledAt: Date | null;
+    }): Promise<RouteAttacksReading> => {
+      read("readRouteAttacks", asked);
+      return readAttacks({ ...asked, attacks: fake.attacks || [] });
+    },
+    readFixChanges: async (asked: {
+      serviceIds: Array<string>;
+      since: Date;
+    }): Promise<FixChangesReading> => {
+      read("readFixChanges", asked);
+      return {
+        pullRequests: fake.fixChanges?.pullRequests || [],
+        deploys: fake.fixChanges?.deploys || [],
+        hasDeployData:
+          fake.fixChanges?.hasDeployData ??
+          (fake.fixChanges?.deploys || []).length > 0,
+        serviceNames: fake.fixChanges?.serviceNames || {},
+      };
+    },
+    readAccountCredentials: async (asked: {
+      user: string;
+      since: Date;
+    }): Promise<AccountFixReading> => {
+      read("readAccountCredentials", asked);
+      return fake.credentials || { answers: [] };
+    },
+    readAccountMfa: async (user: string): Promise<AccountFixReading> => {
+      read("readAccountMfa", user);
+      return fake.mfa?.[user] || { answers: [] };
+    },
   };
 
   return { evidence, reads };
@@ -289,13 +518,22 @@ export function stepCheckCase(
 }
 
 // A step of the plan, as the builder writes it, about `value`.
-export function planStep(key: string, value: string = ""): ResponseStep {
+export function planStep(
+  key: string,
+  value: string = "",
+  values: Record<string, string> = {},
+): ResponseStep {
   return {
     key,
     phase: key.startsWith("contain:")
       ? ResponsePhase.Contain
-      : ResponsePhase.Confirm,
-    text: { template: "Step", values: value ? { value } : {} },
+      : key.startsWith("fix:")
+        ? ResponsePhase.Fix
+        : ResponsePhase.Confirm,
+    text: {
+      template: "Step",
+      values: { ...(value ? { value } : {}), ...values },
+    },
     quotes: [],
     isOutsideOneUptime: false,
     completion: ResponseStepCompletion.ByTask,

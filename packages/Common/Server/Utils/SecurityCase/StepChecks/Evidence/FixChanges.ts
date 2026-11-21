@@ -223,13 +223,17 @@ export default class FixChanges {
         limit: FIX_CHANGES_MAX_PULL_REQUESTS,
         props: { isRoot: true },
       }),
+      /*
+       * The latest deploys, so a busy service's newest one - the fix, maybe
+       * - is never left out of the read; the oldest are then put first.
+       */
       serviceIds.length > 0
         ? FixChanges.readDeploys({
             projectId: data.projectId,
             serviceIds,
             start: data.since,
             end: data.now,
-            sort: SortOrder.Ascending,
+            sort: SortOrder.Descending,
             limit: FIX_CHANGES_MAX_DEPLOYS,
           })
         : Promise.resolve([]),

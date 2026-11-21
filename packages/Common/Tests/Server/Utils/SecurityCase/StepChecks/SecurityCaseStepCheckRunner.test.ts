@@ -673,6 +673,7 @@ describe("the every-minute run over the due cases", () => {
 
   test("the idle moment of a case with nothing due is half an hour on (control)", () => {
     expect(SECURITY_CASE_STEP_CHECK_IDLE_MINUTES).toBe(30);
-    expect(STEP_CHECKS.length).toBe(6);
+    // #10340's six, and #10347's three Fix steps.
+    expect(STEP_CHECKS.length).toBe(9);
   });
 });
