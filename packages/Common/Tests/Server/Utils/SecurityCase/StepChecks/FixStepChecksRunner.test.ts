@@ -40,6 +40,7 @@ import {
   CHECK_FIX_CANNOT_NO_DEPLOYS,
   CHECK_FIX_ROUTE_NO_ATTEMPTS,
   CHECK_FIX_ROUTE_STILL_DATABASE,
+  CHECK_FIX_ROUTE_STILL_THROUGH,
   CHECK_FIX_ROUTE_TURNED_AWAY,
 } from "../../../../../Utils/SecurityCase/ResponsePlan/StepCheckWords";
 import { WEB_ATTACK_KIND_ATTRIBUTE } from "../../../../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
@@ -368,6 +369,42 @@ describe("attack requests before and after a deploy, through the real pipeline",
       template: CHECK_FIX_ROUTE_STILL_DATABASE,
       numbers: { through: 3 },
       count: 3,
+    });
+  });
+
+  test("still reaching the app after it, where before it got no further: not fixed, and says so", async () => {
+    await run({
+      minute: 300,
+      evidence: {
+        attacks: [
+          ...attacks(18, {
+            minute: 0,
+            outcome: SecurityEventRequestOutcome.Rejected,
+          }),
+          ...attacks(6, {
+            minute: 18,
+            outcome: SecurityEventRequestOutcome.ReachedApp,
+          }),
+          ...attacks(4, {
+            minute: 130,
+            outcome: SecurityEventRequestOutcome.Rejected,
+          }),
+          ...attacks(2, {
+            minute: 140,
+            outcome: SecurityEventRequestOutcome.ReachedApp,
+          }),
+        ],
+        fixChanges: { deploys: [DEPLOY] },
+      },
+    });
+
+    expect(fixRow()?.state).toBe(SecurityCaseStepCheckState.NotDone);
+    expect(sentenceOf(fixRow())).toEqual({
+      template: CHECK_FIX_ROUTE_STILL_THROUGH,
+      values: { route: ROUTE, change: "v2.4.1" },
+      numbers: { through: 2 },
+      times: { time: at(60).toISOString() },
+      count: 6,
     });
   });
 

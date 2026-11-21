@@ -903,6 +903,46 @@ describe("nothing shipped yet", () => {
     ]);
   });
 
+  test("a merged pull request where OneUptime records no deploys of the service: it cannot tell whether the fix shipped", async () => {
+    const result: StepCheckResult = await checked({
+      minute: 300,
+      evidence: {
+        attacks: BEFORE,
+        fixChanges: {
+          pullRequests: [
+            pullRequest({ state: PullRequestState.Merged, mergedAt: at(40) }),
+          ],
+          deploys: [],
+          hasDeployData: false,
+        },
+      },
+    });
+
+    // Never "Not Done Yet" for a fix that may well have shipped unseen.
+    expect(result.state).toBe(SecurityCaseStepCheckState.CannotTell);
+    expect(result.evidence.sentence).toEqual({
+      template: CHECK_FIX_CANNOT_NO_DEPLOYS,
+      values: { service: "search-api" },
+    });
+    expect(result.evidence.facts).toEqual([
+      {
+        template: CHECK_FIX_PULL_REQUEST_NOT_SHIPPED,
+        values: { pullRequest: "#123" },
+        times: { time: at(40).toISOString() },
+      },
+    ]);
+    expect(result.evidence.links).toEqual([
+      {
+        kind: ResponseLinkKind.OpenProvider,
+        provider: "GitHub",
+        url: "https://github.com/acme/search/pull/123",
+      },
+    ]);
+    expect(result.evidence.docsPath).toBe(
+      "/telemetry/security-cases#how-oneuptime-checks-a-step",
+    );
+  });
+
   test("OneUptime AI's fix waiting for review", async () => {
     const result: StepCheckResult = await checked({
       minute: 300,

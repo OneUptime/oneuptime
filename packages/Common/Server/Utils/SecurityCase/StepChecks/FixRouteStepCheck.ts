@@ -400,23 +400,21 @@ export function decideNothingShipped(data: {
   );
   const serviceId: string = data.scope.serviceIds[0] || "";
   const service: string = data.changes.serviceNames[serviceId] || serviceId;
-
-  if (merged) {
-    return {
-      state: SecurityCaseStepCheckState.NotDone,
-      evidence: evidenceOf({
-        sentence: sentence(
+  // A fix merged and not seen deploying: said beside why OneUptime cannot tell.
+  const mergedFacts: Array<SecurityCaseStepCheckSentence> = merged
+    ? [
+        sentence(
           CHECK_FIX_PULL_REQUEST_NOT_SHIPPED,
           { pullRequest: getPullRequestLabel(merged) },
           { times: { time: merged.mergedAt } },
         ),
-        links: [pullRequestLink(merged)],
-        data: { route: data.scope.route, mergedAt: merged.mergedAt },
-      }),
-    };
-  }
+      ]
+    : [];
+  const mergedLinks: Array<ResponseLink | null> = merged
+    ? [pullRequestLink(merged)]
+    : [];
 
-  if (open) {
+  if (open && !merged) {
     return {
       state: SecurityCaseStepCheckState.NotDone,
       evidence: evidenceOf({
@@ -429,6 +427,10 @@ export function decideNothingShipped(data: {
     };
   }
 
+  /*
+   * Where OneUptime cannot see the service's deploys, a merged fix may well
+   * have shipped: it cannot tell, rather than say the fix is still to ship.
+   */
   if (!serviceId) {
     return {
       state: SecurityCaseStepCheckState.CannotTell,
@@ -436,6 +438,8 @@ export function decideNothingShipped(data: {
         sentence: sentence(CHECK_FIX_CANNOT_NO_SERVICE, {
           route: data.scope.route,
         }),
+        facts: mergedFacts,
+        links: mergedLinks,
         docsPath: STEP_CHECK_DOCS_PATH,
         data: { route: data.scope.route, reason: "NoService" },
       }),
@@ -447,8 +451,21 @@ export function decideNothingShipped(data: {
       state: SecurityCaseStepCheckState.CannotTell,
       evidence: evidenceOf({
         sentence: sentence(CHECK_FIX_CANNOT_NO_DEPLOYS, { service }),
+        facts: mergedFacts,
+        links: mergedLinks,
         docsPath: STEP_CHECK_DOCS_PATH,
         data: { route: data.scope.route, reason: "NoDeploys" },
+      }),
+    };
+  }
+
+  if (merged) {
+    return {
+      state: SecurityCaseStepCheckState.NotDone,
+      evidence: evidenceOf({
+        sentence: mergedFacts[0]!,
+        links: mergedLinks,
+        data: { route: data.scope.route, mergedAt: merged.mergedAt },
       }),
     };
   }
