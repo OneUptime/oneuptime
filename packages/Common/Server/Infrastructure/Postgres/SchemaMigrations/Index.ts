@@ -1137,6 +1137,14 @@ import { AddProjectAmazonSesIamRole1809187142000 } from "./1809187142000-AddProj
 import { AddSecurityBlocklist1809187150000 } from "./1809187150000-AddSecurityBlocklist";
 import { AddDataSecurityAiRules1809187364000 } from "./1809187364000-AddDataSecurityAiRules";
 import { AddAIRunDataSecurityIssueIndex1809187364100 } from "./1809187364100-AddAIRunDataSecurityIssueIndex";
+import { AddProjectSecurityTrustedProxies1809187364416 } from "./1809187364416-AddProjectSecurityTrustedProxies";
+import { AddCloudAppPlatformCloudResource1809187383700 } from "./1809187383700-AddCloudAppPlatformCloudResource";
+import { AddCloudAppPlatformCloudResourceIndexAndKey1809187383710 } from "./1809187383710-AddCloudAppPlatformCloudResourceIndexAndKey";
+import { AddSecurityCaseStepChecks1809187390000 } from "./1809187390000-AddSecurityCaseStepChecks";
+import { AddSecurityCaseNextStepCheckIndex1809187390010 } from "./1809187390010-AddSecurityCaseNextStepCheckIndex";
+import { AddRecordCreatedByAndLastModifiedColumns1809187400000 } from "./1809187400000-AddRecordCreatedByAndLastModifiedColumns";
+import { AddDetectionRunMarksAndFiringKeys1809187421130 } from "./1809187421130-AddDetectionRunMarksAndFiringKeys";
+import { AddDetectionRuleLastFailedAt1809187421140 } from "./1809187421140-AddDetectionRuleLastFailedAt";
 
 export default [
   InitialMigration,
@@ -2278,4 +2286,12 @@ export default [
   AddSecurityBlocklist1809187150000,
   AddDataSecurityAiRules1809187364000,
   AddAIRunDataSecurityIssueIndex1809187364100,
+  AddProjectSecurityTrustedProxies1809187364416,
+  AddCloudAppPlatformCloudResource1809187383700,
+  AddCloudAppPlatformCloudResourceIndexAndKey1809187383710,
+  AddSecurityCaseStepChecks1809187390000,
+  AddSecurityCaseNextStepCheckIndex1809187390010,
+  AddRecordCreatedByAndLastModifiedColumns1809187400000,
+  AddDetectionRunMarksAndFiringKeys1809187421130,
+  AddDetectionRuleLastFailedAt1809187421140,
 ];

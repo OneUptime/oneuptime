@@ -22,6 +22,9 @@ import SecurityEventService, {
   DetectionArrivalWindow,
   isDetectionArrivalCandidate,
 } from "Common/Server/Services/SecurityEventService";
+import SecurityEventLateArrivalService from "Common/Server/Services/SecurityEventLateArrivalService";
+import SecurityEventLateArrival from "Common/Models/AnalyticsModels/SecurityEventLateArrival";
+import { SecurityEventLateArrivals } from "Common/Types/SecurityEvent/SecurityEventLateArrival";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import SecurityCaseIngest, {
@@ -33,7 +36,17 @@ import DetectionRuleEvaluator, {
   getArrivalEventTimeBounds,
 } from "Common/Server/Utils/SecurityEvent/DetectionRuleEvaluator";
 import SecurityEntityRiskRecorder from "Common/Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskRecorder";
-import SigmaClickhouseCompiler from "Common/Server/Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
+import { SecurityRiskFinding } from "Common/Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskFindings";
+import {
+  hasTakenFiring,
+  takeFiring,
+} from "Common/Types/SecurityCase/SecurityFiringKeys";
+import { SecurityEntityRiskContribution } from "Common/Types/SecurityCase/SecurityEntityRisk";
+import { addRiskObservation } from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
+import SigmaClickhouseCompiler, {
+  buildSigmaFieldExpression,
+  buildSigmaFieldHasValue,
+} from "Common/Server/Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
@@ -45,7 +58,44 @@ import {
 } from "Common/Types/SecurityEvent/DetectionFindingConstants";
 import { DetectionRuleDefinition } from "Common/Types/SecurityEvent/SigmaCorrelation";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import {
+  ClientAddressReading,
+  markClientAddressTrust,
+  resolveClientAddress,
+} from "Common/Utils/SecurityEvent/ClientAddressTrust";
 import SigmaRuleSetParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
+import SecurityHunt from "Common/Models/DatabaseModels/SecurityHunt";
+import SecurityHuntRun from "Common/Models/DatabaseModels/SecurityHuntRun";
+import DatabaseConfig from "Common/Server/DatabaseConfig";
+import ModelPermission from "Common/Server/Types/AnalyticsDatabase/ModelPermission";
+import AccessTokenService from "Common/Server/Services/AccessTokenService";
+import SecurityHuntRunService from "Common/Server/Services/SecurityHuntRunService";
+import SecurityHuntService from "Common/Server/Services/SecurityHuntService";
+import CallerPlan from "Common/Server/Utils/Billing/CallerPlan";
+import SecurityHuntNotifications, {
+  getHuntLinkInDashboard,
+} from "Common/Server/Utils/SecurityEvent/Hunts/SecurityHuntNotifications";
+import SecurityHuntScheduler, {
+  SecurityHuntRunOutcome,
+} from "Common/Server/Utils/SecurityEvent/Hunts/SecurityHuntScheduler";
+import OneUptimeURL from "Common/Types/API/URL";
+import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Query from "Common/Types/BaseDatabase/Query";
+import Permission from "Common/Types/Permission";
+import {
+  SECURITY_EVENT_ARRIVAL_QUERY_KEY,
+  SecurityEventArrivalRange,
+  readSecurityEventArrivalRangeFromSearch,
+  toSecurityEventArrivalQueryValue,
+} from "Common/Types/SecurityEvent/SecurityEventArrival";
+import {
+  SecurityHuntRunWindow,
+  SecurityHuntSchedule,
+  getSecurityHuntSearchStart,
+  securityHuntFiltersToMap,
+} from "Common/Types/SecurityEvent/SecurityHunt";
+import { buildSecurityEventSearchQuery } from "Common/Utils/SecurityEvent/SecurityEventSearch";
 import {
   afterAll,
   beforeAll,
@@ -124,6 +174,7 @@ const database: string = `detection_arrivals_test_${process.pid}_${Date.now()}`;
 const SECOND: number = 1000;
 const MINUTE: number = 60 * SECOND;
 const HOUR: number = 60 * MINUTE;
+const DAY: number = 24 * HOUR;
 
 // Every test's minute 0: on the hour, a day back, so a day of history fits after it.
 const BASE: Date = new Date(Math.floor(Date.now() / HOUR) * HOUR - 26 * HOUR);
@@ -216,6 +267,12 @@ interface ArrivingEvent {
   principalIp?: string | undefined;
   principalUser?: string | undefined;
   statusName?: string | undefined;
+  // The source it came from (#10491): its vendor and product, and the resource it is written under.
+  vendorName?: string | undefined;
+  productName?: string | undefined;
+  sourceId?: ObjectID | undefined;
+  // What the scan wrote of the request beside them: a scrub rule's marker (#10397).
+  attributes?: Record<string, string> | undefined;
 }
 
 interface StoredAlert {
@@ -246,6 +303,12 @@ class World {
   public readonly pending: Array<ArrivingEvent> = [];
   // Where each run said the rule got to, in order.
   public readonly cursorWrites: Array<Date> = [];
+  // Each stretch marked before it did what it found (#10489): where it starts, how far it judged.
+  public readonly marks: Array<{ from: Date; until: Date }> = [];
+  // The firings each open case's detection took, by fingerprint, as the case side keeps them.
+  public readonly takenFirings: Map<string, Array<string>> = new Map();
+  // What each run handed to entity risk.
+  public readonly riskFindings: Array<SecurityRiskFinding> = [];
   public turns: number = 0;
   // A worker that stops: the next findings write, or the next record of where a run got to, fails.
   public failNextFindingWrite: boolean = false;
@@ -309,15 +372,18 @@ type AnalyticsTableColumnLike = AnalyticsBaseModel["tableColumns"][number];
 function eventRow(event: ArrivingEvent): JSONObject {
   const attributes: Record<string, string> = {
     "oneuptime.log.id": `log-${event.uid}`,
+    ...(event.attributes || {}),
   };
 
   return {
     _id: ObjectID.generateTimeOrdered().toString(),
     projectId: world.projectId.toString(),
-    primaryEntityId: world.sourceId.toString(),
+    primaryEntityId: (event.sourceId || world.sourceId).toString(),
     primaryEntityType: ServiceType.OpenTelemetry,
     time: OneUptimeDate.toClickhouseDateTime64(event.time),
     createdAt: OneUptimeDate.toClickhouseDateTime(event.arrivesAt),
+    vendorName: event.vendorName ?? "",
+    productName: event.productName ?? "",
     eventUid: event.uid,
     classUid: 3002,
     className: "Authentication",
@@ -375,6 +441,8 @@ function addRule(options: {
   lastEvaluatedAt?: Date | undefined;
   shouldCreateAlert?: boolean | undefined;
   isRealTime?: boolean | undefined;
+  // The rule's Risk Points: none unless a test says (0 adds no risk).
+  riskScore?: number | undefined;
 }): DetectionRule {
   const rule: DetectionRule = new DetectionRule();
   rule._id = ObjectID.generate().toString();
@@ -390,7 +458,7 @@ function addRule(options: {
   rule.shouldCreateIncident = false;
   rule.shouldWriteDetectionFinding = true;
   rule.shouldCreateCase = true;
-  rule.riskScore = 0;
+  rule.riskScore = options.riskScore ?? 0;
 
   if (options.distinctCountField) {
     rule.distinctCountField = options.distinctCountField;
@@ -427,6 +495,8 @@ function copyOf(rule: DetectionRule): DetectionRule {
     "shouldCreateCase",
     "riskScore",
     "lastEvaluatedAt",
+    "evaluatingUntil",
+    "lastFailedAt",
     "lastMatchAt",
     "lastError",
   ]) {
@@ -516,6 +586,67 @@ function judgedAtMinute(rule: DetectionRule, uid: string): number {
   return (recorded.at.getTime() - BASE.getTime()) / MINUTE;
 }
 
+// The minute of the test's clock a moment is.
+function minuteOf(date: Date): number {
+  return (new Date(date).getTime() - BASE.getTime()) / MINUTE;
+}
+
+// The Detection Findings a rule wrote, as the table holds them: their eventUids.
+async function findingsOf(rule: DetectionRule): Promise<Array<string>> {
+  const result: { json: () => Promise<unknown> } = await client.query({
+    query: `SELECT eventUid FROM ${database}.${TABLE_NAME} WHERE projectId = {projectId:String} AND classUid = {classUid:Int32} AND ruleId = {ruleId:String} ORDER BY eventUid`,
+    query_params: {
+      projectId: world.projectId.toString(),
+      classUid: 2004,
+      ruleId: String(rule._id),
+    },
+    format: "JSONEachRow",
+  });
+
+  return ((await result.json()) as Array<{ eventUid: string }>).map(
+    (row: { eventUid: string }): string => {
+      return row.eventUid;
+    },
+  );
+}
+
+/*
+ * How many times the rule's findings counted toward an entity's risk, as
+ * the risk side counts them (addRiskObservation): a firing handed again
+ * counts once.
+ */
+function riskHitsOf(value: string): number {
+  let contributions: Array<SecurityEntityRiskContribution> = [];
+
+  for (const finding of world.riskFindings) {
+    if (
+      !finding.entities.some((entity: { value: string }): boolean => {
+        return entity.value === value;
+      })
+    ) {
+      continue;
+    }
+
+    contributions = addRiskObservation(
+      contributions,
+      {
+        sourceKey: finding.sourceKey,
+        source: finding.source,
+        sourceName: finding.sourceName,
+        severity: finding.severity,
+        points: finding.points,
+        seenAt: finding.seenAt,
+        mitreTactics: finding.mitreTactics,
+        mitreTechniques: finding.mitreTechniques,
+        ...(finding.firingKey ? { firingKey: finding.firingKey } : {}),
+      },
+      new Date(world.clock),
+    );
+  }
+
+  return contributions[0]?.hits || 0;
+}
+
 const SERVICE_METADATA: TelemetryServiceMetadata = {
   serviceName: "OneUptime Detections",
   primaryEntityId: ObjectID.generate(),
@@ -574,7 +705,13 @@ function installWorld(): void {
   jest
     .spyOn(DetectionRuleService, "updateOneById")
     .mockImplementation((async (args: { id: ObjectID; data: JSONObject }) => {
-      if (args.data["lastEvaluatedAt"] !== undefined) {
+      if (args.data["evaluatingUntil"]) {
+        // A stretch marked before it does what it found (#10489).
+        world.marks.push({
+          from: args.data["lastEvaluatedAt"] as Date,
+          until: args.data["evaluatingUntil"] as Date,
+        });
+      } else if (args.data["lastEvaluatedAt"] !== undefined) {
         if (world.failNextCursorWrite) {
           world.failNextCursorWrite = false;
           throw new Error("The worker stopped before it recorded the run.");
@@ -638,7 +775,11 @@ function installWorld(): void {
     .spyOn(SecurityConnections, "readEntityLinks")
     .mockResolvedValue([] as never);
 
-  // A case per fingerprint while it is open: a detection already in one repeats.
+  /*
+   * A case per fingerprint while it is open: a detection already in one
+   * repeats - unless its detection took that firing already (#10489), which
+   * the case side reads by the same helpers SecurityCaseIngest does.
+   */
   jest.spyOn(SecurityCaseIngest, "recordDetections").mockImplementation((async (
     signals: Array<SecurityDetectionSignal>,
   ) => {
@@ -650,7 +791,19 @@ function installWorld(): void {
 
     for (const signal of signals) {
       const repeat: boolean = world.openCases.has(signal.fingerprint);
+      const taken: Array<string> =
+        world.takenFirings.get(signal.fingerprint) || [];
 
+      if (repeat && hasTakenFiring(taken, signal.firingKey)) {
+        result.detectionsAlreadyTaken =
+          (result.detectionsAlreadyTaken || 0) + 1;
+        continue;
+      }
+
+      world.takenFirings.set(
+        signal.fingerprint,
+        takeFiring(taken, signal.firingKey),
+      );
       world.recorded.push({ signal, at: new Date(world.clock), repeat });
 
       if (repeat) {
@@ -666,10 +819,16 @@ function installWorld(): void {
     return result;
   }) as never);
 
-  jest.spyOn(SecurityEntityRiskRecorder, "record").mockResolvedValue({
-    entitiesUpdated: 0,
-    riskCasesRaised: 0,
-  } as never);
+  jest.spyOn(SecurityEntityRiskRecorder, "record").mockImplementation((async (
+    findings: Array<SecurityRiskFinding>,
+  ) => {
+    world.riskFindings.push(...findings);
+
+    return {
+      entitiesUpdated: 0,
+      riskCasesRaised: 0,
+    };
+  }) as never);
 
   jest
     .spyOn(DetectionRuleExceptionService, "findAllBy")
@@ -1249,6 +1408,348 @@ integration("a scheduled rule judges every event once (#10337)", () => {
     });
   });
 
+  /*
+   * A rule that counts per value leaves out the events with no value for
+   * its group field (#10415): once a scrub rule hid addresses, every failed
+   * sign-in of the app counted as one "IP address" and fired Brute force
+   * from one IP address, with nothing to block. A rule that fires on each
+   * event keeps firing for them.
+   */
+  describe("events with no value for the field a rule counts by (#10415)", () => {
+    // An SSH sign-in a scrub rule hid the address of (#10485), as the log scan stores it.
+    const HIDDEN: Record<string, string> = {
+      "oneuptime.request.client_address_hidden": "scrub-rule",
+      "oneuptime.request.client_address_scrubbed": "[REDACTED]",
+      "oneuptime.request.client_address_scrubbed_in": "log-body",
+    };
+
+    // A detection of the group of events that had no value: recorded naming none.
+    function firingsWithNoValue(rule: DetectionRule): Array<RecordedSignal> {
+      return recordedFor(rule).filter((recorded: RecordedSignal): boolean => {
+        return !recorded.signal.groupValue;
+      });
+    }
+
+    function failures(data: {
+      prefix: string;
+      count: number;
+      fromMinute: number;
+      principalIp?: string | undefined;
+      user?: (index: number) => string;
+      attributes?: Record<string, string> | undefined;
+    }): Array<ArrivingEvent> {
+      const events: Array<ArrivingEvent> = [];
+
+      for (let index: number = 0; index < data.count; index++) {
+        // Ten a minute at most, each a few seconds apart, all in one window.
+        const minute: number = data.fromMinute + Math.floor(index / 10);
+        const second: number = (index % 10) * 5;
+
+        events.push({
+          uid: `${data.prefix}-${index}`,
+          time: at(minute, second),
+          arrivesAt: at(minute, second + 2),
+          principalIp: data.principalIp ?? "",
+          principalUser: data.user ? data.user(index) : `user-${index}`,
+          attributes: data.attributes,
+        });
+      }
+
+      return events;
+    }
+
+    test("ten failed sign-ins with no address in five minutes make no Brute force finding; ten from one address make one", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Brute force from one IP address",
+        intervalInMinutes: 5,
+        matchCountThreshold: 10,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        ...failures({ prefix: "nowhere", count: 10, fromMinute: 6 }),
+        ...failures({
+          prefix: "attacker",
+          count: 10,
+          fromMinute: 6,
+          principalIp: "203.0.113.7",
+        }),
+      );
+
+      await runMinutes(1, 20);
+
+      expect(firingsWithNoValue(rule)).toHaveLength(0);
+      expect(firingsFor(rule, "203.0.113.7")).toHaveLength(1);
+      expect(firingsFor(rule, "203.0.113.7")[0]!.eventCount).toBe(10);
+      expect(
+        judgedUids(rule).filter((uid: string): boolean => {
+          return uid.startsWith("nowhere");
+        }),
+      ).toEqual([]);
+    });
+
+    test("failed sign-ins that claim an innocent address are never counted as it: with nothing verified they make no finding, and through a verified peer they count as the peer (#10416)", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Brute force from one IP address",
+        intervalInMinutes: 5,
+        matchCountThreshold: 10,
+        lastEvaluatedAt: at(0),
+      });
+
+      // Each sender writes X-Forwarded-For: 192.0.2.44, someone else's address.
+      const spoofed: ClientAddressReading = resolveClientAddress({
+        forwardedClient: "192.0.2.44",
+        forwardedClientFrom: "client.address",
+      });
+      const throughPeer: ClientAddressReading = resolveClientAddress({
+        peer: "203.0.113.7",
+        forwardedClient: "192.0.2.44",
+        forwardedClientFrom: "client.address",
+        forwardedFor: "192.0.2.44",
+      });
+
+      // What the scans keep of each: the claim beside the address, never as it.
+      function kept(reading: ClientAddressReading): Record<string, string> {
+        const attributes: JSONObject = {};
+
+        markClientAddressTrust(attributes, reading);
+
+        return attributes as Record<string, string>;
+      }
+
+      expect([spoofed.address, throughPeer.address]).toEqual([
+        "",
+        "203.0.113.7",
+      ]);
+
+      arrive(
+        ...failures({
+          prefix: "spoofed",
+          count: 10,
+          fromMinute: 6,
+          attributes: kept(spoofed),
+        }),
+        ...failures({
+          prefix: "through-peer",
+          count: 10,
+          fromMinute: 6,
+          principalIp: throughPeer.address,
+          attributes: kept(throughPeer),
+        }),
+      );
+
+      await runMinutes(1, 20);
+
+      expect(firingsWithNoValue(rule)).toHaveLength(0);
+      expect(firingsFor(rule, "192.0.2.44")).toHaveLength(0);
+      expect(firingsFor(rule, "203.0.113.7")).toHaveLength(1);
+      expect(firingsFor(rule, "203.0.113.7")[0]!.eventCount).toBe(10);
+      expect(
+        judgedUids(rule).filter((uid: string): boolean => {
+          return uid.startsWith("spoofed");
+        }),
+      ).toEqual([]);
+    });
+
+    test("twelve hidden-address failures across different users make no Brute force finding (#10485)", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Brute force from one IP address",
+        intervalInMinutes: 5,
+        matchCountThreshold: 10,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        ...failures({
+          prefix: "hidden",
+          count: 12,
+          fromMinute: 6,
+          attributes: HIDDEN,
+        }),
+      );
+
+      await runMinutes(1, 20);
+
+      expect(recordedFor(rule)).toHaveLength(0);
+    });
+
+    test("and a user who failed fifteen times from hidden addresses makes Repeated failed sign-ins for one account", async () => {
+      const brute: DetectionRule = addRule({
+        name: "Brute force from one IP address",
+        intervalInMinutes: 15,
+        matchCountThreshold: 10,
+        lastEvaluatedAt: at(0),
+      });
+      const repeated: DetectionRule = addRule({
+        name: "Repeated failed sign-ins for one account",
+        intervalInMinutes: 15,
+        groupByField: "principalUser",
+        matchCountThreshold: 15,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        ...failures({
+          prefix: "root",
+          count: 15,
+          fromMinute: 16,
+          user: (): string => {
+            return "root";
+          },
+          attributes: HIDDEN,
+        }),
+      );
+
+      await runMinutes(1, 40);
+
+      expect(recordedFor(brute)).toHaveLength(0);
+      expect(firingsFor(repeated, "root")).toHaveLength(1);
+      expect(firingsFor(repeated, "root")[0]!.eventCount).toBe(15);
+    });
+
+    test("five accounts failing with no address make no Password spraying finding; five from one address make one", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Password spraying",
+        intervalInMinutes: 10,
+        matchCountThreshold: 5,
+        distinctCountField: "principalUser",
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        ...failures({ prefix: "nowhere", count: 5, fromMinute: 12 }),
+        ...failures({
+          prefix: "sprayer",
+          count: 5,
+          fromMinute: 12,
+          principalIp: "198.51.100.9",
+          user: (index: number): string => {
+            return `account-${index}`;
+          },
+        }),
+      );
+
+      await runMinutes(1, 30);
+
+      expect(firingsWithNoValue(rule)).toHaveLength(0);
+      expect(firingsFor(rule, "198.51.100.9")).toHaveLength(1);
+    });
+
+    test("with addresses and without, mixed, only the addressed ones count, each per address", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Three failed sign-ins from one address",
+        intervalInMinutes: 5,
+        matchCountThreshold: 3,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        // Two and two: neither address reaches three, whatever comes with no address.
+        ...failures({
+          prefix: "a",
+          count: 2,
+          fromMinute: 6,
+          principalIp: "198.51.100.1",
+        }),
+        ...failures({
+          prefix: "b",
+          count: 2,
+          fromMinute: 7,
+          principalIp: "198.51.100.2",
+        }),
+        ...failures({ prefix: "none", count: 6, fromMinute: 8 }),
+        // The next window: three from one address fire it, and only its three count.
+        ...failures({
+          prefix: "c",
+          count: 3,
+          fromMinute: 11,
+          principalIp: "198.51.100.3",
+        }),
+        ...failures({ prefix: "more-none", count: 4, fromMinute: 12 }),
+      );
+
+      await runMinutes(1, 30);
+
+      expect(firingsWithNoValue(rule)).toHaveLength(0);
+      expect(firingsFor(rule, "198.51.100.1")).toHaveLength(0);
+      expect(firingsFor(rule, "198.51.100.2")).toHaveLength(0);
+      expect(firingsFor(rule, "198.51.100.3")).toHaveLength(1);
+      expect(firingsFor(rule, "198.51.100.3")[0]!.eventCount).toBe(3);
+      expect(judgedUids(rule)).toEqual(["c-0", "c-1", "c-2"]);
+    });
+
+    test("a rule that fires on each event keeps firing for events with no value for its group field", async () => {
+      // As Many records deleted at once in OneUptime fires for a workflow, which has no user.
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in, per user",
+        intervalInMinutes: 1,
+        groupByField: "principalUser",
+        matchCountThreshold: 1,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive({
+        uid: "no-one",
+        time: at(6),
+        arrivesAt: at(6, 5),
+        principalIp: "203.0.113.7",
+        principalUser: "",
+      });
+
+      await runMinutes(1, 15);
+
+      // Its detection names no user: a group of no value is recorded as none.
+      expect(recordedFor(rule)).toHaveLength(1);
+      expect(recordedFor(rule)[0]!.signal.groupValue).toBeUndefined();
+      expect(judgedUids(rule)).toEqual(["no-one"]);
+    });
+
+    test("an event a scrub rule hid the address of is read the same by the read the real-time runs make", async () => {
+      // The same statement, as a real-time write hands it its events.
+      arrive(
+        ...failures({
+          prefix: "hidden",
+          count: 10,
+          fromMinute: 6,
+          attributes: HIDDEN,
+        }),
+      );
+      await clockAt(10);
+
+      const definition: DetectionRuleDefinition =
+        SigmaRuleSetParser.parse(FAILED_SIGN_IN);
+
+      if (definition.kind !== "single") {
+        throw new Error("expected a single rule");
+      }
+
+      const read: () => Promise<
+        Array<{ groupValue: string }>
+      > = async (): Promise<Array<{ groupValue: string }>> => {
+        return SecurityEventService.findDetectionMatches({
+          projectId: world.projectId,
+          startTime: at(5),
+          endTime: at(10),
+          whereFragment: SigmaClickhouseCompiler.compile(definition.rule),
+          groupByExpression: buildSigmaFieldExpression("principalIp"),
+          groupHasValueExpression: buildSigmaFieldHasValue("principalIp"),
+          distinctCountExpression: null,
+          minMatchCount: 10,
+          maxGroups: 100,
+          arrival: {
+            kind: "run",
+            arrivedAfter: at(0),
+            arrivedUntil: at(10),
+            candidateStartTime: at(5),
+            candidateEndTime: at(10),
+          },
+        });
+      };
+
+      expect(await read()).toEqual([]);
+    });
+  });
+
   describe("alerts and cases", () => {
     test("a group's alert and case open once, and a later pass with its late events opens neither again", async () => {
       const rule: DetectionRule = addRule({
@@ -1359,7 +1860,7 @@ integration("a scheduled rule judges every event once (#10337)", () => {
       expect(storedRule(rule._id).lastError).toBeNull();
     });
 
-    test("a worker that stops before it records where a run got to: the next run judges the same events, and opens no alert or case again", async () => {
+    test("a worker that stops before it records where a run got to: the next run judges the same events, and each firing is done once (#10489)", async () => {
       const rule: DetectionRule = addRule({
         name: "Any failed sign-in",
         intervalInMinutes: 1,
@@ -1379,26 +1880,285 @@ integration("a scheduled rule judges every event once (#10337)", () => {
       world.failNextCursorWrite = true;
       await runMinutes(6, 6);
 
-      // It fired, and did not get to record that it had.
+      // It fired, and did not get to record that it had: the stretch stays marked.
       expect(world.alerts).toHaveLength(1);
       expect(world.casesOpened).toBe(1);
       expect(storedRule(rule._id).lastEvaluatedAt!.getTime()).toBe(
         at(3).getTime(),
       );
+      expect(storedRule(rule._id).evaluatingUntil!.getTime()).toBe(
+        at(4).getTime(),
+      );
 
       await runMinutes(7, 10);
 
-      // At least once: judged again, but the open alert and case take it in.
+      // Exactly once: judged again, and nothing it did is done twice.
       expect(world.alerts).toHaveLength(1);
       expect(world.casesOpened).toBe(1);
       expect(
         recordedFor(rule).map((recorded: RecordedSignal): boolean => {
           return recorded.repeat;
         }),
-      ).toEqual([false, true]);
+      ).toEqual([false]);
+      expect(await findingsOf(rule)).toHaveLength(1);
       expect(storedRule(rule._id).lastEvaluatedAt!.getTime()).toBe(
         at(8).getTime(),
       );
+      expect(storedRule(rule._id).evaluatingUntil).toBeNull();
+    });
+  });
+
+  /*
+   * BACKING OFF (#10490). A rule whose reads keep failing - timing out,
+   * say - is tried again at its next interval, or within the hour when its
+   * interval is longer, not every minute; and the run that works judges
+   * every event that arrived since its last good run, even past the day a
+   * rule otherwise reads back, a day at a time.
+   */
+  describe("a rule whose runs keep failing", () => {
+    test("is tried hourly, not every minute, and the run that works judges everything it missed, more than a day back", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in",
+        intervalInMinutes: 120,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        {
+          uid: "early",
+          time: at(39),
+          arrivesAt: at(40),
+          principalIp: "203.0.113.1",
+        },
+        {
+          uid: "half-a-day-in",
+          time: at(650),
+          arrivesAt: at(700),
+          principalIp: "203.0.113.2",
+        },
+        {
+          uid: "a-day-in",
+          time: at(1490),
+          arrivesAt: at(1500),
+          principalIp: "203.0.113.3",
+        },
+        {
+          uid: "as-it-recovers",
+          time: at(1655),
+          arrivesAt: at(1660),
+          principalIp: "203.0.113.4",
+        },
+      );
+
+      const read: typeof SecurityEventService.findDetectionMatches =
+        SecurityEventService.findDetectionMatches.bind(SecurityEventService);
+      let failing: boolean = true;
+      const tries: Array<number> = [];
+
+      jest
+        .spyOn(SecurityEventService, "findDetectionMatches")
+        .mockImplementation((async (
+          data: Parameters<typeof SecurityEventService.findDetectionMatches>[0],
+        ) => {
+          if (failing) {
+            tries.push(minuteOf(world.clock));
+            throw new Error("Timeout exceeded");
+          }
+
+          return await read(data);
+        }) as never);
+
+      // Failing for more than a day: from its first due run until 27:30.
+      await runMinutes(1, 1649);
+      failing = false;
+      await runMinutes(1650, 1700);
+
+      // Tried an hour after each failure, not every minute.
+      expect(tries[0]).toBe(122);
+      for (let index: number = 1; index < tries.length; index++) {
+        expect(tries[index]! - tries[index - 1]!).toBe(60);
+      }
+      expect(tries).toHaveLength(26);
+      expect(storedRule(rule._id).lastError).toBeNull();
+      expect(storedRule(rule._id).lastFailedAt).toBeNull();
+
+      // Nothing it missed was skipped, though the first was more than a day back.
+      expect(judgedUids(rule)).toEqual([
+        "a-day-in",
+        "as-it-recovers",
+        "early",
+        "half-a-day-in",
+      ]);
+      // Judged a day at a time, each stretch recorded as it was done.
+      expect(world.cursorWrites.map(minuteOf)).toEqual([1440, 1680]);
+    });
+  });
+
+  /*
+   * EXACTLY ONCE (#10489). A worker that stops between doing what a run
+   * found and recording where it got to: the next run - with the clock
+   * moved on and more events in - judges exactly the stretch the stopped
+   * run judged, then goes on. Each firing leaves one Detection Finding (in
+   * ClickHouse), one case detection with its own count, and its risk added
+   * once, and an event that arrived in between is judged by the stretch
+   * after, as it would have been.
+   */
+  describe("a worker that stops between a run's effects and its record", () => {
+    test("a rule that fires on each match: one finding, one case detection with the right count, the risk once, and the event that arrived meanwhile judged next", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in",
+        intervalInMinutes: 1,
+        lastEvaluatedAt: at(0),
+        shouldCreateAlert: true,
+        riskScore: 40,
+      });
+
+      arrive(
+        {
+          uid: "first",
+          time: at(3, 10),
+          arrivesAt: at(3, 15),
+          principalIp: "203.0.113.7",
+        },
+        {
+          uid: "second",
+          time: at(3, 20),
+          arrivesAt: at(3, 25),
+          principalIp: "203.0.113.7",
+        },
+        {
+          // Arrives while the stopped worker's turn is down: after its stretch.
+          uid: "meanwhile",
+          time: at(5, 40),
+          arrivesAt: at(6, 10),
+          principalIp: "203.0.113.7",
+        },
+      );
+
+      await runMinutes(1, 5);
+
+      // The run at 6:00 judges (3:00, 4:00], fires, and stops before recording it.
+      world.failNextCursorWrite = true;
+      await runMinutes(6, 6);
+
+      expect(world.marks).toEqual([{ from: at(3), until: at(4) }]);
+      expect(await findingsOf(rule)).toHaveLength(1);
+
+      // The workers come back three minutes later.
+      await runMinutes(9, 12);
+
+      // The stretch judged again exactly, then the rest: (3:00, 4:00], then (4:00, 7:00].
+      expect(world.cursorWrites.map(minuteOf)).toEqual([
+        1, 2, 3, 4, 7, 8, 9, 10,
+      ]);
+      // The stretch after it found the event that arrived meanwhile: marked once.
+      expect(world.marks).toEqual([
+        { from: at(3), until: at(4) },
+        { from: at(4), until: at(7) },
+      ]);
+
+      // One firing per stretch: the first with both events, then the one that came meanwhile.
+      const firings: Array<RecordedSignal> = recordedFor(rule);
+
+      expect(
+        firings.map((recorded: RecordedSignal): [boolean, number] => {
+          return [recorded.repeat, recorded.signal.eventCount];
+        }),
+      ).toEqual([
+        [false, 2],
+        [true, 1],
+      ]);
+      expect(judgedUids(rule)).toEqual(["first", "meanwhile", "second"]);
+
+      // One Detection Finding a firing, each under its firing's name.
+      const findings: Array<string> = await findingsOf(rule);
+
+      expect(findings).toHaveLength(2);
+      expect(new Set(findings).size).toBe(2);
+      expect(world.alerts).toHaveLength(1);
+      expect(world.casesOpened).toBe(1);
+
+      // Its risk: handed again on the judged-again pass, counted once.
+      expect(riskHitsOf("203.0.113.7")).toBe(2);
+    });
+
+    test("a rule that counts: the window that fired fires once, and what came meanwhile counts in its own window", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Three failed sign-ins in five minutes",
+        intervalInMinutes: 5,
+        lastEvaluatedAt: at(0),
+        matchCountThreshold: 3,
+        shouldCreateAlert: true,
+        riskScore: 40,
+      });
+
+      arrive(
+        ...[1, 2, 3].map((second: number): ArrivingEvent => {
+          return {
+            uid: `burst-${second}`,
+            time: at(1, second),
+            arrivesAt: at(1, second + 5),
+            principalIp: "198.51.100.4",
+          };
+        }),
+        {
+          // Late, in the window that already fired: never fires it again.
+          uid: "late-in-the-window",
+          time: at(2),
+          arrivesAt: at(8),
+          principalIp: "198.51.100.4",
+        },
+      );
+
+      // The run at 7:00 judges (0:00, 5:00], fires the window, and stops.
+      world.failNextCursorWrite = true;
+      await runMinutes(7, 7);
+
+      expect(world.marks).toEqual([{ from: at(0), until: at(5) }]);
+
+      await runMinutes(8, 14);
+
+      expect(
+        firingsFor(rule, "198.51.100.4").map(
+          (signal: SecurityDetectionSignal): number => {
+            return signal.eventCount;
+          },
+        ),
+      ).toEqual([3]);
+      expect(await findingsOf(rule)).toHaveLength(1);
+      expect(world.alerts).toHaveLength(1);
+      expect(riskHitsOf("198.51.100.4")).toBe(1);
+      expect(storedRule(rule._id).evaluatingUntil).toBeNull();
+    });
+
+    test("a worker that stops twice in a row still leaves each firing done once", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in",
+        intervalInMinutes: 1,
+        lastEvaluatedAt: at(0),
+        riskScore: 40,
+      });
+
+      arrive({
+        uid: "once",
+        time: at(3, 10),
+        arrivesAt: at(3, 15),
+        principalIp: "192.0.2.10",
+      });
+
+      await runMinutes(1, 5);
+
+      world.failNextCursorWrite = true;
+      await runMinutes(6, 6);
+      world.failNextCursorWrite = true;
+      await runMinutes(7, 7);
+
+      await runMinutes(8, 10);
+
+      expect(recordedFor(rule)).toHaveLength(1);
+      expect(await findingsOf(rule)).toHaveLength(1);
+      expect(riskHitsOf("192.0.2.10")).toBe(1);
+      expect(world.marks).toEqual([{ from: at(3), until: at(4) }]);
     });
   });
 
@@ -1642,6 +2402,743 @@ integration("a scheduled rule judges every event once (#10337)", () => {
       expect(storedRule(rule._id).lastEvaluatedAt!.getTime()).toBe(
         at(38).getTime(),
       );
+    });
+  });
+
+  /*
+   * A SCHEDULED HUNT COUNTS EVERY EVENT ONCE, HOWEVER LATE IT LANDS (#10488).
+   *
+   * An hourly hunt for failed sign-ins, set at minute 0, run whenever it is
+   * due on the clock the test moves, as the person it runs as: a member of
+   * the project, whose read goes through the Events page's own permission
+   * checks (only the label scope, which reads Postgres, is left out). Each
+   * run counts what ARRIVED since the one before, whenever it happened in
+   * the day before; and its notification's link, read as the Events page
+   * reads it, lists exactly the events that run counted.
+   */
+  describe("a scheduled hunt", () => {
+    const DASHBOARD_URL: string = "https://oneuptime.example/dashboard";
+    const MAYA: ObjectID = ObjectID.generate();
+
+    let storedHunt: SecurityHunt;
+    let huntRuns: Array<SecurityHuntRun> = [];
+    let found: Array<{ eventCount: number; window: SecurityHuntRunWindow }> =
+      [];
+
+    // Maya, as her own reads carry her: a member of the project.
+    function mayaProps(): DatabaseCommonInteractionProps {
+      return {
+        userId: MAYA,
+        tenantId: world.projectId,
+        userTenantAccessPermission: {
+          [world.projectId.toString()]: {
+            _type: "UserTenantAccessPermission",
+            projectId: world.projectId,
+            permissions: [
+              {
+                _type: "UserPermission",
+                permission: Permission.ProjectOwner,
+                labelIds: [],
+                isBlockPermission: false,
+              },
+            ],
+          },
+        },
+      } as unknown as DatabaseCommonInteractionProps;
+    }
+
+    // Set at minute 0: it counts what arrives from then on, the first run an hour later.
+    function addHourlyHunt(): void {
+      storedHunt = new SecurityHunt();
+      storedHunt._id = ObjectID.generate().toString();
+      storedHunt.projectId = world.projectId;
+      storedHunt.name = "Failed sign-ins";
+      storedHunt.schedule = SecurityHuntSchedule.EveryHour;
+      storedHunt.searchQuery = "";
+      storedHunt.filters = {
+        statusName: ["Failure"],
+      } as unknown as JSONObject;
+      storedHunt.scheduledByUserId = MAYA;
+      storedHunt.searchedUpToAt = getSecurityHuntSearchStart(at(0));
+      storedHunt.nextRunAt = at(60);
+    }
+
+    // A copy, as each read of the hunt service hands one.
+    function readHunt(): SecurityHunt {
+      const copy: SecurityHunt = new SecurityHunt();
+
+      for (const key of [
+        "_id",
+        "projectId",
+        "name",
+        "schedule",
+        "searchQuery",
+        "filters",
+        "scheduledByUserId",
+        "searchedUpToAt",
+        "nextRunAt",
+      ]) {
+        (copy as unknown as JSONObject)[key] = (
+          storedHunt as unknown as JSONObject
+        )[key];
+      }
+
+      return copy;
+    }
+
+    function sameMoment(a: unknown, b: unknown): boolean {
+      const left: number | null = a ? new Date(a as Date).getTime() : null;
+      const right: number | null = b ? new Date(b as Date).getTime() : null;
+
+      return left === right;
+    }
+
+    // Every ten minutes the events that arrived are written, and the hunt runs when it is due.
+    async function runHuntBetween(
+      firstMinute: number,
+      lastMinute: number,
+    ): Promise<void> {
+      for (
+        let minute: number = firstMinute;
+        minute <= lastMinute;
+        minute += 10
+      ) {
+        await clockAt(minute);
+
+        if (
+          storedHunt.nextRunAt &&
+          new Date(storedHunt.nextRunAt).getTime() <= world.clock.getTime()
+        ) {
+          await SecurityHuntScheduler.runHunt(readHunt(), {
+            now: new Date(world.clock),
+          });
+        }
+      }
+    }
+
+    /*
+     * What the notification's link lists, read as the Events page reads it
+     * for whoever opens it: the hunt's search and chips, over the link's
+     * time range, with its arrivals as the chip.
+     */
+    async function listedByLink(
+      window: SecurityHuntRunWindow,
+    ): Promise<Array<string>> {
+      const link: OneUptimeURL = await getHuntLinkInDashboard({
+        projectId: world.projectId,
+        huntId: storedHunt.id!,
+        window,
+      });
+      const search: string = link.toString().split("?")[1] || "";
+      const params: URLSearchParams = new URLSearchParams(search);
+      const arrival: SecurityEventArrivalRange | null =
+        readSecurityEventArrivalRangeFromSearch(search);
+
+      expect(params.get("range")).toBe("Custom");
+      expect(arrival).not.toBeNull();
+
+      const query: Query<SecurityEvent> = {
+        ...buildSecurityEventSearchQuery({
+          base: {
+            projectId: world.projectId,
+            time: new InBetween<Date>(
+              new Date(params.get("start")!),
+              new Date(params.get("end")!),
+            ),
+          } as Query<SecurityEvent>,
+          search: storedHunt.searchQuery || "",
+          filters: securityHuntFiltersToMap(
+            storedHunt.filters as unknown as { [key: string]: Array<string> },
+          ),
+        }),
+        [SECURITY_EVENT_ARRIVAL_QUERY_KEY]: toSecurityEventArrivalQueryValue(
+          arrival!,
+        ),
+      } as Query<SecurityEvent>;
+
+      const events: Array<SecurityEvent> = await SecurityEventService.findBy({
+        query,
+        select: { eventUid: true },
+        skip: 0,
+        limit: 100,
+        props: mayaProps(),
+      });
+
+      return events
+        .map((event: SecurityEvent): string => {
+          return String(event.eventUid);
+        })
+        .sort();
+    }
+
+    beforeEach((): void => {
+      huntRuns = [];
+      found = [];
+      addHourlyHunt();
+
+      // The hunt's record holds only on the schedule it was read with.
+      jest
+        .spyOn(SecurityHuntService, "compareAndSetColumnsByIdWithoutHooks")
+        .mockImplementation((async (args: {
+          data: JSONObject;
+          expectedData: JSONObject;
+        }) => {
+          if (
+            !sameMoment(storedHunt.nextRunAt, args.expectedData["nextRunAt"]) ||
+            !sameMoment(
+              storedHunt.searchedUpToAt,
+              args.expectedData["searchedUpToAt"],
+            )
+          ) {
+            return false;
+          }
+
+          for (const [key, value] of Object.entries(args.data)) {
+            (storedHunt as unknown as JSONObject)[key] = value as never;
+          }
+
+          return true;
+        }) as never);
+
+      jest
+        .spyOn(SecurityHuntRunService, "create")
+        .mockImplementation((async (args: { data: SecurityHuntRun }) => {
+          huntRuns.push(args.data);
+          return args.data;
+        }) as never);
+
+      jest
+        .spyOn(SecurityHuntNotifications, "huntFound")
+        .mockImplementation((async (data: {
+          eventCount: number;
+          window: SecurityHuntRunWindow;
+        }) => {
+          found.push({ eventCount: data.eventCount, window: data.window });
+          return true;
+        }) as never);
+
+      jest
+        .spyOn(
+          AccessTokenService,
+          "getDatabaseCommonInteractionPropsByUserAndProject",
+        )
+        .mockImplementation((async () => {
+          return mayaProps();
+        }) as never);
+
+      // No billing here; and the label scope reads Postgres: Maya holds no labels.
+      jest
+        .spyOn(CallerPlan, "withAnalyticsPlanFor")
+        .mockImplementation((async (data: {
+          props: DatabaseCommonInteractionProps;
+        }) => {
+          return data.props;
+        }) as never);
+      jest
+        .spyOn(
+          ModelPermission as unknown as {
+            addReadScopeToQuery: (...args: Array<unknown>) => unknown;
+          },
+          "addReadScopeToQuery",
+        )
+        .mockImplementation((async (_model: unknown, query: unknown) => {
+          return query;
+        }) as never);
+
+      jest
+        .spyOn(DatabaseConfig, "getDashboardUrl")
+        .mockResolvedValue(OneUptimeURL.fromString(DASHBOARD_URL) as never);
+    });
+
+    test("on time, late, an hour late, very late and out of order: every event counted once, by the run after it arrived", async () => {
+      arrive(
+        {
+          uid: "on-time",
+          time: at(10),
+          arrivesAt: at(10, 5),
+          principalIp: "203.0.113.7",
+        },
+        {
+          // Happened before the 1:00 run passed it, written after: a batch shipper.
+          uid: "late-across-a-run",
+          time: at(55),
+          arrivesAt: at(70),
+          principalIp: "203.0.113.7",
+        },
+        {
+          // A span read when it ended, an hour on.
+          uid: "an-hour-late",
+          time: at(30),
+          arrivesAt: at(95),
+          principalIp: "198.51.100.4",
+        },
+        {
+          // Out of order: the later one arrives first...
+          uid: "happened-second-arrived-first",
+          time: at(175),
+          arrivesAt: at(200),
+          principalIp: "192.0.2.10",
+        },
+        {
+          // ...and the earlier one after the next run has gone by.
+          uid: "happened-first-arrived-second",
+          time: at(170),
+          arrivesAt: at(250),
+          principalIp: "192.0.2.10",
+        },
+        {
+          // A shipper down for most of a day: 23 hours late, still counted.
+          uid: "23-hours-late",
+          time: at(40),
+          arrivesAt: at(40 + 23 * 60),
+          principalIp: "198.51.100.9",
+        },
+        {
+          // A day and a minute late: stored and searchable, but no run counts it.
+          uid: "a-day-and-a-minute-late",
+          time: at(100),
+          arrivesAt: at(100 + DETECTION_LATE_EVENT_WINDOW_IN_MINUTES + 1),
+          principalIp: "198.51.100.9",
+        },
+        {
+          // Not what the hunt looks for.
+          uid: "a-success",
+          time: at(20),
+          arrivesAt: at(21),
+          statusName: "Success",
+          principalIp: "203.0.113.7",
+        },
+      );
+
+      await runHuntBetween(0, 1560);
+
+      // Every hour from 1:00 to 26:00, and none of them failed.
+      expect(huntRuns).toHaveLength(26);
+      expect(
+        huntRuns.every((run: SecurityHuntRun): boolean => {
+          return !run.error;
+        }),
+      ).toBe(true);
+
+      // Each run counts what arrived after the one before stopped: no gap, no overlap.
+      expect(huntRuns[0]!.windowStartAt!.getTime()).toBe(at(-2).getTime());
+
+      for (let index: number = 1; index < huntRuns.length; index++) {
+        expect(huntRuns[index]!.windowStartAt!.getTime()).toBe(
+          huntRuns[index - 1]!.windowEndAt!.getTime(),
+        );
+      }
+
+      // Each counted by the first run whose window holds when it arrived.
+      expect(
+        found.map(
+          (entry: {
+            eventCount: number;
+            window: SecurityHuntRunWindow;
+          }): [number, number] => {
+            return [
+              (entry.window.endTime.getTime() - BASE.getTime()) / MINUTE + 2,
+              entry.eventCount,
+            ];
+          },
+        ),
+      ).toEqual([
+        [60, 1],
+        [120, 2],
+        [240, 1],
+        [300, 1],
+        [1440, 1],
+      ]);
+
+      // Every countable event once in all: none twice, none skipped.
+      expect(
+        huntRuns.reduce((sum: number, run: SecurityHuntRun): number => {
+          return sum + (run.eventCount || 0);
+        }, 0),
+      ).toBe(6);
+      expect(storedHunt.searchedUpToAt!.getTime()).toBe(at(1558).getTime());
+    });
+
+    test("the notification's link lists exactly the events its run counted, wherever in the day before they happened", async () => {
+      arrive(
+        {
+          uid: "on-time",
+          time: at(10),
+          arrivesAt: at(10, 5),
+          principalIp: "203.0.113.7",
+        },
+        {
+          uid: "late-across-a-run",
+          time: at(55),
+          arrivesAt: at(70),
+          principalIp: "203.0.113.7",
+        },
+        {
+          uid: "an-hour-late",
+          time: at(30),
+          arrivesAt: at(95),
+          principalIp: "198.51.100.4",
+        },
+        {
+          // Arrives after the 2:00 run: the next run's, never this one's.
+          uid: "arrives-after-the-run",
+          time: at(100),
+          arrivesAt: at(119),
+          principalIp: "198.51.100.4",
+        },
+        {
+          uid: "23-hours-late",
+          time: at(130),
+          arrivesAt: at(130 + 23 * 60),
+          principalIp: "198.51.100.9",
+        },
+      );
+
+      await runHuntBetween(0, 1560);
+
+      expect(
+        found.map((entry: { eventCount: number }): number => {
+          return entry.eventCount;
+        }),
+      ).toEqual([1, 2, 1, 1]);
+
+      const listed: Array<Array<string>> = [];
+
+      for (const entry of found) {
+        listed.push(await listedByLink(entry.window));
+      }
+
+      expect(listed).toEqual([
+        ["on-time"],
+        // Happened in the window of the run before: the link still lists them.
+        ["an-hour-late", "late-across-a-run"],
+        ["arrives-after-the-run"],
+        // Happened 23 hours before the run that counted it.
+        ["23-hours-late"],
+      ]);
+
+      // Each run's link lists as many as the run told people it found.
+      expect(
+        listed.map((uids: Array<string>): number => {
+          return uids.length;
+        }),
+      ).toEqual(
+        found.map((entry: { eventCount: number }): number => {
+          return entry.eventCount;
+        }),
+      );
+    });
+
+    test("a run that cannot count keeps its window: the retry counts what it would have, once", async () => {
+      arrive(
+        {
+          uid: "in-the-failed-run",
+          time: at(10),
+          arrivesAt: at(10, 5),
+          principalIp: "203.0.113.7",
+        },
+        {
+          uid: "in-the-next-hour",
+          time: at(70),
+          arrivesAt: at(75),
+          principalIp: "203.0.113.7",
+        },
+      );
+
+      const countBy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        SecurityEventService,
+        "countBy",
+      );
+      countBy.mockRejectedValueOnce(new Error("ClickHouse is restarting."));
+
+      await runHuntBetween(0, 60);
+
+      // It said why, and kept its window: tried again within the hour.
+      expect(found).toEqual([]);
+      expect(huntRuns).toHaveLength(1);
+      expect(huntRuns[0]!.error).toBeTruthy();
+      expect(storedHunt.searchedUpToAt!.getTime()).toBe(at(-2).getTime());
+      expect(storedHunt.nextRunAt!.getTime()).toBe(at(120).getTime());
+
+      await runHuntBetween(70, 120);
+
+      // The retry counts both hours' arrivals, each once.
+      expect(found).toHaveLength(1);
+      expect(found[0]!.eventCount).toBe(2);
+      expect(found[0]!.window.startTime.getTime()).toBe(at(-2).getTime());
+      expect(await listedByLink(found[0]!.window)).toEqual([
+        "in-the-failed-run",
+        "in-the-next-hour",
+      ]);
+    });
+
+    test("two workers that run the hunt at once count its window once, and tell its people once", async () => {
+      arrive({
+        uid: "once",
+        time: at(10),
+        arrivesAt: at(10, 5),
+        principalIp: "203.0.113.7",
+      });
+
+      await clockAt(60);
+
+      const both: Array<SecurityHuntRunOutcome> = await Promise.all([
+        SecurityHuntScheduler.runHunt(readHunt(), {
+          now: new Date(world.clock),
+        }),
+        SecurityHuntScheduler.runHunt(readHunt(), {
+          now: new Date(world.clock),
+        }),
+      ]);
+
+      expect(
+        both.map((outcome: SecurityHuntRunOutcome): boolean => {
+          return outcome.isRecorded;
+        }),
+      ).toEqual(expect.arrayContaining([true, false]));
+      expect(found).toEqual([
+        {
+          eventCount: 1,
+          window: { startTime: at(-2), endTime: at(58) },
+        },
+      ]);
+      expect(huntRuns).toHaveLength(1);
+    });
+  });
+
+  /*
+   * An event written more than a day after it happened is not judged by any
+   * rule's run, on purpose (Common/Types/SecurityEvent/
+   * SecurityEventLateArrival). The model's own view counts each one as it is
+   * written, per source and day it arrived, and Detection Rules reads the
+   * last week of them to say so (#10491).
+   */
+  describe("events that arrive more than a day after they happened (#10491)", () => {
+    const lateModel: SecurityEventLateArrival = new SecurityEventLateArrival();
+    const OKTA: { vendorName: string; productName: string } = {
+      vendorName: "Okta",
+      productName: "Okta Workforce Identity",
+    };
+    const FALCON: { vendorName: string; productName: string } = {
+      vendorName: "CrowdStrike",
+      productName: "Falcon",
+    };
+
+    let lateOriginal: ConnectableService | null = null;
+
+    beforeAll(async (): Promise<void> => {
+      // The count's table under a plain AggregatingMergeTree, and the model's own view, as boot writes it.
+      const generator: StatementGenerator<AnalyticsBaseModel> =
+        new StatementGenerator<AnalyticsBaseModel>({
+          modelType: SecurityEventLateArrival,
+          database: clickhouse,
+        });
+      const columns: Statement = generator.toColumnsCreateStatement(
+        lateModel.tableColumns,
+      );
+
+      await client.command({
+        query: `CREATE TABLE ${database}.${lateModel.tableName} (${columns.query}) ENGINE = AggregatingMergeTree PARTITION BY (${lateModel.partitionKey}) ORDER BY (${lateModel.sortKeys.join(", ")})`,
+        query_params: columns.query_params,
+      });
+      // Unqualified, as the model declares it: this client's database is the suite's.
+      await client.command({ query: lateModel.materializedViews[0]!.query });
+
+      const lateService: ConnectableService =
+        SecurityEventLateArrivalService as unknown as ConnectableService;
+
+      lateOriginal = {
+        database: lateService.database,
+        databaseClient: lateService.databaseClient,
+      };
+      lateService.database = clickhouse;
+      lateService.databaseClient = client;
+    });
+
+    afterAll(async (): Promise<void> => {
+      if (lateOriginal) {
+        Object.assign(SecurityEventLateArrivalService, lateOriginal);
+      }
+
+      // The view writes on every insert into the events: gone before any other block writes.
+      await client.command({
+        query: `DROP VIEW IF EXISTS ${database}.${lateModel.materializedViews[0]!.name}`,
+      });
+    });
+
+    function readLate(
+      data: {
+        now?: Date | undefined;
+        serviceFilter?: Parameters<
+          typeof SecurityEventLateArrivalService.getLateArrivals
+        >[0]["serviceFilter"];
+        projectId?: ObjectID | undefined;
+      } = {},
+    ): Promise<SecurityEventLateArrivals> {
+      return SecurityEventLateArrivalService.getLateArrivals({
+        projectId: data.projectId || world.projectId,
+        now: data.now || at(1520),
+        serviceFilter: data.serviceFilter,
+      });
+    }
+
+    test("counts exactly the events a rule's run does not judge: written more than a day after they happened", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in",
+        intervalInMinutes: 1,
+        lastEvaluatedAt: at(1490),
+      });
+      const arrival: Date = at(1500);
+      const dayBefore: Date = new Date(arrival.getTime() - DAY);
+
+      arrive(
+        { uid: "on-time", time: at(1499), arrivesAt: arrival, ...OKTA },
+        {
+          uid: "23-hours-late",
+          time: new Date(arrival.getTime() - 23 * HOUR),
+          arrivesAt: arrival,
+          ...OKTA,
+        },
+        // A day to the second: the last a run reads.
+        { uid: "a-day-late", time: dayBefore, arrivesAt: arrival, ...OKTA },
+        {
+          uid: "a-day-and-a-second-late",
+          time: new Date(dayBefore.getTime() - SECOND),
+          arrivesAt: arrival,
+          ...OKTA,
+        },
+        {
+          uid: "three-days-late",
+          time: new Date(arrival.getTime() - 3 * DAY),
+          arrivesAt: arrival,
+          ...OKTA,
+        },
+      );
+
+      await runMinutes(1491, 1505);
+
+      // Each event either judged by a run, or counted here: never both, never neither.
+      expect(judgedUids(rule)).toEqual([
+        "23-hours-late",
+        "a-day-late",
+        "on-time",
+      ]);
+      expect(await readLate()).toEqual({
+        arrivedSince: new Date(
+          Date.UTC(
+            at(1520).getUTCFullYear(),
+            at(1520).getUTCMonth(),
+            at(1520).getUTCDate() - 6,
+          ),
+        ),
+        eventCount: 2,
+        sources: [
+          {
+            ...OKTA,
+            eventCount: 2,
+            happenedFrom: new Date(arrival.getTime() - 3 * DAY),
+            happenedTo: new Date(dayBefore.getTime() - SECOND),
+            arrivedFrom: arrival,
+            arrivedTo: arrival,
+          },
+        ],
+      });
+    });
+
+    test("a row a source, the most first, merged across writes, and only the sources the reader may read", async () => {
+      const falconSource: ObjectID = ObjectID.generate();
+
+      arrive(
+        {
+          uid: "okta-late",
+          time: at(1500 - 2 * 24 * 60),
+          arrivesAt: at(1500),
+          ...OKTA,
+        },
+        {
+          uid: "falcon-late-1",
+          time: at(1500 - 3 * 24 * 60),
+          arrivesAt: at(1500),
+          ...FALCON,
+          sourceId: falconSource,
+        },
+        {
+          // Written by a later insert: one row of the source all the same.
+          uid: "falcon-late-2",
+          time: at(1510 - 4 * 24 * 60),
+          arrivesAt: at(1510),
+          ...FALCON,
+          sourceId: falconSource,
+        },
+      );
+
+      world.clock = at(1500);
+      await writeArrived();
+      world.clock = at(1510);
+      await writeArrived();
+
+      const all: SecurityEventLateArrivals = await readLate();
+
+      expect(all.eventCount).toBe(3);
+      expect(all.sources).toEqual([
+        {
+          ...FALCON,
+          eventCount: 2,
+          happenedFrom: at(1510 - 4 * 24 * 60),
+          happenedTo: at(1500 - 3 * 24 * 60),
+          arrivedFrom: at(1500),
+          arrivedTo: at(1510),
+        },
+        {
+          ...OKTA,
+          eventCount: 1,
+          happenedFrom: at(1500 - 2 * 24 * 60),
+          happenedTo: at(1500 - 2 * 24 * 60),
+          arrivedFrom: at(1500),
+          arrivedTo: at(1500),
+        },
+      ]);
+
+      // A reader scoped to some sources counts theirs alone.
+      expect(
+        (
+          await readLate({ serviceFilter: { serviceIds: [world.sourceId] } })
+        ).sources.map((source: { productName: string }): string => {
+          return source.productName;
+        }),
+      ).toEqual([OKTA.productName]);
+      expect(
+        (
+          await readLate({
+            serviceFilter: { excludedServiceIds: [world.sourceId] },
+          })
+        ).sources.map((source: { productName: string }): string => {
+          return source.productName;
+        }),
+      ).toEqual([FALCON.productName]);
+
+      // Another project's are its own.
+      expect(
+        (await readLate({ projectId: ObjectID.generate() })).eventCount,
+      ).toBe(0);
+    });
+
+    test("tells of the last week: what arrived late before that is not told", async () => {
+      const lastWeek: Date = new Date(at(1500).getTime() - 8 * DAY);
+
+      arrive({
+        uid: "late-last-week",
+        time: new Date(lastWeek.getTime() - 3 * DAY),
+        arrivesAt: lastWeek,
+        ...OKTA,
+      });
+
+      world.clock = at(1500);
+      await writeArrived();
+
+      expect((await readLate()).eventCount).toBe(0);
+      // Read in the week it arrived, it is there.
+      expect((await readLate({ now: lastWeek })).eventCount).toBe(1);
     });
   });
 

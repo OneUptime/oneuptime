@@ -3,7 +3,9 @@ import {
   RETROHUNT_DEFAULT_PERIOD_IN_HOURS,
   RETROHUNT_GROUPS_SHOWN_FIRST,
   RetrohuntSentence,
+  RetrohuntUncounted,
   buildRetrohuntRequest,
+  getRetrohuntUncounted,
   canRunRetrohunt,
   getRetrohuntExceptionLines,
   getRetrohuntFacts,
@@ -33,9 +35,15 @@ import {
   PERIOD_LAST_DAY,
   PERIOD_LAST_MONTH,
   PERIOD_LAST_WEEK,
+  UNCOUNTED_HIDDEN_BY_SCRUB_RULE,
+  UNCOUNTED_NO_HOST,
+  UNCOUNTED_NO_IP_ADDRESS,
+  UNCOUNTED_NO_USER,
+  UNCOUNTED_NO_VALUE,
   WOULD_HAVE_FIRED,
   WOULD_NOT_HAVE_FIRED,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retrohunt/RetrohuntCopy";
+import { PluralTemplate } from "../../../UI/Utils/TranslateTemplate";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import {
   DetectionRetrohuntGroup,
@@ -93,9 +101,131 @@ function result(
     ],
     hasMoreGroups: false,
     candidateLimit: null,
+    uncounted: null,
     ...overrides,
   };
 }
+
+describe("what a rule that counts per value could not count (#10415)", () => {
+  test("says how many matching events had no value, in the words of the field it groups by", () => {
+    const cases: ReadonlyArray<[string, PluralTemplate]> = [
+      ["principalIp", UNCOUNTED_NO_IP_ADDRESS],
+      ["targetIp", UNCOUNTED_NO_IP_ADDRESS],
+      ["principalUser", UNCOUNTED_NO_USER],
+      ["principalHost", UNCOUNTED_NO_HOST],
+    ];
+
+    for (const [field, template] of cases) {
+      expect({
+        field,
+        uncounted: getRetrohuntUncounted(
+          result({
+            uncounted: {
+              field,
+              eventCount: 1204,
+              hiddenInLogsCount: 0,
+              hiddenInTracesCount: 0,
+            },
+          }),
+        ),
+      }).toEqual({
+        field,
+        uncounted: {
+          lines: [{ template, count: 1204, values: {} }],
+          scrubRulesSignal: null,
+        },
+      });
+    }
+
+    expect(
+      getRetrohuntUncounted(
+        result({
+          uncounted: {
+            field: "ssh.method",
+            eventCount: 3,
+            hiddenInLogsCount: 0,
+            hiddenInTracesCount: 0,
+          },
+        }),
+      )?.lines,
+    ).toEqual([
+      {
+        template: UNCOUNTED_NO_VALUE,
+        count: 3,
+        values: { field: "ssh.method" },
+      },
+    ]);
+  });
+
+  test("says how many a scrub rule hid the address of, and opens the Scrub Rules of the record most were hidden in", () => {
+    const fromLogs: RetrohuntUncounted | null = getRetrohuntUncounted(
+      result({
+        uncounted: {
+          field: "principalIp",
+          eventCount: 1204,
+          hiddenInLogsCount: 1180,
+          hiddenInTracesCount: 4,
+        },
+      }),
+    );
+
+    expect(fromLogs).toEqual({
+      lines: [
+        { template: UNCOUNTED_NO_IP_ADDRESS, count: 1204, values: {} },
+        { template: UNCOUNTED_HIDDEN_BY_SCRUB_RULE, count: 1184 },
+      ],
+      scrubRulesSignal: "log",
+    });
+
+    expect(
+      getRetrohuntUncounted(
+        result({
+          uncounted: {
+            field: "principalIp",
+            eventCount: 20,
+            hiddenInLogsCount: 1,
+            hiddenInTracesCount: 19,
+          },
+        }),
+      )?.scrubRulesSignal,
+    ).toBe("trace");
+  });
+
+  test("says nothing for a rule that left nothing out", () => {
+    expect(getRetrohuntUncounted(result())).toBeNull();
+    expect(
+      getRetrohuntUncounted(
+        result({
+          uncounted: {
+            field: "principalIp",
+            eventCount: 0,
+            hiddenInLogsCount: 0,
+            hiddenInTracesCount: 0,
+          },
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test("its words are one sentence and its plural", () => {
+    for (const template of [
+      UNCOUNTED_NO_IP_ADDRESS,
+      UNCOUNTED_NO_USER,
+      UNCOUNTED_NO_HOST,
+      UNCOUNTED_NO_VALUE,
+    ]) {
+      expect(template.other).toContain("so this rule couldn't count them.");
+      expect(template.one).toContain("so this rule couldn't count it.");
+      expect(
+        template.other.startsWith("{{count}} matching events had no"),
+      ).toBe(true);
+    }
+
+    expect(UNCOUNTED_NO_IP_ADDRESS.other).toBe(
+      "{{count}} matching events had no IP address, so this rule couldn't count them.",
+    );
+  });
+});
 
 describe("the periods offered", () => {
   test("the last day, week and month, by their hours, a week to start with", () => {

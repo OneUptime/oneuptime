@@ -21,7 +21,6 @@ import {
   SecurityLogOwner,
 } from "../../Types/SecurityCase/SecurityConnection";
 import { SECURITY_EVENT_SCOPE_MAX_ATTRIBUTE_VALUES } from "../../Types/SecurityEvent/SecurityEventScope";
-import { DETECTION_LATE_EVENT_WINDOW_IN_MINUTES } from "../../Types/SecurityEvent/DetectionFindingConstants";
 import { SECURITY_FINDINGS_CATEGORY_UID } from "../../Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
 import { SECURITY_EVENT_RECORD_COLUMNS } from "../../Utils/SecurityEvent/Destinations/SecurityEventRecord";
 import TelemetryReadScopeUtil, {
@@ -58,6 +57,12 @@ import {
   readSecurityLogOwners,
 } from "../../Utils/SecurityCase/SecurityConnectionMatch";
 import { foldCloudResourceAttribute } from "../Utils/SecurityEvent/SecurityEventRow";
+import {
+  DetectionArrivalRead,
+  detectionArrivedBefore,
+  detectionArrivedBy,
+  isDetectionArrivalCandidate,
+} from "../Utils/SecurityEvent/DetectionArrivalRead";
 
 export interface DetectionMatchGroup {
   groupValue: string;
@@ -91,116 +96,22 @@ export interface DetectionMatchGroup {
 }
 
 /*
- * WHAT A RUN OF A RULE JUDGES, BY WHEN IT ARRIVED.
- *
- * A rule that counts (Types/SecurityEvent/RealTimeDetection) reads a window
- * of its interval as it stood when the events it judges came in, and keeps
- * a group only when those events are what brought it to the threshold: one
- * of them is among the group's matches, and with only what came in before
- * them the group had not reached it. A burst fires once, on the events that
- * make the count; a late event that makes it fires too; and a group past it
- * stays quiet until the next window. Two kinds of run judge events so:
- *
- *  - A real-time run judges the events one write handed it, by id: ids are
- *    time-ordered (UUIDv7, made as each row is built), so a later id came
- *    in later, and the window as it stood is the events with an id no later
- *    than the write's last.
- *  - A scheduled run judges every event that arrived since the rule's last
- *    run (#10337): createdAt, stamped as each row is built, after the
- *    rule's last run and no later than this one. An event that happened
- *    long before it reached OneUptime - a batch a shipper held, a span that
- *    ended a minute after it started, a flow read in whole windows - is
- *    judged by the first run after it arrived, once, with the events of the
- *    window it happened in.
+ * What a run of a rule judges, by when it arrived, and the condition a
+ * scheduled run and a scheduled hunt both read it with: kept in
+ * DetectionArrivalRead, where the statement generator reads them too, and
+ * re-exported here for the reads below and everything that imports them.
  */
-export interface DetectionWriteArrival {
-  kind?: "write" | undefined;
-  // The write's events, by id.
-  candidateIds: Array<string>;
-  // The lowest and the highest of them.
-  firstId: string;
-  lastId: string;
-  // When they happened, at most: the groups they name are read there.
-  candidateStartTime: Date;
-  candidateEndTime: Date;
-}
-
-export interface DetectionRunArrival {
-  kind: "run";
-  // What the rule's last run judged: everything that arrived by then. Exclusive.
-  arrivedAfter: Date;
-  // What this run judges up to. Inclusive.
-  arrivedUntil: Date;
-  // When the events it judges happened, at most: the groups they name are read there.
-  candidateStartTime: Date;
-  candidateEndTime: Date;
-}
-
-/*
- * How long before it arrived an event a scheduled run judges may have
- * happened (DETECTION_LATE_EVENT_WINDOW_IN_MINUTES), held to each event:
- * one that reached OneUptime later than that is stored and searchable, and
- * Run on Past Events reads it, but no run judges it.
- */
-const DETECTION_RUN_LATE_EVENT_SECONDS: number =
-  DETECTION_LATE_EVENT_WINDOW_IN_MINUTES * 60;
-
-export type DetectionArrivalRead = DetectionWriteArrival | DetectionRunArrival;
-
-// The window as it stood when the events judged came in.
-export function detectionArrivedBy(arrival: DetectionArrivalRead): Statement {
-  if (arrival.kind === "run") {
-    return SQL`createdAt <= ${{
-      type: TableColumnType.Date,
-      value: arrival.arrivedUntil,
-    }}`;
-  }
-
-  return SQL`_id <= ${{
-    type: TableColumnType.Text,
-    value: arrival.lastId,
-  }}`;
-}
-
-// What had come in before them: judged already.
-export function detectionArrivedBefore(
-  arrival: DetectionArrivalRead,
-): Statement {
-  if (arrival.kind === "run") {
-    return SQL`createdAt <= ${{
-      type: TableColumnType.Date,
-      value: arrival.arrivedAfter,
-    }}`;
-  }
-
-  return SQL`_id < ${{
-    type: TableColumnType.Text,
-    value: arrival.firstId,
-  }}`;
-}
-
-// One of the events judged: for a run, one that arrived in it, within a day of when it happened.
-export function isDetectionArrivalCandidate(
-  arrival: DetectionArrivalRead,
-): Statement {
-  if (arrival.kind === "run") {
-    return SQL`(createdAt > ${{
-      type: TableColumnType.Date,
-      value: arrival.arrivedAfter,
-    }} AND createdAt <= ${{
-      type: TableColumnType.Date,
-      value: arrival.arrivedUntil,
-    }} AND time >= createdAt - toIntervalSecond(${{
-      type: TableColumnType.Number,
-      value: DETECTION_RUN_LATE_EVENT_SECONDS,
-    }}))`;
-  }
-
-  return SQL`has(${{
-    type: TableColumnType.ArrayText,
-    value: arrival.candidateIds,
-  }}, _id)`;
-}
+export type {
+  DetectionArrivalColumnRef,
+  DetectionArrivalRead,
+  DetectionRunArrival,
+  DetectionWriteArrival,
+} from "../Utils/SecurityEvent/DetectionArrivalRead";
+export {
+  detectionArrivedBefore,
+  detectionArrivedBy,
+  isDetectionArrivalCandidate,
+} from "../Utils/SecurityEvent/DetectionArrivalRead";
 
 export interface FindDetectionMatchesData {
   projectId: ObjectID;
@@ -208,6 +119,12 @@ export interface FindDetectionMatchesData {
   endTime: Date;
   whereFragment: Statement;
   groupByExpression: Statement | null;
+  /*
+   * Whether an event has a value for the field the rule groups by
+   * (buildSigmaFieldHasValue): a rule that counts per value leaves out the
+   * events that have none, so they never add up as one value (#10415).
+   */
+  groupHasValueExpression?: Statement | null | undefined;
   distinctCountExpression: Statement | null;
   minMatchCount: number;
   maxGroups: number;
@@ -579,6 +496,13 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
    * that carry no username. The threshold is enforced in HAVING so the
    * maxGroups LIMIT keeps only qualifying groups instead of letting
    * noisy-but-under-threshold groups crowd out real ones.
+   *
+   * A rule that counts per value - a group field, and a threshold above
+   * one or a distinct count - leaves out the events with no value for its
+   * group field (groupHasValueExpression, #10415), in the read and in the
+   * groups an arrival names: every failed sign-in with no address is no
+   * "one IP address". One that fires on each event keeps them, in a group
+   * of their own, as before.
    */
   public async findDetectionMatches(
     data: FindDetectionMatchesData,
@@ -657,6 +581,20 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     statement.append(data.whereFragment);
     statement.append(")");
 
+    const minMatchCount: number = Math.max(1, data.minMatchCount);
+    const leavesOutNoValue: boolean = Boolean(
+      data.groupByExpression &&
+        data.groupHasValueExpression &&
+        (data.distinctCountExpression || minMatchCount > 1),
+    );
+
+    // Events with no value for the group field are no value to count.
+    if (leavesOutNoValue) {
+      statement.append(" AND (");
+      statement.append(data.groupHasValueExpression!);
+      statement.append(")");
+    }
+
     if (arrival) {
       // The window as it stood when the events judged came in.
       statement.append(" AND ");
@@ -684,6 +622,14 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
           }} AND `,
         );
         statement.append(isDetectionArrivalCandidate(arrival));
+
+        // Nor are the groups of events that have none of the field.
+        if (leavesOutNoValue) {
+          statement.append(" AND (");
+          statement.append(data.groupHasValueExpression!);
+          statement.append(")");
+        }
+
         statement.append(")");
       }
     }
@@ -700,7 +646,6 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     const effectiveCountColumn: string = data.distinctCountExpression
       ? "distinctCount"
       : "matchCount";
-    const minMatchCount: number = Math.max(1, data.minMatchCount);
 
     if (arrival) {
       /*

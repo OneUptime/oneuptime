@@ -34,9 +34,12 @@ import Link from "Common/Types/Link";
 import ObjectID from "Common/Types/ObjectID";
 import {
   SecurityHuntRunWindow,
+  getSecurityHuntRunArrival,
+  getSecurityHuntRunEventTimeRange,
   readSecurityHuntFilters,
   securityHuntFiltersFromMap,
 } from "Common/Types/SecurityEvent/SecurityHunt";
+import { getSecurityEventsArrivalParams } from "../../Components/SecurityEvents/SecurityEventsArrivalFilter";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -64,7 +67,7 @@ import React, {
  * it runs, who it tells and what its runs found (HuntHeader) - over the
  * Events explorer searching what the hunt keeps, over the window it opens
  * on (or the one its address names: a notification opens the hunt on the
- * window its run read).
+ * events its run counted, those that arrived in its window).
  *
  * The explorer is the hunt's editor: a change to its search or chips is a
  * change to the hunt, which the header offers to save or discard. Events
@@ -174,23 +177,30 @@ const HuntOnPage: FunctionComponent<{ huntId: ObjectID }> = (props: {
   /*
    * The explorer starts again from the hunt as it is kept: its address
    * forgets the search and chips it was changed to (and its page), so the
-   * hunt's own are read; `window` names the window to show, else the
-   * address keeps the one it has.
+   * hunt's own are read; `window` names a run to show, else the address
+   * keeps what it has. A run is shown as its notification's link shows it
+   * (#10488): the events that arrived in its window, as a chip, over the
+   * times they can have happened.
    */
   const restartExplorer: (window?: SecurityHuntRunWindow) => void = (
     window?: SecurityHuntRunWindow,
   ): void => {
+    const shown: SecurityHuntRunWindow | null = window
+      ? getSecurityHuntRunEventTimeRange(window)
+      : null;
+
     Navigation.setQueryString({
       search: null,
       filters: null,
       page: null,
-      ...(window
+      ...(window && shown
         ? {
             [SECURITY_EVENTS_RANGE_PARAM]: TimeRange.CUSTOM,
-            [SECURITY_EVENTS_START_PARAM]: new Date(
-              window.startTime,
-            ).toISOString(),
-            [SECURITY_EVENTS_END_PARAM]: new Date(window.endTime).toISOString(),
+            [SECURITY_EVENTS_START_PARAM]: shown.startTime.toISOString(),
+            [SECURITY_EVENTS_END_PARAM]: shown.endTime.toISOString(),
+            ...getSecurityEventsArrivalParams(
+              getSecurityHuntRunArrival(window),
+            ),
           }
         : {}),
     });

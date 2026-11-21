@@ -3,6 +3,7 @@ import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaM
 import Probe from "../../../../Models/DatabaseModels/Probe";
 import SecurityBlock from "../../../../Models/DatabaseModels/SecurityBlock";
 import SecurityBlockEnforcement from "../../../../Models/DatabaseModels/SecurityBlockEnforcement";
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import { describe, expect, test } from "@jest/globals";
 import {
   MigrationInterface,
@@ -114,6 +115,10 @@ function declaredColumns(model: unknown): Array<string> {
     })
     .map((column: ColumnMetadataArgs): string => {
       return column.propertyName;
+    })
+    .filter((column: string): boolean => {
+      // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+      return !RecordActorUtil.isColumn(column);
     });
 }
 

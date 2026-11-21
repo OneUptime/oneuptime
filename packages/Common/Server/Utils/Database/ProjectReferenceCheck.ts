@@ -4,6 +4,7 @@ import Select from "../../Types/Database/Select";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { LAST_MODIFIED_BY_USER_ID_COLUMN } from "../../../Types/Database/RecordActor";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import Dictionary from "../../../Types/Dictionary";
@@ -76,13 +77,15 @@ type ColumnReference = ProjectScopedReference & { column: string };
 /*
  * Relations the server stamps itself, never a reference the caller picks.
  * Who archived a record is stamped from the write that turns its archive
- * switch (ATTRIBUTED_SWITCHES), and a write's own value is taken out of it
- * before any hook reads it (UserAttribution).
+ * switch (ATTRIBUTED_SWITCHES), who last modified it from the write that
+ * changes it (Types/Database/RecordActor, #10290), and a write's own value
+ * is taken out of it before any hook reads it (UserAttribution).
  */
 const SERVER_STAMPED_ID_COLUMNS: Array<string> = [
   "createdByUserId",
   "deletedByUserId",
   "archivedByUserId",
+  LAST_MODIFIED_BY_USER_ID_COLUMN,
 ];
 
 // Postgres renders a uuid lower-cased, whatever case the payload used.

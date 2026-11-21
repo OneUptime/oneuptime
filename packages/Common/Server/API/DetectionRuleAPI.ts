@@ -19,6 +19,11 @@ import DetectionRuleDraft, {
 import DetectionRuleRetrohunt, {
   DetectionRetrohuntRule,
 } from "../Utils/SecurityEvent/DetectionRuleRetrohunt";
+import SecurityEventLateArrivalService from "../Services/SecurityEventLateArrivalService";
+import {
+  SecurityEventLateArrivals,
+  lateArrivalsToJSON,
+} from "../../Types/SecurityEvent/SecurityEventLateArrival";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -75,6 +80,9 @@ function readOptionalText(body: JSONObject, key: string): string | undefined {
  *                                        YAML from a description
  *   POST /detection-rule/retrohunt       the rule run over past events: what
  *                                        it would have found
+ *   POST /detection-rule/late-arrivals   the security events that arrived more
+ *                                        than a day after they happened in the
+ *                                        last week, which no rule's run judged
  *
  * The draft is for the Detection Rules form, which fills its YAML with it
  * for the person to read and save; nothing is saved here. Asking takes the
@@ -87,6 +95,10 @@ function readOptionalText(body: JSONObject, key: string): string | undefined {
  * rule (detectionRuleId: its exceptions apply), about the rule as the form
  * holds it (sigmaRuleYaml and how it counts, with or without the id of the
  * rule being edited), or both; nothing is opened, sent or written.
+ *
+ * The late arrivals (#10491) are counts of security events by source, for
+ * the notice on Detection Rules: they take what a retrohunt takes, and
+ * count only the sources the caller may read.
  */
 export default class DetectionRuleAPI extends BaseAPI<
   DetectionRule,
@@ -205,6 +217,56 @@ export default class DetectionRuleAPI extends BaseAPI<
             req,
             res,
             detectionRetrohuntResultToJSON(result),
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    this.router.post(
+      `${basePath}/late-arrivals`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertCanReadTable({
+            modelType: DetectionRule,
+            props,
+            errorMessage:
+              "Seeing the events your rules did not check takes a role that can read detection rules.",
+          });
+
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions: new SecurityEvent().getReadPermissions(),
+            errorMessage:
+              "Seeing the events your rules did not check takes a role that can read security events.",
+          });
+
+          // Only the sources the caller may read, as every read of the events themselves.
+          const serviceFilter: TelemetryServiceFilter =
+            await TelemetryReadAccess.getServiceFilter({
+              modelType: SecurityEvent,
+              props,
+            });
+
+          const lateArrivals: SecurityEventLateArrivals =
+            await SecurityEventLateArrivalService.getLateArrivals({
+              projectId,
+              serviceFilter,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            lateArrivalsToJSON(lateArrivals),
           );
         } catch (error) {
           next(error);

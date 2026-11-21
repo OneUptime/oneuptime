@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddUserNotificationEmailRollup1791000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1791000000000-AddUserNotificationEmailRollup";
 import { AddSeverityAndStateToNotificationEmailRollup1791900000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1791900000000-AddSeverityAndStateToNotificationEmailRollup";
@@ -338,16 +339,21 @@ describe("the queue table it creates", () => {
 
           itemTableStatements++;
 
-          const addedColumn: string | undefined = statement.match(
-            /^ALTER TABLE "\w+" ADD "(\w+)" /,
-          )?.[1];
+          /*
+           * Every column a statement adds: a migration may add several in
+           * one, if each is not there yet, as the one that adds what created
+           * each record and who last modified it to every table does
+           * (AddRecordCreatedByAndLastModifiedColumns, #10290).
+           */
+          for (const added of statement.matchAll(
+            /\bADD (?:COLUMN )?(?:IF NOT EXISTS )?"(\w+)"/g,
+          )) {
+            migratedItemColumns.add(added[1]!);
+          }
+
           const droppedColumn: string | undefined = statement.match(
             /^ALTER TABLE "\w+" DROP COLUMN "(\w+)"/,
           )?.[1];
-
-          if (addedColumn) {
-            migratedItemColumns.add(addedColumn);
-          }
 
           if (droppedColumn) {
             migratedItemColumns.delete(droppedColumn);
@@ -481,7 +487,10 @@ describe("the batch ledger it creates", () => {
   test("every column the model persists exists in the table", () => {
     const persisted: Array<string> = persistedColumnsOf(
       new UserNotificationEmailRollupBatch(),
-    );
+    ).filter((columnName: string): boolean => {
+      // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+      return !RecordActorUtil.isColumn(columnName);
+    });
 
     expect(persisted.length).toBeGreaterThan(0);
 

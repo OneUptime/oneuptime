@@ -96,6 +96,20 @@ export const DETECTION_RULE_RUN_FAILED: SecurityDetectionStatus = {
   ),
 };
 
+/*
+ * A scheduled rule's run that failed (#10490): tried again at its next
+ * interval, or within the hour when that is longer, and the run that works
+ * checks every event that arrived since the last one that did - so a person
+ * knows it is not tried every minute, and that nothing is skipped.
+ */
+export const DETECTION_RULE_RUN_FAILED_TRIED_AGAIN: SecurityDetectionStatus = {
+  text: translationKey("Run failed"),
+  color: Red,
+  tooltip: translationKey(
+    "The last run failed. It is tried again at its next interval, or within the hour if that is longer, and then checks every event it missed. Open View Error for the full message.",
+  ),
+};
+
 export const DETECTION_RULE_NEEDS_ATTENTION: SecurityDetectionStatus = {
   text: translationKey("Needs attention"),
   color: Yellow,
@@ -175,9 +189,14 @@ export function getDetectionRuleStatus(
   }
 
   if (hasText(rule.lastError)) {
-    return isDetectionRunNotice(rule.lastError)
-      ? DETECTION_RULE_NEEDS_ATTENTION
-      : DETECTION_RULE_RUN_FAILED;
+    if (isDetectionRunNotice(rule.lastError)) {
+      return DETECTION_RULE_NEEDS_ATTENTION;
+    }
+
+    // A scheduled run is tried again, backing off; a real-time check runs on the next event.
+    return rule.isRealTime
+      ? DETECTION_RULE_RUN_FAILED
+      : DETECTION_RULE_RUN_FAILED_TRIED_AGAIN;
   }
 
   if (rule.isRealTime) {

@@ -5,6 +5,7 @@ import {
   Statement,
 } from "../../../../../Server/Utils/AnalyticsDatabase/Statement";
 import {
+  MAX_DETECTION_READ_PARAMETERS,
   MAX_DETECTION_READ_PARAMETER_BYTES,
   MAX_WATCHLIST_BYTES_PER_PARAMETER,
   WATCHLIST_ELEMENT,
@@ -58,6 +59,29 @@ const FIELD: Statement = new Statement(["principalUser"], []);
 // What a read too large for one request is refused with, its size in kilobytes.
 const TOO_LARGE_MESSAGE: RegExp =
   /^This rule reads more watchlist values than one read can send to the database: about [\d,]+ KB, where 900 KB fit\. Read fewer or shorter watchlists, or follow a threat intel feed for a long list\.$/;
+
+// What a read of more parameters than one request has fields for is refused with (#10520).
+const TOO_MANY_MESSAGE: RegExp =
+  /^This rule compares more values than one read can send to the database: about [\d,]+, where 900 fit\. Put a long list of values in a watchlist and match it with \|expand: a read sends a watchlist's values together\.$/;
+
+// A rule's own values, each a parameter, as the Sigma compiler sends them.
+function manyParameters(count: number): Statement {
+  const statement: Statement = SQL`principalUser IN (`;
+
+  for (let index: number = 0; index < count; index++) {
+    if (index > 0) {
+      statement.append(", ");
+    }
+
+    statement.append(
+      SQL`${{ type: TableColumnType.Text, value: `user${index}` }}`,
+    );
+  }
+
+  statement.append(")");
+
+  return statement;
+}
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -385,5 +409,48 @@ describe("what a read sends", () => {
   test("the budget sits under ClickHouse's 1 MiB for the whole URL", () => {
     expect(MAX_DETECTION_READ_PARAMETER_BYTES).toBeLessThan(1024 * 1024);
     expect(MAX_WATCHLIST_BYTES_PER_PARAMETER).toBeLessThan(128 * 1024);
+  });
+
+  test("a read of more parameters than one request has fields for is refused with what to do (#10520)", () => {
+    const statement: Statement = manyParameters(
+      MAX_DETECTION_READ_PARAMETERS + 1,
+    );
+
+    // Small in bytes: it is the count ClickHouse 26.7 refuses.
+    expect(getStatementParameterUrlBytes(statement)).toBeLessThan(
+      MAX_DETECTION_READ_PARAMETER_BYTES / 10,
+    );
+    expect(() => {
+      assertDetectionReadFits(statement);
+    }).toThrow(BadDataException);
+    expect(() => {
+      assertDetectionReadFits(statement);
+    }).toThrow(TOO_MANY_MESSAGE);
+  });
+
+  test("a read of as many parameters as fit is sent", () => {
+    expect(() => {
+      assertDetectionReadFits(manyParameters(MAX_DETECTION_READ_PARAMETERS));
+    }).not.toThrow();
+  });
+
+  test("the most parameters a read sends, with its query id, database and settings, are under the 1,000 fields ClickHouse 26.7 takes", () => {
+    const statement: Statement = manyParameters(MAX_DETECTION_READ_PARAMETERS);
+    const fields: Array<string> = Array.from(
+      toSearchParams({
+        database: "oneuptime",
+        query_id: "0192f1a0-0000-7000-8000-000000010520",
+        query_params: statement.query_params,
+        // What a read sends beside its own (AnalyticsDatabaseService, ClickhouseConfig's compression).
+        clickhouse_settings: {
+          http_wait_end_of_query: 1,
+          enable_http_compression: 1,
+          max_execution_time: 60,
+        },
+      })!.keys(),
+    );
+
+    expect(fields.length).toBeGreaterThan(MAX_DETECTION_READ_PARAMETERS);
+    expect(fields.length).toBeLessThan(1000 - 50);
   });
 });
