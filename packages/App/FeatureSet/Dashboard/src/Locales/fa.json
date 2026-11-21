@@ -61206,5 +61206,8 @@
   "{{count}} more sources": "{{count}} منبع دیگر",
   "{{count}} more sources_one": "{{count}} منبع دیگر",
   "{{source}}: {{count}} events that happened from {{from}} to {{to}}": "{{source}}: {{count}} رویداد که از {{from}} تا {{to}} رخ دادند",
-  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{count}} رویداد که از {{from}} تا {{to}} رخ داد"
+  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{count}} رویداد که از {{from}} تا {{to}} رخ داد",
+  "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "درخواستی که ارزیابی‌اش {{attempts}} بار شکست بخورد رد می‌شود. حادثه یا هشداری که یک درخواست ردشده باز یا رفع می‌کرد، ممکن است وجود نداشته باشد یا هنوز باز باشد.",
+  "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "بیش از آنچه این مانیتور نگه می‌دارد درخواست منتظر ارزیابی بود، پس قدیمی‌ترین آن‌ها رد شدند. حادثه یا هشداری که یک درخواست ردشده باز یا رفع می‌کرد، ممکن است وجود نداشته باشد یا هنوز باز باشد.",
+  "Requests not evaluated: {{skipped}}": "درخواست‌های ارزیابی‌نشده: {{skipped}}"
 }

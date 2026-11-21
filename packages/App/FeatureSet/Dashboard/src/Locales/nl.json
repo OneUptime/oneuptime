@@ -61206,5 +61206,8 @@
   "{{count}} more sources": "Nog {{count}} bronnen",
   "{{count}} more sources_one": "Nog {{count}} bron",
   "{{source}}: {{count}} events that happened from {{from}} to {{to}}": "{{source}}: {{count}} gebeurtenissen van {{from}} tot {{to}}",
-  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{count}} gebeurtenis van {{from}} tot {{to}}"
+  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{count}} gebeurtenis van {{from}} tot {{to}}",
+  "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Een verzoek wordt overgeslagen zodra de evaluatie ervan {{attempts}} keer is mislukt. Een incident of waarschuwing die een overgeslagen verzoek zou hebben geopend of opgelost, kan ontbreken of nog open staan.",
+  "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Er wachtten meer verzoeken op evaluatie dan deze monitor bewaart, dus de oudste zijn overgeslagen. Een incident of waarschuwing die een overgeslagen verzoek zou hebben geopend of opgelost, kan ontbreken of nog open staan.",
+  "Requests not evaluated: {{skipped}}": "Niet geëvalueerde verzoeken: {{skipped}}"
 }

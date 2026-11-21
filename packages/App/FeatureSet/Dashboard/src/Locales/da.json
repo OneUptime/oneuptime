@@ -61206,5 +61206,8 @@
   "{{count}} more sources": "{{count}} kilder mere",
   "{{count}} more sources_one": "{{count}} kilde mere",
   "{{source}}: {{count}} events that happened from {{from}} to {{to}}": "{{source}}: {{count}} hændelser, der skete fra {{from}} til {{to}}",
-  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{count}} hændelse, der skete fra {{from}} til {{to}}"
+  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{count}} hændelse, der skete fra {{from}} til {{to}}",
+  "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "En anmodning springes over, når evalueringen af den er mislykkedes {{attempts}} gange. En hændelse eller advarsel, som en oversprunget anmodning ville have åbnet eller løst, kan mangle eller stadig være åben.",
+  "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Flere anmodninger ventede på at blive evalueret, end denne monitor gemmer, så de ældste af dem blev sprunget over. En hændelse eller advarsel, som en oversprunget anmodning ville have åbnet eller løst, kan mangle eller stadig være åben.",
+  "Requests not evaluated: {{skipped}}": "Anmodninger, der ikke blev evalueret: {{skipped}}"
 }

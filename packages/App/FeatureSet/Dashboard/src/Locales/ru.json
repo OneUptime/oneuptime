@@ -61206,5 +61206,8 @@
   "{{count}} more sources": "Ещё источников: {{count}}",
   "{{count}} more sources_one": "Ещё {{count}} источник",
   "{{source}}: {{count}} events that happened from {{from}} to {{to}}": "{{source}}: события с {{from}} по {{to}}, всего {{count}}",
-  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{count}} событие с {{from}} по {{to}}"
+  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{count}} событие с {{from}} по {{to}}",
+  "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Запрос пропускается, когда число неудачных попыток его проверки достигает {{attempts}}. Инцидент или оповещение, которые пропущенный запрос открыл бы или устранил, могут отсутствовать или всё ещё быть открытыми.",
+  "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Запросов, ожидающих проверки, было больше, чем хранит этот монитор, поэтому самые старые из них пропущены. Инцидент или оповещение, которые пропущенный запрос открыл бы или устранил, могут отсутствовать или всё ещё быть открытыми.",
+  "Requests not evaluated: {{skipped}}": "Не проверено запросов: {{skipped}}"
 }

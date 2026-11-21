@@ -61206,5 +61206,8 @@
   "{{count}} more sources": "{{count}} orígenes más",
   "{{count}} more sources_one": "{{count}} origen más",
   "{{source}}: {{count}} events that happened from {{from}} to {{to}}": "{{source}}: {{count}} eventos que ocurrieron entre {{from}} y {{to}}",
-  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{count}} evento que ocurrió entre {{from}} y {{to}}"
+  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{count}} evento que ocurrió entre {{from}} y {{to}}",
+  "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Una solicitud se omite cuando su evaluación ha fallado {{attempts}} veces. Un incidente o una alerta que una solicitud omitida habría abierto o resuelto puede faltar o seguir abierto.",
+  "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Había más solicitudes esperando a ser evaluadas de las que este monitor conserva, así que se omitieron las más antiguas. Un incidente o una alerta que una solicitud omitida habría abierto o resuelto puede faltar o seguir abierto.",
+  "Requests not evaluated: {{skipped}}": "Solicitudes no evaluadas: {{skipped}}"
 }

@@ -61206,5 +61206,8 @@
   "{{count}} more sources": "另外 {{count}} 个来源",
   "{{count}} more sources_one": "另外 {{count}} 个来源",
   "{{source}}: {{count}} events that happened from {{from}} to {{to}}": "{{source}}：{{count}} 个事件，发生于 {{from}} 至 {{to}}",
-  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}：{{count}} 个事件，发生于 {{from}} 至 {{to}}"
+  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}：{{count}} 个事件，发生于 {{from}} 至 {{to}}",
+  "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "请求的评估失败 {{attempts}} 次后会被跳过。被跳过的请求本应打开或解决的事件或警报可能缺失，或仍处于打开状态。",
+  "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "等待评估的请求超过了此监视器保留的数量，因此跳过了其中最早的请求。被跳过的请求本应打开或解决的事件或警报可能缺失，或仍处于打开状态。",
+  "Requests not evaluated: {{skipped}}": "未评估的请求：{{skipped}}"
 }

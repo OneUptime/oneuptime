@@ -61206,5 +61206,8 @@
   "{{count}} more sources": "مصادر أخرى: {{count}}",
   "{{count}} more sources_one": "مصدر آخر: {{count}}",
   "{{source}}: {{count}} events that happened from {{from}} to {{to}}": "{{source}}: أحداث وقعت من {{from}} إلى {{to}}، عددها {{count}}",
-  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: حدث وقع من {{from}} إلى {{to}}، عدده {{count}}"
+  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: حدث وقع من {{from}} إلى {{to}}، عدده {{count}}",
+  "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "يُتخطى الطلب حين يبلغ عدد محاولات تقييمه الفاشلة {{attempts}}. قد تكون الحادثة أو التنبيه الذي كان سيفتحه أو يحله طلب مُتخطى مفقودًا أو لا يزال مفتوحًا.",
+  "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "كانت الطلبات المنتظرة للتقييم أكثر مما تحتفظ به هذه المراقبة، لذا تُخطيت أقدمها. قد تكون الحادثة أو التنبيه الذي كان سيفتحه أو يحله طلب مُتخطى مفقودًا أو لا يزال مفتوحًا.",
+  "Requests not evaluated: {{skipped}}": "الطلبات غير المقيّمة: {{skipped}}"
 }

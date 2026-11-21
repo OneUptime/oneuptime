@@ -61206,5 +61206,8 @@
   "{{count}} more sources": "{{count}} autres sources",
   "{{count}} more sources_one": "{{count}} autre source",
   "{{source}}: {{count}} events that happened from {{from}} to {{to}}": "{{source}} : {{count}} événements survenus du {{from}} au {{to}}",
-  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}} : {{count}} événement survenu du {{from}} au {{to}}"
+  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}} : {{count}} événement survenu du {{from}} au {{to}}",
+  "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Une requête est ignorée dès que son évaluation a échoué {{attempts}} fois. Un incident ou une alerte qu'une requête ignorée aurait ouvert ou résolu peut manquer ou être encore ouvert.",
+  "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Plus de requêtes attendaient d'être évaluées que ce moniteur n'en conserve, donc les plus anciennes ont été ignorées. Un incident ou une alerte qu'une requête ignorée aurait ouvert ou résolu peut manquer ou être encore ouvert.",
+  "Requests not evaluated: {{skipped}}": "Requêtes non évaluées : {{skipped}}"
 }

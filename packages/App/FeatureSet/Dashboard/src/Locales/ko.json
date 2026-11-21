@@ -61206,5 +61206,8 @@
   "{{count}} more sources": "그 밖의 소스 {{count}}개",
   "{{count}} more sources_one": "그 밖의 소스 {{count}}개",
   "{{source}}: {{count}} events that happened from {{from}} to {{to}}": "{{source}}: {{from}}부터 {{to}}까지 발생한 이벤트 {{count}}개",
-  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{from}}부터 {{to}}까지 발생한 이벤트 {{count}}개"
+  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{from}}부터 {{to}}까지 발생한 이벤트 {{count}}개",
+  "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "요청은 평가가 {{attempts}}번 실패하면 건너뜁니다. 건너뛴 요청이 열거나 해결했을 인시던트나 경고가 없거나 아직 열려 있을 수 있습니다.",
+  "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "이 모니터가 보관하는 것보다 많은 요청이 평가를 기다리고 있어서 가장 오래된 요청을 건너뛰었습니다. 건너뛴 요청이 열거나 해결했을 인시던트나 경고가 없거나 아직 열려 있을 수 있습니다.",
+  "Requests not evaluated: {{skipped}}": "평가되지 않은 요청: {{skipped}}"
 }

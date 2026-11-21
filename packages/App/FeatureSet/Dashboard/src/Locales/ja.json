@@ -61206,5 +61206,8 @@
   "{{count}} more sources": "ほか {{count}} 件のソース",
   "{{count}} more sources_one": "ほか {{count}} 件のソース",
   "{{source}}: {{count}} events that happened from {{from}} to {{to}}": "{{source}}: {{from}} から {{to}} までに発生した {{count}} 件のイベント",
-  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{from}} から {{to}} までに発生した {{count}} 件のイベント"
+  "{{source}}: {{count}} events that happened from {{from}} to {{to}}_one": "{{source}}: {{from}} から {{to}} までに発生した {{count}} 件のイベント",
+  "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "リクエストは、評価が {{attempts}} 回失敗するとスキップされます。スキップされたリクエストが開いたり解決したりするはずだったインシデントやアラートは、存在しないか、開いたままになっている可能性があります。",
+  "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "このモニターが保持できる数を超えるリクエストが評価を待っていたため、最も古いものがスキップされました。スキップされたリクエストが開いたり解決したりするはずだったインシデントやアラートは、存在しないか、開いたままになっている可能性があります。",
+  "Requests not evaluated: {{skipped}}": "評価されなかったリクエスト: {{skipped}}"
 }
