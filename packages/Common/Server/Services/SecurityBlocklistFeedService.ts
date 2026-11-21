@@ -18,9 +18,13 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import HashedString from "../../Types/HashedString";
 import ObjectID from "../../Types/ObjectID";
 import {
+  getSecurityBlocklistFeedDefaultFamily,
+  getSecurityBlocklistFeedDefaultName,
+} from "../../Types/SecurityBlocklist/SecurityBlocklistFeedSetup";
+import {
+  SECURITY_BLOCKLIST_FEED_FIREWALL_NAMES,
   SECURITY_BLOCKLIST_FEED_SECRET_GRACE_IN_MS,
   SecurityBlocklistFeedAllowlist,
-  SecurityBlocklistFeedFamily,
   SecurityBlocklistFeedFirewall,
   getSecurityBlocklistFeedSecretHint,
   isPreviousSecurityBlocklistFeedSecretInGrace,
@@ -447,19 +451,26 @@ export class Service extends ProjectReferencesService<Model> {
       unknown
     >;
 
-    if (data["name"] === undefined) {
-      data["name"] = "";
-    }
-
-    this.normalizeSettings(data);
-
     if (!createBy.data.firewall) {
       createBy.data.firewall = SecurityBlocklistFeedFirewall.Other;
     }
 
-    if (!createBy.data.family) {
-      createBy.data.family = SecurityBlocklistFeedFamily.Both;
+    // Asked only what cannot be worked out: a feed is named after its firewall unless someone names it.
+    if (typeof data["name"] !== "string" || !data["name"].trim()) {
+      data["name"] = getSecurityBlocklistFeedDefaultName(
+        createBy.data.firewall,
+        SECURITY_BLOCKLIST_FEED_FIREWALL_NAMES,
+      );
     }
+
+    // What its firewall's maker documents: IPv4 for Check Point, both for the rest.
+    if (!createBy.data.family) {
+      createBy.data.family = getSecurityBlocklistFeedDefaultFamily(
+        createBy.data.firewall,
+      );
+    }
+
+    this.normalizeSettings(data);
 
     const secret: string = this.generateSecret();
     const now: Date = OneUptimeDate.getCurrentDate();
