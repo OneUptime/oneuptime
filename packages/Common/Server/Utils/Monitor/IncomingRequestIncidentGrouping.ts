@@ -6,6 +6,8 @@ import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/Incom
 import IncidentGroupingConfig from "../../../Types/Monitor/IncomingMonitor/IncidentGroupingConfig";
 import { CheckOn, FilterType } from "../../../Types/Monitor/CriteriaFilter";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import {
   MonitorEvaluationFilterResult,
   MonitorEvaluationGroupingNote,
@@ -471,6 +473,28 @@ export default class IncomingRequestIncidentGrouping {
     criteriaInstance: MonitorCriteriaInstance | undefined,
   ): boolean {
     return Boolean(criteriaInstance?.data?.incidentGrouping?.groupByJSONPath);
+  }
+
+  /**
+   * Whether a criteria of the monitor, in any of its steps, groups by a
+   * payload field - the criteria MonitorResource reads a request's
+   * recoveries with. Then every request it receives may be about another
+   * value, so the Telemetry worker evaluates each one in turn, where a
+   * monitor without grouping evaluates only its newest
+   * (ProcessIncomingRequestIngest, #10582).
+   */
+  public static isGroupingConfiguredOnMonitor(
+    monitorSteps: MonitorSteps | undefined | null,
+  ): boolean {
+    return (monitorSteps?.data?.monitorStepsInstanceArray || []).some(
+      (step: MonitorStep | undefined): boolean => {
+        return (
+          step?.data?.monitorCriteria?.data?.monitorCriteriaInstanceArray || []
+        ).some((criteriaInstance: MonitorCriteriaInstance): boolean => {
+          return this.isGroupingConfigured(criteriaInstance);
+        });
+      },
+    );
   }
 
   /**
