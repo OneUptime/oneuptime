@@ -19,10 +19,8 @@ import OneUptimeAwsSessions, {
   ONEUPTIME_AWS_SESSION_KEPT_AFTER_EXPIRY_MS,
   OneUptimeAwsSessionKey,
 } from "../../../../Server/Utils/CloudConnection/Aws/OneUptimeAwsSessions";
-import {
-  AwsCredentials,
-  CloudConnectionSettings,
-} from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
+import { AwsCredentials } from "../../../../Server/Utils/CloudConnection/Aws/AwsApi";
+import { CloudConnectionSettings } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
 import AmazonSesProjectRole from "../../../../Server/Utils/Mail/AmazonSesProjectRole";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import { CloudConnectionAuthMethod } from "../../../../Types/CloudConnection/CloudConnectionCatalog";

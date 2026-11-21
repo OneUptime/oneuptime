@@ -85,7 +85,7 @@ function install(
 
   jest
     .spyOn(DetectionRuleService, "updateOneById")
-    .mockImplementation(async (data: unknown): Promise<void> => {
+    .mockImplementation(async (data: unknown): Promise<number> => {
       const update: { id: ObjectID; data: JSONObject } = data as {
         id: ObjectID;
         data: JSONObject;
@@ -96,6 +96,9 @@ function install(
       }
 
       installed.updates.push({ id: update.id.toString(), data: update.data });
+
+      // The rows it saved, as the service returns them.
+      return 1;
     });
 
   jest.spyOn(logger, "info").mockImplementation((): void => {

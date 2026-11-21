@@ -224,6 +224,11 @@ async function changeEventRowsOf(
       madeInOwnSession: (own.get(change) as never) || null,
     });
 
+    // A CloudTrail change always has its time; one without would be stamped on arrival.
+    if (!entry.time) {
+      throw new Error("A recorded change with no time");
+    }
+
     return {
       timeInMs: String(entry.time.getTime()),
       attributes: entry.attributes as unknown as JSONObject,

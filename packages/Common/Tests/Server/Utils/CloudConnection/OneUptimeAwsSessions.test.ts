@@ -266,13 +266,13 @@ describe("isOneUptimeAwsSession", () => {
   test("a key OneUptime remembers for another connection's role is not this session's", () => {
     expect(
       isOneUptimeAwsSession(callerOf(ownRecord()), {
+        ...REMEMBERED,
         connectionId: OTHER_CONNECTION_ID,
-        roleArn: RECORDED_ROLE_ARN,
       }),
     ).toBe(false);
     expect(
       isOneUptimeAwsSession(callerOf(ownRecord()), {
-        connectionId: RECORDED_CONNECTION_ID,
+        ...REMEMBERED,
         roleArn: `arn:aws:iam::${RECORDED_ACCOUNT_ID}:role/AnotherRole`,
       }),
     ).toBe(false);
