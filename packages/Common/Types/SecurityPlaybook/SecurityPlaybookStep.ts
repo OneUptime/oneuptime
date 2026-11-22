@@ -1,4 +1,8 @@
 import ColumnLength from "../Database/ColumnLength";
+import {
+  CaCertificateProblem,
+  getCaCertificateShapeProblem,
+} from "../Runbook/HttpStepCertificates";
 import BadDataException from "../Exception/BadDataException";
 import { JSONObject, JSONValue } from "../JSON";
 import ObjectID from "../ObjectID";
@@ -200,8 +204,19 @@ export function readBlockAddressConfig(config: JSONObject): BlockAddressConfig {
   };
 }
 
+/*
+ * Where the case is posted, and how the receiver's certificate is checked:
+ * as every request does, by a CA certificate of the step's own, or not at
+ * all - the two settings of a Runbook HTTP step and a workflow's API steps
+ * (#10440, Types/Runbook/HttpStepCertificates), under the step's More
+ * fields, read as there. Each is kept only while it is set.
+ */
 export interface SendWebhookConfig {
   url: string;
+  // On only when exactly true.
+  allowSelfSignedCertificates?: boolean | undefined;
+  // PEM; not used while allowSelfSignedCertificates is on.
+  caCertificate?: string | undefined;
 }
 
 export interface RunWorkflowConfig {
@@ -266,6 +281,80 @@ function readObject(value: JSONValue | undefined): JSONObject {
   }
 
   return {};
+}
+
+/*
+ * What a save is told when a Send Webhook step's certificate settings are
+ * not ones it can run with, after the step's label.
+ */
+export const SEND_WEBHOOK_CA_CERTIFICATE_MESSAGES: Record<
+  CaCertificateProblem,
+  string
+> = {
+  [CaCertificateProblem.NotACertificate]:
+    "the CA certificate is not a certificate in PEM. Paste the CA's certificate, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----.",
+  [CaCertificateProblem.PrivateKey]:
+    "the CA certificate holds a private key, where everyone who may read this playbook could read it. Paste only the certificate, and keep the key on the server.",
+  [CaCertificateProblem.TooLong]:
+    "the CA certificate is longer than 64 KB. Paste only the certificate of the CA that signed the server's certificate.",
+};
+
+/*
+ * A Send Webhook step's certificate settings, as a save keeps them: the
+ * switch only when exactly true, and anything else but false refused (a
+ * "true" written through the API would read as on and is not); the CA
+ * certificate trimmed, kept while it is a certificate in PEM. While the
+ * switch is on the certificate is not used, so only what must never be kept
+ * in a step is refused then: a private key. The server also parses each
+ * certificate (SecurityPlaybookService).
+ */
+function readWebhookCertificateConfig(
+  config: JSONObject,
+  label: string,
+): Pick<SendWebhookConfig, "allowSelfSignedCertificates" | "caCertificate"> {
+  const allowSelfSigned: JSONValue | undefined =
+    config["allowSelfSignedCertificates"];
+
+  if (
+    allowSelfSigned !== undefined &&
+    allowSelfSigned !== null &&
+    typeof allowSelfSigned !== "boolean"
+  ) {
+    throw new BadDataException(
+      `${label}: set allowSelfSignedCertificates to true to skip the server's certificate checks, or to false to keep them.`,
+    );
+  }
+
+  const rawCaCertificate: JSONValue | undefined = config["caCertificate"];
+
+  if (
+    rawCaCertificate !== undefined &&
+    rawCaCertificate !== null &&
+    typeof rawCaCertificate !== "string"
+  ) {
+    throw new BadDataException(
+      `${label}: set caCertificate to the CA's certificate in PEM, or leave it out.`,
+    );
+  }
+
+  const caCertificate: string =
+    typeof rawCaCertificate === "string" ? rawCaCertificate.trim() : "";
+  const problem: CaCertificateProblem | null =
+    getCaCertificateShapeProblem(caCertificate);
+
+  if (
+    problem === CaCertificateProblem.PrivateKey ||
+    (problem && allowSelfSigned !== true)
+  ) {
+    throw new BadDataException(
+      `${label}: ${SEND_WEBHOOK_CA_CERTIFICATE_MESSAGES[problem]}`,
+    );
+  }
+
+  return {
+    ...(allowSelfSigned === true ? { allowSelfSignedCertificates: true } : {}),
+    ...(caCertificate && !problem ? { caCertificate } : {}),
+  };
 }
 
 function readText(config: JSONObject, key: string): string {
@@ -597,7 +686,7 @@ export function normalizeSecurityPlaybookStepConfig(
         );
       }
 
-      return { url };
+      return { url, ...readWebhookCertificateConfig(rawConfig, label) };
     }
 
     case SecurityPlaybookActionType.RunWorkflow:

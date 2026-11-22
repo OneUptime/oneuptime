@@ -14,6 +14,17 @@ import SafeWebhookRequest, {
   WebhookTarget,
 } from "Common/Server/Utils/SafeWebhookRequest";
 import { WebhookTargetValidationOptions } from "Common/Server/Utils/SSRFProtection";
+import { TargetTlsOptions } from "Common/Server/Utils/OutboundProxyAgents";
+import { getCaCertificateProblem } from "Common/Server/Utils/Runbook/HttpStepCaCertificate";
+import {
+  CaCertificateProblem,
+  HTTP_STEP_CA_CERTIFICATE_PROBLEM_MESSAGES,
+  HttpStepCertificateSettings,
+  getHttpStepCertificateFailureMessage,
+  getHttpStepCertificateSettings,
+} from "Common/Types/Runbook/HttpStepCertificates";
+import { WebhookCertificates } from "Common/Types/Webhook/WebhookMessage";
+import { getRequestErrorCode } from "Common/Utils/RequestErrorCode";
 import NotificationDeliveryMetrics, {
   NotificationDeliveryChannel,
   NotificationDeliveryProvider,
@@ -40,6 +51,31 @@ export interface WebhookSendInput {
   eventType: string;
   payload: JSONObject;
   secret?: string | undefined;
+  /*
+   * How the receiver's certificate is checked, for a step that has the
+   * settings (a playbook's Send Webhook, #10440): for this request alone.
+   * Absent, it is checked as every request checks one.
+   */
+  certificates?: WebhookCertificates | undefined;
+}
+
+/*
+ * The request's TLS options for a step's certificate settings: none, no
+ * check at all, or its CA certificate alone, the host name and the dates
+ * still checked.
+ */
+function getTlsOptions(
+  settings: HttpStepCertificateSettings | null,
+): TargetTlsOptions | undefined {
+  if (!settings) {
+    return undefined;
+  }
+
+  if (settings.skipsCertificateChecks) {
+    return { rejectUnauthorized: false };
+  }
+
+  return settings.caCertificate ? { ca: settings.caCertificate } : undefined;
 }
 
 export interface WebhookSendOptions {
@@ -131,6 +167,23 @@ export default class WebhookService {
       webhookLog.onCallDutyPolicyScheduleId = options.onCallScheduleId;
     }
 
+    /*
+     * A step's certificate settings, read as a Runbook HTTP step reads its
+     * own (Types/Runbook/HttpStepCertificates): null for a webhook that has
+     * none, whose certificate is checked as every request's.
+     */
+    const certificates: HttpStepCertificateSettings | null =
+      message.certificates
+        ? getHttpStepCertificateSettings({
+            allowSelfSignedCertificates:
+              message.certificates.allowSelfSignedCertificates === true,
+            ...(message.certificates.caCertificate
+              ? { caCertificate: message.certificates.caCertificate }
+              : {}),
+          })
+        : null;
+    let receiverHost: string = "";
+
     try {
       if (!message.url) {
         throw new BadDataException("Webhook URL is required");
@@ -149,6 +202,25 @@ export default class WebhookService {
         message.url,
         WEBHOOK_TARGET_VALIDATION,
       );
+
+      receiverHost = target.url.hostname;
+
+      /*
+       * A CA certificate that is not one is refused before anything is sent:
+       * Node takes text that is not a certificate without a word. A save
+       * checks it already; this is for a step stored before that check.
+       */
+      if (certificates?.caCertificate) {
+        const problem: CaCertificateProblem | null = getCaCertificateProblem(
+          certificates.caCertificate,
+        );
+
+        if (problem) {
+          throw new BadDataException(
+            HTTP_STEP_CA_CERTIFICATE_PROBLEM_MESSAGES[problem],
+          );
+        }
+      }
 
       const bodyString: string = JSON.stringify(message.payload || {});
 
@@ -181,6 +253,8 @@ export default class WebhookService {
           timeout: WEBHOOK_REQUEST_TIMEOUT_MS,
           // The status, and the first 2,000 characters for the log, are all that is read.
           maxContentLength: WEBHOOK_MAX_RESPONSE_BYTES,
+          // This request's alone: never the proxy's connection, nor another's.
+          tls: getTlsOptions(certificates),
         });
 
       const statusCode: number =
@@ -227,8 +301,24 @@ export default class WebhookService {
       logger.error("Failed to send webhook.", EXTERNAL_FAULT);
       logger.error(error, EXTERNAL_FAULT);
       webhookLog.status = WebhookStatus.Error;
-      const errorMessage: string =
-        error instanceof Error && error.message
+
+      /*
+       * For a step that has the certificate settings, a certificate it
+       * refused says why and which of them would let it through, the safer
+       * first, as a Runbook HTTP step's does.
+       */
+      const certificateMessage: string | null =
+        certificates && receiverHost
+          ? getHttpStepCertificateFailureMessage({
+              code: getRequestErrorCode(error),
+              host: receiverHost,
+              settings: certificates,
+            })
+          : null;
+
+      const errorMessage: string = certificateMessage
+        ? certificateMessage
+        : error instanceof Error && error.message
           ? error.message
           : `${error as string}`;
       // Kept, with the address it may quote masked as the log's address is.
@@ -237,7 +327,11 @@ export default class WebhookService {
         message.url,
       );
 
-      sendError = error instanceof Error ? error : new Error(errorMessage);
+      sendError = certificateMessage
+        ? new BadDataException(certificateMessage)
+        : error instanceof Error
+          ? error
+          : new Error(errorMessage);
     }
 
     if (options.projectId) {
