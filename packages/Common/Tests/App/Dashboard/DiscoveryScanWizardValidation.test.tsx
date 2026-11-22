@@ -1699,10 +1699,15 @@ describe("Name identifies the scan in the list", () => {
     expect(edit?.isVisible?.(scan)).toBe(true);
   });
 
-  test("a one-time scan reads as one-time", async () => {
+  /*
+   * A scan that does not repeat runs when it is created and whenever someone
+   * presses Run Again (issue #10334): "On demand", where "One-time" said it
+   * ran once and never again.
+   */
+  test("a scan that does not repeat reads as on demand", async () => {
     await renderPage();
 
-    expect(renderRecurrenceCell({ isRecurring: false })).toContain("One-time");
+    expect(renderRecurrenceCell({ isRecurring: false })).toContain("On demand");
   });
 
   test("a scheduled recurring scan says when it next runs", async () => {
@@ -3486,10 +3491,10 @@ describe("long status messages wrap inside their own column (issue #3585)", () =
   });
 
   // The two branches the fix had no business touching at all.
-  test("a one-time scan still reads as one-time", async () => {
+  test("a scan that does not repeat still reads as on demand", async () => {
     await renderPage();
 
-    expect(renderRecurrenceCell({ isRecurring: false })).toBe("One-time");
+    expect(renderRecurrenceCell({ isRecurring: false })).toBe("On demand");
   });
 
   test("a scheduled scan still hangs the exact date off a tooltip", async () => {

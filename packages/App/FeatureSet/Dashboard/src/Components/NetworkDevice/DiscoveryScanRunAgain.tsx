@@ -61,7 +61,9 @@ const DiscoveryScanRunAgain: FunctionComponent<DiscoveryScanRunAgainProps> = (
 
   const scan: NetworkDeviceDiscoveryScan = props.scan;
   const scanId: string = scan._id?.toString() || "";
-  const scanLabel: string = ScanNameUtil.getScanLabel(scan) || "";
+  // As the row's first line names it: its name, else the range it sweeps.
+  const scanLabel: string =
+    ScanNameUtil.getDisplayName(scan) || scan.cidr?.trim() || "";
   const lastRunAt: Date | null = getDiscoveryScanLastRunAt(scan);
   const requester: string | null = getDiscoveryScanRunRequester(scan);
   const canRunAgain: boolean =
