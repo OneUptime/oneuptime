@@ -2280,8 +2280,14 @@ export default class SecurityCaseNotifications {
 
     // Under the id it was read by: a membership's user carries none of its own.
     const account: User = new User(userId);
-    account.name = user?.name;
-    account.email = user?.email;
+
+    if (user?.name) {
+      account.name = user.name;
+    }
+
+    if (user?.email) {
+      account.email = user.email;
+    }
 
     return {
       userId,
