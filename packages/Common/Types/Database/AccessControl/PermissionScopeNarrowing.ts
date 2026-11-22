@@ -1119,6 +1119,7 @@ const NARROWED_BY_OWNERS: ReadonlyArray<Permission> = [
   Permission.ReadFormOIDC,
   Permission.ReadFormPrivateUser,
   Permission.ReadFormSSO,
+  Permission.ReadSecurityCaseAiAction,
   Permission.ReadSecurityCaseEvidence,
   Permission.ReadSecurityCaseFeed,
   Permission.ReadSecurityCaseNote,

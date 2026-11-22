@@ -180,6 +180,7 @@ enum EmailTemplateType {
   SecurityCaseTargetDue = "SecurityCaseTargetDue.hbs",
   SecurityCaseTaskAssigned = "SecurityCaseTaskAssigned.hbs",
   SecurityCaseStepRegressed = "SecurityCaseStepRegressed.hbs",
+  SecurityCaseAiHandedOff = "SecurityCaseAiHandedOff.hbs",
   // A scheduled hunt found security events (SecurityHuntNotifications).
   SecurityHuntFound = "SecurityHuntFound.hbs",
 

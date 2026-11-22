@@ -396,6 +396,9 @@ enum Permission {
   // Security Case Step Checks (what OneUptime found of a Response Plan step, written by OneUptime)
   ReadSecurityCaseStepCheck = "ReadSecurityCaseStepCheck",
 
+  // Security Case AI Actions (what OneUptime AI did, asked or left on a case it works, written by OneUptime)
+  ReadSecurityCaseAiAction = "ReadSecurityCaseAiAction",
+
   // Security Case Evidence (files and links kept on a case)
   CreateSecurityCaseEvidence = "CreateSecurityCaseEvidence",
   DeleteSecurityCaseEvidence = "DeleteSecurityCaseEvidence",
@@ -9482,6 +9485,18 @@ export class PermissionHelper {
         title: "Read Security Case Step Check",
         description:
           "This permission can read what OneUptime found when it checked the steps of Security Cases' Response Plans of this project, and the evidence for it.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Case AI Action Permissions
+      {
+        permission: Permission.ReadSecurityCaseAiAction,
+        title: "Read Security Case AI Action",
+        description:
+          "This permission can read what OneUptime AI did, asked a person about or left to a person on the Security Cases of this project it works, and why.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

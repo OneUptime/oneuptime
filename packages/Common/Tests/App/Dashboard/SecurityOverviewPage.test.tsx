@@ -237,6 +237,8 @@ function overview(
     riskiestEntities: { threshold: 100, total: 0, entities: [] },
     priorities: PRIORITY_VALUES,
     statuses: STATUS_VALUES,
+    // OneUptime AI has worked no case: its figures are not drawn.
+    aiMeasures: null,
     ...top,
   };
 }
@@ -1621,6 +1623,57 @@ describe("a project with Security set up", () => {
       "href",
       routeFor(PageMap.SECURITY_CASES),
     );
+  });
+
+  // How OneUptime AI worked the cases (#10352), once it worked or asked about one.
+  test("OneUptime AI's figures follow the case figures once it has worked a case, and are not drawn before", async () => {
+    answerStatus(status({ ...SET_UP, openCases: 1 }));
+    answerOverview(
+      overview(
+        { openCases: 1, casesOpenedInWindow: 3, casesClosedInWindow: 2 },
+        {
+          aiMeasures: {
+            casesWorkedByAi: 3,
+            casesResolvedByAi: 2,
+            meanTimeToContainWithAiInMinutes: 12,
+            meanTimeToContainWithoutAiInMinutes: 190,
+            meanTimeToCloseWithAiInMinutes: 1500,
+            meanTimeToCloseWithoutAiInMinutes: null,
+            approvalsAsked: 4,
+            approvalsAnswered: 3,
+            medianTimeToAnswerInMinutes: 6,
+            stepsUndone: 1,
+            hasActivity: true,
+          },
+        },
+      ),
+    );
+    await renderPage();
+
+    const ai: HTMLElement = screen.getByRole("group", {
+      name: "OneUptime AI figures",
+    });
+
+    expect(within(ai).getByText("Resolved by OneUptime AI")).toBeVisible();
+    expect(within(ai).getByText("Of 3 cases it worked")).toBeVisible();
+    expect(within(ai).getByText("Time to Contain with AI")).toBeVisible();
+    expect(within(ai).getByText("3 h 10 min without AI")).toBeVisible();
+    expect(within(ai).getByText("Approvals Asked")).toBeVisible();
+    expect(within(ai).getByText("1 step people undid")).toBeVisible();
+    // Under the case figures, as they are drawn.
+    expect(
+      figures().compareDocumentPosition(ai) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("a project whose cases OneUptime AI has not worked sees no AI figures", async () => {
+    answerStatus(status({ ...SET_UP, openCases: 1 }));
+    answerOverview(overview({ openCases: 1, casesOpenedInWindow: 1 }));
+    await renderPage();
+
+    expect(
+      screen.queryByRole("group", { name: "OneUptime AI figures" }),
+    ).toBeNull();
   });
 
   test("urgent cases read on the pipeline and turn the band red, and the figures below keep to the timings instead of counting the open cases again", async () => {

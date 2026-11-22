@@ -4795,10 +4795,24 @@
       "ai triage",
       "triage new cases",
       "oneuptime ai security",
-      "automatic triage"
+      "automatic triage",
+      "automatic response",
+      "ai response",
+      "block on its own",
+      "what oneuptime ai may do"
     ],
     "path": "/dashboard/:projectId/security-events/ai/settings",
     "kind": "page"
+  },
+  {
+    "title": "Work cases end to end",
+    "where": [
+      "Security Events",
+      "AI",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/security-events/ai/settings",
+    "kind": "setting"
   },
   {
     "title": "Slack",
