@@ -205,13 +205,6 @@ const PUSH: Buffer = Buffer.from(
   ).finish(),
 );
 
-// An AgentToServer as the OpAMP supervisor posts it: its instance uid, field 1.
-const AGENT_TO_SERVER: Buffer = Buffer.from([
-  0x0a,
-  0x10,
-  ...crypto.randomBytes(16),
-]);
-
 const RANDOM: SeededRandom = seededRandom(10702);
 
 // Bytes drawn from the shared seeded generator: they do not compress.
@@ -224,6 +217,12 @@ const noise: (bytes: number) => Buffer = (bytes: number): Buffer => {
 
   return buffer;
 };
+
+// An AgentToServer as the OpAMP supervisor posts it: its instance uid, field 1.
+const AGENT_TO_SERVER: Buffer = Buffer.concat([
+  Buffer.from([0x0a, 0x10]),
+  noise(16),
+] as unknown as Array<Uint8Array>);
 
 const json: (value: unknown) => Buffer = (value: unknown): Buffer => {
   return Buffer.from(JSON.stringify(value));
