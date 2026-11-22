@@ -70,9 +70,9 @@ flowchart TB
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | 직접 운영하는 데이터베이스 | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | 로그, 트레이스, 예외, 세션 리플레이, AI 대화, 메트릭 | 로그, 트레이스, 예외, 세션 리플레이, AI 대화, 메트릭 |
+| OneUptime | 로그, 트레이스, 예외, 세션 리플레이, AI 대화, 메트릭, 보안 이벤트, Network Flows, 보안 주소 보관소 | 로그, 트레이스, 예외, 세션 리플레이, AI 대화, 메트릭 |
 
-모든 저장소는 그 종류에 해당하는 검사를 받습니다. 콘텐츠를 샘플링할 수 없는 저장소도 검사합니다. 공개 버킷이나 암호화되지 않은 데이터베이스는 무엇을 담고 있든 문제이기 때문입니다.
+모든 저장소는 그 종류에 해당하는 검사를 받습니다. 콘텐츠를 샘플링할 수 없는 저장소도 검사합니다. 공개 버킷이나 암호화되지 않은 데이터베이스는 무엇을 담고 있든 문제이기 때문입니다. 보안 이벤트, Network Flows, 보안 주소 보관소는 OneUptime이 보안을 위해 보관하는 자체 저장소입니다. 선언된 저장소로, 스캔하거나 검사하지 않습니다([OneUptime이 보안을 위해 보관하는 저장소](/docs/data-security/compliance#oneuptime이-보안을-위해-보관하는-저장소) 참고).
 
 소스에 더 이상 나열되지 않는 저장소는 기록과 함께 보관 처리되고 열린 이슈가 해결되며, 데이터 보안 메뉴 맨 끝의 **보관된 저장소** 에 남습니다. 소스에 다시 나열되면 저절로 돌아오고, 검사가 여전히 실패하는 이슈는 다시 열립니다.
 

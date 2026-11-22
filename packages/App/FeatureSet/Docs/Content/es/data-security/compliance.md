@@ -177,7 +177,7 @@ Los Miembros de seguridad, los Administradores de seguridad, los Administradores
 
 ## Registro de actividades de tratamiento
 
-El artículo 30 del RGPD te pide llevar un registro de tus actividades de tratamiento. Seguridad de datos redacta la parte que trata de dónde se guardan los datos personales: una fila por cada almacén que contiene datos personales.
+El artículo 30 del RGPD te pide llevar un registro de tus actividades de tratamiento. Seguridad de datos redacta la parte que trata de dónde se guardan los datos personales: una fila por cada almacén que contiene datos personales. Es la tarjeta **Registro de tratamiento** al final de **Seguridad de datos → Cumplimiento**, con **Exportar CSV** y **Exportar JSON**.
 
 | Columna | De dónde sale |
 | --- | --- |
@@ -185,11 +185,27 @@ El artículo 30 del RGPD te pide llevar un registro de tus actividades de tratam
 | Entorno | Las etiquetas o el nombre del almacén, o lo que fijes tú |
 | Sensibilidad, categorías y tipos de datos | Lo que encontraron los escaneos, o la sensibilidad que fijes tú |
 | Propietarios | Los propietarios del almacén: personas y los miembros de sus equipos |
-| Finalidad | Lo que escribas en la **Finalidad** del almacén: por qué contiene datos personales |
-| Retención | Lo que escribas en la **Retención** del almacén: cuánto tiempo se guardan los datos en él |
+| Finalidad | Lo que escribas en la **Finalidad** del almacén: por qué contiene datos personales. OneUptime la completa en los almacenes que conserva para tu seguridad |
+| Retención | Lo que escribas en la **Retención** del almacén: cuánto tiempo se guardan los datos en él. OneUptime la completa en los almacenes que conserva para tu seguridad |
+| Quién puede leer | Quién puede leer un almacén que OneUptime conserva para tu seguridad |
 | Marcos | Los marcos que sus tipos de datos incluyen en el alcance |
+| Declarado por | OneUptime, en los almacenes que conserva para tu seguridad |
 
-Rellena **Finalidad** y **Retención** en los **Ajustes** de cada almacén: son las dos cosas que ningún escaneo puede saber. La API de Seguridad de datos también devuelve el registro y las puntuaciones, en `/data-security/record-of-processing`, `/data-security/compliance` y, para un solo recurso, `/data-security/resource-compliance`, a quien pueda leer almacenes de datos (consulta [Integraciones de Seguridad de datos](/docs/data-security/integrations#api-terraform-y-mcp)).
+En un almacén que encontró Seguridad de datos, rellena **Finalidad** y **Retención** en sus **Ajustes**: ningún escaneo puede saberlas. La API de Seguridad de datos también devuelve el registro y las puntuaciones, en `/data-security/record-of-processing`, `/data-security/compliance` y, para un solo recurso, `/data-security/resource-compliance`, a quien pueda leer almacenes de datos (consulta [Integraciones de Seguridad de datos](/docs/data-security/integrations#api-terraform-y-mcp)).
+
+### Almacenes que OneUptime conserva para tu seguridad
+
+Tres almacenes contienen direcciones IP a propósito, para proteger tu red: **Eventos de seguridad**, **Flujos de red** y **Bóveda de direcciones de seguridad**. El registro incluye cada uno que tenga tu proyecto. OneUptime los declara en lugar de encontrarlos: lo que contienen se conoce por diseño, así que ningún escaneo los lee, ninguna comprobación se les aplica, y que contengan estas direcciones nunca es un problema, porque para eso existen. Llevan la marca **Declarado por OneUptime** en **Almacenes de datos**, y la **Vista general** y las puntuaciones de los marcos los dejan fuera.
+
+| Almacén | Qué contiene | Retención | Quién puede leerlo |
+| --- | --- | --- | --- |
+| Eventos de seguridad | Las direcciones IP, nombres de usuario y direcciones de correo de quién actuó y de lo que tocó | La [retención de telemetría](/docs/telemetry/data-retention) de tu proyecto, leída cada vez que se lee el registro, así que un cambio se aplica enseguida | Propietarios del proyecto, Administradores del proyecto, Administradores de seguridad, Miembros de seguridad, Visores de seguridad y cualquiera con Read Security Event |
+| Flujos de red | Las direcciones IP de quién se comunicó con quién | 30 días después de que llega un flujo | Quien pueda leer dispositivos de red |
+| Bóveda de direcciones de seguridad | La dirección IP detrás de cada token que una regla de dirección IP que aplica hash dejó en los registros y las trazas que lee [Eventos de seguridad](/docs/telemetry/security-events) | 30 días desde la última vez que se vio una dirección | Solo los escaneos de Eventos de seguridad, dentro de OneUptime: ninguna persona, página, exportación, API ni herramienta de IA |
+
+La finalidad de cada uno es «Seguridad de la red y de la información (considerando 49 del RGPD)». Para escribir tu propia finalidad o retención, usa **Editar registro** en los **Ajustes** del almacén: un campo que dejes vacío conserva la de OneUptime.
+
+Un almacén aparece mientras tu proyecto conserva sus datos: la bóveda, mientras una regla de dirección IP activada aplica hash a los registros o las trazas que lee Eventos de seguridad, y 31 días más (consulta [Depurar datos sensibles](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles)). Cuando sus datos desaparecen, el almacén se archiva, y vuelve con tu finalidad y tu retención si vuelven los datos.
 
 ## Próximos pasos
 
