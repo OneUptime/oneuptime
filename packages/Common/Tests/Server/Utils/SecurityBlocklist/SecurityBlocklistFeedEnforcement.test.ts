@@ -7,6 +7,7 @@ import SecurityBlocklistFeedFetchService, {
   SecurityBlocklistFeedFetchRecord,
 } from "../../../../Server/Services/SecurityBlocklistFeedFetchService";
 import SecurityBlockCloudWafService from "../../../../Server/Services/SecurityBlockCloudWafService";
+import CloudflareBlockDestinations from "../../../../Server/Utils/SecurityEvent/Connectors/Cloudflare/CloudflareBlockDestination";
 import SecurityBlocklistFeedService from "../../../../Server/Services/SecurityBlocklistFeedService";
 import SecurityCaseFeedService from "../../../../Server/Services/SecurityCaseFeedService";
 import SecurityBlockDestinations from "../../../../Server/Utils/SecurityBlocklist/SecurityBlockDestinations";
@@ -399,7 +400,10 @@ afterEach(() => {
 describe("the feeds are a kind of destination every server has", () => {
   test("a project's feeds are found as destinations, keyed by feed, named as people named them", async () => {
     expect(SecurityBlockDestinations.hasSources()).toBe(true);
-    // The project has picked no AWS WAF web ACL (#10344): its feeds are all it has.
+    // The project has no Cloudflare zone (#10343) and picked no AWS WAF web ACL (#10344): its feeds are all it has.
+    jest
+      .spyOn(CloudflareBlockDestinations, "findForProject")
+      .mockResolvedValue([] as never);
     jest
       .spyOn(SecurityBlockCloudWafService, "findForProject")
       .mockResolvedValue([] as never);
