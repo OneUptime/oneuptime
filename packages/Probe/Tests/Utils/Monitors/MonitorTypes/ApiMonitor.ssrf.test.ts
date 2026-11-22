@@ -149,7 +149,7 @@ describe("ApiMonitor SSRF protection", () => {
           Authorization: "Bearer attacker-controlled",
           "X-Attack": "global-probe",
         },
-        requestBody: { action: "read-internal-data" },
+        requestBody: JSON.stringify({ action: "read-internal-data" }),
         retry: 9,
         isOnlineCheckRequest: true,
       },
@@ -376,7 +376,7 @@ describe("ApiMonitor SSRF protection", () => {
       {
         requestType: HTTPMethod.POST,
         requestHeaders: { "X-API-Key": "must-not-leak" },
-        requestBody: { secret: "must-not-leak" },
+        requestBody: JSON.stringify({ secret: "must-not-leak" }),
         retry: 9,
         isOnlineCheckRequest: true,
       },
@@ -389,10 +389,8 @@ describe("ApiMonitor SSRF protection", () => {
   });
 
   it("preserves an allowed request method, headers, and body while forcing safe transport options", async () => {
-    const requestBody: JSONObject = {
-      command: "probe",
-      nested: { enabled: true },
-    };
+    // Sent byte for byte as written (#9737).
+    const requestBody: string = '{"command": "probe", "nested": {"enabled": true}}';
     const requestHeaders: Record<string, string> = {
       Authorization: "Bearer public-service-token",
       "Content-Type": "application/json",
@@ -418,7 +416,7 @@ describe("ApiMonitor SSRF protection", () => {
     expect(response).not.toBeNull();
     expect(response!.isOnline).toBe(true);
     expect(response!.requestHeaders).toEqual(requestHeaders);
-    expect(response!.requestBody).toEqual(requestBody);
+    expect(response!.requestBody).toBe(requestBody);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
 
     const request: APIFetchOptions = fetchSpy.mock
@@ -426,7 +424,8 @@ describe("ApiMonitor SSRF protection", () => {
     expect(request.method).toBe(HTTPMethod.PATCH);
     expect(request.url.toString()).toBe("https://8.8.8.8/custom-api");
     expect(request.headers).toEqual(requestHeaders);
-    expect(request.data).toEqual(requestBody);
+    expect(Buffer.isBuffer(request.data)).toBe(true);
+    expect((request.data as Buffer).toString("utf8")).toBe(requestBody);
     expect(request.options).toEqual(
       expect.objectContaining({
         doNotFollowRedirects: true,

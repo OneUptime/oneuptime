@@ -40,7 +40,6 @@ import HTTPMethod from "Common/Types/API/HTTPMethod";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
-import JSONFunctions from "Common/Types/JSONFunctions";
 import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
@@ -56,6 +55,7 @@ import Port from "Common/Types/Port";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ScreenSizeType from "Common/Types/ScreenSizeType";
 import API from "Common/Utils/API";
+import MonitorRequestBody from "Common/Utils/Monitor/MonitorRequestBody";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
@@ -186,12 +186,32 @@ export default class MonitorUtil {
         continue;
       }
 
-      const result: ProbeMonitorResponse | null = await this.probeMonitorStep({
-        monitorType: monitorTest.monitorType!,
-        monitorId: monitorTest.id!,
-        monitorStep: monitorStep,
-        projectId: monitorTest.projectId!,
-      });
+      /*
+       * A test whose step threw posted no result at all, as a monitor's
+       * check did before (probeMonitorInternal): the form waited for one
+       * until it said the probe may be offline, and the person never
+       * learned what went wrong. It is reported as a failed check now, with
+       * the error as its cause.
+       */
+      let result: ProbeMonitorResponse | null = null;
+
+      try {
+        result = await this.probeMonitorStep({
+          monitorType: monitorTest.monitorType!,
+          monitorId: monitorTest.id!,
+          monitorStep: monitorStep,
+          projectId: monitorTest.projectId!,
+        });
+      } catch (err) {
+        result = this.getStepThrewResult({
+          what: "Monitor test",
+          monitorType: monitorTest.monitorType,
+          monitorId: monitorTest.id!,
+          monitorStep: monitorStep,
+          projectId: monitorTest.projectId!,
+          error: err,
+        });
+      }
 
       if (result) {
         // report this back to Probe API.
@@ -281,20 +301,14 @@ export default class MonitorUtil {
           projectId: monitor.projectId!,
         });
       } catch (err) {
-        logger.error(
-          `Monitor ${monitor.id?.toString()} (${monitor.monitorType}) step ${monitorStep.id?.toString()} threw while probing:`,
-        );
-        logger.error(err);
-
-        result = {
-          monitorStepId: monitorStep.id,
-          projectId: monitor.projectId!,
+        result = this.getStepThrewResult({
+          what: "Monitor",
+          monitorType: monitor.monitorType,
           monitorId: monitor.id!,
-          probeId: ProbeUtil.getProbeId(),
-          isOnline: false,
-          failureCause: API.getFriendlyErrorMessage(err as Error),
-          monitoredAt: OneUptimeDate.getCurrentDate(),
-        };
+          monitorStep: monitorStep,
+          projectId: monitor.projectId!,
+          error: err,
+        });
       }
 
       if (result) {
@@ -323,6 +337,35 @@ export default class MonitorUtil {
       logger.debug("Probed monitor step:");
       logger.debug(result);
     }
+  }
+
+  /*
+   * The result of a step whose check threw: offline, the error its cause,
+   * so it is recorded and judged like any failed check - a monitor's
+   * (probeMonitorInternal) and a test's (probeMonitorTestInternal) alike.
+   */
+  private static getStepThrewResult(data: {
+    what: string;
+    monitorType: MonitorType | undefined;
+    monitorId: ObjectID;
+    monitorStep: MonitorStep;
+    projectId: ObjectID;
+    error: unknown;
+  }): ProbeMonitorResponse {
+    logger.error(
+      `${data.what} ${data.monitorId.toString()} (${data.monitorType}) step ${data.monitorStep.id?.toString()} threw while probing:`,
+    );
+    logger.error(data.error);
+
+    return {
+      monitorStepId: data.monitorStep.id,
+      projectId: data.projectId,
+      monitorId: data.monitorId,
+      probeId: ProbeUtil.getProbeId(),
+      isOnline: false,
+      failureCause: API.getFriendlyErrorMessage(data.error as Error),
+      monitoredAt: OneUptimeDate.getCurrentDate(),
+    };
   }
 
   public static isHeadRequest(monitorStep: MonitorStep): boolean {
@@ -792,19 +835,15 @@ export default class MonitorUtil {
         monitorStep.data?.monitorDestination as URL,
       );
 
-      let requestBody: JSONObject | undefined = undefined;
-      if (
-        monitorStep.data?.requestBody &&
-        typeof monitorStep.data?.requestBody === "string"
-      ) {
-        requestBody = JSONFunctions.parseJSONObject(
-          monitorStep.data?.requestBody,
-        );
-      }
-
       const response: APIResponse | null = await ApiMonitor.ping(apiUrl, {
         requestHeaders: monitorStep.data?.requestHeaders || {},
-        requestBody: requestBody || undefined,
+        /*
+         * The body as written: any JSON value - an object, an array or a
+         * single value - read and sent by each attempt (#9737). It was read
+         * here as an object only, so an array threw before any request
+         * went out, and the check failed on every run.
+         */
+        requestBody: MonitorRequestBody.getText(monitorStep.data?.requestBody),
         monitorId: monitorId,
         requestType: monitorStep.data?.requestType || HTTPMethod.GET,
         retry: retryCount,
