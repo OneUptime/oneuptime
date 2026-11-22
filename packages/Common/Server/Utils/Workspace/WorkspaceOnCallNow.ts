@@ -420,9 +420,7 @@ export default class WorkspaceOnCallNow {
         id: id,
         name: FeedPersonNameRule.getInviteeName(profile),
         invitee: {
-          displayName: FeedPersonNameRule.getDisplayName(
-            profile.inviteeName,
-          ),
+          displayName: FeedPersonNameRule.getDisplayName(profile.inviteeName),
         },
       };
     }

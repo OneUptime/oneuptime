@@ -57,9 +57,7 @@ export default class FeedPersonNameRule {
    * or holds an address - an inviter can type one as the name (#10586), and
    * SSO can send one as a member's.
    */
-  public static getDisplayName(
-    name: Name | string | null | undefined,
-  ): string {
+  public static getDisplayName(name: Name | string | null | undefined): string {
     const trimmed: string = (name?.toString() || "").trim();
 
     return trimmed.includes("@") ? "" : trimmed;

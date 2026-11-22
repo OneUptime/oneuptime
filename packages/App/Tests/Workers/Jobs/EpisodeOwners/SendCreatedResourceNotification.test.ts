@@ -452,8 +452,7 @@ describe.each(CASES)(
         expect.objectContaining({
           [entry.feedEpisodeKey]: EPISODE_ID,
           feedInfoInMarkdown: `Owners were notified that this ${entry.noun} was created.`,
-          moreInformationInMarkdown:
-            "- Owner ana\n- Owner bo\n",
+          moreInformationInMarkdown: "- Owner ana\n- Owner bo\n",
         }),
       ]);
 
@@ -510,9 +509,7 @@ describe.each(CASES)(
       await runJob();
 
       expect(sentTo()).toEqual(["bo"]);
-      expect(feedItems()[0]!.moreInformationInMarkdown).toBe(
-        "- Owner bo\n",
-      );
+      expect(feedItems()[0]!.moreInformationInMarkdown).toBe("- Owner bo\n");
     });
 
     test("two owners, one of them paged: only the other is told, and the feed says who was left out, and why", async () => {

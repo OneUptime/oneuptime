@@ -300,12 +300,10 @@ const LINE_WRITERS: Array<LineWriter> = ROOTS.flatMap(
 
 // The ways each writer names a person itself, by key: "file" -> keys found.
 function waysUsed(writer: LineWriter): Array<string> {
-  return NAMES_A_PERSON_ITSELF.filter(
-    (way: { pattern: RegExp }): boolean => {
-      way.pattern.lastIndex = 0;
-      return way.pattern.test(writer.source);
-    },
-  ).map((way: { key: string }): string => {
+  return NAMES_A_PERSON_ITSELF.filter((way: { pattern: RegExp }): boolean => {
+    way.pattern.lastIndex = 0;
+    return way.pattern.test(writer.source);
+  }).map((way: { key: string }): string => {
     return way.key;
   });
 }

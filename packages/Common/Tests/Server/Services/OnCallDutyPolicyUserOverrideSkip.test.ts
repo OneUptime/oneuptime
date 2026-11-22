@@ -814,7 +814,10 @@ describe("Booking time away with someone who hasn't joined the project yet to co
     const lines: Partial<Record<WorkspaceType, string>> =
       onlyEntry().chatInfoByWorkspaceType || {};
 
-    for (const workspaceType of [WorkspaceType.Slack, WorkspaceType.Mattermost]) {
+    for (const workspaceType of [
+      WorkspaceType.Slack,
+      WorkspaceType.Mattermost,
+    ]) {
       expect(lines[workspaceType]).toContain(
         `Ria from Payments covers for @chat-${ALEX} from `,
       );

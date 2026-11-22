@@ -275,9 +275,7 @@ describe("WorkspaceOnCallNow: who is on call, schedule by schedule", () => {
 
     const lines: Array<string> = (await answer()).markdown.split("\n");
 
-    expect(lines[1]).toBe(
-      `- [Primary](${linkOf(byEmail)}): **simon**.`,
-    );
+    expect(lines[1]).toBe(`- [Primary](${linkOf(byEmail)}): **simon**.`);
     expect(lines[2]).toBe(
       `- [Unnamed schedule](${linkOf(nameless)}): **Someone**.`,
     );

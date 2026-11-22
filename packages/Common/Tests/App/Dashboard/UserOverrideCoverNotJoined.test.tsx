@@ -138,11 +138,9 @@ describe("the override form draws it under Who covers?, from the person picked",
     };
 
   test("in the add form and the edit form alike", () => {
-    const element: ReactElement | undefined = coverField().getFooterElement?.(
-      {
-        [USER_OVERRIDE_COVER_KEY]: new ObjectID(IVY),
-      } as unknown as FormValues<OnCallDutyPolicyUserOverride>,
-    );
+    const element: ReactElement | undefined = coverField().getFooterElement?.({
+      [USER_OVERRIDE_COVER_KEY]: new ObjectID(IVY),
+    } as unknown as FormValues<OnCallDutyPolicyUserOverride>);
 
     expect(element?.type).toBe(UserOverrideCoverNotJoinedNotice);
     expect(

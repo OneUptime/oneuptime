@@ -529,10 +529,7 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
           moreInformationInMarkdown: string;
         }
       ).moreInformationInMarkdown,
-    ).toBe(
-      "- Owner user-2\n" +
-        "- Owner user-3\n",
-    );
+    ).toBe("- Owner user-2\n" + "- Owner user-3\n");
   });
 
   test("the feed says the incident's own owners were notified", async () => {

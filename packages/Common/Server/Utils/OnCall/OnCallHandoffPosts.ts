@@ -926,9 +926,7 @@ export default class OnCallHandoffPosts {
 
         people.set(userId.toString().toLowerCase(), {
           because: OnCallNotPagedBecause.NotJoinedYet,
-          displayName: FeedPersonNameRule.getDisplayName(
-            invited.inviteeName,
-          ),
+          displayName: FeedPersonNameRule.getDisplayName(invited.inviteeName),
         });
       }
 

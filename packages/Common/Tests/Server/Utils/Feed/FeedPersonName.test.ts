@@ -100,15 +100,17 @@ beforeEach(() => {
     .spyOn(DatabaseConfig, "getDashboardUrl")
     .mockResolvedValue(URL.fromString(DASHBOARD));
 
-  userReads = jest.spyOn(UserService, "findOneBy").mockImplementation((async (
-    findBy: { query: { _id?: unknown } },
-  ): Promise<User | null> => {
-    return (
-      accounts.find((account: User): boolean => {
-        return account._id === String(findBy.query._id).toLowerCase();
-      }) || null
-    );
-  }) as never);
+  userReads = jest
+    .spyOn(UserService, "findOneBy")
+    .mockImplementation((async (findBy: {
+      query: { _id?: unknown };
+    }): Promise<User | null> => {
+      return (
+        accounts.find((account: User): boolean => {
+          return account._id === String(findBy.query._id).toLowerCase();
+        }) || null
+      );
+    }) as never);
 
   withheldReads = jest
     .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
@@ -259,7 +261,10 @@ describe("a person in a line, as Markdown", () => {
     userId: ObjectID,
   ): Promise<string> => {
     return (
-      await FeedPersonName.getMarkdown({ userId: userId, projectId: PROJECT_ID })
+      await FeedPersonName.getMarkdown({
+        userId: userId,
+        projectId: PROJECT_ID,
+      })
     ).toString();
   };
 
@@ -481,9 +486,8 @@ describe("many people in one line", () => {
 
   test("nobody: no read", async () => {
     expect(
-      (
-        await FeedPersonName.readNames({ users: [], projectId: PROJECT_ID })
-      ).size,
+      (await FeedPersonName.readNames({ users: [], projectId: PROJECT_ID }))
+        .size,
     ).toBe(0);
     expect(withheldReads).not.toHaveBeenCalled();
   });

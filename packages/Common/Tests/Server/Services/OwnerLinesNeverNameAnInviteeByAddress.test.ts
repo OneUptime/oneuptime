@@ -618,9 +618,7 @@ const accountOf: (person: OwnerCase["account"]) => User = (
 const answerUsersBy: (id: unknown) => User | null = (
   id: unknown,
 ): User | null => {
-  return id && String(id).toLowerCase() === OWNER_ID.toString()
-    ? owner
-    : null;
+  return id && String(id).toLowerCase() === OWNER_ID.toString() ? owner : null;
 };
 
 beforeEach(() => {
@@ -861,11 +859,9 @@ describe.each(OWNER_KINDS)("the owner lines of $label", (kind: OwnerKind) => {
 
 describe("every kind of record whose owner lines are written is here", () => {
   test("twenty-three kinds, each once", () => {
-    const labels: Array<string> = OWNER_KINDS.map(
-      (kind: OwnerKind): string => {
-        return kind.label;
-      },
-    );
+    const labels: Array<string> = OWNER_KINDS.map((kind: OwnerKind): string => {
+      return kind.label;
+    });
 
     expect(new Set<string>(labels).size).toBe(23);
   });

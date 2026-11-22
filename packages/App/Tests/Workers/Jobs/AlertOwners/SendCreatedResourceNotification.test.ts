@@ -749,10 +749,7 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
           moreInformationInMarkdown: string;
         }
       ).moreInformationInMarkdown,
-    ).toBe(
-      "- Owner user-2\n" +
-        "- Owner user-3\n",
-    );
+    ).toBe("- Owner user-2\n" + "- Owner user-3\n");
   });
 
   test("an alert with no owners at all converts NOTHING - but is still marked owner-notified", async () => {
