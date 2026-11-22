@@ -274,6 +274,32 @@ export const CHECK_COULD_NOT_CHECK: string = translationKey(
   "OneUptime could not check this step just now. It tries again in a few minutes.",
 );
 
+/*
+ * ---------- Block on every machine (contain:block-domain,
+ * contain:quarantine-file, contain:block-ip-everywhere, #10346) ----------
+ *
+ * Read from the blocklist: an active block of the value, held - applied
+ * and read back - by Microsoft Defender or CrowdStrike Falcon.
+ */
+export const CHECK_BLOCKED_EVERYWHERE: string = translationKey(
+  "{{value}} is blocked on every machine with {{destination}} since {{since}}, until {{until}}.",
+);
+export const CHECK_BLOCKED_EVERYWHERE_UNTIL_LIFTED: string = translationKey(
+  "{{value}} is blocked on every machine with {{destination}} since {{since}}, until someone lifts it.",
+);
+export const CHECK_BLOCK_NOT_HELD: string = translationKey(
+  "{{value}} is on the blocklist, but nothing blocks it on your machines yet.",
+);
+export const CHECK_BLOCK_NOT_HELD_AT: string = translationKey(
+  "Not blocked by {{destination}}: {{reason}}",
+);
+export const CHECK_BLOCK_NONE: string = translationKey(
+  "{{value}} is not blocked on your machines.",
+);
+export const CHECK_BLOCK_ENDED: string = translationKey(
+  "The block on {{value}} ended at {{time}}, so your machines no longer block it.",
+);
+
 // ---------- Declare an incident (contain:incident) ----------
 
 export const CHECK_INCIDENT_NOT_NEEDED: string = translationKey(

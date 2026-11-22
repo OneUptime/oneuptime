@@ -7,6 +7,7 @@ import AIRunAutoGrade from "../../../../../Types/AI/AIRunAutoGrade";
 import AIRunHumanVerdict from "../../../../../Types/AI/AIRunHumanVerdict";
 import {
   AI_OUTCOMES_DATA_SECURITY_PARTS,
+  AI_OUTCOMES_ISSUE_VERDICT_OUTCOMES,
   AI_OUTCOMES_PAGE_OUTCOMES,
   AI_OUTCOMES_PART_OUTCOMES,
   AI_OUTCOMES_PARTS,
@@ -20,6 +21,8 @@ import {
 import FixProductionStatus from "../../../../../Types/AI/FixProductionStatus";
 import AutoRemediationVerificationStatus from "../../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import { DataSecurityAiProposalStatus } from "../../../../../Types/DataSecurity/DataSecurityAi";
+import DataSecurityIssueStatus from "../../../../../Types/DataSecurity/DataSecurityIssueStatus";
+import { DataSecurityAiVerdict } from "../../../../../Types/DataSecurity/DataSecurityIssueAnalysis";
 import ObjectID from "../../../../../Types/ObjectID";
 import { OnCallPolicyAiHoldOutcome } from "../../../../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import { describe, expect, test } from "@jest/globals";
@@ -213,6 +216,13 @@ describe("what a record request may name", () => {
     expect(Object.keys(outcomes.rootCauses!)).toEqual(
       expect.arrayContaining(["confirmed", "partial", "wrong"]),
     );
+    // Of the verdicts' counts, the four what people decided lands in.
+    expect(
+      [...AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.IssueVerdicts]].sort(),
+    ).toEqual(["agreed", "cannotTell", "disagreed", "waiting"]);
+    expect(Object.keys(build({ issueVerdictRows: [] }).issueVerdicts!)).toEqual(
+      expect.arrayContaining(["agreed", "cannotTell", "disagreed", "waiting"]),
+    );
   });
 
   test("an outcome of one part is no outcome of another", () => {
@@ -245,8 +255,11 @@ describe("what a record request may name", () => {
       AiOutcomesPart.DataSecurityAnalyses,
       AiOutcomesPart.DataSecurityChanges,
       AiOutcomesPart.DataSecurityProposals,
+      AiOutcomesPart.IssueVerdicts,
     ]);
-    expect(AI_OUTCOMES_DATA_SECURITY_PARTS).toEqual(AI_OUTCOMES_PARTS.slice(4));
+    expect(AI_OUTCOMES_DATA_SECURITY_PARTS).toEqual(
+      AI_OUTCOMES_PARTS.slice(4, 7),
+    );
   });
 
   test("Data Security's outcomes are exactly the keys of its counts (#10364)", () => {
@@ -393,5 +406,151 @@ describe("what a row is about", () => {
       `alert:${ALERT_ID.toString()}`,
     );
     expect(getSubjectKey(null, null)).toBeUndefined();
+  });
+});
+
+describe("OneUptime AI's verdicts on Data Security issues (#10369)", () => {
+  interface VerdictRow {
+    verdict: string;
+    status: DataSecurityIssueStatus;
+    isStorePublicByDesign?: boolean;
+    outcome: string | null;
+  }
+
+  const ROWS: Array<VerdictRow> = [
+    {
+      verdict: DataSecurityAiVerdict.Real,
+      status: DataSecurityIssueStatus.Open,
+      outcome: "waiting",
+    },
+    {
+      verdict: DataSecurityAiVerdict.Real,
+      status: DataSecurityIssueStatus.Resolved,
+      outcome: "agreed",
+    },
+    {
+      verdict: DataSecurityAiVerdict.Real,
+      status: DataSecurityIssueStatus.Accepted,
+      outcome: "agreed",
+    },
+    {
+      verdict: DataSecurityAiVerdict.Real,
+      status: DataSecurityIssueStatus.NotAnIssue,
+      outcome: "disagreed",
+    },
+    {
+      verdict: DataSecurityAiVerdict.LikelyByDesign,
+      status: DataSecurityIssueStatus.Accepted,
+      outcome: "agreed",
+    },
+    {
+      verdict: DataSecurityAiVerdict.LikelyByDesign,
+      status: DataSecurityIssueStatus.NotAnIssue,
+      outcome: "agreed",
+    },
+    // Resolved by marking the store public by design: agreed.
+    {
+      verdict: DataSecurityAiVerdict.LikelyByDesign,
+      status: DataSecurityIssueStatus.Resolved,
+      isStorePublicByDesign: true,
+      outcome: "agreed",
+    },
+    // Resolved by closing what was public: people thought it was real.
+    {
+      verdict: DataSecurityAiVerdict.LikelyByDesign,
+      status: DataSecurityIssueStatus.Resolved,
+      outcome: "disagreed",
+    },
+    {
+      verdict: DataSecurityAiVerdict.LikelyWrongFinding,
+      status: DataSecurityIssueStatus.NotAnIssue,
+      outcome: "agreed",
+    },
+    {
+      verdict: DataSecurityAiVerdict.LikelyWrongFinding,
+      status: DataSecurityIssueStatus.Resolved,
+      outcome: "disagreed",
+    },
+    {
+      verdict: DataSecurityAiVerdict.LikelyWrongFinding,
+      status: DataSecurityIssueStatus.Accepted,
+      outcome: "disagreed",
+    },
+    {
+      verdict: DataSecurityAiVerdict.CannotTell,
+      status: DataSecurityIssueStatus.Resolved,
+      outcome: "cannotTell",
+    },
+    {
+      verdict: DataSecurityAiVerdict.CannotTell,
+      status: DataSecurityIssueStatus.Open,
+      outcome: "cannotTell",
+    },
+    {
+      verdict: "Probably fine",
+      status: DataSecurityIssueStatus.Resolved,
+      outcome: null,
+    },
+  ];
+
+  test.each(ROWS)(
+    "$verdict, then $status (public by design: $isStorePublicByDesign) is $outcome",
+    (row: VerdictRow) => {
+      expect(AiOutcomesBuilder.getIssueVerdictOutcome(row)).toBe(row.outcome);
+
+      const outcomes: AiOutcomes = build({
+        issueVerdictRows: [{ createdAt: IN_WINDOW, ...row }],
+      });
+
+      for (const other of AI_OUTCOMES_ISSUE_VERDICT_OUTCOMES) {
+        expect({ other, count: outcomes.issueVerdicts![other] }).toEqual({
+          other,
+          count: other === row.outcome ? 1 : 0,
+        });
+      }
+    },
+  );
+
+  test("each verdict is counted by itself, and the week counts what people decided and agreed with", () => {
+    const outcomes: AiOutcomes = build({
+      issueVerdictRows: ROWS.map((row: VerdictRow) => {
+        return { createdAt: IN_WINDOW, ...row };
+      }),
+    });
+
+    expect(outcomes.issueVerdicts).toEqual({
+      agreed: 6,
+      disagreed: 4,
+      waiting: 1,
+      cannotTell: 2,
+      real: 4,
+      likelyByDesign: 4,
+      likelyWrongFinding: 3,
+    });
+
+    const week: AiOutcomes["weeks"][number] | undefined = outcomes.weeks.find(
+      (candidate: AiOutcomes["weeks"][number]): boolean => {
+        return (candidate.verdictsDecided || 0) > 0;
+      },
+    );
+
+    expect(week?.verdictsDecided).toBe(10);
+    expect(week?.verdictsAgreed).toBe(6);
+  });
+
+  test("before the window, nothing; no rows read is no number, not zeros; a server that reads none says nothing", () => {
+    expect(
+      build({
+        issueVerdictRows: [
+          {
+            createdAt: new Date(WINDOW_START.getTime() - 1),
+            verdict: DataSecurityAiVerdict.Real,
+            status: DataSecurityIssueStatus.Resolved,
+          },
+        ],
+      }).issueVerdicts!.agreed,
+    ).toBe(0);
+    expect(build({ issueVerdictRows: null }).issueVerdicts).toBeNull();
+    expect("issueVerdicts" in build({})).toBe(false);
   });
 });

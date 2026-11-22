@@ -34,7 +34,11 @@ import React, {
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import joinAriaIds from "../../Utils/AriaIds";
-import { canPickByLabel, withLabels, withSearch } from "./EntityDropdownQuery";
+import {
+  canPickByLabel,
+  withLabels,
+  withSearchIn,
+} from "./EntityDropdownQuery";
 import { getEntityDropdownEmptyListText } from "./EntityDropdownEmptyList";
 import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
@@ -203,6 +207,27 @@ export interface EntityDropdownProps {
    * none.
    */
   notFoundLabel?: string | undefined;
+  /*
+   * When valueField is not the record's id - an inventory item picked by its
+   * entityKey, an OpenStack project by its externalId, a metric by its name
+   * - what else names one record by it: the cloud a project id belongs to,
+   * say. A value the field holds is read by valueField within this (and
+   * the project), never narrowed by `query`, so one that is no longer
+   * pickable is still named. Unset, the value alone. Ignored while
+   * valueField is "_id" (a value is read by its id, as always).
+   */
+  heldValueQuery?: Record<string, unknown> | undefined;
+  /*
+   * The columns the reader's search looks in. Unset, labelField alone, as
+   * always: an inventory item is found by its name or by its key.
+   */
+  searchFields?: Array<string> | undefined;
+  /*
+   * A column drawn beside each option's name in the list, muted - an
+   * inventory item's type ("Pod"), so two of one name are told apart.
+   * Unset, none.
+   */
+  descriptionField?: string | undefined;
 }
 
 const SEARCH_DEBOUNCE_MS: number = 250;
@@ -460,6 +485,24 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     useRef<Record<string, unknown>>(pickerQuery);
   baseQueryRef.current = pickerQuery;
   const baseQueryKey: string = JSON.stringify(pickerQuery);
+  /*
+   * The columns a search looks in (searchFields; labelField unless named),
+   * and what a held value is read within (heldValueQuery), read from refs
+   * as the query is.
+   */
+  const searchFields: Array<string> =
+    props.searchFields && props.searchFields.length > 0
+      ? props.searchFields
+      : [labelField];
+  const searchFieldsRef: React.MutableRefObject<Array<string>> =
+    useRef<Array<string>>(searchFields);
+  searchFieldsRef.current = searchFields;
+  const searchFieldsKey: string = searchFields.join("|");
+  const heldValueQueryRef: React.MutableRefObject<
+    Record<string, unknown> | undefined
+  > = useRef<Record<string, unknown> | undefined>(props.heldValueQuery);
+  heldValueQueryRef.current = props.heldValueQuery;
+  const descriptionField: string | undefined = props.descriptionField;
   const hasLabelsAutoDetected: boolean = useMemo(() => {
     return detectLabelsField(modelType);
   }, [modelType]);
@@ -888,6 +931,18 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       if (raw["isArchived"] === true) {
         option.isArchived = true;
       }
+      // What tells it apart, drawn beside its name (descriptionField).
+      if (descriptionField) {
+        const descriptionRaw: unknown = raw[descriptionField];
+
+        if (
+          descriptionRaw !== undefined &&
+          descriptionRaw !== null &&
+          String(descriptionRaw).trim()
+        ) {
+          option.description = String(descriptionRaw);
+        }
+      }
       /*
        * A team, a label, an on-call policy or a schedule, listed by its
        * name: what tells it from another of the same name (#10064).
@@ -902,8 +957,19 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       }
       return option;
     },
-    [labelField, valueField, colorField],
+    [labelField, valueField, colorField, descriptionField],
   );
+
+  /*
+   * The columns every read selects beside the name: the value's own column
+   * when it is not the id (an inventory item's entityKey) - the option's
+   * value is read from it - and the description's. Nothing more for a
+   * dropdown by id with no description, as before.
+   */
+  const valueSelect: Record<string, true> = {
+    ...(valueField !== "_id" ? { [valueField]: true } : {}),
+    ...(descriptionField ? { [descriptionField]: true } : {}),
+  };
 
   /*
    * The columns each read selects beside the name, so records of one name
@@ -931,14 +997,15 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     debounceRef.current = window.setTimeout(
       async () => {
         try {
-          const query: Query<BaseModel> = withSearch(
+          const query: Query<BaseModel> = withSearchIn(
             baseQueryRef.current,
-            labelField,
+            searchFieldsRef.current,
             trimmed,
           ) as Query<BaseModel>;
           const baseSelect: Record<string, true> = {
             _id: true,
             [labelField]: true,
+            ...valueSelect,
             ...sharedNameSelect,
           } as Record<string, true>;
           if (colorField) {
@@ -988,6 +1055,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     colorField,
     modelToOption,
     baseQueryKey,
+    searchFieldsKey,
   ]);
 
   /*
@@ -1014,6 +1082,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
         const baseSelect: Record<string, true> = {
           _id: true,
           [labelField]: true,
+          ...valueSelect,
           ...sharedNameSelect,
           // An archived value a record still has is marked as one.
           ...ArchivedValuePicker.getSelectedValueSelect(modelType),
@@ -1021,13 +1090,23 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
         if (colorField) {
           baseSelect[colorField] = true;
         }
+        /*
+         * Read by the column the values are, never by the search's query:
+         * an id names one record; another column's value (an inventory
+         * item's entityKey) is read within heldValueQuery, and may name
+         * more than one.
+         */
+        const isIdValue: boolean = valueField === "_id";
         const result: ListResult<BaseModel> = await modelAPI.getList<BaseModel>(
           {
             modelType: modelType,
-            query: {
-              _id: new Includes(missing),
-            } as Query<BaseModel>,
-            limit: missing.length,
+            query: (isIdValue
+              ? { _id: new Includes(missing) }
+              : {
+                  ...(heldValueQueryRef.current || {}),
+                  [valueField]: new Includes(missing),
+                }) as Query<BaseModel>,
+            limit: isIdValue ? missing.length : LIMIT_PER_PROJECT,
             skip: 0,
             select: baseSelect as never,
             sort: {},

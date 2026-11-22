@@ -7,6 +7,7 @@ Sicurezza dei dati esegue 34 controlli su ogni archivio, in nove gruppi. Un cont
 - [Tutti i controlli](#tutti-i-controlli): Tutti i 34, con cosa verifica ciascuno e come correggerlo.
 - [Punteggio di rischio](#punteggio-di-rischio): Come vengono ordinati i problemi all'interno di una gravità.
 - [Cosa succede a un problema](#cosa-succede-a-un-problema): Aperto, risolto, accettato, non è un problema.
+- [L'analisi di OneUptime AI](#lanalisi-di-oneuptime-ai): Se un problema è reale, cosa mette a rischio, cosa romperebbe la correzione e la via più breve verso la correzione.
 - [Correggi da qui](#correggi-da-qui): Chiudi un'esposizione, o attiva una protezione mancante, con un clic.
 :::
 
@@ -154,11 +155,26 @@ OneUptime apre, aggiorna e risolve i problemi man mano che i controlli vengono e
 | **Aperto** | Il suo controllo ora non viene superato sull'archivio. | Conta nella Panoramica, nel riepilogo dell'archivio e nella conformità, finché il controllo non viene superato. |
 | **Risolto** | Il suo controllo è stato superato in un'esecuzione successiva, non si applica più o è stato disattivato, oppure il suo archivio è stato archiviato. Una persona può anche scegliere **Segna come risolto**: l'archivio viene subito controllato di nuovo. | Si riapre se il controllo non viene di nuovo superato, e il problema conta quante volte si è riaperto. |
 | **Accettato** | Una persona ha scelto **Accetta il rischio**, con un **Motivo** e una data in **Accettato fino al**, al massimo a un anno di distanza. | Resta chiuso fino a quella data, poi si riapre se il controllo continua a non essere superato. Accettalo di nuovo allora, se il motivo vale ancora. |
-| **Non è un problema** | Una persona ha scelto **Non è un problema**: il risultato era sbagliato. | Resta chiuso, anche mentre il controllo non viene superato. **Riapri** lo riporta ad Aperto. |
+| **Non è un problema** | Una persona ha scelto **Non è un problema** e ha detto perché in **Motivo**: il risultato era sbagliato. | Resta chiuso, anche mentre il controllo non viene superato, e conserva il motivo. **Riapri** lo riporta ad Aperto. |
 
 I Membri della sicurezza, gli Amministratori della sicurezza, gli Amministratori del progetto e i Proprietari del progetto possono cambiare lo stato di un problema, e assegnarlo a una persona o a un team con **Assegna**. Ogni modifica viene scritta nella **Cronologia** del problema: quando si è aperto, ogni cambio di gravità, ogni cambio di stato e chi lo ha fatto, le nuove verifiche richieste, e cosa hanno fatto le integrazioni.
 
 Un problema che si riapre mantiene la sua cronologia. I rischi accettati vengono riesaminati ogni giorno, così un'accettazione scade puntuale anche quando non è stato scansionato nulla.
+
+## L'analisi di OneUptime AI
+
+Finché **Lavora sui nuovi problemi** è attivo in **Sicurezza dei dati → IA**, OneUptime AI analizza da sola ogni problema nuovo o riaperto di gravità Critica o Alta, prima che qualcuno lo apra; le tue regole IA di Sicurezza dei dati possono sceglierne altri. Qualsiasi problema può essere analizzato dalla sua pagina con **Analizza il problema**. L'analisi apre la **Panoramica** del problema, sotto **Analisi di OneUptime AI**, e risponde in base a ciò che Sicurezza dei dati sa:
+
+- se è reale: **Reale**, **Probabilmente voluto**, **Probabilmente un rilevamento errato** o **Impossibile stabilirlo**, e perché;
+- cosa mette a rischio: i dati e circa quanti record, chi può raggiungerli, le loro copie in altri archivi e i casi di sicurezza che li riguardano;
+- cosa romperebbe la correzione: i servizi visti usare l'archivio, le identità che hanno usato il loro accesso negli ultimi 90 giorni e le concessioni che la correzione rimuove e che qualcosa usa ancora;
+- la via più breve verso la correzione: cosa lo contiene ora, il codice che dichiara l'archivio e chi dovrebbe occuparsene.
+
+Ogni riga nomina i fatti su cui si basa, elencati sotto da un pulsante come **Mostra i 3 fatti su cui si basa**. Una riga che non si basa su alcun fatto viene scartata, un verdetto il cui motivo non si basa su nessuno è **Impossibile stabilirlo**, e un archivio di dati ristretti non è mai **Probabilmente voluto** sulla sola parola di OneUptime AI. Una riga che si basa su qualcosa che non puoi leggere, come chi può raggiungere l'archivio, ti viene nascosta, e lo dice.
+
+OneUptime AI non modifica mai il problema: stato e gravità restano al suo controllo e a te. Per **Probabilmente voluto** offre **Accetta il rischio** con il motivo già scritto, e **Pubblico per scelta** per un archivio pubblico; per **Probabilmente un rilevamento errato**, **Non è un problema** con il motivo già scritto. Nulla cambia finché non scegli.
+
+L'analisi viene conservata sul problema, con una voce nella sua **Cronologia** ogni volta che viene scritta, nella lingua scelta dalla maggior parte dei membri del tuo progetto (**Analizza di nuovo** la scrive nella tua). Viene riscritta solo quando cambia ciò su cui si basa, quindi aprire il problema non chiede nulla a OneUptime AI; **Analizza di nuovo** chiede comunque. **Problemi** filtra e mostra i problemi per **Verdetto di OneUptime AI**. Cosa invia, e cosa non invia mai, è in [OneUptime AI in Sicurezza dei dati](/docs/data-security/ai). Con l'IA disattivata, non c'è analisi.
 
 ## Correggi da qui
 

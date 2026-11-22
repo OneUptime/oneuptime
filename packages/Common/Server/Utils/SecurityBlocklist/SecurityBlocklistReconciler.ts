@@ -11,7 +11,9 @@ import SecurityBlockDestination, {
   SecurityBlockEntry,
   SecurityBlockHeldItem,
   SecurityBlockSupport,
+  SecurityBlockEndMove,
   SecurityBlockWriteResult,
+  isSecurityBlockForDestination,
 } from "./SecurityBlockDestination";
 import SecurityBlockDestinations, {
   SecurityBlockDestinationsFound,
@@ -29,9 +31,8 @@ import {
   SecurityBlockAction,
   SecurityBlockIndicatorType,
   SecurityBlockState,
-  SecurityBlockValue,
+  getSecurityBlockValueKey,
   isSecurityBlockInForce,
-  readSecurityBlockValue,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
 import { SecurityBlockEnforcementState } from "../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
 
@@ -114,20 +115,68 @@ export function getSecurityBlocklistRetryDelayInMs(
   );
 }
 
-// A held item's key: its action and its value as blocks are written.
+/*
+ * A held item's key: its action and its value as blocks are written,
+ * whatever it is - without case, so a provider that keeps a URL lower
+ * cased (a domain, a hash and an address are lower case already) holds
+ * the block it was given.
+ */
 export function getHeldItemKey(
   value: string,
   action: SecurityBlockAction,
 ): string {
-  const read: SecurityBlockValue | null = readSecurityBlockValue(value);
+  return `${action}|${getSecurityBlockValueKey(value).toLowerCase()}`;
+}
 
-  return `${action}|${read ? read.value : (value || "").trim().toLowerCase()}`;
+/*
+ * How far a provider's end of an entry may be from its block's before the
+ * reconciler moves it (#10346): a provider keeps time to the second, and
+ * one that rounds is not told the same end every pass.
+ */
+export const SECURITY_BLOCKLIST_EXPIRY_TOLERANCE_IN_MS: number = 60 * 1000;
+
+/*
+ * Whether a provider's end of an entry is its block's: both none, or
+ * within SECURITY_BLOCKLIST_EXPIRY_TOLERANCE_IN_MS of each other.
+ */
+export function isHeldExpiryCurrent(data: {
+  held: Date | null;
+  wanted: Date | null;
+}): boolean {
+  if (!data.held || !data.wanted) {
+    return !data.held && !data.wanted;
+  }
+
+  return (
+    Math.abs(data.held.getTime() - data.wanted.getTime()) <=
+    SECURITY_BLOCKLIST_EXPIRY_TOLERANCE_IN_MS
+  );
 }
 
 function blockKey(block: SecurityBlock): string {
   return getHeldItemKey(
     block.value || "",
     block.action || SecurityBlockAction.Block,
+  );
+}
+
+/*
+ * Whether a destination's confirmation of a value is older than the block:
+ * a feed's firewall still holding the value from an earlier block of it,
+ * fetched before this one was made (#10345). That says nothing of this
+ * block, which is held there only once a fetch made after it returns it.
+ * A destination read now (no confirmedAt) is never older.
+ */
+export function isConfirmedBeforeBlock(
+  item: Pick<SecurityBlockHeldItem, "confirmedAt">,
+  block: Pick<SecurityBlock, "createdAt">,
+): boolean {
+  if (!item.confirmedAt || !block.createdAt) {
+    return false;
+  }
+
+  return (
+    new Date(item.confirmedAt).getTime() < new Date(block.createdAt).getTime()
   );
 }
 
@@ -157,6 +206,12 @@ export function getSecurityBlockEntryComment(block: SecurityBlock): string {
 export interface SecurityBlocklistDestinationPlan {
   toAdd: Array<SecurityBlockEntry>;
   toRemove: Array<SecurityBlockHeldItem>;
+  /*
+   * Entries it holds whose end at the provider is not their block's (a
+   * block renewed or made permanent since): for a destination that ends
+   * what it holds by itself and can move that end (moveEnds()).
+   */
+  toMoveEnd: Array<SecurityBlockEndMove>;
   // Blocks it cannot hold, with why.
   unsupported: Map<string, string>;
   // Blocks that do not fit.
@@ -165,13 +220,26 @@ export interface SecurityBlocklistDestinationPlan {
   waiting: Set<string>;
 }
 
+// A block as an entry a destination is asked to hold.
+function toEntry(block: SecurityBlock): SecurityBlockEntry {
+  return {
+    securityBlockId: block.id!,
+    indicatorType: block.indicatorType || SecurityBlockIndicatorType.IpAddress,
+    value: block.value || "",
+    action: block.action || SecurityBlockAction.Block,
+    expiresAt: block.expiresAt ? new Date(block.expiresAt) : null,
+    comment: getSecurityBlockEntryComment(block),
+  };
+}
+
 /*
  * The plan for one destination, without touching it: what to add and what
- * to remove so it holds exactly the active blocks it can, the oldest first.
- * Pure, so the rules are pinned in a plain test.
+ * to remove so it holds exactly the active blocks it can, the oldest first,
+ * and - for a destination that ends what it holds by itself - whose end to
+ * move to its block's. Pure, so the rules are pinned in a plain test.
  */
 export function planSecurityBlocklistDestination(data: {
-  destination: Pick<SecurityBlockDestination, "supports">;
+  destination: Pick<SecurityBlockDestination, "supports" | "moveEnds">;
   // The blocks in force, the oldest first.
   blocks: Array<SecurityBlock>;
   rowsByBlock: Map<string, SecurityBlockEnforcement>;
@@ -244,23 +312,48 @@ export function planSecurityBlocklistDestination(data: {
     }),
   );
 
+  /*
+   * A held entry's end, when the provider says one, is its block's: moved
+   * when the block was renewed, made permanent or given an end since. Not
+   * while the entry's block waits for a retry, and never for a destination
+   * that cannot move it.
+   */
+  const toMoveEnd: Array<SecurityBlockEndMove> = [];
+
+  if (data.destination.moveEnds) {
+    const heldByKey: Map<string, SecurityBlockHeldItem> = new Map(
+      data.held.map(
+        (item: SecurityBlockHeldItem): [string, SecurityBlockHeldItem] => {
+          return [getHeldItemKey(item.value, item.action), item];
+        },
+      ),
+    );
+
+    for (const block of desired) {
+      const item: SecurityBlockHeldItem | undefined = heldByKey.get(
+        blockKey(block),
+      );
+
+      if (!item || item.expiresAt === undefined) {
+        continue;
+      }
+
+      const wanted: Date | null = block.expiresAt
+        ? new Date(block.expiresAt)
+        : null;
+
+      if (!isHeldExpiryCurrent({ held: item.expiresAt, wanted })) {
+        toMoveEnd.push({ entry: toEntry(block), item });
+      }
+    }
+  }
+
   return {
-    toAdd: candidates
-      .slice(0, room)
-      .map((block: SecurityBlock): SecurityBlockEntry => {
-        return {
-          securityBlockId: block.id!,
-          indicatorType:
-            block.indicatorType || SecurityBlockIndicatorType.IpAddress,
-          value: block.value || "",
-          action: block.action || SecurityBlockAction.Block,
-          expiresAt: block.expiresAt ? new Date(block.expiresAt) : null,
-          comment: getSecurityBlockEntryComment(block),
-        };
-      }),
+    toAdd: candidates.slice(0, room).map(toEntry),
     toRemove: data.held.filter((item: SecurityBlockHeldItem): boolean => {
       return !desiredKeys.has(getHeldItemKey(item.value, item.action));
     }),
+    toMoveEnd,
     unsupported,
     overflow,
     waiting,
@@ -351,6 +444,7 @@ export default class SecurityBlocklistReconciler {
           value: true,
           indicatorType: true,
           action: true,
+          reach: true,
           state: true,
           expiresAt: true,
           createdAt: true,
@@ -411,11 +505,22 @@ export default class SecurityBlocklistReconciler {
     };
 
     for (const destination of found.destinations) {
+      /*
+       * Only the blocks it is asked to hold: an endpoint product holds an
+       * address only when the address is blocked everywhere (#10346). An
+       * ended block it holds a row for is settled there whatever it was.
+       */
+      const isForDestination: (block: SecurityBlock) => boolean = (
+        block: SecurityBlock,
+      ): boolean => {
+        return isSecurityBlockForDestination({ destination, block });
+      };
+
       const outcome: "done" | "skipped" | "failed" =
         await this.reconcileDestination({
           projectId: data.projectId,
           destination,
-          blocks,
+          blocks: blocks.filter(isForDestination),
           ended,
           rows: rows.filter((row: SecurityBlockEnforcement): boolean => {
             return row.destinationKey === destination.key;
@@ -618,6 +723,7 @@ export default class SecurityBlocklistReconciler {
 
     let removed: Array<SecurityBlockWriteResult> = [];
     let applied: Array<SecurityBlockWriteResult> = [];
+    let endsMoved: Array<SecurityBlockWriteResult> = [];
 
     try {
       if (
@@ -644,6 +750,10 @@ export default class SecurityBlocklistReconciler {
           applied = await destination.apply(plan.toAdd);
         }
       }
+
+      if (plan.toMoveEnd.length > 0 && destination.moveEnds) {
+        endsMoved = await destination.moveEnds(plan.toMoveEnd);
+      }
     } catch (error) {
       await this.recordDestinationFailure({
         ...data,
@@ -656,7 +766,11 @@ export default class SecurityBlocklistReconciler {
     let confirmed: Array<SecurityBlockHeldItem> | null = held;
     let readBackError: string | null = null;
 
-    if (plan.toAdd.length > 0 || plan.toRemove.length > 0) {
+    if (
+      plan.toAdd.length > 0 ||
+      plan.toRemove.length > 0 ||
+      plan.toMoveEnd.length > 0
+    ) {
       try {
         confirmed = await destination.readBack();
       } catch (error) {
@@ -673,6 +787,7 @@ export default class SecurityBlocklistReconciler {
       readBackError,
       applied,
       removed,
+      endsMoved,
     });
 
     return "done";
@@ -692,6 +807,7 @@ export default class SecurityBlocklistReconciler {
     readBackError: string | null;
     applied: Array<SecurityBlockWriteResult>;
     removed: Array<SecurityBlockWriteResult>;
+    endsMoved: Array<SecurityBlockWriteResult>;
   }): Promise<void> {
     const { destination, now, plan } = data;
 
@@ -724,6 +840,9 @@ export default class SecurityBlocklistReconciler {
     );
     const removedByKey: Map<string, SecurityBlockWriteResult> = resultsByKey(
       data.removed,
+    );
+    const endsMovedByKey: Map<string, SecurityBlockWriteResult> = resultsByKey(
+      data.endsMoved,
     );
 
     const fullReason: string =
@@ -758,13 +877,26 @@ export default class SecurityBlocklistReconciler {
           failedAttempts: 0,
           retryAt: null,
         };
-      } else if (confirmedByKey.has(key)) {
+      } else if (
+        confirmedByKey.has(key) &&
+        !isConfirmedBeforeBlock(confirmedByKey.get(key)!, block)
+      ) {
         const item: SecurityBlockHeldItem = confirmedByKey.get(key)!;
         const providerRef: string | null =
           item.providerRef ||
           appliedByKey.get(key)?.providerRef ||
           row?.providerRef ||
           null;
+        /*
+         * Held, but its end there was not moved to the block's: it still
+         * holds, and says why until a pass moves it (#10346).
+         */
+        const update: SecurityBlockWriteResult | undefined =
+          endsMovedByKey.get(key);
+        const updateError: string | null =
+          update && !update.isDone
+            ? `Its end at ${destination.name} was not moved: ${update.error || `${destination.name} refused it`}`
+            : null;
 
         target = item.notInForceReason
           ? {
@@ -782,14 +914,14 @@ export default class SecurityBlocklistReconciler {
           : item.isPropagating
             ? {
                 state: SecurityBlockEnforcementState.Pending,
-                error: null,
+                error: updateError,
                 providerRef,
                 failedAttempts: 0,
                 retryAt: null,
               }
             : {
                 state: SecurityBlockEnforcementState.Applied,
-                error: null,
+                error: updateError,
                 providerRef,
                 appliedAt: row?.appliedAt
                   ? new Date(row.appliedAt)

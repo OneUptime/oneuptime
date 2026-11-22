@@ -1,5 +1,4 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
-import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import {
   FormFieldIssue,
   findCustomFieldDefinition,
@@ -10,6 +9,10 @@ import {
 } from "../FormBuilderState";
 import FormsCopy, { FORM_QUESTION_TYPE_TEXT } from "../FormsCopy";
 import QuestionInputPreview from "./QuestionInputPreview";
+import {
+  FORM_RECORD_OPTIONS_SOURCES,
+  FormRecordOptionsSource,
+} from "../FormBuilderData";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import {
   FORM_CHOICE_QUESTION_TYPES,
@@ -33,7 +36,6 @@ import FormTargetType, {
   FORM_TARGET_TYPE_TEXT,
 } from "Common/Types/Form/FormTargetType";
 import IconProp from "Common/Types/Icon/IconProp";
-import Color from "Common/Types/Color";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -43,6 +45,7 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import EntityDropdown from "Common/UI/Components/EntityDropdown/EntityDropdown";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
@@ -50,7 +53,6 @@ import Input from "Common/UI/Components/Input/Input";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import useTranslateValue from "Common/UI/Utils/Translation";
-import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useId } from "react";
@@ -246,51 +248,32 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * The records a choice question offers, picked from the server: searched
+   * by name as they are typed in, however many the project has (#10646),
+   * never an archived label or severity for a new pick. The question's own
+   * are named by their ids - one archived since stays, marked Archived, and
+   * one deleted since reads "Deleted" - so none is lost the next time the
+   * list is changed. It used to be the project's first 10,000 of the kind,
+   * and a monitor past them neither could be picked nor kept.
+   */
   const renderChoicesOffered: () => ReactElement = (): ReactElement => {
     if (!targetDefinition || !targetDefinition.optionsSource) {
       return <></>;
     }
 
-    const records: Array<FormRecordOption> | undefined =
-      props.recordOptions[targetDefinition.optionsSource];
+    const source: FormRecordOptionsSource | undefined =
+      FORM_RECORD_OPTIONS_SOURCES[targetDefinition.optionsSource];
+
+    if (!source) {
+      return <></>;
+    }
 
     const label: string = tx(FormsCopy.choicesOffered);
     const hint: string = tx(
       targetDefinition.mustChooseOptions
         ? FormsCopy.choicesOfferedMustChoose
         : FormsCopy.choicesOfferedSeverity,
-    );
-
-    if (!records) {
-      return <InlineValueSkeleton />;
-    }
-
-    const options: Array<DropdownOption> = records.map(
-      (record: FormRecordOption): DropdownOption => {
-        const option: DropdownOption = {
-          value: record.id,
-          label: record.name,
-          /*
-           * A source is named as its records' table: a severity's default
-           * name is OneUptime's word, looked up; a monitor's, a label's or
-           * a status page's name is drawn as written.
-           */
-          isUserContent: isRecordNameAsWritten(
-            targetDefinition.optionsSource,
-            record.name,
-          ),
-        };
-
-        if (record.color) {
-          try {
-            option.color = new Color(record.color);
-          } catch {
-            // A color that cannot be drawn is not drawn.
-          }
-        }
-
-        return option;
-      },
     );
 
     const allowed: Array<string> = field.allowedOptionIds || [];
@@ -305,15 +288,17 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
         </label>
         <p className="mt-0.5 text-xs text-gray-500">{hint}</p>
         <div className="mt-1.5">
-          <Dropdown
+          <EntityDropdown
             isMultiSelect={true}
-            options={options}
+            modelType={source.modelType}
+            labelField="name"
+            valueField="_id"
+            query={source.query}
             ariaLabelledby={`${editorId}-choices`}
             placeholder={FormsCopy.choicesOfferedPlaceholder}
             dataTestId={`form-question-choices-${field.id}`}
-            value={options.filter((option: DropdownOption): boolean => {
-              return allowed.includes(option.value.toString());
-            })}
+            notFoundLabel={FormsCopy.deletedRecord}
+            value={allowed}
             onChange={(
               value: DropdownValue | Array<DropdownValue> | null,
             ): void => {

@@ -25,7 +25,7 @@ import {
 export const BLOCKLIST_TABLE_TITLE: string = translationKey("Blocklist");
 
 export const BLOCKLIST_TABLE_DESCRIPTION: string = translationKey(
-  "The IP addresses and ranges your project blocks: why, until when, and where each block is enforced.",
+  "What your project blocks: why, until when, and where each block is enforced.",
 );
 
 export const BLOCKLIST_EMPTY_TITLE: string = translationKey(
@@ -41,8 +41,26 @@ export const BLOCK_SINGULAR: string = translationKey("Address");
 export const BLOCK_PLURAL: string = translationKey("Addresses");
 export const BLOCK_VERB: string = translationKey("Block");
 
+/*
+ * The other tabs (#10346): a domain or a URL, and a file - each a row of
+ * its own kind, blocked on every machine.
+ */
+export const DOMAIN_SINGULAR: string = translationKey("Domain or URL");
+export const DOMAIN_PLURAL: string = translationKey("Domains and URLs");
+export const FILE_SINGULAR: string = translationKey("File");
+export const FILE_PLURAL: string = translationKey("Files");
+
+export const DOMAINS_EMPTY_DESCRIPTION: string = translationKey(
+  "Block a domain or a URL your machines must not reach. Every block expires unless someone keeps it, and your own domains are never blocked.",
+);
+export const FILES_EMPTY_DESCRIPTION: string = translationKey(
+  "Block a file your machines must not run. Every block expires unless someone keeps it, and the files you protect are never blocked.",
+);
+
 // The columns.
 export const ADDRESS_COLUMN_TITLE: string = translationKey("Address");
+export const DOMAIN_COLUMN_TITLE: string = translationKey("Domain or URL");
+export const FILE_COLUMN_TITLE: string = translationKey("File Hash");
 export const ACTION_COLUMN_TITLE: string = translationKey("Action");
 export const ENFORCED_AT_COLUMN_TITLE: string = translationKey("Enforced At");
 export const EXPIRES_COLUMN_TITLE: string = translationKey("Expires");
@@ -55,6 +73,15 @@ export const STATE_FILTER_TITLE: string = translationKey("State");
 // What each row's action says it does.
 export const BLOCKED_LABEL: string = translationKey("Blocked");
 export const CHALLENGED_LABEL: string = translationKey("Challenged");
+export const QUARANTINED_LABEL: string = translationKey(
+  "Blocked and quarantined",
+);
+
+// An address blocked everywhere, beside it (#10346).
+export const EVERY_MACHINE_LABEL: string = translationKey("On every machine");
+export const EVERY_MACHINE_TOOLTIP: string = translationKey(
+  "Blocked at the edge and on every machine, through Microsoft Defender.",
+);
 
 // An ended block, in the Expires column.
 export const LIFTED_LABEL: string = translationKey("Lifted");
@@ -77,7 +104,7 @@ export const SOURCE_LABELS: Record<
 export const NOT_ENFORCED_LABEL: string = translationKey("Not enforced");
 
 export const NOT_ENFORCED_TOOLTIP: string = translationKey(
-  "Nothing holds this block yet, so the address is not blocked anywhere.",
+  "Nothing holds this block yet, so it is not blocked anywhere.",
 );
 
 /*
@@ -114,7 +141,7 @@ export const NOTHING_ENFORCES_TITLE: string = translationKey(
 );
 
 export const NOTHING_ENFORCES_DESCRIPTION: string = translationKey(
-  "Connect Cloudflare, AWS WAF, Azure WAF, Cloud Armor or a firewall that reads a list. Until then, blocking an address here records it, and blocks it nowhere.",
+  "Connect Cloudflare, AWS WAF, Azure WAF, Cloud Armor or a firewall that reads a list, or turn on blocking on a Microsoft Defender or CrowdStrike connection. Until then, blocking here records it, and blocks it nowhere.",
 );
 
 export const OPEN_SECURITY_CONNECTIONS: string = translationKey(
@@ -155,6 +182,53 @@ export const ACTION_FIELD_DESCRIPTION: string = translationKey(
 );
 export const ACTION_BLOCK_OPTION: string = translationKey("Block");
 export const ACTION_CHALLENGE_OPTION: string = translationKey("Challenge");
+export const ACTION_QUARANTINE_OPTION: string = translationKey(
+  "Block and Quarantine",
+);
+
+// Block Address's More fields (#10346): the address on every machine too.
+export const EVERY_MACHINE_FIELD_TITLE: string = translationKey(
+  "Block on Every Machine Too",
+);
+export const EVERY_MACHINE_FIELD_DESCRIPTION: string = translationKey(
+  "Through Microsoft Defender, for a command-and-control server: what matters there is your machines reaching out.",
+);
+
+// ---------- Block Domain or URL, Block File (#10346) ----------
+
+export const BLOCK_DOMAIN_TITLE: string = translationKey("Block Domain or URL");
+export const BLOCK_DOMAIN_DESCRIPTION: string = translationKey(
+  "Blocks a domain, and the names under it, or a URL on every machine, through Microsoft Defender.",
+);
+export const DOMAIN_FIELD_TITLE: string = translationKey("Domain or URL");
+export const DOMAIN_FIELD_DESCRIPTION: string = translationKey(
+  "A domain such as evil.example, or a URL that starts with http:// or https://.",
+);
+export const DOMAIN_FIELD_PLACEHOLDER: string = translationKey(
+  "e.g. evil.example or https://evil.example/login",
+);
+export const NOT_A_DOMAIN_OR_URL: string = translationKey(
+  "Enter a domain such as evil.example, or a URL that starts with http:// or https://.",
+);
+
+export const BLOCK_FILE_TITLE: string = translationKey("Block File");
+export const BLOCK_FILE_DESCRIPTION: string = translationKey(
+  "Blocks a file on every machine by its hash, through Microsoft Defender or CrowdStrike Falcon.",
+);
+export const FILE_FIELD_TITLE: string = translationKey("File Hash");
+export const FILE_FIELD_DESCRIPTION: string = translationKey(
+  "The file's MD5, SHA-1 or SHA-256 hash.",
+);
+export const FILE_FIELD_PLACEHOLDER: string = translationKey(
+  "e.g. 44d88612fea8a8f36de82e1278abb02f",
+);
+export const NOT_A_FILE_HASH: string = translationKey(
+  "Enter the file's MD5, SHA-1 or SHA-256 hash.",
+);
+export const QUARANTINE_FIELD_TITLE: string = translationKey("Quarantine It");
+export const QUARANTINE_FIELD_DESCRIPTION: string = translationKey(
+  "Microsoft Defender quarantines the copies it finds. CrowdStrike Falcon blocks the file, and quarantines it as your prevention policy says.",
+);
 
 export const UNTIL_LIFTED_FIELD_TITLE: string =
   translationKey("Keep Until Lifted");
@@ -205,7 +279,7 @@ export const BLOCK_ANYWAY: string = translationKey("Block Anyway");
 export const LIFT_ACTION: string = translationKey("Lift");
 export const LIFT_TITLE: string = translationKey("Lift Block");
 export const LIFT_DESCRIPTION: string = translationKey(
-  "Requests from {{value}} reach your app again once each destination drops the block.",
+  "{{value}} is no longer blocked once each destination drops the block.",
 );
 export const LIFT_REASON_FIELD_DESCRIPTION: string = translationKey(
   "Why it is lifted, for whoever reads the list later.",
@@ -213,7 +287,7 @@ export const LIFT_REASON_FIELD_DESCRIPTION: string = translationKey(
 
 export const LIFT_SELECTED_TITLE: string = translationKey("Lift Blocks");
 export const LIFT_SELECTED_DESCRIPTION: string = translationKey(
-  "Requests from the selected addresses reach your app again once each destination drops their blocks.",
+  "What you selected is no longer blocked once each destination drops its block.",
 );
 
 export const EXTEND_ACTION: string = translationKey("Extend");
@@ -232,7 +306,7 @@ export const MAKE_PERMANENT_DESCRIPTION: string = translationKey(
 );
 
 export const ENDED_BLOCK_REASON: string = translationKey(
-  "This block has ended. Block the address again to block it once more.",
+  "This block has ended. Block it again to block it once more.",
 );
 
 // What each change says once it is saved.

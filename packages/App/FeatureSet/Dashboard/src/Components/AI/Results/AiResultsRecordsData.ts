@@ -46,6 +46,7 @@ export const AI_RESULTS_RECORDS_CLICK_HINTS: Record<AiOutcomesPart, string> = {
   [AiOutcomesPart.PullRequestFixes]: translationKey("Show the pull requests"),
   [AiOutcomesPart.RootCauses]: translationKey("Show the incidents and alerts"),
   [AiOutcomesPart.DataSecurityAnalyses]: translationKey("Show the issues"),
+  [AiOutcomesPart.IssueVerdicts]: translationKey("Show the issues"),
   [AiOutcomesPart.DataSecurityChanges]: translationKey("Show the issues"),
   [AiOutcomesPart.DataSecurityProposals]: translationKey("Show the issues"),
 };
@@ -77,6 +78,11 @@ export const AI_RESULTS_RECORDS_COUNTS: Record<AiOutcomesPart, PluralTemplate> =
         "{{count}} investigations OneUptime AI finished over the last 12 weeks, newest first.",
     },
     [AiOutcomesPart.DataSecurityAnalyses]: {
+      one: "{{count}} Data Security issue OneUptime AI analyzed over the last 12 weeks.",
+      other:
+        "{{count}} Data Security issues OneUptime AI analyzed over the last 12 weeks, newest first.",
+    },
+    [AiOutcomesPart.IssueVerdicts]: {
       one: "{{count}} Data Security issue OneUptime AI analyzed over the last 12 weeks.",
       other:
         "{{count}} Data Security issues OneUptime AI analyzed over the last 12 weeks, newest first.",
@@ -203,6 +209,8 @@ function readRecord(value: unknown): AiOutcomesRecord | null {
     "autoGrade",
     "proposalTitle",
     "proposalKind",
+    "issueVerdict",
+    "issueStatus",
   ];
 
   const record: AiOutcomesRecord = { id, at };
@@ -314,10 +322,39 @@ export function describeRecordDataSecurityIssue(
  * what kind of change OneUptime AI made for a Data Security issue, when no
  * line says what it was.
  */
+/*
+ * What an analyzed issue's record says under it (#10369): OneUptime AI's
+ * verdict, and where the issue stands now.
+ */
+export const ISSUE_VERDICT_FACTS: Readonly<Record<string, string>> = {
+  Real: translationKey("OneUptime AI said: real"),
+  LikelyByDesign: translationKey("OneUptime AI said: likely by design"),
+  LikelyWrongFinding: translationKey(
+    "OneUptime AI said: likely a wrong finding",
+  ),
+  CannotTell: translationKey("OneUptime AI could not tell"),
+};
+
+export const ISSUE_STATUS_FACTS: Readonly<Record<string, string>> = {
+  Open: translationKey("Still open"),
+  Resolved: translationKey("Fixed: its check passes"),
+  Accepted: translationKey("Its risk was accepted"),
+  "Not an issue": translationKey("Marked not an issue"),
+};
+
 export function getRecordFacts(
   part: AiOutcomesPart,
   record: AiOutcomesRecord,
 ): Array<string> {
+  if (part === AiOutcomesPart.IssueVerdicts) {
+    return [
+      ISSUE_VERDICT_FACTS[record.issueVerdict || ""] || "",
+      ISSUE_STATUS_FACTS[record.issueStatus || ""] || "",
+    ].filter((fact: string): boolean => {
+      return fact.length > 0;
+    });
+  }
+
   if (
     part === AiOutcomesPart.DataSecurityChanges ||
     part === AiOutcomesPart.DataSecurityProposals

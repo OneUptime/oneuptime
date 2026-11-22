@@ -60,7 +60,10 @@ export enum DataSecurityAiDecisionReason {
 
   // --- Analyze ---
   Analyzed = "Analyzed",
-  // It was analyzed since it last opened.
+  /*
+   * Its analysis was written from the same facts: nothing it rests on
+   * changed, so no model call was made (#10369).
+   */
   AlreadyAnalyzed = "AlreadyAnalyzed",
   // No LLM provider is set up.
   NoLlmProvider = "NoLlmProvider",

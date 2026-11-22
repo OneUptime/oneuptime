@@ -23,7 +23,8 @@ import User from "Common/Models/DatabaseModels/User";
 export interface ComponentProps {
   criteriaFilters: Array<NotificationRuleCondition>;
   filterCondition: FilterCondition;
-  monitors: Array<Monitor>;
+  // The monitors the rules hold, by id; undefined while they are read.
+  monitors?: Array<Monitor> | undefined;
   labels: Array<Label>;
   alertStates: Array<AlertState>;
   alertSeverities: Array<AlertSeverity>;
