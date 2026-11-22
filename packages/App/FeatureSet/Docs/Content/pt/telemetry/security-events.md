@@ -638,6 +638,14 @@ A ação **Criar monitor** na linha de uma regra abre um monitor novo já config
 
 Os eventos de segurança são cobrados por GB ingerido, como o resto da sua telemetria, e mantidos pela sua retenção de telemetria: a **Retenção Padrão (Dias)** do projeto, em **Configurações do projeto → Telemetria e APM → Retenção de dados**, ou uma retenção definida no serviço de telemetria ao qual pertencem. Quando a retenção de um evento termina, ele é excluído.
 
+Tudo em Eventos de segurança que lê eventos passados lê só os eventos ainda mantidos, e diz quando precisaria de mais:
+
+- Uma regra **Visto pela primeira vez** cujo intervalo é maior do que o tempo em que os eventos são mantidos decide que um valor é novo pelos dias mantidos: com um intervalo de 30 dias e 15 dias mantidos, seus alertas e casos dizem `First awsRegion in 15 days`, e um valor visto pela última vez há 20 dias é tomado como novo. Sua linha mostra **Requer atenção**, e **Ver erro** diz o que mudar. O formulário da regra e os detalhes de uma regra na biblioteca de regras dizem isso antes de ela ser salva ou adicionada. Uma contagem ou uma sequência cuja janela é maior do que o tempo em que os eventos são mantidos conta só esses.
+- **Executar em eventos passados** em um período que começa antes dos eventos mantidos diz que os eventos de segurança são mantidos por 15 dias, então olhou 15 dias para trás, e o que não encontrou vale só para esses dias. Um evento que aconteceu antes mas chegou atrasado continua mantido, e continua sendo lido. Uma regra **Visto pela primeira vez** diz quanto dos 30 dias antes do período pôde ver.
+- Uma caçada cujo **Intervalo de tempo** é maior do que o tempo em que os eventos são mantidos não encontra nada mais antigo, e seu formulário diz isso.
+
+**Configurações do projeto → Telemetria e APM → Retenção de dados** lista as regras ativas que olham mais para trás do que sua **Retenção Padrão (Dias)**. Para cobri-las, mantenha os eventos por mais tempo, com **Alterar retenção** sob uma regra, ou encurte o intervalo de uma regra para o que é mantido. O OneUptime mantém 15 dias, a menos que você mude, porque a retenção define quanto sua telemetria custa e por quanto tempo os dados pessoais dos eventos, como endereços e nomes de usuário, são mantidos. Uma nova retenção vale para os eventos que chegam a partir de então, então as regras veem mais para trás conforme esses eventos envelhecem.
+
 ## Solução de problemas
 
 :::details Os eventos não aparecem

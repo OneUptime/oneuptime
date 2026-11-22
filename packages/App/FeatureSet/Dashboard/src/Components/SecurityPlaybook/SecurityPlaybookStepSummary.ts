@@ -1,6 +1,15 @@
+import { DURATION_COUNTS } from "../SecurityEvents/Blocklist/BlocklistCopy";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import {
+  SecurityBlockAction,
+  SecurityBlockDuration,
+} from "Common/Types/SecurityBlocklist/SecurityBlock";
 import { SecurityPlaybookActionType } from "Common/Types/SecurityPlaybook/SecurityPlaybookAction";
-import { SecurityPlaybookStep } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
+import {
+  BlockAddressConfig,
+  SecurityPlaybookStep,
+  readBlockAddressConfig,
+} from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -340,6 +349,36 @@ export function summarizeSecurityPlaybookStep(
       return (
         translator.translateText(
           "The snapshots of the databases the case is about",
+        ) || ""
+      );
+    // How a block of the case's addresses goes, and for how long (#10342).
+    case SecurityPlaybookActionType.BlockAddress: {
+      const block: BlockAddressConfig = readBlockAddressConfig(config);
+      const isChallenge: boolean =
+        block.blockAction === SecurityBlockAction.Challenge;
+
+      if (block.duration === SecurityBlockDuration.UntilLifted) {
+        return (
+          translator.translateText(
+            isChallenge
+              ? "Challenged, until someone lifts it"
+              : "Blocked, until someone lifts it",
+          ) || ""
+        );
+      }
+
+      const length: { count: number; plural: { one: string; other: string } } =
+        DURATION_COUNTS[block.duration];
+
+      return translator.translateTemplate(
+        isChallenge ? "Challenged, for {{length}}" : "Blocked, for {{length}}",
+        { length: translator.translatePlural(length.plural, length.count) },
+      );
+    }
+    case SecurityPlaybookActionType.LiftAddressBlock:
+      return (
+        translator.translateText(
+          "The block on each address the case is about",
         ) || ""
       );
     default:

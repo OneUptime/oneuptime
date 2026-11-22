@@ -2973,7 +2973,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
 
     // Both ingest paths store each occurrence under its exception's choice.
     for (const ingest of [tracesIngest, logsIngest]) {
-      expect(ingest).toContain("ExceptionUtil.getFingerprintV2({");
+      expect(ingest).toContain("ExceptionUtil.getOccurrenceFingerprints({");
       expect(ingest).toContain(
         "await ExceptionUtil.assignRowGroupFingerprints(batch);",
       );
@@ -2981,15 +2981,27 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(exceptionUtil).toContain(
       "await ExceptionUtil.assignPayloadGroupFingerprints(exceptions)",
     );
-    // An exception recorded before keeps its first fingerprint.
-    expect(exceptionUtil).toContain(
-      "chosen.set(key, cached?.exists ? candidate.v1 : candidate.v2);",
-    );
+    /*
+     * An exception recorded before keeps its first fingerprint: its v1 one is
+     * tried first, and a new exception is made under its v2 one.
+     */
+    expect(exceptionUtil).toContain("fingerprintCandidates: [v1, v2, keyed],");
+    expect(exceptionUtil).toContain("fingerprintV2: v2,");
+    expect(exceptionUtil).toContain("chosen.set(key, candidate.v2);");
 
     const troubleshooting: string = section(page, "## Troubleshooting");
     expect(troubleshooting).toContain(
       "New exceptions are grouped by the functions of your own code instead, so this mostly concerns exceptions recorded before; merge two that are the same bug from **Similar exceptions**.",
     );
+
+    /*
+     * A scrub rule splits no exception, and one a rule split before #10434
+     * keeps its occurrences: the logs ingest tries what it grouped by then.
+     */
+    expect(troubleshooting).toContain(
+      "A scrub rule doesn't split an exception: it is grouped by what it said before the rules ran. An exception found in logs that a rule split into two in an earlier version of OneUptime stays two; merge them the same way.",
+    );
+    expect(logsIngest).toContain("findsGroupsOfStoredText: true,");
   });
 
   /*

@@ -12,6 +12,20 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsSearchQuery";
 import { DEFAULT_SECURITY_EVENTS_TIME_RANGE } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsTimeRange";
 import {
+  CHANGE_RETENTION,
+  HUNT_RANGE_PAST_RETENTION,
+  RETROHUNT_KEPT,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/Retention/SecurityEventRetentionCopy";
+import { SEARCH_OVER_FIELD_TITLE } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/HuntsCopy";
+import { getSecurityHuntTimeRangeLengthInMinutes } from "Common/Types/SecurityEvent/SecurityHunt";
+import {
+  SECONDS_IN_A_DAY,
+  getKeptLookbackInSeconds,
+} from "Common/Types/SecurityEvent/SecurityEventRetention";
+import { describeDetectionRetentionNotice } from "Common/Utils/SecurityEvent/DetectionRetentionNotice";
+import { isDetectionRunNotice } from "Common/Utils/SecurityEvent/DetectionOverflow";
+import { HARDCODED_DEFAULT_TELEMETRY_RETENTION_IN_DAYS } from "Common/Types/Telemetry/TelemetryRetentionConfig";
+import {
   SECURITY_MATCH_RAISES_ANSWERS,
   SECURITY_MATCH_RAISES_COPY,
   SECURITY_MATCH_RAISES_FIELD_TITLE,
@@ -112,6 +126,7 @@ import {
   getRealTimeCountWindow,
 } from "Common/Types/SecurityEvent/RealTimeDetection";
 import {
+  DETECTION_RULE_NEEDS_ATTENTION,
   DETECTION_RULE_REAL_TIME,
   DETECTION_RULE_RUN_FAILED_TRIED_AGAIN,
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityDetectionStatus";
@@ -170,6 +185,7 @@ import OcsfNormalizer from "Common/Utils/SecurityEvent/OcsfNormalizer";
 import SecurityEventNormalizer from "Common/Utils/SecurityEvent/SecurityEventNormalizer";
 import SigmaRuleParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleParser";
 import SigmaRuleSetParser, {
+  describeSigmaTimespan,
   sigmaRulesOf,
 } from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import {
@@ -260,6 +276,12 @@ const SOURCES: Record<string, string> = {
   detectionMatches: "packages/Common/Server/Services/SecurityEventService.ts",
   detectionRuleService:
     "packages/Common/Server/Services/DetectionRuleService.ts",
+  // How far back security events go (#10432): the reads, and where it is said.
+  correlationMatcher: `${SECURITY}/Correlation/CorrelationRuleMatcher.ts`,
+  retrohunt: `${SECURITY}/DetectionRuleRetrohunt.ts`,
+  retrohuntPanel: `${DASHBOARD}/Components/SecurityEvents/Retrohunt/DetectionRuleRetrohuntPanel.tsx`,
+  ruleLibraryPanel: `${DASHBOARD}/Components/SecurityEvents/RuleLibraryRulePanel.tsx`,
+  huntFormFields: `${DASHBOARD}/Components/SecurityEvents/Hunts/HuntFormFields.ts`,
   matchJob:
     "packages/App/FeatureSet/Workers/Jobs/ThreatIntel/MatchThreatIntelIndicators.ts",
   pollJob:
@@ -2840,6 +2862,142 @@ describe("the Threat Intelligence page", () => {
 
     expect(page).toContain(
       "Read **Last Poll Summary**. No objects fetched: the collection is empty or publishes no indicators. Unsupported patterns: the provider uses pattern features this page lists as skipped. Below minimum confidence: lower **Minimum Confidence**. Already inactive: the provider sent indicators that were already revoked or expired.",
+    );
+  });
+});
+
+/*
+ * HOW FAR BACK SECURITY EVENTS GO (#10432): what the Security Events page's
+ * Retention and billing section says rules, Run on Past Events and hunts
+ * do when they read further back than the project keeps its events - held
+ * to the code that does it, run on the page's own example: a 30-day First
+ * seen rule, 15 days kept.
+ */
+describe("the Security Events page: how far back security events go", () => {
+  const page: string = englishPage(SECURITY_EVENTS);
+  const DAY: number = SECONDS_IN_A_DAY;
+  const FIRST_SEEN_30_DAYS: string = `title: AWS activity in a new region
+correlation:
+  type: new_value
+  rules: [call]
+  group-by: [targetHost]
+  timespan: 30d
+  condition:
+    field: awsRegion
+---
+title: Call
+name: call
+detection:
+  selection:
+    productName: AWS CloudTrail
+  condition: selection`;
+
+  it("keeps 15 days unless the project changes it", () => {
+    expect(HARDCODED_DEFAULT_TELEMETRY_RETENTION_IN_DAYS).toBe(15);
+    expect(page).toContain(
+      "OneUptime keeps 15 days unless you change it, because retention sets what your telemetry costs and how long personal data in events, such as addresses and user names, is kept.",
+    );
+  });
+
+  it("a First seen rule tells a value is new by the days kept, and its alerts say how many", () => {
+    // The matcher's sentence, worded by the history kept: 15 of the 30 days.
+    expect(source("correlationMatcher")).toContain(
+      "summary: `First ${fields} in ${span}:",
+    );
+    expect(
+      describeSigmaTimespan(
+        getKeptLookbackInSeconds({
+          lookbackInSeconds: 30 * DAY,
+          retentionInDays: 15,
+        }),
+      ),
+    ).toBe("15 days");
+    expect(page).toContain(
+      "with a 30-day timespan and 15 days kept, its alerts and cases say `First awsRegion in 15 days`, and a value last seen 20 days ago reads as new.",
+    );
+  });
+
+  it("its row reads Needs attention, and View Error says what to change", () => {
+    const notice: string | null = describeDetectionRetentionNotice({
+      definition: SigmaRuleSetParser.parse(FIRST_SEEN_30_DAYS),
+      retentionInDays: 15,
+    });
+
+    expect(isDetectionRunNotice(notice)).toBe(true);
+    expect(notice).toContain("or shorten the rule's timespan to 15 days.");
+    expect(DETECTION_RULE_NEEDS_ATTENTION.text).toBe("Needs attention");
+    expect(
+      fs.readFileSync(
+        path.join(
+          REPO_DIR,
+          DASHBOARD,
+          "Components/SecurityEvents/SecurityDetectionErrorModal.tsx",
+        ),
+        "utf8",
+      ),
+    ).toContain('title: "View Error",');
+    expect(page).toContain(
+      "Its row reads **Needs attention**, and **View Error** says what to change.",
+    );
+  });
+
+  it("the rule form and the Rule Library say so before a rule is saved or added", () => {
+    expect(source("detectionRules")).toContain(
+      "<DetectionRuleRetentionWarning shape={shape} />",
+    );
+    expect(source("ruleLibraryPanel")).toContain(
+      "<DetectionRuleRetentionWarning shape={view.shape} />",
+    );
+    expect(page).toContain(
+      "The rule form and a rule's details in the Rule Library say so before it is saved or added.",
+    );
+  });
+
+  it("Run on Past Events reads the whole period's kept events, and says how far back they go", () => {
+    expect(RETROHUNT_KEPT).toBe(
+      "Security events are kept for {{retention}}, so this looked back {{retention}}.",
+    );
+    // Every read is of kept events, from the period's own start: a late arrival from before is read.
+    expect(flat(source("retrohunt"))).toContain("keptAt: endTime,");
+    expect(flat(source("retrohunt"))).toContain(
+      "const startTime: Date = OneUptimeDate.addRemoveHours( endTime, -request.periodInHours, );",
+    );
+    expect(source("retrohuntPanel")).toContain("getRetrohuntKeptLines(result)");
+    expect(page).toContain(
+      "**Run on Past Events** over a period that starts before the kept events says that security events are kept for 15 days, so it looked back 15 days, and what it did not find is said of those days only. An event that happened earlier but arrived late is still kept, and still read.",
+    );
+  });
+
+  it("a hunt's Time Range longer than events are kept finds nothing older, and its form says so", () => {
+    expect(SEARCH_OVER_FIELD_TITLE).toBe("Time Range");
+    expect(HUNT_RANGE_PAST_RETENTION).toBe(
+      "Security events are kept for {{retention}}: this range finds nothing older.",
+    );
+    expect(source("huntFormFields")).toContain(
+      "getFooterElement: renderHuntRangeRetentionWarning,",
+    );
+    // A month's range is longer than the 15 days kept.
+    expect(
+      getSecurityHuntTimeRangeLengthInMinutes(TimeRange.PAST_ONE_MONTH)! * 60,
+    ).toBeGreaterThan(15 * DAY);
+    expect(page).toContain(
+      "- A hunt whose **Time Range** is longer than events are kept finds nothing older, and its form says so.",
+    );
+  });
+
+  it("Data Retention lists the enabled rules that look back further, with Change Retention under a rule", () => {
+    expect(source("telemetrySettings")).toContain(
+      '<RulesPastRetentionNotice className="mb-5" />',
+    );
+    expect(CHANGE_RETENTION).toBe("Change Retention");
+    expect(page).toContain(
+      "**Project Settings → Telemetry & APM → Data Retention** lists the enabled rules that look back further than its **Default Retention (Days)**. To cover them, keep events longer, with **Change Retention** under a rule, or shorten a rule's timespan to what is kept.",
+    );
+  });
+
+  it("a new retention applies to events that arrive from then on", () => {
+    expect(page).toContain(
+      "A new retention applies to events that arrive from then on, so rules see further back as those events age.",
     );
   });
 });

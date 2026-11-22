@@ -1,4 +1,3 @@
-import ServerException from "../../Types/Exception/ServerException";
 import { JsonElementTally } from "../../Utils/JsonElementCount";
 import {
   ExpressRequest,
@@ -15,9 +14,10 @@ import {
 } from "../Utils/RequestBodyLimit";
 import {
   closeConnectionAfterAnswer,
+  createInflateFailedError,
   createTooManyJsonValuesError,
+  stopReadingRequestBody,
 } from "../Utils/RequestBodyRefusal";
-import Response from "../Utils/Response";
 import zlib from "zlib";
 
 /*
@@ -197,11 +197,7 @@ export default class GzipRequestBodyMiddleware {
      * timeout (closeConnectionAfterAnswer, #10260).
      */
     const stopReading: () => void = (): void => {
-      if (typeof req.pause === "function") {
-        req.pause();
-      }
-
-      closeConnectionAfterAnswer(res);
+      stopReadingRequestBody(req, res);
     };
 
     const onData: (chunk: Buffer | string) => void = (
@@ -338,17 +334,20 @@ export default class GzipRequestBodyMiddleware {
       });
     });
 
+    /*
+     * A body that says it is gzip and does not inflate - not gzip at all, cut
+     * off, bytes after its end - is the client's (#10597): refused 400 as
+     * body-parser's own refusals are, which expressErrorHandler answers in
+     * RequestBodyRefusal's words and logs at debug. It was a 500 and an
+     * error-level log line with a stack, which any client, with no key,
+     * could have the App write once a request, and which an exporter reads
+     * as the server's fault, to send again.
+     */
     inflate.on("error", (err: Error): void => {
       settle((): void => {
         // The rest is not read: flowing on with no listener would drain it.
         stopReading();
-        logger.error(err, getLogAttributesFromRequest(req as OneUptimeRequest));
-
-        Response.sendErrorResponse(
-          req,
-          res,
-          new ServerException("Error decompressing data"),
-        );
+        next(createInflateFailedError(err));
       });
     });
 

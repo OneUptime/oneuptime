@@ -16,6 +16,7 @@ import DetectionRuleRetrohunt, {
 import DetectionRuleExceptionService from "../../../../Server/Services/DetectionRuleExceptionService";
 import ProjectSigmaRules from "../../../../Server/Utils/SecurityEvent/Correlation/ProjectSigmaRules";
 import SecurityWatchlists from "../../../../Server/Utils/SecurityEvent/Watchlists/SecurityWatchlists";
+import SecurityEventRetention from "../../../../Server/Utils/SecurityEvent/SecurityEventRetention";
 import {
   buildSigmaFieldExpression,
   buildSigmaFieldHasValue,
@@ -385,6 +386,11 @@ describe("Run on Past Events", () => {
     getJestSpyOn(DetectionRuleExceptionService, "findBy").mockResolvedValue(
       [] as never,
     );
+    // How long the project keeps its events: the run reads only those.
+    getJestSpyOn(
+      SecurityEventRetention,
+      "getRetentionInDays",
+    ).mockResolvedValue(15 as never);
 
     getJestSpyOn(
       SecurityEventService.database,
