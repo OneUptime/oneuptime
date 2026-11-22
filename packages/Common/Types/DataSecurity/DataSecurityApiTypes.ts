@@ -321,6 +321,12 @@ export interface DataSecurityScrubRulePlan {
   // The service the rule is for; none for every service and app of the project.
   serviceId?: string | undefined;
   serviceName?: string | undefined;
+  /*
+   * An IP Address rule that hashes rather than redacts, because Security
+   * Events reads the addresses there (#10396): the dialog says what that
+   * keeps, in one line.
+   */
+  hashesForSecurityEvents?: boolean | undefined;
 }
 
 export interface DataSecurityScrubImpact {

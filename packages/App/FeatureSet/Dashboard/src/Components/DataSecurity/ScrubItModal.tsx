@@ -109,6 +109,35 @@ export const ALREADY_SCRUBBED: string = translationKey(
   "The scrub rule {{name}} already hides this data.",
 );
 
+/*
+ * An IP address Security Events reads is hashed, not redacted (#10396):
+ * what that keeps, in one line, where the action's own words would be.
+ */
+export const SCRUB_IT_HASHES_FOR_SECURITY_EVENTS: string = translationKey(
+  "People will see a token instead of the address. Security Events still sees the address, so it can tell you which one to block.",
+);
+
+// What the dialog says under the rule's action: why it hashes, or what the action leaves.
+export function getScrubItActionNote(
+  plan: Pick<
+    DataSecurityScrubRulePlan,
+    "signal" | "patternType" | "hashesForSecurityEvents"
+  >,
+  action: RadioButton | undefined,
+): string | undefined {
+  if (plan.hashesForSecurityEvents) {
+    return SCRUB_IT_HASHES_FOR_SECURITY_EVENTS;
+  }
+
+  if (plan.patternType === SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE) {
+    return plan.signal === "log"
+      ? LOG_SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY
+      : SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY;
+  }
+
+  return action?.description;
+}
+
 export interface ComponentProps {
   findingId: ObjectID;
   onClose: () => void;
@@ -348,13 +377,7 @@ const ScrubItModal: FunctionComponent<ComponentProps> = (
                 <Labelled
                   label={SCRUB_ACTION}
                   value={action.title}
-                  note={
-                    isSensitiveKeys
-                      ? plan.signal === "log"
-                        ? LOG_SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY
-                        : SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY
-                      : action.description
-                  }
+                  note={getScrubItActionNote(plan, action)}
                   dataTestId="data-security-scrub-it-action-words"
                 />
               </FactLine>

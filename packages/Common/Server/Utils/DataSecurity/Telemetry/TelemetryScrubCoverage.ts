@@ -55,6 +55,10 @@ import {
   TRACE_SCRUB_RULE_DEFAULTS,
 } from "../../../../Types/Telemetry/ScrubRule";
 import { getScrubRuleServiceId } from "../../../../Types/Telemetry/ScrubRuleScope";
+import {
+  SecurityEventsFieldNeed,
+  SecurityEventsTelemetrySource,
+} from "../../../../Types/Telemetry/TelemetryFieldReaders";
 import TraceScrubAction from "../../../../Types/Trace/TraceScrubAction";
 import TraceScrubField from "../../../../Types/Trace/TraceScrubField";
 import { isCustomDataTypeId } from "../../../../Utils/DataSecurity/CustomDataTypeDetector";
@@ -62,10 +66,18 @@ import { DataTypeDetector } from "../../../../Utils/DataSecurity/Detector";
 import { getBuiltInDetectorsOf } from "../../../../Utils/DataSecurity/Detectors/Index";
 import { PatternProblemReason } from "../../../../Utils/LinearRegExp/PatternProblem";
 import { CORRELATION_ID_ATTRIBUTE_KEYS } from "../../../../Utils/Telemetry/CorrelationIdAttributes";
+import {
+  compileScrubRuleReading,
+  findSecurityEventsLosses,
+} from "../../../../Utils/Telemetry/ScrubRuleFieldReads";
 import LogScrubRuleService from "../../../Services/LogScrubRuleService";
 import MetricPipelineRuleService from "../../../Services/MetricPipelineRuleService";
 import ServiceService from "../../../Services/ServiceService";
 import TraceScrubRuleService from "../../../Services/TraceScrubRuleService";
+import {
+  findSecurityEventsSources,
+  SecurityEventsSources,
+} from "../../SecurityEvent/SecurityEventsFieldReaders";
 import WorkspaceActionAuthorization from "../../Workspace/WorkspaceActionAuthorization";
 import ProjectDataTypeNames from "../ProjectDataTypeNames";
 
@@ -896,6 +908,54 @@ export interface ScrubRulePlan {
   customRegex?: string | undefined;
   scrubAction: string;
   fieldsToScrub: string;
+  /*
+   * An IP Address rule that hashes rather than redacts, because Security
+   * Events reads the addresses where the rule hides them (#10396): its
+   * address vault still names the address behind each token.
+   */
+  hashesForSecurityEvents?: boolean | undefined;
+}
+
+/*
+ * WHETHER SCRUB IT HASHES AN IP ADDRESS (#10396).
+ *
+ * A Redact rule on IP addresses leaves every attack Security Events finds
+ * in those records without an address: nothing to block, nothing for threat
+ * intel to look up. A Hash rule hides the address from people just as well -
+ * they read a token - and Security Events' address vault (#10395) still
+ * names the address behind each token. So Scrub It hashes an IP address
+ * exactly where a Redact rule would take the address from Security Events:
+ * the records one of its scans reads, in the parts it reads the address
+ * from (a log's body and attributes, a span's attributes - not a span's
+ * events or name). Everywhere else nothing needs the address, and it keeps
+ * Redact. The question is the one the readers lookup asks of any rule
+ * (Utils/Telemetry/ScrubRuleFieldReads.findSecurityEventsLosses), so the
+ * dialog's "what Security Events would lose" and this choice never differ.
+ */
+export function isAddressLostToSecurityEvents(data: {
+  signal: "log" | "trace";
+  fieldsToScrub: string;
+  serviceId?: unknown;
+  sources: ReadonlyArray<SecurityEventsTelemetrySource>;
+}): boolean {
+  if (data.sources.length === 0) {
+    return false;
+  }
+
+  return findSecurityEventsLosses(
+    compileScrubRuleReading({
+      signal: data.signal,
+      patternType: LogScrubPatternType.IPAddress,
+      scrubAction: LogScrubAction.Redact,
+      fieldsToScrub: data.fieldsToScrub,
+      serviceId: data.serviceId,
+    }),
+    data.sources,
+  ).includes(SecurityEventsFieldNeed.ClientAddresses);
+}
+
+function hashAction(signal: ScrubRuleSignal): string {
+  return signal === "log" ? LogScrubAction.Hash : TraceScrubAction.Hash;
 }
 
 function fieldsToScrubFor(target: ScrubTarget): string {
@@ -981,6 +1041,15 @@ export function planScrubRule(data: {
   dataTypeId: string;
   location: string;
   target: ScrubTarget;
+  /*
+   * The Security Events scans that read the records of the finding's
+   * signal (SecurityEventsFieldReaders.findSecurityEventsSources): an IP
+   * address they read is hashed, not redacted (#10396). None, or left out,
+   * when none does or it could not be told.
+   */
+  securityEventsSources?: ReadonlyArray<SecurityEventsTelemetrySource>;
+  // The service the rule is for, as Security Events' losses are read for it.
+  serviceId?: unknown;
 }): ScrubRulePlan {
   const target: ScrubTarget = data.target;
   const builtIn: string | undefined = SCRUB_PATTERN_TYPE_OF_DATA_TYPE.get(
@@ -988,12 +1057,32 @@ export function planScrubRule(data: {
   );
 
   if (builtIn) {
+    const fieldsToScrub: string = fieldsToScrubFor(target);
+
+    if (
+      builtIn === LogScrubPatternType.IPAddress &&
+      target.signal !== "metric" &&
+      isAddressLostToSecurityEvents({
+        signal: target.signal,
+        fieldsToScrub,
+        serviceId: data.serviceId,
+        sources: data.securityEventsSources || [],
+      })
+    ) {
+      return {
+        patternType: builtIn,
+        scrubAction: hashAction(target.signal),
+        fieldsToScrub,
+        hashesForSecurityEvents: true,
+      };
+    }
+
     return {
       patternType: builtIn,
       scrubAction: MASKED_PATTERN_TYPES.has(builtIn)
         ? maskAction(target.signal)
         : redactAction(target.signal),
-      fieldsToScrub: fieldsToScrubFor(target),
+      fieldsToScrub,
     };
   }
 
@@ -1176,7 +1265,9 @@ function describeFields(plan: ScrubRulePlan, signal: ScrubRuleSignal): string {
     case TraceScrubField.All:
       return "span names, attributes, events and exceptions";
     default:
-      return signal === "log" ? "log attribute values" : "span attribute values";
+      return signal === "log"
+        ? "log attribute values"
+        : "span attribute values";
   }
 }
 
@@ -1228,6 +1319,14 @@ function describeRule(data: {
   if (data.plan.patternType === SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE) {
     return cut(
       `${origin} It ${actionVerb(data.plan.scrubAction)} the whole value of every attribute whose key looks sensitive - password, token, secret, cookie, ... - and every value under such a key inside a list, a map, a log body or a JSON text, from now on. ${applies} What is stored already stays until its retention ends.`,
+      MAX_RULE_DESCRIPTION_LENGTH,
+    );
+  }
+
+  // Why it hashes rather than redacts, where Security Events reads the address (#10396).
+  if (data.plan.hashesForSecurityEvents) {
+    return cut(
+      `${origin} It hashes every ${data.dataTypeName.toLowerCase()} in ${describeFields(data.plan, data.signal)} from now on, rather than redacting it: people see a token instead of the address, and Security Events, which reads these ${data.signal === "log" ? "logs" : "spans"}, still sees the address behind it, so it can say which one to block. ${applies} What is stored already stays until its retention ends.`,
       MAX_RULE_DESCRIPTION_LENGTH,
     );
   }
@@ -1641,7 +1740,7 @@ export async function planScrubItRule(data: {
   storeKey?: string | null | undefined;
 }): Promise<ScrubItRule> {
   // Refused first, for a type no rule can find, before anything is read.
-  const plan: ScrubRulePlan = planScrubRule({
+  let plan: ScrubRulePlan = planScrubRule({
     dataTypeId: data.dataTypeId,
     location: data.location,
     target: data.target,
@@ -1655,6 +1754,26 @@ export async function planScrubItRule(data: {
       }),
       readScrubScopeOfFinding(data),
     ]);
+
+  /*
+   * An IP address Security Events reads is hashed, not redacted (#10396):
+   * its scans are asked only for an IP Address rule. Sources that could not
+   * be read leave the rule as it was planned.
+   */
+  if (plan.patternType === LogScrubPatternType.IPAddress) {
+    const read: SecurityEventsSources = await findSecurityEventsSources({
+      projectId: data.projectId,
+      signal: data.target.signal,
+    });
+
+    plan = planScrubRule({
+      dataTypeId: data.dataTypeId,
+      location: data.location,
+      target: data.target,
+      securityEventsSources: read.isChecked ? read.sources : [],
+      serviceId: scope.serviceId,
+    });
+  }
 
   return {
     signal: data.target.signal,

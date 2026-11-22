@@ -303,6 +303,11 @@ export async function getScrubItImpact(data: {
       dataTypeName: planned.dataTypeName,
     };
 
+    // Hashed, not redacted, where Security Events reads the address (#10396).
+    if (planned.plan.hashesForSecurityEvents) {
+      plan.hashesForSecurityEvents = true;
+    }
+
     if (planned.scope.serviceId) {
       plan.serviceId = planned.scope.serviceId.toString();
       plan.serviceName = planned.scope.serviceName;
