@@ -209,7 +209,7 @@ describe("Cloud Environments docs", (): void => {
       );
     });
 
-    it("is the group just before Cloud's, which holds the accounts, their resources, what they cost and their streams", (): void => {
+    it("is the group just before Cloud's, which holds the accounts, their resources, what they cost, their streams and blocking in AWS WAF", (): void => {
       const titles: Array<string> = DocsNav.map((group: NavGroup): string => {
         return group.title;
       });
@@ -228,6 +228,8 @@ describe("Cloud Environments docs", (): void => {
         "/docs/telemetry/cloud-streaming",
         "/docs/telemetry/cloud-streaming-azure",
         "/docs/telemetry/cloud-streaming-google-cloud",
+        // AWS WAF enforces the blocklist through an AWS cloud connection (#10578).
+        "/docs/telemetry/cloud-aws-waf-blocklist",
       ]);
     });
 
