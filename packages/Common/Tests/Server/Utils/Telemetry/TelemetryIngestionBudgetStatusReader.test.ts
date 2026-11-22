@@ -371,6 +371,41 @@ describe("TelemetryIngestionBudgetStatusReader.getProjectStatus", () => {
     ).toHaveBeenCalledWith(PROJECT_ID, { fresh: true });
   });
 
+  /*
+   * Security Events' scans ask every minute and want what the ingest gate
+   * decides by (#10431): the settings as the gate's cache holds them, the
+   * same figures otherwise.
+   */
+  test("reads the settings as the ingest gate does when asked, for a reader that asks every minute", async () => {
+    const fresh: TelemetryIngestionBudgetStatus =
+      await TelemetryIngestionBudgetStatusReader.getProjectStatus({
+        projectId: PROJECT_ID,
+        now: NOW,
+      });
+
+    (
+      TelemetryIngestionBudgetSettings.getInstanceSettings as unknown as MockFn
+    ).mockClear();
+    (
+      TelemetryIngestionBudgetSettings.getProjectOverrides as unknown as MockFn
+    ).mockClear();
+
+    const asIngest: TelemetryIngestionBudgetStatus =
+      await TelemetryIngestionBudgetStatusReader.getProjectStatus({
+        projectId: PROJECT_ID,
+        now: NOW,
+        readsSettingsAsIngestDoes: true,
+      });
+
+    expect(
+      TelemetryIngestionBudgetSettings.getInstanceSettings,
+    ).toHaveBeenCalledWith();
+    expect(
+      TelemetryIngestionBudgetSettings.getProjectOverrides,
+    ).toHaveBeenCalledWith(PROJECT_ID);
+    expect(asIngest).toEqual(fresh);
+  });
+
   test("falls back to the cache when a fresh read fails", async () => {
     (
       TelemetryIngestionBudgetSettings.getInstanceSettings as unknown as MockFn
