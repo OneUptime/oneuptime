@@ -388,10 +388,12 @@ Um webhook descreve apenas o que está naquele payload, então o OneUptime nunca
 
 Um alerta que você mesmo adiciona a um critério também começa com **Resolver alerta automaticamente** desligado, então uma recuperação deixa o alerta aberto até que a opção seja ligada. **Auto-resolve each incident when…** mostra quais incidentes e alertas do critério uma recuperação resolve e nomeia cada um que ela deixaria aberto, com um botão que liga a opção correspondente. O cartão **Resumo do monitor** na **Visão geral** do monitor nomeia cada incidente e alerta que uma recuperação deixou aberto, e o motivo.
 
+Uma recuperação resolve apenas os incidentes e alertas do critério que a lê: aquele cujos **Field that signals recovery** e **Value that means recovered** correspondem ao payload. Os incidentes e alertas de outro critério para o mesmo valor continuam abertos, e os de um critério que deixa esses campos em branco são resolvidos manualmente.
+
 **Max incidents per request** limita a extração, não só a criação. As chaves além do limite também ficam invisíveis para a recuperação, então, em um payload com mais chaves distintas que o limite, um alerta que informe `resolved` além dele não vai fechar o incidente dele.
 
 > [!NOTE]
-> Quando um monitor recebe requisições mais rápido do que o OneUptime consegue avaliá-las, ele avalia a mais recente e pula as intermediárias, então uma rajada de webhooks pode deixar sem avaliação um alerta disparado ou um resolvido. Em um servidor auto-hospedado, definir `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` no ambiente do app OneUptime avalia cada requisição separadamente.
+> Um monitor com um critério que agrupa por um campo do payload avalia cada requisição que recebe, uma de cada vez e na ordem em que chegaram, então uma rajada de alertas e recuperações abre e resolve o incidente e o alerta de cada valor. Até 1.000 requisições, ou 16 MB delas, esperam para ser avaliadas; além disso, as mais antigas em espera são puladas, e o cartão **Resumo do monitor** diz quantas. Um monitor sem agrupamento avalia apenas a mais recente das requisições que o esperam.
 
 > [!NOTE]
 > Se **Field that signals recovery** contém `[*]` mas **Open a separate incident for each…** não, uma solicitação só se recuperou quando todos os elementos daquele array dizem isso. Com `requestBody.alerts[*].status` e `resolved`, um incidente agrupado por `requestBody.groupLabels.alertname` é resolvido quando todos os alertas de uma solicitação estão resolvidos, e continua aberto enquanto algum ainda estiver disparado.

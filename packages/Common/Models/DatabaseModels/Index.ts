@@ -260,6 +260,7 @@ import DataAlert from "./DataAlert";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
 import SecurityBlock from "./SecurityBlock";
 import SecurityBlockEnforcement from "./SecurityBlockEnforcement";
+import SecurityBlockCloudWaf from "./SecurityBlockCloudWaf";
 import SecurityEntityRisk from "./SecurityEntityRisk";
 import SecurityEntityCriticality from "./SecurityEntityCriticality";
 import SecurityEventDestination from "./SecurityEventDestination";
@@ -788,6 +789,7 @@ const AllModelTypes: Array<{
   SecurityProtectedEntity,
   SecurityBlock,
   SecurityBlockEnforcement,
+  SecurityBlockCloudWaf,
   SecurityEntityRisk,
   SecurityEntityCriticality,
   SecurityEventDestination,

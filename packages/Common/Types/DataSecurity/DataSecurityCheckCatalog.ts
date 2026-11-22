@@ -368,6 +368,8 @@ export const FINDING_FRESHNESS_IN_DAYS: number = 30;
 export const SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID: string =
   "sensitive-data-in-telemetry";
 export const SECRETS_IN_TELEMETRY_CHECK_ID: string = "secrets-in-telemetry";
+// Nobody owns this sensitive store: what OneUptime AI's owners make pass (#10374).
+export const NO_OWNER_CHECK_ID: string = "no-owner";
 
 export const TELEMETRY_FINDING_CHECK_IDS: ReadonlyArray<string> = [
   SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID,
@@ -1503,7 +1505,7 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
     },
   },
   {
-    id: "no-owner",
+    id: NO_OWNER_CHECK_ID,
     group: G.Hygiene,
     title: "Nobody owns this sensitive store",
     description: "The store holds sensitive data and has no owner.",

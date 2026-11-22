@@ -68,6 +68,7 @@ import SecurityBlockAPI, {
   SECURITY_BLOCK_CHECK_ROUTE,
   SECURITY_BLOCK_DESTINATIONS_ROUTE,
 } from "../../../Server/API/SecurityBlockAPI";
+import SecurityBlockCloudWafService from "../../../Server/Services/SecurityBlockCloudWafService";
 import SecurityBlockService from "../../../Server/Services/SecurityBlockService";
 import SecurityCaseFeedService from "../../../Server/Services/SecurityCaseFeedService";
 import SecurityEventConnectionService from "../../../Server/Services/SecurityEventConnectionService";
@@ -232,6 +233,10 @@ beforeEach(() => {
   jest
     .spyOn(SecurityProtectedAddresses, "findProtection")
     .mockResolvedValue({ protection: null, unreadSources: [] });
+  // The project has picked no cloud WAF (#10344): its production source lists none.
+  jest
+    .spyOn(SecurityBlockCloudWafService, "findForProject")
+    .mockResolvedValue([]);
 });
 
 afterEach(() => {

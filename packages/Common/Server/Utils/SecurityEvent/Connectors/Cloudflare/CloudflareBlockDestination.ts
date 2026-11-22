@@ -773,7 +773,7 @@ export default class CloudflareBlockDestinations {
 
 /*
  * The source the reconciler asks for Cloudflare destinations
- * (SECURITY_BLOCK_DESTINATION_SOURCES).
+ * (getSecurityBlockDestinationSources).
  */
 export const CLOUDFLARE_BLOCK_DESTINATION_SOURCE: SecurityBlockDestinationSource =
   {

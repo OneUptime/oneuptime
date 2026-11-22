@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import { getMetadataArgsStorage, QueryRunner } from "typeorm";
 import { TableMetadataArgs } from "typeorm/metadata-args/TableMetadataArgs";
 import AllModelTypes from "../../../../Models/DatabaseModels/Index";
@@ -83,6 +85,28 @@ const MODEL_TABLES: Array<string> = getMetadataArgsStorage()
     return table.length > 0;
   });
 
+/*
+ * The tables made after this migration, each by a migration of its own
+ * that makes it with the six columns (its CREATE TABLE, as the generator
+ * writes it for the base model): this one alters only the tables there
+ * were, and one it named that did not exist yet would fail it.
+ */
+const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
+  table: string;
+  migration: string;
+}> = [
+  // The cloud WAFs that enforce a project's blocklist (#10344).
+  {
+    table: "SecurityBlockCloudWaf",
+    migration: "1809187430000-AddSecurityBlockCloudWaf.ts",
+  },
+];
+
+const MIGRATIONS_FOLDER: string = path.resolve(
+  __dirname,
+  "../../../../Server/Infrastructure/Postgres/SchemaMigrations",
+);
+
 // The column as the generator writes a base model column of this type.
 const POSTGRES_TYPE_OF: Partial<Record<TableColumnType, string>> = {
   [TableColumnType.ShortText]: `character varying(${ColumnLength.ShortText})`,
@@ -91,10 +115,55 @@ const POSTGRES_TYPE_OF: Partial<Record<TableColumnType, string>> = {
 };
 
 describe("which tables and columns", () => {
-  test("every model's table, each once", () => {
-    expect(RECORD_ACTOR_TABLES.length).toBe(MODEL_TABLES.length);
+  test("every model's table, each once - but those made after it, with the columns", () => {
+    const madeAfter: Array<string> = MADE_WITH_THE_COLUMNS.map(
+      (made: { table: string }): string => {
+        return made.table;
+      },
+    );
+
+    expect(RECORD_ACTOR_TABLES.length).toBe(
+      MODEL_TABLES.length - madeAfter.length,
+    );
     expect(new Set(RECORD_ACTOR_TABLES).size).toBe(RECORD_ACTOR_TABLES.length);
-    expect([...RECORD_ACTOR_TABLES].sort()).toEqual([...MODEL_TABLES].sort());
+    expect([...RECORD_ACTOR_TABLES, ...madeAfter].sort()).toEqual(
+      [...MODEL_TABLES].sort(),
+    );
+  });
+
+  test("a table made after it is made with the six columns, by a migration registered after it", () => {
+    const names: Array<string> = SchemaMigrations.map(
+      (migration: { name: string }): string => {
+        return migration.name;
+      },
+    );
+
+    for (const made of MADE_WITH_THE_COLUMNS) {
+      const source: string = fs.readFileSync(
+        path.join(MIGRATIONS_FOLDER, made.migration),
+        "utf8",
+      );
+      const createTable: string =
+        source.split("\n").find((line: string): boolean => {
+          return line.includes(`CREATE TABLE "${made.table}"`);
+        }) || "";
+
+      for (const column of RECORD_ACTOR_COLUMN_DEFINITIONS) {
+        expect({
+          table: made.table,
+          column: column.name,
+          made: createTable.includes(`"${column.name}" ${column.definition}`),
+        }).toEqual({ table: made.table, column: column.name, made: true });
+      }
+
+      const className: string = `${made.migration
+        .replace(/^\d+-/, "")
+        .replace(/\.ts$/, "")}${made.migration.split("-")[0]}`;
+
+      expect(names.indexOf(className)).toBeGreaterThan(
+        names.indexOf("AddRecordCreatedByAndLastModifiedColumns1809187400000"),
+      );
+    }
   });
 
   test("the base model's six columns, as each is declared", () => {

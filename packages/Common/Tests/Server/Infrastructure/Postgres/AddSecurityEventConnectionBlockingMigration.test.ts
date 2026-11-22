@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddSecurityEventConnectionBlocking1809187425300 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187425300-AddSecurityEventConnectionBlocking";
+import { AddSecurityEventConnectionBlocking1809187431300 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187431300-AddSecurityEventConnectionBlocking";
 import SecurityEventConnection from "../../../../Models/DatabaseModels/SecurityEventConnection";
 import Permission from "../../../../Types/Permission";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -39,11 +39,11 @@ function timestampOf(migration: unknown): number {
   );
 }
 
-describe("AddSecurityEventConnectionBlocking1809187425300", () => {
+describe("AddSecurityEventConnectionBlocking1809187431300", () => {
   test("adds the two columns to SecurityEventConnection, and nothing else", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddSecurityEventConnectionBlocking1809187425300().up(runner);
+        return new AddSecurityEventConnectionBlocking1809187431300().up(runner);
       }),
     ).toEqual([
       `ALTER TABLE "SecurityEventConnection" ADD "blockingSettings" jsonb`,
@@ -53,7 +53,7 @@ describe("AddSecurityEventConnectionBlocking1809187425300", () => {
 
   test("nullable, no default, no index, no row rewritten", async () => {
     for (const statement of await statementsOf((runner: QueryRunner) => {
-      return new AddSecurityEventConnectionBlocking1809187425300().up(runner);
+      return new AddSecurityEventConnectionBlocking1809187431300().up(runner);
     })) {
       expect(statement).not.toMatch(
         /NOT NULL|DEFAULT|CREATE (UNIQUE )?INDEX|FOREIGN KEY|UPDATE /i,
@@ -99,7 +99,7 @@ describe("AddSecurityEventConnectionBlocking1809187425300", () => {
   test("down drops what up added", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddSecurityEventConnectionBlocking1809187425300().down(
+        return new AddSecurityEventConnectionBlocking1809187431300().down(
           runner,
         );
       }),
@@ -114,21 +114,21 @@ describe("AddSecurityEventConnectionBlocking1809187425300", () => {
 
     expect(
       registered.filter((candidate: unknown): boolean => {
-        return candidate === AddSecurityEventConnectionBlocking1809187425300;
+        return candidate === AddSecurityEventConnectionBlocking1809187431300;
       }),
     ).toHaveLength(1);
 
     const position: number = registered.indexOf(
-      AddSecurityEventConnectionBlocking1809187425300,
+      AddSecurityEventConnectionBlocking1809187431300,
     );
 
     expect(
       Math.max(...registered.slice(0, position).map(timestampOf)),
     ).toBeLessThan(
-      timestampOf(AddSecurityEventConnectionBlocking1809187425300),
+      timestampOf(AddSecurityEventConnectionBlocking1809187431300),
     );
-    expect(new AddSecurityEventConnectionBlocking1809187425300().name).toBe(
-      "AddSecurityEventConnectionBlocking1809187425300",
+    expect(new AddSecurityEventConnectionBlocking1809187431300().name).toBe(
+      "AddSecurityEventConnectionBlocking1809187431300",
     );
   });
 });

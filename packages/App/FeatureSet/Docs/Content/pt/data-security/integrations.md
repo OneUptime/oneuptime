@@ -77,6 +77,10 @@ As regras definem proprietários e rótulos por você, à medida que os reposit�
 
 Uma regra corresponde a um repositório pelos rótulos dele, por um padrão do nome ou da descrição dele, ou por **Padrão de tag de nuvem**: um padrão comparado com cada uma das tags de nuvem do repositório, escritas `key=value`. `^team=payments$` corresponde a todo repositório com a tag `team=payments`, e `^env=` a todo repositório com uma tag `env`. Um repositório novo recebe as regras do projeto no momento em que é encontrado, e o **Notificar proprietários** de uma regra de proprietário diz se os proprietários que ela adiciona são avisados. [Regras de rótulos e proprietários](/docs/configuration/label-and-owner-rules) diz como cada regra corresponde e quando as regras rodam.
 
+### Proprietários que o OneUptime AI propõe
+
+Um repositório sem proprietários pode recebê-los do OneUptime AI. Ele lê o que já aponta para um proprietário - as tags de nuvem do repositório, os serviços que o usam, os proprietários do código do arquivo que o declara, e quem o alterou ou adicionou - e propõe a partir disso equipes e pessoas do seu próprio projeto. Nada muda até que uma pessoa aprove em **Proprietários para revisar**, em **Repositórios de dados** ou em **Segurança de dados → IA**, e os proprietários adicionados são avisados como qualquer proprietário. Quando os proprietários de três ou mais repositórios se apoiam em uma tag ou em um começo de nome, ele também propõe a regra de proprietário que mantém com proprietário o próximo repositório como esses, que entra nas **Regras de proprietário** depois de aprovada. [OneUptime AI na Segurança de dados](/docs/data-security/ai) diz o que ele envia e quando roda.
+
 ## Fluxos de trabalho
 
 **Repositório de dados** e **Problema de segurança de dados** são gatilhos de fluxo de trabalho, cada um com **Ao criar**, **Ao atualizar**, **Ao criar ou atualizar** e **Ao excluir**. Escolha-os no painel **Adicionar gatilho**, em **Recursos do OneUptime**.

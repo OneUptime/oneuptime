@@ -266,7 +266,7 @@ Quando o alerta watchdog fica dez minutos sem chegar, o monitor watchdog fica of
 - O incidente do critério precisa de **Resolver incidente automaticamente**, em **Mais campos**.
 - **Field that signals recovery** deve ser `requestBody.alerts[*].status`, e **Value that means recovered** exatamente `resolved`. A comparação diferencia maiúsculas de minúsculas.
 - Os alertas de uma notificação acima de **Max incidents per request** nem são lidos, então as recuperações deles também se perdem.
-- Uma recuperação pulada em uma rajada (veja abaixo) deixa o incidente dela aberto para sempre: o Alertmanager repete os alertas disparados, mas nunca uma recuperação. Resolva esse incidente manualmente.
+- Uma recuperação pulada porque notificações demais estavam esperando (veja abaixo) deixa o incidente dela aberto para sempre: o Alertmanager repete os alertas disparados, mas nunca uma recuperação. Resolva esse incidente manualmente.
 :::
 
 :::details Nenhum incidente abre
@@ -285,8 +285,8 @@ Uma referência a um campo que a notificação não tem fica como está escrita,
 Agrupe a sua rota por menos rótulos, ou aumente o `group_interval`, para que o Alertmanager envie juntos os alertas relacionados. Baixar **Max incidents per request** limita os incidentes de uma notificação, mas os alertas acima do limite não são lidos, então as recuperações deles também se perdem.
 :::
 
-:::details Notificações são puladas durante uma rajada
-Quando uma requisição mais nova chega a um monitor antes de uma anterior ser avaliada, o OneUptime avalia só a mais nova, para que um único remetente não possa sobrecarregar um monitor. A última notificação de uma rajada sempre é avaliada, mas uma anterior sobre outros alertas pode ser pulada, porque o Alertmanager envia cada grupo para a mesma URL. Aumente `group_wait` e `group_interval` para espaçar as notificações. Em uma instalação auto-hospedada, defina `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` no ambiente do aplicativo OneUptime para avaliar cada requisição.
+:::details Uma rajada de notificações
+Um monitor cujo critério agrupa por um campo, como este guia configura, avalia cada notificação que recebe, uma de cada vez e na ordem em que chegaram, então uma rajada de alertas disparados e resolvidos abre e resolve o incidente de cada alerta. Até 1.000 notificações, ou 16 MB delas, esperam para ser avaliadas; além disso, as mais antigas em espera são puladas, e o cartão **Resumo do monitor** diz quantas. Aumente `group_wait` e `group_interval` para enviar menos notificações, maiores. Um monitor sem agrupamento avalia apenas a notificação mais recente que o espera.
 :::
 
 ## Segurança

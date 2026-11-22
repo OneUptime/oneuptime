@@ -44,6 +44,8 @@ import {
   ScrubbedAddressPlace,
   markClientAddressScrubbed,
 } from "../ScrubbedAddress";
+import { pickEventUser } from "../ScrubbedUser";
+import { isSharedScrubPlaceholder } from "../../../Types/Telemetry/ScrubRule";
 import {
   buildTelemetrySecurityEvent,
   cutTelemetryText,
@@ -249,6 +251,19 @@ export function readTraceAttribute(
   return "";
 }
 
+/*
+ * A span's user: the first of its user attributes (enduser.id, user.id) a
+ * scrub rule left whole - else a Hash token, else what Redact or Mask left,
+ * for the event to say a rule hid it (ScrubbedUser.pickEventUser).
+ */
+export function readSpanUser(span: Pick<TraceScanSpan, "attributes">): string {
+  return pickEventUser(
+    TRACE_SCAN_ATTRIBUTE_KEYS.userId.map((key: string): string => {
+      return readTraceAttribute(span, [key]);
+    }),
+  );
+}
+
 export function isServerSpanKind(kind: string): boolean {
   return String(kind || "")
     .toLowerCase()
@@ -394,10 +409,12 @@ function readSpanRequest(
     span,
     TRACE_SCAN_ATTRIBUTE_KEYS.userAgent,
   );
-  const userId: string = readTraceAttribute(
-    span,
-    TRACE_SCAN_ATTRIBUTE_KEYS.userId,
-  );
+  /*
+   * The request's user: the first of its user attributes a scrub rule left
+   * whole. One it redacted or masked is no user (#10435): the event names
+   * none and says a rule hid it (buildTelemetrySecurityEvent).
+   */
+  const userId: string = readSpanUser(span);
   const route: string = readTraceAttribute(
     span,
     TRACE_SCAN_ATTRIBUTE_KEYS.route,
@@ -439,7 +456,8 @@ function readSpanRequest(
     );
   }
 
-  if (userId) {
+  // What a rule shared among everybody is no user to search or group by.
+  if (userId && !isSharedScrubPlaceholder(userId)) {
     attributes[SECURITY_REQUEST_ATTRIBUTES.userId] = cutTelemetryText(
       userId,
       255,
@@ -649,9 +667,13 @@ export function buildPromptInjectionEvent(
   }
 
   const model: string = (span.llmRequestModel || span.llmSystem || "").trim();
-  const userId: string =
-    (span.llmUserId || "").trim() ||
-    readTraceAttribute(span, TRACE_SCAN_ATTRIBUTE_KEYS.userId);
+  // The AI call's user, else the request's: past whatever a scrub rule hid.
+  const userId: string = pickEventUser([
+    span.llmUserId,
+    ...TRACE_SCAN_ATTRIBUTE_KEYS.userId.map((key: string): string => {
+      return readTraceAttribute(span, [key]);
+    }),
+  ]);
   const excerpt: string = cutTelemetryText(
     squashWhiteSpace(span.llmUserMessagePreview),
     PROMPT_EXCERPT_LENGTH,
@@ -677,7 +699,7 @@ export function buildPromptInjectionEvent(
     attributes["gen_ai.operation.name"] = span.llmOperation;
   }
 
-  if (userId) {
+  if (userId && !isSharedScrubPlaceholder(userId)) {
     attributes[SECURITY_REQUEST_ATTRIBUTES.userId] = cutTelemetryText(
       userId,
       255,

@@ -52,7 +52,7 @@ flowchart TB
 
 Wechseln Sie zwischen **Nicht behoben**, **Behoben**, **Archiviert** und **Alle**. Das Diagramm über der Liste zeigt, wie viele Vorkommen im Zeitverlauf **Nicht behandelt** und wie viele **Behandelt** waren. Eine mit **Regression** markierte Zeile ist nach der Behebung wieder aufgetreten, und eine mit **Neu** markierte wurde in den letzten 24 Stunden zum ersten Mal gesehen.
 
-Jede Zeile zeigt außerdem, wie viele Benutzer die Ausnahme im gewählten Zeitraum betroffen hat, und ein kleines Diagramm ihrer Vorkommen in diesem Zeitraum. Ein Vorkommen nennt seinen Benutzer mit dem Attribut `user.id`, `enduser.id` oder `enduser.pseudo.id`, am Ausnahme-Ereignis, an seinem Span oder Log-Eintrag oder an seiner Ressource; Vorkommen, die keinen Benutzer nennen, werden nicht gezählt.
+Jede Zeile zeigt außerdem, wie viele Benutzer die Ausnahme im gewählten Zeitraum betroffen hat, und ein kleines Diagramm ihrer Vorkommen in diesem Zeitraum. Ein Vorkommen nennt seinen Benutzer mit dem Attribut `user.id`, `enduser.id` oder `enduser.pseudo.id`, am Ausnahme-Ereignis, an seinem Span oder Log-Eintrag oder an seiner Ressource; Vorkommen, die keinen Benutzer nennen, werden nicht gezählt. Eine Benutzer-ID, die eine Bereinigungsregel verborgen hat, wird nie als Benutzer gezählt. Eine gehashte ID zählt trotzdem einmal, als verborgener Benutzer; Vorkommen, deren ID geschwärzt oder maskiert wurde, zählen als Ereignisse mit verborgenem Benutzer, da sie sich nicht unterscheiden lassen.
 
 ### Festlegen, was als Problem zählt
 

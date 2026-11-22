@@ -318,6 +318,7 @@ export default class DataSecurityAiEngine {
         store,
         dataTypeNamer: dataTypes.namer,
         now,
+        llmProviderId: plan.llmProviderId,
       };
       const entries: Array<DataSecurityAiDecisionEntry> = [];
 

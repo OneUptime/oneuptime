@@ -221,6 +221,18 @@ export const AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE: string =
   "AI Data Security Issue Analysis";
 
 /*
+ * The LlmLog feature name for OneUptime AI's owner proposals for data
+ * stores (DataStoreOwnerPlanner, #10374): one constrained call per store
+ * that has no owners, picking from the evidence of who owns it. Started
+ * by an issue that opens, the day's new stores and a cloud connection's
+ * first read - one read can find hundreds of stores - so the daily budget
+ * covers it. Its AI Logs rows keep no previews, as every Data Security
+ * call's do not.
+ */
+export const AI_DATA_SECURITY_STORE_OWNERS_FEATURE: string =
+  "AI Data Security Store Owners";
+
+/*
  * The LlmLog feature name for drafting a detection rule from a description
  * (DetectionRuleDraft): one request, started by a person on the Detection
  * Rules form and answered while they wait. Not autonomous - the project's
@@ -378,6 +390,12 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * and one scan can open many.
    */
   AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
+  /*
+   * OneUptime AI's owner proposals for data stores (DataStoreOwnerPlanner):
+   * one constrained call per store with no owners, and a cloud
+   * connection's first read can find hundreds.
+   */
+  AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
   /*
    * Pre-rename labels. Keeps the budget honest for rows already persisted
    * under the old names — read the LEGACY_AUTONOMOUS_AI_FEATURES comment

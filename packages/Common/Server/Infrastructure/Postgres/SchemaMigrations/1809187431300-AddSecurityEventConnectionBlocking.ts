@@ -14,10 +14,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * "SecurityEventConnection" and holds its lock for an instant
  * (Docs/migrations/README.md).
  */
-export class AddSecurityEventConnectionBlocking1809187425300
+export class AddSecurityEventConnectionBlocking1809187431300
   implements MigrationInterface
 {
-  public name: string = "AddSecurityEventConnectionBlocking1809187425300";
+  public name: string = "AddSecurityEventConnectionBlocking1809187431300";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

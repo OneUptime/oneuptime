@@ -4,6 +4,7 @@ import {
   CloudConnectionDataSecurityLevel,
   CloudConnectionDataSecurityResponse,
   CloudConnectionDefinition,
+  CloudConnectionWafBlocklist,
   getCloudConnectionAuthMethodDefinition,
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import {
@@ -30,13 +31,14 @@ import { cloudConnectionDocsUrl } from "./CloudConnectApi";
  * click through the cloud's console.
  *
  * The command is written from the settings the form holds - what to read,
- * and Data Security's two settings folded under it - so it grants what
- * the connection is saved to use (#10336). Most commands only read, and
- * never data: the method's hint and the cloud's explanation say so. One
- * that also reads content samples or may close an exposure says what it
- * creates without "can only read", and a line for each of those under it
- * (getCloudConnectionAccessExtras), so nothing beside the command says it
- * grants less than it does.
+ * and Data Security's two settings and AWS's Block addresses in AWS WAF
+ * folded under it - so it grants what the connection is saved to use
+ * (#10336, #10344). Most commands only read, and never data: the method's
+ * hint and the cloud's explanation say so. One that also reads content
+ * samples, may close an exposure or keeps the blocklist in AWS WAF says
+ * what it creates without "can only read", and a line for each of those
+ * under it (getCloudConnectionAccessExtras), so nothing beside the command
+ * says it grants less than it does.
  */
 
 /*
@@ -115,6 +117,12 @@ export const ACCESS_EXTRA_LINES: Readonly<
   [CloudConnectionAccessExtra.DataSecurityResponse]: translationKey(
     "Data Security may also close a data store's exposures and fix its settings. Each change is approved by a person unless a playbook says otherwise.",
   ),
+  [CloudConnectionAccessExtra.WafIpSets]: translationKey(
+    "Your blocklist may also keep OneUptime's own IP sets in AWS WAF, and read the requests web ACLs sampled.",
+  ),
+  [CloudConnectionAccessExtra.WafRule]: translationKey(
+    "OneUptime may also add its rule to the web ACLs you pick, and changes no rule of yours.",
+  ),
 };
 
 const ACCESS_EXTRA_ICONS: Readonly<
@@ -122,6 +130,8 @@ const ACCESS_EXTRA_ICONS: Readonly<
 > = {
   [CloudConnectionAccessExtra.ContentSamples]: IconProp.DocumentMagnifyingGlass,
   [CloudConnectionAccessExtra.DataSecurityResponse]: IconProp.Wrench,
+  [CloudConnectionAccessExtra.WafIpSets]: IconProp.NoSymbol,
+  [CloudConnectionAccessExtra.WafRule]: IconProp.ShieldCheck,
 };
 
 export interface ComponentProps {
@@ -133,9 +143,12 @@ export interface ComponentProps {
   dataSecurity?: CloudConnectionDataSecurityLevel | undefined;
   // Whether Data Security may close a data store's exposure. Off when absent.
   dataSecurityResponse?: CloudConnectionDataSecurityResponse | undefined;
+  // AWS: whether the blocklist may block addresses in AWS WAF. Off when absent.
+  wafBlocklist?: CloudConnectionWafBlocklist | undefined;
   /*
-   * AWS role only: what the role trusts. Undefined while it loads; the
-   * command is shown once it is known.
+   * AWS: what a role trusts, and the project's external id, which names a
+   * role and the blocklist's IP sets. Undefined while it loads; the command
+   * is shown once it is known.
    */
   roleSetup?: CloudConnectionAwsRoleSetup | undefined;
 }
@@ -155,6 +168,7 @@ const CloudSetupCommand: FunctionComponent<ComponentProps> = (
       scope: props.scope,
       dataSecurity: props.dataSecurity,
       dataSecurityResponse: props.dataSecurityResponse,
+      wafBlocklist: props.wafBlocklist,
     },
   );
   // What the command grants beyond reading how things are set up, if anything.
@@ -162,6 +176,7 @@ const CloudSetupCommand: FunctionComponent<ComponentProps> = (
     getCloudConnectionAccessExtras({
       dataSecurity: props.dataSecurity,
       dataSecurityResponse: props.dataSecurityResponse,
+      wafBlocklist: props.wafBlocklist,
     });
   const isOrganization: boolean =
     props.scope === CloudConnectionSetupScope.Organization;

@@ -1391,19 +1391,6 @@ describe("the every-minute pass", () => {
     }) as never);
   });
 
-  test("the kinds of destination OneUptime ships: Cloudflare's lists and rules (#10343)", () => {
-    SecurityBlockDestinations.resetSourcesForTests();
-
-    expect(SecurityBlockDestinations.hasSources()).toBe(true);
-    expect(
-      SecurityBlockDestinations.getSources().map(
-        (source: SecurityBlockDestinationSource): string => {
-          return source.provider;
-        },
-      ),
-    ).toEqual([SecurityBlockDestinationProvider.Cloudflare]);
-  });
-
   test("queues nothing, and reads nothing, while no kind of destination exists", async () => {
     SecurityBlockDestinations.setSourcesForTests([]);
     projectsWithWork = [PROJECT_ID];
@@ -1723,5 +1710,109 @@ describe("getSecurityBlockEntryComment", () => {
     expect(getSecurityBlockEntryComment(block)).toBe(
       "OneUptime blocklist until lifted",
     );
+  });
+});
+
+/*
+ * A provider whose lists are replaced whole - an AWS WAF IP set (#10344),
+ * and as they come an Azure WAF custom rule or a Cloud Armor rule - takes a
+ * pass's removals and additions in one call (update), so each list is
+ * written once a pass however many blocks ended and began in it.
+ */
+describe("a destination that takes a pass's changes in one call", () => {
+  test("is given what ended and what began together, and its rows are written as remove and apply would write them", async () => {
+    const destination: TestSecurityBlockDestination =
+      new TestSecurityBlockDestination({ batchesWrites: true });
+    enforceAt(destination);
+    addBlock({ index: 1, value: "35.205.11.131" });
+
+    await pass(1);
+
+    expect(destination.countCalls("update")).toBe(1);
+    expect(stateOf(1, destination)).toBe(SecurityBlockEnforcementState.Applied);
+
+    setState(1, SecurityBlockState.Lifted);
+    addBlock({ index: 2, value: "35.205.11.132" });
+
+    await pass(2);
+
+    expect(
+      destination.calls
+        .filter((made: { call: string }): boolean => {
+          return made.call === "update";
+        })
+        .map((made: { values: Array<string> }): Array<string> => {
+          return made.values;
+        }),
+    ).toEqual([["+35.205.11.131"], ["-35.205.11.131", "+35.205.11.132"]]);
+    // Never the two calls of a destination that writes item by item.
+    expect(destination.countCalls("apply")).toBe(0);
+    expect(destination.countCalls("remove")).toBe(0);
+    expect(stateOf(1, destination)).toBe(SecurityBlockEnforcementState.Removed);
+    expect(stateOf(2, destination)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(destination.getOneUptimeValues()).toEqual(["35.205.11.132"]);
+  });
+
+  test("a pass with nothing to change does not call it", async () => {
+    const destination: TestSecurityBlockDestination =
+      new TestSecurityBlockDestination({ batchesWrites: true });
+    enforceAt(destination);
+    addBlock({ index: 1, value: "35.205.11.131" });
+
+    await pass(1);
+    await pass(2);
+
+    expect(destination.countCalls("update")).toBe(1);
+    expect(destination.countCalls("readBack")).toBeGreaterThanOrEqual(3);
+  });
+
+  test("one that fails is the destination failing: each row says so, and waits its retry", async () => {
+    const destination: TestSecurityBlockDestination =
+      new TestSecurityBlockDestination({ batchesWrites: true });
+    enforceAt(destination);
+    destination.failNextCalls("update", 1, "The provider is down.");
+    addBlock({ index: 1, value: "35.205.11.131" });
+
+    const result: SecurityBlocklistPassResult = await pass(1);
+
+    expect(result.failed).toBe(1);
+    expect(stateOf(1, destination)).toBe(SecurityBlockEnforcementState.Pending);
+    expect(errorOf(1, destination)).toBe(
+      "Could not write to Test destination: The provider is down.",
+    );
+    expect(retryAtOf(1, destination)).toEqual(
+      new Date(at(1).getTime() + SECURITY_BLOCKLIST_FIRST_RETRY_IN_MS),
+    );
+  });
+
+  test("an entry it turns down says why, as one apply turned down would", async () => {
+    const destination: TestSecurityBlockDestination =
+      new TestSecurityBlockDestination({ batchesWrites: true });
+    enforceAt(destination);
+    destination.refuseValue("35.205.11.131", "the list is locked");
+    addBlock({ index: 1, value: "35.205.11.131" });
+
+    await pass(1);
+
+    expect(stateOf(1, destination)).toBe(SecurityBlockEnforcementState.Failed);
+    expect(errorOf(1, destination)).toBe("Not applied: the list is locked");
+  });
+});
+
+describe("the destinations a project has in production", () => {
+  test("are Cloudflare's lists and rules (#10343) and AWS WAF's web ACLs (#10344), and never the test destination", () => {
+    SecurityBlockDestinations.resetSourcesForTests();
+
+    expect(SecurityBlockDestinations.hasSources()).toBe(true);
+    expect(
+      SecurityBlockDestinations.getSources().map(
+        (source: SecurityBlockDestinationSource): string => {
+          return source.provider;
+        },
+      ),
+    ).toEqual([
+      SecurityBlockDestinationProvider.Cloudflare,
+      SecurityBlockDestinationProvider.AwsWaf,
+    ]);
   });
 });

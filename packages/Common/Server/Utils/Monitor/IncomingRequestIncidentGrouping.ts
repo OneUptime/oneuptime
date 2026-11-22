@@ -6,6 +6,8 @@ import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/Incom
 import IncidentGroupingConfig from "../../../Types/Monitor/IncomingMonitor/IncidentGroupingConfig";
 import { CheckOn, FilterType } from "../../../Types/Monitor/CriteriaFilter";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import {
   MonitorEvaluationFilterResult,
   MonitorEvaluationGroupingNote,
@@ -13,6 +15,7 @@ import {
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import Typeof from "../../../Types/Typeof";
+import Dictionary from "../../../Types/Dictionary";
 
 import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
 /**
@@ -50,8 +53,14 @@ export interface IncomingRequestGroupingScan {
  * What a request reports recovered (collectRecoveries).
  */
 export interface IncomingRequestRecoveries {
-  // The values it reports recovered.
+  // The values any grouped criteria reads recovered.
   fingerprints: Array<string>;
+  /*
+   * The values each grouped criteria reads recovered, with its own grouping
+   * and recovery fields, by the criteria's id. A recovery resolves only the
+   * records of the criteria that reads it (#10585).
+   */
+  fingerprintsByCriteriaId: Dictionary<Array<string>>;
   // The grouped criteria whose incident and alert for the whole monitor it resolves.
   wholeMonitorCriteriaIds: Array<string>;
 }
@@ -386,9 +395,15 @@ export default class IncomingRequestIncidentGrouping {
   /**
    * What a request reports recovered - read in one pass over each grouping:
    *
-   *   - fingerprints: the values it reports recovered, across every
-   *     grouping-enabled criteria on the monitor's step, whichever criteria
-   *     it matched. Their incidents and alerts resolve.
+   *   - fingerprintsByCriteriaId: the values each grouping-enabled
+   *     criteria on the monitor's step reads recovered, with its own
+   *     grouping and recovery fields, whichever criteria the request
+   *     matched. Each criteria's incidents and alerts for those values
+   *     resolve - that criteria's only (#10585): a value another criteria
+   *     reads recovered says nothing of this one's record, which its own
+   *     fields may read as still firing, and a criteria that names no
+   *     recovery field resolves its records by hand.
+   *   - fingerprints: every value any of them reads recovered.
    *   - wholeMonitorCriteriaIds: the criteria it matched, when that criteria
    *     groups and every item of the request without a value reports
    *     recovered. Such a request is the counterpart of one that names no
@@ -409,13 +424,18 @@ export default class IncomingRequestIncidentGrouping {
     matchedCriteriaId?: string | undefined;
   }): IncomingRequestRecoveries {
     const fingerprints: Set<string> = new Set<string>();
+    const fingerprintsByCriteriaId: Dictionary<Array<string>> = {};
     const wholeMonitorCriteriaIds: Set<string> = new Set<string>();
 
     if (
       (input.dataToProcess as IncomingMonitorRequest)
         .onlyCheckForIncomingRequestReceivedAt
     ) {
-      return { fingerprints: [], wholeMonitorCriteriaIds: [] };
+      return {
+        fingerprints: [],
+        fingerprintsByCriteriaId: {},
+        wholeMonitorCriteriaIds: [],
+      };
     }
 
     const body: JSONObject | null = this.getRequestBodyObject(
@@ -435,15 +455,28 @@ export default class IncomingRequestIncidentGrouping {
         grouping: grouping,
       });
 
-      for (const item of scan.items) {
-        if (item.isResolved) {
-          fingerprints.add(item.fingerprint);
-        }
-      }
-
       const criteriaId: string | undefined = criteriaInstance.data?.id
         ? criteriaInstance.data.id.toString()
         : undefined;
+
+      for (const item of scan.items) {
+        if (!item.isResolved) {
+          continue;
+        }
+
+        fingerprints.add(item.fingerprint);
+
+        if (criteriaId) {
+          const recovered: Array<string> =
+            fingerprintsByCriteriaId[criteriaId] || [];
+
+          if (!recovered.includes(item.fingerprint)) {
+            recovered.push(item.fingerprint);
+          }
+
+          fingerprintsByCriteriaId[criteriaId] = recovered;
+        }
+      }
 
       if (
         criteriaId &&
@@ -457,6 +490,7 @@ export default class IncomingRequestIncidentGrouping {
 
     return {
       fingerprints: Array.from(fingerprints),
+      fingerprintsByCriteriaId: fingerprintsByCriteriaId,
       wholeMonitorCriteriaIds: Array.from(wholeMonitorCriteriaIds),
     };
   }
@@ -471,6 +505,28 @@ export default class IncomingRequestIncidentGrouping {
     criteriaInstance: MonitorCriteriaInstance | undefined,
   ): boolean {
     return Boolean(criteriaInstance?.data?.incidentGrouping?.groupByJSONPath);
+  }
+
+  /**
+   * Whether a criteria of the monitor, in any of its steps, groups by a
+   * payload field - the criteria MonitorResource reads a request's
+   * recoveries with. Then every request it receives may be about another
+   * value, so the Telemetry worker evaluates each one in turn, where a
+   * monitor without grouping evaluates only its newest
+   * (ProcessIncomingRequestIngest, #10582).
+   */
+  public static isGroupingConfiguredOnMonitor(
+    monitorSteps: MonitorSteps | undefined | null,
+  ): boolean {
+    return (monitorSteps?.data?.monitorStepsInstanceArray || []).some(
+      (step: MonitorStep | undefined): boolean => {
+        return (
+          step?.data?.monitorCriteria?.data?.monitorCriteriaInstanceArray || []
+        ).some((criteriaInstance: MonitorCriteriaInstance): boolean => {
+          return this.isGroupingConfigured(criteriaInstance);
+        });
+      },
+    );
   }
 
   /**

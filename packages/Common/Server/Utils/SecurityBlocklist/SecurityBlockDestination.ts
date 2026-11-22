@@ -184,5 +184,21 @@ export default interface SecurityBlockDestination {
     items: Array<SecurityBlockHeldItem>,
   ): Promise<Array<SecurityBlockWriteResult>>;
 
+  /*
+   * What a pass removes and adds, in one go: for a provider whose lists are
+   * replaced whole, so each list is written once a pass however many blocks
+   * ended and began in it - an AWS WAF IP set (one UpdateIPSet a second per
+   * account), and as they come an Azure WAF custom rule or a Cloud Armor
+   * rule. The reconciler calls it in place of remove() and apply() when a
+   * destination has it; each item is answered as those answer it.
+   */
+  update?(changes: {
+    add: Array<SecurityBlockEntry>;
+    remove: Array<SecurityBlockHeldItem>;
+  }): Promise<{
+    applied: Array<SecurityBlockWriteResult>;
+    removed: Array<SecurityBlockWriteResult>;
+  }>;
+
   readBack(): Promise<Array<SecurityBlockHeldItem>>;
 }
