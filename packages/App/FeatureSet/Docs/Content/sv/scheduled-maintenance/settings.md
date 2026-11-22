@@ -19,6 +19,7 @@ Konfigurationen av underhåll finns i **Schemalagt underhåll**, inte i **Projek
 | **Runbook-regler** | Startar runbooks för matchande händelser.                           |
 | **Etikettregler**  | Lägger till etiketter på matchande händelser.                       |
 | **Påminnelseregler** | Påminner ägarna med ett intervall tills en händelse är slutförd.    |
+| **Granskningsloggar** | Visar vem som skapade, ändrade eller tog bort någon av dessa regler, och när. |
 
 Avsnittet **Inställningar** rymmer **Underhållsstatus**, som beskrivs på [Underhållsstatusar](/docs/scheduled-maintenance/states), **Underhållsmallar**, som beskrivs på [Mallar och återkommande händelser](/docs/scheduled-maintenance/templates), och sedan **Anteckningsmallar**, **Godkännande av offentliga anteckningar**, **Anpassade fält**, **Mätningar**, **Kalenderinställningar** och **Numrering**. **Kalenderinställningar** beskrivs på [Underhållskalender](/docs/scheduled-maintenance/calendar#externa-kalendrar), resten nedan.
 

@@ -646,9 +646,11 @@ describe("Services (telemetry/services)", () => {
     expect(sectionByTitle(sections, "Services").items).toEqual([
       "All Services",
     ]);
+    // The rules, then their history (#10462).
     expect(sectionByTitle(sections, "Settings").items).toEqual([
       "Owner Rules",
       "Label Rules",
+      "Rule Audit Logs",
     ]);
     expect(sectionByTitle(sections, "Advanced").items).toEqual(["Archived"]);
     expect(startsCollapsed(menuSource, "Settings")).toBe(true);

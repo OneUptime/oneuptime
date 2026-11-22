@@ -67,7 +67,7 @@ The Network menu keeps what you open every day in view: **Overview**, **Devices*
 | Section | Pages |
 | --- | --- |
 | **Topology** | **Device Topology**, **Discovered Devices**, **Latency Matrix**, **Site Links**, **Device Links** |
-| **Rules** | **Auto Import Rules**, **Site Assignment Rules**, **Naming Rules**, **Owner Rules**, **Label Rules**, **Link Rules** |
+| **Rules** | **Auto Import Rules**, **Site Assignment Rules**, **Naming Rules**, **Owner Rules**, **Label Rules**, **Link Rules**, **Audit Logs** |
 | **Settings** | **Alert Policies**, **SNMP Credentials**, **Device Roles**, **Site Types**, **Address Names**, **OID Collection Templates** |
 | **Advanced** | **SNMP Walk**, **Archived Devices** |
 

@@ -19,6 +19,7 @@ Die Konfiguration der Wartung liegt in **Geplante Wartung**, nicht in den **Proj
 | **Runbook-Regeln** | Startet Runbooks für passende Ereignisse.                           |
 | **Beschriftungsregeln** | Fügt passenden Ereignissen Beschriftungen hinzu.               |
 | **Erinnerungsregeln** | Erinnert Eigentümer in einem Intervall, bis ein Ereignis abgeschlossen ist. |
+| **Audit-Protokolle** | Listet, wer eine dieser Regeln erstellt, geändert oder gelöscht hat und wann. |
 
 Der Abschnitt **Einstellungen** enthält **Wartungsstatus**, behandelt unter [Wartungsstatus](/docs/scheduled-maintenance/states), **Wartungsvorlagen**, behandelt unter [Vorlagen & wiederkehrende Ereignisse](/docs/scheduled-maintenance/templates), dann **Notiz-Vorlagen**, **Genehmigung öffentlicher Notizen**, **Benutzerdefinierte Felder**, **Messungen**, **Kalendereinstellungen** und **Nummerierung**. **Kalendereinstellungen** wird unter [Wartungskalender](/docs/scheduled-maintenance/calendar#externe-kalender) behandelt, der Rest unten.
 

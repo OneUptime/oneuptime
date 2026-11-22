@@ -19,6 +19,7 @@ Abre **Mantenimiento programado** desde el menú **Productos** de la barra super
 | **Reglas de runbook** | Inicia runbooks para los eventos que coinciden.                  |
 | **Reglas de etiquetas** | Añade etiquetas a los eventos que coinciden.                   |
 | **Reglas de recordatorio** | Recuerda a los propietarios a intervalos hasta que un evento se completa. |
+| **Registros de auditoría** | Muestra quién creó, cambió o eliminó cualquiera de estas reglas, y cuándo. |
 
 La sección **Ajustes** contiene **Estado del mantenimiento**, tratado en [Estados del mantenimiento](/docs/scheduled-maintenance/states), **Plantillas de mantenimiento**, tratado en [Plantillas y eventos recurrentes](/docs/scheduled-maintenance/templates), y después **Plantillas de notas**, **Aprobación de notas públicas**, **Campos personalizados**, **Mediciones**, **Ajustes del calendario** y **Numeración**. **Ajustes del calendario** se trata en [Calendario de mantenimiento](/docs/scheduled-maintenance/calendar#calendarios-externos), y el resto más abajo.
 

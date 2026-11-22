@@ -67,7 +67,7 @@ Nettverk-menyen holder det du åpner hver dag synlig: **Oversikt**, **Enheter**,
 | Seksjon | Sider |
 | --- | --- |
 | **Topologi** | **Enhetstopologi**, **Oppdagede enheter**, **Latensmatrise**, **Lokasjonslenker**, **Enhetslenker** |
-| **Regler** | **Regler for automatisk import**, **Regler for lokasjonstildeling**, **Navneregler**, **Eierregler**, **Etikettregler**, **Lenkeregler** |
+| **Regler** | **Regler for automatisk import**, **Regler for lokasjonstildeling**, **Navneregler**, **Eierregler**, **Etikettregler**, **Lenkeregler**, **Revisjonslogger** |
 | **Innstillinger** | **Varslingspolicyer**, **SNMP-påloggingsinformasjon**, **Enhetsroller**, **Lokasjonstyper**, **Adressenavn**, **Maler for OID-innsamling** |
 | **Avansert** | **SNMP-walk**, **Arkiverte enheter** |
 

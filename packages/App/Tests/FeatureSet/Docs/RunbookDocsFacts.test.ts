@@ -2425,12 +2425,21 @@ describe("the runbook pages' configuration reference", () => {
   it("give only menu paths the Runbooks side menu has", () => {
     const sections: Array<MenuSection> = runbookMenuSections();
 
-    // The Runners sit with the runbooks since AI Access went.
+    /*
+     * The Runners sit with the runbooks since AI Access went, and Settings
+     * ends with the history of its rules and of every product's runbook
+     * rules (#10462).
+     */
     expect(sections.slice(0, 2)).toEqual([
       { title: "Runbooks", items: ["Runbooks", "Executions", "Runners"] },
       {
         title: "Settings",
-        items: ["Global Variables", "Owner Rules", "Label Rules"],
+        items: [
+          "Global Variables",
+          "Owner Rules",
+          "Label Rules",
+          "Rule Audit Logs",
+        ],
       },
     ]);
 

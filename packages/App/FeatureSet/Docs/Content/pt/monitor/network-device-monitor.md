@@ -67,7 +67,7 @@ O menu Rede mantém à vista o que você abre todos os dias: **Visão geral**, *
 | Seção | Páginas |
 | --- | --- |
 | **Topologia** | **Topologia do dispositivo**, **Dispositivos descobertos**, **Matriz de latência**, **Links do site**, **Links do dispositivo** |
-| **Regras** | **Regras de importação automática**, **Regras de atribuição de sites**, **Regras de nomenclatura**, **Regras de proprietário**, **Regras de Rótulos**, **Regras de links** |
+| **Regras** | **Regras de importação automática**, **Regras de atribuição de sites**, **Regras de nomenclatura**, **Regras de proprietário**, **Regras de Rótulos**, **Regras de links**, **Registros de auditoria** |
 | **Configurações** | **Políticas de alerta**, **Credenciais SNMP**, **Funções de dispositivo**, **Tipos de site**, **Nomes de endereço**, **Modelos de coleta de OID** |
 | **Avançado** | **Walk SNMP**, **Dispositivos arquivados** |
 
