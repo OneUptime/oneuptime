@@ -14,17 +14,19 @@ import { DropdownChange } from "Common/UI/Components/Dropdown/DropdownChange";
 import EntityDropdown, {
   EntityDropdownValue,
 } from "Common/UI/Components/EntityDropdown/EntityDropdown";
+import {
+  getHeldValue,
+  HeldValueOptions,
+  useHeldValueOptions,
+} from "Common/UI/Components/EntityDropdown/HeldValueOptions";
 import { RuleCriteriaCopy } from "Common/UI/Components/RuleCriteria/RuleCriteriaFields";
 import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
-import RecordsById from "Common/UI/Utils/RecordsById";
 import { getSharedNameSelect } from "Common/UI/Utils/SharedNameOptions";
 import React, {
   FunctionComponent,
   MutableRefObject,
   ReactElement,
-  useEffect,
   useRef,
-  useState,
 } from "react";
 
 /*
@@ -144,13 +146,17 @@ export interface ComponentProps {
   autoFocus?: boolean | undefined;
 }
 
-// What a held record reads as: its name, Archived, or gone.
-type HeldOptions = Map<string, DropdownOption>;
-
 const RecordConditionPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [held, setHeld] = useState<HeldOptions | null>(null);
+  // What the condition holds, named by its ids (HeldValueOptions).
+  const held: HeldValueOptions = useHeldValueOptions({
+    modelType: props.kind.modelType,
+    ids: props.ids,
+    select: props.kind.select,
+    colorField: "color",
+    notFoundLabel: VALUE_NOT_FOUND_NAME,
+  });
 
   /*
    * Asked for the focus as it is drawn: kept for the dropdown, which is
@@ -160,101 +166,19 @@ const RecordConditionPicker: FunctionComponent<ComponentProps> = (
     Boolean(props.autoFocus),
   );
 
-  const idsKey: string = props.ids
-    .map((id: string): string => {
-      return id.toLowerCase();
-    })
-    .join("|");
-
-  useEffect(() => {
-    let isCurrent: boolean = true;
-
-    const read: () => Promise<void> = async (): Promise<void> => {
-      const known: HeldOptions = new Map(held || []);
-      const toRead: Array<string> = props.ids.filter((id: string): boolean => {
-        return !known.has(id.toLowerCase());
-      });
-
-      if (toRead.length === 0) {
-        if (!held) {
-          setHeld(known);
-        }
-
-        return;
-      }
-
-      try {
-        const records: Array<BaseModel> = await RecordsById.read<BaseModel>({
-          modelType: props.kind.modelType,
-          ids: toRead,
-          select: props.kind.select,
-        });
-
-        for (const record of records) {
-          const id: string = record._id?.toString().toLowerCase() || "";
-          const raw: Record<string, unknown> = record as unknown as Record<
-            string,
-            unknown
-          >;
-
-          if (!id) {
-            continue;
-          }
-
-          known.set(id, {
-            value: id,
-            label: (raw["name"] as string | undefined) || id,
-            // A record's name is its owner's, drawn as written.
-            isUserContent: true,
-            ...(raw["color"] ? { color: raw["color"] as never } : {}),
-            ...(raw["isArchived"] === true ? { isArchived: true } : {}),
-          });
-        }
-
-        // Asked for by its id, and not there: deleted since.
-        for (const id of RecordsById.getValuesToRead({ ids: toRead })) {
-          if (!known.has(id)) {
-            known.set(id, {
-              value: id,
-              label: VALUE_NOT_FOUND_NAME,
-              isUserContent: false,
-              isNotFound: true,
-            });
-          }
-        }
-      } catch {
-        /*
-         * Naming them is the picker's to do then: it reads a held value by
-         * its id itself, and the search must not fail with this read.
-         */
-      }
-
-      if (isCurrent) {
-        setHeld(known);
-      }
-    };
-
-    void read();
-
-    return () => {
-      isCurrent = false;
-    };
-  }, [idsKey, props.kind.modelType]);
-
   /*
    * Drawn once what it holds is named: drawn before, the picker would read
-   * the same ids itself.
+   * the same ids itself, the bare ids showing until then.
    */
-  if (!held && props.ids.length > 0) {
+  if (!held.options && props.ids.length > 0) {
     return <InlineValueSkeleton />;
   }
 
   // What the condition holds, each named where its name was read.
-  const value: Array<DropdownOption | string> = props.ids.map(
-    (id: string): DropdownOption | string => {
-      return held?.get(id.toLowerCase()) || id;
-    },
-  );
+  const value: Array<DropdownOption | string> = getHeldValue({
+    ids: props.ids,
+    options: held.options,
+  });
 
   return (
     <EntityDropdown
@@ -277,17 +201,7 @@ const RecordConditionPicker: FunctionComponent<ComponentProps> = (
         change: DropdownChange,
       ) => {
         // A record just picked is named by the search that offered it.
-        const known: HeldOptions = new Map(held || []);
-
-        for (const option of change.selectedOptions) {
-          const id: string = String(option.value).toLowerCase();
-
-          if (!known.has(id)) {
-            known.set(id, { ...option, value: id });
-          }
-        }
-
-        setHeld(known);
+        held.remember(change.selectedOptions);
 
         props.onChange(
           (Array.isArray(next) ? next : next ? [next] : []).map(

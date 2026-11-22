@@ -11,8 +11,6 @@ export interface ComponentProps {
   initialValue: Array<CriteriaIncident> | undefined;
   onChange?: undefined | ((value: Array<CriteriaIncident>) => void);
   incidentSeverityDropdownOptions: Array<DropdownOption>;
-  onCallPolicyDropdownOptions: Array<DropdownOption>;
-  labelDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
   monitorType?: MonitorType | undefined;
@@ -56,8 +54,6 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
             incidentSeverityDropdownOptions={
               props.incidentSeverityDropdownOptions
             }
-            onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
-            labelDropdownOptions={props.labelDropdownOptions}
             userDropdownOptions={props.userDropdownOptions}
             incidentRoleOptions={props.incidentRoleOptions}
             monitorType={props.monitorType}
