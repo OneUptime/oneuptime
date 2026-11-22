@@ -347,14 +347,19 @@ describe("the grant that shows who a session's end user is", () => {
 
   test("is the one the server serves the identity behind", () => {
     const source: string = fs.readFileSync(TELEMETRY_API, "utf8");
-    const start: number = source.indexOf(
-      "const SESSION_REPLAY_IDENTITY_PERMISSIONS: Array<Permission> = [",
+    /*
+     * Declared through withProductLevelsOf (#10289), so RUM's levels take
+     * it where the roles they follow are.
+     */
+    const start: number = source.search(
+      /const SESSION_REPLAY_IDENTITY_PERMISSIONS: Array<Permission> =\s*withProductLevelsOf\(\{/,
     );
 
     expect(start).toBeGreaterThanOrEqual(0);
 
-    const list: string = source.slice(start, source.indexOf("];", start));
+    const list: string = source.slice(start, source.indexOf("});", start));
 
+    expect(list).toContain("products: [ProductKey.Rum],");
     /*
      * Owners and admins hold every grant; the one a role is given to see
      * identity is the one the sentences name.

@@ -22,7 +22,9 @@ import {
   MAX_DEVICES_PER_CONTROLLER_DEVICE_ADD,
 } from "Common/Types/NetworkController/NetworkControllerDeviceAdd";
 import Permission from "Common/Types/Permission";
+import ProductKey from "Common/Types/Product/ProductKey";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import { withoutProductLevels } from "./DocsProductLevels";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -308,8 +310,14 @@ describe("Network Traffic: Add devices, held to the code", () => {
   });
 
   it("is for project owners and admins, as reading a connection is", () => {
-    const update: Array<Permission> =
-      new NetworkControllerConnection().getUpdatePermissions();
+    /*
+     * Network's Admin level does too, as Project Admin does (#10289): the
+     * permissions page describes the levels once, for every product.
+     */
+    const update: Array<Permission> = withoutProductLevels({
+      permissions: new NetworkControllerConnection().getUpdatePermissions(),
+      product: ProductKey.Network,
+    });
 
     expect(update.sort()).toEqual(
       [Permission.ProjectOwner, Permission.ProjectAdmin].sort(),

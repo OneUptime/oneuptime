@@ -4,6 +4,8 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Utils/Workspace/ConnectCallbackMessage";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import { PermissionHelper } from "Common/Types/Permission";
+import ProductKey from "Common/Types/Product/ProductKey";
+import { withoutProductLevels } from "./DocsProductLevels";
 import {
   ConnectCallbackError,
   ConnectProvider,
@@ -87,8 +89,15 @@ describe("the self-hosted GitHub guide, in every language", () => {
   });
 
   test("names every permission that may connect, in bold, as the server's create list has them", () => {
+    /*
+     * Code's Admin level connects too, as Project Admin does (#10289): the
+     * permissions page describes the levels once, for every product.
+     */
     const titles: Array<string> = PermissionHelper.getPermissionTitles(
-      new CodeRepository().getCreatePermissions(),
+      withoutProductLevels({
+        permissions: new CodeRepository().getCreatePermissions(),
+        product: ProductKey.Code,
+      }),
     );
 
     expect(titles).toEqual(

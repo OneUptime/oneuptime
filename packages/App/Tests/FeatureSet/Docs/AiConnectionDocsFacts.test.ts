@@ -36,6 +36,8 @@ import {
   LlmProviderUsageMetricNames,
 } from "Common/Types/LlmObservability/LlmProviderUsageMetrics";
 import Permission from "Common/Types/Permission";
+import ProductKey from "Common/Types/Product/ProductKey";
+import { withoutProductLevels } from "./DocsProductLevels";
 import {
   LlmCompletionJsonAttributeKeys,
   LlmConversationIdAttributeKeys,
@@ -784,14 +786,19 @@ describe("connecting, on both pages", () => {
     const connection: LlmObservabilityConnection =
       new LlmObservabilityConnection();
 
+    /*
+     * AI / LLM's Admin level connects too, as Project Admin does (#10289):
+     * the permissions page describes the levels once, for every product,
+     * a product's connections among what its Admin does.
+     */
     for (const permissions of [
       connection.getCreatePermissions(),
       connection.getUpdatePermissions(),
       connection.getDeletePermissions(),
     ]) {
-      expect([...permissions].sort()).toEqual(
-        [Permission.ProjectOwner, Permission.ProjectAdmin].sort(),
-      );
+      expect(
+        withoutProductLevels({ permissions, product: ProductKey.Llm }).sort(),
+      ).toEqual([Permission.ProjectOwner, Permission.ProjectAdmin].sort());
     }
 
     for (const page of [PROVIDER_ACCOUNTS, COMPANY_TOOLS]) {
