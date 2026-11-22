@@ -14,7 +14,17 @@ import IncomingRequestIncidentGrouping, {
 import { IOT_DEVICE_ID_ATTRIBUTE_KEY } from "./IoTDeviceAbsenceSeries";
 import PerEntityCriteriaFanOut, {
   FanOutEntity,
+  MaxEntitiesPerCriteria,
 } from "./PerEntityCriteriaFanOut";
+import GroupedMonitorRecovery, {
+  GroupedCriteriaRole,
+  GroupedRecoveryJudgement,
+  RecoveryCriteriaCheck,
+  SeriesBehindStatusReader,
+} from "./GroupedMonitorRecovery";
+import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
+import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
+import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import LogGroupCriteriaFanOut from "./LogGroupCriteriaFanOut";
 import TraceGroupCriteriaFanOut from "./TraceGroupCriteriaFanOut";
 import SSLMonitorCriteria from "./Criteria/SSLMonitorCriteria";
@@ -88,6 +98,7 @@ import MonitorEvaluationSummary, {
 import ProbeApiIngestResponse, {
   MatchedCriteriaResult,
   PerSeriesCriteriaMatch,
+  SeriesKeepingStatus,
 } from "../../../Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import RequestFailedDetails from "../../../Types/Probe/RequestFailedDetails";
@@ -247,6 +258,28 @@ interface MatchHistoryContext {
 }
 
 /*
+ * What the grouped recovery rule (GroupedMonitorRecovery) left of a grouped
+ * check's matches.
+ */
+interface GroupedRecoveryOutcome {
+  // The matches that stand, in criteria order: the first sets the status.
+  matchedCriteria: Array<MatchedCriteriaResult>;
+  /*
+   * The series behind the status that met no recovery criteria yet: with no
+   * match left, they keep the monitor's status.
+   */
+  seriesKeepingStatus: Array<SeriesKeepingStatus>;
+  // What is behind the status after the check; undefined: nothing to write.
+  seriesBehindStatus: Array<string> | undefined;
+}
+
+// A series a grouped check read, as a sentence names it.
+interface SeriesOfCheck {
+  labels: JSONObject;
+  context?: JSONObject | undefined;
+}
+
+/*
  * The platforms whose monitors carry a per-resource breakdown.
  */
 type PlatformName =
@@ -355,6 +388,13 @@ export default class MonitorCriteriaEvaluator {
      * counts as open.
      */
     criteriaInEffect?: CriteriaInEffect | undefined;
+    /*
+     * The series behind a grouped monitor's status before this check, which
+     * its recovery criteria wait for (GroupedMonitorRecovery). MonitorResource
+     * hands the ones it keeps (SeriesBehindStatus); without them none is
+     * known, and a recovery criteria matches on any series, as before.
+     */
+    seriesBehindStatus?: SeriesBehindStatusReader | undefined;
   }): Promise<ProbeApiIngestResponse> {
     const criteria: MonitorCriteria | undefined =
       input.monitorStep.data?.monitorCriteria;
@@ -441,6 +481,10 @@ export default class MonitorCriteriaEvaluator {
     const matchedCriteria: Array<MatchedCriteriaResult> = [];
     const evaluatedCriteriaIds: Array<string> = [];
 
+    // Each criteria's row of the summary, for the grouped recovery rule.
+    const criteriaResultsById: Map<string, MonitorEvaluationCriteriaResult> =
+      new Map<string, MonitorEvaluationCriteriaResult>();
+
     /*
      * What each metric filter judged every series to be on this check: the
      * criteria's verdict and the series it matched read the same judgement
@@ -501,6 +545,13 @@ export default class MonitorCriteriaEvaluator {
       };
 
       input.evaluationSummary.criteriaResults.push(criteriaResult);
+
+      if (criteriaInstance.data?.id) {
+        criteriaResultsById.set(
+          criteriaInstance.data.id.toString(),
+          criteriaResult,
+        );
+      }
 
       const rootCause: string | null =
         await MonitorCriteriaEvaluator.processMonitorCriteriaInstance({
@@ -751,8 +802,12 @@ ${incomingRequestGrouping.rootCauseNote}
        * `perSeriesMatches` likewise keeps pointing at the first match so
        * any reader that only knows the scalar fields still behaves the
        * way it always did.
+       *
+       * A grouped monitor picks its first match once every criteria is
+       * judged, below: a recovery criteria that waits for the series behind
+       * the monitor's status is no match (GroupedMonitorRecovery).
        */
-      if (isFirstMatch) {
+      if (isFirstMatch && !fanOutAcrossCriteria) {
         input.probeApiIngestResponse.criteriaMetId = criteriaInstance.data?.id;
         input.probeApiIngestResponse.rootCause = renderedRootCause.toString();
 
@@ -792,7 +847,48 @@ ${incomingRequestGrouping.rootCauseNote}
      * single-criteria path it has always taken.
      */
     if (fanOutAcrossCriteria) {
-      input.probeApiIngestResponse.matchedCriteria = matchedCriteria;
+      /*
+       * Every criteria is judged: now a recovery criteria that waits for the
+       * series behind the monitor's status is set aside, and the first match
+       * that stands sets the status (GroupedMonitorRecovery).
+       */
+      const recovery: GroupedRecoveryOutcome =
+        await MonitorCriteriaEvaluator.applyGroupedRecoveryRule({
+          dataToProcess: input.dataToProcess,
+          monitor: input.monitor,
+          criteriaInstances: criteria.data.monitorCriteriaInstanceArray,
+          matchedCriteria: matchedCriteria,
+          criteriaResultsById: criteriaResultsById,
+          evaluationSummary: input.evaluationSummary,
+          seriesBehindStatus: input.seriesBehindStatus,
+        });
+
+      const firstMatch: MatchedCriteriaResult | undefined =
+        recovery.matchedCriteria[0];
+
+      if (firstMatch) {
+        input.probeApiIngestResponse.criteriaMetId = firstMatch.criteriaId;
+        input.probeApiIngestResponse.rootCause = firstMatch.rootCause;
+
+        /*
+         * A per-series monitor always publishes an array, even an empty
+         * one: a defined array is what tells the creators "per-series mode
+         * — dedupe on (criteria, series)" instead of silently degrading to
+         * one alert for the whole monitor.
+         */
+        input.probeApiIngestResponse.perSeriesMatches =
+          firstMatch.perSeriesMatches;
+      } else if (recovery.seriesKeepingStatus.length > 0) {
+        input.probeApiIngestResponse.seriesKeepingStatus =
+          recovery.seriesKeepingStatus;
+      }
+
+      if (recovery.seriesBehindStatus) {
+        input.probeApiIngestResponse.seriesBehindStatus =
+          recovery.seriesBehindStatus;
+      }
+
+      input.probeApiIngestResponse.matchedCriteria = recovery.matchedCriteria;
       input.probeApiIngestResponse.evaluatedCriteriaIds = evaluatedCriteriaIds;
     }
 
@@ -1066,6 +1162,448 @@ ${incomingRequestGrouping.rootCauseNote}
   }
 
   /**
+   * The grouped recovery rule (GroupedMonitorRecovery), once every criteria
+   * of a grouped check is judged. A recovery criteria that matched - one
+   * series meeting it is enough for a grouped criteria - but that a series
+   * behind the monitor's status has not met is no match: its row of the
+   * summary says which series it waits for. Returns the matches that stand,
+   * the series that keep the status when none does, and what is behind the
+   * status after this check.
+   *
+   * Costs nothing on a step with no recovery criteria judged per series, and
+   * reads what is behind the status only while the monitor is not at its
+   * default status: at its default status nothing is.
+   */
+  private static async applyGroupedRecoveryRule(input: {
+    dataToProcess: DataToProcess;
+    monitor: Monitor;
+    criteriaInstances: Array<MonitorCriteriaInstance>;
+    matchedCriteria: Array<MatchedCriteriaResult>;
+    criteriaResultsById: Map<string, MonitorEvaluationCriteriaResult>;
+    evaluationSummary: MonitorEvaluationSummary;
+    seriesBehindStatus: SeriesBehindStatusReader | undefined;
+  }): Promise<GroupedRecoveryOutcome> {
+    const defaultMonitorStatusId: ObjectID | undefined =
+      input.monitor.monitorSteps?.data?.defaultMonitorStatusId;
+
+    const getRole: (
+      criteriaInstance: MonitorCriteriaInstance | undefined,
+    ) => GroupedCriteriaRole = (
+      criteriaInstance: MonitorCriteriaInstance | undefined,
+    ): GroupedCriteriaRole => {
+      return criteriaInstance
+        ? GroupedMonitorRecovery.getRole({
+            criteriaInstance: criteriaInstance,
+            defaultMonitorStatusId: defaultMonitorStatusId,
+          })
+        : GroupedCriteriaRole.Other;
+    };
+
+    const criteriaById: Map<string, MonitorCriteriaInstance> = new Map<
+      string,
+      MonitorCriteriaInstance
+    >();
+
+    for (const criteriaInstance of input.criteriaInstances) {
+      if (criteriaInstance.data?.id) {
+        criteriaById.set(criteriaInstance.data.id.toString(), criteriaInstance);
+      }
+    }
+
+    const recoveryCriteria: Array<MonitorCriteriaInstance> =
+      input.criteriaInstances.filter(
+        (criteriaInstance: MonitorCriteriaInstance): boolean => {
+          return (
+            Boolean(criteriaInstance.data?.id) &&
+            getRole(criteriaInstance) === GroupedCriteriaRole.Recovery &&
+            MonitorCriteriaEvaluator.isJudgedPerSeries({
+              monitorType: input.monitor.monitorType,
+              criteriaInstance: criteriaInstance,
+            })
+          );
+        },
+      );
+
+    if (recoveryCriteria.length === 0) {
+      return {
+        matchedCriteria: input.matchedCriteria,
+        seriesKeepingStatus: [],
+        seriesBehindStatus: undefined,
+      };
+    }
+
+    // The series a problem criteria matched on this check.
+    const problemSeries: Set<string> = new Set<string>();
+
+    for (const matched of input.matchedCriteria) {
+      if (
+        getRole(criteriaById.get(matched.criteriaId)) !==
+        GroupedCriteriaRole.Problem
+      ) {
+        continue;
+      }
+
+      for (const series of matched.perSeriesMatches) {
+        if (GroupedMonitorRecovery.isSeries(series.fingerprint)) {
+          problemSeries.add(series.fingerprint);
+        }
+      }
+    }
+
+    const currentMonitorStatusId: ObjectID | undefined =
+      input.monitor.currentMonitorStatusId;
+
+    const isBehindStatusRead: boolean =
+      Boolean(input.seriesBehindStatus) &&
+      Boolean(currentMonitorStatusId) &&
+      currentMonitorStatusId!.toString() !== defaultMonitorStatusId?.toString();
+
+    const before: ReadonlySet<string> = isBehindStatusRead
+      ? await input.seriesBehindStatus!.getSeries()
+      : new Set<string>();
+
+    // The series the check read, to name the ones a criteria waits for.
+    const seriesOfCheck: Map<string, SeriesOfCheck> = new Map<
+      string,
+      SeriesOfCheck
+    >();
+
+    const checks: Array<RecoveryCriteriaCheck> = recoveryCriteria.map(
+      (criteriaInstance: MonitorCriteriaInstance): RecoveryCriteriaCheck => {
+        const criteriaId: string = criteriaInstance.data!.id.toString();
+
+        const judged: Map<string, SeriesOfCheck> =
+          MonitorCriteriaEvaluator.getSeriesJudgedBy({
+            monitor: input.monitor,
+            dataToProcess: input.dataToProcess,
+            criteriaInstance: criteriaInstance,
+          });
+
+        for (const [fingerprint, series] of judged) {
+          seriesOfCheck.set(fingerprint, series);
+        }
+
+        const matched: MatchedCriteriaResult | undefined =
+          input.matchedCriteria.find(
+            (candidate: MatchedCriteriaResult): boolean => {
+              return candidate.criteriaId === criteriaId;
+            },
+          );
+
+        return {
+          criteriaId: criteriaId,
+          judgedSeries: new Set<string>(judged.keys()),
+          metSeries: new Set<string>(
+            (matched?.perSeriesMatches || []).map(
+              (series: PerSeriesCriteriaMatch): string => {
+                return series.fingerprint;
+              },
+            ),
+          ),
+        };
+      },
+    );
+
+    const judgement: GroupedRecoveryJudgement = GroupedMonitorRecovery.judge({
+      seriesBehindStatus: before,
+      problemSeries: problemSeries,
+      recoveryCriteria: checks,
+    });
+
+    const standing: Array<MatchedCriteriaResult> = input.matchedCriteria.filter(
+      (matched: MatchedCriteriaResult): boolean => {
+        const waitingFor: Array<string> | undefined = judgement.waitingFor.get(
+          matched.criteriaId,
+        );
+
+        if (!waitingFor) {
+          return true;
+        }
+
+        MonitorCriteriaEvaluator.recordRecoveryWaiting({
+          criteriaResult: input.criteriaResultsById.get(matched.criteriaId),
+          criteriaId: matched.criteriaId,
+          waitingFor: waitingFor,
+          seriesOfCheck: seriesOfCheck,
+          evaluationSummary: input.evaluationSummary,
+        });
+
+        return false;
+      },
+    );
+
+    /*
+     * A recovery criteria that stands and comes first puts the monitor back on
+     * its default status: nothing is behind it any more, but a series that
+     * still meets a problem criteria further down.
+     */
+    const isBackOnDefaultStatus: boolean =
+      standing.length > 0 &&
+      getRole(criteriaById.get(standing[0]!.criteriaId)) ===
+        GroupedCriteriaRole.Recovery;
+
+    const seriesBehindStatus: Array<string> = isBackOnDefaultStatus
+      ? Array.from(problemSeries).sort()
+      : judgement.seriesBehindStatus;
+
+    return {
+      matchedCriteria: standing,
+      seriesKeepingStatus:
+        standing.length === 0
+          ? judgement.seriesKeepingStatus.map(
+              (fingerprint: string): SeriesKeepingStatus => {
+                const series: SeriesOfCheck | undefined =
+                  seriesOfCheck.get(fingerprint);
+
+                return {
+                  fingerprint: fingerprint,
+                  labels: series?.labels || {},
+                  ...(series?.context ? { context: series.context } : {}),
+                };
+              },
+            )
+          : [],
+      /*
+       * Written whenever it was read - an empty list deletes it - and at the
+       * default status only once a problem criteria put a series behind it.
+       */
+      seriesBehindStatus:
+        isBehindStatusRead || seriesBehindStatus.length > 0
+          ? seriesBehindStatus
+          : undefined,
+    };
+  }
+
+  /*
+   * A recovery criteria that waits for the series behind the monitor's
+   * status: its row of the summary says it is not met, and which series it
+   * waits for, as the evaluation log shows it.
+   */
+  private static recordRecoveryWaiting(input: {
+    criteriaResult: MonitorEvaluationCriteriaResult | undefined;
+    criteriaId: string;
+    waitingFor: Array<string>;
+    seriesOfCheck: Map<string, SeriesOfCheck>;
+    evaluationSummary: MonitorEvaluationSummary;
+  }): void {
+    const message: string = MonitorCriteriaEvaluator.describeRecoveryWaiting({
+      waitingFor: input.waitingFor,
+      seriesOfCheck: input.seriesOfCheck,
+    });
+
+    if (input.criteriaResult) {
+      input.criteriaResult.met = false;
+      input.criteriaResult.message = message;
+    }
+
+    input.evaluationSummary.events.push({
+      type: "criteria-not-met",
+      title: `Criteria not met: ${input.criteriaResult?.criteriaName || "Unnamed criteria"}`,
+      message: message,
+      relatedCriteriaId: input.criteriaId,
+      at: OneUptimeDate.getCurrentDate(),
+    });
+  }
+
+  // How many waiting series a criteria's message names before "and N more".
+  private static readonly WAITING_SERIES_NAMED: number = 3;
+
+  /*
+   * "Criteria was not met: Mount: /data | Device: /dev/sdb met a criteria
+   * that changed the monitor's status and has not met this one since. ..."
+   */
+  public static describeRecoveryWaiting(input: {
+    waitingFor: Array<string>;
+    seriesOfCheck: Map<string, SeriesOfCheck>;
+  }): string {
+    const names: Array<string> = input.waitingFor
+      .slice(0, MonitorCriteriaEvaluator.WAITING_SERIES_NAMED)
+      .map((fingerprint: string): string => {
+        const series: SeriesOfCheck | undefined =
+          input.seriesOfCheck.get(fingerprint);
+
+        return (
+          (series
+            ? SeriesLabelDisplay.buildInlineSummary(series.labels, {
+                context: series.context,
+              })
+            : "") || fingerprint
+        );
+      });
+
+    const unnamed: number = input.waitingFor.length - names.length;
+
+    const named: string =
+      unnamed > 0
+        ? `${names.join("; ")} and ${unnamed} more`
+        : names.join("; ");
+
+    const why: string =
+      "A grouped monitor comes back only once every such series meets this " +
+      "criteria, whatever the other series do, so it keeps its status meanwhile.";
+
+    if (input.waitingFor.length === 1) {
+      return (
+        `Criteria was not met: ${named} met a criteria that changed the ` +
+        `monitor's status and has not met this one since. ${why}`
+      );
+    }
+
+    return (
+      `Criteria was not met: ${input.waitingFor.length} series met a criteria ` +
+      `that changed the monitor's status and have not met this one since ` +
+      `(${named}). ${why}`
+    );
+  }
+
+  /*
+   * Whether a criteria of a grouped monitor is judged series by series, so
+   * that it can wait for some of them: not one that judges the whole monitor
+   * (PerEntityCriteriaFanOut.judgesWholeMonitor), and on a metric monitor
+   * only one with a metric filter, which is what a series is judged on.
+   */
+  private static isJudgedPerSeries(input: {
+    monitorType: MonitorType | undefined;
+    criteriaInstance: MonitorCriteriaInstance;
+  }): boolean {
+    if (
+      input.monitorType === MonitorType.Server ||
+      input.monitorType === MonitorType.NetworkDevice
+    ) {
+      return !PerEntityCriteriaFanOut.judgesWholeMonitor({
+        monitorType: input.monitorType,
+        criteriaInstance: input.criteriaInstance,
+      });
+    }
+
+    if (
+      input.monitorType === MonitorType.Logs ||
+      input.monitorType === MonitorType.Traces
+    ) {
+      return true;
+    }
+
+    if (!MonitorTypeHelper.isMetricBackedMonitor(input.monitorType)) {
+      return false;
+    }
+
+    return (input.criteriaInstance.data?.filters || []).some(
+      (filter: CriteriaFilter): boolean => {
+        return filter.checkOn === CheckOn.MetricValue;
+      },
+    );
+  }
+
+  /*
+   * The series a criteria of a grouped check is judged on, by fingerprint:
+   * the disks, ports, rows or groups it fans out over (as many as
+   * collectPerSeriesMatches judges), or a metric check's series that have
+   * data in the window. A series that has none is not judged, so it lets go
+   * of the status as a series that is gone does.
+   */
+  private static getSeriesJudgedBy(input: {
+    monitor: Monitor;
+    dataToProcess: DataToProcess;
+    criteriaInstance: MonitorCriteriaInstance;
+  }): Map<string, SeriesOfCheck> {
+    const judged: Map<string, SeriesOfCheck> = new Map<string, SeriesOfCheck>();
+
+    const entities: Array<FanOutEntity> | null =
+      MonitorCriteriaEvaluator.getFanOutEntities(input);
+
+    if (entities) {
+      for (const entity of entities.slice(0, MaxEntitiesPerCriteria)) {
+        judged.set(MetricSeriesFingerprint.computeFingerprint(entity.labels), {
+          labels: entity.labels,
+          context: entity.context,
+        });
+      }
+
+      return judged;
+    }
+
+    if (!MonitorTypeHelper.isMetricBackedMonitor(input.monitor.monitorType)) {
+      return judged;
+    }
+
+    const seriesBreakdown: Array<MetricSeriesResult> =
+      (input.dataToProcess as MetricMonitorResponse).seriesBreakdown || [];
+
+    for (const series of seriesBreakdown) {
+      if (!series?.fingerprint) {
+        continue;
+      }
+
+      const hasData: boolean = (series.aggregatedResults || []).some(
+        (result: AggregatedResult): boolean => {
+          return Array.isArray(result?.data) && result.data.length > 0;
+        },
+      );
+
+      if (hasData) {
+        judged.set(series.fingerprint, { labels: series.labels || {} });
+      }
+    }
+
+    return judged;
+  }
+
+  /*
+   * The disks, ports, table rows or groups a grouped criteria fans out over:
+   * a grouped Logs or Traces monitor's groups, a Server monitor's disks, a
+   * Network Device monitor's ports and rows. Null for a monitor whose series
+   * are a metric check's (seriesBreakdown).
+   */
+  private static getFanOutEntities(input: {
+    monitor: Monitor;
+    dataToProcess: DataToProcess;
+    criteriaInstance: MonitorCriteriaInstance;
+  }): Array<FanOutEntity> | null {
+    if (input.monitor.monitorType === MonitorType.Logs) {
+      return LogGroupCriteriaFanOut.getGroupEntities({
+        dataToProcess: input.dataToProcess,
+      });
+    }
+
+    if (
+      input.monitor.monitorType === MonitorType.Traces &&
+      TraceGroupCriteriaFanOut.isGroupedResponse(input.dataToProcess)
+    ) {
+      return TraceGroupCriteriaFanOut.getGroupEntities({
+        dataToProcess: input.dataToProcess,
+      });
+    }
+
+    if (input.monitor.monitorType === MonitorType.Server) {
+      return PerEntityCriteriaFanOut.getServerDiskEntities({
+        dataToProcess: input.dataToProcess,
+        criteriaInstance: input.criteriaInstance,
+      });
+    }
+
+    /*
+     * A Network Device criteria can address ports and table rows; each
+     * entity narrows only the filters that address its own kind, so a
+     * criteria mixing a "*" port filter and a "*" table filter fans out
+     * over both.
+     */
+    if (input.monitor.monitorType === MonitorType.NetworkDevice) {
+      return [
+        ...PerEntityCriteriaFanOut.getSnmpInterfaceEntities({
+          dataToProcess: input.dataToProcess,
+          criteriaInstance: input.criteriaInstance,
+        }),
+        ...PerEntityCriteriaFanOut.getSnmpTableRowEntities({
+          dataToProcess: input.dataToProcess,
+          criteriaInstance: input.criteriaInstance,
+        }),
+      ];
+    }
+
+    return null;
+  }
+
+  /**
    * For metric-backed monitors (Metrics/Kubernetes/Docker/Proxmox/VMware/Ceph/
    * Storage Array)
    * with per-series aggregated results, re-evaluate the matched criteria
@@ -1094,106 +1632,40 @@ ${incomingRequestGrouping.rootCauseNote}
      * A grouped Logs monitor: one count per combination of its group-by
      * attributes' values. Each group is judged on its own count, so every
      * tunnel (or user, or interface) that breaches raises its own alert,
-     * through the same fan-out the disks and interfaces below use.
-     */
-    /*
-     * A grouped Traces monitor (#9711) the same way: one span count per
-     * group - per install of a mobile app - each judged on its own, a
-     * quiet one counted as 0 (TraceGroupAbsence).
-     */
-    if (
-      input.monitor.monitorType === MonitorType.Logs ||
-      (input.monitor.monitorType === MonitorType.Traces &&
-        TraceGroupCriteriaFanOut.isGroupedResponse(input.dataToProcess))
-    ) {
-      return PerEntityCriteriaFanOut.collectMatches({
-        criteriaInstance: input.criteriaInstance,
-        entities:
-          input.monitor.monitorType === MonitorType.Traces
-            ? TraceGroupCriteriaFanOut.getGroupEntities({
-                dataToProcess: input.dataToProcess,
-              })
-            : LogGroupCriteriaFanOut.getGroupEntities({
-                dataToProcess: input.dataToProcess,
-              }),
-        monitorId: input.monitor.id?.toString(),
-        evaluateNarrowedCriteria: (
-          narrowedCriteriaInstance: MonitorCriteriaInstance,
-          entity: FanOutEntity,
-        ): Promise<string | null> => {
-          return MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFiltersMet({
-            dataToProcess: entity.dataToProcess || input.dataToProcess,
-            monitorStep: input.monitorStep,
-            monitor: input.monitor,
-            probeApiIngestResponse: {
-              monitorId: input.dataToProcess.monitorId,
-              rootCause: null,
-            },
-            criteriaInstance: narrowedCriteriaInstance,
-            /*
-             * A throwaway result, as for disks below: the per-group pass
-             * must not overwrite the summary row the whole-criteria
-             * evaluation already wrote.
-             */
-            criteriaResult: {
-              criteriaId: narrowedCriteriaInstance.data?.id,
-              criteriaName: narrowedCriteriaInstance.data?.name,
-              filterCondition:
-                narrowedCriteriaInstance.data?.filterCondition ||
-                FilterCondition.All,
-              met: false,
-              message: "",
-              filters: [],
-            },
-          });
-        },
-      });
-    }
-
-    /*
+     * through the same fan-out the disks and interfaces use. A grouped
+     * Traces monitor (#9711) the same way: one span count per group - per
+     * install of a mobile app - each judged on its own, a quiet one counted
+     * as 0 (TraceGroupAbsence).
+     *
      * Server and SNMP monitors observe several independent entities in a
-     * single check — every mounted filesystem, every port on a switch —
+     * single check - every mounted filesystem, every port on a switch -
      * but their criteria address one at a time. When a criteria opts in
-     * with the "*" wildcard, evaluate it once per entity so a second
+     * with the "*" wildcard, it is evaluated once per entity so a second
      * full disk or a second dead port raises its own alert instead of
      * being swallowed by the first one's.
      */
-    if (
-      input.monitor.monitorType === MonitorType.Server ||
-      input.monitor.monitorType === MonitorType.NetworkDevice
-    ) {
-      /*
-       * A Network Device criteria can address ports and table rows; each
-       * entity narrows only the filters that address its own kind, so a
-       * criteria mixing a "*" port filter and a "*" table filter fans out
-       * over both.
-       */
-      const entities: Array<FanOutEntity> =
-        input.monitor.monitorType === MonitorType.Server
-          ? PerEntityCriteriaFanOut.getServerDiskEntities({
-              dataToProcess: input.dataToProcess,
-              criteriaInstance: input.criteriaInstance,
-            })
-          : [
-              ...PerEntityCriteriaFanOut.getSnmpInterfaceEntities({
-                dataToProcess: input.dataToProcess,
-                criteriaInstance: input.criteriaInstance,
-              }),
-              ...PerEntityCriteriaFanOut.getSnmpTableRowEntities({
-                dataToProcess: input.dataToProcess,
-                criteriaInstance: input.criteriaInstance,
-              }),
-            ];
+    const entities: Array<FanOutEntity> | null =
+      MonitorCriteriaEvaluator.getFanOutEntities({
+        monitor: input.monitor,
+        dataToProcess: input.dataToProcess,
+        criteriaInstance: input.criteriaInstance,
+      });
 
+    if (entities) {
       return PerEntityCriteriaFanOut.collectMatches({
         criteriaInstance: input.criteriaInstance,
         entities: entities,
         monitorId: input.monitor.id?.toString(),
         evaluateNarrowedCriteria: (
           narrowedCriteriaInstance: MonitorCriteriaInstance,
+          entity: FanOutEntity,
         ): Promise<string | null> => {
           return MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFiltersMet({
-            dataToProcess: input.dataToProcess,
+            /*
+             * A group is judged on its own slice of the data; a disk or a
+             * port is narrowed through its filters, on the check itself.
+             */
+            dataToProcess: entity.dataToProcess || input.dataToProcess,
             monitorStep: input.monitorStep,
             monitor: input.monitor,
             probeApiIngestResponse: {

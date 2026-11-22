@@ -12,6 +12,12 @@ export type MonitorEvaluationEventType =
   | "alert-resolved"
   | "alert-skipped"
   | "monitor-status-changed"
+  /*
+   * A grouped monitor kept its status on a check no criteria matched: its
+   * recovery criteria wait for the series behind its status
+   * (GroupedMonitorRecovery).
+   */
+  | "monitor-status-kept"
   | "probe-agreement"
   /*
    * How an Incoming Request criteria that groups by a payload field handled
