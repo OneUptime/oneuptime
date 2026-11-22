@@ -1,7 +1,11 @@
 import DataSecurityAiProposal from "../../Models/DatabaseModels/DataSecurityAiProposal";
-import { DataSecurityAiProposalStatus } from "../../Types/DataSecurity/DataSecurityAi";
+import {
+  DataSecurityAiProposalKind,
+  DataSecurityAiProposalStatus,
+} from "../../Types/DataSecurity/DataSecurityAi";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ProjectReferencesService from "./ProjectReferencesService";
 import { UpdateQueryBuilder, UpdateResult } from "typeorm";
@@ -213,6 +217,102 @@ export class Service extends ProjectReferencesService<DataSecurityAiProposal> {
       .execute();
 
     return result.affected || 0;
+  }
+
+  /*
+   * A store that has an owner now - added on its Owners page, by an owner
+   * rule, or by another proposal (#10374): the owners still proposed for it
+   * are no longer needed. Whatever issue they hang on, or none.
+   */
+  @CaptureSpan()
+  public async expireWaitingOwnersForStore(data: {
+    dataStoreId: ObjectID;
+    at: Date;
+  }): Promise<number> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(DataSecurityAiProposal)
+      .set({
+        status: DataSecurityAiProposalStatus.Expired,
+        expiredAt: data.at,
+      } as unknown as QueryDeepPartialEntity<DataSecurityAiProposal>)
+      .where('"dataStoreId" = :dataStoreId', {
+        dataStoreId: data.dataStoreId.toString(),
+      })
+      .andWhere('"kind" = :kind', {
+        kind: DataSecurityAiProposalKind.SetStoreOwners,
+      })
+      .andWhere('"status" = :status', {
+        status: DataSecurityAiProposalStatus.Proposed,
+      })
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
+  }
+
+  /*
+   * An owner rule OneUptime AI proposed is proven when a store it set
+   * owners on passes "Nobody owns this sensitive store" after it (#10374):
+   * the proof is the store's own check, as for every change. Only a rule
+   * that still stands, and only once.
+   */
+  @CaptureSpan()
+  public async markOwnerRuleProvenForStore(data: {
+    projectId: ObjectID;
+    dataStoreId: ObjectID;
+    at: Date;
+  }): Promise<number> {
+    const rules: Array<DataSecurityAiProposal> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        kind: DataSecurityAiProposalKind.CreateOwnerRule,
+        status: DataSecurityAiProposalStatus.Applied,
+        verifiedAt: QueryHelper.isNull(),
+      },
+      select: { _id: true, result: true },
+      skip: 0,
+      limit: 200,
+      props: { isRoot: true },
+    });
+    const storeId: string = data.dataStoreId.toString().toLowerCase();
+    let proven: number = 0;
+
+    for (const rule of rules) {
+      const owners: unknown = rule.result?.["owners"];
+      const setOwnersOnStore: boolean =
+        Array.isArray(owners) &&
+        owners.some((row: unknown): boolean => {
+          return (
+            Boolean(row) &&
+            typeof row === "object" &&
+            String((row as JSONObject)["dataStoreId"] || "").toLowerCase() ===
+              storeId
+          );
+        });
+
+      if (!rule.id || !setOwnersOnStore) {
+        continue;
+      }
+
+      const result: UpdateResult = await this.getRepository()
+        .createQueryBuilder()
+        .update(DataSecurityAiProposal)
+        .set({
+          verifiedAt: data.at,
+        } as unknown as QueryDeepPartialEntity<DataSecurityAiProposal>)
+        .where('"_id" = :id', { id: rule.id.toString() })
+        .andWhere('"status" = :status', {
+          status: DataSecurityAiProposalStatus.Applied,
+        })
+        .andWhere('"verifiedAt" IS NULL')
+        .andWhere('"deletedAt" IS NULL')
+        .execute();
+
+      proven += result.affected || 0;
+    }
+
+    return proven;
   }
 
   /*

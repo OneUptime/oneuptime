@@ -30,13 +30,27 @@ import ts from "typescript";
  * Security keeps every page, check, scan and integration it has. That
  * holds because Data Security's own code - its scans, checks, issues,
  * integrations, owners, flows and jobs, on the workers and on a probe -
- * reaches OneUptime AI at two places only, each asking the switch first:
+ * reaches OneUptime AI at these places only, each asking the switch first
+ * or asking no model at all:
  *
  *   - a content scan that found fields no detector could place asks for
  *     suggestions only when AIService.isProjectAIEnabled says yes
  *     (DataSecurityFindingWriter; DataSecurityFindingWriter.test);
  *   - the job that asks runs FieldSuggestion.suggestForStore, which asks the
- *     switch again and sends nothing when it is off (FieldSuggestion.test).
+ *     switch again and sends nothing when it is off (FieldSuggestion.test);
+ *   - the job that works on a new issue runs DataSecurityAiEngine.evaluateIssue
+ *     (#10364), which reads Enable AI and Work on new issues before
+ *     anything else, and does nothing when either is off
+ *     (DataSecurityAiEngine.test);
+ *   - the jobs that propose owners for stores that have none, and the owner
+ *     rules that keep them (#10374), run DataStoreOwnerProposalRun.run and
+ *     DataStoreOwnerRuleProposals.proposeForProject, which read the same
+ *     two switches first and ask nothing, and write nothing, when either is
+ *     off (DataStoreOwnerRunsAndRules.test);
+ *   - an issue that closes settles what OneUptime AI proposed for it
+ *     (DataSecurityAiProposals.onIssuesClosed, from the issue service and
+ *     the reconciler): it proves or expires proposals already written and
+ *     asks no model, so with AI off it has nothing to do but that.
  *
  * Everything else a person can start with AI is asked for on purpose, in
  * Data Security's API: Explain with AI and the field suggestions through
@@ -97,6 +111,30 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
     {
       module: "Common/Server/Utils/AI/DataSecurity/FieldSuggestion",
       uses: ["DataSecurityFieldSuggestion.suggestForStore"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiEngine",
+      uses: ["DataSecurityAiEngine.evaluateIssue"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerProposalRun",
+      uses: ["DataStoreOwnerProposalRun.run"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals",
+      uses: ["DataStoreOwnerRuleProposals.proposeForProject"],
+    },
+  ],
+  "Common/Server/Services/DataSecurityIssueService.ts": [
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
+      uses: ["DataSecurityAiProposals.onIssuesClosed"],
+    },
+  ],
+  "Common/Server/Utils/DataSecurity/DataSecurityIssueReconciler.ts": [
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
+      uses: ["DataSecurityAiProposals.onIssuesClosed"],
     },
   ],
 };
@@ -239,7 +277,7 @@ function findAiReaches(file: string): Array<AiReach> {
   return reaches;
 }
 
-describe("Data Security's scans, checks and integrations reach OneUptime AI at two places only", () => {
+describe("Data Security's scans, checks and integrations reach OneUptime AI only where it asks the switch first, or asks no model", () => {
   const files: Array<string> = DATA_SECURITY_CODE.flatMap(listFiles);
 
   test("it reads Data Security's code, on the workers and on a probe", () => {

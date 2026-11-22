@@ -11,6 +11,7 @@ import DetectionRuleRetrohunt, {
   DetectionRetrohuntCounting,
   buildSingleRuleRetrohuntStatement,
   buildUncountedRetrohuntStatement,
+  getHiddenValueMarker,
   readUncountedRetrohuntRow,
 } from "../../../../Server/Utils/SecurityEvent/DetectionRuleRetrohunt";
 import DetectionRuleExceptionService from "../../../../Server/Services/DetectionRuleExceptionService";
@@ -449,5 +450,167 @@ detection:
       hiddenInLogsCount: 12,
       hiddenInTracesCount: 0,
     });
+  });
+});
+
+/*
+ * A USER A SCRUB RULE HID IS NO USER TO COUNT BY (#10435). A rule that
+ * counts per user - Repeated failed sign-ins for one account, fifteen per
+ * user - leaves out the events whose user a rule redacted or masked: the
+ * scans store them with no user now, and one stored before them, holding
+ * "[REDACTED]", reads the same. Run on Past Events says how many of those a
+ * rule hid, from the user's marker (ScrubbedUser).
+ */
+describe("a user a scrub rule hid (#10435)", () => {
+  const BY_USER: DetectionRetrohuntCounting = {
+    windowInMinutes: 15,
+    threshold: 15,
+    groupByField: "principalUser",
+    distinctCountField: "",
+  };
+
+  test("a user column has a value only when it is not what Redact or Mask left", () => {
+    for (const column of ["principalUser", "targetUser"]) {
+      const statement: Statement = buildSigmaFieldHasValue(column);
+
+      expect(statement.query).toBe(
+        `(${column} != '' AND NOT (position(${column}, {p0:String}) > 0 OR position(${column}, {p1:String}) > 0))`,
+      );
+      expect(Object.values(statement.query_params)).toEqual([
+        "[REDACTED]",
+        "***",
+      ]);
+    }
+
+    // Any other column says none as it did.
+    expect(buildSigmaFieldHasValue("principalHost").query).toBe(
+      "principalHost != ''",
+    );
+  });
+
+  test("Run on Past Events counts the events whose user a rule hid, from the user's marker", () => {
+    const statement: Statement | null = buildUncountedRetrohuntStatement({
+      projectId: PROJECT_ID,
+      tableName: "oneuptime.SecurityEvent",
+      ruleWhere: SQL`statusName = ${{
+        type: TableColumnType.Text,
+        value: "Failure",
+      }}`,
+      counting: BY_USER,
+      skipped: null,
+      serviceFilter: {},
+      startTime: START_TIME,
+      endTime: END_TIME,
+    });
+
+    expect(statement).not.toBeNull();
+    expect(Object.values(statement!.query_params)).toEqual(
+      expect.arrayContaining([
+        "oneuptime.principal_user_hidden",
+        "scrub-rule",
+        "oneuptime.principal_user_scrubbed_in",
+        "trace",
+      ]),
+    );
+    expect(Object.values(statement!.query_params)).not.toContain(
+      "oneuptime.request.client_address_hidden",
+    );
+    expect(statement!.query).toContain(") AND NOT ((principalUser != ''");
+  });
+
+  test("Run on Past Events counts an event stored before the marker, whose user is still Redact's or a mask's, as one a rule hid", () => {
+    const statement: Statement | null = buildUncountedRetrohuntStatement({
+      projectId: PROJECT_ID,
+      tableName: "oneuptime.SecurityEvent",
+      ruleWhere: SQL`statusName = ${{
+        type: TableColumnType.Text,
+        value: "Failure",
+      }}`,
+      counting: BY_USER,
+      skipped: null,
+      serviceFilter: {},
+      startTime: START_TIME,
+      endTime: END_TIME,
+    });
+    const params: Record<string, unknown> = statement!.query_params;
+    const name: (value: string) => string = (value: string): string => {
+      return Object.keys(params).find((key: string): boolean => {
+        return params[key] === value;
+      })!;
+    };
+
+    // The marker, or the user's own column holding what Redact or Mask left.
+    expect(statement!.query).toContain(
+      `WITH false AS __skipped, (attributes[{${name("oneuptime.principal_user_hidden")}:String}] = {${name("scrub-rule")}:String} OR (position(principalUser, {${name("[REDACTED]")}:String}) > 0 OR position(principalUser, {${name("***")}:String}) > 0)) AS __hidden, attributes[{${name("oneuptime.principal_user_scrubbed_in")}:String}] = {${name("trace")}:String} AS __inTraces SELECT`,
+    );
+
+    // A rule that counts per address reads only its marker: an address column holds no placeholder.
+    const byAddress: Statement | null = buildUncountedRetrohuntStatement({
+      projectId: PROJECT_ID,
+      tableName: "oneuptime.SecurityEvent",
+      ruleWhere: SQL`statusName = ${{
+        type: TableColumnType.Text,
+        value: "Failure",
+      }}`,
+      counting: { ...BY_USER, groupByField: "principalIp" },
+      skipped: null,
+      serviceFilter: {},
+      startTime: START_TIME,
+      endTime: END_TIME,
+    });
+
+    expect(byAddress!.query).not.toContain("position(");
+    expect(Object.values(byAddress!.query_params)).not.toContain("[REDACTED]");
+    expect(byAddress!.query).toMatch(
+      /WITH false AS __skipped, \(attributes\[\{p\d+:String\}\] = \{p\d+:String\}\) AS __hidden, /,
+    );
+  });
+
+  test("each field reads its own marker: a target user its own, an address the address's", () => {
+    expect(getHiddenValueMarker("targetUser")).toEqual({
+      hiddenKey: "oneuptime.target_user_hidden",
+      hiddenValue: "scrub-rule",
+      inKey: "oneuptime.target_user_scrubbed_in",
+      inTracesValue: "trace",
+      storedIn: "targetUser",
+    });
+    expect(getHiddenValueMarker(" principalUser ")).toEqual({
+      hiddenKey: "oneuptime.principal_user_hidden",
+      hiddenValue: "scrub-rule",
+      inKey: "oneuptime.principal_user_scrubbed_in",
+      inTracesValue: "trace",
+      storedIn: "principalUser",
+    });
+    expect(getHiddenValueMarker("principalIp")).toEqual({
+      hiddenKey: "oneuptime.request.client_address_hidden",
+      hiddenValue: "scrub-rule",
+      inKey: "oneuptime.request.client_address_scrubbed_in",
+      inTracesValue: "span-attributes",
+      storedIn: null,
+    });
+  });
+
+  test("the library's rules that count per user leave out the events with no user", () => {
+    const byUser: Array<DetectionRuleLibraryEntry> =
+      DETECTION_RULE_LIBRARY.filter(
+        (entry: DetectionRuleLibraryEntry): boolean => {
+          return entry.groupByField === "principalUser";
+        },
+      );
+
+    expect(
+      byUser.some((entry: DetectionRuleLibraryEntry): boolean => {
+        return entry.title === "Repeated failed sign-ins for one account";
+      }),
+    ).toBe(true);
+
+    for (const entry of byUser) {
+      if ((entry.matchCountThreshold ?? 1) > 1) {
+        expect([
+          entry.title,
+          doesDetectionRuleLeaveOutEventsWithNoValue(entry),
+        ]).toEqual([entry.title, true]);
+      }
+    }
   });
 });

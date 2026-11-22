@@ -7,6 +7,7 @@ import SecurityBlockService, {
 } from "../../../Server/Services/SecurityBlockService";
 import SecurityBlocklistFeedService from "../../../Server/Services/SecurityBlocklistFeedService";
 import SecurityCaseFeedService from "../../../Server/Services/SecurityCaseFeedService";
+import SecurityBlockCloudWafService from "../../../Server/Services/SecurityBlockCloudWafService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import logger from "../../../Server/Utils/Logger";
 import SecurityBlocklistJobs from "../../../Server/Utils/SecurityBlocklist/SecurityBlocklistJobs";
@@ -254,6 +255,11 @@ describe("SecurityBlockService", () => {
         return SecurityCaseService;
       }) as never,
     );
+
+    // The project has picked no cloud WAF (#10344): its production source lists none.
+    jest
+      .spyOn(SecurityBlockCloudWafService, "findForProject")
+      .mockResolvedValue([]);
   });
 
   afterEach(() => {

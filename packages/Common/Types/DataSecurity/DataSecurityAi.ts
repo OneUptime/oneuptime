@@ -15,7 +15,8 @@ import SecuritySeverity from "../SecuritySeverity";
  *   - Contain: stop the data spreading while the cause is fixed - a scrub
  *     rule for telemetry, and later a response action on a cloud store.
  *   - Fix: a pull request that fixes the cause in code.
- *   - Judge: a verdict on a finding, an owner for a store.
+ *   - Judge: a verdict on a finding, an owner for a store (#10374) - and
+ *     the owner rule that keeps stores like it owned.
  *
  * Autonomy is a dial per kind of work (DataSecurityAiAutonomy): Off,
  * Suggest (a proposal waits for a person) or Without asking. The project's
@@ -39,7 +40,9 @@ import SecuritySeverity from "../SecuritySeverity";
  *     set back with one press;
  *   - a change of who can reach data runs without asking only where a rule
  *     names that very action, never by default;
- *   - deleting or dropping data, and paging people, always asks.
+ *   - deleting or dropping data, paging people, and changing who is told
+ *     about a store - an owner, who gets its email and its issues, and to
+ *     whom the wrong one leaks what the store holds (#10374) - always ask.
  *
  * A riskier change - one that changes access, deletes or pages - needs two
  * people to approve it where the project asks for two
@@ -203,7 +206,7 @@ export enum DataSecurityAiChangeSafety {
   MaskOnly = "MaskOnly",
   // A pull request for review: nothing merges on its own.
   OpensPullRequest = "OpensPullRequest",
-  // A judgement OneUptime records - a verdict, an owner - set back with one press.
+  // A judgement OneUptime records - a verdict - set back with one press.
   RecordsJudgement = "RecordsJudgement",
   // Changes who can reach data: a cloud store's access.
   ChangesAccess = "ChangesAccess",
@@ -211,11 +214,23 @@ export enum DataSecurityAiChangeSafety {
   Deletes = "Deletes",
   // Pages or messages people.
   Pages = "Pages",
+  /*
+   * Changes who is told about a store: an owner, or the owner rule that
+   * makes owners (#10374). An owner gets the store's email and is who its
+   * issues are routed to, so the wrong one is told what the store holds:
+   * a person always approves it. It is no riskier change - it reaches no
+   * data and is undone with one press - so one approval is enough.
+   */
+  ChangesWhoIsTold = "ChangesWhoIsTold",
 }
 
 // The changes that never run without asking, whatever a rule says.
 export const DATA_SECURITY_AI_ALWAYS_ASKS: ReadonlyArray<DataSecurityAiChangeSafety> =
-  [DataSecurityAiChangeSafety.Deletes, DataSecurityAiChangeSafety.Pages];
+  [
+    DataSecurityAiChangeSafety.Deletes,
+    DataSecurityAiChangeSafety.Pages,
+    DataSecurityAiChangeSafety.ChangesWhoIsTold,
+  ];
 
 /*
  * The riskier changes: two people approve one where the project asks for
@@ -306,6 +321,41 @@ export enum DataSecurityAiProposalKind {
    * type at each place it was found, from now on (TelemetryScrubCoverage).
    */
   ScrubTelemetry = "ScrubTelemetry",
+  /*
+   * Owners for one store that has none (#10374): the people and teams the
+   * evidence names - its cloud tags, the services that use it, the code
+   * owners of the file that declares it, who changed it - as OneUptime AI
+   * picks them from it. A sensitive store's is for its "Nobody owns this
+   * sensitive store" issue; another store's is for the store alone.
+   */
+  SetStoreOwners = "SetStoreOwners",
+  /*
+   * An owner rule (DataStoreOwnerRule) for the fact several stores'
+   * owners rest on - a cloud tag, a name prefix - so the next store like
+   * them is owned too (#10374). It is for no one issue or store.
+   */
+  CreateOwnerRule = "CreateOwnerRule",
+}
+
+/*
+ * The kinds of change about who owns the project's stores (#10374): Owners
+ * to review lists them, apart from what waits for an issue. A store's
+ * owners are proposed for its "Nobody owns this sensitive store" issue
+ * where it has one, and for the store alone where it has none; an owner
+ * rule is for no one issue or store.
+ */
+export const DATA_SECURITY_AI_OWNER_PROPOSAL_KINDS: ReadonlyArray<DataSecurityAiProposalKind> =
+  [
+    DataSecurityAiProposalKind.SetStoreOwners,
+    DataSecurityAiProposalKind.CreateOwnerRule,
+  ];
+
+export function isDataSecurityAiOwnerProposalKind(
+  kind: DataSecurityAiProposalKind | string | undefined,
+): boolean {
+  return (
+    DATA_SECURITY_AI_OWNER_PROPOSAL_KINDS as ReadonlyArray<string | undefined>
+  ).includes(kind);
 }
 
 export interface DataSecurityAiProposalKindDefinition {
@@ -323,6 +373,16 @@ export const DATA_SECURITY_AI_PROPOSAL_KINDS: Readonly<
     kind: DataSecurityAiProposalKind.ScrubTelemetry,
     work: DataSecurityAiWork.Contain,
     safety: DataSecurityAiChangeSafety.MaskOnly,
+  },
+  [DataSecurityAiProposalKind.SetStoreOwners]: {
+    kind: DataSecurityAiProposalKind.SetStoreOwners,
+    work: DataSecurityAiWork.Judge,
+    safety: DataSecurityAiChangeSafety.ChangesWhoIsTold,
+  },
+  [DataSecurityAiProposalKind.CreateOwnerRule]: {
+    kind: DataSecurityAiProposalKind.CreateOwnerRule,
+    work: DataSecurityAiWork.Judge,
+    safety: DataSecurityAiChangeSafety.ChangesWhoIsTold,
   },
 };
 

@@ -1,6 +1,7 @@
 import ObjectID from "../../../../../Types/ObjectID";
 import { ResponseLink } from "../../../../../Types/SecurityCase/SecurityCaseResponseLink";
 import { SecurityCaseStepCheckSentence } from "../../../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
+import AwsWafBlockedRequests from "./AwsWafBlockedRequests";
 import SecurityBlocklistAddressBlockSource from "./BlocklistAddressBlocks";
 
 /*
@@ -54,9 +55,14 @@ export interface AddressBlockSource {
   }): Promise<Array<AddressBlockEvidence>>;
 }
 
-// The sources of blocks: the project's Blocklist (#10338, #10562); a destination read apart from it adds its own.
+/*
+ * The sources of blocks: the project's Blocklist (#10338, #10562), and AWS
+ * WAF's own word - the requests its web ACLs turned away, from those it
+ * sampled (#10344). A destination read apart from the Blocklist adds its own.
+ */
 export const ADDRESS_BLOCK_SOURCES: Array<AddressBlockSource> = [
   SecurityBlocklistAddressBlockSource,
+  AwsWafBlockedRequests,
 ];
 
 // The evidence that the address is blocked: what a destination holds, never what it only records.

@@ -260,6 +260,7 @@ import DataAlert from "./DataAlert";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
 import SecurityBlock from "./SecurityBlock";
 import SecurityBlockEnforcement from "./SecurityBlockEnforcement";
+import SecurityBlockCloudWaf from "./SecurityBlockCloudWaf";
 import SecurityBlocklistFeed from "./SecurityBlocklistFeed";
 import SecurityBlocklistFeedFetch from "./SecurityBlocklistFeedFetch";
 import SecurityEntityRisk from "./SecurityEntityRisk";
@@ -790,6 +791,7 @@ const AllModelTypes: Array<{
   SecurityProtectedEntity,
   SecurityBlock,
   SecurityBlockEnforcement,
+  SecurityBlockCloudWaf,
   SecurityBlocklistFeed,
   SecurityBlocklistFeedFetch,
   SecurityEntityRisk,

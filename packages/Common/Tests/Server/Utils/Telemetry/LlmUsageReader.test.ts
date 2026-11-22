@@ -6,9 +6,11 @@ import LlmUsageReader, {
 import MetricService from "../../../../Server/Services/MetricService";
 import SpanService from "../../../../Server/Services/SpanService";
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
+import { SCRUB_HASH_TOKEN_SQL_PATTERN } from "../../../../Server/Utils/Telemetry/ScrubPlaceholderSql";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
+  LLM_USAGE_HIDDEN_GROUP_KEY,
   LlmUsageDimension,
   LlmUsageResponse,
   LlmUsageSource,
@@ -46,6 +48,16 @@ function query(overrides: Partial<LlmUsageReadQuery> = {}): LlmUsageReadQuery {
 
 function values(statement: Statement): Array<unknown> {
   return Object.values(statement.query_params);
+}
+
+// A statement's text with its parameters' numbers left out: each statement numbers its own.
+function withoutParameterNumbers(sql: string): string {
+  return sql.replace(/\{p\d+:String\}/g, "{p}");
+}
+
+// Whether a value holds what a scrub rule left, as ScrubPlaceholderSql asks it.
+function holds(expression: string): string {
+  return `((position(${expression}, {p}) > 0 OR position(${expression}, {p}) > 0) OR match(${expression}, {p}))`;
 }
 
 // The outer read's WHERE: what follows the counted-calls subqueries.
@@ -91,9 +103,36 @@ describe("the AI calls' statement", () => {
     expect(sql).toContain(", 0) AS costCovered FROM SpanItemV3");
   });
 
-  test("a person is their email, else their id", () => {
-    expect(sql).toContain(
-      "concat('g:', if(ifNull(llmUserEmail, '') != '', ifNull(llmUserEmail, ''), ifNull(llmUserId, ''))) AS groupKey, ",
+  /*
+   * Their email, else their id - past what a scrub rule left of either
+   * (#10435) - else, when a rule hid both, the one group of usage nobody's
+   * name can be put to.
+   */
+  test("a person is their email, else their id, never what a scrub rule left", () => {
+    const grouped: string = withoutParameterNumbers(sql);
+
+    expect(grouped).toContain(
+      `concat('g:', multiIf(ifNull(llmUserEmail, '') != '' AND NOT ${holds("ifNull(llmUserEmail, '')")}, ifNull(llmUserEmail, ''), ifNull(llmUserId, '') != '' AND NOT ${holds("ifNull(llmUserId, '')")}, ifNull(llmUserId, ''), ${holds("ifNull(llmUserEmail, '')")} OR ${holds("ifNull(llmUserId, '')")}, {p}, '')) AS groupKey, `,
+    );
+    expect(values(statement)).toEqual(
+      expect.arrayContaining([
+        "[REDACTED]",
+        "***",
+        SCRUB_HASH_TOKEN_SQL_PATTERN,
+        LLM_USAGE_HIDDEN_GROUP_KEY,
+      ]),
+    );
+  });
+
+  test("a team a scrub rule hid is the hidden group too", () => {
+    expect(
+      withoutParameterNumbers(
+        LlmUsageReader.buildSpanStatement(
+          query({ dimension: LlmUsageDimension.Team }),
+        ).query,
+      ),
+    ).toContain(
+      `concat('g:', if(${holds("ifNull(llmTeam, '')")}, {p}, ifNull(llmTeam, ''))) AS groupKey`,
     );
   });
 
@@ -111,7 +150,6 @@ describe("the AI calls' statement", () => {
   });
 
   test.each([
-    [LlmUsageDimension.Team, "concat('g:', ifNull(llmTeam, '')) AS groupKey"],
     [
       LlmUsageDimension.Model,
       "concat('g:', ifNull(llmRequestModel, '')) AS groupKey",

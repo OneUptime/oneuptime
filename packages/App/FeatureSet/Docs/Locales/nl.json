@@ -443,6 +443,7 @@
     "Stream CloudWatch Metrics and Logs": "CloudWatch-metrieken en -logboeken streamen",
     "Stream Azure Monitor Metrics and Logs": "Azure Monitor-metrieken en -logboeken streamen",
     "Stream Google Cloud Logs": "Google Cloud-logboeken streamen",
+    "Block Addresses in AWS WAF": "Adressen blokkeren in AWS WAF",
     "Cloud Costs and Savings": "Cloudkosten en besparingen",
     "Cloud Resources (IaaS & PaaS)": "Cloud-resources (IaaS en PaaS)",
     "AI / LLM Observability": "AI- / LLM-observability",

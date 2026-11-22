@@ -622,6 +622,7 @@
     "{{up}}/{{count}} OSD up",
     "{{values}} in {{field}}",
     "{{value}} ms",
-    "{{value}} s"
+    "{{value}} s",
+    "{{where}}, account {{account}}"
   ]
 }

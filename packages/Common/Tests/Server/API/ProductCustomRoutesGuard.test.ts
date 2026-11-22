@@ -699,6 +699,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
   },
+  // The cloud WAFs the blocklist is enforced in: candidates, Check Again and Remove (#10344).
+  "packages/Common/Server/API/SecurityBlockCloudWafAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {},
+  },
   /*
    * Blocklist feeds (#10345): Rotate Secret and Revoke Secret name the
    * product; what a firewall fetches is a read, and a write to a feed's

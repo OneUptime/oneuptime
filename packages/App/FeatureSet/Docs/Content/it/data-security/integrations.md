@@ -77,6 +77,10 @@ Le regole impostano proprietari ed etichette al posto tuo, man mano che gli arch
 
 Una regola corrisponde a un archivio in base alle sue etichette, a un pattern del suo nome o della sua descrizione, oppure al **Modello di tag cloud**: un pattern confrontato con ciascuno dei tag cloud dell'archivio, scritti `key=value`. `^team=payments$` corrisponde a ogni archivio con il tag `team=payments`, e `^env=` a ogni archivio con un tag `env`. Un nuovo archivio riceve le regole del progetto nel momento in cui viene trovato, e la **Notifica ai proprietari** di una regola del proprietario dice se i proprietari che aggiunge vengono avvisati. [Regole per etichette e proprietari](/docs/configuration/label-and-owner-rules) spiega come corrisponde ogni regola e quando vengono eseguite le regole.
 
+### I proprietari che OneUptime AI propone
+
+Un archivio senza proprietari può riceverli da OneUptime AI. Legge ciò che indica già un proprietario - i tag cloud dell'archivio, i servizi che lo usano, i proprietari del codice del file che lo dichiara, e chi lo ha modificato o aggiunto - e ne ricava team e persone del tuo progetto. Nulla cambia finché una persona non lo approva in **Proprietari da rivedere**, in **Archivi dati** o in **Sicurezza dei dati → IA**, e i proprietari aggiunti vengono avvisati come qualsiasi proprietario. Quando i proprietari di tre o più archivi si basano su un tag o su un inizio del nome, propone anche la regola del proprietario che mantiene un proprietario al prossimo archivio simile, e che si aggiunge alle **Regole del proprietario** una volta approvata. [OneUptime AI in Sicurezza dei dati](/docs/data-security/ai) dice cosa invia e quando si avvia.
+
 ## Flussi di lavoro
 
 **Archivio dati** e **Problema di sicurezza dei dati** sono trigger dei flussi di lavoro, ciascuno con **Alla creazione**, **All'aggiornamento**, **Alla creazione o all'aggiornamento** e **All'eliminazione**. Sceglili nel pannello **Aggiungi trigger**, sotto **Risorse OneUptime**.

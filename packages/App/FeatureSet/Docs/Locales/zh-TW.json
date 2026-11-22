@@ -443,6 +443,7 @@
     "Stream CloudWatch Metrics and Logs": "串流 CloudWatch 指標和日誌",
     "Stream Azure Monitor Metrics and Logs": "串流 Azure Monitor 指標和日誌",
     "Stream Google Cloud Logs": "串流 Google Cloud 日誌",
+    "Block Addresses in AWS WAF": "在 AWS WAF 中封鎖位址",
     "Cloud Costs and Savings": "雲端成本與節省",
     "Cloud Resources (IaaS & PaaS)": "雲端資源(IaaS 與 PaaS)",
     "AI / LLM Observability": "AI / LLM 可觀測性",

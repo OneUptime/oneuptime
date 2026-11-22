@@ -719,6 +719,7 @@ import SecurityPlaybookService, {
 } from "Common/Server/Services/SecurityPlaybookService";
 import SecurityProtectedEntityAPI from "Common/Server/API/SecurityProtectedEntityAPI";
 import SecurityBlockAPI from "Common/Server/API/SecurityBlockAPI";
+import SecurityBlockCloudWafAPI from "Common/Server/API/SecurityBlockCloudWafAPI";
 import SecurityBlockEnforcementService, {
   Service as SecurityBlockEnforcementServiceType,
 } from "Common/Server/Services/SecurityBlockEnforcementService";
@@ -4860,6 +4861,12 @@ const BaseAPIFeatureSet: FeatureSet = {
         SecurityBlockEnforcement,
         SecurityBlockEnforcementServiceType
       >(SecurityBlockEnforcement, SecurityBlockEnforcementService).getRouter(),
+    );
+
+    // The cloud WAFs that enforce the blocklist, with their set-up and removal (#10344).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityBlockCloudWafAPI().getRouter(),
     );
 
     /*

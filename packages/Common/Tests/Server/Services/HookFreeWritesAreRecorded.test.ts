@@ -642,6 +642,10 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
       "ExternalCalendarRefresher.readCalendar ScheduledMaintenanceExternalCalendar":
         Why.Reported,
     },
+  // Where a web ACL stands, as AWS WAF answers OneUptime's check of it (#10344).
+  "packages/Common/Server/Utils/SecurityBlocklist/AwsWafBlockDestination.ts": {
+    "recordCloudWafState SecurityBlockCloudWaf": Why.Reported,
+  },
   // A block past its end, Expired by the expiry worker's compare-and-set, recorded as OneUptime's (#10338).
   "packages/Common/Server/Utils/SecurityBlocklist/SecurityBlockExpiry.ts": {
     "SecurityBlockExpiry.expireBlock SecurityBlock": Why.Recorded,

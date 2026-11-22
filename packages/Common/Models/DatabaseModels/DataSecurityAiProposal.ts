@@ -47,6 +47,13 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * secrets to anyone the issue would not. It holds names, places and counts,
  * never a value, a sample or a record.
  *
+ * Owners (#10374) are proposed for the project's stores: a store's owners
+ * for its "Nobody owns this sensitive store" issue where it has one, and
+ * for the store alone where it has none; an owner rule for no one issue or
+ * store. A proposal that names no issue is read only by readers whose read
+ * of Data Security issues is not limited to labels - the issue's labels are
+ * what a limited read is held to, and a proposal with none is no issue's.
+ *
  * Its kind's action (Server/Utils/AI/DataSecurity/Actions) writes the
  * plan, applies it, checks it and undoes it; the engine decides whether it
  * waits for a person (DataSecurityAiEngine). Its own table, not an
@@ -93,7 +100,7 @@ const serverWrittenColumnAccess: {
   pluralName: "Data Security AI Proposals",
   icon: IconProp.Sparkles,
   tableDescription:
-    "What OneUptime AI proposes for a Data Security issue: what will change, why, how it will be proven and how to undo it, and whether it waits for a person, was made, dismissed or undone. Written by OneUptime; approved, dismissed and undone through Data Security's own routes, with the person's own permission for the change.",
+    "What OneUptime AI proposes for a Data Security issue, or for who owns the project's stores: what will change, why, how it will be proven and how to undo it, and whether it waits for a person, was made, dismissed or undone. Written by OneUptime; approved, dismissed and undone through Data Security's own routes, with the person's own permission for the change.",
 })
 @TableAccessControl({
   create: [],
@@ -148,7 +155,8 @@ export default class DataSecurityAiProposal extends BaseModel {
     type: TableColumnType.Entity,
     modelType: DataSecurityIssue,
     title: "Data Security Issue",
-    description: "Relation to the issue the proposal is for.",
+    description:
+      "Relation to the issue the proposal is for; empty for an owner rule, and for owners of a store with no issue.",
   })
   @ManyToOne(
     () => {
@@ -168,15 +176,16 @@ export default class DataSecurityAiProposal extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
+    required: false,
     computed: true,
     canReadOnRelationQuery: true,
     title: "Data Security Issue ID",
-    description: "The issue the proposal is for.",
+    description:
+      "The issue the proposal is for. Empty for an owner rule, which is for no one issue, and for the owners of a store that has no issue (#10374).",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public dataSecurityIssueId?: ObjectID = undefined;
@@ -187,7 +196,8 @@ export default class DataSecurityAiProposal extends BaseModel {
     type: TableColumnType.Entity,
     modelType: DataStore,
     title: "Data Store",
-    description: "Relation to the store the issue is on.",
+    description:
+      "Relation to the store the proposal is for; empty for an owner rule.",
   })
   @ManyToOne(
     () => {
@@ -207,15 +217,16 @@ export default class DataSecurityAiProposal extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
+    required: false,
     computed: true,
     canReadOnRelationQuery: true,
     title: "Data Store ID",
-    description: "The store the issue is on.",
+    description:
+      "The store the proposal is for: the issue's store, or the store whose owners it proposes. Empty for an owner rule, which is for the project's stores (#10374).",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public dataStoreId?: ObjectID = undefined;

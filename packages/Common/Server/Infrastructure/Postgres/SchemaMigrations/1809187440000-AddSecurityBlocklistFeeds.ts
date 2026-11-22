@@ -11,10 +11,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * tables, empty until someone makes a feed, so their indexes and keys are
  * built with them.
  */
-export class AddSecurityBlocklistFeeds1809187430000
+export class AddSecurityBlocklistFeeds1809187440000
   implements MigrationInterface
 {
-  public name: string = "AddSecurityBlocklistFeeds1809187430000";
+  public name: string = "AddSecurityBlocklistFeeds1809187440000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

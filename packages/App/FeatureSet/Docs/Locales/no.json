@@ -443,6 +443,7 @@
     "Stream CloudWatch Metrics and Logs": "Strøm CloudWatch-målinger og -logger",
     "Stream Azure Monitor Metrics and Logs": "Strøm Azure Monitor-målinger og -logger",
     "Stream Google Cloud Logs": "Strøm Google Cloud-logger",
+    "Block Addresses in AWS WAF": "Blokker adresser i AWS WAF",
     "Cloud Costs and Savings": "Skykostnader og besparelser",
     "Cloud Resources (IaaS & PaaS)": "Skyressurser (IaaS og PaaS)",
     "AI / LLM Observability": "AI- / LLM-observerbarhet",

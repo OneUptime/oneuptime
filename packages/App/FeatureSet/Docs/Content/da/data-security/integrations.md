@@ -77,6 +77,10 @@ Regler angiver ejere og etiketter for dig, efterhånden som datalagre findes:
 
 En regel matcher et datalager ud fra dets etiketter, ud fra et mønster for dets navn eller beskrivelse eller ud fra **Cloud-tag-mønster**: et mønster, der matches mod hvert af datalagerets cloud-tags, skrevet `key=value`. `^team=payments$` matcher hvert datalager med tagget `team=payments`, og `^env=` hvert datalager med et `env`-tag. Et nyt datalager får projektets regler, i det øjeblik det findes, og en ejerregels **Underret ejere** angiver, om de ejere, den tilføjer, får besked. [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules) forklarer, hvordan hver regel matcher, og hvornår regler kører.
 
+### Ejere, som OneUptime AI foreslår
+
+Et datalager uden ejere kan få dem fra OneUptime AI. Den læser, hvad der allerede peger på en ejer - datalagerets cloudmærker, de tjenester, der bruger det, kodeejerne af filen, der erklærer det, og hvem der ændrede eller tilføjede det - og foreslår ud fra det dit eget projekts teams og personer. Intet ændres, før en person godkender det under **Ejere til gennemgang**, under **Datalagre** eller **Datasikkerhed → AI**, og de tilføjede ejere får besked som enhver ejer. Når ejerne af tre eller flere datalagre hviler på ét mærke eller én begyndelse af deres navne, foreslår den også den ejerregel, der holder det næste lignende datalager med en ejer, og som kommer med i **Ejerregler**, når den er godkendt. [OneUptime AI i Datasikkerhed](/docs/data-security/ai) siger, hvad den sender, og hvornår den kører.
+
 ## Arbejdsgange
 
 **Datalager** og **Datasikkerhedsproblem** er arbejdsgangsudløsere, hver med **Ved oprettelse**, **Ved opdatering**, **Ved oprettelse eller opdatering** og **Ved sletning**. Vælg dem i panelet **Tilføj udløser** under **OneUptime-ressourcer**.

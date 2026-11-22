@@ -4,7 +4,9 @@ import {
   DataSecurityAiWork,
   isDataSecurityAiProposalKind,
 } from "../../../../Types/DataSecurity/DataSecurityAi";
+import CreateOwnerRuleAction from "./Actions/CreateOwnerRuleAction";
 import ScrubTelemetryAction from "./Actions/ScrubTelemetryAction";
+import SetStoreOwnersAction from "./Actions/SetStoreOwnersAction";
 import { DataSecurityAiAction } from "./DataSecurityAiAction";
 
 /*
@@ -24,6 +26,8 @@ function actions(): Readonly<
 > {
   return {
     [DataSecurityAiProposalKind.ScrubTelemetry]: ScrubTelemetryAction,
+    [DataSecurityAiProposalKind.SetStoreOwners]: SetStoreOwnersAction,
+    [DataSecurityAiProposalKind.CreateOwnerRule]: CreateOwnerRuleAction,
   };
 }
 
