@@ -90,6 +90,7 @@ import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import { JSONObject } from "../../../../Types/JSON";
 import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
+import MetricsViewConfig from "../../../../Types/Metrics/MetricsViewConfig";
 import {
   CheckOn,
   EvaluateOverTimeType,
@@ -534,7 +535,7 @@ describe("a Host monitor's check whose criteria compare a formula", () => {
       ],
     };
 
-    const metricViewConfig: JSONObject = {
+    const metricViewConfig: MetricsViewConfig = {
       queryConfigs: [QUERY],
       formulaConfigs: [
         {
