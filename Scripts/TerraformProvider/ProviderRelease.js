@@ -20,11 +20,8 @@
  *
  * Commands, each reading what gh wrote to a file. A release is GitHub's REST
  * answer for it (`gh api repos/.../releases/<id>`: draft, assets with name,
- * size, state and digest), or gh's own (`gh release view --json`: isDraft),
- * or an empty file when there is none.
+ * size, state and digest), or gh's own (`gh release view --json`: isDraft).
  *
- *   state <release.json>
- *       none, draft or published.
  *   asset-id <release.json> <name>
  *       The id of the release's asset of that name, for reading it by its
  *       id; nothing when it has none.
@@ -81,13 +78,6 @@ function signatureName(version) {
 // GitHub's REST API says `draft`, gh's --json says `isDraft`.
 function isDraft(release) {
   return Boolean(release.draft === undefined ? release.isDraft : release.draft);
-}
-
-function releaseState(release) {
-  if (!release) {
-    return "none";
-  }
-  return isDraft(release) ? "draft" : "published";
 }
 
 /*
@@ -347,7 +337,6 @@ function assetIdOf(release, name) {
 }
 
 const USAGE = `Usage:
-  ProviderRelease.js state <release.json>
   ProviderRelease.js asset-id <release.json> <name>
   ProviderRelease.js check-published <version> <release.json> <SHA256SUMS>
   ProviderRelease.js check-built <version> <file>...
@@ -366,12 +355,6 @@ function main(argv, out = process.stdout, err = process.stderr) {
   };
 
   switch (command) {
-    case "state":
-      if (args.length !== 1) {
-        break;
-      }
-      say(releaseState(readJson(args[0])));
-      return 0;
     case "asset-id":
       if (args.length !== 2) {
         break;
@@ -458,7 +441,6 @@ module.exports = {
   previousRelease,
   problemsOfBuiltAssets,
   problemsOfPublishedRelease,
-  releaseState,
   sha256OfAsset,
   signatureName,
   sumsName,

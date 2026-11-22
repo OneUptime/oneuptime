@@ -56,7 +56,6 @@ const {
   previousRelease,
   problemsOfBuiltAssets,
   problemsOfPublishedRelease,
-  releaseState,
 } = require("../../Scripts/TerraformProvider/ProviderRelease");
 const { pagePath, providerPage } = require("./Utils/ProviderDocsPages");
 const { commitNamed, shaOf } = require("./Utils/FakeOneUptimeGitHub");
@@ -137,12 +136,17 @@ function wholeRelease() {
 }
 
 describe("ProviderRelease.js: what a release holds, against what it must", () => {
-  test("a release's state, from GitHub's REST answer or gh's", () => {
-    expect(releaseState(null)).toBe("none");
-    expect(releaseState({ draft: true })).toBe("draft");
-    expect(releaseState({ draft: false })).toBe("published");
-    expect(releaseState({ isDraft: true })).toBe("draft");
-    expect(releaseState({ isDraft: false })).toBe("published");
+  test("a draft is a draft as GitHub's REST API says it (draft), or gh does (isDraft)", () => {
+    const published =
+      "it is published: a run only ever uploads to a draft of its own";
+    for (const [release, expected] of [
+      [{ draft: true, assets: [] }, []],
+      [{ isDraft: true, assets: [] }, []],
+      [{ draft: false, assets: [] }, [published]],
+      [{ isDraft: false, assets: [] }, [published]],
+    ]) {
+      expect(differencesFromBuilt(release, [])).toEqual(expected);
+    }
   });
 
   test("reads a SHA256SUMS as GoReleaser and sha256sum write it", () => {
@@ -437,15 +441,13 @@ describe("ProviderRelease.js: what a release holds, against what it must", () =>
       return written;
     }
 
-    test("says a state, an id, a previous release and whether it is the latest", () => {
-      expect(cli("state", file("none.json", ""))).toMatchObject({
-        status: 0,
-        out: "none\n",
-      });
+    test("says an asset's id, a previous release and whether it is the latest", () => {
       const { release, sums } = wholeRelease();
       const releaseFile = file("release.json", JSON.stringify(release));
-      expect(cli("state", releaseFile).out).toBe("published\n");
-      expect(cli("asset-id", releaseFile, SUMS).out).toBe("99\n");
+      expect(cli("asset-id", releaseFile, SUMS)).toMatchObject({
+        status: 0,
+        out: "99\n",
+      });
       expect(cli("asset-id", releaseFile, "nothing").out).toBe("\n");
 
       const releases = file(
@@ -496,7 +498,13 @@ describe("ProviderRelease.js: what a release holds, against what it must", () =>
     });
 
     test("a command it does not know, or one short of its arguments, exits 2 with its usage", () => {
-      for (const argv of [["nope"], [], ["state"], ["check-uploaded", "x"]]) {
+      for (const argv of [
+        ["nope"],
+        [],
+        ["state", "release.json"],
+        ["asset-id", "release.json"],
+        ["check-uploaded", "x"],
+      ]) {
         const result = cli(...argv);
         expect(result.status).toBe(2);
         expect(result.err).toMatch(/^Usage:/);
@@ -721,6 +729,27 @@ describe(`${SCRIPT}, end to end`, () => {
         expectRan(result);
         expect(world.commitMessage(`v${VERSION}`)).toMatch(
           new RegExp(`OneUptime-Commit: ${world.rootCommit}$`),
+        );
+      },
+      RUN_TIMEOUT,
+    );
+
+    test(
+      "when GitHub's list of releases cannot be read, it is still published, as the latest, with notes that compare it with none",
+      async () => {
+        world.changeState((state) => {
+          state.garble = ["release list"];
+        });
+        const result = await world.run(["--version", VERSION], {
+          env: AS_A_RELEASE_RUN,
+        });
+        expectRan(result);
+
+        const [release] = world.releasesOf(`v${VERSION}`);
+        expect(release).toMatchObject({ draft: false, make_latest: "true" });
+        expect(namesAndDigests(release)).toEqual(world.built());
+        expect(release.body).toContain(
+          "There is no earlier release to compare it with.",
         );
       },
       RUN_TIMEOUT,
@@ -1135,6 +1164,25 @@ describe(`${SCRIPT}, end to end`, () => {
         expect(world.releasesOf("v1.1.1")[0]).toMatchObject({
           draft: false,
           make_latest: "true",
+        });
+      },
+      RUN_TIMEOUT,
+    );
+
+    test(
+      "when GitHub's list of releases cannot be read, the version published again is not made the latest",
+      async () => {
+        world.changeState((state) => {
+          state.garble = ["release list"];
+        });
+        const result = await world.run(
+          ["--republish-from", "v1.0.0", "--version", "1.0.1"],
+          { env: AS_A_RELEASE_RUN },
+        );
+        expectRan(result);
+        expect(world.releasesOf("v1.0.1")[0]).toMatchObject({
+          draft: false,
+          make_latest: "false",
         });
       },
       RUN_TIMEOUT,

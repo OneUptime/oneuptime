@@ -219,6 +219,12 @@ for (const failure of state.failures || []) {
     finish(1, "", "gh: " + (failure.message || "Bad Gateway (HTTP 502)"));
   }
 }
+// state.garble: calls answered, successfully, with what nothing can read.
+for (const match of state.garble || []) {
+  if (key.includes(match)) {
+    finish(0, "this is not JSON\n");
+  }
+}
 
 const releases = "repos/" + REPOSITORY + "/releases";
 let match;

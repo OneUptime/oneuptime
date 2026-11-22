@@ -403,11 +403,11 @@ read_published_release() {
     PUBLISHED_FILE="$WORK_DIR/published-$tag.json"
     PUBLISHED=false
 
+    # GitHub answers this only for a published release: whatever else is in
+    # the answer, the tag is published.
     if gh_retrying "HTTP 404|Not Found" api "repos/$REPOSITORY/releases/tags/$tag"; then
         printf '%s\n' "$GH_STDOUT" > "$PUBLISHED_FILE"
-        if [[ "$(node "$RELEASE_HELPER" state "$PUBLISHED_FILE")" == "published" ]]; then
-            PUBLISHED=true
-        fi
+        PUBLISHED=true
         return 0
     fi
 
@@ -1302,14 +1302,20 @@ publish_release() {
         exit 1
     fi
 
-    local latest
+    # Whether it is the latest, from the releases GitHub lists. When they
+    # cannot be listed or read, a release run's version is the newest, and a
+    # version published again is not.
+    local latest=""
     list_releases
     if [[ "$RELEASES_LISTED" == true ]]; then
-        latest="$(node "$RELEASE_HELPER" latest "$VERSION" "$RELEASES_FILE")"
-    elif [[ -n "$REPUBLISH_FROM" ]]; then
-        latest=false
-    else
-        latest=true
+        latest="$(node "$RELEASE_HELPER" latest "$VERSION" "$RELEASES_FILE" 2>/dev/null || true)"
+    fi
+    if [[ "$latest" != true && "$latest" != false ]]; then
+        if [[ -n "$REPUBLISH_FROM" ]]; then
+            latest=false
+        else
+            latest=true
+        fi
     fi
 
     if ! gh_retrying "" api -X PATCH "repos/$REPOSITORY/releases/$DRAFT_ID" \
