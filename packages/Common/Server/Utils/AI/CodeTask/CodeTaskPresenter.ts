@@ -1144,14 +1144,24 @@ export default class CodeTaskPresenter {
       return;
     }
 
+    const reports: Array<ProductionReviewReport | undefined> = reviewing.map(
+      (run: AIRun): ProductionReviewReport | undefined => {
+        return run.taskOutcome?.productionReview;
+      },
+    );
+
     const readable: Set<string> =
       await ProductionReviewReadFilter.readReadableIncidentIds({
         projectId: data.projectId,
-        reports: reviewing.map(
-          (run: AIRun): ProductionReviewReport | undefined => {
-            return run.taskOutcome?.productionReview;
-          },
-        ),
+        reports,
+        props: data.props,
+      });
+
+    // What production knows of a review's sensitive data is Data Security's (#10376).
+    const canReadDataSecurity: boolean =
+      await ProductionReviewReadFilter.canReadDataSecurity({
+        projectId: data.projectId,
+        reports,
         props: data.props,
       });
 
@@ -1163,6 +1173,7 @@ export default class CodeTaskPresenter {
           ProductionReviewReadFilter.getTerm(
             data.taskContext || run.taskContext,
           ),
+          canReadDataSecurity,
         );
 
       if (kept) {

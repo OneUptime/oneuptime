@@ -1157,6 +1157,7 @@ import { AddDataSecurityIssueAiAnalysis1809187436369 } from "./1809187436369-Add
 import { AddSecurityBlocklistFeeds1809187440000 } from "./1809187440000-AddSecurityBlocklistFeeds";
 import { AddSecurityBlockReachAndWiderValue1809187440100 } from "./1809187440100-AddSecurityBlockReachAndWiderValue";
 import { AddSecurityBlockValueReachIndex1809187440110 } from "./1809187440110-AddSecurityBlockValueReachIndex";
+import { AddCodeRepositoryProductionReviewFailOnLeak1809187440200 } from "./1809187440200-AddCodeRepositoryProductionReviewFailOnLeak";
 
 export default [
   InitialMigration,
@@ -2318,4 +2319,5 @@ export default [
   AddSecurityBlocklistFeeds1809187440000,
   AddSecurityBlockReachAndWiderValue1809187440100,
   AddSecurityBlockValueReachIndex1809187440110,
+  AddCodeRepositoryProductionReviewFailOnLeak1809187440200,
 ];
