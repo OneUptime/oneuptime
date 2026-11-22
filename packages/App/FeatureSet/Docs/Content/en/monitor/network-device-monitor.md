@@ -575,7 +575,7 @@ Type the range in **Scan Target**, check the **Probe**, and pick the **Scan meth
 Only an SNMP scan asks for credentials: picking **SNMP** adds the **SNMP Credentials** step, with the credential sets to try. An [ICMP scan](#icmp-scans) has no second step, and **Start Scan** is on the first page.
 
 ### Start the scan
-Click **Start Scan**. The probe sweeps the range and reports how many hosts it scanned and how many answered: how many answered SNMP, or, on an ICMP scan, how many answered ping.
+Click **Start Scan**. The probe sweeps the range and reports how many hosts it scanned and how many answered: how many answered SNMP, or, on an ICMP scan, how many answered ping. To sweep the range again later, click **Run Again** on the scan.
 
 ### Import what it found
 Click **Review Results** on the scan, pick the hosts to import, and click **Next**. Choose how often they are checked and whether each gets a monitor, then import them; see [Importing what a scan found](#importing-what-a-scan-found).
@@ -595,7 +595,7 @@ Folded under **More fields** on the first step, for the scans that need them:
 | Name | What the scan is for, so you can tell it apart from other scans. The list shows the scan target when this is empty. | Empty |
 | Look up Windows names (NetBIOS) | Ask each host that has no SNMP system name for its NetBIOS name, its Windows computer name, over UDP 137. That name wins over the host's reverse-DNS name. Private addresses and custom probes only; see [How discovered devices are named](#how-discovered-devices-are-named). | On |
 | Name devices by their short hostname | Name imported devices by the first part of a fully qualified hostname: `core-sw-01` instead of `core-sw-01.corp.example.com`. | Off |
-| Repeat this scan | Run the scan again on an interval, the **Rescan Interval (Minutes)**, at least 15 minutes, to keep discovery going; see [auto import rules](#importing-automatically-with-auto-import-rules). Hosts a repeated scan finds wait for your review unless an auto import rule matches them. | Off |
+| Repeat this scan | Run the scan again on an interval, the **Rescan Interval (Minutes)**, at least 15 minutes, to keep discovery going; see [auto import rules](#importing-automatically-with-auto-import-rules). Hosts a repeated scan finds wait for your review unless an auto import rule matches them. Off, the scan reads **On demand** and runs again whenever you click **Run Again**. | Off |
 
 ### Scan Target Notation
 
@@ -647,6 +647,12 @@ When the hosts you import include SNMP ones, the import's **Monitoring** step of
 3. **Import** counts devices and monitors apart, as each is created, found already there, or fails. When it ends, it links to what it created and lists, under the reason, every host it did not import and every device it imported without its monitor. A retry tries again only the hosts that failed, and never creates anything twice. **Stop import** stops after the host being imported and keeps what was created.
 
 The import runs on the server and acts as you: each device and monitor is created with your permissions, and one you may not create is listed with the reason. You can close the dialog at any time: the scan's row shows how far the import has got, and **View progress** opens it again. **Import more devices** starts over with the hosts that are left. One import takes up to 5,000 hosts, so import a larger scan in parts, by subnet or by what the hosts answered. A project's imports run one at a time: one asked for while another runs waits for it.
+
+### Running a scan again
+
+A scan is not used up by its first run. To sweep the same range again, after new devices are installed, say, click **Run Again** on the scan's row, under when it last ran. The same scan runs again with its own target, probe, scan method and credentials, so no second scan is made: its row turns **Queued**, then **Scanning**, and the new run's results replace the ones before as they arrive. Devices you already imported stay as they are. A scan that does not repeat reads **On demand** in the list, and runs whenever you click **Run Again**.
+
+**Run Again** is there once a run has ended, completed or failed: while a scan is queued or scanning, its progress takes the button's place, and a second run is refused. A run is refused too while the scan's probe is not connected to OneUptime, so the scan keeps its last results; start the probe, or pick another probe in **Edit**. A scan that repeats keeps its schedule: it repeats as often as before, its next run counted from when this one finishes. Running a scan takes permission to edit discovery scans; its row names who ran it last, and the audit logs record each run as theirs. An API key with that permission can run a scan too, with `POST /api/network-device-discovery-scan/<scan ID>/run`.
 
 ### How discovered devices are named
 
@@ -731,7 +737,7 @@ A rule's **Check every** sets how often the scan's probe polls each device the r
 
 Rules have no schedule of their own and need none. Enabled rules run by themselves against each scan's results as they arrive, including the partial results a long sweep uploads while it is still running, so hosts are imported within a minute of being found rather than at the end of the range. Turn on **Repeat this scan** on a discovery scan and the pair becomes a standing arrangement: the scan sweeps its range again on your interval, and every new host it finds is imported without anyone pressing anything.
 
-Saving a rule also applies it to results the project already has: a rule you write or enable today reaches hosts discovered in the last 24 hours within about a minute, so a rule written after a one-off scan is not left waiting for a scan that will never run again. Older results are left alone, because importing an estate discovered last month is a decision, not a side effect of saving a rule. The two buttons on a rule are how you make that decision, and they reach every scan in the project, however old:
+Saving a rule also applies it to results the project already has: a rule you write or enable today reaches hosts discovered in the last 24 hours within about a minute, so a rule written after a scan ran is not left waiting for the scan to run again. Older results are left alone, because importing an estate discovered last month is a decision, not a side effect of saving a rule. To import what a range holds today, click **Run Again** on its scan: the new results are fresh, and the rules import them within a minute of their arriving. To import the old results as they are, use the two buttons on a rule, which reach every scan in the project, however old:
 
 - **Dry Run** evaluates every completed scan and reports what the rule would import and monitor. Nothing is written, so it is the safe way to see what a rule would claim before you enable it on a live estate. A disabled rule can be dry-run; only a real run needs it enabled, which is why a rule created in the dashboard starts with **Enabled** off: dry-run it, then switch it on.
 - **Run Rule** does the same evaluation and performs the import.
