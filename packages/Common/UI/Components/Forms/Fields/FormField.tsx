@@ -770,6 +770,7 @@ const FormField: <T extends GenericObject>(
                 valueField={props.field.dropdownModal.valueField}
                 query={props.field.dropdownModal.query}
                 emptyListText={props.field.dropdownModal.emptyListText}
+                notFoundLabel={props.field.dropdownModal.notFoundLabel}
                 onLabelsBulkAdded={props.field.onLabelsBulkAdded}
                 options={props.field.dropdownOptions || []}
                 placeholder={fieldPlaceholder || ""}

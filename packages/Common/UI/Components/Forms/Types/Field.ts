@@ -287,6 +287,14 @@ export default interface Field<TEntity> {
      * added yet." Unset, "Nothing to pick yet." (EntityDropdownEmptyList).
      */
     emptyListText?: string | undefined;
+    /*
+     * What a value the field holds reads as once reading it by its id found
+     * no such record - a monitor a form's settings name, deleted since: a
+     * translation key, drawn as a muted chip that can be removed
+     * (EntityDropdown's notFoundLabel). Unset, such a value shows its id, as
+     * before: a field whose values the database keeps whole has none.
+     */
+    notFoundLabel?: string | undefined;
   };
   /*
    * Entity dropdowns can bulk-add every entry carrying a label. That is a

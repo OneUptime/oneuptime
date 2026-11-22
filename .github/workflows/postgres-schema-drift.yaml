@@ -5059,6 +5059,9 @@ jobs:
       # the late-sorting names with each picker's own rules (type, enabled,
       # archived) and a member's permissions as they were; and the Monitors
       # list's "Template is not X" keeping the monitors with no template.
+      # #10646: a form's On Submit settings name what they hold by its id
+      # (the page's own reads, through the routes), and the dialog's pickers
+      # find a monitor past the 10,000th.
       - name: Test the pickers' server searches and the lists' "is not" on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
@@ -5074,6 +5077,7 @@ jobs:
           Tests/Server/API/DashboardWidgetPickerSearchPostgres.test.ts
           Tests/Server/API/PlaylistDashboardPickerSearchPostgres.test.ts
           Tests/Server/API/StatusPageSetupSearchPostgres.test.ts
+          Tests/Server/API/FormOnSubmitPickerSearchPostgres.test.ts
           --forceExit
 
       # The LLM provider an AI rule picks, on migrated Postgres: the two
