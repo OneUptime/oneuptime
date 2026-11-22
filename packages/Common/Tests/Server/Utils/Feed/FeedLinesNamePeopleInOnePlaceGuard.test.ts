@@ -168,10 +168,6 @@ const MAY_NAME_ANOTHER_WAY: Record<string, Record<string, string>> = {
     nameElseAddress:
       "the people in a record's channel, listed on its card in the Dashboard",
   },
-  "packages/Common/Server/API/DataSecurityAPI.ts": {
-    nameElseAddress:
-      "the record of processing a project exports for its auditor, read in the project",
-  },
   "packages/App/FeatureSet/Workers/Jobs/IncidentOwners/SendCreatedResourceNotification.ts":
     {
       addressInTemplate:
