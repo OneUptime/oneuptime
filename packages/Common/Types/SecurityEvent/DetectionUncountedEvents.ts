@@ -14,8 +14,8 @@
  * lumping them together changes nothing about whether each fires, and
  * leaving them out would silence the rule for actors with no principal
  * (Many records deleted at once in OneUptime, grouped by principal user, of
- * a workflow that has none). A rule with no group field keeps its one
- * group.
+ * deletes the audit log names nobody for). A rule with no group field keeps
+ * its one group.
  *
  * The scheduled and real-time reads (SecurityEventService
  * .findDetectionMatches), Run on Past Events (DetectionRuleRetrohunt) and

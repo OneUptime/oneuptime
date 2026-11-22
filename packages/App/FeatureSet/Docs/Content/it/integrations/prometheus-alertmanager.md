@@ -266,7 +266,7 @@ Quando l'avviso watchdog non arriva da dieci minuti, il monitor watchdog va offl
 - L'incidente del criterio ha bisogno di **Risoluzione automatica dell'incidente**, in **Altri campi**.
 - **Field that signals recovery** deve essere `requestBody.alerts[*].status`, e **Value that means recovered** esattamente `resolved`. Il confronto distingue maiuscole e minuscole.
 - Gli avvisi di una notifica oltre **Max incidents per request** non vengono letti affatto, quindi anche i loro rientri vanno persi.
-- Un rientro saltato in una raffica (vedi sotto) lascia il suo incidente aperto per sempre: Alertmanager ripete gli avvisi che scattano, ma mai un rientro. Risolvi quell'incidente a mano.
+- Un rientro saltato perché troppe notifiche erano in attesa (vedi sotto) lascia il suo incidente aperto per sempre: Alertmanager ripete gli avvisi che scattano, ma mai un rientro. Risolvi quell'incidente a mano.
 :::
 
 :::details Non si apre nessun incidente
@@ -285,8 +285,8 @@ Un riferimento a un campo che la notifica non ha viene lasciato com'è scritto, 
 Raggruppa la tua route per meno etichette, o aumenta `group_interval`, così Alertmanager invia insieme gli avvisi correlati. Abbassare **Max incidents per request** limita gli incidenti di una notifica, ma gli avvisi oltre il limite non vengono letti, quindi anche i loro rientri vanno persi.
 :::
 
-:::details Alcune notifiche vengono saltate durante una raffica
-Quando una richiesta più recente raggiunge un monitor prima che ne venga valutata una precedente, OneUptime valuta solo la più recente, così un singolo mittente non può sommergere un monitor. L'ultima notifica di una raffica viene sempre valutata, ma una precedente su altri avvisi può essere saltata, perché Alertmanager invia ogni gruppo allo stesso URL. Aumenta `group_wait` e `group_interval` per distanziare le notifiche. Su un'installazione self-hosted, imposta `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` nell'ambiente dell'app OneUptime per valutare ogni richiesta.
+:::details Una raffica di notifiche
+Un monitor il cui criterio raggruppa per un campo, come lo imposta questa guida, valuta ogni notifica che riceve, una alla volta e nell'ordine in cui sono arrivate, quindi una raffica di avvisi scattati e risolti apre e risolve l'incidente di ogni avviso. Fino a 1.000 notifiche, o 16 MB, attendono di essere valutate; oltre, le più vecchie in attesa vengono saltate, e la scheda **Riepilogo del monitor** dice quante. Aumenta `group_wait` e `group_interval` per inviare meno notifiche, più grandi. Un monitor senza raggruppamento valuta solo la notifica più recente che lo attende.
 :::
 
 ## Sicurezza

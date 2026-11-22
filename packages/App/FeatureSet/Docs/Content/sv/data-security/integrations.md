@@ -79,6 +79,10 @@ Regler anger ägare och etiketter åt dig, när datalager hittas:
 
 En regel matchar ett datalager via dess etiketter, via ett mönster för dess namn eller beskrivning, eller via **Molntaggmönster**: ett mönster som matchas mot var och en av datalagrets molntaggar, skrivna `key=value`. `^team=payments$` matchar varje datalager som är taggat `team=payments`, och `^env=` varje datalager med en `env`-tagg. Ett nytt datalager får projektets regler i samma ögonblick som det hittas, och en ägarregels **Avisera ägare** anger om de ägare som den lägger till underrättas. [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules) beskriver hur varje regel matchar och när regler körs.
 
+### Ägare som OneUptime AI föreslår
+
+Ett datalager utan ägare kan få dem från OneUptime AI. Den läser det som redan pekar på en ägare - datalagrets molntaggar, tjänsterna som använder det, kodägarna för filen som deklarerar det, och vem som ändrade eller lade till det - och föreslår utifrån det ditt eget projekts team och personer. Inget ändras förrän en person godkänner det under **Ägare att granska**, under **Datalager** eller **Datasäkerhet → AI**, och de ägare som läggs till får besked som alla ägare. När ägarna till tre eller fler datalager vilar på en tagg eller en början på namnet föreslår den också den ägarregel som håller nästa liknande datalager med en ägare, och som kommer med bland **Ägarregler** när den har godkänts. [OneUptime AI i Datasäkerhet](/docs/data-security/ai) säger vad den skickar och när den körs.
+
 ## Arbetsflöden
 
 **Datalager** och **Datasäkerhetsproblem** är utlösare för arbetsflöden, var och en med **Vid skapande**, **Vid uppdatering**, **Vid skapande eller uppdatering** och **Vid borttagning**. Välj dem i panelen **Lägg till utlösare**, under **OneUptime-resurser**.

@@ -8,12 +8,17 @@ import {
 } from "../../LlmObservability/LlmProviderHttp";
 import LlmProviderError from "../../LlmObservability/LlmProviderError";
 import {
+  AwsCallerSession,
   CloudAuditRecord,
   CloudChange,
   CloudConnectorCallOptions,
   CloudReadBudget,
 } from "../CloudConnectorTypes";
 import { AwsCredentials, awsErrorCodeOf, sendAwsRequest } from "./AwsApi";
+import {
+  couldBeOneUptimeAwsSession,
+  readAwsCallerSessionOfRecord,
+} from "./OneUptimeAwsSessions";
 import { describeAwsHealthEventType } from "../../../../Utils/Telemetry/CloudChangeTitle";
 
 /*
@@ -31,11 +36,15 @@ import { describeAwsHealthEventType } from "../../../../Utils/Telemetry/CloudCha
  *   machinery rather than a change - signing in, assuming a role, an ECS
  *   agent reporting a task's state - are left out (isAwsChangeNoise). Of
  *   CloudTrailEvent only the error code, the Region and who called
- *   (userIdentity.arn) are read: its request parameters can carry
- *   anything, and are never kept - unless the project's Security Events
- *   read the account's audit log (Cloud audit logs, keepAuditRecords):
- *   then each event's CloudTrailEvent is handed back whole, sign-ins too,
- *   for the CloudTrail parser to judge.
+ *   (userIdentity.arn) are read - and, when the caller could be
+ *   OneUptime's own session, the key it signed with and where its session
+ *   came from (OneUptimeAwsSessions), and for a change of who may restore a
+ *   snapshot, whether it added anyone (readSnapshotSharingGrant): a yes or
+ *   no, never which accounts. Its request parameters can carry anything,
+ *   and are never kept - unless the project's Security Events read the
+ *   account's audit log (Cloud audit logs, keepAuditRecords): then each
+ *   event's CloudTrailEvent is handed back whole, sign-ins too, for the
+ *   CloudTrail parser to judge.
  *
  *   AWS Health DescribeEvents (AWS JSON 1.1, target
  *   AWSHealth_20160804.DescribeEvents, in the partition's home Region), and
@@ -119,6 +128,83 @@ export function parseTrailEvent(value: unknown): JSONObject {
   }
 }
 
+// The CloudTrail events that change who may restore a snapshot: a DB snapshot's, an Aurora cluster snapshot's.
+export const AWS_SNAPSHOT_SHARING_EVENTS: ReadonlyArray<string> = [
+  "ModifyDBSnapshotAttribute",
+  "ModifyDBClusterSnapshotAttribute",
+];
+
+// A field of the request's parameters, whatever the case of its name.
+function parameterOf(parameters: JSONObject, name: string): unknown {
+  const wanted: string = name.toLowerCase();
+  const key: string | undefined = Object.keys(parameters).find(
+    (candidate: string): boolean => {
+      return candidate.toLowerCase() === wanted;
+    },
+  );
+
+  return key === undefined ? undefined : parameters[key];
+}
+
+// How many values a list of the request names; null when it names none at all.
+function countValues(value: unknown): number | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  const values: Array<unknown> = Array.isArray(value) ? value : [value];
+
+  return values.filter((item: unknown): boolean => {
+    return typeof item === "string" && item.trim().length > 0;
+  }).length;
+}
+
+/*
+ * WHICH WAY A SNAPSHOT'S SHARING WENT (#10428). Sharing a snapshot and
+ * stopping sharing it are one call, ModifyDBSnapshotAttribute (or its
+ * Aurora cluster twin), naming accounts to add (valuesToAdd) or to remove
+ * (valuesToRemove) - and closing an exposure, as Data Security's Revoke
+ * sharing does, read like opening one. Read from the request: true when it
+ * named any account to add ("all" makes the snapshot public), false when
+ * it named accounts to remove and none to add, undefined when the record
+ * does not say - no parameters, neither list, or an attribute other than
+ * restore. A yes or no: the accounts themselves are never kept.
+ */
+export function readSnapshotSharingGrant(data: {
+  eventSource: string;
+  eventName: string;
+  trail: JSONObject;
+}): boolean | undefined {
+  if (
+    data.eventSource.toLowerCase() !== "rds.amazonaws.com" ||
+    !AWS_SNAPSHOT_SHARING_EVENTS.includes(data.eventName)
+  ) {
+    return undefined;
+  }
+
+  const parameters: JSONObject = readObject(data.trail["requestParameters"]);
+  const attributeName: string = readText(
+    parameterOf(parameters, "attributeName"),
+  );
+
+  if (attributeName && attributeName.toLowerCase() !== "restore") {
+    return undefined;
+  }
+
+  const added: number | null = countValues(
+    parameterOf(parameters, "valuesToAdd"),
+  );
+  const removed: number | null = countValues(
+    parameterOf(parameters, "valuesToRemove"),
+  );
+
+  if ((added || 0) > 0) {
+    return true;
+  }
+
+  return (removed || 0) > 0 ? false : undefined;
+}
+
 // One CloudTrail event as a change, or null for machinery.
 export function readAwsTrailEvent(data: {
   event: JSONObject;
@@ -144,6 +230,13 @@ export function readAwsTrailEvent(data: {
   }
 
   const trail: JSONObject = parseTrailEvent(data.event["CloudTrailEvent"]);
+  // Who signed the call, kept only when it could be OneUptime's own session.
+  const session: AwsCallerSession = readAwsCallerSessionOfRecord(trail);
+  const grantsAccess: boolean | undefined = readSnapshotSharingGrant({
+    eventSource,
+    eventName,
+    trail,
+  });
 
   return {
     kind: "change",
@@ -156,6 +249,8 @@ export function readAwsTrailEvent(data: {
     actor: readText(data.event["Username"]),
     actorIdentity:
       readText(readObject(trail["userIdentity"])["arn"]) || undefined,
+    ...(couldBeOneUptimeAwsSession(session) ? { actorSession: session } : {}),
+    ...(grantsAccess !== undefined ? { grantsAccess } : {}),
     resources: readArray(data.event["Resources"])
       .map((raw: unknown) => {
         const resource: JSONObject = readObject(raw);

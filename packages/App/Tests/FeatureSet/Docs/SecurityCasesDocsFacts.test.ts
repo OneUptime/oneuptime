@@ -236,8 +236,17 @@ import { SECURITY_PLAYBOOK_TRIGGERS } from "Common/Types/SecurityPlaybook/Securi
 import { SECURITY_CASE_TEMPLATE_PLACEHOLDERS } from "Common/Utils/SecurityCase/SecurityCaseMarkdown";
 import { SECURITY_CASE_NOTIFICATION_EVENT_TYPES } from "Common/Server/Services/UserNotificationSettingService";
 import { STEP_CHECK_DOCS_PATH } from "Common/Server/Utils/SecurityCase/StepChecks/StepCheck";
+import {
+  FIX_ROUTE_MIN_PROOF,
+  FIX_ROUTE_PROOF_CONFIDENCE,
+  FIX_ROUTE_WATCH_DAYS,
+} from "Common/Server/Utils/SecurityCase/StepChecks/FixRouteStepCheck";
+import { getStepCheck } from "Common/Server/Utils/SecurityCase/StepChecks/StepCheckRegistry";
+import { ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION } from "Common/Server/Utils/SecurityEvent/Response/MicrosoftEntraIdResponseClient";
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
-import { SECURITY_CASE_STEP_CHECK_STATES } from "Common/Types/SecurityCase/SecurityCaseStepCheckState";
+import SecurityCaseStepCheckState, {
+  SECURITY_CASE_STEP_CHECK_STATES,
+} from "Common/Types/SecurityCase/SecurityCaseStepCheckState";
 import {
   STEP_CHECK_CONFIRM,
   STEP_CHECK_DOCS_LINK,
@@ -873,6 +882,69 @@ describe("Security Cases and Playbooks docs", () => {
     // The Response Plan points to it.
     expect(flat(section(page, "Work a case"))).toContain(
       `[${heading}](#${slugifyMarkdownHeading(heading)})`,
+    );
+  });
+
+  it("says what OneUptime reads to check the Fix steps, and how much evidence proves a fix, as the checks hold it (#10347)", () => {
+    const checks: string = flat(section(page, "How OneUptime checks a step"));
+    const steps: Array<Array<string>> = rowsOf(
+      "How OneUptime checks a step",
+      1,
+    );
+    const fixWithAi: string =
+      SECURITY_PLAYBOOK_ACTIONS.find(
+        (definition: SecurityPlaybookActionDefinition): boolean => {
+          return definition.type === SecurityPlaybookActionType.FixWithAi;
+        },
+      )?.title || "";
+
+    // A row for each Fix step a check reads, as the registry holds them.
+    for (const kind of [
+      "fix:public-app",
+      "fix:credentials",
+      "fix:brute-force",
+    ]) {
+      expect(getStepCheck(kind)?.kind).toBe(kind);
+    }
+    expect(getStepCheck("fix:account-changes")).toBeNull();
+    expect(column(steps, 0)).toEqual(
+      expect.arrayContaining([
+        "Fix the route the attack went to",
+        "Reset the password",
+        "Make sure the accounts use MFA",
+      ]),
+    );
+
+    // How much evidence counts as proof, and how long the route is watched.
+    expect(FIX_ROUTE_PROOF_CONFIDENCE).toBe(0.95);
+    expect(FIX_ROUTE_MIN_PROOF).toBe(3);
+    expect(FIX_ROUTE_WATCH_DAYS).toBe(7);
+    expect(checks).toContain(
+      `at least one would almost surely (${FIX_ROUTE_PROOF_CONFIDENCE * 100}%) have got through had nothing changed, and never fewer than ${FIX_ROUTE_MIN_PROOF}.`,
+    );
+    expect(checks).toContain(
+      `watches the route for ${FIX_ROUTE_WATCH_DAYS} days after the fix ships`,
+    );
+    expect(checks).toContain("a deploy alone is not a fix");
+    expect(checks).toContain(
+      `the step stays **${STEP_CHECK_STATE_LABELS[SecurityCaseStepCheckState.LooksDone]}** for you to confirm`,
+    );
+
+    // The playbook step whose pull request is kept on the case, by its title.
+    expect(fixWithAi).toBe("Fix the code with AI");
+    expect(checks).toContain(
+      `A pull request **${fixWithAi}** opened is kept on the case`,
+    );
+    expect(flat(section(page, "Responding through OneUptime"))).toContain(
+      `Each pull request is kept on the case, and the Response Plan's Fix step reads whether it shipped and turned the attack away: see [How OneUptime checks a step](#how-oneuptime-checks-a-step).`,
+    );
+
+    // The permission the Entra ID MFA read asks for, as its client names it.
+    expect(ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION).toBe(
+      "UserAuthenticationMethod.Read.All",
+    );
+    expect(checks).toContain(
+      `takes the ${ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION} application permission`,
     );
   });
 

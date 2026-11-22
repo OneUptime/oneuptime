@@ -53,7 +53,23 @@ import {
   FieldSuggestionEvalCase,
   FixEvalCase,
   FixEvalFileCheck,
+  StoreOwnersEvalCase,
 } from "./DataSecurityEvalCase";
+import {
+  buildDataStoreOwnerPrompt,
+  DATA_STORE_OWNER_ANSWER_SHAPE,
+  DATA_STORE_OWNER_MAX_TOKENS,
+  DATA_STORE_OWNER_TEMPERATURE,
+  DataStoreOwnerStrictAnswer,
+} from "../../DataSecurity/DataStoreOwnerPrompt";
+import {
+  DATA_STORE_OWNER_CONFIDENCES,
+  DataStoreOwnerCandidate,
+} from "../../../../../Types/DataSecurity/DataStoreOwnerProposal";
+import {
+  HeldDataStoreOwnerAnswer,
+  holdDataStoreOwnerAnswerToEvidence,
+} from "../../../../../Utils/DataSecurity/DataStoreOwnerAnswer";
 
 /*
  * THE DATA SECURITY EVAL (npm run ai-data-security-eval, #10365): EVERY
@@ -83,7 +99,11 @@ import {
  *     request; the Code agent benchmark measures the agent's loop;
  *   - Ask AI: the rows its Data Security tools would read, made by the
  *     builder and serialized as the tools serialize them, and the question;
- *     the answer says what the case names.
+ *     the answer says what the case names;
+ *   - owners for a store (#10374): the answer, held to the evidence as the
+ *     product holds it (DataStoreOwnerAnswer), names exactly the owners the
+ *     case expects - one it made up counts against it - says where the
+ *     evidence disagrees, and is no surer than the evidence lets it be.
  *
  * A feature's score is the share of its cases that pass - a case run more
  * than once passes when more than half its runs did - and the release
@@ -103,6 +123,11 @@ export const DATA_SECURITY_EVAL_THRESHOLDS: Readonly<
   [DataSecurityAiFeature.FixIssue]: 0.5,
   [DataSecurityAiFeature.SuggestFieldTypes]: 0.5,
   [DataSecurityAiFeature.AskAi]: 0.5,
+  /*
+   * A structured answer held to its evidence: a right owner is a fact a
+   * check reads exactly, so the bar is higher than a written answer's.
+   */
+  [DataSecurityAiFeature.ProposeStoreOwners]: 0.75,
 };
 
 // The share of a field suggestion case's fields that must get their type.
@@ -328,6 +353,100 @@ function checkFile(
   }
 
   return notes;
+}
+
+/*
+ * Owners for a store: the answer read as the product reads it, held to the
+ * evidence as the product holds it, then held to what the case expects.
+ */
+export function scoreStoreOwners(
+  testCase: StoreOwnersEvalCase,
+  answer: string,
+): DataSecurityEvalScore {
+  const read: DataStoreOwnerStrictAnswer | null = readStrictAnswer(
+    answer,
+    DATA_STORE_OWNER_ANSWER_SHAPE,
+  );
+
+  if (!read) {
+    return { passed: false, notes: ["not the JSON asked for"] };
+  }
+
+  const held: HeldDataStoreOwnerAnswer = holdDataStoreOwnerAnswerToEvidence({
+    answer: read,
+    candidates: testCase.candidates,
+    evidence: testCase.evidence,
+  });
+  const notes: Array<string> = [];
+
+  if (held.inventedOwners.length > 0) {
+    notes.push(
+      `named owners the evidence does not: ${held.inventedOwners.join(", ")}`,
+    );
+  }
+
+  if (held.inventedEvidence.length > 0) {
+    notes.push(
+      `cited evidence there is not: ${held.inventedEvidence.join(", ")}`,
+    );
+  }
+
+  const named: Array<string> =
+    held.kind === "owners"
+      ? held.owners
+          .map((owner: DataStoreOwnerCandidate): string => {
+            return owner.ref.toUpperCase();
+          })
+          .sort()
+      : [];
+  const isExpected: boolean = testCase.expect.ownersOneOf.some(
+    (owners: Array<string>): boolean => {
+      const expected: Array<string> = owners
+        .map((ref: string): string => {
+          return ref.toUpperCase();
+        })
+        .sort();
+
+      return expected.join(",") === named.join(",");
+    },
+  );
+
+  if (!isExpected) {
+    notes.push(
+      `named ${named.join(", ") || "no owner"}, not ${testCase.expect.ownersOneOf
+        .map((owners: Array<string>): string => {
+          return owners.join(" and ") || "no owner";
+        })
+        .join(" or ")}`,
+    );
+  }
+
+  const disagreement: string = held.disagreement;
+
+  if (testCase.expect.disagrees === true && !disagreement) {
+    notes.push("did not say the evidence disagrees");
+  }
+
+  if (testCase.expect.disagrees === false && disagreement) {
+    notes.push("said the evidence disagrees where it does not");
+  }
+
+  if (held.kind === "owners" && testCase.expect.atMostConfidence) {
+    const rank: (value: string) => number = (value: string): number => {
+      return DATA_STORE_OWNER_CONFIDENCES.indexOf(
+        value as (typeof DATA_STORE_OWNER_CONFIDENCES)[number],
+      );
+    };
+
+    // DATA_STORE_OWNER_CONFIDENCES runs from the surest: a lower index is surer.
+    if (rank(held.confidence) < rank(testCase.expect.atMostConfidence)) {
+      notes.push(
+        `was ${held.confidence} sure, above ${testCase.expect.atMostConfidence}`,
+      );
+    }
+  }
+
+  return { passed: notes.length === 0, notes };
 }
 
 // What a case sends the model, built as its feature builds it.
@@ -562,6 +681,23 @@ function askAiCall(testCase: AskAiEvalCase): DataSecurityEvalCall {
   };
 }
 
+// The owners are asked as the product asks them (DataStoreOwnerPlanner).
+function storeOwnersCall(testCase: StoreOwnersEvalCase): DataSecurityEvalCall {
+  const prompt: DataSecurityAiPrompt = buildDataStoreOwnerPrompt({
+    store: testCase.store,
+    candidates: testCase.candidates,
+    evidence: testCase.evidence,
+    servicesUsingIt: testCase.servicesUsingIt,
+    dataTypeNamer: DataTypeNamer.withoutCustomTypes(),
+  });
+
+  return {
+    messages: prompt.messages,
+    maxTokens: DATA_STORE_OWNER_MAX_TOKENS,
+    temperature: DATA_STORE_OWNER_TEMPERATURE,
+  };
+}
+
 export function buildEvalCall(
   testCase: DataSecurityEvalCase,
 ): DataSecurityEvalCall {
@@ -575,6 +711,8 @@ export function buildEvalCall(
       return fixCall(testCase);
     case DataSecurityAiFeature.AskAi:
       return askAiCall(testCase);
+    case DataSecurityAiFeature.ProposeStoreOwners:
+      return storeOwnersCall(testCase);
   }
 }
 
@@ -592,6 +730,8 @@ export function scoreAnswer(
       return scoreFix(testCase, answer);
     case DataSecurityAiFeature.AskAi:
       return scoreWords(answer, testCase.expect);
+    case DataSecurityAiFeature.ProposeStoreOwners:
+      return scoreStoreOwners(testCase, answer);
   }
 }
 

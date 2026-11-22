@@ -14,6 +14,8 @@ OneUptime AI arbejder med det, Datasikkerhed har fundet, uden at se dine data. D
 
 Med **Arbejd med nye problemer** slået til under **Datasikkerhed → AI**, som det er for nye projekter, arbejder OneUptime AI af sig selv med hvert nyt kritisk eller højt problem. Den skriver analysen af hvert sådant problem, og af hvert, der genåbnes, som **Analysér problem** gør og ud fra det, den sender, før nogen åbner det, og skriver den kun igen, når det, den bygger på, er ændret. For et telemetriproblem foreslår den de rensningsregler, der skjuler dets data i ny telemetri. Et forslag venter på den side under **Venter på dig**, de mest risikable først, med hvad der ændres, hvorfor, hvordan det bevises, og hvordan det fortrydes. **Godkend** foretager ændringen med dine egne tilladelser: en rensningsregel kræver tilladelse til at oprette logrensningsregler, trace-rensningsregler eller metrik-pipelineregler. **Afvis forslaget** siger nej, med en begrundelse, der kommer på problemets tidslinje. Problemets egen kontrol afgør, om en ændring virkede: datalageret kontrolleres igen, og problemet løses, når ingen af dets data er tilbage.
 
+OneUptime AI foreslår også ejere til datalagre, der ikke har nogen, ud fra det, der allerede peger på dem: datalagerets cloudmærker, de tjenester, der bruger det, og deres ejere, kodeejerne af filen, der erklærer det, hvem der ændrede det ifølge cloudens ændringslog, og hvem der tilføjede det til OneUptime. Den nævner kun dit eget projekts teams og personer, siger, hvor sikker den er, og siger, hvor beviserne er uenige. Forslaget til et følsomt datalager kommer med dets problem **Ingen ejer dette følsomme datalager**, og andre nye datalagre får deres én gang om dagen, og når en cloudforbindelse læses første gang. Når ejerne af tre eller flere datalagre hviler på det samme mærke eller den samme begyndelse af deres navne, foreslår den også den ejerregel, der holder det næste lignende datalager med en ejer, og siger, hvor mange datalagre reglen ville matche. Forslagene venter under **Ejere til gennemgang**, på denne side og under **Datalagre**: **Godkend** tilføjer ejerne med dine egne tilladelser, og de får besked som enhver ejer; **Ændr og godkend** vælger andre ejere først; **Fortryd** tager præcis de tilføjede ejere tilbage, og reglen med dem. At tilføje en ejer ændrer, hvem der får besked, så det venter altid på dig, uanset hvad en AI-regel siger.
+
 Som standard spørger OneUptime AI før hver ændring, undtagen en, der kun skjuler data, kan fortrydes og er bevist sikker, og den sletter aldrig data eller tilkalder nogen uden at spørge. En ændring, den har foretaget uden at spørge, står under **Udført af AI**, med **Fortryd**. **Hvorfor AI ikke handlede** viser de problemer, den har set på og ladet være, og hvorfor. Hvert forslag, hver godkendelse, afvisning og fortrydelse står på problemets og datalagerets **Tidslinje**. Med kontakten slået fra fungerer Datasikkerhed som altid, og **Analysér problem** og **Ret med AI** virker stadig, når du trykker på dem; med AI slået fra for projektet virker ingen af dem.
 
 På et problems side viser kortet **OneUptime AI** over **Sådan rettes det** analysen og det, der blev foreslået for problemet, med de samme knapper. Datasikkerhedens **Oversigt** siger, hvor mange lækager OneUptime AI inddæmmede i denne uge, og hvor mange forslag der venter på dig. **Noter til OneUptime AI** tæller uge for uge, hvad der kom ud af dens ændringer: se [Hvor godt OneUptime AI klarer sig](/docs/ai/ai-sre#hvor-godt-oneuptime-ai-klarer-sig).
@@ -42,6 +44,7 @@ Datasikkerhed læser selv dine data, i sine scanninger, og gemmer intet af dem. 
 | **Ret med AI** | Problemet, som dets kontrol så det, lagerets navn, type, region og cloud-ID, og for et telemetriproblem, hvor dets data blev fundet, som en anmodning til kodeagenten, der derefter læser repositoryets egen kode for at foretage ændringen | Nej: en person spørger, i et repository, personen må ændre i **Code** |
 | **Forslag til felter, som ingen detektor placerede** | Typen af datalager og de datatyper, som AI må nævne; hvert felts navn, navnene på felterne ved siden af og formerne på dets værdier, hvert bogstav som `a` eller `A` og hvert ciffer som `9`; hvor mange værdier der blev læst, og hvor lange de er | Ja: et datalagers indholdsscanning starter dem |
 | **Spørg AI** | De datalagre, problemer og adgange, som personen må læse i Datasikkerhed; hvad der blev fundet hvor, hver datatype efter placering, med antal og sikkerhed | Nej: en person stiller et spørgsmål |
+| **Ejere af datalagre** | Datalagerets navn, type, udbyder, miljø og følsomhed og navnene på dets datatyper; hvad der peger på en ejer: dets cloudmærker, de tjenester, der bruger det, kodeejerne af filen, der erklærer det, og de ændringer, der er foretaget i det; de teams, som beviserne nævner, ved navn, og de personer, de nævner, kun som nummererede kandidater, aldrig ved navn eller e-mailadresse | Ja: Et datalager uden ejere starter den, én gang om dagen for nye datalagre, og når en cloudforbindelse læses første gang, mens **Arbejd med nye problemer** er slået til |
 
 **Forklar med AI** og **Spørg AI** læser også først dit teams [AI-kontekst](/docs/ai/ai-context), når der er en: de noter, dit team har skrevet til OneUptime AI om jeres systemer. **Analyse af nye problemer** læser den også.
 
@@ -58,6 +61,8 @@ Et datalagers navn, dets cloud-id, dets tags, de beviser, en cloud svarede med, 
 Hvert kalds række i **Projektindstillinger → AI → AI-logs** siger, hvilken funktion der kaldte hvilken model, dens tokens og dens omkostning. Den gemmer aldrig, hvad der blev sendt eller svaret: alle med rollen Projektmedlem eller Seer læser AI-logs, og Datasikkerheds poster er for deres ejere og sikkerhedsrollerne. OneUptimes egen telemetri registrerer heller aldrig, hvad Forklar med AI eller feltforslagene sendte, selv hvor serverens operatør registrerer, hvad andre AI-kald sender. Selve analysen gemmes på dens problem for alle, der må læse problemet, og en linje, der bygger på noget, en læser ikke må læse, skjules for læseren.
 
 Når et kald mislykkes, gemmer Forklar med AI og feltforslagene ikke et ord af udbyderens fejl, som kan citere det, der blev sendt. Kodeagenten bag Ret med AI og chatten i Spørg AI gemmer stadig et mislykket kalds udbyderfejl i dets række.
+
+Ejerforslagene gemmer det samme som Forklar med AI: Deres kalds rækker nævner funktionen, modellen, tokens og omkostningen, aldrig hvad der blev sendt eller svaret, og ikke et ord af et mislykket kalds fejl.
 
 ## Se det selv
 
@@ -86,13 +91,15 @@ Med **Aktivér AI** slået fra under **Projektindstillinger → AI → AI-funkti
 
 Hver AI-funktion i Datasikkerhed måles på et fast sæt opdigtede tilfælde, bygget sådan som funktionen bygger sit input og bedømt på, hvad et rigtigt svar siger: en forklaring, der nævner rettelsen og intet gentager af det, et datalagers navn bad den sige, den rigtige datatype for hvert felt, en rettelse, der ændrer det, kontrollen kræver, og intet andet, og et svar ud fra det, Spørg AI læste. Tilfældene kører mod en fastlåst model hver nat, ved hver ændring af en AI-prompt i Datasikkerhed og før hver udgivelse, som kræver, at hver funktion når sin tærskel.
 
-I dit projekt tæller **Vurderinger bekræftet** under **Projektindstillinger → AI → AI-resultater**, hvor ofte det, folk besluttede om et problem, OneUptime AI analyserede, gik, som dens vurdering sagde: rettet eller accepteret, når den sagde **Reelt**, accepteret eller markeret som offentlig med vilje, når den sagde **Sandsynligvis med vilje**, og markeret som ikke et problem, når den sagde **Sandsynligvis et forkert fund**.
+Ejerforslagene bedømmes på, om de nævner den ejer, beviserne peger på, vælger ingen, når de ikke peger på nogen, og er usikre, hvor beviserne er uenige.
 
 For at måle din egen model på de samme tilfælde skal du køre evalueringen fra et checkout af OneUptime, med din models nøgle, hvis den skal bruge en, i `AI_EVAL_LLM_API_KEY`:
 
 ```bash
 npm run ai-data-security-eval -- --llm-type=Ollama --model=llama3.1:70b --base-url=http://localhost:11434
 ```
+
+I dit projekt tæller **Vurderinger bekræftet** under **Projektindstillinger → AI → AI-resultater**, hvor ofte det, folk besluttede om et problem, OneUptime AI analyserede, gik, som dens vurdering sagde: rettet eller accepteret, når den sagde **Reelt**, accepteret eller markeret som offentlig med vilje, når den sagde **Sandsynligvis med vilje**, og markeret som ikke et problem, når den sagde **Sandsynligvis et forkert fund**.
 
 ## Næste trin
 

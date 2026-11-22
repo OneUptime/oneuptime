@@ -91,6 +91,7 @@ Slik leses disse nøklene:
 
 - **Hver nøkkel leses også med prefikset `resource.`.** OTLP-inntak lagrer ressursattributter under det prefikset, så `OTEL_RESOURCE_ATTRIBUTES=team.id=platform` kommer inn som `resource.team.id`. Nøklene uten prefiks prøves først, så en verdi på spannet slår en verdi på hele prosessen.
 - **Fanen Forbruk viser en persons e-post når kallet har en, og ellers id-en.** Rader med samme e-post legges sammen, så én utvikler på to maskiner blir én rad.
+- **En person eller et team som en rensingsregel skjulte, får aldri forbruk tilskrevet.** Et kall der en regel skjulte e-posten, vises under id-en når regelen lot id-en være. Ellers teller fanen Forbruk det i én rad med forbruk som en rensingsregel skjulte, enten regelen sladdet, maskerte eller hashet det.
 - **Identitet leses bare fra AI-kall.** `user.id`, `user.email` og `team.id` er generiske nøkler som nettleser- og backend-spans også bærer; bare spans som allerede er gjenkjent som AI-kall, får kolonnene.
 - **Loggposter leses ikke for identitet.** Det betyr noe for Codex, som bare setter `user.email` på loggene sine.
 - LiteLLM staver disse nøklene på to måter: standard-`otel`-callbacken bruker prefikset `metadata.`, og den valgfrie OpenTelemetry v2-modusen (`LITELLM_OTEL_V2=true`) navnerommet `litellm.`. OneUptime leser begge, så en standard proxy fungerer uten ekstra oppsett.

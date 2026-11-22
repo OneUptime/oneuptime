@@ -17,6 +17,7 @@
 import Includes from "../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../Types/BaseDatabase/IncludesNoneOrNull";
 import EqualTo from "../../Types/BaseDatabase/EqualTo";
 import EqualToOrNull from "../../Types/BaseDatabase/EqualToOrNull";
 import GreaterThan from "../../Types/BaseDatabase/GreaterThan";
@@ -54,6 +55,10 @@ describe("SerializableObjectDictionary registration", () => {
     );
     expect(SerializableObjectDictionary[ObjectType.IncludesNone]).toBe(
       IncludesNone,
+    );
+    // It imports JSONFunctions too, for the values inside it (#10581).
+    expect(SerializableObjectDictionary[ObjectType.IncludesNoneOrNull]).toBe(
+      IncludesNoneOrNull,
     );
   });
 
@@ -103,6 +108,22 @@ describe("query operators survive a serialize/deserialize round trip", () => {
 
     expect(result).toBeInstanceOf(IncludesNone);
     expect((result as IncludesNone).values).toEqual(["x"]);
+  });
+
+  /*
+   * A list's "is not" of several (#10581) reaches the server as itself: read
+   * back as an IncludesNone it would lose the rows with no value again.
+   */
+  test("IncludesNoneOrNull keeps its class, its values and its ObjectIDs", () => {
+    const id: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
+    const result: unknown = roundTrip(new IncludesNoneOrNull([id]));
+
+    expect(result).toBeInstanceOf(IncludesNoneOrNull);
+    expect(result).not.toBeInstanceOf(IncludesNone);
+    expect((result as IncludesNoneOrNull).values[0]).toBeInstanceOf(ObjectID);
+    expect((result as IncludesNoneOrNull).values[0]!.toString()).toBe(
+      id.toString(),
+    );
   });
 
   test("IncludesAll keeps its class and its values", () => {

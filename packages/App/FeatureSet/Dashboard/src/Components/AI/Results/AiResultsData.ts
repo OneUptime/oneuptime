@@ -1449,6 +1449,9 @@ export const DATA_SECURITY_KIND_LABELS: Record<
   string
 > = {
   [DataSecurityAiProposalKind.ScrubTelemetry]: translationKey("Scrub rules"),
+  // Owners for stores that had none, and the owner rules that keep them (#10374).
+  [DataSecurityAiProposalKind.SetStoreOwners]: translationKey("Store owners"),
+  [DataSecurityAiProposalKind.CreateOwnerRule]: translationKey("Owner rules"),
 };
 
 export const BY_KIND_TITLE: string = translationKey("By kind");

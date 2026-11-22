@@ -44,6 +44,19 @@ import DataSecurityAiInput, {
   DataSecurityAiPrompt,
 } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
 import DataSecurityFieldSuggestion from "../../../../../Server/Utils/AI/DataSecurity/FieldSuggestion";
+import ChangeEventService from "../../../../../Server/Services/ChangeEventService";
+import DataStoreOwnerTeamService from "../../../../../Server/Services/DataStoreOwnerTeamService";
+import DataStoreOwnerUserService from "../../../../../Server/Services/DataStoreOwnerUserService";
+import ServiceOwnerTeamService from "../../../../../Server/Services/ServiceOwnerTeamService";
+import ServiceOwnerUserService from "../../../../../Server/Services/ServiceOwnerUserService";
+import ServiceService from "../../../../../Server/Services/ServiceService";
+import DataStoreOwnerPlanner from "../../../../../Server/Utils/AI/DataSecurity/DataStoreOwnerPlanner";
+import {
+  DATA_STORE_FOR_OWNER_PLAN_SELECT,
+  DataStoreForOwnerPlan,
+} from "../../../../../Server/Utils/AI/DataSecurity/Owners/DataStoreOwnerSelects";
+import DeclaredCodeOwner from "../../../../../Server/Utils/AI/Remediation/DeclaredCodeOwner";
+import { DataStoreOwnerDirectory } from "../../../../../Utils/DataSecurity/DataStoreOwnerEvidence";
 import DataSecurityIssueAnalysis from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis";
 import AIInvestigationEngine from "../../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
 import DataSecurityIssue from "../../../../../Models/DatabaseModels/DataSecurityIssue";
@@ -637,6 +650,51 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
 
     return sentToTheModel();
   },
+  // Owners for the bucket (#10374): its tags, read with every column planted.
+  [DataSecurityAiFeature.ProposeStoreOwners]: async (): Promise<string> => {
+    jest
+      .spyOn(AIInvestigationEngine, "getProviderOrBalanceReason")
+      .mockResolvedValue(null);
+    jest.spyOn(DeclaredCodeOwner, "findCandidates").mockResolvedValue([]);
+    jest.spyOn(ChangeEventService, "executeQuery").mockResolvedValue({
+      json: async () => {
+        return { data: [] };
+      },
+    } as never);
+    useInMemoryTable(asService(DataStoreService), [
+      storeRow(STORE_ID, { cloudTags: { team: "payments" } }),
+    ]);
+    useInMemoryTable(asService(DataStoreOwnerUserService), []);
+    useInMemoryTable(asService(DataStoreOwnerTeamService), []);
+    useInMemoryTable(asService(ServiceService), []);
+    useInMemoryTable(asService(ServiceOwnerUserService), []);
+    useInMemoryTable(asService(ServiceOwnerTeamService), []);
+
+    const store: DataStoreForOwnerPlan | null =
+      await DataStoreService.findOneBy({
+        query: { _id: new ObjectID(STORE_ID), projectId: PROJECT_ID },
+        select: DATA_STORE_FOR_OWNER_PLAN_SELECT,
+        props: { isRoot: true },
+      });
+
+    await DataStoreOwnerPlanner.plan({
+      projectId: PROJECT_ID,
+      store: store!,
+      isSensitive: true,
+      directory: new DataStoreOwnerDirectory({
+        people: [],
+        teams: [
+          { id: "10365000-0000-4000-8000-0000000000c9", name: "Payments" },
+        ],
+        grantsByTeam: new Map(),
+      }),
+      dataTypeNamer: DataTypeNamer.withoutCustomTypes(),
+    });
+
+    expect(completion).toHaveBeenCalledTimes(1);
+
+    return sentToTheModel();
+  },
   [DataSecurityAiFeature.AskAi]: async (): Promise<string> => {
     const ctx: ToolContext = { projectId: PROJECT_ID, props: { isRoot: true } };
     const results: Array<ToolExecutionResult> = [
@@ -692,6 +750,11 @@ const WHAT_EACH_SENDS: Record<DataSecurityAiFeature, Array<string>> = {
     "acme-card-exports",
     "attributes.user.email",
     "arn:aws:iam::210987654321:role/partner",
+  ],
+  [DataSecurityAiFeature.ProposeStoreOwners]: [
+    "acme-card-exports",
+    "Payments",
+    "cloud tag",
   ],
 };
 

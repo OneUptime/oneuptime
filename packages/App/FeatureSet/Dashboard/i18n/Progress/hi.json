@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 61429,
+    "keys": 61580,
     "untranslated": 8274
   },
   "sameAsEnglish": [
@@ -187,6 +187,7 @@
     "VMware vCenter",
     "Valkey",
     "Vital",
+    "WAF ID",
     "Zabbix URL",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",

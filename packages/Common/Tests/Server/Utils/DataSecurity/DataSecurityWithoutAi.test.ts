@@ -50,9 +50,15 @@ import ts from "typescript";
  *     works on new issues, reads the analysis the issue keeps, and asks no
  *     model (DataSecurityOwnerNotice.test; the whole way, from the issue
  *     opening to the email, DataSecurityNewIssueAnalysis.test);
- *   - an issue that closes, in its service and in the reconciler, has
- *     DataSecurityAiProposals.onIssuesClosed set aside what waits for a
- *     person for it: a write of proposals, never a model's call.
+ *   - the jobs that propose owners for stores that have none, and the owner
+ *     rules that keep them (#10374), run DataStoreOwnerProposalRun.run and
+ *     DataStoreOwnerRuleProposals.proposeForProject, which read the same
+ *     two switches first and ask nothing, and write nothing, when either is
+ *     off (DataStoreOwnerRunsAndRules.test);
+ *   - an issue that closes settles what OneUptime AI proposed for it
+ *     (DataSecurityAiProposals.onIssuesClosed, from the issue service and
+ *     the reconciler): it proves or expires proposals already written and
+ *     asks no model, so with AI off it has nothing to do but that.
  *
  * Everything else a person can start with AI is asked for on purpose, in
  * Data Security's API: the analysis of an issue (Explain with AI) and the
@@ -122,6 +128,14 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
     {
       module: "Common/Server/Utils/AI/DataSecurity/DataSecurityOwnerNotice",
       uses: ["DataSecurityOwnerNotice.send"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerProposalRun",
+      uses: ["DataStoreOwnerProposalRun.run"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals",
+      uses: ["DataStoreOwnerRuleProposals.proposeForProject"],
     },
   ],
   "Common/Server/Services/DataSecurityIssueService.ts": [
@@ -276,7 +290,7 @@ function findAiReaches(file: string): Array<AiReach> {
   return reaches;
 }
 
-describe("Data Security's scans, checks and integrations reach OneUptime AI at the places listed only", () => {
+describe("Data Security's scans, checks and integrations reach OneUptime AI only where it asks the switch first, or asks no model", () => {
   const files: Array<string> = DATA_SECURITY_CODE.flatMap(listFiles);
 
   test("it reads Data Security's code, on the workers and on a probe", () => {

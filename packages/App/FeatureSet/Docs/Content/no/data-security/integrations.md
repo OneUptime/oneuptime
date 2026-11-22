@@ -79,6 +79,10 @@ Regler angir eiere og etiketter for deg etter hvert som datalagre blir funnet:
 
 En regel samsvarer med et datalager etter etikettene, etter et mønster for navnet eller beskrivelsen, eller etter **Sky-taggmønster**: et mønster som sammenlignes med hver av sky-taggene til datalageret, skrevet `key=value`. `^team=payments$` samsvarer med hvert datalager som er tagget `team=payments`, og `^env=` med hvert datalager som har en `env`-tagg. Et nytt datalager får prosjektets regler i det øyeblikket det blir funnet, og **Varsle eiere** i en eierregel sier om eierne den legger til, får beskjed. [Etikett- og eierregler](/docs/configuration/label-and-owner-rules) forklarer hvordan hver regel samsvarer, og når regler kjører.
 
+### Eiere som OneUptime AI foreslår
+
+Et datalager uten eiere kan få dem fra OneUptime AI. Den leser det som allerede peker på en eier - datalagerets skytagger, tjenestene som bruker det, kodeeierne til filen som deklarerer det, og hvem som endret eller la det til - og foreslår ut fra det teamene og personene i ditt eget prosjekt. Ingenting endres før en person godkjenner det under **Eiere til gjennomgang**, under **Datalagre** eller **Datasikkerhet → KI**, og eierne som legges til, får beskjed som enhver eier. Når eierne av tre eller flere datalagre hviler på én tagg eller én begynnelse av navnet, foreslår den også eierregelen som holder det neste lignende datalageret med en eier, og som blir med i **Eierregler** når den er godkjent. [OneUptime AI i Datasikkerhet](/docs/data-security/ai) sier hva den sender, og når den kjører.
+
 ## Arbeidsflyter
 
 **Datalager** og **Datasikkerhetsproblem** er utløsere for arbeidsflyter, hver med **Ved oppretting**, **Ved oppdatering**, **Ved oppretting eller oppdatering** og **Ved sletting**. Velg dem i panelet **Legg til utløser**, under **OneUptime-ressurser**.

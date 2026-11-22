@@ -697,6 +697,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
   },
+  // The cloud WAFs the blocklist is enforced in: candidates, Check Again and Remove (#10344).
+  "packages/Common/Server/API/SecurityBlockCloudWafAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/DetectionRuleAPI.ts": {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},

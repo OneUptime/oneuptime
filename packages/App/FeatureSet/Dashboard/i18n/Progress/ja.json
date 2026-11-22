@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 61429,
+    "keys": 61580,
     "untranslated": 1425
   },
   "sameAsEnglish": [
@@ -280,6 +280,7 @@
     "Vertical Pod Autoscalers",
     "Vital",
     "Vitals",
+    "WAF ID",
     "WARN",
     "Web",
     "Webhook",

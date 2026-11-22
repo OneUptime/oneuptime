@@ -34,6 +34,17 @@ export const DATA_SECURITY_AI_EVALUATE_ISSUE_JOB: string =
   "DataSecurity:AiEvaluateIssue";
 export const DATA_SECURITY_NOTIFY_OWNERS_JOB: string =
   "DataSecurity:NotifyOwners";
+export const DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB: string =
+  "DataSecurity:ProposeStoreOwners";
+export const DATA_SECURITY_PROPOSE_OWNER_RULES_JOB: string =
+  "DataSecurity:ProposeOwnerRules";
+
+/*
+ * How long the owner rules wait after a store's owners are proposed: a
+ * connection's first read proposes many at once, and one look over all of
+ * them finds the rules they share.
+ */
+export const OWNER_RULES_DELAY_IN_MS: number = 3 * 60 * 1000;
 
 // Whether it was queued: a caller with somewhere else to go can go there.
 async function queue(data: {
@@ -191,7 +202,7 @@ export async function queueDataSecurityOwnerNotice(
 
   return await queue({
     jobName: DATA_SECURITY_NOTIFY_OWNERS_JOB,
-    key: `data-security-owners-${batch}-${notice.attempt}`,
+    key: `data-security-owner-notice-${batch}-${notice.attempt}`,
     payload: {
       projectId: notice.projectId.toString(),
       dataStoreId: notice.dataStoreId.toString(),
@@ -249,6 +260,48 @@ export function readHeldOwnerNotice(
     openedAt,
     attempt: Number.isInteger(attempt) && attempt > 0 ? attempt : 1,
   };
+}
+
+/*
+ * Has OneUptime AI propose owners for a project's stores that have none
+ * (Server/Utils/AI/DataSecurity/DataStoreOwnerProposalRun, #10374): the
+ * stores new today, or those of a cloud connection read for the first
+ * time. One job per project a day, and one per connection's first read.
+ */
+export async function queueDataStoreOwnerProposals(data: {
+  projectId: ObjectID;
+  cloudConnectionId?: ObjectID | undefined;
+}): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB,
+    key: data.cloudConnectionId
+      ? `data-security-owners-${data.cloudConnectionId.toString()}`
+      : `data-security-owners-${data.projectId.toString()}`,
+    payload: {
+      projectId: data.projectId.toString(),
+      ...(data.cloudConnectionId
+        ? { cloudConnectionId: data.cloudConnectionId.toString() }
+        : {}),
+    },
+    description: `OneUptime AI's owners for the stores of project ${data.projectId.toString()}`,
+  });
+}
+
+/*
+ * Has OneUptime AI propose the owner rules the project's proposed owners
+ * share (Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals): a few
+ * minutes after a store's owners are proposed, once for all of them.
+ */
+export async function queueDataStoreOwnerRuleProposals(
+  projectId: ObjectID,
+): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_PROPOSE_OWNER_RULES_JOB,
+    key: `data-security-owner-rules-${projectId.toString()}`,
+    payload: { projectId: projectId.toString() },
+    description: `OneUptime AI's owner rules for project ${projectId.toString()}`,
+    delayInMs: OWNER_RULES_DELAY_IN_MS,
+  });
 }
 
 // Reads one cloud connection's stores' configuration and access now.

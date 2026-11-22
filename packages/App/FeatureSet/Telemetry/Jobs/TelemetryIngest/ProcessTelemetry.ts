@@ -24,7 +24,10 @@ import {
   processSnmpTrapBatchFromQueue,
 } from "../ProbeIngest/ProcessCoalescedProbeIngest";
 import KubernetesCostIngestService from "../../Services/KubernetesCostIngestService";
-import { processIncomingRequestJobFromQueue } from "../IncomingRequestIngest/ProcessIncomingRequestIngest";
+import {
+  processIncomingRequestJobFromQueue,
+  processPendingIncomingRequestsFromQueue,
+} from "../IncomingRequestIngest/ProcessIncomingRequestIngest";
 import { processTelemetryMonitorEvaluationFromQueue } from "../../../Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import logger from "Common/Server/Utils/Logger";
@@ -387,7 +390,8 @@ export async function settleIngestionBudgetCharge(data: {
  * statement rate is negligible, so their retry idempotence costs nothing
  * to keep.
  *
- * The probe / server-monitor / incoming-request types are excluded
+ * The probe / server-monitor / incoming-request types (a request of its
+ * own, and a monitor's waiting requests) are excluded
  * deliberately: their inserts go through shared cross-job buffers
  * (MonitorLogUtil / monitor metrics), where a flushed batch can mix
  * rows from several jobs — a retry would then reuse a token for a
@@ -477,6 +481,17 @@ async function withSessionReplaySlot(fn: () => Promise<void>): Promise<void> {
       sessionReplayInFlight--;
     }
   }
+}
+
+/*
+ * Whether this run of the job is its last: BullMQ fails it for good if this
+ * one throws (attemptsMade counts the attempts that failed before it).
+ */
+export function isFinalAttemptOf(job: QueueJob): boolean {
+  const attempts: number = Number(job.opts?.attempts) || 1;
+  const failedBefore: number = Number(job.attemptsMade) || 0;
+
+  return failedBefore + 1 >= attempts;
 }
 
 /*
@@ -750,6 +765,17 @@ if (DisableQueueWorkers) {
               logger.debug(
                 `Successfully processed incoming request ingest job`,
               );
+              break;
+
+            case TelemetryType.IncomingRequestPending:
+              // A monitor's waiting requests (IncomingRequestPendingStore).
+              if (jobData.incomingRequestPending) {
+                await processPendingIncomingRequestsFromQueue(
+                  jobData.incomingRequestPending,
+                  { isFinalAttempt: isFinalAttemptOf(job) },
+                );
+              }
+              logger.debug(`Successfully processed incoming request job`);
               break;
 
             case TelemetryType.TelemetryMonitorEvaluation:

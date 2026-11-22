@@ -785,7 +785,8 @@ export default class DataSecurityAPI extends BaseAPI<
      * permission - approving a scrub rule takes what creating one takes,
      * undoing it what deleting one takes, dismissing what changing the
      * issue takes - and made with their own props
-     * (DataSecurityAiProposals).
+     * (DataSecurityAiProposals). An owner proposal may be changed first
+     * (#10374): `changes` names the owners the person approves instead.
      */
     this.post(
       DATA_SECURITY_API_ROUTES.approveAiProposal(":id"),
@@ -803,6 +804,7 @@ export default class DataSecurityAPI extends BaseAPI<
           proposalId: req.params["id"],
           expectedPlanFingerprint: body["expectedPlanFingerprint"],
           expectedApprovalStep: body["expectedApprovalStep"],
+          changes: body["changes"],
         });
       },
     );

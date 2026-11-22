@@ -8,8 +8,8 @@ import { DataSecurityEvalCase } from "./DataSecurityEvalCase";
  * benchmark's --repeat and --report-markdown (BenchmarkCommandLine):
  *
  *   --feature=<id>[,<id>]   run only these features' cases: ExplainIssue,
- *                           AnalyzeIssue, FixIssue, SuggestFieldTypes, AskAi
- *                           (any case)
+ *                           AnalyzeIssue, FixIssue, SuggestFieldTypes, AskAi,
+ *                           ProposeStoreOwners (any case)
  *   --case=<id>[,<id>]      run only these cases
  *   --changed-files=<path>  run only the features the files listed in it
  *                           (one path a line) change: what a pull request
@@ -109,6 +109,23 @@ const FEATURES_OF_FILE: ReadonlyArray<{
       DataSecurityAiFeature.AnalyzeIssue,
       DataSecurityAiFeature.FixIssue,
     ],
+  },
+  // Owners for a store (#10374): what it is asked, and how its answer is held.
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/DataStoreOwnerPrompt.ts",
+    features: [DataSecurityAiFeature.ProposeStoreOwners],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/DataStoreOwnerPlanner.ts",
+    features: [DataSecurityAiFeature.ProposeStoreOwners],
+  },
+  {
+    path: "packages/Common/Utils/DataSecurity/DataStoreOwnerAnswer.ts",
+    features: [DataSecurityAiFeature.ProposeStoreOwners],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/DataStoreOwnerProposal.ts",
+    features: [DataSecurityAiFeature.ProposeStoreOwners],
   },
 ];
 

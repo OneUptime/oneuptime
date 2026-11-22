@@ -19,6 +19,7 @@ import Includes from "../../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../../Types/BaseDatabase/IncludesAll";
 import IncludesAnyOfGroups from "../../../../Types/BaseDatabase/IncludesAnyOfGroups";
 import IncludesNone from "../../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../../Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "../../../../Types/BaseDatabase/IsNull";
 import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
 import NotEqualOrNull from "../../../../Types/BaseDatabase/NotEqualOrNull";
@@ -476,6 +477,25 @@ describe("serializeQuery — ids that already worked are unchanged", () => {
     expect(params(result["createdByUserId"])).toEqual([[STATE_ID]]);
   });
 
+  // A list's "is not" of several (#10581): the ids checked, the empty kept.
+  it("reads IncludesNoneOrNull of ids, ObjectIDs and text alike", () => {
+    for (const ids of [
+      [new ObjectID(STATE_ID), new ObjectID(OTHER_STATE_ID)],
+      [STATE_ID, OTHER_STATE_ID],
+    ] as Array<Array<ObjectID> | Array<string>>) {
+      const result: Record<string, any> = serialize(Incident, {
+        incidentSeverityId: new IncludesNoneOrNull(ids),
+      });
+
+      expect(params(result["incidentSeverityId"])).toEqual([
+        [STATE_ID, OTHER_STATE_ID],
+      ]);
+      expect(rawSql(result["incidentSeverityId"], "x")).toContain(
+        "or x IS NULL",
+      );
+    }
+  });
+
   it("still compares ids with GreaterThan and InBetween", () => {
     const result: Record<string, any> = serialize(Incident, {
       _id: new GreaterThan(STATE_ID),
@@ -590,6 +610,7 @@ describe("serializeQuery — anything else on a uuid column is refused", () => {
     ["a list", [STATE_ID, {}]],
     ["Includes", new Includes([STATE_ID, "abc"])],
     ["IncludesNone", new IncludesNone(["abc"])],
+    ["IncludesNoneOrNull", new IncludesNoneOrNull([STATE_ID, "abc"])],
     ["IncludesAll", new IncludesAll(["abc"])],
     ["EqualTo", new EqualTo("abc")],
     ["NotEqual", new NotEqual("")],
@@ -741,6 +762,10 @@ describe("serializeQuery — the ids of a relation filter", () => {
     ["a list of records", { monitors: [{ name: "api" }] }],
     ["Includes", { monitors: new Includes(["abc"]) }],
     ["IncludesNone", { labels: new IncludesNone(["abc"]) }],
+    [
+      "IncludesNoneOrNull",
+      { currentIncidentState: new IncludesNoneOrNull(["abc"]) },
+    ],
     ["IncludesAll", { labels: new IncludesAll([UNRESOLVED_REFERENCE]) }],
     ["IncludesAnyOfGroups", { labels: new IncludesAnyOfGroups([["abc"]]) }],
   ])(

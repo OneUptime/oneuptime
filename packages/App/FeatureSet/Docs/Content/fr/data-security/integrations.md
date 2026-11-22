@@ -79,6 +79,10 @@ Des règles définissent les propriétaires et les étiquettes à votre place, �
 
 Une règle correspond à un magasin de données par ses étiquettes, par un motif de son nom ou de sa description, ou par **Motif d'étiquette cloud** : un motif comparé à chacune des étiquettes cloud du magasin de données, écrites `key=value`. `^team=payments$` correspond à chaque magasin de données étiqueté `team=payments`, et `^env=` à chaque magasin de données qui a une étiquette `env`. Un nouveau magasin de données reçoit les règles du projet dès qu'il est trouvé, et le paramètre **Notifier les propriétaires** d'une règle de propriétaire indique si les propriétaires qu'elle ajoute sont prévenus. [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-owner-rules) explique comment chaque règle correspond et quand les règles s'exécutent.
 
+### Les propriétaires que propose OneUptime AI
+
+Un magasin sans propriétaire peut en recevoir de OneUptime AI. Il lit ce qui désigne déjà un propriétaire - les balises cloud du magasin, les services qui l'utilisent, les propriétaires du code du fichier qui le déclare, et qui l'a modifié ou ajouté - et en tire des équipes et des personnes de votre projet. Rien ne change tant qu'une personne ne l'a pas approuvé sous **Propriétaires à examiner**, sur **Magasins de données** ou **Sécurité des données → IA**, et les propriétaires ajoutés sont prévenus comme tout propriétaire. Quand les propriétaires de trois magasins ou plus reposent sur une même étiquette ou un même début de nom, il propose aussi la règle de propriétaire qui garde un propriétaire au prochain magasin semblable, et qui rejoint les **Règles de propriétaire** une fois approuvée. [OneUptime AI dans Sécurité des données](/docs/data-security/ai) dit ce qu'il envoie, et quand il s'exécute.
+
 ## Flux de travail
 
 **Magasin de données** et **Problème de sécurité des données** sont des déclencheurs de flux de travail, chacun avec **À la création**, **À la mise à jour**, **À la création ou à la mise à jour** et **À la suppression**. Choisissez-les dans le panneau **Ajouter un déclencheur**, sous **Ressources OneUptime**.

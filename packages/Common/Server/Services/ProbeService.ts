@@ -20,6 +20,7 @@ import ProjectService from "./ProjectService";
 import Dictionary from "../../Types/Dictionary";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import { ProbeVersionReport } from "../../Types/Probe/ProbeReportedVersion";
+import ProbeInterfaceAddressesUtil from "../../Types/Probe/ProbeInterfaceAddresses";
 import NetworkAddressBlockUtil from "../../Utils/NetworkTraffic/NetworkAddressBlock";
 import OneUptimeDate from "../../Types/Date";
 import UserNotificationSettingService from "./UserNotificationSettingService";
@@ -56,6 +57,17 @@ import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
  * probe sends.
  */
 const PROBE_LAST_ALIVE_CACHE_NAMESPACE: string = "probe-last-alive";
+
+/*
+ * Cache namespace for the addresses a probe last listed when it checked in
+ * (#10429): probeId -> the text last written for it. A probe lists them in
+ * every heartbeat, once a minute, and they rarely change, so a report the
+ * cache already holds writes nothing. An entry lasts an hour at most, so a
+ * column changed behind the cache's back is put right within the hour.
+ */
+const PROBE_INTERFACE_ADDRESSES_CACHE_NAMESPACE: string =
+  "probe-interface-addresses";
+const PROBE_INTERFACE_ADDRESSES_CACHE_TTL_IN_SECONDS: number = 60 * 60;
 
 /*
  * Cache namespace for probe authentication: probeId → SHA-256 of the
@@ -603,6 +615,83 @@ export class Service extends ProjectReferencesService<Model> {
       await this.clearLastAliveThrottle(probeId);
       throw err;
     }
+  }
+
+  /*
+   * Keeps the addresses on a probe's own network interfaces, as its check-in
+   * listed them (#10429; Types/Probe/ProbeInterfaceAddresses): Security
+   * Events knows the probe's own polls and checks in the project's flows by
+   * them, and the blocklist never blocks them.
+   *
+   * A probe lists them in every heartbeat, so a report this server already
+   * wrote - the cache says so - writes nothing. Otherwise one statement with
+   * no hooks, as the liveness stamp is: only a project's own probe keeps
+   * them (a global probe's interfaces are OneUptime's own network, which a
+   * project's flows never see), so the write is held to a probe that is not
+   * global, with no read before it. Returns whether it wrote.
+   */
+  @CaptureSpan()
+  public async recordInterfaceAddresses(data: {
+    probeId: ObjectID;
+    addresses: Array<string>;
+  }): Promise<boolean> {
+    if (!data.probeId) {
+      throw new BadDataException("probeId is required");
+    }
+
+    const text: string = ProbeInterfaceAddressesUtil.toText(data.addresses);
+    const cacheKey: string = data.probeId.toString();
+
+    try {
+      const written: string | null = await this.boundedCacheOperation(
+        "Probe interface addresses cache read",
+        GlobalCache.getString(
+          PROBE_INTERFACE_ADDRESSES_CACHE_NAMESPACE,
+          cacheKey,
+        ),
+      );
+
+      if (written !== null && written === text) {
+        return false;
+      }
+    } catch (err) {
+      // The cache is an optimization: without it the write goes ahead.
+      logger.debug(
+        "Error in reading a probe's interface addresses from cache",
+        {
+          probeId: cacheKey,
+        } as LogAttributes,
+      );
+      logger.debug(err, { probeId: cacheKey } as LogAttributes);
+    }
+
+    await this.updateColumnsByIdWithoutHooks({
+      id: data.probeId,
+      data: {
+        interfaceIpAddresses: (text || null) as unknown as string,
+      },
+      expectedData: { isGlobalProbe: false },
+    });
+
+    try {
+      await this.boundedCacheOperation(
+        "Probe interface addresses cache write",
+        GlobalCache.setString(
+          PROBE_INTERFACE_ADDRESSES_CACHE_NAMESPACE,
+          cacheKey,
+          text,
+          { expiresInSeconds: PROBE_INTERFACE_ADDRESSES_CACHE_TTL_IN_SECONDS },
+        ),
+      );
+    } catch (err) {
+      // The next report writes again, which is all a lost entry costs.
+      logger.debug("Error in caching a probe's interface addresses", {
+        probeId: cacheKey,
+      } as LogAttributes);
+      logger.debug(err, { probeId: cacheKey } as LogAttributes);
+    }
+
+    return true;
   }
 
   // Best-effort: on failure the throttle simply expires on its own.

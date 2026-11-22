@@ -18,7 +18,13 @@ export type MonitorEvaluationEventType =
    * a request it matched: one for the whole monitor, because the request had
    * no value to group by, or nothing new, because its values recovered.
    */
-  | "grouping";
+  | "grouping"
+  /*
+   * Requests to an Incoming Request monitor that evaluates every request
+   * which were skipped before this one: more were waiting than a monitor
+   * keeps, or evaluating them failed every time (#10582).
+   */
+  | "requests-skipped";
 
 export type MonitorEvaluationCriteriaSkipCause =
   | "disabled"
