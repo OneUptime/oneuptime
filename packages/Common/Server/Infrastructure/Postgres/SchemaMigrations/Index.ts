@@ -1148,6 +1148,7 @@ import { AddDetectionRuleLastFailedAt1809187421140 } from "./1809187421140-AddDe
 import { AddAIAgentTaskPullRequestSecurityCase1809187421500 } from "./1809187421500-AddAIAgentTaskPullRequestSecurityCase";
 import { AddAIAgentTaskPullRequestSecurityCaseIndex1809187421510 } from "./1809187421510-AddAIAgentTaskPullRequestSecurityCaseIndex";
 import { AddProbeInterfaceIpAddresses1809187429000 } from "./1809187429000-AddProbeInterfaceIpAddresses";
+import { AllowDataSecurityAiProposalsForStoresAndRules1809187429100 } from "./1809187429100-AllowDataSecurityAiProposalsForStoresAndRules";
 
 export default [
   InitialMigration,
@@ -2300,4 +2301,5 @@ export default [
   AddAIAgentTaskPullRequestSecurityCase1809187421500,
   AddAIAgentTaskPullRequestSecurityCaseIndex1809187421510,
   AddProbeInterfaceIpAddresses1809187429000,
+  AllowDataSecurityAiProposalsForStoresAndRules1809187429100,
 ];

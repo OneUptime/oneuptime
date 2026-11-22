@@ -77,6 +77,10 @@ Las reglas fijan propietarios y etiquetas por ti, a medida que se encuentran los
 
 Una regla coincide con un almacén por sus etiquetas, por un patrón de su nombre o de su descripción, o por **Patrón de etiqueta en la nube**: un patrón que se compara con cada una de las etiquetas en la nube del almacén, escritas `key=value`. `^team=payments$` coincide con cada almacén etiquetado `team=payments`, y `^env=` con cada almacén que tiene una etiqueta `env`. Un almacén nuevo recibe las reglas del proyecto en cuanto se encuentra, y el ajuste **Notificar a los propietarios** de una regla del propietario dice si se avisa a los propietarios que añade. [Reglas de etiquetas y propietarios](/docs/configuration/label-and-owner-rules) explica cómo coincide cada regla y cuándo se ejecutan las reglas.
 
+### Propietarios que propone la IA de OneUptime
+
+Un almacén sin propietarios puede recibirlos de la IA de OneUptime. Lee lo que ya apunta a un propietario - las etiquetas en la nube del almacén, los servicios que lo usan, los propietarios del código del archivo que lo declara, y quién lo cambió o lo añadió - y propone a partir de ello equipos y personas de tu propio proyecto. Nada cambia hasta que una persona lo aprueba en **Propietarios por revisar**, en **Almacenes de datos** o en **Seguridad de datos → IA**, y se avisa a los propietarios añadidos como a cualquier propietario. Cuando los propietarios de tres o más almacenes se basan en una etiqueta o en un comienzo de nombre, también propone la regla del propietario que mantiene con propietario al siguiente almacén como esos, que se une a las **Reglas del propietario** una vez aprobada. [OneUptime AI en Seguridad de datos](/docs/data-security/ai) dice qué envía y cuándo se ejecuta.
+
 ## Workflows
 
 **Almacén de datos** y **Problema de seguridad de datos** son desencadenantes de workflows, cada uno con **Al crear**, **Al actualizar**, **Al crear o actualizar** y **Al eliminar**. Elígelos en el panel **Añadir desencadenante**, en **Recursos de OneUptime**.
