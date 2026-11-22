@@ -1,7 +1,7 @@
 import {
   AZURE_WAF_WHERE,
   CLIENT_ADDRESS_LABELS,
-  CLOUD_ARMOR_GLOBAL,
+  CLOUD_ARMOR_GLOBAL_LOCATION,
   CLOUD_ARMOR_WHERE,
   CLOUD_WAF_STATUS_LABELS,
   CLOUD_WAF_TEST_IDS,
@@ -157,10 +157,7 @@ export function writeCloudWafWhere(
 
     return policy
       ? translator.translateTemplate(CLOUD_ARMOR_WHERE, {
-          place:
-            policy.region ||
-            translator.translateText(CLOUD_ARMOR_GLOBAL) ||
-            CLOUD_ARMOR_GLOBAL,
+          place: policy.region || CLOUD_ARMOR_GLOBAL_LOCATION,
           project: policy.project,
         })
       : "";

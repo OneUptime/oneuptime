@@ -66,6 +66,7 @@ jest.mock("../../../Server/Utils/Logger");
 import SecurityBlockCloudWafAPI, {
   CLOUD_WAF_REFUSED_MESSAGE,
   SECURITY_BLOCK_CLOUD_WAF_CANDIDATES_ROUTE,
+  SECURITY_BLOCK_CLOUD_WAF_CHECK_ACCESS_ROUTE,
 } from "../../../Server/API/SecurityBlockCloudWafAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import CloudConnectionService from "../../../Server/Services/CloudConnectionService";
@@ -750,6 +751,153 @@ describe("the web ACLs that may be picked", () => {
       });
 
       expect(refusal?.message).toBe(CLOUD_WAF_REFUSED_MESSAGE);
+    },
+  );
+});
+
+describe("whether a connection may write a policy, and Put It Back", () => {
+  const RESOURCE: string = "5c1e7a40-5c2d-4e8f-9a61-7d0c2b4e6a09";
+
+  test.each(WRITERS)(
+    "a %s asks whether the connection may write a policy, and gets each permission and the lines that grant what is missing",
+    async (_who: string, permission: Permission) => {
+      props = caller(permission);
+
+      const checkAccess: MockedFn = jest
+        .spyOn(SecurityBlockCloudWafs, "checkAccess")
+        .mockResolvedValue({
+          checks: [
+            {
+              permission:
+                "Microsoft.Network/FrontDoorWebApplicationFirewallPolicies/write",
+              isGranted: false,
+            },
+          ],
+          isGranted: false,
+          command: "az role assignment create ...",
+          shell: "azure",
+        } as never) as unknown as MockedFn;
+
+      const { refusal } = await call({
+        method: "post",
+        uri: SECURITY_BLOCK_CLOUD_WAF_CHECK_ACCESS_ROUTE,
+        body: { cloudResourceId: RESOURCE },
+      });
+
+      expect(refusal).toBeNull();
+
+      const asked: { projectId: ObjectID; cloudResourceId: ObjectID } =
+        checkAccess.mock.calls[0]![0] as {
+          projectId: ObjectID;
+          cloudResourceId: ObjectID;
+        };
+
+      // The caller's own project, never one the body names.
+      expect(asked.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(asked.cloudResourceId.toString()).toBe(RESOURCE);
+      expect(answered()).toEqual({
+        checks: [
+          {
+            permission:
+              "Microsoft.Network/FrontDoorWebApplicationFirewallPolicies/write",
+            isGranted: false,
+          },
+        ],
+        isGranted: false,
+        command: "az role assignment create ...",
+        shell: "azure",
+      });
+    },
+  );
+
+  test("a policy that is not named is refused before anything is asked", async () => {
+    props = caller(Permission.ProjectAdmin);
+
+    const checkAccess: MockedFn = jest.spyOn(
+      SecurityBlockCloudWafs,
+      "checkAccess",
+    ) as unknown as MockedFn;
+
+    for (const body of [{}, { cloudResourceId: "not-an-id" }]) {
+      const { refusal } = await call({
+        method: "post",
+        uri: SECURITY_BLOCK_CLOUD_WAF_CHECK_ACCESS_ROUTE,
+        body,
+      });
+
+      expect(refusal?.message).toBe("Pick the policy to check.");
+    }
+
+    expect(checkAccess).not.toHaveBeenCalled();
+  });
+
+  test.each(WRITERS)(
+    "a %s puts OneUptime's rules back",
+    async (_who: string, permission: Permission) => {
+      props = caller(permission);
+
+      const back: SecurityBlockCloudWaf = new SecurityBlockCloudWaf();
+      back._id = PICKED_ID;
+      back.status = SecurityBlockCloudWafStatus.Enforcing;
+      back.checkedAt = new Date("2026-11-22T10:00:00.000Z");
+
+      const putBack: MockedFn = jest
+        .spyOn(SecurityBlockCloudWafs, "putBack")
+        .mockResolvedValue(back) as unknown as MockedFn;
+
+      const { refusal } = await call({
+        method: "post",
+        uri: "/security-block-cloud-waf/:cloudWafId/put-back",
+        params: { cloudWafId: PICKED_ID },
+      });
+
+      expect(refusal).toBeNull();
+      expect(
+        (putBack.mock.calls[0]![0] as { projectId: ObjectID }).projectId.toString(),
+      ).toBe(PROJECT_ID.toString());
+      expect(answered()["cloudWaf"]).toEqual({
+        _id: PICKED_ID,
+        status: SecurityBlockCloudWafStatus.Enforcing,
+        statusMessage: null,
+        statusReason: null,
+        ruleDetails: null,
+        checkedAt: "2026-11-22T10:00:00.000Z",
+      });
+    },
+  );
+
+  test.each(NOT_WRITERS)(
+    "a %s may neither ask nor put back",
+    async (_who: string, permission: Permission) => {
+      props = caller(permission);
+
+      const checkAccess: MockedFn = jest.spyOn(
+        SecurityBlockCloudWafs,
+        "checkAccess",
+      ) as unknown as MockedFn;
+      const putBack: MockedFn = jest.spyOn(
+        SecurityBlockCloudWafs,
+        "putBack",
+      ) as unknown as MockedFn;
+
+      const asked: { refusal: Exception | null } = await call({
+        method: "post",
+        uri: SECURITY_BLOCK_CLOUD_WAF_CHECK_ACCESS_ROUTE,
+        body: { cloudResourceId: RESOURCE },
+      });
+      const backed: { refusal: Exception | null } = await call({
+        method: "post",
+        uri: "/security-block-cloud-waf/:cloudWafId/put-back",
+        params: { cloudWafId: PICKED_ID },
+      });
+
+      for (const { refusal } of [asked, backed]) {
+        expect(refusal).toBeInstanceOf(NotAuthorizedException);
+        expect(refusal?.message).toBe(CLOUD_WAF_REFUSED_MESSAGE);
+      }
+
+      expect(checkAccess).not.toHaveBeenCalled();
+      expect(putBack).not.toHaveBeenCalled();
     },
   );
 });

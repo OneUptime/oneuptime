@@ -91,7 +91,7 @@ A `google_compute_security_policy` with `rule` blocks owns every rule of the pol
 
 ## Permissions
 
-The setup command adds a custom role, `oneuptimeCloudArmorBlocklist`, where it grants the connection's other roles, and grants it to the connection's service account. The lines the **Add WAF** dialog shows add the same role in the policy's project. A policy in rules mode needs only its own permissions.
+The setup command adds a custom role, `oneuptimeCloudArmorBlocklist`, where it grants the connection's other roles, and grants it to the connection's service account. The lines the **Add WAF** dialog shows add the same role in the policy's project. A policy that holds the blocklist in rules, not address groups, needs only its own permissions.
 
 | Permission | Why |
 | --- | --- |

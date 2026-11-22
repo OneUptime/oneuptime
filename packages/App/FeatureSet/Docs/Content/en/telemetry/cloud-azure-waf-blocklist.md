@@ -18,7 +18,7 @@ flowchart TB
     Pass -->|reads the policy back| Enforced["Enforced at:<br/>Azure WAF (prod-waf)"]
 ```
 
-OneUptime keeps custom rules of its own in each WAF policy you pick, and puts the addresses the blocklist blocks in them. Every minute it writes the policy once with what the blocklist holds, then reads it back. On the **Blocklist** page, a block's **Enforced At** names Azure WAF (prod-waf) only once the policy holds the block and Azure has applied it; until then it is not enforced.
+OneUptime keeps custom rules of its own in each WAF policy you pick, and puts the addresses the blocklist blocks in them. Every minute it writes the policy once with what the blocklist holds, then reads it back. On the **Blocklist** page, a block's **Enforced At** names Azure WAF (prod-waf) only once the policy holds the block and Azure has applied the change; until then it is not enforced.
 
 ## Before you begin
 
@@ -120,7 +120,7 @@ The policy's status says what Azure answered and what to do. A refusal names the
 :::
 
 :::details No Free Priority
-Your first rule that allows traffic is at priority 1, or every priority before it is taken. Move it up, then click **Check Again**.
+Your first rule that allows traffic is at priority 1, or every priority before it is taken. Give it a higher priority number, then click **Check Again**.
 :::
 
 :::details A policy is not in the list

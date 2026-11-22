@@ -44,10 +44,13 @@ export const WAF_COLUMN_TITLE: string = translationKey("WAF");
 export const AZURE_WAF_WHERE: string = translationKey(
   "{{kind}}, resource group {{group}}",
 );
+// {{place}} is the policy's location as Google Cloud names it: a region, or "global".
 export const CLOUD_ARMOR_WHERE: string = translationKey(
   "Cloud Armor, {{place}}, project {{project}}",
 );
-export const CLOUD_ARMOR_GLOBAL: string = translationKey("global");
+
+// The location of a global policy, as Google Cloud writes it in every language (locations/global).
+export const CLOUD_ARMOR_GLOBAL_LOCATION: string = "global";
 
 // Its page in its cloud's console, beside its name.
 export const OPEN_IN_CONSOLE: string = translationKey("Open in console");
@@ -241,7 +244,7 @@ export const CHANGE_CLIENT_ADDRESS_TITLE: string = translationKey(
   "Change Client Address",
 );
 export const CHANGED_CLIENT_ADDRESS_TOAST: string = translationKey(
-  "{{name}} now reads the client's address there. OneUptime writes its rules again.",
+  "Where {{name}} reads the client's address is changed. OneUptime writes its rules again.",
 );
 
 // ---------- Remove ----------

@@ -41,7 +41,7 @@ import {
   CLIENT_ADDRESS_FIELD_DESCRIPTION,
   CLIENT_ADDRESS_FIELD_TITLE,
   CLOUD_ARMOR_CLIENT_ADDRESS_DESCRIPTION,
-  CLOUD_ARMOR_GLOBAL,
+  CLOUD_ARMOR_GLOBAL_LOCATION,
   CLOUD_WAFS_DESCRIPTION,
   CLOUD_WAFS_EMPTY_DESCRIPTION,
   CLOUD_WAFS_EMPTY_TITLE,
@@ -294,10 +294,7 @@ export function getCloudWafAddNotes(data: {
 }
 
 // Where a candidate is, in the list: "eu-west-1", "CloudFront", "Front Door", "Cloud Armor, global".
-function writeCandidateWhere(
-  translator: Translator,
-  candidate: CloudWafCandidate,
-): string {
+function writeCandidateWhere(candidate: CloudWafCandidate): string {
   if (candidate.kind === SecurityBlockCloudWafKind.AzureApplicationGateway) {
     return AZURE_WAF_KIND_TITLES[AzureWafPolicyKind.ApplicationGateway];
   }
@@ -310,7 +307,7 @@ function writeCandidateWhere(
     const place: string =
       candidate.region && candidate.region !== "global"
         ? candidate.region
-        : say(translator, CLOUD_ARMOR_GLOBAL);
+        : CLOUD_ARMOR_GLOBAL_LOCATION;
 
     return `Cloud Armor, ${place}`;
   }
@@ -333,7 +330,7 @@ export function getCloudWafOptions(data: {
       return {
         label: data.translator.translateTemplate(WEB_ACL_OPTION, {
           name: candidate.name,
-          where: writeCandidateWhere(data.translator, candidate),
+          where: writeCandidateWhere(candidate),
           connection: candidate.connectionName,
         }),
         value: candidate.cloudResourceId,
