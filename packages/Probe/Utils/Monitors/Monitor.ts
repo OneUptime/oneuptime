@@ -353,7 +353,7 @@ export default class MonitorUtil {
     error: unknown;
   }): ProbeMonitorResponse {
     logger.error(
-      `${data.what} ${data.monitorId.toString()} (${data.monitorType}) step ${data.monitorStep.id?.toString()} threw while probing:`,
+      `${data.what} ${data.monitorId?.toString()} (${data.monitorType}) step ${data.monitorStep.id?.toString()} threw while probing:`,
     );
     logger.error(data.error);
 
