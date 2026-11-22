@@ -1155,6 +1155,8 @@ import { AddScrubRuleServiceIndexesAndKeys1809187433010 } from "./1809187433010-
 import { AddSecurityEventConnectionBlocking1809187434300 } from "./1809187434300-AddSecurityEventConnectionBlocking";
 import { AddDataSecurityIssueAiAnalysis1809187436369 } from "./1809187436369-AddDataSecurityIssueAiAnalysis";
 import { AddSecurityBlocklistFeeds1809187440000 } from "./1809187440000-AddSecurityBlocklistFeeds";
+import { AddDataSecurityIssueGroups1809187470370 } from "./1809187470370-AddDataSecurityIssueGroups";
+import { AddDataSecurityIssueGroupIndexesAndKeys1809187470380 } from "./1809187470380-AddDataSecurityIssueGroupIndexesAndKeys";
 
 export default [
   InitialMigration,
@@ -2314,4 +2316,6 @@ export default [
   AddSecurityEventConnectionBlocking1809187434300,
   AddDataSecurityIssueAiAnalysis1809187436369,
   AddSecurityBlocklistFeeds1809187440000,
+  AddDataSecurityIssueGroups1809187470370,
+  AddDataSecurityIssueGroupIndexesAndKeys1809187470380,
 ];
