@@ -20,7 +20,7 @@ import SecurityBlockDestination, {
   SecurityBlockEntry,
   SecurityBlockHeldItem,
   SecurityBlockSupport,
-  SecurityBlockUpdate,
+  SecurityBlockEndMove,
   SecurityBlockWriteResult,
 } from "../SecurityBlockDestination";
 
@@ -46,7 +46,7 @@ import SecurityBlockDestination, {
  *
  * Its expirationTime is the block's, so Defender deletes the indicator by
  * itself when the block ends, even if OneUptime cannot reach Defender then;
- * a block renewed at OneUptime is renewed there (update()).
+ * a block renewed at OneUptime is renewed there (moveEnds()).
  *
  * OneUptime's own, and only them: an indicator it adds is filed under the
  * application "OneUptime" and says, in its description, which connection
@@ -286,17 +286,17 @@ export default class MicrosoftDefenderBlockDestination
    * replaces an indicator of the same value, so a renewal is a delete and
    * an add, a moment apart.
    */
-  public async update(
-    updates: Array<SecurityBlockUpdate>,
+  public async moveEnds(
+    updates: Array<SecurityBlockEndMove>,
   ): Promise<Array<SecurityBlockWriteResult>> {
     await this.remove(
-      updates.map((update: SecurityBlockUpdate): SecurityBlockHeldItem => {
+      updates.map((update: SecurityBlockEndMove): SecurityBlockHeldItem => {
         return update.item;
       }),
     );
 
     return await this.apply(
-      updates.map((update: SecurityBlockUpdate): SecurityBlockEntry => {
+      updates.map((update: SecurityBlockEndMove): SecurityBlockEntry => {
         return update.entry;
       }),
     );

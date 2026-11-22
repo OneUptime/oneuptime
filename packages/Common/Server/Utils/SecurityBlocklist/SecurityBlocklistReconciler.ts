@@ -10,7 +10,7 @@ import SecurityBlockDestination, {
   SecurityBlockEntry,
   SecurityBlockHeldItem,
   SecurityBlockSupport,
-  SecurityBlockUpdate,
+  SecurityBlockEndMove,
   SecurityBlockWriteResult,
   isSecurityBlockForDestination,
 } from "./SecurityBlockDestination";
@@ -180,9 +180,9 @@ export interface SecurityBlocklistDestinationPlan {
   /*
    * Entries it holds whose end at the provider is not their block's (a
    * block renewed or made permanent since): for a destination that ends
-   * what it holds by itself and can move that end (update()).
+   * what it holds by itself and can move that end (moveEnds()).
    */
-  toUpdate: Array<SecurityBlockUpdate>;
+  toMoveEnd: Array<SecurityBlockEndMove>;
   // Blocks it cannot hold, with why.
   unsupported: Map<string, string>;
   // Blocks that do not fit.
@@ -289,9 +289,9 @@ export function planSecurityBlocklistDestination(data: {
    * while the entry's block waits for a retry, and never for a destination
    * that cannot move it.
    */
-  const toUpdate: Array<SecurityBlockUpdate> = [];
+  const toMoveEnd: Array<SecurityBlockEndMove> = [];
 
-  if (data.destination.update) {
+  if (data.destination.moveEnds) {
     const heldByKey: Map<string, SecurityBlockHeldItem> = new Map(
       data.held.map(
         (item: SecurityBlockHeldItem): [string, SecurityBlockHeldItem] => {
@@ -314,7 +314,7 @@ export function planSecurityBlocklistDestination(data: {
         : null;
 
       if (!isHeldExpiryCurrent({ held: item.expiresAt, wanted })) {
-        toUpdate.push({ entry: toEntry(block), item });
+        toMoveEnd.push({ entry: toEntry(block), item });
       }
     }
   }
@@ -324,7 +324,7 @@ export function planSecurityBlocklistDestination(data: {
     toRemove: data.held.filter((item: SecurityBlockHeldItem): boolean => {
       return !desiredKeys.has(getHeldItemKey(item.value, item.action));
     }),
-    toUpdate,
+    toMoveEnd,
     unsupported,
     overflow,
     waiting,
@@ -659,7 +659,7 @@ export default class SecurityBlocklistReconciler {
 
     let removed: Array<SecurityBlockWriteResult> = [];
     let applied: Array<SecurityBlockWriteResult> = [];
-    let updated: Array<SecurityBlockWriteResult> = [];
+    let endsMoved: Array<SecurityBlockWriteResult> = [];
 
     try {
       if (plan.toRemove.length > 0) {
@@ -670,8 +670,8 @@ export default class SecurityBlocklistReconciler {
         applied = await destination.apply(plan.toAdd);
       }
 
-      if (plan.toUpdate.length > 0 && destination.update) {
-        updated = await destination.update(plan.toUpdate);
+      if (plan.toMoveEnd.length > 0 && destination.moveEnds) {
+        endsMoved = await destination.moveEnds(plan.toMoveEnd);
       }
     } catch (error) {
       await this.recordDestinationFailure({
@@ -688,7 +688,7 @@ export default class SecurityBlocklistReconciler {
     if (
       plan.toAdd.length > 0 ||
       plan.toRemove.length > 0 ||
-      plan.toUpdate.length > 0
+      plan.toMoveEnd.length > 0
     ) {
       try {
         confirmed = await destination.readBack();
@@ -706,7 +706,7 @@ export default class SecurityBlocklistReconciler {
       readBackError,
       applied,
       removed,
-      updated,
+      endsMoved,
     });
 
     return "done";
@@ -726,7 +726,7 @@ export default class SecurityBlocklistReconciler {
     readBackError: string | null;
     applied: Array<SecurityBlockWriteResult>;
     removed: Array<SecurityBlockWriteResult>;
-    updated: Array<SecurityBlockWriteResult>;
+    endsMoved: Array<SecurityBlockWriteResult>;
   }): Promise<void> {
     const { destination, now, plan } = data;
 
@@ -760,8 +760,8 @@ export default class SecurityBlocklistReconciler {
     const removedByKey: Map<string, SecurityBlockWriteResult> = resultsByKey(
       data.removed,
     );
-    const updatedByKey: Map<string, SecurityBlockWriteResult> = resultsByKey(
-      data.updated,
+    const endsMovedByKey: Map<string, SecurityBlockWriteResult> = resultsByKey(
+      data.endsMoved,
     );
 
     const fullReason: string =
@@ -808,7 +808,7 @@ export default class SecurityBlocklistReconciler {
          * holds, and says why until a pass moves it (#10346).
          */
         const update: SecurityBlockWriteResult | undefined =
-          updatedByKey.get(key);
+          endsMovedByKey.get(key);
         const updateError: string | null =
           update && !update.isDone
             ? `Its end at ${destination.name} was not moved: ${update.error || `${destination.name} refused it`}`

@@ -11,7 +11,7 @@ import SecurityBlockDestination, {
   SecurityBlockEntry,
   SecurityBlockHeldItem,
   SecurityBlockSupport,
-  SecurityBlockUpdate,
+  SecurityBlockEndMove,
   SecurityBlockWriteResult,
 } from "../../../../Server/Utils/SecurityBlocklist/SecurityBlockDestination";
 import SecurityBlockDestinations, {
@@ -1833,10 +1833,10 @@ class EveryMachineDestination implements SecurityBlockDestination {
     );
   }
 
-  public async update(
-    updates: Array<SecurityBlockUpdate>,
+  public async moveEnds(
+    updates: Array<SecurityBlockEndMove>,
   ): Promise<Array<SecurityBlockWriteResult>> {
-    return updates.map((update: SecurityBlockUpdate) => {
+    return updates.map((update: SecurityBlockEndMove) => {
       if (this.updateError) {
         return {
           value: update.entry.value,
@@ -2034,7 +2034,7 @@ describe("a destination on every machine (#10346)", () => {
         now: NOW,
       });
 
-    expect(plan.toUpdate).toEqual([]);
+    expect(plan.toMoveEnd).toEqual([]);
   });
 
   test("an end the provider does not say is never moved", () => {
@@ -2049,7 +2049,7 @@ describe("a destination on every machine (#10346)", () => {
         now: NOW,
       });
 
-    expect(plan.toUpdate).toEqual([]);
+    expect(plan.toMoveEnd).toEqual([]);
     expect(plan.toAdd).toEqual([]);
   });
 

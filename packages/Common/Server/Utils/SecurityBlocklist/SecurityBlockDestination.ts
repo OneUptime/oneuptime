@@ -88,13 +88,13 @@ export interface SecurityBlockHeldItem {
    * expires what it holds - Microsoft Defender deletes an indicator past
    * its expirationTime, CrowdStrike sets one to no action: null for never.
    * Left out by a provider that keeps what it holds until it is removed.
-   * A block extended at OneUptime is extended there too (update()).
+   * A block extended at OneUptime is extended there too (moveEnds()).
    */
   expiresAt?: Date | null | undefined;
 }
 
 // An entry to move the end of, and the item at the provider that holds it.
-export interface SecurityBlockUpdate {
+export interface SecurityBlockEndMove {
   entry: SecurityBlockEntry;
   item: SecurityBlockHeldItem;
 }
@@ -194,8 +194,8 @@ export default interface SecurityBlockDestination {
    * lifts a block OneUptime still holds. Left out by a provider that keeps
    * what it holds until it is removed.
    */
-  update?(
-    updates: Array<SecurityBlockUpdate>,
+  moveEnds?(
+    moves: Array<SecurityBlockEndMove>,
   ): Promise<Array<SecurityBlockWriteResult>>;
 }
 

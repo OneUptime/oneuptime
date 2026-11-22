@@ -480,7 +480,7 @@ describe("MicrosoftDefenderBlockDestination: writing", () => {
 
     const results: Array<SecurityBlockWriteResult> = await defender(
       fake,
-    ).update([
+    ).moveEnds([
       {
         entry: entry({
           indicatorType: SecurityBlockIndicatorType.Domain,
@@ -819,7 +819,7 @@ describe("CrowdStrikeBlockDestination: writing", () => {
 
     const results: Array<SecurityBlockWriteResult> = await crowdStrike(
       fake,
-    ).update([
+    ).moveEnds([
       {
         entry: entry({
           indicatorType: SecurityBlockIndicatorType.FileSha256,

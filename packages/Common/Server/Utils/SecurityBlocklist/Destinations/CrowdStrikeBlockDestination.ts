@@ -16,7 +16,7 @@ import SecurityBlockDestination, {
   SecurityBlockEntry,
   SecurityBlockHeldItem,
   SecurityBlockSupport,
-  SecurityBlockUpdate,
+  SecurityBlockEndMove,
   SecurityBlockWriteResult,
 } from "../SecurityBlockDestination";
 
@@ -38,7 +38,7 @@ import SecurityBlockDestination, {
  * Its expiration is the block's. Past it Falcon sets the IOC to no action,
  * which read back is an IOC that has ended: the reconciler removes it, or -
  * for a block renewed - sets it to prevent again with the new end
- * (update()).
+ * (moveEnds()).
  *
  * OneUptime's own, and only them: an IOC it adds has the source
  * "OneUptime" and says in its description which connection added it, and
@@ -220,17 +220,17 @@ export default class CrowdStrikeBlockDestination
   }
 
   // A renewed block's IOC: its expiration moved, and set to prevent again.
-  public async update(
-    updates: Array<SecurityBlockUpdate>,
+  public async moveEnds(
+    updates: Array<SecurityBlockEndMove>,
   ): Promise<Array<SecurityBlockWriteResult>> {
-    const known: Array<SecurityBlockUpdate> = updates.filter(
-      (update: SecurityBlockUpdate): boolean => {
+    const known: Array<SecurityBlockEndMove> = updates.filter(
+      (update: SecurityBlockEndMove): boolean => {
         return Boolean(update.item.providerRef);
       },
     );
 
     await this.client.updateIocs(
-      known.map((update: SecurityBlockUpdate) => {
+      known.map((update: SecurityBlockEndMove) => {
         return {
           id: update.item.providerRef!,
           description: this.describe(update.entry),
@@ -241,7 +241,7 @@ export default class CrowdStrikeBlockDestination
     );
 
     return updates.map(
-      (update: SecurityBlockUpdate): SecurityBlockWriteResult => {
+      (update: SecurityBlockEndMove): SecurityBlockWriteResult => {
         return update.item.providerRef
           ? {
               value: update.entry.value,
