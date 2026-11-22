@@ -61952,5 +61952,8 @@
   "{{value}} is not blocked on your machines.": "{{value}} no está bloqueado en tus máquinas.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} está en la lista de bloqueo, pero todavía nada lo bloquea en tus máquinas.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} está en la lista de bloqueo. El paso queda hecho en cuanto esté bloqueado en cada máquina.",
-  "{{value}} is part of {{address}}.": "{{value}} forma parte de {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} forma parte de {{address}}.",
+  "Its request body is not JSON, the only kind OneUptime sends, so it is left out.": "El cuerpo de su solicitud no es JSON, el único formato que envía OneUptime, así que se omite.",
+  "The request body is not valid JSON, so the request was not sent. Correct the body, or the value of a monitor secret it uses.": "El cuerpo de la solicitud no es un JSON válido, así que la solicitud no se envió. Corrija el cuerpo, o el valor de un secreto de monitor que use.",
+  "This API monitor's request body is not valid JSON. Use an object, an array or a single value such as a string or a number, or leave the body empty.": "El cuerpo de la solicitud de este monitor de API no es un JSON válido. Use un objeto, un array o un único valor, como una cadena o un número, o deje el cuerpo vacío."
 }

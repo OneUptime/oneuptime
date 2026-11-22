@@ -61952,5 +61952,8 @@
   "{{value}} is not blocked on your machines.": "{{value}} आपकी मशीनों पर ब्लॉक नहीं है।",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} ब्लॉकलिस्ट में है, लेकिन आपकी मशीनों पर अभी तक कोई भी उसे ब्लॉक नहीं करता।",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} ब्लॉकलिस्ट में है। हर मशीन पर ब्लॉक होते ही यह चरण पूरा हो जाता है।",
-  "{{value}} is part of {{address}}.": "{{value}} {{address}} का हिस्सा है।"
+  "{{value}} is part of {{address}}.": "{{value}} {{address}} का हिस्सा है।",
+  "Its request body is not JSON, the only kind OneUptime sends, so it is left out.": "इसकी अनुरोध बॉडी JSON नहीं है, और OneUptime सिर्फ़ JSON भेजता है, इसलिए इसे छोड़ दिया जाता है।",
+  "The request body is not valid JSON, so the request was not sent. Correct the body, or the value of a monitor secret it uses.": "अनुरोध बॉडी मान्य JSON नहीं है, इसलिए अनुरोध नहीं भेजा गया। बॉडी को, या उसमें इस्तेमाल किए गए मॉनिटर गुप्त के मान को ठीक करें।",
+  "This API monitor's request body is not valid JSON. Use an object, an array or a single value such as a string or a number, or leave the body empty.": "इस API मॉनिटर की अनुरोध बॉडी मान्य JSON नहीं है। कोई ऑब्जेक्ट, ऐरे या स्ट्रिंग या संख्या जैसा कोई एक मान इस्तेमाल करें, या बॉडी खाली छोड़ दें।"
 }

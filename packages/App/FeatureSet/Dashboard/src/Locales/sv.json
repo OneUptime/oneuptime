@@ -61952,5 +61952,8 @@
   "{{value}} is not blocked on your machines.": "{{value}} är inte blockerat på dina maskiner.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} står på blocklistan, men inget blockerar det på dina maskiner än.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} står på blocklistan. Steget är klart så snart det är blockerat på varje maskin.",
-  "{{value}} is part of {{address}}.": "{{value}} hör till {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} hör till {{address}}.",
+  "Its request body is not JSON, the only kind OneUptime sends, so it is left out.": "Dess begärandetext är inte JSON, det enda format som OneUptime skickar, så den utelämnas.",
+  "The request body is not valid JSON, so the request was not sent. Correct the body, or the value of a monitor secret it uses.": "Begärandetexten är inte giltig JSON, så begäran skickades inte. Rätta texten, eller värdet av en monitorhemlighet som den använder.",
+  "This API monitor's request body is not valid JSON. Use an object, an array or a single value such as a string or a number, or leave the body empty.": "Begärandetexten för den här API-monitorn är inte giltig JSON. Använd ett objekt, en array eller ett enda värde, till exempel en sträng eller ett tal, eller lämna texten tom."
 }

@@ -61952,5 +61952,8 @@
   "{{value}} is not blocked on your machines.": "{{value}} is niet geblokkeerd op je machines.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} staat op de blokkeerlijst, maar nog niets blokkeert het op je machines.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} staat op de blokkeerlijst. De stap is klaar zodra het op elke machine is geblokkeerd.",
-  "{{value}} is part of {{address}}.": "{{value}} hoort bij {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} hoort bij {{address}}.",
+  "Its request body is not JSON, the only kind OneUptime sends, so it is left out.": "De body van het verzoek is geen JSON, het enige formaat dat OneUptime verstuurt, dus die wordt weggelaten.",
+  "The request body is not valid JSON, so the request was not sent. Correct the body, or the value of a monitor secret it uses.": "De body van het verzoek is geen geldige JSON, dus het verzoek is niet verstuurd. Corrigeer de body, of de waarde van een monitorgeheim dat erin wordt gebruikt.",
+  "This API monitor's request body is not valid JSON. Use an object, an array or a single value such as a string or a number, or leave the body empty.": "De body van het verzoek van deze API-monitor is geen geldige JSON. Gebruik een object, een array of één waarde, zoals een tekenreeks of een getal, of laat de body leeg."
 }

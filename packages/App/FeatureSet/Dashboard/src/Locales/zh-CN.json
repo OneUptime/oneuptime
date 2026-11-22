@@ -61952,5 +61952,8 @@
   "{{value}} is not blocked on your machines.": "{{value}} 未在你的机器上封禁。",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} 已在封禁列表中，但你的机器上还没有任何地方封禁它。",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} 已加入封禁列表。在每台机器上封禁后，此步骤即完成。",
-  "{{value}} is part of {{address}}.": "{{value}} 属于 {{address}}。"
+  "{{value}} is part of {{address}}.": "{{value}} 属于 {{address}}。",
+  "Its request body is not JSON, the only kind OneUptime sends, so it is left out.": "它的请求正文不是 JSON，而 OneUptime 只发送 JSON，因此请求正文会被省略。",
+  "The request body is not valid JSON, so the request was not sent. Correct the body, or the value of a monitor secret it uses.": "请求正文不是有效的 JSON，因此未发送请求。请更正请求正文，或其中使用的监视器秘密的值。",
+  "This API monitor's request body is not valid JSON. Use an object, an array or a single value such as a string or a number, or leave the body empty.": "此 API 监视器的请求正文不是有效的 JSON。请使用对象、数组或单个值（例如字符串或数字），或将请求正文留空。"
 }

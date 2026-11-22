@@ -61952,5 +61952,8 @@
   "{{value}} is not blocked on your machines.": "{{value}} не заблокирован на ваших машинах.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} есть в списке блокировки, но на ваших машинах его пока ничто не блокирует.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} в списке блокировки. Шаг будет выполнен, как только он будет заблокирован на каждой машине.",
-  "{{value}} is part of {{address}}.": "{{value}} входит в {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} входит в {{address}}.",
+  "Its request body is not JSON, the only kind OneUptime sends, so it is left out.": "Тело его запроса — не JSON, а OneUptime отправляет только JSON, поэтому оно пропускается.",
+  "The request body is not valid JSON, so the request was not sent. Correct the body, or the value of a monitor secret it uses.": "Тело запроса — недопустимый JSON, поэтому запрос не отправлен. Исправьте тело запроса или значение секрета монитора, который в нём используется.",
+  "This API monitor's request body is not valid JSON. Use an object, an array or a single value such as a string or a number, or leave the body empty.": "Тело запроса этого монитора API — недопустимый JSON. Используйте объект, массив или одно значение, например строку или число, или оставьте тело запроса пустым."
 }

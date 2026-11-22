@@ -61952,5 +61952,8 @@
   "{{value}} is not blocked on your machines.": "{{value}}은(는) 머신에서 차단되어 있지 않습니다.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}}은(는) 차단 목록에 있지만, 아직 머신에서 차단하는 곳이 없습니다.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}}이(가) 차단 목록에 추가되었습니다. 모든 머신에서 차단되면 이 단계가 완료됩니다.",
-  "{{value}} is part of {{address}}.": "{{value}}은(는) {{address}}에 속합니다."
+  "{{value}} is part of {{address}}.": "{{value}}은(는) {{address}}에 속합니다.",
+  "Its request body is not JSON, the only kind OneUptime sends, so it is left out.": "요청 본문이 JSON이 아닙니다. OneUptime은 JSON만 보내므로 본문은 제외됩니다.",
+  "The request body is not valid JSON, so the request was not sent. Correct the body, or the value of a monitor secret it uses.": "요청 본문이 올바른 JSON이 아니므로 요청을 보내지 않았습니다. 본문 또는 본문에서 사용하는 모니터 시크릿의 값을 수정하세요.",
+  "This API monitor's request body is not valid JSON. Use an object, an array or a single value such as a string or a number, or leave the body empty.": "이 API 모니터의 요청 본문이 올바른 JSON이 아닙니다. 객체, 배열 또는 문자열이나 숫자 같은 단일 값을 사용하거나 본문을 비워 두세요."
 }
