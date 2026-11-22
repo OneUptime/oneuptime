@@ -61883,5 +61883,22 @@
   "{{count}} requests were throttled.": "{{count}} requests were throttled.",
   "{{count}} requests were throttled._one": "{{count}} request was throttled.",
   "{{size}} in {{count}} requests was not stored.": "{{size}} in {{count}} requests was not stored.",
-  "{{size}} in {{count}} requests was not stored._one": "{{size}} in {{count}} request was not stored."
+  "{{size}} in {{count}} requests was not stored._one": "{{size}} in {{count}} request was not stored.",
+  "Last run {{time}}": "Last run {{time}}",
+  "Last run {{time}}, requested by {{name}}": "Last run {{time}}, requested by {{name}}",
+  "On demand": "On demand",
+  "Requested by {{name}}": "Requested by {{name}}",
+  "Run Requested At": "Run Requested At",
+  "Run Requested By": "Run Requested By",
+  "Run Requested By User ID": "Run Requested By User ID",
+  "Run {{scan}} again": "Run {{scan}} again",
+  "The scan is queued to run again.": "The scan is queued to run again.",
+  "This scan is already queued to run. It starts when its probe picks it up.": "This scan is already queued to run. It starts when its probe picks it up.",
+  "This scan is already running. Run it again once this run finishes.": "This scan is already running. Run it again once this run finishes.",
+  "This scan no longer exists. Refresh the list to see the latest scans.": "This scan no longer exists. Refresh the list to see the latest scans.",
+  "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.",
+  "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.",
+  "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.",
+  "You may not edit this project's discovery scans, so you cannot run one.": "You may not edit this project's discovery scans, so you cannot run one.",
+  "{{scan}} is queued to run again.": "{{scan}} is queued to run again."
 }

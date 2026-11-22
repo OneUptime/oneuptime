@@ -61883,5 +61883,22 @@
   "{{count}} requests were throttled.": "{{count}} requêtes ont été limitées.",
   "{{count}} requests were throttled._one": "{{count}} requête a été limitée.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} requêtes, soit {{size}}, n'ont pas été stockées.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} requête, soit {{size}}, n'a pas été stockée."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} requête, soit {{size}}, n'a pas été stockée.",
+  "Last run {{time}}": "Dernière exécution {{time}}",
+  "Last run {{time}}, requested by {{name}}": "Dernière exécution {{time}}, demandée par {{name}}",
+  "On demand": "À la demande",
+  "Requested by {{name}}": "Demandé par {{name}}",
+  "Run Requested At": "Exécution demandée le",
+  "Run Requested By": "Exécution demandée par",
+  "Run Requested By User ID": "ID de l'utilisateur ayant demandé l'exécution",
+  "Run {{scan}} again": "Exécuter {{scan}} à nouveau",
+  "The scan is queued to run again.": "L'analyse est de nouveau en file d'attente.",
+  "This scan is already queued to run. It starts when its probe picks it up.": "Cette analyse est déjà en file d'attente. Elle démarre dès que sa sonde la prend en charge.",
+  "This scan is already running. Run it again once this run finishes.": "Cette analyse est déjà en cours. Exécutez-la à nouveau une fois cette exécution terminée.",
+  "This scan no longer exists. Refresh the list to see the latest scans.": "Cette analyse n'existe plus. Actualisez la liste pour voir les dernières analyses.",
+  "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "La sonde de cette analyse n'est pas connectée à OneUptime, l'analyse ne peut donc pas s'exécuter maintenant. Démarrez la sonde, ou choisissez une autre sonde dans Modifier.",
+  "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "La sonde de cette analyse n'existe plus, l'analyse ne peut donc pas s'exécuter. Choisissez une autre sonde dans Modifier.",
+  "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "La sonde de cette analyse, {{probe}}, n'est pas connectée à OneUptime, l'analyse ne peut donc pas s'exécuter maintenant. Démarrez la sonde, ou choisissez une autre sonde dans Modifier.",
+  "You may not edit this project's discovery scans, so you cannot run one.": "Vous ne pouvez pas modifier les analyses de découverte de ce projet, vous ne pouvez donc pas en exécuter.",
+  "{{scan}} is queued to run again.": "{{scan}} est de nouveau en file d'attente."
 }

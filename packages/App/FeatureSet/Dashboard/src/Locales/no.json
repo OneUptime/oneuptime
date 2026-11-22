@@ -61883,5 +61883,22 @@
   "{{count}} requests were throttled.": "{{count}} forespørsler ble strupet.",
   "{{count}} requests were throttled._one": "{{count}} forespørsel ble strupet.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} forespørsler ({{size}}) ble ikke lagret.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} forespørsel ({{size}}) ble ikke lagret."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} forespørsel ({{size}}) ble ikke lagret.",
+  "Last run {{time}}": "Sist kjørt {{time}}",
+  "Last run {{time}}, requested by {{name}}": "Sist kjørt {{time}}, forespurt av {{name}}",
+  "On demand": "Ved behov",
+  "Requested by {{name}}": "Forespurt av {{name}}",
+  "Run Requested At": "Kjøring forespurt",
+  "Run Requested By": "Kjøring forespurt av",
+  "Run Requested By User ID": "ID for brukeren som ba om kjøringen",
+  "Run {{scan}} again": "Kjør {{scan}} igjen",
+  "The scan is queued to run again.": "Skanningen er satt i kø for å kjøre igjen.",
+  "This scan is already queued to run. It starts when its probe picks it up.": "Denne skanningen står allerede i kø. Den starter når sonden plukker den opp.",
+  "This scan is already running. Run it again once this run finishes.": "Denne skanningen kjører allerede. Kjør den igjen når denne kjøringen er ferdig.",
+  "This scan no longer exists. Refresh the list to see the latest scans.": "Denne skanningen finnes ikke lenger. Oppdater listen for å se de nyeste skanningene.",
+  "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Sonden til denne skanningen er ikke koblet til OneUptime, så skanningen kan ikke kjøre nå. Start sonden, eller velg en annen sonde under Rediger.",
+  "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "Sonden til denne skanningen finnes ikke lenger, så skanningen kan ikke kjøre. Velg en annen sonde under Rediger.",
+  "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Sonden til denne skanningen, {{probe}}, er ikke koblet til OneUptime, så skanningen kan ikke kjøre nå. Start sonden, eller velg en annen sonde under Rediger.",
+  "You may not edit this project's discovery scans, so you cannot run one.": "Du kan ikke redigere oppdagelsesskanningene i dette prosjektet, så du kan ikke kjøre en.",
+  "{{scan}} is queued to run again.": "{{scan}} er satt i kø for å kjøre igjen."
 }

@@ -61883,5 +61883,22 @@
   "{{count}} requests were throttled.": "{{count}} Anfragen wurden gedrosselt.",
   "{{count}} requests were throttled._one": "{{count}} Anfrage wurde gedrosselt.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} Anfragen mit {{size}} wurden nicht gespeichert.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} Anfrage mit {{size}} wurde nicht gespeichert."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} Anfrage mit {{size}} wurde nicht gespeichert.",
+  "Last run {{time}}": "Zuletzt ausgeführt {{time}}",
+  "Last run {{time}}, requested by {{name}}": "Zuletzt ausgeführt {{time}}, angefordert von {{name}}",
+  "On demand": "Bei Bedarf",
+  "Requested by {{name}}": "Angefordert von {{name}}",
+  "Run Requested At": "Ausführung angefordert am",
+  "Run Requested By": "Ausführung angefordert von",
+  "Run Requested By User ID": "Benutzer-ID der Ausführungsanforderung",
+  "Run {{scan}} again": "{{scan}} erneut ausführen",
+  "The scan is queued to run again.": "Der Scan steht zur erneuten Ausführung in der Warteschlange.",
+  "This scan is already queued to run. It starts when its probe picks it up.": "Dieser Scan steht bereits in der Warteschlange. Er startet, sobald seine Sonde ihn übernimmt.",
+  "This scan is already running. Run it again once this run finishes.": "Dieser Scan läuft bereits. Führen Sie ihn erneut aus, sobald dieser Lauf beendet ist.",
+  "This scan no longer exists. Refresh the list to see the latest scans.": "Dieser Scan existiert nicht mehr. Aktualisieren Sie die Liste, um die neuesten Scans zu sehen.",
+  "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Die Sonde dieses Scans ist nicht mit OneUptime verbunden, daher kann der Scan jetzt nicht ausgeführt werden. Starten Sie die Sonde, oder wählen Sie unter „Bearbeiten“ eine andere Sonde.",
+  "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "Die Sonde dieses Scans existiert nicht mehr, daher kann der Scan nicht ausgeführt werden. Wählen Sie unter „Bearbeiten“ eine andere Sonde.",
+  "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Die Sonde dieses Scans, {{probe}}, ist nicht mit OneUptime verbunden, daher kann der Scan jetzt nicht ausgeführt werden. Starten Sie die Sonde, oder wählen Sie unter „Bearbeiten“ eine andere Sonde.",
+  "You may not edit this project's discovery scans, so you cannot run one.": "Sie dürfen die Erkennungsscans dieses Projekts nicht bearbeiten und können daher keinen ausführen.",
+  "{{scan}} is queued to run again.": "{{scan}} steht zur erneuten Ausführung in der Warteschlange."
 }

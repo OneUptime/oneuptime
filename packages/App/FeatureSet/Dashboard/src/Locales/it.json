@@ -61883,5 +61883,22 @@
   "{{count}} requests were throttled.": "{{count}} richieste sono state limitate.",
   "{{count}} requests were throttled._one": "{{count}} richiesta è stata limitata.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} richieste ({{size}}) non sono state memorizzate.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} richiesta ({{size}}) non è stata memorizzata."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} richiesta ({{size}}) non è stata memorizzata.",
+  "Last run {{time}}": "Ultima esecuzione {{time}}",
+  "Last run {{time}}, requested by {{name}}": "Ultima esecuzione {{time}}, richiesta da {{name}}",
+  "On demand": "Su richiesta",
+  "Requested by {{name}}": "Richiesto da {{name}}",
+  "Run Requested At": "Esecuzione richiesta il",
+  "Run Requested By": "Esecuzione richiesta da",
+  "Run Requested By User ID": "ID dell'utente che ha richiesto l'esecuzione",
+  "Run {{scan}} again": "Esegui di nuovo {{scan}}",
+  "The scan is queued to run again.": "La scansione è di nuovo in coda.",
+  "This scan is already queued to run. It starts when its probe picks it up.": "Questa scansione è già in coda. Parte quando la sua sonda la prende in carico.",
+  "This scan is already running. Run it again once this run finishes.": "Questa scansione è già in corso. Eseguila di nuovo al termine di questa esecuzione.",
+  "This scan no longer exists. Refresh the list to see the latest scans.": "Questa scansione non esiste più. Aggiorna l'elenco per vedere le scansioni più recenti.",
+  "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "La sonda di questa scansione non è connessa a OneUptime, quindi la scansione non può essere eseguita ora. Avvia la sonda o scegli un'altra sonda in Modifica.",
+  "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "La sonda di questa scansione non esiste più, quindi la scansione non può essere eseguita. Scegli un'altra sonda in Modifica.",
+  "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "La sonda di questa scansione, {{probe}}, non è connessa a OneUptime, quindi la scansione non può essere eseguita ora. Avvia la sonda o scegli un'altra sonda in Modifica.",
+  "You may not edit this project's discovery scans, so you cannot run one.": "Non puoi modificare le scansioni di rilevamento di questo progetto, quindi non puoi eseguirne una.",
+  "{{scan}} is queued to run again.": "{{scan}} è di nuovo in coda."
 }

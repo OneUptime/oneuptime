@@ -61883,5 +61883,22 @@
   "{{count}} requests were throttled.": "요청 {{count}}건이 스로틀링되었습니다.",
   "{{count}} requests were throttled._one": "요청 {{count}}건이 스로틀링되었습니다.",
   "{{size}} in {{count}} requests was not stored.": "요청 {{count}}건({{size}})이 저장되지 않았습니다.",
-  "{{size}} in {{count}} requests was not stored._one": "요청 {{count}}건({{size}})이 저장되지 않았습니다."
+  "{{size}} in {{count}} requests was not stored._one": "요청 {{count}}건({{size}})이 저장되지 않았습니다.",
+  "Last run {{time}}": "마지막 실행 {{time}}",
+  "Last run {{time}}, requested by {{name}}": "마지막 실행 {{time}}, 요청자 {{name}}",
+  "On demand": "요청 시",
+  "Requested by {{name}}": "요청자: {{name}}",
+  "Run Requested At": "실행 요청 시각",
+  "Run Requested By": "실행 요청자",
+  "Run Requested By User ID": "실행 요청자 사용자 ID",
+  "Run {{scan}} again": "{{scan}} 다시 실행",
+  "The scan is queued to run again.": "스캔을 다시 실행하도록 대기열에 추가했습니다.",
+  "This scan is already queued to run. It starts when its probe picks it up.": "이 스캔은 이미 대기열에 있습니다. 프로브가 가져가면 시작됩니다.",
+  "This scan is already running. Run it again once this run finishes.": "이 스캔은 이미 실행 중입니다. 이번 실행이 끝난 후 다시 실행하세요.",
+  "This scan no longer exists. Refresh the list to see the latest scans.": "이 스캔은 더 이상 존재하지 않습니다. 최신 스캔을 보려면 목록을 새로고침하세요.",
+  "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "이 스캔의 프로브가 OneUptime에 연결되어 있지 않아 지금은 스캔을 실행할 수 없습니다. 프로브를 시작하거나 편집에서 다른 프로브를 선택하세요.",
+  "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "이 스캔의 프로브가 더 이상 존재하지 않아 스캔을 실행할 수 없습니다. 편집에서 다른 프로브를 선택하세요.",
+  "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "이 스캔의 프로브({{probe}})가 OneUptime에 연결되어 있지 않아 지금은 스캔을 실행할 수 없습니다. 프로브를 시작하거나 편집에서 다른 프로브를 선택하세요.",
+  "You may not edit this project's discovery scans, so you cannot run one.": "이 프로젝트의 검색 스캔을 편집할 권한이 없으므로 스캔을 실행할 수 없습니다.",
+  "{{scan}} is queued to run again.": "{{scan}} 스캔을 다시 실행하도록 대기열에 추가했습니다."
 }

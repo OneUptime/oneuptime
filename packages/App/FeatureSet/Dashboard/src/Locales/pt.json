@@ -61883,5 +61883,22 @@
   "{{count}} requests were throttled.": "{{count}} solicitações foram limitadas.",
   "{{count}} requests were throttled._one": "{{count}} solicitação foi limitada.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} solicitações ({{size}}) não foram armazenadas.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} solicitação ({{size}}) não foi armazenada."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} solicitação ({{size}}) não foi armazenada.",
+  "Last run {{time}}": "Última execução {{time}}",
+  "Last run {{time}}, requested by {{name}}": "Última execução {{time}}, solicitada por {{name}}",
+  "On demand": "Sob demanda",
+  "Requested by {{name}}": "Solicitado por {{name}}",
+  "Run Requested At": "Execução solicitada em",
+  "Run Requested By": "Execução solicitada por",
+  "Run Requested By User ID": "ID do usuário que solicitou a execução",
+  "Run {{scan}} again": "Executar {{scan}} novamente",
+  "The scan is queued to run again.": "A varredura voltou para a fila.",
+  "This scan is already queued to run. It starts when its probe picks it up.": "Esta varredura já está na fila. Ela começa quando a sonda a assumir.",
+  "This scan is already running. Run it again once this run finishes.": "Esta varredura já está em execução. Execute-a novamente quando esta execução terminar.",
+  "This scan no longer exists. Refresh the list to see the latest scans.": "Esta varredura não existe mais. Atualize a lista para ver as mais recentes.",
+  "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "A sonda desta varredura não está conectada ao OneUptime, então a varredura não pode ser executada agora. Inicie a sonda ou escolha outra sonda em Editar.",
+  "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "A sonda desta varredura não existe mais, então a varredura não pode ser executada. Escolha outra sonda em Editar.",
+  "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "A sonda desta varredura, {{probe}}, não está conectada ao OneUptime, então a varredura não pode ser executada agora. Inicie a sonda ou escolha outra sonda em Editar.",
+  "You may not edit this project's discovery scans, so you cannot run one.": "Você não pode editar as varreduras de descoberta deste projeto, então não pode executar nenhuma.",
+  "{{scan}} is queued to run again.": "{{scan}} voltou para a fila."
 }

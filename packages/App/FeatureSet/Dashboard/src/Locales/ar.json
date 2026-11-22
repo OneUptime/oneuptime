@@ -61883,5 +61883,22 @@
   "{{count}} requests were throttled.": "خُنق {{count}} من الطلبات.",
   "{{count}} requests were throttled._one": "خُنق {{count}} طلب.",
   "{{size}} in {{count}} requests was not stored.": "لم يُخزَّن {{count}} من الطلبات ({{size}}).",
-  "{{size}} in {{count}} requests was not stored._one": "لم يُخزَّن {{count}} طلب ({{size}})."
+  "{{size}} in {{count}} requests was not stored._one": "لم يُخزَّن {{count}} طلب ({{size}}).",
+  "Last run {{time}}": "آخر تشغيل {{time}}",
+  "Last run {{time}}, requested by {{name}}": "آخر تشغيل {{time}}، بطلب من {{name}}",
+  "On demand": "عند الطلب",
+  "Requested by {{name}}": "بطلب من {{name}}",
+  "Run Requested At": "وقت طلب التشغيل",
+  "Run Requested By": "طالب التشغيل",
+  "Run Requested By User ID": "معرّف المستخدم الذي طلب التشغيل",
+  "Run {{scan}} again": "تشغيل {{scan}} مرة أخرى",
+  "The scan is queued to run again.": "أُضيف الفحص إلى قائمة الانتظار ليعمل مرة أخرى.",
+  "This scan is already queued to run. It starts when its probe picks it up.": "هذا الفحص في قائمة الانتظار بالفعل. يبدأ عندما يتسلّمه المسبار.",
+  "This scan is already running. Run it again once this run finishes.": "هذا الفحص قيد التشغيل بالفعل. شغّله مرة أخرى بعد انتهاء هذا التشغيل.",
+  "This scan no longer exists. Refresh the list to see the latest scans.": "لم يعد هذا الفحص موجودًا. حدّث القائمة لترى أحدث الفحوص.",
+  "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "مسبار هذا الفحص غير مرتبط بـ OneUptime، لذا لا يمكن تشغيل الفحص الآن. شغّل المسبار، أو اختر مسبارًا آخر في «تعديل».",
+  "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "لم يعد مسبار هذا الفحص موجودًا، لذا لا يمكن تشغيل الفحص. اختر مسبارًا آخر في «تعديل».",
+  "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "مسبار هذا الفحص، {{probe}}، غير مرتبط بـ OneUptime، لذا لا يمكن تشغيل الفحص الآن. شغّل المسبار، أو اختر مسبارًا آخر في «تعديل».",
+  "You may not edit this project's discovery scans, so you cannot run one.": "لا يمكنك تعديل عمليات فحص الاكتشاف في هذا المشروع، لذا لا يمكنك تشغيل أي منها.",
+  "{{scan}} is queued to run again.": "أُضيف {{scan}} إلى قائمة الانتظار ليعمل مرة أخرى."
 }
