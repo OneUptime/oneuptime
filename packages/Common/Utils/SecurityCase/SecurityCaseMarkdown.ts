@@ -27,6 +27,19 @@ function byPlaybook(playbookName: string | undefined): MarkdownText {
     : FeedMarkdown.empty();
 }
 
+/*
+ * Who made a change that was not a person's: OneUptime AI working the case
+ * (#10352) - "(by **OneUptime AI**)" - or a playbook.
+ */
+function byActor(data: {
+  playbookName?: string | undefined;
+  aiName?: string | undefined;
+}): MarkdownText {
+  return data.aiName
+    ? mdText` (by **${data.aiName}**)`
+    : byPlaybook(data.playbookName);
+}
+
 export function caseOpenedByPersonMarkdown(): MarkdownText {
   return mdText`🗂️ Opened this case.`;
 }
@@ -58,6 +71,8 @@ export function statusChangedMarkdown(data: {
    */
   reopens?: boolean | undefined;
   playbookName?: string | undefined;
+  // OneUptime AI made the change, working the case (#10352): its name.
+  aiName?: string | undefined;
   /*
    * OneUptime moved the case to Contained itself: it verified every step
    * of the Response Plan that contains it (#10340).
@@ -65,18 +80,18 @@ export function statusChangedMarkdown(data: {
   byStepChecks?: boolean | undefined;
 }): MarkdownText {
   if (data.verdict) {
-    return mdText`✅ Closed as **${data.verdict}**${byPlaybook(data.playbookName)}.`;
+    return mdText`✅ Closed as **${data.verdict}**${byActor(data)}.`;
   }
 
   if (data.reopens ?? data.from === "Closed") {
-    return mdText`↩️ Reopened as **${data.to}**${byPlaybook(data.playbookName)}.`;
+    return mdText`↩️ Reopened as **${data.to}**${byActor(data)}.`;
   }
 
   if (data.byStepChecks) {
     return mdText`🛡️ Status changed from **${data.from}** to **${data.to}**: OneUptime verified every step of the Response Plan that contains the threat.`;
   }
 
-  return mdText`🔁 Status changed from **${data.from}** to **${data.to}**${byPlaybook(data.playbookName)}.`;
+  return mdText`🔁 Status changed from **${data.from}** to **${data.to}**${byActor(data)}.`;
 }
 
 /*
@@ -101,8 +116,9 @@ export function priorityChangedMarkdown(data: {
   from: string;
   to: string;
   playbookName?: string | undefined;
+  aiName?: string | undefined;
 }): MarkdownText {
-  return mdText`🚩 Priority changed from **${data.from}** to **${data.to}**${byPlaybook(data.playbookName)}.`;
+  return mdText`🚩 Priority changed from **${data.from}** to **${data.to}**${byActor(data)}.`;
 }
 
 export function assigneeChangedMarkdown(data: {
@@ -133,12 +149,13 @@ export function incidentDeclaredMarkdown(data: {
   incidentNumber: string;
   incidentUrl?: string | undefined;
   playbookName?: string | undefined;
+  aiName?: string | undefined;
 }): MarkdownText {
   if (data.incidentUrl) {
-    return mdText`🚨 Declared incident [${data.incidentNumber}](${data.incidentUrl})${byPlaybook(data.playbookName)}.`;
+    return mdText`🚨 Declared incident [${data.incidentNumber}](${data.incidentUrl})${byActor(data)}.`;
   }
 
-  return mdText`🚨 Declared incident **${data.incidentNumber}**${byPlaybook(data.playbookName)}.`;
+  return mdText`🚨 Declared incident **${data.incidentNumber}**${byActor(data)}.`;
 }
 
 // What a connected record is called in a sentence: "Host web-1".
@@ -435,6 +452,26 @@ export function oneStepRunFailedMarkdown(data: {
   stepTitle: string;
 }): MarkdownText {
   return mdText`❌ ${data.stepTitle} did not finish.`;
+}
+
+/*
+ * A step OneUptime AI ran while working the case (#10352), through the
+ * playbook engine: what it did, as OneUptime AI's.
+ */
+export function aiStepRunMarkdown(data: {
+  aiName: string;
+  // What the step did, in Markdown OneUptime wrote (a MarkdownText's text).
+  summary: MarkdownText;
+}): MarkdownText {
+  return mdText`🤖 **${data.aiName}:** ${data.summary}`;
+}
+
+// A step OneUptime AI ran that failed: what failed, with why under it.
+export function aiStepRunFailedMarkdown(data: {
+  aiName: string;
+  stepTitle: string;
+}): MarkdownText {
+  return mdText`❌ **${data.aiName}:** ${data.stepTitle} did not finish.`;
 }
 
 // Entity values as code, one after another.

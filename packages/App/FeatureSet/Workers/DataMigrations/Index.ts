@@ -146,6 +146,7 @@ import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillIncidentCallTranscriptSignInAccount from "./BackfillIncidentCallTranscriptSignInAccount";
 import BackfillSecurityCaseNextStepCheckAt from "./BackfillSecurityCaseNextStepCheckAt";
 import AddSecurityCaseStepRegressedNotificationSettingsForUsers from "./AddSecurityCaseStepRegressedNotificationSettingsForUsers";
+import AddSecurityCaseAiHandOffNotificationSettingsForUsers from "./AddSecurityCaseAiHandOffNotificationSettingsForUsers";
 import RequireTokenToAcknowledgeOnCallPages from "./RequireTokenToAcknowledgeOnCallPages";
 import KeepManagedDeviceCheckInMonitorsOnAndroid from "./KeepManagedDeviceCheckInMonitorsOnAndroid";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
@@ -1619,6 +1620,12 @@ const DataMigrations: Array<DataMigrationBase> = [
    * idempotent; rows written before it read as "not through an MCP client".
    */
   new AddAuditLogMcpClientColumns(),
+  /*
+   * OneUptime AI working security cases end to end (#10352): every existing
+   * member gets the setting for OneUptime AI handing a case to people, with
+   * email and push on, as the other security case notices have.
+   */
+  new AddSecurityCaseAiHandOffNotificationSettingsForUsers(),
 ];
 
 export default DataMigrations;

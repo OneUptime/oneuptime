@@ -52,6 +52,7 @@ import SecurityCaseStepChecks from "../SecurityCase/StepChecks/SecurityCaseStepC
 import WorkspaceSecurityPlaybookApprovalMessages from "../Workspace/WorkspaceSecurityPlaybookApprovalMessages";
 import SecurityPlaybookAddressBlocks from "./SecurityPlaybookAddressBlocks";
 import SecurityPlaybookApprovalReader from "./SecurityPlaybookApprovalReader";
+import SecurityCaseResponseNudge from "../AI/Security/Response/SecurityCaseResponseNudge";
 import SecurityPlaybookContainment, {
   ContainmentTargetOutcome,
 } from "./SecurityPlaybookContainment";
@@ -383,6 +384,17 @@ export default class SecurityPlaybookRunDecision {
       projectId: data.projectId,
       runId: data.runId,
     });
+
+    /*
+     * A step OneUptime AI asked about, decided (#10352): it looks at the
+     * case again, and goes on - or hands the case to people, turned down.
+     */
+    if (run.securityCaseId) {
+      await SecurityCaseResponseNudge.lookNow({
+        projectId: data.projectId,
+        securityCaseId: run.securityCaseId,
+      });
+    }
   }
 
   /*
@@ -596,6 +608,12 @@ export default class SecurityPlaybookRunDecision {
 
       // Let back in: the case's containment steps no longer hold, and OneUptime says so now (#10340).
       await SecurityCaseStepChecks.requestCheck({
+        projectId: data.projectId,
+        securityCaseId: run.securityCaseId,
+      });
+
+      // A step OneUptime AI took, undone by a person: its log says so (#10352).
+      await SecurityCaseResponseNudge.lookNow({
         projectId: data.projectId,
         securityCaseId: run.securityCaseId,
       });

@@ -49,6 +49,7 @@ import {
   readStepResults,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
 import SecurityPlaybookTrigger, {
+  isOneUptimeAiRun,
   isSecurityPlaybookTrigger,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import {
@@ -531,6 +532,17 @@ export default class SecurityPlaybookApprovalReader {
     } = {},
   ): Promise<SecurityPlaybookApprovalSource> {
     const playbookName: string = run.playbookName || "";
+
+    /*
+     * One of OneUptime AI's steps, working the case (#10352): asked by
+     * OneUptime AI, with no playbook to name.
+     */
+    if (isOneUptimeAiRun(run)) {
+      return {
+        kind: SecurityPlaybookApprovalSourceKind.OneUptimeAi,
+        playbookName: "",
+      };
+    }
 
     if (run.triggeredByUserId) {
       const personName: string =

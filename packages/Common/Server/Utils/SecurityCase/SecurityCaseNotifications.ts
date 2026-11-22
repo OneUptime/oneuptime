@@ -124,6 +124,12 @@ import WorkspaceSecurityPlaybookApproval, {
   SecurityPlaybookApprovalMessage,
 } from "../Workspace/WorkspaceSecurityPlaybookApproval";
 import WorkspaceSecurityPlaybookApprovalMessages from "../Workspace/WorkspaceSecurityPlaybookApprovalMessages";
+import ProductBrandingText from "../ProductBrandingText";
+import {
+  SecurityCaseHandOffReason,
+  isSecurityCaseHandOffReason,
+} from "../../../Types/SecurityCase/SecurityCaseAi";
+import { SECURITY_CASE_HAND_OFF_SENTENCES } from "../../../Types/SecurityCase/SecurityCaseAiWords";
 
 /*
  * TELLING PEOPLE ABOUT SECURITY CASES.
@@ -208,6 +214,8 @@ export enum SecurityCaseNotificationKind {
   TargetAlert = "TargetAlert",
   TaskAssigned = "TaskAssigned",
   StepRegressed = "StepRegressed",
+  // OneUptime AI handed the case to people (#10352).
+  AiHandedOff = "AiHandedOff",
 }
 
 export interface SecurityCaseRecipient {
@@ -354,6 +362,8 @@ export function describeRunTrigger(
       return "Automatically, for a new detection";
     case SecurityPlaybookTrigger.TriagedAsLikelyMalicious:
       return "Automatically, when AI triage read the case as Likely Malicious";
+    case SecurityPlaybookTrigger.OneUptimeAi:
+      return "By OneUptime AI, which is working the case";
     default:
       return "By hand";
   }
@@ -763,6 +773,45 @@ export function buildStepRegressedMessage(data: {
   };
 }
 
+/*
+ * What the people on a case - or, with nobody on it, those told about cases
+ * at its priority - are told when OneUptime AI hands it to them (#10352):
+ * that it did, and why, in OneUptime's own words.
+ */
+export function buildAiHandedOffMessage(data: {
+  facts: SecurityCaseMessageFacts;
+  reason: string;
+  isOnCase: boolean;
+}): SecurityCaseMessage {
+  const { facts } = data;
+  const aiName: string = `${ProductBrandingText.getProductName()} AI`;
+
+  return {
+    eventType:
+      NotificationSettingEventType.SEND_SECURITY_CASE_AI_HANDED_OFF_NOTIFICATION,
+    subject: `[${facts.number}] ${aiName} handed this case to people`,
+    templateType: EmailTemplateType.SecurityCaseAiHandedOff,
+    emailVars: {
+      ...getCaseEmailVars(facts),
+      emailTitle: `${aiName} handed ${facts.number} to people`,
+      leadSentence: `${aiName} was working this ${facts.priority} security case, and now a person has to.`,
+      reasonSentence: data.isOnCase
+        ? "You are on this case. Change these emails in User Settings > Notification Settings."
+        : "Nobody is on this case, and you are told about cases at its priority. Change these emails in User Settings > Notification Settings.",
+      handOffReason: data.reason,
+    },
+    smsText: buildNotificationSms(
+      `Security case ${facts.number}: ${aiName} handed it to people. ${data.reason}`,
+    ),
+    callText: `This is a message from OneUptime. ${aiName} handed security case ${facts.number}, priority ${facts.priority}, to people. ${data.reason} To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`,
+    pushTitle: `${aiName} handed ${facts.number} to people`,
+    pushBody: data.reason,
+    pushType: "security-case-ai-handed-off",
+    requireInteraction: facts.isCritical,
+    forceImmediate: true,
+  };
+}
+
 // The case's own rows of its emails.
 function getCaseEmailVars(facts: SecurityCaseMessageFacts): Dictionary<string> {
   return {
@@ -975,6 +1024,27 @@ export default class SecurityCaseNotifications {
     );
   }
 
+  /*
+   * OneUptime AI handed the case to people, and why (SecurityCaseHandOff,
+   * #10352). Never held back.
+   */
+  @CaptureSpan()
+  public static async aiHandedOff(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    reason: SecurityCaseHandOffReason;
+  }): Promise<void> {
+    await this.enqueue(
+      {
+        kind: SecurityCaseNotificationKind.AiHandedOff,
+        projectId: data.projectId.toString(),
+        securityCaseId: data.securityCaseId.toString(),
+        reason: data.reason,
+      },
+      0,
+    );
+  }
+
   // Never throws: a case's change must not fail because nobody could be told.
   private static async enqueue(
     data: JSONObject,
@@ -1088,6 +1158,18 @@ export default class SecurityCaseNotifications {
             securityCaseId,
             stepKey,
             stepTitle: readText(data, "stepTitle") || "",
+          });
+        }
+        return;
+      }
+      case SecurityCaseNotificationKind.AiHandedOff: {
+        const reason: string | undefined = readText(data, "reason");
+
+        if (isSecurityCaseHandOffReason(reason)) {
+          await this.notifyAiHandedOff({
+            projectId,
+            securityCaseId,
+            reason,
           });
         }
         return;
@@ -2148,6 +2230,99 @@ export default class SecurityCaseNotifications {
       notified,
       feedInfo: mdText`🔔 Notified ${people(notified.length)} that a step of this case stopped holding.`,
       displayColor: Red500,
+    });
+
+    return notified;
+  }
+
+  /*
+   * OneUptime AI handed the case to people (#10352): the people on the case
+   * - its assignee and its team - or, when nobody is, those told about
+   * cases at its priority, as they chose to be told; and the channels the
+   * project's Security Case rules post OneUptime AI's updates to. Only while
+   * the case is still handed over: a case somebody has picked up since is
+   * not news.
+   */
+  @CaptureSpan()
+  public static async notifyAiHandedOff(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    reason: SecurityCaseHandOffReason;
+  }): Promise<Array<SecurityCaseRecipient>> {
+    const securityCase: SecurityCase | null = await this.readCase(data);
+
+    if (!securityCase || isSetupTestCase(securityCase)) {
+      return [];
+    }
+
+    const values: ProjectSecurityCaseValues =
+      await SecurityCaseValues.getForProject(data.projectId);
+    const facts: SecurityCaseMessageFacts = await this.getFacts(
+      securityCase,
+      values,
+    );
+    const onCase: Array<SecurityCaseRecipient> = [];
+
+    if (securityCase.assignedToTeamId) {
+      onCase.push(
+        ...(await this.getTeamMembers(
+          data.projectId,
+          securityCase.assignedToTeamId,
+        )),
+      );
+    }
+
+    if (securityCase.assignedToUserId) {
+      const assignee: SecurityCaseRecipient | null = await this.getUser(
+        securityCase.assignedToUserId,
+      );
+
+      if (assignee) {
+        onCase.push(assignee);
+      }
+    }
+
+    const isOnCase: boolean = onCase.length > 0;
+    const recipients: Array<SecurityCaseRecipient> = await this.whoCanRead({
+      projectId: data.projectId,
+      securityCaseId: data.securityCaseId,
+      people: isOnCase
+        ? onCase
+        : (
+            await this.getPriorityWatchers({
+              projectId: data.projectId,
+              priorityId: securityCase.securityCasePriorityId,
+              priorities: values.priorities,
+            })
+          ).people,
+    });
+    const reason: string = SECURITY_CASE_HAND_OFF_SENTENCES[data.reason];
+
+    const notified: Array<SecurityCaseRecipient> = await this.sendToPeople({
+      facts,
+      recipients,
+      message: (): SecurityCaseMessage => {
+        return buildAiHandedOffMessage({ facts, reason, isOnCase });
+      },
+    });
+
+    const aiName: string = `${ProductBrandingText.getProductName()} AI`;
+
+    await this.postToChannels({
+      facts,
+      updateKind: NotificationRuleUpdateKind.AI,
+      markdown: buildChannelMarkdown({
+        facts,
+        headline: mdText`🙋 **${aiName} handed this case to people.** ${reason}`,
+      }),
+      notificationText: `${aiName} handed ${facts.number} to people`,
+    });
+
+    await this.recordInFeed({
+      facts,
+      notified,
+      feedInfo: mdText`🔔 Notified ${people(notified.length)} that ${aiName} handed this case to people.`,
+      displayColor: Yellow500,
     });
 
     return notified;

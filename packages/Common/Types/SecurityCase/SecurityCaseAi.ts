@@ -402,6 +402,15 @@ export enum SecurityCaseAiActionStatus {
 export const SECURITY_CASE_AI_ACTION_STATUSES: ReadonlyArray<SecurityCaseAiActionStatus> =
   Object.values(SecurityCaseAiActionStatus);
 
+/*
+ * The step OneUptime AI's change of the case's priority is kept under: the
+ * Response Plan has no step that sets it.
+ */
+export const SECURITY_CASE_AI_PRIORITY_STEP_KEY: string = "case:priority";
+
+// The step a hand-off is kept under: it is about the whole case.
+export const SECURITY_CASE_AI_HAND_OFF_STEP_KEY: string = "case:hand-off";
+
 // The statuses of an action still under way: one per step at a time.
 export const SECURITY_CASE_AI_OPEN_ACTION_STATUSES: ReadonlyArray<SecurityCaseAiActionStatus> =
   [SecurityCaseAiActionStatus.Doing, SecurityCaseAiActionStatus.Asked];
@@ -436,6 +445,10 @@ export enum SecurityCaseAiActionReason {
   ProtectedTarget = "ProtectedTarget",
   // Left: a block already holds the address.
   AlreadyBlocked = "AlreadyBlocked",
+  // Left: nothing enforces the project's blocklist - no Cloudflare, AWS WAF or firewall feed.
+  NoBlockDestination = "NoBlockDestination",
+  // Left: none of the case's requests threw an exception to fix in code.
+  NothingToFixInCode = "NothingToFixInCode",
   // Failed: the engine could not do it.
   EngineFailed = "EngineFailed",
   // Undone: a person took it back.
@@ -481,7 +494,16 @@ export enum SecurityCaseHandOffReason {
   OnlyPeopleCanDo = "OnlyPeopleCanDo",
   // The run could not tell: it failed, or read something it cannot settle.
   CannotTell = "CannotTell",
+  // A person took the case over from OneUptime AI (Take Over, on its AI card).
+  TakenOver = "TakenOver",
 }
+
+/*
+ * The hand-offs nobody has to be told of: the person who took the case over
+ * knows it is theirs.
+ */
+export const SECURITY_CASE_HAND_OFFS_TOLD_NOBODY: ReadonlyArray<SecurityCaseHandOffReason> =
+  [SecurityCaseHandOffReason.TakenOver];
 
 export const SECURITY_CASE_HAND_OFF_REASONS: ReadonlyArray<SecurityCaseHandOffReason> =
   Object.values(SecurityCaseHandOffReason);
