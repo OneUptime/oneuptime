@@ -72,6 +72,7 @@ import {
 } from "../../../Server/Utils/DataSecurity/DataSecurityJobs";
 import * as TelemetryScrubCoverage from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import * as TelemetryMetricDrop from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryMetricDrop";
+import * as TelemetryScrubImpact from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubImpact";
 import * as TelemetryFindingOccurrences from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryFindingOccurrences";
 import { TelemetrySampleSource } from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryDataScanner";
 import DataSecurityRunner from "../../../Server/Utils/DataSecurity/DataSecurityRunner";
@@ -1473,11 +1474,12 @@ describe("Scrub It", () => {
       dataTypeId: "email-address",
       location: "attributes.user.email",
       serviceId: null,
+      storeKey: null,
     });
     expect(findingFindOneSpy.mock.calls[0]![0]).toMatchObject({
       query: { _id: STORE_ID, projectId: PROJECT_ID },
-      // The store's service: a metric pipeline rule is its own.
-      select: { dataStore: { kind: true, serviceId: true } },
+      // The store's service, and its key, which names it for a store kept without one (#10433).
+      select: { dataStore: { kind: true, serviceId: true, storeKey: true } },
     });
     expect(findingUpdateSpy).toHaveBeenCalledWith({
       id: STORE_ID,
@@ -1538,10 +1540,11 @@ describe("Scrub It", () => {
       dataTypeId: "email-address",
       location: "attributes.user.email",
       serviceId,
+      storeKey: null,
     });
   });
 
-  test("a finding in a data store, not telemetry, is refused: Scrub It masks telemetry at ingest", async () => {
+  test("a finding in a data store, not telemetry, is refused: Scrub It hides telemetry as it arrives", async () => {
     findingRow = telemetryFinding(DataStoreKind.AwsS3Bucket);
 
     const result: RouteCall = await call(
@@ -1552,7 +1555,7 @@ describe("Scrub It", () => {
     );
 
     expect((result.thrown as Exception).message).toBe(
-      "Scrub It masks telemetry at ingest; this finding is in a data store.",
+      "Scrub It hides data in telemetry as it arrives; this finding is in a data store, not in telemetry.",
     );
     expect(scrubSpy).not.toHaveBeenCalled();
     expect(findingUpdateSpy).not.toHaveBeenCalled();
@@ -1720,10 +1723,86 @@ describe("Drop This Metric", () => {
     );
 
     expect((notTelemetry.thrown as Exception).message).toBe(
-      "Scrub It masks telemetry at ingest; this finding is in a data store.",
+      "Scrub It hides data in telemetry as it arrives; this finding is in a data store, not in telemetry.",
     );
     expect(dropSpy).not.toHaveBeenCalled();
     expect(dropImpactSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("What Scrub It would do", () => {
+  let impactSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    impactSpy = jest
+      .spyOn(TelemetryScrubImpact, "getScrubItImpact")
+      .mockResolvedValue({
+        isAvailable: true,
+        rule: {
+          signal: "log",
+          name: "Data Security: Email address in log attributes of checkout",
+          scrubAction: "redact",
+          patternType: "email",
+          fieldsToScrub: "attributes",
+          dataTypeName: "Email address",
+        },
+      });
+  });
+
+  test("is worked out with the caller's own permissions, for the finding's store, and changes nothing", async () => {
+    asCaller([Permission.CreateProjectLogScrubRule]);
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.scrubImpact(":id"),
+      { id: STORE_ID.toString() },
+    );
+
+    expect(result.thrown).toBeUndefined();
+    expect(impactSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: PROJECT_ID,
+        kind: DataStoreKind.TelemetryLogs,
+        dataTypeId: "email-address",
+        location: "attributes.user.email",
+        serviceId: null,
+        storeKey: null,
+        props: expect.objectContaining({ userId: USER_ID }),
+      }),
+    );
+    // Never as OneUptime itself: the records named are the caller's.
+    expect(impactSpy.mock.calls[0]![0].props.isRoot).toBeFalsy();
+    expect(result.answer).toMatchObject({
+      isAvailable: true,
+      rule: { scrubAction: "redact" },
+    });
+    expect(scrubSpy).not.toHaveBeenCalled();
+    expect(findingUpdateSpy).not.toHaveBeenCalled();
+    expect(queueSpy).not.toHaveBeenCalled();
+  });
+
+  test("is asked by whoever may press Scrub It, and no one else", async () => {
+    asCaller([Permission.ReadDataStore]);
+
+    const refused: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.scrubImpact(":id"),
+      { id: STORE_ID.toString() },
+    );
+
+    expect(refused.thrown).toBeDefined();
+    expect(impactSpy).not.toHaveBeenCalled();
+  });
+
+  test("a finding in a data store, not telemetry, is refused", async () => {
+    asCaller([Permission.ProjectOwner]);
+    findingRow = telemetryFinding(DataStoreKind.AwsS3Bucket);
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.scrubImpact(":id"),
+      { id: STORE_ID.toString() },
+    );
+
+    expect((result.thrown as Exception).message).toBe("Scrub It hides data in telemetry as it arrives; this finding is in a data store, not in telemetry.");
+    expect(impactSpy).not.toHaveBeenCalled();
   });
 });
 

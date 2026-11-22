@@ -1,13 +1,13 @@
 # Sensible Daten in der Telemetrie
 
-Telemetrie enthält alles, was Ihr Code schreibt: eine E-Mail-Adresse in einer Logzeile, eine Kartennummer in einem Span-Attribut, ein Token in einem Stacktrace, die Frage eines Kunden in einem Prompt, die IP-Adresse eines Benutzers im Label einer Metrik. Datensicherheit behandelt die Logs, Traces, Metriken, Ausnahmen und KI-Unterhaltungen jedes Dienstes und die Sitzungen jeder RUM-Anwendung als eigene Datenspeicher. Sie nimmt jede Stunde Stichproben davon, findet darin sensible Daten wie in einem Bucket, und **Bereinigen** macht aus einem Fund eine Regel, die diese Daten von da an bei der Aufnahme maskiert.
+Telemetrie enthält alles, was Ihr Code schreibt: eine E-Mail-Adresse in einer Logzeile, eine Kartennummer in einem Span-Attribut, ein Token in einem Stacktrace, die Frage eines Kunden in einem Prompt, die IP-Adresse eines Benutzers im Label einer Metrik. Datensicherheit behandelt die Logs, Traces, Metriken, Ausnahmen und KI-Unterhaltungen jedes Dienstes und die Sitzungen jeder RUM-Anwendung als eigene Datenspeicher. Sie nimmt jede Stunde Stichproben davon, findet darin sensible Daten wie in einem Bucket, und **Bereinigen** macht aus einem Fund eine Regel, die diese Daten von da an bei der Aufnahme verbirgt, in dem Dienst, in dem sie gefunden wurden.
 
 Es gibt nichts einzurichten: Die Telemetrie jedes Dienstes wird jede Stunde gescannt, sofern **Telemetrie scannen** in den Einstellungen des Projekts nicht ausgeschaltet ist. Um die Logs, Traces oder ein anderes Signal eines Dienstes auszulassen, schalten Sie **Inhalt scannen** in den **Einstellungen** dieses Datenspeichers aus: Ab dem nächsten Scan wird nichts davon gelesen.
 
 :::cards
 - [Was gelesen wird](#was-gelesen-wird): Die Attribute, Bodys, Nachrichten und Prompts jedes Signals.
 - [Wie ein Scan Stichproben nimmt](#wie-ein-scan-stichproben-nimmt): Die neuesten Datensätze jedes Dienstes, jede Stunde.
-- [Bereinigen](#bereinigen): Einen Fund bei der Aufnahme maskieren, mit einem Klick.
+- [Bereinigen](#bereinigen): Einen Fund bei der Aufnahme verbergen, in dem Dienst, in dem er gefunden wurde.
 - [Diese Metrik verwerfen](#diese-metrik-verwerfen): Die Metriken nicht mehr speichern, deren Namen sensible Daten enthalten.
 - [Was als bereinigt zählt](#was-als-bereinigt-zählt): Wann eine Bereinigungsregel einen Fund bereits abdeckt.
 :::
@@ -94,14 +94,14 @@ Um etwas auszulassen, fügen Sie es unter **Scan-Ausschlüsse** des Datenspeiche
 
 ### Auf Bereinigen klicken
 
-Klicken Sie auf **Bereinigen**. OneUptime erstellt eine Bereinigungsregel für Logs bei Logs und den Logs einer RUM-Anwendung, eine Bereinigungsregel für Traces bei Spans, Ausnahmen und KI-Aufrufen, für den Teil des Datensatzes, in dem der Fund steht, und eine Metrik-Pipeline-Regel beim Attribut einer Metrik.
+Klicken Sie auf **Bereinigen**. Ein Dialog sagt, was die Regel tun würde, bevor etwas erstellt wird: wessen Datensätze sie ändert, was sie mit dem Gefundenen macht und was die Werte liest, die sie verbergen würde. Klicken Sie darin auf **Bereinigen**, um die Regel zu erstellen. OneUptime erstellt eine Bereinigungsregel für Logs bei Logs und den Logs einer RUM-Anwendung, eine Bereinigungsregel für Traces bei Spans, Ausnahmen und KI-Aufrufen, für den Teil des Datensatzes, in dem der Fund steht, und eine Metrik-Pipeline-Regel beim Attribut einer Metrik.
 
 ### Auch den Code beheben
 
-Die Regel maskiert neue Daten, bevor sie gespeichert werden. Bereits gespeicherte Daten bleiben, bis ihre Aufbewahrung endet, also beheben Sie den Code, der sie schreibt: Der Fund nennt den Dienst und das Attribut.
+Die Regel verbirgt neue Daten, bevor sie gespeichert werden. Bereits gespeicherte Daten bleiben, bis ihre Aufbewahrung endet, also beheben Sie den Code, der sie schreibt: Der Fund nennt den Dienst und das Attribut.
 :::
 
-Die Regel wird nach dem benannt, was sie verbirgt, etwa „Data Security: Email address in attributes.user.email“, und erscheint bei Ihren anderen Bereinigungsregeln (siehe [Drop-Filter und Bereinigungsregeln](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen)). Es ist eine der folgenden:
+Die Regel wird nach dem benannt, was sie verbirgt, etwa „Data Security: Email address in log attributes of checkout“, und erscheint bei Ihren anderen Bereinigungsregeln (siehe [Drop-Filter und Bereinigungsregeln](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen)). Es ist eine der folgenden:
 
 | Fund | Regel, die Bereinigen erstellt |
 | --- | --- |
@@ -109,6 +109,10 @@ Die Regel wird nach dem benannt, was sie verbirgt, etwa „Data Security: Email 
 | Ein Wert unter einem Schlüssel, der sensibel aussieht, etwa `password` oder `token` | Eine Regel **Sensible Attributschlüssel**, die den ganzen Wert jedes solchen Attributs schwärzt |
 | Jeder andere Datentyp, den ein Muster finden kann | Eine Regel **Benutzerdefinierter Regex** aus den eigenen Mustern des Datentyps, die jeden Wert seiner Form schwärzt |
 | Jeder Datentyp im Attribut einer Metrik | Eine Metrik-Pipeline-Regel **Attribut schwärzen** für den Dienst, die die Werte des Attributs in der Form des Datentyps durch `[REDACTED]` ersetzt, oder jeden Wert des Attributs, wenn kein Muster den Datentyp findet |
+
+Eine Regel für Logs oder Traces gilt für den Dienst, in dem der Fund gefunden wurde: Sie bereinigt die Logs oder Spans dieses Dienstes, und die anderer Dienste bleiben, wie sie sind, sodass sich nichts ändert, was deren Daten liest. Die Spalte **Geltungsbereich** der Liste der Bereinigungsregeln sagt, für welchen Dienst eine Regel gilt. Ein Fund in den Sitzungsaufzeichnungen einer RUM-Anwendung erstellt eine Regel für alle Dienste und Apps des Projekts, da Regeln für Logs auch Aufzeichnungen bereinigen, und der Dialog sagt das. Gibt es den Dienst nicht mehr, sagt **Bereinigen** das und erstellt keine Regel.
+
+Der Dialog nennt, jeweils als Link, die Monitore, Dashboards mit ihren Widgets, gespeicherten Ansichten, Aufzeichnungsregeln und SLOs, die die Werte lesen, die die Regel verbergen würde, und was mit ihnen geschieht: Ein Filter auf einen verborgenen Wert trifft nicht mehr zu, und eine Gruppierung danach zeigt die echten Werte nicht mehr. Er sagt auch, was [Sicherheitsereignisse](/docs/telemetry/security-events) verlieren würden, wenn sie diese Datensätze lesen: Sind IP-Adressen verborgen, können ihre Ereignisse die zu sperrende Adresse nicht nennen. Was Sie nicht sehen können, wird gezählt, nie genannt. Der Dialog hält die Regel nie auf: Er sagt es, und Sie entscheiden. Die Formulare der Bereinigungsregeln zeigen dasselbe, bevor eine Regel gespeichert oder aktiviert wird.
 
 Manche Funde lassen sich durch keine Regel bereinigen, und **Bereinigen** sagt, warum. Das Attribut einer Metrik lässt sich immer bereinigen, da seine Regel jeden Wert des Attributs verbergen kann:
 
@@ -139,6 +143,7 @@ Ein Fund wird nur dann als bereinigt markiert, wenn die Aufnahme eine aktivierte
 
 - **Die richtigen Datensätze.** Regeln für Logs decken Logs und die Logs einer RUM-Anwendung ab. Regeln für Traces decken Spans, Ausnahmen und KI-Aufrufe ab: Eine Ausnahme ist eine Kopie des Ausnahmeereignisses ihres Spans, also bereinigen die Regeln, die Ereignisse bereinigen, auch sie.
 - **Der richtige Teil.** Die Regel nennt unter **Zu bereinigende Felder** den Teil des Datensatzes, in dem der Fund steht, oder lässt sie auf ihrem Standardwert.
+- **Der richtige Dienst.** Eine Regel für Logs oder Traces für einen Dienst deckt nur die Funde dieses Dienstes ab. Eine Regel ohne Dienst deckt die aller Dienste ab.
 - **Ein Muster, das den Typ findet.** Ein integrierter **Mustertyp** findet seinen eigenen Datentyp: **E-Mail-Adresse** findet E-Mail-Adressen, **Kreditkartennummer** Kartennummern, **SSN (Sozialversicherungsnummer)** US-Sozialversicherungsnummern, **Telefonnummer** Telefonnummern und **IP-Adresse** IP-Adressen. **Sensible Attributschlüssel** deckt jeden Wert unter einem Schlüssel ab, der sensibel aussieht, egal welcher Wert es ist.
 - **Ihre eigenen benutzerdefinierten Muster zählen nie.** Ein **Benutzerdefinierter Regex** deckt einen Fund nur ab, wenn er genau das Muster ist, das **Bereinigen** für dessen Typ erstellt. Ein Fund behält nur maskierte Stichproben, an denen sich kein Muster ausprobieren lässt, also könnte OneUptime nicht beweisen, dass Ihr Muster die Daten verbirgt, und ein fälschlich als bereinigt bezeichneter Fund ist ein Leck, das niemand ansieht.
 - **Das Attribut einer Metrik.** Eine Metrik-Pipeline-Regel **Attribut schwärzen** oder **Attribut entfernen** für den Schlüssel dieses Attributs, für den Dienst des Funds oder das ganze Projekt, deckt ihn ab, wenn sie keinen Filter hat oder genau den Filter, den **Bereinigen** erstellt. Ein Filter, den Sie selbst geschrieben haben, zählt nie, aus demselben Grund.

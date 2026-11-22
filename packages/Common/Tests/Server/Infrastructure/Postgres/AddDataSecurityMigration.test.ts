@@ -10,7 +10,7 @@ import { AddRuleEmptiedLimits1809182490000 } from "../../../../Server/Infrastruc
 import { AddTableHealthAttemptedAt1809184570000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184570000-AddTableHealthAttemptedAt";
 import { AddTableHealthSkippedTables1809184919541 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184919541-AddTableHealthSkippedTables";
 import { AddDataStoreFindingSampleRecords1809184700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184700000-AddDataStoreFindingSampleRecords";
-import { AddDataSecurityIssueAiAnalysis1809187431369 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187431369-AddDataSecurityIssueAiAnalysis";
+import { AddDataSecurityIssueAiAnalysis1809187436369 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187436369-AddDataSecurityIssueAiAnalysis";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecurityCheckSetting from "../../../../Models/DatabaseModels/DataSecurityCheckSetting";
@@ -187,7 +187,7 @@ const ADDED_LATER: ReadonlyArray<[string, string, MigrationClass]> = [
     return [
       "DataSecurityIssue",
       column,
-      AddDataSecurityIssueAiAnalysis1809187431369,
+      AddDataSecurityIssueAiAnalysis1809187436369,
     ];
   }),
 ];

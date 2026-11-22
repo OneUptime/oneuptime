@@ -14,6 +14,8 @@ import {
   nameClientAddressScrubRule,
   readHiddenClientAddress,
 } from "../../../Utils/SecurityEvent/ScrubbedAddress";
+import { SECURITY_LOG_RESOURCE_ID_ATTRIBUTE } from "../../../Types/SecurityCase/SecurityConnection";
+import { getScrubRuleServiceId } from "../../../Types/Telemetry/ScrubRuleScope";
 import InMemoryTTLCache from "../../Infrastructure/InMemoryTTLCache";
 import LogScrubRuleService from "../../Services/LogScrubRuleService";
 import TraceScrubRuleService from "../../Services/TraceScrubRuleService";
@@ -61,13 +63,38 @@ function toAddressScrubRule(
     return null;
   }
 
-  return {
+  const addressRule: AddressScrubRule = {
     id,
     name: rule.name || "",
     patternType: rule.patternType || "",
     scrubAction: rule.scrubAction || "",
     fieldsToScrub: rule.fieldsToScrub || "",
   };
+  const serviceId: string = getScrubRuleServiceId(rule);
+
+  // A rule for one service explains what it hid in that service's records alone (#10433).
+  if (serviceId) {
+    addressRule.serviceId = serviceId;
+  }
+
+  return addressRule;
+}
+
+/*
+ * The service the event's record was sent under, as the scans write it
+ * (SECURITY_LOG_RESOURCE_ID_ATTRIBUTE): the line's or the span's
+ * primaryEntityId. None when the event does not say.
+ */
+function readRecordServiceId(
+  event: NormalizedSecurityEvent,
+): string | undefined {
+  const value: unknown = event.attributes
+    ? event.attributes[SECURITY_LOG_RESOURCE_ID_ATTRIBUTE]
+    : undefined;
+
+  return typeof value === "string" && value.trim()
+    ? value.trim().toLowerCase()
+    : undefined;
 }
 
 export default class ScrubbedClientAddresses {
@@ -87,12 +114,14 @@ export default class ScrubbedClientAddresses {
       patternType: true;
       scrubAction: true;
       fieldsToScrub: true;
+      serviceId: true;
     } = {
       _id: true,
       name: true,
       patternType: true,
       scrubAction: true,
       fieldsToScrub: true,
+      serviceId: true,
     };
 
     const rules: Array<LogScrubRule | TraceScrubRule> =
@@ -223,6 +252,8 @@ export default class ScrubbedClientAddresses {
         ? findScrubRuleThatHid(rules, {
             kind: item.address.kind,
             place: item.address.place!,
+            // The service the record was sent under: a rule for another one did not hide it.
+            serviceId: readRecordServiceId(item.event),
           })
         : null;
 

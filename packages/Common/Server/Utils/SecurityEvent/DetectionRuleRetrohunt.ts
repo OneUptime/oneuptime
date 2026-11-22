@@ -78,6 +78,11 @@ import SigmaClickhouseCompiler, {
   buildSigmaFieldExpression,
   buildSigmaFieldHasValue,
 } from "./Sigma/SigmaClickhouseCompiler";
+import RefusedTelemetryReader from "./RefusedTelemetryReader";
+import {
+  RefusedTelemetry,
+  getRefusedTelemetryBetween,
+} from "../../../Utils/SecurityEvent/RefusedTelemetry";
 
 /*
  * RETROHUNT: a detection rule run over past events, to see what it would
@@ -705,6 +710,8 @@ export function summarizeSingleRuleRetrohunt(data: {
     hasMoreGroups: totalGroups > Math.min(fired.length, data.maxGroups),
     candidateLimit: null,
     uncounted: data.uncounted || null,
+    // Read by the run, which knows the project (readRefusedTelemetryOverPeriod).
+    refusedTelemetry: [],
   };
 }
 
@@ -775,7 +782,32 @@ export function summarizeCorrelationRetrohunt(data: {
       : null,
     // A correlation leaves out groups with no value, as it always did.
     uncounted: null,
+    // Read by the run, which knows the project (readRefusedTelemetryOverPeriod).
+    refusedTelemetry: [],
   };
+}
+
+/*
+ * What an ingestion budget or rate refused of the logs and traces Security
+ * Events reads, over the period (#10431): a retrohunt over it says the
+ * events those would have made are missing, rather than letting "would
+ * not have fired" read as nothing happened. As the sources kept it, with
+ * the counters as they are now; nothing when that cannot be read.
+ */
+export async function readRefusedTelemetryOverPeriod(data: {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+}): Promise<Array<RefusedTelemetry>> {
+  return getRefusedTelemetryBetween({
+    refusals: await RefusedTelemetryReader.readForProject({
+      projectId: data.projectId,
+      now: data.endTime,
+    }),
+    from: data.startTime,
+    to: data.endTime,
+    now: data.endTime,
+  });
 }
 
 // The sources a person may read, as a restriction on a correlation's reads; null for every source.
@@ -908,16 +940,23 @@ export default class DetectionRuleRetrohunt {
           kept: { retentionInDays, at: endTime },
         });
 
-      return summarizeCorrelationRetrohunt({
-        match,
-        exceptionCount,
-        startTime,
-        endTime,
-        periodInHours: request.periodInHours,
-        maxGroups: DETECTION_RETROHUNT_MAX_GROUPS,
-        groupByFields: definition.correlation.groupBy,
-        kept,
-      });
+      return {
+        ...summarizeCorrelationRetrohunt({
+          match,
+          exceptionCount,
+          startTime,
+          endTime,
+          periodInHours: request.periodInHours,
+          maxGroups: DETECTION_RETROHUNT_MAX_GROUPS,
+          groupByFields: definition.correlation.groupBy,
+          kept,
+        }),
+        refusedTelemetry: await readRefusedTelemetryOverPeriod({
+          projectId: request.projectId,
+          startTime,
+          endTime,
+        }),
+      };
     }
 
     const parsedRule: SigmaRule = definition.rule;
@@ -984,16 +1023,23 @@ export default class DetectionRuleRetrohunt {
       });
     }
 
-    return summarizeSingleRuleRetrohunt({
-      rows: readSingleRuleRetrohuntRows(response.data || []),
-      counting,
-      exceptionCount,
-      startTime,
-      endTime,
-      periodInHours: request.periodInHours,
-      maxGroups: DETECTION_RETROHUNT_MAX_GROUPS,
-      uncounted,
-      kept,
-    });
+    return {
+      ...summarizeSingleRuleRetrohunt({
+        rows: readSingleRuleRetrohuntRows(response.data || []),
+        counting,
+        exceptionCount,
+        startTime,
+        endTime,
+        periodInHours: request.periodInHours,
+        maxGroups: DETECTION_RETROHUNT_MAX_GROUPS,
+        uncounted,
+        kept,
+      }),
+      refusedTelemetry: await readRefusedTelemetryOverPeriod({
+        projectId: request.projectId,
+        startTime,
+        endTime,
+      }),
+    };
   }
 }

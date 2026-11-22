@@ -9,6 +9,10 @@ import OneUptimeDate from "Common/Types/Date";
 import { readAuditLogChange } from "Common/Utils/AuditLog/AuditLogTypedValues";
 import { getAuditLogFieldTitle } from "Common/Utils/AuditLog/AuditLogFieldTitles";
 import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
+import {
+  isAuditLogChangeHidden,
+  isAuditLogNameHidden,
+} from "Common/Types/AuditLog/AuditLogHiddenValues";
 import { getAuditLogActionLabel } from "Common/Types/AuditLog/AuditLogActionLabel";
 import {
   AUDIT_LOG_SESSION_FIELDS,
@@ -60,7 +64,39 @@ export interface ChangeRow {
    * than copies (a workflow's steps) and for JSON (the paths that changed).
    */
   summary: Array<string>;
+  /*
+   * The reader may not read the field on the record, so the server kept its
+   * values from them (#10642, AuditLogHiddenValues): the row says the field
+   * changed, and that its value is hidden. Absent for a value they read.
+   */
+  isHidden?: boolean | undefined;
 }
+
+/*
+ * What the log says in place of what its reader may not read (#10642), as
+ * keys of the Dashboard's locales: a field's value, a record's name, and
+ * the line that says why, once, above the fields.
+ */
+export const AUDIT_LOG_HIDDEN_WORDS: Readonly<{
+  valueHidden: string;
+  nameHidden: string;
+  hiddenValuesNote: string;
+}> = {
+  valueHidden: translationKey("Value hidden"),
+  nameHidden: translationKey("Name hidden"),
+  hiddenValuesNote: translationKey(
+    "Values of fields you may not read are hidden.",
+  ),
+};
+
+// An entry's name as the reader may read it: none when it was kept from them.
+export const getShownResourceName: (
+  resourceName: string | undefined,
+) => string | undefined = (
+  resourceName: string | undefined,
+): string | undefined => {
+  return isAuditLogNameHidden(resourceName) ? undefined : resourceName;
+};
 
 // The lines of a change's summary: text only, anything else left out.
 export const readChangeSummary: (value: unknown) => Array<string> = (
@@ -101,6 +137,18 @@ export const readChangeRows: (changes: unknown) => Array<ChangeRow> = (
     const field: unknown = entry["field"];
 
     if (typeof field !== "string" || field.length === 0) {
+      continue;
+    }
+
+    // A value kept from the reader is no value: nothing of it is drawn.
+    if (isAuditLogChangeHidden(raw)) {
+      rows.push({
+        field,
+        oldValue: undefined,
+        newValue: undefined,
+        summary: [],
+        isHidden: true,
+      });
       continue;
     }
 
@@ -339,13 +387,18 @@ export const getAuditLogChangesTitle: (data: {
     data.resourceType || "Resource",
   );
 
-  return data.resourceName
+  // A name kept from the reader (#10642) titles nothing: the type does.
+  const resourceName: string | undefined = getShownResourceName(
+    data.resourceName,
+  );
+
+  return resourceName
     ? data.translator.translateTemplate(
         "{{action}} · {{resourceType}} — {{resourceName}}",
         {
           action: action,
           resourceType: resourceType,
-          resourceName: data.resourceName,
+          resourceName: resourceName,
         },
       )
     : data.translator.translateTemplate("{{action}} · {{resourceType}}", {
@@ -561,6 +614,15 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
 
   const valueLabel: string = translator.translateText("Value") || "Value";
 
+  // Said once, above the fields, when the reader may not read some of them.
+  const hasHiddenValues: boolean = rows.some((row: ChangeRow): boolean => {
+    return Boolean(row.isHidden);
+  });
+
+  const valueHiddenLabel: string =
+    translator.translateText(AUDIT_LOG_HIDDEN_WORDS.valueHidden) ||
+    AUDIT_LOG_HIDDEN_WORDS.valueHidden;
+
   return (
     <Modal
       title={title}
@@ -570,6 +632,26 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
       modalWidth={ModalWidth.Medium}
     >
       <div className="mt-4">
+        {hasHiddenValues ? (
+          <div
+            data-testid="audit-log-hidden-values-note"
+            className="mb-3 flex items-start gap-2 text-xs text-gray-500"
+          >
+            <Icon
+              icon={IconProp.EyeSlash}
+              size={SizeProp.Small}
+              thick={ThickProp.Thick}
+              className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+            />
+            <span>
+              {translator.translateText(
+                AUDIT_LOG_HIDDEN_WORDS.hiddenValuesNote,
+              ) || AUDIT_LOG_HIDDEN_WORDS.hiddenValuesNote}
+            </span>
+          </div>
+        ) : (
+          <></>
+        )}
         {rows.length === 0 ? (
           <div className="rounded-md border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
             {translator.translateText(AUDIT_LOG_NO_FIELD_CHANGES) ||
@@ -583,26 +665,52 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                 row.oldValue !== undefined &&
                 row.newValue !== undefined;
 
+              // The field by its name, whether or not its value is the reader's.
+              const fieldHeader: ReactElement = (
+                <div className="flex items-center justify-between mb-2">
+                  <span
+                    data-testid="audit-log-change-field"
+                    className="text-xs font-semibold uppercase tracking-wide text-gray-500"
+                  >
+                    {getChangeFieldLabel({
+                      field: row.field,
+                      storedResourceType: props.storedResourceType,
+                      translator: translator,
+                    })}
+                  </span>
+                  <span className="text-xs font-mono text-gray-500">
+                    {row.field}
+                  </span>
+                </div>
+              );
+
+              if (row.isHidden) {
+                return (
+                  <div
+                    key={row.field}
+                    data-testid="audit-log-hidden-change"
+                    className="bg-white px-4 py-3"
+                  >
+                    {fieldHeader}
+                    <div className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-sm italic text-gray-500">
+                      <Icon
+                        icon={IconProp.EyeSlash}
+                        size={SizeProp.Small}
+                        thick={ThickProp.Thick}
+                        className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+                      />
+                      {valueHiddenLabel}
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div
                   key={row.field}
                   className="bg-white px-4 py-3 hover:bg-gray-50 transition-colors"
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span
-                      data-testid="audit-log-change-field"
-                      className="text-xs font-semibold uppercase tracking-wide text-gray-500"
-                    >
-                      {getChangeFieldLabel({
-                        field: row.field,
-                        storedResourceType: props.storedResourceType,
-                        translator: translator,
-                      })}
-                    </span>
-                    <span className="text-xs font-mono text-gray-500">
-                      {row.field}
-                    </span>
-                  </div>
+                  {fieldHeader}
 
                   {row.summary.length > 0 ? (
                     <ul

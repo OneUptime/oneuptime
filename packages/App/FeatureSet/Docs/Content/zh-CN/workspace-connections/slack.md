@@ -132,16 +132,16 @@ SLO 的规则会发布其错误预算策略的变化：在 SLO 进入某个级�
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments 链接到 OneUptime 中的策略。策略呼叫多个计划时，这一行还会写出计划名称：Payments (Primary)。
-- 将 Slack 账户连接到 OneUptime 的人在每一条值班消息中（交接、覆盖，以及加入或移出策略的人员）都以其 Slack 名称显示，在此之前以其 OneUptime 名称显示。时间按每位读者自己的时区显示。
+- 将 Slack 账户连接到 OneUptime 的人在每一条值班消息中（交接、覆盖，以及加入或移出策略的人员）都以其 Slack 名称显示，在此之前以其 OneUptime 名称显示。已受邀但尚未加入项目的人，在这里和策略的信息流中都以邀请时填写的名称或 "someone who hasn't joined the project yet" 显示，绝不会以其电子邮件地址显示。时间按每位读者自己的时区显示。
 - 当策略的多条升级规则呼叫同一个计划时，每次交接只发布一次，而不是每条规则各发布一次。
 
 规则发布其 **更新** 步骤中选择的内容，新规则默认使用 **仅关键更新**：当前值班人员，以及何时无人值班。通过 API 或 Terraform 创建且未包含 `updatesToPost` 的规则也是如此：若要发布所有更新，请发送 `"updatesToPost": null`。未包含 `updatesToPost` 的编辑会保留规则发布的更新。
 
 | 更新 | 频道收到的内容 |
 | --- | --- |
-| **当前值班人员** | 上面这一行，每次交接时发布。 |
-| **下一位值班人员** | 下次交接时由谁接班以及何时接班：附在那一行末尾，或者对于不发布当前值班人员的规则，单独发布一行。 |
-| **无人值班** | 计划中无人值班，到达它的警报不会呼叫任何人："⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **当前值班人员** | 上面这一行，每次交接时发布；值班人员在其轮值期间加入项目时也会发布："📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." |
+| **下一位值班人员** | 下次交接时由谁接班以及何时接班：附在那一行末尾，或者对于不发布当前值班人员的规则，单独发布一行。如果下一位尚未加入项目，则无人接班，这一行会说明原因："📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then nobody: Ivy is next but hasn't joined the project yet." |
+| **无人值班** | 计划中无人值班，到达它的警报不会呼叫任何人："⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." 尚未加入项目之人的轮值也是如此，因为在此人加入之前，没有任何内容会呼叫此人："⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." |
 | **用户覆盖** | 添加、更改或撤销的覆盖：谁不在岗，谁代班。 |
 | **策略变更** | 添加到其升级规则或从中移除的计划、人员和团队。 |
 | **所有者** | 添加和移除的所有者。 |

@@ -46,6 +46,8 @@ Alt annet ligger under **Flere felt**, slått sammen til du åpner det:
 
 Så lenge noen bytter på og ingenting under **Flere felt** er endret, sier den sammenslåtte overskriften hva som vil skje: hver person har vakt i en uke, og så tar den neste over.
 
+Også noen som er invitert til prosjektet, men ennå ikke har blitt medlem, kan bytte på å ha vakt, men ingenting varsler vedkommende før invitasjonen er godtatt, og vedkommende får ikke vite noe. Turen er et hull i dekningen, og kanalene og feeden til hver vaktpolicy som varsler vaktplanen, sier det, med navnet som ble skrevet inn med invitasjonen, aldri med e-postadressen: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." `/oneuptime oncall` i Slack og `oncall` i Microsoft Teams sier det også. Når vedkommende blir medlem, når varslene fram, vedkommende får vite hvilke vaktpolicyer som varsler vedkommende nå, og kanalene får "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." Fram til da viser [Beredskap og rapporter](/docs/on-call/readiness) vedkommende, med hva som må gjøres.
+
 ## Lag
 
 Rotasjonen i en vaktplan består av lag, på siden **Lag**. Lagene leses ovenfra og ned: det øverste laget med noen på vakt er det som varsler, så legg hovedrotasjonen øverst og reservedekningen under.

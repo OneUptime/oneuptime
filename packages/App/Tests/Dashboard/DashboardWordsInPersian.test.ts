@@ -1296,6 +1296,38 @@ describe("a cloud's zones and recordsets, in Persian words", () => {
       });
   };
 
+  /*
+   * Another product's names a text quotes, where its English quotes them
+   * too, as that product draws them in English: a reader looks for them as
+   * written. Each says why.
+   */
+  const QUOTED_AS_DRAWN: ReadonlyArray<{ name: string; why: string }> = [
+    {
+      name: "Zone > Analytics > Read",
+      why: "a Cloudflare API token permission, as Cloudflare's token form names it",
+    },
+    {
+      name: "Zone > Zone > Read",
+      why: "a Cloudflare API token permission, as Cloudflare's token form names it",
+    },
+  ];
+
+  // A Persian text without the names it quotes as another product draws them, where its English quotes them too.
+  const withoutQuotedNames: (english: string, persian: string) => string = (
+    english: string,
+    persian: string,
+  ): string => {
+    let text: string = persian;
+
+    for (const quoted of QUOTED_AS_DRAWN) {
+      if (english.includes(quoted.name)) {
+        text = text.split(quoted.name).join(" ");
+      }
+    }
+
+    return text;
+  };
+
   // The texts among `rows` that keep a zone or a recordset in Latin letters.
   const keptInLatin: (
     rows: Array<[string, string, string]>,
@@ -1307,7 +1339,9 @@ describe("a cloud's zones and recordsets, in Persian words", () => {
         return (
           !SAYS_TIME_ZONE.test(english) &&
           LATIN_ZONE_OR_RECORDSET.test(
-            persian.replace(PLACEHOLDER, " ").replace(CODE_SPAN, " "),
+            withoutQuotedNames(english, persian)
+              .replace(PLACEHOLDER, " ")
+              .replace(CODE_SPAN, " "),
           )
         );
       })
@@ -1338,6 +1372,20 @@ describe("a cloud's zones and recordsets, in Persian words", () => {
     // Many: a scan that finds none would pass.
     expect(zones.length).toBeGreaterThan(60);
     expect(keptInLatin(zones)).toEqual([]);
+
+    // Each name quoted as drawn is still one a text quotes.
+    for (const quoted of QUOTED_AS_DRAWN) {
+      expect({
+        why: quoted.why,
+        quoted: zones.some(
+          ([, english, persian]: [string, string, string]): boolean => {
+            return (
+              english.includes(quoted.name) && persian.includes(quoted.name)
+            );
+          },
+        ),
+      }).toEqual({ why: quoted.why, quoted: true });
+    }
   });
 
   test("the page titles say what their rows say", () => {
@@ -1374,11 +1422,31 @@ describe("a cloud's zones and recordsets, in Persian words", () => {
           "In zone {{zone}} of region {{region}}",
           "در Zone {{zone}} از منطقه {{region}}",
         ],
+        // A Cloudflare permission is quoted as Cloudflare names it.
+        [
+          "A token with Zone > Zone > Read, on the zones.",
+          "A token with Zone > Zone > Read, on the zones.",
+          `توکنی با Zone > Zone > Read، روی ${ZONE}${ZERO_WIDTH_NON_JOINER}ها.`,
+        ],
+        // ... but a zone beside it is read,
+        [
+          "A token with Zone > Zone > Read, on the Zones.",
+          "A token with Zone > Zone > Read, on the Zones.",
+          `توکنی با Zone > Zone > Read، روی Zone${ZERO_WIDTH_NON_JOINER}ها.`,
+        ],
+        // ... and so is a permission the English does not quote.
+        [
+          "A token that reads the zones.",
+          "A token that reads the zones.",
+          `توکنی با Zone > Zone > Read، روی ${ZONE}${ZERO_WIDTH_NON_JOINER}ها.`,
+        ],
       ]),
     ).toEqual([
       "DNS Zones => DNS Zoneها",
       "recordsets => recordsetها",
       "In zone {{zone}} of region {{region}} => در Zone {{zone}} از منطقه {{region}}",
+      `A token with Zone > Zone > Read, on the Zones. => توکنی با Zone > Zone > Read، روی Zone${ZERO_WIDTH_NON_JOINER}ها.`,
+      `A token that reads the zones. => توکنی با Zone > Zone > Read، روی ${ZONE}${ZERO_WIDTH_NON_JOINER}ها.`,
     ]);
   });
 
@@ -1481,6 +1549,22 @@ describe("a cloud's zones and recordsets, in Persian words", () => {
     {
       name: "`Microsoft.Network/dnszones` | DNS Zone |",
       why: "Azure's name for the resource type, in a table of Azure's names",
+    },
+    {
+      name: "Zone Resources",
+      why: "a section of Cloudflare's API token form, as Cloudflare draws it",
+    },
+    {
+      name: "List the zones",
+      why: "a Cloudflare connection test's check, which the test report draws as the connector names it",
+    },
+    {
+      name: "What each zone's plan gives",
+      why: "a Cloudflare connection test's check, which the test report draws as the connector names it",
+    },
+    {
+      name: "Edit custom rules in each zone",
+      why: "the check blocking adds to a Cloudflare connection's test, which the test report draws as the connector names it",
     },
   ];
 

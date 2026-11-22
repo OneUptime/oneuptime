@@ -1,6 +1,5 @@
 import AppLink from "../AppLink/AppLink";
 import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
-import DataSecurityApi from "./DataSecurityApi";
 import { SensitivityPill } from "./DataSecurityPills";
 import FindingOccurrences from "./FindingOccurrences";
 import { getTelemetryStoreOwnerRoute } from "./FindingOccurrenceLinks";
@@ -23,6 +22,7 @@ import {
 } from "./TelemetryScrubIt";
 import TelemetryRuleNotice from "./TelemetryRuleNotice";
 import DropMetricModal from "./DropMetricModal";
+import ScrubItModal from "./ScrubItModal";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
@@ -46,10 +46,7 @@ import {
   isFindingCounted,
 } from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
 import DataConfidence from "Common/Types/DataSecurity/DataConfidence";
-import {
-  DataStoreKind,
-  getDataStoreKindInfo,
-} from "Common/Types/DataSecurity/DataStoreKind";
+import { getDataStoreKindInfo } from "Common/Types/DataSecurity/DataStoreKind";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -57,7 +54,6 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -120,8 +116,8 @@ const MASKED_SAMPLES: string = translationKey("Masked samples");
 const SHOW_RECORDS: string = translationKey("Show the records it was seen in");
 const HIDE_RECORDS: string = translationKey("Hide the records");
 const SCRUBBED: string = translationKey("Scrubbed");
-const SCRUBBED_TOOLTIP: string = translationKey(
-  "A scrub rule masks this data at ingest. What was stored before keeps it until its retention ends.",
+export const SCRUBBED_TOOLTIP: string = translationKey(
+  "A scrub rule hides this data at ingest. What was stored before keeps it until its retention ends.",
 );
 const RESOLVES_WHEN_SCRUBBED: string = translationKey(
   "The issue resolves once every finding here is scrubbed and the store is checked again.",
@@ -129,8 +125,8 @@ const RESOLVES_WHEN_SCRUBBED: string = translationKey(
 const NO_SAMPLES_FOR_ROLE: string = translationKey(
   "Your role does not show masked samples, or the records they were seen in.",
 );
-const NOTHING_LEFT: string = translationKey(
-  "Nothing is left to scrub: every finding behind this issue is masked at ingest, or no longer seen.",
+export const NOTHING_LEFT: string = translationKey(
+  "Nothing is left to scrub: every finding behind this issue is hidden at ingest, or no longer seen.",
 );
 const MORE_IN_STORE: string = translationKey(
   "See everything found in this store",
@@ -610,9 +606,8 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
   const [readCount, setReadCount] = useState<number>(0);
   // Which findings show their records: the first one, until a person says otherwise.
   const [openIds, setOpenIds] = useState<Set<string> | null>(null);
+  // The finding Scrub It's dialog is open on (ScrubItModal, #10433).
   const [scrubbing, setScrubbing] = useState<DataStoreFinding | null>(null);
-  const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
-  const [scrubError, setScrubError] = useState<string>("");
   const [notice, setNotice] = useState<ScrubNotice | null>(null);
   // The finding in a metric's name whose metrics the reader is asked about dropping.
   const [dropping, setDropping] = useState<DataStoreFinding | null>(null);
@@ -685,32 +680,16 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
     setOpenIds(next);
   };
 
-  const scrub: () => Promise<void> = async (): Promise<void> => {
-    const findingId: string = scrubbing?._id?.toString() || "";
-
-    if (!findingId) {
-      setScrubbing(null);
-      return;
-    }
-
-    setIsScrubbing(true);
-    setScrubError("");
-
-    try {
-      const result: DataSecurityScrubResult =
-        await DataSecurityApi.scrubFinding(new ObjectID(findingId));
-
-      setNotice({ ruleName: result.scrubRuleName, signal: result.signal });
-      setScrubbing(null);
-      setReadCount((count: number): number => {
-        return count + 1;
-      });
-      props.onChanged();
-    } catch (err) {
-      setScrubError(API.getFriendlyMessage(err));
-    }
-
-    setIsScrubbing(false);
+  // Scrub It made, or found, the rule: said on the page, the findings read again.
+  const onScrubbed: (result: DataSecurityScrubResult) => void = (
+    result: DataSecurityScrubResult,
+  ): void => {
+    setNotice({ ruleName: result.scrubRuleName, signal: result.signal });
+    setScrubbing(null);
+    setReadCount((count: number): number => {
+      return count + 1;
+    });
+    props.onChanged();
   };
 
   const ownerName: string = getTelemetryStoreOwnerName(props.store);
@@ -763,11 +742,8 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
                 location: finding.location,
                 gates: scrubGates,
               })}
-              isScrubbing={
-                isScrubbing && scrubbing?._id?.toString() === findingId
-              }
+              isScrubbing={false}
               onScrub={() => {
-                setScrubError("");
                 setScrubbing(finding);
               }}
               dropMetric={getDropMetricState({
@@ -851,24 +827,17 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
-      {scrubbing ? (
-        <ConfirmModal
-          title="Scrub This Data at Ingest"
-          description={
-            props.store?.kind === DataStoreKind.TelemetryMetrics
-              ? "OneUptime adds a metric pipeline rule that redacts this kind of data in this attribute of the service's new metrics. Stored data does not change."
-              : "OneUptime adds a scrub rule that masks this kind of data at this place in new telemetry, before it is stored. What is already stored does not change."
-          }
-          submitButtonText="Scrub It"
-          isLoading={isScrubbing}
-          error={scrubError || undefined}
+      {/*
+       * What the rule does, whose records it changes and what reads the
+       * data it would hide, before it is made (#10433).
+       */}
+      {scrubbing?._id ? (
+        <ScrubItModal
+          findingId={new ObjectID(scrubbing._id.toString())}
           onClose={() => {
             setScrubbing(null);
-            setScrubError("");
           }}
-          onSubmit={() => {
-            void scrub();
-          }}
+          onScrubbed={onScrubbed}
         />
       ) : (
         <></>

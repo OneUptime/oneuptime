@@ -62,6 +62,10 @@ import {
   looksLikeSecretColumn,
 } from "Common/Types/AuditLog/AuditLogCoverage";
 import {
+  AUDIT_LOG_NAME_COLUMNS,
+  AUDIT_LOG_UNRECORDED_COLUMNS,
+} from "Common/Types/AuditLog/AuditLogRecordedColumns";
+import {
   getAuditLogRedactedColumns,
   redactAuditLogValue,
 } from "Common/Types/AuditLog/AuditLogRedaction";
@@ -201,21 +205,15 @@ const MAX_MEMBERSHIP_LOOKUP_PAGES: number = 20;
 // How many session entries one insert writes.
 const MAX_ENTRIES_PER_INSERT: number = 1000;
 
-const SKIPPED_FIELDS: ReadonlySet<string> = new Set<string>([
-  "_id",
-  "id",
-  "createdAt",
-  "updatedAt",
-  "deletedAt",
-  "version",
-  "slug",
-]);
+/*
+ * What no entry records, and what names one: the lists the audit log's
+ * reads hold entries to their readers by as well (AuditLogRecordedColumns).
+ */
+const SKIPPED_FIELDS: ReadonlySet<string> = new Set<string>(
+  AUDIT_LOG_UNRECORDED_COLUMNS,
+);
 
-const NAME_CANDIDATE_FIELDS: ReadonlyArray<string> = [
-  "name",
-  "title",
-  "displayName",
-];
+const NAME_CANDIDATE_FIELDS: ReadonlyArray<string> = AUDIT_LOG_NAME_COLUMNS;
 
 type RelatedModelType = { new (): BaseModel };
 

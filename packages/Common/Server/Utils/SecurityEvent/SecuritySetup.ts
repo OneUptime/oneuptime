@@ -93,6 +93,15 @@ import {
   SecurityAddressScrubRule,
   findScrubRuleHidingAddresses,
 } from "../../../Utils/SecurityEvent/ScrubbedAddress";
+import ProductType from "../../../Types/MeteredPlan/ProductType";
+import {
+  RefusedTelemetry,
+  getRefusedTelemetryBetween,
+  sortRefusedTelemetryForReading,
+} from "../../../Utils/SecurityEvent/RefusedTelemetry";
+import RefusedTelemetryReader, {
+  RefusedTelemetrySource,
+} from "./RefusedTelemetryReader";
 
 /*
  * Security in a few clicks: what the Overview's "Get started" reads and
@@ -100,7 +109,8 @@ import {
  *
  *   - getStatus: the project's security pipeline at a glance - where events
  *     come from, how many arrived, which rules and playbooks are on, what
- *     is open - read with the caller's own permissions.
+ *     is open, and what of the telemetry it reads an ingestion budget or
+ *     rate refused (#10431) - read with the caller's own permissions.
  *   - turnOnRecommended: the one click. "Your logs" becomes a source, and
  *     so does the rest of your OneUptime data (traces, network flows, the
  *     audit log, session replays), the
@@ -119,6 +129,13 @@ import {
  */
 
 const SETUP_TEST_DETECTIONS_SERVICE_NAME: string = "OneUptime Detections";
+
+/*
+ * How far back the setup says what a budget or a rate refused: the
+ * Overview's longest window (its cases' 30 days), so each of its figures can
+ * tell a quiet stretch from one it could not see.
+ */
+export const SETUP_REFUSED_TELEMETRY_IN_DAYS: number = 30;
 
 export interface SecuritySetupStatus {
   // Where security events come from.
@@ -147,6 +164,16 @@ export interface SecuritySetupStatus {
    * the person may not read.
    */
   addressScrubRules: Array<SecurityAddressScrubRule>;
+  /*
+   * What an ingestion budget or rate refused of the telemetry Security
+   * Events reads (#10431): of the logs while "Your logs" is on and of the
+   * traces while the Traces source is, each stretch that goes on now or
+   * ended in the last SETUP_REFUSED_TELEMETRY_IN_DAYS - with the budget
+   * counters as they are now folded in - what goes on first, then the
+   * latest. Empty for a source that is off, or that the person may not
+   * read.
+   */
+  refusedTelemetry: Array<RefusedTelemetry>;
 }
 
 export interface TurnOnRecommendedOptions {
@@ -293,7 +320,7 @@ export default class SecuritySetup {
       this.read(async (): Promise<SecurityLogSource | null> => {
         return SecurityLogSourceService.findOneBy({
           query: { projectId },
-          select: { _id: true, isEnabled: true },
+          select: { _id: true, isEnabled: true, lastScanResult: true },
           props,
         });
       }, null),
@@ -385,7 +412,7 @@ export default class SecuritySetup {
             kind: SecurityTelemetrySourceKind.Traces,
             isEnabled: true,
           },
-          select: { _id: true },
+          select: { _id: true, lastScanResult: true },
           props,
         });
       }, null),
@@ -438,6 +465,13 @@ export default class SecuritySetup {
       }
     }
 
+    const refusedTelemetry: Array<RefusedTelemetry> =
+      await this.readRefusedTelemetry({
+        projectId,
+        logSource: logSource?.isEnabled === true ? logSource : null,
+        tracesSource,
+      });
+
     const recommended: Array<DetectionRuleLibraryEntry> =
       getRecommendedDetectionRules();
 
@@ -465,7 +499,62 @@ export default class SecuritySetup {
       enabledPlaybooks,
       destinations,
       addressScrubRules,
+      refusedTelemetry,
     };
+  }
+
+  /*
+   * What a budget or a rate refused of the sources that are on: what they
+   * kept, with the counters as they are now folded in, the stretches that
+   * go on or ended in the last SETUP_REFUSED_TELEMETRY_IN_DAYS, what goes
+   * on first. The counters are read as OneUptime - a person who may read
+   * the source is told what it could not see, and nothing else of the
+   * budgets: no budget, no usage.
+   */
+  private static async readRefusedTelemetry(data: {
+    projectId: ObjectID;
+    logSource: SecurityLogSource | null;
+    tracesSource: SecurityTelemetrySource | null;
+  }): Promise<Array<RefusedTelemetry>> {
+    const sources: Array<RefusedTelemetrySource> = [];
+
+    if (data.logSource) {
+      sources.push({
+        signal: ProductType.Logs,
+        lastScanResult: data.logSource.lastScanResult || null,
+      });
+    }
+
+    if (data.tracesSource) {
+      sources.push({
+        signal: ProductType.Traces,
+        lastScanResult: data.tracesSource.lastScanResult || null,
+      });
+    }
+
+    if (sources.length === 0) {
+      return [];
+    }
+
+    return this.read(async (): Promise<Array<RefusedTelemetry>> => {
+      const now: Date = OneUptimeDate.getCurrentDate();
+
+      return sortRefusedTelemetryForReading(
+        getRefusedTelemetryBetween({
+          refusals: await RefusedTelemetryReader.readLive({
+            projectId: data.projectId,
+            sources,
+            now,
+          }),
+          from: OneUptimeDate.addRemoveDays(
+            now,
+            -SETUP_REFUSED_TELEMETRY_IN_DAYS,
+          ),
+          to: now,
+          now,
+        }),
+      );
+    }, []);
   }
 
   // A count the caller may not be allowed to make reads as 0.

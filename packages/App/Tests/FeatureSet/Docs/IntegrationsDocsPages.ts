@@ -961,6 +961,11 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Background workers",
       "Poll scheduler",
       "Security event storage",
+      // The checks blocking adds to a test (CloudflareBlocking.checkWriteAccess).
+      "How blocking is set up",
+      "Edit the lists",
+      "Edit custom rules in each zone",
+      "Edit IP Access Rules",
     ],
     // The button that inserts a value into a step's setting: a symbol.
     [DISCORD]: ["{ }"],

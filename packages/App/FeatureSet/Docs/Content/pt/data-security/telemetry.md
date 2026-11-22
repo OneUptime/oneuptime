@@ -1,13 +1,13 @@
 # Dados sensíveis na telemetria
 
-A telemetria guarda tudo o que o seu código grava: um endereço de e-mail em uma linha de log, um número de cartão em um atributo de span, um token em um stack trace, a pergunta de um cliente em um prompt, o endereço IP de um usuário no rótulo de uma métrica. A Segurança de dados trata os logs, traces, métricas, exceções e conversas de IA de cada serviço, e as sessões de cada aplicação RUM, como repositórios de dados próprios. Ela coleta amostras deles a cada hora, encontra dados sensíveis neles como faz em um bucket, e **Limpar** transforma uma descoberta em uma regra que passa a mascarar esses dados na ingestão daí em diante.
+A telemetria guarda tudo o que o seu código grava: um endereço de e-mail em uma linha de log, um número de cartão em um atributo de span, um token em um stack trace, a pergunta de um cliente em um prompt, o endereço IP de um usuário no rótulo de uma métrica. A Segurança de dados trata os logs, traces, métricas, exceções e conversas de IA de cada serviço, e as sessões de cada aplicação RUM, como repositórios de dados próprios. Ela coleta amostras deles a cada hora, encontra dados sensíveis neles como faz em um bucket, e **Limpar** transforma uma descoberta em uma regra que passa a ocultar esses dados na ingestão daí em diante, no serviço em que foram encontrados.
 
 Não há nada a configurar: a telemetria de cada serviço é varrida a cada hora, a menos que **Varrer telemetria** esteja desativado nas configurações do projeto. Para deixar de fora os logs, os traces ou outro sinal de um serviço, desative **Varrer conteúdo** nas **Configurações** desse repositório: a partir da próxima varredura, nada dele é lido.
 
 :::cards
 - [O que é lido](#o-que-é-lido): Os atributos, corpos, mensagens e prompts de cada sinal.
 - [Como uma varredura coleta amostras](#como-uma-varredura-coleta-amostras): Os registros mais recentes de cada serviço, a cada hora.
-- [Limpar](#limpar): Mascare uma descoberta na ingestão, com um clique.
+- [Limpar](#limpar): Oculte uma descoberta na ingestão, no serviço em que foi encontrada.
 - [Descartar esta métrica](#descartar-esta-métrica): Pare de armazenar as métricas cujos nomes contêm dados sensíveis.
 - [O que conta como limpo](#o-que-conta-como-limpo): Quando uma regra de limpeza já cobre uma descoberta.
 :::
@@ -94,14 +94,14 @@ Abra o problema - **Onde foi encontrado** lista cada descoberta por trás dele -
 
 ### Pressione Limpar
 
-Clique em **Limpar**. O OneUptime cria uma regra de limpeza de logs para os logs e para os logs de uma aplicação RUM, uma regra de limpeza de traces para spans, exceções e chamadas de IA, na parte do registro em que a descoberta está, e uma regra de pipeline de métricas para o atributo de uma métrica.
+Clique em **Limpar**. Uma caixa de diálogo diz o que a regra faria antes de qualquer coisa ser criada: de quem são os registros que ela altera, o que faz com o que encontra e o que lê os valores que ela ocultaria. Clique em **Limpar** nela para criar a regra. O OneUptime cria uma regra de limpeza de logs para os logs e para os logs de uma aplicação RUM, uma regra de limpeza de traces para spans, exceções e chamadas de IA, na parte do registro em que a descoberta está, e uma regra de pipeline de métricas para o atributo de uma métrica.
 
 ### Corrija o código também
 
-A regra mascara os dados novos antes que sejam armazenados. Os dados já armazenados ficam até o fim da retenção, então corrija o código que os grava: a descoberta nomeia o serviço e o atributo.
+A regra oculta os dados novos antes que sejam armazenados. Os dados já armazenados ficam até o fim da retenção, então corrija o código que os grava: a descoberta nomeia o serviço e o atributo.
 :::
 
-A regra recebe o nome do que oculta, como "Data Security: Email address in attributes.user.email", e aparece junto com as suas outras regras de limpeza (veja [Filtros de descarte e regras de limpeza](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis)). Ela é uma destas:
+A regra recebe o nome do que oculta, como "Data Security: Email address in log attributes of checkout", e aparece junto com as suas outras regras de limpeza (veja [Filtros de descarte e regras de limpeza](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis)). Ela é uma destas:
 
 | Descoberta | Regra que Limpar cria |
 | --- | --- |
@@ -109,6 +109,10 @@ A regra recebe o nome do que oculta, como "Data Security: Email address in attri
 | Um valor sob uma chave que parece sensível, como `password` ou `token` | Uma regra **Chaves de atributos sensíveis**, que suprime o valor inteiro de todo atributo desse tipo |
 | Qualquer outro tipo de dados que um padrão consegue encontrar | Uma regra **Regex personalizado** feita a partir dos próprios padrões do tipo de dados, que suprime todo valor com esse formato |
 | Qualquer tipo de dados no atributo de uma métrica | Uma regra de pipeline de métricas **Ocultar Atributo** para o serviço, que substitui por `[REDACTED]` os valores do atributo com o formato do tipo de dados, ou todo valor do atributo quando nenhum padrão encontra o tipo de dados |
+
+Uma regra de logs ou de traces vale para o serviço em que a descoberta foi encontrada: ela limpa os logs ou spans desse serviço, e os dos outros serviços ficam como estão, então nada do que lê os deles muda. A coluna **Escopo** da lista de regras de limpeza diz para qual serviço uma regra vale. Uma descoberta nas gravações de sessão de uma aplicação RUM cria uma regra para todos os serviços e aplicativos do projeto, já que as regras de logs também limpam as gravações, e a caixa de diálogo diz isso. Se o serviço não existir mais, **Limpar** diz isso e não cria nenhuma regra.
+
+A caixa de diálogo nomeia, cada um como um link, os monitores, os painéis com seus widgets, as visualizações salvas, as regras de gravação e os SLOs que leem os valores que a regra ocultaria, e o que acontece com eles: um filtro em um valor oculto deixa de corresponder, e um agrupamento por ele não mostra mais os valores reais. Ela também diz o que os [Eventos de segurança](/docs/telemetry/security-events) perderiam ao ler esses registros: com os endereços IP ocultos, seus eventos não conseguem indicar o endereço a bloquear. O que você não pode ver é contado, nunca nomeado. A caixa de diálogo nunca impede a regra: ela diz, e você decide. Os formulários das regras de limpeza mostram o mesmo antes de uma regra ser salva ou ativada.
 
 Algumas descobertas não podem ser limpas por uma regra, e **Limpar** diz por quê. O atributo de uma métrica sempre pode ser limpo, já que a regra dele pode ocultar todo valor do atributo:
 
@@ -139,6 +143,7 @@ Uma descoberta só é marcada como limpa quando a ingestão executaria sobre ela
 
 - **Os registros certos.** As regras de logs cobrem os logs e os logs de uma aplicação RUM. As regras de traces cobrem spans, exceções e chamadas de IA: uma exceção é uma cópia do evento de exceção do seu span, então as regras que limpam eventos também a limpam.
 - **A parte certa.** Os **Campos a depurar** da regra incluem a parte do registro em que a descoberta está, ou a regra os deixa no padrão.
+- **O serviço certo.** Uma regra de logs ou de traces para um serviço cobre apenas as descobertas desse serviço. Uma regra sem serviço cobre as de todos os serviços.
 - **Um padrão que encontra o tipo.** Um **Tipo de padrão** integrado encontra o próprio tipo de dados: **Endereço de e-mail** encontra endereços de e-mail, **Número do cartão de crédito** números de cartão, **SSN (Número de Seguro Social)** números de Seguro Social dos EUA, **Número de telefone** números de telefone e **Endereço IP** endereços IP. **Chaves de atributos sensíveis** cobre todo valor sob uma chave que parece sensível, seja qual for o valor.
 - **Os seus próprios padrões personalizados nunca contam.** Um **Regex personalizado** só cobre uma descoberta quando é exatamente o padrão que **Limpar** cria para o tipo dela. Uma descoberta guarda só amostras mascaradas, nas quais nenhum padrão pode ser testado, então o OneUptime não conseguiria provar que o seu padrão oculta os dados, e uma descoberta dada como limpa por engano é um vazamento que ninguém olha.
 - **O atributo de uma métrica.** Uma regra de pipeline de métricas **Ocultar Atributo** ou **Remover Atributo** da chave desse atributo, para o serviço da descoberta ou para o projeto inteiro, cobre a descoberta quando não tem filtro, ou quando tem exatamente o filtro que **Limpar** cria. Um filtro escrito por você nunca conta, pelo mesmo motivo.

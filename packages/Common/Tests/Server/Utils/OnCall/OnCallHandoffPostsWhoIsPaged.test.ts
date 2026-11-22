@@ -73,10 +73,11 @@ jest.mock("../../../../Server/Utils/Logger");
  * Nobody is paged for Payments until 5:50 PM, when @bob takes over: Ivy is
  * on call but hasn't joined the project yet" - and a next person nothing
  * pages is no one to take over: "..., then nobody: Ivy is next but hasn't
- * joined the project yet". In a channel, such a person is named by their
- * display name alone - the name typed with the invitation - never their
- * email address. Joining during the shift tells the channels a page
- * reaches them from then on (postJoinedDuringShift).
+ * joined the project yet". In a channel, and in the policy's feed since
+ * #10616, such a person is named by their display name alone - the name
+ * typed with the invitation - never their email address. Joining during
+ * the shift tells the channels a page reaches them from then on
+ * (postJoinedDuringShift).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -781,7 +782,11 @@ describe("posting a turn nothing pages", () => {
     );
     expect(rows[0]!.displayColor?.toString()).toBe(Red500.toString());
     expect(rows[0]!.userId).toBeUndefined();
-    // The feed names them as the project knows them, as its other entries do.
+    /*
+     * The feed names them as the channels do (#10616): by the name typed
+     * with the invitation - it is posted to the channels, and read beyond
+     * the project too. Its members keep their links.
+     */
     const feed: string = rows[0]!.feedInfoInMarkdown || "";
 
     expect(
@@ -791,7 +796,7 @@ describe("posting a turn nothing pages", () => {
     ).toBe(true);
     expect(
       feed.endsWith(
-        ` EST, when **[Bob](https://oneuptime.test/users/${BOB.toString()})** takes over: **[ivy@acme.test](https://oneuptime.test/users/${IVY.toString()})** is on call but hasn't joined the project yet.`,
+        ` EST, when **[Bob](https://oneuptime.test/users/${BOB.toString()})** takes over: **Ivy** is on call but hasn't joined the project yet.`,
       ),
     ).toBe(true);
 
@@ -836,7 +841,7 @@ describe("posting a turn nothing pages", () => {
     );
   });
 
-  test("REGRESSION: never their email address in a channel - not with no name typed, not when the name typed is one", async () => {
+  test("REGRESSION: never their email address in a channel or in the policy's feed - not with no name typed, not when the name typed is one", async () => {
     connect([
       WorkspaceType.Slack,
       WorkspaceType.MicrosoftTeams,
@@ -845,17 +850,32 @@ describe("posting a turn nothing pages", () => {
 
     for (const typed of [null, "  ", IVY_ADDRESS]) {
       sends = [];
+      rows = [];
       typedNames.set(IVY.toString(), typed);
 
       await OnCallHandoffPosts.post(ivyOnCall());
       await OnCallHandoffPosts.post(ivyNext());
 
       expect(sends.length).toBeGreaterThan(0);
+      expect(rows.length).toBeGreaterThan(0);
 
-      for (const words of everythingChannelsHeard()) {
+      for (const words of [
+        ...everythingChannelsHeard(),
+        ...rows.map((row: OnCallDutyPolicyFeed): string => {
+          return row.feedInfoInMarkdown || "";
+        }),
+      ]) {
         expect(words).not.toContain("acme.test");
         expect(words).not.toContain(IVY.toString());
       }
+
+      // The feed says it as the channels do (#10616).
+      expect(rows[0]!.feedInfoInMarkdown).toContain(
+        ": the person on call hasn't joined the project yet.",
+      );
+      expect(rows[1]!.feedInfoInMarkdown).toContain(
+        ", then nobody: the next person hasn't joined the project yet.",
+      );
 
       expect(
         sends[0]!.markdownByWorkspaceType?.[WorkspaceType.Slack],
@@ -916,7 +936,7 @@ describe("posting a turn nothing pages", () => {
     expect(rows[0]!.displayColor?.toString()).toBe(Green500.toString());
     expect(rows[0]!.userId?.toString()).toBe(ANA.toString());
     expect(rows[0]!.feedInfoInMarkdown).toContain(
-      `, then nobody: **[ivy@acme.test](https://oneuptime.test/users/${IVY.toString()})** is next but hasn't joined the project yet.`,
+      `, then nobody: **Ivy** is next but hasn't joined the project yet.`,
     );
   });
 
@@ -932,7 +952,7 @@ describe("posting a turn nothing pages", () => {
     expect(rows[0]!.displayColor?.toString()).toBe(Yellow500.toString());
     expect(rows[0]!.userId?.toString()).toBe(IVY.toString());
     expect(rows[0]!.feedInfoInMarkdown).toMatch(
-      /^⚠️ Nobody will be paged for \[Payments\]\(.+\) through schedule Primary from Nov 14, 2026, .+ EST: \*\*\[ivy@acme\.test\]/,
+      /^⚠️ Nobody will be paged for \[Payments\]\(.+\) through schedule Primary from Nov 14, 2026, .+ EST: \*\*Ivy\*\* is next but hasn't joined the project yet\.$/,
     );
     expect(sends).toHaveLength(1);
     expect(sends[0]!.workspaceNotification.updateKinds).toEqual([OnCallNext]);
@@ -985,8 +1005,12 @@ describe("posting a turn nothing pages", () => {
     expect(rows[0]!.onCallDutyPolicyFeedEventType).toBe(
       OnCallDutyPolicyFeedEventType.CoverageGapStarted,
     );
+    /*
+     * Nobody's standing could be read, Bob's neither: nobody is named by
+     * what could be an invitee's address (#10616), so he is Somebody.
+     */
     expect(sends[0]!.markdownByWorkspaceType?.[WorkspaceType.Slack]).toBe(
-      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) through schedule Primary until ${SLACK_UNTIL}, when @bob takes over: the person on call isn't a member of the project.`,
+      `⚠️ Nobody is paged for [Payments](${POLICY_LINK}) through schedule Primary until ${SLACK_UNTIL}, when Somebody takes over: the person on call isn't a member of the project.`,
     );
     expect(logger.error).toHaveBeenCalledWith(
       "Could not read who an on-call handoff names that nothing pages; they are said to be no members, with no name.",
@@ -994,12 +1018,23 @@ describe("posting a turn nothing pages", () => {
     );
   });
 
-  test("everybody paged: nothing is read about who is invited", async () => {
+  test("everybody paged: nobody is read as somebody nothing pages, and each person named is asked once whether they are only invited", async () => {
+    connect([
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Mattermost,
+    ]);
+
     await OnCallHandoffPosts.post(handoff());
 
+    // Ana on call and Bob next: once each, for the feed and every channel (#10616).
     expect(
-      PendingInviteeProfiles.readWithheldProfilesInProject,
-    ).not.toHaveBeenCalled();
+      (
+        PendingInviteeProfiles.readWithheldProfilesInProject as unknown as jest.Mock
+      ).mock.calls.map((call: Array<unknown>): Array<string> => {
+        return (call[0] as { userIds: Array<string> }).userIds;
+      }),
+    ).toEqual([[ANA.toString()], [BOB.toString()]]);
     expect(UserService.findBy).not.toHaveBeenCalled();
   });
 
@@ -1087,6 +1122,8 @@ describe("posting a turn nothing pages", () => {
 
       // Ivy has joined: the project calls her by her own name now.
       PROJECT_NAMES[IVY.toString()] = "Ivy";
+      // ...and she is only invited no more.
+      typedNames.delete(IVY.toString());
 
       jest
         .spyOn(OnCallDutyPolicyScheduleService, "findBy")

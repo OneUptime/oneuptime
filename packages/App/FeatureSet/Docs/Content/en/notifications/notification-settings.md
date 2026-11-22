@@ -68,7 +68,7 @@ When you join a project, these events start on, by email. Everything else starts
 The **On-Call** tab is about you, and about the on-call records you own:
 
 - **You go on-call**, **You are up next on-call** and **You go off-call** follow your turns on the on-call schedules you are in.
-- **Added to on-call policy** and **Removed from on-call policy** tell you when an on-call policy starts or stops naming you.
+- **Added to on-call policy** and **Removed from on-call policy** tell you when an on-call policy starts or stops paging you: when one of its escalation rules names you or stops naming you, when you join the project, and when you join or leave a team that one of its rules names. Joining or leaving tells you once per policy, naming every rule of it that changed, and leaving tells you only once nothing else on that policy pages you. Nothing is sent before you join a project, or when you are removed from one.
 - **Before my on-call shift starts** sends reminders at the times you pick on **User Settings → Profile & Calendar → Calendar Feed**, and **My upcoming on-call shift is reassigned** tells you when someone else covers a shift you were reminded about. See [Calendar Feeds](/docs/on-call/calendar-feeds#reminders-and-reassignment-notices).
 - **Missed call**, on the **Incoming Call Policies** card, tells the owners of an incoming call policy that a caller reached nobody. See [Incoming Call Policy](/docs/on-call/incoming-call-policy#missed-calls).
 - **Added as on-call policy owner**, **Added as on-call schedule owner** and **Added as incoming call policy owner** tell you when you are made an owner of one, by an owner rule or by a person on its Owners page.
