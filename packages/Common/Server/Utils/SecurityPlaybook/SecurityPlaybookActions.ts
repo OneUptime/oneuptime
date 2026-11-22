@@ -14,6 +14,7 @@ import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import { WorkflowRoute } from "../../../ServiceRoute";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import Protocol from "../../../Types/API/Protocol";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
@@ -1254,17 +1255,43 @@ export default class SecurityPlaybookActions {
     );
     const payload: JSONObject = await this.getCasePayload(context);
 
-    // WebhookService refuses private and internal addresses and signs the body.
+    /*
+     * WebhookService refuses private and internal addresses and signs the
+     * body. The receiver's certificate is checked as the step says: as every
+     * request checks one, by the step's CA certificate alone, or not at all
+     * (#10440) - for this request alone.
+     */
     const response: unknown = await WebhookService.sendWebhook(
       {
         url: config.url,
         eventType: "security.case.playbook",
         payload,
+        certificates: {
+          allowSelfSignedCertificates:
+            config.allowSelfSignedCertificates === true,
+          ...(config.caCertificate
+            ? { caCertificate: config.caCertificate }
+            : {}),
+        },
       },
       {
         projectId: context.projectId,
       },
     );
+
+    if (response instanceof HTTPErrorResponse) {
+      /*
+       * What the sender found, when it says: a certificate it refused says
+       * which of the step's settings would let it through.
+       */
+      const reason: string = (response.message || "").trim();
+
+      return failed(
+        reason && reason !== "Server Error."
+          ? `The webhook could not be sent to ${config.url}: ${reason}`
+          : `The webhook could not be sent to ${config.url}.`,
+      );
+    }
 
     if (
       response &&

@@ -352,6 +352,11 @@ const TOO_OLD_FOR_ONE_TIME_CODES: string = writeProbeFailureCause(
   { version: "17.0.1" },
 );
 
+// #9737: an API check whose body is not JSON, so its request was not sent.
+const REQUEST_BODY_NOT_JSON: string = writeProbeFailureCause(
+  ProbeFailureCause.RequestBodyNotJson,
+);
+
 const EVERY_STORED: ReadonlyArray<string> = [
   ...AS_WRITTEN_BY_HAND.map((entry: { english: string }): string => {
     return entry.english;
@@ -364,6 +369,7 @@ const EVERY_STORED: ReadonlyArray<string> = [
   ),
   SERVER_RETURNED,
   TOO_OLD_FOR_ONE_TIME_CODES,
+  REQUEST_BODY_NOT_JSON,
 ];
 
 describe("the probe writes every cause from the table, byte for byte as it did by hand", () => {
@@ -1029,6 +1035,28 @@ describe("the other causes the checks write (#8656)", () => {
         "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime 17 point 1 or later.",
       ),
     ).toBeNull();
+  });
+
+  test("an API check whose request body is not JSON, so nothing was sent (#9737)", () => {
+    expect(REQUEST_BODY_NOT_JSON).toBe(
+      "The request body is not valid JSON, so the request was not sent. Correct the body, or the value of a monitor secret it uses.",
+    );
+    expect(readProbeFailureCause(REQUEST_BODY_NOT_JSON)).toEqual({
+      cause: ProbeFailureCause.RequestBodyNotJson,
+      values: {},
+    });
+    // The sentence whole and nothing more: a longer text is not OneUptime's own.
+    expect(
+      readProbeFailureCause(`${REQUEST_BODY_NOT_JSON} Line 3, column 7.`),
+    ).toBeNull();
+    expect(
+      wordProbeFailureCause({
+        translator: dashboardTranslator("de"),
+        failureCause: REQUEST_BODY_NOT_JSON,
+      }),
+    ).toBe(
+      "Der Anfragetext ist kein gültiges JSON, daher wurde die Anfrage nicht gesendet. Korrigieren Sie den Anfragetext oder den Wert eines Monitor-Geheimnisses, das er verwendet.",
+    );
   });
 
   test("an attempt the server answered with an error", () => {

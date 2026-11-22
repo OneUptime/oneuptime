@@ -406,6 +406,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.Network],
     leftAlone: {},
   },
+  // Run Again on a discovery scan (#10334): it queues a sweep, a write.
+  "packages/Common/Server/API/NetworkDeviceDiscoveryScanRunAPI.ts": {
+    products: [ProductKey.Network],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/NetworkDeviceNamingAPI.ts": {
     products: [ProductKey.Network],
     leftAlone: {

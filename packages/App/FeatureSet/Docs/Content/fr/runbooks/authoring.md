@@ -102,7 +102,7 @@ Un appel HTTP sortant, fait par le Worker OneUptime. Aucun agent Runbook n'est n
 | **URL** | Le point de terminaison à appeler. | Vide |
 | **En-têtes (JSON)** | Sous **Plus de champs**. Un objet JSON, par exemple `{ "Authorization": "Bearer ..." }`. Des en-têtes qui ne sont pas du JSON valide font échouer l'étape. | Aucun |
 | **Autoriser les certificats auto-signés** | Sous **Plus de champs**. Activé, l'étape accepte tout certificat que le serveur présente, donc un certificat auto-signé fonctionne, mais elle ne vérifie alors ni le nom d'hôte ni les dates de validité, et toute personne sur le chemin réseau pourrait lire la requête, secrets compris, et modifier la réponse. | Désactivé |
-| **Certificat de l'AC** | Sous **Plus de champs**, tant que **Autoriser les certificats auto-signés** est désactivé. Le certificat, au format PEM, de l'AC qui a signé le certificat du serveur, ou celui du serveur lui-même s'il est auto-signé. L'étape ne fait alors confiance qu'à ce certificat, et vérifie toujours le nom d'hôte et les dates de validité. | Aucun |
+| **Certificat de l'AC** | Sous **Plus de champs**, tant que **Autoriser les certificats auto-signés** est désactivé. Le certificat, au format PEM, de l'AC qui a signé le certificat du serveur, ou celui du serveur lui-même s'il est auto-signé, ou une [variable de runbook](/docs/runbooks/variables) qui le contient. L'étape ne fait alors confiance qu'à ce certificat, et vérifie toujours le nom d'hôte et les dates de validité. | Aucun |
 | **Corps** | Affiché pour `POST`, `PUT`, `PATCH` et `DELETE`. Envoyé en JSON s'il s'analyse comme du JSON, sinon en texte. | Aucun |
 | **Délai d'expiration de la requête** | Combien de temps attendre la réponse du point de terminaison avant de faire échouer l'étape. | 30 secondes |
 
@@ -118,10 +118,12 @@ Utile pour : ouvrir un incident PagerDuty, publier sur un webhook Slack, appeler
 
 Un serveur dont le certificat est auto-signé, ou signé par votre propre AC, est refusé tant que l'étape ne lui fait pas confiance, et rien n'est envoyé. L'erreur de l'étape dit quoi changer : "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." Collez le certificat qui l'a signé dans **Certificat de l'AC** : celui de l'AC, ou celui du serveur lui-même s'il est auto-signé. L'étape vérifie alors le certificat du serveur par rapport à lui, nom d'hôte et dates de validité compris, si bien qu'un serveur qui se fait seulement passer pour le vôtre est toujours refusé. N'activez **Autoriser les certificats auto-signés** que si vous ne pouvez pas en coller un. L'un comme l'autre ne s'applique qu'à la requête de cette étape, jamais à une autre étape, à une autre requête de OneUptime ni à la connexion à un proxy sortant.
 
+Quand de nombreuses étapes appellent des services que votre propre AC a signés, gardez son certificat dans une [variable de runbook](/docs/runbooks/variables) et écrivez seulement `{{global.variables.INTERNAL_CA}}` dans **Certificat de l'AC**. L'étape lit la variable à chacune de ses exécutions, donc quand l'AC change, vous ne changez la variable qu'une fois. Une variable ordinaire suffit, car un certificat n'est pas un secret ; une variable secrète fonctionne aussi, et elle est masquée dans ce que l'étape enregistre. Une variable qui n'existe pas, ou qui ne contient aucun certificat, fait échouer l'étape avant tout envoi, et l'erreur nomme la variable. Tant que **Autoriser les certificats auto-signés** est activé, l'étape ne lit pas la variable.
+
 > [!TIP]
 > Pour faire plutôt confiance à votre propre AC pour toutes les requêtes à la fois, moniteurs compris, une installation auto-hébergée définit `NODE_EXTRA_CA_CERTS` sur ses conteneurs.
 
-Par l'API et Terraform, l'interrupteur est le `allowSelfSignedCertificates` de la configuration de l'étape, `true` ou `false`, et le certificat de l'AC son `caCertificate`, le PEM en texte. Un enregistrement est refusé quand `caCertificate` n'est pas un certificat ou contient une clé privée.
+Par l'API et Terraform, l'interrupteur est le `allowSelfSignedCertificates` de la configuration de l'étape, `true` ou `false`, et le certificat de l'AC son `caCertificate` : le PEM en texte, ou une seule référence de variable. Un enregistrement est refusé quand `caCertificate` n'est ni l'un ni l'autre, ou contient une clé privée.
 
 ```hcl
 config = {

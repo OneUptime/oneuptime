@@ -102,7 +102,7 @@ Ett utgående HTTP-anrop som görs av OneUptime Worker. Ingen Runner behövs.
 | **URL** | Slutpunkten som ska anropas. | Tom |
 | **Rubriker (JSON)** | Under **Fler fält**. Ett JSON-objekt, till exempel `{ "Authorization": "Bearer ..." }`. Headers som inte är giltig JSON får steget att misslyckas. | Inga |
 | **Tillåt självsignerade certifikat** | Under **Fler fält**. När den är på tar steget vilket certifikat servern än visar, så ett självsignerat fungerar, men det kontrollerar varken värdnamnet eller giltighetsdatumen, och vem som helst på nätverksvägen kan läsa begäran, hemligheter inräknade, och ändra svaret. | Av |
-| **CA-certifikat** | Under **Fler fält**, så länge **Tillåt självsignerade certifikat** är av. Certifikatet, i PEM, från den CA som signerade serverns certifikat, eller serverns eget när det är självsignerat. Steget litar då bara på det certifikatet, och kontrollerar fortfarande värdnamnet och giltighetsdatumen. | Inget |
+| **CA-certifikat** | Under **Fler fält**, så länge **Tillåt självsignerade certifikat** är av. Certifikatet, i PEM, från den CA som signerade serverns certifikat, eller serverns eget när det är självsignerat, eller en [runbook-variabel](/docs/runbooks/variables) som innehåller det. Steget litar då bara på det certifikatet, och kontrollerar fortfarande värdnamnet och giltighetsdatumen. | Inget |
 | **Brödtext** | Visas för `POST`, `PUT`, `PATCH` och `DELETE`. Skickas som JSON när den kan tolkas som JSON, annars som text. | Ingen |
 | **Tidsgräns för begäran** | Hur länge det väntas på slutpunktens svar innan steget misslyckas. | 30 sekunder |
 
@@ -118,10 +118,12 @@ Användbart för: att öppna en PagerDuty-incident, posta till en Slack-webhook,
 
 En server vars certifikat den själv har signerat, eller som din egen CA har signerat, avvisas tills steget litar på den, och inget skickas. Stegets fel säger vad du ska ändra: "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." Klistra in certifikatet som signerade det i **CA-certifikat**: CA:ns, eller serverns eget när det är självsignerat. Steget kontrollerar då serverns certifikat mot det, värdnamn och giltighetsdatum inräknade, så en server som bara utger sig för att vara din avvisas fortfarande. Slå på **Tillåt självsignerade certifikat** bara när du inte kan klistra in ett. Båda gäller bara det här stegets begäran, aldrig ett annat steg, en annan begäran från OneUptime eller anslutningen till en utgående proxy.
 
+När många steg anropar tjänster som din egen CA har signerat, spara dess certifikat i en [runbook-variabel](/docs/runbooks/variables) och skriv bara `{{global.variables.INTERNAL_CA}}` i **CA-certifikat**. Steget läser variabeln varje gång det körs, så när CA:n byts ändrar du variabeln en gång. En vanlig variabel räcker, eftersom ett certifikat inte är en hemlighet; en hemlig fungerar också, och döljs i det som steget registrerar. En variabel som inte finns, eller som inte innehåller något certifikat, får steget att misslyckas innan något skickas, och felet namnger variabeln. Så länge **Tillåt självsignerade certifikat** är på läser steget inte variabeln.
+
 > [!TIP]
 > För att i stället lita på din egen CA för alla begäranden på en gång, monitorer inräknade, sätter en självhostad installation `NODE_EXTRA_CA_CERTS` på sina containrar.
 
-Via API:et och Terraform är brytaren stegkonfigurationens `allowSelfSignedCertificates`, `true` eller `false`, och CA-certifikatet är dess `caCertificate`, PEM:en som text. En sparning avvisas när `caCertificate` inte är ett certifikat eller innehåller en privat nyckel.
+Via API:et och Terraform är brytaren stegkonfigurationens `allowSelfSignedCertificates`, `true` eller `false`, och CA-certifikatet är dess `caCertificate`: PEM:en som text, eller en enda variabelreferens. En sparning avvisas när `caCertificate` är ingetdera, eller innehåller en privat nyckel.
 
 ```hcl
 config = {
