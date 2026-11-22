@@ -5063,7 +5063,9 @@ jobs:
       # they hold by its id (the dashboard's own reads, through the routes),
       # and their pickers find a monitor past the 10,000th; a workspace
       # rule's monitors condition, searched and named by id the same way;
-      # a telemetry step's services and inventory items, by name or key.
+      # a telemetry step's services and inventory items, by name or key;
+      # a monitor's on-call policies, an OpenStack cloud's projects, an
+      # infrastructure monitor's host and a metric query's metric.
       - name: Test the pickers' server searches and the lists' "is not" on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
@@ -5082,6 +5084,7 @@ jobs:
           Tests/Server/API/FormPickerSearchPostgres.test.ts
           Tests/Server/API/WorkspaceRuleMonitorSearchPostgres.test.ts
           Tests/Server/API/TelemetryStepScopeSearchPostgres.test.ts
+          Tests/Server/API/MonitorAndCloudPickerSearchPostgres.test.ts
           --forceExit
 
       # The LLM provider an AI rule picks, on migrated Postgres: the two

@@ -150,6 +150,9 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   const resources: InfrastructureResources<ProxmoxCluster> =
     useInfrastructureResources<ProxmoxCluster>({
+      valueField: "name",
+      searchFields: ["name"],
+      heldValue: monitorStepProxmoxMonitor.clusterIdentifier,
       modelType: ProxmoxCluster,
       select: {
         _id: true,
@@ -348,6 +351,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}
+        onSearchTextChange={resources.onSearchTextChange}
         addResource={{
           title: PROXMOX_CLUSTER_ONBOARDING.addTitle,
           renderModal: (input: {

@@ -86,6 +86,9 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   const hosts: InfrastructureResources<Host> = useInfrastructureResources<Host>(
     {
+      valueField: "hostIdentifier",
+      searchFields: ["name", "hostIdentifier"],
+      heldValue: monitorStepHostMonitor.hostIdentifier,
       modelType: Host,
       select: {
         _id: true,
@@ -300,6 +303,7 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
         onChange={changeHost}
         isLoading={hosts.isLoading}
         lastSeenAtByValue={hosts.lastSeenAtByValue}
+        onSearchTextChange={hosts.onSearchTextChange}
         addResource={{
           title: "Add Host",
           renderModal: (input: {
