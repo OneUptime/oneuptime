@@ -1,11 +1,12 @@
 # Cloudflare
 
-Importera det som [Cloudflare](https://www.cloudflare.com)s brandvägg gjorde vid kanten till OneUptimes säkerhetshändelser: de begäranden som dess hanterade och egna WAF-regler, hastighetsbegränsning, IP Access Rules, bothantering och HTTP-DDoS-skydd blockerade, utmanade eller loggade. Var och en står bredvid appens egna begäranden, så ett ärende säger vad Cloudflare stoppade och vad som ändå nådde din app. OneUptime läser dem med en API-token som bara kan läsa, och ändrar ingenting i Cloudflare.
+Importera det som [Cloudflare](https://www.cloudflare.com)s brandvägg gjorde vid kanten till OneUptimes säkerhetshändelser: de begäranden som dess hanterade och egna WAF-regler, hastighetsbegränsning, IP Access Rules, bothantering och HTTP-DDoS-skydd blockerade, utmanade eller loggade. Var och en står bredvid appens egna begäranden, så ett ärende säger vad Cloudflare stoppade och vad som ändå nådde din app. OneUptime läser dem med en API-token som bara kan läsa, och ändrar ingenting i Cloudflare om du inte slår på blockering, som tillämpar din blocklista där.
 
 :::cards
 - [Konfigurera anslutningen](#konfigurera-anslutningen): En API-token med två läsbehörigheter, och anslutningens formulär.
 - [Vad som importeras](#vad-som-importeras): Vilka händelser, och hur var och en blir en säkerhetshändelse.
 - [Så fungerar avsökningen](#så-fungerar-avsökningen): Fönstret som varje hämtning läser, och varför det överlappar med 10 minuter.
+- [Blockera adresser hos Cloudflare](#blockera-adresser-hos-cloudflare): Din blocklista, tillämpad med två IP-listor och en anpassad regel per lista.
 - [Felsökning](#felsökning): Vad varje fel betyder och vad du ska ändra.
 :::
 
@@ -63,7 +64,7 @@ Steget **Hämtning** har också en valfri **Beskrivning**, **Hämtningsintervall
 
 ### Skrivåtkomst är ett eget val
 
-Den här anslutningen ändrar aldrig något i Cloudflare. Att blockera adresser där är ett eget samtycke, som kräver skrivbehörigheter: `Account > Account Filter Lists > Edit` för listorna, `Zone > Zone WAF > Edit` på varje zon där det ska blockeras, och `Account > Account Firewall Access Rules > Edit` på abonnemang utan tillräckligt många listor. Lägg till dem i token först när du slår på blockering.
+Den här anslutningen ändrar ingenting i Cloudflare förrän du slår på blockering på dess rad. Först då ber OneUptime om skrivbehörigheter, och det kontrollerar dem innan det blockerar något: [Blockera adresser hos Cloudflare](#blockera-adresser-hos-cloudflare) nämner var och en och vad den används till. Lägg till dem i token först när du slår på blockering.
 
 ## Vad som importeras
 
@@ -151,6 +152,58 @@ Klicka på **Diagnostik** på en anslutning för att se dess senaste körningar 
 
 Varje begäran i ett test har en tidsgräns på 20 sekunder. Ett test importerar aldrig något och flyttar aldrig markören, och varje kontroll som misslyckas säger vad du ska ändra.
 
+## Blockera adresser hos Cloudflare
+
+Med blockering påslagen tillämpar Cloudflare ditt projekts [blocklista](/docs/telemetry/security-cases#blocklista). Varje adress du blockerar hamnar inom en minut på en IP-lista i ditt Cloudflare-konto, och i varje zon blockerar en anpassad regel per lista de adresser listan innehåller, eller ger dem en utmaning. På **Blocklista** nämner **Tillämpad hos** Cloudflare för varje blockering som OneUptime har läst tillbaka från Cloudflare; en blockering som inte läses tillbaka inom 10 minuter tillämpas inte där. Ett ärendes blockeringssteg säger då också hur många av adressens begäranden Cloudflare har stoppat sedan blockeringen.
+
+Blockering behöver skrivbehörigheter på anslutningens API-token:
+
+| Behörighet | Vad OneUptime gör med den |
+| --- | --- |
+| `Account > Account Filter Lists > Edit` | Skapar sina två listor, och lägger till och tar bort deras adresser. |
+| `Zone > Zone WAF > Edit`, på varje zon där det ska blockeras | Lägger till sina anpassade regler, och läser zonens egna. |
+| `Account > Account Firewall Access Rules > Edit` | Lägger till och tar bort IP Access Rules, på en plan utan ledig lista eller ledig anpassad regel. |
+
+:::steps
+### Ge token skrivbehörigheter
+
+Öppna **My Profile → API Tokens** i Cloudflare, redigera anslutningens token och lägg till behörigheterna ovan. Eller skapa en token som har dem och de två läsbehörigheterna.
+
+### Slå på blockering
+
+Välj **Blockera adresser** på anslutningens rad. Klistra in en ny token i **Nytt API-token**, eller lämna fältet tomt för att behålla den nuvarande, och låt **Alla zoner** stå kvar i **Zoner**, eller välj de zoner där det ska blockeras. **Kontrollera behörigheter** frågar Cloudflare om token har varje behörighet, och ändrar ingenting. **Slå på blockering** slår bara på blockering när varje kontroll går igenom, och OneUptime konfigurerar Cloudflare inom en minut.
+:::
+
+Medan blockering är påslagen kör **Testa anslutningen** samma kontroller: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** och, där IP Access Rules används, **Edit IP Access Rules**.
+
+### Vad OneUptime lägger till i Cloudflare
+
+| I Cloudflare | Vad det är |
+| --- | --- |
+| Listorna `oneuptime_block` och `oneuptime_challenge` | Två IP-listor i kontot, en för blockeringar och en för utmaningar. Deras beskrivning nämner ditt OneUptime-projekt. |
+| En anpassad regel per lista, i varje zon | `(ip.src in $oneuptime_block)` med åtgärden Block, och `(ip.src in $oneuptime_challenge)` med åtgärden Managed Challenge. Deras beskrivning säger att OneUptime hanterar dem. |
+| Ett listobjekt per blockering | Dess kommentar nämner ärendet och när blockeringen upphör, till exempel `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
+
+Varje regel kommer först bland zonens anpassade regler, så den körs före dina: En Skip-regel från dig kan inte släppa förbi en blockerad adress. När dina Skip-regler släpper igenom adresser, till exempel dina monitorers eller en partners, nämner **Blockeringsstatus** dem. **Skydda dessa adresser** lägger till dem i **Skyddade entiteter**, som ingen kan blockera.
+
+### Plangränser för blockering
+
+| Abonnemang | Free | Pro | Business | Enterprise |
+| --- | --- | --- | --- | --- |
+| Listor i kontot | 1 | 10 | 10 | 1 000 |
+| Listobjekt i kontot | 10 000 | 10 000 | 10 000 | 500 000 |
+| Anpassade regler i en zon | 5 | 20 | 100 | 1 000 |
+
+Dina egna listor och regler räknas också. När du slår på blockering tar varje åtgärd en lista, och en regel i varje zon, där planen har dem lediga, Block först; där inte, tar den IP Access Rules. På en Free-plan vars enda lista är ledig tar blockeringar listan och utmaningar IP Access Rules. Ett konto rymmer 50 000 IP Access Rules, var och en en adress, ett IPv4-intervall på /16 eller /24 eller ett IPv6-intervall på /32, /48 eller /64: En blockering av ett annat intervall tillämpas inte där, och **Blocklista** säger varför. **How blocking is set up** säger vad varje åtgärd tar, och varför.
+
+### När någon ändrar en regel
+
+OneUptime läser tillbaka sina listor och regler var 3:e minut, och ångrar aldrig en ändring som någon har gjort i Cloudflare. En regel som har stängts av, tagits bort eller ändrats där visas på anslutningens rad och i **Blockeringsstatus**, med sin zon, och **Blocklista** visar blockeringarna i den zonens regel som inte tillämpade hos Cloudflare. **Återställ** konfigurerar regeln igen. Så länge **Zoner** står på **Alla zoner** konfigureras en zon som läggs till i kontot senare av sig själv.
+
+### Stäng av blockering
+
+**Stäng av blockering** frågar om OneUptimes listor och regler ska tas bort från Cloudflare, med **Ta bort OneUptimes listor och regler från Cloudflare** valt. Borttagningen tar bort OneUptimes regler, dess två listor och de IP Access Rules det har lagt till, hittade genom de namn, referenser och anteckningar det gav dem, och inget annat. Behålls de, stannar de i Cloudflare och fortsätter blockera det de innehåller. En anslutning som blockerar adresser kan inte tas bort: Stäng av blockering först, och ta bort den när borttagningen är klar.
+
 ## Felsökning
 
 Anslutningens **Senaste fel** behåller hela felmeddelandet, med inloggningsuppgifter dolda. När en anslutning har ett fel väljer du **Visa fel** i dess kolumn **Åtgärder** för att läsa det, och **Kopiera fel** i dialogen för att kopiera det. Varje meddelande nämner den begäran som misslyckades och citerar Cloudflares egen orsak.
@@ -176,7 +229,11 @@ Begäran fick inget svar: en tidsgräns, ett namn som inte kan slås upp eller e
 :::
 
 :::details Ett ärende visar Cloudflares åtgärder, men ingen av adressens begäranden i din app
-Bakom Cloudflare ser din app Cloudflares adresser, om den inte läser besökarens från huvudet `CF-Connecting-IP`. Skriv den adressen till dina loggar och spår som `client.address`, så att OneUptime kan koppla din apps begäranden till adressen som Cloudflare agerade på.
+Bakom Cloudflare kommer din apps förfrågningar från Cloudflares adresser, och besökarens adress är den sista som Cloudflare lägger till i `X-Forwarded-For`. Registrera den headern (`http.request.header.x-forwarded-for`) och anslutningens egen adress (`network.peer.address`) i dina traces. Så länge den här anslutningen finns litar OneUptime på Cloudflares adresser som proxy, så det läser besökaren ur headern och matchar din apps förfrågningar mot adressen som Cloudflare agerade på. En `client.address` som din app kopierar från `CF-Connecting-IP` litas det inte på: Vem som helst som når din app direkt kan skicka den headern.
+:::
+
+:::details Blockeringsstatus lyder `already exists in this Cloudflare account`
+Ett annat OneUptime-projekt, eller en person, har skapat en lista med namnet `oneuptime_block` eller `oneuptime_challenge`, och OneUptime ändrar aldrig en lista som det inte skapade för det här projektet. Byt namn på listan eller ta bort den i Cloudflare, eller stäng av blockering i projektet som skapade den. OneUptime konfigurerar blockering igen inom 5 minuter.
 :::
 
 :::details Testet lyckas, men Last Polled är Never

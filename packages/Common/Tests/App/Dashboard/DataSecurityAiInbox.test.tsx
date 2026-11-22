@@ -357,7 +357,15 @@ beforeEach(() => {
   jest.spyOn(API, "post").mockImplementation(async (options: unknown) => {
     const request: { url: { toString: () => string }; data?: JSONObject } =
       options as { url: { toString: () => string }; data?: JSONObject };
-    const path: string = new URL(request.url.toString()).pathname;
+    /*
+     * The route, past the API's own /api: with config.env's HOST the URL is
+     * http://localhost/api/..., and without one it reads as http:///api/...,
+     * whose path has no /api - the test reads the same either way.
+     */
+    const path: string = new URL(request.url.toString()).pathname.replace(
+      /^\/api(?=\/)/,
+      "",
+    );
 
     posts.push({ path, data: request.data || {} });
 

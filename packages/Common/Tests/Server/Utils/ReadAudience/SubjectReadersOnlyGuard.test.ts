@@ -47,7 +47,7 @@ const OPTION: string = "postsOnlyWhereTheSubjectIsRead";
 // The runs that weigh only their subject's readers, relative to Server/, and why they may.
 const RUNS_POSTED_ONLY_ON_THEIR_SUBJECT: Record<string, string> = {
   "Utils/AI/Security/SecurityCaseTriageRunner.ts":
-    "a security case's triage: written on the case and its timeline, read by whoever may read the case there, in the audit log, and nowhere else (the rest of this suite).",
+    "a security case's triage: written on the case and its timeline, read by whoever may read the case there, in the audit log - which shows its values to the case's readers alone (#10642) - and nowhere else (the rest of this suite).",
 };
 
 // Where the triage's report is read on the server, relative to Server/, and why it stays with the case's readers.

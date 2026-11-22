@@ -23,6 +23,7 @@ import AIInvestigationConversationAPI from "Common/Server/API/AIInvestigationCon
 import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AutoRemediationAPI from "Common/Server/API/AutoRemediationAPI";
 import AiFirstResponderAPI from "Common/Server/API/AiFirstResponderAPI";
+import ScrubRuleReadersAPI from "Common/Server/API/ScrubRuleReadersAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationService, {
   Service as AIConversationServiceType,
@@ -723,6 +724,10 @@ import SecurityBlockCloudWafAPI from "Common/Server/API/SecurityBlockCloudWafAPI
 import SecurityBlockEnforcementService, {
   Service as SecurityBlockEnforcementServiceType,
 } from "Common/Server/Services/SecurityBlockEnforcementService";
+import SecurityBlocklistFeedAPI from "Common/Server/API/SecurityBlocklistFeedAPI";
+import SecurityBlocklistFeedFetchService, {
+  Service as SecurityBlocklistFeedFetchServiceType,
+} from "Common/Server/Services/SecurityBlocklistFeedFetchService";
 import SecurityEntityRiskService, {
   Service as SecurityEntityRiskServiceType,
 } from "Common/Server/Services/SecurityEntityRiskService";
@@ -1978,6 +1983,7 @@ import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
+import SecurityBlocklistFeedFetch from "Common/Models/DatabaseModels/SecurityBlocklistFeedFetch";
 import SecurityEntityRisk from "Common/Models/DatabaseModels/SecurityEntityRisk";
 import DataSecurityAPI from "Common/Server/API/DataSecurityAPI";
 import DataObservabilityAPI from "Common/Server/API/DataObservabilityAPI";
@@ -4865,6 +4871,25 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
 
     /*
+     * Blocklist feeds (#10345): their CRUD, the rotation and revocation of
+     * their secrets, and the feeds firewalls read
+     * (/blocklist-feed/:feedId/..., no UserMiddleware - the secret is the
+     * credential), with every fetch of them.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityBlocklistFeedAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        SecurityBlocklistFeedFetch,
+        SecurityBlocklistFeedFetchServiceType
+      >(SecurityBlocklistFeedFetch, SecurityBlocklistFeedFetchService).getRouter(),
+    );
+
+    /*
      * Data Security (DSPM): stores and what was found in them, who can
      * reach them, where their data goes, issues, scans, and the project's
      * own data types, checks, residency rules, owners and settings.
@@ -5452,6 +5477,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AutoRemediationAPI);
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AiFirstResponderAPI);
+
+    /*
+     * What a scrub rule being written or turned on would take away from the
+     * monitors, dashboards, saved views, recording rules, SLOs and Security
+     * Events that read what it hides (#10433).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ScrubRuleReadersAPI);
 
     /*
      * Cluster AI access — readiness checklist + "test access" for a

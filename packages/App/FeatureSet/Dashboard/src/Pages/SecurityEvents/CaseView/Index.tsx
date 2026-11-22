@@ -40,6 +40,11 @@ import {
   SecurityCaseTarget,
   SecurityCaseTargetReading,
 } from "Common/Utils/SecurityCase/SecurityCaseTargets";
+import RefusedTelemetryLines from "../../../Components/SecurityEvents/RefusedTelemetry/RefusedTelemetryLines";
+import { CASE_REFUSED } from "../../../Components/SecurityEvents/RefusedTelemetry/RefusedTelemetryCopy";
+import useProjectRefusedTelemetry from "../../../Components/SecurityEvents/RefusedTelemetry/useProjectRefusedTelemetry";
+import { getRefusedTelemetryWhileCaseOpen } from "../../../Components/SecurityEvents/RefusedTelemetry/RefusedTelemetryModel";
+import { RefusedTelemetry } from "Common/Utils/SecurityEvent/RefusedTelemetry";
 import Card from "Common/UI/Components/Card/Card";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -82,6 +87,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * the Story, the Detections, the Entities, the Evidence, the Tasks, the
  * Playbooks and the Private Notes.
  */
+export const SECURITY_CASE_REFUSED_TELEMETRY_TEST_ID: string =
+  "security-case-refused-telemetry";
+
 const SecurityCaseOverviewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -100,6 +108,8 @@ const SecurityCaseOverviewPage: FunctionComponent<
   );
   // Read again every half minute, so a due time counts down on the page.
   const now: Date = useTargetClock();
+  // What a budget or a rate refused of what Security Events reads (#10431).
+  const projectRefusals: Array<RefusedTelemetry> = useProjectRefusedTelemetry();
   const figures: SecurityCaseFigures = getSecurityCaseFigures(
     securityCase,
     now,
@@ -155,6 +165,21 @@ const SecurityCaseOverviewPage: FunctionComponent<
     return formatCompactDurationInMinutes(minutes, translator.language);
   };
 
+  /*
+   * What an ingestion budget or rate refused of the telemetry Security
+   * Events reads while the case was open (#10431): from its first detection
+   * to its close, or to now - the case's detections from then may be
+   * missing.
+   */
+  const refusedWhileOpen: Array<RefusedTelemetry> =
+    getRefusedTelemetryWhileCaseOpen({
+      refusals: projectRefusals,
+      firstDetectedAt: securityCase.firstDetectedAt,
+      createdAt: securityCase.createdAt,
+      closedAt: securityCase.closedAt,
+      now,
+    });
+
   return (
     <>
       {/*
@@ -201,6 +226,14 @@ const SecurityCaseOverviewPage: FunctionComponent<
           note={targetNote(SecurityCaseTarget.Contain)}
         />
       </EventStatBar>
+
+      <RefusedTelemetryLines
+        refusals={refusedWhileOpen}
+        showsSource={true}
+        intro={CASE_REFUSED}
+        showsOpenBudgets={true}
+        dataTestId={SECURITY_CASE_REFUSED_TELEMETRY_TEST_ID}
+      />
 
       <SecurityCaseWhyOpenedCard caseId={view.caseId} state={matches} />
 

@@ -1,13 +1,13 @@
 # Gevoelige gegevens in telemetrie
 
-Telemetrie bevat wat je code ook schrijft: een e-mailadres in een logregel, een kaartnummer in een span-attribuut, een token in een stacktrace, de vraag van een klant in een prompt, het IP-adres van een gebruiker in het label van een metriek. Gegevensbeveiliging behandelt de logs, traces, metrieken, uitzonderingen en AI-gesprekken van elke service, en de sessies van elke RUM-applicatie, als eigen gegevensopslagen. Het neemt er elk uur een steekproef van, vindt er gevoelige gegevens in zoals in een bucket, en **Opschonen** maakt van een bevinding een regel die die gegevens vanaf dan bij de inname maskeert.
+Telemetrie bevat wat je code ook schrijft: een e-mailadres in een logregel, een kaartnummer in een span-attribuut, een token in een stacktrace, de vraag van een klant in een prompt, het IP-adres van een gebruiker in het label van een metriek. Gegevensbeveiliging behandelt de logs, traces, metrieken, uitzonderingen en AI-gesprekken van elke service, en de sessies van elke RUM-applicatie, als eigen gegevensopslagen. Het neemt er elk uur een steekproef van, vindt er gevoelige gegevens in zoals in een bucket, en **Opschonen** maakt van een bevinding een regel die die gegevens vanaf dan bij de inname verbergt, in de service waarin ze zijn gevonden.
 
 Er is niets in te stellen: de telemetrie van elke service wordt elk uur gescand, tenzij **Telemetrie scannen** uit staat in de instellingen van het project. Wil je de logs, traces of een ander signaal van één service overslaan, zet dan **Inhoud scannen** uit in de **Instellingen** van die opslag: vanaf de volgende scan wordt er niets van gelezen.
 
 :::cards
 - [Wat wordt gelezen](#wat-wordt-gelezen): De attributen, bodies, berichten en prompts van elk signaal.
 - [Hoe een scan bemonstert](#hoe-een-scan-bemonstert): De nieuwste records van elke service, elk uur.
-- [Opschonen](#opschonen): Maskeer een bevinding bij de inname, met één klik.
+- [Opschonen](#opschonen): Verberg een bevinding bij de inname, in de service waarin ze is gevonden.
 - [Deze metriek verwerpen](#deze-metriek-verwerpen): Sla de metrieken waarvan de naam gevoelige gegevens bevat niet meer op.
 - [Wat telt als opgeschoond](#wat-telt-als-opgeschoond): Wanneer een opschoonregel een bevinding al dekt.
 :::
@@ -94,14 +94,14 @@ Open het probleem - **Waar het is gevonden** toont elke bevinding erachter - of 
 
 ### Druk op Opschonen
 
-Klik op **Opschonen**. OneUptime maakt voor logs, en de logs van een RUM-applicatie, een opschoonregel voor logs, voor spans, uitzonderingen en AI-aanroepen een opschoonregel voor traces, op het deel van het record waarin de bevinding staat, en voor het attribuut van een metriek een pipelineregel voor metrieken.
+Klik op **Opschonen**. Een dialoogvenster zegt wat de regel zou doen voordat er iets wordt gemaakt: wiens records ze verandert, wat ze doet met wat ze vindt en wat de waarden leest die ze zou verbergen. Klik daarin op **Opschonen** om de regel te maken. OneUptime maakt voor logs, en de logs van een RUM-applicatie, een opschoonregel voor logs, voor spans, uitzonderingen en AI-aanroepen een opschoonregel voor traces, op het deel van het record waarin de bevinding staat, en voor het attribuut van een metriek een pipelineregel voor metrieken.
 
 ### Herstel ook de code
 
-De regel maskeert nieuwe gegevens voordat ze worden opgeslagen. Gegevens die al zijn opgeslagen, blijven staan tot hun bewaartermijn afloopt, dus herstel de code die ze schrijft: de bevinding noemt de service en het attribuut.
+De regel verbergt nieuwe gegevens voordat ze worden opgeslagen. Gegevens die al zijn opgeslagen, blijven staan tot hun bewaartermijn afloopt, dus herstel de code die ze schrijft: de bevinding noemt de service en het attribuut.
 :::
 
-De regel wordt genoemd naar wat hij verbergt, zoals "Data Security: Email address in attributes.user.email", en staat bij je andere opschoonregels (zie [Dropfilters en opschoonregels](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen)). Het is een van deze:
+De regel wordt genoemd naar wat hij verbergt, zoals "Data Security: Email address in log attributes of checkout", en staat bij je andere opschoonregels (zie [Dropfilters en opschoonregels](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen)). Het is een van deze:
 
 | Bevinding | Regel die Opschonen maakt |
 | --- | --- |
@@ -109,6 +109,10 @@ De regel wordt genoemd naar wat hij verbergt, zoals "Data Security: Email addres
 | Een waarde onder een sleutel die gevoelig lijkt, zoals `password` of `token` | Een regel **Gevoelige attribuutsleutels**, die de hele waarde van elk zulk attribuut weglakt |
 | Elk ander gegevenstype dat een patroon kan vinden | Een regel **Aangepaste reguliere expressie**, gemaakt van de eigen patronen van het gegevenstype, die elke waarde van die vorm weglakt |
 | Elk gegevenstype in het attribuut van een metriek | Een pipelineregel **Kenmerk weglakken** voor de metrieken van de service, die de waarden van het attribuut met de vorm van het gegevenstype vervangt door `[REDACTED]`, of elke waarde van het attribuut wanneer geen patroon het gegevenstype vindt |
+
+Een regel voor logs of traces geldt voor de service waarin de bevinding is gevonden: ze schoont de logs of spans van die service op, en die van andere services blijven zoals ze zijn, zodat niets verandert wat die van hen leest. De kolom **Bereik** van de lijst met opschoonregels zegt voor welke service een regel geldt. Een bevinding in de sessie-opnames van een RUM-toepassing maakt een regel voor elke service en app van het project, omdat regels voor logs ook opnames opschonen, en het dialoogvenster zegt dat. Bestaat de service niet meer, dan zegt **Opschonen** dat en maakt het geen regel.
+
+Het dialoogvenster noemt, elk als link, de monitors, dashboards met hun widgets, opgeslagen weergaven, opnameregels en SLO's die de waarden lezen die de regel zou verbergen, en wat er met ze gebeurt: een filter op een verborgen waarde komt niet meer overeen, en een groepering erop toont de echte waarden niet meer. Het zegt ook wat [Beveiligingsgebeurtenissen](/docs/telemetry/security-events) zouden verliezen als ze die records lezen: met verborgen IP-adressen kunnen de gebeurtenissen het te blokkeren adres niet noemen. Wat je niet kunt zien, wordt geteld, nooit genoemd. Het dialoogvenster houdt de regel nooit tegen: het zegt het, en jij beslist. De formulieren van de opschoonregels tonen hetzelfde voordat een regel wordt opgeslagen of ingeschakeld.
 
 Sommige bevindingen kan geen regel opschonen, en **Opschonen** zegt waarom. Het attribuut van een metriek kan altijd worden opgeschoond, omdat de regel ervoor elke waarde van het attribuut kan verbergen:
 
@@ -139,6 +143,7 @@ Een bevinding wordt alleen als opgeschoond gemarkeerd wanneer de inname er een i
 
 - **De juiste records.** Regels voor logs dekken logs en de logs van een RUM-applicatie. Regels voor traces dekken spans, uitzonderingen en AI-aanroepen: een uitzondering is een kopie van het exception-event van haar span, dus de regels die events opschonen, schonen haar ook op.
 - **Het juiste deel.** De **Te wissen velden** van de regel bevatten het deel van het record waarin de bevinding staat, of de regel laat ze op hun standaardwaarde.
+- **De juiste service.** Een regel voor logs of traces voor één service dekt alleen de bevindingen van die service. Een regel zonder service dekt die van elke service.
 - **Een patroon dat het type vindt.** Een ingebouwd **Patroontype** vindt zijn eigen gegevenstype: **E-mailadres** vindt e-mailadressen, **Creditcardnummer** kaartnummers, **SSN (burgerservicenummer)** Amerikaanse socialezekerheidsnummers, **Telefoonnummer** telefoonnummers en **IP-adres** IP-adressen. **Gevoelige attribuutsleutels** dekt elke waarde onder een sleutel die gevoelig lijkt, wat de waarde ook is.
 - **Je eigen aangepaste patronen tellen nooit.** Een **Aangepaste reguliere expressie** dekt een bevinding alleen als ze precies het patroon is dat **Opschonen** voor haar type maakt. Een bevinding bewaart alleen gemaskeerde voorbeelden, waarop geen patroon kan worden uitgeprobeerd, dus OneUptime kan niet bewijzen dat je patroon de gegevens verbergt, en een bevinding die ten onrechte opgeschoond heet, is een lek waar niemand naar kijkt.
 - **Het attribuut van een metriek.** Een pipelineregel voor metrieken van het type **Kenmerk weglakken** of **Kenmerk verwijderen** op de sleutel van dat attribuut, voor de service van de bevinding of voor het hele project, dekt haar als de regel geen filter heeft, of precies het filter dat **Opschonen** maakt. Een filter dat je zelf schreef, telt nooit, om dezelfde reden.

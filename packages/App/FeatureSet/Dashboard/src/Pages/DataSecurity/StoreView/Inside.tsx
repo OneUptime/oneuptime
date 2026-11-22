@@ -1,5 +1,4 @@
 import PageComponentProps from "../../PageComponentProps";
-import DataSecurityApi from "../../../Components/DataSecurity/DataSecurityApi";
 import {
   ConfidencePill,
   SensitivityPill,
@@ -7,6 +6,8 @@ import {
 import { STORE_SENSITIVITY_OPTIONS } from "../../../Components/DataSecurity/StoreFieldOptions";
 import { getDataTypeName } from "../../../Components/DataSecurity/StoreDataTypeList";
 import StoreNotSensitiveModal from "../../../Components/DataSecurity/StoreNotSensitiveModal";
+import ScrubItModal from "../../../Components/DataSecurity/ScrubItModal";
+import { SCRUB_NOTICES } from "../../../Components/DataSecurity/TelemetryScrubIt";
 import {
   getDataStoreKindFacts,
   useDataStoreViewContext,
@@ -122,6 +123,8 @@ const DataStoreInside: FunctionComponent<
   const [refreshToggle, setRefreshToggle] = useState<string>("");
   const [message, setMessage] = useState<string>("");
   const [error, setError] = useState<string>("");
+  // The finding Scrub It's dialog is open on (ScrubItModal, #10433).
+  const [scrubbing, setScrubbing] = useState<DataStoreFinding | null>(null);
 
   const refresh: () => void = (): void => {
     setRefreshToggle(Date.now().toString());
@@ -302,39 +305,17 @@ const DataStoreInside: FunctionComponent<
             getDisabledReason: (): string | undefined => {
               return scrubGate.isAllowed ? undefined : scrubGate.disabledReason;
             },
-            getConfirmation: () => {
-              return {
-                title: "Scrub This Data at Ingest",
-                description:
-                  "OneUptime adds a scrub rule that masks this kind of data at this place in new telemetry, before it is stored. What is already stored does not change.",
-                submitButtonText: "Scrub It",
-              };
-            },
-            onClick: async (
+            /*
+             * A dialog says what the rule does, whose records it changes
+             * and what reads the data, then makes it (#10433).
+             */
+            onClick: (
               item: DataStoreFinding,
               onCompleteAction: VoidFunction,
-              onError: ErrorFunction,
-            ): Promise<void> => {
-              try {
-                setError("");
-                const result: DataSecurityScrubResult =
-                  await DataSecurityApi.scrubFinding(
-                    new ObjectID(item._id!.toString()),
-                  );
-                setMessage(
-                  translator.translateTemplate(
-                    result.signal === "trace"
-                      ? "The scrub rule {{name}} now masks this data in new traces."
-                      : "The scrub rule {{name}} now masks this data in new logs.",
-                    { name: result.scrubRuleName || "" },
-                  ),
-                );
-                onCompleteAction();
-                refresh();
-              } catch (err) {
-                onCompleteAction();
-                onError(err as Error);
-              }
+            ): void => {
+              setError("");
+              setScrubbing(item);
+              onCompleteAction();
             },
           },
         ]}
@@ -615,7 +596,7 @@ const DataStoreInside: FunctionComponent<
                   <Pill
                     text="Scrubbed"
                     color={Green500}
-                    tooltip="A scrub rule masks this data at ingest."
+                    tooltip="A scrub rule hides this data at ingest."
                   />
                 );
               }
@@ -652,6 +633,27 @@ const DataStoreInside: FunctionComponent<
           }}
           onDone={() => {
             setNotSensitiveFindingId(null);
+            refresh();
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {scrubbing?._id ? (
+        <ScrubItModal
+          findingId={new ObjectID(scrubbing._id.toString())}
+          onClose={() => {
+            setScrubbing(null);
+          }}
+          onScrubbed={(result: DataSecurityScrubResult) => {
+            setMessage(
+              translator.translateTemplate(
+                SCRUB_NOTICES[result.signal] || SCRUB_NOTICES.log,
+                { name: result.scrubRuleName || "" },
+              ),
+            );
+            setScrubbing(null);
             refresh();
           }}
         />

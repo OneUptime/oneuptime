@@ -23,6 +23,7 @@ import WorkspaceUserAuthTokenService from "../../../Services/WorkspaceUserAuthTo
 import WorkspaceUserGroupService from "../../../Services/WorkspaceUserGroupService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
+import ProjectMembership from "../../TeamMember/ProjectMembership";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { MicrosoftTeamsTagProvider } from "../MicrosoftTeams/MicrosoftTeamsTags";
 import { SlackUserGroupProvider } from "../Slack/SlackUserGroups";
@@ -552,7 +553,12 @@ export default class WorkspaceUserGroupSync {
   /*
    * Whoever is on call in the schedules now, once each, in the order of the
    * schedules' names: each with their OneUptime email address and the
-   * workspace account they connected, to be found by.
+   * workspace account they connected, to be found by. Members of the
+   * project only: someone only invited can be on a roster (#10412), and
+   * nothing of the project reaches them until they join - a group pings
+   * whoever is in it, and Slack would find them by their account's address
+   * (#10616). Nothing pages them, so the group holds nobody for that turn,
+   * as it holds nobody for someone who has left the project.
    */
   public static async getPeopleOnCall(data: {
     projectId: ObjectID;
@@ -565,7 +571,7 @@ export default class WorkspaceUserGroupSync {
       },
     );
 
-    const userIds: Array<ObjectID> = [];
+    const onCall: Array<ObjectID> = [];
     const seen: Set<string> = new Set<string>();
 
     for (const schedule of ordered) {
@@ -577,8 +583,25 @@ export default class WorkspaceUserGroupSync {
       }
 
       seen.add(key);
-      userIds.push(userId);
+      onCall.push(userId);
     }
+
+    if (onCall.length === 0) {
+      return [];
+    }
+
+    const memberUserIds: Set<string> = await ProjectMembership.getMemberUserIds(
+      {
+        projectId: data.projectId,
+        userIds: onCall,
+      },
+    );
+
+    const userIds: Array<ObjectID> = onCall.filter(
+      (userId: ObjectID): boolean => {
+        return memberUserIds.has(userId.toString().toLowerCase());
+      },
+    );
 
     if (userIds.length === 0) {
       return [];

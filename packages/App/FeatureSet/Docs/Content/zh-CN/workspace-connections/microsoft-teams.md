@@ -129,7 +129,7 @@ SLO 的规则会发布其错误预算策略的变化：在 SLO 进入某个级�
 
 > 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
-Payments 链接到 OneUptime 中的策略。将 Microsoft Teams 账户连接到 OneUptime 的人在每一条值班消息中都以其 Microsoft Teams 名称显示，在此之前以其 OneUptime 名称显示。时间按每位读者自己的时区显示。规则的 **更新** 步骤与 Slack 一样选择要发布哪些值班消息，新规则默认使用当前值班人员以及何时无人值班：请参阅 [值班消息](/docs/workspace-connections/slack#值班消息)。打开 **提及接班的值班人员** 后，只要此人已连接 Microsoft Teams 账户，消息就会提及此人，Microsoft Teams 也会通知此人。
+Payments 链接到 OneUptime 中的策略。将 Microsoft Teams 账户连接到 OneUptime 的人在每一条值班消息中都以其 Microsoft Teams 名称显示，在此之前以其 OneUptime 名称显示。已受邀但尚未加入项目的人以邀请时填写的名称显示，绝不会以其电子邮件地址显示。时间按每位读者自己的时区显示。规则的 **更新** 步骤与 Slack 一样选择要发布哪些值班消息，新规则默认使用当前值班人员以及何时无人值班：请参阅 [值班消息](/docs/workspace-connections/slack#值班消息)。打开 **提及接班的值班人员** 后，只要此人已连接 Microsoft Teams 账户，消息就会提及此人，Microsoft Teams 也会通知此人。
 
 ## 测试规则
 

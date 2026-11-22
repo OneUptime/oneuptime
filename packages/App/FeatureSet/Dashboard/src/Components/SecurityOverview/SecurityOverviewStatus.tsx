@@ -13,9 +13,12 @@ import {
   SecurityHeadlineAction,
   SecurityOverviewQueue,
   SecurityStatusTone,
+  getRecentSecurityRefusedTelemetry,
   getSecurityHeadline,
   translateSecurityOverviewText,
 } from "./SecurityOverviewStatusModel";
+import RefusedTelemetryLines from "../SecurityEvents/RefusedTelemetry/RefusedTelemetryLines";
+import { RefusedTelemetry } from "Common/Utils/SecurityEvent/RefusedTelemetry";
 import { SETUP_TEST_FAILED_TITLE } from "./SecurityGettingStarted";
 import {
   SecurityAddressScrubItem,
@@ -202,6 +205,9 @@ const AddressScrubRow: FunctionComponent<{
   );
 };
 
+export const SECURITY_REFUSED_TELEMETRY_TEST_ID: string =
+  "security-refused-telemetry";
+
 export interface ComponentProps {
   queue: SecurityOverviewQueue;
   // How Security is set up; null when it could not be read.
@@ -256,6 +262,9 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
   const addressScrubItems: Array<SecurityAddressScrubItem> = props.status
     ? getSecurityAddressScrubItems(props.status)
     : [];
+  // What a budget or a rate refused in the last day, what goes on first (#10431).
+  const refusedTelemetry: Array<RefusedTelemetry> =
+    getRecentSecurityRefusedTelemetry(props.status, props.now);
 
   return (
     <section
@@ -418,6 +427,24 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
       {addressScrubItems.map((item: SecurityAddressScrubItem): ReactElement => {
         return <AddressScrubRow key={item.signal} item={item} />;
       })}
+
+      {/*
+       * What an ingestion budget or rate refused of the logs and traces
+       * Security Events reads (#10431): whose budget, when, how much - an
+       * exception to act on, at the card's foot, set up or not.
+       */}
+      {refusedTelemetry.length > 0 ? (
+        <div className="border-t border-gray-200 px-4 py-4 sm:px-5">
+          <RefusedTelemetryLines
+            refusals={refusedTelemetry}
+            showsSource={true}
+            showsOpenBudgets={true}
+            dataTestId={SECURITY_REFUSED_TELEMETRY_TEST_ID}
+          />
+        </div>
+      ) : (
+        <></>
+      )}
 
       {props.showPipeline && props.status && props.status.destinations > 0 ? (
         <div

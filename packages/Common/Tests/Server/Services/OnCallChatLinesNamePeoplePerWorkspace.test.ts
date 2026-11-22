@@ -265,18 +265,12 @@ describe("a person added to an escalation rule, or taken out", () => {
   test("REGRESSION: taken out - each workspace's line names them as it knows them, not by the bare name it used", async () => {
     const row: OnCallDutyPolicyEscalationRuleUser = ruleUser();
 
-    const user: User = new User();
-    user._id = ANA.toString();
-    user.name = "Ana Lee" as never;
-    user.email = "ana@example.com" as never;
-
     jest
       .spyOn(
         OnCallDutyPolicyEscalationRuleUserService,
         "findRowsAndHoldDeleteToThem",
       )
       .mockResolvedValue([row] as never);
-    jest.spyOn(UserService, "findOneById").mockResolvedValue(user as never);
 
     await (
       OnCallDutyPolicyEscalationRuleUserService as unknown as {
@@ -293,12 +287,13 @@ describe("a person added to an escalation rule, or taken out", () => {
       [WorkspaceType.MicrosoftTeams]: `👨🏻‍💻 Removed **[Ana Lee](${ANA_LINK})** from on-call policy [Payments](${POLICY_LINK}).`,
       [WorkspaceType.Mattermost]: `👨🏻‍💻 Removed **@ana.lee** from on-call policy [Payments](${POLICY_LINK}).`,
     });
-    // The feed still names her, with her email address and the rule.
-    expect(items[0]!.feedInfoInMarkdown).toContain(
-      "Removed **Ana Lee** (ana@example.com) from the [On-Call Policy Payments]",
-    );
-    expect(items[0]!.feedInfoInMarkdown).toContain(
-      "for escalation rule First line with order 1.",
+    /*
+     * The feed names her as the add does, a link to her page, with the
+     * rule - no longer with her address after her name, which for someone
+     * only invited was the address they were invited at (#10616).
+     */
+    expect(items[0]!.feedInfoInMarkdown).toBe(
+      `👨🏻‍💻 Removed **[Ana Lee](${ANA_LINK})** from the [On-Call Policy Payments](${POLICY_LINK}) for escalation rule First line with order 1.`,
     );
   });
 

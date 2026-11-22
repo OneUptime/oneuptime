@@ -37,6 +37,20 @@ export interface SecurityConnectorSettings {
   config: JSONObject;
   secrets: JSONObject;
   alertingOnly: boolean;
+  /*
+   * Blocking at the provider (#10343), for a saved connection that has it
+   * on: Test Connection then also checks the write access it needs - and
+   * only then, so a connection that only reads is never asked for more.
+   * Absent for settings never saved, and for a connection without it.
+   */
+  blocking?: ConnectorBlockingSettings | undefined;
+}
+
+export interface ConnectorBlockingSettings {
+  // The project whose blocklist the connection enforces: the owner its lists name.
+  projectId: string;
+  // The zones it blocks in; empty for every zone the connection reads.
+  zoneIds: Array<string>;
 }
 
 /*

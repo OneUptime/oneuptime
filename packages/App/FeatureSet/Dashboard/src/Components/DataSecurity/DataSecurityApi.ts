@@ -12,6 +12,7 @@ import {
   DataSecurityDropMetricImpact,
   DataSecurityDropMetricResult,
   DataSecurityExplainResult,
+  DataSecurityIssueAnalysisResult,
   DataSecurityMetricUser,
   DataSecurityMetricUserWidget,
   DataSecurityFindingOccurrences,
@@ -22,8 +23,12 @@ import {
   DataSecurityResourceScope,
   DataSecurityResponseAvailability,
   DataSecurityResponseResult,
+  DataSecurityScrubImpact,
   DataSecurityScrubResult,
+  DataSecurityScrubRulePlan,
+  DataSecurityScrubSignal,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import { readTelemetryFieldReaders } from "Common/Types/Telemetry/TelemetryFieldReaders";
 import {
   DataStoreResourceKind,
   isDataStoreResourceKind,
@@ -32,6 +37,7 @@ import {
   MetricOutputReaders,
   readMetricOutputReaders,
 } from "Common/Types/Metrics/MetricOutputReaders";
+import { readDataSecurityIssueAnalysisView } from "Common/Types/DataSecurity/DataSecurityIssueAnalysis";
 import { DataSecurityResponseAction } from "Common/Types/DataSecurity/DataSecurityResponseAction";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -203,6 +209,77 @@ export default class DataSecurityApi {
     return (await post(
       DATA_SECURITY_API_ROUTES.scrubFinding(findingId.toString()),
     )) as unknown as DataSecurityScrubResult;
+  }
+
+  /*
+   * What Scrub It would do for a finding (#10433): the rule it would make -
+   * its action, the parts it scrubs and whose - and what reads the data it
+   * would hide. Asked before the rule is made, which it never makes. Read
+   * defensively, as the drop's impact is.
+   */
+  public static async getScrubImpact(
+    findingId: ObjectID,
+  ): Promise<DataSecurityScrubImpact> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.scrubImpact(findingId.toString()),
+    );
+    const textOf: (value: unknown) => string = (value: unknown): string => {
+      return typeof value === "string" ? value : "";
+    };
+    const signalOf: (value: unknown) => DataSecurityScrubSignal = (
+      value: unknown,
+    ): DataSecurityScrubSignal => {
+      return value === "trace" || value === "metric" ? value : "log";
+    };
+    const impact: DataSecurityScrubImpact = {
+      isAvailable: answer["isAvailable"] === true,
+    };
+
+    if (textOf(answer["unavailableReason"])) {
+      impact.unavailableReason = textOf(answer["unavailableReason"]);
+    }
+
+    const existing: JSONObject = (
+      answer["existingRule"] && typeof answer["existingRule"] === "object"
+        ? answer["existingRule"]
+        : {}
+    ) as JSONObject;
+
+    if (textOf(existing["id"])) {
+      impact.existingRule = {
+        id: textOf(existing["id"]),
+        name: textOf(existing["name"]),
+        signal: signalOf(existing["signal"]),
+      };
+    }
+
+    const rule: JSONObject = (
+      answer["rule"] && typeof answer["rule"] === "object" ? answer["rule"] : {}
+    ) as JSONObject;
+
+    if (textOf(rule["name"])) {
+      const plan: DataSecurityScrubRulePlan = {
+        signal: signalOf(rule["signal"]),
+        name: textOf(rule["name"]),
+        scrubAction: textOf(rule["scrubAction"]),
+        patternType: textOf(rule["patternType"]),
+        fieldsToScrub: textOf(rule["fieldsToScrub"]),
+        dataTypeName: textOf(rule["dataTypeName"]),
+      };
+
+      if (ObjectID.isValidUUID(textOf(rule["serviceId"]))) {
+        plan.serviceId = textOf(rule["serviceId"]);
+        plan.serviceName = textOf(rule["serviceName"]);
+      }
+
+      impact.rule = plan;
+    }
+
+    if (answer["readers"] && typeof answer["readers"] === "object") {
+      impact.readers = readTelemetryFieldReaders(answer["readers"]);
+    }
+
+    return impact;
   }
 
   /*
@@ -402,12 +479,40 @@ export default class DataSecurityApi {
     };
   }
 
+  /*
+   * OneUptime AI's analysis of an issue (#10369), as the reader may read
+   * it: the one the issue keeps when nothing it rests on changed, else one
+   * written now - and with `force` (Analyze Again) one written now whatever
+   * changed.
+   */
   public static async explainIssue(
     issueId: ObjectID,
+    options: { force?: boolean | undefined } = {},
   ): Promise<DataSecurityExplainResult> {
-    return (await post(
+    const answer: JSONObject = await post(
       DATA_SECURITY_API_ROUTES.explainIssue(issueId.toString()),
-    )) as unknown as DataSecurityExplainResult;
+      options.force ? { force: true } : {},
+    );
+
+    return {
+      markdown:
+        typeof answer["markdown"] === "string" ? answer["markdown"] : "",
+      analysis: readDataSecurityIssueAnalysisView(answer["analysis"]),
+      isNew: answer["isNew"] === true,
+    };
+  }
+
+  // The analysis the issue keeps, as the reader may read it: no model call.
+  public static async getIssueAnalysis(
+    issueId: ObjectID,
+  ): Promise<DataSecurityIssueAnalysisResult> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.issueAnalysis(issueId.toString()),
+    );
+
+    return {
+      analysis: readDataSecurityIssueAnalysisView(answer["analysis"]),
+    };
   }
 
   // Which response actions a store can take now, and why not.

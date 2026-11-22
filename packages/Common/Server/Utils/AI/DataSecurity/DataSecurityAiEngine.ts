@@ -82,8 +82,9 @@ import DataSecurityIssueAnalysis, {
  *  3. The day's limits: at most DATA_SECURITY_AI_ISSUES_PER_STORE_PER_DAY
  *     issues of one store, and DATA_SECURITY_AI_ISSUES_PER_PROJECT_PER_DAY
  *     of the project, worked on in a day.
- *  4. Analyze: OneUptime AI's analysis, once each time the issue opens
- *     (DataSecurityIssueAnalysis).
+ *  4. Analyze: OneUptime AI's analysis (DataSecurityIssueAnalysis, #10369),
+ *     written again only when what it is written from changed - and handed
+ *     to the work planned after it.
  *  5. Contain, Fix, Judge: each action of the work plans its change; each
  *     change is proposed, or made without asking where the verdict allows
  *     - the circuit breaker counts the hour's changes made without asking
@@ -240,6 +241,8 @@ export default class DataSecurityAiEngine {
           environment: true,
           sensitivity: true,
           serviceId: true,
+          // Names the store's service when it was kept without one (Scrub It's rule is that service's, #10433).
+          storeKey: true,
           isArchived: true,
           labels: { _id: true },
         },
@@ -575,8 +578,11 @@ export default class DataSecurityAiEngine {
   }
 
   /*
-   * Analyze: once each time the issue opens - its record of this opening
-   * says whether it was - and only where the work is on.
+   * Analyze (#10369): only where the work is on, and only when what the
+   * analysis is written from changed since the issue's analysis was - the
+   * analyst hashes it, so an issue opening again with nothing changed makes
+   * no model call. Whatever comes of it, the issue's analysis is handed to
+   * the work planned after it (DataSecurityAiIssueContext.analysis).
    */
   private static async analyze(data: {
     context: DataSecurityAiIssueContext;
@@ -597,23 +603,16 @@ export default class DataSecurityAiEngine {
     };
 
     if (data.work.autonomy === DataSecurityAiAutonomy.Off) {
+      // One a person asked for still says what the issue is.
+      data.context.analysis =
+        (
+          await DataSecurityIssueAnalysis.readStored({
+            projectId: data.context.projectId,
+            issueId: data.context.issue.id!,
+          })
+        )?.record || null;
+
       return entry(DataSecurityAiDecisionReason.WorkOff);
-    }
-
-    const analyzedBefore: number = (
-      await DataSecurityAiDecisionService.countBy({
-        query: {
-          projectId: data.context.projectId,
-          dataSecurityIssueId: data.context.issue.id!,
-          issueReopenCount: data.context.issue.reopenCount || 0,
-          didAnalyze: true,
-        },
-        props: { isRoot: true },
-      })
-    ).toNumber();
-
-    if (analyzedBefore > 0) {
-      return entry(DataSecurityAiDecisionReason.AlreadyAnalyzed);
     }
 
     const outcome: DataSecurityIssueAnalysisOutcome =
@@ -624,7 +623,10 @@ export default class DataSecurityAiEngine {
         llmProviderId: ObjectID.isValidUUID(data.llmProviderId)
           ? new ObjectID(data.llmProviderId)
           : undefined,
+        now: data.context.now,
       });
+
+    data.context.analysis = outcome.analysis?.record || null;
 
     return outcome.analyzed
       ? entry(DataSecurityAiDecisionReason.Analyzed)

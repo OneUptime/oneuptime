@@ -20,7 +20,7 @@ import {
  *     after which the issue opens again if its check still fails;
  *   - Mark Resolved: once it is fixed - the store is checked again at once,
  *     and the issue opens again if the check still fails;
- *   - Not an Issue: the finding was wrong, and it stays closed;
+ *   - Not an Issue: the finding was wrong, and why; it stays closed;
  *   - Reopen: back to Open;
  *   - Assign: a person or a team works on it.
  *
@@ -231,10 +231,15 @@ export function getIssueMoveSkipReason(
     : null;
 }
 
-// What a move writes to the issue.
+/*
+ * What a move writes to the issue: Accept Risk its reason and date, Not an
+ * Issue its reason (#10369) - which OneUptime AI learns from which findings
+ * are noise (#10372).
+ */
 export function getIssueMoveWrite(
   move: IssueMove,
   acceptance?: IssueAcceptance | undefined,
+  notAnIssueReason?: string | undefined,
 ): JSONObject {
   if (move === IssueMove.Accept) {
     return {
@@ -244,6 +249,14 @@ export function getIssueMoveWrite(
         ? OneUptimeDate.toString(acceptance.until)
         : null,
     };
+  }
+
+  if (move === IssueMove.NotAnIssue) {
+    const reason: string = (notAnIssueReason || "").trim();
+
+    return reason
+      ? { status: DataSecurityIssueStatus.NotAnIssue, notAnIssueReason: reason }
+      : { status: DataSecurityIssueStatus.NotAnIssue };
   }
 
   return { status: ISSUE_MOVE_STATUS[move] };

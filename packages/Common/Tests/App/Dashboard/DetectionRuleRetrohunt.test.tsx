@@ -102,6 +102,7 @@ function answer(
     hasMoreGroups: false,
     candidateLimit: null,
     uncounted: null,
+    refusedTelemetry: [],
     ...overrides,
   };
 }

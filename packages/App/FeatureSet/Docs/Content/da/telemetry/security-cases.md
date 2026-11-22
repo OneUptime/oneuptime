@@ -454,7 +454,7 @@ Fortryd-trinnene handler på de brugere eller værter, sagen handler om, ligesom
 
 Dit projekts egne adresser blokeres aldrig: posterne i **Beskyttede entiteter**, dine værter, Kubernetes-noder, cloud-ressourcer, netværksenheder og -slutpunkter, dine adressenavne og sonder, OneUptime Clouds sonder, de intervaller, der ikke er på internettet, og edge-netværket foran din app. En blokering, der ville ramme en af dem, afvises med besked om, hvad adressen er, og **Beskyttede entiteter** viser dem under **Automatisk beskyttet**. Når OneUptime ikke kan afgøre, om en adresse er din, blokerer den den ikke.
 
-**Håndhævet hos** viser hvert sted, en blokering håndhæves, og om den holder der. Så længe intet håndhæver blokeringslisten, siger siden det, og en blokering registreres, men blokerer intet. Hver blokering, ophævelse og udløb gemmes i projektets auditlog og på sagens tidslinje, når der er en sag. En blokering af en sags adresse står også i dens **Responsplan**, hvor **Ophæv** afslutter den, og **Blokér adresse** på en række i **Kampagner** blokerer den kampagnes adresse.
+**Håndhævet hos** viser hvert sted, en blokering håndhæves, og om den holder der. En firewall eller en proxy håndhæver den ved at læse et [blokeringslistefeed](/docs/telemetry/blocklist-feeds), en hemmelig URL, som den henter med få minutters mellemrum. Så længe intet håndhæver blokeringslisten, siger siden det, og en blokering registreres, men blokerer intet. Hver blokering, ophævelse og udløb gemmes i projektets auditlog og på sagens tidslinje, når der er en sag. En blokering af en sags adresse står også i dens **Responsplan**, hvor **Ophæv** afslutter den, og **Blokér adresse** på en række i **Kampagner** blokerer den kampagnes adresse.
 
 ### Beskeder
 

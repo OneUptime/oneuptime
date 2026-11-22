@@ -132,16 +132,16 @@ SLO のルールは、エラーバジェットポリシーの変化を投稿し�
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments は OneUptime のポリシーへのリンクです。ポリシーが複数のスケジュールを呼び出す場合、行にはスケジュール名も入ります: Payments (Primary)。
-- Slack アカウントを OneUptime に接続したユーザーは、引き継ぎ、オーバーライド、ポリシーへの追加や削除など、すべてのオンコールの行で Slack の名前で、それまでは OneUptime の名前で示されます。時刻は読む人それぞれのタイムゾーンで表示されます。
+- Slack アカウントを OneUptime に接続したユーザーは、引き継ぎ、オーバーライド、ポリシーへの追加や削除など、すべてのオンコールの行で Slack の名前で、それまでは OneUptime の名前で示されます。招待されたもののまだプロジェクトに参加していない人は、ここでもポリシーのフィードでも、招待時に入力された名前、または "someone who hasn't joined the project yet" で示され、メールアドレスで示されることはありません。時刻は読む人それぞれのタイムゾーンで表示されます。
 - ポリシーの複数のエスカレーションルールが同じスケジュールを呼び出しても、引き継ぎはルールごとではなく 1 回だけ投稿されます。
 
 ルールは **更新** ステップで選んだものを投稿し、新しいルールは **主要な更新のみ** (現在のオンコール担当者と、担当者がいないとき) から始まります。API や Terraform で `updatesToPost` を指定せずに作成したルールも同じです。すべての更新を投稿するには `"updatesToPost": null` を送信します。 `updatesToPost` を指定しない編集では、ルールが投稿する更新は変わりません。
 
 | 更新 | チャンネルに届く内容 |
 | --- | --- |
-| **現在のオンコール担当者** | 上の行。引き継ぎのたびに投稿されます。 |
-| **次のオンコール担当者** | 次の引き継ぎで誰が引き継ぐかと、その時刻。上の行の末尾に入るか、現在のオンコール担当者を投稿しないルールでは 1 行で投稿されます。 |
-| **オンコール担当者なし** | スケジュールのオンコール担当者がいなくなり、そこに届いたアラートで誰も呼び出されないとき: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **現在のオンコール担当者** | 上の行。引き継ぎのたびに投稿され、オンコール担当者が担当中にプロジェクトに参加したときにも投稿されます: "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." |
+| **次のオンコール担当者** | 次の引き継ぎで誰が引き継ぐかと、その時刻。上の行の末尾に入るか、現在のオンコール担当者を投稿しないルールでは 1 行で投稿されます。次の人がまだプロジェクトに参加していない場合は誰も引き継がず、その理由が行に示されます: "📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then nobody: Ivy is next but hasn't joined the project yet." |
+| **オンコール担当者なし** | スケジュールのオンコール担当者がいなくなり、そこに届いたアラートで誰も呼び出されないとき: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." まだプロジェクトに参加していない人の担当時間も含まれます。参加するまでその人は何からも呼び出されないためです: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." |
 | **ユーザーオーバーライド** | 追加、変更、または取り消されたオーバーライド。誰が不在で、誰が代理するか。 |
 | **ポリシーの変更** | エスカレーションルールに追加された、または外されたスケジュール、ユーザー、チーム。 |
 | **所有者** | 追加・削除された所有者。 |

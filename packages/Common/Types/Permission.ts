@@ -446,6 +446,12 @@ enum Permission {
   EditSecurityBlock = "EditSecurityBlock",
   ReadSecurityBlock = "ReadSecurityBlock",
 
+  // Blocklist Feeds (the secret URLs firewalls and proxies read the blocklist from)
+  CreateSecurityBlocklistFeed = "CreateSecurityBlocklistFeed",
+  DeleteSecurityBlocklistFeed = "DeleteSecurityBlocklistFeed",
+  EditSecurityBlocklistFeed = "EditSecurityBlocklistFeed",
+  ReadSecurityBlocklistFeed = "ReadSecurityBlocklistFeed",
+
   // Data Stores: the buckets, databases, warehouses and telemetry Data Security watches
   CreateDataStore = "CreateDataStore",
   DeleteDataStore = "DeleteDataStore",
@@ -5547,9 +5553,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateStatusPageSubscriberNotificationTemplate,
-        title: "Create Status Page Subscriber Notification Template",
+        title: "Create Subscriber Notification Template",
         description:
-          "This permission can create Status Page Subscriber Notification Templates in this project.",
+          "This permission can create Subscriber Notification Templates in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5557,9 +5563,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteStatusPageSubscriberNotificationTemplate,
-        title: "Delete Status Page Subscriber Notification Template",
+        title: "Delete Subscriber Notification Template",
         description:
-          "This permission can delete Status Page Subscriber Notification Templates of this project.",
+          "This permission can delete Subscriber Notification Templates of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5567,9 +5573,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditStatusPageSubscriberNotificationTemplate,
-        title: "Edit Status Page Subscriber Notification Template",
+        title: "Edit Subscriber Notification Template",
         description:
-          "This permission can edit Status Page Subscriber Notification Templates of this project.",
+          "This permission can edit Subscriber Notification Templates of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5577,9 +5583,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadStatusPageSubscriberNotificationTemplate,
-        title: "Read Status Page Subscriber Notification Template",
+        title: "Read Subscriber Notification Template",
         description:
-          "This permission can read Status Page Subscriber Notification Templates of this project.",
+          "This permission can read Subscriber Notification Templates of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6538,7 +6544,7 @@ export class PermissionHelper {
         permission: Permission.ReadAuditLog,
         title: "Read Audit Log",
         description:
-          "This permission can read audit log records of this project.",
+          "This permission can read audit log records of this project, with the values of the fields it may also read on each resource itself.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -9814,6 +9820,48 @@ export class PermissionHelper {
         title: "Read Security Block",
         description:
           "This permission can read the Blocklist of this project: what is blocked, why, until when and where it is enforced.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Blocklist Feed Permissions
+      {
+        permission: Permission.CreateSecurityBlocklistFeed,
+        title: "Create Security Blocklist Feed",
+        description:
+          "This permission can create the Blocklist feeds of this project: the secret URLs firewalls and proxies read the Blocklist from.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityBlocklistFeed,
+        title: "Delete Security Blocklist Feed",
+        description:
+          "This permission can delete the Blocklist feeds of this project, which stops their URLs working.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityBlocklistFeed,
+        title: "Edit Security Blocklist Feed",
+        description:
+          "This permission can change, rotate and revoke the secrets of the Blocklist feeds of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityBlocklistFeed,
+        title: "Read Security Blocklist Feed",
+        description:
+          "This permission can read the Blocklist feeds of this project and when each firewall last fetched one, never their secrets.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

@@ -32,7 +32,7 @@ flowchart TB
 
 - **No OneUptime Cloud, o plano Enterprise.** Nos outros planos, as páginas do registro de auditoria mostram o que o recurso faz e como obtê-lo.
 - **Quando você hospeda o OneUptime, a Enterprise Edition**, com uma licença que inclua os registros de auditoria. Veja [Edição Enterprise](/docs/self-hosted/enterprise).
-- **Uma função que pode ler o registro de auditoria.** Proprietário do projeto, Administrador do projeto, Administrador de configurações ou a permissão **Read Audit Log**. Ativar o registro de auditoria e mudar as configurações dele exige um Proprietário do projeto, um Administrador do projeto ou a permissão para editar o projeto.
+- **Uma função que pode ler o registro de auditoria.** Proprietário do projeto, Administrador do projeto, Administrador de configurações ou a permissão **Read Audit Log**. Uma entrada só mostra os valores de um campo se você puder ler esse campo no próprio recurso, e o nome de um recurso só se você puder ler o recurso. Ativar o registro de auditoria e mudar as configurações dele exige um Proprietário do projeto, um Administrador do projeto ou a permissão para editar o projeto.
 
 ## Ativar o registro de auditoria
 

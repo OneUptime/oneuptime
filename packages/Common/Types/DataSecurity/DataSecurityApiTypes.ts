@@ -1,10 +1,12 @@
 import { JSONObject } from "../JSON";
 import { MetricOutputReaders } from "../Metrics/MetricOutputReaders";
+import { TelemetryFieldReaders } from "../Telemetry/TelemetryFieldReaders";
 import SecuritySeverity from "../SecuritySeverity";
 import ComplianceFramework from "./ComplianceFramework";
 import { DataSecurityResponseAction } from "./DataSecurityResponseAction";
 import { ComplianceFrameworkResult } from "./ComplianceRequirementCatalog";
 import DataCategory from "./DataCategory";
+import { DataSecurityIssueAnalysisView } from "./DataSecurityIssueAnalysis";
 import DataSensitivity from "./DataSensitivity";
 import { DataStoreResourceKind } from "./DataStoreResource";
 
@@ -28,10 +30,12 @@ export const DATA_SECURITY_API_ROUTES: {
   scanNow: (dataStoreId: string) => string;
   checkNow: (dataStoreId: string) => string;
   scrubFinding: (findingId: string) => string;
+  scrubImpact: (findingId: string) => string;
   dropMetricImpact: (findingId: string) => string;
   dropMetric: (findingId: string) => string;
   findingOccurrences: (findingId: string) => string;
   explainIssue: (issueId: string) => string;
+  issueAnalysis: (issueId: string) => string;
   fixIssueWithAi: (issueId: string) => string;
   responseActions: (dataStoreId: string) => string;
   respond: (dataStoreId: string) => string;
@@ -57,6 +61,14 @@ export const DATA_SECURITY_API_ROUTES: {
     return `/data-store-finding/${findingId}/scrub`;
   },
   /*
+   * The rule Scrub It would make for a finding, and what it would take away
+   * from the monitors, dashboards, saved views, recording rules, SLOs and
+   * Security Events that read what it hides (#10433), before it is made.
+   */
+  scrubImpact: (findingId: string): string => {
+    return `/data-store-finding/${findingId}/scrub-impact`;
+  },
+  /*
    * A metric's name that holds sensitive data (#9757): what dropping the
    * service's metrics named so would drop and stop, before it is asked for.
    */
@@ -71,8 +83,18 @@ export const DATA_SECURITY_API_ROUTES: {
   findingOccurrences: (findingId: string): string => {
     return `/data-store-finding/${findingId}/occurrences`;
   },
+  /*
+   * OneUptime AI's analysis of an issue (#10369), as the caller may read
+   * it: the one the issue keeps when nothing it rests on changed, else one
+   * written now - { force: true } writes a new one whatever changed
+   * (Analyze Again).
+   */
   explainIssue: (issueId: string): string => {
     return `/data-security-issue/${issueId}/explain`;
+  },
+  // ...and the analysis the issue keeps, read with no model call: what its page shows.
+  issueAnalysis: (issueId: string): string => {
+    return `/data-security-issue/${issueId}/analysis`;
   },
   fixIssueWithAi: (issueId: string): string => {
     return `/data-security-issue/${issueId}/fix-with-ai`;
@@ -271,6 +293,47 @@ export interface DataSecurityScrubResult {
   signal: DataSecurityScrubSignal;
   scrubRuleId: string;
   scrubRuleName: string;
+}
+
+/*
+ * SCRUB IT, SAID BEFORE IT IS DONE (#10433).
+ *
+ * The rule Scrub It would make for a finding - what it does with what it
+ * finds (redact, mask, hash), in which parts of the records, and whose: the
+ * service the finding's telemetry was sent under, or every service and app
+ * of the project for a RUM application's replays - and what that rule
+ * would take away from the project's monitors, dashboards, saved views,
+ * recording rules, SLOs and Security Events (TelemetryFieldReaders). The
+ * dialog says all of it, in the reader's words, before the rule is made.
+ */
+export interface DataSecurityScrubRulePlan {
+  signal: DataSecurityScrubSignal;
+  // The name the rule will be given.
+  name: string;
+  // What it leaves of a match: a LogScrubAction (a metric's rule redacts).
+  scrubAction: string;
+  // A LogScrubPatternType for a log or trace rule; "" for a metric's.
+  patternType: string;
+  // The parts of the records it scrubs (LogScrubField, TraceScrubField); "" for a metric's.
+  fieldsToScrub: string;
+  // The data type as the rule calls it.
+  dataTypeName: string;
+  // The service the rule is for; none for every service and app of the project.
+  serviceId?: string | undefined;
+  serviceName?: string | undefined;
+}
+
+export interface DataSecurityScrubImpact {
+  isAvailable: boolean;
+  // Why no rule can be made, in the server's words: what Scrub It would answer.
+  unavailableReason?: string | undefined;
+  // The enabled rule that already hides the finding's data, when one does.
+  existingRule?:
+    | { id: string; name: string; signal: DataSecurityScrubSignal }
+    | undefined;
+  rule?: DataSecurityScrubRulePlan | undefined;
+  // What reads what the rule would hide: a log or trace rule's.
+  readers?: TelemetryFieldReaders | undefined;
 }
 
 /*
@@ -498,8 +561,24 @@ export interface DataSecurityFindingOccurrences {
   lastSeenAt?: string | undefined;
 }
 
+/*
+ * What Explain with AI answers (#10369): the issue's analysis as Markdown,
+ * as the API and the MCP have always read it, and as data - each only what
+ * the caller may read - and whether it was written now.
+ */
 export interface DataSecurityExplainResult {
   markdown: string;
+  analysis?: DataSecurityIssueAnalysisView | null | undefined;
+  // A model call was made for it now: there was none, its input changed, or it was asked for again.
+  isNew?: boolean | undefined;
+}
+
+/*
+ * The analysis an issue keeps, as the caller may read it, or null: none,
+ * or the project's AI is off.
+ */
+export interface DataSecurityIssueAnalysisResult {
+  analysis: DataSecurityIssueAnalysisView | null;
 }
 
 // A repository the person may ask OneUptime AI to work in (#10362).

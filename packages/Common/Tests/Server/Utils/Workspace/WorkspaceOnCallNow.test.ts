@@ -14,6 +14,9 @@ import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import ProductBrandingText from "../../../../Server/Utils/ProductBrandingText";
 import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import WorkspaceMessageTime from "../../../../Server/Utils/Workspace/WorkspaceMessageTime";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import OnCallDutyPolicySchedule from "../../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import User from "../../../../Models/DatabaseModels/User";
 import URL from "../../../../Types/API/URL";
@@ -411,6 +414,220 @@ describe("WorkspaceOnCallNow: who is on call, schedule by schedule", () => {
     findBy.mockRejectedValue(outage);
 
     await expect(answer()).rejects.toBe(outage);
+  });
+
+  /*
+   * Someone only invited can be on a roster (#10412): the asker's own read
+   * shows the address they were invited at (#10175), and Microsoft Teams
+   * posts the answer where it was asked, a channel included (#10616).
+   * Nothing pages them, so their turn is said as the gap it is (#10586).
+   */
+  describe("someone only invited to the project", () => {
+    const IVY: ObjectID = new ObjectID("e0000000-0000-4000-8000-0000000000c1");
+
+    // The name typed with Ivy's invitation; undefined: she has joined.
+    let typed: string | null | undefined;
+
+    beforeEach(() => {
+      typed = "Ivy";
+      jest
+        .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+        .mockImplementation((async (data: {
+          userIds: Array<string>;
+        }): Promise<Map<string, WithheldProfile>> => {
+          const withheld: Map<string, WithheldProfile> = new Map<
+            string,
+            WithheldProfile
+          >();
+
+          if (typed !== undefined && data.userIds.includes(IVY.toString())) {
+            withheld.set(IVY.toString().toLowerCase(), {
+              inviteeName: typed,
+              inviteeEmail: "ivy@invited.test",
+            });
+          }
+
+          return withheld;
+        }) as never);
+    });
+
+    // As the asker's read shows her: the name typed, else her invited address.
+    function ivy(): User {
+      return person(IVY, typed || null, "ivy@invited.test");
+    }
+
+    test("REGRESSION: on call - nobody is paged until her turn ends, and who takes over then", async () => {
+      const primary: OnCallDutyPolicySchedule = schedule({
+        name: "Primary",
+        current: ivy(),
+        next: person(ANA, "Ana Ruiz"),
+        handoffAt: HANDOFF,
+        nextStartAt: HANDOFF,
+      });
+      returnSchedules([primary]);
+
+      const result: WorkspaceAnswer = await answer();
+
+      expect(result.markdown.split("\n")[1]).toBe(
+        `- [Primary](${linkOf(primary)}): nobody is paged until ${until(HANDOFF)}, when **Ana Ruiz** takes over: **Ivy** is on call but hasn't joined the project yet.`,
+      );
+      // A notification says the same: nobody, not Ivy.
+      expect(result.text).toBe("On call now: nobody (Primary)");
+    });
+
+    test("REGRESSION: on call with no name typed - never the address she was invited at", async () => {
+      for (const name of [null, "ivy@invited.test"]) {
+        typed = name;
+
+        const primary: OnCallDutyPolicySchedule = schedule({
+          name: "Primary",
+          current: person(IVY, null, "ivy@invited.test"),
+          next: person(ANA, "Ana Ruiz"),
+          handoffAt: HANDOFF,
+          nextStartAt: HANDOFF,
+        });
+        returnSchedules([primary]);
+
+        const result: WorkspaceAnswer = await answer();
+
+        expect(result.markdown.split("\n")[1]).toBe(
+          `- [Primary](${linkOf(primary)}): nobody is paged until ${until(HANDOFF)}, when **Ana Ruiz** takes over: the person on call hasn't joined the project yet.`,
+        );
+        expect(result.markdown).not.toContain("invited.test");
+        expect(result.text).not.toContain("invited.test");
+      }
+    });
+
+    test("REGRESSION: next - then nobody, and why", async () => {
+      const primary: OnCallDutyPolicySchedule = schedule({
+        name: "Primary",
+        current: person(SIMON, "Simon Lee"),
+        next: ivy(),
+        handoffAt: HANDOFF,
+        nextStartAt: HANDOFF,
+      });
+      returnSchedules([primary]);
+
+      const result: WorkspaceAnswer = await answer();
+
+      expect(result.markdown.split("\n")[1]).toBe(
+        `- [Primary](${linkOf(primary)}): **Simon Lee** until ${until(HANDOFF)}, then nobody: **Ivy** is next but hasn't joined the project yet.`,
+      );
+      expect(result.text).toBe("On call now: Simon Lee (Primary)");
+
+      typed = null;
+      returnSchedules([
+        schedule({
+          name: "Primary",
+          current: person(SIMON, "Simon Lee"),
+          next: person(IVY, null, "ivy@invited.test"),
+          handoffAt: HANDOFF,
+        }),
+      ]);
+
+      expect((await answer()).markdown).toContain(
+        ", then nobody: the next person hasn't joined the project yet.",
+      );
+    });
+
+    test("nobody on call and her next: nobody will be paged then either", async () => {
+      const database: OnCallDutyPolicySchedule = schedule({
+        name: "Database",
+        next: ivy(),
+        nextStartAt: NEXT_START,
+      });
+      returnSchedules([database]);
+
+      expect((await answer()).markdown.split("\n")[1]).toBe(
+        `- [Database](${linkOf(database)}): nobody right now, and nobody will be paged from ${until(NEXT_START)} either: **Ivy** is next but hasn't joined the project yet.`,
+      );
+    });
+
+    test("on call with nobody after her, with no hand-off, or with her next too", async () => {
+      const alone: OnCallDutyPolicySchedule = schedule({
+        name: "Alone",
+        current: ivy(),
+        handoffAt: HANDOFF,
+      });
+      const endless: OnCallDutyPolicySchedule = schedule({
+        name: "Endless",
+        current: ivy(),
+      });
+      const twice: OnCallDutyPolicySchedule = schedule({
+        name: "Twice",
+        current: ivy(),
+        next: ivy(),
+        handoffAt: HANDOFF,
+      });
+      returnSchedules([alone, endless, twice]);
+
+      const lines: Array<string> = (await answer()).markdown.split("\n");
+
+      expect(lines[1]).toBe(
+        `- [Alone](${linkOf(alone)}): nobody is paged until ${until(HANDOFF)}: **Ivy** is on call but hasn't joined the project yet.`,
+      );
+      expect(lines[2]).toBe(
+        `- [Endless](${linkOf(endless)}): nobody is paged: **Ivy** is on call but hasn't joined the project yet.`,
+      );
+      expect(lines[3]).toBe(
+        `- [Twice](${linkOf(twice)}): nobody is paged until ${until(HANDOFF)}: **Ivy** is on call but hasn't joined the project yet.`,
+      );
+    });
+
+    test("who is only invited is read once, for every schedule listed", async () => {
+      returnSchedules([
+        schedule({ name: "A", current: ivy(), next: person(ANA, "Ana") }),
+        schedule({ name: "B", current: person(ANA, "Ana"), next: ivy() }),
+        schedule({ name: "C" }),
+      ]);
+
+      await answer();
+
+      expect(
+        PendingInviteeProfiles.readWithheldProfilesInProject,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        PendingInviteeProfiles.readWithheldProfilesInProject,
+      ).toHaveBeenCalledWith({
+        userIds: [IVY.toString(), ANA.toString()],
+        projectId: PROJECT_ID,
+      });
+    });
+
+    test("no roster names anybody: nothing is read", async () => {
+      returnSchedules([schedule({ name: "Weekend" })]);
+
+      await answer();
+
+      expect(
+        PendingInviteeProfiles.readWithheldProfilesInProject,
+      ).not.toHaveBeenCalled();
+    });
+
+    test("once she joins, she is on call as anyone is", async () => {
+      typed = undefined;
+      const primary: OnCallDutyPolicySchedule = schedule({
+        name: "Primary",
+        current: person(IVY, "Ivy Hart"),
+        next: person(ANA, "Ana Ruiz"),
+        handoffAt: HANDOFF,
+      });
+      returnSchedules([primary]);
+
+      expect((await answer()).markdown.split("\n")[1]).toBe(
+        `- [Primary](${linkOf(primary)}): **Ivy Hart** until ${until(HANDOFF)}, then Ana Ruiz.`,
+      );
+    });
+
+    test("a read of who is only invited that fails is thrown, for the caller to answer: nobody is named by what it cannot tell apart", async () => {
+      const outage: Error = new Error("connection reset");
+      jest
+        .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+        .mockRejectedValue(outage as never);
+      returnSchedules([schedule({ name: "Primary", current: ivy() })]);
+
+      await expect(answer()).rejects.toBe(outage);
+    });
   });
 
   test("the product's name is the one the installation goes by", async () => {

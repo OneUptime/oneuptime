@@ -129,7 +129,7 @@ Vid varje överlämning får en jourpolicys kanaler och chattar veta vem som har
 
 > 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
-Payments länkar till policyn i OneUptime. En person nämns med sitt Microsoft Teams-namn när hen har kopplat sitt Microsoft Teams-konto till OneUptime, och med sitt namn i OneUptime fram till dess, i varje jourmeddelande. Tider visas i varje läsares egen tidszon. Steget **Uppdateringar** i en regel väljer vilka jourmeddelanden den publicerar, som i Slack, och en ny regel börjar med vem som har jour nu och när ingen har det: se [Jourmeddelanden](/docs/workspace-connections/slack#jourmeddelanden). Med **Nämn personen som går på jour** påslaget nämner meddelandet personen, så att Microsoft Teams aviserar hen, när hen har kopplat sitt Microsoft Teams-konto.
+Payments länkar till policyn i OneUptime. En person nämns med sitt Microsoft Teams-namn när hen har kopplat sitt Microsoft Teams-konto till OneUptime, och med sitt namn i OneUptime fram till dess, i varje jourmeddelande. Någon som är inbjuden men ännu inte har gått med i projektet nämns med namnet som skrevs med inbjudan, aldrig med sin e-postadress. Tider visas i varje läsares egen tidszon. Steget **Uppdateringar** i en regel väljer vilka jourmeddelanden den publicerar, som i Slack, och en ny regel börjar med vem som har jour nu och när ingen har det: se [Jourmeddelanden](/docs/workspace-connections/slack#jourmeddelanden). Med **Nämn personen som går på jour** påslaget nämner meddelandet personen, så att Microsoft Teams aviserar hen, när hen har kopplat sitt Microsoft Teams-konto.
 
 ## Testa en regel
 

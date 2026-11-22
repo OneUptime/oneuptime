@@ -298,7 +298,7 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
       file: file!,
       form: form!,
       reason:
-        "A log or trace scrub rule: what it scrubs (the pattern type), the name - filled in from the type - and one folded Advanced header that says what the defaults do (the description, the action, the fields and Enabled, at the server's defaults). The fourth row, Custom Regex Pattern, appears only under a Custom Regex type, right below the type it belongs to. It walked Basic Info, Pattern Configuration and Scrub Settings, which asked for a name before anyone had said what the rule was for.",
+        "A log or trace scrub rule: what it scrubs (the pattern type), the name - filled in from the type - and one folded Advanced header that says what the defaults do (the description, the action, the fields, the one service it is for and Enabled, at the server's defaults). The fourth row, Custom Regex Pattern, appears only under a Custom Regex type, right below the type it belongs to. It walked Basic Info, Pattern Configuration and Scrub Settings, which asked for a name before anyone had said what the rule was for.",
     };
   }),
   /*
