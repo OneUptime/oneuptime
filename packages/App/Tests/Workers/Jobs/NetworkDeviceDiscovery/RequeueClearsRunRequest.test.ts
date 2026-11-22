@@ -123,12 +123,12 @@ describe("the requeue worker, on a recurring scan someone ran again last", () =>
 
     expect(scanService.updateOneById).toHaveBeenCalledTimes(1);
 
-    const write: { id: ObjectID; data: JSONObject; props: JSONObject } = scanService
-      .updateOneById.mock.calls[0]![0] as {
-      id: ObjectID;
-      data: JSONObject;
-      props: JSONObject;
-    };
+    const write: { id: ObjectID; data: JSONObject; props: JSONObject } =
+      scanService.updateOneById.mock.calls[0]![0] as {
+        id: ObjectID;
+        data: JSONObject;
+        props: JSONObject;
+      };
 
     expect(write.id.toString()).toBe(SCAN_ID.toString());
     expect(write.data).toEqual({

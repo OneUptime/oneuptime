@@ -223,7 +223,11 @@ describe("the scan model says the same", () => {
     const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
     const access: Record<
       string,
-      { create?: Array<Permission>; read?: Array<Permission>; update?: Array<Permission> }
+      {
+        create?: Array<Permission>;
+        read?: Array<Permission>;
+        update?: Array<Permission>;
+      }
     > = scan.getColumnAccessControlForAllColumns() as never;
 
     for (const column of [

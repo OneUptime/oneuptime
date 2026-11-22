@@ -80,17 +80,18 @@ export const getDiscoveryScanRunRequester: (
  * The tenantid header the common headers carry scopes the request to the
  * project: the route refuses one without it rather than guessing.
  */
-export const requestDiscoveryScanRun: (scanId: string) => Promise<void> =
-  async (scanId: string): Promise<void> => {
-    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-      await API.post<JSONObject>({
-        url: URL.fromString(APP_API_URL.toString()).addRoute(
-          getDiscoveryScanRunRoute(scanId),
-        ),
-        headers: ModelAPI.getCommonHeaders(),
-      });
+export const requestDiscoveryScanRun: (
+  scanId: string,
+) => Promise<void> = async (scanId: string): Promise<void> => {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.post<JSONObject>({
+      url: URL.fromString(APP_API_URL.toString()).addRoute(
+        getDiscoveryScanRunRoute(scanId),
+      ),
+      headers: ModelAPI.getCommonHeaders(),
+    });
 
-    if (response.isFailure()) {
-      throw new Error(API.getFriendlyMessage(response));
-    }
-  };
+  if (response.isFailure()) {
+    throw new Error(API.getFriendlyMessage(response));
+  }
+};

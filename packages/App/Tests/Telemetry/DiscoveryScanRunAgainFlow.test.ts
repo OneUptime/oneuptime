@@ -285,13 +285,17 @@ async function call(
 ): Promise<{ thrown: unknown }> {
   const next: jest.Mock = jest.fn();
 
-  await mockRouter
-    .match(method, uri)
-    .handlerFunction(
-      { headers: {}, query: {}, params: {}, body: {}, ...req } as unknown as ExpressRequest,
-      {} as ExpressResponse,
-      next as unknown as NextFunction,
-    );
+  await mockRouter.match(method, uri).handlerFunction(
+    {
+      headers: {},
+      query: {},
+      params: {},
+      body: {},
+      ...req,
+    } as unknown as ExpressRequest,
+    {} as ExpressResponse,
+    next as unknown as NextFunction,
+  );
 
   return { thrown: next.mock.calls[0]?.[0] };
 }

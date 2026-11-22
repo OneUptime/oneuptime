@@ -74,9 +74,7 @@ const OTHER_PROJECT_ID: ObjectID = new ObjectID(
   "10334000-0000-4000-8000-000000000002",
 );
 const SCAN_ID: ObjectID = new ObjectID("10334000-0000-4000-8000-000000000003");
-const PROBE_ID: ObjectID = new ObjectID(
-  "10334000-0000-4000-8000-000000000004",
-);
+const PROBE_ID: ObjectID = new ObjectID("10334000-0000-4000-8000-000000000004");
 const SIMON: ObjectID = new ObjectID("10334000-0000-4000-8000-000000000005");
 
 const NOW: Date = new Date("2026-11-22T10:00:00.000Z");
@@ -244,7 +242,10 @@ beforeEach(() => {
     }) as never);
 
   jest
-    .spyOn(NetworkDeviceDiscoveryScanService, "compareAndSetColumnsByIdWithoutHooks")
+    .spyOn(
+      NetworkDeviceDiscoveryScanService,
+      "compareAndSetColumnsByIdWithoutHooks",
+    )
     .mockImplementation((async (input: {
       id: ObjectID;
       data: Row;
@@ -288,11 +289,13 @@ beforeEach(() => {
       throw new Error("Run Again must never create a scan.");
     }) as never);
 
-  jest.spyOn(ProbeService, "findOneById").mockImplementation((async (
-    findOneById: { id: ObjectID },
-  ): Promise<Probe | null> => {
-    return probe && isSameValue(findOneById.id, probe.id) ? probe : null;
-  }) as never);
+  jest
+    .spyOn(ProbeService, "findOneById")
+    .mockImplementation((async (findOneById: {
+      id: ObjectID;
+    }): Promise<Probe | null> => {
+      return probe && isSameValue(findOneById.id, probe.id) ? probe : null;
+    }) as never);
 
   recordUpdateSpy = jest
     .spyOn(AuditLogService, "recordUpdate")
@@ -449,9 +452,11 @@ describe("Run Again queues the same scan again", () => {
 
 describe("Run Again refuses what it cannot do, and says why", () => {
   function expectNothingWritten(): void {
-    expect(world.writes.filter((write: CompareAndSet) => write.won)).toEqual(
-      [],
-    );
+    expect(
+      world.writes.filter((write: CompareAndSet) => {
+        return write.won;
+      }),
+    ).toEqual([]);
     expect(recordUpdateSpy).not.toHaveBeenCalled();
     expect(createSpy).not.toHaveBeenCalled();
   }
@@ -626,10 +631,11 @@ describe("Run Again never queues a run twice", () => {
 
     await runAgain();
 
-    expect(world.writes.map((write: CompareAndSet) => write.won)).toEqual([
-      false,
-      true,
-    ]);
+    expect(
+      world.writes.map((write: CompareAndSet) => {
+        return write.won;
+      }),
+    ).toEqual([false, true]);
     expect(world.writes[1]!.expectedData).toEqual({ status: "Completed" });
     expect(world.row!["status"]).toBe("Pending");
     expect(recordUpdateSpy).toHaveBeenCalledTimes(1);
@@ -666,9 +672,7 @@ describe("Run Again is recorded as the requester's", () => {
     expect(call.itemId.toString()).toBe(SCAN_ID.toString());
     expect(call.props).toBe(SIMON_PRESSING);
     expect(call.includeColumns).toEqual(["runRequestedAt", "status"]);
-    expect([...DISCOVERY_SCAN_RUN_AUDIT_COLUMNS]).toEqual(
-      call.includeColumns,
-    );
+    expect([...DISCOVERY_SCAN_RUN_AUDIT_COLUMNS]).toEqual(call.includeColumns);
     expect(call.updatedFields).toEqual({
       status: "Pending",
       runRequestedAt: NOW,
@@ -700,8 +704,8 @@ describe("Run Again is recorded as the requester's", () => {
       .before as NetworkDeviceDiscoveryScan;
 
     expect(before.runRequestedAt).toEqual(THREE_DAYS_AGO);
-    expect(OneUptimeDate.fromString(world.row!["runRequestedAt"] as Date)).toEqual(
-      NOW,
-    );
+    expect(
+      OneUptimeDate.fromString(world.row!["runRequestedAt"] as Date),
+    ).toEqual(NOW);
   });
 });

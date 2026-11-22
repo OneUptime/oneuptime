@@ -84,9 +84,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 const SIMON: ObjectID = new ObjectID("10334000-0000-4000-8000-0000000000e2");
 const SCAN_ID: ObjectID = new ObjectID("10334000-0000-4000-8000-0000000000e3");
-const PROBE_ID: ObjectID = new ObjectID(
-  "10334000-0000-4000-8000-0000000000e4",
-);
+const PROBE_ID: ObjectID = new ObjectID("10334000-0000-4000-8000-0000000000e4");
 
 const PRESSED_AT: Date = new Date("2026-11-22T10:00:00.000Z");
 

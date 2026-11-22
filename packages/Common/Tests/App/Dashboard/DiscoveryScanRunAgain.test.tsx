@@ -121,19 +121,17 @@ beforeEach(() => {
   jest.useFakeTimers({ doNotFake: ["performance"] });
   jest.setSystemTime(NOW);
   onRunQueued = jest.fn();
-  postSpy = jest
-    .spyOn(API, "post")
-    .mockResolvedValue(
-      new HTTPResponse<JSONObject>(
-        200,
-        {
-          scanId: SCAN_ID,
-          status: "Pending",
-          runRequestedAt: NOW.toISOString(),
-        },
-        {},
-      ),
-    );
+  postSpy = jest.spyOn(API, "post").mockResolvedValue(
+    new HTTPResponse<JSONObject>(
+      200,
+      {
+        scanId: SCAN_ID,
+        status: "Pending",
+        runRequestedAt: NOW.toISOString(),
+      },
+      {},
+    ),
+  );
   jest
     .spyOn(ModelAPI, "getCommonHeaders")
     .mockReturnValue({ tenantid: "the-project" });
@@ -190,7 +188,9 @@ describe("a finished scan's row", () => {
     const nameless: User = simon();
     nameless.name = undefined;
 
-    renderRow(scan({ runRequestedAt: THREE_DAYS_AGO, runRequestedByUser: nameless }));
+    renderRow(
+      scan({ runRequestedAt: THREE_DAYS_AGO, runRequestedByUser: nameless }),
+    );
 
     expect(screen.getByTestId("discovery-scan-last-run")).toHaveTextContent(
       "requested by simon@example.com",
@@ -258,7 +258,8 @@ describe("pressing Run Again", () => {
 
     expect(postSpy).toHaveBeenCalledTimes(1);
 
-    const request: { url: unknown; headers: unknown } = postSpy.mock.calls[0]![0];
+    const request: { url: unknown; headers: unknown } =
+      postSpy.mock.calls[0]![0];
 
     expect(String(request.url)).toContain(getDiscoveryScanRunRoute(SCAN_ID));
     expect(request.headers).toEqual({ tenantid: "the-project" });
@@ -309,7 +310,13 @@ describe("pressing Run Again", () => {
     expect(runAgainButton()).toBeDisabled();
 
     await act(async () => {
-      answer(new HTTPErrorResponse(400, { message: DISCOVERY_SCAN_ALREADY_RUNNING_REFUSAL }, {}));
+      answer(
+        new HTTPErrorResponse(
+          400,
+          { message: DISCOVERY_SCAN_ALREADY_RUNNING_REFUSAL },
+          {},
+        ),
+      );
     });
 
     expect(runAgainButton()).not.toBeDisabled();

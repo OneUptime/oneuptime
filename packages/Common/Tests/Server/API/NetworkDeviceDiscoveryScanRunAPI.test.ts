@@ -78,9 +78,7 @@ const OTHER_PROJECT_ID: ObjectID = new ObjectID(
 );
 const SIMON: ObjectID = new ObjectID("10334000-0000-4000-8000-0000000000a2");
 const SCAN_ID: ObjectID = new ObjectID("10334000-0000-4000-8000-0000000000a3");
-const PROBE_ID: ObjectID = new ObjectID(
-  "10334000-0000-4000-8000-0000000000a5",
-);
+const PROBE_ID: ObjectID = new ObjectID("10334000-0000-4000-8000-0000000000a5");
 
 type Row = Record<string, unknown>;
 
@@ -351,23 +349,24 @@ describe("who may run a scan: whoever may edit one", () => {
     );
   });
 
-  test.each(EDITORS.map((permission: Permission) => [permission]))(
-    "%s may run a scan",
-    async (permission: Permission) => {
-      callerProps = propsWith({
-        permissions: [
-          permission,
-          // A write needs a read: a role that may edit scans reads them too.
-          Permission.ReadNetworkDeviceDiscoveryScan,
-        ],
-      });
+  test.each(
+    EDITORS.map((permission: Permission) => {
+      return [permission];
+    }),
+  )("%s may run a scan", async (permission: Permission) => {
+    callerProps = propsWith({
+      permissions: [
+        permission,
+        // A write needs a read: a role that may edit scans reads them too.
+        Permission.ReadNetworkDeviceDiscoveryScan,
+      ],
+    });
 
-      const { thrown } = await pressRunAgain();
+    const { thrown } = await pressRunAgain();
 
-      expect(thrown).toBeUndefined();
-      expectQueued();
-    },
-  );
+    expect(thrown).toBeUndefined();
+    expectQueued();
+  });
 
   test.each([
     [Permission.Viewer],
