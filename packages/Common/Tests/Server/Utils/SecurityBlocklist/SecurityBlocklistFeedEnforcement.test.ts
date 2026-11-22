@@ -257,7 +257,7 @@ beforeEach(() => {
           (findBy.query["state"] === undefined ||
             block.state === findBy.query["state"]) &&
           (kinds === undefined ||
-            kinds.values.includes(block.indicatorType as string))
+            (kinds.values as Array<unknown>).includes(block.indicatorType))
         );
       })
       .sort((left: SecurityBlock, right: SecurityBlock): number => {
