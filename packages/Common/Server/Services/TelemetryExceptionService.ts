@@ -115,6 +115,13 @@ export interface CreateCodeFixRunForExceptionParams {
    */
   triggeredByAiInsightId?: ObjectID | undefined;
   /*
+   * The security case the fix is for (#10347): Fix With AI asks for it from
+   * the case's playbook. Stamped on the run, and from the run on the pull
+   * request it opens (CodeFixPullRequestRecord), so the case finds its
+   * fixes and its Fix step's check reads whether one shipped.
+   */
+  triggeredBySecurityCaseId?: ObjectID | undefined;
+  /*
    * The repositories the run may be queued on (the AI rules' that started
    * it): the exception resolves only to one of them. Left out, to any.
    */
@@ -1811,6 +1818,11 @@ export class Service extends ProjectReferencesService<Model> {
       // The finding it is for, and the provider its AI rules picked.
       if (params.triggeredByAiInsightId) {
         run.triggeredByAiInsightId = params.triggeredByAiInsightId;
+      }
+
+      // The security case it fixes, so the case finds its pull request.
+      if (params.triggeredBySecurityCaseId) {
+        run.triggeredBySecurityCaseId = params.triggeredBySecurityCaseId;
       }
 
       if (params.llmProviderId) {

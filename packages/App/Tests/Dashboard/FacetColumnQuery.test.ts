@@ -1,5 +1,7 @@
 import {
   FacetColumnQuery,
+  buildBooleanFacetQuery,
+  buildEntityFacetQuery,
   buildFacetColumnQuery,
   defaultFacetQueryValue,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/FacetColumnQuery";
@@ -8,12 +10,15 @@ import { ResourceFacet } from "../../FeatureSet/Dashboard/src/Components/Resourc
 import { buildCustomFieldFacets } from "../../FeatureSet/Dashboard/src/Components/CustomFields/CustomFieldFacets";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "Common/Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "Common/Types/BaseDatabase/NotEqualOrNull";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import { CustomFieldDefinition } from "Common/Types/CustomField/CustomFieldDefinition";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -354,16 +359,31 @@ describe("defaultFacetQueryValue", () => {
     expect(defaultFacetQueryValue(["a", "b"], "is", true)).toBeInstanceOf(
       Includes,
     );
-    expect(defaultFacetQueryValue(["a", "b"], "is_not", true)).toBeInstanceOf(
-      IncludesNone,
-    );
   });
 
   test("passes a single-select selection through", () => {
     expect(defaultFacetQueryValue(["a"], "is", false)).toBe("a");
-    expect(defaultFacetQueryValue(["a"], "is_not", false)).toBeInstanceOf(
-      NotEqual,
-    );
+  });
+
+  /*
+   * "Is not" keeps the rows with no value (#10581): a monitor of no type,
+   * an incident of no severity, is not of the one picked either. NotEqual
+   * (`<>`) and IncludesNone (`NOT IN`) are not true of an empty column.
+   */
+  test("is not, of several: none of them, the rows with none kept", () => {
+    const value: unknown = defaultFacetQueryValue(["a", "b"], "is_not", true);
+
+    expect(value).toBeInstanceOf(IncludesNoneOrNull);
+    expect(value).not.toBeInstanceOf(IncludesNone);
+    expect((value as IncludesNoneOrNull).values).toEqual(["a", "b"]);
+  });
+
+  test("is not, of one: anything but it, the rows with none kept", () => {
+    const value: unknown = defaultFacetQueryValue(["a"], "is_not", false);
+
+    expect(value).toBeInstanceOf(NotEqualOrNull);
+    expect(value).not.toBeInstanceOf(NotEqual);
+    expect((value as NotEqualOrNull<string>).value).toBe("a");
   });
 
   test("refuses every operator it has no typed value for", () => {
@@ -398,5 +418,126 @@ describe("defaultFacetQueryValue", () => {
     expect(defaultFacetQueryValue([], "is_not_empty", false)).toBeInstanceOf(
       NotNull,
     );
+  });
+});
+
+/*
+ * IS NOT KEEPS EMPTY VALUES (#10581): the entity chips (a template, a state,
+ * a severity, a site) and the yes/no chips write "is not" so that a record
+ * pointing at nothing - a monitor linked to no template - is still listed
+ * under "Template is not X". Only "is not empty" leaves such records out.
+ */
+describe("buildEntityFacetQuery", () => {
+  const TEMPLATE_A: string = "11111111-1111-4111-8111-111111111111";
+  const TEMPLATE_B: string = "22222222-2222-4222-8222-222222222222";
+
+  test("is, of several: any of the ids, as ObjectIDs", () => {
+    const value: unknown = buildEntityFacetQuery(
+      [TEMPLATE_A, TEMPLATE_B],
+      "is",
+      true,
+    );
+
+    expect(value).toBeInstanceOf(Includes);
+    expect(
+      ((value as Includes).values as Array<ObjectID>).map(
+        (id: ObjectID): string => {
+          return id.toString();
+        },
+      ),
+    ).toEqual([TEMPLATE_A, TEMPLATE_B]);
+  });
+
+  test("is not, of several: none of the ids, the records with none kept", () => {
+    const value: unknown = buildEntityFacetQuery(
+      [TEMPLATE_A, TEMPLATE_B],
+      "is_not",
+      true,
+    );
+
+    expect(value).toBeInstanceOf(IncludesNoneOrNull);
+    expect(value).not.toBeInstanceOf(IncludesNone);
+
+    const ids: Array<unknown> = (value as IncludesNoneOrNull)
+      .values as Array<unknown>;
+
+    expect(ids[0]).toBeInstanceOf(ObjectID);
+    expect(
+      ids.map((id: unknown): string => {
+        return String(id);
+      }),
+    ).toEqual([TEMPLATE_A, TEMPLATE_B]);
+  });
+
+  test("is, of one: that id", () => {
+    const value: unknown = buildEntityFacetQuery([TEMPLATE_A], "is", false);
+
+    expect(value).toBeInstanceOf(ObjectID);
+    expect(String(value)).toBe(TEMPLATE_A);
+  });
+
+  test("is not, of one: anything but that id, the records with none kept", () => {
+    const value: unknown = buildEntityFacetQuery([TEMPLATE_A], "is_not", false);
+
+    expect(value).toBeInstanceOf(NotEqualOrNull);
+    expect(value).not.toBeInstanceOf(NotEqual);
+    expect((value as NotEqualOrNull<string>).value).toBe(TEMPLATE_A);
+  });
+
+  test("is empty and is not empty stay IsNull and NotNull", () => {
+    expect(buildEntityFacetQuery([], "is_empty", true)).toBeInstanceOf(IsNull);
+    expect(buildEntityFacetQuery([], "is_not_empty", true)).toBeInstanceOf(
+      NotNull,
+    );
+  });
+
+  test("nothing picked constrains nothing", () => {
+    expect(buildEntityFacetQuery([], "is_not", true)).toBeUndefined();
+    expect(buildEntityFacetQuery([], "is", false)).toBeUndefined();
+  });
+});
+
+describe("buildBooleanFacetQuery", () => {
+  test("is: the flag itself", () => {
+    expect(buildBooleanFacetQuery(["true"], "is")).toBe(true);
+    expect(buildBooleanFacetQuery(["false"], "is")).toBe(false);
+  });
+
+  test("is not: anything but the flag, a flag never set kept", () => {
+    const value: unknown = buildBooleanFacetQuery(["true"], "is_not");
+
+    expect(value).toBeInstanceOf(NotEqualOrNull);
+    expect((value as NotEqualOrNull<string>).value).toBe("true");
+    expect(
+      (buildBooleanFacetQuery(["false"], "is_not") as NotEqualOrNull<string>)
+        .value,
+    ).toBe("false");
+  });
+});
+
+describe("buildFacetColumnQuery, is not on an entity chip", () => {
+  test("writes the or-empty operator at the chip's field", () => {
+    const facet: ResourceFacet = {
+      key: "monitorTemplate",
+      label: "Template",
+      isMultiSelect: true,
+      queryField: "monitorTemplateId",
+      toQueryValue: (
+        values: Array<string>,
+        operator: FilterOperator,
+      ): unknown => {
+        return buildEntityFacetQuery(values, operator, true);
+      },
+    };
+
+    const columnQuery: FacetColumnQuery | null = buildFacetColumnQuery({
+      facet: facet,
+      operator: "is_not",
+      values: ["11111111-1111-4111-8111-111111111111"],
+      existingValue: undefined,
+    });
+
+    expect(columnQuery!.field).toBe("monitorTemplateId");
+    expect(columnQuery!.value).toBeInstanceOf(IncludesNoneOrNull);
   });
 });

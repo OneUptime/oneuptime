@@ -35,7 +35,7 @@ import {
 import { FilterOperator } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipDropdownTypes";
 import { ResourceFacet } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/ResourceFacet";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import NotEqual from "Common/Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "Common/Types/BaseDatabase/NotEqualOrNull";
 import { Gray500, Green, Red } from "Common/Types/BrandColors";
 import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
 import { getSloStatusColor } from "Common/Utils/Slo/SloStatusColor";
@@ -489,9 +489,10 @@ describe("the facet bar the tiles move", () => {
       "is_not",
     );
     const notFrozen: Record<string, unknown> = queryFromChips(bar);
-    expect(notFrozen["deploymentsAllowed"]).toBeInstanceOf(NotEqual);
+    // An SLO whose flag was never set is not Frozen either (#10581).
+    expect(notFrozen["deploymentsAllowed"]).toBeInstanceOf(NotEqualOrNull);
     expect(
-      (notFrozen["deploymentsAllowed"] as NotEqual<string>).toString(),
+      (notFrozen["deploymentsAllowed"] as NotEqualOrNull<string>).toString(),
     ).toBe("false");
 
     bar.setFacetSelection(SLO_DEPLOYMENTS_FACET_KEY, []);

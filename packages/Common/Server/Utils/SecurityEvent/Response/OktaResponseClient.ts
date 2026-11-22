@@ -1,8 +1,11 @@
 import APIException from "../../../../Types/Exception/ApiException";
 import { JSONObject } from "../../../../Types/JSON";
 import { ConnectorTransport } from "../Connectors/Types";
-import OktaClient from "../Connectors/Okta/OktaClient";
-import ResponseHttp, { ResponseHttpResult } from "./ResponseHttp";
+import OktaClient, { OktaLogEventsPage } from "../Connectors/Okta/OktaClient";
+import ResponseHttp, {
+  RESPONSE_ACTION_TIMEOUT_IN_MS,
+  ResponseHttpResult,
+} from "./ResponseHttp";
 
 /*
  * The Okta calls a playbook makes to contain an account, and to let it back
@@ -16,6 +19,12 @@ import ResponseHttp, { ResponseHttpResult } from "./ResponseHttp";
  *                                                          end every session and
  *                                                          revoke OAuth tokens
  *
+ * And what a Fix step's check reads back without changing anything
+ * (#10347): the user's passwordChanged (on the user above), its factors
+ * (GET {orgUrl}/api/v1/users/{id}/factors, okta.users.read) and the System
+ * Log's user.session.clear events for it (GET {orgUrl}/api/v1/logs with
+ * filter=eventType eq "user.session.clear" and target.id eq "{id}").
+ *
  * The token is the connection's SSWS API token, which acts with its
  * creator's admin rights: suspending needs a Super, Org or Group admin who
  * manages the user. Okta answers a suspend of a user who is not ACTIVE, and
@@ -28,6 +37,12 @@ export interface OktaUser {
   status: string;
   login: string;
 }
+
+// The System Log's event for every session of a user cleared (Okta's event types catalog).
+export const OKTA_SESSIONS_CLEARED_EVENT: string = "user.session.clear";
+
+// The most of those events read: the latest is the one that counts.
+export const OKTA_SESSIONS_CLEARED_PAGE_SIZE: number = 100;
 
 export enum OktaContainmentOutcome {
   Done = "Done",
@@ -158,6 +173,116 @@ export default class OktaResponseClient {
       statusChangedAt:
         changed && !Number.isNaN(changed.getTime()) ? changed : null,
     };
+  }
+
+  /*
+   * The user, and when their password last changed (passwordChanged):
+   * what the Fix step "reset the password" reads back (#10347). Null when
+   * Okta has no such user.
+   */
+  public async readPasswordChanged(
+    loginOrId: string,
+  ): Promise<{ user: OktaUser; passwordChangedAt: Date | null } | null> {
+    const found: { user: OktaUser; body: JSONObject } | null =
+      await this.fetchUser(loginOrId);
+
+    if (!found) {
+      return null;
+    }
+
+    const changed: Date | null =
+      typeof found.body["passwordChanged"] === "string"
+        ? new Date(found.body["passwordChanged"])
+        : null;
+
+    return {
+      user: found.user,
+      passwordChangedAt:
+        changed && !Number.isNaN(changed.getTime()) ? changed : null,
+    };
+  }
+
+  /*
+   * The latest moment in [since, until] the System Log says every session
+   * of the user was cleared (user.session.clear: an admin, a playbook's End
+   * Sessions, or a password reset that ends them) - null when it says none
+   * was. Read with the connection's own token, which reads the System Log.
+   */
+  public async readSessionsClearedAt(data: {
+    user: OktaUser;
+    since: Date;
+    until: Date;
+  }): Promise<Date | null> {
+    const client: OktaClient = new OktaClient({
+      orgUrl: this.baseUrl,
+      apiToken: this.apiToken,
+      transport: this.transport,
+      requestTimeoutInMs: RESPONSE_ACTION_TIMEOUT_IN_MS,
+    });
+    const page: OktaLogEventsPage = await client.listLogEvents({
+      startTime: data.since,
+      endTime: data.until,
+      limit: OKTA_SESSIONS_CLEARED_PAGE_SIZE,
+      filter: `eventType eq "${OKTA_SESSIONS_CLEARED_EVENT}" and target.id eq "${data.user.id.replace(/"/g, "")}"`,
+    });
+    let latest: Date | null = null;
+
+    for (const event of page.events) {
+      const published: Date | null =
+        typeof event["published"] === "string"
+          ? new Date(event["published"])
+          : null;
+
+      if (
+        published &&
+        !Number.isNaN(published.getTime()) &&
+        (!latest || published.getTime() > latest.getTime())
+      ) {
+        latest = published;
+      }
+    }
+
+    return latest;
+  }
+
+  /*
+   * Whether the user has a factor enrolled and active - an authenticator,
+   * a security key, a phone (GET /api/v1/users/{id}/factors, status
+   * ACTIVE): the Fix step "MFA on the accounts it went after" (#10347).
+   */
+  public async hasActiveFactor(user: OktaUser): Promise<boolean> {
+    const step: string = "Okta factors lookup";
+    const result: ResponseHttpResult = await this.send(
+      step,
+      "GET",
+      `/api/v1/users/${encodeURIComponent(user.id)}/factors`,
+    );
+
+    if (!ResponseHttp.isSuccess(result)) {
+      throw ResponseHttp.failure({
+        step,
+        result,
+        secrets: [this.apiToken],
+        hint:
+          result.statusCode === 401 || result.statusCode === 403
+            ? "The connection's API token cannot read this user's factors: create it as an admin who manages them."
+            : undefined,
+      });
+    }
+
+    const factors: unknown = result.bodyJson;
+
+    return (
+      Array.isArray(factors) &&
+      factors.some((factor: unknown): boolean => {
+        return (
+          Boolean(factor) &&
+          typeof factor === "object" &&
+          String((factor as JSONObject)["status"] || "").toUpperCase() ===
+            "ACTIVE"
+        );
+      })
+    );
   }
 
   public async suspendUser(user: OktaUser): Promise<OktaContainmentOutcome> {

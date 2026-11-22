@@ -32,6 +32,14 @@ import {
   markClientAddressScrubbed,
   readHiddenClientAddress,
 } from "./ScrubbedAddress";
+import {
+  EventUserReading,
+  ScrubbedUserRole,
+  clearEventUserScrubbed,
+  markEventUserScrubbed,
+  readEventUser,
+  readHiddenEventUser,
+} from "./ScrubbedUser";
 
 /*
  * What following a request adds to the security event it happened in.
@@ -97,7 +105,15 @@ export function applyRequestAssessment(
   const method: string = (assessment.method || "").trim().toUpperCase();
   const client: ClientAddressReading = assessment.client;
   const clientAddress: string = client.address;
-  const userId: string = cut((assessment.userId || "").trim(), 255);
+  /*
+   * The request's user as its trace names it: none when a scrub rule
+   * redacted or masked it, its token when a Hash rule did (ScrubbedUser,
+   * #10435).
+   */
+  const user: EventUserReading = readEventUser(
+    cut((assessment.userId || "").trim(), 255),
+  );
+  const userId: string = user.user;
 
   setIfAbsent(attributes, SECURITY_REQUEST_ATTRIBUTES.method, method);
   setIfAbsent(attributes, SECURITY_REQUEST_ATTRIBUTES.url, assessment.url);
@@ -250,8 +266,24 @@ export function applyRequestAssessment(
 
   addObservable(event, event.principalIp);
 
-  if (!event.principalUser && userId) {
-    event.principalUser = userId;
+  if (!event.principalUser) {
+    if (userId) {
+      event.principalUser = userId;
+    }
+
+    if (user.scrubbed) {
+      // The log's own marker, if its rule hid the user too, says it first.
+      if (!readHiddenEventUser(event, ScrubbedUserRole.Principal)) {
+        markEventUserScrubbed(attributes, {
+          role: ScrubbedUserRole.Principal,
+          scrubbed: user.scrubbed,
+          signal: "trace",
+        });
+      }
+    } else if (userId) {
+      // The trace named the user a log's rule hid.
+      clearEventUserScrubbed(attributes, ScrubbedUserRole.Principal);
+    }
   }
 
   addObservable(event, event.principalUser);

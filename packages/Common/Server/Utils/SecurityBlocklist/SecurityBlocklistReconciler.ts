@@ -74,7 +74,16 @@ import { SecurityBlockEnforcementState } from "../../../Types/SecurityBlocklist/
 // How long one destination's lock lasts: longer than a pass over it takes.
 export const SECURITY_BLOCKLIST_LOCK_TIMEOUT_IN_MS: number = 3 * 60 * 1000;
 
-const LOCK_NAMESPACE: string = "SecurityBlocklistReconciler";
+/*
+ * Where a destination's lock is kept: whatever else writes a destination
+ * outside a pass - setting up or taking down a cloud WAF
+ * (SecurityBlockCloudWafs) - takes the same lock, so it and a pass never
+ * write the same provider's lists at once.
+ */
+export const SECURITY_BLOCKLIST_LOCK_NAMESPACE: string =
+  "SecurityBlocklistReconciler";
+
+const LOCK_NAMESPACE: string = SECURITY_BLOCKLIST_LOCK_NAMESPACE;
 
 // The first retry after a failure waits a minute, each after it twice as long, up to half an hour.
 export const SECURITY_BLOCKLIST_FIRST_RETRY_IN_MS: number = 60 * 1000;
@@ -576,12 +585,29 @@ export default class SecurityBlocklistReconciler {
     let applied: Array<SecurityBlockWriteResult> = [];
 
     try {
-      if (plan.toRemove.length > 0) {
-        removed = await destination.remove(plan.toRemove);
-      }
+      if (
+        destination.update &&
+        (plan.toAdd.length > 0 || plan.toRemove.length > 0)
+      ) {
+        // A provider that replaces its lists whole writes each once.
+        const written: {
+          applied: Array<SecurityBlockWriteResult>;
+          removed: Array<SecurityBlockWriteResult>;
+        } = await destination.update({
+          add: plan.toAdd,
+          remove: plan.toRemove,
+        });
 
-      if (plan.toAdd.length > 0) {
-        applied = await destination.apply(plan.toAdd);
+        removed = written.removed;
+        applied = written.applied;
+      } else {
+        if (plan.toRemove.length > 0) {
+          removed = await destination.remove(plan.toRemove);
+        }
+
+        if (plan.toAdd.length > 0) {
+          applied = await destination.apply(plan.toAdd);
+        }
       }
     } catch (error) {
       await this.recordDestinationFailure({

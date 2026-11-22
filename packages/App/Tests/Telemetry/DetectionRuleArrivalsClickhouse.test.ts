@@ -1685,7 +1685,7 @@ integration("a scheduled rule judges every event once (#10337)", () => {
     });
 
     test("a rule that fires on each event keeps firing for events with no value for its group field", async () => {
-      // As Many records deleted at once in OneUptime fires for a workflow, which has no user.
+      // As Many records deleted at once in OneUptime fires for deletes the audit log names nobody for.
       const rule: DetectionRule = addRule({
         name: "Any failed sign-in, per user",
         intervalInMinutes: 1,

@@ -6,10 +6,10 @@
  * Redis and BullMQ. This suite runs a hundred and fifty seeded random
  * schedules on the real enqueue path
  * (TelemetryQueueService.addIncomingRequestIngestJob) and the real worker
- * entry point (processIncomingRequestJobFromQueue). Every call they make
- * outward - the queue add, each store operation, the monitor lookup, the
- * evaluation, the job's completion - is a point at which any other request,
- * worker, retry or Redis reply may go first.
+ * entry point (processPendingIncomingRequestsFromQueue). Every call they make
+ * outward - the queue add, each operation on a monitor's waiting requests,
+ * the monitor lookup, the evaluation, the job's completion - is a point at
+ * which any other request, worker, retry or Redis reply may go first.
  *
  * The queue is a model of what BullMQ 5.76's Lua does with
  * deduplication { id, keepLastIfActive: true } and no ttl:
@@ -22,18 +22,21 @@
  *   - an attempt fails with attempts left: the job is delayed and queued
  *     again later, still holding the id.
  *
- * The store is an in-memory one with the same atomic operations as
- * IncomingRequestLatestPayloadStore's Lua. In every schedule:
+ * The monitors' waiting requests are an in-memory model with the same
+ * atomic operations as IncomingRequestPendingStore's Lua. Half the monitors
+ * group by a payload field, half do not. In every schedule:
  *
  *   - a monitor never has more than one job (waiting, delayed or running)
  *     plus the next job BullMQ keeps for it,
- *   - it never evaluates a request stored earlier than one it has already
- *     evaluated, nor any request twice,
- *   - once everything has drained, the request stored last for it is the
- *     last one it evaluated, and nothing is left stored.
+ *   - a grouped monitor evaluates every request it was sent, each once, in
+ *     the order they were kept (#10582),
+ *   - a monitor without grouping never evaluates a request kept earlier
+ *     than one it has already evaluated, nor any request twice, and the
+ *     request kept last for it is the last one it evaluates,
+ *   - once everything has drained, nothing is left waiting.
  *
- * Run with jobs that evaluate their own copy of the request - the behaviour
- * before the store - the same schedules fail that last check.
+ * Run with jobs that evaluate only the newest of a grouped monitor's
+ * requests - the behaviour before #10582 - the same schedules lose requests.
  */
 
 jest.mock("Common/Server/Infrastructure/Queue", () => {
@@ -49,18 +52,43 @@ jest.mock("Common/Server/Infrastructure/Queue", () => {
 });
 
 jest.mock(
-  "../../FeatureSet/Telemetry/Utils/IncomingRequestLatestPayloadStore",
+  "../../FeatureSet/Telemetry/Utils/IncomingRequestPendingStore",
   () => {
     return {
       __esModule: true,
       default: {
-        store: jest.fn(),
-        getLatest: jest.fn(),
-        clearIfUnchanged: jest.fn(),
+        getSecretKeyHash: (secretKey: string): string => {
+          return `hash-of-${secretKey}`;
+        },
+        push: jest.fn(),
+        peekOldest: jest.fn(),
+        peekNewest: jest.fn(),
+        remove: jest.fn(),
+        skipAfterFailures: jest.fn(),
+        removeThrough: jest.fn(),
+        countFailure: jest.fn(),
+        acknowledgeSkipped: jest.fn(),
+        hasPending: jest.fn(),
       },
     };
   },
 );
+
+jest.mock("Common/Server/Utils/Monitor/MonitorSecretKeyCache", () => {
+  return {
+    __esModule: true,
+    MonitorSecretKeyKind: {
+      IncomingRequest: "IncomingRequest",
+    },
+    default: {
+      getMonitor: jest.fn(async () => {
+        return null;
+      }),
+      setMonitor: jest.fn(async () => {}),
+      forget: jest.fn(async () => {}),
+    },
+  };
+});
 
 jest.mock("Common/Server/Services/MonitorService", () => {
   return {
@@ -143,15 +171,17 @@ jest.mock("Common/Server/Utils/Monitor/IncomingRequestSecretGate", () => {
 
 import TelemetryQueueService, {
   IncomingRequestIngestJobData,
+  IncomingRequestPendingJobData,
   TelemetryIngestJobData,
 } from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
 import {
   processIncomingRequestFromQueue,
-  processIncomingRequestJobFromQueue,
+  processPendingIncomingRequestsFromQueue,
 } from "../../FeatureSet/Telemetry/Jobs/IncomingRequestIngest/ProcessIncomingRequestIngest";
-import IncomingRequestLatestPayloadStore, {
-  LatestIncomingRequestPayload,
-} from "../../FeatureSet/Telemetry/Utils/IncomingRequestLatestPayloadStore";
+import IncomingRequestPendingStore, {
+  PendingIncomingRequest,
+  SkippedIncomingRequests,
+} from "../../FeatureSet/Telemetry/Utils/IncomingRequestPendingStore";
 import { isNonActionableIngestError } from "Common/Server/Utils/Monitor/NonActionableIngestError";
 import Queue from "Common/Server/Infrastructure/Queue";
 import MonitorService from "Common/Server/Services/MonitorService";
@@ -159,6 +189,11 @@ import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import IncomingRequestReceivedAtStore from "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
+import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -168,16 +203,20 @@ import {
 } from "Common/Tests/Helpers/SeededRandom";
 import { beforeAll, describe, expect, jest, test } from "@jest/globals";
 
-const MONITORS: number = 3;
+const GROUPED_MONITORS: number = 2;
+const UNGROUPED_MONITORS: number = 2;
 const REQUESTS_PER_MONITOR: number = 6;
 const WORKER_CONCURRENCY: number = 2;
 // The Telemetry queue's attempts per job (Queue.addJob's default for it).
 const ATTEMPTS: number = 3;
 const FAILURE_RATE: number = 0.2;
 const SCHEDULES: number = 150;
-const OWN_COPY_SCHEDULES: number = 60;
+const NEWEST_ONLY_SCHEDULES: number = 60;
 
-type Processor = (jobData: IncomingRequestIngestJobData) => Promise<void>;
+type Processor = (
+  jobData: IncomingRequestPendingJobData,
+  options: { isFinalAttempt: boolean },
+) => Promise<void>;
 
 type JobState = "waiting" | "active" | "delayed" | "done";
 
@@ -189,22 +228,26 @@ interface ModelJob {
   attemptsMade: number;
 }
 
+// One monitor's waiting requests, as IncomingRequestPendingStore keeps them.
+interface ModelList {
+  ids: Array<string>;
+  payloads: Map<string, string>;
+  failures: Map<string, number>;
+  skipped: SkippedIncomingRequests;
+}
+
 interface ScheduleReport {
   violations: Array<string>;
-  // Per monitor: the requests in the order they were stored.
-  stored: Map<string, Array<number>>;
+  // Per monitor: the requests in the order they were kept.
+  kept: Map<string, Array<number>>;
   // Per monitor: the requests it evaluated, in order.
   evaluated: Map<string, Array<number>>;
-  leftInStore: number;
+  leftWaiting: number;
 }
 
-// BullMQ serializes job data and store values to JSON; so does the model.
+// BullMQ serializes job data and Redis keeps strings; so does the model.
 function viaJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
-}
-
-function secretKeyOf(job: ModelJob): string {
-  return job.data.incomingRequestIngest!.secretKey;
 }
 
 function sequenceOf(body: unknown): number {
@@ -313,24 +356,81 @@ class DeduplicatingQueueModel {
 }
 
 const addJob: jest.Mock = Queue.addJob as unknown as jest.Mock;
-const storeMock: jest.Mock =
-  IncomingRequestLatestPayloadStore.store as unknown as jest.Mock;
-const getLatestMock: jest.Mock =
-  IncomingRequestLatestPayloadStore.getLatest as unknown as jest.Mock;
-const clearIfUnchangedMock: jest.Mock =
-  IncomingRequestLatestPayloadStore.clearIfUnchanged as unknown as jest.Mock;
 const findOneBy: jest.Mock = MonitorService.findOneBy as unknown as jest.Mock;
 const monitorResource: jest.Mock =
   MonitorResourceUtil.monitorResource as unknown as jest.Mock;
 const track: jest.Mock =
   IncomingRequestReceivedAtStore.track as unknown as jest.Mock;
 
-const secretKeys: Array<string> = Array.from(
-  { length: MONITORS },
+function storeMock(name: keyof typeof IncomingRequestPendingStore): jest.Mock {
+  return IncomingRequestPendingStore[name] as unknown as jest.Mock;
+}
+
+const groupedKeys: Array<string> = Array.from(
+  { length: GROUPED_MONITORS },
   (_value: unknown, index: number) => {
-    return `00000000-0000-4000-8000-00000000000${index + 1}`;
+    return `00000000-0000-4000-8000-00000000001${index + 1}`;
   },
 );
+
+const ungroupedKeys: Array<string> = Array.from(
+  { length: UNGROUPED_MONITORS },
+  (_value: unknown, index: number) => {
+    return `00000000-0000-4000-8000-00000000002${index + 1}`;
+  },
+);
+
+const secretKeys: Array<string> = [...groupedKeys, ...ungroupedKeys];
+
+function hashOf(secretKey: string): string {
+  return IncomingRequestPendingStore.getSecretKeyHash(secretKey);
+}
+
+function secretKeyOf(job: ModelJob): string {
+  const hash: string | undefined =
+    job.data.incomingRequestPending?.secretKeyHash;
+
+  return (
+    secretKeys.find((secretKey: string) => {
+      return hashOf(secretKey) === hash;
+    }) || ""
+  );
+}
+
+function monitorOf(secretKey: string): Monitor {
+  const monitor: Monitor = new Monitor();
+  monitor._id = secretKey;
+  monitor.projectId = new ObjectID("4c6e0b8a-9c15-4f8b-a1d2-7e5f4c3b2a19");
+  monitor.monitorType = MonitorType.IncomingRequest;
+  monitor.isArchived = false;
+  monitor.disableActiveMonitoring = false;
+  monitor.disableActiveMonitoringBecauseOfManualIncident = false;
+  monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent = false;
+
+  const criteria: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+
+  if (groupedKeys.includes(secretKey)) {
+    criteria.data = {
+      ...criteria.data!,
+      incidentGrouping: { groupByJSONPath: "requestBody.alertActiveID" },
+    };
+  }
+
+  const monitorCriteria: MonitorCriteria = new MonitorCriteria();
+  monitorCriteria.data = { monitorCriteriaInstanceArray: [criteria] };
+
+  const step: MonitorStep = new MonitorStep();
+  step.data!.monitorCriteria = monitorCriteria;
+
+  const monitorSteps: MonitorSteps = new MonitorSteps();
+  monitorSteps.data = {
+    monitorStepsInstanceArray: [step],
+    defaultMonitorStatusId: ObjectID.generate(),
+  };
+  monitor.monitorSteps = monitorSteps;
+
+  return monitor;
+}
 
 /*
  * The state of the schedule being run. The mocks are wired once and read
@@ -339,15 +439,17 @@ const secretKeys: Array<string> = Array.from(
 let random: SeededRandom = seededRandom(0);
 let points: Array<() => void> = [];
 let model: DeduplicatingQueueModel = new DeduplicatingQueueModel();
-let slots: Map<string, { payloadId: string; payload: string }> = new Map();
+let lists: Map<string, ModelList> = new Map();
 let report: ScheduleReport = {
   violations: [],
-  stored: new Map(),
+  kept: new Map(),
   evaluated: new Map(),
-  leftInStore: 0,
+  leftWaiting: 0,
 };
 // The step at which the running attempt of a monitor's job fails, if it does.
 let failing: Map<string, "read" | "evaluate"> = new Map();
+// Requests whose evaluation has failed once: none fails twice.
+let failedOnce: Set<string> = new Set();
 
 /*
  * Where control may pass to anything else: the caller resumes only when the
@@ -366,12 +468,25 @@ function settle(): Promise<void> {
   });
 }
 
-function storedOf(secretKey: string): Array<number> {
-  if (!report.stored.has(secretKey)) {
-    report.stored.set(secretKey, []);
+function listOf(hash: string): ModelList {
+  if (!lists.has(hash)) {
+    lists.set(hash, {
+      ids: [],
+      payloads: new Map(),
+      failures: new Map(),
+      skipped: { overLimit: 0, afterFailures: 0 },
+    });
   }
 
-  return report.stored.get(secretKey)!;
+  return lists.get(hash)!;
+}
+
+function keptOf(secretKey: string): Array<number> {
+  if (!report.kept.has(secretKey)) {
+    report.kept.set(secretKey, []);
+  }
+
+  return report.kept.get(secretKey)!;
 }
 
 function evaluatedOf(secretKey: string): Array<number> {
@@ -382,10 +497,50 @@ function evaluatedOf(secretKey: string): Array<number> {
   return report.evaluated.get(secretKey)!;
 }
 
+function readRequest(
+  list: ModelList,
+  index: number,
+): PendingIncomingRequest | null {
+  const requestId: string | undefined =
+    index === 0 ? list.ids[0] : list.ids[list.ids.length - 1];
+
+  if (!requestId) {
+    return null;
+  }
+
+  return {
+    requestId: requestId,
+    payload: JSON.parse(
+      list.payloads.get(requestId)!,
+    ) as IncomingRequestIngestJobData,
+    failures: list.failures.get(requestId) || 0,
+    waiting: list.ids.length,
+    skipped: { ...list.skipped },
+  };
+}
+
+function forget(list: ModelList, requestId: string): boolean {
+  const index: number = list.ids.indexOf(requestId);
+
+  list.payloads.delete(requestId);
+  list.failures.delete(requestId);
+
+  if (index < 0) {
+    return false;
+  }
+
+  list.ids.splice(index, 1);
+  return true;
+}
+
 function checkJobsPerMonitor(): void {
   for (const secretKey of secretKeys) {
     const live: number = model.liveJobsOf(secretKey).length;
-    const next: number = model.nextJobs.has(`incoming-request-${secretKey}`)
+    const next: number = model.nextJobs.has(
+      TelemetryQueueService.getIncomingRequestPendingDeduplicationId(
+        hashOf(secretKey),
+      ),
+    )
       ? 1
       : 0;
 
@@ -410,69 +565,129 @@ function wireMocks(): void {
     await point();
   }) as never);
 
-  storeMock.mockImplementation((async (data: {
+  storeMock("push").mockImplementation((async (data: {
     secretKey: string;
-    payloadId: string;
+    requestId: string;
     payload: IncomingRequestIngestJobData;
-  }): Promise<void> => {
+  }) => {
     await point();
-    slots.set(data.secretKey, {
-      payloadId: data.payloadId,
-      payload: JSON.stringify(data.payload),
-    });
-    storedOf(data.secretKey).push(sequenceOf(data.payload.requestBody));
+    const list: ModelList = listOf(hashOf(data.secretKey));
+    list.ids.push(data.requestId);
+    list.payloads.set(data.requestId, JSON.stringify(data.payload));
+    keptOf(data.secretKey).push(sequenceOf(data.payload.requestBody));
     await point();
+    return { waiting: list.ids.length, skipped: 0 };
   }) as never);
 
-  getLatestMock.mockImplementation((async (
-    secretKey: string,
-  ): Promise<LatestIncomingRequestPayload | null> => {
+  for (const [name, index] of [
+    ["peekOldest", 0],
+    ["peekNewest", -1],
+  ] as Array<["peekOldest" | "peekNewest", number]>) {
+    storeMock(name).mockImplementation((async (hash: string) => {
+      await point();
+
+      const secretKey: string | undefined = secretKeys.find((key: string) => {
+        return hashOf(key) === hash;
+      });
+
+      if (secretKey && failing.get(secretKey) === "read") {
+        throw new Error("Redis connection reset");
+      }
+
+      const read: PendingIncomingRequest | null = readRequest(
+        listOf(hash),
+        index,
+      );
+      await point();
+      return read;
+    }) as never);
+  }
+
+  storeMock("remove").mockImplementation((async (
+    hash: string,
+    requestId: string,
+  ) => {
     await point();
-
-    if (failing.get(secretKey) === "read") {
-      throw new Error("Redis connection reset");
-    }
-
-    const slot: { payloadId: string; payload: string } | undefined =
-      slots.get(secretKey);
+    const removed: boolean = forget(listOf(hash), requestId);
     await point();
-
-    return slot
-      ? {
-          payloadId: slot.payloadId,
-          payload: JSON.parse(slot.payload) as IncomingRequestIngestJobData,
-        }
-      : null;
+    return removed;
   }) as never);
 
-  clearIfUnchangedMock.mockImplementation((async (data: {
-    secretKey: string;
-    payloadId: string;
-  }): Promise<boolean> => {
+  storeMock("skipAfterFailures").mockImplementation((async (
+    hash: string,
+    requestId: string,
+  ) => {
     await point();
-    const cleared: boolean =
-      slots.get(data.secretKey)?.payloadId === data.payloadId;
+    const list: ModelList = listOf(hash);
+    const removed: boolean = forget(list, requestId);
 
-    if (cleared) {
-      slots.delete(data.secretKey);
+    if (removed) {
+      list.skipped.afterFailures++;
     }
 
     await point();
-    return cleared;
+    return removed;
+  }) as never);
+
+  storeMock("removeThrough").mockImplementation((async (
+    hash: string,
+    requestId: string,
+  ) => {
+    await point();
+    const list: ModelList = listOf(hash);
+    const through: number = list.ids.indexOf(requestId) + 1;
+
+    for (const id of list.ids.slice(0, through)) {
+      forget(list, id);
+    }
+
+    await point();
+    return through;
+  }) as never);
+
+  storeMock("countFailure").mockImplementation((async (
+    hash: string,
+    requestId: string,
+  ) => {
+    await point();
+    const list: ModelList = listOf(hash);
+
+    if (!list.payloads.has(requestId)) {
+      return 0;
+    }
+
+    const failures: number = (list.failures.get(requestId) || 0) + 1;
+    list.failures.set(requestId, failures);
+    await point();
+    return failures;
+  }) as never);
+
+  storeMock("acknowledgeSkipped").mockImplementation((async (
+    hash: string,
+    said: SkippedIncomingRequests,
+  ) => {
+    await point();
+    const list: ModelList = listOf(hash);
+    list.skipped.overLimit = Math.max(
+      0,
+      list.skipped.overLimit - said.overLimit,
+    );
+    list.skipped.afterFailures = Math.max(
+      0,
+      list.skipped.afterFailures - said.afterFailures,
+    );
+  }) as never);
+
+  storeMock("hasPending").mockImplementation((async (hash: string) => {
+    await point();
+    return listOf(hash).ids.length > 0;
   }) as never);
 
   findOneBy.mockImplementation((async (args: {
     query: { incomingRequestSecretKey: ObjectID };
   }): Promise<Monitor> => {
     await point();
-    const monitor: Monitor = new Monitor();
-    monitor._id = args.query.incomingRequestSecretKey.toString();
-    monitor.projectId = new ObjectID("4c6e0b8a-9c15-4f8b-a1d2-7e5f4c3b2a19");
-    monitor.isArchived = false;
-    monitor.disableActiveMonitoring = false;
-    monitor.disableActiveMonitoringBecauseOfManualIncident = false;
-    monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent = false;
-    return monitor;
+    return monitorOf(args.query.incomingRequestSecretKey.toString());
   }) as never);
 
   track.mockImplementation((async (input: {
@@ -487,13 +702,15 @@ function wireMocks(): void {
   ): Promise<JSONObject> => {
     await point();
     const secretKey: string = request.monitorId.toString();
+    const sequence: number = sequenceOf(request.requestBody);
+    const requestKey: string = `${secretKey}:${sequence}`;
 
-    if (failing.get(secretKey) === "evaluate") {
+    if (failing.get(secretKey) === "evaluate" && !failedOnce.has(requestKey)) {
+      failedOnce.add(requestKey);
       throw new Error("Acquire mutex timeout");
     }
 
-    const sequence: number = sequenceOf(request.requestBody);
-    const stored: Array<number> = storedOf(secretKey);
+    const kept: Array<number> = keptOf(secretKey);
     const evaluated: Array<number> = evaluatedOf(secretKey);
     const previous: number | undefined = evaluated[evaluated.length - 1];
 
@@ -503,10 +720,10 @@ function wireMocks(): void {
       );
     } else if (
       previous !== undefined &&
-      stored.indexOf(sequence) < stored.indexOf(previous)
+      kept.indexOf(sequence) < kept.indexOf(previous)
     ) {
       report.violations.push(
-        `${secretKey} evaluated request ${sequence} after ${previous}, which was stored later`,
+        `${secretKey} evaluated request ${sequence} after ${previous}, which was kept later`,
       );
     }
 
@@ -528,20 +745,21 @@ async function runSchedule(
   random = seededRandom(seed);
   points = [];
   model = new DeduplicatingQueueModel();
-  slots = new Map();
+  lists = new Map();
   failing = new Map();
+  failedOnce = new Set();
   report = {
     violations: [],
-    stored: new Map(),
+    kept: new Map(),
     evaluated: new Map(),
-    leftInStore: 0,
+    leftWaiting: 0,
   };
 
   // Which monitor each request goes to, shuffled...
   const requests: Array<string> = [];
 
-  for (let i: number = 0; i < MONITORS * REQUESTS_PER_MONITOR; i++) {
-    requests.push(secretKeys[i % MONITORS]!);
+  for (let i: number = 0; i < secretKeys.length * REQUESTS_PER_MONITOR; i++) {
+    requests.push(secretKeys[i % secretKeys.length]!);
   }
 
   const order: Array<string> = shuffled(requests, random);
@@ -587,7 +805,9 @@ async function runSchedule(
       let failed: boolean = false;
 
       try {
-        await processor(job.data.incomingRequestIngest!);
+        await processor(job.data.incomingRequestPending!, {
+          isFinalAttempt: job.attemptsMade + 1 >= ATTEMPTS,
+        });
       } catch (err) {
         // The telemetry worker completes the job on these; none occur here.
         failed = !isNonActionableIngestError(err);
@@ -623,7 +843,7 @@ async function runSchedule(
   };
 
   for (let step: number = 0; ; step++) {
-    if (step > 100000) {
+    if (step > 200000) {
       throw new Error(`Schedule ${seed} did not drain`);
     }
 
@@ -655,20 +875,39 @@ async function runSchedule(
     checkJobsPerMonitor();
   }
 
-  report.leftInStore = slots.size;
+  report.leftWaiting = Array.from(lists.values()).reduce(
+    (total: number, list: ModelList) => {
+      return total + list.ids.length;
+    },
+    0,
+  );
 
   return report;
 }
 
-function newestEvaluatedLast(scheduleReport: ScheduleReport): boolean {
-  return secretKeys.every((secretKey: string) => {
-    const stored: Array<number> = scheduleReport.stored.get(secretKey) || [];
+// Every grouped monitor evaluated exactly what was kept for it, in order.
+function everyGroupedRequestEvaluated(scheduleReport: ScheduleReport): boolean {
+  return groupedKeys.every((secretKey: string) => {
+    const kept: Array<number> = scheduleReport.kept.get(secretKey) || [];
     const evaluated: Array<number> =
       scheduleReport.evaluated.get(secretKey) || [];
 
     return (
-      stored.length > 0 &&
-      evaluated[evaluated.length - 1] === stored[stored.length - 1]
+      kept.length === REQUESTS_PER_MONITOR &&
+      JSON.stringify(evaluated) === JSON.stringify(kept)
+    );
+  });
+}
+
+function newestEvaluatedLast(scheduleReport: ScheduleReport): boolean {
+  return ungroupedKeys.every((secretKey: string) => {
+    const kept: Array<number> = scheduleReport.kept.get(secretKey) || [];
+    const evaluated: Array<number> =
+      scheduleReport.evaluated.get(secretKey) || [];
+
+    return (
+      kept.length > 0 &&
+      evaluated[evaluated.length - 1] === kept[kept.length - 1]
     );
   });
 }
@@ -678,14 +917,13 @@ describe("Incoming Request coalescing under random interleavings", () => {
     wireMocks();
   });
 
-  test("the newest request is evaluated last, older ones are never evaluated after it, and a monitor has one job at a time", async () => {
-    let evaluations: number = 0;
-    let supersededRequests: number = 0;
+  test("a grouped monitor evaluates every request in order, any other its newest last, and a monitor has one job at a time", async () => {
+    let ungroupedEvaluations: number = 0;
 
     for (let seed: number = 1; seed <= SCHEDULES; seed++) {
       const scheduleReport: ScheduleReport = await runSchedule(
         seed,
-        processIncomingRequestJobFromQueue,
+        processPendingIncomingRequestsFromQueue,
       );
 
       expect({ seed, violations: scheduleReport.violations }).toEqual({
@@ -694,54 +932,73 @@ describe("Incoming Request coalescing under random interleavings", () => {
       });
       expect({
         seed,
+        everyGroupedRequestEvaluated:
+          everyGroupedRequestEvaluated(scheduleReport),
+      }).toEqual({ seed, everyGroupedRequestEvaluated: true });
+      expect({
+        seed,
         newestEvaluatedLast: newestEvaluatedLast(scheduleReport),
       }).toEqual({ seed, newestEvaluatedLast: true });
-      expect({ seed, leftInStore: scheduleReport.leftInStore }).toEqual({
+      expect({ seed, leftWaiting: scheduleReport.leftWaiting }).toEqual({
         seed,
-        leftInStore: 0,
+        leftWaiting: 0,
       });
 
-      const evaluatedInSchedule: number = Array.from(
-        scheduleReport.evaluated.values(),
-      ).reduce((total: number, evaluated: Array<number>) => {
-        return total + evaluated.length;
-      }, 0);
-
-      evaluations += evaluatedInSchedule;
-      supersededRequests +=
-        MONITORS * REQUESTS_PER_MONITOR - evaluatedInSchedule;
-    }
-
-    /*
-     * The schedules do coalesce: more requests are superseded than are
-     * evaluated one by one.
-     */
-    expect(evaluations).toBeGreaterThan(0);
-    expect(supersededRequests).toBeGreaterThan(evaluations);
-  }, 120000);
-
-  /*
-   * Without the store, the job BullMQ keeps for a waiting monitor evaluates
-   * the request that created it, and the newest is lost in nearly every
-   * schedule.
-   */
-  test("the same schedules catch jobs that evaluate their own copy of the request", async () => {
-    const ownCopy: Processor = (
-      jobData: IncomingRequestIngestJobData,
-    ): Promise<void> => {
-      return processIncomingRequestFromQueue(jobData);
-    };
-
-    let stale: number = 0;
-
-    for (let seed: number = 1; seed <= OWN_COPY_SCHEDULES; seed++) {
-      const scheduleReport: ScheduleReport = await runSchedule(seed, ownCopy);
-
-      if (!newestEvaluatedLast(scheduleReport)) {
-        stale++;
+      for (const secretKey of ungroupedKeys) {
+        ungroupedEvaluations += (scheduleReport.evaluated.get(secretKey) || [])
+          .length;
       }
     }
 
-    expect(stale).toBeGreaterThan(OWN_COPY_SCHEDULES * 0.75);
-  }, 120000);
+    /*
+     * The schedules do coalesce a monitor without grouping: more of its
+     * requests are superseded than are evaluated.
+     */
+    const ungroupedRequests: number =
+      SCHEDULES * UNGROUPED_MONITORS * REQUESTS_PER_MONITOR;
+
+    expect(ungroupedEvaluations).toBeGreaterThan(0);
+    expect(ungroupedRequests - ungroupedEvaluations).toBeGreaterThan(
+      ungroupedEvaluations,
+    );
+  }, 180000);
+
+  /*
+   * Before #10582 a coalesced job evaluated only a monitor's newest
+   * request, grouped or not. The same schedules lose a grouped monitor's
+   * requests in nearly every one of them.
+   */
+  test("the same schedules catch jobs that evaluate only the newest of a grouped monitor's requests", async () => {
+    const newestOnly: Processor = async (
+      jobData: IncomingRequestPendingJobData,
+    ): Promise<void> => {
+      const newest: PendingIncomingRequest | null =
+        await IncomingRequestPendingStore.peekNewest(jobData.secretKeyHash);
+
+      if (!newest) {
+        return;
+      }
+
+      await processIncomingRequestFromQueue(newest.payload);
+      await IncomingRequestPendingStore.removeThrough(
+        jobData.secretKeyHash,
+        newest.requestId,
+      );
+    };
+
+    let lost: number = 0;
+
+    for (let seed: number = 1; seed <= NEWEST_ONLY_SCHEDULES; seed++) {
+      const scheduleReport: ScheduleReport = await runSchedule(
+        seed,
+        newestOnly,
+      );
+
+      if (!everyGroupedRequestEvaluated(scheduleReport)) {
+        lost++;
+      }
+    }
+
+    expect(lost).toBeGreaterThan(NEWEST_ONLY_SCHEDULES * 0.75);
+  }, 180000);
 });

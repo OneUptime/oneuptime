@@ -772,6 +772,48 @@ describe("containing what the case is about", () => {
         }),
     ).toEqual(["35.196.249.14", "203.0.113.1", "A.example", "b.example"]);
   });
+
+  /*
+   * A case stored before #10435 and #10430 may hold, as a user, what a scrub
+   * rule left of one or one of OneUptime's own actors: none is an account to
+   * suspend, and no step offers to.
+   */
+  test("never a user a scrub rule hid, nor a workflow or OneUptime itself", () => {
+    const entities: Array<SecurityEntity> = [
+      { type: SecurityEntityType.User, value: "[REDACTED]" },
+      { type: SecurityEntityType.User, value: "j***@***.com" },
+      { type: SecurityEntityType.User, value: "[HASHED:3f9a1c0e7b2d4a68]" },
+      {
+        type: SecurityEntityType.User,
+        value: "workflow:0192f1a0-0000-7000-8000-00000000f001",
+      },
+      { type: SecurityEntityType.User, value: "oneuptime" },
+      { type: SecurityEntityType.IpAddress, value: "***.***.***.***" },
+      { type: SecurityEntityType.User, value: "ana" },
+    ];
+
+    expect(
+      plan
+        .getContainEntities({ opening: null, entities })
+        .map((entity: SecurityEntity): string => {
+          return entity.value;
+        }),
+    ).toEqual(["ana"]);
+
+    const built: ReturnType<Plan["buildResponsePlan"]> = plan.buildResponsePlan(
+      input({ entities, matches: null }),
+    );
+
+    expect(
+      keys(built).filter((key: string): boolean => {
+        return (
+          key.startsWith("contain:user:") ||
+          key.startsWith("contain:block-ip:") ||
+          key.startsWith("contain:find-ip:")
+        );
+      }),
+    ).toEqual(["contain:user:ana"]);
+  });
 });
 
 describe("the requests", () => {

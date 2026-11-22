@@ -103,6 +103,11 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
     __esModule: true,
     default: (props: CapturedTable) => {
+      // The page's second list, its Cloud WAFs (#10344), is pinned in its own test.
+      if (props.id !== "security-blocklist-table") {
+        return React.createElement("div", { "data-testid": props.id });
+      }
+
       table = props;
       return React.createElement("div", { "data-testid": "blocklist-table" });
     },
@@ -513,6 +518,59 @@ describe("the Blocklist page", () => {
     expect(
       screen.queryByTestId(BLOCKLIST_TEST_IDS.notEnforced),
     ).not.toBeInTheDocument();
+  });
+
+  test("a block AWS WAF holds reads Enforced at AWS WAF (prod-alb); one its web ACL does not block yet is not enforced (#10344)", async () => {
+    const listed: SecurityBlock = block();
+    const confirmedAt: Date = new Date();
+
+    await renderPage();
+
+    // The web ACLs it is enforced in are listed under the blocks.
+    expect(
+      screen.getByTestId("security-blocklist-cloud-wafs-table"),
+    ).toBeInTheDocument();
+
+    render(
+      <BlockEnforcedAtCell
+        block={listed}
+        enforcements={[
+          enforcement({
+            destinationKey: "AwsWaf:waf-1",
+            destinationName: "AWS WAF (prod-alb)",
+            state: SecurityBlockEnforcementState.Applied,
+            lastConfirmedAt: confirmedAt,
+          }),
+        ]}
+        now={confirmedAt}
+      />,
+    );
+
+    expect(screen.getByText("AWS WAF (prod-alb)")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId(BLOCKLIST_TEST_IDS.notEnforced),
+    ).not.toBeInTheDocument();
+
+    cleanup();
+
+    // In its sets, but the team's rule does not block them yet: still applying, so not enforced.
+    render(
+      <BlockEnforcedAtCell
+        block={listed}
+        enforcements={[
+          enforcement({
+            destinationKey: "AwsWaf:waf-1",
+            destinationName: "AWS WAF (prod-alb)",
+            state: SecurityBlockEnforcementState.Pending,
+          }),
+        ]}
+        now={confirmedAt}
+      />,
+    );
+
+    expect(
+      screen.getByTestId(BLOCKLIST_TEST_IDS.notEnforced),
+    ).toBeInTheDocument();
   });
 
   test("Block Address opens the dialog, and a block made closes it and reads the list again", async () => {

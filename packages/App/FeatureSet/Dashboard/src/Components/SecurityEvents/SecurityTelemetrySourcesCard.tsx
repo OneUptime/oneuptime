@@ -2,22 +2,31 @@ import {
   CONNECT_CLOUD_ACCOUNT_LINK_TEXT,
   NEEDS_ENTERPRISE_NOTE,
   NO_CLOUD_ACCOUNT_NOTE,
+  OWN_PROBE_TRAFFIC_SET_ASIDE,
+  OwnProbeTrafficWindow,
   SECURITY_TELEMETRY_SOURCES_CARD_ID,
   SECURITY_TELEMETRY_SOURCE_ROWS,
+  SEE_OWN_PROBE_TRAFFIC_LINK_TEXT,
   SecurityTelemetrySourceRow,
   SecurityTelemetrySourceStatus,
   SecurityTelemetrySourceStatusKind,
+  buildOwnProbeTrafficQuery,
+  countsOwnProbeTraffic,
+  getOwnProbeTrafficWindow,
   getSecurityTelemetrySourceStatus,
   getSecurityTelemetrySourceWaitingLine,
   isSecurityTelemetrySourceAvailable,
   needsCloudAccountNote,
 } from "./SecurityTelemetrySourcesModel";
+import { buildOwnProbeTrafficRoute } from "./SecurityTelemetrySourcesLinks";
 import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import SecurityTelemetrySource from "Common/Models/DatabaseModels/SecurityTelemetrySource";
 import Route from "Common/Types/API/Route";
+import OneUptimeDate from "Common/Types/Date";
 import { SecurityTelemetrySourceKind } from "Common/Types/SecurityEvent/SecurityTelemetrySource";
 import Card from "Common/UI/Components/Card/Card";
 import {
@@ -27,6 +36,7 @@ import {
 import Icon from "Common/UI/Components/Icon/Icon";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import { IS_ENTERPRISE_EDITION } from "Common/UI/Config";
+import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
@@ -61,6 +71,10 @@ import ErrorSentence, {
  * first time it is turned on, so the first flip creates it; whoever may not
  * change it sees the switch locked and why. Sits under "Your logs" on the
  * Connections page, and reads the same way.
+ *
+ * Network flows says it tells OneUptime's own probes apart, and, while on,
+ * how many of their sweeps and scans it set aside over the last day, with
+ * the way to see them (#10429).
  */
 const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -86,6 +100,15 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
   const [cloudConnectionCount, setCloudConnectionCount] = useState<
     number | null
   >(null);
+  /*
+   * How many sweeps and scans of OneUptime's own probes were set aside over
+   * the last day, and that day (#10429) - null until known, or when the
+   * reader may not read security events.
+   */
+  const [ownProbeTraffic, setOwnProbeTraffic] = useState<{
+    count: number;
+    window: OwnProbeTrafficWindow;
+  } | null>(null);
 
   const read: () => Promise<Array<SecurityTelemetrySource>> = async (): Promise<
     Array<SecurityTelemetrySource>
@@ -158,6 +181,52 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
       return source.kind === kind;
     });
   };
+
+  // Whether a source that sets OneUptime's own traffic aside is on.
+  const isSettingOwnTrafficAside: boolean = SECURITY_TELEMETRY_SOURCE_ROWS.some(
+    (row: SecurityTelemetrySourceRow): boolean => {
+      return countsOwnProbeTraffic({
+        row,
+        isOn: sourceOf(row.kind)?.isEnabled === true,
+      });
+    },
+  );
+
+  /*
+   * What OneUptime's own probes did that was set aside over the last day:
+   * counted while the source is on, so nothing is set aside out of sight.
+   */
+  useEffect(() => {
+    if (!isSettingOwnTrafficAside) {
+      setOwnProbeTraffic(null);
+      return;
+    }
+
+    let isCurrent: boolean = true;
+    const lastDay: OwnProbeTrafficWindow = getOwnProbeTrafficWindow(
+      OneUptimeDate.getCurrentDate(),
+    );
+
+    AnalyticsModelAPI.count<SecurityEvent>(
+      SecurityEvent,
+      buildOwnProbeTrafficQuery({
+        projectId: ProjectUtil.getCurrentProjectId()!,
+        window: lastDay,
+      }),
+    )
+      .then((count: number) => {
+        if (isCurrent) {
+          setOwnProbeTraffic({ count, window: lastDay });
+        }
+      })
+      .catch(() => {
+        // A reader who may not read security events is told nothing of them.
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [isSettingOwnTrafficAside]);
 
   const flip: (
     kind: SecurityTelemetrySourceKind,
@@ -351,6 +420,43 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
                     {!isAvailable ? (
                       <p className="text-xs text-gray-500">
                         {translator.translateText(NEEDS_ENTERPRISE_NOTE)}
+                      </p>
+                    ) : (
+                      <></>
+                    )}
+
+                    {row.ownTrafficNote ? (
+                      <p
+                        className="text-xs text-gray-500"
+                        data-testid={`security-telemetry-source-own-traffic-note-${row.kind}`}
+                      >
+                        {translator.translateText(row.ownTrafficNote)}
+                      </p>
+                    ) : (
+                      <></>
+                    )}
+
+                    {countsOwnProbeTraffic({ row, isOn }) &&
+                    ownProbeTraffic &&
+                    ownProbeTraffic.count > 0 ? (
+                      <p
+                        className="text-xs text-gray-500"
+                        data-testid={`security-telemetry-source-own-probe-traffic-${row.kind}`}
+                      >
+                        {translator.translatePlural(
+                          OWN_PROBE_TRAFFIC_SET_ASIDE,
+                          ownProbeTraffic.count,
+                        )}{" "}
+                        <AppLink
+                          to={buildOwnProbeTrafficRoute(ownProbeTraffic.window)}
+                          className="font-medium text-indigo-600 hover:text-indigo-700"
+                        >
+                          <span>
+                            {translator.translateText(
+                              SEE_OWN_PROBE_TRAFFIC_LINK_TEXT,
+                            )}
+                          </span>
+                        </AppLink>
                       </p>
                     ) : (
                       <></>

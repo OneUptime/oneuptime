@@ -1,8 +1,24 @@
 import DataStore from "../../../Models/DatabaseModels/DataStore";
+import DataStoreFeed, {
+  DataStoreFeedEventType,
+} from "../../../Models/DatabaseModels/DataStoreFeed";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import { Results } from "../../Services/AnalyticsDatabaseService";
 import ChangeEventService from "../../Services/ChangeEventService";
+import DataStoreFeedService from "../../Services/DataStoreFeedService";
 import DataStoreService from "../../Services/DataStoreService";
+import { getRoleSessionName } from "../CloudConnection/Aws/AwsSts";
+import { readResponseActionOfStoreFeed } from "./DataSecurityResponseFeed";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import {
+  DataSecurityResponseAction,
+  getAwsResponseActionsMaking,
+} from "../../../Types/DataSecurity/DataSecurityResponseAction";
+import {
+  ONEUPTIME_ACTOR_ATTRIBUTE,
+  ONEUPTIME_ACTOR_VALUE,
+} from "../../../Types/SecurityEvent/OneUptimeActor";
 import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "../../Services/OpenTelemetryIngestService";
@@ -42,6 +58,7 @@ import {
   DATA_STORE_PROTECTION_OPERATIONS,
   DATA_STORE_SIGNAL_ATTRIBUTES,
   DATA_STORE_SIGNAL_OPERATIONS,
+  DATA_STORE_SNAPSHOT_SHARING_OPERATIONS,
   DataStoreChangeAttack,
   DataStoreProtection,
   getDataStoreChangeAttack,
@@ -59,6 +76,7 @@ import { SECURITY_TELEMETRY_SIGNAL_ATTRIBUTE } from "../../../Types/SecurityEven
 import { resolveTelemetryRetentionInDays } from "../../../Types/Telemetry/TelemetryRetentionConfig";
 import { buildObservables } from "../../../Utils/SecurityEvent/NormalizerHelpers";
 import {
+  CHANGE_MADE_BY_CLOUD_CONNECTION,
   ChangeEventAttribute,
   ChangeEventSource,
   ChangeEventStatus,
@@ -90,6 +108,16 @@ import crypto from "crypto";
  *    which never guesses between two stores of one name).
  *  - Only a store at Confidential or above, not archived, is written about;
  *    the rest is any other change, and stays one.
+ *  - A change of who may restore a snapshot that only took accounts off
+ *    it - as Data Security's own Revoke sharing does - shared nothing and
+ *    is not written; one whose direction the log does not say is, as
+ *    before (oneuptime.cloud.grants_access, #10428).
+ *  - A change OneUptime made in its own session (oneuptime.change.made_by,
+ *    known by the key AWS handed it: OneUptimeAwsSessions) says so -
+ *    oneuptime.actor = oneuptime - and names the response action on the
+ *    store's feed that made it when one line there can be it
+ *    (pickDataStoreResponseLink). It is written all the same: the rules
+ *    judge it as any other change.
  *  - Each change is written once: its event id is its identity, looked up
  *    before the insert under a lock of the project's (SecurityEventDedupe).
  *  - The event is stamped when it is written, the change's own time kept
@@ -145,6 +173,39 @@ export interface PostureChange {
   cloudResourceId: string;
   eventId: string;
   failed: boolean;
+  /*
+   * For a change of who may restore a snapshot: whether it named accounts
+   * to add, or only accounts to remove; undefined when the activity log did
+   * not say (oneuptime.cloud.grants_access, #10428).
+   */
+  grantsAccess?: boolean | undefined;
+  /*
+   * Whether OneUptime made it, in the session it signs in to a connection's
+   * role with - Data Security's responses (oneuptime.change.made_by).
+   */
+  madeByOneUptime: boolean;
+}
+
+/*
+ * The response action on the store's feed that made a change OneUptime
+ * made in its own session: the action and its line on the feed.
+ */
+export interface DataStoreResponseLink {
+  action: DataSecurityResponseAction;
+  feedItemId: string;
+}
+
+/*
+ * Whether a change only took accounts off who may restore a snapshot - as
+ * Data Security's own Revoke sharing does - and so shared nothing. A
+ * change the activity log does not say the direction of is read as it
+ * always was: as one that may have shared it.
+ */
+export function isOnlyRemovingSnapshotAccess(change: PostureChange): boolean {
+  return (
+    change.grantsAccess === false &&
+    DATA_STORE_SNAPSHOT_SHARING_OPERATIONS.includes(change.operation)
+  );
 }
 
 /*
@@ -245,7 +306,27 @@ export function readPostureChange(row: JSONObject): PostureChange | null {
     failed:
       readText(attributes, ChangeEventAttribute.Status) ===
       ChangeEventStatus.Failed,
+    ...readGrantsAccess(attributes),
+    madeByOneUptime:
+      readText(attributes, ChangeEventAttribute.MadeBy) ===
+      CHANGE_MADE_BY_CLOUD_CONNECTION,
   };
+}
+
+// The direction of a change of who may restore a snapshot, when its change event says it.
+function readGrantsAccess(attributes: JSONObject): {
+  grantsAccess?: boolean;
+} {
+  const value: string = readText(
+    attributes,
+    ChangeEventAttribute.CloudGrantsAccess,
+  );
+
+  if (value === "true") {
+    return { grantsAccess: true };
+  }
+
+  return value === "false" ? { grantsAccess: false } : {};
 }
 
 // The columns of a store a change is matched to and written about.
@@ -265,6 +346,7 @@ export type DataStoreForSignal = Pick<
   | "providerResourceId"
   | "cloudAccountNumber"
   | "region"
+  | "cloudConnectionId"
 >;
 
 /*
@@ -459,13 +541,17 @@ export function getDataStoreChangeEventUid(change: PostureChange): string {
 /*
  * One change to a sensitive store, as the security event it is stored as:
  * the cloud's API call (OCSF API Activity), by whom, on which store, how
- * sensitive it is, and the safeguard it took off when it took one.
+ * sensitive it is, and the safeguard it took off when it took one. A
+ * change OneUptime made in its own session says so (oneuptime.actor), and
+ * names the response action on the store's feed that made it when that is
+ * known (`response`).
  */
 export function buildDataStoreChangeEvent(data: {
   change: PostureChange;
   store: DataStoreForSignal;
   sensitivity: DataSensitivity;
   recordedAt: Date;
+  response?: DataStoreResponseLink | null | undefined;
 }): NormalizedSecurityEvent {
   const { change, store, sensitivity } = data;
   const posture: DataStorePostureFacts | undefined =
@@ -540,7 +626,26 @@ export function buildDataStoreChangeEvent(data: {
     }
   }
 
-  const message: string = `${actor || "Someone"} ${
+  // OneUptime's own change, and the response action on the store's feed that made it.
+  if (change.madeByOneUptime) {
+    attributes[ONEUPTIME_ACTOR_ATTRIBUTE] = ONEUPTIME_ACTOR_VALUE;
+
+    if (data.response) {
+      attributes[DATA_STORE_SIGNAL_ATTRIBUTES.responseAction] =
+        data.response.action;
+      attributes[DATA_STORE_SIGNAL_ATTRIBUTES.responseFeedItemId] =
+        data.response.feedItemId;
+    }
+  }
+
+  const ownWords: string = change.madeByOneUptime
+    ? `OneUptime's own change${
+        data.response
+          ? ` (${data.response.action}, on the store's timeline)`
+          : ""
+      }: `
+    : "";
+  const message: string = `${ownWords}${actor || "Someone"} ${
     change.failed ? "tried to run" : "ran"
   } ${change.operation} on ${storeName}, ${store.kind ? `${store.kind} ` : ""}holding ${sensitivity} data${
     protectionRemoved
@@ -681,10 +786,177 @@ export interface DataSecurityChangeSignalsResult {
   changesRead: number;
   // Of them, the ones about a store Data Security knows.
   changesMatched: number;
+  /*
+   * Of those, at Confidential or above, the ones that only took accounts
+   * off who may restore a snapshot - as Data Security's Revoke sharing
+   * does: they shared nothing, and are not written (#10428).
+   */
+  onlyRemovedAccess: number;
   // Events written: the changes to a store at Confidential or above, each once.
   eventsRecorded: number;
   // The call read its most; the next reads on from where these arrived.
   isTruncated: boolean;
+}
+
+// How long before a change the line of the response that made it may be stamped (the clocks), and how long after.
+export const RESPONSE_FEED_SLACK_BEFORE_MS: number = 2 * 60 * 1000;
+export const RESPONSE_FEED_WINDOW_AFTER_MS: number = 15 * 60 * 1000;
+
+// A line of a store's feed, as a change is tied to it.
+export interface DataStoreResponseFeedLine {
+  id: string;
+  markdown: string;
+  at: Date;
+}
+
+/*
+ * The response action that made a change OneUptime made in its own
+ * session: the store's own connection's session made the change, and one
+ * line of the store's feed - of an action that changed the store, and makes
+ * this operation - was written just after it (from the clocks' slack before
+ * to the window after). None when no line, or more than one, could be it:
+ * the change is OneUptime's own all the same, but a link to the wrong
+ * action would be worse than none.
+ */
+export function pickDataStoreResponseLink(data: {
+  change: PostureChange;
+  store: DataStoreForSignal;
+  lines: Array<DataStoreResponseFeedLine>;
+}): DataStoreResponseLink | null {
+  const connectionId: string = data.store.cloudConnectionId?.toString() || "";
+
+  if (
+    !data.change.madeByOneUptime ||
+    !connectionId ||
+    data.change.actor !== getRoleSessionName(connectionId)
+  ) {
+    return null;
+  }
+
+  const actions: Array<DataSecurityResponseAction> =
+    getAwsResponseActionsMaking(data.change.operation);
+  const time: number = data.change.time.getTime();
+  const candidates: Array<DataStoreResponseLink> = [];
+
+  for (const line of data.lines) {
+    const read: {
+      action: DataSecurityResponseAction;
+      changed: boolean;
+    } | null = readResponseActionOfStoreFeed(line.markdown);
+    const at: number = line.at.getTime();
+
+    if (
+      read &&
+      read.changed &&
+      actions.includes(read.action) &&
+      at >= time - RESPONSE_FEED_SLACK_BEFORE_MS &&
+      at <= time + RESPONSE_FEED_WINDOW_AFTER_MS
+    ) {
+      candidates.push({ action: read.action, feedItemId: line.id });
+    }
+  }
+
+  return candidates.length === 1 ? candidates[0]! : null;
+}
+
+// The lines of a store's feed its response actions wrote, around these changes; [] when they cannot be read.
+async function readResponseFeedLines(data: {
+  projectId: ObjectID;
+  store: DataStoreForSignal;
+  changes: Array<PostureChange>;
+}): Promise<Array<DataStoreResponseFeedLine>> {
+  if (!data.store.id || data.changes.length === 0) {
+    return [];
+  }
+
+  const times: Array<number> = data.changes.map(
+    (change: PostureChange): number => {
+      return change.time.getTime();
+    },
+  );
+
+  try {
+    const items: Array<DataStoreFeed> = await DataStoreFeedService.findBy({
+      query: {
+        projectId: data.projectId,
+        dataStoreId: data.store.id,
+        dataStoreFeedEventType: DataStoreFeedEventType.ResponseActionTaken,
+        createdAt: new InBetween<Date>(
+          new Date(Math.min(...times) - RESPONSE_FEED_SLACK_BEFORE_MS),
+          new Date(Math.max(...times) + RESPONSE_FEED_WINDOW_AFTER_MS),
+        ),
+      },
+      select: { _id: true, feedInfoInMarkdown: true, createdAt: true },
+      sort: { createdAt: SortOrder.Ascending },
+      skip: 0,
+      limit: 50,
+      props: ROOT,
+    });
+
+    return items
+      .filter((item: DataStoreFeed): boolean => {
+        return Boolean(item.id && item.createdAt);
+      })
+      .map((item: DataStoreFeed): DataStoreResponseFeedLine => {
+        return {
+          id: item.id!.toString(),
+          markdown: item.feedInfoInMarkdown || "",
+          at: new Date(item.createdAt!),
+        };
+      });
+  } catch (error) {
+    // Marked as OneUptime's own all the same, without the action that made it.
+    logger.error(
+      `DataSecurity: could not read the response actions of store ${data.store.id.toString()}:`,
+    );
+    logger.error(error);
+    return [];
+  }
+}
+
+// For each change OneUptime made in its own session, the response action that made it, when one is known.
+async function findResponseLinks(data: {
+  projectId: ObjectID;
+  matched: Array<{ change: PostureChange; store: DataStoreForSignal }>;
+}): Promise<Map<PostureChange, DataStoreResponseLink>> {
+  const links: Map<PostureChange, DataStoreResponseLink> = new Map();
+  const byStore: Map<
+    string,
+    { store: DataStoreForSignal; changes: Array<PostureChange> }
+  > = new Map();
+
+  for (const { change, store } of data.matched) {
+    if (!change.madeByOneUptime || !store.id) {
+      continue;
+    }
+
+    const key: string = store.id.toString();
+    const entry: { store: DataStoreForSignal; changes: Array<PostureChange> } =
+      byStore.get(key) || { store, changes: [] };
+
+    entry.changes.push(change);
+    byStore.set(key, entry);
+  }
+
+  for (const { store, changes } of byStore.values()) {
+    const lines: Array<DataStoreResponseFeedLine> = await readResponseFeedLines(
+      { projectId: data.projectId, store, changes },
+    );
+
+    for (const change of changes) {
+      const link: DataStoreResponseLink | null = pickDataStoreResponseLink({
+        change,
+        store,
+        lines,
+      });
+
+      if (link) {
+        links.set(change, link);
+      }
+    }
+  }
+
+  return links;
 }
 
 async function readPostureChanges(
@@ -718,6 +990,7 @@ export async function recordPostureChangeSignals(
   const result: DataSecurityChangeSignalsResult = {
     changesRead: 0,
     changesMatched: 0,
+    onlyRemovedAccess: 0,
     eventsRecorded: 0,
     isTruncated: false,
   };
@@ -781,6 +1054,7 @@ export async function recordPostureChangeSignals(
         providerResourceId: true,
         cloudAccountNumber: true,
         region: true,
+        cloudConnectionId: true,
       },
       skip: 0,
       limit: LIMIT_PER_PROJECT,
@@ -788,7 +1062,11 @@ export async function recordPostureChangeSignals(
     });
 
     const matcher: DataStoreChangeMatcher = new DataStoreChangeMatcher(stores);
-    const events: Array<NormalizedSecurityEvent> = [];
+    const matched: Array<{
+      change: PostureChange;
+      store: DataStoreForSignal;
+      sensitivity: DataSensitivity;
+    }> = [];
 
     for (const change of changes) {
       const store: DataStoreForSignal | null = matcher.match(change);
@@ -805,15 +1083,37 @@ export async function recordPostureChangeSignals(
         continue;
       }
 
-      events.push(
-        buildDataStoreChangeEvent({
-          change,
-          store,
-          sensitivity,
-          recordedAt: now,
-        }),
-      );
+      /*
+       * Only took accounts off who may restore a snapshot - as Data
+       * Security's own Revoke sharing does: it shared nothing (#10428). A
+       * change whose direction the log does not say is written, as before.
+       */
+      if (isOnlyRemovingSnapshotAccess(change)) {
+        result.onlyRemovedAccess++;
+        continue;
+      }
+
+      matched.push({ change, store, sensitivity });
     }
+
+    // The response action on the store's feed behind each change OneUptime made itself.
+    const links: Map<PostureChange, DataStoreResponseLink> =
+      await findResponseLinks({ projectId, matched });
+    const events: Array<NormalizedSecurityEvent> = matched.map(
+      (entry: {
+        change: PostureChange;
+        store: DataStoreForSignal;
+        sensitivity: DataSensitivity;
+      }): NormalizedSecurityEvent => {
+        return buildDataStoreChangeEvent({
+          change: entry.change,
+          store: entry.store,
+          sensitivity: entry.sensitivity,
+          recordedAt: now,
+          response: links.get(entry.change) || null,
+        });
+      },
+    );
 
     result.eventsRecorded = (
       await storeDataSecurityEvents({ projectId, events })

@@ -77,6 +77,10 @@ Regels stellen eigenaren en labels voor je in, terwijl opslagen worden gevonden:
 
 Een regel komt overeen met een opslag op zijn labels, op een patroon van zijn naam of zijn beschrijving, of op **Cloudtagpatroon**: een patroon dat wordt vergeleken met elke cloudtag van de opslag, geschreven als `key=value`. `^team=payments$` komt overeen met elke opslag met de tag `team=payments`, en `^env=` met elke opslag met een tag `env`. Een nieuwe opslag krijgt de regels van het project zodra hij wordt gevonden, en **Eigenaren op de hoogte stellen** van een eigenaarsregel bepaalt of de eigenaren die hij toevoegt een melding krijgen. [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules) zegt hoe elke regel overeenkomt en wanneer regels worden uitgevoerd.
 
+### Eigenaren die OneUptime AI voorstelt
+
+Een opslag zonder eigenaren kan ze van OneUptime AI krijgen. Het leest wat er al naar een eigenaar wijst - de cloudtags van de opslag, de services die de opslag gebruiken, de code-eigenaren van het bestand dat de opslag declareert, en wie de opslag heeft gewijzigd of toegevoegd - en stelt daaruit teams en personen van je eigen project voor. Er verandert niets totdat een persoon het goedkeurt onder **Eigenaren om te beoordelen**, op **Gegevensopslagen** of **Gegevensbeveiliging → AI**, en de toegevoegde eigenaren krijgen bericht zoals elke eigenaar. Rusten de eigenaren van drie of meer opslagen op één tag of één begin van hun naam, dan stelt het ook de eigenaarsregel voor die de volgende zulke opslag van een eigenaar voorziet, en die na goedkeuring bij de **Eigenaarsregels** komt. [OneUptime AI in Gegevensbeveiliging](/docs/data-security/ai) zegt wat het verstuurt en wanneer het draait.
+
 ## Workflows
 
 **Gegevensopslag** en **Gegevensbeveiligingsprobleem** zijn workflowtriggers, elk met **Bij aanmaken**, **Bij bijwerken**, **Bij aanmaken of bijwerken** en **Bij verwijderen**. Kies ze in het paneel **Trigger toevoegen**, onder **OneUptime-resources**.
