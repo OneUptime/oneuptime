@@ -55,6 +55,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "telemetry per ingestion key",
   "packages/Common/Server/Utils/Telemetry/TelemetryIngestionBudgetCounter.ts":
     "telemetry bytes and requests per project or ingestion key with a budget of its own, signal and day, and their per-second rate",
+  "packages/Common/Server/Utils/Telemetry/TelemetryIngestAttributionCounter.ts":
+    "ingested telemetry bytes per team or label with a budget of its own, signal and day, and per resource and signal every five minutes for the usage metrics (#6386, #6355): what was sent, never who sent it",
   "packages/Common/Server/Utils/Telemetry/TelemetryWriterShedMetrics.ts":
     "telemetry writes shed per minute, for the instance's health",
   "packages/Common/Server/Utils/SessionReplay/SessionReplayHealthCounters.ts":

@@ -28,6 +28,16 @@ Test" workflow provides both:
   and `HelmEnvValuesQuoted.test.js` the `oneuptime` chart. Without helm on
   PATH their renders are skipped with the reason logged, except when `CI` is
   set: then they fail. GitHub's runners have helm.
+- **git, jq and bash.** `TerraformProviderPublishedRelease.test.js` runs
+  `Scripts/TerraformProvider/publish-terraform-provider.sh` end to end, as the
+  release does, against a bare git repository on disk (git's
+  `url.<base>.insteadOf` puts the provider's GitHub URLs on it), a stand-in
+  `gh` that keeps GitHub's releases in a JSON file and runs jq for `--jq`, as
+  gh does, stand-ins for GoReleaser, go, gpg and npm, and a stand-in of
+  OneUptime's GitHub API on 127.0.0.1 for the release notes
+  (`Utils/ProviderPublishWorld.js`). It reaches no network and takes ~20
+  seconds. `TerraformProviderReleaseNotes.test.js` reads pages from git
+  repositories it makes.
 - **git.** `HomeBlogClone.test.js` runs `packages/Home/Scripts/CloneBlog.sh`,
   the Home image's blog clone, with the real git against git's own
   `http-backend` on 127.0.0.1 - a server that stalls a pack part-way, never

@@ -72,11 +72,13 @@ curl -s -X POST \
   "https://api.cdn.example.com/v1/purge"
 ```
 @tab HTTP リクエストで
-[HTTP リクエストのステップ](/docs/runbooks/authoring#http-request) の URL、ヘッダー、本文に参照を書きます。
+[HTTP リクエストのステップ](/docs/runbooks/authoring#http-request) の URL、ヘッダー、本文、**CA 証明書** に参照を書きます。
 
 ```json
 { "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
 ```
+
+**CA 証明書** では参照を `{{global.variables.INTERNAL_CA}}` のように単独で書き、変数には PEM の証明書を保存します。その変数を指定するすべてのステップが同じ CA を信頼し、新しい CA は 1 か所で設定できます。
 @tab SSH のサインイン
 [SSH ステップ](/docs/runbooks/authoring#ssh) は、秘密鍵またはパスワードを持つシークレット変数を **サインイン方法** で選び、鍵のパスフレーズを **その他の項目 → 鍵のパスフレーズ** で選びます。鍵かパスワードかは値から判断されます。
 @tab Kubeconfig

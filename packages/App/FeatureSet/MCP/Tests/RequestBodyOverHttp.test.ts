@@ -16,6 +16,12 @@
  * debug, a gzip bomb and a body over the route's limit are 413s with no
  * more than a socket read or two read past the limit, the connection
  * closed.
+ *
+ * The OAuth endpoints' limit is their own, 64 KB (#10672): it held only a
+ * gzip body, which StartServer only inflates for the route's parser, while
+ * an uncompressed one StartServer parsed first, at the ordinary 1 MB. Now
+ * StartServer holds every body there to the 64 KB, whatever its encoding,
+ * and answers it alike.
  */
 
 // Tool calls would reach the API: none is made here.
@@ -53,7 +59,10 @@ jest.mock("Common/Server/Infrastructure/Redis", () => {
 
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
-import { ORDINARY_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
+import {
+  MCP_OAUTH_REQUEST_BODY_LIMIT,
+  ORDINARY_REQUEST_BODY_LIMIT,
+} from "Common/Server/Utils/RequestBodyLimit";
 import {
   REQUEST_BODY_REFUSAL_MESSAGES,
   getTooLargeForRouteMessage,
@@ -111,8 +120,11 @@ const TOOLS: Array<McpToolInfo> = [
 const FORM: string = "application/x-www-form-urlencoded";
 const JSON_TYPE: string = "application/json";
 
-// The most these ordinary routes take (RequestBodyLimit).
+// The most the MCP endpoint takes, an ordinary route (RequestBodyLimit).
 const LIMIT: number = ORDINARY_REQUEST_BODY_LIMIT.bytes;
+
+// The most the OAuth endpoints take, a limit of their own (#10672).
+const OAUTH_LIMIT: number = MCP_OAUTH_REQUEST_BODY_LIMIT.bytes;
 
 // What every client sends of a refused body, at most: far more than is read.
 const SENT: number = 64 * MIB;
@@ -126,6 +138,8 @@ interface OwnParserRoute {
   body: Buffer;
   // What shows the route read that body, when its answer can show it.
   showsItRead?: (answer: BodyAnswer) => void;
+  // The most the route takes (RequestBodyLimit).
+  limit: number;
 }
 
 const ROUTES: Array<OwnParserRoute> = [
@@ -152,6 +166,7 @@ const ROUTES: Array<OwnParserRoute> = [
         result: { serverInfo: { name: "oneuptime-mcp" } },
       });
     },
+    limit: LIMIT,
   },
   {
     name: "the MCP OAuth token endpoint",
@@ -162,18 +177,21 @@ const ROUTES: Array<OwnParserRoute> = [
       // A body it could not read is "grant_type is required."
       expect(answer.json).toMatchObject({ error: "unsupported_grant_type" });
     },
+    limit: OAUTH_LIMIT,
   },
   {
     name: "the MCP OAuth revocation endpoint",
     path: "/mcp/oauth/revoke",
     contentType: FORM,
     body: Buffer.from("token=a-token&token_type_hint=refresh_token"),
+    limit: OAUTH_LIMIT,
   },
   {
     name: "the MCP OAuth authorization endpoint, posted a form",
     path: "/mcp/oauth/authorize",
     contentType: FORM,
     body: Buffer.from("response_type=code&state=xyz"),
+    limit: OAUTH_LIMIT,
   },
   {
     name: "MCP OAuth client registration",
@@ -185,12 +203,14 @@ const ROUTES: Array<OwnParserRoute> = [
         client_name: "A gzip client",
       }),
     ),
+    limit: OAUTH_LIMIT,
   },
   {
     name: "the MCP OAuth consent page's details",
     path: "/mcp/oauth/consent/details",
     contentType: JSON_TYPE,
     body: Buffer.from(JSON.stringify({ ticket: "a-ticket" })),
+    limit: OAUTH_LIMIT,
   },
 ];
 
@@ -330,7 +350,7 @@ describe.each(ROUTES)("$name", (route: OwnParserRoute) => {
       expect(sent.answer.status).toBe(413);
       expect(sent.answer.connection).toBe("close");
       expect(sent.answer.json).toEqual({
-        error: getTooLargeForRouteMessage(LIMIT),
+        error: getTooLargeForRouteMessage(route.limit),
       });
       expect(await server.readInAll(sent.tag)).toBeLessThanOrEqual(READ_OR_TWO);
       expect(logger.error).not.toHaveBeenCalled();
@@ -350,11 +370,14 @@ describe.each(ROUTES)("$name", (route: OwnParserRoute) => {
 
       expect(sent.answer.status).toBe(413);
       expect(sent.answer.connection).toBe("close");
+      expect(sent.answer.json).toEqual({
+        error: getTooLargeForRouteMessage(route.limit),
+      });
 
       const read: number = await server.readInAll(sent.tag);
 
-      expect(read).toBeGreaterThan(LIMIT);
-      expect(read).toBeLessThanOrEqual(LIMIT + READ_OR_TWO);
+      expect(read).toBeGreaterThan(route.limit);
+      expect(read).toBeLessThanOrEqual(route.limit + READ_OR_TWO);
       expect(logger.error).not.toHaveBeenCalled();
     },
   );
@@ -386,28 +409,116 @@ describe("sent with fetch", () => {
     expect(chunked.answer.clientError).toBeNull();
     expect(chunked.answer.status).toBe(413);
     expect(await server.readInAll(chunked.tag)).toBeLessThanOrEqual(
-      LIMIT + READ_OR_TWO,
+      OAUTH_LIMIT + READ_OR_TWO,
     );
   });
 });
 
-describe("a route's own limit holds for a gzip body too", () => {
-  test("the OAuth endpoints' 64 KB: a gzip form inflating past it is refused 413, as its own limit says", async () => {
-    const form: Buffer = Buffer.from(
-      `grant_type=authorization_code&code=${"a".repeat(100 * KIB)}`,
-    );
+describe("a route's own limit holds whatever the body's encoding (#10672)", () => {
+  const OVER_FORM: Buffer = Buffer.from(
+    `grant_type=authorization_code&code=${"a".repeat(100 * KIB)}`,
+  );
+  const UNDER_FORM: Buffer = Buffer.from(
+    `grant_type=authorization_code&code=${"a".repeat(60 * KIB)}`,
+  );
 
+  test.each([...CONNECTIONS])(
+    "the OAuth endpoints' 64 KB: a 100 KB form is refused 413 alike, sent as it is, declared or chunked, or gzipped (%s)",
+    async (connection: Connection) => {
+      const answers: Array<SentRequest> = [];
+
+      for (const chunked of [false, true]) {
+        answers.push(
+          await sendOverHttp(server, {
+            path: "/mcp/oauth/token",
+            headers: { "content-type": FORM },
+            connection: connection,
+            chunked: chunked,
+            body: OVER_FORM,
+          }),
+          await sendOverHttp(server, {
+            path: "/mcp/oauth/token",
+            headers: { "content-type": FORM, "content-encoding": "gzip" },
+            connection: connection,
+            chunked: chunked,
+            body: zlib.gzipSync(OVER_FORM),
+          }),
+        );
+      }
+
+      for (const sent of answers) {
+        // Sent as it is, it was parsed at the ordinary 1 MB, and answered 401.
+        expect(sent.answer.status).toBe(413);
+        expect(sent.answer.json).toEqual({
+          error: getTooLargeForRouteMessage(OAUTH_LIMIT),
+        });
+        expect(sent.answer.connection).toBe("close");
+        expect(sent.answer.clientError).toBeNull();
+        expect(await server.readInAll(sent.tag)).toBeLessThanOrEqual(
+          OAUTH_LIMIT + READ_OR_TWO,
+        );
+      }
+
+      expect(logger.error).not.toHaveBeenCalled();
+    },
+  );
+
+  test("the words are those of every body over a route's limit, which a gzip one was not told", async () => {
     const sent: SentRequest = await sendOverHttp(server, {
       path: "/mcp/oauth/token",
       headers: { "content-type": FORM, "content-encoding": "gzip" },
-      body: zlib.gzipSync(form),
+      body: zlib.gzipSync(OVER_FORM),
     });
 
-    expect(sent.answer.status).toBe(413);
-    expect(sent.answer.json).toEqual({
+    // The front ends' sentence for any 413, which names no limit.
+    expect(sent.answer.json).not.toEqual({
       error: REQUEST_BODY_REFUSAL_MESSAGES.tooLarge,
     });
-    expect(logger.error).not.toHaveBeenCalled();
+    expect(sent.answer.json).toEqual({
+      error: getTooLargeForRouteMessage(OAUTH_LIMIT),
+    });
+  });
+
+  test("client registration's JSON past 64 KB is refused 413 alike, as it is or gzipped", async () => {
+    const registration: Buffer = Buffer.from(
+      JSON.stringify({
+        redirect_uris: ["https://client.example/callback"],
+        client_name: "x".repeat(100 * KIB),
+      }),
+    );
+
+    for (const gzip of [false, true]) {
+      const sent: SentRequest = await sendOverHttp(server, {
+        path: "/mcp/oauth/register",
+        headers: {
+          "content-type": JSON_TYPE,
+          ...(gzip ? { "content-encoding": "gzip" } : {}),
+        },
+        body: gzip ? zlib.gzipSync(registration) : registration,
+      });
+
+      expect(sent.answer.status).toBe(413);
+      expect(sent.answer.json).toEqual({
+        error: getTooLargeForRouteMessage(OAUTH_LIMIT),
+      });
+    }
+  });
+
+  test("a form within the 64 KB is read alike, as it is or gzipped", async () => {
+    for (const gzip of [false, true]) {
+      const sent: SentRequest = await sendOverHttp(server, {
+        path: "/mcp/oauth/token",
+        headers: {
+          "content-type": FORM,
+          ...(gzip ? { "content-encoding": "gzip" } : {}),
+        },
+        body: gzip ? zlib.gzipSync(UNDER_FORM) : UNDER_FORM,
+      });
+
+      // Read: the token endpoint says what the form lacks.
+      expect(sent.answer.status).toBe(401);
+      expect(sent.answer.json).toMatchObject({ error: "invalid_client" });
+    }
   });
 
   test("the MCP endpoint takes a gzip body as large as an uncompressed one: its route's limit, not body-parser's 100 KB", async () => {

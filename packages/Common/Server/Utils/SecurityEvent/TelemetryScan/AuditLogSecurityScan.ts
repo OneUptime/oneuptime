@@ -12,6 +12,7 @@ import { Results } from "../../../Services/AnalyticsDatabaseService";
 import AuditLogService from "../../../Services/AuditLogService";
 import { Statement } from "../../AnalyticsDatabase/Statement";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import AuditRecordNameReaders from "./AuditRecordNameReaders";
 import {
   TelemetryScanWindow,
   buildAuditRecordsStatement,
@@ -117,8 +118,10 @@ export default class AuditLogSecurityScan {
     const events: Array<NormalizedSecurityEvent> = [];
 
     for (const row of rows) {
+      // Named only where every reader of security events reads the record (#10663).
       const event: NormalizedSecurityEvent | null = buildAuditRecordEvent(
         toAuditScanRecord(row),
+        AuditRecordNameReaders.get(),
       );
 
       if (event) {

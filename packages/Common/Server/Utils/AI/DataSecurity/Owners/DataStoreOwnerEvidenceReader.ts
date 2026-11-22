@@ -206,7 +206,8 @@ export default class DataStoreOwnerEvidenceReader {
       const email: string = member.user?.email?.toString().toLowerCase() || "";
       const person: DataStoreOwnerPerson = people.get(userId) || {
         id: userId,
-        name: member.user?.name?.toString() || email,
+        // As the account holds it: the directory names them (getName, #10681).
+        name: member.user?.name?.toString() || "",
         email,
         teamIds: [],
       };

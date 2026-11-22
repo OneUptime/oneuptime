@@ -285,6 +285,17 @@ Ogni evento viene salvato con campi tipizzati e il suo payload di origine:
 
 Gli eventi memorizzati prima di OneUptime 14.0.84 lasciano vuoti i campi del processo e indicano il loro processo solo come `principalProcess`, il processo che ha agito. Non vengono completati in seguito: conservano ciò con cui sono stati memorizzati fino alla fine della loro conservazione.
 
+### Nascosto da una regola di pulizia
+
+Una regola di indirizzo IP che cancella o maschera i tuoi log o le tue tracce nasconde l'indirizzo da cui è arrivato un attacco prima che Eventi di sicurezza li legga. L'evento viene comunque salvato, senza indirizzo, e ovunque nominerebbe l'indirizzo dice che una regola di mascheramento l'ha nascosto:
+
+- **IP di origine**, nel pannello dell'evento, nomina la regola che l'ha nascosto quando può, come link alle **Regole di mascheramento** dei log o delle tracce. Il filtro accanto mostra ogni evento il cui indirizzo è stato nascosto da una regola di mascheramento.
+- **Cosa è successo dopo** dice che la richiesta è arrivata da un indirizzo nascosto da una regola di mascheramento, e **Campagne** raggruppa queste richieste in una riga a sé.
+- Un caso i cui eventi hanno perso tutti il loro indirizzo lo dice nel suo **Piano di risposta**: invece di bloccare l'indirizzo, ti dice di trovarlo nei log del tuo bilanciatore di carico o del tuo firewall e di bloccarlo lì, con **Apri le regole di mascheramento**.
+- **Panoramica** nomina la regola che nasconde gli indirizzi letti da Eventi di sicurezza, anche lì con **Apri le regole di mascheramento**.
+
+Una regola che applica l'hash conserva l'indirizzo per Eventi di sicurezza, così l'evento lo nomina, a meno che il suo token non abbia più di 30 giorni o sia stato creato prima che i token avessero una chiave: vedi [Mascherare i dati sensibili](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili). Per trovare questi eventi, cerca `@oneuptime.request.client_address_hidden:scrub-rule`. Ciò che la regola ha lasciato al posto dell'indirizzo, come `[REDACTED]`, si trova in `oneuptime.request.client_address_scrubbed`.
+
 ## Esplorare gli eventi di sicurezza
 
 **Eventi** è un esploratore di telemetria come quelli di log e tracce: un grafico degli eventi della finestra per gravità, una barra laterale di facet, l'elenco e un pannello con ogni campo e attributo dell'evento che apri. La finestra, i filtri e la ricerca stanno tutti nell'URL, così una vista filtrata si può condividere e sopravvive a un ricaricamento.

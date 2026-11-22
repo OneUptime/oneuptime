@@ -3013,6 +3013,8 @@
   "Only pipelines that match conditions": "조건과 일치하는 파이프라인만",
   "All cloud environments": "모든 클라우드 환경",
   "Only cloud environments that match conditions": "조건과 일치하는 클라우드 환경만",
+  "All issues": "모든 이슈",
+  "Only issues that match conditions": "조건과 일치하는 이슈만",
   "Only what matches conditions": "조건과 일치하는 항목만",
   "Client Credentials": "Client Credentials",
   "Company SMTP server hosted on AWS": "AWS에서 호스팅되는 회사 SMTP 서버",
@@ -4458,5 +4460,7 @@
   "IAM Role in Your AWS Account": "AWS 계정의 IAM 역할",
   "Create a role in your AWS account that may send with Amazon SES and trusts OneUptime. No key is stored.": "Amazon SES로 보낼 수 있고 OneUptime을 신뢰하는 역할을 AWS 계정에 만드세요. 키는 저장되지 않습니다.",
   "The ARN of the IAM role OneUptime signs in to. Create it with the trust policy below.": "OneUptime이 로그인하는 IAM 역할의 ARN입니다. 아래 신뢰 정책으로 역할을 만드세요.",
-  "Role ARN": "역할 ARN"
+  "Role ARN": "역할 ARN",
+  "Sign In Again can't be checked through Keycloak over SAML. Add this realm as an OIDC provider instead.": "SAML로 연결한 Keycloak에서는 다시 로그인을 확인할 수 없습니다. 대신 이 렐름을 OIDC 공급자로 추가하세요.",
+  "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.": "다시 로그인을 쓰려면 Okta에서 이 앱의 SAML 설정에 있는 Honor Force Authentication을 Yes로 설정하세요."
 }

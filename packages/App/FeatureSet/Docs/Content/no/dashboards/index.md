@@ -105,4 +105,5 @@ Målet: én side for checkout-tjenesten med ventetiden, feilraten, de åpne hend
 - [Dashbord-widgets](/docs/dashboards/widgets): Hver widget, og hvilken du skal velge.
 - [Dashbord-variabler & filtre](/docs/dashboards/variables): Ett dashbord for hver tjeneste, vert eller kunde.
 - [Deling & offentlige dashbord](/docs/dashboards/sharing): Offentlige lenker, passord, IP-tillatelseslister og egendefinerte domener.
+- [Import fra Grafana og Datadog](/docs/dashboards/import): Hent inn et dashbord, eller varslingsreglene, du har laget i Grafana eller Datadog.
 :::

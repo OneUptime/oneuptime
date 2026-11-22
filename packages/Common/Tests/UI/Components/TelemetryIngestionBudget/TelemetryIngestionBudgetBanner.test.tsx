@@ -174,14 +174,14 @@ describe("what the banner says", () => {
     });
     expect(noticeFor(one)).toEqual({
       type: AlertType.WARNING,
-      text: `Logs: 1 team or label has used up its own budget for today, so data from its services is dropped until ${resetsAt(one)}.`,
+      text: `Logs: 1 team or label has used up its own budget for today, so data from its services and other resources is dropped until ${resetsAt(one)}.`,
     });
 
     const two: TelemetryIngestionBudgetStatus = status({
       teamsAndLabels: usedUp,
     });
     expect(noticeFor(two)?.text).toBe(
-      `Logs: 2 teams and labels have used up their own budgets for today, so data from their services is dropped until ${resetsAt(two)}.`,
+      `Logs: 2 teams and labels have used up their own budgets for today, so data from their services and other resources is dropped until ${resetsAt(two)}.`,
     );
 
     // Another signal's used-up team budget says nothing here.

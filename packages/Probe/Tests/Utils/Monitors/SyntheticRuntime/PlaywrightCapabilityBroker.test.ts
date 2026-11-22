@@ -3,6 +3,15 @@ import os from "os";
 import path from "path";
 import { Browser, BrowserContext, Page, chromium } from "playwright";
 import PlaywrightCapabilityBroker from "../../../../Utils/Monitors/SyntheticRuntime/PlaywrightCapabilityBroker";
+import OutboundProxyAgents from "Common/Server/Utils/OutboundProxyAgents";
+import {
+  LocalHttpServer,
+  RESERVED_CHARACTER_CREDENTIALS,
+  clearOutboundProxyEnvironmentForEachTest,
+  proxyUrlWithCredentials,
+  signedInAs,
+  useLocalHttpServers,
+} from "Common/Tests/Server/TestingUtils/OutboundProxyFixture";
 import {
   CapabilityDescriptor,
   PlaywrightRpcRequest,
@@ -688,5 +697,74 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
     } finally {
       await context.close();
     }
+  });
+
+  /*
+   * A synthetic script's axios bridge goes through the outbound proxy the
+   * probe's environment names, signed in with the proxy's real user name and
+   * password: axios, left to read the proxy itself, sent them
+   * percent-encoded, so a proxy whose password holds an @, a : or a %
+   * refused every request with 407 (#10442).
+   */
+  describe("the axios bridge, behind an outbound proxy", () => {
+    clearOutboundProxyEnvironmentForEachTest();
+
+    const serve: (options?: {
+      host?: string | undefined;
+      port?: number | undefined;
+      name?: string | undefined;
+    }) => Promise<LocalHttpServer> = useLocalHttpServers();
+
+    afterEach(() => {
+      OutboundProxyAgents.destroySharedAgents();
+    });
+
+    test("over http, the proxy is sent the request, signed in with its real user name and password", async () => {
+      const proxy: LocalHttpServer = await serve({ name: "proxy" });
+      process.env["HTTP_PROXY"] = proxyUrlWithCredentials(
+        proxy.port,
+        RESERVED_CHARACTER_CREDENTIALS,
+      );
+
+      const response: PlaywrightRpcResponse = await broker.dispatch(
+        request(
+          "axiosRequest",
+          [{ method: "get", url: "http://service.example.test/health" }],
+          broker.getBootstrapCapabilities().runtime,
+        ),
+      );
+
+      expect(response.ok).toBe(true);
+      expect(
+        proxy.requests.map((seen: { url: string }) => {
+          return seen.url;
+        }),
+      ).toEqual(["http://service.example.test/health"]);
+      expect(proxy.requestCredentials).toEqual([
+        signedInAs(RESERVED_CHARACTER_CREDENTIALS),
+      ]);
+    });
+
+    test("over https, the CONNECT is signed in with its real user name and password", async () => {
+      const proxy: LocalHttpServer = await serve({ name: "proxy" });
+      process.env["HTTPS_PROXY"] = proxyUrlWithCredentials(
+        proxy.port,
+        RESERVED_CHARACTER_CREDENTIALS,
+      );
+
+      // The proxy refuses every tunnel here: who signed in is the point.
+      await broker.dispatch(
+        request(
+          "axiosRequest",
+          [{ method: "get", url: "https://service.example.test/health" }],
+          broker.getBootstrapCapabilities().runtime,
+        ),
+      );
+
+      expect(proxy.connects).toEqual(["service.example.test:443"]);
+      expect(proxy.connectCredentials).toEqual([
+        signedInAs(RESERVED_CHARACTER_CREDENTIALS),
+      ]);
+    });
   });
 });

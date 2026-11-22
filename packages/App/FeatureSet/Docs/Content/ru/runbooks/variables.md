@@ -72,11 +72,13 @@ curl -s -X POST \
   "https://api.cdn.example.com/v1/purge"
 ```
 @tab В HTTP-запросе
-Напишите ссылку в URL, заголовках или теле [шага HTTP-запроса](/docs/runbooks/authoring#http-request):
+Напишите ссылку в URL, заголовках, теле или в поле **Сертификат ЦС** [шага HTTP-запроса](/docs/runbooks/authoring#http-request):
 
 ```json
 { "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
 ```
+
+В поле **Сертификат ЦС** ссылка стоит одна, например `{{global.variables.INTERNAL_CA}}`, а переменная хранит сертификат в формате PEM: каждый шаг, который её называет, доверяет одному и тому же ЦС, и новый ЦС задаётся в одном месте.
 @tab Вход по SSH
 [Шаг SSH](/docs/runbooks/authoring#ssh) выбирает в **Способ входа** секретную переменную с закрытым ключом или паролем, а в **Дополнительные поля → Парольная фраза ключа** — парольную фразу ключа. Значение показывает, ключ это или пароль.
 @tab Kubeconfig

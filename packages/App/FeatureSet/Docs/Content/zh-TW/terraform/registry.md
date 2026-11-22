@@ -55,6 +55,8 @@ terraform {
 
 來源位址沒有指定登錄檔：Terraform 從 Terraform Registry 讀取它，OpenTofu 從 OpenTofu Registry 讀取它，兩者發佈相同的版本。
 
+已發佈的版本永遠不會改變：登錄檔會保留它們最初下載的內容的總和檢查碼，`init` 會用這些總和檢查碼核對每一次下載。需要修復的版本會作為下一個修補版本重新發佈，範圍會包含它，該發行版本的說明會寫明它取代的是哪個版本。
+
 ## 鎖定檔
 
 `terraform init` 會把它選定的版本及其下載內容的總和檢查碼記錄在 `.terraform.lock.hcl` 中。請提交這個檔案：這樣每台機器和每次 CI 執行都會安裝完全相同的版本，直到你選擇另一個版本。總和檢查碼涵蓋登錄檔發佈的每個平台，所以一個鎖定檔可以同時用於 Linux、macOS 和 Windows 機器。
@@ -77,7 +79,7 @@ provider "registry.terraform.io/oneuptime/oneuptime" {
 :::steps
 ### 閱讀變更內容
 
-[OneUptime 的發行版本](https://github.com/OneUptime/oneuptime/releases)說明了每個發行版本變更了什麼，包括提供者。[提供者的發行版本](https://github.com/OneUptime/terraform-provider-oneuptime/releases)連結到自上一個發行版本以來的變更。
+[OneUptime 的發行版本](https://github.com/OneUptime/oneuptime/releases)說明了每個發行版本變更了什麼，包括提供者。[提供者的發行版本](https://github.com/OneUptime/terraform-provider-oneuptime/releases)說明了每個發行版本在提供者中變更了什麼：先是會破壞設定的變更，然後是新的資源和資料來源，以及變更了的屬性。
 
 ### 下載新版本
 

@@ -167,9 +167,9 @@ Il nuovo accesso conta solo se il tuo provider di identità dice che hai effettu
 | Provider | Cosa chiede OneUptime | Quando non conferma nulla |
 | --- | --- | --- |
 | SAML | `ForceAuthn="true"` e il momento in cui hai effettuato l'accesso (`AuthnInstant`) | Fai rispettare la richiesta al provider, ad esempio con Honor Force Authentication in Okta. |
-| OpenID Connect | `prompt=login` e `max_age=0`, e il momento in cui hai effettuato l'accesso (`auth_time`) | Fai inviare `auth_time` dal provider. In Microsoft Entra ID, aggiungilo al token ID come attestazione facoltativa. |
+| OpenID Connect | `prompt=login` e `max_age=0` (Microsoft Entra ID: solo `prompt=login`), e il momento in cui hai effettuato l'accesso (`auth_time`) | Fai inviare `auth_time` dal provider. In Microsoft Entra ID, aggiungilo al token ID come attestazione facoltativa. |
 | Google | Il momento in cui hai effettuato l'accesso (`auth_time`). A Google non si può chiedere di farti accedere di nuovo. | Attiva Session age claims per l'app di accesso Google del server, che deve essere pubblicata e verificata. |
-| Microsoft | `prompt=login` e `max_age=0`, e il momento in cui hai effettuato l'accesso (`auth_time`) | Aggiungi `auth_time` al token ID dell'app di accesso Microsoft del server come attestazione facoltativa. |
+| Microsoft | `prompt=login`, e il momento in cui hai effettuato l'accesso (`auth_time`) | Aggiungi `auth_time` al token ID dell'app di accesso Microsoft del server come attestazione facoltativa. |
 | Vercel | Niente: a Vercel non si può chiedere di farti accedere di nuovo, e non dice quando hai effettuato l'accesso. | Non conferma mai. Scegli **Accedi in un altro modo** e accedi con un link che ti inviamo via email, oppure imposta una password con **Password dimenticata?** e conferma con quella. |
 
 Cosa impostare in Okta, Microsoft Entra ID, Keycloak e Google Workspace è spiegato nella pagina [SSO](/docs/identity/sso#accedere-di-nuovo-per-confermare-che-sei-tu).

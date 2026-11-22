@@ -72,6 +72,38 @@ jest.mock("Common/Server/Middleware/MultipartFormData", () => {
   };
 });
 
+/*
+ * The upload reader the route builds (#10673), recorded: what it was handed
+ * - the multipart middleware above all - and the handler it gave back,
+ * which is what the route mounts behind the key check.
+ */
+interface UploadReaderBuild {
+  readers: {
+    limit: unknown;
+    multipart: unknown;
+    json?: boolean | undefined;
+    bytes?: boolean | undefined;
+  };
+  handler: unknown;
+}
+
+const uploadReaderBuilds: Array<UploadReaderBuild> = [];
+
+jest.mock("Common/Server/Middleware/RequestBodyAfterAuthentication", () => {
+  return {
+    __esModule: true,
+    default: {
+      readUpload: (readers: UploadReaderBuild["readers"]): unknown => {
+        const handler: unknown = jest.fn();
+
+        uploadReaderBuilds.push({ readers: readers, handler: handler });
+
+        return handler;
+      },
+    },
+  };
+});
+
 jest.mock("Common/Server/Utils/Response", () => {
   return {
     __esModule: true,
@@ -238,13 +270,21 @@ beforeEach(() => {
 });
 
 describe("the route", () => {
-  test("checks the key as a dSYM upload, which no browser key may make, after the multipart parse and the Bearer mapping", () => {
+  test("checks the key as a dSYM upload, which no browser key may make, after the Bearer mapping and before the body is read", () => {
     const handlers: Array<unknown> = registeredPostHandlers[UPLOAD_ROUTE]!;
 
     expect(handlers).toHaveLength(5);
     expect(handlers[0]).toBe(ingestionDisabledMiddleware);
-    expect(handlers[1]).toBe(multipartMiddleware);
-    expect(handlers[3]).toBe(authMiddleware);
+    // handlers[1] is the route's Bearer mapping, which reads only a header.
+    expect(handlers[2]).toBe(authMiddleware);
+    // The body is read behind the key check (#10673), never before it.
+    expect(uploadReaderBuilds).toHaveLength(1);
+    expect(handlers[3]).toBe(uploadReaderBuilds[0]!.handler);
+    expect(handlers).not.toContain(multipartMiddleware);
+    expect(uploadReaderBuilds[0]!.readers.multipart).toBe(multipartMiddleware);
+    // The CLI's JSON is read too; nothing is read as bytes.
+    expect(uploadReaderBuilds[0]!.readers.json).toBe(true);
+    expect(uploadReaderBuilds[0]!.readers.bytes).toBeFalsy();
     expect(namedSurfaces).toEqual([TelemetryIngestSurface.Dsym]);
   });
 
@@ -253,7 +293,7 @@ describe("the route", () => {
       req: ExpressRequest,
       res: ExpressResponse,
       next: NextFunction,
-    ) => void = registeredPostHandlers[UPLOAD_ROUTE]![2] as never;
+    ) => void = registeredPostHandlers[UPLOAD_ROUTE]![1] as never;
     const req: ExpressRequest = {
       headers: { authorization: "Bearer key-1" },
     } as unknown as ExpressRequest;

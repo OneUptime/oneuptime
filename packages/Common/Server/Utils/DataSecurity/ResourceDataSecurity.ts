@@ -11,6 +11,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../Types/ObjectID";
+import { isDeclaredDataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 import ComplianceFramework, {
   ALL_COMPLIANCE_FRAMEWORKS,
   COMPLIANCE_FRAMEWORK_INFO,
@@ -1043,25 +1044,35 @@ export default class ResourceDataSecurity {
     return this.withTurnedOff(frameworks, turnedOff, names);
   }
 
-  // Every framework over every store of the project, with what each store's resource turned off.
+  /*
+   * Every framework over every store of the project, with what each store's
+   * resource turned off. Not the stores OneUptime declares (#10398): no
+   * check applies to them, so in a framework's scope they could only pass
+   * requirements nothing checked. The record of processing lists them.
+   */
   private static async scoreProjectCompliance(
     projectId: ObjectID,
   ): Promise<Array<DataSecurityComplianceFramework>> {
-    const stores: Array<DataStore> = await DataStoreService.findBy({
-      query: { projectId, isArchived: false },
-      select: {
-        _id: true,
-        cloudResourceId: true,
-        serviceId: true,
-        databaseServerId: true,
-        dataTypeIds: true,
-        subjectCountries: true,
-        configurationReadAt: true,
-        contentScannedAt: true,
-      },
-      skip: 0,
-      limit: MAX_STORES,
-      props: { isRoot: true },
+    const stores: Array<DataStore> = (
+      await DataStoreService.findBy({
+        query: { projectId, isArchived: false },
+        select: {
+          _id: true,
+          kind: true,
+          cloudResourceId: true,
+          serviceId: true,
+          databaseServerId: true,
+          dataTypeIds: true,
+          subjectCountries: true,
+          configurationReadAt: true,
+          contentScannedAt: true,
+        },
+        skip: 0,
+        limit: MAX_STORES,
+        props: { isRoot: true },
+      })
+    ).filter((store: DataStore): boolean => {
+      return !isDeclaredDataStoreKind(store.kind);
     });
     const issues: Array<ComplianceIssueInput> = await this.readOpenIssues({
       projectId,

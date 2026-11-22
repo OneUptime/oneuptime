@@ -167,9 +167,9 @@ flowchart TB
 | プロバイダー | OneUptime が求めるもの | 確認されない場合 |
 | --- | --- | --- |
 | SAML | `ForceAuthn="true"` と、サインインした時刻 (`AuthnInstant`) | Okta の Honor Force Authentication などで、プロバイダーがこの要求に従うようにします。 |
-| OpenID Connect | `prompt=login` と `max_age=0`、およびサインインした時刻 (`auth_time`) | プロバイダーが `auth_time` を送るようにします。Microsoft Entra ID では、ID トークンのオプション要求として追加します。 |
+| OpenID Connect | `prompt=login` と `max_age=0` (Microsoft Entra ID には `prompt=login` だけ)、およびサインインした時刻 (`auth_time`) | プロバイダーが `auth_time` を送るようにします。Microsoft Entra ID では、ID トークンのオプション要求として追加します。 |
 | Google | サインインした時刻 (`auth_time`)。Google には、もう一度サインインさせるよう求めることができません。 | サーバーの Google サインインアプリで Session age claims をオンにします。アプリは公開済みかつ確認済みである必要があります。 |
-| Microsoft | `prompt=login` と `max_age=0`、およびサインインした時刻 (`auth_time`) | サーバーの Microsoft サインインアプリの ID トークンに、 `auth_time` をオプション要求として追加します。 |
+| Microsoft | `prompt=login`、およびサインインした時刻 (`auth_time`) | サーバーの Microsoft サインインアプリの ID トークンに、 `auth_time` をオプション要求として追加します。 |
 | Vercel | なし。Vercel にもう一度サインインさせるよう求めることはできず、Vercel はサインインした時刻も伝えません。 | 本人確認にはなりません。 **別の方法でサインイン** を選んでメールで届くリンクからサインインするか、 **パスワードをお忘れですか？** でパスワードを設定し、そのパスワードで確認してください。 |
 
 Okta、Microsoft Entra ID、Keycloak、Google Workspace で設定する内容は、[SSO](/docs/identity/sso#本人確認のためにもう一度サインインする) のページにあります。

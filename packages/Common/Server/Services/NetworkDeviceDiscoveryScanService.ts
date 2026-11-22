@@ -11,7 +11,27 @@ import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import ProbeService from "./ProbeService";
-import Probe from "../../Models/DatabaseModels/Probe";
+import AuditLogService from "./AuditLogService";
+import Probe, {
+  ProbeConnectionStatus,
+} from "../../Models/DatabaseModels/Probe";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import { JSONObject } from "../../Types/JSON";
+import { DiscoveryScanStatus } from "../../Utils/NetworkDiscovery/DiscoveryScanStatus";
+import {
+  DISCOVERY_SCAN_ALREADY_QUEUED_REFUSAL,
+  DISCOVERY_SCAN_ALREADY_RUNNING_REFUSAL,
+  DISCOVERY_SCAN_NOT_FOUND_REFUSAL,
+  DISCOVERY_SCAN_PROBE_GONE_REFUSAL,
+  DISCOVERY_SCAN_RUN_NOT_ALLOWED_REFUSAL,
+  DiscoveryScanRunResult,
+  canDiscoveryScanRunAgain,
+  getDiscoveryScanProbeOfflineRefusal,
+} from "../../Utils/NetworkDiscovery/DiscoveryScanRun";
+import ModelPermission from "../Types/Database/Permissions/Index";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import ScanTargetUtil from "../../Utils/NetworkDiscovery/ScanTargetUtil";
 import ScanNameUtil from "../../Utils/NetworkDiscovery/ScanNameUtil";
@@ -167,7 +187,34 @@ const RETIRE_RUN_PAYLOAD: Record<string, unknown> = {
   scannedHostCount: null,
   respondedHostCount: null,
   autoImportProcessedAt: null,
+  /*
+   * The run now queued is the settings change's, not anybody's Run Again
+   * (issue #10334): a request made before the edit no longer describes the
+   * run on the row.
+   */
+  runRequestedAt: null,
+  runRequestedByUserId: null,
 };
+
+/*
+ * The columns a Run Again's audit entry names (issue #10334). Both are
+ * OneUptime's own bookkeeping, which the audit defaults leave out of every
+ * entry; a person asked for this change, so runAgain names them. The
+ * requester is the entry's actor, so their id is not repeated in it.
+ */
+export const DISCOVERY_SCAN_RUN_AUDIT_COLUMNS: ReadonlyArray<string> = [
+  "runRequestedAt",
+  "status",
+];
+
+/*
+ * How many times runAgain reads the scan and tries its compare-and-set. A
+ * miss means another writer changed the run in between - a probe's late
+ * result, the stale-scan reaper, another click - and one more read says
+ * what the scan is doing now; a second miss in a row is answered as the
+ * busy scan it almost certainly is.
+ */
+const RUN_AGAIN_ATTEMPTS: number = 2;
 
 /*
  * The one thing onUpdateSuccess cannot work out for itself, because answering
@@ -219,6 +266,269 @@ export class Service extends ProjectReferencesService<Model> {
       "snmpV3AuthKey",
       "snmpV3PrivKey",
     ]);
+  }
+
+  /*
+   * RUN THE SCAN AGAIN, NOW (OneUptime issue #10334): the server's half of
+   * Run Again, behind POST /network-device-discovery-scan/:scanId/run.
+   *
+   * The scan is run as it is - its target, probe, method and credentials,
+   * none of them read or copied here - by putting it back in the queue its
+   * probe polls, exactly as the requeue worker does when a recurring scan
+   * comes due (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans).
+   * So it is the same row that runs, and no second scan is made: the probe
+   * claims it, the claim marks its previous hosts as the run before's
+   * (DISCOVERY_SCAN_STARTED_MESSAGE), and the run's first report replaces
+   * them. Its schedule is not touched: whether it repeats, and how often,
+   * stay as they are, and a recurring scan's next run is counted from when
+   * this one finishes, as from any run - so a run on demand is never
+   * followed at once by a scheduled sweep of the same range.
+   *
+   * Refused, with why, when it cannot do what it says: the scan is queued
+   * or sweeping already (canDiscoveryScanRunAgain), it is gone, or its probe
+   * is gone or not connected - queued for a probe that is away, it would
+   * sit Pending with its last good results out of reach (DiscoveryScanRun).
+   *
+   * Who may ask is checked first, here rather than in the route, so every
+   * caller is held to it: whoever may edit this scan, asked exactly as an
+   * update of it by id asks (assertMayRunAgain).
+   *
+   * The write is one compare-and-set on the status it read, so a run that
+   * started in between - another click, the requeue worker, an edit that
+   * changed the sweep - is never queued twice: the loser reads the scan
+   * again and says what it is doing.
+   *
+   * The audit log records the request as the requester's (their props),
+   * naming runRequestedAt and the status (DISCOVERY_SCAN_RUN_AUDIT_COLUMNS),
+   * columns its defaults leave out as OneUptime's own; the row keeps who
+   * and when as well, for every edition.
+   */
+  @CaptureSpan()
+  public async runAgain(data: {
+    scanId: ObjectID;
+    projectId: ObjectID;
+    // Who asked: the route's props, named on the row and in the audit log.
+    props: DatabaseCommonInteractionProps;
+  }): Promise<DiscoveryScanRunResult> {
+    await this.assertMayRunAgain(data);
+
+    for (let attempt: number = 1; attempt <= RUN_AGAIN_ATTEMPTS; attempt++) {
+      const scan: Model = await this.findScanToRunAgain(data);
+
+      await this.assertProbeCanRunAgain({
+        probeId: scan.probeId,
+        projectId: data.projectId,
+      });
+
+      const requestedAt: Date = OneUptimeDate.getCurrentDate();
+
+      const isQueued: boolean = await this.compareAndSetColumnsByIdWithoutHooks(
+        {
+          id: scan.id!,
+          /*
+           * The run state a brand-new scan is created in, as the requeue
+           * worker writes it for a scheduled run - and the request on top.
+           * The previous run's hosts and counts stay: they are this scan's
+           * last good inventory until the new run's first report replaces
+           * them, and nothing reads them meanwhile (a Pending row offers no
+           * review, and the claim marks them as the run before's).
+           *
+           * nextScanAt is cleared as the requeue worker clears it: a run in
+           * flight has no next run yet, and the result endpoint stamps one
+           * from this run's completion when the scan repeats.
+           *
+           * Cast: the model's JSON column makes DeepPartial recursion blow up.
+           */
+          data: {
+            status: DiscoveryScanStatus.Pending,
+            statusMessage: null,
+            startedAt: null,
+            completedAt: null,
+            nextScanAt: null,
+            runRequestedAt: requestedAt,
+            runRequestedByUserId: data.props.userId || null,
+          } as unknown as QueryDeepPartialEntity<Model>,
+          expectedData: {
+            status: scan.status,
+          } as unknown as QueryDeepPartialEntity<Model>,
+        },
+      );
+
+      if (!isQueued) {
+        // Another writer moved the run on in between: read it again.
+        continue;
+      }
+
+      await AuditLogService.recordUpdate({
+        model: new Model(),
+        before: scan,
+        updatedFields: {
+          status: DiscoveryScanStatus.Pending,
+          runRequestedAt: requestedAt,
+        } as unknown as JSONObject,
+        itemId: scan.id!,
+        props: data.props,
+        includeColumns: [...DISCOVERY_SCAN_RUN_AUDIT_COLUMNS],
+      });
+
+      return {
+        scanId: scan.id!.toString(),
+        status: DiscoveryScanStatus.Pending,
+        runRequestedAt: OneUptimeDate.toString(requestedAt),
+      };
+    }
+
+    // Moved on under each attempt: whatever it is doing, it is busy.
+    throw new BadDataException(DISCOVERY_SCAN_ALREADY_RUNNING_REFUSAL);
+  }
+
+  /*
+   * WHO MAY RUN A SCAN: WHOEVER MAY EDIT IT. A run replaces the scan's
+   * results and puts it back in the queue, which is a change to that scan -
+   * the same change an edit of its target makes - so it takes what an edit
+   * takes, not what creating a new scan takes: who may start new scans but
+   * not change existing ones gets no way to change one through this.
+   *
+   * Asked as DatabaseService.updateOneById asks an update of one record
+   * (ModelPermission.checkUpdatePermissionByModel): a credential that may
+   * only read is refused, then a team's block with no labels on the table,
+   * a grant to edit scans, a read of them (a write needs a read), the plan,
+   * and the record's own rules - it is the caller's project's. Scans carry
+   * no labels and no owners, so a grant reaches every scan of the project
+   * or none. A scan that is not there, or not the caller's, is answered as
+   * missing; a refusal says what the caller cannot do. OneUptime's own
+   * callers (root) pass, as they do every check.
+   */
+  private async assertMayRunAgain(data: {
+    scanId: ObjectID;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    // Said in its own words: it is the credential, not the person, that may not.
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
+
+    try {
+      await ModelPermission.checkUpdatePermissionByModel<Model>({
+        modelType: Model,
+        fetchModelWithAccessControlIds: async (): Promise<Model | null> => {
+          // Its project, for the record's rules: scans have no labels.
+          return await this.findOneBy({
+            query: {
+              _id: data.scanId,
+              projectId: data.projectId,
+            },
+            select: {
+              _id: true,
+              projectId: true,
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
+        },
+        props: data.props,
+      });
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new BadDataException(DISCOVERY_SCAN_NOT_FOUND_REFUSAL);
+      }
+
+      if (error instanceof NotAuthorizedException) {
+        throw new NotAuthorizedException(
+          DISCOVERY_SCAN_RUN_NOT_ALLOWED_REFUSAL,
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  /*
+   * The scan Run Again was pressed on, in the caller's project, with what
+   * its audit entry compares - refused when it is gone, queued already or
+   * sweeping. Read as root: assertMayRunAgain has checked who may run it,
+   * and the project in the query keeps another project's scan out.
+   */
+  private async findScanToRunAgain(data: {
+    scanId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<Model> {
+    const scan: Model | null = await this.findOneBy({
+      query: {
+        _id: data.scanId,
+        projectId: data.projectId,
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        name: true,
+        cidr: true,
+        status: true,
+        probeId: true,
+        runRequestedAt: true,
+      },
+      props: {
+        isRoot: true,
+        // No hosts are read, so the registration lookup has nothing to do.
+        ignoreHooks: true,
+      },
+    });
+
+    if (!scan || !scan.id) {
+      throw new BadDataException(DISCOVERY_SCAN_NOT_FOUND_REFUSAL);
+    }
+
+    if (canDiscoveryScanRunAgain(scan)) {
+      return scan;
+    }
+
+    if (scan.status === DiscoveryScanStatus.Pending) {
+      throw new BadDataException(DISCOVERY_SCAN_ALREADY_QUEUED_REFUSAL);
+    }
+
+    // In Progress, or a status no run ends in: the probe is on it.
+    throw new BadDataException(DISCOVERY_SCAN_ALREADY_RUNNING_REFUSAL);
+  }
+
+  /*
+   * The probe has to be there, this project's or a global one, and
+   * connected, or the run would only ever wait. A probe's own row says
+   * whether it is connected (Probe.connectionStatus, kept every minute from
+   * its last check-in); one that never connected has no status and is not.
+   */
+  private async assertProbeCanRunAgain(data: {
+    probeId: ObjectID | undefined;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const probe: Probe | null = data.probeId
+      ? await ProbeService.findOneById({
+          id: data.probeId,
+          select: {
+            _id: true,
+            name: true,
+            projectId: true,
+            connectionStatus: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        })
+      : null;
+
+    if (
+      !probe ||
+      (probe.projectId &&
+        probe.projectId.toString() !== data.projectId.toString())
+    ) {
+      throw new BadDataException(DISCOVERY_SCAN_PROBE_GONE_REFUSAL);
+    }
+
+    if (probe.connectionStatus !== ProbeConnectionStatus.Connected) {
+      throw new BadDataException(
+        getDiscoveryScanProbeOfflineRefusal(probe.name),
+      );
+    }
   }
 
   @CaptureSpan()

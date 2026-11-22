@@ -1587,9 +1587,10 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * How an HTTP request step checks the server's certificate, under More
    * fields (Common/Types/Runbook/HttpStepCertificates): the switch that
    * skips the checks, worded as a monitor's, and - while the step checks -
-   * the CA certificate it trusts instead of skipping them, the safer way.
-   * Said under the box, while it is not a certificate a save takes, why
-   * the save will be refused.
+   * the CA certificate it trusts instead of skipping them, the safer way:
+   * pasted in, or one runbook variable that holds it, so one CA serves
+   * many steps (#10441). Said under the box, while it is neither a
+   * certificate nor one variable alone, why the save will be refused.
    */
   const renderHttpCertificateFields: (
     config: HttpRequestStepConfig,
@@ -1650,7 +1651,12 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               id={`runbook-step-${idx}-http-ca-certificate-help`}
               className="text-xs text-gray-500 mt-1.5"
             >
-              {translator.translateText(HTTP_CA_CERTIFICATE_HELP)}
+              <TranslatedSentence
+                template={HTTP_CA_CERTIFICATE_HELP}
+                slots={{
+                  reference: <code>{"{{global.variables.NAME}}"}</code>,
+                }}
+              />
             </p>
           </div>
         )}
@@ -1734,11 +1740,11 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <></>
         )}
         {/*
-         * Variables, named as a script names them, in the URL, the headers
-         * or the body. OneUptime sends the request itself - no Runner is
-         * involved - so a secret is filled in too, and hidden in what the
-         * step records. The chips copy what to write; with none yet, the
-         * line above says how one is written.
+         * Variables, named as a script names them, in the URL, the headers,
+         * the body or the CA certificate. OneUptime sends the request itself
+         * - no Runner is involved - so a secret is filled in too, and hidden
+         * in what the step records. The chips copy what to write; with none
+         * yet, the line above says how one is written.
          */}
         <div data-testid={`runbook-step-${idx}-http-variables-field`}>
           <p
