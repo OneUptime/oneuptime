@@ -15,7 +15,7 @@ import {
   translationKey,
 } from "../../Types/Translator";
 import OneUptimeDate from "../../Types/Date";
-import FeedMarkdown, { MarkdownText } from "../Markdown/FeedMarkdown";
+import FeedMarkdown, { MarkdownText, mdText } from "../Markdown/FeedMarkdown";
 
 /*
  * A STEP THAT WAITS FOR A PERSON'S APPROVAL, AS THE PERSON IS ASKED.
@@ -471,12 +471,16 @@ const asCode: (value: string) => ApprovalValue = (
   return { markdown: FeedMarkdown.code(value).toString(), text: value };
 };
 
+// Bold, its text escaped for where it sits; nothing at all for no text.
 const asBold: (value: string) => ApprovalValue = (
   value: string,
 ): ApprovalValue => {
-  const escaped: string = FeedMarkdown.textInLine(value).toString();
+  const escaped: MarkdownText = FeedMarkdown.textInLine(value);
 
-  return { markdown: escaped ? `**${escaped}**` : "", text: value };
+  return {
+    markdown: escaped.toString() ? mdText`**${escaped}**`.toString() : "",
+    text: value,
+  };
 };
 
 const asTime: (time: SecurityPlaybookApprovalTime) => ApprovalValue = (
