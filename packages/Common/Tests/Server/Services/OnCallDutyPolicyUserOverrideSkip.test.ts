@@ -36,6 +36,9 @@ import OnCallShiftMaterializer, {
   MaterializeResult,
 } from "../../../Server/Utils/OnCall/OnCallShiftMaterializer";
 import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import URL from "../../../Types/API/URL";
 import CalendarEvent from "../../../Types/Calendar/CalendarEvent";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -664,6 +667,215 @@ describe("Booking time away with nobody picked to cover", () => {
     // The feed, and the line for any other workspace, keep OneUptime's names.
     expect(item.feedInfoInMarkdown).not.toContain("@slack-");
     expect(item.chatInfoInMarkdown).not.toContain("@slack-");
+  });
+});
+
+/*
+ * A COVER WHO HAS NOT JOINED THE PROJECT YET (#10670). "Who covers?" offers
+ * someone invited who has not accepted, and the server takes them, as an
+ * escalation rule and a rotation do (#10412). Nothing pages them until they
+ * join, so until then nobody is paged in place of the person away - and the
+ * override's feed entry and every channel's line say so, as a coverage
+ * gap's does (#10586). Booked here through the Dashboard's own form, into
+ * the real create.
+ */
+describe("Booking time away with someone who hasn't joined the project yet to cover", () => {
+  type FeedCall = {
+    feedInfoInMarkdown: string;
+    chatInfoInMarkdown?: string;
+    chatInfoByWorkspaceType?: Partial<Record<WorkspaceType, string>>;
+  };
+
+  const onlyEntry: () => FeedCall = (): FeedCall => {
+    const calls: Array<Array<FeedCall>> = (
+      OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem as unknown as {
+        mock: { calls: Array<Array<FeedCall>> };
+      }
+    ).mock.calls;
+
+    expect(calls).toHaveLength(1);
+    return calls[0]![0]!;
+  };
+
+  const riaIsInvited: (invitation: WithheldProfile) => void = (
+    invitation: WithheldProfile,
+  ): void => {
+    jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockImplementation(
+        async (data: {
+          userIds: Array<string>;
+        }): Promise<Map<string, WithheldProfile>> => {
+          return new Map<string, WithheldProfile>(
+            data.userIds
+              .filter((userId: string): boolean => {
+                return userId.toLowerCase() === RIA;
+              })
+              .map((userId: string): [string, WithheldProfile] => {
+                return [userId.toLowerCase(), invitation];
+              }),
+          );
+        },
+      );
+  };
+
+  test("is booked, and its lines say nobody is paged in place of the person away until they join", async () => {
+    riaIsInvited({ inviteeName: "Ria from Payments" });
+
+    const created: OnCallDutyPolicyUserOverride = await bookTimeAway({
+      signedInAs: ALEX,
+      whoCovers: RIA,
+      ends: BACK_ON_FRIDAY,
+      policy: POLICY,
+    });
+
+    expect(created.routeAlertsToUserId?.toString().toLowerCase()).toBe(RIA);
+
+    const entry: FeedCall = onlyEntry();
+
+    expect(entry.chatInfoInMarkdown).toContain(
+      `🔁 Added an override on [Payments](https://oneuptime.example/policy): Ria from Payments covers for user-${ALEX} from `,
+    );
+    expect(entry.chatInfoInMarkdown).toContain(
+      `, but Ria from Payments hasn't joined the project yet, so nobody is paged in place of user-${ALEX} until they do.`,
+    );
+    expect(entry.feedInfoInMarkdown).toContain(
+      "All alerts will be routed to **Ria from Payments**",
+    );
+    expect(entry.feedInfoInMarkdown).toContain(
+      `**Ria from Payments** hasn't joined the project yet, so nobody is paged in place of **user-${ALEX}** until they do.`,
+    );
+  });
+
+  test("with an address typed as their name: named as someone who hasn't joined, and never by an address", async () => {
+    riaIsInvited({
+      inviteeName: "ria@invited.example",
+      inviteeEmail: "ria@invited.example",
+    });
+
+    await bookTimeAway({
+      signedInAs: ALEX,
+      whoCovers: RIA,
+      ends: BACK_ON_FRIDAY,
+      policy: POLICY,
+    });
+
+    const entry: FeedCall = onlyEntry();
+
+    expect(entry.chatInfoInMarkdown).toContain(
+      `: someone who hasn't joined the project yet covers for user-${ALEX} from `,
+    );
+    expect(entry.chatInfoInMarkdown).toMatch(
+      new RegExp(
+        `, so nobody is paged in place of user-${ALEX} until they join\\.$`,
+      ),
+    );
+    expect(entry.feedInfoInMarkdown).toContain(
+      `Nobody is paged in place of **user-${ALEX}** until they join the project.`,
+    );
+
+    for (const text of [entry.chatInfoInMarkdown, entry.feedInfoInMarkdown]) {
+      expect(text).not.toContain("ria@invited.example");
+      expect(text).not.toContain(`user-${RIA}`);
+    }
+  });
+
+  test("each workspace's line says it too", async () => {
+    riaIsInvited({ inviteeName: "Ria from Payments" });
+
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuths")
+      .mockResolvedValue(
+        [WorkspaceType.Slack, WorkspaceType.Mattermost].map(
+          (workspaceType: WorkspaceType): WorkspaceProjectAuthToken => {
+            const auth: WorkspaceProjectAuthToken =
+              new WorkspaceProjectAuthToken();
+            auth.workspaceType = workspaceType;
+            auth.authToken = "token";
+            return auth;
+          },
+        ),
+      );
+    jest
+      .spyOn(WorkspaceUtil, "getUserStringForWorkspace")
+      .mockImplementation((async (data: {
+        userId: ObjectID;
+      }): Promise<string> => {
+        return `@chat-${data.userId.toString()} `;
+      }) as never);
+
+    await bookTimeAway({
+      signedInAs: ALEX,
+      whoCovers: RIA,
+      ends: BACK_ON_FRIDAY,
+      policy: POLICY,
+    });
+
+    const lines: Partial<Record<WorkspaceType, string>> =
+      onlyEntry().chatInfoByWorkspaceType || {};
+
+    for (const workspaceType of [WorkspaceType.Slack, WorkspaceType.Mattermost]) {
+      expect(lines[workspaceType]).toContain(
+        `Ria from Payments covers for @chat-${ALEX} from `,
+      );
+      expect(lines[workspaceType]).toContain(
+        `, but Ria from Payments hasn't joined the project yet, so nobody is paged in place of @chat-${ALEX} until they do.`,
+      );
+    }
+  });
+
+  test("a cover who has joined is said as before: no word of it", async () => {
+    await bookTimeAway({
+      signedInAs: ALEX,
+      whoCovers: RIA,
+      ends: BACK_ON_FRIDAY,
+      policy: POLICY,
+    });
+
+    const entry: FeedCall = onlyEntry();
+
+    expect(entry.chatInfoInMarkdown).toMatch(
+      new RegExp(
+        `: user-${RIA} covers for user-${ALEX} from .* to .*[0-9:]+Z\\)\\}\\}\\.$`,
+      ),
+    );
+    expect(entry.chatInfoInMarkdown).not.toContain("hasn't joined");
+    expect(entry.feedInfoInMarkdown).not.toContain("hasn't joined");
+    expect(entry.feedInfoInMarkdown).not.toContain("Nobody is paged in place");
+  });
+
+  test("the person away who hasn't joined is no matter: skipping someone nothing pages changes nothing", async () => {
+    jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockImplementation(
+        async (data: {
+          userIds: Array<string>;
+        }): Promise<Map<string, WithheldProfile>> => {
+          return new Map<string, WithheldProfile>(
+            data.userIds
+              .filter((userId: string): boolean => {
+                return userId.toLowerCase() === ALEX;
+              })
+              .map((userId: string): [string, WithheldProfile] => {
+                return [userId.toLowerCase(), { inviteeName: "Alex" }];
+              }),
+          );
+        },
+      );
+
+    await bookTimeAway({
+      signedInAs: ALEX,
+      whoCovers: RIA,
+      ends: BACK_ON_FRIDAY,
+      policy: POLICY,
+    });
+
+    const entry: FeedCall = onlyEntry();
+
+    expect(entry.chatInfoInMarkdown).toContain(
+      `: user-${RIA} covers for Alex from `,
+    );
+    expect(entry.chatInfoInMarkdown).not.toContain("hasn't joined");
   });
 });
 
