@@ -125,8 +125,17 @@ export default class MicrosoftSignInClient {
   /*
    * Where to send the browser, and what its callback has to match. A Sign
    * In Again (#10217) asks Microsoft to have the person sign in again
-   * (prompt=login) and to say when (max_age=0), in place of choosing an
-   * account.
+   * (prompt=login), in place of choosing an account, and is held to when
+   * the ID token says they did (auth_time, an optional claim the app
+   * registration adds).
+   *
+   * It sends no max_age (#10529): Microsoft documents prompt=login ("forces
+   * the user to enter their credentials on that request") and no max_age,
+   * and two reports on Microsoft Q&A
+   * (learn.microsoft.com/answers/questions/1377508) found max_age=0 made
+   * Entra ID answer with an ID token that had already expired - iat five
+   * minutes back, exp three seconds after auth_time. Sign In Again judges
+   * auth_time itself, so max_age added nothing.
    */
   public createSignInRequest(options?: {
     isSignInAgain?: boolean | undefined;
@@ -160,7 +169,6 @@ export default class MicrosoftSignInClient {
 
     if (options?.isSignInAgain) {
       params.set("prompt", "login");
-      params.set("max_age", "0");
     }
 
     return {
