@@ -25,11 +25,19 @@ import SecurityBlocklistReconciler, {
   SECURITY_BLOCKLIST_MAX_PROJECTS_PER_PASS,
   SecurityBlocklistDestinationPlan,
   SecurityBlocklistPassResult,
+  describeSecurityBlockHeldBack,
+  findSecurityBlocksHeldBack,
   getHeldItemKey,
   getSecurityBlockEntryComment,
   getSecurityBlocklistRetryDelayInMs,
   planSecurityBlocklistDestination,
+  toSecurityBlockProtectionEntries,
 } from "../../../../Server/Utils/SecurityBlocklist/SecurityBlocklistReconciler";
+import SecurityBlocklistFeedProtection, {
+  SecurityBlocklistFeedProtectionCheck,
+} from "../../../../Server/Utils/SecurityBlocklist/SecurityBlocklistFeedProtection";
+import { SecurityBlocklistFeedEntry } from "../../../../Types/SecurityBlocklist/SecurityBlocklistFeed";
+import { SecurityProtectedAddressSource } from "../../../../Types/SecurityBlocklist/SecurityProtectedAddress";
 import TestSecurityBlockDestination from "../../../../Server/Utils/SecurityBlocklist/TestSecurityBlockDestination";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -1816,5 +1824,241 @@ describe("the destinations a project has in production", () => {
       SecurityBlockDestinationProvider.AwsWaf,
       SecurityBlockDestinationProvider.Feed,
     ]);
+  });
+});
+
+describe("a challenge where a destination cannot challenge (#10350)", () => {
+  function policyChallenge(index: number, value: string): SecurityBlock {
+    const block: SecurityBlock = addBlock({
+      index,
+      value,
+      action: SecurityBlockAction.Challenge,
+    });
+    block.source = SecurityBlockSource.AutomaticResponse;
+    block.challengeFallsBackToBlock = true;
+    return block;
+  }
+
+  test("an automatic response policy's is held there as a block, for the same time", async () => {
+    const edge: TestSecurityBlockDestination = new TestSecurityBlockDestination(
+      { key: "Test:edge", name: "Cloudflare", canChallenge: true },
+    );
+    const feed: TestSecurityBlockDestination = new TestSecurityBlockDestination(
+      { key: "Test:feed", name: "Palo Alto feed", canChallenge: false },
+    );
+    enforceAt(edge, feed);
+    policyChallenge(1, "35.205.11.131");
+
+    await pass(2);
+
+    expect(edge.getOneUptimeValues(SecurityBlockAction.Challenge)).toEqual([
+      "35.205.11.131",
+    ]);
+    expect(feed.getOneUptimeValues(SecurityBlockAction.Block)).toEqual([
+      "35.205.11.131",
+    ]);
+    expect(feed.getOneUptimeValues(SecurityBlockAction.Challenge)).toEqual([]);
+    expect(stateOf(1, edge)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(stateOf(1, feed)).toBe(SecurityBlockEnforcementState.Applied);
+
+    // Read back as the block it is there, a second pass changes nothing.
+    await pass(3);
+
+    expect(feed.getOneUptimeValues(SecurityBlockAction.Block)).toEqual([
+      "35.205.11.131",
+    ]);
+    expect(stateOf(1, feed)).toBe(SecurityBlockEnforcementState.Applied);
+  });
+
+  test("once it ends, the block it was held as is taken away", async () => {
+    const feed: TestSecurityBlockDestination = new TestSecurityBlockDestination(
+      { key: "Test:feed", name: "Palo Alto feed", canChallenge: false },
+    );
+    enforceAt(feed);
+    policyChallenge(1, "35.205.11.131");
+
+    await pass(2);
+    setState(1, SecurityBlockState.Lifted);
+    await pass(3);
+
+    expect(feed.getOneUptimeValues()).toEqual([]);
+    expect(stateOf(1, feed)).toBe(SecurityBlockEnforcementState.Removed);
+  });
+
+  test("a person's challenge is never turned into a block behind their back: it is not applied there, saying why", async () => {
+    const feed: TestSecurityBlockDestination = new TestSecurityBlockDestination(
+      { key: "Test:feed", name: "Palo Alto feed", canChallenge: false },
+    );
+    enforceAt(feed);
+    addBlock({
+      index: 1,
+      value: "35.205.11.131",
+      action: SecurityBlockAction.Challenge,
+    });
+
+    await pass(2);
+
+    expect(feed.getOneUptimeValues()).toEqual([]);
+    expect(stateOf(1, feed)).toBe(SecurityBlockEnforcementState.Failed);
+    expect(errorOf(1, feed)).toBe(
+      "Not applied: Palo Alto feed cannot challenge",
+    );
+  });
+
+  test("the plan asks each destination for the action it holds", () => {
+    const block: SecurityBlock = policyChallenge(1, "35.205.11.131");
+    const plan: SecurityBlocklistDestinationPlan =
+      planSecurityBlocklistDestination({
+        destination: new TestSecurityBlockDestination({ canChallenge: false }),
+        blocks: [block],
+        rowsByBlock: new Map(),
+        held: [],
+        capacity: { limit: null },
+        now: NOW,
+      });
+
+    expect(
+      plan.toAdd.map((entry: SecurityBlockEntry) => {
+        return entry.action;
+      }),
+    ).toEqual([SecurityBlockAction.Block]);
+    expect(plan.unsupported.size).toBe(0);
+  });
+});
+
+describe("a block whose address became protected after it was made (#10640)", () => {
+  let withheld: Array<string>;
+  let isReadable: boolean;
+
+  beforeEach(() => {
+    withheld = [];
+    isReadable = true;
+    jest
+      .spyOn(SecurityBlocklistFeedProtection, "check")
+      .mockImplementation(
+        async (data: {
+          entries: ReadonlyArray<SecurityBlocklistFeedEntry>;
+        }): Promise<SecurityBlocklistFeedProtectionCheck> => {
+          if (!isReadable) {
+            return { isReadable: false, served: [], withheld: [] };
+          }
+
+          return {
+            isReadable: true,
+            served: data.entries.filter((entry: SecurityBlocklistFeedEntry) => {
+              return !withheld.includes(entry.value);
+            }),
+            withheld: data.entries
+              .filter((entry: SecurityBlocklistFeedEntry) => {
+                return withheld.includes(entry.value);
+              })
+              .map((entry: SecurityBlocklistFeedEntry) => {
+                return {
+                  entry,
+                  protection: {
+                    source: SecurityProtectedAddressSource.Host,
+                    protectedValue: entry.value,
+                    name: "web-3",
+                  },
+                };
+              }),
+          };
+        },
+      );
+  });
+
+  test("is held back everywhere: taken off where it is held, its row and its case saying why, never naming the record", async () => {
+    const edge: TestSecurityBlockDestination = new TestSecurityBlockDestination(
+      { key: "Test:edge", name: "Cloudflare" },
+    );
+    enforceAt(edge);
+    addBlock({ index: 1, value: "35.205.11.131", hasCase: true });
+    addBlock({ index: 2, value: "35.205.11.132", hasCase: true });
+
+    await pass(2);
+    expect(edge.getOneUptimeValues().sort()).toEqual([
+      "35.205.11.131",
+      "35.205.11.132",
+    ]);
+
+    // A host comes up on the first address.
+    withheld = ["35.205.11.131"];
+    await pass(3);
+
+    expect(edge.getOneUptimeValues()).toEqual(["35.205.11.132"]);
+    expect(stateOf(1, edge)).toBe(SecurityBlockEnforcementState.Failed);
+    expect(errorOf(1, edge)).toBe(
+      "Held back: 35.205.11.131 is protected now, so OneUptime took the block off. 35.205.11.131 is one of your project's own addresses.",
+    );
+    expect(errorOf(1, edge)).not.toContain("web-3");
+    expect(stateOf(2, edge)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(
+      linesSaying("is not enforced at Cloudflare. Held back"),
+    ).toHaveLength(1);
+
+    // Said once: a pass that finds the same changes nothing.
+    await pass(4);
+    expect(linesSaying("Held back")).toHaveLength(1);
+  });
+
+  test("stays held back while what the project protects cannot be read, and nothing new is", async () => {
+    const edge: TestSecurityBlockDestination = new TestSecurityBlockDestination(
+      { key: "Test:edge", name: "Cloudflare" },
+    );
+    enforceAt(edge);
+    addBlock({ index: 1, value: "35.205.11.131" });
+    addBlock({ index: 2, value: "35.205.11.132" });
+
+    withheld = ["35.205.11.131"];
+    await pass(2);
+    expect(edge.getOneUptimeValues()).toEqual(["35.205.11.132"]);
+
+    isReadable = false;
+    await pass(3);
+
+    expect(edge.getOneUptimeValues()).toEqual(["35.205.11.132"]);
+    expect(errorOf(1, edge)).toContain("Held back: ");
+    expect(stateOf(2, edge)).toBe(SecurityBlockEnforcementState.Applied);
+  });
+
+  test("is held again once the address is no longer protected", async () => {
+    const edge: TestSecurityBlockDestination = new TestSecurityBlockDestination(
+      { key: "Test:edge", name: "Cloudflare" },
+    );
+    enforceAt(edge);
+    addBlock({ index: 1, value: "35.205.11.131" });
+
+    withheld = ["35.205.11.131"];
+    await pass(2);
+    expect(edge.getOneUptimeValues()).toEqual([]);
+
+    withheld = [];
+    await pass(3);
+
+    expect(edge.getOneUptimeValues()).toEqual(["35.205.11.131"]);
+    expect(stateOf(1, edge)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(errorOf(1, edge)).toBeNull();
+  });
+
+  test("names the block by id, one active block a value", () => {
+    const one: SecurityBlock = addBlock({ index: 1, value: "35.205.11.131" });
+
+    expect(
+      findSecurityBlocksHeldBack({
+        blocks: [one],
+        check: { isReadable: false, withheld: [] },
+      }),
+    ).toBeNull();
+    expect(toSecurityBlockProtectionEntries([one, one])).toHaveLength(1);
+    expect(
+      describeSecurityBlockHeldBack({
+        value: "35.205.11.0/24",
+        protection: {
+          source: SecurityProtectedAddressSource.Edge,
+          protectedValue: "35.205.11.0/24",
+          name: "Cloudflare",
+        },
+      }),
+    ).toContain("Cloudflare");
   });
 });

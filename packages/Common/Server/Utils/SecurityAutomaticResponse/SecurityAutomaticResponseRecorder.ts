@@ -276,7 +276,15 @@ export default class SecurityAutomaticResponseRecorder {
       }
 
       if (!action.securityBlockId) {
-        await this.failIfNeverMade({ action, now: at });
+        try {
+          await this.failIfNeverMade({ action, now: at });
+        } catch (error) {
+          logger.error(
+            `SecurityAutomaticResponseRecorder: could not settle automatic response action ${action.id?.toString() || ""}:`,
+          );
+          logger.error(error);
+        }
+
         continue;
       }
 
