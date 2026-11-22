@@ -55,6 +55,8 @@ terraform {
 
 O endereço de origem não nomeia nenhum registro: o Terraform o lê no Terraform Registry, e o OpenTofu no OpenTofu Registry, que publicam as mesmas versões.
 
+Uma versão publicada nunca muda: os registros guardam os checksums do que baixaram primeiro, e `init` confere cada download com eles. Uma versão que precisa ser corrigida é publicada de novo como a próxima versão de patch, que um intervalo inclui, e as notas dessa versão dizem qual versão ela substitui.
+
 ## O arquivo de lock
 
 `terraform init` registra a versão que escolheu, e os checksums dos downloads dela, em `.terraform.lock.hcl`. Faça commit desse arquivo: toda máquina e toda execução de CI passa a instalar exatamente essa versão, até você escolher outra. Os checksums cobrem todas as plataformas que o registro publica, então um único arquivo de lock serve igualmente a máquinas Linux, macOS e Windows.
@@ -77,7 +79,7 @@ O arquivo de lock nomeia o registro. O OpenTofu escreve `registry.opentofu.org/o
 :::steps
 ### Ler o que mudou
 
-[As versões do OneUptime](https://github.com/OneUptime/oneuptime/releases) dizem o que cada versão mudou, inclusive no provider. [As versões do provider](https://github.com/OneUptime/terraform-provider-oneuptime/releases) apontam para as alterações desde a anterior.
+[As versões do OneUptime](https://github.com/OneUptime/oneuptime/releases) dizem o que cada versão mudou, inclusive no provider. [As versões do provider](https://github.com/OneUptime/terraform-provider-oneuptime/releases) dizem o que cada uma mudou no provider: primeiro o que quebra uma configuração, depois os novos recursos e fontes de dados, e os atributos que mudaram.
 
 ### Baixá-la
 

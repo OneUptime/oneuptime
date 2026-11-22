@@ -23,6 +23,8 @@ export const DATA_STORE_FAMILY_TITLES: Readonly<
   [DataStoreFamily.FileSystem]: translationKey("File system"),
   [DataStoreFamily.Snapshot]: translationKey("Snapshot"),
   [DataStoreFamily.Telemetry]: translationKey("Telemetry"),
+  // What OneUptime keeps for a project's security, declared (#10398).
+  [DataStoreFamily.SecurityRecords]: translationKey("Security records"),
 };
 
 // A store's family in the reader's words; one it does not know, as stored.

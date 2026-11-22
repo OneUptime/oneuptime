@@ -3013,6 +3013,8 @@
   "Only pipelines that match conditions": "केवल शर्तों से मेल खाने वाली पाइपलाइन",
   "All cloud environments": "सभी क्लाउड परिवेश",
   "Only cloud environments that match conditions": "केवल शर्तों से मेल खाने वाले क्लाउड परिवेश",
+  "All issues": "सभी समस्याएं",
+  "Only issues that match conditions": "केवल शर्तों से मेल खाने वाली समस्याएं",
   "Only what matches conditions": "केवल वही, जो शर्तों से मेल खाता है",
   "Client Credentials": "Client Credentials",
   "Company SMTP server hosted on AWS": "AWS पर होस्ट किया गया कंपनी SMTP सर्वर",

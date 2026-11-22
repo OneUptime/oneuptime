@@ -148,7 +148,8 @@ Algunas respuestas se calculan bajo demanda en lugar de guardarse. Cada una es u
 | `/data-security/compliance` | La puntuación y los requisitos de cada marco |
 | `/data-security/resource-scope` | Los almacenes de datos de un recurso (un clúster de Kubernetes, un host de Docker o Podman, una base de datos, un servicio o un recurso en la nube) y de qué recurso siguen los interruptores de cumplimiento |
 | `/data-security/resource-compliance` | Los marcos de un recurso: sus puntuaciones para los almacenes del recurso, y lo que está desactivado para él |
-| `/data-security/record-of-processing` | El registro de actividades de tratamiento del RGPD, una fila por cada almacén que contiene datos personales |
+| `/data-security/record-of-processing` | El registro de actividades de tratamiento del RGPD, una fila por cada almacén que contiene datos personales. Un almacén que OneUptime conserva para tu seguridad tiene un objeto `declared`: su propia finalidad y retención, y quién puede leerlo |
+| `/data-store/<id>/declared` | Lo que dice el registro de un almacén que OneUptime conserva para tu seguridad: qué contiene, por qué, durante cuánto tiempo y quién puede leerlo |
 | `/data-store/<id>/scan-now` | **Escanear ahora**: muestrea el contenido del almacén al momento |
 | `/data-store/<id>/check-now` | **Comprobar ahora**: vuelve a leer la configuración del almacén y ejecuta sus comprobaciones |
 | `/data-store-finding/<id>/scrub` | **Depurar** en un hallazgo de telemetría |

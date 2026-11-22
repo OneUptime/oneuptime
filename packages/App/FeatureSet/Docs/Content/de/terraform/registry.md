@@ -55,6 +55,8 @@ terraform {
 
 Die Quelladresse nennt keine Registry: Terraform liest sie aus der Terraform Registry, und OpenTofu aus der OpenTofu Registry, die dieselben Versionen veröffentlichen.
 
+Eine veröffentlichte Version ändert sich nie: Die Registrys behalten die Prüfsummen dessen, was sie zuerst heruntergeladen haben, und `init` prüft jeden Download gegen sie. Eine Version, die repariert werden muss, wird erneut als nächste Patch-Version veröffentlicht, die ein Bereich mitnimmt, und die Notizen dieses Releases sagen, welche Version sie ersetzt.
+
 ## Die Lock-Datei
 
 `terraform init` hält die gewählte Version und die Prüfsummen seiner Downloads in `.terraform.lock.hcl` fest. Committen Sie diese Datei: Jeder Rechner und jeder CI-Lauf installiert dann genau diese Version, bis Sie eine andere wählen. Die Prüfsummen decken jede Plattform ab, die die Registry veröffentlicht, sodass eine Lock-Datei Rechnern mit Linux, macOS und Windows gleichermaßen dient.
@@ -77,7 +79,7 @@ Die Lock-Datei nennt die Registry. OpenTofu schreibt `registry.opentofu.org/oneu
 :::steps
 ### Lesen, was sich geändert hat
 
-[Die Releases von OneUptime](https://github.com/OneUptime/oneuptime/releases) sagen, was jedes Release geändert hat, den Provider eingeschlossen. [Die Releases des Providers](https://github.com/OneUptime/terraform-provider-oneuptime/releases) verlinken auf die Änderungen seit dem vorherigen.
+[Die Releases von OneUptime](https://github.com/OneUptime/oneuptime/releases) sagen, was jedes Release geändert hat, den Provider eingeschlossen. [Die Releases des Providers](https://github.com/OneUptime/terraform-provider-oneuptime/releases) sagen, was jedes am Provider geändert hat: zuerst, was eine Konfiguration bricht, dann die neuen Ressourcen und Datenquellen und die geänderten Attribute.
 
 ### Herunterladen
 

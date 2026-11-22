@@ -177,7 +177,7 @@ Sicherheits-Mitglieder, Sicherheits-Administratoren, Projektadministratoren und 
 
 ## Verzeichnis von Verarbeitungstätigkeiten
 
-GDPR Artikel 30 verlangt, dass Sie ein Verzeichnis Ihrer Verarbeitungstätigkeiten führen. Datensicherheit schreibt den Teil davon, der beschreibt, wo personenbezogene Daten aufbewahrt werden: eine Zeile für jeden Datenspeicher, der personenbezogene Daten enthält.
+GDPR Artikel 30 verlangt, dass Sie ein Verzeichnis Ihrer Verarbeitungstätigkeiten führen. Datensicherheit schreibt den Teil davon, der beschreibt, wo personenbezogene Daten aufbewahrt werden: eine Zeile für jeden Datenspeicher, der personenbezogene Daten enthält. Es ist die Karte **Verarbeitungsverzeichnis** am Ende von **Datensicherheit → Compliance**, mit **CSV exportieren** und **JSON exportieren**.
 
 | Spalte | Woher sie stammt |
 | --- | --- |
@@ -185,11 +185,27 @@ GDPR Artikel 30 verlangt, dass Sie ein Verzeichnis Ihrer Verarbeitungstätigkeit
 | Umgebung | Die Tags oder der Name des Datenspeichers, oder was Sie festlegen |
 | Sensibilität, Kategorien und Datentypen | Was die Scans gefunden haben, oder die Sensibilität, die Sie festlegen |
 | Eigentümer | Die Eigentümer des Datenspeichers, Personen und die Mitglieder seiner Teams |
-| Zweck | Was Sie unter **Zweck** des Datenspeichers eintragen: warum er personenbezogene Daten enthält |
-| Aufbewahrung | Was Sie unter **Aufbewahrung** des Datenspeichers eintragen: wie lange Daten darin aufbewahrt werden |
+| Zweck | Was Sie unter **Zweck** des Datenspeichers eintragen: warum er personenbezogene Daten enthält. Für die Datenspeicher, die OneUptime für Ihre Sicherheit führt, trägt OneUptime ihn ein |
+| Aufbewahrung | Was Sie unter **Aufbewahrung** des Datenspeichers eintragen: wie lange Daten darin aufbewahrt werden. Für die Datenspeicher, die OneUptime für Ihre Sicherheit führt, trägt OneUptime sie ein |
+| Wer lesen darf | Wer einen Datenspeicher lesen darf, den OneUptime für Ihre Sicherheit führt |
 | Rahmenwerke | Die Rahmenwerke, die seine Datentypen in den Geltungsbereich bringen |
+| Deklariert von | OneUptime, für die Datenspeicher, die es für Ihre Sicherheit führt |
 
-Füllen Sie **Zweck** und **Aufbewahrung** in den **Einstellungen** jedes Datenspeichers aus: Das sind die beiden Dinge, die kein Scan wissen kann. Das Verzeichnis und die Bewertungen liefert auch die API der Datensicherheit, unter `/data-security/record-of-processing`, `/data-security/compliance` und, für eine einzelne Ressource, `/data-security/resource-compliance`, für jeden, der Datenspeicher lesen darf (siehe [Integrationen der Datensicherheit](/docs/data-security/integrations#api-terraform-und-mcp)).
+Füllen Sie für einen Datenspeicher, den Datensicherheit gefunden hat, **Zweck** und **Aufbewahrung** in seinen **Einstellungen** aus: Kein Scan kann sie wissen. Das Verzeichnis und die Bewertungen liefert auch die API der Datensicherheit, unter `/data-security/record-of-processing`, `/data-security/compliance` und, für eine einzelne Ressource, `/data-security/resource-compliance`, für jeden, der Datenspeicher lesen darf (siehe [Integrationen der Datensicherheit](/docs/data-security/integrations#api-terraform-und-mcp)).
+
+### Datenspeicher, die OneUptime für Ihre Sicherheit führt
+
+Drei Datenspeicher enthalten IP-Adressen mit Absicht, um Ihr Netzwerk zu schützen: **Sicherheitsereignisse**, **Netzwerk-Flows** und **Sicherheits-Adresstresor**. Das Verzeichnis führt jeden auf, den Ihr Projekt hat. OneUptime deklariert sie, statt sie zu finden: Was sie enthalten, steht von vornherein fest, daher liest kein Scan sie, keine Prüfung gilt für sie, und dass sie diese Adressen enthalten, ist nie ein Problem, denn dafür sind sie da. Unter **Datenspeicher** tragen sie den Hinweis **Von OneUptime deklariert**, und die **Übersicht** und die Bewertungen der Rahmenwerke lassen sie aus.
+
+| Datenspeicher | Was er enthält | Aufbewahrung | Wer ihn lesen darf |
+| --- | --- | --- | --- |
+| Sicherheitsereignisse | Die IP-Adressen, Benutzernamen und E-Mail-Adressen dessen, der gehandelt hat, und dessen, was er berührt hat | Die [Telemetrie-Aufbewahrung](/docs/telemetry/data-retention) Ihres Projekts, jedes Mal gelesen, wenn das Verzeichnis gelesen wird, sodass eine Änderung sofort gilt | Projektinhaber, Projektadministratoren, Sicherheits-Administratoren, Sicherheits-Mitglieder, Sicherheits-Betrachter und jeder mit Read Security Event |
+| Netzwerk-Flows | Die IP-Adressen derer, die miteinander kommuniziert haben | 30 Tage nach dem Eingang eines Flows | Jeder, der Netzwerkgeräte lesen darf |
+| Sicherheits-Adresstresor | Die IP-Adresse hinter jedem Token, das eine IP-Adressen-Regel, die hasht, in den Protokollen und Traces hinterlassen hat, die [Sicherheitsereignisse](/docs/telemetry/security-events) liest | 30 Tage nach dem letzten Auftreten einer Adresse | Nur die Scans von Sicherheitsereignissen, innerhalb von OneUptime: keine Person, keine Seite, kein Export, keine API und kein KI-Tool |
+
+Der Zweck jedes dieser Datenspeicher ist „Netz- und Informationssicherheit (Erwägungsgrund 49 DSGVO)“. Um Ihren eigenen Zweck oder Ihre eigene Aufbewahrung einzutragen, nutzen Sie **Verzeichnis bearbeiten** in den **Einstellungen** des Datenspeichers: Ein leer gelassenes Feld behält das von OneUptime.
+
+Ein Datenspeicher wird aufgeführt, solange Ihr Projekt seine Daten aufbewahrt: der Tresor, solange eine aktivierte IP-Adressen-Regel Protokolle oder Traces hasht, die Sicherheitsereignisse liest, und noch 31 Tage danach (siehe [Sensible Daten bereinigen](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen)). Sind seine Daten weg, wird der Datenspeicher archiviert, und er kehrt mit Ihrem Zweck und Ihrer Aufbewahrung zurück, wenn die Daten zurückkehren.
 
 ## Nächste Schritte
 

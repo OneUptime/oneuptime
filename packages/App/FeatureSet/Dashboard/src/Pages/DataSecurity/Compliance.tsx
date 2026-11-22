@@ -15,6 +15,7 @@ import ComplianceFrameworkTile, {
 } from "../../Components/DataSecurity/ComplianceFrameworkTile";
 import DataSecurityApi from "../../Components/DataSecurity/DataSecurityApi";
 import { getIssueListRoute } from "../../Components/DataSecurity/IssueListRoute";
+import RecordOfProcessingCard from "../../Components/DataSecurity/RecordOfProcessingCard";
 import { ComplianceTurnedOffList } from "../../Components/ResourceDataSecurity/ComplianceTurnedOffNote";
 import { getTurnedOffEntries } from "../../Components/ResourceDataSecurity/ResourceComplianceModel";
 import { COMPLIANCE_FRAMEWORK_INFO } from "Common/Types/DataSecurity/ComplianceFramework";
@@ -67,6 +68,10 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
  * Picking a framework lists every requirement with where it stands and
  * the open issues behind it - a link to Issues, narrowed to its checks -
  * and exports the framework's report as CSV or JSON for an auditor.
+ *
+ * Under them, the GDPR record of processing: every store that holds
+ * personal data, the ones OneUptime keeps for the project's security
+ * among them, exported as CSV or JSON (RecordOfProcessingCard).
  */
 
 const OPEN_ISSUES: PluralTemplate = {
@@ -283,44 +288,59 @@ const DataSecurityCompliancePage: FunctionComponent<
     "How each framework stands, scored from the open issues on the stores in its scope. Pick one to see every requirement.",
   );
 
+  /*
+   * The record of processing comes last, whatever the frameworks say: a
+   * project nothing was scored for yet may still keep personal data - the
+   * security events, network flows and address vault OneUptime declares
+   * (#10398).
+   */
   if (error) {
     return (
-      <Card title={title} description={description}>
-        <ErrorMessage
-          message={error}
-          onRefreshClick={() => {
-            setFrameworks(null);
-            setReadCount((count: number): number => {
-              return count + 1;
-            });
-          }}
-        />
-      </Card>
+      <>
+        <Card title={title} description={description}>
+          <ErrorMessage
+            message={error}
+            onRefreshClick={() => {
+              setFrameworks(null);
+              setReadCount((count: number): number => {
+                return count + 1;
+              });
+            }}
+          />
+        </Card>
+        <RecordOfProcessingCard />
+      </>
     );
   }
 
   if (!frameworks) {
     return (
-      <Card title={title} description={description}>
-        <CardListSkeleton
-          count={3}
-          gridClassName="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
-        />
-      </Card>
+      <>
+        <Card title={title} description={description}>
+          <CardListSkeleton
+            count={3}
+            gridClassName="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+          />
+        </Card>
+        <RecordOfProcessingCard />
+      </>
     );
   }
 
   if (frameworks.length === 0) {
     return (
-      <Card title={title} description={description}>
-        <TableEmptyState
-          kind={TableEmptyStateKind.Empty}
-          icon={IconProp.ShieldCheck}
-          title="Nothing to score yet"
-          description="Frameworks are scored once Data Security has read a store."
-          isCompact={true}
-        />
-      </Card>
+      <>
+        <Card title={title} description={description}>
+          <TableEmptyState
+            kind={TableEmptyStateKind.Empty}
+            icon={IconProp.ShieldCheck}
+            title="Nothing to score yet"
+            description="Frameworks are scored once Data Security has read a store."
+            isCompact={true}
+          />
+        </Card>
+        <RecordOfProcessingCard />
+      </>
     );
   }
 
@@ -470,6 +490,8 @@ const DataSecurityCompliancePage: FunctionComponent<
       ) : (
         <></>
       )}
+
+      <RecordOfProcessingCard />
     </>
   );
 };

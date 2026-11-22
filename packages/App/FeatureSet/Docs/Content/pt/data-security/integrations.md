@@ -148,7 +148,8 @@ Algumas respostas são calculadas no momento do pedido, em vez de armazenadas. C
 | `/data-security/compliance` | A pontuação e os requisitos de cada estrutura de conformidade |
 | `/data-security/resource-scope` | Os repositórios de dados de um recurso - um cluster do Kubernetes, um host do Docker ou do Podman, um banco de dados, um serviço ou um recurso de nuvem - e de qual recurso eles seguem os interruptores de conformidade |
 | `/data-security/resource-compliance` | As estruturas de conformidade de um recurso: as pontuações delas para os repositórios dele, e o que está desativado para ele |
-| `/data-security/record-of-processing` | O registro das atividades de tratamento do RGPD, uma linha para cada repositório que guarda dados pessoais |
+| `/data-security/record-of-processing` | O registro das atividades de tratamento do RGPD, uma linha para cada repositório que guarda dados pessoais. Um repositório que o OneUptime guarda para a sua segurança tem um objeto `declared`: a sua própria finalidade e retenção, e quem pode lê-lo |
+| `/data-store/<id>/declared` | O que o registro diz de um repositório que o OneUptime guarda para a sua segurança: o que ele guarda, por quê, por quanto tempo e quem pode lê-lo |
 | `/data-store/<id>/scan-now` | **Varrer agora**: amostra o conteúdo do repositório na hora |
 | `/data-store/<id>/check-now` | **Verificar agora**: lê a configuração do repositório de novo e executa as verificações dele |
 | `/data-store-finding/<id>/scrub` | **Limpar** em uma descoberta de telemetria |

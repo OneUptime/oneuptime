@@ -3013,6 +3013,8 @@
   "Only pipelines that match conditions": "Только пайплайны, подходящие под условия",
   "All cloud environments": "Все облачные среды",
   "Only cloud environments that match conditions": "Только облачные среды, соответствующие условиям",
+  "All issues": "Все проблемы",
+  "Only issues that match conditions": "Только проблемы, соответствующие условиям",
   "Only what matches conditions": "Только то, что соответствует условиям",
   "Client Credentials": "Client Credentials",
   "Company SMTP server hosted on AWS": "Корпоративный SMTP-сервер, размещённый на AWS",

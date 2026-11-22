@@ -48,7 +48,7 @@ export const GOAL_PLAN_PANEL_TEST_IDS: {
 };
 
 // The panel's column beside the goals: shown from lg up, as tall as they are.
-export const GOAL_PLAN_PANEL_CLASS_NAME: string = "hidden lg:block";
+export const GOAL_PLAN_PANEL_CLASS_NAME: string = "max-lg:hidden lg:block";
 
 export interface ComponentProps {
   // The steps the goals picked so far bring, in the checklist's order.

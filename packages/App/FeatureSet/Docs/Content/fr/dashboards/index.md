@@ -105,4 +105,5 @@ L'objectif : une page pour le service checkout, avec sa latence, son taux d'erre
 - [Widgets de tableau de bord](/docs/dashboards/widgets): Chaque widget, et lequel choisir.
 - [Variables et filtres de tableau de bord](/docs/dashboards/variables): Un tableau de bord pour chaque service, hôte ou client.
 - [Partage et tableaux de bord publics](/docs/dashboards/sharing): Liens publics, mots de passe, listes d'autorisation IP et domaines personnalisés.
+- [Importer depuis Grafana et Datadog](/docs/dashboards/import): Reprendre un tableau de bord, ou les règles d'alerte, créés dans Grafana ou Datadog.
 :::

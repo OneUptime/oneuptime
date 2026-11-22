@@ -285,6 +285,17 @@ Hver hendelse lagres med typede felt og kildens nyttelast:
 
 Hendelser som ble lagret før OneUptime 14.0.84, lar prosessfeltene stå tomme og nevner bare prosessen sin som `principalProcess`, prosessen som handlet. De fylles ikke ut i etterkant: de beholder det de ble lagret med, til oppbevaringen deres går ut.
 
+### Skjult av en rensingsregel
+
+En IP-adresseregel som sletter eller maskerer loggene eller trasene dine, skjuler adressen et angrep kom fra før Sikkerhetshendelser leser dem. Hendelsen lagres likevel, uten adresse, og overalt der den ville navngitt adressen, sier den at en scrub-regel skjulte den:
+
+- **Kilde-IP** i hendelsens panel navngir regelen som skjulte adressen når den kan, som en lenke til **Scrub-regler** for loggene eller trasene. Filteret ved siden av viser hver hendelse der en scrub-regel skjulte adressen.
+- **Hva som skjedde videre** sier at forespørselen kom fra en adresse som en scrub-regel skjulte, og **Kampanjer** samler slike forespørsler i én egen rad.
+- En sak der alle hendelsene mistet adressen sin, sier det i **Responsplan**: I stedet for å blokkere adressen ber den deg finne den i loggene til lastbalansereren eller brannmuren din og blokkere den der, med **Åpne scrub-regler**.
+- **Oversikt** navngir regelen som skjuler adressene Sikkerhetshendelser leser, også med **Åpne scrub-regler**.
+
+En regel som hasher, lagrer adressen for Sikkerhetshendelser, så hendelsen navngir den, med mindre tokenet er eldre enn 30 dager eller ble laget før tokener hadde en nøkkel: se [Rens sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#rens-sensitive-data). Søk etter `@oneuptime.request.client_address_hidden:scrub-rule` for å finne disse hendelsene. Det regelen la igjen i stedet for adressen, som `[REDACTED]`, står i `oneuptime.request.client_address_scrubbed`.
+
 ## Utforsk sikkerhetshendelser
 
 **Hendelser** er en telemetriutforsker som utforskerne for logger og traser: et diagram over vinduets hendelser etter alvorlighetsgrad, et sidepanel med fasetter, listen, og et panel med hvert felt og attributt i hendelsen du åpner. Vinduet, filtrene og søket ligger alle i URL-en, så en filtrert visning kan deles og overlever en ny innlasting.

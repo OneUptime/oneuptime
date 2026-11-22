@@ -817,6 +817,32 @@ export default class DataSecurityIntegrations {
   }
 
   /*
+   * A store's owners who may be told about it: the people getOwnerUsers
+   * names who have joined the project. A direct owner row can name someone
+   * only invited (ProjectScopedReferenceValidator takes a pending
+   * membership, and the people pickers offer invitees), and nobody is
+   * emailed about a project's data before they join it - as a record's
+   * owner-added notices tell accepted members only
+   * (TeamMemberService.filterUsersToProjectMembers, #10697). An owner
+   * through a team is one already: getOwnerUsers reads accepted members.
+   */
+  public static async getOwnersToNotify(data: {
+    projectId: ObjectID;
+    dataStoreId: ObjectID;
+  }): Promise<Array<User>> {
+    const owners: Array<User> = await this.getOwnerUsers(data.dataStoreId);
+
+    if (owners.length === 0) {
+      return [];
+    }
+
+    return await TeamMemberService.filterUsersToProjectMembers({
+      projectId: data.projectId,
+      users: owners,
+    });
+  }
+
+  /*
    * Emails each store's owners about its new issues: one email per owner,
    * the same for all of them - or, with `getAnalysisLines` (a notice held
    * for OneUptime AI's analysis, #10369), each owner's own, with the
@@ -844,7 +870,11 @@ export default class DataSecurityIntegrations {
       const first: OpenedIssueForIntegrations = storeIssues[0]!;
 
       try {
-        const owners: Array<User> = await this.getOwnerUsers(first.dataStoreId);
+        // Its owners who have joined the project: never someone only invited.
+        const owners: Array<User> = await this.getOwnersToNotify({
+          projectId,
+          dataStoreId: first.dataStoreId,
+        });
 
         if (owners.length === 0) {
           continue;

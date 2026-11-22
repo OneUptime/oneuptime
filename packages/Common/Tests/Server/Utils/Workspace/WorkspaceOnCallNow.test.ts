@@ -257,7 +257,12 @@ describe("WorkspaceOnCallNow: who is on call, schedule by schedule", () => {
     );
   });
 
-  test("a person with no name is named by their email, else 'Someone'; a schedule with no name is 'Unnamed schedule'", async () => {
+  /*
+   * Teams posts the answer in the conversation, a channel included: a
+   * member with no name is named by the part of their address before the
+   * "@", never the address itself (#10669).
+   */
+  test("a person with no name is named by the part of their email before the @, else 'Someone'; a schedule with no name is 'Unnamed schedule'", async () => {
     const byEmail: OnCallDutyPolicySchedule = schedule({
       name: "Primary",
       current: person(SIMON, null, "simon@example.com"),
@@ -270,9 +275,7 @@ describe("WorkspaceOnCallNow: who is on call, schedule by schedule", () => {
 
     const lines: Array<string> = (await answer()).markdown.split("\n");
 
-    expect(lines[1]).toBe(
-      `- [Primary](${linkOf(byEmail)}): **simon@example.com**.`,
-    );
+    expect(lines[1]).toBe(`- [Primary](${linkOf(byEmail)}): **simon**.`);
     expect(lines[2]).toBe(
       `- [Unnamed schedule](${linkOf(nameless)}): **Someone**.`,
     );

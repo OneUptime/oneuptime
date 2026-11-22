@@ -3013,6 +3013,8 @@
   "Only pipelines that match conditions": "Alleen pipelines die aan voorwaarden voldoen",
   "All cloud environments": "Alle cloud-omgevingen",
   "Only cloud environments that match conditions": "Alleen cloud-omgevingen die aan de voorwaarden voldoen",
+  "All issues": "Alle problemen",
+  "Only issues that match conditions": "Alleen problemen die aan de voorwaarden voldoen",
   "Only what matches conditions": "Alleen wat aan de voorwaarden voldoet",
   "Client Credentials": "Client Credentials",
   "Company SMTP server hosted on AWS": "SMTP-server van bedrijf gehost op AWS",

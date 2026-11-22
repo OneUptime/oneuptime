@@ -148,7 +148,8 @@ Einige Antworten werden auf Anfrage berechnet, statt gespeichert zu werden. Jede
 | `/data-security/compliance` | Bewertung und Anforderungen jedes Rahmenwerks |
 | `/data-security/resource-scope` | Die Datenspeicher einer Ressource - eines Kubernetes-Clusters, eines Docker- oder Podman-Hosts, einer Datenbank, eines Dienstes oder einer Cloud-Ressource - und welcher Ressource sie bei den Compliance-Schaltern folgen |
 | `/data-security/resource-compliance` | Die Rahmenwerke einer Ressource: ihre Bewertungen für die Datenspeicher der Ressource und was für sie ausgeschaltet ist |
-| `/data-security/record-of-processing` | Das GDPR-Verzeichnis von Verarbeitungstätigkeiten, eine Zeile für jeden Datenspeicher, der personenbezogene Daten enthält |
+| `/data-security/record-of-processing` | Das GDPR-Verzeichnis von Verarbeitungstätigkeiten, eine Zeile für jeden Datenspeicher, der personenbezogene Daten enthält. Ein Datenspeicher, den OneUptime für Ihre Sicherheit führt, hat ein Objekt `declared`: seinen eigenen Zweck und seine eigene Aufbewahrung, und wer ihn lesen darf |
+| `/data-store/<id>/declared` | Was das Verzeichnis über einen Datenspeicher sagt, den OneUptime für Ihre Sicherheit führt: was er enthält, warum, wie lange und wer ihn lesen darf |
 | `/data-store/<id>/scan-now` | **Jetzt scannen**: nimmt sofort Stichproben vom Inhalt des Datenspeichers |
 | `/data-store/<id>/check-now` | **Jetzt prüfen**: liest die Konfiguration des Datenspeichers erneut und führt seine Prüfungen aus |
 | `/data-store-finding/<id>/scrub` | **Bereinigen** an einem Telemetrie-Fund |

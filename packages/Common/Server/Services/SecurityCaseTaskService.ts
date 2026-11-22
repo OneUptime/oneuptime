@@ -1,10 +1,8 @@
 import ProjectReferencesService from "./ProjectReferencesService";
 import SecurityCaseFeedService from "./SecurityCaseFeedService";
-import UserService from "./UserService";
-import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
+import FeedPersonName from "../Utils/Feed/FeedPersonName";
 import Model from "../../Models/DatabaseModels/SecurityCaseTask";
 import { SecurityCaseFeedEventType } from "../../Models/DatabaseModels/SecurityCaseFeed";
-import User from "../../Models/DatabaseModels/User";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -508,31 +506,23 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * A person as the project names them: someone only invited to it by the
-   * name typed for them, else their address - never their account's own
-   * name, which it does not see until they join (#9823).
+   * Whom a task is handed to, as the case's timeline says it: named through
+   * FeedPersonName (#10681), as every feed entry names people. Someone only
+   * invited by the name typed with their invitation, else "someone who
+   * hasn't joined the project yet", never by their account's own name
+   * (#9823); a member by their name, else the part of their address before
+   * the "@". Never an address. "a user" for somebody who is gone.
    */
   private async getUserName(
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<string> {
-    const user: User | null = await UserService.findOneById({
-      id: userId,
-      select: {
-        name: true,
-        email: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    await PendingInviteeProfiles.nameInProject({
-      users: [user],
-      projectId: projectId,
-    });
-
-    return user?.name?.toString() || user?.email?.toString() || "a user";
+    return (
+      (await FeedPersonName.getText({
+        userId: userId,
+        projectId: projectId,
+      })) || "a user"
+    );
   }
 }
 

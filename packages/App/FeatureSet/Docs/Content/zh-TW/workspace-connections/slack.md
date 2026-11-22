@@ -132,7 +132,7 @@ SLO 的規則會發布其錯誤預算策略的變化：在 SLO 進入某個級�
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments 連結到 OneUptime 中的策略。策略呼叫多個排程時，這一行還會寫出排程名稱：Payments (Primary)。
-- 將 Slack 帳戶連結到 OneUptime 的人在每一則待命訊息中（交接、覆寫，以及加入或移出策略的人員）都以其 Slack 名稱顯示，在此之前以其 OneUptime 名稱顯示。已受邀但尚未加入專案的人，在這裡和策略的動態消息中都以邀請時填寫的名稱或 "someone who hasn't joined the project yet" 顯示，絕不會以其電子郵件地址顯示。時間依每位讀者自己的時區顯示。
+- 將 Slack 帳戶連結到 OneUptime 的人在每一則待命訊息中（交接、覆寫，以及加入或移出策略的人員）都以其 Slack 名稱顯示，在此之前以其 OneUptime 名稱顯示。已受邀但尚未加入專案的人，在這裡和策略的動態消息中都以邀請時填寫的名稱或 "someone who hasn't joined the project yet" 顯示，絕不會以其電子郵件地址顯示。在 OneUptime 中沒有名稱的人以其電子郵件地址中 @ 之前的部分顯示。 時間依每位讀者自己的時區顯示。
 - 當策略的多條上報規則呼叫同一個排程時，每次交接只發布一次，而不是每條規則各發布一次。
 
 規則發布其 **更新** 步驟中選擇的內容，新規則預設使用 **僅重要更新**：目前待命人員，以及何時無人待命。透過 API 或 Terraform 建立且未包含 `updatesToPost` 的規則也是如此：若要發布所有更新，請傳送 `"updatesToPost": null`。未包含 `updatesToPost` 的編輯會保留規則發布的更新。

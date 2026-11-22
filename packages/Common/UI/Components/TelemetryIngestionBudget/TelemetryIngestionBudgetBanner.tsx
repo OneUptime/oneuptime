@@ -42,11 +42,14 @@ export const KEY_BUDGETS_USED_UP: PluralTemplate = {
   other:
     "{{signal}}: {{count}} ingestion keys have used up their own budgets for today, so data sent with them is refused until {{resetsAt}}.",
 };
-// A team's or a label's budget used up (#6386): its services' data is dropped.
+/*
+ * A team's or a label's budget used up (#6386): the data of its services,
+ * hosts and other resources (#10101) is dropped.
+ */
 export const TEAM_LABEL_BUDGETS_USED_UP: PluralTemplate = {
-  one: "{{signal}}: {{count}} team or label has used up its own budget for today, so data from its services is dropped until {{resetsAt}}.",
+  one: "{{signal}}: {{count}} team or label has used up its own budget for today, so data from its services and other resources is dropped until {{resetsAt}}.",
   other:
-    "{{signal}}: {{count}} teams and labels have used up their own budgets for today, so data from their services is dropped until {{resetsAt}}.",
+    "{{signal}}: {{count}} teams and labels have used up their own budgets for today, so data from their services and other resources is dropped until {{resetsAt}}.",
 };
 export const SEE_BUDGETS: string = translationKey("See budgets");
 

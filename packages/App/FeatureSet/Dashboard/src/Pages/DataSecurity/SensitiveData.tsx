@@ -1,8 +1,8 @@
 import PageComponentProps from "../PageComponentProps";
 import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import AppLink from "../../Components/AppLink/AppLink";
-import { downloadRecordOfProcessing } from "../../Components/DataSecurity/ComplianceExport";
-import DataSecurityApi from "../../Components/DataSecurity/DataSecurityApi";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
   ConfidencePill,
   SensitivityPill,
@@ -21,14 +21,13 @@ import ComplianceFramework from "Common/Types/DataSecurity/ComplianceFramework";
 import DataConfidence, {
   higherConfidence,
 } from "Common/Types/DataSecurity/DataConfidence";
-import { DataSecurityRecordOfProcessingResponse } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import DataSensitivity, {
   DATA_SENSITIVITY_RANK,
 } from "Common/Types/DataSecurity/DataSensitivity";
 import { DataTypeInfo } from "Common/Types/DataSecurity/DataTypeCatalog";
 import IconProp from "Common/Types/Icon/IconProp";
+import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -44,6 +43,7 @@ import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderCon
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
@@ -71,9 +71,9 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
  * store counts are counted here: at least Medium confidence, not marked
  * not sensitive, in a store still in its cloud.
  *
- * Under it, the GDPR record of processing (Article 30), built from the
- * same findings and each store's owners, purpose and retention, to export
- * as CSV.
+ * Under it, the way to the GDPR record of processing (Article 30), built
+ * from the same findings and each store's owners, purpose and retention:
+ * it is read and exported on Compliance (RecordOfProcessingCard).
  */
 
 // The most findings read for the page, the most recently seen first.
@@ -226,8 +226,6 @@ const DataSecuritySensitiveDataPage: FunctionComponent<
   const [error, setError] = useState<string>("");
   const [readCount, setReadCount] = useState<number>(0);
   const [selectedTypeId, setSelectedTypeId] = useState<string>("");
-  const [isExporting, setIsExporting] = useState<boolean>(false);
-  const [exportError, setExportError] = useState<string>("");
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -285,36 +283,28 @@ const DataSecuritySensitiveDataPage: FunctionComponent<
     },
   );
 
-  const exportRecord: () => Promise<void> = async (): Promise<void> => {
-    setIsExporting(true);
-    setExportError("");
-
-    try {
-      const response: DataSecurityRecordOfProcessingResponse =
-        await DataSecurityApi.getRecordOfProcessing();
-
-      downloadRecordOfProcessing(response.rows || []);
-    } catch (err) {
-      setExportError(API.getFriendlyMessage(err));
-    }
-
-    setIsExporting(false);
-  };
-
-  const exportButton: CardButtonSchema | null = PermissionGate.gateCardButton(
-    {
-      title: "Export Record of Processing",
-      icon: IconProp.Download,
-      buttonStyle: ButtonStyleType.NORMAL,
-      isLoading: isExporting,
-      disabled: isExporting,
-      onClick: () => {
-        void exportRecord();
+  /*
+   * The record of processing is on Compliance, where its rows are read and
+   * exported (RecordOfProcessingCard): this card says so and goes there,
+   * for whoever looks for it beside the data it is built from.
+   */
+  const openRecordButton: CardButtonSchema | null =
+    PermissionGate.gateCardButton(
+      {
+        title: "Open Record of Processing",
+        icon: IconProp.ArrowRight,
+        buttonStyle: ButtonStyleType.NORMAL,
+        onClick: () => {
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DATA_SECURITY_COMPLIANCE] as Route,
+            ),
+          );
+        },
       },
-    },
-    new DataStore(),
-    ModelAction.Read,
-  );
+      new DataStore(),
+      ModelAction.Read,
+    );
 
   let body: ReactElement;
 
@@ -608,19 +598,11 @@ const DataSecuritySensitiveDataPage: FunctionComponent<
 
       <Card
         title="Record of Processing"
-        description="GDPR Article 30 asks for a record of the personal data you process. Export one built from the scans: each store, its data, owners, purpose and retention."
-        buttons={getTableHeaderButtons(exportButton ? [exportButton] : [])}
-      >
-        {exportError ? (
-          <Alert
-            type={AlertType.DANGER}
-            title={exportError}
-            onClose={() => {
-              setExportError("");
-            }}
-          />
-        ) : undefined}
-      </Card>
+        description="GDPR Article 30 asks for a record of the personal data you process. Yours is on Compliance: each store, its data, owners, purpose and retention, to export as CSV or JSON."
+        buttons={getTableHeaderButtons(
+          openRecordButton ? [openRecordButton] : [],
+        )}
+      />
     </>
   );
 };

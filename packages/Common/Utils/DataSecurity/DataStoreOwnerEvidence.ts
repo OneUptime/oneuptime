@@ -12,6 +12,7 @@ import {
   MAX_DATA_STORE_OWNER_EVIDENCE,
 } from "../../Types/DataSecurity/DataStoreOwnerProposal";
 import { isCodeOwnerTeam } from "../CodeRepository/CodeOwners";
+import FeedPersonNameRule from "../../Server/Utils/Feed/FeedPersonNameRule";
 
 /*
  * WHO THE EVIDENCE OF A STORE'S OWNERS NAMES, IN ONEUPTIME (#10374).
@@ -43,8 +44,12 @@ import { isCodeOwnerTeam } from "../CodeRepository/CodeOwners";
 
 export interface DataStoreOwnerPerson {
   id: string;
-  // Their name, or their email when they have none.
+  /*
+   * Their name as their account holds it, empty for none: what getName
+   * names them by.
+   */
   name: string;
+  // Their address: what evidence that names an address is matched by.
   email: string;
   teamIds: Array<string>;
 }
@@ -241,7 +246,18 @@ export class DataStoreOwnerDirectory {
 
     const person: DataStoreOwnerPerson | null = this.getPerson(owner.id);
 
-    return person ? person.name || person.email : "";
+    /*
+     * The people a proposal names are its title and its lines on the
+     * store's and its issues' timelines: each is named as every line names
+     * a member (FeedPersonNameRule.getMemberName, #10681) - by their name,
+     * else the part of their address before the "@". Never their address.
+     */
+    return person
+      ? FeedPersonNameRule.getMemberName({
+          name: person.name,
+          email: person.email,
+        })
+      : "";
   }
 }
 

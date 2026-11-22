@@ -165,6 +165,10 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Session replays are scrubbed too.",
     "Rules run in the order of the list.",
     "A custom pattern takes time in line with the record.",
+    // What a drop or sample filter would take, before it is saved (issue #10436).
+    "How much it matches.",
+    "What Security Events would lose.",
+    "What else reads the same records.",
   ],
   [DATA_RETENTION]: [
     "Settings 1 to 5 are retention overrides.",

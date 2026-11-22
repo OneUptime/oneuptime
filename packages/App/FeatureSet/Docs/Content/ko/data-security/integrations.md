@@ -148,7 +148,8 @@ OneUptime AI는 AI 규칙이 허용하는 대로 새 이슈마다 스스로도 �
 | `/data-security/compliance` | 모든 프레임워크의 점수와 요구 사항 |
 | `/data-security/resource-scope` | 리소스 하나(Kubernetes 클러스터, Docker 또는 Podman 호스트, 데이터베이스, 서비스 또는 클라우드 리소스)의 데이터 저장소와, 그 저장소들이 어느 리소스의 규정 준수 스위치를 따르는지 |
 | `/data-security/resource-compliance` | 리소스 하나의 프레임워크: 그 리소스의 저장소에 대한 점수와 그 리소스에서 꺼진 것 |
-| `/data-security/record-of-processing` | GDPR 처리 활동 기록. 개인 데이터가 있는 저장소마다 한 행 |
+| `/data-security/record-of-processing` | GDPR 처리 활동 기록. 개인 데이터가 있는 저장소마다 한 행. OneUptime이 보안을 위해 보관하는 저장소에는 `declared` 객체가 있으며, 자체 목적과 보존 기간, 읽을 수 있는 대상을 담습니다 |
+| `/data-store/<id>/declared` | OneUptime이 보안을 위해 보관하는 저장소에 대해 기록이 말하는 내용: 보관 내용, 이유, 보존 기간, 읽을 수 있는 대상 |
 | `/data-store/<id>/scan-now` | **지금 스캔**: 저장소의 콘텐츠를 지금 샘플링 |
 | `/data-store/<id>/check-now` | **지금 검사**: 저장소의 구성을 다시 읽고 검사를 실행 |
 | `/data-store-finding/<id>/scrub` | 텔레메트리 발견 사항의 **정리** |
