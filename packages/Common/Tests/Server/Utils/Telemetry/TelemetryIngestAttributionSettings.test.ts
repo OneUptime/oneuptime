@@ -25,14 +25,14 @@ interface FakeService {
   findAllBy: MockFn;
 }
 
-const mockServiceOwners: FakeService = { findAllBy: jest.fn() };
-const mockServices: FakeService = { findAllBy: jest.fn() };
-const mockHostOwners: FakeService = { findAllBy: jest.fn() };
-const mockHosts: FakeService = { findAllBy: jest.fn() };
-const mockClusterOwners: FakeService = { findAllBy: jest.fn() };
-const mockClusters: FakeService = { findAllBy: jest.fn() };
-const mockQueueOwners: FakeService = { findAllBy: jest.fn() };
-const mockQueues: FakeService = { findAllBy: jest.fn() };
+const mockServiceOwners: FakeService = { findAllBy: jest.fn() as unknown as MockFn };
+const mockServices: FakeService = { findAllBy: jest.fn() as unknown as MockFn };
+const mockHostOwners: FakeService = { findAllBy: jest.fn() as unknown as MockFn };
+const mockHosts: FakeService = { findAllBy: jest.fn() as unknown as MockFn };
+const mockClusterOwners: FakeService = { findAllBy: jest.fn() as unknown as MockFn };
+const mockClusters: FakeService = { findAllBy: jest.fn() as unknown as MockFn };
+const mockQueueOwners: FakeService = { findAllBy: jest.fn() as unknown as MockFn };
+const mockQueues: FakeService = { findAllBy: jest.fn() as unknown as MockFn };
 
 /*
  * The registry, as it holds three kinds telemetry is filed under and one it

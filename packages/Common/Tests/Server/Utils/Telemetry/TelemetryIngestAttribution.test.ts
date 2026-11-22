@@ -860,7 +860,7 @@ describe("the size a reshaped batch is shared out at", () => {
 
   test("is nothing at all for a project that needs no attribution, and nothing is measured", async () => {
     isAttributedProject.mockResolvedValue(false as never);
-    const measure: MockFn = jest.fn();
+    const measure: MockFn = jest.fn() as unknown as MockFn;
 
     expect(
       await TelemetryIngestAttribution.getRequestBytesToShare({
@@ -875,7 +875,7 @@ describe("the size a reshaped batch is shared out at", () => {
 
   test("is what the request path counted, when it counted", async () => {
     isAttributedProject.mockResolvedValue(true as never);
-    const measure: MockFn = jest.fn();
+    const measure: MockFn = jest.fn() as unknown as MockFn;
 
     expect(
       await TelemetryIngestAttribution.getRequestBytesToShare({

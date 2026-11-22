@@ -1,11 +1,4 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * LOGS FROM FLUENT BIT, FLUENTD AND SYSLOG, AND A BATCH'S ATTRIBUTION
