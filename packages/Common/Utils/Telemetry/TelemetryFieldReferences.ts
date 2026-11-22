@@ -1,7 +1,10 @@
 import DashboardComponentType from "../../Types/Dashboard/DashboardComponentType";
 import { DashboardVariableType } from "../../Types/Dashboard/DashboardVariable";
 import { JSONObject } from "../../Types/JSON";
-import { LogFilter, queryStringToFilter } from "../../Types/Log/LogQueryToFilter";
+import {
+  LogFilter,
+  queryStringToFilter,
+} from "../../Types/Log/LogQueryToFilter";
 import LogRecordingRuleDefinition, {
   LogRecordingRuleAttributeFilter,
   LogRecordingRuleDefinitionUtil,
@@ -227,6 +230,184 @@ function reference(data: {
 }
 
 /*
+ * ---------------------------------------------------------------------------
+ * The records a query keeps (#10436)
+ * ---------------------------------------------------------------------------
+ *
+ * A scrub rule changes a field, so a caller asks of each field a record
+ * reads. A drop or sample filter takes whole records, so it asks of each
+ * query a record keeps whether the two can keep the same record: a
+ * monitor's step, a dashboard's widget, a saved view, a recording rule's
+ * source, a request SLO, a monitor's log that resolves a group. A record
+ * with several reads what any of them keeps.
+ *
+ * A query is the signal it reads, the services it is limited to, the
+ * values it pins a field to - a severity, a span status, an attribute's
+ * value - and the field references it reads (for the page to say what of
+ * it reads). A field is pinned only where the query keeps exactly the
+ * records whose field is one of a few values; a search, a pattern, a
+ * "not", a value picked when the query is read (a dashboard's variable)
+ * pins nothing, and the field may then be anything.
+ */
+export interface TelemetryReadQuery {
+  signal: TelemetryFieldSignal;
+  // The services the query reads, in lower case; null for every service.
+  serviceIds: Array<string> | null;
+  /*
+   * The values a field holds in every record the query keeps, by the
+   * field as a drop filter's query names it: severityText, statusCode,
+   * name, isEntrySpan, attributes.<key>. One of them, as text.
+   */
+  pinned: Record<string, Array<string>>;
+  references: Array<TelemetryFieldReference>;
+}
+
+// The pinned field of an attribute, as a filter's query names it.
+export const PINNED_ATTRIBUTE_PREFIX: string = "attributes.";
+
+// The stored operators that keep exactly the records whose value is one of theirs.
+const EXACT_OPERATOR_TYPES: ReadonlySet<string> = new Set([
+  "EqualTo",
+  "Includes",
+]);
+
+/*
+ * The values a stored filter value keeps a record by, exactly: a plain
+ * value is itself, an EqualTo or an Includes its value(s). Null for one it
+ * keeps records by otherwise (a search, a "not", a range), or that names
+ * no value - a text left empty, a dashboard's {{variable}}.
+ */
+export function readPinnedValues(value: unknown): Array<string> | null {
+  const asTexts: (items: Array<unknown>) => Array<string> | null = (
+    items: Array<unknown>,
+  ): Array<string> | null => {
+    const texts: Array<string> = [];
+
+    for (const item of items.slice(0, MAX_TEXTS_PER_FILTER)) {
+      if (
+        typeof item !== "string" &&
+        typeof item !== "number" &&
+        typeof item !== "boolean"
+      ) {
+        return null;
+      }
+
+      const text: string = String(item);
+
+      if (!text || text.includes("{{")) {
+        return null;
+      }
+
+      texts.push(text);
+    }
+
+    return texts.length > 0 ? Array.from(new Set(texts)) : null;
+  };
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return asTexts([value]);
+  }
+
+  const record: Record<string, unknown> | undefined = asRecord(value);
+
+  if (
+    !record ||
+    typeof record["_type"] !== "string" ||
+    !EXACT_OPERATOR_TYPES.has(record["_type"])
+  ) {
+    return null;
+  }
+
+  const inner: unknown = record["value"];
+
+  return asTexts(Array.isArray(inner) ? inner : [inner]);
+}
+
+/*
+ * Pins a field to values. Pinned twice - two conditions on one field, both
+ * kept - it holds what both allow: none in common pins it to nothing, and
+ * the query keeps no record.
+ */
+function pin(
+  pinned: Record<string, Array<string>>,
+  field: string,
+  values: Array<string> | null,
+): void {
+  if (!values || !field) {
+    return;
+  }
+
+  const existing: Array<string> | undefined =
+    Object.prototype.hasOwnProperty.call(pinned, field)
+      ? pinned[field]
+      : undefined;
+
+  pinned[field] = existing
+    ? existing.filter((value: string): boolean => {
+        return values.includes(value);
+      })
+    : [...values];
+}
+
+// Each attribute a stored filter keeps exactly by, pinned.
+function pinAttributes(
+  pinned: Record<string, Array<string>>,
+  attributes: unknown,
+): void {
+  const record: Record<string, unknown> | undefined = asRecord(attributes);
+
+  if (!record) {
+    return;
+  }
+
+  for (const [key, value] of Object.entries(record)) {
+    if (key.trim()) {
+      pin(
+        pinned,
+        `${PINNED_ATTRIBUTE_PREFIX}${key.trim()}`,
+        readPinnedValues(value),
+      );
+    }
+  }
+}
+
+// A list of texts a query keeps records by, as stored: none for an empty or odd one.
+function readTextList(value: unknown): Array<string> | null {
+  return Array.isArray(value) && value.length > 0
+    ? readPinnedValues({ _type: "Includes", value })
+    : null;
+}
+
+function telemetryQuery(data: {
+  signal: TelemetryFieldSignal;
+  serviceIds: Array<string> | null;
+  pinned?: Record<string, Array<string>> | undefined;
+  references: Array<TelemetryFieldReference>;
+}): TelemetryReadQuery {
+  return {
+    signal: data.signal,
+    serviceIds: data.serviceIds,
+    pinned: data.pinned || {},
+    references: data.references,
+  };
+}
+
+// Every field reference of some queries, in their order.
+function referencesOf(
+  queries: Array<TelemetryReadQuery>,
+): Array<TelemetryFieldReference> {
+  return queries.flatMap(
+    (readQuery: TelemetryReadQuery): Array<TelemetryFieldReference> => {
+      return readQuery.references;
+    },
+  );
+}
+
+/*
  * The stored operators that keep a record whose value holds the text
  * anywhere, or at one end, rather than is it (Types/JSON ObjectType).
  */
@@ -353,10 +534,14 @@ function searchReference(data: {
  * ---------------------------------------------------------------------------
  */
 
-// A Logs step: its attribute filters, its body search, its groups and what resolves them.
-function logMonitorReferences(
+/*
+ * A Logs step: its attribute filters, its body search, its groups and what
+ * resolves them. The log that resolves a group is a query of its own: read
+ * only on a grouped monitor, and kept by its own attributes.
+ */
+function logMonitorQueries(
   step: Record<string, unknown>,
-): Array<TelemetryFieldReference> {
+): Array<TelemetryReadQuery> {
   const serviceIds: Array<string> | null = readServiceScope(
     step["telemetryServiceIds"],
   );
@@ -366,59 +551,99 @@ function logMonitorReferences(
     keys: step["groupByAttributes"],
     use: TelemetryFieldUse.GroupBy,
   });
+  const pinned: Record<string, Array<string>> = {};
 
-  return [
-    ...attributeFilterReferences({
+  pinAttributes(pinned, step["attributes"]);
+  pin(pinned, "severityText", readTextList(step["severityTexts"]));
+
+  const queries: Array<TelemetryReadQuery> = [
+    telemetryQuery({
       signal: "log",
       serviceIds,
-      part: TelemetryFieldPart.Attributes,
-      attributes: step["attributes"],
+      pinned,
+      references: [
+        ...attributeFilterReferences({
+          signal: "log",
+          serviceIds,
+          part: TelemetryFieldPart.Attributes,
+          attributes: step["attributes"],
+        }),
+        ...searchReference({
+          signal: "log",
+          serviceIds,
+          part: TelemetryFieldPart.Body,
+          text: step["body"],
+        }),
+        ...groupBy,
+      ],
     }),
-    ...searchReference({
-      signal: "log",
-      serviceIds,
-      part: TelemetryFieldPart.Body,
-      text: step["body"],
-    }),
-    ...groupBy,
-    // The log that resolves a group: read only on a grouped monitor.
-    ...(groupBy.length > 0
+  ];
+
+  // The log that resolves a group: read only on a grouped monitor.
+  const resolvedBy: Array<TelemetryFieldReference> =
+    groupBy.length > 0
       ? attributeFilterReferences({
           signal: "log",
           serviceIds,
           part: TelemetryFieldPart.Attributes,
           attributes: step["resolvedByAttributes"],
         })
-      : []),
-  ];
+      : [];
+
+  if (resolvedBy.length > 0) {
+    const resolvedByPinned: Record<string, Array<string>> = {};
+
+    pinAttributes(resolvedByPinned, step["resolvedByAttributes"]);
+    queries.push(
+      telemetryQuery({
+        signal: "log",
+        serviceIds,
+        pinned: resolvedByPinned,
+        references: resolvedBy,
+      }),
+    );
+  }
+
+  return queries;
 }
 
 // A Traces step: its attribute filters, its span name search and its groups.
-function traceMonitorReferences(
+function traceMonitorQueries(
   step: Record<string, unknown>,
-): Array<TelemetryFieldReference> {
+): Array<TelemetryReadQuery> {
   const serviceIds: Array<string> | null = readServiceScope(
     step["telemetryServiceIds"],
   );
+  const pinned: Record<string, Array<string>> = {};
+
+  pinAttributes(pinned, step["attributes"]);
+  pin(pinned, "statusCode", readTextList(step["spanStatuses"]));
 
   return [
-    ...attributeFilterReferences({
+    telemetryQuery({
       signal: "trace",
       serviceIds,
-      part: TelemetryFieldPart.Attributes,
-      attributes: step["attributes"],
-    }),
-    ...searchReference({
-      signal: "trace",
-      serviceIds,
-      part: TelemetryFieldPart.SpanName,
-      text: step["spanName"],
-    }),
-    ...keyReferences({
-      signal: "trace",
-      serviceIds,
-      keys: step["groupByAttributes"],
-      use: TelemetryFieldUse.GroupBy,
+      pinned,
+      references: [
+        ...attributeFilterReferences({
+          signal: "trace",
+          serviceIds,
+          part: TelemetryFieldPart.Attributes,
+          attributes: step["attributes"],
+        }),
+        ...searchReference({
+          signal: "trace",
+          serviceIds,
+          part: TelemetryFieldPart.SpanName,
+          text: step["spanName"],
+        }),
+        ...keyReferences({
+          signal: "trace",
+          serviceIds,
+          keys: step["groupByAttributes"],
+          use: TelemetryFieldUse.GroupBy,
+        }),
+      ],
     }),
   ];
 }
@@ -427,49 +652,58 @@ function traceMonitorReferences(
  * An Exceptions step: its message search. An exception is a copy of a
  * span's exception event - its message scrubbed by the rules that scrub
  * span events - or found in a log line after the line's rules ran, so the
- * search reads both.
+ * search reads both, and the step reads the spans and the logs its
+ * exceptions come from: a filter that drops one drops its exception too.
  */
-function exceptionMonitorReferences(
+function exceptionMonitorQueries(
   step: Record<string, unknown>,
-): Array<TelemetryFieldReference> {
+): Array<TelemetryReadQuery> {
   const serviceIds: Array<string> | null = readServiceScope(
     step["telemetryServiceIds"],
   );
 
   return [
-    ...searchReference({
+    telemetryQuery({
       signal: "trace",
       serviceIds,
-      part: TelemetryFieldPart.Events,
-      text: step["message"],
+      references: searchReference({
+        signal: "trace",
+        serviceIds,
+        part: TelemetryFieldPart.Events,
+        text: step["message"],
+      }),
     }),
-    ...searchReference({
+    telemetryQuery({
       signal: "log",
       serviceIds,
-      part: TelemetryFieldPart.Body,
-      text: step["message"],
+      references: searchReference({
+        signal: "log",
+        serviceIds,
+        part: TelemetryFieldPart.Body,
+        text: step["message"],
+      }),
     }),
   ];
 }
 
-const MONITOR_STEP_READERS: Record<
+const MONITOR_STEP_QUERIES: Record<
   string,
-  (step: Record<string, unknown>) => Array<TelemetryFieldReference>
+  (step: Record<string, unknown>) => Array<TelemetryReadQuery>
 > = {
-  logMonitor: logMonitorReferences,
-  traceMonitor: traceMonitorReferences,
-  exceptionMonitor: exceptionMonitorReferences,
+  logMonitor: logMonitorQueries,
+  traceMonitor: traceMonitorQueries,
+  exceptionMonitor: exceptionMonitorQueries,
 };
 
 /*
- * Every field a monitor's steps read of logs and spans: each Logs, Traces
- * and Exceptions step, wherever the steps keep it - the whole value is
- * walked, so a step kept in an older shape is read too.
+ * Every query a monitor's steps keep records by: each Logs, Traces and
+ * Exceptions step, wherever the steps keep it - the whole value is walked,
+ * so a step kept in an older shape is read too.
  */
-export function findMonitorFieldReferences(
+export function findMonitorTelemetryQueries(
   monitorSteps: unknown,
-): Array<TelemetryFieldReference> {
-  const references: Array<TelemetryFieldReference> = [];
+): Array<TelemetryReadQuery> {
+  const queries: Array<TelemetryReadQuery> = [];
   let visited: number = 0;
 
   const walk: (node: unknown, depth: number) => void = (
@@ -496,17 +730,17 @@ export function findMonitorFieldReferences(
 
     for (const [key, child] of Object.entries(entries)) {
       const readStep:
-        | ((step: Record<string, unknown>) => Array<TelemetryFieldReference>)
+        | ((step: Record<string, unknown>) => Array<TelemetryReadQuery>)
         | undefined = Object.prototype.hasOwnProperty.call(
-        MONITOR_STEP_READERS,
+        MONITOR_STEP_QUERIES,
         key,
       )
-        ? MONITOR_STEP_READERS[key]
+        ? MONITOR_STEP_QUERIES[key]
         : undefined;
       const step: Record<string, unknown> | undefined = asRecord(child);
 
       if (readStep && step) {
-        references.push(...readStep(step));
+        queries.push(...readStep(step));
         continue;
       }
 
@@ -516,9 +750,18 @@ export function findMonitorFieldReferences(
 
   walk(asStored(monitorSteps), 0);
 
-  return references;
+  return queries;
 }
 
+/*
+ * Every field a monitor's steps read of logs and spans: the field
+ * references of each of its queries, in order.
+ */
+export function findMonitorFieldReferences(
+  monitorSteps: unknown,
+): Array<TelemetryFieldReference> {
+  return referencesOf(findMonitorTelemetryQueries(monitorSteps));
+}
 /*
  * ---------------------------------------------------------------------------
  * Recording rules
@@ -909,7 +1152,10 @@ function variableReferences(
     const variable: Record<string, unknown> | undefined = asRecord(rawVariable);
     const key: string = readText(variable?.["attributeKey"]);
 
-    if (variable?.["type"] !== DashboardVariableType.TelemetryAttribute || !key) {
+    if (
+      variable?.["type"] !== DashboardVariableType.TelemetryAttribute ||
+      !key
+    ) {
       continue;
     }
 
@@ -1378,4 +1624,474 @@ export function findExceptionSavedViewFieldReferences(view: {
   }
 
   return references;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * The queries each record keeps records by, for a drop or sample filter
+ * (#10436)
+ * ---------------------------------------------------------------------------
+ */
+
+// A dashboard's widget and the queries it reads by.
+export interface DashboardTelemetryQueries {
+  // Each widget that reads logs or spans, in its order on the dashboard.
+  widgets: Array<{
+    widget: TelemetryFieldReferenceWidget;
+    queries: Array<TelemetryReadQuery>;
+  }>;
+}
+
+// A log widget's severities, as its arguments keep them: none for every severity.
+function readWidgetSeverities(
+  widgetArguments: Record<string, unknown>,
+): Array<string> | null {
+  const list: Array<string> | null = readTextList(
+    widgetArguments["severityFilters"],
+  );
+
+  if (list) {
+    return list;
+  }
+
+  return readPinnedValues(readText(widgetArguments["severityFilter"]) || null);
+}
+
+function widgetQueries(
+  type: string,
+  widgetArguments: Record<string, unknown>,
+): Array<TelemetryReadQuery> {
+  const references: Array<TelemetryFieldReference> = widgetReferences(
+    type,
+    widgetArguments,
+  );
+
+  switch (type) {
+    case DashboardComponentType.LogStream:
+    case DashboardComponentType.LogChart: {
+      const pinned: Record<string, Array<string>> = {};
+
+      pin(pinned, "severityText", readWidgetSeverities(widgetArguments));
+
+      return [
+        telemetryQuery({ signal: "log", serviceIds: null, pinned, references }),
+      ];
+    }
+    case DashboardComponentType.TraceChart:
+    case DashboardComponentType.TraceTable:
+      return [
+        telemetryQuery({ signal: "trace", serviceIds: null, references }),
+      ];
+    default:
+      return [];
+  }
+}
+
+/*
+ * A dashboard's log and trace widgets, each with the query it reads by -
+ * one with no filter too, which reads every record of its signal. A
+ * widget's attribute filters pin nothing: a board's variables fill them in
+ * when it is viewed.
+ */
+export function findDashboardTelemetryQueries(
+  dashboardViewConfig: unknown,
+): DashboardTelemetryQueries {
+  const found: DashboardTelemetryQueries = { widgets: [] };
+  const config: JSONObject = StoredDashboardViewConfig.unwrap(
+    asStored(dashboardViewConfig),
+  );
+  const entries: Array<unknown> =
+    StoredDashboardViewConfig.getComponentEntries(config);
+  const ids: Array<string | null> =
+    StoredDashboardViewConfig.getComponentIds(entries);
+
+  entries.forEach((entry: unknown, index: number): void => {
+    const id: string | null = ids[index] || null;
+
+    if (!id || !StoredDashboardViewConfig.isWidgetEntry(entry)) {
+      return;
+    }
+
+    const component: JSONObject =
+      StoredDashboardViewConfig.withArgumentsRead(entry);
+    const type: string = readText(component["componentType"]);
+    const widgetArguments: Record<string, unknown> =
+      asRecord(component["arguments"]) || {};
+    const queries: Array<TelemetryReadQuery> = widgetQueries(
+      type,
+      widgetArguments,
+    );
+
+    if (queries.length === 0) {
+      return;
+    }
+
+    let title: string = "";
+
+    for (const key of WIDGET_TITLE_ARGUMENTS) {
+      title = readText(widgetArguments[key]);
+
+      if (title) {
+        break;
+      }
+    }
+
+    found.widgets.push({
+      widget: {
+        id: id.toLowerCase(),
+        title: title.slice(0, MAX_WIDGET_TITLE_LENGTH),
+        type,
+      },
+      queries,
+    });
+  });
+
+  return found;
+}
+
+// Equality filters kept as { key, value } rows, as attributes to pin.
+function rowsAsAttributes(
+  rows: Array<{ key?: unknown; value?: unknown }>,
+): Record<string, unknown> {
+  const attributes: Record<string, unknown> = {};
+
+  for (const row of rows) {
+    const key: string = readText(row.key);
+
+    if (key) {
+      attributes[key] = row.value;
+    }
+  }
+
+  return attributes;
+}
+
+// A log recording rule: the logs of its services, severities and attribute filters.
+export function findLogRecordingRuleTelemetryQueries(
+  definition: unknown,
+): Array<TelemetryReadQuery> {
+  const read: LogRecordingRuleDefinition | null =
+    LogRecordingRuleDefinitionUtil.fromJSON(asStored(definition));
+
+  if (!read) {
+    return [];
+  }
+
+  const pinned: Record<string, Array<string>> = {};
+
+  pinAttributes(pinned, rowsAsAttributes(read.filter?.attributeFilters || []));
+  pin(pinned, "severityText", readTextList(read.filter?.severityTexts));
+
+  return [
+    telemetryQuery({
+      signal: "log",
+      serviceIds: readServiceScope(read.filter?.telemetryServiceIds || []),
+      pinned,
+      references: findLogRecordingRuleFieldReferences(definition),
+    }),
+  ];
+}
+
+/*
+ * A trace recording rule: each source a query of every service's spans,
+ * by its kind, its errors and its attribute filters
+ * (ComputeTraceRecordingRules).
+ */
+export function findTraceRecordingRuleTelemetryQueries(
+  definition: unknown,
+): Array<TelemetryReadQuery> {
+  const read: Record<string, unknown> | undefined = asRecord(
+    asStored(definition),
+  );
+
+  if (!read) {
+    return [];
+  }
+
+  const groupBy: Array<TelemetryFieldReference> = spanGroupByReferences(
+    (read as unknown as TraceRecordingRuleDefinition).groupByAttribute,
+    null,
+  );
+  const sources: Array<unknown> = Array.isArray(read["sources"])
+    ? (read["sources"] as Array<unknown>)
+    : [];
+  const queries: Array<TelemetryReadQuery> = [];
+
+  for (const rawSource of sources) {
+    const source: Record<string, unknown> | undefined = asRecord(rawSource);
+
+    if (!source) {
+      continue;
+    }
+
+    const filters: Record<string, unknown> = rowsAsAttributes(
+      TraceRecordingRuleDefinitionUtil.getSourceAttributeFilters(
+        source as unknown as TraceRecordingRuleSource,
+      ),
+    );
+    const pinned: Record<string, Array<string>> = {};
+
+    pinAttributes(pinned, filters);
+    pin(pinned, "kind", readPinnedValues(readText(source["spanKind"]) || null));
+
+    if (source["onlyErrors"] === true) {
+      pin(pinned, "statusCode", ["2"]);
+    }
+
+    queries.push(
+      telemetryQuery({
+        signal: "trace",
+        serviceIds: null,
+        pinned,
+        references: [
+          ...attributeFilterReferences({
+            signal: "trace",
+            serviceIds: null,
+            part: TelemetryFieldPart.Attributes,
+            attributes: filters,
+          }),
+          ...searchReference({
+            signal: "trace",
+            serviceIds: null,
+            part: TelemetryFieldPart.SpanName,
+            text: source["spanNameRegex"],
+          }),
+          ...groupBy,
+        ],
+      }),
+    );
+  }
+
+  return queries;
+}
+
+// What a search term keeps records by exactly: Equals and In, else nothing.
+function pinnedOfPredicate(
+  predicate: SearchValuePredicate,
+): Array<string> | null {
+  if (predicate.operator === SearchValueOperator.Equals) {
+    return readPinnedValues(predicate.value);
+  }
+
+  if (predicate.operator === SearchValueOperator.In) {
+    return readTextList(predicate.values);
+  }
+
+  return null;
+}
+
+/*
+ * A request SLO: the entry spans of its services (SloRequestCounting reads
+ * no other), by its filter's terms. None for an SLO that reads no span.
+ */
+export function findSloTelemetryQueries(slo: {
+  sliType?: SliType | string | undefined;
+  requestFilter?: unknown;
+  serviceIds: ReadonlyArray<string>;
+}): Array<TelemetryReadQuery> {
+  const serviceIds: Array<string> | null = readServiceScope(
+    Array.from(slo.serviceIds),
+  );
+
+  if (
+    (slo.sliType !== SliType.RequestSuccess &&
+      slo.sliType !== SliType.RequestLatency) ||
+    !serviceIds
+  ) {
+    return [];
+  }
+
+  const pinned: Record<string, Array<string>> = { isEntrySpan: ["true"] };
+
+  for (const term of parseSloRequestFilter(readText(slo.requestFilter)).terms) {
+    pin(
+      pinned,
+      term.isAttribute ? `${PINNED_ATTRIBUTE_PREFIX}${term.key}` : "name",
+      pinnedOfPredicate(term.predicate),
+    );
+  }
+
+  return [
+    telemetryQuery({
+      signal: "trace",
+      serviceIds,
+      pinned,
+      references: findSloFieldReferences(slo),
+    }),
+  ];
+}
+
+// A Logs saved view: its services, severities and attribute filters.
+export function findLogSavedViewTelemetryQueries(view: {
+  query?: unknown;
+  scope?: unknown;
+}): Array<TelemetryReadQuery> {
+  const stored: Record<string, unknown> | undefined = asRecord(
+    asStored(view.query),
+  );
+
+  if (!stored) {
+    return [];
+  }
+
+  const pinned: Record<string, Array<string>> = {};
+
+  pinAttributes(pinned, stored["attributes"]);
+  pin(
+    pinned,
+    "severityText",
+    Array.isArray(stored["severityText"])
+      ? readTextList(stored["severityText"])
+      : readPinnedValues(stored["severityText"]),
+  );
+
+  return [
+    telemetryQuery({
+      signal: "log",
+      serviceIds: narrowerScope(
+        readServiceScope(stored["primaryEntityId"]),
+        readScopeServiceIds(view.scope),
+      ),
+      pinned,
+      references: findLogSavedViewFieldReferences(view),
+    }),
+  ];
+}
+
+/*
+ * A Traces view's facets a record must hold a value of. A facet that
+ * excludes or searches a value pins nothing of its attribute.
+ */
+function pinnedFacetAttributes(
+  filters: unknown,
+): Record<string, Array<string>> {
+  const values: Record<string, Array<string>> = {};
+  const unpinned: Set<string> = new Set<string>();
+
+  for (const [rawKey, value] of readSavedViewFilters(filters)) {
+    const isExcluded: boolean = rawKey.startsWith(EXCLUDE_FACET_PREFIX);
+    const key: string = isExcluded
+      ? rawKey.slice(EXCLUDE_FACET_PREFIX.length)
+      : rawKey;
+    const prefix: string | undefined = ATTRIBUTE_FACET_PREFIXES.find(
+      (candidate: string): boolean => {
+        return key.startsWith(candidate);
+      },
+    );
+
+    if (!prefix) {
+      continue;
+    }
+
+    const attribute: string = key.slice(prefix.length).trim();
+
+    if (!attribute) {
+      continue;
+    }
+
+    if (isExcluded || prefix !== ATTRIBUTE_FACET_PREFIXES[0] || !value) {
+      unpinned.add(attribute);
+      continue;
+    }
+
+    values[attribute] = [...(values[attribute] || []), value];
+  }
+
+  const pinned: Record<string, Array<string>> = {};
+
+  for (const [attribute, list] of Object.entries(values)) {
+    if (!unpinned.has(attribute)) {
+      pin(pinned, `${PINNED_ATTRIBUTE_PREFIX}${attribute}`, list);
+    }
+  }
+
+  return pinned;
+}
+
+// A Traces saved view: its services, its facets and its search's exact terms.
+export function findTraceSavedViewTelemetryQueries(view: {
+  query?: unknown;
+}): Array<TelemetryReadQuery> {
+  const state: Record<string, unknown> | undefined = asRecord(
+    asStored(view.query),
+  );
+
+  if (!state) {
+    return [];
+  }
+
+  const pinned: Record<string, Array<string>> = pinnedFacetAttributes(
+    state["filters"],
+  );
+
+  for (const token of parseSearchQuery(readText(state["search"]), {
+    knownFieldKeys: new Set(SLO_REQUEST_FILTER_EXPLORER_FIELDS),
+  })) {
+    if (token.type !== SearchTokenType.Field) {
+      continue;
+    }
+
+    const fieldKey: string = token.key.toLowerCase();
+
+    if (fieldKey === SLO_REQUEST_FILTER_NAME_FIELD) {
+      pin(pinned, "name", pinnedOfPredicate(token.predicate));
+      continue;
+    }
+
+    if (TRACE_SEARCH_FIELDS.has(fieldKey)) {
+      continue;
+    }
+
+    pin(
+      pinned,
+      `${PINNED_ATTRIBUTE_PREFIX}${token.key}`,
+      pinnedOfPredicate(token.predicate),
+    );
+  }
+
+  return [
+    telemetryQuery({
+      signal: "trace",
+      serviceIds: readSavedViewFacets(state["filters"]).serviceIds,
+      pinned,
+      references: findTraceSavedViewFieldReferences(view),
+    }),
+  ];
+}
+
+/*
+ * An Exceptions saved view: the spans and the logs its exceptions come
+ * from, of its services. An exception's own fields are no span's or log's,
+ * so they pin nothing.
+ */
+export function findExceptionSavedViewTelemetryQueries(view: {
+  query?: unknown;
+}): Array<TelemetryReadQuery> {
+  const state: Record<string, unknown> | undefined = asRecord(
+    asStored(view.query),
+  );
+
+  if (!state) {
+    return [];
+  }
+
+  const serviceIds: Array<string> | null = readSavedViewFacets(
+    state["filters"],
+  ).serviceIds;
+  const references: Array<TelemetryFieldReference> =
+    findExceptionSavedViewFieldReferences(view);
+
+  return (["trace", "log"] as Array<TelemetryFieldSignal>).map(
+    (signal: TelemetryFieldSignal): TelemetryReadQuery => {
+      return telemetryQuery({
+        signal,
+        serviceIds,
+        references: references.filter(
+          (reference: TelemetryFieldReference): boolean => {
+            return reference.signal === signal;
+          },
+        ),
+      });
+    },
+  );
 }
