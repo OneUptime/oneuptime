@@ -72,7 +72,9 @@ const getItemMock: MockFunction = getJestMockFunction();
 jest.mock("Common/UI/Components/ModelTable/AnalyticsModelTable", () => {
   return {
     __esModule: true,
-    default: (props: { columns?: Array<CapturedColumn> }): React.ReactElement => {
+    default: (props: {
+      columns?: Array<CapturedColumn>;
+    }): React.ReactElement => {
       capturedColumns = props.columns || [];
       const react: typeof React = jest.requireActual("react") as typeof React;
 
@@ -373,9 +375,7 @@ describe("the changes dialog", () => {
   );
 
   test("a name the reader reads is the name; a hidden one is none", () => {
-    expect(getShownResourceName("Phishing campaign")).toBe(
-      "Phishing campaign",
-    );
+    expect(getShownResourceName("Phishing campaign")).toBe("Phishing campaign");
     expect(getShownResourceName(AUDIT_LOG_HIDDEN_VALUE)).toBeUndefined();
     expect(getShownResourceName(undefined)).toBeUndefined();
   });
@@ -469,9 +469,9 @@ describe("the table's Resource column", () => {
         entry: caseEntry(AUDIT_LOG_HIDDEN_VALUE),
       });
 
-      expect(within(cell).getByTestId("audit-log-name-hidden")).toHaveTextContent(
-        wordIn(language, AUDIT_LOG_HIDDEN_WORDS.nameHidden),
-      );
+      expect(
+        within(cell).getByTestId("audit-log-name-hidden"),
+      ).toHaveTextContent(wordIn(language, AUDIT_LOG_HIDDEN_WORDS.nameHidden));
       expect(cell.querySelector("a")).toBeNull();
       expect(cell.textContent).not.toContain(AUDIT_LOG_HIDDEN_VALUE);
     },
