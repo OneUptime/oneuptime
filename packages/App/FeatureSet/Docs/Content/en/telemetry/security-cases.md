@@ -392,6 +392,10 @@ A step can wait on up to five results: pick each in **Run This Step**, and **Run
 
 **Stop the run**, under **Flow control**, ends the run where it is, as done: the steps after it are skipped, each saying where the run stopped, and the run succeeds. With **Run This Step**, it stops only after a result: stop when threat intel found nothing known-bad, and let the containment steps below it run otherwise. What you write in **Why It Stops** is said on the case's timeline when the run stops there. It has nothing to approve and never fails, so it has neither **Needs Approval** nor **Carry On If It Fails**, and no step can wait on it. One that always runs ends every run, so it can only be the last step.
 
+### Send a webhook
+
+**Send a webhook** posts the case as JSON to its **Webhook URL**, signed so the receiver can check it came from OneUptime. A receiver whose certificate it signed itself, or one your own CA signed, is refused until the step trusts it: nothing is sent, and the step fails saying what to change. Under **More fields**, paste the certificate that signed it in **CA certificate**: the CA's, or the receiver's own when it is self-signed. The step then checks the receiver's certificate against it, the host name and the dates included, so a server that only pretends to be the receiver is still refused. Turn on **Allow self-signed certificates** only when you cannot paste one: the step then checks no certificate at all, so anyone on the network path could read the case and change the answer. Both are off by default, and either applies to this step's request alone, never to another step, another request of OneUptime or the connection to an outbound proxy. A receiver with such a certificate is usually on your own network, which a playbook reaches only when a self-hosted administrator allows private network addresses for webhooks: see [Webhooks and workflows](/docs/self-hosted/private-network-access#webhooks-and-workflows).
+
 ### Responding through OneUptime
 
 Four steps act through the rest of OneUptime rather than a connected product:
