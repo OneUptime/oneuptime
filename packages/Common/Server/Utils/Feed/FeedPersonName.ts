@@ -1,6 +1,4 @@
 import User from "../../../Models/DatabaseModels/User";
-import Email from "../../../Types/Email";
-import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import FeedMarkdown, {
   MarkdownText,
@@ -11,7 +9,10 @@ import logger, { LogAttributes } from "../Logger";
 import PendingInviteeProfiles, {
   WithheldProfile,
 } from "../TeamMember/PendingInviteeProfiles";
-import { FEED_INVITEE_UNNAMED, FEED_NOBODY_NAMED } from "./FeedPersonNameWords";
+import FeedPersonNameRule, {
+  FEED_INVITEE_UNNAMED,
+  FEED_NOBODY_NAMED,
+} from "./FeedPersonNameRule";
 
 export { FEED_INVITEE_UNNAMED, FEED_NOBODY_NAMED };
 
@@ -52,6 +53,10 @@ export { FEED_INVITEE_UNNAMED, FEED_NOBODY_NAMED };
  * The project's own pages - Users, On-Call Readiness, a refusal read only by
  * whoever made the change - still show a person's address: those are read
  * by the project's people, inside the project.
+ *
+ * The rule itself - getDisplayName, getInviteeName, getMemberName,
+ * getAddressName, getName - is FeedPersonNameRule's, which this extends:
+ * a line writer that only words a name holds it without the reads here.
  */
 
 /*
@@ -64,7 +69,7 @@ export type FeedPersonStanding =
   | { isInvited: false }
   | null;
 
-export default class FeedPersonName {
+export default class FeedPersonName extends FeedPersonNameRule {
   private readonly projectId: ObjectID | null;
   private readonly standings: Map<string, Promise<FeedPersonStanding>> =
     new Map<string, Promise<FeedPersonStanding>>();
@@ -79,6 +84,7 @@ export default class FeedPersonName {
 
   // One for each change: whoever it names is read once, however many lines name them.
   public constructor(data: { projectId: ObjectID | null | undefined }) {
+    super();
     this.projectId = data.projectId || null;
   }
 
@@ -211,98 +217,6 @@ export default class FeedPersonName {
     }
 
     return names;
-  }
-
-  /*
-   * A person read already, as a line names them, with `withheld` who of the
-   * people it names is only invited
-   * (PendingInviteeProfiles.readWithheldProfilesInProject, read once for
-   * them all): someone only invited by getInviteeName, anyone else by
-   * getMemberName. Plain text. Empty when a member has neither a name nor an
-   * address.
-   */
-  public static getName(data: {
-    userId: ObjectID | string | null | undefined;
-    name: Name | string | null | undefined;
-    email: Email | string | null | undefined;
-    withheld: Map<string, WithheldProfile>;
-  }): string {
-    const profile: WithheldProfile | undefined =
-      PendingInviteeProfiles.getWithheldProfile({
-        userId: data.userId,
-        withheld: data.withheld,
-      });
-
-    if (profile) {
-      return FeedPersonName.getInviteeName(profile);
-    }
-
-    return FeedPersonName.getMemberName({
-      name: data.name,
-      email: data.email,
-    });
-  }
-
-  /*
-   * A name a line may say of somebody: trimmed, and none when it is empty
-   * or holds an address - an inviter can type one as the name (#10586), and
-   * SSO can send one as a member's.
-   */
-  public static getDisplayName(
-    name: Name | string | null | undefined,
-  ): string {
-    const trimmed: string = (name?.toString() || "").trim();
-
-    return trimmed.includes("@") ? "" : trimmed;
-  }
-
-  /*
-   * Someone only invited to the project (#10616): the name typed with their
-   * invitation, else "someone who hasn't joined the project yet" - never an
-   * address, and never the part of one.
-   */
-  public static getInviteeName(profile: WithheldProfile): string {
-    return (
-      FeedPersonName.getDisplayName(profile.inviteeName) ||
-      FEED_INVITEE_UNNAMED
-    );
-  }
-
-  /*
-   * A member (#10669): their name, else the part of their address before
-   * the "@". Empty when they have neither.
-   */
-  public static getMemberName(data: {
-    name: Name | string | null | undefined;
-    email: Email | string | null | undefined;
-  }): string {
-    return (
-      FeedPersonName.getDisplayName(data.name) ||
-      FeedPersonName.getAddressName(data.email)
-    );
-  }
-
-  /*
-   * The part of an address before the "@" - "ana.lee" of "ana.lee@acme.com"
-   * - without the quotes a quoted one is written in. Empty when there is
-   * none, or what is left still holds an "@".
-   */
-  public static getAddressName(
-    email: Email | string | null | undefined,
-  ): string {
-    const address: string = (email?.toString() || "").trim();
-    const at: number = address.lastIndexOf("@");
-
-    if (at <= 0) {
-      return "";
-    }
-
-    const local: string = address
-      .slice(0, at)
-      .replace(/^"(.*)"$/, "$1")
-      .trim();
-
-    return local.includes("@") ? "" : local;
   }
 
   private async readName(userId: ObjectID): Promise<MarkdownText> {

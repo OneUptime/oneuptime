@@ -220,6 +220,12 @@ const MAY_NAME_ANOTHER_WAY: Record<string, Record<string, string>> = {
     },
 };
 
+// The shared place itself: the one place a person is named.
+const SHARED_PLACE: Array<string> = [
+  "packages/Common/Server/Utils/Feed/FeedPersonName.ts",
+  "packages/Common/Server/Utils/Feed/FeedPersonNameRule.ts",
+];
+
 const SOURCE_FILE: RegExp = /\.tsx?$/;
 
 const SKIPPED_DIRECTORIES: Array<string> = ["node_modules", "build", "dist"];
@@ -256,9 +262,15 @@ function withoutComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 }
 
-// What FeedPersonName is handed is the rule's input: left out of the check.
+/*
+ * What the shared place is handed - FeedPersonName, or the pure rule it
+ * extends (FeedPersonNameRule) - is the rule's input: left out of the check.
+ */
 function withoutTheSharedPlace(source: string): string {
-  return source.replace(/\bFeedPersonName\.\w+\(\s*\{[^{}]*\}\s*\)/g, "");
+  return source.replace(
+    /\bFeedPersonName(?:Rule)?\.\w+\(\s*\{[^{}]*\}\s*\)/g,
+    "",
+  );
 }
 
 interface LineWriter {
@@ -281,7 +293,7 @@ const LINE_WRITERS: Array<LineWriter> = ROOTS.flatMap(
   })
   .filter((writer: LineWriter): boolean => {
     return (
-      writer.file !== "packages/Common/Server/Utils/Feed/FeedPersonName.ts" &&
+      !SHARED_PLACE.includes(writer.file) &&
       (WRITES_A_LINE.test(writer.source) || LINE_HELPERS.includes(writer.file))
     );
   });
@@ -408,7 +420,7 @@ describe("every feed entry and channel line names its people through FeedPersonN
         withoutComments(
           [
             "    const owner = await UserService.getUserMarkdownString({ userId, projectId });",
-            "    const name = FeedPersonName.getMemberName({ name: user.name, email: user.email });",
+            "    const name = FeedPersonNameRule.getMemberName({ name: user.name, email: user.email });",
             "    const line = mdText`Removed **${owner}** as an owner`;",
             "    const listed = mdText`👤 ${FeedPersonName.getName({ userId: user.id, name: user.name, email: user.email, withheld })}`;",
           ].join("\n"),

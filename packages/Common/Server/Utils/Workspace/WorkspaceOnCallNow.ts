@@ -11,7 +11,7 @@ import FeedMarkdown, {
 import DatabaseConfig from "../../DatabaseConfig";
 import OnCallDutyPolicyScheduleService from "../../Services/OnCallDutyPolicyScheduleService";
 import logger from "../Logger";
-import FeedPersonName from "../Feed/FeedPersonName";
+import FeedPersonNameRule from "../Feed/FeedPersonNameRule";
 import OnCallChatText, {
   OnCallNotPagedBecause,
 } from "../OnCall/OnCallChatText";
@@ -46,7 +46,7 @@ import WorkspaceMessageTime from "./WorkspaceMessageTime";
  * channel included. So someone only invited to the project (#10412) is
  * named as every on-call line names them (#10616): by the name typed with
  * their invitation, else "someone who hasn't joined the project yet" -
- * never their email address (FeedPersonName.getInviteeName). And
+ * never their email address (FeedPersonNameRule.getInviteeName). And
  * nothing pages them until they join, so their turn is said as the gap it
  * is, in the words the schedule's hand-off said it in (#10586):
  *
@@ -418,16 +418,16 @@ export default class WorkspaceOnCallNow {
     if (profile) {
       return {
         id: id,
-        name: FeedPersonName.getInviteeName(profile),
+        name: FeedPersonNameRule.getInviteeName(profile),
         invitee: {
-          displayName: FeedPersonName.getDisplayName(
+          displayName: FeedPersonNameRule.getDisplayName(
             profile.inviteeName,
           ),
         },
       };
     }
 
-    const name: string = FeedPersonName.getMemberName({
+    const name: string = FeedPersonNameRule.getMemberName({
       name: user.name,
       email: user.email,
     });

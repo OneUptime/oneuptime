@@ -52,7 +52,7 @@ import WorkspaceMemberActions, {
   WorkspaceEventType,
 } from "./WorkspaceMemberActions";
 import WorkspaceMessageTime from "./WorkspaceMessageTime";
-import FeedPersonName from "../Feed/FeedPersonName";
+import FeedPersonNameRule from "../Feed/FeedPersonNameRule";
 
 /*
  * WHAT A BUTTON IN SLACK OR MICROSOFT TEAMS ANSWERS, IN THE SAME WORDS IN BOTH.
@@ -936,7 +936,7 @@ export default class WorkspaceActionAnswers {
         props: { isRoot: true },
       });
 
-      const name: string = FeedPersonName.getMemberName({
+      const name: string = FeedPersonNameRule.getMemberName({
         name: user?.name,
         email: user?.email,
       });

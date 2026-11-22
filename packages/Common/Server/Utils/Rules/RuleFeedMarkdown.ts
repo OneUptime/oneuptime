@@ -8,7 +8,7 @@ import FeedMarkdown, {
 import PendingInviteeProfiles, {
   WithheldProfile,
 } from "../TeamMember/PendingInviteeProfiles";
-import FeedPersonName from "../Feed/FeedPersonName";
+import FeedPersonNameRule from "../Feed/FeedPersonNameRule";
 import type { OwnerNotAdded } from "./OwnerRuleAssignment";
 
 /*
@@ -98,7 +98,7 @@ export default class RuleFeedMarkdown {
       [
         ...data.users.map((user: User): MarkdownText => {
           return mdText`👤 ${
-            FeedPersonName.getName({
+            FeedPersonNameRule.getName({
               userId: user.id,
               name: user.name,
               email: user.email,
@@ -181,7 +181,7 @@ export default class RuleFeedMarkdown {
           });
 
         if (invited) {
-          const typedName: string = FeedPersonName.getDisplayName(
+          const typedName: string = FeedPersonNameRule.getDisplayName(
             invited.inviteeName,
           );
 
@@ -191,7 +191,7 @@ export default class RuleFeedMarkdown {
         }
 
         const name: string =
-          FeedPersonName.getName({
+          FeedPersonNameRule.getName({
             userId: owner.id,
             name: user?.name,
             email: user?.email,

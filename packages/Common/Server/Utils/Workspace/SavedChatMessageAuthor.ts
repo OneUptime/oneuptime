@@ -9,7 +9,7 @@ import UserService from "../../Services/UserService";
 import WorkspaceUserAuthTokenService from "../../Services/WorkspaceUserAuthTokenService";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import FeedPersonName from "../Feed/FeedPersonName";
+import FeedPersonNameRule from "../Feed/FeedPersonNameRule";
 
 /*
  * WHO WROTE A MESSAGE SAVED AS A NOTE, AS ONEUPTIME NAMES THEM.
@@ -113,7 +113,7 @@ export default class SavedChatMessageAuthor {
       });
 
       // As every feed entry names a member: never by their address (#10669).
-      const name: string = FeedPersonName.getMemberName({
+      const name: string = FeedPersonNameRule.getMemberName({
         name: user?.name,
         email: user?.email,
       });

@@ -68,7 +68,7 @@ import WorkspacePage, {
 } from "./WorkspacePage";
 import { MAX_ON_CALL_DIRECT_PAGE_TARGETS } from "../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import { toOnCallPersonPageMessage } from "../../../Types/OnCallDutyPolicy/OnCallPersonPage";
-import FeedPersonName from "../Feed/FeedPersonName";
+import FeedPersonNameRule from "../Feed/FeedPersonNameRule";
 
 /*
  * ACTING ON AN INCIDENT FROM SLACK OR MICROSOFT TEAMS.
@@ -1807,7 +1807,7 @@ export default class WorkspaceIncidentActions {
       return "";
     }
 
-    return FeedPersonName.getMemberName({
+    return FeedPersonNameRule.getMemberName({
       name: user.name,
       email: user.email,
     });

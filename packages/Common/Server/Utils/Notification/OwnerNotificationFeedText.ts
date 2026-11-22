@@ -5,7 +5,7 @@ import FeedMarkdown, {
 } from "../../../Utils/Markdown/FeedMarkdown";
 import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
-import FeedPersonName from "../Feed/FeedPersonName";
+import FeedPersonNameRule from "../Feed/FeedPersonNameRule";
 
 /*
  * THE FEED ENTRY THAT SAYS A RECORD'S OWNERS WERE TOLD SOMETHING.
@@ -234,7 +234,7 @@ export default class OwnerNotificationFeedText {
       | undefined,
   ): MarkdownText {
     return mdText`${
-      FeedPersonName.getMemberName({
+      FeedPersonNameRule.getMemberName({
         name: person?.name,
         email: person?.email,
       }) || "Unknown user"

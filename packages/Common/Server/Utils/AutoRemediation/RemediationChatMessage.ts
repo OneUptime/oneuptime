@@ -79,7 +79,7 @@ import WorkspaceLiveMessage from "../../../Models/DatabaseModels/WorkspaceLiveMe
 import WorkspaceLiveMessageService from "../../Services/WorkspaceLiveMessageService";
 import AutoRemediationSuggestionService from "../../Services/AutoRemediationSuggestionService";
 import WorkspaceLiveMessages from "../Workspace/LiveMessages/WorkspaceLiveMessages";
-import FeedPersonName from "../Feed/FeedPersonName";
+import FeedPersonNameRule from "../Feed/FeedPersonNameRule";
 
 /*
  * A FIX THAT WAITS FOR APPROVAL, WHERE THE TEAM IS.
@@ -163,7 +163,7 @@ async function readPersonName(userId: ObjectID): Promise<string | null> {
     });
 
     return (
-      FeedPersonName.getMemberName({
+      FeedPersonNameRule.getMemberName({
         name: user?.name,
         email: user?.email,
       }) || null

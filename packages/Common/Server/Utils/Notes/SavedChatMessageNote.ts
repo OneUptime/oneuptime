@@ -13,7 +13,7 @@ import FeedMarkdown, {
 } from "../../../Utils/Markdown/FeedMarkdown";
 import CreateBy from "../../Types/Database/CreateBy";
 import type { WorkspaceChannelToSkip } from "../../Services/WorkspaceNotificationRuleService";
-import FeedPersonName from "../Feed/FeedPersonName";
+import FeedPersonNameRule from "../Feed/FeedPersonNameRule";
 
 /*
  * A NOTE SAVED FROM A SLACK OR MICROSOFT TEAMS MESSAGE, IN EVERY KIND OF NOTE.
@@ -217,7 +217,7 @@ ${data.note}`;
 
       // As every feed entry names a member: never by their address (#10669).
       return (
-        FeedPersonName.getMemberName({
+        FeedPersonNameRule.getMemberName({
           name: user?.name,
           email: user?.email,
         }) || null

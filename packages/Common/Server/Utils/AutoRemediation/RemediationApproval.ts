@@ -126,7 +126,7 @@ import {
   tokenizeResourceCommand,
 } from "../../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
 import { readOpenStackChange } from "../../../Utils/AiRemediation/Resource/OpenStackCommandPolicy";
-import FeedPersonName from "../Feed/FeedPersonName";
+import FeedPersonNameRule from "../Feed/FeedPersonNameRule";
 import logger from "../Logger";
 import FeedMarkdown, {
   MarkdownText,
@@ -1063,7 +1063,7 @@ async function getApproverName(userId: ObjectID): Promise<string | null> {
       props: { isRoot: true },
     });
 
-    const name: string = FeedPersonName.getMemberName({
+    const name: string = FeedPersonNameRule.getMemberName({
       name: user?.name,
       email: user?.email,
     });

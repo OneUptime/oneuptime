@@ -1,5 +1,5 @@
 import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
-import { FEED_INVITEE_UNNAMED } from "../Feed/FeedPersonNameWords";
+import { FEED_INVITEE_UNNAMED } from "../Feed/FeedPersonNameRule";
 
 /*
  * WHAT AN ON-CALL POLICY'S CHANNELS ARE TOLD OF ITS ROSTER, IN ONE LINE.
