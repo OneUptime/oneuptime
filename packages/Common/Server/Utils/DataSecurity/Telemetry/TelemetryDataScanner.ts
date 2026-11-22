@@ -51,6 +51,7 @@ import RumSessionService from "../../../Services/RumSessionService";
 import ServiceService from "../../../Services/ServiceService";
 import SpanService from "../../../Services/SpanService";
 import { getClickhouseDatabaseName } from "../../AnalyticsDatabase/ClusterConfig";
+import { foldAttributeKey } from "../../../../Types/Telemetry/ScrubRuleKeys";
 import { getQuerySettings } from "../../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../../AnalyticsDatabase/Statement";
 import LlmConversationPrivacy from "../../LlmObservability/LlmConversationPrivacy";
@@ -1557,7 +1558,7 @@ function tupleParts(value: unknown): Array<unknown> {
   return [];
 }
 
-function readPairs(value: unknown): Array<[string, string]> {
+export function readPairs(value: unknown): Array<[string, string]> {
   const pairs: Array<[string, string]> = [];
 
   if (Array.isArray(value)) {
@@ -1584,12 +1585,12 @@ function readPairs(value: unknown): Array<[string, string]> {
   return pairs;
 }
 
-interface ReadEvent {
+export interface ReadEvent {
   name: string;
   attributes: Array<[string, string]>;
 }
 
-function readEvents(value: unknown): Array<ReadEvent> {
+export function readEvents(value: unknown): Array<ReadEvent> {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -1672,21 +1673,12 @@ function isAllDigits(text: string): boolean {
 /*
  * An attribute key with its numbered parts folded, as FieldCollector folds
  * array positions: gen_ai.prompt.3.content is gen_ai.prompt[].content, so
- * the twenty messages of a chat are one location, not twenty.
+ * the twenty messages of a chat are one location, not twenty. Written once,
+ * beside the scrub rules that name attributes by the same keys
+ * (Types/Telemetry/ScrubRuleKeys, #10366), so a finding's key names the
+ * attribute it was found in.
  */
-export function foldAttributeKey(key: string): string {
-  let folded: string = "";
-
-  for (const part of key.split(".")) {
-    if (isAllDigits(part)) {
-      folded += "[]";
-    } else {
-      folded += folded.length > 0 ? "." + part : part;
-    }
-  }
-
-  return folded;
-}
+export { foldAttributeKey };
 
 const CONVERSATION_ATTRIBUTE_KEYS: ReadonlySet<string> = new Set([
   ...LlmPromptJsonAttributeKeys,
@@ -2920,7 +2912,7 @@ async function sampleMetrics(
   }
 }
 
-function classifierOptionsOf(
+export function classifierOptionsOf(
   options: ContentScanOptions,
 ): FieldClassifierOptions {
   return {

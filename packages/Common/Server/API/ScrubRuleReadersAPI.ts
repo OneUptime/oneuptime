@@ -24,6 +24,7 @@ import {
   TelemetryFieldSignal,
 } from "../../Types/Telemetry/TelemetryFieldReaders";
 import LogScrubAction from "../../Types/Log/LogScrubAction";
+import { readScrubRuleKeys } from "../../Types/Telemetry/ScrubRuleKeys";
 import { ScrubRuleReading } from "../../Utils/Telemetry/ScrubRuleFieldReads";
 import { findScrubRuleReaders } from "../Utils/DataSecurity/Telemetry/TelemetryScrubImpact";
 
@@ -112,6 +113,8 @@ export function readScrubRuleReadersRequest(body: unknown): ScrubRuleReading {
   }
 
   const customRegex: unknown = json["customRegex"];
+  // The attributes it names (#10366), as a rule keeps them.
+  const attributeKeys: Array<string> = readScrubRuleKeys(json["attributeKeys"]);
 
   return {
     signal: signal as TelemetryFieldSignal,
@@ -120,6 +123,7 @@ export function readScrubRuleReadersRequest(body: unknown): ScrubRuleReading {
     ...(fieldsToScrub ? { fieldsToScrub } : {}),
     ...(scrubAction ? { scrubAction } : {}),
     ...(serviceId ? { serviceId: serviceId.toLowerCase() } : {}),
+    ...(attributeKeys.length > 0 ? { attributeKeys } : {}),
   };
 }
 

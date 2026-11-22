@@ -54,6 +54,17 @@ import {
   TRACE_SCRUB_PATTERN_TYPES,
   TRACE_SCRUB_RULE_DEFAULTS,
 } from "../../../../Types/Telemetry/ScrubRule";
+import {
+  readScrubRuleKeys,
+  SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE,
+  ScrubRuleKeyMatcher,
+} from "../../../../Types/Telemetry/ScrubRuleKeys";
+import {
+  isScrubRuleProven,
+  readScrubRuleProof,
+  ScrubRuleProof,
+  ScrubRuleProofPlace,
+} from "../../../../Types/Telemetry/ScrubRuleProof";
 import { getScrubRuleServiceId } from "../../../../Types/Telemetry/ScrubRuleScope";
 import {
   SecurityEventsFieldNeed,
@@ -121,7 +132,16 @@ export type {
  *    person wrote is never taken for one that covers: a finding keeps
  *    only masked samples, which no pattern can be tried on, so coverage
  *    could not be proven - and a finding wrongly called scrubbed is a
- *    leak nobody looks at.
+ *    leak nobody looks at;
+ *  - or a Named Attributes rule that names the attribute the finding is
+ *    in (#10366): it hides the whole value there, whatever it holds;
+ *  - or a rule that carries a proof for the finding's place (#10366): it
+ *    was run, through the code ingest runs, on the very records the
+ *    finding was seen in, and the scanner found the data type in none of
+ *    them afterwards (Types/Telemetry/ScrubRuleProof). A proven rule
+ *    covers, custom pattern or not - while it is still the rule that was
+ *    proven. A pattern rule that names attributes reads only theirs, so it
+ *    covers a finding in one of them only.
  *
  * A sensitive-keys rule also hides what sits under such a key inside a
  * value: a list's or a map's, a log body's, a JSON text's held in a string
@@ -185,6 +205,16 @@ export interface CoveringScrubRule {
   serviceId?: string | undefined;
   // A metric pipeline rule's: the rows it applies to.
   filters?: Array<MetricPipelineRuleFilterCondition> | undefined;
+  /*
+   * A log or trace rule's attributes, when it names them (#10366): the ones
+   * a Named Attributes rule hides whole, or the only ones a pattern reads.
+   */
+  attributeKeys?: Array<string> | undefined;
+  /*
+   * The places its proof covers, when it carries one of itself as it is
+   * now (#10366): a proof of a rule since changed covers nothing.
+   */
+  provenPlaces?: Array<ScrubRuleProofPlace> | undefined;
 }
 
 export interface ScrubCoverage {
@@ -215,11 +245,10 @@ export interface CreatedScrubRule {
 }
 
 /*
- * The attribute-KEY denylist ingest's sensitive-keys rules read
- * (SENSITIVE_KEY_REGEX in App/FeatureSet/Telemetry/Services/
- * LogScrubRuleService.ts and TraceScrubRuleService.ts), kept in Common
- * (Types/Telemetry/ScrubRule) because Common cannot import from App.
- * TelemetryScrubCoverage.test.ts reads both and fails when they differ.
+ * The attribute-KEY denylist ingest's sensitive-keys rules read, written
+ * once in Common (Types/Telemetry/ScrubRule) and compiled by the one step
+ * both engines compile rules with (Server/Utils/Telemetry/ScrubEngine/
+ * CompiledScrubRule, #10366).
  */
 export const INGEST_SENSITIVE_KEY_REGEX: RegExp =
   SCRUB_RULE_SENSITIVE_KEY_REGEX;
@@ -499,12 +528,38 @@ function ruleCovers(
     return false;
   }
 
+  // Proven on the very records of this place, through ingest's own code (#10366).
+  if (
+    (rule.provenPlaces || []).some((place: ScrubRuleProofPlace): boolean => {
+      return (
+        place.dataTypeId === dataTypeId &&
+        place.location === finding.location &&
+        place.kind === finding.kind
+      );
+    })
+  ) {
+    return true;
+  }
+
   if (rule.patternType === SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE) {
     // A key's whole value, whatever the rule's fields say - as ingest runs it.
     return sensitiveKeysRuleHides(target);
   }
 
+  if (rule.patternType === SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE) {
+    // The whole value of the attribute it names, whatever it holds (#10366).
+    return namedKeysRuleHides(rule, target);
+  }
+
   if (!ruleScrubsField(rule, target.field)) {
+    return false;
+  }
+
+  // A pattern that names attributes reads only theirs (#10366).
+  if (
+    (rule.attributeKeys || []).length > 0 &&
+    !isAttributeNamedByRule(rule, target)
+  ) {
     return false;
   }
 
@@ -546,6 +601,64 @@ export function isFindingScrubbed(
   return findCoveringScrubRule(coverage, finding) !== null;
 }
 
+/*
+ * Whether a pattern rule that names attributes reads the attribute a
+ * finding is in: an attribute's, or an event attribute's, whose key it
+ * names. A finding of an event's attribute keeps only the key's last part,
+ * which the rule must name as a whole.
+ */
+function isAttributeNamedByRule(
+  rule: CoveringScrubRule,
+  target: ScrubTarget,
+): boolean {
+  if (
+    target.key === undefined ||
+    (target.field !== ScrubbedField.Attributes &&
+      target.field !== ScrubbedField.Events)
+  ) {
+    return false;
+  }
+
+  return new ScrubRuleKeyMatcher(rule.attributeKeys || []).matches(target.key);
+}
+
+/*
+ * Whether a Named Attributes rule hides the value at this place: the
+ * attribute's own key is one it names, in a part of the record it reads -
+ * a log's attributes; a span's, or its events', as its fields say - but
+ * for a record's own session or conversation id, which it keeps where the
+ * record's column keeps it (#8924).
+ */
+function namedKeysRuleHides(
+  rule: CoveringScrubRule,
+  target: ScrubTarget,
+): boolean {
+  if (
+    target.field === ScrubbedField.Attributes &&
+    target.key !== undefined &&
+    CORRELATION_ID_ATTRIBUTE_KEYS.has(target.key)
+  ) {
+    return false;
+  }
+
+  if (!isAttributeNamedByRule(rule, target)) {
+    return false;
+  }
+
+  if (rule.signal === "log") {
+    return target.field === ScrubbedField.Attributes;
+  }
+
+  switch (rule.fieldsToScrub) {
+    case TraceScrubField.Attributes:
+      return target.field === ScrubbedField.Attributes;
+    case TraceScrubField.Events:
+      return target.field === ScrubbedField.Events;
+    default:
+      return true;
+  }
+}
+
 function toCoveringRule(
   rule: LogScrubRule | TraceScrubRule,
   signal: ScrubRuleSignal,
@@ -559,6 +672,7 @@ function toCoveringRule(
       patternType: rule.patternType,
       customRegex: rule.customRegex,
       fieldsToScrub: rule.fieldsToScrub,
+      attributeKeys: rule.attributeKeys,
       knownPatternTypes:
         signal === "log" ? LOG_SCRUB_PATTERN_TYPES : TRACE_SCRUB_PATTERN_TYPES,
       knownFieldsToScrub:
@@ -584,6 +698,41 @@ function toCoveringRule(
 
   if (serviceId) {
     covering.serviceId = serviceId;
+  }
+
+  const attributeKeys: Array<string> =
+    rule.patternType === SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE
+      ? []
+      : readScrubRuleKeys(rule.attributeKeys);
+
+  if (attributeKeys.length > 0) {
+    covering.attributeKeys = attributeKeys;
+  }
+
+  /*
+   * A proof of the rule as it is now: the rule as saved - its fields as
+   * written, not as ingest defaults them - is what was proven.
+   */
+  const proof: ScrubRuleProof | null = readScrubRuleProof(rule.proof);
+
+  if (
+    proof &&
+    signal !== "metric" &&
+    isScrubRuleProven({
+      rule: {
+        signal,
+        patternType: rule.patternType,
+        customRegex: rule.customRegex,
+        attributeKeys: rule.attributeKeys,
+        scrubAction: rule.scrubAction,
+        fieldsToScrub: rule.fieldsToScrub,
+        serviceId: rule.serviceId,
+      },
+      proof,
+    }) &&
+    proof.places.length > 0
+  ) {
+    covering.provenPlaces = proof.places;
   }
 
   return covering;
@@ -653,6 +802,10 @@ export async function getScrubCoverage(
         fieldsToScrub: true,
         // A rule for one service covers that service's findings only (#10433).
         serviceId: true,
+        // What it names, its action and its proof decide what it covers (#10366).
+        attributeKeys: true,
+        scrubAction: true,
+        proof: true,
       },
       skip: 0,
       limit: LIMIT_MAX,
@@ -667,6 +820,9 @@ export async function getScrubCoverage(
         customRegex: true,
         fieldsToScrub: true,
         serviceId: true,
+        attributeKeys: true,
+        scrubAction: true,
+        proof: true,
       },
       skip: 0,
       limit: LIMIT_MAX,

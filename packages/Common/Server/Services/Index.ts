@@ -430,6 +430,7 @@ import SecurityTelemetrySourceService from "./SecurityTelemetrySourceService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
 import SecurityAddressVaultService from "./SecurityAddressVaultService";
+import ScrubRuleValueCountService from "./ScrubRuleValueCountService";
 import SecurityCaseService from "./SecurityCaseService";
 import SecurityCaseFeedService from "./SecurityCaseFeedService";
 import SecurityCaseNoteService from "./SecurityCaseNoteService";
@@ -1320,6 +1321,13 @@ export const AnalyticsServices: Array<
    * live update is ever built for it.
    */
   SecurityAddressVaultService,
+  /*
+   * How many values each scrub rule changed, by service and version, an
+   * hour a row (#10366). Here so boot creates its table: the model is kept
+   * out of the AnalyticsModels registry, and its rows are read through the
+   * scrub rule lists' own route.
+   */
+  ScrubRuleValueCountService,
   ChangeEventService,
 ];
 
