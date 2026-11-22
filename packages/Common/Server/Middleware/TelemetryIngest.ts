@@ -31,7 +31,7 @@ import {
   headerValueToString,
 } from "../../Server/Utils/Express";
 import TelemetryIngestionKeyService from "../../Server/Services/TelemetryIngestionKeyService";
-import Response from "../Utils/Response";
+import Response, { ErrorResponseOptions } from "../Utils/Response";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
@@ -137,6 +137,18 @@ export interface TelemetryRequest extends ExpressRequest {
  * PublicDashboardRateLimit and the limiter itself.
  */
 const COUNTER_UNAVAILABLE_LOG_INTERVAL_MS: number = 60 * 1000;
+
+/*
+ * How every refusal here is answered: as a refusal of what the client sent,
+ * logged at debug rather than error (Response.sendErrorResponse, #10703).
+ * They come from clients - most of them before anyone is known - and each
+ * keeps sending: a missing or unknown key is counted per process
+ * (TelemetryIngestUnknownKeyRefusals), the rest against their key
+ * (TelemetryIngestRefusalRecorder), and the rate limit logs its first
+ * rejection in a window. An error-level line each was a flood the client
+ * paid nothing for.
+ */
+const CLIENT_REFUSAL: ErrorResponseOptions = { isClientRefusal: true };
 
 /*
  * Readable name used when a legacy call site did not name its surface. See
@@ -528,6 +540,7 @@ export default class TelemetryIngest {
           new NotAuthenticatedException(
             "Missing ingestion token. Send your OneUptime telemetry ingestion key in the x-oneuptime-token header.",
           ),
+          CLIENT_REFUSAL,
         );
       }
 
@@ -570,6 +583,7 @@ export default class TelemetryIngest {
           new NotAuthenticatedException(
             "Invalid ingestion token. Send a valid OneUptime telemetry ingestion key in the x-oneuptime-token header.",
           ),
+          CLIENT_REFUSAL,
         );
       }
 
@@ -597,6 +611,7 @@ export default class TelemetryIngest {
           new NotAuthorizedException(
             "This telemetry ingestion key has been disabled.",
           ),
+          CLIENT_REFUSAL,
         );
       }
 
@@ -626,6 +641,7 @@ export default class TelemetryIngest {
           new NotAuthenticatedException(
             "This telemetry ingestion key expired.",
           ),
+          CLIENT_REFUSAL,
         );
       }
 
@@ -670,6 +686,7 @@ export default class TelemetryIngest {
             new NotAuthorizedException(
               `A browser ingestion key cannot be used for ${readableSurfaceName}. Use a server ingestion key.`,
             ),
+            CLIENT_REFUSAL,
           );
         }
 
@@ -687,6 +704,7 @@ export default class TelemetryIngest {
             req,
             res,
             new NotAuthorizedException(originRefusalMessage),
+            CLIENT_REFUSAL,
           );
         }
       }
@@ -717,6 +735,7 @@ export default class TelemetryIngest {
             req,
             res,
             new NotAuthorizedException(mobileRefusalMessage),
+            CLIENT_REFUSAL,
           );
         }
       }
@@ -747,6 +766,7 @@ export default class TelemetryIngest {
           new NotAuthorizedException(
             getPinnedKeyRegistrationRefusalMessage(surface),
           ),
+          CLIENT_REFUSAL,
         );
       }
 
@@ -806,6 +826,7 @@ export default class TelemetryIngest {
             new TooManyRequestsException(
               "Too many telemetry requests for this ingestion key. Please retry later.",
             ),
+            CLIENT_REFUSAL,
           );
         }
 
