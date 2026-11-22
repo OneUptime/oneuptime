@@ -4461,6 +4461,8 @@
   "Create a role in your AWS account that may send with Amazon SES and trusts OneUptime. No key is stored.": "Amazon SES で送信でき、OneUptime を信頼するロールを AWS アカウントに作成します。キーは保存されません。",
   "The ARN of the IAM role OneUptime signs in to. Create it with the trust policy below.": "OneUptime がサインインする IAM ロールの ARN です。下の信頼ポリシーでロールを作成してください。",
   "Role ARN": "ロール ARN",
+  "Sign In Again can't be checked through Keycloak over SAML. Add this realm as an OIDC provider instead.": "SAML で接続した Keycloak では「もう一度サインイン」を確かめられません。代わりに、このレルムを OIDC プロバイダーとして追加してください。",
+  "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.": "「もう一度サインイン」を使うには、Okta でこのアプリの SAML 設定にある Honor Force Authentication を Yes にしてください。",
   "Deleted user": "削除されたユーザー",
   "{{name}} (Master Admin)": "{{name}}（マスター管理者）",
   "Master Admin": "マスター管理者",

@@ -2182,6 +2182,7 @@ import ProductFeedbackAPI from "Common/Server/API/ProductFeedbackAPI";
 import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
+import NetworkDeviceDiscoveryScanRunAPI from "Common/Server/API/NetworkDeviceDiscoveryScanRunAPI";
 import NetworkDeviceNamingAPI from "Common/Server/API/NetworkDeviceNamingAPI";
 import NetworkDiscoveredDeviceAPI from "Common/Server/API/NetworkDiscoveredDeviceAPI";
 import NetworkDeviceRefreshAPI from "Common/Server/API/NetworkDeviceRefreshAPI";
@@ -6999,6 +7000,17 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       NetworkDeviceDiscoveryImportAPI,
+    );
+
+    /*
+     * Running a discovery scan again, on demand (Network > Discovery > Run
+     * Again, issue #10334). A bare router beside the scan's CRUD API, which
+     * claims no `/:id/run` path: the run is written as root, so its own
+     * check of who may edit scans is the gate.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      NetworkDeviceDiscoveryScanRunAPI,
     );
 
     /*

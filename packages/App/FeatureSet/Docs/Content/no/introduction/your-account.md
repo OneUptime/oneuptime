@@ -167,9 +167,9 @@ På en selvhostet server bekrefter hovedadministratorer på samme måte at det e
 | Leverandør | Hva OneUptime ber om | Når det ikke bekrefter noe |
 | --- | --- | --- |
 | SAML | `ForceAuthn="true"` og når du logget på (`AuthnInstant`) | Få leverandøren til å følge forespørselen, for eksempel med Honor Force Authentication i Okta. |
-| OpenID Connect | `prompt=login` og `max_age=0`, og når du logget på (`auth_time`) | Få leverandøren til å sende `auth_time`. I Microsoft Entra ID legger du det til i ID-tokenet som et valgfritt krav. |
+| OpenID Connect | `prompt=login` og `max_age=0` (Microsoft Entra ID: bare `prompt=login`), og når du logget på (`auth_time`) | Få leverandøren til å sende `auth_time`. I Microsoft Entra ID legger du det til i ID-tokenet som et valgfritt krav. |
 | Google | Når du logget på (`auth_time`). Google kan ikke bes om å få deg til å logge på igjen. | Slå på Session age claims for serverens Google-påloggingsapp, som må være publisert og verifisert. |
-| Microsoft | `prompt=login` og `max_age=0`, og når du logget på (`auth_time`) | Legg til `auth_time` i ID-tokenet til serverens Microsoft-påloggingsapp som et valgfritt krav. |
+| Microsoft | `prompt=login`, og når du logget på (`auth_time`) | Legg til `auth_time` i ID-tokenet til serverens Microsoft-påloggingsapp som et valgfritt krav. |
 | Vercel | Ingenting: Vercel kan ikke bes om å få deg til å logge på igjen, og sier ikke når du logget på. | Det bekrefter aldri. Velg **Logg på på en annen måte** og logg på med en lenke som sendes til e-posten din, eller lag et passord med **Glemt passord?** og bekreft med det. |
 
 Hva du skal stille inn i Okta, Microsoft Entra ID, Keycloak og Google Workspace, står på siden [SSO](/docs/identity/sso#logge-på-igjen-for-å-bekrefte-at-det-er-deg).

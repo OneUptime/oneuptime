@@ -4461,6 +4461,8 @@
   "Create a role in your AWS account that may send with Amazon SES and trusts OneUptime. No key is stored.": "Create a role in your AWS account that may send with Amazon SES and trusts OneUptime. No key is stored.",
   "The ARN of the IAM role OneUptime signs in to. Create it with the trust policy below.": "The ARN of the IAM role OneUptime signs in to. Create it with the trust policy below.",
   "Role ARN": "Role ARN",
+  "Sign In Again can't be checked through Keycloak over SAML. Add this realm as an OIDC provider instead.": "Sign In Again can't be checked through Keycloak over SAML. Add this realm as an OIDC provider instead.",
+  "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.": "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.",
   "Deleted user": "Deleted user",
   "{{name}} (Master Admin)": "{{name}} (Master Admin)",
   "Master Admin": "Master Admin",
