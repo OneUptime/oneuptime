@@ -1,4 +1,7 @@
-import { CLOUD_ARMOR_BLOCKLIST, CLOUD_AZURE_WAF_BLOCKLIST } from "./CloudDocsPages";
+import {
+  CLOUD_ARMOR_BLOCKLIST,
+  CLOUD_AZURE_WAF_BLOCKLIST,
+} from "./CloudDocsPages";
 import { readPage } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
@@ -94,12 +97,19 @@ describe("Block Addresses in Azure WAF", () => {
     expect(AZURE).toContain(
       `${AZURE_APPLICATION_GATEWAY_WAF_ADDRESSES_PER_RULE_NEWER} with CRS 3.2`,
     );
-    expect(AZURE).toContain(`${AZURE_FRONT_DOOR_WAF_ADDRESSES_PER_RULE} on Front Door`);
     expect(AZURE).toContain(
-      figure(AZURE_APPLICATION_GATEWAY_WAF_ADDRESSES_PER_RULE * AZURE_WAF_MAX_ONEUPTIME_RULES),
+      `${AZURE_FRONT_DOOR_WAF_ADDRESSES_PER_RULE} on Front Door`,
     );
     expect(AZURE).toContain(
-      figure(AZURE_FRONT_DOOR_WAF_ADDRESSES_PER_RULE * AZURE_WAF_MAX_ONEUPTIME_RULES),
+      figure(
+        AZURE_APPLICATION_GATEWAY_WAF_ADDRESSES_PER_RULE *
+          AZURE_WAF_MAX_ONEUPTIME_RULES,
+      ),
+    );
+    expect(AZURE).toContain(
+      figure(
+        AZURE_FRONT_DOOR_WAF_ADDRESSES_PER_RULE * AZURE_WAF_MAX_ONEUPTIME_RULES,
+      ),
     );
   });
 
@@ -150,8 +160,12 @@ describe("Block Addresses in Cloud Armor", () => {
 
     expect(ARMOR).toContain(`\`${groups.ipv4}\``);
     expect(ARMOR).toContain(`\`${groups.ipv6}\``);
-    expect(ARMOR).toContain(`up to ${CLOUD_ARMOR_ADDRESSES_PER_RULE} addresses or ranges`);
-    expect(ARMOR).toContain(`at most ${CLOUD_ARMOR_MAX_ONEUPTIME_RULES} of them`);
+    expect(ARMOR).toContain(
+      `up to ${CLOUD_ARMOR_ADDRESSES_PER_RULE} addresses or ranges`,
+    );
+    expect(ARMOR).toContain(
+      `at most ${CLOUD_ARMOR_MAX_ONEUPTIME_RULES} of them`,
+    );
     expect(ARMOR).toContain(
       `up to ${CLOUD_ARMOR_ADDRESSES_PER_RULE * CLOUD_ARMOR_MAX_ONEUPTIME_RULES} blocks`,
     );
@@ -160,7 +174,10 @@ describe("Block Addresses in Cloud Armor", () => {
     );
     // An IPv6 range counts three against the project's address group quota.
     expect(ARMOR).toContain(
-      figure(CLOUD_ARMOR_ADDRESS_GROUP_CAPACITY.ipv4 + 3 * CLOUD_ARMOR_ADDRESS_GROUP_CAPACITY.ipv6),
+      figure(
+        CLOUD_ARMOR_ADDRESS_GROUP_CAPACITY.ipv4 +
+          3 * CLOUD_ARMOR_ADDRESS_GROUP_CAPACITY.ipv6,
+      ),
     );
   });
 
@@ -175,7 +192,11 @@ describe("Block Addresses in Cloud Armor", () => {
       expect(ARMOR).toContain(status);
     }
 
-    for (const attribute of ["origin.ip", "origin.user_ip", "userIpRequestHeaders"]) {
+    for (const attribute of [
+      "origin.ip",
+      "origin.user_ip",
+      "userIpRequestHeaders",
+    ]) {
       expect(ARMOR).toContain(attribute);
     }
   });
