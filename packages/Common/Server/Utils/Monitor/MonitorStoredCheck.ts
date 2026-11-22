@@ -221,6 +221,24 @@ export default class MonitorStoredCheck {
       return input.check;
     }
 
+    /*
+     * The evaluation's list of every series it read, for the monitor's
+     * Overview (MonitorSeriesTable): a record about one series keeps its own
+     * series above, not every other one's again.
+     */
+    const evaluationSummary: unknown = source["evaluationSummary"];
+
+    if (
+      MonitorStoredCheck.isPlainObject(evaluationSummary) &&
+      (evaluationSummary as JSONObject)["series"] !== undefined
+    ) {
+      const withoutSeries: JSONObject = {
+        ...(evaluationSummary as JSONObject),
+      };
+      delete withoutSeries["series"];
+      scoped["evaluationSummary"] = withoutSeries;
+    }
+
     const scope: StoredCheckEvidenceScope = {
       seriesFingerprint: fingerprint,
       seriesInEvaluation: seriesInEvaluation,

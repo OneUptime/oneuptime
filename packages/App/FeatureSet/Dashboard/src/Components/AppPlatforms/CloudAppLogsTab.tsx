@@ -129,13 +129,16 @@ const CloudAppLogsTab: FunctionComponent<ComponentProps> = (
       ) : (
         /*
          * The site's Logs tab, as its page in Cloud shows it: its id as
-         * the filter, its name on the locked chip.
+         * the filter, its name on the locked chip. Its saved views are this
+         * tab's, the app's (#5549): a view saved here is not listed on the
+         * site's page in Cloud, nor one saved there here.
          */
         <DashboardLogsViewer
           key={siteId.toString()}
           id={`cloud-resource-streamed-logs-${siteId.toString()}`}
           savedViewScope={buildSavedViewScope(
-            SavedViewScopeKind.CloudMonitoredResource,
+            SavedViewScopeKind.CloudApp,
+            props.appId,
             siteId,
           )}
           logQuery={getCloudResourceLogsQuery(siteResourceId)}

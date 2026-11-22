@@ -110,25 +110,46 @@ export async function readSecurityEventsReadSignals(
   return { readsLogs, readsTraces };
 }
 
-const SecurityEventsReadBudgetBanners: FunctionComponent = (): ReactElement => {
+/*
+ * One read of the project's budgets for every banner that asks: the first
+ * ask reads them, and the others are handed the same answer. A Security
+ * Events page draws its own budget's banner and these, so its layout hands
+ * them all one such read, and the page reads the budgets once.
+ */
+export function shareOneBudgetsRead(
+  read: () => Promise<TelemetryIngestionBudgetStatus>,
+): () => Promise<TelemetryIngestionBudgetStatus> {
+  let shared: Promise<TelemetryIngestionBudgetStatus> | null = null;
+
+  return (): Promise<TelemetryIngestionBudgetStatus> => {
+    if (!shared) {
+      shared = read();
+    }
+
+    return shared;
+  };
+}
+
+export interface SecurityEventsReadBudgetBannersProps {
+  // The page's one read of the budgets; a read of their own otherwise.
+  fetchStatus?: (() => Promise<TelemetryIngestionBudgetStatus>) | undefined;
+}
+
+const SecurityEventsReadBudgetBanners: FunctionComponent<
+  SecurityEventsReadBudgetBannersProps
+> = (props: SecurityEventsReadBudgetBannersProps): ReactElement => {
   const [reads, setReads] = useState<SecurityEventsReadSignals>({
     readsLogs: false,
     readsTraces: false,
   });
 
   // One read of the project's budgets, for both banners.
-  const fetchStatus: () => Promise<TelemetryIngestionBudgetStatus> =
+  const ownRead: () => Promise<TelemetryIngestionBudgetStatus> =
     useMemo((): (() => Promise<TelemetryIngestionBudgetStatus>) => {
-      let shared: Promise<TelemetryIngestionBudgetStatus> | null = null;
-
-      return (): Promise<TelemetryIngestionBudgetStatus> => {
-        if (!shared) {
-          shared = fetchProjectTelemetryIngestionBudgetStatus();
-        }
-
-        return shared;
-      };
+      return shareOneBudgetsRead(fetchProjectTelemetryIngestionBudgetStatus);
     }, []);
+  const fetchStatus: () => Promise<TelemetryIngestionBudgetStatus> =
+    props.fetchStatus || ownRead;
 
   useEffect(() => {
     let isCurrent: boolean = true;

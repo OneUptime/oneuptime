@@ -49,6 +49,11 @@ export const getTelemetryIngestionBudgetsRoute: () => Route = (): Route => {
 
 export interface ExplorerBannerProps {
   signal: TelemetryIngestionBudgetSignal;
+  /*
+   * A read of the budgets the page shares with its other banners, so the
+   * page reads them once (Security Events' layout); its own read otherwise.
+   */
+  fetchStatus?: (() => Promise<TelemetryIngestionBudgetStatus>) | undefined;
 }
 
 // The explorers' banner, reading the current project's budgets.
@@ -58,7 +63,9 @@ export const TelemetryIngestionBudgetExplorerBanner: FunctionComponent<
   return (
     <TelemetryIngestionBudgetBanner
       signal={props.signal}
-      fetchStatus={fetchProjectTelemetryIngestionBudgetStatus}
+      fetchStatus={
+        props.fetchStatus || fetchProjectTelemetryIngestionBudgetStatus
+      }
       budgetsRoute={getTelemetryIngestionBudgetsRoute()}
     />
   );

@@ -2337,9 +2337,10 @@ describe("notification settings", () => {
     }
 
     /*
-     * The two shift reminders, the five security case events, a hunt's
-     * finds and a public note waiting for the person's approval start on by
-     * push too, and they alone.
+     * The two shift reminders, the six security case events (a step that
+     * stopped holding since #10340), a hunt's finds and a public note
+     * waiting for the person's approval start on by push too, and they
+     * alone.
      */
     const byPush: Array<string> = Array.from(push).map(
       (type: string): string => {
@@ -2356,6 +2357,7 @@ describe("notification settings", () => {
         "Playbook step waiting for my approval",
         "Security case response target",
         "Security case task assigned to me",
+        "Security case step stopped holding",
         "Hunt found security events",
         "Public note waiting for my approval",
       ].sort(),
@@ -2364,7 +2366,7 @@ describe("notification settings", () => {
       "and by push too: **Before my on-call shift starts**, **My upcoming on-call shift is reassigned**",
     );
     expect(settings).toContain(
-      "| **Security** | **Added as data store owner**, and by push too: **New security case** (High and Critical cases), **Security case assigned to me**, **Playbook step waiting for my approval**, **Security case response target**, **Security case task assigned to me**, **Hunt found security events** | None |",
+      "| **Security** | **Added as data store owner**, and by push too: **New security case** (High and Critical cases), **Security case assigned to me**, **Playbook step waiting for my approval**, **Security case response target**, **Security case task assigned to me**, **Security case step stopped holding**, **Hunt found security events** | None |",
     );
   });
 
