@@ -622,9 +622,7 @@ describe("IncomingRequestPendingStore skipped requests to report", () => {
 
   test("an acknowledgement that cannot reach Redis is logged, never thrown: the count is said again", async () => {
     const { hash } = newMonitor();
-    const isConnected: jest.SpiedFunction<typeof Redis.isConnected> = jest
-      .spyOn(Redis, "isConnected")
-      .mockReturnValue(false);
+    jest.spyOn(Redis, "isConnected").mockReturnValue(false);
 
     try {
       await expect(
@@ -634,7 +632,7 @@ describe("IncomingRequestPendingStore skipped requests to report", () => {
         }),
       ).resolves.toBeUndefined();
     } finally {
-      isConnected.mockRestore();
+      (Redis.isConnected as unknown as jest.Mock).mockRestore();
     }
 
     expect(logger.warn).toHaveBeenCalled();
@@ -721,9 +719,7 @@ describe("IncomingRequestPendingStore expiry and damage", () => {
 
   test("a push that cannot reach Redis throws, so the endpoint answers 503 rather than lose it", async () => {
     const { secretKey } = newMonitor();
-    const isConnected: jest.SpiedFunction<typeof Redis.isConnected> = jest
-      .spyOn(Redis, "isConnected")
-      .mockReturnValue(false);
+    jest.spyOn(Redis, "isConnected").mockReturnValue(false);
 
     try {
       await expect(
@@ -734,7 +730,7 @@ describe("IncomingRequestPendingStore expiry and damage", () => {
         }),
       ).rejects.toThrow("Redis is not connected");
     } finally {
-      isConnected.mockRestore();
+      (Redis.isConnected as unknown as jest.Mock).mockRestore();
     }
   });
 });

@@ -140,6 +140,7 @@ import MonitorResourceUtil, {
 } from "Common/Server/Utils/Monitor/MonitorResource";
 import MonitorSecretKeyCache from "Common/Server/Utils/Monitor/MonitorSecretKeyCache";
 import IncomingRequestSecretGate from "Common/Server/Utils/Monitor/IncomingRequestSecretGate";
+import logger from "Common/Server/Utils/Logger";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
@@ -663,10 +664,54 @@ describe("a failed evaluation", () => {
 
     await expect(run(true)).rejects.toThrow("Acquire mutex timeout");
 
+    expect(addPendingJob).toHaveBeenCalledTimes(1);
     expect(addPendingJob).toHaveBeenCalledWith({
       secretKeyHash: HASH,
       delayInMs: RETRY_WAITING_REQUESTS_AFTER_MS,
     });
+  });
+
+  test("on the job's last attempt, a failure to read the waiting requests queues the next job too", async () => {
+    keep(1, 2);
+    store("peekOldest").mockRejectedValueOnce(
+      new Error("Redis connection reset") as never,
+    );
+
+    await expect(run(true)).rejects.toThrow("Redis connection reset");
+
+    expect(monitorResource).not.toHaveBeenCalled();
+    expect(addPendingJob).toHaveBeenCalledWith({
+      secretKeyHash: HASH,
+      delayInMs: RETRY_WAITING_REQUESTS_AFTER_MS,
+    });
+  });
+
+  test("a next job that cannot be queued is logged, and the job's own failure passes on", async () => {
+    keep(1);
+    monitorResource.mockRejectedValueOnce(
+      new Error("Acquire mutex timeout") as never,
+    );
+    addPendingJob.mockRejectedValueOnce(
+      new Error("Redis is not connected") as never,
+    );
+
+    await expect(run(true)).rejects.toThrow("Acquire mutex timeout");
+
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining("Could not queue the next job"),
+    );
+  });
+
+  test("a refusal on the job's last attempt queues no next job: nothing is left waiting", async () => {
+    keep(1, 2);
+    monitorResource.mockRejectedValueOnce(
+      new BadDataException(ExceptionMessages.MonitorArchived) as never,
+    );
+
+    await expect(run(true)).rejects.toThrow(ExceptionMessages.MonitorArchived);
+
+    expect(waiting).toEqual([]);
+    expect(addPendingJob).not.toHaveBeenCalled();
   });
 
   test(`a request whose evaluation fails for the ${MAX_ATTEMPTS_PER_REQUEST}rd time is skipped, counted, and the job goes on`, async () => {

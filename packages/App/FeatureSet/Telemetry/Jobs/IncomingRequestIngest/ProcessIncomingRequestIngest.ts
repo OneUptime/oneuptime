@@ -110,6 +110,26 @@ export async function processPendingIncomingRequestsFromQueue(
     );
   }
 
+  try {
+    await workThroughPendingRequests(secretKeyHash);
+  } catch (err) {
+    /*
+     * The job fails, for BullMQ to retry it after a backoff - whatever
+     * failed: an evaluation, or reading or removing a waiting request. On
+     * its last attempt it first queues the monitor's next job, a while
+     * later, so the requests still waiting are never left without one.
+     */
+    if (options.isFinalAttempt && !isNonActionableIngestError(err)) {
+      await queueNextJobLater(secretKeyHash);
+    }
+
+    throw err;
+  }
+}
+
+async function workThroughPendingRequests(
+  secretKeyHash: string,
+): Promise<void> {
   let evaluatesEveryRequest: boolean | undefined = undefined;
   let tried: number = 0;
 
@@ -131,10 +151,7 @@ export async function processPendingIncomingRequestsFromQueue(
     }
 
     if (evaluatesEveryRequest === false) {
-      await evaluateNewestRequest({
-        secretKeyHash: secretKeyHash,
-        isFinalAttempt: options.isFinalAttempt,
-      });
+      await evaluateNewestRequest(secretKeyHash);
       return;
     }
 
@@ -143,7 +160,6 @@ export async function processPendingIncomingRequestsFromQueue(
       request: oldest,
       // Only a monitor known to evaluate every request says what it skipped.
       sayWhatWasSkipped: evaluatesEveryRequest === true,
-      isFinalAttempt: options.isFinalAttempt,
     });
 
     tried++;
@@ -157,6 +173,24 @@ export async function processPendingIncomingRequestsFromQueue(
     await TelemetryQueueService.addIncomingRequestPendingJob({
       secretKeyHash: secretKeyHash,
     });
+  }
+}
+
+/*
+ * Best effort: when even this fails - Redis is down - the requests wait for
+ * the monitor's next request, whose job works through them.
+ */
+async function queueNextJobLater(secretKeyHash: string): Promise<void> {
+  try {
+    await TelemetryQueueService.addIncomingRequestPendingJob({
+      secretKeyHash: secretKeyHash,
+      delayInMs: RETRY_WAITING_REQUESTS_AFTER_MS,
+    });
+  } catch (err) {
+    logger.error(
+      "Could not queue the next job for a monitor's waiting incoming requests; they are worked through when its next request arrives.",
+    );
+    logger.error(err);
   }
 }
 
@@ -233,7 +267,6 @@ async function evaluateRequestInTurn(data: {
   secretKeyHash: string;
   request: PendingIncomingRequest;
   sayWhatWasSkipped: boolean;
-  isFinalAttempt: boolean;
 }): Promise<void> {
   const { secretKeyHash, request } = data;
 
@@ -264,7 +297,6 @@ async function evaluateRequestInTurn(data: {
       secretKeyHash: secretKeyHash,
       request: request,
       error: err,
-      isFinalAttempt: data.isFinalAttempt,
       skip: async (): Promise<void> => {
         await IncomingRequestPendingStore.skipAfterFailures(
           secretKeyHash,
@@ -295,12 +327,7 @@ async function evaluateRequestInTurn(data: {
  * then removed with every older one, which it supersedes. Requests that
  * arrived meanwhile are the next job's: BullMQ queued it behind this one.
  */
-async function evaluateNewestRequest(data: {
-  secretKeyHash: string;
-  isFinalAttempt: boolean;
-}): Promise<void> {
-  const { secretKeyHash } = data;
-
+async function evaluateNewestRequest(secretKeyHash: string): Promise<void> {
   const newest: PendingIncomingRequest | null =
     await IncomingRequestPendingStore.peekNewest(secretKeyHash);
 
@@ -337,7 +364,6 @@ async function evaluateNewestRequest(data: {
       secretKeyHash: secretKeyHash,
       request: newest,
       error: err,
-      isFinalAttempt: data.isFinalAttempt,
       skip: removeThroughNewest,
     });
     return;
@@ -356,14 +382,12 @@ async function evaluateNewestRequest(data: {
  *     the job goes on.
  *   - Otherwise it stays waiting, counted, and the job fails for BullMQ to
  *     retry it after a backoff - requests that arrive meanwhile wait behind
- *     it. On the job's last attempt the next job is queued first, a while
- *     later, so the waiting requests are not left without one.
+ *     it (processPendingIncomingRequestsFromQueue).
  */
 async function settleFailedRequest(data: {
   secretKeyHash: string;
   request: PendingIncomingRequest;
   error: unknown;
-  isFinalAttempt: boolean;
   skip: () => Promise<void>;
 }): Promise<void> {
   const { secretKeyHash, request, error } = data;
@@ -392,13 +416,6 @@ async function settleFailedRequest(data: {
     logger.error(error);
     await data.skip();
     return;
-  }
-
-  if (data.isFinalAttempt) {
-    await TelemetryQueueService.addIncomingRequestPendingJob({
-      secretKeyHash: secretKeyHash,
-      delayInMs: RETRY_WAITING_REQUESTS_AFTER_MS,
-    });
   }
 
   throw error;
