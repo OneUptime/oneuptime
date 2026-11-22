@@ -3211,8 +3211,12 @@ describe("Audit Logs", () => {
 
   it("says the audit log can be read through the API, by the permission that reads it", () => {
     expect(new AuditLog().crudApiPath?.toString()).toBe("/audit-log");
+    // Its CRUD and aggregate reads, and the names its changes dialog reads (#10470).
     expect(readPackageFile("App/FeatureSet/BaseAPI/Index.ts")).toContain(
-      "new BaseAnalyticsAPI<AuditLog, AuditLogServiceType>(",
+      "new AuditLogAPI(AuditLogService)",
+    );
+    expect(readPackageFile("Common/Server/API/AuditLogAPI.ts")).toContain(
+      "extends BaseAnalyticsAPI<",
     );
     expect(section(page, "## How long entries are kept")).toContain(
       "read them through the API with an API key that holds **Read Audit Log**",
@@ -3233,6 +3237,40 @@ describe("Audit Logs", () => {
     expect(section(page, "## Read the audit log")).toContain(
       "Monitors, incidents, alerts, status pages, SLOs and many other resources also have an **Audit Logs** page of their own",
     );
+  });
+
+  it("says a related record in a change reads by its current name, with its ID, or as hidden or deleted (#10470)", () => {
+    const lookup: string = readPackageFile(
+      "Common/Server/Utils/AuditLog/AuditLogRelatedNames.ts",
+    );
+
+    // Read now, with the reader's permissions, and in the three states the page names.
+    expect(readPackageFile("Common/Server/API/AuditLogAPI.ts")).toContain(
+      "/:id/related-record-names",
+    );
+    // The entry is read with the reader's own read of the audit log.
+    expect(lookup).toContain("data.service || AuditLogService");
+    expect(lookup).toContain(").findOneById({");
+    expect(
+      readPackageFile("Common/Utils/AuditLog/AuditLogRelatedRecords.ts"),
+    ).toContain('Named = "Named",\n  Deleted = "Deleted",\n  Hidden = "Hidden",');
+    expect(section(page, "## Read the audit log")).toContain(
+      "A field that points to another resource, such as a monitor's status, shows that resource's current name, with its ID under it. A resource you may not read shows **Name hidden**, and one deleted since shows **Deleted**.",
+    );
+
+    // Core CI runs without ee/: the words are held to the dialog wherever ee/ is present.
+    if (!fs.existsSync(EE_DIR)) {
+      return;
+    }
+
+    const dialog: string = fs.readFileSync(
+      path.join(EE_DIR, "Dashboard/AuditLogs/AuditLogRelatedRecordValue.tsx"),
+      "utf8",
+    );
+
+    expect(dialog).toContain('deleted: translationKey("Deleted")');
+    expect(dialog).toContain('nameHidden: translationKey("Name hidden")');
+    expect(dialog).toContain('data-testid="audit-log-related-record-id"');
   });
 
   it("names the Enterprise Edition's audit log table, settings form and recorder as they are, where ee/ is checked out", () => {

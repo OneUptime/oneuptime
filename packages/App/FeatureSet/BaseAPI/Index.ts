@@ -1172,9 +1172,7 @@ import HostCollectorConfigVersionService, {
 import LabelService, {
   Service as LabelServiceType,
 } from "Common/Server/Services/LabelService";
-import AuditLogService, {
-  AuditLogService as AuditLogServiceType,
-} from "Common/Server/Services/AuditLogService";
+import AuditLogService from "Common/Server/Services/AuditLogService";
 import LogService, {
   LogService as LogServiceType,
 } from "Common/Server/Services/LogService";
@@ -1196,6 +1194,7 @@ import ChangeEventService, {
 
 import MetricService from "Common/Server/Services/MetricService";
 import MetricAPI from "Common/Server/API/MetricAPI";
+import AuditLogAPI from "Common/Server/API/AuditLogAPI";
 import MonitorCustomFieldService, {
   Service as MonitorCustomFieldServiceType,
 } from "Common/Server/Services/MonitorCustomFieldService";
@@ -1602,7 +1601,6 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
-import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Log from "Common/Models/AnalyticsModels/Log";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import ThreatIntelIndicator from "Common/Models/AnalyticsModels/ThreatIntelIndicator";
@@ -4234,12 +4232,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // Its reads, and the names of the records an entry's changes name (#10470).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAnalyticsAPI<AuditLog, AuditLogServiceType>(
-        AuditLog,
-        AuditLogService,
-      ).getRouter(),
+      new AuditLogAPI(AuditLogService).getRouter(),
     );
 
     app.use(
