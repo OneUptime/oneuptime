@@ -34,8 +34,13 @@ import {
  * Dashboard reads it defensively (readDropFilterImpact).
  */
 
-export const DROP_FILTER_IMPACT_API_PATH: string =
-  "/telemetry/drop-filter-impact";
+// Asked per signal, each by whoever may create or edit that signal's drop filters.
+export const DROP_FILTER_IMPACT_API_PATHS: Readonly<
+  Record<TelemetryFieldSignal, string>
+> = {
+  log: "/telemetry/logs/drop-filter-impact",
+  trace: "/telemetry/traces/drop-filter-impact",
+};
 
 // How far back the records a filter matches are counted.
 export const DROP_FILTER_IMPACT_LOOKBACK_IN_HOURS: number = 24;
@@ -424,3 +429,108 @@ export function readDropFilterImpact(value: unknown): DropFilterImpact {
 
 // Every kind of reader the answer lists, in the order a page lists them.
 export { TELEMETRY_FIELD_READER_KINDS };
+
+/*
+ * ---------------------------------------------------------------------------
+ * What an API write is told, in English
+ * ---------------------------------------------------------------------------
+ */
+
+// Each kind as an API answer names it, by count.
+const KIND_NOUNS: Readonly<
+  Record<TelemetryFieldReaderKind, { one: string; other: string }>
+> = {
+  [TelemetryFieldReaderKind.Monitor]: { one: "monitor", other: "monitors" },
+  [TelemetryFieldReaderKind.Dashboard]: {
+    one: "dashboard",
+    other: "dashboards",
+  },
+  [TelemetryFieldReaderKind.SavedView]: {
+    one: "saved view",
+    other: "saved views",
+  },
+  [TelemetryFieldReaderKind.RecordingRule]: {
+    one: "recording rule",
+    other: "recording rules",
+  },
+  [TelemetryFieldReaderKind.ServiceLevelObjective]: {
+    one: "SLO",
+    other: "SLOs",
+  },
+};
+
+const RECORD_NOUNS: Readonly<
+  Record<TelemetryFieldSignal, { one: string; other: string }>
+> = {
+  log: { one: "log", other: "logs" },
+  trace: { one: "span", other: "spans" },
+};
+
+// A count as English writes it: 1,240.
+function englishCount(count: number): string {
+  return count.toLocaleString("en-US");
+}
+
+function counted(count: number, noun: { one: string; other: string }): string {
+  return `${englishCount(count)} ${count === 1 ? noun.one : noun.other}`;
+}
+
+function englishList(items: Array<string>): string {
+  if (items.length <= 1) {
+    return items.join("");
+  }
+
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
+/*
+ * What a write through the API is told the filter takes, in one or two
+ * English sentences with counts and no record's name, or null when
+ * nothing reads what it takes (WriteWarnings). Where to ask for which.
+ */
+export function describeDropFilterImpact(
+  impact: DropFilterImpact,
+): string | null {
+  if (!isDropFilterImpactRead(impact)) {
+    return null;
+  }
+
+  const records: { one: string; other: string } = RECORD_NOUNS[impact.signal];
+  const verb: string =
+    impact.action === DropFilterImpactAction.Sample
+      ? `keeps only ${impact.keepPercentage}% of`
+      : "drops";
+  const parts: Array<string> = [];
+  const taken: number = getSecurityEventsRecordsTaken(impact);
+
+  if (taken > 0) {
+    parts.push(
+      `Security Events read ${englishCount(taken)} of the ${counted(
+        impact.count.matched,
+        records,
+      )} this filter matched in the last day`,
+    );
+  }
+
+  const readers: Array<string> = DROP_FILTER_HEADLINE_KINDS.map(
+    (kind: TelemetryFieldReaderKind): string => {
+      const count: number = countReadersOfKind(impact.readers[kind]);
+
+      return count > 0 ? counted(count, KIND_NOUNS[kind]) : "";
+    },
+  ).filter((part: string): boolean => {
+    return part.length > 0;
+  });
+
+  if (readers.length > 0) {
+    parts.push(
+      `${englishList(readers)} read ${records.other} this filter ${verb}`,
+    );
+  }
+
+  const sentence: string = parts.join(", and ");
+
+  return `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)}. Ask POST /api${
+    DROP_FILTER_IMPACT_API_PATHS[impact.signal]
+  } with the filter for which.`;
+}
