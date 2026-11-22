@@ -89,6 +89,19 @@ import {
   TurnOnRecommendedReason,
 } from "../../../../Types/SecurityEvent/TurnOnRecommended";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
+import Redis from "../../../../Server/Infrastructure/Redis";
+import RefusedTelemetryReader from "../../../../Server/Utils/SecurityEvent/RefusedTelemetryReader";
+import TelemetryIngestionBudgetStatusReader from "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetStatusReader";
+import ProductType from "../../../../Types/MeteredPlan/ProductType";
+import {
+  TelemetryIngestionBudgetScope,
+  TelemetryIngestionBudgetState,
+} from "../../../../Types/Telemetry/TelemetryIngestionBudget";
+import {
+  RefusedTelemetry,
+  RefusedTelemetryKind,
+  writeRefusedTelemetryRecord,
+} from "../../../../Utils/SecurityEvent/RefusedTelemetry";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "6ba7b811-9dad-41d1-80b4-00c04fd43401",
@@ -298,6 +311,7 @@ describe("SecuritySetup.getStatus", () => {
       enabledPlaybooks: 4,
       destinations: 1,
       addressScrubRules: [],
+      refusedTelemetry: [],
     });
 
     expect(connections.mock.calls[0]![0]).toEqual(
@@ -609,6 +623,255 @@ describe("SecuritySetup.getStatus: the scrub rules that hide attackers' addresse
     });
 
     expect(status.addressScrubRules).toEqual([]);
+  });
+});
+
+/*
+ * #10431: the setup says what a budget or a rate refused of the telemetry
+ * Security Events reads - of a source that is on, as it kept it and with the
+ * counters as they are now, over the Overview's 30 days - so the Overview
+ * never calls quiet what it could not see.
+ */
+describe("SecuritySetup.getStatus: what a budget or a rate refused", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+    RefusedTelemetryReader.clearCache();
+  });
+
+  const refusal: (data: Partial<RefusedTelemetry>) => RefusedTelemetry = (
+    data: Partial<RefusedTelemetry>,
+  ): RefusedTelemetry => {
+    return {
+      signal: ProductType.Logs,
+      kind: RefusedTelemetryKind.BudgetUsedUp,
+      scope: TelemetryIngestionBudgetScope.Project,
+      scopeId: PROJECT_ID.toString(),
+      scopeName: "",
+      from: "2026-10-19T10:00:00.000Z",
+      to: null,
+      refusedBytes: 100,
+      refusedRequests: 2,
+      ...data,
+    };
+  };
+
+  const kept: (refusals: Array<RefusedTelemetry>) => JSONObject = (
+    refusals: Array<RefusedTelemetry>,
+  ): JSONObject => {
+    return {
+      eventsFound: 0,
+      ...writeRefusedTelemetryRecord({ observation: null, refusals }),
+    };
+  };
+
+  // The rest of the pipeline, as figures that do not matter here.
+  function installPipeline(data: {
+    logSource: JSONObject | null;
+    tracesSource: JSONObject | null;
+  }): {
+    logSource: ReturnType<typeof jest.spyOn>;
+    tracesSource: ReturnType<typeof jest.spyOn>;
+  } {
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
+    jest
+      .spyOn(SecurityEventConnectionService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest
+      .spyOn(SecurityTelemetrySourceService, "countBy")
+      .mockResolvedValue(new PositiveNumber(data.tracesSource ? 1 : 0));
+    jest
+      .spyOn(SecurityEventService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest.spyOn(SecurityEventService, "findBy").mockResolvedValue([]);
+    jest.spyOn(DetectionRuleService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(ThreatIntelFeedService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest
+      .spyOn(SecurityCaseService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest
+      .spyOn(SecurityPlaybookService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest
+      .spyOn(SecurityEventDestinationService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest.spyOn(LogScrubRuleService, "findBy").mockResolvedValue([]);
+    jest.spyOn(TraceScrubRuleService, "findBy").mockResolvedValue([]);
+
+    return {
+      logSource: jest
+        .spyOn(SecurityLogSourceService, "findOneBy")
+        .mockResolvedValue(data.logSource as never),
+      tracesSource: jest
+        .spyOn(SecurityTelemetrySourceService, "findOneBy")
+        .mockResolvedValue(data.tracesSource as never),
+    };
+  }
+
+  test("says what was refused of the sources that are on, over 30 days, what goes on first", async () => {
+    const reads: {
+      logSource: ReturnType<typeof jest.spyOn>;
+      tracesSource: ReturnType<typeof jest.spyOn>;
+    } = installPipeline({
+      logSource: {
+        isEnabled: true,
+        lastScanResult: kept([
+          // Long ago: past the Overview's windows.
+          refusal({
+            from: "2026-09-01T10:00:00.000Z",
+            to: "2026-09-01T11:00:00.000Z",
+          }),
+          // A week ago, ended.
+          refusal({
+            kind: RefusedTelemetryKind.RateLimited,
+            from: "2026-10-12T10:00:00.000Z",
+            to: "2026-10-12T10:20:00.000Z",
+            refusedBytes: 0,
+          }),
+          // Today, and still going on.
+          refusal({}),
+        ]),
+      },
+      tracesSource: {
+        _id: "6ba7b813-9dad-41d1-80b4-00c04fd43599",
+        lastScanResult: kept([
+          refusal({
+            signal: ProductType.Traces,
+            from: "2026-10-19T11:00:00.000Z",
+            to: "2026-10-19T11:30:00.000Z",
+          }),
+        ]),
+      },
+    });
+
+    const status: SecuritySetupStatus = await SecuritySetup.getStatus({
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
+
+    expect(
+      status.refusedTelemetry.map(
+        (item: RefusedTelemetry): Array<string | null> => {
+          return [item.signal, item.kind, item.from, item.to];
+        },
+      ),
+    ).toEqual([
+      [
+        ProductType.Logs,
+        RefusedTelemetryKind.BudgetUsedUp,
+        "2026-10-19T10:00:00.000Z",
+        null,
+      ],
+      [
+        ProductType.Traces,
+        RefusedTelemetryKind.BudgetUsedUp,
+        "2026-10-19T11:00:00.000Z",
+        "2026-10-19T11:30:00.000Z",
+      ],
+      [
+        ProductType.Logs,
+        RefusedTelemetryKind.RateLimited,
+        "2026-10-12T10:00:00.000Z",
+        "2026-10-12T10:20:00.000Z",
+      ],
+    ]);
+
+    // Each source read with the person's own permissions, its result with it.
+    expect(reads.logSource.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        props: PROPS,
+        select: { _id: true, isEnabled: true, lastScanResult: true },
+      }),
+    );
+    expect(reads.tracesSource.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        props: PROPS,
+        select: { _id: true, lastScanResult: true },
+      }),
+    );
+  });
+
+  test("folds the counters in as they are now: a budget used up since the last scan is said at once", async () => {
+    installPipeline({
+      logSource: { isEnabled: true, lastScanResult: kept([]) },
+      tracesSource: null,
+    });
+    jest.spyOn(Redis, "isConnected").mockReturnValue(true);
+    jest
+      .spyOn(TelemetryIngestionBudgetStatusReader, "getProjectStatus")
+      .mockResolvedValue({
+        dayStartsAt: "2026-10-19T00:00:00.000Z",
+        resetsAt: "2026-10-20T00:00:00.000Z",
+        resetTime: "00:00",
+        timezone: "UTC",
+        warningPercent: 80,
+        countersAvailable: true,
+        project: {
+          scope: TelemetryIngestionBudgetScope.Project,
+          signals: [
+            {
+              signal: ProductType.Logs,
+              dailyBudgetBytes: 1000,
+              dailyBudgetSource: null,
+              rateLimitBytesPerSecond: null,
+              rateLimitSource: null,
+              usedBytes: 1000,
+              droppedBytes: 300,
+              droppedRequests: 3,
+              throttledRequests: 0,
+              percentUsed: 100,
+              state: TelemetryIngestionBudgetState.Exhausted,
+              warningCrossedAt: null,
+              exhaustedAt: "2026-10-19T11:59:00.000Z",
+            },
+          ],
+        },
+        ingestionKeys: [],
+        teamsAndLabels: [],
+      });
+
+    const status: SecuritySetupStatus = await SecuritySetup.getStatus({
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
+
+    expect(status.refusedTelemetry).toEqual([
+      refusal({
+        from: "2026-10-19T11:59:00.000Z",
+        refusedBytes: 300,
+        refusedRequests: 3,
+      }),
+    ]);
+  });
+
+  test("a source that is off says nothing here, whatever it kept", async () => {
+    installPipeline({
+      logSource: { isEnabled: false, lastScanResult: kept([refusal({})]) },
+      // The Traces source is read only while it is on: none.
+      tracesSource: null,
+    });
+
+    const status: SecuritySetupStatus = await SecuritySetup.getStatus({
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
+
+    expect(status.refusedTelemetry).toEqual([]);
+  });
+
+  test("a person who may not read the source is told nothing of it", async () => {
+    installPipeline({ logSource: null, tracesSource: null });
+    jest
+      .spyOn(SecurityLogSourceService, "findOneBy")
+      .mockRejectedValue(new Error("not allowed"));
+
+    const status: SecuritySetupStatus = await SecuritySetup.getStatus({
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
+
+    expect(status.refusedTelemetry).toEqual([]);
   });
 });
 

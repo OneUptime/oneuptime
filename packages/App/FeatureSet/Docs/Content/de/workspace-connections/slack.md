@@ -132,16 +132,16 @@ Bei jeder Übergabe erfahren die Kanäle einer Bereitschaftsrichtlinie in einer 
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments verlinkt die Richtlinie in OneUptime. Alarmiert die Richtlinie mehr als einen Zeitplan, nennt die Zeile auch den Zeitplan: Payments (Primary).
-- Eine Person wird mit ihrem Slack-Namen genannt, sobald sie ihr Slack-Konto mit OneUptime verbunden hat, und bis dahin mit ihrem Namen in OneUptime, in jeder Bereitschaftszeile: bei Übergaben, Vertretungen und Personen, die der Richtlinie hinzugefügt oder aus ihr entfernt werden. Zeiten erscheinen in der Zeitzone jedes Lesers.
+- Eine Person wird mit ihrem Slack-Namen genannt, sobald sie ihr Slack-Konto mit OneUptime verbunden hat, und bis dahin mit ihrem Namen in OneUptime, in jeder Bereitschaftszeile: bei Übergaben, Vertretungen und Personen, die der Richtlinie hinzugefügt oder aus ihr entfernt werden. Jemand, der eingeladen, dem Projekt aber noch nicht beigetreten ist, wird mit dem Namen genannt, der mit der Einladung eingegeben wurde, oder als "someone who hasn't joined the project yet", nie mit seiner E-Mail-Adresse, hier und im Feed der Richtlinie. Zeiten erscheinen in der Zeitzone jedes Lesers.
 - Alarmieren mehrere Eskalationsregeln der Richtlinie denselben Zeitplan, wird jede Übergabe einmal gepostet, nicht einmal pro Regel.
 
 Eine Regel postet, was sie in ihrem Schritt **Aktualisierungen** gewählt hat, und eine neue Regel beginnt mit **Nur wichtige Aktualisierungen**: wer jetzt Bereitschaft hat und wann niemand sie hat. Das gilt auch für eine Regel, die über die API oder mit Terraform erstellt wird und `updatesToPost` weglässt: Senden Sie `"updatesToPost": null` für jede Aktualisierung. Eine Änderung, die `updatesToPost` weglässt, behält die Aktualisierungen bei, die die Regel postet.
 
 | Aktualisierung | Was der Kanal erfährt |
 | --- | --- |
-| **Wer jetzt Bereitschaft hat** | Die Zeile oben, bei jeder Übergabe. |
-| **Wer als Nächstes Bereitschaft hat** | Wer bei der nächsten Übergabe übernimmt und wann: am Ende dieser Zeile, oder in einer eigenen Zeile für eine Regel, die nicht postet, wer jetzt Bereitschaft hat. |
-| **Niemand in Bereitschaft** | Ein Zeitplan, in dem niemand mehr Bereitschaft hat, sodass Warnungen, die ihn erreichen, niemanden alarmieren: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **Wer jetzt Bereitschaft hat** | Die Zeile oben, bei jeder Übergabe, und wenn die Person in Bereitschaft während ihres Dienstes dem Projekt beitritt: "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." |
+| **Wer als Nächstes Bereitschaft hat** | Wer bei der nächsten Übergabe übernimmt und wann: am Ende dieser Zeile, oder in einer eigenen Zeile für eine Regel, die nicht postet, wer jetzt Bereitschaft hat. Ist die nächste Person dem Projekt noch nicht beigetreten, übernimmt niemand, und die Zeile sagt, warum: "📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then nobody: Ivy is next but hasn't joined the project yet." |
+| **Niemand in Bereitschaft** | Ein Zeitplan, in dem niemand mehr Bereitschaft hat, sodass Warnungen, die ihn erreichen, niemanden alarmieren: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." Auch der Dienst einer Person, die dem Projekt noch nicht beigetreten ist, da nichts sie alarmiert, bis sie es tut: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." |
 | **Benutzerüberschreibungen** | Eine hinzugefügte, geänderte oder zurückgenommene Vertretung: wer abwesend ist und wer vertritt. |
 | **Änderungen an der Richtlinie** | Zeitpläne, Personen und Teams, die ihren Eskalationsregeln hinzugefügt oder daraus entfernt wurden. |
 | **Eigentümer** | Hinzugefügte und entfernte Eigentümer. |

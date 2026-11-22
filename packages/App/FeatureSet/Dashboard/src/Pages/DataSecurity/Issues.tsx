@@ -24,13 +24,21 @@ import {
   getStoreViewRoute,
 } from "../../Components/DataSecurity/IssueListRoute";
 import IssueMoment from "../../Components/DataSecurity/IssueMoment";
+import { VERDICT_TONES } from "../../Components/DataSecurity/IssueAiAnalysisCopy";
 import UserElement from "../../Components/User/User";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import useAiOffered from "../../Utils/UseAiOffered";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import {
+  DATA_SECURITY_AI_VERDICT_TITLES,
+  DATA_SECURITY_AI_VERDICTS,
+  DataSecurityAiVerdict,
+  isDataSecurityAiVerdict,
+} from "Common/Types/DataSecurity/DataSecurityIssueAnalysis";
 import OneUptimeDate from "Common/Types/Date";
 import {
   ALL_DATA_SECURITY_CHECK_GROUPS,
@@ -50,6 +58,7 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FilterData from "Common/UI/Components/Filters/Types/FilterData";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import Pill from "Common/UI/Components/Pill/Pill";
 import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
@@ -80,6 +89,24 @@ const groupOptions: Array<DropdownOption> = ALL_DATA_SECURITY_CHECK_GROUPS.map(
   },
 );
 
+/*
+ * OneUptime AI's verdicts (#10369), in the order people act on them: what
+ * it judged likely by design or a wrong finding first, for a person to
+ * decide.
+ */
+const verdictOptions: Array<DropdownOption> = [
+  DataSecurityAiVerdict.LikelyByDesign,
+  DataSecurityAiVerdict.LikelyWrongFinding,
+  ...DATA_SECURITY_AI_VERDICTS.filter((verdict: DataSecurityAiVerdict) => {
+    return (
+      verdict !== DataSecurityAiVerdict.LikelyByDesign &&
+      verdict !== DataSecurityAiVerdict.LikelyWrongFinding
+    );
+  }),
+].map((verdict: DataSecurityAiVerdict): DropdownOption => {
+  return { value: verdict, label: DATA_SECURITY_AI_VERDICT_TITLES[verdict] };
+});
+
 const checkOptions: Array<DropdownOption> = DATA_SECURITY_CHECKS.map(
   (check: DataSecurityCheckInfo): DropdownOption => {
     return { value: check.id, label: check.title };
@@ -97,6 +124,10 @@ const checkOptions: Array<DropdownOption> = DATA_SECURITY_CHECKS.map(
  * Each row's ⋯ menu and Bulk Actions work the issues - Mark Resolved,
  * Accept Risk, Not an Issue (IssueListActions) - and the list shows the
  * change at once, the side menu's open count with it.
+ *
+ * While the project's AI is on, the list filters by OneUptime AI's verdict
+ * (#10369), and shows it in Columns: what it judged likely by design or a
+ * wrong finding is a filter away, for a person to decide.
  */
 const DataSecurityIssuesPage: FunctionComponent<
   PageComponentProps
@@ -105,6 +136,7 @@ const DataSecurityIssuesPage: FunctionComponent<
   const namer: DataTypeNamer = useDataTypeNamer();
   const [refreshCount, setRefreshCount] = useState<number>(0);
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  const isAiOffered: boolean = useAiOffered();
 
   const listActions: IssueListActions = useIssueListActions({
     onChanged: (): void => {
@@ -204,6 +236,16 @@ const DataSecurityIssuesPage: FunctionComponent<
             filterDropdownOptions: checkOptions,
             isAdvancedFilter: true,
           },
+          ...(isAiOffered
+            ? [
+                {
+                  field: { aiVerdict: true },
+                  title: "OneUptime AI Verdict",
+                  type: FieldType.Dropdown,
+                  filterDropdownOptions: verdictOptions,
+                },
+              ]
+            : []),
         ]}
         columns={[
           {
@@ -416,6 +458,28 @@ const DataSecurityIssuesPage: FunctionComponent<
               return <IssueStatusPill status={item.status} />;
             },
           },
+          ...(isAiOffered
+            ? [
+                {
+                  field: { aiVerdict: true },
+                  title: "OneUptime AI Verdict",
+                  type: FieldType.Element,
+                  disableSort: true,
+                  isHiddenByDefault: true,
+                  getElement: (item: DataSecurityIssue): ReactElement => {
+                    return isDataSecurityAiVerdict(item.aiVerdict) ? (
+                      <Pill
+                        text={DATA_SECURITY_AI_VERDICT_TITLES[item.aiVerdict]}
+                        tone={VERDICT_TONES[item.aiVerdict]}
+                        isDotHidden={true}
+                      />
+                    ) : (
+                      <TableEmptyValue />
+                    );
+                  },
+                },
+              ]
+            : []),
           {
             field: { firstDetectedAt: true },
             title: "First Detected",

@@ -19,6 +19,8 @@ import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import DashboardResourceList from "../Utils/DashboardResourceList";
 import API from "Common/UI/Utils/API/API";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
+import { WIDGET_NO_EVENTS_BUT_REFUSED } from "../../SecurityEvents/RefusedTelemetry/RefusedTelemetryCopy";
+import { readIsPeriodRefused } from "../../SecurityEvents/RefusedTelemetry/useProjectRefusedTelemetry";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Search from "Common/Types/BaseDatabase/Search";
@@ -79,6 +81,7 @@ const DashboardSecurityEventsListComponentElement: FunctionComponent<
   );
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefusedInRange, setIsRefusedInRange] = useState<boolean>(false);
   const requestSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
   const widgetSort: DashboardListWidgetSort = useDashboardListWidgetSort(
     props,
@@ -165,7 +168,24 @@ const DashboardSecurityEventsListComponentElement: FunctionComponent<
           return;
         }
 
+        /*
+         * Nothing found over a time range in which an ingestion budget or
+         * rate refused some of the logs or traces Security Events reads is
+         * not "no security events" (#10431): the line says so.
+         */
+        const isRefused: boolean =
+          listResult.data.length === 0 &&
+          (await readIsPeriodRefused({
+            from: startAndEndDate.startValue,
+            to: startAndEndDate.endValue,
+          }));
+
+        if (isStale()) {
+          return;
+        }
+
         setSecurityEvents(listResult.data);
+        setIsRefusedInRange(isRefused);
         setError(null);
       } catch (err: unknown) {
         if (isStale()) {
@@ -272,7 +292,11 @@ const DashboardSecurityEventsListComponentElement: FunctionComponent<
       isLoading={isLoading}
       error={error}
       isEmpty={securityEvents.length === 0}
-      emptyMessage="No security events for the selected time range and filters"
+      emptyMessage={
+        isRefusedInRange
+          ? WIDGET_NO_EVENTS_BUT_REFUSED
+          : "No security events for the selected time range and filters"
+      }
       emptyIcon={IconProp.ShieldExclamation}
       sort={widgetSort.listSort}
     >

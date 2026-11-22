@@ -132,16 +132,16 @@ Vid varje överlämning får en jourpolicys kanaler veta vem som har jour, på e
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments länkar till policyn i OneUptime. När policyn larmar mer än ett schema nämner raden också schemat: Payments (Primary).
-- En person nämns med sitt Slack-namn när hen har kopplat sitt Slack-konto till OneUptime, och med sitt namn i OneUptime fram till dess, i varje jourmeddelande: överlämningar, åsidosättningar och personer som läggs till i policyn eller tas bort. Tider visas i varje läsares egen tidszon.
+- En person nämns med sitt Slack-namn när hen har kopplat sitt Slack-konto till OneUptime, och med sitt namn i OneUptime fram till dess, i varje jourmeddelande: överlämningar, åsidosättningar och personer som läggs till i policyn eller tas bort. Någon som är inbjuden men ännu inte har gått med i projektet nämns med namnet som skrevs med inbjudan, eller som "someone who hasn't joined the project yet", aldrig med sin e-postadress, här och i policyns flöde. Tider visas i varje läsares egen tidszon.
 - När flera av policyns eskaleringsregler larmar samma schema publiceras varje överlämning en gång, inte en gång per regel.
 
 En regel publicerar det den valde i sitt steg **Uppdateringar**, och en ny regel börjar med **Bara viktiga uppdateringar**: vem som har jour nu, och när ingen har det. Det gör även en regel som skapas via API:et eller med Terraform utan `updatesToPost`: skicka `"updatesToPost": null` för alla uppdateringar. En ändring utan `updatesToPost` behåller de uppdateringar som regeln publicerar.
 
 | Uppdatering | Vad kanalen får veta |
 | --- | --- |
-| **Vem som har jour nu** | Raden ovan, vid varje överlämning. |
-| **Vem som har jour härnäst** | Vem som tar över vid nästa överlämning, och när: i slutet av den raden, eller på en egen rad för en regel som inte publicerar vem som har jour nu. |
-| **Ingen har jour** | Ett schema som står utan någon som har jour, så att larm som når det inte larmar någon: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **Vem som har jour nu** | Raden ovan, vid varje överlämning, och när den som har jour går med i projektet under sin tur: "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." |
+| **Vem som har jour härnäst** | Vem som tar över vid nästa överlämning, och när: i slutet av den raden, eller på en egen rad för en regel som inte publicerar vem som har jour nu. När nästa person ännu inte har gått med i projektet tar ingen över, och raden säger varför: "📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then nobody: Ivy is next but hasn't joined the project yet." |
+| **Ingen har jour** | Ett schema som står utan någon som har jour, så att larm som når det inte larmar någon: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." Även turen för någon som ännu inte har gått med i projektet, eftersom inget larmar hen förrän hen gör det: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." |
 | **Användaråsidosättningar** | En åsidosättning som lagts till, ändrats eller dragits tillbaka: vem som är borta, och vem som täcker upp. |
 | **Ändringar i policyn** | Scheman, personer och team som lagts till i dess eskaleringsregler eller tagits bort. |
 | **Ägare** | Ägare som lagts till och tagits bort. |

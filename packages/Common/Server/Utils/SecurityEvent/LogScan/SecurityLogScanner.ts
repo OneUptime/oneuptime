@@ -45,6 +45,13 @@ import SecurityLogCases, {
   LOG_THREATS_PER_SCAN_LIMIT,
   SecurityLogThreatsResult,
 } from "../../SecurityCase/SecurityLogCases";
+import RefusedTelemetryReader from "../RefusedTelemetryReader";
+import ProductType from "../../../../Types/MeteredPlan/ProductType";
+import {
+  RefusedTelemetry,
+  RefusedTelemetryObservation,
+  RefusedTelemetryRecord,
+} from "../../../../Utils/SecurityEvent/RefusedTelemetry";
 
 /*
  * "Your logs" (SecurityLogSource): every minute, for each project that
@@ -157,6 +164,14 @@ export interface SecurityLogScanResult {
   partialWindowProcessed: number;
   scannedFrom: string;
   scannedTo: string;
+  /*
+   * The stretches in which an ingestion budget or rate refused this
+   * project's logs (#10431), kept from scan to scan for as long as a
+   * retrohunt can ask about them, and the budget counters they were last
+   * read with (Utils/SecurityEvent/RefusedTelemetry).
+   */
+  refusedTelemetry: Array<RefusedTelemetry>;
+  refusedTelemetryObservation: RefusedTelemetryObservation | null;
 }
 
 function readCursor(value: string | undefined): Date | null {
@@ -330,6 +345,15 @@ export default class SecurityLogScanner {
       lastFoundAtByFormat[format] = previousFoundAt[format]!.toISOString();
     }
 
+    // What a budget or a rate refused of the logs since the last turn (#10431).
+    const refused: RefusedTelemetryRecord =
+      await RefusedTelemetryReader.observe({
+        projectId,
+        signal: ProductType.Logs,
+        lastScanResult: previous,
+        now,
+      });
+
     const result: SecurityLogScanResult = {
       logsRead: 0,
       eventsFound: 0,
@@ -344,6 +368,8 @@ export default class SecurityLogScanner {
       partialWindowProcessed: 0,
       scannedFrom: cursor.toISOString(),
       scannedTo: cursor.toISOString(),
+      refusedTelemetry: refused.refusals,
+      refusedTelemetryObservation: refused.observation,
     };
 
     let serviceMetadata: TelemetryServiceMetadata | null = null;

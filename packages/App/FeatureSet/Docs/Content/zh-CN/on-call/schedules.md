@@ -46,6 +46,8 @@ flowchart TB
 
 当有人轮流值班且 **更多字段** 下没有任何更改时，其折叠的标题会说明将会发生什么：每人值班一周，然后由下一个人接替。
 
+已受邀加入项目但尚未加入的人也可以轮流值班，但在其接受邀请之前，任何内容都不会呼叫此人，也不会通知此人任何事。此人的轮值是一个覆盖空档，呼叫该计划的每个值班策略的频道和信息流都会说明这一点，并以邀请时填写的名称称呼此人，绝不会使用其电子邮件地址："⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." Slack 中的 `/oneuptime oncall` 和 Microsoft Teams 中的 `oncall` 也会这样说明。此人一旦加入，呼叫就能送达此人，此人会收到通知，了解现在有哪些值班策略会呼叫自己，频道中会发布 "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." 在此之前，[就绪情况与报告](/docs/on-call/readiness) 会列出此人，并说明该怎么做。
+
 ## 层
 
 计划的轮换由其 **层** 页面上的层组成。层从上往下读取：有人值班的最上层就是呼叫的那一层，因此请把主轮换放在顶部，把后备覆盖放在下面。

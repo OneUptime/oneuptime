@@ -8,10 +8,14 @@ import DataSecurityRunner, {
 } from "Common/Server/Utils/DataSecurity/DataSecurityRunner";
 import DataSecurityFieldSuggestion from "Common/Server/Utils/AI/DataSecurity/FieldSuggestion";
 import DataSecurityAiEngine from "Common/Server/Utils/AI/DataSecurity/DataSecurityAiEngine";
+import DataSecurityOwnerNotice from "Common/Server/Utils/AI/DataSecurity/DataSecurityOwnerNotice";
 import DataStoreOwnerProposalRun from "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerProposalRun";
 import DataStoreOwnerRuleProposals from "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals";
 import {
   DATA_SECURITY_AI_EVALUATE_ISSUE_JOB,
+  DATA_SECURITY_NOTIFY_OWNERS_JOB,
+  HeldOwnerNotice,
+  readHeldOwnerNotice,
   DATA_SECURITY_DISCOVER_PROJECT_JOB,
   DATA_SECURITY_PROPOSE_OWNER_RULES_JOB,
   DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB,
@@ -52,7 +56,9 @@ import ObjectID from "Common/Types/ObjectID";
  *    OneUptime AI what they hold (queued by the scan, not by a schedule).
  *  - When an issue opens, or opens again, have OneUptime AI work on it as
  *    the project's Data Security AI rules say (queued by the evaluation,
- *    one job per issue).
+ *    one job per issue), and - while it does - email the store's owners once
+ *    its analysis is there (one job per store, waiting a minute at a time,
+ *    #10369).
  *  - Every day, and when a cloud connection is first read (queued by the
  *    read), have OneUptime AI propose owners for the stores that have
  *    none (#10374); a few minutes after a store's owners are proposed, the
@@ -280,6 +286,25 @@ JobDictionary.setTimeoutInMs(
   DATA_SECURITY_AI_EVALUATE_ISSUE_JOB,
   5 * 60 * 1000,
 );
+
+/*
+ * The email a store's owners get about its new issues, held while OneUptime
+ * AI analyzes them (#10369): sent once its work is done, or after ten
+ * minutes, with each analyzed issue's verdict and shortest path.
+ */
+JobDictionary.setJobFunction(
+  DATA_SECURITY_NOTIFY_OWNERS_JOB,
+  async (job?: QueueJob): Promise<void> => {
+    const notice: HeldOwnerNotice | null = readHeldOwnerNotice(
+      (job?.data || {}) as JSONObject,
+    );
+
+    if (notice) {
+      await DataSecurityOwnerNotice.send(notice);
+    }
+  },
+);
+JobDictionary.setTimeoutInMs(DATA_SECURITY_NOTIFY_OWNERS_JOB, 5 * 60 * 1000);
 
 // OneUptime AI's owners for a project's stores that have none (#10374).
 JobDictionary.setJobFunction(

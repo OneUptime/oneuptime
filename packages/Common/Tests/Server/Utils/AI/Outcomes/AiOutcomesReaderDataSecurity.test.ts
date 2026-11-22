@@ -245,6 +245,17 @@ function callsTo(table: TableName): Array<Call> {
   });
 }
 
+/*
+ * The reads of the issues a change was proven for. OneUptime AI's verdicts
+ * (#10369) read the issues it analyzed on their own, with their verdicts:
+ * AiOutcomesReaderRecords.test's.
+ */
+function provenIssueReads(): Array<Call> {
+  return callsTo("issues").filter((call: Call): boolean => {
+    return !("aiVerdict" in call.select);
+  });
+}
+
 function read(): Promise<AiOutcomes> {
   return AiOutcomesReader.read({
     projectId: PROJECT_ID,
@@ -509,7 +520,7 @@ describe("what it reads, for whom, in which window", () => {
 
     await read();
 
-    const calls: Array<Call> = callsTo("issues");
+    const calls: Array<Call> = provenIssueReads();
 
     expect(calls).toHaveLength(1);
     expect(calls[0]!.props).toBe(CALLER);
@@ -532,7 +543,7 @@ describe("what it reads, for whom, in which window", () => {
 
     await read();
 
-    expect(callsTo("issues")).toEqual([]);
+    expect(provenIssueReads()).toEqual([]);
   });
 
   test("the caller's props are never root, whatever Data Security it reads", async () => {
