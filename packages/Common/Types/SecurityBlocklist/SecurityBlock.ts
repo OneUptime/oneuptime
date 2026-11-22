@@ -1,13 +1,26 @@
 import NetworkAddressBlockUtil, {
   NetworkAddressBlock,
 } from "../../Utils/NetworkTraffic/NetworkAddressBlock";
+import {
+  SECURITY_BLOCK_URL_MAX_LENGTH,
+  SecurityBlockHashKind,
+  SecurityBlockHashReading,
+  SecurityBlockIndicatorProblem,
+  SecurityBlockUrlReading,
+  getSecurityBlockIndicatorProblem,
+  readSecurityBlockDomain,
+  readSecurityBlockHash,
+  readSecurityBlockUrl,
+} from "./SecurityBlockIndicator";
 
 /*
  * THE BLOCKLIST: what a project blocks, why, until when, and where it is
  * enforced (#10338).
  *
  * One block is one thing the project blocks: an address or a range of
- * addresses, blocked or challenged, until it expires or someone lifts it.
+ * addresses, blocked or challenged at the edge (#10338), or a domain, a URL
+ * or a file blocked on every machine (#10346), until it expires or someone
+ * lifts it.
  * The blocklist is a desired state that OneUptime keeps true at every
  * destination that enforces it (Cloudflare, AWS WAF, Azure WAF, Cloud Armor,
  * a firewall that reads a feed, Microsoft Defender, CrowdStrike - each its
@@ -23,23 +36,49 @@ import NetworkAddressBlockUtil, {
  */
 
 /*
- * What a block holds. An address or a range now; #10346 adds domains, URLs
- * and file hashes (Domain, Url, FileSha256, FileMd5), which the column's
- * width already takes.
+ * What a block holds: an address or a range (#10338), or a domain, a URL
+ * or a file by its hash (#10346), which the endpoint products block on
+ * every machine (Microsoft Defender, CrowdStrike). How each is written is
+ * readSecurityBlockIndicator's, and SecurityBlockIndicator.ts's.
  */
 export enum SecurityBlockIndicatorType {
   IpAddress = "IpAddress",
   IpRange = "IpRange",
+  Domain = "Domain",
+  Url = "Url",
+  FileSha256 = "FileSha256",
+  FileSha1 = "FileSha1",
+  FileMd5 = "FileMd5",
 }
 
 /*
- * What a destination does with the requests a block matches: turns them
- * away, or asks for a challenge a person passes and a script does not.
- * A destination that cannot challenge says so on the block (supports()).
+ * What a destination does with what a block matches: turns it away, asks
+ * for a challenge a person passes and a script does not (an address at the
+ * edge), or - for a file - blocks it and quarantines the copies it finds.
+ * A destination that cannot do one says so on the block (supports()).
  */
 export enum SecurityBlockAction {
   Block = "Block",
   Challenge = "Challenge",
+  BlockAndQuarantine = "BlockAndQuarantine",
+}
+
+/*
+ * Where a block is enforced (#10346). An address is blocked at the edge in
+ * front of the app - Cloudflare, AWS WAF, a firewall that reads the feed -
+ * unless it is blocked everywhere: then on every machine too, through
+ * Microsoft Defender or CrowdStrike, which a case about a command-and-
+ * control server needs, since what matters there is the machines reaching
+ * out. A domain, a URL or a file is blocked everywhere OneUptime can: on
+ * every machine, and at a firewall or a proxy that holds them.
+ *
+ * So an endpoint product never fills its indicators with every scanner the
+ * edge turns away, and an address can be blocked at the edge and, on its
+ * own, everywhere: two blocks, each with its own end.
+ */
+export enum SecurityBlockReach {
+  Edge = "Edge",
+  Everywhere = "Everywhere",
 }
 
 /*
@@ -67,12 +106,133 @@ export enum SecurityBlockSource {
 }
 
 export const SECURITY_BLOCK_INDICATOR_TYPES: ReadonlyArray<SecurityBlockIndicatorType> =
+  [
+    SecurityBlockIndicatorType.IpAddress,
+    SecurityBlockIndicatorType.IpRange,
+    SecurityBlockIndicatorType.Domain,
+    SecurityBlockIndicatorType.Url,
+    SecurityBlockIndicatorType.FileSha256,
+    SecurityBlockIndicatorType.FileSha1,
+    SecurityBlockIndicatorType.FileMd5,
+  ];
+
+// The kinds of value that are an address or a range of them.
+export const SECURITY_BLOCK_ADDRESS_TYPES: ReadonlyArray<SecurityBlockIndicatorType> =
   [SecurityBlockIndicatorType.IpAddress, SecurityBlockIndicatorType.IpRange];
+
+// The kinds of value that are a file, by its hash.
+export const SECURITY_BLOCK_FILE_TYPES: ReadonlyArray<SecurityBlockIndicatorType> =
+  [
+    SecurityBlockIndicatorType.FileSha256,
+    SecurityBlockIndicatorType.FileSha1,
+    SecurityBlockIndicatorType.FileMd5,
+  ];
 
 export const SECURITY_BLOCK_ACTIONS: ReadonlyArray<SecurityBlockAction> = [
   SecurityBlockAction.Block,
   SecurityBlockAction.Challenge,
+  SecurityBlockAction.BlockAndQuarantine,
 ];
+
+/*
+ * What a block of an address does: block it, or challenge it - the edge's
+ * actions. A file's BlockAndQuarantine (#10346) is never an address's, so
+ * a destination that holds addresses only - Cloudflare's lists and rules
+ * (#10343) - sets up nothing for it.
+ */
+export type SecurityBlockAddressAction =
+  | SecurityBlockAction.Block
+  | SecurityBlockAction.Challenge;
+
+export const SECURITY_BLOCK_ADDRESS_ACTIONS: ReadonlyArray<SecurityBlockAddressAction> =
+  [SecurityBlockAction.Block, SecurityBlockAction.Challenge];
+
+export const SECURITY_BLOCK_REACHES: ReadonlyArray<SecurityBlockReach> = [
+  SecurityBlockReach.Edge,
+  SecurityBlockReach.Everywhere,
+];
+
+export function isSecurityBlockIndicatorType(
+  value: unknown,
+): value is SecurityBlockIndicatorType {
+  return (
+    typeof value === "string" &&
+    (SECURITY_BLOCK_INDICATOR_TYPES as ReadonlyArray<string>).includes(value)
+  );
+}
+
+export function isSecurityBlockReach(
+  value: unknown,
+): value is SecurityBlockReach {
+  return (
+    typeof value === "string" &&
+    (SECURITY_BLOCK_REACHES as ReadonlyArray<string>).includes(value)
+  );
+}
+
+// Whether a block's value is an address or a range.
+export function isSecurityBlockAddressType(
+  type: SecurityBlockIndicatorType | string | undefined | null,
+): boolean {
+  return (SECURITY_BLOCK_ADDRESS_TYPES as ReadonlyArray<string>).includes(
+    type || "",
+  );
+}
+
+// Whether a block's value is a file's hash.
+export function isSecurityBlockFileType(
+  type: SecurityBlockIndicatorType | string | undefined | null,
+): boolean {
+  return (SECURITY_BLOCK_FILE_TYPES as ReadonlyArray<string>).includes(
+    type || "",
+  );
+}
+
+/*
+ * Where a block of this kind is enforced: an address where asked - at the
+ * edge unless asked for everywhere - and anything else everywhere.
+ */
+export function getSecurityBlockReach(data: {
+  indicatorType: SecurityBlockIndicatorType | string | undefined | null;
+  reach?: SecurityBlockReach | string | undefined | null;
+}): SecurityBlockReach {
+  if (!isSecurityBlockAddressType(data.indicatorType)) {
+    return SecurityBlockReach.Everywhere;
+  }
+
+  return data.reach === SecurityBlockReach.Everywhere
+    ? SecurityBlockReach.Everywhere
+    : SecurityBlockReach.Edge;
+}
+
+/*
+ * Whether a block made to reach `held` already does what one to reach
+ * `wanted` would: a block everywhere is a block at the edge too, never the
+ * other way round. A block written before reach was kept is at the edge.
+ */
+export function doesSecurityBlockReachCover(data: {
+  held: SecurityBlockReach | string | undefined | null;
+  wanted: SecurityBlockReach | string | undefined | null;
+}): boolean {
+  return (
+    data.held === SecurityBlockReach.Everywhere ||
+    data.wanted !== SecurityBlockReach.Everywhere
+  );
+}
+
+// The kind of a file block, by its hash's.
+export function getSecurityBlockFileType(
+  kind: SecurityBlockHashKind,
+): SecurityBlockIndicatorType {
+  switch (kind) {
+    case SecurityBlockHashKind.Md5:
+      return SecurityBlockIndicatorType.FileMd5;
+    case SecurityBlockHashKind.Sha1:
+      return SecurityBlockIndicatorType.FileSha1;
+    default:
+      return SecurityBlockIndicatorType.FileSha256;
+  }
+}
 
 export const SECURITY_BLOCK_STATES: ReadonlyArray<SecurityBlockState> = [
   SecurityBlockState.Active,
@@ -243,8 +403,12 @@ export const SECURITY_BLOCK_LARGEST_IPV6_PREFIX: number = 48;
 export const SECURITY_BLOCK_WIDEST_IPV4_PREFIX: number = 8;
 export const SECURITY_BLOCK_WIDEST_IPV6_PREFIX: number = 16;
 
-// The longest value a block holds (an IPv6 range is at most 43 characters).
-export const SECURITY_BLOCK_VALUE_MAX_LENGTH: number = 100;
+/*
+ * The longest value a block holds: a URL (SECURITY_BLOCK_URL_MAX_LENGTH).
+ * A domain is at most 253 characters, a hash 64 and an IPv6 range 43.
+ */
+export const SECURITY_BLOCK_VALUE_MAX_LENGTH: number =
+  SECURITY_BLOCK_URL_MAX_LENGTH;
 
 // The longest reason, and lift reason, a block keeps.
 export const SECURITY_BLOCK_REASON_MAX_LENGTH: number = 500;
@@ -283,6 +447,84 @@ export function readSecurityBlockValue(
     value: block.text,
     block,
   };
+}
+
+/*
+ * Anything a block holds, as it is kept (#10346): an address or a range
+ * (with the block it covers), a domain, a URL (with its host: a domain, or
+ * an address) or a file's hash.
+ */
+export interface SecurityBlockIndicatorValue {
+  indicatorType: SecurityBlockIndicatorType;
+  value: string;
+  // An address or a range: what it covers.
+  block?: NetworkAddressBlock | undefined;
+  // A domain, or a URL's host when that is a domain.
+  domain?: string | undefined;
+  // A URL's host when that is an address.
+  address?: string | undefined;
+}
+
+/*
+ * What a value is and how it is kept, whatever it is, or null when it is
+ * none of them: an address or a range first, then a file's hash, a URL
+ * (which starts with its scheme) and a domain.
+ */
+export function readSecurityBlockIndicator(
+  value: unknown,
+): SecurityBlockIndicatorValue | null {
+  if (typeof value !== "string" || !value.trim()) {
+    return null;
+  }
+
+  const address: SecurityBlockValue | null = readSecurityBlockValue(value);
+
+  if (address) {
+    return address;
+  }
+
+  const hash: SecurityBlockHashReading | null = readSecurityBlockHash(value);
+
+  if (hash) {
+    return {
+      indicatorType: getSecurityBlockFileType(hash.kind),
+      value: hash.hash,
+    };
+  }
+
+  const url: SecurityBlockUrlReading | null = readSecurityBlockUrl(value);
+
+  if (url) {
+    return url.url.length > SECURITY_BLOCK_URL_MAX_LENGTH
+      ? null
+      : {
+          indicatorType: SecurityBlockIndicatorType.Url,
+          value: url.url,
+          ...(url.isAddressHost ? { address: url.host } : { domain: url.host }),
+        };
+  }
+
+  const domain: { domain: string } | null = readSecurityBlockDomain(value);
+
+  return domain
+    ? {
+        indicatorType: SecurityBlockIndicatorType.Domain,
+        value: domain.domain,
+        domain: domain.domain,
+      }
+    : null;
+}
+
+/*
+ * A value as blocks write it, whatever it is - the key the reconciler and
+ * every destination compare by - or, for text that is none of them, the
+ * text trimmed and lower cased.
+ */
+export function getSecurityBlockValueKey(value: string): string {
+  const read: SecurityBlockIndicatorValue | null =
+    readSecurityBlockIndicator(value);
+
+  return read ? read.value : (value || "").trim().toLowerCase();
 }
 
 // The largest range of the block's family, as a prefix length.
@@ -327,15 +569,40 @@ export interface SecurityBlockSentence {
 export const SECURITY_BLOCK_SENTENCES: {
   enterAddress: string;
   notAnAddress: string;
+  enterValue: string;
+  notAValue: string;
+  wildcardDomain: string;
+  unsupportedHash: string;
+  urlTooLong: string;
+  urlScheme: string;
   tooWide: string;
   widerThanAnyone: string;
   alreadyBlocked: string;
   alreadyBlockedBy: string;
   checkFailed: string;
+  checkFailedValue: string;
 } = {
   enterAddress: translationKey("Enter the IP address or range to block."),
   notAnAddress: translationKey(
     "Enter an IPv4 or IPv6 address, such as 203.0.113.7, or a range written as an address and a length, such as 203.0.113.0/24.",
+  ),
+  enterValue: translationKey(
+    "Enter the address, domain, URL or file hash to block.",
+  ),
+  notAValue: translationKey(
+    "Enter an IP address or a range, such as 203.0.113.7 or 203.0.113.0/24, a domain such as evil.example, a URL that starts with http:// or https://, or a file's MD5, SHA-1 or SHA-256 hash.",
+  ),
+  wildcardDomain: translationKey(
+    "Enter the domain without *, such as evil.example. Microsoft Defender blocks the names under a domain along with it.",
+  ),
+  unsupportedHash: translationKey(
+    "OneUptime blocks a file by its MD5, SHA-1 or SHA-256 hash, which Microsoft Defender and CrowdStrike match files by. Enter one of those.",
+  ),
+  urlTooLong: translationKey(
+    "A URL on the blocklist is at most {{max}} characters. Block a shorter URL, or its domain.",
+  ),
+  urlScheme: translationKey(
+    "Enter a URL that starts with http:// or https://, or block its domain.",
   ),
   tooWide: translationKey(
     "{{value}} is wider than a {{largest}}, which would block whole networks. Block single addresses or a narrower range, or ask a Security Admin to block it.",
@@ -350,7 +617,26 @@ export const SECURITY_BLOCK_SENTENCES: {
   checkFailed: translationKey(
     "OneUptime could not check whether {{value}} is one of your own addresses, so it did not block it. Try again in a minute.",
   ),
+  checkFailedValue: translationKey(
+    "OneUptime could not check whether {{value}} is protected, so it did not block it. Try again in a minute.",
+  ),
 };
+
+/*
+ * That OneUptime could not tell whether a value is protected: of an address
+ * whether it is the project's own, of a domain or a file whether anything
+ * protects it.
+ */
+export function getSecurityBlockCheckFailedSentence(
+  value: string,
+): SecurityBlockSentence {
+  return {
+    template: readSecurityBlockValue(value)
+      ? SECURITY_BLOCK_SENTENCES.checkFailed
+      : SECURITY_BLOCK_SENTENCES.checkFailedValue,
+    values: { value },
+  };
+}
 
 // A sentence filled in English, as the server answers.
 export function fillSecurityBlockSentence(
@@ -374,6 +660,12 @@ export function fillSecurityBlockSentence(
 export const SECURITY_BLOCK_MESSAGES: {
   enterAddress: string;
   notAnAddress: string;
+  enterValue: string;
+  notAValue: string;
+  wildcardDomain: string;
+  unsupportedHash: string;
+  urlTooLong: (data: { max: string }) => string;
+  urlScheme: string;
   tooWide: (data: { value: string; largest: string }) => string;
   widerThanAnyone: (data: { value: string; widest: string }) => string;
   untilLiftedTakesAdmin: string;
@@ -384,12 +676,29 @@ export const SECURITY_BLOCK_MESSAGES: {
   liftOnly: string;
   valueNeverChanges: string;
   actionNeverChanges: string;
+  reachNeverChanges: string;
+  chooseAction: string;
+  challengeOnlyAddresses: string;
+  challengeOnlyAtTheEdge: string;
+  quarantineOnlyFiles: string;
   alreadyBlocked: (data: { value: string; by: string }) => string;
   notDeletable: string;
   checkFailed: (data: { value: string }) => string;
+  checkFailedValue: (data: { value: string }) => string;
 } = {
   enterAddress: SECURITY_BLOCK_SENTENCES.enterAddress,
   notAnAddress: SECURITY_BLOCK_SENTENCES.notAnAddress,
+  enterValue: SECURITY_BLOCK_SENTENCES.enterValue,
+  notAValue: SECURITY_BLOCK_SENTENCES.notAValue,
+  wildcardDomain: SECURITY_BLOCK_SENTENCES.wildcardDomain,
+  unsupportedHash: SECURITY_BLOCK_SENTENCES.unsupportedHash,
+  urlTooLong: (data: { max: string }): string => {
+    return fillSecurityBlockSentence({
+      template: SECURITY_BLOCK_SENTENCES.urlTooLong,
+      values: data,
+    });
+  },
+  urlScheme: SECURITY_BLOCK_SENTENCES.urlScheme,
   tooWide: (data: { value: string; largest: string }): string => {
     return fillSecurityBlockSentence({
       template: SECURITY_BLOCK_SENTENCES.tooWide,
@@ -411,15 +720,24 @@ export const SECURITY_BLOCK_MESSAGES: {
   reasonTooLong: `A reason is at most ${SECURITY_BLOCK_REASON_MAX_LENGTH} characters.`,
   notActive: (data: { value: string; state: SecurityBlockState }): string => {
     return data.state === SecurityBlockState.Expired
-      ? `The block on ${data.value} has expired, so it cannot be changed. Block the address again to block it once more.`
-      : `The block on ${data.value} was lifted, so it cannot be changed. Block the address again to block it once more.`;
+      ? `The block on ${data.value} has expired, so it cannot be changed. Block ${data.value} again to block it once more.`
+      : `The block on ${data.value} was lifted, so it cannot be changed. Block ${data.value} again to block it once more.`;
   },
   liftOnly:
     "A block ends when someone lifts it or when it expires. To lift it, set its state to Lifted.",
   valueNeverChanges:
-    "A block's address never changes. Lift this block and block the other address instead.",
+    "What a block blocks never changes. Lift this block and block the other value instead.",
   actionNeverChanges:
-    "A block's action never changes. Lift this block and block the address again with the other action.",
+    "A block's action never changes. Lift this block and block the value again with the other action.",
+  reachNeverChanges:
+    "Where a block is enforced never changes. Block the address again everywhere: the block at the edge stays until it ends.",
+  chooseAction: "Choose Block, Challenge or Block and Quarantine.",
+  challengeOnlyAddresses:
+    "Only an address or a range can be challenged: a challenge is a page a person passes in a browser. Block the domain, URL or file instead.",
+  challengeOnlyAtTheEdge:
+    "A challenge is answered in a browser at the edge, so an address blocked on every machine is blocked, never challenged. Choose Block.",
+  quarantineOnlyFiles:
+    "Only a file can be quarantined. Block the address, domain or URL instead.",
   alreadyBlocked: (data: { value: string; by: string }): string => {
     return fillSecurityBlockSentence(
       getSecurityBlockAlreadyBlockedSentence(data),
@@ -427,13 +745,49 @@ export const SECURITY_BLOCK_MESSAGES: {
   },
   notDeletable:
     "Blocks are kept, so a case and the next block of the address can say it was blocked before. Lift the block instead.",
+  // Of an address whether it is the project's own, of anything else whether it is protected.
   checkFailed: (data: { value: string }): string => {
+    return fillSecurityBlockSentence(
+      getSecurityBlockCheckFailedSentence(data.value),
+    );
+  },
+  checkFailedValue: (data: { value: string }): string => {
     return fillSecurityBlockSentence({
-      template: SECURITY_BLOCK_SENTENCES.checkFailed,
+      template: SECURITY_BLOCK_SENTENCES.checkFailedValue,
       values: data,
     });
   },
 };
+
+/*
+ * What is wrong with blocking a value of this kind with this action, where
+ * it is enforced, or null: a challenge is for an address at the edge, and
+ * quarantine for a file.
+ */
+export function getSecurityBlockActionProblem(data: {
+  indicatorType: SecurityBlockIndicatorType;
+  action: SecurityBlockAction;
+  reach: SecurityBlockReach;
+}): string | null {
+  if (data.action === SecurityBlockAction.Challenge) {
+    if (!isSecurityBlockAddressType(data.indicatorType)) {
+      return SECURITY_BLOCK_MESSAGES.challengeOnlyAddresses;
+    }
+
+    if (data.reach === SecurityBlockReach.Everywhere) {
+      return SECURITY_BLOCK_MESSAGES.challengeOnlyAtTheEdge;
+    }
+  }
+
+  if (
+    data.action === SecurityBlockAction.BlockAndQuarantine &&
+    !isSecurityBlockFileType(data.indicatorType)
+  ) {
+    return SECURITY_BLOCK_MESSAGES.quarantineOnlyFiles;
+  }
+
+  return null;
+}
 
 // That a value is blocked already, and by what when it is a range that covers it.
 export function getSecurityBlockAlreadyBlockedSentence(data: {
@@ -453,9 +807,11 @@ export function getSecurityBlockAlreadyBlockedSentence(data: {
 
 /*
  * What is wrong with a value someone wants to block, as a sentence with its
- * values, or null: missing, not an address or a range, or a range wider
- * than allowed. `mayBlockWideRanges` says whether the blocker may go past
- * the largest range (a person with Security Admin, or a Project Owner or
+ * values, or null: missing; none of an address, a range, a domain, a URL or
+ * a file's hash (and why, when that is worth saying: a wildcard, a SHA-512
+ * digest, a URL too long or of another scheme); or a range wider than
+ * allowed. `mayBlockWideRanges` says whether the blocker may go past the
+ * largest range (a person with Security Admin, or a Project Owner or
  * Admin); nobody goes past the widest.
  */
 export function getSecurityBlockValueSentence(data: {
@@ -465,18 +821,45 @@ export function getSecurityBlockValueSentence(data: {
   const text: string = typeof data.value === "string" ? data.value.trim() : "";
 
   if (!text) {
-    return { template: SECURITY_BLOCK_SENTENCES.enterAddress, values: {} };
+    return { template: SECURITY_BLOCK_SENTENCES.enterValue, values: {} };
   }
 
-  if (text.length > SECURITY_BLOCK_VALUE_MAX_LENGTH) {
-    return { template: SECURITY_BLOCK_SENTENCES.notAnAddress, values: {} };
+  // Twice the longest value: a URL a little long is told so, a page of text is not a value.
+  if (text.length > SECURITY_BLOCK_VALUE_MAX_LENGTH * 2) {
+    return { template: SECURITY_BLOCK_SENTENCES.notAValue, values: {} };
   }
 
-  const read: SecurityBlockValue | null = readSecurityBlockValue(text);
-
-  if (!read) {
-    return { template: SECURITY_BLOCK_SENTENCES.notAnAddress, values: {} };
+  switch (getSecurityBlockIndicatorProblem(text)) {
+    case SecurityBlockIndicatorProblem.Wildcard:
+      return { template: SECURITY_BLOCK_SENTENCES.wildcardDomain, values: {} };
+    case SecurityBlockIndicatorProblem.UnsupportedHash:
+      return { template: SECURITY_BLOCK_SENTENCES.unsupportedHash, values: {} };
+    case SecurityBlockIndicatorProblem.UrlTooLong:
+      return {
+        template: SECURITY_BLOCK_SENTENCES.urlTooLong,
+        values: { max: String(SECURITY_BLOCK_URL_MAX_LENGTH) },
+      };
+    case SecurityBlockIndicatorProblem.UrlScheme:
+      return { template: SECURITY_BLOCK_SENTENCES.urlScheme, values: {} };
+    default:
+      break;
   }
+
+  const indicator: SecurityBlockIndicatorValue | null =
+    readSecurityBlockIndicator(text);
+
+  if (!indicator) {
+    return { template: SECURITY_BLOCK_SENTENCES.notAValue, values: {} };
+  }
+
+  if (!indicator.block) {
+    return null;
+  }
+
+  const read: { value: string; block: NetworkAddressBlock } = {
+    value: indicator.value,
+    block: indicator.block,
+  };
 
   const widest: number = getSecurityBlockWidestPrefix(read.block.family);
 
@@ -542,22 +925,46 @@ export function getSecurityBlockExpiryProblem(data: {
 // A block as the covering rule reads it.
 export interface SecurityBlockCandidate {
   value: string;
+  // Where it is enforced; a block written before reach was kept is at the edge.
+  reach?: SecurityBlockReach | string | undefined | null;
 }
 
 /*
  * The active block that already covers a value, if any: one of the same
- * value, else a range that holds it - the narrowest such range, so the
- * answer names the block that says the most. A value already covered is
- * already blocked, and the answer names what covers it.
+ * value, else - for an address - a range that holds it, the narrowest such
+ * range, so the answer names the block that says the most. A value already
+ * covered is already blocked, and the answer names what covers it.
+ *
+ * A block covers only where it is enforced (`reach`, the edge unless
+ * said): a block everywhere covers a block at the edge, and a block at the
+ * edge never covers one everywhere. A domain, a URL or a file is covered by
+ * a block of the same value alone: whether a block of a domain also blocks
+ * the names under it is the provider's to say, so OneUptime never answers
+ * "already blocked" for a name it has not blocked itself.
  */
 export function findCoveringSecurityBlock<T extends SecurityBlockCandidate>(
-  value: SecurityBlockValue,
+  value: SecurityBlockIndicatorValue,
   activeBlocks: ReadonlyArray<T>,
+  reach: SecurityBlockReach = SecurityBlockReach.Edge,
 ): T | null {
   let best: T | null = null;
   let bestPrefix: number = -1;
 
   for (const candidate of activeBlocks) {
+    if (
+      !doesSecurityBlockReachCover({ held: candidate.reach, wanted: reach })
+    ) {
+      continue;
+    }
+
+    if (!value.block) {
+      if (getSecurityBlockValueKey(candidate.value) === value.value) {
+        return candidate;
+      }
+
+      continue;
+    }
+
     const read: SecurityBlockValue | null = readSecurityBlockValue(
       candidate.value,
     );

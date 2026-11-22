@@ -22,9 +22,11 @@ import {
 } from "./DocsDashboardLabels";
 import {
   bold,
+  boldIn,
   codeIn,
   englishPage,
   englishSection,
+  lineStartingWith,
   readRepoFile,
   tableWithHeader,
 } from "./InventoryAndApiDocsSupport";
@@ -75,6 +77,7 @@ import MicrosoftSentinelClient, {
 } from "Common/Server/Utils/SecurityEvent/Connectors/MicrosoftSentinel/MicrosoftSentinelClient";
 import ElasticSecurityConnector from "Common/Server/Utils/SecurityEvent/Connectors/ElasticSecurity/ElasticSecurityConnector";
 import GoogleWorkspaceConnector from "Common/Server/Utils/SecurityEvent/Connectors/GoogleWorkspace/GoogleWorkspaceConnector";
+import { CLOUDFLARE_BLOCKING_CHECK_NAMES } from "Common/Server/Utils/SecurityEvent/Connectors/Cloudflare/CloudflareBlocking";
 import CloudflareConnector from "Common/Server/Utils/SecurityEvent/Connectors/Cloudflare/CloudflareConnector";
 import MicrosoftEntraIdConnector from "Common/Server/Utils/SecurityEvent/Connectors/MicrosoftEntraId/MicrosoftEntraIdConnector";
 import MicrosoftSentinelConnector from "Common/Server/Utils/SecurityEvent/Connectors/MicrosoftSentinel/MicrosoftSentinelConnector";
@@ -101,6 +104,7 @@ import { JSONObject } from "Common/Types/JSON";
 import Permission from "Common/Types/Permission";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
 import {
+  BLOCK_INDICATORS_KEY,
   ConnectorField,
   ENTRA_BACKGROUND_SIGN_INS_KEY,
   SecurityEventConnectorCatalog,
@@ -109,6 +113,11 @@ import {
 import { SecurityConnectorCheck } from "Common/Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import SecurityEventFormat from "Common/Types/SecurityEvent/SecurityEventFormat";
+import {
+  CLOUDFLARE_ACCESS_RULES_EDIT_PERMISSION,
+  CLOUDFLARE_LIST_EDIT_PERMISSION,
+  CLOUDFLARE_WAF_EDIT_PERMISSION,
+} from "Common/Types/SecurityBlocklist/CloudflareBlocking";
 import { GOOGLE_SECOPS_SUPPORTED_REGIONS } from "Common/Types/SecurityEvent/GoogleSecOpsRegion";
 import { isTranslatableTerm } from "Common/Types/Translator";
 import CrowdStrikeFalconNormalizer from "Common/Utils/SecurityEvent/Connectors/CrowdStrikeFalconNormalizer";
@@ -758,9 +767,18 @@ describe("every connection page's test checklist", () => {
       const peer: FakePeer = fakePeer((): DataSourceHttpResponse => {
         return json(401, { error: "invalid_client" });
       });
+      /*
+       * Its blocking switch on, as a connection that blocks has it (#10346):
+       * the page lists every check, the blocking one among them, which
+       * only such a connection's test reports.
+       */
+      const settings: SecurityConnectorSettings = settingsFor(entry.provider);
       const report: { checks: Array<SecurityConnectorCheck> } =
         await SecurityEventConnectionTester.test({
-          settings: settingsFor(entry.provider),
+          settings: {
+            ...settings,
+            config: { ...settings.config, [BLOCK_INDICATORS_KEY]: true },
+          },
           connectorOverride: connectorFor(entry.provider, peer.transport),
           platformOverride: {
             workerConsumers: 1,
@@ -791,6 +809,41 @@ describe("every connection page's test checklist", () => {
       expect(documented).toEqual(reported);
     },
   );
+});
+
+describe("Cloudflare's blocking", () => {
+  const BLOCKING: string = "## Block addresses at Cloudflare";
+
+  it("names the write permissions as blocking asks for and checks them", () => {
+    expect(
+      tableWithHeader(englishSection(CLOUDFLARE, BLOCKING), "Permission").map(
+        (row: Array<string>): Array<string> => {
+          return codeIn(row[0] as string);
+        },
+      ),
+    ).toEqual([
+      [CLOUDFLARE_LIST_EDIT_PERMISSION],
+      [CLOUDFLARE_WAF_EDIT_PERMISSION],
+      [CLOUDFLARE_ACCESS_RULES_EDIT_PERMISSION],
+    ]);
+  });
+
+  it("names the checks blocking adds to a test as the test report does, in the order they run", () => {
+    expect(
+      boldIn(
+        lineStartingWith(
+          englishSection(CLOUDFLARE, BLOCKING),
+          `While blocking is on, ${bold("Test connection")} runs the same checks:`,
+        ),
+      ),
+    ).toEqual([
+      "Test connection",
+      CLOUDFLARE_BLOCKING_CHECK_NAMES.setup,
+      CLOUDFLARE_BLOCKING_CHECK_NAMES.lists,
+      CLOUDFLARE_BLOCKING_CHECK_NAMES.rules,
+      CLOUDFLARE_BLOCKING_CHECK_NAMES.accessRules,
+    ]);
+  });
 });
 
 describe("Microsoft Sentinel", () => {

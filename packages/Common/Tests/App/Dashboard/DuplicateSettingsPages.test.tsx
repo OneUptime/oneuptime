@@ -140,6 +140,8 @@ import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import Form from "../../../Models/DatabaseModels/Form";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import { JSONArray } from "../../../Types/JSON";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import FormTargetType from "../../../Types/Form/FormTargetType";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
@@ -601,6 +603,170 @@ describe("the form's Duplicate", () => {
     expect(copy.templates).toEqual([
       { id: "outage", name: "Outage", answers: { office: "Paris" } },
     ]);
+  });
+
+  /*
+   * #10646: the records a copy names are read by their ids - never looked
+   * for in the project's first 10,000 of a kind, where a monitor past them
+   * read as gone and the copy's template lost its answer naming it. One
+   * deleted since is left out, so the server takes the copy (a new form is
+   * judged whole); the original keeps it.
+   */
+  describe("the records the copy names, read by their ids", () => {
+    const LATE_MONITOR: string = "e1e1e1e1-0000-4000-8000-0000000000aa";
+    const GONE_MONITOR: string = "e1e1e1e1-0000-4000-8000-0000000000dd";
+    const GONE_LABEL: string = "e1e1e1e1-0000-4000-8000-0000000000de";
+
+    const MONITORS_QUESTION: Record<string, unknown> = {
+      id: "monitors",
+      source: "TargetField",
+      targetField: "monitors",
+      label: "Affected Monitors",
+      isRequired: false,
+      allowedOptionIds: [LATE_MONITOR, GONE_MONITOR],
+    };
+
+    // The project as it is: the late monitor there, the others gone.
+    const answerByIds: () => void = (): void => {
+      mockGetList.mockImplementation(async (options: unknown) => {
+        const query: Record<string, unknown> = (
+          options as { query: Record<string, unknown> }
+        ).query;
+        const ids: Array<string> =
+          query["_id"] instanceof Includes
+            ? (query["_id"] as Includes).values.map((value: unknown) => {
+                return String(value).toLowerCase();
+              })
+            : [];
+
+        return {
+          data:
+            (options as { modelType: unknown }).modelType === Monitor &&
+            ids.includes(LATE_MONITOR)
+              ? [
+                  Object.assign(new Monitor(), {
+                    _id: LATE_MONITOR,
+                    name: "WB1500KSK02",
+                  }),
+                ]
+              : [],
+          count: 0,
+          skip: 0,
+          limit: 10,
+        };
+      });
+    };
+
+    test("a monitor past the project's first 10,000 is kept, in the question, the settings and a template", async () => {
+      answerByIds();
+
+      const copy: Form = new Form();
+      copy.targetType = FormTargetType.Incident;
+      copy.fields = [
+        {
+          id: "title",
+          source: "TargetField",
+          targetField: "title",
+          label: "Title",
+          isRequired: true,
+        },
+        { ...MONITORS_QUESTION, allowedOptionIds: [LATE_MONITOR] },
+      ] as unknown as JSONArray;
+      copy.targetSettings = { monitorIds: [LATE_MONITOR] };
+      copy.templates = [
+        {
+          id: "kiosk",
+          name: "Kiosk down",
+          answers: { monitors: [LATE_MONITOR] },
+        },
+      ] as unknown as JSONArray;
+
+      await prepareFormCopy(copy);
+
+      expect(
+        (copy.fields as unknown as Array<Record<string, unknown>>)[1]![
+          "allowedOptionIds"
+        ],
+      ).toEqual([LATE_MONITOR]);
+      expect(copy.targetSettings).toEqual({ monitorIds: [LATE_MONITOR] });
+      expect(copy.templates).toEqual([
+        {
+          id: "kiosk",
+          name: "Kiosk down",
+          answers: { monitors: [LATE_MONITOR] },
+        },
+      ]);
+
+      // Read by their ids: never the project's monitors whole.
+      for (const call of mockGetList.mock.calls) {
+        const query: Record<string, unknown> = (
+          call[0] as { query: Record<string, unknown> }
+        ).query;
+
+        expect(query["_id"]).toBeInstanceOf(Includes);
+      }
+    });
+
+    test("a record deleted since is left out of the copy's questions and settings", async () => {
+      answerByIds();
+
+      const copy: Form = new Form();
+      copy.targetType = FormTargetType.Incident;
+      copy.fields = [MONITORS_QUESTION] as unknown as JSONArray;
+      copy.targetSettings = {
+        defaultTitle: "Reported",
+        monitorIds: [GONE_MONITOR, LATE_MONITOR],
+        labelIds: [GONE_LABEL],
+      };
+      copy.templates = [
+        { id: "late", name: "Late", answers: { monitors: [LATE_MONITOR] } },
+        { id: "gone", name: "Gone", answers: { monitors: [GONE_MONITOR] } },
+      ] as unknown as JSONArray;
+
+      await prepareFormCopy(copy);
+
+      expect(
+        (copy.fields as unknown as Array<Record<string, unknown>>)[0]![
+          "allowedOptionIds"
+        ],
+      ).toEqual([LATE_MONITOR]);
+      expect(copy.targetSettings).toEqual({
+        defaultTitle: "Reported",
+        monitorIds: [LATE_MONITOR],
+        labelIds: [],
+      });
+      /*
+       * A template keeps an answer its question still offers; one naming
+       * only the monitor deleted since is left behind, as the public page
+       * leaves it (getFormTemplateAnswers).
+       */
+      expect(copy.templates).toEqual([
+        { id: "late", name: "Late", answers: { monitors: [LATE_MONITOR] } },
+        { id: "gone", name: "Gone", answers: {} },
+      ]);
+    });
+
+    test("when the records cannot be read, the copy names them as the original does", async () => {
+      mockGetList.mockImplementation(async (): Promise<never> => {
+        throw new Error("The network is down.");
+      });
+
+      const copy: Form = new Form();
+      copy.targetType = FormTargetType.Incident;
+      copy.fields = [MONITORS_QUESTION] as unknown as JSONArray;
+      copy.targetSettings = { monitorIds: [GONE_MONITOR, LATE_MONITOR] };
+
+      await prepareFormCopy(copy);
+
+      expect(
+        (copy.fields as unknown as Array<Record<string, unknown>>)[0]![
+          "allowedOptionIds"
+        ],
+      ).toEqual([LATE_MONITOR, GONE_MONITOR]);
+      expect(copy.targetSettings).toEqual({
+        monitorIds: [GONE_MONITOR, LATE_MONITOR],
+      });
+    });
   });
 });
 

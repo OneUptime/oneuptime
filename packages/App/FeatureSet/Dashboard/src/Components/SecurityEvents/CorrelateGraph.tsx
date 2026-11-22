@@ -30,6 +30,10 @@ import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import { RefusedTelemetry } from "Common/Utils/SecurityEvent/RefusedTelemetry";
+import { isPeriodRefused } from "./RefusedTelemetry/RefusedTelemetryModel";
+import RefusedTelemetryRangeNote from "./RefusedTelemetry/RefusedTelemetryRangeNote";
+import useProjectRefusedTelemetry from "./RefusedTelemetry/useProjectRefusedTelemetry";
 import IconProp from "Common/Types/Icon/IconProp";
 import Input from "Common/UI/Components/Input/Input";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -457,6 +461,16 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
   const [refreshNonce, setRefreshNonce] = useState<number>(0);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [detailEvent, setDetailEvent] = useState<SecurityEvent | null>(null);
+  /*
+   * What an ingestion budget or rate refused of the logs and traces Security
+   * Events reads (#10431), read the first time a fetch finds nothing (a
+   * result window is set only once a fetch is done): "No events found" over
+   * a time range some of them were refused in says events from it are
+   * missing.
+   */
+  const refusals: Array<RefusedTelemetry> = useProjectRefusedTelemetry(
+    resultWindow !== null && !isLoading && !error && events.length === 0,
+  );
   const isWideCanvas: boolean = useMediaQuery(WIDE_CANVAS_QUERY);
   const isFloatingPanel: boolean = useMediaQuery(FLOATING_PANEL_QUERY);
   const [canvasElement, setCanvasElement] = useState<HTMLDivElement | null>(
@@ -1547,6 +1561,21 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
       );
     }
 
+    const actionsRow: ReactElement | undefined =
+      actions.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {actions}
+        </div>
+      ) : undefined;
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const isRefused: boolean = isPeriodRefused({
+      refusals,
+      from:
+        resultWindow?.start || OneUptimeDate.getSomeHoursAgo(timeRangeInHours),
+      to: resultWindow?.end || now,
+      now,
+    });
+
     return (
       <EmptyState
         id="security-events-correlate-no-results"
@@ -1554,11 +1583,14 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
         title="No events found"
         description="No security events matched this filter in the selected time range."
         footer={
-          actions.length > 0 ? (
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {actions}
+          isRefused ? (
+            <div className="space-y-3">
+              <RefusedTelemetryRangeNote dataTestId="correlate-no-results-refused" />
+              {actionsRow || <></>}
             </div>
-          ) : undefined
+          ) : (
+            actionsRow
+          )
         }
       />
     );

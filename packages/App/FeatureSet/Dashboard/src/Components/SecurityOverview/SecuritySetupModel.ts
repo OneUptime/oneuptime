@@ -27,6 +27,10 @@ import {
   TurnOnRecommendedResult,
 } from "Common/Types/SecurityEvent/TurnOnRecommended";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  RefusedTelemetry,
+  readRefusedTelemetryList,
+} from "Common/Utils/SecurityEvent/RefusedTelemetry";
 
 /*
  * How Security is set up in a project, as the Overview draws it: the
@@ -58,6 +62,12 @@ export interface SecuritySetupStatus {
    * when there are none.
    */
   addressScrubRules?: Array<SecurityAddressScrubRule> | undefined;
+  /*
+   * What an ingestion budget or rate refused of the logs and traces it
+   * reads (#10431), each stretch that goes on or ended lately. Absent when
+   * nothing was.
+   */
+  refusedTelemetry?: Array<RefusedTelemetry> | undefined;
 }
 
 export type { TurnOnRecommendedProblem, TurnOnRecommendedResult };
@@ -94,9 +104,13 @@ export function parseSecuritySetupStatus(
 ): SecuritySetupStatus {
   const addressScrubRules: Array<SecurityAddressScrubRule> =
     readSecurityAddressScrubRules(body["addressScrubRules"]);
+  const refusedTelemetry: Array<RefusedTelemetry> = readRefusedTelemetryList(
+    body["refusedTelemetry"],
+  );
 
   return {
     ...(addressScrubRules.length > 0 ? { addressScrubRules } : {}),
+    ...(refusedTelemetry.length > 0 ? { refusedTelemetry } : {}),
     connections: readNumber(body["connections"]),
     logsSourceEnabled: body["logsSourceEnabled"] === true,
     telemetrySourcesEnabled: readNumber(body["telemetrySourcesEnabled"]),

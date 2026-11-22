@@ -62,6 +62,9 @@ export const getDataSecurityIssueFeedKind: GetDataSecurityIssueFeedKindFunction 
         return SHARED_FEED_ENTRY_KINDS.AIRootCause;
       case DataSecurityIssueFeedEventType.AiFixRequested:
         return { icon: IconProp.Bolt, tone: FeedTone.AI };
+      // OneUptime AI's analysis of the issue, and its verdict (#10369).
+      case DataSecurityIssueFeedEventType.AiAnalysis:
+        return { icon: IconProp.Sparkles, tone: FeedTone.AI };
       /*
        * Public access blocked or sharing revoked from the issue, in the
        * colour the server chose: green when the store changed, grey when it

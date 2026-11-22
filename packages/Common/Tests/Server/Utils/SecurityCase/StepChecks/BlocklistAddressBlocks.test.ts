@@ -2,15 +2,21 @@ import SecurityBlock from "../../../../../Models/DatabaseModels/SecurityBlock";
 import SecurityBlockEnforcement from "../../../../../Models/DatabaseModels/SecurityBlockEnforcement";
 import SecurityBlockEnforcementService from "../../../../../Server/Services/SecurityBlockEnforcementService";
 import SecurityBlockService from "../../../../../Server/Services/SecurityBlockService";
+import SecurityEventService from "../../../../../Server/Services/SecurityEventService";
 import AddressBlocks, {
   ADDRESS_BLOCK_SOURCES,
   AddressBlockEvidence,
   getEnforcedAddressBlocks,
 } from "../../../../../Server/Utils/SecurityCase/StepChecks/Evidence/AddressBlocks";
 import SecurityBlocklistAddressBlockSource, {
+  HELD_BLOCK_FACTS_READERS,
+  HeldBlockFactsReader,
   doesBlockHoldAddress,
   getHeldBlockEvidence,
+  readHeldBlockFacts,
 } from "../../../../../Server/Utils/SecurityCase/StepChecks/Evidence/BlocklistAddressBlocks";
+import { JSONObject } from "../../../../../Types/JSON";
+import { SecurityCaseStepCheckSentence } from "../../../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
 import ObjectID from "../../../../../Types/ObjectID";
 import {
   SecurityBlockAction,
@@ -20,6 +26,7 @@ import {
 } from "../../../../../Types/SecurityBlocklist/SecurityBlock";
 import {
   SECURITY_BLOCK_CONFIRMATION_MAX_AGE_IN_MS,
+  SecurityBlockDestinationProvider,
   SecurityBlockEnforcementState,
 } from "../../../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
 import {
@@ -28,6 +35,8 @@ import {
 } from "../../../../../Types/SecurityCase/SecurityCaseResponseLink";
 import {
   CHECK_BLOCK_CHALLENGED_AT,
+  CHECK_BLOCK_CLOUDFLARE_CHALLENGED,
+  CHECK_BLOCK_CLOUDFLARE_STOPPED,
   CHECK_BLOCK_ENFORCED_AT,
   CHECK_BLOCK_NOT_ENFORCED,
   CHECK_BLOCK_RANGE_CHALLENGED_AT,
@@ -292,6 +301,26 @@ describe("a block a destination holds", () => {
       },
     ]);
     expect(getEnforcedAddressBlocks(evidence)).toHaveLength(1);
+  });
+
+  test("held on every machine alone - by Microsoft Defender - is not held at the edge: said as not enforced (#10346)", async () => {
+    blocks.push(makeBlock({ index: 1, value: ADDRESS }));
+    const defender: SecurityBlockEnforcement = makeRow({
+      blockIndex: 1,
+      destination: "Microsoft Defender",
+      state: SecurityBlockEnforcementState.Applied,
+      appliedAt: at(-20),
+      lastConfirmedAt: at(-1),
+    });
+    defender.provider = SecurityBlockDestinationProvider.MicrosoftDefender;
+    rows.push(defender);
+
+    const evidence: Array<AddressBlockEvidence> = await read();
+
+    expect(getEnforcedAddressBlocks(evidence)).toHaveLength(0);
+    expect(evidence).toHaveLength(1);
+    expect(evidence[0]!.isNotEnforced).toBe(true);
+    expect(evidence[0]!.isApplying).toBe(false);
   });
 
   test("held at two destinations: one piece of evidence each", async () => {
@@ -656,5 +685,189 @@ describe("the pieces", () => {
         readResponseLink({ kind: ResponseLinkKind.OpenBlocklist, value }),
       ).toBeNull();
     }
+  });
+});
+
+/*
+ * What a destination adds of its own to a block it holds (#10343):
+ * Cloudflare, how many of the address's requests its rule stopped since
+ * the block, counted from the firewall events the connection imports.
+ */
+describe("what a destination holding the block adds of its own", () => {
+  function eventCount(rowsRead: Array<JSONObject>): never {
+    return {
+      json: async (): Promise<JSONObject> => {
+        return { data: rowsRead } as unknown as JSONObject;
+      },
+    } as never;
+  }
+
+  function cloudflareRow(blockIndex: number): SecurityBlockEnforcement {
+    const row: SecurityBlockEnforcement = makeRow({
+      blockIndex,
+      destination: "Cloudflare",
+      state: SecurityBlockEnforcementState.Applied,
+      appliedAt: at(-20),
+      lastConfirmedAt: at(-1),
+    });
+    row.provider = SecurityBlockDestinationProvider.Cloudflare;
+    row.destinationKey = "Cloudflare:connection-1";
+    row.providerRef = "item-1";
+    return row;
+  }
+
+  test("Cloudflare is the destination that does", () => {
+    expect(Object.keys(HELD_BLOCK_FACTS_READERS)).toEqual([
+      SecurityBlockDestinationProvider.Cloudflare,
+    ]);
+  });
+
+  test("held at Cloudflare: how many of the address's requests its rule stopped since the block", async () => {
+    blocks.push(makeBlock({ index: 1, value: ADDRESS }));
+    rows.push(cloudflareRow(1));
+    jest
+      .spyOn(SecurityEventService, "executeQuery")
+      .mockResolvedValue(
+        eventCount([{ requests: "312", maxSampleInterval: "1" }]),
+      );
+
+    const evidence: Array<AddressBlockEvidence> = await read();
+
+    expect(evidence).toHaveLength(1);
+    expect(evidence[0]!.sentence.template).toBe(CHECK_BLOCK_ENFORCED_AT);
+    expect(evidence[0]!.facts).toEqual([
+      {
+        template: CHECK_BLOCK_CLOUDFLARE_STOPPED,
+        values: { address: ADDRESS },
+        times: { time: at(-20).toISOString() },
+        count: 312,
+      },
+    ]);
+  });
+
+  test("a challenge held at Cloudflare says how many it challenged", async () => {
+    blocks.push(
+      makeBlock({
+        index: 1,
+        value: ADDRESS,
+        action: SecurityBlockAction.Challenge,
+      }),
+    );
+    rows.push(cloudflareRow(1));
+    jest
+      .spyOn(SecurityEventService, "executeQuery")
+      .mockResolvedValue(
+        eventCount([{ requests: "4", maxSampleInterval: "1" }]),
+      );
+
+    const evidence: Array<AddressBlockEvidence> = await read();
+
+    expect(evidence[0]!.facts?.[0]?.template).toBe(
+      CHECK_BLOCK_CLOUDFLARE_CHALLENGED,
+    );
+  });
+
+  test("nothing stopped since: no fact, and the evidence is as the Blocklist says it", async () => {
+    blocks.push(makeBlock({ index: 1, value: ADDRESS }));
+    rows.push(cloudflareRow(1));
+    jest
+      .spyOn(SecurityEventService, "executeQuery")
+      .mockResolvedValue(eventCount([]));
+
+    const evidence: Array<AddressBlockEvidence> = await read();
+
+    expect(evidence[0]!.facts).toBeUndefined();
+    expect(getEnforcedAddressBlocks(evidence)).toHaveLength(1);
+  });
+
+  test("a count that cannot be read leaves the fact out, never the evidence", async () => {
+    blocks.push(makeBlock({ index: 1, value: ADDRESS }));
+    rows.push(cloudflareRow(1));
+    jest
+      .spyOn(SecurityEventService, "executeQuery")
+      .mockRejectedValue(new Error("ClickHouse is down"));
+
+    const evidence: Array<AddressBlockEvidence> = await read();
+
+    expect(evidence).toHaveLength(1);
+    expect(evidence[0]!.sentence.template).toBe(CHECK_BLOCK_ENFORCED_AT);
+    expect(evidence[0]!.facts).toBeUndefined();
+  });
+
+  test("a destination with nothing of its own reads nothing more", async () => {
+    blocks.push(makeBlock({ index: 1, value: ADDRESS }));
+    rows.push(
+      makeRow({
+        blockIndex: 1,
+        destination: "AWS WAF",
+        state: SecurityBlockEnforcementState.Applied,
+        appliedAt: at(-20),
+        lastConfirmedAt: at(-1),
+      }),
+    );
+    const query: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      SecurityEventService,
+      "executeQuery",
+    );
+
+    const evidence: Array<AddressBlockEvidence> = await read();
+
+    expect(query).not.toHaveBeenCalled();
+    expect(evidence[0]!.facts).toBeUndefined();
+  });
+
+  test("a block nothing holds is asked nothing of", async () => {
+    blocks.push(makeBlock({ index: 1, value: ADDRESS }));
+    const pending: SecurityBlockEnforcement = cloudflareRow(1);
+    pending.state = SecurityBlockEnforcementState.Pending;
+    rows.push(pending);
+    const query: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      SecurityEventService,
+      "executeQuery",
+    );
+
+    const evidence: Array<AddressBlockEvidence> = await read();
+
+    expect(query).not.toHaveBeenCalled();
+    expect(evidence[0]!.isNotEnforced).toBe(true);
+  });
+
+  test("each reader is handed the block's action, the row and when the block was applied there", async () => {
+    const fact: SecurityCaseStepCheckSentence = {
+      template: "a fact",
+      values: {},
+    };
+    const reader: HeldBlockFactsReader = jest.fn<HeldBlockFactsReader>(
+      async () => {
+        return [fact];
+      },
+    );
+    const block: SecurityBlock = makeBlock({
+      index: 1,
+      value: ADDRESS,
+      action: SecurityBlockAction.Challenge,
+    });
+    const row: SecurityBlockEnforcement = cloudflareRow(1);
+
+    const facts: Array<SecurityCaseStepCheckSentence> =
+      await readHeldBlockFacts({
+        projectId: PROJECT_ID,
+        address: ADDRESS,
+        block,
+        row,
+        evidence: getHeldBlockEvidence({ address: ADDRESS, block, row }),
+        now: NOW,
+        readers: { [SecurityBlockDestinationProvider.Cloudflare]: reader },
+      });
+
+    expect(facts).toEqual([fact]);
+    expect(reader).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      address: ADDRESS,
+      action: SecurityBlockAction.Challenge,
+      row,
+      appliedAt: at(-20),
+      now: NOW,
+    });
   });
 });

@@ -11,10 +11,12 @@ import {
   readSecurityBlockValue,
 } from "../../../../../Types/SecurityBlocklist/SecurityBlock";
 import {
+  SecurityBlockDestinationProvider,
   SecurityBlockEnforcementState,
   isSecurityBlockEnforcementHolding,
 } from "../../../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
 import { ResponseLinkKind } from "../../../../../Types/SecurityCase/SecurityCaseResponseLink";
+import { SecurityCaseStepCheckSentence } from "../../../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
 import NetworkAddressBlockUtil from "../../../../../Utils/NetworkTraffic/NetworkAddressBlock";
 import {
   CHECK_BLOCK_CHALLENGED_AT,
@@ -27,6 +29,13 @@ import SecurityBlockEnforcementService from "../../../../Services/SecurityBlockE
 import SecurityBlockService from "../../../../Services/SecurityBlockService";
 import { sentence } from "../StepCheck";
 import { AddressBlockEvidence, AddressBlockSource } from "./AddressBlocks";
+import { readCloudflareStoppedFacts } from "./CloudflareStoppedRequests";
+
+// The products that block on every machine, as an enforcement row names them (#10346).
+const EVERY_MACHINE_PROVIDERS: ReadonlyArray<string> = [
+  SecurityBlockDestinationProvider.MicrosoftDefender,
+  SecurityBlockDestinationProvider.CrowdStrike,
+];
 
 /*
  * THE PROJECT'S BLOCKLIST, AS A SOURCE OF AN ADDRESS'S BLOCKS (#10562).
@@ -135,6 +144,62 @@ export function getHeldBlockEvidence(data: {
   };
 }
 
+// What one destination reads of its own about a block it holds.
+export type HeldBlockFactsReader = (data: {
+  projectId: ObjectID;
+  address: string;
+  action: SecurityBlockAction;
+  row: Pick<SecurityBlockEnforcement, "appliedAt" | "providerRef">;
+  appliedAt: Date;
+  now: Date;
+}) => Promise<Array<SecurityCaseStepCheckSentence>>;
+
+/*
+ * The destinations that add facts of their own to a block they hold, by
+ * the provider their enforcement rows name: Cloudflare, the address's
+ * requests its rule stopped since the block (#10343).
+ */
+export const HELD_BLOCK_FACTS_READERS: Partial<
+  Record<string, HeldBlockFactsReader>
+> = {
+  [SecurityBlockDestinationProvider.Cloudflare]: readCloudflareStoppedFacts,
+};
+
+/*
+ * The facts a destination adds to a block it holds, or none: a read that
+ * fails leaves them out, since a fact adds to the evidence and never
+ * decides the step.
+ */
+export async function readHeldBlockFacts(data: {
+  projectId: ObjectID;
+  address: string;
+  block: Pick<SecurityBlock, "action">;
+  row: Pick<SecurityBlockEnforcement, "provider" | "appliedAt" | "providerRef">;
+  evidence: AddressBlockEvidence;
+  now: Date;
+  readers?: Partial<Record<string, HeldBlockFactsReader>> | undefined;
+}): Promise<Array<SecurityCaseStepCheckSentence>> {
+  const reader: HeldBlockFactsReader | undefined = (data.readers ||
+    HELD_BLOCK_FACTS_READERS)[data.row.provider || ""];
+
+  if (!reader) {
+    return [];
+  }
+
+  try {
+    return await reader({
+      projectId: data.projectId,
+      address: data.address,
+      action: data.block.action || SecurityBlockAction.Block,
+      row: data.row,
+      appliedAt: data.evidence.appliedAt,
+      now: data.now,
+    });
+  } catch {
+    return [];
+  }
+}
+
 export const SecurityBlocklistAddressBlockSource: AddressBlockSource = {
   name: "Security blocklist",
   readBlocks: async (data: {
@@ -161,7 +226,8 @@ export const SecurityBlocklistAddressBlockSource: AddressBlockSource = {
           },
           select: BLOCK_SELECT,
           skip: 0,
-          limit: 1,
+          // One at the edge and one on every machine (#10346) at most.
+          limit: 2,
           props: { isRoot: true },
         }),
         SecurityBlockService.findBy({
@@ -202,9 +268,17 @@ export const SecurityBlocklistAddressBlockSource: AddressBlockSource = {
     const evidence: Array<AddressBlockEvidence> = [];
 
     for (const block of holding) {
+      /*
+       * Where the address is blocked at the edge: a product on every machine
+       * (#10346) stops the machines reaching the address, never the
+       * address's requests reaching the app, so its hold is not this step's.
+       */
       const ofBlock: Array<SecurityBlockEnforcement> = rows.filter(
         (row: SecurityBlockEnforcement): boolean => {
-          return row.securityBlockId?.toString() === block.id!.toString();
+          return (
+            row.securityBlockId?.toString() === block.id!.toString() &&
+            !EVERY_MACHINE_PROVIDERS.includes(row.provider || "")
+          );
         },
       );
       const held: Array<SecurityBlockEnforcement> = ofBlock.filter(
@@ -214,8 +288,23 @@ export const SecurityBlocklistAddressBlockSource: AddressBlockSource = {
       );
 
       for (const row of held) {
+        const heldEvidence: AddressBlockEvidence = getHeldBlockEvidence({
+          address: data.address,
+          block,
+          row,
+        });
+        const facts: Array<SecurityCaseStepCheckSentence> =
+          await readHeldBlockFacts({
+            projectId: data.projectId,
+            address: data.address,
+            block,
+            row,
+            evidence: heldEvidence,
+            now: data.now,
+          });
+
         evidence.push(
-          getHeldBlockEvidence({ address: data.address, block, row }),
+          facts.length > 0 ? { ...heldEvidence, facts } : heldEvidence,
         );
       }
 

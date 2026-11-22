@@ -22,6 +22,7 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import API from "Common/UI/Utils/API/API";
+import Toast from "Common/UI/Utils/Toast";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -57,6 +58,10 @@ import React, {
  */
 
 export const ISSUE_RESPONSE_TEST_ID: string = "data-security-issue-response";
+
+// The same action as one button, where OneUptime AI's analysis names it (#10369).
+export const ISSUE_RESPONSE_BUTTON_TEST_ID: string =
+  "data-security-issue-response-compact";
 
 // The button, and the dialog's title and button, of each action.
 export const RESPONSE_ACTION_TITLES: Readonly<
@@ -242,6 +247,12 @@ export interface ComponentProps {
   storeName: string;
   // Called once an action changed something, so the page reads the issue again.
   onChanged?: (() => void) | undefined;
+  /*
+   * Only the button, with its question, and what it did said in a toast:
+   * where the analysis's shortest path names the action (#10369). Drawn
+   * only while the action can run - the panel says why when it cannot.
+   */
+  isCompact?: boolean | undefined;
 }
 
 const IssueResponseAction: FunctionComponent<ComponentProps> = (
@@ -334,6 +345,17 @@ const IssueResponseAction: FunctionComponent<ComponentProps> = (
 
       setResult(outcome);
       setIsConfirming(false);
+
+      if (props.isCompact) {
+        Toast.success(
+          translator.translateText(
+            outcome.changed
+              ? DONE_SENTENCES[action]
+              : ALREADY_SENTENCES[action],
+          ) || "",
+        );
+      }
+
       props.onChanged?.();
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -341,6 +363,59 @@ const IssueResponseAction: FunctionComponent<ComponentProps> = (
 
     setIsRunning(false);
   };
+
+  const confirmModal: ReactElement = isConfirming ? (
+    <ConfirmModal
+      title={translator.translateTemplate(CONFIRM_TITLES[action], {
+        store: storeName,
+      })}
+      isTitleTranslated={true}
+      description={
+        <div className="space-y-2">
+          <p>
+            {translator.translateText(
+              describeDataSecurityResponseAction(action, props.storeKind),
+            )}
+          </p>
+          <p>{translator.translateText(THROUGH_THE_CONNECTION)}</p>
+        </div>
+      }
+      submitButtonText={title}
+      isLoading={isRunning}
+      error={error || undefined}
+      onClose={() => {
+        setIsConfirming(false);
+        setError("");
+      }}
+      onSubmit={() => {
+        void run();
+      }}
+    />
+  ) : (
+    <></>
+  );
+
+  if (props.isCompact) {
+    if (!availability.isAvailable || !gate.isAllowed) {
+      return <></>;
+    }
+
+    return (
+      <>
+        <Button
+          title={title}
+          icon={getResponseActionIcon(action)}
+          buttonStyle={ButtonStyleType.OUTLINE}
+          dataTestId={ISSUE_RESPONSE_BUTTON_TEST_ID}
+          onClick={() => {
+            setError("");
+            setIsConfirming(true);
+          }}
+        />
+        {confirmModal}
+      </>
+    );
+  }
 
   return (
     <div
@@ -419,36 +494,7 @@ const IssueResponseAction: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      {isConfirming ? (
-        <ConfirmModal
-          title={translator.translateTemplate(CONFIRM_TITLES[action], {
-            store: storeName,
-          })}
-          isTitleTranslated={true}
-          description={
-            <div className="space-y-2">
-              <p>
-                {translator.translateText(
-                  describeDataSecurityResponseAction(action, props.storeKind),
-                )}
-              </p>
-              <p>{translator.translateText(THROUGH_THE_CONNECTION)}</p>
-            </div>
-          }
-          submitButtonText={title}
-          isLoading={isRunning}
-          error={error || undefined}
-          onClose={() => {
-            setIsConfirming(false);
-            setError("");
-          }}
-          onSubmit={() => {
-            void run();
-          }}
-        />
-      ) : (
-        <></>
-      )}
+      {confirmModal}
     </div>
   );
 };

@@ -6,6 +6,7 @@ import ComplianceFramework from "./ComplianceFramework";
 import { DataSecurityResponseAction } from "./DataSecurityResponseAction";
 import { ComplianceFrameworkResult } from "./ComplianceRequirementCatalog";
 import DataCategory from "./DataCategory";
+import { DataSecurityIssueAnalysisView } from "./DataSecurityIssueAnalysis";
 import DataSensitivity from "./DataSensitivity";
 import { DataStoreResourceKind } from "./DataStoreResource";
 
@@ -34,6 +35,7 @@ export const DATA_SECURITY_API_ROUTES: {
   dropMetric: (findingId: string) => string;
   findingOccurrences: (findingId: string) => string;
   explainIssue: (issueId: string) => string;
+  issueAnalysis: (issueId: string) => string;
   fixIssueWithAi: (issueId: string) => string;
   responseActions: (dataStoreId: string) => string;
   respond: (dataStoreId: string) => string;
@@ -81,8 +83,18 @@ export const DATA_SECURITY_API_ROUTES: {
   findingOccurrences: (findingId: string): string => {
     return `/data-store-finding/${findingId}/occurrences`;
   },
+  /*
+   * OneUptime AI's analysis of an issue (#10369), as the caller may read
+   * it: the one the issue keeps when nothing it rests on changed, else one
+   * written now - { force: true } writes a new one whatever changed
+   * (Analyze Again).
+   */
   explainIssue: (issueId: string): string => {
     return `/data-security-issue/${issueId}/explain`;
+  },
+  // ...and the analysis the issue keeps, read with no model call: what its page shows.
+  issueAnalysis: (issueId: string): string => {
+    return `/data-security-issue/${issueId}/analysis`;
   },
   fixIssueWithAi: (issueId: string): string => {
     return `/data-security-issue/${issueId}/fix-with-ai`;
@@ -549,8 +561,24 @@ export interface DataSecurityFindingOccurrences {
   lastSeenAt?: string | undefined;
 }
 
+/*
+ * What Explain with AI answers (#10369): the issue's analysis as Markdown,
+ * as the API and the MCP have always read it, and as data - each only what
+ * the caller may read - and whether it was written now.
+ */
 export interface DataSecurityExplainResult {
   markdown: string;
+  analysis?: DataSecurityIssueAnalysisView | null | undefined;
+  // A model call was made for it now: there was none, its input changed, or it was asked for again.
+  isNew?: boolean | undefined;
+}
+
+/*
+ * The analysis an issue keeps, as the caller may read it, or null: none,
+ * or the project's AI is off.
+ */
+export interface DataSecurityIssueAnalysisResult {
+  analysis: DataSecurityIssueAnalysisView | null;
 }
 
 // A repository the person may ask OneUptime AI to work in (#10362).

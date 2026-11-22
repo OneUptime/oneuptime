@@ -23,6 +23,8 @@ import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import DashboardResourceList from "../Utils/DashboardResourceList";
 import API from "Common/UI/Utils/API/API";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
+import { WIDGET_NO_EVENTS_BUT_REFUSED } from "../../SecurityEvents/RefusedTelemetry/RefusedTelemetryCopy";
+import { readIsPeriodRefused } from "../../SecurityEvents/RefusedTelemetry/useProjectRefusedTelemetry";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -113,6 +115,7 @@ const DashboardSecurityEventsFlowComponentElement: FunctionComponent<
   >([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefusedInRange, setIsRefusedInRange] = useState<boolean>(false);
   const requestSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
 
   const fetchData: () => Promise<void> =
@@ -183,6 +186,23 @@ const DashboardSecurityEventsFlowComponentElement: FunctionComponent<
           return;
         }
 
+        /*
+         * Nothing found over a time range in which an ingestion budget or
+         * rate refused some of the logs or traces Security Events reads is
+         * not "no security events" (#10431): the line says so.
+         */
+        const isRefused: boolean =
+          listResult.data.length === 0 &&
+          (await readIsPeriodRefused({
+            from: startAndEndDate.startValue,
+            to: startAndEndDate.endValue,
+          }));
+
+        if (isStale()) {
+          return;
+        }
+
+        setIsRefusedInRange(isRefused);
         setFlowRecords(
           listResult.data.map(
             (securityEvent: SecurityEvent): SecurityEventFlowRecord => {
@@ -262,12 +282,20 @@ const DashboardSecurityEventsFlowComponentElement: FunctionComponent<
               error={error}
             />
           ))}
-        {!isLoading && !error && flowData.links.length === 0 && (
-          <DashboardWidgetEmpty
-            icon={IconProp.ShieldExclamation}
-            message="No security events for the selected time range and filters"
-          />
-        )}
+        {!isLoading &&
+          !error &&
+          flowData.links.length === 0 &&
+          (isRefusedInRange ? (
+            <DashboardWidgetEmpty
+              icon={IconProp.ShieldExclamation}
+              message={WIDGET_NO_EVENTS_BUT_REFUSED}
+            />
+          ) : (
+            <DashboardWidgetEmpty
+              icon={IconProp.ShieldExclamation}
+              message="No security events for the selected time range and filters"
+            />
+          ))}
         {!error && flowData.links.length > 0 && (
           <ResponsiveContainer width="100%" height="100%">
             <Sankey

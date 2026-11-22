@@ -1,16 +1,22 @@
 import { BlockValueCheck, checkBlockValue } from "./BlocklistApi";
 import {
+  BLOCKLIST_KIND_DEFAULT_DURATIONS,
+  BLOCKLIST_KIND_WORDS,
+  BlocklistKind,
+  BlocklistKindWords,
+  getBlocklistKindSentence,
+} from "./BlocklistKinds";
+import {
   ACTION_BLOCK_OPTION,
   ACTION_CHALLENGE_OPTION,
   ACTION_FIELD_DESCRIPTION,
   ACTION_FIELD_TITLE,
-  ADDRESS_FIELD_DESCRIPTION,
-  ADDRESS_FIELD_PLACEHOLDER,
-  ADDRESS_FIELD_TITLE,
   BLOCKED_TOAST,
-  BLOCK_ADDRESS_DESCRIPTION,
-  BLOCK_ADDRESS_TITLE,
   BLOCK_ANYWAY,
+  EVERY_MACHINE_FIELD_DESCRIPTION,
+  EVERY_MACHINE_FIELD_TITLE,
+  QUARANTINE_FIELD_DESCRIPTION,
+  QUARANTINE_FIELD_TITLE,
   BLOCK_WIDE_RANGE_DESCRIPTION,
   BLOCK_WIDE_RANGE_TITLE,
   BLOCK_YOUR_ADDRESS_DESCRIPTION,
@@ -30,20 +36,21 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import {
-  SECURITY_BLOCK_DEFAULT_DURATION,
   SECURITY_BLOCK_EXPIRING_DURATIONS,
   SecurityBlockAction,
   SecurityBlockDuration,
+  SecurityBlockReach,
   SecurityBlockSentence,
   SecurityBlockValue,
   getSecurityBlockExpiry,
   getSecurityBlockLargestPrefix,
-  getSecurityBlockValueSentence,
   readSecurityBlockValue,
 } from "Common/Types/SecurityBlocklist/SecurityBlock";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import Field, {
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
@@ -59,8 +66,14 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 /*
  * BLOCK ADDRESS (#10338): an address or a range, how long - 24 hours unless
  * someone says - and why, with what most people never change folded under
- * More fields: Challenge instead of Block, and, for a Security Admin, a
- * block that stays until someone lifts it.
+ * More fields: Challenge instead of Block, blocking it on every machine
+ * too (#10346), and, for a Security Admin, a block that stays until
+ * someone lifts it.
+ *
+ * The same dialog blocks each of the Blocklist's kinds (#10346), from its
+ * tab: Block Domain or URL asks for a domain or a URL, Block File for a
+ * file's hash, with Quarantine It - on - under More fields. Each takes its
+ * own kind of value only, and says so of another.
  *
  * Before it blocks, it asks the server what the block would meet
  * (/security-block/check) and says why not in the reader's words: already
@@ -82,6 +95,49 @@ const EXPIRES_FIELD: string = "duration";
 const REASON_FIELD: string = "reason";
 const ACTION_FIELD: string = "action";
 const UNTIL_LIFTED_FIELD: string = "untilLifted";
+const EVERY_MACHINE_FIELD: string = "everyMachine";
+const QUARANTINE_FIELD: string = "quarantine";
+
+/*
+ * What a dialog's answers block a value with, and where: an address's
+ * Block or Challenge, at the edge or - asked - everywhere, where it is
+ * only blocked; a file blocked and quarantined unless asked not to; a
+ * domain or a URL blocked.
+ */
+export function getBlockRequest(data: {
+  kind: BlocklistKind;
+  values: JSONObject;
+}): { action: SecurityBlockAction; reach: SecurityBlockReach } {
+  switch (data.kind) {
+    case BlocklistKind.Files:
+      return {
+        action:
+          data.values[QUARANTINE_FIELD] === false
+            ? SecurityBlockAction.Block
+            : SecurityBlockAction.BlockAndQuarantine,
+        reach: SecurityBlockReach.Everywhere,
+      };
+    case BlocklistKind.DomainsAndUrls:
+      return {
+        action: SecurityBlockAction.Block,
+        reach: SecurityBlockReach.Everywhere,
+      };
+    default: {
+      const isEverywhere: boolean = data.values[EVERY_MACHINE_FIELD] === true;
+
+      return {
+        action:
+          !isEverywhere &&
+          data.values[ACTION_FIELD] === SecurityBlockAction.Challenge
+            ? SecurityBlockAction.Challenge
+            : SecurityBlockAction.Block,
+        reach: isEverywhere
+          ? SecurityBlockReach.Everywhere
+          : SecurityBlockReach.Edge,
+      };
+    }
+  }
+}
 
 const MORE_FIELDS: FormFieldCollapsibleSection<JSONObject> =
   getAdvancedFormSection<JSONObject>();
@@ -156,6 +212,8 @@ export interface ComponentProps {
   onBlocked: () => void;
   // The case the block is made for, when it is made from one.
   securityCaseId?: ObjectID | undefined;
+  // What it blocks: an address unless said (#10346).
+  kind?: BlocklistKind | undefined;
   // The address it starts on: a campaign's, blocked from its row (#10342).
   initialValue?: string | undefined;
 }
@@ -164,6 +222,8 @@ const BlockAddressModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const kind: BlocklistKind = props.kind || BlocklistKind.Addresses;
+  const words: BlocklistKindWords = BLOCKLIST_KIND_WORDS[kind];
   const [refusal, setRefusal] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   // What was typed, kept for the form when a question asked before blocking is cancelled.
@@ -183,14 +243,15 @@ const BlockAddressModal: FunctionComponent<ComponentProps> = (
       isAdmin && values[UNTIL_LIFTED_FIELD] === true;
     const duration: SecurityBlockDuration =
       (values[EXPIRES_FIELD] as SecurityBlockDuration) ||
-      SECURITY_BLOCK_DEFAULT_DURATION;
+      BLOCKLIST_KIND_DEFAULT_DURATIONS[kind];
+
+    const request: { action: SecurityBlockAction; reach: SecurityBlockReach } =
+      getBlockRequest({ kind, values });
 
     const model: SecurityBlock = new SecurityBlock();
     model.value = String(values[VALUE_FIELD] || "").trim();
-    model.action =
-      values[ACTION_FIELD] === SecurityBlockAction.Challenge
-        ? SecurityBlockAction.Challenge
-        : SecurityBlockAction.Block;
+    model.action = request.action;
+    model.reach = request.reach;
     model.expiresAt = isUntilLifted
       ? (null as unknown as Date)
       : (getSecurityBlockExpiry(duration, now) as Date);
@@ -229,6 +290,7 @@ const BlockAddressModal: FunctionComponent<ComponentProps> = (
     try {
       const check: BlockValueCheck = await checkBlockValue(
         String(values[VALUE_FIELD] || ""),
+        getBlockRequest({ kind, values }).reach,
       );
 
       const words: string | null = writeBlockRefusal({
@@ -295,31 +357,82 @@ const BlockAddressModal: FunctionComponent<ComponentProps> = (
     );
   }
 
+  // What only this kind asks, folded under More fields.
+  const kindFields: Array<Field<JSONObject>> =
+    kind === BlocklistKind.Addresses
+      ? [
+          {
+            field: { [ACTION_FIELD]: true },
+            title: ACTION_FIELD_TITLE,
+            description: ACTION_FIELD_DESCRIPTION,
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: [
+              { value: SecurityBlockAction.Block, label: ACTION_BLOCK_OPTION },
+              {
+                value: SecurityBlockAction.Challenge,
+                label: ACTION_CHALLENGE_OPTION,
+              },
+            ],
+            required: true,
+            collapsibleSection: MORE_FIELDS,
+            // A block on every machine blocks: a challenge is answered at the edge.
+            showIf: (values: FormValues<JSONObject>): boolean => {
+              return (values as JSONObject)[EVERY_MACHINE_FIELD] !== true;
+            },
+          },
+          {
+            field: { [EVERY_MACHINE_FIELD]: true },
+            title: EVERY_MACHINE_FIELD_TITLE,
+            description: EVERY_MACHINE_FIELD_DESCRIPTION,
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            collapsibleSection: MORE_FIELDS,
+          },
+        ]
+      : kind === BlocklistKind.Files
+        ? [
+            {
+              field: { [QUARANTINE_FIELD]: true },
+              title: QUARANTINE_FIELD_TITLE,
+              description: QUARANTINE_FIELD_DESCRIPTION,
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+              collapsibleSection: MORE_FIELDS,
+            },
+          ]
+        : [];
+
   return (
     <BasicFormModal<JSONObject>
-      title={BLOCK_ADDRESS_TITLE}
-      description={BLOCK_ADDRESS_DESCRIPTION}
-      name="Security Events > Blocklist > Block Address"
-      submitButtonText={BLOCK_ADDRESS_TITLE}
+      title={words.blockTitle}
+      description={words.blockDescription}
+      name={`Security Events > Blocklist > ${kind}`}
+      submitButtonText={words.blockTitle}
       isSubmitting={isSubmitting}
       onClose={props.onClose}
       onSubmit={submit}
       // Why the block is not made: the server's reason in the reader's words, or what went wrong.
       error={refusal || undefined}
       formProps={{
-        name: "Block Address",
+        name: words.blockTitle,
         initialValues: typed || {
           ...(props.initialValue ? { [VALUE_FIELD]: props.initialValue } : {}),
-          [EXPIRES_FIELD]: SECURITY_BLOCK_DEFAULT_DURATION,
-          [ACTION_FIELD]: SecurityBlockAction.Block,
+          [EXPIRES_FIELD]: BLOCKLIST_KIND_DEFAULT_DURATIONS[kind],
           [UNTIL_LIFTED_FIELD]: false,
+          ...(kind === BlocklistKind.Addresses
+            ? {
+                [ACTION_FIELD]: SecurityBlockAction.Block,
+                [EVERY_MACHINE_FIELD]: false,
+              }
+            : {}),
+          ...(kind === BlocklistKind.Files ? { [QUARANTINE_FIELD]: true } : {}),
         },
         fields: [
           {
             field: { [VALUE_FIELD]: true },
-            title: ADDRESS_FIELD_TITLE,
-            description: ADDRESS_FIELD_DESCRIPTION,
-            placeholder: ADDRESS_FIELD_PLACEHOLDER,
+            title: words.fieldTitle,
+            description: words.fieldDescription,
+            placeholder: words.fieldPlaceholder,
             fieldType: FormFieldSchemaType.Text,
             required: true,
             disableSpellCheck: true,
@@ -327,7 +440,8 @@ const BlockAddressModal: FunctionComponent<ComponentProps> = (
               values: FormValues<JSONObject>,
             ): string | null => {
               const sentence: SecurityBlockSentence | null =
-                getSecurityBlockValueSentence({
+                getBlocklistKindSentence({
+                  kind,
                   value: (values as JSONObject)[VALUE_FIELD],
                   mayBlockWideRanges: isAdmin,
                 });
@@ -357,21 +471,7 @@ const BlockAddressModal: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.LongText,
             required: false,
           },
-          {
-            field: { [ACTION_FIELD]: true },
-            title: ACTION_FIELD_TITLE,
-            description: ACTION_FIELD_DESCRIPTION,
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: [
-              { value: SecurityBlockAction.Block, label: ACTION_BLOCK_OPTION },
-              {
-                value: SecurityBlockAction.Challenge,
-                label: ACTION_CHALLENGE_OPTION,
-              },
-            ],
-            required: true,
-            collapsibleSection: MORE_FIELDS,
-          },
+          ...kindFields,
           {
             field: { [UNTIL_LIFTED_FIELD]: true },
             title: UNTIL_LIFTED_FIELD_TITLE,

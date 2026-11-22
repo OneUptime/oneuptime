@@ -125,6 +125,14 @@ beforeEach(() => {
   jest.spyOn(ModelAPI, "getList").mockImplementation((async (
     options: Record<string, unknown>,
   ) => {
+    /*
+     * The panel also reads what Security Events' sources kept of refused
+     * telemetry (#10431): none here, and not a read of the runs.
+     */
+    if (options["modelType"] !== SecurityHuntRun) {
+      return { data: [], count: 0, skip: 0, limit: 1 };
+    }
+
     reads.push(options);
 
     if (readFailure) {

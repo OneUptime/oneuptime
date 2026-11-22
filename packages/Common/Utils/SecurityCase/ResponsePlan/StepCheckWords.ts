@@ -127,6 +127,34 @@ export const CHECK_BLOCK_RANGE_CHALLENGED_AT: string = translationKey(
   "{{range}}, which holds {{address}}, is challenged at {{destination}} since {{since}}, last confirmed {{confirmed}}.",
 );
 
+/*
+ * What Cloudflare's rule for the block did with the address since it was
+ * applied there (#10343): the requests from it OneUptime's rule blocked or
+ * challenged, counted from the firewall events the connection imports.
+ * Cloudflare samples a busy zone's events, so a count read from sampled
+ * ones says about.
+ */
+export const CHECK_BLOCK_CLOUDFLARE_STOPPED: PluralTemplate = {
+  one: "Cloudflare has stopped {{count}} request from {{address}} since the block at {{time}}.",
+  other:
+    "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}.",
+};
+export const CHECK_BLOCK_CLOUDFLARE_STOPPED_ABOUT: PluralTemplate = {
+  one: "Cloudflare has stopped about {{count}} request from {{address}} since the block at {{time}}.",
+  other:
+    "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}.",
+};
+export const CHECK_BLOCK_CLOUDFLARE_CHALLENGED: PluralTemplate = {
+  one: "Cloudflare has challenged {{count}} request from {{address}} since the challenge at {{time}}.",
+  other:
+    "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}.",
+};
+export const CHECK_BLOCK_CLOUDFLARE_CHALLENGED_ABOUT: PluralTemplate = {
+  one: "Cloudflare has challenged about {{count}} request from {{address}} since the challenge at {{time}}.",
+  other:
+    "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}.",
+};
+
 // A block on the Blocklist that no destination holds: never read as blocked.
 export const CHECK_BLOCK_NOT_ENFORCED: string = translationKey(
   "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.",
@@ -244,6 +272,32 @@ export const CHECK_PRODUCT_SAID: string = translationKey(
 );
 export const CHECK_COULD_NOT_CHECK: string = translationKey(
   "OneUptime could not check this step just now. It tries again in a few minutes.",
+);
+
+/*
+ * ---------- Block on every machine (contain:block-domain,
+ * contain:quarantine-file, contain:block-ip-everywhere, #10346) ----------
+ *
+ * Read from the blocklist: an active block of the value, held - applied
+ * and read back - by Microsoft Defender or CrowdStrike Falcon.
+ */
+export const CHECK_BLOCKED_EVERYWHERE: string = translationKey(
+  "{{value}} is blocked on every machine with {{destination}} since {{since}}, until {{until}}.",
+);
+export const CHECK_BLOCKED_EVERYWHERE_UNTIL_LIFTED: string = translationKey(
+  "{{value}} is blocked on every machine with {{destination}} since {{since}}, until someone lifts it.",
+);
+export const CHECK_BLOCK_NOT_HELD: string = translationKey(
+  "{{value}} is on the blocklist, but nothing blocks it on your machines yet.",
+);
+export const CHECK_BLOCK_NOT_HELD_AT: string = translationKey(
+  "Not blocked by {{destination}}: {{reason}}",
+);
+export const CHECK_BLOCK_NONE: string = translationKey(
+  "{{value}} is not blocked on your machines.",
+);
+export const CHECK_BLOCK_ENDED: string = translationKey(
+  "The block on {{value}} ended at {{time}}, so your machines no longer block it.",
 );
 
 // ---------- Declare an incident (contain:incident) ----------

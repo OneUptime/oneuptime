@@ -36,7 +36,7 @@ import HeldPermissionsUtil, {
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
-import { getAuditLogResourceTypeSpellings } from "../../../Utils/AuditLog/AuditLogResourceTypes";
+import { getAuditLogResourceTypesOfModel } from "../../../Utils/AuditLog/AuditLogResourceTypes";
 
 /*
  * WHAT A READER SEES OF AN AUDIT LOG ENTRY: WHAT THEY MAY READ OF THE
@@ -63,7 +63,9 @@ import { getAuditLogResourceTypeSpellings } from "../../../Utils/AuditLog/AuditL
  *     is read as its table's records are: when they read every record of the
  *     table in the project (DatabaseService.readsEveryRecordInProject), or
  *     are its owners or admins and the table's readers name their role, it
- *     is theirs to read; otherwise every field of it is hidden;
+ *     is theirs to read; otherwise every field of it is hidden. Where two
+ *     tables' entries carry its type (a model's former name, #10664), its
+ *     table is the one whose columns hold the fields it recorded;
  *   - a record kept from the reader keeps its type, its id, who changed it,
  *     when, and which fields - and loses its name with its values, so nothing
  *     that names it is read either. A name is shown only where the columns
@@ -135,7 +137,12 @@ const NOTHING_SHOWN: EntryRead = {
 let modelTypesByResourceType: Map<string, Array<DatabaseBaseModelType>> | null =
   null;
 
-// The models whose name another model has too.
+/*
+ * The models whose entries can be stored under a type another model's are
+ * too: no two models share a name today (ModelNamesAreUnique), but a
+ * status page's subscriber notification template had the template's own
+ * until #10664, and its entries from then still carry it.
+ */
 let modelTypesSharingAName: Set<DatabaseBaseModelType> | null = null;
 
 // The type an entry about one of a model's records is stored under.
@@ -158,13 +165,18 @@ function getModelTypesByResourceType(): Map<
   const map: Map<string, Array<DatabaseBaseModelType>> = new Map();
 
   for (const modelType of AllDatabaseModelTypes as Array<DatabaseBaseModelType>) {
-    const resourceType: string | null = getResourceTypeOf(new modelType());
+    const model: BaseModel = new modelType();
 
-    if (!resourceType) {
+    if (!getResourceTypeOf(model)) {
       continue;
     }
 
-    for (const spelling of getAuditLogResourceTypeSpellings(resourceType)) {
+    /*
+     * By every type its entries can be stored under: the one they are
+     * stored under today, its name on screen, and the name it had before it
+     * was renamed, which its older entries carry.
+     */
+    for (const spelling of getAuditLogResourceTypesOfModel(model)) {
       if (OWN_RESOURCE_TYPES.has(spelling)) {
         continue;
       }
@@ -212,6 +224,55 @@ function getModelTypesOfResourceType(
   }
 
   return [...(getModelTypesByResourceType().get(resourceType) || [])];
+}
+
+// The fields an entry's changes name, each once: none when they were not read.
+function getChangedFieldsOf(entry: AuditLog): Array<string> {
+  const changes: JSONArray | undefined = entry.changes;
+  const fields: Array<string> = [];
+
+  if (!Array.isArray(changes)) {
+    return fields;
+  }
+
+  for (const change of changes) {
+    const field: unknown =
+      change && typeof change === "object" && !Array.isArray(change)
+        ? (change as JSONObject)["field"]
+        : undefined;
+
+    if (typeof field === "string" && field && !fields.includes(field)) {
+      fields.push(field);
+    }
+  }
+
+  return fields;
+}
+
+/*
+ * Of the tables an entry's type can name, the ones its record can be in, by
+ * the fields it recorded: a table with no column of a field it names never
+ * held its record. Two tables' entries carry "Subscriber Notification
+ * Template" - a template's, and a link's to a status page recorded before
+ * #10664 - and an entry whose record is in neither any longer says which it
+ * was by what it changed: a template's name and body, or the status page
+ * and the template a link joins. One that names no field, or only fields
+ * both tables have, can be either.
+ */
+function getTablesHoldingFieldsOf(
+  tables: Array<TableRead>,
+  entry: AuditLog,
+): Array<TableRead> {
+  const fields: Array<string> = getChangedFieldsOf(entry);
+  const holding: Array<TableRead> = tables.filter(
+    (table: TableRead): boolean => {
+      return fields.every((field: string): boolean => {
+        return table.model.isTableColumn(field);
+      });
+    },
+  );
+
+  return holding.length > 0 ? holding : tables;
 }
 
 // A record id as ids are compared: in lower case, or null for none.
@@ -393,9 +454,9 @@ class ReaderReads {
 
   /*
    * Looks up which of `ids` the reader finds with the table's own read -
-   * unless they read every record of it. A table whose name another one has
-   * is looked in anyway: which of the two a record is in decides its
-   * columns.
+   * unless they read every record of it. A table whose entries can carry a
+   * type another one's do (a former name) is looked in anyway: which of the
+   * two a record is in decides its columns.
    */
   public async findRecords(
     modelType: DatabaseBaseModelType,
@@ -493,33 +554,44 @@ class ReaderReads {
       };
     }
 
-    // Found in none: read as every record of its table, whichever it is.
+    /*
+     * Found in none: read as every record of its table, whichever it is -
+     * of the tables whose columns hold the fields it recorded.
+     */
+    const candidates: Array<TableRead> =
+      tables.length > 1 ? getTablesHoldingFieldsOf(tables, entry) : tables;
+
     if (
-      !tables.every((table: TableRead): boolean => {
+      !candidates.every((table: TableRead): boolean => {
         return table.readsTable && table.readsEveryRecord;
       })
     ) {
       return NOTHING_SHOWN;
     }
 
-    if (tables.length === 1) {
+    if (candidates.length === 1) {
       return {
         isRecordShown: true,
-        table: tables[0]!,
+        table: candidates[0]!,
         isEveryFieldShown: false,
-        shownColumns: tables[0]!.shownColumns,
+        shownColumns: candidates[0]!.shownColumns,
       };
     }
 
-    // A name two tables share, with the record in neither: what both show.
+    /*
+     * A type two tables' entries carry - "Subscriber Notification Template"
+     * on a template's entries and on a link's recorded before #10664 - with
+     * the record in neither, and nothing it recorded to tell which: what
+     * both show.
+     */
     return {
       isRecordShown: true,
       table: null,
       isEveryFieldShown: false,
       shownColumns: new Set<string>(
-        Array.from(tables[0]!.shownColumns).filter(
+        Array.from(candidates[0]!.shownColumns).filter(
           (column: string): boolean => {
-            return tables.every((table: TableRead): boolean => {
+            return candidates.every((table: TableRead): boolean => {
               return table.shownColumns.has(column);
             });
           },
@@ -846,9 +918,11 @@ export default class AuditLogReadAccess {
   /*
    * The models whose records an entry of `resourceType` can be about: the
    * model whose name, as the API and the audit log keep it or as it is
-   * shown, is the type (Common/Utils/ModelApiName) - one, but for a name two
-   * models share. None for a type of the audit log's own, nor for one no
-   * model has (any longer).
+   * shown, is the type (Common/Utils/ModelApiName), or whose name it was
+   * before it was renamed (getAuditLogResourceTypesOfModel) - one, but for
+   * a former name another model has now: "Subscriber Notification Template"
+   * is the template's, and a link's until #10664. None for a type of the
+   * audit log's own, nor for one no model has (any longer).
    */
   public static getModelTypesOf(
     resourceType: string | null | undefined,

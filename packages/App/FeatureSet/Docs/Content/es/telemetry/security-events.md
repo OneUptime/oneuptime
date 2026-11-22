@@ -52,6 +52,7 @@ Abre **Productos → Eventos de seguridad**, en **Seguridad**. Su menú tiene un
 | **Aprobaciones** | Playbooks | Los pasos de playbook que esperan que alguien los apruebe o los rechace |
 | **Ejecuciones** | Playbooks | Lo que hizo cada playbook, paso a paso |
 | **Lista de bloqueo** | Playbooks | Las direcciones que bloquea tu proyecto, hasta cuándo y dónde se aplica cada bloqueo |
+| **Feeds de lista de bloqueo** | Playbooks | Las URL secretas desde las que tus firewalls y proxies leen la lista de bloqueo, y sus obtenciones |
 | **Entidades protegidas** | Playbooks | Los usuarios, hosts y direcciones a los que ningún playbook aplica contención y ningún bloqueo afecta |
 | **Ajustes** | IA | Si OneUptime AI clasifica cada caso nuevo |
 | **Conexiones** | Conexiones | Sus registros, los productos de seguridad que consulta OneUptime y los SIEM a los que envía |

@@ -1,3 +1,6 @@
+import CriteriaRecordPicker from "./CriteriaRecordPicker";
+import Label from "Common/Models/DatabaseModels/Label";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
 import Dropdown, {
   DropdownOption,
@@ -259,31 +262,15 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             title="On-Call Policies"
             description="Execute these on-call policies when this incident is created"
           />
-          <Dropdown
-            value={props.onCallPolicyDropdownOptions.filter(
-              (i: DropdownOption) => {
-                return criteriaIncident.onCallPolicyIds?.some(
-                  (id: ObjectID) => {
-                    return id.toString() === i.value;
-                  },
-                );
-              },
-            )}
-            options={props.onCallPolicyDropdownOptions}
-            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              if (Array.isArray(value)) {
-                updateField(
-                  "onCallPolicyIds",
-                  value.map((v: DropdownValue) => {
-                    return new ObjectID(v.toString());
-                  }),
-                );
-              } else {
-                updateField("onCallPolicyIds", []);
-              }
-            }}
-            isMultiSelect={true}
+          <CriteriaRecordPicker
+            modelType={OnCallDutyPolicy}
+            ids={criteriaIncident.onCallPolicyIds}
+            knownOptions={props.onCallPolicyDropdownOptions}
             placeholder="Select On-Call Policies"
+            dataTestId="monitor-criteria-incident-onCallPolicyIds"
+            onChange={(ids: Array<ObjectID>) => {
+              updateField("onCallPolicyIds", ids);
+            }}
           />
         </div>
       </FoldedSection>
@@ -357,29 +344,15 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
               title="Labels"
               description="Labels to categorize the incident"
             />
-            <Dropdown
-              value={props.labelDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaIncident.labelIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              })}
-              options={props.labelDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (Array.isArray(value)) {
-                  updateField(
-                    "labelIds",
-                    value.map((v: DropdownValue) => {
-                      return new ObjectID(v.toString());
-                    }),
-                  );
-                } else {
-                  updateField("labelIds", []);
-                }
-              }}
-              isMultiSelect={true}
+            <CriteriaRecordPicker
+              modelType={Label}
+              ids={criteriaIncident.labelIds}
+              knownOptions={props.labelDropdownOptions}
               placeholder="Select Labels"
+              dataTestId="monitor-criteria-incident-labelIds"
+              onChange={(ids: Array<ObjectID>) => {
+                updateField("labelIds", ids);
+              }}
             />
           </div>
         </div>

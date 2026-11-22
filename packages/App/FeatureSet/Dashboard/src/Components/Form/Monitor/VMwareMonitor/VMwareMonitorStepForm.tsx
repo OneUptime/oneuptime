@@ -229,6 +229,9 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   const resources: InfrastructureResources<VMwareVCenter> =
     useInfrastructureResources<VMwareVCenter>({
+      valueField: "name",
+      searchFields: ["name"],
+      heldValue: monitorStepVMwareMonitor.vcenterIdentifier,
       modelType: VMwareVCenter,
       select: {
         _id: true,
@@ -431,6 +434,7 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}
+        onSearchTextChange={resources.onSearchTextChange}
         addResource={{
           title: INFRASTRUCTURE_ADD_VCENTER,
           onClick: () => {

@@ -22,10 +22,10 @@ import SecurityEdgeRanges, {
  *   - its Trusted Proxies (Project.securityTrustedProxies, Security Events
  *     > Connections, under More settings);
  *   - the published ranges of the edges it has connected - the edge in
- *     front of its apps, which #10338 works out (SecurityEdgeRanges:
- *     Cloudflare, once #10339 gives it a connection). Behind such an edge
- *     every request comes from one of its addresses, and the client is the
- *     one it forwards.
+ *     front of its apps, which #10338 works out (SecurityEdgeRanges: a
+ *     project with a Cloudflare connection, enabled or paused, is behind
+ *     Cloudflare, #10565). Behind such an edge every request comes from one
+ *     of its addresses, and the client is the one it forwards.
  *
  * The private addresses every project trusts need no reading
  * (Utils/SecurityEvent/ClientAddressTrust.isTrustedProxy).
