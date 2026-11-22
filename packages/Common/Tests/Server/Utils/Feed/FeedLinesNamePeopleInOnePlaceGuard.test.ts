@@ -110,6 +110,15 @@ const KNOWN_LINE_WRITERS: Array<string> = [
   // The owners told, in the record's feed.
   "packages/App/FeatureSet/Workers/Jobs/IncidentOwners/SendNotePostedNotification.ts",
   "packages/App/FeatureSet/Workers/Jobs/AlertEpisodeOwners/SendAlertAddedNotification.ts",
+  /*
+   * The Security product's lines (#10681): a case's assignee and its tasks',
+   * who was told about it, a playbook step's lines and the hunts' posts.
+   */
+  "packages/Common/Server/Services/SecurityCaseService.ts",
+  "packages/Common/Server/Services/SecurityCaseTaskService.ts",
+  "packages/Common/Server/Utils/SecurityCase/SecurityCaseNotifications.ts",
+  "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookActions.ts",
+  "packages/Common/Server/Utils/SecurityEvent/Hunts/SecurityHuntNotifications.ts",
 ];
 
 /*
@@ -191,32 +200,6 @@ const MAY_NAME_ANOTHER_WAY: Record<string, Record<string, string>> = {
     {
       addressInTemplate:
         "who declared the episode, in the email to each of its owners",
-    },
-  /*
-   * Not held yet: the Security product's lines - cases, their tasks,
-   * playbooks and hunts - are another piece of work's (#10681).
-   */
-  "packages/Common/Server/Services/SecurityCaseService.ts": {
-    nameInProject: "not held yet (#10681)",
-    nameElseAddress: "not held yet (#10681)",
-  },
-  "packages/Common/Server/Services/SecurityCaseTaskService.ts": {
-    nameInProject: "not held yet (#10681)",
-    nameElseAddress: "not held yet (#10681)",
-  },
-  "packages/Common/Server/Utils/SecurityCase/SecurityCaseNotifications.ts": {
-    getNameInProject: "not held yet (#10681)",
-    addressInTemplate: "not held yet (#10681)",
-    nameElseAddress: "not held yet (#10681)",
-  },
-  "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookActions.ts": {
-    nameInProject: "not held yet (#10681)",
-    addressInTemplate: "not held yet (#10681)",
-    nameElseAddress: "not held yet (#10681)",
-  },
-  "packages/Common/Server/Utils/SecurityEvent/Hunts/SecurityHuntNotifications.ts":
-    {
-      nameElseAddress: "not held yet (#10681)",
     },
 };
 
