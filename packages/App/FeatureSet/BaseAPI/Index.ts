@@ -724,6 +724,10 @@ import SecurityBlockCloudWafAPI from "Common/Server/API/SecurityBlockCloudWafAPI
 import SecurityBlockEnforcementService, {
   Service as SecurityBlockEnforcementServiceType,
 } from "Common/Server/Services/SecurityBlockEnforcementService";
+import SecurityBlocklistFeedAPI from "Common/Server/API/SecurityBlocklistFeedAPI";
+import SecurityBlocklistFeedFetchService, {
+  Service as SecurityBlocklistFeedFetchServiceType,
+} from "Common/Server/Services/SecurityBlocklistFeedFetchService";
 import SecurityEntityRiskService, {
   Service as SecurityEntityRiskServiceType,
 } from "Common/Server/Services/SecurityEntityRiskService";
@@ -1168,9 +1172,7 @@ import HostCollectorConfigVersionService, {
 import LabelService, {
   Service as LabelServiceType,
 } from "Common/Server/Services/LabelService";
-import AuditLogService, {
-  AuditLogService as AuditLogServiceType,
-} from "Common/Server/Services/AuditLogService";
+import AuditLogService from "Common/Server/Services/AuditLogService";
 import LogService, {
   LogService as LogServiceType,
 } from "Common/Server/Services/LogService";
@@ -1192,6 +1194,7 @@ import ChangeEventService, {
 
 import MetricService from "Common/Server/Services/MetricService";
 import MetricAPI from "Common/Server/API/MetricAPI";
+import AuditLogAPI from "Common/Server/API/AuditLogAPI";
 import MonitorCustomFieldService, {
   Service as MonitorCustomFieldServiceType,
 } from "Common/Server/Services/MonitorCustomFieldService";
@@ -1598,7 +1601,6 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
-import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Log from "Common/Models/AnalyticsModels/Log";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import ThreatIntelIndicator from "Common/Models/AnalyticsModels/ThreatIntelIndicator";
@@ -1979,6 +1981,7 @@ import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
+import SecurityBlocklistFeedFetch from "Common/Models/DatabaseModels/SecurityBlocklistFeedFetch";
 import SecurityEntityRisk from "Common/Models/DatabaseModels/SecurityEntityRisk";
 import DataSecurityAPI from "Common/Server/API/DataSecurityAPI";
 import DataObservabilityAPI from "Common/Server/API/DataObservabilityAPI";
@@ -4229,12 +4232,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // Its reads, and the names of the records an entry's changes name (#10470).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAnalyticsAPI<AuditLog, AuditLogServiceType>(
-        AuditLog,
-        AuditLogService,
-      ).getRouter(),
+      new AuditLogAPI(AuditLogService).getRouter(),
     );
 
     app.use(
@@ -4863,6 +4864,25 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new SecurityBlockCloudWafAPI().getRouter(),
+    );
+
+    /*
+     * Blocklist feeds (#10345): their CRUD, the rotation and revocation of
+     * their secrets, and the feeds firewalls read
+     * (/blocklist-feed/:feedId/..., no UserMiddleware - the secret is the
+     * credential), with every fetch of them.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityBlocklistFeedAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        SecurityBlocklistFeedFetch,
+        SecurityBlocklistFeedFetchServiceType
+      >(SecurityBlocklistFeedFetch, SecurityBlocklistFeedFetchService).getRouter(),
     );
 
     /*

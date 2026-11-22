@@ -31,6 +31,12 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import AuditLogRelatedRecordValue, {
+  AuditLogRelatedRecordsLoader,
+  AuditLogRelatedRecordsState,
+  isAuditLogReferenceValue,
+  useAuditLogRelatedRecords,
+} from "./AuditLogRelatedRecordValue";
 import React, {
   Fragment,
   FunctionComponent,
@@ -53,6 +59,13 @@ export interface ComponentProps {
   storedResourceType?: string | undefined;
   resourceName?: string | undefined;
   changes: JSONArray | undefined;
+  /*
+   * The entry's id, for the names of the records its changes name (#10470):
+   * asked once when the dialog opens (AuditLogRelatedRecordValue).
+   */
+  auditLogId?: string | undefined;
+  // How those names are read: the server's, unless a test hands one.
+  loadRelatedRecords?: AuditLogRelatedRecordsLoader | undefined;
 }
 
 export interface ChangeRow {
@@ -536,9 +549,43 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
     return readChangeRows(props.changes);
   }, [props.changes]);
 
+  /*
+   * The names of the records the changes name, read once as the dialog
+   * opens (#10470). A hidden value is no value, so it names nothing; a
+   * session's entry names no record.
+   */
+  const related: AuditLogRelatedRecordsState = useAuditLogRelatedRecords({
+    isOpen: props.isOpen,
+    auditLogId: props.auditLogId,
+    changes: isSessionAuditLogAction(props.action) ? [] : rows,
+    load: props.loadRelatedRecords,
+  });
+
   if (!props.isOpen) {
     return null;
   }
+
+  // A value that names records reads by their names; any other as it always did.
+  const renderChangeValue: (
+    field: string,
+    value: JSONValue | undefined,
+  ) => ReactElement = (
+    field: string,
+    value: JSONValue | undefined,
+  ): ReactElement => {
+    if (isAuditLogReferenceValue({ field, value, related })) {
+      return (
+        <AuditLogRelatedRecordValue
+          value={value}
+          records={related.records.get(field)}
+          isLoading={related.isLoading}
+          translator={translator}
+        />
+      );
+    }
+
+    return renderValue(value, translator);
+  };
 
   const title: string = getAuditLogChangesTitle({
     action: props.action,
@@ -739,7 +786,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                           {translator.translateText("Before")}
                         </div>
                         <div className="rounded-md border border-red-100 bg-red-50/60 px-3 py-2 text-sm">
-                          {renderValue(row.oldValue, translator)}
+                          {renderChangeValue(row.field, row.oldValue)}
                         </div>
                       </div>
                       <div className="max-md:hidden md:flex items-center justify-center pt-5 text-gray-400">
@@ -754,7 +801,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                           {translator.translateText("After")}
                         </div>
                         <div className="rounded-md border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-sm">
-                          {renderValue(row.newValue, translator)}
+                          {renderChangeValue(row.field, row.newValue)}
                         </div>
                       </div>
                     </div>
@@ -774,9 +821,9 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                             : "border-emerald-100 bg-emerald-50/60"
                         }`}
                       >
-                        {renderValue(
+                        {renderChangeValue(
+                          row.field,
                           isDelete ? row.oldValue : row.newValue,
-                          translator,
                         )}
                       </div>
                     </div>

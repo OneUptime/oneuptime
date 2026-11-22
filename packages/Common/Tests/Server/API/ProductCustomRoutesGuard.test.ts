@@ -98,6 +98,8 @@ const READ_HELPER: string =
   "A helper that registers reads for its callers: each call is listed in readHelpers, with why.";
 const FEED_FALLBACK: string =
   "It answers a write to a calendar feed's address with 405: a feed only reads.";
+const BLOCKLIST_FEED_FALLBACK: string =
+  "It answers a write to a blocklist feed's address with 405: a firewall only reads a feed.";
 const PAGE_LINK: string =
   "A page's own link or key press: the person paged answers it. What already runs keeps running, and refusing the answer would page everyone up the policy.";
 const IN_FIX: string =
@@ -701,6 +703,17 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
   "packages/Common/Server/API/SecurityBlockCloudWafAPI.ts": {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
+  },
+  /*
+   * Blocklist feeds (#10345): Rotate Secret and Revoke Secret name the
+   * product; what a firewall fetches is a read, and a write to a feed's
+   * address is answered 405.
+   */
+  "packages/Common/Server/API/SecurityBlocklistFeedAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {
+      BLOCKLIST_FEED_FALLBACK_ROUTE: BLOCKLIST_FEED_FALLBACK,
+    },
   },
   "packages/Common/Server/API/DetectionRuleAPI.ts": {
     products: [ProductKey.SecurityEvents],
@@ -1393,9 +1406,10 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage, whether a public note posted now is on a status page and notifies anyone, whether an announcement, a maintenance event or a maintenance template on the status pages picked shows and notifies anyone.",
+      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage, whether a public note posted now is on a status page and notifies anyone, whether an announcement, a maintenance event or a maintenance template on the status pages picked shows and notifies anyone, and which monitors, dashboards, saved views, recording rules and SLOs read what a scrub rule being written would hide, and what Security Events would lose (#10433) - as a POST for the rule it describes, which is never saved.",
       {
         "packages/Common/Server/API/PickedStatusPagesReachRoute.ts": 1,
+        "packages/Common/Server/API/ScrubRuleReadersAPI.ts": 1,
         "packages/Common/Server/API/ArchivableValueAPI.ts": 2,
         "packages/Common/Server/API/CustomFieldDefinitionAPI.ts": 1,
         "packages/Common/Server/API/OwnerRulePreviewRoute.ts": 1,

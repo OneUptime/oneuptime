@@ -1076,7 +1076,9 @@ const answerHashedAddressSearch: (data: {
     return Response.sendErrorResponse(
       data.req,
       data.res,
-      new BadDataException("Invalid Project ID"),
+      new BadDataException(
+        "A search for hashed addresses needs a project: send its ID in the tenantid header.",
+      ),
     );
   }
 

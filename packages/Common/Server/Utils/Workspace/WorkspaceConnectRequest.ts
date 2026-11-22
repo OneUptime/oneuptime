@@ -1,3 +1,9 @@
+/*
+ * First, before the database configuration below: modules it loads read it
+ * while this file is still loading them (WorkspacePendingActionKind says
+ * why).
+ */
+import { WorkspacePendingActionKind } from "./WorkspacePendingActionKind";
 import crypto from "crypto";
 import GlobalCache from "../../Infrastructure/GlobalCache";
 import DatabaseConfig from "../../DatabaseConfig";
@@ -11,7 +17,7 @@ import ConnectCallbackUtil, {
   CONNECT_REQUEST_QUERY_PARAM,
   ConnectStartPage,
 } from "../../../Types/Workspace/ConnectCallback";
-import { WorkspaceEventType } from "./WorkspaceMemberActions";
+import { WorkspaceEventType } from "./WorkspaceEventType";
 
 /*
  * SOMEBODY PRESSED A BUTTON IN SLACK OR MICROSOFT TEAMS BEFORE CONNECTING
@@ -46,20 +52,7 @@ import { WorkspaceEventType } from "./WorkspaceMemberActions";
  */
 
 // What a press does that OneUptime can finish once the account is connected.
-export enum WorkspacePendingActionKind {
-  Acknowledge = "Acknowledge",
-  Resolve = "Resolve",
-  MarkAsOngoing = "MarkAsOngoing",
-  MarkAsComplete = "MarkAsComplete",
-  // A message pinned, or given a note emoji: saved as a note on the record.
-  SavePrivateNote = "SavePrivateNote",
-  SavePublicNote = "SavePublicNote",
-  /*
-   * Approve on a public note's approval message (WorkspacePublicNoteApproval):
-   * decided once connected, only while the note is what the message showed.
-   */
-  ApprovePublicNote = "ApprovePublicNote",
-}
+export { WorkspacePendingActionKind };
 
 // The message a pin or a note emoji is on, to save it once connected.
 export interface WorkspacePendingMessage {

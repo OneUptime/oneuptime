@@ -146,7 +146,6 @@ export default class FormSSO extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.CreateFormSSO,
     ],
     read: [
@@ -183,7 +182,6 @@ export default class FormSSO extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.CreateFormSSO,
     ],
     read: [

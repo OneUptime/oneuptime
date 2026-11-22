@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 61713,
+    "keys": 61841,
     "untranslated": 2753
   },
   "sameAsEnglish": [
@@ -242,6 +242,7 @@
     "Filter",
     "Filter:",
     "Filter: {{expression}}",
+    "Firewall",
     "First Contentful Paint",
     "Fivetran",
     "Flags",

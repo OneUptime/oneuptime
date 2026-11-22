@@ -575,6 +575,15 @@ describe("a picked value that was since deleted, on the Conditions step (#7807)"
           continue;
         }
 
+        /*
+         * A Monitors condition searches the server and reads what it holds
+         * by its ids (#10646): its deleted monitor's chip is pinned in
+         * WorkspaceMonitorConditionPastTheCap.test.tsx.
+         */
+        if (checkOn === NotificationRuleConditionCheckOn.Monitors) {
+          continue;
+        }
+
         renderRow({
           eventType: eventType,
           condition: condition(

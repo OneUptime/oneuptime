@@ -52,6 +52,7 @@ Open **Producten → Beveiligingsgebeurtenissen**, onder **Beveiliging**. Het me
 | **Goedkeuringen** | Playbooks | De playbookstappen die wachten tot iemand ze goedkeurt of afwijst |
 | **Uitvoeringen** | Playbooks | Wat elk playbook deed, stap voor stap |
 | **Blokkeerlijst** | Playbooks | De adressen die je project blokkeert, tot wanneer, en waar elke blokkering wordt toegepast |
+| **Blokkeerlijstfeeds** | Playbooks | De geheime URL's waarvan je firewalls en proxy's de blokkeerlijst lezen, en hun ophaalacties |
 | **Beschermde entiteiten** | Playbooks | De gebruikers, hosts en adressen die geen enkel playbook inperkt en geen blokkering raakt |
 | **Instellingen** | AI | Of OneUptime AI elke nieuwe zaak beoordeelt |
 | **Verbindingen** | Connections | Uw logs, de beveiligingsproducten die OneUptime opvraagt en de SIEM's waarnaar het verstuurt |

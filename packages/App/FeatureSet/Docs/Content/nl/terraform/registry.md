@@ -55,6 +55,8 @@ terraform {
 
 Het bronadres noemt geen register: Terraform leest het uit het Terraform Registry, en OpenTofu uit het OpenTofu Registry, die dezelfde versies publiceren.
 
+Een gepubliceerde versie verandert nooit: de registers bewaren de checksums van wat ze het eerst downloadden, en `init` controleert elke download daartegen. Een versie die hersteld moet worden, wordt opnieuw gepubliceerd als de volgende patchversie, die een bereik meeneemt, en de notities van die release zeggen welke versie ze vervangt.
+
 ## Het lockbestand
 
 `terraform init` legt de versie die het koos, en de checksums van zijn downloads, vast in `.terraform.lock.hcl`. Commit dat bestand: elke machine en elke CI-run installeert dan precies die versie, tot je een andere kiest. De checksums dekken elk platform dat het register publiceert, dus één lockbestand werkt voor Linux-, macOS- en Windows-machines tegelijk.
@@ -77,7 +79,7 @@ Het lockbestand noemt het register. OpenTofu schrijft `registry.opentofu.org/one
 :::steps
 ### Lezen wat er veranderde
 
-[De releases van OneUptime](https://github.com/OneUptime/oneuptime/releases) zeggen wat elke release veranderde, de provider inbegrepen. [De releases van de provider](https://github.com/OneUptime/terraform-provider-oneuptime/releases) linken naar de wijzigingen sinds de vorige.
+[De releases van OneUptime](https://github.com/OneUptime/oneuptime/releases) zeggen wat elke release veranderde, de provider inbegrepen. [De releases van de provider](https://github.com/OneUptime/terraform-provider-oneuptime/releases) zeggen wat elke release aan de provider veranderde: eerst wat een configuratie breekt, dan de nieuwe resources en data sources, en de attributen die veranderden.
 
 ### Haar downloaden
 

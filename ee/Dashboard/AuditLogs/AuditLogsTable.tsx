@@ -1073,6 +1073,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
         storedResourceType={detailItem?.resourceType}
         resourceName={detailItem?.resourceName}
         changes={detailItem?.changes}
+        auditLogId={detailItem?.id?.toString()}
       />
     </Fragment>
   );

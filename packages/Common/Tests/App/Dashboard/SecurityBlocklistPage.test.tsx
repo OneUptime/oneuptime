@@ -17,7 +17,10 @@ import { MemoryRouter } from "react-router-dom";
  * cells drawn from them), the notice while nothing enforces it, a row's
  * chips per destination, Block Address with what the server's check
  * answers, a row's Lift, Extend and Make Permanent, the bulk Lift, and
- * Protected Entities' Protected Automatically card.
+ * Protected Entities' Protected Automatically card. And what blocklist
+ * feeds (#10345) add to it: the notice for a firewall that stopped reading
+ * its feed, the link to the feeds, and a feed's chip saying when a firewall
+ * fetched the block.
  */
 
 jest.mock("react-i18next", () => {
@@ -103,8 +106,12 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
     __esModule: true,
     default: (props: CapturedTable) => {
-      // The page's second list, its Cloud WAFs (#10344), is pinned in its own test.
-      if (props.id !== "security-blocklist-table") {
+      /*
+       * The page's second list, its Cloud WAFs (#10344), is pinned in its own
+       * test; the tabs' tables (#10346) are security-blocklist-table and
+       * security-blocklist-table-<kind>.
+       */
+      if (!String(props.id).startsWith("security-blocklist-table")) {
         return React.createElement("div", { "data-testid": props.id });
       }
 
@@ -172,28 +179,62 @@ import SecurityBlocklistPage from "../../../../App/FeatureSet/Dashboard/src/Page
 import * as BlocklistApi from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistApi";
 import BlockAddressModal, {
   getBlockDurationOptions,
+  getBlockRequest,
   getBlockWarnings,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlockAddressModal";
 import {
   BlockActionCell,
   BlockAddedByCell,
+  BlockAddressCell,
   BlockEnforcedAtCell,
   BlockExpiresCell,
   getEnforcementTone,
   writeEnforcementTooltip,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistCells";
 import {
+  ACTION_QUARANTINE_OPTION,
   BLOCKLIST_EMPTY_DESCRIPTION,
   BLOCKLIST_EMPTY_TITLE,
   BLOCKLIST_TABLE_DESCRIPTION,
   BLOCKLIST_TABLE_TITLE,
   BLOCKLIST_TEST_IDS,
+  BLOCK_DOMAIN_TITLE,
+  BLOCK_FILE_TITLE,
+  DOMAINS_EMPTY_DESCRIPTION,
+  DOMAIN_PLURAL,
+  DOMAIN_SINGULAR,
   ENDED_BLOCK_REASON,
+  EVERY_MACHINE_LABEL,
+  FILES_EMPTY_DESCRIPTION,
+  FILE_PLURAL,
+  FILE_SINGULAR,
   NOTHING_ENFORCES_DESCRIPTION,
   NOTHING_ENFORCES_TITLE,
+  NOT_A_DOMAIN_OR_URL,
+  NOT_A_FILE_HASH,
+  QUARANTINED_LABEL,
+  QUARANTINE_FIELD_TITLE,
   UNTIL_LIFTED_REFUSED,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistCopy";
+import {
+  BLOCKLIST_KIND_DEFAULT_DURATIONS,
+  BlocklistKind,
+  getBlocklistKind,
+  getBlocklistKindSentence,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistKinds";
+import BlocklistKindTable, {
+  getBlocklistActionFilterOptions,
+  getBlocklistTableId,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistKindTable";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import { getProtectedValueProblem } from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/ProtectedEntities";
+import {
+  PROTECTED_DOMAIN_PROBLEM,
+  PROTECTED_FILE_HASH_PROBLEM,
+} from "../../../Types/SecurityPlaybook/SecurityProtectedEntity";
+import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import BlocklistNotEnforcedNotice from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistNotEnforcedNotice";
+import { BLOCKLIST_FEEDS_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/BlocklistFeeds/BlocklistFeedsCopy";
 import { writeBlockRefusal } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistWords";
 import useBlocklistActions, {
   BlocklistActions,
@@ -206,16 +247,20 @@ import {
 import Project from "../../../Models/DatabaseModels/Project";
 import SecurityBlock from "../../../Models/DatabaseModels/SecurityBlock";
 import SecurityBlockEnforcement from "../../../Models/DatabaseModels/SecurityBlockEnforcement";
+import SecurityBlocklistFeed from "../../../Models/DatabaseModels/SecurityBlocklistFeed";
 import User from "../../../Models/DatabaseModels/User";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import {
   SecurityBlockAction,
   SecurityBlockDuration,
+  SecurityBlockIndicatorType,
+  SecurityBlockReach,
   SecurityBlockSource,
   SecurityBlockState,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
 import {
+  SecurityBlockDestinationProvider,
   SecurityBlockEnforcementState,
   SecurityBlockEnforcementView,
 } from "../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
@@ -280,6 +325,22 @@ function enforcement(
   return model;
 }
 
+const FEED_ID: string = "74444444-4444-4444-8444-444444444444";
+
+function feed(
+  values: Partial<SecurityBlocklistFeed> = {},
+): SecurityBlocklistFeed {
+  const model: SecurityBlocklistFeed = new SecurityBlocklistFeed();
+  model._id = FEED_ID;
+  model.name = "Palo Alto feed";
+  model.secretHint = "9f3c";
+  // Fetched every 5 minutes, until 3 hours ago.
+  model.usualFetchIntervalInSeconds = 300;
+  model.lastFetchedAt = new Date(Date.now() - 3 * HOUR_IN_MS);
+  Object.assign(model, values);
+  return model;
+}
+
 function nothingChecked(
   values: Partial<BlocklistApi.BlockValueCheck> = {},
 ): BlocklistApi.BlockValueCheck {
@@ -305,8 +366,24 @@ function lastConfirm(): CapturedConfirm {
   return confirms[confirms.length - 1]!;
 }
 
+// The last dialog's field that sets this value.
+function fieldOf(key: string): CapturedForm["formProps"]["fields"][number] {
+  const field: CapturedForm["formProps"]["fields"][number] | undefined =
+    lastForm().formProps.fields.find(
+      (candidate: { field: Record<string, unknown> }): boolean => {
+        return Object.keys(candidate.field)[0] === key;
+      },
+    );
+
+  expect({ key, found: Boolean(field) }).toEqual({ key, found: true });
+  return field!;
+}
+
 let holdsAdmin: boolean;
 let mayUpdate: boolean;
+// The project's blocklist feeds, as the page reads them (#10345).
+let feeds: Array<SecurityBlocklistFeed>;
+let readFeeds: MockedFn;
 let create: MockedFn;
 let updateById: MockedFn;
 let toast: MockedFn;
@@ -317,8 +394,17 @@ beforeEach(() => {
   confirms = [];
   holdsAdmin = false;
   mayUpdate = true;
+  feeds = [];
 
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+  readFeeds = jest.spyOn(ModelAPI, "getList").mockImplementation(async () => {
+    return {
+      data: feeds,
+      count: feeds.length,
+      skip: 0,
+      limit: 100,
+    } as never;
+  }) as unknown as MockedFn;
   jest.spyOn(PermissionGate, "holdsAnyOf").mockImplementation(() => {
     return holdsAdmin;
   });
@@ -520,6 +606,67 @@ describe("the Blocklist page", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("names each feed whose firewall stopped reading it, above the list, linking to its page", async () => {
+    feeds = [
+      feed(),
+      // Read 2 minutes ago: nothing to say.
+      feed({
+        _id: "75555555-5555-4555-8555-555555555555",
+        name: "nftables on edge-1",
+        lastFetchedAt: new Date(Date.now() - 2 * 60 * 1000),
+      }),
+    ];
+
+    await renderPage();
+
+    expect(readFeeds).toHaveBeenCalledTimes(1);
+    const notice: HTMLElement = screen.getByTestId(
+      BLOCKLIST_FEEDS_TEST_IDS.stoppedNotice,
+    );
+    expect(notice).toHaveTextContent(
+      /^Your firewall stopped reading Palo Alto feed .+ ago, so blocks are not enforced there until it reads it again\.$/,
+    );
+    expect(notice).not.toHaveTextContent("nftables on edge-1");
+    expect(
+      screen.getByRole("link", { name: "Palo Alto feed" }).getAttribute("href"),
+    ).toMatch(new RegExp(`/security-events/blocklist/feeds/${FEED_ID}$`));
+  });
+
+  test("says nothing of feeds while every firewall reads its own, or a feed was revoked or never fetched", async () => {
+    feeds = [
+      feed({ lastFetchedAt: new Date(Date.now() - 60 * 1000) }),
+      // Revoked on purpose: nothing stopped working.
+      feed({
+        _id: "76666666-6666-4666-8666-666666666666",
+        secretHint: null as never,
+      }),
+      // Not set up yet: the feed's page says so.
+      feed({
+        _id: "77777777-7777-4777-8777-777777777777",
+        lastFetchedAt: null as unknown as Date,
+        usualFetchIntervalInSeconds: null as unknown as number,
+      }),
+    ];
+
+    await renderPage();
+
+    expect(
+      screen.queryByTestId(BLOCKLIST_FEEDS_TEST_IDS.stoppedNotice),
+    ).not.toBeInTheDocument();
+  });
+
+  test("says nothing of feeds to a reader who may not read them", async () => {
+    readFeeds.mockRejectedValue(new Error("403") as never);
+
+    await renderPage();
+
+    expect(
+      screen.queryByTestId(BLOCKLIST_FEEDS_TEST_IDS.stoppedNotice),
+    ).not.toBeInTheDocument();
+    // The blocks are listed all the same.
+    expect(capturedTable().id).toBe("security-blocklist-table");
+  });
+
   test("a block AWS WAF holds reads Enforced at AWS WAF (prod-alb); one its web ACL does not block yet is not enforced (#10344)", async () => {
     const listed: SecurityBlock = block();
     const confirmedAt: Date = new Date();
@@ -707,6 +854,73 @@ describe("a row's cells", () => {
     ).toBe("Waiting for Cloudflare to hold this block.");
   });
 
+  test("a feed's chip says when a firewall fetched the block, and waits for a fetch rather than a write", () => {
+    const createdAt: Date = new Date(now.getTime() - 30 * 60 * 1000);
+    const atFeed: (
+      values: Partial<SecurityBlockEnforcement>,
+    ) => SecurityBlockEnforcement = (
+      values: Partial<SecurityBlockEnforcement>,
+    ): SecurityBlockEnforcement => {
+      return enforcement({
+        destinationKey: `Feed:${FEED_ID}`,
+        destinationName: "Palo Alto feed",
+        provider: SecurityBlockDestinationProvider.Feed,
+        ...values,
+      });
+    };
+
+    // Fetched 3 minutes after the block was made, last a minute ago.
+    expect(
+      writeEnforcementTooltip(
+        english,
+        atFeed({
+          state: SecurityBlockEnforcementState.Applied,
+          appliedAt: new Date(createdAt.getTime() + 3 * 60 * 1000),
+          lastConfirmedAt: new Date(now.getTime() - 60 * 1000),
+        }),
+        now,
+        createdAt,
+      ),
+    ).toMatch(
+      /^A firewall fetched this block from Palo Alto feed 3.?min after it was made\. Last fetched .+\.$/,
+    );
+    // Not fetched yet.
+    expect(
+      writeEnforcementTooltip(
+        english,
+        atFeed({ state: SecurityBlockEnforcementState.Pending }),
+        now,
+        createdAt,
+      ),
+    ).toBe("Waiting for a firewall to fetch Palo Alto feed.");
+    // Fetched once, then the firewall stopped.
+    expect(
+      writeEnforcementTooltip(
+        english,
+        atFeed({
+          state: SecurityBlockEnforcementState.Applied,
+          appliedAt: createdAt,
+          lastConfirmedAt: new Date(now.getTime() - 2 * HOUR_IN_MS),
+        }),
+        now,
+        createdAt,
+      ),
+    ).toMatch(
+      /^A firewall last fetched this block from Palo Alto feed .+, and has not fetched the feed since\.$/,
+    );
+    // Lifted: gone from the list once a firewall fetches it again.
+    expect(
+      writeEnforcementTooltip(
+        english,
+        atFeed({ state: SecurityBlockEnforcementState.Removing }),
+        now,
+        createdAt,
+      ),
+    ).toBe(
+      "Waiting for a firewall to fetch Palo Alto feed without this block.",
+    );
+  });
+
   test("Blocked and Challenged are plain facts, never red", () => {
     const { container, rerender } = render(<BlockActionCell block={block()} />);
     expect(container).toHaveTextContent("Blocked");
@@ -878,14 +1092,22 @@ describe("Block Address", () => {
       duration: SecurityBlockDuration.OneDay,
       action: SecurityBlockAction.Block,
       untilLifted: false,
+      everyMachine: false,
     });
     expect(
       form.formProps.fields.map((field: { field: Record<string, unknown> }) => {
         return Object.keys(field.field)[0];
       }),
-    ).toEqual(["value", "duration", "reason", "action", "untilLifted"]);
+    ).toEqual([
+      "value",
+      "duration",
+      "reason",
+      "action",
+      "everyMachine",
+      "untilLifted",
+    ]);
 
-    // Three fields in view; Action and Until lifted under More fields.
+    // Three fields in view; Action, On Every Machine and Until lifted under More fields.
     expect(
       form.formProps.fields.filter(
         (field: { collapsibleSection?: unknown }) => {
@@ -916,7 +1138,7 @@ describe("Block Address", () => {
     await open();
 
     const untilLifted: CapturedForm["formProps"]["fields"][number] =
-      lastForm().formProps.fields[4]!;
+      fieldOf("untilLifted");
     expect(untilLifted.disabled).toBe(true);
     expect(untilLifted.description).toBe(UNTIL_LIFTED_REFUSED);
 
@@ -924,7 +1146,7 @@ describe("Block Address", () => {
     holdsAdmin = true;
     await open();
 
-    expect(lastForm().formProps.fields[4]!.disabled).toBe(false);
+    expect(fieldOf("untilLifted").disabled).toBe(false);
   });
 
   test("checks the value as the server will: a wide range takes a Security Admin", async () => {
@@ -956,7 +1178,8 @@ describe("Block Address", () => {
     await open();
     await submit({ value: " 35.205.11.131 ", duration: "OneDay" });
 
-    expect(api.checkBlockValue).toHaveBeenCalledWith(" 35.205.11.131 ");
+    // Checked where it would be blocked: at the edge, unless asked otherwise.
+    expect(api.checkBlockValue).toHaveBeenCalledWith(" 35.205.11.131 ", "Edge");
     expect(lastForm().error).toBe(
       "35.205.11.131 is one of OneUptime Cloud's probe addresses.",
     );
@@ -1396,7 +1619,7 @@ describe("Protected Entities' Protected Automatically", () => {
 });
 
 describe("the notice, alone", () => {
-  test("links to Security Connections and Cloud Connections", () => {
+  test("links to Security Connections, Cloud Connections and Blocklist Feeds", () => {
     render(
       <MemoryRouter>
         <BlocklistNotEnforcedNotice cannotTell={false} />
@@ -1408,6 +1631,478 @@ describe("the notice, alone", () => {
       links.map((link: HTMLElement): string => {
         return link.textContent || "";
       }),
-    ).toEqual(["Security Connections", "Cloud Connections"]);
+    ).toEqual(["Security Connections", "Cloud Connections", "Blocklist Feeds"]);
+    expect(
+      screen
+        .getByRole("link", { name: "Blocklist Feeds" })
+        .getAttribute("href"),
+    ).toMatch(/\/security-events\/blocklist\/feeds$/);
+  });
+});
+
+// ---------- Domains, URLs and files (#10346) ----------
+
+const DOMAIN: string = "evil.example";
+const SHA256: string =
+  "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f";
+
+describe("a tab of each kind", () => {
+  async function openTab(name: string): Promise<void> {
+    await act(async () => {
+      screen.getByRole("tab", { name }).click();
+    });
+  }
+
+  /*
+   * A change under the tabs - a cloud WAF set up or taken down (#10344) -
+   * is the page reading what enforces the blocklist again: each tab's table
+   * reads its blocks again with it, for where each is enforced.
+   */
+  test("reads its blocks again whenever the page reads what enforces the blocklist again", async () => {
+    const changed: MockedFn = jest.fn();
+    const tableOf: (pageRefreshCount: number) => React.ReactElement = (
+      pageRefreshCount: number,
+    ): React.ReactElement => {
+      return (
+        <MemoryRouter>
+          <BlocklistKindTable
+            projectId={PROJECT_ID}
+            kind={BlocklistKind.Files}
+            onChanged={changed}
+            pageRefreshCount={pageRefreshCount}
+          />
+        </MemoryRouter>
+      );
+    };
+
+    const { rerender } = render(tableOf(0));
+
+    expect(capturedTable().id).toBe(getBlocklistTableId(BlocklistKind.Files));
+    expect(capturedTable().refreshToggle).toBe("");
+
+    rerender(tableOf(1));
+
+    expect(capturedTable().refreshToggle).toBe("1");
+    expect(changed).not.toHaveBeenCalled();
+  });
+
+  test("Addresses, Domains and URLs, and Files, the addresses first and kept where they were", async () => {
+    await renderPage();
+
+    expect(
+      screen.getAllByRole("tab").map((tab: HTMLElement): string => {
+        return tab.textContent || "";
+      }),
+    ).toEqual(["Addresses", "Domains and URLs", "Files"]);
+    // The addresses' table keeps its id, and with it each person's columns.
+    expect(capturedTable().id).toBe("security-blocklist-table");
+    expect(getBlocklistTableId(BlocklistKind.Files)).toBe(
+      "security-blocklist-table-Files",
+    );
+    expect((capturedTable().query["indicatorType"] as Includes).values).toEqual(
+      [
+        SecurityBlockIndicatorType.IpAddress,
+        SecurityBlockIndicatorType.IpRange,
+      ],
+    );
+  });
+
+  test("Domains and URLs lists the domains and URLs, blocked and nothing else", async () => {
+    await renderPage();
+    await openTab("Domains and URLs");
+
+    expect(capturedTable()).toMatchObject({
+      id: "security-blocklist-table-DomainsAndUrls",
+      singularName: DOMAIN_SINGULAR,
+      pluralName: DOMAIN_PLURAL,
+      emptyState: { description: DOMAINS_EMPTY_DESCRIPTION },
+    });
+    expect((capturedTable().query["indicatorType"] as Includes).values).toEqual(
+      [SecurityBlockIndicatorType.Domain, SecurityBlockIndicatorType.Url],
+    );
+    expect(capturedTable().columns[0]!.title).toBe("Domain or URL");
+    expect(
+      capturedTable()
+        .filters.find((filter: { title: string }) => {
+          return filter.title === "Action";
+        })
+        ?.filterDropdownOptions?.map((option: { value: string }) => {
+          return option.value;
+        }),
+    ).toEqual([SecurityBlockAction.Block]);
+
+    await act(async () => {
+      capturedTable().onCreateClick!();
+    });
+
+    expect(lastForm().title).toBe(BLOCK_DOMAIN_TITLE);
+  });
+
+  test("Files lists the files' hashes, blocked or blocked and quarantined", async () => {
+    await renderPage();
+    await openTab("Files");
+
+    expect(capturedTable()).toMatchObject({
+      id: "security-blocklist-table-Files",
+      singularName: FILE_SINGULAR,
+      pluralName: FILE_PLURAL,
+      emptyState: { description: FILES_EMPTY_DESCRIPTION },
+    });
+    expect((capturedTable().query["indicatorType"] as Includes).values).toEqual(
+      [
+        SecurityBlockIndicatorType.FileSha256,
+        SecurityBlockIndicatorType.FileSha1,
+        SecurityBlockIndicatorType.FileMd5,
+      ],
+    );
+    expect(capturedTable().columns[0]!.title).toBe("File Hash");
+    expect(getBlocklistActionFilterOptions(BlocklistKind.Files)).toEqual([
+      { label: "Block", value: SecurityBlockAction.Block },
+      {
+        label: ACTION_QUARANTINE_OPTION,
+        value: SecurityBlockAction.BlockAndQuarantine,
+      },
+    ]);
+    expect(
+      getBlocklistActionFilterOptions(BlocklistKind.Addresses).map(
+        (option: DropdownOption) => {
+          return option.value;
+        },
+      ),
+    ).toEqual([SecurityBlockAction.Block, SecurityBlockAction.Challenge]);
+  });
+
+  test("a block is listed in the tab of its kind", () => {
+    expect(getBlocklistKind(SecurityBlockIndicatorType.IpRange)).toBe(
+      BlocklistKind.Addresses,
+    );
+    expect(getBlocklistKind(SecurityBlockIndicatorType.Url)).toBe(
+      BlocklistKind.DomainsAndUrls,
+    );
+    expect(getBlocklistKind(SecurityBlockIndicatorType.FileSha1)).toBe(
+      BlocklistKind.Files,
+    );
+    expect(getBlocklistKind(undefined)).toBe(BlocklistKind.Addresses);
+  });
+});
+
+describe("a row of another kind", () => {
+  test("an address blocked on every machine says so beside it; one at the edge alone does not", () => {
+    render(
+      <BlockAddressCell
+        block={block({
+          indicatorType: SecurityBlockIndicatorType.IpAddress,
+          reach: SecurityBlockReach.Everywhere,
+        })}
+      />,
+    );
+
+    expect(screen.getByText(EVERY_MACHINE_LABEL)).toBeInTheDocument();
+
+    cleanup();
+    render(
+      <BlockAddressCell
+        block={block({
+          indicatorType: SecurityBlockIndicatorType.IpAddress,
+          reach: SecurityBlockReach.Edge,
+        })}
+      />,
+    );
+
+    expect(screen.queryByText(EVERY_MACHINE_LABEL)).not.toBeInTheDocument();
+
+    // A domain is always on every machine: its tab says so, not each row.
+    cleanup();
+    render(
+      <BlockAddressCell
+        block={block({
+          value: DOMAIN,
+          indicatorType: SecurityBlockIndicatorType.Domain,
+          reach: SecurityBlockReach.Everywhere,
+        })}
+      />,
+    );
+
+    expect(screen.getByText(DOMAIN)).toBeInTheDocument();
+    expect(screen.queryByText(EVERY_MACHINE_LABEL)).not.toBeInTheDocument();
+  });
+
+  test("a file blocked and quarantined says so, a plain fact", () => {
+    render(
+      <BlockActionCell
+        block={block({
+          value: SHA256,
+          indicatorType: SecurityBlockIndicatorType.FileSha256,
+          action: SecurityBlockAction.BlockAndQuarantine,
+        })}
+      />,
+    );
+
+    expect(screen.getByText(QUARANTINED_LABEL)).toBeInTheDocument();
+    expect(QUARANTINED_LABEL).toBe("Blocked and quarantined");
+  });
+});
+
+describe("Block Domain or URL, and Block File", () => {
+  let onBlocked: MockedFn;
+
+  async function open(kind: BlocklistKind): Promise<void> {
+    onBlocked = jest.fn();
+
+    await act(async () => {
+      render(
+        <BlockAddressModal
+          kind={kind}
+          onClose={jest.fn()}
+          onBlocked={onBlocked as unknown as () => void}
+        />,
+      );
+    });
+  }
+
+  async function submit(values: Record<string, unknown>): Promise<void> {
+    await act(async () => {
+      await lastForm().onSubmit!(values);
+    });
+  }
+
+  function made(): SecurityBlock {
+    expect(create).toHaveBeenCalledTimes(1);
+    return (create.mock.calls[0]![0] as { model: SecurityBlock }).model;
+  }
+
+  test("Block Domain or URL asks for one, 7 days unless chosen, and a reason", async () => {
+    await open(BlocklistKind.DomainsAndUrls);
+
+    const form: CapturedForm = lastForm();
+
+    expect(form.title).toBe(BLOCK_DOMAIN_TITLE);
+    expect(form.submitButtonText).toBe(BLOCK_DOMAIN_TITLE);
+    expect(form.formProps.initialValues).toEqual({
+      duration: SecurityBlockDuration.SevenDays,
+      untilLifted: false,
+    });
+    expect(
+      form.formProps.fields.map((field: { field: Record<string, unknown> }) => {
+        return Object.keys(field.field)[0];
+      }),
+    ).toEqual(["value", "duration", "reason", "untilLifted"]);
+  });
+
+  test("a domain's field takes a domain or a URL, and says what it takes of anything else", async () => {
+    await open(BlocklistKind.DomainsAndUrls);
+
+    const check: (value: string) => string | null = (
+      value: string,
+    ): string | null => {
+      return fieldOf("value").customValidation!({ value });
+    };
+
+    expect(check(DOMAIN)).toBeNull();
+    expect(check("https://evil.example/login")).toBeNull();
+    expect(check("")).toBe(NOT_A_DOMAIN_OR_URL);
+    expect(check(SHA256)).toBe(NOT_A_DOMAIN_OR_URL);
+    expect(check("198.51.100.7")).toBe(NOT_A_DOMAIN_OR_URL);
+    expect(check("not a domain")).toBe(NOT_A_DOMAIN_OR_URL);
+    expect(check("*.evil.example")).toBe(
+      "Enter the domain without *, such as evil.example. Microsoft Defender blocks the names under a domain along with it.",
+    );
+    expect(check("ftp://evil.example/payload")).toBe(
+      "Enter a URL that starts with http:// or https://, or block its domain.",
+    );
+    expect(check(`https://evil.example/${"a".repeat(600)}`)).toBe(
+      "A URL on the blocklist is at most 500 characters. Block a shorter URL, or its domain.",
+    );
+  });
+
+  test("a domain blocked is checked and made on every machine, and says so", async () => {
+    api.checkBlockValue.mockResolvedValue(
+      nothingChecked({ value: DOMAIN }) as never,
+    );
+
+    await open(BlocklistKind.DomainsAndUrls);
+    await submit({
+      value: " Evil.Example ",
+      duration: SecurityBlockDuration.SevenDays,
+    });
+
+    expect(api.checkBlockValue).toHaveBeenCalledWith(
+      " Evil.Example ",
+      SecurityBlockReach.Everywhere,
+    );
+    expect(made().value).toBe("Evil.Example");
+    expect(made().action).toBe(SecurityBlockAction.Block);
+    expect(made().reach).toBe(SecurityBlockReach.Everywhere);
+    expect(onBlocked).toHaveBeenCalledTimes(1);
+  });
+
+  test("a protected domain is refused in the dialog, saying what protects it", async () => {
+    api.checkBlockValue.mockResolvedValue(
+      nothingChecked({
+        value: "acme.com",
+        protection: {
+          source: SecurityProtectedAddressSource.StatusPage,
+          protectedValue: "status.acme.com",
+          name: "Acme Status",
+        },
+      }) as never,
+    );
+
+    await open(BlocklistKind.DomainsAndUrls);
+    await submit({ value: "acme.com" });
+
+    expect(lastForm().error).toBe(
+      "Blocking acme.com would also block status.acme.com. status.acme.com is the domain of your status page Acme Status.",
+    );
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("Block File asks for a hash, 30 days unless chosen, and quarantines unless told not to", async () => {
+    await open(BlocklistKind.Files);
+
+    const form: CapturedForm = lastForm();
+
+    expect(form.title).toBe(BLOCK_FILE_TITLE);
+    expect(form.formProps.initialValues).toEqual({
+      duration: SecurityBlockDuration.ThirtyDays,
+      untilLifted: false,
+      quarantine: true,
+    });
+    expect(
+      form.formProps.fields.map((field: { field: Record<string, unknown> }) => {
+        return Object.keys(field.field)[0];
+      }),
+    ).toEqual(["value", "duration", "reason", "quarantine", "untilLifted"]);
+    expect(fieldOf("quarantine").title).toBe(QUARANTINE_FIELD_TITLE);
+    expect(fieldOf("quarantine").collapsibleSection).toBeTruthy();
+
+    expect(
+      fieldOf("value").customValidation!({ value: SHA256.toUpperCase() }),
+    ).toBeNull();
+    expect(fieldOf("value").customValidation!({ value: DOMAIN })).toBe(
+      NOT_A_FILE_HASH,
+    );
+    expect(fieldOf("value").customValidation!({ value: "a".repeat(128) })).toBe(
+      "OneUptime blocks a file by its MD5, SHA-1 or SHA-256 hash, which Microsoft Defender and CrowdStrike match files by. Enter one of those.",
+    );
+  });
+
+  test("a file is blocked and quarantined, or only blocked when told not to quarantine it", async () => {
+    api.checkBlockValue.mockResolvedValue(
+      nothingChecked({ value: SHA256 }) as never,
+    );
+
+    await open(BlocklistKind.Files);
+    await submit({ value: SHA256, quarantine: true });
+
+    expect(made().action).toBe(SecurityBlockAction.BlockAndQuarantine);
+    expect(made().reach).toBe(SecurityBlockReach.Everywhere);
+
+    expect(
+      getBlockRequest({
+        kind: BlocklistKind.Files,
+        values: { quarantine: false },
+      }),
+    ).toEqual({
+      action: SecurityBlockAction.Block,
+      reach: SecurityBlockReach.Everywhere,
+    });
+  });
+
+  test("an address blocked on every machine too is blocked, never challenged, everywhere", async () => {
+    api.checkBlockValue.mockResolvedValue(nothingChecked() as never);
+
+    await act(async () => {
+      render(
+        <BlockAddressModal
+          kind={BlocklistKind.Addresses}
+          onClose={jest.fn()}
+          onBlocked={jest.fn()}
+        />,
+      );
+    });
+    await submit({
+      value: "35.205.11.131",
+      action: SecurityBlockAction.Challenge,
+      everyMachine: true,
+    });
+
+    expect(api.checkBlockValue).toHaveBeenCalledWith(
+      "35.205.11.131",
+      SecurityBlockReach.Everywhere,
+    );
+    expect(made().action).toBe(SecurityBlockAction.Block);
+    expect(made().reach).toBe(SecurityBlockReach.Everywhere);
+
+    // A challenge is answered at the edge: the field goes while every machine is asked.
+    const action: CapturedForm["formProps"]["fields"][number] =
+      fieldOf("action");
+    expect(
+      (
+        action as unknown as {
+          showIf: (values: Record<string, unknown>) => boolean;
+        }
+      ).showIf({ everyMachine: true }),
+    ).toBe(false);
+    expect(
+      getBlockRequest({
+        kind: BlocklistKind.Addresses,
+        values: { action: SecurityBlockAction.Challenge },
+      }),
+    ).toEqual({
+      action: SecurityBlockAction.Challenge,
+      reach: SecurityBlockReach.Edge,
+    });
+  });
+
+  test("a protected domain or file is written as it is matched, and anything else is refused with what to enter", () => {
+    expect(
+      getProtectedValueProblem({
+        entityType: SecurityEntityType.Domain,
+        value: "*.Acme.com",
+      }),
+    ).toBeNull();
+    expect(
+      getProtectedValueProblem({
+        entityType: SecurityEntityType.Domain,
+        value: "https://acme.com/login",
+      }),
+    ).toBe(PROTECTED_DOMAIN_PROBLEM);
+    expect(
+      getProtectedValueProblem({
+        entityType: SecurityEntityType.FileHash,
+        value: SHA256.toUpperCase(),
+      }),
+    ).toBeNull();
+    expect(
+      getProtectedValueProblem({
+        entityType: SecurityEntityType.FileHash,
+        value: "not a hash",
+      }),
+    ).toBe(PROTECTED_FILE_HASH_PROBLEM);
+    expect(
+      getProtectedValueProblem({
+        entityType: SecurityEntityType.User,
+        value: "alice@*",
+      }),
+    ).toBeNull();
+  });
+
+  test("each tab blocks for as long as the plan's one click does, unless chosen", () => {
+    expect(BLOCKLIST_KIND_DEFAULT_DURATIONS).toEqual({
+      [BlocklistKind.Addresses]: SecurityBlockDuration.OneDay,
+      [BlocklistKind.DomainsAndUrls]: SecurityBlockDuration.SevenDays,
+      [BlocklistKind.Files]: SecurityBlockDuration.ThirtyDays,
+    });
+    expect(
+      getBlocklistKindSentence({
+        kind: BlocklistKind.Addresses,
+        value: "  ",
+        mayBlockWideRanges: false,
+      }),
+    ).toEqual({
+      template: "Enter the IP address or range to block.",
+      values: {},
+    });
   });
 });

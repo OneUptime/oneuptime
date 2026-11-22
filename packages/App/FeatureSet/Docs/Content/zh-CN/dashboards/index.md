@@ -105,4 +105,5 @@ flowchart TB
 - [仪表板小部件](/docs/dashboards/widgets): 每个小部件，以及该选哪一个。
 - [仪表板变量与过滤器](/docs/dashboards/variables): 每个服务、主机或客户一个仪表板。
 - [共享与公开仪表板](/docs/dashboards/sharing): 公开链接、密码、IP 允许列表和自定义域名。
+- [从 Grafana 和 Datadog 导入](/docs/dashboards/import): 导入你在 Grafana 或 Datadog 中构建的仪表板或告警规则。
 :::

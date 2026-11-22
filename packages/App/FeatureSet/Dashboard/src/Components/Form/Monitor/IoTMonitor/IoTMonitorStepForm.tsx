@@ -134,6 +134,9 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   const resources: InfrastructureResources<IoTFleet> =
     useInfrastructureResources<IoTFleet>({
+      valueField: "name",
+      searchFields: ["name"],
+      heldValue: monitorStepIoTMonitor.fleetIdentifier,
       modelType: IoTFleet,
       select: {
         _id: true,
@@ -323,6 +326,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}
+        onSearchTextChange={resources.onSearchTextChange}
         addResource={{
           title: IOT_FLEET_ONBOARDING.addTitle,
           renderModal: (input: {

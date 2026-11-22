@@ -292,6 +292,19 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         icon: IconProp.NoSymbol,
       },
       {
+        /*
+         * The secret URLs firewalls and proxies read the blocklist
+         * from (Types/SecurityBlocklist/SecurityBlocklistFeed): Palo
+         * Alto, FortiGate, Check Point, Cisco, OPNsense, nftables,
+         * nginx. A feed's own page - its setup steps and fetches -
+         * lights this entry.
+         */
+        page: PageMap.SECURITY_BLOCKLIST_FEEDS,
+        title: "Blocklist Feeds",
+        icon: IconProp.CloudArrowDown,
+        detailPages: [PageMap.SECURITY_BLOCKLIST_FEED_VIEW],
+      },
+      {
         page: PageMap.SECURITY_PROTECTED_ENTITIES,
         title: "Protected Entities",
         icon: IconProp.Lock,
