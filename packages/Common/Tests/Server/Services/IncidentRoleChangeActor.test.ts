@@ -981,8 +981,11 @@ describe("Slack and Teams' Assign Role", () => {
         row: memberRow({ userId: ANA_ID, roleId: COMMANDER_ROLE_ID }),
         writesMore: false,
       } as never);
-    // Deane holds no role on the incident yet.
+    // Deane holds no role on the incident yet, and is a member of the project.
     jest.spyOn(IncidentMemberService, "findOneBy").mockResolvedValue(null);
+    jest
+      .spyOn(TeamMemberService, "isUserMemberOfProject")
+      .mockResolvedValue(true);
     const create: ReturnType<typeof jest.spyOn> = jest.spyOn(
       IncidentMemberService,
       "create",
