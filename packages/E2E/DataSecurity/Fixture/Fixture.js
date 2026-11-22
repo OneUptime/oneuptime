@@ -147,6 +147,12 @@ import {
   DataSecurityResponseAction,
   getDataSecurityResponseActions,
 } from "Common/Types/DataSecurity/DataSecurityResponseAction";
+import {
+  DATA_SECURITY_ANALYSIS_VERSION,
+  DataSecurityAiVerdict,
+  DataSecurityAnalysisFactKind,
+  DataSecurityRecency,
+} from "Common/Types/DataSecurity/DataSecurityIssueAnalysis";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
@@ -1373,6 +1379,157 @@ if (isAiOn) {
 
 /*
  * ---------------------------------------------------------------------------
+ * OneUptime AI's analysis of an issue (#10369)
+ * ---------------------------------------------------------------------------
+ *
+ * What an issue keeps, as the server sends it to a reader who may read
+ * every fact it rests on (DataSecurityIssueAnalysisReader): ?ai=on gives
+ * the public bucket's issue one - Real, what it puts at risk, what blocking
+ * public access would break and the shortest path, each line with the
+ * facts it rests on - and every other issue none, as an issue nobody
+ * analyzed yet. Reading it asks OneUptime AI nothing; Analyze Again with
+ * nothing changed keeps it, as the server does.
+ */
+const ANALYSES = new Map();
+
+if (isAiOn) {
+  ANALYSES.set(ID.issue(1), {
+    version: DATA_SECURITY_ANALYSIS_VERSION,
+    verdict: DataSecurityAiVerdict.Real,
+    language: "en",
+    analyzedAt: ago(3 * DAY - 2 * MINUTE).toISOString(),
+    lines: {
+      reason: {
+        text: "customer-exports holds card numbers and email addresses, and its bucket policy lets anyone on the internet read it. Nothing marks it public by design.",
+        facts: ["S1", "S2", "R1"],
+      },
+      risk: {
+        text: "About 2,400,000 records of card numbers and email addresses, which anyone who finds the bucket can download without signing in.",
+        facts: ["S1", "R1"],
+      },
+      breaks: {
+        text: "Blocking public access takes away Everyone's read through the bucket policy. finance-exporter keeps its write, so the nightly exports still land, and account 210987654321 keeps its read through vendor-reader.",
+        facts: ["R1", "R2", "R3"],
+      },
+      path: {
+        text: "Block Public Access on customer-exports from this page, then ask Diego Alvarez whether the account outside should still read it.",
+        facts: ["A1", "O1"],
+      },
+    },
+    hiddenLines: {},
+    facts: [
+      {
+        id: "I1",
+        kind: DataSecurityAnalysisFactKind.Issue,
+        recordIds: [ID.issue(1)],
+        checkId: "public-read",
+        severity: SecuritySeverity.Critical,
+      },
+      {
+        id: "S1",
+        kind: DataSecurityAnalysisFactKind.StoreHolds,
+        recordIds: [ID.store(1)],
+        dataTypeIds: ["email-address", "credit-card-number"],
+        dataTypeNames: ["Email address", "Card number"],
+        sensitivity: DataSensitivity.Restricted,
+        records: 2400000,
+        objects: 180000,
+      },
+      {
+        id: "S2",
+        kind: DataSecurityAnalysisFactKind.StoreExposure,
+        recordIds: [ID.store(1)],
+        exposure: DataStoreExposure.Public,
+        isPublicByDesign: false,
+        publicReason: 'The bucket policy grants s3:GetObject to Principal "*".',
+      },
+      {
+        id: "R0",
+        kind: DataSecurityAnalysisFactKind.Reach,
+        recordIds: [],
+        identities: 3,
+        publicGrants: 1,
+        externalGrants: 1,
+        writeGrants: 1,
+        usedLately: 1,
+      },
+      {
+        id: "R1",
+        kind: DataSecurityAnalysisFactKind.Grant,
+        recordIds: [ID.access(1)],
+        principal: "Everyone",
+        principalType: DataStorePrincipalType.Public,
+        accessLevel: DataStoreAccessLevel.Read,
+        grantedVia: "Bucket policy",
+        isPublic: true,
+        isExternal: true,
+        lastUsed: DataSecurityRecency.Unknown,
+        isRemovedByFix: true,
+      },
+      {
+        id: "R2",
+        kind: DataSecurityAnalysisFactKind.Grant,
+        recordIds: [ID.access(3)],
+        principal: "210987654321",
+        principalType: DataStorePrincipalType.Account,
+        accessLevel: DataStoreAccessLevel.Read,
+        grantedVia:
+          "Can assume role vendor-reader: IAM policy AmazonS3ReadOnlyAccess",
+        isPublic: false,
+        isExternal: true,
+        lastUsed: DataSecurityRecency.Unknown,
+        isRemovedByFix: false,
+      },
+      {
+        id: "R3",
+        kind: DataSecurityAnalysisFactKind.Grant,
+        recordIds: [ID.access(2)],
+        principal: "finance-exporter",
+        principalType: DataStorePrincipalType.Role,
+        accessLevel: DataStoreAccessLevel.Write,
+        grantedVia: "Bucket policy",
+        isPublic: false,
+        isExternal: false,
+        lastUsed: DataSecurityRecency.Day,
+        isRemovedByFix: false,
+      },
+      {
+        id: "K1",
+        kind: DataSecurityAnalysisFactKind.SecurityCase,
+        recordIds: [ID.securityCase(1)],
+        securityCaseId: ID.securityCase(1),
+      },
+      {
+        id: "A1",
+        kind: DataSecurityAnalysisFactKind.Response,
+        recordIds: [ID.store(1)],
+        action: DataSecurityResponseAction.BlockPublicAccess,
+        isAvailable: isResponseOn,
+        unavailableReason: isResponseOn
+          ? undefined
+          : DataSecurityResponseUnavailableReason.ResponseOff,
+      },
+      {
+        id: "O1",
+        kind: DataSecurityAnalysisFactKind.Owners,
+        recordIds: [ID.owner(1)],
+        ownerNames: ["Diego Alvarez"],
+        owners: 1,
+      },
+    ],
+  });
+}
+
+// The analysis an issue keeps, or null: none, or no such issue.
+function issueAnalysis(issueId) {
+  const issue = table(DataSecurityIssue).find((row) => {
+    return row._id === issueId;
+  });
+  return (issue && ANALYSES.get(issueId)) || null;
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * The other data sets: a busy project, and a new one
  * ---------------------------------------------------------------------------
  */
@@ -2408,6 +2565,7 @@ const ROUTE = {
   responseActions: DATA_SECURITY_API_ROUTES.responseActions(":id"),
   respond: DATA_SECURITY_API_ROUTES.respond(":id"),
   explain: DATA_SECURITY_API_ROUTES.explainIssue(":id"),
+  issueAnalysis: DATA_SECURITY_API_ROUTES.issueAnalysis(":id"),
   occurrences: DATA_SECURITY_API_ROUTES.findingOccurrences(":id"),
   scrub: DATA_SECURITY_API_ROUTES.scrubFinding(":id"),
   approveAiProposal: DATA_SECURITY_API_ROUTES.approveAiProposal(":id"),
@@ -2505,6 +2663,23 @@ async function handleApi(method, options) {
       );
     }
     return new HTTPResponse(200, respond(respondTo, body), {});
+  }
+
+  // OneUptime AI's analysis the issue keeps, read with no model call (#10369).
+  const analysisOf = idOf(ROUTE.issueAnalysis, pathname);
+  if (method === "POST" && analysisOf) {
+    return new HTTPResponse(200, { analysis: issueAnalysis(analysisOf) }, {});
+  }
+
+  /*
+   * Analyze Again: with nothing the analysis rests on changed, the server
+   * keeps it and asks OneUptime AI nothing. The fixture has no model, so an
+   * issue with no analysis gets none.
+   */
+  const explainOf = idOf(ROUTE.explain, pathname);
+  if (method === "POST" && explainOf) {
+    const analysis = issueAnalysis(explainOf);
+    return new HTTPResponse(200, { markdown: "", analysis, isNew: false }, {});
   }
 
   const occurrencesOf = idOf(ROUTE.occurrences, pathname);

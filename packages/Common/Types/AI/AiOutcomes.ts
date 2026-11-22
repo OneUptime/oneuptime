@@ -85,6 +85,32 @@ export interface AiOutcomesRootCauses {
 }
 
 /*
+ * OneUptime AI's verdicts on Data Security issues (#10369): the issues it
+ * analyzed in the window, and whether what people did with each agreed
+ * with its verdict (getIssueVerdictOutcome, Server/Utils/AI/Outcomes):
+ *
+ *   - Real: agreed when the issue was fixed (its check passed) or its risk
+ *     accepted; not when it was marked not an issue;
+ *   - Likely by design: agreed when its risk was accepted, it was marked not
+ *     an issue, or its store marked public by design; not when it was fixed;
+ *   - Likely a wrong finding: agreed when it was marked not an issue; not
+ *     when it was fixed or its risk accepted;
+ *   - Cannot tell makes no claim, and an issue still open waits.
+ */
+export interface AiOutcomesIssueVerdicts {
+  agreed: number;
+  disagreed: number;
+  // Still open: nobody decided yet.
+  waiting: number;
+  // OneUptime AI could not tell: no claim to agree with.
+  cannotTell: number;
+  // Every issue it analyzed, by the verdict it gave.
+  real: number;
+  likelyByDesign: number;
+  likelyWrongFinding: number;
+}
+
+/*
  * ---------------------------------------------------------------------------
  * DATA SECURITY (issue #10364).
  * ---------------------------------------------------------------------------
@@ -178,6 +204,13 @@ export interface AiOutcomesWeek {
    */
   dataSecurityChangesProven: number;
   dataSecurityChangesMade: number;
+  /*
+   * Data Security issues OneUptime AI analyzed that week whose verdict what
+   * people decided agreed with, of those decided (#10369). A server of the
+   * release before sends neither: the Dashboard reads them as none.
+   */
+  verdictsAgreed: number;
+  verdictsDecided: number;
 }
 
 /*
@@ -248,6 +281,12 @@ export interface AiOutcomes {
    * model is listed, so the page names no model (#7762).
    */
   models: AiOutcomesModels | null;
+  /*
+   * OneUptime AI's verdicts on Data Security issues (#10369). Null: the
+   * caller may not read Data Security issues; absent from a server of the
+   * release before.
+   */
+  issueVerdicts?: AiOutcomesIssueVerdicts | null | undefined;
   // AI_OUTCOMES_WEEK_COUNT weeks, oldest first.
   weeks: Array<AiOutcomesWeek>;
   // A kind of row reached AI_OUTCOMES_SCAN_LIMIT: the newest were counted.
@@ -289,6 +328,8 @@ export enum AiOutcomesPart {
   DataSecurityChanges = "dataSecurityChanges",
   // What people did with the changes it proposed.
   DataSecurityProposals = "dataSecurityProposals",
+  // How often what people decided agreed with OneUptime AI's verdict (#10369).
+  IssueVerdicts = "issueVerdicts",
 }
 
 export const AI_OUTCOMES_PARTS: ReadonlyArray<AiOutcomesPart> = [
@@ -299,6 +340,7 @@ export const AI_OUTCOMES_PARTS: ReadonlyArray<AiOutcomesPart> = [
   AiOutcomesPart.DataSecurityAnalyses,
   AiOutcomesPart.DataSecurityChanges,
   AiOutcomesPart.DataSecurityProposals,
+  AiOutcomesPart.IssueVerdicts,
 ];
 
 // The parts of the Data Security card, whose records are Data Security issues.
@@ -350,6 +392,16 @@ export const AI_OUTCOMES_DATA_SECURITY_PROPOSAL_OUTCOMES: ReadonlyArray<
   keyof AiOutcomesDataSecurityProposals
 > = ["approved", "dismissed"];
 
+// What became of a Data Security issue OneUptime AI gave a verdict on (#10369).
+export type AiOutcomesIssueVerdictOutcome =
+  | "agreed"
+  | "disagreed"
+  | "waiting"
+  | "cannotTell";
+
+export const AI_OUTCOMES_ISSUE_VERDICT_OUTCOMES: ReadonlyArray<AiOutcomesIssueVerdictOutcome> =
+  ["agreed", "disagreed", "waiting", "cannotTell"];
+
 export const AI_OUTCOMES_PART_OUTCOMES: Record<
   AiOutcomesPart,
   ReadonlyArray<string>
@@ -364,6 +416,7 @@ export const AI_OUTCOMES_PART_OUTCOMES: Record<
     AI_OUTCOMES_DATA_SECURITY_CHANGE_OUTCOMES,
   [AiOutcomesPart.DataSecurityProposals]:
     AI_OUTCOMES_DATA_SECURITY_PROPOSAL_OUTCOMES,
+  [AiOutcomesPart.IssueVerdicts]: AI_OUTCOMES_ISSUE_VERDICT_OUTCOMES,
 };
 
 export function isAiOutcomesPartOutcome(
@@ -425,6 +478,9 @@ export interface AiOutcomesRecord {
   summary?: string | undefined;
   humanVerdict?: string | undefined;
   autoGrade?: string | undefined;
+  // A Data Security issue: OneUptime AI's verdict, and where the issue stands.
+  issueVerdict?: string | undefined;
+  issueStatus?: string | undefined;
 }
 
 export interface AiOutcomesRecords {

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 61238,
-    "untranslated": 2307
+    "keys": 61841,
+    "untranslated": 2306
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -380,6 +380,7 @@
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
+    "Real",
     "Recordsets",
     "Red Hat OpenShift",
     "Redis",
