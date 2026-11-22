@@ -13,6 +13,7 @@ import {
   SecurityBlockValue,
   readSecurityBlockValue,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
+import { getSecurityAddressSpellings } from "../../../Types/SecurityBlocklist/SecurityAddressSpellings";
 import NetworkAddressBlockUtil from "../../../Utils/NetworkTraffic/NetworkAddressBlock";
 import {
   AddressScrubRule,
@@ -205,49 +206,6 @@ export const SECURITY_SIGNED_IN_MESSAGES: {
     return `Some sign-ins in your logs have their address hidden by a scrub rule, so OneUptime cannot tell whether a signed-in user used ${value}. It is left for a person.`;
   },
 };
-
-/*
- * Every way a source may have written an address: as blocks are written
- * (IPv4 dotted, IPv6 compressed in lower case), IPv6 written out in full,
- * either in capitals, and an IPv4 address an IPv6 one maps.
- */
-export function getSecurityAddressSpellings(address: string): Array<string> {
-  const read: SecurityBlockValue | null = readSecurityBlockValue(address);
-
-  if (!read || !NetworkAddressBlockUtil.isSingleAddress(read.block)) {
-    return [];
-  }
-
-  const spellings: Set<string> = new Set([read.value]);
-
-  if (read.block.family === 4) {
-    spellings.add(`::ffff:${read.value}`);
-  } else {
-    const expanded: string = expandIpv6(read.value);
-
-    spellings.add(expanded);
-    spellings.add(read.value.toUpperCase());
-    spellings.add(expanded.toUpperCase());
-  }
-
-  return Array.from(spellings);
-}
-
-// An IPv6 address written out in full: eight groups, each without leading zeros, as some sources write it.
-export function expandIpv6(address: string): string {
-  const halves: Array<string> = address.split("::");
-  const head: Array<string> = halves[0] ? halves[0].split(":") : [];
-  const tail: Array<string> =
-    halves.length > 1 && halves[1] ? halves[1].split(":") : [];
-  const missing: number =
-    halves.length > 1 ? Math.max(0, 8 - head.length - tail.length) : 0;
-
-  return [...head, ...new Array(missing).fill("0"), ...tail]
-    .map((group: string): string => {
-      return group.replace(/^0+(?=.)/, "");
-    })
-    .join(":");
-}
 
 /*
  * The addresses a check lists one by one: the address itself, or every

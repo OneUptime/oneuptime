@@ -13,12 +13,14 @@ import SecuritySignedInAddresses, {
   SecuritySignedInSource,
   buildSignedInRequestsStatement,
   buildSignedInSignInsStatement,
-  expandIpv6,
-  getSecurityAddressSpellings,
   getSecuritySignedInMatch,
   listSecuritySignedInAddresses,
   readSignedInUsersByAddress,
 } from "../../../../Server/Utils/SecurityAutomaticResponse/SecuritySignedInAddresses";
+import {
+  expandIpv6,
+  getSecurityAddressSpellings,
+} from "../../../../Types/SecurityBlocklist/SecurityAddressSpellings";
 import ScrubbedClientAddresses from "../../../../Server/Utils/SecurityEvent/ScrubbedClientAddresses";
 import ScrubHashToken from "../../../../Server/Utils/Telemetry/ScrubHashToken";
 import { JSONObject } from "../../../../Types/JSON";
