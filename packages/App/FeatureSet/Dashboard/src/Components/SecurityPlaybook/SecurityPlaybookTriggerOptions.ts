@@ -26,8 +26,14 @@ export interface SecurityPlaybookTriggerOption {
 export const SECURITY_PLAYBOOK_TRIGGER_FIELD_DESCRIPTION: string =
   translationKey("When the playbook runs on its own.");
 
-export const SECURITY_PLAYBOOK_TRIGGER_DESCRIPTIONS: Record<
+// The triggers a playbook may choose: Automatic Response is a run's, never a playbook's (#10350).
+export type ChoosableSecurityPlaybookTrigger = Exclude<
   SecurityPlaybookTrigger,
+  SecurityPlaybookTrigger.AutomaticResponse
+>;
+
+export const SECURITY_PLAYBOOK_TRIGGER_DESCRIPTIONS: Record<
+  ChoosableSecurityPlaybookTrigger,
   string
 > = {
   [SecurityPlaybookTrigger.CaseOpened]: translationKey(
@@ -61,7 +67,10 @@ export function getSecurityPlaybookTriggerOptions(data: {
     return {
       value: trigger,
       label: trigger,
-      description: SECURITY_PLAYBOOK_TRIGGER_DESCRIPTIONS[trigger],
+      description:
+        SECURITY_PLAYBOOK_TRIGGER_DESCRIPTIONS[
+          trigger as ChoosableSecurityPlaybookTrigger
+        ],
     };
   });
 }

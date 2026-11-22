@@ -4,6 +4,7 @@ import {
   readBlockEnforcements,
   readBlocklistDestinations,
 } from "../../SecurityEvents/Blocklist/BlocklistApi";
+import SecurityAutomaticResponseAction from "Common/Models/DatabaseModels/SecurityAutomaticResponseAction";
 import SecurityBlock from "Common/Models/DatabaseModels/SecurityBlock";
 import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -68,6 +69,7 @@ const BLOCK_SELECT: {
   createdAt: true;
   source: true;
   createdByUser: { _id: true; name: true; email: true };
+  securityAutomaticResponsePolicy: { _id: true; name: true; kind: true };
 } = {
   _id: true,
   value: true,
@@ -78,6 +80,8 @@ const BLOCK_SELECT: {
   createdAt: true,
   source: true,
   createdByUser: { _id: true, name: true, email: true },
+  // The automatic response policy that made it (#10350): "by the Scanners policy".
+  securityAutomaticResponsePolicy: { _id: true, name: true, kind: true },
 };
 
 // A block and where it is enforced, as the step reads it.
@@ -85,6 +89,8 @@ export function readResponseAddressBlock(data: {
   block: SecurityBlock;
   enforcements: Array<SecurityBlockEnforcement>;
   now: Date;
+  // How long an automatic response policy's block took, from the address's first request (#10350).
+  timeToBlockInSeconds?: number | undefined;
 }): ResponseAddressBlock | null {
   const { block } = data;
   const id: string = block._id?.toString() || block.id?.toString() || "";
@@ -132,6 +138,9 @@ export function readResponseAddressBlock(data: {
     block.createdByUser?.name?.toString() ||
     block.createdByUser?.email?.toString() ||
     "";
+  const policyName: string = (
+    block.securityAutomaticResponsePolicy?.name || ""
+  ).trim();
 
   return {
     id,
@@ -143,6 +152,15 @@ export function readResponseAddressBlock(data: {
     ...(block.createdAt ? { createdAt: new Date(block.createdAt) } : {}),
     expiresAt: block.expiresAt ? new Date(block.expiresAt) : null,
     ...(createdByName ? { createdByName } : {}),
+    ...(policyName
+      ? {
+          policyName,
+          policyKind: block.securityAutomaticResponsePolicy?.kind || undefined,
+        }
+      : {}),
+    ...(policyName && typeof data.timeToBlockInSeconds === "number"
+      ? { timeToBlockInSeconds: data.timeToBlockInSeconds }
+      : {}),
     ...(isSecurityBlockSource(block.source)
       ? { source: block.source as SecurityBlockSource }
       : {}),
@@ -188,6 +206,66 @@ export function readDestinationNames(
  * reader cannot read where the blocklist is enforced, so the plan says the
  * step is done by hand rather than guess.
  */
+/*
+ * How long each automatic response policy's block took, from the address's
+ * first request to holding at an edge (#10350), by block. Nothing when the
+ * reader may not read what the policies did: the line then names the
+ * policy without it.
+ */
+export async function readTimesToBlock(
+  blocks: Array<SecurityBlock>,
+): Promise<Map<string, number>> {
+  const times: Map<string, number> = new Map();
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  const ids: Array<ObjectID> = blocks
+    .filter((block: SecurityBlock): boolean => {
+      return (
+        block.source === SecurityBlockSource.AutomaticResponse &&
+        Boolean(block.id)
+      );
+    })
+    .map((block: SecurityBlock): ObjectID => {
+      return block.id!;
+    });
+
+  if (!projectId || ids.length === 0) {
+    return times;
+  }
+
+  try {
+    const result: ListResult<SecurityAutomaticResponseAction> =
+      await ModelAPI.getList<SecurityAutomaticResponseAction>({
+        modelType: SecurityAutomaticResponseAction,
+        query: {
+          projectId,
+          isTrialRun: false,
+          securityBlockId: new Includes(ids),
+        },
+        select: {
+          _id: true,
+          securityBlockId: true,
+          timeToBlockInSeconds: true,
+        },
+        sort: { createdAt: SortOrder.Descending },
+        skip: 0,
+        limit: ids.length * 2,
+      });
+
+    for (const action of result.data) {
+      const blockId: string = action.securityBlockId?.toString() || "";
+      const seconds: number | undefined = action.timeToBlockInSeconds;
+
+      if (blockId && typeof seconds === "number" && !times.has(blockId)) {
+        times.set(blockId, seconds);
+      }
+    }
+  } catch {
+    // The line names the policy without how long it took.
+  }
+
+  return times;
+}
+
 export async function loadAddressBlocking(data: {
   addresses: Array<string>;
   runStates: Record<string, ResponsePlaybookRunState>;
@@ -253,18 +331,21 @@ export async function loadAddressBlocking(data: {
     },
   );
 
-  const enforcements: Map<
-    string,
-    Array<SecurityBlockEnforcement>
-  > = await readBlockEnforcements(
-    blocks
-      .map((block: SecurityBlock): ObjectID | undefined => {
-        return block.id || undefined;
-      })
-      .filter((id: ObjectID | undefined): id is ObjectID => {
-        return Boolean(id);
-      }),
-  );
+  const [enforcements, timesToBlock]: [
+    Map<string, Array<SecurityBlockEnforcement>>,
+    Map<string, number>,
+  ] = await Promise.all([
+    readBlockEnforcements(
+      blocks
+        .map((block: SecurityBlock): ObjectID | undefined => {
+          return block.id || undefined;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        }),
+    ),
+    readTimesToBlock(blocks),
+  ]);
 
   return {
     destinations,
@@ -274,6 +355,7 @@ export async function loadAddressBlocking(data: {
           block,
           enforcements: enforcements.get(block.id?.toString() || "") || [],
           now,
+          timeToBlockInSeconds: timesToBlock.get(block.id?.toString() || ""),
         });
       })
       .filter(

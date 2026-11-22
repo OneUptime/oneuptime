@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 61841,
+    "keys": 61980,
     "untranslated": 8044
   },
   "sameAsEnglish": [
@@ -154,6 +154,7 @@
     "Stripe Payments API",
     "Swarm ID",
     "Sysctls",
+    "T1110, T1190",
     "TLS",
     "TTL",
     "TX",

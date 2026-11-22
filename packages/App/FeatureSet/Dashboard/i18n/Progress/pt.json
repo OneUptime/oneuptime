@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 61841,
+    "keys": 61980,
     "untranslated": 8288
   },
   "sameAsEnglish": [
@@ -298,6 +298,7 @@
     "SLOs ({{count}})",
     "SQL Server",
     "SSH",
+    "Scanners",
     "ScheduledMaintenance",
     "Script",
     "Seccomp",
@@ -323,6 +324,7 @@
     "Stripe Payments API",
     "Switch",
     "Sysctls",
+    "T1110, T1190",
     "TLS",
     "TTL",
     "TX",

@@ -23,6 +23,8 @@ import {
   readCaseTargets,
 } from "../../../Components/SecurityCase/ResponseTargets/SecurityCaseTargetDisplay";
 import { formatCompactDurationInMinutes } from "../../../Utils/CompactDuration";
+import { CASE_TIME_TO_BLOCK } from "../../../Components/SecurityEvents/AutomaticResponse/AutomaticResponseCopy";
+import { formatTimeToBlock } from "../../../Components/SecurityEvents/AutomaticResponse/AutomaticResponseModel";
 import { keepSecurityCaseTimeWhole } from "../../../Components/SecurityCase/SecurityCaseQueueViews";
 import SecurityCaseViewContext, {
   useSecurityCaseView,
@@ -224,6 +226,17 @@ const SecurityCaseOverviewPage: FunctionComponent<
           label="Time to Contain"
           value={duration(figures.timeToContainInMinutes)}
           note={targetNote(SecurityCaseTarget.Contain)}
+          // An automatic response policy blocked its address: how fast (#10350).
+          description={
+            typeof securityCase.timeToBlockInSeconds === "number"
+              ? translator.translateTemplate(CASE_TIME_TO_BLOCK, {
+                  time: formatTimeToBlock(
+                    securityCase.timeToBlockInSeconds,
+                    translator,
+                  ),
+                })
+              : undefined
+          }
         />
       </EventStatBar>
 

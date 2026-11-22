@@ -1056,6 +1056,8 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
    */
   [PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL]: "playbook-runs",
   [PageMap.SECURITY_PLAYBOOK_RUNS]: "playbook-runs/all",
+  // The policies that challenge or block as a detection is made (#10350).
+  [PageMap.SECURITY_AUTOMATIC_RESPONSE]: "automatic-response",
   [PageMap.SECURITY_BLOCKLIST]: "blocklist",
   // The secret URLs firewalls read the blocklist from (#10345), under the Blocklist.
   [PageMap.SECURITY_BLOCKLIST_FEEDS]: "blocklist/feeds",
@@ -8659,6 +8661,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_PLAYBOOK_RUNS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_PLAYBOOK_RUNS]
+    }`,
+  ),
+
+  [PageMap.SECURITY_AUTOMATIC_RESPONSE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_AUTOMATIC_RESPONSE]
     }`,
   ),
 

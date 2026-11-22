@@ -367,16 +367,20 @@ export const SECURITY_AUTOMATIC_RESPONSE_MESSAGES: {
   turnOnTakesAdmin: string;
   nameRequired: string;
 } = {
-  matchNamesNothing:
+  matchNamesNothing: translationKey(
     "Choose what the policy acts on: at least one ATT&CK technique, one detection rule, or addresses your threat intel lists.",
-  readyPolicyFixed:
+  ),
+  readyPolicyFixed: translationKey(
     "A ready policy is switched on as it is. To act on something else, or for another length, create a policy from the blank one.",
-  notADuration:
+  ),
+  notADuration: translationKey(
     "Choose how long the policy's first block lasts: 1 hour, 24 hours or 7 days.",
-  notAnAction: "Choose Block or Challenge.",
-  turnOnTakesAdmin:
+  ),
+  notAnAction: translationKey("Choose Block or Challenge."),
+  turnOnTakesAdmin: translationKey(
     "Only a Security Admin, a Project Admin or a Project Owner can turn an automatic response policy on: its blocks need nobody's approval.",
-  nameRequired: "Name the policy.",
+  ),
+  nameRequired: translationKey("Name the policy."),
 };
 
 // ---------- The trial run ----------

@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 61841,
+    "keys": 61980,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -261,6 +261,7 @@
     "Snowflake",
     "StatusPage",
     "Stripe Payments API",
+    "T1110, T1190",
     "TLS",
     "TTL",
     "TX",

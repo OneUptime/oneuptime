@@ -2719,6 +2719,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["run history", "soar runs"],
           },
           {
+            page: PageMap.SECURITY_AUTOMATIC_RESPONSE,
+            title: "Automatic Response",
+            icon: IconProp.HandRaised,
+            keywords: [
+              "auto block",
+              "block scanners",
+              "block brute force",
+              "fail2ban",
+              "challenge bots",
+            ],
+          },
+          {
             page: PageMap.SECURITY_BLOCKLIST,
             title: "Blocklist",
             icon: IconProp.NoSymbol,

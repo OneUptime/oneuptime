@@ -26,6 +26,7 @@ import {
   summarizeSecurityAutomaticResponseTrial,
   summarizeTimeToBlock,
 } from "../../../Types/SecurityAutomaticResponse/SecurityAutomaticResponseSummary";
+import { SecurityAutomaticResponseRule } from "../../../Types/SecurityAutomaticResponse/SecurityAutomaticResponseOverview";
 import { canSecurityBlockDestinationChallenge } from "../../../Types/SecurityBlocklist/SecurityBlockChallenge";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import SecurityAutomaticResponseActionService from "../../Services/SecurityAutomaticResponseActionService";
@@ -36,9 +37,7 @@ import SecurityBlockDestinations, {
   SecurityBlockDestinationsFound,
 } from "../SecurityBlocklist/SecurityBlockDestinations";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import SecurityAutomaticResponseRules, {
-  SecurityAutomaticResponseRule,
-} from "./SecurityAutomaticResponseRules";
+import SecurityAutomaticResponseRules from "./SecurityAutomaticResponseRules";
 
 /*
  * THE AUTOMATIC RESPONSE PAGE, READ (#10350): every policy of the project -
@@ -147,31 +146,35 @@ export default class SecurityAutomaticResponseOverview {
       policiesJson.push(await this.readPolicy({ ...data, policy, now }));
     }
 
-    const [destinations, blocksThisHour]: [Array<JSONObject>, number] =
-      await Promise.all([
-        this.readDestinations(data.projectId),
-        SecurityAutomaticResponseActionService.countBy({
-          query: {
-            projectId: data.projectId,
-            isTrialRun: false,
-            outcome: new Includes([
-              ...SECURITY_AUTOMATIC_RESPONSE_ACTED_OUTCOMES,
-            ]),
-            createdAt: QueryHelper.greaterThanEqualTo(
-              new Date(
-                now.getTime() - SECURITY_AUTOMATIC_RESPONSE_LIMIT_WINDOW_IN_MS,
-              ),
+    const [destinations, blocksThisHour]: [
+      { destinations: Array<JSONObject>; cannotTell: boolean },
+      number,
+    ] = await Promise.all([
+      this.readDestinations(data.projectId),
+      SecurityAutomaticResponseActionService.countBy({
+        query: {
+          projectId: data.projectId,
+          isTrialRun: false,
+          outcome: new Includes([
+            ...SECURITY_AUTOMATIC_RESPONSE_ACTED_OUTCOMES,
+          ]),
+          createdAt: QueryHelper.greaterThanEqualTo(
+            new Date(
+              now.getTime() - SECURITY_AUTOMATIC_RESPONSE_LIMIT_WINDOW_IN_MS,
             ),
-          },
-          props: { isRoot: true },
-        }).then((count: { toNumber: () => number }): number => {
-          return count.toNumber();
-        }),
-      ]);
+          ),
+        },
+        props: { isRoot: true },
+      }).then((count: { toNumber: () => number }): number => {
+        return count.toNumber();
+      }),
+    ]);
 
     return {
       policies: policiesJson,
-      destinations,
+      destinations: destinations.destinations,
+      // A kind of destination could not be listed: the page cannot tell nothing enforces the blocklist.
+      destinationsCannotTell: destinations.cannotTell,
       blocksThisHour,
       maxBlocksPerHour: SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR,
     };
@@ -330,25 +333,28 @@ export default class SecurityAutomaticResponseOverview {
   // The destinations that enforce the blocklist, and whether each can challenge.
   private static async readDestinations(
     projectId: ObjectID,
-  ): Promise<Array<JSONObject>> {
+  ): Promise<{ destinations: Array<JSONObject>; cannotTell: boolean }> {
     try {
       const found: SecurityBlockDestinationsFound =
         await SecurityBlockDestinations.findForProject(projectId);
 
-      return found.destinations.map(
-        (destination: SecurityBlockDestination): JSONObject => {
-          return {
-            name: destination.name,
-            provider: destination.provider,
-            canChallenge: canSecurityBlockDestinationChallenge(destination),
-          };
-        },
-      );
+      return {
+        destinations: found.destinations.map(
+          (destination: SecurityBlockDestination): JSONObject => {
+            return {
+              name: destination.name,
+              provider: destination.provider,
+              canChallenge: canSecurityBlockDestinationChallenge(destination),
+            };
+          },
+        ),
+        cannotTell: found.failedProviders.length > 0,
+      };
     } catch (error) {
       logger.warn(
         `SecurityAutomaticResponseOverview: could not list project ${projectId.toString()}'s blocklist destinations: ${String(error)}`,
       );
-      return [];
+      return { destinations: [], cannotTell: true };
     }
   }
 }

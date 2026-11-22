@@ -31,6 +31,9 @@ import {
   getSecurityBlockEnforcementView,
 } from "Common/Types/SecurityBlocklist/SecurityBlockEnforcement";
 import { FEED_ENFORCEMENT_TOOLTIPS } from "../BlocklistFeeds/BlocklistFeedsCopy";
+import { BLOCKED_BY_POLICY } from "../AutomaticResponse/AutomaticResponseCopy";
+import { getPolicyDisplayName } from "../AutomaticResponse/AutomaticResponseModel";
+import { SecurityAutomaticResponsePolicyKind } from "Common/Types/SecurityAutomaticResponse/SecurityAutomaticResponsePolicy";
 import { formatCompactDurationInMinutes } from "../../../Utils/CompactDuration";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -353,6 +356,31 @@ export const BlockAddedByCell: FunctionComponent<AddressCellProps> = (
       <UserElement user={props.block.createdByUser} hideEmail={true} />
     ) : (
       <TableEmptyValue />
+    );
+  }
+
+  // An automatic response policy's block names the policy: "Scanners policy" (#10350).
+  const policyName: string = props.block.securityAutomaticResponsePolicy?.name
+    ? getPolicyDisplayName(
+        {
+          kind:
+            props.block.securityAutomaticResponsePolicy.kind ||
+            SecurityAutomaticResponsePolicyKind.Custom,
+          name: props.block.securityAutomaticResponsePolicy.name,
+        },
+        translator,
+      )
+    : "";
+
+  if (source === SecurityBlockSource.AutomaticResponse && policyName) {
+    return (
+      <span className="text-sm text-gray-700">
+        {translator.translateTemplate(
+          BLOCKED_BY_POLICY,
+          { name: policyName },
+          { setsValuesApart: true },
+        )}
+      </span>
     );
   }
 

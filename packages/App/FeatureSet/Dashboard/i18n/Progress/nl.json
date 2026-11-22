@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 61841,
+    "keys": 61980,
     "untranslated": 8323
   },
   "sameAsEnglish": [
@@ -459,6 +459,7 @@
     "SSH",
     "Samples",
     "Scan",
+    "Scanners",
     "Scans",
     "ScheduledMaintenance",
     "Schema",
@@ -503,6 +504,7 @@
     "Switch",
     "Switches",
     "Sysctls",
+    "T1110, T1190",
     "TLS",
     "TTL",
     "TX",

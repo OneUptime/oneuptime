@@ -18,10 +18,12 @@ import { sortSecurityAutomaticResponsePolicies } from "../../../../Server/Utils/
 import SecurityAutomaticResponseOwners from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseOwners";
 import SecurityAutomaticResponseRules, {
   SECURITY_AUTOMATIC_RESPONSE_LIBRARY_RULES,
-  SecurityAutomaticResponseRule,
-  SecurityAutomaticResponseRuleState,
   getSecurityAutomaticResponseLibraryEntries,
 } from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseRules";
+import {
+  SecurityAutomaticResponseRule,
+  SecurityAutomaticResponseRuleState,
+} from "../../../../Types/SecurityAutomaticResponse/SecurityAutomaticResponseOverview";
 import SecurityRepeatOffenders from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityRepeatOffenders";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";

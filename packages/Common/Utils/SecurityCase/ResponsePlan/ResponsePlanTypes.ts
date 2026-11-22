@@ -100,6 +100,15 @@ export interface ResponseAddressBlock {
   // Who made it: a person's name, or what did.
   createdByName?: string | undefined;
   source?: SecurityBlockSource | undefined;
+  /*
+   * The automatic response policy that made it (#10350): its name as kept
+   * (a ready policy's in English, a project's own as written) and its kind,
+   * and how long the block took from the address's first request to
+   * holding at an edge.
+   */
+  policyName?: string | undefined;
+  policyKind?: string | undefined;
+  timeToBlockInSeconds?: number | undefined;
   // The destinations that hold it now, by name, and since when the first did.
   enforcedAt: Array<string>;
   enforcedSince?: Date | undefined;

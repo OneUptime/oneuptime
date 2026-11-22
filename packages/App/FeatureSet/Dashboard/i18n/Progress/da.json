@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 61841,
+    "keys": 61980,
     "untranslated": 8254
   },
   "sameAsEnglish": [
@@ -383,6 +383,7 @@
     "Sum",
     "Switch",
     "System",
+    "T1110, T1190",
     "TLS",
     "TTL",
     "TX",

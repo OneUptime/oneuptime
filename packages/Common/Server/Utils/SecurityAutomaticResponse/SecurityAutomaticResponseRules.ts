@@ -2,6 +2,10 @@ import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  SecurityAutomaticResponseRule,
+  SecurityAutomaticResponseRuleState,
+} from "../../../Types/SecurityAutomaticResponse/SecurityAutomaticResponseOverview";
+import {
   SecurityAutomaticResponsePolicyKind,
   isReadySecurityAutomaticResponsePolicyKind,
 } from "../../../Types/SecurityAutomaticResponse/SecurityAutomaticResponsePolicy";
@@ -76,25 +80,6 @@ export const SECURITY_AUTOMATIC_RESPONSE_LIBRARY_RULES: Readonly<
   ],
   [SecurityAutomaticResponsePolicyKind.KnownBadAddresses]: [],
 };
-
-export enum SecurityAutomaticResponseRuleState {
-  // Runs in real time.
-  RealTime = "RealTime",
-  // On, but on its schedule: the project runs 50 rules in real time already, or it cannot run in real time.
-  Scheduled = "Scheduled",
-  // The project has it, turned off.
-  Off = "Off",
-  // The project has not got it.
-  Missing = "Missing",
-}
-
-// One rule a ready policy acts on, as its page lists it.
-export interface SecurityAutomaticResponseRule {
-  libraryRuleId: string;
-  title: string;
-  detectionRuleId: string | null;
-  state: SecurityAutomaticResponseRuleState;
-}
 
 const RULE_SELECT: {
   _id: true;
