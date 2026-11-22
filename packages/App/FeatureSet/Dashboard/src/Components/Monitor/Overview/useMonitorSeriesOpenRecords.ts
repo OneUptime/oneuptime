@@ -81,7 +81,9 @@ const readOpenIncidents: ReadOpenIncidentsFunction = async (data: {
   monitorId: ObjectID;
   fingerprints: Array<string>;
 }): Promise<Array<ReadRecord>> => {
-  if (!shouldAttemptRead(PermissionGate.check(new Incident(), ModelAction.Read))) {
+  if (
+    !shouldAttemptRead(PermissionGate.check(new Incident(), ModelAction.Read))
+  ) {
     return [];
   }
 

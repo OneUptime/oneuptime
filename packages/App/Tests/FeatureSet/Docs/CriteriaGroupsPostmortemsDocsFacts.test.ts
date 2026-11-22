@@ -979,7 +979,9 @@ describe("how criteria decide", () => {
     );
 
     expect(getRole).toContain("criteria.isEnabled === false");
-    expect(getRole).toContain("return MonitorCriteriaInstance.opensRecords(criteria)");
+    expect(getRole).toContain(
+      "return MonitorCriteriaInstance.opensRecords(criteria)",
+    );
     expect(getRole).toContain(": GroupedCriteriaRole.Recovery;");
 
     // It waits for the series behind the status, not for every series.
@@ -991,9 +993,9 @@ describe("how criteria decide", () => {
     expect(EVALUATOR).toContain(
       "await MonitorCriteriaEvaluator.applyGroupedRecoveryRule({",
     );
-    expect(readCommonSource("Server/Utils/Monitor/MonitorResource.ts")).toContain(
-      "await MonitorResourceUtil.keepStatusForSeriesBehindIt({",
-    );
+    expect(
+      readCommonSource("Server/Utils/Monitor/MonitorResource.ts"),
+    ).toContain("await MonitorResourceUtil.keepStatusForSeriesBehindIt({");
 
     expect(criteriaPage).toContain(
       "> Such a monitor still has one status, set by the first criteria that matches. A criteria that only brings it back to its **Default Monitor Status**, opening no incident or alert, waits for the hosts that met a criteria setting another status: it matches once each of them meets it, whatever the other hosts do. Until then the monitor keeps its status, even when no criteria matches, while each host's incidents and alerts still resolve on their own.",

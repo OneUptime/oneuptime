@@ -74,14 +74,16 @@ const MonitorSeriesCard: FunctionComponent<ComponentProps> = (
         })
       : [];
 
-  const open: Map<string, Array<MonitorSeriesOpenRecord>> =
-    useMonitorSeriesOpenRecords({
-      monitorId: props.monitorId,
-      fingerprints: rows.map((row: MonitorSeriesTableRow): string => {
-        return row.fingerprint;
-      }),
-      refreshToken: props.refreshToken,
-    });
+  const open: Map<
+    string,
+    Array<MonitorSeriesOpenRecord>
+  > = useMonitorSeriesOpenRecords({
+    monitorId: props.monitorId,
+    fingerprints: rows.map((row: MonitorSeriesTableRow): string => {
+      return row.fingerprint;
+    }),
+    refreshToken: props.refreshToken,
+  });
 
   if (!series || rows.length === 0) {
     return <></>;
@@ -98,7 +100,9 @@ const MonitorSeriesCard: FunctionComponent<ComponentProps> = (
     },
   );
 
-  type GetRecordLinkFunction = (record: MonitorSeriesOpenRecord) => ReactElement;
+  type GetRecordLinkFunction = (
+    record: MonitorSeriesOpenRecord,
+  ) => ReactElement;
 
   const getRecordLink: GetRecordLinkFunction = (
     record: MonitorSeriesOpenRecord,

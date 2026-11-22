@@ -382,7 +382,11 @@ describe("GroupedMonitorRecovery.judge: several criteria", () => {
   test("what is kept is bounded, and in one stable order", () => {
     const many: Array<string> = [];
 
-    for (let index: number = 0; index < MAX_SERIES_BEHIND_STATUS + 50; index++) {
+    for (
+      let index: number = 0;
+      index < MAX_SERIES_BEHIND_STATUS + 50;
+      index++
+    ) {
       many.push(`series-${String(index).padStart(6, "0")}`);
     }
 

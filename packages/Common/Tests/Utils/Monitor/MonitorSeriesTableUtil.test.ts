@@ -131,7 +131,12 @@ describe("MonitorSeriesTableUtil.getRows", () => {
     const rows: Array<MonitorSeriesTableRow> = MonitorSeriesTableUtil.getRows({
       summary: summary({
         rows: [
-          row({ fingerprint: "data", isKeepingStatus: true, value: 89, unit: "%" }),
+          row({
+            fingerprint: "data",
+            isKeepingStatus: true,
+            value: 89,
+            unit: "%",
+          }),
           row({ fingerprint: "gone" }),
         ],
       }),
@@ -285,7 +290,10 @@ describe("MonitorSeriesTableUtil.getShareText", () => {
   test("says nothing when every series is listed", () => {
     expect(
       MonitorSeriesTableUtil.getShareText({
-        series: { count: 2, rows: [row({ fingerprint: "a" }), row({ fingerprint: "b" })] },
+        series: {
+          count: 2,
+          rows: [row({ fingerprint: "a" }), row({ fingerprint: "b" })],
+        },
         translator: ENGLISH,
       }),
     ).toBeNull();

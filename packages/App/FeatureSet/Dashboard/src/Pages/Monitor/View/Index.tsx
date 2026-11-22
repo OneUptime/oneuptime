@@ -453,7 +453,6 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             refreshToken={`${data.pollCount}|${data.statusChangeCount}|${data.manualRefreshCount}`}
           />
 
-
           {sections.showUptime ? (
             <MonitorUptimeHistoryCard
               summary={uptime.summary}

@@ -80,7 +80,8 @@ const DATA: { mountpoint: string; device: string } = {
   device: "/dev/sdb1",
 };
 
-const DATA_FINGERPRINT: string = MetricSeriesFingerprint.computeFingerprint(DATA);
+const DATA_FINGERPRINT: string =
+  MetricSeriesFingerprint.computeFingerprint(DATA);
 
 let monitor: Monitor;
 let step: MonitorStep;
@@ -211,10 +212,15 @@ function keptInRedis(): Array<string> | undefined {
 
 function keepInRedis(fingerprints: Array<string>): void {
   const key: string = `${monitor.id!.toString().toLowerCase()}-${step.id.toString().toLowerCase()}`;
-  redis.set(`${SeriesBehindStatus.NAMESPACE}-${key}`, JSON.stringify(fingerprints));
+  redis.set(
+    `${SeriesBehindStatus.NAMESPACE}-${key}`,
+    JSON.stringify(fingerprints),
+  );
 }
 
-function eventsOf(response: ProbeApiIngestResponse): Array<MonitorEvaluationEvent> {
+function eventsOf(
+  response: ProbeApiIngestResponse,
+): Array<MonitorEvaluationEvent> {
   return response.evaluationSummary?.events || [];
 }
 
@@ -259,11 +265,9 @@ describe("MonitorResourceUtil: a grouped monitor keeps the recovery margin", () 
     jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
     jest.spyOn(Semaphore, "lock").mockResolvedValue({} as never);
     jest.spyOn(Semaphore, "release").mockResolvedValue(undefined as never);
-    jest
-      .spyOn(MonitorService, "findOneById")
-      .mockImplementation(() => {
-        return Promise.resolve(monitor) as never;
-      });
+    jest.spyOn(MonitorService, "findOneById").mockImplementation(() => {
+      return Promise.resolve(monitor) as never;
+    });
     jest
       .spyOn(MonitorService, "updateColumnsByIdWithoutHooks")
       .mockResolvedValue(undefined as never);
@@ -387,7 +391,9 @@ describe("MonitorResourceUtil: a grouped monitor keeps the recovery margin", () 
     expect(Array.from(resolve.breachingSeriesFingerprints!)).toEqual([]);
     expect(
       Array.from(
-        resolve.breachingSeriesFingerprintsByCriteriaId![criteriaId("offline")]!,
+        resolve.breachingSeriesFingerprintsByCriteriaId![
+          criteriaId("offline")
+        ]!,
       ),
     ).toEqual([]);
 
@@ -439,9 +445,9 @@ describe("MonitorResourceUtil: a grouped monitor keeps the recovery margin", () 
   });
 
   test("a Redis that cannot be reached brings the monitor back on any disk, as before", async () => {
-    (GlobalCache.getStringArray as unknown as jest.SpyInstance).mockRejectedValue(
-      new Error("Cache is not connected"),
-    );
+    (
+      GlobalCache.getStringArray as unknown as jest.SpyInstance
+    ).mockRejectedValue(new Error("Cache is not connected"));
 
     const response: ProbeApiIngestResponse =
       await MonitorResourceUtil.monitorResource(
@@ -483,8 +489,9 @@ describe("MonitorResourceUtil: a grouped monitor keeps the recovery margin", () 
 
     expect(timelineCreate).toHaveBeenCalledTimes(1);
     expect(
-      (timelineCreate.mock.calls[0]![0] as { data: MonitorStatusTimeline })
-        .data.monitorStatusId!.toString(),
+      (
+        timelineCreate.mock.calls[0]![0] as { data: MonitorStatusTimeline }
+      ).data.monitorStatusId!.toString(),
     ).toBe(ONLINE.toString());
     expect(closeIncidents).toHaveBeenCalledTimes(1);
     expect(GlobalCache.getStringArray).not.toHaveBeenCalled();

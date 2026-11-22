@@ -111,7 +111,10 @@ function criteriaOf(step: MonitorStep): Array<MonitorCriteriaInstance> {
   return step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray;
 }
 
-function criteriaIdNamed(step: MonitorStep, role: "offline" | "online"): string {
+function criteriaIdNamed(
+  step: MonitorStep,
+  role: "offline" | "online",
+): string {
   const instance: MonitorCriteriaInstance | undefined = criteriaOf(step).find(
     (criteria: MonitorCriteriaInstance): boolean => {
       return (
@@ -142,7 +145,10 @@ function monitorFor(step: MonitorStep, monitorType: MonitorType): Monitor {
   return monitor;
 }
 
-function queryResult(values: Array<number>, labels: JSONObject): AggregatedResult {
+function queryResult(
+  values: Array<number>,
+  labels: JSONObject,
+): AggregatedResult {
   return {
     data: values.map((value: number, index: number): AggregateModel => {
       return {
@@ -243,9 +249,7 @@ function checkOf(input: {
 }
 
 // Disks at these fractions full, as the filesystem template reads them.
-function disksAt(
-  disks: Array<[Disk, number]>,
-): Array<SeriesValues> {
+function disksAt(disks: Array<[Disk, number]>): Array<SeriesValues> {
   return disks.map(([disk, percent]: [Disk, number]): SeriesValues => {
     return {
       labels: { mountpoint: disk.mountpoint, device: disk.device },
@@ -275,8 +279,12 @@ class Monitoring {
     withMemory?: boolean | undefined;
   }) {
     this.step = input.step;
-    this.monitor = monitorFor(input.step, input.monitorType || MonitorType.Host);
-    this.memory = input.withMemory === false ? undefined : new MemorySeriesBehindStatus();
+    this.monitor = monitorFor(
+      input.step,
+      input.monitorType || MonitorType.Host,
+    );
+    this.memory =
+      input.withMemory === false ? undefined : new MemorySeriesBehindStatus();
   }
 
   public get status(): string {
@@ -353,7 +361,9 @@ function resultOf(
   )!;
 }
 
-function fingerprints(matches: Array<PerSeriesCriteriaMatch> | undefined): Array<string> {
+function fingerprints(
+  matches: Array<PerSeriesCriteriaMatch> | undefined,
+): Array<string> {
   return (matches || []).map((match: PerSeriesCriteriaMatch): string => {
     return match.fingerprint;
   });
@@ -896,7 +906,10 @@ describe("#10061: criteria written by hand", () => {
     const healthy: MonitorCriteriaInstance = handWritten({
       name: "Healthy",
       statusId: ONLINE,
-      filter: threshold({ filterType: FilterType.LessThanOrEqualTo, value: 72 }),
+      filter: threshold({
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 72,
+      }),
     });
 
     const criteria: MonitorCriteria = new MonitorCriteria();
