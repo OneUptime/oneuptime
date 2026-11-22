@@ -375,8 +375,9 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
 
   /*
    * The command, written from the settings the form would save - what to
-   * read above it, Data Security's two settings folded under it - so it
-   * grants what is picked, and is drawn again as they change.
+   * read above it, Data Security's two settings and AWS's Block addresses
+   * in AWS WAF folded under it - so it grants what is picked, and is drawn
+   * again as they change.
    */
   fields.push({
     field: { setupCommand: true },
@@ -399,6 +400,7 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
           scope={settings.scope}
           dataSecurity={settings.dataSecurity}
           dataSecurityResponse={settings.dataSecurityResponse}
+          wafBlocklist={settings.wafBlocklist}
           roleSetup={props.awsRoleSetup}
         />
       );

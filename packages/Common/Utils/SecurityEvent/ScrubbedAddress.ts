@@ -14,6 +14,7 @@ import {
   TRACE_SCRUB_RULE_DEFAULTS,
 } from "../../Types/Telemetry/ScrubRule";
 import TraceScrubField from "../../Types/Trace/TraceScrubField";
+import { doesScrubRuleApplyTo } from "../../Types/Telemetry/ScrubRuleScope";
 
 /*
  * AN ADDRESS A SCRUB RULE HID (#10397).
@@ -449,6 +450,8 @@ export interface AddressScrubRule {
   patternType: string;
   scrubAction: string;
   fieldsToScrub: string;
+  // The service it is for, in lower case; none for every service (#10433).
+  serviceId?: string | undefined;
 }
 
 /*
@@ -513,14 +516,24 @@ export function isIpAddressScrubRule(
  * Null when none does - a custom pattern's rule, a rule since turned off,
  * changed or deleted, or no rule of OneUptime's: the event still says a
  * scrub rule hid the address, without naming one.
+ *
+ * A rule for one service hides addresses in that service's records alone
+ * (Types/Telemetry/ScrubRuleScope, #10433), so it explains an address
+ * hidden in a record of that service only: `serviceId`, the service the
+ * record was sent under. Without one, only a rule for every service can.
  */
 export function findScrubRuleThatHid(
   rules: ReadonlyArray<AddressScrubRule>,
-  hidden: { kind: ScrubbedAddressKind; place: ScrubbedAddressPlace },
+  hidden: {
+    kind: ScrubbedAddressKind;
+    place: ScrubbedAddressPlace;
+    serviceId?: string | undefined;
+  },
 ): AddressScrubRule | null {
   for (const rule of rules) {
     if (
       isIpAddressScrubRule(rule) &&
+      doesScrubRuleApplyTo(rule, hidden.serviceId) &&
       doesScrubRuleReach(rule, hidden.place) &&
       getScrubbedKindOfAction(rule.scrubAction) === hidden.kind
     ) {

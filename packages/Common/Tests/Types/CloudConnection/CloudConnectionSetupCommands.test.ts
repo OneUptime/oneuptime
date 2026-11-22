@@ -267,11 +267,16 @@ describe("AWS", () => {
       ]),
     );
 
-    expect(AWS_READ_ONLY_ACTIONS).not.toContain(
-      "health:DescribeAffectedEntities",
-    );
-    expect(AWS_READ_ONLY_ACTIONS).toContain("health:DescribeEvents");
-    expect(AWS_READ_ONLY_ACTIONS).toContain("health:DescribeEventDetails");
+    /*
+     * The health events and their details, as one entry (#10504): it
+     * grants AWS Health's event reads, and not which of the account's
+     * resources an event affected.
+     */
+    expect(AWS_READ_ONLY_ACTIONS).toContain("health:DescribeEvent*");
+    expect(isAwsActionGranted("health:DescribeEvents")).toBe(true);
+    expect(isAwsActionGranted("health:DescribeEventDetails")).toBe(true);
+    expect(isAwsActionGranted("health:DescribeAffectedEntities")).toBe(false);
+    expect(isAwsActionGranted("health:DescribeEntityAggregates")).toBe(false);
   });
 
   test("an account's own role may not list an organization's accounts", () => {
@@ -423,12 +428,19 @@ describe("AWS", () => {
     expect(isAwsActionGranted("a:z", ["a:z*z"])).toBe(false);
   });
 
-  test("the only wildcard is Elastic Load Balancing's Describe, which reads how load balancers are set up", () => {
+  test("the only wildcards are Elastic Load Balancing's Describe, which reads how load balancers are set up, and AWS Health's events", () => {
     expect(
       AWS_READ_ONLY_ACTIONS.filter((action: string): boolean => {
         return action.includes("*");
       }),
-    ).toEqual(["elasticloadbalancing:Describe*"]);
+    ).toEqual(["elasticloadbalancing:Describe*", "health:DescribeEvent*"]);
+  });
+
+  test("the account's Elastic IPs are read, for the addresses its traffic leaves from (#10504)", () => {
+    expect(AWS_READ_ONLY_ACTIONS).toContain("ec2:DescribeAddresses");
+    expect(AWS_READ_ONLY_ACTIONS).toContain("ec2:DescribeNatGateways");
+    // Reading an address's reverse DNS record is not needed.
+    expect(isAwsActionGranted("ec2:DescribeAddressesAttribute")).toBe(false);
   });
 
   test("the policy fits an IAM inline policy's 10,240 characters with room to spare", () => {

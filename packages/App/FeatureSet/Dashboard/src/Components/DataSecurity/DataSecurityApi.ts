@@ -22,8 +22,12 @@ import {
   DataSecurityResourceScope,
   DataSecurityResponseAvailability,
   DataSecurityResponseResult,
+  DataSecurityScrubImpact,
   DataSecurityScrubResult,
+  DataSecurityScrubRulePlan,
+  DataSecurityScrubSignal,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import { readTelemetryFieldReaders } from "Common/Types/Telemetry/TelemetryFieldReaders";
 import {
   DataStoreResourceKind,
   isDataStoreResourceKind,
@@ -206,17 +210,96 @@ export default class DataSecurityApi {
   }
 
   /*
+   * What Scrub It would do for a finding (#10433): the rule it would make -
+   * its action, the parts it scrubs and whose - and what reads the data it
+   * would hide. Asked before the rule is made, which it never makes. Read
+   * defensively, as the drop's impact is.
+   */
+  public static async getScrubImpact(
+    findingId: ObjectID,
+  ): Promise<DataSecurityScrubImpact> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.scrubImpact(findingId.toString()),
+    );
+    const textOf: (value: unknown) => string = (value: unknown): string => {
+      return typeof value === "string" ? value : "";
+    };
+    const signalOf: (value: unknown) => DataSecurityScrubSignal = (
+      value: unknown,
+    ): DataSecurityScrubSignal => {
+      return value === "trace" || value === "metric" ? value : "log";
+    };
+    const impact: DataSecurityScrubImpact = {
+      isAvailable: answer["isAvailable"] === true,
+    };
+
+    if (textOf(answer["unavailableReason"])) {
+      impact.unavailableReason = textOf(answer["unavailableReason"]);
+    }
+
+    const existing: JSONObject = (
+      answer["existingRule"] && typeof answer["existingRule"] === "object"
+        ? answer["existingRule"]
+        : {}
+    ) as JSONObject;
+
+    if (textOf(existing["id"])) {
+      impact.existingRule = {
+        id: textOf(existing["id"]),
+        name: textOf(existing["name"]),
+        signal: signalOf(existing["signal"]),
+      };
+    }
+
+    const rule: JSONObject = (
+      answer["rule"] && typeof answer["rule"] === "object" ? answer["rule"] : {}
+    ) as JSONObject;
+
+    if (textOf(rule["name"])) {
+      const plan: DataSecurityScrubRulePlan = {
+        signal: signalOf(rule["signal"]),
+        name: textOf(rule["name"]),
+        scrubAction: textOf(rule["scrubAction"]),
+        patternType: textOf(rule["patternType"]),
+        fieldsToScrub: textOf(rule["fieldsToScrub"]),
+        dataTypeName: textOf(rule["dataTypeName"]),
+      };
+
+      if (ObjectID.isValidUUID(textOf(rule["serviceId"]))) {
+        plan.serviceId = textOf(rule["serviceId"]);
+        plan.serviceName = textOf(rule["serviceName"]);
+      }
+
+      impact.rule = plan;
+    }
+
+    if (answer["readers"] && typeof answer["readers"] === "object") {
+      impact.readers = readTelemetryFieldReaders(answer["readers"]);
+    }
+
+    return impact;
+  }
+
+  /*
    * A proposal of OneUptime AI's (#10364), approved as the person shown it:
    * the plan they read (its fingerprint) - a proposal that changed since is
    * not approved.
    */
+  /*
+   * Approves the plan the person was shown (its fingerprint) - or, for an
+   * owner proposal changed first (#10374), the owners they picked instead.
+   */
   public static async approveAiProposal(data: {
     proposalId: ObjectID;
     expectedPlanFingerprint: string;
+    changes?: JSONObject | undefined;
   }): Promise<JSONObject> {
     return await post(
       DATA_SECURITY_API_ROUTES.approveAiProposal(data.proposalId.toString()),
-      { expectedPlanFingerprint: data.expectedPlanFingerprint },
+      {
+        expectedPlanFingerprint: data.expectedPlanFingerprint,
+        ...(data.changes ? { changes: data.changes } : {}),
+      },
     );
   }
 

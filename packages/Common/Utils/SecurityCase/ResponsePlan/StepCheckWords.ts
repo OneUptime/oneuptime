@@ -101,6 +101,13 @@ export const CHECK_BLOCK_QUIET_SINCE: string = translationKey(
 export const CHECK_BLOCK_NOT_PROOF: string = translationKey(
   "An address that goes quiet may have been blocked, or may simply have stopped: OneUptime cannot tell which.",
 );
+// AWS WAF's own word that a block holds: requests its rule turned away, from those it sampled (#10344).
+export const CHECK_BLOCK_AWS_WAF_SAMPLED: string = translationKey(
+  "AWS WAF blocked requests from {{address}} at {{webAcl}} (sampled).",
+);
+export const CHECK_CHALLENGE_AWS_WAF_SAMPLED: string = translationKey(
+  "AWS WAF challenged requests from {{address}} at {{webAcl}} (sampled).",
+);
 
 /*
  * The project's Blocklist holds the address (#10562): where a destination

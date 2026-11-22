@@ -22,6 +22,7 @@ import {
   getSecurityTelemetrySourceDefinition,
 } from "../../../Types/SecurityEvent/SecurityTelemetrySource";
 import { buildObservables } from "../NormalizerHelpers";
+import { readEventUsers } from "../ScrubbedUser";
 import { writeOwnValue } from "../../LookupTable";
 
 /*
@@ -126,6 +127,11 @@ export const SECURITY_TELEMETRY_SIGNAL_ATTACK: Record<
     tactics: ["TA0040"],
     techniques: ["T1485"],
   },
+  // OneUptime's own bookkeeping stands for no attack, as an API key's delete.
+  [SecurityTelemetrySignal.OneUptimeMassDelete]: {
+    tactics: [],
+    techniques: [],
+  },
   [SecurityTelemetrySignal.UserInTwoCountries]: {
     tactics: ["TA0001"],
     techniques: ["T1078"],
@@ -180,10 +186,8 @@ export function buildTelemetrySecurityEvent(
   const attack: { tactics: Array<string>; techniques: Array<string> } =
     SECURITY_TELEMETRY_SIGNAL_ATTACK[input.signal];
 
-  const principalUser: string = (input.principalUser || "").trim();
   const principalHost: string = (input.principalHost || "").trim();
   const principalIp: string = (input.principalIp || "").trim();
-  const targetUser: string = (input.targetUser || "").trim();
   const targetHost: string = (input.targetHost || "").trim();
   const targetIp: string = (input.targetIp || "").trim();
 
@@ -208,6 +212,22 @@ export function buildTelemetrySecurityEvent(
 
   attributes[SECURITY_LOG_SOURCE_ATTRIBUTE] = input.kind;
   attributes[SECURITY_TELEMETRY_SIGNAL_ATTRIBUTE] = input.signal;
+
+  /*
+   * A user a scrub rule hid is no user: Redact's and a mask's are none at
+   * all, a Hash token stays one, and the event says which (ScrubbedUser,
+   * #10435). Only traces are read after scrub rules ran.
+   */
+  const {
+    principalUser,
+    targetUser,
+  }: { principalUser: string; targetUser: string } = readEventUsers({
+    principalUser: input.principalUser,
+    targetUser: input.targetUser,
+    attributes,
+    signal:
+      input.kind === SecurityTelemetrySourceKind.Traces ? "trace" : undefined,
+  });
 
   const resourceId: string = (input.resourceId || "").trim();
   const resourceType: string = (input.resourceType || "").trim();

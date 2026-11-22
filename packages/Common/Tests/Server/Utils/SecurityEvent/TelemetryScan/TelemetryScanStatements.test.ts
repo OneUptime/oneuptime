@@ -397,11 +397,65 @@ describe("the audit log reads", () => {
     expectProjectFirst(statement);
     expect(statement.query).toContain("AND action = {");
     expect(bound(statement)).toContain("Delete");
-    expect(statement.query).toContain(
-      "GROUP BY userId, apiKeyId HAVING deletes >= {",
-    );
     expect(statement.query).toContain("toString(userId) AS actorUserId");
     expect(statement.query).not.toMatch(/ AS userId\b/);
+  });
+
+  test("a mass delete's actor is its kind and its id: every workflow, and OneUptime itself, apart (#10430)", () => {
+    const statement: Statement = buildMassDeleteStatement({
+      projectId: PROJECT_ID,
+      arrivedAfter: WINDOW.arrivedAfter,
+      arrivedUntil: WINDOW.arrivedUntil,
+      minDeletes: 25,
+      limit: 20,
+    });
+
+    expect(statement.query).toContain(
+      "GROUP BY userType, userId, apiKeyId, workflowId HAVING deletes >= {",
+    );
+    expect(statement.query).toContain("ifNull(userType, '') AS actorUserType");
+    expect(statement.query).toContain(
+      "toString(workflowId) AS actorWorkflowId",
+    );
+    // A workflow is named as the latest of its entries in the window name it.
+    expect(statement.query).toContain(
+      "argMax(ifNull(workflowName, ''), createdAt) AS actorWorkflowName",
+    );
+    expect(statement.query).toContain(
+      "argMax(ifNull(workflowRunAs, ''), createdAt) AS actorWorkflowRunAs",
+    );
+    expect(statement.query).toContain(
+      "argMax(ifNull(workflowRunAsGiverName, ''), createdAt) AS actorWorkflowRunAsGivenBy",
+    );
+    // No alias takes the name of a column it is read from.
+    for (const column of [
+      "userType",
+      "workflowId",
+      "workflowName",
+      "workflowRunAs",
+      "workflowRunAsCustomRoleName",
+      "workflowRunAsGiverName",
+      "workflowRunAsGiverApiKeyId",
+    ]) {
+      expect([column, statement.query.includes(` AS ${column},`)]).toEqual([
+        column,
+        false,
+      ]);
+    }
+  });
+
+  test("a page of records reads which workflow made each change, and what it ran as", () => {
+    const statement: Statement = buildAuditRecordsStatement({
+      projectId: PROJECT_ID,
+      arrivedAfter: WINDOW.arrivedAfter,
+      arrivedUntil: WINDOW.arrivedUntil,
+      limit: 1000,
+      offset: 0,
+    });
+
+    expect(statement.query).toContain(
+      "mcpClientName, workflowId, workflowName, workflowRunAs, workflowRunAsCustomRoleName, workflowRunAsGiverApiKeyId, workflowRunAsGiverName FROM",
+    );
   });
 });
 

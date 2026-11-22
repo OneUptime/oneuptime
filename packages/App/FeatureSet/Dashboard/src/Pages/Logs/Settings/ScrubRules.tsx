@@ -27,6 +27,14 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getLogScrubRuleFormFields } from "../../../Components/Telemetry/ScrubRuleForm";
 import ScrubRulePatternPill from "../../../Components/Telemetry/ScrubRulePatternPill";
+import ScrubRuleReadersPreview, {
+  ScrubRuleReadersPreviewRule,
+} from "../../../Components/Telemetry/FieldReaders/ScrubRuleReadersPreview";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import NamedSentence from "Common/UI/Components/DeleteConfirmation/NamedSentence";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { RowActionConfirmation } from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import { translatableTerm } from "Common/Types/Translator";
 
 interface PillConfig {
   label: string;
@@ -162,6 +170,14 @@ The action is under **More fields**.
 ## Where It Looks
 
 A new rule scrubs both the log's **Body**, its message, and its **Attributes**, such as \`user.email\` or \`client.ip\`. Under **More fields**, pick the body only or the attributes only. A **Sensitive Attribute Keys** rule always scrubs attributes, since it matches their keys.
+
+## Whose Logs
+
+A new rule scrubs the logs of every service. Under **More fields**, pick one service in **Only for one service**: the rule scrubs that service's logs, and other services' logs stay as they are. The **Scope** column says which a rule does. A rule Data Security's **Scrub It** makes is for the service the data was found in; one made for a session replay scrubs every service's logs and every app's replays.
+
+## What It Changes for Others
+
+Before you save a rule, or turn one on, the form lists what reads the values it would hide: monitors, dashboards, saved views, recording rules and SLOs, and what Security Events would lose. From then on they read what the rule leaves: a monitor that filters on a hidden value stops matching it, and a chart grouped by it no longer shows the real values. The rule is saved either way; the list is there so you decide knowing.
 `;
 
 const LogScrubRules: FunctionComponent<
@@ -178,14 +194,66 @@ const LogScrubRules: FunctionComponent<
   const formFields: Array<ModelField<LogScrubRule>> = useMemo((): Array<
     ModelField<LogScrubRule>
   > => {
-    return getLogScrubRuleFormFields();
+    /*
+     * Under the rule's name, what reads the values it would hide, from the
+     * form's values as they are (#10433).
+     */
+    return getLogScrubRuleFormFields(
+      (values: FormValues<LogScrubRule>): ReactElement => {
+        return (
+          <ScrubRuleReadersPreview
+            signal="log"
+            rule={values as unknown as ScrubRuleReadersPreviewRule}
+            dataTestId="scrub-rule-form-readers"
+          />
+        );
+      },
+    );
   }, []);
 
   return (
     <ModelTable<LogScrubRule>
       modelType={LogScrubRule}
       // Enable or Disable in each row's ⋯ menu: the one that changes the row.
-      rowSwitch={{ column: "isEnabled" }}
+      rowSwitch={{
+        column: "isEnabled",
+        /*
+         * Turning a rule on says what reads the values it would hide, as
+         * the form does before a rule is saved (#10433). Turning one off
+         * hides nothing more, and asks nothing.
+         */
+        getRowConfirmation: (data: {
+          value: boolean;
+          item: LogScrubRule;
+          name: string;
+        }): RowActionConfirmation | undefined => {
+          if (!data.value) {
+            return undefined;
+          }
+
+          return {
+            title: translator.translateTemplate("Enable {{itemName}}", {
+              itemName: translatableTerm(new LogScrubRule().singularName || ""),
+            }),
+            description: (
+              <NamedSentence
+                template="Are you sure you want to enable {{name}}?"
+                name={data.name}
+                dataTestId="row-switch-name"
+              />
+            ),
+            details: (
+              <ScrubRuleReadersPreview
+                signal="log"
+                rule={data.item}
+                dataTestId="scrub-rule-enable-readers"
+              />
+            ),
+            submitButtonText: "Enable",
+            submitButtonType: ButtonStyleType.PRIMARY,
+          };
+        },
+      }}
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,
       }}
@@ -220,6 +288,14 @@ const LogScrubRules: FunctionComponent<
        */
       selectMoreFields={{
         customRegex: true,
+        /*
+         * The whole rule, whichever columns are shown: what Enable asks
+         * about is what the rule would hide, and where (#10433).
+         */
+        patternType: true,
+        scrubAction: true,
+        fieldsToScrub: true,
+        serviceId: true,
       }}
       showRefreshButton={true}
       showViewIdButton={true}
@@ -340,6 +416,33 @@ const LogScrubRules: FunctionComponent<
                 icon={config.icon}
                 tooltip={config.tooltip}
               />
+            );
+          },
+        },
+        /*
+         * Whose logs the rule scrubs (#10433): one service's, or every
+         * service's, as the metric pipeline rules say it.
+         */
+        {
+          field: { service: { name: true } },
+          title: "Scope",
+          type: FieldType.Element,
+          getElement: (item: LogScrubRule): ReactElement => {
+            if (item.service?.name) {
+              return (
+                <span className="inline-flex items-center text-sm font-medium text-gray-900">
+                  <span className="text-gray-500 me-1">
+                    {translator.translateText("Service:")}
+                  </span>
+                  {item.service.name}
+                </span>
+              );
+            }
+
+            return (
+              <span className="text-sm text-gray-500">
+                {translator.translateText("Project-wide")}
+              </span>
             );
           },
         },

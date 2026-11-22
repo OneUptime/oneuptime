@@ -1,13 +1,13 @@
 # Känsliga data i telemetri
 
-Telemetri innehåller allt som din kod skriver: en e-postadress i en loggrad, ett kortnummer i ett span-attribut, en token i en stackspårning, en kunds fråga i en prompt, en användares IP-adress i ett mätvärdes etikett. Datasäkerhet behandlar varje tjänsts loggar, spår, mätvärden, undantag och AI-konversationer, och varje RUM-applikations sessioner, som egna datalager. Den tar prov ur dem varje timme, hittar känsliga data i dem på samma sätt som i en bucket, och **Rensa** gör om ett fynd till en regel som maskerar dessa data vid intaget från och med då.
+Telemetri innehåller allt som din kod skriver: en e-postadress i en loggrad, ett kortnummer i ett span-attribut, en token i en stackspårning, en kunds fråga i en prompt, en användares IP-adress i ett mätvärdes etikett. Datasäkerhet behandlar varje tjänsts loggar, spår, mätvärden, undantag och AI-konversationer, och varje RUM-applikations sessioner, som egna datalager. Den tar prov ur dem varje timme, hittar känsliga data i dem på samma sätt som i en bucket, och **Rensa** gör om ett fynd till en regel som döljer dessa data vid intaget från och med då, i tjänsten där de hittades.
 
 Det finns inget att konfigurera: varje tjänsts telemetri skannas varje timme, om inte **Skanna telemetri** är avstängt i projektets inställningar. Om du vill utesluta en tjänsts loggar, spårningar eller en annan av dess signaler stänger du av **Skanna innehåll** i det datalagrets **Inställningar**: från nästa skanning läses inget av det.
 
 :::cards
 - [Vad som läses](#vad-som-läses): Attributen, kropparna, meddelandena och promptarna i varje signal.
 - [Hur en skanning tar prov](#hur-en-skanning-tar-prov): De nyaste posterna för varje tjänst, varje timme.
-- [Rensa](#rensa): Maskera ett fynd vid intaget, med ett klick.
+- [Rensa](#rensa): Dölj ett fynd vid intaget, i tjänsten där det hittades.
 - [Kassera det här mätvärdet](#kassera-det-här-mätvärdet): Sluta lagra de mätvärden vars namn innehåller känsliga data.
 - [Vad som räknas som rensat](#vad-som-räknas-som-rensat): När en rensningsregel redan täcker ett fynd.
 :::
@@ -94,14 +94,14 @@ För att utesluta något lägger du till det i datalagrets **Skanningsundantag**
 
 ### Klicka på Rensa
 
-Klicka på **Rensa**. OneUptime skapar en loggrensningsregel för loggar och för en RUM-applikations loggar, en spårrensningsregel för spans, undantag och AI-anrop, på den del av posten som fyndet finns i, och en pipelineregel för mätvärden för ett mätvärdes attribut.
+Klicka på **Rensa**. En dialogruta säger vad regeln skulle göra innan något skapas: vems poster den ändrar, vad den gör med det den hittar och vad som läser värdena den skulle dölja. Klicka på **Rensa** i den för att skapa regeln. OneUptime skapar en loggrensningsregel för loggar och för en RUM-applikations loggar, en spårrensningsregel för spans, undantag och AI-anrop, på den del av posten som fyndet finns i, och en pipelineregel för mätvärden för ett mätvärdes attribut.
 
 ### Åtgärda koden också
 
-Regeln maskerar nya data innan de lagras. Data som redan har lagrats finns kvar tills lagringstiden tar slut, så åtgärda koden som skriver dem: fyndet anger tjänsten och attributet.
+Regeln döljer nya data innan de lagras. Data som redan har lagrats finns kvar tills lagringstiden tar slut, så åtgärda koden som skriver dem: fyndet anger tjänsten och attributet.
 :::
 
-Regeln namnges efter det den döljer, till exempel ”Data Security: Email address in attributes.user.email”, och listas bland dina andra rensningsregler (se [Kasseringsfilter och rensningsregler](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data)). Den är en av dessa:
+Regeln namnges efter det den döljer, till exempel ”Data Security: Email address in log attributes of checkout”, och listas bland dina andra rensningsregler (se [Kasseringsfilter och rensningsregler](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data)). Den är en av dessa:
 
 | Fynd | Regel som Rensa skapar |
 | --- | --- |
@@ -109,6 +109,10 @@ Regeln namnges efter det den döljer, till exempel ”Data Security: Email addre
 | Ett värde under en nyckel som ser känslig ut, till exempel `password` eller `token` | En regel av typen **Känsliga attributnycklar**, som döljer hela värdet i varje sådant attribut |
 | Varje annan datatyp som ett mönster kan hitta | En regel av typen **Anpassad regex**, skapad av datatypens egna mönster, som döljer varje värde med den formen |
 | Varje datatyp i ett mätvärdes attribut | En pipelineregel för mätvärden av typen **Maskera attribut** för tjänsten, som ersätter de av attributets värden som har datatypens form med `[REDACTED]`, eller varje värde i attributet där inget mönster hittar datatypen |
+
+En regel för loggar eller spår gäller för tjänsten där fyndet hittades: den rensar den tjänstens loggar eller spans, och andra tjänsters förblir som de är, så inget som läser deras ändras. Kolumnen **Omfattning** i listan över rensningsregler säger vilken tjänst en regel gäller för. Ett fynd i en RUM-applikations sessionsinspelningar skapar en regel för alla tjänster och appar i projektet, eftersom regler för loggar också rensar inspelningar, och dialogrutan säger det. Om tjänsten inte längre finns säger **Rensa** det och skapar ingen regel.
+
+Dialogrutan nämner, var och en som en länk, de monitorer, instrumentpaneler med sina widgetar, sparade vyer, inspelningsregler och SLO:er som läser värdena regeln skulle dölja, och vad som händer med dem: ett filter på ett dolt värde slutar matcha, och en gruppering efter det visar inte längre de verkliga värdena. Den säger också vad [Säkerhetshändelser](/docs/telemetry/security-events) skulle förlora när de läser dessa poster: med IP-adresserna dolda kan händelserna inte ange adressen som ska blockeras. Det du inte kan se räknas, men nämns aldrig. Dialogrutan stoppar aldrig regeln: den säger det, och du bestämmer. Formulären för rensningsregler visar samma sak innan en regel sparas eller aktiveras.
 
 Vissa fynd kan inte rensas av en regel, och **Rensa** säger varför. Ett mätvärdes attribut kan alltid rensas, eftersom dess regel kan dölja varje värde i attributet:
 
@@ -139,6 +143,7 @@ Ett fynd markeras som rensat bara när intaget skulle köra en aktiverad regel �
 
 - **Rätt poster.** Loggregler täcker loggar och en RUM-applikations loggar. Spårregler täcker spans, undantag och AI-anrop: ett undantag är en kopia av sitt spans undantagshändelse, så de regler som rensar händelser rensar det.
 - **Rätt del.** Regelns **Fält att rensa** omfattar den del av posten som fyndet finns i, eller så lämnar regeln dem som standard.
+- **Rätt tjänst.** En regel för loggar eller spår för en tjänst täcker bara den tjänstens fynd. En regel utan tjänst täcker alla tjänsters.
 - **Ett mönster som hittar typen.** En inbyggd **Mönstertyp** hittar sin egen datatyp: **E-postadress** hittar e-postadresser, **Kreditkortsnummer** kortnummer, **Personnummer (Social Security Number)** amerikanska socialförsäkringsnummer, **Telefonnummer** telefonnummer och **IP-adress** IP-adresser. **Känsliga attributnycklar** täcker varje värde under en nyckel som ser känslig ut, oavsett vad värdet är.
 - **Dina egna anpassade mönster räknas aldrig.** En **Anpassad regex** täcker ett fynd bara när den är exakt det mönster som **Rensa** skapar för dess typ. Ett fynd sparar bara maskerade prov, som inget mönster kan provas mot, så OneUptime kan inte bevisa att ditt mönster döljer dessa data, och ett fynd som felaktigt kallas rensat är en läcka som ingen tittar på.
 - **Ett mätvärdes attribut.** En pipelineregel för mätvärden av typen **Maskera attribut** eller **Ta bort attribut** för attributets nyckel, för fyndets tjänst eller hela projektet, täcker fyndet när den inte har något filter, eller exakt det filter som **Rensa** skapar. Ett filter som du har skrivit själv räknas aldrig, av samma skäl.

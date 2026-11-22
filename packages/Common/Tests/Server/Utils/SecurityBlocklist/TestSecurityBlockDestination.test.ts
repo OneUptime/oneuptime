@@ -3,7 +3,7 @@ import SecurityBlockDestination, {
   SecurityBlockHeldItem,
   SecurityBlockWriteResult,
 } from "../../../../Server/Utils/SecurityBlocklist/SecurityBlockDestination";
-import { SECURITY_BLOCK_DESTINATION_SOURCES } from "../../../../Server/Utils/SecurityBlocklist/SecurityBlockDestinations";
+import { getSecurityBlockDestinationSources } from "../../../../Server/Utils/SecurityBlocklist/SecurityBlockDestinations";
 import TestSecurityBlockDestination from "../../../../Server/Utils/SecurityBlocklist/TestSecurityBlockDestination";
 import ObjectID from "../../../../Types/ObjectID";
 import {
@@ -80,7 +80,7 @@ describe("the destination", () => {
 
   test("is never one a project has: no source in production lists it", () => {
     expect(
-      SECURITY_BLOCK_DESTINATION_SOURCES.some(
+      getSecurityBlockDestinationSources().some(
         (source: { provider: SecurityBlockDestinationProvider }): boolean => {
           return source.provider === SecurityBlockDestinationProvider.Test;
         },
@@ -459,5 +459,58 @@ describe("misbehaving on purpose", () => {
     ]);
     expect(destination.countCalls("apply")).toBe(1);
     expect(destination.countCalls("remove")).toBe(1);
+  });
+});
+
+describe("update, for a destination that batches its writes", () => {
+  test("only one told to has it, and it removes then adds, answering each as remove and apply do", async () => {
+    expect(new TestSecurityBlockDestination().update).toBeUndefined();
+
+    const destination: TestSecurityBlockDestination =
+      new TestSecurityBlockDestination({ batchesWrites: true });
+
+    await destination.update!({ add: [entry("35.205.11.131")], remove: [] });
+
+    const written: {
+      applied: Array<SecurityBlockWriteResult>;
+      removed: Array<SecurityBlockWriteResult>;
+    } = await destination.update!({
+      add: [entry("35.205.11.132")],
+      remove: [held("35.205.11.131")],
+    });
+
+    expect(written.removed).toEqual([
+      {
+        value: "35.205.11.131",
+        action: SecurityBlockAction.Block,
+        isDone: true,
+      },
+    ]);
+    expect(written.applied).toEqual([
+      expect.objectContaining({ value: "35.205.11.132", isDone: true }),
+    ]);
+    expect(destination.getOneUptimeValues()).toEqual(["35.205.11.132"]);
+    expect(
+      destination.calls.map(
+        (made: { call: string; values: Array<string> }): Array<unknown> => {
+          return [made.call, made.values];
+        },
+      ),
+    ).toEqual([
+      ["update", ["+35.205.11.131"]],
+      ["update", ["-35.205.11.131", "+35.205.11.132"]],
+    ]);
+  });
+
+  test("fails as the destination does when told to, holding nothing new", async () => {
+    const destination: TestSecurityBlockDestination =
+      new TestSecurityBlockDestination({ batchesWrites: true });
+
+    destination.failNextCalls("update", 1, "down");
+
+    await expect(
+      destination.update!({ add: [entry("35.205.11.131")], remove: [] }),
+    ).rejects.toThrow("down");
+    expect(destination.getOneUptimeValues()).toEqual([]);
   });
 });

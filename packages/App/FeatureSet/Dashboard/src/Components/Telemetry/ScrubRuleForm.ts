@@ -1,4 +1,5 @@
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
+import Service from "Common/Models/DatabaseModels/Service";
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
 import LogScrubAction from "Common/Types/Log/LogScrubAction";
 import LogScrubField from "Common/Types/Log/LogScrubField";
@@ -13,6 +14,7 @@ import {
   ScrubRuleDefaults,
   TRACE_SCRUB_RULE_DEFAULTS,
 } from "Common/Types/Telemetry/ScrubRule";
+import { TelemetryFieldSignal } from "Common/Types/Telemetry/TelemetryFieldReaders";
 import TraceScrubField from "Common/Types/Trace/TraceScrubField";
 import { PatternProblemReason } from "Common/Utils/LinearRegExp/PatternProblem";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -31,6 +33,7 @@ import {
   translateText,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import type { ReactElement } from "react";
 
 /*
  * CREATE A LOG OR TRACE SCRUB RULE: START FROM WHAT IT SCRUBS.
@@ -54,10 +57,15 @@ import {
  *     following it until somebody types a name of their own
  *     (Forms/Utils/FollowPickName, the rule every such name follows).
  *   - Advanced, folded: the description, the scrub action, the fields to
- *     scrub and Enabled, starting at the defaults the server stores when
- *     they are left out (redact, every field, on). While they are left
- *     alone the folded header says what they do, so nobody has to open it
- *     to know; changed, it says "Configured".
+ *     scrub, the one service the rule is for (#10433) and Enabled, starting
+ *     at the defaults the server stores when they are left out (redact,
+ *     every field, every service, on). While they are left alone the
+ *     folded header says what they do, so nobody has to open it to know;
+ *     changed, it says "Configured".
+ *   - Under the name, what reads the values the rule would hide - the
+ *     monitors, dashboards, saved views, recording rules and SLOs, and
+ *     Security Events - before the rule is saved (ScrubRuleReadersPreview,
+ *     #10433). It never blocks the save.
  *
  * Four rows, the fourth only for a custom pattern, right under the choice it
  * belongs to - so one page (LongFormStepsGuard: LONG_FORMS_WITHOUT_STEPS).
@@ -312,7 +320,11 @@ const isLeftAt: IsLeftAtFunction = (
 };
 
 export interface ScrubRuleFormOptions {
+  // The records the rule scrubs: what reads them is asked about (#10433).
+  signal: TelemetryFieldSignal;
   defaults: ScrubRuleDefaults;
+  // What the one-service field says: the rule scrubs every service's records without one.
+  serviceHelp: string;
   // The choices of Fields to Scrub, the default first.
   fieldsToScrubOptions: Array<DropdownOption>;
   fieldsToScrubHelp: string;
@@ -342,9 +354,12 @@ export const getScrubRuleAdvancedSummary: (
     formValues as FormValues<LogScrubRule>,
   );
   const description: unknown = formValues["description"];
+  const service: unknown = normalizeFormValue(formValues["service"]);
 
   const isAtDefaults: boolean =
     (typeof description !== "string" || description.trim().length === 0) &&
+    // Every service, as a rule saved before a rule could name one (#10433).
+    (service === undefined || service === null || service === "") &&
     isLeftAt(formValues["scrubAction"], options.defaults.scrubAction) &&
     // Not asked for a sensitive-keys rule, so not judged.
     (sensitiveKeys ||
@@ -360,7 +375,17 @@ export const getScrubRuleAdvancedSummary: (
   ];
 };
 
+// A rule names one service, or scrubs every service's records (#10433).
+export const LOG_SCRUB_RULE_SERVICE_HELP: string = translationKey(
+  "Leave empty to scrub the logs of every service.",
+);
+export const TRACE_SCRUB_RULE_SERVICE_HELP: string = translationKey(
+  "Leave empty to scrub the spans of every service.",
+);
+
 export const LOG_SCRUB_RULE_FORM_OPTIONS: ScrubRuleFormOptions = {
+  signal: "log",
+  serviceHelp: LOG_SCRUB_RULE_SERVICE_HELP,
   defaults: LOG_SCRUB_RULE_DEFAULTS,
   fieldsToScrubOptions: [
     { label: "Both (Body & Attributes)", value: LogScrubField.Both },
@@ -375,6 +400,8 @@ export const LOG_SCRUB_RULE_FORM_OPTIONS: ScrubRuleFormOptions = {
 };
 
 export const TRACE_SCRUB_RULE_FORM_OPTIONS: ScrubRuleFormOptions = {
+  signal: "trace",
+  serviceHelp: TRACE_SCRUB_RULE_SERVICE_HELP,
   defaults: TRACE_SCRUB_RULE_DEFAULTS,
   fieldsToScrubOptions: [
     { label: "All (Name, Attributes & Events)", value: TraceScrubField.All },
@@ -394,14 +421,27 @@ export const TRACE_SCRUB_RULE_FORM_OPTIONS: ScrubRuleFormOptions = {
 };
 
 /*
+ * What a page draws under the rule's name: what reads the values the rule
+ * would hide (FieldReaders/ScrubRuleReadersPreview, #10433), from the
+ * form's values as they are. The page hands it in, so this file - read by
+ * the words and docs tests outside a browser - draws nothing that asks the
+ * server.
+ */
+export type ScrubRuleReadersFooter = (
+  values: FormValues<LogScrubRule>,
+) => ReactElement | undefined;
+
+/*
  * The fields of both pages' forms. Written once over LogScrubRule: a trace
  * scrub rule has the same columns (TraceScrubRule), so the trace page takes
  * the same list (getTraceScrubRuleFormFields).
  */
 const getScrubRuleFormFields: (
   options: ScrubRuleFormOptions,
+  readersFooter?: ScrubRuleReadersFooter,
 ) => Array<ModelField<LogScrubRule>> = (
   options: ScrubRuleFormOptions,
+  readersFooter?: ScrubRuleReadersFooter,
 ): Array<ModelField<LogScrubRule>> => {
   const advanced: FormFieldCollapsibleSection<LogScrubRule> =
     getAdvancedFormSection<LogScrubRule>({
@@ -497,6 +537,20 @@ const getScrubRuleFormFields: (
       validation: {
         minLength: 2,
       },
+      /*
+       * What reads the values the rule would hide, before it is saved
+       * (#10433): under the last field that is always shown, from the
+       * form's values as they are now, the folded ones included.
+       */
+      ...(readersFooter
+        ? {
+            getFooterElement: (
+              values: FormValues<LogScrubRule>,
+            ): ReactElement | undefined => {
+              return readersFooter(values);
+            },
+          }
+        : {}),
     },
     {
       field: {
@@ -543,6 +597,26 @@ const getScrubRuleFormFields: (
       },
       collapsibleSection: advanced,
     },
+    /*
+     * The one service the rule is for (#10433): its records alone are
+     * scrubbed, and nothing that reads another service's is changed. Left
+     * empty, every service's, as a rule saved before a rule could name one.
+     */
+    {
+      field: {
+        service: true,
+      },
+      title: "Only for one service",
+      description: options.serviceHelp,
+      fieldType: FormFieldSchemaType.Dropdown,
+      required: false,
+      dropdownModal: {
+        type: Service,
+        labelField: "name",
+        valueField: "_id",
+      },
+      collapsibleSection: advanced,
+    },
     {
       field: {
         isEnabled: true,
@@ -556,16 +630,21 @@ const getScrubRuleFormFields: (
   ];
 };
 
-export const getLogScrubRuleFormFields: () => Array<
-  ModelField<LogScrubRule>
-> = (): Array<ModelField<LogScrubRule>> => {
-  return getScrubRuleFormFields(LOG_SCRUB_RULE_FORM_OPTIONS);
+export const getLogScrubRuleFormFields: (
+  readersFooter?: ScrubRuleReadersFooter,
+) => Array<ModelField<LogScrubRule>> = (
+  readersFooter?: ScrubRuleReadersFooter,
+): Array<ModelField<LogScrubRule>> => {
+  return getScrubRuleFormFields(LOG_SCRUB_RULE_FORM_OPTIONS, readersFooter);
 };
 
-export const getTraceScrubRuleFormFields: () => Array<
-  ModelField<TraceScrubRule>
-> = (): Array<ModelField<TraceScrubRule>> => {
+export const getTraceScrubRuleFormFields: (
+  readersFooter?: ScrubRuleReadersFooter,
+) => Array<ModelField<TraceScrubRule>> = (
+  readersFooter?: ScrubRuleReadersFooter,
+): Array<ModelField<TraceScrubRule>> => {
   return getScrubRuleFormFields(
     TRACE_SCRUB_RULE_FORM_OPTIONS,
+    readersFooter,
   ) as unknown as Array<ModelField<TraceScrubRule>>;
 };

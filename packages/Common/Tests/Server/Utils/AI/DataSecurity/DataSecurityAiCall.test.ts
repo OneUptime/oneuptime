@@ -2,6 +2,7 @@ import AIService, {
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
   AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
+  AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
   AILogRequest,
   LLM_LOG_PREVIEW_NOT_KEPT,
 } from "../../../../../Server/Services/AIService";
@@ -256,6 +257,9 @@ describe("what every Data Security call keeps", () => {
         AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
       [DataSecurityAiFeature.SuggestFieldTypes]:
         AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
+      // OneUptime AI's owners for a store (#10374): autonomous, so budgeted.
+      [DataSecurityAiFeature.ProposeStoreOwners]:
+        AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
     });
   });
 
@@ -432,6 +436,8 @@ describe("every call runs on the project's own model", () => {
       DataSecurityAiModelSource.CodeAgent,
       DataSecurityAiModelSource.ProjectProvider,
       DataSecurityAiModelSource.Chat,
+      // Owners for data stores: the one Data Security call, as Explain's.
+      DataSecurityAiModelSource.ProjectProvider,
     ]);
   });
 });

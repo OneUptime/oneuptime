@@ -77,6 +77,10 @@ Rules set owners and labels for you, as stores are found:
 
 A rule matches a store by its labels, by a pattern of its name or its description, or by **Cloud Tag Pattern**: a pattern matched against each of the store's cloud tags, written `key=value`. `^team=payments$` matches every store tagged `team=payments`, and `^env=` every store with an `env` tag. A new store gets the project's rules the moment it is found, and an owner rule's **Notify Owners** says whether the owners it adds are told. [Label and Owner Rules](/docs/configuration/label-and-owner-rules) says how every rule matches and when rules run.
 
+### Owners OneUptime AI proposes
+
+A store with no owners can get them from OneUptime AI. It reads what already points to an owner - the store's cloud tags, the services that use it, the code owners of the file that declares it, and who changed or added it - and proposes your project's own teams and people from it. Nothing changes until a person approves it under **Owners to review**, on **Data Stores** or **Data Security → AI**, and the owners added are told as any owner is. Where three or more stores' owners rest on one tag or one start of their names, it also proposes the owner rule that keeps the next such store owned, which joins **Owner Rules** once approved. [OneUptime AI in Data Security](/docs/data-security/ai) says what it sends, and when it runs.
+
 ## Workflows
 
 **Data Store** and **Data Security Issue** are workflow triggers, each with **On Create**, **On Update**, **On Create or Update** and **On Delete**. Pick them in the **Add Trigger** panel, under **OneUptime resources**.
