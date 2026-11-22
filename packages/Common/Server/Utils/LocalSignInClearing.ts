@@ -14,6 +14,7 @@ import TwoFactorWrongCodes from "./TwoFactorWrongCodes";
 import User from "../../Models/DatabaseModels/User";
 import { SignInSettingsClearedAuditEvent } from "../../Types/AuditLog/AuditLogSignInSettingsCleared";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import ObjectID from "../../Types/ObjectID";
@@ -47,8 +48,9 @@ import { SelectQueryBuilder } from "typeorm";
  * is recorded in the audit log of their projects, as the master admin's
  * Update of them (AuditLogService.recordSignInSettingsCleared), and is
  * emailed what was removed and how they sign in now (#9818,
- * SignInSettingsClearedEmail) - in the background, so a clear never waits
- * for the mail service and never fails with it.
+ * SignInSettingsClearedEmail) - by a job a worker sends (#9991), so a clear
+ * never waits for the mail service, never fails with it, and a restart
+ * loses no email.
  *
  * The clear of everyone works through the people who have anything, a batch
  * at a time, so a server of thousands of people is a few statements a
@@ -85,8 +87,40 @@ const COVERED_PEOPLE_WITH_SETTINGS_SQL: string = `"person"."isMasterAdmin" = fal
     OR EXISTS (SELECT 1 FROM "UserTwoFactorBackupCode" "code" WHERE "code"."userId" = "person"."_id" AND "code"."usedAt" IS NULL AND "code"."deletedAt" IS NULL)
   )`;
 
+/*
+ * Whether a password reset link still works, read as the count reads it
+ * (COVERED_PEOPLE_WITH_SETTINGS_SQL): a token stored, and an expiry still to
+ * come. A link that ran out signs nobody in, so a clear that removes it
+ * removes no way in, and the count never counted it.
+ */
+export const isPasswordResetLinkWorking: (data: {
+  resetPasswordToken: string | null | undefined;
+  resetPasswordExpires: Date | null | undefined;
+  now: Date;
+}) => boolean = (data: {
+  resetPasswordToken: string | null | undefined;
+  resetPasswordExpires: Date | null | undefined;
+  now: Date;
+}): boolean => {
+  if (data.resetPasswordToken === null || data.resetPasswordToken === undefined) {
+    return false;
+  }
+
+  if (!data.resetPasswordExpires) {
+    return false;
+  }
+
+  const expiresAt: number = new Date(data.resetPasswordExpires).getTime();
+
+  return Number.isFinite(expiresAt) && expiresAt > data.now.getTime();
+};
+
 export default class LocalSignInClearing {
-  // What one person has saved to sign in with.
+  /*
+   * What one person has saved to sign in with: each thing the count of
+   * people with settings saved counts them for, so a clear never reports
+   * less than it counted - a working password reset link included (#9992).
+   */
   public static async readSettings(
     userId: ObjectID,
   ): Promise<LocalSignInSettings> {
@@ -95,6 +129,8 @@ export default class LocalSignInClearing {
       select: {
         _id: true,
         password: true,
+        resetPasswordToken: true,
+        resetPasswordExpires: true,
         enableTwoFactorAuth: true,
       },
       props: {
@@ -120,6 +156,11 @@ export default class LocalSignInClearing {
 
     return {
       hasPassword: Boolean(user.password),
+      hasPasswordResetLink: isPasswordResetLinkWorking({
+        resetPasswordToken: user.resetPasswordToken,
+        resetPasswordExpires: user.resetPasswordExpires,
+        now: OneUptimeDate.getCurrentDate(),
+      }),
       isTwoFactorAuthEnabled: user.enableTwoFactorAuth === true,
       authenticatorAppCount: (authenticatorApps as PositiveNumber).toNumber(),
       passkeyAndSecurityKeyCount: (keys as PositiveNumber).toNumber(),
@@ -196,11 +237,12 @@ export default class LocalSignInClearing {
     ]);
 
     /*
-     * The person is told, at their own address (#9818): in the background,
-     * so the clear, done and recorded, never waits for an email or fails
-     * with one. Nothing removed, nothing sent.
+     * The person is told, at their own address (#9818), by a job a worker
+     * sends (#9991): queued in milliseconds, so a restart loses no email,
+     * and the clear, done and recorded, never waits for the mail service or
+     * fails with it. Nothing removed, nothing sent.
      */
-    void SignInSettingsClearedEmail.notify([
+    await SignInSettingsClearedEmail.notify([
       {
         userId: data.userId,
         cleared: cleared,
@@ -246,6 +288,8 @@ export default class LocalSignInClearing {
     let peopleCleared: number = 0;
     let sessionsEnded: number = 0;
     const seen: Set<string> = new Set<string>();
+    // Each batch's emails, queued while the next batch is cleared.
+    const emailsQueued: Array<Promise<void>> = [];
 
     for (let batch: number = 0; batch < MAX_CLEAR_BATCHES; batch++) {
       const rows: Array<{ userId?: unknown }> =
@@ -307,19 +351,22 @@ export default class LocalSignInClearing {
       );
 
       /*
-       * Each of them is told (#9818), and only them: the batch's emails
-       * join the queue in the background while the next batch is cleared,
-       * so the clear of everyone never waits for the mail service.
+       * Each of them is told (#9818), and only them: the batch's emails are
+       * queued as jobs (#9991) while the next batch is cleared, so the
+       * clear of everyone never waits for the mail service, and a restart
+       * in the middle of it loses none of the emails of a batch cleared.
        */
-      void SignInSettingsClearedEmail.notify(
-        result.clearedUserIds.map(
-          (userId: ObjectID): SignInSettingsClearedEmailEvent => {
-            return {
-              userId: userId,
-              cleared: settingsByUser.get(userId.toString())!,
-              clearedBy: SignInSettingsClearedBy.ServerAdmin,
-            };
-          },
+      emailsQueued.push(
+        SignInSettingsClearedEmail.notify(
+          result.clearedUserIds.map(
+            (userId: ObjectID): SignInSettingsClearedEmailEvent => {
+              return {
+                userId: userId,
+                cleared: settingsByUser.get(userId.toString())!,
+                clearedBy: SignInSettingsClearedBy.ServerAdmin,
+              };
+            },
+          ),
         ),
       );
 
@@ -329,6 +376,9 @@ export default class LocalSignInClearing {
         break;
       }
     }
+
+    // Queued, each within EMAIL_ENQUEUE_TIMEOUT_IN_MS: never a failure.
+    await Promise.all(emailsQueued);
 
     logger.info(
       `A master admin (${data.clearedByUserId.toString()}) cleared the sign-in settings of everyone the SSO requirement covers: ${peopleCleared} people, ${sessionsEnded} session(s) ended.`,

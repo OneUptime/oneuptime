@@ -213,6 +213,13 @@ import "./Jobs/VideoCall/DeleteTranscriptsOfRemovedSignIns";
 // Owner Email Burst Rollups
 import "./Jobs/EmailRollup/FlushDueRollups";
 
+/*
+ * The emails to people whose sign-in settings were cleared (#9991): each a
+ * job a clear queues and a worker sends. Without this import they wait in
+ * the queue, and nobody is told.
+ */
+import "./Jobs/SignInSettings/SendClearedEmail";
+
 // User Notifications Log
 import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
 import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";

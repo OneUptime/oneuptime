@@ -24,8 +24,11 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../Types/Permission";
 import {
+  CLEAR_PROJECT_PERSON_SIGN_IN_NOT_CLEARABLE_MESSAGE,
   CLEAR_PROJECT_SIGN_IN_NEEDS_MANAGED_SSO_MESSAGE,
+  hasLocalSignInSettings,
   LocalSignInSettings,
+  PersonSavedSignInSettings,
 } from "../../Types/SSO/LocalSignInClearing";
 import { SignInSettingsClearedBy } from "../../Types/SSO/SignInSettingsClearedEmail";
 
@@ -83,12 +86,29 @@ import { SignInSettingsClearedBy } from "../../Types/SSO/SignInSettingsClearedEm
  * person who joined another organization's project a moment ago keeps
  * their settings - and the write that clears passwords leaves master admins
  * out once more. It cannot be undone, and the Dashboard asks first.
+ *
+ * ONE PERSON AT A TIME (#9993): the project's Users list asks which of the
+ * people it shows the owner may clear (readSavedSettingsOfMembers), and
+ * clears one of them (clearMember), under the same rule, read on every
+ * request, and by the same batch of a bulk clear (clearBatch): the same
+ * audit entry, the same email. The list names a person across the owner's
+ * projects, which the count never does, so it names only members of this
+ * project the Users list asked about - people the owner already sees there -
+ * by their ids alone.
  */
 
 // Who the rule reads a person's projects as.
 interface PersonsProjects {
   userId: ObjectID;
   projectIds: Array<ObjectID>;
+}
+
+// What clearing a batch did: whom, how many sessions ended, and their emails.
+interface ClearedBatch {
+  clearedUserIds: Array<ObjectID>;
+  sessionsEnded: number;
+  // Resolves once their emails are queued, or after the queue's time limit.
+  emailsQueued: Promise<void>;
 }
 
 export default class ProjectSignInClearing {
@@ -154,8 +174,6 @@ export default class ProjectSignInClearing {
       );
     }
 
-    const projectName: string = (project.name || "").toString();
-
     const members: Array<ObjectID> = await ProjectSignInClearing.readMemberIds(
       data.projectId,
       data.ownerUserId,
@@ -163,6 +181,8 @@ export default class ProjectSignInClearing {
 
     let peopleCleared: number = 0;
     let sessionsEnded: number = 0;
+    // Each batch's emails, queued while the next batch is cleared.
+    const emailsQueued: Array<Promise<void>> = [];
 
     for (
       let start: number = 0;
@@ -180,58 +200,284 @@ export default class ProjectSignInClearing {
         continue;
       }
 
-      // Read before they are cleared, for the audit log and the emails.
-      const settingsByUser: Map<string, LocalSignInSettings> = new Map();
+      const batch: ClearedBatch = await ProjectSignInClearing.clearBatch({
+        projectId: data.projectId,
+        ownerUserId: data.ownerUserId,
+        clearable: clearable,
+      });
 
-      for (const userId of clearable) {
-        settingsByUser.set(
-          userId.toString(),
-          await LocalSignInClearing.readSettings(userId),
-        );
-      }
-
-      const result: { clearedUserIds: Array<ObjectID>; sessionsEnded: number } =
-        await LocalSignInClearing.clearPeople({
-          userIds: clearable,
-          // Never a master admin: read again, and left out of the write.
-          isMasterAdminIncluded: false,
-        });
-
-      sessionsEnded += result.sessionsEnded;
-      peopleCleared += result.clearedUserIds.length;
-
-      await AuditLogService.recordSignInSettingsCleared(
-        result.clearedUserIds.map(
-          (userId: ObjectID): SignInSettingsClearedAuditEvent => {
-            return {
-              userId: userId,
-              clearedByUserId: data.ownerUserId,
-              cleared: settingsByUser.get(userId.toString())!,
-            };
-          },
-        ),
-      );
-
-      // Told in the background: the clear never waits for an email.
-      void SignInSettingsClearedEmail.notify(
-        result.clearedUserIds.map(
-          (userId: ObjectID): SignInSettingsClearedEmailEvent => {
-            return {
-              userId: userId,
-              cleared: settingsByUser.get(userId.toString())!,
-              clearedBy: SignInSettingsClearedBy.ProjectOwner,
-              projectName: projectName,
-            };
-          },
-        ),
-      );
+      sessionsEnded += batch.sessionsEnded;
+      peopleCleared += batch.clearedUserIds.length;
+      emailsQueued.push(batch.emailsQueued);
     }
+
+    // Queued, each within EMAIL_ENQUEUE_TIMEOUT_IN_MS: never a failure.
+    await Promise.all(emailsQueued);
 
     logger.info(
       `An owner (${data.ownerUserId.toString()}) of project ${data.projectId.toString()} cleared the saved sign-in settings of ${peopleCleared} of its people: ${sessionsEnded} session(s) ended.`,
     );
 
     return peopleCleared;
+  }
+
+  /*
+   * Of the people the project's Users list shows (`userIds`), those this
+   * owner may clear now, each with what they have saved - the list behind
+   * the Members page's Clear Sign-In Settings (#9993). The count's rule,
+   * exactly, and on top of it: only people asked about who are members of
+   * this project, so the answer names nobody the owner does not already see
+   * on its Users list. Nobody while the project does not manage sign-in
+   * with SSO, or does not exist.
+   */
+  public static async readSavedSettingsOfMembers(data: {
+    projectId: ObjectID;
+    ownerUserId: ObjectID;
+    userIds: Array<ObjectID>;
+  }): Promise<Array<PersonSavedSignInSettings>> {
+    const project: Project | null = await ProjectSignInClearing.readProject(
+      data.projectId,
+    );
+
+    if (!project || !ProjectSignInClearing.isManagingSignIn(project)) {
+      return [];
+    }
+
+    const members: Array<ObjectID> =
+      await ProjectSignInClearing.readMembersAmong({
+        projectId: data.projectId,
+        ownerUserId: data.ownerUserId,
+        userIds: data.userIds,
+      });
+
+    const clearable: Array<ObjectID> = await ProjectSignInClearing.findClearable(
+      {
+        candidates: members,
+        ownerUserId: data.ownerUserId,
+      },
+    );
+
+    const people: Array<PersonSavedSignInSettings> = [];
+
+    /*
+     * Read as the clear reads them before it clears (readSettings), so what
+     * the confirmation says will be removed is what the clear removes.
+     */
+    for (const userId of clearable) {
+      const settings: LocalSignInSettings =
+        await LocalSignInClearing.readSettings(userId);
+
+      if (hasLocalSignInSettings(settings)) {
+        people.push({
+          userId: userId.toString().toLowerCase(),
+          settings: settings,
+        });
+      }
+    }
+
+    return people;
+  }
+
+  /*
+   * Clears one member's saved sign-in settings, for this owner (#9993):
+   * exactly a bulk clear's batch of one (clearBatch) - the same rule, read
+   * right before the write, the same audit entry in each of their projects
+   * as the owner's, the same email - or refused, with the rule and never
+   * which part of it, for anybody the owner may not clear. Answers how many
+   * it cleared: one.
+   */
+  public static async clearMember(data: {
+    projectId: ObjectID;
+    ownerUserId: ObjectID;
+    userId: ObjectID;
+  }): Promise<number> {
+    const project: Project | null = await ProjectSignInClearing.readProject(
+      data.projectId,
+    );
+
+    if (!project) {
+      throw new NotFoundException("Project not found.");
+    }
+
+    if (!ProjectSignInClearing.isManagingSignIn(project)) {
+      throw new BadDataException(
+        CLEAR_PROJECT_SIGN_IN_NEEDS_MANAGED_SSO_MESSAGE,
+      );
+    }
+
+    // A member of this project, not the owner: the rule's candidates.
+    const members: Array<ObjectID> =
+      await ProjectSignInClearing.readMembersAmong({
+        projectId: data.projectId,
+        ownerUserId: data.ownerUserId,
+        userIds: [data.userId],
+      });
+
+    // The rule, read right before the clear.
+    const clearable: Array<ObjectID> = await ProjectSignInClearing.findClearable(
+      {
+        candidates: members,
+        ownerUserId: data.ownerUserId,
+      },
+    );
+
+    if (clearable.length !== 1) {
+      throw new BadDataException(
+        CLEAR_PROJECT_PERSON_SIGN_IN_NOT_CLEARABLE_MESSAGE,
+      );
+    }
+
+    const batch: ClearedBatch = await ProjectSignInClearing.clearBatch({
+      projectId: data.projectId,
+      ownerUserId: data.ownerUserId,
+      clearable: clearable,
+    });
+
+    // Queued within EMAIL_ENQUEUE_TIMEOUT_IN_MS: never a failure.
+    await batch.emailsQueued;
+
+    // Made a master admin since the rule was read: nothing was cleared.
+    if (batch.clearedUserIds.length === 0) {
+      throw new BadDataException(
+        CLEAR_PROJECT_PERSON_SIGN_IN_NOT_CLEARABLE_MESSAGE,
+      );
+    }
+
+    logger.info(
+      `An owner (${data.ownerUserId.toString()}) of project ${data.projectId.toString()} cleared the saved sign-in settings of user ${data.userId.toString()}: ${batch.sessionsEnded} session(s) ended.`,
+    );
+
+    return batch.clearedUserIds.length;
+  }
+
+  /*
+   * Clears these people, whom the rule has just let through: what each has
+   * read first, for the audit log and the email; then cleared as a master
+   * admin's clear is (LocalSignInClearing.clearPeople), master admins left
+   * out once more; each recorded in the audit log of every project they are
+   * in as the owner's Update of the User, and emailed as cleared by an
+   * owner of this project - by a job a worker sends (#9991), so the clear
+   * never waits for an email, and a restart loses none. The project goes
+   * by its id: its name is read when the email is written.
+   */
+  private static async clearBatch(data: {
+    projectId: ObjectID;
+    ownerUserId: ObjectID;
+    clearable: Array<ObjectID>;
+  }): Promise<ClearedBatch> {
+    // Read before they are cleared, for the audit log and the emails.
+    const settingsByUser: Map<string, LocalSignInSettings> = new Map();
+
+    for (const userId of data.clearable) {
+      settingsByUser.set(
+        userId.toString(),
+        await LocalSignInClearing.readSettings(userId),
+      );
+    }
+
+    const result: { clearedUserIds: Array<ObjectID>; sessionsEnded: number } =
+      await LocalSignInClearing.clearPeople({
+        userIds: data.clearable,
+        // Never a master admin: read again, and left out of the write.
+        isMasterAdminIncluded: false,
+      });
+
+    await AuditLogService.recordSignInSettingsCleared(
+      result.clearedUserIds.map(
+        (userId: ObjectID): SignInSettingsClearedAuditEvent => {
+          return {
+            userId: userId,
+            clearedByUserId: data.ownerUserId,
+            cleared: settingsByUser.get(userId.toString())!,
+          };
+        },
+      ),
+    );
+
+    const emailsQueued: Promise<void> = SignInSettingsClearedEmail.notify(
+      result.clearedUserIds.map(
+        (userId: ObjectID): SignInSettingsClearedEmailEvent => {
+          return {
+            userId: userId,
+            cleared: settingsByUser.get(userId.toString())!,
+            clearedBy: SignInSettingsClearedBy.ProjectOwner,
+            projectId: data.projectId,
+          };
+        },
+      ),
+    );
+
+    return {
+      clearedUserIds: result.clearedUserIds,
+      sessionsEnded: result.sessionsEnded,
+      emailsQueued: emailsQueued,
+    };
+  }
+
+  /*
+   * Of these people, the members of this project - an accepted invitation:
+   * somebody only invited has not joined - each once, the owner left out.
+   * Never anybody the project's Users list does not show as a member.
+   */
+  private static async readMembersAmong(data: {
+    projectId: ObjectID;
+    ownerUserId: ObjectID;
+    userIds: Array<ObjectID>;
+  }): Promise<Array<ObjectID>> {
+    const ownerKey: string = data.ownerUserId.toString().toLowerCase();
+
+    const asked: Array<ObjectID> = data.userIds.filter(
+      (userId: ObjectID): boolean => {
+        return userId.toString().toLowerCase() !== ownerKey;
+      },
+    );
+
+    if (asked.length === 0) {
+      return [];
+    }
+
+    const members: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (let start: number = 0; start < asked.length; start += LIMIT_MAX) {
+      const batch: Array<ObjectID> = asked.slice(start, start + LIMIT_MAX);
+
+      for (let skip: number = 0; ; skip += LIMIT_MAX) {
+        const rows: Array<TeamMember> = await TeamMemberService.findBy({
+          query: {
+            projectId: data.projectId,
+            userId: QueryHelper.any(batch),
+            hasAcceptedInvitation: true,
+          },
+          select: {
+            _id: true,
+            userId: true,
+          },
+          limit: LIMIT_MAX,
+          skip: skip,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        for (const row of rows) {
+          if (!row.userId) {
+            continue;
+          }
+
+          const key: string = row.userId.toString().toLowerCase();
+
+          if (key !== ownerKey) {
+            members.set(key, row.userId);
+          }
+        }
+
+        if (rows.length < LIMIT_MAX) {
+          break;
+        }
+      }
+    }
+
+    return Array.from(members.values());
   }
 
   /*
