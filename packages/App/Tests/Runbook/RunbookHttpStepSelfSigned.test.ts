@@ -1,7 +1,7 @@
 import DataSourceEgressGuard, {
   PinnedAgents,
   PinnedTarget,
-  TargetTlsOptions,
+  PinnedAgentOptions,
 } from "Common/Server/Utils/DataSource/EgressGuard";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import {
@@ -328,21 +328,21 @@ describe("a CA certificate that is not one", () => {
       let agentsBuilt: number = 0;
       const realCreate: (
         target: PinnedTarget,
-        targetTls?: TargetTlsOptions | undefined,
+        options?: PinnedAgentOptions | undefined,
       ) => PinnedAgents =
-        DataSourceEgressGuard.createPinnedAgentsForNodeHttp.bind(
+        DataSourceEgressGuard.createPinnedAgents.bind(
           DataSourceEgressGuard,
         );
 
       jest
-        .spyOn(DataSourceEgressGuard, "createPinnedAgentsForNodeHttp")
+        .spyOn(DataSourceEgressGuard, "createPinnedAgents")
         .mockImplementation(
           (
             target: PinnedTarget,
-            targetTls?: TargetTlsOptions | undefined,
+            options?: PinnedAgentOptions | undefined,
           ): PinnedAgents => {
             agentsBuilt++;
-            return realCreate(target, targetTls);
+            return realCreate(target, options);
           },
         );
 
@@ -459,20 +459,20 @@ describe("only that step's request", () => {
     const built: Array<{ agents: PinnedAgents; destroyed: Array<string> }> = [];
     const realCreate: (
       target: PinnedTarget,
-      targetTls?: TargetTlsOptions | undefined,
+      options?: PinnedAgentOptions | undefined,
     ) => PinnedAgents =
-      DataSourceEgressGuard.createPinnedAgentsForNodeHttp.bind(
+      DataSourceEgressGuard.createPinnedAgents.bind(
         DataSourceEgressGuard,
       );
 
     jest
-      .spyOn(DataSourceEgressGuard, "createPinnedAgentsForNodeHttp")
+      .spyOn(DataSourceEgressGuard, "createPinnedAgents")
       .mockImplementation(
         (
           target: PinnedTarget,
-          targetTls?: TargetTlsOptions | undefined,
+          options?: PinnedAgentOptions | undefined,
         ): PinnedAgents => {
-          const agents: PinnedAgents = realCreate(target, targetTls);
+          const agents: PinnedAgents = realCreate(target, options);
           const entry: { agents: PinnedAgents; destroyed: Array<string> } = {
             agents,
             destroyed: [],

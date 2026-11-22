@@ -730,7 +730,7 @@ describe("what a step's output and network are held to", () => {
 
   it("guard the HTTP request step's target with the egress guard", () => {
     expect(STEP_EXECUTORS).toContain(
-      'await DataSourceEgressGuard.assertUrlAllowedAndPinForNodeHttp(\n        config.url || "",',
+      'await DataSourceEgressGuard.assertUrlAllowedAndPin(\n        config.url || "",',
     );
     // The agents go through an outbound proxy, not axios (#10277).
     expect(STEP_EXECUTORS).toContain("        proxy: false,");

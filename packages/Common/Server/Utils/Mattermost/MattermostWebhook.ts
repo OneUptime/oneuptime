@@ -364,8 +364,11 @@ export default class MattermostWebhook {
       );
     }
 
-    const agents: PinnedAgents =
-      DataSourceEgressGuard.createPinnedAgents(target);
+    // Never through a proxy: the checked address is the one dialled.
+    const agents: PinnedAgents = DataSourceEgressGuard.createPinnedAgents(
+      target,
+      { direct: true },
+    );
 
     const requestConfig: AxiosRequestConfig = {
       // Only Node's http adapter uses the pinned agents.

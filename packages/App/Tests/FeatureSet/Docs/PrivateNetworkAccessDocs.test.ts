@@ -401,7 +401,7 @@ describe("the guide says which outbound connections go through a proxy", () => {
   /*
    * #8932: external calendars, MCP servers, backups and OIDC single sign-on
    * send with Node's own HTTP client, and now go through the proxy too
-   * (createPinnedAgentsForNodeHttp, createGuardedAgentsForNodeHttp). Only
+   * (createPinnedAgents, createGuardedAgentsForNodeHttp). Only
    * database and SMTP connections and Git servers connect directly
    * (EgressGuardedRequestsBehindProxy, NodeHttp suites).
    */

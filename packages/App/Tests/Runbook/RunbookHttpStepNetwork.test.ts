@@ -1,7 +1,7 @@
 import DataSourceEgressGuard, {
   PinnedAgents,
   PinnedTarget,
-  TargetTlsOptions,
+  PinnedAgentOptions,
 } from "Common/Server/Utils/DataSource/EgressGuard";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import {
@@ -42,7 +42,7 @@ import {
  * worker does - and a proxy named by host name used to be dialled at the
  * target's address instead, because the pinned lookup answered the proxy's
  * name too. A host in NO_PROXY is dialled directly, pinned. Its agents
- * open the tunnel, not axios (createPinnedAgentsForNodeHttp, #10277), so a
+ * open the tunnel, not axios (createPinnedAgents, #10277), so a
  * proxy that will not open one is said to have refused. The step reads
  * at most 10 MB of an answer (its output keeps 50 KB of it), so a step
  * pointed at an endpoint that streams forever no longer fills the
@@ -180,20 +180,20 @@ describe("a Runbook HTTP step behind an outbound proxy", () => {
     const destroyed: Array<string> = [];
     const realCreate: (
       target: PinnedTarget,
-      tls?: TargetTlsOptions | undefined,
+      options?: PinnedAgentOptions | undefined,
     ) => PinnedAgents =
-      DataSourceEgressGuard.createPinnedAgentsForNodeHttp.bind(
+      DataSourceEgressGuard.createPinnedAgents.bind(
         DataSourceEgressGuard,
       );
 
     jest
-      .spyOn(DataSourceEgressGuard, "createPinnedAgentsForNodeHttp")
+      .spyOn(DataSourceEgressGuard, "createPinnedAgents")
       .mockImplementation(
         (
           pinnedTarget: PinnedTarget,
-          tls?: TargetTlsOptions | undefined,
+          options?: PinnedAgentOptions | undefined,
         ): PinnedAgents => {
-          const agents: PinnedAgents = realCreate(pinnedTarget, tls);
+          const agents: PinnedAgents = realCreate(pinnedTarget, options);
           const destroyHttp: () => void = agents.httpAgent.destroy.bind(
             agents.httpAgent,
           );

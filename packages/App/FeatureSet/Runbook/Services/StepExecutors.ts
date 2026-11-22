@@ -618,14 +618,16 @@ export async function runHttpStep(
      * connection to the target, and the agents are this request's alone.
      */
     const { url, httpAgent, httpsAgent } =
-      await DataSourceEgressGuard.assertUrlAllowedAndPinForNodeHttp(
+      await DataSourceEgressGuard.assertUrlAllowedAndPin(
         config.url || "",
         {
           targetLabel: "Runbook HTTP step",
         },
         {
-          rejectUnauthorized: !certificates.skipsCertificateChecks,
-          ca: certificates.caCertificate,
+          tls: {
+            rejectUnauthorized: !certificates.skipsCertificateChecks,
+            ca: certificates.caCertificate,
+          },
         },
       );
 
