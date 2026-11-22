@@ -1147,6 +1147,7 @@ import { AddDetectionRunMarksAndFiringKeys1809187421130 } from "./1809187421130-
 import { AddDetectionRuleLastFailedAt1809187421140 } from "./1809187421140-AddDetectionRuleLastFailedAt";
 import { AddAIAgentTaskPullRequestSecurityCase1809187421500 } from "./1809187421500-AddAIAgentTaskPullRequestSecurityCase";
 import { AddAIAgentTaskPullRequestSecurityCaseIndex1809187421510 } from "./1809187421510-AddAIAgentTaskPullRequestSecurityCaseIndex";
+import { AddProbeInterfaceIpAddresses1809187429000 } from "./1809187429000-AddProbeInterfaceIpAddresses";
 
 export default [
   InitialMigration,
@@ -2298,4 +2299,5 @@ export default [
   AddDetectionRuleLastFailedAt1809187421140,
   AddAIAgentTaskPullRequestSecurityCase1809187421500,
   AddAIAgentTaskPullRequestSecurityCaseIndex1809187421510,
+  AddProbeInterfaceIpAddresses1809187429000,
 ];

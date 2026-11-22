@@ -61384,6 +61384,11 @@
   "Before it, so few attack requests to {{route}} got through that the attacks since cannot show the fix worked.": "在此之前，针对 {{route}} 的攻击请求通过的太少，因此之后的攻击无法表明修复有效。",
   "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them.": "它针对的 {{total}} 个账户中有 {{count}} 个没有设置 MFA，其中包括 {{user}}。",
   "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them._one": "它针对的 {{total}} 个账户中有 {{count}} 个没有设置 MFA，其中包括 {{user}}。",
+  "Interface IP Addresses": "接口 IP 地址",
+  "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "OneUptime 自有探测器的流量中，恰好是其设备轮询、发现和监视器检查的部分会被标记为它们的流量并另行保存，不会被报告为扫描。",
+  "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "过去一天中，OneUptime 自有探测器的 {{count}} 次网络扫描和端口扫描已另行保存。",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "过去一天中，OneUptime 自有探测器的 {{count}} 次网络扫描和端口扫描已另行保存。",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "过去一天中，OneUptime 自有探测器的 {{count}} 次网络扫描和端口扫描已另行保存。",
   "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "请求的评估失败 {{attempts}} 次后会被跳过。被跳过的请求本应打开或解决的事件或警报可能缺失，或仍处于打开状态。",
   "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "等待评估的请求超过了此监视器保留的数量，因此跳过了其中最早的请求。被跳过的请求本应打开或解决的事件或警报可能缺失，或仍处于打开状态。",
   "Requests not evaluated: {{skipped}}": "未评估的请求：{{skipped}}"

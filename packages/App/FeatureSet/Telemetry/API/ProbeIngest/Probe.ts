@@ -33,6 +33,9 @@ import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import ProbeReportIdentity, {
   PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE,
 } from "Common/Server/Utils/Probe/ProbeReportIdentity";
+import ProbeInterfaceAddressesUtil, {
+  PROBE_INTERFACE_ADDRESSES_FIELD,
+} from "Common/Types/Probe/ProbeInterfaceAddresses";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -90,6 +93,35 @@ function bindResultToSender(data: {
   );
 }
 
+/*
+ * The addresses on the probe's own network interfaces, as its heartbeat
+ * lists them (#10429; Types/Probe/ProbeInterfaceAddresses), kept on the
+ * probe: Security Events knows the probe's own polls and checks in the
+ * project's flows by them. Scheduled and never awaited, as the liveness
+ * stamp is, and written only when they changed (ProbeService). A heartbeat
+ * that lists nothing - a probe older than the list - leaves what is kept.
+ */
+function recordInterfaceAddresses(req: ProbeExpressRequest): void {
+  const probeId: ObjectID | null = ProbeRequest.getProbeId(req);
+  const addresses: Array<string> | null = ProbeInterfaceAddressesUtil.read(
+    (req.body as JSONObject | undefined)?.[PROBE_INTERFACE_ADDRESSES_FIELD],
+  );
+
+  if (!probeId || addresses === null) {
+    return;
+  }
+
+  ProbeService.recordInterfaceAddresses({ probeId, addresses }).catch(
+    (err: Error) => {
+      logger.error(
+        `Failed to keep the interface addresses of probe ${probeId.toString()}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.error(err, getLogAttributesFromRequest(req as any));
+    },
+  );
+}
+
 router.post(
   "/alive",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
@@ -107,7 +139,11 @@ router.post(
        * heartbeat's response time to Postgres write latency, which is the
        * exact coupling that let a slow database mark healthy probes
        * Disconnected while they were successfully running their checks.
+       * The probe's interface addresses are kept the same way: scheduled,
+       * never awaited.
        */
+      recordInterfaceAddresses(req as ProbeExpressRequest);
+
       return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
