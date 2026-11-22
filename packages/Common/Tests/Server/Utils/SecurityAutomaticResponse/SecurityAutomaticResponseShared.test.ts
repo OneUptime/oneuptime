@@ -18,6 +18,7 @@ import { sortSecurityAutomaticResponsePolicies } from "../../../../Server/Utils/
 import SecurityAutomaticResponseOwners from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseOwners";
 import SecurityAutomaticResponseRules, {
   SECURITY_AUTOMATIC_RESPONSE_LIBRARY_RULES,
+  SecurityAutomaticResponseRule,
   SecurityAutomaticResponseRuleState,
   getSecurityAutomaticResponseLibraryEntries,
 } from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseRules";
@@ -29,14 +30,20 @@ import {
   SecurityAutomaticResponseMode,
   SecurityAutomaticResponsePolicyKind,
 } from "../../../../Types/SecurityAutomaticResponse/SecurityAutomaticResponsePolicy";
-import { SecurityRepeatOffenderRecord } from "../../../../Types/SecurityAutomaticResponse/SecurityRepeatOffenders";
+import {
+  SecurityRepeatOffenderBlock,
+  SecurityRepeatOffenderRecord,
+} from "../../../../Types/SecurityAutomaticResponse/SecurityRepeatOffenders";
 import {
   SecurityBlockAction,
   SecurityBlockSource,
   SecurityBlockState,
 } from "../../../../Types/SecurityBlocklist/SecurityBlock";
 import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDetectionSource";
-import { DETECTION_RULE_LIBRARY } from "../../../../Types/SecurityEvent/DetectionRuleLibrary";
+import {
+  DETECTION_RULE_LIBRARY,
+  DetectionRuleLibraryEntry,
+} from "../../../../Types/SecurityEvent/DetectionRuleLibrary";
 import OcsfSeverity from "../../../../Types/SecurityEvent/OcsfSeverity";
 import {
   afterEach,
@@ -325,7 +332,7 @@ describe("the repeat-offender ladder's read", () => {
       });
 
     expect(
-      record.blocks.map((made) => {
+      record.blocks.map((made: SecurityRepeatOffenderBlock): string => {
         return made.value;
       }),
     ).toEqual([ADDRESS, ADDRESS, "35.205.11.0/24"]);
@@ -406,9 +413,11 @@ describe("the ready policies' rules, in real time", () => {
     )) {
       for (const id of ids) {
         const entry: (typeof DETECTION_RULE_LIBRARY)[number] | undefined =
-          DETECTION_RULE_LIBRARY.find((candidate) => {
-            return candidate.id === id;
-          });
+          DETECTION_RULE_LIBRARY.find(
+            (candidate: DetectionRuleLibraryEntry): boolean => {
+              return candidate.id === id;
+            },
+          );
 
         expect(entry).toBeDefined();
         expect(entry!.sigmaRuleYaml).not.toContain("|re");
@@ -418,7 +427,7 @@ describe("the ready policies' rules, in real time", () => {
     expect(
       getSecurityAutomaticResponseLibraryEntries(
         SecurityAutomaticResponsePolicyKind.Scanners,
-      ).map((entry) => {
+      ).map((entry: DetectionRuleLibraryEntry): string => {
         return entry.title;
       }),
     ).toEqual([
@@ -435,9 +444,10 @@ describe("the ready policies' rules, in real time", () => {
   });
 
   test("adds the rules the project has not got, real-time, and turns its own real-time, leaving one it turned off off", async () => {
-    const entries = getSecurityAutomaticResponseLibraryEntries(
-      SecurityAutomaticResponsePolicyKind.PasswordGuessing,
-    );
+    const entries: Array<DetectionRuleLibraryEntry> =
+      getSecurityAutomaticResponseLibraryEntries(
+        SecurityAutomaticResponsePolicyKind.PasswordGuessing,
+      );
     const scheduled: DetectionRule = new DetectionRule(
       new ObjectID("cccccccc-cccc-4ccc-8ccc-000000000001"),
     );
@@ -460,22 +470,27 @@ describe("the ready policies' rules, in real time", () => {
 
     expect(turnedRealTime).toEqual([scheduled.id!.toString()]);
     expect(
-      created.map((rule) => {
+      created.map((rule: DetectionRule): string => {
         return rule.name;
       }),
     ).toEqual([entries[2]!.title]);
     expect(created[0]!.isRealTime).toBe(true);
     expect(created[0]!.isEnabled).toBe(true);
 
-    const read = await SecurityAutomaticResponseRules.read({
-      projectId: PROJECT_ID,
-      kind: SecurityAutomaticResponsePolicyKind.PasswordGuessing,
-    });
+    const read: Array<SecurityAutomaticResponseRule> =
+      await SecurityAutomaticResponseRules.read({
+        projectId: PROJECT_ID,
+        kind: SecurityAutomaticResponsePolicyKind.PasswordGuessing,
+      });
 
     expect(
-      read.map((rule) => {
-        return rule.state;
-      }),
+      read.map(
+        (
+          rule: SecurityAutomaticResponseRule,
+        ): SecurityAutomaticResponseRuleState => {
+          return rule.state;
+        },
+      ),
     ).toEqual([
       SecurityAutomaticResponseRuleState.Scheduled,
       SecurityAutomaticResponseRuleState.Off,
@@ -539,7 +554,7 @@ describe("the project's security owners", () => {
 
     expect(asked).toEqual([Permission.SecurityAdmin]);
     expect(
-      owners.map((owner) => {
+      owners.map((owner: User): string | undefined => {
         return owner.email?.toString();
       }),
     ).toEqual(["owner@example.com"]);

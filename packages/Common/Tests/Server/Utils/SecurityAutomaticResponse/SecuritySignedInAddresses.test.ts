@@ -139,11 +139,16 @@ beforeEach(() => {
     .mockImplementation(async (data: { signal: "log" | "trace" }) => {
       return rules[data.signal];
     });
-  for (const service of [LogScrubRuleService, TraceScrubRuleService]) {
-    jest.spyOn(service, "findBy").mockImplementation((async () => {
+  const readStoredRules: () => Promise<unknown> =
+    async (): Promise<unknown> => {
       return storedRules;
-    }) as never);
-  }
+    };
+  jest
+    .spyOn(LogScrubRuleService, "findBy")
+    .mockImplementation(readStoredRules as never);
+  jest
+    .spyOn(TraceScrubRuleService, "findBy")
+    .mockImplementation(readStoredRules as never);
 });
 
 afterEach(() => {
