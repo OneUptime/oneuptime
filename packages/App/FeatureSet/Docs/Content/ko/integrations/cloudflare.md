@@ -1,11 +1,12 @@
 # Cloudflare
 
-[Cloudflare](https://www.cloudflare.com) 방화벽이 엣지에서 한 일을 OneUptime의 보안 이벤트로 가져옵니다. 관리형 및 사용자 지정 WAF 규칙, 속도 제한, IP Access Rules, 봇 관리, HTTP DDoS 보호가 차단하거나 챌린지하거나 로그로 기록한 요청이 대상입니다. 각 요청은 앱 자체의 요청 옆에 놓이므로, 케이스에서 Cloudflare가 무엇을 막았고 무엇이 그래도 앱에 도달했는지 알 수 있습니다. OneUptime은 읽기만 할 수 있는 API 토큰으로 이를 읽으며, Cloudflare에서는 아무것도 바꾸지 않습니다.
+[Cloudflare](https://www.cloudflare.com) 방화벽이 엣지에서 한 일을 OneUptime의 보안 이벤트로 가져옵니다. 관리형 및 사용자 지정 WAF 규칙, 속도 제한, IP Access Rules, 봇 관리, HTTP DDoS 보호가 차단하거나 챌린지하거나 로그로 기록한 요청이 대상입니다. 각 요청은 앱 자체의 요청 옆에 놓이므로, 케이스에서 Cloudflare가 무엇을 막았고 무엇이 그래도 앱에 도달했는지 알 수 있습니다. OneUptime은 읽기만 할 수 있는 API 토큰으로 이를 읽으며, 차단을 켜지 않는 한 Cloudflare에서는 아무것도 바꾸지 않습니다. 차단을 켜면 그곳에서 차단 목록을 적용합니다.
 
 :::cards
 - [연결 설정](#연결-설정): 읽기 권한 두 개가 있는 API 토큰과 연결의 양식입니다.
 - [가져오는 내용](#가져오는-내용): 어떤 이벤트를 가져오는지, 각 이벤트가 보안 이벤트가 되는 방식.
 - [폴링 작동 방식](#폴링-작동-방식): 각 폴링이 읽는 시간 범위와, 그것이 10분 겹치는 이유입니다.
+- [Cloudflare에서 주소 차단](#cloudflare에서-주소-차단): IP 목록 두 개와 목록마다 사용자 지정 규칙 하나로 적용되는 차단 목록.
 - [문제 해결](#문제-해결): 각 오류의 의미와 바꿔야 할 점.
 :::
 
@@ -63,7 +64,7 @@ OneUptime은 매분 폴링 간격이 지난 활성화된 연결을 각각 폴링
 
 ### 쓰기 권한은 별도의 선택입니다
 
-이 연결은 Cloudflare에서 아무것도 바꾸지 않습니다. 그곳에서 주소를 차단하는 것은 별도의 옵트인으로, 쓰기 권한이 필요합니다. 목록에는 `Account > Account Filter Lists > Edit`, 차단할 각 영역에는 `Zone > Zone WAF > Edit`, 목록이 부족한 요금제에는 `Account > Account Firewall Access Rules > Edit`가 필요합니다. 차단을 켤 때만 토큰에 추가하세요.
+이 연결은 해당 행에서 차단을 켜기 전까지 Cloudflare에서 아무것도 바꾸지 않습니다. 그때가 되어서야 OneUptime이 쓰기 권한을 요청하고, 무엇이든 차단하기 전에 그 권한을 확인합니다. 각 권한과 용도는 [Cloudflare에서 주소 차단](#cloudflare에서-주소-차단)에 있습니다. 권한은 차단을 켤 때만 토큰에 추가하세요.
 
 ## 가져오는 내용
 
@@ -151,6 +152,58 @@ Cloudflare의 Logpush도 방화벽 이벤트를 보낼 수 있으며, 2026년 9�
 
 테스트의 모든 요청에는 20초 기한이 있습니다. 테스트는 아무것도 가져오지 않고 커서를 옮기지도 않으며, 실패한 각 검사는 무엇을 바꿔야 하는지 알려 줍니다.
 
+## Cloudflare에서 주소 차단
+
+차단이 켜져 있으면 Cloudflare가 프로젝트의 [차단 목록](/docs/telemetry/security-cases#차단-목록)을 적용합니다. 차단한 각 주소는 1분 안에 Cloudflare 계정의 IP 목록에 추가되고, 각 영역에서는 목록마다 사용자 지정 규칙 하나가 목록의 주소를 차단하거나 챌린지합니다. **차단 목록**에서는 OneUptime이 Cloudflare에서 다시 읽은 각 차단의 **적용 위치**에 Cloudflare가 표시됩니다. 10분 안에 다시 읽지 못한 차단은 그곳에서 적용되지 않습니다. 그러면 케이스의 차단 단계에 차단 이후 Cloudflare가 그 주소에서 온 요청을 몇 개 막았는지도 표시됩니다.
+
+차단에는 연결의 API 토큰에 다음 쓰기 권한이 필요합니다.
+
+| 권한 | OneUptime이 이 권한으로 하는 일 |
+| --- | --- |
+| `Account > Account Filter Lists > Edit` | 자체 목록 두 개를 만들고, 목록의 주소를 추가하고 제거합니다. |
+| `Zone > Zone WAF > Edit`, 차단할 각 영역에 | 자체 사용자 지정 규칙을 추가하고, 영역 자체의 규칙을 읽습니다. |
+| `Account > Account Firewall Access Rules > Edit` | 남은 목록이나 사용자 지정 규칙이 없는 요금제에서 IP Access Rules를 추가하고 제거합니다. |
+
+:::steps
+### 토큰에 쓰기 권한 부여
+
+Cloudflare에서 **My Profile → API Tokens**를 열고, 연결의 토큰을 편집해 위의 권한을 추가합니다. 또는 이 권한과 읽기 권한 두 개를 가진 토큰을 만듭니다.
+
+### 차단 켜기
+
+연결의 행에서 **주소 차단**를 선택합니다. **새 API 토큰**에 새 토큰을 붙여 넣거나 비워 두어 현재 토큰을 그대로 쓰고, **영역**는 **모든 영역**로 두거나 차단할 영역을 고릅니다. **권한 확인**는 토큰에 각 권한이 있는지 Cloudflare에 묻고, 아무것도 바꾸지 않습니다. **차단 켜기**은 모든 확인을 통과할 때만 차단을 켜며, OneUptime이 1분 안에 Cloudflare를 설정합니다.
+:::
+
+차단이 켜져 있는 동안 **연결 테스트**도 같은 확인을 실행합니다: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone**, 그리고 IP Access Rules를 쓰는 경우 **Edit IP Access Rules**.
+
+### OneUptime이 Cloudflare에 추가하는 것
+
+| Cloudflare에서 | 무엇인지 |
+| --- | --- |
+| 목록 `oneuptime_block`과 `oneuptime_challenge` | 계정의 IP 목록 두 개로, 하나는 차단용이고 하나는 챌린지용입니다. 설명에 OneUptime 프로젝트가 적혀 있습니다. |
+| 각 영역에 목록마다 사용자 지정 규칙 하나 | 작업 Block인 `(ip.src in $oneuptime_block)`과 작업 Managed Challenge인 `(ip.src in $oneuptime_challenge)`입니다. 설명에 OneUptime이 관리한다고 적혀 있습니다. |
+| 차단마다 목록 항목 하나 | 주석에 케이스와 차단이 끝나는 시각이 적힙니다. 예: `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
+
+각 규칙은 영역의 사용자 지정 규칙 중 맨 앞에 놓이므로 사용자의 규칙보다 먼저 실행됩니다. 사용자의 Skip 규칙은 차단된 주소를 통과시킬 수 없습니다. 모니터나 파트너의 주소처럼 Skip 규칙이 통과시키는 주소가 있으면 **차단 상태**에 표시됩니다. **이 주소 보호**는 이 주소를 **보호 대상 엔티티**에 추가하며, 여기에 있는 주소는 아무도 차단할 수 없습니다.
+
+### 차단의 요금제 한도
+
+| 요금제 | Free | Pro | Business | Enterprise |
+| --- | --- | --- | --- | --- |
+| 계정의 목록 | 1 | 10 | 10 | 1,000 |
+| 계정의 목록 항목 | 10,000 | 10,000 | 10,000 | 500,000 |
+| 영역의 사용자 지정 규칙 | 5 | 20 | 100 | 1,000 |
+
+사용자 자신의 목록과 규칙도 포함해 계산합니다. 차단을 켜면 각 작업은 요금제에 남은 것이 있을 때 목록 하나와 각 영역의 규칙 하나를 쓰고(Block이 먼저), 남은 것이 없으면 IP Access Rules를 씁니다. 목록 하나가 비어 있는 Free 요금제에서는 차단이 목록을, 챌린지가 IP Access Rules를 씁니다. 계정 하나에는 IP Access Rules를 50,000개까지 둘 수 있으며, 각각은 주소, /16 또는 /24 IPv4 범위, /32, /48 또는 /64 IPv6 범위입니다. 그 밖의 범위에 대한 차단은 그곳에서 적용되지 않으며, **차단 목록**에 그 이유가 표시됩니다. **How blocking is set up**은 각 작업이 무엇을 쓰는지와 그 이유를 알려 줍니다.
+
+### 누군가 규칙을 바꿨을 때
+
+OneUptime은 3분마다 목록과 규칙을 다시 읽으며, 누군가 Cloudflare에서 한 변경을 되돌리지 않습니다. Cloudflare에서 꺼지거나 삭제되거나 변경된 규칙은 연결의 행과 **차단 상태**에 해당 영역과 함께 표시되고, **차단 목록**는 그 영역 규칙의 차단을 Cloudflare에서 적용되지 않음으로 보여 줍니다. **되돌리기**은 규칙을 다시 설정합니다. **영역**가 **모든 영역**인 동안에는 나중에 계정에 추가된 영역도 자동으로 설정됩니다.
+
+### 차단 끄기
+
+**차단 끄기**은 OneUptime의 목록과 규칙을 Cloudflare에서 제거할지 묻고, **Cloudflare에서 OneUptime의 목록과 규칙 제거**가 선택되어 있습니다. 제거는 OneUptime의 규칙, 목록 두 개, OneUptime이 추가한 IP Access Rules를 붙인 이름, 참조, 메모로 찾아 없애며, 그 밖의 것은 건드리지 않습니다. 남겨 두면 Cloudflare에 그대로 남아 담긴 주소를 계속 차단합니다. 주소를 차단하는 연결은 삭제할 수 없습니다. 먼저 차단을 끄고, 제거가 끝나면 연결을 삭제하세요.
+
 ## 문제 해결
 
 연결의 **마지막 오류**는 자격 증명을 가린 전체 오류 메시지를 보관합니다. 연결에 오류가 있으면 **작업** 열의 **오류 보기**를 선택해 읽고, 대화 상자의 **오류 복사**로 복사합니다. 각 메시지는 실패한 요청을 밝히고 Cloudflare가 준 이유를 인용합니다.
@@ -176,7 +229,11 @@ Cloudflare가 토큰을 알지 못합니다. 토큰이 삭제되었거나, 갱�
 :::
 
 :::details 케이스에 Cloudflare의 조치는 보이지만 앱에서는 그 주소의 요청이 보이지 않는 경우
-Cloudflare 뒤에서는 앱이 `CF-Connecting-IP` 헤더에서 방문자의 주소를 읽지 않는 한 Cloudflare의 주소를 봅니다. 그 주소를 `client.address`로 로그와 트레이스에 기록하면, OneUptime이 앱의 요청을 Cloudflare가 대응한 주소와 맞춰 볼 수 있습니다.
+Cloudflare 뒤에서는 앱의 요청이 Cloudflare의 주소에서 오며, 방문자의 주소는 Cloudflare가 `X-Forwarded-For`에 마지막으로 추가하는 주소입니다. 이 헤더(`http.request.header.x-forwarded-for`)와 연결 자체의 주소(`network.peer.address`)를 트레이스에 기록하세요. 이 연결이 있는 동안 OneUptime은 Cloudflare의 주소를 프록시로 신뢰하므로, 헤더에서 방문자를 읽고 앱의 요청을 Cloudflare가 조치한 주소와 맞춥니다. 앱이 `CF-Connecting-IP`에서 복사한 `client.address`는 신뢰하지 않습니다. 앱에 직접 접근하는 사람은 누구나 그 헤더를 보낼 수 있기 때문입니다.
+:::
+
+:::details 차단 상태가 `already exists in this Cloudflare account`인 경우
+다른 OneUptime 프로젝트나 누군가가 `oneuptime_block` 또는 `oneuptime_challenge`라는 이름의 목록을 만들었으며, OneUptime은 이 프로젝트를 위해 만들지 않은 목록을 절대 바꾸지 않습니다. Cloudflare에서 그 목록의 이름을 바꾸거나 삭제하거나, 그 목록을 만든 프로젝트에서 차단을 끄세요. OneUptime이 5분 안에 차단을 다시 설정합니다.
 :::
 
 :::details 테스트는 통과하지만 Last Polled가 Never임

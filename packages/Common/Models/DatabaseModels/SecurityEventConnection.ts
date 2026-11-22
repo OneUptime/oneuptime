@@ -360,6 +360,39 @@ export default class SecurityEventConnection extends BaseModel {
   @Column({ type: ColumnType.JSON, nullable: true })
   public lastPollResult?: JSONObject = undefined;
 
+  /*
+   * Blocking at the provider (#10343): whether it is on, the zones it is on
+   * in and the work asked of OneUptime - written only by the connection's
+   * blocking routes, which check write access first and take the caller's
+   * permission to change the connection, never by a plain update.
+   */
+  @ColumnAccessControl({ create: [], read: readPermissions, update: [] })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Blocking Settings",
+    description:
+      "Whether OneUptime enforces your blocklist through this connection, and in which zones. Changed through the connection's blocking routes.",
+  })
+  @Column({ type: ColumnType.JSON, nullable: true })
+  public blockingSettings?: JSONObject = undefined;
+
+  /*
+   * What OneUptime found at the provider the last time it set blocking up or
+   * checked it: each action's mechanism and why, each zone's rules, how
+   * much of the plan the blocks use, and what failed.
+   */
+  @ColumnAccessControl({ create: [], read: readPermissions, update: [] })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Blocking Status",
+    description:
+      "What OneUptime last found of its lists and rules at the provider, written by OneUptime.",
+  })
+  @Column({ type: ColumnType.JSON, nullable: true })
+  public blockingStatus?: JSONObject = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: readPermissions,

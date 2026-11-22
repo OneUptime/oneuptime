@@ -1,11 +1,12 @@
 # Cloudflare
 
-Import what [Cloudflare](https://www.cloudflare.com)'s firewall did at the edge into OneUptime's Security Events: the requests its WAF managed and custom rules, rate limiting, IP Access rules, bot management and HTTP DDoS protection blocked, challenged or logged. Each one sits beside your app's own requests, so a case says what Cloudflare stopped and what still reached your app. OneUptime reads them with an API token that can only read, and changes nothing in Cloudflare.
+Import what [Cloudflare](https://www.cloudflare.com)'s firewall did at the edge into OneUptime's Security Events: the requests its WAF managed and custom rules, rate limiting, IP Access rules, bot management and HTTP DDoS protection blocked, challenged or logged. Each one sits beside your app's own requests, so a case says what Cloudflare stopped and what still reached your app. OneUptime reads them with an API token that can only read, and changes nothing in Cloudflare unless you turn on blocking, which enforces your blocklist there.
 
 :::cards
 - [Set up the connection](#set-up-the-connection): An API token with two read permissions, and the connection's form.
 - [What is imported](#what-is-imported): Which events, and how each becomes a security event.
 - [How polling works](#how-polling-works): The window each poll reads, and why it overlaps by 10 minutes.
+- [Block addresses at Cloudflare](#block-addresses-at-cloudflare): Your blocklist, enforced by two IP lists and one custom rule per list.
 - [Troubleshooting](#troubleshooting): What each error means, and what to change.
 :::
 
@@ -63,7 +64,7 @@ The **Polling** step also has an optional **Description**, the **Poll Interval (
 
 ### Write access is a separate choice
 
-This connection never changes anything in Cloudflare. Blocking addresses there is a separate opt-in, which needs write permissions: `Account > Account Filter Lists > Edit` for the lists, `Zone > Zone WAF > Edit` on each zone to block in, and `Account > Account Firewall Access Rules > Edit` on plans without enough lists. Add them to the token only when you turn blocking on.
+This connection changes nothing in Cloudflare until you turn on blocking, on its row. Only then does OneUptime ask for write permissions, and it checks them before it blocks anything: [Block addresses at Cloudflare](#block-addresses-at-cloudflare) names each one and what it is for. Add them to the token only when you turn blocking on.
 
 ## What is imported
 
@@ -151,6 +152,58 @@ Click **Diagnostics** on a connection to see its recent runs and to work with it
 
 Every request in a test has a 20 second deadline. A test never imports anything or moves the cursor, and each failed check says what to change.
 
+## Block addresses at Cloudflare
+
+With blocking on, Cloudflare enforces your project's [blocklist](/docs/telemetry/security-cases#blocklist). Each address you block is added to an IP list in your Cloudflare account within a minute, and in each zone one custom rule per list blocks or challenges the addresses it holds. On the **Blocklist**, **Enforced At** names Cloudflare for each block OneUptime has read back from Cloudflare; a block not read back within 10 minutes is not enforced there. A case's block step then also says how many of the address's requests Cloudflare stopped since the block.
+
+Blocking needs write permissions on the connection's API token:
+
+| Permission | What OneUptime does with it |
+| --- | --- |
+| `Account > Account Filter Lists > Edit` | Makes its two lists, and adds and removes their addresses. |
+| `Zone > Zone WAF > Edit`, on each zone to block in | Adds its custom rules, and reads the zone's own. |
+| `Account > Account Firewall Access Rules > Edit` | Adds and removes IP Access Rules, on a plan without a list or a custom rule to spare. |
+
+:::steps
+### Give the token write permissions
+
+In Cloudflare, open **My Profile → API Tokens**, edit the connection's token, and add the permissions above. Or create a token that has them and the two read permissions.
+
+### Turn blocking on
+
+On the connection's row, select **Block Addresses**. Paste a new token in **New API Token**, or leave it empty to keep the current one, and in **Zones** leave **All zones**, or pick the zones to block in. **Check Permissions** asks Cloudflare whether the token has each permission, and changes nothing. **Turn On Blocking** turns blocking on only when every check passes, and OneUptime sets Cloudflare up within a minute.
+:::
+
+While blocking is on, **Test connection** runs the same checks: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** and, where IP Access Rules are used, **Edit IP Access Rules**.
+
+### What OneUptime adds to Cloudflare
+
+| In Cloudflare | What it is |
+| --- | --- |
+| The lists `oneuptime_block` and `oneuptime_challenge` | Two IP lists in the account, one for blocks and one for challenges. Their description names your OneUptime project. |
+| One custom rule per list, in each zone | `(ip.src in $oneuptime_block)` with the action Block, and `(ip.src in $oneuptime_challenge)` with the action Managed Challenge. Their description says OneUptime manages them. |
+| One list item per block | Its comment names the case and when the block ends, such as `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
+
+Each rule goes first among the zone's custom rules, so it runs before yours: a skip rule of yours cannot let a blocked address past it. When your skip rules let addresses through, such as your monitors' or a partner's, **Blocking Status** names them. **Protect These Addresses** adds them to **Protected Entities**, which no one can block.
+
+### Plan limits for blocking
+
+| Plan | Free | Pro | Business | Enterprise |
+| --- | --- | --- | --- | --- |
+| Lists in the account | 1 | 10 | 10 | 1,000 |
+| List items in the account | 10,000 | 10,000 | 10,000 | 500,000 |
+| Custom rules in a zone | 5 | 20 | 100 | 1,000 |
+
+Your own lists and rules count too. When you turn blocking on, each action takes a list, and a rule in every zone, where the plan has them to spare, Block first; where not, it takes IP Access Rules. On a Free plan whose one list is free, blocks take the list and challenges take IP Access Rules. An account holds 50,000 IP Access Rules, each an address, an IPv4 range of /16 or /24, or an IPv6 range of /32, /48 or /64: a block of another range is not enforced there, and the **Blocklist** says why. **How blocking is set up** says what each action takes, and why.
+
+### When someone changes a rule
+
+OneUptime reads its lists and rules back every 3 minutes, and never undoes a change someone made in Cloudflare. A rule turned off, deleted or changed there shows on the connection's row and in **Blocking Status**, with its zone, and the **Blocklist** shows the blocks of that zone's rule as not enforced at Cloudflare. **Put It Back** sets the rule up again. While **Zones** is **All zones**, a zone added to the account later is set up by itself.
+
+### Turn blocking off
+
+**Turn Off Blocking** asks whether to remove OneUptime's lists and rules from Cloudflare, with **Remove OneUptime's lists and rules from Cloudflare** selected. Removal takes away OneUptime's rules, its two lists and the IP Access Rules it added, found by the names, references and notes it gave them, and nothing else. Kept, they stay in Cloudflare and go on blocking what they hold. A connection that blocks addresses cannot be deleted: turn blocking off first, and delete it once the removal is done.
+
 ## Troubleshooting
 
 The connection's **Last Error** keeps the complete error message, with credentials redacted. When a connection has an error, select **View Error** in its **Actions** column to read it, and **Copy Error** in the dialog to copy it. Every message names the request that failed, and quotes Cloudflare's own reason.
@@ -176,7 +229,11 @@ The request got no answer: a timeout, a name that does not resolve, or a refused
 :::
 
 :::details A case shows Cloudflare's actions, but none of the address's requests in your app
-Behind Cloudflare, your app sees Cloudflare's addresses unless it reads the visitor's from the `CF-Connecting-IP` header. Write that address to your logs and traces as `client.address`, so OneUptime can match your app's requests to the address Cloudflare acted on.
+Behind Cloudflare, your app's requests come from Cloudflare's addresses, and the visitor's address is the last one Cloudflare adds to `X-Forwarded-For`. Record that header (`http.request.header.x-forwarded-for`) and the connection's own address (`network.peer.address`) on your traces. While this connection exists, OneUptime trusts Cloudflare's addresses as a proxy, so it reads the visitor from the header and matches your app's requests to the address Cloudflare acted on. A `client.address` your app copies from `CF-Connecting-IP` is not trusted: anyone who reaches your app directly can send that header.
+:::
+
+:::details Blocking Status says `already exists in this Cloudflare account`
+Another OneUptime project, or a person, made a list named `oneuptime_block` or `oneuptime_challenge`, and OneUptime never changes a list it did not make for this project. Rename or delete that list in Cloudflare, or turn blocking off in the project that made it. OneUptime sets blocking up again within 5 minutes.
 :::
 
 :::details The test passes, but Last Polled is Never

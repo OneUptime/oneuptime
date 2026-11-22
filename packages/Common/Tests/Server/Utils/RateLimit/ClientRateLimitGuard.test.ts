@@ -104,6 +104,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
 const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
   "packages/Common/Server/Utils/Express.ts":
     "defines getClientIp, the address requests are recorded and logged with",
+  "packages/Common/Server/API/SecurityBlocklistFeedAPI.ts":
+    "holds a firewall's fetch of a blocklist feed to the feed's allowlist and records the address of each fetch (#10345); its fetches are counted by SecurityBlocklistFeedRateLimit, per feed and address and per address",
   "packages/App/FeatureSet/Identity/API/Authentication.ts":
     "records the address of a sign-in and hands it to the captcha check; its attempts are counted by IdentityRateLimit",
   "packages/App/FeatureSet/Identity/API/StatusPageAuthentication.ts":
@@ -185,6 +187,7 @@ const REDIS_LIMITS: Array<string> = [
   "packages/Common/Server/Middleware/PublicDashboardRateLimit.ts",
   "packages/Common/Server/Middleware/FormRateLimit.ts",
   "packages/Common/Server/Middleware/OnCallCalendarFeedRateLimit.ts",
+  "packages/Common/Server/Middleware/SecurityBlocklistFeedRateLimit.ts",
   "packages/Common/Server/Middleware/McpOAuthRateLimit.ts",
   "packages/Common/Server/Utils/Runbook/RunbookWebhookRateLimit.ts",
   "packages/Common/Server/Utils/RateLimit/PublicMessageRateLimit.ts",

@@ -64,9 +64,9 @@ import Exception from "../../Types/Exception/Exception";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { sendUnexplainedError } from "./UnexplainedServerError";
 import {
-  APP_REQUEST_BODY_LIMIT_FIELD,
   RequestBodyRefusal,
   readRequestBodyRefusal,
+  withAppRequestBodyLimit,
 } from "./RequestBodyRefusal";
 import {
   LARGE_REQUEST_BODY_LIMIT,
@@ -315,18 +315,7 @@ const markAppLimit: (
   next: NextFunction,
   limit: RequestBodyLimit,
 ): NextFunction => {
-  return ((err?: unknown): void => {
-    if (
-      err &&
-      typeof err === "object" &&
-      (err as { type?: unknown }).type === "entity.too.large"
-    ) {
-      (err as Record<string, unknown>)[APP_REQUEST_BODY_LIMIT_FIELD] =
-        limit.bytes;
-    }
-
-    next(err);
-  }) as NextFunction;
+  return withAppRequestBodyLimit(next, limit.bytes) as NextFunction;
 };
 
 export const setDefaultHeaders: RequestHandler = (

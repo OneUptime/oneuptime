@@ -702,6 +702,12 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Value",
     "Secret ID",
     "Certificates & secrets",
+    // Blocking (#10346): the Defender API's permission, and the portal's switches it needs.
+    "API permissions → Add a permission → APIs my organization uses",
+    "Application permissions",
+    "Settings → Endpoints → Advanced features",
+    "Custom network indicators",
+    "Allow or block file",
   ],
   // The Falcon console.
   [CROWDSTRIKE]: [
@@ -712,6 +718,9 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "API clients and keys",
     "Endpoint security → Endpoint detections",
     "Next-Gen SIEM → Alerts",
+    // Blocking files (#10346): the API client's IOC Management scopes.
+    "IOC Management → Read",
+    "Write",
   ],
   // Splunk Web's token settings.
   [SPLUNK]: [
@@ -877,6 +886,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Authenticate with Microsoft Entra",
       "Read alerts from Microsoft Graph",
       "Alerts available to import",
+      "Block with Microsoft Defender",
       "Background workers",
       "Poll scheduler",
       "Security event storage",
@@ -890,6 +900,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Authenticate with CrowdStrike Falcon",
       "Read alerts from the Falcon Alerts API",
       "Alerts available to import",
+      "Block with CrowdStrike Falcon",
       "Background workers",
       "Poll scheduler",
       "Security event storage",
@@ -961,6 +972,11 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Background workers",
       "Poll scheduler",
       "Security event storage",
+      // The checks blocking adds to a test (CloudflareBlocking.checkWriteAccess).
+      "How blocking is set up",
+      "Edit the lists",
+      "Edit custom rules in each zone",
+      "Edit IP Access Rules",
     ],
     // The button that inserts a value into a step's setting: a symbol.
     [DISCORD]: ["{ }"],

@@ -1,11 +1,12 @@
 # Cloudflare
 
-Importieren Sie in die Sicherheitsereignisse von OneUptime, was die Firewall von [Cloudflare](https://www.cloudflare.com) am Edge getan hat: die Anfragen, die ihre verwalteten und eigenen WAF-Regeln, die Ratenbegrenzung, die IP Access Rules, das Bot-Management und der HTTP-DDoS-Schutz blockiert, mit einer Challenge geprüft oder protokolliert haben. Jede steht neben den eigenen Anfragen Ihrer App, sodass ein Fall sagt, was Cloudflare gestoppt hat und was Ihre App trotzdem erreicht hat. OneUptime liest sie mit einem API-Token, das nur lesen kann, und ändert nichts in Cloudflare.
+Importieren Sie in die Sicherheitsereignisse von OneUptime, was die Firewall von [Cloudflare](https://www.cloudflare.com) am Edge getan hat: die Anfragen, die ihre verwalteten und eigenen WAF-Regeln, die Ratenbegrenzung, die IP Access Rules, das Bot-Management und der HTTP-DDoS-Schutz blockiert, mit einer Challenge geprüft oder protokolliert haben. Jede steht neben den eigenen Anfragen Ihrer App, sodass ein Fall sagt, was Cloudflare gestoppt hat und was Ihre App trotzdem erreicht hat. OneUptime liest sie mit einem API-Token, das nur lesen kann, und ändert nichts in Cloudflare, solange Sie das Sperren nicht einschalten, das Ihre Sperrliste dort durchsetzt.
 
 :::cards
 - [Die Verbindung einrichten](#die-verbindung-einrichten): Ein API-Token mit zwei Leseberechtigungen und das Formular der Verbindung.
 - [Was importiert wird](#was-importiert-wird): Welche Ereignisse, und wie aus jedem ein Sicherheitsereignis wird.
 - [So funktioniert das Abfragen](#so-funktioniert-das-abfragen): Das Zeitfenster jeder Abfrage, und warum es sich um 10 Minuten überlappt.
+- [Adressen bei Cloudflare sperren](#adressen-bei-cloudflare-sperren): Ihre Sperrliste, durchgesetzt durch zwei IP-Listen und eine benutzerdefinierte Regel pro Liste.
 - [Fehlerbehebung](#fehlerbehebung): Was jeder Fehler bedeutet und was zu ändern ist.
 :::
 
@@ -63,7 +64,7 @@ Der Schritt **Abfrage** hat außerdem eine optionale **Beschreibung**, das **Abf
 
 ### Schreibzugriff ist eine eigene Entscheidung
 
-Diese Verbindung ändert nie etwas in Cloudflare. Adressen dort zu blockieren ist eine eigene Zustimmung, die Schreibberechtigungen braucht: `Account > Account Filter Lists > Edit` für die Listen, `Zone > Zone WAF > Edit` auf jeder Zone, in der blockiert wird, und `Account > Account Firewall Access Rules > Edit` bei Tarifen ohne genug Listen. Fügen Sie sie dem Token erst hinzu, wenn Sie das Blockieren einschalten.
+Diese Verbindung ändert nichts in Cloudflare, bis Sie das Sperren in ihrer Zeile einschalten. Erst dann fragt OneUptime nach Schreibberechtigungen, und es prüft sie, bevor es etwas sperrt: [Adressen bei Cloudflare sperren](#adressen-bei-cloudflare-sperren) nennt jede einzelne und wofür sie dient. Fügen Sie sie dem Token erst hinzu, wenn Sie das Sperren einschalten.
 
 ## Was importiert wird
 
@@ -151,6 +152,58 @@ Klicken Sie an einer Verbindung auf **Diagnose**, um ihre letzten Läufe zu sehe
 
 Jede Anfrage in einem Test hat eine Frist von 20 Sekunden. Ein Test importiert nie etwas und bewegt nie den Cursor, und jede fehlgeschlagene Prüfung sagt, was zu ändern ist.
 
+## Adressen bei Cloudflare sperren
+
+Ist das Sperren eingeschaltet, setzt Cloudflare die [Sperrliste](/docs/telemetry/security-cases#sperrliste) Ihres Projekts durch. Jede Adresse, die Sie sperren, kommt innerhalb einer Minute auf eine IP-Liste in Ihrem Cloudflare-Konto, und in jeder Zone sperrt eine benutzerdefinierte Regel pro Liste die Adressen, die sie enthält, oder stellt ihnen eine Challenge. In der **Sperrliste** nennt **Durchgesetzt bei** Cloudflare für jede Sperre, die OneUptime von Cloudflare zurückgelesen hat; eine Sperre, die nicht innerhalb von 10 Minuten zurückgelesen wird, ist dort nicht durchgesetzt. Der Sperrschritt eines Falls sagt dann auch, wie viele Anfragen der Adresse Cloudflare seit der Sperre gestoppt hat.
+
+Das Sperren braucht Schreibberechtigungen auf dem API-Token der Verbindung:
+
+| Berechtigung | Was OneUptime damit tut |
+| --- | --- |
+| `Account > Account Filter Lists > Edit` | Legt seine zwei Listen an und fügt ihre Adressen hinzu oder entfernt sie. |
+| `Zone > Zone WAF > Edit`, auf jeder Zone, in der gesperrt wird | Fügt seine benutzerdefinierten Regeln hinzu und liest die eigenen der Zone. |
+| `Account > Account Firewall Access Rules > Edit` | Fügt IP Access Rules hinzu und entfernt sie, bei einem Tarif ohne freie Liste oder freie benutzerdefinierte Regel. |
+
+:::steps
+### Dem Token Schreibberechtigungen geben
+
+Öffnen Sie in Cloudflare **My Profile → API Tokens**, bearbeiten Sie das Token der Verbindung und fügen Sie die Berechtigungen oben hinzu. Oder legen Sie ein Token an, das sie und die zwei Leseberechtigungen hat.
+
+### Das Sperren einschalten
+
+Wählen Sie in der Zeile der Verbindung **Adressen sperren**. Fügen Sie ein neues Token in **Neues API-Token** ein, oder lassen Sie das Feld leer, um das aktuelle zu behalten, und lassen Sie in **Zonen** **Alle Zonen** stehen, oder wählen Sie die Zonen, in denen gesperrt wird. **Berechtigungen prüfen** fragt Cloudflare, ob das Token jede Berechtigung hat, und ändert nichts. **Sperren einschalten** schaltet das Sperren nur ein, wenn jede Prüfung besteht, und OneUptime richtet Cloudflare innerhalb einer Minute ein.
+:::
+
+Solange das Sperren eingeschaltet ist, führt **Verbindung testen** dieselben Prüfungen aus: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** und, wo IP Access Rules genutzt werden, **Edit IP Access Rules**.
+
+### Was OneUptime Cloudflare hinzufügt
+
+| In Cloudflare | Was es ist |
+| --- | --- |
+| Die Listen `oneuptime_block` und `oneuptime_challenge` | Zwei IP-Listen im Konto, eine für Sperren und eine für Challenges. Ihre Beschreibung nennt Ihr OneUptime-Projekt. |
+| Eine benutzerdefinierte Regel pro Liste, in jeder Zone | `(ip.src in $oneuptime_block)` mit der Aktion Block und `(ip.src in $oneuptime_challenge)` mit der Aktion Managed Challenge. Ihre Beschreibung sagt, dass OneUptime sie verwaltet. |
+| Ein Listeneintrag pro Sperre | Sein Kommentar nennt den Fall und wann die Sperre endet, etwa `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
+
+Jede Regel steht an erster Stelle der benutzerdefinierten Regeln der Zone und läuft damit vor Ihren: Eine Skip-Regel von Ihnen kann keine gesperrte Adresse an ihr vorbeilassen. Wenn Ihre Skip-Regeln Adressen durchlassen, etwa die Ihrer Monitore oder eines Partners, nennt **Sperrstatus** sie. **Diese Adressen schützen** fügt sie zu **Geschützte Entitäten** hinzu, die niemand sperren kann.
+
+### Tarifgrenzen für das Sperren
+
+| Tarif | Free | Pro | Business | Enterprise |
+| --- | --- | --- | --- | --- |
+| Listen im Konto | 1 | 10 | 10 | 1.000 |
+| Listeneinträge im Konto | 10.000 | 10.000 | 10.000 | 500.000 |
+| Benutzerdefinierte Regeln in einer Zone | 5 | 20 | 100 | 1.000 |
+
+Ihre eigenen Listen und Regeln zählen mit. Wenn Sie das Sperren einschalten, nimmt jede Aktion eine Liste und eine Regel in jeder Zone, wo der Tarif sie frei hat, Block zuerst; wo nicht, nimmt sie IP Access Rules. Bei einem Free-Tarif, dessen eine Liste frei ist, nehmen Sperren die Liste und Challenges IP Access Rules. Ein Konto fasst 50.000 IP Access Rules, jede eine Adresse, ein IPv4-Bereich von /16 oder /24 oder ein IPv6-Bereich von /32, /48 oder /64: Eine Sperre eines anderen Bereichs wird dort nicht durchgesetzt, und die **Sperrliste** sagt, warum. **How blocking is set up** sagt, was jede Aktion nimmt, und warum.
+
+### Wenn jemand eine Regel ändert
+
+OneUptime liest seine Listen und Regeln alle 3 Minuten zurück und macht nie eine Änderung rückgängig, die jemand in Cloudflare vorgenommen hat. Eine dort ausgeschaltete, gelöschte oder geänderte Regel erscheint in der Zeile der Verbindung und in **Sperrstatus**, mit ihrer Zone, und die **Sperrliste** zeigt die Sperren der Regel dieser Zone bei Cloudflare als nicht durchgesetzt. **Wiederherstellen** richtet die Regel wieder ein. Solange **Zonen** auf **Alle Zonen** steht, wird eine Zone, die später zum Konto hinzukommt, von selbst eingerichtet.
+
+### Das Sperren ausschalten
+
+**Sperren ausschalten** fragt, ob die Listen und Regeln von OneUptime aus Cloudflare entfernt werden sollen, mit ausgewähltem **Listen und Regeln von OneUptime aus Cloudflare entfernen**. Das Entfernen nimmt die Regeln von OneUptime, seine zwei Listen und die IP Access Rules weg, die es hinzugefügt hat, gefunden an den Namen, Referenzen und Notizen, die es ihnen gab, und sonst nichts. Behalten bleiben sie in Cloudflare und sperren weiter, was sie enthalten. Eine Verbindung, die Adressen sperrt, kann nicht gelöscht werden: Schalten Sie das Sperren zuerst aus, und löschen Sie sie, sobald das Entfernen abgeschlossen ist.
+
 ## Fehlerbehebung
 
 **Letzter Fehler** der Verbindung behält die vollständige Fehlermeldung, mit geschwärzten Anmeldedaten. Wenn eine Verbindung einen Fehler hat, wählen Sie **Fehler anzeigen** in ihrer Spalte **Aktionen**, um ihn zu lesen, und **Fehler kopieren** im Dialog, um ihn zu kopieren. Jede Meldung nennt die Anfrage, die fehlschlug, und zitiert den Grund von Cloudflare.
@@ -176,7 +229,11 @@ Die Anfrage bekam keine Antwort: ein Zeitlimit, ein Name, der sich nicht auflös
 :::
 
 :::details Ein Fall zeigt die Aktionen von Cloudflare, aber keine Anfrage der Adresse in Ihrer App
-Hinter Cloudflare sieht Ihre App die Adressen von Cloudflare, es sei denn, sie liest die des Besuchers aus dem Header `CF-Connecting-IP`. Schreiben Sie diese Adresse als `client.address` in Ihre Logs und Traces, damit OneUptime die Anfragen Ihrer App der Adresse zuordnen kann, auf die Cloudflare reagiert hat.
+Hinter Cloudflare kommen die Anfragen Ihrer App von den Adressen von Cloudflare, und die Adresse des Besuchers ist die letzte, die Cloudflare an `X-Forwarded-For` anhängt. Zeichnen Sie diesen Header (`http.request.header.x-forwarded-for`) und die eigene Adresse der Verbindung (`network.peer.address`) in Ihren Traces auf. Solange diese Verbindung besteht, vertraut OneUptime den Adressen von Cloudflare als Proxy, liest also den Besucher aus dem Header und ordnet die Anfragen Ihrer App der Adresse zu, auf die Cloudflare reagiert hat. Einer `client.address`, die Ihre App aus `CF-Connecting-IP` kopiert, wird nicht vertraut: Jeder, der Ihre App direkt erreicht, kann diesen Header senden.
+:::
+
+:::details Sperrstatus lautet `already exists in this Cloudflare account`
+Ein anderes OneUptime-Projekt oder eine Person hat eine Liste namens `oneuptime_block` oder `oneuptime_challenge` angelegt, und OneUptime ändert nie eine Liste, die es nicht für dieses Projekt angelegt hat. Benennen Sie diese Liste in Cloudflare um oder löschen Sie sie, oder schalten Sie das Sperren in dem Projekt aus, das sie angelegt hat. OneUptime richtet das Sperren innerhalb von 5 Minuten erneut ein.
 :::
 
 :::details Der Test besteht, aber die letzte Abfrage ist Nie

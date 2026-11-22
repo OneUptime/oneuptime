@@ -12,7 +12,11 @@ import DataSecurityIssueService from "../../Services/DataSecurityIssueService";
 import MailService from "../../Services/MailService";
 import ProjectService from "../../Services/ProjectService";
 import Project from "../../../Models/DatabaseModels/Project";
-import { queueDataSecurityAiEvaluation } from "./DataSecurityJobs";
+import {
+  queueDataSecurityAiEvaluation,
+  queueDataSecurityOwnerNotice,
+} from "./DataSecurityJobs";
+import OneUptimeDate from "../../../Types/Date";
 import TeamMemberService from "../../Services/TeamMemberService";
 import UserService from "../../Services/UserService";
 import SecurityDetectionService from "../../Services/SecurityDetectionService";
@@ -73,7 +77,11 @@ import Markdown, { MarkdownContentType } from "../../Types/Markdown";
  *  - A Critical issue declares an incident (off by default), for a breach
  *    the project's incident process should run. Whoever runs it closes it.
  *  - Every new issue is emailed to its store's owners (on by default),
- *    with the issue and the data types - never a sample.
+ *    with the issue and the data types - never a sample. While OneUptime AI
+ *    works on new issues, the email waits for its analysis - at most ten
+ *    minutes - and carries each analyzed issue's verdict and shortest path,
+ *    each owner reading only what they may read (DataSecurityOwnerNotice,
+ *    #10369).
  *  - OneUptime AI works on every new and reopened issue, as the project's
  *    Data Security AI rules say, while its AI switches are on
  *    (DataSecurityAiEngine, #10364): one queued job per issue.
@@ -179,12 +187,17 @@ export function getOwnerNoticeSubject(data: {
  * issue's severity and title, and the way to the store. The store's name
  * comes from a cloud or from a person, so it is placed as text (mdText),
  * never as Markdown or HTML. Never a sample.
+ *
+ * Under an issue OneUptime AI analyzed, its analysis in two lines - the
+ * verdict and the shortest path (#10369) - when the reader may read them:
+ * `analysisLines`, by the issue's place in `issues`.
  */
 export function buildOwnerNoticeMarkdown(data: {
   dataStoreName: string;
   sensitivity: DataSensitivity;
   issues: ReadonlyArray<Pick<OpenedIssueForIntegrations, "severity" | "title">>;
   storeLink: URL;
+  analysisLines?: ReadonlyArray<ReadonlyArray<MarkdownText>> | undefined;
   /*
    * Data Security → AI, when OneUptime AI works on the project's new issues
    * on its own (#10364): the owners hear where what it proposes waits.
@@ -200,8 +213,16 @@ export function buildOwnerNoticeMarkdown(data: {
         data.issues.map(
           (
             issue: Pick<OpenedIssueForIntegrations, "severity" | "title">,
+            index: number,
           ): MarkdownText => {
-            return mdText`**${issue.severity}**: ${issue.title}`;
+            const lines: ReadonlyArray<MarkdownText> =
+              data.analysisLines?.[index] || [];
+
+            // Each line under its issue: a hard break, then the bullet's indent.
+            return FeedMarkdown.join(
+              [mdText`**${issue.severity}**: ${issue.title}`, ...lines],
+              "  \n  ",
+            );
           },
         ),
       ),
@@ -215,6 +236,16 @@ export function buildOwnerNoticeMarkdown(data: {
     "\n\n",
   );
 }
+
+/*
+ * What OneUptime AI's analysis of an issue adds to one owner's email
+ * (#10369): its lines, or none - no analysis, or nothing of it the owner
+ * may read.
+ */
+export type OwnerNoticeAnalysisLines = (
+  owner: User,
+  issue: OpenedIssueForIntegrations,
+) => Promise<Array<MarkdownText>>;
 
 // Data Security → AI in the Dashboard, for a project.
 export async function getDataSecurityAiLinkInDashboard(
@@ -269,7 +300,16 @@ export default class DataSecurityIntegrations {
         : false;
 
     if (data.setting.notifyOwners !== false) {
-      await this.notifyOwners(data.projectId, data.issues, isAiWorking);
+      /*
+       * While OneUptime AI works on new issues, the owners' email waits for
+       * its analysis, so it carries it (#10369); with it off, the email
+       * goes now, as it always did.
+       */
+      if (isAiWorking) {
+        await this.holdOwnerNotices(data.projectId, data.issues);
+      } else {
+        await this.notifyOwners(data.projectId, data.issues, false);
+      }
     }
 
     if (isAiWorking) {
@@ -278,19 +318,12 @@ export default class DataSecurityIntegrations {
   }
 
   /*
-   * OneUptime AI works on every issue that opened, or opened again, as the
-   * project's Data Security AI rules say (DataSecurityAiEngine, #10364) -
-   * while Enable AI and "Work on new Data Security issues" are on. Each
-   * issue is its own job; with either switch off nothing is queued, and
-   * Data Security runs as it always did.
+   * Whether OneUptime AI works on the project's new issues on its own:
+   * Enable AI on, and "Work on new Data Security issues" on. Read once per
+   * batch of opened issues; a read that fails is off, and the issues open
+   * and their owners hear of them either way.
    */
-  /*
-   * Whether OneUptime AI works on the project's new issues on its own: AI on
-   * for the project, and Data Security → AI's switch on. Read once per batch
-   * of opened issues; a read that fails is off, and the issues open either
-   * way.
-   */
-  private static async isAutomaticAiOn(projectId: ObjectID): Promise<boolean> {
+  public static async isAutomaticAiOn(projectId: ObjectID): Promise<boolean> {
     try {
       const project: Project | null = await ProjectService.findOneById({
         id: projectId,
@@ -316,6 +349,50 @@ export default class DataSecurityIntegrations {
     }
   }
 
+  /*
+   * Each store's owners' email, held while OneUptime AI works on its new
+   * issues (#10369): one queued job per store, which waits for the work and
+   * then sends (DataSecurityOwnerNotice). One that cannot be queued is
+   * sent now, without the analysis.
+   */
+  private static async holdOwnerNotices(
+    projectId: ObjectID,
+    issues: Array<OpenedIssueForIntegrations>,
+  ): Promise<void> {
+    const openedAt: Date = OneUptimeDate.getCurrentDate();
+    const byStore: Map<string, Array<OpenedIssueForIntegrations>> = new Map();
+
+    for (const issue of issues) {
+      const key: string = issue.dataStoreId.toString();
+      byStore.set(key, [...(byStore.get(key) || []), issue]);
+    }
+
+    for (const storeIssues of byStore.values()) {
+      const isHeld: boolean = await queueDataSecurityOwnerNotice({
+        projectId,
+        dataStoreId: storeIssues[0]!.dataStoreId,
+        issueIds: storeIssues.map(
+          (issue: OpenedIssueForIntegrations): ObjectID => {
+            return issue.issueId;
+          },
+        ),
+        openedAt,
+        attempt: 1,
+      });
+
+      if (!isHeld) {
+        await this.notifyOwners(projectId, storeIssues, true);
+      }
+    }
+  }
+
+  /*
+   * OneUptime AI works on every issue that opened, or opened again, as the
+   * project's Data Security AI rules say (DataSecurityAiEngine, #10364) -
+   * while Enable AI and "Work on new Data Security issues" are on
+   * (isAutomaticAiOn). Each issue is its own job; with either switch off
+   * nothing is queued, and Data Security runs as it always did.
+   */
   private static async queueAiWork(
     projectId: ObjectID,
     issues: Array<OpenedIssueForIntegrations>,
@@ -739,10 +816,18 @@ export default class DataSecurityIntegrations {
     });
   }
 
-  private static async notifyOwners(
+  /*
+   * Emails each store's owners about its new issues: one email per owner,
+   * the same for all of them - or, with `getAnalysisLines` (a notice held
+   * for OneUptime AI's analysis, #10369), each owner's own, with the
+   * analysis lines they may read under each issue. While OneUptime AI works
+   * on new issues (`isAiWorking`), it says where what AI proposes waits.
+   */
+  public static async notifyOwners(
     projectId: ObjectID,
     issues: Array<OpenedIssueForIntegrations>,
     isAiWorking: boolean,
+    getAnalysisLines?: OwnerNoticeAnalysisLines | undefined,
   ): Promise<void> {
     const aiLink: URL | undefined = isAiWorking
       ? await getDataSecurityAiLinkInDashboard(projectId)
@@ -774,21 +859,48 @@ export default class DataSecurityIntegrations {
           issueCount: storeIssues.length,
         });
         // The template places the message as HTML: written from Markdown, never as it is.
-        const message: string = await Markdown.convertToHTML(
-          buildOwnerNoticeMarkdown({
-            dataStoreName: first.dataStoreName,
-            sensitivity: first.sensitivity,
-            issues: storeIssues,
-            storeLink: link,
-            aiLink,
-          }).toString(),
-          MarkdownContentType.Email,
-        );
+        const messageWith: (
+          analysisLines?: ReadonlyArray<ReadonlyArray<MarkdownText>>,
+        ) => Promise<string> = async (
+          analysisLines?: ReadonlyArray<ReadonlyArray<MarkdownText>>,
+        ): Promise<string> => {
+          return await Markdown.convertToHTML(
+            buildOwnerNoticeMarkdown({
+              dataStoreName: first.dataStoreName,
+              sensitivity: first.sensitivity,
+              issues: storeIssues,
+              storeLink: link,
+              analysisLines,
+              aiLink,
+            }).toString(),
+            MarkdownContentType.Email,
+          );
+        };
+        const sharedMessage: string = await messageWith();
 
         for (const owner of owners) {
           if (!owner.email || !owner.id) {
             continue;
           }
+
+          const message: string = getAnalysisLines
+            ? await messageWith(
+                await Promise.all(
+                  storeIssues.map(
+                    (
+                      issue: OpenedIssueForIntegrations,
+                    ): Promise<Array<MarkdownText>> => {
+                      return getAnalysisLines(owner, issue).catch(
+                        (error: Error): Array<MarkdownText> => {
+                          logger.error(error);
+                          return [];
+                        },
+                      );
+                    },
+                  ),
+                ),
+              )
+            : sharedMessage;
 
           MailService.sendMail(
             {

@@ -23,15 +23,17 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import ProjectDataTypeNames from "../../DataSecurity/ProjectDataTypeNames";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import AiContextReader from "../AiContext/AiContextReader";
+import { DataSecurityAiFeature } from "../../../../Types/DataSecurity/DataSecurityAiFeatures";
+import ProjectLanguage from "../../Notification/ProjectLanguage";
 import {
+  AiIssueDossier,
   DataSecurityAiCodeRequest,
   DataSecurityAiPrompt,
-  AiFindingRecord,
 } from "./DataSecurityAiInput";
-import DataSecurityAiReads from "./DataSecurityAiReads";
+import DataSecurityIssueDossier from "./DataSecurityIssueDossier";
 import {
   buildDataSecurityFixRequest,
-  buildExplainIssuePrompt,
+  buildIssueAnalysisPrompt,
 } from "./DataSecurityIssuePrompt";
 
 /*
@@ -49,11 +51,12 @@ import {
  *     one, for Fix with AI's coding agent - named only to who may read the
  *     project's LLM providers (LlmProvider's readers), never by its key or
  *     its address;
- *   - Show an Example: the exact input Explain with AI would send for one
- *     real issue of the project - the riskiest open one, or the one asked
- *     for - built the way Explain builds it (DataSecurityAiReads, the
- *     project's names for its data types, DataSecurityAiInput), with what
- *     Fix with AI would ask for it. Only for a reader who may read that
+ *   - Show an Example: the exact input OneUptime AI's analysis of one real
+ *     issue of the project would send - the riskiest open one, or the one
+ *     asked for - built the way the analysis builds it
+ *     (DataSecurityIssueDossier, the project's names for its data types and
+ *     its language, DataSecurityAiInput), with what Fix with AI would ask
+ *     for it. Only for a reader who may read that
  *     issue, read with their own permissions first. The project's AI
  *     context, which goes first in the system message, is said by its
  *     length: it is the project's settings to read, not the issue's.
@@ -256,39 +259,42 @@ export default class DataSecurityAiSettings {
     return { example: await this.buildExample(data.projectId, readable.id) };
   }
 
-  // What Explain with AI, and Fix with AI, would send for the issue.
+  /*
+   * What OneUptime AI's analysis (Explain with AI, and Analyze when the
+   * issue opens), and Fix with AI, would send for the issue: the analysis's
+   * facts in the project's language, as the analysis builds them.
+   */
   public static async buildExample(
     projectId: ObjectID,
     issueId: ObjectID,
   ): Promise<DataSecurityAiInputExample> {
-    const issue: DataSecurityIssue = await DataSecurityAiReads.readIssue({
-      projectId,
-      issueId,
-    });
-    const [places, dataTypeNamer, aiContext]: [
-      Array<AiFindingRecord>,
+    const [dossier, dataTypeNamer, aiContext, language]: [
+      AiIssueDossier,
       DataTypeNamer,
       AiContextActivity | null,
+      string,
     ] = await Promise.all([
-      DataSecurityAiReads.readPlaces({ projectId, issue }),
+      DataSecurityIssueDossier.read({ projectId, issueId }),
       ProjectDataTypeNames.read({ projectId }),
       AiContextReader.read({ projectId }),
+      ProjectLanguage.getLanguage(projectId),
     ]);
-    // As Explain builds it, but the AI context, which is said by its length.
-    const prompt: DataSecurityAiPrompt = buildExplainIssuePrompt({
-      issue,
-      findings: places,
+    // As the analysis builds it, but the AI context, which is said by its length.
+    const prompt: DataSecurityAiPrompt = buildIssueAnalysisPrompt({
+      feature: DataSecurityAiFeature.ExplainIssue,
+      dossier,
+      language,
       dataTypeNamer,
     });
     const request: DataSecurityAiCodeRequest = buildDataSecurityFixRequest(
-      issue,
-      places,
+      dossier.issue,
+      dossier.places,
       dataTypeNamer,
     );
 
     return {
       dataSecurityIssueId: issueId.toString(),
-      issueTitle: issue.title || issue.checkId || "",
+      issueTitle: dossier.issue.title || dossier.issue.checkId || "",
       system: prompt.instructions,
       data: prompt.data,
       fixRequest: request.text,

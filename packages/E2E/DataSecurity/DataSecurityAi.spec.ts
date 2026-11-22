@@ -24,7 +24,12 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  *   - on a phone (390), each row is a card that keeps its title and its
  *     button, and nothing scrolls sideways;
  *   - a Security Viewer's press is refused in the dialog, in the server's
- *     words, and the proposal still waits.
+ *     words, and the proposal still waits;
+ *   - an issue's OneUptime AI analysis (#10369) comes right after the
+ *     issue, above How to Fix: its verdict, the three answers and the facts
+ *     each rests on, with the button its shortest path names - at 1280 and
+ *     on a phone - and reading it, or Analyze Again with nothing changed,
+ *     makes no new analysis.
  */
 
 const PORT: string = process.env["DATA_SECURITY_FIXTURE_PORT"] || "4255";
@@ -37,6 +42,9 @@ const WAITING_TITLE: string =
   "Scrub Email address in log.body of checkout · Logs";
 const MADE_TITLE: string = "Scrub Phone number in log.body of checkout · Logs";
 const EMAIL_IN_LOGS_ISSUE: string = "30000000-0000-4000-8000-000000000003";
+// The public bucket's issue, which OneUptime AI analyzed (#10369).
+const PUBLIC_BUCKET_ISSUE_PAGE: string = `/dashboard/${PROJECT_ID}/data-security/issues/30000000-0000-4000-8000-000000000001`;
+const ANALYSIS: string = "data-security-issue-ai-analysis";
 const OVERVIEW: string = `/dashboard/${PROJECT_ID}/data-security`;
 // The database's issue, which no Data Security AI rule matches.
 const LEFT_ALONE_ISSUE_TITLE: string = "Its data is not encrypted at rest";
@@ -423,5 +431,144 @@ test.describe("Data Security → AI", () => {
 
     await page.keyboard.press("Escape");
     await expect(waiting).toContainText(WAITING_TITLE);
+  });
+});
+
+test.describe("an issue's OneUptime AI analysis (#10369)", () => {
+  test("at 1280: comes right after the issue, above How to Fix, with its verdict, its three answers and the facts each rests on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, { pathname: PUBLIC_BUCKET_ISSUE_PAGE });
+
+    const analysis: Locator = page.getByTestId(ANALYSIS);
+    await expect(analysis.getByTestId(`${ANALYSIS}-verdict`)).toContainText(
+      "Real",
+    );
+    await expect(analysis.getByTestId(`${ANALYSIS}-risk`)).toContainText(
+      "About 2,400,000 records of card numbers and email addresses",
+    );
+    await expect(analysis.getByTestId(`${ANALYSIS}-breaks`)).toContainText(
+      "finance-exporter keeps its write",
+    );
+    await expect(analysis.getByTestId(`${ANALYSIS}-path`)).toContainText(
+      "The shortest path to fixed",
+    );
+    // The button its shortest path names, from the card.
+    await expect(
+      analysis.getByRole("button", { name: "Block Public Access" }),
+    ).toBeVisible();
+
+    const analysisCard: Locator = card(page, "OneUptime AI Analysis");
+    const analysisBox: { y: number; height: number } =
+      (await analysisCard.boundingBox())!;
+    const fixTop: number = (await card(page, "How to Fix").boundingBox())!.y;
+    expect(analysisBox.y + analysisBox.height).toBeLessThanOrEqual(fixTop);
+
+    // What blocking breaks names each grant it rests on, and which one goes.
+    const breaks: Locator = analysis.getByTestId(`${ANALYSIS}-breaks`);
+    await breaks
+      .getByRole("button", { name: "Show the 3 facts it rests on" })
+      .click();
+    await expect(breaks).toContainText("Everyone");
+    await expect(breaks).toContainText("The fix removes it");
+    await expect(breaks).toContainText("finance-exporter");
+    await expect(breaks).toContainText("Outside your accounts");
+
+    await settle(page);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "ai-analysis-1280");
+
+    // Reading the analysis asked OneUptime AI nothing.
+    const state: FixtureState = await fixture(page);
+    expect(
+      state.apiRequests.filter((request: { url: string }): boolean => {
+        return request.url.endsWith("/explain");
+      }),
+    ).toEqual([]);
+  });
+
+  test("Analyze Again asks once, and with nothing changed the analysis stays as it was", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, { pathname: PUBLIC_BUCKET_ISSUE_PAGE });
+
+    const analysisCard: Locator = card(page, "OneUptime AI Analysis");
+    const again: Locator = analysisCard.getByRole("button", {
+      name: "Analyze Again",
+    });
+    await expect(page.getByTestId(`${ANALYSIS}-verdict`)).toContainText("Real");
+    await again.click();
+
+    const explainBodies: () => Promise<Array<unknown>> = async (): Promise<
+      Array<unknown>
+    > => {
+      return (await fixture(page)).apiRequests
+        .filter((request: { url: string }): boolean => {
+          return request.url.endsWith("/explain");
+        })
+        .map((request: { body: unknown }): unknown => {
+          return request.body;
+        });
+    };
+
+    await expect.poll(explainBodies).toEqual([{ force: true }]);
+    await expect(again).toBeEnabled();
+    await expect(page.getByTestId(`${ANALYSIS}-verdict`)).toContainText("Real");
+    await expect(page.getByTestId(`${ANALYSIS}-risk`)).toContainText(
+      "About 2,400,000 records of card numbers and email addresses",
+    );
+  });
+
+  test("on a phone, it reads in one column: each answer under its question, its buttons under them, and nothing scrolls sideways", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, { width: PHONE, pathname: PUBLIC_BUCKET_ISSUE_PAGE });
+
+    const analysis: Locator = page.getByTestId(ANALYSIS);
+    const risk: Locator = analysis.getByTestId(`${ANALYSIS}-risk`);
+    const breaks: Locator = analysis.getByTestId(`${ANALYSIS}-breaks`);
+    const respond: Locator = analysis.getByRole("button", {
+      name: "Block Public Access",
+    });
+    await expect(respond).toBeVisible();
+    await settle(page);
+
+    const riskBox: { y: number; height: number; width: number } =
+      (await risk.boundingBox())!;
+    const breaksTop: number = (await breaks.boundingBox())!.y;
+    const respondTop: number = (await respond.boundingBox())!.y;
+    const cardWidth: number = (await analysis.boundingBox())!.width;
+
+    expect(riskBox.y + riskBox.height).toBeLessThanOrEqual(breaksTop + 1);
+    expect(breaksTop).toBeLessThan(respondTop);
+    // Each answer has the card's width, not a column beside its question.
+    expect(riskBox.width).toBeGreaterThan(cardWidth * 0.9);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "ai-analysis-390");
+  });
+
+  test("an issue OneUptime AI has not analyzed says so, and how it will", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, {
+      pathname: `/dashboard/${PROJECT_ID}/data-security/issues/${EMAIL_IN_LOGS_ISSUE}`,
+    });
+
+    await expect(page.getByTestId(`${ANALYSIS}-none`)).toContainText(
+      "OneUptime AI has not analyzed this issue yet.",
+    );
+    await expect(
+      card(page, "OneUptime AI Analysis").getByRole("button", {
+        name: "Analyze Issue",
+      }),
+    ).toBeVisible();
   });
 });

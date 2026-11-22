@@ -35,6 +35,10 @@ import {
   getFormSettingsSteps,
   packFormSettingsValues,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/OnSubmit/FormSettingsEditor";
+import Label from "../../../Models/DatabaseModels/Label";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -54,6 +58,7 @@ const USER_ID: string = "a0000000-0000-4000-8000-000000000007";
 const TEAM_ID: string = "a0000000-0000-4000-8000-000000000008";
 const PAGE_ID: string = "a0000000-0000-4000-8000-000000000009";
 const GONE_ID: string = "a0000000-0000-4000-8000-0000000000ff";
+const ARCHIVED_ID: string = "a0000000-0000-4000-8000-0000000000ee";
 const REGION_ID: string = "b0000000-0000-4000-8000-000000000001";
 
 function records(...entries: Array<[string, string]>): Array<FormRecordOption> {
@@ -476,7 +481,27 @@ describe("the On Submit settings dialog", () => {
     expect(fields[1]!.dropdownOptions).toEqual([
       { value: SEVERITY_ID, label: "Major", isUserContent: true },
     ]);
-    expect(fields[3]!.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
+
+    /*
+     * What is always attached is searched on the server (#10646): never a
+     * list read of the project, which stopped at 10,000.
+     */
+    for (const [index, modelType] of [
+      [3, Monitor],
+      [4, Label],
+      [5, OnCallDutyPolicy],
+    ] as Array<[number, unknown]>) {
+      expect(fields[index]!.fieldType).toBe(
+        FormFieldSchemaType.MultiSelectDropdown,
+      );
+      expect(fields[index]!.dropdownModal).toEqual({
+        type: modelType,
+        labelField: "name",
+        valueField: "_id",
+        notFoundLabel: FormsCopy.deletedRecord,
+      });
+      expect(fields[index]!.dropdownOptions).toBeUndefined();
+    }
 
     // Owners: one people picker keeping people and teams where they were.
     const owners: Field<JSONObject> = fields[6]!;
@@ -516,9 +541,75 @@ describe("the On Submit settings dialog", () => {
     ]);
     expect(fields[4]!.fieldType).toBe(FormFieldSchemaType.PeoplePicker);
     expect(fields[5]!.fieldType).toBe(FormFieldSchemaType.Toggle);
+    expect(fields[1]!.dropdownModal?.type).toBe(Monitor);
+    expect(fields[2]!.dropdownModal?.type).toBe(StatusPage);
+    expect(fields[3]!.dropdownModal?.type).toBe(Label);
   });
 
-  test("starts on the stored settings, dropping records the dialog cannot offer", () => {
+  /*
+   * The severity and the template are picked from short lists. One the
+   * settings hold that the list does not offer - deleted since - is shown
+   * "Deleted", never offered, so it can be seen and cleared; an archived
+   * one is shown marked Archived, never offered for a new pick.
+   */
+  test("a held severity or template the list does not offer is shown, never offered", () => {
+    const fields: Array<Field<JSONObject>> = getFormSettingsFields({
+      targetType: FormTargetType.Incident,
+      reference: {
+        ...REFERENCE,
+        lists: {
+          ...REFERENCE.lists,
+          [FormTargetSettingReferenceModel.IncidentSeverity]: [
+            { id: SEVERITY_ID, name: "Major" },
+            { id: ARCHIVED_ID, name: "Retired", isArchived: true },
+          ],
+        },
+      },
+      settings: {
+        incidentSeverityId: ARCHIVED_ID,
+        incidentTemplateId: GONE_ID,
+      },
+    });
+
+    const optionsOf: (key: string) => Array<DropdownOption> = (
+      key: string,
+    ): Array<DropdownOption> => {
+      return (fields.find((field: Field<JSONObject>): boolean => {
+        return Object.keys(field.field || {})[0] === key;
+      })?.dropdownOptions || []) as Array<DropdownOption>;
+    };
+
+    expect(optionsOf("incidentSeverityId")).toEqual([
+      { value: SEVERITY_ID, label: "Major", isUserContent: true },
+      {
+        value: ARCHIVED_ID,
+        label: "Retired",
+        isUserContent: true,
+        isArchived: true,
+        isDisabled: true,
+      },
+    ]);
+    expect(optionsOf("incidentTemplateId")).toEqual([
+      { value: TEMPLATE_ID, label: "Customer Report", isUserContent: true },
+      { value: BARE_TEMPLATE_ID, label: "Bare", isUserContent: true },
+      {
+        value: GONE_ID,
+        label: FormsCopy.deletedRecord,
+        isUserContent: false,
+        isNotFound: true,
+        isDisabled: true,
+      },
+    ]);
+  });
+
+  /*
+   * #10646: the dialog kept only the records it found in the project's
+   * first 10,000 of a kind, so one past them - or deleted since - was left
+   * out, and the next save dropped it. It starts on every record the
+   * settings hold now: one deleted since is shown "Deleted", to keep or
+   * take out.
+   */
+  test("starts on the stored settings whole, a record deleted since among them", () => {
     expect(
       getFormSettingsInitialValues({
         targetType: FormTargetType.Incident,
@@ -533,13 +624,22 @@ describe("the On Submit settings dialog", () => {
       }),
     ).toEqual({
       defaultTitle: "Report",
+      incidentSeverityId: GONE_ID,
       incidentTemplateId: TEMPLATE_ID,
-      monitorIds: [MONITOR_ID],
+      monitorIds: [MONITOR_ID, GONE_ID],
       labelIds: [],
       onCallDutyPolicyIds: [POLICY_ID],
       ownerUserIds: [],
       ownerTeamIds: [],
     });
+
+    // No list is needed to start on them.
+    expect(
+      getFormSettingsInitialValues({
+        targetType: FormTargetType.Incident,
+        settings: { monitorIds: [GONE_ID.toUpperCase()] },
+      })["monitorIds"],
+    ).toEqual([GONE_ID]);
 
     expect(
       getFormSettingsInitialValues({
@@ -712,6 +812,24 @@ describe("naming records", () => {
       { value: TEAM_ID, label: "SRE", isUserContent: true },
     ]);
     expect(toDropdownOptions(undefined)).toEqual([]);
+  });
+
+  // ArchivedValuePicker's rule: shown, marked, never offered for a new pick.
+  test("as dropdown options, an archived record shown marked and never offered", () => {
+    expect(
+      toDropdownOptions(
+        [{ id: LABEL_ID, name: "old-team", isArchived: true }],
+        FormTargetSettingReferenceModel.Label,
+      ),
+    ).toEqual([
+      {
+        value: LABEL_ID,
+        label: "old-team",
+        isUserContent: true,
+        isArchived: true,
+        isDisabled: true,
+      },
+    ]);
   });
 
   /*

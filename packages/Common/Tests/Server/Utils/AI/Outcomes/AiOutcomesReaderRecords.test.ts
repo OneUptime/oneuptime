@@ -1,6 +1,7 @@
 import AIAgentTaskPullRequestService from "../../../../../Server/Services/AIAgentTaskPullRequestService";
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import AlertService from "../../../../../Server/Services/AlertService";
+import DataStoreService from "../../../../../Server/Services/DataStoreService";
 import AutoRemediationSuggestionService from "../../../../../Server/Services/AutoRemediationSuggestionService";
 import DataSecurityAiDecisionService from "../../../../../Server/Services/DataSecurityAiDecisionService";
 import DataSecurityAiProposalService from "../../../../../Server/Services/DataSecurityAiProposalService";
@@ -30,6 +31,8 @@ import FixProductionStatus from "../../../../../Types/AI/FixProductionStatus";
 import AutoRemediationSuggestionType from "../../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "../../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DataSecurityIssueStatus from "../../../../../Types/DataSecurity/DataSecurityIssueStatus";
+import { DataSecurityAiVerdict } from "../../../../../Types/DataSecurity/DataSecurityIssueAnalysis";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
@@ -92,7 +95,8 @@ type TableName =
   // Data Security's proposals, its records of analyses, and its issues (#10364).
   | "dataSecurityProposals"
   | "dataSecurityDecisions"
-  | "dataSecurityIssues";
+  | "dataSecurityIssues"
+  | "dataStores";
 
 type Tables = Record<TableName, Array<FakeRow>>;
 
@@ -134,6 +138,7 @@ function install(
       dataSecurityProposals: [],
       dataSecurityDecisions: [],
       dataSecurityIssues: [],
+      dataStores: [],
       ...tables,
     },
     access: {
@@ -147,6 +152,7 @@ function install(
       dataSecurityProposals: "read",
       dataSecurityDecisions: "read",
       dataSecurityIssues: "read",
+      dataStores: "read",
       ...access,
     },
     readableIncidentIds: readable.incidentIds
@@ -237,6 +243,9 @@ function install(
   jest
     .spyOn(DataSecurityIssueService, "findBy")
     .mockImplementation(find("dataSecurityIssues") as never);
+  jest
+    .spyOn(DataStoreService, "findBy")
+    .mockImplementation(find("dataStores") as never);
   jest
     .spyOn(InvestigationReportSummary, "getForRuns")
     .mockResolvedValue(new Map<string, string>());
@@ -422,6 +431,79 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+const STORE_PUBLIC_BY_DESIGN: FakeRow = {
+  _id: uuid(91, 1),
+  projectId: PROJECT_ID,
+  createdAt: daysAgo(200),
+  isPublicByDesign: true,
+};
+const STORE_FIXED: FakeRow = {
+  _id: uuid(91, 2),
+  projectId: PROJECT_ID,
+  createdAt: daysAgo(200),
+  isPublicByDesign: false,
+};
+
+// An issue OneUptime AI analyzed (#10369): its verdict, and what people decided.
+function analyzedIssue(
+  verdict: DataSecurityAiVerdict,
+  status: DataSecurityIssueStatus,
+  overrides: Partial<FakeRow> = {},
+): FakeRow {
+  const analyzedAt: Date = (overrides["aiAnalyzedAt"] as Date) || daysAgo(2);
+
+  return {
+    _id: nextId(90),
+    projectId: PROJECT_ID,
+    createdAt: analyzedAt,
+    aiAnalyzedAt: analyzedAt,
+    title: `A bucket anyone can read ${rowCount}`,
+    aiVerdict: verdict,
+    status: status,
+    dataStoreId: new ObjectID(STORE_FIXED._id),
+    ...overrides,
+  };
+}
+
+function analyzedIssues(): Array<FakeRow> {
+  return [
+    analyzedIssue(DataSecurityAiVerdict.Real, DataSecurityIssueStatus.Resolved),
+    analyzedIssue(
+      DataSecurityAiVerdict.Real,
+      DataSecurityIssueStatus.NotAnIssue,
+    ),
+    analyzedIssue(
+      DataSecurityAiVerdict.LikelyByDesign,
+      DataSecurityIssueStatus.Resolved,
+      { dataStoreId: new ObjectID(STORE_PUBLIC_BY_DESIGN._id) },
+    ),
+    analyzedIssue(
+      DataSecurityAiVerdict.LikelyByDesign,
+      DataSecurityIssueStatus.Resolved,
+    ),
+    analyzedIssue(
+      DataSecurityAiVerdict.LikelyWrongFinding,
+      DataSecurityIssueStatus.NotAnIssue,
+    ),
+    analyzedIssue(
+      DataSecurityAiVerdict.CannotTell,
+      DataSecurityIssueStatus.Open,
+    ),
+    analyzedIssue(DataSecurityAiVerdict.Real, DataSecurityIssueStatus.Open),
+    // Analyzed before the window, and in another project: neither counts.
+    analyzedIssue(
+      DataSecurityAiVerdict.Real,
+      DataSecurityIssueStatus.Resolved,
+      { aiAnalyzedAt: daysAgo(120) },
+    ),
+    analyzedIssue(
+      DataSecurityAiVerdict.Real,
+      DataSecurityIssueStatus.Resolved,
+      { projectId: OTHER_PROJECT_ID },
+    ),
+  ];
+}
+
 // A busy project: every kind, every outcome, some about what the caller may not read.
 function busyProject(): Partial<Tables> {
   const taskA: FakeRow = fixTask(aboutIncident(INCIDENT_A));
@@ -439,6 +521,8 @@ function busyProject(): Partial<Tables> {
   return {
     incidents: [INCIDENT_A, INCIDENT_PRIVATE],
     alerts: [ALERT_A, ALERT_HIDDEN],
+    dataSecurityIssues: analyzedIssues(),
+    dataStores: [STORE_PUBLIC_BY_DESIGN, STORE_FIXED],
     pageLogs: [
       pageLog(
         OnCallPolicyAiHoldOutcome.ResolvedByAI,
@@ -526,6 +610,8 @@ describe("a number opens exactly what it counts", () => {
         .changes as unknown as Record<string, number>,
       [AiOutcomesPart.DataSecurityProposals]: outcomes.dataSecurity!
         .proposals as unknown as Record<string, number>,
+      [AiOutcomesPart.IssueVerdicts]:
+        outcomes.issueVerdicts as unknown as Record<string, number>,
     };
 
     let opened: number = 0;
@@ -838,8 +924,12 @@ describe("what each record says", () => {
     }
 
     for (const call of store.calls) {
+      // A store's public-by-design flag is counted, never shown: read as OneUptime.
       expect({ table: call.table, isRoot: Boolean(call.props.isRoot) }).toEqual(
-        { table: call.table, isRoot: call.table === "runs" },
+        {
+          table: call.table,
+          isRoot: call.table === "runs" || call.table === "dataStores",
+        },
       );
     }
   });
@@ -1473,4 +1563,93 @@ describe("a pull request a later turn of its task opened (#9812)", () => {
     expect(records.total).toBe(1);
     expect(records.records[0]!.subject).toBeUndefined();
   });
+});
+
+describe("OneUptime AI's verdicts on Data Security issues (#10369)", () => {
+  test("counted from the issues it analyzed in the window, of this project, by what people decided", async () => {
+    install(busyProject(), {}, READABLE);
+
+    const outcomes: AiOutcomes = await readOutcomes();
+
+    expect(outcomes.issueVerdicts).toEqual({
+      agreed: 3,
+      disagreed: 2,
+      waiting: 1,
+      cannotTell: 1,
+      real: 3,
+      likelyByDesign: 2,
+      likelyWrongFinding: 1,
+    });
+
+    // Read under the caller's props, newest first, by when it was analyzed.
+    const call: Call = callsTo("dataSecurityIssues")[0]!;
+
+    expect(call.props).toBe(CALLER);
+    expect(Object.keys(call.select).sort()).toEqual(
+      [
+        "_id",
+        "aiAnalyzedAt",
+        "aiVerdict",
+        "dataStoreId",
+        "status",
+        "title",
+      ].sort(),
+    );
+  });
+
+  test("a verdict's number opens the issues it counts, by their titles, with the verdict and what people decided", async () => {
+    install(busyProject(), {}, READABLE);
+
+    const records: AiOutcomesRecords = await readRecords(
+      AiOutcomesPart.IssueVerdicts,
+      "disagreed",
+    );
+
+    expect(records.total).toBe(2);
+    expect(
+      records.records.map((record: AiOutcomesRecord) => {
+        return {
+          // As every Data Security number's record names its issue (#10364).
+          subject: record.subject,
+          issueId: record.dataSecurityIssue?.id === record.id,
+          verdict: record.issueVerdict,
+          status: record.issueStatus,
+        };
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        {
+          subject: undefined,
+          issueId: true,
+          verdict: DataSecurityAiVerdict.Real,
+          status: DataSecurityIssueStatus.NotAnIssue,
+        },
+        {
+          subject: undefined,
+          issueId: true,
+          verdict: DataSecurityAiVerdict.LikelyByDesign,
+          status: DataSecurityIssueStatus.Resolved,
+        },
+      ]),
+    );
+    expect(records.records[0]!.dataSecurityIssue?.title).toMatch(
+      /^A bucket anyone can read/,
+    );
+  });
+
+  test.each(["notAuthorized", "paymentRequired"] as Array<Access>)(
+    "a caller whose role may not read Data Security issues (%s) gets no verdict numbers, not zeros, and opens none",
+    async (access: Access) => {
+      install(busyProject(), { dataSecurityIssues: access }, READABLE);
+
+      const outcomes: AiOutcomes = await readOutcomes();
+
+      expect(outcomes.issueVerdicts).toBeNull();
+      // The rest of the page is counted as before.
+      expect(outcomes.pages).not.toBeNull();
+      await expect(
+        readRecords(AiOutcomesPart.IssueVerdicts, "agreed"),
+      ).rejects.toThrow(NotAuthorizedException);
+    },
+  );
 });

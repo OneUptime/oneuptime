@@ -713,3 +713,68 @@ describe("FormService.onBeforeUpdate", () => {
     expect(monitorFindBy).toHaveBeenCalledTimes(1);
   });
 });
+
+/*
+ * #10646: the On Submit dialog keeps a record the form held and that was
+ * deleted since - it shows it "Deleted", to keep or take out - so a save is
+ * not refused for it: what the form held is checked as a record that may be
+ * gone, never one of another project, and what the write adds must be there.
+ */
+describe("FormService.onBeforeUpdate: records the settings already held", () => {
+  const GONE_MONITOR_ID: string = "c1000000-0000-4000-8000-0000000000f8";
+
+  const checked: () => Array<[string, boolean | undefined]> = (): Array<
+    [string, boolean | undefined]
+  > => {
+    return (validator.mock.calls as Array<[ValidatorCall]>).flatMap(
+      ([call]: [ValidatorCall]): Array<[string, boolean | undefined]> => {
+        return call.references.map(
+          (
+            reference: ProjectScopedReference,
+          ): [string, boolean | undefined] => {
+            return [String(reference.id), reference.mustExist];
+          },
+        );
+      },
+    );
+  };
+
+  test("a monitor the form held may be gone since; one the save adds must be there", async () => {
+    storedForms = [
+      storedForm({ targetSettings: { monitorIds: [GONE_MONITOR_ID] } }),
+    ];
+
+    await update({
+      targetSettings: { monitorIds: [GONE_MONITOR_ID, MONITOR_ID] },
+    });
+
+    expect(checked()).toEqual([
+      [GONE_MONITOR_ID, false],
+      [MONITOR_ID, true],
+    ]);
+  });
+
+  test("a form created holds nothing yet: every record it names must be there", async () => {
+    await create(
+      newForm({ targetSettings: { monitorIds: [GONE_MONITOR_ID] } }),
+    );
+
+    expect(checked()).toEqual([[GONE_MONITOR_ID, true]]);
+  });
+
+  test("a new target holds nothing of the old one's settings", async () => {
+    storedForms = [
+      storedForm({ targetSettings: { monitorIds: [GONE_MONITOR_ID] } }),
+    ];
+
+    await update({
+      targetType: FormTargetType.ScheduledMaintenance,
+      fields: getDefaultFormFields(
+        FormTargetType.ScheduledMaintenance,
+      ) as never,
+      targetSettings: { monitorIds: [GONE_MONITOR_ID] },
+    });
+
+    expect(checked()).toEqual([[GONE_MONITOR_ID, true]]);
+  });
+});

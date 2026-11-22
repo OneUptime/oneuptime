@@ -119,21 +119,38 @@ describe("RuleFeedMarkdown.ownersNotAddedList", () => {
     expect(list).not.toContain("Ownname");
   });
 
-  test("names someone only invited with no typed name by their address", () => {
-    expect(
-      RuleFeedMarkdown.ownersNotAddedList({
+  /*
+   * The rule's feed is read beyond the project - posted to channels, taken
+   * anywhere by workflows and the API - so someone only invited is never
+   * named by an address there (#10668): with no name typed, or an address
+   * typed as the name, they are "Someone". The rule itself says who it names.
+   */
+  test.each([
+    ["no typed name", null],
+    ["only spaces typed", "   "],
+    ["an address typed as the name", "carol@example.com"],
+  ])(
+    "names someone only invited with %s as Someone, never by their address",
+    (_label: string, inviteeName: string | null) => {
+      const list: string = RuleFeedMarkdown.ownersNotAddedList({
         notAdded: [
           skipped("userId", CAROL.id!, OwnerAddOutcome.NotProjectMember),
         ],
         users: [CAROL],
         withheld: new Map([
-          [CAROL.id!.toString().toLowerCase(), { inviteeName: null }],
+          [
+            CAROL.id!.toString().toLowerCase(),
+            { inviteeName: inviteeName, inviteeEmail: "carol@example.com" },
+          ],
         ]),
-      }).toString(),
-    ).toBe(
-      "- 👤 carol@example.com, who has not accepted the invitation to this project yet",
-    );
-  });
+      }).toString();
+
+      expect(list).toBe(
+        "- 👤 Someone who has not accepted the invitation to this project yet",
+      );
+      expect(list).not.toContain("@");
+    },
+  );
 
   test("never names a team that is not the project's: only its id, which the rule holds", () => {
     const list: string = RuleFeedMarkdown.ownersNotAddedList({

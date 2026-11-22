@@ -300,7 +300,7 @@ describe("moving a subscriber template link is checked under either name", () =>
     });
 
     expect((outcome as Error).message).toContain(
-      "Conflicting Status Page Subscriber Notification Template references were provided.",
+      "Conflicting Subscriber Notification Template references were provided.",
     );
   });
 
