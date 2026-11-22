@@ -318,3 +318,140 @@ export const CHECK_FACT_SEEN_ADDRESSES: PluralTemplate = {
   other:
     "In the last hour your app's traces carried {{count}} addresses as the client's, {{address}} the most.",
 };
+
+// ---------- Fix the route (fix:public-app, #10347) ----------
+
+/*
+ * {{change}} names what shipped as written: its version ("2.4.1"), else the
+ * fix's pull request ("#123"), revision or commit. {{time}} and {{until}}
+ * are moments, on the reader's clock.
+ */
+export const CHECK_FIX_ROUTE_TURNED_AWAY: PluralTemplate = {
+  one: "Since {{change}} shipped at {{time}}, the {{count}} attack request to {{route}} was turned away.",
+  other:
+    "Since {{change}} shipped at {{time}}, all {{count}} attack requests to {{route}} were turned away.",
+};
+export const CHECK_FIX_ROUTE_KEPT_OUT: PluralTemplate = {
+  one: "Since {{change}} shipped at {{time}}, the {{count}} attack request to {{route}} did not reach the database.",
+  other:
+    "Since {{change}} shipped at {{time}}, none of the {{count}} attack requests to {{route}} reached the database.",
+};
+export const CHECK_FIX_ROUTE_NO_ATTEMPTS: string = translationKey(
+  "No attempts on {{route}} since {{change}} shipped at {{time}}.",
+);
+export const CHECK_FIX_ROUTE_STILL_THROUGH: PluralTemplate = {
+  one: "{{through}} of the {{count}} attack request to {{route}} since {{change}} shipped at {{time}} got past your app's checks.",
+  other:
+    "{{through}} of the {{count}} attack requests to {{route}} since {{change}} shipped at {{time}} got past your app's checks.",
+};
+export const CHECK_FIX_ROUTE_STILL_DATABASE: PluralTemplate = {
+  one: "{{through}} of the {{count}} attack request to {{route}} since {{change}} shipped at {{time}} reached the database.",
+  other:
+    "{{through}} of the {{count}} attack requests to {{route}} since {{change}} shipped at {{time}} reached the database.",
+};
+export const CHECK_FIX_ROUTE_REGRESSED: string = translationKey(
+  "An attack request to {{route}} got past your app's checks at {{time}}, after {{change}} shipped: the fix is not holding.",
+);
+export const CHECK_FIX_ROUTE_REGRESSED_DATABASE: string = translationKey(
+  "An attack request to {{route}} reached the database at {{time}}, after {{change}} shipped: the fix is not holding.",
+);
+export const CHECK_FIX_NOTHING_SHIPPED: string = translationKey(
+  "No new version of {{service}} has shipped since the case opened.",
+);
+export const CHECK_FIX_PULL_REQUEST_OPEN: string = translationKey(
+  "OneUptime AI's fix {{pullRequest}} is waiting for review.",
+);
+export const CHECK_FIX_PULL_REQUEST_NOT_SHIPPED: string = translationKey(
+  "The fix {{pullRequest}} merged at {{time}}, but OneUptime has seen no deploy of it yet.",
+);
+export const CHECK_FIX_CANNOT_NO_DEPLOYS: string = translationKey(
+  "OneUptime records no deploys of {{service}}, so it cannot tell when a fix ships.",
+);
+export const CHECK_FIX_CANNOT_NO_SERVICE: string = translationKey(
+  "OneUptime cannot tell which service answers {{route}}, so it cannot tell when a fix ships.",
+);
+export const CHECK_FIX_CANNOT_NOT_FOLLOWED: PluralTemplate = {
+  one: "OneUptime cannot tell how far the {{count}} attack request to {{route}} since {{change}} shipped got: it could not be followed into your app's traces or logs.",
+  other:
+    "OneUptime cannot tell how far the {{count}} attack requests to {{route}} since {{change}} shipped got: none could be followed into your app's traces or logs.",
+};
+
+// What else OneUptime saw: the How We Know fold.
+export const CHECK_FIX_FACT_BEFORE_THROUGH: PluralTemplate = {
+  one: "Before it, {{through}} of {{count}} attack request got past your app's checks.",
+  other:
+    "Before it, {{through}} of {{count}} attack requests got past your app's checks.",
+};
+export const CHECK_FIX_FACT_BEFORE_DATABASE: PluralTemplate = {
+  one: "Before it, {{through}} of {{count}} attack request reached the database.",
+  other:
+    "Before it, {{through}} of {{count}} attack requests reached the database.",
+};
+/*
+ * How much evidence counts as proof, said where it is used: how many
+ * attacks must be turned away before OneUptime calls the fix verified
+ * (FixRouteStepCheck's getNeededProof).
+ */
+export const CHECK_FIX_FACT_WATCHING: PluralTemplate = {
+  one: "Watching {{route}} until {{until}}: verified once {{count}} attack request is turned away.",
+  other:
+    "Watching {{route}} until {{until}}: verified once {{count}} attack requests are turned away.",
+};
+export const CHECK_FIX_FACT_WATCHING_DATABASE: PluralTemplate = {
+  one: "Watching {{route}} until {{until}}: verified once {{count}} attack request is kept out of the database.",
+  other:
+    "Watching {{route}} until {{until}}: verified once {{count}} attack requests are kept out of the database.",
+};
+export const CHECK_FIX_FACT_WATCH_ENDED: string = translationKey(
+  "OneUptime watched {{route}} until {{until}}, and too few attacks came to verify the fix.",
+);
+export const CHECK_FIX_FACT_NONE_BEFORE: string = translationKey(
+  "Before it, no attack request to {{route}} got past your app's checks either, so the attacks cannot show the fix worked.",
+);
+export const CHECK_FIX_FACT_TOO_FEW_BEFORE: string = translationKey(
+  "Before it, so few attack requests to {{route}} got through that the attacks since cannot show the fix worked.",
+);
+export const CHECK_FIX_FACT_EDGE_STOPPED: PluralTemplate = {
+  one: "Since then, {{count}} attack request to {{route}} was stopped at the edge and never reached your app, so it says nothing of the fix.",
+  other:
+    "Since then, {{count}} attack requests to {{route}} were stopped at the edge and never reached your app, so they say nothing of the fix.",
+};
+export const CHECK_FIX_FACT_UNFOLLOWED: PluralTemplate = {
+  one: "{{count}} more attack request since could not be followed into your app's traces or logs.",
+  other:
+    "{{count}} more attack requests since could not be followed into your app's traces or logs.",
+};
+
+// ---------- Reset the password (fix:credentials, #10347) ----------
+
+export const CHECK_FIX_PASSWORD_RESET: string = translationKey(
+  "{{user}}'s password was changed in {{provider}} at {{time}}, and their sessions were ended at {{ended}}.",
+);
+export const CHECK_FIX_PASSWORD_SESSIONS_OPEN: string = translationKey(
+  "{{user}}'s password was changed in {{provider}} at {{time}}, but their sessions were not ended after the case opened.",
+);
+export const CHECK_FIX_PASSWORD_NOT_RESET: string = translationKey(
+  "{{user}}'s password has not changed in {{provider}} since the case opened.",
+);
+export const CHECK_FIX_PASSWORD_GOOGLE_CANNOT_TELL: string = translationKey(
+  "Google Workspace does not say when {{user}}'s password last changed, so OneUptime cannot tell whether it was reset.",
+);
+
+// ---------- MFA on the accounts it went after (fix:brute-force, #10347) ----------
+
+export const CHECK_FIX_MFA_ALL: PluralTemplate = {
+  one: "The {{count}} account the attack went after has MFA set up.",
+  other: "All {{count}} accounts the attack went after have MFA set up.",
+};
+// Counted by the accounts without MFA, of {{total}} the attack went after.
+export const CHECK_FIX_MFA_MISSING: PluralTemplate = {
+  one: "{{user}}, {{count}} of the {{total}} accounts the attack went after, has no MFA set up.",
+  other:
+    "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them.",
+};
+export const CHECK_FIX_FACT_MFA_ON: string = translationKey(
+  "{{user}} has MFA set up in {{provider}}.",
+);
+export const CHECK_FIX_FACT_MFA_OFF: string = translationKey(
+  "{{user}} has no MFA set up in {{provider}}.",
+);

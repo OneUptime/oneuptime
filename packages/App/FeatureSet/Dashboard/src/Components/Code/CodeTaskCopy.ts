@@ -175,6 +175,10 @@ export const CODE_TASK_ORIGIN_SENTENCES: Record<CodeTaskOriginType, string> = {
   [CodeTaskOriginType.CodeHostPullRequest]: translationKey(
     "Started from pull request {{label}}",
   ),
+  // A fix Fix With AI asked for from a security case's playbook (#10347).
+  [CodeTaskOriginType.SecurityCase]: translationKey(
+    "OneUptime started this task from security case {{label}}",
+  ),
   [CodeTaskOriginType.Unknown]: translationKey("OneUptime started this task"),
 };
 
@@ -198,6 +202,7 @@ export const CODE_TASK_ORIGIN_KINDS: Record<CodeTaskOriginType, string> = {
     "GitLab Merge Request",
   ),
   [CodeTaskOriginType.CodeHostPullRequest]: translationKey("Pull Request"),
+  [CodeTaskOriginType.SecurityCase]: translationKey("Security Case"),
   [CodeTaskOriginType.Unknown]: "",
 };
 

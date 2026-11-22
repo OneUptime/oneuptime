@@ -10,6 +10,7 @@ import Includes from "./BaseDatabase/Includes";
 import IncludesAll from "./BaseDatabase/IncludesAll";
 import IncludesAnyOfGroups from "./BaseDatabase/IncludesAnyOfGroups";
 import IncludesNone from "./BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "./BaseDatabase/IncludesNoneOrNull";
 import StartsWith from "./BaseDatabase/StartsWith";
 import EndsWith from "./BaseDatabase/EndsWith";
 import NotContains from "./BaseDatabase/NotContains";
@@ -171,6 +172,9 @@ const SerializableObjectDictionary: Dictionary<any> = {
   },
   get [ObjectType.IncludesNone](): any {
     return IncludesNone;
+  },
+  get [ObjectType.IncludesNoneOrNull](): any {
+    return IncludesNoneOrNull;
   },
   get [ObjectType.StartsWith](): any {
     return StartsWith;

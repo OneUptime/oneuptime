@@ -34,9 +34,18 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * plans on Cloud.
  */
 
+/*
+ * loadMonitors and loadMonitorGroups hold each test's monitors and groups:
+ * the step's searches (#10580) answer from them, as the server would (see
+ * answerSearches).
+ */
 const api: Record<string, MockFunction> = {
   loadMonitors: getJestMockFunction(),
   loadMonitorGroups: getJestMockFunction(),
+  searchMonitors: getJestMockFunction(),
+  searchMonitorGroups: getJestMockFunction(),
+  loadMonitorsByIds: getJestMockFunction(),
+  loadLabels: getJestMockFunction(),
   loadEditableStatusPages: getJestMockFunction(),
   findOwnStatusPage: getJestMockFunction(),
   createStatusPage: getJestMockFunction(),
@@ -69,6 +78,10 @@ jest.mock(
     for (const name of [
       "loadMonitors",
       "loadMonitorGroups",
+      "searchMonitors",
+      "searchMonitorGroups",
+      "loadMonitorsByIds",
+      "loadLabels",
       "loadEditableStatusPages",
       "findOwnStatusPage",
       "createStatusPage",
@@ -125,11 +138,15 @@ jest.mock("../../../UI/Utils/ProductEvents", () => {
 });
 
 import StatusPageGuidedSetup from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageGuidedSetup";
+import { STATUS_PAGE_SETUP_SEARCH_DEBOUNCE_MS } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetupPicker";
 import { getGuidedSetupRunKey } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupProgress";
 import {
   STATUS_PAGE_SETUP_COPY,
   STATUS_PAGE_SETUP_MONITOR_QUERY,
+  STATUS_PAGE_SETUP_PAGE_SIZE,
+  StatusPageSetupFilter,
   StatusPageSetupMonitor,
+  getShownItems,
   getMonitorPickedOnOpen,
   isSameStatusPageName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetup";
@@ -231,6 +248,55 @@ const nameField: () => HTMLInputElement = (): HTMLInputElement => {
   ) as HTMLInputElement;
 };
 
+/*
+ * The step's searches (#10580), answered from the test's monitors and
+ * groups as the server answers them: those whose name holds what was typed
+ * and that carry the label picked, a page by name, and how many match.
+ */
+function answerSearches(): void {
+  const answer: (
+    read: MockFunction,
+    filter: StatusPageSetupFilter,
+  ) => Promise<{
+    items: Array<StatusPageSetupMonitor>;
+    count: number;
+  }> = async (
+    read: MockFunction,
+    filter: StatusPageSetupFilter,
+  ): Promise<{ items: Array<StatusPageSetupMonitor>; count: number }> => {
+    // The test's own list, in its own order: the server's answer, by name.
+    const all: Array<StatusPageSetupMonitor> =
+      ((await read()) as Array<StatusPageSetupMonitor>) || [];
+    const matching: Array<StatusPageSetupMonitor> = getShownItems({
+      items: all,
+      filter: filter,
+    });
+
+    return {
+      items: matching.slice(0, STATUS_PAGE_SETUP_PAGE_SIZE),
+      count: matching.length,
+    };
+  };
+
+  api["searchMonitors"]!.mockImplementation((filter: StatusPageSetupFilter) => {
+    return answer(api["loadMonitors"]!, filter);
+  });
+  api["searchMonitorGroups"]!.mockImplementation(
+    (filter: StatusPageSetupFilter) => {
+      return answer(api["loadMonitorGroups"]!, filter);
+    },
+  );
+  api["loadMonitorsByIds"]!.mockImplementation(async (ids: Array<string>) => {
+    const all: Array<StatusPageSetupMonitor> =
+      ((await api["loadMonitors"]!()) as Array<StatusPageSetupMonitor>) || [];
+
+    return all.filter((monitor: StatusPageSetupMonitor): boolean => {
+      return ids.includes(monitor.id);
+    });
+  });
+  api["loadLabels"]!.mockResolvedValue([]);
+}
+
 beforeEach(() => {
   guidedSetupRunServer.reset();
   window.localStorage.clear();
@@ -247,6 +313,7 @@ beforeEach(() => {
   api["loadMonitors"]!.mockResolvedValue(MONITORS);
   // A project with no monitor group and no status page yet.
   api["loadMonitorGroups"]!.mockResolvedValue([]);
+  answerSearches();
   api["loadEditableStatusPages"]!.mockResolvedValue([]);
   api["findOwnStatusPage"]!.mockResolvedValue(null);
   api["createStatusPage"]!.mockResolvedValue(PAGE_ID);
@@ -2273,6 +2340,15 @@ describe("a busy project's list (#7147)", () => {
     { id: "g-search", name: "Search" },
   ];
 
+  // The list asks the server once typing pauses (#10580): wait it out.
+  const settleSearch: () => Promise<void> = async (): Promise<void> => {
+    await act(async () => {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, STATUS_PAGE_SETUP_SEARCH_DEBOUNCE_MS + 30);
+      });
+    });
+  };
+
   const search: (text: string) => Promise<void> = async (
     text: string,
   ): Promise<void> => {
@@ -2281,6 +2357,7 @@ describe("a busy project's list (#7147)", () => {
         target: { value: text },
       });
     });
+    await settleSearch();
   };
 
   const shownMonitorIds: () => Array<string> = (): Array<string> => {
@@ -2307,6 +2384,7 @@ describe("a busy project's list (#7147)", () => {
     await act(async () => {
       fireEvent.click(await screen.findByRole("option", { name: name }));
     });
+    await settleSearch();
   };
 
   beforeEach(() => {
@@ -2317,7 +2395,9 @@ describe("a busy project's list (#7147)", () => {
   test("lists the groups first, then every monitor, none ticked, with a search and the labels to narrow by", async () => {
     await renderSetup();
 
+    // Two hundred fit on the first page: nothing more to say (#10580).
     expect(shownMonitorIds()).toHaveLength(200);
+    expect(screen.queryByTestId("guided-setup-more")).toBeNull();
     expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
       "0 of 202 picked",
     );
@@ -2562,6 +2642,136 @@ describe("a busy project's list (#7147)", () => {
     expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
       "0 of 200 picked",
     );
+  });
+
+  /*
+   * #10580: the step read the first 10,000 monitors and searched them in
+   * the browser, so a monitor past them was never listed. The list's first
+   * page is STATUS_PAGE_SETUP_PAGE_SIZE by name, and a search is the
+   * server's. A project with a hundred more than a page; the hundred past
+   * it carry a label no monitor of the first page does.
+   */
+  describe("more monitors than a page (#10580)", () => {
+    const KIOSK: { id: string; name: string; color: string } = {
+      id: "10000000-0000-4000-8000-000000000003",
+      name: "kiosk",
+      color: "#6366f1",
+    };
+
+    const LARGE: Array<Record<string, unknown>> = Array.from(
+      { length: STATUS_PAGE_SETUP_PAGE_SIZE + 100 },
+      (_unused: unknown, index: number): Record<string, unknown> => {
+        const number: number = index + 1;
+
+        return {
+          id: `m-${String(number).padStart(4, "0")}`,
+          name: `kiosk-${String(number).padStart(4, "0")}`,
+          ...(number > STATUS_PAGE_SETUP_PAGE_SIZE ? { labels: [KIOSK] } : {}),
+        };
+      },
+    );
+
+    const LATE_ID: string = `m-${String(STATUS_PAGE_SETUP_PAGE_SIZE + 50).padStart(4, "0")}`;
+    const LATE_NAME: string = `kiosk-${String(STATUS_PAGE_SETUP_PAGE_SIZE + 50).padStart(4, "0")}`;
+    const TOTAL: number = STATUS_PAGE_SETUP_PAGE_SIZE + 100;
+
+    beforeEach(() => {
+      api["loadMonitors"]!.mockResolvedValue(LARGE);
+      api["loadMonitorGroups"]!.mockResolvedValue([]);
+      // The project's labels: kiosk, though no listed monitor carries it.
+      api["loadLabels"]!.mockResolvedValue([KIOSK]);
+    });
+
+    test("lists the first page, says how many there are, and a search past it is the server's", async () => {
+      await renderSetup();
+
+      expect(shownMonitorIds()).toHaveLength(STATUS_PAGE_SETUP_PAGE_SIZE);
+      expect(shownMonitorIds()).not.toContain(LATE_ID);
+      expect(screen.getByTestId("guided-setup-more")).toHaveTextContent(
+        `Showing ${STATUS_PAGE_SETUP_PAGE_SIZE} of ${TOTAL}. Type to narrow the list.`,
+      );
+      expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+        `0 of ${TOTAL} picked`,
+      );
+
+      await search(LATE_NAME);
+
+      expect(api["searchMonitors"]).toHaveBeenLastCalledWith({
+        search: LATE_NAME,
+        labelId: null,
+      });
+      expect(api["searchMonitorGroups"]).toHaveBeenLastCalledWith({
+        search: LATE_NAME,
+        labelId: null,
+      });
+      expect(shownMonitorIds()).toEqual([LATE_ID]);
+      expect(screen.queryByTestId("guided-setup-more")).toBeNull();
+    });
+
+    test("offers the project's labels, and a label is asked of the server", async () => {
+      await renderSetup();
+      await pickLabel("kiosk");
+
+      expect(api["searchMonitors"]).toHaveBeenLastCalledWith({
+        search: "",
+        labelId: KIOSK.id,
+      });
+      expect(shownMonitorIds()).toHaveLength(100);
+      expect(shownMonitorIds()[0]).toBe(
+        `m-${String(STATUS_PAGE_SETUP_PAGE_SIZE + 1).padStart(4, "0")}`,
+      );
+    });
+
+    test("a monitor picked from a search keeps its name, and goes on the page, after the search is cleared", async () => {
+      await renderSetup();
+
+      await search(LATE_NAME);
+      await press(`guided-setup-monitor-${LATE_ID}`);
+      await search("");
+
+      expect(shownMonitorIds()).not.toContain(LATE_ID);
+      expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+        `1 of ${TOTAL} picked`,
+      );
+
+      await press("guided-setup-create-status-page");
+
+      await waitFor(() => {
+        expect(api["addMonitors"]).toHaveBeenCalled();
+      });
+      expect(
+        (
+          api["addMonitors"]!.mock.calls[0]![0] as {
+            monitors: Array<{ id: string; name: string }>;
+          }
+        ).monitors.map((monitor: { id: string; name: string }) => {
+          return [monitor.id, monitor.name];
+        }),
+      ).toEqual([[LATE_ID, LATE_NAME]]);
+    });
+
+    test("the monitor the website-down setup hands in is read by its id, past the first page", async () => {
+      window.history.replaceState(
+        {},
+        "",
+        `/dashboard/${PROJECT_ID}/status-pages/setup?${STATUS_PAGE_SETUP_MONITOR_QUERY}=${LATE_ID}`,
+      );
+
+      try {
+        await renderSetup();
+
+        expect(api["loadMonitorsByIds"]).toHaveBeenCalledWith([LATE_ID]);
+        expect(
+          screen.getByTestId("guided-setup-picked-count"),
+        ).toHaveTextContent(`1 of ${TOTAL} picked`);
+      } finally {
+        window.history.replaceState(
+          {},
+          "",
+          `/dashboard/${PROJECT_ID}/status-pages/setup`,
+        );
+      }
+    });
   });
 
   test("a monitor's name is drawn as the project wrote it, never looked up", async () => {

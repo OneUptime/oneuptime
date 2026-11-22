@@ -58,6 +58,8 @@ export const CODE_TASK_TURN_SELECT: Select<AIRun> = {
   triggeredByIncidentId: true,
   triggeredByAlertId: true,
   triggeredByAiInsightId: true,
+  // A fix asked from a security case names the case (#10347).
+  triggeredBySecurityCaseId: true,
 };
 
 /*

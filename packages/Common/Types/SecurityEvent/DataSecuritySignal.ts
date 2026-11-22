@@ -45,6 +45,13 @@ export const DATA_STORE_SIGNAL_ATTRIBUTES: {
   readonly protectionRemoved: string;
   // When the change happened, as the activity log says (ISO 8601).
   readonly changedAt: string;
+  /*
+   * When OneUptime made the change itself (oneuptime.actor), the response
+   * action that made it, as the store's feed records it: the action's name
+   * (DataSecurityResponseAction) and the feed item.
+   */
+  readonly responseAction: string;
+  readonly responseFeedItemId: string;
 } = {
   entity: "oneuptime.data_store.entity",
   id: "oneuptime.data_store.id",
@@ -54,6 +61,8 @@ export const DATA_STORE_SIGNAL_ATTRIBUTES: {
   exposure: "oneuptime.data_store.exposure",
   protectionRemoved: "oneuptime.data_store.protection_removed",
   changedAt: "oneuptime.change.time",
+  responseAction: "oneuptime.data_store.response_action",
+  responseFeedItemId: "oneuptime.data_store.response_feed_item_id",
 };
 
 // A safeguard a change can take off a store.
@@ -70,11 +79,16 @@ export enum DataStoreProtection {
  * (DataSecurityRunner's POSTURE_CHANGING_OPERATIONS).
  */
 
-// What makes a bucket public: its policy, its ACL, its public access block.
+/*
+ * What makes a bucket public: its policy, its ACL, its public access block -
+ * by the names CloudTrail records them under, which the change events keep:
+ * S3's DeletePublicAccessBlock is DeleteBucketPublicAccessBlock there
+ * ("Amazon S3 CloudTrail events", S3 User Guide).
+ */
 export const DATA_STORE_PUBLIC_ACCESS_OPERATIONS: ReadonlyArray<string> = [
   "s3:PutBucketPolicy",
   "s3:PutBucketAcl",
-  "s3:DeletePublicAccessBlock",
+  "s3:DeleteBucketPublicAccessBlock",
 ];
 
 // What hands a database's copy to another account.
