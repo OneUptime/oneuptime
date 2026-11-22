@@ -152,6 +152,7 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
+import { getRecordActivitySelect } from "../../../UI/Components/Detail/DetailRecordActivity";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { customDomainCaller } from "../../Server/API/CustomDomainCallers";
 import DashboardRequestsOverHttp, {
@@ -189,6 +190,32 @@ const NAME_REFUSAL: string =
   "Column name on Data Store does not support read on relation query.";
 
 const FLOW_TIMEOUT_IN_MS: number = 60000;
+
+/*
+ * The issue's line reads who created it and who last modified it in a read
+ * of its own (RecordActivityLine, #10461): a select of those columns alone,
+ * apart from the reads of the issue that draw its page.
+ */
+const RECORD_LINE_COLUMNS: Array<string> = Object.keys(
+  getRecordActivitySelect(new DataSecurityIssue(), (): boolean => {
+    return true;
+  }),
+);
+
+function isRecordLineRead(sent: SentRequest): boolean {
+  return Object.keys(
+    ((sent.body as JSONObject)["select"] as JSONObject) || {},
+  ).every((column: string): boolean => {
+    return RECORD_LINE_COLUMNS.includes(column);
+  });
+}
+
+// The reads of the issue that draw its page: every one but its line's.
+function issuePageReads(): Array<SentRequest> {
+  return server.sentTo("POST", ISSUE_PATH).filter((sent: SentRequest) => {
+    return !isRecordLineRead(sent);
+  });
+}
 
 const PAGE_PROPS: PageComponentProps = {
   pageRoute: RouteMap[PageMap.DATA_SECURITY_ISSUE_VIEW] as Route,
@@ -556,11 +583,31 @@ describe("a data security issue's page, through the server", () => {
 
       // One read of the issue, answered; the store was not read again.
       expect(
-        server.sentTo("POST", ISSUE_PATH).map((sent: SentRequest) => {
+        issuePageReads().map((sent: SentRequest) => {
           return sent.status;
         }),
       ).toEqual([200]);
       expect(server.sentTo("POST", STORE_PATH)).toEqual([]);
+
+      /*
+       * Its line - who created it and who last modified it - in a read of
+       * its own, answered, at the foot of the issue's first card.
+       */
+      await waitFor(() => {
+        expect(
+          server
+            .sentTo("POST", ISSUE_PATH)
+            .filter(isRecordLineRead)
+            .map((sent: SentRequest) => {
+              return sent.status;
+            }),
+        ).toEqual([200]);
+      });
+      expect(
+        within(screen.getByTestId("data-security-issue-header")).getByTestId(
+          "detail-record-line",
+        ),
+      ).toBeInTheDocument();
     },
     FLOW_TIMEOUT_IN_MS,
   );
@@ -590,11 +637,9 @@ describe("a data security issue's page, through the server", () => {
       );
       // The issue's read named nothing of the store it may not.
       expect(
-        (
-          (server.sentTo("POST", ISSUE_PATH)[0]!.body as JSONObject)[
-            "select"
-          ] as JSONObject
-        )["dataStore"],
+        ((issuePageReads()[0]!.body as JSONObject)["select"] as JSONObject)[
+          "dataStore"
+        ],
       ).not.toHaveProperty("dataTypeIds");
     },
     FLOW_TIMEOUT_IN_MS,
@@ -677,7 +722,7 @@ describe("a data security issue's page, through the server", () => {
        * The whole read, refused; the issue's own columns; then each record
        * it names on its own - the store's refused, the others answered.
        */
-      const issueReads: Array<SentRequest> = server.sentTo("POST", ISSUE_PATH);
+      const issueReads: Array<SentRequest> = issuePageReads();
       const readOf: (relation: string) => SentRequest | undefined = (
         relation: string,
       ): SentRequest | undefined => {

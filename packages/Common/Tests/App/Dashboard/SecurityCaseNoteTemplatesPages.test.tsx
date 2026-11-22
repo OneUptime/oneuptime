@@ -310,8 +310,19 @@ describe("a case note template's page", () => {
     expect(detailsProps["modelType"]).toBe(SecurityCaseNoteTemplate);
     expect((detailsProps["modelId"] as ObjectID).toString()).toBe(TEMPLATE_ID);
     expect((detailsProps["fields"] as Array<RecordedField>).map(keyOf)).toEqual(
-      ["templateName", "templateDescription"],
+      ["templateName", "templateDescription", "_id"],
     );
+    /*
+     * The template's own ID, which the card draws as its line, saying who
+     * created it and who last changed it (#10461).
+     */
+    expect(
+      (detailsProps["fields"] as Array<RecordedField>).find(
+        (field: RecordedField): boolean => {
+          return keyOf(field) === "_id";
+        },
+      )?.fieldType,
+    ).toBe(FieldType.ObjectID);
     expect(
       (details["formFields"] as Array<RecordedFormField>).map(keyOf),
     ).toEqual(["templateName", "templateDescription"]);
