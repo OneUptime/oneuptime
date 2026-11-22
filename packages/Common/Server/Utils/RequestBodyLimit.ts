@@ -32,7 +32,8 @@ import { JsonElementLimits } from "../../Utils/JsonElementCount";
  *
  * A self-hosted server can raise the ordinary limits with
  * REQUEST_BODY_MAX_BYTES and REQUEST_BODY_MAX_JSON_VALUES (EnvironmentConfig),
- * for a client that sends more to a route not listed here.
+ * for a client that sends more to a route not listed here. They change no
+ * listed route's limit.
  */
 
 export interface RequestBodyLimit extends JsonElementLimits {
@@ -97,7 +98,7 @@ export const REPORT_REQUEST_BODY_LIMIT: RequestBodyLimit = {
   objectsArraysAndStrings: 8000000,
 };
 
-export interface LargeRequestBodyRoute {
+export interface RequestBodyRoute {
   /*
    * The paths, as the App receives them: "/" between segments, a ":name"
    * segment for any one segment, and a last segment "*" for the path and
@@ -106,9 +107,9 @@ export interface LargeRequestBodyRoute {
   paths: ReadonlyArray<string>;
   limit: RequestBodyLimit;
   /*
-   * Set for a route that checks its caller's key before it parses the body
-   * (#10222): StartServer leaves the body unread, and the route reads and
-   * parses it itself, held to `limit` once it knows who sent it
+   * Set for a route that checks its caller's key before it reads the body
+   * (#10222, #10673): StartServer leaves the body unread, and the route
+   * reads and parses it itself, held to `limit` once it knows who sent it
    * (Middleware/RequestBodyAfterAuthentication).
    */
   readsBodyAfterAuthentication?: boolean;
@@ -171,7 +172,7 @@ const createAndUpdate: (crudPath: string) => Array<string> = (
 /*
  * The telemetry routes StartServer reads the body of: the rest of the
  * telemetry router (OTLP, session replay, the compatible endpoints, the
- * Vercel log drain, the cloud streams) reads its own.
+ * Vercel log drain, the cloud streams, the uploads below) reads its own.
  */
 const TELEMETRY_INGEST_PATHS: ReadonlyArray<string> = [
   "/fluentd/*",
@@ -183,20 +184,39 @@ const TELEMETRY_INGEST_PATHS: ReadonlyArray<string> = [
   "/dbt/*",
   "/android-agent/*",
   "/opamp/*",
+  // Pyroscope's push.v1 protobuf; its /ingest is an upload, below.
   "/pyroscope/*",
-  "/source-maps/*",
-  // An iOS app's symbol tables, as JSON from the CLI: a few MB for a large app.
-  "/dsyms/*",
   "/fivetran/*",
   "/airbyte/*",
 ];
 
-export const LARGE_REQUEST_BODY_ROUTES: ReadonlyArray<LargeRequestBodyRoute> = [
+/*
+ * The uploads, read once their ingest key is checked (#10673): a Pyroscope
+ * SDK's profile to /ingest (a multipart form, or the profile itself), source
+ * maps from CI (a multipart form), an iOS app's dSYMs (the CLI's JSON, or a
+ * multipart form). Each client sends its key in a header - Authorization, as
+ * Bearer or Basic, or x-oneuptime-token - and none in the body, so the key is
+ * checked first and the body read after, by the route (readUpload).
+ */
+const TELEMETRY_UPLOAD_PATHS: ReadonlyArray<string> = [
+  "/pyroscope/ingest",
+  "/source-maps/v1/upload",
+  "/dsyms/v1/upload",
+];
+
+export const LARGE_REQUEST_BODY_ROUTES: ReadonlyArray<RequestBodyRoute> = [
   {
     paths: ["/api/file"],
     limit: FILE_REQUEST_BODY_LIMIT,
     reason:
       "A file the Dashboard uploads - an attachment, an image in a note, a logo - travels as JSON, one number for each of its bytes. The Dashboard takes files of up to 10 MB: 36 MB of JSON.",
+  },
+  {
+    paths: under(TELEMETRY_ROUTE_PREFIXES, TELEMETRY_UPLOAD_PATHS),
+    limit: LARGE_REQUEST_BODY_LIMIT,
+    readsBodyAfterAuthentication: true,
+    reason:
+      "A Pyroscope profile, source maps from CI and an iOS app's dSYMs are uploads of up to 50 MB, as a multipart form or not, gzip-compressed or not. Each client sends its ingest key in a header, which is checked before a byte of the body is read: a request without the right key is refused with its body unread.",
   },
   {
     paths: under(PROBE_INGEST_ROUTE_PREFIXES, [
@@ -244,7 +264,7 @@ export const LARGE_REQUEST_BODY_ROUTES: ReadonlyArray<LargeRequestBodyRoute> = [
     paths: under(TELEMETRY_ROUTE_PREFIXES, TELEMETRY_INGEST_PATHS),
     limit: LARGE_REQUEST_BODY_LIMIT,
     reason:
-      "Batches of logs, events, profiles, source maps, dSYMs and dbt artifacts that collectors, agents and CI send, gzip-compressed or not, under /telemetry and at the root, as the ingress forwards each.",
+      "Batches of logs, events, profiles and dbt artifacts that collectors, agents and CI send, gzip-compressed or not, under /telemetry and at the root, as the ingress forwards each.",
   },
   {
     paths: ["/workflow/*", "/api/huntress/webhook/*"],
@@ -339,9 +359,9 @@ const segmentsOf: (path: string) => Array<string> = (
 };
 
 const compile: (
-  routes: ReadonlyArray<LargeRequestBodyRoute>,
+  routes: ReadonlyArray<RequestBodyRoute>,
 ) => Map<string, Array<CompiledPattern>> = (
-  routes: ReadonlyArray<LargeRequestBodyRoute>,
+  routes: ReadonlyArray<RequestBodyRoute>,
 ): Map<string, Array<CompiledPattern>> => {
   const byFirstSegment: Map<string, Array<CompiledPattern>> = new Map();
 
@@ -435,7 +455,7 @@ export const getRequestBodyLimit: (path: string) => RequestBodyLimit = (
 /*
  * Whether a request's route reads its body itself, to check who sent it
  * before the body is parsed, so StartServer leaves the body unread
- * (LargeRequestBodyRoute's readsBodyAfterAuthentication). Matched as
+ * (RequestBodyRoute's readsBodyAfterAuthentication). Matched as
  * getRequestBodyLimit matches: in any case, with or without a trailing
  * slash, under every prefix the route's router is mounted on.
  */

@@ -22,14 +22,16 @@ import { RequestHandler } from "express";
 /*
  * Ceilings for multipart bodies.
  *
- * memoryStorage means every part is buffered in the process, and
- * Pyroscope ingest, source maps and dSYMs mount this middleware BEFORE
- * their auth check (TelemetryIngest). So these are the limits an
- * unauthenticated caller is held to, and multer's defaults leave most of
- * them at Infinity: file size, file count, field count and part count are
- * all unbounded out of the box (only fieldSize has a default, 1 MB). The
- * SendGrid inbound email webhook reads a body only once its request has
- * shown the installation's webhook secret (refuseUnlessFromMailProvider).
+ * memoryStorage means every part is buffered in the process, and multer's
+ * defaults leave most of these at Infinity: file size, file count, field
+ * count and part count are all unbounded out of the box (only fieldSize has
+ * a default, 1 MB). Every route that mounts this reads a body only once its
+ * caller is known: Pyroscope ingest, source maps and dSYMs once their ingest
+ * key is checked (TelemetryIngest, then RequestBodyAfterAuthentication's
+ * readUpload, #10673) - they mounted it BEFORE the key check, so these were
+ * the limits anyone was held to - and the SendGrid inbound email webhook
+ * once its request has shown the installation's webhook secret
+ * (refuseUnlessFromMailProvider).
  *
  * The sizes match the 50 MiB body-parser limit the rest of the app uses,
  * and nginx cuts the shipped deployment lower still (50M on
@@ -41,7 +43,7 @@ import { RequestHandler } from "express";
  * THE BODY AS A WHOLE IS HELD TO ITS ROUTE'S LIMIT, AS EVERY BODY IS (#10643).
  * multer used to read the request itself, and nothing held the body as a
  * whole: fifty files of 50 MiB each passed every limit above and were held
- * in memory, before any key was checked. A body it refused - a file one
+ * in memory, before any key was checked (as it then was). A body it refused - a file one
  * byte over, a file too many - was then read to its end before the 413 was
  * sent (multer drains the request first), and logged; a gzip body, which
  * StartServer had already inflated, was read again from its spent stream,
@@ -72,11 +74,11 @@ export const MAX_MULTIPART_FILES: number = 50;
 export const MAX_MULTIPART_FIELDS: number = 200;
 
 /*
- * Every multipart protocol that uses this shared pre-auth parser has flat
- * field names. Multer 2.3 provides these opt-in guards for append-field:
- * without them, one deeply nested name or a maximum-length numeric array
- * index can consume CPU and memory before authentication. Zero is the minimum
- * each protocol needs and rejects bracket notation before append-field expands it.
+ * Every multipart protocol that uses this shared parser has flat field
+ * names. Multer 2.3 provides these opt-in guards for append-field: without
+ * them, one deeply nested name or a maximum-length numeric array index can
+ * consume CPU and memory. Zero is the minimum each protocol needs and
+ * rejects bracket notation before append-field expands it.
  * The array-index limit is defense in depth if a future protocol deliberately
  * raises the nesting depth to accept one bracket group.
  */
@@ -239,8 +241,8 @@ export const isMalformedMultipartBodyError: (err: unknown) => boolean = (
  * Each refusal stays the Exception it was, in the same words, and is marked
  * as the client's body refused (RequestBodyRefusal): expressErrorHandler
  * answers it with its status and message, as before, and logs it at debug,
- * as it logs every refused body - not at error, for anyone to fill the log
- * with, before any key is checked.
+ * as it logs every refused body - not at error, for a client to fill the
+ * log with.
  */
 const handleMulterError: (err: unknown, next: NextFunction) => void = (
   err: unknown,
@@ -370,12 +372,11 @@ const MultipartFormDataMiddleware: RequestHandler = readThenParse(uploadAny);
  * A multipart middleware for a route that wants a LOWER file count than the
  * shared default.
  *
- * Only downward: maxFiles is clamped to MAX_MULTIPART_FILES. Every route that
- * mounts this middleware parses the body before its own auth check runs, so
- * the shared ceiling is the limit an unauthenticated caller is held to across
- * all of them. A per-route knob that could raise it would widen the pre-auth
- * memory surface of every OTHER route's neighbours by proxy of a config
- * change made for one — so it cannot.
+ * Only downward: maxFiles is clamped to MAX_MULTIPART_FILES. The shared
+ * ceiling is the most any caller of any route that mounts this middleware -
+ * each of them known by then (see above) - can have the process hold in one
+ * request. A per-route knob that could raise it would widen that for a config
+ * change made for one route's sake — so it cannot.
  *
  * Routes that are happy with the default should keep using the default
  * export; this builds a second multer instance, so call it once at module
@@ -388,9 +389,9 @@ export const getMultipartFormDataMiddleware: (options: {
    * Clamp the DOMAIN as well as the range. busboy compares `files === limit`,
    * which never matches a fractional or NaN limit — so a non-integer would
    * not narrow anything, it would remove the file bound entirely and leave
-   * the pre-auth parse unbounded. That is the exact widening this function
-   * exists to prevent, so anything not a finite number falls back to the
-   * shared ceiling rather than being passed through.
+   * the parse unbounded. That is the exact widening this function exists to
+   * prevent, so anything not a finite number falls back to the shared
+   * ceiling rather than being passed through.
    */
   const requestedMaxFiles: number = options.maxFiles;
 
