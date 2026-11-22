@@ -69,7 +69,10 @@ const CROWDSTRIKE: SecurityBlockHolder = {
   name: "CrowdStrike Falcon (Production)",
   provider: SecurityBlockDestinationProvider.CrowdStrike,
   enforcesOnEveryMachine: true,
-  blocks: [SecurityBlockIndicatorType.FileSha256, SecurityBlockIndicatorType.FileMd5],
+  blocks: [
+    SecurityBlockIndicatorType.FileSha256,
+    SecurityBlockIndicatorType.FileMd5,
+  ],
   quarantinesFiles: false,
 };
 
@@ -78,13 +81,14 @@ const EDGE: SecurityBlockHolder = {
   name: "Cloudflare",
   provider: SecurityBlockDestinationProvider.Test,
   enforcesOnEveryMachine: false,
-  blocks: [SecurityBlockIndicatorType.IpAddress, SecurityBlockIndicatorType.IpRange],
+  blocks: [
+    SecurityBlockIndicatorType.IpAddress,
+    SecurityBlockIndicatorType.IpRange,
+  ],
   quarantinesFiles: false,
 };
 
-function planFor(
-  overrides: Partial<ResponsePlanInput> = {},
-): ResponsePlan {
+function planFor(overrides: Partial<ResponsePlanInput> = {}): ResponsePlan {
   return buildResponsePlan({
     entities: [],
     mitreTactics: [],
@@ -133,10 +137,7 @@ describe("a domain's step", () => {
       undefined,
       { holders: [EDGE, CROWDSTRIKE], blocks: [] },
     ]) {
-      const step: ResponseStep = stepOf(
-        planFor({ entities, blocklist }),
-        key,
-      );
+      const step: ResponseStep = stepOf(planFor({ entities, blocklist }), key);
 
       expect(step.text).toEqual({
         template: STEP_BLOCK_DOMAIN,
@@ -360,9 +361,11 @@ describe("a command-and-control address", () => {
     expect(stepOf(plan, `contain:block-ip:${ADDRESS}`)).toBeTruthy();
   });
 
-  test.each(C2_ATTACK_IDS.map((id: string) => {
-    return [id];
-  }))(
+  test.each(
+    C2_ATTACK_IDS.map((id: string) => {
+      return [id];
+    }),
+  )(
     "a case about command and control (%s) blocks it on every machine too, with Microsoft Defender",
     (id: string) => {
       const plan: ResponsePlan = planFor({

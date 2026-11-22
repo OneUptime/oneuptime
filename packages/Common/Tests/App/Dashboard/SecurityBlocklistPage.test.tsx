@@ -1437,12 +1437,12 @@ describe("a tab of each kind", () => {
     expect(getBlocklistTableId(BlocklistKind.Files)).toBe(
       "security-blocklist-table-Files",
     );
-    expect(
-      (capturedTable().query["indicatorType"] as Includes).values,
-    ).toEqual([
-      SecurityBlockIndicatorType.IpAddress,
-      SecurityBlockIndicatorType.IpRange,
-    ]);
+    expect((capturedTable().query["indicatorType"] as Includes).values).toEqual(
+      [
+        SecurityBlockIndicatorType.IpAddress,
+        SecurityBlockIndicatorType.IpRange,
+      ],
+    );
   });
 
   test("Domains and URLs lists the domains and URLs, blocked and nothing else", async () => {
@@ -1455,9 +1455,9 @@ describe("a tab of each kind", () => {
       pluralName: DOMAIN_PLURAL,
       emptyState: { description: DOMAINS_EMPTY_DESCRIPTION },
     });
-    expect(
-      (capturedTable().query["indicatorType"] as Includes).values,
-    ).toEqual([SecurityBlockIndicatorType.Domain, SecurityBlockIndicatorType.Url]);
+    expect((capturedTable().query["indicatorType"] as Includes).values).toEqual(
+      [SecurityBlockIndicatorType.Domain, SecurityBlockIndicatorType.Url],
+    );
     expect(capturedTable().columns[0]!.title).toBe("Domain or URL");
     expect(
       capturedTable()
@@ -1486,13 +1486,13 @@ describe("a tab of each kind", () => {
       pluralName: FILE_PLURAL,
       emptyState: { description: FILES_EMPTY_DESCRIPTION },
     });
-    expect(
-      (capturedTable().query["indicatorType"] as Includes).values,
-    ).toEqual([
-      SecurityBlockIndicatorType.FileSha256,
-      SecurityBlockIndicatorType.FileSha1,
-      SecurityBlockIndicatorType.FileMd5,
-    ]);
+    expect((capturedTable().query["indicatorType"] as Includes).values).toEqual(
+      [
+        SecurityBlockIndicatorType.FileSha256,
+        SecurityBlockIndicatorType.FileSha1,
+        SecurityBlockIndicatorType.FileMd5,
+      ],
+    );
     expect(capturedTable().columns[0]!.title).toBe("File Hash");
     expect(getBlocklistActionFilterOptions(BlocklistKind.Files)).toEqual([
       { label: "Block", value: SecurityBlockAction.Block },

@@ -276,7 +276,10 @@ export default class CrowdStrikeFalconResponseClient {
 
     for (;;) {
       const params: URLSearchParams = new URLSearchParams();
-      params.set("filter", `source:${falconQuotedValue(CROWDSTRIKE_IOC_SOURCE)}`);
+      params.set(
+        "filter",
+        `source:${falconQuotedValue(CROWDSTRIKE_IOC_SOURCE)}`,
+      );
       params.set("limit", String(CROWDSTRIKE_IOC_PAGE_SIZE));
 
       if (after) {

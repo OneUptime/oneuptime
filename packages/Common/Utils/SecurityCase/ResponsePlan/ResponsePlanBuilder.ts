@@ -50,9 +50,12 @@ import {
   SecurityBlockDuration,
   SecurityBlockIndicatorType,
   SecurityBlockReach,
+  SecurityBlockValue,
   doesSecurityBlockReachCover,
+  findCoveringSecurityBlock,
   getSecurityBlockFileType,
   getSecurityBlockValueKey,
+  readSecurityBlockValue,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
 import { SecurityBlockDestinationProvider } from "../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
 import {
@@ -96,11 +99,6 @@ import {
   ResponseTask,
   ResponseText,
 } from "./ResponsePlanTypes";
-import {
-  SecurityBlockValue,
-  findCoveringSecurityBlock,
-  readSecurityBlockValue,
-} from "../../../Types/SecurityBlocklist/SecurityBlock";
 import {
   OneStepRunRead,
   readOneStepRun,
@@ -291,7 +289,11 @@ export interface ResponsePlanInput {
 // ---------- Blocking on every machine (#10346) ----------
 
 // The ATT&CK ids of command and control: a case about a C2 server blocks its address on every machine too.
-export const C2_ATTACK_IDS: ReadonlyArray<string> = ["TA0011", "T1095", "T1105"];
+export const C2_ATTACK_IDS: ReadonlyArray<string> = [
+  "TA0011",
+  "T1095",
+  "T1105",
+];
 
 // How long a step blocks a domain, an address on every machine, and a file: an address is soon someone else's, a file's hash never is.
 export const RESPONSE_BLOCK_DURATION: SecurityBlockDuration =

@@ -46,11 +46,12 @@ import SecurityBlockDestination, {
  * no other.
  */
 
-const IOC_TYPES: Partial<Record<SecurityBlockIndicatorType, CrowdStrikeIocType>> =
-  {
-    [SecurityBlockIndicatorType.FileSha256]: "sha256",
-    [SecurityBlockIndicatorType.FileMd5]: "md5",
-  };
+const IOC_TYPES: Partial<
+  Record<SecurityBlockIndicatorType, CrowdStrikeIocType>
+> = {
+  [SecurityBlockIndicatorType.FileSha256]: "sha256",
+  [SecurityBlockIndicatorType.FileMd5]: "md5",
+};
 
 // What every write says in Falcon's audit trail.
 export const CROWDSTRIKE_IOC_COMMENT: string = "OneUptime blocklist";
@@ -203,16 +204,19 @@ export default class CrowdStrikeBlockDestination
 
     await this.client.deleteIocs(ids, CROWDSTRIKE_IOC_COMMENT);
 
-    return items.map((item: SecurityBlockHeldItem): SecurityBlockWriteResult => {
-      return item.providerRef
-        ? { value: item.value, action: item.action, isDone: true }
-        : {
-            value: item.value,
-            action: item.action,
-            isDone: false,
-            error: "OneUptime does not know which CrowdStrike Falcon IOC holds it",
-          };
-    });
+    return items.map(
+      (item: SecurityBlockHeldItem): SecurityBlockWriteResult => {
+        return item.providerRef
+          ? { value: item.value, action: item.action, isDone: true }
+          : {
+              value: item.value,
+              action: item.action,
+              isDone: false,
+              error:
+                "OneUptime does not know which CrowdStrike Falcon IOC holds it",
+            };
+      },
+    );
   }
 
   // A renewed block's IOC: its expiration moved, and set to prevent again.

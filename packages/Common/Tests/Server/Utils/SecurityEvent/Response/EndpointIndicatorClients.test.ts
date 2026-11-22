@@ -74,7 +74,7 @@ function tokenWithRoles(roles: Array<string> | undefined): string {
       .toString("base64")
       .replace(/\+/g, "-")
       .replace(/\//g, "_")
-      .replace(/=+$/, "");
+      .replace(/[=]+$/, "");
   };
 
   return `${encode({ alg: "RS256" })}.${encode(roles ? { roles } : { aud: "x" })}.signature`;
@@ -89,9 +89,10 @@ function isTokenRequest(request: DataSourceHttpRequest): boolean {
   return request.url.includes("/oauth2/");
 }
 
-function defenderClient(
-  responder: Responder,
-): { client: MicrosoftDefenderEndpointClient; requests: Array<DataSourceHttpRequest> } {
+function defenderClient(responder: Responder): {
+  client: MicrosoftDefenderEndpointClient;
+  requests: Array<DataSourceHttpRequest>;
+} {
   const recorded: RecordingTransport = recording(
     (request: DataSourceHttpRequest): DataSourceHttpResponse => {
       return isTokenRequest(request)
@@ -146,7 +147,8 @@ const SUBMISSION: DefenderIndicatorSubmission = {
   indicatorType: DefenderIndicatorType.DomainName,
   action: DefenderIndicatorAction.Block,
   title: "OneUptime: evil.example",
-  description: "OneUptime case CASE-7 until 2026-12-01 10:00 UTC [oneuptime:c1]",
+  description:
+    "OneUptime case CASE-7 until 2026-12-01 10:00 UTC [oneuptime:c1]",
   expirationTime: new Date("2026-12-01T10:00:00Z"),
 };
 
@@ -154,7 +156,8 @@ describe("Microsoft Defender indicators: listing OneUptime's", () => {
   test("filters on OneUptime's application, 10,000 a page, and reads every field", async () => {
     const { client, requests } = defenderClient(() => {
       return respond(200, {
-        "@odata.context": "https://api.security.microsoft.com/api/$metadata#Indicators",
+        "@odata.context":
+          "https://api.security.microsoft.com/api/$metadata#Indicators",
         value: [listedIndicator(995, "evil.example")],
       });
     });
@@ -251,7 +254,9 @@ describe("Microsoft Defender indicators: importing", () => {
         { ...SUBMISSION, indicatorValue: "x.example", expirationTime: null },
       ]);
     const request: DataSourceHttpRequest = apiRequests(requests)[0]!;
-    const sent: Array<JSONObject> = bodyOf(request)["Indicators"] as Array<JSONObject>;
+    const sent: Array<JSONObject> = bodyOf(request)[
+      "Indicators"
+    ] as Array<JSONObject>;
 
     expect(request.method).toBe("POST");
     expect(request.url).toBe(
@@ -344,7 +349,8 @@ describe("Microsoft Defender indicators: importing", () => {
         indicatorValue: "EVIL.example",
         id: null,
         isFailed: true,
-        failureReason: "The tenant reached its limit of 15000 active indicators",
+        failureReason:
+          "The tenant reached its limit of 15000 active indicators",
       },
     ]);
   });
@@ -353,7 +359,13 @@ describe("Microsoft Defender indicators: importing", () => {
     const { client } = defenderClient(() => {
       return respond(
         429,
-        { error: { code: "TooManyRequests", message: "Rate limit", target: "t" } },
+        {
+          error: {
+            code: "TooManyRequests",
+            message: "Rate limit",
+            target: "t",
+          },
+        },
         { "retry-after": "30" },
       );
     });
@@ -373,16 +385,14 @@ describe("Microsoft Defender indicators: importing", () => {
       });
     });
 
-    const error: Error = await client
-      .importIndicators([SUBMISSION])
-      .then(
-        () => {
-          return new Error("no error");
-        },
-        (thrown: Error) => {
-          return thrown;
-        },
-      );
+    const error: Error = await client.importIndicators([SUBMISSION]).then(
+      () => {
+        return new Error("no error");
+      },
+      (thrown: Error) => {
+        return thrown;
+      },
+    );
 
     expect(error.message).toContain("HTTP 403");
     expect(error.message).toContain(DEFENDER_INDICATORS_PERMISSION_HINT);
@@ -521,8 +531,12 @@ describe("Microsoft Defender: the permissions an app registration was granted", 
 
   test("how long a throttled answer asked to wait, in words", () => {
     expect(readDefenderRetryAfter({ "retry-after": "1" })).toBe("1 second");
-    expect(readDefenderRetryAfter({ "retry-after": "119" })).toBe("119 seconds");
-    expect(readDefenderRetryAfter({ "retry-after": "3600" })).toBe("60 minutes");
+    expect(readDefenderRetryAfter({ "retry-after": "119" })).toBe(
+      "119 seconds",
+    );
+    expect(readDefenderRetryAfter({ "retry-after": "3600" })).toBe(
+      "60 minutes",
+    );
     expect(readDefenderRetryAfter({ "retry-after": "soon" })).toBeNull();
     expect(readDefenderRetryAfter(undefined)).toBeNull();
   });
@@ -615,9 +629,9 @@ describe("CrowdStrike Falcon IOCs: listing OneUptime's", () => {
     expect(first.pathname).toBe("/iocs/combined/indicator/v1");
     expect(first.searchParams.get("filter")).toBe("source:'OneUptime'");
     expect(first.searchParams.get("limit")).toBe("500");
-    expect(new URL(apiRequests(requests)[1]!.url).searchParams.get("after")).toBe(
-      "page-2",
-    );
+    expect(
+      new URL(apiRequests(requests)[1]!.url).searchParams.get("after"),
+    ).toBe("page-2");
     expect(iocs.length).toBe(501);
     expect(iocs[0]).toEqual({
       id: "a0",
@@ -734,7 +748,8 @@ describe("CrowdStrike Falcon IOCs: creating", () => {
             type: "sha256",
             message_type: "error",
             field_name: "expiration",
-            message: "expiration: The 'expiration' field must be in the future.",
+            message:
+              "expiration: The 'expiration' field must be in the future.",
           },
           {
             row: 3,
@@ -798,7 +813,14 @@ describe("CrowdStrike Falcon IOCs: creating", () => {
 
     await expect(
       client.createIocs(
-        [{ type: "md5", value: "a".repeat(32), description: "d", expiration: null }],
+        [
+          {
+            type: "md5",
+            value: "a".repeat(32),
+            description: "d",
+            expiration: null,
+          },
+        ],
         "c",
       ),
     ).rejects.toThrow(
@@ -815,7 +837,14 @@ describe("CrowdStrike Falcon IOCs: creating", () => {
 
     const error: Error = await client
       .createIocs(
-        [{ type: "md5", value: "a".repeat(32), description: "d", expiration: null }],
+        [
+          {
+            type: "md5",
+            value: "a".repeat(32),
+            description: "d",
+            expiration: null,
+          },
+        ],
         "c",
       )
       .then(
@@ -937,9 +966,7 @@ describe("CrowdStrike Falcon: the IOC Management scopes", () => {
   test("a 403 says which scope is missing", async () => {
     const { client } = falconClient(
       (request: DataSourceHttpRequest): DataSourceHttpResponse => {
-        return request.method === "GET"
-          ? respond(403, {})
-          : respond(403, {});
+        return request.method === "GET" ? respond(403, {}) : respond(403, {});
       },
     );
 
@@ -981,7 +1008,9 @@ describe("CrowdStrike Falcon: the IOC Management scopes", () => {
     expect(readFalconRetryAfter(at(30), now)).toBe("30 seconds");
     expect(readFalconRetryAfter(at(300), now)).toBe("5 minutes");
     expect(readFalconRetryAfter(at(-30), now)).toBe("1 second");
-    expect(readFalconRetryAfter({ "x-ratelimit-retryafter": "x" }, now)).toBeNull();
+    expect(
+      readFalconRetryAfter({ "x-ratelimit-retryafter": "x" }, now),
+    ).toBeNull();
     expect(readFalconRetryAfter(undefined, now)).toBeNull();
   });
 });

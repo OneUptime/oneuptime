@@ -709,52 +709,57 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
    * server refuses a protected value, or one nothing could hold, and says
    * why; the step is done once a product holds the block.
    */
-  const block: (step: ResponseStep, action: ResponseAction) => Promise<void> =
-    async (step: ResponseStep, action: ResponseAction): Promise<void> => {
-      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-      const request: ResponseBlockRequest | undefined = action.block;
+  const block: (
+    step: ResponseStep,
+    action: ResponseAction,
+  ) => Promise<void> = async (
+    step: ResponseStep,
+    action: ResponseAction,
+  ): Promise<void> => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    const request: ResponseBlockRequest | undefined = action.block;
 
-      if (!projectId || !request || workingStepKey) {
-        return;
+    if (!projectId || !request || workingStepKey) {
+      return;
+    }
+
+    setWorkingStepKey(step.key);
+    setActionError("");
+
+    try {
+      const record: SecurityBlock = new SecurityBlock();
+      record.projectId = projectId;
+      record.value = request.value;
+      record.action = request.action;
+      record.reach = request.reach;
+      record.securityCaseId = props.caseId;
+
+      const expiresAt: Date | null = getSecurityBlockExpiry(
+        request.duration,
+        OneUptimeDate.getCurrentDate(),
+      );
+
+      if (expiresAt) {
+        record.expiresAt = expiresAt;
       }
 
-      setWorkingStepKey(step.key);
-      setActionError("");
+      await ModelAPI.create<SecurityBlock>({
+        model: record,
+        modelType: SecurityBlock,
+      });
 
-      try {
-        const record: SecurityBlock = new SecurityBlock();
-        record.projectId = projectId;
-        record.value = request.value;
-        record.action = request.action;
-        record.reach = request.reach;
-        record.securityCaseId = props.caseId;
+      Toast.success(
+        translator.translateTemplate(RESPONSE_BLOCKED, {
+          value: request.value,
+        }),
+      );
+      await load();
+    } catch (err) {
+      setActionError(API.getFriendlyMessage(err));
+    }
 
-        const expiresAt: Date | null = getSecurityBlockExpiry(
-          request.duration,
-          OneUptimeDate.getCurrentDate(),
-        );
-
-        if (expiresAt) {
-          record.expiresAt = expiresAt;
-        }
-
-        await ModelAPI.create<SecurityBlock>({
-          model: record,
-          modelType: SecurityBlock,
-        });
-
-        Toast.success(
-          translator.translateTemplate(RESPONSE_BLOCKED, {
-            value: request.value,
-          }),
-        );
-        await load();
-      } catch (err) {
-        setActionError(API.getFriendlyMessage(err));
-      }
-
-      setWorkingStepKey("");
-    };
+    setWorkingStepKey("");
+  };
 
   // Tick a step off - or on again: its task made, or changed.
   const toggle: (step: ResponseStep) => Promise<void> = async (

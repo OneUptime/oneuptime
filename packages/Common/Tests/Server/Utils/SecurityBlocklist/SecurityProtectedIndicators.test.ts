@@ -105,13 +105,11 @@ beforeEach(() => {
   asked = [];
   failing = new Set();
 
-  jest
-    .spyOn(SecurityProtectedEntityService, "findBy")
-    .mockImplementation(
-      answer("ProtectedEntity", () => {
-        return entities;
-      }) as never,
-    );
+  jest.spyOn(SecurityProtectedEntityService, "findBy").mockImplementation(
+    answer("ProtectedEntity", () => {
+      return entities;
+    }) as never,
+  );
   jest.spyOn(MonitorService, "findBy").mockImplementation(
     answer("Monitor", () => {
       return monitors;
@@ -183,9 +181,9 @@ describe("a domain on the Protected Entities list", () => {
   test("a `*.` entry protects every name under it, and a URL on one", async () => {
     entities = [{ value: "*.acme.com" }];
 
-    expect((await protectionOf("evil.acme.com")).protection?.protectedValue).toBe(
-      "*.acme.com",
-    );
+    expect(
+      (await protectionOf("evil.acme.com")).protection?.protectedValue,
+    ).toBe("*.acme.com");
     expect(
       (await protectionOf("https://login.acme.com/reset")).protection
         ?.protectedValue,
@@ -280,7 +278,9 @@ describe("the project's own domains", () => {
   });
 
   test("a verified domain protects every name under it, and only a verified one is read", async () => {
-    domains = [{ _id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", domain: "acme.com" }];
+    domains = [
+      { _id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", domain: "acme.com" },
+    ];
 
     expect((await protectionOf("evil.acme.com")).protection).toEqual({
       source: SecurityProtectedAddressSource.ProjectDomain,
@@ -315,7 +315,8 @@ describe("the project's own domains", () => {
       },
     ];
 
-    const alb: SecurityProtectionCheck = await protectionOf("elb.amazonaws.com");
+    const alb: SecurityProtectionCheck =
+      await protectionOf("elb.amazonaws.com");
 
     expect(alb.protection?.source).toBe(
       SecurityProtectedAddressSource.CloudResource,
@@ -326,9 +327,9 @@ describe("the project's own domains", () => {
     expect(alb.protection?.name).toBe("prod-alb");
     expect(alb.protection?.where).toBe("Production");
 
-    expect((await protectionOf("shop.acme.io")).protection?.protectedValue).toBe(
-      "acme.io",
-    );
+    expect(
+      (await protectionOf("shop.acme.io")).protection?.protectedValue,
+    ).toBe("acme.io");
   });
 
   test("a domain nothing protects is not protected, every source read", async () => {
@@ -356,7 +357,9 @@ describe("the project's own domains", () => {
 describe("a source that cannot tell", () => {
   test("one that cannot be read is named, and the others are still asked", async () => {
     failing.add("Monitor");
-    statusPages = [{ fullDomain: "status.acme.com", statusPage: { name: "S" } }];
+    statusPages = [
+      { fullDomain: "status.acme.com", statusPage: { name: "S" } },
+    ];
 
     expect(await protectionOf("evil.example")).toEqual({
       protection: null,

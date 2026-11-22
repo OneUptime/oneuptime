@@ -91,7 +91,9 @@ const INDICATOR_TYPES: Partial<
 };
 
 // The block's action as an indicator's, and back.
-function toDefenderAction(action: SecurityBlockAction): DefenderIndicatorAction {
+function toDefenderAction(
+  action: SecurityBlockAction,
+): DefenderIndicatorAction {
   return action === SecurityBlockAction.BlockAndQuarantine
     ? DefenderIndicatorAction.BlockAndRemediate
     : DefenderIndicatorAction.Block;
@@ -216,9 +218,11 @@ export default class MicrosoftDefenderBlockDestination
 
     const results: Array<DefenderIndicatorImportResult> =
       await this.client.importIndicators(
-        entries.map((entry: SecurityBlockEntry): DefenderIndicatorSubmission => {
-          return this.toSubmission(entry);
-        }),
+        entries.map(
+          (entry: SecurityBlockEntry): DefenderIndicatorSubmission => {
+            return this.toSubmission(entry);
+          },
+        ),
       );
 
     return entries.map(
@@ -260,18 +264,20 @@ export default class MicrosoftDefenderBlockDestination
       ),
     );
 
-    return items.map((item: SecurityBlockHeldItem): SecurityBlockWriteResult => {
-      const error: string | undefined = item.providerRef
-        ? failures.get(item.providerRef)
-        : "OneUptime does not know which Microsoft Defender indicator holds it";
+    return items.map(
+      (item: SecurityBlockHeldItem): SecurityBlockWriteResult => {
+        const error: string | undefined = item.providerRef
+          ? failures.get(item.providerRef)
+          : "OneUptime does not know which Microsoft Defender indicator holds it";
 
-      return {
-        value: item.value,
-        action: item.action,
-        isDone: !error,
-        ...(error ? { error } : {}),
-      };
-    });
+        return {
+          value: item.value,
+          action: item.action,
+          isDone: !error,
+          ...(error ? { error } : {}),
+        };
+      },
+    );
   }
 
   /*
@@ -305,7 +311,8 @@ export default class MicrosoftDefenderBlockDestination
     return {
       indicatorValue: value,
       indicatorType:
-        INDICATOR_TYPES[entry.indicatorType] || DefenderIndicatorType.DomainName,
+        INDICATOR_TYPES[entry.indicatorType] ||
+        DefenderIndicatorType.DomainName,
       action: toDefenderAction(entry.action),
       title: `OneUptime: ${entry.value}`,
       description: `${entry.comment} ${this.marker}`,

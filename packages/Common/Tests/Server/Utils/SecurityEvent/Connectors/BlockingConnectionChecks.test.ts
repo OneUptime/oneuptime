@@ -61,7 +61,7 @@ function tokenWithRoles(roles: Array<string> | undefined): string {
       .toString("base64")
       .replace(/\+/g, "-")
       .replace(/\//g, "_")
-      .replace(/=+$/, "");
+      .replace(/[=]+$/, "");
   };
 
   return `${encode({ alg: "RS256" })}.${encode(roles ? { roles } : { aud: "x" })}.signature`;
@@ -159,7 +159,12 @@ function falcon(data: {
         errors:
           data.read === 200
             ? []
-            : [{ code: data.read, message: "access denied, authorization failed" }],
+            : [
+                {
+                  code: data.read,
+                  message: "access denied, authorization failed",
+                },
+              ],
       });
     }
 
@@ -535,9 +540,10 @@ describe("CrowdStrike Falcon: IOC Management Read and Write", () => {
   });
 
   test("the connection's test adds it only with the switch on", async () => {
-    const connector: CrowdStrikeFalconConnector = new CrowdStrikeFalconConnector(
-      falcon({ read: 200, write: 400 }).transport,
-    );
+    const connector: CrowdStrikeFalconConnector =
+      new CrowdStrikeFalconConnector(
+        falcon({ read: 200, write: 400 }).transport,
+      );
 
     const off: Array<SecurityConnectorCheck> = await connector
       .testConnection(falconSettings(false), { requestTimeoutInMs: 20000 })

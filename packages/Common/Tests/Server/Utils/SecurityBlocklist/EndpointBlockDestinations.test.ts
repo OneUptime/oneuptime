@@ -152,9 +152,8 @@ function indicator(data: Partial<DefenderIndicator>): DefenderIndicator {
 
 describe("MicrosoftDefenderBlockDestination: what it holds", () => {
   test("is a destination on every machine, keyed by its connection, that quarantines files", () => {
-    const destination: MicrosoftDefenderBlockDestination = defender(
-      newFakeDefender(),
-    );
+    const destination: MicrosoftDefenderBlockDestination =
+      defender(newFakeDefender());
 
     expect(destination.key).toBe(`MicrosoftDefender:${CONNECTION.toString()}`);
     expect(destination.provider).toBe(
@@ -166,9 +165,8 @@ describe("MicrosoftDefenderBlockDestination: what it holds", () => {
   });
 
   test("blocks every kind but a range, and never challenges", () => {
-    const destination: MicrosoftDefenderBlockDestination = defender(
-      newFakeDefender(),
-    );
+    const destination: MicrosoftDefenderBlockDestination =
+      defender(newFakeDefender());
 
     for (const indicatorType of Object.values(SecurityBlockIndicatorType)) {
       const support: SecurityBlockSupport = destination.supports({
@@ -212,9 +210,8 @@ describe("MicrosoftDefenderBlockDestination: what it holds", () => {
   });
 
   test("is asked to hold an address only when it is blocked everywhere", () => {
-    const destination: MicrosoftDefenderBlockDestination = defender(
-      newFakeDefender(),
-    );
+    const destination: MicrosoftDefenderBlockDestination =
+      defender(newFakeDefender());
 
     expect(
       isSecurityBlockForDestination({
@@ -451,8 +448,16 @@ describe("MicrosoftDefenderBlockDestination: writing", () => {
     const results: Array<SecurityBlockWriteResult> = await defender(
       fake,
     ).remove([
-      { value: "a.example", action: SecurityBlockAction.Block, providerRef: "1" },
-      { value: "b.example", action: SecurityBlockAction.Block, providerRef: "2" },
+      {
+        value: "a.example",
+        action: SecurityBlockAction.Block,
+        providerRef: "1",
+      },
+      {
+        value: "b.example",
+        action: SecurityBlockAction.Block,
+        providerRef: "2",
+      },
       { value: "c.example", action: SecurityBlockAction.Block },
     ]);
 
@@ -595,16 +600,20 @@ function ioc(data: Partial<CrowdStrikeIoc>): CrowdStrikeIoc {
 
 describe("CrowdStrikeBlockDestination: what it holds", () => {
   test("is a destination on every machine that blocks files, and leaves quarantine to Falcon's policy", () => {
-    const destination: CrowdStrikeBlockDestination = crowdStrike(newFakeFalcon());
+    const destination: CrowdStrikeBlockDestination =
+      crowdStrike(newFakeFalcon());
 
     expect(destination.key).toBe(`CrowdStrike:${CONNECTION.toString()}`);
-    expect(destination.provider).toBe(SecurityBlockDestinationProvider.CrowdStrike);
+    expect(destination.provider).toBe(
+      SecurityBlockDestinationProvider.CrowdStrike,
+    );
     expect(destination.enforcesOnEveryMachine).toBe(true);
     expect(destination.quarantinesFiles).toBe(false);
   });
 
   test("holds a SHA-256 or MD5 file, blocked or to be quarantined, and says why not of the rest", () => {
-    const destination: CrowdStrikeBlockDestination = crowdStrike(newFakeFalcon());
+    const destination: CrowdStrikeBlockDestination =
+      crowdStrike(newFakeFalcon());
     const support: (
       indicatorType: SecurityBlockIndicatorType,
       action?: SecurityBlockAction,
@@ -629,7 +638,10 @@ describe("CrowdStrikeBlockDestination: what it holds", () => {
       ),
     ).toEqual({ isSupported: true });
     expect(
-      support(SecurityBlockIndicatorType.FileMd5, SecurityBlockAction.Challenge),
+      support(
+        SecurityBlockIndicatorType.FileMd5,
+        SecurityBlockAction.Challenge,
+      ),
     ).toEqual({
       isSupported: false,
       reason: "CrowdStrike Falcon cannot challenge, only block",
@@ -682,7 +694,8 @@ describe("CrowdStrikeBlockDestination: reading back", () => {
       ioc({ id: "d", description: "A person's own IOC" }),
     ];
 
-    const held: Array<SecurityBlockHeldItem> = await crowdStrike(fake).readBack();
+    const held: Array<SecurityBlockHeldItem> =
+      await crowdStrike(fake).readBack();
 
     expect(held).toEqual([
       {
@@ -708,7 +721,8 @@ describe("CrowdStrikeBlockDestination: reading back", () => {
       ioc({ id: "no-end", expiration: null }),
     ];
 
-    const held: Array<SecurityBlockHeldItem> = await crowdStrike(fake).readBack();
+    const held: Array<SecurityBlockHeldItem> =
+      await crowdStrike(fake).readBack();
 
     expect(held[0]).toEqual({
       value: SHA256,
@@ -769,7 +783,10 @@ describe("CrowdStrikeBlockDestination: writing", () => {
 
     expect(
       await crowdStrike(fake).apply([
-        entry({ indicatorType: SecurityBlockIndicatorType.FileSha256, value: SHA256 }),
+        entry({
+          indicatorType: SecurityBlockIndicatorType.FileSha256,
+          value: SHA256,
+        }),
       ]),
     ).toEqual([
       {

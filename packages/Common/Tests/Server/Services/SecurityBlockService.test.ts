@@ -1117,7 +1117,9 @@ describe("SecurityBlockService", () => {
       SecurityBlockDestinations.setSourcesForTests([
         {
           provider: SecurityBlockDestinationProvider.Test,
-          findForProject: async (): Promise<Array<SecurityBlockDestination>> => {
+          findForProject: async (): Promise<
+            Array<SecurityBlockDestination>
+          > => {
             return [destination];
           },
         },
@@ -1172,7 +1174,12 @@ describe("SecurityBlockService", () => {
 
       expect(
         rows().map((row: StoredRow) => {
-          return [row["value"], row["indicatorType"], row["action"], row["reach"]];
+          return [
+            row["value"],
+            row["indicatorType"],
+            row["action"],
+            row["reach"],
+          ];
         }),
       ).toEqual([
         [

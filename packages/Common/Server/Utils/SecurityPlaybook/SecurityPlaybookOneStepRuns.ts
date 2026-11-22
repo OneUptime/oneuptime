@@ -268,7 +268,11 @@ export default class SecurityPlaybookOneStepRuns {
     const read: SecurityBlockIndicatorValue | null = check.value;
 
     // An address or a range: a domain or a file is blocked on every machine, never from here (#10346).
-    if (check.problem || !read || !isSecurityBlockAddressType(read.indicatorType)) {
+    if (
+      check.problem ||
+      !read ||
+      !isSecurityBlockAddressType(read.indicatorType)
+    ) {
       throw new BadDataException(
         check.problem || SECURITY_BLOCK_MESSAGES.notAnAddress,
       );

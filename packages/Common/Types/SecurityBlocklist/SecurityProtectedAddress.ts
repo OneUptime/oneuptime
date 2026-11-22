@@ -237,6 +237,10 @@ export const SECURITY_PROTECTED_UNDER_DOMAIN: string = translationKey(
  * The domain a value names: a domain itself, or a URL's host when that is
  * a domain. Null for anything else.
  */
+// What a domain is written of, once lower-cased, and that a host name holds (an address holds none).
+const DOMAIN_CHARACTERS: RegExp = /^[a-z0-9.-]+$/;
+const A_LETTER: RegExp = /[a-z]/;
+
 function domainOf(value: string): string | null {
   const text: string = (value || "").trim().toLowerCase();
 
@@ -247,13 +251,13 @@ function domainOf(value: string): string | null {
   const schemeEnd: number = text.indexOf("://");
 
   if (schemeEnd === -1) {
-    return /^[a-z0-9.-]+$/.test(text) && text.includes(".") ? text : null;
+    return DOMAIN_CHARACTERS.test(text) && text.includes(".") ? text : null;
   }
 
   try {
     const host: string = new URL(text).hostname;
 
-    return /^[a-z0-9.-]+$/.test(host) && /[a-z]/.test(host) ? host : null;
+    return DOMAIN_CHARACTERS.test(host) && A_LETTER.test(host) ? host : null;
   } catch {
     return null;
   }

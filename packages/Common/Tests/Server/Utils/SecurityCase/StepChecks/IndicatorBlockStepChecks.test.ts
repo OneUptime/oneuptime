@@ -65,7 +65,8 @@ function block(data: {
     reach: data.reach || SecurityBlockReach.Everywhere,
     action: SecurityBlockAction.Block,
     createdAt: at(5),
-    expiresAt: data.expiresAt === undefined ? at(5 + 7 * 24 * 60) : data.expiresAt,
+    expiresAt:
+      data.expiresAt === undefined ? at(5 + 7 * 24 * 60) : data.expiresAt,
     holding: (data.holding || []).map(
       (holding: { provider: string; destination: string; minute: number }) => {
         return {
@@ -276,7 +277,9 @@ describe("Block the domain on every machine", () => {
     const result: StepCheckResult | null = await checkDomain({
       minute: 10,
       reading: {
-        blocks: [block({ reach: SecurityBlockReach.Edge, holding: [DEFENDER] })],
+        blocks: [
+          block({ reach: SecurityBlockReach.Edge, holding: [DEFENDER] }),
+        ],
         lastEndedAt: null,
       },
     });

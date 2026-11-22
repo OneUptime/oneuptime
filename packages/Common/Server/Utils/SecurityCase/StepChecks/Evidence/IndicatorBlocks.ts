@@ -155,7 +155,8 @@ export default class IndicatorBlocks {
         return {
           id: row.id!.toString(),
           reach: (row.reach as SecurityBlockReach) || SecurityBlockReach.Edge,
-          action: (row.action as SecurityBlockAction) || SecurityBlockAction.Block,
+          action:
+            (row.action as SecurityBlockAction) || SecurityBlockAction.Block,
           createdAt: row.createdAt ? new Date(row.createdAt) : data.now,
           expiresAt: row.expiresAt ? new Date(row.expiresAt) : null,
           holding,

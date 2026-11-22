@@ -42,10 +42,8 @@ import {
   SecurityBlockReach,
   SecurityBlockSource,
   SecurityBlockState,
-  SecurityBlockValue,
   getSecurityBlockReach,
   readSecurityBlockIndicator,
-  readSecurityBlockValue,
 } from "../../../../Types/SecurityBlocklist/SecurityBlock";
 import SecurityCaseStepChecks from "../../../../Server/Utils/SecurityCase/StepChecks/SecurityCaseStepChecks";
 import {
@@ -2062,9 +2060,7 @@ describe("a destination on every machine (#10346)", () => {
     addBlock({ index: 1, value: "evil.example", hasCase: true });
     await pass(1);
 
-    expect(
-      linesSaying("is enforced at Microsoft Defender").length,
-    ).toBe(1);
+    expect(linesSaying("is enforced at Microsoft Defender").length).toBe(1);
     expect(checkRequests).toEqual([
       { projectId: PROJECT_ID, securityCaseId: CASE_ID },
     ]);
@@ -2078,7 +2074,9 @@ describe("getHeldItemKey, for every kind of value (#10346)", () => {
     );
     expect(
       getHeldItemKey("HTTPS://Evil.Example/Login", SecurityBlockAction.Block),
-    ).toBe(getHeldItemKey("https://evil.example/login", SecurityBlockAction.Block));
+    ).toBe(
+      getHeldItemKey("https://evil.example/login", SecurityBlockAction.Block),
+    );
     expect(
       getHeldItemKey(
         "44D88612FEA8A8F36DE82E1278ABB02F",

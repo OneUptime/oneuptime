@@ -37,12 +37,14 @@ export enum SecurityBlockHashKind {
   Sha256 = "Sha256",
 }
 
-const HASH_KIND_BY_LENGTH: ReadonlyMap<number, SecurityBlockHashKind> =
-  new Map<number, SecurityBlockHashKind>([
-    [32, SecurityBlockHashKind.Md5],
-    [40, SecurityBlockHashKind.Sha1],
-    [64, SecurityBlockHashKind.Sha256],
-  ]);
+const HASH_KIND_BY_LENGTH: ReadonlyMap<number, SecurityBlockHashKind> = new Map<
+  number,
+  SecurityBlockHashKind
+>([
+  [32, SecurityBlockHashKind.Md5],
+  [40, SecurityBlockHashKind.Sha1],
+  [64, SecurityBlockHashKind.Sha256],
+]);
 
 const HEX: RegExp = /^[0-9a-f]+$/;
 
@@ -60,6 +62,12 @@ const NOT_IN_A_DOMAIN: RegExp = /[\s/\\:@?#[\]%]/;
 
 // A URL's scheme, as typed.
 const URL_SCHEME: RegExp = /^([a-z][a-z0-9+.-]*):\/\//i;
+
+// A space anywhere: never in a URL as typed.
+const ANY_SPACE: RegExp = /\s/;
+
+// A host written as an IPv4 address.
+const IPV4_HOST: RegExp = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 
 const BLOCKED_URL_SCHEMES: ReadonlyArray<string> = ["http", "https"];
 
@@ -230,7 +238,7 @@ export function readSecurityBlockUrl(
   if (
     !scheme ||
     !BLOCKED_URL_SCHEMES.includes((scheme[1] || "").toLowerCase()) ||
-    /\s/.test(text)
+    ANY_SPACE.test(text)
   ) {
     return null;
   }
@@ -253,8 +261,7 @@ export function readSecurityBlockUrl(
     hostname.startsWith("[") && hostname.endsWith("]")
       ? hostname.slice(1, -1)
       : hostname;
-  const isAddressHost: boolean =
-    /^\d{1,3}(?:\.\d{1,3}){3}$/.test(bare) || bare.includes(":");
+  const isAddressHost: boolean = IPV4_HOST.test(bare) || bare.includes(":");
 
   if (!isAddressHost && !isAsciiDomain(bare)) {
     return null;

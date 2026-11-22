@@ -159,10 +159,10 @@ describe("readSecurityBlockUrl", () => {
 
 describe("readSecurityBlockHash", () => {
   test("each kind by its length, in lower-case hex", () => {
-    const expectHash: (
+    const expectHash: (text: string, kind: SecurityBlockHashKind) => void = (
       text: string,
       kind: SecurityBlockHashKind,
-    ) => void = (text: string, kind: SecurityBlockHashKind): void => {
+    ): void => {
       const read: SecurityBlockHashReading | null = readSecurityBlockHash(
         `  ${text.toUpperCase()}  `,
       );

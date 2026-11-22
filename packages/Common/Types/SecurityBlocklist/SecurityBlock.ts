@@ -487,9 +487,7 @@ export function readSecurityBlockIndicator(
       : {
           indicatorType: SecurityBlockIndicatorType.Url,
           value: url.url,
-          ...(url.isAddressHost
-            ? { address: url.host }
-            : { domain: url.host }),
+          ...(url.isAddressHost ? { address: url.host } : { domain: url.host }),
         };
   }
 
@@ -940,7 +938,9 @@ export function findCoveringSecurityBlock<T extends SecurityBlockCandidate>(
   let bestPrefix: number = -1;
 
   for (const candidate of activeBlocks) {
-    if (!doesSecurityBlockReachCover({ held: candidate.reach, wanted: reach })) {
+    if (
+      !doesSecurityBlockReachCover({ held: candidate.reach, wanted: reach })
+    ) {
       continue;
     }
 

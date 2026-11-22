@@ -2099,9 +2099,11 @@ describe("Security Cases and Playbooks docs", () => {
     ).toEqual(["Addresses", "Domains and URLs", "Files"]);
 
     // Domains, URLs and files, on every machine, for as long as each tab says (#10346).
-    expect([BLOCK_DOMAIN_TITLE, BLOCK_FILE_TITLE, QUARANTINE_FIELD_TITLE]).toEqual(
-      ["Block Domain or URL", "Block File", "Quarantine It"],
-    );
+    expect([
+      BLOCK_DOMAIN_TITLE,
+      BLOCK_FILE_TITLE,
+      QUARANTINE_FIELD_TITLE,
+    ]).toEqual(["Block Domain or URL", "Block File", "Quarantine It"]);
     expect(blocklist).toContain(
       "**Block Domain or URL** and **Block File** block on every machine, through a [Microsoft Defender](/docs/integrations/microsoft-defender-xdr) or [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) connection with blocking turned on",
     );

@@ -481,8 +481,9 @@ export class Service extends ProjectReferencesService<Model> {
     coveredBy: Model | null;
     protection: SecurityProtectionCheck | null;
   }> {
-    const read: SecurityBlockIndicatorValue | null =
-      readSecurityBlockIndicator(data.value);
+    const read: SecurityBlockIndicatorValue | null = readSecurityBlockIndicator(
+      data.value,
+    );
     const problem: string | null = getSecurityBlockValueProblem({
       value: data.value,
       mayBlockWideRanges: this.mayGoPastLimits(data.props, data.projectId),
@@ -770,8 +771,9 @@ export class Service extends ProjectReferencesService<Model> {
     now: Date;
   }): Promise<SecurityBlockOutcome | null> {
     const { record, now } = data;
-    const read: SecurityBlockIndicatorValue | null =
-      readSecurityBlockIndicator(record.value);
+    const read: SecurityBlockIndicatorValue | null = readSecurityBlockIndicator(
+      record.value,
+    );
 
     if (!record.projectId || !read) {
       return {
@@ -889,8 +891,9 @@ export class Service extends ProjectReferencesService<Model> {
     onCreate: OnCreate<Model>,
   ): Promise<void> {
     const record: Model = onCreate.createBy.data;
-    const read: SecurityBlockIndicatorValue | null =
-      readSecurityBlockIndicator(record.value);
+    const read: SecurityBlockIndicatorValue | null = readSecurityBlockIndicator(
+      record.value,
+    );
 
     if (read) {
       record.indicatorType = read.indicatorType;

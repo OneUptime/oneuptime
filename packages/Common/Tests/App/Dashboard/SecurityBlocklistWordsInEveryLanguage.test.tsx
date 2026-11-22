@@ -261,12 +261,12 @@ describe("every key is English in en.json, and worded in every other language", 
         return typeof EN[key] !== "string";
       }),
     ).toEqual([]);
-    expect(optInWords(SecurityEventConnectorProvider.CrowdStrikeFalcon)).toEqual(
-      [
-        "Block files with CrowdStrike",
-        "OneUptime adds custom IOCs that stop a file running on every computer. Needs the IOC Management: Read and Write scopes.",
-      ],
-    );
+    expect(
+      optInWords(SecurityEventConnectorProvider.CrowdStrikeFalcon),
+    ).toEqual([
+      "Block files with CrowdStrike",
+      "OneUptime adds custom IOCs that stop a file running on every computer. Needs the IOC Management: Read and Write scopes.",
+    ]);
   });
 
   test.each(DASHBOARD_LANGUAGES)(
@@ -309,9 +309,11 @@ describe("every key is English in en.json, and worded in every other language", 
 
       for (const [key, kept] of asWritten) {
         for (const text of kept) {
-          expect({ key, text, kept: (words[key] || "").includes(text) }).toEqual(
-            { key, text, kept: true },
-          );
+          expect({
+            key,
+            text,
+            kept: (words[key] || "").includes(text),
+          }).toEqual({ key, text, kept: true });
         }
       }
     },

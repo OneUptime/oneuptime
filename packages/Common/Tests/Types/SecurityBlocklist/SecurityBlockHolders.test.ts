@@ -25,7 +25,10 @@ const CLOUDFLARE: SecurityBlockHolder = {
   name: "Cloudflare",
   provider: "Cloudflare",
   enforcesOnEveryMachine: false,
-  blocks: [SecurityBlockIndicatorType.IpAddress, SecurityBlockIndicatorType.IpRange],
+  blocks: [
+    SecurityBlockIndicatorType.IpAddress,
+    SecurityBlockIndicatorType.IpRange,
+  ],
   quarantinesFiles: false,
 };
 

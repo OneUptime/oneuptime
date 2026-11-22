@@ -186,7 +186,10 @@ describe("getSecurityBlockValueSentence", () => {
         value: "*.evil.example",
         mayBlockWideRanges: false,
       }),
-    ).toEqual({ template: SECURITY_BLOCK_SENTENCES.wildcardDomain, values: {} });
+    ).toEqual({
+      template: SECURITY_BLOCK_SENTENCES.wildcardDomain,
+      values: {},
+    });
     expect(
       getSecurityBlockValueSentence({
         value: "ab".repeat(64),
@@ -851,7 +854,10 @@ describe("where a block is enforced", () => {
       SecurityBlockIndicatorType.FileSha256,
     ]) {
       expect(
-        getSecurityBlockReach({ indicatorType, reach: SecurityBlockReach.Edge }),
+        getSecurityBlockReach({
+          indicatorType,
+          reach: SecurityBlockReach.Edge,
+        }),
       ).toBe(SecurityBlockReach.Everywhere);
     }
   });

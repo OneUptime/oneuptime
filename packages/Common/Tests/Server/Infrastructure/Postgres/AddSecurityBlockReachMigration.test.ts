@@ -204,9 +204,7 @@ describe("AddSecurityBlockValueReachIndex migration", () => {
       await onlineStatementsOf((runner: QueryRunner) => {
         return migration.down(runner);
       }),
-    ).toEqual([
-      `online: DROP INDEX "public"."IDX_ac2da67eb841306d277e0aeb47"`,
-    ]);
+    ).toEqual([`online: DROP INDEX "public"."IDX_ac2da67eb841306d277e0aeb47"`]);
   });
 });
 
@@ -222,7 +220,9 @@ describe("the two migrations, with the model", () => {
 
     expect(first).toBeGreaterThan(-1);
     expect(second).toBe(first + 1);
-    expect(names.lastIndexOf("AddSecurityBlockReachAndWiderValue1809187421200")).toBe(first);
+    expect(
+      names.lastIndexOf("AddSecurityBlockReachAndWiderValue1809187421200"),
+    ).toBe(first);
     expect(names.indexOf("AddSecurityBlocklist1809187150000")).toBeLessThan(
       first,
     );
@@ -250,16 +250,20 @@ describe("the two migrations, with the model", () => {
     expect(index!.unique).toBe(true);
     expect(index!.where).toBe(`"state" = 'Active' AND "deletedAt" IS NULL`);
 
-    const reach: ColumnMetadataArgs | undefined = getMetadataArgsStorage()
-      .columns.find((column: ColumnMetadataArgs) => {
-        return column.target === SecurityBlock && column.propertyName === "reach";
+    const reach: ColumnMetadataArgs | undefined =
+      getMetadataArgsStorage().columns.find((column: ColumnMetadataArgs) => {
+        return (
+          column.target === SecurityBlock && column.propertyName === "reach"
+        );
       });
 
     expect(reach?.options.default).toBe("Edge");
 
-    const value: ColumnMetadataArgs | undefined = getMetadataArgsStorage()
-      .columns.find((column: ColumnMetadataArgs) => {
-        return column.target === SecurityBlock && column.propertyName === "value";
+    const value: ColumnMetadataArgs | undefined =
+      getMetadataArgsStorage().columns.find((column: ColumnMetadataArgs) => {
+        return (
+          column.target === SecurityBlock && column.propertyName === "value"
+        );
       });
 
     expect(value?.options.length).toBe(500);
