@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 61713,
+    "keys": 61841,
     "untranslated": 2306
   },
   "sameAsEnglish": [
@@ -176,6 +176,7 @@
     "Fatal",
     "Favicon",
     "Feed",
+    "Firewall",
     "First Contentful Paint",
     "Fivetran",
     "FlashArray",
@@ -274,6 +275,7 @@
     "Loopback",
     "MCP",
     "MD5",
+    "MD5 URL",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
     "MTU",

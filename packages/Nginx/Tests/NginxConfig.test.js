@@ -83,7 +83,7 @@ const PROXY_HTTP_VERSION_EXCEPTIONS = [
  * defeats the purpose on that listener.
  */
 const CALENDAR_FEED_LOCATION_SPEC =
-  "~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/";
+  "~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project|blocklist-feed)/";
 
 function findCalendarFeedLocation(serverBlock) {
   return getLocationBlocks(serverBlock.body).find((location) => {
@@ -598,7 +598,7 @@ test("no other location silences or redirects its error log", () => {
   );
 });
 
-test("the calendar feed regex covers the four feed kinds and nothing else", () => {
+test("the feed regex covers the four calendar feed kinds and the blocklist feeds, and nothing else", () => {
   const pattern = new RegExp(locationRegexSource(CALENDAR_FEED_LOCATION_SPEC));
 
   const token = "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCd0";
@@ -613,6 +613,11 @@ test("the calendar feed regex covers the four feed kinds and nothing else", () =
     // token in it and still must not be logged.
     "/api/on-call-calendar/user/not-a-token/anything",
     "/api/scheduled-maintenance-calendar/project/not-a-token/anything",
+    // A blocklist feed (#10345): a firewall that can send no header puts the secret in the path.
+    `/api/blocklist-feed/00000000-0000-4000-8000-000000000000/${"a".repeat(64)}/blocklist.txt`,
+    `/api/blocklist-feed/00000000-0000-4000-8000-000000000000/${"a".repeat(64)}/blocklist.txt.md5`,
+    "/api/blocklist-feed/00000000-0000-4000-8000-000000000000/nftables.nft",
+    "/api/blocklist-feed/not-a-feed/anything",
   ]) {
     assert.ok(pattern.test(uri), `should match ${uri}`);
   }
@@ -642,6 +647,12 @@ test("the calendar feed regex covers the four feed kinds and nothing else", () =
     // A status page's own calendar is public and carries no token.
     "/maintenance.ics",
     "/status-page/00000000-0000-4000-8000-000000000000/maintenance.ics",
+    // The feeds' own records and secrets are session routes, logged like any other API call.
+    "/api/security-blocklist-feed/get-list",
+    "/api/security-blocklist-feed/00000000-0000-4000-8000-000000000000/rotate-secret",
+    "/api/security-blocklist-feed-fetch/get-list",
+    "/api/blocklist-feedx/00000000-0000-4000-8000-000000000000/blocklist.txt",
+    "/status-page-api/blocklist-feed/00000000-0000-4000-8000-000000000000/blocklist.txt",
   ]) {
     assert.ok(!pattern.test(uri), `should NOT match ${uri}`);
   }
