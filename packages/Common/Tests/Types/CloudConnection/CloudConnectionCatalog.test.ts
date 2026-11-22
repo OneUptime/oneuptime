@@ -198,6 +198,8 @@ describe("the catalog", () => {
       READ_INTERVAL_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
+      // Writes OneUptime's rules in WAF policies, off until someone opts in (#10348).
+      WAF_BLOCKLIST_FIELD_KEY,
     ]);
     expect(folded(CloudProvider.GCP)).toEqual([
       "projectIds",
@@ -206,6 +208,8 @@ describe("the catalog", () => {
       READ_INTERVAL_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
+      // Writes OneUptime's rules in Cloud Armor policies, off until someone opts in (#10349).
+      WAF_BLOCKLIST_FIELD_KEY,
     ]);
   });
 
@@ -277,11 +281,50 @@ describe("the catalog", () => {
       ["code", "On, and I add the rule in code"],
     ]);
 
-    // Azure WAF and Cloud Armor are their own issues' (#10348, #10349).
-    for (const provider of [CloudProvider.Azure, CloudProvider.GCP]) {
-      expect(keysOf(definitionOf(provider).configFields)).not.toContain(
-        WAF_BLOCKLIST_FIELD_KEY,
-      );
+    /*
+     * Azure WAF and Cloud Armor (#10348, #10349): the same setting, on or
+     * off. OneUptime always keeps its own rules in the policies picked -
+     * a WAF policy is written whole, so a rule kept in code would be
+     * written over - and the command grants its role with it.
+     */
+    for (const [provider, title, names] of [
+      [
+        CloudProvider.Azure,
+        "Block addresses in Azure WAF",
+        ["Application Gateway", "Front Door"],
+      ],
+      [CloudProvider.GCP, "Block addresses in Cloud Armor", ["Cloud Armor"]],
+    ] as Array<[CloudProvider, string, Array<string>]>) {
+      const policyField: CloudConnectionField | undefined = definitionOf(
+        provider,
+      ).configFields.find((candidate: CloudConnectionField): boolean => {
+        return candidate.key === WAF_BLOCKLIST_FIELD_KEY;
+      });
+
+      expect(policyField).toBeDefined();
+      expect(policyField!.title).toBe(title);
+      expect(policyField!.isAdvanced).toBe(true);
+      expect(policyField!.changesSetupCommand).toBe(true);
+      expect(policyField!.required).toBe(false);
+      expect(policyField!.defaultValue).toBe("off");
+      expect(policyField!.authMethods).toBeUndefined();
+      expect(policyField!.description.length).toBeLessThanOrEqual(150);
+      expect(policyField!.description).toContain("The command changes with it.");
+
+      for (const name of names) {
+        expect(policyField!.description).toContain(name);
+      }
+
+      expect(
+        (policyField!.options || []).map(
+          (option: { label: string; value: string }): Array<string> => {
+            return [option.value, option.label];
+          },
+        ),
+      ).toEqual([
+        ["off", "Off"],
+        ["rule", "On"],
+      ]);
     }
 
     expect(getCloudConnectionWafBlocklist("rule")).toBe("rule");

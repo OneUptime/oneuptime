@@ -365,6 +365,7 @@ export default class SecurityBlockCloudWaf extends BaseModel {
   @ColumnAccessControl(serverColumnAccess)
   @TableColumn({
     type: TableColumnType.JSON,
+    required: false,
     computed: true,
     title: "Status Reason",
     description:

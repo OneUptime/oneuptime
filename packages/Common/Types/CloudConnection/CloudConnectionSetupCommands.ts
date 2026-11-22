@@ -1385,14 +1385,21 @@ export function getGcpSetupCommand(
     : [];
 
   const blocks: boolean = isCloudConnectionWafBlocklistOn(wafBlocklist);
+  /*
+   * The APIs it calls on a line of their own, before its role: a choice
+   * only adds lines to the command it changes.
+   */
   const wafLines: Array<string> = blocks
-    ? getGcpCloudArmorBlocklistRoleLines({
-        roleHome,
-        roleName: organization
-          ? `organizations/$ORG_ID/roles/${GCP_CLOUD_ARMOR_BLOCKLIST_ROLE_ID}`
-          : `projects/$PROJECT_ID/roles/${GCP_CLOUD_ARMOR_BLOCKLIST_ROLE_ID}`,
-        bind,
-      })
+    ? [
+        `gcloud services enable ${GCP_CLOUD_ARMOR_BLOCKLIST_SERVICES.join(" ")}`,
+        ...getGcpCloudArmorBlocklistRoleLines({
+          roleHome,
+          roleName: organization
+            ? `organizations/$ORG_ID/roles/${GCP_CLOUD_ARMOR_BLOCKLIST_ROLE_ID}`
+            : `projects/$PROJECT_ID/roles/${GCP_CLOUD_ARMOR_BLOCKLIST_ROLE_ID}`,
+          bind,
+        }),
+      ]
     : [];
 
   return [
@@ -1406,7 +1413,6 @@ export function getGcpSetupCommand(
       new Set<string>([
         ...GCP_SERVICES,
         ...(content ? GCP_DATA_SECURITY_CONTENT_SERVICES : []),
-        ...(blocks ? GCP_CLOUD_ARMOR_BLOCKLIST_SERVICES : []),
       ]),
     ).join(" ")}`,
     `gcloud iam service-accounts create ${GCP_SERVICE_ACCOUNT_ID} --display-name "OneUptime (read only)" > /dev/null 2>&1 || true`,

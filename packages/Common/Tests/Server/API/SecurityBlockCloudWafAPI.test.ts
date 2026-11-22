@@ -99,6 +99,7 @@ import {
   SecurityBlockCloudWafLeftKind,
   SecurityBlockCloudWafStatus,
 } from "../../../Types/SecurityBlocklist/SecurityBlockCloudWaf";
+import { SecurityBlockCloudWafKind } from "../../../Types/SecurityBlocklist/SecurityBlockCloudWafKind";
 import { customDomainCaller } from "./CustomDomainCallers";
 import {
   InMemoryTable,
@@ -609,6 +610,7 @@ describe("changing and removing one", () => {
           _id: PICKED_ID,
           status: SecurityBlockCloudWafStatus.WaitingForRule,
           statusMessage: "prod-alb has no rule that blocks the sets yet.",
+          statusReason: null,
           ruleDetails: null,
           checkedAt: "2026-11-21T10:00:00.000Z",
         },
@@ -655,7 +657,7 @@ describe("changing and removing one", () => {
       params: { cloudWafId: "not-an-id" },
     });
 
-    expect(refusal?.message).toBe("A valid web ACL ID is required.");
+    expect(refusal?.message).toBe("A valid WAF ID is required.");
   });
 });
 
@@ -696,22 +698,44 @@ describe("the web ACLs that may be picked", () => {
     ]);
     expect(byName.get("prod-alb")).toEqual({
       cloudResourceId: WEB_ACL_ID,
+      cloudProvider: CloudProvider.AWS,
+      kind: SecurityBlockCloudWafKind.AwsWebAcl,
       name: "prod-alb",
       region: "eu-west-1",
       accountId: "123456789012",
       isCloudFront: false,
+      cloudArmorPolicyType: null,
+      // Where it can read the client's address, the address that connected first.
+      clientAddresses: [
+        SecurityBlockClientAddress.SourceIp,
+        SecurityBlockClientAddress.XForwardedFor,
+        SecurityBlockClientAddress.CfConnectingIp,
+        SecurityBlockClientAddress.TrueClientIp,
+      ],
       connectionId: CONNECTION_ID,
       connectionName: "Production",
       isBlockingOn: true,
       isListed: true,
+      refusal: "",
+      refusalReason: null,
       isPicked: true,
     });
     expect(byName.get("metrics-only")!["isListed"]).toBe(false);
     expect(byName.get("staging-alb")!["isBlockingOn"]).toBe(false);
     expect(byName.get("staging-alb")!["isPicked"]).toBe(false);
     expect(answer["connections"]).toEqual([
-      { _id: CONNECTION_ID, name: "Production", isBlockingOn: true },
-      { _id: OFF_CONNECTION_ID, name: "Staging", isBlockingOn: false },
+      {
+        _id: CONNECTION_ID,
+        name: "Production",
+        provider: CloudProvider.AWS,
+        isBlockingOn: true,
+      },
+      {
+        _id: OFF_CONNECTION_ID,
+        name: "Staging",
+        provider: CloudProvider.AWS,
+        isBlockingOn: false,
+      },
     ]);
   });
 

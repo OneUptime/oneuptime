@@ -243,6 +243,8 @@ describe("validateSettings", () => {
       readScope: "account",
       dataSecurity: "off",
       dataSecurityResponse: "off",
+      // Off until someone turns on blocking in Cloud Armor (#10349).
+      wafBlocklist: "off",
       authMethod: CloudConnectionAuthMethod.GcpServiceAccountKey,
       clientEmail: "oneuptime-read-only@acme-prod.iam.gserviceaccount.com",
       keyProjectId: "acme-prod",

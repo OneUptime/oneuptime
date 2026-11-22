@@ -61710,5 +61710,6 @@
   "{{policy}} was not found: it may have been deleted. Remove it here if it no longer exists.": "{{policy}} was not found: it may have been deleted. Remove it here if it no longer exists.",
   "{{product}} cannot challenge: it can only block.": "{{product}} cannot challenge: it can only block.",
   "{{product}} holds IPv4 and IPv6 addresses and ranges only.": "{{product}} holds IPv4 and IPv6 addresses and ranges only.",
-  "{{policy}} is a network edge security policy, whose rules match packets rather than requests, so OneUptime does not keep the blocklist in it. Pick a backend or edge security policy.": "{{policy}} is a network edge security policy, whose rules match packets rather than requests, so OneUptime does not keep the blocklist in it. Pick a backend or edge security policy."
+  "{{policy}} is a network edge security policy, whose rules match packets rather than requests, so OneUptime does not keep the blocklist in it. Pick a backend or edge security policy.": "{{policy}} is a network edge security policy, whose rules match packets rather than requests, so OneUptime does not keep the blocklist in it. Pick a backend or edge security policy.",
+  "Lets your blocklist block addresses in Application Gateway and Front Door WAF policies you pick, with rules of its own. The command changes with it.": "Lets your blocklist block addresses in Application Gateway and Front Door WAF policies you pick, with rules of its own. The command changes with it."
 }

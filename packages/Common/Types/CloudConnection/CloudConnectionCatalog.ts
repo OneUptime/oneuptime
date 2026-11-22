@@ -598,7 +598,7 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
       cloudWafBlocklistField({
         title: "Block addresses in Azure WAF",
         description:
-          "Lets your blocklist block addresses in the Application Gateway and Front Door WAF policies you pick, through rules of its own. The command changes with it.",
+          "Lets your blocklist block addresses in Application Gateway and Front Door WAF policies you pick, with rules of its own. The command changes with it.",
       }),
       {
         key: AZURE_SECRET_EXPIRES_AT_KEY,

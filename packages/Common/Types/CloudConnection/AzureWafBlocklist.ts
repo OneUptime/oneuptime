@@ -1049,6 +1049,11 @@ export function getAzureWafBlocklistRoleLines(): Array<string> {
  * scopes widened to the policy's subscription (another subscription's
  * assignments are kept), then assigned on the policy alone - so OneUptime
  * may write that policy and no other.
+ *
+ * The role is looked for where the policy is first, then in Cloud Shell's
+ * own subscription. az role definition update finds an existing role by
+ * its full id and needs its roleName with it (azure-cli's
+ * _create_update_role_definition), so both come from the list's answer.
  */
 export function getAzureWafPolicyAccessCommand(data: {
   clientId: string;
@@ -1062,9 +1067,10 @@ export function getAzureWafPolicyAccessCommand(data: {
 
   return [
     `SCOPE="/subscriptions/${data.policy.subscriptionId}"`,
-    `ROLE=$(az role definition list --custom-role-only true --name "${AZURE_WAF_BLOCKLIST_ROLE}" --query "[0]" --output json)`,
+    `ROLE=$(az role definition list --custom-role-only true --name "${AZURE_WAF_BLOCKLIST_ROLE}" --scope "$SCOPE" --query "[0]" --output json)`,
+    `if [ -z "$ROLE" ] || [ "$ROLE" = "null" ]; then ROLE=$(az role definition list --custom-role-only true --name "${AZURE_WAF_BLOCKLIST_ROLE}" --query "[0]" --output json); fi`,
     `if [ -n "$ROLE" ] && [ "$ROLE" != "null" ]; then`,
-    `  az role definition update --role-definition "$(echo "$ROLE" | jq --arg scope "$SCOPE" '{Name: .roleName, Id: .name, IsCustom: true, Description: "${ROLE_DESCRIPTION}", Actions: [${actions}], NotActions: [], AssignableScopes: ((.assignableScopes + [$scope]) | unique)}')" > /dev/null`,
+    `  az role definition update --role-definition "$(echo "$ROLE" | jq --arg scope "$SCOPE" '{Id: .id, RoleName: .roleName, IsCustom: true, Description: "${ROLE_DESCRIPTION}", Actions: [${actions}], NotActions: [], AssignableScopes: ((.assignableScopes + [$scope]) | unique)}')" > /dev/null`,
     `else`,
     `  az role definition create --role-definition "$(jq -n --arg scope "$SCOPE" '{Name: "${AZURE_WAF_BLOCKLIST_ROLE}", IsCustom: true, Description: "${ROLE_DESCRIPTION}", Actions: [${actions}], NotActions: [], AssignableScopes: [$scope]}')" > /dev/null`,
     `fi`,

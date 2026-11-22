@@ -311,6 +311,7 @@ export default class SecurityBlockEnforcement extends BaseModel {
   @ColumnAccessControl(serverColumnAccess)
   @TableColumn({
     type: TableColumnType.JSON,
+    required: false,
     computed: true,
     title: "Error Reason",
     description:
