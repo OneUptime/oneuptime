@@ -620,10 +620,14 @@ export default class AIRun extends BaseModel {
   public triggeredByAiInsightId?: ObjectID = undefined;
 
   /*
-   * Set when the run triages a security case (SecurityCaseTriageRunner):
-   * the case OneUptime AI read, whose card shows the run and whose timeline
-   * the report is posted to. A triage reads only; it never changes the case
-   * beyond the read it records on it.
+   * The security case the run is about. An Investigation run triages it
+   * (SecurityCaseTriageRunner): the case OneUptime AI read, whose card shows
+   * the run and whose timeline the report is posted to; a triage reads only,
+   * and never changes the case beyond the read it records on it. A CodeFix
+   * run fixes what the case's requests broke (#10347): Fix With AI asked
+   * for it from the case's playbook, and the pull request it opens carries
+   * the case (AIAgentTaskPullRequest.securityCaseId). Every reader of a
+   * case's triage asks for its Investigation runs alone.
    */
   @ColumnAccessControl({
     create: [],
@@ -642,7 +646,7 @@ export default class AIRun extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Triggered By Security Case ID",
     description:
-      "The security case this run triaged (for security case triage runs).",
+      "The security case this run is about: the case a triage run read, or the case a code fix was asked for from.",
   })
   @Column({
     type: ColumnType.ObjectID,

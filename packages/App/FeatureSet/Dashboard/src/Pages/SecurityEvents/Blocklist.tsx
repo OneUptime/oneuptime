@@ -34,6 +34,7 @@ import {
   LIFTED_LABEL,
   STATE_FILTER_TITLE,
 } from "../../Components/SecurityEvents/Blocklist/BlocklistCopy";
+import BlocklistCloudWafs from "../../Components/SecurityEvents/Blocklist/BlocklistCloudWafs";
 import BlocklistNotEnforcedNotice from "../../Components/SecurityEvents/Blocklist/BlocklistNotEnforcedNotice";
 import useBlocklistActions, {
   BlocklistActions,
@@ -70,6 +71,8 @@ import React, {
  *
  * While nothing enforces the blocklist, the page says so above the list,
  * with where to connect what would: a block nothing holds blocks nothing.
+ * Under the list, Cloud WAFs: the AWS WAF web ACLs it is enforced in, each
+ * picked from the project's AWS inventory (#10344).
  */
 const SecurityBlocklistPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -299,6 +302,11 @@ const SecurityBlocklistPage: FunctionComponent<PageComponentProps> = (
           },
         ]}
       />
+
+      {/* Where the blocklist is enforced in the project's own clouds (#10344). */}
+      <div className="mt-5">
+        <BlocklistCloudWafs onChanged={refresh} />
+      </div>
 
       {isBlocking ? (
         <BlockAddressModal

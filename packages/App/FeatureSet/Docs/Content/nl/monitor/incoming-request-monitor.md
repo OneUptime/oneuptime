@@ -388,10 +388,12 @@ Een webhook beschrijft alleen wat in die payload staat, dus OneUptime lost een i
 
 Ook bij een waarschuwing die u zelf aan een criterium toevoegt, staat **Waarschuwing automatisch oplossen** eerst uit, dus een herstel laat de waarschuwing open tot die optie aan staat. **Auto-resolve each incident when…** laat zien welke incidenten en waarschuwingen van het criterium een herstel oplost, en noemt elk incident en elke waarschuwing die het open zou laten, met een knop die de bijbehorende optie aanzet. De kaart **Monitorsamenvatting** op het **Overzicht** van de monitor noemt elk incident en elke waarschuwing die een herstel open liet, en waarom.
 
+Een herstel lost alleen de incidenten en waarschuwingen op van het criterium dat het leest: het criterium waarvan **Field that signals recovery** en **Value that means recovered** overeenkomen met de payload. De incidenten en waarschuwingen van een ander criterium voor dezelfde waarde blijven open, en die van een criterium dat deze velden leeg laat, los je met de hand op.
+
 **Max incidents per request** begrenst het uitlezen, niet alleen het aanmaken. Sleutels voorbij de grens zijn ook onzichtbaar voor het herstel, dus in een payload met meer verschillende sleutels dan de grens sluit een waarschuwing die voorbij die grens `resolved` meldt, haar incident niet.
 
 > [!NOTE]
-> Krijgt één monitor sneller verzoeken binnen dan OneUptime ze toetst, dan toetst OneUptime het nieuwste en slaat het de tussenliggende over, dus een vlaag webhooks kan een actieve of een opgeloste waarschuwing ongetoetst laten. Op een zelfgehoste server zorgt `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` in de omgeving van de OneUptime-app ervoor dat elk verzoek afzonderlijk wordt getoetst.
+> Een monitor met een criterium dat groepeert op een veld van de payload toetst elk verzoek dat hij krijgt, één tegelijk en in de volgorde van binnenkomst, dus een vlaag waarschuwingen en herstellen opent en lost het incident en de waarschuwing van elke waarde op. Tot 1.000 verzoeken, of 16 MB ervan, wachten op hun toetsing; daarboven worden de oudste wachtende overgeslagen, en de kaart **Monitorsamenvatting** zegt hoeveel. Een monitor zonder groepering toetst alleen het nieuwste van de verzoeken die op hem wachten.
 
 > [!NOTE]
 > Bevat **Field that signals recovery** een `[*]` maar **Open a separate incident for each…** niet, dan is een verzoek pas hersteld als elk element van die array dat zegt. Met `requestBody.alerts[*].status` en `resolved` wordt een incident dat gegroepeerd is op `requestBody.groupLabels.alertname` opgelost zodra elke waarschuwing van een verzoek is opgelost, en blijft het open zolang er nog een actief is.

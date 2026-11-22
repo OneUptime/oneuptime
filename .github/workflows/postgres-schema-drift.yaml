@@ -5052,6 +5052,30 @@ jobs:
           Tests/Server/API/MonitorTemplateLinkableMonitorsPostgres.test.ts
           --forceExit
 
+      # Pickers searched on the server, and a list's "is not", on migrated
+      # Postgres (#10580, #10581): each picker's search read through its
+      # model's list route as a member, past the cap it used to read (Run a
+      # Runbook's 200, a dashboard widget's 1,000, 10,000 monitors), finding
+      # the late-sorting names with each picker's own rules (type, enabled,
+      # archived) and a member's permissions as they were; and the Monitors
+      # list's "Template is not X" keeping the monitors with no template.
+      - name: Test the pickers' server searches and the lists' "is not" on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PICKER_SEARCH_TESTS: "true"
+          PICKER_SEARCH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PICKER_SEARCH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PICKER_SEARCH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/ListIsNotFilterPostgres.test.ts
+          Tests/Server/API/RunbookPickerSearchPostgres.test.ts
+          Tests/Server/API/DashboardWidgetPickerSearchPostgres.test.ts
+          Tests/Server/API/PlaylistDashboardPickerSearchPostgres.test.ts
+          Tests/Server/API/StatusPageSetupSearchPostgres.test.ts
+          --forceExit
+
       # The LLM provider an AI rule picks, on migrated Postgres: the two
       # migrations on copies of the rule tables that already hold rules (the
       # columns added without a backfill, each rule's index and key built

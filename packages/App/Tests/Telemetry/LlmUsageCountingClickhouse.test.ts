@@ -31,6 +31,7 @@ import {
   LlmConversationSort,
 } from "Common/Types/Telemetry/LlmConversationApi";
 import {
+  LLM_USAGE_HIDDEN_GROUP_KEY,
   LlmUsageDimension,
   LlmUsageGroup,
   LlmUsageResponse,
@@ -166,6 +167,9 @@ interface CallFixture {
   outputTokens?: number | undefined;
   cost?: number | undefined;
   email?: string | undefined;
+  // The call's user id and team, as a scrub rule left them or not (#10435).
+  userId?: string | undefined;
+  team?: string | undefined;
   conversationId?: string | undefined;
 }
 
@@ -210,6 +214,8 @@ function callRow(fixture: CallFixture): JSONObject {
     llmCost: fixture.cost || 0,
     llmConversationId: fixture.conversationId || "",
     llmUserEmail: fixture.email || "",
+    llmUserId: fixture.userId || "",
+    llmTeam: fixture.team || "",
     llmCallKind: isLlm ? fixture.kind || LlmCallKind.Answer : "",
     llmIssues: [],
     llmUserMessagePreview: "",
@@ -287,6 +293,44 @@ const CAROL: string = "carol@example.com";
  *
  * Totals: 3 calls, 650 in, 110 out, $0.115.
  */
+/*
+ * A project whose people and teams a scrub rule hid (#10435): an email
+ * redacted beside a user id left whole, an email masked, one hashed, one
+ * whose email and id were both redacted, and one person no rule touched.
+ */
+const HIDDEN_PROJECT: ObjectID = new ObjectID("8830000000000000000000a5");
+const HIDDEN_APP: ObjectID = new ObjectID("8830000000000000000000b8");
+
+function hiddenCall(
+  id: string,
+  cost: number,
+  who: Pick<CallFixture, "email" | "userId" | "team">,
+): CallFixture {
+  return {
+    projectId: HIDDEN_PROJECT,
+    serviceId: HIDDEN_APP,
+    traceId: traceOf(id),
+    spanId: spanOf(id),
+    at: now - 2 * HOUR,
+    inputTokens: 100,
+    outputTokens: 10,
+    cost,
+    ...who,
+  };
+}
+
+const hiddenCalls: Array<CallFixture> = [
+  hiddenCall("e101", 0.01, {
+    email: "[REDACTED]",
+    userId: "u-7",
+    team: "[REDACTED]",
+  }),
+  hiddenCall("e102", 0.01, { email: "j***@***.com" }),
+  hiddenCall("e103", 0.02, { email: "[HASHED:3f9a1c0e7b2d4a68]" }),
+  hiddenCall("e104", 0.03, { email: "[REDACTED]", userId: "[REDACTED]" }),
+  hiddenCall("e105", 0.02, { email: "ana@example.com", team: "payments" }),
+];
+
 const mixCalls: Array<CallFixture> = [
   {
     projectId: MIX_PROJECT,
@@ -956,7 +1000,9 @@ integration("AI usage counting against ClickHouse (#6349)", () => {
     }
 
     await SpanService.insertJsonRows(
-      [...mixCalls, ...agentCalls, ...wrapperCalls].map(callRow),
+      [...mixCalls, ...agentCalls, ...wrapperCalls, ...hiddenCalls].map(
+        callRow,
+      ),
       { clickhouseSettings: { wait_for_async_insert: 1 } },
     );
     await MetricService.insertJsonRows(
@@ -1111,6 +1157,33 @@ integration("AI usage counting against ClickHouse (#6349)", () => {
         [CHECKOUT.toString()]: 0.03,
         [SEARCH.toString()]: 0.005,
         [CURSOR.toString()]: 0.08,
+      });
+    });
+
+    test("never puts spend on what a scrub rule left of a person or a team (#10435)", async () => {
+      const byPerson: LlmUsageResponse = await LlmUsageReader.read(
+        usageQuery(HIDDEN_PROJECT, LlmUsageDimension.Employee),
+      );
+
+      // A redacted email falls back to the id; every other hidden one is one hidden group.
+      expect(costsByKey(byPerson)).toEqual({
+        "u-7": 0.01,
+        "ana@example.com": 0.02,
+        [LLM_USAGE_HIDDEN_GROUP_KEY]: 0.06,
+      });
+      expect(groupOf(byPerson, LLM_USAGE_HIDDEN_GROUP_KEY)).toMatchObject({
+        calls: 3,
+      });
+      expect(byPerson.totals.costUsd).toBeCloseTo(0.09, 9);
+
+      const byTeam: LlmUsageResponse = await LlmUsageReader.read(
+        usageQuery(HIDDEN_PROJECT, LlmUsageDimension.Team),
+      );
+
+      expect(costsByKey(byTeam)).toEqual({
+        payments: 0.02,
+        [LLM_USAGE_HIDDEN_GROUP_KEY]: 0.01,
+        "": 0.06,
       });
     });
 

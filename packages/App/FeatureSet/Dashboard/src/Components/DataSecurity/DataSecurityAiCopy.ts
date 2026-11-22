@@ -112,7 +112,7 @@ export const DATA_SECURITY_AI_ASK_REASON_SENTENCES: Readonly<
     "Your AI rules have this kind of work wait for a person.",
   ),
   [DataSecurityAiAskReason.AlwaysAsks]: translationKey(
-    "A change that deletes data or pages people always waits for a person.",
+    "A change that deletes data, pages people or adds an owner always waits for a person.",
   ),
   [DataSecurityAiAskReason.NotNamedByRule]: translationKey(
     "A change of access is made without asking only where an AI rule names it.",
@@ -327,10 +327,87 @@ export const DATA_SECURITY_AI_TABLE_IDS: {
   waiting: string;
   done: string;
   skipped: string;
+  owners: string;
 } = {
   waiting: "data-security-ai-waiting",
   done: "data-security-ai-done",
   skipped: "data-security-ai-skipped",
+  owners: "data-security-ai-owners",
+};
+
+/*
+ * Owners to review (#10374): the owners OneUptime AI proposes for stores
+ * that have none, and the owner rules that keep stores like them owned, on
+ * Data Security → AI and on Data Stores while any wait.
+ */
+export const OwnersToReviewCopy: {
+  title: string;
+  description: string;
+  stores: PluralTemplate;
+  rules: PluralTemplate;
+  proposal: string;
+  owners: string;
+  howSure: string;
+  sure: string;
+  fairlySure: string;
+  notSure: string;
+  cannotOpen: string;
+  ruleWouldSet: PluralTemplate;
+  ruleAlreadyOwned: PluralTemplate;
+  evidenceDisagrees: string;
+  changeAndApprove: string;
+  changeTitle: string;
+  changeDescription: string;
+  ownersField: string;
+  bulkApproveTitle: PluralTemplate;
+  bulkApproveMessage: string;
+  noLongerWaiting: string;
+} = {
+  title: translationKey("Owners to review"),
+  description: translationKey(
+    "Owners OneUptime AI proposes for stores that have none, and the owner rules that keep stores like them owned. Owners are told when they are added.",
+  ),
+  stores: {
+    one: "OneUptime AI proposes owners for {{count}} store.",
+    other: "OneUptime AI proposes owners for {{count}} stores.",
+  },
+  rules: {
+    one: "It also proposes {{count}} owner rule, which keeps stores like them owned.",
+    other:
+      "It also proposes {{count}} owner rules, which keep stores like them owned.",
+  },
+  proposal: translationKey("Proposal"),
+  owners: translationKey("Owners"),
+  howSure: translationKey("How Sure"),
+  sure: translationKey("Sure"),
+  fairlySure: translationKey("Fairly sure"),
+  notSure: translationKey("Not sure"),
+  cannotOpen: translationKey("Cannot open this store"),
+  ruleWouldSet: {
+    one: "This rule would add these owners to {{count}} store.",
+    other: "This rule would add these owners to {{count}} stores.",
+  },
+  ruleAlreadyOwned: {
+    one: "{{count}} of them already has owners.",
+    other: "{{count}} of them already have owners.",
+  },
+  evidenceDisagrees: translationKey("The evidence disagrees:"),
+  changeAndApprove: translationKey("Change and Approve"),
+  changeTitle: translationKey("Change the Owners, Then Approve"),
+  changeDescription: translationKey(
+    "Pick who owns this store. They are added with your permissions, and told, as any owner is.",
+  ),
+  ownersField: translationKey("Owners"),
+  bulkApproveTitle: {
+    one: "Approve {{count}} Proposal",
+    other: "Approve {{count}} Proposals",
+  },
+  bulkApproveMessage: translationKey(
+    "Each change is made with your permissions, and the owners it adds are told, as any owner is.",
+  ),
+  noLongerWaiting: translationKey(
+    "No longer waiting: a change approved before it gave the store owners.",
+  ),
 };
 
 // A kind of work as the page names it; one this build does not know, as it is stored.

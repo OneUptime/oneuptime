@@ -41,6 +41,8 @@ export const CLOUD_STREAMING: string = "telemetry/cloud-streaming";
 export const CLOUD_STREAMING_AZURE: string = "telemetry/cloud-streaming-azure";
 export const CLOUD_STREAMING_GOOGLE_CLOUD: string =
   "telemetry/cloud-streaming-google-cloud";
+export const CLOUD_AWS_WAF_BLOCKLIST: string =
+  "telemetry/cloud-aws-waf-blocklist";
 
 export interface CloudDocsPage {
   page: string;
@@ -62,6 +64,7 @@ export const CLOUD_DOCS_PAGES: ReadonlyArray<CloudDocsPage> = [
     navTitle: "Stream Azure Monitor Metrics and Logs",
   },
   { page: CLOUD_STREAMING_GOOGLE_CLOUD, navTitle: "Stream Google Cloud Logs" },
+  { page: CLOUD_AWS_WAF_BLOCKLIST, navTitle: "Block Addresses in AWS WAF" },
   { page: CLOUD_COSTS, navTitle: "Cloud Costs and Savings" },
   { page: CLOUD_RESOURCES, navTitle: "Cloud Resources (IaaS & PaaS)" },
 ];
@@ -82,6 +85,7 @@ export const PRODUCTS_MENU_KEYS: Readonly<Record<string, string>> = {
   "App Platforms": "appPlatformsTitle",
   Cloud: "cloudTitle",
   "Project Settings": "projectSettingsTitle",
+  "Security Events": "securityEventsTitle",
 };
 
 // The paths through a cloud provider's console, kept as they are.

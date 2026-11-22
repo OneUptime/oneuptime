@@ -1318,9 +1318,10 @@ describe("a Security record's details are no relation's label (#10310)", () => {
       /*
        * Each detail through each relation it was read wider through: a
        * case's through two (an issue's and a block's), a cloud connection's
-       * through three (a store's, a scan's and a cloud resource's).
+       * through four (a store's, a scan's, a cloud resource's and a cloud
+       * WAF's, #10344).
        */
-      expect(unrecorded).toHaveLength(19 + 8 + 13 + 19 * 2 + 7 * 3 + 6);
+      expect(unrecorded).toHaveLength(19 + 8 + 13 + 19 * 2 + 7 * 4 + 6);
     } finally {
       for (const metadata of held) {
         metadata.relationReaders = RelationReaders.ColumnReaders;

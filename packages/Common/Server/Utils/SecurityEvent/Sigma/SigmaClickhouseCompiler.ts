@@ -19,6 +19,7 @@ import {
   isSigmaWatchlistRequirement,
 } from "../../../../Utils/SecurityEvent/Sigma/SigmaWatchlists";
 import { SQL, Statement } from "../../AnalyticsDatabase/Statement";
+import { buildHoldsSharedScrubPlaceholderSql } from "../../Telemetry/ScrubPlaceholderSql";
 import { buildIpInRangeExpression } from "../SecurityValueMatch";
 import {
   buildWatchlistArrayMatch,
@@ -290,6 +291,16 @@ export function buildSigmaFieldExpression(field: string): Statement {
   return new Statement([resolved.column], []);
 }
 
+// The typed columns that name a user: principalUser and targetUser.
+const USER_COLUMNS: ReadonlySet<string> = new Set<string>([
+  "principalUser",
+  "targetUser",
+]);
+
+function isUserColumn(column: string): boolean {
+  return USER_COLUMNS.has(column);
+}
+
 /*
  * buildSigmaFieldExpression with the column's "unset" sentinel normalized
  * away, for distinct counting. Text and attribute lookups yield '' when
@@ -306,6 +317,19 @@ export function buildSigmaDistinctCountExpression(field: string): Statement {
 
   if (resolved.kind === "numberColumn") {
     return new Statement([`toString(nullIf(${resolved.column}, 0))`], []);
+  }
+
+  /*
+   * A user a scrub rule redacted or masked, in an event stored before the
+   * scans knew (#10435), counts as no user: '' - left out by the caller's
+   * nullIf - rather than one "[REDACTED]" account. A Hash token stays: it
+   * is one user, so five tokens are five accounts.
+   */
+  if (resolved.kind === "textColumn" && isUserColumn(resolved.column)) {
+    const statement: Statement = SQL`if(`;
+    statement.append(buildHoldsSharedScrubPlaceholderSql(resolved.column));
+    statement.append(`, '', ${resolved.column})`);
+    return statement;
   }
 
   return buildSigmaFieldExpression(field);
@@ -336,6 +360,21 @@ export function buildSigmaFieldHasValue(field: string): Statement {
 
   if (resolved.kind === "arrayColumn") {
     return new Statement([`notEmpty(${resolved.column})`], []);
+  }
+
+  /*
+   * A user column holding what Redact or Mask left - an event stored before
+   * the scans named such a user as none (#10435) - has no user either: one
+   * "[REDACTED]" is everybody a rule hid.
+   */
+  if (resolved.kind === "textColumn" && isUserColumn(resolved.column)) {
+    const statement: Statement = new Statement(
+      [`(${resolved.column} != '' AND NOT `],
+      [],
+    );
+    statement.append(buildHoldsSharedScrubPlaceholderSql(resolved.column));
+    statement.append(")");
+    return statement;
   }
 
   return new Statement([`${resolved.column} != ''`], []);

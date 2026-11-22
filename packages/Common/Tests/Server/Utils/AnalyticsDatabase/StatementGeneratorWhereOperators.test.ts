@@ -12,9 +12,11 @@ import EqualToOrNull from "../../../../Types/BaseDatabase/EqualToOrNull";
 import EndsWith from "../../../../Types/BaseDatabase/EndsWith";
 import IncludesAll from "../../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../../Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "../../../../Types/BaseDatabase/IsNull";
 import NotContains from "../../../../Types/BaseDatabase/NotContains";
 import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../../Types/BaseDatabase/NotEqualOrNull";
 import NotNull from "../../../../Types/BaseDatabase/NotNull";
 import Search from "../../../../Types/BaseDatabase/Search";
 import StartsWith from "../../../../Types/BaseDatabase/StartsWith";
@@ -467,6 +469,117 @@ describe("StatementGenerator toWhereStatement operator branches", () => {
       "%s on a Map(String,String) column throws BadDataException",
       (operatorName: string, compile: () => Statement) => {
         expect(compile).toThrow(
+          `Unsupported query operator ${operatorName} on column: attributes`,
+        );
+      },
+    );
+  });
+
+  /*
+   * A table's "Not equal to" and "is not" keep the rows with no value
+   * (#10581): the filter writes NotEqualOrNull and IncludesNoneOrNull, and
+   * the shared filters serve ClickHouse tables (Security Events' Threat
+   * Intel, Traces) as well as Postgres ones. Here they used to fall to the
+   * "Unsupported query operator" refusal.
+   */
+  describe("NotEqualOrNull and IncludesNoneOrNull keep the empty rows", () => {
+    test("NotEqualOrNull on a Text column: anything but the value, or NULL", () => {
+      const statement: Statement = generator.toWhereStatement({
+        principalHost: new NotEqualOrNull("wb-ubuntu-03"),
+      } as any);
+      expect(statement.query).toBe(
+        "AND ({p0:Identifier} != {p1:String} OR {p2:Identifier} IS NULL)",
+      );
+      expect(statement.query_params).toStrictEqual({
+        p0: "principalHost",
+        p1: "wb-ubuntu-03",
+        p2: "principalHost",
+      });
+    });
+
+    test("NotEqualOrNull binds the value as NotEqual binds it", () => {
+      const orNull: Statement = generator.toWhereStatement({
+        targetPort: new NotEqualOrNull(22),
+      } as any);
+      const plain: Statement = generator.toWhereStatement({
+        targetPort: new NotEqual(22),
+      } as any);
+      expect(orNull.query).toBe(
+        "AND ({p0:Identifier} != {p1:Int32} OR {p2:Identifier} IS NULL)",
+      );
+      expect(orNull.query_params["p1"]).toBe(plain.query_params["p1"]);
+      expect(orNull.query_params["p1"]).toBe(22);
+    });
+
+    test("NotEqualOrNull on an Array(String) column asks what NotEqual asks", () => {
+      const orNull: Statement = generator.toWhereStatement({
+        observables: new NotEqualOrNull("wb-ubuntu-03"),
+      } as any);
+      const plain: Statement = generator.toWhereStatement({
+        observables: new NotEqual("wb-ubuntu-03"),
+      } as any);
+      expect(orNull.query).toBe("AND NOT has({p0:Identifier}, {p1:String})");
+      expect(orNull.query).toBe(plain.query);
+      expect(orNull.query_params).toStrictEqual(plain.query_params);
+    });
+
+    test("IncludesNoneOrNull on a Text column: none of the values, or NULL", () => {
+      const statement: Statement = generator.toWhereStatement({
+        principalHost: new IncludesNoneOrNull(["wb-ubuntu-03", "wb-ubuntu-04"]),
+      } as any);
+      expect(statement.query).toBe(
+        "AND ({p0:Identifier} NOT IN {p1:Array(String)} OR {p2:Identifier} IS NULL)",
+      );
+      expect(statement.query_params).toStrictEqual({
+        p0: "principalHost",
+        p1: ["wb-ubuntu-03", "wb-ubuntu-04"],
+        p2: "principalHost",
+      });
+    });
+
+    test("IncludesNoneOrNull binds numbers as IncludesNone binds them", () => {
+      const statement: Statement = generator.toWhereStatement({
+        targetPort: new IncludesNoneOrNull([22, 443]),
+      } as any);
+      expect(statement.query).toBe(
+        "AND ({p0:Identifier} NOT IN {p1:Array(Int32)} OR {p2:Identifier} IS NULL)",
+      );
+      expect(statement.query_params["p1"]).toStrictEqual([22, 443]);
+    });
+
+    test("IncludesNoneOrNull on an Array(String) column asks what IncludesNone asks", () => {
+      const orNull: Statement = generator.toWhereStatement({
+        observables: new IncludesNoneOrNull(["wb-ubuntu-03"]),
+      } as any);
+      const plain: Statement = generator.toWhereStatement({
+        observables: new IncludesNone(["wb-ubuntu-03"]),
+      } as any);
+      expect(orNull.query).toBe(
+        "AND NOT hasAny({p0:Identifier}, {p1:Array(String)})",
+      );
+      expect(orNull.query).toBe(plain.query);
+      expect(orNull.query_params).toStrictEqual(plain.query_params);
+    });
+
+    test("IncludesNoneOrNull of nothing constrains nothing", () => {
+      for (const key of ["principalHost", "observables"]) {
+        const statement: Statement = generator.toWhereStatement({
+          [key]: new IncludesNoneOrNull([]),
+        } as any);
+        expect(statement.query).toBe("");
+        expect(statement.query_params).toStrictEqual({});
+      }
+    });
+
+    test.each<[string, unknown]>([
+      ["NotEqualOrNull", new NotEqualOrNull("a")],
+      ["IncludesNoneOrNull", new IncludesNoneOrNull(["a"])],
+    ])(
+      "%s on a Map(String,String) column throws BadDataException",
+      (operatorName: string, operator: unknown) => {
+        expect(() => {
+          return generator.toWhereStatement({ attributes: operator } as any);
+        }).toThrow(
           `Unsupported query operator ${operatorName} on column: attributes`,
         );
       },

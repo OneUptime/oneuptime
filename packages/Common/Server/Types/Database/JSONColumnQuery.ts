@@ -10,6 +10,7 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
@@ -392,7 +393,8 @@ class KeyPredicateBuilder {
     } else if (
       value instanceof Includes ||
       value instanceof IncludesAll ||
-      value instanceof IncludesNone
+      value instanceof IncludesNone ||
+      value instanceof IncludesNoneOrNull
     ) {
       count = (value.values || []).length;
     }
@@ -433,7 +435,11 @@ class KeyPredicateBuilder {
       return values.length === 0 ? null : this.allOf(values);
     }
 
-    if (value instanceof IncludesNone) {
+    /*
+     * negate() already keeps a key that is missing or empty, so on a key
+     * IncludesNoneOrNull (#10581) asks what IncludesNone asks.
+     */
+    if (value instanceof IncludesNone || value instanceof IncludesNoneOrNull) {
       const values: Array<ScalarValue> = toScalarArray(value.values);
       return values.length === 0 ? null : this.negate(this.anyOf(values));
     }

@@ -17,16 +17,26 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  RUNNABLE_RUNBOOKS_PAGE_SIZE,
+  getRunnableRunbooksQuery,
+} from "Common/Utils/Runbook/RunnableRunbooks";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
+
+// How long typing pauses before the runbooks are searched.
+export const RUNBOOK_PICKER_SEARCH_DEBOUNCE_MS: number = 250;
 
 /*
  * Where each runbook's Run sits: at its own width beside the runbook. A
@@ -52,9 +62,21 @@ const RunbookPicker: FunctionComponent<ComponentProps> = (
   const [startingRunbookId, setStartingRunbookId] = useState<string | null>(
     null,
   );
-  const [availableRunbooks, setAvailableRunbooks] = useState<Runbook[]>([]);
+  // The page of runbooks the last search found, by name, and how many match.
+  const [runbooks, setRunbooks] = useState<Array<Runbook>>([]);
+  const [matchCount, setMatchCount] = useState<number>(0);
+  /*
+   * Whether the project has a runbook to run at all, from the read with
+   * nothing typed: a search that finds nothing then says "No matches", and
+   * a project with none says "No runbooks yet" whatever is typed.
+   */
+  const [hasRunbooks, setHasRunbooks] = useState<boolean>(true);
   const [isLoadingRunbooks, setIsLoadingRunbooks] = useState<boolean>(false);
+  // What is typed, and the text the list was last searched for.
   const [pickerSearch, setPickerSearch] = useState<string>("");
+  const [searchedText, setSearchedText] = useState<string>("");
+  // Only the latest search may write the list.
+  const searchIdRef: MutableRefObject<number> = useRef<number>(0);
 
   const linkagePayload: Record<string, string> = {};
   if (props.incidentId) {
@@ -68,36 +90,96 @@ const RunbookPicker: FunctionComponent<ComponentProps> = (
       props.scheduledMaintenanceId.toString();
   }
 
-  const loadRunbooks: () => Promise<void> = async (): Promise<void> => {
+  /*
+   * The project's enabled runbooks whose name holds `searchText`, a page at
+   * a time, by name: searched on the server (#10580). The dialog read the
+   * first 200 when it opened and searched those in the browser, so a
+   * runbook whose name sorted late in a project with more was never
+   * offered, and a search for it said "No matches".
+   */
+  const loadRunbooks: (searchText: string) => Promise<void> = async (
+    searchText: string,
+  ): Promise<void> => {
+    const searchId: number = ++searchIdRef.current;
+
     setIsLoadingRunbooks(true);
-    setPickerSearch("");
+
     try {
       const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
       if (!projectId) {
-        setAvailableRunbooks([]);
+        setRunbooks([]);
+        setMatchCount(0);
         return;
       }
+
       const result: ListResult<Runbook> = await ModelAPI.getList<Runbook>({
         modelType: Runbook,
-        query: { projectId, isEnabled: true },
-        limit: 200,
+        query: getRunnableRunbooksQuery({
+          projectId: projectId,
+          searchText: searchText,
+        }),
+        limit: RUNNABLE_RUNBOOKS_PAGE_SIZE,
         skip: 0,
         select: { _id: true, name: true, description: true },
-        sort: { name: "asc" as any },
+        sort: { name: SortOrder.Ascending },
       });
-      setAvailableRunbooks(result.data);
+
+      if (searchId !== searchIdRef.current) {
+        return;
+      }
+
+      setRunbooks(result.data);
+      setMatchCount(
+        typeof result.count === "number" && result.count >= result.data.length
+          ? result.count
+          : result.data.length,
+      );
+
+      if (!searchText) {
+        setHasRunbooks(result.data.length > 0);
+      }
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      if (searchId === searchIdRef.current) {
+        setError(API.getFriendlyMessage(err));
+      }
     } finally {
-      setIsLoadingRunbooks(false);
+      if (searchId === searchIdRef.current) {
+        setIsLoadingRunbooks(false);
+      }
     }
   };
 
+  // Opened, it starts with nothing typed; closed, it forgets the search.
+  useEffect(() => {
+    setPickerSearch("");
+    setSearchedText("");
+  }, [props.isOpen]);
+
+  // What is typed is searched once typing pauses.
+  useEffect(() => {
+    if (!props.isOpen) {
+      return;
+    }
+
+    const trimmed: string = pickerSearch.trim();
+    const timeout: ReturnType<typeof setTimeout> = setTimeout(
+      () => {
+        setSearchedText(trimmed);
+      },
+      trimmed ? RUNBOOK_PICKER_SEARCH_DEBOUNCE_MS : 0,
+    );
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [pickerSearch, props.isOpen]);
+
   useEffect(() => {
     if (props.isOpen) {
-      void loadRunbooks();
+      void loadRunbooks(searchedText);
     }
-  }, [props.isOpen]);
+  }, [props.isOpen, searchedText]);
 
   const startRunbook: (runbookId: string) => Promise<void> = async (
     runbookId: string,
@@ -126,14 +208,6 @@ const RunbookPicker: FunctionComponent<ComponentProps> = (
       setStartingRunbookId(null);
     }
   };
-
-  const filteredRunbooks: Runbook[] = pickerSearch.trim()
-    ? availableRunbooks.filter((rb: Runbook) => {
-        return (rb.name || "")
-          .toLowerCase()
-          .includes(pickerSearch.toLowerCase().trim());
-      })
-    : availableRunbooks;
 
   if (!props.isOpen) {
     return error ? (
@@ -187,7 +261,7 @@ const RunbookPicker: FunctionComponent<ComponentProps> = (
             <div className="flex justify-center py-6">
               <CardListSkeleton count={3} lines={1} />
             </div>
-          ) : filteredRunbooks.length === 0 ? (
+          ) : runbooks.length === 0 ? (
             <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center">
               <div className="mx-auto h-10 w-10 rounded-full bg-white border border-gray-200 flex items-center justify-center mb-3">
                 <Icon
@@ -198,22 +272,20 @@ const RunbookPicker: FunctionComponent<ComponentProps> = (
               </div>
               <p className="text-sm font-medium text-gray-900">
                 {translator.translateText(
-                  availableRunbooks.length === 0
-                    ? "No runbooks yet"
-                    : "No matches",
+                  hasRunbooks ? "No matches" : "No runbooks yet",
                 )}
               </p>
               <p className="text-xs text-gray-500 mt-1">
                 {translator.translateText(
-                  availableRunbooks.length === 0
-                    ? "Create a runbook first, then come back to attach one."
-                    : "Try a different search term.",
+                  hasRunbooks
+                    ? "Try a different search term."
+                    : "Create a runbook first, then come back to attach one.",
                 )}
               </p>
             </div>
           ) : (
             <ul className="space-y-2 max-h-96 overflow-y-auto">
-              {filteredRunbooks.map((rb: Runbook) => {
+              {runbooks.map((rb: Runbook) => {
                 const rbId: string = rb._id?.toString() || "";
                 const isStarting: boolean = startingRunbookId === rbId;
                 return (
@@ -280,6 +352,25 @@ const RunbookPicker: FunctionComponent<ComponentProps> = (
               })}
             </ul>
           )}
+
+          {/*
+           * More runbooks match than one read lists: how many, and how to
+           * find the rest - typing more of a name narrows them.
+           */}
+          {!isLoadingRunbooks && matchCount > runbooks.length ? (
+            <p
+              className="text-xs text-gray-500"
+              data-testid="runbook-picker-more"
+            >
+              {translator.translateTemplate(
+                "Showing {{shown}} of {{total}}. Type to narrow the list.",
+                {
+                  shown: translator.formatNumber(runbooks.length),
+                  total: translator.formatNumber(matchCount),
+                },
+              )}
+            </p>
+          ) : null}
         </div>
       </Modal>
 
