@@ -31,6 +31,7 @@ import {
 } from "../../../Server/Utils/RequestBodyLimit";
 import readRequestBodyRefusal, {
   APP_REQUEST_BODY_LIMIT_FIELD,
+  INFLATE_FAILED_TYPE,
   REQUEST_BODY_REFUSAL_MESSAGES,
   RequestBodyRefusal,
   TOO_MANY_JSON_VALUES_TYPE,
@@ -663,27 +664,38 @@ describe("on a stream: the rest, once the check lets the body through", () => {
     }
   }, 60000);
 
-  test("a gzip body that does not inflate is refused as JSON that does not parse", async () => {
+  /*
+   * As the gzip reader every other route reads such a body with refuses it
+   * (#10597): the same bytes are answered the same way, key headers or not.
+   */
+  test("a gzip or deflate body that does not inflate is refused 400 as one, as the gzip reader refuses it", async () => {
     const whole: Buffer = zlib.gzipSync(reportOf("right", 3000));
 
-    for (const body of [
-      Buffer.concat([
-        whole.subarray(0, 400),
-        Buffer.from("this is not deflate"),
-      ]),
-      Buffer.from("this is not gzip at all"),
-    ]) {
+    for (const [encoding, body] of [
+      [
+        "gzip",
+        Buffer.concat([
+          whole.subarray(0, 400),
+          Buffer.from("this is not deflate"),
+        ]),
+      ],
+      ["gzip", Buffer.from("this is not gzip at all")],
+      ["deflate", Buffer.from("this is not deflate at all")],
+    ] as Array<[string, Buffer]>) {
       const refused: { error: unknown } = await run({
-        headers: { "content-encoding": "gzip" },
+        headers: { "content-encoding": encoding },
         limit: REPORT_REQUEST_BODY_LIMIT,
         body: body,
       });
 
       expect(refused.error).toMatchObject({
-        type: "entity.parse.failed",
+        type: INFLATE_FAILED_TYPE,
         status: 400,
         expose: true,
       });
+      expect(readRequestBodyRefusal(refused.error)?.message).toBe(
+        REQUEST_BODY_REFUSAL_MESSAGES.notInflated,
+      );
     }
   });
 });

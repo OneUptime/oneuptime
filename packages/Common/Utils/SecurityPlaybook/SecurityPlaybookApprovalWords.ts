@@ -70,7 +70,10 @@ export enum SecurityPlaybookApprovalSourceKind {
 
 export interface SecurityPlaybookApprovalSource {
   kind: SecurityPlaybookApprovalSourceKind;
-  // The playbook the step is part of; "" for one with no name.
+  /*
+   * The playbook the step is part of; "" for a person's one-step run from
+   * a case (#10342), which has none.
+   */
   playbookName: string;
   // A playbook that started on its own: what started it.
   trigger?: SecurityPlaybookTrigger | undefined;
@@ -269,8 +272,10 @@ export const SECURITY_PLAYBOOK_APPROVAL_WORDS: {
   actionThrough: string;
   targetGroupedOn: string;
   targetThreatIntel: string;
+  targetOnTheCase: string;
   targetProtected: string;
   targetProtectedBy: string;
+  targetProtectedOwn: string;
   targetLeftOut: string;
   targetDone: string;
   targetAlreadyDone: string;
@@ -283,6 +288,7 @@ export const SECURITY_PLAYBOOK_APPROVAL_WORDS: {
   sourceTriaged: string;
   sourceByHand: string;
   sourcePerson: string;
+  sourcePersonOnCase: string;
   sourceAutomaticResponse: string;
   sourceOneUptimeAi: string;
   outcomeRejected: string;
@@ -336,11 +342,15 @@ export const SECURITY_PLAYBOOK_APPROVAL_WORDS: {
   actionThrough: translationKey("{{action}}, through {{connection}}"),
   targetGroupedOn: translationKey("{{target}}: the case is grouped on it"),
   targetThreatIntel: translationKey("{{target}}: known to threat intel"),
+  targetOnTheCase: translationKey("{{target}}: one of the case's addresses"),
   targetProtected: translationKey(
     "{{target}}: on your protected list, so it is never acted on",
   ),
   targetProtectedBy: translationKey(
     "{{target}}: matches {{entry}} on your protected list, so it is never acted on",
+  ),
+  targetProtectedOwn: translationKey(
+    "{{target}}: one of your own addresses, so it is never blocked",
   ),
   targetLeftOut: translationKey("{{target}}: left out by the approver"),
   targetDone: translationKey("{{target}}: done"),
@@ -360,7 +370,7 @@ export const SECURITY_PLAYBOOK_APPROVAL_WORDS: {
     "Asked by playbook {{playbook}}, which started for a new detection.",
   ),
   sourceTriaged: translationKey(
-    "Asked by playbook {{playbook}}, which started when {{product}} AI triaged the case as likely malicious.",
+    "Asked by playbook {{playbook}}, which started when {{ai}} triaged the case as likely malicious.",
   ),
   sourceByHand: translationKey(
     "Asked by playbook {{playbook}}, which was started by hand.",
@@ -368,11 +378,12 @@ export const SECURITY_PLAYBOOK_APPROVAL_WORDS: {
   sourcePerson: translationKey(
     "Asked by {{person}}, who started playbook {{playbook}} by hand.",
   ),
+  sourcePersonOnCase: translationKey("Asked by {{person}}, on the case."),
   sourceAutomaticResponse: translationKey(
     "Asked by the automatic response policy {{policy}}.",
   ),
   sourceOneUptimeAi: translationKey(
-    "Asked by {{product}} AI, which is working the case.",
+    "Asked by {{ai}}, which is working the case.",
   ),
   outcomeRejected: translationKey("Turned away: {{count}}"),
   outcomeReachedApp: translationKey("Reached the app: {{count}}"),
@@ -507,6 +518,19 @@ const product: (context: SecurityPlaybookApprovalWordingContext) => {
   context: SecurityPlaybookApprovalWordingContext,
 ): { product: ApprovalValue } => {
   return { product: asText(context.productName) };
+};
+
+/*
+ * The product's AI by its name, "OneUptime AI" or a self-hosted install's
+ * "<brand> AI": one value, written as it is in every language, as the name
+ * of a product is - never a word a translation words as its own (#10341).
+ */
+const productAi: (context: SecurityPlaybookApprovalWordingContext) => {
+  ai: ApprovalValue;
+} = (
+  context: SecurityPlaybookApprovalWordingContext,
+): { ai: ApprovalValue } => {
+  return { ai: asText(`${context.productName} AI`) };
 };
 
 // Values joined as the reader's language joins a list, each as code.
@@ -726,6 +750,16 @@ function wordTarget(
 
   switch (target.state) {
     case SecurityPlaybookTargetState.Protected:
+      /*
+       * One of the project's own addresses (#10342): the blocklist said
+       * what it is - a host's, a load balancer's - which the line carries.
+       */
+      if ((target.detail || "").trim()) {
+        return withDetail(
+          say(context, words.targetProtectedOwn, { target: value }),
+        );
+      }
+
       return target.protectedBy &&
         target.protectedBy.toLowerCase() !== target.value.toLowerCase()
         ? say(context, words.targetProtectedBy, {
@@ -763,7 +797,9 @@ function wordTarget(
         context,
         target.reason === SecurityPlaybookTargetReason.ThreatIntel
           ? words.targetThreatIntel
-          : words.targetGroupedOn,
+          : target.reason === SecurityPlaybookTargetReason.OnTheCase
+            ? words.targetOnTheCase
+            : words.targetGroupedOn,
         { target: value },
       );
   }
@@ -780,6 +816,13 @@ function wordSource(
 
   switch (source.kind) {
     case SecurityPlaybookApprovalSourceKind.Person:
+      // A person's one-step block from the case (#10342): no playbook to name.
+      if (!source.playbookName) {
+        return say(context, words.sourcePersonOnCase, {
+          person: asText(source.personName || ""),
+        });
+      }
+
       return say(context, words.sourcePerson, {
         person: asText(source.personName || ""),
         playbook,
@@ -789,7 +832,7 @@ function wordSource(
         policy: asBold(source.policyName || ""),
       });
     case SecurityPlaybookApprovalSourceKind.OneUptimeAi:
-      return say(context, words.sourceOneUptimeAi, product(context));
+      return say(context, words.sourceOneUptimeAi, productAi(context));
     default:
       break;
   }
@@ -802,7 +845,7 @@ function wordSource(
     case SecurityPlaybookTrigger.TriagedAsLikelyMalicious:
       return say(context, words.sourceTriaged, {
         playbook,
-        ...product(context),
+        ...productAi(context),
       });
     default:
       return say(context, words.sourceByHand, { playbook });

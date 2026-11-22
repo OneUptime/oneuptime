@@ -12,6 +12,7 @@ import {
   OneUptimeRequest,
   RequestHandler,
 } from "../Utils/Express";
+import RequestBodyParser from "./RequestBodyParser";
 
 /*
  * THE BODY OF A REQUEST SENT TO AN ENDPOINT THAT TAKES WHATEVER A TEAM POINTS
@@ -38,7 +39,10 @@ import {
  *     hold, or as their text when they hold none.
  *
  * A text over the limit, or in a charset nothing can read, still arrives
- * empty, as before: nothing is refused that was accepted.
+ * empty, as before: nothing is refused that was accepted. A body over the
+ * limit is no longer read to its end first (RequestBodyParser, #10598): the
+ * rest of it is left unread, and the connection is closed once the route
+ * has answered.
  *
  * The App and the workflow trigger read these bodies as text (getReader). A
  * probe passes them on as the bytes that came (getRawReader), with their
@@ -120,7 +124,7 @@ export default class WebhookRequestBody {
    * read, and reading its spent stream again would fail the request.
    */
   public static getReader(limit: string): RequestHandler {
-    const readText: RequestHandler = ExpressText({
+    const readText: RequestHandler = RequestBodyParser.create(ExpressText, {
       type: [...WEBHOOK_BODY_CONTENT_TYPES],
       limit: limit,
       /*
@@ -153,7 +157,7 @@ export default class WebhookRequestBody {
     limit: string,
     isSigned: (req: ExpressRequest) => boolean,
   ): RequestHandler {
-    const readBytes: RequestHandler = ExpressRaw({
+    const readBytes: RequestHandler = RequestBodyParser.create(ExpressRaw, {
       type: (): boolean => {
         return true;
       },
@@ -196,7 +200,7 @@ export default class WebhookRequestBody {
    * empty.
    */
   public static getRawReader(limit: string): RequestHandler {
-    const readBytes: RequestHandler = ExpressRaw({
+    const readBytes: RequestHandler = RequestBodyParser.create(ExpressRaw, {
       type: [...WEBHOOK_BODY_CONTENT_TYPES],
       limit: limit,
     });

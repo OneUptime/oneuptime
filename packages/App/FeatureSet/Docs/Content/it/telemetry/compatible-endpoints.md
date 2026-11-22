@@ -221,7 +221,7 @@ sentry_sdk.init(
 )
 ```
 
-L'`1` alla fine del DSN è richiesto dagli SDK di Sentry e non viene letto. Il DSN di un'app nel browser è pubblico, quindi lì usa una chiave di acquisizione **Browser**, limitata alle origini del tuo sito.
+L'`1` alla fine del DSN è richiesto dagli SDK di Sentry e non viene letto. Il DSN di un'app nel browser è pubblico, quindi lì usa una chiave di acquisizione **Browser**, limitata alle origini del tuo sito. Tutto ciò che invia viene allora archiviato come telemetria RUM di quell'app nel browser, mai come un servizio backend.
 
 ### Cosa diventa una busta
 

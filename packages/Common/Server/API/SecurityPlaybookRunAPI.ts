@@ -1,3 +1,4 @@
+import SecurityBlock from "../../Models/DatabaseModels/SecurityBlock";
 import SecurityCase from "../../Models/DatabaseModels/SecurityCase";
 import SecurityPlaybookRun from "../../Models/DatabaseModels/SecurityPlaybookRun";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -38,12 +39,21 @@ import SecurityPlaybookRunDecision, {
   SELF_APPROVAL_REFUSED_MESSAGE,
   SecurityPlaybookApprovalChangedException,
 } from "../Utils/SecurityPlaybook/SecurityPlaybookRunDecision";
+import SecurityPlaybookOneStepRuns, {
+  OneStepBlockStarted,
+} from "../Utils/SecurityPlaybook/SecurityPlaybookOneStepRuns";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 
 // The longest comment an approval keeps.
 export const APPROVAL_COMMENT_MAX_LENGTH: number = 2000;
+
+// Where a person blocks one of a case's addresses in one click (#10342), under the run's path.
+export const SECURITY_PLAYBOOK_ONE_STEP_BLOCK_PATH: string = "block-address";
+
+export const ONE_STEP_BLOCK_REFUSED_MESSAGE: string =
+  "Blocking an address from a case takes a role that can run playbooks and block addresses.";
 
 // An approval, as POST /security-playbook-run/:runId/approval answers.
 export interface SecurityPlaybookApprovalReadout
@@ -162,6 +172,56 @@ export default class SecurityPlaybookRunAPI extends BaseAPI<
         },
       );
     }
+
+    /*
+     * A person's one-step block of one of a case's addresses (#10342): a
+     * run of the engine with no playbook, through the same approvals,
+     * protected checks, timeline and audit as any playbook's block. Takes
+     * the permission to run playbooks and the permission to block.
+     */
+    this.router.post(
+      `${basePath}/${SECURITY_PLAYBOOK_ONE_STEP_BLOCK_PATH}`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions:
+              new SecurityPlaybookRun().getCreatePermissions(),
+            errorMessage: ONE_STEP_BLOCK_REFUSED_MESSAGE,
+          });
+
+          CommonAPI.assertCanCreateTable({
+            modelType: SecurityBlock,
+            props,
+            errorMessage: ONE_STEP_BLOCK_REFUSED_MESSAGE,
+          });
+
+          const started: OneStepBlockStarted =
+            await SecurityPlaybookOneStepRuns.startBlock({
+              projectId,
+              request: SecurityPlaybookOneStepRuns.readBlockRequest(
+                readBody(req),
+              ),
+              props,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            runId: started.run.id?.toString() || "",
+            needsApproval: started.needsApproval,
+          });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
 
     this.router.post(
       `${basePath}/:runId/approval`,

@@ -19,7 +19,7 @@ flowchart TB
     app["Mobilappen din"] --> sdk["OpenTelemetry-SDK<br/>med device.*-attributter"]
     sdk -->|"OTLP med en<br/>Mobil-nøkkel"| oneuptime["OneUptime"]
     oneuptime --> rum["Mobil RUM-applikasjon"]
-    replay["React Native-<br/>avspillings-SDK"] -->|"opptak med en<br/>Browser-nøkkel"| oneuptime
+    replay["React Native-<br/>avspillings-SDK"] -->|"opptak med den<br/>samme Mobil-nøkkelen"| oneuptime
 ```
 
 ## Hva OneUptime trenger
@@ -52,7 +52,7 @@ Gjør `device.id` til en ID per installasjon, aldri en annonse-ID eller noe anne
 | Logger | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> Nøkkelen følger med i appen din, og en app kan pakkes ut, så gå ut fra at noen kopierer den. En kopi av en Mobil-nøkkel kan bare sende denne appens spor, logger og målinger, arkivert under dens **Festet tjenestenavn**, og aldri fra en nettside. Den kan likevel sende oppdiktede data for denne appen, opp til nøkkelens **Grense for forespørsler per minutt**, så legg til en dato under **Utløper**, og bytt nøkkelen med utgivelsene dine.
+> Nøkkelen følger med i appen din, og en app kan pakkes ut, så gå ut fra at noen kopierer den. En kopi av en Mobil-nøkkel kan bare sende denne appens spor, logger, målinger og øktavspillinger, arkivert under dens **Festet tjenestenavn**, og aldri fra en nettside. Den kan likevel sende oppdiktede data for denne appen, opp til nøkkelens **Grense for forespørsler per minutt**, så legg til en dato under **Utløper**, og bytt nøkkelen med utgivelsene dine.
 
 ## Sett opp plattformen din
 
@@ -289,7 +289,7 @@ Kjør appen og bruk den et øyeblikk. Den vises under **Produkter → Ressurser 
 
 ## Session Replay på mobil
 
-React Native-apper kan ta opp økter med `@oneuptime/react-native-replay`. Det tar opp det native visningstreet som en trådramme, aldri skjermbilder eller teksten på skjermen, og opptakene åpnes i den samme avspilleren som opptak fra nettet. Det sender med en **Nettleser**-nøkkel der **Tillatte opprinnelser** lister appen din som `app://` etterfulgt av Android-applikasjons-ID-en eller iOS-bundle-ID-en: en annen nøkkel enn Mobil-nøkkelen OpenTelemetry-SDK-et ditt bruker. [Installere i React Native](/docs/telemetry/session-replay#installasjon-i-react-native) viser deg hvordan.
+React Native-apper kan ta opp økter med `@oneuptime/react-native-replay`. Det tar opp det native visningstreet som en trådramme, aldri skjermbilder eller teksten på skjermen, og opptakene åpnes i den samme avspilleren som opptak fra nettet. Det sender med den samme **Mobil**-nøkkelen som OpenTelemetry-SDK-et ditt, med nøkkelens **Festet tjenestenavn** som `appIdentifier`, så appen har bare én nøkkel med seg. En **Nettleser**-nøkkel der **Tillatte opprinnelser** lister appen din som `app://` etterfulgt av Android-applikasjons-ID-en eller iOS-bundle-ID-en, virker også. [Installere i React Native](/docs/telemetry/session-replay#installasjon-i-react-native) viser deg hvordan.
 
 Native Android- og iOS-apper og de andre plattformene har ingen øktopptaker: Siden **Øktavspilling** forblir tom, mens spor, logger, målinger, unntak og siden **Klienter** virker som vanlig.
 
@@ -298,7 +298,7 @@ Native Android- og iOS-apper og de andre plattformene har ingen øktopptaker: Si
 :::details Nøkkelsjekken returnerer 401, eller nøkkelen avvises
 En `401` betyr at nøkkelen er ukjent, tilbakekalt, slått av eller utløpt: Opprett en Mobil-nøkkel, og bygg appen på nytt med den.
 
-En Browser-nøkkel består sjekken, men hver eksport fra en mobilapp avvises med en `422` som lyder `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Bruk en **Mobil**-nøkkel. En Mobil-nøkkel avvises også med en `422` over gRPC og fra en nettside: Eksporter over OTLP/HTTP.
+En Browser-nøkkel består sjekken, men hver eksport fra en mobilapp avvises med en `422` som lyder `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Bruk en **Mobil**-nøkkel. En Mobil-nøkkel avvises også med en `422` over gRPC, fra en nettside og for en øktavspilling der `appIdentifier` ikke er dens **Festet tjenestenavn**: Eksporter over OTLP/HTTP, og gi avspillings-SDK-et nøkkelens festede navn.
 :::
 
 :::details Appen vises under Tjenester i stedet for Overvåking av reelle brukere

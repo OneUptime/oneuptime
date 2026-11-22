@@ -19,7 +19,7 @@ flowchart TB
     app["Votre application mobile"] --> sdk["SDK OpenTelemetry<br/>avec attributs device.*"]
     sdk -->|"OTLP avec<br/>une clé Mobile"| oneuptime["OneUptime"]
     oneuptime --> rum["Application RUM mobile"]
-    replay["SDK de relecture<br/>React Native"] -->|"enregistrements avec<br/>une clé Navigateur"| oneuptime
+    replay["SDK de relecture<br/>React Native"] -->|"enregistrements avec<br/>la même clé Mobile"| oneuptime
 ```
 
 ## Ce dont OneUptime a besoin
@@ -52,7 +52,7 @@ Faites de `device.id` un identifiant propre à l'installation, jamais un identif
 | Journaux | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> La clé est livrée dans votre application, et une application peut être décompressée : partez donc du principe que quelqu'un la copiera. Une copie d'une clé Mobile ne peut envoyer que les traces, les journaux et les métriques de cette application, classés sous son **Nom du service épinglé**, et jamais depuis une page web. Elle peut toutefois envoyer des données inventées pour cette application, jusqu'à la **Limite de requêtes par minute** de la clé : ajoutez donc une date **Expire le** et renouvelez la clé à chaque version.
+> La clé est livrée dans votre application, et une application peut être décompressée : partez donc du principe que quelqu'un la copiera. Une copie d'une clé Mobile ne peut envoyer que les traces, les journaux, les métriques et les relectures de session de cette application, classés sous son **Nom du service épinglé**, et jamais depuis une page web. Elle peut toutefois envoyer des données inventées pour cette application, jusqu'à la **Limite de requêtes par minute** de la clé : ajoutez donc une date **Expire le** et renouvelez la clé à chaque version.
 
 ## Configurer votre plateforme
 
@@ -289,7 +289,7 @@ Ouvrez la page **Clients** de l'application : chaque modèle d'appareil issu de 
 
 ## Relecture de session sur mobile
 
-Les applications React Native peuvent enregistrer des sessions avec `@oneuptime/react-native-replay`. Il enregistre l'arbre de vues natif sous forme de maquette filaire, jamais de captures d'écran ni le texte affiché, et ses enregistrements s'ouvrent dans le même lecteur que ceux du web. Il envoie avec une clé **Navigateur** dont les **Origines autorisées** listent votre application sous la forme `app://` suivi de son ID d'application Android ou de son ID de bundle iOS : une clé distincte de la clé Mobile qu'utilise votre SDK OpenTelemetry. [Installer dans React Native](/docs/telemetry/session-replay#installation-dans-react-native) explique la marche à suivre.
+Les applications React Native peuvent enregistrer des sessions avec `@oneuptime/react-native-replay`. Il enregistre l'arbre de vues natif sous forme de maquette filaire, jamais de captures d'écran ni le texte affiché, et ses enregistrements s'ouvrent dans le même lecteur que ceux du web. Il envoie avec la même clé **Mobile** que votre SDK OpenTelemetry, avec le **Nom du service épinglé** de la clé comme `appIdentifier` : l'application n'embarque donc qu'une seule clé. Une clé **Navigateur** dont les **Origines autorisées** listent votre application sous la forme `app://` suivi de son ID d'application Android ou de son ID de bundle iOS fonctionne aussi. [Installer dans React Native](/docs/telemetry/session-replay#installation-dans-react-native) explique la marche à suivre.
 
 Les applications Android et iOS natives, ainsi que les autres plateformes, n'ont pas d'enregistreur de session : leur page **Relecture de session** reste vide, tandis que les traces, journaux, métriques, exceptions et la page **Clients** fonctionnent normalement.
 
@@ -298,7 +298,7 @@ Les applications Android et iOS natives, ainsi que les autres plateformes, n'ont
 :::details La vérification de la clé renvoie 401, ou la clé est refusée
 Un `401` signifie que la clé est inconnue, révoquée, désactivée ou expirée : créez une clé Mobile et recompilez l'application avec elle.
 
-Une clé Navigateur passe la vérification, mais chaque export depuis une application mobile est refusé avec un `422` qui indique `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Utilisez une clé **Mobile**. Une clé Mobile est elle aussi refusée avec un `422` via gRPC et depuis une page web : exportez via OTLP/HTTP.
+Une clé Navigateur passe la vérification, mais chaque export depuis une application mobile est refusé avec un `422` qui indique `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Utilisez une clé **Mobile**. Une clé Mobile est elle aussi refusée avec un `422` via gRPC, depuis une page web, et pour une relecture de session dont l'`appIdentifier` n'est pas son **Nom du service épinglé** : exportez via OTLP/HTTP, et donnez au SDK de relecture le nom épinglé de la clé.
 :::
 
 :::details L'application apparaît sous Services au lieu de Surveillance des utilisateurs réels

@@ -17,6 +17,19 @@ import {
   waitsOnSeveralResults,
 } from "./SecurityPlaybookStepForm";
 import { SecurityPlaybookConditionMatch } from "Common/Types/SecurityPlaybook/SecurityPlaybookStepCondition";
+import {
+  SECURITY_BLOCK_EXPIRING_DURATIONS,
+  SecurityBlockAction,
+  SecurityBlockDuration,
+} from "Common/Types/SecurityBlocklist/SecurityBlock";
+import { getBlockDurationOptions } from "../SecurityEvents/Blocklist/BlockAddressModal";
+import {
+  ACTION_BLOCK_OPTION,
+  ACTION_CHALLENGE_OPTION,
+  ACTION_FIELD_DESCRIPTION,
+  ACTION_FIELD_TITLE,
+  EXPIRES_FIELD_TITLE,
+} from "../SecurityEvents/Blocklist/BlocklistCopy";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IconProp from "Common/Types/Icon/IconProp";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -260,6 +273,29 @@ function connectionOptions(
         value: connection.id,
       };
     });
+}
+
+export const PLAYBOOK_BLOCK_EXPIRES_DESCRIPTION: string = translationKey(
+  "A playbook's block always ends by itself. Lift it sooner from the case or the Blocklist.",
+);
+
+/*
+ * How long a playbook's block lasts (#10342): a choice that ends by itself
+ * - a playbook's block always does - in the reader's words when the
+ * dialog has them, as the Blocklist offers them.
+ */
+export function getPlaybookBlockDurationOptions(
+  translator: Translator | undefined,
+): Array<DropdownOption> {
+  if (translator) {
+    return getBlockDurationOptions(translator);
+  }
+
+  return SECURITY_BLOCK_EXPIRING_DURATIONS.map(
+    (duration: SecurityBlockDuration): DropdownOption => {
+      return { value: duration, label: duration };
+    },
+  );
 }
 
 /*
@@ -725,6 +761,41 @@ export function getStepSettingsFields(
           values,
           SecurityPlaybookActionType.IsolateDefenderDevice,
         );
+      },
+    },
+    // Block the address (#10342): block or challenge it, and for how long - a day unless chosen.
+    {
+      field: { blockAction: true },
+      title: ACTION_FIELD_TITLE,
+      description: ACTION_FIELD_DESCRIPTION,
+      fieldType: FormFieldSchemaType.Dropdown,
+      stepId: "settings",
+      dropdownOptions: [
+        { value: SecurityBlockAction.Block, label: ACTION_BLOCK_OPTION },
+        {
+          value: SecurityBlockAction.Challenge,
+          label: ACTION_CHALLENGE_OPTION,
+        },
+      ],
+      required: (values: FormValues<JSONObject>): boolean => {
+        return isAction(values, SecurityPlaybookActionType.BlockAddress);
+      },
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return isAction(values, SecurityPlaybookActionType.BlockAddress);
+      },
+    },
+    {
+      field: { duration: true },
+      title: EXPIRES_FIELD_TITLE,
+      description: PLAYBOOK_BLOCK_EXPIRES_DESCRIPTION,
+      fieldType: FormFieldSchemaType.Dropdown,
+      stepId: "settings",
+      dropdownOptions: getPlaybookBlockDurationOptions(translator),
+      required: (values: FormValues<JSONObject>): boolean => {
+        return isAction(values, SecurityPlaybookActionType.BlockAddress);
+      },
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return isAction(values, SecurityPlaybookActionType.BlockAddress);
       },
     },
     {

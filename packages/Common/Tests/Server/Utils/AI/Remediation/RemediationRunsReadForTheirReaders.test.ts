@@ -470,6 +470,29 @@ describe("a runbook OneUptime AI picks", () => {
     expect(everythingPosted()).toContain(OPEN_MONITOR_NAME);
     expect(posted.feed.join("\n")).toContain(SET_APART_RUNBOOK_NAME);
   });
+
+  /*
+   * Unlike a security case's triage (#9632), a fix counts every row: its
+   * plan goes to the incident's Slack and Microsoft Teams channels too,
+   * whose readers no permission row tells.
+   */
+  test("a team that reads every kind only for some labels narrows it though none of its members may read security cases", async () => {
+    readersOfAProject({
+      narrowedByLabels: true,
+      narrowedTeamReadsSecurityCases: false,
+    });
+    picks({ ruleRunbookIds: [OPEN_RUNBOOK_ID] });
+    const model: ModelReadingMonitors = modelReadsMonitors({
+      answerTail: `SelectedRunbook: ${OPEN_RUNBOOK_ID}`,
+    });
+
+    await run();
+
+    expect(model.toolProps).toEqual([
+      readAudienceProps(narrowedReaders({ Runbook: [OPEN_RUNBOOK_ID] })),
+    ]);
+    expect(everythingPosted()).not.toContain(SET_APART_MONITOR_NAME);
+  });
 });
 
 describe("the commands a fix runs or proposes", () => {

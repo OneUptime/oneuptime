@@ -35,13 +35,13 @@ Wählen Sie den Typ danach, wo der Schlüssel liegen wird. Der Typ lässt sich n
 
 | | **Server** | **Browser** | **Mobil** |
 | --- | --- | --- | --- |
-| Für | Anwendungen, Collectors und Agenten auf Maschinen, die Sie betreiben | Webseiten, und React Native Session Replay | Eine iOS-, Android- oder React-Native-App |
-| Sendet | Jede Art von Telemetrie, an jeden Endpunkt | Traces, Protokolle, Metriken, Session Replays und [Sentry-Ereignisse](/docs/telemetry/compatible-endpoints#sentry-sdks) | Traces, Protokolle und Metriken dieser App, über OTLP/HTTP |
+| Für | Anwendungen, Collectors und Agenten auf Maschinen, die Sie betreiben | Webseiten | Eine iOS-, Android- oder React-Native-App |
+| Sendet | Jede Art von Telemetrie, an jeden Endpunkt | Traces, Protokolle, Metriken, Session Replays und [Sentry-Ereignisse](/docs/telemetry/compatible-endpoints#sentry-sdks) | Traces, Protokolle und Metriken dieser App, über OTLP/HTTP, und ihre Session Replays |
 | Ein Geheimnis | Ja: halten Sie ihn auf Ihren Servern | Nein: jeder, der die Seite ansieht, kann ihn lesen | Nein: jeder, der die App hat, kann ihn kopieren |
 | Ursprünge | Nicht geprüft | Nur die aufgeführten Ursprünge werden angenommen | Eine Anfrage von einer Webseite wird abgelehnt |
 | Anfragen pro Minute | Kein Limit, außer Sie setzen eines | 6.000, außer Sie setzen ein anderes Limit | 6.000, außer Sie setzen ein anderes Limit |
 
-Überall sonst lehnt OneUptime einen Browser-Schlüssel ab, etwa über gRPC und MQTT, für Profile, Syslog, Fluent Bit und Fluentd sowie für das Hochladen von Source Maps, und einen Mobil-Schlüssel überall außer bei OTLP-Traces, -Protokollen und -Metriken über HTTP. Um einen Sender auf einen anderen Typ umzustellen, legen Sie einen Schlüssel dieses Typs an, stellen den Sender darauf um und löschen dann den alten Schlüssel.
+Überall sonst lehnt OneUptime einen Browser-Schlüssel ab, etwa über gRPC und MQTT, für Profile, Syslog, Fluent Bit und Fluentd sowie für das Hochladen von Source Maps, und einen Mobil-Schlüssel überall außer bei OTLP-Traces, -Protokollen und -Metriken über HTTP und den Session Replays seiner App. Um einen Sender auf einen anderen Typ umzustellen, legen Sie einen Schlüssel dieses Typs an, stellen den Sender darauf um und löschen dann den alten Schlüssel.
 
 ## Bevor Sie beginnen
 
@@ -85,16 +85,16 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Einen Browser-Schlüssel absichern
 
-Ein Browser-Schlüssel steht in Ihrer Seite, wo ihn jeder kopieren kann. Diese Einstellungen begrenzen, was eine Kopie anrichten kann. Ändern Sie sie auf der Seite des Schlüssels mit **Ingestion-Schlüssel bearbeiten**.
+Ein Browser-Schlüssel steht in Ihrer Seite, wo ihn jeder kopieren kann. Alles, was er sendet, wird als Browser-RUM-Anwendung eingeordnet, nie als Host, Cluster, Cloud-Ressource, Datenbank oder Backend-Dienst: Von der Ressource, die ein Sender setzt, behält der Schlüssel nur, was eine Seite über sich selbst sagt, etwa die Attribute `service.*`, `browser.*` und `user_agent.*` und die Labels `oneuptime.label.*`. Diese Einstellungen begrenzen, was eine Kopie anrichten kann. Ändern Sie sie auf der Seite des Schlüssels mit **Ingestion-Schlüssel bearbeiten**.
 
 | Einstellung | Was sie bewirkt |
 | --- | --- |
 | **Zulässige Ursprünge** | Die einzigen Ursprünge, von denen der Schlüssel angenommen wird. Eine Anfrage von jedem anderen Ursprung, oder ganz ohne `Origin`-Header, wird abgelehnt. Ein Browser-Schlüssel muss mindestens einen behalten. |
-| **Festgelegter Dienstname** | Legt alles, was der Schlüssel über OTLP/HTTP sendet, unter diesem einen Dienst ab, egal welchen `service.name` der Sender gesetzt hat. Eine Kopie des Schlüssels kann dann nur in diesen Dienst schreiben. |
+| **Festgelegter Dienstname** | Legt alles, was der Schlüssel über OTLP/HTTP sendet, unter dieser einen Anwendung ab, egal welchen `service.name` der Sender gesetzt hat. Eine Kopie des Schlüssels kann dann nur in diese Anwendung schreiben. |
 | **Limit für Anfragen pro Minute** | Die meisten Anfragen, für die der Schlüssel pro Minute angenommen wird, geteilt von allen Besuchern. Ein Browser-Schlüssel bekommt 6.000, wenn Sie das Feld leer lassen. |
 | **Läuft ab am** | Das Datum, nach dem der Schlüssel abgelehnt wird, damit eine veröffentlichte Kopie nicht mehr funktioniert. |
 
-Ein Ursprung besteht aus Schema, Host und optionalem Port: `https://app.example.com` deckt `https://app.example.com:8443` nicht ab. Ein führendes `*.` deckt jede Subdomain ab, aber nicht die Domain selbst. React Native Session Replay sendet eine exakte `app://`-Identität, die keinen Platzhalter zulässt:
+Ein Ursprung besteht aus Schema, Host und optionalem Port: `https://app.example.com` deckt `https://app.example.com:8443` nicht ab. Ein führendes `*.` deckt jede Subdomain ab, aber nicht die Domain selbst. React Native Session Replay mit einem Browser-Schlüssel sendet eine exakte `app://`-Identität, die keinen Platzhalter zulässt:
 
 ```json
 [
@@ -111,11 +111,11 @@ Unter [Dienste](/docs/telemetry/services#wie-ein-dienst-in-den-katalog-kommt) st
 Ein Mobil-Schlüssel wird mit Ihrer App ausgeliefert, und jeder, der die App hat, kann ihn kopieren. Diese Grenzen halten jede Kopie bei der App, für die der Schlüssel angelegt wurde:
 
 - **Er schreibt nur als eine App.** Alles, was er sendet, wird unter dem Namen aus **Festgelegter Dienstname** als mobile RUM-Anwendung eingeordnet, egal welchen Dienst oder Host der Sender nennt. Eine Kopie kann nicht in Ihre Backend-Dienste, Hosts oder Cluster schreiben.
-- **Er sendet nur die Telemetrie dieser App.** OTLP-Traces, -Protokolle und -Metriken über HTTP. Er wird über gRPC und MQTT, für Session Replays, Profile und Source Maps, an jedem anderen Endpunkt und von jeder Webseite aus abgelehnt.
+- **Er sendet nur die Telemetrie dieser App.** OTLP-Traces, -Protokolle und -Metriken über HTTP und die Session Replays der App aus ihrem React-Native-Recorder, mit dem Namen aus **Festgelegter Dienstname** des Schlüssels als `appIdentifier`. Er wird über gRPC und MQTT, für Session Replays einer anderen App, Profile und Source Maps, an jedem anderen Endpunkt und von jeder Webseite aus abgelehnt.
 - **Er ist begrenzt.** 6.000 Anfragen pro Minute für alle Kopien zusammen, außer Sie setzen sein **Limit für Anfragen pro Minute**.
 - **Sie können ihn stoppen.** Schalten Sie **Aktiviert** aus oder setzen Sie **Läuft ab am**, und jede Kopie wird innerhalb von Sekunden abgelehnt.
 
-Was er nicht verhindern kann: Wer Ihre App hat, kann trotzdem erfundene Traces, Protokolle und Metriken für diese eine App senden, bis zum Limit des Schlüssels, bis Sie den Schlüssel ausschalten oder er abläuft. Tauschen Sie den Schlüssel mit Ihren Releases aus, damit eine alte Kopie mit ihrer Version aufhört zu funktionieren.
+Was er nicht verhindern kann: Wer Ihre App hat, kann trotzdem erfundene Traces, Protokolle, Metriken und Session Replays für diese eine App senden, bis zum Limit des Schlüssels, bis Sie den Schlüssel ausschalten oder er abläuft. Tauschen Sie den Schlüssel mit Ihren Releases aus, damit eine alte Kopie mit ihrer Version aufhört zu funktionieren.
 
 ## Einen Schlüssel rotieren, ausschalten oder löschen
 
@@ -144,7 +144,8 @@ Die Seite des Schlüssels zählt mit: **Abgelehnte Telemetrie** listet, was in d
 | `422` mit `This telemetry ingestion key has been disabled.` | Jemand hat **Aktiviert** ausgeschaltet. |
 | `422` mit `A browser ingestion key cannot be used for` | Ein Browser-Schlüssel hat einen Endpunkt erreicht, der nur Server-Schlüssel annimmt. |
 | `422` mit `did not send an Origin header` | Ein Browser-Schlüssel wurde von außerhalb eines Browsers gesendet. Nutzen Sie in einer Mobil-App einen Mobil-Schlüssel und überall sonst einen Server-Schlüssel. |
-| `422` mit `A mobile ingestion key cannot be used for` | Ein Mobil-Schlüssel hat einen anderen Endpunkt als OTLP-Traces, -Protokolle und -Metriken über HTTP erreicht, etwa gRPC oder Session Replay. |
+| `422` mit `A mobile ingestion key cannot be used for` | Ein Mobil-Schlüssel hat einen anderen Endpunkt als OTLP-Traces, -Protokolle und -Metriken über HTTP und Session Replay erreicht, etwa gRPC oder Profile. |
+| `422` mit `A mobile ingestion key can send session replays only` | Ein Mobil-Schlüssel hat die Aufzeichnung einer Webseite oder einer anderen App gesendet. Geben Sie dem React-Native-Recorder den Namen aus **Festgelegter Dienstname** des Schlüssels als `appIdentifier`. |
 | `422` mit `A mobile ingestion key cannot be used from a web page` | Ein Mobil-Schlüssel wurde von einem Browser gesendet. Nutzen Sie auf einer Webseite einen Browser-Schlüssel. |
 | `422` mit `is not allowed for this browser ingestion key` | Der Ursprung der Seite steht nicht in **Zulässige Ursprünge**. |
 | `422` mit `is pinned to a single service` | Ein Schlüssel, bei dem **Festgelegter Dienstname** gesetzt ist, wurde zum Registrieren eines Agenten verwendet. Nutzen Sie einen Server-Schlüssel ohne festgelegten Namen. |

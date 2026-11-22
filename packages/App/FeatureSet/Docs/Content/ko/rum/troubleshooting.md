@@ -87,14 +87,14 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 ## 텔레메트리가 도착하는 곳 확인하기
 
-요청은 성공하지만 앱이 **제품 → 리소스 → 실제 사용자 모니터링**이 아니라 **제품 → 서비스** 아래에 나타납니다. 가장 흔한 보고이며, 원인은 거의 항상 클라이언트 속성이 없는 리소스입니다. OneUptime은 리소스에 다음 중 하나가 있을 때만 배치를 RUM으로 저장합니다.
+요청은 성공하지만 앱이 **제품 → 리소스 → 실제 사용자 모니터링**이 아니라 **제품 → 서비스** 아래에 나타납니다. 가장 흔한 보고이며, 원인은 거의 항상 브라우저 키나 모바일 키가 아닌 키로 클라이언트 속성이 없는 리소스를 보내는 것입니다. 브라우저 키나 모바일 키가 보내는 모든 것은 RUM으로 저장됩니다. 다른 키라면 OneUptime은 리소스에 다음 중 하나가 있을 때만 배치를 RUM으로 저장합니다.
 
 | 종류 | 속성 |
 | --- | --- |
 | 브라우저 | `browser.platform`, `browser.language`, 또는 비어 있지 않은 `browser.brands` |
 | 모바일 | `device.id` 또는 `device.model.identifier`, 또는 호스트 식별 정보(`host.name`, `host.id`, `k8s.node.name`)가 없는 리소스의 `device.manufacturer` |
 
-`service.name`만 있으면 백엔드 서비스가 됩니다. OpenTelemetry 브라우저 SDK는 브라우저 리소스 감지기를 추가하거나 직접 설정하지 않는 한 `browser.*` 속성을 추가하지 않습니다. [브라우저 설정](/docs/rum/browser-setup)을 참고하세요.
+다른 키라면 `service.name`만 있을 때 백엔드 서비스가 됩니다. OpenTelemetry 브라우저 SDK는 브라우저 리소스 감지기를 추가하거나 직접 설정하지 않는 한 `browser.*` 속성을 추가하지 않습니다. [브라우저 설정](/docs/rum/browser-setup)을 참고하세요.
 
 실제로 무엇을 보내는지 보려면 Network 탭에서 OTLP 요청을 열고 페이로드를 확인하세요. 판단에 쓰이는 것은 `resourceSpans[0].resource.attributes` 목록입니다. 그곳에 `browser.*` 속성이 없다면, 문서에 뭐라고 쓰여 있든 SDK가 이를 추가하지 않는 것입니다.
 
@@ -127,7 +127,7 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 예외에는 오류 핸들러가 필요합니다. SDK가 처리되지 않은 오류를 수집하지 않기 때문입니다. 코드는 [처리되지 않은 오류 보고하기](/docs/rum/browser-setup#처리되지-않은-오류-보고하기)에 있습니다. error boundary나 `try`/`catch`가 처리한 오류는 창까지 전달되지 않으므로, 처리하는 곳에서 `span.recordException`으로 기록하세요.
 
-로그에는 로그 파이프라인과 로그 레코드를 기록하는 코드가 필요합니다. `LoggerProvider`만으로는 아무것도 보내지 않기 때문입니다. 둘 다 [로그와 메트릭 추가하기](/docs/rum/browser-setup#로그와-메트릭-추가하기)에 있습니다. 파이프라인은 트레이스와 같은 `resource`로 만드세요. 그렇지 않으면 로그가 백엔드 서비스 아래로 분류됩니다.
+로그에는 로그 파이프라인과 로그 레코드를 기록하는 코드가 필요합니다. `LoggerProvider`만으로는 아무것도 보내지 않기 때문입니다. 둘 다 [로그와 메트릭 추가하기](/docs/rum/browser-setup#로그와-메트릭-추가하기)에 있습니다. 파이프라인은 트레이스와 같은 `resource`로 만드세요. 그러면 로그도 같은 애플리케이션 아래로 분류됩니다.
 
 페이지 로드가 도착한다면, 로그 익스포터가 같은 키와 호스트를 쓰는 한 키, 키의 허용된 오리진, Content Security Policy는 예외와 로그도 통과시킵니다. 아직 아무것도 잡지 않은 오류 핸들러는 추가된 적 없는 핸들러와 똑같이 아무것도 보내지 않으므로, 둘을 구분하려면 브라우저 콘솔에서 테스트 오류를 발생시키세요.
 
