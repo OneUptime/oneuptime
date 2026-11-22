@@ -6,7 +6,9 @@ import DatabaseService from "../../../Server/Services/DatabaseService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import SecurityCaseService from "../../../Server/Services/SecurityCaseService";
 import { AuditLogService } from "../../../Server/Services/AuditLogService";
+import AggregateBy from "../../../Server/Types/AnalyticsDatabase/AggregateBy";
 import CountBy from "../../../Server/Types/AnalyticsDatabase/CountBy";
+import ExistsBy from "../../../Server/Types/AnalyticsDatabase/ExistsBy";
 import FindBy from "../../../Server/Types/AnalyticsDatabase/FindBy";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import {
@@ -237,11 +239,11 @@ async function callRoute(
 
   let thrownToNext: unknown = undefined;
 
-  await mockRouter
-    .match(method, uri)
-    .handlerFunction(req, res, ((err?: unknown) => {
-      thrownToNext = err;
-    }) as NextFunction);
+  await mockRouter.match(method, uri).handlerFunction(req, res, ((
+    err?: unknown,
+  ) => {
+    thrownToNext = err;
+  }) as NextFunction);
 
   return { thrownToNext };
 }
@@ -384,18 +386,20 @@ describe("AuditLogService: every read held to its reader", () => {
 
     const originalExists: AuditLogService["toExistsStatement"] =
       service.toExistsStatement.bind(service);
-    jest.spyOn(service, "toExistsStatement").mockImplementation((existsBy) => {
-      const built: Statement = originalExists(existsBy);
-      lastKind = "exists";
-      statements.push({ kind: lastKind, statement: built });
-      return built;
-    });
+    jest
+      .spyOn(service, "toExistsStatement")
+      .mockImplementation((existsBy: ExistsBy<AuditLog>) => {
+        const built: Statement = originalExists(existsBy);
+        lastKind = "exists";
+        statements.push({ kind: lastKind, statement: built });
+        return built;
+      });
 
     const originalAggregate: AuditLogService["toAggregateStatement"] =
       service.toAggregateStatement.bind(service);
     jest
       .spyOn(service, "toAggregateStatement")
-      .mockImplementation((aggregateBy) => {
+      .mockImplementation((aggregateBy: AggregateBy<AuditLog>) => {
         const built: ReturnType<AuditLogService["toAggregateStatement"]> =
           originalAggregate(aggregateBy);
         lastKind = "aggregate";
@@ -525,9 +529,13 @@ describe("AuditLogService: every read held to its reader", () => {
         }
       }
 
-      expect(JSON.stringify(sentList().map((entry: AuditLog) => {
-        return entry.toJSON();
-      }))).not.toMatch(/Malicious|payments-01|Production spend|Prod\b/);
+      expect(
+        JSON.stringify(
+          sentList().map((entry: AuditLog) => {
+            return entry.toJSON();
+          }),
+        ),
+      ).not.toMatch(/Malicious|payments-01|Production spend|Prod\b/);
     });
 
     test("a Project Admin's list reads every entry as recorded", async () => {
@@ -640,9 +648,9 @@ describe("AuditLogService: every read held to its reader", () => {
 
       // The types it matches, then the grouped list itself, of those only.
       expect(grouped).toHaveLength(2);
-      expect(
-        JSON.stringify(grouped[1]!.statement.query_params),
-      ).not.toContain(SECURITY_CASE);
+      expect(JSON.stringify(grouped[1]!.statement.query_params)).not.toContain(
+        SECURITY_CASE,
+      );
     });
 
     test("the Resource Type filter's options (grouped by type) are no name and look nothing up", async () => {
@@ -781,10 +789,7 @@ describe("AuditLogService: every read held to its reader", () => {
         GlobalCache,
         "getJSONObject",
       );
-      const cacheWrite: jest.SpyInstance = getJestSpyOn(
-        GlobalCache,
-        "setJSON",
-      );
+      const cacheWrite: jest.SpyInstance = getJestSpyOn(GlobalCache, "setJSON");
 
       const result: { thrownToNext: unknown } = await callRoute(
         "POST",

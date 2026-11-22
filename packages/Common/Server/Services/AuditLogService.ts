@@ -165,7 +165,7 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
    *
    *   - What a read returns: each entry's values are those of the fields its
    *     reader may read on the record, and its name is there only where they
-   *     may read the record - the rest is hidden. The columns that decides by
+   *     may read the record - the rest is hidden. The columns that decide it
    *     are read with it, and left out of what is returned when the read did
    *     not ask for them.
    *   - What a read matches, orders or groups by: a filter, an order or a
@@ -348,7 +348,9 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
     const isHeld: boolean =
       !isGrouped &&
       !AuditLogReadAccess.readsEverything(findBy.props) &&
-      Boolean(select[AUDIT_LOG_CHANGES_COLUMN] || select[AUDIT_LOG_NAME_COLUMN]);
+      Boolean(
+        select[AUDIT_LOG_CHANGES_COLUMN] || select[AUDIT_LOG_NAME_COLUMN],
+      );
 
     // What deciding needs, and the read may not have asked for.
     const addedColumns: Array<string> = [];

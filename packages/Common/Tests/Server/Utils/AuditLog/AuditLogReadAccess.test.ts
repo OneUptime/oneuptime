@@ -7,7 +7,9 @@ import IncomingCallPolicyPhoneNumberService from "../../../../Server/Services/In
 import SecurityCaseService from "../../../../Server/Services/SecurityCaseService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import WorkflowService from "../../../../Server/Services/WorkflowService";
+import DatabaseRequestType from "../../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import FindBy from "../../../../Server/Types/Database/FindBy";
+import TablePermission from "../../../../Server/Types/Database/Permissions/TablePermission";
 import QueryUtil from "../../../../Server/Types/Database/QueryUtil";
 import AuditLogReadAccess from "../../../../Server/Utils/AuditLog/AuditLogReadAccess";
 import AuditLog from "../../../../Models/AnalyticsModels/AuditLog";
@@ -15,6 +17,7 @@ import AllDatabaseModelTypes from "../../../../Models/DatabaseModels/Index";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import AuditLogExport from "../../../../Models/DatabaseModels/AuditLogExport";
 import CloudBudget from "../../../../Models/DatabaseModels/CloudBudget";
 import DataStoreFinding from "../../../../Models/DatabaseModels/DataStoreFinding";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -218,7 +221,7 @@ function entryOf(data: {
   changes: JSONArray;
 }): AuditLog {
   const entry: AuditLog = new AuditLog();
-  entry._id = ObjectID.generate().toString();
+  entry._id = ObjectID.generate();
   entry.projectId = PROJECT_ID;
   entry.resourceType = data.resourceType;
   entry.resourceId = data.resourceId;
@@ -287,9 +290,9 @@ function answerFindsFromTests(): void {
         findBy.query as unknown as { _id: FindOperator<unknown> }
       )._id;
       const askedIds: Array<string> = (
-        Object.values(idCondition.objectLiteralParameters || {})[0] as Array<
-          string
-        >
+        Object.values(
+          idCondition.objectLiteralParameters || {},
+        )[0] as Array<string>
       ).map((id: string): string => {
         return id.toLowerCase();
       });
@@ -397,10 +400,9 @@ describe("AuditLogReadAccess", () => {
     ])(
       "%s sees that the case changed, who changed it, when and which fields - not the values, nor the case's name",
       async (_name: string, props: DatabaseCommonInteractionProps) => {
-        const asked: Array<FindBy<BaseModel>> = findsOnly(
-          SecurityCaseService,
-          [CASE_ID],
-        );
+        const asked: Array<FindBy<BaseModel>> = findsOnly(SecurityCaseService, [
+          CASE_ID,
+        ]);
         const recorded: AuditLog = securityCaseUpdate();
         const [held] = await hold([securityCaseUpdate()], props);
 
@@ -418,7 +420,12 @@ describe("AuditLogReadAccess", () => {
           }),
         ).toEqual(["title", "verdict", "aiTriageReport", "entities"]);
 
-        for (const field of ["title", "verdict", "aiTriageReport", "entities"]) {
+        for (const field of [
+          "title",
+          "verdict",
+          "aiTriageReport",
+          "entities",
+        ]) {
           expectHidden(changeOf(held!, field), field);
         }
 
@@ -438,10 +445,9 @@ describe("AuditLogReadAccess", () => {
     ])(
       "%s reads the case's values and its name, as they read every case: nothing is looked up",
       async (_name: string, props: DatabaseCommonInteractionProps) => {
-        const asked: Array<FindBy<BaseModel>> = findsOnly(
-          SecurityCaseService,
-          [CASE_ID],
-        );
+        const asked: Array<FindBy<BaseModel>> = findsOnly(SecurityCaseService, [
+          CASE_ID,
+        ]);
         const [held] = await hold([securityCaseUpdate()], props);
 
         expectShownAsRecorded(held!, securityCaseUpdate());
@@ -468,10 +474,9 @@ describe("AuditLogReadAccess", () => {
     ])(
       "%s reads the case's values and its name, as they read every case",
       async (_name: string, props: DatabaseCommonInteractionProps) => {
-        const asked: Array<FindBy<BaseModel>> = findsOnly(
-          SecurityCaseService,
-          [CASE_ID],
-        );
+        const asked: Array<FindBy<BaseModel>> = findsOnly(SecurityCaseService, [
+          CASE_ID,
+        ]);
         const [held] = await hold([securityCaseUpdate()], props);
 
         expectShownAsRecorded(held!, securityCaseUpdate());
@@ -620,7 +625,10 @@ describe("AuditLogReadAccess", () => {
         INCIDENT_ID,
       ]);
       const props: DatabaseCommonInteractionProps = memberWith([
-        { permission: Permission.ReadProjectIncident, scope: PermissionScope.Owned },
+        {
+          permission: Permission.ReadProjectIncident,
+          scope: PermissionScope.Owned,
+        },
         { permission: Permission.ReadAuditLog },
       ]);
 
@@ -646,7 +654,10 @@ describe("AuditLogReadAccess", () => {
       const [held] = await hold(
         [incidentUpdate(INCIDENT_ID)],
         memberWith([
-          { permission: Permission.ReadProjectIncident, scope: PermissionScope.Owned },
+          {
+            permission: Permission.ReadProjectIncident,
+            scope: PermissionScope.Owned,
+          },
           { permission: Permission.ReadAuditLog },
         ]),
       );
@@ -666,7 +677,11 @@ describe("AuditLogReadAccess", () => {
         resourceName: "Checkout down",
         action: AuditLogAction.Update,
         changes: [
-          { field: "description", oldValue: "", newValue: "Card payments fail" },
+          {
+            field: "description",
+            oldValue: "",
+            newValue: "Card payments fail",
+          },
         ],
       });
     };
@@ -809,8 +824,7 @@ describe("AuditLogReadAccess", () => {
       const recorded: () => AuditLog = (): AuditLog => {
         return entryOf({
           resourceType:
-            AuditLogReadAccess.getResourceTypeOf(new TeamMember()) ||
-            "missing",
+            AuditLogReadAccess.getResourceTypeOf(new TeamMember()) || "missing",
           resourceId: ObjectID.generate(),
           resourceName: "Jane Doe",
           action: AuditLogAction.Delete,
@@ -1016,7 +1030,10 @@ describe("AuditLogReadAccess", () => {
         INCIDENT_ID,
       ]);
       const props: DatabaseCommonInteractionProps = memberWith([
-        { permission: Permission.ReadProjectIncident, scope: PermissionScope.Owned },
+        {
+          permission: Permission.ReadProjectIncident,
+          scope: PermissionScope.Owned,
+        },
         { permission: Permission.ReadAuditLog },
       ]);
 
@@ -1056,7 +1073,10 @@ describe("AuditLogReadAccess", () => {
           }),
         ],
         memberWith([
-          { permission: Permission.ReadProjectIncident, scope: PermissionScope.Owned },
+          {
+            permission: Permission.ReadProjectIncident,
+            scope: PermissionScope.Owned,
+          },
           { permission: Permission.ReadAuditLog },
         ]),
       );
@@ -1109,5 +1129,69 @@ describe("AuditLogReadAccess", () => {
 
     expect(entry.resourceName).toBeUndefined();
     expect(entry.changes).toBeUndefined();
+  });
+
+  /*
+   * The Enterprise export reads entries as OneUptime itself and sends them as
+   * recorded, but for secrets and the fields nobody may read
+   * (ee/Server/AuditLogExport/AuditLogExportRedaction): its readers are the
+   * project's owners and admins who set it up (AuditLogExport's lists), or
+   * a server admin for the instance's export. That stays the rule while
+   * they read every record the audit log is about: every audited table's
+   * readers name both roles, or nobody's do - and then no field of it is
+   * recorded, nobody reading any.
+   */
+  test("the export's readers, a project's owners and admins, read every table the audit log records", () => {
+    const setUpBy: Array<Permission> = TablePermission.getTablePermission(
+      AuditLogExport as unknown as DatabaseBaseModelType,
+      DatabaseRequestType.Create,
+    );
+
+    expect([...setUpBy].sort()).toEqual(
+      [Permission.ProjectOwner, Permission.ProjectAdmin].sort(),
+    );
+
+    const readByNeither: Array<string> = [];
+
+    for (const modelType of AllDatabaseModelTypes as Array<DatabaseBaseModelType>) {
+      const model: BaseModel = new modelType();
+
+      if (!model.enableAuditLogOn) {
+        continue;
+      }
+
+      const readers: Array<Permission> = TablePermission.getTablePermission(
+        modelType,
+        DatabaseRequestType.Read,
+      );
+
+      if (readers.length === 0) {
+        // Nobody reads it: no field of it is in an entry.
+        for (const [column, access] of Object.entries(
+          model.getColumnAccessControlForAllColumns(),
+        )) {
+          if (
+            model.isTableColumn(column) &&
+            !["_id", "createdAt", "updatedAt", "deletedAt"].includes(column)
+          ) {
+            expect({ column, read: access.read || [] }).toEqual({
+              column,
+              read: [],
+            });
+          }
+        }
+
+        continue;
+      }
+
+      if (
+        !readers.includes(Permission.ProjectOwner) ||
+        !readers.includes(Permission.ProjectAdmin)
+      ) {
+        readByNeither.push(model.tableName || "");
+      }
+    }
+
+    expect(readByNeither).toEqual([]);
   });
 });

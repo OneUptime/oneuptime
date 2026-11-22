@@ -132,10 +132,8 @@ const NOTHING_SHOWN: EntryRead = {
 };
 
 // Each type entries are stored under, and the models it can name.
-let modelTypesByResourceType: Map<
-  string,
-  Array<DatabaseBaseModelType>
-> | null = null;
+let modelTypesByResourceType: Map<string, Array<DatabaseBaseModelType>> | null =
+  null;
 
 // The models whose name another model has too.
 let modelTypesSharingAName: Set<DatabaseBaseModelType> | null = null;
@@ -600,8 +598,7 @@ class ReaderReads {
     const columns: Array<string> = [
       ...AUDIT_LOG_NAME_COLUMNS.filter((column: string): boolean => {
         return (
-          model.isTableColumn(column) &&
-          (access[column]?.read || []).length > 0
+          model.isTableColumn(column) && (access[column]?.read || []).length > 0
         );
       }),
       ...(model.enableAuditLogOn?.resourceNameColumns || []).filter(
@@ -807,8 +804,9 @@ class ReaderReads {
     let readsEveryRecord: boolean = false;
 
     try {
-      readsEveryRecord =
-        await getServiceOf(modelType).readsEveryRecordInProject(this.props);
+      readsEveryRecord = await getServiceOf(
+        modelType,
+      ).readsEveryRecordInProject(this.props);
     } catch (err) {
       logger.debug(err, {
         projectId: this.props.tenantId?.toString(),
@@ -894,9 +892,7 @@ export default class AuditLogReadAccess {
     for (const entry of data.entries) {
       const id: string | null = readIdOf(entry.resourceId);
 
-      for (const modelType of getModelTypesOfResourceType(
-        entry.resourceType,
-      )) {
+      for (const modelType of getModelTypesOfResourceType(entry.resourceType)) {
         const ids: Set<string> = idsByModel.get(modelType) || new Set();
 
         if (id) {
@@ -916,7 +912,11 @@ export default class AuditLogReadAccess {
         continue;
       }
 
-      AuditLogReadAccess.holdEntry(entry, await reads.getEntryRead(entry), reads);
+      AuditLogReadAccess.holdEntry(
+        entry,
+        await reads.getEntryRead(entry),
+        reads,
+      );
     }
   }
 
@@ -941,9 +941,7 @@ export default class AuditLogReadAccess {
     const readInFull: Array<string> = [];
 
     for (const resourceType of data.resourceTypes) {
-      if (
-        await reads.readsEveryEntryOfTypeInFull(resourceType, data.values)
-      ) {
+      if (await reads.readsEveryEntryOfTypeInFull(resourceType, data.values)) {
         readInFull.push(resourceType);
       }
     }
@@ -961,11 +959,8 @@ export default class AuditLogReadAccess {
       (read.isEveryFieldShown ||
         Boolean(read.table && reads.isNameShown(read.table)));
 
-    if (
-      entry.resourceName !== undefined &&
-      entry.resourceName !== null &&
-      !isNameShown
-    ) {
+    // A record with no name keeps none: there is nothing to hide.
+    if (entry.resourceName && !isNameShown) {
       entry.resourceName = AUDIT_LOG_HIDDEN_VALUE;
     }
 
