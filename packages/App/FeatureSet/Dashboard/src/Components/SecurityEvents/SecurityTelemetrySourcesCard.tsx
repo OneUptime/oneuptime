@@ -23,7 +23,6 @@ import AppLink from "../AppLink/AppLink";
 import RefusedTelemetryLines from "./RefusedTelemetry/RefusedTelemetryLines";
 import { readSourceRefusedTelemetry } from "./RefusedTelemetry/RefusedTelemetryModel";
 import PageMap from "../../Utils/PageMap";
-import OneUptimeDate from "Common/Types/Date";
 import { getRecentRefusedTelemetry } from "Common/Utils/SecurityEvent/RefusedTelemetry";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
