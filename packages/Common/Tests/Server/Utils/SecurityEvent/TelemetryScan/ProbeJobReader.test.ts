@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 import { FindOperator } from "typeorm";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import MonitorProbe from "../../../../../Models/DatabaseModels/MonitorProbe";
@@ -98,10 +99,10 @@ function stand(data: {
   scans?: Array<NetworkDeviceDiscoveryScan>;
   monitors?: Array<Monitor>;
 }): {
-  devices: jest.SpiedFunction<typeof NetworkDeviceService.findAllBy>;
-  scans: jest.SpiedFunction<typeof NetworkDeviceDiscoveryScanService.findBy>;
-  assignments: jest.SpiedFunction<typeof MonitorProbeService.findAllBy>;
-  monitors: jest.SpiedFunction<typeof MonitorService.findBy>;
+  devices: SpyInstance<typeof NetworkDeviceService.findAllBy>;
+  scans: SpyInstance<typeof NetworkDeviceDiscoveryScanService.findBy>;
+  assignments: SpyInstance<typeof MonitorProbeService.findAllBy>;
+  monitors: SpyInstance<typeof MonitorService.findBy>;
 } {
   const monitors: Array<Monitor> = data.monitors || [];
 
@@ -133,11 +134,12 @@ function stand(data: {
 
 function resolveTo(
   answers: Record<string, Array<string>>,
-): jest.Mock<(hostname: string) => Promise<Array<string>>> {
-  const resolver: jest.Mock<(hostname: string) => Promise<Array<string>>> =
-    jest.fn(async (hostname: string): Promise<Array<string>> => {
+): Mock<(hostname: string) => Promise<Array<string>>> {
+  const resolver: Mock<(hostname: string) => Promise<Array<string>>> = jest.fn(
+    async (hostname: string): Promise<Array<string>> => {
       return answers[hostname] || [];
-    });
+    },
+  );
 
   ProbeJobReader.setDnsCacheForTests(new DnsResolutionCache({ resolver }));
 

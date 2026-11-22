@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import logger from "../../../../../Server/Utils/Logger";
 import OneUptimeProbeAddresses, {
   OneUptimeProbe,
@@ -227,16 +228,14 @@ describe("reading a window's probes", () => {
       addresses: ["34.9.9.9"],
       lastAlive: new Date("2026-11-21T06:00:00.000Z"),
     });
-    const own: jest.SpiedFunction<
-      typeof OneUptimeProbeAddresses.readProjectProbes
-    > = jest
-      .spyOn(OneUptimeProbeAddresses, "readProjectProbes")
-      .mockResolvedValue({ probes: [OFFICE, asleep], isComplete: true });
-    const global: jest.SpiedFunction<
-      typeof OneUptimeProbeAddresses.readGlobalProbes
-    > = jest
-      .spyOn(OneUptimeProbeAddresses, "readGlobalProbes")
-      .mockResolvedValue({ probes: [usEast], isComplete: true });
+    const own: SpyInstance<typeof OneUptimeProbeAddresses.readProjectProbes> =
+      jest
+        .spyOn(OneUptimeProbeAddresses, "readProjectProbes")
+        .mockResolvedValue({ probes: [OFFICE, asleep], isComplete: true });
+    const global: SpyInstance<typeof OneUptimeProbeAddresses.readGlobalProbes> =
+      jest
+        .spyOn(OneUptimeProbeAddresses, "readGlobalProbes")
+        .mockResolvedValue({ probes: [usEast], isComplete: true });
     jest
       .spyOn(OneUptimeProbeAddresses, "getOneUptimeCloud")
       .mockReturnValue(CLOUD);
