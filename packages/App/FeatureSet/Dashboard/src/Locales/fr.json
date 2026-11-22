@@ -62093,5 +62093,15 @@
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "La sonde de cette analyse n'existe plus, l'analyse ne peut donc pas s'exécuter. Choisissez une autre sonde dans Modifier.",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "La sonde de cette analyse, {{probe}}, n'est pas connectée à OneUptime, l'analyse ne peut donc pas s'exécuter maintenant. Démarrez la sonde, ou choisissez une autre sonde dans Modifier.",
   "You may not edit this project's discovery scans, so you cannot run one.": "Vous ne pouvez pas modifier les analyses de découverte de ce projet, vous ne pouvez donc pas en exécuter.",
-  "{{scan}} is queued to run again.": "{{scan}} est de nouveau en file d'attente."
+  "{{scan}} is queued to run again.": "{{scan}} est de nouveau en file d'attente.",
+  "Criteria Met": "Critères remplis",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "Chaque série lue par la dernière vérification, avec sa dernière valeur, les critères qu'elle remplit et son incident ou son alerte ouverts.",
+  "Keeps the status": "Conserve le statut",
+  "Latest Value": "Dernière valeur",
+  "Monitor status kept": "Statut du moniteur conservé",
+  "Open Incident or Alert": "Incident ou alerte ouverts",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "Affichage de {{shown}} séries sur {{count}} : celles qui conservent le statut ou remplissent un critère en premier.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "Affichage de {{shown}} série sur {{count}} : celle qui conserve le statut ou remplit un critère en premier.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "Le moniteur conserve son statut : il attend qu'un critère qui le rétablit soit rempli par {{series}}.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "Cette série a rempli un critère qui a changé le statut du moniteur, et n'a pas encore rempli de critère qui le rétablit. Le moniteur conserve son statut jusqu'à ce qu'elle le fasse, quoi que fassent les autres séries."
 }

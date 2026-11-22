@@ -62093,5 +62093,15 @@
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "Die Sonde dieses Scans existiert nicht mehr, daher kann der Scan nicht ausgeführt werden. Wählen Sie unter „Bearbeiten“ eine andere Sonde.",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Die Sonde dieses Scans, {{probe}}, ist nicht mit OneUptime verbunden, daher kann der Scan jetzt nicht ausgeführt werden. Starten Sie die Sonde, oder wählen Sie unter „Bearbeiten“ eine andere Sonde.",
   "You may not edit this project's discovery scans, so you cannot run one.": "Sie dürfen die Erkennungsscans dieses Projekts nicht bearbeiten und können daher keinen ausführen.",
-  "{{scan}} is queued to run again.": "{{scan}} steht zur erneuten Ausführung in der Warteschlange."
+  "{{scan}} is queued to run again.": "{{scan}} steht zur erneuten Ausführung in der Warteschlange.",
+  "Criteria Met": "Erfüllte Kriterien",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "Jede Reihe, die die letzte Prüfung gelesen hat, mit ihrem letzten Wert, den Kriterien, die sie erfüllt, und ihrem offenen Vorfall oder ihrer offenen Warnung.",
+  "Keeps the status": "Hält den Status",
+  "Latest Value": "Letzter Wert",
+  "Monitor status kept": "Monitor-Status beibehalten",
+  "Open Incident or Alert": "Offener Vorfall oder offene Warnung",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "{{shown}} von {{count}} Reihen werden angezeigt: zuerst die, die den Status halten oder ein Kriterium erfüllen.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "{{shown}} von {{count}} Reihe wird angezeigt: zuerst die, die den Status hält oder ein Kriterium erfüllt.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "Der Monitor behält seinen Status: Er wartet darauf, dass ein Kriterium, das ihn zurückbringt, von {{series}} erfüllt wird.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "Diese Reihe hat ein Kriterium erfüllt, das den Status des Monitors geändert hat, und noch kein Kriterium, das ihn zurückbringt. Der Monitor behält seinen Status, bis sie es tut, unabhängig davon, was die anderen Reihen tun."
 }

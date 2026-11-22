@@ -62093,5 +62093,15 @@
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "لم يعد مسبار هذا الفحص موجودًا، لذا لا يمكن تشغيل الفحص. اختر مسبارًا آخر في «تعديل».",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "مسبار هذا الفحص، {{probe}}، غير مرتبط بـ OneUptime، لذا لا يمكن تشغيل الفحص الآن. شغّل المسبار، أو اختر مسبارًا آخر في «تعديل».",
   "You may not edit this project's discovery scans, so you cannot run one.": "لا يمكنك تعديل عمليات فحص الاكتشاف في هذا المشروع، لذا لا يمكنك تشغيل أي منها.",
-  "{{scan}} is queued to run again.": "أُضيف {{scan}} إلى قائمة الانتظار ليعمل مرة أخرى."
+  "{{scan}} is queued to run again.": "أُضيف {{scan}} إلى قائمة الانتظار ليعمل مرة أخرى.",
+  "Criteria Met": "المعايير المستوفاة",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "كل سلسلة قرأها آخر فحص، مع أحدث قيمة لها والمعايير التي تستوفيها والحادثة أو التنبيه المفتوح لها.",
+  "Keeps the status": "تُبقي الحالة",
+  "Latest Value": "أحدث قيمة",
+  "Monitor status kept": "أُبقيت حالة المراقبة",
+  "Open Incident or Alert": "الحادثة أو التنبيه المفتوح",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "السلاسل المعروضة: {{shown}} من {{count}}. تأتي أولًا السلاسل التي تُبقي الحالة أو تستوفي معيارًا.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "السلاسل المعروضة: {{shown}} من {{count}}. تأتي أولًا السلسلة التي تُبقي الحالة أو تستوفي معيارًا.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "تُبقي المراقبة حالتها حتى يُستوفى معيار يعيدها لما يلي: {{series}}.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "استوفت هذه السلسلة معيارًا غيّر حالة المراقبة، ولم تستوفِ بعدُ معيارًا يعيدها. تُبقي المراقبة حالتها حتى يحدث ذلك، أيًا كان ما تفعله السلاسل الأخرى."
 }

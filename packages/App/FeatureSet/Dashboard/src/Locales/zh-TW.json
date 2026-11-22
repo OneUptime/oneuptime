@@ -62093,5 +62093,15 @@
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "此掃描的探測器已不存在，因此無法執行掃描。請在「編輯」中選擇其他探測器。",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "此掃描的探測器 {{probe}} 未連線到 OneUptime，因此現在無法執行掃描。請啟動該探測器，或在「編輯」中選擇其他探測器。",
   "You may not edit this project's discovery scans, so you cannot run one.": "你無權編輯此專案的探索掃描，因此無法執行掃描。",
-  "{{scan}} is queued to run again.": "{{scan}} 已重新排入佇列，等待再次執行。"
+  "{{scan}} is queued to run again.": "{{scan}} 已重新排入佇列，等待再次執行。",
+  "Criteria Met": "符合的條件",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "上次檢查讀取的每個序列，及其最新值、符合的條件，以及未解決的事件或警示。",
+  "Keeps the status": "保持狀態",
+  "Latest Value": "最新值",
+  "Monitor status kept": "監測器狀態已保持",
+  "Open Incident or Alert": "未解決的事件或警示",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "顯示 {{count}} 個序列中的 {{shown}} 個：保持狀態或符合條件的序列排在前面。",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "顯示 {{count}} 個序列中的 {{shown}} 個：保持狀態或符合條件的序列排在前面。",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "監測器保持其狀態：等待 {{series}} 符合使其恢復的條件。",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "此序列符合了變更監測器狀態的條件，但尚未符合使其恢復的條件。無論其他序列如何，在此之前監測器都會保持其狀態。"
 }

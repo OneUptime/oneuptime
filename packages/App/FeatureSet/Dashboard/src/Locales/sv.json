@@ -62093,5 +62093,15 @@
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "Den här skanningens sond finns inte längre, så skanningen kan inte köras. Välj en annan sond under Redigera.",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Den här skanningens sond, {{probe}}, är inte ansluten till OneUptime, så skanningen kan inte köras nu. Starta sonden, eller välj en annan sond under Redigera.",
   "You may not edit this project's discovery scans, so you cannot run one.": "Du får inte redigera det här projektets identifieringsskanningar, så du kan inte köra någon.",
-  "{{scan}} is queued to run again.": "{{scan}} har lagts i kö för att köras igen."
+  "{{scan}} is queued to run again.": "{{scan}} har lagts i kö för att köras igen.",
+  "Criteria Met": "Uppfyllda kriterier",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "Varje serie som den senaste kontrollen läste, med dess senaste värde, de kriterier den uppfyller och dess öppna incident eller larm.",
+  "Keeps the status": "Håller statusen",
+  "Latest Value": "Senaste värde",
+  "Monitor status kept": "Monitorstatus behållen",
+  "Open Incident or Alert": "Öppen incident eller larm",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "Visar {{shown}} av {{count}} serier: de som håller statusen eller uppfyller ett kriterium kommer först.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "Visar {{shown}} av {{count}} serie: den som håller statusen eller uppfyller ett kriterium kommer först.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "Monitorn behåller sin status: den väntar på att ett kriterium som tar tillbaka den uppfylls för {{series}}.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "Den här serien uppfyllde ett kriterium som ändrade monitorns status och har ännu inte uppfyllt ett kriterium som tar tillbaka den. Monitorn behåller sin status tills det sker, oavsett vad de andra serierna gör."
 }

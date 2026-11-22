@@ -62093,5 +62093,15 @@
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "Зонда этого сканирования больше нет, поэтому сканирование не может запуститься. Выберите другой зонд в разделе «Редактировать».",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Зонд этого сканирования, {{probe}}, не подключён к OneUptime, поэтому сканирование сейчас не может запуститься. Запустите зонд или выберите другой зонд в разделе «Редактировать».",
   "You may not edit this project's discovery scans, so you cannot run one.": "Вы не можете редактировать сканирования обнаружения этого проекта, поэтому не можете запустить ни одно из них.",
-  "{{scan}} is queued to run again.": "{{scan}}: сканирование снова поставлено в очередь."
+  "{{scan}} is queued to run again.": "{{scan}}: сканирование снова поставлено в очередь.",
+  "Criteria Met": "Выполненные критерии",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "Каждый ряд, прочитанный последней проверкой: его последнее значение, критерии, которые он выполняет, и его открытый инцидент или оповещение.",
+  "Keeps the status": "Удерживает статус",
+  "Latest Value": "Последнее значение",
+  "Monitor status kept": "Статус монитора сохранён",
+  "Open Incident or Alert": "Открытый инцидент или оповещение",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "Показано рядов: {{shown}} из {{count}}. Сначала те, что удерживают статус или выполняют критерий.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "Показано рядов: {{shown}} из {{count}}. Сначала те, что удерживают статус или выполняют критерий.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "Монитор сохраняет свой статус: он ждёт, пока для {{series}} не выполнится критерий, который вернёт его обратно.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "Этот ряд выполнил критерий, который изменил статус монитора, и ещё не выполнил критерий, который вернёт его обратно. Монитор сохраняет статус, пока это не произойдёт, что бы ни делали остальные ряды."
 }

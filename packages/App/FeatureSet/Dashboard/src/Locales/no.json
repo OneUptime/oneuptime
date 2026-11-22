@@ -62093,5 +62093,15 @@
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "Sonden til denne skanningen finnes ikke lenger, så skanningen kan ikke kjøre. Velg en annen sonde under Rediger.",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Sonden til denne skanningen, {{probe}}, er ikke koblet til OneUptime, så skanningen kan ikke kjøre nå. Start sonden, eller velg en annen sonde under Rediger.",
   "You may not edit this project's discovery scans, so you cannot run one.": "Du kan ikke redigere oppdagelsesskanningene i dette prosjektet, så du kan ikke kjøre en.",
-  "{{scan}} is queued to run again.": "{{scan}} er satt i kø for å kjøre igjen."
+  "{{scan}} is queued to run again.": "{{scan}} er satt i kø for å kjøre igjen.",
+  "Criteria Met": "Oppfylte kriterier",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "Hver serie den siste sjekken leste, med siste verdi, kriteriene den oppfyller og den åpne hendelsen eller varselet.",
+  "Keeps the status": "Holder statusen",
+  "Latest Value": "Siste verdi",
+  "Monitor status kept": "Monitorstatus beholdt",
+  "Open Incident or Alert": "Åpen hendelse eller varsel",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "Viser {{shown}} av {{count}} serier: de som holder statusen eller oppfyller et kriterium, kommer først.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "Viser {{shown}} av {{count}} serie: den som holder statusen eller oppfyller et kriterium, kommer først.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "Monitoren beholder statusen sin: den venter på at et kriterium som bringer den tilbake, blir oppfylt for {{series}}.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "Denne serien oppfylte et kriterium som endret statusen til monitoren, og har ennå ikke oppfylt et kriterium som bringer den tilbake. Monitoren beholder statusen sin til det skjer, uansett hva de andre seriene gjør."
 }

@@ -62093,5 +62093,15 @@
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "La sonda di questa scansione non esiste più, quindi la scansione non può essere eseguita. Scegli un'altra sonda in Modifica.",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "La sonda di questa scansione, {{probe}}, non è connessa a OneUptime, quindi la scansione non può essere eseguita ora. Avvia la sonda o scegli un'altra sonda in Modifica.",
   "You may not edit this project's discovery scans, so you cannot run one.": "Non puoi modificare le scansioni di rilevamento di questo progetto, quindi non puoi eseguirne una.",
-  "{{scan}} is queued to run again.": "{{scan}} è di nuovo in coda."
+  "{{scan}} is queued to run again.": "{{scan}} è di nuovo in coda.",
+  "Criteria Met": "Criteri soddisfatti",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "Ogni serie letta dall'ultimo controllo, con il suo ultimo valore, i criteri che soddisfa e il suo incidente o avviso aperto.",
+  "Keeps the status": "Mantiene lo stato",
+  "Latest Value": "Ultimo valore",
+  "Monitor status kept": "Stato del monitor mantenuto",
+  "Open Incident or Alert": "Incidente o avviso aperto",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "Vengono mostrate {{shown}} serie su {{count}}: prima quelle che mantengono lo stato o soddisfano un criterio.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "Viene mostrata {{shown}} serie su {{count}}: prima quella che mantiene lo stato o soddisfa un criterio.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "Il monitor mantiene il suo stato: attende che un criterio che lo ripristina sia soddisfatto da {{series}}.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "Questa serie ha soddisfatto un criterio che ha cambiato lo stato del monitor e non ha ancora soddisfatto un criterio che lo ripristina. Il monitor mantiene il suo stato finché non lo fa, qualunque cosa facciano le altre serie."
 }

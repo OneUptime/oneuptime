@@ -62093,5 +62093,15 @@
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.",
   "You may not edit this project's discovery scans, so you cannot run one.": "You may not edit this project's discovery scans, so you cannot run one.",
-  "{{scan}} is queued to run again.": "{{scan}} is queued to run again."
+  "{{scan}} is queued to run again.": "{{scan}} is queued to run again.",
+  "Criteria Met": "Criteria Met",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.",
+  "Keeps the status": "Keeps the status",
+  "Latest Value": "Latest Value",
+  "Monitor status kept": "Monitor status kept",
+  "Open Incident or Alert": "Open Incident or Alert",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do."
 }

@@ -62093,5 +62093,15 @@
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "이 스캔의 프로브가 더 이상 존재하지 않아 스캔을 실행할 수 없습니다. 편집에서 다른 프로브를 선택하세요.",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "이 스캔의 프로브({{probe}})가 OneUptime에 연결되어 있지 않아 지금은 스캔을 실행할 수 없습니다. 프로브를 시작하거나 편집에서 다른 프로브를 선택하세요.",
   "You may not edit this project's discovery scans, so you cannot run one.": "이 프로젝트의 검색 스캔을 편집할 권한이 없으므로 스캔을 실행할 수 없습니다.",
-  "{{scan}} is queued to run again.": "{{scan}} 스캔을 다시 실행하도록 대기열에 추가했습니다."
+  "{{scan}} is queued to run again.": "{{scan}} 스캔을 다시 실행하도록 대기열에 추가했습니다.",
+  "Criteria Met": "충족한 기준",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "마지막 검사에서 읽은 각 시리즈와 최신 값, 충족한 기준, 열려 있는 인시던트 또는 경고입니다.",
+  "Keeps the status": "상태 유지 중",
+  "Latest Value": "최신 값",
+  "Monitor status kept": "모니터 상태 유지됨",
+  "Open Incident or Alert": "열린 인시던트 또는 경고",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "시리즈 {{count}}개 중 {{shown}}개를 표시합니다. 상태를 유지하거나 기준을 충족한 시리즈가 먼저 표시됩니다.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "시리즈 {{count}}개 중 {{shown}}개를 표시합니다. 상태를 유지하거나 기준을 충족한 시리즈가 먼저 표시됩니다.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "모니터가 상태를 유지합니다. {{series}}에 대해 모니터를 되돌리는 기준이 충족될 때까지 기다립니다.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "이 시리즈는 모니터 상태를 변경한 기준을 충족했고, 아직 상태를 되돌리는 기준을 충족하지 않았습니다. 다른 시리즈와 관계없이 그때까지 모니터는 상태를 유지합니다."
 }

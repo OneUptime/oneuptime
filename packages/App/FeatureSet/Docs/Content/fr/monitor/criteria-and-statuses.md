@@ -31,6 +31,8 @@ Un critère qui correspond sans changer de statut décide quand même de la vér
 
 > [!NOTE]
 > Un moniteur qui ouvre un incident ou une alerte par hôte, conteneur, disque ou interface juge tous les critères à chaque vérification, de sorte que deux hôtes peuvent correspondre à deux critères différents en même temps. C'est le cas d'un moniteur dont la requête a un **Regrouper par**, comme un moniteur de métriques ou de journaux, ou d'un critère qui indique `*` pour chaque disque ou interface. Un moniteur de requêtes entrantes qui regroupe les incidents par un champ de la charge utile s'arrête quand même à la première correspondance.
+>
+> Un tel moniteur a tout de même un seul statut, fixé par le premier critère qui correspond. Un critère qui le ramène seulement à son **État du moniteur par défaut**, sans ouvrir d'incident ni d'alerte, attend les hôtes qui ont satisfait un critère fixant un autre statut : il correspond une fois que chacun d'eux le satisfait, quoi que fassent les autres hôtes. D'ici là, le moniteur conserve son statut, même quand aucun critère ne correspond, tandis que les incidents et les alertes de chaque hôte se résolvent toujours chacun de leur côté.
 
 ## Ce que contient un critère
 

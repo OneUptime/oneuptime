@@ -62093,5 +62093,15 @@
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "इस स्कैन का प्रोब अब मौजूद नहीं है, इसलिए स्कैन नहीं चल सकता। संपादित करें में कोई दूसरा प्रोब चुनें।",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "इस स्कैन का प्रोब, {{probe}}, OneUptime से कनेक्ट नहीं है, इसलिए स्कैन अभी नहीं चल सकता। प्रोब शुरू करें, या संपादित करें में कोई दूसरा प्रोब चुनें।",
   "You may not edit this project's discovery scans, so you cannot run one.": "आप इस प्रोजेक्ट के डिस्कवरी स्कैन संपादित नहीं कर सकते, इसलिए आप कोई स्कैन नहीं चला सकते।",
-  "{{scan}} is queued to run again.": "{{scan}} को फिर से चलाने के लिए कतार में लगा दिया गया है।"
+  "{{scan}} is queued to run again.": "{{scan}} को फिर से चलाने के लिए कतार में लगा दिया गया है।",
+  "Criteria Met": "पूरे हुए मानदंड",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "पिछली जाँच में पढ़ी गई हर सीरीज़, उसके नवीनतम मान, उसके पूरे किए गए मानदंडों और उसकी खुली घटना या अलर्ट के साथ।",
+  "Keeps the status": "स्थिति बनाए रखती है",
+  "Latest Value": "नवीनतम मान",
+  "Monitor status kept": "मॉनिटर स्थिति बनी रही",
+  "Open Incident or Alert": "खुली घटना या अलर्ट",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "{{count}} में से {{shown}} सीरीज़ दिखाई जा रही हैं: स्थिति बनाए रखने वाली या कोई मानदंड पूरा करने वाली सीरीज़ पहले आती हैं।",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "{{count}} में से {{shown}} सीरीज़ दिखाई जा रही है: स्थिति बनाए रखने वाली या कोई मानदंड पूरा करने वाली सीरीज़ पहले आती है।",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "मॉनिटर अपनी स्थिति बनाए रखता है: वह {{series}} के लिए उसे वापस लाने वाले मानदंड के पूरा होने की प्रतीक्षा करता है।",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "इस सीरीज़ ने मॉनिटर की स्थिति बदलने वाला मानदंड पूरा किया है, और अभी तक उसे वापस लाने वाला मानदंड पूरा नहीं किया है। जब तक ऐसा नहीं होता, मॉनिटर अपनी स्थिति बनाए रखता है, चाहे बाकी सीरीज़ कुछ भी करें।"
 }
