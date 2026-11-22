@@ -434,7 +434,7 @@ Les étapes d'annulation agissent sur les utilisateurs ou hôtes sur lesquels po
 
 Les propres adresses de votre projet ne sont jamais bloquées : les entrées d'**Entités protégées**, vos hôtes, nœuds Kubernetes, ressources cloud, équipements réseau et points de terminaison, vos noms d'adresse et vos sondes, les sondes de OneUptime Cloud, les plages qui ne sont pas sur Internet, et le réseau en périphérie placé devant votre application. Un blocage qui en toucherait une est refusé, avec ce qu'est l'adresse, et **Entités protégées** les liste sous **Protection automatique**. Quand OneUptime ne peut pas déterminer si une adresse est la vôtre, il ne la bloque pas.
 
-**Appliqué sur** indique chaque endroit où un blocage est appliqué, et s'il y tient. Tant que rien n'applique la liste de blocage, la page l'indique, et un blocage est enregistré mais ne bloque rien. Chaque blocage, levée et expiration est conservé dans le journal d'audit du projet, et dans la chronologie de son dossier quand il en a un.
+**Appliqué sur** indique chaque endroit où un blocage est appliqué, et s'il y tient. Un pare-feu ou un proxy l'applique en lisant un [flux de liste de blocage](/docs/telemetry/blocklist-feeds), une URL secrète qu'il récupère toutes les quelques minutes. Tant que rien n'applique la liste de blocage, la page l'indique, et un blocage est enregistré mais ne bloque rien. Chaque blocage, levée et expiration est conservé dans le journal d'audit du projet, et dans la chronologie de son dossier quand il en a un.
 
 ### Messages
 
