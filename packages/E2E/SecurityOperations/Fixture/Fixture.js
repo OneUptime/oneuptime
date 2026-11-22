@@ -217,6 +217,14 @@ import {
   ConditionType,
   NotificationRuleConditionCheckOn,
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import { lateArrivalsToJSON } from "Common/Types/SecurityEvent/SecurityEventLateArrival";
+import {
+  SECURITY_EVENT_RETENTION_MAX_LISTED_RULES,
+  findRulesPastRetention,
+  getSecurityEventRetentionInDays,
+  securityEventRetentionStatusToJSON,
+} from "Common/Types/SecurityEvent/SecurityEventRetention";
+import SigmaRuleSetParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import SecurityCaseEvidence from "Common/Models/DatabaseModels/SecurityCaseEvidence";
 import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
@@ -4616,6 +4624,48 @@ const caseContext = createCaseContextFixture({
   findCase,
 });
 
+/*
+ * What POST /detection-rule/retention answers, as SecurityEventRetention's
+ * getStatus works it out: the project's retention for security events, and
+ * its enabled rules that read further back, furthest first. A rule whose
+ * YAML does not parse is one no run reads with, and is left out.
+ */
+function securityEventRetentionStatus() {
+  const retentionInDays = getSecurityEventRetentionInDays(PROJECT_RECORD);
+  const parsed = [];
+
+  for (const rule of table(DetectionRule)) {
+    if (!rule.isEnabled || !rule.sigmaRuleYaml) {
+      continue;
+    }
+
+    try {
+      parsed.push({
+        id: String(rule._id),
+        name: rule.name || "",
+        definition: SigmaRuleSetParser.parse(rule.sigmaRuleYaml),
+      });
+    } catch {
+      continue;
+    }
+  }
+
+  const pastRetention = findRulesPastRetention({
+    rules: parsed,
+    retentionInDays,
+  });
+
+  return {
+    retentionInDays,
+    rulesPastRetention: pastRetention.slice(
+      0,
+      SECURITY_EVENT_RETENTION_MAX_LISTED_RULES,
+    ),
+    hasMoreRulesPastRetention:
+      pastRetention.length > SECURITY_EVENT_RETENTION_MAX_LISTED_RULES,
+  };
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   fixture.apiRequests.push({ method, url, body: serialize(options.data) });
@@ -4767,6 +4817,34 @@ async function handleApi(method, options) {
     return answer.status === 200
       ? new HTTPResponse(200, answer.body, {})
       : new HTTPErrorResponse(answer.status, answer.body, {});
+  }
+  /*
+   * The security events that arrived more than a day after they happened
+   * in the last week (#10491): none of the month's did, so Detection Rules
+   * shows no notice of them.
+   */
+  if (method === "POST" && path.endsWith("/detection-rule/late-arrivals")) {
+    return new HTTPResponse(
+      200,
+      lateArrivalsToJSON({
+        arrivedSince: new Date(NOW.getTime() - 7 * DAY),
+        eventCount: 0,
+        sources: [],
+      }),
+      {},
+    );
+  }
+  /*
+   * How long the project keeps its security events, and the enabled rules
+   * that read further back (#10432), worked out from the rules' own YAML as
+   * the server works it out (Server/Utils/SecurityEvent/SecurityEventRetention).
+   */
+  if (method === "POST" && path.endsWith("/detection-rule/retention")) {
+    return new HTTPResponse(
+      200,
+      securityEventRetentionStatusToJSON(securityEventRetentionStatus()),
+      {},
+    );
   }
   if (method === "POST" && path.endsWith("/ai-chat/providers")) {
     return new HTTPResponse(200, AI_PROVIDERS, {});
