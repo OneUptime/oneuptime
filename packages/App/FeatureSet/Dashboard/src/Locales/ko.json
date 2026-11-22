@@ -61712,5 +61712,6 @@
   "{{product}} holds IPv4 and IPv6 addresses and ranges only.": "{{product}}은(는) IPv4 및 IPv6 주소와 범위만 담을 수 있습니다.",
   "{{policy}} is a network edge security policy, whose rules match packets rather than requests, so OneUptime does not keep the blocklist in it. Pick a backend or edge security policy.": "{{policy}}은(는) 네트워크 에지 보안 정책으로, 규칙이 요청이 아닌 패킷과 일치하므로 OneUptime은 이 정책에 차단 목록을 두지 않습니다. 백엔드 또는 에지 보안 정책을 고르세요.",
   "Lets your blocklist block addresses in Application Gateway and Front Door WAF policies you pick, with rules of its own. The command changes with it.": "자체 규칙으로, 선택한 Application Gateway 및 Front Door WAF 정책에서 차단 목록이 주소를 차단할 수 있게 합니다. 명령도 이에 맞게 바뀝니다.",
-  "Where {{name}} reads the client's address is changed. OneUptime writes its rules again.": "{{name}}이(가) 클라이언트 주소를 읽는 위치가 바뀌었습니다. OneUptime이 규칙을 다시 씁니다."
+  "Where {{name}} reads the client's address is changed. OneUptime writes its rules again.": "{{name}}이(가) 클라이언트 주소를 읽는 위치가 바뀌었습니다. OneUptime이 규칙을 다시 씁니다.",
+  "OneUptime takes its rules out of {{name}}, and deletes its address groups once no other policy uses them. Your blocklist is no longer enforced there.": "OneUptime은 {{name}}에서 자체 규칙을 제거하고, 다른 정책이 주소 그룹을 더 이상 사용하지 않으면 주소 그룹을 삭제합니다. 차단 목록이 더 이상 그곳에 적용되지 않습니다."
 }

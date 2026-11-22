@@ -61712,5 +61712,6 @@
   "{{product}} holds IPv4 and IPv6 addresses and ranges only.": "{{product}} rymmer bara IPv4- och IPv6-adresser och -intervall.",
   "{{policy}} is a network edge security policy, whose rules match packets rather than requests, so OneUptime does not keep the blocklist in it. Pick a backend or edge security policy.": "{{policy}} är en network edge-säkerhetspolicy, vars regler matchar paket i stället för begäranden, så OneUptime lägger inte blocklistan i den. Välj en backend- eller edge-säkerhetspolicy.",
   "Lets your blocklist block addresses in Application Gateway and Front Door WAF policies you pick, with rules of its own. The command changes with it.": "Låter din blocklista blockera adresser i de WAF-policyer för Application Gateway och Front Door som du väljer, med OneUptimes egna regler. Kommandot ändras därefter.",
-  "Where {{name}} reads the client's address is changed. OneUptime writes its rules again.": "Var {{name}} läser klientens adress har ändrats. OneUptime skriver sina regler igen."
+  "Where {{name}} reads the client's address is changed. OneUptime writes its rules again.": "Var {{name}} läser klientens adress har ändrats. OneUptime skriver sina regler igen.",
+  "OneUptime takes its rules out of {{name}}, and deletes its address groups once no other policy uses them. Your blocklist is no longer enforced there.": "OneUptime tar bort sina regler från {{name}} och raderar sina adressgrupper när ingen annan policy använder dem. Din blocklista tillämpas inte längre där."
 }

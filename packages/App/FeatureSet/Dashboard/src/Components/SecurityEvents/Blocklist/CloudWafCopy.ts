@@ -258,7 +258,7 @@ export const REMOVE_AZURE_DESCRIPTION: string = translationKey(
   "OneUptime takes its rules out of {{name}} and changes nothing else in it. Your blocklist is then no longer enforced there.",
 );
 export const REMOVE_CLOUD_ARMOR_DESCRIPTION: string = translationKey(
-  "OneUptime takes its rules out of {{name}}, and deletes its address groups once no other policy of the project uses them. Your blocklist is then no longer enforced there.",
+  "OneUptime takes its rules out of {{name}}, and deletes its address groups once no other policy uses them. Your blocklist is no longer enforced there.",
 );
 export const KEEP_IN_CLOUD_FIELD_TITLE: string = translationKey(
   "Remove From OneUptime Only",

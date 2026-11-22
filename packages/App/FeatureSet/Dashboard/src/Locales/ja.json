@@ -61712,5 +61712,6 @@
   "{{product}} holds IPv4 and IPv6 addresses and ranges only.": "{{product}} が保持できるのは、IPv4 と IPv6 のアドレスと範囲だけです。",
   "{{policy}} is a network edge security policy, whose rules match packets rather than requests, so OneUptime does not keep the blocklist in it. Pick a backend or edge security policy.": "{{policy}} はネットワーク エッジ セキュリティ ポリシーです。そのルールはリクエストではなくパケットを照合するため、OneUptime はそこにブロックリストを保持しません。バックエンドまたはエッジのセキュリティ ポリシーを選んでください。",
   "Lets your blocklist block addresses in Application Gateway and Front Door WAF policies you pick, with rules of its own. The command changes with it.": "独自のルールを使って、選んだ Application Gateway と Front Door の WAF ポリシーでブロックリストがアドレスをブロックできるようにします。コマンドもこれに合わせて変わります。",
-  "Where {{name}} reads the client's address is changed. OneUptime writes its rules again.": "{{name}} がクライアントのアドレスを読み取る場所を変更しました。OneUptime はルールを書き直します。"
+  "Where {{name}} reads the client's address is changed. OneUptime writes its rules again.": "{{name}} がクライアントのアドレスを読み取る場所を変更しました。OneUptime はルールを書き直します。",
+  "OneUptime takes its rules out of {{name}}, and deletes its address groups once no other policy uses them. Your blocklist is no longer enforced there.": "OneUptime は {{name}} から自身のルールを外し、ほかのポリシーがアドレス グループを使わなくなった時点でそれらを削除します。ブロックリストはそこで適用されなくなります。"
 }

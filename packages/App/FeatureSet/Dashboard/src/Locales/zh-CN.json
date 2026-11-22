@@ -61712,5 +61712,6 @@
   "{{product}} holds IPv4 and IPv6 addresses and ranges only.": "{{product}} 只能容纳 IPv4 和 IPv6 地址及范围。",
   "{{policy}} is a network edge security policy, whose rules match packets rather than requests, so OneUptime does not keep the blocklist in it. Pick a backend or edge security policy.": "{{policy}} 是网络边缘安全策略，其规则匹配的是数据包而不是请求，因此 OneUptime 不会在其中保留封禁列表。请选择后端安全策略或边缘安全策略。",
   "Lets your blocklist block addresses in Application Gateway and Front Door WAF policies you pick, with rules of its own. The command changes with it.": "允许你的封禁列表用自己的规则，在你选择的 Application Gateway 和 Front Door WAF 策略中封禁地址。命令也会随之变化。",
-  "Where {{name}} reads the client's address is changed. OneUptime writes its rules again.": "{{name}} 读取客户端地址的位置已更改。OneUptime 会重新写入其规则。"
+  "Where {{name}} reads the client's address is changed. OneUptime writes its rules again.": "{{name}} 读取客户端地址的位置已更改。OneUptime 会重新写入其规则。",
+  "OneUptime takes its rules out of {{name}}, and deletes its address groups once no other policy uses them. Your blocklist is no longer enforced there.": "OneUptime 会从 {{name}} 中移除其规则，并在没有其他策略使用其地址组时删除这些地址组。你的封禁列表将不再在那里生效。"
 }
