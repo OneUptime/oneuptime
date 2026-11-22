@@ -110,6 +110,11 @@ const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
     kind: "ask",
     file: `${AI_DIRECTORY}/DataStoreOwnerPlanner.ts`,
   },
+  // Scrub rules for what Scrub It cannot cover (#10366), in the engine's job.
+  [DataSecurityAiFeature.WriteScrubRules]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/ScrubRuleWriter.ts`,
+  },
   [DataSecurityAiFeature.FixIssue]: {
     kind: "codeTask",
     file: `${AI_DIRECTORY}/DataSecurityCodeTask.ts`,

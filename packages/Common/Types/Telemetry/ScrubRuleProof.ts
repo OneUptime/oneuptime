@@ -228,6 +228,46 @@ export function getScrubOverreach(share: number): ScrubOverreach {
     : ScrubOverreach.TooMuch;
 }
 
+function counted(count: number, one: string, many: string): string {
+  return count === 1 ? `1 ${one}` : `${String(count)} ${many}`;
+}
+
+/*
+ * A proof in a sentence, as a proposal, the issue's timeline and the
+ * owners' email say it: counts only, never a value.
+ */
+export function describeScrubRuleProof(
+  proof: Pick<
+    ScrubRuleProof,
+    | "recordsRead"
+    | "findingRecordsRead"
+    | "valuesWithData"
+    | "valuesStillWithData"
+    | "otherValues"
+    | "otherValuesChanged"
+  >,
+): string {
+  const read: string = `${counted(proof.recordsRead, "record", "records")}${
+    proof.findingRecordsRead > 0
+      ? `, ${String(proof.findingRecordsRead)} of them the finding's own`
+      : ""
+  }`;
+  const hid: string =
+    proof.valuesStillWithData === 0
+      ? `it hid the data in ${proof.valuesWithData === 1 ? "the 1 value" : `all ${String(proof.valuesWithData)} values`} that held it`
+      : `it left the data in ${String(proof.valuesStillWithData)} of the ${counted(proof.valuesWithData, "value", "values")} that held it`;
+  let others: string = "there were no other values at its place to change";
+
+  if (proof.otherValues > 0) {
+    others =
+      proof.otherValuesChanged === 0
+        ? `changed none of the ${counted(proof.otherValues, "other value", "other values")} at its place`
+        : `also changed ${String(proof.otherValuesChanged)} of the ${counted(proof.otherValues, "other value", "other values")} at its place`;
+  }
+
+  return `Proven on ${read}: ${hid}, and ${others}.`;
+}
+
 /*
  * Whether a rule's proof covers a place: it is a proof of this very rule
  * (its fingerprint), it hid the data, and the place is one it was proven

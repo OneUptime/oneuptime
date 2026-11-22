@@ -16,6 +16,7 @@ import {
   MAX_READ_LOG_ENTRIES,
 } from "./DataSecurityScanTypes";
 import logger from "../Logger";
+import DataSecurityIntegrations from "./DataSecurityIntegrations";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
@@ -117,6 +118,7 @@ export default class DataSecurityFindingWriter {
       ? DataSecurityScanStatus.Succeeded
       : DataSecurityScanStatus.PartlySucceeded;
 
+    const created: { count: number } = { count: 0 };
     const findingsWritten: number = await this.writeFindings({
       projectId: input.projectId,
       dataStoreId: input.dataStoreId,
@@ -124,6 +126,7 @@ export default class DataSecurityFindingWriter {
       keepMaskedSamples: input.keepMaskedSamples,
       customDataTypes: input.customDataTypes,
       now,
+      created,
     });
 
     const scanId: ObjectID | null = await this.writeScan({
@@ -153,6 +156,18 @@ export default class DataSecurityFindingWriter {
 
     await this.pruneOldFindings(input.dataStoreId, now);
     await queueDataSecurityEvaluation(input.projectId);
+
+    /*
+     * Data found in a new place of a store whose telemetry issue is open
+     * already: OneUptime AI works on that issue again, so the new place is
+     * contained as an issue that just opened would be (#10366).
+     */
+    if (created.count > 0) {
+      await DataSecurityIntegrations.onNewTelemetryFindings({
+        projectId: input.projectId,
+        dataStoreId: input.dataStoreId,
+      });
+    }
 
     if (hasUnplacedFields) {
       await queueDataSecurityFieldSuggestions({
@@ -279,6 +294,8 @@ export default class DataSecurityFindingWriter {
     now: Date;
     // OneUptime AI's suggestions: never written over a detector's finding.
     isSuggestion?: boolean | undefined;
+    // How many findings were new: counted here for the caller.
+    created?: { count: number } | undefined;
   }): Promise<number> {
     const wanted: Map<
       string,
@@ -418,6 +435,10 @@ export default class DataSecurityFindingWriter {
             data: finding,
             props: { isRoot: true },
           });
+
+          if (data.created) {
+            data.created.count++;
+          }
         }
 
         written++;

@@ -25,6 +25,7 @@ import AutoRemediationAPI from "Common/Server/API/AutoRemediationAPI";
 import AiFirstResponderAPI from "Common/Server/API/AiFirstResponderAPI";
 import ScrubRuleReadersAPI from "Common/Server/API/ScrubRuleReadersAPI";
 import ScrubRuleAddressesAPI from "Common/Server/API/ScrubRuleAddressesAPI";
+import ScrubRuleValueCountsAPI from "Common/Server/API/ScrubRuleValueCountsAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationService, {
   Service as AIConversationServiceType,
@@ -5468,6 +5469,12 @@ const BaseAPIFeatureSet: FeatureSet = {
      * (#10396).
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, ScrubRuleAddressesAPI);
+
+    /*
+     * How many values each scrub rule changed in the last week, by service
+     * and version, for the scrub rule lists (#10366).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ScrubRuleValueCountsAPI);
 
     /*
      * Cluster AI access — readiness checklist + "test access" for a

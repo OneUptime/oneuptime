@@ -160,6 +160,39 @@ export const readRowsWithRunner: ScrubProofRowReader = async (data: {
   return (response.data || []) as Array<JSONObject>;
 };
 
+/*
+ * A reader that reads each statement once: every candidate a finding is
+ * planned with is proven on the very same records, and they are read from
+ * the database once for all of them (#10366). A read that failed fails
+ * for each candidate alike.
+ */
+export function readEachStatementOnce(
+  reader: ScrubProofRowReader,
+): ScrubProofRowReader {
+  const read: Map<string, Promise<Array<JSONObject>>> = new Map<
+    string,
+    Promise<Array<JSONObject>>
+  >();
+
+  return (data: {
+    source: SourceDefinition;
+    statement: ReturnType<typeof buildTelemetryOccurrenceStatement>;
+  }): Promise<Array<JSONObject>> => {
+    const key: string = JSON.stringify([
+      data.source.source,
+      data.statement.toJSON(),
+    ]);
+    let rows: Promise<Array<JSONObject>> | undefined = read.get(key);
+
+    if (!rows) {
+      rows = reader(data);
+      read.set(key, rows);
+    }
+
+    return rows;
+  };
+}
+
 function emptyProof(data: {
   rule: ScrubProofRule;
   places: Array<ScrubRuleProofPlace>;
@@ -586,6 +619,70 @@ export async function proveScrubRule(data: {
     overreach:
       proof.otherValues > 0 ? proof.otherValuesChanged / proof.otherValues : 0,
   };
+}
+
+/*
+ * The values at a finding's place in the records a proof reads - its own
+ * records, then the newest of its service - those that hold its data type
+ * first: what OneUptime AI's shapes are made from (TelemetryScrubShapes).
+ * They never leave the server. Null when the records could not be read, or
+ * the place is in records no rule is proven on.
+ */
+export async function readScrubPlaceValues(data: {
+  projectId: ObjectID;
+  finding: ScrubProofFinding;
+  serviceId: string;
+  options: ContentScanOptions;
+  now?: Date | undefined;
+  readRows?: ScrubProofRowReader | undefined;
+}): Promise<{ holding: Array<string>; others: Array<string> } | null> {
+  const plan: OccurrencePlan | null = planOccurrenceRead(
+    data.finding.kind,
+    data.finding.location,
+  );
+
+  if (!plan || !PROVABLE_SOURCES.has(plan.source)) {
+    return null;
+  }
+
+  const source: SourceDefinition = getTelemetrySource(plan.source);
+  const caps: TelemetrySampleCaps = capsOf(source, data.options);
+  const read: ReadRows | null = await readRows({
+    projectId: data.projectId,
+    plan,
+    serviceId: data.serviceId,
+    finding: data.finding,
+    caps,
+    now: data.now || OneUptimeDate.getCurrentDate(),
+    readRows: data.readRows || readRowsWithRunner,
+  });
+
+  if (!read) {
+    return null;
+  }
+
+  const holdsTheData: (value: string) => string | null = buildOccurrenceMatcher(
+    {
+      dataTypeId: data.finding.dataTypeId,
+      location: data.finding.location,
+      options: data.options,
+    },
+  );
+  const holding: Array<string> = [];
+  const others: Array<string> = [];
+
+  for (const row of read.rows) {
+    for (const value of valuesAt({
+      row,
+      source: plan.source,
+      caps,
+      location: data.finding.location,
+    })) {
+      (holdsTheData(value) ? holding : others).push(value);
+    }
+  }
+
+  return { holding, others };
 }
 
 /*

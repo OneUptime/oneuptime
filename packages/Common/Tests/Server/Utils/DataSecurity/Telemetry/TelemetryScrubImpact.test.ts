@@ -236,7 +236,8 @@ describe("the rule Scrub It would make", () => {
     expect(impact.rule).toEqual({
       signal: "log",
       name: "Data Security: Email address in log attributes of checkout",
-      scrubAction: "redact",
+      // Personal data is masked, as a finding's samples are (#10366).
+      scrubAction: "mask",
       patternType: "email",
       fieldsToScrub: "attributes",
       dataTypeName: "Email address",
@@ -295,10 +296,14 @@ describe("the rule Scrub It would make", () => {
     });
   });
 
-  test("a finding no rule can hide, or of a service that is gone: why, in Scrub It's words", async () => {
+  test("a type found by its field's name gets the rule that hides that attribute whole (#10366); one in a body, or of a service that is gone, says why in Scrub It's words", async () => {
     const nameOnly: DataSecurityScrubImpact = await impactOf({
       dataTypeId: "person-name",
       location: "attributes.customer.first_name",
+    });
+    const nameInBody: DataSecurityScrubImpact = await impactOf({
+      dataTypeId: "person-name",
+      location: "body",
     });
     const gone: DataSecurityScrubImpact = await impactOf({
       dataTypeId: "email-address",
@@ -306,8 +311,17 @@ describe("the rule Scrub It would make", () => {
       serviceId: PAYMENTS,
     });
 
-    expect(nameOnly.isAvailable).toBe(false);
-    expect(nameOnly.unavailableReason).toContain("found by field names");
+    expect(nameOnly.isAvailable).toBe(true);
+    expect(nameOnly.rule).toEqual(
+      expect.objectContaining({
+        patternType: "namedKeys",
+        attributeKeys: ["customer.first_name"],
+        scrubAction: "mask",
+        name: "Data Security: Person name in customer.first_name of checkout",
+      }),
+    );
+    expect(nameInBody.isAvailable).toBe(false);
+    expect(nameInBody.unavailableReason).toContain("found by field names");
     expect(gone).toEqual({
       isAvailable: false,
       unavailableReason: SCRUB_SERVICE_GONE,

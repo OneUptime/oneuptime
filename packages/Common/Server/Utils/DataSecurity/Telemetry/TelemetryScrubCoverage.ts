@@ -295,8 +295,14 @@ const SCRUB_PATTERN_TYPE_OF_DATA_TYPE: ReadonlyMap<string, string> = new Map(
   ),
 );
 
-// The built-in pattern types "Scrub it" masks rather than redacts.
+/*
+ * The built-in pattern types "Scrub it" masks rather than redacts: the
+ * personal data among them, masked as a finding's samples are (#10366). An
+ * IP address is redacted, or hashed where Security Events reads it
+ * (#10396).
+ */
 const MASKED_PATTERN_TYPES: ReadonlySet<string> = new Set([
+  LogScrubPatternType.Email,
   LogScrubPatternType.CreditCard,
   LogScrubPatternType.SSN,
   LogScrubPatternType.PhoneNumber,
@@ -1070,6 +1076,19 @@ export interface ScrubRulePlan {
    * address vault still names the address behind each token.
    */
   hashesForSecurityEvents?: boolean | undefined;
+  /*
+   * The attributes it names (#10366): a Named Attributes rule's, or the
+   * only ones a pattern reads. None for every attribute.
+   */
+  attributeKeys?: Array<string> | undefined;
+}
+
+// Who made a rule, as its description says first.
+export enum ScrubRuleOrigin {
+  // A person pressed Scrub It.
+  ScrubIt = "ScrubIt",
+  // OneUptime AI proposed it, and a person approved it, or it ran without asking.
+  OneUptimeAi = "OneUptimeAi",
 }
 
 /*
@@ -1150,7 +1169,7 @@ function dataTypeNameOf(dataTypeId: string): string {
  * (#10363), read only for such a type - else the name its finding kept -
  * and a built-in one by the catalog's.
  */
-async function nameTypeForRule(data: {
+export async function nameTypeForRule(data: {
   projectId: ObjectID;
   dataTypeId: string;
   // The name the finding kept when it was found.
@@ -1454,6 +1473,18 @@ export function nameScrubItRule(data: {
   const owner: string = data.scope.serviceId
     ? ` of ${data.scope.serviceName}`
     : "";
+  const keys: Array<string> = data.plan.attributeKeys || [];
+
+  /*
+   * A rule that names attributes is named after them: it hides that data
+   * there, not every value of the type (#10366).
+   */
+  if (keys.length > 0) {
+    return cut(
+      `${DATA_SECURITY_SCRUB_RULE_NAME_PREFIX}${data.dataTypeName} in ${keys.join(", ")}${owner}`,
+      MAX_RULE_NAME_LENGTH,
+    );
+  }
 
   return cut(
     `${DATA_SECURITY_SCRUB_RULE_NAME_PREFIX}${data.dataTypeName} in ${fieldsNoun(data.plan, data.signal)}${owner}`,
@@ -1461,16 +1492,54 @@ export function nameScrubItRule(data: {
   );
 }
 
-function describeRule(data: {
+// Who made a rule, and from what: its description's first sentence.
+export function describeScrubRuleOrigin(data: {
+  origin?: ScrubRuleOrigin | undefined;
+  dataTypeName: string;
+  location: string;
+  kind: DataStoreKind | string;
+  // How many findings it was made from: one rule for several places (#10366).
+  findingCount?: number | undefined;
+}): string {
+  const from: string =
+    (data.findingCount || 1) > 1
+      ? `findings of ${data.dataTypeName} in ${data.location}`
+      : `a finding of ${data.dataTypeName} in ${data.location}`;
+
+  return data.origin === ScrubRuleOrigin.OneUptimeAi
+    ? `Made by OneUptime AI (Data Security) from ${from} (${data.kind}).`
+    : `Made by Data Security ("Scrub it") from ${from} (${data.kind}).`;
+}
+
+export function describeRule(data: {
   plan: ScrubRulePlan;
   signal: ScrubRuleSignal;
   dataTypeName: string;
   location: string;
   kind: DataStoreKind;
   scope: ScrubRuleScopeOfFinding;
+  origin?: ScrubRuleOrigin | undefined;
+  findingCount?: number | undefined;
 }): string {
-  const origin: string = `Made by Data Security ("Scrub it") from a finding of ${data.dataTypeName} in ${data.location} (${data.kind}).`;
+  const origin: string = describeScrubRuleOrigin(data);
   const applies: string = `It applies to ${describeScope(data.scope, data.signal)}.`;
+  const keys: Array<string> = data.plan.attributeKeys || [];
+
+  // The whole value of the attributes it names (#10366).
+  if (data.plan.patternType === SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE) {
+    return cut(
+      `${origin} It ${actionVerb(data.plan.scrubAction)} the whole value of ${keys.join(", ")}, whatever it holds, from now on. ${applies} What is stored already stays until its retention ends.`,
+      MAX_RULE_DESCRIPTION_LENGTH,
+    );
+  }
+
+  // A pattern in the attributes it names, and no others (#10366).
+  if (keys.length > 0) {
+    return cut(
+      `${origin} It ${actionVerb(data.plan.scrubAction)} every ${data.dataTypeName.toLowerCase()} in the values of ${keys.join(", ")} from now on, and nothing in any other attribute. ${applies} What is stored already stays until its retention ends.`,
+      MAX_RULE_DESCRIPTION_LENGTH,
+    );
+  }
 
   if (data.plan.patternType === SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE) {
     return cut(

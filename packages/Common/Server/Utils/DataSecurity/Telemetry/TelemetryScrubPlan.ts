@@ -24,6 +24,8 @@ import {
 import { ContentScanOptions } from "../DataSecurityScanTypes";
 import {
   proveScrubRule,
+  readEachStatementOnce,
+  readRowsWithRunner,
   ScrubProofFailure,
   ScrubProofOutcome,
   ScrubProofRowReader,
@@ -90,12 +92,19 @@ export interface ScrubPlanFindingRecord {
   projectType?: ProjectDataTypePattern | undefined;
 }
 
-// Why a proof failed in a way no other candidate fixes: nothing could be read or proven.
-const CANNOT_PROVE: ReadonlySet<ScrubProofFailure> = new Set([
-  ScrubProofFailure.NotProvable,
-  ScrubProofFailure.CouldNotRead,
-  ScrubProofFailure.NothingToProveOn,
-]);
+/*
+ * Whether a proof failed in a way no other candidate fixes: nothing could
+ * be read or proven. A function, not a set made when this loads: the
+ * services that load the scrub action load this before the verifier is
+ * done loading.
+ */
+function isUnprovable(failure: ScrubProofFailure | undefined): boolean {
+  return (
+    failure === ScrubProofFailure.NotProvable ||
+    failure === ScrubProofFailure.CouldNotRead ||
+    failure === ScrubProofFailure.NothingToProveOn
+  );
+}
 
 /*
  * A finding's records and category as the server keeps them, read by id -
@@ -211,6 +220,8 @@ export async function planProvenScrubRule(data: {
   options: ContentScanOptions;
   // OneUptime AI's candidates, tried after the planner's own.
   extraCandidates?: ReadonlyArray<ScrubRuleCandidate> | undefined;
+  // These candidates and no others: the planner's were tried already.
+  onlyCandidates?: ReadonlyArray<ScrubRuleCandidate> | undefined;
   now?: Date | undefined;
   readRows?: ScrubProofRowReader | undefined;
 }): Promise<ScrubRulePlanOfFinding> {
@@ -222,19 +233,25 @@ export async function planProvenScrubRule(data: {
     target: data.finding.target,
     projectType: data.finding.projectType,
   };
-  const candidates: Array<ScrubRuleCandidate> = [
-    ...planScrubRuleCandidates({
-      finding: planFinding,
-      securityEventsSources: await readSecurityEventsSources({
-        projectId: data.projectId,
-        finding: data.finding,
-      }),
-      serviceId: data.serviceId,
-    }),
-    ...(data.extraCandidates || []),
-  ];
+  const candidates: Array<ScrubRuleCandidate> = data.onlyCandidates
+    ? [...data.onlyCandidates]
+    : [
+        ...planScrubRuleCandidates({
+          finding: planFinding,
+          securityEventsSources: await readSecurityEventsSources({
+            projectId: data.projectId,
+            finding: data.finding,
+          }),
+          serviceId: data.serviceId,
+        }),
+        ...(data.extraCandidates || []),
+      ];
   const tried: Array<ProvenScrubCandidate> = [];
   let cannotProve: boolean = true;
+  // Every candidate on the same records, read once.
+  const readRows: ScrubProofRowReader = readEachStatementOnce(
+    data.readRows || readRowsWithRunner,
+  );
 
   for (const candidate of candidates) {
     const outcome: ScrubProofOutcome = await proveScrubRule({
@@ -258,7 +275,7 @@ export async function planProvenScrubRule(data: {
       },
       options: data.options,
       now,
-      readRows: data.readRows,
+      readRows,
     });
     const proven: ProvenScrubCandidate = {
       candidate,
@@ -268,7 +285,7 @@ export async function planProvenScrubRule(data: {
 
     tried.push(proven);
 
-    if (!outcome.failure || !CANNOT_PROVE.has(outcome.failure)) {
+    if (!isUnprovable(outcome.failure)) {
       cannotProve = false;
     }
 

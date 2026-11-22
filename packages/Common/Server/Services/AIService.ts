@@ -233,6 +233,18 @@ export const AI_DATA_SECURITY_STORE_OWNERS_FEATURE: string =
   "AI Data Security Store Owners";
 
 /*
+ * The LlmLog feature name for the scrub rules OneUptime AI writes for the
+ * telemetry findings no rule of Scrub It's can hide (ScrubRuleWriter,
+ * #10366): one constrained call per issue it contains, from each finding's
+ * data type, place, the names around it and the shapes of its values -
+ * never a value. Started by an issue that opens, or a new finding of one,
+ * so the daily budget covers it. Its AI Logs rows keep no previews, as
+ * every Data Security call's do not.
+ */
+export const AI_DATA_SECURITY_SCRUB_RULES_FEATURE: string =
+  "AI Data Security Scrub Rules";
+
+/*
  * The LlmLog feature name for drafting a detection rule from a description
  * (DetectionRuleDraft): one request, started by a person on the Detection
  * Rules form and answered while they wait. Not autonomous - the project's
@@ -396,6 +408,11 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * connection's first read can find hundreds.
    */
   AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
+  /*
+   * The scrub rules OneUptime AI writes for what Scrub It cannot cover
+   * (ScrubRuleWriter, #10366): one constrained call per issue it contains.
+   */
+  AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
   /*
    * Pre-rename labels. Keeps the budget honest for rows already persisted
    * under the old names — read the LEGACY_AUTONOMOUS_AI_FEATURES comment

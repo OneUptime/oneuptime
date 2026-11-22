@@ -2,6 +2,7 @@ import AIService, {
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
   AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
+  AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
   AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
   AILogRequest,
   LLM_LOG_PREVIEW_NOT_KEPT,
@@ -273,6 +274,9 @@ describe("what every Data Security call keeps", () => {
       // OneUptime AI's owners for a store (#10374): autonomous, so budgeted.
       [DataSecurityAiFeature.ProposeStoreOwners]:
         AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
+      // OneUptime AI's scrub rules for what Scrub It cannot cover (#10366): autonomous, so budgeted.
+      [DataSecurityAiFeature.WriteScrubRules]:
+        AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
     });
   });
 
@@ -450,6 +454,8 @@ describe("every call runs on the project's own model", () => {
       DataSecurityAiModelSource.ProjectProvider,
       DataSecurityAiModelSource.Chat,
       // Owners for data stores: the one Data Security call, as Explain's.
+      DataSecurityAiModelSource.ProjectProvider,
+      // Scrub rules for what Scrub It cannot cover (#10366): the same one call.
       DataSecurityAiModelSource.ProjectProvider,
     ]);
   });

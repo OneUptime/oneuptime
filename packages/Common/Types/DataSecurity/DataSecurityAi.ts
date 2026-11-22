@@ -755,6 +755,13 @@ export function getDataSecurityAiWithoutAskingVerdict(data: {
   safety: DataSecurityAiChangeSafety;
   // The action proves it is safe enough to run out of the box (#10366).
   meetsDefaultConditions: boolean;
+  /*
+   * Whether the change may run without asking at all, whatever the rules
+   * say: a scrub rule that is not proven, changes other values at its
+   * place, or hides what something reads, never does (#10366). True when
+   * the action says nothing.
+   */
+  canRunWithoutAsking?: boolean | undefined;
   // The deciding rule names this very action (a change of access).
   isNamedByRule: boolean;
   // Project.requireTwoApprovalsForRiskierFixes.
@@ -778,6 +785,11 @@ export function getDataSecurityAiWithoutAskingVerdict(data: {
 
   if (data.work.autonomy !== DataSecurityAiAutonomy.WithoutAsking) {
     return ask(DataSecurityAiAskReason.WorkAsksFirst);
+  }
+
+  // A change that cannot prove it is safe always asks, whatever a rule says (#10366).
+  if (data.canRunWithoutAsking === false) {
+    return ask(DataSecurityAiAskReason.NotProvenSafe);
   }
 
   if (DATA_SECURITY_AI_ALWAYS_ASKS.includes(data.safety)) {
@@ -890,6 +902,18 @@ export function toStableJsonText(value: unknown): string {
   }
 
   return JSON.stringify(value === undefined ? null : value);
+}
+
+/*
+ * The lane a proposal's plan is in: its planKey's text before the first
+ * ":". A kind's waiting proposal is replaced only by a plan of the same
+ * lane, so changes of one kind that may run on their own and those that
+ * must wait are proposed side by side (#10366).
+ */
+export function getDataSecurityAiPlanLane(planKey: string): string {
+  const colon: number = planKey.indexOf(":");
+
+  return colon > 0 ? planKey.slice(0, colon) : planKey;
 }
 
 export const DATA_SECURITY_AI_PLAN_FINGERPRINT_LENGTH: number = 16;

@@ -41,6 +41,11 @@ import {
   MAX_DATA_STORE_OWNER_EVIDENCE,
 } from "../../../../Types/DataSecurity/DataStoreOwnerProposal";
 import { DataStoreExposure } from "../../../../Types/DataSecurity/DataStorePosture";
+import {
+  MAX_SCRUB_RULE_WRITER_PLACES,
+  ScrubRuleWriterPlace,
+  ScrubRuleWriterShape,
+} from "../../../../Types/DataSecurity/ScrubRuleWriterPlace";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { findInstructionLikePhrase } from "../../../../Utils/AI/InstructionLikeText";
@@ -1989,6 +1994,105 @@ export function buildSuggestFieldTypesPrompt(data: {
 
 /*
  * ---------------------------------------------------------------------------
+ * Scrub rules for what Scrub It cannot cover (#10366)
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * One place OneUptime AI writes a rule for, as it is told it: its data
+ * type by id and name, where it sits and the names around it - each the
+ * customer's text - and the shapes of its values, which are OneUptime's.
+ * Never a value: the shapes were made from the records by plain code
+ * (DataSecurity/Telemetry/TelemetryScrubShapes).
+ */
+export function scrubRulePlaceFacts(
+  place: ScrubRuleWriterPlace,
+  index: number,
+  marks: AiInputMarks,
+): JSONObject {
+  const path: string = `places[${index}]`;
+
+  return withoutEmpty({
+    ref: place.ref.slice(0, 10),
+    dataType: [
+      place.dataTypeId.slice(0, MAX_WORD_LENGTH),
+      customerText(
+        place.dataTypeName,
+        MAX_WORD_LENGTH,
+        `${path}.dataType`,
+        marks,
+      ),
+    ],
+    category: place.category.slice(0, MAX_WORD_LENGTH),
+    foundBy: place.foundBy,
+    signal: place.signal,
+    location: customerText(
+      place.location,
+      MAX_UNPLACED_LOCATION_LENGTH,
+      `${path}.location`,
+      marks,
+    ),
+    key: place.attributeKey
+      ? customerText(
+          place.attributeKey,
+          MAX_UNPLACED_LOCATION_LENGTH,
+          `${path}.key`,
+          marks,
+        )
+      : "",
+    kind: customerText(
+      place.locationKind,
+      MAX_WORD_LENGTH,
+      `${path}.kind`,
+      marks,
+    ),
+    neighbours: place.neighbours
+      .slice(0, MAX_FIELD_NEIGHBOURS)
+      .map((name: string, neighbour: number): string => {
+        return customerText(
+          name,
+          MAX_NEIGHBOUR_LENGTH,
+          `${path}.neighbours[${neighbour}]`,
+          marks,
+        );
+      }),
+    shapes: place.shapes
+      .slice(0, MAX_FIELD_SHAPES)
+      .map((shape: ScrubRuleWriterShape): Array<string | number> => {
+        // A shape is OneUptime's: letters as a or A, digits as 9.
+        return [shape.shape, shape.share];
+      }),
+    values: place.valueCount,
+    averageLength: place.averageLength,
+  });
+}
+
+/*
+ * The scrub rules OneUptime AI writes (#10366): the instructions, and each
+ * place by its reference.
+ */
+export function buildWriteScrubRulesPrompt(data: {
+  instructions: string;
+  places: ReadonlyArray<ScrubRuleWriterPlace>;
+}): DataSecurityAiPrompt {
+  const marks: AiInputMarks = new AiInputMarks();
+
+  return prompt({
+    feature: DataSecurityAiFeature.WriteScrubRules,
+    instructions: data.instructions,
+    facts: {
+      places: data.places
+        .slice(0, MAX_SCRUB_RULE_WRITER_PLACES)
+        .map((place: ScrubRuleWriterPlace, index: number): JSONObject => {
+          return scrubRulePlaceFacts(place, index, marks);
+        }),
+    },
+    marks,
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * Owners for a store (#10374)
  * ---------------------------------------------------------------------------
  */
@@ -2356,6 +2460,8 @@ const DataSecurityAiInput: {
   buildSuggestFieldTypesPrompt: typeof buildSuggestFieldTypesPrompt;
   buildFixIssueRequest: typeof buildFixIssueRequest;
   buildStoreOwnersPrompt: typeof buildStoreOwnersPrompt;
+  buildWriteScrubRulesPrompt: typeof buildWriteScrubRulesPrompt;
+  scrubRulePlaceFacts: typeof scrubRulePlaceFacts;
   ownerCandidateFacts: typeof ownerCandidateFacts;
   ownerEvidenceFacts: typeof ownerEvidenceFacts;
   isDataSecurityAiPrompt: typeof isDataSecurityAiPrompt;
@@ -2381,6 +2487,8 @@ const DataSecurityAiInput: {
   buildSuggestFieldTypesPrompt,
   buildFixIssueRequest,
   buildStoreOwnersPrompt,
+  buildWriteScrubRulesPrompt,
+  scrubRulePlaceFacts,
   ownerCandidateFacts,
   ownerEvidenceFacts,
   isDataSecurityAiPrompt,

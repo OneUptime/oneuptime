@@ -1477,7 +1477,8 @@ describe("Scrub It", () => {
     expect(saved.projectId).toEqual(PROJECT_ID);
     expect(saved.patternType).toBe("email");
     expect(saved.fieldsToScrub).toBe("body");
-    expect(saved.scrubAction).toBe("redact");
+    // Personal data is masked, as a finding's samples are (#10366).
+    expect(saved.scrubAction).toBe("mask");
     expect(saved.isEnabled).toBe(true);
     expect(saved.description).toContain("Made by Data Security");
     expect(saved.description).toContain("from a finding");
@@ -1872,7 +1873,7 @@ describe("Scrub It", () => {
       );
       expect(saved.serviceId?.toString()).toBe(CHECKOUT.toString());
       expect(saved.description).toContain(
-        "It redacts every email address in log attribute values from now on.",
+        "It masks every email address in log attribute values from now on.",
       );
       expect(saved.description).toContain(
         "It applies to the logs of checkout only: other services' logs are not changed.",
