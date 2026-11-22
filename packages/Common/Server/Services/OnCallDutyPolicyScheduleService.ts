@@ -925,7 +925,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
      * feed and channels hear of it (Nobody on call), where whoever owns the
      * policy sees it - a schedule running off the end of its rotation, or
      * into restricted hours with no fallback layer, must not open a gap in
-     * silence.
+     * silence. So does a turn of somebody nothing pages - only invited to
+     * the project, or no longer in it (#10586): the schedule pages nobody
+     * until it ends, and the feed and channels say so, and why.
      */
     const handoffsByPolicy: Map<string, OnCallHandoff> = new Map<
       string,
@@ -1007,6 +1009,17 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
         nextUserId: newInformation.nextUserIdOnRoster,
         nextStartsAt:
           newInformation.nextRosterStartAt || newInformation.rosterHandoffAt,
+        /*
+         * Nothing pages someone only invited, or who has left (#10586): the
+         * policy's feed and channels hear their turn as the gap it is, not
+         * as somebody on call. Unread, everyone is a member, as before.
+         */
+        currentUserIsMember: newInformation.currentUserIdOnRoster
+          ? handoffReach.isMember(newInformation.currentUserIdOnRoster)
+          : true,
+        nextUserIsMember: newInformation.nextUserIdOnRoster
+          ? handoffReach.isMember(newInformation.nextUserIdOnRoster)
+          : true,
       });
 
       /*

@@ -15,9 +15,14 @@ import OnCallDutyPolicyScheduleService from "../../../../Server/Services/OnCallD
 import OnCallDutyPolicyTimeLogService from "../../../../Server/Services/OnCallDutyPolicyTimeLogService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import TeamService from "../../../../Server/Services/TeamService";
+import UserService from "../../../../Server/Services/UserService";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import ProjectMembership, {
   ProjectUserPair,
 } from "../../../../Server/Utils/TeamMember/ProjectMembership";
+import Name from "../../../../Types/Name";
 import ObjectID from "../../../../Types/ObjectID";
 import { jest } from "@jest/globals";
 
@@ -33,8 +38,11 @@ import { jest } from "@jest/globals";
  * another), and every row is its rule's policy's. Each membership has an id
  * and the moment it was made; each schedule a roster as its hand-offs keep
  * it (currentUserIdOnRoster: whoever is on call in it, unless `roster` says
- * otherwise); and policies, rules, teams and schedules have names, for the
- * reads that say who was told of what.
+ * otherwise; nextUserIdOnRoster: whoever is next, unless `rosterNext` says
+ * otherwise; and when the shift hands off); and policies, rules, teams and
+ * schedules have names, for the reads that say who was told of what. So do
+ * people: their own (`userNames`), and the one typed with an invitation
+ * (`inviteeNames`), what a project calls someone only invited.
  */
 
 export const PROJECT_ID: ObjectID = new ObjectID(
@@ -177,9 +185,17 @@ export default class ReachWorld {
   public next: Map<string, ObjectID | null> = new Map();
   /*
    * Who each schedule's roster has on call (currentUserIdOnRoster), where
-   * it is not who is on call now: a hand-off not stored yet.
+   * it is not who is on call now: a hand-off not stored yet. And who it has
+   * next (nextUserIdOnRoster), where it is not who is next now.
    */
   public roster: Map<string, ObjectID | null> = new Map();
+  public rosterNext: Map<string, ObjectID | null> = new Map();
+  // When each roster's shift hands off, and the next one starts.
+  public rosterHandoffAt: Date = new Date("2026-11-20T17:50:00.000Z");
+  public rosterNextStartAt: Date = new Date("2026-11-20T17:50:00.000Z");
+  // People's own names, and the names typed with their invitations.
+  public userNames: Map<string, string> = new Map<string, string>();
+  public inviteeNames: Map<string, string> = new Map<string, string>();
   public timeLogs: Array<TimeLogWrite> = [];
   // Set to make every read of the rule's rows fail.
   public failReads: boolean = false;
@@ -235,6 +251,34 @@ export default class ReachWorld {
     return this.roster.has(key)
       ? this.roster.get(key) || null
       : this.onCall.get(key) || null;
+  }
+
+  // Who a schedule's roster has next, as its hand-offs stored it.
+  public rosterNextOf(scheduleId: ObjectID | string): ObjectID | null {
+    const key: string = scheduleId.toString();
+
+    return this.rosterNext.has(key)
+      ? this.rosterNext.get(key) || null
+      : this.next.get(key) || null;
+  }
+
+  // A membership gone: left, removed, or its invitation withdrawn.
+  public leave(membership: WorldMembership): void {
+    this.memberships = this.memberships.filter(
+      (each: WorldMembership): boolean => {
+        return !same(each.id, membership.id);
+      },
+    );
+  }
+
+  // Whether `userId` holds only invitations to the project.
+  public isInvitedOnly(userId: ObjectID | string): boolean {
+    return (
+      !this.isMember(userId) &&
+      this.memberships.some((membership: WorldMembership): boolean => {
+        return same(membership.userId, userId);
+      })
+    );
   }
 
   public addMember(
@@ -599,7 +643,10 @@ export default class ReachWorld {
         };
       }) as never);
 
-    // The schedules whose roster has someone on call, as hand-offs stored it.
+    /*
+     * The schedules whose roster has someone on call, or next, as hand-offs
+     * stored it.
+     */
     jest
       .spyOn(OnCallDutyPolicyScheduleService, "findBy")
       .mockImplementation((async (args: {
@@ -609,17 +656,26 @@ export default class ReachWorld {
         const onRosterUserIds: Array<string> | null = readQueryValues(
           args.query["currentUserIdOnRoster"],
         );
+        const nextOnRosterUserIds: Array<string> | null = readQueryValues(
+          args.query["nextUserIdOnRoster"],
+        );
         const ids: Array<string> | null = readQueryValues(args.query["_id"]);
 
         return [PRIMARY, SECONDARY]
           .filter((scheduleId: ObjectID): boolean => {
             const onRoster: ObjectID | null = this.rosterOf(scheduleId);
+            const nextOnRoster: ObjectID | null = this.rosterNextOf(scheduleId);
 
             return (
               (!ids || ids.includes(scheduleId.toString())) &&
               (!onRosterUserIds ||
                 Boolean(
                   onRoster && onRosterUserIds.includes(onRoster.toString()),
+                )) &&
+              (!nextOnRosterUserIds ||
+                Boolean(
+                  nextOnRoster &&
+                    nextOnRosterUserIds.includes(nextOnRoster.toString()),
                 ))
             );
           })
@@ -631,13 +687,89 @@ export default class ReachWorld {
             model.projectId = PROJECT_ID;
 
             const onRoster: ObjectID | null = this.rosterOf(scheduleId);
+            const nextOnRoster: ObjectID | null = this.rosterNextOf(scheduleId);
 
             if (onRoster) {
               model.currentUserIdOnRoster = onRoster;
+              model.rosterHandoffAt = this.rosterHandoffAt;
+            }
+
+            if (nextOnRoster) {
+              model.nextUserIdOnRoster = nextOnRoster;
+              model.rosterNextStartAt = this.rosterNextStartAt;
             }
 
             return model;
           });
+      }) as never);
+
+    // Teams by name.
+    jest.spyOn(TeamService, "findBy").mockImplementation((async (args: {
+      query: Record<string, unknown>;
+    }): Promise<Array<Team>> => {
+      this.throwIfFailing();
+      const ids: Array<string> = readQueryValues(args.query["_id"]) || [];
+
+      return ids
+        .filter((id: string): boolean => {
+          return Boolean(this.names.get(id));
+        })
+        .map((id: string): Team => {
+          const team: Team = new Team();
+          team._id = id;
+          team.name = this.names.get(id) || "";
+          return team;
+        });
+    }) as never);
+
+    // People by their own names.
+    jest.spyOn(UserService, "findBy").mockImplementation((async (args: {
+      query: Record<string, unknown>;
+    }): Promise<Array<User>> => {
+      this.throwIfFailing();
+      const ids: Array<string> = readQueryValues(args.query["_id"]) || [];
+
+      return ids.map((id: string): User => {
+        const user: User = new User();
+        user._id = id;
+
+        const name: string | undefined = this.userNames.get(id);
+
+        if (name) {
+          user.name = new Name(name);
+        }
+
+        return user;
+      });
+    }) as never);
+
+    /*
+     * Who is only invited to the project, as the project knows them: the
+     * name typed with the invitation, and the address it was sent to.
+     */
+    jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockImplementation((async (data: {
+        userIds: Array<string>;
+      }): Promise<Map<string, WithheldProfile>> => {
+        this.throwIfFailing();
+        const withheld: Map<string, WithheldProfile> = new Map<
+          string,
+          WithheldProfile
+        >();
+
+        for (const userId of data.userIds) {
+          const key: string = userId.toLowerCase();
+
+          if (this.isInvitedOnly(key)) {
+            withheld.set(key, {
+              inviteeName: this.inviteeNames.get(key) || null,
+              inviteeEmail: `invitee-${key.slice(-4)}@acme.test`,
+            });
+          }
+        }
+
+        return withheld;
       }) as never);
 
     // The rules, by name and order, with their policy's name.

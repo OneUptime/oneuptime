@@ -1,6 +1,7 @@
 import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
 import UserNotificationSettingService from "../../../../Server/Services/UserNotificationSettingService";
 import logger from "../../../../Server/Utils/Logger";
+import OnCallHandoffPosts from "../../../../Server/Utils/OnCall/OnCallHandoffPosts";
 import OnCallJoinNotices from "../../../../Server/Utils/OnCall/OnCallJoinNotices";
 import URL from "../../../../Types/API/URL";
 import { CallRequestMessage } from "../../../../Types/Call/CallRequest";
@@ -77,6 +78,10 @@ beforeEach(() => {
   world.install();
   sent = [];
 
+  // What the policies' channels hear of it: OnCallHandoffPostsWhoIsPaged's.
+  jest
+    .spyOn(OnCallHandoffPosts, "postJoinedDuringShift")
+    .mockResolvedValue(undefined as never);
   jest
     .spyOn(OnCallDutyPolicyService, "getOnCallDutyPolicyLinkInDashboard")
     .mockResolvedValue(URL.fromString(POLICY_LINK));
@@ -420,6 +425,52 @@ describe("a member who joined another team", () => {
         return message.userId;
       }),
     ).toEqual([ANA.toString(), BO.toString(), CY.toString()]);
+  });
+});
+
+/*
+ * A shift of theirs - on call, or next - was posted to the policies'
+ * channels as one nothing paged while they were only invited (#10586):
+ * joining the project posts it again, as a page reaches them now.
+ */
+describe("the policies' channels, once they join", () => {
+  test("REGRESSION: joining the project posts their shift again - a page reaches them now", async () => {
+    world.addMember(IVY, PLATFORM, false);
+    world.nameSchedule(PRIMARY);
+    world.roster.set(PRIMARY.toString(), IVY);
+
+    // While only invited: nothing.
+    await joinedProject(IVY);
+    expect(OnCallHandoffPosts.postJoinedDuringShift).not.toHaveBeenCalled();
+
+    world.accept(IVY);
+    await joinedProject(IVY);
+
+    expect(OnCallHandoffPosts.postJoinedDuringShift).toHaveBeenCalledTimes(1);
+    expect(OnCallHandoffPosts.postJoinedDuringShift).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: IVY,
+    });
+  });
+
+  test("even when no rule is new to them - being next in a rotation is on no rule - their shift is posted", async () => {
+    world.addMember(IVY, PLATFORM, true);
+
+    await joinedProject(IVY);
+
+    expect(sent).toEqual([]);
+    expect(OnCallHandoffPosts.postJoinedDuringShift).toHaveBeenCalledTimes(1);
+  });
+
+  test("a member who joins another team posts nothing: no shift of theirs was posted as a gap", async () => {
+    world.addMember(ANA, PAYMENTS_TEAM, true);
+    const platform: WorldMembership = world.addMember(ANA, PLATFORM, true);
+    world.nameTeam(PLATFORM);
+
+    await joinedTeam(ANA, platform);
+
+    expect(sent).toHaveLength(1);
+    expect(OnCallHandoffPosts.postJoinedDuringShift).not.toHaveBeenCalled();
   });
 });
 

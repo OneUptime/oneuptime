@@ -16,10 +16,15 @@ import {
   SecurityPlaybookActionDefinition,
   SecurityPlaybookActionType,
   actsOnSecurityEntities,
+  actsThroughBlocklist,
   doesActionNeedApprovalByDefault,
   getSecurityPlaybookAction,
   getSecurityPlaybookUndoAction,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookAction";
+import {
+  SecurityBlockAction,
+  SecurityBlockDuration,
+} from "../../../Types/SecurityBlocklist/SecurityBlock";
 import {
   DefenderIsolationType,
   SECURITY_PLAYBOOK_MAX_STEPS,
@@ -32,6 +37,7 @@ import {
   doesStepWaitOn,
   getStepsWaitingOn,
   parseSecurityPlaybookSteps,
+  readBlockAddressConfig,
   readTaskLines,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStep";
 import {
@@ -100,16 +106,32 @@ describe("SECURITY_PLAYBOOK_ACTIONS", () => {
 
   test("only the actions that cut someone off are disruptive; every action on a connected product names its product and entity", () => {
     for (const action of SECURITY_PLAYBOOK_ACTIONS) {
+      // A block of an address acts through the blocklist, not a connection (#10342).
+      const isBlocklist: boolean = actsThroughBlocklist(action.type);
+
       expect(action.isDisruptive).toBe(
-        Boolean(action.connectionProvider) && !action.undoes,
+        (Boolean(action.connectionProvider) || isBlocklist) && !action.undoes,
       );
       expect(Boolean(action.entityType)).toBe(
-        Boolean(action.connectionProvider),
+        Boolean(action.connectionProvider) || isBlocklist,
       );
       expect(actsOnSecurityEntities(action)).toBe(
-        Boolean(action.connectionProvider),
+        Boolean(action.connectionProvider) || isBlocklist,
       );
     }
+
+    expect(
+      getSecurityPlaybookAction(SecurityPlaybookActionType.BlockAddress),
+    ).toMatchObject({
+      title: "Block the address",
+      category: SecurityPlaybookActionCategory.Contain,
+      entityType: SecurityEntityType.IpAddress,
+      isDisruptive: true,
+    });
+    expect(
+      getSecurityPlaybookAction(SecurityPlaybookActionType.BlockAddress)
+        ?.connectionProvider,
+    ).toBeUndefined();
 
     expect(
       getSecurityPlaybookAction(SecurityPlaybookActionType.SuspendOktaUser),
@@ -161,6 +183,10 @@ describe("the undo actions", () => {
       [
         SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser,
         SecurityPlaybookActionType.SuspendGoogleWorkspaceUser,
+      ],
+      [
+        SecurityPlaybookActionType.LiftAddressBlock,
+        SecurityPlaybookActionType.BlockAddress,
       ],
     ]);
 
@@ -1609,5 +1635,116 @@ describe("the playbook templates", () => {
         SECURITY_PLAYBOOK_TASK_MAX_LENGTH,
       );
     }
+  });
+});
+
+/*
+ * Block the address and its undo (#10342): an address on the project's
+ * blocklist, through no connection of its own.
+ */
+describe("Block the address and Lift the block on the address", () => {
+  test("block for 24 hours unless the step says, and keep only Block or Challenge and a length", () => {
+    expect(
+      parseOne(SecurityPlaybookActionType.BlockAddress, {}).config,
+    ).toEqual({
+      blockAction: SecurityBlockAction.Block,
+      duration: SecurityBlockDuration.OneDay,
+    });
+    expect(
+      parseOne(SecurityPlaybookActionType.BlockAddress, {
+        blockAction: SecurityBlockAction.Challenge,
+        duration: SecurityBlockDuration.SevenDays,
+        connectionId: OTHER_ID,
+        somethingElse: "dropped",
+      }).config,
+    ).toEqual({
+      blockAction: SecurityBlockAction.Challenge,
+      duration: SecurityBlockDuration.SevenDays,
+    });
+  });
+
+  test("refuse an action or a length the blocklist does not know, naming the step", () => {
+    expectRejected(
+      SecurityPlaybookActionType.BlockAddress,
+      { blockAction: "Tarpit" },
+      /Block the address\): choose Block or Challenge/,
+    );
+    expectRejected(
+      SecurityPlaybookActionType.BlockAddress,
+      { duration: "Forever" },
+      /choose how long the block lasts/,
+    );
+  });
+
+  test("reads a step's settings as stored, falling back to a day of Block", () => {
+    expect(readBlockAddressConfig({})).toEqual({
+      blockAction: SecurityBlockAction.Block,
+      duration: SecurityBlockDuration.OneDay,
+    });
+    expect(
+      readBlockAddressConfig({
+        blockAction: SecurityBlockAction.Challenge,
+        duration: SecurityBlockDuration.UntilLifted,
+      }),
+    ).toEqual({
+      blockAction: SecurityBlockAction.Challenge,
+      duration: SecurityBlockDuration.UntilLifted,
+    });
+    expect(
+      readBlockAddressConfig({ blockAction: 7, duration: ["OneDay"] }),
+    ).toEqual({
+      blockAction: SecurityBlockAction.Block,
+      duration: SecurityBlockDuration.OneDay,
+    });
+  });
+
+  test("the lift takes no settings, and undoes the block", () => {
+    expect(
+      parseOne(SecurityPlaybookActionType.LiftAddressBlock, {
+        connectionId: OTHER_ID,
+      }).config,
+    ).toEqual({});
+    expect(
+      getSecurityPlaybookUndoAction(SecurityPlaybookActionType.BlockAddress)
+        ?.type,
+    ).toBe(SecurityPlaybookActionType.LiftAddressBlock);
+  });
+
+  test("a block waits for approval unless a Security Admin turned it off; its lift does not", () => {
+    const [block, lift]: Array<SecurityPlaybookStep> =
+      parseSecurityPlaybookSteps([
+        { action: SecurityPlaybookActionType.BlockAddress, config: {} },
+        { action: SecurityPlaybookActionType.LiftAddressBlock, config: {} },
+      ]);
+
+    expect(block!.requiresApproval).toBe(true);
+    expect(doesStepNeedApproval(block!)).toBe(true);
+    expect(lift!.requiresApproval).toBe(false);
+    expect(doesStepNeedApproval(lift!)).toBe(false);
+    expect(
+      doesActionNeedApprovalByDefault(
+        getSecurityPlaybookAction(SecurityPlaybookActionType.BlockAddress),
+      ),
+    ).toBe(true);
+  });
+
+  test("both act on the case's addresses, through the blocklist", () => {
+    for (const type of [
+      SecurityPlaybookActionType.BlockAddress,
+      SecurityPlaybookActionType.LiftAddressBlock,
+    ]) {
+      expect(actsThroughBlocklist(type)).toBe(true);
+      expect(actsOnSecurityEntities(getSecurityPlaybookAction(type))).toBe(
+        true,
+      );
+      expect(getSecurityPlaybookAction(type)?.entityType).toBe(
+        SecurityEntityType.IpAddress,
+      );
+    }
+
+    expect(
+      actsThroughBlocklist(SecurityPlaybookActionType.SuspendOktaUser),
+    ).toBe(false);
+    expect(actsThroughBlocklist(undefined)).toBe(false);
   });
 });

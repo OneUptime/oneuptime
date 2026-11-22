@@ -81,12 +81,27 @@ export function describeRunTarget(
 ): string {
   switch (target.state) {
     case SecurityPlaybookTargetState.Proposed:
+      if (target.reason === SecurityPlaybookTargetReason.OnTheCase) {
+        return (
+          translator.translateText("One of the case's addresses") ||
+          "One of the case's addresses"
+        );
+      }
+
       return target.reason === SecurityPlaybookTargetReason.ThreatIntel
         ? translator.translateText("Known to threat intel") ||
             "Known to threat intel"
         : translator.translateText("What the case is grouped on") ||
             "What the case is grouped on";
     case SecurityPlaybookTargetState.Protected:
+      // One of the project's own addresses, as the blocklist said it (#10342).
+      if (target.detail) {
+        return translator.translateTemplate(
+          "Protected (one of your own addresses): never blocked. {{why}}",
+          { why: target.detail },
+        );
+      }
+
       return target.protectedBy &&
         target.protectedBy.toLowerCase() !== target.value.toLowerCase()
         ? translator.translateTemplate(

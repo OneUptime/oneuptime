@@ -7,6 +7,12 @@ import SecurityCaseVerdict, {
   isSecurityCaseVerdict,
 } from "../SecurityCase/SecurityCaseVerdict";
 import {
+  SECURITY_BLOCK_DEFAULT_DURATION,
+  SecurityBlockAction,
+  SecurityBlockDuration,
+  isSecurityBlockDuration,
+} from "../SecurityBlocklist/SecurityBlock";
+import {
   SecurityPlaybookActionDefinition,
   SecurityPlaybookActionType,
   getSecurityPlaybookAction,
@@ -165,6 +171,33 @@ export enum DefenderIsolationType {
 
 export interface IsolateDefenderDeviceConfig extends ConnectionActionConfig {
   isolationType: DefenderIsolationType;
+}
+
+/*
+ * Block the address (#10342): block it or challenge it, for how long - 24
+ * hours unless the step says. A playbook's block always ends by itself
+ * (SecurityPlaybookService); only a person's one-step block from a case
+ * keeps one until someone lifts it, and only a Security Admin's.
+ */
+export interface BlockAddressConfig {
+  blockAction: SecurityBlockAction;
+  duration: SecurityBlockDuration;
+}
+
+// What a Block the address step does, its settings read as stored: 24 hours of Block unless they say.
+export function readBlockAddressConfig(config: JSONObject): BlockAddressConfig {
+  const blockAction: JSONValue | undefined = config["blockAction"];
+  const duration: JSONValue | undefined = config["duration"];
+
+  return {
+    blockAction:
+      blockAction === SecurityBlockAction.Challenge
+        ? SecurityBlockAction.Challenge
+        : SecurityBlockAction.Block,
+    duration: isSecurityBlockDuration(duration)
+      ? duration
+      : SECURITY_BLOCK_DEFAULT_DURATION,
+  };
 }
 
 export interface SendWebhookConfig {
@@ -649,11 +682,41 @@ export function normalizeSecurityPlaybookStepConfig(
       return reason ? { reason } : {};
     }
 
+    case SecurityPlaybookActionType.BlockAddress: {
+      const blockAction: string = readText(rawConfig, "blockAction");
+      const duration: string = readText(rawConfig, "duration");
+
+      if (
+        blockAction &&
+        blockAction !== SecurityBlockAction.Block &&
+        blockAction !== SecurityBlockAction.Challenge
+      ) {
+        throw new BadDataException(`${label}: choose Block or Challenge.`);
+      }
+
+      if (duration && !isSecurityBlockDuration(duration)) {
+        throw new BadDataException(
+          `${label}: choose how long the block lasts: 1 hour, 24 hours, 7 days or 30 days.`,
+        );
+      }
+
+      const config: BlockAddressConfig = readBlockAddressConfig({
+        blockAction,
+        duration,
+      });
+
+      return {
+        blockAction: config.blockAction,
+        duration: config.duration,
+      };
+    }
+
     // Nothing to set: each reads what it acts on from the case.
     case SecurityPlaybookActionType.PreserveEvidence:
     case SecurityPlaybookActionType.FixWithAi:
     case SecurityPlaybookActionType.BlockDataStorePublicAccess:
     case SecurityPlaybookActionType.RevokeDataStoreSharing:
+    case SecurityPlaybookActionType.LiftAddressBlock:
       return {};
   }
 }

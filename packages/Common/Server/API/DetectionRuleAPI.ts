@@ -20,6 +20,11 @@ import DetectionRuleRetrohunt, {
   DetectionRetrohuntRule,
 } from "../Utils/SecurityEvent/DetectionRuleRetrohunt";
 import SecurityEventLateArrivalService from "../Services/SecurityEventLateArrivalService";
+import SecurityEventRetention from "../Utils/SecurityEvent/SecurityEventRetention";
+import {
+  SecurityEventRetentionStatus,
+  securityEventRetentionStatusToJSON,
+} from "../../Types/SecurityEvent/SecurityEventRetention";
 import {
   SecurityEventLateArrivals,
   lateArrivalsToJSON,
@@ -83,6 +88,9 @@ function readOptionalText(body: JSONObject, key: string): string | undefined {
  *   POST /detection-rule/late-arrivals   the security events that arrived more
  *                                        than a day after they happened in the
  *                                        last week, which no rule's run judged
+ *   POST /detection-rule/retention       how long the project keeps its
+ *                                        security events, and the enabled
+ *                                        rules that read further back (#10432)
  *
  * The draft is for the Detection Rules form, which fills its YAML with it
  * for the person to read and save; nothing is saved here. Asking takes the
@@ -99,6 +107,12 @@ function readOptionalText(body: JSONObject, key: string): string | undefined {
  * The late arrivals (#10491) are counts of security events by source, for
  * the notice on Detection Rules: they take what a retrohunt takes, and
  * count only the sources the caller may read.
+ *
+ * The retention (#10432) is the project's, as its Settings show it to every
+ * member, so any member may ask; the rules that read past it are read as
+ * the caller, and left out (null) for a role that may not read detection
+ * rules. The rule form, the Rule Library, Run on Past Events, a hunt's time
+ * range and Settings -> Telemetry say with it how far back events go.
  */
 export default class DetectionRuleAPI extends BaseAPI<
   DetectionRule,
@@ -267,6 +281,40 @@ export default class DetectionRuleAPI extends BaseAPI<
             req,
             res,
             lateArrivalsToJSON(lateArrivals),
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    this.registerRetentionRoute(basePath);
+  }
+
+  /*
+   * How long the project keeps its security events, read now, and the
+   * enabled rules that read further back than that.
+   */
+  private registerRetentionRoute(basePath: string): void {
+    this.router.post(
+      `${basePath}/retention`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          const status: SecurityEventRetentionStatus =
+            await SecurityEventRetention.getStatus({ projectId, props });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            securityEventRetentionStatusToJSON(status),
           );
         } catch (error) {
           next(error);
