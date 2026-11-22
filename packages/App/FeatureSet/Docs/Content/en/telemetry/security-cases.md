@@ -252,7 +252,7 @@ A Security Admin manages the custom fields and note templates, and a Security Me
 
 ## Notifications
 
-OneUptime tells people about six things on a case. Nobody has to set anything up: a project that only clicked **Turn on recommended** hears about its High and Critical cases by email and push.
+OneUptime tells people about seven things on a case. Nobody has to set anything up: a project that only clicked **Turn on recommended** hears about its High and Critical cases by email and push.
 
 | Notification | Who is told | By default |
 | --- | --- | --- |
@@ -262,12 +262,13 @@ OneUptime tells people about six things on a case. Nobody has to set anything up
 | Security case response target | The people on the case: the person it is assigned to and the members of its team. When nobody is on it, the people told about new cases at its priority | Email and push |
 | Security case task assigned to me | The person a task on the case is handed to, unless they took it themselves | Email and push |
 | Security case step stopped holding | The people on the case, when a step OneUptime saw done stops holding: the person it is assigned to and the members of its team. When nobody is on it, the people told about new cases at its priority | Email and push |
+| OneUptime AI handed a security case to people | The people on the case, when OneUptime AI stops working it and says why: the person it is assigned to and the members of its team. When nobody is on it, the people told about new cases at its priority | Email and push |
 
 - Only people who can see the case are told about it: Project Owners, Project Admins, and the Security Admin, Security Member and Security Viewer roles. A role limited to some labels is told only about the cases with those labels.
 - Nobody is told about what they did: the person who opens a case by hand, assigns it or starts a run is not notified of it.
 - Each person hears about a case once. A case that opens at Medium and later rises to Critical reaches the people who chose High or Critical when it rises, and not again the people who chose Medium, who heard about it when it opened.
 - The test attack from **Send a test attack** opens a case that notifies nobody.
-- A Critical case and a step waiting for approval are sent at once, never held back in an [email rollup](/docs/emails/notification-rollup). So is a response target about to be missed, or missed, and a step that stopped holding.
+- A Critical case and a step waiting for approval are sent at once, never held back in an [email rollup](/docs/emails/notification-rollup). So is a response target about to be missed, or missed, a step that stopped holding, and a case OneUptime AI handed to people.
 - The case's **Timeline** says who was told, and when.
 
 ### Choose what you are told
@@ -302,7 +303,7 @@ To post to a channel, add a rule under **Products → Security Events → Worksp
 
 Each notification but a task's is posted to the channels of every rule the case matches at that moment. A rule with **Security Case Priority** contains any of **Critical** and **High** posts High and Critical cases as they open, and a Medium case when it rises to High. A security case never gets a channel of its own.
 
-A rule's **Updates** step picks which of these notices it posts: **New and raised cases**, **Assignments**, **Approvals needed** and **Response targets**, one box each under **Choose updates**. **Key updates only** posts every one but the assignments, for a channel that should hear only what someone has to act on. A rule saved before the step, and a new rule, posts every notice.
+A rule's **Updates** step picks which of these notices it posts: **New and raised cases**, **Assignments**, **Approvals needed**, **Response targets** and **Handed to people by OneUptime AI**, one box each under **Choose updates**. **Key updates only** posts every one but the assignments, for a channel that should hear only what someone has to act on. A rule saved before the step, and a new rule, posts every notice.
 
 ## Playbooks
 

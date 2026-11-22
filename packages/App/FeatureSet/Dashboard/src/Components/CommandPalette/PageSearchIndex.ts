@@ -2759,11 +2759,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "automatic response",
               "ai response",
               "block on its own",
+              // The card under the switches: What OneUptime AI may do on a case.
+              "what oneuptime ai may do",
             ],
-            settings: [
-              "Work cases end to end",
-              "What OneUptime AI may do on a case",
-            ],
+            settings: ["Work cases end to end"],
           },
         ],
       },

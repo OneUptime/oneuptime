@@ -780,6 +780,9 @@
   "/dashboard/:projectId/data-security/issues": [
     "data-security"
   ],
+  "/dashboard/:projectId/data-security/ai": [
+    "data-security"
+  ],
   "/dashboard/:projectId/data-security/sensitive-data": [
     "data-security"
   ],

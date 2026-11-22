@@ -2356,6 +2356,8 @@ describe("notification settings", () => {
         "Playbook step waiting for my approval",
         "Security case response target",
         "Security case task assigned to me",
+        "Security case step stopped holding",
+        "OneUptime AI handed a security case to people",
         "Hunt found security events",
         "Public note waiting for my approval",
       ].sort(),
@@ -2364,7 +2366,7 @@ describe("notification settings", () => {
       "and by push too: **Before my on-call shift starts**, **My upcoming on-call shift is reassigned**",
     );
     expect(settings).toContain(
-      "| **Security** | **Added as data store owner**, and by push too: **New security case** (High and Critical cases), **Security case assigned to me**, **Playbook step waiting for my approval**, **Security case response target**, **Security case task assigned to me**, **Hunt found security events** | None |",
+      "| **Security** | **Added as data store owner**, and by push too: **New security case** (High and Critical cases), **Security case assigned to me**, **Playbook step waiting for my approval**, **Security case response target**, **Security case task assigned to me**, **Security case step stopped holding**, **OneUptime AI handed a security case to people**, **Hunt found security events** | None |",
     );
   });
 

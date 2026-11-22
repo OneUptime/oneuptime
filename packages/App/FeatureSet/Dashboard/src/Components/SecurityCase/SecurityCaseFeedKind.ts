@@ -67,6 +67,9 @@ export const getSecurityCaseFeedKind: GetSecurityCaseFeedKindFunction = (
      */
     case SecurityCaseFeedEventType.AiResponse:
       return { icon: IconProp.Sparkles, tone: FeedTone.AI };
+    // A step OneUptime saw done that stopped holding (#10340), in the color the server chose.
+    case SecurityCaseFeedEventType.StepCheck:
+      return { icon: IconProp.ShieldExclamation, tone: FeedTone.Record };
     // A task added, done, opened again, handed on or deleted.
     case SecurityCaseFeedEventType.Task:
       return { icon: IconProp.ClipboardDocumentCheck, tone: FeedTone.Record };

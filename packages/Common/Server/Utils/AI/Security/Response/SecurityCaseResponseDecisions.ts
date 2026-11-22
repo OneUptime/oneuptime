@@ -45,8 +45,7 @@ import SecurityCaseResponseToolkit, {
  * card, the case's Playbooks page, or one tap in Slack or Microsoft Teams.
  *
  *   - approve: done, as OneUptime AI's, approved by the person - an
- *     exception is created as the person, with their own right to (the
- *     rule's owner accepts it, from the rule's Exceptions page too);
+ *     exception is created as the person, with their own right to;
  *   - decline: turned down; OneUptime AI hands the case to people at its
  *     next look, and an exception offered for a closed case is dropped;
  *   - take over: OneUptime AI stops working the case, which is the

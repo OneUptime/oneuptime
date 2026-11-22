@@ -2350,7 +2350,7 @@ describe("Security Cases and Playbooks docs", () => {
     );
   });
 
-  it("names the six notifications as Notification Settings lists them, on by email and push", () => {
+  it("names the seven notifications as Notification Settings lists them, on by email and push", () => {
     const settingsPage: string = source(
       `${DASHBOARD}/Pages/UserSettings/NotificationSettings.tsx`,
     );
@@ -2366,9 +2366,10 @@ describe("Security Cases and Playbooks docs", () => {
       "Security case response target",
       "Security case task assigned to me",
       "Security case step stopped holding",
+      "OneUptime AI handed a security case to people",
     ]);
     expect(flat(section(page, "Notifications"))).toContain(
-      "OneUptime tells people about six things on a case.",
+      "OneUptime tells people about seven things on a case.",
     );
 
     for (const label of column(notificationRows, 0)) {
@@ -2390,6 +2391,7 @@ describe("Security Cases and Playbooks docs", () => {
 
     expect(column(notificationRows, 2)).toEqual([
       "Email and push, for High and Critical cases",
+      "Email and push",
       "Email and push",
       "Email and push",
       "Email and push",
@@ -2604,6 +2606,7 @@ describe("Security Cases and Playbooks docs", () => {
       "Assignments",
       "Approvals needed",
       "Response targets",
+      "Handed to people by OneUptime AI",
     ]);
     expect(rules).toContain(
       `A rule's **Updates** step picks which of these notices it posts: ${titles

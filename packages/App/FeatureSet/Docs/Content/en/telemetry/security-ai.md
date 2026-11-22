@@ -20,10 +20,10 @@ flowchart TB
     open["A detection<br/>opens a case"] --> triage["OneUptime AI<br/>reads the case"]
     triage --> read["A read, a priority<br/>and a playbook,<br/>with evidence"]
     read -->|"Likely<br/>Malicious"| work["OneUptime AI<br/>works the case"]
-    work --> step["Each step: on its own,<br/>asked first, or<br/>left to a person"]
+    work --> step["Each step done,<br/>asked first<br/>or left to people"]
     step --> check["OneUptime checks<br/>that it holds"]
     check --> close["Closed with<br/>a report"]
-    step -.->|"unsure"| people["Handed to people"]
+    step -.->|"Unsure"| people["Handed<br/>to people"]
 ```
 
 A triage only reads. Working a case acts, within what you allow, and hands the case to people the moment it is unsure. Both run on the project's own AI: **Enable AI**, its LLM provider, its AI credits and its daily AI limits.
@@ -141,7 +141,7 @@ Under it, every step it took, asked about or left, the latest first, each with w
 
 Under **What OneUptime AI may do on a case**, on **Products → Security Events → AI → Settings**, each kind of step has its own row, which saves as you pick it:
 
-- **Off**: OneUptime AI leaves it to a person, and says so on the case.
+- **Off**: OneUptime AI leaves this to a person, and says so on the case.
 - **Ask first**: it asks a person, with the evidence, and does it once someone approves.
 - **On its own**: it does it without asking, and says so on the case's timeline.
 
@@ -178,7 +178,7 @@ OneUptime AI never stands down quietly. It hands the case to people, saying why 
 - AI is off for the project or for security cases, there is no LLM provider, or the project is out of AI credits or reached its daily AI limit;
 - its triage could not tell whether the case is real;
 - a step it took does not hold, a step it started did not finish, or a person turned down or undid a step it took;
-- everything left on the case is a person's to do.
+- it cannot tell what to do next, or everything left on the case is a person's to do.
 
 The people on the case hear about it at once, or when nobody is on it, the people told about cases at its priority: **OneUptime AI handed a security case to people**, under **User Settings → Notification Settings**. A workspace notification rule for security cases posts it to its Slack or Microsoft Teams channel under **Handed to people by OneUptime AI**. **Take Over** hands the case over without telling anyone, since the person who pressed it has it.
 
@@ -186,7 +186,7 @@ The people on the case hear about it at once, or when nobody is on it, the peopl
 
 ## The closing report
 
-When OneUptime AI closes a case, or asks a person to, it writes a closing report from what the case holds, not from the triage's words: **What happened**, **The impact**, **What was done**, **What was fixed** and **What to watch**. The report is the case's closing note, it is on the timeline, and the card shows it under **Closing report**. With **Close the case** on **Ask first**, the case waits for a person to approve the close, with the report to read first.
+When OneUptime AI closes a case, or asks a person to, it writes a closing report from what the case holds, not from the triage's words: what happened, the impact, what was done, what was fixed and what to watch. The report is the case's closing note, it is on the timeline, and the card shows it under **Closing report**. With **Close the case** on **Ask first**, the case waits for a person to approve the close, with the report to read first.
 
 ## How it is measured
 

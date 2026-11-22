@@ -4720,10 +4720,24 @@
       "ai triage",
       "triage new cases",
       "oneuptime ai security",
-      "automatic triage"
+      "automatic triage",
+      "automatic response",
+      "ai response",
+      "block on its own",
+      "what oneuptime ai may do"
     ],
     "path": "/dashboard/:projectId/security-events/ai/settings",
     "kind": "page"
+  },
+  {
+    "title": "Work cases end to end",
+    "where": [
+      "Security Events",
+      "AI",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/security-events/ai/settings",
+    "kind": "setting"
   },
   {
     "title": "Slack",
@@ -4835,10 +4849,22 @@
       "security case status",
       "case states",
       "custom case status",
-      "case workflow"
+      "case workflow",
+      "auto contain",
+      "verified containment"
     ],
     "path": "/dashboard/:projectId/security-events/settings/case-statuses",
     "kind": "page"
+  },
+  {
+    "title": "Mark Cases Contained When Verified",
+    "where": [
+      "Security Events",
+      "Settings",
+      "Case Statuses"
+    ],
+    "path": "/dashboard/:projectId/security-events/settings/case-statuses",
+    "kind": "setting"
   },
   {
     "title": "Custom Fields",
@@ -4942,6 +4968,33 @@
     ],
     "path": "/dashboard/:projectId/data-security/issues",
     "kind": "page"
+  },
+  {
+    "title": "AI",
+    "where": [
+      "Data Security"
+    ],
+    "keywords": [
+      "data security ai",
+      "ai proposals",
+      "waiting for you",
+      "done by ai",
+      "approve ai changes",
+      "oneuptime ai data security",
+      "data security ai rules",
+      "what ai may do without asking"
+    ],
+    "path": "/dashboard/:projectId/data-security/ai",
+    "kind": "page"
+  },
+  {
+    "title": "Work on new issues",
+    "where": [
+      "Data Security",
+      "AI"
+    ],
+    "path": "/dashboard/:projectId/data-security/ai",
+    "kind": "setting"
   },
   {
     "title": "Sensitive Data",

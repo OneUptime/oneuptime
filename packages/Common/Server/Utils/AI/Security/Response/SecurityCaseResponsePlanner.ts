@@ -620,10 +620,12 @@ function planMaliciousStep(data: {
         SecurityCaseAiActionReason.FixNotChecked,
       );
 
-    case "fix:general": {
+    case "fix:general":
+    case "fix:discovery": {
       /*
        * Nothing got through - OneUptime saw every request turned away - so
-       * there is nothing in the app to fix.
+       * there is nothing in the app to fix, and nothing a scan could reach.
+       * Until the requests are checked, that is what it waits for.
        */
       const requests: ResponseStep | undefined = input.plan.steps.find(
         (candidate: ResponseStep): boolean => {
@@ -633,6 +635,10 @@ function planMaliciousStep(data: {
           );
         },
       );
+
+      if (requests && !requests.check) {
+        return ResponderWait.Check;
+      }
 
       return requests?.check?.state === SecurityCaseStepCheckState.Verified
         ? act(SecurityCaseAiActionKind.MarkStepDone, {
@@ -817,7 +823,7 @@ function planAfterDismissal(data: {
       ...(falsePositiveStep.action.entity
         ? { target: falsePositiveStep.action.entity.value }
         : {}),
-      // The rule's owner accepts it, from the rule's Exceptions page.
+      // A person accepts it, on the case's OneUptime AI card.
       decision: SecurityCaseAiDecisionKind.Ask,
       reason: SecurityCaseAiActionReason.AlwaysAsks,
       mode: input.limits.modes.Close,

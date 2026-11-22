@@ -1604,6 +1604,13 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new UpgradeLibraryRuleCopies(),
   /*
+   * OneUptime AI working security cases end to end (#10352): every existing
+   * member gets the setting for OneUptime AI handing a case to people, with
+   * email and push on, as the other security case notices have. Postgres
+   * only, idempotent; before the two slots kept last.
+   */
+  new AddSecurityCaseAiHandOffNotificationSettingsForUsers(),
+  /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams
    * (IncidentVideoCall.transcriptSignInAccountId, #9289), and marks for
@@ -1620,12 +1627,6 @@ const DataMigrations: Array<DataMigrationBase> = [
    * idempotent; rows written before it read as "not through an MCP client".
    */
   new AddAuditLogMcpClientColumns(),
-  /*
-   * OneUptime AI working security cases end to end (#10352): every existing
-   * member gets the setting for OneUptime AI handing a case to people, with
-   * email and push on, as the other security case notices have.
-   */
-  new AddSecurityCaseAiHandOffNotificationSettingsForUsers(),
 ];
 
 export default DataMigrations;
