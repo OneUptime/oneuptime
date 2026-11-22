@@ -102,7 +102,7 @@ return { durationMs: Date.now() - start };
 | **URL** | 要调用的端点。 | 空 |
 | **请求头（JSON）** | 位于 **更多字段** 下。一个 JSON 对象，例如 `{ "Authorization": "Bearer ..." }`。不是有效 JSON 的请求头会使步骤失败。 | 无 |
 | **允许自签名证书** | 位于 **更多字段** 下。开启后，步骤接受服务器出示的任何证书，因此自签名证书可以使用，但它既不检查主机名也不检查有效期，网络路径上的任何人都可以读取请求（包括其中的机密）并篡改响应。 | 关闭 |
-| **CA 证书** | 在 **允许自签名证书** 关闭时，位于 **更多字段** 下。签发服务器证书的 CA 的证书（PEM），或在服务器证书为自签名时服务器自己的证书。步骤随后只信任该证书，并且仍会检查主机名和有效期。 | 无 |
+| **CA 证书** | 在 **允许自签名证书** 关闭时，位于 **更多字段** 下。签发服务器证书的 CA 的证书（PEM），在服务器证书为自签名时服务器自己的证书，或保存它的一个 [Runbook 变量](/docs/runbooks/variables)。步骤随后只信任该证书，并且仍会检查主机名和有效期。 | 无 |
 | **请求体** | 方法为 `POST`、`PUT`、`PATCH` 或 `DELETE` 时显示。能解析为 JSON 时按 JSON 发送，否则按文本发送。 | 无 |
 | **请求超时** | 在步骤失败之前等待端点响应的时长。 | 30 秒 |
 
@@ -118,10 +118,12 @@ return { durationMs: Date.now() - start };
 
 证书由服务器自己签发、或由你自己的 CA 签发的服务器，在步骤信任它之前都会被拒绝，并且不会发送任何内容。步骤的错误以 "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." 开头，并说明要改什么。把签发它的证书粘贴到 **CA 证书**：CA 的证书，或在自签名时服务器自己的证书。步骤随后会用它检查服务器的证书，包括主机名和有效期，因此只是冒充你的服务器的服务器仍会被拒绝。只有在无法粘贴证书时，才开启 **允许自签名证书**。两者都只作用于此步骤的请求，绝不作用于其他步骤、OneUptime 的其他请求或到出站代理的连接。
 
+当许多步骤调用由你自己的 CA 签发的服务时，把它的证书保存在一个 [Runbook 变量](/docs/runbooks/variables) 中，并在 **CA 证书** 中只写 `{{global.variables.INTERNAL_CA}}`。步骤每次运行都会读取该变量，因此 CA 更换时，你只需修改一次变量。普通变量就够了，因为证书不是机密；机密变量也可以，并会在步骤记录的内容中隐藏。不存在的变量，或不包含证书的变量，会在发送任何内容之前让步骤失败，错误会指出该变量。在 **允许自签名证书** 开启期间，步骤不会读取该变量。
+
 > [!TIP]
 > 若要改为在所有请求中一次性信任你自己的 CA（包括监视器），自托管安装会在其容器上设置 `NODE_EXTRA_CA_CERTS`。
 
-通过 API 和 Terraform，开关是步骤配置中的 `allowSelfSignedCertificates`，取值 `true` 或 `false`；CA 证书是其中的 `caCertificate`，即文本形式的 PEM。当 `caCertificate` 不是证书或包含私钥时，保存会被拒绝。
+通过 API 和 Terraform，开关是步骤配置中的 `allowSelfSignedCertificates`，取值 `true` 或 `false`；CA 证书是其中的 `caCertificate`：文本形式的 PEM，或单独的一个变量引用。当 `caCertificate` 两者都不是或包含私钥时，保存会被拒绝。
 
 ```hcl
 config = {

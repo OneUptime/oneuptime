@@ -58,6 +58,7 @@ import {
 import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import {
   HTTP_STEP_UNTRUSTED_CERTIFICATE_MESSAGE,
+  getHttpStepCaCertificateVariable,
   getHttpStepCertificateSettings,
 } from "Common/Types/Runbook/HttpStepCertificates";
 import { getHttpStepCertificateSaveRefusal } from "Common/Server/Utils/Runbook/HttpStepCaCertificate";
@@ -802,8 +803,78 @@ describe("what a step's output and network are held to", () => {
           },
         ]),
       ).not.toBeNull();
+      // One variable reference alone is taken; one beside other text is not.
+      expect(
+        getHttpStepCertificateSaveRefusal([
+          {
+            type: RunbookStepType.HttpRequest,
+            title: "Call",
+            config: { caCertificate: "{{global.variables.INTERNAL_CA}}" },
+          },
+        ]),
+      ).toBeNull();
+      expect(
+        getHttpStepCertificateSaveRefusal([
+          {
+            type: RunbookStepType.HttpRequest,
+            title: "Call",
+            config: {
+              caCertificate:
+                "{{global.variables.INTERNAL_CA}} {{global.variables.OTHER}}",
+            },
+          },
+        ]),
+      ).not.toBeNull();
       expect(AUTHORING).toContain(
-        "Through the API and Terraform, the switch is the step config's `allowSelfSignedCertificates`, `true` or `false`, and the CA certificate is its `caCertificate`, the PEM as text. A save is refused when `caCertificate` is not a certificate or holds a private key.",
+        "Through the API and Terraform, the switch is the step config's `allowSelfSignedCertificates`, `true` or `false`, and the CA certificate is its `caCertificate`: the PEM as text, or one variable reference alone. A save is refused when `caCertificate` is neither, or holds a private key.",
+      );
+    });
+
+    /*
+     * One CA, kept in a runbook variable, serves many steps (#10441): the
+     * step fills it in when it runs, as it does its URL, headers and body,
+     * and never reads it while the switch leaves the CA certificate unused.
+     */
+    it("says a CA certificate may be one runbook variable, read each time the step runs and not while the switch is on", () => {
+      expect(
+        getHttpStepCaCertificateVariable({
+          caCertificate: "{{global.variables.INTERNAL_CA}}",
+        } as HttpRequestStepConfig),
+      ).toEqual({ scope: RunbookVariableScope.Global, name: "INTERNAL_CA" });
+      expect(
+        getHttpStepCaCertificateVariable({
+          allowSelfSignedCertificates: true,
+          caCertificate: "{{global.variables.INTERNAL_CA}}",
+        } as HttpRequestStepConfig),
+      ).toBeNull();
+
+      const httpStep: string = STEP_EXECUTORS.slice(
+        STEP_EXECUTORS.indexOf("export async function runHttpStep("),
+      ).replace(/\s+/g, " ");
+
+      // Read from the step as it is sent: its variables filled in.
+      expect(httpStep).toContain("getHttpStepCertificateSettings(config);");
+      expect(httpStep).toContain(
+        "getHttpStepCaCertificateVariable(storedConfig);",
+      );
+
+      expect(AUTHORING).toContain(
+        `or the server's own when it is self-signed, or one [runbook variable](/docs/runbooks/variables) that holds it. The step then trusts only that certificate`,
+      );
+      expect(AUTHORING).toContain(
+        `keep its certificate in a [runbook variable](/docs/runbooks/variables) and write only \`{{global.variables.INTERNAL_CA}}\` in **${HTTP_CA_CERTIFICATE_TITLE}**. The step reads the variable each time it runs, so when the CA changes, you change the variable once.`,
+      );
+      expect(AUTHORING).toContain(
+        "A plain variable is enough, since a certificate is not a secret; a secret one works too, and is hidden in what the step records. A variable that is not there, or that holds no certificate, fails the step before anything is sent, and the error names the variable.",
+      );
+      expect(AUTHORING).toContain(
+        `While **${HTTP_ALLOW_SELF_SIGNED_TITLE}** is on, the step does not read the variable.`,
+      );
+      expect(VARIABLES).toContain(
+        `'s URL, headers, body or **${HTTP_CA_CERTIFICATE_TITLE}**:`,
+      );
+      expect(VARIABLES).toContain(
+        `In **${HTTP_CA_CERTIFICATE_TITLE}**, the reference stands alone, such as \`{{global.variables.INTERNAL_CA}}\`, and the variable holds the certificate in PEM: every step that names it trusts the same CA, and a new CA is set in one place.`,
       );
     });
   });
