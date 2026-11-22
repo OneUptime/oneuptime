@@ -25,6 +25,7 @@ import HTTPResponseBodyReader, {
 } from "./HTTPResponseBodyReader";
 import { getSameServerRedirectCheck } from "./SameServerRedirect";
 import OutboundRequestRouting from "./OutboundRequestRouting";
+import ProxyTunnelRefusal from "./ProxyTunnelRefusal";
 import ResponseTooLarge from "./ResponseTooLarge";
 import RetryAfter from "./RetryAfter";
 import type { Agent as HttpAgent } from "http";
@@ -1209,6 +1210,16 @@ export default class API {
     // Get a meaningful error message, avoiding generic "Error" strings
     let errorMessage: string = error.message || "";
 
+    /*
+     * A tunnel the outbound proxy refused is the proxy's answer, said
+     * without the proxy's address (ProxyTunnelRefusal).
+     */
+    const tunnelRefusal: string | null = ProxyTunnelRefusal.describe(error);
+
+    if (tunnelRefusal) {
+      errorMessage = tunnelRefusal;
+    }
+
     // If error message is empty or just "Error", try to get more details from the error
     if (
       !errorMessage ||
@@ -1261,6 +1272,13 @@ export default class API {
   public static getFriendlyErrorMessage(
     error: AxiosError | Error | HTTPErrorResponse,
   ): string {
+    // The proxy's refusal, never its address (ProxyTunnelRefusal).
+    const tunnelRefusal: string | null = ProxyTunnelRefusal.describe(error);
+
+    if (tunnelRefusal) {
+      return tunnelRefusal;
+    }
+
     let errorString: string = error.message || error.toString();
 
     if (error instanceof APIException) {
