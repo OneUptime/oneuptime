@@ -61383,5 +61383,10 @@
   "{{user}}'s password was changed in {{provider}} at {{time}}, but their sessions were not ended after the case opened.": "A senha de {{user}} foi alterada no {{provider}} às {{time}}, mas as sessões dele não foram encerradas depois que o caso foi aberto.",
   "Before it, so few attack requests to {{route}} got through that the attacks since cannot show the fix worked.": "Antes disso, tão poucas requisições de ataque para {{route}} passavam que os ataques desde então não podem mostrar que a correção funcionou.",
   "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them.": "{{count}} das {{total}} contas visadas pelo ataque não têm MFA configurada, entre elas {{user}}.",
-  "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them._one": "{{user}}, {{count}} das {{total}} contas visadas pelo ataque, não tem MFA configurada."
+  "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them._one": "{{user}}, {{count}} das {{total}} contas visadas pelo ataque, não tem MFA configurada.",
+  "Interface IP Addresses": "Endereços IP das interfaces",
+  "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "O tráfego das sondas do próprio OneUptime que é exatamente a consulta de dispositivos, a descoberta e as verificações de monitores delas é marcado como delas e posto de lado, em vez de ser relatado como uma varredura.",
+  "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "{{count}} varredura das sondas do próprio OneUptime foi posta de lado no último dia.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "{{count}} varreduras das sondas do próprio OneUptime foram postas de lado no último dia.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "{{count}} varredura das sondas do próprio OneUptime foi posta de lado no último dia."
 }

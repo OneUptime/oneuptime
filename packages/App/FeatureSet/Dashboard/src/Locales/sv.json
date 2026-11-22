@@ -61383,5 +61383,10 @@
   "{{user}}'s password was changed in {{provider}} at {{time}}, but their sessions were not ended after the case opened.": "Lösenordet för {{user}} ändrades i {{provider}} kl. {{time}}, men sessionerna avslutades inte efter att ärendet öppnades.",
   "Before it, so few attack requests to {{route}} got through that the attacks since cannot show the fix worked.": "Innan dess kom så få attackbegäranden till {{route}} igenom att attackerna sedan dess inte kan visa att åtgärden fungerade.",
   "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them.": "{{count}} av de {{total}} konton som angreppet gick efter använder inte MFA, bland dem {{user}}.",
-  "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them._one": "{{user}}, {{count}} av de {{total}} konton som angreppet gick efter, använder inte MFA."
+  "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them._one": "{{user}}, {{count}} av de {{total}} konton som angreppet gick efter, använder inte MFA.",
+  "Interface IP Addresses": "Gränssnittens IP-adresser",
+  "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "Trafik från OneUptimes egna sonder som är exakt deras avsökning av enheter, identifiering och monitorkontroller märks som deras och läggs åt sidan i stället för att rapporteras som en skanning.",
+  "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "{{count}} svep eller skanning från OneUptimes egna sonder lades åt sidan det senaste dygnet.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "{{count}} svep och skanningar från OneUptimes egna sonder lades åt sidan det senaste dygnet.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "{{count}} svep eller skanning från OneUptimes egna sonder lades åt sidan det senaste dygnet."
 }

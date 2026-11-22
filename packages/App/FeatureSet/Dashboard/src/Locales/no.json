@@ -61383,5 +61383,10 @@
   "{{user}}'s password was changed in {{provider}} at {{time}}, but their sessions were not ended after the case opened.": "Passordet til {{user}} ble endret i {{provider}} kl. {{time}}, men øktene ble ikke avsluttet etter at saken ble åpnet.",
   "Before it, so few attack requests to {{route}} got through that the attacks since cannot show the fix worked.": "Før det kom så få angrepsforespørsler til {{route}} gjennom at angrepene siden ikke kan vise at rettelsen virket.",
   "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them.": "{{count}} av de {{total}} kontoene angrepet gikk etter, har ikke MFA konfigurert, blant dem {{user}}.",
-  "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them._one": "{{user}}, {{count}} av de {{total}} kontoene angrepet gikk etter, har ikke MFA konfigurert."
+  "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them._one": "{{user}}, {{count}} av de {{total}} kontoene angrepet gikk etter, har ikke MFA konfigurert.",
+  "Interface IP Addresses": "Grensesnittenes IP-adresser",
+  "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "Trafikk fra OneUptimes egne sonder som er nøyaktig deres avspørring av enheter, oppdagelse og monitorsjekker, merkes som deres og legges til side i stedet for å bli rapportert som en skanning.",
+  "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "{{count}} sveip eller skanning fra OneUptimes egne sonder ble lagt til side det siste døgnet.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "{{count}} sveip og skanninger fra OneUptimes egne sonder ble lagt til side det siste døgnet.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "{{count}} sveip eller skanning fra OneUptimes egne sonder ble lagt til side det siste døgnet."
 }

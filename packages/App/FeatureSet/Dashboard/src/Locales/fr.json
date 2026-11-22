@@ -61383,5 +61383,10 @@
   "{{user}}'s password was changed in {{provider}} at {{time}}, but their sessions were not ended after the case opened.": "Le mot de passe de {{user}} a été modifié dans {{provider}} à {{time}}, mais ses sessions n'ont pas été fermées après l'ouverture du dossier.",
   "Before it, so few attack requests to {{route}} got through that the attacks since cannot show the fix worked.": "Auparavant, si peu de requêtes d'attaque vers {{route}} passaient que les attaques survenues depuis ne peuvent pas montrer que le correctif a fonctionné.",
   "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them.": "{{count}} des {{total}} comptes visés par l'attaque n'ont pas de MFA configurée, dont {{user}}.",
-  "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them._one": "{{user}}, {{count}} des {{total}} comptes visés par l'attaque, n'a pas de MFA configurée."
+  "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them._one": "{{user}}, {{count}} des {{total}} comptes visés par l'attaque, n'a pas de MFA configurée.",
+  "Interface IP Addresses": "Adresses IP des interfaces",
+  "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "Le trafic des sondes de OneUptime qui correspond exactement à leur interrogation des appareils, leur découverte et leurs vérifications de moniteurs est marqué comme le leur et mis de côté, au lieu d'être signalé comme un scan.",
+  "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "{{count}} balayage ou scan des sondes de OneUptime a été mis de côté au cours du dernier jour.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "{{count}} balayages et scans des sondes de OneUptime ont été mis de côté au cours du dernier jour.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "{{count}} balayage ou scan des sondes de OneUptime a été mis de côté au cours du dernier jour."
 }

@@ -234,6 +234,16 @@ Een AWS-account, Google Cloud-project of Azure-abonnement dat [onder **Cloud** i
 - De leesbeurt van het account zelf levert niets meer op: data-events, Data Access-logs en de logs van Microsoft Entra ID hebben nog steeds **Uw logboeken** of een [verbinding](/docs/integrations/microsoft-entra-id) nodig.
 - Elke gebeurtenis noemt de cloud-resources waar de record over gaat bij hun eigen ID's - een ARN, een Azure-resource-ID, een resourcenaam van Google Cloud - en staat dus op de pagina **Beveiligingsgebeurtenissen** van elk ervan, en op die van een serverless functie zodra de telemetrie ervan `cloud.account.id` en `cloud.region` instelt.
 
+### De eigen sondes van OneUptime in uw netwerkflows
+
+Zet **Netwerkflows** aan, onder **Uw OneUptime-gegevens** op **Verbindingen**, en de flows die uw netwerkapparaten exporteren worden gelezen op poortscans, netwerksweeps, verkeer met bekende kwaadaardige adressen en grote overdrachten naar buiten. Het eigen werk van een sonde lijkt daar op een scan: wie 40 apparaten via SNMP pollt, bereikt elke vijf minuten poort 161 op 40 hosts. Daarom wordt verkeer van een van de eigen sondes van OneUptime dat precies is waarvoor de sonde is ingesteld, apart gezet:
+
+- de netwerkapparaten die ze pollt, gepingd en via SNMP gevraagd op hun poort;
+- het bereik van elke detectie van de sonde, zolang de scan loopt;
+- de hosts en poorten die haar monitoren controleren.
+
+Het wordt bewaard als informatieve gebeurtenis, `oneuptime-probe-traffic`, die de sonde noemt, en geen regel leest het. **Netwerkflows** zegt hoeveel er de afgelopen dag apart is gezet, met **Bekijk ze**. Al het andere vanaf het adres van een sonde telt als ieders verkeer, en een sweep of scan buiten het werk van de sonde wordt gemeld, met de naam van de sonde. Een sonde wordt herkend aan het adres waarvandaan ze zich meldt en aan de adressen van haar eigen netwerkinterfaces, die ze bij elke melding opsomt.
+
 ### Een beveiligingsproduct koppelen
 
 **Verbindingen** bevraagt een beveiligingsproduct voor je en importeert zijn nieuwe records als beveiligingsgebeurtenissen. Een verbinding bevat de instellingen van het product en een versleutelde referentie; een worker bevraagt haar met het interval dat je instelt en slaat records over die hij al importeerde.

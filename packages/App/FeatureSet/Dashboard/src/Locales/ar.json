@@ -61383,5 +61383,10 @@
   "{{user}}'s password was changed in {{provider}} at {{time}}, but their sessions were not ended after the case opened.": "تغيّرت كلمة مرور {{user}} في {{provider}} في {{time}}، لكن جلساته لم تُنهَ بعد فتح الحالة.",
   "Before it, so few attack requests to {{route}} got through that the attacks since cannot show the fix worked.": "قبله، تجاوز عدد قليل جدًا من طلبات الهجوم على المسار {{route}}، لذا لا تستطيع الهجمات التي تلته أن تُظهر أن الإصلاح نجح.",
   "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them.": "لم تُعدّ MFA على {{count}} من أصل {{total}} من الحسابات التي استهدفها الهجوم، ومنها {{user}}.",
-  "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them._one": "لم تُعدّ MFA على {{user}}، وهو {{count}} من أصل {{total}} من الحسابات التي استهدفها الهجوم."
+  "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them._one": "لم تُعدّ MFA على {{user}}، وهو {{count}} من أصل {{total}} من الحسابات التي استهدفها الهجوم.",
+  "Interface IP Addresses": "عناوين IP للواجهات",
+  "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "حركة المرور من مسابير OneUptime نفسها التي هي بالضبط استطلاع الأجهزة والاكتشاف وفحوص المراقبات الخاصة بها تُوسَم على أنها لها وتُنحّى جانبًا، ولا يُبلَّغ عنها على أنها فحص.",
+  "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "نُحّي جانبًا خلال اليوم الأخير {{count}} مسح أو فحص من مسابير OneUptime نفسها.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "عمليات المسح والفحص من مسابير OneUptime نفسها التي نُحّيت جانبًا خلال اليوم الأخير: {{count}}.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "نُحّي جانبًا خلال اليوم الأخير {{count}} مسح أو فحص من مسابير OneUptime نفسها."
 }
