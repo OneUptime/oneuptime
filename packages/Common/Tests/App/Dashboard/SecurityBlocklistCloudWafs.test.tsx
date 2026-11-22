@@ -913,20 +913,28 @@ describe("Add WAF", () => {
       {
         label: "The address that connected to Front Door (SocketAddr)",
         value: SecurityBlockClientAddress.SourceIp,
+        isUserContent: true,
+        isInPageDirection: true,
       },
       {
         label: "The original client, from X-Forwarded-For (RemoteAddr)",
         value: SecurityBlockClientAddress.ForwardedClient,
+        isUserContent: true,
+        isInPageDirection: true,
       },
     ]);
     expect(armor.dropdownOptions).toEqual([
       {
         label: "The address that connected to the load balancer (origin.ip)",
         value: SecurityBlockClientAddress.SourceIp,
+        isUserContent: true,
+        isInPageDirection: true,
       },
       {
         label: "The user IP from the policy's request headers (origin.user_ip)",
         value: SecurityBlockClientAddress.UserIp,
+        isUserContent: true,
+        isInPageDirection: true,
       },
     ]);
 
@@ -1441,10 +1449,14 @@ describe("Check Again, Put It Back, Client Address and Remove", () => {
       {
         label: "The address that connected to Front Door (SocketAddr)",
         value: SecurityBlockClientAddress.SourceIp,
+        isUserContent: true,
+        isInPageDirection: true,
       },
       {
         label: "The original client, from X-Forwarded-For (RemoteAddr)",
         value: SecurityBlockClientAddress.ForwardedClient,
+        isUserContent: true,
+        isInPageDirection: true,
       },
     ]);
 

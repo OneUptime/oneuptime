@@ -207,7 +207,17 @@ export function getClientAddressOptions(
   kind: SecurityBlockCloudWafKind | null = SecurityBlockCloudWafKind.AwsWebAcl,
 ): Array<DropdownOption> {
   return choices.map((value: SecurityBlockClientAddress): DropdownOption => {
-    return { label: writeClientAddress(translator, value, kind), value };
+    return {
+      label: writeClientAddress(translator, value, kind),
+      value,
+      /*
+       * Translated here, whole: drawn as it is, the page's way - so a
+       * Persian or Arabic label naming a header (CF-Connecting-IP) or a
+       * variable (SocketAddr) still reads right to left.
+       */
+      isUserContent: true,
+      isInPageDirection: true,
+    };
   });
 }
 
