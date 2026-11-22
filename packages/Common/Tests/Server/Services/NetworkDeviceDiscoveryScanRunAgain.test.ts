@@ -39,6 +39,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * RUN AGAIN, THE SERVER'S HALF (OneUptime issue #10334).
@@ -166,10 +167,8 @@ interface ScanWorld {
 
 let world: ScanWorld;
 let probe: Probe | null;
-let recordUpdateSpy: jest.SpiedFunction<typeof AuditLogService.recordUpdate>;
-let createSpy: jest.SpiedFunction<
-  typeof NetworkDeviceDiscoveryScanService.create
->;
+let recordUpdateSpy: SpyInstance<typeof AuditLogService.recordUpdate>;
+let createSpy: SpyInstance<typeof NetworkDeviceDiscoveryScanService.create>;
 
 function isSameValue(left: unknown, right: unknown): boolean {
   const text: (value: unknown) => string = (value: unknown): string => {
