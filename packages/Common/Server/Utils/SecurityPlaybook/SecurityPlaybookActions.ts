@@ -150,6 +150,11 @@ export interface PlaybookStepContext {
    * Blocklist page is.
    */
   isOneStepRun?: boolean | undefined;
+  /*
+   * An automatic response policy's one-step run (#10350): a block it makes
+   * is the policy's (playbookName is the policy's name).
+   */
+  automaticResponsePolicyId?: ObjectID | undefined;
 }
 
 export interface PlaybookStepOutcome {
@@ -1438,6 +1443,13 @@ export default class SecurityPlaybookActions {
       personId:
         context.isOneStepRun && context.triggeredByUserId
           ? context.triggeredByUserId
+          : undefined,
+      automaticResponse:
+        context.isOneStepRun && context.automaticResponsePolicyId
+          ? {
+              policyId: context.automaticResponsePolicyId,
+              policyName: context.playbookName,
+            }
           : undefined,
     });
   }

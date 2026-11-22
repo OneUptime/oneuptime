@@ -9,9 +9,19 @@ import {
   hasSecurityAutomaticResponseTrialFinished,
   isSecurityAutomaticResponseMode,
 } from "../../../Types/SecurityAutomaticResponse/SecurityAutomaticResponsePolicy";
+import {
+  SecurityAutomaticResponseTrialSummary,
+  summarizeSecurityAutomaticResponseTrial,
+} from "../../../Types/SecurityAutomaticResponse/SecurityAutomaticResponseSummary";
+import { SecurityBlockAction } from "../../../Types/SecurityBlocklist/SecurityBlock";
+import URL from "../../../Types/API/URL";
+import { DashboardClientUrl } from "../../EnvironmentConfig";
+import QueryHelper from "../../Types/Database/QueryHelper";
+import SecurityAutomaticResponseActionService from "../../Services/SecurityAutomaticResponseActionService";
 import SecurityAutomaticResponsePolicyService from "../../Services/SecurityAutomaticResponsePolicyService";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import SecurityAutomaticResponseOwners from "./SecurityAutomaticResponseOwners";
 
 /*
  * WHERE A POLICY'S TRIAL RUN STANDS (#10350), for code beside the policies
@@ -37,6 +47,77 @@ export interface SecurityAutomaticResponseTrialRead {
   trialEndsAt: Date | null;
   trialFinishedAt: Date | null;
   trialSkippedAt: Date | null;
+}
+
+// The Automatic Response page, or null when the dashboard's address is not configured.
+export function getAutomaticResponsePageLink(projectId: ObjectID): URL | null {
+  if (!DashboardClientUrl || !DashboardClientUrl.hostname?.toString()) {
+    return null;
+  }
+
+  return URL.fromString(DashboardClientUrl.toString()).addRoute(
+    `/${projectId.toString()}/security-events/automatic-response`,
+  );
+}
+
+// "1,283 addresses", "1 address".
+function addresses(count: number): string {
+  return count === 1
+    ? "1 address"
+    : `${count.toLocaleString("en-US")} addresses`;
+}
+
+/*
+ * What a finished trial run would have done, as its email says it: "In 7
+ * days this would have challenged 1,283 addresses. None had signed-in
+ * users, and none were yours. Turn it on?"
+ */
+export function describeTrialFinished(data: {
+  policyName: string;
+  blockAction?: SecurityBlockAction | string | null | undefined;
+  summary: SecurityAutomaticResponseTrialSummary;
+  link: URL | null;
+}): string {
+  const { summary } = data;
+  const verb: string =
+    data.blockAction === SecurityBlockAction.Challenge
+      ? "challenged"
+      : "blocked";
+  const lines: Array<string> = [
+    `Your ${data.policyName} policy has run its week of trial run. In 7 days it would have ${verb} ${addresses(summary.wouldActOn)}.`,
+  ];
+
+  lines.push(
+    summary.sparedSignedIn === 0 && summary.sparedProtected === 0
+      ? "None had signed-in users, and none were yours."
+      : `It left ${addresses(summary.sparedSignedIn)} alone because signed-in users had used them, and ${addresses(summary.sparedProtected)} because they are yours.`,
+  );
+
+  if (summary.wouldHaveLifted > 0) {
+    lines.push(
+      `A signed-in user was seen later from ${addresses(summary.wouldHaveLifted)} it would have blocked, so it would have lifted those blocks.`,
+    );
+  }
+
+  if (summary.sparedCannotTell > 0) {
+    lines.push(
+      `It could not tell whether signed-in users had used ${addresses(summary.sparedCannotTell)}, so it left them for a person.`,
+    );
+  }
+
+  if (summary.wouldHaveStopped > 0) {
+    lines.push(
+      `It would have reached the most automatic blocks your project makes in an hour ${summary.wouldHaveStopped === 1 ? "once" : `${summary.wouldHaveStopped} times`}, and paged your security owners.`,
+    );
+  }
+
+  lines.push(
+    data.link
+      ? `Turn it on from the Automatic Response page: ${data.link.toString()}`
+      : "Turn it on from Security Events -> Playbooks -> Automatic Response.",
+  );
+
+  return lines.join("\n\n");
 }
 
 function readDate(value: Date | string | null | undefined): Date | null {
@@ -100,6 +181,90 @@ export default class SecurityAutomaticResponseTrial {
       trialFinishedAt: readDate(policy.trialFinishedAt),
       trialSkippedAt: readDate(policy.trialSkippedAt),
     };
+  }
+
+  /*
+   * Every minute: each trial run whose week is up is written down as
+   * finished, and the project's security owners are told what it would
+   * have done and asked to turn it on - once, as trialFinishedAt is set
+   * compare-and-set. How many finished.
+   */
+  @CaptureSpan()
+  public static async finishDueTrials(now?: Date): Promise<number> {
+    const at: Date = now || OneUptimeDate.getCurrentDate();
+    const due: Array<SecurityAutomaticResponsePolicy> =
+      await SecurityAutomaticResponsePolicyService.findTrialsDue({
+        now: at,
+        limit: 100,
+      });
+    let finished: number = 0;
+
+    for (const policy of due) {
+      if (!policy.id || !policy.projectId || !policy.trialEndsAt) {
+        continue;
+      }
+
+      try {
+        const isFirst: boolean =
+          await SecurityAutomaticResponsePolicyService.compareAndSetColumnsByIdWithoutHooks(
+            {
+              id: policy.id,
+              data: { trialFinishedAt: new Date(policy.trialEndsAt) },
+              expectedData: {
+                trialFinishedAt: null as unknown as Date,
+                mode: SecurityAutomaticResponseMode.TrialRun,
+              },
+            },
+          );
+
+        if (!isFirst) {
+          continue;
+        }
+
+        finished++;
+
+        const summary: SecurityAutomaticResponseTrialSummary =
+          summarizeSecurityAutomaticResponseTrial(
+            await SecurityAutomaticResponseActionService.findBy({
+              query: {
+                securityAutomaticResponsePolicyId: policy.id,
+                isTrialRun: true,
+                createdAt: QueryHelper.inBetween(
+                  new Date(policy.trialStartedAt || policy.trialEndsAt),
+                  new Date(policy.trialEndsAt),
+                ),
+              },
+              select: {
+                _id: true,
+                value: true,
+                outcome: true,
+                doubtSeenAt: true,
+              },
+              skip: 0,
+              limit: 20000,
+              props: { isRoot: true },
+            }),
+          );
+
+        await SecurityAutomaticResponseOwners.tell({
+          projectId: policy.projectId,
+          subject: `Your ${policy.name || "automatic response"} policy finished its trial run`,
+          messageInMarkdown: describeTrialFinished({
+            policyName: policy.name || "automatic response",
+            blockAction: policy.blockAction,
+            summary,
+            link: getAutomaticResponsePageLink(policy.projectId),
+          }),
+        });
+      } catch (error) {
+        logger.error(
+          `SecurityAutomaticResponseTrial: could not finish policy ${policy.id.toString()}'s trial run:`,
+        );
+        logger.error(error);
+      }
+    }
+
+    return finished;
   }
 
   /*

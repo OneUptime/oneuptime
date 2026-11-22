@@ -335,6 +335,8 @@ import "./Jobs/SecurityBlocklist/ReconcileSecurityBlocklist";
 import "./Jobs/SecurityBlocklist/RunSecurityBlocklistReconcile";
 import "./Jobs/SecurityBlocklist/CheckFeedsAreRead";
 import "./Jobs/SecurityBlocklist/PurgeFeedFetches";
+import "./Jobs/SecurityAutomaticResponse/DecideAutomaticResponse";
+import "./Jobs/SecurityAutomaticResponse/AutomaticResponseSweeps";
 
 /*
  * Instance capacity management (Community Edition). The Postgres and Redis

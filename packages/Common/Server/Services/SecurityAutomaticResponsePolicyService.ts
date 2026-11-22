@@ -5,6 +5,8 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
+import SecurityAutomaticResponse from "../Utils/SecurityAutomaticResponse/SecurityAutomaticResponse";
+import SecurityAutomaticResponseRules from "../Utils/SecurityAutomaticResponse/SecurityAutomaticResponseRules";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../Types/BaseDatabase/Includes";
@@ -503,6 +505,55 @@ export class Service extends ProjectReferencesService<Model> {
         userId: isPerson(updateBy.props) ? updateBy.props.userId || null : null,
       }),
     );
+  }
+
+  /*
+   * A policy's change is read by the next detection at once on this server
+   * (and within half a minute on the others), and a ready policy turned
+   * into its trial run or on runs the rules it acts on in real time
+   * (SecurityAutomaticResponseRules): it acts as the detection is made.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const mode: unknown = (
+      onUpdate.updateBy.data as unknown as Record<string, unknown>
+    )["mode"];
+
+    for (const id of updatedItemIds) {
+      try {
+        const policy: Model | null = await this.findOneById({
+          id,
+          select: { _id: true, projectId: true, kind: true },
+          props: { isRoot: true },
+        });
+
+        if (!policy?.projectId) {
+          continue;
+        }
+
+        SecurityAutomaticResponse.clearCache(policy.projectId);
+
+        if (
+          mode === SecurityAutomaticResponseMode.TrialRun ||
+          mode === SecurityAutomaticResponseMode.On
+        ) {
+          await SecurityAutomaticResponseRules.runInRealTime({
+            projectId: policy.projectId,
+            kind: policy.kind,
+          });
+        }
+      } catch (error) {
+        logger.error(
+          `SecurityAutomaticResponsePolicyService: could not ready policy ${id.toString()} after its change:`,
+        );
+        logger.error(error);
+      }
+    }
+
+    return onUpdate;
   }
 }
 

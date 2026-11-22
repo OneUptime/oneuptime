@@ -408,6 +408,7 @@ export default class SecurityBlocklistFeedServe {
         _id: true,
         value: true,
         action: true,
+        challengeFallsBackToBlock: true,
         state: true,
         expiresAt: true,
         createdAt: true,
@@ -426,6 +427,7 @@ export default class SecurityBlocklistFeedServe {
           return {
             value: block.value,
             action: block.action,
+            challengeFallsBackToBlock: block.challengeFallsBackToBlock,
             state: block.state,
             expiresAt: block.expiresAt,
             comment: getSecurityBlockEntryComment(block),

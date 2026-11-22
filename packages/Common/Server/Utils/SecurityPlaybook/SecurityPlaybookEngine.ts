@@ -188,6 +188,7 @@ export default class SecurityPlaybookEngine {
         threatIntelMatched: true,
         startedAt: true,
         triggeredByUserId: true,
+        securityAutomaticResponsePolicyId: true,
       },
       props: {
         isRoot: true,
@@ -553,6 +554,8 @@ export default class SecurityPlaybookEngine {
           triggeredByUserId: run.triggeredByUserId,
           targets: results[index]!.targets,
           isOneStepRun,
+          automaticResponsePolicyId:
+            run.securityAutomaticResponsePolicyId || undefined,
         });
       } catch (error) {
         outcome = {
