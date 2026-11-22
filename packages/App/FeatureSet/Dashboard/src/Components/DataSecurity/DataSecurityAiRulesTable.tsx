@@ -71,6 +71,15 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export const DATA_SECURITY_AI_RULES_TABLE_ID: string = "data-security-ai-rules";
 
+/*
+ * The AI rules this table lists and makes: Data Security issues' own. The
+ * one AI rule model is split between tables by its trigger, each reading
+ * only its own, so a rule is edited in one place (AiRulesTable for
+ * incidents and alerts, TelemetryAiRulesTable for telemetry products).
+ */
+const triggerEntityType: AutoRemediationTriggerEntity =
+  AutoRemediationTriggerEntity.DataSecurityIssue;
+
 const SEVERITY_OPTIONS: Array<DropdownOption> = [
   { label: "Critical", value: SecuritySeverity.Critical },
   { label: "High", value: SecuritySeverity.High },
@@ -156,9 +165,7 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement | null => {
       id={DATA_SECURITY_AI_RULES_TABLE_ID}
       userPreferencesKey={DATA_SECURITY_AI_RULES_TABLE_ID}
       name="Data Security AI Rules"
-      query={{
-        triggerEntityType: AutoRemediationTriggerEntity.DataSecurityIssue,
-      }}
+      query={{ triggerEntityType: triggerEntityType }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
@@ -176,7 +183,7 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement | null => {
       onBeforeCreate={(
         rule: AutoRemediationRule,
       ): Promise<AutoRemediationRule> => {
-        rule.triggerEntityType = AutoRemediationTriggerEntity.DataSecurityIssue;
+        rule.triggerEntityType = triggerEntityType;
         return Promise.resolve(rule);
       }}
       selectMoreFields={{
