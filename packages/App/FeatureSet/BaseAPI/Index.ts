@@ -712,6 +712,9 @@ import SecurityCaseNoteService, {
 import SecurityCaseTaskService, {
   Service as SecurityCaseTaskServiceType,
 } from "Common/Server/Services/SecurityCaseTaskService";
+import SecurityCaseStepCheckService, {
+  Service as SecurityCaseStepCheckServiceType,
+} from "Common/Server/Services/SecurityCaseStepCheckService";
 import SecurityDetectionService, {
   Service as SecurityDetectionServiceType,
 } from "Common/Server/Services/SecurityDetectionService";
@@ -1976,6 +1979,7 @@ import BackupRun from "Common/Models/DatabaseModels/BackupRun";
 import SecurityCaseFeed from "Common/Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
+import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
@@ -4809,6 +4813,20 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<SecurityCaseTask, SecurityCaseTaskServiceType>(
         SecurityCaseTask,
         SecurityCaseTaskService,
+      ).getRouter(),
+    );
+
+    /*
+     * What OneUptime found when it checked a case's Response Plan steps
+     * (#10340): read by the case's own readers, for the Response Plan card.
+     * Its lists let nobody create, change or delete one: only the step
+     * checks write them.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCaseStepCheck, SecurityCaseStepCheckServiceType>(
+        SecurityCaseStepCheck,
+        SecurityCaseStepCheckService,
       ).getRouter(),
     );
 
