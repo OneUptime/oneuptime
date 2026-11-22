@@ -740,31 +740,31 @@ async function sendToolImportRequest(data: {
    */
   const response: AxiosResponse<string> = await axios.request<string>(
     OutboundProxyAgents.routeAxiosRequest({
-    // Only Node's http adapter uses the pinned agents.
-    adapter: "http",
-    method: data.request.method,
-    url: data.url.toString(),
-    headers: OutboundUserAgent.withDefault(data.request.headers),
-    timeout: data.request.timeoutInMs,
-    maxRedirects: 0,
-    maxContentLength: TOOL_IMPORT_MAX_RESPONSE_BYTES,
-    maxBodyLength: TOOL_IMPORT_MAX_RESPONSE_BYTES,
-    responseType: "text",
-    transformResponse: [
-      (body: string): string => {
-        return body;
+      // Only Node's http adapter uses the pinned agents.
+      adapter: "http",
+      method: data.request.method,
+      url: data.url.toString(),
+      headers: OutboundUserAgent.withDefault(data.request.headers),
+      timeout: data.request.timeoutInMs,
+      maxRedirects: 0,
+      maxContentLength: TOOL_IMPORT_MAX_RESPONSE_BYTES,
+      maxBodyLength: TOOL_IMPORT_MAX_RESPONSE_BYTES,
+      responseType: "text",
+      transformResponse: [
+        (body: string): string => {
+          return body;
+        },
+      ],
+      validateStatus: (): boolean => {
+        return true;
       },
-    ],
-    validateStatus: (): boolean => {
-      return true;
-    },
-    // The socket dials only the addresses the egress guard checked.
-    ...(data.agents
-      ? {
-          httpAgent: data.agents.httpAgent,
-          httpsAgent: data.agents.httpsAgent,
-        }
-      : {}),
+      // The socket dials only the addresses the egress guard checked.
+      ...(data.agents
+        ? {
+            httpAgent: data.agents.httpAgent,
+            httpsAgent: data.agents.httpsAgent,
+          }
+        : {}),
     }),
   );
 

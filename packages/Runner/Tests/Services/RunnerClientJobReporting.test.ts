@@ -34,7 +34,16 @@ jest.mock("axios", () => {
         post: PostMock;
         interceptors: { request: { use: () => number } };
       } => {
-        return { post, interceptors: { request: { use: (): number => 0 } } };
+        return {
+          post,
+          interceptors: {
+            request: {
+              use: (): number => {
+                return 0;
+              },
+            },
+          },
+        };
       },
     },
   };

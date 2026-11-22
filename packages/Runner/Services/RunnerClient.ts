@@ -81,11 +81,7 @@ const http: AxiosInstance = axios.create({
  * a proxy axios reads itself, which sent the proxy's password
  * percent-encoded (#10442).
  */
-http.interceptors.request.use(
-  <T extends AxiosRequestConfig>(config: T): T => {
-    return OutboundProxyAgents.routeAxiosRequest(config);
-  },
-);
+http.interceptors.request.use(OutboundProxyAgents.routeAxiosRequest);
 
 /*
  * Identity comes from RunnerIdentity, not the raw config: in

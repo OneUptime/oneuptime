@@ -329,10 +329,9 @@ describe("a CA certificate that is not one", () => {
       const realCreate: (
         target: PinnedTarget,
         options?: PinnedAgentOptions | undefined,
-      ) => PinnedAgents =
-        DataSourceEgressGuard.createPinnedAgents.bind(
-          DataSourceEgressGuard,
-        );
+      ) => PinnedAgents = DataSourceEgressGuard.createPinnedAgents.bind(
+        DataSourceEgressGuard,
+      );
 
       jest
         .spyOn(DataSourceEgressGuard, "createPinnedAgents")
@@ -460,10 +459,9 @@ describe("only that step's request", () => {
     const realCreate: (
       target: PinnedTarget,
       options?: PinnedAgentOptions | undefined,
-    ) => PinnedAgents =
-      DataSourceEgressGuard.createPinnedAgents.bind(
-        DataSourceEgressGuard,
-      );
+    ) => PinnedAgents = DataSourceEgressGuard.createPinnedAgents.bind(
+      DataSourceEgressGuard,
+    );
 
     jest
       .spyOn(DataSourceEgressGuard, "createPinnedAgents")

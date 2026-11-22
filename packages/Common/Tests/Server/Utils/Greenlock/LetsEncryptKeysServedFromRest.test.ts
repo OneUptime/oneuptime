@@ -89,7 +89,15 @@ jest.mock("acme-client", () => {
         }
       },
       // Its own axios instance, which Greenlock routes (#10442).
-      axios: { interceptors: { request: { use: (): number => 0 } } },
+      axios: {
+        interceptors: {
+          request: {
+            use: (): number => {
+              return 0;
+            },
+          },
+        },
+      },
       directory: {
         letsencrypt: {
           production: "https://acme.example.com/directory",

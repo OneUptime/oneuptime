@@ -362,9 +362,7 @@ export default class OutboundProxyAgents {
     try {
       const url: URL = new URL(full);
 
-      return url.protocol === "http:" || url.protocol === "https:"
-        ? url
-        : null;
+      return url.protocol === "http:" || url.protocol === "https:" ? url : null;
     } catch {
       return null;
     }

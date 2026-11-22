@@ -181,10 +181,9 @@ describe("a Runbook HTTP step behind an outbound proxy", () => {
     const realCreate: (
       target: PinnedTarget,
       options?: PinnedAgentOptions | undefined,
-    ) => PinnedAgents =
-      DataSourceEgressGuard.createPinnedAgents.bind(
-        DataSourceEgressGuard,
-      );
+    ) => PinnedAgents = DataSourceEgressGuard.createPinnedAgents.bind(
+      DataSourceEgressGuard,
+    );
 
     jest
       .spyOn(DataSourceEgressGuard, "createPinnedAgents")
