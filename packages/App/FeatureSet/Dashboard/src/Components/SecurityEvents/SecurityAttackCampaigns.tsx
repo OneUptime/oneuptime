@@ -26,6 +26,21 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import SecurityCaseApi from "../SecurityCase/SecurityCaseApi";
+import BlockAddressModal from "./Blocklist/BlockAddressModal";
+import { BLOCK_ADDRESS_TITLE } from "./Blocklist/BlocklistCopy";
+import SecurityBlock from "Common/Models/DatabaseModels/SecurityBlock";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
+import {
+  SecurityAddressScope,
+  getSecurityAddressScope,
+} from "Common/Utils/SecurityCase/SecurityConnectionMatch";
 import SecurityEventRequestOutcomePill from "./SecurityEventRequestOutcomePill";
 import { getRequestOutcomeColor } from "./SecurityEventRequestStory";
 import {
@@ -164,15 +179,18 @@ const OutcomeBar: FunctionComponent<{
   );
 };
 
-const CampaignRow: FunctionComponent<{
+interface CampaignRowProps {
   campaign: SecurityAttackCampaign;
   startTime: Date;
   endTime: Date;
-}> = (props: {
-  campaign: SecurityAttackCampaign;
-  startTime: Date;
-  endTime: Date;
-}): ReactElement => {
+  // Block Address on the row's address (#10342), and why it is locked; none without it.
+  onBlock?: ((address: string) => void) | undefined;
+  blockLockReason?: string | undefined;
+}
+
+const CampaignRow: FunctionComponent<CampaignRowProps> = (
+  props: CampaignRowProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
   const campaign: SecurityAttackCampaign = props.campaign;
   const lastSeen: Date | null = campaign.lastSeen
@@ -280,10 +298,37 @@ const CampaignRow: FunctionComponent<{
             {translator.translateText(CORRELATE_ADDRESS)}
           </Link>
         )}
+        {props.onBlock && isCampaignBlockable(campaign) ? (
+          <Button
+            title={BLOCK_ADDRESS_TITLE}
+            buttonStyle={ButtonStyleType.LINK}
+            buttonSize={ButtonSize.Small}
+            disabled={props.blockLockReason !== undefined}
+            tooltip={props.blockLockReason || undefined}
+            dataTestId="security-attack-campaign-block"
+            onClick={() => {
+              props.onBlock?.(campaign.sourceIp);
+            }}
+          />
+        ) : (
+          <></>
+        )}
       </div>
     </li>
   );
 };
+
+/*
+ * A campaign's address can be blocked from its row (#10342) when it is a
+ * public one: a private or local address never reaches the app from the
+ * internet, so an edge has nothing to block.
+ */
+export function isCampaignBlockable(campaign: SecurityAttackCampaign): boolean {
+  return (
+    Boolean(campaign.sourceIp) &&
+    getSecurityAddressScope(campaign.sourceIp) === SecurityAddressScope.Public
+  );
+}
 
 /*
  * Who is attacking the project, one row per address: a scanner that sent
@@ -300,6 +345,12 @@ const SecurityAttackCampaigns: FunctionComponent = (): ReactElement => {
   const [loaded, setLoaded] = useState<LoadedCampaigns | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  // The address Block Address is open for, from its row (#10342).
+  const [blocking, setBlocking] = useState<string | null>(null);
+  const blockGate: PermissionGateResult = PermissionGate.check(
+    new SecurityBlock(),
+    ModelAction.Create,
+  );
 
   const load: (selected: CampaignWindow) => Promise<void> = useCallback(
     async (selected: CampaignWindow): Promise<void> => {
@@ -387,6 +438,14 @@ const SecurityAttackCampaigns: FunctionComponent = (): ReactElement => {
                 campaign={campaign}
                 startTime={loaded.startTime}
                 endTime={loaded.endTime}
+                blockLockReason={
+                  blockGate.isAllowed
+                    ? undefined
+                    : blockGate.disabledReason || ""
+                }
+                onBlock={(address: string) => {
+                  setBlocking(address);
+                }}
               />
             );
           })}
@@ -421,6 +480,19 @@ const SecurityAttackCampaigns: FunctionComponent = (): ReactElement => {
          */}
         <div className={ruledBodyClassName}>{body}</div>
       </Card>
+      {blocking ? (
+        <BlockAddressModal
+          initialValue={blocking}
+          onClose={() => {
+            setBlocking(null);
+          }}
+          onBlocked={() => {
+            setBlocking(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

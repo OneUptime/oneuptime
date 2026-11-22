@@ -53,8 +53,14 @@ const TelemetryRetentionConfigForm: FunctionComponent<ComponentProps> = (
   ): void => {
     setConfig(next);
     if (props.onChange) {
-      const isEmpty: boolean =
-        !next.logs && !next.traces && !next.metrics && !next.profiles;
+      /*
+       * Empty only when no type is left at all: the form clears a type's
+       * key as its last field is emptied. Checking just the four types it
+       * shows emitted null - erasing the config - while it still held a
+       * security events or session replay retention set through the API
+       * (#10432).
+       */
+      const isEmpty: boolean = Object.keys(next).length === 0;
       props.onChange(isEmpty ? null : next);
     }
   };

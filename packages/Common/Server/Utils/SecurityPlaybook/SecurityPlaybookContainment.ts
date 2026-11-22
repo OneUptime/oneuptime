@@ -181,14 +181,31 @@ function errorMessage(error: unknown): string {
     : String(error || "unknown error");
 }
 
-function nounFor(entityType: SecurityEntityType | undefined): string {
-  return entityType === SecurityEntityType.User ? "user" : "host";
+// What a step acts on, in a sentence: "user", "host", or an address (#10342).
+function nounFor(entityType: SecurityEntityType | undefined): {
+  one: string;
+  many: string;
+  aOne: string;
+} {
+  switch (entityType) {
+    case SecurityEntityType.User:
+      return { one: "user", many: "users", aOne: "a user" };
+    case SecurityEntityType.IpAddress:
+      return { one: "address", many: "addresses", aOne: "an address" };
+    default:
+      return { one: "host", many: "hosts", aOne: "a host" };
+  }
 }
 
 // What the step result says of a target, after its value.
 export function describeTarget(target: SecurityPlaybookTarget): string {
   switch (target.state) {
     case SecurityPlaybookTargetState.Protected:
+      // What the blocklist said protects an address (#10342), as it said it.
+      if (target.detail) {
+        return `protected: ${target.detail.replace(/[.\s]+$/, "")}`;
+      }
+
       return target.protectedBy &&
         target.protectedBy.toLowerCase() !== target.value.toLowerCase()
         ? `protected (matches ${target.protectedBy})`
@@ -345,7 +362,9 @@ export default class SecurityPlaybookContainment {
     entityType: SecurityEntityType;
     targets: Array<SecurityPlaybookTarget>;
   }): MarkdownText {
-    const noun: string = nounFor(data.entityType);
+    const noun: { one: string; many: string; aOne: string } = nounFor(
+      data.entityType,
+    );
     const kept: Array<SecurityPlaybookTarget> = data.targets.filter(
       (target: SecurityPlaybookTarget): boolean => {
         return (
@@ -356,10 +375,12 @@ export default class SecurityPlaybookContainment {
     );
 
     if (kept.length === 0) {
-      return mdText`No ${noun} to act on: no detection of the case is grouped on a ${noun}, and threat intel knows none of its ${noun}s.`;
+      return data.entityType === SecurityEntityType.IpAddress
+        ? mdText`No address to act on: no detection of the case is grouped on a public address it did not only claim, and threat intel knows none of its addresses.`
+        : mdText`No ${noun.one} to act on: no detection of the case is grouped on ${noun.aOne}, and threat intel knows none of its ${noun.many}.`;
     }
 
-    return mdText`No ${noun} to act on: ${FeedMarkdown.join(
+    return mdText`No ${noun.one} to act on: ${FeedMarkdown.join(
       kept.map((target: SecurityPlaybookTarget): MarkdownText => {
         return mdText`${FeedMarkdown.code(target.value)} is ${describeTarget(target)}`;
       }),
@@ -891,7 +912,7 @@ export default class SecurityPlaybookContainment {
               return FeedMarkdown.code(target.value);
             }),
           )}${failures.length > 0 ? mdText`; ${String(failures.length)} could not be` : FeedMarkdown.empty()}.`
-        : mdText`${data.definition.title}: no ${nounFor(data.definition.entityType)} of the case could be acted on.`;
+        : mdText`${data.definition.title}: no ${nounFor(data.definition.entityType).one} of the case could be acted on.`;
 
     if (failures.length > 0 || actedOn.length === 0) {
       return {

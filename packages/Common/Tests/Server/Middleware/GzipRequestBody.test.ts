@@ -53,13 +53,18 @@ import {
 } from "../../../Server/Utils/RequestBodyLimit";
 import Response from "../../../Server/Utils/Response";
 import logger from "../../../Server/Utils/Logger";
+import {
+  INFLATE_FAILED_TYPE,
+  REQUEST_BODY_REFUSAL_MESSAGES,
+  readRequestBodyRefusal,
+} from "../../../Server/Utils/RequestBodyRefusal";
 import Exception from "../../../Types/Exception/Exception";
-import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { EventEmitter } from "events";
 import fs from "fs";
 import path from "path";
@@ -548,8 +553,31 @@ describe("GzipRequestBodyMiddleware - one outcome per request", () => {
   });
 });
 
+/*
+ * A body that says it is gzip and does not inflate is the client's (#10597):
+ * handed on as a 400 refusal in body-parser's shape, which expressErrorHandler
+ * answers in RequestBodyRefusal's words at debug. It was a 500, written
+ * straight to the response, with the zlib error logged at error level.
+ */
+function expectNotInflatedRefusal(driver: Driver): void {
+  expect(driver.nextCalls).toHaveLength(1);
+  expect(readRequestBodyRefusal(driver.nextCalls[0])).toEqual({
+    type: INFLATE_FAILED_TYPE,
+    status: 400,
+    message: REQUEST_BODY_REFUSAL_MESSAGES.notInflated,
+  });
+  expect(driver.errorResponse()).toBeUndefined();
+  expect(driver.res.statusCode).toBe(0);
+  expect(driver.req.body).toBeUndefined();
+  // The rest of the body is not read, and its answer closes the connection.
+  expect(driver.req.paused).toBe(true);
+  expect(
+    (driver.res as unknown as { shouldKeepAlive?: boolean }).shouldKeepAlive,
+  ).toBe(false);
+}
+
 describe("GzipRequestBodyMiddleware - malformed and truncated input", () => {
-  test("a body that is not gzip at all is a 500, exactly as before", async () => {
+  test("a body that is not gzip at all is refused 400 as the client's, not a 500", async () => {
     const driver: Driver = new Driver();
 
     await driver.feed([Buffer.from("this is not gzip")]);
@@ -557,16 +585,10 @@ describe("GzipRequestBodyMiddleware - malformed and truncated input", () => {
 
     expect(await driver.waitForOutcome()).toBe(true);
 
-    expect(driver.nextCalls).toHaveLength(0);
-
-    const error: Exception | undefined = driver.errorResponse();
-
-    expect(error).toBeDefined();
-    expect(error!.code).toBe(ExceptionCode.ServerException);
-    expect(error!.message).toBe("Error decompressing data");
+    expectNotInflatedRefusal(driver);
   });
 
-  test("a truncated gzip body is a 500 and never reaches the route", async () => {
+  test("a truncated gzip body is refused 400 and never reaches the route", async () => {
     const compressed: Buffer = gzip(Buffer.from("x".repeat(100_000)));
 
     const driver: Driver = new Driver();
@@ -578,9 +600,35 @@ describe("GzipRequestBodyMiddleware - malformed and truncated input", () => {
 
     expect(await driver.waitForOutcome()).toBe(true);
 
-    expect(driver.nextCalls).toHaveLength(0);
-    expect(driver.req.body).toBeUndefined();
-    expect(driver.errorResponse()).toBeDefined();
+    expectNotInflatedRefusal(driver);
+  });
+
+  test("gzip with bytes after its end is refused 400, as one that does not inflate", async () => {
+    const driver: Driver = new Driver();
+
+    await driver.feed([
+      Buffer.concat([gzip(Buffer.from('{"a":1}')), Buffer.from("trailing")]),
+    ]);
+    driver.end();
+
+    expect(await driver.waitForOutcome()).toBe(true);
+
+    expectNotInflatedRefusal(driver);
+  });
+
+  test("a body that is not gzip is refused at its first bytes, with the rest unread", async () => {
+    const driver: Driver = new Driver();
+
+    await driver.feed([
+      Buffer.from("this is not gzip"),
+      ...chunked(Buffer.alloc(4 * 1024 * 1024, 1), 64 * 1024),
+    ]);
+
+    expect(await driver.waitForOutcome()).toBe(true);
+
+    expectNotInflatedRefusal(driver);
+    // The first chunk, and what the inflate was given meanwhile: a read or two.
+    expect(driver.fedBytes).toBeLessThanOrEqual(16 + 2 * 64 * 1024);
   });
 
   test("an empty body is an empty body, not a 500", async () => {
@@ -662,6 +710,32 @@ describe("GzipRequestBodyMiddleware - rejections do not become a log flood", () 
     expect(loggerMock("warn").mock.calls).toHaveLength(0);
     expect(loggerMock("debug").mock.calls).toHaveLength(1);
   });
+
+  /*
+   * #10597: any client, with no key, could have the App log an error with
+   * its stack once a request. The refusal is handed on, and
+   * expressErrorHandler logs it at debug (StartServerErrorStatus,
+   * RequestBodyRefusalOverHttp).
+   */
+  test("a body that does not inflate is never logged here, at any level", async () => {
+    loggerMock("debug").mockClear();
+    loggerMock("warn").mockClear();
+    loggerMock("error").mockClear();
+
+    for (let attempt: number = 0; attempt < 20; attempt++) {
+      const driver: Driver = new Driver();
+
+      await driver.feed([Buffer.from(`not gzip ${attempt}`)]);
+      driver.end();
+
+      expect(await driver.waitForOutcome()).toBe(true);
+      expect(readRequestBodyRefusal(driver.nextCalls[0])?.status).toBe(400);
+    }
+
+    expect(loggerMock("error").mock.calls).toHaveLength(0);
+    expect(loggerMock("warn").mock.calls).toHaveLength(0);
+    expect(loggerMock("debug").mock.calls).toHaveLength(0);
+  });
 });
 
 /*
@@ -734,12 +808,11 @@ describe("GzipRequestBodyMiddleware - a JSON body's values are counted as it inf
   ): Buffer => {
     const gaps: Array<string> = [" ", "\n", "\t", "\r\n", "  ", ""];
     const parts: Array<string> = ["["];
+    const random: SeededRandom = seededRandom(17);
     let length: number = 1;
-    let seed: number = 17;
 
     while (length < bytes - 4) {
-      seed = (seed * 1103515245 + 12345) % 2147483648;
-      const part: string = `[],${gaps[seed % gaps.length]!}`;
+      const part: string = `[],${gaps[random(gaps.length)]!}`;
       parts.push(part);
       length += part.length;
     }

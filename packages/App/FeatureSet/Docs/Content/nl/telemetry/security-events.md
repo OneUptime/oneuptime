@@ -638,6 +638,14 @@ De actie **Monitor maken** in de rij van een regel opent een nieuwe monitor die 
 
 Beveiligingsgebeurtenissen worden per ingenomen GB gefactureerd, net als de rest van je telemetrie, en bewaard volgens je telemetriebewaring: de **Standaardbewaring (dagen)** van het project, onder **Projectinstellingen → Telemetrie & APM → Gegevensbewaring**, of een bewaartermijn die is ingesteld op de telemetrieservice waartoe ze behoren. Als de bewaartermijn van een gebeurtenis afloopt, wordt ze verwijderd.
 
+Alles in Beveiligingsgebeurtenissen dat eerdere gebeurtenissen leest, leest alleen de gebeurtenissen die nog bewaard worden, en zegt wanneer het meer nodig zou hebben:
+
+- Een regel **Voor het eerst gezien** waarvan de tijdspanne langer is dan gebeurtenissen worden bewaard, bepaalt aan de bewaarde dagen of een waarde nieuw is: met een tijdspanne van 30 dagen en 15 bewaarde dagen zeggen zijn alerts en cases `First awsRegion in 15 days`, en een waarde die het laatst 20 dagen geleden is gezien, geldt als nieuw. Zijn rij toont **Vraagt aandacht**, en **Fout bekijken** zegt wat er moet veranderen. Het regelformulier en de details van een regel in de regelbibliotheek zeggen het voordat hij wordt opgeslagen of toegevoegd. Een telling of een reeks waarvan het venster langer is dan gebeurtenissen worden bewaard, telt alleen die.
+- **Uitvoeren op eerdere gebeurtenissen** over een periode die vóór de bewaarde gebeurtenissen begint, zegt dat beveiligingsgebeurtenissen 15 dagen worden bewaard, dus dat het 15 dagen terugkeek, en wat het niet vond, geldt alleen voor die dagen. Een gebeurtenis die eerder plaatsvond maar te laat binnenkwam, blijft bewaard en wordt nog gelezen. Een regel **Voor het eerst gezien** zegt hoeveel van de 30 dagen vóór de periode hij kon zien.
+- Een hunt waarvan het **Tijdsbereik** langer is dan gebeurtenissen worden bewaard, vindt niets ouder, en het formulier zegt dat.
+
+**Projectinstellingen → Telemetrie & APM → Gegevensbewaring** toont de ingeschakelde regels die verder terugkijken dan de **Standaardbewaring (dagen)**. Om ze te dekken, bewaar je gebeurtenissen langer, met **Bewaartermijn wijzigen** onder een regel, of maak je de tijdspanne van een regel korter tot wat bewaard wordt. OneUptime bewaart 15 dagen tenzij je dat wijzigt, omdat de bewaartermijn bepaalt wat je telemetrie kost en hoe lang persoonsgegevens in gebeurtenissen, zoals adressen en gebruikersnamen, worden bewaard. Een nieuwe bewaartermijn geldt voor gebeurtenissen die vanaf dan binnenkomen, dus regels kijken verder terug naarmate die gebeurtenissen ouder worden.
+
 ## Probleemoplossing
 
 :::details Gebeurtenissen verschijnen niet
