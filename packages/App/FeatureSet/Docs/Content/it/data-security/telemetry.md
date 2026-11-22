@@ -1,13 +1,13 @@
 # Dati sensibili nella telemetria
 
-La telemetria contiene tutto ciò che scrive il tuo codice: un indirizzo email in una riga di log, un numero di carta in un attributo di uno span, un token in uno stack trace, la domanda di un cliente in un prompt, l'indirizzo IP di un utente nell'etichetta di una metrica. Sicurezza dei dati tratta i log, le tracce, le metriche, le eccezioni e le conversazioni IA di ogni servizio, e le sessioni di ogni applicazione RUM, come archivi dati a sé stanti. Li campiona ogni ora, vi trova i dati sensibili come fa in un bucket, e **Ripulisci** trasforma un risultato in una regola che da quel momento in poi maschera quei dati all'ingestione.
+La telemetria contiene tutto ciò che scrive il tuo codice: un indirizzo email in una riga di log, un numero di carta in un attributo di uno span, un token in uno stack trace, la domanda di un cliente in un prompt, l'indirizzo IP di un utente nell'etichetta di una metrica. Sicurezza dei dati tratta i log, le tracce, le metriche, le eccezioni e le conversazioni IA di ogni servizio, e le sessioni di ogni applicazione RUM, come archivi dati a sé stanti. Li campiona ogni ora, vi trova i dati sensibili come fa in un bucket, e **Ripulisci** trasforma un risultato in una regola che da quel momento in poi nasconde quei dati all'ingestione, nel servizio in cui sono stati trovati.
 
 Non c'è nulla da configurare: la telemetria di ogni servizio viene scansionata ogni ora, a meno che **Scansiona telemetria** non sia disattivato nelle impostazioni del progetto. Per escludere i log, le tracce o un altro segnale di un servizio, disattiva **Scansiona contenuto** nelle **Impostazioni** di quell'archivio: dalla scansione successiva non se ne legge nulla.
 
 :::cards
 - [Cosa viene letto](#cosa-viene-letto): Gli attributi, i corpi, i messaggi e i prompt di ogni segnale.
 - [Come campiona una scansione](#come-campiona-una-scansione): I record più recenti di ogni servizio, ogni ora.
-- [Ripulisci](#ripulisci): Maschera un risultato all'ingestione, con un clic.
+- [Ripulisci](#ripulisci): Nascondi un risultato all'ingestione, nel servizio in cui è stato trovato.
 - [Scarta questa metrica](#scarta-questa-metrica): Smetti di memorizzare le metriche il cui nome contiene dati sensibili.
 - [Cosa conta come ripulito](#cosa-conta-come-ripulito): Quando una regola di pulizia copre già un risultato.
 :::
@@ -94,14 +94,14 @@ Apri il problema - **Dove è stato trovato** elenca ogni risultato che lo causa 
 
 ### Premi Ripulisci
 
-Fai clic su **Ripulisci**. OneUptime crea una regola di pulizia dei log per i log e per i log di un'applicazione RUM, una regola di pulizia delle tracce per span, eccezioni e chiamate IA, sulla parte del record in cui si trova il risultato, e una regola della pipeline delle metriche per l'attributo di una metrica.
+Fai clic su **Ripulisci**. Una finestra di dialogo dice cosa farebbe la regola prima che venga creato qualcosa: di chi sono i record che cambia, cosa fa con ciò che trova e cosa legge i valori che nasconderebbe. Fai clic su **Ripulisci** nella finestra per creare la regola. OneUptime crea una regola di pulizia dei log per i log e per i log di un'applicazione RUM, una regola di pulizia delle tracce per span, eccezioni e chiamate IA, sulla parte del record in cui si trova il risultato, e una regola della pipeline delle metriche per l'attributo di una metrica.
 
 ### Correggi anche il codice
 
-La regola maschera i nuovi dati prima che vengano conservati. I dati già conservati restano fino alla fine della loro conservazione, quindi correggi il codice che li scrive: il risultato indica il servizio e l'attributo.
+La regola nasconde i nuovi dati prima che vengano conservati. I dati già conservati restano fino alla fine della loro conservazione, quindi correggi il codice che li scrive: il risultato indica il servizio e l'attributo.
 :::
 
-La regola prende il nome da ciò che nasconde, come «Data Security: Email address in attributes.user.email», ed è elencata con le altre tue regole di pulizia (vedi [Filtri di scarto e regole di pulizia](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili)). È una di queste:
+La regola prende il nome da ciò che nasconde, come «Data Security: Email address in log attributes of checkout», ed è elencata con le altre tue regole di pulizia (vedi [Filtri di scarto e regole di pulizia](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili)). È una di queste:
 
 | Risultato | Regola creata da Ripulisci |
 | --- | --- |
@@ -109,6 +109,10 @@ La regola prende il nome da ciò che nasconde, come «Data Security: Email addre
 | Un valore sotto una chiave che sembra sensibile, come `password` o `token` | Una regola **Chiavi di attributi sensibili**, che oscura l'intero valore di ogni attributo del genere |
 | Qualsiasi altro tipo di dati che un pattern può trovare | Una regola **Regex personalizzata** creata dai pattern propri del tipo di dati, che oscura ogni valore con quella forma |
 | Qualsiasi tipo di dati nell'attributo di una metrica | Una regola della pipeline delle metriche **Oscura attributo** per il servizio, che sostituisce con `[REDACTED]` i valori dell'attributo con la forma del tipo di dati, oppure ogni valore dell'attributo quando nessun pattern trova il tipo di dati |
+
+Una regola di log o di tracce vale per il servizio in cui è stato trovato il risultato: ripulisce i log o gli span di quel servizio, e quelli degli altri servizi restano come sono, così nulla di ciò che legge i loro cambia. La colonna **Ambito** dell'elenco delle regole di pulizia dice per quale servizio vale una regola. Un risultato nelle registrazioni di sessione di un'applicazione RUM crea una regola per tutti i servizi e le app del progetto, poiché le regole di log ripuliscono anche le registrazioni, e la finestra di dialogo lo dice. Se il servizio non esiste più, **Ripulisci** lo dice e non crea alcuna regola.
+
+La finestra di dialogo nomina, ciascuno come link, i monitor, le dashboard con i loro widget, le viste salvate, le regole di registrazione e gli SLO che leggono i valori che la regola nasconderebbe, e cosa succede loro: un filtro su un valore nascosto smette di corrispondere, e un raggruppamento per esso non mostra più i valori reali. Dice anche cosa perderebbero gli [Eventi di sicurezza](/docs/telemetry/security-events) quando leggono quei record: con gli indirizzi IP nascosti, i loro eventi non possono indicare l'indirizzo da bloccare. Ciò che non puoi vedere viene contato, mai nominato. La finestra di dialogo non ferma mai la regola: lo dice, e decidi tu. I moduli delle regole di pulizia mostrano lo stesso prima che una regola venga salvata o attivata.
 
 Alcuni risultati non possono essere ripuliti da una regola, e **Ripulisci** dice perché. L'attributo di una metrica può sempre esserlo, poiché la sua regola può nascondere ogni valore dell'attributo:
 
@@ -139,6 +143,7 @@ Un risultato viene contrassegnato come ripulito solo quando l'ingestione eseguir
 
 - **I record giusti.** Le regole dei log coprono i log e i log di un'applicazione RUM. Le regole delle tracce coprono span, eccezioni e chiamate IA: un'eccezione è una copia dell'evento di eccezione del suo span, quindi la ripuliscono le regole che ripuliscono gli eventi.
 - **La parte giusta.** I **Campi da rimuovere** della regola includono la parte del record in cui si trova il risultato, oppure la regola li lascia al loro valore predefinito.
+- **Il servizio giusto.** Una regola di log o di tracce per un servizio copre solo i risultati di quel servizio. Una regola senza servizio copre quelli di tutti i servizi.
 - **Un pattern che trova il tipo.** Un **Tipo di pattern** integrato trova il proprio tipo di dati: **Indirizzo email** trova gli indirizzi email, **Numero di carta di credito** i numeri di carta, **SSN (numero di previdenza sociale USA)** i numeri di Social Security USA, **Numero di telefono** i numeri di telefono e **Indirizzo IP** gli indirizzi IP. **Chiavi di attributi sensibili** copre ogni valore sotto una chiave che sembra sensibile, qualunque sia il valore.
 - **I tuoi pattern personalizzati non contano mai.** Una **Regex personalizzata** copre un risultato solo quando è esattamente il pattern che **Ripulisci** crea per il suo tipo. Un risultato conserva solo campioni mascherati, su cui nessun pattern può essere provato, quindi OneUptime non potrebbe dimostrare che il tuo pattern nasconde i dati, e un risultato considerato ripulito per errore è una fuga che nessuno guarda.
 - **L'attributo di una metrica.** Una regola della pipeline delle metriche **Oscura attributo** o **Rimuovi attributo** sulla chiave di quell'attributo, per il servizio del risultato o per l'intero progetto, lo copre quando non ha filtri, o ha esattamente il filtro che crea **Ripulisci**. Un filtro scritto da te non conta mai, per lo stesso motivo.

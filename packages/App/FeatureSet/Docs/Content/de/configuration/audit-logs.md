@@ -32,7 +32,7 @@ flowchart TB
 
 - **In OneUptime Cloud, der Enterprise-Tarif.** In anderen Tarifen zeigen die Seiten des Audit-Protokolls, was die Funktion tut und wie Sie sie bekommen.
 - **Beim Selbsthosten, die Enterprise Edition**, mit einer Lizenz, die Audit-Protokolle enthält. Siehe [Enterprise Edition](/docs/self-hosted/enterprise).
-- **Eine Rolle, die das Audit-Protokoll lesen darf.** Projektinhaber, Projektadministrator, Einstellungs-Administrator oder die Berechtigung **Read Audit Log**. Das Einschalten der Audit-Protokollierung und das Ändern ihrer Einstellungen erfordern einen Projektinhaber, einen Projektadministrator oder die Berechtigung, das Projekt zu bearbeiten.
+- **Eine Rolle, die das Audit-Protokoll lesen darf.** Projektinhaber, Projektadministrator, Einstellungs-Administrator oder die Berechtigung **Read Audit Log**. Ein Eintrag zeigt die Werte eines Feldes nur, wenn Sie dieses Feld auf der Ressource selbst lesen dürfen, und den Namen einer Ressource nur, wenn Sie die Ressource lesen dürfen. Das Einschalten der Audit-Protokollierung und das Ändern ihrer Einstellungen erfordern einen Projektinhaber, einen Projektadministrator oder die Berechtigung, das Projekt zu bearbeiten.
 
 ## Audit-Protokollierung einschalten
 

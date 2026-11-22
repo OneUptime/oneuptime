@@ -132,16 +132,16 @@ Une règle de notification peut appartenir à des équipes. **Équipes responsab
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments renvoie à la politique dans OneUptime. Quand la politique appelle plus d'un planning, la ligne nomme aussi le planning : Payments (Primary).
-- Une personne est nommée par son nom Slack une fois qu'elle a connecté son compte Slack à OneUptime, et par son nom OneUptime jusque-là, dans chaque ligne d'astreinte : relèves, remplacements, et personnes ajoutées à la politique ou retirées. Les heures s'affichent dans le fuseau horaire de chaque lecteur.
+- Une personne est nommée par son nom Slack une fois qu'elle a connecté son compte Slack à OneUptime, et par son nom OneUptime jusque-là, dans chaque ligne d'astreinte : relèves, remplacements, et personnes ajoutées à la politique ou retirées. Une personne invitée qui n'a pas encore rejoint le projet est nommée par le nom saisi avec son invitation, ou « someone who hasn't joined the project yet », jamais par son adresse e-mail, ici et dans le fil d'activité de la politique. Les heures s'affichent dans le fuseau horaire de chaque lecteur.
 - Quand plusieurs règles d'escalade de la politique appellent le même planning, chaque relève est publiée une fois, et non une fois par règle.
 
 Une règle publie ce qu'elle a choisi à son étape **Mises à jour**, et une nouvelle règle commence par **Mises à jour clés uniquement** : qui est d'astreinte maintenant, et quand personne ne l'est. C'est aussi le cas d'une règle créée via l'API ou avec Terraform qui omet `updatesToPost` : envoyez `"updatesToPost": null` pour toutes les mises à jour. Une modification qui omet `updatesToPost` conserve les mises à jour que la règle publie.
 
 | Mise à jour | Ce que le canal apprend |
 | --- | --- |
-| **Qui est d'astreinte maintenant** | La ligne ci-dessus, à chaque relève. |
-| **Qui est d'astreinte ensuite** | Qui prend le relais à la prochaine relève, et quand : à la fin de cette ligne, ou dans une ligne à part pour une règle qui ne publie pas qui est d'astreinte maintenant. |
-| **Personne d'astreinte** | Un planning qui se retrouve sans personne d'astreinte, si bien que les alertes qui l'atteignent n'appellent personne : « ⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over. » |
+| **Qui est d'astreinte maintenant** | La ligne ci-dessus, à chaque relève, et quand la personne d'astreinte rejoint le projet pendant son tour : « 📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob. » |
+| **Qui est d'astreinte ensuite** | Qui prend le relais à la prochaine relève, et quand : à la fin de cette ligne, ou dans une ligne à part pour une règle qui ne publie pas qui est d'astreinte maintenant. Quand la personne suivante n'a pas encore rejoint le projet, personne ne prend le relais, et la ligne dit pourquoi : « 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then nobody: Ivy is next but hasn't joined the project yet. » |
+| **Personne d'astreinte** | Un planning qui se retrouve sans personne d'astreinte, si bien que les alertes qui l'atteignent n'appellent personne : « ⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over. » Aussi le tour de quelqu'un qui n'a pas encore rejoint le projet, puisque rien ne l'alerte avant qu'il le fasse : « ⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet. » |
 | **Remplacements d'utilisateur** | Un remplacement ajouté, modifié ou annulé : qui est absent, et qui remplace. |
 | **Modifications de la politique** | Plannings, personnes et équipes ajoutés à ses règles d'escalade ou retirés. |
 | **Propriétaires** | Propriétaires ajoutés et retirés. |

@@ -132,16 +132,16 @@ En cada relevo, los canales de una política de guardia se enteran de quién est
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments enlaza a la política en OneUptime. Cuando la política avisa a más de una programación, la línea también nombra la programación: Payments (Primary).
-- A una persona se la nombra por su nombre de Slack cuando ha conectado su cuenta de Slack a OneUptime, y por su nombre en OneUptime hasta entonces, en cada línea de guardia: relevos, sustituciones y personas añadidas a la política o quitadas. Las horas se muestran en la zona horaria de cada lector.
+- A una persona se la nombra por su nombre de Slack cuando ha conectado su cuenta de Slack a OneUptime, y por su nombre en OneUptime hasta entonces, en cada línea de guardia: relevos, sustituciones y personas añadidas a la política o quitadas. A alguien invitado que aún no se ha unido al proyecto se le nombra por el nombre escrito con su invitación, o como "someone who hasn't joined the project yet", nunca por su dirección de correo, aquí y en el feed de la política. Las horas se muestran en la zona horaria de cada lector.
 - Cuando varias reglas de escalado de la política avisan a la misma programación, cada relevo se publica una vez, no una vez por regla.
 
 Una regla publica lo que eligió en su paso **Actualizaciones**, y una regla nueva empieza con **Solo actualizaciones clave**: quién está de guardia ahora, y cuándo no hay nadie. Lo mismo ocurre con una regla creada a través de la API o con Terraform que omite `updatesToPost`: envía `"updatesToPost": null` para todas las actualizaciones. Una edición que omite `updatesToPost` conserva las actualizaciones que publica la regla.
 
 | Actualización | Lo que oye el canal |
 | --- | --- |
-| **Quién está de guardia ahora** | La línea de arriba, en cada relevo. |
-| **Quién está de guardia después** | Quién toma el relevo en el próximo cambio de turno, y cuándo: al final de esa línea, o en una línea propia para una regla que no publica quién está de guardia ahora. |
-| **Nadie de guardia** | Una programación que se queda sin nadie de guardia, de modo que las alertas que le llegan no avisan a nadie: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **Quién está de guardia ahora** | La línea de arriba, en cada relevo, y cuando la persona de guardia se une al proyecto durante su turno: "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." |
+| **Quién está de guardia después** | Quién toma el relevo en el próximo cambio de turno, y cuándo: al final de esa línea, o en una línea propia para una regla que no publica quién está de guardia ahora. Cuando la siguiente persona aún no se ha unido al proyecto, nadie toma el relevo, y la línea dice por qué: "📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then nobody: Ivy is next but hasn't joined the project yet." |
+| **Nadie de guardia** | Una programación que se queda sin nadie de guardia, de modo que las alertas que le llegan no avisan a nadie: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." También el turno de alguien que aún no se ha unido al proyecto, porque nada le avisa hasta que lo haga: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." |
 | **Sustituciones de usuarios** | Una sustitución añadida, modificada o retirada: quién está ausente y quién cubre. |
 | **Cambios en la política** | Programaciones, personas y equipos añadidos a sus reglas de escalado o quitados. |
 | **Propietarios** | Propietarios añadidos y quitados. |

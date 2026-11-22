@@ -132,16 +132,16 @@ SLO 的規則會發布其錯誤預算策略的變化：在 SLO 進入某個級�
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments 連結到 OneUptime 中的策略。策略呼叫多個排程時，這一行還會寫出排程名稱：Payments (Primary)。
-- 將 Slack 帳戶連結到 OneUptime 的人在每一則待命訊息中（交接、覆寫，以及加入或移出策略的人員）都以其 Slack 名稱顯示，在此之前以其 OneUptime 名稱顯示。時間依每位讀者自己的時區顯示。
+- 將 Slack 帳戶連結到 OneUptime 的人在每一則待命訊息中（交接、覆寫，以及加入或移出策略的人員）都以其 Slack 名稱顯示，在此之前以其 OneUptime 名稱顯示。已受邀但尚未加入專案的人，在這裡和策略的動態消息中都以邀請時填寫的名稱或 "someone who hasn't joined the project yet" 顯示，絕不會以其電子郵件地址顯示。時間依每位讀者自己的時區顯示。
 - 當策略的多條上報規則呼叫同一個排程時，每次交接只發布一次，而不是每條規則各發布一次。
 
 規則發布其 **更新** 步驟中選擇的內容，新規則預設使用 **僅重要更新**：目前待命人員，以及何時無人待命。透過 API 或 Terraform 建立且未包含 `updatesToPost` 的規則也是如此：若要發布所有更新，請傳送 `"updatesToPost": null`。未包含 `updatesToPost` 的編輯會保留規則發布的更新。
 
 | 更新 | 頻道收到的內容 |
 | --- | --- |
-| **目前待命人員** | 上面這一行，每次交接時發布。 |
-| **下一位待命人員** | 下次交接時由誰接手以及何時接手：附在那一行末尾，或者對於不發布目前待命人員的規則，單獨發布一行。 |
-| **無人待命** | 排程中無人待命，到達它的警示不會呼叫任何人："⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **目前待命人員** | 上面這一行，每次交接時發布；待命人員在其輪值期間加入專案時也會發布："📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." |
+| **下一位待命人員** | 下次交接時由誰接手以及何時接手：附在那一行末尾，或者對於不發布目前待命人員的規則，單獨發布一行。如果下一位尚未加入專案，則無人接手，這一行會說明原因："📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then nobody: Ivy is next but hasn't joined the project yet." |
+| **無人待命** | 排程中無人待命，到達它的警示不會呼叫任何人："⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." 尚未加入專案之人的輪值也是如此，因為在此人加入之前，沒有任何內容會呼叫此人："⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." |
 | **使用者覆寫** | 新增、變更或撤銷的覆寫：誰不在崗，誰代班。 |
 | **策略變更** | 新增到其上報規則或從中移除的排程、人員和團隊。 |
 | **擁有者** | 新增和移除的擁有者。 |

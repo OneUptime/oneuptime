@@ -223,6 +223,59 @@ describe("who an on-call user group holds", () => {
   });
 });
 
+/*
+ * Someone only invited can be in a schedule's rotation (#10412), and
+ * nothing of the project reaches them until they join: a group pings
+ * whoever is in it, and Slack would find them by their account's address.
+ */
+describe("someone only invited to the project is never in the group (#10616)", () => {
+  let ivy: WorldPerson;
+
+  beforeEach(() => {
+    ivy = world.addPerson("Ivy Hart", "ivy@acme.test");
+    ivy.isInvitedOnly = true;
+    world.slack.addUser({ id: "U0IVY", email: "ivy@acme.test", name: "ivy" });
+  });
+
+  test("REGRESSION: on call beside a member - Slack is not asked for her, and only the member is in", async () => {
+    world.handOff(secondary, ivy);
+    const row: WorldGroupRow = groupFor([primary, secondary]);
+
+    const state: WorkspaceUserGroupSyncState = await world.sync(row);
+
+    expect(paymentsOnCall.users).toEqual(["U0ANA"]);
+    expect(world.slack.calls("users.lookupByEmail")).toEqual([]);
+    expect(JSON.stringify(world.slack.requests)).not.toContain("ivy@acme.test");
+    // Not a person the group could not find: nobody a group may hold.
+    expect(state.leftOut).toEqual([]);
+  });
+
+  test("REGRESSION: the only one on call - the group holds nobody, and is turned off as for nobody on call", async () => {
+    const row: WorldGroupRow = groupFor([primary]);
+    await world.sync(row);
+
+    world.handOff(primary, ivy);
+    const state: WorkspaceUserGroupSyncState = await world.sync(row);
+
+    expect(world.slack.methods()).toContain("usergroups.disable");
+    expect(world.slack.calls("users.lookupByEmail")).toEqual([]);
+    expect(state.isTurnedOff).toBe(true);
+    expect(state.members).toEqual([]);
+  });
+
+  test("once she joins, she is in at the next look, as anyone on call", async () => {
+    world.handOff(primary, ivy);
+    const row: WorldGroupRow = groupFor([primary]);
+    await world.sync(row);
+
+    ivy.isInvitedOnly = false;
+    world.minutesPass(WORKSPACE_USER_GROUP_CHECK_EVERY_MINUTES + 1);
+    await world.sync(row);
+
+    expect(paymentsOnCall.users).toEqual(["U0IVY"]);
+  });
+});
+
 describe("whoever cannot be in the group is left out, and the card says why", () => {
   test("nobody Slack knows: left out, the others still in", async () => {
     world.slack.users.delete("U0BOB");

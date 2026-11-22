@@ -7,6 +7,7 @@ import SecurityBlockService, {
 } from "../../../Server/Services/SecurityBlockService";
 import SecurityBlocklistFeedService from "../../../Server/Services/SecurityBlocklistFeedService";
 import SecurityCaseFeedService from "../../../Server/Services/SecurityCaseFeedService";
+import SecurityEventConnectionService from "../../../Server/Services/SecurityEventConnectionService";
 import SecurityBlockCloudWafService from "../../../Server/Services/SecurityBlockCloudWafService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import logger from "../../../Server/Utils/Logger";
@@ -211,6 +212,12 @@ describe("SecurityBlockService", () => {
 
     // The case a block names is the project's.
     stubProjectDirectory({ projectId: PROJECT_ID });
+
+    /*
+     * The project has no Cloudflare connection, the one kind of destination
+     * that ships (#10343): nothing enforces its blocklist until a test says.
+     */
+    jest.spyOn(SecurityEventConnectionService, "findBy").mockResolvedValue([]);
 
     feedSpy = jest
       .spyOn(SecurityCaseFeedService, "createSecurityCaseFeedItem")
