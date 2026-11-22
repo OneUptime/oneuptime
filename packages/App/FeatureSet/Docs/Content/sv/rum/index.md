@@ -49,7 +49,7 @@ En applikations egen sidomeny grupperar dess sidor så här; **Utvecklare** och 
 
 ## Så känner OneUptime igen RUM
 
-De flesta frågor av typen ”min app dyker inte upp” slutar här. OneUptime avgör för varje telemetribatch när den kommer in, utifrån batchens **resursattribut**:
+De flesta frågor av typen ”min app dyker inte upp” slutar här. Allt som en **Webbläsare**-nyckel skickar är webbläsar-RUM, och allt som en **Mobil**-nyckel skickar är mobil-RUM, oavsett vad dess resurs säger. Med vilken annan nyckel som helst avgör OneUptime för varje telemetribatch när den kommer in, utifrån batchens **resursattribut**:
 
 1. En batch vars resurs har `browser.platform`, `browser.language` eller ett icke-tomt `browser.brands` är **webbläsar**-RUM.
 2. Annars är en batch med `device.id` eller `device.model.identifier` **mobil**-RUM.
@@ -71,7 +71,7 @@ Backend-SDK:er sätter aldrig `browser.*`, `device.id` eller `device.model.ident
 OneUptime hittar applikationen utifrån `service.name`, utan hänsyn till skiftläge, och skapar den när projektet inte har någon. Ett nytt `service.name` startar en ny applikation, så håll det stabilt och skilj på miljöer med en etikett i stället för med ett nytt namn. [Hantera applikationer](/docs/rum/applications) tar upp namn, etiketter, ägare och lagring.
 
 > [!IMPORTANT]
-> OpenTelemetry-SDK:t för webbläsare lägger inte till några `browser.*`-attribut om du inte lägger till webbläsarens resursdetektor eller sätter dem själv. Med bara `service.name` blir telemetrin en backend-tjänst, inte en RUM-applikation. [Webbläsarkonfiguration](/docs/rum/browser-setup) visar båda sätten.
+> OpenTelemetry-SDK:t för webbläsare lägger inte till några `browser.*`-attribut om du inte lägger till webbläsarens resursdetektor eller sätter dem själv. Skickad med en Webbläsare-nyckel är telemetrin fortfarande en RUM-applikation, men sidan **Klienter** listar inga plattformar; med vilken annan nyckel som helst och bara `service.name` blir den en backend-tjänst, inte en RUM-applikation. [Webbläsarkonfiguration](/docs/rum/browser-setup) visar båda sätten.
 
 ## Det här får du
 
@@ -94,7 +94,7 @@ En applikation visar **Tar emot data** så länge telemetri kommer in och **Inge
 :::steps
 ### Skapa en intagningsnyckel
 
-Öppna **Projektinställningar → Telemetri och APM → Intagningsnycklar** och klicka på **Skapa intagningsnyckel**. En webbapp behöver en **Webbläsare**-nyckel, som bara fungerar från de ursprung du anger. En mobilapp behöver en **Mobil**-nyckel, fäst vid appens `service.name`: Den följer med i appen och kan därför bara skicka den appens spår, loggar och mätvärden.
+Öppna **Projektinställningar → Telemetri och APM → Intagningsnycklar** och klicka på **Skapa intagningsnyckel**. En webbapp behöver en **Webbläsare**-nyckel, som bara fungerar från de ursprung du anger. En mobilapp behöver en **Mobil**-nyckel, fäst vid appens `service.name`: Den följer med i appen och kan därför bara skicka den appens spår, loggar, mätvärden och sessionsuppspelningar.
 
 ### Instrumentera din app
 

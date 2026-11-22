@@ -639,6 +639,175 @@ ${SUCCEEDED}`);
 });
 
 /*
+ * #10432: told how long the project keeps its security events and the
+ * moment it reads at, every read is of the events kept then, and a First
+ * seen rule says the history it could see: "in 15 days" when 30 were asked
+ * for and 15 are kept - never a span it did not read. Its timespan, kept in
+ * full, says it as before.
+ */
+describe("CorrelationRuleMatcher: the events the project keeps", () => {
+  const READ_AT: Date = new Date("2026-10-21T10:16:00.000Z");
+
+  const FIRST_SEEN_30_DAYS: string = `title: AWS activity in a new region
+correlation:
+  type: new_value
+  rules: [successful_sign_in]
+  group-by: [targetHost]
+  timespan: 30d
+  condition:
+    field: awsRegion
+---
+${SUCCEEDED}`;
+
+  const ROW: CorrelationNewValueRow = {
+    values: ["123456789012"],
+    newValues: ["eu-west-3"],
+    newValueCount: 1,
+    matchCount: 4,
+    firstSeenAt: new Date(at(2)),
+    sampleMessage: "RunInstances",
+    sampleObservables: ["123456789012"],
+  };
+
+  async function matchKept(
+    yaml: string,
+    retentionInDays: number,
+  ): Promise<CorrelationMatchResult> {
+    const definition: Extract<
+      DetectionRuleDefinition,
+      { kind: "correlation" }
+    > = correlation(yaml);
+
+    return CorrelationRuleMatcher.findMatches({
+      projectId: PROJECT_ID,
+      correlation: definition.correlation,
+      steps: definition.steps,
+      startTime: START,
+      endTime: END,
+      maxGroups: 100,
+      kept: { retentionInDays, at: READ_AT },
+    });
+  }
+
+  test("a 30-day First seen rule in a project keeping 15 days says the 15 days it could see", async () => {
+    const read: SpyInstance<typeof CorrelationQueries.findNewValueGroups> = jest
+      .spyOn(CorrelationQueries, "findNewValueGroups")
+      .mockResolvedValue([ROW]);
+
+    const result: CorrelationMatchResult = await matchKept(
+      FIRST_SEEN_30_DAYS,
+      15,
+    );
+
+    // Every read is of the events kept as it reads.
+    expect(read.mock.calls[0]![0].window.keptAt).toBe(READ_AT);
+    expect(result.groups[0]!.summary).toBe(
+      "First awsRegion in 15 days: eu-west-3",
+    );
+  });
+
+  test("with the whole timespan kept, it says the timespan", async () => {
+    for (const retentionInDays of [30, 31, 90]) {
+      jest.restoreAllMocks();
+      jest
+        .spyOn(CorrelationQueries, "findNewValueGroups")
+        .mockResolvedValue([ROW]);
+
+      const result: CorrelationMatchResult = await matchKept(
+        FIRST_SEEN_30_DAYS,
+        retentionInDays,
+      );
+
+      expect(result.groups[0]!.summary).toBe(
+        "First awsRegion in 30 days: eu-west-3",
+      );
+    }
+  });
+
+  test("a week kept, as the sentence says a week", async () => {
+    jest
+      .spyOn(CorrelationQueries, "findNewValueGroups")
+      .mockResolvedValue([ROW]);
+
+    const result: CorrelationMatchResult = await matchKept(
+      FIRST_SEEN_30_DAYS,
+      7,
+    );
+
+    expect(result.groups[0]!.summary).toBe(
+      "First awsRegion in 1 week: eu-west-3",
+    );
+  });
+
+  test("the history is still asked for from the rule's whole timespan back: what is no longer kept is left out by the read", async () => {
+    const read: SpyInstance<typeof CorrelationQueries.findNewValueGroups> = jest
+      .spyOn(CorrelationQueries, "findNewValueGroups")
+      .mockResolvedValue([]);
+
+    await matchKept(FIRST_SEEN_30_DAYS, 15);
+
+    expect(read.mock.calls[0]![0].historyFrom.toISOString()).toBe(
+      "2026-09-21T10:00:00.000Z",
+    );
+  });
+
+  test("counts and sequences read only kept events too", async () => {
+    const counts: SpyInstance<typeof CorrelationQueries.findCountGroups> = jest
+      .spyOn(CorrelationQueries, "findCountGroups")
+      .mockResolvedValue([]);
+    const temporal: SpyInstance<typeof CorrelationQueries.findTemporalGroups> =
+      jest
+        .spyOn(CorrelationQueries, "findTemporalGroups")
+        .mockResolvedValue([]);
+
+    await matchKept(
+      `title: Brute force
+correlation:
+  type: event_count
+  rules: [failed_sign_in]
+  group-by: [principalIp]
+  timespan: 10m
+  condition:
+    gte: 10
+---
+${FAILED}`,
+      15,
+    );
+    await matchKept(
+      `title: Failure then success
+correlation:
+  type: temporal_ordered
+  rules: [failed_sign_in, successful_sign_in]
+  group-by: [principalUser]
+  timespan: 10m
+---
+${FAILED}
+---
+${SUCCEEDED}`,
+      15,
+    );
+
+    expect(counts.mock.calls[0]![0].window.keptAt).toBe(READ_AT);
+    expect(temporal.mock.calls[0]![0].window.keptAt).toBe(READ_AT);
+  });
+
+  test("told nothing of what is kept, a read is as it was", async () => {
+    const read: SpyInstance<typeof CorrelationQueries.findNewValueGroups> = jest
+      .spyOn(CorrelationQueries, "findNewValueGroups")
+      .mockResolvedValue([ROW]);
+
+    const result: CorrelationMatchResult = await match(
+      correlation(FIRST_SEEN_30_DAYS),
+    );
+
+    expect(read.mock.calls[0]![0].window.keptAt).toBeUndefined();
+    expect(result.groups[0]!.summary).toBe(
+      "First awsRegion in 30 days: eu-west-3",
+    );
+  });
+});
+
+/*
  * Where the events a correlation's run matched start, for keeping them
  * (#9795): the window each type counts in, as the matcher reads it - but a
  * new value's run itself, never the history its values are new against.

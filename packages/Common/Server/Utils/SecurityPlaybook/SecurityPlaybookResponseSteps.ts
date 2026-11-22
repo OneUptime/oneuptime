@@ -928,6 +928,11 @@ export default class SecurityPlaybookResponseSteps {
           await TelemetryExceptionService.createCodeFixRunForException({
             telemetryExceptionId: exception.id!,
             props: { ...ROOT, tenantId: context.projectId },
+            /*
+             * The case the fix is for: its pull request is kept on the case,
+             * whose Fix step's check reads whether it shipped (#10347).
+             */
+            triggeredBySecurityCaseId: context.securityCase.id || undefined,
           });
 
         if (!run) {

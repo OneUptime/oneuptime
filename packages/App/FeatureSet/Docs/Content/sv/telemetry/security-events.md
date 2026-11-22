@@ -638,6 +638,14 @@ Fynd är händelser, så en monitor kan bevaka själva reglerna:
 
 Säkerhetshändelser faktureras per GB som tas in, som resten av din telemetri, och lagras enligt din lagringstid för telemetri: projektets **Standardlagring (dagar)**, under **Projektinställningar → Telemetri och APM → Datalagring**, eller en lagringstid som angetts på telemetritjänsten de hör till. När en händelses lagringstid löper ut tas den bort.
 
+Allt i Säkerhetshändelser som läser tidigare händelser läser bara de händelser som fortfarande lagras, och säger när det skulle behöva fler:
+
+- En **Först sedd**-regel vars tidsspann är längre än händelserna lagras avgör utifrån de lagrade dagarna om ett värde är nytt: med ett tidsspann på 30 dagar och 15 dagars lagring säger dess larm och ärenden `First awsRegion in 15 days`, och ett värde som senast sågs för 20 dagar sedan räknas som nytt. Dess rad visar **Kräver uppmärksamhet**, och **Visa fel** säger vad som ska ändras. Regelformuläret och en regels detaljer i regelbiblioteket säger det innan den sparas eller läggs till. En räkning eller en sekvens vars fönster är längre än händelserna lagras räknar bara dem.
+- **Kör på tidigare händelser** över en period som börjar före de lagrade händelserna säger att säkerhetshändelser lagras i 15 dagar, så den tittade 15 dagar tillbaka, och det den inte hittade gäller bara de dagarna. En händelse som inträffade tidigare men kom in sent är fortfarande lagrad och läses fortfarande. En **Först sedd**-regel säger hur mycket av de 30 dagarna före perioden den kunde se.
+- En hunt vars **Tidsintervall** är längre än händelserna lagras hittar inget äldre, och dess formulär säger det.
+
+**Projektinställningar → Telemetri och APM → Datalagring** listar de aktiverade regler som tittar längre tillbaka än dess **Standardlagring (dagar)**. För att täcka dem, lagra händelser längre, med **Ändra lagring** under en regel, eller korta av en regels tidsspann till det som lagras. OneUptime lagrar 15 dagar om du inte ändrar det, eftersom lagringen avgör vad din telemetri kostar och hur länge personuppgifter i händelser, som adresser och användarnamn, lagras. En ny lagring gäller händelser som kommer in från och med då, så reglerna ser längre tillbaka i takt med att de händelserna blir äldre.
+
 ## Felsökning
 
 :::details Händelserna visas inte

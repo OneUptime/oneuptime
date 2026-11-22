@@ -62,7 +62,7 @@ npm install @opentelemetry/api \
 
 ### Opret telemetrifilen
 
-Opret `src/telemetry.ts`. `browserDetector` tilføjer de `browser.*`-attributter, der klassificerer telemetrien som RUM, og `service.name` giver applikationen navn.
+Opret `src/telemetry.ts`. `browserDetector` tilføjer de `browser.*`-attributter, som siden **Klienter** viser, og `service.name` giver applikationen navn: Alt, hvad en Browser-nøgle sender, arkiveres under den som RUM.
 
 ```ts title="src/telemetry.ts"
 import {
@@ -88,8 +88,8 @@ const ONEUPTIME_URL = "https://oneuptime.com";
 const ONEUPTIME_TOKEN = "YOUR_TELEMETRY_INGESTION_TOKEN";
 
 /*
- * browserDetector supplies the browser.* attributes. Without them this
- * telemetry is classified as a backend Service, not a RUM application.
+ * browserDetector supplies the browser.* attributes the Clients page
+ * lists. A Browser key files everything it sends as browser RUM.
  * The attributes set last win, so service.name here overrides the
  * "unknown_service" that defaultResource() provides.
  */
@@ -166,11 +166,11 @@ Alt i snippet'et sendes til dine besøgende, så alle kan kopiere tokenet fra di
 | --- | --- |
 | **Tilladte oprindelser** | Forespørgsler accepteres kun fra disse oprindelser, hver med sit skema og eventuelle port. En vært må begynde med ét jokertegn `*.`: `https://*.example.com` dækker alle underdomæner af `example.com`, men ikke selve `example.com`. |
 | **Grænse for anmodninger pr. minut** | Ét loft for alle besøgende, der bruger nøglen: 6000 forespørgsler pr. minut, medmindre du sætter dit eget. |
-| **Fastgjort tjenestenavn** | Gennemtvinger `service.name` på alt, hvad nøglen skriver, så en kopi ikke kan udgive sin telemetri for at være en af dine backend-tjenester. |
+| **Fastgjort tjenestenavn** | Gennemtvinger `service.name` på alt, hvad nøglen skriver, så en kopi kun kan skrive til den ene applikation. |
 | **Udløber den** | Efter denne dato accepteres nøglen ikke længere. |
 | **Aktiveret** | Slå den fra for straks at stoppe en lækket nøgle. |
 
-En Browser-nøgle skriver OTLP-spor, -logs og -metrikker, sessionsafspilninger og hændelser fra et [Sentry-SDK i browseren](/docs/telemetry/compatible-endpoints#sentry-sdker); alle andre indtagelsesveje afviser den. Du ændrer disse indstillinger på nøglens egen side. Nøgletypen kan ikke ændres, efter at nøglen er oprettet.
+En Browser-nøgle skriver OTLP-spor, -logs og -metrikker, sessionsafspilninger og hændelser fra et [Sentry-SDK i browseren](/docs/telemetry/compatible-endpoints#sentry-sdker); alle andre indtagelsesveje afviser den. Alt, hvad den skriver, arkiveres som browser-RUM, aldrig som en vært, en klynge eller en backend-tjeneste: Af ressourcen beholder den kun det, en side siger om sig selv, såsom attributterne `service.*`, `browser.*` og `user_agent.*` og etiketterne `oneuptime.label.*`. Du ændrer disse indstillinger på nøglens egen side. Nøgletypen kan ikke ændres, efter at nøglen er oprettet.
 
 > [!WARNING]
 > Læg aldrig en **Server**-nøgle i en side. En Server-nøgle skriver enhver slags telemetri fra hvor som helst uden oprindelsestjek, så alle, der læser din side, kan skrive ind i dit projekt.
@@ -179,7 +179,7 @@ En Browser-nøgle skriver OTLP-spor, -logs og -metrikker, sessionsafspilninger o
 
 `browserDetector` læser [UA Client Hints API'et](https://wicg.github.io/ua-client-hints/), som kun Chromium-browsere har. I Safari og Firefox sætter den `browser.language` og `user_agent.original`, men ikke `browser.platform`, `browser.brands` eller `browser.mobile`.
 
-Det er stadig nok til at klassificere telemetrien som RUM, fordi `browser.language` alene markerer en batch som browser-RUM. Siden **Klienter** viser dog platforme ud fra `browser.platform`, så besøg fra Safari og Firefox tilføjer ingen række der.
+Med en Browser-nøgle klassificeres telemetrien som RUM under alle omstændigheder, og med enhver anden nøgle markerer `browser.language` alene en batch som browser-RUM. Siden **Klienter** viser dog platforme ud fra `browser.platform`, så besøg fra Safari og Firefox tilføjer ingen række der.
 
 For at undvære detektoren, eller for at give alle browsere en platform, sætter du selv attributterne:
 
@@ -402,7 +402,7 @@ metrics.setGlobalMeterProvider(
 );
 ```
 
-Byg dem med det samme `resource`-objekt. En log- eller metrikpipeline, hvis ressource mangler `browser.*`, arkiveres som en separat backend-tjeneste.
+Byg dem med det samme `resource`-objekt, så deres logs og metrikker arkiveres under den samme applikation.
 
 En logpipeline sender kun de poster, din kode skriver, så skriv en, hvor der sker noget, der er værd at vide:
 
@@ -452,7 +452,7 @@ logger.emit({
 :::
 
 :::details Appen vises under Tjenester i stedet for Overvågning af reelle brugere
-Ressourcen har ingen `browser.*`-attribut, så telemetrien blev arkiveret som en backend-tjeneste. Tilføj `browserDetector`, eller sæt attributterne som i [Sæt `browser.*` uden detektoren](#sæt-browser-uden-detektoren).
+Telemetrien blev sendt med en anden nøgle end en Browser-nøgle, og dens ressource har ingen `browser.*`-attribut, så den blev arkiveret som en backend-tjeneste. Send med en Browser-nøgle, som arkiverer alt, hvad den sender, som RUM, eller tilføj `browserDetector`, eller sæt attributterne som i [Sæt `browser.*` uden detektoren](#sæt-browser-uden-detektoren).
 
 Tjek på fanen Netværk i forespørgslens payload, hvad du sender: `resourceSpans[0].resource.attributes` er den liste, der afgør det. Den tjeneste, der allerede blev oprettet, bliver ikke til en RUM-applikation, så slet den under **Produkter → Tjenester**, når RUM-telemetrien kommer ind.
 :::

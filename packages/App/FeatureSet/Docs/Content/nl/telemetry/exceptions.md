@@ -218,7 +218,7 @@ Controleer eerst de weergave: **Problemen** verbergt gebruikersfouten en verwach
 :::
 
 :::details Eén fout verschijnt als meerdere uitzonderingen
-De vingerafdruk bevat het bericht en de stacktrace. Verschillen die, bijvoorbeeld als een bericht een kort getal of een naam bevat die bij elke aanroep verandert, dan is elke variant een eigen uitzondering. Nieuwe uitzonderingen worden in plaats daarvan gegroepeerd op de functies van uw eigen code, dus dit geldt vooral voor eerder vastgelegde uitzonderingen; voeg er twee die dezelfde bug zijn samen via **Vergelijkbare uitzonderingen**.
+De vingerafdruk bevat het bericht en de stacktrace. Verschillen die, bijvoorbeeld als een bericht een kort getal of een naam bevat die bij elke aanroep verandert, dan is elke variant een eigen uitzondering. Nieuwe uitzonderingen worden in plaats daarvan gegroepeerd op de functies van uw eigen code, dus dit geldt vooral voor eerder vastgelegde uitzonderingen; voeg er twee die dezelfde bug zijn samen via **Vergelijkbare uitzonderingen**. Een scrub-regel splitst geen uitzondering: die wordt gegroepeerd op wat ze vóór de regels zei. Een uitzondering uit logboeken die een regel in een eerdere versie van OneUptime in tweeën splitste, blijft gesplitst; voeg de twee op dezelfde manier samen.
 :::
 
 :::details Een opgeloste uitzondering komt steeds terug

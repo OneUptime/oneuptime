@@ -156,6 +156,8 @@ export interface ComponentProps {
   onBlocked: () => void;
   // The case the block is made for, when it is made from one.
   securityCaseId?: ObjectID | undefined;
+  // The address it starts on: a campaign's, blocked from its row (#10342).
+  initialValue?: string | undefined;
 }
 
 const BlockAddressModal: FunctionComponent<ComponentProps> = (
@@ -307,6 +309,7 @@ const BlockAddressModal: FunctionComponent<ComponentProps> = (
       formProps={{
         name: "Block Address",
         initialValues: typed || {
+          ...(props.initialValue ? { [VALUE_FIELD]: props.initialValue } : {}),
           [EXPIRES_FIELD]: SECURITY_BLOCK_DEFAULT_DURATION,
           [ACTION_FIELD]: SecurityBlockAction.Block,
           [UNTIL_LIFTED_FIELD]: false,

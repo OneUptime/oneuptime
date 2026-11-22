@@ -8,6 +8,7 @@ import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  CHANGE_MADE_BY_CLOUD_CONNECTION,
   ChangeEventAttribute,
   ChangeEventSource,
   ChangeEventStatus,
@@ -33,6 +34,9 @@ import CloudAiChangeAttributionReader, {
   CloudAiChangeMatch,
 } from "./CloudAiChangeAttribution";
 import { CloudChange } from "./CloudConnectorTypes";
+import OneUptimeAwsSessions, {
+  OneUptimeAwsSessionKey,
+} from "./Aws/OneUptimeAwsSessions";
 
 /*
  * A CLOUD'S CHANGES AND HEALTH EVENTS, KEPT AS CHANGE EVENTS.
@@ -52,7 +56,11 @@ import { CloudChange } from "./CloudConnectorTypes";
  *   - marked as OneUptime AI's when the account's Cloud AI agent made it
  *     (oneuptime.change.made_by), with the fix it belongs to: the agent's
  *     job, the fix, its AI run and the incident or alert it fixed
- *     (CloudAiChangeAttribution);
+ *     (CloudAiChangeAttribution) - and as OneUptime's own when it was made
+ *     in the session OneUptime signs in to a connection's role with, Data
+ *     Security's responses (oneuptime-cloud-connection, OneUptimeAwsSessions);
+ *   - for a change of who may restore a snapshot, whether it added anyone
+ *     (oneuptime.cloud.grants_access): a yes or no, never the accounts;
  *   - written once per provider event id, and never failing a read: a
  *     change that cannot be written is logged.
  *
@@ -154,13 +162,16 @@ function subjectOf(
  * One change as a change event entry. `resource` is the Cloud Resource it
  * changed, when the connection holds it; `account` the Cloud Account row;
  * `madeByOneUptimeAi` the job of the account's Cloud AI agent that made
- * it, when the agent did.
+ * it, when the agent did; `madeInOwnSession` the connection whose session
+ * OneUptime made it in - Data Security's responses - when it did, as only
+ * a call signed with a key AWS handed OneUptime is (OneUptimeAwsSessions).
  */
 export function buildCloudChangeEntry(data: {
   change: CloudChange;
   resource: { id: ObjectID; name: string } | null;
   accountRecordId: ObjectID | null;
   madeByOneUptimeAi?: CloudAiChangeMatch | null | undefined;
+  madeInOwnSession?: OneUptimeAwsSessionKey | null | undefined;
 }): ParsedChangeEventEntry {
   const { change, resource } = data;
   const subject: string = subjectOf(change, resource);
@@ -226,6 +237,17 @@ export function buildCloudChangeEntry(data: {
     );
   }
 
+  /*
+   * Which way a change of who may restore a snapshot went: a yes or no,
+   * never the accounts, so Data Security can tell a share from its own
+   * fix that undid one (#10428).
+   */
+  if (change.kind === "change" && change.grantsAccess !== undefined) {
+    attributes[ChangeEventAttribute.CloudGrantsAccess] = change.grantsAccess
+      ? "true"
+      : "false";
+  }
+
   if (resource) {
     attributes[ChangeEventAttribute.ResourceType] = "CloudResource";
     attributes[ChangeEventAttribute.ResourceId] = resource.id.toString();
@@ -276,6 +298,12 @@ export function buildCloudChangeEntry(data: {
         attributes[ChangeEventAttribute.AlertId] = job.alertId.toString();
       }
     }
+  } else if (change.kind === "change" && data.madeInOwnSession) {
+    /*
+     * OneUptime made it, in the session it signs in to a connection's role
+     * with - Data Security's responses: said so, as OneUptime AI's are.
+     */
+    attributes[ChangeEventAttribute.MadeBy] = CHANGE_MADE_BY_CLOUD_CONNECTION;
   }
 
   return {
@@ -537,6 +565,14 @@ export default class CloudChangeRecorder {
             index,
           })
         : null;
+      // Which of them OneUptime made in its own sessions: Data Security's responses.
+      const ownSessions: Map<CloudChange, OneUptimeAwsSessionKey> =
+        data.provider === CloudProvider.AWS
+          ? await OneUptimeAwsSessions.findOwnChanges({
+              projectId: data.projectId.toString(),
+              changes: accountChanges,
+            })
+          : new Map();
 
       for (const change of accountChanges) {
         let resource: { id: ObjectID; name: string } | null = null;
@@ -562,6 +598,7 @@ export default class CloudChangeRecorder {
                     resourceRowId: resource ? resource.id.toString() : null,
                   })
                 : null,
+              madeInOwnSession: ownSessions.get(change) || null,
             }),
             projectId: data.projectId,
             serviceMetadata: null,

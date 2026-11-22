@@ -418,6 +418,25 @@ export function playbookStepMarkdown(data: {
   return mdText`⚙️ **${data.playbookName}**, step ${String(data.stepNumber)} (${data.stepTitle}): ${data.summary}`;
 }
 
+/*
+ * A person's one-step run from a case (#10342), a block of an address: its
+ * step's own words, with no playbook around them - "⚙️ Block the address:
+ * done for `35.205.11.131`."
+ */
+export function oneStepRunMarkdown(data: {
+  // What the step did, in Markdown OneUptime wrote (a MarkdownText's text).
+  summary: MarkdownText;
+}): MarkdownText {
+  return mdText`⚙️ ${data.summary}`;
+}
+
+// A one-step run whose step failed: what failed, with why under it.
+export function oneStepRunFailedMarkdown(data: {
+  stepTitle: string;
+}): MarkdownText {
+  return mdText`❌ ${data.stepTitle} did not finish.`;
+}
+
 // Entity values as code, one after another.
 function valueList(values: Array<string>): MarkdownText {
   return FeedMarkdown.join(

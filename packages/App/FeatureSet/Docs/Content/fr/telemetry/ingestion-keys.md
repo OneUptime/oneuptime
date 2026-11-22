@@ -35,13 +35,13 @@ Choisissez le type selon l'endroit où la clé vivra. Le type ne peut plus être
 
 | | **Serveur** | **Navigateur** | **Mobile** |
 | --- | --- | --- | --- |
-| Pour | Les applications, les collectors et les agents sur des machines que vous gérez | Les pages web, et React Native Session Replay | Une application iOS, Android ou React Native |
-| Envoie | Toute sorte de télémétrie, vers tous les points de terminaison | Des traces, des journaux, des métriques, des Session Replays et des [événements Sentry](/docs/telemetry/compatible-endpoints#sdk-sentry) | Les traces, les journaux et les métriques de cette application, via OTLP/HTTP |
+| Pour | Les applications, les collectors et les agents sur des machines que vous gérez | Les pages web | Une application iOS, Android ou React Native |
+| Envoie | Toute sorte de télémétrie, vers tous les points de terminaison | Des traces, des journaux, des métriques, des Session Replays et des [événements Sentry](/docs/telemetry/compatible-endpoints#sdk-sentry) | Les traces, les journaux et les métriques de cette application, via OTLP/HTTP, et ses Session Replays |
 | Un secret | Oui : gardez-la sur vos serveurs | Non : quiconque consulte la page peut la lire | Non : quiconque a l'application peut la copier |
 | Origines | Non vérifiées | Seules les origines listées sont acceptées | Une requête depuis une page web est refusée |
 | Requêtes par minute | Pas de limite, sauf si vous en fixez une | 6 000, sauf si vous fixez une autre limite | 6 000, sauf si vous fixez une autre limite |
 
-Partout ailleurs, OneUptime refuse une clé de navigateur, par exemple sur gRPC et MQTT, pour les profils, Syslog, Fluent Bit et Fluentd, et pour l'envoi de source maps, et une clé mobile pour tout ce qui n'est pas des traces, des journaux et des métriques OTLP sur HTTP. Pour faire passer un émetteur à un autre type, créez une clé de ce type, basculez l'émetteur dessus, puis supprimez l'ancienne clé.
+Partout ailleurs, OneUptime refuse une clé de navigateur, par exemple sur gRPC et MQTT, pour les profils, Syslog, Fluent Bit et Fluentd, et pour l'envoi de source maps, et une clé mobile pour tout ce qui n'est pas des traces, des journaux et des métriques OTLP sur HTTP ou les Session Replays de son application. Pour faire passer un émetteur à un autre type, créez une clé de ce type, basculez l'émetteur dessus, puis supprimez l'ancienne clé.
 
 ## Avant de commencer
 
@@ -85,16 +85,16 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Verrouiller une clé de navigateur
 
-Une clé de navigateur se trouve dans votre page, où n'importe qui peut la copier. Ces paramètres limitent ce qu'une copie peut faire. Modifiez-les sur la page de la clé avec **Modifier : Clé d'ingestion**.
+Une clé de navigateur se trouve dans votre page, où n'importe qui peut la copier. Tout ce qu'elle envoie est classé comme une application RUM de navigateur, jamais comme un hôte, un cluster, une ressource cloud, une base de données ou un service backend : de la ressource que définit un émetteur, la clé ne garde que ce qu'une page dit d'elle-même, comme les attributs `service.*`, `browser.*` et `user_agent.*` et les étiquettes `oneuptime.label.*`. Ces paramètres limitent ce qu'une copie peut faire. Modifiez-les sur la page de la clé avec **Modifier : Clé d'ingestion**.
 
 | Paramètre | Ce qu'il fait |
 | --- | --- |
 | **Origines autorisées** | Les seules origines depuis lesquelles la clé est acceptée. Une requête depuis toute autre origine, ou sans en-tête `Origin`, est refusée. Une clé de navigateur doit en garder au moins une. |
-| **Nom du service épinglé** | Range tout ce que la clé envoie sur OTLP/HTTP sous ce seul service, quel que soit le `service.name` défini par l'émetteur. Une copie de la clé ne peut alors écrire que dans ce service. |
+| **Nom du service épinglé** | Range tout ce que la clé envoie sur OTLP/HTTP sous cette seule application, quel que soit le `service.name` défini par l'émetteur. Une copie de la clé ne peut alors écrire que dans cette application. |
 | **Limite de requêtes par minute** | Le nombre maximal de requêtes acceptées pour la clé chaque minute, partagé par tous les visiteurs. Une clé de navigateur en reçoit 6 000 si vous laissez le champ vide. |
 | **Expire le** | La date après laquelle la clé est refusée, pour qu'une copie publiée cesse de fonctionner. |
 
-Une origine se compose d'un schéma, d'un hôte et d'un port facultatif : `https://app.example.com` ne couvre pas `https://app.example.com:8443`. Un `*.` en tête couvre tous les sous-domaines, mais pas le domaine lui-même. React Native Session Replay envoie une identité `app://` exacte, qui n'accepte aucun joker :
+Une origine se compose d'un schéma, d'un hôte et d'un port facultatif : `https://app.example.com` ne couvre pas `https://app.example.com:8443`. Un `*.` en tête couvre tous les sous-domaines, mais pas le domaine lui-même. React Native Session Replay envoyé avec une clé de navigateur porte une identité `app://` exacte, qui n'accepte aucun joker :
 
 ```json
 [
@@ -111,11 +111,11 @@ Une origine se compose d'un schéma, d'un hôte et d'un port facultatif : `https
 Une clé mobile est livrée dans votre application, et quiconque a l'application peut la copier. Ces limites retiennent chaque copie dans l'application pour laquelle elle a été créée :
 
 - **Elle n'écrit que comme une seule application.** Tout ce qu'elle envoie est classé sous son **Nom du service épinglé** comme une application RUM mobile, quels que soient le service ou l'hôte que l'émetteur indique. Une copie ne peut pas écrire dans vos services backend, vos hôtes ou vos clusters.
-- **Elle n'envoie que la télémétrie de cette application.** Des traces, des journaux et des métriques OTLP sur HTTP. Elle est refusée sur gRPC et MQTT, pour les Session Replays, les profils et les source maps, sur tout autre point de terminaison et depuis toute page web.
+- **Elle n'envoie que la télémétrie de cette application.** Des traces, des journaux et des métriques OTLP sur HTTP, et les Session Replays de l'application venant de son enregistreur React Native, avec le **Nom du service épinglé** de la clé comme `appIdentifier`. Elle est refusée sur gRPC et MQTT, pour les Session Replays d'une autre application, les profils et les source maps, sur tout autre point de terminaison et depuis toute page web.
 - **Son débit est limité.** 6 000 requêtes par minute pour toutes les copies ensemble, sauf si vous fixez sa **Limite de requêtes par minute**.
 - **Vous pouvez l'arrêter.** Désactivez **Activé**, ou fixez **Expire le**, et chaque copie est refusée en quelques secondes.
 
-Ce qu'elle ne peut pas empêcher : quiconque a votre application peut toujours envoyer des traces, des journaux et des métriques inventés pour cette seule application, jusqu'à la limite de la clé, tant que vous ne la désactivez pas ou qu'elle n'expire pas. Renouvelez la clé à chaque version, pour qu'une ancienne copie cesse de fonctionner avec sa version.
+Ce qu'elle ne peut pas empêcher : quiconque a votre application peut toujours envoyer des traces, des journaux, des métriques et des Session Replays inventés pour cette seule application, jusqu'à la limite de la clé, tant que vous ne la désactivez pas ou qu'elle n'expire pas. Renouvelez la clé à chaque version, pour qu'une ancienne copie cesse de fonctionner avec sa version.
 
 ## Renouveler, désactiver ou supprimer une clé
 
@@ -144,7 +144,8 @@ La page de la clé tient aussi le compte : **Télémétrie refusée** liste ce q
 | `422` avec `This telemetry ingestion key has been disabled.` | Quelqu'un a désactivé **Activé**. |
 | `422` avec `A browser ingestion key cannot be used for` | Une clé de navigateur a atteint un point de terminaison qui n'accepte que les clés de serveur. |
 | `422` avec `did not send an Origin header` | Une clé de navigateur a été envoyée hors d'un navigateur. Utilisez une clé mobile dans une application mobile, et une clé de serveur partout ailleurs. |
-| `422` avec `A mobile ingestion key cannot be used for` | Une clé mobile a atteint un autre point de terminaison que les traces, les journaux et les métriques OTLP sur HTTP, comme gRPC ou Session Replay. |
+| `422` avec `A mobile ingestion key cannot be used for` | Une clé mobile a atteint un autre point de terminaison que les traces, les journaux et les métriques OTLP sur HTTP et Session Replay, comme gRPC ou les profils. |
+| `422` avec `A mobile ingestion key can send session replays only` | Une clé mobile a envoyé l'enregistrement d'une page web, ou celui d'une autre application. Donnez à l'enregistreur React Native le **Nom du service épinglé** de la clé comme `appIdentifier`. |
 | `422` avec `A mobile ingestion key cannot be used from a web page` | Une clé mobile a été envoyée depuis un navigateur. Utilisez une clé de navigateur dans une page web. |
 | `422` avec `is not allowed for this browser ingestion key` | L'origine de la page ne figure pas dans **Origines autorisées**. |
 | `422` avec `is pinned to a single service` | Une clé avec un **Nom du service épinglé** a servi à enregistrer un agent. Utilisez une clé de serveur non épinglée. |

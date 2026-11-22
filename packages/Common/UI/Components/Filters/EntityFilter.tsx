@@ -11,6 +11,7 @@ import { getFilterPlaceholder } from "./FilterPlaceholder";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import React, { ReactElement, useEffect, useState } from "react";
@@ -102,11 +103,15 @@ const detectSingleState: DetectStateFunction = (
   }
   /*
    * The mirror image of `buildSingleValue`'s "is not" case, which encodes the
-   * operator as a single-item IncludesNone. Without this the dropdown lost the
-   * operator (and its value) on every remount — which is every Back
+   * operator as a single-item IncludesNoneOrNull (a single-item IncludesNone
+   * in a link or a saved view made before #10581). Without this the dropdown
+   * lost the operator (and its value) on every remount — which is every Back
    * navigation and every shared link.
    */
-  if (rawValue instanceof IncludesNone) {
+  if (
+    rawValue instanceof IncludesNoneOrNull ||
+    rawValue instanceof IncludesNone
+  ) {
     const values: Array<string> = (rawValue.values || []).map((v: unknown) => {
       return v!.toString();
     });
@@ -150,8 +155,16 @@ const buildSingleValue: BuildValueFunction = (state: EntityState): unknown => {
     case FilterOperator.Is:
       return state.values[0] || undefined;
     case FilterOperator.IsNot:
-      // Use IncludesNone with single-item array to represent "is not".
-      return state.values[0] ? new IncludesNone([state.values[0]]) : undefined;
+      /*
+       * A single-item IncludesNoneOrNull represents "is not": every record
+       * not pointing at the value, the ones pointing at none included
+       * (#10581) - "Template is not X" is the monitors linked to another
+       * template and the ones linked to none. A plain IncludesNone (`NOT
+       * IN`) dropped those. "Is not empty" leaves them out.
+       */
+      return state.values[0]
+        ? new IncludesNoneOrNull([state.values[0]])
+        : undefined;
     case FilterOperator.IsEmpty:
       return new IsNull();
     case FilterOperator.IsNotEmpty:

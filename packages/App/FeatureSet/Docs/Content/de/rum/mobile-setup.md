@@ -19,7 +19,7 @@ flowchart TB
     app["Ihre Mobil-App"] --> sdk["OpenTelemetry-SDK<br/>mit device.*-Attributen"]
     sdk -->|"OTLP mit einem<br/>Mobil-Schlüssel"| oneuptime["OneUptime"]
     oneuptime --> rum["Mobile RUM-Anwendung"]
-    replay["React-Native-<br/>Replay-SDK"] -->|"Aufzeichnungen mit<br/>einem Browser-Schlüssel"| oneuptime
+    replay["React-Native-<br/>Replay-SDK"] -->|"Aufzeichnungen mit<br/>demselben Mobil-Schlüssel"| oneuptime
 ```
 
 ## Was OneUptime braucht
@@ -52,7 +52,7 @@ Machen Sie `device.id` zu einer Kennung pro Installation, nie zu einer Werbe-ID 
 | Logs | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> Der Schlüssel wird mit Ihrer App ausgeliefert, und eine App lässt sich entpacken. Gehen Sie also davon aus, dass jemand ihn kopiert. Eine Kopie eines Mobil-Schlüssels kann nur die Traces, Logs und Metriken dieser App senden, eingeordnet unter dem Namen aus **Festgelegter Dienstname**, und nie von einer Webseite aus. Sie kann trotzdem erfundene Daten für diese App senden, bis zu seinem **Limit für Anfragen pro Minute**. Tragen Sie also ein Datum unter **Läuft ab am** ein und tauschen Sie den Schlüssel mit Ihren Releases aus.
+> Der Schlüssel wird mit Ihrer App ausgeliefert, und eine App lässt sich entpacken. Gehen Sie also davon aus, dass jemand ihn kopiert. Eine Kopie eines Mobil-Schlüssels kann nur die Traces, Logs, Metriken und Sitzungswiedergaben dieser App senden, eingeordnet unter dem Namen aus **Festgelegter Dienstname**, und nie von einer Webseite aus. Sie kann trotzdem erfundene Daten für diese App senden, bis zu seinem **Limit für Anfragen pro Minute**. Tragen Sie also ein Datum unter **Läuft ab am** ein und tauschen Sie den Schlüssel mit Ihren Releases aus.
 
 ## Ihre Plattform einrichten
 
@@ -289,7 +289,7 @@ Starten Sie die App und nutzen Sie sie einen Moment. Sie erscheint mit ihrem ers
 
 ## Sitzungswiedergabe auf Mobilgeräten
 
-React-Native-Apps können Sitzungen mit `@oneuptime/react-native-replay` aufzeichnen. Es zeichnet den nativen View-Baum als Drahtgitter auf, nie Bildschirmfotos oder den Text auf dem Bildschirm, und seine Aufzeichnungen öffnen sich im selben Player wie die aus dem Web. Es sendet mit einem **Browser**-Schlüssel, dessen **Zulässige Ursprünge** Ihre App als `app://` gefolgt von ihrer Android-Application-ID oder iOS-Bundle-ID aufführen: ein anderer Schlüssel als der Mobil-Schlüssel, den Ihr OpenTelemetry-SDK verwendet. [In React Native installieren](/docs/telemetry/session-replay#in-react-native-installieren) führt Sie durch die Einrichtung.
+React-Native-Apps können Sitzungen mit `@oneuptime/react-native-replay` aufzeichnen. Es zeichnet den nativen View-Baum als Drahtgitter auf, nie Bildschirmfotos oder den Text auf dem Bildschirm, und seine Aufzeichnungen öffnen sich im selben Player wie die aus dem Web. Es sendet mit demselben **Mobil**-Schlüssel wie Ihr OpenTelemetry-SDK, mit dem Namen aus **Festgelegter Dienstname** des Schlüssels als `appIdentifier`, sodass die App nur einen Schlüssel mitbringt. Ein **Browser**-Schlüssel, dessen **Zulässige Ursprünge** Ihre App als `app://` gefolgt von ihrer Android-Application-ID oder iOS-Bundle-ID aufführen, funktioniert ebenfalls. [In React Native installieren](/docs/telemetry/session-replay#in-react-native-installieren) führt Sie durch die Einrichtung.
 
 Native Android- und iOS-Apps und die anderen Plattformen haben keinen Sitzungsrecorder: Ihre Seite **Sitzungswiedergabe** bleibt leer, während Traces, Logs, Metriken, Ausnahmen und die Seite **Clients** wie gewohnt funktionieren.
 
@@ -298,7 +298,7 @@ Native Android- und iOS-Apps und die anderen Plattformen haben keinen Sitzungsre
 :::details Die Schlüsselprüfung liefert 401, oder der Schlüssel wird abgelehnt
 Ein `401` bedeutet, dass der Schlüssel unbekannt, widerrufen, ausgeschaltet oder abgelaufen ist: Erstellen Sie einen Mobil-Schlüssel und bauen Sie die App damit neu.
 
-Ein Browser-Schlüssel besteht die Prüfung, aber jeder Export aus einer Mobil-App wird mit einem `422` abgelehnt, das lautet: `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Verwenden Sie einen **Mobil**-Schlüssel. Auch ein Mobil-Schlüssel wird über gRPC und von einer Webseite aus mit einem `422` abgelehnt: Exportieren Sie über OTLP/HTTP.
+Ein Browser-Schlüssel besteht die Prüfung, aber jeder Export aus einer Mobil-App wird mit einem `422` abgelehnt, das lautet: `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Verwenden Sie einen **Mobil**-Schlüssel. Auch ein Mobil-Schlüssel wird mit einem `422` abgelehnt: über gRPC, von einer Webseite aus und für eine Sitzungswiedergabe, deren `appIdentifier` nicht der Name aus **Festgelegter Dienstname** ist. Exportieren Sie über OTLP/HTTP, und geben Sie dem Replay-SDK den festgelegten Namen des Schlüssels.
 :::
 
 :::details Die App erscheint unter Dienste statt unter Real User Monitoring

@@ -174,7 +174,7 @@ jest.mock(
 );
 
 // Importing the module registers the worker via the mocked QueueWorker.
-import "../../FeatureSet/Telemetry/Jobs/TelemetryIngest/ProcessTelemetry";
+import { getPublicKeyRumClientKind } from "../../FeatureSet/Telemetry/Jobs/TelemetryIngest/ProcessTelemetry";
 import TelemetryQueueService, {
   TelemetryIngestJobData,
   TelemetryType,
@@ -188,8 +188,12 @@ import { JSONObject } from "Common/Types/JSON";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
-import PinMobileRumResource from "Common/Server/Utils/Telemetry/PinMobileRumResource";
-import { RUM_CLIENT_KIND_RESOURCE_ATTRIBUTE } from "Common/Types/Rum/RumClientKind";
+import PinRumClientResource from "Common/Server/Utils/Telemetry/PinRumClientResource";
+import {
+  RUM_CLIENT_KIND_BROWSER,
+  RUM_CLIENT_KIND_MOBILE,
+  RUM_CLIENT_KIND_RESOURCE_ATTRIBUTE,
+} from "Common/Types/Rum/RumClientKind";
 
 const PROJECT_ID: string = "11111111-1111-1111-1111-111111111111";
 const BODY_KEY: string = "telemetry:body:pin-test";
@@ -503,7 +507,11 @@ describe("ProcessTelemetry worker — applying the pin before any ingest service
     ]);
     expect(JSON.stringify(ingestedBody)).not.toContain(ATTACKER_SERVICE_NAME);
 
-    // Unrelated resource attributes are preserved, not flattened by the pin.
+    /*
+     * Unrelated resource attributes are preserved, not flattened by the pin:
+     * this job says no public key admitted it (a Server key with a pin). A
+     * Browser key's job is held to a page's own attributes, below.
+     */
     expect(JSON.stringify(ingestedBody)).toContain("host.name");
   });
 
@@ -881,7 +889,7 @@ describe("ProcessTelemetry worker — a Mobile key's batch as its app's mobile R
       otlpBody("resourceSpans", ATTACKER_SERVICE_NAME) as never,
     );
     jest
-      .spyOn(PinMobileRumResource, "pinInPlace")
+      .spyOn(PinRumClientResource, "pinInPlace")
       .mockImplementation((): number => {
         throw new TypeError("unexpected");
       });
@@ -894,9 +902,9 @@ describe("ProcessTelemetry worker — a Mobile key's batch as its app's mobile R
     expect(deleteBody).toHaveBeenCalledWith(BODY_KEY);
   });
 
-  test("a job without the flag is never filtered: a Browser key's resource keeps host.name", async () => {
-    const mobilePin: jest.SpyInstance = jest.spyOn(
-      PinMobileRumResource,
+  test("a job no public key admitted is never filtered: a Server key's resource keeps host.name", async () => {
+    const clientPin: jest.SpyInstance = jest.spyOn(
+      PinRumClientResource,
       "pinInPlace",
     );
     decodeSpy.mockResolvedValue(
@@ -907,11 +915,320 @@ describe("ProcessTelemetry worker — a Mobile key's batch as its app's mobile R
       otelJob(TelemetryType.Traces, ProductType.Traces, PINNED_SERVICE_NAME),
     );
 
-    expect(mobilePin).not.toHaveBeenCalled();
+    expect(clientPin).not.toHaveBeenCalled();
     expect(
       JSON.stringify(
         (processTracesFromQueue.mock.calls[0]![0] as { body: JSONObject }).body,
       ),
     ).toContain("host.name");
+  });
+});
+
+/*
+ * A BROWSER KEY'S BATCH IS ITS PAGE'S BROWSER RUM (issue #10539).
+ *
+ * A Browser key sits in a page, and a script outside a browser sends any
+ * Origin header it likes, so a copy passes the key's origin check. The
+ * enqueue side marks every OTel job a Browser key admitted - the OTLP
+ * routes' and the jobs the Sentry endpoint queues for its envelopes, which
+ * reach addTelemetryIngestJob the same way - and the worker keeps only what
+ * a page says about itself on each resource, after the pin, and stamps it
+ * as a browser client. A copy's `host.name`, `k8s.cluster.name`,
+ * `cloud.resource_id` or `oneuptime.database.server.id` never reaches the
+ * ingest services, so the batch files nothing under a host, a cluster, a
+ * cloud resource or a database.
+ */
+function browserJob(
+  telemetryType: TelemetryType,
+  productType: ProductType,
+  pinnedServiceName?: string,
+): unknown {
+  const job: { data: JSONObject } = otelJob(
+    telemetryType,
+    productType,
+    pinnedServiceName,
+  ) as { data: JSONObject };
+
+  job.data["isBrowserKey"] = true;
+
+  return job;
+}
+
+// A copy's resource: a page's own attributes, and every routing one it could add.
+function forgedBrowserResourceBlock(): JSONObject {
+  return {
+    resource: {
+      attributes: [
+        { key: "service.name", value: { stringValue: "payments-api" } },
+        { key: "browser.language", value: { stringValue: "en-US" } },
+        { key: "user_agent.original", value: { stringValue: "Mozilla/5.0" } },
+        { key: "host.name", value: { stringValue: "prod-db-1" } },
+        { key: "os.type", value: { stringValue: "linux" } },
+        { key: "k8s.cluster.name", value: { stringValue: "prod-east" } },
+        {
+          key: "cloud.resource_id",
+          value: { stringValue: "arn:aws:rds:us-east-1:1:db:orders" },
+        },
+        {
+          key: "oneuptime.database.server.id",
+          value: { stringValue: "6457" },
+        },
+      ],
+      entityRefs: [{ type: "host", idKeys: ["host.name"] }],
+    },
+  };
+}
+
+describe("addTelemetryIngestJob — a Browser key's job says so (#10539)", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    storeBody.mockResolvedValue("telemetry:body:test-key");
+  });
+
+  test.each([
+    [TelemetryType.Traces, ProductType.Traces],
+    [TelemetryType.Logs, ProductType.Logs],
+    [TelemetryType.Metrics, ProductType.Metrics],
+    // A Browser key's Sentry envelope can carry a profile, queued as one.
+    [TelemetryType.Profiles, ProductType.Profiles],
+  ])(
+    "a %s job a Browser key admitted carries the flag, and its pin when it has one",
+    async (telemetryType: TelemetryType, productType: ProductType) => {
+      const req: TelemetryRequest = {
+        projectId: new ObjectID(PROJECT_ID),
+        productType: productType,
+        ingestionKeyPolicy: policyWithPin(PINNED_SERVICE_NAME),
+        headers: {},
+        body: { resourceSpans: [] },
+      } as unknown as TelemetryRequest;
+
+      await TelemetryQueueService.addTelemetryIngestJob(req, telemetryType);
+
+      expect(getEnqueuedJobData().isBrowserKey).toBe(true);
+      expect(getEnqueuedJobData().pinnedServiceName).toBe(PINNED_SERVICE_NAME);
+      expect(
+        Object.prototype.hasOwnProperty.call(
+          getEnqueuedJobData(),
+          "isMobileKey",
+        ),
+      ).toBe(false);
+    },
+  );
+
+  test("an unpinned Browser key's job carries the flag all the same", async () => {
+    const req: TelemetryRequest = {
+      projectId: new ObjectID(PROJECT_ID),
+      productType: ProductType.Traces,
+      ingestionKeyPolicy: policyWithPin(null),
+      headers: { "content-type": "application/x-protobuf" },
+      body: Buffer.from([0x0a, 0x03, 0x01, 0x02, 0x03]),
+    } as unknown as TelemetryRequest;
+
+    await TelemetryQueueService.addTelemetryIngestJob(
+      req,
+      TelemetryType.Traces,
+    );
+
+    expect(getEnqueuedJobData().isBrowserKey).toBe(true);
+    expect(
+      Object.prototype.hasOwnProperty.call(
+        getEnqueuedJobData(),
+        "pinnedServiceName",
+      ),
+    ).toBe(false);
+  });
+
+  test("a Server or Mobile key's job, or one with no policy (gRPC, MQTT), never carries it", async () => {
+    for (const ingestionKeyPolicy of [
+      { ...policyWithPin(null), keyType: TelemetryIngestionKeyType.Server },
+      mobilePolicy(),
+      undefined,
+    ]) {
+      jest.clearAllMocks();
+
+      const req: TelemetryRequest = {
+        projectId: new ObjectID(PROJECT_ID),
+        productType: ProductType.Logs,
+        ingestionKeyPolicy,
+        headers: {},
+        body: { resourceLogs: [] },
+      } as unknown as TelemetryRequest;
+
+      await TelemetryQueueService.addTelemetryIngestJob(
+        req,
+        TelemetryType.Logs,
+      );
+
+      expect(
+        Object.prototype.hasOwnProperty.call(
+          getEnqueuedJobData(),
+          "isBrowserKey",
+        ),
+      ).toBe(false);
+    }
+  });
+
+  test("syslog and fluent jobs never carry it: their bodies are not OTLP resources", async () => {
+    for (const nonOtelType of [
+      TelemetryType.Syslog,
+      TelemetryType.FluentLogs,
+    ]) {
+      jest.clearAllMocks();
+
+      const req: TelemetryRequest = {
+        projectId: new ObjectID(PROJECT_ID),
+        ingestionKeyPolicy: policyWithPin(PINNED_SERVICE_NAME),
+        headers: {},
+        body: { message: "hello" },
+      } as unknown as TelemetryRequest;
+
+      await TelemetryQueueService.addTelemetryIngestJob(req, nonOtelType);
+
+      expect(
+        Object.prototype.hasOwnProperty.call(
+          getEnqueuedJobData(),
+          "isBrowserKey",
+        ),
+      ).toBe(false);
+    }
+  });
+});
+
+describe("ProcessTelemetry worker — a Browser key's batch as its page's browser RUM (#10539)", () => {
+  let decodeSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    processTracesFromQueue.mockReset();
+    processLogsFromQueue.mockReset();
+    processMetricsFromQueue.mockReset();
+    processProfilesFromQueue.mockReset();
+    deleteBody.mockClear();
+    decodeSpy = jest.spyOn(OtelPayloadDecoder, "decodeFromQueue");
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test.each([
+    [TelemetryType.Traces, ProductType.Traces, "resourceSpans"],
+    [TelemetryType.Logs, ProductType.Logs, "resourceLogs"],
+    [TelemetryType.Metrics, ProductType.Metrics, "resourceMetrics"],
+    [TelemetryType.Profiles, ProductType.Profiles, "resourceProfiles"],
+  ])(
+    "a %s batch keeps a page's own attributes, under its pinned name, stamped browser",
+    async (
+      telemetryType: TelemetryType,
+      productType: ProductType,
+      containerKey: string,
+    ) => {
+      decodeSpy.mockResolvedValue({
+        [containerKey]: [forgedBrowserResourceBlock()],
+      } as never);
+
+      await capturedHandler!(
+        browserJob(telemetryType, productType, PINNED_SERVICE_NAME),
+      );
+
+      const process: jest.Mock =
+        telemetryType === TelemetryType.Traces
+          ? processTracesFromQueue
+          : telemetryType === TelemetryType.Logs
+            ? processLogsFromQueue
+            : telemetryType === TelemetryType.Metrics
+              ? processMetricsFromQueue
+              : processProfilesFromQueue;
+
+      expect(process).toHaveBeenCalledTimes(1);
+
+      const ingestedBody: JSONObject = (
+        process.mock.calls[0]![0] as { body: JSONObject }
+      ).body;
+
+      expect(serviceNamesIn(ingestedBody, containerKey)).toEqual([
+        PINNED_SERVICE_NAME,
+      ]);
+      expect(resourceKeysIn(ingestedBody, containerKey).sort()).toEqual(
+        [
+          "browser.language",
+          "service.name",
+          "user_agent.original",
+          RUM_CLIENT_KIND_RESOURCE_ATTRIBUTE,
+        ].sort(),
+      );
+      const ingested: string = JSON.stringify(ingestedBody);
+      for (const forged of [
+        "payments-api",
+        "prod-db-1",
+        "prod-east",
+        "arn:aws:rds",
+        "oneuptime.database.server.id",
+        "entityRefs",
+      ]) {
+        expect({ forged, kept: ingested.includes(forged) }).toEqual({
+          forged,
+          kept: false,
+        });
+      }
+      expect(ingested).toContain(`"stringValue":"${RUM_CLIENT_KIND_BROWSER}"`);
+    },
+  );
+
+  test("an unpinned Browser key's batch keeps the page's own service.name, stamped browser", async () => {
+    decodeSpy.mockResolvedValue({
+      resourceSpans: [forgedBrowserResourceBlock()],
+    } as never);
+
+    await capturedHandler!(
+      browserJob(TelemetryType.Traces, ProductType.Traces),
+    );
+
+    const ingestedBody: JSONObject = (
+      processTracesFromQueue.mock.calls[0]![0] as { body: JSONObject }
+    ).body;
+
+    expect(serviceNamesIn(ingestedBody, "resourceSpans")).toEqual([
+      "payments-api",
+    ]);
+    expect(JSON.stringify(ingestedBody)).not.toContain("prod-db-1");
+    expect(resourceKeysIn(ingestedBody, "resourceSpans")).toContain(
+      RUM_CLIENT_KIND_RESOURCE_ATTRIBUTE,
+    );
+  });
+
+  test("a failure inside it never fails the job", async () => {
+    decodeSpy.mockResolvedValue({
+      resourceSpans: [forgedBrowserResourceBlock()],
+    } as never);
+    jest
+      .spyOn(PinRumClientResource, "pinInPlace")
+      .mockImplementation((): number => {
+        throw new TypeError("unexpected");
+      });
+
+    await expect(
+      capturedHandler!(browserJob(TelemetryType.Traces, ProductType.Traces)),
+    ).resolves.toBeUndefined();
+
+    expect(processTracesFromQueue).toHaveBeenCalledTimes(1);
+    expect(deleteBody).toHaveBeenCalledWith(BODY_KEY);
+  });
+});
+
+describe("getPublicKeyRumClientKind", () => {
+  test("a Mobile key's job is mobile, a Browser key's browser, any other none", () => {
+    expect(getPublicKeyRumClientKind({ isMobileKey: true })).toBe(
+      RUM_CLIENT_KIND_MOBILE,
+    );
+    expect(getPublicKeyRumClientKind({ isBrowserKey: true })).toBe(
+      RUM_CLIENT_KIND_BROWSER,
+    );
+    expect(getPublicKeyRumClientKind({})).toBeNull();
+  });
+
+  test("a job that says both is filed as mobile, never as anything looser", () => {
+    expect(
+      getPublicKeyRumClientKind({ isMobileKey: true, isBrowserKey: true }),
+    ).toBe(RUM_CLIENT_KIND_MOBILE);
   });
 });

@@ -20,10 +20,18 @@ import SecurityEventRequestOutcome, {
 } from "../../../Types/SecurityEvent/SecurityEventRequestOutcome";
 import {
   SecurityPlaybookActionDefinition,
+  SecurityPlaybookActionType,
   actsOnSecurityEntities,
   getSecurityPlaybookAction,
   getSecurityPlaybookUndoAction,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookAction";
+import { readOneStepRun } from "../../../Types/SecurityPlaybook/SecurityPlaybookOneStepRun";
+import NetworkAddressBlockUtil, {
+  NetworkAddressBlock,
+} from "../../../Utils/NetworkTraffic/NetworkAddressBlock";
+import SecurityProtectedAddresses, {
+  SecurityProtectionCheck,
+} from "../SecurityBlocklist/SecurityProtectedAddresses";
 import SecurityPlaybookRunStatus, {
   SecurityPlaybookStepStatus,
   isFinishedSecurityPlaybookRunStatus,
@@ -131,6 +139,7 @@ export default class SecurityPlaybookApprovalReader {
     _id: true;
     projectId: true;
     securityCaseId: true;
+    securityPlaybookId: true;
     playbookName: true;
     status: true;
     trigger: true;
@@ -143,6 +152,7 @@ export default class SecurityPlaybookApprovalReader {
     _id: true,
     projectId: true,
     securityCaseId: true,
+    securityPlaybookId: true,
     playbookName: true,
     status: true,
     trigger: true,
@@ -379,7 +389,9 @@ export default class SecurityPlaybookApprovalReader {
         step,
       }),
       targets: await SecurityPlaybookApprovalReader.toAskTargets(targets),
-      source: await SecurityPlaybookApprovalReader.getSource(run),
+      source: await SecurityPlaybookApprovalReader.getSource(run, {
+        isOneStepRun: readOneStepRun(run) !== null,
+      }),
       evidence:
         data.withEvidence === false
           ? []
@@ -388,6 +400,7 @@ export default class SecurityPlaybookApprovalReader {
               securityCase,
               targets,
               actsOnEntities,
+              action: step.action,
             }),
       undoAction:
         actsOnEntities && definition
@@ -509,6 +522,13 @@ export default class SecurityPlaybookApprovalReader {
       SecurityPlaybookRun,
       "playbookName" | "trigger" | "triggeredByUserId"
     >,
+    options: {
+      /*
+       * A person's one-step run from a case (#10342): asked for by them on
+       * the case, with no playbook to name.
+       */
+      isOneStepRun?: boolean | undefined;
+    } = {},
   ): Promise<SecurityPlaybookApprovalSource> {
     const playbookName: string = run.playbookName || "";
 
@@ -521,7 +541,7 @@ export default class SecurityPlaybookApprovalReader {
       if (personName) {
         return {
           kind: SecurityPlaybookApprovalSourceKind.Person,
-          playbookName,
+          playbookName: options.isOneStepRun ? "" : playbookName,
           personName,
         };
       }
@@ -616,6 +636,7 @@ export default class SecurityPlaybookApprovalReader {
     securityCase: SecurityCase;
     targets: Array<SecurityPlaybookTarget>;
     actsOnEntities: boolean;
+    action?: SecurityPlaybookActionType | undefined;
   }): Promise<Array<SecurityPlaybookApprovalEvidence>> {
     const evidence: Array<SecurityPlaybookApprovalEvidence> = [];
 
@@ -670,7 +691,73 @@ export default class SecurityPlaybookApprovalReader {
       });
     }
 
+    // A block (#10342): the addresses it blocks are none of the project's own.
+    if (data.action === SecurityPlaybookActionType.BlockAddress) {
+      const notOwn: Array<string> =
+        await SecurityPlaybookApprovalReader.readNotOwnAddresses({
+          projectId: data.projectId,
+          targets: data.targets,
+        });
+
+      if (notOwn.length > 0) {
+        evidence.push({
+          kind: SecurityPlaybookApprovalEvidenceKind.NotOwnAddress,
+          values: notOwn,
+        });
+      }
+    }
+
     return evidence;
+  }
+
+  /*
+   * The addresses a block proposes that OneUptime read as none of the
+   * project's own - no host, load balancer, probe, edge or protected entry
+   * holds them (SecurityProtectedAddresses). One whose sources could not
+   * all be read is left out: the message never says more than OneUptime
+   * knows.
+   */
+  private static async readNotOwnAddresses(data: {
+    projectId: ObjectID;
+    targets: Array<SecurityPlaybookTarget>;
+  }): Promise<Array<string>> {
+    const notOwn: Array<string> = [];
+
+    for (const target of data.targets) {
+      if (
+        target.state !== SecurityPlaybookTargetState.Proposed ||
+        notOwn.length >= EVIDENCE_VALUES_LIMIT
+      ) {
+        continue;
+      }
+
+      const block: NetworkAddressBlock | null = NetworkAddressBlockUtil.parse(
+        target.value,
+      );
+
+      if (!block) {
+        continue;
+      }
+
+      try {
+        const check: SecurityProtectionCheck =
+          await SecurityProtectedAddresses.findProtection({
+            projectId: data.projectId,
+            block,
+          });
+
+        if (!check.protection && check.unreadSources.length === 0) {
+          notOwn.push(target.value);
+        }
+      } catch (error) {
+        logger.error(
+          `SecurityPlaybookApprovalReader: could not check whether ${target.value} is one of the project's own addresses: ${error}`,
+          { projectId: data.projectId.toString() },
+        );
+      }
+    }
+
+    return notOwn;
   }
 
   /*

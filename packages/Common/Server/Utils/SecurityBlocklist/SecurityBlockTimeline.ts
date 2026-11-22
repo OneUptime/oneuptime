@@ -1,5 +1,6 @@
 import { SecurityCaseFeedEventType } from "../../../Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseFeedService from "../../Services/SecurityCaseFeedService";
+import SecurityCaseStepChecks from "../SecurityCase/StepChecks/SecurityCaseStepChecks";
 import {
   Gray500,
   Green500,
@@ -166,7 +167,16 @@ export function blockNotAppliedMarkdown(data: {
 }
 
 export default class SecurityBlockTimeline {
-  // One line on the case's timeline. Never throws (SecurityCaseFeedService).
+  /*
+   * One line on the case's timeline. Never throws (SecurityCaseFeedService,
+   * SecurityCaseStepChecks).
+   *
+   * Whatever the line says - a block made, lifted, extended or expired, a
+   * destination holding it or turning it down - changes what the case's
+   * block step is, so the case's steps are checked at once (#10562): a
+   * block a destination holds is Checked by OneUptime within a minute of
+   * it holding, and a lifted one no longer is.
+   */
   public static async write(data: {
     projectId: ObjectID;
     securityCaseId: ObjectID | null | undefined;
@@ -187,6 +197,11 @@ export default class SecurityBlockTimeline {
       displayColor: data.color,
       ...(data.userId ? { userId: data.userId } : {}),
       ...(data.postedAt ? { postedAt: data.postedAt } : {}),
+    });
+
+    await SecurityCaseStepChecks.requestCheck({
+      projectId: data.projectId,
+      securityCaseId: data.securityCaseId,
     });
   }
 

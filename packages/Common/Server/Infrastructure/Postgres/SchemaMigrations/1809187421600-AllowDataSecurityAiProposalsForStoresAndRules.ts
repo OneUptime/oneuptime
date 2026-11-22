@@ -22,11 +22,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Down deletes the proposals the old schema cannot hold - owner rules, and
  * owners of stores with no issue - then requires both columns again.
  */
-export class AllowDataSecurityAiProposalsForStoresAndRules1809187421200
+export class AllowDataSecurityAiProposalsForStoresAndRules1809187421600
   implements MigrationInterface
 {
   public name: string =
-    "AllowDataSecurityAiProposalsForStoresAndRules1809187421200";
+    "AllowDataSecurityAiProposalsForStoresAndRules1809187421600";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

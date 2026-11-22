@@ -49,7 +49,7 @@ Het zijmenu van een applicatie groepeert de pagina's zo; **Ontwikkelaars** en **
 
 ## Hoe OneUptime RUM herkent
 
-De meeste vragen van het type 'mijn app verschijnt niet' eindigen hier. OneUptime beslist voor elke batch telemetrie bij aankomst, op basis van de **resource-attributen**:
+De meeste vragen van het type 'mijn app verschijnt niet' eindigen hier. Alles wat een **Browser**-sleutel verstuurt, is browser-RUM, en alles wat een **Mobiel**-sleutel verstuurt, is mobiele RUM, wat de resource ook zegt. Met elke andere sleutel beslist OneUptime voor elke batch telemetrie bij aankomst, op basis van de **resource-attributen**:
 
 1. Een batch waarvan de resource `browser.platform`, `browser.language` of een niet-lege `browser.brands` heeft, is **browser**-RUM.
 2. Anders is een batch met `device.id` of `device.model.identifier` **mobiele** RUM.
@@ -71,7 +71,7 @@ Backend-SDK's stellen nooit `browser.*`, `device.id` of `device.model.identifier
 OneUptime vindt de applicatie via `service.name`, zonder op hoofdletters te letten, en maakt haar aan als het project er nog geen heeft. Een nieuwe `service.name` start een nieuwe applicatie, dus houd hem stabiel en onderscheid omgevingen met een label in plaats van met een nieuwe naam. [Applicaties beheren](/docs/rum/applications) behandelt namen, labels, eigenaren en bewaartermijnen.
 
 > [!IMPORTANT]
-> De OpenTelemetry-browser-SDK voegt geen `browser.*`-attributen toe, tenzij je de browser-resourcedetector toevoegt of ze zelf instelt. Met alleen `service.name` wordt de telemetrie een backend-service, geen RUM-applicatie. [Browserconfiguratie](/docs/rum/browser-setup) laat beide manieren zien.
+> De OpenTelemetry-browser-SDK voegt geen `browser.*`-attributen toe, tenzij je de browser-resourcedetector toevoegt of ze zelf instelt. Verstuurd met een Browser-sleutel blijft de telemetrie een RUM-applicatie, maar de pagina **Clients** toont geen platforms; met elke andere sleutel en alleen `service.name` wordt ze een backend-service, geen RUM-applicatie. [Browserconfiguratie](/docs/rum/browser-setup) laat beide manieren zien.
 
 ## Wat je krijgt
 
@@ -94,7 +94,7 @@ Een applicatie toont **Ontvangt gegevens** zolang er telemetrie binnenkomt en **
 :::steps
 ### Een ingestiesleutel aanmaken
 
-Open **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** en klik op **Ingestiesleutel aanmaken**. Een web-app heeft een **Browser**-sleutel nodig, die alleen werkt vanaf de origins die je opgeeft. Een mobiele app heeft een **Mobiel**-sleutel nodig, vastgezet op de `service.name` van de app: die zit in de app, dus hij kan alleen de traces, logs en metrieken van die app versturen.
+Open **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** en klik op **Ingestiesleutel aanmaken**. Een web-app heeft een **Browser**-sleutel nodig, die alleen werkt vanaf de origins die je opgeeft. Een mobiele app heeft een **Mobiel**-sleutel nodig, vastgezet op de `service.name` van de app: die zit in de app, dus hij kan alleen de traces, logs, metrieken en sessieherhalingen van die app versturen.
 
 ### Je app instrumenteren
 

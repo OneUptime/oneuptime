@@ -19,7 +19,7 @@ flowchart TB
     app["あなたのモバイルアプリ"] --> sdk["OpenTelemetry SDK<br/>と device.* 属性"]
     sdk -->|"OTLP と<br/>モバイルキー"| oneuptime["OneUptime"]
     oneuptime --> rum["モバイル RUM アプリケーション"]
-    replay["React Native の<br/>リプレイ SDK"] -->|"ブラウザーキーで<br/>送る録画"| oneuptime
+    replay["React Native の<br/>リプレイ SDK"] -->|"同じモバイルキーで<br/>送る録画"| oneuptime
 ```
 
 ## OneUptime に必要なもの
@@ -52,7 +52,7 @@ flowchart TB
 | ログ | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> キーはアプリの中に入って配布され、アプリは展開できるため、誰かにコピーされる前提で考えてください。モバイルキーのコピーが送れるのは、このアプリのトレース、ログ、メトリクスだけで、すべて **固定されたサービス名** の下に分類され、Web ページからは送れません。それでもキーの **1 分あたりのリクエスト数の上限** までは、このアプリの作り話のデータを送れます。そのため **有効期限** の日付を加え、リリースごとにキーをローテーションしてください。
+> キーはアプリの中に入って配布され、アプリは展開できるため、誰かにコピーされる前提で考えてください。モバイルキーのコピーが送れるのは、このアプリのトレース、ログ、メトリクス、セッションリプレイだけで、すべて **固定されたサービス名** の下に分類され、Web ページからは送れません。それでもキーの **1 分あたりのリクエスト数の上限** までは、このアプリの作り話のデータを送れます。そのため **有効期限** の日付を加え、リリースごとにキーをローテーションしてください。
 
 ## プラットフォームの設定
 
@@ -289,7 +289,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 ## モバイルのセッションリプレイ
 
-React Native アプリは `@oneuptime/react-native-replay` でセッションを録画できます。ネイティブのビューツリーをワイヤーフレームとして記録し、スクリーンショットや画面上のテキストは決して記録しません。その録画は Web の録画と同じプレーヤーで開きます。送信には **ブラウザー** キーを使い、その **許可されたオリジン** には、アプリを `app://` に続けて Android のアプリケーション ID または iOS のバンドル ID の形で登録します。これは OpenTelemetry SDK が使うモバイルキーとは別のキーです。手順は [React Native へのインストール](/docs/telemetry/session-replay#react-native-へのインストール) で説明しています。
+React Native アプリは `@oneuptime/react-native-replay` でセッションを録画できます。ネイティブのビューツリーをワイヤーフレームとして記録し、スクリーンショットや画面上のテキストは決して記録しません。その録画は Web の録画と同じプレーヤーで開きます。送信には OpenTelemetry SDK と同じ **モバイル** キーを使い、キーの **固定されたサービス名** を `appIdentifier` にします。そのため、アプリに入れるキーは 1 つで済みます。 **許可されたオリジン** にアプリを `app://` に続けて Android のアプリケーション ID または iOS のバンドル ID の形で登録した **ブラウザー** キーも使えます。手順は [React Native へのインストール](/docs/telemetry/session-replay#react-native-へのインストール) で説明しています。
 
 ネイティブの Android アプリと iOS アプリ、そしてほかのプラットフォームにはセッションの録画機能がありません。それらの **セッションリプレイ** ページは空のままですが、トレース、ログ、メトリクス、例外、 **クライアント** ページは通常どおり動きます。
 
@@ -298,7 +298,7 @@ React Native アプリは `@oneuptime/react-native-replay` でセッションを
 :::details キーの確認で 401 が返る、またはキーが拒否される
 `401` は、キーが不明、取り消し済み、無効化済み、または期限切れであることを示します。モバイルキーを作成し、そのキーでアプリをビルドし直してください。
 
-ブラウザーキーは確認には通りますが、モバイルアプリからのエクスポートはすべて `422` と `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` で拒否されます。 **モバイル** キーを使ってください。モバイルキーも、gRPC や Web ページから送ると `422` で拒否されます。OTLP/HTTP でエクスポートしてください。
+ブラウザーキーは確認には通りますが、モバイルアプリからのエクスポートはすべて `422` と `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` で拒否されます。 **モバイル** キーを使ってください。モバイルキーも `422` で拒否されます。gRPC や Web ページから送ったときと、 `appIdentifier` がキーの **固定されたサービス名** と違うセッションリプレイを送ったときです。OTLP/HTTP でエクスポートし、リプレイ SDK にはキーの固定された名前を渡してください。
 :::
 
 :::details アプリがリアルユーザーモニタリングではなくサービスに表示される
