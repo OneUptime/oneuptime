@@ -314,12 +314,11 @@ export default class FeedPersonName extends FeedPersonNameRule {
    * The person, as OneUptime: a line names whoever it is about. An id that
    * is not there is not a harmless lookup - the id key would drop out of
    * the WHERE clause and match an arbitrary user - so it is never asked.
+   * By id, which reads through findOneBy.
    */
   private static async readUser(userId: ObjectID): Promise<User | null> {
-    return await UserService.findOneBy({
-      query: {
-        _id: userId,
-      },
+    return await UserService.findOneById({
+      id: userId,
       select: {
         name: true,
         email: true,
