@@ -9,7 +9,7 @@ import {
 } from "../Utils/Express";
 import RequestBodyJson from "../Utils/RequestBodyJson";
 import { RequestBodyLimit } from "../Utils/RequestBodyLimit";
-import { APP_REQUEST_BODY_LIMIT_FIELD } from "../Utils/RequestBodyRefusal";
+import { withAppRequestBodyLimit } from "../Utils/RequestBodyRefusal";
 import GzipRequestBodyMiddleware from "./GzipRequestBody";
 import RequestBodyParser from "./RequestBodyParser";
 
@@ -63,27 +63,6 @@ const rawReaderFor: (bytes: number) => RequestHandler = (
   }
 
   return reader;
-};
-
-/*
- * A body over the limit is refused by body-parser (entity.too.large): marked
- * as the App's own limit, as StartServer marks it, so the answer says it.
- */
-const markAppLimit: (next: NextFunction, bytes: number) => NextFunction = (
-  next: NextFunction,
-  bytes: number,
-): NextFunction => {
-  return ((err?: unknown): void => {
-    if (
-      err &&
-      typeof err === "object" &&
-      (err as { type?: unknown }).type === "entity.too.large"
-    ) {
-      (err as Record<string, unknown>)[APP_REQUEST_BODY_LIMIT_FIELD] = bytes;
-    }
-
-    next(err);
-  }) as NextFunction;
 };
 
 /*
@@ -145,10 +124,14 @@ export default class RequestBodyAfterAuthentication {
         return GzipRequestBodyMiddleware.parseBody(req, res, next, limit);
       }
 
+      /*
+       * A body over the limit is marked as the App's own limit, as StartServer
+       * marks it, so the answer says it.
+       */
       return rawReaderFor(limit.bytes)(
         req,
         res,
-        markAppLimit(next, limit.bytes),
+        withAppRequestBodyLimit(next, limit.bytes) as NextFunction,
       );
     };
   }

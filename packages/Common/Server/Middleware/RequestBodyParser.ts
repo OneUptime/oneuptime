@@ -7,6 +7,7 @@ import {
   headerValueToString,
 } from "../Utils/Express";
 import {
+  createCutOffError,
   createInflateFailedError,
   createTooLargeError,
   isInflateError,
@@ -45,9 +46,31 @@ import { Readable } from "stream";
  * inflate is refused as one (400, INFLATE_FAILED_TYPE), where body-parser's
  * zlib error was answered 500.
  *
- * Only a body that has not been read is read here. A request something read
- * before - another parser, the gzip reader - is handed to body-parser itself,
- * as it always was: there is nothing left on the connection to bound.
+ * A BODY READ BEFORE IS NEVER READ AGAIN (#10643). StartServer reads every
+ * gzip body before routing (GzipRequestBody): it inflates it, held to the
+ * route's limit as it comes and as it inflates, counts a JSON body's values,
+ * and leaves the inflated bytes in req.body, unparsed. A route that parses
+ * its own body - the MCP endpoint, the MCP OAuth endpoints, the docs'
+ * feedback, a multipart upload - used to hand its parser that request, and
+ * body-parser, seeing it unmarked, read the spent stream again through a
+ * fresh gunzip: zlib's "unexpected end of file", answered 500 with an
+ * error-level log line, for a valid body, from any client. Now:
+ *
+ *   - a body parsed before (body-parser marks what it read: StartServer's
+ *     JSON, form and protobuf parsers, another of these) is passed over, as
+ *     body-parser passes over it;
+ *   - a body whose bytes something read and kept - the gzip reader's
+ *     inflated bytes - is parsed from those bytes, as the same body sent
+ *     uncompressed would have been: the parser's own types, limit (the bytes
+ *     as inflated, which is what body-parser holds a compressed body to),
+ *     charset, verify and errors. Parsed once, here: the gzip reader only
+ *     inflated it;
+ *   - a body read whole by something that kept nothing is passed on as it
+ *     is: there is nothing left to parse, and nothing on the connection;
+ *   - a request whose client went away before its body was read is refused
+ *     as cut off (400, request.aborted), as one that goes away mid-body is.
+ *     body-parser's own answer to it - "stream is not readable" - was a 500
+ *     with an error-level log line, for a client that hung up.
  */
 
 // The request a stand-in reads for: verify functions are given it.
@@ -136,9 +159,11 @@ class RequestStandIn extends Readable {
   public constructor(
     req: ExpressRequest,
     private readonly onRead: () => void,
+    // The headers the parser reads, when they are not the request's own.
+    headers?: IncomingHttpHeaders | undefined,
   ) {
     super();
-    this.headers = req.headers;
+    this.headers = headers || req.headers;
     this.body = (req as { body?: unknown }).body;
     this[REQUEST_BEHIND] = req;
 
@@ -161,6 +186,121 @@ const requestBehind: (req: ExpressRequest) => ExpressRequest = (
 ): ExpressRequest => {
   return (req as unknown as Partial<RequestStandIn>)[REQUEST_BEHIND] || req;
 };
+
+/*
+ * What the parser made of the stand-in, handed to the request: its body, and
+ * body-parser's mark that it read it, so no parser after it reads it again.
+ */
+const handBack: (standIn: RequestStandIn, req: ExpressRequest) => void = (
+  standIn: RequestStandIn,
+  req: ExpressRequest,
+): void => {
+  req.body = standIn.body;
+
+  if (standIn._body) {
+    (req as { _body?: boolean })._body = true;
+  }
+};
+
+/*
+ * The bytes of a body read before and kept, not yet parsed: the gzip
+ * reader's, inflated (GzipRequestBody leaves them in req.body). Null for any
+ * other body: one not read, or parsed already into something else.
+ */
+export const keptBodyBytesOf: (req: ExpressRequest) => Buffer | null = (
+  req: ExpressRequest,
+): Buffer | null => {
+  if ((req as { _body?: unknown })._body === true) {
+    return null;
+  }
+
+  const body: unknown = (req as { body?: unknown }).body;
+
+  if (Buffer.isBuffer(body)) {
+    return body;
+  }
+
+  if (body instanceof Uint8Array) {
+    return Buffer.from(body.buffer, body.byteOffset, body.byteLength);
+  }
+
+  return null;
+};
+
+/*
+ * The headers a kept body is parsed under: the request's, as if its bytes
+ * had been sent as they are now - inflated, so with no Content-Encoding, and
+ * as many of them as there are.
+ */
+const headersOfKeptBody: (
+  headers: IncomingHttpHeaders,
+  length: number,
+) => IncomingHttpHeaders = (
+  headers: IncomingHttpHeaders,
+  length: number,
+): IncomingHttpHeaders => {
+  const kept: IncomingHttpHeaders = { ...headers };
+
+  delete kept["content-encoding"];
+  delete kept["transfer-encoding"];
+  kept["content-length"] = String(length);
+
+  return kept;
+};
+
+/*
+ * A body read before, whose bytes were kept (see keptBodyBytesOf): handed to
+ * the parser from those bytes, as the same body sent uncompressed. Nothing
+ * more is read off the request: it is all in.
+ */
+class KeptBodyRead {
+  private isSettled: boolean = false;
+  private readonly standIn: RequestStandIn;
+
+  public constructor(
+    private readonly req: ExpressRequest,
+    private readonly res: ExpressResponse,
+    private readonly next: NextFunction,
+    bytes: Buffer,
+  ) {
+    this.standIn = new RequestStandIn(
+      req,
+      (): void => {},
+      headersOfKeptBody(req.headers, bytes.length),
+    );
+    this.standIn.complete = true;
+
+    if (bytes.length > 0) {
+      this.standIn.push(bytes);
+    }
+
+    this.standIn.push(null);
+  }
+
+  public start(parser: RequestHandler): void {
+    parser(
+      this.standIn as unknown as ExpressRequest,
+      this.res,
+      this.onParsed as NextFunction,
+    );
+  }
+
+  private onParsed = (err?: unknown): void => {
+    if (this.isSettled) {
+      return;
+    }
+
+    this.isSettled = true;
+    handBack(this.standIn, this.req);
+
+    if (!err) {
+      this.next();
+      return;
+    }
+
+    this.next(isInflateError(err) ? createInflateFailedError(err) : err);
+  };
+}
 
 // One request's body: fed to body-parser's stand-in, held to the limit.
 class BoundedBodyRead {
@@ -289,14 +429,7 @@ class BoundedBodyRead {
     }
 
     this.settle();
-
-    const req: ExpressRequest & { _body?: boolean } = this.req;
-
-    req.body = this.standIn.body;
-
-    if (this.standIn._body) {
-      req._body = true;
-    }
+    handBack(this.standIn, this.req);
 
     if (!err) {
       this.next();
@@ -371,25 +504,33 @@ export default class RequestBodyParser {
       res: ExpressResponse,
       next: NextFunction,
     ): void => {
-      if (RequestBodyParser.isRead(req)) {
+      // Parsed before: body-parser passes it over, as it always has.
+      if ((req as { _body?: unknown })._body === true) {
         parser(req, res, next);
+        return;
+      }
+
+      // Read before, its bytes kept: parsed from them (see above).
+      const kept: Buffer | null = keptBodyBytesOf(req);
+
+      if (kept) {
+        new KeptBodyRead(req, res, next, kept).start(parser);
+        return;
+      }
+
+      // Read whole by something that kept nothing: there is nothing to parse.
+      if (req.readableEnded) {
+        next();
+        return;
+      }
+
+      // Its client went away before it was read: cut off, as mid-body.
+      if (req.destroyed || req.readable === false) {
+        next(createCutOffError());
         return;
       }
 
       new BoundedBodyRead(req, res, next, limitBytes).start(parser);
     };
-  }
-
-  /*
-   * Whether a request's body was read, or can be no more: body-parser marks
-   * what it read, and a stream that ended or broke has nothing more to give.
-   * body-parser is handed such a request itself, and answers it as it did.
-   */
-  private static isRead(req: ExpressRequest): boolean {
-    return (
-      (req as { _body?: unknown })._body === true ||
-      req.readableEnded ||
-      req.readable === false
-    );
   }
 }
