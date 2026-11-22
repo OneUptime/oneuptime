@@ -17,6 +17,7 @@ import {
 import { OpenAPIParser } from "../../../../../Scripts/TerraformProvider/Core/OpenAPIParser";
 import {
   TerraformAttribute,
+  TerraformDataSource,
   TerraformResource,
 } from "../../../../../Scripts/TerraformProvider/Core/Types";
 
@@ -108,6 +109,7 @@ interface MirroredAttribute {
 }
 
 let providerResources: Map<string, TerraformResource>;
+let providerDataSources: Map<string, TerraformDataSource>;
 
 beforeAll(() => {
   const parser: OpenAPIParser = new OpenAPIParser();
@@ -117,6 +119,12 @@ beforeAll(() => {
 
   for (const resource of parser.getResources()) {
     providerResources.set(`oneuptime_${resource.name}`, resource);
+  }
+
+  providerDataSources = new Map<string, TerraformDataSource>();
+
+  for (const dataSource of parser.getDataSources()) {
+    providerDataSources.set(`oneuptime_${dataSource.name}`, dataSource);
   }
 });
 
@@ -300,5 +308,60 @@ describe("the provider has no resource the dashboard does not know", () => {
       ]),
     );
     expect(checked.length).toBeGreaterThan(300);
+  });
+});
+
+/*
+ * A status page's subscriber notification template had the template's own
+ * name until #10664, and its tag says so (x-former-names). Named anew on
+ * screen, the link keeps its resource and the move of its state from the
+ * template's name - never an alias of it, which is the template's.
+ */
+describe("a resource whose model was renamed from another model's name", () => {
+  test("the link keeps its resource, moved from the template's name, and the template keeps its own", () => {
+    const link: TerraformResource | undefined = providerResources.get(
+      "oneuptime_status_page_subscriber_notification_template",
+    );
+    const template: TerraformResource | undefined = providerResources.get(
+      "oneuptime_subscriber_notification_template",
+    );
+
+    expect(link?.tableName).toBe(
+      "StatusPageSubscriberNotificationTemplateStatusPage",
+    );
+    expect(link?.movedFrom).toBe("subscriber_notification_template");
+    expect(link?.legacyName).toBeUndefined();
+
+    expect(template?.tableName).toBe("StatusPageSubscriberNotificationTemplate");
+    expect(template?.movedFrom).toBeUndefined();
+    expect(template?.legacyName).toBeUndefined();
+  });
+
+  test("no resource or data source is an alias of either name", () => {
+    const aliases: Array<string | undefined> = [
+      ...[...providerResources.values()].map(
+        (resource: TerraformResource): string | undefined => {
+          return resource.legacyName;
+        },
+      ),
+      ...[...providerDataSources.values()].map(
+        (dataSource: TerraformDataSource): string | undefined => {
+          return dataSource.legacyName;
+        },
+      ),
+    ];
+
+    expect(aliases).not.toContain("subscriber_notification_template");
+    expect(aliases).not.toContain(
+      "status_page_subscriber_notification_template",
+    );
+    expect(
+      providerDataSources.has(
+        "oneuptime_status_page_subscriber_notification_template",
+      ),
+    ).toBe(true);
+    expect(
+      providerDataSources.has("oneuptime_subscriber_notification_template"),
+    ).toBe(true);
   });
 });
