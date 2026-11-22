@@ -61911,7 +61911,7 @@
   "Challenged at {{destinations}} {{time}} by the {{policy}} policy, until {{until}}.": "{{policy}} 정책이 {{time}}부터 {{until}}까지 {{destinations}}에서 챌린지를 적용했습니다.",
   "Challenged at {{destinations}} {{time}} by the {{policy}} policy, {{after}} after its first request, until {{until}}.": "{{policy}} 정책이 {{time}}부터 {{until}}까지 {{destinations}}에서 챌린지를 적용했습니다(첫 요청 후 {{after}}).",
   "Challenges an address that probes your app for weaknesses, such as /.env, /wp-admin or path traversal, while every request it sent was turned away.": "/.env, /wp-admin, 경로 탐색처럼 앱의 약점을 살피는 주소에, 보낸 요청이 모두 거부된 동안 챌린지를 적용합니다.",
-  "Challenges or blocks the address a detection is about, under the same guardrails as the ready policies. It starts off: turning it on starts its trial run.": "탐지 대상 주소에 기본 제공 정책과 같은 가드레일로 챌린지를 적용하거나 차단합니다. 처음에는 꺼져 있으며, 켜면 시험 운영이 시작됩니다.",
+  "Challenges or blocks the address a detection is about, under the ready policies' guardrails. It starts off: turning it on starts its trial run.": "탐지 대상 주소에 기본 제공 정책과 같은 가드레일로 챌린지를 적용하거나 차단합니다. 처음에는 꺼져 있으며, 켜면 시험 운영이 시작됩니다.",
   "Choose Block or Challenge.": "차단 또는 챌린지를 선택하세요.",
   "Choose how long the policy's first block lasts: 1 hour, 24 hours or 7 days.": "정책의 첫 차단 기간을 선택하세요: 1시간, 24시간 또는 7일.",
   "Choose what the policy acts on: at least one ATT&CK technique, one detection rule, or addresses your threat intel lists.": "정책의 대상을 선택하세요: ATT&CK 기법, 탐지 규칙, 위협 인텔리전스에 올라 있는 주소 중 하나 이상.",

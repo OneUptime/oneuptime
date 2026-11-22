@@ -528,7 +528,7 @@ describe("the case queue's pages are the queue's views", () => {
     );
   });
 
-  test("Playbooks lists the two runs pages after the playbooks, with their names and icons, then the protected entities", () => {
+  test("Playbooks lists the two runs pages after the playbooks, with their names and icons, then automatic response, the blocklist and the protected entities", () => {
     const items: Array<SecurityEventsMenuItem> =
       sectionTitled("Playbooks").items;
 
@@ -551,7 +551,12 @@ describe("the case queue's pages are the queue's views", () => {
         .map((item: SecurityEventsMenuItem): string => {
           return item.title;
         }),
-    ).toEqual(["Blocklist", "Blocklist Feeds", "Protected Entities"]);
+    ).toEqual([
+      "Automatic Response",
+      "Blocklist",
+      "Blocklist Feeds",
+      "Protected Entities",
+    ]);
   });
 });
 
@@ -731,6 +736,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Playbooks"],
       ["Security Events", "Playbooks", "Approvals"],
       ["Security Events", "Playbooks", "Playbook Runs"],
+      ["Security Events", "Playbooks", "Automatic Response"],
       ["Security Events", "Playbooks", "Blocklist"],
       ["Security Events", "Playbooks", "Blocklist Feeds"],
       ["Security Events", "Playbooks", "Protected Entities"],

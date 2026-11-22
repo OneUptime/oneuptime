@@ -61911,7 +61911,7 @@
   "Challenged at {{destinations}} {{time}} by the {{policy}} policy, until {{until}}.": "{{policy}} 策略自 {{time}} 起在 {{destinations}} 上质询，直到 {{until}}。",
   "Challenged at {{destinations}} {{time}} by the {{policy}} policy, {{after}} after its first request, until {{until}}.": "{{policy}} 策略自 {{time}} 起在 {{destinations}} 上质询，直到 {{until}}（首个请求后 {{after}}）。",
   "Challenges an address that probes your app for weaknesses, such as /.env, /wp-admin or path traversal, while every request it sent was turned away.": "在某个地址的所有请求都被拒绝期间，对探测你应用弱点（如 /.env、/wp-admin 或路径遍历）的该地址进行质询。",
-  "Challenges or blocks the address a detection is about, under the same guardrails as the ready policies. It starts off: turning it on starts its trial run.": "对检测所涉及的地址进行质询或封禁，护栏与现成策略相同。它初始为关闭：开启后即开始试运行。",
+  "Challenges or blocks the address a detection is about, under the ready policies' guardrails. It starts off: turning it on starts its trial run.": "对检测所涉及的地址进行质询或封禁，护栏与现成策略相同。它初始为关闭：开启后即开始试运行。",
   "Choose Block or Challenge.": "请选择封禁或质询。",
   "Choose how long the policy's first block lasts: 1 hour, 24 hours or 7 days.": "请选择策略首次封禁的时长：1 小时、24 小时或 7 天。",
   "Choose what the policy acts on: at least one ATT&CK technique, one detection rule, or addresses your threat intel lists.": "请选择策略作用的对象：至少一个 ATT&CK 技术、一条检测规则，或威胁情报所列的地址。",

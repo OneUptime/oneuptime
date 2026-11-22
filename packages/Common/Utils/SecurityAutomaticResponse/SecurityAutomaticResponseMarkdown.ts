@@ -5,6 +5,7 @@ import {
   describeSecurityBlockLength,
 } from "../../Types/SecurityBlocklist/SecurityBlock";
 import FeedMarkdown, { MarkdownText, mdText } from "../Markdown/FeedMarkdown";
+import { NO_BREAK_SPACE } from "../../Types/NoBreakSpaces";
 
 /*
  * WHAT A CASE'S TIMELINE SAYS OF AN AUTOMATIC RESPONSE (#10350), and what
@@ -51,7 +52,9 @@ export function describeAutomaticBlockLength(
 
 /*
  * How long after the first request: "41 seconds", "3 minutes", "2 hours".
- * Seconds under two minutes, minutes under two hours.
+ * Seconds under two minutes, minutes under two hours. The figure stays on
+ * the line of its unit (a no-break space), as every figure the product
+ * writes does.
  */
 export function formatTimeAfterFirstRequest(seconds: number): string {
   const whole: number = Number.isFinite(seconds)
@@ -59,16 +62,18 @@ export function formatTimeAfterFirstRequest(seconds: number): string {
     : 0;
 
   if (whole < 120) {
-    return whole === 1 ? "1 second" : `${whole} seconds`;
+    return whole === 1
+      ? `1${NO_BREAK_SPACE}second`
+      : `${whole}${NO_BREAK_SPACE}seconds`;
   }
 
   const minutes: number = Math.round(whole / 60);
 
   if (minutes < 120) {
-    return `${minutes} minutes`;
+    return `${minutes}${NO_BREAK_SPACE}minutes`;
   }
 
-  return `${Math.round(minutes / 60)} hours`;
+  return `${Math.round(minutes / 60)}${NO_BREAK_SPACE}hours`;
 }
 
 // What the ladder climbed on: "it was blocked once before in the last 30 days".

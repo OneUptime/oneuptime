@@ -726,7 +726,13 @@
   "/dashboard/:projectId/security-events/playbook-runs/all": [
     "security-events"
   ],
+  "/dashboard/:projectId/security-events/automatic-response": [
+    "security-events"
+  ],
   "/dashboard/:projectId/security-events/blocklist": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/blocklist/feeds": [
     "security-events"
   ],
   "/dashboard/:projectId/security-events/protected-entities": [
@@ -778,6 +784,9 @@
     "data-security"
   ],
   "/dashboard/:projectId/data-security/issues": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/ai": [
     "data-security"
   ],
   "/dashboard/:projectId/data-security/sensitive-data": [

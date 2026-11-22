@@ -672,7 +672,7 @@ describe("a scanner, from its requests to the case's line", () => {
     );
 
     expect(timeline).toContain(
-      `🛡️ OneUptime challenged \`${ADDRESS}\` at Test Edge for 1 hour (Scanners policy), ${seconds} seconds after its first request.`,
+      `🛡️ OneUptime challenged \`${ADDRESS}\` at Test Edge for 1 hour (Scanners policy), ${seconds}\u00A0seconds after its first request.`,
     );
     expect(caseWrites).toContainEqual(
       expect.objectContaining({ timeToBlockInSeconds: seconds }),

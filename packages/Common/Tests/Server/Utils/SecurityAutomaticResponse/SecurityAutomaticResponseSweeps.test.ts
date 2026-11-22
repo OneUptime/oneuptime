@@ -248,7 +248,7 @@ describe("time to block, and the case's line", () => {
     ).toBe(1);
 
     expect(timeline).toEqual([
-      "🛡️ OneUptime challenged `35.205.11.131` at Cloudflare for 1 hour (Scanners policy), 41 seconds after its first request.",
+      "🛡️ OneUptime challenged `35.205.11.131` at Cloudflare for 1 hour (Scanners policy), 41\u00A0seconds after its first request.",
     ]);
 
     const [actionStamp, caseStamp] = compareAndSets;
@@ -284,7 +284,7 @@ describe("time to block, and the case's line", () => {
     await SecurityAutomaticResponseRecorder.recordBlocksTakingHold();
 
     expect(timeline[0]).toBe(
-      "🛡️ OneUptime challenged `35.205.11.131` at Cloudflare and Palo Alto feed for 1 hour (Scanners policy), 41 seconds after its first request. Palo Alto feed cannot challenge, so it blocks the address there for the same time.",
+      "🛡️ OneUptime challenged `35.205.11.131` at Cloudflare and Palo Alto feed for 1 hour (Scanners policy), 41\u00A0seconds after its first request. Palo Alto feed cannot challenge, so it blocks the address there for the same time.",
     );
   });
 
@@ -300,7 +300,7 @@ describe("time to block, and the case's line", () => {
     await SecurityAutomaticResponseRecorder.recordBlocksTakingHold();
 
     expect(timeline[0]).toBe(
-      "🛡️ OneUptime challenged `35.205.11.131` at Cloudflare for 24 hours (Scanners policy), 41 seconds after its first request. The block is longer because it was blocked once before in the last 30 days.",
+      "🛡️ OneUptime challenged `35.205.11.131` at Cloudflare for 24 hours (Scanners policy), 41\u00A0seconds after its first request. The block is longer because it was blocked once before in the last 30 days.",
     );
   });
 

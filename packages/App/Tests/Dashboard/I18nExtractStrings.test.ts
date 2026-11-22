@@ -1724,6 +1724,10 @@ describe("the real source roots", () => {
       "ui packages/Common/Types/SecurityEvent/SecurityHuntLibrary.ts",
       // A connector's Data to import choices - its marked labels, not its fields.
       "keys packages/Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog.ts",
+      // The blocklist's sentences (#10338) - not its rules.
+      "keys packages/Common/Types/SecurityBlocklist",
+      // The ready automatic response policies and what is wrong with a project's own (#10350) - not their rules.
+      "keys packages/Common/Types/SecurityAutomaticResponse",
       // What each span type is - its marked sentences, not its choices' names.
       "keys packages/Common/Types/Telemetry/TraceSpanType.ts",
       // What Give Feedback can be about (#8893) - not the rules for asking people.

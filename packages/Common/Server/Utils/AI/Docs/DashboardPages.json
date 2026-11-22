@@ -4679,6 +4679,22 @@
     "kind": "page"
   },
   {
+    "title": "Automatic Response",
+    "where": [
+      "Security Events",
+      "Playbooks"
+    ],
+    "keywords": [
+      "auto block",
+      "block scanners",
+      "block brute force",
+      "fail2ban",
+      "challenge bots"
+    ],
+    "path": "/dashboard/:projectId/security-events/automatic-response",
+    "kind": "page"
+  },
+  {
     "title": "Blocklist",
     "where": [
       "Security Events",
@@ -4692,6 +4708,25 @@
       "lift a block"
     ],
     "path": "/dashboard/:projectId/security-events/blocklist",
+    "kind": "page"
+  },
+  {
+    "title": "Blocklist Feeds",
+    "where": [
+      "Security Events",
+      "Playbooks"
+    ],
+    "keywords": [
+      "blocklist feed",
+      "external dynamic list",
+      "threat feed",
+      "firewall feed url",
+      "palo alto edl",
+      "fortigate threat feed",
+      "nftables blocklist",
+      "nginx deny list"
+    ],
+    "path": "/dashboard/:projectId/security-events/blocklist/feeds",
     "kind": "page"
   },
   {
@@ -4835,10 +4870,22 @@
       "security case status",
       "case states",
       "custom case status",
-      "case workflow"
+      "case workflow",
+      "auto contain",
+      "verified containment"
     ],
     "path": "/dashboard/:projectId/security-events/settings/case-statuses",
     "kind": "page"
+  },
+  {
+    "title": "Mark Cases Contained When Verified",
+    "where": [
+      "Security Events",
+      "Settings",
+      "Case Statuses"
+    ],
+    "path": "/dashboard/:projectId/security-events/settings/case-statuses",
+    "kind": "setting"
   },
   {
     "title": "Custom Fields",
@@ -4942,6 +4989,33 @@
     ],
     "path": "/dashboard/:projectId/data-security/issues",
     "kind": "page"
+  },
+  {
+    "title": "AI",
+    "where": [
+      "Data Security"
+    ],
+    "keywords": [
+      "data security ai",
+      "ai proposals",
+      "waiting for you",
+      "done by ai",
+      "approve ai changes",
+      "oneuptime ai data security",
+      "data security ai rules",
+      "what ai may do without asking"
+    ],
+    "path": "/dashboard/:projectId/data-security/ai",
+    "kind": "page"
+  },
+  {
+    "title": "Work on new issues",
+    "where": [
+      "Data Security",
+      "AI"
+    ],
+    "path": "/dashboard/:projectId/data-security/ai",
+    "kind": "setting"
   },
   {
     "title": "Sensitive Data",

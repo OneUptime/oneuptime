@@ -273,7 +273,7 @@ export const CREATE_POLICY: string = translationKey("Create Policy");
 export const EDIT_POLICY: string = translationKey("Edit Policy");
 export const DELETE_POLICY: string = translationKey("Delete Policy");
 export const POLICY_FORM_DESCRIPTION: string = translationKey(
-  "Challenges or blocks the address a detection is about, under the same guardrails as the ready policies. It starts off: turning it on starts its trial run.",
+  "Challenges or blocks the address a detection is about, under the ready policies' guardrails. It starts off: turning it on starts its trial run.",
 );
 export const NAME_FIELD_PLACEHOLDER: string = translationKey(
   "Bots on the sign-in API",

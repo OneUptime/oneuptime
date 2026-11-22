@@ -61911,7 +61911,7 @@
   "Challenged at {{destinations}} {{time}} by the {{policy}} policy, until {{until}}.": "{{policy}} 政策自 {{time}} 起在 {{destinations}} 上挑戰，直到 {{until}}。",
   "Challenged at {{destinations}} {{time}} by the {{policy}} policy, {{after}} after its first request, until {{until}}.": "{{policy}} 政策自 {{time}} 起在 {{destinations}} 上挑戰，直到 {{until}}（首個請求後 {{after}}）。",
   "Challenges an address that probes your app for weaknesses, such as /.env, /wp-admin or path traversal, while every request it sent was turned away.": "在某個位址的所有請求都被拒絕期間，對探測你應用程式弱點（如 /.env、/wp-admin 或路徑周遊）的該位址進行挑戰。",
-  "Challenges or blocks the address a detection is about, under the same guardrails as the ready policies. It starts off: turning it on starts its trial run.": "對偵測所涉及的位址進行挑戰或封鎖，護欄與現成政策相同。它一開始為關閉：開啟後即開始試行。",
+  "Challenges or blocks the address a detection is about, under the ready policies' guardrails. It starts off: turning it on starts its trial run.": "對偵測所涉及的位址進行挑戰或封鎖，護欄與現成政策相同。它一開始為關閉：開啟後即開始試行。",
   "Choose Block or Challenge.": "請選擇封鎖或挑戰。",
   "Choose how long the policy's first block lasts: 1 hour, 24 hours or 7 days.": "請選擇政策首次封鎖的時長：1 小時、24 小時或 7 天。",
   "Choose what the policy acts on: at least one ATT&CK technique, one detection rule, or addresses your threat intel lists.": "請選擇政策作用的對象：至少一項 ATT&CK 技術、一條偵測規則，或威脅情報所列的位址。",

@@ -61911,7 +61911,7 @@
   "Challenged at {{destinations}} {{time}} by the {{policy}} policy, until {{until}}.": "{{policy}} ポリシーが {{time}} から {{until}} まで {{destinations}} でチャレンジを適用しています。",
   "Challenged at {{destinations}} {{time}} by the {{policy}} policy, {{after}} after its first request, until {{until}}.": "{{policy}} ポリシーが {{time}} から {{until}} まで {{destinations}} でチャレンジを適用しています (最初のリクエストから {{after}} 後)。",
   "Challenges an address that probes your app for weaknesses, such as /.env, /wp-admin or path traversal, while every request it sent was turned away.": "/.env、/wp-admin、パストラバーサルなど、アプリの弱点を探るアドレスに、送ったリクエストがすべて拒否されている間、チャレンジを適用します。",
-  "Challenges or blocks the address a detection is about, under the same guardrails as the ready policies. It starts off: turning it on starts its trial run.": "検出の対象となったアドレスに、既定のポリシーと同じガードレールのもとでチャレンジを適用するか、ブロックします。最初はオフで、オンにすると試行期間が始まります。",
+  "Challenges or blocks the address a detection is about, under the ready policies' guardrails. It starts off: turning it on starts its trial run.": "検出の対象となったアドレスに、既定のポリシーと同じガードレールのもとでチャレンジを適用するか、ブロックします。最初はオフで、オンにすると試行期間が始まります。",
   "Choose Block or Challenge.": "ブロックかチャレンジを選んでください。",
   "Choose how long the policy's first block lasts: 1 hour, 24 hours or 7 days.": "ポリシーの最初のブロックの期間を選んでください: 1 時間、24 時間、7 日。",
   "Choose what the policy acts on: at least one ATT&CK technique, one detection rule, or addresses your threat intel lists.": "ポリシーの対象を選んでください: ATT&CK テクニック、検出ルール、脅威インテリジェンスに載っているアドレスのいずれか 1 つ以上。",

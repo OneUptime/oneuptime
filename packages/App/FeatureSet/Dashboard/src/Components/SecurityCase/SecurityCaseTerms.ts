@@ -71,6 +71,8 @@ export const SECURITY_CASE_DISPLAY_TERMS: ReadonlyArray<string> = [
   translationKey("Case Opened"),
   translationKey("Detection Added"),
   translationKey("Triaged as Likely Malicious"),
+  // An automatic response policy's run (#10350).
+  translationKey("Automatic Response"),
   // SecurityPlaybookRunStatus and SecurityPlaybookStepStatus
   translationKey("Queued"),
   translationKey("Running"),

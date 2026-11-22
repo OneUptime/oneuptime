@@ -255,7 +255,9 @@ describe("Automatic Response docs: the Dashboard's words", () => {
     })
       .toString()
       .replace(/^🛡️ /, "")
-      .replace(/`/g, "");
+      .replace(/`/g, "")
+      // The docs write a figure and its unit with a plain space.
+      .replace(/\u00A0/g, " ");
 
     expect(text).toContain(`"${line}"`);
   });
