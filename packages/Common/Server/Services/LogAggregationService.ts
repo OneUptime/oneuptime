@@ -30,6 +30,11 @@ import {
   clampLogErrorPattern,
 } from "../Utils/Telemetry/LogErrorPatternSql";
 import LogNumericAttributeSql from "../Utils/Telemetry/LogNumericAttributeSql";
+import { buildTelemetryFilterCondition } from "../Utils/Telemetry/TelemetryFilterQuerySql";
+import {
+  readTelemetryFilterQuery,
+  ReadTelemetryFilterQuery,
+} from "../../Utils/Telemetry/TelemetryFilterQuery";
 import AggregationType from "../../Types/BaseDatabase/AggregationType";
 import {
   getLogAnalyticsNumericAggregationType,
@@ -1642,7 +1647,13 @@ export class LogAggregationService {
      */
     totalStatement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
-    // Get matching count using the filter query as body search
+    /*
+     * The logs the filter's query matches, read as ingest reads it
+     * (TelemetryFilterQuerySql, #10436). It was searched for as text in the
+     * body, so "severityText = 'Debug'" counted the logs whose body held
+     * those words. A query ingest cannot read matches nothing there, and so
+     * nothing here.
+     */
     const matchStatement: Statement = SQL`
       SELECT count() AS cnt
       FROM ${LogAggregationService.TABLE_NAME}
@@ -1662,10 +1673,20 @@ export class LogAggregationService {
 
     matchStatement.append(LogAggregationService.RETENTION_FILTER);
 
-    LogAggregationService.appendCommonFilters(matchStatement, {
-      ...request,
-      bodySearchText: request.filterQuery,
-    });
+    LogAggregationService.appendCommonFilters(matchStatement, request);
+
+    const filter: ReadTelemetryFilterQuery = readTelemetryFilterQuery(
+      request.filterQuery,
+    );
+
+    if (filter.kind === "expr") {
+      matchStatement.append(" AND ");
+      matchStatement.append(
+        buildTelemetryFilterCondition({ signal: "log", expr: filter.expr }),
+      );
+    } else {
+      matchStatement.append(" AND 0");
+    }
 
     // Same cap, and the same stop, as the total above.
     matchStatement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));

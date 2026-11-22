@@ -17,6 +17,7 @@ import { ClickHouseClientConfigOptions } from "../../../../Server/Infrastructure
 import ClickhouseDatabase, {
   ClickhouseClient,
 } from "../../../../Server/Infrastructure/ClickhouseDatabase";
+import LogAggregationService from "../../../../Server/Services/LogAggregationService";
 import LogService from "../../../../Server/Services/LogService";
 import SpanService from "../../../../Server/Services/SpanService";
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
@@ -597,6 +598,38 @@ integration("a drop filter's count, in a real ClickHouse (#10436)", () => {
 
     expect(Number(row["total"])).toBe(3);
     expect(Number(row["matched"])).toBe(1);
+  });
+
+  test("the drop filter estimate counts the logs the filter matches, not its words in the body", async () => {
+    const estimate: {
+      totalLogs: number;
+      matchingLogs: number;
+      estimatedReductionPercent: number;
+    } = await LogAggregationService.getDropFilterEstimate({
+      projectId: PROJECT_ID,
+      startTime: minutesAgo(24 * 60),
+      endTime: NOW,
+      filterQuery: "severityText = 'Debug'",
+    });
+
+    // The engine drops the day's three Debug lines; none says "severityText".
+    expect(estimate).toEqual({
+      totalLogs: 8,
+      matchingLogs: 3,
+      estimatedReductionPercent: 38,
+    });
+
+    // A query ingest cannot read drops nothing, whatever the body holds.
+    expect(
+      (
+        await LogAggregationService.getDropFilterEstimate({
+          projectId: PROJECT_ID,
+          startTime: minutesAgo(24 * 60),
+          endTime: NOW,
+          filterQuery: "sshd",
+        })
+      ).matchingLogs,
+    ).toBe(0);
   });
 
   test("a count that runs out of its time is stopped and says so", async () => {
