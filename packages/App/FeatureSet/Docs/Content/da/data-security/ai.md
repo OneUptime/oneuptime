@@ -24,7 +24,7 @@ På et problems side viser kortet **OneUptime AI** over **Sådan rettes det** an
 
 Under **AI-regler** på **Datasikkerhed → AI** siger en regel, hvilke problemer OneUptime AI arbejder med - efter deres kontrol eller kontrolgruppe, alvorlighed og datalagerets følsomhed, type, udbyder, miljø, etiketter, datakategorier og tjeneste - og for hver slags arbejde, **Analysér**, **Inddæm**, **Rettelse** og **Vurdér**, om den er **Fra**, **Foreslå** (den foreslår og venter på dig) eller **Uden at spørge**. Når flere regler passer til et problem, kører en slags arbejde, hvis en af dem slår det til, og **Foreslå** går forud for **Uden at spørge**. Hvert forslag siger, hvilken regel der afgjorde det. Uden regel gælder projektets standarder: analysér kritiske og høje problemer, og foreslå alt andet.
 
-AI-regler hører til hele projektet, ligesom AI-reglerne for hændelser og alarmer: projektejere og projektadministratorer ændrer dem, og det gør alle, der har fået tilladelserne til AI-regler. Sikkerhedsrollerne ser, hvad OneUptime AI foreslog og gjorde, men ikke reglerne.
+AI-regler hører til hele projektet, ligesom AI-reglerne for hændelser og alarmer: rollerne Projektejer og Projektadministrator ændrer dem, og det gør alle, der har fået tilladelserne til AI-regler. Sikkerhedsrollerne ser, hvad OneUptime AI foreslog og gjorde, men ikke reglerne.
 
 ## Hvad OneUptime AI ser
 

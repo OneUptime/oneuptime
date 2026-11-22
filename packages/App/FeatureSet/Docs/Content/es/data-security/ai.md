@@ -24,7 +24,7 @@ En la página de un problema, la tarjeta **OneUptime AI** sobre **Cómo corregir
 
 En **Reglas de IA** de **Seguridad de datos → IA**, una regla dice en qué problemas trabaja la IA de OneUptime - por su comprobación o grupo de comprobaciones, su gravedad, y la sensibilidad, el tipo, el proveedor, el entorno, las etiquetas, las categorías de datos y el servicio del almacén - y, para cada tipo de trabajo, **Analizar**, **Contener**, **Corrección** y **Juzgar**, si está en **Desactivado**, **Sugerir** (propone y te espera) o **Sin preguntar**. Cuando varias reglas coinciden con un problema, un tipo de trabajo se ejecuta si alguna lo activa, y **Sugerir** gana a **Sin preguntar**. Cada propuesta dice qué regla la decidió. Sin ninguna regla, se aplican los valores predeterminados del proyecto: analizar los problemas críticos y altos, y sugerir todo lo demás.
 
-Las reglas de IA pertenecen a todo el proyecto, como las de incidentes y alertas: los propietarios y administradores del proyecto las cambian, igual que cualquiera con los permisos de reglas de IA. Los roles de seguridad ven lo que la IA de OneUptime propuso e hizo, pero no las reglas.
+Las reglas de IA pertenecen a todo el proyecto, como las de incidentes y alertas: los roles Propietario del proyecto y Administrador del proyecto las cambian, igual que cualquiera con los permisos de reglas de IA. Los roles de seguridad ven lo que la IA de OneUptime propuso e hizo, pero no las reglas.
 
 ## Lo que ve OneUptime AI
 
