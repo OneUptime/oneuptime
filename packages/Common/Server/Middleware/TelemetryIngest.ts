@@ -27,6 +27,7 @@ import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
+  RequestHandler,
   headerValueToString,
 } from "../../Server/Utils/Express";
 import TelemetryIngestionKeyService from "../../Server/Services/TelemetryIngestionKeyService";
@@ -63,6 +64,9 @@ import {
   getMobileKeySurfaceRefusalMessage,
 } from "../Utils/Telemetry/TelemetryIngestionKeyGuard";
 import type TelemetryIngestAttribution from "../Utils/Telemetry/TelemetryIngestAttribution";
+import TelemetryIngestUnknownKeyRefusals, {
+  UnknownIngestionKeyRefusal,
+} from "../Utils/Telemetry/TelemetryIngestUnknownKeyRefusals";
 
 export interface TelemetryRequest extends ExpressRequest {
   projectId: ObjectID; // Project ID
@@ -403,16 +407,33 @@ export default class TelemetryIngest {
    * open a span when the route table is built at boot, once, and never again
    * per request. Passing the surface as an argument keeps exactly one
    * decorated frame, on the function that actually handles a request.
+   *
+   * `readBody` is for a route whose body StartServer leaves unread
+   * (RequestBodyLimit's readsBodyAfterAuthentication, #10702): the route's
+   * reader (RequestBodyAfterAuthentication.readBody), run once the key is
+   * known to be right and within its rate, and before the ingestion budget
+   * - which measures the body in Refuse mode, to count exactly what it
+   * admits and what it refuses. A request without the right key has
+   * nothing of its body read, inflated or parsed: its refusal is sent and
+   * the connection closed under the rest (UnreadRequestBody), which the
+   * client still reads.
    */
   public static forSurface(
     surface: TelemetryIngestSurface,
+    readBody?: RequestHandler | undefined,
   ): TelemetryIngestMiddlewareFunction {
     return (
       req: ExpressRequest,
       res: ExpressResponse,
       next: NextFunction,
     ): Promise<void> => {
-      return TelemetryIngest.authorizeIngestRequest(surface, req, res, next);
+      return TelemetryIngest.authorizeIngestRequest(
+        surface,
+        req,
+        res,
+        next,
+        readBody,
+      );
     };
   }
 
@@ -449,6 +470,7 @@ export default class TelemetryIngest {
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
+    readBody?: RequestHandler | undefined,
   ): Promise<void> {
     try {
       // check header.
@@ -472,10 +494,21 @@ export default class TelemetryIngest {
       }
 
       if (!oneuptimeToken) {
-        logger.error(
+        /*
+         * At debug, and counted (#10703): this comes from anyone, before
+         * anyone is known, and a client that sends no key wrote one
+         * error-level line a request, at no cost to itself. The count is
+         * logged at warn at most once a minute, by surface
+         * (TelemetryIngestUnknownKeyRefusals).
+         */
+        logger.debug(
           "Missing header: x-oneuptime-token",
           getLogAttributesFromRequest(req as any),
         );
+        TelemetryIngestUnknownKeyRefusals.record({
+          refusal: UnknownIngestionKeyRefusal.Missing,
+          surface: surface,
+        });
 
         /*
          * 401 is deliberate: the OTLP spec classifies it as
@@ -514,12 +547,17 @@ export default class TelemetryIngest {
          * The token value itself is deliberately NOT logged: ingestion
          * keys are secrets, and a mistyped-but-nearly-valid token in a
          * log line is a credential leak. The request attributes give
-         * operators enough to correlate with the sender.
+         * operators enough to correlate with the sender. At debug, and
+         * counted, as a missing token is (#10703).
          */
-        logger.error(
+        logger.debug(
           "Invalid service token.",
           getLogAttributesFromRequest(req as any),
         );
+        TelemetryIngestUnknownKeyRefusals.record({
+          refusal: UnknownIngestionKeyRefusal.Unknown,
+          surface: surface,
+        });
 
         /*
          * 401 is deliberate (see the missing-token branch above): a
@@ -805,6 +843,25 @@ export default class TelemetryIngest {
       }
 
       /*
+       * The body, now that its sender is known (#10702): read here, after
+       * every check of the key and its rate, and before the budget, which
+       * measures it. A refused read (over the route's limit, a gzip body
+       * that does not inflate) is answered by the error handler, as
+       * StartServer's was.
+       */
+      if (readBody) {
+        const readError: unknown = await TelemetryIngest.readBodyAfterKey(
+          readBody,
+          req,
+          res,
+        );
+
+        if (readError) {
+          return next(readError);
+        }
+      }
+
+      /*
        * Ingestion budgets: the project's daily budget and per-second rate for
        * this surface's signal, and the key's own. Nothing is read from Redis
        * - or measured - unless one is in force (TelemetryIngestionBudget), so
@@ -908,6 +965,27 @@ export default class TelemetryIngest {
 
       return next(err);
     }
+  }
+
+  /*
+   * Run a route's body reader and resolve with what it passed on: nothing
+   * once the body is read, or the error it was refused with. Never
+   * rejects: a reader that throws is refused with what it threw.
+   */
+  private static readBodyAfterKey(
+    readBody: RequestHandler,
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<unknown> {
+    return new Promise<unknown>((resolve: (err: unknown) => void): void => {
+      try {
+        readBody(req, res, ((err?: unknown): void => {
+          resolve(err);
+        }) as NextFunction);
+      } catch (err) {
+        resolve(err);
+      }
+    });
   }
 
   /*
