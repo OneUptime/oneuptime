@@ -24,6 +24,7 @@ import HTTPResponseBodyReader, {
   HTTPResponseBodyBudget,
 } from "./HTTPResponseBodyReader";
 import { getSameServerRedirectCheck } from "./SameServerRedirect";
+import OutboundRequestRouting from "./OutboundRequestRouting";
 import ResponseTooLarge from "./ResponseTooLarge";
 import RetryAfter from "./RetryAfter";
 import type { Agent as HttpAgent } from "http";
@@ -104,10 +105,11 @@ export interface RequestOptions {
   maxContentLength?: number | undefined;
   maxBodyLength?: number | undefined;
   /*
-   * Axios reads HTTP(S)_PROXY from the process environment on its own. A
-   * caller that supplies a destination-pinned agent must be able to turn that
-   * implicit second routing layer off, or the proxy can resolve a different
-   * address from the one the caller approved.
+   * On a server, a request goes through the outbound proxy the environment
+   * names (HTTPS_PROXY, HTTP_PROXY, ALL_PROXY, apart from NO_PROXY's hosts),
+   * or directly, as OutboundRequestRouting decides for its URL; axios never
+   * reads the proxy from the environment itself (#10442). true: never
+   * through a proxy, on the agents given, or else directly.
    */
   disableProxy?: boolean | undefined;
   /* Abort active sockets when a caller-owned end-to-end deadline expires. */
@@ -124,7 +126,10 @@ export interface RequestOptions {
    * reporting URL type cannot represent an href without normalization.
    */
   dispatchUrl?: string | undefined;
-  // Per-request proxy agent support (Probe supplies these instead of mutating global axios defaults)
+  /*
+   * Agents of the request's own: a pinned agent pair, or a probe's proxy
+   * agents. They are its route: no proxy of axios's is added on top.
+   */
   httpAgent?: HttpAgent | undefined;
   httpsAgent?: HttpsAgent | undefined;
   /*
@@ -714,6 +719,14 @@ export default class API {
       if (options?.onUploadProgress) {
         axiosOptions.onUploadProgress = options.onUploadProgress;
       }
+
+      /*
+       * On a server: through the outbound proxy, or directly, decided for
+       * the URL (and again at each redirect) - never through a proxy axios
+       * reads from the environment itself, which sent the proxy's password
+       * percent-encoded (#10442). In a browser: as it is.
+       */
+      OutboundRequestRouting.route(axiosOptions);
 
       let result: AxiosResponse | null = null;
 
