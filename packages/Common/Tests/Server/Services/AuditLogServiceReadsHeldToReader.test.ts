@@ -10,6 +10,7 @@ import AggregateBy from "../../../Server/Types/AnalyticsDatabase/AggregateBy";
 import CountBy from "../../../Server/Types/AnalyticsDatabase/CountBy";
 import ExistsBy from "../../../Server/Types/AnalyticsDatabase/ExistsBy";
 import FindBy from "../../../Server/Types/AnalyticsDatabase/FindBy";
+import DatabaseFindBy from "../../../Server/Types/Database/FindBy";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import {
   ExpressRequest,
@@ -280,7 +281,7 @@ type AnyService = DatabaseService<BaseModel>;
  */
 const foundByService: Map<
   AnyService,
-  { ids: Array<ObjectID>; asked: Array<FindBy<BaseModel>> }
+  { ids: Array<ObjectID>; asked: Array<DatabaseFindBy<BaseModel>> }
 > = new Map();
 
 function answerRecordReads(): void {
@@ -290,10 +291,10 @@ function answerRecordReads(): void {
     .spyOn(DatabaseService.prototype, "findBy")
     .mockImplementation(async function (
       this: AnyService,
-      findBy: FindBy<BaseModel>,
+      findBy: DatabaseFindBy<BaseModel>,
     ): Promise<Array<BaseModel>> {
       const found:
-        | { ids: Array<ObjectID>; asked: Array<FindBy<BaseModel>> }
+        | { ids: Array<ObjectID>; asked: Array<DatabaseFindBy<BaseModel>> }
         | undefined = foundByService.get(this);
 
       if (!found) {
@@ -322,8 +323,8 @@ function answerRecordReads(): void {
 }
 
 // The reader's own read of security cases finds `ids`.
-function casesFound(ids: Array<ObjectID>): Array<FindBy<BaseModel>> {
-  const asked: Array<FindBy<BaseModel>> = [];
+function casesFound(ids: Array<ObjectID>): Array<DatabaseFindBy<BaseModel>> {
+  const asked: Array<DatabaseFindBy<BaseModel>> = [];
 
   foundByService.set(SecurityCaseService as unknown as AnyService, {
     ids,
@@ -562,7 +563,7 @@ describe("AuditLogService: every read held to its reader", () => {
     });
 
     test("a list that reads neither names nor changes looks no record up", async () => {
-      const asked: Array<FindBy<BaseModel>> = casesFound([CASE_ID]);
+      const asked: Array<DatabaseFindBy<BaseModel>> = casesFound([CASE_ID]);
       const readsEvery: jest.SpyInstance = getJestSpyOn(
         SecurityCaseService,
         "readsEveryRecordInProject",
@@ -654,7 +655,7 @@ describe("AuditLogService: every read held to its reader", () => {
     });
 
     test("the Resource Type filter's options (grouped by type) are no name and look nothing up", async () => {
-      const asked: Array<FindBy<BaseModel>> = casesFound([CASE_ID]);
+      const asked: Array<DatabaseFindBy<BaseModel>> = casesFound([CASE_ID]);
 
       await callRoute(
         "POST",
@@ -901,7 +902,7 @@ describe("AuditLogService: every read held to its reader", () => {
     ])(
       "%s reads every entry as recorded, filters by names included",
       async (_name: string, extra: DatabaseCommonInteractionProps) => {
-        const asked: Array<FindBy<BaseModel>> = casesFound([]);
+        const asked: Array<DatabaseFindBy<BaseModel>> = casesFound([]);
 
         const entries: Array<AuditLog> = await service.findBy({
           query: { resourceName: new Search("pay") },
