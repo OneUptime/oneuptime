@@ -45,8 +45,9 @@ import {
   TelemetryFieldSignal,
   TelemetryFieldUse,
 } from "../../../Types/Telemetry/TelemetryFieldReaders";
-import { RowActionConfirmation } from "../../../UI/Components/ActionButton/ActionButtonSchema";
-import ActionButtonSchema from "../../../UI/Components/ActionButton/ActionButtonSchema";
+import ActionButtonSchema, {
+  RowActionConfirmation,
+} from "../../../UI/Components/ActionButton/ActionButtonSchema";
 import FormSubmitCancelled from "../../../UI/Components/Forms/Types/FormSubmitCancelled";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
@@ -623,149 +624,162 @@ describe.each([
     signal: "trace" as TelemetryFieldSignal,
     model: TraceDropFilter as unknown as typeof LogDropFilter,
   },
-])("$model.name's list", ({ page, signal, model }) => {
-  function renderPage(): ModelTableProps<LogDropFilter> {
-    render(
-      <MemoryRouter>
-        {React.createElement(page, {} as PageComponentProps)}
-      </MemoryRouter>,
-    );
+])(
+  "$model.name's list",
+  ({
+    page,
+    signal,
+    model,
+  }: {
+    page: React.FunctionComponent<PageComponentProps>;
+    signal: TelemetryFieldSignal;
+    model: typeof LogDropFilter;
+  }) => {
+    function renderPage(): ModelTableProps<LogDropFilter> {
+      render(
+        <MemoryRouter>
+          {React.createElement(page, {} as PageComponentProps)}
+        </MemoryRouter>,
+      );
 
-    return mockTableProps!;
-  }
-
-  test("its form says what the filter would take, under the query and under the action", () => {
-    const props: ModelTableProps<LogDropFilter> = renderPage();
-    const fields: Array<{
-      field?: Record<string, unknown>;
-      getFooterElement?: (
-        values: Record<string, unknown>,
-      ) => ReactElement | undefined;
-    }> = (props.formFields || []) as never;
-    const footerOf: (name: string) => unknown = (name: string): unknown => {
-      return fields.find((field: { field?: Record<string, unknown> }) => {
-        return Boolean(field.field?.[name]);
-      })?.getFooterElement;
-    };
-
-    expect(footerOf("filterQuery")).toBeDefined();
-    expect(footerOf("action")).toBeDefined();
-    expect(footerOf("samplePercentage")).toBeDefined();
-    // A sample's line is under its percentage, not doubled under the action.
-    expect(
-      (
-        footerOf("action") as (
-          values: Record<string, unknown>,
-        ) => ReactElement | undefined
-      )({ filterQuery: "x = 'y'", action: "sample" }),
-    ).toBeUndefined();
-  });
-
-  test("its create asks when something reads what the filter takes, and a no calls it back", async () => {
-    const props: ModelTableProps<LogDropFilter> = renderPage();
-    const item: LogDropFilter = new model();
-
-    item.filterQuery = "attributes.process.name = 'sshd'";
-
-    let pending: Promise<LogDropFilter> | undefined;
-
-    await act(async () => {
-      pending = props.onBeforeCreate!(
-        item,
-        {},
-        {} as never,
-      ) as Promise<LogDropFilter>;
-    });
-
-    expect(await screen.findByText("Create This Filter?")).toBeInTheDocument();
-    expect(impactSpy.mock.calls[0]![0].signal).toBe(signal);
-
-    fireEvent.click(screen.getByText("Cancel"));
-
-    let thrown: unknown;
-
-    try {
-      await pending;
-    } catch (error) {
-      thrown = error;
+      return mockTableProps!;
     }
 
-    expect(FormSubmitCancelled.isCancelled(thrown)).toBe(true);
-  });
+    test("its form says what the filter would take, under the query and under the action", () => {
+      const props: ModelTableProps<LogDropFilter> = renderPage();
+      const fields: Array<{
+        field?: Record<string, unknown>;
+        getFooterElement?: (
+          values: Record<string, unknown>,
+        ) => ReactElement | undefined;
+      }> = (props.formFields || []) as never;
+      const footerOf: (name: string) => unknown = (name: string): unknown => {
+        return fields.find((field: { field?: Record<string, unknown> }) => {
+          return Boolean(field.field?.[name]);
+        })?.getFooterElement;
+      };
 
-  test("its create of a filter nothing reads goes straight on, Drop picked when none was", async () => {
-    impactSpy.mockResolvedValue(impactOf(() => {}, signal));
-
-    const props: ModelTableProps<LogDropFilter> = renderPage();
-    const item: LogDropFilter = new model();
-
-    item.filterQuery = "severityText = 'Debug'";
-
-    let created: LogDropFilter | undefined;
-
-    await act(async () => {
-      created = (await props.onBeforeCreate!(
-        item,
-        {},
-        {} as never,
-      )) as LogDropFilter;
+      expect(footerOf("filterQuery")).toBeDefined();
+      expect(footerOf("action")).toBeDefined();
+      expect(footerOf("samplePercentage")).toBeDefined();
+      // A sample's line is under its percentage, not doubled under the action.
+      expect(
+        (
+          footerOf("action") as (
+            values: Record<string, unknown>,
+          ) => ReactElement | undefined
+        )({ filterQuery: "x = 'y'", action: "sample" }),
+      ).toBeUndefined();
     });
 
-    expect(created!.action).toBe("drop");
-    expect(screen.queryByText("Create This Filter?")).not.toBeInTheDocument();
-  });
+    test("its create asks when something reads what the filter takes, and a no calls it back", async () => {
+      const props: ModelTableProps<LogDropFilter> = renderPage();
+      const item: LogDropFilter = new model();
 
-  test("its row's Enable says what the filter would take; Disable says what it always said", () => {
-    const props: ModelTableProps<LogDropFilter> = renderPage();
-    const enable: ActionButtonSchema<LogDropFilter> | undefined = (
-      props.actionButtons || []
-    ).find((button: ActionButtonSchema<LogDropFilter>) => {
-      return button.title === "Enable";
+      item.filterQuery = "attributes.process.name = 'sshd'";
+
+      let pending: Promise<LogDropFilter> | undefined;
+
+      await act(async () => {
+        pending = props.onBeforeCreate!(
+          item,
+          {},
+          {} as never,
+        ) as Promise<LogDropFilter>;
+      });
+
+      expect(
+        await screen.findByText("Create This Filter?"),
+      ).toBeInTheDocument();
+      expect(impactSpy.mock.calls[0]![0].signal).toBe(signal);
+
+      fireEvent.click(screen.getByText("Cancel"));
+
+      let thrown: unknown;
+
+      try {
+        await pending;
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(FormSubmitCancelled.isCancelled(thrown)).toBe(true);
     });
-    const disable: ActionButtonSchema<LogDropFilter> | undefined = (
-      props.actionButtons || []
-    ).find((button: ActionButtonSchema<LogDropFilter>) => {
-      return button.title === "Disable";
+
+    test("its create of a filter nothing reads goes straight on, Drop picked when none was", async () => {
+      impactSpy.mockResolvedValue(impactOf(() => {}, signal));
+
+      const props: ModelTableProps<LogDropFilter> = renderPage();
+      const item: LogDropFilter = new model();
+
+      item.filterQuery = "severityText = 'Debug'";
+
+      let created: LogDropFilter | undefined;
+
+      await act(async () => {
+        created = (await props.onBeforeCreate!(
+          item,
+          {},
+          {} as never,
+        )) as LogDropFilter;
+      });
+
+      expect(created!.action).toBe("drop");
+      expect(screen.queryByText("Create This Filter?")).not.toBeInTheDocument();
     });
-    const item: LogDropFilter = new model();
 
-    item.name = "Debug lines";
-    item.filterQuery = "severityText = 'Debug'";
-    item.isEnabled = false;
+    test("its row's Enable says what the filter would take; Disable says what it always said", () => {
+      const props: ModelTableProps<LogDropFilter> = renderPage();
+      const enable: ActionButtonSchema<LogDropFilter> | undefined = (
+        props.actionButtons || []
+      ).find((button: ActionButtonSchema<LogDropFilter>) => {
+        return button.title === "Enable";
+      });
+      const disable: ActionButtonSchema<LogDropFilter> | undefined = (
+        props.actionButtons || []
+      ).find((button: ActionButtonSchema<LogDropFilter>) => {
+        return button.title === "Disable";
+      });
+      const item: LogDropFilter = new model();
 
-    const asked: RowActionConfirmation | undefined =
-      enable!.getConfirmation!(item);
+      item.name = "Debug lines";
+      item.filterQuery = "severityText = 'Debug'";
+      item.isEnabled = false;
 
-    expect(asked!.submitButtonText).toBe("Enable");
+      const asked: RowActionConfirmation | undefined =
+        enable!.getConfirmation!(item);
 
-    render(<MemoryRouter>{asked!.details}</MemoryRouter>);
-    expect(
-      screen.getByTestId("drop-filter-enable-impact-loading"),
-    ).toBeInTheDocument();
+      expect(asked!.submitButtonText).toBe("Enable");
 
-    item.isEnabled = true;
+      render(<MemoryRouter>{asked!.details}</MemoryRouter>);
+      expect(
+        screen.getByTestId("drop-filter-enable-impact-loading"),
+      ).toBeInTheDocument();
 
-    const disabling: RowActionConfirmation | undefined =
-      disable!.getConfirmation!(item);
+      item.isEnabled = true;
 
-    render(<>{disabling!.details}</>);
-    expect(screen.getByTestId("row-switch-consequence")).toHaveTextContent(
-      signal === "log"
-        ? "A disabled drop filter keeps the logs it would drop, until it is enabled again."
-        : "A disabled drop filter keeps the spans it would drop, until it is enabled again.",
-    );
-  });
+      const disabling: RowActionConfirmation | undefined =
+        disable!.getConfirmation!(item);
 
-  test("its list reads each filter whole, for what Enable says", () => {
-    const props: ModelTableProps<LogDropFilter> = renderPage();
+      render(<>{disabling!.details}</>);
+      expect(screen.getByTestId("row-switch-consequence")).toHaveTextContent(
+        signal === "log"
+          ? "A disabled drop filter keeps the logs it would drop, until it is enabled again."
+          : "A disabled drop filter keeps the spans it would drop, until it is enabled again.",
+      );
+    });
 
-    expect(props.selectMoreFields).toEqual(
-      expect.objectContaining({
-        filterQuery: true,
-        action: true,
-        samplePercentage: true,
-        isEnabled: true,
-      }),
-    );
-  });
-});
+    test("its list reads each filter whole, for what Enable says", () => {
+      const props: ModelTableProps<LogDropFilter> = renderPage();
+
+      expect(props.selectMoreFields).toEqual(
+        expect.objectContaining({
+          filterQuery: true,
+          action: true,
+          samplePercentage: true,
+          isEnabled: true,
+        }),
+      );
+    });
+  },
+);
