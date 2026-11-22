@@ -16,9 +16,11 @@ import {
 import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEntity";
 import { getJestSpyOn } from "../../../../Spy";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../../../Server/Utils/Logger");
+
+// A spy, as the shared helper hands it over.
+type SpyInstance = ReturnType<typeof getJestSpyOn>;
 
 /*
  * WHAT A "RULE OUT A FALSE POSITIVE" STEP IS PREFILLED WITH (#10340).
