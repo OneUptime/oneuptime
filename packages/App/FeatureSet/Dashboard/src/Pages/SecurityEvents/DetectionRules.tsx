@@ -99,8 +99,10 @@ import SecurityListNameCell, {
 } from "../../Components/SecurityEvents/SecurityListNameCell";
 import DetectionRuleRetrohuntInForm from "../../Components/SecurityEvents/Retrohunt/DetectionRuleRetrohuntInForm";
 import DetectionRuleWatchlists from "../../Components/SecurityEvents/Watchlists/DetectionRuleWatchlists";
+import DetectionRuleRetentionWarning from "../../Components/SecurityEvents/Retention/DetectionRuleRetentionWarning";
 import DetectionRuleRetrohuntModal from "../../Components/SecurityEvents/Retrohunt/DetectionRuleRetrohuntModal";
 import { RUN_ON_PAST_EVENTS } from "../../Components/SecurityEvents/Retrohunt/RetrohuntCopy";
+import SecurityEventsLateArrivalsNotice from "../../Components/SecurityEvents/LateArrivals/LateArrivalsNotice";
 import AddRuleExceptionModal from "../../Components/SecurityEvents/RuleExceptions/AddRuleExceptionModal";
 import {
   ACTIVE_EXCEPTION_COUNT,
@@ -277,6 +279,12 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         listItemCount={ruleCount}
       />
 
+      {/*
+       * Events that arrived more than a day after they happened, which no
+       * rule's run checked (#10491): shown only when some did, last week.
+       */}
+      <SecurityEventsLateArrivalsNotice />
+
       <ModelTable<DetectionRule>
         modelType={DetectionRule}
         query={{
@@ -440,6 +448,12 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
                   ) : (
                     <></>
                   )}
+                  {/*
+                   * A window longer than the project keeps its security
+                   * events (#10432), said before the rule is saved: what it
+                   * sees, what it needs kept, and where that is changed.
+                   */}
+                  <DetectionRuleRetentionWarning shape={shape} />
                   {/*
                    * The watchlists the rule reads, as it is typed: each with
                    * what it holds, or a name the project has no list of.

@@ -1834,6 +1834,7 @@ const RumApplicationOverview: FunctionComponent<
           "What its SDK reports, and the health of its session recordings.",
         )}
         recordId={modelId.toString()}
+        recordModelType={RumApplication}
         settingsRoute={populate(PageMap.RUM_APPLICATION_VIEW_SETTINGS)}
         labels={a.labels}
       />

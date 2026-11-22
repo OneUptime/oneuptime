@@ -340,7 +340,7 @@ En hunt, der er gemt med filtre fra sidepanelet under Begivenheder, viser dem i 
 
 En planlagt hunt giver de personer og teams besked, som du vælger under **Underret**: mindst én og højst 50 i alt. Hver kørsel:
 
-- læser de begivenheder, hvis tidspunkt ligger efter kørslen før, op til for to minutter siden, så hver begivenhed gennemsøges én gang. Den første kørsel læser fra det øjeblik, tidsplanen blev sat, eller søgningen sidst blev ændret, og efter et nedbrud indhenter en kørsel højst en dag mere end sit interval.
+- læser de begivenheder, der kom ind efter kørslen før, op til for to minutter siden, uanset hvornår de skete, så hver begivenhed gennemsøges én gang, også en, der kommer sent. Den første kørsel læser fra det øjeblik, tidsplanen blev sat, eller søgningen sidst blev ændret, og efter et nedbrud indhenter en kørsel højst en dag mere end sit interval. En begivenhed, der kommer mere end en dag efter, den skete, gemmes og kan søges, men ingen kørsel tæller den.
 - tæller de begivenheder, dens søgning finder der, præcis som **Begivenheder** ville vise dem, og læser kun det, som den person, den kører som, må læse.
 - giver, når den finder begivenheder, de personer besked, som hunten nævner, og medlemmerne af de teams, den nævner, der må læse hunts og sikkerhedsbegivenheder.
 
@@ -350,11 +350,11 @@ En planlagt hunt kører som den person, der sidst satte dens tidsplan, ændrede 
 
 ### Kørselshistorik
 
-Hver planlagt kørsel gemmes i 90 dage. **Kørselshistorik**, for enden af linjen, der siger, hvad en hunts kørsler fandt, viser dem med den nyeste først: hvornår hver kørte, og hvilke begivenheder den søgte i, derefter hvor mange den fandt, med **Vis dem** til at åbne de begivenheder på huntens side; at den intet fandt; eller hvorfor den ikke kunne køre. Den, der kan åbne en hunt, kan læse dens kørsler.
+Hver planlagt kørsel gemmes i 90 dage. **Kørselshistorik**, for enden af linjen, der siger, hvad en hunts kørsler fandt, viser dem med den nyeste først: hvornår hver kørte, og hvornår de begivenheder, den søgte i, kom ind, derefter hvor mange den fandt, med **Vis dem** til at åbne netop de begivenheder på huntens side; at den intet fandt; eller hvorfor den ikke kunne køre. Den, der kan åbne en hunt, kan læse dens kørsler.
 
 ### Hvem der får besked
 
-Notifikationen **En hunt fandt sikkerhedsbegivenheder** nævner hunten og dens søgning, hvor mange begivenheder dens kørsel fandt, og hvilket vindue den læste, og linker til huntens side på de begivenheder; ingen af begivenhedernes egne ord står i den. Alle får den på e-mail og push og vælger dens kanaler under **Brugerindstillinger → Notifikationsindstillinger**. Ligesom andre rutinemails kan den holdes tilbage i en [e-mailsamling](/docs/emails/notification-rollup).
+Notifikationen **En hunt fandt sikkerhedsbegivenheder** nævner hunten og dens søgning, hvor mange begivenheder dens kørsel fandt, og hvornår de kom ind, og linker til huntens side på netop de begivenheder: filteret **Kommet ind** over dagen før dem, som du kan fjerne for at se alt andet fra den tid; ingen af begivenhedernes egne ord står i den. Alle får den på e-mail og push og vælger dens kanaler under **Brugerindstillinger → Notifikationsindstillinger**. Ligesom andre rutinemails kan den holdes tilbage i en [e-mailsamling](/docs/emails/notification-rollup).
 
 For at slå det op, hunts finder, i Slack, Microsoft Teams eller Mattermost tilføjer du en regel til **Regler for hunts** under **Produkter → Sikkerhedshændelser → Arbejdsområde → Slack** (eller **Microsoft Teams** eller **Mattermost**), under de regler, der slår [sikkerhedssager](/docs/telemetry/security-cases#slå-op-i-slack-microsoft-teams-og-mattermost-kanaler) op. En regel angiver de kanaler, der skal slås op i (og i Microsoft Teams chattene), og, hvis du vil, de hunts, den gælder for, efter **Huntens navn**: et navn, der er din tekst, indeholder den, begynder eller slutter med den. Hver gang en planlagt kørsel finder begivenheder, slår den hunten op, dens søgning, hvor mange begivenheder og hvornår, med et link til dem, og ingen af en begivenheds egne ord. En huntregel oprettes af en rolle, der må oprette sikkerheds-playbooks, såsom Projektejer, Projektadministrator eller Sikkerhedsadministrator.
 
@@ -504,7 +504,8 @@ OneUptime tjekker hvert minut for aktiverede regler, hvis interval er gået side
 
 - En tællende regel og en korrelation tæller i vinduer så lange som intervallet, i forlængelse af hinanden efter uret: med et interval på 10 minutter falder fejl kl. 09:58 og 10:01 i forskellige vinduer og tælles hver for sig, så hold en margin, når du vælger en tærskel.
 - Efter et hul, f.eks. et worker-nedbrud eller en regel, der er slået til igen, dækker den næste kørsel hele hullet, op til de seneste 24 timer.
-- En begivenhed, der ankommer for sent, læses alligevel én gang af den næste kørsel og tælles i det vindue, den skete i: en gruppe udløses, når dens vindue når optællingen, og højst én gang pr. vindue. En begivenhed, der ankommer mere end et døgn efter, at den skete, gemmes og kan søges, men reglens kørsler læser den ikke; **Kør på tidligere hændelser** gør.
+- En kørsel, der mislykkes, f.eks. en, der tager for lang tid, lader reglen blive, hvor den var: dens **Status** siger **Kørsel mislykkedes**, og den prøves igen ved næste interval, eller inden for en time, hvis dens interval er længere. Den kørsel, der lykkes, læser alt, hvad der er kommet ind siden den seneste, der lykkedes, uanset hvor længe siden, én dag ad gangen. En kørsel, der blev stoppet, efter at den havde handlet på sine match, gøres igen uden at føje dem til deres sag to gange.
+- En begivenhed, der ankommer for sent, læses alligevel én gang af den næste kørsel og tælles i det vindue, den skete i: en gruppe udløses, når dens vindue når optællingen, og højst én gang pr. vindue. En begivenhed, der ankommer mere end et døgn efter, at den skete, gemmes og kan søges, men reglens kørsler læser den ikke; **Kør på tidligere hændelser** gør. Det er med vilje, så en indlæsning af historik ikke åbner advarsler om fortiden: når nogen er kommet så sent inden for de seneste 7 dage, siger en meddelelse over reglerne hvor mange, fra hvilke kilder og hvornår de skete, og åbner **Kør på tidligere hændelser** over den tid.
 - Hver gruppe, der når tærsklen, bliver et Detection Finding, op til 10.000 pr. kørsel. Advarsler, hændelser og sager åbnes for de 100 med de højeste optællinger; resten deler én sag om reglen, og reglens **Seneste fejl** fortæller, hvor mange grupper der matchede.
 
 ### Realtidsregler
@@ -636,6 +637,14 @@ Handlingen **Opret monitor** i en regels række åbner en ny monitor, der allere
 ## Opbevaring og fakturering
 
 Sikkerhedsbegivenheder faktureres pr. indtaget GB ligesom resten af din telemetri og opbevares i din telemetriopbevaringsperiode: projektets **Standardopbevaring (dage)** under **Projektindstillinger → Telemetri og APM → Dataopbevaring** eller en opbevaring, der er angivet på den telemetritjeneste, de hører til. Når en begivenheds opbevaring udløber, slettes den.
+
+Alt i Sikkerhedshændelser, der læser tidligere hændelser, læser kun de hændelser, der stadig opbevares, og siger, når det ville have brug for flere:
+
+- En **Først set**-regel, hvis tidsrum er længere end hændelserne opbevares, afgør ud fra de opbevarede dage, om en værdi er ny: med et tidsrum på 30 dage og 15 dages opbevaring siger dens alarmer og sager `First awsRegion in 15 days`, og en værdi, der sidst blev set for 20 dage siden, regnes som ny. Dens række viser **Kræver opmærksomhed**, og **Vis fejl** siger, hvad der skal ændres. Regelformularen og en regels detaljer i regelbiblioteket siger det, før den gemmes eller tilføjes. En optælling eller en sekvens, hvis vindue er længere end hændelserne opbevares, tæller kun dem.
+- **Kør på tidligere hændelser** over en periode, der begynder før de opbevarede hændelser, siger, at sikkerhedshændelser opbevares i 15 dage, så den kiggede 15 dage tilbage, og det, den ikke fandt, gælder kun de dage. En hændelse, der skete tidligere, men kom for sent, er stadig opbevaret og læses stadig. En **Først set**-regel siger, hvor meget af de 30 dage før perioden den kunne se.
+- En hunt, hvis **Tidsinterval** er længere end hændelserne opbevares, finder intet ældre, og dens formular siger det.
+
+**Projektindstillinger → Telemetri og APM → Dataopbevaring** viser de aktiverede regler, der kigger længere tilbage end dens **Standardopbevaring (dage)**. For at dække dem skal du opbevare hændelser længere, med **Skift opbevaring** under en regel, eller forkorte en regels tidsrum til det, der opbevares. OneUptime opbevarer 15 dage, medmindre du ændrer det, fordi opbevaringen bestemmer, hvad din telemetri koster, og hvor længe persondata i hændelser, såsom adresser og brugernavne, opbevares. En ny opbevaring gælder for hændelser, der ankommer fra da af, så reglerne ser længere tilbage, efterhånden som de hændelser bliver ældre.
 
 ## Fejlfinding
 

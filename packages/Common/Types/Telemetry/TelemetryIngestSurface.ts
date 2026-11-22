@@ -177,8 +177,16 @@ export const BROWSER_ALLOWED_INGEST_SURFACES: ReadonlySet<TelemetryIngestSurface
 
 /*
  * The only surfaces a Mobile key may write to (issue #6457): what a mobile
- * app's OpenTelemetry SDK exports over OTLP/HTTP, and nothing else. An
- * ALLOWLIST for the same reason as the browser one above.
+ * app's OpenTelemetry SDK exports over OTLP/HTTP, and its own session
+ * replays (issue #10540), and nothing else. An ALLOWLIST for the same
+ * reason as the browser one above.
+ *
+ * Session replay is here so a React Native app ships one key, not a Mobile
+ * key for its OTLP beside a Browser key for its recordings. Only its own:
+ * the HTTP guard admits a Mobile key there only from the React Native
+ * recorder, and only for the RUM application its pinned service name names
+ * (getMobileKeySessionReplayRefusalMessage), under that application's
+ * replay policy, the key's rate limit and the Mobile key's refusals.
  *
  * Narrower than a Browser key's on purpose:
  *
@@ -189,8 +197,6 @@ export const BROWSER_ALLOWED_INGEST_SURFACES: ReadonlySet<TelemetryIngestSurface
  *     and an envelope carries profiles too, which a Mobile key does not
  *     send. (What a key's envelopes do write is pinned like its OTLP: they
  *     are queued as OTLP jobs, TelemetryQueueService.addTelemetryIngestJob.)
- *   - Session replay is not here: a React Native app records with a Browser
- *     key whose allowed origins list it as app://, the path built for it.
  *
  * Everything else - profiles, source maps, dSYMs, syslog, security events,
  * every agent registration and collector management surface - is a
@@ -201,6 +207,7 @@ export const MOBILE_ALLOWED_INGEST_SURFACES: ReadonlySet<TelemetryIngestSurface>
     TelemetryIngestSurface.OtelTraces,
     TelemetryIngestSurface.OtelLogs,
     TelemetryIngestSurface.OtelMetrics,
+    TelemetryIngestSurface.SessionReplay,
   ]);
 
 /*

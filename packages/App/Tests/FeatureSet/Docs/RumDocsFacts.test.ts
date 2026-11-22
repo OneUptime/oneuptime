@@ -98,7 +98,13 @@ import { DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE } from "Common/Types/Telemetry/
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import TelemetryIngestSurface, {
   BROWSER_ALLOWED_INGEST_SURFACES,
+  MOBILE_ALLOWED_INGEST_SURFACES,
 } from "Common/Types/Telemetry/TelemetryIngestSurface";
+import {
+  RUM_CLIENT_KIND_BROWSER,
+  RUM_CLIENT_KIND_MOBILE,
+} from "Common/Types/Rum/RumClientKind";
+import PinRumClientResource from "Common/Server/Utils/Telemetry/PinRumClientResource";
 import { SessionRotationReason } from "Common/Utils/Rum/SessionIdentity";
 import OriginAllowList from "Common/Utils/Telemetry/OriginAllowList";
 import {
@@ -595,6 +601,48 @@ describe("RUM Overview: how OneUptime recognises RUM", () => {
     }
   });
 
+  /*
+   * A Browser or a Mobile key files everything it sends as its kind of RUM,
+   * whatever the sender's resource says (#6457, #10539): the worker keeps
+   * only what a client says about itself, stamps the kind, and the stamp is
+   * read before the rules below.
+   */
+  it("files everything a Browser or Mobile key sends as that key's RUM, whatever its resource says", () => {
+    expect(recognises).toContain(
+      "Everything a **Browser** key sends is browser RUM, and everything a **Mobile** key sends is mobile RUM, whatever its resource says. With any other key, OneUptime decides,",
+    );
+
+    for (const kind of [RUM_CLIENT_KIND_BROWSER, RUM_CLIENT_KIND_MOBILE]) {
+      const block: JSONObject = {
+        resource: {
+          attributes: resource({
+            "service.name": "storefront",
+            "host.name": "db-1",
+            "k8s.cluster.name": "prod",
+          }),
+        },
+      };
+
+      // Without the key, a host's resource is no RUM at all.
+      expect(
+        classify({
+          "service.name": "storefront",
+          "host.name": "db-1",
+          "k8s.cluster.name": "prod",
+        }),
+      ).toBeNull();
+
+      PinRumClientResource.pinInPlace({ resourceSpans: [block] }, kind);
+
+      expect({
+        kind,
+        type: ingest["getRumClientType"](
+          (block["resource"] as JSONObject)["attributes"] as JSONArray,
+        ),
+      }).toEqual({ kind, type: kind });
+    }
+  });
+
   it("files everything else as a backend service, never twice", async () => {
     expect(classify({ "service.name": "checkout" })).toBeNull();
 
@@ -894,7 +942,7 @@ describe("Ingestion keys: a Browser key for the web, a Mobile key for mobile", (
 
     expect(getStarted).toContain("A web app needs a **Browser** key");
     expect(getStarted).toContain(
-      "A mobile app needs a **Mobile** key, pinned to the app's `service.name`: it ships inside the app, so it can send only that app's traces, logs and metrics.",
+      "A mobile app needs a **Mobile** key, pinned to the app's `service.name`: it ships inside the app, so it can send only that app's traces, logs, metrics and session replays.",
     );
 
     // No page of the RUM docs tells a mobile app to ship a Server key.
@@ -1252,6 +1300,13 @@ describe("Mobile Setup", () => {
     expect(replay).toContain(
       "**Allowed Origins** list your app as `app://` followed by its Android application ID or iOS bundle ID",
     );
+    // A React Native app ships one key: its Mobile key records too (#10540).
+    expect(replay).toContain(
+      "It sends with the same **Mobile** key as your OpenTelemetry SDK, with the key's **Pinned Service Name** as its `appIdentifier`, so the app ships one key.",
+    );
+    expect(
+      MOBILE_ALLOWED_INGEST_SURFACES.has(TelemetryIngestSurface.SessionReplay),
+    ).toBe(true);
     // The page no longer says mobile apps cannot be recorded.
     expect(mobile).not.toContain("Session Replay is browser-only");
   });

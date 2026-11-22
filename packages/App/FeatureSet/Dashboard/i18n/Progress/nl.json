@@ -925,6 +925,7 @@
     "{{minutes}} min {{seconds}} s",
     "{{monitorName}} is offline",
     "{{name}} (monitor: {{monitor}})",
+    "{{name}} (workflow)",
     "{{online}} online, {{offline}} offline",
     "{{rate}}/min",
     "{{rate}}/s",

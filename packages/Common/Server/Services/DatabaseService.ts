@@ -114,8 +114,19 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import { getUniqueColumnsBy } from "../../Types/Database/UniqueColumnBy";
 import UserAttribution, {
   ATTRIBUTED_SWITCHES,
+  CREATED_BY_USER_COLUMN,
   CREATED_BY_USER_ID_COLUMN,
 } from "../../Types/Database/UserAttribution";
+import RecordActorType, {
+  CREATED_BY_ACTOR_ID_COLUMN,
+  CREATED_BY_ACTOR_TYPE_COLUMN,
+  LAST_MODIFIED_AT_COLUMN,
+  LAST_MODIFIED_BY_ACTOR_ID_COLUMN,
+  LAST_MODIFIED_BY_ACTOR_TYPE_COLUMN,
+  LAST_MODIFIED_BY_USER_ID_COLUMN,
+  RecordActor,
+  RecordActorUtil,
+} from "../../Types/Database/RecordActor";
 import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
 import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
@@ -510,6 +521,13 @@ interface ListWriteOfUpdate<TBaseModel extends BaseModel> {
   data: PartialEntity<TBaseModel>;
   writes: ListEntryWrites;
 }
+
+/*
+ * Who an update is a change by, and when, as each row it changes is
+ * stamped (getLastModifiedStamp, #10290): the base model's last-modified
+ * columns, by name.
+ */
+type LastModifiedStamp = Record<string, unknown>;
 
 // One row's share of an update (see getRowWrite).
 interface RowWrite<TBaseModel extends BaseModel> {
@@ -6082,7 +6100,86 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       (data as any)[CREATED_BY_USER_ID_COLUMN] = props.userId;
     }
 
+    // And what created it, by kind. See the helper.
+    if (!isUpdate) {
+      this.stampCreatedByActor(data, props);
+    }
+
     return data;
+  }
+
+  /*
+   * What created a record (RecordActor, #10290): a person, an API key, a
+   * workflow, an MCP client for its member, a server admin or OneUptime
+   * itself, and which key, workflow or client it was. Stamped beside the
+   * creator's id, after the permission check, so nobody is asked for access
+   * to a column they did not send; a value a request sent was taken out
+   * before any check read it (decideUserAttributionOnCreate). So a record
+   * Terraform's API key creates says so, where its creator's id is empty.
+   *
+   * OneUptime's own write keeps what it names, and one that names the person
+   * it acts for - a Slack action posting a note as the person who clicked -
+   * is that person's: it was created by a person, not by OneUptime.
+   */
+  private stampCreatedByActor(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    const record: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (
+      this.isWriteOneUptimeMakesItself(props) &&
+      record[CREATED_BY_ACTOR_TYPE_COLUMN] !== undefined
+    ) {
+      return;
+    }
+
+    let actor: RecordActor | null = RecordActorUtil.fromProps(props);
+
+    if (
+      actor?.type === RecordActorType.System &&
+      (record[CREATED_BY_USER_ID_COLUMN] || record[CREATED_BY_USER_COLUMN])
+    ) {
+      actor = { type: RecordActorType.User, actorId: null, userId: null };
+    }
+
+    if (!actor) {
+      return;
+    }
+
+    record[CREATED_BY_ACTOR_TYPE_COLUMN] = actor.type;
+
+    if (actor.actorId) {
+      record[CREATED_BY_ACTOR_ID_COLUMN] = actor.actorId;
+    }
+  }
+
+  /*
+   * What each row an update changes is stamped with (#10290): when, and
+   * what changed it - the kind, the key's, workflow's or MCP client's id,
+   * and the person - every one of them set, so a person's change after a
+   * key's leaves no trace of the key. Null for a write OneUptime makes on
+   * its own (RecordActorUtil.changerFromProps): its rewrites of a status or
+   * a last report are no one's change, and leave the last change as it was.
+   */
+  private getLastModifiedStamp(
+    props: DatabaseCommonInteractionProps,
+  ): LastModifiedStamp | null {
+    const changer: RecordActor | null = RecordActorUtil.changerFromProps(props);
+
+    if (!changer) {
+      return null;
+    }
+
+    return {
+      [LAST_MODIFIED_AT_COLUMN]: OneUptimeDate.getCurrentDate(),
+      [LAST_MODIFIED_BY_ACTOR_TYPE_COLUMN]: changer.type,
+      [LAST_MODIFIED_BY_ACTOR_ID_COLUMN]: changer.actorId,
+      [LAST_MODIFIED_BY_USER_ID_COLUMN]: changer.userId,
+    };
   }
 
   /*
@@ -12231,6 +12328,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         updateBy.props,
       );
 
+      /*
+       * Who the update is a change by, and when: each row it changes is
+       * stamped with it (getRowWrite).
+       */
+      const lastModified: LastModifiedStamp | null = this.getLastModifiedStamp(
+        updateBy.props,
+      );
+
       if (!(updateBy.skip instanceof PositiveNumber)) {
         updateBy.skip = new PositiveNumber(updateBy.skip);
       }
@@ -12505,6 +12610,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           data: data,
           switchStamps: switchStamps,
           encryptedColumnsAsGiven: encryptedColumnsAsGiven,
+          lastModified: lastModified,
         });
 
         const updatedItem: any = rowWrite.updatedItem;
@@ -13069,12 +13175,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    *   (encryptedColumnsAsGiven), before it was encrypted: the row is read
    *   decrypted, and a ciphertext - salted afresh on every write - never
    *   matches it.
+   *
+   * A row the write changes is also written with who changed it and when
+   * (lastModified, #10290) - in updatedItem only: the stamp is no change of
+   * the row's for the workflow, the audit log or the decision itself, and a
+   * row written back as it was keeps its last change as it was.
    */
   private getRowWrite(data: {
     item: TBaseModel;
     data: PartialEntity<TBaseModel>;
     switchStamps: Array<SwitchStamp>;
     encryptedColumnsAsGiven?: Record<string, unknown> | undefined;
+    lastModified?: LastModifiedStamp | null | undefined;
   }): RowWrite<TBaseModel> {
     const { item } = data;
     const update: Record<string, unknown> = data.data as Record<
@@ -13151,12 +13263,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
     }
 
-    return {
+    const rowWrite: RowWrite<TBaseModel> = {
       item: item,
       updatedItem: updatedItem,
       written: written as PartialEntity<TBaseModel>,
       comparedAs: comparedAs,
     };
+
+    // Who changed it, and when, on a row it changes. See above.
+    if (data.lastModified && !this.hasSameValues(rowWrite)) {
+      for (const [column, value] of Object.entries(data.lastModified)) {
+        updatedItem[column] = value;
+      }
+    }
+
+    return rowWrite;
   }
 
   /*

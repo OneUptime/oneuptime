@@ -16,6 +16,7 @@ import DataSecurityEval, {
   scoreAnswer,
 } from "../../../../../../Server/Utils/AI/Eval/DataSecurity/DataSecurityEval";
 import {
+  AnalyzeEvalCase,
   AskAiEvalCase,
   DataSecurityEvalCase,
   ExplainEvalCase,
@@ -52,7 +53,9 @@ function casesOf<T extends DataSecurityEvalCase>(
 }
 
 // A right explanation or Ask AI answer: every fact the case names, in its first word.
-function goodWords(testCase: ExplainEvalCase | AskAiEvalCase): string {
+function goodWords(
+  testCase: ExplainEvalCase | AnalyzeEvalCase | AskAiEvalCase,
+): string {
   return testCase.expect.mentions
     .map((group: Array<string>): string => {
       return `It is about ${group[0]}.`;

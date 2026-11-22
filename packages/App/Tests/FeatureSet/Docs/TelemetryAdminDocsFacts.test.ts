@@ -10,6 +10,8 @@ import {
   TelemetryAdminDocsPageEntry,
 } from "./TelemetryAdminDocsPages";
 import { readPage } from "./DocsContentSupport";
+import { withoutProductLevels } from "./DocsProductLevels";
+import ProductKey from "Common/Types/Product/ProductKey";
 import {
   MenuSection,
   PACKAGES_DIR,
@@ -49,6 +51,10 @@ import LogDropFilterService, {
   LoadedLogDropFilter,
 } from "../../../FeatureSet/Telemetry/Services/LogDropFilterService";
 import LogScrubRuleService from "../../../FeatureSet/Telemetry/Services/LogScrubRuleService";
+import ExceptionUtil, {
+  ExceptionGroupingContent,
+  OccurrenceFingerprints,
+} from "../../../FeatureSet/Telemetry/Utils/Exception";
 import TraceScrubRuleService from "../../../FeatureSet/Telemetry/Services/TraceScrubRuleService";
 import TelemetryIngest, {
   getEffectiveRequestsPerMinuteLimit,
@@ -806,15 +812,19 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       "Sends",
       "Every kind of telemetry, to every endpoint",
       `Traces, logs, metrics, session replays and [Sentry events](${SENTRY_SDKS_LINK})`,
-      "That app's traces, logs and metrics, over OTLP/HTTP",
+      "That app's traces, logs and metrics, over OTLP/HTTP, and its session replays",
     ]);
 
-    // A Mobile key sends what the Sends row says, and nothing else (#6457).
+    /*
+     * A Mobile key sends what the Sends row says, and nothing else (#6457):
+     * its app's OTLP signals, and that app's session replays (#10540).
+     */
     expect([...MOBILE_ALLOWED_INGEST_SURFACES].sort()).toEqual(
       [
         TelemetryIngestSurface.OtelTraces,
         TelemetryIngestSurface.OtelLogs,
         TelemetryIngestSurface.OtelMetrics,
+        TelemetryIngestSurface.SessionReplay,
       ].sort(),
     );
     expect(rows[3]).toEqual([
@@ -828,7 +838,7 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       "A browser app's DSN is public, so use a **Browser** ingestion key there, with your site's origins on it.",
     );
     expect(page).toContain(
-      "OneUptime refuses a Browser key everywhere else, such as over gRPC and MQTT, for profiles, syslog, Fluent Bit and Fluentd, and for source map uploads, and a Mobile key anywhere but OTLP traces, logs and metrics over HTTP.",
+      "OneUptime refuses a Browser key everywhere else, such as over gRPC and MQTT, for profiles, syslog, Fluent Bit and Fluentd, and for source map uploads, and a Mobile key anywhere but OTLP traces, logs and metrics over HTTP and its app's session replays.",
     );
   });
 
@@ -845,12 +855,15 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       "- **It writes only as one app.** Everything it sends is filed under its **Pinned Service Name** as a mobile RUM application, whatever service or host the sender names.",
     );
     expect(limits).toContain(
-      "- **It sends only that app's telemetry.** OTLP traces, logs and metrics over HTTP. It is refused over gRPC and MQTT, for session replays, profiles and source maps, on every other endpoint, and from any web page.",
+      "- **It sends only that app's telemetry.** OTLP traces, logs and metrics over HTTP, and the app's session replays from its React Native recorder, with the key's **Pinned Service Name** as their `appIdentifier`. It is refused over gRPC and MQTT, for another app's session replays, profiles and source maps, on every other endpoint, and from any web page.",
     );
+    // Its own app's session replays, and no other app's (#10540).
+    expect(
+      MOBILE_ALLOWED_INGEST_SURFACES.has(TelemetryIngestSurface.SessionReplay),
+    ).toBe(true);
     for (const surface of [
       TelemetryIngestSurface.Grpc,
       TelemetryIngestSurface.Mqtt,
-      TelemetryIngestSurface.SessionReplay,
       TelemetryIngestSurface.OtelProfiles,
       TelemetryIngestSurface.SourceMap,
       TelemetryIngestSurface.Sentry,
@@ -874,7 +887,7 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       )} requests per minute for all copies together, unless you set its **Requests Per Minute Limit**.`,
     );
     expect(limits).toContain(
-      "What it cannot stop: someone who has your app can still send made-up traces, logs and metrics for that one app, up to the key's limit, until you turn the key off or it expires.",
+      "What it cannot stop: someone who has your app can still send made-up traces, logs, metrics and session replays for that one app, up to the key's limit, until you turn the key off or it expires.",
     );
   });
 
@@ -1000,7 +1013,7 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       ].sort(),
     );
     expect(page).toContain(
-      "| **Pinned Service Name** | Files everything the key sends over OTLP/HTTP under this one service, whatever `service.name` the sender set.",
+      "| **Pinned Service Name** | Files everything the key sends over OTLP/HTTP under this one application, whatever `service.name` the sender set.",
     );
     expect(page).toContain(
       "The Kubernetes agent's Runner and AI agent, and the infrastructure AI agents, do not register with a pinned key: give them an unpinned Server key.",
@@ -1128,6 +1141,7 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
         [422, "A browser ingestion key cannot be used for"],
         [422, "did not send an Origin header"],
         [422, "A mobile ingestion key cannot be used for"],
+        [422, "A mobile ingestion key can send session replays only"],
         [422, "A mobile ingestion key cannot be used from a web page"],
         [422, "is not allowed for this browser ingestion key"],
         [422, "is pinned to a single service"],
@@ -1186,6 +1200,15 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       },
       {
         fragment: "A mobile ingestion key cannot be used for",
+        request: {
+          surface: TelemetryIngestSurface.OtelProfiles,
+          headers: WITH_KEY,
+          resolvesTo: mobilePolicy({}),
+        },
+      },
+      // A page's recording, sent with a Mobile key (#10540).
+      {
+        fragment: "A mobile ingestion key can send session replays only",
         request: {
           surface: TelemetryIngestSurface.SessionReplay,
           headers: WITH_KEY,
@@ -1464,6 +1487,25 @@ describe("Data Retention (telemetry/data-retention)", () => {
     expect(logs).toContain("retentionDate: data.retentionDateDb,");
     expect(page).toContain(
       "**Exceptions follow what they were found in.** An exception is kept as long as the span or log it came from.",
+    );
+  });
+
+  /*
+   * #10432: security events are kept by the same settings, and what reads
+   * them back - detection rules, Run on Past Events, hunts - reads only as
+   * far as they go, as the card that sets the default says.
+   */
+  it("keeps security events the same way, and says what reads them back is held to it", () => {
+    const ingest: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/SecurityEventsIngestService.ts",
+    );
+
+    expect(ingest).toContain('pillar: "securityEvents",');
+    expect(settings).toContain(
+      "How long telemetry is kept when no override applies, security events included: Security Events' rules, Run on Past Events and hunts read back only this far.",
+    );
+    expect(page).toContain(
+      "**Security events are kept the same way.** Detection rules, Run on Past Events and hunts read back only as far as security events are kept, and say so where they would need more: see [Security Events](/docs/telemetry/security-events).",
     );
   });
 
@@ -1955,6 +1997,78 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     ).toContain("LogService.");
     expect(page).toContain(
       "**A dropped record is gone.** No search, chart, monitor or recording rule ever sees it, and no exception is made from it. On OneUptime Cloud, it is not billed either.",
+    );
+  });
+
+  /*
+   * #10434: an exception is grouped by what it said before the rules ran,
+   * so a rule added later never makes an exception a new one; and a new one
+   * whose grouped text a rule hid is grouped under a fingerprint keyed to
+   * the project, as a Hash token is.
+   */
+  it("groups an exception by what it said before scrubbing, keyed to the project where a rule hid what groups it", () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const primaryEntityId: ObjectID = ObjectID.generate();
+    const arrived: ExceptionGroupingContent = {
+      exceptionType: "CartNotFoundError",
+      message: "No cart for ada@example.com",
+      stackTrace: "",
+    };
+    const stored: ExceptionGroupingContent = {
+      ...arrived,
+      message: scrubbedBody(arrived.message, [
+        scrubRule(LogScrubPatternType.Email, LogScrubAction.Redact),
+      ]),
+    };
+    const asItArrived: {
+      projectId: ObjectID;
+      primaryEntityId: ObjectID;
+    } & ExceptionGroupingContent = { projectId, primaryEntityId, ...arrived };
+
+    expect(stored.message).toBe("No cart for [REDACTED]");
+
+    const fingerprints: OccurrenceFingerprints =
+      ExceptionUtil.getOccurrenceFingerprints({
+        projectId,
+        primaryEntityId,
+        arrived,
+        stored,
+        findsGroupsOfStoredText: true,
+      });
+
+    // The exception from before the rule is found by what it said as it arrived.
+    expect(fingerprints.fingerprintCandidates).toContain(
+      ExceptionUtil.getFingerprint(asItArrived),
+    );
+    expect(fingerprints.fingerprintCandidates).toContain(
+      ExceptionUtil.getFingerprintV2(asItArrived),
+    );
+    // A new one is not made under an unkeyed hash of the address...
+    expect(fingerprints.fingerprintV2).not.toBe(
+      ExceptionUtil.getFingerprintV2(asItArrived),
+    );
+    // ...but under one keyed per project from the installation's secret.
+    const keyed: string = readCommonSource(
+      "Server/Utils/Telemetry/KeyedExceptionFingerprint.ts",
+    );
+    expect(keyed).toContain(
+      '.createHmac("sha256", EncryptionSecret.toString())',
+    );
+    expect(keyed).toContain("`${PROJECT_KEY_DERIVATION_LABEL}:${id}`");
+
+    // Both ingests group an exception so, the logs ingest off the record as it arrived.
+    for (const ingest of [logsIngest, tracesIngest]) {
+      expect(ingest).toContain("ExceptionUtil.getOccurrenceFingerprints({");
+    }
+    expect(logsIngest).toContain(
+      "LogPipelineService.processLog(data.arrivedRow, data.pipelines)",
+    );
+
+    expect(page).toContain(
+      "Each exception is still grouped by what it said before scrubbing, so adding a rule never turns an exception you already have into a new one, or sets off **New Exception** for it again.",
+    );
+    expect(page).toContain(
+      "When a rule hides part of what a new exception is grouped by, its fingerprint is keyed to your project, as a Hash token is, so no one can work it back to what was hidden.",
     );
   });
 
@@ -3573,9 +3687,29 @@ describe("Topology (telemetry/topology)", () => {
       Permission.ReadTelemetryService,
     );
 
-    expect(permissionTitles(new InventoryItem().readRecordPermissions)).toEqual(
-      [...TOPOLOGY_READ_ROLES, permission],
+    /*
+     * The Inventory product's levels (#10289) read it too, Inventory Admin
+     * as Project Admin and Inventory Viewer as Viewer: the permissions page
+     * describes them once for every product, as the other pages leave them
+     * to it.
+     */
+    const readers: Array<Permission> = new InventoryItem()
+      .readRecordPermissions;
+
+    expect(readers).toEqual(
+      expect.arrayContaining([
+        Permission.InventoryAdmin,
+        Permission.InventoryViewer,
+      ]),
     );
+    expect(
+      permissionTitles(
+        withoutProductLevels({
+          permissions: readers,
+          product: ProductKey.Inventory,
+        }),
+      ),
+    ).toEqual([...TOPOLOGY_READ_ROLES, permission]);
     expect(page).toContain(
       `**A role that reads telemetry.** ${writtenList(TOPOLOGY_READ_ROLES, "or")}, or a custom role with the ${permission} permission.`,
     );

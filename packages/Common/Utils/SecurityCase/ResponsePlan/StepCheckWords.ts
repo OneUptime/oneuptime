@@ -109,6 +109,33 @@ export const CHECK_CHALLENGE_AWS_WAF_SAMPLED: string = translationKey(
   "AWS WAF challenged requests from {{address}} at {{webAcl}} (sampled).",
 );
 
+/*
+ * The project's Blocklist holds the address (#10562): where a destination
+ * applied the block and read it back, and since when. A range that holds
+ * it names the range.
+ */
+export const CHECK_BLOCK_ENFORCED_AT: string = translationKey(
+  "{{address}} is blocked at {{destination}} since {{since}}, last confirmed {{confirmed}}.",
+);
+export const CHECK_BLOCK_CHALLENGED_AT: string = translationKey(
+  "{{address}} is challenged at {{destination}} since {{since}}, last confirmed {{confirmed}}.",
+);
+export const CHECK_BLOCK_RANGE_ENFORCED_AT: string = translationKey(
+  "{{range}}, which holds {{address}}, is blocked at {{destination}} since {{since}}, last confirmed {{confirmed}}.",
+);
+export const CHECK_BLOCK_RANGE_CHALLENGED_AT: string = translationKey(
+  "{{range}}, which holds {{address}}, is challenged at {{destination}} since {{since}}, last confirmed {{confirmed}}.",
+);
+
+// A block on the Blocklist that no destination holds: never read as blocked.
+export const CHECK_BLOCK_NOT_ENFORCED: string = translationKey(
+  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.",
+);
+
+// The link of the evidence to the block on the Blocklist.
+export const STEP_CHECK_OPEN_BLOCKLIST: string =
+  translationKey("Open Blocklist");
+
 // ---------- Check nothing else got through (confirm:requests) ----------
 
 export const CHECK_REQUESTS_ALL_TURNED_AWAY: PluralTemplate = {

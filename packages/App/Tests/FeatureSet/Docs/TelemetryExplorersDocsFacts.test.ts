@@ -65,6 +65,8 @@ import {
 } from "Common/Utils/Suggestions/TracePerformanceFixSuggestion";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
+import ProductKey from "Common/Types/Product/ProductKey";
+import { withoutProductLevels } from "./DocsProductLevels";
 import ErrorClass, {
   NON_ACTIONABLE_ERROR_CLASSES,
   isNonActionableErrorClass,
@@ -451,8 +453,9 @@ describe("Services (telemetry/services)", () => {
     expect(page).toContain(
       "**Containers name themselves.** Telemetry from the Docker and Podman agents names a service after its container when it has no `service.name`.",
     );
+    // And so is everything a Browser or a Mobile key sends (#6457, #10539).
     expect(page).toContain(
-      "Telemetry from a browser or a mobile app belongs to a [RUM application](/docs/rum/applications) instead.",
+      "Telemetry from a browser or a mobile app, and everything sent with a Browser or Mobile key, belongs to a [RUM application](/docs/rum/applications) instead.",
     );
   });
 
@@ -573,8 +576,30 @@ describe("Services (telemetry/services)", () => {
 
   it("names the roles that read and change services as the Service model grants them", () => {
     const service: Service = new Service();
+    /*
+     * The Services product's levels (#10289) read and change them too, each
+     * as the role it follows: the permissions page describes them once for
+     * every product, as the other pages leave them to it.
+     */
+    const named: (permissions: Array<Permission>) => Array<Permission> = (
+      permissions: Array<Permission>,
+    ): Array<Permission> => {
+      return withoutProductLevels({
+        permissions,
+        product: ProductKey.Services,
+      });
+    };
+
+    expect(service.readRecordPermissions).toEqual(
+      expect.arrayContaining([
+        Permission.ServiceAdmin,
+        Permission.ServiceMember,
+        Permission.ServiceViewer,
+      ]),
+    );
+
     const readers: Array<string> = permissionTitles(
-      service.readRecordPermissions,
+      named(service.readRecordPermissions),
     );
     const readPermission: string = PermissionHelper.getTitle(
       Permission.ReadService,
@@ -592,7 +617,7 @@ describe("Services (telemetry/services)", () => {
     ].map((grant: Array<Array<Permission> | Permission>): Array<string> => {
       const own: string = PermissionHelper.getTitle(grant[1] as Permission);
 
-      return permissionTitles(grant[0] as Array<Permission>).filter(
+      return permissionTitles(named(grant[0] as Array<Permission>)).filter(
         (title: string): boolean => {
           return title !== own;
         },
@@ -2948,7 +2973,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
 
     // Both ingest paths store each occurrence under its exception's choice.
     for (const ingest of [tracesIngest, logsIngest]) {
-      expect(ingest).toContain("ExceptionUtil.getFingerprintV2({");
+      expect(ingest).toContain("ExceptionUtil.getOccurrenceFingerprints({");
       expect(ingest).toContain(
         "await ExceptionUtil.assignRowGroupFingerprints(batch);",
       );
@@ -2956,15 +2981,27 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(exceptionUtil).toContain(
       "await ExceptionUtil.assignPayloadGroupFingerprints(exceptions)",
     );
-    // An exception recorded before keeps its first fingerprint.
-    expect(exceptionUtil).toContain(
-      "chosen.set(key, cached?.exists ? candidate.v1 : candidate.v2);",
-    );
+    /*
+     * An exception recorded before keeps its first fingerprint: its v1 one is
+     * tried first, and a new exception is made under its v2 one.
+     */
+    expect(exceptionUtil).toContain("fingerprintCandidates: [v1, v2, keyed],");
+    expect(exceptionUtil).toContain("fingerprintV2: v2,");
+    expect(exceptionUtil).toContain("chosen.set(key, candidate.v2);");
 
     const troubleshooting: string = section(page, "## Troubleshooting");
     expect(troubleshooting).toContain(
       "New exceptions are grouped by the functions of your own code instead, so this mostly concerns exceptions recorded before; merge two that are the same bug from **Similar exceptions**.",
     );
+
+    /*
+     * A scrub rule splits no exception, and one a rule split before #10434
+     * keeps its occurrences: the logs ingest tries what it grouped by then.
+     */
+    expect(troubleshooting).toContain(
+      "A scrub rule doesn't split an exception: it is grouped by what it said before the rules ran. An exception found in logs that a rule split into two in an earlier version of OneUptime stays two; merge them the same way.",
+    );
+    expect(logsIngest).toContain("findsGroupsOfStoredText: true,");
   });
 
   /*

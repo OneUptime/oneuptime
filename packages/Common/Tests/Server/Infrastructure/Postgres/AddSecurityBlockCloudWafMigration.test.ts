@@ -1,4 +1,4 @@
-import { AddSecurityBlockCloudWaf1809187400000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187400000-AddSecurityBlockCloudWaf";
+import { AddSecurityBlockCloudWaf1809187430000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187430000-AddSecurityBlockCloudWaf";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import SecurityBlockCloudWaf from "../../../../Models/DatabaseModels/SecurityBlockCloudWaf";
 import { describe, expect, test } from "@jest/globals";
@@ -29,8 +29,8 @@ import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArg
  *     migration before it.
  */
 
-const CLASS_NAME: string = "AddSecurityBlockCloudWaf1809187400000";
-const TIMESTAMP: number = 1809187400000;
+const CLASS_NAME: string = "AddSecurityBlockCloudWaf1809187430000";
+const TIMESTAMP: number = 1809187430000;
 const TABLE: string = "SecurityBlockCloudWaf";
 
 const STAMP: RegExp = /(\d{13})$/;
@@ -46,7 +46,7 @@ async function recordQueries(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new AddSecurityBlockCloudWaf1809187400000()[direction](queryRunner);
+  await new AddSecurityBlockCloudWaf1809187430000()[direction](queryRunner);
 
   return statements;
 }
@@ -106,8 +106,8 @@ function foreignKeyOf(statements: Array<string>, column: string): string {
 
 describe("AddSecurityBlockCloudWaf migration - identity and registration", () => {
   test("its class, name and stamp agree", () => {
-    expect(new AddSecurityBlockCloudWaf1809187400000().name).toBe(CLASS_NAME);
-    expect(AddSecurityBlockCloudWaf1809187400000.name).toBe(CLASS_NAME);
+    expect(new AddSecurityBlockCloudWaf1809187430000().name).toBe(CLASS_NAME);
+    expect(AddSecurityBlockCloudWaf1809187430000.name).toBe(CLASS_NAME);
   });
 
   test("is registered once, after every migration before it", () => {
@@ -233,9 +233,7 @@ describe("AddSecurityBlockCloudWaf migration - what it makes", () => {
       .filter(Boolean);
 
     for (const key of keys) {
-      expect(down).toContain(
-        `ALTER TABLE "${TABLE}" DROP CONSTRAINT "${key}"`,
-      );
+      expect(down).toContain(`ALTER TABLE "${TABLE}" DROP CONSTRAINT "${key}"`);
     }
 
     for (const index of indexes) {

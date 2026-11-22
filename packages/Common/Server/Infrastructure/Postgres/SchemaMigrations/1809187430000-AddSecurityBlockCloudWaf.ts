@@ -2,7 +2,9 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration, then renamed and
- * renumbered after the last registered migration.
+ * renumbered after the last registered migration. Made after
+ * AddRecordCreatedByAndLastModifiedColumns1809187400000, the table is made
+ * with the base model's six record actor columns of its own.
  *
  * The cloud WAFs that enforce a project's blocklist (#10344):
  * SecurityBlockCloudWaf, one AWS WAF web ACL a project picked from its cloud
@@ -12,14 +14,14 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * may go, and it stays. A new table, empty until someone picks a web ACL, so
  * its indexes and keys are built with it.
  */
-export class AddSecurityBlockCloudWaf1809187400000
+export class AddSecurityBlockCloudWaf1809187430000
   implements MigrationInterface
 {
-  public name: string = "AddSecurityBlockCloudWaf1809187400000";
+  public name: string = "AddSecurityBlockCloudWaf1809187430000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "SecurityBlockCloudWaf" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "cloudConnectionId" uuid NOT NULL, "cloudResourceId" uuid, "cloudProvider" character varying(100) NOT NULL, "wafId" character varying(500) NOT NULL, "name" character varying(100) NOT NULL, "region" character varying(100), "clientAddress" character varying(100) NOT NULL DEFAULT 'SourceIp', "status" character varying(100) NOT NULL DEFAULT 'Checking', "statusMessage" text, "ruleDetails" jsonb, "checkedAt" TIMESTAMP WITH TIME ZONE, "createdByUserId" uuid, CONSTRAINT "PK_4640cbde393f696ed34baa89f16" PRIMARY KEY ("_id"))`,
+      `CREATE TABLE "SecurityBlockCloudWaf" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "createdByActorType" character varying(100), "createdByActorId" uuid, "lastModifiedAt" TIMESTAMP WITH TIME ZONE, "lastModifiedByActorType" character varying(100), "lastModifiedByActorId" uuid, "lastModifiedByUserId" uuid, "projectId" uuid NOT NULL, "cloudConnectionId" uuid NOT NULL, "cloudResourceId" uuid, "cloudProvider" character varying(100) NOT NULL, "wafId" character varying(500) NOT NULL, "name" character varying(100) NOT NULL, "region" character varying(100), "clientAddress" character varying(100) NOT NULL DEFAULT 'SourceIp', "status" character varying(100) NOT NULL DEFAULT 'Checking', "statusMessage" text, "ruleDetails" jsonb, "checkedAt" TIMESTAMP WITH TIME ZONE, "createdByUserId" uuid, CONSTRAINT "PK_4640cbde393f696ed34baa89f16" PRIMARY KEY ("_id"))`,
     );
     await queryRunner.query(
       `CREATE INDEX "IDX_71e08e47838c3e59db5959b631" ON "SecurityBlockCloudWaf" ("projectId") `,

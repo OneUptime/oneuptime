@@ -110,6 +110,8 @@ const PLAIN_KEYS_BY_ACTION: Record<
   [SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser]: [],
   [SecurityPlaybookActionType.BlockDataStorePublicAccess]: [],
   [SecurityPlaybookActionType.RevokeDataStoreSharing]: [],
+  [SecurityPlaybookActionType.BlockAddress]: ["blockAction", "duration"],
+  [SecurityPlaybookActionType.LiftAddressBlock]: [],
   [SecurityPlaybookActionType.SendWebhook]: ["url"],
   [SecurityPlaybookActionType.RunWorkflow]: ["workflowId"],
   [SecurityPlaybookActionType.RunRunbook]: ["runbookId"],

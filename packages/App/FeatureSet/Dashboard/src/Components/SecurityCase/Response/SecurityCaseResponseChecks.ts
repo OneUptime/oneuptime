@@ -17,6 +17,7 @@ import { DOCS_URL } from "Common/UI/Config";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { wordStepCheckSentence } from "Common/Utils/SecurityCase/ResponsePlan/StepCheckSentences";
 import {
+  STEP_CHECK_OPEN_BLOCKLIST,
   STEP_CHECK_OPEN_EVENTS,
   STEP_CHECK_OPEN_PROVIDER,
   STEP_CHECK_OPEN_TRACES,
@@ -158,6 +159,15 @@ export function getStepCheckLinkTarget(
                 : STEP_CHECK_OPEN_EVENTS,
             values: {},
           }
+        : null;
+    }
+
+    // The block on the Blocklist (#10562).
+    case ResponseLinkKind.OpenBlocklist: {
+      const route: Route | null = getResponseLinkRoute(link);
+
+      return route
+        ? { route, title: STEP_CHECK_OPEN_BLOCKLIST, values: {} }
         : null;
     }
 

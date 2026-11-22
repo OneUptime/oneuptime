@@ -49,7 +49,7 @@ Sidemenyen til en applikasjon grupperer sidene slik; **Utvikler** og **Avansert*
 
 ## Slik gjenkjenner OneUptime RUM
 
-De fleste spørsmål av typen «appen min dukker ikke opp» ender her. OneUptime avgjør for hver telemetribatch ved ankomst, ut fra batchens **ressursattributter**:
+De fleste spørsmål av typen «appen min dukker ikke opp» ender her. Alt en **Nettleser**-nøkkel sender, er nettleser-RUM, og alt en **Mobil**-nøkkel sender, er mobil-RUM, uansett hva ressursen sier. Med enhver annen nøkkel avgjør OneUptime for hver telemetribatch ved ankomst, ut fra batchens **ressursattributter**:
 
 1. En batch der ressursen har `browser.platform`, `browser.language` eller en ikke-tom `browser.brands`, er **nettleser**-RUM.
 2. Ellers er en batch med `device.id` eller `device.model.identifier` **mobil**-RUM.
@@ -71,7 +71,7 @@ Backend-SDK-er setter aldri `browser.*`, `device.id` eller `device.model.identif
 OneUptime finner applikasjonen ut fra `service.name`, uten å skille mellom store og små bokstaver, og oppretter den når prosjektet ikke har en. En ny `service.name` starter en ny applikasjon, så hold den stabil, og skill miljøer med en etikett i stedet for et nytt navn. [Administrere applikasjoner](/docs/rum/applications) tar for seg navn, etiketter, eiere og oppbevaring.
 
 > [!IMPORTANT]
-> OpenTelemetry-SDK-et for nettleser legger ikke til `browser.*`-attributter med mindre du legger til nettleserens ressursdetektor eller setter dem selv. Med bare `service.name` blir telemetrien en backend-tjeneste, ikke en RUM-applikasjon. [Nettleseroppsett](/docs/rum/browser-setup) viser begge måtene.
+> OpenTelemetry-SDK-et for nettleser legger ikke til `browser.*`-attributter med mindre du legger til nettleserens ressursdetektor eller setter dem selv. Sendt med en Nettleser-nøkkel er telemetrien fortsatt en RUM-applikasjon, men siden **Klienter** viser ingen plattformer; med enhver annen nøkkel og bare `service.name` blir den en backend-tjeneste, ikke en RUM-applikasjon. [Nettleseroppsett](/docs/rum/browser-setup) viser begge måtene.
 
 ## Dette får du
 
@@ -94,7 +94,7 @@ En applikasjon viser **Mottar data** så lenge telemetri kommer inn, og **Ingen 
 :::steps
 ### Opprett en inntaksnøkkel
 
-Åpne **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** og klikk på **Opprett inntaksnøkkel**. En webapp trenger en **Nettleser**-nøkkel, som bare virker fra opprinnelsene du lister opp. En mobilapp trenger en **Mobil**-nøkkel, festet til appens `service.name`: Den følger med i appen og kan derfor bare sende den appens spor, logger og målinger.
+Åpne **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** og klikk på **Opprett inntaksnøkkel**. En webapp trenger en **Nettleser**-nøkkel, som bare virker fra opprinnelsene du lister opp. En mobilapp trenger en **Mobil**-nøkkel, festet til appens `service.name`: Den følger med i appen og kan derfor bare sende den appens spor, logger, målinger og øktavspillinger.
 
 ### Instrumenter appen din
 

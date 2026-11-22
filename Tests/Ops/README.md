@@ -1518,10 +1518,13 @@ What keeps the images free of the rest of what scanners reported, for every
 - the Kubernetes AI agent ships only node, tini, the CA store and one kubectl
   binary, copied in from a stage that checked it against a pinned sha256 (the
   download tool never ships), and runs the compiled agent as `node`;
-- the resource AI agent is one stage that installs only the CA store, tini
-  and, from Alpine's own packages, the programs its executors run (docker-cli,
-  govc, ceph19-common, util-linux-misc), and runs the compiled agent as `node`
-  by default;
+- the resource AI agent installs only the CA store, tini and, from Alpine's
+  own packages, two of the programs its executors run (ceph19-common,
+  util-linux-misc); the docker CLI and govc come from Docker's and VMware's
+  own releases, each copied in from a stage that checked it against a pinned
+  sha256 (Alpine's builds had high vulnerabilities: #9830, #10383), with the
+  docker CLI at or past the first release built with a fixed Go; it runs the
+  compiled agent as `node` by default;
 - E2E installs itself with `--ignore-scripts` (its `preinstall` would install
   a second, unpinned set of browsers and WebKit's libraries), only while no
   dependency has an install script, and installs exactly the engines its

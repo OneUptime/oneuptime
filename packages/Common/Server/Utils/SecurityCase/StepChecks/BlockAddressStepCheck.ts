@@ -1,4 +1,5 @@
 import {
+  ResponseLink,
   ResponseLinkKind,
   ResponseTracesLink,
 } from "../../../../Types/SecurityCase/SecurityCaseResponseLink";
@@ -22,7 +23,10 @@ import {
   getAddressWindow,
   readFailed,
 } from "./AddressStepChecks";
-import { AddressBlockEvidence } from "./Evidence/AddressBlocks";
+import {
+  AddressBlockEvidence,
+  getEnforcedAddressBlocks,
+} from "./Evidence/AddressBlocks";
 import {
   AddressCoverageReading,
   AddressRequestsReading,
@@ -44,9 +48,9 @@ import {
  * "BLOCK THIS ADDRESS AT YOUR FIREWALL, WAF OR LOAD BALANCER" (#10340).
  *
  *   Verified    a block of the address is in force at a destination,
- *               applied and read back there (AddressBlocks: the blocklist's
- *               destinations, #10338), and no request from it has reached
- *               the app since;
+ *               applied and read back there (AddressBlocks: the project's
+ *               Blocklist and its destinations, #10338, #10562), and no
+ *               request from it has reached the app since;
  *   Looks Done  no request from the address has reached the app for half an
  *               hour, after it was sending them - or since a person ticked
  *               the step. That catches a block made by hand, anywhere; but
@@ -57,7 +61,12 @@ import {
  *   Cannot Tell OneUptime cannot see the address's requests - no traces or
  *               logs, none that say a client's address, a proxy's addresses
  *               in them - or the address never reached the app, so nothing
- *               going quiet would mean anything.
+ *               going quiet would mean anything; or the Blocklist could not
+ *               be read just now, which is never "not blocked".
+ *
+ * A block the Blocklist records that no destination holds is never read as
+ * the address blocked: the step says so beside what the requests say, and
+ * looks again within a minute while a destination is still applying it.
  */
 
 const MINUTE: number = 60 * 1000;
@@ -76,13 +85,16 @@ export interface BlockAddressInput {
   hourBefore: number | null;
 }
 
-// The newest block in force.
+// How soon a step whose block a destination is still applying is checked again.
+export const BLOCK_APPLYING_RECHECK_MINUTES: number = 1;
+
+// The newest block in force: one a destination holds, never one it only records.
 export function getLatestBlock(
   blocks: Array<AddressBlockEvidence>,
 ): AddressBlockEvidence | null {
   let latest: AddressBlockEvidence | null = null;
 
-  for (const block of blocks) {
+  for (const block of getEnforcedAddressBlocks(blocks)) {
     if (!latest || block.appliedAt.getTime() > latest.appliedAt.getTime()) {
       latest = block;
     }
@@ -211,7 +223,77 @@ function quiet(data: {
   };
 }
 
+/*
+ * What the step says of the blocks the Blocklist records that no destination
+ * holds (#10562), beside what it found: each as a fact, and a check again
+ * within a minute while one is still being applied.
+ */
+export function withBlocksNotEnforced(data: {
+  result: StepCheckResult;
+  blocks: Array<AddressBlockEvidence>;
+}): StepCheckResult {
+  const recorded: Array<AddressBlockEvidence> = data.blocks.filter(
+    (block: AddressBlockEvidence): boolean => {
+      return Boolean(block.isNotEnforced);
+    },
+  );
+
+  if (
+    recorded.length === 0 ||
+    data.result.state === SecurityCaseStepCheckState.Verified
+  ) {
+    return data.result;
+  }
+
+  const isApplying: boolean = recorded.some(
+    (block: AddressBlockEvidence): boolean => {
+      return Boolean(block.isApplying);
+    },
+  );
+
+  return {
+    ...data.result,
+    evidence: {
+      ...data.result.evidence,
+      facts: [
+        ...recorded.map(
+          (block: AddressBlockEvidence): AddressBlockEvidence["sentence"] => {
+            return block.sentence;
+          },
+        ),
+        ...data.result.evidence.facts,
+      ],
+      links: [
+        ...data.result.evidence.links,
+        ...recorded.flatMap(
+          (block: AddressBlockEvidence): Array<ResponseLink> => {
+            return block.link ? [block.link] : [];
+          },
+        ),
+      ],
+      data: { ...data.result.evidence.data, isBlockNotEnforced: true },
+    },
+    ...(isApplying
+      ? {
+          recheckInMinutes: Math.min(
+            data.result.recheckInMinutes ?? BLOCK_APPLYING_RECHECK_MINUTES,
+            BLOCK_APPLYING_RECHECK_MINUTES,
+          ),
+        }
+      : {}),
+  };
+}
+
 export function decideBlockAddress(input: BlockAddressInput): StepCheckResult {
+  return withBlocksNotEnforced({
+    result: decideBlockAddressByRequests(input),
+    blocks: input.blocks,
+  });
+}
+
+function decideBlockAddressByRequests(
+  input: BlockAddressInput,
+): StepCheckResult {
   if (isProxyAddress(input.address)) {
     return addressIsProxy(input.address);
   }
@@ -332,13 +414,14 @@ const BlockAddressStepCheck: StepCheck = {
     }
 
     /*
-     * A destination that cannot be read verifies nothing: the step is then
-     * judged by the app's requests alone.
+     * The Blocklist that cannot be read says nothing either way: the step
+     * says OneUptime could not check it just now, and looks again in a
+     * couple of minutes - never "not blocked" (#10562).
      */
     try {
       base.blocks = await context.evidence.readAddressBlocks(address);
     } catch {
-      base.blocks = [];
+      return readFailed();
     }
 
     const window: { start: Date; end: Date } = getAddressWindow({

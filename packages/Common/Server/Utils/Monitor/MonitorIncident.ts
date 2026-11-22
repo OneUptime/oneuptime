@@ -303,6 +303,14 @@ export default class MonitorIncident {
       Array<string>
     >;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
+    /*
+     * The monitor log names each open incident a recovery was reported for
+     * but left open, because its criteria's incident has Auto Resolve
+     * Incident off (an Incoming Request monitor's recoveries, #10550). The
+     * grouping settings ask for the resolve and the switch withholds it:
+     * without this, the log said only that the request opened nothing new.
+     */
+    noteLeftOpen?: boolean | undefined;
   }): Promise<void> {
     const fingerprintSet: Set<string> = new Set<string>(
       input.fingerprints || [],
@@ -329,6 +337,7 @@ export default class MonitorIncident {
       select: {
         _id: true,
         title: true,
+        createdAt: true,
         createdCriteriaId: true,
         createdIncidentTemplateId: true,
         projectId: true,
@@ -366,6 +375,30 @@ export default class MonitorIncident {
             input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
         })
       ) {
+        if (input.noteLeftOpen) {
+          input.evaluationSummary?.events.push({
+            type: "incident-skipped",
+            ...EvaluationEventText.from({
+              title: translatableSentence("Incident left open: {{title}}", {
+                title: String(
+                  openIncident.title || openIncident.id?.toString(),
+                ),
+              }),
+              message: translatableSentence(
+                "A request reported this incident recovered, but Auto Resolve Incident is off in its criteria, so the incident stays open. Turn on Auto Resolve Incident, under More fields in the criteria's incident, to resolve it on recovery.",
+              ),
+            }),
+            relatedCriteriaId:
+              openIncident.createdCriteriaId?.toString() || undefined,
+            relatedIncidentId: openIncident.id?.toString(),
+            relatedIncidentNumber: openIncident.incidentNumber,
+            relatedIncidentNumberWithPrefix:
+              openIncident.incidentNumberWithPrefix,
+            relatedIncidentCreatedAt: openIncident.createdAt,
+            at: OneUptimeDate.getCurrentDate(),
+          });
+        }
+
         continue;
       }
 

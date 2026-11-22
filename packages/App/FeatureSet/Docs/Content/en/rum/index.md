@@ -49,7 +49,7 @@ An application's own side menu groups its pages like this; **Developer** and **A
 
 ## How OneUptime recognises RUM
 
-Most "my app does not show up" questions end here. OneUptime decides, for each batch of telemetry when it arrives, from the batch's **resource attributes**:
+Most "my app does not show up" questions end here. Everything a **Browser** key sends is browser RUM, and everything a **Mobile** key sends is mobile RUM, whatever its resource says. With any other key, OneUptime decides, for each batch of telemetry when it arrives, from the batch's **resource attributes**:
 
 1. A batch whose resource has `browser.platform`, `browser.language` or a non-empty `browser.brands` is **browser** RUM.
 2. Otherwise, a batch with `device.id` or `device.model.identifier` is **mobile** RUM.
@@ -71,7 +71,7 @@ Backend SDKs never set `browser.*`, `device.id` or `device.model.identifier`, so
 OneUptime finds the application by `service.name`, ignoring case, and creates it when the project has none. A new `service.name` starts a new application, so keep it stable, and tell environments apart with a label rather than a new name. [Managing Applications](/docs/rum/applications) covers names, labels, owners and retention.
 
 > [!IMPORTANT]
-> The OpenTelemetry browser SDK adds no `browser.*` attributes unless you add the browser resource detector or set them yourself. With only `service.name`, the telemetry becomes a backend service, not a RUM application. [Browser Setup](/docs/rum/browser-setup) shows both ways.
+> The OpenTelemetry browser SDK adds no `browser.*` attributes unless you add the browser resource detector or set them yourself. Sent with a Browser key, the telemetry is still a RUM application, but its **Clients** page lists no platforms; with any other key and only `service.name`, it becomes a backend service, not a RUM application. [Browser Setup](/docs/rum/browser-setup) shows both ways.
 
 ## What you get
 
@@ -94,7 +94,7 @@ An application shows **Receiving data** while telemetry arrives and **No recent 
 :::steps
 ### Create an ingestion key
 
-Open **Project Settings → Telemetry & APM → Ingestion Keys** and click **Create Ingestion Key**. A web app needs a **Browser** key, which works only from the origins you list. A mobile app needs a **Mobile** key, pinned to the app's `service.name`: it ships inside the app, so it can send only that app's traces, logs and metrics.
+Open **Project Settings → Telemetry & APM → Ingestion Keys** and click **Create Ingestion Key**. A web app needs a **Browser** key, which works only from the origins you list. A mobile app needs a **Mobile** key, pinned to the app's `service.name`: it ships inside the app, so it can send only that app's traces, logs, metrics and session replays.
 
 ### Instrument your app
 

@@ -87,6 +87,18 @@ const LEFT_OUT_ENUMS: Readonly<Record<string, string>> = {
   IconProp: "341 icon names, chosen in the dashboard's icon picker",
 };
 
+/*
+ * Columns that take only some of their enum's values on purpose, by
+ * Model.property, each with why. Such a column says the values it takes as
+ * a list of its own enum's members (allowedValues: [Enum.A, Enum.B]), so
+ * the spec, the API reference, MCP and Terraform offer exactly those - and
+ * the enum stays one for the columns that take all of it.
+ */
+const DELIBERATE_SUBSETS: Readonly<Record<string, string>> = {
+  "AutoRemediationRule.dataSecurityAnalyze":
+    "an analysis changes nothing, so there is nothing to approve: OneUptime AI's analysis of a Data Security issue is Off or WithoutAsking, never Suggest (DATA_SECURITY_AI_WORK_AUTONOMIES), while the rule's other kinds of work take all three answers of the same DataSecurityAiAutonomy",
+};
+
 interface EnumDeclaration {
   file: string;
   name: string;
@@ -104,6 +116,11 @@ interface EnumTypedColumn {
   allowedValuesOf: string | null;
   // allowedValues written some other way.
   allowedValuesWrittenOtherwise: boolean;
+  /*
+   * allowedValues: [Name.A, Name.B]: "Name" and its members, as written;
+   * null when it is not a list of one enum's members.
+   */
+  allowedValuesListOf: { enumName: string; members: Array<string> } | null;
   enumDeclaration: EnumDeclaration;
 }
 
@@ -441,6 +458,35 @@ function allowedValuesIdentifier(argument: ts.ObjectLiteralExpression): {
   return { identifier: null, present: true };
 }
 
+// allowedValues: [Name.A, Name.B]: the enum and the members it lists.
+function allowedValuesList(
+  argument: ts.ObjectLiteralExpression,
+): { enumName: string; members: Array<string> } | null {
+  const value: ts.Expression | null = propertyOf(argument, "allowedValues");
+
+  if (!value || !ts.isArrayLiteralExpression(value)) {
+    return null;
+  }
+
+  let enumName: string | null = null;
+  const members: Array<string> = [];
+
+  for (const element of value.elements) {
+    if (
+      !ts.isPropertyAccessExpression(element) ||
+      !ts.isIdentifier(element.expression) ||
+      (enumName !== null && element.expression.text !== enumName)
+    ) {
+      return null;
+    }
+
+    enumName = element.expression.text;
+    members.push(element.name.text);
+  }
+
+  return enumName ? { enumName, members } : null;
+}
+
 function modelFiles(): Array<string> {
   const files: Array<string> = [];
 
@@ -491,6 +537,7 @@ function enumTypedColumns(): Array<EnumTypedColumn> {
               allowedValuesOf: allowed.identifier,
               allowedValuesWrittenOtherwise:
                 allowed.present && !allowed.identifier,
+              allowedValuesListOf: allowedValuesList(argument),
               enumDeclaration,
             });
           }
@@ -543,7 +590,10 @@ describe("a text column typed with a string enum", () => {
         continue;
       }
 
-      if (LEFT_OUT_ENUMS[column.enumDeclaration.name]) {
+      if (
+        LEFT_OUT_ENUMS[column.enumDeclaration.name] ||
+        DELIBERATE_SUBSETS[labelOf(column)]
+      ) {
         continue;
       }
 
@@ -586,9 +636,57 @@ describe("a text column typed with a string enum", () => {
   test("names its values one way: Object.values(<its enum>)", () => {
     expect(
       ENUM_TYPED_COLUMNS.filter((column: EnumTypedColumn): boolean => {
-        return column.allowedValuesWrittenOtherwise;
+        return (
+          column.allowedValuesWrittenOtherwise &&
+          !DELIBERATE_SUBSETS[labelOf(column)]
+        );
       }).map(labelOf),
     ).toEqual([]);
+  });
+
+  test("a deliberate subset lists some of its own enum's members, and says why", () => {
+    const listed: Array<EnumTypedColumn> = ENUM_TYPED_COLUMNS.filter(
+      (column: EnumTypedColumn): boolean => {
+        return Boolean(DELIBERATE_SUBSETS[labelOf(column)]);
+      },
+    );
+
+    // Each column on the list is one the scan finds, so the list cannot go stale.
+    expect(listed.map(labelOf).sort()).toEqual(
+      Object.keys(DELIBERATE_SUBSETS).sort(),
+    );
+
+    for (const column of listed) {
+      // A reason, written out.
+      expect(DELIBERATE_SUBSETS[labelOf(column)]!.length).toBeGreaterThan(40);
+
+      // A list of the column's own enum's members, each once.
+      expect({
+        column: labelOf(column),
+        listOf: column.allowedValuesListOf?.enumName,
+      }).toEqual({ column: labelOf(column), listOf: column.typeName });
+
+      const members: Array<string> = column.allowedValuesListOf!.members;
+      expect(new Set(members).size).toBe(members.length);
+
+      // Some of its values, not all: all of them is Object.values(<its enum>).
+      const modelType: (new () => DatabaseBaseModel) | undefined =
+        AllModelTypes.find((type: new () => DatabaseBaseModel): boolean => {
+          return type.name === column.model;
+        });
+      const values: Array<string> =
+        (getTableColumns(new modelType!())[column.property]?.allowedValues as
+          | Array<string>
+          | undefined) || [];
+
+      expect(values.length).toBe(members.length);
+      expect(values.length).toBeGreaterThan(0);
+      expect(values.length).toBeLessThan(column.enumDeclaration.values!.length);
+
+      for (const value of values) {
+        expect(column.enumDeclaration.values).toContain(value);
+      }
+    }
   });
 
   test("a monitor's type, a workflow's status and a custom field's type say theirs by their column type", () => {

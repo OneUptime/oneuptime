@@ -4,6 +4,7 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
 import ProductType from "../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../Types/ObjectID";
 import {
+  SESSION_REPLAY_APP_IDENTIFIER_HEADER,
   SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER,
   SESSION_REPLAY_RECORDER_KIND_HEADER,
   parseSessionReplayRecorderKindHeader,
@@ -12,7 +13,9 @@ import TelemetryIngestionKeyPolicy, {
   DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE,
   DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE,
 } from "../../Types/Telemetry/TelemetryIngestionKeyPolicy";
-import TelemetryIngestionKeyType from "../../Types/Telemetry/TelemetryIngestionKeyType";
+import TelemetryIngestionKeyType, {
+  PUBLIC_INGESTION_KEY_TYPES,
+} from "../../Types/Telemetry/TelemetryIngestionKeyType";
 import TelemetryIngestSurface, {
   BROWSER_ALLOWED_INGEST_SURFACES,
   IDENTITY_REGISTRATION_SURFACES,
@@ -55,7 +58,10 @@ import TelemetryIngestRefusalRecorder, {
   recordTelemetryIngestBillingRefusal,
 } from "../Utils/Telemetry/TelemetryIngestRefusalRecorder";
 import TelemetryIngestionKeyLastUsed from "../Utils/Telemetry/TelemetryIngestionKeyLastUsed";
-import { getMobileKeySurfaceRefusalMessage } from "../Utils/Telemetry/TelemetryIngestionKeyGuard";
+import {
+  getMobileKeySessionReplayRefusalMessage,
+  getMobileKeySurfaceRefusalMessage,
+} from "../Utils/Telemetry/TelemetryIngestionKeyGuard";
 import type TelemetryIngestAttribution from "../Utils/Telemetry/TelemetryIngestAttribution";
 
 export interface TelemetryRequest extends ExpressRequest {
@@ -242,11 +248,13 @@ type TelemetryIngestMiddlewareFunction = (
 interface ResolveTelemetryClientOriginOptions {
   req: ExpressRequest;
   surface: TelemetryIngestSurface | null;
-  isBrowserKey: boolean;
+  // A Browser or a Mobile key: a key published with a page or an app.
+  isPublicKey: boolean;
 }
 
 /*
- * Resolve the client identity used by a Browser/public ingestion key.
+ * Resolve the client identity used by a public (Browser or Mobile)
+ * ingestion key.
  *
  * A real Origin always wins, including on a request that also carries mobile
  * headers. Browsers attach Origin themselves and page JavaScript cannot
@@ -254,9 +262,12 @@ interface ResolveTelemetryClientOriginOptions {
  * case would let a web page choose the weaker native identity path.
  *
  * Native applications do not have that browser-controlled header. Only the
- * session replay surface, only an exact rn-view-tree kind, only a Browser key
- * and only a validated package/bundle id receive the app:// fallback. Server
- * keys retain their historical behaviour and never need to invent an origin.
+ * session replay surface, only an exact rn-view-tree kind, only a public key
+ * and only a validated package/bundle id receive the app:// fallback. A
+ * Browser key's allowed origins are checked against it; a Mobile key, which
+ * records only its own app's sessions (issue #10540), carries it to the
+ * application's own allowed origins, as a Browser key does. Server keys
+ * retain their historical behaviour and never need to invent an origin.
  */
 export function resolveTelemetryClientOrigin(
   options: ResolveTelemetryClientOriginOptions,
@@ -289,7 +300,7 @@ export function resolveTelemetryClientOrigin(
   }
 
   if (
-    !options.isBrowserKey ||
+    !options.isPublicKey ||
     options.surface !== TelemetryIngestSurface.SessionReplay
   ) {
     return undefined;
@@ -327,14 +338,21 @@ export function resolveTelemetryClientOrigin(
  *     SDK never does, so the request came from a web page. A page sends
  *     with a Browser key, whose origins are checked; a Mobile key, which has
  *     none to check, would otherwise be a Browser key without them.
+ *   - A session replay request (issue #10540) not from the React Native
+ *     recorder, or for a RUM application other than the one the key is
+ *     pinned to (getMobileKeySessionReplayRefusalMessage): a Mobile key
+ *     records its own app's sessions, never another's.
  *
- * Neither is a wall against someone who has the app: any client can leave
- * the Origin header out. What bounds that is the rest of the key: its
- * pinned app, its rate limit, its expiry and its kill switch.
+ * None is a wall against someone who has the app: any client can leave
+ * the Origin header out, and send the app's own recorder headers. What
+ * bounds that is the rest of the key: its pinned app, its rate limit, its
+ * expiry and its kill switch.
  */
 export function getMobileKeyRefusalMessage(data: {
   req: ExpressRequest;
   surface: TelemetryIngestSurface | null;
+  // The key's pinned service name: the one app it may record.
+  pinnedServiceName: string | null;
 }): string | null {
   if (
     data.surface === null ||
@@ -350,6 +368,18 @@ export function getMobileKeyRefusalMessage(data: {
 
   if (origin) {
     return "A mobile ingestion key cannot be used from a web page: this request sent an Origin header, which only a browser sends. Use a browser ingestion key in a web page.";
+  }
+
+  if (data.surface === TelemetryIngestSurface.SessionReplay) {
+    return getMobileKeySessionReplayRefusalMessage({
+      pinnedServiceName: data.pinnedServiceName,
+      appIdentifier: headerValueToString(
+        data.req.headers[SESSION_REPLAY_APP_IDENTIFIER_HEADER],
+      ),
+      recorderKind: parseSessionReplayRecorderKindHeader(
+        data.req.headers[SESSION_REPLAY_RECORDER_KIND_HEADER],
+      ),
+    });
   }
 
   return null;
@@ -566,7 +596,7 @@ export default class TelemetryIngest {
         resolveTelemetryClientOrigin({
           req: req,
           surface: surface,
-          isBrowserKey: isBrowserKey,
+          isPublicKey: PUBLIC_INGESTION_KEY_TYPES.has(policy.keyType),
         });
 
       if (resolvedClientOrigin !== undefined) {
@@ -623,15 +653,17 @@ export default class TelemetryIngest {
 
       /*
        * A Mobile key (issue #6457): a mobile app's OTLP traces, logs and
-       * metrics over HTTP, and nothing else - never another surface, never
-       * from a web page. Checked before the rate limit, as the browser
-       * rules are, so a key copied out of an app and pointed somewhere else
-       * is refused without spending its fleet's requests.
+       * metrics over HTTP, and its own React Native session replays (issue
+       * #10540), and nothing else - never another surface, another app's
+       * recordings or a web page. Checked before the rate limit, as the
+       * browser rules are, so a key copied out of an app and pointed
+       * somewhere else is refused without spending its fleet's requests.
        */
       if (policy.keyType === TelemetryIngestionKeyType.Mobile) {
         const mobileRefusalMessage: string | null = getMobileKeyRefusalMessage({
           req: req,
           surface: surface,
+          pinnedServiceName: policy.pinnedServiceName,
         });
 
         if (mobileRefusalMessage) {

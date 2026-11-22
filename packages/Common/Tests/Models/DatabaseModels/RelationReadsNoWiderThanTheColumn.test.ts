@@ -731,7 +731,7 @@ const WIDER_ON_PURPOSE: Array<WiderOnPurpose> = [
   },
   {
     reason:
-      "Which feed a watchlist follows, which connection a feed reads through, which kind of scan last read a finding, which case a data security issue is worked in, and which cloud account and connection a data store is in: by its name, its kind or provider and whether it is on, and a case by its number. A custom role given the first reads which of the second it names, as the Security tiers read a store's cloud account and connection by name. Never what the second holds: a feed's URLs, cursor and page token, a connection's settings and errors, a scan's figures, a case's title, verdict, assignees and due dates, a cloud connection's configuration and an account's id follow the record's own read through every relation (#10310).",
+      "Which feed a watchlist follows, which connection a feed reads through, which kind of scan last read a finding, which case a data security issue is worked in or a block was made for (#10338), which cloud account and connection a data store is in, and which connection a cloud resource is read through: by its name, its kind or provider and whether it is on, and a case by its number. A custom role given the first reads which of the second it names, as the Security tiers read a store's cloud account and connection by name, and App Platforms' levels a resource's connection (#10289). Never what the second holds: a feed's URLs, cursor and page token, a connection's settings and errors, a scan's figures, a case's title, verdict, assignees and due dates, a cloud connection's configuration and an account's id follow the record's own read through every relation (#10310).",
     columns: {
       CloudAccount: ["name", "provider"],
       CloudConnection: ["isEnabled", "name", "provider"],
@@ -1134,13 +1134,23 @@ describe("a monitor's steps are no relation's label (#10309)", () => {
         WIDER_ON_PURPOSE,
       );
 
+      /*
+       * The plant is weighed against today's roles: a product's levels
+       * (#10289) read a data check, a network device and an SLO as the role
+       * they follow does, and may not read monitors, so the steps would
+       * reach them too. The relations are the 44 #10309 closed, no more.
+       */
       expect(unrecorded).toEqual(
         expect.arrayContaining([
           "Incident.monitors reads Monitor.monitorSteps for IncidentAdmin, IncidentMember, IncidentViewer, ReadProjectIncident",
           "Alert.monitor reads Monitor.monitorSteps for AlertAdmin, AlertMember, AlertViewer, ReadAlert",
+          "AlertGroupingRule.monitors reads Monitor.monitorSteps for AlertAdmin, AlertMember, AlertViewer, ReadAlertGroupingRule",
+          "CallLog.monitor reads Monitor.monitorSteps for ReadCallLog",
           "ScheduledMaintenance.monitors reads Monitor.monitorSteps for ScheduledMaintenanceAdmin, ScheduledMaintenanceMember, ScheduledMaintenanceViewer, ReadProjectScheduledMaintenance",
           "StatusPageResource.monitor reads Monitor.monitorSteps for StatusPageAdmin, StatusPageMember, StatusPageViewer",
-          "DataCheck.monitor reads Monitor.monitorSteps for TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset",
+          "DataCheck.monitor reads Monitor.monitorSteps for TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset, DataObservabilityAdmin, DataObservabilityMember, DataObservabilityViewer",
+          "NetworkDevice.monitor reads Monitor.monitorSteps for SettingsAdmin, SettingsMember, SettingsViewer, ReadNetworkDevice, NetworkAdmin, NetworkMember, NetworkViewer",
+          "ServiceLevelObjective.monitors reads Monitor.monitorSteps for ReadServiceLevelObjective, SloAdmin, SloMember, SloViewer",
         ]),
       );
       // Each of the 44 relations it was read wider through, and nothing else.
@@ -1294,10 +1304,24 @@ describe("a Security record's details are no relation's label (#10310)", () => {
           "DataStore.cloudConnection reads CloudConnection.config for SecurityAdmin, SecurityMember, SecurityViewer, ReadDataStore",
           "DataSecurityScan.cloudConnection reads CloudConnection.config for SecurityAdmin, SecurityMember, SecurityViewer, ReadDataSecurityScan",
           "DataStore.cloudAccount reads CloudAccount.accountId for SecurityAdmin, SecurityMember, SecurityViewer, ReadDataStore",
+          /*
+           * Weighed against today's models: a block names the case it was
+           * made for (#10338), and App Platforms' levels read a cloud's
+           * resources, not its connections (#10289).
+           */
+          "SecurityBlock.securityCase reads SecurityCase.title for ReadSecurityBlock",
+          "CloudResource.cloudConnection reads CloudConnection.config for AppPlatformAdmin, AppPlatformMember, AppPlatformViewer",
+          "CloudResource.cloudConnection reads CloudConnection.lastError for AppPlatformAdmin, AppPlatformMember, AppPlatformViewer",
+          "CloudResource.cloudConnection reads CloudConnection.addedMetrics for AppPlatformAdmin, AppPlatformMember, AppPlatformViewer",
         ]),
       );
-      // Each detail through each relation it was read wider through: a cloud connection's through two.
-      expect(unrecorded).toHaveLength(19 + 8 + 13 + 19 + 7 * 2 + 6);
+      /*
+       * Each detail through each relation it was read wider through: a
+       * case's through two (an issue's and a block's), a cloud connection's
+       * through four (a store's, a scan's, a cloud resource's and a cloud
+       * WAF's, #10344).
+       */
+      expect(unrecorded).toHaveLength(19 + 8 + 13 + 19 * 2 + 7 * 4 + 6);
     } finally {
       for (const metadata of held) {
         metadata.relationReaders = RelationReaders.ColumnReaders;

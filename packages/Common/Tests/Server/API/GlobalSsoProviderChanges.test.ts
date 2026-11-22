@@ -45,6 +45,7 @@ import ObjectID from "../../../Types/ObjectID";
 import UserType from "../../../Types/UserType";
 import { mockRouter } from "./Helpers";
 import { getJestSpyOn } from "../../Spy";
+import { withoutLastModifiedStamp } from "../TestingUtils/LastModifiedStamp";
 import { rowMatchesWhere } from "../TestingUtils/InMemoryRepository";
 import {
   COMMIT_STATEMENT,
@@ -290,7 +291,9 @@ const stubTable: (
 
       const written: Record<string, unknown> = {};
 
-      for (const [column, value] of Object.entries(set)) {
+      for (const [column, value] of Object.entries(
+        withoutLastModifiedStamp(set),
+      )) {
         if (column !== "version") {
           written[column] = toStored(value);
         }

@@ -382,15 +382,31 @@ describe("StartServer wires the exported options into its middlewares", () => {
     "utf8",
   );
 
+  /*
+   * Each is body-parser's, made by RequestBodyParser so that a body over the
+   * limit is refused without the rest of it read (#10598).
+   */
   test("json middleware is built from createJsonBodyParserOptions, for the route's limit", () => {
     expect(startServerSource).toMatch(
-      /ExpressJson\(\s*createJsonBodyParserOptions\(limit\),?\s*\)/,
+      /RequestBodyParser\.create\(\s*ExpressJson,\s*createJsonBodyParserOptions\(limit\),?\s*\)/,
     );
   });
 
   test("urlencoded middleware is built from createUrlEncodedBodyParserOptions, for the route's limit", () => {
     expect(startServerSource).toMatch(
-      /ExpressUrlEncoded\(\s*createUrlEncodedBodyParserOptions\(limit\),?\s*\)/,
+      /RequestBodyParser\.create\(\s*ExpressUrlEncoded,\s*createUrlEncodedBodyParserOptions\(limit\),?\s*\)/,
+    );
+  });
+
+  test("the protobuf parser is body-parser's raw one, read the same way", () => {
+    expect(startServerSource).toMatch(
+      /RequestBodyParser\.create\(ExpressRaw, \{\s*type: PROTOBUF_CONTENT_TYPES,\s*limit: limit\.bytes,\s*\}\)/,
+    );
+  });
+
+  test("no body-parser parser is called on its own, to read past its limit", () => {
+    expect(startServerSource).not.toMatch(
+      /\b(ExpressJson|ExpressUrlEncoded|ExpressRaw)\(/,
     );
   });
 
