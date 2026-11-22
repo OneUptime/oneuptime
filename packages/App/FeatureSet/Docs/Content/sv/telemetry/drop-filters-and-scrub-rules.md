@@ -5,6 +5,7 @@ Drop-filter och scrub-regler verkar på dina loggar och spans när de kommer in,
 :::cards
 - [Var de körs](#var-de-körs): Före pipelines, före lagring.
 - [Kassera poster eller ta stickprov](#kassera-poster-eller-ta-stickprov): Välj ut poster och kassera dem eller behåll en andel.
+- [Vad ett filter skulle ta](#vad-ett-filter-skulle-ta): Vad som läser posterna, innan du sparar det.
 - [Rensa känsliga data](#rensa-känsliga-data): Maskera, dölj delvis eller hasha det ett mönster hittar.
 - [Se vad ett filter kasserade](#se-vad-ett-filter-kasserade): Räknare på varje filter.
 :::
@@ -75,6 +76,20 @@ severityText = 'Debug' AND body LIKE 'healthcheck'
 ```
 
 Stickprov avgörs post för post: med en **Stickprovsprocent** på 10 behålls ungefär en av tio matchande poster. Filtren körs i listans ordning, och det första som kasserar en post avgör; en post som ett stickprov behåller går vidare till nästa filter.
+
+## Vad ett filter skulle ta
+
+En kasserad post är borta för allt som läser den, så medan du skriver ett drop-filter säger dess formulär vad det skulle ta, en stund efter att du slutat skriva: i steget **Matcha** under **Filterfråga**, och i steget **Åtgärd** under åtgärden. En rad säger den viktigaste effekten, och **Visa detaljer** säger resten:
+
+- **Hur mycket det matchar.** Hur många av de poster som lagrades det senaste dygnet som matchar: det filtret håller borta från din lagring och från din faktura. Det räknas på det som lagrades, efter att scrub-regler och pipelines ändrat det, och bara över de tjänster vars poster du kan läsa. En räkning som tar längre tid än 10 sekunder stoppas, och formuläret säger det.
+- **Vad Säkerhetshändelser skulle förlora.** Där [Säkerhetshändelser](/docs/telemetry/security-events) läser dina loggar med kortet **Dina loggar**, eller dina spans, säger formuläret hur många av de matchande posterna den läste: de inloggningar, attacker och brandväggsposter den gör till händelser. Ett filter med **Stickprov** nämner också de regler som utlöses vid ett antal, och vad det gör med dem att filtret bara behåller sin andel: vid 10 % behöver en regel som utlöses vid 10 misslyckade inloggningar på fem minuter ungefär 100, så den utlöses mycket mer sällan, eller aldrig.
+- **Vad mer som läser samma poster.** De monitorer, SLO:er, instrumentpaneler med sina widgets, inspelningsregler och sparade vyer vars frågor kan ta med en post som filtret tar. En fråga läser dem när den läser samma sorts post, från en tjänst som filtret kan ta från, och inget den låser till ett exakt värde utesluter filtret: ett filter för loggar på nivån **Felsökning** lämnar en monitor för fel i fred, och ett filter för en tjänst lämnar en annan tjänsts SLO i fred. Allt formuläret inte kan utesluta, som en sökning i loggkroppen, räknas som att läsa dem. Var och en är en länk, och de du inte kan öppna räknas, men namnges aldrig.
+
+När något läser det ett filter tar, ber formuläret dig bekräfta när du skapar filtret, aktiverar det eller ändrar frågan eller åtgärden för ett filter som är aktivt. Filtret sparas oavsett: du tillfrågas bara för att du ska kunna bestämma dig med vetskap om det. Ett filter som inget läser sparas utan att du tillfrågas.
+
+Via API:t ställs ingen fråga, eftersom ett skript eller Terraform inte har någon som kan svara. Ett filter som skapas eller ändras via API:t sparas, och när det tar något som andra läser har svaret headern `X-OneUptime-Write-Warning`, som säger det i antal, och som Terraform-providern visar som en varning. För att fråga först skickar du filtrets `filterQuery`, `action` och `samplePercentage` till `POST /api/telemetry/logs/drop-filter-impact`, eller till `/api/telemetry/traces/drop-filter-impact` för spans: svaret innehåller allt formuläret visar.
+
+De OpenStack-filter som OneUptime lägger till i ett projekt behåller varje rad som Säkerhetshändelser läser, så länge de är som OneUptime skapade dem. Ändrar du ett av dem kasserar det allt det matchar, som ett eget filter.
 
 ## Rensa känsliga data
 

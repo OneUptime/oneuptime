@@ -5,6 +5,7 @@ Drop-filtre og scrub-regler virker på loggene og spansene dine mens de kommer i
 :::cards
 - [Hvor de kjører](#hvor-de-kjører): Før pipelines, før lagring.
 - [Forkast poster eller ta utvalg](#forkast-poster-eller-ta-utvalg): Velg poster, og forkast dem eller behold en andel.
+- [Hva et filter ville ta](#hva-et-filter-ville-ta): Hva som leser postene, før du lagrer det.
 - [Rens sensitive data](#rens-sensitive-data): Sladd, masker eller hash det et mønster finner.
 - [Se hva et filter forkastet](#se-hva-et-filter-forkastet): Tellere på hvert filter.
 :::
@@ -75,6 +76,20 @@ severityText = 'Debug' AND body LIKE 'healthcheck'
 ```
 
 Utvalget avgjøres post for post: med en **Prøveprosent** på 10 beholdes omtrent én av ti poster som stemmer. Filtrene kjører i listens rekkefølge, og det første som forkaster en post, avgjør; en post som et utvalg beholder, går videre til neste filter.
+
+## Hva et filter ville ta
+
+En forkastet post er borte for alt som leser den, så mens du skriver et drop-filter, sier skjemaet hva det ville ta, et øyeblikk etter at du slutter å skrive: i trinnet **Treff** under **Filterspørring**, og i trinnet **Handling** under handlingen. Én linje sier den viktigste virkningen, og **Vis detaljer** sier resten:
+
+- **Hvor mye det treffer.** Hvor mange av postene som ble lagret det siste døgnet, som stemmer: det filteret holder ute av lagringen din og borte fra regningen din. Det telles ut fra det som ble lagret, etter at scrub-regler og pipelines endret det, og bare over tjenestene der du kan lese postene. En telling som tar lengre tid enn 10 sekunder, stoppes, og skjemaet sier fra.
+- **Hva Sikkerhetshendelser ville miste.** Der [Sikkerhetshendelser](/docs/telemetry/security-events) leser loggene dine med kortet **Loggene dine**, eller spansene dine, sier skjemaet hvor mange av postene som stemmer, den har lest: påloggingene, angrepene og brannmurpostene den gjør om til hendelser. Et filter med **Eksempel** nevner også reglene som utløses ved et antall, og hva det gjør med dem at filteret bare beholder sin andel: ved 10 % trenger en regel som utløses ved 10 mislykkede pålogginger på fem minutter, omtrent 100, så den utløses langt sjeldnere, eller aldri.
+- **Hva annet som leser de samme postene.** Monitorene, SLO-ene, dashbordene med widgetene sine, opptaksreglene og de lagrede visningene der spørringene kan ta med en post filteret tar. En spørring leser dem når den leser samme slags post, fra en tjeneste filteret kan ta fra, og ingenting den låser til en eksakt verdi, utelukker filteret: et filter for logger på nivået **Feilsøking** lar en monitor for feil være i fred, og et filter for én tjeneste lar en annen tjenestes SLO være i fred. Alt skjemaet ikke kan utelukke, som et søk i loggteksten, regnes som å lese dem. Hver av dem er en lenke, og de du ikke kan åpne, telles, men navngis aldri.
+
+Når noe leser det et filter tar, ber skjemaet deg bekrefte når du oppretter filteret, slår det på eller endrer spørringen eller handlingen til et filter som er på. Filteret lagres uansett: spørsmålet er der for at du skal bestemme deg med kunnskap om det. Et filter som ingenting leser, lagres uten spørsmål.
+
+Gjennom API-et spør ingenting, fordi et skript eller Terraform ikke har noen som kan svare. Et filter som opprettes eller endres gjennom API-et, lagres, og når det tar noe andre leser, har svaret headeren `X-OneUptime-Write-Warning`, som sier det med antall, og som Terraform-provideren viser som en advarsel. For å spørre først sender du filterets `filterQuery`, `action` og `samplePercentage` til `POST /api/telemetry/logs/drop-filter-impact`, eller til `/api/telemetry/traces/drop-filter-impact` for spans: svaret inneholder alt skjemaet viser.
+
+OpenStack-filtrene OneUptime legger til i et prosjekt, beholder hver linje Sikkerhetshendelser leser, så lenge de er slik OneUptime laget dem. Endrer du ett av dem, forkaster det alt det treffer, som et filter du har laget selv.
 
 ## Rens sensitive data
 

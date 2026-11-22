@@ -5,6 +5,7 @@ Los filtros de descarte y las reglas de depuración actúan sobre sus registros 
 :::cards
 - [Dónde se ejecutan](#dónde-se-ejecutan): Antes de las canalizaciones, antes del almacenamiento.
 - [Descartar o muestrear entradas](#descartar-o-muestrear-entradas): Seleccionar entradas y luego descartarlas o conservar una parte.
+- [Lo que un filtro se llevaría](#lo-que-un-filtro-se-llevaría): Qué lee las entradas, antes de que lo guarde.
 - [Depurar datos sensibles](#depurar-datos-sensibles): Ocultar, enmascarar o resumir con hash lo que encuentra un patrón.
 - [Comprobar qué descartó un filtro](#comprobar-qué-descartó-un-filtro): Contadores en cada filtro.
 :::
@@ -75,6 +76,20 @@ severityText = 'Debug' AND body LIKE 'healthcheck'
 ```
 
 El muestreo decide entrada por entrada: con un **Porcentaje de muestreo** de 10, se conserva aproximadamente una de cada diez entradas que coinciden. Los filtros se ejecutan en el orden de la lista, y decide el primero que descarta una entrada; una entrada que conserva una muestra pasa al filtro siguiente.
+
+## Lo que un filtro se llevaría
+
+Una entrada descartada desaparece para todo lo que la lee, así que, mientras escribe un filtro de descarte, su formulario dice lo que se llevaría, un momento después de que deje de escribir: bajo la **Consulta de filtro** en **Coincidencia**, y bajo la acción en **Acción**. Una línea dice el efecto más importante, y **Mostrar detalles** dice el resto:
+
+- **Con cuánto coincide.** De las entradas guardadas en el último día, cuántas coinciden: lo que el filtro mantiene fuera de su almacenamiento y de su factura. Se cuenta a partir de lo que se guardó, después de que las reglas de depuración y las canalizaciones lo cambiaran, y solo en los servicios cuyas entradas puede leer. Un recuento que tarda más de 10 segundos se detiene, y el formulario lo dice.
+- **Lo que perderían los Eventos de seguridad.** Donde [Eventos de seguridad](/docs/telemetry/security-events) lee sus registros con la tarjeta **Tus registros**, o sus spans, el formulario dice cuántas de las entradas que coinciden leyó: los inicios de sesión, los ataques y las entradas de firewall que convierte en eventos. Un filtro de **Muestra** también nombra las reglas que se activan al llegar a un recuento, y qué les pasa si conserva solo su parte: al 10 %, una regla que se activa con 10 inicios de sesión fallidos en cinco minutos necesita unos 100, así que se activa mucho menos a menudo, o nunca.
+- **Qué más lee las mismas entradas.** Los monitores, SLO, paneles con sus widgets, reglas de grabación y vistas guardadas cuyas consultas pueden incluir una entrada que el filtro se lleva. Una consulta las lee cuando lee el mismo tipo de entrada, de un servicio del que el filtro puede tomar entradas, y nada de lo que fija a un valor exacto excluye el filtro: un filtro de registros de **Depuración** deja en paz un monitor de errores, y un filtro de un servicio deja en paz el SLO de otro servicio. Todo lo que el formulario no puede excluir, como una búsqueda en el cuerpo del registro, cuenta como lectura. Cada uno es un enlace, y los que no puede abrir se cuentan, pero nunca se nombran.
+
+Cuando algo lee lo que un filtro se lleva, crear el filtro, activarlo o cambiar la consulta o la acción de uno que está activo le pide que confirme. El filtro se guarda de todos modos: la pregunta está ahí para que decida con conocimiento. Un filtro que nada lee se guarda sin preguntar.
+
+A través de la API nada pregunta, porque un script o Terraform no tiene a nadie que responda. Un filtro que la API crea o cambia se guarda, y cuando se lleva lo que otros leen, la respuesta lleva un encabezado `X-OneUptime-Write-Warning` que lo dice en cifras y que el proveedor de Terraform muestra como advertencia. Para preguntar antes, envíe `filterQuery`, `action` y `samplePercentage` del filtro a `POST /api/telemetry/logs/drop-filter-impact`, o a `/api/telemetry/traces/drop-filter-impact` para los spans: responde con todo lo que muestra el formulario.
+
+Los filtros de OpenStack que OneUptime añade a un proyecto conservan cada línea que lee Eventos de seguridad, mientras sigan tal como OneUptime los creó. Si cambia uno, descarta lo que coincide, como un filtro propio.
 
 ## Depurar datos sensibles
 

@@ -5,6 +5,7 @@ Les filtres de suppression et les règles de masquage agissent sur vos journaux 
 :::cards
 - [Où ils s'exécutent](#où-ils-sexécutent): Avant les pipelines, avant le stockage.
 - [Supprimer ou échantillonner des enregistrements](#supprimer-ou-échantillonner-des-enregistrements): Cibler des enregistrements, puis les supprimer ou en garder une part.
+- [Ce qu'un filtre prendrait](#ce-quun-filtre-prendrait): Ce qui lit les enregistrements, avant de l'enregistrer.
 - [Masquer les données sensibles](#masquer-les-données-sensibles): Masquer ou hacher ce qu'un modèle trouve.
 - [Vérifier ce qu'un filtre a supprimé](#vérifier-ce-quun-filtre-a-supprimé): Des compteurs sur chaque filtre.
 :::
@@ -75,6 +76,20 @@ severityText = 'Debug' AND body LIKE 'healthcheck'
 ```
 
 L'échantillonnage se décide enregistrement par enregistrement : avec un **Pourcentage d'échantillonnage** de 10, environ un enregistrement correspondant sur dix est gardé. Les filtres s'exécutent dans l'ordre de la liste, et le premier qui supprime un enregistrement décide ; un enregistrement qu'un échantillon garde passe au filtre suivant.
+
+## Ce qu'un filtre prendrait
+
+Un enregistrement supprimé a disparu pour tout ce qui le lit. Aussi, pendant que vous écrivez un filtre de suppression, son formulaire dit ce qu'il prendrait, un instant après que vous avez cessé de taper : sous la **Requête de filtre** dans **Correspondance**, et sous l'action dans **Action**. Une ligne donne l'effet le plus important, et **Afficher les détails** donne le reste :
+
+- **Combien il en cible.** Parmi les enregistrements stockés au cours du dernier jour, combien correspondent : ce que le filtre garde hors de votre stockage, et hors de votre facture. Le compte se fait sur ce qui a été stocké, après que les règles de masquage et les pipelines l'ont modifié, et seulement sur les services dont vous pouvez lire les enregistrements. Un comptage qui dure plus de 10 secondes est arrêté, et le formulaire le dit.
+- **Ce que perdraient les Événements de sécurité.** Là où les [Événements de sécurité](/docs/telemetry/security-events) lisent vos journaux avec la carte **Vos journaux**, ou vos spans, le formulaire dit combien des enregistrements ciblés ils ont lus : les connexions, les attaques et les entrées de pare-feu qu'ils transforment en événements. Un filtre **Échantillon** nomme aussi les règles qui se déclenchent à partir d'un nombre, et ce qu'elles deviennent quand il ne garde que sa part : à 10 %, une règle qui se déclenche à 10 connexions échouées en cinq minutes en demande environ 100, et se déclenche donc bien moins souvent, voire jamais.
+- **Ce qui lit aussi les mêmes enregistrements.** Les moniteurs, SLO, tableaux de bord avec leurs widgets, règles d'enregistrement et vues enregistrées dont les requêtes peuvent retenir un enregistrement que le filtre prend. Une requête les lit quand elle lit le même type d'enregistrement, d'un service dont le filtre peut prendre les enregistrements, et que rien de ce qu'elle fixe à une valeur exacte n'exclut le filtre : un filtre des journaux de niveau **Débogage** laisse tranquille un moniteur d'erreurs, et un filtre d'un service laisse tranquille le SLO d'un autre service. Tout ce que le formulaire ne peut pas exclure, comme une recherche dans le corps du journal, compte comme une lecture. Chacun est un lien, et ceux que vous ne pouvez pas ouvrir sont comptés, jamais nommés.
+
+Quand quelque chose lit ce qu'un filtre prend, créer le filtre, l'activer, ou modifier la requête ou l'action d'un filtre actif vous demande de confirmer. Le filtre est enregistré dans tous les cas : la question est là pour que vous décidiez en connaissance de cause. Un filtre que rien ne lit s'enregistre sans question.
+
+Par l'API, aucune question n'est posée, car un script ou Terraform n'a personne pour répondre. Un filtre que l'API crée ou modifie est enregistré, et quand il prend ce que d'autres lisent, la réponse porte un en-tête `X-OneUptime-Write-Warning` qui le dit en chiffres, et que le fournisseur Terraform affiche comme un avertissement. Pour demander d'abord, envoyez `filterQuery`, `action` et `samplePercentage` du filtre à `POST /api/telemetry/logs/drop-filter-impact`, ou à `/api/telemetry/traces/drop-filter-impact` pour les spans : la réponse contient tout ce que montre le formulaire.
+
+Les filtres OpenStack que OneUptime ajoute à un projet gardent chaque ligne que lisent les Événements de sécurité, tant qu'ils restent tels que OneUptime les a créés. Modifiez-en un, et il supprime ce qu'il cible, comme un de vos propres filtres.
 
 ## Masquer les données sensibles
 

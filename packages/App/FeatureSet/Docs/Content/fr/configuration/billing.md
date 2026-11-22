@@ -119,6 +119,8 @@ Quand votre banque traite encore un paiement, OneUptime l'indique : certaines ba
 
 L'utilisation d'un jour apparaît une fois la journée terminée, au plus tard vers 08:00 UTC le lendemain. Filtrez par **Produit**, **Jour** ou **Service** pour trouver ce qui a augmenté.
 
+Pour envoyer moins, un [filtre de suppression](/docs/telemetry/drop-filters-and-scrub-rules) jette les journaux et les spans que vous ne lisez jamais avant qu'ils ne soient stockés, et ce qu'il supprime n'est pas facturé. Avant que vous n'en enregistriez un, son formulaire dit quelle part de la télémétrie du dernier jour il cible, et ce qu'il prendrait aux moniteurs, tableaux de bord, SLO et Événements de sécurité qui lisent les mêmes enregistrements : voir [Ce qu'un filtre prendrait](/docs/telemetry/drop-filters-and-scrub-rules#ce-quun-filtre-prendrait).
+
 ## Soldes prépayés
 
 Les SMS, les appels téléphoniques et les messages WhatsApp et Telegram sont payés sur le solde du projet, et OneUptime AI sur ses crédits IA. Vous alimentez chacun à l'avance :
