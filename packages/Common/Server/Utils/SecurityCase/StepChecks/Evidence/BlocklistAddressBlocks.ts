@@ -31,6 +31,12 @@ import { sentence } from "../StepCheck";
 import { AddressBlockEvidence, AddressBlockSource } from "./AddressBlocks";
 import { readCloudflareStoppedFacts } from "./CloudflareStoppedRequests";
 
+// The products that block on every machine, as an enforcement row names them (#10346).
+const EVERY_MACHINE_PROVIDERS: ReadonlyArray<string> = [
+  SecurityBlockDestinationProvider.MicrosoftDefender,
+  SecurityBlockDestinationProvider.CrowdStrike,
+];
+
 /*
  * THE PROJECT'S BLOCKLIST, AS A SOURCE OF AN ADDRESS'S BLOCKS (#10562).
  *
@@ -220,7 +226,8 @@ export const SecurityBlocklistAddressBlockSource: AddressBlockSource = {
           },
           select: BLOCK_SELECT,
           skip: 0,
-          limit: 1,
+          // One at the edge and one on every machine (#10346) at most.
+          limit: 2,
           props: { isRoot: true },
         }),
         SecurityBlockService.findBy({
@@ -261,9 +268,17 @@ export const SecurityBlocklistAddressBlockSource: AddressBlockSource = {
     const evidence: Array<AddressBlockEvidence> = [];
 
     for (const block of holding) {
+      /*
+       * Where the address is blocked at the edge: a product on every machine
+       * (#10346) stops the machines reaching the address, never the
+       * address's requests reaching the app, so its hold is not this step's.
+       */
       const ofBlock: Array<SecurityBlockEnforcement> = rows.filter(
         (row: SecurityBlockEnforcement): boolean => {
-          return row.securityBlockId?.toString() === block.id!.toString();
+          return (
+            row.securityBlockId?.toString() === block.id!.toString() &&
+            !EVERY_MACHINE_PROVIDERS.includes(row.provider || "")
+          );
         },
       );
       const held: Array<SecurityBlockEnforcement> = ofBlock.filter(

@@ -169,6 +169,15 @@ export function readDestinationNames(
   const names: Array<string> = [];
 
   for (const destination of found.destinations as Array<BlocklistDestination>) {
+    /*
+     * The step blocks the address at the edge: a destination on every
+     * machine never holds that block (#10346), so it is not where the step
+     * says the address is blocked.
+     */
+    if (destination.enforcesOnEveryMachine) {
+      continue;
+    }
+
     const name: string = destination.name.trim();
 
     if (name && !names.includes(name)) {
