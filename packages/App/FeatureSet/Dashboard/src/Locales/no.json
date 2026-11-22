@@ -61952,5 +61952,15 @@
   "{{value}} is not blocked on your machines.": "{{value}} er ikke blokkert på maskinene dine.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} står på blokkeringslisten, men ingenting blokkerer det på maskinene dine ennå.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} står på blokkeringslisten. Trinnet er utført så snart det er blokkert på hver maskin.",
-  "{{value}} is part of {{address}}.": "{{value}} hører til {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} hører til {{address}}.",
+  "Criteria Met": "Oppfylte kriterier",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "Hver serie den siste sjekken leste, med siste verdi, kriteriene den oppfyller og den åpne hendelsen eller varselet.",
+  "Keeps the status": "Holder statusen",
+  "Latest Value": "Siste verdi",
+  "Monitor status kept": "Monitorstatus beholdt",
+  "Open Incident or Alert": "Åpen hendelse eller varsel",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "Viser {{shown}} av {{count}} serier: de som holder statusen eller oppfyller et kriterium, kommer først.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "Viser {{shown}} av {{count}} serie: den som holder statusen eller oppfyller et kriterium, kommer først.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "Monitoren beholder statusen sin: den venter på at et kriterium som bringer den tilbake, blir oppfylt for {{series}}.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "Denne serien oppfylte et kriterium som endret statusen til monitoren, og har ennå ikke oppfylt et kriterium som bringer den tilbake. Monitoren beholder statusen sin til det skjer, uansett hva de andre seriene gjør."
 }

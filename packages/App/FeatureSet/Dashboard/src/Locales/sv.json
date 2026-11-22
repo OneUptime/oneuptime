@@ -61952,5 +61952,15 @@
   "{{value}} is not blocked on your machines.": "{{value}} är inte blockerat på dina maskiner.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} står på blocklistan, men inget blockerar det på dina maskiner än.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} står på blocklistan. Steget är klart så snart det är blockerat på varje maskin.",
-  "{{value}} is part of {{address}}.": "{{value}} hör till {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} hör till {{address}}.",
+  "Criteria Met": "Uppfyllda kriterier",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "Varje serie som den senaste kontrollen läste, med dess senaste värde, de kriterier den uppfyller och dess öppna incident eller larm.",
+  "Keeps the status": "Håller statusen",
+  "Latest Value": "Senaste värde",
+  "Monitor status kept": "Monitorstatus behållen",
+  "Open Incident or Alert": "Öppen incident eller larm",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "Visar {{shown}} av {{count}} serier: de som håller statusen eller uppfyller ett kriterium kommer först.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "Visar {{shown}} av {{count}} serie: den som håller statusen eller uppfyller ett kriterium kommer först.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "Monitorn behåller sin status: den väntar på att ett kriterium som tar tillbaka den uppfylls för {{series}}.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "Den här serien uppfyllde ett kriterium som ändrade monitorns status och har ännu inte uppfyllt ett kriterium som tar tillbaka den. Monitorn behåller sin status tills det sker, oavsett vad de andra serierna gör."
 }

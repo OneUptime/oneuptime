@@ -61952,5 +61952,15 @@
   "{{value}} is not blocked on your machines.": "{{value}} 未在你的机器上封禁。",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} 已在封禁列表中，但你的机器上还没有任何地方封禁它。",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} 已加入封禁列表。在每台机器上封禁后，此步骤即完成。",
-  "{{value}} is part of {{address}}.": "{{value}} 属于 {{address}}。"
+  "{{value}} is part of {{address}}.": "{{value}} 属于 {{address}}。",
+  "Criteria Met": "满足的条件",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "上次检查读取的每个序列，及其最新值、满足的条件以及未解决的事件或警报。",
+  "Keeps the status": "保持状态",
+  "Latest Value": "最新值",
+  "Monitor status kept": "监视器状态已保持",
+  "Open Incident or Alert": "未解决的事件或警报",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "显示 {{count}} 个序列中的 {{shown}} 个：保持状态或满足条件的序列排在前面。",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "显示 {{count}} 个序列中的 {{shown}} 个：保持状态或满足条件的序列排在前面。",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "监视器保持其状态：等待 {{series}} 满足使其恢复的条件。",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "此序列满足了更改监视器状态的条件，但尚未满足使其恢复的条件。无论其他序列如何，在此之前监视器都会保持其状态。"
 }

@@ -61952,5 +61952,15 @@
   "{{value}} is not blocked on your machines.": "{{value}} はマシンでブロックされていません。",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} はブロックリストに登録されていますが、マシンでブロックしているものはまだありません。",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} をブロックリストに登録しました。すべてのマシンでブロックされた時点でこのステップは完了です。",
-  "{{value}} is part of {{address}}.": "{{value}} は {{address}} の一部です。"
+  "{{value}} is part of {{address}}.": "{{value}} は {{address}} の一部です。",
+  "Criteria Met": "満たした条件",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "前回のチェックで読み取った各系列と、その最新の値、満たしている条件、未解決のインシデントまたはアラートです。",
+  "Keeps the status": "ステータスを維持",
+  "Latest Value": "最新の値",
+  "Monitor status kept": "モニターのステータスを維持しました",
+  "Open Incident or Alert": "未解決のインシデントまたはアラート",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "{{count}} 系列のうち {{shown}} 系列を表示しています。ステータスを維持している系列と条件を満たしている系列が先に表示されます。",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "{{count}} 系列のうち {{shown}} 系列を表示しています。ステータスを維持している系列と条件を満たしている系列が先に表示されます。",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "モニターはステータスを維持しています。{{series}} が元に戻す条件を満たすまで待ちます。",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "この系列はモニターのステータスを変更した条件を満たし、まだ元に戻す条件を満たしていません。ほかの系列がどうであれ、条件を満たすまでモニターはステータスを維持します。"
 }

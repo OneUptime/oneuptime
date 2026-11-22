@@ -61952,5 +61952,15 @@
   "{{value}} is not blocked on your machines.": "{{value}} não está bloqueado nas suas máquinas.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} está na lista de bloqueio, mas nada o bloqueia nas suas máquinas ainda.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} está na lista de bloqueio. A etapa fica concluída assim que estiver bloqueado em cada máquina.",
-  "{{value}} is part of {{address}}.": "{{value}} faz parte de {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} faz parte de {{address}}.",
+  "Criteria Met": "Critérios atendidos",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "Cada série que a última verificação leu, com seu valor mais recente, os critérios que atende e seu incidente ou alerta aberto.",
+  "Keeps the status": "Mantém o status",
+  "Latest Value": "Valor mais recente",
+  "Monitor status kept": "Status do monitor mantido",
+  "Open Incident or Alert": "Incidente ou alerta aberto",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "Mostrando {{shown}} de {{count}} séries: primeiro as que mantêm o status ou atendem a um critério.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "Mostrando {{shown}} de {{count}} série: primeiro a que mantém o status ou atende a um critério.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "O monitor mantém seu status: aguarda que um critério que o restabeleça seja atendido por {{series}}.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "Esta série atendeu a um critério que mudou o status do monitor e ainda não atendeu a um critério que o restabeleça. O monitor mantém seu status até que ela o faça, seja o que for que as outras séries façam."
 }

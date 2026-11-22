@@ -61952,5 +61952,15 @@
   "{{value}} is not blocked on your machines.": "{{value}} is niet geblokkeerd op je machines.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} staat op de blokkeerlijst, maar nog niets blokkeert het op je machines.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} staat op de blokkeerlijst. De stap is klaar zodra het op elke machine is geblokkeerd.",
-  "{{value}} is part of {{address}}.": "{{value}} hoort bij {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} hoort bij {{address}}.",
+  "Criteria Met": "Voldane criteria",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "Elke reeks die de laatste controle las, met de laatste waarde, de criteria waaraan de reeks voldoet en het open incident of de open waarschuwing.",
+  "Keeps the status": "Houdt de status vast",
+  "Latest Value": "Laatste waarde",
+  "Monitor status kept": "Monitorstatus behouden",
+  "Open Incident or Alert": "Open incident of waarschuwing",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "{{shown}} van {{count}} reeksen getoond: eerst de reeksen die de status vasthouden of aan een criterium voldoen.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "{{shown}} van {{count}} reeks getoond: eerst de reeks die de status vasthoudt of aan een criterium voldoet.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "De monitor behoudt zijn status: hij wacht tot er voor {{series}} is voldaan aan een criterium dat hem terugbrengt.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "Deze reeks voldeed aan een criterium dat de status van de monitor veranderde, en heeft nog niet voldaan aan een criterium dat hem terugbrengt. De monitor behoudt zijn status tot dat gebeurt, wat de andere reeksen ook doen."
 }

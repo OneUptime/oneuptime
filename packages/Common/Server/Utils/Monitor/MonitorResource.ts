@@ -2732,16 +2732,8 @@ export default class MonitorResourceUtil {
       type: "monitor-status-kept",
       ...EvaluationEventText.from({
         title: translatableSentence("Monitor status kept"),
-        message: translatablePluralSentence(
-          {
-            one: translationKey(
-              "The monitor keeps its status until {{series}} meets a criteria that brings it back.",
-            ),
-            other: translationKey(
-              "The monitor keeps its status until {{series}} meet a criteria that brings it back.",
-            ),
-          },
-          seriesKeepingStatus.length,
+        message: translatableSentence(
+          "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.",
           { series: series },
         ),
       }),

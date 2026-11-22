@@ -61952,5 +61952,15 @@
   "{{value}} is not blocked on your machines.": "{{value}} روی ماشین‌های شما مسدود نیست.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} در فهرست مسدودسازی است، اما هنوز چیزی آن را روی ماشین‌های شما مسدود نمی‌کند.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} در فهرست مسدودسازی است. این گام به محض اینکه روی همهٔ ماشین‌ها مسدود شود انجام شده است.",
-  "{{value}} is part of {{address}}.": "{{value}} بخشی از {{address}} است."
+  "{{value}} is part of {{address}}.": "{{value}} بخشی از {{address}} است.",
+  "Criteria Met": "معیارهای برآورده‌شده",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "هر سری که آخرین بررسی خواند، با آخرین مقدارش، معیارهایی که برآورده می‌کند و حادثه یا هشدار باز آن.",
+  "Keeps the status": "وضعیت را نگه می‌دارد",
+  "Latest Value": "آخرین مقدار",
+  "Monitor status kept": "وضعیت مانیتور حفظ شد",
+  "Open Incident or Alert": "حادثه یا هشدار باز",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "نمایش {{shown}} از {{count}} سری: سری‌هایی که وضعیت را نگه می‌دارند یا معیاری را برآورده می‌کنند اول می‌آیند.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "نمایش {{shown}} از {{count}} سری: سری‌ای که وضعیت را نگه می‌دارد یا معیاری را برآورده می‌کند اول می‌آید.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "مانیتور وضعیت خود را حفظ می‌کند: منتظر می‌ماند تا معیاری که آن را برمی‌گرداند برای {{series}} برآورده شود.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "این سری معیاری را برآورده کرده که وضعیت مانیتور را تغییر داده است و هنوز معیاری را که آن را برمی‌گرداند برآورده نکرده است. مانیتور تا آن زمان وضعیت خود را حفظ می‌کند، هر کاری که سری‌های دیگر بکنند."
 }

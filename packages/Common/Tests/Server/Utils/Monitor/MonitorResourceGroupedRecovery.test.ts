@@ -399,9 +399,11 @@ describe("MonitorResourceUtil: a grouped monitor keeps the recovery margin", () 
 
     expect(kept?.title).toBe("Monitor status kept");
     expect(kept?.message).toBe(
-      "The monitor keeps its status until Mount: /data | Device: /dev/sdb1 meets a criteria that brings it back.",
+      "The monitor keeps its status: it waits for Mount: /data | Device: /dev/sdb1 to meet a criteria that brings it back.",
     );
-    expect(kept?.messageSentence?.count).toBe(1);
+    expect(kept?.messageSentence?.template).toBe(
+      "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.",
+    );
 
     // Still behind the status, for the next check.
     expect(keptInRedis()).toEqual([DATA_FINGERPRINT]);

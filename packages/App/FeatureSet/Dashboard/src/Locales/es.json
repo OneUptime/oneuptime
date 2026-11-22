@@ -61952,5 +61952,15 @@
   "{{value}} is not blocked on your machines.": "{{value}} no está bloqueado en tus máquinas.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} está en la lista de bloqueo, pero todavía nada lo bloquea en tus máquinas.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} está en la lista de bloqueo. El paso queda hecho en cuanto esté bloqueado en cada máquina.",
-  "{{value}} is part of {{address}}.": "{{value}} forma parte de {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} forma parte de {{address}}.",
+  "Criteria Met": "Criterios cumplidos",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "Cada serie que leyó la última comprobación, con su último valor, los criterios que cumple y su incidente o alerta abiertos.",
+  "Keeps the status": "Mantiene el estado",
+  "Latest Value": "Último valor",
+  "Monitor status kept": "Estado del monitor mantenido",
+  "Open Incident or Alert": "Incidente o alerta abiertos",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "Se muestran {{shown}} de {{count}} series: primero las que mantienen el estado o cumplen un criterio.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "Se muestra {{shown}} de {{count}} serie: primero la que mantiene el estado o cumple un criterio.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "El monitor mantiene su estado: espera a que se cumpla, para {{series}}, un criterio que lo restablezca.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "Esta serie cumplió un criterio que cambió el estado del monitor y aún no ha cumplido un criterio que lo restablezca. El monitor mantiene su estado hasta que lo haga, hagan lo que hagan las demás series."
 }

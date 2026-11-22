@@ -61952,5 +61952,15 @@
   "{{value}} is not blocked on your machines.": "{{value}} आपकी मशीनों पर ब्लॉक नहीं है।",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} ब्लॉकलिस्ट में है, लेकिन आपकी मशीनों पर अभी तक कोई भी उसे ब्लॉक नहीं करता।",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} ब्लॉकलिस्ट में है। हर मशीन पर ब्लॉक होते ही यह चरण पूरा हो जाता है।",
-  "{{value}} is part of {{address}}.": "{{value}} {{address}} का हिस्सा है।"
+  "{{value}} is part of {{address}}.": "{{value}} {{address}} का हिस्सा है।",
+  "Criteria Met": "पूरे हुए मानदंड",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "पिछली जाँच में पढ़ी गई हर सीरीज़, उसके नवीनतम मान, उसके पूरे किए गए मानदंडों और उसकी खुली घटना या अलर्ट के साथ।",
+  "Keeps the status": "स्थिति बनाए रखती है",
+  "Latest Value": "नवीनतम मान",
+  "Monitor status kept": "मॉनिटर स्थिति बनी रही",
+  "Open Incident or Alert": "खुली घटना या अलर्ट",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "{{count}} में से {{shown}} सीरीज़ दिखाई जा रही हैं: स्थिति बनाए रखने वाली या कोई मानदंड पूरा करने वाली सीरीज़ पहले आती हैं।",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "{{count}} में से {{shown}} सीरीज़ दिखाई जा रही है: स्थिति बनाए रखने वाली या कोई मानदंड पूरा करने वाली सीरीज़ पहले आती है।",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "मॉनिटर अपनी स्थिति बनाए रखता है: वह {{series}} के लिए उसे वापस लाने वाले मानदंड के पूरा होने की प्रतीक्षा करता है।",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "इस सीरीज़ ने मॉनिटर की स्थिति बदलने वाला मानदंड पूरा किया है, और अभी तक उसे वापस लाने वाला मानदंड पूरा नहीं किया है। जब तक ऐसा नहीं होता, मॉनिटर अपनी स्थिति बनाए रखता है, चाहे बाकी सीरीज़ कुछ भी करें।"
 }

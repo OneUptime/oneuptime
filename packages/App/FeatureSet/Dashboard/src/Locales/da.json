@@ -61952,5 +61952,15 @@
   "{{value}} is not blocked on your machines.": "{{value}} er ikke blokeret på dine maskiner.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} er på blokeringslisten, men intet blokerer det på dine maskiner endnu.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} er på blokeringslisten. Trinnet er udført, så snart det er blokeret på hver maskine.",
-  "{{value}} is part of {{address}}.": "{{value}} hører under {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} hører under {{address}}.",
+  "Criteria Met": "Opfyldte kriterier",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "Hver serie, det seneste tjek læste, med dens seneste værdi, de kriterier, den opfylder, og dens åbne hændelse eller advarsel.",
+  "Keeps the status": "Holder status",
+  "Latest Value": "Seneste værdi",
+  "Monitor status kept": "Monitorstatus bevaret",
+  "Open Incident or Alert": "Åben hændelse eller advarsel",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "Viser {{shown}} af {{count}} serier: dem, der holder status eller opfylder et kriterie, kommer først.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "Viser {{shown}} af {{count}} serie: den, der holder status eller opfylder et kriterie, kommer først.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "Monitoren bevarer sin status: den venter på, at et kriterie, der bringer den tilbage, bliver opfyldt for {{series}}.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "Denne serie opfyldte et kriterie, der ændrede monitorens status, og har endnu ikke opfyldt et kriterie, der bringer den tilbage. Monitoren bevarer sin status, indtil det sker, uanset hvad de andre serier gør."
 }

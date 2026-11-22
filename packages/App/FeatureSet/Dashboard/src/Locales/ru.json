@@ -61952,5 +61952,15 @@
   "{{value}} is not blocked on your machines.": "{{value}} не заблокирован на ваших машинах.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} есть в списке блокировки, но на ваших машинах его пока ничто не блокирует.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} в списке блокировки. Шаг будет выполнен, как только он будет заблокирован на каждой машине.",
-  "{{value}} is part of {{address}}.": "{{value}} входит в {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} входит в {{address}}.",
+  "Criteria Met": "Выполненные критерии",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "Каждый ряд, прочитанный последней проверкой: его последнее значение, критерии, которые он выполняет, и его открытый инцидент или оповещение.",
+  "Keeps the status": "Удерживает статус",
+  "Latest Value": "Последнее значение",
+  "Monitor status kept": "Статус монитора сохранён",
+  "Open Incident or Alert": "Открытый инцидент или оповещение",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "Показано рядов: {{shown}} из {{count}}. Сначала те, что удерживают статус или выполняют критерий.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "Показано рядов: {{shown}} из {{count}}. Сначала те, что удерживают статус или выполняют критерий.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "Монитор сохраняет свой статус: он ждёт, пока для {{series}} не выполнится критерий, который вернёт его обратно.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "Этот ряд выполнил критерий, который изменил статус монитора, и ещё не выполнил критерий, который вернёт его обратно. Монитор сохраняет статус, пока это не произойдёт, что бы ни делали остальные ряды."
 }

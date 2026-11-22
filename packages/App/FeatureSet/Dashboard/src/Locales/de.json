@@ -61952,5 +61952,15 @@
   "{{value}} is not blocked on your machines.": "{{value}} ist auf Ihren Rechnern nicht gesperrt.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} steht auf der Sperrliste, aber noch sperrt nichts es auf Ihren Rechnern.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} steht auf der Sperrliste. Der Schritt ist erledigt, sobald es auf jedem Rechner gesperrt ist.",
-  "{{value}} is part of {{address}}.": "{{value}} gehört zu {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} gehört zu {{address}}.",
+  "Criteria Met": "Erfüllte Kriterien",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "Jede Reihe, die die letzte Prüfung gelesen hat, mit ihrem letzten Wert, den Kriterien, die sie erfüllt, und ihrem offenen Vorfall oder ihrer offenen Warnung.",
+  "Keeps the status": "Hält den Status",
+  "Latest Value": "Letzter Wert",
+  "Monitor status kept": "Monitor-Status beibehalten",
+  "Open Incident or Alert": "Offener Vorfall oder offene Warnung",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "{{shown}} von {{count}} Reihen werden angezeigt: zuerst die, die den Status halten oder ein Kriterium erfüllen.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "{{shown}} von {{count}} Reihe wird angezeigt: zuerst die, die den Status hält oder ein Kriterium erfüllt.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "Der Monitor behält seinen Status: Er wartet darauf, dass ein Kriterium, das ihn zurückbringt, von {{series}} erfüllt wird.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "Diese Reihe hat ein Kriterium erfüllt, das den Status des Monitors geändert hat, und noch kein Kriterium, das ihn zurückbringt. Der Monitor behält seinen Status, bis sie es tut, unabhängig davon, was die anderen Reihen tun."
 }

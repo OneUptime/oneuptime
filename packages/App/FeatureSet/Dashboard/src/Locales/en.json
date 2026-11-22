@@ -61952,5 +61952,15 @@
   "{{value}} is not blocked on your machines.": "{{value}} is not blocked on your machines.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} is on the blocklist, but nothing blocks it on your machines yet.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} is on the blocklist. The step is done once it is blocked on every machine.",
-  "{{value}} is part of {{address}}.": "{{value}} is part of {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} is part of {{address}}.",
+  "Criteria Met": "Criteria Met",
+  "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.": "Each series the last check read, with its latest value, the criteria it meets and its open incident or alert.",
+  "Keeps the status": "Keeps the status",
+  "Latest Value": "Latest Value",
+  "Monitor status kept": "Monitor status kept",
+  "Open Incident or Alert": "Open Incident or Alert",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.": "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.",
+  "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first._one": "Showing {{shown}} of {{count}} series: those that keep the status or meet a criteria come first.",
+  "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.": "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.",
+  "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do.": "This series met a criteria that changed the monitor's status, and has not met a criteria that brings it back yet. The monitor keeps its status until it does, whatever the other series do."
 }
