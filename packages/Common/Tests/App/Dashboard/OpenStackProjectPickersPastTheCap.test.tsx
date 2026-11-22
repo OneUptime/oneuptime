@@ -125,7 +125,7 @@ async function renderProjectField(data: {
 }): Promise<void> {
   await act(async () => {
     render(
-      <BasicForm<JSONObject>
+      <BasicForm
         id="openstack-project"
         hideSubmitButton={true}
         disableAutofocus={true}

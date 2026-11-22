@@ -113,7 +113,7 @@ afterEach(() => {
 async function renderStepFields(initialValues: JSONObject): Promise<void> {
   await act(async () => {
     render(
-      <BasicForm<JSONObject>
+      <BasicForm
         id="telemetry-scope"
         hideSubmitButton={true}
         disableAutofocus={true}

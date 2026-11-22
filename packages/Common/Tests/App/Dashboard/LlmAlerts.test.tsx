@@ -101,7 +101,7 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import Service from "../../../Models/DatabaseModels/Service";
+import { TELEMETRY_SERVICE_PICKER } from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/TelemetryScopePickers";
 import { PROJECT_ID } from "./LlmConversationFixtures";
 
 /*
@@ -572,13 +572,6 @@ describe("the preview of what a monitor would count", () => {
 });
 
 describe("the AI / LLM monitor's form", () => {
-  function service(id: string, name: string): Service {
-    const model: Service = new Service();
-    model._id = id;
-    model.name = name;
-    return model;
-  }
-
   test("asks what counts as bad, how slow, how far back, which apps, then the model", () => {
     jest.spyOn(API, "post").mockImplementation(async (): Promise<never> => {
       return new Promise(() => {}) as never;
@@ -589,7 +582,6 @@ describe("the AI / LLM monitor's form", () => {
         <LlmMonitorStepForm
           monitorStepLlmMonitor={MonitorStepLlmMonitorUtil.getDefault()}
           onMonitorStepLlmMonitorChanged={jest.fn()}
-          telemetryServices={[service(SERVICE_ID, "Support bot")]}
         />
       </MemoryRouter>,
     );
@@ -617,10 +609,14 @@ describe("the AI / LLM monitor's form", () => {
     for (const option of mockFormProps!.fields[0]!.dropdownOptions || []) {
       expect(option.description).toEqual(expect.any(String));
     }
-    // An app's name is its owner's: drawn as written, never looked up.
-    expect(mockFormProps!.fields[3]!.dropdownOptions).toEqual([
-      { label: "Support bot", value: SERVICE_ID, isUserContent: true },
-    ]);
+    /*
+     * Which apps: searched on the server, never a list the step read
+     * (#10646). A project's first 10,000 services were offered.
+     */
+    expect(mockFormProps!.fields[3]!.dropdownModal).toBe(
+      TELEMETRY_SERVICE_PICKER,
+    );
+    expect(mockFormProps!.fields[3]!.dropdownOptions).toBeUndefined();
     // The model is the one rarely changed: folded under More fields.
     expect(mockFormProps!.fields[4]!.collapsibleSection).toBeTruthy();
     expect(mockFormProps!.fields[0]!.collapsibleSection).toBeUndefined();
@@ -641,7 +637,6 @@ describe("the AI / LLM monitor's form", () => {
         <LlmMonitorStepForm
           monitorStepLlmMonitor={MonitorStepLlmMonitorUtil.getDefault()}
           onMonitorStepLlmMonitorChanged={onChanged}
-          telemetryServices={[]}
         />
       </MemoryRouter>,
     );
@@ -685,7 +680,6 @@ describe("the AI / LLM monitor's form", () => {
             model: "claude-sonnet-4",
           }}
           onMonitorStepLlmMonitorChanged={jest.fn()}
-          telemetryServices={[]}
         />
       </MemoryRouter>,
     );
