@@ -23,6 +23,15 @@ import {
   WOULD_HAVE_FIRED,
   WOULD_NOT_HAVE_FIRED,
 } from "./RetrohuntCopy";
+import {
+  RETROHUNT_CORRELATION_FOUND_NOTHING_KEPT,
+  RETROHUNT_COULD_NOT_TELL,
+  RETROHUNT_FIRST_SEEN_NO_HISTORY,
+  RETROHUNT_FIRST_SEEN_SHORT_HISTORY,
+  RETROHUNT_KEPT,
+  RETROHUNT_NO_MATCHES_KEPT,
+} from "../Retention/SecurityEventRetentionCopy";
+import { SECONDS_IN_A_DAY } from "Common/Types/SecurityEvent/SecurityEventRetention";
 import { JSONObject } from "Common/Types/JSON";
 import {
   SecurityEntityType,
@@ -51,6 +60,11 @@ export interface RetrohuntSentence {
   template: string | PluralTemplate;
   count?: number | undefined;
   values?: Record<string, string | number> | undefined;
+  /*
+   * Spans of time it names, in seconds ({{name}} -> seconds): written in
+   * the language the sentence comes out in.
+   */
+  spans?: Record<string, number> | undefined;
 }
 
 export function isPluralSentence(
@@ -82,12 +96,39 @@ export function getRetrohuntPeriodOptions(): Array<RetrohuntPeriodOption> {
 export const RETROHUNT_DEFAULT_PERIOD_IN_HOURS: number =
   DETECTION_RETROHUNT_DEFAULT_PERIOD_IN_HOURS;
 
+/*
+ * Whether a First seen rule could see none of the history before the
+ * period (#10432): it could not tell what was new, which is not "nothing
+ * new".
+ */
+export function isRetrohuntWithoutHistory(
+  result: Pick<DetectionRetrohuntResult, "firstSeenHistory">,
+): boolean {
+  return Boolean(
+    result.firstSeenHistory &&
+      result.firstSeenHistory.keptLookbackInSeconds <= 0,
+  );
+}
+
+// How long the project keeps its events, when the period starts before them; null otherwise.
+function getKeptRetentionInSeconds(
+  result: Pick<DetectionRetrohuntResult, "keptFrom" | "retentionInDays">,
+): number | null {
+  return result.keptFrom && result.retentionInDays
+    ? result.retentionInDays * SECONDS_IN_A_DAY
+    : null;
+}
+
 // The headline: how often it would have fired, or that it would not have.
 export function getRetrohuntHeadline(
   result: DetectionRetrohuntResult,
 ): RetrohuntSentence {
   if (result.firedCount > 0) {
     return { template: WOULD_HAVE_FIRED, count: result.firedCount };
+  }
+
+  if (isRetrohuntWithoutHistory(result)) {
+    return { template: RETROHUNT_COULD_NOT_TELL };
   }
 
   return { template: WOULD_NOT_HAVE_FIRED };
@@ -151,9 +192,28 @@ export function getRetrohuntFacts(
       ? result.eventCount
       : result.matchedEventCount;
 
+  /*
+   * Nothing found is said of the events still kept (#10432): over a period
+   * that starts before them, "in the last 15 days", never "in this
+   * period" - the part before is not nothing, it is gone.
+   */
+  const keptRetention: number | null = getKeptRetentionInSeconds(result);
+
   if (result.firedCount === 0) {
+    // What a First seen rule could not tell, its history line says.
+    if (isRetrohuntWithoutHistory(result)) {
+      return [];
+    }
+
     if (result.isCorrelation) {
-      return [{ template: CORRELATION_FOUND_NOTHING }];
+      return [
+        keptRetention === null
+          ? { template: CORRELATION_FOUND_NOTHING }
+          : {
+              template: RETROHUNT_CORRELATION_FOUND_NOTHING_KEPT,
+              spans: { retention: keptRetention },
+            },
+      ];
     }
 
     if (matched > 0 && result.threshold !== null) {
@@ -166,7 +226,14 @@ export function getRetrohuntFacts(
       ];
     }
 
-    return [{ template: NO_MATCHES }];
+    return [
+      keptRetention === null
+        ? { template: NO_MATCHES }
+        : {
+            template: RETROHUNT_NO_MATCHES_KEPT,
+            spans: { retention: keptRetention },
+          },
+    ];
   }
 
   const facts: Array<RetrohuntSentence> = [];
@@ -193,6 +260,46 @@ export function getRetrohuntFacts(
   }
 
   return facts;
+}
+
+/*
+ * What the answer says of the events the project keeps (#10432): that the
+ * period starts before them, so it looked back as far as they go ("Security
+ * events are kept for 15 days, so this looked back 15 days."), and - for a
+ * First seen rule - how much of the history before the period it could see
+ * to tell a value is new. Nothing when the period and its history are kept.
+ */
+export function getRetrohuntKeptLines(
+  result: DetectionRetrohuntResult,
+): Array<RetrohuntSentence> {
+  const lines: Array<RetrohuntSentence> = [];
+  const keptRetention: number | null = getKeptRetentionInSeconds(result);
+
+  if (keptRetention !== null) {
+    lines.push({
+      template: RETROHUNT_KEPT,
+      spans: { retention: keptRetention },
+    });
+  }
+
+  if (result.firstSeenHistory) {
+    lines.push(
+      isRetrohuntWithoutHistory(result)
+        ? {
+            template: RETROHUNT_FIRST_SEEN_NO_HISTORY,
+            spans: { lookback: result.firstSeenHistory.lookbackInSeconds },
+          }
+        : {
+            template: RETROHUNT_FIRST_SEEN_SHORT_HISTORY,
+            spans: {
+              lookback: result.firstSeenHistory.lookbackInSeconds,
+              kept: result.firstSeenHistory.keptLookbackInSeconds,
+            },
+          },
+    );
+  }
+
+  return lines;
 }
 
 /*

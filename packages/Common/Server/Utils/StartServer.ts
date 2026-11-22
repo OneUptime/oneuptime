@@ -11,6 +11,8 @@ import LocalCache from "../Infrastructure/LocalCache";
 import HttpMetricsMiddleware from "../Middleware/HttpMetricsMiddleware";
 import TraceContextPropagation from "./Telemetry/TraceContextPropagation";
 import GzipRequestBodyMiddleware from "../Middleware/GzipRequestBody";
+import RequestBodyParser from "../Middleware/RequestBodyParser";
+import UnreadRequestBody from "../Middleware/UnreadRequestBody";
 import {
   CORS_EXPOSED_HEADERS,
   CORS_PREFLIGHT_MAX_AGE_SECONDS,
@@ -113,6 +115,13 @@ app.set("trust proxy", TrustedProxyHops);
 app.use(TraceContextPropagation.incomingRequestMiddleware);
 TraceContextPropagation.installOutgoingRequestTracer();
 app.use(CookieParser());
+/*
+ * Before anything can answer: a response sent while its request's body is
+ * left unread - a type no parser reads, a key refused before the body is
+ * read - closes the connection once it is sent, rather than have Node read
+ * the rest of the body off it (UnreadRequestBody, #10598).
+ */
+app.use(UnreadRequestBody.closeConnectionInstead);
 
 export type BodyParserVerify = (
   req: ExpressRequest,
@@ -252,6 +261,12 @@ export const urlEncodedBodyParserOptions: BodyParserOptions =
  * One parser per size limit, made the first time a route of that size
  * needs it: what the body is counted against, the route's own limit, is
  * read from the request (OneUptimeRequest.requestBodyLimit).
+ *
+ * Each is body-parser's, reading no further than its limit
+ * (RequestBodyParser, #10598): a body whose Content-Length is over it is
+ * refused before a byte is read, one that grows past it at the chunk that
+ * does, and the connection is closed once the 413 is sent, the rest of the
+ * body unread. body-parser alone read every byte the client sent first.
  */
 const parserForLimit: (
   create: (limit: RequestBodyLimit) => RequestHandler,
@@ -274,14 +289,18 @@ const parserForLimit: (
 
 const jsonParserFor: (limit: RequestBodyLimit) => RequestHandler =
   parserForLimit((limit: RequestBodyLimit): RequestHandler => {
-    return ExpressJson(createJsonBodyParserOptions(limit)) as RequestHandler;
+    return RequestBodyParser.create(
+      ExpressJson,
+      createJsonBodyParserOptions(limit),
+    );
   });
 
 const urlEncodedParserFor: (limit: RequestBodyLimit) => RequestHandler =
   parserForLimit((limit: RequestBodyLimit): RequestHandler => {
-    return ExpressUrlEncoded(
+    return RequestBodyParser.create(
+      ExpressUrlEncoded,
       createUrlEncodedBodyParserOptions(limit),
-    ) as RequestHandler;
+    );
   });
 
 /*
@@ -464,10 +483,10 @@ export const isCloudStreamPath: (path: string) => boolean = (
 
 const protobufParserFor: (limit: RequestBodyLimit) => RequestHandler =
   parserForLimit((limit: RequestBodyLimit): RequestHandler => {
-    return ExpressRaw({
+    return RequestBodyParser.create(ExpressRaw, {
       type: PROTOBUF_CONTENT_TYPES,
       limit: limit.bytes,
-    }) as RequestHandler;
+    });
   });
 
 app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {

@@ -33,6 +33,7 @@ import OnCallHandoffPolicies, {
   OnCallHandoffRule,
   OnCallHandoffRuleVars,
 } from "./OnCallHandoffPolicies";
+import OnCallHandoffPosts from "./OnCallHandoffPosts";
 
 /*
  * SOMEONE WHO JOINED IS TOLD WHICH ON-CALL POLICIES PAGE THEM NOW (#10557).
@@ -56,6 +57,12 @@ import OnCallHandoffPolicies, {
  *   - a member who joined another team hears of the rules that team put
  *     them on, and not of one that named them, or one of their other teams,
  *     already - the "told once" rule of a row's add (#10464).
+ *
+ * Someone who joined the project during their shift - on call in a
+ * schedule's rotation, or next in it, while only invited - had it posted
+ * to the policies' channels as a turn nothing paged; those channels hear
+ * that a page reaches them now (OnCallHandoffPosts.postJoinedDuringShift,
+ * #10586).
  *
  * One message for each policy - one email naming every such rule of it,
  * one text, one call, one push, one WhatsApp message - however many of its
@@ -106,6 +113,19 @@ export default class OnCallJoinNotices {
         rules: rules,
         join: data.join,
       });
+
+      /*
+       * Their shift - on call now, or next - was posted to the policies'
+       * channels as one nothing paged while they were only invited
+       * (#10586): a page reaches them now, and the channels hear it.
+       * Never throws.
+       */
+      if (news.joinedProject) {
+        await OnCallHandoffPosts.postJoinedDuringShift({
+          projectId: data.projectId,
+          userId: data.userId,
+        });
+      }
 
       if (news.rules.length === 0) {
         return;
@@ -259,7 +279,10 @@ export default class OnCallJoinNotices {
 
     return [...byPolicy.values()]
       .map((notice: OnCallJoinNotice): OnCallJoinNotice => {
-        return { ...notice, rules: OnCallJoinNotices.inOrder(notice.rules) };
+        return {
+          ...notice,
+          rules: OnCallHandoffPolicies.inOrder(notice.rules),
+        };
       })
       .sort((a: OnCallJoinNotice, b: OnCallJoinNotice): number => {
         return (
@@ -429,36 +452,6 @@ export default class OnCallJoinNotices {
     });
 
     return team?.name || null;
-  }
-
-  // Lowest order first; a rule with no order after the rest, as it came.
-  private static inOrder(
-    rules: Array<OnCallHandoffRule>,
-  ): Array<OnCallHandoffRule> {
-    return rules
-      .map((rule: OnCallHandoffRule, index: number) => {
-        return { rule, index };
-      })
-      .sort(
-        (
-          a: { rule: OnCallHandoffRule; index: number },
-          b: { rule: OnCallHandoffRule; index: number },
-        ): number => {
-          const aOrder: number =
-            a.rule.order === null ? Number.POSITIVE_INFINITY : a.rule.order;
-          const bOrder: number =
-            b.rule.order === null ? Number.POSITIVE_INFINITY : b.rule.order;
-
-          if (aOrder !== bOrder) {
-            return aOrder < bOrder ? -1 : 1;
-          }
-
-          return a.index - b.index;
-        },
-      )
-      .map((entry: { rule: OnCallHandoffRule }): OnCallHandoffRule => {
-        return entry.rule;
-      });
   }
 
   private static logFailure(

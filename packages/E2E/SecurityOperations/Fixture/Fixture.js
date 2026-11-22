@@ -255,6 +255,15 @@ import {
 } from "Common/Types/SecurityEvent/SecurityTelemetrySource";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
+import SecurityBlock from "Common/Models/DatabaseModels/SecurityBlock";
+import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
+import {
+  SecurityBlockDuration,
+  SecurityBlockIndicatorType,
+  SecurityBlockSource,
+  SecurityBlockState,
+} from "Common/Types/SecurityBlocklist/SecurityBlock";
+import { SecurityBlockEnforcementState } from "Common/Types/SecurityBlocklist/SecurityBlockEnforcement";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
@@ -395,6 +404,16 @@ const hasBranchingRuns = hasHistory && params.get("branching") === "1";
  * say where the run stopped.
  */
 const hasStoppingRun = hasHistory && params.get("stopping") === "1";
+/*
+ * ?blocklist=test: a test destination enforces the project's blocklist, and
+ * holds each block as soon as it is made (#10342). Without it nothing
+ * enforces the blocklist, and a case's block step says how to connect
+ * something that would.
+ */
+const BLOCKLIST_DESTINATIONS =
+  params.get("blocklist") === "test"
+    ? [{ key: "Test:destination", name: "Test destination", provider: "Test" }]
+    : [];
 /*
  * ?ai=off: the project's Enable AI is off. Every AI part of Security reads
  * it (useAiOffered) and draws nothing; the AI settings page says AI is off.
@@ -2950,6 +2969,9 @@ for (const modelType of [
   DetectionRuleException,
   ThreatIntelFeed,
   SecurityProtectedEntity,
+  // The project's blocklist, and where each block holds: nothing blocked yet.
+  SecurityBlock,
+  SecurityBlockEnforcement,
   Team,
   TeamMember,
   // A member's page asks for the project's member fields: it has none.
@@ -4075,6 +4097,107 @@ AnalyticsModelAPI.aggregate = async (options) => {
   };
 };
 
+// How long a block from a case lasts, by what was chosen.
+const BLOCK_DURATIONS = {
+  [SecurityBlockDuration.OneHour]: HOUR,
+  [SecurityBlockDuration.OneDay]: DAY,
+  [SecurityBlockDuration.SevenDays]: 7 * DAY,
+  [SecurityBlockDuration.ThirtyDays]: 30 * DAY,
+};
+
+/*
+ * What the server does with Block for 24 Hours on a case's Response Plan
+ * (#10342), for the project's owner: a one-step run of the playbook engine,
+ * with no playbook, that needs no approval from them and blocks the address
+ * at once - on the blocklist, held by each destination that enforces it.
+ * A viewer may not block.
+ */
+function blockFromCase(body) {
+  if (role === "viewer") {
+    return new HTTPErrorResponse(
+      403,
+      {
+        message:
+          "Blocking an address from a case takes a role that can run playbooks and block addresses.",
+      },
+      {},
+    );
+  }
+
+  const value = String(body?.value || "");
+  const securityCaseId = new ObjectID(String(body?.securityCaseId || ""));
+  const blockAction = body?.blockAction;
+  const duration = body?.duration;
+  const expiresAt = BLOCK_DURATIONS[duration]
+    ? new Date(NOW.getTime() + BLOCK_DURATIONS[duration])
+    : null;
+  // The owner's click is the approval: the step says who turned it off, and when.
+  const step = {
+    id: rowId(),
+    action: SecurityPlaybookActionType.BlockAddress,
+    config: { blockAction, duration },
+    requiresApproval: false,
+    continueOnFailure: false,
+    onlyIfThreatIntelMatched: false,
+    approvalTurnedOff: { byUserId: people.maya._id, at: NOW.toISOString() },
+  };
+  const run = insert(SecurityPlaybookRun, {
+    securityCaseId,
+    playbookName: "Block the address",
+    trigger: SecurityPlaybookTrigger.Manual,
+    triggeredByUserId: new ObjectID(people.maya._id),
+    status: SecurityPlaybookRunStatus.Succeeded,
+    steps: [step],
+    stepResults: [
+      {
+        stepId: step.id,
+        action: SecurityPlaybookActionType.BlockAddress,
+        status: SecurityPlaybookStepStatus.Succeeded,
+        startedAt: NOW.toISOString(),
+        completedAt: NOW.toISOString(),
+        message: `Block the address: done for \`${value}\`.`,
+        targets: [
+          {
+            type: SecurityEntityType.IpAddress,
+            value,
+            reason: "On the Case",
+            state: "Done",
+          },
+        ],
+      },
+    ],
+    currentStepIndex: 1,
+    startedAt: NOW,
+    completedAt: NOW,
+  });
+  const block = insert(SecurityBlock, {
+    value,
+    indicatorType: SecurityBlockIndicatorType.IpAddress,
+    action: blockAction,
+    state: SecurityBlockState.Active,
+    source: SecurityBlockSource.Person,
+    securityCaseId,
+    securityPlaybookRunId: new ObjectID(run._id),
+    createdByUserId: new ObjectID(people.maya._id),
+    createdByUser: people.maya,
+    expiresAt,
+  });
+
+  for (const destination of BLOCKLIST_DESTINATIONS) {
+    insert(SecurityBlockEnforcement, {
+      securityBlockId: new ObjectID(block._id),
+      destinationKey: destination.key,
+      destinationName: destination.name,
+      provider: destination.provider,
+      state: SecurityBlockEnforcementState.Applied,
+      appliedAt: NOW,
+      lastConfirmedAt: NOW,
+    });
+  }
+
+  return new HTTPResponse(200, { runId: run._id, needsApproval: false }, {});
+}
+
 /*
  * What the server does when someone decides a held step: approving runs the
  * step and the ones after it (here, at once), rejecting ends the run.
@@ -4659,6 +4782,20 @@ async function handleApi(method, options) {
       ),
       {},
     );
+  }
+  // Where the project's blocklist is enforced (#10342).
+  if (method === "POST" && path.endsWith("/security-block/destinations")) {
+    return new HTTPResponse(
+      200,
+      { destinations: BLOCKLIST_DESTINATIONS, cannotTell: false },
+      {},
+    );
+  }
+  if (
+    method === "POST" &&
+    path.endsWith("/security-playbook-run/block-address")
+  ) {
+    return blockFromCase(options.data);
   }
   const decision = path.match(
     /\/security-playbook-run\/([^/]+)\/(approve|reject)$/,

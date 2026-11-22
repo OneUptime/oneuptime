@@ -45,6 +45,23 @@ const mockCreateOrUpdate: MockFunction = getJestMockFunction();
 // What a list read answers: no rows, unless a test hands its dropdown some.
 const mockGetList: MockFunction = getJestMockFunction();
 
+/*
+ * How long the project keeps its security events is read from the server
+ * on its own (SecurityEventRetentionUi.test.tsx): not known here, so
+ * nothing is said of it (#10432).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retention/UseSecurityEventRetention",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,

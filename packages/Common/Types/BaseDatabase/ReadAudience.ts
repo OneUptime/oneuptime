@@ -21,6 +21,11 @@ import Dictionary from "../Dictionary";
  *     apart (#9562), beside what the subject names itself;
  *   - never a private incident, alert or episode, other than the subject.
  *
+ * A run posted only where its subject is read - a security case's triage,
+ * on the case and its timeline - weighs only the roles, teams and API keys
+ * that reach somebody who may read the subject (#9632): a team none of
+ * whose members may read the case narrows none of the run's readers.
+ *
  * Plain data, worked out once per run (ReadAudienceReader) and carried on
  * the run's props (DatabaseCommonInteractionProps.readAudience), so every
  * read made with them - a tool's, a starting context's - is narrowed where
@@ -33,13 +38,16 @@ export default interface ReadAudience {
   /*
    * The permissions some team, custom role or API key of the project holds
    * only for the records its members or the team own (an allow row scoped
-   * to Owned), each once.
+   * to Owned), each once. For a run posted only where its subject is read
+   * (a security case's triage, #9632), only those of a team or key that
+   * reaches somebody who may read the subject.
    */
   ownedOnlyPermissions: Array<string>;
   /*
    * The permissions some team, custom role or API key of the project holds
    * only for records carrying some labels, or is blocked from for some
-   * labels, each once.
+   * labels, each once. Of a team or key that reaches somebody who may read
+   * the subject, for a run posted only where the subject is read.
    */
   labelledPermissions: Array<string>;
   /*

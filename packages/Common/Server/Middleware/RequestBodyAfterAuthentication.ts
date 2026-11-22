@@ -11,6 +11,7 @@ import RequestBodyJson from "../Utils/RequestBodyJson";
 import { RequestBodyLimit } from "../Utils/RequestBodyLimit";
 import { APP_REQUEST_BODY_LIMIT_FIELD } from "../Utils/RequestBodyRefusal";
 import GzipRequestBodyMiddleware from "./GzipRequestBody";
+import RequestBodyParser from "./RequestBodyParser";
 
 /*
  * A BODY READ ONCE ITS CALLER IS KNOWN (#10222).
@@ -41,7 +42,8 @@ import GzipRequestBodyMiddleware from "./GzipRequestBody";
 /*
  * The bytes of a body of any type, one reader per size. A body compressed
  * another way than gzip is inflated by body-parser itself, held to the same
- * size, or refused (415) when it is no way it reads.
+ * size, or refused (415) when it is no way it reads. A body over the size is
+ * refused without the rest of it read (RequestBodyParser, #10598).
  */
 const rawReaders: Map<number, RequestHandler> = new Map();
 
@@ -51,12 +53,12 @@ const rawReaderFor: (bytes: number) => RequestHandler = (
   let reader: RequestHandler | undefined = rawReaders.get(bytes);
 
   if (!reader) {
-    reader = ExpressRaw({
+    reader = RequestBodyParser.create(ExpressRaw, {
       type: (): boolean => {
         return true;
       },
       limit: bytes,
-    }) as RequestHandler;
+    });
     rawReaders.set(bytes, reader);
   }
 
