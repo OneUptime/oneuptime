@@ -112,8 +112,10 @@ describe("two models of one name, as a template and its link to a status page we
     ];
 
     for (const order of orders) {
-      const map: Map<string, Set<string>> =
-        buildExportRedactedFieldsByResourceType(order);
+      const map: Map<
+        string,
+        Set<string>
+      > = buildExportRedactedFieldsByResourceType(order);
 
       expect(sorted(map.get(SHARED_NAME))).toEqual(
         expect.arrayContaining(["signingKey", "pageSecret"]),
@@ -123,11 +125,13 @@ describe("two models of one name, as a template and its link to a status page we
   });
 
   test("one renamed from the other's name redacts its own fields under its own name, and both models' under the name they shared", () => {
-    const map: Map<string, Set<string>> =
-      buildExportRedactedFieldsByResourceType([
-        PlantedNotificationTemplate,
-        PlantedRenamedTemplatePage,
-      ]);
+    const map: Map<
+      string,
+      Set<string>
+    > = buildExportRedactedFieldsByResourceType([
+      PlantedNotificationTemplate,
+      PlantedRenamedTemplatePage,
+    ]);
 
     expect(sorted(map.get(RENAMED_NAME))).toEqual(
       sorted(redactedOf(new PlantedRenamedTemplatePage())),
@@ -142,29 +146,35 @@ describe("two models of one name, as a template and its link to a status page we
   });
 
   test("each type has a set of its own, so no model's fields are changed through another's", () => {
-    const map: Map<string, Set<string>> =
-      buildExportRedactedFieldsByResourceType([
-        PlantedRenamedTemplatePage,
-        PlantedNotificationTemplate,
-      ]);
+    const map: Map<
+      string,
+      Set<string>
+    > = buildExportRedactedFieldsByResourceType([
+      PlantedRenamedTemplatePage,
+      PlantedNotificationTemplate,
+    ]);
 
     expect(map.get(RENAMED_NAME)).not.toBe(map.get(SHARED_NAME));
     expect(map.get(RENAMED_NAME)!.has("signingKey")).toBe(false);
   });
 
   test("a model the audit log does not record gives no type", () => {
-    const map: Map<string, Set<string>> =
-      buildExportRedactedFieldsByResourceType([PlantedUnaudited]);
+    const map: Map<
+      string,
+      Set<string>
+    > = buildExportRedactedFieldsByResourceType([PlantedUnaudited]);
 
     expect(map.size).toBe(0);
   });
 
   test("an entry of the shared name goes out with what either model redacts", () => {
-    const map: Map<string, Set<string>> =
-      buildExportRedactedFieldsByResourceType([
-        PlantedNotificationTemplate,
-        PlantedNotificationTemplatePage,
-      ]);
+    const map: Map<
+      string,
+      Set<string>
+    > = buildExportRedactedFieldsByResourceType([
+      PlantedNotificationTemplate,
+      PlantedNotificationTemplatePage,
+    ]);
 
     expect(map.get(SHARED_NAME)!.has("signingKey")).toBe(true);
     expect(map.get(SHARED_NAME)!.has("pageSecret")).toBe(true);
@@ -174,7 +184,9 @@ describe("two models of one name, as a template and its link to a status page we
 describe("a subscriber notification template and its link to a status page", () => {
   test("the link's entries are redacted by its own fields under its own name", () => {
     expect(sorted(getExportRedactedFields(LINK_TYPE))).toEqual(
-      sorted(redactedOf(new StatusPageSubscriberNotificationTemplateStatusPage())),
+      sorted(
+        redactedOf(new StatusPageSubscriberNotificationTemplateStatusPage()),
+      ),
     );
   });
 
@@ -243,7 +255,9 @@ describe("a model renamed", () => {
    * were stored.
    */
   test("REGRESSION: an AI rule's entries from before its rename are redacted as an AI rule's", () => {
-    const expected: Array<string> = sorted(redactedOf(new AutoRemediationRule()));
+    const expected: Array<string> = sorted(
+      redactedOf(new AutoRemediationRule()),
+    );
 
     expect(expected.length).toBeGreaterThan(0);
     expect(sorted(getExportRedactedFields("Auto Remediation Rule"))).toEqual(

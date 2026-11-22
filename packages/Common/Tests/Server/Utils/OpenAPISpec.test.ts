@@ -332,7 +332,9 @@ describe("OpenAPI specification", () => {
         "StatusPageSubscriberNotificationTemplate",
       );
 
-      expect(link?.["name"]).toBe("Status Page Subscriber Notification Template");
+      expect(link?.["name"]).toBe(
+        "Status Page Subscriber Notification Template",
+      );
       expect(link?.["x-former-names"]).toEqual([
         "Subscriber Notification Template",
       ]);

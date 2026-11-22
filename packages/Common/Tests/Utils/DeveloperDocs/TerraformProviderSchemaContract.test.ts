@@ -332,7 +332,9 @@ describe("a resource whose model was renamed from another model's name", () => {
     expect(link?.movedFrom).toBe("subscriber_notification_template");
     expect(link?.legacyName).toBeUndefined();
 
-    expect(template?.tableName).toBe("StatusPageSubscriberNotificationTemplate");
+    expect(template?.tableName).toBe(
+      "StatusPageSubscriberNotificationTemplate",
+    );
     expect(template?.movedFrom).toBeUndefined();
     expect(template?.legacyName).toBeUndefined();
   });

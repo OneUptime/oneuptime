@@ -223,9 +223,9 @@ describe("the template and its link to a status page", () => {
       "status-page-subscriber-notification-template-status-page",
     );
 
-    expect(
-      getTerraformTypeName(StatusPageSubscriberNotificationTemplate),
-    ).toBe("oneuptime_subscriber_notification_template");
+    expect(getTerraformTypeName(StatusPageSubscriberNotificationTemplate)).toBe(
+      "oneuptime_subscriber_notification_template",
+    );
     expect(
       getTerraformTypeName(StatusPageSubscriberNotificationTemplateStatusPage),
     ).toBe("oneuptime_status_page_subscriber_notification_template");
@@ -272,7 +272,9 @@ describe("the template and its link to a status page", () => {
       return component.title;
     });
 
-    expect(titles).toContain("Find One Status Page Subscriber Notification Template");
+    expect(titles).toContain(
+      "Find One Status Page Subscriber Notification Template",
+    );
     expect(titles).toContain(
       "Find Many Status Page Subscriber Notification Templates",
     );

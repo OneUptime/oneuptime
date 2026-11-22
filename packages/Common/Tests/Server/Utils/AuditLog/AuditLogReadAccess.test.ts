@@ -1241,9 +1241,9 @@ describe("AuditLogReadAccess", () => {
     };
 
     test("are found in its table, as today's are", () => {
-      expect(AuditLogReadAccess.getModelTypesOf("Auto Remediation Rule")).toEqual(
-        [AutoRemediationRule],
-      );
+      expect(
+        AuditLogReadAccess.getModelTypesOf("Auto Remediation Rule"),
+      ).toEqual([AutoRemediationRule]);
       expect(AuditLogReadAccess.getModelTypesOf("AI Rule")).toEqual([
         AutoRemediationRule,
       ]);
@@ -1433,7 +1433,8 @@ describe("AuditLogReadAccess", () => {
         )
           .filter((other: DatabaseBaseModelType): boolean => {
             return (
-              other !== modelType && new other().formerSingularName !== resourceType
+              other !== modelType &&
+              new other().formerSingularName !== resourceType
             );
           })
           .map((other: DatabaseBaseModelType): string => {
@@ -1441,7 +1442,9 @@ describe("AuditLogReadAccess", () => {
           });
 
         if (others.length > 0) {
-          shared.push(`${resourceType}: ${model.tableName}, ${others.join(", ")}`);
+          shared.push(
+            `${resourceType}: ${model.tableName}, ${others.join(", ")}`,
+          );
         }
       }
 
