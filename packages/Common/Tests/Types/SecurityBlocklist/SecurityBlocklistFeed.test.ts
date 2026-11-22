@@ -102,9 +102,11 @@ describe("the kinds a feed has", () => {
       expect(SECURITY_BLOCKLIST_FEED_FIREWALL_NAMES[firewall]).toBeTruthy();
     }
 
-    expect(SECURITY_BLOCKLIST_FEED_FIREWALLS[SECURITY_BLOCKLIST_FEED_FIREWALLS.length - 1]).toBe(
-      SecurityBlocklistFeedFirewall.Other,
-    );
+    expect(
+      SECURITY_BLOCKLIST_FEED_FIREWALLS[
+        SECURITY_BLOCKLIST_FEED_FIREWALLS.length - 1
+      ],
+    ).toBe(SecurityBlocklistFeedFirewall.Other);
     expect(isSecurityBlocklistFeedFirewall("Juniper")).toBe(false);
   });
 });
