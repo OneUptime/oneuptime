@@ -18,6 +18,7 @@ import {
   getDataSecurityAiWithoutAskingVerdict,
 } from "../../../../Types/DataSecurity/DataSecurityAi";
 import { NO_OWNER_CHECK_ID } from "../../../../Types/DataSecurity/DataSecurityCheckCatalog";
+import { isDeclaredDataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
 import DataSecurityIssueStatus from "../../../../Types/DataSecurity/DataSecurityIssueStatus";
 import DataTypeNamer from "../../../../Types/DataSecurity/DataTypeNamer";
 import ObjectID from "../../../../Types/ObjectID";
@@ -346,9 +347,19 @@ export default class DataStoreOwnerProposalRun {
       limit: MAX_STORES_READ,
       props: { isRoot: true },
     });
+    /*
+     * Not the stores OneUptime declares (#10398): nothing outside OneUptime
+     * - a tag, a code owner, a service - says who owns its own security
+     * records, so there is nothing to weigh, and the team names their
+     * owners itself if it wants any.
+     */
     const candidates: Array<DataStore> = stores.filter(
       (store: DataStore): boolean => {
-        return Boolean(idOf(store)) && !data.skipStoreIds.has(idOf(store));
+        return (
+          Boolean(idOf(store)) &&
+          !data.skipStoreIds.has(idOf(store)) &&
+          !isDeclaredDataStoreKind(store.kind)
+        );
       },
     );
 

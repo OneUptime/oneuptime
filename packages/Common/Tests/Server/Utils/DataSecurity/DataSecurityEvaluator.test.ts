@@ -50,7 +50,11 @@ import DataConfidence from "../../../../Types/DataSecurity/DataConfidence";
 import DataSensitivity from "../../../../Types/DataSecurity/DataSensitivity";
 import DataSecurityIssueStatus from "../../../../Types/DataSecurity/DataSecurityIssueStatus";
 import DataStoreEnvironment from "../../../../Types/DataSecurity/DataStoreEnvironment";
-import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
+import {
+  DECLARED_DATA_STORE_KINDS,
+  DataStoreKind,
+} from "../../../../Types/DataSecurity/DataStoreKind";
+import { declaredDataStoreKey } from "../../../../Types/DataSecurity/DataStoreKey";
 import {
   DataStoreExposure,
   DataStorePostureFacts,
@@ -1154,6 +1158,65 @@ describe("DataSecurityEvaluator.evaluateProject: what it reads", () => {
     expect(findingsSpy).not.toHaveBeenCalled();
     expect(risksSpy).not.toHaveBeenCalled();
     expect(integrationsSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Security Events, Network Flows and the address vault hold IP addresses
+   * because that is what they are for (#10398): never checked, never an
+   * issue, and what they hold stays as OneUptime declared it, never
+   * worked out again from findings they never have.
+   */
+  test("a store OneUptime declares is never checked, raises no issue, and keeps what it holds", async () => {
+    const declared: Array<DataStore> = DECLARED_DATA_STORE_KINDS.map(
+      (kind: DataStoreKind): DataStore => {
+        return storeOf({
+          name: kind,
+          kind,
+          storeKey: declaredDataStoreKey(kind),
+          environment: DataStoreEnvironment.Production,
+        });
+      },
+    );
+    const scanned: DataStore = storeOf({ name: "customer-exports" });
+    fixture.stores = [...declared, scanned];
+
+    // Findings of a declared store's data type, which it never has, change nothing.
+    fixture.findings.push(findingOf(declared[0]!, "email-address"));
+
+    await evaluate();
+
+    for (const store of declared) {
+      expect([store.name, openedFor(store)]).toEqual([store.name, []]);
+      expect([store.name, summaries.has(store.id!.toString())]).toEqual([
+        store.name,
+        false,
+      ]);
+    }
+
+    // The store a scan found is evaluated as ever, alone.
+    expect(checkRunOf("customer-exports")).toBeDefined();
+    expect(summarySpy).toHaveBeenCalledTimes(1);
+    expect(summaries.has(scanned.id!.toString())).toBe(true);
+  });
+
+  test("a project whose only stores OneUptime declares reads nothing else", async () => {
+    fixture.stores = DECLARED_DATA_STORE_KINDS.map(
+      (kind: DataStoreKind): DataStore => {
+        return storeOf({
+          name: kind,
+          kind,
+          storeKey: declaredDataStoreKey(kind),
+        });
+      },
+    );
+
+    await evaluate();
+
+    expect(flowsSpy).not.toHaveBeenCalled();
+    expect(findingsSpy).not.toHaveBeenCalled();
+    expect(integrationsSpy).not.toHaveBeenCalled();
+    expect(summarySpy).not.toHaveBeenCalled();
+    expect(createdIssues).toEqual([]);
   });
 
   test("reads the project's stores that are not archived, as root, a page at a time", async () => {

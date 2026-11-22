@@ -1,6 +1,6 @@
 # Datasikkerhedskontroller og problemer
 
-Datasikkerhed kører 34 kontroller på hvert datalager, fordelt på ni grupper. En kontrol læser det, der vides om ét datalager - hvordan det er konfigureret, hvad der er fundet i det, hvem der kan nå det, hvor det ligger - og består, fejler eller kan ikke afgøre det. En kontrol, der fejler, åbner ét problem på det datalager, og problemet lukker af sig selv, når kontrollen består. Denne side viser alle kontroller, hvordan et problems alvorlighed og risikoscore beregnes, og hvad der sker med et problem i løbet af dets levetid.
+Datasikkerhed kører 34 kontroller på hvert datalager, fordelt på ni grupper. En kontrol læser det, der vides om ét datalager - hvordan det er konfigureret, hvad der er fundet i det, hvem der kan nå det, hvor det ligger - og består, fejler eller kan ikke afgøre det. En kontrol, der fejler, åbner ét problem på det datalager, og problemet lukker af sig selv, når kontrollen består. Denne side viser alle kontroller, hvordan et problems alvorlighed og risikoscore beregnes, og hvad der sker med et problem i løbet af dets levetid. Sikkerhedshændelser, Network Flows og sikkerhedsadresseboksen er OneUptimes egne, opbevaret for din sikkerhed: angivet, aldrig scannet eller kontrolleret (se [Datalagre, som OneUptime opbevarer for din sikkerhed](/docs/data-security/compliance#datalagre-som-oneuptime-opbevarer-for-din-sikkerhed)).
 
 :::cards
 - [Sådan afgør en kontrol](#sådan-afgør-en-kontrol): Bestået, fejlet eller kan ikke afgøre, og hvor slem en fejl er.

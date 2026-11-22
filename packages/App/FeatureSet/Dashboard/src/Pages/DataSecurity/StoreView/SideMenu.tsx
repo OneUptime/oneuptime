@@ -3,6 +3,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import Route from "Common/Types/API/Route";
 import DataSecurityIssueStatus from "Common/Types/DataSecurity/DataSecurityIssueStatus";
+import { isDeclaredDataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { BadgeType } from "Common/UI/Components/Badge/Badge";
@@ -15,6 +16,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   modelId: ObjectID;
+  // The store's kind, once its layout has read it.
+  kind?: string | undefined;
 }
 
 /*
@@ -24,17 +27,74 @@ export interface ComponentProps {
  * that read it, and its Timeline. Its owners and settings are set up once,
  * so they fold; under Advanced, who changed it (Audit Logs), and Delete
  * closes the menu.
+ *
+ * A store OneUptime declares (#10398) is never scanned, checked or traced,
+ * and would come back the moment it was deleted, so it has only the pages
+ * that say something about it: its Overview (what it holds, why, for how
+ * long, who can read it), its Timeline, its Owners and Settings (its
+ * purpose and retention), and its Audit Logs.
  */
 const DataStoreViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  const isDeclared: boolean = isDeclaredDataStoreKind(props.kind);
 
   const routeOf: (page: PageMap) => Route = (page: PageMap): Route => {
     return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
       modelId: props.modelId,
     });
   };
+
+  if (isDeclared) {
+    return (
+      <SideMenu>
+        <SideMenuSection title="Data Store">
+          <SideMenuItem
+            link={{
+              title: "Overview",
+              to: routeOf(PageMap.DATA_SECURITY_STORE_VIEW),
+            }}
+            icon={IconProp.Info}
+          />
+          <SideMenuItem
+            link={{
+              title: "Timeline",
+              to: routeOf(PageMap.DATA_SECURITY_STORE_VIEW_TIMELINE),
+            }}
+            icon={IconProp.List}
+          />
+        </SideMenuSection>
+
+        <SideMenuSection title="Settings">
+          <SideMenuItem
+            link={{
+              title: "Owners",
+              to: routeOf(PageMap.DATA_SECURITY_STORE_VIEW_OWNERS),
+            }}
+            icon={IconProp.Team}
+          />
+          <SideMenuItem
+            link={{
+              title: "Settings",
+              to: routeOf(PageMap.DATA_SECURITY_STORE_VIEW_SETTINGS),
+            }}
+            icon={IconProp.Settings}
+          />
+        </SideMenuSection>
+
+        <SideMenuSection title="Advanced">
+          <SideMenuItem
+            link={{
+              title: "Audit Logs",
+              to: routeOf(PageMap.DATA_SECURITY_STORE_VIEW_AUDIT_LOGS),
+            }}
+            icon={IconProp.List}
+          />
+        </SideMenuSection>
+      </SideMenu>
+    );
+  }
 
   return (
     <SideMenu>
