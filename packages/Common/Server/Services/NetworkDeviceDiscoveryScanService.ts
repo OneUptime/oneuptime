@@ -16,6 +16,7 @@ import Probe, {
   ProbeConnectionStatus,
 } from "../../Models/DatabaseModels/Probe";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import { JSONObject } from "../../Types/JSON";
 import { DiscoveryScanStatus } from "../../Utils/NetworkDiscovery/DiscoveryScanStatus";
 import {
@@ -23,10 +24,14 @@ import {
   DISCOVERY_SCAN_ALREADY_RUNNING_REFUSAL,
   DISCOVERY_SCAN_NOT_FOUND_REFUSAL,
   DISCOVERY_SCAN_PROBE_GONE_REFUSAL,
+  DISCOVERY_SCAN_RUN_NOT_ALLOWED_REFUSAL,
   DiscoveryScanRunResult,
   canDiscoveryScanRunAgain,
   getDiscoveryScanProbeOfflineRefusal,
 } from "../../Utils/NetworkDiscovery/DiscoveryScanRun";
+import ModelPermission from "../Types/Database/Permissions/Index";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import ScanTargetUtil from "../../Utils/NetworkDiscovery/ScanTargetUtil";
 import ScanNameUtil from "../../Utils/NetworkDiscovery/ScanNameUtil";
@@ -283,7 +288,10 @@ export class Service extends ProjectReferencesService<Model> {
    * or sweeping already (canDiscoveryScanRunAgain), it is gone, or its probe
    * is gone or not connected - queued for a probe that is away, it would
    * sit Pending with its last good results out of reach (DiscoveryScanRun).
-   * Who may ask is the route's to check; this trusts its caller.
+   *
+   * Who may ask is checked first, here rather than in the route, so every
+   * caller is held to it: whoever may edit this scan, asked exactly as an
+   * update of it by id asks (assertMayRunAgain).
    *
    * The write is one compare-and-set on the status it read, so a run that
    * started in between - another click, the requeue worker, an edit that
@@ -302,6 +310,8 @@ export class Service extends ProjectReferencesService<Model> {
     // Who asked: the route's props, named on the row and in the audit log.
     props: DatabaseCommonInteractionProps;
   }): Promise<DiscoveryScanRunResult> {
+    await this.assertMayRunAgain(data);
+
     for (let attempt: number = 1; attempt <= RUN_AGAIN_ATTEMPTS; attempt++) {
       const scan: Model = await this.findScanToRunAgain(data);
 
@@ -373,10 +383,72 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * WHO MAY RUN A SCAN: WHOEVER MAY EDIT IT. A run replaces the scan's
+   * results and puts it back in the queue, which is a change to that scan -
+   * the same change an edit of its target makes - so it takes what an edit
+   * takes, not what creating a new scan takes: who may start new scans but
+   * not change existing ones gets no way to change one through this.
+   *
+   * Asked as DatabaseService.updateOneById asks an update of one record
+   * (ModelPermission.checkUpdatePermissionByModel): a credential that may
+   * only read is refused, then a team's block with no labels on the table,
+   * a grant to edit scans, a read of them (a write needs a read), the plan,
+   * and the record's own rules - it is the caller's project's. Scans carry
+   * no labels and no owners, so a grant reaches every scan of the project
+   * or none. A scan that is not there, or not the caller's, is answered as
+   * missing; a refusal says what the caller cannot do. OneUptime's own
+   * callers (root) pass, as they do every check.
+   */
+  private async assertMayRunAgain(data: {
+    scanId: ObjectID;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    // Said in its own words: it is the credential, not the person, that may not.
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
+
+    try {
+      await ModelPermission.checkUpdatePermissionByModel<Model>({
+        modelType: Model,
+        fetchModelWithAccessControlIds: async (): Promise<Model | null> => {
+          // Its project, for the record's rules: scans have no labels.
+          return await this.findOneBy({
+            query: {
+              _id: data.scanId,
+              projectId: data.projectId,
+            },
+            select: {
+              _id: true,
+              projectId: true,
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
+        },
+        props: data.props,
+      });
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new BadDataException(DISCOVERY_SCAN_NOT_FOUND_REFUSAL);
+      }
+
+      if (error instanceof NotAuthorizedException) {
+        throw new NotAuthorizedException(
+          DISCOVERY_SCAN_RUN_NOT_ALLOWED_REFUSAL,
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  /*
    * The scan Run Again was pressed on, in the caller's project, with what
    * its audit entry compares - refused when it is gone, queued already or
-   * sweeping. Read as root: the route has checked who may run it, and the
-   * project in the query keeps another project's scan out.
+   * sweeping. Read as root: assertMayRunAgain has checked who may run it,
+   * and the project in the query keeps another project's scan out.
    */
   private async findScanToRunAgain(data: {
     scanId: ObjectID;

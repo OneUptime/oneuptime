@@ -1,20 +1,14 @@
-import NetworkDeviceDiscoveryScan from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
-import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
-import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import ProductKey from "../../Types/Product/ProductKey";
 import {
-  DISCOVERY_SCAN_RUN_NOT_ALLOWED_REFUSAL,
   DISCOVERY_SCAN_RUN_PATH,
   DiscoveryScanRunResult,
 } from "../../Utils/NetworkDiscovery/DiscoveryScanRun";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import NetworkDeviceDiscoveryScanService from "../Services/NetworkDeviceDiscoveryScanService";
-import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
-import TablePermission from "../Types/Database/Permissions/TablePermission";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -38,21 +32,17 @@ import CommonAPI from "./CommonAPI";
  * or refuses with why (Common/Utils/NetworkDiscovery/DiscoveryScanRun).
  *
  * A bare router beside the scan's CRUD API, mounted in BaseAPI: BaseAPI
- * claims no `/:id/run` path, so this one is reached. Who may ask is the
- * whole gate here, because the run itself is written as root
- * (NetworkDeviceDiscoveryScanService.runAgain):
+ * claims no `/:id/run` path, so this one is reached. The run is written as
+ * root, so who may ask is the gate, in two halves:
  *
- *  - an authenticated principal of the project - a person, or one of the
- *    project's API keys;
- *  - holding the permission to EDIT discovery scans, checked as the CRUD
- *    API checks an edit of one (TablePermission: the grant, the team's
- *    block list, the plan). A run replaces a scan's results and puts it
- *    back in the queue, which is a change to that scan, as an edit of its
- *    target is: who may create a scan but not edit one gets no way to
- *    change an existing one through this. Scans carry no labels and no
- *    owners, so a grant reaches every scan of the project or none;
- *  - for a scan of the project the principal is in: runAgain looks the scan
- *    up within it, and another project's id reads as no scan at all.
+ *  - here, an authenticated principal of the project - a person, or one of
+ *    the project's API keys;
+ *  - in NetworkDeviceDiscoveryScanService.runAgain, whoever may EDIT this
+ *    scan, asked exactly as the CRUD API asks an update of it by id: a run
+ *    replaces a scan's results and queues it, which is a change to the
+ *    scan. Asked there, so every caller of the run is held to it.
+ *
+ * The request carries no body: the scan is run as it is saved.
  */
 const router: ExpressRouter = Express.getRouter();
 
@@ -71,31 +61,6 @@ function readScanId(req: ExpressRequest): ObjectID {
   return new ObjectID(scanId);
 }
 
-/*
- * Refused unless the principal may edit the project's discovery scans, in
- * words that say what they cannot do and why.
- */
-export function assertCanRunDiscoveryScans(
-  props: DatabaseCommonInteractionProps,
-): void {
-  try {
-    TablePermission.checkTableLevelPermissions(
-      NetworkDeviceDiscoveryScan,
-      props,
-      DatabaseRequestType.Update,
-    );
-  } catch (error) {
-    if (
-      error instanceof NotAuthorizedException ||
-      error instanceof PaymentRequiredException
-    ) {
-      throw new NotAuthorizedException(DISCOVERY_SCAN_RUN_NOT_ALLOWED_REFUSAL);
-    }
-
-    throw error;
-  }
-}
-
 router.post(
   DISCOVERY_SCAN_RUN_PATH,
   UserMiddleware.getUserMiddleware,
@@ -112,13 +77,11 @@ router.post(
       const projectId: ObjectID =
         CommonAPI.assertAuthenticatedProjectPrincipal(props);
 
-      assertCanRunDiscoveryScans(props);
-
       const result: DiscoveryScanRunResult =
         await NetworkDeviceDiscoveryScanService.runAgain({
           scanId: readScanId(req),
           projectId: projectId,
-          // Who asked: named on the scan's row and in the audit log.
+          // Who asked: held to the edit check, and named on the scan's row.
           props: props,
         });
 

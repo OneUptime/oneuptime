@@ -10,8 +10,15 @@ import Probe, {
   ProbeConnectionStatus,
 } from "../../../Models/DatabaseModels/Probe";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil from "../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
+import Permission, {
+  UserPermission,
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import OneUptimeDate from "../../../Types/Date";
 import UserType from "../../../Types/UserType";
 import {
@@ -19,6 +26,7 @@ import {
   DISCOVERY_SCAN_ALREADY_RUNNING_REFUSAL,
   DISCOVERY_SCAN_NOT_FOUND_REFUSAL,
   DISCOVERY_SCAN_PROBE_GONE_REFUSAL,
+  DISCOVERY_SCAN_RUN_NOT_ALLOWED_REFUSAL,
   DISCOVERY_SCAN_UNNAMED_PROBE_OFFLINE_REFUSAL,
   DiscoveryScanRunResult,
   getDiscoveryScanProbeOfflineRefusal,
@@ -79,12 +87,42 @@ const TABLETS: Array<DiscoveredNetworkDevice> = [
   { ipAddress: "10.16.0.46", snmpReachable: false },
 ];
 
+// A principal of the project holding exactly these permissions.
+function principalWith(data: {
+  permissions: Array<Permission>;
+  userType?: UserType;
+  projectId?: ObjectID;
+}): DatabaseCommonInteractionProps {
+  const projectId: ObjectID = data.projectId || PROJECT_ID;
+  const tenant: UserTenantAccessPermission = {
+    _type: "UserTenantAccessPermission",
+    projectId: projectId,
+    permissions: data.permissions.map(
+      (permission: Permission): UserPermission => {
+        return {
+          _type: "UserPermission",
+          permission: permission,
+          labelIds: [],
+          isBlockPermission: false,
+        };
+      },
+    ),
+  };
+  const isApiKey: boolean = data.userType === UserType.API;
+
+  return {
+    tenantId: projectId,
+    ...(isApiKey ? {} : { userId: SIMON }),
+    userType: data.userType || UserType.User,
+    userTenantAccessPermission: { [projectId.toString()]: tenant },
+    ...ON_HIGHEST_PLAN,
+  };
+}
+
 // Simon, a project member, pressing Run Again.
-const SIMON_PRESSING: DatabaseCommonInteractionProps = {
-  tenantId: PROJECT_ID,
-  userId: SIMON,
-  userType: UserType.User,
-};
+const SIMON_PRESSING: DatabaseCommonInteractionProps = principalWith({
+  permissions: [Permission.ProjectMember],
+});
 
 type Row = Record<string, unknown>;
 
@@ -379,10 +417,16 @@ describe("Run Again queues the same scan again", () => {
     world.row = tabletsScan();
     world.writes = [];
 
-    await runAgain({
-      tenantId: PROJECT_ID,
-      userType: UserType.API,
-    });
+    await runAgain(
+      principalWith({
+        // A write needs a read, as an edit of the scan does.
+        permissions: [
+          Permission.EditNetworkDeviceDiscoveryScan,
+          Permission.ReadNetworkDeviceDiscoveryScan,
+        ],
+        userType: UserType.API,
+      }),
+    );
 
     expect(world.writes[0]!.data["runRequestedByUserId"]).toBeNull();
     expect(world.row!["runRequestedAt"]).toEqual(NOW);
@@ -454,12 +498,41 @@ describe("Run Again refuses what it cannot do, and says why", () => {
   it("reads the scan within the caller's project: another project's id reads as no scan", async () => {
     await expect(
       runAgain(
-        { ...SIMON_PRESSING, tenantId: OTHER_PROJECT_ID },
+        principalWith({
+          permissions: [Permission.ProjectOwner],
+          projectId: OTHER_PROJECT_ID,
+        }),
         OTHER_PROJECT_ID,
       ),
     ).rejects.toThrow(new BadDataException(DISCOVERY_SCAN_NOT_FOUND_REFUSAL));
     expectNothingWritten();
     expect(world.row!["status"]).toBe("Completed");
+  });
+
+  it("refuses whoever may not edit scans before anything is read or written, saying so", async () => {
+    await expect(
+      runAgain(principalWith({ permissions: [Permission.Viewer] })),
+    ).rejects.toThrow(
+      new NotAuthorizedException(DISCOVERY_SCAN_RUN_NOT_ALLOWED_REFUSAL),
+    );
+    expect(world.writes).toEqual([]);
+    expect(ProbeService.findOneById).not.toHaveBeenCalled();
+    expectNothingWritten();
+  });
+
+  it("refuses a credential that may only read, whatever it holds, in its own words", async () => {
+    await expect(
+      runAgain({
+        ...principalWith({ permissions: [Permission.ProjectOwner] }),
+        isReadOnlyCredential: true,
+      }),
+    ).rejects.toThrow(
+      new NotAuthorizedException(
+        DatabaseCommonInteractionPropsUtil.READ_ONLY_CREDENTIAL_MESSAGE,
+      ),
+    );
+    expect(world.writes).toEqual([]);
+    expectNothingWritten();
   });
 
   it("refuses when the probe is not connected, naming the probe, and leaves the last results reviewable", async () => {
