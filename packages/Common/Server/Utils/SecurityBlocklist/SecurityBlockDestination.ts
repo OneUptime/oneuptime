@@ -17,6 +17,8 @@ import { SecurityBlockDestinationProvider } from "../../../Types/SecurityBlockli
  * The reconciler owns the desired state - the project's active blocks - and
  * a destination only says what it can hold and does what it is asked:
  *
+ *   canChallenge      whether it can challenge at all (#10350); one that
+ *                     cannot holds a policy's challenge as a block;
  *   supports(entry)   whether it can hold this entry at all, and if not,
  *                     why, in words the block shows ("Azure WAF cannot
  *                     challenge", "Application Gateway matches IPv4 only");
@@ -149,6 +151,26 @@ export default interface SecurityBlockDestination {
 
   // The connection it is enforced through, when there is one.
   readonly connectionId: ObjectID | null;
+
+  /*
+   * Whether it can challenge (#10350): ask the person behind a request to
+   * pass a check a script cannot, as Cloudflare's Managed Challenge and AWS
+   * WAF's Challenge action do. Left out, or false, it cannot - a firewall
+   * feed, Azure WAF, Google Cloud Armor - and then:
+   *
+   *   - a challenge that falls back to a block (an automatic response
+   *     policy's, SecurityBlock.challengeFallsBackToBlock) is handed to it
+   *     as a Block entry for the same time, so it holds it with nothing
+   *     more to do;
+   *   - any other challenge is still offered as a Challenge, and its
+   *     supports() refuses it with why ("Azure WAF cannot challenge").
+   *
+   * The rule is Types/SecurityBlocklist/SecurityBlockChallenge's
+   * getSecurityBlockActionAt: the reconciler asks it for every entry, and a
+   * destination that serves its list from the blocks themselves (a feed)
+   * asks it for what to serve.
+   */
+  readonly canChallenge?: boolean | undefined;
 
   /*
    * Readies the destination for a pass, under its lock and before anything

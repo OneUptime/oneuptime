@@ -191,6 +191,8 @@ export default class AwsWafBlockDestination
     SecurityBlockDestinationProvider.AwsWaf;
   public readonly name: string;
   public readonly connectionId: ObjectID | null;
+  // Its challenge sets hold challenges, which its rule answers with AWS WAF's Challenge action (#10350).
+  public readonly canChallenge: boolean = true;
 
   private readonly data: AwsWafBlockDestinationData;
 
