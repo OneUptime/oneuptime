@@ -32,7 +32,7 @@ flowchart TB
 
 - **I OneUptime Cloud: Enterprise-planen.** På andra planer visar granskningsloggens sidor vad funktionen gör och hur du får den.
 - **När du kör självhostat: Enterprise Edition**, med en licens som omfattar granskningsloggar. Se [Enterprise Edition](/docs/self-hosted/enterprise).
-- **En roll som får läsa granskningsloggen.** Projektägare, Projektadministratör, Inställningsadministratör eller behörigheten **Read Audit Log**. Att slå på granskningsloggning och ändra dess inställningar kräver en Projektägare, en Projektadministratör eller behörighet att redigera projektet.
+- **En roll som får läsa granskningsloggen.** Projektägare, Projektadministratör, Inställningsadministratör eller behörigheten **Read Audit Log**. En post visar ett fälts värden bara om du får läsa fältet på själva resursen, och en resurs namn bara om du får läsa resursen. Att slå på granskningsloggning och ändra dess inställningar kräver en Projektägare, en Projektadministratör eller behörighet att redigera projektet.
 
 ## Slå på granskningsloggning
 

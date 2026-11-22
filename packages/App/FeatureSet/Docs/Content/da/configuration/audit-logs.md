@@ -32,7 +32,7 @@ flowchart TB
 
 - **I OneUptime Cloud: Enterprise-planen.** På andre planer viser auditloggens sider, hvad funktionen gør, og hvordan du får den.
 - **Når du selv hoster: Enterprise Edition**, med en licens, der omfatter auditlogs. Se [Enterprise Edition](/docs/self-hosted/enterprise).
-- **En rolle, der må læse auditloggen.** Projektejer, Projektadministrator, Indstillingsadministrator eller tilladelsen **Read Audit Log**. At slå auditlogning til og ændre dens indstillinger kræver en Projektejer, en Projektadministrator eller tilladelse til at redigere projektet.
+- **En rolle, der må læse auditloggen.** Projektejer, Projektadministrator, Indstillingsadministrator eller tilladelsen **Read Audit Log**. En post viser kun et felts værdier, hvis du må læse feltet på selve ressourcen, og kun en ressources navn, hvis du må læse ressourcen. At slå auditlogning til og ændre dens indstillinger kræver en Projektejer, en Projektadministrator eller tilladelse til at redigere projektet.
 
 ## Slå auditlogning til
 
