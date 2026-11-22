@@ -379,7 +379,7 @@ describe("options built by hand", () => {
         },
       )?.dropdownModal?.type;
 
-      return modelType ? new modelType().tableName : undefined;
+      return modelType ? new modelType().tableName || undefined : undefined;
     };
 
     expect(tableOf("monitorIds")).toBe("Monitor");
