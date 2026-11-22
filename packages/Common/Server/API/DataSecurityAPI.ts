@@ -76,6 +76,11 @@ import { DataSecurityIssueAnalysisView } from "../../Types/DataSecurity/DataSecu
 import { isTelemetryFindingCheck } from "../../Types/DataSecurity/DataSecurityCheckCatalog";
 import DataSecurityIntegrations from "../Utils/DataSecurity/DataSecurityIntegrations";
 import DataSecurityResponse from "../Utils/DataSecurity/DataSecurityResponse";
+import DataSecurityIssueGroups from "../Utils/DataSecurity/DataSecurityIssueGroups";
+import DataSecurityIssueGroupFix, {
+  CLOUD_FIX_PERMISSIONS,
+  GROUP_PULL_REQUEST_PERMISSIONS,
+} from "../Utils/DataSecurity/DataSecurityIssueGroupFix";
 import {
   ALL_DATA_SECURITY_RESPONSE_ACTIONS,
   isDataSecurityResponseAction,
@@ -179,6 +184,12 @@ import ProductKey from "../../Types/Product/ProductKey";
  *  - Approve, Dismiss and Undo on what OneUptime AI proposed for an issue
  *    (#10364), for anyone who may read the proposal, each held to the
  *    permission the change itself takes (DataSecurityAiProposals).
+ *  - Issues one mistake made (#10370): the project's groups, for a reader
+ *    of its issues across the whole project (DataSecurityIssueGroups);
+ *    what a group's fix would do; and the fix itself - one pull request for
+ *    the stores declared as code, one approval for the stores made in the
+ *    console - each part held to its own permission
+ *    (DataSecurityIssueGroupFix).
  *
  * Every route reads only the caller's project and answers 404-like errors
  * for another project's records.
@@ -274,6 +285,18 @@ export const EXPLAIN_ISSUE_PERMISSIONS: Array<Permission> = [
 export const AI_PROPOSAL_PERMISSIONS: Array<Permission> = [
   ...new DataSecurityAiProposal().readRecordPermissions,
 ];
+
+/*
+ * Who may press a group's fix (#10370): who may make one of its parts - the
+ * pull request (who may change the issues) or the one approval (who may
+ * run a response action). Each part then takes its own.
+ */
+export const ISSUE_GROUP_FIX_PERMISSIONS: Array<Permission> = Array.from(
+  new Set<Permission>([
+    ...GROUP_PULL_REQUEST_PERMISSIONS,
+    ...CLOUD_FIX_PERMISSIONS,
+  ]),
+);
 
 const TREND_DAYS: number = 30;
 
@@ -710,6 +733,12 @@ export default class DataSecurityAPI extends BaseAPI<
           markdown: DataSecurityIssueAnalysisReader.toMarkdown(analysis),
           analysis,
           isNew: written.isNew,
+          // The group whose cause is fixed once, for all its issues (#10370).
+          group: await DataSecurityIssueGroups.forIssue({
+            projectId,
+            issueId: issue.id!,
+            props,
+          }),
         };
 
         return result as unknown as JSONObject;
@@ -729,12 +758,22 @@ export default class DataSecurityAPI extends BaseAPI<
         req: ExpressRequest,
         props: DatabaseCommonInteractionProps,
       ) => {
-        const result: DataSecurityIssueAnalysisResult = {
-          analysis: await DataSecurityIssueAnalysisReader.read({
+        const analysis: DataSecurityIssueAnalysisResult["analysis"] =
+          await DataSecurityIssueAnalysisReader.read({
             projectId,
             issueId: DataSecurityAPI.readId(req),
             props,
-          }),
+          });
+        const result: DataSecurityIssueAnalysisResult = {
+          analysis,
+          // The group whose cause is fixed once, for all its issues (#10370).
+          group: analysis
+            ? await DataSecurityIssueGroups.forIssue({
+                projectId,
+                issueId: DataSecurityAPI.readId(req),
+                props,
+              })
+            : null,
         };
 
         return result as unknown as JSONObject;
@@ -811,6 +850,78 @@ export default class DataSecurityAPI extends BaseAPI<
         })) as unknown as JSONObject;
       },
       { startsCodeWork: true },
+    );
+
+    /*
+     * The issues one mistake made (#10370): the project's groups, for the
+     * Issues list's Group by cause - none for a reader whose read of issues
+     * is held to labels. A read, so it answers while Data Security is off.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.issueGroups,
+      EXPLAIN_ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        return (await DataSecurityIssueGroups.list({
+          projectId,
+          props,
+          groupIds: body["groupIds"],
+        })) as unknown as JSONObject;
+      },
+    );
+
+    // What a group's fix would do now, for the reader: its parts, and what each leaves out.
+    this.post(
+      DATA_SECURITY_API_ROUTES.issueGroupFixPlan(":id"),
+      EXPLAIN_ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        DataSecurityAPI.assertReadsIssueGroups(props);
+
+        return (await DataSecurityIssueGroupFix.plan({
+          projectId,
+          groupId: req.params["id"],
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * A group's fix (#10370), made with one press: its pull request, asked
+     * as Fix with AI asks one (DataSecurityCodeTask), and its response
+     * action on every store made in the console - each part held to its own
+     * permission, a press on a plan that changed since refused.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.fixIssueGroup(":id"),
+      ISSUE_GROUP_FIX_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        DataSecurityAPI.assertReadsIssueGroups(props);
+
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        return (await DataSecurityIssueGroupFix.run({
+          projectId,
+          groupId: req.params["id"],
+          props,
+          codeRepositoryId: body["codeRepositoryId"],
+          includeDataStoreIds: body["includeDataStoreIds"],
+          parts: body["parts"],
+          expectedPlanFingerprint: body["expectedPlanFingerprint"],
+        })) as unknown as JSONObject;
+      },
     );
 
     /*
@@ -932,6 +1043,20 @@ export default class DataSecurityAPI extends BaseAPI<
         }
       },
     );
+  }
+
+  /*
+   * A group's facts and stores are many stores' (#10370): only a reader of
+   * issues across the whole project reads one, as the groups' list answers.
+   */
+  private static assertReadsIssueGroups(
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (!DataSecurityIssueGroups.canRead(props)) {
+      throw new NotAuthorizedException(
+        "Groups of issues are for those who read Data Security issues across the whole project.",
+      );
+    }
   }
 
   // The resource a resource route is asked about: { kind, id } in its body.

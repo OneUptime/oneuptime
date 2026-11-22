@@ -318,7 +318,7 @@ export default class DataSecurityAiProposal extends BaseModel {
     canReadOnRelationQuery: true,
     title: "What It Changes",
     description:
-      "What kind of change it is, which decides what may run without asking: MaskOnly (hides data in OneUptime, undone by deleting what it made), OpensPullRequest, RecordsJudgement, ChangesAccess, Deletes or Pages. Deleting data and paging people always ask.",
+      "What kind of change it is, which decides what may run without asking: MaskOnly (hides data in OneUptime, undone by deleting what it made), OpensPullRequest, RecordsJudgement, ChangesAccess, Deletes, Pages, ChangesWhoIsTold or ChangesCloudSettings. Deleting data, paging people, changing who is told about a store and changing a cloud store's settings always ask.",
   })
   @Column({
     type: ColumnType.ShortText,

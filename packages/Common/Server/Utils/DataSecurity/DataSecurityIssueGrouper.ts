@@ -31,10 +31,13 @@ import {
 import CodeRepositoryService, {
   Service as CodeRepositoryServiceClass,
 } from "../../Services/CodeRepositoryService";
+import DataSecurityAiProposalService from "../../Services/DataSecurityAiProposalService";
 import DataSecurityIssueGroupService from "../../Services/DataSecurityIssueGroupService";
 import DataSecurityIssueService from "../../Services/DataSecurityIssueService";
 import DataStoreService from "../../Services/DataStoreService";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import DataSecurityIssueGroupNaming from "../AI/DataSecurity/DataSecurityIssueGroupNaming";
+import DataSecurityIssueGroupProposals from "../AI/DataSecurity/DataSecurityIssueGroupProposals";
 import DeclaredCodeOwner, {
   DeclaredCodeOwnerCandidate,
   getRepositoryFullName,
@@ -78,8 +81,11 @@ import DataSecurityStoreCreators, {
  *     and no fix of its own - is deleted.
  *
  * Then OneUptime AI names the groups whose facts changed, and proposes
- * their fix (DataSecurityIssueGroupFix), as the project's AI rules say -
- * neither of which this waits on.
+ * their fix as the project's AI rules say (DataSecurityIssueGroupNaming,
+ * DataSecurityIssueGroupProposals) - the changed groups first. Neither
+ * throws, and both do nothing while the project's AI is off. A group whose
+ * last open issue resolved needs no fix: what OneUptime AI proposed for it
+ * and still waits expires.
  *
  * Read and written as OneUptime, the project scoped on every query. Never
  * throws: an evaluation ended, whatever this could group.
@@ -452,6 +458,9 @@ export default class DataSecurityIssueGrouper {
       }
     }
 
+    // The groups with open issues once counted: what OneUptime AI names.
+    const openGroupIds: Array<ObjectID> = [];
+
     // 5 and 6: each touched group counted again, and one nothing holds deleted.
     for (const groupId of touched) {
       const group: DataSecurityIssueGroup | undefined = groupsById.get(groupId);
@@ -521,8 +530,43 @@ export default class DataSecurityIssueGrouper {
 
       if (openIssueCount > 0) {
         outcome.openGroups++;
+        openGroupIds.push(group.id);
+      } else if ((group.openIssueCount || 0) > 0) {
+        await DataSecurityAiProposalService.expireWaitingForGroup({
+          dataSecurityIssueGroupId: group.id,
+          at: now,
+        });
       }
     }
+
+    /*
+     * OneUptime AI names each open group whose name is not of its facts as
+     * they are now - while the project's AI works on its Data Security
+     * issues (DataSecurityIssueGroupNaming, which never throws).
+     */
+    await DataSecurityIssueGroupNaming.nameGroups({
+      projectId,
+      groupIds: openGroupIds,
+      now,
+    });
+
+    // The changed groups' fix proposed first: the others' was, when they changed.
+    const changed: Set<string> = new Set(
+      outcome.changedGroupIds.map((id: ObjectID): string => {
+        return idOf({ id });
+      }),
+    );
+
+    await DataSecurityIssueGroupProposals.proposeForGroups({
+      projectId,
+      groupIds: [...openGroupIds].sort((left: ObjectID, right: ObjectID) => {
+        return (
+          Number(changed.has(idOf({ id: right }))) -
+          Number(changed.has(idOf({ id: left })))
+        );
+      }),
+      now,
+    });
 
     return outcome;
   }

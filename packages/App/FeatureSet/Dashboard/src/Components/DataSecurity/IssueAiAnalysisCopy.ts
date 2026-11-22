@@ -196,6 +196,13 @@ export const PROPOSAL_KIND_TITLES: Readonly<
   // Owners for the issue's store, and the rule that keeps stores like it owned (#10374).
   [DataSecurityAiProposalKind.SetStoreOwners]: translationKey("Store owners"),
   [DataSecurityAiProposalKind.CreateOwnerRule]: translationKey("Owner rules"),
+  // The fix of the cause of the issue's group (#10370), in code or in its cloud.
+  [DataSecurityAiProposalKind.FixIssueGroupInCode]: translationKey(
+    "One pull request for the cause",
+  ),
+  [DataSecurityAiProposalKind.FixIssueGroupInCloud]: translationKey(
+    "One approval for the stores made in the console",
+  ),
 };
 
 // Where a proposal stands, as a fact says it (DataSecurityAiProposalStatus).
