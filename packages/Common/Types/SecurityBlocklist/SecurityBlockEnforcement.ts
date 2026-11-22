@@ -47,8 +47,12 @@ export const SECURITY_BLOCK_ENFORCEMENT_STATES: ReadonlyArray<SecurityBlockEnfor
  */
 export enum SecurityBlockDestinationProvider {
   Test = "Test",
+  // A Cloudflare connection with blocking on: its IP lists and custom rules (#10343).
+  Cloudflare = "Cloudflare",
   // One web ACL of an AWS account, through its cloud connection (#10344).
   AwsWaf = "AwsWaf",
+  // A blocklist feed a firewall reads (#10345): it holds what the firewall fetched last.
+  Feed = "Feed",
 }
 
 /*

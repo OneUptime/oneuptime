@@ -14,6 +14,7 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import PyroscopeIngestService from "../Services/PyroscopeIngestService";
 import MultipartFormDataMiddleware from "Common/Server/Middleware/MultipartFormData";
+import RequestBodyParser from "Common/Server/Middleware/RequestBodyParser";
 import { mapAuthorizationToIngestToken } from "../Utils/PyroscopeAuthorization";
 
 const router: ExpressRouter = Express.getRouter();
@@ -49,14 +50,21 @@ const mapAuthorizationTokenMiddleware: RequestHandler = (
  * the handler as {} and every upload was answered 400.
  *
  * Mounted AFTER the ingest-key check, so an unauthenticated caller cannot
- * make the App buffer anything through it. A body the global gzip reader
- * (Content-Encoding: gzip) has already consumed is left alone: the stream
- * is gone, and reading it again would fail the request.
+ * make the App buffer anything through it. A body over the limit is refused
+ * without the rest of it read, and the connection closed once the 413 is
+ * sent (RequestBodyParser, #10644): body-parser alone read the whole of it
+ * first - 64 MiB sent were 64 MiB read, and a chunked body was read for as
+ * long as its client went on sending. A body the global gzip reader
+ * (Content-Encoding: gzip) has already inflated is handed on as the bytes
+ * it left, as they are.
  */
-const rawProfileBodyParser: RequestHandler = ExpressRaw({
-  type: ["application/octet-stream", "binary/octet-stream"],
-  limit: "50mb",
-}) as RequestHandler;
+const rawProfileBodyParser: RequestHandler = RequestBodyParser.create(
+  ExpressRaw,
+  {
+    type: ["application/octet-stream", "binary/octet-stream"],
+    limit: "50mb",
+  },
+);
 
 const parseRawProfileBody: RequestHandler = (
   req: ExpressRequest,

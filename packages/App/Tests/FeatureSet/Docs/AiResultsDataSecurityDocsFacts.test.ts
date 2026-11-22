@@ -104,6 +104,37 @@ describe("AI Results counts Data Security", () => {
     );
   });
 
+  /*
+   * Verdicts Agreed (#10369): of the issues OneUptime AI analyzed that
+   * people decided, how many went as its verdict said.
+   */
+  it("names Verdicts Agreed as the page does, and says what it counts and shows beside it", () => {
+    expect(section).toContain(
+      "- **Verdicts Agreed** — of the Data Security issues OneUptime AI analyzed that people then decided (fixed, accepted, or marked not an issue), how many went the way its verdict said (see [OneUptime AI in Data Security](/docs/data-security/ai)).",
+    );
+    expect(CARD_DATA).toContain(
+      'export const VERDICTS_AGREED_TITLE: string = translationKey("Verdicts Agreed");',
+    );
+    expect(CARD_DATA).toContain(
+      'agreed: translationKey("Went as its verdict said"),',
+    );
+    // Decided: fixed, accepted or not an issue - never still open.
+    expect(BUILDER).toContain(
+      'if (outcome === "agreed" || outcome === "disagreed") {',
+    );
+
+    // Beside the bar, the undecided and the ones it could not tell about, each opening its issues.
+    expect(section).toContain(
+      "The issues nobody has decided yet, and those it could not tell about, are shown beside them, and each number lists the issues it counts.",
+    );
+    expect(CARD_DATA).toContain('waiting: translationKey("Not decided yet"),');
+    expect(CARD_DATA).toContain(
+      'cannotTell: translationKey("Could not tell"),',
+    );
+    expect(CARD_DATA).toContain('outcome: "waiting",');
+    expect(CARD_DATA).toContain('outcome: "cannotTell",');
+  });
+
   it("says how each kind did shows once more than one kind of change was made", () => {
     expect(section).toContain(
       "Once OneUptime AI has made more than one kind of change, the card shows how each kind did.",

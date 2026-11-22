@@ -454,7 +454,7 @@ Mattermost får godkännandet som text, utan knappar.
 
 Ditt projekts egna adresser blockeras aldrig: posterna i **Skyddade entiteter**, dina värdar, Kubernetes-noder, molnresurser, nätverksenheter och slutpunkter, dina adressnamn och sonder, OneUptime Clouds sonder, de intervall som inte finns på internet och edge-nätverket framför din app. En blockering som skulle träffa en av dem avvisas med besked om vad adressen är, och **Skyddade entiteter** listar dem under **Automatiskt skyddade**. När OneUptime inte kan avgöra om en adress är din blockerar den den inte.
 
-**Tillämpad hos** visar varje ställe där en blockering tillämpas och om den håller där. Så länge inget tillämpar blocklistan säger sidan det, och en blockering registreras men blockerar ingenting. Varje blockering, hävning och utgång sparas i projektets granskningslogg, och på ärendets tidslinje när den har ett ärende. En blockering av ett ärendes adress står också i dess **Responsplan**, där **Häv** avslutar den, och **Blockera adress** på en rad i **Kampanjer** blockerar den kampanjens adress.
+**Tillämpad hos** visar varje ställe där en blockering tillämpas och om den håller där. En brandvägg eller en proxy tillämpar den genom att läsa ett [blocklistflöde](/docs/telemetry/blocklist-feeds), en hemlig URL som den hämtar med några minuters mellanrum. Så länge inget tillämpar blocklistan säger sidan det, och en blockering registreras men blockerar ingenting. Varje blockering, hävning och utgång sparas i projektets granskningslogg, och på ärendets tidslinje när den har ett ärende. En blockering av ett ärendes adress står också i dess **Responsplan**, där **Häv** avslutar den, och **Blockera adress** på en rad i **Kampanjer** blockerar den kampanjens adress.
 
 ### Meddelanden
 

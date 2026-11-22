@@ -36,6 +36,7 @@ import {
 } from "../../Components/SecurityEvents/Blocklist/BlocklistCopy";
 import BlocklistCloudWafs from "../../Components/SecurityEvents/Blocklist/BlocklistCloudWafs";
 import BlocklistNotEnforcedNotice from "../../Components/SecurityEvents/Blocklist/BlocklistNotEnforcedNotice";
+import BlocklistFeedsStoppedNotice from "../../Components/SecurityEvents/BlocklistFeeds/BlocklistFeedsStoppedNotice";
 import useBlocklistActions, {
   BlocklistActions,
 } from "../../Components/SecurityEvents/Blocklist/useBlocklistActions";
@@ -138,6 +139,9 @@ const SecurityBlocklistPage: FunctionComponent<PageComponentProps> = (
       ) : (
         <></>
       )}
+
+      {/* A firewall that stopped reading its feed: its blocks are not enforced there (#10345). */}
+      <BlocklistFeedsStoppedNotice refreshToggle={String(refreshCount)} />
 
       <ModelTable<SecurityBlock>
         modelType={SecurityBlock}

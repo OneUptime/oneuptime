@@ -48,6 +48,14 @@ import { SecurityBlockDestinationProvider } from "../../../Types/SecurityBlockli
  *     write per account names that account in its lock key.
  */
 
+/*
+ * The namespace of the destinations' locks: a pass of the reconciler holds
+ * a destination's lock key in it, and so does work a destination does
+ * outside a pass (Cloudflare's removal), so the two never write at once.
+ */
+export const SECURITY_BLOCKLIST_LOCK_NAMESPACE: string =
+  "SecurityBlocklistReconciler";
+
 // One block, as a destination is asked to hold it.
 export interface SecurityBlockEntry {
   securityBlockId: ObjectID;
@@ -81,6 +89,15 @@ export interface SecurityBlockHeldItem {
    * (Azure Front Door's provisioning). The block stays Pending there.
    */
   isPropagating?: boolean | undefined;
+  /*
+   * Held, but not in force, and why, in words the block shows: what
+   * enforces the item was turned off or deleted at the provider ("Your rule
+   * in example.com was turned off: blocks there are not enforced"). Not done
+   * - the block is Failed there, with this as why, and its case hears it -
+   * until the provider is put back; the item is neither added again nor
+   * removed meanwhile.
+   */
+  notInForceReason?: string | undefined;
 }
 
 // Whether a destination can hold an entry, and if not, why.
@@ -132,6 +149,24 @@ export default interface SecurityBlockDestination {
 
   // The connection it is enforced through, when there is one.
   readonly connectionId: ObjectID | null;
+
+  /*
+   * Readies the destination for a pass, under its lock and before anything
+   * else is asked of it: sets up what the provider needs to hold blocks
+   * when that was asked for (Cloudflare's lists and rules, when blocking is
+   * turned on), and checks it is still in place when that is due. Throws
+   * when it cannot, as a failed read does: the pass records why on every
+   * row, and tries again later. Absent for a destination that needs nothing.
+   */
+  prepare?(): Promise<void>;
+
+  /*
+   * Whether the destination has work this pass that its blocks alone do not
+   * give it: a setup asked for, a check of its setup that is due. Read
+   * before the lock is taken, so a project with no block yet still has its
+   * destination set up. Absent: only its blocks give it work.
+   */
+  hasWorkOfItsOwn?(now: Date): boolean;
 
   supports(entry: {
     indicatorType: SecurityBlockIndicatorType;

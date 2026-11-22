@@ -293,6 +293,70 @@ describe("OpenAPI specification", () => {
       expect(withoutDescription).toEqual([]);
     });
 
+    /*
+     * OpenAPI wants each tag declared once, and a generator groups a tag's
+     * endpoints under its name. A status page's subscriber notification
+     * template had the template's own name until #10664: two tags of one
+     * name, so one section, held both models' endpoints.
+     */
+    it("declares each tag once, by a name of its own", () => {
+      const counts: Map<string, number> = new Map<string, number>();
+
+      for (const tag of (spec["tags"] || []) as Array<{ name: string }>) {
+        counts.set(tag.name, (counts.get(tag.name) || 0) + 1);
+      }
+
+      expect(
+        Array.from(counts.entries()).filter(
+          ([, count]: [string, number]): boolean => {
+            return count > 1;
+          },
+        ),
+      ).toEqual([]);
+    });
+
+    it("tags a template's link to a status page with its own name, and names the one it had", () => {
+      const tags: Array<JSONObject> = (spec["tags"] || []) as Array<JSONObject>;
+      const tagOf: (table: string) => JSONObject | undefined = (
+        table: string,
+      ): JSONObject | undefined => {
+        return tags.find((tag: JSONObject): boolean => {
+          return tag["x-oneuptime-table"] === table;
+        });
+      };
+
+      const link: JSONObject | undefined = tagOf(
+        "StatusPageSubscriberNotificationTemplateStatusPage",
+      );
+      const template: JSONObject | undefined = tagOf(
+        "StatusPageSubscriberNotificationTemplate",
+      );
+
+      expect(link?.["name"]).toBe(
+        "Status Page Subscriber Notification Template",
+      );
+      expect(link?.["x-former-names"]).toEqual([
+        "Subscriber Notification Template",
+      ]);
+      expect(template?.["name"]).toBe("Subscriber Notification Template");
+      expect(template?.["x-former-names"]).toBeUndefined();
+
+      const linkTags: Array<string> = operations
+        .filter((entry: { path: string }): boolean => {
+          return entry.path.startsWith(
+            "/status-page-subscriber-notification-template-status-page",
+          );
+        })
+        .flatMap((entry: { operation: Operation }): Array<string> => {
+          return entry.operation.tags || [];
+        });
+
+      expect(linkTags.length).toBeGreaterThan(0);
+      expect(new Set(linkTags)).toEqual(
+        new Set(["Status Page Subscriber Notification Template"]),
+      );
+    });
+
     it("sorts the declared tags", () => {
       const names: Array<string> = (
         (spec["tags"] || []) as Array<{ name: string }>

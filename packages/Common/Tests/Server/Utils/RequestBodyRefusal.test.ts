@@ -2,12 +2,16 @@ import readRequestBodyRefusal, {
   APP_BODY_LIMIT_IN_BYTES,
   APP_REQUEST_BODY_LIMIT_FIELD,
   INFLATE_FAILED_TYPE,
+  MULTIPART_LIMIT_TYPE,
+  MULTIPART_MALFORMED_TYPE,
+  REFUSAL_ANSWER_FIELD,
   REQUEST_BODY_REFUSAL_MESSAGES,
   REQUEST_BODY_REFUSALS,
   RequestBodyRefusal,
   TOO_MANY_JSON_VALUES_TYPE,
   UNREAD_BODY_CONNECTION_GRACE_MS,
   closeConnectionAfterAnswer,
+  createCutOffError,
   createInflateFailedError,
   createTooLargeError,
   createTooManyJsonValuesError,
@@ -15,8 +19,13 @@ import readRequestBodyRefusal, {
   getTooLargeForRouteMessage,
   getTooManyJsonValuesMessage,
   isInflateError,
+  markAsRequestBodyRefusal,
   stopReadingRequestBody,
+  withAppRequestBodyLimit,
 } from "../../../Server/Utils/RequestBodyRefusal";
+import BadRequestException from "../../../Types/Exception/BadRequestException";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import PayloadTooLargeException from "../../../Types/Exception/PayloadTooLargeException";
 import { ExpressRequest, ExpressResponse } from "../../../Server/Utils/Express";
 import {
   LARGE_REQUEST_BODY_BYTES,
@@ -918,5 +927,143 @@ describe("closeConnectionAfterAnswer", () => {
 
     expect(req.readableFlowing).toBe(false);
     expect(res.shouldKeepAlive).toBe(false);
+  });
+});
+
+/*
+ * #10643: a multipart body multer refuses stays the Exception it was, in the
+ * same words, and is marked as the client's body refused, so the error
+ * handler answers it with its status and logs it at debug - where each was
+ * an error-level line (and a malformed body a 500), from any client.
+ */
+describe("a refusal of the code's own", () => {
+  test("keeps the Exception it is, and is answered in the words it was made with", () => {
+    const limit: PayloadTooLargeException = markAsRequestBodyRefusal(
+      new PayloadTooLargeException(
+        "Multipart request rejected: LIMIT_FILE_COUNT.",
+      ),
+      MULTIPART_LIMIT_TYPE,
+      413,
+    );
+
+    expect(limit).toBeInstanceOf(PayloadTooLargeException);
+    expect(limit.code).toBe(ExceptionCode.PayloadTooLargeException);
+    expect(readRequestBodyRefusal(limit)).toEqual({
+      type: MULTIPART_LIMIT_TYPE,
+      status: 413,
+      message: "Multipart request rejected: LIMIT_FILE_COUNT.",
+    });
+
+    const malformed: BadRequestException = markAsRequestBodyRefusal(
+      new BadRequestException(REQUEST_BODY_REFUSAL_MESSAGES.multipartMalformed),
+      MULTIPART_MALFORMED_TYPE,
+      400,
+    );
+
+    expect(malformed).toBeInstanceOf(BadRequestException);
+    expect(readRequestBodyRefusal(malformed)).toEqual({
+      type: MULTIPART_MALFORMED_TYPE,
+      status: 400,
+      message: REQUEST_BODY_REFUSAL_MESSAGES.multipartMalformed,
+    });
+  });
+
+  test("its words are only ever the ones it was marked with: a library's message of the same type is not shown", () => {
+    // busboy's own words, on an error that merely carries the type.
+    const refusal: RequestBodyRefusal | null = readRequestBodyRefusal(
+      parserError(400, MULTIPART_MALFORMED_TYPE, "Unexpected end of form"),
+    );
+
+    expect(refusal?.message).toBe(
+      REQUEST_BODY_REFUSAL_MESSAGES.multipartMalformed,
+    );
+    expect(
+      readRequestBodyRefusal(
+        parserError(413, MULTIPART_LIMIT_TYPE, "LIMIT_PART_COUNT"),
+      )?.message,
+    ).toBe(REQUEST_BODY_REFUSAL_MESSAGES.multipartTooLarge);
+  });
+
+  test("marked with no words, it says its type's sentence", () => {
+    const refusal: RequestBodyRefusal | null = readRequestBodyRefusal(
+      markAsRequestBodyRefusal(new Error(""), MULTIPART_LIMIT_TYPE, 413),
+    );
+
+    expect(refusal?.message).toBe(
+      REQUEST_BODY_REFUSAL_MESSAGES.multipartTooLarge,
+    );
+  });
+
+  test("the words it is answered in are the field it was marked with", () => {
+    const error: Error = markAsRequestBodyRefusal(
+      new Error("Multipart request rejected: LIMIT_FIELD_VALUE."),
+      MULTIPART_LIMIT_TYPE,
+      413,
+    );
+
+    expect(
+      (error as unknown as Record<string, unknown>)[REFUSAL_ANSWER_FIELD],
+    ).toBe("Multipart request rejected: LIMIT_FIELD_VALUE.");
+    expect(error).toMatchObject({
+      type: MULTIPART_LIMIT_TYPE,
+      status: 413,
+      statusCode: 413,
+      expose: true,
+    });
+  });
+});
+
+describe("a reader's next, marked with the App's own limit", () => {
+  test("a body over it says that limit, and is not read as a proxy's", () => {
+    const handed: Array<unknown> = [];
+    const next: (err?: unknown) => void = withAppRequestBodyLimit(
+      (err?: unknown): void => {
+        handed.push(err);
+      },
+      1048576,
+    );
+
+    next(parserError(413, "entity.too.large"));
+    next(
+      Object.assign(parserError(413, "entity.too.large"), { limit: 1048576 }),
+    );
+
+    expect(
+      (handed[0] as Record<string, unknown>)[APP_REQUEST_BODY_LIMIT_FIELD],
+    ).toBe(1048576);
+    expect(readRequestBodyRefusal(handed[1])?.message).toBe(
+      getTooLargeForRouteMessage(1048576),
+    );
+  });
+
+  test("any other error, and none, is handed on as it is", () => {
+    const handed: Array<unknown> = [];
+    const next: (err?: unknown) => void = withAppRequestBodyLimit(
+      (err?: unknown): void => {
+        handed.push(err);
+      },
+      1048576,
+    );
+    const parseFailed: Error = parserError(400, "entity.parse.failed");
+
+    next();
+    next(parseFailed);
+
+    expect(handed).toEqual([undefined, parseFailed]);
+    expect(
+      (parseFailed as unknown as Record<string, unknown>)[
+        APP_REQUEST_BODY_LIMIT_FIELD
+      ],
+    ).toBeUndefined();
+  });
+});
+
+describe("a body whose client went away before it was read", () => {
+  test("is answered as one cut off mid-body is: 400, never a 500", () => {
+    expect(readRequestBodyRefusal(createCutOffError())).toEqual({
+      type: "request.aborted",
+      status: 400,
+      message: REQUEST_BODY_REFUSAL_MESSAGES.cutOff,
+    });
   });
 });

@@ -14,7 +14,21 @@ import DataSensitivity, {
   isDataSensitivity,
 } from "../../../../Types/DataSecurity/DataSensitivity";
 import DataTypeNamer from "../../../../Types/DataSecurity/DataTypeNamer";
-import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
+import {
+  DataSecurityAnalysisFact,
+  DataSecurityAnalysisFactKind,
+  DataSecurityRecency,
+  getDataSecurityRecency,
+  isGrantRemovedByFix,
+  isRecentDataSecurityRecency,
+  ReachFact,
+  roundDataSecurityCount,
+} from "../../../../Types/DataSecurity/DataSecurityIssueAnalysis";
+import { DataStoreAccessLevel } from "../../../../Types/DataSecurity/DataStoreAccess";
+import {
+  DataStoreKind,
+  TELEMETRY_DATA_STORE_KINDS,
+} from "../../../../Types/DataSecurity/DataStoreKind";
 import {
   DataStoreOwnerCandidate,
   DataStoreOwnerEvidence,
@@ -28,6 +42,7 @@ import {
 } from "../../../../Types/DataSecurity/DataStoreOwnerProposal";
 import { DataStoreExposure } from "../../../../Types/DataSecurity/DataStorePosture";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
+import ObjectID from "../../../../Types/ObjectID";
 import { findInstructionLikePhrase } from "../../../../Utils/AI/InstructionLikeText";
 import PromptText from "../../../../Utils/AI/PromptText";
 import {
@@ -170,6 +185,8 @@ export type AiStoreRecord = AiReadable<
   | "configurationReadAt"
   | "cloudTags"
   | "posture"
+  | "estimatedRecords"
+  | "objectCount"
 >;
 
 export type AiIssueRecord = AiReadable<
@@ -196,6 +213,8 @@ export type AiIssueRecord = AiReadable<
 
 export type AiFindingRecord = AiReadable<
   DataStoreFinding,
+  | "_id"
+  | "id"
   | "dataTypeId"
   | "dataTypeName"
   | "location"
@@ -212,6 +231,9 @@ export type AiFindingRecord = AiReadable<
 
 export type AiAccessRecord = AiReadable<
   DataStoreAccess,
+  | "_id"
+  | "id"
+  | "isUnused"
   | "principal"
   | "principalName"
   | "principalType"
@@ -1187,60 +1209,733 @@ export function issueData(data: {
 }
 
 /*
- * Explain with AI: the feature's instructions - with the team's AI context
- * first, which the caller placed (withAiContext) - and the issue's data.
+ * ---------------------------------------------------------------------------
+ * The analyst (#10369): what OneUptime knows about an issue, as facts
+ * ---------------------------------------------------------------------------
+ *
+ * The analysis of an issue - Explain with AI, when a person asks; Analyze,
+ * when the issue opens - is written from facts Data Security's code read
+ * (DataSecurityIssueDossier): the issue, what the store holds and how
+ * exposed it is, who can reach it and when each last used it, the services
+ * seen using it, copies of its data, its security cases, the response
+ * action that fixes it, what OneUptime AI proposed, the code that declares
+ * it, and whether it has an owner. Each fact gets an id ("S1", "R2") that
+ * the answer's lines name; the issue keeps each fact with the records it
+ * was read from (DataSecurityAnalysisFact.recordIds), so a reader is shown
+ * only what they may read.
+ *
+ * What OneUptime AI reads of them is the allow-list's, as for every Data
+ * Security prompt: names, counts, kinds, recency in buckets - never a value,
+ * a sample, a record or a connection string - and every text a cloud, a
+ * person or a service wrote cleaned and held to a length (customerText).
+ * The facts kept on the issue are the same text, cleaned the same way.
  */
-export function buildExplainIssuePrompt(data: {
-  instructions: string;
-  issue: AiIssueRecord;
-  findings?: ReadonlyArray<AiFindingRecord> | undefined;
-  dataTypeNamer?: DataTypeNamer | undefined;
-  /*
-   * The team's notes on its systems (Project Settings > AI > AI Context):
-   * the team's own words, so the steps to fix it are the team's own. They
-   * go first in the system message.
-   */
-  aiContext?: AiContextActivity | null | undefined;
-}): DataSecurityAiPrompt {
-  const marks: AiInputMarks = new AiInputMarks();
 
-  return prompt({
-    feature: DataSecurityAiFeature.ExplainIssue,
-    instructions: withAiContext(data.instructions, data.aiContext),
-    facts: issueData({
-      issue: data.issue,
-      findings: data.findings,
-      dataTypeNamer: data.dataTypeNamer,
-      marks,
-    }),
-    marks,
+// The most of each kind of fact one analysis is written from.
+export const MAX_ANALYSIS_GRANTS: number = 15;
+export const MAX_ANALYSIS_SERVICES: number = 10;
+export const MAX_ANALYSIS_COPIES: number = 10;
+export const MAX_ANALYSIS_CASES: number = 5;
+export const MAX_ANALYSIS_PROPOSALS: number = 5;
+export const MAX_ANALYSIS_CODE_PATHS: number = 3;
+export const MAX_ANALYSIS_OWNER_NAMES: number = 5;
+// The longest file path of declared code a fact holds.
+const MAX_CODE_PATH_LENGTH: number = 300;
+
+// A copy of a store's data in another store (DataSecurityFlow's Copy flows).
+export interface AiCopyRecord {
+  // The flow it was read from.
+  flowId: string;
+  otherStore: AiStoreRecord;
+  // The other store holds a copy of this store's data; else this store holds the other's.
+  isCopyOfThisStore: boolean;
+  overlapPercent?: number | undefined;
+}
+
+// A response action that fixes the issue's check on its store, and whether it can run now.
+export interface AiResponseRecord {
+  action: string;
+  isAvailable: boolean;
+  unavailableReason?: string | undefined;
+}
+
+// What OneUptime AI proposed for the issue (#10364), and where it stands.
+export interface AiProposalRecord {
+  proposalId: string;
+  kind: string;
+  status: string;
+}
+
+// The repository, and the files, that declare the store as code (DeclaredCodeOwner).
+export interface AiDeclaredCodeRecord {
+  repositoryId: string;
+  repositoryName: string;
+  paths: ReadonlyArray<string>;
+  codeKind: string;
+  reason: string;
+}
+
+export interface AiOwnersRecord {
+  // The owner rows (DataStoreOwnerUser, DataStoreOwnerTeam) they were read from.
+  recordIds: ReadonlyArray<string>;
+  // People and teams, by name, for the card alone: OneUptime AI is told how many.
+  names: ReadonlyArray<string>;
+  count: number;
+}
+
+export interface AiIssueDossier {
+  issue: AiIssueRecord;
+  store: AiStoreRecord;
+  // Where a telemetry issue's data sits; none for any other issue.
+  places: ReadonlyArray<AiFindingRecord>;
+  // Every access entry of the store read, the services seen in traces among them.
+  access: ReadonlyArray<AiAccessRecord>;
+  copies: ReadonlyArray<AiCopyRecord>;
+  securityCaseIds: ReadonlyArray<string>;
+  responses: ReadonlyArray<AiResponseRecord>;
+  proposals: ReadonlyArray<AiProposalRecord>;
+  declaredCode: AiDeclaredCodeRecord | null;
+  owners: AiOwnersRecord;
+  // When it was read: what each recency is counted from.
+  now: Date;
+}
+
+// The facts of an analysis: as the issue keeps them, and as OneUptime AI reads them.
+export interface AiAnalysisFacts {
+  facts: Array<DataSecurityAnalysisFact>;
+  data: JSONObject;
+  marks: AiInputMarks;
+}
+
+function idOf(record: { _id?: unknown; id?: unknown }): string {
+  const id: unknown = record.id || record._id;
+
+  return id ? String(id) : "";
+}
+
+// The record ids a fact was read from, the empty ones left out.
+function recordIdsOf(...ids: Array<string>): Array<string> {
+  return ids.filter((id: string): boolean => {
+    return id.length > 0;
+  });
+}
+
+// How OneUptime AI reads a recency: words, never a time.
+const RECENCY_WORDS: Readonly<Record<DataSecurityRecency, string>> = {
+  [DataSecurityRecency.Day]: "in the last day",
+  [DataSecurityRecency.Week]: "in the last week",
+  [DataSecurityRecency.Month]: "in the last 30 days",
+  [DataSecurityRecency.Quarter]: "in the last 90 days",
+  [DataSecurityRecency.Older]: "more than 90 days ago",
+  [DataSecurityRecency.Never]: "never, as far as its cloud records",
+  [DataSecurityRecency.Unknown]: "not known: its cloud does not say",
+};
+
+const ACCESS_LEVEL_RANK: Readonly<Record<string, number>> = {
+  [DataStoreAccessLevel.Admin]: 2,
+  [DataStoreAccessLevel.Write]: 1,
+  [DataStoreAccessLevel.Read]: 0,
+};
+
+function recencyOfAccess(
+  entry: AiAccessRecord,
+  now: Date,
+): DataSecurityRecency {
+  return getDataSecurityRecency({
+    at: entry.lastUsedAt,
+    now,
+    hasNoRecordedUse: entry.isUnused === true && !entry.lastUsedAt,
   });
 }
 
 /*
- * OneUptime AI's own analysis of a new issue (#10364): Explain's
- * instructions and data, asked on its own when the issue opens, under a
- * feature of its own - so its AI Logs label, its budget and what Settings
- * says of it are its own.
+ * The grants of a store, the riskiest first: what the fix removes, then
+ * public, then outside the connected accounts, then the most it allows,
+ * then the most lately used. Each is held to the order of its id, so two
+ * reads of the same grants give the same facts.
+ */
+function rankGrants(
+  grants: ReadonlyArray<AiAccessRecord>,
+  checkId: string | undefined,
+  now: Date,
+): Array<AiAccessRecord> {
+  const recencyRank: (entry: AiAccessRecord) => number = (
+    entry: AiAccessRecord,
+  ): number => {
+    return isRecentDataSecurityRecency(recencyOfAccess(entry, now)) ? 1 : 0;
+  };
+
+  return [...grants].sort((a: AiAccessRecord, b: AiAccessRecord): number => {
+    return (
+      Number(isGrantRemovedByFix(checkId, b)) -
+        Number(isGrantRemovedByFix(checkId, a)) ||
+      Number(b.isPublic === true) - Number(a.isPublic === true) ||
+      Number(b.isExternal === true) - Number(a.isExternal === true) ||
+      (ACCESS_LEVEL_RANK[b.accessLevel || ""] || 0) -
+        (ACCESS_LEVEL_RANK[a.accessLevel || ""] || 0) ||
+      recencyRank(b) - recencyRank(a) ||
+      idOf(a).localeCompare(idOf(b))
+    );
+  });
+}
+
+/*
+ * The facts of an issue: the ones the issue keeps, each with the records it
+ * was read from, and the same facts as OneUptime AI reads them, under the
+ * same ids - built in one pass, so the two never disagree.
+ */
+export function analysisFacts(data: {
+  dossier: AiIssueDossier;
+  dataTypeNamer?: DataTypeNamer | undefined;
+  marks?: AiInputMarks | undefined;
+}): AiAnalysisFacts {
+  const marks: AiInputMarks = data.marks || new AiInputMarks();
+  const namer: DataTypeNamer =
+    data.dataTypeNamer || DataTypeNamer.withoutCustomTypes();
+  const dossier: AiIssueDossier = data.dossier;
+  const store: AiStoreRecord = dossier.store;
+  const storeId: string =
+    idOf(store) || dossier.issue.dataStoreId?.toString() || "";
+  const issueId: string = idOf(dossier.issue);
+  const checkId: string | undefined = dossier.issue.checkId;
+  const facts: Array<DataSecurityAnalysisFact> = [];
+  const read: Array<JSONObject> = [];
+
+  const add: (fact: DataSecurityAnalysisFact, sent: JSONObject) => void = (
+    fact: DataSecurityAnalysisFact,
+    sent: JSONObject,
+  ): void => {
+    facts.push(fact);
+    read.push({ id: fact.id, ...withoutEmpty(sent) });
+  };
+
+  // The issue, as its check saw it: what Explain has always sent of it.
+  const issue: JSONObject = issueFacts(
+    { ...dossier.issue, dataStore: store },
+    namer,
+    marks,
+  );
+  const fix: JSONObject | undefined = issue["fix"] as JSONObject | undefined;
+
+  if (fix) {
+    // The steps say what the fix is; its CLI and Terraform add nothing to what it breaks.
+    delete fix["cli"];
+    delete fix["terraform"];
+  }
+
+  add(
+    {
+      id: "I1",
+      kind: DataSecurityAnalysisFactKind.Issue,
+      recordIds: recordIdsOf(issueId),
+      checkId: checkId || "",
+      severity: dossier.issue.severity || "",
+    },
+    { fact: "the issue, as its check saw it", ...issue },
+  );
+
+  // What the store holds.
+  const dataTypeIds: Array<string> = [...(store.dataTypeIds || [])];
+  const dataTypeNamesSent: Array<string> = dataTypeNames(
+    namer.namesOf(dataTypeIds),
+    "store.dataTypes",
+    marks,
+  );
+  const records: number | undefined = roundDataSecurityCount(
+    store.estimatedRecords,
+  );
+  const objects: number | undefined = roundDataSecurityCount(store.objectCount);
+  const sensitivity: DataSensitivity = effectiveSensitivity(store);
+
+  add(
+    {
+      id: "S1",
+      kind: DataSecurityAnalysisFactKind.StoreHolds,
+      recordIds: recordIdsOf(storeId),
+      dataTypeIds,
+      dataTypeNames: dataTypeNamesSent,
+      sensitivity,
+      records,
+      objects,
+    },
+    {
+      fact: "what the store holds",
+      dataTypes: dataTypeNamesSent,
+      dataCategories: (store.dataCategories || []).map(
+        (category: string): string => {
+          return category;
+        },
+      ),
+      sensitivity,
+      aboutHowManyRecords: records,
+      aboutHowManyObjects: objects,
+    },
+  );
+
+  // How exposed it is.
+  const configuration: JSONObject = configurationFacts(store, marks);
+  const publicReason: string =
+    typeof configuration["publicReason"] === "string"
+      ? (configuration["publicReason"] as string)
+      : "";
+
+  add(
+    {
+      id: "S2",
+      kind: DataSecurityAnalysisFactKind.StoreExposure,
+      recordIds: recordIdsOf(storeId),
+      exposure: store.exposure || DataStoreExposure.Unknown,
+      isPublicByDesign: store.isPublicByDesign === true,
+      publicReason: publicReason || undefined,
+    },
+    {
+      fact: "how exposed the store is",
+      exposure: store.exposure || DataStoreExposure.Unknown,
+      markedPublicByDesign: store.isPublicByDesign === true ? true : undefined,
+      configuration,
+    },
+  );
+
+  // What the store is: its name and tags say what it is for.
+  const tags: JSONObject = tagFacts(store, marks);
+  const name: string = customerText(
+    store.name,
+    MAX_ISSUE_VALUE_LENGTH,
+    "store.name",
+    marks,
+  );
+
+  add(
+    {
+      id: "S3",
+      kind: DataSecurityAnalysisFactKind.StoreIdentity,
+      recordIds: recordIdsOf(storeId),
+      name,
+      storeKind: store.kind || "",
+      environment: store.environment || undefined,
+      tags: Object.entries(tags).map(
+        ([key, value]: [string, JSONValue]): [string, string] => {
+          return [key, typeof value === "string" ? value : ""];
+        },
+      ),
+    },
+    {
+      fact: "the store",
+      name,
+      kind: store.kind || "",
+      provider: store.provider || "",
+      region: customerText(
+        store.region,
+        MAX_ISSUE_VALUE_LENGTH,
+        "store.region",
+        marks,
+      ),
+      environment: store.environment || "",
+      tags,
+    },
+  );
+
+  // Where a telemetry issue's data sits: one without a location or a type says nothing.
+  let placeCount: number = 0;
+
+  dossier.places
+    .slice(0, MAX_ISSUE_FINDINGS_FOR_AI)
+    .forEach((finding: AiFindingRecord): void => {
+      const id: string = `P${placeCount + 1}`;
+      const place: JSONObject = placeFacts(finding, namer, id, marks);
+
+      if (!place["location"] || !place["dataType"]) {
+        return;
+      }
+
+      placeCount++;
+
+      add(
+        {
+          id,
+          kind: DataSecurityAnalysisFactKind.Place,
+          recordIds: recordIdsOf(idOf(finding)),
+          dataTypeId: finding.dataTypeId || "",
+          dataTypeName: place["dataType"] as string,
+          location: place["location"] as string,
+          locationKind: (place["locationKind"] as string) || undefined,
+        },
+        { fact: "where the issue's data was found", ...place },
+      );
+    });
+
+  // Who can reach it: the grants, and the services seen in traces.
+  const now: Date = dossier.now;
+  const grants: Array<AiAccessRecord> = dossier.access.filter(
+    (entry: AiAccessRecord): boolean => {
+      return entry.isSeenInTraces !== true;
+    },
+  );
+  const traced: Array<AiAccessRecord> = dossier.access.filter(
+    (entry: AiAccessRecord): boolean => {
+      return entry.isSeenInTraces === true;
+    },
+  );
+  const usedLately: Array<AiAccessRecord> = grants.filter(
+    (entry: AiAccessRecord): boolean => {
+      return isRecentDataSecurityRecency(recencyOfAccess(entry, now));
+    },
+  );
+  const reach: Omit<ReachFact, "id" | "kind" | "recordIds"> = {
+    identities: new Set(
+      grants.map((entry: AiAccessRecord): string => {
+        return entry.principal || "";
+      }),
+    ).size,
+    publicGrants: grants.filter((entry: AiAccessRecord): boolean => {
+      return entry.isPublic === true;
+    }).length,
+    externalGrants: grants.filter((entry: AiAccessRecord): boolean => {
+      return entry.isExternal === true && entry.isPublic !== true;
+    }).length,
+    writeGrants: grants.filter((entry: AiAccessRecord): boolean => {
+      return (ACCESS_LEVEL_RANK[entry.accessLevel || ""] || 0) > 0;
+    }).length,
+    usedLately: usedLately.length,
+  };
+
+  add(
+    {
+      id: "R0",
+      kind: DataSecurityAnalysisFactKind.Reach,
+      // The store's access as a whole: the reader must be able to read it.
+      recordIds: [],
+      ...reach,
+    },
+    {
+      fact: "who can reach the store, counted",
+      identities: reach.identities,
+      publicGrants: reach.publicGrants,
+      grantsToAccountsOutsideYours: reach.externalGrants,
+      grantsThatCanWrite: reach.writeGrants,
+      identitiesThatUsedTheirAccessInTheLast90Days: reach.usedLately,
+    },
+  );
+
+  rankGrants(grants, checkId, now)
+    .slice(0, MAX_ANALYSIS_GRANTS)
+    .forEach((entry: AiAccessRecord, index: number): void => {
+      const id: string = `R${index + 1}`;
+      const principal: string = customerText(
+        entry.principalName || entry.principal || "",
+        MAX_ISSUE_VALUE_LENGTH,
+        `${id}.principal`,
+        marks,
+      );
+      const grantedVia: string = customerText(
+        entry.grantedVia,
+        MAX_ISSUE_VALUE_LENGTH,
+        `${id}.grantedVia`,
+        marks,
+      );
+      const lastUsed: DataSecurityRecency = recencyOfAccess(entry, now);
+      const isRemovedByFix: boolean = isGrantRemovedByFix(checkId, entry);
+
+      add(
+        {
+          id,
+          kind: DataSecurityAnalysisFactKind.Grant,
+          recordIds: recordIdsOf(idOf(entry)),
+          principal,
+          principalType: entry.principalType || "",
+          accessLevel: entry.accessLevel || "",
+          grantedVia,
+          isPublic: entry.isPublic === true,
+          isExternal: entry.isExternal === true,
+          lastUsed,
+          isRemovedByFix,
+        },
+        {
+          fact: "a grant on the store",
+          principal,
+          principalType: entry.principalType || "",
+          level: entry.accessLevel || "",
+          grantedVia,
+          public: entry.isPublic === true ? true : undefined,
+          outsideYourAccounts: entry.isExternal === true ? true : undefined,
+          lastUsed: RECENCY_WORDS[lastUsed],
+          theFixRemovesIt: isRemovedByFix ? true : undefined,
+        },
+      );
+    });
+
+  [...traced]
+    .sort((a: AiAccessRecord, b: AiAccessRecord): number => {
+      return (
+        new Date(b.lastUsedAt || 0).getTime() -
+          new Date(a.lastUsedAt || 0).getTime() ||
+        idOf(a).localeCompare(idOf(b))
+      );
+    })
+    .slice(0, MAX_ANALYSIS_SERVICES)
+    .forEach((entry: AiAccessRecord, index: number): void => {
+      const id: string = `U${index + 1}`;
+      const service: string = customerText(
+        entry.principalName || entry.principal || "",
+        MAX_ISSUE_VALUE_LENGTH,
+        `${id}.service`,
+        marks,
+      );
+      const lastSeen: DataSecurityRecency = getDataSecurityRecency({
+        at: entry.lastUsedAt,
+        now,
+      });
+      const serviceId: string =
+        entry.principal && ObjectID.isValidUUID(entry.principal)
+          ? entry.principal
+          : "";
+
+      add(
+        {
+          id,
+          kind: DataSecurityAnalysisFactKind.ServiceUse,
+          recordIds: recordIdsOf(idOf(entry)),
+          serviceId: serviceId || undefined,
+          serviceName: service,
+          lastSeen,
+        },
+        {
+          fact: "a service the service map shows using the store",
+          service,
+          lastSeen: RECENCY_WORDS[lastSeen],
+        },
+      );
+    });
+
+  /*
+   * Nothing OneUptime can see uses it: no service seen using it lately, and
+   * no grant used lately - for a store of a cloud or a database. A
+   * service's telemetry is the service's own.
+   */
+  const isTelemetryStore: boolean = TELEMETRY_DATA_STORE_KINDS.includes(
+    store.kind as DataStoreKind,
+  );
+  const isServiceSeenLately: boolean = traced.some(
+    (entry: AiAccessRecord): boolean => {
+      return isRecentDataSecurityRecency(
+        getDataSecurityRecency({ at: entry.lastUsedAt, now }),
+      );
+    },
+  );
+
+  if (!isTelemetryStore && !isServiceSeenLately && usedLately.length === 0) {
+    add(
+      {
+        id: "N1",
+        kind: DataSecurityAnalysisFactKind.NothingUsesIt,
+        recordIds: [],
+      },
+      {
+        fact: "nothing OneUptime can see uses the store: no service is seen using it, and no identity used its access in the last 90 days",
+      },
+    );
+  }
+
+  // Copies of its data in other stores.
+  dossier.copies
+    .slice(0, MAX_ANALYSIS_COPIES)
+    .forEach((copy: AiCopyRecord, index: number): void => {
+      const id: string = `C${index + 1}`;
+      const other: string = customerText(
+        copy.otherStore.name,
+        MAX_ISSUE_VALUE_LENGTH,
+        `${id}.store`,
+        marks,
+      );
+      const overlap: number | undefined =
+        typeof copy.overlapPercent === "number" &&
+        Number.isFinite(copy.overlapPercent)
+          ? Math.round(copy.overlapPercent)
+          : undefined;
+
+      add(
+        {
+          id,
+          kind: DataSecurityAnalysisFactKind.Copy,
+          recordIds: recordIdsOf(copy.flowId, idOf(copy.otherStore)),
+          otherStoreId: idOf(copy.otherStore),
+          otherStoreName: other,
+          otherStoreKind: copy.otherStore.kind || undefined,
+          otherEnvironment: copy.otherStore.environment || undefined,
+          isCopyOfThisStore: copy.isCopyOfThisStore,
+          overlapPercent: overlap,
+        },
+        {
+          fact: copy.isCopyOfThisStore
+            ? "another store holds a copy of this store's data"
+            : "this store holds a copy of another store's data",
+          store: other,
+          kind: copy.otherStore.kind || "",
+          environment: copy.otherStore.environment || "",
+          valuesInCommonPercent: overlap,
+        },
+      );
+    });
+
+  // The security cases on it.
+  dossier.securityCaseIds
+    .slice(0, MAX_ANALYSIS_CASES)
+    .forEach((securityCaseId: string, index: number): void => {
+      add(
+        {
+          id: `K${index + 1}`,
+          kind: DataSecurityAnalysisFactKind.SecurityCase,
+          recordIds: recordIdsOf(securityCaseId),
+          securityCaseId,
+        },
+        { fact: "a security case in Security Operations is about this store" },
+      );
+    });
+
+  // What contains it now: the response actions that fix its check.
+  dossier.responses.forEach(
+    (response: AiResponseRecord, index: number): void => {
+      add(
+        {
+          id: `A${index + 1}`,
+          kind: DataSecurityAnalysisFactKind.Response,
+          recordIds: recordIdsOf(storeId),
+          action: response.action,
+          isAvailable: response.isAvailable,
+          unavailableReason: response.isAvailable
+            ? undefined
+            : response.unavailableReason,
+        },
+        {
+          fact: "a response action that fixes this check on the store, through its cloud connection",
+          action: response.action,
+          canRunNow: response.isAvailable,
+          whyNot: response.isAvailable ? undefined : response.unavailableReason,
+        },
+      );
+    },
+  );
+
+  // What OneUptime AI proposed for it.
+  dossier.proposals
+    .slice(0, MAX_ANALYSIS_PROPOSALS)
+    .forEach((proposal: AiProposalRecord, index: number): void => {
+      add(
+        {
+          id: `X${index + 1}`,
+          kind: DataSecurityAnalysisFactKind.Proposal,
+          recordIds: recordIdsOf(proposal.proposalId),
+          proposalId: proposal.proposalId,
+          proposalKind: proposal.kind,
+          status: proposal.status,
+        },
+        {
+          fact: "a change OneUptime AI proposed for this issue",
+          kind: proposal.kind,
+          status: proposal.status,
+        },
+      );
+    });
+
+  // The code that declares the store.
+  if (dossier.declaredCode) {
+    const repository: string = customerText(
+      dossier.declaredCode.repositoryName,
+      MAX_ISSUE_VALUE_LENGTH,
+      "D1.repository",
+      marks,
+    );
+    const paths: Array<string> = dossier.declaredCode.paths
+      .slice(0, MAX_ANALYSIS_CODE_PATHS)
+      .map((path: string, index: number): string => {
+        return customerText(
+          path,
+          MAX_CODE_PATH_LENGTH,
+          `D1.files[${index}]`,
+          marks,
+        );
+      })
+      .filter(Boolean);
+
+    add(
+      {
+        id: "D1",
+        kind: DataSecurityAnalysisFactKind.DeclaredCode,
+        recordIds: recordIdsOf(dossier.declaredCode.repositoryId),
+        repositoryId: dossier.declaredCode.repositoryId,
+        repositoryName: repository,
+        paths,
+        codeKind: dossier.declaredCode.codeKind,
+        reason: dossier.declaredCode.reason,
+      },
+      {
+        fact: "the code that declares the store, in a repository connected to OneUptime",
+        codeKind: dossier.declaredCode.codeKind,
+        repository,
+        files: paths,
+        whyThisRepository: dossier.declaredCode.reason,
+      },
+    );
+  }
+
+  // Who should do it: its owners, by how many - their names are the card's.
+  if (dossier.owners.count > 0) {
+    add(
+      {
+        id: "O1",
+        kind: DataSecurityAnalysisFactKind.Owners,
+        recordIds: [...dossier.owners.recordIds],
+        ownerNames: dossier.owners.names.slice(0, MAX_ANALYSIS_OWNER_NAMES),
+        owners: dossier.owners.count,
+      },
+      { fact: "the store has owners", owners: dossier.owners.count },
+    );
+  } else {
+    add(
+      {
+        id: "O0",
+        kind: DataSecurityAnalysisFactKind.NoOwner,
+        recordIds: [],
+      },
+      { fact: "nobody owns the store" },
+    );
+  }
+
+  return { facts, data: { facts: read }, marks };
+}
+
+/*
+ * The analysis of an issue (#10369): the analyst's instructions - with the
+ * team's AI context first, which the caller placed (withAiContext) - and the
+ * issue's facts. Explain with AI, when a person asks, and Analyze, when the
+ * issue opens, ask the same, each under its own feature: so its AI Logs
+ * label, its budget and what Settings says of it are its own.
  */
 export function buildAnalyzeIssuePrompt(data: {
+  feature:
+    | DataSecurityAiFeature.ExplainIssue
+    | DataSecurityAiFeature.AnalyzeIssue;
   instructions: string;
-  issue: AiIssueRecord;
-  findings?: ReadonlyArray<AiFindingRecord> | undefined;
+  dossier: AiIssueDossier;
   dataTypeNamer?: DataTypeNamer | undefined;
+  /*
+   * The team's notes on its systems (Project Settings > AI > AI Context):
+   * the team's own words, so the path to fixed is the team's own. They go
+   * first in the system message.
+   */
   aiContext?: AiContextActivity | null | undefined;
 }): DataSecurityAiPrompt {
   const marks: AiInputMarks = new AiInputMarks();
+  const built: AiAnalysisFacts = analysisFacts({
+    dossier: data.dossier,
+    dataTypeNamer: data.dataTypeNamer,
+    marks,
+  });
 
   return prompt({
-    feature: DataSecurityAiFeature.AnalyzeIssue,
+    feature: data.feature,
     instructions: withAiContext(data.instructions, data.aiContext),
-    facts: issueData({
-      issue: data.issue,
-      findings: data.findings,
-      dataTypeNamer: data.dataTypeNamer,
-      marks,
-    }),
+    facts: built.data,
     marks,
   });
 }
@@ -1656,7 +2351,7 @@ const DataSecurityAiInput: {
   issueListRow: typeof issueListRow;
   storeIssueRow: typeof storeIssueRow;
   issueRow: typeof issueRow;
-  buildExplainIssuePrompt: typeof buildExplainIssuePrompt;
+  analysisFacts: typeof analysisFacts;
   buildAnalyzeIssuePrompt: typeof buildAnalyzeIssuePrompt;
   buildSuggestFieldTypesPrompt: typeof buildSuggestFieldTypesPrompt;
   buildFixIssueRequest: typeof buildFixIssueRequest;
@@ -1681,7 +2376,7 @@ const DataSecurityAiInput: {
   issueListRow,
   storeIssueRow,
   issueRow,
-  buildExplainIssuePrompt,
+  analysisFacts,
   buildAnalyzeIssuePrompt,
   buildSuggestFieldTypesPrompt,
   buildFixIssueRequest,

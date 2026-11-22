@@ -1,9 +1,15 @@
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import Query from "Common/Types/BaseDatabase/Query";
+import Select from "Common/Types/BaseDatabase/Select";
+import Sort from "Common/Types/BaseDatabase/Sort";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import CustomFieldMappingSourceResource from "Common/Types/CustomField/CustomFieldMappingSourceResource";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -16,6 +22,7 @@ import FormTargetType from "Common/Types/Form/FormTargetType";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import RecordsById from "Common/UI/Utils/RecordsById";
 
 /*
  * What the form builder, the preview and the On Submit page read besides
@@ -121,84 +128,121 @@ const toDefinitions: ToDefinitionsFunction = (
   return definitions;
 };
 
+/*
+ * Where a choice question's records come from, kind by kind, read as the
+ * server reads them for the public page (FormRecordOptions): a severity or
+ * a label a submitter picks is never an archived one, and each kind comes
+ * in the project's own order - severities by their order, the rest by name.
+ */
+export interface FormRecordOptionsSource {
+  modelType: DatabaseBaseModelType;
+  // What a record must be, besides the project's, to be offered.
+  query: Record<string, unknown>;
+  select: Record<string, true>;
+  // The column the project's own order is by.
+  sortBy: "order" | "name";
+}
+
+export const FORM_RECORD_OPTIONS_SOURCES: Record<
+  FormTargetOptionsSource,
+  FormRecordOptionsSource
+> = {
+  [FormTargetOptionsSource.IncidentSeverity]: {
+    modelType: IncidentSeverity,
+    query: { isArchived: false },
+    select: { _id: true, name: true, color: true, order: true },
+    sortBy: "order",
+  },
+  [FormTargetOptionsSource.Monitor]: {
+    modelType: Monitor,
+    query: {},
+    select: { _id: true, name: true },
+    sortBy: "name",
+  },
+  [FormTargetOptionsSource.Label]: {
+    modelType: Label,
+    query: { isArchived: false },
+    select: { _id: true, name: true, color: true },
+    sortBy: "name",
+  },
+  [FormTargetOptionsSource.StatusPage]: {
+    modelType: StatusPage,
+    query: {},
+    select: { _id: true, name: true },
+    sortBy: "name",
+  },
+};
+
 export type LoadFormRecordOptionsFunction = (
   source: FormTargetOptionsSource,
+  /*
+   * Read only these records - the ones a question offers - as the server
+   * does (#10646). Unset, every record of the kind, which only a question
+   * that may offer every record (severities) needs: a project's monitors,
+   * labels or status pages read whole stopped at the first 10,000.
+   */
+  ids?: Array<string> | undefined,
 ) => Promise<Array<FormRecordOption>>;
 
 /**
- * Every record of one kind in the current project, as a choice question can
- * offer it: its id, its name and its color, where it has one.
+ * The records of one kind in the current project, as a choice question can
+ * offer them: each one's id, its name and its color, where it has one.
  */
 export const loadFormRecordOptions: LoadFormRecordOptionsFunction = async (
   source: FormTargetOptionsSource,
+  ids?: Array<string> | undefined,
 ): Promise<Array<FormRecordOption>> => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  const definition: FormRecordOptionsSource | undefined =
+    FORM_RECORD_OPTIONS_SOURCES[source];
 
-  if (!projectId) {
+  if (!projectId || !definition) {
     return [];
   }
 
-  switch (source) {
-    case FormTargetOptionsSource.IncidentSeverity: {
-      const result: ListResult<IncidentSeverity> =
-        await ModelAPI.getList<IncidentSeverity>({
-          modelType: IncidentSeverity,
-          // A form offers values that can be picked: not archived.
-          query: { projectId: projectId, isArchived: false },
-          select: { _id: true, name: true, color: true },
-          sort: { order: SortOrder.Ascending },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-        });
+  if (ids) {
+    const rows: Array<BaseModel> = await RecordsById.read<BaseModel>({
+      modelType: definition.modelType,
+      ids: ids,
+      query: { projectId: projectId, ...definition.query } as Query<BaseModel>,
+      select: definition.select as Select<BaseModel>,
+    });
 
-      return toOptions(result.data);
-    }
-
-    case FormTargetOptionsSource.Monitor: {
-      const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
-        modelType: Monitor,
-        query: { projectId: projectId },
-        select: { _id: true, name: true },
-        sort: { name: SortOrder.Ascending },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-      });
-
-      return toOptions(result.data);
-    }
-
-    case FormTargetOptionsSource.Label: {
-      const result: ListResult<Label> = await ModelAPI.getList<Label>({
-        modelType: Label,
-        // A form offers values that can be picked: not archived.
-        query: { projectId: projectId, isArchived: false },
-        select: { _id: true, name: true, color: true },
-        sort: { name: SortOrder.Ascending },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-      });
-
-      return toOptions(result.data);
-    }
-
-    case FormTargetOptionsSource.StatusPage: {
-      const result: ListResult<StatusPage> = await ModelAPI.getList<StatusPage>(
-        {
-          modelType: StatusPage,
-          query: { projectId: projectId },
-          select: { _id: true, name: true },
-          sort: { name: SortOrder.Ascending },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-        },
-      );
-
-      return toOptions(result.data);
-    }
-
-    default:
-      return [];
+    return toOptions(sortInProjectOrder(rows, definition.sortBy) as never);
   }
+
+  const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>({
+    modelType: definition.modelType,
+    query: { projectId: projectId, ...definition.query } as Query<BaseModel>,
+    select: definition.select as Select<BaseModel>,
+    sort: { [definition.sortBy]: SortOrder.Ascending } as Sort<BaseModel>,
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+  });
+
+  return toOptions(result.data as never);
+};
+
+type SortInProjectOrderFunction = (
+  rows: Array<BaseModel>,
+  sortBy: "order" | "name",
+) => Array<BaseModel>;
+
+// Records read by their ids, put in the order the list would have them in.
+const sortInProjectOrder: SortInProjectOrderFunction = (
+  rows: Array<BaseModel>,
+  sortBy: "order" | "name",
+): Array<BaseModel> => {
+  return [...rows].sort((a: BaseModel, b: BaseModel): number => {
+    const left: unknown = (a as unknown as Record<string, unknown>)[sortBy];
+    const right: unknown = (b as unknown as Record<string, unknown>)[sortBy];
+
+    if (typeof left === "number" && typeof right === "number") {
+      return left - right;
+    }
+
+    return String(left ?? "").localeCompare(String(right ?? ""));
+  });
 };
 
 type ToOptionsFunction = (
