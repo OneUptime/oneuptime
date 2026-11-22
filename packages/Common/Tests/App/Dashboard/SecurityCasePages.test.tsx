@@ -240,6 +240,19 @@ jest.mock("../../../UI/Components/CustomFields/CustomFieldsDetail", () => {
   };
 });
 
+// The case's line, which reads who opened it and who last changed it itself.
+jest.mock("../../../UI/Components/Detail/RecordActivityLine", () => {
+  return {
+    __esModule: true,
+    default: (props: Record<string, unknown>): React.ReactElement => {
+      record("RecordActivityLine", props);
+      return React.createElement("div", {
+        "data-testid": "record-activity-line",
+      });
+    },
+  };
+});
+
 import SecurityCaseOverviewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Index";
 import SecurityCaseCustomFieldsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/CustomFields";
 import SecurityCaseTimelinePage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Timeline";
@@ -549,6 +562,35 @@ describe("the Overview", () => {
     expect(within(figures).queryByText("Open For")).toBeNull();
     expect(within(figures).getByText("2 h")).toBeInTheDocument();
     expect(within(figures).getByText("42 min")).toBeInTheDocument();
+  });
+
+  /*
+   * Who opened the case and who last changed it (#10461): the case's line,
+   * at the foot of the page's first card - its figures - under them all.
+   */
+  test("ends its first card, the case's figures, with the case's line", () => {
+    drawPage(
+      <SecurityCaseOverviewPage {...PAGE_PROPS} />,
+      contextFor(buildCase()),
+    );
+
+    const figures: HTMLElement = screen.getByRole("group", {
+      name: "Case figures",
+    });
+    const foot: HTMLElement = within(figures).getByTestId(
+      "event-stat-bar-footer",
+    );
+
+    expect(
+      within(foot).getByTestId("record-activity-line"),
+    ).toBeInTheDocument();
+    expect(figures.lastElementChild).toBe(foot);
+    expect(screen.getAllByTestId("record-activity-line")).toHaveLength(1);
+
+    const line: Record<string, unknown> = lastProps("RecordActivityLine");
+
+    expect(line["modelType"]).toBe(SecurityCase);
+    expect(String(line["recordId"])).toBe(CASE_ID);
   });
 
   test("hands OneUptime AI's card the case and the project's priorities, and its moves to the layout", async () => {

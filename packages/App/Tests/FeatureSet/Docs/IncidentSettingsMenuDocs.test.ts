@@ -196,7 +196,9 @@ describe("Incident docs list the Settings menu's pages", () => {
   it("reads the menu's Rules pages, and finds no Integrations section", () => {
     const rules: Array<string> = sectionMenuTitles("Rules");
 
-    expect(rules).toHaveLength(8);
+    // Eight kinds of rule, then their history (#10462).
+    expect(rules).toHaveLength(9);
+    expect(rules[rules.length - 1]).toBe("Audit Logs");
     expect(rules).toContain("On-Call Rules");
     expect(rules).not.toContain("Auto Remediation Rules");
     expect(fs.readFileSync(INCIDENTS_SIDE_MENU_FILE, "utf8")).not.toMatch(

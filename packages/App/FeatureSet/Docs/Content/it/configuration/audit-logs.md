@@ -78,6 +78,8 @@ Una risorsa senza un nome proprio prende il nome da ciò che la nomina in OneUpt
 
 Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anche una propria pagina **Log di audit**, in una sezione chiusa del loro menu laterale come **Avanzato**. Elenca solo le voci di quella risorsa, con quelle di ciò che le appartiene: la pagina di uno SLO mostra anche le sue regole e i suoi proprietari.
 
+Anche le regole di un prodotto hanno una propria pagina, alla fine della sezione del menu che le elenca: **Log di audit** in una sezione **Regole**, come **Incidenti → Regole → Log di audit**, e **Log di audit delle regole** in una sezione **Impostazioni** che contiene regole del proprietario ed etichette, come **Host → Impostazioni → Log di audit delle regole**. Elenca tutte le regole di quel prodotto, comprese quelle eliminate. Le regole di runbook sono un unico tipo di regola per avvisi, incidenti ed eventi di manutenzione, quindi la loro cronologia è in **Runbook → Impostazioni → Log di audit delle regole**.
+
 ## Che cosa viene registrato
 
 Viene registrato tutto ciò che le persone creano, modificano o eliminano in un progetto: monitor, incidenti, avvisi, pagine di stato, flussi di lavoro e i loro passaggi, code, dashboard, criteri di reperibilità, team e chi ne fa parte, chiavi API e ogni impostazione. **Tipo di risorsa** indica di che cosa tratta una voce, per esempio `Monitor`, `Workflow` o `Queue`.

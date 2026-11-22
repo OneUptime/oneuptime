@@ -17,6 +17,7 @@ import {
   SEARCH_CHANGED,
   SHOW_THEM,
 } from "./HuntsCopy";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import {
@@ -490,6 +491,21 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
               <></>
             )}
           </div>
+        ) : (
+          <></>
+        )}
+
+        {/*
+         * The hunt's line - its ID, who saved it and who last changed it
+         * (#10461) - under what it says, and above the notice of a changed
+         * search, which stays right over the search bar it was made in.
+         */}
+        {hunt.id ? (
+          <RecordActivityLine
+            modelType={SecurityHunt}
+            recordId={hunt.id}
+            className="mt-3 border-t border-gray-100 pt-3"
+          />
         ) : (
           <></>
         )}

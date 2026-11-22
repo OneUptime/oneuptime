@@ -75,6 +75,7 @@ import KubernetesClusterViewDocumentation from "../Pages/Kubernetes/View/Documen
 import KubernetesDocumentation from "../Pages/Kubernetes/Documentation";
 import KubernetesSettingsOwnerRules from "../Pages/Kubernetes/Settings/OwnerRules";
 import KubernetesSettingsLabelRules from "../Pages/Kubernetes/Settings/LabelRules";
+import KubernetesRulesAuditLogs from "../Pages/Kubernetes/Settings/RulesAuditLogs";
 import KubernetesArchived from "../Pages/Kubernetes/Archived";
 import KubernetesClusterLabelRule from "Common/Models/DatabaseModels/KubernetesClusterLabelRule";
 import KubernetesClusterOwnerRule from "Common/Models/DatabaseModels/KubernetesClusterOwnerRule";
@@ -161,6 +162,21 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.KUBERNETES_SETTINGS_LABEL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            KubernetesRoutePath[PageMap.KUBERNETES_SETTINGS_RULES_AUDIT_LOGS] ||
+            ""
+          }
+          element={
+            <KubernetesRulesAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_SETTINGS_RULES_AUDIT_LOGS] as Route
               }
             />
           }

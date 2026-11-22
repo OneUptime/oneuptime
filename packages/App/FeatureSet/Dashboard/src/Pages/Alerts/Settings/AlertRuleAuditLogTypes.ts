@@ -18,8 +18,9 @@ import { getApiSingularName } from "Common/Utils/ModelApiName";
  * THE KINDS OF ALERT RULE WHOSE HISTORY ALERTS > RULES > AUDIT LOGS LISTS
  * (#10290): each kind of alert rule and its episode twin, and the teams
  * picked to own an on-call rule, which roll up to their rule. Runbook rules
- * are one kind for alerts and incidents both, and their entries do not say
- * which; their history is the project's audit log's.
+ * are one kind for alerts, incidents and maintenance events, and their
+ * entries do not say whose they are: their history is Runbooks > Settings >
+ * Rule Audit Logs (Pages/Runbook/Settings/RuleAuditLogTypes, #10462).
  */
 export const ALERT_RULE_MODEL_TYPES: ReadonlyArray<{ new (): BaseModel }> = [
   AlertGroupingRule,

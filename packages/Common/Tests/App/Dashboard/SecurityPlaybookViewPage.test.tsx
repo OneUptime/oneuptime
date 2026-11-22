@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import FieldType from "../../../UI/Components/Types/FieldType";
 import {
   afterEach,
   beforeEach,
@@ -38,6 +39,7 @@ jest.mock("react-i18next", () => {
 interface CapturedDetailField {
   title: string;
   field: Record<string, unknown>;
+  fieldType?: FieldType | undefined;
   colSpan?: number | undefined;
   getElement?: ((item: unknown) => React.ReactElement) | undefined;
 }
@@ -276,8 +278,15 @@ describe("a playbook's page", () => {
       "Runs So Far",
       "Last Run",
       "Description",
+      "ID",
     ]);
     expect(field("Description")?.colSpan).toBe(3);
+    /*
+     * The playbook's own ID, which the card draws as its line, saying who
+     * created it and who last changed it (#10461).
+     */
+    expect(field("ID")?.field).toEqual({ _id: true });
+    expect(field("ID")?.fieldType).toBe(FieldType.ObjectID);
 
     const { container: trigger } = render(
       field("Trigger")!.getElement!(playbook()),

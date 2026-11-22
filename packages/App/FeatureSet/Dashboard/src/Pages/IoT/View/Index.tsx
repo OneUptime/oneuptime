@@ -5,6 +5,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import IoTDeviceModel from "Common/Models/DatabaseModels/IoTDevice";
 import Card from "Common/UI/Components/Card/Card";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import PageMap from "../../../Utils/PageMap";
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
@@ -789,6 +790,16 @@ const IoTFleetOverview: FunctionComponent<
                 )}
               </div>
             )}
+          </div>
+          {/*
+           * The fleet's line, at the hero's foot: its ID, who created it
+           * and who last modified it (#10461).
+           */}
+          <div
+            data-testid="iot-hero-record-line"
+            className="border-t border-gray-100 px-6 py-3"
+          >
+            <RecordActivityLine modelType={IoTFleet} recordId={modelId} />
           </div>
         </div>
       </div>
