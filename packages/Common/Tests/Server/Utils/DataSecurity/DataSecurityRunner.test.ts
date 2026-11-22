@@ -412,6 +412,28 @@ describe("listProjectIds", () => {
       expect(sql).toContain(table);
     }
   });
+
+  /*
+   * So the stores OneUptime keeps for a project's security are declared
+   * without anyone opening Data Security first (#10398): a project whose
+   * Security Events reads something, or whose devices report flows.
+   */
+  test("every project whose Security Events reads something or whose devices report network flows", async () => {
+    querySpy.mockResolvedValue([] as never);
+
+    await DataSecurityRunner.listProjectIds();
+
+    const sql: string = querySpy.mock.calls[0]![0] as unknown as string;
+
+    for (const table of [
+      '"SecurityEventConnection"',
+      '"SecurityLogSource"',
+      '"SecurityTelemetrySource"',
+      '"NetworkDevice"',
+    ]) {
+      expect(sql).toContain(`SELECT DISTINCT "projectId" FROM ${table} WHERE "deletedAt" IS NULL`);
+    }
+  });
 });
 
 describe("getScanSetup", () => {

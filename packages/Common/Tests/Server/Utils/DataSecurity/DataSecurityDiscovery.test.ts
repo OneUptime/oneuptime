@@ -8,6 +8,7 @@ import {
 import { DATA_SECURITY_EVALUATE_PROJECT_JOB } from "../../../../Server/Utils/DataSecurity/DataSecurityJobs";
 import DataSecurityIssueAlerts from "../../../../Server/Utils/DataSecurity/DataSecurityIssueAlerts";
 import DataSecurityIssueReconciler from "../../../../Server/Utils/DataSecurity/DataSecurityIssueReconciler";
+import DeclaredDataStores from "../../../../Server/Utils/DataSecurity/DeclaredDataStores";
 import Queue from "../../../../Server/Infrastructure/Queue";
 import CloudAccountService from "../../../../Server/Services/CloudAccountService";
 import CloudResourceService from "../../../../Server/Services/CloudResourceService";
@@ -92,6 +93,7 @@ let archivedFeedSpy: jest.SpyInstance;
 let archivedIssuesSpy: jest.SpyInstance;
 let closedAlertsSpy: jest.SpyInstance;
 let restoredFeedSpy: jest.SpyInstance;
+let declareSpy: jest.SpyInstance;
 
 function sameId(left: ObjectID | undefined | null, right: ObjectID): boolean {
   return Boolean(left) && left!.toString() === right.toString();
@@ -155,6 +157,13 @@ beforeEach(() => {
   restoredFeedSpy = jest
     .spyOn(DataStoreService, "writeRestoredFeed")
     .mockResolvedValue(undefined);
+  /*
+   * OneUptime's own security stores are declared on every pass (#10398):
+   * their own suite holds how (DeclaredDataStores); here nothing is held.
+   */
+  declareSpy = jest
+    .spyOn(DeclaredDataStores, "declareProject")
+    .mockResolvedValue({});
   // An archived store's open issues, and their alerts, are resolved with it.
   archivedIssuesSpy = jest
     .spyOn(DataSecurityIssueReconciler, "resolveIssuesOfArchivedStore")
@@ -860,6 +869,30 @@ describe("discoverProject: the service map", () => {
       });
       expect(store.lastSeenAt).toEqual(clock);
     }
+  });
+});
+
+describe("discoverProject: the stores OneUptime declares", () => {
+  test("are declared on every pass, at the pass's time, and queue no evaluation of their own", async () => {
+    await discover();
+
+    expect(declareSpy).toHaveBeenCalledTimes(1);
+    expect(declareSpy.mock.calls[0]![0]).toEqual(PROJECT_ID);
+    expect(declareSpy.mock.calls[0]![1]).toEqual({ now: NOW });
+    expect(queueSpy).not.toHaveBeenCalled();
+  });
+
+  test("a declared store is never archived as gone from a sweep", async () => {
+    const declared: DataStore = existingStore({
+      storeKey: "oneuptime:security-events",
+      name: "Security Events",
+      discoveredFrom: "OneUptime",
+    });
+
+    await discover();
+
+    expect(updatesOf(declared)).toEqual([]);
+    expect(archivedFeedSpy).not.toHaveBeenCalled();
   });
 });
 
