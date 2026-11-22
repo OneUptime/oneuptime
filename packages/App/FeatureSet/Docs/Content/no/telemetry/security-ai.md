@@ -131,7 +131,7 @@ Under vurderingen sier kortet **OneUptime AI** hvordan OneUptime AI arbeider med
 | **Overlevert til personer** | Den stoppet, og sier hvorfor. |
 | **Saken er lukket** | Den lukket saken, eller en person gjorde det. Dens **Avslutningsrapport** står over trinnene. |
 
-Under den står hvert trinn den utførte, spurte om eller overlot, det nyeste først, hvert med begrunnelse: **Utført på egen hånd: innstillingene dine tillater det.**, **Innstillingene dine lar dette vente på en persons godkjenning.**, **OneUptime har ingen måte å utføre dette trinnet på, så en person gjør det.** Et trinn den spurte om, har **Godkjenn** og **Decline**; et trinn den utførte, lenker til kjøringen, der det kan angres. Et trinn OneUptime sjekker, sier hva sjekken fant, og et trinn den har utført før på saker fra samme regel, sier hvor ofte det holdt: «Det holdt i 14 av 15 lignende saker.»
+Under den står hvert trinn den utførte, spurte om eller overlot, det nyeste først, hvert med begrunnelse: **Utført på egen hånd: innstillingene dine tillater det.**, **Innstillingene dine lar dette vente på en persons godkjenning.**, **OneUptime har ingen måte å utføre dette trinnet på, så en person gjør det.** Et trinn den spurte om, har **Godkjenn** og **Avslå**; et trinn den utførte, lenker til kjøringen, der det kan angres. Et trinn OneUptime sjekker, sier hva sjekken fant, og et trinn den har utført før på saker fra samme regel, sier hvor ofte det holdt: «Det holdt i 14 av 15 lignende saker.»
 
 ### En sak den leser som ufarlig eller falsk positiv
 

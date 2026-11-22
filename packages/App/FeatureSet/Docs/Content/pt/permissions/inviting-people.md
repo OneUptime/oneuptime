@@ -71,7 +71,7 @@ Quem entra, ou se cadastra de outro jeito, aceita em um de dois lugares:
 
 | Onde ela está | O que ela vê | Onde ela clica |
 | --- | --- | --- |
-| Ainda em nenhum projeto | O convite, na página em que ela chega depois de entrar | **Accept & Join**, ou **Decline** |
+| Ainda em nenhum projeto | O convite, na página em que ela chega depois de entrar | **Accept & Join**, ou **Recusar** |
 | Já em outro projeto | O convite pendente no sino no canto superior direito, que abre **Convites do projeto** | **Aceitar**, ou **Rejeitar** |
 
 Ao aceitar, a pessoa entra no projeto na hora, com as permissões da equipe dela e a configuração de notificações com que todo membro começa: veja [Com o que você começa](/docs/notifications/index#com-o-que-você-começa). Recusar exclui o convite, então entrar depois exige um novo.

@@ -131,7 +131,7 @@ Under AI-bedömningen säger kortet **OneUptime AI** hur OneUptime AI arbetar me
 | **Överlämnat till personer** | Den slutade och säger varför. |
 | **Ärendet är stängt** | Den stängde ärendet, eller så gjorde en person det. Dess **Avslutande rapport** finns ovanför stegen. |
 
-Under det finns varje steg som den utförde, frågade om eller lämnade, det senaste först, vart och ett med en förklaring: **Utfört på egen hand: dina inställningar tillåter det.**, **Dina inställningar låter detta vänta på en persons godkännande.**, **OneUptime har inget sätt att utföra det här steget, så en person gör det.** Ett steg som den frågade om har **Godkänn** och **Decline**; ett steg som den utförde länkar till sin körning, där det kan ångras. Ett steg som OneUptime kontrollerar säger vad kontrollen hittade, och ett steg som den har utfört tidigare i ärenden från samma regel säger hur ofta det höll: ”Det höll i 14 av 15 liknande ärenden.”
+Under det finns varje steg som den utförde, frågade om eller lämnade, det senaste först, vart och ett med en förklaring: **Utfört på egen hand: dina inställningar tillåter det.**, **Dina inställningar låter detta vänta på en persons godkännande.**, **OneUptime har inget sätt att utföra det här steget, så en person gör det.** Ett steg som den frågade om har **Godkänn** och **Avböj**; ett steg som den utförde länkar till sin körning, där det kan ångras. Ett steg som OneUptime kontrollerar säger vad kontrollen hittade, och ett steg som den har utfört tidigare i ärenden från samma regel säger hur ofta det höll: ”Det höll i 14 av 15 liknande ärenden.”
 
 ### Ett ärende som den läser som ofarligt eller falskt positivt
 

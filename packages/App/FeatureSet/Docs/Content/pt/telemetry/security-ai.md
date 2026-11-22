@@ -131,7 +131,7 @@ Abaixo da classificação, o cartão **OneUptime AI** diz como o OneUptime AI es
 | **Entregue às pessoas** | Ele parou, e diz por quê. |
 | **O caso está fechado** | Ele fechou o caso, ou uma pessoa o fechou. O **Relatório de encerramento** dele fica acima das etapas. |
 
-Abaixo, cada etapa que ele realizou, perguntou ou deixou, a mais recente primeiro, cada uma com o motivo: **Feito por conta própria: suas configurações permitem.**, **Suas configurações fazem isto aguardar a aprovação de uma pessoa.**, **O OneUptime não tem como realizar esta etapa, então uma pessoa a realiza.** Uma etapa sobre a qual ele perguntou tem **Aprovar** e **Decline**; uma etapa que ele realizou leva à execução dela, onde ela pode ser desfeita. Uma etapa que o OneUptime verifica diz o que a verificação encontrou, e uma etapa que ele já realizou em casos da mesma regra diz com que frequência ela se sustentou: "Ela se sustentou em 14 de 15 casos semelhantes."
+Abaixo, cada etapa que ele realizou, perguntou ou deixou, a mais recente primeiro, cada uma com o motivo: **Feito por conta própria: suas configurações permitem.**, **Suas configurações fazem isto aguardar a aprovação de uma pessoa.**, **O OneUptime não tem como realizar esta etapa, então uma pessoa a realiza.** Uma etapa sobre a qual ele perguntou tem **Aprovar** e **Recusar**; uma etapa que ele realizou leva à execução dela, onde ela pode ser desfeita. Uma etapa que o OneUptime verifica diz o que a verificação encontrou, e uma etapa que ele já realizou em casos da mesma regra diz com que frequência ela se sustentou: "Ela se sustentou em 14 de 15 casos semelhantes."
 
 ### Um caso que ele lê como benigno ou falso positivo
 

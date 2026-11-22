@@ -131,7 +131,7 @@ Under vurderingen siger kortet **OneUptime AI**, hvordan OneUptime AI arbejder m
 | **Overdraget til personer** | Den stoppede og siger hvorfor. |
 | **Sagen er lukket** | Den lukkede sagen, eller en person gjorde. Dens **Afslutningsrapport** står over dens trin. |
 
-Under det står hvert trin, den udførte, spurgte om eller overlod, det nyeste først, hvert med en begrundelse: **Udført selvstændigt: dine indstillinger tillader det.**, **Dine indstillinger lader dette vente på en persons godkendelse.**, **OneUptime kan ikke udføre dette trin, så en person gør det.** Et trin, den spurgte om, har **Godkend** og **Decline**; et trin, den udførte, linker til sin kørsel, hvor det kan fortrydes. Et trin, som OneUptime tjekker, siger, hvad tjekket fandt, og et trin, den tidligere har udført på sager fra den samme regel, siger, hvor ofte det holdt: "Det holdt i 14 af 15 lignende sager."
+Under det står hvert trin, den udførte, spurgte om eller overlod, det nyeste først, hvert med en begrundelse: **Udført selvstændigt: dine indstillinger tillader det.**, **Dine indstillinger lader dette vente på en persons godkendelse.**, **OneUptime kan ikke udføre dette trin, så en person gør det.** Et trin, den spurgte om, har **Godkend** og **Afvis**; et trin, den udførte, linker til sin kørsel, hvor det kan fortrydes. Et trin, som OneUptime tjekker, siger, hvad tjekket fandt, og et trin, den tidligere har udført på sager fra den samme regel, siger, hvor ofte det holdt: "Det holdt i 14 af 15 lignende sager."
 
 ### En sag, den læser som harmløs eller falsk positiv
 

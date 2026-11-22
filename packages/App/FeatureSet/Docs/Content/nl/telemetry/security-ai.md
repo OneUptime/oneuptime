@@ -131,7 +131,7 @@ Onder de beoordeling zegt de kaart **OneUptime AI** hoe OneUptime AI de zaak beh
 | **Overgedragen aan mensen** | Het is gestopt, en zegt waarom. |
 | **De zaak is gesloten** | Het heeft de zaak gesloten, of iemand anders deed dat. Het **Afsluitend rapport** staat boven de stappen. |
 
-Daaronder staat elke stap die het zette, waarover het iets vroeg of die het overliet, de nieuwste eerst, elk met de reden: **Zelfstandig gedaan: je instellingen staan het toe.**, **Je instellingen laten dit wachten op de goedkeuring van een persoon.**, **OneUptime kan deze stap niet uitvoeren, dus doet een persoon het.** Een stap waarover het iets vroeg, heeft **Goedkeuren** en **Decline**; een stap die het zette, linkt naar de uitvoering ervan, waar hij ongedaan kan worden gemaakt. Een stap die OneUptime controleert, zegt wat de controle vond, en een stap die het eerder op zaken van dezelfde regel zette, zegt hoe vaak hij standhield: "Het hield stand bij 14 van 15 vergelijkbare zaken."
+Daaronder staat elke stap die het zette, waarover het iets vroeg of die het overliet, de nieuwste eerst, elk met de reden: **Zelfstandig gedaan: je instellingen staan het toe.**, **Je instellingen laten dit wachten op de goedkeuring van een persoon.**, **OneUptime kan deze stap niet uitvoeren, dus doet een persoon het.** Een stap waarover het iets vroeg, heeft **Goedkeuren** en **Weigeren**; een stap die het zette, linkt naar de uitvoering ervan, waar hij ongedaan kan worden gemaakt. Een stap die OneUptime controleert, zegt wat de controle vond, en een stap die het eerder op zaken van dezelfde regel zette, zegt hoe vaak hij standhield: "Het hield stand bij 14 van 15 vergelijkbare zaken."
 
 ### Een zaak die het als onschuldig of vals positief leest
 
