@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import DatabaseService from "Common/Server/Services/DatabaseService";
 import {
@@ -81,15 +82,13 @@ async function loadFor(data: {
   securityEventsReadsLogs: boolean;
 }): Promise<{
   loaded: Array<LoadedLogDropFilter>;
-  asked: jest.SpiedFunction<
-    typeof SecurityEventsReadTelemetry.readsProjectTelemetry
-  >;
+  asked: SpyInstance<typeof SecurityEventsReadTelemetry.readsProjectTelemetry>;
 }> {
   jest
     .spyOn(DatabaseService.prototype, "findBy")
     .mockResolvedValue(data.filters as never);
 
-  const asked: jest.SpiedFunction<
+  const asked: SpyInstance<
     typeof SecurityEventsReadTelemetry.readsProjectTelemetry
   > = jest
     .spyOn(SecurityEventsReadTelemetry, "readsProjectTelemetry")

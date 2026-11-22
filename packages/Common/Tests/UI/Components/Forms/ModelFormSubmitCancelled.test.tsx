@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import {
   act,
   cleanup,
@@ -160,7 +161,7 @@ afterEach(() => {
 describe("a submit called back from onBeforeCreate", () => {
   test("sends nothing, says nothing went wrong, and the form can be submitted again", async () => {
     let isAnsweredNo: boolean = true;
-    const onSuccess: jest.Mock = jest.fn();
+    const onSuccess: Mock<() => void> = jest.fn();
 
     await renderForm({
       onBeforeCreate: async (item: LogDropFilter): Promise<LogDropFilter> => {

@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import DetectionRule from "../../../../Models/DatabaseModels/DetectionRule";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import SecurityLogSource from "../../../../Models/DatabaseModels/SecurityLogSource";
@@ -95,7 +96,7 @@ function idsAsked(findBy: AnyFindBy): Array<string> {
 function serve<T extends { id?: ObjectID | null }>(
   service: unknown,
   data: { all: Array<T>; visible?: (record: T) => boolean },
-): jest.SpiedFunction<never> {
+): SpyInstance<(...args: never) => never> {
   return jest
     .spyOn(service as never, "findBy" as never)
     .mockImplementation((async (findBy: AnyFindBy): Promise<Array<T>> => {
@@ -167,11 +168,11 @@ function names(readers: Array<TelemetryFieldReader>): Array<string> {
   });
 }
 
-let countSpy: jest.SpiedFunction<
+let countSpy: SpyInstance<
   typeof DropFilterRecordCountModule.countDropFilterRecords
 >;
-let monitorSpy: jest.SpiedFunction<never>;
-let ruleSpy: jest.SpiedFunction<never>;
+let monitorSpy: SpyInstance<(...args: never) => never>;
+let ruleSpy: SpyInstance<(...args: never) => never>;
 let logSource: SecurityLogSource | null;
 let traceSource: SecurityTelemetrySource | null;
 
