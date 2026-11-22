@@ -34,8 +34,8 @@
 #     new version: the way to mend a version whose assets no longer match
 #     what the registries read.
 #
-# Tests/Ops/TerraformProviderPublishOnce.test.js runs this script against a
-# stand-in GitHub, git remote and GoReleaser.
+# Tests/Ops/TerraformProviderPublishedRelease.test.js runs this script against
+# a stand-in GitHub, git remote and GoReleaser.
 
 set -e  # Exit on any error
 

@@ -50,8 +50,8 @@
  *       publishing it makes it the repository's latest, else false: a
  *       version published again after newer ones (--republish-from).
  *
- * Tests/Ops/TerraformProviderPublishOnce.test.js tests each, and the script
- * that runs them.
+ * Tests/Ops/TerraformProviderPublishedRelease.test.js tests each, and the
+ * script that runs them.
  */
 
 "use strict";
