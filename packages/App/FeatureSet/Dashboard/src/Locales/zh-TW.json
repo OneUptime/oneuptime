@@ -61892,5 +61892,6 @@
   "Pick a web ACL to enforce your blocklist in. OneUptime makes its IP sets and adds its rule, or waits for yours when you keep the web ACL in code.": "選擇一個用於執行你的封鎖清單的 Web ACL。OneUptime 會建立其 IP 集並新增其規則；如果你在程式碼中管理該 Web ACL，則會等待你新增規則。",
   "Where AWS WAF reads the address a block is matched against. Behind another proxy or CDN, read the header that proxy sets instead.": "AWS WAF 從何處讀取用於比對封鎖的位址。位於其他代理伺服器或 CDN 之後時，請改為讀取該代理伺服器設定的標頭。",
   "Your role cannot read the incidents, alerts, on-call pages, fixes or Data Security issues these results count. A Project Admin can give you access.": "這些成效統計的是事件、警示、待命呼叫、修正和資料安全問題，而你的角色無法讀取其中任何一項。專案管理員可以為你授予存取權限。",
-  "No security events for the selected time range and filters, but some logs or traces in it were refused and never scanned: their events are missing.": "所選時間範圍和篩選器內沒有安全事件，但此時間範圍內你的部分日誌或追蹤遭到拒絕，從未被掃描，因此缺少由它們產生的事件。"
+  "No security events for the selected time range and filters, but some logs or traces in it were refused and never scanned: their events are missing.": "所選時間範圍和篩選器內沒有安全事件，但此時間範圍內你的部分日誌或追蹤遭到拒絕，從未被掃描，因此缺少由它們產生的事件。",
+  "Its public access checks pass from now on, and it is checked again now: this issue resolves once its check passes. Undo it in the store's Settings.": "其公開存取檢查從現在起通過，並立即重新檢查：檢查通過後此問題即解決。要復原，請在儲存區的設定中關閉它。"
 }

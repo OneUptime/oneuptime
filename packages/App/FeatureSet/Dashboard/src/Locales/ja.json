@@ -61892,5 +61892,6 @@
   "Pick a web ACL to enforce your blocklist in. OneUptime makes its IP sets and adds its rule, or waits for yours when you keep the web ACL in code.": "ブロックリストを適用するウェブ ACL を選んでください。OneUptime は IP セットを作成して自身のルールを追加します。ウェブ ACL をコードで管理している場合は、あなたがルールを追加するのを待ちます。",
   "Where AWS WAF reads the address a block is matched against. Behind another proxy or CDN, read the header that proxy sets instead.": "ブロックとの照合に使うアドレスを AWS WAF がどこから読み取るかです。別のプロキシや CDN の背後では、代わりにそのプロキシが設定するヘッダーを読み取ってください。",
   "Your role cannot read the incidents, alerts, on-call pages, fixes or Data Security issues these results count. A Project Admin can give you access.": "これらの成果はインシデント、アラート、オンコールの呼び出し、修正、データセキュリティの問題を集計したものですが、あなたのロールではそのいずれも読み取れません。プロジェクト管理者がアクセス権を付与できます。",
-  "No security events for the selected time range and filters, but some logs or traces in it were refused and never scanned: their events are missing.": "選択した時間範囲とフィルターに一致するセキュリティイベントはありませんが、この期間のログやトレースの一部は拒否され、スキャンされていないため、そこから生じるイベントが欠けています。"
+  "No security events for the selected time range and filters, but some logs or traces in it were refused and never scanned: their events are missing.": "選択した時間範囲とフィルターに一致するセキュリティイベントはありませんが、この期間のログやトレースの一部は拒否され、スキャンされていないため、そこから生じるイベントが欠けています。",
+  "Its public access checks pass from now on, and it is checked again now: this issue resolves once its check passes. Undo it in the store's Settings.": "今後は公開アクセスのチェックに合格し、今すぐ再チェックされます: チェックに合格すると、この問題は解決します。元に戻すには、ストアの設定でオフにしてください。"
 }

@@ -61892,5 +61892,6 @@
   "Pick a web ACL to enforce your blocklist in. OneUptime makes its IP sets and adds its rule, or waits for yours when you keep the web ACL in code.": "选择一个用于执行你的封禁列表的 Web ACL。OneUptime 会创建其 IP 集并添加其规则；如果你在代码中管理该 Web ACL，则会等待你添加规则。",
   "Where AWS WAF reads the address a block is matched against. Behind another proxy or CDN, read the header that proxy sets instead.": "AWS WAF 从何处读取用于匹配封禁的地址。位于其他代理或 CDN 之后时，请改为读取该代理设置的标头。",
   "Your role cannot read the incidents, alerts, on-call pages, fixes or Data Security issues these results count. A Project Admin can give you access.": "这些成效统计的是事件、警报、值班呼叫、修复和数据安全问题，而你的角色无法读取其中任何一项。项目管理员可以为你授予访问权限。",
-  "No security events for the selected time range and filters, but some logs or traces in it were refused and never scanned: their events are missing.": "所选时间范围和过滤器内没有安全事件，但此时间范围内你的部分日志或追踪被拒绝，从未被扫描，因此缺少由它们产生的事件。"
+  "No security events for the selected time range and filters, but some logs or traces in it were refused and never scanned: their events are missing.": "所选时间范围和过滤器内没有安全事件，但此时间范围内你的部分日志或追踪被拒绝，从未被扫描，因此缺少由它们产生的事件。",
+  "Its public access checks pass from now on, and it is checked again now: this issue resolves once its check passes. Undo it in the store's Settings.": "其公开访问检查从现在起通过，并立即重新检查：检查通过后此问题即解决。要撤销，请在存储的设置中关闭它。"
 }
