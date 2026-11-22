@@ -980,6 +980,10 @@ const DocsNav: NavGroup[] = [
         title: "Stream Google Cloud Logs",
         url: "/docs/telemetry/cloud-streaming-google-cloud",
       },
+      {
+        title: "Block Addresses in AWS WAF",
+        url: "/docs/telemetry/cloud-aws-waf-blocklist",
+      },
     ],
   },
   {

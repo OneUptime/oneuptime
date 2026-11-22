@@ -479,6 +479,8 @@ describe("every cloud, one paste", () => {
         readScope: "account",
         // AWS alone: what each resource costs, off until turned on.
         resourceCosts: "off",
+        // AWS alone: blocking addresses in AWS WAF, off until turned on (#10344).
+        wafBlocklist: "off",
       },
       secrets: {},
     });
@@ -1179,7 +1181,11 @@ describe("Data Security's settings, under the command", () => {
         method: CloudConnectionAuthMethod.AwsRole,
       }),
     );
-    expect(foldedItems()).toEqual(["Data security", "Data security response"]);
+    expect(foldedItems()).toEqual([
+      "Data security",
+      "Data security response",
+      "Block addresses in AWS WAF",
+    ]);
     expect(
       within(modal()).getByTestId("cloud-setup-read-only"),
     ).toHaveTextContent(AWS.explanation);
@@ -1203,6 +1209,7 @@ describe("Data Security's settings, under the command", () => {
       roleArn: ROLE_ARN,
       dataSecurity: "off",
       dataSecurityResponse: "off",
+      wafBlocklist: "off",
     });
   });
 });
