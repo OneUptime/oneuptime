@@ -898,9 +898,14 @@ const budgetOf: (gb: number) => TelemetryIngestionBudgetStoredSettings = (
   const settings: TelemetryIngestionBudgetStoredSettings =
     getEmptyTelemetryIngestionBudgetStoredSettings();
 
-  for (const signal of [ProductType.Logs, ProductType.Profiles]) {
-    settings[signal] = { dailyBudgetInGB: gb, rateLimitInMBPerSecond: null };
-  }
+  settings[ProductType.Logs] = {
+    dailyBudgetInGB: gb,
+    rateLimitInMBPerSecond: null,
+  };
+  settings[ProductType.Profiles] = {
+    dailyBudgetInGB: gb,
+    rateLimitInMBPerSecond: null,
+  };
 
   return settings;
 };

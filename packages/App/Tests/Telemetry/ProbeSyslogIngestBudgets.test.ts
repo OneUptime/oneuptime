@@ -71,8 +71,6 @@ import {
  * FluentSyslogTeamBudgetsValkey test against a real Valkey.
  */
 
-type MockedFn = jest.Mock;
-
 const NOW: Date = new Date("2026-11-22T10:00:00.000Z");
 const GB: number = TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB;
 
