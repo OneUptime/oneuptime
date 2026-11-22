@@ -142,7 +142,7 @@ Docker Compose에서는 `config.env`에 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=fal
 
 이 설정이 켜져 있으면 거부된 호스트 이름은 무엇으로 확인되었는지 밝히지 않고 보고됩니다. 예를 들면 _"LLM provider host ollama.internal could not be reached."_ 와 같습니다. 전혀 확인되지 않는 이름도 같은 메시지를 받으므로, 프로젝트 멤버는 이 필드를 이용해 어떤 내부 이름이 존재하는지 알아낼 수 없습니다. IP로 입력한 주소는 여전히 이유와 함께 표시됩니다. 예를 들면 _"LLM provider host 10.0.4.12 is not allowed: private network address."_ 와 같습니다. `LOG_LEVEL=DEBUG`에서는 앱이 거부된 각 이름이 확인된 주소를 로그에 기록합니다.
 
-아웃바운드 프록시 뒤에서는 HTTP로 하는 연결이 웹후크처럼 프록시를 거칩니다. HTTP로 읽는 데이터 소스와 보안 이벤트 연결, 위협 인텔리전스 피드, LLM 공급자, OAuth 토큰 URL, OIDC Single Sign-On, 외부 캘린더, MCP 서버, 백업, 사용자 지정 도메인 확인, 런북 HTTP 단계, Grafana OnCall 가져오기는 주소로 지정했든 호스트 이름으로 지정했든 `HTTPS_PROXY`, `HTTP_PROXY` 또는 `ALL_PROXY`에 설정된 프록시를 사용합니다. OneUptime은 여전히 주소를 먼저 확인하고 리디렉션을 따르지 않지만, 이름을 조회하고 연결하는 것은 프록시이므로 링크 로컬 대상, 특히 `169.254.169.254`는 프록시에서 직접 거부하세요. `NO_PROXY`에 있는 호스트는 OneUptime이 확인한 주소로 직접 연결되므로 내부 호스트는 그곳에 나열하세요. 데이터베이스 및 SMTP 연결과 Git 서버는 항상 프록시 없이 직접 연결합니다.
+아웃바운드 프록시 뒤에서는 HTTP로 하는 연결이 웹후크처럼 프록시를 거칩니다. HTTP로 읽는 데이터 소스와 보안 이벤트 연결, 위협 인텔리전스 피드, LLM 공급자, OAuth 토큰 URL, OIDC Single Sign-On, 외부 캘린더, MCP 서버, 백업, 사용자 지정 도메인 확인, 런북 HTTP 단계, Grafana OnCall 가져오기는 주소로 지정했든 호스트 이름으로 지정했든 `HTTPS_PROXY`, `HTTP_PROXY` 또는 `ALL_PROXY`에 설정된 프록시를 사용합니다. URL에서 예약된 문자(`@`, `:`, `%` 등)가 들어 있는 사용자 이름이나 비밀번호는 비밀번호 `p@ss`를 `http://user:p%40ss@proxy.internal:3128`처럼 쓰듯 퍼센트 인코딩해서 쓰며, OneUptime은 디코딩한 값으로 로그인합니다. OneUptime은 여전히 주소를 먼저 확인하고 리디렉션을 따르지 않지만, 이름을 조회하고 연결하는 것은 프록시이므로 링크 로컬 대상, 특히 `169.254.169.254`는 프록시에서 직접 거부하세요. `NO_PROXY`에 있는 호스트는 OneUptime이 확인한 주소로 직접 연결되므로 내부 호스트는 그곳에 나열하세요. 데이터베이스 및 SMTP 연결과 Git 서버는 항상 프록시 없이 직접 연결합니다.
 
 ## 프로브와 모니터
 
