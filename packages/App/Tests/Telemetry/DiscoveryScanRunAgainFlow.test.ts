@@ -11,7 +11,6 @@ import Probe, {
   ProbeConnectionStatus,
 } from "Common/Models/DatabaseModels/Probe";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import Permission from "Common/Types/Permission";
@@ -34,6 +33,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * A SCAN RUN AGAIN, FROM THE BUTTON TO ITS NEW RESULTS (OneUptime issue
@@ -283,7 +283,7 @@ async function call(
   uri: string,
   req: Row,
 ): Promise<{ thrown: unknown }> {
-  const next: jest.Mock = jest.fn();
+  const next: Mock = jest.fn();
 
   await mockRouter.match(method, uri).handlerFunction(
     {
@@ -310,9 +310,9 @@ async function pressRunAgain(): Promise<void> {
 
 // The probe's poll: it is handed the scans its claim took.
 async function probePolls(): Promise<Array<NetworkDeviceDiscoveryScan>> {
-  const response: { sendEntityArrayResponse: jest.Mock } = (
+  const response: { sendEntityArrayResponse: Mock } = (
     jest.requireMock("Common/Server/Utils/Response") as {
-      default: { sendEntityArrayResponse: jest.Mock };
+      default: { sendEntityArrayResponse: Mock };
     }
   ).default;
   response.sendEntityArrayResponse.mockClear();
@@ -328,7 +328,8 @@ async function probePolls(): Promise<Array<NetworkDeviceDiscoveryScan>> {
     []) as Array<NetworkDeviceDiscoveryScan>;
 }
 
-async function probeReports(body: JSONObject): Promise<void> {
+// What the probe posts: its hosts as it found them, typed as the model keeps them.
+async function probeReports(body: Row): Promise<void> {
   const { thrown } = await call("post", "/probe/discovery-scan/result", {
     probe: new Probe(PROBE_ID),
     body: { scanId: SCAN_ID.toString(), ...body },

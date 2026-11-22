@@ -185,8 +185,9 @@ describe("a finished scan's row", () => {
   });
 
   test("names a person with no name by their email", () => {
-    const nameless: User = simon();
-    nameless.name = undefined;
+    // Read with no name: the select asked for one, and the person has none.
+    const nameless: User = new User();
+    nameless.email = new Email("simon@example.com");
 
     renderRow(
       scan({ runRequestedAt: THREE_DAYS_AGO, runRequestedByUser: nameless }),
