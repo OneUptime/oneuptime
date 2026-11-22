@@ -1,13 +1,13 @@
 # Følsomme data i telemetri
 
-Telemetri indeholder alt, hvad din kode skriver: en e-mailadresse i en loglinje, et kortnummer i en span-attribut, et token i en stack trace, en kundes spørgsmål i en prompt, en brugers IP-adresse i en metriks label. Datasikkerhed behandler hver tjenestes logs, traces, metrikker, undtagelser og AI-samtaler og hver RUM-applikations sessioner som datalagre for sig. Den tager prøver af dem hver time, finder følsomme data i dem, ligesom den gør i en bucket, og **Rens** gør et fund til en regel, der fra da af maskerer de data ved indtagelse.
+Telemetri indeholder alt, hvad din kode skriver: en e-mailadresse i en loglinje, et kortnummer i en span-attribut, et token i en stack trace, en kundes spørgsmål i en prompt, en brugers IP-adresse i en metriks label. Datasikkerhed behandler hver tjenestes logs, traces, metrikker, undtagelser og AI-samtaler og hver RUM-applikations sessioner som datalagre for sig. Den tager prøver af dem hver time, finder følsomme data i dem, ligesom den gør i en bucket, og **Rens** gør et fund til en regel, der fra da af skjuler de data ved indtagelse, i den tjeneste, de blev fundet i.
 
 Der er intet at sætte op: hver tjenestes telemetri scannes hver time, medmindre **Scan telemetri** er slået fra i projektets indstillinger. Vil du udelade én tjenestes logs, spor eller et andet af dens signaler, så slå **Scan indhold** fra i det datalagers **Indstillinger**: fra næste scanning læses intet af det.
 
 :::cards
 - [Hvad der læses](#hvad-der-læses): Attributterne, brødteksterne, beskederne og prompterne i hvert signal.
 - [Sådan tager en scanning prøver](#sådan-tager-en-scanning-prøver): De nyeste poster fra hver tjeneste, hver time.
-- [Rens](#rens): Maskér et fund ved indtagelse med ét klik.
+- [Rens](#rens): Skjul et fund ved indtagelse, i den tjeneste, det blev fundet i.
 - [Kassér denne metrik](#kassér-denne-metrik): Stop med at gemme de metrikker, hvis navne indeholder følsomme data.
 - [Hvad der tæller som renset](#hvad-der-tæller-som-renset): Når en rensningsregel allerede dækker et fund.
 :::
@@ -94,14 +94,14 @@ For at udelade noget tilføjer du det til datalagerets **Scanningsundtagelser**:
 
 ### Tryk på Rens
 
-Klik på **Rens**. OneUptime opretter en logrensningsregel for logs og en RUM-applikations logs, en trace-rensningsregel for spans, undtagelser og AI-kald, på den del af posten, fundet ligger i, og en metrik-pipelineregel for en metriks attribut.
+Klik på **Rens**. En dialog siger, hvad reglen ville gøre, før noget oprettes: hvis poster den ændrer, hvad den gør med det, den finder, og hvad der læser de værdier, den ville skjule. Klik på **Rens** i den for at oprette reglen. OneUptime opretter en logrensningsregel for logs og en RUM-applikations logs, en trace-rensningsregel for spans, undtagelser og AI-kald, på den del af posten, fundet ligger i, og en metrik-pipelineregel for en metriks attribut.
 
 ### Ret også koden
 
-Reglen maskerer nye data, før de gemmes. Data, der allerede er gemt, bliver liggende, indtil deres opbevaring udløber, så ret den kode, der skriver dem: fundet nævner tjenesten og attributten.
+Reglen skjuler nye data, før de gemmes. Data, der allerede er gemt, bliver liggende, indtil deres opbevaring udløber, så ret den kode, der skriver dem: fundet nævner tjenesten og attributten.
 :::
 
-Reglen er opkaldt efter det, den skjuler, f.eks. "Data Security: Email address in attributes.user.email", og står sammen med dine andre rensningsregler (se [Drop-filtre og rensningsregler](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data)). Den er en af disse:
+Reglen er opkaldt efter det, den skjuler, f.eks. "Data Security: Email address in log attributes of checkout", og står sammen med dine andre rensningsregler (se [Drop-filtre og rensningsregler](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data)). Den er en af disse:
 
 | Fund | Regel, som Rens opretter |
 | --- | --- |
@@ -109,6 +109,10 @@ Reglen er opkaldt efter det, den skjuler, f.eks. "Data Security: Email address i
 | En værdi under en nøgle, der ligner noget følsomt, f.eks. `password` eller `token` | En regel af typen **Følsomme attributnøgler**, som erstatter hele værdien af hver sådan attribut |
 | Enhver anden datatype, et mønster kan finde | En regel af typen **Brugerdefineret regex**, lavet ud fra datatypens egne mønstre, som erstatter hver værdi af samme form |
 | Enhver datatype i en metriks attribut | En metrik-pipelineregel af typen **Redigér attribut bort** for tjenesten, som erstatter attributtens værdier af datatypens form med `[REDACTED]`, eller hver værdi af attributten, hvor intet mønster finder datatypen |
+
+En regel for logs eller traces gælder for den tjeneste, fundet blev fundet i: den renser den tjenestes logs eller spans, og andre tjenesters forbliver, som de er, så intet, der læser deres, ændres. Kolonnen **Omfang** i listen over rensningsregler siger, hvilken tjeneste en regel gælder for. Et fund i en RUM-applikations sessionsoptagelser opretter en regel for alle projektets tjenester og apps, da regler for logs også renser optagelser, og dialogen siger det. Findes tjenesten ikke længere, siger **Rens** det og opretter ingen regel.
+
+Dialogen nævner, hver som et link, de monitorer, dashboards med deres widgets, gemte visninger, optagelsesregler og SLO'er, der læser de værdier, reglen ville skjule, og hvad der sker med dem: et filter på en skjult værdi holder op med at matche, og en gruppering efter den viser ikke længere de rigtige værdier. Den siger også, hvad [Sikkerhedsbegivenheder](/docs/telemetry/security-events) ville miste, når de læser de poster: med IP-adresserne skjult kan deres hændelser ikke angive den adresse, der skal blokeres. Det, du ikke kan se, tælles, men nævnes aldrig. Dialogen stopper aldrig reglen: den siger det, og du beslutter. Formularerne for rensningsregler viser det samme, før en regel gemmes eller slås til.
 
 Nogle fund kan ikke renses af en regel, og **Rens** siger hvorfor. En metriks attribut kan altid renses, da dens regel kan skjule hver værdi af attributten:
 
@@ -139,6 +143,7 @@ Et fund markeres kun som renset, når indtagelsen ville køre en aktiveret regel
 
 - **De rigtige poster.** Logregler dækker logs og en RUM-applikations logs. Trace-regler dækker spans, undtagelser og AI-kald: en undtagelse er en kopi af sit spans undtagelseshændelse, så de regler, der renser hændelser, renser den.
 - **Den rigtige del.** Reglens **Felter, der skal renses** omfatter den del af posten, fundet ligger i, eller reglen lader dem stå på standard.
+- **Den rigtige tjeneste.** En regel for logs eller traces for én tjeneste dækker kun den tjenestes fund. En regel uden tjeneste dækker alle tjenesters.
 - **Et mønster, der finder typen.** En indbygget **Mønstertype** finder sin egen datatype: **E-mailadresse** finder e-mailadresser, **Kreditkortnummer** kortnumre, **SSN (CPR-nummer)** amerikanske socialsikringsnumre, **Telefonnummer** telefonnumre og **IP-adresse** IP-adresser. **Følsomme attributnøgler** dækker hver værdi under en nøgle, der ligner noget følsomt, uanset hvad værdien er.
 - **Dine egne brugerdefinerede mønstre tæller aldrig.** En **Brugerdefineret regex** dækker kun et fund, når den er præcis det mønster, **Rens** opretter for dets type. Et fund gemmer kun maskerede prøver, som intet mønster kan afprøves på, så OneUptime kan ikke bevise, at dit mønster skjuler dataene, og et fund, der fejlagtigt kaldes renset, er en lækage, ingen kigger på.
 - **En metriks attribut.** En metrik-pipelineregel af typen **Redigér attribut bort** eller **Fjern attribut** for den attributs nøgle, for fundets tjeneste eller hele projektet, dækker det, når den ikke har noget filter, eller præcis det filter, **Rens** opretter. Et filter, du selv har skrevet, tæller aldrig, af samme grund.

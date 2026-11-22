@@ -132,16 +132,16 @@ Bij elke overdracht horen de kanalen van een bereikbaarheidsbeleid in één rege
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments linkt naar het beleid in OneUptime. Roept het beleid meer dan één schema op, dan noemt de regel ook het schema: Payments (Primary).
-- Iemand wordt bij zijn Slack-naam genoemd zodra hij zijn Slack-account met OneUptime heeft verbonden, en tot dan bij zijn naam in OneUptime, in elk dienstbericht: overdrachten, overschrijvingen en personen die aan het beleid zijn toegevoegd of eruit zijn gehaald. Tijden verschijnen in de tijdzone van elke lezer.
+- Iemand wordt bij zijn Slack-naam genoemd zodra hij zijn Slack-account met OneUptime heeft verbonden, en tot dan bij zijn naam in OneUptime, in elk dienstbericht: overdrachten, overschrijvingen en personen die aan het beleid zijn toegevoegd of eruit zijn gehaald. Iemand die is uitgenodigd maar nog geen lid van het project is, wordt genoemd bij de naam die met de uitnodiging is ingevuld, of als "someone who hasn't joined the project yet", nooit bij zijn e-mailadres, hier en in de feed van het beleid. Tijden verschijnen in de tijdzone van elke lezer.
 - Roepen meerdere escalatieregels van het beleid hetzelfde schema op, dan wordt elke overdracht één keer geplaatst, niet één keer per regel.
 
 Een regel plaatst wat hij in zijn stap **Updates** koos, en een nieuwe regel begint met **Alleen belangrijke updates**: wie nu dienst heeft, en wanneer niemand dienst heeft. Dat geldt ook voor een regel die via de API of met Terraform wordt gemaakt zonder `updatesToPost`: stuur `"updatesToPost": null` voor elke update. Een wijziging zonder `updatesToPost` behoudt de updates die de regel plaatst.
 
 | Update | Wat het kanaal hoort |
 | --- | --- |
-| **Wie nu dienst heeft** | De regel hierboven, bij elke overdracht. |
-| **Wie hierna dienst heeft** | Wie bij de volgende overdracht overneemt, en wanneer: aan het eind van die regel, of in een eigen regel voor een notificatieregel die niet plaatst wie nu dienst heeft. |
-| **Niemand heeft dienst** | Een schema waarin niemand meer dienst heeft, zodat waarschuwingen die het bereiken niemand oproepen: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **Wie nu dienst heeft** | De regel hierboven, bij elke overdracht, en wanneer degene die dienst heeft tijdens zijn beurt lid wordt van het project: "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." |
+| **Wie hierna dienst heeft** | Wie bij de volgende overdracht overneemt, en wanneer: aan het eind van die regel, of in een eigen regel voor een notificatieregel die niet plaatst wie nu dienst heeft. Is de volgende nog geen lid van het project, dan neemt niemand over, en de regel zegt waarom: "📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then nobody: Ivy is next but hasn't joined the project yet." |
+| **Niemand heeft dienst** | Een schema waarin niemand meer dienst heeft, zodat waarschuwingen die het bereiken niemand oproepen: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." Ook de beurt van iemand die nog geen lid van het project is, omdat niets diegene oproept tot dat zo is: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." |
 | **Gebruikersoverschrijvingen** | Een overschrijving toegevoegd, gewijzigd of ingetrokken: wie afwezig is, en wie vervangt. |
 | **Wijzigingen in het beleid** | Schema's, personen en teams die aan de escalatieregels zijn toegevoegd of eruit zijn gehaald. |
 | **Eigenaren** | Toegevoegde en verwijderde eigenaren. |

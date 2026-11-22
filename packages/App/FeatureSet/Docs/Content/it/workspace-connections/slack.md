@@ -132,16 +132,16 @@ A ogni cambio turno, i canali di una policy di reperibilità vengono a sapere ch
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments rimanda alla policy in OneUptime. Quando la policy chiama più di una pianificazione, la riga nomina anche la pianificazione: Payments (Primary).
-- Una persona viene nominata con il suo nome Slack una volta che ha collegato il proprio account Slack a OneUptime, e con il suo nome in OneUptime fino ad allora, in ogni riga di reperibilità: cambi turno, sostituzioni e persone aggiunte alla policy o rimosse. Gli orari sono mostrati nel fuso orario di ciascun lettore.
+- Una persona viene nominata con il suo nome Slack una volta che ha collegato il proprio account Slack a OneUptime, e con il suo nome in OneUptime fino ad allora, in ogni riga di reperibilità: cambi turno, sostituzioni e persone aggiunte alla policy o rimosse. Una persona invitata che non è ancora entrata nel progetto viene nominata con il nome scritto con il suo invito, o come "someone who hasn't joined the project yet", mai con il suo indirizzo e-mail, qui e nel feed della policy. Gli orari sono mostrati nel fuso orario di ciascun lettore.
 - Quando più regole di escalation della policy chiamano la stessa pianificazione, ogni cambio turno viene pubblicato una volta, non una volta per regola.
 
 Una regola pubblica ciò che ha scelto nel suo passaggio **Aggiornamenti**, e una nuova regola parte da **Solo aggiornamenti chiave**: chi è reperibile ora, e quando non lo è nessuno. Lo stesso vale per una regola creata tramite l'API o con Terraform che omette `updatesToPost`: invia `"updatesToPost": null` per ogni aggiornamento. Una modifica che omette `updatesToPost` mantiene gli aggiornamenti che la regola pubblica.
 
 | Aggiornamento | Cosa viene a sapere il canale |
 | --- | --- |
-| **Chi è reperibile ora** | La riga qui sopra, a ogni cambio turno. |
-| **Chi è reperibile dopo** | Chi subentra al prossimo cambio turno, e quando: alla fine di quella riga, o in una riga a sé per una regola che non pubblica chi è reperibile ora. |
-| **Nessuno reperibile** | Una pianificazione rimasta senza nessuno reperibile, così gli avvisi che la raggiungono non chiamano nessuno: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **Chi è reperibile ora** | La riga qui sopra, a ogni cambio turno, e quando la persona reperibile entra nel progetto durante il suo turno: "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." |
+| **Chi è reperibile dopo** | Chi subentra al prossimo cambio turno, e quando: alla fine di quella riga, o in una riga a sé per una regola che non pubblica chi è reperibile ora. Quando la persona successiva non è ancora entrata nel progetto, non subentra nessuno, e la riga dice perché: "📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then nobody: Ivy is next but hasn't joined the project yet." |
+| **Nessuno reperibile** | Una pianificazione rimasta senza nessuno reperibile, così gli avvisi che la raggiungono non chiamano nessuno: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." Anche il turno di chi non è ancora entrato nel progetto, perché nulla lo avvisa finché non entra: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." |
 | **Sostituzioni utente** | Una sostituzione aggiunta, modificata o annullata: chi è assente e chi sostituisce. |
 | **Modifiche alla policy** | Pianificazioni, persone e team aggiunti alle sue regole di escalation o rimossi. |
 | **Proprietari** | Proprietari aggiunti e rimossi. |

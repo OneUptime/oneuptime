@@ -143,6 +143,9 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Each list runs in order.",
     "Logs or spans arriving.",
     "A role that changes telemetry settings.",
+    // Whose records a rule scrubs, and what it breaks (issue #10433).
+    "A rule can be for one service.",
+    "The form says what a rule would change for others.",
     // What an IP Address rule hides and keeps (issue #10393).
     "An IP Address rule hides the addresses that are personal data.",
     // A Hash token's key, and the tokens made before it (issue #10394).

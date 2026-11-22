@@ -18,7 +18,6 @@ import { DataLineageNamed } from "../DataObservability/DataTableLineage";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import UserPermissionUtil from "../UserPermission/UserPermission";
-import AuditLog from "../../../Models/AnalyticsModels/AuditLog";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import ApiKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
@@ -411,7 +410,11 @@ export default class ReadAudienceReader {
    *   - on the case's timeline (SecurityCaseFeed);
    *   - in the project's audit log, as a change OneUptime made to the case,
    *     where the project keeps OneUptime's own changes: the part of the
-   *     report around where it changed (AuditLog).
+   *     report around where it changed. The audit log shows a change's
+   *     values only to whoever may read them on the case itself (#10642,
+   *     AuditLogReadAccess), so its readers are the case's: a Settings Admin
+   *     or a key with Read Audit Log alone reads that the case changed, never
+   *     the report.
    *
    * Whoever may read one of them holds one of these, whatever its scope or
    * its labels. SubjectReadersOnlyGuard holds the triage to these places.
@@ -446,10 +449,6 @@ export default class ReadAudienceReader {
       if (wildcard) {
         reading.add(String(wildcard));
       }
-    }
-
-    for (const permission of new AuditLog().accessControl?.read || []) {
-      reading.add(String(permission));
     }
 
     return Array.from(reading).sort();

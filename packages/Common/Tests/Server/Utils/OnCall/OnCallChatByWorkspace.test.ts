@@ -4,12 +4,18 @@ import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/Workspa
 import OnCallDutyPolicyEscalationRuleScheduleService from "../../../../Server/Services/OnCallDutyPolicyEscalationRuleScheduleService";
 import UserService from "../../../../Server/Services/UserService";
 import WorkspaceProjectAuthTokenService from "../../../../Server/Services/WorkspaceProjectAuthTokenService";
+import logger from "../../../../Server/Utils/Logger";
 import OnCallChatByWorkspace, {
   OnCallChatTextByWorkspaceType,
   OnCallChatWriter,
   ON_CALL_CHAT_NOBODY_NAMED,
 } from "../../../../Server/Utils/OnCall/OnCallChatByWorkspace";
-import OnCallChatText from "../../../../Server/Utils/OnCall/OnCallChatText";
+import OnCallChatText, {
+  ON_CALL_CHAT_INVITEE_UNNAMED,
+} from "../../../../Server/Utils/OnCall/OnCallChatText";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import MattermostUtil from "../../../../Server/Utils/Workspace/Mattermost/Mattermost";
 import WorkspaceUtil from "../../../../Server/Utils/Workspace/Workspace";
 import OneUptimeDate from "../../../../Types/Date";
@@ -262,6 +268,219 @@ describe("how each workspace names a person", () => {
       ON_CALL_CHAT_NOBODY_NAMED,
     );
     expect(WorkspaceUtil.getUserStringForWorkspace).not.toHaveBeenCalled();
+  });
+
+  describe("someone only invited to the project (#10616)", () => {
+    const IVY: ObjectID = new ObjectID("79670000-0000-4000-8000-0000000000c1");
+
+    // The name typed with Ivy's invitation; undefined: she is no invitee.
+    let typed: string | null | undefined;
+
+    beforeEach(() => {
+      typed = "Ivy";
+      jest
+        .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+        .mockImplementation((async (data: {
+          userIds: Array<string>;
+        }): Promise<Map<string, WithheldProfile>> => {
+          const withheld: Map<string, WithheldProfile> = new Map<
+            string,
+            WithheldProfile
+          >();
+
+          if (typed !== undefined && data.userIds.includes(IVY.toString())) {
+            withheld.set(IVY.toString().toLowerCase(), {
+              inviteeName: typed,
+              inviteeEmail: "ivy@invited.test",
+            });
+          }
+
+          return withheld;
+        }) as never);
+      // As main named her: the address she was invited at (#10175).
+      jest
+        .spyOn(WorkspaceUtil, "getUserStringForWorkspace")
+        .mockResolvedValue(
+          "[ivy@invited.test](https://oneuptime.test/users/ivy) " as never,
+        );
+      jest
+        .spyOn(UserService, "getUserMarkdownString")
+        .mockResolvedValue(
+          mdText`[ivy@invited.test](https://oneuptime.test/users/ivy)` as never,
+        );
+    });
+
+    test("REGRESSION: the name typed with her invitation, as text, in every workspace and with none - never the address she was invited at", async () => {
+      connect([
+        { workspaceType: WorkspaceType.Slack, authToken: "a" },
+        { workspaceType: WorkspaceType.MicrosoftTeams, authToken: "b" },
+        { workspaceType: WorkspaceType.Mattermost, authToken: "c" },
+      ]);
+
+      const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
+        projectId: PROJECT_ID,
+      });
+
+      const lines: OnCallChatTextByWorkspaceType = await chat.write(
+        async (writer: OnCallChatWriter): Promise<MarkdownText> => {
+          return OnCallChatText.overrideRemoved({
+            policy: POLICY,
+            person: await writer.nameOf(IVY),
+          });
+        },
+      );
+
+      const line: string = `❌ Removed an override on [Payments](${POLICY_LINK}): Ivy is paged on their turns again.`;
+
+      expect(lines).toEqual({
+        [WorkspaceType.Slack]: line,
+        [WorkspaceType.MicrosoftTeams]: line,
+        [WorkspaceType.Mattermost]: line,
+      });
+      expect((await chat.nameIn(null)(IVY)).toString()).toBe("Ivy");
+      // Neither the workspace nor OneUptime is asked how to name her.
+      expect(WorkspaceUtil.getUserStringForWorkspace).not.toHaveBeenCalled();
+      expect(UserService.getUserMarkdownString).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      ["no name typed", null],
+      ["only spaces typed", "   "],
+      ["an address typed as her name", "ivy@invited.test"],
+      ["a name with an address in it", "Ivy <ivy@invited.test>"],
+    ])(
+      "REGRESSION: %s - 'someone who hasn't joined the project yet'",
+      async (_why: string, name: string | null) => {
+        typed = name;
+
+        const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
+          projectId: PROJECT_ID,
+        });
+
+        for (const workspaceType of [WorkspaceType.Slack, null]) {
+          const named: string = (
+            await chat.nameIn(workspaceType)(IVY)
+          ).toString();
+
+          expect(named).toBe(ON_CALL_CHAT_INVITEE_UNNAMED);
+          expect(named).not.toContain("invited.test");
+        }
+      },
+    );
+
+    test("whether she is only invited is read once for the whole change, however many workspaces and lines name her", async () => {
+      connect([
+        { workspaceType: WorkspaceType.Slack, authToken: "a" },
+        { workspaceType: WorkspaceType.Mattermost, authToken: "b" },
+      ]);
+
+      const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
+        projectId: PROJECT_ID,
+      });
+
+      for (let line: number = 0; line < 2; line++) {
+        await chat.write(
+          async (writer: OnCallChatWriter): Promise<MarkdownText> => {
+            return mdText`${await writer.nameOf(IVY)} ${await writer.nameOf(new ObjectID(IVY.toString().toUpperCase()))}`;
+          },
+        );
+        await chat.nameIn(null)(IVY);
+      }
+
+      expect(
+        PendingInviteeProfiles.readWithheldProfilesInProject,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        PendingInviteeProfiles.readWithheldProfilesInProject,
+      ).toHaveBeenCalledWith({
+        userIds: [IVY.toString()],
+        projectId: PROJECT_ID,
+      });
+    });
+
+    test("a member is asked of the workspace and of OneUptime as before", async () => {
+      typed = undefined;
+
+      const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
+        projectId: PROJECT_ID,
+      });
+
+      expect((await chat.nameIn(WorkspaceType.Slack)(IVY)).toString()).toBe(
+        "[ivy@invited.test](https://oneuptime.test/users/ivy)",
+      );
+      expect((await chat.nameIn(null)(IVY)).toString()).toBe(
+        "[ivy@invited.test](https://oneuptime.test/users/ivy)",
+      );
+    });
+
+    test("whether she is only invited could not be read: Somebody, never what could be her address - and logged", async () => {
+      jest
+        .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+        .mockRejectedValue(new Error("database down") as never);
+
+      const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
+        projectId: PROJECT_ID,
+      });
+
+      expect((await chat.nameIn(WorkspaceType.Slack)(IVY)).toString()).toBe(
+        ON_CALL_CHAT_NOBODY_NAMED,
+      );
+      expect((await chat.nameIn(null)(IVY)).toString()).toBe(
+        ON_CALL_CHAT_NOBODY_NAMED,
+      );
+      expect(UserService.getUserMarkdownString).not.toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalledWith(
+        "Could not read whether somebody an on-call line names is only invited to the project; the line names them as Somebody.",
+        expect.anything(),
+      );
+    });
+
+    test("the name typed is text: it links nowhere and mentions nobody", async () => {
+      typed = "[Click](https://evil.test) <!channel> **Ivy**";
+
+      const named: string = (
+        await new OnCallChatByWorkspace({ projectId: PROJECT_ID }).nameIn(
+          WorkspaceType.Slack,
+        )(IVY)
+      ).toString();
+
+      expect(named).toBe(mdText`${typed}`.toString());
+      expect(named).not.toContain("[Click](https://evil.test)");
+      expect(named).not.toContain("<!channel>");
+    });
+  });
+
+  test("getDisplayName: trimmed, and none for an empty name or one that holds an address", () => {
+    expect(OnCallChatByWorkspace.getDisplayName("  Ivy Hart  ")).toBe(
+      "Ivy Hart",
+    );
+    expect(OnCallChatByWorkspace.getDisplayName("")).toBe("");
+    expect(OnCallChatByWorkspace.getDisplayName(null)).toBe("");
+    expect(OnCallChatByWorkspace.getDisplayName(undefined)).toBe("");
+    expect(OnCallChatByWorkspace.getDisplayName("ivy@invited.test")).toBe("");
+    expect(OnCallChatByWorkspace.getDisplayName("Ivy (ivy@x.io)")).toBe("");
+  });
+
+  test("getInviteeName: the name typed, else 'someone who hasn't joined the project yet'", () => {
+    expect(
+      OnCallChatByWorkspace.getInviteeName({
+        inviteeName: " Ivy ",
+        inviteeEmail: "ivy@invited.test",
+      }),
+    ).toBe("Ivy");
+
+    for (const inviteeName of [null, "", "  ", "ivy@invited.test"]) {
+      expect(
+        OnCallChatByWorkspace.getInviteeName({
+          inviteeName: inviteeName,
+          inviteeEmail: "ivy@invited.test",
+        }),
+      ).toBe(ON_CALL_CHAT_INVITEE_UNNAMED);
+    }
+
+    expect(ON_CALL_CHAT_INVITEE_UNNAMED).toBe(
+      "someone who hasn't joined the project yet",
+    );
   });
 
   test("Mattermost's @name pings nobody: the post breaks it, as every name in an on-call line", async () => {

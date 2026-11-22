@@ -8,6 +8,8 @@ import {
   scanMarkdown,
 } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
+import { nameScrubItRule } from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import ObjectID from "Common/Types/ObjectID";
 import {
   CARD_LINE,
   cardLines,
@@ -1776,8 +1778,27 @@ describe("Sensitive Data in Telemetry", () => {
     expect(scrub).toContain(
       'export const DATA_SECURITY_SCRUB_RULE_NAME_PREFIX: string = "Data Security: ";',
     );
+    /*
+     * An email address in a log's attributes, found in checkout's logs: the
+     * name says what it hides, in which records and whose (#10433).
+     */
+    expect(
+      nameScrubItRule({
+        plan: {
+          patternType: "email",
+          scrubAction: "redact",
+          fieldsToScrub: "attributes",
+        },
+        signal: "log",
+        dataTypeName: "Email address",
+        scope: {
+          serviceId: new ObjectID("6b6b6b6b-0000-4000-8000-0000000000b2"),
+          serviceName: "checkout",
+        },
+      }),
+    ).toBe("Data Security: Email address in log attributes of checkout");
     expect(section(page, "## Scrub It")).toContain(
-      '"Data Security: Email address in attributes.user.email"',
+      '"Data Security: Email address in log attributes of checkout"',
     );
     expect(scrub).toContain(
       "LogScrubPatternType.CreditCard,\n  LogScrubPatternType.SSN,\n  LogScrubPatternType.PhoneNumber,\n]);",

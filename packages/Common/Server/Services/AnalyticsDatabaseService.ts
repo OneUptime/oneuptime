@@ -1380,6 +1380,17 @@ export default class AnalyticsDatabaseService<
     return await this._aggregateBy(aggregateBy);
   }
 
+  /*
+   * Whether one caller's aggregate may be handed to another whose read the
+   * permission check scopes to the same query - BaseAnalyticsAPI's
+   * short-lived cache. False for a table that holds what a read answers to
+   * its caller beyond that query: the audit log, which holds names and
+   * values to what each reader may read of the records (AuditLogService).
+   */
+  public sharesAggregatesAcrossReaders(): boolean {
+    return true;
+  }
+
   private async _aggregateBy(
     aggregateBy: AggregateBy<TBaseModel>,
   ): Promise<AggregatedResult> {

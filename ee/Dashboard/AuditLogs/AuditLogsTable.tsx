@@ -23,8 +23,11 @@ import PageMap from "@oneuptime/dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/dashboard/Utils/RouteMap";
 import AuditLogChangesModal, {
   AUDIT_LOG_FIELDS_CHANGED,
+  AUDIT_LOG_HIDDEN_WORDS,
   getChangedFieldLabels,
+  getShownResourceName,
 } from "./AuditLogChangesModal";
+import { isAuditLogNameHidden } from "Common/Types/AuditLog/AuditLogHiddenValues";
 import {
   AuditLogsStoppedCopy,
   getAuditLogsStoppedCopy,
@@ -702,7 +705,16 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Element,
             getElement: (item: AuditLog): ReactElement => {
               const type: string | undefined = item.resourceType;
-              const name: string | undefined = item.resourceName;
+              /*
+               * A record the reader may not read keeps its type and loses its
+               * name (#10642): the row says so, and opens nothing.
+               */
+              const isNameHidden: boolean = isAuditLogNameHidden(
+                item.resourceName,
+              );
+              const name: string | undefined = getShownResourceName(
+                item.resourceName,
+              );
               const meta: ResourceMeta = getResourceMeta(type);
               // In the words the Resource Type filter offers it in.
               const typeLabel: string = getResourceTypeLabel(type);
@@ -710,8 +722,17 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
               const nameEl: ReactElement = (
                 <span className="text-sm font-medium text-gray-900 truncate">
                   {name || (
-                    <span className="italic text-gray-500">
-                      {translate(words.unnamed)}
+                    <span
+                      className="italic text-gray-500"
+                      data-testid={
+                        isNameHidden ? "audit-log-name-hidden" : undefined
+                      }
+                    >
+                      {translate(
+                        isNameHidden
+                          ? AUDIT_LOG_HIDDEN_WORDS.nameHidden
+                          : words.unnamed,
+                      )}
                     </span>
                   )}
                 </span>
@@ -721,13 +742,15 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                * A row with no page of its own opens the resource it belongs
                * to: a queue's owner opens the queue.
                */
-              const link: ResourceLink | null = getResourceLink({
-                meta,
-                action: item.action,
-                resourceId: item.resourceId,
-                rootResourceId: item.rootResourceId,
-                rootMeta: getResourceMeta(item.rootResourceType),
-              });
+              const link: ResourceLink | null = isNameHidden
+                ? null
+                : getResourceLink({
+                    meta,
+                    action: item.action,
+                    resourceId: item.resourceId,
+                    rootResourceId: item.rootResourceId,
+                    rootMeta: getResourceMeta(item.rootResourceType),
+                  });
 
               let linkedNameEl: ReactElement = nameEl;
               if (link && RouteMap[link.page]) {

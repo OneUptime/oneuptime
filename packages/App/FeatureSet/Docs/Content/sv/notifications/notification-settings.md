@@ -68,7 +68,7 @@ När du går med i ett projekt är de här händelserna påslagna, via e-post. A
 Fliken **Jour** handlar om dig och om de jourposter du äger:
 
 - **Du går på jour**, **Du är näst på tur i jouren** och **Du går av jour** följer dina turer i jourschemana du är med i.
-- **Tillagd i jourpolicy** och **Borttagen från jourpolicy** berättar när en jourpolicy börjar eller slutar nämna dig.
+- **Tillagd i jourpolicy** och **Borttagen från jourpolicy** berättar när en jourpolicy börjar eller slutar larma dig: när en av dess eskaleringsregler nämner dig eller slutar nämna dig, när du går med i projektet, och när du går med i eller lämnar ett team som en av dess regler nämner. Att gå med eller lämna berättar det en gång per policy, med varje regel i den som ändrats, och att lämna berättar det först när inget annat i den policyn larmar dig längre. Inget skickas innan du går med i ett projekt, eller när du tas bort från ett.
 - **Innan mitt jourpass börjar** skickar påminnelser vid de tider du väljer under **Användarinställningar → Profil och kalender → Kalenderflöde**, och **Mitt kommande jourpass tilldelas någon annan** berättar när någon annan täcker ett jourpass som du har påmints om. Se [Kalenderflöden](/docs/on-call/calendar-feeds#påminnelser-och-meddelanden-om-ny-tilldelning).
 - **Missat samtal**, på kortet **Inkommande samtalspolicyer**, berättar för ägarna av en policy för inkommande samtal att någon som ringde inte nådde någon. Se [Policy för inkommande samtal](/docs/on-call/incoming-call-policy#missade-samtal).
 - **Tillagd som ägare av jourpolicy**, **Tillagd som ägare av jourschema** och **Tillagd som ägare av inkommande samtalspolicy** berättar när du blir ägare av en av dem, genom en ägarregel eller av en person på dess sida Ägare.

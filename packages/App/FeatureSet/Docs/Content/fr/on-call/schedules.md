@@ -46,6 +46,8 @@ Tout le reste se trouve sous **Plus de champs**, replié jusqu'à ce que vous l'
 
 Tant que quelqu'un assure l'astreinte à tour de rôle et que rien n'est modifié sous **Plus de champs**, son en-tête replié indique ce qui va se passer : chaque personne est d'astreinte pendant une semaine, puis la suivante prend le relais.
 
+Une personne invitée au projet qui ne l'a pas encore rejoint peut aussi assurer l'astreinte à tour de rôle, mais rien ne l'alerte tant qu'elle n'a pas accepté son invitation, et rien ne lui est dit. Son tour est un trou de couverture, et les canaux et le fil d'activité de chaque politique d'astreinte qui alerte le planning le disent, en la nommant par le nom saisi avec son invitation, jamais par son adresse e-mail : « ⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet. » `/oneuptime oncall` dans Slack et `oncall` dans Microsoft Teams le disent aussi. Dès qu'elle rejoint le projet, elle est alertée comme les autres, on lui dit quelles politiques d'astreinte l'alertent désormais, et les canaux reçoivent « 📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob. » D'ici là, [Disponibilité et rapports](/docs/on-call/readiness) la liste, avec ce qu'il faut faire.
+
 ## Couches
 
 La rotation d'un planning se compose de couches, sur sa page **Couches**. Les couches se lisent de haut en bas : la couche la plus haute où quelqu'un est d'astreinte est celle qui alerte. Placez donc la rotation principale en haut et la couverture de secours en dessous.

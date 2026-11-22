@@ -132,16 +132,16 @@ Ved hvert vagtskifte hører en vagtpolitiks kanaler i én linje, hvem der har va
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments linker til politikken i OneUptime. Når politikken tilkalder mere end én tidsplan, nævner linjen også tidsplanen: Payments (Primary).
-- En person nævnes ved sit Slack-navn, når vedkommende har forbundet sin Slack-konto med OneUptime, og ved sit navn i OneUptime indtil da, i hver vagtbesked: vagtskifter, tilsidesættelser og personer, der tilføjes til politikken eller fjernes. Tidspunkter vises i hver læsers egen tidszone.
+- En person nævnes ved sit Slack-navn, når vedkommende har forbundet sin Slack-konto med OneUptime, og ved sit navn i OneUptime indtil da, i hver vagtbesked: vagtskifter, tilsidesættelser og personer, der tilføjes til politikken eller fjernes. En inviteret, der endnu ikke er blevet medlem af projektet, nævnes ved det navn, der blev skrevet med invitationen, eller som "someone who hasn't joined the project yet", aldrig ved sin e-mailadresse, her og i politikkens feed. Tidspunkter vises i hver læsers egen tidszone.
 - Når flere af politikkens eskaleringsregler tilkalder den samme tidsplan, slås hvert vagtskifte op én gang, ikke én gang pr. regel.
 
 En regel slår det op, den valgte i sit trin **Opdateringer**, og en ny regel starter med **Kun vigtige opdateringer**: hvem der har vagt nu, og hvornår ingen har. Det gør en regel, der er oprettet via API'et eller med Terraform uden `updatesToPost`, også: send `"updatesToPost": null` for alle opdateringer. En ændring uden `updatesToPost` beholder de opdateringer, reglen slår op.
 
 | Opdatering | Hvad kanalen hører |
 | --- | --- |
-| **Hvem der har vagt nu** | Linjen ovenfor, ved hvert vagtskifte. |
-| **Hvem der har vagt næste gang** | Hvem der overtager ved næste vagtskifte, og hvornår: sidst i den linje, eller i en linje for sig for en regel, der ikke slår op, hvem der har vagt nu. |
-| **Ingen har vagt** | En tidsplan, der står uden nogen på vagt, så advarsler, der når den, ikke tilkalder nogen: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **Hvem der har vagt nu** | Linjen ovenfor, ved hvert vagtskifte, og når den, der har vagt, bliver medlem af projektet under sin tørn: "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." |
+| **Hvem der har vagt næste gang** | Hvem der overtager ved næste vagtskifte, og hvornår: sidst i den linje, eller i en linje for sig for en regel, der ikke slår op, hvem der har vagt nu. Er den næste endnu ikke blevet medlem af projektet, overtager ingen, og linjen siger hvorfor: "📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then nobody: Ivy is next but hasn't joined the project yet." |
+| **Ingen har vagt** | En tidsplan, der står uden nogen på vagt, så advarsler, der når den, ikke tilkalder nogen: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." Også tørnen for en, der endnu ikke er blevet medlem af projektet, da intet tilkalder vedkommende, før det sker: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." |
 | **Brugertilsidesættelser** | En tilsidesættelse tilføjet, ændret eller trukket tilbage: hvem der er fraværende, og hvem der dækker. |
 | **Ændringer i politikken** | Tidsplaner, personer og teams, der er tilføjet til dens eskaleringsregler eller fjernet. |
 | **Ejere** | Ejere tilføjet og fjernet. |
