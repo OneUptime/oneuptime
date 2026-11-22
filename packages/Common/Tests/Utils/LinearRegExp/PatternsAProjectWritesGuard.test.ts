@@ -95,6 +95,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
       "the names of the SQL parameters it and PrivateRecordReadFilter make up, a prefix and ten random letters (Text.generateRandomText), to write them as positional parameters",
   },
   {
+    file: "packages/Common/Server/Utils/AI/Eval/DataSecurity/DataSecurityEval.ts",
+    count: 2,
+    builtFrom:
+      "the mustMatch and mustNotMatch patterns of the Data Security AI eval's own cases (DataSecurityEvalCases, written in code), held to the fix a model proposed: no project writes them",
+  },
+  {
     file: "packages/Common/Server/Utils/AnalyticsDatabase/Statement.ts",
     count: 1,
     builtFrom: "a count of spaces",

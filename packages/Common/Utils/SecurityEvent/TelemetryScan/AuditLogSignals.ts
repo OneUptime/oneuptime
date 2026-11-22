@@ -1,5 +1,6 @@
 import AuditLogAction from "../../../Types/AuditLog/AuditLogAction";
 import { JSONObject } from "../../../Types/JSON";
+import Permission from "../../../Types/Permission";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import {
@@ -54,6 +55,20 @@ import {
  * (Types/SecurityEvent/OneUptimeActorPrincipal: "workflow:<id>",
  * "oneuptime"). An entry that names no actor at all says "Someone" rather
  * than guess.
+ *
+ * WHO READS THE RECORD'S NAME (#10663). An event is written once, for
+ * every reader of security events - Project Owner and Admin, the Security
+ * tiers and Read Security Event - and the records it is about are read by
+ * others: an API key's name by Project Owner, Project Admin and Read API
+ * Key, not by Security Viewer. So an event names its record only when every
+ * permission that reads security events also reads the record's table
+ * (isAuditRecordNameReadByEveryEventReader, with the readers the scan
+ * finds in the models: Server/Utils/SecurityEvent/TelemetryScan/
+ * AuditRecordNameReaders). Otherwise it keeps the record's type, its id
+ * and who changed it, and says the change without the name - "alice@
+ * example.com created an API key" - in its message, its target and its
+ * attributes alike. Events stored before, and what was made of them, are
+ * reworded the same way, once (AuditRecordNamesWithheld).
  *
  * Pure: the scan hands it the records it read.
  */
@@ -179,6 +194,39 @@ export interface AuditSignalReading {
   severity: OcsfSeverity;
   classUid: number;
   activityName: string;
+}
+
+/*
+ * Who reads what an audit record's event says of its record (#10663): the
+ * permissions that read security events (SecurityEvent's read list), and
+ * those that read the records of a type's table - none for a type no model
+ * has. The scan finds both in the models (AuditRecordNameReaders).
+ */
+export interface AuditRecordNameReaders {
+  eventReaders: ReadonlyArray<Permission>;
+  getRecordReaders: (resourceType: string) => ReadonlyArray<Permission>;
+}
+
+/*
+ * Whether an event may name its record: every permission that reads
+ * security events reads the record's table, so nobody reads the name in
+ * the event who could not read it on the record. Without the readers, or
+ * for a type nobody reads on a record, it may not.
+ */
+export function isAuditRecordNameReadByEveryEventReader(data: {
+  resourceType: string;
+  readers?: AuditRecordNameReaders | undefined;
+}): boolean {
+  if (!data.readers || data.readers.eventReaders.length === 0) {
+    return false;
+  }
+
+  const recordReaders: ReadonlyArray<Permission> =
+    data.readers.getRecordReaders(data.resourceType);
+
+  return data.readers.eventReaders.every((permission: Permission): boolean => {
+    return recordReaders.includes(permission);
+  });
 }
 
 /*
@@ -458,42 +506,122 @@ function verbOf(action: string): string {
   }
 }
 
-// One audit record, said as a person would say it.
+/*
+ * A record's name as a sentence quotes it: ` "terraform"`, cut to 120
+ * characters, or nothing for a record with none.
+ */
+export function quoteAuditRecordName(name: string): string {
+  return quoted(name);
+}
+
+/*
+ * What a change to a record of a type says after its actor: `named`, which
+ * its quoted name follows ("created the API key" "terraform"), and
+ * `unnamed`, said of a record it does not name ("created an API key"). The
+ * one table the event says changes by, and stored events are reworded by
+ * when their names are withheld (AuditRecordNamesWithheld); null for a type
+ * the scan does not read.
+ */
+export interface AuditChangeWords {
+  named: string;
+  unnamed: string;
+}
+
+// "the API key" and "an API key", by the type of record.
+const RECORD_WORDS: Readonly<Record<string, { the: string; a: string }>> = {
+  [AuditResourceType.ApiKey]: { the: "the API key", a: "an API key" },
+  [AuditResourceType.CustomRole]: {
+    the: "the custom role",
+    a: "a custom role",
+  },
+  [AuditResourceType.Team]: { the: "the team", a: "a team" },
+  [AuditResourceType.McpClientAuthorization]: {
+    the: "the MCP client",
+    a: "an MCP client",
+  },
+  [AuditResourceType.PacketCapture]: {
+    the: "the packet capture",
+    a: "a packet capture",
+  },
+  [AuditResourceType.ProtectedEntity]: {
+    the: "the protected entity",
+    a: "a protected entity",
+  },
+  [AuditResourceType.AuditLogExport]: {
+    the: "the audit log export",
+    a: "an audit log export",
+  },
+  [AuditResourceType.SecurityPlaybook]: {
+    the: "the security playbook",
+    a: "a security playbook",
+  },
+};
+
+export function getAuditChangeWords(
+  resourceType: string,
+  action: string,
+): AuditChangeWords | null {
+  // A role given to a key or a team: the role's name follows, and is the record's.
+  if (
+    resourceType === AuditResourceType.ApiKeyCustomRole ||
+    resourceType === AuditResourceType.TeamCustomRole
+  ) {
+    const holder: string =
+      resourceType === AuditResourceType.ApiKeyCustomRole
+        ? "an API key"
+        : "a team";
+    const said: string =
+      action === AuditLogAction.Delete
+        ? `took a custom role away from ${holder}`
+        : `gave ${holder} a custom role`;
+
+    return { named: said, unnamed: said };
+  }
+
+  const words: { the: string; a: string } | undefined =
+    RECORD_WORDS[resourceType];
+
+  if (!words) {
+    return null;
+  }
+
+  const verb: string =
+    resourceType === AuditResourceType.McpClientAuthorization
+      ? "authorized"
+      : resourceType === AuditResourceType.PacketCapture
+        ? "downloaded"
+        : verbOf(action);
+
+  return { named: `${verb} ${words.the}`, unnamed: `${verb} ${words.a}` };
+}
+
+/*
+ * One audit record, said as a person would say it. The record's name is
+ * said as the record gives it: the event blanks a name its readers may not
+ * read before it is said (buildAuditRecordEvent), and the sentence reads
+ * as naturally without it. An MCP client's authorization says the client
+ * the change was made through, which is the actor's, before the record's.
+ */
 export function describeAuditChange(record: AuditScanRecord): string {
   const actor: string = describeAuditActor(record);
-  const name: string = quoted(record.resourceName);
-  const verb: string = verbOf(record.action);
+  const name: string =
+    record.resourceType === AuditResourceType.McpClientAuthorization
+      ? record.mcpClientName || record.resourceName
+      : record.resourceName;
+  const words: AuditChangeWords | null = getAuditChangeWords(
+    record.resourceType,
+    record.action,
+  );
 
-  switch (record.resourceType) {
-    case AuditResourceType.ApiKey:
-      return `${actor} ${verb} the API key${name}`;
-    case AuditResourceType.CustomRole:
-      return `${actor} ${verb} the custom role${name}`;
-    case AuditResourceType.ApiKeyCustomRole:
-      return record.action === AuditLogAction.Delete
-        ? `${actor} took a custom role away from an API key${name}`
-        : `${actor} gave an API key a custom role${name}`;
-    case AuditResourceType.TeamCustomRole:
-      return record.action === AuditLogAction.Delete
-        ? `${actor} took a custom role away from a team${name}`
-        : `${actor} gave a team a custom role${name}`;
-    case AuditResourceType.Team:
-      return `${actor} ${verb} the team${name}`;
-    case AuditResourceType.McpClientAuthorization:
-      return `${actor} authorized the MCP client${quoted(
-        record.mcpClientName || record.resourceName,
-      )}`;
-    case AuditResourceType.PacketCapture:
-      return `${actor} downloaded the packet capture${name}`;
-    case AuditResourceType.ProtectedEntity:
-      return `${actor} ${verb} the protected entity${name}`;
-    case AuditResourceType.AuditLogExport:
-      return `${actor} ${verb} the audit log export${name}`;
-    case AuditResourceType.SecurityPlaybook:
-      return `${actor} ${verb} the security playbook${name}`;
-    default:
-      return `${actor} ${verb} ${record.resourceType}${name}`;
+  if (!words) {
+    return `${actor} ${verbOf(record.action)} ${record.resourceType}${quoted(name)}`;
   }
+
+  const quotedName: string = quoted(name);
+
+  return quotedName
+    ? `${actor} ${words.named}${quotedName}`
+    : `${actor} ${words.unnamed}`;
 }
 
 /*
@@ -532,8 +660,32 @@ function actorAttributes(actor: Partial<AuditActor>): JSONObject {
   return attributes;
 }
 
+/*
+ * What an event says its record is: its type, and its name where the event
+ * may name it (an API key's "API Key: terraform") or else its id ("API Key:
+ * 0192..."), so the target always says which record it was.
+ */
+export function describeAuditTarget(
+  record: Pick<AuditScanRecord, "resourceType" | "resourceId" | "resourceName">,
+): string {
+  return [
+    record.resourceType,
+    (record.resourceName || record.resourceId || "").trim(),
+  ]
+    .filter(Boolean)
+    .join(": ");
+}
+
+/*
+ * One audit record's event, or null when it is no security signal. It
+ * names its record only where `readers` say every reader of security
+ * events reads it (isAuditRecordNameReadByEveryEventReader): otherwise -
+ * and with no readers given - the name is in none of its message, its
+ * target and its attributes, and the type, the id and the actor still are.
+ */
 export function buildAuditRecordEvent(
   record: AuditScanRecord,
+  readers?: AuditRecordNameReaders | undefined,
 ): NormalizedSecurityEvent | null {
   const reading: AuditSignalReading | null = classifyAuditRecord(record);
 
@@ -541,38 +693,41 @@ export function buildAuditRecordEvent(
     return null;
   }
 
+  // The record as its event's readers may read it.
+  const said: AuditScanRecord = isAuditRecordNameReadByEveryEventReader({
+    resourceType: record.resourceType,
+    readers,
+  })
+    ? record
+    : { ...record, resourceName: "" };
+
   const attributes: JSONObject = {
-    ...actorAttributes(record),
-    [AUDIT_ATTRIBUTES.recordId]: record.id,
-    [AUDIT_ATTRIBUTES.resourceType]: record.resourceType,
-    [AUDIT_ATTRIBUTES.action]: record.action,
+    ...actorAttributes(said),
+    [AUDIT_ATTRIBUTES.recordId]: said.id,
+    [AUDIT_ATTRIBUTES.resourceType]: said.resourceType,
+    [AUDIT_ATTRIBUTES.action]: said.action,
   };
 
-  if (record.resourceId) {
-    attributes[AUDIT_ATTRIBUTES.resourceId] = record.resourceId;
+  if (said.resourceId) {
+    attributes[AUDIT_ATTRIBUTES.resourceId] = said.resourceId;
   }
 
-  if (record.resourceName) {
-    attributes[AUDIT_ATTRIBUTES.resourceName] = record.resourceName;
+  if (said.resourceName) {
+    attributes[AUDIT_ATTRIBUTES.resourceName] = said.resourceName;
   }
 
   return buildTelemetrySecurityEvent({
     kind: SecurityTelemetrySourceKind.AuditLog,
     signal: reading.signal,
-    time: record.createdAt,
-    eventUid: `audit:${record.id}:${reading.signal}`,
+    time: said.createdAt,
+    eventUid: `audit:${said.id}:${reading.signal}`,
     classUid: reading.classUid,
     activityName: reading.activityName,
     statusName: "Success",
     severity: reading.severity,
-    message: describeAuditChange(record),
-    principalUser: getAuditActorPrincipal(record),
-    targetResource: [
-      record.resourceType,
-      (record.resourceName || record.resourceId || "").trim(),
-    ]
-      .filter(Boolean)
-      .join(": "),
+    message: describeAuditChange(said),
+    principalUser: getAuditActorPrincipal(said),
+    targetResource: describeAuditTarget(said),
     attributes,
   });
 }

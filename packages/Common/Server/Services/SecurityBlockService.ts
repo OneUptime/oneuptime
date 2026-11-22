@@ -853,7 +853,9 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    const onCreate: OnCreate<Model> = await super.onBeforeCreate(createBy);
+    // The case and the run a block names are the project's own, first.
+    await super.onBeforeCreate(createBy);
+
     const now: Date = OneUptimeDate.getCurrentDate();
 
     /*
@@ -877,7 +879,7 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(refusal.message);
     }
 
-    return onCreate;
+    return { createBy, carryForward: null };
   }
 
   /*
@@ -980,7 +982,9 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    const onUpdate: OnUpdate<Model> = await super.onBeforeUpdate(updateBy);
+    // What an update names is the project's own, first.
+    await super.onBeforeUpdate(updateBy);
+
     const data: Record<string, unknown> = updateBy.data as unknown as Record<
       string,
       unknown
@@ -1083,7 +1087,7 @@ export class Service extends ProjectReferencesService<Model> {
       ...(userId ? { userId } : {}),
     };
 
-    return { updateBy: onUpdate.updateBy, carryForward: carry };
+    return { updateBy, carryForward: carry };
   }
 
   /*

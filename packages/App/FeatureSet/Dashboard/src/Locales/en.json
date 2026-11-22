@@ -61157,7 +61157,6 @@
   "It worked: the issue's check passed": "It worked: the issue's check passed",
   "Its Analysis": "Its Analysis",
   "Judge what was found, such as whether a finding is real or who owns a store.": "Judge what was found, such as whether a finding is real or who owns a store.",
-  "Leave a condition empty to match every issue.": "Leave a condition empty to match every issue.",
   "Median time from an issue opening to its check passing": "Median time from an issue opening to its check passing",
   "No AI rules yet.": "No AI rules yet.",
   "No changes made yet.": "No changes made yet.",
@@ -61448,7 +61447,6 @@
   "Which Issues": "Which Issues",
   "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.": "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.",
   "Who changed this record, what they changed and when.": "Who changed this record, what they changed and when.",
-  "Without asking": "Without asking",
   "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.": "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.",
   "Your blocks are no longer enforced at Cloudflare.": "Your blocks are no longer enforced at Cloudflare.",
   "Your firewall stopped reading this feed {{time}}, so blocks are not enforced there until it reads it again.": "Your firewall stopped reading this feed {{time}}, so blocks are not enforced there until it reads it again.",
@@ -61952,5 +61950,7 @@
   "{{value}} is not blocked on your machines.": "{{value}} is not blocked on your machines.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} is on the blocklist, but nothing blocks it on your machines yet.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} is on the blocklist. The step is done once it is blocked on every machine.",
-  "{{value}} is part of {{address}}.": "{{value}} is part of {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} is part of {{address}}.",
+  "All issues": "All issues",
+  "Only issues that match conditions": "Only issues that match conditions"
 }

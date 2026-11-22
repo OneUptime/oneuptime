@@ -61157,7 +61157,6 @@
   "It worked: the issue's check passed": "काम किया: समस्या की जांच पास हुई",
   "Its Analysis": "इसका विश्लेषण",
   "Judge what was found, such as whether a finding is real or who owns a store.": "जो मिला उसे आंकें, जैसे कोई निष्कर्ष असली है या नहीं, या स्टोर का मालिक कौन है।",
-  "Leave a condition empty to match every issue.": "हर समस्या से मेल खाने के लिए किसी शर्त को खाली छोड़ें।",
   "Median time from an issue opening to its check passing": "किसी समस्या के खुलने से उसकी जांच पास होने तक का माध्यिका समय",
   "No AI rules yet.": "अभी तक कोई AI नियम नहीं।",
   "No changes made yet.": "अभी तक कोई बदलाव नहीं किया गया।",
@@ -61448,7 +61447,6 @@
   "Which Issues": "कौन-सी समस्याएं",
   "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.": "OneUptime AI किन समस्याओं पर काम करता है, और हर तरह के काम के लिए क्या वह बंद है, आपकी स्वीकृति के लिए सुझाया जाता है, या बिना पूछे किया जाता है। कोई नियम न होने पर यह गंभीर और उच्च समस्याओं का विश्लेषण करता है और बाकी का सुझाव देता है।",
   "Who changed this record, what they changed and when.": "इस रिकॉर्ड को किसने बदला, क्या बदला और कब।",
-  "Without asking": "बिना पूछे",
   "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.": "समस्या का OneUptime AI द्वारा किया गया विश्लेषण उसकी टाइमलाइन पर लिखें। इससे कुछ नहीं बदलता।",
   "Your blocks are no longer enforced at Cloudflare.": "आपके ब्लॉक अब Cloudflare पर लागू नहीं हैं।",
   "Your firewall stopped reading this feed {{time}}, so blocks are not enforced there until it reads it again.": "आपके फ़ायरवॉल ने {{time}} यह फ़ीड पढ़ना बंद कर दिया, इसलिए जब तक वह इसे फिर से नहीं पढ़ता, वहाँ ब्लॉक लागू नहीं होते।",
@@ -61952,5 +61950,7 @@
   "{{value}} is not blocked on your machines.": "{{value}} आपकी मशीनों पर ब्लॉक नहीं है।",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} ब्लॉकलिस्ट में है, लेकिन आपकी मशीनों पर अभी तक कोई भी उसे ब्लॉक नहीं करता।",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} ब्लॉकलिस्ट में है। हर मशीन पर ब्लॉक होते ही यह चरण पूरा हो जाता है।",
-  "{{value}} is part of {{address}}.": "{{value}} {{address}} का हिस्सा है।"
+  "{{value}} is part of {{address}}.": "{{value}} {{address}} का हिस्सा है।",
+  "All issues": "सभी समस्याएं",
+  "Only issues that match conditions": "केवल शर्तों से मेल खाने वाली समस्याएं"
 }
