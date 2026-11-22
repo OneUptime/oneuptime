@@ -390,7 +390,8 @@ describe("ApiMonitor SSRF protection", () => {
 
   it("preserves an allowed request method, headers, and body while forcing safe transport options", async () => {
     // Sent byte for byte as written (#9737).
-    const requestBody: string = '{"command": "probe", "nested": {"enabled": true}}';
+    const requestBody: string =
+      '{"command": "probe", "nested": {"enabled": true}}';
     const requestHeaders: Record<string, string> = {
       Authorization: "Bearer public-service-token",
       "Content-Type": "application/json",

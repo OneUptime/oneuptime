@@ -40,18 +40,21 @@ const JSON_BODIES: ReadonlyArray<{ name: string; body: string }> = [
 ];
 
 // Bodies JSON5 reads, as the probe always has: sent as the JSON they stand for.
-const JSON5_BODIES: ReadonlyArray<{ name: string; body: string; json: string }> =
-  [
-    { name: "a trailing comma", body: '{"a": 1,}', json: '{"a":1}' },
-    { name: "single quotes", body: "['a', 'b']", json: '["a","b"]' },
-    { name: "an unquoted key", body: "{a: [1, 2]}", json: '{"a":[1,2]}' },
-    {
-      name: "a comment",
-      body: '// the batch\n[{"id": 1}]',
-      json: '[{"id":1}]',
-    },
-    { name: "a hexadecimal number", body: "[0x1F]", json: "[31]" },
-  ];
+const JSON5_BODIES: ReadonlyArray<{
+  name: string;
+  body: string;
+  json: string;
+}> = [
+  { name: "a trailing comma", body: '{"a": 1,}', json: '{"a":1}' },
+  { name: "single quotes", body: "['a', 'b']", json: '["a","b"]' },
+  { name: "an unquoted key", body: "{a: [1, 2]}", json: '{"a":[1,2]}' },
+  {
+    name: "a comment",
+    body: '// the batch\n[{"id": 1}]',
+    json: '[{"id":1}]',
+  },
+  { name: "a hexadecimal number", body: "[0x1F]", json: "[31]" },
+];
 
 // Bodies that are not JSON, whatever placeholders they hold.
 const NOT_JSON_BODIES: ReadonlyArray<{ name: string; body: string }> = [
@@ -404,7 +407,8 @@ const STRING_PIECES: ReadonlyArray<string> = [
   "/",
   "\n",
   "\t",
-  " ",
+  // A line separator, which JSON keeps in a string.
+  String.fromCharCode(0x2028),
   "😀",
   "{",
   "}",

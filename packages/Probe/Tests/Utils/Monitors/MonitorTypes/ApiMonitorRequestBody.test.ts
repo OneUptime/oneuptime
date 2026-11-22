@@ -402,7 +402,10 @@ describe("a body that is not JSON is never sent, and the check says why", () => 
     { name: "XML", body: "<ping><id>1</id></ping>" },
     { name: "form fields as text", body: "a=1&b=2" },
     { name: "an unclosed array", body: '[{"id": 1}' },
-    { name: "a placeholder left unfilled", body: '{"n": {{monitorSecrets.N}}}' },
+    {
+      name: "a placeholder left unfilled",
+      body: '{"n": {{monitorSecrets.N}}}',
+    },
   ])(
     "$name: offline, with the reason as its cause, and no request made",
     async ({ body }: { name: string; body: string }) => {
@@ -434,8 +437,10 @@ describe("a body that is not JSON is never sent, and the check says why", () => 
 
     expect(logger.error).toHaveBeenCalledTimes(1);
 
-    const [message, attributes] = (logger.error as jest.Mock).mock
-      .calls[0] as [string, unknown];
+    const [message, attributes] = (logger.error as jest.Mock).mock.calls[0] as [
+      string,
+      unknown,
+    ];
 
     expect(message).toContain(MONITOR_ID.toString());
     expect(message).toContain(
@@ -487,10 +492,11 @@ describe("a body's placeholders and redirects", () => {
     });
 
     expect(response.isOnline).toBe(true);
-    expect(received.map((request: ReceivedRequest) => request.path)).toEqual([
-      "/moved-307",
-      "/echo",
-    ]);
+    expect(
+      received.map((request: ReceivedRequest) => {
+        return request.path;
+      }),
+    ).toEqual(["/moved-307", "/echo"]);
 
     for (const request of received) {
       expectSent(request, ARRAY_BODY);
