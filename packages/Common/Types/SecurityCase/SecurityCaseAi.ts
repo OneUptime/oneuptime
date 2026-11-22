@@ -280,12 +280,13 @@ export function readSecurityCaseAiLimits(
  * Blocking at the edge on its own cuts an address off with nobody looking,
  * so the Edge row's On its own counts only once someone has vouched for
  * it: a Security Admin confirmed it (the Edge stamp), or the Scanners
- * policy of #10350 finished its trial - weeks of blocks proposed and
- * proven on the project's own traffic first. Until then, Edge set to On
- * its own asks, and the row says why.
+ * policy of #10350 finished a whole trial run - a week of blocks
+ * proposed and proven on the project's own traffic first. Until then, Edge
+ * set to On its own asks, and the row says why.
  *
- * #10350 plugs in here: pass when its trial finished
- * (scannersPolicyTrialFinishedAt), and the row is cleared by it.
+ * The server reads the trial in one place
+ * (Server/Utils/AI/Security/Response/SecurityCaseAiEdgeTrial) and hands it
+ * here as hasScannersPolicyFinishedTrial.
  */
 export enum SecurityCaseAiEdgeClearance {
   ConfirmedBySecurityAdmin = "ConfirmedBySecurityAdmin",
@@ -295,14 +296,14 @@ export enum SecurityCaseAiEdgeClearance {
 
 export function getEdgeOnItsOwnClearance(data: {
   stamps: SecurityCaseAiOnItsOwnStamps;
-  // When the Scanners policy finished its trial (#10350); not built yet.
-  scannersPolicyTrialFinishedAt?: Date | null | undefined;
+  // The Scanners policy of #10350 finished a whole trial run.
+  hasScannersPolicyFinishedTrial?: boolean | undefined;
 }): SecurityCaseAiEdgeClearance {
   if (data.stamps[SecurityCaseAiArea.Edge]) {
     return SecurityCaseAiEdgeClearance.ConfirmedBySecurityAdmin;
   }
 
-  if (data.scannersPolicyTrialFinishedAt) {
+  if (data.hasScannersPolicyFinishedTrial === true) {
     return SecurityCaseAiEdgeClearance.ScannersPolicyTrial;
   }
 
@@ -555,7 +556,7 @@ export interface SecurityCaseAiDecision {
 export function decideSecurityCaseAiAction(data: {
   kind: SecurityCaseAiActionKind;
   limits: SecurityCaseAiLimits;
-  scannersPolicyTrialFinishedAt?: Date | null | undefined;
+  hasScannersPolicyFinishedTrial?: boolean | undefined;
 }): SecurityCaseAiDecision {
   const area: SecurityCaseAiArea | null =
     SECURITY_CASE_AI_ACTION_AREAS[data.kind];
@@ -598,7 +599,7 @@ export function decideSecurityCaseAiAction(data: {
     area === SecurityCaseAiArea.Edge &&
     getEdgeOnItsOwnClearance({
       stamps: data.limits.stamps,
-      scannersPolicyTrialFinishedAt: data.scannersPolicyTrialFinishedAt,
+      hasScannersPolicyFinishedTrial: data.hasScannersPolicyFinishedTrial,
     }) === SecurityCaseAiEdgeClearance.NotCleared
   ) {
     return {
