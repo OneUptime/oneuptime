@@ -4,6 +4,7 @@ import TelemetryIngestionTeamLabelBudgetService from "../../Services/TelemetryIn
 import type { OwnerTablePair } from "../../Types/Database/Permissions/OwnerTableRegistry";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
+import TelemetryReadScopeUtil from "./TelemetryReadScope";
 import Project from "../../../Models/DatabaseModels/Project";
 import TelemetryIngestionTeamLabelBudget from "../../../Models/DatabaseModels/TelemetryIngestionTeamLabelBudget";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -84,9 +85,10 @@ export interface TelemetryIngestAttributionConfig {
   publishesUsageMetrics: boolean;
   budgets: Array<TelemetryIngestTeamLabelBudget>;
   /*
-   * A resource's budgets, as indexes into `budgets`, by its id in lower case
-   * (getTelemetryIngestResourceKey): every service, host, cluster or other
-   * resource a budget's team owns or that carries a budget's label.
+   * A resource's budgets, as indexes into `budgets`, by its id in lower case,
+   * as the read scope compares ids (TelemetryReadScopeUtil.normalizeId):
+   * every service, host, cluster or other resource a budget's team owns or
+   * that carries a budget's label.
    */
   budgetsByResourceId: Map<string, Array<number>>;
 }
@@ -104,13 +106,6 @@ export interface TelemetryIngestOwnerKind {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   modelService?: { findAllBy: (findAllBy: any) => Promise<Array<any>> };
 }
-
-// A resource's id as the budgets are looked up by: the same in any case.
-export const getTelemetryIngestResourceKey: (
-  resourceId: ObjectID | string,
-) => string = (resourceId: ObjectID | string): string => {
-  return resourceId.toString().trim().toLowerCase();
-};
 
 // A project's attribution as last read, and when it is read again.
 interface CachedProject {
@@ -467,7 +462,7 @@ export default class TelemetryIngestAttributionSettings {
         (budget.scope === TelemetryIngestionBudgetScope.Team
           ? teamIndexes
           : labelIndexes
-        ).set(getTelemetryIngestResourceKey(budget.scopeId), index);
+        ).set(TelemetryReadScopeUtil.normalizeId(budget.scopeId), index);
       },
     );
 
@@ -492,7 +487,7 @@ export default class TelemetryIngestAttributionSettings {
         return;
       }
 
-      const key: string = getTelemetryIngestResourceKey(
+      const key: string = TelemetryReadScopeUtil.normalizeId(
         resourceId as ObjectID | string,
       );
       const indexes: Array<number> = budgetsByResourceId.get(key) || [];
@@ -515,7 +510,7 @@ export default class TelemetryIngestAttributionSettings {
       id: unknown,
     ): number | undefined => {
       return id
-        ? keys.get(getTelemetryIngestResourceKey(id as ObjectID | string))
+        ? keys.get(TelemetryReadScopeUtil.normalizeId(id as ObjectID | string))
         : undefined;
     };
 

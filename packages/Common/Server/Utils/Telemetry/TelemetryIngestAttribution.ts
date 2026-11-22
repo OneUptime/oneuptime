@@ -5,7 +5,6 @@ import TelemetryIngestAttributionCounter, {
   TelemetryIngestAttributionUsage,
 } from "./TelemetryIngestAttributionCounter";
 import TelemetryIngestAttributionSettings, {
-  getTelemetryIngestResourceKey,
   TelemetryIngestAttributionConfig,
   TelemetryIngestTeamLabelBudget,
 } from "./TelemetryIngestAttributionSettings";
@@ -16,6 +15,7 @@ import TelemetryIngestionBudgetSettings, {
   TelemetryIngestionBudgetInstanceSettings,
 } from "./TelemetryIngestionBudgetSettings";
 import type { TelemetryIngestionBudgetJobCharge } from "./TelemetryIngestionBudget";
+import TelemetryReadScopeUtil from "./TelemetryReadScope";
 import ObjectID from "../../../Types/ObjectID";
 import {
   getTelemetryIngestionBudgetDay,
@@ -767,7 +767,7 @@ export default class TelemetryIngestAttribution {
 
     const indexes: Array<number> | undefined =
       this.data.budgetsByResourceId.get(
-        getTelemetryIngestResourceKey(resource.primaryEntityId),
+        TelemetryReadScopeUtil.normalizeId(resource.primaryEntityId),
       );
 
     if (!indexes) {
