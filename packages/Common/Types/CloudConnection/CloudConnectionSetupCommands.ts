@@ -17,6 +17,11 @@ import {
   isCloudConnectionDataSecurityResponseOn,
   isCloudConnectionWafBlocklistOn,
 } from "./CloudConnectionCatalog";
+import { getAzureWafBlocklistRoleLines } from "./AzureWafBlocklist";
+import {
+  GCP_CLOUD_ARMOR_BLOCKLIST_ROLE_ID,
+  getGcpCloudArmorBlocklistRoleLines,
+} from "./CloudArmorBlocklist";
 
 /*
  * THE ONE COMMAND EACH CLOUD'S SETUP STEP SHOWS.
@@ -376,6 +381,16 @@ export const GCP_RECOMMENDER_ROLE: string = "roles/recommender.computeViewer";
 export const GCP_COST_ROLES: Array<string> = [
   GCP_COST_QUERY_ROLE,
   GCP_RECOMMENDER_ROLE,
+];
+
+/*
+ * The Google Cloud APIs the blocklist calls in Cloud Armor (#10349):
+ * security policies are Compute Engine's, address groups Network
+ * Security's.
+ */
+export const GCP_CLOUD_ARMOR_BLOCKLIST_SERVICES: Array<string> = [
+  "compute.googleapis.com",
+  "networksecurity.googleapis.com",
 ];
 
 // The Google Cloud APIs a connection calls, turned on by the command.
@@ -1238,9 +1253,7 @@ export function getAwsAccessKeySetupCommand(
   const responds: boolean = isCloudConnectionDataSecurityResponseOn(
     options.dataSecurityResponse,
   );
-  const blocks: boolean = isCloudConnectionWafBlocklistOn(
-    options.wafBlocklist,
-  );
+  const blocks: boolean = isCloudConnectionWafBlocklistOn(options.wafBlocklist);
 
   if (blocks && !options.externalId) {
     throw new BadDataException(
@@ -1293,6 +1306,13 @@ export function getAzureSetupCommand(
   dataSecurity: CloudConnectionDataSecurityLevel = "off",
   // "block" adds the response's custom role, made for and assigned on the same scope.
   dataSecurityResponse: CloudConnectionDataSecurityResponse = "off",
+  /*
+   * On adds the blocklist's custom role (#10348), OneUptime WAF Blocklist:
+   * read and write on both kinds of WAF policy, made for and assigned on
+   * the same scope. The Add WAF dialog gives the lines that assign it on
+   * one policy alone, for a connection set up without it.
+   */
+  wafBlocklist: CloudConnectionWafBlocklist = "off",
 ): string {
   const scopeLine: string =
     scope === CloudConnectionSetupScope.Organization
@@ -1312,6 +1332,9 @@ export function getAzureSetupCommand(
     ...(isCloudConnectionDataSecurityResponseOn(dataSecurityResponse)
       ? getAzureResponseRoleLines()
       : []),
+    ...(isCloudConnectionWafBlocklistOn(wafBlocklist)
+      ? getAzureWafBlocklistRoleLines()
+      : []),
     `END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)`,
     `echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'`,
   ].join("\n");
@@ -1328,6 +1351,12 @@ export function getGcpSetupCommand(
   dataSecurity: CloudConnectionDataSecurityLevel = "off",
   // "block" adds the response's custom role, made where the command binds roles.
   dataSecurityResponse: CloudConnectionDataSecurityResponse = "off",
+  /*
+   * On adds the blocklist's custom role (#10349),
+   * oneuptimeCloudArmorBlocklist, made and bound where the command binds
+   * roles, and turns on the Compute and Network Security APIs it calls.
+   */
+  wafBlocklist: CloudConnectionWafBlocklist = "off",
 ): string {
   const member: string = `${GCP_SERVICE_ACCOUNT_ID}@$PROJECT_ID.iam.gserviceaccount.com`;
   const organization: boolean =
@@ -1355,6 +1384,17 @@ export function getGcpSetupCommand(
       ]
     : [];
 
+  const blocks: boolean = isCloudConnectionWafBlocklistOn(wafBlocklist);
+  const wafLines: Array<string> = blocks
+    ? getGcpCloudArmorBlocklistRoleLines({
+        roleHome,
+        roleName: organization
+          ? `organizations/$ORG_ID/roles/${GCP_CLOUD_ARMOR_BLOCKLIST_ROLE_ID}`
+          : `projects/$PROJECT_ID/roles/${GCP_CLOUD_ARMOR_BLOCKLIST_ROLE_ID}`,
+        bind,
+      })
+    : [];
+
   return [
     "PROJECT_ID=$(gcloud config get-value project)",
     ...(scope === CloudConnectionSetupScope.Organization
@@ -1366,6 +1406,7 @@ export function getGcpSetupCommand(
       new Set<string>([
         ...GCP_SERVICES,
         ...(content ? GCP_DATA_SECURITY_CONTENT_SERVICES : []),
+        ...(blocks ? GCP_CLOUD_ARMOR_BLOCKLIST_SERVICES : []),
       ]),
     ).join(" ")}`,
     `gcloud iam service-accounts create ${GCP_SERVICE_ACCOUNT_ID} --display-name "OneUptime (read only)" > /dev/null 2>&1 || true`,
@@ -1373,6 +1414,7 @@ export function getGcpSetupCommand(
     ...GCP_COST_ROLES.map(bind),
     ...(content ? GCP_DATA_SECURITY_CONTENT_ROLES.map(bind) : []),
     ...responseLines,
+    ...wafLines,
     `gcloud iam service-accounts keys create oneuptime-key.json --iam-account "${member}"`,
     "cat oneuptime-key.json && rm oneuptime-key.json",
   ].join("\n");
@@ -1410,9 +1452,8 @@ export function getCloudConnectionSetupCommand(
     context.dataSecurity || "off";
   const dataSecurityResponse: CloudConnectionDataSecurityResponse =
     context.dataSecurityResponse || "off";
-  const wafBlocklist: CloudConnectionWafBlocklist = getCloudConnectionWafBlocklist(
-    context.wafBlocklist,
-  );
+  const wafBlocklist: CloudConnectionWafBlocklist =
+    getCloudConnectionWafBlocklist(context.wafBlocklist);
 
   if (provider === CloudProvider.AWS) {
     if (method === CloudConnectionAuthMethod.AwsRole) {
@@ -1452,10 +1493,20 @@ export function getCloudConnectionSetupCommand(
   }
 
   if (provider === CloudProvider.Azure) {
-    return getAzureSetupCommand(scope, dataSecurity, dataSecurityResponse);
+    return getAzureSetupCommand(
+      scope,
+      dataSecurity,
+      dataSecurityResponse,
+      wafBlocklist,
+    );
   }
 
-  return getGcpSetupCommand(scope, dataSecurity, dataSecurityResponse);
+  return getGcpSetupCommand(
+    scope,
+    dataSecurity,
+    dataSecurityResponse,
+    wafBlocklist,
+  );
 }
 
 /*
@@ -1520,7 +1571,9 @@ export function getCloudConnectionCommandSettings(
  *   - the blocklist's IP sets in AWS WAF: OneUptime may write its own IP
  *     sets in the account, and read the requests web ACLs sampled;
  *   - the blocklist's rule: OneUptime may add its rule to the web ACLs
- *     picked, which writes those web ACLs.
+ *     picked, which writes those web ACLs;
+ *   - Azure WAF and Cloud Armor (#10348, #10349): OneUptime may keep its own
+ *     rules in the policies picked, which writes those policies.
  * A command that takes one is shown with words of its own instead, and a
  * line for each of these (CloudSetupCommand), so nothing beside a command
  * says it grants less than it does. In the order the lines are drawn.
@@ -1530,13 +1583,19 @@ export enum CloudConnectionAccessExtra {
   DataSecurityResponse = "data-security-response",
   WafIpSets = "waf-ip-sets",
   WafRule = "waf-rule",
+  WafPolicyRules = "waf-policy-rules",
 }
 
 export function getCloudConnectionAccessExtras(settings: {
   dataSecurity?: CloudConnectionDataSecurityLevel | undefined;
   dataSecurityResponse?: CloudConnectionDataSecurityResponse | undefined;
   wafBlocklist?: CloudConnectionWafBlocklist | undefined;
+  // The cloud whose command it is: AWS when absent, as the setting was AWS's alone.
+  provider?: CloudProvider | undefined;
 }): Array<CloudConnectionAccessExtra> {
+  const isAws: boolean =
+    !settings.provider || settings.provider === CloudProvider.AWS;
+
   return [
     ...(settings.dataSecurity === "content"
       ? [CloudConnectionAccessExtra.ContentSamples]
@@ -1544,11 +1603,14 @@ export function getCloudConnectionAccessExtras(settings: {
     ...(isCloudConnectionDataSecurityResponseOn(settings.dataSecurityResponse)
       ? [CloudConnectionAccessExtra.DataSecurityResponse]
       : []),
-    ...(isCloudConnectionWafBlocklistOn(settings.wafBlocklist)
+    ...(isAws && isCloudConnectionWafBlocklistOn(settings.wafBlocklist)
       ? [CloudConnectionAccessExtra.WafIpSets]
       : []),
-    ...(doesCloudConnectionWafBlocklistAddRule(settings.wafBlocklist)
+    ...(isAws && doesCloudConnectionWafBlocklistAddRule(settings.wafBlocklist)
       ? [CloudConnectionAccessExtra.WafRule]
+      : []),
+    ...(!isAws && isCloudConnectionWafBlocklistOn(settings.wafBlocklist)
+      ? [CloudConnectionAccessExtra.WafPolicyRules]
       : []),
   ];
 }

@@ -1,5 +1,8 @@
 import { translationKey } from "../Translator";
-import { SecurityBlockReason, securityBlockReason } from "./SecurityBlockReason";
+import {
+  SecurityBlockReason,
+  securityBlockReason,
+} from "./SecurityBlockReason";
 
 /*
  * WHAT AZURE WAF AND CLOUD ARMOR SAY OF A BLOCK OR A POLICY (#10348,
@@ -41,7 +44,8 @@ export const CLOUD_WAF_REASONS: {
   refused: string;
   couldNotRead: string;
   quotaUsedUp: string;
-  groupsNeedEnterprise: string;
+  rulesFull: string;
+  networkPolicy: string;
 } = {
   cannotChallenge: translationKey(
     "{{product}} cannot challenge: it can only block.",
@@ -118,13 +122,20 @@ export const CLOUD_WAF_REASONS: {
   policyNotFound: translationKey(
     "{{policy}} was not found: it may have been deleted. Remove it here if it no longer exists.",
   ),
-  refused: translationKey("{{cloud}} refused the change to {{policy}}: {{error}}"),
-  couldNotRead: translationKey("OneUptime could not read {{policy}}: {{error}}"),
+  refused: translationKey(
+    "{{cloud}} refused the change to {{policy}}: {{error}}",
+  ),
+  couldNotRead: translationKey(
+    "OneUptime could not read {{policy}}: {{error}}",
+  ),
   quotaUsedUp: translationKey(
     "Google Cloud refused another rule in {{policy}} as over a quota: {{error}} Ask Google Cloud for more, or delete rules you no longer use.",
   ),
-  groupsNeedEnterprise: translationKey(
-    "{{policy}} holds your blocklist in rules of 10 addresses each: address groups, which hold far more, need Cloud Armor Enterprise and a global backend policy.",
+  rulesFull: translationKey(
+    "{{policy}} is full: OneUptime's rules there hold {{addresses}} addresses, 10 to a rule. A global backend policy of a project with Cloud Armor Enterprise holds far more, in address groups.",
+  ),
+  networkPolicy: translationKey(
+    "{{policy}} is a network edge security policy, whose rules match packets rather than requests, so OneUptime does not keep the blocklist in it. Pick a backend or edge security policy.",
   ),
 };
 

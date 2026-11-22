@@ -125,7 +125,7 @@ const serverColumnAccess: {
   pluralName: "Cloud WAFs",
   icon: IconProp.ShieldCheck,
   tableDescription:
-    "The web ACLs of connected cloud accounts that enforce the project's blocklist: OneUptime keeps its IP sets in each, and its rule that blocks them.",
+    "The WAFs of connected cloud accounts that enforce the project's blocklist: AWS WAF web ACLs, Azure WAF policies and Google Cloud Armor policies, each holding OneUptime's own rules.",
 })
 // One row a WAF, however many times it is picked.
 @Index(["projectId", "wafId"], {
@@ -242,7 +242,7 @@ export default class SecurityBlockCloudWaf extends BaseModel {
     required: false,
     title: "Cloud Resource ID",
     description:
-      "The WAF's row in the cloud inventory: an AWS WAF web ACL of a connection whose Block addresses in AWS WAF is on.",
+      "The WAF's row in the cloud inventory: a web ACL, Azure WAF policy or Cloud Armor policy of a connection whose blocking setting is on.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -257,7 +257,7 @@ export default class SecurityBlockCloudWaf extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Cloud",
-    description: "The cloud the WAF is in: aws.",
+    description: "The cloud the WAF is in: aws, azure or gcp.",
   })
   @Column({
     nullable: false,
@@ -273,7 +273,7 @@ export default class SecurityBlockCloudWaf extends BaseModel {
     canReadOnRelationQuery: true,
     title: "WAF ID",
     description:
-      "The WAF as its cloud names it: an AWS WAF web ACL's ARN, which holds its account, Region and scope.",
+      "The WAF as its cloud names it: a web ACL's ARN, an Azure WAF policy's resource ID, or a Cloud Armor policy's name with its project.",
   })
   @Column({
     nullable: false,
@@ -338,7 +338,7 @@ export default class SecurityBlockCloudWaf extends BaseModel {
     allowedValues: Object.values(SecurityBlockCloudWafStatus),
     title: "Status",
     description:
-      "Where the WAF stands, as OneUptime last read it: Checking, Enforcing, Waiting for your rule, No free priority, or Failed.",
+      "Where the WAF stands, as OneUptime last read it: Checking, Enforcing, Waiting for your rule, No free priority, Applying, Changed by hand, or Failed.",
   })
   @Column({
     nullable: false,
@@ -366,9 +366,23 @@ export default class SecurityBlockCloudWaf extends BaseModel {
   @TableColumn({
     type: TableColumnType.JSON,
     computed: true,
+    title: "Status Reason",
+    description:
+      "Why the WAF is not enforcing the blocklist, as a sentence and its values that the Dashboard words in the reader's language: empty when it is.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public statusReason?: JSONObject = undefined;
+
+  @ColumnAccessControl(serverColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    computed: true,
     title: "Rule Details",
     description:
-      "What OneUptime's rule in the WAF references: its IP sets' ARNs, its rules' names and priorities, and the metric whose sampled requests are evidence.",
+      "What OneUptime keeps in the WAF: its rules' names and priorities, what they hold or reference, and the metric whose sampled requests are evidence.",
   })
   @Column({
     type: ColumnType.JSON,

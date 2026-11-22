@@ -33,7 +33,12 @@ import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  SecurityBlockReason,
+  readSecurityBlockReason,
+  wordSecurityBlockReason,
+} from "Common/Types/SecurityBlocklist/SecurityBlockReason";
+import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -81,12 +86,21 @@ export function writeEnforcementTooltip(
       ? SecurityBlockEnforcementView.Pending
       : view;
 
+  // Why, in the reader's words where the destination said it as a sentence (#10629).
+  const reason: SecurityBlockReason | null = readSecurityBlockReason(
+    enforcement.errorReason,
+  );
+
   return translator.translateTemplate(ENFORCEMENT_TOOLTIPS[shown], {
     destination: enforcement.destinationName || "",
     time: enforcement.lastConfirmedAt
       ? OneUptimeDate.fromNow(new Date(enforcement.lastConfirmedAt))
       : "",
-    reason: enforcement.error || "",
+    reason: reason
+      ? composedValue((words: Translator): string => {
+          return wordSecurityBlockReason(reason, words);
+        })
+      : enforcement.error || "",
   });
 }
 

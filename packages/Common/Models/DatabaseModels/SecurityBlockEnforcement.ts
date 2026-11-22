@@ -14,6 +14,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
@@ -306,6 +307,20 @@ export default class SecurityBlockEnforcement extends BaseModel {
     length: ColumnLength.LongText,
   })
   public error?: string = undefined;
+
+  @ColumnAccessControl(serverColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    computed: true,
+    title: "Error Reason",
+    description:
+      "Why the block is not applied there, as a sentence and its values that the Dashboard words in the reader's language.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public errorReason?: JSONObject = undefined;
 
   @ColumnAccessControl(serverColumnAccess)
   @TableColumn({

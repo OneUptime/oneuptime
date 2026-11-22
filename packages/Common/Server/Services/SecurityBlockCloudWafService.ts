@@ -7,7 +7,11 @@ import Model from "../../Models/DatabaseModels/SecurityBlockCloudWaf";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import SecurityBlockCloudWafs, {
+  SecurityBlockCloudWafAccess,
+} from "../Utils/SecurityBlocklist/SecurityBlockCloudWafs";
 import SecurityBlocklistJobs from "../Utils/SecurityBlocklist/SecurityBlocklistJobs";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { CloudProvider } from "../../Types/Cloud/CloudPlatform";
@@ -16,9 +20,26 @@ import {
   buildAwsWafWebAclArn,
 } from "../../Types/CloudConnection/AwsWafBlocklist";
 import {
+  AzureWafPolicyKind,
+  AzureWafPolicyRef,
+  getAzureWafPolicyKind,
+  parseAzureWafPolicyId,
+} from "../../Types/CloudConnection/AzureWafBlocklist";
+import {
+  CLOUD_ARMOR_POLICY_ASSET_TYPE,
+  CloudArmorPolicyRef,
+  CloudArmorPolicyType,
+  isCloudArmorPolicyTypeSupported,
+  parseCloudArmorPolicyId,
+  readCloudArmorRuleDetails,
+} from "../../Types/CloudConnection/CloudArmorBlocklist";
+import {
+  CloudConnectionField,
   WAF_BLOCKLIST_FIELD_KEY,
+  getCloudConnectionDefinition,
   isCloudConnectionWafBlocklistOn,
 } from "../../Types/CloudConnection/CloudConnectionCatalog";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -26,6 +47,19 @@ import {
   SECURITY_BLOCK_DEFAULT_CLIENT_ADDRESS,
   SecurityBlockCloudWafStatus,
 } from "../../Types/SecurityBlocklist/SecurityBlockCloudWaf";
+import {
+  SecurityBlockCloudWafKind,
+  canSecurityBlockCloudWafReadClientAddress,
+  getSecurityBlockCloudWafKind,
+} from "../../Types/SecurityBlocklist/SecurityBlockCloudWafKind";
+import {
+  CLOUD_WAF_REASONS,
+  cloudWafReason,
+} from "../../Types/SecurityBlocklist/CloudWafReasons";
+import {
+  SecurityBlockReason,
+  fillSecurityBlockReason,
+} from "../../Types/SecurityBlocklist/SecurityBlockReason";
 
 /*
  * THE CLOUD WAFS THAT ENFORCE A PROJECT'S BLOCKLIST (#10344): a web ACL
@@ -56,33 +90,194 @@ export const SECURITY_BLOCK_CLOUD_WAF_MESSAGES: {
   notListed: (data: { name: string }) => string;
   noConnection: string;
   turnOnBlocking: (data: { connection: string }) => string;
+  turnOnPolicyBlocking: (data: {
+    connection: string;
+    setting: string;
+  }) => string;
   alreadyEnforcing: (data: { name: string }) => string;
   removeWithRemove: string;
+  networkPolicy: (data: { name: string }) => string;
+  clientAddress: (data: { name: string }) => string;
+  noAccess: (data: { name: string; permission: string }) => string;
 } = {
   pickWebAcl: "Pick the web ACL to enforce your blocklist in.",
   notAWebAcl:
-    "That resource is not an AWS WAF web ACL. Pick a web ACL from the list.",
+    "That resource is not a WAF OneUptime enforces your blocklist in. Pick an AWS WAF web ACL, an Azure WAF policy or a Cloud Armor security policy from the list.",
   notListed: (data: { name: string }): string => {
     return `OneUptime has not listed web ACL ${data.name} yet. Run its connection's setup command again so its role may list web ACLs, and try again after the next read.`;
   },
   noConnection:
-    "That web ACL's cloud connection is gone. Pick a web ACL of a connected account.",
+    "That WAF's cloud connection is gone. Pick a WAF of a connected account.",
   turnOnBlocking: (data: { connection: string }): string => {
     return `Turn on Block addresses in AWS WAF for the connection ${data.connection} first, and run its setup command again: it grants the IP sets this needs.`;
+  },
+  turnOnPolicyBlocking: (data: {
+    connection: string;
+    setting: string;
+  }): string => {
+    return `Turn on ${data.setting} for the connection ${data.connection} first: a Project Owner or Project Admin can, under More fields when they edit it.`;
   },
   alreadyEnforcing: (data: { name: string }): string => {
     return `${data.name} already enforces your blocklist.`;
   },
   removeWithRemove:
-    "Remove a web ACL with Remove: OneUptime takes its rule out of the web ACL first.",
+    "Remove a WAF with Remove: OneUptime takes its rules out of it first.",
+  networkPolicy: (data: { name: string }): string => {
+    return fillSecurityBlockReason(getNetworkPolicyReason(data.name));
+  },
+  clientAddress: (data: { name: string }): string => {
+    return `${data.name} cannot read the client's address there. Pick one of the addresses the list offers for it.`;
+  },
+  noAccess: (data: { name: string; permission: string }): string => {
+    return `The connection may not write ${data.name} yet: it has no ${data.permission} there. Run the lines the Add WAF dialog shows for it in your cloud's shell, then add it again.`;
+  },
 };
 
+// Why a network edge security policy is not offered, worded where it is drawn (#10629).
+export function getNetworkPolicyReason(name: string): SecurityBlockReason {
+  return cloudWafReason(CLOUD_WAF_REASONS.networkPolicy, { policy: name });
+}
+
+/*
+ * A WAF the inventory holds that OneUptime cannot keep the blocklist in,
+ * with why as a reason the Dashboard words in the reader's language.
+ */
+export class SecurityBlockCloudWafRefusal extends BadDataException {
+  public readonly reason: SecurityBlockReason;
+
+  public constructor(reason: SecurityBlockReason) {
+    super(fillSecurityBlockReason(reason));
+    this.reason = reason;
+  }
+}
+
 // What a create resolved from the inventory, written once it is permitted.
-interface ResolvedWebAcl {
+export interface ResolvedWebAcl {
   cloudConnectionId: ObjectID;
+  cloudProvider: CloudProvider;
   wafId: string;
   name: string;
   region: string;
+  kind: SecurityBlockCloudWafKind;
+  // A Cloud Armor policy's type: an edge policy reads no user IP.
+  cloudArmorPolicyType?: string | undefined;
+}
+
+// The connection's setting that lets it block addresses, as its cloud's form names it.
+export function getWafBlocklistSettingTitle(provider: CloudProvider): string {
+  return (
+    getCloudConnectionDefinition(provider)?.configFields.find(
+      (field: CloudConnectionField): boolean => {
+        return field.key === WAF_BLOCKLIST_FIELD_KEY;
+      },
+    )?.title || "Block addresses"
+  );
+}
+
+/*
+ * A row of the inventory as the WAF it is, as a row of this table would
+ * name it - or why it is not one OneUptime enforces the blocklist in: an
+ * AWS WAF web ACL (its ARN built from what the inventory listed), an
+ * Application Gateway or Front Door WAF policy (its resource id), a Cloud
+ * Armor backend or edge security policy (its project, place and name).
+ */
+export function readInventoryWaf(
+  resource: CloudResource,
+): Omit<ResolvedWebAcl, "cloudConnectionId"> {
+  const properties: JSONObject = resource.cloudProperties || {};
+
+  if (
+    resource.cloudProvider === CloudProvider.AWS &&
+    resource.cloudResourceType === AWS_WAF_WEB_ACL_RESOURCE_TYPE
+  ) {
+    const name: string =
+      (typeof properties["Name"] === "string"
+        ? (properties["Name"] as string)
+        : resource.name || ""
+      ).trim() || "";
+    const wafId: string | null = buildAwsWafWebAclArn({
+      region: resource.cloudRegion,
+      accountId: resource.cloudAccountId,
+      scope: properties["Scope"],
+      name,
+      id: properties["Id"],
+    });
+
+    if (!wafId) {
+      throw new BadDataException(
+        SECURITY_BLOCK_CLOUD_WAF_MESSAGES.notListed({
+          name: name || resource.name || "",
+        }),
+      );
+    }
+
+    return {
+      cloudProvider: CloudProvider.AWS,
+      wafId,
+      name: name.slice(0, 100),
+      region: (resource.cloudRegion || "").trim().toLowerCase(),
+      kind: SecurityBlockCloudWafKind.AwsWebAcl,
+    };
+  }
+
+  if (
+    resource.cloudProvider === CloudProvider.Azure &&
+    getAzureWafPolicyKind(resource.cloudResourceType)
+  ) {
+    const policy: AzureWafPolicyRef | null = parseAzureWafPolicyId(
+      resource.providerResourceId,
+    );
+
+    if (!policy) {
+      throw new BadDataException(SECURITY_BLOCK_CLOUD_WAF_MESSAGES.notAWebAcl);
+    }
+
+    return {
+      cloudProvider: CloudProvider.Azure,
+      wafId: policy.id,
+      name: (resource.name || policy.name).slice(0, 100),
+      region: (resource.cloudRegion || "").trim().toLowerCase(),
+      kind:
+        policy.kind === AzureWafPolicyKind.ApplicationGateway
+          ? SecurityBlockCloudWafKind.AzureApplicationGateway
+          : SecurityBlockCloudWafKind.AzureFrontDoor,
+    };
+  }
+
+  if (
+    resource.cloudProvider === CloudProvider.GCP &&
+    (resource.cloudResourceType || "").toLowerCase() ===
+      CLOUD_ARMOR_POLICY_ASSET_TYPE.toLowerCase()
+  ) {
+    const policy: CloudArmorPolicyRef | null = parseCloudArmorPolicyId(
+      resource.providerResourceId,
+    );
+    const type: string =
+      typeof properties["type"] === "string"
+        ? (properties["type"] as string)
+        : CloudArmorPolicyType.Backend;
+
+    if (!policy) {
+      throw new BadDataException(SECURITY_BLOCK_CLOUD_WAF_MESSAGES.notAWebAcl);
+    }
+
+    if (!isCloudArmorPolicyTypeSupported(type)) {
+      throw new SecurityBlockCloudWafRefusal(
+        getNetworkPolicyReason(resource.name || policy.name),
+      );
+    }
+
+    return {
+      cloudProvider: CloudProvider.GCP,
+      wafId: policy.id,
+      name: (resource.name || policy.name).slice(0, 100),
+      region: policy.region || "global",
+      kind: SecurityBlockCloudWafKind.CloudArmor,
+      cloudArmorPolicyType: type,
+    };
+  }
+
+  throw new BadDataException(SECURITY_BLOCK_CLOUD_WAF_MESSAGES.notAWebAcl);
 }
 
 export class Service extends ProjectReferencesService<Model> {
@@ -141,7 +336,103 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data.clientAddress = SECURITY_BLOCK_DEFAULT_CLIENT_ADDRESS;
     }
 
+    if (
+      !canSecurityBlockCloudWafReadClientAddress({
+        kind: resolved.kind,
+        cloudArmorPolicyType: resolved.cloudArmorPolicyType,
+        clientAddress: createBy.data.clientAddress,
+      })
+    ) {
+      throw new BadDataException(
+        SECURITY_BLOCK_CLOUD_WAF_MESSAGES.clientAddress({
+          name: resolved.name,
+        }),
+      );
+    }
+
+    /*
+     * An Azure WAF or Cloud Armor policy is added only once the connection
+     * may write it (#10348, #10349): asked of the cloud, writing nothing. A
+     * check that cannot tell turns nothing on either (checkAccess throws).
+     */
+    if (resolved.cloudProvider !== CloudProvider.AWS) {
+      const access: SecurityBlockCloudWafAccess =
+        await SecurityBlockCloudWafs.checkAccess({
+          projectId,
+          cloudResourceId,
+        });
+      const missing: { permission: string } | undefined = access.checks.find(
+        (check: { permission: string; isGranted: boolean }): boolean => {
+          return !check.isGranted;
+        },
+      );
+
+      if (missing) {
+        throw new BadDataException(
+          SECURITY_BLOCK_CLOUD_WAF_MESSAGES.noAccess({
+            name: resolved.name,
+            permission: missing.permission,
+          }),
+        );
+      }
+    }
+
     return { createBy, carryForward: resolved };
+  }
+
+  /*
+   * Where a WAF reads the client's address may change, to one its kind can
+   * read: refused for a WAF that cannot read it there.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    const clientAddress: unknown = (
+      updateBy.data as unknown as Record<string, unknown>
+    )["clientAddress"];
+
+    if (clientAddress === undefined) {
+      return { updateBy, carryForward: null };
+    }
+
+    const rows: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        _id: true,
+        name: true,
+        cloudProvider: true,
+        wafId: true,
+        ruleDetails: true,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: { isRoot: true },
+    });
+
+    for (const row of rows) {
+      if (
+        !canSecurityBlockCloudWafReadClientAddress({
+          kind: getSecurityBlockCloudWafKind({
+            cloudProvider: row.cloudProvider,
+            wafId: row.wafId,
+          }),
+          cloudArmorPolicyType: readCloudArmorRuleDetails(row.ruleDetails)
+            ?.policyType,
+          clientAddress: String(clientAddress),
+        })
+      ) {
+        throw new BadDataException(
+          SECURITY_BLOCK_CLOUD_WAF_MESSAGES.clientAddress({
+            name: row.name || "This WAF",
+          }),
+        );
+      }
+    }
+
+    return { updateBy, carryForward: null };
   }
 
   /*
@@ -164,6 +455,7 @@ export class Service extends ProjectReferencesService<Model> {
           cloudRegion: true,
           cloudAccountId: true,
           cloudProperties: true,
+          providerResourceId: true,
           cloudConnectionId: true,
           isArchived: true,
         },
@@ -171,36 +463,12 @@ export class Service extends ProjectReferencesService<Model> {
       },
     );
 
-    if (
-      !resource?.id ||
-      resource.isArchived ||
-      resource.cloudProvider !== CloudProvider.AWS ||
-      resource.cloudResourceType !== AWS_WAF_WEB_ACL_RESOURCE_TYPE
-    ) {
+    if (!resource?.id || resource.isArchived) {
       throw new BadDataException(SECURITY_BLOCK_CLOUD_WAF_MESSAGES.notAWebAcl);
     }
 
-    const properties: JSONObject = resource.cloudProperties || {};
-    const name: string =
-      (typeof properties["Name"] === "string"
-        ? (properties["Name"] as string)
-        : resource.name || ""
-      ).trim() || "";
-    const wafId: string | null = buildAwsWafWebAclArn({
-      region: resource.cloudRegion,
-      accountId: resource.cloudAccountId,
-      scope: properties["Scope"],
-      name,
-      id: properties["Id"],
-    });
-
-    if (!wafId) {
-      throw new BadDataException(
-        SECURITY_BLOCK_CLOUD_WAF_MESSAGES.notListed({
-          name: name || resource.name || "",
-        }),
-      );
-    }
+    const waf: Omit<ResolvedWebAcl, "cloudConnectionId"> =
+      readInventoryWaf(resource);
 
     const connection: CloudConnection | null = resource.cloudConnectionId
       ? await CloudConnectionService.findOneBy({
@@ -210,7 +478,7 @@ export class Service extends ProjectReferencesService<Model> {
         })
       : null;
 
-    if (!connection?.id || connection.provider !== CloudProvider.AWS) {
+    if (!connection?.id || connection.provider !== waf.cloudProvider) {
       throw new BadDataException(
         SECURITY_BLOCK_CLOUD_WAF_MESSAGES.noConnection,
       );
@@ -222,31 +490,31 @@ export class Service extends ProjectReferencesService<Model> {
       )
     ) {
       throw new BadDataException(
-        SECURITY_BLOCK_CLOUD_WAF_MESSAGES.turnOnBlocking({
-          connection: connection.name || "",
-        }),
+        waf.cloudProvider === CloudProvider.AWS
+          ? SECURITY_BLOCK_CLOUD_WAF_MESSAGES.turnOnBlocking({
+              connection: connection.name || "",
+            })
+          : SECURITY_BLOCK_CLOUD_WAF_MESSAGES.turnOnPolicyBlocking({
+              connection: connection.name || "",
+              setting: getWafBlocklistSettingTitle(waf.cloudProvider),
+            }),
       );
     }
 
-    const existing: number = (
-      await this.countBy({
-        query: { projectId: data.projectId, wafId },
-        props: { isRoot: true },
-      })
-    ).toNumber();
+    // One row a WAF: an id Azure lowers in one listing and not another is the same policy.
+    const isPicked: boolean = (await this.findForProject(data.projectId)).some(
+      (row: Model): boolean => {
+        return (row.wafId || "").toLowerCase() === waf.wafId.toLowerCase();
+      },
+    );
 
-    if (existing > 0) {
+    if (isPicked) {
       throw new BadDataException(
-        SECURITY_BLOCK_CLOUD_WAF_MESSAGES.alreadyEnforcing({ name }),
+        SECURITY_BLOCK_CLOUD_WAF_MESSAGES.alreadyEnforcing({ name: waf.name }),
       );
     }
 
-    return {
-      cloudConnectionId: connection.id,
-      wafId,
-      name: name.slice(0, 100),
-      region: (resource.cloudRegion || "").trim().toLowerCase(),
-    };
+    return { ...waf, cloudConnectionId: connection.id };
   }
 
   /*
@@ -262,7 +530,7 @@ export class Service extends ProjectReferencesService<Model> {
     const record: Model = onCreate.createBy.data;
 
     record.cloudConnectionId = resolved.cloudConnectionId;
-    record.cloudProvider = CloudProvider.AWS;
+    record.cloudProvider = resolved.cloudProvider;
     record.wafId = resolved.wafId;
     record.name = resolved.name;
     record.region = resolved.region;
@@ -344,6 +612,7 @@ export class Service extends ProjectReferencesService<Model> {
         clientAddress: true,
         status: true,
         statusMessage: true,
+        statusReason: true,
         ruleDetails: true,
         checkedAt: true,
       },

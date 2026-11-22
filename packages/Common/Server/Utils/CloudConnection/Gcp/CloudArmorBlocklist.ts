@@ -206,7 +206,10 @@ export default class CloudArmorPolicyBlocklist {
     return { policy: this.data.displayName || this.data.policy.name };
   }
 
-  private explainFailure(error: unknown, isWrite: boolean): SecurityBlockReason {
+  private explainFailure(
+    error: unknown,
+    isWrite: boolean,
+  ): SecurityBlockReason {
     if (error instanceof CloudArmorError) {
       return error.reason;
     }
@@ -228,7 +231,10 @@ export default class CloudArmorPolicyBlocklist {
     }
 
     if (status === 404) {
-      return cloudWafReason(CLOUD_WAF_REASONS.policyNotFound, this.policyValues());
+      return cloudWafReason(
+        CLOUD_WAF_REASONS.policyNotFound,
+        this.policyValues(),
+      );
     }
 
     if (isWrite && isQuotaError(error)) {
@@ -327,7 +333,9 @@ export default class CloudArmorPolicyBlocklist {
     }
 
     const rules: Array<JSONObject> = (
-      Array.isArray(policy["rules"]) ? (policy["rules"] as Array<JSONValue>) : []
+      Array.isArray(policy["rules"])
+        ? (policy["rules"] as Array<JSONValue>)
+        : []
     ).map((rule: JSONValue): JSONObject => {
       return rule && typeof rule === "object" && !Array.isArray(rule)
         ? (rule as JSONObject)
@@ -534,7 +542,11 @@ export default class CloudArmorPolicyBlocklist {
     ];
 
     if (base.mode === CloudArmorBlocklistMode.AddressGroups) {
-      if (read.groupRule && read.groupRule.state !== CloudArmorOwnRuleState.InForce && read.groupRule.state !== CloudArmorOwnRuleState.ToRewrite) {
+      if (
+        read.groupRule &&
+        read.groupRule.state !== CloudArmorOwnRuleState.InForce &&
+        read.groupRule.state !== CloudArmorOwnRuleState.ToRewrite
+      ) {
         drift.push({
           priority: read.groupRule.priority,
           index: 0,
@@ -588,8 +600,9 @@ export default class CloudArmorPolicyBlocklist {
     refusal: CloudWafSlotRefusal,
   ): SecurityBlockReason {
     if (refusal === CloudWafSlotRefusal.Full) {
-      return cloudWafReason(CLOUD_WAF_REASONS.full, this.policyValues(), {
-        addresses: CLOUD_ARMOR_MAX_ONEUPTIME_RULES * CLOUD_ARMOR_ADDRESSES_PER_RULE,
+      return cloudWafReason(CLOUD_WAF_REASONS.rulesFull, this.policyValues(), {
+        addresses:
+          CLOUD_ARMOR_MAX_ONEUPTIME_RULES * CLOUD_ARMOR_ADDRESSES_PER_RULE,
       });
     }
 
@@ -620,9 +633,15 @@ export default class CloudArmorPolicyBlocklist {
       const groups: Array<GroupRead> = await this.readGroups(force);
       const ruleReason: SecurityBlockReason | null = read.groupRule
         ? read.groupRule.state === CloudArmorOwnRuleState.TurnedOff
-          ? this.ruleReason(CloudArmorRuleDrift.TurnedOff, read.groupRule.priority)
+          ? this.ruleReason(
+              CloudArmorRuleDrift.TurnedOff,
+              read.groupRule.priority,
+            )
           : read.groupRule.state === CloudArmorOwnRuleState.Changed
-            ? this.ruleReason(CloudArmorRuleDrift.Changed, read.groupRule.priority)
+            ? this.ruleReason(
+                CloudArmorRuleDrift.Changed,
+                read.groupRule.priority,
+              )
             : null
         : this.record?.groupRulePriority !== null &&
             this.record?.groupRulePriority !== undefined
@@ -713,7 +732,8 @@ export default class CloudArmorPolicyBlocklist {
       isStuck = ownRules === 0 && read.freePriorities.length === 0;
     }
 
-    let status: SecurityBlockCloudWafStatus = SecurityBlockCloudWafStatus.Enforcing;
+    let status: SecurityBlockCloudWafStatus =
+      SecurityBlockCloudWafStatus.Enforcing;
     let reason: SecurityBlockReason | null = null;
 
     if (drift) {
@@ -796,7 +816,9 @@ export default class CloudArmorPolicyBlocklist {
    * OneUptime's rule placed in the policy where it never was. A group or a
    * rule someone deleted is not made again (Put It Back does).
    */
-  private async ensureGroupsAndRule(isPuttingBack: boolean = false): Promise<void> {
+  private async ensureGroupsAndRule(
+    isPuttingBack: boolean = false,
+  ): Promise<void> {
     const groups: Array<GroupRead> = await this.readGroups();
     const names: CloudArmorAddressGroupNames = this.groupNames;
 
@@ -831,7 +853,10 @@ export default class CloudArmorPolicyBlocklist {
     const isDeleted: boolean =
       !read.groupRule && this.record!.groupRulePriority !== null;
 
-    if (read.groupRule && read.groupRule.state === CloudArmorOwnRuleState.ToRewrite) {
+    if (
+      read.groupRule &&
+      read.groupRule.state === CloudArmorOwnRuleState.ToRewrite
+    ) {
       await this.writeGroupRule(read.groupRule.priority, true);
       return;
     }
@@ -854,7 +879,10 @@ export default class CloudArmorPolicyBlocklist {
     await this.writeGroupRule(priority, false);
   }
 
-  private async writeGroupRule(priority: number, isPatch: boolean): Promise<void> {
+  private async writeGroupRule(
+    priority: number,
+    isPatch: boolean,
+  ): Promise<void> {
     const rule: JSONObject = buildCloudArmorGroupRule({
       priority,
       projectSuffix: this.data.projectSuffix,
@@ -1069,9 +1097,11 @@ export default class CloudArmorPolicyBlocklist {
     this.groupsCache = null;
 
     // The rule that denies what the groups hold, placed when it never was.
-    if (added.some((result: CloudArmorWriteResult): boolean => {
-      return result.isDone;
-    })) {
+    if (
+      added.some((result: CloudArmorWriteResult): boolean => {
+        return result.isDone;
+      })
+    ) {
       await this.ensureGroupsAndRule();
     }
 
@@ -1196,7 +1226,11 @@ export default class CloudArmorPolicyBlocklist {
         if (isNew) {
           await this.data.api.addRule(this.data.policy, build(slot));
         } else if (await this.isStillOwn(slot.priority, slot.index)) {
-          await this.data.api.patchRule(this.data.policy, slot.priority, build(slot));
+          await this.data.api.patchRule(
+            this.data.policy,
+            slot.priority,
+            build(slot),
+          );
         }
 
         writtenSlots.push(slot);
@@ -1242,15 +1276,20 @@ export default class CloudArmorPolicyBlocklist {
 
     this.record = {
       ...this.getDetails(),
-      attribute: failed.size === 0 ? this.expectedAttribute : this.record?.attribute || this.expectedAttribute,
+      attribute:
+        failed.size === 0
+          ? this.expectedAttribute
+          : this.record?.attribute || this.expectedAttribute,
       rules: [
-        ...writtenSlots.map((slot: CloudWafValueSlot): CloudArmorRecordedRule => {
-          return {
-            index: slot.index,
-            priority: slot.priority,
-            values: [...slot.values],
-          };
-        }),
+        ...writtenSlots.map(
+          (slot: CloudWafValueSlot): CloudArmorRecordedRule => {
+            return {
+              index: slot.index,
+              priority: slot.priority,
+              values: [...slot.values],
+            };
+          },
+        ),
         ...read.own
           .filter((rule: OwnRule): boolean => {
             return rule.state === CloudArmorOwnRuleState.Changed;
@@ -1284,7 +1323,9 @@ export default class CloudArmorPolicyBlocklist {
 
     return {
       added: plan.added.map(
-        (addition: CloudWafSlotPlan["added"][number]): CloudArmorWriteResult => {
+        (
+          addition: CloudWafSlotPlan["added"][number],
+        ): CloudArmorWriteResult => {
           if (!addition.isDone) {
             return {
               value: addition.value,
@@ -1314,7 +1355,9 @@ export default class CloudArmorPolicyBlocklist {
         const holder: OwnRule | undefined = read.own.find(
           (rule: OwnRule): boolean => {
             return rule.values.some((candidate: string): boolean => {
-              return getCloudWafValueKey(candidate) === getCloudWafValueKey(value);
+              return (
+                getCloudWafValueKey(candidate) === getCloudWafValueKey(value)
+              );
             });
           },
         );
@@ -1322,7 +1365,9 @@ export default class CloudArmorPolicyBlocklist {
           ? failed.get(holder.index)
           : undefined;
 
-        return reason ? { value, isDone: false, reason } : { value, isDone: true };
+        return reason
+          ? { value, isDone: false, reason }
+          : { value, isDone: true };
       }),
     };
   }
@@ -1504,7 +1549,10 @@ export default class CloudArmorPolicyBlocklist {
         const isOwn: boolean =
           rule !== null &&
           (item.index === null
-            ? isCloudArmorGroupRule(rule["description"], this.data.projectSuffix)
+            ? isCloudArmorGroupRule(
+                rule["description"],
+                this.data.projectSuffix,
+              )
             : readCloudArmorRuleIndex(
                 rule["description"],
                 this.data.projectSuffix,

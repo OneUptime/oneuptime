@@ -4,6 +4,7 @@ import {
   Translator,
   composedValue,
   createTranslator,
+  translationKey,
 } from "../Translator";
 
 /*
@@ -28,6 +29,37 @@ import {
  * The sentences live with each destination's code, each marked with
  * translationKey so the Dashboard's extractor puts it in every locale.
  */
+
+/*
+ * The reconciler's own sentences around a destination's reason (#10629):
+ * what a block's row says at a destination that could not take it, let it
+ * go, be read or be written.
+ */
+export const SECURITY_BLOCK_REASON_FRAMES: {
+  notApplied: string;
+  notRemoved: string;
+  noLongerEnforces: string;
+  couldNotRead: string;
+  couldNotReadBack: string;
+  couldNotWrite: string;
+  notReady: string;
+} = {
+  notApplied: translationKey("Not applied: {{reason}}"),
+  notRemoved: translationKey("Not removed: {{reason}}"),
+  noLongerEnforces: translationKey(
+    "{{destination}} no longer enforces the blocklist.",
+  ),
+  couldNotRead: translationKey("Could not read {{destination}}: {{error}}"),
+  couldNotReadBack: translationKey(
+    "Could not read {{destination}} back: {{error}}",
+  ),
+  couldNotWrite: translationKey(
+    "Could not write to {{destination}}: {{error}}",
+  ),
+  notReady: translationKey(
+    "{{destination}} is not ready to hold blocks: {{error}}",
+  ),
+};
 
 export interface SecurityBlockReason {
   // The English sentence: a key of the Dashboard's locales.
@@ -102,6 +134,46 @@ export function securityBlockReason(
       ? { parts: more.parts }
       : {}),
   };
+}
+
+/*
+ * A reconciler's frame around a destination's sentence, or null when the
+ * destination gave none: its English text is then all a row says, as
+ * before. A frame is only said around a sentence, so a row reads wholly in
+ * the reader's language or wholly in English.
+ */
+export function frameSecurityBlockReason(
+  frame: string,
+  sentence: SecurityBlockReason | undefined | null,
+): SecurityBlockReason | null {
+  return sentence
+    ? securityBlockReason(frame, undefined, { parts: { reason: sentence } })
+    : null;
+}
+
+/*
+ * A frame around a failure that carries its sentence (an error of Azure
+ * WAF's or Cloud Armor's own, whose reason says it in words a reader's
+ * language has), with the destination's name; null for any other failure,
+ * whose English text is then all a row says.
+ */
+export function frameSecurityBlockFailure(data: {
+  frame: string;
+  destination: string;
+  error: unknown;
+}): SecurityBlockReason | null {
+  const carried: SecurityBlockReason | null =
+    data.error && typeof data.error === "object"
+      ? readSecurityBlockReason((data.error as { reason?: unknown }).reason)
+      : null;
+
+  return carried
+    ? securityBlockReason(
+        data.frame,
+        { destination: data.destination },
+        { parts: { error: carried } },
+      )
+    : null;
 }
 
 // A reason as a JSON column keeps it.

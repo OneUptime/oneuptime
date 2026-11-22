@@ -1,8 +1,12 @@
 import {
+  AZURE_WAF_WHERE,
   CLIENT_ADDRESS_LABELS,
+  CLOUD_ARMOR_GLOBAL,
+  CLOUD_ARMOR_WHERE,
   CLOUD_WAF_STATUS_LABELS,
   CLOUD_WAF_TEST_IDS,
   LEFT_IN_CLOUD_ITEMS,
+  SOURCE_ADDRESS_LABELS,
   WEB_ACL_WHERE,
 } from "./CloudWafCopy";
 import SecurityBlockCloudWaf from "Common/Models/DatabaseModels/SecurityBlockCloudWaf";
@@ -12,16 +16,35 @@ import {
   parseAwsWafArn,
 } from "Common/Types/CloudConnection/AwsWafBlocklist";
 import {
+  AZURE_WAF_KIND_TITLES,
+  AzureWafPolicyRef,
+  parseAzureWafPolicyId,
+} from "Common/Types/CloudConnection/AzureWafBlocklist";
+import {
+  CloudArmorPolicyRef,
+  parseCloudArmorPolicyId,
+  readCloudArmorRuleDetails,
+} from "Common/Types/CloudConnection/CloudArmorBlocklist";
+import {
   SECURITY_BLOCK_DEFAULT_CLIENT_ADDRESS,
   SecurityBlockClientAddress,
   SecurityBlockClientAddressHeader,
   SecurityBlockCloudWafLeftItem,
-  SecurityBlockCloudWafLeftKind,
   SecurityBlockCloudWafStatus,
   getSecurityBlockClientAddressHeader,
   isSecurityBlockClientAddress,
   isSecurityBlockCloudWafStatus,
 } from "Common/Types/SecurityBlocklist/SecurityBlockCloudWaf";
+import {
+  SecurityBlockCloudWafKind,
+  getSecurityBlockCloudWafClientAddresses,
+  getSecurityBlockCloudWafKind,
+} from "Common/Types/SecurityBlocklist/SecurityBlockCloudWafKind";
+import {
+  SecurityBlockReason,
+  readSecurityBlockReason,
+  wordSecurityBlockReason,
+} from "Common/Types/SecurityBlocklist/SecurityBlockReason";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
@@ -30,10 +53,11 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * The cells of the Blocklist's Cloud WAFs card (#10344): a web ACL by its
- * name and where it is, where it reads the client's address, and where it
- * stands - a chip, and the server's sentence of why when it is not
- * enforcing.
+ * The cells of the Blocklist's Cloud WAFs card (#10344, #10348, #10349): a
+ * WAF by its name and where it is, where it reads the client's address,
+ * and where it stands - a chip, and why when it is not enforcing: Azure
+ * WAF's and Cloud Armor's reasons in the reader's language (#10629), AWS
+ * WAF's in the server's English.
  */
 
 // CloudFront's web ACLs are global: named by the service, not its Region.
@@ -53,6 +77,26 @@ export function readClientAddress(value: unknown): SecurityBlockClientAddress {
     : SECURITY_BLOCK_DEFAULT_CLIENT_ADDRESS;
 }
 
+export function readCloudWafKind(
+  row: Pick<SecurityBlockCloudWaf, "cloudProvider" | "wafId">,
+): SecurityBlockCloudWafKind | null {
+  return getSecurityBlockCloudWafKind({
+    cloudProvider: row.cloudProvider,
+    wafId: row.wafId,
+  });
+}
+
+// The client addresses a row's WAF can read, its default first.
+export function getRowClientAddresses(
+  row: Pick<SecurityBlockCloudWaf, "cloudProvider" | "wafId" | "ruleDetails">,
+): ReadonlyArray<SecurityBlockClientAddress> {
+  return getSecurityBlockCloudWafClientAddresses({
+    kind: readCloudWafKind(row),
+    cloudArmorPolicyType: readCloudArmorRuleDetails(row.ruleDetails)
+      ?.policyType,
+  });
+}
+
 export function getCloudWafStatusTone(
   status: SecurityBlockCloudWafStatus,
 ): PillTone {
@@ -61,6 +105,7 @@ export function getCloudWafStatusTone(
       return PillTone.Success;
     case SecurityBlockCloudWafStatus.WaitingForRule:
     case SecurityBlockCloudWafStatus.NoFreePriority:
+    case SecurityBlockCloudWafStatus.Drifted:
       return PillTone.Warning;
     case SecurityBlockCloudWafStatus.Failed:
       return PillTone.Danger;
@@ -69,28 +114,85 @@ export function getCloudWafStatusTone(
   }
 }
 
-// Where a web ACL is: "eu-west-1, account 123456789012", "CloudFront, account ...".
-export function writeWebAclWhere(
+/*
+ * Where a WAF is: "eu-west-1, account 123456789012", "CloudFront, account
+ * ...", "Front Door, resource group rg-prod", "Cloud Armor, global,
+ * project acme-prod".
+ */
+export function writeCloudWafWhere(
   translator: Translator,
-  wafId: string | undefined,
+  row: Pick<SecurityBlockCloudWaf, "cloudProvider" | "wafId">,
 ): string {
-  const arn: AwsWafArn | null = parseAwsWafArn(wafId);
+  const kind: SecurityBlockCloudWafKind | null = readCloudWafKind(row);
 
-  if (!arn) {
-    return "";
+  if (kind === SecurityBlockCloudWafKind.AwsWebAcl) {
+    const arn: AwsWafArn | null = parseAwsWafArn(row.wafId);
+
+    return arn
+      ? translator.translateTemplate(WEB_ACL_WHERE, {
+          where: arn.scope === AwsWafScope.CloudFront ? CLOUDFRONT : arn.region,
+          account: arn.accountId,
+        })
+      : "";
   }
 
-  return translator.translateTemplate(WEB_ACL_WHERE, {
-    where: arn.scope === AwsWafScope.CloudFront ? CLOUDFRONT : arn.region,
-    account: arn.accountId,
-  });
+  if (
+    kind === SecurityBlockCloudWafKind.AzureApplicationGateway ||
+    kind === SecurityBlockCloudWafKind.AzureFrontDoor
+  ) {
+    const policy: AzureWafPolicyRef | null = parseAzureWafPolicyId(row.wafId);
+
+    return policy
+      ? translator.translateTemplate(AZURE_WAF_WHERE, {
+          kind: AZURE_WAF_KIND_TITLES[policy.kind],
+          group: policy.resourceGroup,
+        })
+      : "";
+  }
+
+  if (kind === SecurityBlockCloudWafKind.CloudArmor) {
+    const policy: CloudArmorPolicyRef | null = parseCloudArmorPolicyId(
+      row.wafId,
+    );
+
+    return policy
+      ? translator.translateTemplate(CLOUD_ARMOR_WHERE, {
+          place:
+            policy.region ||
+            translator.translateText(CLOUD_ARMOR_GLOBAL) ||
+            CLOUD_ARMOR_GLOBAL,
+          project: policy.project,
+        })
+      : "";
+  }
+
+  return "";
 }
 
-// Where the client's address is read, in the reader's words, its header as written.
+/*
+ * Where the client's address is read, in the reader's words, a header as
+ * written. The source address is named as the WAF's own cloud names it.
+ */
 export function writeClientAddress(
   translator: Translator,
   value: SecurityBlockClientAddress,
+  kind?: SecurityBlockCloudWafKind | null | undefined,
 ): string {
+  if (value === SecurityBlockClientAddress.SourceIp) {
+    const label: string | undefined =
+      kind === SecurityBlockCloudWafKind.AzureFrontDoor
+        ? SOURCE_ADDRESS_LABELS.frontDoor
+        : kind === SecurityBlockCloudWafKind.AzureApplicationGateway
+          ? SOURCE_ADDRESS_LABELS.applicationGateway
+          : kind === SecurityBlockCloudWafKind.CloudArmor
+            ? SOURCE_ADDRESS_LABELS.cloudArmor
+            : undefined;
+
+    if (label) {
+      return translator.translateText(label) || label;
+    }
+  }
+
   const header: SecurityBlockClientAddressHeader | null =
     getSecurityBlockClientAddressHeader(value);
 
@@ -99,26 +201,43 @@ export function writeClientAddress(
   });
 }
 
+// The choices of where a WAF of a kind reads the client's address.
 export function getClientAddressOptions(
   translator: Translator,
+  choices: ReadonlyArray<SecurityBlockClientAddress> = getSecurityBlockCloudWafClientAddresses(
+    { kind: SecurityBlockCloudWafKind.AwsWebAcl },
+  ),
+  kind: SecurityBlockCloudWafKind | null = SecurityBlockCloudWafKind.AwsWebAcl,
 ): Array<DropdownOption> {
-  return Object.values(SecurityBlockClientAddress).map(
-    (value: SecurityBlockClientAddress): DropdownOption => {
-      return { label: writeClientAddress(translator, value), value };
-    },
-  );
+  return choices.map((value: SecurityBlockClientAddress): DropdownOption => {
+    return { label: writeClientAddress(translator, value, kind), value };
+  });
 }
 
-// What stays in AWS WAF once a web ACL is removed: "Rule OneUptime-Blocklist-1a2b in prod-alb".
+// What stays in the cloud once a WAF is removed: "Rule OneUptime-Blocklist-1a2b in prod-alb".
 export function writeLeftInCloud(
   translator: Translator,
   item: SecurityBlockCloudWafLeftItem,
 ): string {
   return translator.translateTemplate(LEFT_IN_CLOUD_ITEMS[item.kind], {
     name: item.name,
-    webAcl:
-      item.kind === SecurityBlockCloudWafLeftKind.Rule ? item.webAcl || "" : "",
+    webAcl: item.webAcl || "",
+    priority: item.priority !== undefined ? String(item.priority) : "",
   });
+}
+
+// Why a WAF is not enforcing: its reason in the reader's words, else the server's English.
+export function writeCloudWafStatusMessage(
+  translator: Translator,
+  row: Pick<SecurityBlockCloudWaf, "statusReason" | "statusMessage">,
+): string {
+  const reason: SecurityBlockReason | null = readSecurityBlockReason(
+    row.statusReason,
+  );
+
+  return reason
+    ? wordSecurityBlockReason(reason, translator)
+    : (row.statusMessage || "").trim();
 }
 
 export interface RowProps {
@@ -129,7 +248,7 @@ export const CloudWafWebAclCell: FunctionComponent<RowProps> = (
   props: RowProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const where: string = writeWebAclWhere(translator, props.row.wafId);
+  const where: string = writeCloudWafWhere(translator, props.row);
 
   return (
     <div data-testid={CLOUD_WAF_TEST_IDS.webAclCell}>
@@ -155,6 +274,7 @@ export const CloudWafClientAddressCell: FunctionComponent<RowProps> = (
       {writeClientAddress(
         translator,
         readClientAddress(props.row.clientAddress),
+        readCloudWafKind(props.row),
       )}
     </span>
   );
@@ -163,8 +283,9 @@ export const CloudWafClientAddressCell: FunctionComponent<RowProps> = (
 export const CloudWafStatusCell: FunctionComponent<RowProps> = (
   props: RowProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const status: SecurityBlockCloudWafStatus = readCloudWafStatus(props.row);
-  const message: string = (props.row.statusMessage || "").trim();
+  const message: string = writeCloudWafStatusMessage(translator, props.row);
 
   return (
     <div className="space-y-1" data-testid={CLOUD_WAF_TEST_IDS.statusCell}>
@@ -172,7 +293,6 @@ export const CloudWafStatusCell: FunctionComponent<RowProps> = (
         text={CLOUD_WAF_STATUS_LABELS[status]}
         tone={getCloudWafStatusTone(status)}
       />
-      {/* The server's own sentence: what to do about it, in English. */}
       {message && status !== SecurityBlockCloudWafStatus.Enforcing ? (
         <p
           className="text-sm text-gray-600"
