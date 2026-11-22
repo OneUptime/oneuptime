@@ -320,7 +320,9 @@ export class ApiComponentUtils {
 
       if (problem) {
         throw options.onError(
-          new BadDataException(HTTP_STEP_CA_CERTIFICATE_PROBLEM_MESSAGES[problem]),
+          new BadDataException(
+            HTTP_STEP_CA_CERTIFICATE_PROBLEM_MESSAGES[problem],
+          ),
         );
       }
     }

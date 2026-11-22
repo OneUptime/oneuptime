@@ -175,7 +175,9 @@ describe("a step's settings, applied to its request", () => {
 
     expect(error?.message).toBe(HTTP_STEP_UNTRUSTED_CERTIFICATE_MESSAGE);
     expect(logs[0]!.status).toBe(WebhookStatus.Error);
-    expect(logs[0]!.statusMessage).toBe(HTTP_STEP_UNTRUSTED_CERTIFICATE_MESSAGE);
+    expect(logs[0]!.statusMessage).toBe(
+      HTTP_STEP_UNTRUSTED_CERTIFICATE_MESSAGE,
+    );
     expect(server.isUntouched).toBe(true);
   });
 
@@ -218,7 +220,9 @@ describe("a step's settings, applied to its request", () => {
     process.env["HTTPS_PROXY"] = proxy.url;
 
     expect(
-      await send(server, { caCertificate: certificates.selfSigned.certificate }),
+      await send(server, {
+        caCertificate: certificates.selfSigned.certificate,
+      }),
     ).toBeNull();
     expect(proxy.connects).toEqual([`${HOST}:${server.port}`]);
     expect(server.requests).toHaveLength(1);

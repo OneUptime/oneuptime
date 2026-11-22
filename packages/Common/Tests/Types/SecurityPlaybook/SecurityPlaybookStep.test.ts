@@ -742,7 +742,11 @@ describe("parseSecurityPlaybookSteps", () => {
         /is not a certificate in PEM/,
       ],
       ["a private key", PRIVATE_KEY, /holds a private key/],
-      ["more than 64 KB", `${PEM}\n${"x".repeat(70 * 1024)}`, /longer than 64 KB/],
+      [
+        "more than 64 KB",
+        `${PEM}\n${"x".repeat(70 * 1024)}`,
+        /longer than 64 KB/,
+      ],
     ])(
       "a CA certificate that is %s is refused, naming the step",
       (_what: string, text: string, message: RegExp) => {

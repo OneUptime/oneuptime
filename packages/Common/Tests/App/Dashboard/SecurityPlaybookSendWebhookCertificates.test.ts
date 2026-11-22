@@ -18,6 +18,7 @@ import {
   SecurityPlaybookStep,
   parseSecurityPlaybookSteps,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStep";
+import { Argument } from "../../../Types/Workflow/Component";
 import { API_CERTIFICATE_ARGUMENTS } from "../../../Types/Workflow/Components/ApiCertificates";
 import Field from "../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
@@ -76,9 +77,11 @@ describe("the two settings in Send Webhook's dialog", () => {
     expect(ca.fieldType).toBe(FormFieldSchemaType.LongText);
 
     // The workflow API steps' settings say the same.
-    expect(API_CERTIFICATE_ARGUMENTS.map((argument) => {
-      return [argument.name, argument.description];
-    })).toEqual([
+    expect(
+      API_CERTIFICATE_ARGUMENTS.map((argument: Argument): Array<string> => {
+        return [argument.name, argument.description];
+      }),
+    ).toEqual([
       [HTTP_ALLOW_SELF_SIGNED_TITLE, HTTP_ALLOW_SELF_SIGNED_DESCRIPTION],
       [
         HTTP_CA_CERTIFICATE_TITLE,
@@ -164,7 +167,9 @@ describe("the two settings in Send Webhook's dialog", () => {
       const ca: Field<JSONObject> = fieldOf("caCertificate");
 
       expect(
-        ca.customValidation!(valuesOf({ ...SEND_WEBHOOK, caCertificate: text })),
+        ca.customValidation!(
+          valuesOf({ ...SEND_WEBHOOK, caCertificate: text }),
+        ),
       ).toBe(problem);
 
       // The save agrees: refused exactly when the dialog says so.
@@ -221,7 +226,9 @@ describe("Send Webhook's settings, from the dialog to the step and back", () => 
     });
 
     expect(
-      parseSecurityPlaybookSteps([off])[0]!.config["allowSelfSignedCertificates"],
+      parseSecurityPlaybookSteps([off])[0]!.config[
+        "allowSelfSignedCertificates"
+      ],
     ).toBeUndefined();
     expect(parseSecurityPlaybookSteps([off])[0]!.config).toEqual({
       url: URL_TEXT,

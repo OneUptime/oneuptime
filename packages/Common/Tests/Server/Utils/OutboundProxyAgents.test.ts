@@ -79,7 +79,11 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  axios.defaults.adapter = browserAdapter;
+  if (browserAdapter === undefined) {
+    delete axios.defaults.adapter;
+  } else {
+    axios.defaults.adapter = browserAdapter;
+  }
 });
 
 const serve: (options?: {

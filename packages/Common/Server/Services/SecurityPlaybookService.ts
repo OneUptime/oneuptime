@@ -92,7 +92,8 @@ export function assertSendWebhookCertificatesParse(
       return;
     }
 
-    const config: SendWebhookConfig = step.config as unknown as SendWebhookConfig;
+    const config: SendWebhookConfig =
+      step.config as unknown as SendWebhookConfig;
 
     if (!config.caCertificate || config.allowSelfSignedCertificates === true) {
       return;

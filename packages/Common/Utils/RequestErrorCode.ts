@@ -15,8 +15,11 @@ export function getRequestErrorCode(
     return undefined;
   }
 
-  const value: { code?: unknown; cause?: unknown; error?: unknown } =
-    error as { code?: unknown; cause?: unknown; error?: unknown };
+  const value: { code?: unknown; cause?: unknown; error?: unknown } = error as {
+    code?: unknown;
+    cause?: unknown;
+    error?: unknown;
+  };
 
   if (typeof value.code === "string" && value.code) {
     return value.code;

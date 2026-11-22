@@ -154,9 +154,9 @@ describe("a webhook whose server signed its own certificate", () => {
   test("with the checks off (rejectUnauthorized false), goes through", async () => {
     const server: LocalHttpsServer = await serverWith(certificates.selfSigned);
 
-    expect(await send(server, { tls: { rejectUnauthorized: false } })).toEqual(
-      { status: 200 },
-    );
+    expect(await send(server, { tls: { rejectUnauthorized: false } })).toEqual({
+      status: 200,
+    });
     expect(server.requests).toEqual([
       { method: "POST", url: "/hook", host: `${HOST}:${server.port}` },
     ]);
@@ -225,9 +225,9 @@ describe("only the one request", () => {
   test("the next webhook, with no settings, is checked as before", async () => {
     const server: LocalHttpsServer = await serverWith(certificates.selfSigned);
 
-    expect(await send(server, { tls: { rejectUnauthorized: false } })).toEqual(
-      { status: 200 },
-    );
+    expect(await send(server, { tls: { rejectUnauthorized: false } })).toEqual({
+      status: 200,
+    });
     expect(await send(server)).toEqual({
       code: "DEPTH_ZERO_SELF_SIGNED_CERT",
     });
@@ -355,9 +355,9 @@ describe("behind an outbound proxy", () => {
     expect(await send(server)).toEqual({
       code: "DEPTH_ZERO_SELF_SIGNED_CERT",
     });
-    expect(await send(server, { tls: { rejectUnauthorized: false } })).toEqual(
-      { status: 200 },
-    );
+    expect(await send(server, { tls: { rejectUnauthorized: false } })).toEqual({
+      status: 200,
+    });
     expect(
       await send(server, {
         tls: { ca: certificates.selfSigned.certificate },
@@ -386,9 +386,9 @@ describe("behind an outbound proxy", () => {
         tls: { ca: certificates.selfSigned.certificate },
       }),
     ).toEqual({ status: 200 });
-    expect(await send(server, { tls: { rejectUnauthorized: false } })).toEqual(
-      { status: 200 },
-    );
+    expect(await send(server, { tls: { rejectUnauthorized: false } })).toEqual({
+      status: 200,
+    });
     expect(await send(server)).toEqual({
       code: "DEPTH_ZERO_SELF_SIGNED_CERT",
     });
@@ -401,9 +401,9 @@ describe("behind an outbound proxy", () => {
     const proxy: TunnellingProxy = await proxyTo(server, certificates.proxy);
     process.env["HTTPS_PROXY"] = proxy.url;
 
-    expect(await send(server, { tls: { rejectUnauthorized: false } })).toEqual(
-      { code: "DEPTH_ZERO_SELF_SIGNED_CERT" },
-    );
+    expect(await send(server, { tls: { rejectUnauthorized: false } })).toEqual({
+      code: "DEPTH_ZERO_SELF_SIGNED_CERT",
+    });
     // The proxy's own certificate was refused before it was asked anything.
     expect(proxy.connects).toEqual([]);
     expect(server.isUntouched).toBe(true);

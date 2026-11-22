@@ -145,18 +145,17 @@ export const ACTION_CATEGORY_HEADINGS: Readonly<
 const PLAYBOOK_CA_CERTIFICATE_PROBLEMS: Record<
   CaCertificatePemProblem,
   string
-> =
-  {
-    [CaCertificateProblem.NotACertificate]: translationKey(
-      "Paste a certificate in PEM, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----.",
-    ),
-    [CaCertificateProblem.PrivateKey]: translationKey(
-      "This holds a private key. Paste only the certificate: everyone who may read this playbook can read its steps.",
-    ),
-    [CaCertificateProblem.TooLong]: translationKey(
-      "This is longer than a CA certificate can be. Paste only the certificate of the CA that signed the server's certificate.",
-    ),
-  };
+> = {
+  [CaCertificateProblem.NotACertificate]: translationKey(
+    "Paste a certificate in PEM, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----.",
+  ),
+  [CaCertificateProblem.PrivateKey]: translationKey(
+    "This holds a private key. Paste only the certificate: everyone who may read this playbook can read its steps.",
+  ),
+  [CaCertificateProblem.TooLong]: translationKey(
+    "This is longer than a CA certificate can be. Paste only the certificate of the CA that signed the server's certificate.",
+  ),
+};
 
 export function getActionCardGroups(): Array<CardSelectOptionGroup> {
   return SECURITY_PLAYBOOK_ACTION_CATEGORIES.map(

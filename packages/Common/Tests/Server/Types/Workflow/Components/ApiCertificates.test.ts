@@ -91,19 +91,47 @@ const STEPS: Array<{
   id: ComponentID;
   make: () => ComponentCode;
 }> = [
-  { name: "API Get", id: ComponentID.ApiGet, make: () => new ApiGet() },
+  {
+    name: "API Get",
+    id: ComponentID.ApiGet,
+    make: () => {
+      return new ApiGet();
+    },
+  },
   {
     name: "API Get By ID",
     id: ComponentID.ApiGetById,
-    make: () => new ApiGetById(),
+    make: () => {
+      return new ApiGetById();
+    },
   },
-  { name: "API Post", id: ComponentID.ApiPost, make: () => new ApiPost() },
-  { name: "API Put", id: ComponentID.ApiPut, make: () => new ApiPut() },
-  { name: "API Patch", id: ComponentID.ApiPatch, make: () => new ApiPatch() },
+  {
+    name: "API Post",
+    id: ComponentID.ApiPost,
+    make: () => {
+      return new ApiPost();
+    },
+  },
+  {
+    name: "API Put",
+    id: ComponentID.ApiPut,
+    make: () => {
+      return new ApiPut();
+    },
+  },
+  {
+    name: "API Patch",
+    id: ComponentID.ApiPatch,
+    make: () => {
+      return new ApiPatch();
+    },
+  },
   {
     name: "API Delete",
     id: ComponentID.ApiDelete,
-    make: () => new ApiDelete(),
+    make: () => {
+      return new ApiDelete();
+    },
   },
 ];
 
@@ -188,54 +216,57 @@ async function run(
 }
 
 describe("the two settings, as each API step's settings draw them", () => {
-  test.each(STEPS)("$name has both, folded under More fields, off", (entry: {
-    id: ComponentID;
-  }) => {
-    const component: ComponentMetadata = APIComponents.find(
-      (candidate: ComponentMetadata) => {
-        return candidate.id === entry.id;
-      },
-    )!;
-    const byId: Map<string, Argument> = new Map(
-      component.arguments.map((argument: Argument): [string, Argument] => {
-        return [argument.id, argument];
-      }),
-    );
-    const allow: Argument = byId.get(ALLOW_SELF_SIGNED_CERTIFICATES_ARGUMENT_ID)!;
-    const ca: Argument = byId.get(CA_CERTIFICATE_ARGUMENT_ID)!;
+  test.each(STEPS)(
+    "$name has both, folded under More fields, off",
+    (entry: { id: ComponentID }) => {
+      const component: ComponentMetadata = APIComponents.find(
+        (candidate: ComponentMetadata) => {
+          return candidate.id === entry.id;
+        },
+      )!;
+      const byId: Map<string, Argument> = new Map(
+        component.arguments.map((argument: Argument): [string, Argument] => {
+          return [argument.id, argument];
+        }),
+      );
+      const allow: Argument = byId.get(
+        ALLOW_SELF_SIGNED_CERTIFICATES_ARGUMENT_ID,
+      )!;
+      const ca: Argument = byId.get(CA_CERTIFICATE_ARGUMENT_ID)!;
 
-    expect({
-      name: allow.name,
-      type: allow.type,
-      required: allow.required,
-      isAdvanced: allow.isAdvanced,
-    }).toEqual({
-      name: "Allow self-signed certificates",
-      type: ComponentInputType.Boolean,
-      required: false,
-      isAdvanced: true,
-    });
-    expect({
-      name: ca.name,
-      type: ca.type,
-      required: ca.required,
-      isAdvanced: ca.isAdvanced,
-      placeholder: ca.placeholder,
-    }).toEqual({
-      name: "CA certificate",
-      type: ComponentInputType.LongText,
-      required: false,
-      isAdvanced: true,
-      placeholder: "-----BEGIN CERTIFICATE-----",
-    });
-    // Worded as a Runbook HTTP step's (#10277).
-    expect(allow.description).toBe(
-      "Skips certificate checks for this step's request, so self-signed certificates work, but anyone on the network path could read or change the request.",
-    );
-    expect(ca.description).toBe(
-      "The step trusts only this certificate (PEM): that of the CA that signed the server's certificate, or the server's own when it is self-signed.",
-    );
-  });
+      expect({
+        name: allow.name,
+        type: allow.type,
+        required: allow.required,
+        isAdvanced: allow.isAdvanced,
+      }).toEqual({
+        name: "Allow self-signed certificates",
+        type: ComponentInputType.Boolean,
+        required: false,
+        isAdvanced: true,
+      });
+      expect({
+        name: ca.name,
+        type: ca.type,
+        required: ca.required,
+        isAdvanced: ca.isAdvanced,
+        placeholder: ca.placeholder,
+      }).toEqual({
+        name: "CA certificate",
+        type: ComponentInputType.LongText,
+        required: false,
+        isAdvanced: true,
+        placeholder: "-----BEGIN CERTIFICATE-----",
+      });
+      // Worded as a Runbook HTTP step's (#10277).
+      expect(allow.description).toBe(
+        "Skips certificate checks for this step's request, so self-signed certificates work, but anyone on the network path could read or change the request.",
+      );
+      expect(ca.description).toBe(
+        "The step trusts only this certificate (PEM): that of the CA that signed the server's certificate, or the server's own when it is self-signed.",
+      );
+    },
+  );
 
   test("the CA certificate is shown while the switch is off, and hidden while it is on", () => {
     const ca: Argument = APIComponents[0]!.arguments.find(
@@ -246,10 +277,14 @@ describe("the two settings, as each API step's settings draw them", () => {
 
     expect(isArgumentShown(ca, {})).toBe(true);
     expect(
-      isArgumentShown(ca, { [ALLOW_SELF_SIGNED_CERTIFICATES_ARGUMENT_ID]: false }),
+      isArgumentShown(ca, {
+        [ALLOW_SELF_SIGNED_CERTIFICATES_ARGUMENT_ID]: false,
+      }),
     ).toBe(true);
     expect(
-      isArgumentShown(ca, { [ALLOW_SELF_SIGNED_CERTIFICATES_ARGUMENT_ID]: true }),
+      isArgumentShown(ca, {
+        [ALLOW_SELF_SIGNED_CERTIFICATES_ARGUMENT_ID]: true,
+      }),
     ).toBe(false);
     // An earlier step's value is known only when the step runs.
     expect(
@@ -260,44 +295,51 @@ describe("the two settings, as each API step's settings draw them", () => {
   });
 });
 
-describe.each(STEPS)("$name, to a server whose certificate it signed itself", (entry: {
-  id: ComponentID;
-}) => {
-  test("with neither setting, takes the Error port, saying which setting lets it through, and sends nothing", async () => {
-    const server: LocalHttpsServer = await serverWith(certificates.selfSigned);
+describe.each(STEPS)(
+  "$name, to a server whose certificate it signed itself",
+  (entry: { id: ComponentID }) => {
+    test("with neither setting, takes the Error port, saying which setting lets it through, and sends nothing", async () => {
+      const server: LocalHttpsServer = await serverWith(
+        certificates.selfSigned,
+      );
 
-    const result: RunReturnType = await run(entry.id, server);
+      const result: RunReturnType = await run(entry.id, server);
 
-    expect(result.executePort?.id).toBe("error");
-    expect(result.returnValues["error"]).toBe(
-      HTTP_STEP_UNTRUSTED_CERTIFICATE_MESSAGE,
-    );
-    expect(server.isUntouched).toBe(true);
-  });
-
-  test("with Allow self-signed certificates on, goes through", async () => {
-    const server: LocalHttpsServer = await serverWith(certificates.selfSigned);
-
-    const result: RunReturnType = await run(entry.id, server, {
-      [ALLOW_SELF_SIGNED_CERTIFICATES_ARGUMENT_ID]: true,
+      expect(result.executePort?.id).toBe("error");
+      expect(result.returnValues["error"]).toBe(
+        HTTP_STEP_UNTRUSTED_CERTIFICATE_MESSAGE,
+      );
+      expect(server.isUntouched).toBe(true);
     });
 
-    expect(result.executePort?.id).toBe("success");
-    expect(result.returnValues["response-status"]).toBe(200);
-    expect(server.requests).toHaveLength(1);
-  });
+    test("with Allow self-signed certificates on, goes through", async () => {
+      const server: LocalHttpsServer = await serverWith(
+        certificates.selfSigned,
+      );
 
-  test("with its own certificate as the CA certificate, goes through", async () => {
-    const server: LocalHttpsServer = await serverWith(certificates.selfSigned);
+      const result: RunReturnType = await run(entry.id, server, {
+        [ALLOW_SELF_SIGNED_CERTIFICATES_ARGUMENT_ID]: true,
+      });
 
-    const result: RunReturnType = await run(entry.id, server, {
-      [CA_CERTIFICATE_ARGUMENT_ID]: certificates.selfSigned.certificate,
+      expect(result.executePort?.id).toBe("success");
+      expect(result.returnValues["response-status"]).toBe(200);
+      expect(server.requests).toHaveLength(1);
     });
 
-    expect(result.executePort?.id).toBe("success");
-    expect(server.requests).toHaveLength(1);
-  });
-});
+    test("with its own certificate as the CA certificate, goes through", async () => {
+      const server: LocalHttpsServer = await serverWith(
+        certificates.selfSigned,
+      );
+
+      const result: RunReturnType = await run(entry.id, server, {
+        [CA_CERTIFICATE_ARGUMENT_ID]: certificates.selfSigned.certificate,
+      });
+
+      expect(result.executePort?.id).toBe("success");
+      expect(server.requests).toHaveLength(1);
+    });
+  },
+);
 
 describe("API Post's certificate settings, read as a Runbook HTTP step's", () => {
   test("a CA certificate of another key is refused, saying the step's CA certificate did not sign it", async () => {
@@ -347,7 +389,8 @@ describe("API Post's certificate settings, read as a Runbook HTTP step's", () =>
       );
 
       const result: RunReturnType = await run(ComponentID.ApiPost, server, {
-        [ALLOW_SELF_SIGNED_CERTIFICATES_ARGUMENT_ID]: value as JSONObject[string],
+        [ALLOW_SELF_SIGNED_CERTIFICATES_ARGUMENT_ID]:
+          value as JSONObject[string],
       });
 
       expect(result.executePort?.id).toBe("error");

@@ -179,12 +179,12 @@ describe("WebhookService's body for the Notification API", () => {
   test("carries the step's settings, and nothing for a webhook that has none", async () => {
     const bodies: Array<JSONObject> = [];
 
-    jest
-      .spyOn(API, "post")
-      .mockImplementation((async (request: { data?: JSONObject }) => {
-        bodies.push(request.data || {});
-        return DELIVERED;
-      }) as never);
+    jest.spyOn(API, "post").mockImplementation((async (request: {
+      data?: JSONObject;
+    }) => {
+      bodies.push(request.data || {});
+      return DELIVERED;
+    }) as never);
 
     await WebhookService.sendWebhook({
       url: URL_TEXT,
