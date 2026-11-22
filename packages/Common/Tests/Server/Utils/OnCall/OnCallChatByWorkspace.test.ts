@@ -8,10 +8,11 @@ import logger from "../../../../Server/Utils/Logger";
 import OnCallChatByWorkspace, {
   OnCallChatTextByWorkspaceType,
   OnCallChatWriter,
-  ON_CALL_CHAT_INVITEE_UNNAMED,
   ON_CALL_CHAT_NOBODY_NAMED,
 } from "../../../../Server/Utils/OnCall/OnCallChatByWorkspace";
-import OnCallChatText from "../../../../Server/Utils/OnCall/OnCallChatText";
+import OnCallChatText, {
+  ON_CALL_CHAT_INVITEE_UNNAMED,
+} from "../../../../Server/Utils/OnCall/OnCallChatText";
 import PendingInviteeProfiles, {
   WithheldProfile,
 } from "../../../../Server/Utils/TeamMember/PendingInviteeProfiles";

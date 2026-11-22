@@ -19,10 +19,8 @@ import WorkspaceNotificationRuleService from "../../../Server/Services/Workspace
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
 import logger from "../../../Server/Utils/Logger";
-import {
-  ON_CALL_CHAT_INVITEE_UNNAMED,
-  ON_CALL_CHAT_NOBODY_NAMED,
-} from "../../../Server/Utils/OnCall/OnCallChatByWorkspace";
+import { ON_CALL_CHAT_NOBODY_NAMED } from "../../../Server/Utils/OnCall/OnCallChatByWorkspace";
+import { ON_CALL_CHAT_INVITEE_UNNAMED } from "../../../Server/Utils/OnCall/OnCallChatText";
 import OnDutyPoliciesCache from "../../../Server/Utils/OnCall/OnDutyPoliciesCache";
 import PendingInviteeProfiles, {
   WithheldProfile,

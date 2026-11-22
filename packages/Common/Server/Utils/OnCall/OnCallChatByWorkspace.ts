@@ -22,7 +22,10 @@ import PendingInviteeProfiles, {
 import WorkspaceUtil from "../Workspace/Workspace";
 import WorkspaceMentions from "../Workspace/WorkspaceMentions";
 import WorkspaceMessageTime from "../Workspace/WorkspaceMessageTime";
-import { OnCallMomentText } from "./OnCallChatText";
+import {
+  ON_CALL_CHAT_INVITEE_UNNAMED,
+  OnCallMomentText,
+} from "./OnCallChatText";
 
 /*
  * AN ON-CALL LINE, AS EACH CONNECTED WORKSPACE READS IT (issues #7549,
@@ -114,14 +117,6 @@ export interface OnCallChatLines {
 
 // Who a line names when OneUptime has no name for them.
 export const ON_CALL_CHAT_NOBODY_NAMED: string = "Somebody";
-
-/*
- * Who a line names for someone only invited to the project when no name
- * was typed with their invitation, or the name typed holds an address
- * (#10616): never their email address.
- */
-export const ON_CALL_CHAT_INVITEE_UNNAMED: string =
-  "someone who hasn't joined the project yet";
 
 /*
  * Whether somebody a line names is only invited to the project: with the
