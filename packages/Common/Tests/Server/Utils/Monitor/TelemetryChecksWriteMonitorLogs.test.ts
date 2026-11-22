@@ -508,3 +508,100 @@ describe("a Logs monitor's check", () => {
     ).toEqual({ kind: TelemetryObservationKind.Logs, count: 12 });
   });
 });
+
+/*
+ * #10063: a check whose criteria compare a formula, as the Host templates
+ * that scale a ratio do. The row holds the query's points and the formula's
+ * computed from them; Observed counts what the criteria compared, once.
+ */
+describe("a Host monitor's check whose criteria compare a formula", () => {
+  const FORMULA_ALIAS: string = "percent";
+
+  test("its row's Observed counts the formula's data points, not its query's as well", async () => {
+    const aboveNinetyPercent: MonitorCriteriaInstance =
+      new MonitorCriteriaInstance();
+    aboveNinetyPercent.data = {
+      ...ABOVE_90.data!,
+      id: "above-90-percent",
+      filters: [
+        {
+          ...ABOVE_90.data!.filters[0]!,
+          metricMonitorOptions: {
+            metricAlias: FORMULA_ALIAS,
+            metricAggregationType: EvaluateOverTimeType.AnyValue,
+          },
+        },
+      ],
+    };
+
+    const metricViewConfig: JSONObject = {
+      queryConfigs: [QUERY],
+      formulaConfigs: [
+        {
+          metricAliasData: {
+            metricVariable: FORMULA_ALIAS,
+            title: "CPU (%)",
+            description: "",
+            legend: "",
+            legendUnit: "%",
+          },
+          metricFormulaData: { metricFormula: "a * 100" },
+        },
+      ],
+    };
+
+    setUpMonitor({
+      monitorType: MonitorType.Host,
+      criteria: aboveNinetyPercent,
+      stepData: {
+        hostMonitor: {
+          hostIdentifier: "web-01",
+          rollingTime: RollingTime.Past5Minutes,
+          metricViewConfig: metricViewConfig,
+        },
+      } as unknown as JSONObject,
+    });
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const minutes: Array<number> = [1, 2, 3, 4, 5];
+
+    const pointsOf: (scale: number) => AggregatedResult = (
+      scale: number,
+    ): AggregatedResult => {
+      return {
+        data: minutes.map((minute: number) => {
+          return {
+            timestamp: OneUptimeDate.addRemoveSeconds(now, -60 * minute),
+            value: 0.95 * scale,
+          };
+        }),
+      };
+    };
+
+    await MonitorResourceUtil.monitorResource({
+      projectId: PROJECT_ID,
+      monitorId: MONITOR_ID,
+      metricViewConfig: metricViewConfig as never,
+      // The query's five points, then the formula's computed from them.
+      metricResult: [pointsOf(1), pointsOf(100)],
+      startAndEndDate: RollingTimeUtil.convertToStartAndEndDate(
+        RollingTime.Past5Minutes,
+        now,
+      ),
+    } as MetricMonitorResponse);
+
+    const rows: Array<JSONObject> = await loggedRows();
+
+    expect(rows).toHaveLength(1);
+
+    const logBody: JSONObject = readBack(rows[0]!);
+
+    expect(evaluationOf(logBody).criteriaResults[0]?.met).toBe(true);
+    expect(
+      MonitorLogSummaryUtil.getTelemetryObservation({
+        monitorType: MonitorType.Host,
+        logBody: logBody,
+      }),
+    ).toEqual({ kind: TelemetryObservationKind.MetricDataPoints, count: 5 });
+  });
+});
