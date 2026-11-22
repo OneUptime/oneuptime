@@ -117,7 +117,8 @@ export const readReauthenticationPurpose: (
  *   - a sign-in started by Sign In Again (this query parameter on the
  *     sign-in's start) asks the provider to authenticate the person again:
  *     SAML's ForceAuthn, OpenID Connect's prompt=login and max_age=0 (Google
- *     takes neither, and is asked for auth_time instead);
+ *     takes neither, and is asked for auth_time instead; Microsoft Entra
+ *     ID is sent prompt=login alone, #10529);
  *   - and counts only when the provider says it authenticated them at or
  *     after the moment Sign In Again sent them there, give or take
  *     SIGN_IN_AGAIN_CLOCK_SKEW_IN_SECONDS: the assertion's AuthnInstant, or

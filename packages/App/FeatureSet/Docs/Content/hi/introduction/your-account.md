@@ -167,9 +167,9 @@ flowchart TB
 | प्रदाता | OneUptime क्या माँगता है | जब पुष्टि नहीं होती |
 | --- | --- | --- |
 | SAML | `ForceAuthn="true"`, और आपने कब साइन इन किया (`AuthnInstant`) | प्रदाता से अनुरोध का पालन करवाएँ, जैसे Okta में Honor Force Authentication से। |
-| OpenID Connect | `prompt=login` और `max_age=0`, और आपने कब साइन इन किया (`auth_time`) | प्रदाता से `auth_time` भिजवाएँ। Microsoft Entra ID में, इसे ID टोकन में वैकल्पिक क्लेम के रूप में जोड़ें। |
+| OpenID Connect | `prompt=login` और `max_age=0` (Microsoft Entra ID के लिए केवल `prompt=login`), और आपने कब साइन इन किया (`auth_time`) | प्रदाता से `auth_time` भिजवाएँ। Microsoft Entra ID में, इसे ID टोकन में वैकल्पिक क्लेम के रूप में जोड़ें। |
 | Google | आपने कब साइन इन किया (`auth_time`)। Google से आपको फिर से साइन इन करवाने के लिए नहीं कहा जा सकता। | सर्वर के Google साइन-इन ऐप के लिए Session age claims चालू करें, जो प्रकाशित और सत्यापित होना चाहिए। |
-| Microsoft | `prompt=login` और `max_age=0`, और आपने कब साइन इन किया (`auth_time`) | सर्वर के Microsoft साइन-इन ऐप के ID टोकन में `auth_time` को वैकल्पिक क्लेम के रूप में जोड़ें। |
+| Microsoft | `prompt=login`, और आपने कब साइन इन किया (`auth_time`) | सर्वर के Microsoft साइन-इन ऐप के ID टोकन में `auth_time` को वैकल्पिक क्लेम के रूप में जोड़ें। |
 | Vercel | कुछ नहीं: Vercel से आपको फिर से साइन इन कराने के लिए नहीं कहा जा सकता, और वह नहीं बताता कि आपने कब साइन इन किया। | यह कभी पुष्टि नहीं करता। **किसी और तरीके से साइन इन करें** चुनें और ईमेल से मिले लिंक से साइन इन करें, या **पासवर्ड भूल गए?** से एक पासवर्ड सेट करें और उससे पुष्टि करें। |
 
 Okta, Microsoft Entra ID, Keycloak और Google Workspace में क्या सेट करना है, यह [SSO](/docs/identity/sso#यह-पुष्टि-करने-के-लिए-फिर-से-साइन-इन-करना-कि-यह-आप-ही-हैं) पेज पर बताया गया है।

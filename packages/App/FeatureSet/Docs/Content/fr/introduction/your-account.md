@@ -167,9 +167,9 @@ Se reconnecter ne compte que si votre fournisseur d'identité indique que vous v
 | Fournisseur | Ce que OneUptime demande | Quand elle ne confirme rien |
 | --- | --- | --- |
 | SAML | `ForceAuthn="true"`, et le moment où vous vous êtes connecté (`AuthnInstant`) | Faites respecter la demande par le fournisseur, par exemple avec Honor Force Authentication dans Okta. |
-| OpenID Connect | `prompt=login` et `max_age=0`, et le moment où vous vous êtes connecté (`auth_time`) | Faites envoyer `auth_time` par le fournisseur. Dans Microsoft Entra ID, ajoutez-la au jeton d'ID comme revendication facultative. |
+| OpenID Connect | `prompt=login` et `max_age=0` (Microsoft Entra ID : seulement `prompt=login`), et le moment où vous vous êtes connecté (`auth_time`) | Faites envoyer `auth_time` par le fournisseur. Dans Microsoft Entra ID, ajoutez-la au jeton d'ID comme revendication facultative. |
 | Google | Le moment où vous vous êtes connecté (`auth_time`). On ne peut pas demander à Google de vous faire reconnecter. | Activez Session age claims pour l'application de connexion Google du serveur, qui doit être publiée et validée. |
-| Microsoft | `prompt=login` et `max_age=0`, et le moment où vous vous êtes connecté (`auth_time`) | Ajoutez `auth_time` au jeton d'ID de l'application de connexion Microsoft du serveur comme revendication facultative. |
+| Microsoft | `prompt=login`, et le moment où vous vous êtes connecté (`auth_time`) | Ajoutez `auth_time` au jeton d'ID de l'application de connexion Microsoft du serveur comme revendication facultative. |
 | Vercel | Rien : on ne peut pas demander à Vercel de vous faire vous reconnecter, et il n'indique pas quand vous vous êtes connecté. | Il ne confirme jamais. Choisissez **Se connecter autrement** et connectez-vous avec un lien envoyé par e-mail, ou définissez un mot de passe avec **Mot de passe oublié ?** et confirmez avec lui. |
 
 Les réglages à faire dans Okta, Microsoft Entra ID, Keycloak et Google Workspace sont indiqués sur la page [SSO](/docs/identity/sso#se-reconnecter-pour-confirmer-que-cest-bien-vous).
