@@ -836,19 +836,26 @@ describe("Add WAF", () => {
 
     expect(form.title).toBe("Add WAF");
     expect(form.isLoading).toBe(false);
-    expect(fieldOf(form, "cloudResourceId").dropdownOptions).toEqual([
-      { label: "prod-alb (eu-west-1, Production)", value: RESOURCE_ID },
-      { label: "prod-cf (CloudFront, Production)", value: "r-2" },
-      { label: "edgewaf (Front Door, Production Azure)", value: "r-azure" },
-      {
-        label: "prod-waf (Application Gateway, Production Azure)",
-        value: "r-gateway",
-      },
-      {
-        label: "prod-lb (Cloud Armor, global, Production GCP)",
-        value: "r-armor",
-      },
-    ]);
+    expect(fieldOf(form, "cloudResourceId").dropdownOptions).toEqual(
+      [
+        { label: "prod-alb (eu-west-1, Production)", value: RESOURCE_ID },
+        { label: "prod-cf (CloudFront, Production)", value: "r-2" },
+        { label: "edgewaf (Front Door, Production Azure)", value: "r-azure" },
+        {
+          label: "prod-waf (Application Gateway, Production Azure)",
+          value: "r-gateway",
+        },
+        {
+          label: "prod-lb (Cloud Armor, global, Production GCP)",
+          value: "r-armor",
+        },
+      ].map(
+        (option: { label: string; value: string }): Record<string, unknown> => {
+          // Names put in the reader's words already: drawn as they are, the page's way.
+          return { ...option, isUserContent: true, isInPageDirection: true };
+        },
+      ),
+    );
 
     const note: HTMLElement = screen.getByTestId(CLOUD_WAF_TEST_IDS.addNote);
 

@@ -334,6 +334,9 @@ export function getCloudWafOptions(data: {
           connection: candidate.connectionName,
         }),
         value: candidate.cloudResourceId,
+        // Names the cloud and the person gave, put in the reader's words here: drawn as it is, the page's way.
+        isUserContent: true,
+        isInPageDirection: true,
       };
     });
 }
