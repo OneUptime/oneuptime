@@ -9,6 +9,7 @@ Seguridad de datos ejecuta 34 comprobaciones en cada almacén, en nueve grupos. 
 - [Qué le pasa a un problema](#qué-le-pasa-a-un-problema): Abierto, resuelto, aceptado, no es un problema.
 - [El análisis de OneUptime AI](#el-análisis-de-oneuptime-ai): Si un problema es real, lo que pone en riesgo, lo que rompería la corrección y el camino más corto hacia la corrección.
 - [Corrígelo desde aquí](#corrígelo-desde-aquí): Cierra una exposición, o activa una protección que falta, con un clic.
+- [Problemas con una sola causa](#problemas-con-una-sola-causa): Los problemas que causó un mismo error, agrupados, y su causa corregida una sola vez.
 :::
 
 ## Cómo decide una comprobación
@@ -194,6 +195,36 @@ Un problema abierto que corrige un solo cambio en los ajustes de un almacén (un
 Primero pregunta, y dice qué cambia, qué deja de funcionar y qué cuesta. Cambia los ajustes del almacén, nunca sus datos, y no cambia nada que ya esté como debe. Un almacén marcado como **Público por diseño** nunca se bloquea.
 
 Actúa a través de la conexión a la nube del almacén, así que la conexión necesita **Respuesta de seguridad de datos** activada y su comando de configuración ejecutado de nuevo (consulta [Configurar Seguridad de datos](/docs/data-security/setup#dejar-que-seguridad-de-datos-cierre-una-exposición)). Hasta entonces, el panel dice qué hay que activar. El almacén se vuelve a comprobar justo después, y el problema se resuelve solo en cuanto su comprobación se supera. La **Cronología** del problema y la **Cronología** del almacén dicen qué se hizo y quién lo hizo.
+
+## Problemas con una sola causa
+
+Un módulo de Terraform que desactiva los registros de acceso crea cuarenta buckets con cuarenta problemas. Seguridad de datos reúne los problemas que causó un mismo error, para que su causa se corrija una sola vez.
+
+**Agrupar por causa** en **Problemas** muestra cada grupo encima de la lista: «40 problemas, una sola causa: el módulo static-site», lo que encuentra su comprobación, cuántos están corregidos y cuántos quedan. Sus almacenes de datos se despliegan debajo, cada uno con un enlace a su problema, y los filtros de la lista los reducen igual que reducen las filas. Los problemas sin grupo aparecen debajo de los grupos. La agrupación se activa en cuanto un grupo tiene cinco problemas, y tu navegador recuerda tu elección.
+
+Los hechos forman un grupo, nunca OneUptime AI. Los problemas de una misma comprobación, en almacenes de datos de una misma nube, forman un grupo cuando sus almacenes comparten uno de estos hechos, del más fuerte al más débil:
+
+| Hecho | Dónde se lee |
+| --- | --- |
+| El código que los declara | Un archivo de un repositorio conectado con el nombre del módulo o la pila que nombran sus etiquetas |
+| Su pila | La etiqueta propia de la pila de CloudFormation, o una etiqueta que nombra una pila |
+| Una etiqueta | Una etiqueta que nombra el módulo, la pila o el componente que los creó, como `module` o `component` |
+| Quién los creó | La identidad que los creó según el registro de cambios de la nube, para los almacenes cuyas etiquetas no nombran nada de lo que los creó |
+| Un patrón de nombre | Una parte de sus nombres que pocos otros almacenes tienen, como `static-site-*` |
+
+Un grupo tiene al menos dos problemas, un problema está como mucho en un grupo, y un problema sigue en su grupo mientras su almacén de datos comparta el hecho del grupo. Mientras **Trabajar en los problemas nuevos** esté activado en **Seguridad de datos → IA**, OneUptime AI nombra cada grupo a partir de sus hechos, como «el módulo static-site desactiva los registros de acceso», y un nombre que dice algo que sus hechos no dicen no se conserva. Si no, un grupo lleva el nombre de su hecho.
+
+**Corregir la causa** en un grupo dice qué cambia, qué deja fuera y por qué, antes de que cambie nada:
+
+- **Una sola pull request**, para los almacenes de datos declarados como código: OneUptime AI cambia el módulo o el archivo que los declara, en el repositorio que confirmes, en vez de cada almacén. La pull request enumera cada almacén y cada problema que corrige, y aparece en **Código** y en la **Cronología** de cada problema. Requiere lo mismo que **Corregir con IA**: permiso para cambiar problemas de seguridad de datos y un repositorio en el que OneUptime AI pueda trabajar.
+- **Una sola aprobación**, para los almacenes de datos creados en la consola: el cambio que hace [Corrígelo desde aquí](#corrígelo-desde-aquí), en cada uno de ellos mediante su conexión a la nube. Requiere permiso para editar almacenes de datos.
+- **Excluidos**: un almacén marcado como **Público por diseño** nunca se bloquea. Un almacén cuyo análisis dice que la corrección quitaría un acceso que algo todavía usa espera a que marques **Corregirlo de todos modos**. Un almacén que ninguna conexión a la nube deja cambiar a Seguridad de datos se deja a su consola, con el motivo.
+
+Cuando un grupo tiene los dos tipos de almacén, una sola pulsación hace ambas partes, y cualquiera de ellas se puede dejar fuera. Cada problema se resuelve solo en cuanto su comprobación se supera, y el grupo dice cuántos quedan hasta que no queda ninguno. Un grupo con todos sus problemas corregidos sigue en la lista durante siete días.
+
+OneUptime AI propone la corrección de cada grupo como dicen tus reglas de IA de Seguridad de datos: sin reglas, la pull request te espera en **Seguridad de datos → IA**, y una regla cuya **Corrección** es **Sin preguntar** la abre por sí sola. Un cambio mediante las conexiones a la nube siempre te espera. En un caso de Seguridad de datos, el paso **Fix the code with AI** de un playbook pide la pull request del grupo del caso. Un problema de un grupo lo dice en **Análisis de OneUptime AI**, con **Corregir la causa**.
+
+Solo las personas que leen los problemas de seguridad de datos de todo el proyecto ven los grupos: un grupo nombra almacenes de datos a los que una lectura limitada por etiquetas no puede llegar.
 
 ## Dónde se encontraron los datos de un problema de telemetría
 
