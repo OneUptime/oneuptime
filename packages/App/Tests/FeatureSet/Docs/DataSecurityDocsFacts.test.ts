@@ -3119,14 +3119,15 @@ describe("Data Security Integrations", () => {
       "Judge",
       "Off",
       "Suggest",
-      "Without asking",
+      // The choice that runs without approval, as the form draws it (e76f1ced289).
+      "Automatically",
     ]) {
       expect(copy).toContain(`translationKey("${name}")`);
       expect(rules).toContain(`**${name}**`);
     }
 
-    // Suggest wins over Without asking, as the engine decides it.
-    expect(rules).toContain("**Suggest** wins over **Without asking**");
+    // Suggest wins over Automatically, as the engine decides it.
+    expect(rules).toContain("**Suggest** wins over **Automatically**");
     expect(source("Common/Types/DataSecurity/DataSecurityAi.ts")).toContain(
       "otherwise the careful answer wins - Suggest when any rule that",
     );
