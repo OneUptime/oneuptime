@@ -61563,5 +61563,14 @@
   "{{count}} requests were throttled.": "요청 {{count}}건이 스로틀링되었습니다.",
   "{{count}} requests were throttled._one": "요청 {{count}}건이 스로틀링되었습니다.",
   "{{size}} in {{count}} requests was not stored.": "요청 {{count}}건({{size}})이 저장되지 않았습니다.",
-  "{{size}} in {{count}} requests was not stored._one": "요청 {{count}}건({{size}})이 저장되지 않았습니다."
+  "{{size}} in {{count}} requests was not stored._one": "요청 {{count}}건({{size}})이 저장되지 않았습니다.",
+  "Add these two rules to {{name}} in your code, before your other rules. OneUptime enforces its blocks there once it finds them in the web ACL.": "코드에서 {{name}}에 이 두 규칙을 다른 규칙보다 앞에 추가하세요. OneUptime은 규칙을 찾을 때까지 웹 ACL을 읽으며, 그때부터 차단이 적용됩니다.",
+  "Leaves OneUptime's rule and IP sets in AWS WAF, still blocking what they hold. For when OneUptime can no longer write them: delete them yourself.": "OneUptime의 규칙과 IP 세트를 AWS WAF에 남겨 두며, 이들은 담고 있는 주소를 계속 차단합니다. OneUptime이 더 이상 이들을 변경할 수 없을 때 사용하세요. 직접 삭제해야 합니다.",
+  "OneUptime AI analyzes new Critical and High issues. By default it asks before each change, except undoable, proven-safe ones that only hide data.": "OneUptime AI는 심각도가 심각 또는 높음인 새 이슈를 분석합니다. 기본적으로 데이터를 숨기기만 하고, 되돌릴 수 있으며, 안전이 검증된 변경을 제외한 모든 변경 전에 확인을 요청합니다.",
+  "OneUptime added these two rules to {{name}}, below your first rule, and keeps them there. They block and challenge the addresses in its IP sets.": "OneUptime이 이 두 규칙을 첫 번째 규칙보다 먼저 평가되는 위치에 두어 {{name}}에 추가했으며, 계속 그 위치에 유지합니다. 이 규칙들은 OneUptime의 IP 세트에 있는 주소를 차단하고 챌린지를 적용합니다.",
+  "OneUptime takes its rule out of {{name}}, and deletes its IP sets once no other web ACL uses them. Your blocklist is then no longer enforced there.": "OneUptime은 {{name}}에서 자체 규칙을 제거하고, 다른 웹 ACL이 IP 세트를 더 이상 사용하지 않으면 IP 세트를 삭제합니다. 그러면 차단 목록이 더 이상 그곳에 적용되지 않습니다.",
+  "Pick a web ACL to enforce your blocklist in. OneUptime makes its IP sets and adds its rule, or waits for yours when you keep the web ACL in code.": "차단 목록을 적용할 웹 ACL을 선택하세요. OneUptime은 IP 세트를 만들고 자체 규칙을 추가하며, 웹 ACL을 코드로 관리하는 경우에는 사용자가 규칙을 추가하기를 기다립니다.",
+  "Where AWS WAF reads the address a block is matched against. Behind another proxy or CDN, read the header that proxy sets instead.": "AWS WAF가 차단과 대조할 주소를 읽는 위치입니다. 다른 프록시나 CDN 뒤에서는 대신 그 프록시가 설정하는 헤더를 읽도록 하세요.",
+  "Your role cannot read the incidents, alerts, on-call pages, fixes or Data Security issues these results count. A Project Admin can give you access.": "이 성과는 인시던트, 경고, 온콜 호출, 수정, 데이터 보안 이슈를 집계하는데, 현재 역할로는 그중 어느 것도 읽을 수 없습니다. 프로젝트 관리자가 접근 권한을 줄 수 있습니다.",
+  "No security events for the selected time range and filters, but some logs or traces in it were refused and never scanned: their events are missing.": "선택한 기간과 필터에 해당하는 보안 이벤트가 없지만, 이 기간의 로그나 트레이스 일부가 거부되어 검사되지 않았으므로 그로부터 나올 이벤트가 누락되었습니다."
 }
