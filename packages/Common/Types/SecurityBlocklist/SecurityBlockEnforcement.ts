@@ -51,6 +51,10 @@ export enum SecurityBlockDestinationProvider {
   Cloudflare = "Cloudflare",
   // One web ACL of an AWS account, through its cloud connection (#10344).
   AwsWaf = "AwsWaf",
+  // One Application Gateway or Front Door WAF policy, through an Azure cloud connection (#10348).
+  AzureWaf = "AzureWaf",
+  // One Google Cloud Armor security policy, through a Google Cloud connection (#10349).
+  CloudArmor = "CloudArmor",
 }
 
 /*
