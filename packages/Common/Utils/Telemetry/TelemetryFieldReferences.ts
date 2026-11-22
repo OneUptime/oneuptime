@@ -2027,18 +2027,20 @@ export function findTraceSavedViewTelemetryQueries(view: {
   for (const token of parseSearchQuery(readText(state["search"]), {
     knownFieldKeys: new Set(SLO_REQUEST_FILTER_EXPLORER_FIELDS),
   })) {
-    if (token.type !== SearchTokenType.Field) {
+    // Free text searches; a term with a "-" before it keeps what it is not.
+    if (token.type === SearchTokenType.FreeText || token.negated) {
       continue;
     }
 
-    const fieldKey: string = token.key.toLowerCase();
+    const fieldKey: string =
+      token.type === SearchTokenType.Field ? token.key.toLowerCase() : "";
 
     if (fieldKey === SLO_REQUEST_FILTER_NAME_FIELD) {
       pin(pinned, "name", pinnedOfPredicate(token.predicate));
       continue;
     }
 
-    if (TRACE_SEARCH_FIELDS.has(fieldKey)) {
+    if (fieldKey && TRACE_SEARCH_FIELDS.has(fieldKey)) {
       continue;
     }
 
