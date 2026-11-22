@@ -62076,5 +62076,22 @@
   "Written by your team": "आपकी टीम द्वारा लिखा गया",
   "{{count}} days after an address was last seen": "किसी पते के आख़िरी बार दिखने के {{count}} दिन बाद",
   "{{count}} days after an address was last seen_one": "किसी पते के आख़िरी बार दिखने के {{count}} दिन बाद",
-  "Security Address Vault": "सुरक्षा पता वॉल्ट"
+  "Security Address Vault": "सुरक्षा पता वॉल्ट",
+  "Last run {{time}}": "अंतिम रन {{time}}",
+  "Last run {{time}}, requested by {{name}}": "अंतिम रन {{time}}, {{name}} के अनुरोध पर",
+  "On demand": "मांग पर",
+  "Requested by {{name}}": "{{name}} के अनुरोध पर",
+  "Run Requested At": "रन अनुरोध का समय",
+  "Run Requested By": "रन का अनुरोधकर्ता",
+  "Run Requested By User ID": "रन का अनुरोध करने वाले उपयोगकर्ता की ID",
+  "Run {{scan}} again": "{{scan}} को फिर से चलाएं",
+  "The scan is queued to run again.": "स्कैन को फिर से चलाने के लिए कतार में लगा दिया गया है।",
+  "This scan is already queued to run. It starts when its probe picks it up.": "यह स्कैन पहले से कतार में है। इसका प्रोब इसे उठाते ही यह शुरू हो जाता है।",
+  "This scan is already running. Run it again once this run finishes.": "यह स्कैन पहले से चल रहा है। यह रन पूरा होने के बाद इसे फिर से चलाएं।",
+  "This scan no longer exists. Refresh the list to see the latest scans.": "यह स्कैन अब मौजूद नहीं है। नए स्कैन देखने के लिए सूची रिफ्रेश करें।",
+  "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "इस स्कैन का प्रोब OneUptime से कनेक्ट नहीं है, इसलिए स्कैन अभी नहीं चल सकता। प्रोब शुरू करें, या संपादित करें में कोई दूसरा प्रोब चुनें।",
+  "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "इस स्कैन का प्रोब अब मौजूद नहीं है, इसलिए स्कैन नहीं चल सकता। संपादित करें में कोई दूसरा प्रोब चुनें।",
+  "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "इस स्कैन का प्रोब, {{probe}}, OneUptime से कनेक्ट नहीं है, इसलिए स्कैन अभी नहीं चल सकता। प्रोब शुरू करें, या संपादित करें में कोई दूसरा प्रोब चुनें।",
+  "You may not edit this project's discovery scans, so you cannot run one.": "आप इस प्रोजेक्ट के डिस्कवरी स्कैन संपादित नहीं कर सकते, इसलिए आप कोई स्कैन नहीं चला सकते।",
+  "{{scan}} is queued to run again.": "{{scan}} को फिर से चलाने के लिए कतार में लगा दिया गया है।"
 }

@@ -62076,5 +62076,22 @@
   "Written by your team": "Skrevet af dit team",
   "{{count}} days after an address was last seen": "{{count}} dage efter, at en adresse sidst blev set",
   "{{count}} days after an address was last seen_one": "{{count}} dag efter, at en adresse sidst blev set",
-  "Security Address Vault": "Sikkerhedsadresseboks"
+  "Security Address Vault": "Sikkerhedsadresseboks",
+  "Last run {{time}}": "Senest kørt {{time}}",
+  "Last run {{time}}, requested by {{name}}": "Senest kørt {{time}}, anmodet af {{name}}",
+  "On demand": "Efter behov",
+  "Requested by {{name}}": "Anmodet af {{name}}",
+  "Run Requested At": "Kørsel anmodet den",
+  "Run Requested By": "Kørsel anmodet af",
+  "Run Requested By User ID": "ID for brugeren, der anmodede om kørslen",
+  "Run {{scan}} again": "Kør {{scan}} igen",
+  "The scan is queued to run again.": "Scanningen er sat i kø til at køre igen.",
+  "This scan is already queued to run. It starts when its probe picks it up.": "Denne scanning er allerede i kø. Den starter, når dens sonde tager den.",
+  "This scan is already running. Run it again once this run finishes.": "Denne scanning kører allerede. Kør den igen, når denne kørsel er færdig.",
+  "This scan no longer exists. Refresh the list to see the latest scans.": "Denne scanning findes ikke længere. Opdater listen for at se de seneste scanninger.",
+  "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Denne scannings sonde er ikke forbundet til OneUptime, så scanningen kan ikke køre nu. Start sonden, eller vælg en anden sonde under Rediger.",
+  "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "Denne scannings sonde findes ikke længere, så scanningen kan ikke køre. Vælg en anden sonde under Rediger.",
+  "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Denne scannings sonde, {{probe}}, er ikke forbundet til OneUptime, så scanningen kan ikke køre nu. Start sonden, eller vælg en anden sonde under Rediger.",
+  "You may not edit this project's discovery scans, so you cannot run one.": "Du må ikke redigere dette projekts opdagelsesscanninger, så du kan ikke køre en.",
+  "{{scan}} is queued to run again.": "{{scan}} er sat i kø til at køre igen."
 }

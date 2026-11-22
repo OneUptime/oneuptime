@@ -62076,5 +62076,22 @@
   "Written by your team": "由您的團隊填寫",
   "{{count}} days after an address was last seen": "位址最後一次出現後 {{count}} 天",
   "{{count}} days after an address was last seen_one": "位址最後一次出現後 {{count}} 天",
-  "Security Address Vault": "安全位址保管庫"
+  "Security Address Vault": "安全位址保管庫",
+  "Last run {{time}}": "上次執行於 {{time}}",
+  "Last run {{time}}, requested by {{name}}": "上次執行於 {{time}}，由 {{name}} 要求",
+  "On demand": "隨選",
+  "Requested by {{name}}": "由 {{name}} 要求",
+  "Run Requested At": "執行要求時間",
+  "Run Requested By": "執行要求者",
+  "Run Requested By User ID": "執行要求者使用者 ID",
+  "Run {{scan}} again": "再次執行 {{scan}}",
+  "The scan is queued to run again.": "掃描已重新排入佇列，等待再次執行。",
+  "This scan is already queued to run. It starts when its probe picks it up.": "此掃描已在佇列中。探測器領取後即會開始。",
+  "This scan is already running. Run it again once this run finishes.": "此掃描已在執行中。請在本次執行結束後再次執行。",
+  "This scan no longer exists. Refresh the list to see the latest scans.": "此掃描已不存在。重新整理清單即可查看最新的掃描。",
+  "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "此掃描的探測器未連線到 OneUptime，因此現在無法執行掃描。請啟動該探測器，或在「編輯」中選擇其他探測器。",
+  "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "此掃描的探測器已不存在，因此無法執行掃描。請在「編輯」中選擇其他探測器。",
+  "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "此掃描的探測器 {{probe}} 未連線到 OneUptime，因此現在無法執行掃描。請啟動該探測器，或在「編輯」中選擇其他探測器。",
+  "You may not edit this project's discovery scans, so you cannot run one.": "你無權編輯此專案的探索掃描，因此無法執行掃描。",
+  "{{scan}} is queued to run again.": "{{scan}} 已重新排入佇列，等待再次執行。"
 }

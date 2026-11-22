@@ -62076,5 +62076,22 @@
   "Written by your team": "Escrito por tu equipo",
   "{{count}} days after an address was last seen": "{{count}} días desde la última vez que se vio una dirección",
   "{{count}} days after an address was last seen_one": "{{count}} día desde la última vez que se vio una dirección",
-  "Security Address Vault": "Bóveda de direcciones de seguridad"
+  "Security Address Vault": "Bóveda de direcciones de seguridad",
+  "Last run {{time}}": "Última ejecución {{time}}",
+  "Last run {{time}}, requested by {{name}}": "Última ejecución {{time}}, solicitada por {{name}}",
+  "On demand": "Bajo demanda",
+  "Requested by {{name}}": "Solicitado por {{name}}",
+  "Run Requested At": "Ejecución solicitada el",
+  "Run Requested By": "Ejecución solicitada por",
+  "Run Requested By User ID": "ID del usuario que solicitó la ejecución",
+  "Run {{scan}} again": "Ejecutar {{scan}} de nuevo",
+  "The scan is queued to run again.": "El escaneo está en cola para ejecutarse de nuevo.",
+  "This scan is already queued to run. It starts when its probe picks it up.": "Este escaneo ya está en cola. Empieza cuando su sonda lo recoge.",
+  "This scan is already running. Run it again once this run finishes.": "Este escaneo ya se está ejecutando. Vuelve a ejecutarlo cuando termine esta ejecución.",
+  "This scan no longer exists. Refresh the list to see the latest scans.": "Este escaneo ya no existe. Actualiza la lista para ver los más recientes.",
+  "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "La sonda de este escaneo no está conectada a OneUptime, así que el escaneo no puede ejecutarse ahora. Inicia la sonda o elige otra sonda en Editar.",
+  "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "La sonda de este escaneo ya no existe, así que el escaneo no puede ejecutarse. Elige otra sonda en Editar.",
+  "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "La sonda de este escaneo, {{probe}}, no está conectada a OneUptime, así que el escaneo no puede ejecutarse ahora. Inicia la sonda o elige otra sonda en Editar.",
+  "You may not edit this project's discovery scans, so you cannot run one.": "No puedes editar los escaneos de descubrimiento de este proyecto, así que no puedes ejecutar ninguno.",
+  "{{scan}} is queued to run again.": "{{scan}} está en cola para ejecutarse de nuevo."
 }
