@@ -593,12 +593,16 @@ export default class SecurityPlaybookActions {
        * named by the name typed with their invitation, else "someone who
        * hasn't joined the project yet", never by their account's own name
        * (#9823, #9934); a member by their name, else the part of their
-       * address before the "@". Never an address.
+       * address before the "@". Never an address. They were read already,
+       * name and address, so only whether they are invited is read.
        */
-      const assigneeName: string = await FeedPersonName.getText({
-        userId: assignee.id,
+      const names: Map<string, string> = await FeedPersonName.readNames({
+        users: [assignee],
         projectId: context.projectId,
       });
+      const assigneeName: string | undefined = assignee.id
+        ? names.get(assignee.id.toString().toLowerCase())
+        : undefined;
 
       return succeeded(
         mdText`${added} for **${assigneeName || FEED_NOBODY_NAMED}**.`,

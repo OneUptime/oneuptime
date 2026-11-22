@@ -44,7 +44,9 @@ import Incident from "../../../../../Models/DatabaseModels/Incident";
 import SecurityCase from "../../../../../Models/DatabaseModels/SecurityCase";
 import SecurityDetection from "../../../../../Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "../../../../../Models/DatabaseModels/SecurityPlaybook";
+import User from "../../../../../Models/DatabaseModels/User";
 import { InstructionLikeTextScan } from "../../../../../Utils/AI/InstructionLikeText";
+import Name from "../../../../../Types/Name";
 import ObjectID from "../../../../../Types/ObjectID";
 import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEntity";
 import SecurityDetectionSource from "../../../../../Types/SecurityCase/SecurityDetectionSource";
@@ -1401,9 +1403,14 @@ describe("SecurityCaseAIContextBuilder.readLinkedHosts", () => {
     jest
       .spyOn(HostOwnerTeamService, "findBy")
       .mockResolvedValue([{ team: { name: "Platform" } }] as never);
+    // An owner, read with the id the read selects: named by it (#10681).
+    const riya: User = new User(
+      new ObjectID("aaaaaaaa-0000-4000-8000-00000000a0a1"),
+    );
+    riya.name = new Name("Riya Shah");
     jest
       .spyOn(HostOwnerUserService, "findBy")
-      .mockResolvedValue([{ user: { name: "Riya Shah" } }] as never);
+      .mockResolvedValue([{ user: riya }] as never);
 
     const linked: Array<TriageLinkedHost> =
       await SecurityCaseAIContextBuilder.readLinkedHosts({
