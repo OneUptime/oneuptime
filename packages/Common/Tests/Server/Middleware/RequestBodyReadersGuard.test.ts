@@ -135,16 +135,12 @@ const SHARED_READS: ReadonlyArray<[string, string]> = [
     "The token, revocation and authorization endpoints' forms (RFC 6749), held to 64 KB.",
   ],
   [
-    "packages/App/FeatureSet/Telemetry/API/Pyroscope.ts: ExpressRaw",
-    "A raw pprof profile, read after the ingest key is checked, held to 50 MB.",
-  ],
-  [
     "packages/Common/Server/Middleware/MultipartFormData.ts: ExpressRaw",
     "A multipart body's bytes, held to its route's limit, for multer to parse.",
   ],
   [
     "packages/Common/Server/Middleware/RequestBodyAfterAuthentication.ts: ExpressRaw",
-    "A body read once its caller's key is checked (a probe's collection, a forwarding pod's rows).",
+    "A body read once its caller's key is checked: a probe's collection, a forwarding pod's rows, and the uploads - a Pyroscope profile (multipart or raw), source maps, dSYMs (#10673).",
   ],
   [
     "packages/Common/Server/Middleware/WebhookRequestBody.ts: ExpressRaw",

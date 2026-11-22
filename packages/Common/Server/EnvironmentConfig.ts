@@ -1683,10 +1683,11 @@ export const SourceMapMaxFileSizeInBytes: number = parseClampedIntegerFromEnv(
  *
  * Separate from the per-release ceiling: a release may hold far more maps
  * than any single request may carry, and CI splits the upload. Clamped to
- * MAX_MULTIPART_FILES, which is the shared middleware default and runs
- * BEFORE authentication on every route that mounts it -- so this knob only
- * ever narrows the source map route, never widens the pre-auth surface that
- * Pyroscope and inbound email sit behind.
+ * MAX_MULTIPART_FILES, the shared multipart middleware's default -- the most
+ * a caller of any route that mounts it (Pyroscope, source maps, dSYMs, once
+ * their ingest key is checked; inbound email, once its webhook secret is) can
+ * have the process hold in one request -- so this knob only ever narrows the
+ * source map and dSYM routes, never widens it.
  */
 export const SourceMapMaxFilesPerRequest: number = parseClampedIntegerFromEnv(
   "SOURCE_MAP_MAX_FILES_PER_REQUEST",

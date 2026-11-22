@@ -30,6 +30,7 @@ import McpOAuthRateLimit, {
 } from "Common/Server/Middleware/McpOAuthRateLimit";
 import RequestBodyParser from "Common/Server/Middleware/RequestBodyParser";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
+import { MCP_OAUTH_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 import {
   ExpressApplication,
   ExpressJson,
@@ -55,26 +56,29 @@ export const MCP_OAUTH_REVOKE_PATH: string = `${MCP_OAUTH_PATH}/revoke`;
 export const MCP_OAUTH_CONSENT_PATH: string = `${MCP_OAUTH_PATH}/consent`;
 
 /*
- * Request bodies here are a handful of short parameters. The cap keeps an
- * anonymous caller from making the server parse megabytes to find that out.
+ * Request bodies here are a handful of short parameters. The cap - 64 KB,
+ * MCP_OAUTH_REQUEST_BODY_LIMIT - keeps an anonymous caller from making the
+ * server read and parse megabytes to find that out. StartServer holds every
+ * body here to it before routing (RequestBodyLimit, #10672), whatever its
+ * encoding: one past it is refused 413 unread, sent as it is or gzipped,
+ * in the same words.
  */
-const MAX_BODY_SIZE: string = "64kb";
+const MAX_BODY_BYTES: number = MCP_OAUTH_REQUEST_BODY_LIMIT.bytes;
 
 /*
- * The endpoints' body parsers. A body sent uncompressed is parsed by
- * StartServer before these run, held to the route's limit
- * (RequestBodyLimit); a gzip one StartServer only inflates, under the same
- * limit, and these parse it from those bytes, held to MAX_BODY_SIZE as well
- * (RequestBodyParser). body-parser alone read the spent stream again, and a
- * valid gzip body was answered 500 with an error-level log line (#10643).
+ * The endpoints' body parsers. A body sent uncompressed StartServer parsed
+ * before these run; a gzip one it only inflates, and these parse it from
+ * those bytes (RequestBodyParser), held to the same 64 KB. body-parser alone
+ * read the spent stream again, and a valid gzip body was answered 500 with
+ * an error-level log line (#10643).
  */
 const readForm: RequestHandler = RequestBodyParser.create(ExpressUrlEncoded, {
   extended: false,
-  limit: MAX_BODY_SIZE,
+  limit: MAX_BODY_BYTES,
 });
 
 const readJson: RequestHandler = RequestBodyParser.create(ExpressJson, {
-  limit: MAX_BODY_SIZE,
+  limit: MAX_BODY_BYTES,
 });
 
 const TOO_MANY_REQUESTS_DESCRIPTION: string =
