@@ -105,4 +105,5 @@ Målet: én side for checkout-tjenesten med dens latenstid, fejlrate, åbne hæn
 - [Dashboard-widgets](/docs/dashboards/widgets): Hver widget, og hvilken du skal vælge.
 - [Dashboard-variabler & filtre](/docs/dashboards/variables): Ét dashboard til hver tjeneste, vært eller kunde.
 - [Deling & offentlige dashboards](/docs/dashboards/sharing): Offentlige links, adgangskoder, IP-tilladelseslister og brugerdefinerede domæner.
+- [Import fra Grafana og Datadog](/docs/dashboards/import): Hent et dashboard eller de alarmregler, du har lavet i Grafana eller Datadog.
 :::
