@@ -1415,6 +1415,7 @@ describe("the every-minute pass", () => {
   });
 
   test("queues nothing, and reads nothing, while no kind of destination exists", async () => {
+    // Every server has AWS WAF and the feeds (#10344, #10345), so a server with no kind of destination is one a test makes.
     SecurityBlockDestinations.setSourcesForTests([]);
     projectsWithWork = [PROJECT_ID];
 
@@ -2155,7 +2156,7 @@ describe("a destination that takes a pass's changes in one call", () => {
 });
 
 describe("the destinations a project has in production", () => {
-  test("are Cloudflare's lists and rules (#10343), AWS WAF's web ACLs (#10344), Microsoft Defender's and CrowdStrike Falcon's connections (#10346), and never the test destination", () => {
+  test("are Cloudflare's lists and rules (#10343), AWS WAF's web ACLs (#10344), the blocklist feeds (#10345), Microsoft Defender's and CrowdStrike Falcon's connections (#10346), and never the test destination", () => {
     SecurityBlockDestinations.resetSourcesForTests();
 
     expect(SecurityBlockDestinations.hasSources()).toBe(true);
@@ -2168,6 +2169,7 @@ describe("the destinations a project has in production", () => {
     ).toEqual([
       SecurityBlockDestinationProvider.Cloudflare,
       SecurityBlockDestinationProvider.AwsWaf,
+      SecurityBlockDestinationProvider.Feed,
       SecurityBlockDestinationProvider.MicrosoftDefender,
       SecurityBlockDestinationProvider.CrowdStrike,
     ]);

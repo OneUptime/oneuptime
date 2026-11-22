@@ -17,7 +17,10 @@ import { MemoryRouter } from "react-router-dom";
  * cells drawn from them), the notice while nothing enforces it, a row's
  * chips per destination, Block Address with what the server's check
  * answers, a row's Lift, Extend and Make Permanent, the bulk Lift, and
- * Protected Entities' Protected Automatically card.
+ * Protected Entities' Protected Automatically card. And what blocklist
+ * feeds (#10345) add to it: the notice for a firewall that stopped reading
+ * its feed, the link to the feeds, and a feed's chip saying when a firewall
+ * fetched the block.
  */
 
 jest.mock("react-i18next", () => {
@@ -231,6 +234,7 @@ import {
 } from "../../../Types/SecurityPlaybook/SecurityProtectedEntity";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import BlocklistNotEnforcedNotice from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistNotEnforcedNotice";
+import { BLOCKLIST_FEEDS_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/BlocklistFeeds/BlocklistFeedsCopy";
 import { writeBlockRefusal } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistWords";
 import useBlocklistActions, {
   BlocklistActions,
@@ -243,6 +247,7 @@ import {
 import Project from "../../../Models/DatabaseModels/Project";
 import SecurityBlock from "../../../Models/DatabaseModels/SecurityBlock";
 import SecurityBlockEnforcement from "../../../Models/DatabaseModels/SecurityBlockEnforcement";
+import SecurityBlocklistFeed from "../../../Models/DatabaseModels/SecurityBlocklistFeed";
 import User from "../../../Models/DatabaseModels/User";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
@@ -255,6 +260,7 @@ import {
   SecurityBlockState,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
 import {
+  SecurityBlockDestinationProvider,
   SecurityBlockEnforcementState,
   SecurityBlockEnforcementView,
 } from "../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
@@ -319,6 +325,22 @@ function enforcement(
   return model;
 }
 
+const FEED_ID: string = "74444444-4444-4444-8444-444444444444";
+
+function feed(
+  values: Partial<SecurityBlocklistFeed> = {},
+): SecurityBlocklistFeed {
+  const model: SecurityBlocklistFeed = new SecurityBlocklistFeed();
+  model._id = FEED_ID;
+  model.name = "Palo Alto feed";
+  model.secretHint = "9f3c";
+  // Fetched every 5 minutes, until 3 hours ago.
+  model.usualFetchIntervalInSeconds = 300;
+  model.lastFetchedAt = new Date(Date.now() - 3 * HOUR_IN_MS);
+  Object.assign(model, values);
+  return model;
+}
+
 function nothingChecked(
   values: Partial<BlocklistApi.BlockValueCheck> = {},
 ): BlocklistApi.BlockValueCheck {
@@ -359,6 +381,9 @@ function fieldOf(key: string): CapturedForm["formProps"]["fields"][number] {
 
 let holdsAdmin: boolean;
 let mayUpdate: boolean;
+// The project's blocklist feeds, as the page reads them (#10345).
+let feeds: Array<SecurityBlocklistFeed>;
+let readFeeds: MockedFn;
 let create: MockedFn;
 let updateById: MockedFn;
 let toast: MockedFn;
@@ -369,8 +394,17 @@ beforeEach(() => {
   confirms = [];
   holdsAdmin = false;
   mayUpdate = true;
+  feeds = [];
 
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+  readFeeds = jest.spyOn(ModelAPI, "getList").mockImplementation(async () => {
+    return {
+      data: feeds,
+      count: feeds.length,
+      skip: 0,
+      limit: 100,
+    } as never;
+  }) as unknown as MockedFn;
   jest.spyOn(PermissionGate, "holdsAnyOf").mockImplementation(() => {
     return holdsAdmin;
   });
@@ -572,6 +606,67 @@ describe("the Blocklist page", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("names each feed whose firewall stopped reading it, above the list, linking to its page", async () => {
+    feeds = [
+      feed(),
+      // Read 2 minutes ago: nothing to say.
+      feed({
+        _id: "75555555-5555-4555-8555-555555555555",
+        name: "nftables on edge-1",
+        lastFetchedAt: new Date(Date.now() - 2 * 60 * 1000),
+      }),
+    ];
+
+    await renderPage();
+
+    expect(readFeeds).toHaveBeenCalledTimes(1);
+    const notice: HTMLElement = screen.getByTestId(
+      BLOCKLIST_FEEDS_TEST_IDS.stoppedNotice,
+    );
+    expect(notice).toHaveTextContent(
+      /^Your firewall stopped reading Palo Alto feed .+ ago, so blocks are not enforced there until it reads it again\.$/,
+    );
+    expect(notice).not.toHaveTextContent("nftables on edge-1");
+    expect(
+      screen.getByRole("link", { name: "Palo Alto feed" }).getAttribute("href"),
+    ).toMatch(new RegExp(`/security-events/blocklist/feeds/${FEED_ID}$`));
+  });
+
+  test("says nothing of feeds while every firewall reads its own, or a feed was revoked or never fetched", async () => {
+    feeds = [
+      feed({ lastFetchedAt: new Date(Date.now() - 60 * 1000) }),
+      // Revoked on purpose: nothing stopped working.
+      feed({
+        _id: "76666666-6666-4666-8666-666666666666",
+        secretHint: null as never,
+      }),
+      // Not set up yet: the feed's page says so.
+      feed({
+        _id: "77777777-7777-4777-8777-777777777777",
+        lastFetchedAt: null as unknown as Date,
+        usualFetchIntervalInSeconds: null as unknown as number,
+      }),
+    ];
+
+    await renderPage();
+
+    expect(
+      screen.queryByTestId(BLOCKLIST_FEEDS_TEST_IDS.stoppedNotice),
+    ).not.toBeInTheDocument();
+  });
+
+  test("says nothing of feeds to a reader who may not read them", async () => {
+    readFeeds.mockRejectedValue(new Error("403") as never);
+
+    await renderPage();
+
+    expect(
+      screen.queryByTestId(BLOCKLIST_FEEDS_TEST_IDS.stoppedNotice),
+    ).not.toBeInTheDocument();
+    // The blocks are listed all the same.
+    expect(capturedTable().id).toBe("security-blocklist-table");
+  });
+
   test("a block AWS WAF holds reads Enforced at AWS WAF (prod-alb); one its web ACL does not block yet is not enforced (#10344)", async () => {
     const listed: SecurityBlock = block();
     const confirmedAt: Date = new Date();
@@ -757,6 +852,73 @@ describe("a row's cells", () => {
         now,
       ),
     ).toBe("Waiting for Cloudflare to hold this block.");
+  });
+
+  test("a feed's chip says when a firewall fetched the block, and waits for a fetch rather than a write", () => {
+    const createdAt: Date = new Date(now.getTime() - 30 * 60 * 1000);
+    const atFeed: (
+      values: Partial<SecurityBlockEnforcement>,
+    ) => SecurityBlockEnforcement = (
+      values: Partial<SecurityBlockEnforcement>,
+    ): SecurityBlockEnforcement => {
+      return enforcement({
+        destinationKey: `Feed:${FEED_ID}`,
+        destinationName: "Palo Alto feed",
+        provider: SecurityBlockDestinationProvider.Feed,
+        ...values,
+      });
+    };
+
+    // Fetched 3 minutes after the block was made, last a minute ago.
+    expect(
+      writeEnforcementTooltip(
+        english,
+        atFeed({
+          state: SecurityBlockEnforcementState.Applied,
+          appliedAt: new Date(createdAt.getTime() + 3 * 60 * 1000),
+          lastConfirmedAt: new Date(now.getTime() - 60 * 1000),
+        }),
+        now,
+        createdAt,
+      ),
+    ).toMatch(
+      /^A firewall fetched this block from Palo Alto feed 3.?min after it was made\. Last fetched .+\.$/,
+    );
+    // Not fetched yet.
+    expect(
+      writeEnforcementTooltip(
+        english,
+        atFeed({ state: SecurityBlockEnforcementState.Pending }),
+        now,
+        createdAt,
+      ),
+    ).toBe("Waiting for a firewall to fetch Palo Alto feed.");
+    // Fetched once, then the firewall stopped.
+    expect(
+      writeEnforcementTooltip(
+        english,
+        atFeed({
+          state: SecurityBlockEnforcementState.Applied,
+          appliedAt: createdAt,
+          lastConfirmedAt: new Date(now.getTime() - 2 * HOUR_IN_MS),
+        }),
+        now,
+        createdAt,
+      ),
+    ).toMatch(
+      /^A firewall last fetched this block from Palo Alto feed .+, and has not fetched the feed since\.$/,
+    );
+    // Lifted: gone from the list once a firewall fetches it again.
+    expect(
+      writeEnforcementTooltip(
+        english,
+        atFeed({ state: SecurityBlockEnforcementState.Removing }),
+        now,
+        createdAt,
+      ),
+    ).toBe(
+      "Waiting for a firewall to fetch Palo Alto feed without this block.",
+    );
   });
 
   test("Blocked and Challenged are plain facts, never red", () => {
@@ -1457,7 +1619,7 @@ describe("Protected Entities' Protected Automatically", () => {
 });
 
 describe("the notice, alone", () => {
-  test("links to Security Connections and Cloud Connections", () => {
+  test("links to Security Connections, Cloud Connections and Blocklist Feeds", () => {
     render(
       <MemoryRouter>
         <BlocklistNotEnforcedNotice cannotTell={false} />
@@ -1469,7 +1631,12 @@ describe("the notice, alone", () => {
       links.map((link: HTMLElement): string => {
         return link.textContent || "";
       }),
-    ).toEqual(["Security Connections", "Cloud Connections"]);
+    ).toEqual(["Security Connections", "Cloud Connections", "Blocklist Feeds"]);
+    expect(
+      screen
+        .getByRole("link", { name: "Blocklist Feeds" })
+        .getAttribute("href"),
+    ).toMatch(/\/security-events\/blocklist\/feeds$/);
   });
 });
 

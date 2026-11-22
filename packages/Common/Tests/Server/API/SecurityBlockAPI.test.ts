@@ -70,6 +70,7 @@ import SecurityBlockAPI, {
 } from "../../../Server/API/SecurityBlockAPI";
 import SecurityBlockCloudWafService from "../../../Server/Services/SecurityBlockCloudWafService";
 import SecurityBlockService from "../../../Server/Services/SecurityBlockService";
+import SecurityBlocklistFeedService from "../../../Server/Services/SecurityBlocklistFeedService";
 import SecurityCaseFeedService from "../../../Server/Services/SecurityCaseFeedService";
 import SecurityEventConnectionService from "../../../Server/Services/SecurityEventConnectionService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
@@ -240,6 +241,10 @@ beforeEach(() => {
   // The project has picked no cloud WAF (#10344): its production source lists none.
   jest
     .spyOn(SecurityBlockCloudWafService, "findForProject")
+    .mockResolvedValue([]);
+  // Nor made a blocklist feed (#10345): nothing enforces its blocks.
+  jest
+    .spyOn(SecurityBlocklistFeedService, "findForProject")
     .mockResolvedValue([]);
   // No Microsoft Defender or CrowdStrike Falcon connection blocks (#10346): the default destinations find none.
   jest.spyOn(SecurityEventConnectionService, "findBy").mockResolvedValue([]);

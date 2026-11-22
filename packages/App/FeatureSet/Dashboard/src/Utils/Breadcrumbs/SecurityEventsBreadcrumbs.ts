@@ -73,6 +73,10 @@ const DETAIL_TRAILS: Array<[PageMap, Array<string>]> = [
     PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATE_VIEW,
     ["Security Events", "Settings", "Note Templates", "Note Template"],
   ],
+  [
+    PageMap.SECURITY_BLOCKLIST_FEED_VIEW,
+    ["Security Events", "Playbooks", "Blocklist Feeds", "Blocklist Feed"],
+  ],
 ];
 
 /*
@@ -111,6 +115,7 @@ const DETAIL_LISTS: Array<[PageMap, PageMap]> = [
     PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATE_VIEW,
     PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES,
   ],
+  [PageMap.SECURITY_BLOCKLIST_FEED_VIEW, PageMap.SECURITY_BLOCKLIST_FEEDS],
 ];
 
 function getDetailListOf(page: PageMap): PageMap | undefined {

@@ -52,6 +52,7 @@ flowchart TB
 | **Godkännanden** | Playbooks | Playbook-stegen som väntar på att någon godkänner eller avvisar dem |
 | **Playbook-körningar** | Playbooks | Vad varje playbook gjorde, steg för steg |
 | **Blocklista** | Playbooks | Adresserna som ditt projekt blockerar, till när, och var varje blockering tillämpas |
+| **Blocklistflöden** | Playbooks | De hemliga URL:er som dina brandväggar och proxyservrar läser blocklistan från, och deras hämtningar |
 | **Skyddade entiteter** | Playbooks | De användare, värdar och adresser som ingen playbook begränsar och ingen blockering rör |
 | **Inställningar** | AI | Om OneUptime AI bedömer varje nytt ärende |
 | **Anslutningar** | Connections | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och de SIEM som det skickar till |

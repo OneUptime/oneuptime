@@ -122,6 +122,18 @@ export interface SecurityProtectionCheck {
   unreadSources: Array<SecurityProtectedAddressSource>;
 }
 
+/*
+ * Everything the project protects, read whole (readAllProtections): what a
+ * blocklist feed holds its entries to.
+ */
+export interface SecurityProtectionSnapshot {
+  protections: Array<SecurityAddressProtection>;
+  // The sources that could not be read: nothing is known of what they protect.
+  unreadSources: Array<SecurityProtectedAddressSource>;
+  // The sources that hold more rows than one read takes.
+  incompleteSources: Array<SecurityProtectedAddressSource>;
+}
+
 // The addresses one source protects, as the Protected Entities page lists them.
 export interface SecurityProtectedAddressGroup {
   source: SecurityProtectedAddressSource;
@@ -458,6 +470,114 @@ export default class SecurityProtectedAddresses {
     }
 
     return { protection: null, unreadSources };
+  }
+
+  /*
+   * Every address and range OneUptime protects in the project, read whole
+   * and as OneUptime, from the very sources findProtection reads: what a
+   * blocklist feed holds each entry to before it serves it (#10345), since
+   * an address can become a protected one after it was blocked - a new
+   * host, an entry added to Protected Entities. Each source is read once,
+   * up to `limitPerSource` rows: one that could not be read is named in
+   * unreadSources, one that holds more rows than that in incompleteSources.
+   * Never throws.
+   */
+  @CaptureSpan()
+  public static async readAllProtections(data: {
+    projectId: ObjectID;
+    limitPerSource: number;
+  }): Promise<SecurityProtectionSnapshot> {
+    const scan: SourceScan = {
+      contains: null,
+      limit: data.limitPerSource,
+      props: ROOT,
+    };
+
+    const snapshot: SecurityProtectionSnapshot = {
+      protections: [
+        ...this.getLocalRangeProtections(),
+        ...this.getOneUptimeCloudProtections(),
+      ],
+      unreadSources: [],
+      incompleteSources: [],
+    };
+
+    const readers: Array<{
+      source: SecurityProtectedAddressSource;
+      read: () => Promise<SourceReading>;
+    }> = [
+      {
+        source: SecurityProtectedAddressSource.ProtectedEntity,
+        read: () => {
+          return this.readProtectedEntities(data.projectId, ROOT);
+        },
+      },
+      {
+        source: SecurityProtectedAddressSource.Probe,
+        read: () => {
+          return this.readProbes(data.projectId, scan);
+        },
+      },
+      {
+        source: SecurityProtectedAddressSource.AddressName,
+        read: () => {
+          return this.readAddressNames(data.projectId, scan);
+        },
+      },
+      ...this.getRecordReaders().map(
+        (reader: {
+          source: SecurityProtectedAddressSource;
+          read: SourceReader;
+        }): {
+          source: SecurityProtectedAddressSource;
+          read: () => Promise<SourceReading>;
+        } => {
+          return {
+            source: reader.source,
+            read: () => {
+              return reader.read(data.projectId, scan);
+            },
+          };
+        },
+      ),
+      {
+        source: SecurityProtectedAddressSource.CloudResource,
+        read: () => {
+          return this.readLoadBalancers(data.projectId, ROOT);
+        },
+      },
+      {
+        source: SecurityProtectedAddressSource.Edge,
+        read: () => {
+          return this.readEdges(data.projectId);
+        },
+      },
+    ];
+
+    for (const reader of readers) {
+      try {
+        const reading: SourceReading = await reader.read();
+
+        snapshot.protections.push(...reading.protections);
+
+        if (
+          !reading.isComplete &&
+          !snapshot.incompleteSources.includes(reader.source)
+        ) {
+          snapshot.incompleteSources.push(reader.source);
+        }
+      } catch (error) {
+        logger.warn(
+          `SecurityProtectedAddresses: could not read the project's ${reader.source} addresses for its blocklist feeds. ${String(error)}`,
+        );
+
+        if (!snapshot.unreadSources.includes(reader.source)) {
+          snapshot.unreadSources.push(reader.source);
+        }
+      }
+    }
+
+    return snapshot;
   }
 
   /*

@@ -13,6 +13,7 @@ import logger from "../Logger";
 import { CLOUDFLARE_BLOCK_DESTINATION_SOURCE } from "../SecurityEvent/Connectors/Cloudflare/CloudflareBlockDestination";
 import { AwsWafBlockDestinationSource } from "./AwsWafBlockDestination";
 import SecurityBlockDestination from "./SecurityBlockDestination";
+import SecurityBlocklistFeedDestination from "./SecurityBlocklistFeedDestination";
 import {
   CrowdStrikeBlockDestinationSource,
   MicrosoftDefenderBlockDestinationSource,
@@ -84,6 +85,15 @@ export function getSecurityBlockDestinationSources(): ReadonlyArray<SecurityBloc
       CLOUDFLARE_BLOCK_DESTINATION_SOURCE,
       // The AWS WAF web ACLs a project picked, through their cloud connections (#10344).
       new AwsWafBlockDestinationSource(),
+      // The blocklist feeds a project made, which its firewalls read (#10345).
+      {
+        provider: SecurityBlockDestinationProvider.Feed,
+        findForProject: (
+          projectId: ObjectID,
+        ): Promise<Array<SecurityBlockDestination>> => {
+          return SecurityBlocklistFeedDestination.findForProject(projectId);
+        },
+      },
       // Every machine (#10346): Microsoft Defender's indicators and CrowdStrike Falcon's IOCs.
       MicrosoftDefenderBlockDestinationSource,
       CrowdStrikeBlockDestinationSource,

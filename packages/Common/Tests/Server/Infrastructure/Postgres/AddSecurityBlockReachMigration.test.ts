@@ -1,5 +1,5 @@
-import { AddSecurityBlockReachAndWiderValue1809187436400 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187436400-AddSecurityBlockReachAndWiderValue";
-import { AddSecurityBlockValueReachIndex1809187436410 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187436410-AddSecurityBlockValueReachIndex";
+import { AddSecurityBlockReachAndWiderValue1809187440100 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187440100-AddSecurityBlockReachAndWiderValue";
+import { AddSecurityBlockValueReachIndex1809187440110 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187440110-AddSecurityBlockValueReachIndex";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import OnlineDdl, {
   OnlineIndex,
@@ -68,14 +68,14 @@ function registeredNames(): Array<string> {
 
 describe("AddSecurityBlockReachAndWiderValue migration", () => {
   test("its class, name and stamp agree", () => {
-    expect(new AddSecurityBlockReachAndWiderValue1809187436400().name).toBe(
-      "AddSecurityBlockReachAndWiderValue1809187436400",
+    expect(new AddSecurityBlockReachAndWiderValue1809187440100().name).toBe(
+      "AddSecurityBlockReachAndWiderValue1809187440100",
     );
   });
 
   test("widens the value in place, never by dropping the column", async () => {
     const up: Array<string> = await recordQueries(
-      new AddSecurityBlockReachAndWiderValue1809187436400(),
+      new AddSecurityBlockReachAndWiderValue1809187440100(),
       "up",
     );
 
@@ -91,7 +91,7 @@ describe("AddSecurityBlockReachAndWiderValue migration", () => {
 
   test("every block made before is at the edge", async () => {
     const up: Array<string> = await recordQueries(
-      new AddSecurityBlockReachAndWiderValue1809187436400(),
+      new AddSecurityBlockReachAndWiderValue1809187440100(),
       "up",
     );
 
@@ -101,8 +101,8 @@ describe("AddSecurityBlockReachAndWiderValue migration", () => {
   });
 
   test("drops the one-per-value index in the same transaction that alters the table", async () => {
-    const migration: AddSecurityBlockReachAndWiderValue1809187436400 =
-      new AddSecurityBlockReachAndWiderValue1809187436400();
+    const migration: AddSecurityBlockReachAndWiderValue1809187440100 =
+      new AddSecurityBlockReachAndWiderValue1809187440100();
     const up: Array<string> = await recordQueries(migration, "up");
 
     expect(up[0]).toBe(`DROP INDEX "public"."IDX_a4755bd06e3601ee046fcd7fe4"`);
@@ -125,7 +125,7 @@ describe("AddSecurityBlockReachAndWiderValue migration", () => {
 
   test("down() takes away what the blocklist before cannot hold, then undoes up()", async () => {
     const down: Array<string> = await recordQueries(
-      new AddSecurityBlockReachAndWiderValue1809187436400(),
+      new AddSecurityBlockReachAndWiderValue1809187440100(),
       "down",
     );
 
@@ -177,8 +177,8 @@ afterEach(() => {
 
 describe("AddSecurityBlockValueReachIndex migration", () => {
   test("builds one active block per value and reach online, outside a transaction - and nothing else", async () => {
-    const migration: AddSecurityBlockValueReachIndex1809187436410 =
-      new AddSecurityBlockValueReachIndex1809187436410();
+    const migration: AddSecurityBlockValueReachIndex1809187440110 =
+      new AddSecurityBlockValueReachIndex1809187440110();
 
     expect(migration.transaction).toBe(false);
     expect(
@@ -197,8 +197,8 @@ describe("AddSecurityBlockValueReachIndex migration", () => {
   });
 
   test("down() drops it online", async () => {
-    const migration: AddSecurityBlockValueReachIndex1809187436410 =
-      new AddSecurityBlockValueReachIndex1809187436410();
+    const migration: AddSecurityBlockValueReachIndex1809187440110 =
+      new AddSecurityBlockValueReachIndex1809187440110();
 
     expect(
       await onlineStatementsOf((runner: QueryRunner) => {
@@ -212,16 +212,16 @@ describe("the two migrations, with the model", () => {
   test("are registered once each, in order, after every migration before them", () => {
     const names: Array<string> = registeredNames();
     const first: number = names.indexOf(
-      "AddSecurityBlockReachAndWiderValue1809187436400",
+      "AddSecurityBlockReachAndWiderValue1809187440100",
     );
     const second: number = names.indexOf(
-      "AddSecurityBlockValueReachIndex1809187436410",
+      "AddSecurityBlockValueReachIndex1809187440110",
     );
 
     expect(first).toBeGreaterThan(-1);
     expect(second).toBe(first + 1);
     expect(
-      names.lastIndexOf("AddSecurityBlockReachAndWiderValue1809187436400"),
+      names.lastIndexOf("AddSecurityBlockReachAndWiderValue1809187440100"),
     ).toBe(first);
     expect(names.indexOf("AddSecurityBlocklist1809187150000")).toBeLessThan(
       first,
@@ -232,7 +232,7 @@ describe("the two migrations, with the model", () => {
     });
 
     for (let index: number = 0; index < first; index++) {
-      expect(stamps[index]!).toBeLessThan(1809187436400);
+      expect(stamps[index]!).toBeLessThan(1809187440100);
     }
   });
 

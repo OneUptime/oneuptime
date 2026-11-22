@@ -30,10 +30,13 @@ import {
   isSecurityBlockAddressType,
 } from "Common/Types/SecurityBlocklist/SecurityBlock";
 import {
+  SecurityBlockDestinationProvider,
   SecurityBlockEnforcementState,
   SecurityBlockEnforcementView,
   getSecurityBlockEnforcementView,
 } from "Common/Types/SecurityBlocklist/SecurityBlockEnforcement";
+import { FEED_ENFORCEMENT_TOOLTIPS } from "../BlocklistFeeds/BlocklistFeedsCopy";
+import { formatCompactDurationInMinutes } from "../../../Utils/CompactDuration";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
@@ -73,6 +76,7 @@ export function writeEnforcementTooltip(
   translator: Translator,
   enforcement: SecurityBlockEnforcement,
   now: Date,
+  blockCreatedAt?: Date | string | undefined,
 ): string {
   const view: SecurityBlockEnforcementView = getSecurityBlockEnforcementView(
     enforcement,
@@ -86,12 +90,73 @@ export function writeEnforcementTooltip(
       ? SecurityBlockEnforcementView.Pending
       : view;
 
+  /*
+   * A feed is fetched, never written to (#10345): its chip says when a
+   * firewall fetched the block - "2 min after it was made" - and last
+   * fetched it, or that a firewall has yet to.
+   */
+  const feedTooltip: string | null =
+    enforcement.provider === SecurityBlockDestinationProvider.Feed
+      ? writeFeedEnforcementTooltip({
+          translator,
+          enforcement,
+          view: shown,
+          blockCreatedAt,
+        })
+      : null;
+
+  if (feedTooltip) {
+    return feedTooltip;
+  }
+
   return translator.translateTemplate(ENFORCEMENT_TOOLTIPS[shown], {
     destination: enforcement.destinationName || "",
     time: enforcement.lastConfirmedAt
       ? OneUptimeDate.fromNow(new Date(enforcement.lastConfirmedAt))
       : "",
     reason: enforcement.error || "",
+  });
+}
+
+// What a feed's chip says, or null to say it as any destination's chip does.
+function writeFeedEnforcementTooltip(data: {
+  translator: Translator;
+  enforcement: SecurityBlockEnforcement;
+  view: SecurityBlockEnforcementView;
+  blockCreatedAt: Date | string | undefined;
+}): string | null {
+  const template: string | undefined = FEED_ENFORCEMENT_TOOLTIPS[data.view];
+
+  if (!template) {
+    return null;
+  }
+
+  const appliedAt: number | null = data.enforcement.appliedAt
+    ? new Date(data.enforcement.appliedAt).getTime()
+    : null;
+  const createdAt: number | null = data.blockCreatedAt
+    ? new Date(data.blockCreatedAt).getTime()
+    : null;
+
+  // How long after the block a firewall first fetched it, in whole minutes.
+  const delay: string | null =
+    appliedAt !== null && createdAt !== null
+      ? formatCompactDurationInMinutes(
+          Math.max(1, Math.round((appliedAt - createdAt) / (60 * 1000))),
+          data.translator.language,
+        )
+      : null;
+
+  if (data.view === SecurityBlockEnforcementView.Enforced && !delay) {
+    return null;
+  }
+
+  return data.translator.translateTemplate(template, {
+    destination: data.enforcement.destinationName || "",
+    delay: delay || "",
+    time: data.enforcement.lastConfirmedAt
+      ? OneUptimeDate.fromNow(new Date(data.enforcement.lastConfirmedAt))
+      : "",
   });
 }
 
@@ -224,6 +289,7 @@ export const BlockEnforcedAtCell: FunctionComponent<EnforcedAtCellProps> = (
               translator,
               enforcement,
               props.now,
+              props.block.createdAt,
             )}
             isTooltipUserContent={true}
           />

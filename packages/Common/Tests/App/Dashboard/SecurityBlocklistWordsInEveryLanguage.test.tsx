@@ -120,6 +120,7 @@ import {
 } from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import { Translator } from "../../../Types/Translator";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { buildResponsePlan } from "../../../Utils/SecurityCase/ResponsePlan/ResponsePlanBuilder";
@@ -405,6 +406,13 @@ describe("the Blocklist page, drawn in German and in Arabic", () => {
     jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
     jest.spyOn(PermissionGate, "holdsAnyOf").mockReturnValue(false);
     jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+    // The project's blocklist feeds (#10345), whose stopped firewalls the page names: none.
+    jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+      data: [],
+      count: 0,
+      skip: 0,
+      limit: 100,
+    } as never);
   });
 
   afterEach(() => {

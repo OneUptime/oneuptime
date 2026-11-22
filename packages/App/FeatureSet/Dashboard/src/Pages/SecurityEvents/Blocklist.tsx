@@ -12,6 +12,7 @@ import {
 import BlocklistKindTable from "../../Components/SecurityEvents/Blocklist/BlocklistKindTable";
 import BlocklistCloudWafs from "../../Components/SecurityEvents/Blocklist/BlocklistCloudWafs";
 import BlocklistNotEnforcedNotice from "../../Components/SecurityEvents/Blocklist/BlocklistNotEnforcedNotice";
+import BlocklistFeedsStoppedNotice from "../../Components/SecurityEvents/BlocklistFeeds/BlocklistFeedsStoppedNotice";
 import ObjectID from "Common/Types/ObjectID";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
@@ -95,6 +96,9 @@ const SecurityBlocklistPage: FunctionComponent<PageComponentProps> = (
       ) : (
         <></>
       )}
+
+      {/* A firewall that stopped reading its feed: its blocks are not enforced there (#10345). */}
+      <BlocklistFeedsStoppedNotice refreshToggle={String(refreshCount)} />
 
       <Tabs
         label="Blocklist"

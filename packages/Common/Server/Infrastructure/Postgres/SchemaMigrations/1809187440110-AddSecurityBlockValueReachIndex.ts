@@ -8,17 +8,17 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * its own, everywhere.
  *
  * Generated with npm run generate-postgres-migration alongside
- * AddSecurityBlockReachAndWiderValue1809187436400, which drops the index by
+ * AddSecurityBlockReachAndWiderValue1809187440100, which drops the index by
  * value alone, and moved into a migration of its own: "SecurityBlock"
  * already exists, so the index is built online, without blocking the
  * table's writes. Every block made before is at the edge and was one per
  * value, so none is a duplicate here. Safe to run again after a stop part
  * way: an index that is already there is left as it is.
  */
-export class AddSecurityBlockValueReachIndex1809187436410
+export class AddSecurityBlockValueReachIndex1809187440110
   implements MigrationInterface
 {
-  public name: string = "AddSecurityBlockValueReachIndex1809187436410";
+  public name: string = "AddSecurityBlockValueReachIndex1809187440110";
 
   // CREATE INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;
