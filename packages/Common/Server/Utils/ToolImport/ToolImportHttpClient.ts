@@ -12,6 +12,7 @@ import DataSourceEgressGuard, {
 import RetryAfter from "../../../Utils/RetryAfter";
 import { redactLogString } from "../LogRedaction";
 import OutboundUserAgent from "../OutboundUserAgent";
+import OutboundProxyAgents from "../OutboundProxyAgents";
 import axios, { AxiosResponse } from "axios";
 
 /*
@@ -732,7 +733,13 @@ async function sendToolImportRequest(data: {
   request: ToolImportHttpRequest;
   agents?: PinnedAgents | undefined;
 }): Promise<ToolImportHttpResponse> {
-  const response: AxiosResponse<string> = await axios.request<string>({
+  /*
+   * Through the outbound proxy, or directly, as every request of the server
+   * goes (OutboundProxyAgents): on the pinned agents, which carry the route
+   * themselves, or else on the shared agents for the tool's URL.
+   */
+  const response: AxiosResponse<string> = await axios.request<string>(
+    OutboundProxyAgents.routeAxiosRequest({
     // Only Node's http adapter uses the pinned agents.
     adapter: "http",
     method: data.request.method,
@@ -758,7 +765,8 @@ async function sendToolImportRequest(data: {
           httpsAgent: data.agents.httpsAgent,
         }
       : {}),
-  });
+    }),
+  );
 
   const bodyText: string = response.data || "";
   let bodyJson: unknown = undefined;

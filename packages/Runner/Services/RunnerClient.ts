@@ -6,6 +6,7 @@ import GlobalRunnerMode from "../Utils/GlobalRunnerMode";
 import { JSONObject } from "Common/Types/JSON";
 import { RUNNER_FEATURES } from "Common/Types/Runbook/RunnerFeatures";
 import logger from "Common/Server/Utils/Logger";
+import OutboundProxyAgents from "Common/Server/Utils/OutboundProxyAgents";
 import { getSameServerRedirectCheck } from "Common/Utils/SameServerRedirect";
 
 export type ClaimedJobStepType =
@@ -73,6 +74,18 @@ const http: AxiosInstance = axios.create({
   },
   beforeRedirect: getSameServerRedirectCheck(RUNNER_INGEST_URL.toString()),
 });
+
+/*
+ * Through the outbound proxy the Runner's environment names, or directly,
+ * as every request of the Runner goes (OutboundProxyAgents): never through
+ * a proxy axios reads itself, which sent the proxy's password
+ * percent-encoded (#10442).
+ */
+http.interceptors.request.use(
+  <T extends AxiosRequestConfig>(config: T): T => {
+    return OutboundProxyAgents.routeAxiosRequest(config);
+  },
+);
 
 /*
  * Identity comes from RunnerIdentity, not the raw config: in
