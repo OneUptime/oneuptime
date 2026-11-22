@@ -67,7 +67,8 @@ import {
  * AuditRecordNameReaders). Otherwise it keeps the record's type, its id
  * and who changed it, and says the change without the name - "alice@
  * example.com created an API key" - in its message, its target and its
- * attributes alike.
+ * attributes alike. Events stored before, and what was made of them, are
+ * reworded the same way, once (AuditRecordNamesWithheld).
  *
  * Pure: the scan hands it the records it read.
  */
@@ -506,88 +507,121 @@ function verbOf(action: string): string {
 }
 
 /*
- * A record of a type, as a sentence names it: "the API key "terraform""
- * when the record's name is given, "an API key" when it is not - a name
- * withheld from the event's readers (#10663) or a record with none.
+ * A record's name as a sentence quotes it: ` "terraform"`, cut to 120
+ * characters, or nothing for a record with none.
  */
-function namedRecord(data: { name: string; the: string; a: string }): string {
-  const name: string = quoted(data.name);
+export function quoteAuditRecordName(name: string): string {
+  return quoted(name);
+}
 
-  return name ? `${data.the}${name}` : data.a;
+/*
+ * What a change to a record of a type says after its actor: `named`, which
+ * its quoted name follows ("created the API key" "terraform"), and
+ * `unnamed`, said of a record it does not name ("created an API key"). The
+ * one table the event says changes by, and stored events are reworded by
+ * when their names are withheld (AuditRecordNamesWithheld); null for a type
+ * the scan does not read.
+ */
+export interface AuditChangeWords {
+  named: string;
+  unnamed: string;
+}
+
+// "the API key" and "an API key", by the type of record.
+const RECORD_WORDS: Readonly<Record<string, { the: string; a: string }>> = {
+  [AuditResourceType.ApiKey]: { the: "the API key", a: "an API key" },
+  [AuditResourceType.CustomRole]: {
+    the: "the custom role",
+    a: "a custom role",
+  },
+  [AuditResourceType.Team]: { the: "the team", a: "a team" },
+  [AuditResourceType.McpClientAuthorization]: {
+    the: "the MCP client",
+    a: "an MCP client",
+  },
+  [AuditResourceType.PacketCapture]: {
+    the: "the packet capture",
+    a: "a packet capture",
+  },
+  [AuditResourceType.ProtectedEntity]: {
+    the: "the protected entity",
+    a: "a protected entity",
+  },
+  [AuditResourceType.AuditLogExport]: {
+    the: "the audit log export",
+    a: "an audit log export",
+  },
+  [AuditResourceType.SecurityPlaybook]: {
+    the: "the security playbook",
+    a: "a security playbook",
+  },
+};
+
+export function getAuditChangeWords(
+  resourceType: string,
+  action: string,
+): AuditChangeWords | null {
+  // A role given to a key or a team: the role's name follows, and is the record's.
+  if (
+    resourceType === AuditResourceType.ApiKeyCustomRole ||
+    resourceType === AuditResourceType.TeamCustomRole
+  ) {
+    const holder: string =
+      resourceType === AuditResourceType.ApiKeyCustomRole
+        ? "an API key"
+        : "a team";
+    const said: string =
+      action === AuditLogAction.Delete
+        ? `took a custom role away from ${holder}`
+        : `gave ${holder} a custom role`;
+
+    return { named: said, unnamed: said };
+  }
+
+  const words: { the: string; a: string } | undefined =
+    RECORD_WORDS[resourceType];
+
+  if (!words) {
+    return null;
+  }
+
+  const verb: string =
+    resourceType === AuditResourceType.McpClientAuthorization
+      ? "authorized"
+      : resourceType === AuditResourceType.PacketCapture
+        ? "downloaded"
+        : verbOf(action);
+
+  return { named: `${verb} ${words.the}`, unnamed: `${verb} ${words.a}` };
 }
 
 /*
  * One audit record, said as a person would say it. The record's name is
  * said as the record gives it: the event blanks a name its readers may not
  * read before it is said (buildAuditRecordEvent), and the sentence reads
- * as naturally without it.
+ * as naturally without it. An MCP client's authorization says the client
+ * the change was made through, which is the actor's, before the record's.
  */
 export function describeAuditChange(record: AuditScanRecord): string {
   const actor: string = describeAuditActor(record);
-  const name: string = record.resourceName;
-  const verb: string = verbOf(record.action);
+  const name: string =
+    record.resourceType === AuditResourceType.McpClientAuthorization
+      ? record.mcpClientName || record.resourceName
+      : record.resourceName;
+  const words: AuditChangeWords | null = getAuditChangeWords(
+    record.resourceType,
+    record.action,
+  );
 
-  switch (record.resourceType) {
-    case AuditResourceType.ApiKey:
-      return `${actor} ${verb} ${namedRecord({
-        name,
-        the: "the API key",
-        a: "an API key",
-      })}`;
-    case AuditResourceType.CustomRole:
-      return `${actor} ${verb} ${namedRecord({
-        name,
-        the: "the custom role",
-        a: "a custom role",
-      })}`;
-    case AuditResourceType.ApiKeyCustomRole:
-      return record.action === AuditLogAction.Delete
-        ? `${actor} took a custom role away from an API key${quoted(name)}`
-        : `${actor} gave an API key a custom role${quoted(name)}`;
-    case AuditResourceType.TeamCustomRole:
-      return record.action === AuditLogAction.Delete
-        ? `${actor} took a custom role away from a team${quoted(name)}`
-        : `${actor} gave a team a custom role${quoted(name)}`;
-    case AuditResourceType.Team:
-      return `${actor} ${verb} ${namedRecord({
-        name,
-        the: "the team",
-        a: "a team",
-      })}`;
-    case AuditResourceType.McpClientAuthorization:
-      // The client the change was made through is the actor's, and kept.
-      return `${actor} authorized ${namedRecord({
-        name: record.mcpClientName || name,
-        the: "the MCP client",
-        a: "an MCP client",
-      })}`;
-    case AuditResourceType.PacketCapture:
-      return `${actor} downloaded ${namedRecord({
-        name,
-        the: "the packet capture",
-        a: "a packet capture",
-      })}`;
-    case AuditResourceType.ProtectedEntity:
-      return `${actor} ${verb} ${namedRecord({
-        name,
-        the: "the protected entity",
-        a: "a protected entity",
-      })}`;
-    case AuditResourceType.AuditLogExport:
-      return `${actor} ${verb} ${namedRecord({
-        name,
-        the: "the audit log export",
-        a: "an audit log export",
-      })}`;
-    case AuditResourceType.SecurityPlaybook:
-      return `${actor} ${verb} ${namedRecord({
-        name,
-        the: "the security playbook",
-        a: "a security playbook",
-      })}`;
-    default:
-      return `${actor} ${verb} ${record.resourceType}${quoted(name)}`;
+  if (!words) {
+    return `${actor} ${verbOf(record.action)} ${record.resourceType}${quoted(name)}`;
   }
+
+  const quotedName: string = quoted(name);
+
+  return quotedName
+    ? `${actor} ${words.named}${quotedName}`
+    : `${actor} ${words.unnamed}`;
 }
 
 /*
