@@ -201,26 +201,6 @@ const RETIRED: Array<string> = [
 ];
 
 /*
- * A retired sentence another part of the product says again, with a
- * meaning of its own: its key stays in the locales for that screen - as
- * long as that screen says it, and never the AI rules' own screens (their
- * AISettings components). By the sentence: the file that says it, and why.
- */
-const SAID_AGAIN_ELSEWHERE: Record<string, { file: string; why: string }> = {
-  "Without asking": {
-    file: "packages/App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityAiCopy.ts",
-    why: "Data Security AI's choice for each kind of work a Data Security AI rule lets OneUptime AI do - Off, Suggest or Without asking (#10494) - an option of its own dropdown, not the AI rules table's pill the UI review retired.",
-  },
-};
-
-const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../../..");
-
-const AI_RULES_COMPONENTS_DIR: string = path.join(
-  REPOSITORY_ROOT,
-  "packages/App/FeatureSet/Dashboard/src/Components/AISettings",
-);
-
-/*
  * The placeholders a sentence fills, each once: a language may name the
  * signal twice where English says "one" the second time.
  */
@@ -289,9 +269,7 @@ describe.each(["en", ...LANGUAGES])("the %s locale", (language: string) => {
   test("keeps no sentence of the two kinds of rule the AI rules replace", () => {
     const leftBehind: Array<string> = RETIRED.filter((sentence: string) => {
       return (
-        !SAID_AGAIN_ELSEWHERE[sentence] &&
-        (words[sentence] !== undefined ||
-          words[`${sentence}_one`] !== undefined)
+        words[sentence] !== undefined || words[`${sentence}_one`] !== undefined
       );
     });
 
@@ -341,48 +319,4 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
       }
     }
   });
-});
-
-describe("a retired sentence said again elsewhere", () => {
-  const CODE_FILE: RegExp = /\.tsx?$/;
-
-  // Every file of the AI rules' own screens, code and copy alike.
-  function aiRulesFiles(directory: string): Array<string> {
-    return fs
-      .readdirSync(directory, { withFileTypes: true })
-      .flatMap((entry: fs.Dirent): Array<string> => {
-        const full: string = path.join(directory, entry.name);
-
-        if (entry.isDirectory()) {
-          return aiRulesFiles(full);
-        }
-
-        return CODE_FILE.test(entry.name) ? [full] : [];
-      });
-  }
-
-  test.each(Object.entries(SAID_AGAIN_ELSEWHERE))(
-    "%s is retired, said by its screen and never by the AI rules' own",
-    (sentence: string, place: { file: string; why: string }) => {
-      expect(RETIRED).toContain(sentence);
-      expect(place.why.length).toBeGreaterThan(40);
-
-      // Its screen says it, so its key is still read.
-      expect(
-        fs
-          .readFileSync(path.join(REPOSITORY_ROOT, place.file), "utf8")
-          .includes(`translationKey("${sentence}")`),
-      ).toBe(true);
-
-      // And no screen of the AI rules says it again.
-      const sayingIt: Array<string> = aiRulesFiles(
-        AI_RULES_COMPONENTS_DIR,
-      ).filter((file: string): boolean => {
-        return fs.readFileSync(file, "utf8").includes(`"${sentence}"`);
-      });
-
-      expect(aiRulesFiles(AI_RULES_COMPONENTS_DIR).length).toBeGreaterThan(5);
-      expect(sayingIt).toEqual([]);
-    },
-  );
 });
