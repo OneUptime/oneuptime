@@ -604,7 +604,9 @@ function candidate(
   evidenceIds: Array<string>,
 ): DataStoreOwnerCandidate {
   return {
-    kind: ref.startsWith("T") ? DataStoreOwnerKind.Team : DataStoreOwnerKind.User,
+    kind: ref.startsWith("T")
+      ? DataStoreOwnerKind.Team
+      : DataStoreOwnerKind.User,
     id: OWNER_IDS[ref]!,
     ref,
     name,
@@ -613,7 +615,9 @@ function candidate(
   };
 }
 
-function named(...candidates: Array<DataStoreOwnerCandidate>): Array<DataStoreOwnerRef> {
+function named(
+  ...candidates: Array<DataStoreOwnerCandidate>
+): Array<DataStoreOwnerRef> {
   return candidates.map((owner: DataStoreOwnerCandidate): DataStoreOwnerRef => {
     return { kind: owner.kind, id: owner.id };
   });

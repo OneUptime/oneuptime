@@ -362,11 +362,15 @@ export function scoreStoreOwners(
   const notes: Array<string> = [];
 
   if (held.inventedOwners.length > 0) {
-    notes.push(`named owners the evidence does not: ${held.inventedOwners.join(", ")}`);
+    notes.push(
+      `named owners the evidence does not: ${held.inventedOwners.join(", ")}`,
+    );
   }
 
   if (held.inventedEvidence.length > 0) {
-    notes.push(`cited evidence there is not: ${held.inventedEvidence.join(", ")}`);
+    notes.push(
+      `cited evidence there is not: ${held.inventedEvidence.join(", ")}`,
+    );
   }
 
   const named: Array<string> =
