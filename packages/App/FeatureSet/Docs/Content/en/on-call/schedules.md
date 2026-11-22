@@ -46,6 +46,8 @@ Everything else waits under **More fields**, folded until you open it:
 
 While somebody takes turns and nothing under **More fields** is changed, its folded header says what will happen: each person is on call for a week, then the next one takes over.
 
+Someone invited to the project who has not joined it yet can take turns too, but nothing pages them until they accept their invitation, and they are told nothing. Their turn is a coverage gap, and the channels and feed of each on-call policy that pages the schedule say so, naming them by the name typed with their invitation, never by their email address: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." `/oneuptime oncall` in Slack and `oncall` in Microsoft Teams say so too. Once they join, pages reach them, they are told which on-call policies page them now, and the channels hear "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." Until then, [Readiness & Reports](/docs/on-call/readiness) lists them, with what to do.
+
 ## Layers
 
 A schedule's rotation is made of layers, on its **Layers** page. Layers are read from the top down: the highest layer with someone on call is the one that pages, so put the main rotation on top and fall-back cover below it.

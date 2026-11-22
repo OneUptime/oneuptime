@@ -39,6 +39,14 @@ import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
 // How a moment reads where the line goes.
 export type OnCallMomentText = (date: Date) => MarkdownText;
 
+/*
+ * Who a line names for someone only invited to the project when no name
+ * was typed with their invitation, or the name typed holds an address
+ * (#10616): never their email address (OnCallChatByWorkspace.getInviteeName).
+ */
+export const ON_CALL_CHAT_INVITEE_UNNAMED: string =
+  "someone who hasn't joined the project yet";
+
 // Why somebody a schedule's rotation reaches is paged by nothing (#10586).
 export enum OnCallNotPagedBecause {
   // Invited to the project, and has not joined it yet.

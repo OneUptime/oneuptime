@@ -127,6 +127,34 @@ export const CHECK_BLOCK_RANGE_CHALLENGED_AT: string = translationKey(
   "{{range}}, which holds {{address}}, is challenged at {{destination}} since {{since}}, last confirmed {{confirmed}}.",
 );
 
+/*
+ * What Cloudflare's rule for the block did with the address since it was
+ * applied there (#10343): the requests from it OneUptime's rule blocked or
+ * challenged, counted from the firewall events the connection imports.
+ * Cloudflare samples a busy zone's events, so a count read from sampled
+ * ones says about.
+ */
+export const CHECK_BLOCK_CLOUDFLARE_STOPPED: PluralTemplate = {
+  one: "Cloudflare has stopped {{count}} request from {{address}} since the block at {{time}}.",
+  other:
+    "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}.",
+};
+export const CHECK_BLOCK_CLOUDFLARE_STOPPED_ABOUT: PluralTemplate = {
+  one: "Cloudflare has stopped about {{count}} request from {{address}} since the block at {{time}}.",
+  other:
+    "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}.",
+};
+export const CHECK_BLOCK_CLOUDFLARE_CHALLENGED: PluralTemplate = {
+  one: "Cloudflare has challenged {{count}} request from {{address}} since the challenge at {{time}}.",
+  other:
+    "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}.",
+};
+export const CHECK_BLOCK_CLOUDFLARE_CHALLENGED_ABOUT: PluralTemplate = {
+  one: "Cloudflare has challenged about {{count}} request from {{address}} since the challenge at {{time}}.",
+  other:
+    "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}.",
+};
+
 // A block on the Blocklist that no destination holds: never read as blocked.
 export const CHECK_BLOCK_NOT_ENFORCED: string = translationKey(
   "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.",

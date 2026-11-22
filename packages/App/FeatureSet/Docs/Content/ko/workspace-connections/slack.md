@@ -132,16 +132,16 @@ SLO의 규칙은 오류 예산 정책의 변화를 게시합니다. SLO가 단�
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments 는 OneUptime의 정책으로 연결됩니다. 정책이 둘 이상의 스케줄을 호출하면 줄에 스케줄 이름도 들어갑니다: Payments (Primary).
-- Slack 계정을 OneUptime에 연결한 사람은 인계, 재정의, 정책에 추가되거나 빠진 사람 등 모든 온콜 줄에서 Slack 이름으로, 그 전에는 OneUptime 이름으로 표시됩니다. 시간은 읽는 사람 각자의 시간대로 표시됩니다.
+- Slack 계정을 OneUptime에 연결한 사람은 인계, 재정의, 정책에 추가되거나 빠진 사람 등 모든 온콜 줄에서 Slack 이름으로, 그 전에는 OneUptime 이름으로 표시됩니다. 초대되었지만 아직 프로젝트에 참여하지 않은 사람은 여기서도, 정책의 피드에서도 초대할 때 입력한 이름이나 "someone who hasn't joined the project yet"으로 표시되며, 이메일 주소로 표시되지 않습니다. 시간은 읽는 사람 각자의 시간대로 표시됩니다.
 - 정책의 여러 에스컬레이션 규칙이 같은 스케줄을 호출해도 인계는 규칙마다가 아니라 한 번만 게시됩니다.
 
 규칙은 **업데이트** 단계에서 고른 것을 게시하며, 새 규칙은 **주요 업데이트만** (현재 온콜 담당자와 담당자가 없는 때)으로 시작합니다. API나 Terraform으로 `updatesToPost` 없이 만든 규칙도 마찬가지입니다. 모든 업데이트를 게시하려면 `"updatesToPost": null` 을 보내세요. `updatesToPost` 를 빼고 수정하면 규칙이 게시하는 업데이트가 그대로 유지됩니다.
 
 | 업데이트 | 채널에 게시되는 내용 |
 | --- | --- |
-| **현재 온콜 담당자** | 위의 줄. 인계 때마다 게시됩니다. |
-| **다음 온콜 담당자** | 다음 인계 때 누가 이어받는지와 그 시간. 위 줄의 끝에 붙거나, 현재 온콜 담당자를 게시하지 않는 규칙이라면 한 줄로 따로 게시됩니다. |
-| **온콜 담당자 없음** | 스케줄에 온콜 담당자가 없어 그곳에 도달한 경고가 아무도 호출하지 않을 때: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **현재 온콜 담당자** | 위의 줄. 인계 때마다 게시되고, 온콜 담당자가 자기 차례 중에 프로젝트에 참여할 때도 게시됩니다: "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." |
+| **다음 온콜 담당자** | 다음 인계 때 누가 이어받는지와 그 시간. 위 줄의 끝에 붙거나, 현재 온콜 담당자를 게시하지 않는 규칙이라면 한 줄로 따로 게시됩니다. 다음 사람이 아직 프로젝트에 참여하지 않았다면 아무도 이어받지 않으며, 줄에 그 이유가 나옵니다: "📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then nobody: Ivy is next but hasn't joined the project yet." |
+| **온콜 담당자 없음** | 스케줄에 온콜 담당자가 없어 그곳에 도달한 경고가 아무도 호출하지 않을 때: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." 아직 프로젝트에 참여하지 않은 사람의 차례도 해당합니다. 참여할 때까지 그 사람은 무엇으로부터도 호출되지 않기 때문입니다: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." |
 | **사용자 재정의** | 추가, 변경되거나 취소된 재정의. 누가 부재 중이고 누가 대신하는지. |
 | **정책 변경** | 에스컬레이션 규칙에 추가되거나 빠진 스케줄, 사용자, 팀. |
 | **소유자** | 추가 및 제거된 소유자. |

@@ -1800,7 +1800,7 @@ describe("a destination that takes a pass's changes in one call", () => {
 });
 
 describe("the destinations a project has in production", () => {
-  test("are AWS WAF's web ACLs (#10344), and never the test destination", () => {
+  test("are Cloudflare's lists and rules (#10343) and AWS WAF's web ACLs (#10344), and never the test destination", () => {
     SecurityBlockDestinations.resetSourcesForTests();
 
     expect(SecurityBlockDestinations.hasSources()).toBe(true);
@@ -1810,6 +1810,9 @@ describe("the destinations a project has in production", () => {
           return source.provider;
         },
       ),
-    ).toEqual([SecurityBlockDestinationProvider.AwsWaf]);
+    ).toEqual([
+      SecurityBlockDestinationProvider.Cloudflare,
+      SecurityBlockDestinationProvider.AwsWaf,
+    ]);
   });
 });

@@ -32,6 +32,8 @@ export const DATA_SECURITY_SUGGEST_FIELD_TYPES_JOB: string =
   "DataSecurity:SuggestFieldTypes";
 export const DATA_SECURITY_AI_EVALUATE_ISSUE_JOB: string =
   "DataSecurity:AiEvaluateIssue";
+export const DATA_SECURITY_NOTIFY_OWNERS_JOB: string =
+  "DataSecurity:NotifyOwners";
 export const DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB: string =
   "DataSecurity:ProposeStoreOwners";
 export const DATA_SECURITY_PROPOSE_OWNER_RULES_JOB: string =
@@ -44,13 +46,15 @@ export const DATA_SECURITY_PROPOSE_OWNER_RULES_JOB: string =
  */
 export const OWNER_RULES_DELAY_IN_MS: number = 3 * 60 * 1000;
 
+// Whether it was queued: a caller with somewhere else to go can go there.
 async function queue(data: {
   jobName: string;
   key: string;
   payload: Record<string, string>;
   description: string;
+  // How long it waits before it runs.
   delayInMs?: number | undefined;
-}): Promise<void> {
+}): Promise<boolean> {
   try {
     await Queue.addJob(
       QueueName.Worker,
@@ -66,9 +70,12 @@ async function queue(data: {
         ...(data.delayInMs ? { delayInMs: data.delayInMs } : {}),
       },
     );
+
+    return true;
   } catch (error) {
     logger.error(`DataSecurity: could not queue ${data.description}:`);
     logger.error(error);
+    return false;
   }
 }
 
@@ -162,6 +169,97 @@ export async function queueDataSecurityAiEvaluation(data: {
     },
     description: `OneUptime AI's work on issue ${data.dataSecurityIssueId.toString()}`,
   });
+}
+
+/*
+ * How long a store's owners' email waits, at a time, for OneUptime AI's
+ * work on the issues it is about (#10369), and how long at most since the
+ * issues opened: then it goes, with whatever analysis there is.
+ */
+export const OWNER_NOTICE_WAIT_IN_MS: number = 60 * 1000;
+export const OWNER_NOTICE_MAX_WAIT_IN_MS: number = 10 * 60 * 1000;
+
+export interface HeldOwnerNotice {
+  projectId: ObjectID;
+  dataStoreId: ObjectID;
+  issueIds: Array<ObjectID>;
+  // When the issues opened: what the longest wait is counted from.
+  openedAt: Date;
+  // How many times it waited already.
+  attempt: number;
+}
+
+/*
+ * The email a store's owners get about issues that opened on it, held while
+ * OneUptime AI works on them (#10369), so it carries each one's analysis:
+ * one job per store and batch of issues, and one per wait. False when it
+ * could not be queued - the caller sends the email now instead.
+ */
+export async function queueDataSecurityOwnerNotice(
+  notice: HeldOwnerNotice,
+): Promise<boolean> {
+  const batch: string = `${notice.dataStoreId.toString()}-${notice.openedAt.getTime()}`;
+
+  return await queue({
+    jobName: DATA_SECURITY_NOTIFY_OWNERS_JOB,
+    key: `data-security-owner-notice-${batch}-${notice.attempt}`,
+    payload: {
+      projectId: notice.projectId.toString(),
+      dataStoreId: notice.dataStoreId.toString(),
+      issueIds: notice.issueIds
+        .map((issueId: ObjectID): string => {
+          return issueId.toString();
+        })
+        .join(","),
+      openedAt: notice.openedAt.toISOString(),
+      attempt: String(notice.attempt),
+    },
+    description: `the owners' email of store ${notice.dataStoreId.toString()}`,
+    delayInMs: OWNER_NOTICE_WAIT_IN_MS,
+  });
+}
+
+// A held notice, as its job's payload carries it, or null for one that does not read.
+export function readHeldOwnerNotice(
+  payload: Record<string, unknown> | undefined,
+): HeldOwnerNotice | null {
+  const read: (key: string) => string = (key: string): string => {
+    const value: unknown = payload?.[key];
+
+    return typeof value === "string" ? value.trim() : "";
+  };
+
+  const projectId: string = read("projectId");
+  const dataStoreId: string = read("dataStoreId");
+  const issueIds: Array<string> = read("issueIds")
+    .split(",")
+    .map((id: string): string => {
+      return id.trim();
+    })
+    .filter((id: string): boolean => {
+      return ObjectID.isValidUUID(id);
+    });
+  const openedAt: Date = new Date(read("openedAt"));
+  const attempt: number = Number(read("attempt"));
+
+  if (
+    !ObjectID.isValidUUID(projectId) ||
+    !ObjectID.isValidUUID(dataStoreId) ||
+    issueIds.length === 0 ||
+    Number.isNaN(openedAt.getTime())
+  ) {
+    return null;
+  }
+
+  return {
+    projectId: new ObjectID(projectId),
+    dataStoreId: new ObjectID(dataStoreId),
+    issueIds: issueIds.map((id: string): ObjectID => {
+      return new ObjectID(id);
+    }),
+    openedAt,
+    attempt: Number.isInteger(attempt) && attempt > 0 ? attempt : 1,
+  };
 }
 
 /*

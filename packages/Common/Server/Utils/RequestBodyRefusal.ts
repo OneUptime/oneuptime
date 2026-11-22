@@ -45,6 +45,16 @@ import { Socket } from "net";
  * that does not inflate ("entity.inflate.failed") - not gzip at all, cut off,
  * or with bytes after its end. It used to be a 500 and an error-level log
  * line, from any client, with no key: the gzip reader runs before routing.
+ *
+ * And two for a multipart body (MultipartFormData, #10643), which multer
+ * refuses with errors of its own: one over a limit of multer's - more files,
+ * fields or parts, or a larger file or field, than OneUptime reads in one
+ * request ("multipart.limit", 413) - and one that is not the multipart form
+ * its Content-Type says it is, or names a part in a way multer refuses
+ * ("multipart.malformed", 400). Each was an error-level log line, and a
+ * malformed body a 500, from any client: Pyroscope, source maps and dSYMs
+ * read their multipart bodies before their keys are checked. Each is
+ * answered in the error's own words, as it was, and logged at debug.
  */
 
 /*
@@ -64,6 +74,13 @@ export const TOO_MANY_JSON_VALUES_TYPE: string = "entity.too.many.values";
  * Content-Encoding says gzip or deflate, and its bytes are not (#10597).
  */
 export const INFLATE_FAILED_TYPE: string = "entity.inflate.failed";
+
+/*
+ * The types of the errors a multipart body is refused with (see above): over
+ * one of multer's limits, and not a multipart form multer reads.
+ */
+export const MULTIPART_LIMIT_TYPE: string = "multipart.limit";
+export const MULTIPART_MALFORMED_TYPE: string = "multipart.malformed";
 
 /*
  * Set on the error a parser StartServer runs raises for a body over the
@@ -284,6 +301,76 @@ export const createTooLargeError: (limit: number, bytes: number) => Error = (
 };
 
 /*
+ * The `next` of a reader held to the App's own limit for the request (its
+ * route's, RequestBodyLimit): a body over it, refused by body-parser
+ * (entity.too.large, with the limit in bytes), is marked as that limit, so
+ * the answer says it (readRequestBodyRefusal) and is not read as a proxy's.
+ */
+export const withAppRequestBodyLimit: (
+  next: (err?: unknown) => void,
+  bytes: number,
+) => (err?: unknown) => void = (
+  next: (err?: unknown) => void,
+  bytes: number,
+): ((err?: unknown) => void) => {
+  return (err?: unknown): void => {
+    if (
+      err &&
+      typeof err === "object" &&
+      (err as { type?: unknown }).type === "entity.too.large"
+    ) {
+      (err as Record<string, unknown>)[APP_REQUEST_BODY_LIMIT_FIELD] = bytes;
+    }
+
+    next(err);
+  };
+};
+
+/*
+ * A body whose client went away before it was in: body-parser's error for it
+ * (raw-body's request.aborted), which is answered as one cut off mid-body is.
+ * For a request whose client had gone before a parser came to read it, where
+ * body-parser's own "stream is not readable" was a 500 (RequestBodyParser).
+ */
+export const createCutOffError: () => Error = (): Error => {
+  return Object.assign(new Error("request aborted"), {
+    type: "request.aborted",
+    code: "ECONNABORTED",
+    status: 400,
+    statusCode: 400,
+    expose: true,
+  });
+};
+
+/*
+ * Set on a refusal of the code's own (markAsRequestBodyRefusal): the words it
+ * is answered in. body-parser's errors carry none, so a library's message is
+ * never what a client is told.
+ */
+export const REFUSAL_ANSWER_FIELD: string = "refusalAnswer";
+
+/*
+ * An error of the code's own, marked as a refusal of the client's body: the
+ * type it is refused as and its status, so expressErrorHandler answers it in
+ * its own message, with that status, and logs it at debug. For a multipart
+ * body's refusals (MULTIPART_LIMIT_TYPE, MULTIPART_MALFORMED_TYPE), which
+ * stay the Exceptions their callers read.
+ */
+export const markAsRequestBodyRefusal: <T extends Error>(
+  error: T,
+  type: string,
+  status: number,
+) => T = <T extends Error>(error: T, type: string, status: number): T => {
+  return Object.assign(error, {
+    type: type,
+    status: status,
+    statusCode: status,
+    expose: true,
+    [REFUSAL_ANSWER_FIELD]: error.message,
+  });
+};
+
+/*
  * Whether an error is zlib's for bytes that do not inflate ("incorrect header
  * check", "unexpected end of file"...): zlib's errno, and its "Z_" code. As
  * body-parser hands one on, it is that error, with a 400 status added.
@@ -342,6 +429,8 @@ export const REQUEST_BODY_REFUSAL_MESSAGES: {
   charsetUnsupported: string;
   tooDeep: string;
   tooManyJsonValues: string;
+  multipartTooLarge: string;
+  multipartMalformed: string;
 } = {
   // Over the App's own 50 MB: the front ends read it back (UnexplainedError).
   tooLargeForOneUptime: UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime,
@@ -372,6 +461,14 @@ export const REQUEST_BODY_REFUSAL_MESSAGES: {
    */
   tooManyJsonValues:
     "The request body holds more JSON values than OneUptime reads in one request to this address, so this did not finish. Send less in each request.",
+  /*
+   * A multipart body over one of multer's limits, when the error does not
+   * say which (MultipartFormData's own refusals name the limit they hit).
+   */
+  multipartTooLarge:
+    "The form sent holds more files or fields, or larger ones, than OneUptime reads in one request, so this did not finish. Send fewer or smaller files at once.",
+  multipartMalformed:
+    "The request body is not the multipart form its Content-Type header says it is, so this did not finish. Check the body and the boundary its Content-Type names, then send the request again.",
 };
 
 interface RequestBodyRefusalRule {
@@ -455,6 +552,18 @@ export const REQUEST_BODY_REFUSALS: Record<string, RequestBodyRefusalRule> = {
     status: 413,
     message: REQUEST_BODY_REFUSAL_MESSAGES.tooManyJsonValues,
   },
+  /*
+   * A multipart body multer refused (MultipartFormData): over one of its
+   * limits, or no multipart form it reads. OneUptime's own types.
+   */
+  [MULTIPART_LIMIT_TYPE]: {
+    status: 413,
+    message: REQUEST_BODY_REFUSAL_MESSAGES.multipartTooLarge,
+  },
+  [MULTIPART_MALFORMED_TYPE]: {
+    status: 400,
+    message: REQUEST_BODY_REFUSAL_MESSAGES.multipartMalformed,
+  },
 };
 
 /*
@@ -465,6 +574,15 @@ const messageOf: (type: string, error: unknown) => string | null = (
   type: string,
   error: unknown,
 ): string | null => {
+  // A refusal of the code's own, in the words it was made with.
+  const ownAnswer: unknown = (error as Record<string, unknown>)[
+    REFUSAL_ANSWER_FIELD
+  ];
+
+  if (typeof ownAnswer === "string" && ownAnswer.trim()) {
+    return ownAnswer;
+  }
+
   if (type === TOO_MANY_JSON_VALUES_TYPE) {
     const candidate: { passed?: unknown; limit?: unknown } = error as {
       passed?: unknown;

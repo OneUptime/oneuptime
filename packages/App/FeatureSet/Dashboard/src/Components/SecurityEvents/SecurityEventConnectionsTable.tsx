@@ -54,6 +54,27 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import ObjectID from "Common/Types/ObjectID";
+import {
+  CloudflareBlockingSettings,
+  CloudflareBlockingStatus,
+  CloudflareRuleState,
+  CloudflareZoneRuleStatus,
+  CloudflareZoneStatus,
+  readCloudflareBlockingFailure,
+  readCloudflareBlockingSettings,
+  readCloudflareBlockingStatus,
+} from "Common/Types/SecurityBlocklist/CloudflareBlocking";
+import { DeleteConfirmation } from "Common/UI/Components/ModelTable/BaseModelTable";
+import CloudflareBlockingModal from "./CloudflareBlocking/CloudflareBlockingModal";
+import {
+  BLOCKING_ATTENTION_DETAIL,
+  BLOCKING_ON_DETAIL,
+  BLOCK_ADDRESSES_ACTION,
+  BLOCK_ADDRESSES_ACTION_TOOLTIP,
+  DELETE_WHILE_BLOCKING,
+  TURN_OFF_BUTTON,
+} from "./CloudflareBlocking/CloudflareBlockingCopy";
 
 /*
  * The tile a connection's product mark sits on at the start of its name:
@@ -129,7 +150,10 @@ export function securityEventConnectionsHelpMarkdown(): string {
  * SecOps · Alerts only"), in the reader's words where they have them.
  */
 export function getConnectionProviderDetailParts(
-  connection: Pick<SecurityEventConnection, "provider" | "alertingOnly">,
+  connection: Pick<
+    SecurityEventConnection,
+    "provider" | "alertingOnly" | "blockingSettings" | "blockingStatus"
+  >,
   translator: Translator,
 ): Array<string> {
   const provider: string = getSecurityEventConnectorTitle(connection.provider);
@@ -138,12 +162,52 @@ export function getConnectionProviderDetailParts(
     connection.alertingOnly,
   );
   const providerWords: string = translator.translateText(provider) || provider;
+  const parts: Array<string> = scope
+    ? [providerWords, translator.translateText(scope) || scope]
+    : [providerWords];
+  const blocking: string | null = getConnectionBlockingDetail(connection);
 
-  if (!scope) {
-    return [providerWords];
+  if (blocking) {
+    parts.push(translator.translateText(blocking) || blocking);
   }
 
-  return [providerWords, translator.translateText(scope) || scope];
+  return parts;
+}
+
+/*
+ * Whether a connection blocks addresses at its provider (#10343), and
+ * whether that needs a look - a rule turned off, deleted or changed at
+ * Cloudflare, or a change or check that failed: an English key, or null for
+ * a connection that only reads.
+ */
+export function getConnectionBlockingDetail(
+  connection: Pick<
+    SecurityEventConnection,
+    "blockingSettings" | "blockingStatus"
+  >,
+): string | null {
+  const settings: CloudflareBlockingSettings = readCloudflareBlockingSettings(
+    connection.blockingSettings,
+  );
+
+  if (!settings.isEnabled) {
+    return null;
+  }
+
+  const status: CloudflareBlockingStatus | null = readCloudflareBlockingStatus(
+    connection.blockingStatus,
+  );
+  const ruleOff: boolean = Boolean(
+    status?.zones.some((zone: CloudflareZoneStatus): boolean => {
+      return zone.rules.some((rule: CloudflareZoneRuleStatus): boolean => {
+        return rule.state !== CloudflareRuleState.Enforcing;
+      });
+    }),
+  );
+
+  return ruleOff || readCloudflareBlockingFailure(connection.blockingStatus)
+    ? BLOCKING_ATTENTION_DETAIL
+    : BLOCKING_ON_DETAIL;
 }
 
 /*
@@ -171,6 +235,11 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
     string | null
   >(null);
   const [refreshCounter, setRefreshCounter] = useState<number>(0);
+  // The Cloudflare connection whose Block Addresses dialog is open, and whether on turning it off.
+  const [blockingItem, setBlockingItem] = useState<{
+    id: ObjectID;
+    isTurningOff: boolean;
+  } | null>(null);
 
   const refresh: VoidFunction = (): void => {
     setRefreshCounter((value: number): number => {
@@ -230,6 +299,8 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
           lastPollResult: true,
           lastSuccessfulPollAt: true,
           lastEventIngestedAt: true,
+          blockingSettings: true,
+          blockingStatus: true,
         }}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
@@ -238,6 +309,36 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
         name="Security Events > Security Event Connections"
         userPreferencesKey="security-event-connections-table"
         isDeleteable={true}
+        /*
+         * A Cloudflare connection that blocks addresses is turned off first
+         * (#10343): turning it off asks whether to remove OneUptime's lists
+         * and rules from Cloudflare, which takes the connection's token.
+         */
+        getDeleteConfirmation={async (
+          item: SecurityEventConnection,
+        ): Promise<DeleteConfirmation> => {
+          if (
+            !item.id ||
+            !readCloudflareBlockingSettings(item.blockingSettings).isEnabled
+          ) {
+            return {};
+          }
+
+          const id: ObjectID = item.id;
+
+          return {
+            description: translator.translateTemplate(DELETE_WHILE_BLOCKING, {
+              name: item.name || "",
+            }),
+            isDeleteBlocked: true,
+            alternative: {
+              title: TURN_OFF_BUTTON,
+              onClick: async (): Promise<void> => {
+                setBlockingItem({ id, isTurningOff: true });
+              },
+            },
+          };
+        }}
         isEditable={false}
         isCreateable={false}
         isViewable={false}
@@ -357,6 +458,30 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
               onCompleteAction: VoidFunction,
             ): void => {
               setFormModal({ connection: item, credentialsOnly: false });
+              onCompleteAction();
+            },
+          },
+          {
+            title: BLOCK_ADDRESSES_ACTION,
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            icon: IconProp.NoSymbol,
+            isVisible: (item: SecurityEventConnection): boolean => {
+              return (
+                item.provider === SecurityEventConnectorProvider.Cloudflare
+              );
+            },
+            disabled: !updateGate.isAllowed,
+            tooltip: updateGate.isAllowed
+              ? BLOCK_ADDRESSES_ACTION_TOOLTIP
+              : updateGate.disabledReason,
+            onClick: (
+              item: SecurityEventConnection,
+              onCompleteAction: VoidFunction,
+            ): void => {
+              if (item.id) {
+                setBlockingItem({ id: item.id, isTurningOff: false });
+              }
+
               onCompleteAction();
             },
           },
@@ -616,6 +741,18 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             setDiagnosticsItem(null);
           }}
           onUpdated={refresh}
+        />
+      )}
+
+      {blockingItem && (
+        <CloudflareBlockingModal
+          key={`${blockingItem.id.toString()}-${blockingItem.isTurningOff ? "off" : "open"}`}
+          connectionId={blockingItem.id}
+          isTurningOff={blockingItem.isTurningOff}
+          onClose={(): void => {
+            setBlockingItem(null);
+          }}
+          onChanged={refresh}
         />
       )}
 

@@ -28,6 +28,7 @@ import McpOAuthRateLimit, {
   McpOAuthRateLimitBucket,
   McpOAuthRateLimitRejectionHandler,
 } from "Common/Server/Middleware/McpOAuthRateLimit";
+import RequestBodyParser from "Common/Server/Middleware/RequestBodyParser";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import {
   ExpressApplication,
@@ -58,6 +59,23 @@ export const MCP_OAUTH_CONSENT_PATH: string = `${MCP_OAUTH_PATH}/consent`;
  * anonymous caller from making the server parse megabytes to find that out.
  */
 const MAX_BODY_SIZE: string = "64kb";
+
+/*
+ * The endpoints' body parsers. A body sent uncompressed is parsed by
+ * StartServer before these run, held to the route's limit
+ * (RequestBodyLimit); a gzip one StartServer only inflates, under the same
+ * limit, and these parse it from those bytes, held to MAX_BODY_SIZE as well
+ * (RequestBodyParser). body-parser alone read the spent stream again, and a
+ * valid gzip body was answered 500 with an error-level log line (#10643).
+ */
+const readForm: RequestHandler = RequestBodyParser.create(ExpressUrlEncoded, {
+  extended: false,
+  limit: MAX_BODY_SIZE,
+});
+
+const readJson: RequestHandler = RequestBodyParser.create(ExpressJson, {
+  limit: MAX_BODY_SIZE,
+});
 
 const TOO_MANY_REQUESTS_DESCRIPTION: string =
   "Too many requests. Please try again later.";
@@ -210,7 +228,7 @@ export function setupMcpOAuthRoutes(app: ExpressApplication): void {
   app.post(
     MCP_OAUTH_AUTHORIZE_PATH,
     requireOAuthEnabled,
-    ExpressUrlEncoded({ extended: false, limit: MAX_BODY_SIZE }),
+    readForm,
     ...authorize.slice(1),
   );
 
@@ -227,7 +245,7 @@ export function setupMcpOAuthRoutes(app: ExpressApplication): void {
     MCP_OAUTH_TOKEN_PATH,
     requireOAuthEnabled,
     corsMiddleware,
-    ExpressUrlEncoded({ extended: false, limit: MAX_BODY_SIZE }),
+    readForm,
     McpOAuthRateLimit.getMiddleware(
       McpOAuthRateLimitBucket.Token,
       rejectAsOAuthError,
@@ -239,7 +257,7 @@ export function setupMcpOAuthRoutes(app: ExpressApplication): void {
     MCP_OAUTH_REGISTER_PATH,
     requireOAuthEnabled,
     corsMiddleware,
-    ExpressJson({ limit: MAX_BODY_SIZE }),
+    readJson,
     McpOAuthRateLimit.getMiddleware(
       McpOAuthRateLimitBucket.Register,
       rejectAsOAuthError,
@@ -251,7 +269,7 @@ export function setupMcpOAuthRoutes(app: ExpressApplication): void {
     MCP_OAUTH_REVOKE_PATH,
     requireOAuthEnabled,
     corsMiddleware,
-    ExpressUrlEncoded({ extended: false, limit: MAX_BODY_SIZE }),
+    readForm,
     McpOAuthRateLimit.getMiddleware(
       McpOAuthRateLimitBucket.Revoke,
       rejectAsOAuthError,
@@ -263,7 +281,7 @@ export function setupMcpOAuthRoutes(app: ExpressApplication): void {
 
   const consent: Array<RequestHandler> = [
     requireOAuthEnabled,
-    ExpressJson({ limit: MAX_BODY_SIZE }),
+    readJson,
     McpOAuthRateLimit.getMiddleware(
       McpOAuthRateLimitBucket.Consent,
       rejectAsApiError,

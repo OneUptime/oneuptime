@@ -23,6 +23,8 @@ import {
 import { getDataRetentionSettingsRoute } from "../Retention/SecurityEventRetentionModel";
 import { formatTimespan } from "../Timespan";
 import { OPEN_SCRUB_RULES } from "../HiddenClientAddressCopy";
+import RefusedTelemetryLines from "../RefusedTelemetry/RefusedTelemetryLines";
+import { RETROHUNT_REFUSED } from "../RefusedTelemetry/RefusedTelemetryCopy";
 import { getHiddenAddressRulesRoute } from "../HiddenClientAddressRoute";
 import Route from "Common/Types/API/Route";
 import {
@@ -375,6 +377,20 @@ const RetrohuntAnswer: FunctionComponent<AnswerProps> = (
       ) : (
         <></>
       )}
+
+      {/*
+       * What an ingestion budget or rate refused in the period (#10431):
+       * the rule never saw it, so "would not have fired" may only mean it
+       * could not look. Without Open Budgets: it would leave a rule being
+       * written.
+       */}
+      <RefusedTelemetryLines
+        refusals={result.refusedTelemetry}
+        showsSource={true}
+        intro={RETROHUNT_REFUSED}
+        showsOpenBudgets={false}
+        dataTestId={RETROHUNT_TEST_IDS.refused}
+      />
 
       {isDetectionRetrohuntNoisy(result) ? (
         <div

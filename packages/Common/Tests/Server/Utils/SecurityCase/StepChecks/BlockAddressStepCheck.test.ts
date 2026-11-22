@@ -219,6 +219,48 @@ describe("a block made by hand, outside OneUptime, and then proven by the reques
   });
 
   /*
+   * #10343: a destination says what it did of its own - Cloudflare, how many
+   * of the address's requests its rule stopped since the block. The step
+   * keeps every holding destination's facts, the newest block's or not,
+   * before what the app's requests say.
+   */
+  test("verified: says what each destination holding the block adds of its own, before the app's requests", async () => {
+    const stopped: AddressBlockEvidence["facts"] = [
+      {
+        template: "Cloudflare has stopped {{count}} requests.",
+        values: { address: "35.205.11.131" },
+        count: 312,
+      },
+    ];
+    const cloudflare: AddressBlockEvidence = {
+      destination: "Cloudflare",
+      appliedAt: at(28),
+      sentence: {
+        template: "{{address}} is blocked at Cloudflare.",
+        values: {},
+      },
+      facts: stopped,
+    };
+    const newer: AddressBlockEvidence = {
+      destination: "AWS WAF",
+      appliedAt: at(30),
+      sentence: { template: "{{address}} is blocked at AWS WAF.", values: {} },
+    };
+    const { result } = await check({
+      appRequests: BLOCKED_BY_HAND,
+      minute: 40,
+      target: target({ task: tick(KEY, 25) }),
+      evidence: { blocks: [cloudflare, newer] },
+    });
+
+    expect(result.state).toBe(SecurityCaseStepCheckState.Verified);
+    // The newest block says the sentence; Cloudflare's count is a fact still.
+    expect(result.evidence.sentence).toEqual(newer.sentence);
+    expect(result.evidence.facts[0]).toEqual(stopped![0]);
+    expect(result.evidence.facts.length).toBeGreaterThanOrEqual(1);
+  });
+
+  /*
    * #10562: the Blocklist that cannot be read says nothing either way - the
    * step says OneUptime could not check it just now and looks again soon,
    * never "not blocked", and never judges by the requests as if no block

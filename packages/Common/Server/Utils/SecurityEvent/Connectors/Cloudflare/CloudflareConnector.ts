@@ -41,6 +41,7 @@ import {
   makeCheck,
   readSettingString,
 } from "../Types";
+import CloudflareBlocking from "./CloudflareBlocking";
 import CloudflareClient, {
   CLOUDFLARE_DEFAULT_MAX_FIELDS,
   CLOUDFLARE_DEFAULT_MAX_PAGE_SIZE,
@@ -73,7 +74,9 @@ import CloudflareClient, {
  * zone, to read its firewall events from the GraphQL Analytics API. Test
  * Connection asks for each in turn and names the one that is missing, and
  * the zones it is missing on. Blocking addresses at Cloudflare needs write
- * permissions; it is a separate opt-in, asked for when it is turned on.
+ * permissions; it is a separate opt-in (#10343), asked for when it is turned
+ * on, and Test Connection checks them only while it is on
+ * (CloudflareBlocking.checkWriteAccess).
  *
  * Each poll reads every zone's firewall events by their time at the edge
  * (CloudflareClient.listFirewallEvents), oldest first, one page per zone in
@@ -735,6 +738,25 @@ export default class CloudflareConnector implements SecurityEventConnector {
         details: { zones: plans },
       }),
     );
+
+    /*
+     * Blocking on (#10343): how it is set up, and the write access it needs,
+     * each asked without writing. Only then: a connection that only reads is
+     * never asked for more than its two read permissions.
+     */
+    if (settings.blocking) {
+      const blocking: CloudflareBlocking = new CloudflareBlocking({
+        client,
+        scope: {
+          projectId: settings.blocking.projectId,
+          accountId: parsed.accountId,
+          readZoneIds: parsed.zoneIds,
+          blockZoneIds: settings.blocking.zoneIds,
+        },
+      });
+
+      checks.push(...(await blocking.checkWriteAccess()).checks);
+    }
 
     if (options.skipAvailability) {
       return { checks };

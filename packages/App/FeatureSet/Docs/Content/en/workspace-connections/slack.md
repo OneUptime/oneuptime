@@ -132,16 +132,16 @@ At each hand-off, an on-call policy's channels hear who is on call, in one line:
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments links to the policy in OneUptime. When the policy pages more than one schedule, the line names the schedule too: Payments (Primary).
-- A person is named by their Slack name once they have connected their Slack account to OneUptime, and by their OneUptime name until then, in every on-call line: hand-offs, overrides, and people added to the policy or taken out. Times show in each reader's own time zone.
+- A person is named by their Slack name once they have connected their Slack account to OneUptime, and by their OneUptime name until then, in every on-call line: hand-offs, overrides, and people added to the policy or taken out. Someone invited who has not joined the project yet is named by the name typed with their invitation, or as "someone who hasn't joined the project yet", never by their email address, here and in the policy's feed. Times show in each reader's own time zone.
 - When several escalation rules of the policy page the same schedule, each hand-off is posted once, not once for each rule.
 
 A rule posts what it chose in its **Updates** step, and a new rule starts on **Key updates only**: who is on call now, and when nobody is. So does a rule made through the API or with Terraform that leaves `updatesToPost` out: send `"updatesToPost": null` for every update. An edit that leaves `updatesToPost` out keeps the updates the rule posts.
 
 | Update | What the channel hears |
 | --- | --- |
-| **Who is on call now** | The line above, at each hand-off. |
-| **Who is on call next** | Who takes over at the next hand-off, and when: at the end of that line, or in a line of its own for a rule that does not post who is on call now. |
-| **Nobody on call** | A schedule left with nobody on call, so alerts that reach it page no one: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **Who is on call now** | The line above, at each hand-off, and when the person on call joins the project during their turn: "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." |
+| **Who is on call next** | Who takes over at the next hand-off, and when: at the end of that line, or in a line of its own for a rule that does not post who is on call now. When the next person has not joined the project yet, nobody takes over, and the line says why: "📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then nobody: Ivy is next but hasn't joined the project yet." |
+| **Nobody on call** | A schedule left with nobody on call, so alerts that reach it page no one: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." Also the turn of someone who has not joined the project yet, as nothing pages them until they do: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." |
 | **User overrides** | An override added, changed or taken back: who is away, and who covers. |
 | **Changes to the policy** | Schedules, people and teams added to its escalation rules or taken out. |
 | **Owners** | Owners added and removed. |

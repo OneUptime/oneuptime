@@ -1,11 +1,12 @@
 # Cloudflare
 
-Importeer in de beveiligingsgebeurtenissen van OneUptime wat de firewall van [Cloudflare](https://www.cloudflare.com) aan de edge deed: de aanvragen die de beheerde en eigen WAF-regels, de rate limiting, de IP Access Rules, het botbeheer en de HTTP-DDoS-bescherming hebben geblokkeerd, uitgedaagd of vastgelegd. Elke aanvraag staat naast de eigen aanvragen van je app, zodat een zaak zegt wat Cloudflare tegenhield en wat je app toch bereikte. OneUptime leest ze met een API-token dat alleen kan lezen, en verandert niets in Cloudflare.
+Importeer in de beveiligingsgebeurtenissen van OneUptime wat de firewall van [Cloudflare](https://www.cloudflare.com) aan de edge deed: de aanvragen die de beheerde en eigen WAF-regels, de rate limiting, de IP Access Rules, het botbeheer en de HTTP-DDoS-bescherming hebben geblokkeerd, uitgedaagd of vastgelegd. Elke aanvraag staat naast de eigen aanvragen van je app, zodat een zaak zegt wat Cloudflare tegenhield en wat je app toch bereikte. OneUptime leest ze met een API-token dat alleen kan lezen, en verandert niets in Cloudflare tenzij je blokkeren aanzet, dat daar je blokkeerlijst toepast.
 
 :::cards
 - [De verbinding instellen](#de-verbinding-instellen): Een API-token met twee leesrechten, en het formulier van de verbinding.
 - [Wat er wordt geïmporteerd](#wat-er-wordt-geïmporteerd): Welke gebeurtenissen, en hoe elke gebeurtenis een beveiligingsgebeurtenis wordt.
 - [Hoe pollen werkt](#hoe-pollen-werkt): Het venster dat elke opvraging leest, en waarom het 10 minuten overlapt.
+- [Adressen blokkeren bij Cloudflare](#adressen-blokkeren-bij-cloudflare): Je blokkeerlijst, toegepast met twee IP-lijsten en één aangepaste regel per lijst.
 - [Problemen oplossen](#problemen-oplossen): Wat elke fout betekent en wat je moet wijzigen.
 :::
 
@@ -63,7 +64,7 @@ De stap **Opvragen** heeft ook een optionele **Beschrijving**, het **Opvraaginte
 
 ### Schrijftoegang is een aparte keuze
 
-Deze verbinding verandert nooit iets in Cloudflare. Daar adressen blokkeren is een aparte toestemming, die schrijfrechten nodig heeft: `Account > Account Filter Lists > Edit` voor de lijsten, `Zone > Zone WAF > Edit` op elke zone waarin geblokkeerd wordt, en `Account > Account Firewall Access Rules > Edit` bij abonnementen zonder genoeg lijsten. Voeg ze pas aan het token toe als je blokkeren inschakelt.
+Deze verbinding verandert niets in Cloudflare totdat je blokkeren aanzet, op haar rij. Pas dan vraagt OneUptime om schrijfrechten, en het controleert ze voordat het iets blokkeert: [Adressen blokkeren bij Cloudflare](#adressen-blokkeren-bij-cloudflare) noemt elk recht en waarvoor het dient. Voeg ze pas aan het token toe als je blokkeren aanzet.
 
 ## Wat er wordt geïmporteerd
 
@@ -151,6 +152,58 @@ Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met d
 
 Elk verzoek in een test heeft een deadline van 20 seconden. Een test importeert nooit iets en verplaatst nooit de cursor, en elke mislukte controle zegt wat je moet wijzigen.
 
+## Adressen blokkeren bij Cloudflare
+
+Met blokkeren aan past Cloudflare de [blokkeerlijst](/docs/telemetry/security-cases#blokkeerlijst) van je project toe. Elk adres dat je blokkeert, komt binnen een minuut op een IP-lijst in je Cloudflare-account, en in elke zone blokkeert één aangepaste regel per lijst de adressen die erop staan, of legt ze een challenge voor. In de **Blokkeerlijst** noemt **Toegepast bij** Cloudflare voor elke blokkering die OneUptime van Cloudflare heeft teruggelezen; een blokkering die niet binnen 10 minuten is teruggelezen, wordt daar niet toegepast. De blokkeerstap van een zaak zegt dan ook hoeveel aanvragen van het adres Cloudflare sinds de blokkering heeft tegengehouden.
+
+Blokkeren heeft schrijfrechten nodig op het API-token van de verbinding:
+
+| Recht | Wat OneUptime ermee doet |
+| --- | --- |
+| `Account > Account Filter Lists > Edit` | Maakt zijn twee lijsten, en voegt hun adressen toe of haalt ze weg. |
+| `Zone > Zone WAF > Edit`, op elke zone waarin geblokkeerd wordt | Voegt zijn aangepaste regels toe, en leest die van de zone zelf. |
+| `Account > Account Firewall Access Rules > Edit` | Voegt IP Access Rules toe en haalt ze weg, bij een abonnement zonder vrije lijst of vrije aangepaste regel. |
+
+:::steps
+### Het token schrijfrechten geven
+
+Open in Cloudflare **My Profile → API Tokens**, bewerk het token van de verbinding en voeg de rechten hierboven toe. Of maak een token dat ze heeft, samen met de twee leesrechten.
+
+### Blokkeren aanzetten
+
+Selecteer op de rij van de verbinding **Adressen blokkeren**. Plak een nieuw token in **Nieuw API-token**, of laat het leeg om het huidige te houden, en laat in **Zones** **Alle zones** staan, of kies de zones waarin geblokkeerd wordt. **Rechten controleren** vraagt Cloudflare of het token elk recht heeft, en verandert niets. **Blokkeren aanzetten** zet blokkeren alleen aan als elke controle slaagt, en OneUptime richt Cloudflare binnen een minuut in.
+:::
+
+Zolang blokkeren aan staat, voert **Verbinding testen** dezelfde controles uit: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** en, waar IP Access Rules worden gebruikt, **Edit IP Access Rules**.
+
+### Wat OneUptime aan Cloudflare toevoegt
+
+| In Cloudflare | Wat het is |
+| --- | --- |
+| De lijsten `oneuptime_block` en `oneuptime_challenge` | Twee IP-lijsten in het account, een voor blokkeringen en een voor challenges. Hun beschrijving noemt je OneUptime-project. |
+| Eén aangepaste regel per lijst, in elke zone | `(ip.src in $oneuptime_block)` met de actie Block, en `(ip.src in $oneuptime_challenge)` met de actie Managed Challenge. Hun beschrijving zegt dat OneUptime ze beheert. |
+| Eén lijstitem per blokkering | Het commentaar noemt de zaak en wanneer de blokkering afloopt, zoals `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
+
+Elke regel komt als eerste van de aangepaste regels van de zone, dus hij loopt vóór die van jou: een Skip-regel van jou kan een geblokkeerd adres er niet langs laten. Als je Skip-regels adressen doorlaten, zoals die van je monitors of van een partner, noemt **Blokkeerstatus** ze. **Deze adressen beschermen** voegt ze toe aan **Beschermde entiteiten**, die niemand kan blokkeren.
+
+### Abonnementslimieten voor blokkeren
+
+| Abonnement | Free | Pro | Business | Enterprise |
+| --- | --- | --- | --- | --- |
+| Lijsten in het account | 1 | 10 | 10 | 1.000 |
+| Lijstitems in het account | 10.000 | 10.000 | 10.000 | 500.000 |
+| Aangepaste regels in een zone | 5 | 20 | 100 | 1.000 |
+
+Je eigen lijsten en regels tellen mee. Als je blokkeren aanzet, neemt elke actie een lijst, en een regel in elke zone, waar het abonnement ze vrij heeft, Block eerst; waar niet, neemt ze IP Access Rules. Bij een Free-abonnement waarvan de ene lijst vrij is, nemen blokkeringen de lijst en challenges IP Access Rules. Een account bevat 50.000 IP Access Rules, elk een adres, een IPv4-bereik van /16 of /24, of een IPv6-bereik van /32, /48 of /64: een blokkering van een ander bereik wordt daar niet toegepast, en de **Blokkeerlijst** zegt waarom. **How blocking is set up** zegt wat elke actie neemt, en waarom.
+
+### Als iemand een regel wijzigt
+
+OneUptime leest zijn lijsten en regels elke 3 minuten terug, en draait nooit een wijziging terug die iemand in Cloudflare heeft gemaakt. Een regel die daar is uitgezet, verwijderd of gewijzigd, verschijnt op de rij van de verbinding en in **Blokkeerstatus**, met zijn zone, en de **Blokkeerlijst** toont de blokkeringen van de regel van die zone als niet toegepast bij Cloudflare. **Terugzetten** richt de regel opnieuw in. Zolang **Zones** op **Alle zones** staat, wordt een zone die later aan het account wordt toegevoegd vanzelf ingericht.
+
+### Blokkeren uitzetten
+
+**Blokkeren uitzetten** vraagt of de lijsten en regels van OneUptime uit Cloudflare moeten worden verwijderd, met **Lijsten en regels van OneUptime uit Cloudflare verwijderen** geselecteerd. Het verwijderen haalt de regels van OneUptime weg, zijn twee lijsten en de IP Access Rules die het heeft toegevoegd, gevonden aan de namen, referenties en notities die het ze gaf, en verder niets. Behouden blijven ze in Cloudflare en blokkeren ze wat ze bevatten. Een verbinding die adressen blokkeert, kan niet worden verwijderd: zet blokkeren eerst uit, en verwijder haar zodra het verwijderen klaar is.
+
 ## Problemen oplossen
 
 De **Laatste fout** van de verbinding bewaart de volledige foutmelding, met afgeschermde inloggegevens. Als een verbinding een fout heeft, selecteer je **Fout bekijken** in haar kolom **Acties** om hem te lezen, en **Fout kopiëren** in het dialoogvenster om hem te kopiëren. Elke melding noemt de aanvraag die mislukte, en citeert de eigen reden van Cloudflare.
@@ -176,7 +229,11 @@ De aanvraag kreeg geen antwoord: een time-out, een naam die niet wordt omgezet, 
 :::
 
 :::details Een zaak toont de acties van Cloudflare, maar geen enkele aanvraag van het adres in je app
-Achter Cloudflare ziet je app de adressen van Cloudflare, tenzij hij dat van de bezoeker uit de header `CF-Connecting-IP` leest. Schrijf dat adres als `client.address` in je logs en traces, zodat OneUptime de aanvragen van je app kan koppelen aan het adres waar Cloudflare op reageerde.
+Achter Cloudflare komen de verzoeken van je app van de adressen van Cloudflare, en het adres van de bezoeker is het laatste dat Cloudflare aan `X-Forwarded-For` toevoegt. Leg die header (`http.request.header.x-forwarded-for`) en het eigen adres van de verbinding (`network.peer.address`) vast in je traces. Zolang deze verbinding bestaat, vertrouwt OneUptime de adressen van Cloudflare als proxy, dus leest het de bezoeker uit de header en koppelt het de verzoeken van je app aan het adres waarop Cloudflare reageerde. Een `client.address` dat je app uit `CF-Connecting-IP` overneemt, wordt niet vertrouwd: iedereen die je app rechtstreeks bereikt, kan die header sturen.
+:::
+
+:::details De blokkeerstatus luidt `already exists in this Cloudflare account`
+Een ander OneUptime-project, of iemand anders, heeft een lijst met de naam `oneuptime_block` of `oneuptime_challenge` gemaakt, en OneUptime wijzigt nooit een lijst die het niet voor dit project heeft gemaakt. Geef die lijst in Cloudflare een andere naam of verwijder haar, of zet blokkeren uit in het project dat haar maakte. OneUptime richt blokkeren binnen 5 minuten opnieuw in.
 :::
 
 :::details De test slaagt, maar Last Polled is Never
