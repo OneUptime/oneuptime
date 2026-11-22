@@ -61391,5 +61391,13 @@
   "{{range}}, which holds {{address}}, is blocked at {{destination}} since {{since}}, last confirmed {{confirmed}}.": "{{range}}, das {{address}} enthält, ist seit {{since}} bei {{destination}} gesperrt, zuletzt bestätigt {{confirmed}}.",
   "{{range}}, which holds {{address}}, is challenged at {{destination}} since {{since}}, last confirmed {{confirmed}}.": "{{range}}, das {{address}} enthält, ist seit {{since}} bei {{destination}} mit einer Challenge belegt, zuletzt bestätigt {{confirmed}}.",
   "{{value}} is blocked once someone else approves it on the case's Playbooks page.": "{{value}} wird gesperrt, sobald eine andere Person dies auf der Playbooks-Seite des Falls genehmigt.",
-  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.": "{{value}} steht auf Ihrer Sperrliste, aber noch setzt kein Ziel die Sperre durch, daher ist es nirgends gesperrt."
+  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.": "{{value}} steht auf Ihrer Sperrliste, aber noch setzt kein Ziel die Sperre durch, daher ist es nirgends gesperrt.",
+  "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}.": "Seit der Challenge vom {{time}} hat Cloudflare etwa {{count}} Anfragen von {{address}} mit einer Challenge belegt.",
+  "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}._one": "Seit der Challenge vom {{time}} hat Cloudflare etwa {{count}} Anfrage von {{address}} mit einer Challenge belegt.",
+  "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}.": "Seit der Challenge vom {{time}} hat Cloudflare {{count}} Anfragen von {{address}} mit einer Challenge belegt.",
+  "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}._one": "Seit der Challenge vom {{time}} hat Cloudflare {{count}} Anfrage von {{address}} mit einer Challenge belegt.",
+  "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}.": "Seit der Sperre vom {{time}} hat Cloudflare etwa {{count}} Anfragen von {{address}} gestoppt.",
+  "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}._one": "Seit der Sperre vom {{time}} hat Cloudflare etwa {{count}} Anfrage von {{address}} gestoppt.",
+  "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}.": "Seit der Sperre vom {{time}} hat Cloudflare {{count}} Anfragen von {{address}} gestoppt.",
+  "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}._one": "Seit der Sperre vom {{time}} hat Cloudflare {{count}} Anfrage von {{address}} gestoppt."
 }

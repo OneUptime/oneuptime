@@ -61391,5 +61391,13 @@
   "{{range}}, which holds {{address}}, is blocked at {{destination}} since {{since}}, last confirmed {{confirmed}}.": "{{range}}, which holds {{address}}, is blocked at {{destination}} since {{since}}, last confirmed {{confirmed}}.",
   "{{range}}, which holds {{address}}, is challenged at {{destination}} since {{since}}, last confirmed {{confirmed}}.": "{{range}}, which holds {{address}}, is challenged at {{destination}} since {{since}}, last confirmed {{confirmed}}.",
   "{{value}} is blocked once someone else approves it on the case's Playbooks page.": "{{value}} is blocked once someone else approves it on the case's Playbooks page.",
-  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.": "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere."
+  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.": "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.",
+  "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}.": "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}.",
+  "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}._one": "Cloudflare has challenged about {{count}} request from {{address}} since the challenge at {{time}}.",
+  "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}.": "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}.",
+  "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}._one": "Cloudflare has challenged {{count}} request from {{address}} since the challenge at {{time}}.",
+  "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}.": "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}.",
+  "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}._one": "Cloudflare has stopped about {{count}} request from {{address}} since the block at {{time}}.",
+  "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}.": "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}.",
+  "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}._one": "Cloudflare has stopped {{count}} request from {{address}} since the block at {{time}}."
 }

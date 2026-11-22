@@ -61391,5 +61391,13 @@
   "{{range}}, which holds {{address}}, is blocked at {{destination}} since {{since}}, last confirmed {{confirmed}}.": "{{range}}, som innehåller {{address}}, är blockerat hos {{destination}} sedan {{since}}, senast bekräftat {{confirmed}}.",
   "{{range}}, which holds {{address}}, is challenged at {{destination}} since {{since}}, last confirmed {{confirmed}}.": "{{range}}, som innehåller {{address}}, är utmanat hos {{destination}} sedan {{since}}, senast bekräftat {{confirmed}}.",
   "{{value}} is blocked once someone else approves it on the case's Playbooks page.": "{{value}} blockeras så snart någon annan godkänner det på ärendets sida Playbooks.",
-  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.": "{{value}} finns på din blocklista, men inget mål tillämpar den än, så den är inte blockerad någonstans."
+  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.": "{{value}} finns på din blocklista, men inget mål tillämpar den än, så den är inte blockerad någonstans.",
+  "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}.": "Cloudflare har utmanat ungefär {{count}} begäranden från {{address}} sedan utmaningen den {{time}}.",
+  "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}._one": "Cloudflare har utmanat ungefär {{count}} begäran från {{address}} sedan utmaningen den {{time}}.",
+  "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}.": "Cloudflare har utmanat {{count}} begäranden från {{address}} sedan utmaningen den {{time}}.",
+  "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}._one": "Cloudflare har utmanat {{count}} begäran från {{address}} sedan utmaningen den {{time}}.",
+  "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}.": "Cloudflare har stoppat ungefär {{count}} begäranden från {{address}} sedan blockeringen den {{time}}.",
+  "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}._one": "Cloudflare har stoppat ungefär {{count}} begäran från {{address}} sedan blockeringen den {{time}}.",
+  "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}.": "Cloudflare har stoppat {{count}} begäranden från {{address}} sedan blockeringen den {{time}}.",
+  "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}._one": "Cloudflare har stoppat {{count}} begäran från {{address}} sedan blockeringen den {{time}}."
 }

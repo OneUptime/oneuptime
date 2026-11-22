@@ -61391,5 +61391,13 @@
   "{{range}}, which holds {{address}}, is blocked at {{destination}} since {{since}}, last confirmed {{confirmed}}.": "{{range}}، الذي يضم {{address}}، محظور في {{destination}} منذ {{since}}، آخر تأكيد {{confirmed}}.",
   "{{range}}, which holds {{address}}, is challenged at {{destination}} since {{since}}, last confirmed {{confirmed}}.": "{{range}}، الذي يضم {{address}}، خاضع للتحدي في {{destination}} منذ {{since}}، آخر تأكيد {{confirmed}}.",
   "{{value}} is blocked once someone else approves it on the case's Playbooks page.": "سيُحظر {{value}} بمجرد أن يوافق عليه شخص آخر في صفحة «أدلة الإجراءات» الخاصة بالحالة.",
-  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.": "{{value}} في قائمة الحظر لديك، لكن لا تطبّقه أي وجهة بعد، لذا فهو غير محظور في أي مكان."
+  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.": "{{value}} في قائمة الحظر لديك، لكن لا تطبّقه أي وجهة بعد، لذا فهو غير محظور في أي مكان.",
+  "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}.": "أخضعت Cloudflare نحو {{count}} من الطلبات من {{address}} للتحدي منذ التحدي في {{time}}.",
+  "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}._one": "أخضعت Cloudflare نحو {{count}} طلب من {{address}} للتحدي منذ التحدي في {{time}}.",
+  "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}.": "أخضعت Cloudflare {{count}} من الطلبات من {{address}} للتحدي منذ التحدي في {{time}}.",
+  "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}._one": "أخضعت Cloudflare {{count}} طلب من {{address}} للتحدي منذ التحدي في {{time}}.",
+  "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}.": "أوقفت Cloudflare نحو {{count}} من الطلبات من {{address}} منذ الحظر في {{time}}.",
+  "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}._one": "أوقفت Cloudflare نحو {{count}} طلب من {{address}} منذ الحظر في {{time}}.",
+  "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}.": "أوقفت Cloudflare {{count}} من الطلبات من {{address}} منذ الحظر في {{time}}.",
+  "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}._one": "أوقفت Cloudflare {{count}} طلب من {{address}} منذ الحظر في {{time}}."
 }

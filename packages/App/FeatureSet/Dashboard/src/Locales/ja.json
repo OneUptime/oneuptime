@@ -61391,5 +61391,13 @@
   "{{range}}, which holds {{address}}, is blocked at {{destination}} since {{since}}, last confirmed {{confirmed}}.": "{{address}} を含む {{range}} は {{since}} から {{destination}} でブロックされています。最終確認は {{confirmed}} です。",
   "{{range}}, which holds {{address}}, is challenged at {{destination}} since {{since}}, last confirmed {{confirmed}}.": "{{address}} を含む {{range}} には {{since}} から {{destination}} でチャレンジが適用されています。最終確認は {{confirmed}} です。",
   "{{value}} is blocked once someone else approves it on the case's Playbooks page.": "ケースのプレイブックページで他のユーザーが承認すると、{{value}} はブロックされます。",
-  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.": "{{value}} はブロックリストに登録されていますが、適用している宛先がまだないため、どこでもブロックされていません。"
+  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.": "{{value}} はブロックリストに登録されていますが、適用している宛先がまだないため、どこでもブロックされていません。",
+  "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}.": "{{time}} のチャレンジ以降、Cloudflare は {{address}} からの約 {{count}} 件のリクエストにチャレンジしました。",
+  "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}._one": "{{time}} のチャレンジ以降、Cloudflare は {{address}} からの約 {{count}} 件のリクエストにチャレンジしました。",
+  "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}.": "{{time}} のチャレンジ以降、Cloudflare は {{address}} からの {{count}} 件のリクエストにチャレンジしました。",
+  "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}._one": "{{time}} のチャレンジ以降、Cloudflare は {{address}} からの {{count}} 件のリクエストにチャレンジしました。",
+  "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}.": "{{time}} のブロック以降、Cloudflare は {{address}} からの約 {{count}} 件のリクエストを阻止しました。",
+  "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}._one": "{{time}} のブロック以降、Cloudflare は {{address}} からの約 {{count}} 件のリクエストを阻止しました。",
+  "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}.": "{{time}} のブロック以降、Cloudflare は {{address}} からの {{count}} 件のリクエストを阻止しました。",
+  "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}._one": "{{time}} のブロック以降、Cloudflare は {{address}} からの {{count}} 件のリクエストを阻止しました。"
 }

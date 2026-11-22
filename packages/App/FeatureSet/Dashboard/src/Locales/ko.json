@@ -61391,5 +61391,13 @@
   "{{range}}, which holds {{address}}, is blocked at {{destination}} since {{since}}, last confirmed {{confirmed}}.": "{{address}}이(가) 포함된 {{range}}은(는) {{since}}부터 {{destination}}에서 차단되어 있습니다. 마지막 확인: {{confirmed}}.",
   "{{range}}, which holds {{address}}, is challenged at {{destination}} since {{since}}, last confirmed {{confirmed}}.": "{{address}}이(가) 포함된 {{range}}에는 {{since}}부터 {{destination}}에서 챌린지가 적용되어 있습니다. 마지막 확인: {{confirmed}}.",
   "{{value}} is blocked once someone else approves it on the case's Playbooks page.": "다른 사람이 케이스의 플레이북 페이지에서 승인하면 {{value}}이(가) 차단됩니다.",
-  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.": "{{value}}은(는) 차단 목록에 있지만 아직 이를 적용하는 대상이 없어 어디에서도 차단되지 않습니다."
+  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.": "{{value}}은(는) 차단 목록에 있지만 아직 이를 적용하는 대상이 없어 어디에서도 차단되지 않습니다.",
+  "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}.": "{{time}} 챌린지 이후 Cloudflare가 {{address}}에서 온 요청 약 {{count}}개에 챌린지를 적용했습니다.",
+  "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}._one": "{{time}} 챌린지 이후 Cloudflare가 {{address}}에서 온 요청 약 {{count}}개에 챌린지를 적용했습니다.",
+  "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}.": "{{time}} 챌린지 이후 Cloudflare가 {{address}}에서 온 요청 {{count}}개에 챌린지를 적용했습니다.",
+  "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}._one": "{{time}} 챌린지 이후 Cloudflare가 {{address}}에서 온 요청 {{count}}개에 챌린지를 적용했습니다.",
+  "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}.": "{{time}} 차단 이후 Cloudflare가 {{address}}에서 온 요청 약 {{count}}개를 막았습니다.",
+  "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}._one": "{{time}} 차단 이후 Cloudflare가 {{address}}에서 온 요청 약 {{count}}개를 막았습니다.",
+  "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}.": "{{time}} 차단 이후 Cloudflare가 {{address}}에서 온 요청 {{count}}개를 막았습니다.",
+  "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}._one": "{{time}} 차단 이후 Cloudflare가 {{address}}에서 온 요청 {{count}}개를 막았습니다."
 }

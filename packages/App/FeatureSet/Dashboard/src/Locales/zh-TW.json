@@ -61391,5 +61391,13 @@
   "{{range}}, which holds {{address}}, is blocked at {{destination}} since {{since}}, last confirmed {{confirmed}}.": "包含 {{address}} 的 {{range}} 自 {{since}} 起在 {{destination}} 上被封鎖，最後確認於 {{confirmed}}。",
   "{{range}}, which holds {{address}}, is challenged at {{destination}} since {{since}}, last confirmed {{confirmed}}.": "包含 {{address}} 的 {{range}} 自 {{since}} 起在 {{destination}} 上被挑戰，最後確認於 {{confirmed}}。",
   "{{value}} is blocked once someone else approves it on the case's Playbooks page.": "其他人在案例的「劇本」頁面上核准後，{{value}} 即被封鎖。",
-  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.": "{{value}} 在你的封鎖清單中，但還沒有目標執行它，因此它在任何地方都未被封鎖。"
+  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.": "{{value}} 在你的封鎖清單中，但還沒有目標執行它，因此它在任何地方都未被封鎖。",
+  "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}.": "自 {{time}} 挑戰以來，Cloudflare 已挑戰來自 {{address}} 的約 {{count}} 個請求。",
+  "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}._one": "自 {{time}} 挑戰以來，Cloudflare 已挑戰來自 {{address}} 的約 {{count}} 個請求。",
+  "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}.": "自 {{time}} 挑戰以來，Cloudflare 已挑戰來自 {{address}} 的 {{count}} 個請求。",
+  "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}._one": "自 {{time}} 挑戰以來，Cloudflare 已挑戰來自 {{address}} 的 {{count}} 個請求。",
+  "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}.": "自 {{time}} 封鎖以來，Cloudflare 已攔截來自 {{address}} 的約 {{count}} 個請求。",
+  "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}._one": "自 {{time}} 封鎖以來，Cloudflare 已攔截來自 {{address}} 的約 {{count}} 個請求。",
+  "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}.": "自 {{time}} 封鎖以來，Cloudflare 已攔截來自 {{address}} 的 {{count}} 個請求。",
+  "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}._one": "自 {{time}} 封鎖以來，Cloudflare 已攔截來自 {{address}} 的 {{count}} 個請求。"
 }

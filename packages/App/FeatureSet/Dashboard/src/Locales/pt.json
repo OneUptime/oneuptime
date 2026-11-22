@@ -61391,5 +61391,13 @@
   "{{range}}, which holds {{address}}, is blocked at {{destination}} since {{since}}, last confirmed {{confirmed}}.": "{{range}}, que contém {{address}}, está bloqueado em {{destination}} desde {{since}}, confirmado pela última vez {{confirmed}}.",
   "{{range}}, which holds {{address}}, is challenged at {{destination}} since {{since}}, last confirmed {{confirmed}}.": "{{range}}, que contém {{address}}, está sob desafio em {{destination}} desde {{since}}, confirmado pela última vez {{confirmed}}.",
   "{{value}} is blocked once someone else approves it on the case's Playbooks page.": "{{value}} será bloqueado assim que outra pessoa aprovar na página Playbooks do caso.",
-  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.": "{{value}} está na sua lista de bloqueio, mas nenhum destino o aplica ainda, então não está bloqueado em lugar nenhum."
+  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.": "{{value}} está na sua lista de bloqueio, mas nenhum destino o aplica ainda, então não está bloqueado em lugar nenhum.",
+  "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}.": "A Cloudflare submeteu a desafio cerca de {{count}} requisições de {{address}} desde o desafio de {{time}}.",
+  "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}._one": "A Cloudflare submeteu a desafio cerca de {{count}} requisição de {{address}} desde o desafio de {{time}}.",
+  "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}.": "A Cloudflare submeteu a desafio {{count}} requisições de {{address}} desde o desafio de {{time}}.",
+  "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}._one": "A Cloudflare submeteu a desafio {{count}} requisição de {{address}} desde o desafio de {{time}}.",
+  "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}.": "A Cloudflare parou cerca de {{count}} requisições de {{address}} desde o bloqueio de {{time}}.",
+  "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}._one": "A Cloudflare parou cerca de {{count}} requisição de {{address}} desde o bloqueio de {{time}}.",
+  "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}.": "A Cloudflare parou {{count}} requisições de {{address}} desde o bloqueio de {{time}}.",
+  "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}._one": "A Cloudflare parou {{count}} requisição de {{address}} desde o bloqueio de {{time}}."
 }

@@ -61391,5 +61391,13 @@
   "{{range}}, which holds {{address}}, is blocked at {{destination}} since {{since}}, last confirmed {{confirmed}}.": "{{range}}, जिसमें {{address}} शामिल है, {{since}} से {{destination}} पर ब्लॉक है, अंतिम पुष्टि {{confirmed}}।",
   "{{range}}, which holds {{address}}, is challenged at {{destination}} since {{since}}, last confirmed {{confirmed}}.": "{{range}}, जिसमें {{address}} शामिल है, पर {{since}} से {{destination}} पर चैलेंज लगा है, अंतिम पुष्टि {{confirmed}}।",
   "{{value}} is blocked once someone else approves it on the case's Playbooks page.": "किसी और के केस के प्लेबुक पेज पर स्वीकृति देते ही {{value}} ब्लॉक हो जाएगा।",
-  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.": "{{value}} आपकी ब्लॉकलिस्ट में है, लेकिन अभी कोई गंतव्य इसे लागू नहीं करता, इसलिए यह कहीं भी ब्लॉक नहीं है।"
+  "{{value}} is on your Blocklist, but no destination enforces it yet, so it is not blocked anywhere.": "{{value}} आपकी ब्लॉकलिस्ट में है, लेकिन अभी कोई गंतव्य इसे लागू नहीं करता, इसलिए यह कहीं भी ब्लॉक नहीं है।",
+  "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}.": "{{time}} पर चैलेंज के बाद से Cloudflare ने {{address}} के लगभग {{count}} अनुरोधों को चैलेंज किया है।",
+  "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}._one": "{{time}} पर चैलेंज के बाद से Cloudflare ने {{address}} के लगभग {{count}} अनुरोध को चैलेंज किया है।",
+  "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}.": "{{time}} पर चैलेंज के बाद से Cloudflare ने {{address}} के {{count}} अनुरोधों को चैलेंज किया है।",
+  "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}._one": "{{time}} पर चैलेंज के बाद से Cloudflare ने {{address}} के {{count}} अनुरोध को चैलेंज किया है।",
+  "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}.": "{{time}} पर ब्लॉक के बाद से Cloudflare ने {{address}} के लगभग {{count}} अनुरोध रोके हैं।",
+  "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}._one": "{{time}} पर ब्लॉक के बाद से Cloudflare ने {{address}} का लगभग {{count}} अनुरोध रोका है।",
+  "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}.": "{{time}} पर ब्लॉक के बाद से Cloudflare ने {{address}} के {{count}} अनुरोध रोके हैं।",
+  "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}._one": "{{time}} पर ब्लॉक के बाद से Cloudflare ने {{address}} का {{count}} अनुरोध रोका है।"
 }
