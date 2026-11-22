@@ -34,8 +34,10 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import {
+  CLEAR_PROJECT_PERSON_SIGN_IN_NOT_CLEARABLE_MESSAGE,
   CLEAR_PROJECT_SIGN_IN_NEEDS_MANAGED_SSO_MESSAGE,
   LocalSignInSettings,
+  PersonSavedSignInSettings,
 } from "../../../Types/SSO/LocalSignInClearing";
 import { SignInSettingsClearedBy } from "../../../Types/SSO/SignInSettingsClearedEmail";
 import { getJestSpyOn } from "../../Spy";
@@ -100,6 +102,7 @@ const keyOf: (id: ObjectID | string) => string = (
 
 const SETTINGS: LocalSignInSettings = {
   hasPassword: true,
+  hasPasswordResetLink: false,
   isTwoFactorAuthEnabled: true,
   authenticatorAppCount: 1,
   passkeyAndSecurityKeyCount: 1,
@@ -240,6 +243,14 @@ beforeEach(() => {
 
       const rows: Array<WorldMembership> = memberships.filter(
         (membership: WorldMembership): boolean => {
+          // Only the people a query names, when it names some (#9993).
+          if (
+            query["userId"] !== undefined &&
+            !readQueryValues(query["userId"]).includes(keyOf(membership.userId))
+          ) {
+            return false;
+          }
+
           if (query["projectId"] !== undefined) {
             return (
               keyOf(membership.projectId) ===
@@ -250,9 +261,7 @@ beforeEach(() => {
             );
           }
 
-          return readQueryValues(query["userId"]).includes(
-            keyOf(membership.userId),
-          );
+          return true;
         },
       );
 
@@ -677,13 +686,10 @@ describe("the clear", () => {
     }
   });
 
-  test("emails each person cleared, as cleared by an owner of the project, in the background", async () => {
+  test("emails each person cleared, as cleared by an owner of the project, named by its id (#9991)", async () => {
     const acme: WorldProject = ownedProject("Acme Production");
     const alice: ObjectID = person();
     joins(alice, acme);
-
-    // An email that never goes: the clear answers anyway.
-    notifyCleared.mockReturnValue(new Promise<void>((): void => {}));
 
     await expect(clear(acme)).resolves.toBe(1);
 
@@ -691,16 +697,32 @@ describe("the clear", () => {
     const events: Array<SignInSettingsClearedEmailEvent> = notifyCleared.mock
       .calls[0]![0] as Array<SignInSettingsClearedEmailEvent>;
 
+    // The project by its id: its name is read when the email is written.
     expect(events).toEqual([
       {
         userId: alice,
         cleared: SETTINGS,
         clearedBy: SignInSettingsClearedBy.ProjectOwner,
-        projectName: "Acme Production",
+        projectId: acme.id,
       },
     ]);
+    expect(JSON.stringify(events)).not.toContain("Acme Production");
     // Nothing about the owner who cleared them.
     expect(JSON.stringify(events)).not.toContain(OWNER_ID.toString());
+  });
+
+  test("answers once every batch's emails are queued: the queue's own time limit bounds the wait", async () => {
+    const acme: WorldProject = ownedProject("Acme");
+    joins(person(), acme);
+
+    let isQueued: boolean = false;
+    notifyCleared.mockImplementation(async (): Promise<void> => {
+      await Promise.resolve();
+      isQueued = true;
+    });
+
+    await expect(clear(acme)).resolves.toBe(1);
+    expect(isQueued).toBe(true);
   });
 
   test("a master admin made one in the middle of a clear is neither recorded nor emailed", async () => {
@@ -778,5 +800,407 @@ describe("the clear", () => {
     expect(logger.info).toHaveBeenCalledWith(
       expect.stringContaining(acme.id.toString()),
     );
+  });
+});
+
+/*
+ * ONE MEMBER AT A TIME, FROM THE PROJECT'S USERS LIST (#9993).
+ *
+ * The list of which members the owner may clear, and the clear of one of
+ * them, hold the count's rule exactly - every allowed and refused case
+ * above, case by case - and one more: the list names only members of this
+ * project that the page asked about, so it names nobody the owner does not
+ * already see on its Users list. The clear of one is the bulk clear's own
+ * batch: the same audit entry, the same email.
+ */
+
+const listFor: (
+  worldProject: WorldProject,
+  asked: Array<ObjectID>,
+) => Promise<Array<PersonSavedSignInSettings>> = async (
+  worldProject: WorldProject,
+  asked: Array<ObjectID>,
+): Promise<Array<PersonSavedSignInSettings>> => {
+  return await ProjectSignInClearing.readSavedSettingsOfMembers({
+    projectId: worldProject.id,
+    ownerUserId: OWNER_ID,
+    userIds: asked,
+  });
+};
+
+const listedIds: (
+  worldProject: WorldProject,
+  asked: Array<ObjectID>,
+) => Promise<Array<string>> = async (
+  worldProject: WorldProject,
+  asked: Array<ObjectID>,
+): Promise<Array<string>> => {
+  return (await listFor(worldProject, asked)).map(
+    (listed: PersonSavedSignInSettings): string => {
+      return listed.userId;
+    },
+  );
+};
+
+const clearOne: (
+  worldProject: WorldProject,
+  userId: ObjectID,
+) => Promise<number> = async (
+  worldProject: WorldProject,
+  userId: ObjectID,
+): Promise<number> => {
+  return await ProjectSignInClearing.clearMember({
+    projectId: worldProject.id,
+    ownerUserId: OWNER_ID,
+    userId: userId,
+  });
+};
+
+describe("one member at a time: who the list names, and who an owner may clear", () => {
+  test("a member whose only project is this one, owned and managing sign-in: listed with what they have, and cleared", async () => {
+    const acme: WorldProject = ownedProject("Acme");
+    const alice: ObjectID = person();
+    joins(alice, acme);
+
+    await expect(listFor(acme, [alice])).resolves.toEqual([
+      { userId: keyOf(alice), settings: SETTINGS },
+    ]);
+    await expect(clearOne(acme, alice)).resolves.toBe(1);
+    expect(clearedIds()).toEqual([keyOf(alice)]);
+  });
+
+  test("a member of several of the owner's projects, every one managing sign-in", async () => {
+    const production: WorldProject = ownedProject("Acme Production");
+    const staging: WorldProject = ownedProject("Acme Staging");
+    const alice: ObjectID = person();
+    joins(alice, production);
+    joins(alice, staging, { isInvitationOnly: true });
+
+    await expect(listedIds(production, [alice])).resolves.toEqual([
+      keyOf(alice),
+    ]);
+    await expect(clearOne(production, alice)).resolves.toBe(1);
+  });
+
+  test("only the people asked about: a clearable member the page did not show is never named", async () => {
+    const acme: WorldProject = ownedProject("Acme");
+    const alice: ObjectID = person();
+    const bob: ObjectID = person();
+    joins(alice, acme);
+    joins(bob, acme);
+
+    await expect(listedIds(acme, [alice])).resolves.toEqual([keyOf(alice)]);
+  });
+
+  test("only members of this project: somebody from another of the owner's projects, asked about here, is not named, nor cleared from here", async () => {
+    const acme: WorldProject = ownedProject("Acme");
+    const staging: WorldProject = ownedProject("Acme Staging");
+    const carol: ObjectID = person();
+    joins(carol, staging);
+
+    await expect(listedIds(acme, [carol])).resolves.toEqual([]);
+    await expect(clearOne(acme, carol)).rejects.toThrow(
+      new BadDataException(CLEAR_PROJECT_PERSON_SIGN_IN_NOT_CLEARABLE_MESSAGE),
+    );
+    // Listed and cleared from the project they are in.
+    await expect(listedIds(staging, [carol])).resolves.toEqual([keyOf(carol)]);
+  });
+
+  test("a person nobody knows of, asked about by id, is nobody", async () => {
+    const acme: WorldProject = ownedProject("Acme");
+
+    await expect(listedIds(acme, [ObjectID.generate()])).resolves.toEqual([]);
+  });
+
+  test("nobody asked about is nobody, with nothing read", async () => {
+    const acme: WorldProject = ownedProject("Acme");
+    joins(person(), acme);
+
+    await expect(listFor(acme, [])).resolves.toEqual([]);
+    expect(LocalSignInClearing.readSettings).not.toHaveBeenCalled();
+  });
+
+  test("what the list says they have is what the clear reads before it clears them", async () => {
+    const acme: WorldProject = ownedProject("Acme");
+    const alice: ObjectID = person();
+    joins(alice, acme);
+
+    const own: LocalSignInSettings = {
+      ...SETTINGS,
+      hasPassword: false,
+      hasPasswordResetLink: true,
+      backupCodeCount: 3,
+    };
+    getJestSpyOn(LocalSignInClearing, "readSettings").mockResolvedValue(own);
+
+    await expect(listFor(acme, [alice])).resolves.toEqual([
+      { userId: keyOf(alice), settings: own },
+    ]);
+  });
+
+  describe("the refused cases, each refused on the list and on the clear", () => {
+    let acme: WorldProject;
+    let alice: ObjectID;
+
+    beforeEach(() => {
+      acme = ownedProject("Acme");
+      alice = person();
+      joins(alice, acme);
+    });
+
+    const expectRefused: (who: ObjectID) => Promise<void> = async (
+      who: ObjectID,
+    ): Promise<void> => {
+      await expect(listedIds(acme, [who])).resolves.toEqual([]);
+      await expect(clearOne(acme, who)).rejects.toThrow(
+        new BadDataException(CLEAR_PROJECT_PERSON_SIGN_IN_NOT_CLEARABLE_MESSAGE),
+      );
+      expect(clearPeople).not.toHaveBeenCalled();
+      expect(recordCleared).not.toHaveBeenCalled();
+      expect(notifyCleared).not.toHaveBeenCalled();
+    };
+
+    test("also in a project that does not require SSO", async () => {
+      joins(
+        alice,
+        project("Side Project", {
+          requireSsoForLogin: false,
+          manageSignInWithSso: false,
+        }),
+      );
+
+      await expectRefused(alice);
+    });
+
+    test("also in a project that requires SSO but does not manage sign-in with it, even the owner's", async () => {
+      const keepsItsOwn: WorldProject = project("Keeps Its Own", {
+        manageSignInWithSso: false,
+      });
+      owns(keepsItsOwn);
+      joins(alice, keepsItsOwn);
+
+      await expectRefused(alice);
+    });
+
+    test("also in another organization's project: the owner owns only some of their projects", async () => {
+      joins(alice, project("Another Org"));
+
+      await expectRefused(alice);
+    });
+
+    test("only invited to another organization's project", async () => {
+      joins(alice, project("Another Org"), { isInvitationOnly: true });
+
+      await expectRefused(alice);
+    });
+
+    test("also in a project the owner is only a Project Admin of", async () => {
+      const adminOnly: WorldProject = project("Admin Only");
+      owns(adminOnly, [Permission.ProjectAdmin]);
+      joins(alice, adminOnly);
+
+      await expectRefused(alice);
+    });
+
+    test("also in a project where a team blocks the owner's Project Owner", async () => {
+      const blocked: WorldProject = project("Blocked");
+      owns(blocked, [Permission.ProjectOwner], [Permission.ProjectOwner]);
+      joins(alice, blocked);
+
+      await expectRefused(alice);
+    });
+
+    test("a master admin, whatever their projects", async () => {
+      const admin: ObjectID = person({ isMasterAdmin: true });
+      joins(admin, acme);
+
+      await expectRefused(admin);
+    });
+
+    test("the owner themselves, asked about by their own id, in any case", async () => {
+      await expectRefused(OWNER_ID);
+      await expectRefused(new ObjectID(OWNER_ID.toString().toUpperCase()));
+    });
+
+    test("somebody with nothing saved", async () => {
+      const bob: ObjectID = person({ hasSettings: false });
+      joins(bob, acme);
+
+      await expectRefused(bob);
+    });
+
+    test("somebody only invited to this project", async () => {
+      const bob: ObjectID = person();
+      joins(bob, acme, { isInvitationOnly: true });
+
+      await expectRefused(bob);
+    });
+  });
+
+  test("somebody who is not an owner of this project lists nobody and clears nobody, whatever else they own", async () => {
+    const acme: WorldProject = project("Acme");
+    owns(acme, [Permission.ProjectAdmin]);
+    joins(OWNER_ID, acme);
+    const alice: ObjectID = person();
+    joins(alice, acme);
+
+    await expect(listedIds(acme, [alice])).resolves.toEqual([]);
+    await expect(clearOne(acme, alice)).rejects.toThrow(
+      CLEAR_PROJECT_PERSON_SIGN_IN_NOT_CLEARABLE_MESSAGE,
+    );
+    expect(clearPeople).not.toHaveBeenCalled();
+  });
+
+  test("a project that does not manage sign-in with SSO lists nobody, and its clear is refused", async () => {
+    const acme: WorldProject = project("Acme", { manageSignInWithSso: false });
+    owns(acme);
+    const alice: ObjectID = person();
+    joins(alice, acme);
+
+    await expect(listFor(acme, [alice])).resolves.toEqual([]);
+    await expect(clearOne(acme, alice)).rejects.toThrow(
+      new BadDataException(CLEAR_PROJECT_SIGN_IN_NEEDS_MANAGED_SSO_MESSAGE),
+    );
+    expect(clearPeople).not.toHaveBeenCalled();
+  });
+
+  test("a project that does not exist lists nobody, and is not found", async () => {
+    const gone: WorldProject = project("Gone", { isDeleted: true });
+
+    await expect(listFor(gone, [person()])).resolves.toEqual([]);
+    await expect(clearOne(gone, person())).rejects.toThrow(NotFoundException);
+  });
+
+  test("the rule is read again right before the clear: somebody who joined another organization since the list is not cleared", async () => {
+    const acme: WorldProject = ownedProject("Acme");
+    const alice: ObjectID = person();
+    joins(alice, acme);
+
+    await expect(listedIds(acme, [alice])).resolves.toEqual([keyOf(alice)]);
+
+    joins(alice, project("Another Org"));
+
+    await expect(clearOne(acme, alice)).rejects.toThrow(
+      CLEAR_PROJECT_PERSON_SIGN_IN_NOT_CLEARABLE_MESSAGE,
+    );
+    expect(clearPeople).not.toHaveBeenCalled();
+  });
+
+  test("somebody made a master admin between the rule and the write is not cleared, recorded or emailed, and the clear says so", async () => {
+    const acme: WorldProject = ownedProject("Acme");
+    const alice: ObjectID = person();
+    joins(alice, acme);
+
+    clearPeople.mockResolvedValue({ clearedUserIds: [], sessionsEnded: 0 });
+
+    await expect(clearOne(acme, alice)).rejects.toThrow(
+      CLEAR_PROJECT_PERSON_SIGN_IN_NOT_CLEARABLE_MESSAGE,
+    );
+    expect(
+      (recordCleared.mock.calls[0]?.[0] as Array<unknown> | undefined) || [],
+    ).toEqual([]);
+    expect(
+      (notifyCleared.mock.calls[0]?.[0] as Array<unknown> | undefined) || [],
+    ).toEqual([]);
+  });
+});
+
+describe("one member at a time: the clear is the bulk clear's, for one person", () => {
+  test("a master admin's clear of exactly that person, never a master admin", async () => {
+    const acme: WorldProject = ownedProject("Acme");
+    const alice: ObjectID = person();
+    const bob: ObjectID = person();
+    joins(alice, acme);
+    joins(bob, acme);
+
+    await clearOne(acme, alice);
+
+    expect(clearPeople).toHaveBeenCalledTimes(1);
+    expect(clearPeople.mock.calls[0]![0]).toEqual({
+      userIds: [alice],
+      isMasterAdminIncluded: false,
+    });
+  });
+
+  test("the same audit entry and the same email as a bulk clear's of that person", async () => {
+    const acme: WorldProject = ownedProject("Acme Production");
+    const alice: ObjectID = person();
+    joins(alice, acme);
+
+    await clearOne(acme, alice);
+    const oneAudit: unknown = recordCleared.mock.calls[0]![0];
+    const oneEmail: unknown = notifyCleared.mock.calls[0]![0];
+
+    recordCleared.mockClear();
+    notifyCleared.mockClear();
+
+    await clear(acme);
+    const bulkAudit: unknown = recordCleared.mock.calls[0]![0];
+    const bulkEmail: unknown = notifyCleared.mock.calls[0]![0];
+
+    expect(oneAudit).toEqual(bulkAudit);
+    expect(oneEmail).toEqual(bulkEmail);
+    expect(oneAudit).toEqual([
+      { userId: alice, clearedByUserId: OWNER_ID, cleared: SETTINGS },
+    ]);
+    expect(oneEmail).toEqual([
+      {
+        userId: alice,
+        cleared: SETTINGS,
+        clearedBy: SignInSettingsClearedBy.ProjectOwner,
+        projectId: acme.id,
+      },
+    ]);
+  });
+
+  test("what was there is read before it is cleared, for the entry and the email", async () => {
+    const acme: WorldProject = ownedProject("Acme");
+    const alice: ObjectID = person();
+    joins(alice, acme);
+
+    const order: Array<string> = [];
+    getJestSpyOn(LocalSignInClearing, "readSettings").mockImplementation(
+      async (): Promise<LocalSignInSettings> => {
+        order.push("read");
+        return SETTINGS;
+      },
+    );
+    clearPeople.mockImplementation(
+      async (): Promise<{
+        clearedUserIds: Array<ObjectID>;
+        sessionsEnded: number;
+      }> => {
+        order.push("clear");
+        return { clearedUserIds: [alice], sessionsEnded: 1 };
+      },
+    );
+    recordCleared.mockImplementation(async (): Promise<void> => {
+      order.push("audit");
+    });
+    notifyCleared.mockImplementation(async (): Promise<void> => {
+      order.push("email");
+    });
+
+    await clearOne(acme, alice);
+
+    expect(order).toEqual(["read", "clear", "audit", "email"]);
+  });
+
+  test("says in the server's log which owner cleared whom, in which project", async () => {
+    const acme: WorldProject = ownedProject("Acme");
+    const alice: ObjectID = person();
+    joins(alice, acme);
+
+    await clearOne(acme, alice);
+
+    const logged: string = (logger.info as unknown as jest.Mock).mock.calls
+      .map((call: Array<unknown>): string => {
+        return String(call[0]);
+      })
+      .join("\n");
+
+    expect(logged).toContain(OWNER_ID.toString());
+    expect(logged).toContain(alice.toString());
+    expect(logged).toContain(acme.id.toString());
   });
 });
