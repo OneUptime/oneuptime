@@ -1531,6 +1531,8 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   attributes: rawException.attributes,
                 },
                 data.scrubRules,
+                // Its span's rules: a rule for another service leaves it as it leaves the span (#10433).
+                spanContext.primaryEntityId,
               )
             : rawException;
 

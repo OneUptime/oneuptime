@@ -1,13 +1,13 @@
 # Datos sensibles en la telemetría
 
-La telemetría contiene todo lo que escribe tu código: una dirección de correo electrónico en una línea de registro, un número de tarjeta en un atributo de span, un token en una traza de pila, la pregunta de un cliente en un prompt, la dirección IP de un usuario en la etiqueta de una métrica. Seguridad de datos trata los registros, las trazas, las métricas, las excepciones y las conversaciones de IA de cada servicio, y las sesiones de cada aplicación RUM, como almacenes de datos propios. Los muestrea cada hora, encuentra datos sensibles en ellos igual que en un bucket, y **Depurar** convierte un hallazgo en una regla que enmascara esos datos en la ingesta a partir de entonces.
+La telemetría contiene todo lo que escribe tu código: una dirección de correo electrónico en una línea de registro, un número de tarjeta en un atributo de span, un token en una traza de pila, la pregunta de un cliente en un prompt, la dirección IP de un usuario en la etiqueta de una métrica. Seguridad de datos trata los registros, las trazas, las métricas, las excepciones y las conversaciones de IA de cada servicio, y las sesiones de cada aplicación RUM, como almacenes de datos propios. Los muestrea cada hora, encuentra datos sensibles en ellos igual que en un bucket, y **Depurar** convierte un hallazgo en una regla que oculta esos datos en la ingesta a partir de entonces, en el servicio donde se encontraron.
 
 No hay nada que configurar: la telemetría de cada servicio se escanea cada hora, salvo que **Escanear telemetría** esté desactivado en los ajustes del proyecto. Para dejar fuera los registros, las trazas u otra de las señales de un servicio, desactiva **Escanear contenido** en los **Ajustes** de ese almacén: desde el siguiente escaneo, no se lee nada de ello.
 
 :::cards
 - [Qué se lee](#qué-se-lee): Los atributos, cuerpos, mensajes y prompts de cada señal.
 - [Cómo muestrea un escaneo](#cómo-muestrea-un-escaneo): Las entradas más recientes de cada servicio, cada hora.
-- [Depurar](#depurar): Enmascara un hallazgo en la ingesta, con un clic.
+- [Depurar](#depurar): Oculta un hallazgo en la ingesta, en el servicio donde se encontró.
 - [Descartar esta métrica](#descartar-esta-métrica): Deja de almacenar las métricas cuyos nombres contienen datos sensibles.
 - [Qué cuenta como depurado](#qué-cuenta-como-depurado): Cuándo una regla de depuración ya cubre un hallazgo.
 :::
@@ -94,14 +94,14 @@ Abre el problema - **Dónde se encontró** enumera cada hallazgo que lo causa - 
 
 ### Pulsa Depurar
 
-Haz clic en **Depurar**. OneUptime crea una regla de depuración de registros para los registros y los registros de una aplicación RUM, una regla de depuración de trazas para los spans, las excepciones y las llamadas de IA, sobre la parte de la entrada en la que está el hallazgo, y una regla de canalización de métricas para el atributo de una métrica.
+Haz clic en **Depurar**. Un diálogo dice qué haría la regla antes de crear nada: los registros de quién cambia, qué hace con lo que encuentra y qué lee los valores que ocultaría. Haz clic en **Depurar** en él para crear la regla. OneUptime crea una regla de depuración de registros para los registros y los registros de una aplicación RUM, una regla de depuración de trazas para los spans, las excepciones y las llamadas de IA, sobre la parte de la entrada en la que está el hallazgo, y una regla de canalización de métricas para el atributo de una métrica.
 
 ### Corrige también el código
 
-La regla enmascara los datos nuevos antes de guardarlos. Los datos ya guardados se quedan hasta que termina su retención, así que corrige el código que los escribe: el hallazgo nombra el servicio y el atributo.
+La regla oculta los datos nuevos antes de guardarlos. Los datos ya guardados se quedan hasta que termina su retención, así que corrige el código que los escribe: el hallazgo nombra el servicio y el atributo.
 :::
 
-La regla se nombra por lo que oculta, como «Data Security: Email address in attributes.user.email», y aparece junto a tus demás reglas de depuración (consulta [Filtros de descarte y reglas de depuración](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles)). Es una de estas:
+La regla se nombra por lo que oculta, como «Data Security: Email address in log attributes of checkout», y aparece junto a tus demás reglas de depuración (consulta [Filtros de descarte y reglas de depuración](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles)). Es una de estas:
 
 | Hallazgo | Regla que crea Depurar |
 | --- | --- |
@@ -109,6 +109,10 @@ La regla se nombra por lo que oculta, como «Data Security: Email address in att
 | Un valor bajo una clave que parece sensible, como `password` o `token` | Una regla de **Claves de atributos sensibles**, que oculta el valor completo de cada atributo de ese tipo |
 | Cualquier otro tipo de datos que un patrón pueda encontrar | Una regla de **Expresión regular personalizada** creada a partir de los propios patrones del tipo de datos, que oculta cada valor con su forma |
 | Cualquier tipo de datos en el atributo de una métrica | Una regla de canalización de métricas **Ocultar atributo** para el servicio, que sustituye por `[REDACTED]` los valores del atributo con la forma del tipo de datos, o cada valor del atributo cuando ningún patrón encuentra el tipo de datos |
+
+Una regla de registros o de trazas es para el servicio donde se encontró el hallazgo: depura los registros o los spans de ese servicio, y los de los demás servicios se quedan como están, así que nada de lo que lee los suyos cambia. La columna **Alcance** de la lista de reglas de depuración dice para qué servicio es una regla. Un hallazgo en las grabaciones de sesión de una aplicación RUM crea una regla para todos los servicios y aplicaciones del proyecto, ya que las reglas de registros también depuran las grabaciones, y el diálogo lo dice. Si el servicio ya no existe, **Depurar** lo dice y no crea ninguna regla.
+
+El diálogo nombra, cada uno como un enlace, los monitores, los paneles con sus widgets, las vistas guardadas, las reglas de grabación y los SLO que leen los valores que la regla ocultaría, y qué les pasa: un filtro sobre un valor oculto deja de coincidir, y una agrupación por él ya no muestra los valores reales. También dice qué perderían los [Eventos de seguridad](/docs/telemetry/security-events) cuando leen esos registros: con las direcciones IP ocultas, sus eventos no pueden nombrar la dirección que hay que bloquear. Lo que no puedes ver se cuenta, nunca se nombra. El diálogo nunca detiene la regla: lo dice, y tú decides. Los formularios de las reglas de depuración muestran lo mismo antes de guardar o activar una regla.
 
 Algunos hallazgos no se pueden depurar con una regla, y **Depurar** dice por qué. El atributo de una métrica siempre se puede depurar, ya que su regla puede ocultar cada valor del atributo:
 
@@ -139,6 +143,7 @@ Un hallazgo se marca como depurado solo cuando la ingesta le aplicaría una regl
 
 - **Las entradas correctas.** Las reglas de registros cubren los registros y los registros de una aplicación RUM. Las reglas de trazas cubren los spans, las excepciones y las llamadas de IA: una excepción es una copia del evento de excepción de su span, así que las reglas que depuran eventos también la depuran a ella.
 - **La parte correcta.** Los **Campos a depurar** de la regla incluyen la parte de la entrada en la que está el hallazgo, o la regla los deja en su valor por defecto.
+- **El servicio correcto.** Una regla de registros o de trazas para un servicio solo cubre los hallazgos de ese servicio. Una regla sin servicio cubre los de todos los servicios.
 - **Un patrón que encuentra el tipo.** Un **Tipo de patrón** integrado encuentra su propio tipo de datos: **Dirección de correo electrónico** encuentra direcciones de correo electrónico, **Número de tarjeta de crédito** números de tarjeta, **SSN (número de la Seguridad Social)** números de la Seguridad Social de EE. UU., **Número de teléfono** números de teléfono y **Dirección IP** direcciones IP. **Claves de atributos sensibles** cubre cada valor bajo una clave que parece sensible, sea cual sea el valor.
 - **Tus propios patrones personalizados nunca cuentan.** Una **Expresión regular personalizada** cubre un hallazgo solo cuando es exactamente el patrón que crea **Depurar** para su tipo. Un hallazgo solo conserva muestras enmascaradas, sobre las que no se puede probar ningún patrón, así que OneUptime no podría demostrar que tu patrón oculta los datos, y un hallazgo marcado como depurado por error es una fuga que nadie mira.
 - **El atributo de una métrica.** Una regla de canalización de métricas **Ocultar atributo** o **Eliminar atributo** sobre la clave de ese atributo, para el servicio del hallazgo o para todo el proyecto, lo cubre cuando no tiene ningún filtro, o tiene exactamente el filtro que crea **Depurar**. Un filtro que escribiste tú nunca cuenta, por la misma razón.
