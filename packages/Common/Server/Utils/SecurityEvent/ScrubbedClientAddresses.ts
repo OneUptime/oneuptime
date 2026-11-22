@@ -8,11 +8,13 @@ import ObjectID from "../../../Types/ObjectID";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import {
   AddressScrubRule,
-  HiddenClientAddress,
+  HiddenAddress,
+  SCRUBBED_ADDRESS_ROLES,
+  ScrubbedAddressRole,
   ScrubbedAddressSignal,
   findScrubRuleThatHid,
-  nameClientAddressScrubRule,
-  readHiddenClientAddress,
+  nameAddressScrubRule,
+  readHiddenAddress,
 } from "../../../Utils/SecurityEvent/ScrubbedAddress";
 import { SECURITY_LOG_RESOURCE_ID_ATTRIBUTE } from "../../../Types/SecurityCase/SecurityConnection";
 import { getScrubRuleServiceId } from "../../../Types/Telemetry/ScrubRuleScope";
@@ -42,6 +44,9 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * Where the address vault (#10395) looks a Hash rule's token up, before
  * this: an event whose token it resolves names its address, and is no
  * event for this to read.
+ *
+ * An event's destination a rule hid (#10419) - a firewall's, read from the
+ * same log line - names its rule the same way, in its own marker.
  */
 
 // As long as ingest keeps the rules it runs (LogScrubRuleService's cache).
@@ -186,8 +191,9 @@ export default class ScrubbedClientAddresses {
   }
 
   /*
-   * Each event of a page whose client address a scrub rule hid names the
-   * project's rule that explains it, when one does. In place.
+   * Each address of a page's events a scrub rule hid - the client's, and
+   * the destination's (#10419) - names the project's rule that explains it,
+   * when one does. In place.
    */
   @CaptureSpan()
   public static async nameScrubRules(data: {
@@ -196,15 +202,17 @@ export default class ScrubbedClientAddresses {
   }): Promise<void> {
     const hidden: Array<{
       event: NormalizedSecurityEvent;
-      address: HiddenClientAddress;
+      role: ScrubbedAddressRole;
+      address: HiddenAddress;
     }> = [];
 
     for (const event of data.events) {
-      const address: HiddenClientAddress | null =
-        readHiddenClientAddress(event);
+      for (const role of SCRUBBED_ADDRESS_ROLES) {
+        const address: HiddenAddress | null = readHiddenAddress(event, role);
 
-      if (address && address.place && address.signal) {
-        hidden.push({ event, address });
+        if (address && address.place && address.signal) {
+          hidden.push({ event, role, address });
+        }
       }
     }
 
@@ -219,7 +227,7 @@ export default class ScrubbedClientAddresses {
 
     for (const signal of ["log", "trace"] as Array<ScrubbedAddressSignal>) {
       const isNeeded: boolean = hidden.some(
-        (item: { address: HiddenClientAddress }): boolean => {
+        (item: { address: HiddenAddress }): boolean => {
           return item.address.signal === signal;
         },
       );
@@ -258,7 +266,7 @@ export default class ScrubbedClientAddresses {
         : null;
 
       if (rule) {
-        nameClientAddressScrubRule(item.event.attributes, rule);
+        nameAddressScrubRule(item.event.attributes, item.role, rule);
       }
     }
   }
