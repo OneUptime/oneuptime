@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 60451,
+    "keys": 61243,
     "untranslated": 2307
   },
   "sameAsEnglish": [
@@ -378,6 +378,7 @@
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
+    "Real",
     "Recordsets",
     "Red Hat OpenShift",
     "Redis",
