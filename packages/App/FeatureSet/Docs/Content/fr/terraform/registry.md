@@ -55,6 +55,8 @@ terraform {
 
 L'adresse source ne nomme aucun registre : Terraform la lit dans le Terraform Registry, et OpenTofu dans l'OpenTofu Registry, qui publient les mêmes versions.
 
+Une version publiée ne change jamais : les registres gardent les sommes de contrôle de ce qu'ils ont téléchargé en premier, et `init` vérifie chaque téléchargement par rapport à elles. Une version à réparer est publiée de nouveau comme la version de correctif suivante, qu'une plage prend en compte, et les notes de cette version disent quelle version elle remplace.
+
 ## Le fichier de verrouillage
 
 `terraform init` enregistre la version qu'il a choisie, et les sommes de contrôle de ses téléchargements, dans `.terraform.lock.hcl`. Commitez ce fichier : chaque machine et chaque exécution de CI installent alors exactement cette version, jusqu'à ce que vous en choisissiez une autre. Les sommes de contrôle couvrent chaque plateforme que publie le registre, si bien qu'un fichier de verrouillage sert aussi bien les machines sous Linux, macOS et Windows.
@@ -77,7 +79,7 @@ Le fichier de verrouillage nomme le registre. OpenTofu écrit `registry.opentofu
 :::steps
 ### Lire ce qui a changé
 
-[Les versions de OneUptime](https://github.com/OneUptime/oneuptime/releases) disent ce que chaque version a changé, le fournisseur compris. [Les versions du fournisseur](https://github.com/OneUptime/terraform-provider-oneuptime/releases) renvoient aux changements depuis la précédente.
+[Les versions de OneUptime](https://github.com/OneUptime/oneuptime/releases) disent ce que chaque version a changé, le fournisseur compris. [Les versions du fournisseur](https://github.com/OneUptime/terraform-provider-oneuptime/releases) disent ce que chacune a changé dans le fournisseur : d'abord ce qui casse une configuration, puis les nouvelles ressources et sources de données, et les attributs qui ont changé.
 
 ### La télécharger
 
