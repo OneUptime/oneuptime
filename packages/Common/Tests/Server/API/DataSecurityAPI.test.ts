@@ -1828,7 +1828,9 @@ describe("What Scrub It would do", () => {
       { id: STORE_ID.toString() },
     );
 
-    expect((result.thrown as Exception).message).toBe("Scrub It hides data in telemetry as it arrives; this finding is in a data store, not in telemetry.");
+    expect((result.thrown as Exception).message).toBe(
+      "Scrub It hides data in telemetry as it arrives; this finding is in a data store, not in telemetry.",
+    );
     expect(impactSpy).not.toHaveBeenCalled();
   });
 });
@@ -4819,10 +4821,11 @@ describe("the record of processing", () => {
     answer: DataSecurityRecordOfProcessingResponse,
     name: string,
   ): DataSecurityRecordOfProcessingRow {
-    const row: DataSecurityRecordOfProcessingRow | undefined =
-      answer.rows.find((candidate: DataSecurityRecordOfProcessingRow) => {
+    const row: DataSecurityRecordOfProcessingRow | undefined = answer.rows.find(
+      (candidate: DataSecurityRecordOfProcessingRow) => {
         return candidate.name === name;
-      });
+      },
+    );
 
     if (!row) {
       throw new Error(`The record has no row for ${name}.`);
@@ -5006,8 +5009,7 @@ describe("the record of processing", () => {
 
     expect(result.thrown).toBeUndefined();
     expect(
-      (result.answer as unknown as DataSecurityRecordOfProcessingResponse)
-        .rows,
+      (result.answer as unknown as DataSecurityRecordOfProcessingResponse).rows,
     ).toHaveLength(1);
   });
 });

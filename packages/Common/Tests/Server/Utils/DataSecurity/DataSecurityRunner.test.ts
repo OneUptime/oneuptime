@@ -431,7 +431,9 @@ describe("listProjectIds", () => {
       '"SecurityTelemetrySource"',
       '"NetworkDevice"',
     ]) {
-      expect(sql).toContain(`SELECT DISTINCT "projectId" FROM ${table} WHERE "deletedAt" IS NULL`);
+      expect(sql).toContain(
+        `SELECT DISTINCT "projectId" FROM ${table} WHERE "deletedAt" IS NULL`,
+      );
     }
   });
 });

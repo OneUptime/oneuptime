@@ -372,9 +372,9 @@ describe("a project with security events and network flows", () => {
     );
 
     expect(
-      (
-        await DeclaredDataStores.declareProject(PROJECT_ID, { now: later })
-      )[DataStoreKind.SecurityEvents],
+      (await DeclaredDataStores.declareProject(PROJECT_ID, { now: later }))[
+        DataStoreKind.SecurityEvents
+      ],
     ).toBe(DeclaredStoreChange.Refreshed);
     expect(updatesOf(rowOf(DataStoreKind.SecurityEvents)!)).toEqual([
       { lastSeenAt: later },
@@ -509,9 +509,7 @@ describe("a project whose data is gone", () => {
     expect(events.isArchived).toBe(false);
     expect(events.purpose).toBe("Our own words");
     expect(events.retention).toBe("A year");
-    expect(updatesOf(events)).toEqual([
-      { isArchived: false, lastSeenAt: NOW },
-    ]);
+    expect(updatesOf(events)).toEqual([{ isArchived: false, lastSeenAt: NOW }]);
     expect(restoredFeedSpy).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       dataStoreId: events.id,
@@ -635,7 +633,9 @@ describe("the address vault", () => {
       ],
     ).toBe(DeclaredStoreChange.Archived);
     expect(vault.isArchived).toBe(true);
-    expect(keptForDays).toBeGreaterThan(SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS);
+    expect(keptForDays).toBeGreaterThan(
+      SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS,
+    );
   });
 });
 
@@ -791,7 +791,9 @@ describe("what OneUptime declares of a store", () => {
       readerNames: [],
       dataTypeNames: ["IP address"],
     });
-    expect(DeclaredDataStores.getReadPermissions(DataStoreKind.SecurityAddressVault)).toEqual([]);
+    expect(
+      DeclaredDataStores.getReadPermissions(DataStoreKind.SecurityAddressVault),
+    ).toEqual([]);
     expect(SECURITY_EVENTS_SCANS_ONLY_TEXT).toBe(
       "Only Security Events' scans, inside OneUptime",
     );
@@ -802,10 +804,11 @@ describe("what OneUptime declares of a store", () => {
       purpose: "Detecting and blocking attacks on our shop",
       retention: "  ",
     });
-    const declared: DataSecurityDeclaredStore = (await DeclaredDataStores.describe({
-      projectId: PROJECT_ID,
-      store,
-    }))!;
+    const declared: DataSecurityDeclaredStore =
+      (await DeclaredDataStores.describe({
+        projectId: PROJECT_ID,
+        store,
+      }))!;
 
     expect(declared.isPurposeTheTeams).toBe(true);
     // Only spaces is no retention of theirs: OneUptime's stands.

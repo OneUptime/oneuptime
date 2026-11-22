@@ -151,7 +151,7 @@ describe("declaring them", () => {
       "SecurityAddressVaultService",
       "AddressVault/SecurityAddressVaultLookup",
       "AddressVault/SecurityAddressVaultWriter",
-      "Models/AnalyticsModels/SecurityAddressVault\"",
+      'Models/AnalyticsModels/SecurityAddressVault"',
       "SecurityAddressVaultV1",
       "AnalyticsTableName",
     ]) {

@@ -21,7 +21,9 @@ import { describe, expect, test } from "@jest/globals";
  * it - while a database a team runs itself is added as ever.
  */
 
-type CreateHook = (createBy: CreateBy<DataStore>) => Promise<OnCreate<DataStore>>;
+type CreateHook = (
+  createBy: CreateBy<DataStore>,
+) => Promise<OnCreate<DataStore>>;
 
 function onBeforeCreate(): CreateHook {
   const service: { onBeforeCreate: CreateHook } =
