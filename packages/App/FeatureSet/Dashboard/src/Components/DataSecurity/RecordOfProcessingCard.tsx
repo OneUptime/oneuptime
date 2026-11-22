@@ -27,7 +27,7 @@ import { isDataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Card from "Common/UI/Components/Card/Card";
+import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
@@ -116,8 +116,8 @@ const RecordOfProcessingCard: FunctionComponent = (): ReactElement => {
   const hasRows: boolean = Boolean(rows && rows.length > 0);
 
   // The CSV in sight, the JSON in the header's ⋯, as a framework's report has them.
-  const buttons: Array<ReactElement> = hasRows
-    ? getTableHeaderButtons([
+  const exportButtons: Array<CardButtonSchema> = hasRows
+    ? [
         {
           title: "Export CSV",
           icon: IconProp.Download,
@@ -134,7 +134,7 @@ const RecordOfProcessingCard: FunctionComponent = (): ReactElement => {
             downloadRecordOfProcessingJson(rows || []);
           },
         },
-      ])
+      ]
     : [];
 
   let body: ReactElement;
@@ -321,7 +321,7 @@ const RecordOfProcessingCard: FunctionComponent = (): ReactElement => {
     <Card
       title="Record of Processing"
       description={RECORD_DESCRIPTION}
-      buttons={buttons}
+      buttons={getTableHeaderButtons(exportButtons)}
     >
       <div data-testid="data-security-record-of-processing-card">{body}</div>
     </Card>
